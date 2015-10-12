@@ -7,6 +7,8 @@ or [KUBSAN] (http://developerblog.redhat.com/2014/10/16/gcc-undefined-behavior-s
 
 Project [mailing list](https://groups.google.com/forum/#!forum/syzkaller).
 
+List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
+
 This is work-in-progress, some things may not work yet.
 
 ## Usage
