@@ -1,0 +1,1134 @@
+# Description of syscall arguments.
+
+# A syscall is described as:
+#	syscallname "(" [arg ["," arg]*] ")" [type]
+#	arg = argname type
+#	argname = identifier
+#	type = typename [ "[" type-options "]" ]
+#	typename = "fd" | "fileoff" | "buffer" | "vma" , "len" | "flags" | "filename" | "ptr" | "array" | "intN" | "intptr"
+#	type-options = [type-opt ["," type-opt]]
+# common type-options include:
+#	"opt" - the argument is optional (like mmap fd argument, or accept peer argument)
+# rest of the type-options are type-specific:
+#	"fd": file descriptor, type-options: kind of fd (file/sock/pipe/rand) (optional)
+#	"fileoff": offset within a file, type-options: argname of the file
+#	"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options: direction (in/out/inout)
+#	"string": a pointer to a memory buffer, similar to buffer[in]
+#	"vma": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise)
+#	"len": length of buffer/vma/arrayptr (for array it is number of elements), type-options: argname of the object
+#	"flags": a set of flags, type-options: reference to flags description
+#	"filename": a file/link/dir name
+#	"ptr": a pointer to an object, type-options: type of the object; direction (in/out/inout)
+#	"array": a variable-length array, type-options: type of elements
+#	"intN"/"intptr": an integer without a particular meaning
+# flags/len/flags also have trailing underlying type type-option when used in structs/pointers.
+#
+# Flags are described as:
+#	flagname = const ["," const]
+#
+# Structs are described as:
+#	structname struct "{" "\n" (fieldname type "\n")+ "}"
+
+include <sys/types.h>
+include <sys/socket.h>
+include <sys/select.h>
+include <sys/ptrace.h>
+include <sys/fanotify.h>
+include <sys/inotify.h>
+include <sys/resource.h>
+include <sys/stat.h>
+include <sys/xattr.h>
+include <sys/mman.h>
+include <sys/time.h>
+include <sys/ipc.h>
+include <sys/shm.h>
+include <sys/msg.h>
+include <sys/sem.h>
+include <sys/prctl.h>
+include <sys/mount.h>
+include <sys/epoll.h>
+include <sys/signalfd.h>
+include <sys/eventfd.h>
+include <sys/timerfd.h>
+include <sys/personality.h>
+include <sys/wait.h>
+include <sys/user.h>
+
+include <linux/futex.h>
+include <linux/aio_abi.h>
+include <linux/kexec.h>
+include <linux/seccomp.h>
+include <linux/elf.h>
+
+include <asm/prctl.h>
+
+include <fcntl.h>
+include <sched.h>
+include <mqueue.h>
+include <time.h>
+include <numaif.h>
+
+
+
+
+open(file filename, flags flags[open_flags], mode flags[open_mode]) fd
+openat(fd fd[dir], file filename, flags flags[open_flags], mode flags[open_mode]) fd
+creat(file filename, mode flags[open_mode]) fd
+close(fd fd)
+read(fd fd, buf buffer[out], count len[buf]) len[buf]
+pread64(fd fd, buf buffer[out], count len[buf], pos fileoff[fd])
+readv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec])
+preadv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec], off fileoff[fd])
+write(fd fd, buf buffer[in], count len[buf]) len[buf]
+pwrite64(fd fd, buf buffer[in], count len[buf], pos fileoff[fd])
+writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
+pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off fileoff[fd])
+lseek(fd fd, offset fileoff[fd], whence flags[seek_whence])
+
+dup(oldfd fd) fd
+dup2(oldfd fd, newfd fd) fd
+dup3(oldfd fd, newfd fd, flags flags[dup_flags]) fd
+
+pipe(pipefd ptr[out, pipefd])
+pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
+
+tee(fdin fd, fdout fd, len int64, f flags[splice_flags])
+splice(fdin fd, offin fileoff[fdin], fdout fd, offout fileoff[fdout], len int64, f flags[splice_flags])
+vmsplice(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], f flags[splice_flags])
+sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[fdin, int64], opt], count int64)
+
+stat(file filename, statbuf ptr[out, stat])
+lstat(file filename, statbuf ptr[out, stat])
+fstat(fd fd, statbuf ptr[out, stat])
+
+poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
+ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask ptr[in, sigset], size len[sigmask])
+select(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timeval])
+pselect6(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timespec], sig ptr[in, sigset_size])
+
+epoll_create(size int32) fd[epoll]
+epoll_create1(flags flags[epoll_flags]) fd[epoll]
+epoll_ctl(epfd fd[epoll], op flags[epoll_op], fd fd, ev ptr[in, epoll_event])
+epoll_wait(epfd fd[epoll], events ptr[out, array[epoll_event]], maxevents len[events], timeout int32)
+epoll_pwait(epfd fd[epoll], events ptr[out, array[epoll_event]], maxevents len[events], timeout int32, sigmask ptr[in, sigset], size len[sigmask])
+
+signalfd(fd fd, mask ptr[in, sigset], size len[mask]) fd[signal]
+signalfd4(fd fd, mask ptr[in, sigset], size len[mask], flags flags[signalfd_flags]) fd[signal]
+eventfd(initval int32) fd[event]
+eventfd2(initval int32, flags flags[eventfd_flags]) fd[event]
+timerfd_create(clockid flags[clock_type], flags flags[timerfd_create_flags]) fd[timer]
+timerfd_settime(fd fd[timer], flags flags[timerfd_settime_flags], new ptr[in, itimerspec], old ptr[out, itimerspec])
+timerfd_gettime(fd fd[timer], cur ptr[out, itimerspec])
+
+mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd[file, opt], offset fileoff[fd]) vma
+munmap(addr vma, len len[addr])
+mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma) vma
+remap_file_pages(addr vma, size len[addr], prot flags[mmap_prot], pgoff intptr, flags flags[mmap_flags])
+mprotect(addr vma, len len[addr], prot flags[mmap_prot])
+msync(addr vma, len len[addr], f flags[msync_flags])
+madvise(addr vma, len len[addr], advice flags[madvise_flags])
+fadvise64(fd fd, offset fileoff[fd], len intptr, advice flags[fadvise_flags])
+readahead(fd fd, off intptr, count intptr)
+mbind(addr vma, len len[addr], mode flags[mbind_mode], nodemask ptr[in, int64], maxnode intptr, flags flags[mbind_flags])
+move_pages(pid pid, nr len[pages], pages ptr[in, array[vma]], nodes ptr[in, array[int32], opt], status ptr[out, array[int32]], flags flags[move_pages_flags])
+migrate_pages(pid pid, maxnode intptr, old ptr[in, int64], new ptr[in, int64])
+set_mempolicy(mode flags[mbind_mode], nodemask ptr[in, int64], maxnode intptr)
+get_mempolicy(mode ptr[out, int32], nodemask ptr[out, int64], maxnode intptr, addr vma, flags flags[mempolicy_flags])
+mincore(addr vma, size len[addr], vec buffer[out])
+mlock(addr vma, size len[addr])
+munlock(addr vma, size len[addr])
+mlockall(flags flags[mlockall_flags])
+munlockall()
+unshare(flags flags[clone_flags])
+kcmp(pid1 pid, pid2 pid, type flags[kcmp_flags], fd1 fd, fd2 fd)
+
+futex(addr ptr[in, int32], op flags[futex_op], val intptr, timeout ptr[in, timespec], addr2 ptr[in, int32], val3 intptr)
+set_robust_list(head ptr[in, robust_list], len len[head])
+get_robust_list(pid pid, head ptr[in, ptr[out, robust_list]], len ptr[inout, len[head, intptr]])
+restart_syscall()
+
+socket(domain flags[socket_domain], type flags[socket_type], proto int8) fd[sock]
+socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, pipefd])
+accept(fd fd[sock], peer ptr[out, sockaddr, opt], peerlen ptr[inout, len[peer, int32]]) fd[sock]
+accept4(fd fd[sock], peer ptr[out, sockaddr, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) fd[sock]
+# TODO: must not bind to port 0, that will result in a random port which is not reproducible
+bind(fd fd[sock], addr ptr[in, sockaddr], addrlen len[addr])
+listen(fd fd[sock], backlog int32)
+connect(fd fd[sock], addr ptr[in, sockaddr], addrlen len[addr])
+shutdown(fd fd[sock], how flags[shutdown_flags])
+sendto(fd fd[sock], buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr, opt], addrlen len[addr])
+sendmsg(fd fd[sock], msg ptr[in, send_msghdr], f flags[send_flags])
+sendmmsg(fd fd[sock], mmsg ptr[in, array[send_msghdr]], vlen len[mmsg], f flags[send_flags])
+recvfrom(fd fd[sock], buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr, opt], addrlen len[addr])
+recvmsg(fd fd[sock], msg ptr[in, recv_msghdr], f flags[recv_flags])
+recvmmsg(fd fd[sock], mmsg ptr[in, array[recv_msghdr]], vlen len[mmsg], f flags[recv_flags])
+getsockname(fd fd[sock], addr ptr[out, sockaddr], addrlen ptr[inout, len[addr, int32]])
+getpeername(fd fd[sock], peer ptr[out, sockaddr], peerlen ptr[inout, len[peer, int32]])
+# TODO: describe level/optname
+getsockopt(fd fd[sock], level int32, optname int32, optval ptr[out, ioctl_arg], optlen ptr[inout, len[optval, int32]])
+setsockopt(fd fd[sock], level int32, optname int32, optval ptr[in, ioctl_arg], optlen len[optval])
+
+# Almighty!
+ioctl(fd fd, cmd int32, arg ptr[inout, ioctl_arg])
+
+fcntl$dupfd(fd fd, cmd flags[fcntl_dupfd], arg fd) fd
+fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
+fcntl$setflags(fd fd, cmd flags[fcntl_setflags], flags flags[fcntl_flags])
+fcntl$setstatus(fd fd, cmd flags[fcntl_setstatus], flags flags[fcntl_status])
+fcntl$lock(fd fd, cmd flags[fcntl_lock], lock ptr[in, flock])
+fcntl$getown(fd fd, cmd flags[fcntl_getown]) pid
+fcntl$setown(fd fd, cmd flags[fcntl_setown], pid pid)
+fcntl$getownex(fd fd, cmd flags[fcntl_getownex], arg ptr[out, f_owner_ex])
+fcntl$setownex(fd fd, cmd flags[fcntl_setownex], arg ptr[in, f_owner_ex])
+fcntl$setsig(fd fd, cmd flags[fcntl_setsig], sig signalno)
+fcntl$setlease(fd fd, cmd flags[fcntl_setlease], typ flags[flock_type])
+fcntl$notify(fd fd, cmd flags[fcntl_notify], typ flags[fcntl_notify])
+fcntl$setpipe(fd fd, cmd flags[fcntl_setpipe], sz intptr)
+
+ptrace(req flags[ptrace_req], pid pid)
+ptrace$peek(req flags[ptrace_req_peek], pid pid, addr ptr[out, intptr])
+ptrace$poke(req flags[ptrace_req_poke], pid pid, addr ptr[out, intptr], data intptr)
+ptrace$peekuser(req flags[ptrace_req_peekuser], pid pid, addr intptr)
+ptrace$pokeuser(req flags[ptrace_req_peekuser], pid pid, addr intptr, data intptr)
+ptrace$getregs(req flags[ptrace_req_getregs], pid pid, ignored intptr, data buffer[out])
+ptrace$getregset(req flags[ptrace_req_getregset], pid pid, what flags[pthread_regset], data ptr[in, iovec_out])
+ptrace$setregs(req flags[ptrace_req_setregs], pid pid, ignored intptr, data buffer[in])
+ptrace$setregset(req flags[ptrace_req_setregset], pid pid, what flags[pthread_regset], data ptr[in, iovec_in])
+ptrace$getsig(req flags[ptrace_req_getsig], pid pid, ignored intptr, data ptr[out, siginfo])
+ptrace$setsig(req flags[ptrace_req_setsig], pid pid, ignored intptr, data ptr[in, siginfo])
+ptrace$setopts(req flags[ptrace_req_setopts], pid pid, ignored intptr, flags flags[ptrace_options])
+ptrace$getenv(req flags[ptrace_req_getenv], pid pid, ignored intptr, data ptr[out, intptr])
+ptrace$cont(req flags[ptrace_req_cont], pid pid, ignored intptr, data intptr)
+
+io_setup(n int32, ctx ptr[out, io_ctx])
+io_destroy(ctx io_ctx)
+io_getevents(ctx io_ctx, min_nr intptr, nr len[events], events ptr[out, array[io_event]], timeout ptr[in, timespec])
+io_submit(ctx io_ctx, nr len[iocbpp], iocbpp ptr[in, array[ptr[in, iocb]]])
+# TODO: iocb should be the same pointer passed to io_submit, so the pointer itself should be a resource
+io_cancel(ctx io_ctx, iocb ptr[in, iocb], res ptr[out, io_event])
+
+capget(hdr ptr[in, cap_header], data ptr[in, cap_data])
+capset(hdr ptr[in, cap_header], data ptr[in, cap_data])
+
+# TODO: in some cases args are pointers and other interesting values
+prctl(option flags[prctl_code], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+arch_prctl(code flags[arch_prctl_code], addr ptr[in, ioctl_arg])
+seccomp(op flags[seccomp_op], flags flags[seccomp_flags], prog ptr[in, sock_fprog])
+
+add_key(type string, desc string, payload buffer[in, opt], paylen len[payload], keyring flags[keyring_type]) key
+request_key(type string, desc string, callout string, keyring flags[keyring_type]) key
+# TODO: there must be something interesting in args (see security/keys/keyctl.c)
+# arg2 is usually a key, but not always
+keyctl(code flags[keyctl_code], key key, arg2 string, arg3 intptr, arg4 intptr, arg5 intptr)
+
+mq_open(name string, flags flags[mq_open_flags], mode flags[open_mode], attr ptr[in, mq_attr]) fd[mq]
+mq_timedsend(mqd fd[mq], msg buffer[in], msglen len[msg], prio intptr, timeout ptr[in, timespec, opt])
+mq_timedreceive(mqd fd[mq], msg buffer[out], msglen len[msg], prio intptr, timeout ptr[in, timespec, opt])
+mq_notify(mqd fd[mq], notif ptr[in, sigevent])
+mq_getsetattr(mqd fd[mq], attr ptr[in, mq_attr], oldattr ptr[out, mq_attr, opt])
+mq_unlink(name string)
+
+msgget(key int32, flags flags[msgget_flags]) ipc[msq]
+msgsnd(msqid ipc[msq], msgp buffer[in], flags flags[msg_flags])
+msgrcv(msqid ipc[msq], msgp buffer[out], sz len[msgp], typ intptr, flags flags[msg_flags])
+msgctl(msqid ipc[msq], cmd flags[msgctl_cmd], buf ptr[inout, msqid_ds])
+
+semget(key int32, nsems intptr, flags flags[semget_flags]) ipc[sem]
+semop(semid ipc[sem], ops ptr[in, array[sembuf]], nops len[ops])
+semtimedop(semid ipc[sem], ops ptr[in, array[sembuf]], nops len[ops], timeout ptr[in, timespec])
+semctl(semid ipc[sem], semnum intptr, cmd flags[semctl_cmd], arg ptr[in, semid_ds])
+
+# The unused arg is unused by syscall (does not exist at all),
+# but it helps to generate sane size values.
+shmget(key int32, size len[unused], flags flags[shmget_flags], unused vma) ipc[shm]
+shmat(shmid ipc[shm], addr vma, flags flags[shmat_flags])
+shmctl(shmid ipc[shm], cmd flags[shmctl_cmd], buf ptr[inout, shmid_ds])
+shmdt(addr vma)
+
+mknod(file filename, mode flags[mknod_mode], dev int32)
+mknodat(dirfd fd[dir], file filename, mode flags[mknod_mode], dev int32)
+chmod(file filename, mode flags[open_mode])
+fchmod(fd fd, mode flags[open_mode])
+fchmodat(dirfd fd[dir], file filename, mode flags[open_mode])
+chown(file filename, uid uid, gid gid)
+lchown(file filename, uid uid, gid gid)
+fchown(fd fd, uid uid, gid gid)
+fchownat(dirfd fd[dir], file filename, uid uid, gid gid, flags flags[fchownat_flags])
+fallocate(fd fd, mode flags[fallocate_mode], off intptr, len intptr)
+faccessat(dirfd fd[dir], pathname filename, mode flags[open_mode], flags flags[faccessat_flags])
+utime(filename filename, times ptr[in, utimbuf])
+utimes(filename filename, times ptr[in, itimerval])
+futimesat(dir fd[dir], pathname filename, times ptr[in, itimerval])
+utimensat(dir fd[dir], pathname filename, times ptr[in, itimerval], flags flags[utimensat_flags])
+
+getgid() gid
+getegid() gid
+setuid(uid uid)
+setgid(gid gid)
+getuid() uid
+geteuid() uid
+setpgid(pid pid, pgid pid)
+getpgid(pid pid) pid
+getpgrp(pid pid) pid
+getpid() pid
+gettid() pid
+setreuid(ruid uid, euid uid)
+setregid(rgid gid, egid gid)
+setresuid(ruid uid, euid uid, suid uid)
+setresgid(rgid gid, egid gid, sgid gid)
+getresuid(ruid ptr[out, uid], euid ptr[out, uid], suid ptr[out, uid])
+getresgid(rgid ptr[out, gid], egid ptr[out, gid], sgid ptr[out, gid])
+setfsuid(fsuid uid)
+setfsgid(fsgid gid)
+getgroups(size len[list], list ptr[inout, array[gid]])
+setgroups(size len[list], list ptr[in, array[gid]])
+personality(persona flags[personality_flags])
+# Don't mess with parent (fuzzer). If we ptrace attach to it, it will hang.
+# If we setrlimit for parent, it will misbehave. Killing - the same. Nothing good.
+#getppid() pid
+#getsid(pid pid) pid
+#setsid() pid
+
+inotify_init() fd[inotify]
+inotify_init1(flags flags[inotify_flags]) fd[inotify]
+inotify_add_watch(fd fd[inotify], file filename, mask flags[inotify_mask]) inotifydesc
+inotify_rm_watch(fd fd[inotify], wd inotifydesc)
+fanotify_init(flags flags[fanotify_flags], events flags[fanotify_events]) fd[fanotify]
+fanotify_mark(fd fd[fanotify], flags flags[fanotify_mark], mask flags[fanotify_mask], fd fd[dir], path filename)
+
+link(old filename, new filename)
+linkat(oldfd fd[dir], old filename, newfd fd[dir], new filename, flags flags[linkat_flags])
+symlinkat(old filename, newfd fd[dir], new filename)
+symlink(old filename, new filename)
+unlink(path filename)
+unlinkat(fd fd[dir], path filename, flags flags[unlinkat_flags])
+readlink(path filename, buf buffer[out], siz len[buf])
+readlinkat(fd fd[dir], path filename, buf buffer[out], siz len[buf])
+rename(old filename, new filename)
+renameat(oldfd fd[dir], old filename, newfd fd[dir], new filename)
+renameat2(oldfd fd[dir], old filename, newfd fd[dir], new filename, flags flags[renameat2_flags])
+mkdir(path filename, mode flags[open_mode])
+mkdirat(fd fd[dir], path filename, mode flags[open_mode])
+rmdir(path filename)
+truncate(file filename, len intptr)
+ftruncate(fd fd, len intptr)
+flock(fd fd, op flags[flock_op])
+fsync(fd fd)
+fdatasync(fd fd)
+sync()
+syncfs(fd fd)
+sync_file_range(fd fd, off intptr, nbytes intptr, flags flags[sync_file_flags])
+lookup_dcookie(cookie int64, buf buffer[out], len len[buf])
+getdents(fd fd[dir], ent buffer[out], count len[ent])
+getdents64(fd fd[dir], ent buffer[out], count len[ent])
+name_to_handle_at(fd fd[dir], file filename, handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])
+open_by_handle_at(mountdirfd fd, handle ptr[in, file_handle], flags flags[open_flags])
+
+mount(src filename, dst filename, type string, flags flags[mount_flags], data buffer[in])
+umount2(path filename, flags flags[umount_flags])
+pivot_root(new_root filename, put_old filename)
+
+# TODO: arg1 is a string for option=1
+sysfs(option flags[sysfs_opt], arg1 intptr, arg2 string)
+statfs(path filename, buf buffer[out])
+fstatfs(fd fd, buf buffer[out])
+
+uselib(lib filename)
+init_module(mod string, len len[mod], args string)
+finit_module(fd fd, args string, flags flags[finit_module_flags])
+delete_module(name string, flags flags[delete_module_flags])
+kexec_load(entry intptr, nr_segments len[segments], segments ptr[in, array[kexec_segment]], flags flags[kexec_load_flags])
+get_kernel_syms(table buffer[out])
+syslog(cmd flags[syslog_cmd], buf buffer[out, opt], len len[buf])
+uname(buf buffer[out])
+sysinfo(info buffer[out])
+ustat(dev intptr, buf ptr[out, ustat])
+acct(filename filename[opt])
+
+getrusage(who flags[rusage_who], usage ptr[out, rusage])
+getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
+setrlimit(res flags[rlimit_type], rlim ptr[in, rlimit])
+prlimit64(pid pid, res flags[rlimit_type], new ptr[in, rlimit, opt], old ptr[out, rlimit, opt])
+
+iopl(level int8)
+ioperm(from intptr, num intptr, on intptr)
+# TODO: who can be group or user
+ioprio_get(which flags[ioprio_which], who pid)
+ioprio_set(which flags[ioprio_which], who pid, prio intptr)
+setns(fd fd, type flags[ns_type])
+
+setxattr(path filename, name string, val string, size len[val], flags flags[setxattr_flags])
+lsetxattr(path filename,  name string, val string, size len[val], flags flags[setxattr_flags])
+fsetxattr(fd fd,  name string, val string, size len[val], flags flags[setxattr_flags])
+getxattr(path filename,  name string, val buffer[out], size len[val])
+lgetxattr(path filename,  name string, val buffer[out], size len[val])
+fgetxattr(fd fd,  name string, val buffer[out], size len[val])
+listxattr(path filename, list buffer[out], size len[list])
+llistxattr(path filename, list buffer[out], size len[list])
+flistxattr(fd fd, list buffer[out], size len[list])
+removexattr(path filename,  name string)
+lremovexattr(path filename,  name string)
+fremovexattr(fd fd,  name string)
+
+time(t ptr[out, intptr])
+clock_gettime(id flags[clock_id], tp ptr[out, timespec])
+clock_settime(id flags[clock_id], tp ptr[in, timespec])
+clock_adjtime(id flags[clock_id], tx ptr[in, timex])
+clock_getres(id flags[clock_id], tp ptr[out, timespec])
+clock_nanosleep(id flags[clock_id], flags flags[timer_flags], rqtp ptr[in, timespec], rmtp ptr[out, timespec, opt])
+timer_create(id flags[clock_id], ev ptr[in, sigevent], timerid ptr[out, timerid])
+timer_gettime(timerid timerid, setting ptr[out, itimerspec])
+timer_getoverrun(timerid timerid)
+timer_settime(timerid timerid, flags flags[timer_flags], new ptr[in, itimerspec], old ptr[out, itimerspec, opt])
+timer_delete(timerid timerid)
+rt_sigaction(sig signalno, act ptr[in, sigaction], oact ptr[out, sigaction, opt], sigsetsize len[fake], fake ptr[out, sigset])
+rt_sigprocmask(how flags[sigprocmask_how], nset ptr[in, sigset], oset ptr[out, sigset, opt], sigsetsize len[nset])
+rt_sigreturn()
+rt_sigpending(set ptr[out, sigset], sigsetsize len[set])
+rt_sigtimedwait(these ptr[in, sigset], info ptr[out, siginfo, opt], ts ptr[in, timespec], sigsetsize len[these])
+rt_sigsuspend(new ptr[in, sigset], sigsetsize len[new])
+rt_sigqueueinfo(pid pid, sig signalno, info ptr[in, siginfo])
+rt_tgsigqueueinfo(gid pid, tid pid, sig signalno, info ptr[in, siginfo])
+sigaltstack(ss vma, oss ptr[out, intptr, opt])
+tgkill(gid pid, tid pid, sig signalno)
+tkill(tid pid, sig signalno)
+pause()
+alarm(seconds intptr)
+nanosleep(req ptr[in, timespec], rem ptr[out, timespec, opt])
+getitimer(which flags[getitimer_which], cur ptr[out, itimerval])
+setitimer(which flags[getitimer_which], new ptr[in, itimerval], old ptr[out, itimerval, opt])
+exit(code intptr)
+exit_group(code intptr)
+waitid(which flags[waitid_which], pid pid, infop ptr[out, siginfo, opt], options flags[wait_options], ru ptr[out, rusage, opt])
+wait4(pid pid, status ptr[out, int32, opt], options flags[wait_options], ru ptr[out, rusage, opt])
+times(buf ptr[out, tms])
+# Can send signals to all processes (pid=-1).
+#kill(pid pid, sig signalno)
+
+set_thread_area(info ptr[in, user_desc])
+get_thread_area(info ptr[in, user_desc])
+set_tid_address(tidptr ptr[out, int32])
+getpriority(which flags[priority_which], who pid)
+setpriority(which flags[priority_which], who pid, prio intptr)
+sched_getscheduler(pid pid)
+sched_setscheduler(pid pid, policy flags[sched_policy], prio ptr[in, int32])
+sched_rr_get_interval(pid pid, tp ptr[out, timespec])
+sched_getparam(pid pid, prio ptr[out, int32])
+sched_setparam(pid pid, prio ptr[in, int32])
+sched_getaffinity(pid pid, cpusetsize len[mask], mask ptr[out, int64])
+sched_setaffinity(pid pid, cpusetsize len[mask], mask ptr[in, int64])
+sched_getattr(pid pid, attr ptr[out, sched_attr], size len[attr], flags flags[sched_attr_flags])
+sched_setattr(pid pid, attr ptr[in, sched_attr], flags flags[sched_attr_flags])
+sched_yield()
+
+
+
+
+# TODO: need something better
+ioctl_arg {
+	a0	intptr
+	a1	intptr
+	a2	intptr
+	a3	intptr
+	a4	intptr
+	a5	intptr
+	a6	intptr
+	a7	intptr
+}
+
+pipefd {
+	rfd	fd
+	wfd	fd
+}
+
+iovec_in {
+	addr	buffer[in]
+	len	len[addr, intptr]
+}
+
+iovec_out {
+	addr	buffer[out]
+	len	len[addr, intptr]
+}
+
+stat {
+	dev	int16
+	pad	int16
+	ino	int32
+	mode	int16
+	nlink	int16
+	uid	uid
+	gid	gid
+	rdev	int16
+	pad	int16
+	size	int32
+	blksize	int32
+	blocks	int32
+	atime	int32
+	ansec	int32
+	mtime	int32
+	mnsec	int32
+	ctime	int32
+	cnsec	int32
+	pad	int32
+	pad	int32
+}
+
+pollfd {
+	fd	fd
+	events	int16
+	revents	int16
+}
+
+send_msghdr {
+	addr	ptr[in, sockaddr]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_in]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, cmsghdr]
+	ctrllen	len[ctrl, intptr]
+	f	flags[send_flags, int32]
+	len	int32
+}
+
+recv_msghdr {
+	addr	ptr[out, sockaddr]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_out]]
+	vlen	len[vec, intptr]
+	ctrl	buffer[out]
+	ctrllen	len[ctrl, intptr]
+	f	int32
+	len	int32
+}
+
+cmsghdr {
+	len	intptr
+	level	int32
+	type	int32
+# TODO: this is followed by an embed array of aux data, and len is length of the whole message
+}
+
+sigset {
+	mask	int64
+}
+
+sigset_size {
+	ss	ptr[inout, sigset]
+	len	len[ss, intptr]
+}
+
+# prog knowns about this struct type
+timespec {
+	sec	intptr
+	nsec	intptr
+}
+
+# prog knowns about this struct type
+timeval {
+	sec	intptr
+	usec	intptr
+}
+
+itimerspec {
+	interv	timespec
+	value	timespec
+}
+
+itimerval {
+	interv	timeval
+	value	timeval
+}
+
+utimbuf {
+	actime	intptr
+	modtime	intptr
+}
+
+io_event {
+	data	int64
+	obj	int64
+	res	int64
+	res2	int32
+}
+
+iocb {
+	data	int64
+	key	int64
+	op	flags[lio_opcode, int16]
+	prio	int16
+	fd	fd
+# TODO: in 32-bit mode buf/reserv are still 64 bits
+	buf	buffer[inout]
+	nbytes	len[buf, int64]
+	offset	int64
+	reserv	ptr[in, sigevent]
+	flags	flags[iocb_flags, int32]
+	resfd	fd[event]
+}
+
+sigevent {
+	val	vma
+	signo	signalno
+	notify	flags[sigev_notify, int32]
+	pad0	int64
+	pad1	int64
+	pad2	int64
+	pad3	int64
+	pad4	int64
+	pad5	int64
+	pad6	int64
+	pad7	int64
+# TODO: this is actually
+# TODO: function pointer needs special support
+#  union {
+#   int _pad[SIGEV_PAD_SIZE];
+#    int _tid;
+#   struct {
+#    void (*_function)(sigval_t);
+#    void *_attribute;/* really pthread_attr_t */
+#   } _sigev_thread;
+#  } _sigev_un;
+}
+
+cap_header {
+	var	flags[cap_version, int32]
+	pid	pid
+}
+
+cap_data {
+	eff0	int32
+	perm0	int32
+	inher0	int32
+	eff1	int32
+	perm1	int32
+	inher1	int32
+}
+
+epoll_event {
+	ev	flags[epoll_ev, int32]
+	pad	int32
+	data	int64
+}
+
+# fd_set needs to be a separate type
+fd_set {
+	mask0	int64
+	mask1	int64
+	mask2	int64
+	mask3	int64
+	mask4	int64
+	mask5	int64
+	mask6	int64
+	mask7	int64
+}
+
+ipc_perm {
+	key	int32
+	uid	uid
+	gid	gid
+	cuid	uid
+	cgid	gid
+	mode	int16
+	seq	int16
+}
+
+msqid_ds {
+	key	int32
+	uid	uid
+	gid	gid
+	cuid	uid
+	cgid	gid
+	mode	int16
+	seq	int16
+	stime	intptr
+	rtime	intptr
+	ctime	intptr
+	cbytes	intptr
+	qnum	intptr
+	qbytes	intptr
+	lspid	pid
+	lrpid	pid
+}
+
+shmid_ds {
+	key	int32
+	uid	uid
+	gid	gid
+	cuid	uid
+	cgid	gid
+	mode	int16
+	seq	int16
+	segsz	intptr
+	atime	intptr
+	atime	intptr
+	dtime	intptr
+	ctime	intptr
+	cpid	pid
+	lpid	pid
+	nattch	intptr
+}
+
+semid_ds {
+	key	int32
+	uid	uid
+	gid	gid
+	cuid	uid
+	cgid	gid
+	mode	int16
+	seq	int16
+	otime	intptr
+	ctime	intptr
+	nsems	intptr
+}
+
+sembuf {
+	num	int16
+	op	int16
+	flg	flags[semop_flags, int64]
+}
+
+sock_fprog {
+	len	len[filter, intptr]
+	filter	ptr[in, array[sock_filter]]
+}
+
+sock_filter {
+	code	int16
+	jt	int8
+	kf	int8
+	k	int32
+}
+
+file_handle {
+	bytes	int32
+	type	int32
+# TODO: again embed array of variable length (bytes is the length)
+	handl0	int64
+	handl1	int64
+	handl2	int64
+	handl3	int64
+	handl4	int64
+	handl5	int64
+	handl6	int64
+	handl7	int64
+	handl8	int64
+	handl9	int64
+	handl10	int64
+	handl11	int64
+	handl12	int64
+	handl13	int64
+	handl14	int64
+	handl15	int64
+}
+
+mq_attr {
+	flags	intptr
+	maxmsg	intptr
+	msgsize	intptr
+	curmsg	intptr
+	res0	intptr
+	res1	intptr
+	res2	intptr
+	res3	intptr
+}
+
+kexec_segment {
+	buf	buffer[in]
+	sz	len[buf, intptr]
+# TODO: this is address in kernel
+	mem	intptr
+	memsz	intptr
+}
+
+robust_list {
+	next	vma
+	off	intptr
+	pend	vma
+}
+
+rusage {
+	utime	timeval
+	stime	timeval
+	maxrss	intptr
+	ixrss	intptr
+	idrss	intptr
+	isrss	intptr
+	minflt	intptr
+	majflt	intptr
+	nswap	intptr
+	inblock	intptr
+	oublock	intptr
+	msgsnd	intptr
+	msgrcv	intptr
+	signals	intptr
+	nvcsw	intptr
+	nivcsw	intptr
+}
+
+rlimit {
+	soft	intptr
+	hard	intptr
+}
+
+sigaction {
+# TODO: function pointers need special support
+	handler	intptr
+	mask	sigset
+	flags	flags[sigaction_flags, intptr]
+	restor	intptr
+}
+
+tms {
+	utime	intptr
+	stime	intptr
+	cutime	intptr
+	cstime	intptr
+}
+
+siginfo {
+	signo	signalno
+	errno	int32
+	code	int32
+	pad3	int32
+# actual size is 128 bytes
+}
+
+timex {
+	stuff0	intptr
+	stuff1	intptr
+	stuff2	intptr
+	stuff3	intptr
+	stuff4	intptr
+	stuff5	intptr
+	stuff6	intptr
+	stuff7	intptr
+	stuff8	intptr
+	stuff9	intptr
+	stuff10	intptr
+	stuff11	intptr
+	stuff12	intptr
+	stuff13	intptr
+	stuff14	intptr
+	stuff15	intptr
+	stuff16	intptr
+	stuff17	intptr
+	stuff18	intptr
+	stuff19	intptr
+	stuff20	intptr
+	stuff21	intptr
+	stuff22	intptr
+	stuff23	intptr
+	stuff24	intptr
+	stuff25	intptr
+}
+
+ustat {
+	free	int32
+	inode	intptr
+	nampac0	int32
+	nampac1	int32
+	nampac2	int32
+}
+
+user_desc {
+	entry	int32
+	base	int32
+	limit	int32
+	flags	int8
+}
+
+sched_attr {
+	size	flags[sched_attr_size, int32]
+	policy	flags[sched_policy, int32]
+	flags	flags[sched_attr_flags2, int64]
+	nice	int32
+	prio	int32
+	runtime	int64
+	deadlin	int64
+	period	int64
+}
+
+flock {
+	type	flags[flock_type, int16]
+	whence	flags[seek_whence, int16]
+	start	intptr
+	len	intptr
+	pid	pid
+}
+
+
+f_owner_ex {
+	type	flags[f_owner_type, int32]
+	pid	pid
+}
+
+
+
+
+open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_ASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC
+open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+madvise_flags = MADV_NORMAL, MADV_RANDOM, MADV_SEQUENTIAL, MADV_WILLNEED, MADV_DONTNEED, MADV_REMOVE, MADV_DONTFORK, MADV_DOFORK, MADV_HWPOISON, MADV_SOFT_OFFLINE, MADV_MERGEABLE, MADV_UNMERGEABLE, MADV_HUGEPAGE, MADV_NOHUGEPAGE, MADV_DONTDUMP, MADV_DODUMP
+fadvise_flags = POSIX_FADV_NORMAL, POSIX_FADV_SEQUENTIAL, POSIX_FADV_RANDOM, POSIX_FADV_NOREUSE, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED
+move_pages_flags = MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
+msync_flags = MS_ASYNC, MS_SYNC, MS_INVALIDATE
+mmap_prot = PROT_EXEC, PROT_READ, PROT_WRITE
+mmap_flags = MAP_SHARED, MAP_PRIVATE, MAP_32BIT, MAP_ANONYMOUS, MAP_DENYWRITE, MAP_EXECUTABLE, MAP_FILE, MAP_FIXED, MAP_GROWSDOWN, MAP_HUGETLB, MAP_LOCKED, MAP_NONBLOCK, MAP_NORESERVE, MAP_POPULATE, MAP_STACK, MAP_UNINITIALIZED
+mremap_flags = MREMAP_MAYMOVE, MREMAP_FIXED
+mbind_mode = MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE, MPOL_PREFERRED, MPOL_F_STATIC_NODES, MPOL_F_RELATIVE_NODES
+mbind_flags = MPOL_MF_STRICT, MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
+pipe_flags = O_NONBLOCK, O_CLOEXEC
+mlockall_flags = MCL_CURRENT, MCL_FUTURE
+dup_flags = O_CLOEXEC
+splice_flags = SPLICE_F_MOVE, SPLICE_F_NONBLOCK, SPLICE_F_MORE, SPLICE_F_GIFT
+seek_whence = SEEK_SET, SEEK_CUR, SEEK_END, SEEK_DATA, SEEK_HOLE
+socket_domain = AF_LOCAL, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET
+socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_SEQPACKET, SOCK_RAW, SOCK_RDM, SOCK_PACKET, SOCK_NONBLOCK, SOCK_CLOEXEC
+accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
+shutdown_flags  = SHUT_RD, SHUT_WR
+send_flags = MSG_CONFIRM, MSG_DONTROUTE, MSG_DONTWAIT, MSG_EOR, MSG_MORE, MSG_NOSIGNAL, MSG_OOB
+recv_flags = MSG_CMSG_CLOEXEC, MSG_DONTWAIT, MSG_ERRQUEUE, MSG_OOB, MSG_PEEK, MSG_TRUNC, MSG_WAITALL, MSG_WAITFORONE
+fcntl_commands = F_DUPFD, F_DUPFD_CLOEXEC, F_GETFD, F_SETFD, F_GETFL, F_SETFL, F_SETLK, F_SETLKW, F_GETLK, F_GETOWN, F_SETOWN, F_GETOWN_EX, F_SETOWN_EX, F_GETSIG, F_SETSIG, F_SETLEASE, F_GETLEASE, F_NOTIFY, F_SETPIPE_SZ, F_GETPIPE_SZ
+signalfd_flags = SFD_NONBLOCK, SFD_CLOEXEC
+eventfd_flags = EFD_CLOEXEC, EFD_NONBLOCK, EFD_SEMAPHORE
+timerfd_create_flags = TFD_NONBLOCK, TFD_CLOEXEC
+timerfd_settime_flags = TFD_TIMER_ABSTIME
+clock_type = CLOCK_REALTIME, CLOCK_REALTIME_COARSE, CLOCK_MONOTONIC, CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_RAW, CLOCK_BOOTTIME, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
+lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_PREADX, IOCB_CMD_POLL, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV
+iocb_flags = IOCB_FLAG_RESFD
+sigev_notify = SIGEV_NONE, SIGEV_SIGNAL, SIGEV_THREAD
+cap_version = 0x19980330, 0x20071026, 0x20080522
+prctl_code = PR_CAPBSET_READ, PR_CAPBSET_DROP, PR_SET_CHILD_SUBREAPER, PR_GET_CHILD_SUBREAPER, PR_SET_DUMPABLE, PR_GET_DUMPABLE, PR_SET_ENDIAN, PR_GET_ENDIAN, PR_SET_FPEMU, PR_GET_FPEMU, PR_SET_FPEXC, PR_GET_FPEXC, PR_SET_KEEPCAPS, PR_GET_KEEPCAPS, PR_SET_NAME, PR_GET_NAME, PR_SET_NO_NEW_PRIVS, PR_GET_NO_NEW_PRIVS, PR_SET_PDEATHSIG, PR_GET_PDEATHSIG, PR_SET_PTRACER, PR_SET_SECCOMP, PR_GET_SECCOMP, PR_SET_SECUREBITS, PR_GET_SECUREBITS, PR_GET_TID_ADDRESS, PR_SET_TIMERSLACK, PR_GET_TIMERSLACK, PR_SET_TIMING, PR_GET_TIMING, PR_TASK_PERF_EVENTS_DISABLE, PR_TASK_PERF_EVENTS_ENABLE, PR_SET_TSC, PR_GET_TSC, PR_SET_UNALIGN, PR_GET_UNALIGN, PR_MCE_KILL, PR_MCE_KILL_GET, PR_SET_MM
+arch_prctl_code = ARCH_SET_FS, ARCH_GET_FS, ARCH_SET_GS, ARCH_GET_GS
+keyctl_code = KEYCTL_GET_KEYRING_ID, KEYCTL_JOIN_SESSION_KEYRING, KEYCTL_UPDATE, KEYCTL_REVOKE, KEYCTL_CHOWN, KEYCTL_SETPERM, KEYCTL_DESCRIBE, KEYCTL_CLEAR, KEYCTL_LINK, KEYCTL_UNLINK, KEYCTL_SEARCH, KEYCTL_READ, KEYCTL_INSTANTIATE, KEYCTL_NEGATE, KEYCTL_SET_REQKEY_KEYRING, KEYCTL_SET_TIMEOUT, KEYCTL_ASSUME_AUTHORITY
+epoll_flags = EPOLL_CLOEXEC
+epoll_op = EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
+epoll_ev =  EPOLLIN, EPOLLOUT, EPOLLRDHUP, EPOLLPRI, EPOLLERR, EPOLLHUP, EPOLLET, EPOLLONESHOT
+msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+msg_flags = IPC_NOWAIT, MSG_EXCEPT, MSG_NOERROR
+msgctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, MSG_INFO, MSG_STAT
+semget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+semop_flags = IPC_NOWAIT, SEM_UNDO
+semctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, SEM_INFO, SEM_STAT, GETALL, GETNCNT, GETPID, GETVAL, GETZCNT, SETALL, SETVAL
+shmget_flags = IPC_CREAT, IPC_EXCL, SHM_HUGETLB, SHM_NORESERVE, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+shmat_flags = SHM_RND, SHM_RDONLY, SHM_REMAP
+shmctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, SHM_INFO, SHM_STAT, SHM_LOCK, SHM_UNLOCK
+mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+fchownat_flags = AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW
+fallocate_mode = 0, FALLOC_FL_KEEP_SIZE, FALLOC_FL_PUNCH_HOLE
+linkat_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
+unlinkat_flags = 0, AT_REMOVEDIR
+renameat2_flags = RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT
+flock_op = LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB
+seccomp_op = SECCOMP_SET_MODE_STRICT, SECCOMP_SET_MODE_FILTER
+seccomp_flags = 0, SECCOMP_FILTER_FLAG_TSYNC
+name_to_handle_at_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW, AT_FDCWD
+mq_open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_NONBLOCK, O_CREAT, O_EXCL, O_CREAT
+mount_flags = MS_BIND, MS_DIRSYNC, MS_MANDLOCK, MS_MOVE, MS_NOATIME, MS_NODEV, MS_NODIRATIME, MS_NOEXEC, MS_NOSUID, MS_RDONLY, MS_RELATIME, MS_REMOUNT, MS_SILENT, MS_STRICTATIME, MS_SYNCHRONOUS
+umount_flags = MNT_FORCE, MNT_DETACH, MNT_EXPIRE, UMOUNT_NOFOLLOW
+finit_module_flags = MODULE_INIT_IGNORE_MODVERSIONS, MODULE_INIT_IGNORE_VERMAGIC
+delete_module_flags = O_NONBLOCK, O_TRUNC
+kexec_load_flags = KEXEC_ON_CRASH, KEXEC_PRESERVE_CONTEXT, KEXEC_ARCH_386, KEXEC_ARCH_X86_64, KEXEC_ARCH_PPC, KEXEC_ARCH_PPC64, KEXEC_ARCH_IA_64, KEXEC_ARCH_ARM, KEXEC_ARCH_S390,  KEXEC_ARCH_SH,  KEXEC_ARCH_MIPS, KEXEC_ARCH_MIPS_LE
+keyring_type = KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING
+inotify_flags = IN_NONBLOCK, IN_CLOEXEC
+inotify_mask = IN_ACCESS, IN_ATTRIB, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE, IN_CREATE, IN_DELETE, IN_DELETE_SELF, IN_MODIFY, IN_MOVE_SELF, IN_MOVED_FROM, IN_MOVED_TO, IN_OPEN, IN_DONT_FOLLOW, IN_EXCL_UNLINK, IN_MASK_ADD, IN_ONESHOT, IN_ONLYDIR
+fanotify_flags = FAN_CLASS_PRE_CONTENT, FAN_CLASS_CONTENT, FAN_CLASS_NOTIF, FAN_CLOEXEC, FAN_NONBLOCK, FAN_UNLIMITED_QUEUE, FAN_UNLIMITED_MARKS
+fanotify_events = O_RDONLY, O_WRONLY, O_RDWR, O_LARGEFILE, O_CLOEXEC, O_APPEND, O_DSYNC, O_NOATIME, O_NONBLOCK, O_SYNC
+fanotify_mark = FAN_MARK_ADD, FAN_MARK_REMOVE, FAN_MARK_FLUSH, FAN_MARK_DONT_FOLLOW, FAN_MARK_ONLYDIR, FAN_MARK_MOUNT, FAN_MARK_IGNORED_MASK, FAN_MARK_IGNORED_SURV_MODIFY
+fanotify_mask = FAN_ACCESS, FAN_MODIFY, FAN_CLOSE_WRITE, FAN_CLOSE_NOWRITE, FAN_OPEN, FAN_OPEN_PERM, FAN_ACCESS_PERM, FAN_ONDIR, FAN_EVENT_ON_CHILD
+faccessat_flags = AT_EACCESS, AT_SYMLINK_NOFOLLOW
+clone_flags = CLONE_CHILD_CLEARTID, CLONE_CHILD_SETTID, CLONE_FILES, CLONE_FS, CLONE_IO, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUTS, CLONE_PARENT, CLONE_PARENT_SETTID, CLONE_PTRACE, CLONE_SETTLS, CLONE_SIGHAND, CLONE_SYSVSEM, CLONE_THREAD, CLONE_UNTRACED, CLONE_VFORK, CLONE_VM
+futex_op = FUTEX_WAIT, FUTEX_WAIT_BITSET, FUTEX_WAKE, FUTEX_REQUEUE, FUTEX_CMP_REQUEUE
+sync_file_flags = SYNC_FILE_RANGE_WAIT_BEFORE, SYNC_FILE_RANGE_WRITE, SYNC_FILE_RANGE_WAIT_AFTER
+kcmp_flags = KCMP_FILE, KCMP_FILES, KCMP_FS, KCMP_IO, KCMP_SIGHAND, KCMP_SYSVSEM, KCMP_VM
+rusage_who = RUSAGE_SELF, RUSAGE_CHILDREN, RUSAGE_THREAD
+rlimit_type = RLIMIT_AS, RLIMIT_CORE, RLIMIT_CPU, RLIMIT_DATA, RLIMIT_FSIZE, RLIMIT_LOCKS, RLIMIT_MEMLOCK, RLIMIT_MSGQUEUE, RLIMIT_NICE, RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_RSS, RLIMIT_RTPRIO, RLIMIT_RTTIME, RLIMIT_SIGPENDING, RLIMIT_STACK
+# The ones that disable console output are intentionally omitted.
+syslog_cmd = SYSLOG_ACTION_CLOSE, SYSLOG_ACTION_OPEN, SYSLOG_ACTION_READ, SYSLOG_ACTION_READ_ALL, SYSLOG_ACTION_READ_CLEAR, SYSLOG_ACTION_CLEAR, SYSLOG_ACTION_CONSOLE_ON, SYSLOG_ACTION_SIZE_UNREAD, SYSLOG_ACTION_SIZE_BUFFER
+ioprio_which = IOPRIO_WHO_PROCESS, IOPRIO_WHO_PGRP, IOPRIO_WHO_USER
+setxattr_flags = XATTR_CREATE, XATTR_REPLACE
+ns_type = 0, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWUTS
+personality_flags = SYZ_PER_LINUX, SYZ_PER_SVR4, SYZ_PER_SVR3, SYZ_PER_OSR5, SYZ_PER_WYSEV386, SYZ_PER_ISCR4, SYZ_PER_BSD, SYZ_PER_XENIX, SYZ_PER_LINUX32, SYZ_PER_IRIX32, SYZ_PER_IRIXN32, SYZ_PER_IRIX64, SYZ_PER_RISCOS, SYZ_PER_SOLARIS, SYZ_PER_UW7, SYZ_PER_OSF4, SYZ_PER_HPUX, ADDR_NO_RANDOMIZE, MMAP_PAGE_ZERO, ADDR_COMPAT_LAYOUT, READ_IMPLIES_EXEC, ADDR_LIMIT_32BIT, SHORT_INODE, WHOLE_SECONDS, STICKY_TIMEOUTS, ADDR_LIMIT_3GB
+sysfs_opt = 1, 2, 3
+clock_id = CLOCK_REALTIME, CLOCK_REALTIME_COARSE, CLOCK_MONOTONIC, CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_RAW, CLOCK_BOOTTIME, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
+sigprocmask_how = SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK
+getitimer_which = ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF
+wait_options = WNOHANG, WUNTRACED, WCONTINUED, WEXITED, WSTOPPED, WCONTINUED, WNOHANG, WNOWAIT, __WCLONE, __WALL, __WNOTHREAD
+waitid_which = P_PID, P_PGID, P_ALL
+sigaction_flags = SA_NOCLDSTOP,SA_NOCLDWAIT, SA_NODEFER, SA_ONSTACK, SA_RESETHAND, SA_RESTART, SA_SIGINFO
+timer_flags = 0, TIMER_ABSTIME
+utimensat_flags = 0, AT_SYMLINK_NOFOLLOW
+priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
+sched_policy = SCHED_OTHER, SCHED_BATCH, SCHED_IDLE, SCHED_FIFO, SCHED_RR, SCHED_DEADLINE
+sched_attr_flags = 0
+sched_attr_flags2 = 0, SCHED_FLAG_RESET_ON_FORK
+sched_attr_size = 48
+mempolicy_flags = 0, MPOL_F_MEMS_ALLOWED, MPOL_F_ADDR, MPOL_F_NODE
+ptrace_req = PTRACE_TRACEME, PTRACE_LISTEN, PTRACE_KILL, PTRACE_INTERRUPT, PTRACE_ATTACH, PTRACE_DETACH
+ptrace_req_peek = PTRACE_PEEKTEXT, PTRACE_PEEKDATA
+ptrace_req_poke = PTRACE_POKETEXT, PTRACE_POKEDATA
+ptrace_req_peekuser = PTRACE_PEEKUSER
+ptrace_req_pokeuser = PTRACE_POKEUSER
+ptrace_req_getregs = PTRACE_GETREGS, PTRACE_GETFPREGS
+ptrace_req_getregset = PTRACE_GETREGSET
+ptrace_req_setregs = PTRACE_SETREGS, PTRACE_SETFPREGS
+ptrace_req_setregset = PTRACE_SETREGSET
+ptrace_req_getsig = PTRACE_GETSIGINFO
+ptrace_req_setsig = PTRACE_SETSIGINFO
+ptrace_req_setopts = PTRACE_SETOPTIONS, PTRACE_SEIZE
+ptrace_req_getenv = PTRACE_GETEVENTMSG
+ptrace_req_cont = PTRACE_CONT, PTRACE_SYSCALL, PTRACE_SINGLESTEP, PTRACE_SYSEMU, PTRACE_SYSEMU_SINGLESTEP
+pthread_regset = NT_PRSTATUS, NT_PRFPREG, NT_PRPSINFO, NT_TASKSTRUCT, NT_AUXV, NT_386_TLS, NT_386_IOPERM, NT_X86_XSTATE
+ptrace_options = PTRACE_O_EXITKILL, PTRACE_O_TRACECLONE, PTRACE_O_TRACEEXEC, PTRACE_O_TRACEEXIT, PTRACE_O_TRACEFORK, PTRACE_O_TRACESYSGOOD, PTRACE_O_TRACEVFORK, PTRACE_O_TRACEVFORKDONE
+fcntl_dupfd = F_DUPFD, F_DUPFD_CLOEXEC
+fcntl_getflags = F_GETFD, F_GETFL, F_GETSIG, F_GETLEASE, F_GETPIPE_SZ
+fcntl_setflags = F_SETFD
+fcntl_setstatus = F_SETFL
+fcntl_lock = F_SETLK, F_SETLKW, F_GETLK
+fcntl_getown = F_GETOWN
+fcntl_setown = F_SETOWN
+fcntl_getownex = F_GETOWN_EX
+fcntl_setownex = F_SETOWN_EX
+fcntl_setsig = F_SETSIG
+fcntl_setlease = F_SETLEASE
+fcntl_setpipe = F_SETPIPE_SZ
+fcntl_flags = FD_CLOEXEC
+fcntl_status = O_APPEND, O_ASYNC, O_DIRECT, O_NOATIME, O_NONBLOCK
+flock_type = F_RDLCK, F_WRLCK, F_UNLCK
+f_owner_type = F_OWNER_TID, F_OWNER_PID, F_OWNER_PGRP
+fcntl_notify = DN_MULTISHOT, DN_ACCESS, DN_MODIFY, DN_CREATE, DN_DELETE, DN_RENAME, DN_ATTRIB
+
+
+
+
+# Values that are not available with outdated headers.
+define MAP_UNINITIALIZED	0x4000000
+define MADV_SOFT_OFFLINE	101
+define MPOL_F_STATIC_NODES	(1 << 15)
+define MPOL_F_RELATIVE_NODES	(1 << 14)
+define PTRACE_SYSEMU		31
+define PTRACE_SYSEMU_SINGLESTEP	32
+define KCMP_FILE		0
+define KCMP_VM			1
+define KCMP_FILES		2
+define KCMP_FS			3
+define KCMP_SIGHAND		4
+define KCMP_IO			5
+define KCMP_SYSVSEM		6
+define KEY_SPEC_THREAD_KEYRING			-1
+define KEY_SPEC_PROCESS_KEYRING			-2
+define KEY_SPEC_SESSION_KEYRING			-3
+define KEY_SPEC_USER_KEYRING			-4
+define KEY_SPEC_USER_SESSION_KEYRING		-5
+define KEY_SPEC_GROUP_KEYRING			-6
+define KEY_SPEC_REQKEY_AUTH_KEY			-7
+define KEY_SPEC_REQUESTOR_KEYRING		-8
+define KEY_REQKEY_DEFL_NO_CHANGE		-1
+define KEY_REQKEY_DEFL_DEFAULT			0
+define KEY_REQKEY_DEFL_THREAD_KEYRING		1
+define KEY_REQKEY_DEFL_PROCESS_KEYRING		2
+define KEY_REQKEY_DEFL_SESSION_KEYRING		3
+define KEY_REQKEY_DEFL_USER_KEYRING		4
+define KEY_REQKEY_DEFL_USER_SESSION_KEYRING	5
+define KEY_REQKEY_DEFL_GROUP_KEYRING		6
+define KEY_REQKEY_DEFL_REQUESTOR_KEYRING	7
+define KEYCTL_GET_KEYRING_ID			0
+define KEYCTL_JOIN_SESSION_KEYRING		1
+define KEYCTL_UPDATE				2
+define KEYCTL_REVOKE				3
+define KEYCTL_CHOWN				4
+define KEYCTL_SETPERM				5
+define KEYCTL_DESCRIBE				6
+define KEYCTL_CLEAR				7
+define KEYCTL_LINK				8
+define KEYCTL_UNLINK				9
+define KEYCTL_SEARCH				10
+define KEYCTL_READ				11
+define KEYCTL_INSTANTIATE			12
+define KEYCTL_NEGATE				13
+define KEYCTL_SET_REQKEY_KEYRING		14
+define KEYCTL_SET_TIMEOUT			15
+define KEYCTL_ASSUME_AUTHORITY			16
+define KEYCTL_GET_SECURITY			17
+define KEYCTL_SESSION_TO_PARENT			18
+define KEYCTL_REJECT				19
+define KEYCTL_INSTANTIATE_IOV			20
+define KEYCTL_INVALIDATE			21
+define KEYCTL_GET_PERSISTENT			22
+define RENAME_NOREPLACE		(1 << 0)
+define RENAME_EXCHANGE		(1 << 1)
+define RENAME_WHITEOUT		(1 << 2)
+define IOCB_CMD_PREADX		4
+define IOCB_CMD_POLL		5
+define IOPRIO_WHO_PROCESS	1
+define IOPRIO_WHO_PGRP		2
+define IOPRIO_WHO_USER		3
+define MODULE_INIT_IGNORE_MODVERSIONS	1
+define MODULE_INIT_IGNORE_VERMAGIC	2
+define SYSLOG_ACTION_CLOSE		0
+define SYSLOG_ACTION_OPEN		1
+define SYSLOG_ACTION_READ		2
+define SYSLOG_ACTION_READ_ALL		3
+define SYSLOG_ACTION_READ_CLEAR		4
+define SYSLOG_ACTION_CLEAR		5
+define SYSLOG_ACTION_CONSOLE_OFF	6
+define SYSLOG_ACTION_CONSOLE_ON		7
+define SYSLOG_ACTION_CONSOLE_LEVEL	8
+define SYSLOG_ACTION_SIZE_UNREAD	9
+define SYSLOG_ACTION_SIZE_BUFFER	10
+define SYZ_PER_LINUX		0x0000
+define SYZ_PER_SVR4		0x0001
+define SYZ_PER_SVR3		0x0002
+define SYZ_PER_OSR5		0x0003
+define SYZ_PER_WYSEV386		0x0004
+define SYZ_PER_ISCR4		0x0005
+define SYZ_PER_BSD		0x0006
+define SYZ_PER_XENIX		0x0007
+define SYZ_PER_LINUX32		0x0008
+define SYZ_PER_IRIX32		0x0009
+define SYZ_PER_IRIXN32		0x000a
+define SYZ_PER_IRIX64		0x000b
+define SYZ_PER_RISCOS		0x000c
+define SYZ_PER_SOLARIS 		0x000d
+define SYZ_PER_UW7		0x000e
+define SYZ_PER_OSF4		0x000f
+define SYZ_PER_HPUX		0x0010
+define SCHED_DEADLINE		6
+define SCHED_FLAG_RESET_ON_FORK	1
+
+# Not yet implemented syscalls
+#define __NR_clone 56
+#define __NR_fork 57
+#define __NR_vfork 58
+#define __NR_execve 59
+#define __NR_getcwd 79
+#define __NR_chdir 80
+#define __NR_fchdir 81
+#define __NR_umask 95
+#define __NR_vhangup 153
+#define __NR_modify_ldt 154
+#define __NR__sysctl 156
+#define __NR_adjtimex 159
+#define __NR_chroot 161
+#define __NR_swapon 167
+#define __NR_swapoff 168
+#define __NR_quotactl 179
+#define __NR_nfsservctl 180
+#define __NR_perf_event_open 298
+#define __NR_getcpu 309
+#define __NR_process_vm_readv 310
+#define __NR_process_vm_writev 311
+
+
+
+
+# Probably no sense in calling there.
+# Also affect system-wide state, so not reproducble anyway.
+#define __NR_gettimeofday 96
+#define __NR_settimeofday 164
+#define __NR_reboot 169
+#define __NR_sethostname 170
+#define __NR_setdomainname 171
+#define __NR_sched_get_priority_max 146
+#define __NR_sched_get_priority_min 147
+
