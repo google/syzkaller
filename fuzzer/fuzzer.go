@@ -8,9 +8,7 @@ package main
 // i.e. aim at cracking new branches and triggering bugs in that new piece of code.
 
 import (
-	"bytes"
 	"crypto/sha1"
-	"encoding/binary"
 	"flag"
 	"fmt"
 	"log"
@@ -342,7 +340,7 @@ func execute1(env *ipc.Env, p *prog.Prog, workerId int) []cover.Cover {
 
 	try := 0
 retry:
-	output, strace, failed, hanged, err := env.Exec(p)
+	output, strace, rawCover, failed, hanged, err := env.Exec(p)
 	if err != nil {
 		if try > 10 {
 			panic(err)
@@ -356,47 +354,9 @@ retry:
 	if len(strace) != 0 {
 		logf(4, "strace:\n%s\n", strace)
 	}
-	r := bytes.NewReader(env.Out)
-	var ncmd uint32
-	if err := binary.Read(r, binary.LittleEndian, &ncmd); err != nil {
-		panic(err)
-	}
 	cov := make([]cover.Cover, len(p.Calls))
-	for i := uint32(0); i < ncmd; i++ {
-		var callIndex, callNum, coverSize, pc uint32
-		if err := binary.Read(r, binary.LittleEndian, &callIndex); err != nil {
-			panic(err)
-		}
-		if err := binary.Read(r, binary.LittleEndian, &callNum); err != nil {
-			panic(err)
-		}
-		if err := binary.Read(r, binary.LittleEndian, &coverSize); err != nil {
-			panic(err)
-		}
-		if int(callIndex) > len(cov) {
-			panic(fmt.Sprintf("expect index %v, got %v", i, callIndex))
-		}
-		c := p.Calls[callIndex]
-		if num := c.Meta.ID; uint32(num) != callNum {
-			logf(0, "ERROR: call %v: expect syscall %v, got %v, executed %v", callIndex, num, callNum, ncmd)
-			logf(0, "program:\n%s", p.Serialize())
-			logf(0, "output:\n%s", output)
-		}
-		cover1 := make([]uint32, 0, coverSize)
-		for j := uint32(0); j < coverSize; j++ {
-			if err := binary.Read(r, binary.LittleEndian, &pc); err != nil {
-				panic(err)
-			}
-			cover1 = append(cover1, pc)
-		}
-		if *flagV >= 4 {
-			log.Printf("%v:", c.Meta.Name)
-			for _, pc := range cover1 {
-				log.Printf(" 0x%x", (1<<32-1)<<32|uint64(pc))
-			}
-			log.Printf("\n")
-		}
-		cov[callIndex] = cover.Canonicalize(cover1)
+	for i, c := range rawCover {
+		cov[i] = cover.Canonicalize(c)
 	}
 	return cov
 }

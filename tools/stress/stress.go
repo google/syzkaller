@@ -59,7 +59,7 @@ func execute(env *ipc.Env, p *prog.Prog) {
 	if *flagExecutor == "" {
 		return
 	}
-	output, _, _, _, err := env.Exec(p)
+	output, _, _, _, _, err := env.Exec(p)
 	if err != nil {
 		fmt.Printf("failed to execute executor: %v\n", err)
 	}

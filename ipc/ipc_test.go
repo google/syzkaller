@@ -73,7 +73,7 @@ func TestEmptyProg(t *testing.T) {
 	defer env.Close()
 
 	p := new(prog.Prog)
-	output, strace, failed, hanged, err := env.Exec(p)
+	output, strace, cov, failed, hanged, err := env.Exec(p)
 	if err != nil {
 		t.Fatalf("failed to run executor: %v", err)
 	}
@@ -82,6 +82,9 @@ func TestEmptyProg(t *testing.T) {
 	}
 	if len(strace) != 0 {
 		t.Fatalf("strace output when not stracing")
+	}
+	if cov != nil {
+		t.Fatalf("haven't asked for coverage, but got it")
 	}
 	if failed || hanged {
 		t.Fatalf("empty program failed")
@@ -99,7 +102,7 @@ func TestStrace(t *testing.T) {
 	defer env.Close()
 
 	p := new(prog.Prog)
-	_, strace, failed, hanged, err := env.Exec(p)
+	_, strace, _, failed, hanged, err := env.Exec(p)
 	if err != nil {
 		t.Fatalf("failed to run executor: %v", err)
 	}
@@ -126,7 +129,7 @@ func TestExecute(t *testing.T) {
 
 		for i := 0; i < iters/len(flags); i++ {
 			p := prog.Generate(rs, 10, nil)
-			_, _, _, _, err := env.Exec(p)
+			_, _, _, _, _, err := env.Exec(p)
 			if err != nil {
 				t.Fatalf("failed to run executor: %v", err)
 			}
@@ -160,7 +163,7 @@ func TestCompare(t *testing.T) {
 	rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
 		p := prog.Generate(rs, 10, nil)
-		_, strace1, _, _, err := env1.Exec(p)
+		_, strace1, _, _, _, err := env1.Exec(p)
 		if err != nil {
 			t.Fatalf("failed to run executor: %v", err)
 		}
@@ -175,7 +178,7 @@ func TestCompare(t *testing.T) {
 		}
 		defer env2.Close() // yes, that's defer in a loop
 
-		_, strace2, _, _, err := env2.Exec(nil)
+		_, strace2, _, _, _, err := env2.Exec(nil)
 		if err != nil {
 			t.Fatalf("failed to run c binary: %v", err)
 		}

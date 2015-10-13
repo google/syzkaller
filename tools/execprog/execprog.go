@@ -53,7 +53,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to create execution environment: %v\n", err)
 		os.Exit(1)
 	}
-	output, strace, failed, hanged, err := env.Exec(p)
+	output, strace, _, failed, hanged, err := env.Exec(p)
 	fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
 	if *flagStrace {
 		fmt.Printf("strace output:\n%s", strace)

@@ -71,7 +71,7 @@ func main() {
 				if idx%1000 == 0 {
 					log.Printf("executing %v\n", idx)
 				}
-				_, _, _, _, err := env.Exec(progs[idx%len(progs)])
+				_, _, _, _, _, err := env.Exec(progs[idx%len(progs)])
 				if err != nil {
 					log.Printf("failed to execute program: %v", err)
 				}

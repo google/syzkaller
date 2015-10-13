@@ -4,6 +4,8 @@
 package ipc
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -76,19 +78,87 @@ func (env *Env) Close() error {
 	}
 }
 
-func (env *Env) Exec(p *prog.Prog) (output, strace []byte, failed, hanged bool, err0 error) {
+// Exec starts executor binary to execute program p and returns information about the execution:
+// output: process output
+// strace: strace output if env is created with FlagStrace
+// cov: per-call coverage, len(cov) == len(p.Calls)
+// failed: true if executor has detected a kernel bug
+// hanged: program hanged and was killed
+// err0: failed to start process, or executor has detected a logical error
+func (env *Env) Exec(p *prog.Prog) (output, strace []byte, cov [][]uint32, failed, hanged bool, err0 error) {
 	if p != nil {
+		// Copy-in serialized program.
 		progData := p.SerializeForExec()
 		if len(progData) > len(env.In) {
 			panic("program is too long")
 		}
 		copy(env.In, progData)
 	}
-	// Zero out the first word (ncmd), so that we don't have garbage there
-	// if executor crashes before writing non-garbage there.
-	for i := 0; i < 4; i++ {
-		env.Out[i] = 0
+	if env.flags&FlagCover != 0 {
+		// Zero out the first word (ncmd), so that we don't have garbage there
+		// if executor crashes before writing non-garbage there.
+		for i := 0; i < 4; i++ {
+			env.Out[i] = 0
+		}
 	}
+
+	output, strace, failed, hanged, err0 = env.execBin()
+	if err0 != nil {
+		return
+	}
+
+	if env.flags&FlagCover == 0 || p == nil {
+		return
+	}
+	// Read out coverage information.
+	r := bytes.NewReader(env.Out)
+	var ncmd uint32
+	if err := binary.Read(r, binary.LittleEndian, &ncmd); err != nil {
+		err0 = fmt.Errorf("failed to read output coverage: %v", err)
+		return
+	}
+	cov = make([][]uint32, len(p.Calls))
+	for i := uint32(0); i < ncmd; i++ {
+		var callIndex, callNum, coverSize, pc uint32
+		if err := binary.Read(r, binary.LittleEndian, &callIndex); err != nil {
+			err0 = fmt.Errorf("failed to read output coverage: %v", err)
+			return
+		}
+		if err := binary.Read(r, binary.LittleEndian, &callNum); err != nil {
+			err0 = fmt.Errorf("failed to read output coverage: %v", err)
+			return
+		}
+		if err := binary.Read(r, binary.LittleEndian, &coverSize); err != nil {
+			err0 = fmt.Errorf("failed to read output coverage: %v", err)
+			return
+		}
+		if int(callIndex) > len(cov) {
+			err0 = fmt.Errorf("failed to read output coverage: expect index %v, got %v", i, callIndex)
+			return
+		}
+		if cov[callIndex] != nil {
+			err0 = fmt.Errorf("failed to read output coverage: double coverage for call %v", callIndex)
+			return
+		}
+		c := p.Calls[callIndex]
+		if num := c.Meta.ID; uint32(num) != callNum {
+			err0 = fmt.Errorf("failed to read output coverage: call %v: expect syscall %v, got %v, executed %v", callIndex, num, callNum, ncmd)
+			return
+		}
+		cov1 := make([]uint32, coverSize)
+		for j := uint32(0); j < coverSize; j++ {
+			if err := binary.Read(r, binary.LittleEndian, &pc); err != nil {
+				err0 = fmt.Errorf("failed to read output coverage: expect index %v, got %v", i, callIndex)
+				return
+			}
+			cov1[j] = pc
+		}
+		cov[callIndex] = cov1
+	}
+	return
+}
+
+func (env *Env) execBin() (output, strace []byte, failed, hanged bool, err0 error) {
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		err0 = fmt.Errorf("failed to create temp dir: %v", err)
