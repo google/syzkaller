@@ -122,6 +122,11 @@ func (r *randGen) filename(s *state) string {
 
 var sockFamilies = []uint16{AF_LOCAL, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET}
 
+func (r *randGen) inaddr(s *state) uint32 {
+	// TODO: extract addresses of network interfaces.
+	return uint32(127<<24 + 0<<16 + 0<<8 + 1)
+}
+
 func (r *randGen) sockaddr(s *state) []byte {
 	fa := sockFamilies[r.Intn(len(sockFamilies))]
 	port := 13269 + uint16(r.Intn(20))
@@ -132,7 +137,7 @@ func (r *randGen) sockaddr(s *state) []byte {
 		buf.WriteString(r.filename(s))
 	case AF_INET:
 		binary.Write(buf, binary.BigEndian, port)
-		binary.Write(buf, binary.BigEndian, uint32(127<<24+0<<16+0<<8+1))
+		binary.Write(buf, binary.BigEndian, r.inaddr(s))
 	case AF_INET6:
 		binary.Write(buf, binary.BigEndian, port)
 		binary.Write(buf, binary.BigEndian, uint32(r.Int63())) // flow info
@@ -180,7 +185,8 @@ func (r *randGen) randString(s *state) []byte {
 		"securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2",
 		"ext4", "hugetlbfs", "vfat", "ecryptfs", "fuseblk", "fuse", "fusectl", "pstore",
 		"mqueue", "rpc_pipefs", "nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs",
-		"jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs"}
+		"jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs",
+		"lo", "eth0", "eth1", "em0", "em1", "wlan0", "wlan1", "ppp0", "ppp1", "vboxnet0", "vboxnet1", "vmnet0", "vmnet1"}
 	punct := []byte{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '\\',
 		'/', ':', '.', ',', '-', '\'', '[', ']', '{', '}'}
 	buf := new(bytes.Buffer)
@@ -587,8 +593,13 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		return constArg(r.flags(a.Vals)), nil, nil
 	case sys.IntType:
 		v := r.randInt()
-		if a.Limit != 0 && !r.oneOf(100) {
-			v %= a.Limit
+		switch a.Kind {
+		case sys.IntSignalno:
+			v %= 130
+		case sys.IntInaddr:
+			x := r.inaddr(s)
+			// Note: assuming little-endian host
+			v = uintptr(((x>>0)&0xff)<<24 + ((x>>8)&0xff)<<16 + ((x>>16)&0xff)<<8 + ((x>>24)&0xff)<<0)
 		}
 		return constArg(v), nil, nil
 	case sys.FilenameType:

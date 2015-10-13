@@ -213,10 +213,18 @@ type FlagsType struct {
 	Vals     []uintptr
 }
 
+type IntKind int
+
+const (
+	IntPlain IntKind = iota
+	IntSignalno
+	IntInaddr
+)
+
 type IntType struct {
 	TypeCommon
 	TypeSize uintptr
-	Limit    uintptr
+	Kind     IntKind
 }
 
 type FilenameType struct {

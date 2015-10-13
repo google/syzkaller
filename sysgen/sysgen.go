@@ -222,7 +222,12 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "IntType{%v, TypeSize: 4, Limit: 130}", common())
+		fmt.Fprintf(out, "IntType{%v, TypeSize: 4, Kind: IntSignalno}", common())
+	case "in_addr":
+		if want := 0; len(a) != want {
+			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		}
+		fmt.Fprintf(out, "IntType{%v, TypeSize: 4, Kind: IntInaddr}", common())
 	case "filename":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
