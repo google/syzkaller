@@ -102,7 +102,7 @@ func main() {
 	if *flagParallel <= 0 {
 		*flagParallel = 1
 	}
-	flags := ipc.FlagCover
+	flags := ipc.FlagCover | ipc.FlagDedupCover
 	if *flagStrace {
 		flags |= ipc.FlagStrace
 	}
@@ -356,7 +356,7 @@ retry:
 	}
 	cov := make([]cover.Cover, len(p.Calls))
 	for i, c := range rawCover {
-		cov[i] = cover.Canonicalize(c)
+		cov[i] = cover.Cover(c)
 	}
 	return cov
 }

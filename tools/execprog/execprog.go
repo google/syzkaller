@@ -26,6 +26,7 @@ var (
 	flagDebug    = flag.Bool("debug", true, "debug output from executor")
 	flagStrace   = flag.Bool("strace", false, "run executor under strace")
 	flagCover    = flag.String("cover", "", "collect coverage and write to the file")
+	flagDedup    = flag.Bool("dedup", false, "deduplicate coverage in executor")
 )
 
 func main() {
@@ -52,6 +53,9 @@ func main() {
 	}
 	if *flagCover != "" {
 		flags |= ipc.FlagCover
+	}
+	if *flagDedup {
+		flags |= ipc.FlagDedupCover
 	}
 	env, err := ipc.MakeEnv(*flagExecutor, 3*time.Second, flags)
 	if err != nil {

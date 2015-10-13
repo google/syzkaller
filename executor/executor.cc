@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <pthread.h>
+#include <algorithm>
 #include "syscalls.h"
 
 const int kInFd = 3;
@@ -42,6 +43,7 @@ const uint64_t default_value = -1;
 bool flag_debug;
 bool flag_cover;
 bool flag_threaded;
+bool flag_deduplicate;
 
 __attribute__((aligned(64 << 10))) char input_data[kMaxInput];
 __attribute__((aligned(64 << 10))) char output_data[kMaxOutput];
@@ -93,6 +95,7 @@ uint64_t current_time_ms();
 void cover_init(thread_t* th);
 void cover_reset(thread_t* th);
 int cover_read(thread_t* th);
+int cover_dedup(thread_t* th, int n);
 
 int main()
 {
@@ -105,6 +108,7 @@ int main()
 	flag_debug = flags & (1 << 0);
 	flag_cover = flags & (1 << 1);
 	flag_threaded = flags & (1 << 2);
+	flag_deduplicate = flags & (1 << 3);
 	output_pos = (uint32_t*)&output_data[0];
 	write_output(0); // Number of executed syscalls (updated later).
 
@@ -218,8 +222,7 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 		fail("out of threads");
 	debug("scheduling call %d [%s] on thread %d\n", call_index, syscalls[call_num].name, th->id);
 	if (th->ready || !th->done || !th->handled)
-		fail("bad thread state in schedule: ready=%d done=%d handled=%d",
-		     th->ready, th->done, th->handled);
+		fail("bad thread state in schedule: ready=%d done=%d handled=%d", th->ready, th->done, th->handled);
 	th->copyout_pos = pos;
 	th->done = false;
 	th->handled = false;
@@ -340,7 +343,25 @@ int cover_read(thread_t* th)
 		fail("cover read failed after %s (n=%d)", syscalls[th->call_num].name, n);
 	n /= sizeof(th->cover_data[0]);
 	debug("#%d: read /proc/cover = %d\n", th->id, n);
+	if (flag_deduplicate) {
+		n = cover_dedup(th, n);
+		debug("#%d: dedup cover %d\n", th->id, n);
+	}
 	return n;
+}
+
+int cover_dedup(thread_t* th, int n)
+{
+	std::sort(th->cover_data, th->cover_data + n);
+	int w = 0;
+	uint32_t last = 0;
+	for (int i = 0; i < n; i++) {
+		uint32_t pc = th->cover_data[i];
+		if (pc == last)
+			continue;
+		th->cover_data[w++] = last = pc;
+	}
+	return w;
 }
 
 void copyin(char* addr, uint64_t val, uint64_t size)

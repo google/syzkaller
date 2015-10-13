@@ -30,10 +30,11 @@ type Env struct {
 }
 
 const (
-	FlagDebug    = uint64(1) << iota // debug output from executor
-	FlagCover                        // collect coverage
-	FlagThreaded                     // use multiple threads to mitigate blocked syscalls
-	FlagStrace                       // run executor under strace
+	FlagDebug      = uint64(1) << iota // debug output from executor
+	FlagCover                          // collect coverage
+	FlagThreaded                       // use multiple threads to mitigate blocked syscalls
+	FlagDedupCover                     // deduplicate coverage in executor
+	FlagStrace                         // run executor under strace
 )
 
 func MakeEnv(bin string, timeout time.Duration, flags uint64) (*Env, error) {
