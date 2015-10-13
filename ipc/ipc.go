@@ -12,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/google/syzkaller/prog"
 )
 
 type Env struct {
@@ -74,7 +76,19 @@ func (env *Env) Close() error {
 	}
 }
 
-func (env *Env) Exec() (output, strace []byte, failed, hanged bool, err0 error) {
+func (env *Env) Exec(p *prog.Prog) (output, strace []byte, failed, hanged bool, err0 error) {
+	if p != nil {
+		progData := p.SerializeForExec()
+		if len(progData) > len(env.In) {
+			panic("program is too long")
+		}
+		copy(env.In, progData)
+	}
+	// Zero out the first word (ncmd), so that we don't have garbage there
+	// if executor crashes before writing non-garbage there.
+	for i := 0; i < 4; i++ {
+		env.Out[i] = 0
+	}
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		err0 = fmt.Errorf("failed to create temp dir: %v", err)
@@ -184,8 +198,7 @@ func createMapping(size int) (f *os.File, mem []byte, err error) {
 	if err != nil {
 		return
 	}
-	if _, err = f.Write(make([]byte, size)); err != nil {
-		// if err = f.Truncate(int64(size)); err != nil {
+	if err = f.Truncate(int64(size)); err != nil {
 		f.Close()
 		os.Remove(f.Name())
 		return

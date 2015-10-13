@@ -24,7 +24,7 @@ var (
 
 func main() {
 	flag.Parse()
-	var progs [][]byte
+	var progs []*prog.Prog
 	for _, fn := range strings.Split(*flagLog, ",") {
 		logf, err := os.Open(fn)
 		if err != nil {
@@ -45,13 +45,13 @@ func main() {
 				continue
 			}
 			if last != nil {
-				progs = append(progs, last.SerializeForExec())
+				progs = append(progs, last)
 				last = nil
 				cur = cur[:0]
 			}
 		}
 		if last != nil {
-			progs = append(progs, last.SerializeForExec())
+			progs = append(progs, last)
 		}
 	}
 	log.Printf("parsed %v programs", len(progs))
@@ -71,8 +71,7 @@ func main() {
 				if idx%1000 == 0 {
 					log.Printf("executing %v\n", idx)
 				}
-				copy(env.In, progs[idx%len(progs)])
-				_, _, _, _, err := env.Exec()
+				_, _, _, _, err := env.Exec(progs[idx%len(progs)])
 				if err != nil {
 					log.Printf("failed to execute program: %v", err)
 				}

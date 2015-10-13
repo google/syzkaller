@@ -342,17 +342,7 @@ func execute1(env *ipc.Env, p *prog.Prog, workerId int) []cover.Cover {
 
 	try := 0
 retry:
-	exec := p.SerializeForExec()
-	if len(exec) > len(env.In) {
-		panic("program is too long")
-	}
-	copy(env.In, exec)
-	// Zero out the first word (ncmd), so that we don't have garbage there
-	// if executor crashes before writing non-garbage there.
-	for i := 0; i < 4; i++ {
-		env.Out[i] = 0
-	}
-	output, strace, failed, hanged, err := env.Exec()
+	output, strace, failed, hanged, err := env.Exec(p)
 	if err != nil {
 		if try > 10 {
 			panic(err)

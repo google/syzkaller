@@ -73,10 +73,7 @@ func TestEmptyProg(t *testing.T) {
 	defer env.Close()
 
 	p := new(prog.Prog)
-	data := p.SerializeForExec()
-	copy(env.In, data)
-
-	output, strace, failed, hanged, err := env.Exec()
+	output, strace, failed, hanged, err := env.Exec(p)
 	if err != nil {
 		t.Fatalf("failed to run executor: %v", err)
 	}
@@ -102,10 +99,7 @@ func TestStrace(t *testing.T) {
 	defer env.Close()
 
 	p := new(prog.Prog)
-	data := p.SerializeForExec()
-	copy(env.In, data)
-
-	_, strace, failed, hanged, err := env.Exec()
+	_, strace, failed, hanged, err := env.Exec(p)
 	if err != nil {
 		t.Fatalf("failed to run executor: %v", err)
 	}
@@ -132,10 +126,7 @@ func TestExecute(t *testing.T) {
 
 		for i := 0; i < iters/len(flags); i++ {
 			p := prog.Generate(rs, 10, nil)
-			data := p.SerializeForExec()
-			copy(env.In, data)
-
-			_, _, _, _, err := env.Exec()
+			_, _, _, _, err := env.Exec(p)
 			if err != nil {
 				t.Fatalf("failed to run executor: %v", err)
 			}
@@ -169,10 +160,7 @@ func TestCompare(t *testing.T) {
 	rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
 		p := prog.Generate(rs, 10, nil)
-		data := p.SerializeForExec()
-		copy(env1.In, data)
-
-		_, strace1, _, _, err := env1.Exec()
+		_, strace1, _, _, err := env1.Exec(p)
 		if err != nil {
 			t.Fatalf("failed to run executor: %v", err)
 		}
@@ -187,7 +175,7 @@ func TestCompare(t *testing.T) {
 		}
 		defer env2.Close() // yes, that's defer in a loop
 
-		_, strace2, _, _, err := env2.Exec()
+		_, strace2, _, _, err := env2.Exec(nil)
 		if err != nil {
 			t.Fatalf("failed to run c binary: %v", err)
 		}
