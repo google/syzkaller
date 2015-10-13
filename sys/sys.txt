@@ -210,8 +210,17 @@ io_cancel(ctx io_ctx, iocb ptr[in, iocb], res ptr[out, io_event])
 capget(hdr ptr[in, cap_header], data ptr[in, cap_data])
 capset(hdr ptr[in, cap_header], data ptr[in, cap_data])
 
-# TODO: in some cases args are pointers and other interesting values
-prctl(option flags[prctl_code], arg2 intptr, arg3 intptr, arg4 intptr, arg5 intptr)
+prctl$void(option flags[prctl_code_void])
+prctl$intptr(option flags[prctl_code_intptr], arg intptr)
+prctl$getreaper(option flags[prctl_code_getreaper], arg ptr[out, intptr])
+prctl$setendian(option flags[prctl_code_setendian], arg flags[prctl_endian])
+prctl$setfpexc(option flags[prctl_code_setfpexc], arg flags[prctl_fpexc])
+prctl$setname(option flags[prctl_code_setname], name string)
+prctl$getname(option flags[prctl_code_getname], name buffer[out])
+prctl$setptracer(option flags[prctl_code_setptracer], pid pid)
+prctl$seccomp(option flags[prctl_code_seccomp], mode flags[prctl_seccomp_mode], prog ptr[in, sock_fprog])
+prctl$setmm(option flags[prctl_code_setmm], option flags[prctl_mm_option], val vma)
+
 arch_prctl(code flags[arch_prctl_code], addr ptr[in, ioctl_arg])
 seccomp(op flags[seccomp_op], flags flags[seccomp_flags], prog ptr[in, sock_fprog])
 
@@ -898,7 +907,20 @@ lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, I
 iocb_flags = IOCB_FLAG_RESFD
 sigev_notify = SIGEV_NONE, SIGEV_SIGNAL, SIGEV_THREAD
 cap_version = 0x19980330, 0x20071026, 0x20080522
-prctl_code = PR_CAPBSET_READ, PR_CAPBSET_DROP, PR_SET_CHILD_SUBREAPER, PR_GET_CHILD_SUBREAPER, PR_SET_DUMPABLE, PR_GET_DUMPABLE, PR_SET_ENDIAN, PR_GET_ENDIAN, PR_SET_FPEMU, PR_GET_FPEMU, PR_SET_FPEXC, PR_GET_FPEXC, PR_SET_KEEPCAPS, PR_GET_KEEPCAPS, PR_SET_NAME, PR_GET_NAME, PR_SET_NO_NEW_PRIVS, PR_GET_NO_NEW_PRIVS, PR_SET_PDEATHSIG, PR_GET_PDEATHSIG, PR_SET_PTRACER, PR_SET_SECCOMP, PR_GET_SECCOMP, PR_SET_SECUREBITS, PR_GET_SECUREBITS, PR_GET_TID_ADDRESS, PR_SET_TIMERSLACK, PR_GET_TIMERSLACK, PR_SET_TIMING, PR_GET_TIMING, PR_TASK_PERF_EVENTS_DISABLE, PR_TASK_PERF_EVENTS_ENABLE, PR_SET_TSC, PR_GET_TSC, PR_SET_UNALIGN, PR_GET_UNALIGN, PR_MCE_KILL, PR_MCE_KILL_GET, PR_SET_MM
+prctl_code_void = PR_GET_DUMPABLE, PR_GET_KEEPCAPS, PR_GET_NO_NEW_PRIVS, PR_GET_SECCOMP, PR_GET_SECUREBITS, PR_GET_TIMERSLACK, PR_GET_TIMING, PR_TASK_PERF_EVENTS_DISABLE, PR_TASK_PERF_EVENTS_ENABLE, PR_MCE_KILL_GET
+prctl_code_intptr = PR_CAPBSET_READ, PR_CAPBSET_DROP, PR_SET_CHILD_SUBREAPER, PR_SET_DUMPABLE, PR_SET_FPEMU, PR_SET_KEEPCAPS, PR_SET_NO_NEW_PRIVS, PR_SET_PDEATHSIG, PR_SET_SECUREBITS, PR_SET_TIMERSLACK, PR_SET_TIMING, PR_SET_TSC, PR_SET_UNALIGN, PR_MCE_KILL
+prctl_code_getreaper = PR_GET_CHILD_SUBREAPER, PR_GET_ENDIAN, PR_GET_FPEMU, PR_GET_FPEXC, PR_GET_PDEATHSIG, PR_GET_TID_ADDRESS, PR_GET_TSC, PR_GET_UNALIGN
+prctl_code_setendian = PR_SET_ENDIAN
+prctl_code_setfpexc = PR_SET_FPEXC
+prctl_code_setname = PR_SET_NAME
+prctl_code_getname = PR_GET_NAME
+prctl_code_setptracer = PR_SET_PTRACER
+prctl_code_seccomp = PR_SET_SECCOMP
+prctl_code_setmm = PR_SET_MM
+prctl_endian = PR_ENDIAN_BIG, PR_ENDIAN_LITTLE, PR_ENDIAN_PPC_LITTLE
+prctl_fpexc = PR_FP_EXC_SW_ENABLE, PR_FP_EXC_DIV, PR_FP_EXC_OVF, PR_FP_EXC_UND, PR_FP_EXC_RES, PR_FP_EXC_INV, PR_FP_EXC_DISABLED, PR_FP_EXC_NONRECOV, PR_FP_EXC_ASYNC, PR_FP_EXC_PRECISE
+prctl_seccomp_mode = SECCOMP_MODE_DISABLED, SECCOMP_MODE_STRICT, SECCOMP_MODE_FILTER
+prctl_mm_option = PR_SET_MM_START_CODE, PR_SET_MM_END_CODE, PR_SET_MM_START_DATA, PR_SET_MM_END_DATA, PR_SET_MM_START_STACK, PR_SET_MM_START_BRK, PR_SET_MM_BRK
 arch_prctl_code = ARCH_SET_FS, ARCH_GET_FS, ARCH_SET_GS, ARCH_GET_GS
 keyctl_code = KEYCTL_GET_KEYRING_ID, KEYCTL_JOIN_SESSION_KEYRING, KEYCTL_UPDATE, KEYCTL_REVOKE, KEYCTL_CHOWN, KEYCTL_SETPERM, KEYCTL_DESCRIBE, KEYCTL_CLEAR, KEYCTL_LINK, KEYCTL_UNLINK, KEYCTL_SEARCH, KEYCTL_READ, KEYCTL_INSTANTIATE, KEYCTL_NEGATE, KEYCTL_SET_REQKEY_KEYRING, KEYCTL_SET_TIMEOUT, KEYCTL_ASSUME_AUTHORITY
 epoll_flags = EPOLL_CLOEXEC
