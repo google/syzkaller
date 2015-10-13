@@ -5,7 +5,6 @@ package prog
 
 import (
 	"bytes"
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -25,19 +24,7 @@ func initTest(t *testing.T) (rand.Source, int) {
 func TestGeneration(t *testing.T) {
 	rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 20, nil)
-		hasGettime, hasSelect := false, false
-		for _, c := range p.Calls {
-			if c.Meta.Name == "clock_gettime" {
-				hasGettime = true
-			}
-			if c.Meta.Name == "select" {
-				hasSelect = true
-			}
-		}
-		if hasGettime && hasSelect {
-			fmt.Printf("%s\n\n", p.WriteCSource())
-		}
+		Generate(rs, 20, nil)
 	}
 }
 
