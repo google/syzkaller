@@ -53,6 +53,7 @@ const (
 	ResUid
 	ResGid
 	ResTimerid
+	ResIocbPtr
 )
 
 const (

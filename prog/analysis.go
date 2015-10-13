@@ -86,6 +86,19 @@ func (s *state) analyze(c *Call) {
 		s.addressable(c.Args[0], c.Args[1], false)
 	case "mremap":
 		s.addressable(c.Args[4], c.Args[2], true)
+	case "io_submit":
+		if arr := c.Args[2].Res; arr != nil {
+			for _, ptr := range arr.Inner {
+				if ptr.Kind == ArgPointer {
+					if ptr.Res != nil && ptr.Res.Type.Name() == "iocb" {
+						if s.resources[sys.ResIocbPtr] == nil {
+							s.resources[sys.ResIocbPtr] = make(map[sys.ResourceSubkind][]*Arg)
+						}
+						s.resources[sys.ResIocbPtr][sys.ResAny] = append(s.resources[sys.ResIocbPtr][sys.ResAny], ptr)
+					}
+				}
+			}
+		}
 	}
 }
 

@@ -623,6 +623,14 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		if size == nil {
 			size = constArg(inner.Size(a.Type))
 		}
+		if a.Type.Name() == "iocb" && r.bin() && len(s.resources[sys.ResIocbPtr][sys.ResAny]) != 0 {
+			// It is weird, but these are actually identified by kernel by address.
+			// So try to reuse a previously used address.
+			addrs := s.resources[sys.ResIocbPtr][sys.ResAny]
+			addr := addrs[r.Intn(len(addrs))]
+			arg = pointerArg(addr.AddrPage, addr.AddrOffset, inner)
+			return arg, size, calls
+		}
 		arg, calls1 := r.addr(s, inner.Size(a.Type), inner)
 		calls = append(calls, calls1...)
 		return arg, size, calls
