@@ -136,13 +136,14 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, enabledCalls []*sys.Call) {
 						arg1, calls1 := r.addr(s, size, arg.Res)
 						replaceArg(p, arg, arg1, calls1)
 					case sys.StructType:
-						switch a.Name() {
-						case "timespec", "timeval":
-							arg1, _, calls1 := r.generateArg(s, arg.Type, arg.Dir, nil)
-							replaceArg(p, arg.Inner[0], arg1.Inner[0], calls1)
-							replaceArg(p, arg.Inner[1], arg1.Inner[1], nil)
-						default:
+						ctor := isSpecialStruct(a)
+						if ctor == nil {
 							panic("bad arg returned by mutationArgs: StructType")
+						}
+						arg1, calls1 := ctor(r, s)
+						for i, f := range arg1.Inner {
+							replaceArg(p, arg.Inner[i], f, calls1)
+							calls1 = nil
 						}
 					case sys.LenType:
 						panic("bad arg returned by mutationArgs: LenType")

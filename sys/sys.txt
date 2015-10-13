@@ -1036,7 +1036,7 @@ xfrm_id {
 }
 
 # in_addr or in6_addr
-# TODO: needs prog support
+# prog knows about this struct
 in_addr_any {
 	a0	in_addr
 	a1	int32
@@ -1044,7 +1044,7 @@ in_addr_any {
 	a3	int32
 }
 
-# TODO: needs prog support
+# prog knows about this struct
 in6_addr {
 	a0	int32
 	a1	int32

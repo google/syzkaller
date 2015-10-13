@@ -124,7 +124,31 @@ var sockFamilies = []uint16{AF_LOCAL, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_
 
 func (r *randGen) inaddr(s *state) uint32 {
 	// TODO: extract addresses of network interfaces.
-	return uint32(127<<24 + 0<<16 + 0<<8 + 1)
+	// Note: assuming little-endian host
+	return uint32(127<<0 + 0<<8 + 0<<16 + 1<<24)
+}
+
+func (r *randGen) in6addr(s *state) (arg *Arg, calls []*Call) {
+	// addr: loopback (big endian)
+	return groupArg([]*Arg{
+		constArg(0),
+		constArg(0),
+		constArg(0),
+		constArg(1 << 24),
+	}), nil
+}
+
+func (r *randGen) inaddrany(s *state) (arg *Arg, calls []*Call) {
+	if r.bin() {
+		return r.in6addr(s)
+	} else {
+		return groupArg([]*Arg{
+			constArg(uintptr(r.inaddr(s))),
+			constArg(0),
+			constArg(0),
+			constArg(0),
+		}), nil
+	}
 }
 
 func (r *randGen) sockaddr(s *state) []byte {
@@ -137,7 +161,7 @@ func (r *randGen) sockaddr(s *state) []byte {
 		buf.WriteString(r.filename(s))
 	case AF_INET:
 		binary.Write(buf, binary.BigEndian, port)
-		binary.Write(buf, binary.BigEndian, r.inaddr(s))
+		binary.Write(buf, binary.LittleEndian, r.inaddr(s))
 	case AF_INET6:
 		binary.Write(buf, binary.BigEndian, port)
 		binary.Write(buf, binary.BigEndian, uint32(r.Int63())) // flow info
@@ -201,6 +225,31 @@ func (r *randGen) randString(s *state) []byte {
 		buf.Write([]byte{0})
 	}
 	return buf.Bytes()
+}
+
+func isSpecialStruct(typ sys.Type) func(r *randGen, s *state) (*Arg, []*Call) {
+	if _, ok := typ.(sys.StructType); !ok {
+		panic("must be a struct")
+	}
+	switch typ.Name() {
+	case "timespec":
+		return func(r *randGen, s *state) (*Arg, []*Call) {
+			return r.timespec(s, false)
+		}
+	case "timeval":
+		return func(r *randGen, s *state) (*Arg, []*Call) {
+			return r.timespec(s, true)
+		}
+	case "in6_addr":
+		return func(r *randGen, s *state) (*Arg, []*Call) {
+			return r.in6addr(s)
+		}
+	case "in_addr_any":
+		return func(r *randGen, s *state) (*Arg, []*Call) {
+			return r.inaddrany(s)
+		}
+	}
+	return nil
 }
 
 func (r *randGen) timespec(s *state, usec bool) (arg *Arg, calls []*Call) {
@@ -597,9 +646,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		case sys.IntSignalno:
 			v %= 130
 		case sys.IntInaddr:
-			x := r.inaddr(s)
-			// Note: assuming little-endian host
-			v = uintptr(((x>>0)&0xff)<<24 + ((x>>8)&0xff)<<16 + ((x>>16)&0xff)<<8 + ((x>>24)&0xff)<<0)
+			v = uintptr(r.inaddr(s))
 		}
 		return constArg(v), nil, nil
 	case sys.FilenameType:
@@ -616,10 +663,9 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		}
 		return groupArg(inner), constArg(count), calls
 	case sys.StructType:
-		if dir != DirOut && (a.Name() == "timespec" || a.Name() == "timeval") {
-			usec := a.Name() == "timeval"
-			arg, calls = r.timespec(s, usec)
-			return arg, nil, calls
+		if ctor := isSpecialStruct(a); ctor != nil && dir != DirOut {
+			arg, calls = ctor(r, s)
+			return
 		}
 		args, calls := r.generateArgs(s, a.Fields, dir)
 		return groupArg(args), nil, calls
