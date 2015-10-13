@@ -1,15 +1,20 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// execprog executes a single program passed via a flag
+// and prints information about execution.
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"time"
 
+	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/ipc"
 	"github.com/google/syzkaller/prog"
 )
@@ -20,7 +25,7 @@ var (
 	flagThreaded = flag.Bool("threaded", false, "use threaded mode in executor")
 	flagDebug    = flag.Bool("debug", true, "debug output from executor")
 	flagStrace   = flag.Bool("strace", false, "run executor under strace")
-	flagCover    = flag.Bool("cover", false, "collect coverage")
+	flagCover    = flag.String("cover", "", "collect coverage and write to the file")
 )
 
 func main() {
@@ -45,7 +50,7 @@ func main() {
 	if *flagStrace {
 		flags |= ipc.FlagStrace
 	}
-	if *flagCover {
+	if *flagCover != "" {
 		flags |= ipc.FlagCover
 	}
 	env, err := ipc.MakeEnv(*flagExecutor, 3*time.Second, flags)
@@ -53,9 +58,28 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to create execution environment: %v\n", err)
 		os.Exit(1)
 	}
-	output, strace, _, failed, hanged, err := env.Exec(p)
+	output, strace, cov, failed, hanged, err := env.Exec(p)
 	fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
 	if *flagStrace {
 		fmt.Printf("strace output:\n%s", strace)
+	}
+	// Coverage is dumped in sanitizer format.
+	// github.com/google/sanitizers/tools/sancov command can be used to dump PCs,
+	// then they can be piped via addr2line to symbolize.
+	for i, c := range cov {
+		fmt.Printf("call #%v: coverage %v\n", i, len(c))
+		if len(c) == 0 {
+			continue
+		}
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.LittleEndian, uint64(0xC0BFFFFFFFFFFF64))
+		for _, pc := range c {
+			binary.Write(buf, binary.LittleEndian, cover.RestorePC(pc))
+		}
+		err := ioutil.WriteFile(fmt.Sprintf("%v.%v", *flagCover, i), buf.Bytes(), 0660)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "failed to write coverage file: %v\n", err)
+			os.Exit(1)
+		}
 	}
 }

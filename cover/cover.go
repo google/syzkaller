@@ -20,6 +20,10 @@ func Copy(cov Cover) Cover {
 	return append(Cover{}, cov...)
 }
 
+func RestorePC(pc uint32) uint64 {
+	return uint64(0xffffffff)<<32 + uint64(pc)
+}
+
 /* Canonicalize sorts and removes duplicates. */
 func Canonicalize(cov []uint32) Cover {
 	sort.Sort(Cover(cov))

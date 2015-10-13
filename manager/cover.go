@@ -15,6 +15,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/google/syzkaller/cover"
 )
 
 type LineInfo struct {
@@ -171,7 +173,7 @@ func symbolize(vmlinux string, cov []uint32) error {
 	defer cmd.Wait()
 	go func() {
 		for _, pc := range cov {
-			fmt.Fprintf(stdin, "0xffffffff%x\n", pc-1)
+			fmt.Fprintf(stdin, "0x%x\n", cover.RestorePC(pc)-1)
 		}
 		stdin.Close()
 	}()
