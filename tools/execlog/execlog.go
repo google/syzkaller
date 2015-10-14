@@ -20,6 +20,7 @@ import (
 var (
 	flagExecutor = flag.String("executor", "", "path to executor binary")
 	flagLog      = flag.String("log", "", "comma-delimited list of log files to execute")
+	flagProcs    = flag.Int("procs", 1, "number of parallel processes to execute the log")
 )
 
 func main() {
@@ -60,7 +61,7 @@ func main() {
 	}
 
 	var pos uint32
-	for p := 0; p < 16; p++ {
+	for p := 0; p < *flagProcs; p++ {
 		go func() {
 			env, err := ipc.MakeEnv(*flagExecutor, 5*time.Second, 0)
 			if err != nil {
