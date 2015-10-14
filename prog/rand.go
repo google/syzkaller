@@ -416,7 +416,10 @@ func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, call
 		}
 		return false
 	}
-	for _, meta := range s.enabledCalls {
+	for i, meta := range sys.Calls {
+		if s.ct == nil || s.ct.run[i] == nil {
+			continue
+		}
 		ok := false
 		for _, arg := range meta.Args {
 			if checkArg(arg, DirIn) {
@@ -432,12 +435,7 @@ func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, call
 		}
 	}
 	if len(metas) == 0 {
-		if len(s.enabledCalls) != len(sys.Calls) {
-			// We used only a subset of all syscalls,
-			// so we legitimately may not be able to create the resource.
-			return constArg(res.Default()), nil
-		}
-		panic(fmt.Sprintf("can't create resource %v/%v", res.Kind, sk))
+		return constArg(res.Default()), nil
 	}
 
 	// Now we have a set of candidate calls that can create the necessary resource.
@@ -446,7 +444,7 @@ func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, call
 		meta := metas[r.Intn(len(metas))]
 		calls := r.generateParticularCall(s, meta)
 		assignTypeAndDir(calls[len(calls)-1])
-		s1 := newState(s.enabledCalls)
+		s1 := newState(s.ct)
 		s1.analyze(calls[len(calls)-1])
 		// Now see if we have what we want.
 		var allres []*Arg
@@ -504,8 +502,19 @@ func (r *randGen) choose(args ...interface{}) {
 	panic("choose is broken")
 }
 
-func (r *randGen) generateCall(s *state) []*Call {
-	meta := s.enabledCalls[r.rand(len(s.enabledCalls))]
+func (r *randGen) generateCall(s *state, p *Prog) []*Call {
+	call := -1
+	if len(p.Calls) != 0 {
+		for i := 0; i < 5; i++ {
+			c := p.Calls[r.Intn(len(p.Calls))].Meta
+			call = c.ID
+			// There is roughly half of mmap's so ignore them.
+			if c.Name != "mmap" {
+				break
+			}
+		}
+	}
+	meta := sys.Calls[s.ct.Choose(r.Rand, call)]
 	return r.generateParticularCall(s, meta)
 }
 

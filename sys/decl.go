@@ -180,10 +180,6 @@ type FileoffType struct {
 	File     string
 }
 
-type AddrType struct {
-	TypeCommon
-}
-
 type BufferKind int
 
 const (

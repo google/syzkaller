@@ -10,7 +10,7 @@ import (
 	"github.com/google/syzkaller/sys"
 )
 
-func (p *Prog) Mutate(rs rand.Source, ncalls int, enabledCalls []*sys.Call) {
+func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 	r := newRand(rs)
 	for stop := false; !stop; stop = r.bin() {
 		r.choose(
@@ -24,8 +24,8 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, enabledCalls []*sys.Call) {
 				if idx < len(p.Calls) {
 					c = p.Calls[idx]
 				}
-				s := analyze(enabledCalls, p, c)
-				calls := r.generateCall(s)
+				s := analyze(ct, p, c)
+				calls := r.generateCall(s, p)
 				p.insertBefore(c, calls)
 			},
 			10, func() {
@@ -37,7 +37,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, enabledCalls []*sys.Call) {
 				if len(c.Args) == 0 {
 					return
 				}
-				s := analyze(enabledCalls, p, c)
+				s := analyze(ct, p, c)
 				for stop := false; !stop; stop = r.bin() {
 					args, bases, parents := mutationArgs(c)
 					idx := r.Intn(len(args))
@@ -120,7 +120,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, enabledCalls []*sys.Call) {
 
 							for _, arg := range referencedArgs(removed, nil) {
 								c1 := arg.Call
-								s := analyze(enabledCalls, p, c1)
+								s := analyze(ct, p, c1)
 								arg1, _, calls1 := r.generateArg(s, arg.Type, arg.Dir, nil)
 								replaceArg(p, arg, arg1, calls1)
 							}
@@ -203,7 +203,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, enabledCalls []*sys.Call) {
 
 				for _, arg := range referencedArgs(c.Args, c.Ret) {
 					c1 := arg.Call
-					s := analyze(enabledCalls, p, c1)
+					s := analyze(ct, p, c1)
 					arg1, _, calls1 := r.generateArg(s, arg.Type, arg.Dir, nil)
 					replaceArg(p, arg, arg1, calls1)
 				}

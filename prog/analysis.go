@@ -19,16 +19,16 @@ const (
 )
 
 type state struct {
-	enabledCalls []*sys.Call
-	files        map[string]bool
-	resources    map[sys.ResourceKind]map[sys.ResourceSubkind][]*Arg
-	strings      map[string]bool
-	pages        [maxPages]bool
+	ct        *ChoiceTable
+	files     map[string]bool
+	resources map[sys.ResourceKind]map[sys.ResourceSubkind][]*Arg
+	strings   map[string]bool
+	pages     [maxPages]bool
 }
 
 // analyze analyzes the program p up to but not including call c.
-func analyze(enabledCalls []*sys.Call, p *Prog, c *Call) *state {
-	s := newState(enabledCalls)
+func analyze(ct *ChoiceTable, p *Prog, c *Call) *state {
+	s := newState(ct)
 	for _, c1 := range p.Calls {
 		if c1 == c {
 			break
@@ -38,15 +38,12 @@ func analyze(enabledCalls []*sys.Call, p *Prog, c *Call) *state {
 	return s
 }
 
-func newState(enabledCalls []*sys.Call) *state {
+func newState(ct *ChoiceTable) *state {
 	s := &state{
-		enabledCalls: enabledCalls,
-		files:        make(map[string]bool),
-		resources:    make(map[sys.ResourceKind]map[sys.ResourceSubkind][]*Arg),
-		strings:      make(map[string]bool),
-	}
-	if len(s.enabledCalls) == 0 {
-		s.enabledCalls = sys.Calls
+		ct:        ct,
+		files:     make(map[string]bool),
+		resources: make(map[sys.ResourceKind]map[sys.ResourceSubkind][]*Arg),
+		strings:   make(map[string]bool),
 	}
 	return s
 }

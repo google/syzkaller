@@ -24,7 +24,7 @@ var (
 	flagOutput   = flag.Bool("output", false, "print executor output to console")
 	flagDebug    = flag.Bool("debug", false, "executor debug output")
 
-	failedRe = regexp.MustCompile("runtime error: |panic: ")
+	failedRe = regexp.MustCompile("runtime error: |panic: |Panic: ")
 )
 
 func main() {

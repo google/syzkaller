@@ -14,7 +14,20 @@ import (
 
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys"
 )
+
+func (mgr *Manager) initHttp() {
+	http.HandleFunc("/", mgr.httpInfo)
+	http.HandleFunc("/corpus", mgr.httpCorpus)
+	http.HandleFunc("/cover", mgr.httpCover)
+	http.HandleFunc("/prio", mgr.httpPrio)
+	http.HandleFunc("/current_corpus", mgr.httpCurrentCorpus)
+	go func() {
+		logf(0, "serving http on http://%v", mgr.cfg.Http)
+		panic(http.ListenAndServe(mgr.cfg.Http, nil))
+	}()
+}
 
 func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
@@ -39,6 +52,7 @@ func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
 		MasterHttp:       mgr.masterHttp,
 		MasterCorpusSize: len(mgr.masterCorpus),
 		CorpusSize:       len(mgr.corpus),
+		TriageQueue:      len(mgr.candidates),
 	}
 
 	var cov cover.Cover
@@ -103,6 +117,35 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	mgr.minimizeCorpus()
+	call := r.FormValue("call")
+	idx := -1
+	for i, c := range sys.Calls {
+		if c.CallName == call {
+			idx = i
+			break
+		}
+	}
+	if idx == -1 {
+		http.Error(w, fmt.Sprintf("unknown call: %v", call), http.StatusInternalServerError)
+		return
+	}
+
+	data := &UIPrioData{Call: call}
+	for i, p := range mgr.prios[idx] {
+		data.Prios = append(data.Prios, UIPrio{sys.Calls[i].Name, p})
+	}
+	sort.Sort(UIPrioArray(data.Prios))
+
+	if err := prioTemplate.Execute(w, data); err != nil {
+		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+	}
+}
+
 func (mgr *Manager) httpCurrentCorpus(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -126,6 +169,7 @@ type UIData struct {
 	MasterHttp       string
 	MasterCorpusSize int
 	CorpusSize       int
+	TriageQueue      int
 	CoverSize        int
 	Calls            []UICallType
 }
@@ -166,10 +210,11 @@ var htmlTemplate = template.Must(template.New("").Parse(`
 Manager: {{.Name}} <a href='http://{{.MasterHttp}}'>[master]</a> <br>
 Master corpus: {{.MasterCorpusSize}} <br>
 Corpus: {{.CorpusSize}}<br>
+Triage queue len: {{.TriageQueue}}<br>
 <a href='/cover'>Cover: {{.CoverSize}}</a> <br>
 <br>
 {{range $c := $.Calls}}
-	{{$c.Name}} <a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a> <a href='/cover?call={{$c.Name}}'>cover:{{$c.Cover}}</a><br>
+	{{$c.Name}} <a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a> <a href='/cover?call={{$c.Name}}'>cover:{{$c.Cover}}</a> <a href='/prio?call={{$c.Name}}'>prio</a> <br>
 {{end}}
 </body></html>
 `))
@@ -183,6 +228,36 @@ var corpusTemplate = template.Must(template.New("").Parse(`
 <body>
 {{range $c := $}}
 	<span title="{{$c.Full}}">{{$c.Short}}</span> <a href='/cover?call={{$c.N}}'>cover:{{$c.Cover}}</a> <br>
+{{end}}
+</body></html>
+`))
+
+type UIPrioData struct {
+	Call  string
+	Prios []UIPrio
+}
+
+type UIPrio struct {
+	Call string
+	Prio float32
+}
+
+type UIPrioArray []UIPrio
+
+func (a UIPrioArray) Len() int           { return len(a) }
+func (a UIPrioArray) Less(i, j int) bool { return a[i].Prio > a[j].Prio }
+func (a UIPrioArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+var prioTemplate = template.Must(template.New("").Parse(`
+<!doctype html>
+<html>
+<head>
+    <title>syzkaller priorities</title>
+</head>
+<body>
+Priorities for {{$.Call}} <br> <br>
+{{range $p := $.Prios}}
+	{{printf "%.4f\t%s" $p.Prio $p.Call}} <br>
 {{end}}
 </body></html>
 `))

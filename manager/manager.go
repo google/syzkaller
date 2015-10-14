@@ -7,7 +7,6 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"net"
-	"net/http"
 	"net/rpc"
 	"sync"
 	"time"
@@ -39,6 +38,7 @@ type Manager struct {
 
 	corpus      []RpcInput
 	corpusCover []cover.Cover
+	prios       [][]float32
 
 	fuzzers map[string]*Fuzzer
 }
@@ -72,14 +72,8 @@ func RunManager(cfg *Config, syscalls map[int]bool, instances []vm.Instance) {
 		fuzzers:      make(map[string]*Fuzzer),
 	}
 
-	http.HandleFunc("/", mgr.httpInfo)
-	http.HandleFunc("/corpus", mgr.httpCorpus)
-	http.HandleFunc("/cover", mgr.httpCover)
-	http.HandleFunc("/current_corpus", mgr.httpCurrentCorpus)
-	go func() {
-		logf(0, "serving http on http://%v", cfg.Http)
-		panic(http.ListenAndServe(cfg.Http, nil))
-	}()
+	// Create HTTP server.
+	mgr.initHttp()
 
 	// Create RPC server for fuzzers.
 	rpcAddr := fmt.Sprintf("localhost:%v", cfg.Port)
@@ -148,30 +142,38 @@ func (mgr *Manager) pollMaster() {
 }
 
 func (mgr *Manager) minimizeCorpus() {
-	if len(mgr.corpus) == 0 {
-		return
-	}
-	// First, sort corpus per call.
-	type Call struct {
-		inputs []RpcInput
-		cov    []cover.Cover
-	}
-	calls := make(map[string]Call)
-	for _, inp := range mgr.corpus {
-		c := calls[inp.Call]
-		c.inputs = append(c.inputs, inp)
-		c.cov = append(c.cov, inp.Cover)
-		calls[inp.Call] = c
-	}
-	// Now minimize and build new corpus.
-	var newCorpus []RpcInput
-	for _, c := range calls {
-		for _, idx := range cover.Minimize(c.cov) {
-			newCorpus = append(newCorpus, c.inputs[idx])
+	if len(mgr.corpus) != 0 {
+		// First, sort corpus per call.
+		type Call struct {
+			inputs []RpcInput
+			cov    []cover.Cover
 		}
+		calls := make(map[string]Call)
+		for _, inp := range mgr.corpus {
+			c := calls[inp.Call]
+			c.inputs = append(c.inputs, inp)
+			c.cov = append(c.cov, inp.Cover)
+			calls[inp.Call] = c
+		}
+		// Now minimize and build new corpus.
+		var newCorpus []RpcInput
+		for _, c := range calls {
+			for _, idx := range cover.Minimize(c.cov) {
+				newCorpus = append(newCorpus, c.inputs[idx])
+			}
+		}
+		logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
+		mgr.corpus = newCorpus
 	}
-	logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
-	mgr.corpus = newCorpus
+	var corpus []*prog.Prog
+	for _, inp := range mgr.corpus {
+		p, err := prog.Deserialize(inp.Prog)
+		if err != nil {
+			panic(err)
+		}
+		corpus = append(corpus, p)
+	}
+	mgr.prios = prog.CalculatePriorities(corpus)
 }
 
 func (mgr *Manager) Connect(a *ManagerConnectArgs, r *ManagerConnectRes) error {
@@ -184,6 +186,8 @@ func (mgr *Manager) Connect(a *ManagerConnectArgs, r *ManagerConnectRes) error {
 		name:  a.Name,
 		input: 0,
 	}
+	r.Prios = mgr.prios
+
 	return nil
 }
 

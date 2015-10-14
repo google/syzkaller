@@ -5,18 +5,16 @@ package prog
 
 import (
 	"math/rand"
-
-	"github.com/google/syzkaller/sys"
 )
 
 // Generate generates a random program of length ~ncalls.
 // calls is a set of allowed syscalls, if nil all syscalls are used.
-func Generate(rs rand.Source, ncalls int, enabledCalls []*sys.Call) *Prog {
+func Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Prog {
 	p := new(Prog)
 	r := newRand(rs)
-	s := newState(enabledCalls)
+	s := newState(ct)
 	for len(p.Calls) < ncalls {
-		calls := r.generateCall(s)
+		calls := r.generateCall(s, p)
 		for _, c := range calls {
 			s.analyze(c)
 			p.Calls = append(p.Calls, c)

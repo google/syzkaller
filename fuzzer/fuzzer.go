@@ -63,6 +63,7 @@ var (
 	corpusHashes map[Sig]struct{}
 	triage       []Input
 	manager      *rpc.Client
+	ct           *prog.ChoiceTable
 
 	workerIn  = make(chan *prog.Prog, 10)
 	workerOut = make(chan []Input, 10)
@@ -98,6 +99,7 @@ func main() {
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
+	ct = prog.BuildChoiceTable(r.Prios, calls)
 
 	if *flagParallel <= 0 {
 		*flagParallel = 1
@@ -179,19 +181,19 @@ func main() {
 				// Send new inputs to workers, if they need some.
 				for len(workerIn) < *flagParallel {
 					if len(corpus) == 0 || i%10 == 0 {
-						p := prog.Generate(rnd, programLength, calls)
+						p := prog.Generate(rnd, programLength, ct)
 						logf(1, "#%v: generated: %s", i, p)
 						workerIn <- p
 						pending++
 						p = p.Clone()
-						p.Mutate(rnd, programLength, calls)
+						p.Mutate(rnd, programLength, ct)
 						logf(1, "#%v: mutated: %s", i, p)
 						workerIn <- p
 						pending++
 					} else {
 						inp := corpus[rnd.Intn(len(corpus))]
 						p := inp.p.Clone()
-						p.Mutate(rs, programLength, calls)
+						p.Mutate(rs, programLength, ct)
 						logf(1, "#%v: mutated: %s <- %s", i, p, inp.p)
 						workerIn <- p
 						pending++

@@ -39,6 +39,7 @@ type ManagerConnectArgs struct {
 }
 
 type ManagerConnectRes struct {
+	Prios [][]float32
 }
 
 type NewManagerInputArgs struct {
