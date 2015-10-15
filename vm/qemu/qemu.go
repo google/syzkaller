@@ -41,6 +41,7 @@ type qemu struct {
 type params struct {
 	Qemu     string
 	Kernel   string
+	Cmdline  string
 	Image    string
 	Sshkey   string
 	Fuzzer   string
@@ -225,7 +226,7 @@ func (inst *Instance) Run() {
 		"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.Port),
 		"-nographic",
 		"-kernel", inst.Kernel,
-		"-append", "console=ttyS0 root=/dev/sda debug earlyprintk=serial slub_debug=UZ",
+		"-append", "console=ttyS0 root=/dev/sda debug earlyprintk=serial slub_debug=UZ "+inst.Cmdline,
 		"-enable-kvm",
 		"-numa", "node,nodeid=0,cpus=0-1", "-numa", "node,nodeid=1,cpus=2-3",
 		"-smp", "sockets=2,cores=2,threads=1",
