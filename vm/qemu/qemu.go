@@ -60,9 +60,6 @@ func ctor(workdir string, syscalls map[int]bool, port, index int, paramsData []b
 	if _, err := os.Stat(p.Image); err != nil {
 		return nil, fmt.Errorf("image file '%v' does not exist: %v", p.Image, err)
 	}
-	if _, err := os.Stat(p.Kernel); err != nil {
-		return nil, fmt.Errorf("kernel file '%v' does not exist: %v", p.Kernel, err)
-	}
 	if _, err := os.Stat(p.Sshkey); err != nil {
 		return nil, fmt.Errorf("ssh key '%v' does not exist: %v", p.Sshkey, err)
 	}
@@ -219,19 +216,25 @@ func (inst *Instance) Run() {
 
 	// Start the instance.
 	// TODO: ignores inst.Cpu
-	inst.qemu = inst.CreateCommand(inst.Qemu,
+	args := []string{
+		inst.Qemu,
 		"-hda", inst.image,
 		"-m", strconv.Itoa(inst.Mem),
 		"-net", "nic",
 		"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.Port),
 		"-nographic",
-		"-kernel", inst.Kernel,
-		"-append", "console=ttyS0 root=/dev/sda debug earlyprintk=serial slub_debug=UZ "+inst.Cmdline,
 		"-enable-kvm",
 		"-numa", "node,nodeid=0,cpus=0-1", "-numa", "node,nodeid=1,cpus=2-3",
 		"-smp", "sockets=2,cores=2,threads=1",
 		"-usb", "-usbdevice", "mouse", "-usbdevice", "tablet",
-	)
+	}
+	if inst.Kernel != "" {
+		args = append(args,
+			"-kernel", inst.Kernel,
+			"-append", "console=ttyS0 root=/dev/sda debug earlyprintk=serial slub_debug=UZ "+inst.Cmdline,
+		)
+	}
+	inst.qemu = inst.CreateCommand(args...)
 	// Wait for ssh server.
 	time.Sleep(10 * time.Second)
 	start := time.Now()
