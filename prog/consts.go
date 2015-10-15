@@ -108,6 +108,7 @@ const (
 	FUTEX_WAIT                           = 0
 	FUTEX_WAIT_BITSET                    = 9
 	FUTEX_WAKE                           = 1
+	F_ADD_SEALS                          = 1033
 	F_DUPFD                              = 0
 	F_DUPFD_CLOEXEC                      = 1030
 	F_GETFD                              = 1
@@ -118,11 +119,15 @@ const (
 	F_GETOWN_EX                          = 16
 	F_GETPIPE_SZ                         = 1032
 	F_GETSIG                             = 11
-	F_NOTIFY                             = 1026
+	F_GET_SEALS                          = 1034
 	F_OWNER_PGRP                         = 2
 	F_OWNER_PID                          = 1
 	F_OWNER_TID                          = 0
 	F_RDLCK                              = 0
+	F_SEAL_GROW                          = 4
+	F_SEAL_SEAL                          = 1
+	F_SEAL_SHRINK                        = 2
+	F_SEAL_WRITE                         = 8
 	F_SETFD                              = 2
 	F_SETFL                              = 4
 	F_SETLEASE                           = 1024
@@ -352,6 +357,8 @@ const (
 	MCAST_INCLUDE                        = 1
 	MCL_CURRENT                          = 1
 	MCL_FUTURE                           = 2
+	MFD_ALLOW_SEALING                    = 2
+	MFD_CLOEXEC                          = 1
 	MMAP_PAGE_ZERO                       = 1048576
 	MNT_DETACH                           = 2
 	MNT_EXPIRE                           = 4

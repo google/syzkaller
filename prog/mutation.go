@@ -77,6 +77,8 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							} else {
 								arg.Data = r.randString(s)
 							}
+						case sys.BufferFilesystem:
+							arg.Data = r.filesystem(s)
 						case sys.BufferSockaddr:
 							arg.Data = r.sockaddr(s)
 						default:

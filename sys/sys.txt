@@ -144,6 +144,7 @@ mlock(addr vma, size len[addr])
 munlock(addr vma, size len[addr])
 mlockall(flags flags[mlockall_flags])
 munlockall()
+memfd_create(name string, flags flags[memfd_flags])
 unshare(flags flags[clone_flags])
 kcmp(pid1 pid, pid2 pid, type flags[kcmp_flags], fd1 fd, fd2 fd)
 
@@ -230,6 +231,7 @@ fcntl$setsig(fd fd, cmd flags[fcntl_setsig], sig signalno)
 fcntl$setlease(fd fd, cmd flags[fcntl_setlease], typ flags[flock_type])
 fcntl$notify(fd fd, cmd flags[fcntl_notify], typ flags[fcntl_notify])
 fcntl$setpipe(fd fd, cmd flags[fcntl_setpipe], sz intptr)
+fcntl$addseals(fd fd, cmd flags[fcntl_addseals], seals flags[seal_types])
 
 ptrace(req flags[ptrace_req], pid pid)
 ptrace$peek(req flags[ptrace_req_peek], pid pid, addr ptr[out, intptr])
@@ -379,7 +381,8 @@ getdents64(fd fd[dir], ent buffer[out], count len[ent])
 name_to_handle_at(fd fd[dir], file filename, handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])
 open_by_handle_at(mountdirfd fd, handle ptr[in, file_handle], flags flags[open_flags])
 
-mount(src filename, dst filename, type string, flags flags[mount_flags], data buffer[in])
+mount(src filename, dst filename, type filesystem, flags flags[mount_flags], data buffer[in])
+mount$fs(src filesystem, dst filename, type filesystem, flags flags[mount_flags], data buffer[in])
 umount2(path filename, flags flags[umount_flags])
 pivot_root(new_root filename, put_old filename)
 
@@ -1071,6 +1074,7 @@ mmap_flags = MAP_SHARED, MAP_PRIVATE, MAP_32BIT, MAP_ANONYMOUS, MAP_DENYWRITE, M
 mremap_flags = MREMAP_MAYMOVE, MREMAP_FIXED
 mbind_mode = MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE, MPOL_PREFERRED, MPOL_F_STATIC_NODES, MPOL_F_RELATIVE_NODES
 mbind_flags = MPOL_MF_STRICT, MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
+memfd_flags = MFD_CLOEXEC, MFD_ALLOW_SEALING
 pipe_flags = O_NONBLOCK, O_CLOEXEC
 mlockall_flags = MCL_CURRENT, MCL_FUTURE
 dup_flags = O_CLOEXEC
@@ -1082,7 +1086,6 @@ accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
 shutdown_flags  = SHUT_RD, SHUT_WR
 send_flags = MSG_CONFIRM, MSG_DONTROUTE, MSG_DONTWAIT, MSG_EOR, MSG_MORE, MSG_NOSIGNAL, MSG_OOB
 recv_flags = MSG_CMSG_CLOEXEC, MSG_DONTWAIT, MSG_ERRQUEUE, MSG_OOB, MSG_PEEK, MSG_TRUNC, MSG_WAITALL, MSG_WAITFORONE
-fcntl_commands = F_DUPFD, F_DUPFD_CLOEXEC, F_GETFD, F_SETFD, F_GETFL, F_SETFL, F_SETLK, F_SETLKW, F_GETLK, F_GETOWN, F_SETOWN, F_GETOWN_EX, F_SETOWN_EX, F_GETSIG, F_SETSIG, F_SETLEASE, F_GETLEASE, F_NOTIFY, F_SETPIPE_SZ, F_GETPIPE_SZ
 signalfd_flags = SFD_NONBLOCK, SFD_CLOEXEC
 eventfd_flags = EFD_CLOEXEC, EFD_NONBLOCK, EFD_SEMAPHORE
 timerfd_create_flags = TFD_NONBLOCK, TFD_CLOEXEC
@@ -1192,7 +1195,7 @@ ptrace_req_cont = PTRACE_CONT, PTRACE_SYSCALL, PTRACE_SINGLESTEP, PTRACE_SYSEMU,
 pthread_regset = NT_PRSTATUS, NT_PRFPREG, NT_PRPSINFO, NT_TASKSTRUCT, NT_AUXV, NT_386_TLS, NT_386_IOPERM, NT_X86_XSTATE
 ptrace_options = PTRACE_O_EXITKILL, PTRACE_O_TRACECLONE, PTRACE_O_TRACEEXEC, PTRACE_O_TRACEEXIT, PTRACE_O_TRACEFORK, PTRACE_O_TRACESYSGOOD, PTRACE_O_TRACEVFORK, PTRACE_O_TRACEVFORKDONE
 fcntl_dupfd = F_DUPFD, F_DUPFD_CLOEXEC
-fcntl_getflags = F_GETFD, F_GETFL, F_GETSIG, F_GETLEASE, F_GETPIPE_SZ
+fcntl_getflags = F_GETFD, F_GETFL, F_GETSIG, F_GETLEASE, F_GETPIPE_SZ, F_GET_SEALS
 fcntl_setflags = F_SETFD
 fcntl_setstatus = F_SETFL
 fcntl_lock = F_SETLK, F_SETLKW, F_GETLK
@@ -1208,6 +1211,8 @@ fcntl_status = O_APPEND, O_ASYNC, O_DIRECT, O_NOATIME, O_NONBLOCK
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
 f_owner_type = F_OWNER_TID, F_OWNER_PID, F_OWNER_PGRP
 fcntl_notify = DN_MULTISHOT, DN_ACCESS, DN_MODIFY, DN_CREATE, DN_DELETE, DN_RENAME, DN_ATTRIB
+fcntl_addseals = F_ADD_SEALS
+seal_types = F_SEAL_SEAL, F_SEAL_SHRINK, F_SEAL_GROW, F_SEAL_WRITE
 sockopt_level_sock = SOL_SOCKET
 sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PEEK_OFF, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP, SO_TYPE
 sockopt_opt_sock_str = SO_BINDTODEVICE
@@ -1340,6 +1345,14 @@ define IP_NODEFRAG		22
 define IP_CHECKSUM		23
 define IP_BIND_ADDRESS_NO_PORT	24
 define IPV6_FLOWINFO		11
+define MFD_CLOEXEC		0x0001U
+define MFD_ALLOW_SEALING	0x0002U
+define F_ADD_SEALS		(1024 + 9)
+define F_GET_SEALS		(1024 + 10)
+define F_SEAL_SEAL		0x0001
+define F_SEAL_SHRINK		0x0002
+define F_SEAL_GROW		0x0004
+define F_SEAL_WRITE		0x0008
 
 
 

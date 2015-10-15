@@ -5,6 +5,11 @@ struct call_t {
 	int		sys_nr;
 };
 
+// Note: this is x86_64 number
+#ifndef __NR_memfd_create
+#define __NR_memfd_create 319
+#endif
+
 call_t syscalls[] = {
 	{"open", __NR_open},
 	{"openat", __NR_openat},
@@ -66,6 +71,7 @@ call_t syscalls[] = {
 	{"munlock", __NR_munlock},
 	{"mlockall", __NR_mlockall},
 	{"munlockall", __NR_munlockall},
+	{"memfd_create", __NR_memfd_create},
 	{"unshare", __NR_unshare},
 	{"kcmp", __NR_kcmp},
 	{"futex", __NR_futex},
@@ -146,6 +152,7 @@ call_t syscalls[] = {
 	{"fcntl$setlease", __NR_fcntl},
 	{"fcntl$notify", __NR_fcntl},
 	{"fcntl$setpipe", __NR_fcntl},
+	{"fcntl$addseals", __NR_fcntl},
 	{"ptrace", __NR_ptrace},
 	{"ptrace$peek", __NR_ptrace},
 	{"ptrace$poke", __NR_ptrace},
@@ -271,6 +278,7 @@ call_t syscalls[] = {
 	{"name_to_handle_at", __NR_name_to_handle_at},
 	{"open_by_handle_at", __NR_open_by_handle_at},
 	{"mount", __NR_mount},
+	{"mount$fs", __NR_mount},
 	{"umount2", __NR_umount2},
 	{"pivot_root", __NR_pivot_root},
 	{"sysfs$1", __NR_sysfs},

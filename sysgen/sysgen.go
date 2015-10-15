@@ -173,6 +173,13 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 		commonHdr := common()
 		opt = false
 		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: BufferType{%v, Kind: BufferString}}", commonHdr, fmtDir("in"), common())
+	case "filesystem":
+		if want := 0; len(a) != want {
+			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		}
+		commonHdr := common()
+		opt = false
+		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: BufferType{%v, Kind: BufferFilesystem}}", commonHdr, fmtDir("in"), common())
 	case "sockaddr":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -381,6 +388,11 @@ struct call_t {
 	const char*	name;
 	int		sys_nr;
 };
+
+// Note: this is x86_64 number
+#ifndef __NR_memfd_create
+#define __NR_memfd_create 319
+#endif
 
 call_t syscalls[] = {
 `)

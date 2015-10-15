@@ -82,7 +82,7 @@ func calcStaticPriorities() [][]float32 {
 				}
 			case sys.BufferType:
 				switch a.Kind {
-				case sys.BufferBlob:
+				case sys.BufferBlob, sys.BufferFilesystem:
 				case sys.BufferString:
 					noteUsage(0.2, "str")
 				case sys.BufferSockaddr:
@@ -224,7 +224,9 @@ func foreachArgType(meta *sys.Call, f func(sys.Type, ArgDir)) {
 // ChooseTable allows to do a weighted choice of a syscall for a given syscall
 // based on call-to-call priorities and a set of enabled syscalls.
 type ChoiceTable struct {
-	run [][]int
+	run          [][]int
+	enabledCalls []*sys.Call
+	enabled      map[int]bool
 }
 
 func BuildChoiceTable(prios [][]float32, enabledCalls []*sys.Call) *ChoiceTable {
@@ -243,30 +245,27 @@ func BuildChoiceTable(prios [][]float32, enabledCalls []*sys.Call) *ChoiceTable 
 			if enabled[j] {
 				sum += int(prios[i][j] * 1000)
 			}
-
 			run[i][j] = sum
 		}
 	}
-	return &ChoiceTable{run}
+	return &ChoiceTable{run, enabledCalls, enabled}
 }
 
 func (ct *ChoiceTable) Choose(r *rand.Rand, call int) int {
-	if ct == nil || call < 0 {
+	if ct == nil {
 		return r.Intn(len(sys.Calls))
+	}
+	if call < 0 {
+		return ct.enabledCalls[r.Intn(len(ct.enabledCalls))].ID
 	}
 	run := ct.run[call]
 	if run == nil {
-		return r.Intn(len(sys.Calls))
+		return ct.enabledCalls[r.Intn(len(ct.enabledCalls))].ID
 	}
 	for {
 		x := r.Intn(run[len(run)-1])
 		i := sort.SearchInts(run, x)
-		p := 0
-		if i > 0 {
-			p = ct.run[call][i-1]
-		}
-		if ct.run[call][i] == p {
-			// Call with weight 0, retry.
+		if !ct.enabled[i] {
 			continue
 		}
 		return i

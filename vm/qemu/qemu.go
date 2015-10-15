@@ -272,6 +272,10 @@ func (inst *Instance) Run() {
 	// Copy the binaries into the instance.
 	if !inst.CreateSCPCommand(inst.Fuzzer, "/syzkaller_fuzzer").Wait(1*time.Minute) ||
 		!inst.CreateSCPCommand(inst.Executor, "/syzkaller_executor").Wait(1*time.Minute) {
+		outputMu.Lock()
+		output = append(output, "\nfailed to scp binaries into the instance\n"...)
+		inst.SaveCrasher(output)
+		outputMu.Unlock()
 		inst.Logf("failed to scp binaries into the instance")
 		return
 	}
@@ -324,7 +328,7 @@ func (inst *Instance) Run() {
 		if time.Since(lastOutput) > 3*time.Minute {
 			time.Sleep(time.Second)
 			outputMu.Lock()
-			output = append(output, "no output from fuzzer, restarting\n"...)
+			output = append(output, "\nno output from fuzzer, restarting\n"...)
 			inst.SaveCrasher(output)
 			outputMu.Unlock()
 			inst.Logf("no output from fuzzer, restarting")
@@ -335,10 +339,10 @@ func (inst *Instance) Run() {
 		if cmd.Exited() {
 			time.Sleep(time.Second)
 			outputMu.Lock()
-			output = append(output, "fuzzer binary stopped or lost connection\n"...)
+			output = append(output, "\nfuzzer binary stopped or lost connection\n"...)
 			inst.SaveCrasher(output)
-			inst.Logf("fuzzer binary stopped or lost connection")
 			outputMu.Unlock()
+			inst.Logf("fuzzer binary stopped or lost connection")
 			return
 		}
 		if time.Now().After(deadline) {

@@ -186,6 +186,7 @@ const (
 	BufferBlob BufferKind = iota
 	BufferString
 	BufferSockaddr
+	BufferFilesystem
 )
 
 type BufferType struct {

@@ -94,7 +94,7 @@ func (r *randGen) flags(vv []uintptr) uintptr {
 func (r *randGen) filename(s *state) string {
 	// TODO: support procfs and sysfs
 	dir := "."
-	if r.oneOf(5) && len(s.files) != 0 {
+	if r.oneOf(2) && len(s.files) != 0 {
 		files := make([]string, 0, len(s.files))
 		for f := range s.files {
 			files = append(files, f)
@@ -106,6 +106,16 @@ func (r *randGen) filename(s *state) string {
 	}
 	if len(s.files) == 0 || r.oneOf(10) {
 		// Generate a new name.
+		if r.bin() {
+			special := []string{
+				"control", // kdbus control file
+				"bus",     // kdbus main bus
+			}
+			f := fmt.Sprintf("%v/%v\x00", dir, special[r.Intn(len(special))])
+			if !s.files[f] {
+				return f
+			}
+		}
 		for i := 0; ; i++ {
 			f := fmt.Sprintf("%v/file%v\x00", dir, i)
 			if !s.files[f] {
@@ -204,13 +214,10 @@ func (r *randGen) randString(s *state) []byte {
 		return []byte(strings[r.Intn(len(strings))])
 	}
 	dict := []string{"user", "keyring", "trusted", "system", "security", "selinux",
-		"posix_acl_access", "mime_type", "md5sum", "nodev", "self", "sysfs", "rootfs",
-		"ramfs", "bdev", "proc", "cgroup", "cpuset", "tmpfs", "devtmpfs", "debugfs",
-		"securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2",
-		"ext4", "hugetlbfs", "vfat", "ecryptfs", "fuseblk", "fuse", "fusectl", "pstore",
-		"mqueue", "rpc_pipefs", "nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs",
-		"jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs",
-		"lo", "eth0", "eth1", "em0", "em1", "wlan0", "wlan1", "ppp0", "ppp1", "vboxnet0", "vboxnet1", "vmnet0", "vmnet1"}
+		"posix_acl_access", "mime_type", "md5sum", "nodev", "self",
+		"bdev", "proc", "cgroup", "cpuset",
+		"lo", "eth0", "eth1", "em0", "em1", "wlan0", "wlan1", "ppp0", "ppp1",
+		"vboxnet0", "vboxnet1", "vmnet0", "vmnet1"}
 	punct := []byte{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '\\',
 		'/', ':', '.', ',', '-', '\'', '[', ']', '{', '}'}
 	buf := new(bytes.Buffer)
@@ -225,6 +232,15 @@ func (r *randGen) randString(s *state) []byte {
 		buf.Write([]byte{0})
 	}
 	return buf.Bytes()
+}
+
+func (r *randGen) filesystem(s *state) []byte {
+	dict := []string{"sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs",
+		"securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4",
+		"hugetlbfs", "vfat", "ecryptfs", "kdbusfs", "fuseblk", "fuse", "rpc_pipefs",
+		"nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs",
+		"minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs"}
+	return []byte(dict[r.Intn(len(dict))] + "\x00")
 }
 
 func isSpecialStruct(typ sys.Type) func(r *randGen, s *state) (*Arg, []*Call) {
@@ -633,6 +649,9 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 			return dataArg(data), constArg(sz), nil
 		case sys.BufferString:
 			data := r.randString(s)
+			return dataArg(data), constArg(uintptr(len(data))), nil
+		case sys.BufferFilesystem:
+			data := r.filesystem(s)
 			return dataArg(data), constArg(uintptr(len(data))), nil
 		case sys.BufferSockaddr:
 			data := r.sockaddr(s)
