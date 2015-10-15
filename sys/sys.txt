@@ -60,6 +60,8 @@ include <linux/aio_abi.h>
 include <linux/kexec.h>
 include <linux/seccomp.h>
 include <linux/elf.h>
+include <linux/fs.h>
+include <linux/fiemap.h>
 
 include <asm/prctl.h>
 
@@ -217,6 +219,11 @@ setsockopt$ipv6_opts(fd fd[sock], level flags[sockopt_level_ipv6], optname flags
 
 # Almighty!
 ioctl(fd fd, cmd int32, arg ptr[inout, ioctl_arg])
+
+ioctl$void(fd fd, cmd flags[ioctl_void])
+ioctl$int_in(fd fd, cmd flags[ioctl_int_in], v ptr[in, int64])
+ioctl$int_out(fd fd, cmd flags[ioctl_int_out], v ptr[out, intptr])
+ioctl$fiemap(fd fd, cmd flags[ioctl_fiemap], v ptr[in, fiemap])
 
 fcntl$dupfd(fd fd, cmd flags[fcntl_dupfd], arg fd) fd
 fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
@@ -548,6 +555,7 @@ send_msghdr {
 	ctrl	ptr[in, cmsghdr]
 	ctrllen	len[ctrl, intptr]
 	f	flags[send_flags, int32]
+# TODO: this field should be deleted
 	len	int32
 }
 
@@ -559,6 +567,7 @@ recv_msghdr {
 	ctrl	buffer[out]
 	ctrllen	len[ctrl, intptr]
 	f	int32
+# TODO: this field should be deleted
 	len	int32
 }
 
@@ -1060,6 +1069,31 @@ ipv6_mreq {
 	ifindex	int32
 }
 
+fiemap {
+	start	int64
+	len	int64
+	flags	flags[fiemap_flags, int32]
+	mapped	int32
+# TODO: count is number of elements in extents array below
+	count	int32
+	pad	int32
+# TODO: this is variable-length array
+	extent0	fiemap_extent
+	extent1	fiemap_extent
+}
+
+fiemap_extent {
+	logical	int64
+	phys	int64
+	len	int64
+	pad0	int64
+	pad1	int64
+	flags	flags[fiemap_extent_flags, int32]
+	pad2	int32
+	pad3	int32
+	pad4	int32
+}
+
 
 
 
@@ -1241,6 +1275,12 @@ sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTIC
 sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
 sockopt_opt_ipv6_mtu = IPV6_MTU_DISCOVER
 sockopt_opt_ipv6_opts = IPV6_2292PKTOPTIONS
+ioctl_void = FIOCLEX, FIONCLEX, FIFREEZE, FITHAW
+ioctl_int_in = FIONBIO, FIOASYNC
+ioctl_int_out = FIOQSIZE, FIGETBSZ
+ioctl_fiemap = FS_IOC_FIEMAP
+fiemap_flags = FIEMAP_FLAG_SYNC, FIEMAP_FLAG_XATTR, FIEMAP_FLAG_CACHE
+fiemap_extent_flags = FIEMAP_EXTENT_LAST, FIEMAP_EXTENT_UNKNOWN, FIEMAP_EXTENT_DELALLOC, FIEMAP_EXTENT_ENCODED, FIEMAP_EXTENT_DATA_ENCRYPTED, FIEMAP_EXTENT_NOT_ALIGNED, FIEMAP_EXTENT_DATA_INLINE, FIEMAP_EXTENT_DATA_TAIL, FIEMAP_EXTENT_UNWRITTEN, FIEMAP_EXTENT_MERGED, FIEMAP_EXTENT_SHARED
 
 
 
