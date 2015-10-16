@@ -208,7 +208,8 @@ func foreachArgType(meta *sys.Call, f func(sys.Type, ArgDir)) {
 				rec(f, d)
 			}
 		case sys.ResourceType, sys.FileoffType, sys.BufferType,
-			sys.VmaType, sys.LenType, sys.FlagsType, sys.IntType, sys.FilenameType:
+			sys.VmaType, sys.LenType, sys.FlagsType, sys.ConstType,
+			sys.IntType, sys.FilenameType:
 		default:
 			panic("unknown type")
 		}

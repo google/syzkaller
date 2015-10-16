@@ -561,7 +561,19 @@ func (r *randGen) generateArgs(s *state, types []sys.Type, dir ArgDir) ([]*Arg, 
 			sizes[typ.Name()] = size
 		}
 	}
-	// Pass 2: fill in size arguments.
+
+	// Pass 2: calculate size of the whole struct.
+	// Now we know sizes of all non-size arguments and size arguments are const-size.
+	var parentSize uintptr
+	for i, typ := range types {
+		parentSize += args[i].Size(typ)
+	}
+	if sizes["parent"] != nil {
+		panic("parent is reserved len name")
+	}
+	sizes["parent"] = constArg(parentSize)
+
+	// Pass 3: fill in size arguments.
 	for i, typ := range types {
 		if a, ok := typ.(sys.LenType); ok {
 			size := sizes[a.Buf]
@@ -581,7 +593,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		// in subsequent calls. For the same reason we do generate pointer/array/struct
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
-		case sys.IntType, sys.FlagsType, sys.FileoffType, sys.ResourceType:
+		case sys.IntType, sys.FlagsType, sys.ConstType, sys.FileoffType, sys.ResourceType:
 			return constArg(0), nil, nil
 		}
 	}
@@ -668,6 +680,8 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		return arg, pageSizeArg(npages, 0), nil
 	case sys.FlagsType:
 		return constArg(r.flags(a.Vals)), nil, nil
+	case sys.ConstType:
+		return constArg(a.Val), nil, nil
 	case sys.IntType:
 		v := r.randInt()
 		switch a.Kind {

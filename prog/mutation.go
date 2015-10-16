@@ -149,6 +149,8 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						}
 					case sys.LenType:
 						panic("bad arg returned by mutationArgs: LenType")
+					case sys.ConstType:
+						panic("bad arg returned by mutationArgs: ConstType")
 					default:
 						panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", *arg, arg.Type))
 					}
@@ -300,6 +302,9 @@ func mutationArgs(c *Call) (args, bases []*Arg, parents []*[]*Arg) {
 			}
 		case sys.LenType:
 			// Size is updated when the size-of arg change.
+			return
+		case sys.ConstType:
+			// Well, this is const.
 			return
 		}
 		if arg.Dir == DirOut {

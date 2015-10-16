@@ -210,6 +210,12 @@ type FlagsType struct {
 	Vals     []uintptr
 }
 
+type ConstType struct {
+	TypeCommon
+	TypeSize uintptr
+	Val      uintptr
+}
+
 type IntKind int
 
 const (

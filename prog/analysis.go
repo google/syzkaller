@@ -205,7 +205,7 @@ func assignTypeAndDir(c *Call) {
 }
 
 func sanitizeCall(c *Call) {
-	switch c.Meta.Name {
+	switch c.Meta.CallName {
 	case "mmap":
 		// Add MAP_FIXED flag, otherwise it produces non-deterministic results.
 		addr := c.Args[0]
@@ -244,6 +244,13 @@ func sanitizeCall(c *Call) {
 		// These disable console output, but we need it.
 		if cmd.Val == SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == SYSLOG_ACTION_CONSOLE_ON {
 			cmd.Val = SYSLOG_ACTION_SIZE_UNREAD
+		}
+	case "ioctl":
+		cmd := c.Args[1]
+		// Freeze kills machine. Though, it is an interesting functions,
+		// so we need to test it somehow (TODO).
+		if uint32(cmd.Val) == uint32(FIFREEZE) {
+			cmd.Val = FITHAW
 		}
 	case "exit", "exit_group":
 		code := c.Args[0]

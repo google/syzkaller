@@ -61,6 +61,8 @@ func (a *Arg) Size(typ sys.Type) uintptr {
 		return typ1.TypeSize
 	case sys.FlagsType:
 		return typ1.TypeSize
+	case sys.ConstType:
+		return typ1.TypeSize
 	case sys.FileoffType:
 		return typ1.TypeSize
 	case sys.ResourceType:
