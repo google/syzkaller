@@ -49,7 +49,6 @@ type params struct {
 	Port     int
 	Cpu      int
 	Mem      int
-	Parallel int
 }
 
 func ctor(workdir string, syscalls map[int]bool, port, index int, paramsData []byte) (vm.Instance, error) {
@@ -81,12 +80,6 @@ func ctor(workdir string, syscalls map[int]bool, port, index int, paramsData []b
 	}
 	if p.Mem < 128 || p.Mem > 1048576 {
 		return nil, fmt.Errorf("bad qemu mem: %v, want [128-1048576]", p.Mem)
-	}
-	if p.Parallel == 0 {
-		p.Parallel = 1
-	}
-	if p.Parallel <= 0 || p.Parallel > 100 {
-		return nil, fmt.Errorf("bad parallel param: %v, want [1-100]", p.Parallel)
 	}
 
 	crashdir := filepath.Join(workdir, "crashes")
@@ -284,8 +277,8 @@ func (inst *Instance) Run() {
 	inst.CreateSSHCommand("echo -n 0 > /proc/sys/debug/exception-trace").Wait(10 * time.Second)
 
 	// Run the binary.
-	cmd := inst.CreateSSHCommand(fmt.Sprintf("/syzkaller_fuzzer -name %v -executor /syzkaller_executor -manager %v:%v -parallel %v %v",
-		inst.name, hostAddr, inst.mgrPort, inst.Parallel, inst.callsFlag))
+	cmd := inst.CreateSSHCommand(fmt.Sprintf("/syzkaller_fuzzer -name %v -executor /syzkaller_executor -manager %v:%v %v",
+		inst.name, hostAddr, inst.mgrPort, inst.callsFlag))
 
 	deadline := start.Add(time.Hour)
 	lastOutput := time.Now()

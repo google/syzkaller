@@ -33,7 +33,6 @@ var (
 	flagExecutor = flag.String("executor", "", "path to executor binary")
 	flagManager  = flag.String("manager", "", "manager rpc address")
 	flagStrace   = flag.Bool("strace", false, "run executor under strace")
-	flagParallel = flag.Int("parallel", 1, "run that many tests in parallel")
 	flagSaveProg = flag.Bool("saveprog", false, "save programs into local file before executing")
 	flagSyscalls = flag.String("calls", "", "comma-delimited list of enabled syscall IDs (empty string for all syscalls)")
 	flagV        = flag.Int("v", 0, "verbosity")
@@ -101,26 +100,9 @@ func main() {
 	}
 	ct = prog.BuildChoiceTable(r.Prios, calls)
 
-	if *flagParallel <= 0 {
-		*flagParallel = 1
-	}
 	flags := ipc.FlagCover | ipc.FlagDedupCover
 	if *flagStrace {
 		flags |= ipc.FlagStrace
-	}
-	workerIn = make(chan *prog.Prog, *flagParallel+10)
-	workerOut = make(chan []Input, *flagParallel)
-	for i := 0; i < *flagParallel; i++ {
-		env, err := ipc.MakeEnv(*flagExecutor, 4*time.Second, flags)
-		if err != nil {
-			panic(err)
-		}
-		workerId := i + 1
-		go func() {
-			for p := range workerIn {
-				workerOut <- execute(env, p, workerId)
-			}
-		}()
 	}
 	env, err := ipc.MakeEnv(*flagExecutor, 4*time.Second, flags)
 	if err != nil {
@@ -130,7 +112,6 @@ func main() {
 	rnd := rand.New(rs)
 	var lastPoll time.Time
 	var lastPrint time.Time
-	secondTicker := time.NewTicker(100 * time.Millisecond).C
 	for i := 0; ; i++ {
 		if !*flagSaveProg && time.Since(lastPrint) > 10*time.Second {
 			// Keep-alive for manager.
@@ -159,65 +140,26 @@ func main() {
 				if err != nil {
 					panic(err)
 				}
-				inputs := execute(env, p, 0)
-				for _, inp := range inputs {
-					call := inp.p.Calls[inp.call].Meta
-					maxCover[call.CallID] = cover.Union(maxCover[call.CallID], inp.cover)
-					triage = append(triage, inp)
-				}
+				execute(env, p)
 			}
 			if len(r.NewInputs) == 0 && len(r.Candidates) == 0 {
 				lastPoll = time.Now()
 			}
 			continue
 		}
-		// Parallel part.
-		pending := 0
-		for ; ; i++ {
-			if !(!*flagSaveProg && time.Since(lastPrint) > 10*time.Second) &&
-				!(len(triage) != 0) &&
-				!(time.Since(lastPoll) > 10*time.Second) {
-				// No need to do any work above.
-				// Send new inputs to workers, if they need some.
-				for len(workerIn) < *flagParallel {
-					if len(corpus) == 0 || i%10 == 0 {
-						p := prog.Generate(rnd, programLength, ct)
-						logf(1, "#%v: generated: %s", i, p)
-						workerIn <- p
-						pending++
-						p = p.Clone()
-						p.Mutate(rnd, programLength, ct)
-						logf(1, "#%v: mutated: %s", i, p)
-						workerIn <- p
-						pending++
-					} else {
-						inp := corpus[rnd.Intn(len(corpus))]
-						p := inp.p.Clone()
-						p.Mutate(rs, programLength, ct)
-						logf(1, "#%v: mutated: %s <- %s", i, p, inp.p)
-						workerIn <- p
-						pending++
-					}
-				}
-			} else if pending == 0 {
-				// Need to do some work above.
-				// Break if collected all pending results.
-				break
-			}
-			// Collect results.
-			select {
-			case inputs := <-workerOut:
-				pending--
-				for _, inp := range inputs {
-					triage = append(triage, inp)
-				}
-			case <-secondTicker:
-			}
-		}
-		// Do this after the parallel section because workers access maxCover.
-		for _, inp := range triage {
-			call := inp.p.Calls[inp.call].Meta
-			maxCover[call.CallID] = cover.Union(maxCover[call.CallID], inp.cover)
+		if len(corpus) == 0 || i%10 == 0 {
+			p := prog.Generate(rnd, programLength, ct)
+			logf(1, "#%v: generated: %s", i, p)
+			execute(env, p)
+			p.Mutate(rnd, programLength, ct)
+			logf(1, "#%v: mutated: %s", i, p)
+			execute(env, p)
+		} else {
+			inp := corpus[rnd.Intn(len(corpus))]
+			p := inp.p.Clone()
+			p.Mutate(rs, programLength, ct)
+			logf(1, "#%v: mutated: %s <- %s", i, p, inp.p)
+			execute(env, p)
 		}
 	}
 }
@@ -262,7 +204,7 @@ func triageInput(env *ipc.Env, inp Input) {
 
 	minCover := inp.cover
 	for i := 0; i < 3; i++ {
-		allCover := execute1(env, inp.p, 0)
+		allCover := execute1(env, inp.p)
 		if len(allCover[inp.call]) == 0 {
 			// The call was not executed. Happens sometimes, reason unknown.
 			continue
@@ -279,7 +221,7 @@ func triageInput(env *ipc.Env, inp Input) {
 		return
 	}
 	inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
-		allCover := execute1(env, p1, 0)
+		allCover := execute1(env, p1)
 		if len(allCover[call1]) == 0 {
 			return false // The call was not executed.
 		}
@@ -304,9 +246,8 @@ func triageInput(env *ipc.Env, inp Input) {
 	}
 }
 
-func execute(env *ipc.Env, p *prog.Prog, workerId int) []Input {
-	allCover := execute1(env, p, workerId)
-	var inputs []Input
+func execute(env *ipc.Env, p *prog.Prog) {
+	allCover := execute1(env, p)
 	for i, cov := range allCover {
 		if len(cov) == 0 {
 			continue
@@ -317,17 +258,16 @@ func execute(env *ipc.Env, p *prog.Prog, workerId int) []Input {
 		if len(diff) != 0 {
 			p1 := p.Clone()
 			p1.TrimAfter(i)
-			inputs = append(inputs, Input{p1, i, cover.Copy(cov)})
+			triage = append(triage, Input{p1, i, cover.Copy(cov)})
 		}
 	}
-	return inputs
 }
 
 var logMu sync.Mutex
 
-func execute1(env *ipc.Env, p *prog.Prog, workerId int) []cover.Cover {
+func execute1(env *ipc.Env, p *prog.Prog) []cover.Cover {
 	if *flagSaveProg {
-		f, err := os.Create(fmt.Sprintf("%v-%v.prog", *flagName, workerId))
+		f, err := os.Create(fmt.Sprintf("%v.prog", *flagName))
 		if err == nil {
 			f.Write(p.Serialize())
 			f.Close()
@@ -336,7 +276,7 @@ func execute1(env *ipc.Env, p *prog.Prog, workerId int) []cover.Cover {
 		// The following output helps to understand what program crashed kernel.
 		// It must not be intermixed.
 		logMu.Lock()
-		log.Printf("worker #%v: executing program:\n%s", workerId, p.Serialize())
+		log.Printf("executing program:\n%s", p.Serialize())
 		logMu.Unlock()
 	}
 
