@@ -231,6 +231,9 @@ type ChoiceTable struct {
 }
 
 func BuildChoiceTable(prios [][]float32, enabledCalls []*sys.Call) *ChoiceTable {
+	if len(enabledCalls) == 0 {
+		enabledCalls = sys.Calls
+	}
 	enabled := make(map[int]bool)
 	for _, c := range enabledCalls {
 		enabled[c.ID] = true
