@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
+	_ "github.com/google/syzkaller/vm/kvm"
 	_ "github.com/google/syzkaller/vm/local"
 	_ "github.com/google/syzkaller/vm/qemu"
 )

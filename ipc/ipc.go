@@ -267,9 +267,11 @@ func (env *Env) execBin() (output, strace []byte, failed, hanged bool, err0 erro
 func createMapping(size int) (f *os.File, mem []byte, err error) {
 	f, err = ioutil.TempFile("./", "syzkaller-shm")
 	if err != nil {
+		err = fmt.Errorf("failed to create temp file: %v", err)
 		return
 	}
 	if err = f.Truncate(int64(size)); err != nil {
+		err = fmt.Errorf("failed to truncate shm file: %v", err)
 		f.Close()
 		os.Remove(f.Name())
 		return
@@ -277,11 +279,13 @@ func createMapping(size int) (f *os.File, mem []byte, err error) {
 	f.Close()
 	f, err = os.OpenFile(f.Name(), os.O_RDWR, 0)
 	if err != nil {
+		err = fmt.Errorf("failed to open shm file: %v", err)
 		os.Remove(f.Name())
 		return
 	}
 	mem, err = syscall.Mmap(int(f.Fd()), 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
 	if err != nil {
+		err = fmt.Errorf("failed to mmap shm file: %v", err)
 		f.Close()
 		os.Remove(f.Name())
 		return
