@@ -4,7 +4,6 @@
 package qemu
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -96,12 +95,8 @@ func ctor(cfg *vm.Config, index int) (vm.Instance, error) {
 		mgrPort:  cfg.ManagerPort,
 	}
 
-	if len(cfg.Syscalls) != 0 {
-		buf := new(bytes.Buffer)
-		for c := range cfg.Syscalls {
-			fmt.Fprintf(buf, ",%v", c)
-		}
-		q.callsFlag = "-calls=" + buf.String()[1:]
+	if cfg.EnabledSyscalls != "" {
+		q.callsFlag = "-calls=" + cfg.EnabledSyscalls
 	}
 
 	return q, nil

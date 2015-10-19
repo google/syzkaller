@@ -4,8 +4,10 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -43,11 +45,19 @@ func main() {
 	if err != nil {
 		fatalf("failed to marshal config params: %v", err)
 	}
+	enabledSyscalls := ""
+	if len(syscalls) != 0 {
+		buf := new(bytes.Buffer)
+		for c := range syscalls {
+			fmt.Fprintf(buf, ",%v", c)
+		}
+		enabledSyscalls = buf.String()[1:]
+	}
 	vmCfg := &vm.Config{
-		Workdir:     cfg.Workdir,
-		ManagerPort: cfg.Port,
-		Params:      params,
-		Syscalls:    syscalls,
+		Workdir:         cfg.Workdir,
+		ManagerPort:     cfg.Port,
+		Params:          params,
+		EnabledSyscalls: enabledSyscalls,
 	}
 	var instances []vm.Instance
 	for i := 0; i < cfg.Count; i++ {

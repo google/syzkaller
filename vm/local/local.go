@@ -4,7 +4,6 @@
 package qemu
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -23,7 +22,7 @@ func init() {
 type local struct {
 	params
 	workdir  string
-	syscalls map[int]bool
+	syscalls string
 	id       int
 	mgrPort  int
 }
@@ -60,7 +59,7 @@ func ctor(cfg *vm.Config, index int) (vm.Instance, error) {
 	loc := &local{
 		params:   *p,
 		workdir:  cfg.Workdir,
-		syscalls: cfg.Syscalls,
+		syscalls: cfg.EnabledSyscalls,
 		id:       index,
 		mgrPort:  cfg.ManagerPort,
 	}
@@ -73,12 +72,8 @@ func (loc *local) Run() {
 	for run := 0; ; run++ {
 		cmd := exec.Command(loc.Fuzzer, "-name", name, "-saveprog", "-executor", loc.Executor,
 			"-manager", fmt.Sprintf("localhost:%v", loc.mgrPort))
-		if len(loc.syscalls) != 0 {
-			buf := new(bytes.Buffer)
-			for c := range loc.syscalls {
-				fmt.Fprintf(buf, ",%v", c)
-			}
-			cmd.Args = append(cmd.Args, "-calls="+buf.String()[1:])
+		if loc.syscalls != "" {
+			cmd.Args = append(cmd.Args, "-calls="+loc.syscalls)
 		}
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

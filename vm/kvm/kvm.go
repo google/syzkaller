@@ -4,7 +4,6 @@
 package kvm
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -84,12 +83,8 @@ func ctor(cfg *vm.Config, index int) (vm.Instance, error) {
 		mgrPort:  cfg.ManagerPort,
 	}
 
-	if len(cfg.Syscalls) != 0 {
-		buf := new(bytes.Buffer)
-		for c := range cfg.Syscalls {
-			fmt.Fprintf(buf, ",%v", c)
-		}
-		vm.callsFlag = "-calls=" + buf.String()[1:]
+	if cfg.EnabledSyscalls != "" {
+		vm.callsFlag = "-calls=" + cfg.EnabledSyscalls
 	}
 
 	return vm, nil

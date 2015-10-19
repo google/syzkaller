@@ -12,10 +12,10 @@ type Instance interface {
 }
 
 type Config struct {
-	Workdir     string
-	ManagerPort int
-	Params      []byte
-	Syscalls    map[int]bool
+	Workdir         string
+	ManagerPort     int
+	Params          []byte
+	EnabledSyscalls string
 }
 
 type ctorFunc func(cfg *Config, index int) (Instance, error)
