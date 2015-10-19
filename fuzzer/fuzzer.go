@@ -35,7 +35,8 @@ var (
 	flagStrace   = flag.Bool("strace", false, "run executor under strace")
 	flagSaveProg = flag.Bool("saveprog", false, "save programs into local file before executing")
 	flagSyscalls = flag.String("calls", "", "comma-delimited list of enabled syscall IDs (empty string for all syscalls)")
-	flagV        = flag.Int("v", 0, "verbosity")
+
+	flagV = flag.Int("v", 0, "verbosity")
 )
 
 const (

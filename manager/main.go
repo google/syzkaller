@@ -39,13 +39,19 @@ type Config struct {
 func main() {
 	flag.Parse()
 	cfg, syscalls := parseConfig()
+	params, err := json.Marshal(cfg.Params)
+	if err != nil {
+		fatalf("failed to marshal config params: %v", err)
+	}
+	vmCfg := &vm.Config{
+		Workdir:     cfg.Workdir,
+		ManagerPort: cfg.Port,
+		Params:      params,
+		Syscalls:    syscalls,
+	}
 	var instances []vm.Instance
 	for i := 0; i < cfg.Count; i++ {
-		params, err := json.Marshal(cfg.Params)
-		if err != nil {
-			fatalf("failed to marshal config params: %v", err)
-		}
-		inst, err := vm.Create(cfg.Type, cfg.Workdir, syscalls, cfg.Port, i, params)
+		inst, err := vm.Create(cfg.Type, vmCfg, i)
 		if err != nil {
 			fatalf("failed to create an instance: %v", err)
 		}

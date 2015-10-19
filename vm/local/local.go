@@ -31,12 +31,11 @@ type local struct {
 type params struct {
 	Fuzzer   string
 	Executor string
-	Parallel int
 }
 
-func ctor(workdir string, syscalls map[int]bool, port, index int, paramsData []byte) (vm.Instance, error) {
+func ctor(cfg *vm.Config, index int) (vm.Instance, error) {
 	p := new(params)
-	if err := json.Unmarshal(paramsData, p); err != nil {
+	if err := json.Unmarshal(cfg.Params, p); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal local params: %v", err)
 	}
 	if _, err := os.Stat(p.Fuzzer); err != nil {
@@ -45,14 +44,8 @@ func ctor(workdir string, syscalls map[int]bool, port, index int, paramsData []b
 	if _, err := os.Stat(p.Executor); err != nil {
 		return nil, fmt.Errorf("executor binary '%v' does not exist: %v", p.Executor, err)
 	}
-	if p.Parallel == 0 {
-		p.Parallel = 1
-	}
-	if p.Parallel <= 0 || p.Parallel > 100 {
-		return nil, fmt.Errorf("bad parallel param: %v, want [1-100]", p.Parallel)
-	}
 
-	os.MkdirAll(workdir, 0770)
+	os.MkdirAll(cfg.Workdir, 0770)
 
 	// Disable annoying segfault dmesg messages, fuzzer is going to crash a lot.
 	etrace, err := os.Open("/proc/sys/debug/exception-trace")
@@ -66,10 +59,10 @@ func ctor(workdir string, syscalls map[int]bool, port, index int, paramsData []b
 
 	loc := &local{
 		params:   *p,
-		workdir:  workdir,
-		syscalls: syscalls,
+		workdir:  cfg.Workdir,
+		syscalls: cfg.Syscalls,
 		id:       index,
-		mgrPort:  port,
+		mgrPort:  cfg.ManagerPort,
 	}
 	return loc, nil
 }
@@ -79,7 +72,7 @@ func (loc *local) Run() {
 	log.Printf("%v: started\n", name)
 	for run := 0; ; run++ {
 		cmd := exec.Command(loc.Fuzzer, "-name", name, "-saveprog", "-executor", loc.Executor,
-			"-manager", fmt.Sprintf("localhost:%v", loc.mgrPort), "-parallel", fmt.Sprintf("%v", loc.Parallel))
+			"-manager", fmt.Sprintf("localhost:%v", loc.mgrPort))
 		if len(loc.syscalls) != 0 {
 			buf := new(bytes.Buffer)
 			for c := range loc.syscalls {

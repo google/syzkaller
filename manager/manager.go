@@ -142,7 +142,7 @@ func (mgr *Manager) pollMaster() {
 }
 
 func (mgr *Manager) minimizeCorpus() {
-	if len(mgr.corpus) != 0 {
+	if !mgr.cfg.Nocover && len(mgr.corpus) != 0 {
 		// First, sort corpus per call.
 		type Call struct {
 			inputs []RpcInput

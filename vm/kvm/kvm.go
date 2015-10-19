@@ -46,9 +46,9 @@ type params struct {
 	Mem      int
 }
 
-func ctor(workdir string, syscalls map[int]bool, port, index int, paramsData []byte) (vm.Instance, error) {
+func ctor(cfg *vm.Config, index int) (vm.Instance, error) {
 	p := new(params)
-	if err := json.Unmarshal(paramsData, p); err != nil {
+	if err := json.Unmarshal(cfg.Params, p); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal kvm params: %v", err)
 	}
 	if _, err := os.Stat(p.Kernel); err != nil {
@@ -70,10 +70,10 @@ func ctor(workdir string, syscalls map[int]bool, port, index int, paramsData []b
 		return nil, fmt.Errorf("bad kvm mem: %v, want [128-1048576]", p.Mem)
 	}
 
-	crashdir := filepath.Join(workdir, "crashes")
+	crashdir := filepath.Join(cfg.Workdir, "crashes")
 	os.MkdirAll(crashdir, 0770)
 
-	workdir = filepath.Join(workdir, "kvm")
+	workdir := filepath.Join(cfg.Workdir, "kvm")
 	os.MkdirAll(workdir, 0770)
 
 	vm := &kvm{
@@ -81,12 +81,12 @@ func ctor(workdir string, syscalls map[int]bool, port, index int, paramsData []b
 		workdir:  workdir,
 		crashdir: crashdir,
 		id:       index,
-		mgrPort:  port,
+		mgrPort:  cfg.ManagerPort,
 	}
 
-	if len(syscalls) != 0 {
+	if len(cfg.Syscalls) != 0 {
 		buf := new(bytes.Buffer)
-		for c := range syscalls {
+		for c := range cfg.Syscalls {
 			fmt.Fprintf(buf, ",%v", c)
 		}
 		vm.callsFlag = "-calls=" + buf.String()[1:]

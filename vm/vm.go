@@ -11,7 +11,14 @@ type Instance interface {
 	Run()
 }
 
-type ctorFunc func(workdir string, syscalls map[int]bool, port, index int, params []byte) (Instance, error)
+type Config struct {
+	Workdir     string
+	ManagerPort int
+	Params      []byte
+	Syscalls    map[int]bool
+}
+
+type ctorFunc func(cfg *Config, index int) (Instance, error)
 
 var ctors = make(map[string]ctorFunc)
 
@@ -19,10 +26,10 @@ func Register(typ string, ctor ctorFunc) {
 	ctors[typ] = ctor
 }
 
-func Create(typ string, workdir string, syscalls map[int]bool, port, index int, params []byte) (Instance, error) {
+func Create(typ string, cfg *Config, index int) (Instance, error) {
 	ctor := ctors[typ]
 	if ctor == nil {
 		return nil, fmt.Errorf("unknown instance type '%v'", typ)
 	}
-	return ctor(workdir, syscalls, port, index, params)
+	return ctor(cfg, index)
 }
