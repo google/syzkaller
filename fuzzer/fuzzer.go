@@ -35,6 +35,7 @@ var (
 	flagStrace   = flag.Bool("strace", false, "run executor under strace")
 	flagSaveProg = flag.Bool("saveprog", false, "save programs into local file before executing")
 	flagSyscalls = flag.String("calls", "", "comma-delimited list of enabled syscall IDs (empty string for all syscalls)")
+	flagNoCover  = flag.Bool("nocover", false, "disable coverage collection/handling")
 
 	flagV = flag.Int("v", 0, "verbosity")
 )
@@ -101,9 +102,12 @@ func main() {
 	}
 	ct = prog.BuildChoiceTable(r.Prios, calls)
 
-	flags := ipc.FlagCover | ipc.FlagDedupCover
+	flags := ipc.FlagThreaded
 	if *flagStrace {
 		flags |= ipc.FlagStrace
+	}
+	if !*flagNoCover {
+		flags |= ipc.FlagCover | ipc.FlagDedupCover
 	}
 	env, err := ipc.MakeEnv(*flagExecutor, 4*time.Second, flags)
 	if err != nil {
@@ -141,7 +145,12 @@ func main() {
 				if err != nil {
 					panic(err)
 				}
-				execute(env, p)
+				if *flagNoCover {
+					inp := Input{p, 0, nil}
+					corpus = append(corpus, inp)
+				} else {
+					execute(env, p)
+				}
 			}
 			if len(r.NewInputs) == 0 && len(r.Candidates) == 0 {
 				lastPoll = time.Now()
@@ -166,6 +175,9 @@ func main() {
 }
 
 func addInput(inp RpcInput) {
+	if *flagNoCover {
+		panic("should not be called when coverage is disabled")
+	}
 	p, err := prog.Deserialize(inp.Prog)
 	if err != nil {
 		panic(err)
@@ -192,6 +204,9 @@ func addInput(inp RpcInput) {
 }
 
 func triageInput(env *ipc.Env, inp Input) {
+	if *flagNoCover {
+		panic("should not be called when coverage is disabled")
+	}
 	call := inp.p.Calls[inp.call].Meta
 	newCover := cover.Difference(inp.cover, corpusCover[call.CallID])
 	newCover = cover.Difference(newCover, flakes)

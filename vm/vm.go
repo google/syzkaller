@@ -16,6 +16,7 @@ type Config struct {
 	ManagerPort     int
 	Params          []byte
 	EnabledSyscalls string
+	NoCover         bool
 }
 
 type ctorFunc func(cfg *Config, index int) (Instance, error)

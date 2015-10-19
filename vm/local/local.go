@@ -25,6 +25,7 @@ type local struct {
 	syscalls string
 	id       int
 	mgrPort  int
+	nocover  bool
 }
 
 type params struct {
@@ -60,6 +61,7 @@ func ctor(cfg *vm.Config, index int) (vm.Instance, error) {
 		params:   *p,
 		workdir:  cfg.Workdir,
 		syscalls: cfg.EnabledSyscalls,
+		nocover:  cfg.NoCover,
 		id:       index,
 		mgrPort:  cfg.ManagerPort,
 	}
@@ -74,6 +76,9 @@ func (loc *local) Run() {
 			"-manager", fmt.Sprintf("localhost:%v", loc.mgrPort))
 		if loc.syscalls != "" {
 			cmd.Args = append(cmd.Args, "-calls="+loc.syscalls)
+		}
+		if loc.nocover {
+			cmd.Args = append(cmd.Args, "-nocover")
 		}
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

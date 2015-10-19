@@ -58,6 +58,7 @@ func main() {
 		ManagerPort:     cfg.Port,
 		Params:          params,
 		EnabledSyscalls: enabledSyscalls,
+		NoCover:         cfg.Nocover,
 	}
 	var instances []vm.Instance
 	for i := 0; i < cfg.Count; i++ {
