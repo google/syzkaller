@@ -27,6 +27,7 @@ var (
 	flagStrace   = flag.Bool("strace", false, "run executor under strace")
 	flagCover    = flag.String("cover", "", "collect coverage and write to the file")
 	flagDedup    = flag.Bool("dedup", false, "deduplicate coverage in executor")
+	flagTimeout  = flag.Duration("timeout", 5*time.Second, "execution timeout")
 )
 
 func main() {
@@ -57,7 +58,7 @@ func main() {
 	if *flagDedup {
 		flags |= ipc.FlagDedupCover
 	}
-	env, err := ipc.MakeEnv(*flagExecutor, 3*time.Second, flags)
+	env, err := ipc.MakeEnv(*flagExecutor, *flagTimeout, flags)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create execution environment: %v\n", err)
 		os.Exit(1)
