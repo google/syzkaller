@@ -94,6 +94,12 @@ func (vm *kvm) Run() {
 	log.Printf("kvm/%v: started\n", vm.id)
 	sandbox := fmt.Sprintf("syz-%v", vm.id)
 	sandboxPath := filepath.Join(os.Getenv("HOME"), ".lkvm", sandbox)
+	scriptPath := filepath.Join(vm.workdir, sandbox+".sh")
+	script := fmt.Sprintf("#! /bin/bash\n/syzkaller_fuzzer -name kvm/%v -executor /syzkaller_executor -manager %v:%v %v\n",
+		vm.id, hostAddr, vm.mgrPort, vm.callsFlag)
+	if err := ioutil.WriteFile(scriptPath, []byte(script), 0770); err != nil {
+		log.Fatalf("failed to create run script: %v", err)
+	}
 	for run := 0; ; run++ {
 		logname := filepath.Join(vm.workdir, fmt.Sprintf("log%v-%v-%v", vm.id, run, time.Now().Unix()))
 		var logf *os.File
@@ -149,6 +155,8 @@ func (vm *kvm) Run() {
 			time.Sleep(10 * time.Second)
 			continue
 		}
+		os.Chmod(filepath.Join(sandboxPath, "/syzkaller_fuzzer"), 0770)
+		os.Chmod(filepath.Join(sandboxPath, "/syzkaller_executor"), 0770)
 		inst := &Instance{
 			id:          vm.id,
 			crashdir:    vm.crashdir,
@@ -156,11 +164,11 @@ func (vm *kvm) Run() {
 			name:        fmt.Sprintf("kvm/%v-%v", vm.id, run),
 			sandbox:     sandbox,
 			sandboxPath: sandboxPath,
+			scriptPath:  scriptPath,
 			callsFlag:   vm.callsFlag,
 			log:         logf,
 			rpipe:       rpipe,
 			wpipe:       wpipe,
-			mgrPort:     vm.mgrPort,
 			cmds:        make(map[*Command]bool),
 		}
 		inst.Run()
@@ -177,11 +185,11 @@ type Instance struct {
 	name        string
 	sandbox     string
 	sandboxPath string
+	scriptPath  string
 	callsFlag   string
 	log         *os.File
 	rpipe       *os.File
 	wpipe       *os.File
-	mgrPort     int
 	cmds        map[*Command]bool
 	kvm         *Command
 }
@@ -218,17 +226,14 @@ func (inst *Instance) Run() {
 
 	// Start the instance.
 	inst.kvm = inst.CreateCommand(
+		"taskset", "1",
 		inst.Lkvm, "sandbox",
 		"--disk", inst.sandbox,
 		fmt.Sprintf("--mem=%v", inst.Mem),
 		fmt.Sprintf("--cpus=%v", inst.Cpu),
 		"--kernel", inst.Kernel,
 		"--network", "mode=user",
-		"--", "/syzkaller_fuzzer",
-		"-name", inst.name,
-		"-executor", "/syzkaller_executor",
-		"-manager", fmt.Sprintf("%v:%v", hostAddr, inst.mgrPort),
-		inst.callsFlag,
+		"--sandbox", inst.scriptPath,
 	)
 
 	start := time.Now()
