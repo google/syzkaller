@@ -14,12 +14,12 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 	r := newRand(rs)
 	for stop := false; !stop; stop = r.bin() {
 		r.choose(
-			10, func() {
+			20, func() {
 				// Insert a new call.
 				if len(p.Calls) >= ncalls {
 					return
 				}
-				idx := r.Intn(len(p.Calls) + 1)
+				idx := r.biasedRand(len(p.Calls)+1, 5)
 				var c *Call
 				if idx < len(p.Calls) {
 					c = p.Calls[idx]

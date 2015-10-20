@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"math/rand"
 
 	"github.com/google/syzkaller/sys"
@@ -14,11 +15,11 @@ import (
 
 type randGen struct {
 	*rand.Rand
-	createDepth int
+	inCreateResource bool
 }
 
 func newRand(rs rand.Source) *randGen {
-	return &randGen{rand.New(rs), 0}
+	return &randGen{rand.New(rs), false}
 }
 
 func (r *randGen) rand(n int) uintptr {
@@ -56,6 +57,15 @@ func (r *randGen) randInt() uintptr {
 		1, func() { v = uintptr(-int(v)) },
 	)
 	return v
+}
+
+// biasedRand returns a random int in range [0..n),
+// probability of n-1 is k times higher than probability of 0.
+func (r *randGen) biasedRand(n, k int) int {
+	nf, kf := float64(n), float64(k)
+	rf := nf * (kf/2 + 1) * rand.Float64()
+	bf := (-1 + math.Sqrt(1+2*kf*rf/nf)) * nf / kf
+	return int(bf)
 }
 
 func (r *randGen) randBufLen() (n uintptr) {
@@ -392,12 +402,12 @@ func (r *randGen) randPageAddr(s *state, npages uintptr, data *Arg) *Arg {
 }
 
 func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, calls []*Call) {
-	if r.createDepth > 2 {
+	if r.inCreateResource {
 		special := res.SpecialValues()
 		return constArg(special[r.Intn(len(special))]), nil
 	}
-	r.createDepth++
-	defer func() { r.createDepth-- }()
+	r.inCreateResource = true
+	defer func() { r.inCreateResource = false }()
 
 	sk := res.Subkind
 	if r.oneOf(50) {
@@ -632,7 +642,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 					arg, calls = r.createResource(s, a)
 				}
 			},
-			10, func() {
+			5, func() {
 				// Create a new resource.
 				arg, calls = r.createResource(s, a)
 			},
