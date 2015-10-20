@@ -252,6 +252,12 @@ func sanitizeCall(c *Call) {
 		if uint32(cmd.Val) == uint32(FIFREEZE) {
 			cmd.Val = FITHAW
 		}
+	case "ptrace":
+		// PTRACE_TRACEME leads to unkillable processes, see:
+		// https://groups.google.com/forum/#!topic/syzkaller/uGzwvhlCXAw
+		if c.Args[0].Val == PTRACE_TRACEME {
+			c.Args[0].Val = ^uintptr(0)
+		}
 	case "exit", "exit_group":
 		code := c.Args[0]
 		// These codes are reserved by executor.
