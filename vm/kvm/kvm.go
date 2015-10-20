@@ -253,7 +253,8 @@ func (inst *Instance) Run() {
 			outputMu.Unlock()
 			time.Sleep(5 * time.Second)
 			outputMu.Lock()
-			loc = crashRe.FindAllIndex(output[matchPos:], -1)
+			output = output[matchPos:]
+			loc = crashRe.FindAllIndex(output, -1)
 			start := loc[0][0] - contextSize
 			if start < 0 {
 				start = 0
@@ -262,7 +263,9 @@ func (inst *Instance) Run() {
 			if end > len(output) {
 				end = len(output)
 			}
-			inst.SaveCrasher(output[start:end])
+			text := append(output[start:end:end], "\n\nfound crasher:\n"...)
+			text = append(text, output[loc[0][0]:loc[0][1]]...)
+			inst.SaveCrasher(text)
 		}
 		if len(output) > 2*contextSize {
 			copy(output, output[len(output)-contextSize:])
