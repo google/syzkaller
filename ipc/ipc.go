@@ -194,8 +194,13 @@ func (env *Env) execBin() (output, strace []byte, failed, hanged bool, err0 erro
 	cmd.ExtraFiles = append(cmd.ExtraFiles, env.inFile, env.outFile)
 	cmd.Env = []string{}
 	cmd.Dir = dir
-	cmd.Stdout = wp
-	cmd.Stderr = wp
+	if env.flags&FlagDebug == 0 {
+		cmd.Stdout = wp
+		cmd.Stderr = wp
+	} else {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stdout
+	}
 	if syscall.Getuid() == 0 {
 		// Running under root, more isolation is possible.
 		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Cloneflags: syscall.CLONE_NEWNS}
