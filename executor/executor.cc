@@ -16,6 +16,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <pthread.h>
+#include <grp.h>
 #include <algorithm>
 #include "syscalls.h"
 
@@ -45,6 +46,7 @@ bool flag_debug;
 bool flag_cover;
 bool flag_threaded;
 bool flag_deduplicate;
+bool flag_drop_privs;
 
 __attribute__((aligned(64 << 10))) char input_data[kMaxInput];
 __attribute__((aligned(64 << 10))) char output_data[kMaxOutput];
@@ -81,6 +83,7 @@ int cover_fd;
 
 __attribute__((noreturn)) void fail(const char* msg, ...);
 __attribute__((noreturn)) void error(const char* msg, ...);
+__attribute__((noreturn)) void exitf(const char* msg, ...);
 void debug(const char* msg, ...);
 uint64_t read_input(uint64_t** input_posp);
 uint64_t read_arg(uint64_t** input_posp);
@@ -111,12 +114,23 @@ int main()
 	flag_cover = flags & (1 << 1);
 	flag_threaded = flags & (1 << 2);
 	flag_deduplicate = flags & (1 << 3);
+	flag_drop_privs = flags & (1 << 4);
 	output_pos = (uint32_t*)&output_data[0];
 	write_output(0); // Number of executed syscalls (updated later).
 
 	cover_open();
 	if (!flag_threaded)
 		cover_init(&threads[0]);
+
+	if (flag_drop_privs) {
+		// TODO: 65534 is meant to be nobody
+		if (setgroups(0, NULL))
+			fail("failed to setgroups");
+		if (setresgid(65534, 65534, 65534))
+			fail("failed to setresgid");
+		if (setresuid(65534, 65534, 65534))
+			fail("failed to setresuid");
+	}
 
 	int call_index = 0;
 	for (int n = 0;; n++) {
@@ -212,7 +226,7 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 			th->handled = true;
 			if (flag_threaded) {
 				if (pthread_create(&th->th, 0, worker_thread, th))
-					fail("pthread_create failed");
+					exitf("pthread_create failed");
 			}
 		}
 		if (__atomic_load_n(&th->done, __ATOMIC_ACQUIRE)) {
@@ -494,6 +508,18 @@ void error(const char* msg, ...)
 	va_end(args);
 	fprintf(stderr, "\n");
 	exit(68);
+}
+
+// just exit (e.g. due to temporal ENOMEM error)
+void exitf(const char* msg, ...)
+{
+	fflush(stdout);
+	va_list args;
+	va_start(args, msg);
+	vfprintf(stderr, msg, args);
+	va_end(args);
+	fprintf(stderr, "\n");
+	exit(1);
 }
 
 void debug(const char* msg, ...)

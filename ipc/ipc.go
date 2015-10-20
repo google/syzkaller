@@ -34,6 +34,7 @@ const (
 	FlagCover                          // collect coverage
 	FlagThreaded                       // use multiple threads to mitigate blocked syscalls
 	FlagDedupCover                     // deduplicate coverage in executor
+	FlagDropPrivs                      // impersonate nobody user
 	FlagStrace                         // run executor under strace
 )
 
@@ -42,11 +43,20 @@ func MakeEnv(bin string, timeout time.Duration, flags uint64) (*Env, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if inf != nil {
+			closeMapping(inf, inmem)
+		}
+	}()
 	outf, outmem, err := createMapping(16 << 20)
 	if err != nil {
-		closeMapping(inf, inmem)
 		return nil, err
 	}
+	defer func() {
+		if outf != nil {
+			closeMapping(outf, outmem)
+		}
+	}()
 	for i := 0; i < 8; i++ {
 		inmem[i] = byte(flags >> (8 * uint(i)))
 	}
@@ -63,6 +73,8 @@ func MakeEnv(bin string, timeout time.Duration, flags uint64) (*Env, error) {
 	if len(env.bin) == 0 {
 		return nil, fmt.Errorf("binary is empty string")
 	}
+	inf = nil
+	outf = nil
 	return env, nil
 }
 
