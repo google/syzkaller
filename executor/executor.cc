@@ -21,6 +21,7 @@
 
 const int kInFd = 3;
 const int kOutFd = 4;
+const int kCoverFd = 5;
 const int kMaxInput = 1 << 20;
 const int kMaxOutput = 16 << 20;
 const int kMaxArgs = 6;
@@ -61,7 +62,6 @@ struct thread_t {
 	bool created;
 	int id;
 	pthread_t th;
-	int cover_fd;
 	uint32_t cover_data[16 << 10];
 	uint64_t* copyout_pos;
 	bool ready;
@@ -77,6 +77,7 @@ struct thread_t {
 };
 
 thread_t threads[kMaxThreads];
+int cover_fd;
 
 __attribute__((noreturn)) void fail(const char* msg, ...);
 __attribute__((noreturn)) void error(const char* msg, ...);
@@ -92,6 +93,7 @@ void execute_call(thread_t* th);
 void handle_completion(thread_t* th);
 void* worker_thread(void* arg);
 uint64_t current_time_ms();
+void cover_open();
 void cover_init(thread_t* th);
 void cover_reset(thread_t* th);
 int cover_read(thread_t* th);
@@ -112,6 +114,7 @@ int main()
 	output_pos = (uint32_t*)&output_data[0];
 	write_output(0); // Number of executed syscalls (updated later).
 
+	cover_open();
 	if (!flag_threaded)
 		cover_init(&threads[0]);
 
@@ -308,20 +311,26 @@ void execute_call(thread_t* th)
 	__atomic_store_n(&th->done, true, __ATOMIC_RELEASE);
 }
 
+void cover_open()
+{
+	if (!flag_cover)
+		return;
+	cover_fd = open("/proc/cover", O_RDWR);
+	if (cover_fd == -1)
+		fail("open of /proc/cover failed");
+}
+
 void cover_init(thread_t* th)
 {
 	if (!flag_cover)
 		return;
-	debug("#%d: opening /proc/cover\n", th->id);
-	th->cover_fd = open("/proc/cover", O_RDWR);
-	if (th->cover_fd == -1)
-		fail("open of /proc/cover failed");
+	debug("#%d: enabling /proc/cover\n", th->id);
 	char cmd[128];
 	sprintf(cmd, "enable=%d", (int)(sizeof(th->cover_data) / sizeof(th->cover_data[0])));
-	int n = write(th->cover_fd, cmd, strlen(cmd));
+	int n = write(cover_fd, cmd, strlen(cmd));
 	if (n != (int)strlen(cmd))
 		fail("cover enable write failed");
-	debug("#%d: opened /proc/cover\n", th->id);
+	debug("#%d: enabled /proc/cover\n", th->id);
 }
 
 void cover_reset(thread_t* th)
@@ -329,7 +338,7 @@ void cover_reset(thread_t* th)
 	if (!flag_cover)
 		return;
 	debug("#%d: resetting /proc/cover\n", th->id);
-	int n = write(th->cover_fd, "reset", sizeof("reset") - 1);
+	int n = write(cover_fd, "reset", sizeof("reset") - 1);
 	if (n != sizeof("reset") - 1)
 		fail("cover reset write failed");
 }
@@ -338,7 +347,7 @@ int cover_read(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
-	int n = read(th->cover_fd, th->cover_data, sizeof(th->cover_data));
+	int n = read(cover_fd, th->cover_data, sizeof(th->cover_data));
 	if (n < 0 || n > (int)sizeof(th->cover_data) || (n % sizeof(th->cover_data[0])) != 0)
 		fail("cover read failed after %s (n=%d)", syscalls[th->call_num].name, n);
 	n /= sizeof(th->cover_data[0]);
