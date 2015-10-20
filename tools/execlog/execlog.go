@@ -21,6 +21,8 @@ var (
 	flagExecutor = flag.String("executor", "", "path to executor binary")
 	flagLog      = flag.String("log", "", "comma-delimited list of log files to execute")
 	flagProcs    = flag.Int("procs", 1, "number of parallel processes to execute the log")
+	flagThreaded = flag.Bool("threaded", false, "use threaded mode in executor")
+	flagTimeout  = flag.Duration("timeout", 5*time.Second, "execution timeout")
 )
 
 func main() {
@@ -63,7 +65,11 @@ func main() {
 	var pos uint32
 	for p := 0; p < *flagProcs; p++ {
 		go func() {
-			env, err := ipc.MakeEnv(*flagExecutor, 5*time.Second, 0)
+			var flags uint64
+			if *flagThreaded {
+				flags |= ipc.FlagThreaded
+			}
+			env, err := ipc.MakeEnv(*flagExecutor, *flagTimeout, 0)
 			if err != nil {
 				log.Fatalf("failed to create ipc env: %v", err)
 			}
