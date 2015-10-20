@@ -4,13 +4,13 @@
 package main
 
 import (
+	"archive/zip"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"regexp"
 	"time"
 
@@ -34,7 +34,7 @@ func main() {
 	if *flagDebug {
 		flags |= ipc.FlagDebug
 	}
-	env, err := ipc.MakeEnv(*flagExecutor, 5*time.Second, flags)
+	env, err := ipc.MakeEnv(*flagExecutor, 4*time.Second, flags)
 	if err != nil {
 		failf("failed to create execution environment: %v", err)
 	}
@@ -76,16 +76,17 @@ func readCorpus() []*prog.Prog {
 	if *flagCorpus == "" {
 		return nil
 	}
-	files, err := ioutil.ReadDir(*flagCorpus)
+	zipr, err := zip.OpenReader(*flagCorpus)
 	if err != nil {
-		failf("failed to read corpus dir: %v", err)
+		failf("failed to open bin file: %v", err)
 	}
 	var progs []*prog.Prog
-	for _, f := range files {
-		if f.IsDir() {
-			continue
+	for _, zipf := range zipr.File {
+		r, err := zipf.Open()
+		if err != nil {
+			failf("failed to uzip file from input archive: %v", err)
 		}
-		data, err := ioutil.ReadFile(filepath.Join(*flagCorpus, f.Name()))
+		data, err := ioutil.ReadAll(r)
 		if err != nil {
 			failf("failed to read corpus file: %v", err)
 		}
@@ -94,7 +95,9 @@ func readCorpus() []*prog.Prog {
 			failf("failed to deserialize corpus program: %v", err)
 		}
 		progs = append(progs, p)
+		r.Close()
 	}
+	zipr.Close()
 	return progs
 }
 
