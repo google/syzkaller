@@ -263,9 +263,7 @@ func (inst *Instance) Run() {
 			if end > len(output) {
 				end = len(output)
 			}
-			text := append(output[start:end:end], "\n\nfound crasher:\n"...)
-			text = append(text, output[loc[0][0]:loc[0][1]]...)
-			inst.SaveCrasher(text)
+			inst.SaveCrasher(output[start:end])
 		}
 		if len(output) > 2*contextSize {
 			copy(output, output[len(output)-contextSize:])
