@@ -14,7 +14,7 @@ This is work-in-progress, some things may not work yet.
 ## Usage
 
 Coverage support is not upstreamed yet, so you need to apply [this patch](https://codereview.appspot.com/267910043)
-to gcc (tested on revision 228818) and [this patch](https://github.com/dvyukov/linux/commit/f9fbf6b72ffaaca8612979116c872c9d5d9cc1f5)
+to gcc (tested on revision 228818) and [this coverage patch](https://github.com/dvyukov/linux/commits/coverage)
 to kernel. Then build kernel with `CONFIG_KASAN` or `CONFIG_KTSAN` and the new `CONFIG_SANCOV`.
 
 Then, build syzkaller with `make`.
