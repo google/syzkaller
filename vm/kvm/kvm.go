@@ -254,8 +254,11 @@ func (inst *Instance) Run() {
 			outputMu.Unlock()
 			time.Sleep(5 * time.Second)
 			outputMu.Lock()
-			output = output[matchPos:]
-			loc = crashRe.FindAllIndex(output, -1)
+			loc = crashRe.FindAllIndex(output[matchPos:], -1)
+			for i := range loc {
+				loc[i][0] += matchPos
+				loc[i][1] += matchPos
+			}
 			start := loc[0][0] - contextSize
 			if start < 0 {
 				start = 0
