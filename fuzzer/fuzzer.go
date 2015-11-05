@@ -102,7 +102,7 @@ func main() {
 	}
 	ct = prog.BuildChoiceTable(r.Prios, calls)
 
-	flags := ipc.FlagThreaded
+	flags := ipc.FlagThreaded | ipc.FlagDropPrivs
 	if *flagStrace {
 		flags |= ipc.FlagStrace
 	}
