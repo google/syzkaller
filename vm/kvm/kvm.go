@@ -20,7 +20,7 @@ import (
 )
 
 const hostAddr = "192.168.33.1"
-const logOutput = true
+const logOutput = false
 
 func init() {
 	vm.Register("kvm", ctor)
@@ -122,6 +122,7 @@ func (vm *kvm) Run() {
 			continue
 		}
 		os.RemoveAll(sandboxPath)
+		os.Remove(sandboxPath + ".sock")
 		out, err := exec.Command(vm.Lkvm, "setup", sandbox).CombinedOutput()
 		if err != nil {
 			log.Printf("failed to lkvm setup: %v\n%s", err, out)
