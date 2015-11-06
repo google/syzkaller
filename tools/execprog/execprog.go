@@ -23,6 +23,7 @@ var (
 	flagExecutor = flag.String("executor", "", "path to executor binary")
 	flagProg     = flag.String("prog", "", "file with a program to execute")
 	flagThreaded = flag.Bool("threaded", false, "use threaded mode in executor")
+	flagCollide  = flag.Bool("collide", false, "collide syscalls to provoke data races")
 	flagDebug    = flag.Bool("debug", true, "debug output from executor")
 	flagStrace   = flag.Bool("strace", false, "run executor under strace")
 	flagCover    = flag.String("cover", "", "collect coverage and write to the file")
@@ -46,6 +47,9 @@ func main() {
 	var flags uint64
 	if *flagThreaded {
 		flags |= ipc.FlagThreaded
+	}
+	if *flagCollide {
+		flags |= ipc.FlagCollide
 	}
 	if *flagDebug {
 		flags |= ipc.FlagDebug

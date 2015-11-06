@@ -33,6 +33,7 @@ const (
 	FlagDebug      = uint64(1) << iota // debug output from executor
 	FlagCover                          // collect coverage
 	FlagThreaded                       // use multiple threads to mitigate blocked syscalls
+	FlagCollide                        // collide syscalls to provoke data races
 	FlagDedupCover                     // deduplicate coverage in executor
 	FlagDropPrivs                      // impersonate nobody user
 	FlagStrace                         // run executor under strace

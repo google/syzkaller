@@ -45,6 +45,7 @@ const uint64_t default_value = -1;
 bool flag_debug;
 bool flag_cover;
 bool flag_threaded;
+bool flag_collide;
 bool flag_deduplicate;
 bool flag_drop_privs;
 
@@ -52,6 +53,7 @@ __attribute__((aligned(64 << 10))) char input_data[kMaxInput];
 __attribute__((aligned(64 << 10))) char output_data[kMaxOutput];
 uint32_t* output_pos;
 int completed;
+bool collide;
 
 struct res_t {
 	bool executed;
@@ -108,28 +110,34 @@ int main()
 		fail("mmap of input file failed");
 	if (mmap(&output_data[0], kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0) != &output_data[0])
 		fail("mmap of output file failed");
+retry:
 	uint64_t* input_pos = (uint64_t*)&input_data[0];
 	uint64_t flags = read_input(&input_pos);
 	flag_debug = flags & (1 << 0);
 	flag_cover = flags & (1 << 1);
 	flag_threaded = flags & (1 << 2);
-	flag_deduplicate = flags & (1 << 3);
-	flag_drop_privs = flags & (1 << 4);
+	flag_collide = flags & (1 << 3);
+	flag_deduplicate = flags & (1 << 4);
+	flag_drop_privs = flags & (1 << 5);
 	output_pos = (uint32_t*)&output_data[0];
 	write_output(0); // Number of executed syscalls (updated later).
 
-	cover_open();
-	if (!flag_threaded)
-		cover_init(&threads[0]);
+	if (flag_collide)
+		flag_threaded = true;
+	if (!collide) {
+		cover_open();
+		if (!flag_threaded)
+			cover_init(&threads[0]);
 
-	if (flag_drop_privs) {
-		// TODO: 65534 is meant to be nobody
-		if (setgroups(0, NULL))
-			fail("failed to setgroups");
-		if (setresgid(65534, 65534, 65534))
-			fail("failed to setresgid");
-		if (setresuid(65534, 65534, 65534))
-			fail("failed to setresuid");
+		if (flag_drop_privs) {
+			// TODO: 65534 is meant to be nobody
+			if (setgroups(0, NULL))
+				fail("failed to setgroups");
+			if (setresgid(65534, 65534, 65534))
+				fail("failed to setresgid");
+			if (setresuid(65534, 65534, 65534))
+				fail("failed to setresuid");
+		}
 	}
 
 	int call_index = 0;
@@ -185,7 +193,10 @@ int main()
 			args[i] = 0;
 		thread_t* th = schedule_call(n, call_index++, call_num, num_args, args, input_pos);
 
-		if (flag_threaded) {
+		if (collide && (n % 2)) {
+			// Don't wait for every other call.
+			// We already have results from the previous execution.
+		} else if (flag_threaded) {
 			// Wait for call completion.
 			uint64_t start = current_time_ms();
 			while (!__atomic_load_n(&th->done, __ATOMIC_ACQUIRE) && (current_time_ms() - start) < 100)
@@ -207,8 +218,18 @@ int main()
 			handle_completion(th);
 		}
 	}
-
 	// TODO: handle hanged threads.
+
+	if (flag_collide) {
+		if (!collide) {
+			debug("enabling collider\n");
+			collide = true;
+			goto retry;
+		}
+		// Give any pending calls time to complete, since we did not wait for them.
+		usleep(1000);
+	}
+
 	debug("exiting\n");
 	return 0;
 }
@@ -275,13 +296,15 @@ void handle_completion(thread_t* th)
 			debug("copyout from %p\n", addr);
 		}
 	}
-	write_output(th->call_index);
-	write_output(th->call_num);
-	write_output(th->cover_size);
-	for (int i = 0; i < th->cover_size; i++)
-		write_output(th->cover_data[i]);
-	completed++;
-	__atomic_store_n((uint32_t*)&output_data[0], completed, __ATOMIC_RELEASE);
+	if (!collide) {
+		write_output(th->call_index);
+		write_output(th->call_num);
+		write_output(th->cover_size);
+		for (int i = 0; i < th->cover_size; i++)
+			write_output(th->cover_data[i]);
+		completed++;
+		__atomic_store_n((uint32_t*)&output_data[0], completed, __ATOMIC_RELEASE);
+	}
 	th->handled = true;
 }
 
@@ -472,6 +495,8 @@ uint64_t read_input(uint64_t** input_posp)
 
 void write_output(uint32_t v)
 {
+	if (collide)
+		return;
 	if ((char*)output_pos >= output_data + kMaxOutput)
 		fail("output overflow");
 	*output_pos++ = v;
