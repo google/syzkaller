@@ -280,7 +280,10 @@ func (inst *Instance) Run() {
 	lastOutputLen := 0
 	matchPos := 0
 	crashRe := regexp.MustCompile("\\[ cut here \\]|Kernel panic| BUG: | WARNING: | INFO: |unable to handle kernel NULL pointer dereference|general protection fault")
-	const contextSize = 64 << 10
+	const (
+		beforeContext = 256 << 10
+		afterContext  = 64 << 10
+	)
 	for range time.NewTicker(5 * time.Second).C {
 		outputMu.Lock()
 		if lastOutputLen != len(output) {
@@ -296,19 +299,19 @@ func (inst *Instance) Run() {
 				loc[i][0] += matchPos
 				loc[i][1] += matchPos
 			}
-			start := loc[0][0] - contextSize
+			start := loc[0][0] - beforeContext
 			if start < 0 {
 				start = 0
 			}
-			end := loc[len(loc)-1][1] + contextSize
+			end := loc[len(loc)-1][1] + afterContext
 			if end > len(output) {
 				end = len(output)
 			}
 			inst.SaveCrasher(output[start:end])
 		}
-		if len(output) > 2*contextSize {
-			copy(output, output[len(output)-contextSize:])
-			output = output[:contextSize]
+		if len(output) > 2*beforeContext {
+			copy(output, output[len(output)-beforeContext:])
+			output = output[:beforeContext]
 		}
 		matchPos = len(output) - 128
 		if matchPos < 0 {
