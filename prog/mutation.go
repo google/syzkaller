@@ -40,6 +40,9 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 				s := analyze(ct, p, c)
 				for stop := false; !stop; stop = r.bin() {
 					args, bases, parents := mutationArgs(c)
+					if len(args) == 0 {
+						return
+					}
 					idx := r.Intn(len(args))
 					arg, base, parent := args[idx], bases[idx], parents[idx]
 					var baseSize uintptr

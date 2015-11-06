@@ -174,48 +174,48 @@ getsockname(fd fd[sock], addr ptr[out, sockaddr], addrlen ptr[inout, len[addr, i
 getpeername(fd fd[sock], peer ptr[out, sockaddr], peerlen ptr[inout, len[peer, int32]])
 getsockopt(fd fd[sock], level int32, optname int32, optval ptr[out, ioctl_arg], optlen ptr[inout, len[optval, int32]])
 setsockopt(fd fd[sock], level int32, optname int32, optval ptr[in, ioctl_arg], optlen len[optval])
-getsockopt$sock_int(fd fd[sock], level flags[sockopt_level_sock], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$sock_int(fd fd[sock], level flags[sockopt_level_sock], optname flags[sockopt_opt_sock_int], optval ptr[in, int32], optlen len[optval])
-getsockopt$sock_str(fd fd[sock], level flags[sockopt_level_sock], optname flags[sockopt_opt_sock_str], optval buffer[out], optlen ptr[inout, len[optval, int32]])
-setsockopt$sock_str(fd fd[sock], level flags[sockopt_level_sock], optname flags[sockopt_opt_sock_str], optval string, optlen len[optval])
-getsockopt$sock_linger(fd fd[sock], level flags[sockopt_level_sock], optname flags[sockopt_opt_sock_linger], optval ptr[out, linger], optlen ptr[inout, len[optval, int32]])
-setsockopt$sock_linger(fd fd[sock], level flags[sockopt_level_sock], optname flags[sockopt_opt_sock_linger], optval ptr[in, linger], optlen len[optval])
-getsockopt$sock_cred(fd fd[sock], level flags[sockopt_level_sock], optname flags[sockopt_opt_sock_cred], optval ptr[out, ucred], optlen ptr[inout, len[optval, int32]])
-setsockopt$sock_cred(fd fd[sock], level flags[sockopt_level_sock], optname flags[sockopt_opt_sock_cred], optval ptr[in, ucred], optlen len[optval])
-getsockopt$sock_timeval(fd fd[sock], level flags[sockopt_level_sock], optname flags[sockopt_opt_sock_timeval], optval ptr[out, timeval], optlen ptr[inout, len[optval, int32]])
-setsockopt$sock_timeval(fd fd[sock], level flags[sockopt_level_sock], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
-getsockopt$tcp_int(fd fd[sock], level flags[sockopt_level_tcp], optname flags[sockopt_opt_tcp_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$tcp_int(fd fd[sock], level flags[sockopt_level_tcp], optname flags[sockopt_opt_tcp_int], optval ptr[in, int32], optlen len[optval])
-getsockopt$tcp_buf(fd fd[sock], level flags[sockopt_level_tcp], optname flags[sockopt_opt_tcp_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
-setsockopt$tcp_buf(fd fd[sock], level flags[sockopt_level_tcp], optname flags[sockopt_opt_tcp_buf], optval buffer[in], optlen len[optval])
-getsockopt$udp_int(fd fd[sock], level flags[sockopt_level_udp], optname flags[sockopt_opt_udp_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$udp_int(fd fd[sock], level flags[sockopt_level_udp], optname flags[sockopt_opt_udp_int], optval ptr[in, int32], optlen len[optval])
-getsockopt$ip_int(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_int(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_int], optval ptr[in, int32], optlen len[optval])
-getsockopt$ip_mreq(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreq], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_mreq(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreq], optlen len[optval])
-getsockopt$ip_mreqn(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreqn], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_mreqn(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreqn], optlen len[optval])
-getsockopt$ip_mreqsrc(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[out, ip_mreq_source], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_mreqsrc(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[in, ip_mreq_source], optlen len[optval])
-getsockopt$ip_msfilter(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_msfilter], optval ptr[out, ip_msfilter], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_msfilter(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_msfilter], optval ptr[in, ip_msfilter], optlen len[optval])
-getsockopt$ip_mtu(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_mtu], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_mtu(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_mtu], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
-getsockopt$ip_opts(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_opts(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_opts], optval buffer[in], optlen len[optval])
-getsockopt$ip_pktinfo(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_pktinfo], optval ptr[out, in_pktinfo], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_pktinfo(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_pktinfo], optval ptr[in, in_pktinfo], optlen len[optval])
-getsockopt$ip_ipsec(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_ipsec], optval ptr[out, xfrm_filer], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_ipsec(fd fd[sock], level flags[sockopt_level_ip], optname flags[sockopt_opt_ip_ipsec], optval ptr[in, xfrm_filer], optlen len[optval])
-getsockopt$ipv6_int(fd fd[sock], level flags[sockopt_level_ipv6], optname flags[sockopt_opt_ipv6_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$ipv6_int(fd fd[sock], level flags[sockopt_level_ipv6], optname flags[sockopt_opt_ipv6_int], optval ptr[in, int32], optlen len[optval])
-getsockopt$ipv6_mreq(fd fd[sock], level flags[sockopt_level_ipv6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[out, ipv6_mreq], optlen ptr[inout, len[optval, int32]])
-setsockopt$ipv6_mreq(fd fd[sock], level flags[sockopt_level_ipv6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[in, ipv6_mreq], optlen len[optval])
-getsockopt$ipv6_mtu(fd fd[sock], level flags[sockopt_level_ipv6], optname flags[sockopt_opt_ipv6_mtu], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
-setsockopt$ipv6_mtu(fd fd[sock], level flags[sockopt_level_ipv6], optname flags[sockopt_opt_ipv6_mtu], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
-getsockopt$ipv6_opts(fd fd[sock], level flags[sockopt_level_ipv6], optname flags[sockopt_opt_ipv6_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
-setsockopt$ipv6_opts(fd fd[sock], level flags[sockopt_level_ipv6], optname flags[sockopt_opt_ipv6_opts], optval buffer[in], optlen len[optval])
+getsockopt$sock_int(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_int(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$sock_str(fd fd[sock], level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_str(fd fd[sock], level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval string, optlen len[optval])
+getsockopt$sock_linger(fd fd[sock], level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[out, linger], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_linger(fd fd[sock], level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[in, linger], optlen len[optval])
+getsockopt$sock_cred(fd fd[sock], level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_cred(fd fd[sock], level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[in, ucred], optlen len[optval])
+getsockopt$sock_timeval(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[out, timeval], optlen ptr[inout, len[optval, int32]])
+setsockopt$sock_timeval(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
+getsockopt$tcp_int(fd fd[sock], level const[IPPROTO_TCP], optname flags[sockopt_opt_tcp_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$tcp_int(fd fd[sock], level const[IPPROTO_TCP], optname flags[sockopt_opt_tcp_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$tcp_buf(fd fd[sock], level const[IPPROTO_TCP], optname const[TCP_INFO], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$tcp_buf(fd fd[sock], level const[IPPROTO_TCP], optname const[TCP_INFO], optval buffer[in], optlen len[optval])
+getsockopt$udp_int(fd fd[sock], level const[IPPROTO_UDP], optname const[UDP_CORK], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$udp_int(fd fd[sock], level const[IPPROTO_UDP], optname const[UDP_CORK], optval ptr[in, int32], optlen len[optval])
+getsockopt$ip_int(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_int(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$ip_mreq(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreq], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_mreq(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreq], optlen len[optval])
+getsockopt$ip_mreqn(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreqn], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_mreqn(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreqn], optlen len[optval])
+getsockopt$ip_mreqsrc(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[out, ip_mreq_source], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_mreqsrc(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[in, ip_mreq_source], optlen len[optval])
+getsockopt$ip_msfilter(fd fd[sock], level const[IPPROTO_IP], optname const[IP_MSFILTER], optval ptr[out, ip_msfilter], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_msfilter(fd fd[sock], level const[IPPROTO_IP], optname const[IP_MSFILTER], optval ptr[in, ip_msfilter], optlen len[optval])
+getsockopt$ip_mtu(fd fd[sock], level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_mtu(fd fd[sock], level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
+getsockopt$ip_opts(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_opts(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[in], optlen len[optval])
+getsockopt$ip_pktinfo(fd fd[sock], level const[IPPROTO_IP], optname const[IP_PKTINFO], optval ptr[out, in_pktinfo], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_pktinfo(fd fd[sock], level const[IPPROTO_IP], optname const[IP_PKTINFO], optval ptr[in, in_pktinfo], optlen len[optval])
+getsockopt$ip_ipsec(fd fd[sock], level const[IPPROTO_IP], optname const[IP_IPSEC_POLICY], optval ptr[out, xfrm_filer], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_ipsec(fd fd[sock], level const[IPPROTO_IP], optname const[IP_IPSEC_POLICY], optval ptr[in, xfrm_filer], optlen len[optval])
+getsockopt$ipv6_int(fd fd[sock], level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$ipv6_int(fd fd[sock], level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$ipv6_mreq(fd fd[sock], level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[out, ipv6_mreq], optlen ptr[inout, len[optval, int32]])
+setsockopt$ipv6_mreq(fd fd[sock], level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[in, ipv6_mreq], optlen len[optval])
+getsockopt$ipv6_mtu(fd fd[sock], level const[IPPROTO_IPV6], optname const[IPV6_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
+setsockopt$ipv6_mtu(fd fd[sock], level const[IPPROTO_IPV6], optname const[IPV6_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
+getsockopt$ipv6_opts(fd fd[sock], level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$ipv6_opts(fd fd[sock], level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[in], optlen len[optval])
 
 # Almighty!
 ioctl(fd fd, cmd int32, arg ptr[inout, ioctl_arg])
@@ -223,36 +223,36 @@ ioctl(fd fd, cmd int32, arg ptr[inout, ioctl_arg])
 ioctl$void(fd fd, cmd flags[ioctl_void])
 ioctl$int_in(fd fd, cmd flags[ioctl_int_in], v ptr[in, int64])
 ioctl$int_out(fd fd, cmd flags[ioctl_int_out], v ptr[out, intptr])
-ioctl$fiemap(fd fd, cmd flags[ioctl_fiemap], v ptr[in, fiemap])
+ioctl$fiemap(fd fd, cmd const[FS_IOC_FIEMAP], v ptr[in, fiemap])
 
 fcntl$dupfd(fd fd, cmd flags[fcntl_dupfd], arg fd) fd
 fcntl$getflags(fd fd, cmd flags[fcntl_getflags])
-fcntl$setflags(fd fd, cmd flags[fcntl_setflags], flags flags[fcntl_flags])
-fcntl$setstatus(fd fd, cmd flags[fcntl_setstatus], flags flags[fcntl_status])
+fcntl$setflags(fd fd, cmd const[F_SETFD], flags flags[fcntl_flags])
+fcntl$setstatus(fd fd, cmd const[F_SETFL], flags flags[fcntl_status])
 fcntl$lock(fd fd, cmd flags[fcntl_lock], lock ptr[in, flock])
-fcntl$getown(fd fd, cmd flags[fcntl_getown]) pid
-fcntl$setown(fd fd, cmd flags[fcntl_setown], pid pid)
-fcntl$getownex(fd fd, cmd flags[fcntl_getownex], arg ptr[out, f_owner_ex])
-fcntl$setownex(fd fd, cmd flags[fcntl_setownex], arg ptr[in, f_owner_ex])
-fcntl$setsig(fd fd, cmd flags[fcntl_setsig], sig signalno)
-fcntl$setlease(fd fd, cmd flags[fcntl_setlease], typ flags[flock_type])
+fcntl$getown(fd fd, cmd const[F_GETOWN]) pid
+fcntl$setown(fd fd, cmd const[F_SETOWN], pid pid)
+fcntl$getownex(fd fd, cmd const[F_GETOWN_EX], arg ptr[out, f_owner_ex])
+fcntl$setownex(fd fd, cmd const[F_SETOWN_EX], arg ptr[in, f_owner_ex])
+fcntl$setsig(fd fd, cmd const[F_SETSIG], sig signalno)
+fcntl$setlease(fd fd, cmd const[F_SETLEASE], typ flags[flock_type])
 fcntl$notify(fd fd, cmd flags[fcntl_notify], typ flags[fcntl_notify])
-fcntl$setpipe(fd fd, cmd flags[fcntl_setpipe], sz intptr)
-fcntl$addseals(fd fd, cmd flags[fcntl_addseals], seals flags[seal_types])
+fcntl$setpipe(fd fd, cmd const[F_SETPIPE_SZ], sz intptr)
+fcntl$addseals(fd fd, cmd const[F_ADD_SEALS], seals flags[seal_types])
 
 ptrace(req flags[ptrace_req], pid pid)
 ptrace$peek(req flags[ptrace_req_peek], pid pid, addr ptr[out, intptr])
 ptrace$poke(req flags[ptrace_req_poke], pid pid, addr ptr[out, intptr], data intptr)
-ptrace$peekuser(req flags[ptrace_req_peekuser], pid pid, addr intptr)
-ptrace$pokeuser(req flags[ptrace_req_peekuser], pid pid, addr intptr, data intptr)
+ptrace$peekuser(req const[PTRACE_PEEKUSER], pid pid, addr intptr)
+ptrace$pokeuser(req const[PTRACE_POKEUSER], pid pid, addr intptr, data intptr)
 ptrace$getregs(req flags[ptrace_req_getregs], pid pid, ignored intptr, data buffer[out])
-ptrace$getregset(req flags[ptrace_req_getregset], pid pid, what flags[pthread_regset], data ptr[in, iovec_out])
+ptrace$getregset(req const[PTRACE_GETREGSET], pid pid, what flags[pthread_regset], data ptr[in, iovec_out])
 ptrace$setregs(req flags[ptrace_req_setregs], pid pid, ignored intptr, data buffer[in])
-ptrace$setregset(req flags[ptrace_req_setregset], pid pid, what flags[pthread_regset], data ptr[in, iovec_in])
-ptrace$getsig(req flags[ptrace_req_getsig], pid pid, ignored intptr, data ptr[out, siginfo])
-ptrace$setsig(req flags[ptrace_req_setsig], pid pid, ignored intptr, data ptr[in, siginfo])
+ptrace$setregset(req const[PTRACE_SETREGSET], pid pid, what flags[pthread_regset], data ptr[in, iovec_in])
+ptrace$getsig(req const[PTRACE_GETSIGINFO], pid pid, ignored intptr, data ptr[out, siginfo])
+ptrace$setsig(req const[PTRACE_SETSIGINFO], pid pid, ignored intptr, data ptr[in, siginfo])
 ptrace$setopts(req flags[ptrace_req_setopts], pid pid, ignored intptr, flags flags[ptrace_options])
-ptrace$getenv(req flags[ptrace_req_getenv], pid pid, ignored intptr, data ptr[out, intptr])
+ptrace$getenv(req const[PTRACE_GETEVENTMSG], pid pid, ignored intptr, data ptr[out, intptr])
 ptrace$cont(req flags[ptrace_req_cont], pid pid, ignored intptr, data intptr)
 
 io_setup(n int32, ctx ptr[out, io_ctx])
@@ -268,13 +268,13 @@ capset(hdr ptr[in, cap_header], data ptr[in, cap_data])
 prctl$void(option flags[prctl_code_void])
 prctl$intptr(option flags[prctl_code_intptr], arg intptr)
 prctl$getreaper(option flags[prctl_code_getreaper], arg ptr[out, intptr])
-prctl$setendian(option flags[prctl_code_setendian], arg flags[prctl_endian])
-prctl$setfpexc(option flags[prctl_code_setfpexc], arg flags[prctl_fpexc])
-prctl$setname(option flags[prctl_code_setname], name string)
-prctl$getname(option flags[prctl_code_getname], name buffer[out])
-prctl$setptracer(option flags[prctl_code_setptracer], pid pid)
-prctl$seccomp(option flags[prctl_code_seccomp], mode flags[prctl_seccomp_mode], prog ptr[in, sock_fprog])
-prctl$setmm(option flags[prctl_code_setmm], option flags[prctl_mm_option], val vma)
+prctl$setendian(option const[PR_SET_ENDIAN], arg flags[prctl_endian])
+prctl$setfpexc(option const[PR_SET_FPEXC], arg flags[prctl_fpexc])
+prctl$setname(option const[PR_SET_NAME], name string)
+prctl$getname(option const[PR_GET_NAME], name buffer[out])
+prctl$setptracer(option const[PR_SET_PTRACER], pid pid)
+prctl$seccomp(option const[PR_SET_SECCOMP], mode flags[prctl_seccomp_mode], prog ptr[in, sock_fprog])
+prctl$setmm(option const[PR_SET_MM], option flags[prctl_mm_option], val vma)
 
 arch_prctl(code flags[arch_prctl_code], addr ptr[in, ioctl_arg])
 seccomp(op flags[seccomp_op], flags flags[seccomp_flags], prog ptr[in, sock_fprog])
@@ -1154,13 +1154,6 @@ cap_version = 0x19980330, 0x20071026, 0x20080522
 prctl_code_void = PR_GET_DUMPABLE, PR_GET_KEEPCAPS, PR_GET_NO_NEW_PRIVS, PR_GET_SECCOMP, PR_GET_SECUREBITS, PR_GET_TIMERSLACK, PR_GET_TIMING, PR_TASK_PERF_EVENTS_DISABLE, PR_TASK_PERF_EVENTS_ENABLE, PR_MCE_KILL_GET
 prctl_code_intptr = PR_CAPBSET_READ, PR_CAPBSET_DROP, PR_SET_CHILD_SUBREAPER, PR_SET_DUMPABLE, PR_SET_FPEMU, PR_SET_KEEPCAPS, PR_SET_NO_NEW_PRIVS, PR_SET_PDEATHSIG, PR_SET_SECUREBITS, PR_SET_TIMERSLACK, PR_SET_TIMING, PR_SET_TSC, PR_SET_UNALIGN, PR_MCE_KILL
 prctl_code_getreaper = PR_GET_CHILD_SUBREAPER, PR_GET_ENDIAN, PR_GET_FPEMU, PR_GET_FPEXC, PR_GET_PDEATHSIG, PR_GET_TID_ADDRESS, PR_GET_TSC, PR_GET_UNALIGN
-prctl_code_setendian = PR_SET_ENDIAN
-prctl_code_setfpexc = PR_SET_FPEXC
-prctl_code_setname = PR_SET_NAME
-prctl_code_getname = PR_GET_NAME
-prctl_code_setptracer = PR_SET_PTRACER
-prctl_code_seccomp = PR_SET_SECCOMP
-prctl_code_setmm = PR_SET_MM
 prctl_endian = PR_ENDIAN_BIG, PR_ENDIAN_LITTLE, PR_ENDIAN_PPC_LITTLE
 prctl_fpexc = PR_FP_EXC_SW_ENABLE, PR_FP_EXC_DIV, PR_FP_EXC_OVF, PR_FP_EXC_UND, PR_FP_EXC_RES, PR_FP_EXC_INV, PR_FP_EXC_DISABLED, PR_FP_EXC_NONRECOV, PR_FP_EXC_ASYNC, PR_FP_EXC_PRECISE
 prctl_seccomp_mode = SECCOMP_MODE_DISABLED, SECCOMP_MODE_STRICT, SECCOMP_MODE_FILTER
@@ -1236,70 +1229,36 @@ mempolicy_flags = 0, MPOL_F_MEMS_ALLOWED, MPOL_F_ADDR, MPOL_F_NODE
 ptrace_req = PTRACE_TRACEME, PTRACE_LISTEN, PTRACE_KILL, PTRACE_INTERRUPT, PTRACE_ATTACH, PTRACE_DETACH
 ptrace_req_peek = PTRACE_PEEKTEXT, PTRACE_PEEKDATA
 ptrace_req_poke = PTRACE_POKETEXT, PTRACE_POKEDATA
-ptrace_req_peekuser = PTRACE_PEEKUSER
-ptrace_req_pokeuser = PTRACE_POKEUSER
 ptrace_req_getregs = PTRACE_GETREGS, PTRACE_GETFPREGS
-ptrace_req_getregset = PTRACE_GETREGSET
 ptrace_req_setregs = PTRACE_SETREGS, PTRACE_SETFPREGS
-ptrace_req_setregset = PTRACE_SETREGSET
-ptrace_req_getsig = PTRACE_GETSIGINFO
-ptrace_req_setsig = PTRACE_SETSIGINFO
 ptrace_req_setopts = PTRACE_SETOPTIONS, PTRACE_SEIZE
-ptrace_req_getenv = PTRACE_GETEVENTMSG
 ptrace_req_cont = PTRACE_CONT, PTRACE_SYSCALL, PTRACE_SINGLESTEP, PTRACE_SYSEMU, PTRACE_SYSEMU_SINGLESTEP
 pthread_regset = NT_PRSTATUS, NT_PRFPREG, NT_PRPSINFO, NT_TASKSTRUCT, NT_AUXV, NT_386_TLS, NT_386_IOPERM, NT_X86_XSTATE
 ptrace_options = PTRACE_O_EXITKILL, PTRACE_O_TRACECLONE, PTRACE_O_TRACEEXEC, PTRACE_O_TRACEEXIT, PTRACE_O_TRACEFORK, PTRACE_O_TRACESYSGOOD, PTRACE_O_TRACEVFORK, PTRACE_O_TRACEVFORKDONE
 fcntl_dupfd = F_DUPFD, F_DUPFD_CLOEXEC
 fcntl_getflags = F_GETFD, F_GETFL, F_GETSIG, F_GETLEASE, F_GETPIPE_SZ, F_GET_SEALS
-fcntl_setflags = F_SETFD
-fcntl_setstatus = F_SETFL
 fcntl_lock = F_SETLK, F_SETLKW, F_GETLK
-fcntl_getown = F_GETOWN
-fcntl_setown = F_SETOWN
-fcntl_getownex = F_GETOWN_EX
-fcntl_setownex = F_SETOWN_EX
-fcntl_setsig = F_SETSIG
-fcntl_setlease = F_SETLEASE
-fcntl_setpipe = F_SETPIPE_SZ
 fcntl_flags = FD_CLOEXEC
 fcntl_status = O_APPEND, O_ASYNC, O_DIRECT, O_NOATIME, O_NONBLOCK
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
 f_owner_type = F_OWNER_TID, F_OWNER_PID, F_OWNER_PGRP
 fcntl_notify = DN_MULTISHOT, DN_ACCESS, DN_MODIFY, DN_CREATE, DN_DELETE, DN_RENAME, DN_ATTRIB
-fcntl_addseals = F_ADD_SEALS
 seal_types = F_SEAL_SEAL, F_SEAL_SHRINK, F_SEAL_GROW, F_SEAL_WRITE
-sockopt_level_sock = SOL_SOCKET
 sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PEEK_OFF, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP, SO_TYPE
-sockopt_opt_sock_str = SO_BINDTODEVICE
-sockopt_opt_sock_linger = SO_LINGER
-sockopt_opt_sock_cred = SO_PEERCRED
 sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO
-sockopt_level_tcp = IPPROTO_TCP
 sockopt_opt_tcp_int = TCP_CORK, TCP_DEFER_ACCEPT, TCP_KEEPCNT, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_LINGER2, TCP_MAXSEG, TCP_NODELAY, TCP_QUICKACK, TCP_SYNCNT, TCP_WINDOW_CLAMP
-sockopt_opt_tcp_buf = TCP_INFO
-sockopt_level_udp = IPPROTO_UDP
-sockopt_opt_udp_int = UDP_CORK
-sockopt_level_ip = IPPROTO_IP
 sockopt_opt_ip_int = IP_FREEBIND, IP_HDRINCL, IP_MTU, IP_MULTICAST_ALL, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IP_NODEFRAG, IP_RECVOPTS, IP_RECVORIGDSTADDR, IP_RECVTOS, IP_RECVTTL, IP_RETOPTS, IP_ROUTER_ALERT, IP_TOS, IP_TRANSPARENT, IP_TTL, IP_RECVERR, IP_PASSSEC, IP_MINTTL, IP_CHECKSUM, IP_BIND_ADDRESS_NO_PORT
 sockopt_opt_ip_mreq = IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_MULTICAST_IF
 sockopt_opt_ip_mreqsrc = IP_ADD_SOURCE_MEMBERSHIP, IP_BLOCK_SOURCE, IP_DROP_SOURCE_MEMBERSHIP, IP_UNBLOCK_SOURCE
-sockopt_opt_ip_msfilter = IP_MSFILTER
-sockopt_opt_ip_mtu = IP_MTU_DISCOVER
 sockopt_opt_ip_opts = IP_OPTIONS, IP_PKTOPTIONS
-sockopt_opt_ip_pktinfo = IP_PKTINFO
-sockopt_opt_ip_ipsec = IP_IPSEC_POLICY
 ip_msfilter_mode = MCAST_INCLUDE, MCAST_EXCLUDE
 ip_msfilter_numsrc = 1
 ip_mtu_discover = IP_PMTUDISC_DONT, IP_PMTUDISC_WANT, IP_PMTUDISC_DO, IP_PMTUDISC_PROBE, IP_PMTUDISC_INTERFACE, IP_PMTUDISC_OMIT
-sockopt_level_ipv6 = IPPROTO_IPV6
 sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, IPV6_RECVPKTINFO, IPV6_RECVERR, IPV6_ROUTER_ALERT, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IPV6_RTHDR, IPV6_AUTHHDR, IPV6_DSTOPTS, IPV6_HOPOPTS, IPV6_FLOWINFO, IPV6_HOPLIMIT, IPV6_CHECKSUM, IPV6_2292PKTINFO, IPV6_2292HOPOPTS, IPV6_2292DSTOPTS, IPV6_2292RTHDR, IPV6_2292HOPLIMIT
 sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
-sockopt_opt_ipv6_mtu = IPV6_MTU_DISCOVER
-sockopt_opt_ipv6_opts = IPV6_2292PKTOPTIONS
 ioctl_void = FIOCLEX, FIONCLEX, FIFREEZE, FITHAW
 ioctl_int_in = FIONBIO, FIOASYNC
 ioctl_int_out = FIOQSIZE, FIGETBSZ
-ioctl_fiemap = FS_IOC_FIEMAP
 fiemap_flags = FIEMAP_FLAG_SYNC, FIEMAP_FLAG_XATTR, FIEMAP_FLAG_CACHE
 fiemap_extent_flags = FIEMAP_EXTENT_LAST, FIEMAP_EXTENT_UNKNOWN, FIEMAP_EXTENT_DELALLOC, FIEMAP_EXTENT_ENCODED, FIEMAP_EXTENT_DATA_ENCRYPTED, FIEMAP_EXTENT_NOT_ALIGNED, FIEMAP_EXTENT_DATA_INLINE, FIEMAP_EXTENT_DATA_TAIL, FIEMAP_EXTENT_UNWRITTEN, FIEMAP_EXTENT_MERGED, FIEMAP_EXTENT_SHARED
 
