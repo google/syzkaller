@@ -120,7 +120,8 @@ func (t ResourceType) SpecialValues() []uintptr {
 	case ResIPC:
 		return []uintptr{0, ^uintptr(0)}
 	case ResKey:
-		return []uintptr{0}
+		// KEY_SPEC_THREAD_KEYRING values
+		return []uintptr{0, ^uintptr(0), ^uintptr(0) - 1, ^uintptr(0) - 2, ^uintptr(0) - 3, ^uintptr(0) - 4, ^uintptr(0) - 5, ^uintptr(0) - 6, ^uintptr(0) - 7}
 	case ResInotifyDesc:
 		return []uintptr{0}
 	case ResPid:

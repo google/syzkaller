@@ -281,9 +281,30 @@ seccomp(op flags[seccomp_op], flags flags[seccomp_flags], prog ptr[in, sock_fpro
 
 add_key(type string, desc string, payload buffer[in, opt], paylen len[payload], keyring flags[keyring_type]) key
 request_key(type string, desc string, callout string, keyring flags[keyring_type]) key
-# TODO: there must be something interesting in args (see security/keys/keyctl.c)
-# arg2 is usually a key, but not always
-keyctl(code flags[keyctl_code], key key, arg2 string, arg3 intptr, arg4 intptr, arg5 intptr)
+keyctl$get_keyring_id(code const[KEYCTL_GET_KEYRING_ID], key key, create intptr)
+keyctl$join(code const[KEYCTL_JOIN_SESSION_KEYRING], session string)
+keyctl$update(code const[KEYCTL_UPDATE], key key, payload buffer[in, opt], paylen len[payload])
+keyctl$revoke(code const[KEYCTL_REVOKE], key key)
+keyctl$describe(code const[KEYCTL_DESCRIBE], key key, desc buffer[out], len len[desc])
+keyctl$clear(code const[KEYCTL_CLEAR], key key)
+keyctl$link(code const[KEYCTL_LINK], key1 key, key2 key)
+keyctl$unlink(code const[KEYCTL_UNLINK], key1 key, key2 key)
+keyctl$search(code const[KEYCTL_SEARCH], key key, type string, desc string, ring key)
+keyctl$read(code const[KEYCTL_READ], key key, payload buffer[out], len len[payload])
+keyctl$chown(code const[KEYCTL_CHOWN], key key, uid uid, gid gid)
+# perm is a mask of KEY_POS_VIEW, etc consants, but they cover almost whole int32.
+keyctl$setperm(code const[KEYCTL_SETPERM], key key, perm int32)
+keyctl$instantiate(code const[KEYCTL_INSTANTIATE], key key, payload buffer[in, opt], paylen len[payload], ring key)
+keyctl$negate(code const[KEYCTL_NEGATE], key key, timeout intptr, ring key)
+keyctl$set_reqkey_keyring(code const[KEYCTL_SET_REQKEY_KEYRING], reqkey flags[reqkey_keyring])
+keyctl$set_timeout(code const[KEYCTL_SET_TIMEOUT], key key, timeout int32)
+keyctl$assume_authority(code const[KEYCTL_ASSUME_AUTHORITY], key key)
+keyctl$get_security(code const[KEYCTL_GET_SECURITY], key key, label buffer[out], len len[label])
+keyctl$session_to_parent(code const[KEYCTL_SESSION_TO_PARENT])
+keyctl$reject(code const[KEYCTL_REJECT], key key, timeout intptr, error intptr, ring key)
+keyctl$instantiate_iov(code const[KEYCTL_INSTANTIATE_IOV], key key, payload ptr[in, array[iovec_in]], len len[payload], ring key)
+keyctl$invalidate(code const[KEYCTL_INVALIDATE], key key)
+keyctl$get_persistent(code const[KEYCTL_GET_PERSISTENT], uid uid, key key)
 
 mq_open(name string, flags flags[mq_open_flags], mode flags[open_mode], attr ptr[in, mq_attr]) fd[mq]
 mq_timedsend(mqd fd[mq], msg buffer[in], msglen len[msg], prio intptr, timeout ptr[in, timespec, opt])
@@ -1145,7 +1166,7 @@ prctl_fpexc = PR_FP_EXC_SW_ENABLE, PR_FP_EXC_DIV, PR_FP_EXC_OVF, PR_FP_EXC_UND, 
 prctl_seccomp_mode = SECCOMP_MODE_DISABLED, SECCOMP_MODE_STRICT, SECCOMP_MODE_FILTER
 prctl_mm_option = PR_SET_MM_START_CODE, PR_SET_MM_END_CODE, PR_SET_MM_START_DATA, PR_SET_MM_END_DATA, PR_SET_MM_START_STACK, PR_SET_MM_START_BRK, PR_SET_MM_BRK
 arch_prctl_code = ARCH_SET_FS, ARCH_GET_FS, ARCH_SET_GS, ARCH_GET_GS
-keyctl_code = KEYCTL_GET_KEYRING_ID, KEYCTL_JOIN_SESSION_KEYRING, KEYCTL_UPDATE, KEYCTL_REVOKE, KEYCTL_CHOWN, KEYCTL_SETPERM, KEYCTL_DESCRIBE, KEYCTL_CLEAR, KEYCTL_LINK, KEYCTL_UNLINK, KEYCTL_SEARCH, KEYCTL_READ, KEYCTL_INSTANTIATE, KEYCTL_NEGATE, KEYCTL_SET_REQKEY_KEYRING, KEYCTL_SET_TIMEOUT, KEYCTL_ASSUME_AUTHORITY
+reqkey_keyring = KEY_REQKEY_DEFL_NO_CHANGE, KEY_REQKEY_DEFL_DEFAULT, KEY_REQKEY_DEFL_THREAD_KEYRING, KEY_REQKEY_DEFL_PROCESS_KEYRING, KEY_REQKEY_DEFL_SESSION_KEYRING, KEY_REQKEY_DEFL_USER_KEYRING, KEY_REQKEY_DEFL_USER_SESSION_KEYRING, KEY_REQKEY_DEFL_GROUP_KEYRING, KEY_REQKEY_DEFL_REQUESTOR_KEYRING
 epoll_flags = EPOLL_CLOEXEC
 epoll_op = EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
 epoll_ev =  EPOLLIN, EPOLLOUT, EPOLLRDHUP, EPOLLPRI, EPOLLERR, EPOLLHUP, EPOLLET, EPOLLONESHOT
