@@ -422,6 +422,7 @@ func (inst *Instance) CreateSSHCommand(args ...string) *Command {
 	args1 := []string{"ssh", "-i", inst.Sshkey, "-p", strconv.Itoa(inst.Port),
 		"-o", "ConnectionAttempts=10", "-o", "ConnectTimeout=10",
 		"-o", "BatchMode=yes", "-o", "UserKnownHostsFile=/dev/null",
+		"-o", "IdentitiesOnly=yes",
 		"-o", "StrictHostKeyChecking=no", "root@localhost"}
 	return inst.CreateCommand(append(args1, args...)...)
 }
@@ -430,6 +431,7 @@ func (inst *Instance) CreateSCPCommand(from, to string) *Command {
 	return inst.CreateCommand("scp", "-i", inst.Sshkey, "-P", strconv.Itoa(inst.Port),
 		"-o", "ConnectionAttempts=10", "-o", "ConnectTimeout=10",
 		"-o", "BatchMode=yes", "-o", "UserKnownHostsFile=/dev/null",
+		"-o", "IdentitiesOnly=yes",
 		"-o", "StrictHostKeyChecking=no",
 		from, "root@localhost:"+to)
 }
