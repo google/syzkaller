@@ -21,7 +21,7 @@ executor: bin
 	gcc executor/executor.cc -o ./bin/executor -lpthread -static -Wall -O1 -g
 
 format:
-	find . -name "*.go" | xargs -n 1 go fmt
+	go fmt ./...
 	clang-format --style=file -i executor/executor.cc
 
 clean:
