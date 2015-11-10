@@ -12,6 +12,7 @@ import (
 	"math/rand"
 	"os"
 	"regexp"
+	"runtime"
 	"time"
 
 	"github.com/google/syzkaller/ipc"
@@ -23,6 +24,7 @@ var (
 	flagExecutor = flag.String("executor", "", "path to executor binary")
 	flagOutput   = flag.Bool("output", false, "print executor output to console")
 	flagDebug    = flag.Bool("debug", false, "executor debug output")
+	flagProcs    = flag.Int("procs", runtime.NumCPU(), "number of parallel processes")
 
 	failedRe = regexp.MustCompile("runtime error: |panic: |Panic: ")
 )
@@ -30,29 +32,35 @@ var (
 func main() {
 	flag.Parse()
 	corpus := readCorpus()
-	flags := ipc.FlagThreaded
+	flags := ipc.FlagThreaded | ipc.FlagCollide | ipc.FlagDropPrivs
 	if *flagDebug {
 		flags |= ipc.FlagDebug
 	}
-	env, err := ipc.MakeEnv(*flagExecutor, 4*time.Second, flags)
-	if err != nil {
-		failf("failed to create execution environment: %v", err)
+
+	for p := 0; p < *flagProcs; p++ {
+		go func() {
+			env, err := ipc.MakeEnv(*flagExecutor, 4*time.Second, flags)
+			if err != nil {
+				failf("failed to create execution environment: %v", err)
+			}
+			rs := rand.NewSource(time.Now().UnixNano())
+			rnd := rand.New(rs)
+			for i := 0; ; i++ {
+				var p *prog.Prog
+				if len(corpus) == 0 || i%10 != 0 {
+					p = prog.Generate(rs, 50, nil)
+					execute(env, p)
+					p.Mutate(rs, 50, nil)
+					execute(env, p)
+				} else {
+					p = corpus[rnd.Intn(len(corpus))].Clone()
+					p.Mutate(rs, 50, nil)
+					execute(env, p)
+				}
+			}
+		}()
 	}
-	rs := rand.NewSource(time.Now().UnixNano())
-	rnd := rand.New(rs)
-	for i := 0; ; i++ {
-		var p *prog.Prog
-		if len(corpus) == 0 || i%10 != 0 {
-			p = prog.Generate(rs, 50, nil)
-			execute(env, p)
-			p.Mutate(rs, 50, nil)
-			execute(env, p)
-		} else {
-			p = corpus[rnd.Intn(len(corpus))].Clone()
-			p.Mutate(rs, 50, nil)
-			execute(env, p)
-		}
-	}
+	select{}
 }
 
 func execute(env *ipc.Env, p *prog.Prog) {
