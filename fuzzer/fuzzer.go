@@ -109,7 +109,7 @@ func main() {
 	if !*flagNoCover {
 		flags |= ipc.FlagCover | ipc.FlagDedupCover
 	}
-	env, err := ipc.MakeEnv(*flagExecutor, 4*time.Second, flags)
+	env, err := ipc.MakeEnv(*flagExecutor, 10*time.Second, flags)
 	if err != nil {
 		panic(err)
 	}

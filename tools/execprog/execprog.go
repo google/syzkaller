@@ -24,17 +24,18 @@ import (
 )
 
 var (
-	flagExecutor = flag.String("executor", "", "path to executor binary")
-	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
-	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
-	flagDebug    = flag.Bool("debug", false, "debug output from executor")
-	flagStrace   = flag.Bool("strace", false, "run executor under strace")
-	flagCover    = flag.String("cover", "", "collect coverage and write to the file")
-	flagNobody   = flag.Bool("nobody", true, "impersonate into nobody")
-	flagDedup    = flag.Bool("dedup", false, "deduplicate coverage in executor")
-	flagLoop     = flag.Bool("loop", false, "execute programs in a loop")
-	flagProcs    = flag.Int("procs", 1, "number of parallel processes to execute programs")
-	flagTimeout  = flag.Duration("timeout", 5*time.Second, "execution timeout")
+	flagExecutor  = flag.String("executor", "", "path to executor binary")
+	flagThreaded  = flag.Bool("threaded", true, "use threaded mode in executor")
+	flagCollide   = flag.Bool("collide", true, "collide syscalls to provoke data races")
+	flagDebug     = flag.Bool("debug", false, "debug output from executor")
+	flagStrace    = flag.Bool("strace", false, "run executor under strace")
+	flagCover     = flag.Bool("cover", true, "collect coverage")
+	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
+	flagNobody    = flag.Bool("nobody", true, "impersonate into nobody")
+	flagDedup     = flag.Bool("dedup", false, "deduplicate coverage in executor")
+	flagLoop      = flag.Bool("loop", false, "execute programs in a loop")
+	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
+	flagTimeout   = flag.Duration("timeout", 10*time.Second, "execution timeout")
 )
 
 func main() {
@@ -67,7 +68,7 @@ func main() {
 	if *flagStrace {
 		flags |= ipc.FlagStrace
 	}
-	if *flagCover != "" {
+	if *flagCover || *flagCoverFile != "" {
 		flags |= ipc.FlagCover
 	}
 	if *flagDedup {
@@ -98,28 +99,30 @@ func main() {
 				}
 				p := progs[idx%len(progs)]
 				output, strace, cov, failed, hanged, err := env.Exec(p)
-				if *flagDebug {
+				if *flagDebug || err != nil {
 					fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
 				}
 				if *flagStrace {
 					fmt.Printf("strace output:\n%s", strace)
 				}
-				// Coverage is dumped in sanitizer format.
-				// github.com/google/sanitizers/tools/sancov command can be used to dump PCs,
-				// then they can be piped via addr2line to symbolize.
-				for i, c := range cov {
-					fmt.Printf("call #%v: coverage %v\n", i, len(c))
-					if len(c) == 0 {
-						continue
-					}
-					buf := new(bytes.Buffer)
-					binary.Write(buf, binary.LittleEndian, uint64(0xC0BFFFFFFFFFFF64))
-					for _, pc := range c {
-						binary.Write(buf, binary.LittleEndian, cover.RestorePC(pc))
-					}
-					err := ioutil.WriteFile(fmt.Sprintf("%v.%v", *flagCover, i), buf.Bytes(), 0660)
-					if err != nil {
-						log.Fatalf("failed to write coverage file: %v", err)
+				if *flagCoverFile != "" {
+					// Coverage is dumped in sanitizer format.
+					// github.com/google/sanitizers/tools/sancov command can be used to dump PCs,
+					// then they can be piped via addr2line to symbolize.
+					for i, c := range cov {
+						fmt.Printf("call #%v: coverage %v\n", i, len(c))
+						if len(c) == 0 {
+							continue
+						}
+						buf := new(bytes.Buffer)
+						binary.Write(buf, binary.LittleEndian, uint64(0xC0BFFFFFFFFFFF64))
+						for _, pc := range c {
+							binary.Write(buf, binary.LittleEndian, cover.RestorePC(pc))
+						}
+						err := ioutil.WriteFile(fmt.Sprintf("%v.%v", *flagCoverFile, i), buf.Bytes(), 0660)
+						if err != nil {
+							log.Fatalf("failed to write coverage file: %v", err)
+						}
 					}
 				}
 			}

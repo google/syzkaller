@@ -11,11 +11,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+#include <signal.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/syscall.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/wait.h>
 #include <linux/futex.h>
 #include <pthread.h>
 #include <grp.h>
@@ -24,6 +27,8 @@
 
 const int kInFd = 3;
 const int kOutFd = 4;
+const int kInPipeFd = 5;
+const int kOutPipeFd = 6;
 const int kCoverFd = 5;
 const int kMaxInput = 1 << 20;
 const int kMaxOutput = 16 << 20;
@@ -38,6 +43,9 @@ const uint64_t instr_copyout = -3;
 const uint64_t arg_const = 0;
 const uint64_t arg_result = 1;
 const uint64_t arg_data = 2;
+
+const int kFailStatus = 67;
+const int kErrorStatus = 68;
 
 // We use the default value instead of results of failed syscalls.
 // -1 is an invalid fd and an invalid address and deterministic,
@@ -89,6 +97,7 @@ __attribute__((noreturn)) void fail(const char* msg, ...);
 __attribute__((noreturn)) void error(const char* msg, ...);
 __attribute__((noreturn)) void exitf(const char* msg, ...);
 void debug(const char* msg, ...);
+void execute_one();
 uint64_t read_input(uint64_t** input_posp, bool peek = false);
 uint64_t read_arg(uint64_t** input_posp);
 uint64_t read_result(uint64_t** input_posp);
@@ -112,35 +121,84 @@ int main()
 		fail("mmap of input file failed");
 	if (mmap(&output_data[0], kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0) != &output_data[0])
 		fail("mmap of output file failed");
-retry:
-	uint64_t* input_pos = (uint64_t*)&input_data[0];
-	uint64_t flags = read_input(&input_pos);
+	char cwdbuf[64 << 10];
+	char* cwd = getcwd(cwdbuf, sizeof(cwdbuf));
+
+	sigset_t sigchldset;
+	sigemptyset(&sigchldset);
+	sigaddset(&sigchldset, SIGCHLD);
+	if (sigprocmask(SIG_BLOCK, &sigchldset, NULL))
+		fail("sigprocmask failed");
+
+	uint64_t flags = *(uint64_t*)input_data;
 	flag_debug = flags & (1 << 0);
 	flag_cover = flags & (1 << 1);
 	flag_threaded = flags & (1 << 2);
 	flag_collide = flags & (1 << 3);
 	flag_deduplicate = flags & (1 << 4);
 	flag_drop_privs = flags & (1 << 5);
+	if (flag_collide)
+		flag_threaded = true;
+
+	cover_open();
+
+	for (;;) {
+		char tmp;
+		if (read(kInPipeFd, &tmp, 1) != 1)
+			fail("control pipe read failed");
+		// The dir may have been recreated.
+		if (chdir(cwd))
+			fail("failed to chdir");
+
+		int pid = fork();
+		if (pid < 0)
+			fail("fork failed");
+		if (pid == 0) {
+			setpgid(0, 0);
+			if (flag_drop_privs) {
+				// TODO: 65534 is meant to be nobody
+				if (setgroups(0, NULL))
+					fail("failed to setgroups");
+				if (setresgid(65534, 65534, 65534))
+					fail("failed to setresgid");
+				if (setresuid(65534, 65534, 65534))
+					fail("failed to setresuid");
+			}
+			execute_one();
+			debug("exiting\n");
+			return 0;
+		}
+
+		timespec ts = {};
+		ts.tv_sec = 5;
+		ts.tv_nsec = 0;
+		if (sigtimedwait(&sigchldset, NULL, &ts) < 0) {
+			kill(-pid, SIGKILL);
+			kill(pid, SIGKILL);
+		}
+		int status = 0;
+		if (waitpid(pid, &status, 0) != pid)
+			fail("waitpid failed");
+		status = WEXITSTATUS(status);
+		if (status == kFailStatus)
+			fail("child failed");
+		if (status == kErrorStatus)
+			error("child errored");
+		if (write(kOutPipeFd, &tmp, 1) != 1)
+			fail("control pipe write failed");
+	}
+}
+
+void execute_one()
+{
+retry:
+	uint64_t* input_pos = (uint64_t*)&input_data[0];
+	read_input(&input_pos); // flags
 	output_pos = (uint32_t*)&output_data[0];
 	write_output(0); // Number of executed syscalls (updated later).
 
-	if (flag_collide)
-		flag_threaded = true;
-	if (!collide) {
-		cover_open();
-		if (!flag_threaded)
-			cover_init(&threads[0]);
-
-		if (flag_drop_privs) {
-			// TODO: 65534 is meant to be nobody
-			if (setgroups(0, NULL))
-				fail("failed to setgroups");
-			if (setresgid(65534, 65534, 65534))
-				fail("failed to setresgid");
-			if (setresuid(65534, 65534, 65534))
-				fail("failed to setresuid");
-		}
-	}
+	if (!collide && !flag_threaded)
+		cover_init(&threads[0]);
 
 	int call_index = 0;
 	for (int n = 0;; n++) {
@@ -236,16 +294,11 @@ retry:
 		}
 	}
 
-	if (flag_collide) {
-		if (!collide) {
-			debug("enabling collider\n");
-			collide = true;
-			goto retry;
-		}
+	if (flag_collide && !collide) {
+		debug("enabling collider\n");
+		collide = true;
+		goto retry;
 	}
-
-	debug("exiting\n");
-	return 0;
 }
 
 thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, uint64_t* args, uint64_t* pos)
@@ -537,7 +590,7 @@ void fail(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
-	exit(67);
+	exit(kFailStatus);
 }
 
 // kernel error (e.g. wrong syscall return value)
@@ -549,7 +602,7 @@ void error(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, "\n");
-	exit(68);
+	exit(kErrorStatus);
 }
 
 // just exit (e.g. due to temporal ENOMEM error)
