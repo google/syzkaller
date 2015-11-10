@@ -88,7 +88,7 @@ func main() {
 			}
 			for {
 				idx := int(atomic.AddUint32(&pos, 1) - 1)
-				if idx%len(progs) == 0{
+				if idx%len(progs) == 0 {
 					log.Printf("executed %v programs\n", idx)
 				}
 				if !*flagLoop && idx >= len(progs) {

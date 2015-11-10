@@ -60,7 +60,7 @@ func main() {
 			}
 		}()
 	}
-	select{}
+	select {}
 }
 
 func execute(env *ipc.Env, p *prog.Prog) {
