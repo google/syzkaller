@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 
 	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
@@ -52,6 +53,7 @@ func main() {
 			fmt.Fprintf(buf, ",%v", c)
 		}
 		enabledSyscalls = buf.String()[1:]
+		logf(1, "enabled syscalls: %v", enabledSyscalls)
 	}
 	vmCfg := &vm.Config{
 		Workdir:         cfg.Workdir,
@@ -105,6 +107,16 @@ func parseConfig() (*Config, map[int]bool) {
 		fatalf("invalid config param count: %v, want (1, 1000]", cfg.Count)
 	}
 
+	match := func(call *sys.Call, str string) bool {
+		if str == call.CallName || str == call.Name {
+			return true
+		}
+		if len(str) > 1 && str[len(str)-1] == '*' && strings.HasPrefix(call.Name, str[:len(str)-1]) {
+			return true
+		}
+		return false
+	}
+
 	var syscalls map[int]bool
 	if len(cfg.Enable_Syscalls) != 0 || len(cfg.Disable_Syscalls) != 0 {
 		syscalls = make(map[int]bool)
@@ -112,7 +124,7 @@ func parseConfig() (*Config, map[int]bool) {
 			for _, c := range cfg.Enable_Syscalls {
 				n := 0
 				for _, call := range sys.Calls {
-					if call.CallName == c {
+					if match(call, c) {
 						syscalls[call.ID] = true
 						n++
 					}
@@ -129,7 +141,7 @@ func parseConfig() (*Config, map[int]bool) {
 		for _, c := range cfg.Disable_Syscalls {
 			n := 0
 			for _, call := range sys.Calls {
-				if call.CallName == c {
+				if match(call, c) {
 					delete(syscalls, call.ID)
 					n++
 				}

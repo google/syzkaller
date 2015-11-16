@@ -603,7 +603,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		// in subsequent calls. For the same reason we do generate pointer/array/struct
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
-		case sys.IntType, sys.FlagsType, sys.ConstType, sys.FileoffType, sys.ResourceType:
+		case sys.IntType, sys.FlagsType, sys.ConstType, sys.StrConstType, sys.FileoffType, sys.ResourceType:
 			return constArg(0), nil, nil
 		}
 	}
@@ -692,6 +692,8 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		return constArg(r.flags(a.Vals)), nil, nil
 	case sys.ConstType:
 		return constArg(a.Val), nil, nil
+	case sys.StrConstType:
+		return dataArg([]byte(a.Val)), constArg(uintptr(len(a.Val))), nil
 	case sys.IntType:
 		v := r.randInt()
 		switch a.Kind {

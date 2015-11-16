@@ -232,6 +232,11 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 			val = a[0]
 		}
 		fmt.Fprintf(out, "ConstType{%v, TypeSize: %v, Val: uintptr(%v)}", common(), size, val)
+	case "strconst":
+		if want := 1; len(a) != want {
+			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		}
+		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: StrConstType{%v, Val: \"%v\"}}", common(), fmtDir("in"), common(), a[0])
 	case "int8", "int16", "int32", "int64", "intptr":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -319,6 +324,8 @@ func fmtFdKind(s string) string {
 		return "FdInotify"
 	case "fanotify":
 		return "FdFanotify"
+	case "tty":
+		return "FdTty"
 	default:
 		failf("bad fd type %v", s)
 		return ""
@@ -405,6 +412,8 @@ struct call_t {
 #ifndef __NR_memfd_create
 #define __NR_memfd_create 319
 #endif
+
+#define __NR_syz_openpts 1000001
 
 call_t syscalls[] = {
 `)

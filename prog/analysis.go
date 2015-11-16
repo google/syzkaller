@@ -230,28 +230,34 @@ func sanitizeCall(c *Call) {
 		if flags.Val&MREMAP_MAYMOVE != 0 {
 			flags.Val |= MREMAP_FIXED
 		}
-	case "mknod":
-		mode := c.Args[1]
-		if mode.Kind != ArgConst {
-			panic("mknod mode is not const")
-		}
-		// Char and block devices read/write io ports, kernel memory and do other nasty things.
-		if mode.Val != S_IFREG && mode.Val != S_IFIFO && mode.Val != S_IFSOCK {
-			mode.Val = S_IFIFO
-		}
+		// not required if executor drops privileges
+		/*
+			case "mknod":
+				mode := c.Args[1]
+				if mode.Kind != ArgConst {
+					panic("mknod mode is not const")
+				}
+				// Char and block devices read/write io ports, kernel memory and do other nasty things.
+				if mode.Val != S_IFREG && mode.Val != S_IFIFO && mode.Val != S_IFSOCK {
+					mode.Val = S_IFIFO
+				}
+		*/
 	case "syslog":
 		cmd := c.Args[0]
 		// These disable console output, but we need it.
 		if cmd.Val == SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == SYSLOG_ACTION_CONSOLE_ON {
 			cmd.Val = SYSLOG_ACTION_SIZE_UNREAD
 		}
-	case "ioctl":
-		cmd := c.Args[1]
-		// Freeze kills machine. Though, it is an interesting functions,
-		// so we need to test it somehow (TODO).
-		if uint32(cmd.Val) == uint32(FIFREEZE) {
-			cmd.Val = FITHAW
-		}
+		// not required if executor drops privileges
+		/*
+			case "ioctl":
+				cmd := c.Args[1]
+				// Freeze kills machine. Though, it is an interesting functions,
+				// so we need to test it somehow (TODO).
+				if uint32(cmd.Val) == uint32(FIFREEZE) {
+					cmd.Val = FITHAW
+				}
+		*/
 	case "ptrace":
 		// PTRACE_TRACEME leads to unkillable processes, see:
 		// https://groups.google.com/forum/#!topic/syzkaller/uGzwvhlCXAw

@@ -69,6 +69,7 @@ const (
 	FdMq
 	FdInotify
 	FdFanotify
+	FdTty
 
 	IPCMsq
 	IPCSem
@@ -165,7 +166,7 @@ func (t ResourceType) Size() uintptr {
 func (t ResourceType) SubKinds() []ResourceSubkind {
 	switch t.Kind {
 	case ResFD:
-		return []ResourceSubkind{FdFile, FdSock, FdPipe, FdSignal, FdEvent, FdTimer, FdEpoll, FdDir, FdMq, FdInotify, FdFanotify}
+		return []ResourceSubkind{FdFile, FdSock, FdPipe, FdSignal, FdEvent, FdTimer, FdEpoll, FdDir, FdMq, FdInotify, FdFanotify, FdTty}
 	case ResIPC:
 		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
 	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid:
@@ -215,6 +216,12 @@ type ConstType struct {
 	TypeCommon
 	TypeSize uintptr
 	Val      uintptr
+}
+
+type StrConstType struct {
+	TypeCommon
+	TypeSize uintptr
+	Val      string
 }
 
 type IntKind int

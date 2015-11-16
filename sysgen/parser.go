@@ -67,21 +67,29 @@ func (p *Parser) SkipWs() {
 }
 
 func (p *Parser) Ident() string {
-	i := p.i
-	for p.i < len(p.s) &&
-		(p.s[p.i] >= 'a' && p.s[p.i] <= 'z' ||
-			p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' ||
-			p.s[p.i] >= '0' && p.s[p.i] <= '9' ||
-			p.s[p.i] == '_' || p.s[p.i] == '$') { // $ is for n-way syscalls (like ptrace$peek)
-		p.i++
+	start, end := p.i, 0
+	if p.Char() == '"' {
+		p.Parse('"')
+		start++
+		for p.Char() != '"' {
+			p.i++
+		}
+		end = p.i
+		p.Parse('"')
+	} else {
+		for p.i < len(p.s) &&
+			(p.s[p.i] >= 'a' && p.s[p.i] <= 'z' ||
+				p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' ||
+				p.s[p.i] >= '0' && p.s[p.i] <= '9' ||
+				p.s[p.i] == '_' || p.s[p.i] == '$') { // $ is for n-way syscalls (like ptrace$peek)
+			p.i++
+		}
+		if start == p.i {
+			p.failf("failed to parse identifier at pos %v", start)
+		}
+		end = p.i
 	}
-	if i == p.i {
-		p.failf("failed to parse identifier at pos %v", i)
-	}
-	if ch := p.s[i]; ch >= '0' && ch <= '9' {
-		// p.failf("identifier starts with a digit at pos %v", i)
-	}
-	s := p.s[i:p.i]
+	s := p.s[start:end]
 	p.SkipWs()
 	return s
 }

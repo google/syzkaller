@@ -20,6 +20,7 @@
 #include <sys/mman.h>
 #include <sys/wait.h>
 #include <linux/futex.h>
+#include <sys/ioctl.h>
 #include <pthread.h>
 #include <grp.h>
 #include <algorithm>
@@ -177,7 +178,7 @@ int main()
 			kill(pid, SIGKILL);
 		}
 		int status = 0;
-		if (waitpid(pid, &status, 0) != pid)
+		if (waitpid(pid, &status, __WALL|WUNTRACED) != pid)
 			fail("waitpid failed");
 		status = WEXITSTATUS(status);
 		if (status == kFailStatus)
@@ -405,7 +406,21 @@ void execute_call(thread_t* th)
 		fail("inconsistent number of arguments");
 
 	cover_reset(th);
-	th->res = syscall(call->sys_nr, th->args[0], th->args[1], th->args[2], th->args[3], th->args[4], th->args[5]);
+	switch (call->sys_nr) {
+	default: {
+		th->res = syscall(call->sys_nr, th->args[0], th->args[1], th->args[2], th->args[3], th->args[4], th->args[5]);
+		break;
+	}
+	case __NR_syz_openpts: {
+		int ptyno = 0;
+		if (ioctl(th->args[0], TIOCGPTN, &ptyno) == 0) {
+			char buf[128];
+			sprintf(buf, "/dev/pts/%d", ptyno);
+			th->res = open(buf, th->args[1], 0);
+		} else {
+			th->res = -1;
+		}
+	}}
 	int errno0 = errno;
 	th->cover_size = cover_read(th);
 

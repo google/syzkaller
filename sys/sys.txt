@@ -54,6 +54,7 @@ include <sys/personality.h>
 include <sys/wait.h>
 include <sys/user.h>
 include <sys/socket.h>
+include <sys/ioctl.h>
 
 include <linux/futex.h>
 include <linux/aio_abi.h>
@@ -62,9 +63,12 @@ include <linux/seccomp.h>
 include <linux/elf.h>
 include <linux/fs.h>
 include <linux/fiemap.h>
+include <linux/kd.h>
+include <linux/vt.h>
 
 include <asm/prctl.h>
 
+include <termios.h>
 include <fcntl.h>
 include <sched.h>
 include <mqueue.h>
@@ -218,7 +222,7 @@ getsockopt$ipv6_opts(fd fd[sock], level const[IPPROTO_IPV6], optname const[IPV6_
 setsockopt$ipv6_opts(fd fd[sock], level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[in], optlen len[optval])
 
 # Almighty!
-ioctl(fd fd, cmd int32, arg ptr[inout, ioctl_arg])
+ioctl(fd fd, cmd intptr, arg ptr[inout, ioctl_arg])
 
 ioctl$void(fd fd, cmd flags[ioctl_void])
 ioctl$int_in(fd fd, cmd flags[ioctl_int_in], v ptr[in, int64])
@@ -1851,3 +1855,241 @@ define KDBUS_ITEM_ID_REMOVE		(0x8000 + 4)
 define KDBUS_ITEM_REPLY_TIMEOUT		(0x8000 + 5)
 define KDBUS_ITEM_REPLY_DEAD		(0x8000 + 6)
 
+
+
+
+# tty support
+
+open$ptmx(file strconst["/dev/ptmx"], flags flags[open_flags], mode const[0]) fd[tty]
+syz_openpts(fd fd[tty], flags flags[open_flags]) fd[tty]
+ioctl$TCGETS(fd fd[tty], cmd const[TCGETS], arg ptr[out, termios])
+ioctl$TCSETS(fd fd[tty], cmd const[TCSETS], arg ptr[in, termios])
+ioctl$TCSETSW(fd fd[tty], cmd const[TCSETS], arg ptr[in, termios])
+ioctl$TCSETSF(fd fd[tty], cmd const[TCSETSF], arg ptr[in, termios])
+ioctl$TCGETA(fd fd[tty], cmd const[TCGETA], arg ptr[out, termio])
+ioctl$TCSETA(fd fd[tty], cmd const[TCSETS], arg ptr[in, termio])
+ioctl$TCSETAW(fd fd[tty], cmd const[TCSETS], arg ptr[in, termio])
+ioctl$TCSETAF(fd fd[tty], cmd const[TCSETSF], arg ptr[in, termio])
+ioctl$TIOCGLCKTRMIOS(fd fd[tty], cmd const[TIOCGLCKTRMIOS], arg ptr[in, termios])
+ioctl$TIOCSLCKTRMIOS(fd fd[tty], cmd const[TIOCSLCKTRMIOS], arg ptr[out, termios])
+ioctl$TIOCGWINSZ(fd fd[tty], cmd const[TIOCGWINSZ], arg ptr[out, winsize])
+ioctl$TIOCSWINSZ(fd fd[tty], cmd const[TIOCSWINSZ], arg ptr[in, winsize])
+ioctl$TCSBRK(fd fd[tty], cmd const[TCSBRK], arg intptr)
+ioctl$TCSBRKP(fd fd[tty], cmd const[TCSBRKP], arg intptr)
+ioctl$TIOCSBRK(fd fd[tty], cmd const[TIOCSBRK])
+ioctl$TIOCCBRK(fd fd[tty], cmd const[TIOCCBRK])
+ioctl$TCXONC(fd fd[tty], cmd const[TCXONC], arg intptr)
+ioctl$FIONREAD(fd fd[tty], cmd const[FIONREAD], arg ptr[out, int32])
+ioctl$TIOCOUTQ(fd fd[tty], cmd const[TIOCOUTQ], arg ptr[out, int32])
+ioctl$TCFLSH(fd fd[tty], cmd const[TCFLSH], arg intptr)
+ioctl$TIOCSTI(fd fd[tty], cmd const[TIOCSTI], arg intptr)
+ioctl$TIOCCONS(fd fd[tty], cmd const[TIOCCONS])
+ioctl$TIOCSCTTY(fd fd[tty], cmd const[TIOCSCTTY], arg intptr)
+ioctl$TIOCNOTTY(fd fd[tty], cmd const[TIOCNOTTY])
+ioctl$TIOCGPGRP(fd fd[tty], cmd const[TIOCGPGRP], arg ptr[out, pid])
+ioctl$TIOCSPGRP(fd fd[tty], cmd const[TIOCGPGRP], arg ptr[in, pid])
+ioctl$TIOCGSID(fd fd[tty], cmd const[TIOCGPGRP], arg ptr[out, pid])
+ioctl$TIOCEXCL(fd fd[tty], cmd const[TIOCEXCL])
+ioctl$TIOCNXCL(fd fd[tty], cmd const[TIOCNXCL])
+ioctl$TIOCGETD(fd fd[tty], cmd const[TIOCGETD], arg ptr[out, int32])
+ioctl$TIOCSETD(fd fd[tty], cmd const[TIOCSETD], arg ptr[in, int32])
+ioctl$TIOCPKT(fd fd[tty], cmd const[TIOCPKT], arg ptr[in, int32])
+ioctl$TIOCMGET(fd fd[tty], cmd const[TIOCMGET], arg ptr[out, int32])
+ioctl$TIOCMSET(fd fd[tty], cmd const[TIOCMSET], arg ptr[in, int32])
+ioctl$TIOCMBIC(fd fd[tty], cmd const[TIOCMBIC], arg ptr[in, int32])
+ioctl$TIOCMBIS(fd fd[tty], cmd const[TIOCMBIC], arg ptr[in, int32])
+ioctl$TIOCGSOFTCAR(fd fd[tty], cmd const[TIOCGSOFTCAR], arg ptr[out, int32])
+ioctl$TIOCSSOFTCAR(fd fd[tty], cmd const[TIOCSSOFTCAR], arg ptr[in, int32])
+ioctl$TIOCTTYGSTRUCT(fd fd[tty], cmd const[TIOCSSOFTCAR], arg buffer[out])
+
+# For the TIOCLINUX ioctl, see console_ioctl(4).
+
+ioctl$KDGETLED(fd fd[tty], cmd const[KDGETLED], arg ptr[out, int8])
+ioctl$KDSETLED(fd fd[tty], cmd const[KDSETLED], arg intptr)
+ioctl$KDGKBLED(fd fd[tty], cmd const[KDGKBLED], arg ptr[out, int8])
+ioctl$KDSKBLED(fd fd[tty], cmd const[KDSKBLED], arg intptr)
+ioctl$KDGKBTYPE(fd fd[tty], cmd const[KDGKBTYPE], arg ptr[out, int8])
+ioctl$KDADDIO(fd fd[tty], cmd const[KDADDIO], arg intptr)
+ioctl$KDDELIO(fd fd[tty], cmd const[KDDELIO], arg intptr)
+ioctl$KDENABIO(fd fd[tty], cmd const[KDENABIO])
+ioctl$KDDISABIO(fd fd[tty], cmd const[KDDISABIO])
+ioctl$KDSETMODE(fd fd[tty], cmd const[KDSETMODE], arg intptr)
+ioctl$KDGETMODE(fd fd[tty], cmd const[KDGETMODE], arg ptr[out, intptr])
+ioctl$KDMKTONE(fd fd[tty], cmd const[KDGETMODE], arg intptr)
+ioctl$KIOCSOUND(fd fd[tty], cmd const[KIOCSOUND], arg intptr)
+ioctl$GIO_CMAP(fd fd[tty], cmd const[GIO_CMAP], arg ptr[out, io_cmap])
+ioctl$PIO_CMAP(fd fd[tty], cmd const[GIO_CMAP], arg ptr[in, io_cmap])
+ioctl$GIO_FONT(fd fd[tty], cmd const[GIO_FONT], arg buffer[out])
+ioctl$GIO_FONTX(fd fd[tty], cmd const[GIO_FONTX], arg buffer[out])
+ioctl$PIO_FONT(fd fd[tty], cmd const[PIO_FONT], arg buffer[in])
+ioctl$PIO_FONTX(fd fd[tty], cmd const[PIO_FONTX], arg buffer[in])
+ioctl$PIO_FONTRESET(fd fd[tty], cmd const[PIO_FONTRESET], arg const[0])
+ioctl$GIO_SCRNMAP(fd fd[tty], cmd const[GIO_SCRNMAP], arg buffer[out])
+ioctl$GIO_UNISCRNMAP(fd fd[tty], cmd const[GIO_UNISCRNMAP], arg buffer[out])
+ioctl$PIO_SCRNMAP(fd fd[tty], cmd const[PIO_SCRNMAP], arg buffer[in])
+ioctl$PIO_UNISCRNMAP(fd fd[tty], cmd const[PIO_UNISCRNMAP], arg buffer[in])
+ioctl$GIO_UNIMAP(fd fd[tty], cmd const[GIO_UNIMAP], arg ptr[in, unimapdesc_out])
+ioctl$PIO_UNIMAP(fd fd[tty], cmd const[PIO_UNIMAP], arg ptr[in, unimapdesc_in])
+ioctl$PIO_UNIMAPCLR(fd fd[tty], cmd const[PIO_UNIMAPCLR], arg ptr[in, unimapinit])
+ioctl$KDGKBMODE(fd fd[tty], cmd const[KDGKBMODE], arg ptr[out, intptr])
+ioctl$KDSKBMODE(fd fd[tty], cmd const[KDSKBMODE], arg ptr[in, intptr])
+ioctl$KDGKBMETA(fd fd[tty], cmd const[KDGKBMETA], arg ptr[out, intptr])
+ioctl$KDSKBMETA(fd fd[tty], cmd const[KDSKBMETA], arg ptr[in, intptr])
+ioctl$KDGKBENT(fd fd[tty], cmd const[KDGKBENT], arg ptr[in, kbentry])
+ioctl$KDGKBSENT(fd fd[tty], cmd const[KDGKBSENT], arg ptr[in, kbentry])
+ioctl$KDSKBSENT(fd fd[tty], cmd const[KDSKBSENT], arg buffer[in])
+ioctl$KDGKBDIACR(fd fd[tty], cmd const[KDGKBDIACR], arg buffer[out])
+ioctl$KDGETKEYCODE(fd fd[tty], cmd const[KDGETKEYCODE], arg ptr[in, kbkeycode])
+ioctl$KDSETKEYCODE(fd fd[tty], cmd const[KDSETKEYCODE], arg ptr[in, kbkeycode])
+ioctl$KDSIGACCEPT(fd fd[tty], cmd const[KDSIGACCEPT], arg signalno)
+ioctl$VT_OPENQRY(fd fd[tty], cmd const[VT_OPENQRY], arg ptr[out, int32])
+ioctl$VT_GETMODE(fd fd[tty], cmd const[VT_GETMODE], arg ptr[out, vt_mode])
+ioctl$VT_SETMODE(fd fd[tty], cmd const[VT_SETMODE], arg ptr[in, vt_mode])
+ioctl$VT_GETSTATE(fd fd[tty], cmd const[VT_GETSTATE], arg ptr[in, vt_stat])
+ioctl$VT_RELDISP(fd fd[tty], cmd const[VT_RELDISP])
+ioctl$VT_ACTIVATE(fd fd[tty], cmd const[VT_ACTIVATE], arg intptr)
+ioctl$VT_WAITACTIVE(fd fd[tty], cmd const[VT_WAITACTIVE])
+ioctl$VT_DISALLOCATE(fd fd[tty], cmd const[VT_DISALLOCATE])
+ioctl$VT_RESIZE(fd fd[tty], cmd const[VT_RESIZE], arg ptr[in, vt_sizes])
+ioctl$VT_RESIZEX(fd fd[tty], cmd const[VT_RESIZEX], arg ptr[in, vt_consize])
+ioctl$TIOCLINUX2(fd fd[tty], cmd const[TIOCLINUX], arg ptr[in, tiocl_selection])
+ioctl$TIOCLINUX3(fd fd[tty], cmd const[TIOCLINUX], arg ptr[in, const[3, int8]])
+ioctl$TIOCLINUX4(fd fd[tty], cmd const[TIOCLINUX], arg ptr[in, const[4, int8]])
+ioctl$TIOCLINUX5(fd fd[tty], cmd const[TIOCLINUX], arg ptr[in, loadlut])
+ioctl$TIOCLINUX6(fd fd[tty], cmd const[TIOCLINUX], arg ptr[in, tiocl_shift_state])
+ioctl$TIOCLINUX7(fd fd[tty], cmd const[TIOCLINUX], arg ptr[in, tiocl_report_mouse])
+
+termios {
+	iflag	int32
+	oflag	int32
+	cflag	int32
+	lflag	int32
+	line	int8
+	cc0	int8
+	cc1	int8
+	cc2	int8
+	cc3_6	int32
+	cc7_10	int32
+	cc11_14	int32
+	cc15_18	int32
+}
+
+termio {
+	iflag	int16
+	oflag	int16
+	cflag	int16
+	lflag	int16
+	line	int8
+	cc0	int8
+	cc1	int8
+	cc2	int8
+	cc3_6	int32
+	cc7	int8
+}
+
+winsize {
+	row	int16
+	col	int16
+	xpix	int16
+	upix	int16
+}
+
+io_cmap {
+	map0	int64
+	map1	int64
+	map2	int64
+	map3	int64
+	map4	int64
+	map5	int64
+}
+
+unimapdesc_in {
+	cnt	len[entries, int16]
+	entries	ptr[in, array[unipair]]
+}
+
+unimapdesc_out {
+	cnt	len[entries, int16]
+	entries	ptr[out, array[unipair]]
+}
+
+unipair {
+	unicode	int16
+	fontpos	int16
+}
+
+unimapinit {
+	size	int16
+	step	int16
+	level	int16
+}
+
+kbentry {
+	table	int8
+	index	int8
+	value	int16
+}
+
+kbkeycode {
+	scan	int32
+	key	int32
+}
+
+vt_mode {
+	mode	int8
+	waitv	int8
+	relsig	int16
+	acqsig	int16
+	frsig	int16
+}
+
+vt_stat {
+	active	int16
+	signal	int16
+	state	int16
+}
+
+vt_sizes {
+	rows	int16
+	cols	int16
+	scroll	int16
+}
+
+vt_consize {
+	rows	int16
+	cols	int16
+	vlin	int16
+	clin	int16
+	vcol	int16
+	ccol	int16
+}
+
+tiocl_selection {
+	subcode	const[2, int8]
+	xs	int16
+	ys	int16
+	xe	int16
+	ye	int16
+	mode	int16
+}
+
+loadlut {
+	submode	const[5, int8]
+	pad	int8
+	pad	int8
+	pad	int8
+	tab0	int64
+	tab1	int64
+	tab2	int64
+	tab3	int64
+}
+
+tiocl_shift_state {
+	subcode	const[6, int8]
+	shift	int8
+}
+
+tiocl_report_mouse {
+	subcode	const[7, int8]
+	shift	int8
+}
