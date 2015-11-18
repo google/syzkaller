@@ -73,7 +73,7 @@ func (loc *local) Run() {
 	log.Printf("%v: started\n", name)
 	for run := 0; ; run++ {
 		cmd := exec.Command(loc.Fuzzer, "-name", name, "-saveprog", "-executor", loc.Executor,
-			"-manager", fmt.Sprintf("localhost:%v", loc.mgrPort))
+			"-manager", fmt.Sprintf("localhost:%v", loc.mgrPort), "-dropprivs=0")
 		if loc.syscalls != "" {
 			cmd.Args = append(cmd.Args, "-calls="+loc.syscalls)
 		}

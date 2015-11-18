@@ -29,13 +29,14 @@ import (
 )
 
 var (
-	flagName     = flag.String("name", "", "unique name for manager")
-	flagExecutor = flag.String("executor", "", "path to executor binary")
-	flagManager  = flag.String("manager", "", "manager rpc address")
-	flagStrace   = flag.Bool("strace", false, "run executor under strace")
-	flagSaveProg = flag.Bool("saveprog", false, "save programs into local file before executing")
-	flagSyscalls = flag.String("calls", "", "comma-delimited list of enabled syscall IDs (empty string for all syscalls)")
-	flagNoCover  = flag.Bool("nocover", false, "disable coverage collection/handling")
+	flagName      = flag.String("name", "", "unique name for manager")
+	flagExecutor  = flag.String("executor", "", "path to executor binary")
+	flagManager   = flag.String("manager", "", "manager rpc address")
+	flagStrace    = flag.Bool("strace", false, "run executor under strace")
+	flagSaveProg  = flag.Bool("saveprog", false, "save programs into local file before executing")
+	flagSyscalls  = flag.String("calls", "", "comma-delimited list of enabled syscall IDs (empty string for all syscalls)")
+	flagNoCover   = flag.Bool("nocover", false, "disable coverage collection/handling")
+	flagDropPrivs = flag.Bool("dropprivs", true, "impersonate into nobody")
 
 	flagV = flag.Int("v", 0, "verbosity")
 )
@@ -102,12 +103,15 @@ func main() {
 	}
 	ct = prog.BuildChoiceTable(r.Prios, calls)
 
-	flags := ipc.FlagThreaded | ipc.FlagCollide | ipc.FlagDropPrivs
+	flags := ipc.FlagThreaded | ipc.FlagCollide
 	if *flagStrace {
 		flags |= ipc.FlagStrace
 	}
 	if !*flagNoCover {
 		flags |= ipc.FlagCover | ipc.FlagDedupCover
+	}
+	if *flagDropPrivs {
+		flags |= ipc.FlagDropPrivs
 	}
 	env, err := ipc.MakeEnv(*flagExecutor, 10*time.Second, flags)
 	if err != nil {
