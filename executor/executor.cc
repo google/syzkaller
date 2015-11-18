@@ -75,6 +75,7 @@ res_t results[kMaxCommands];
 
 struct thread_t {
 	bool created;
+	bool root;
 	int id;
 	pthread_t th;
 	uint32_t cover_data[16 << 10];
@@ -108,6 +109,7 @@ uint64_t copyout(char* addr, uint64_t size);
 thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, uint64_t* args, uint64_t* pos);
 void execute_call(thread_t* th);
 void handle_completion(thread_t* th);
+void thread_create(thread_t* th, int id, bool root);
 void* worker_thread(void* arg);
 uint64_t current_time_ms();
 void cover_open();
@@ -158,6 +160,9 @@ int main()
 		if (pid == 0) {
 			setpgid(0, 0);
 			if (flag_drop_privs) {
+				// Pre-create one thread with root privileges for execution of special syscalls (e.g. mount).
+				if (flag_threaded)
+					thread_create(&threads[kMaxThreads - 1], kMaxThreads - 1, true);
 				// TODO: 65534 is meant to be nobody
 				if (setgroups(0, NULL))
 					fail("failed to setgroups");
@@ -323,20 +328,20 @@ retry:
 
 thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, uint64_t* args, uint64_t* pos)
 {
+	// Figure out whether we need root privs for this call.
+	bool root = false;
+	switch (syscalls[call_num].sys_nr) {
+	case __NR_syz_dri_open:
+		root = true;
+	}
 	// Find a spare thread to execute the call.
 	thread_t* th = 0;
 	for (int i = 0; i < kMaxThreads; i++) {
 		th = &threads[i];
-		if (!th->created) {
-			th->created = true;
-			th->id = i;
-			th->done = true;
-			th->handled = true;
-			if (flag_threaded) {
-				if (pthread_create(&th->th, 0, worker_thread, th))
-					exitf("pthread_create failed");
-			}
-		}
+		if (!th->created)
+			thread_create(th, i, false);
+		if (flag_drop_privs && root != th->root)
+			continue;
 		if (__atomic_load_n(&th->done, __ATOMIC_ACQUIRE)) {
 			if (!th->handled)
 				handle_completion(th);
@@ -394,6 +399,19 @@ void handle_completion(thread_t* th)
 		__atomic_store_n((uint32_t*)&output_data[0], completed, __ATOMIC_RELEASE);
 	}
 	th->handled = true;
+}
+
+void thread_create(thread_t* th, int id, bool root)
+{
+	th->created = true;
+	th->id = id;
+	th->root = root;
+	th->done = true;
+	th->handled = true;
+	if (flag_threaded) {
+		if (pthread_create(&th->th, 0, worker_thread, th))
+			exitf("pthread_create failed");
+	}
 }
 
 void* worker_thread(void* arg)
