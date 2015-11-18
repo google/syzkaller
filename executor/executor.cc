@@ -147,6 +147,7 @@ int main()
 		char tmp;
 		if (read(kInPipeFd, &tmp, 1) != 1)
 			fail("control pipe read failed");
+		debug("received start command\n");
 		// The dir may have been recreated.
 		if (chdir(cwd))
 			fail("failed to chdir");
@@ -165,7 +166,17 @@ int main()
 				if (setresuid(65534, 65534, 65534))
 					fail("failed to setresuid");
 			}
+			// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
+			// SIGCANCEL sent to main thread causes it to exit
+			// without bringing down the whole group.
+			struct sigaction sa;
+			memset(&sa, 0, sizeof(sa));
+			sa.sa_handler = SIG_IGN;
+			syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
+			syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
+
 			execute_one();
+
 			debug("exiting\n");
 			return 0;
 		}
@@ -174,12 +185,20 @@ int main()
 		ts.tv_sec = 5;
 		ts.tv_nsec = 0;
 		if (sigtimedwait(&sigchldset, NULL, &ts) < 0) {
+			debug("sigtimedwait expired, killing %d\n", pid);
 			kill(-pid, SIGKILL);
 			kill(pid, SIGKILL);
 		}
+		debug("waitpid(%d)\n", pid);
 		int status = 0;
-		if (waitpid(pid, &status, __WALL|WUNTRACED) != pid)
+		if (waitpid(pid, &status, __WALL | WUNTRACED) != pid)
 			fail("waitpid failed");
+		debug("waitpid(%d) returned\n", pid);
+		// Drain SIGCHLD signals.
+		ts.tv_sec = 0;
+		ts.tv_nsec = 0;
+		while (sigtimedwait(&sigchldset, NULL, &ts) > 0) {
+		}
 		status = WEXITSTATUS(status);
 		if (status == kFailStatus)
 			fail("child failed");
@@ -417,17 +436,19 @@ void execute_call(thread_t* th)
 			char buf[128];
 			sprintf(buf, "/dev/pts/%d", ptyno);
 			th->res = open(buf, th->args[1], 0);
-		} else {
+		}
+		else {
 			th->res = -1;
 		}
-	}}
+	}
+	}
 	int errno0 = errno;
 	th->cover_size = cover_read(th);
 
 	if (th->res == (uint64_t)-1)
 		debug("#%d: %s = errno(%d)\n", th->id, call->name, errno0);
 	else
-		debug("#%d: %s = %lx\n", th->id, call->name, th->res);
+		debug("#%d: %s = 0x%lx\n", th->id, call->name, th->res);
 	__atomic_store_n(&th->done, 1, __ATOMIC_RELEASE);
 	syscall(SYS_futex, &th->done, FUTEX_WAKE);
 }
