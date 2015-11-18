@@ -10,7 +10,8 @@ struct call_t {
 #define __NR_memfd_create 319
 #endif
 
-#define __NR_syz_openpts 1000001
+#define __NR_syz_openpts	1000001
+#define __NR_syz_dri_open	1000002
 
 call_t syscalls[] = {
 	{"open", __NR_open},
@@ -506,4 +507,15 @@ call_t syscalls[] = {
 	{"ioctl$TIOCLINUX5", __NR_ioctl},
 	{"ioctl$TIOCLINUX6", __NR_ioctl},
 	{"ioctl$TIOCLINUX7", __NR_ioctl},
+	{"syz_dri_open", __NR_syz_dri_open},
+	{"ioctl$DRM_IOCTL_VERSION", __NR_ioctl},
+	{"ioctl$DRM_IOCTL_GET_UNIQUE", __NR_ioctl},
+	{"ioctl$DRM_IOCTL_GET_MAGIC", __NR_ioctl},
+	{"ioctl$DRM_IOCTL_IRQ_BUSID", __NR_ioctl},
+	{"ioctl$DRM_IOCTL_GET_MAP", __NR_ioctl},
+	{"ioctl$DRM_IOCTL_GET_CLIENT", __NR_ioctl},
+	{"ioctl$DRM_IOCTL_GET_STATS", __NR_ioctl},
+	{"ioctl$DRM_IOCTL_GET_CAP", __NR_ioctl},
+	{"ioctl$DRM_IOCTL_SET_CLIENT_CAP", __NR_ioctl},
+	{"ioctl$DRM_IOCTL_SET_VERSION", __NR_ioctl},
 };

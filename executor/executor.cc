@@ -441,6 +441,11 @@ void execute_call(thread_t* th)
 			th->res = -1;
 		}
 	}
+	case __NR_syz_dri_open: {
+		char buf[128];
+		sprintf(buf, "/dev/dri/card%lu", th->args[0]);
+		th->res = open(buf, th->args[1], 0);
+	}
 	}
 	int errno0 = errno;
 	th->cover_size = cover_read(th);

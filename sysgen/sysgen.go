@@ -326,6 +326,8 @@ func fmtFdKind(s string) string {
 		return "FdFanotify"
 	case "tty":
 		return "FdTty"
+	case "dri":
+		return "FdDRI"
 	default:
 		failf("bad fd type %v", s)
 		return ""
@@ -413,7 +415,8 @@ struct call_t {
 #define __NR_memfd_create 319
 #endif
 
-#define __NR_syz_openpts 1000001
+#define __NR_syz_openpts	1000001
+#define __NR_syz_dri_open	1000002
 
 call_t syscalls[] = {
 `)
