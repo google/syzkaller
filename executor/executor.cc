@@ -64,6 +64,7 @@ __attribute__((aligned(64 << 10))) char input_data[kMaxInput];
 __attribute__((aligned(64 << 10))) char output_data[kMaxOutput];
 uint32_t* output_pos;
 int completed;
+int running;
 bool collide;
 
 struct res_t {
@@ -302,12 +303,16 @@ retry:
 			// Check if any of previous calls have completed.
 			// Give them some additional time, because they could have been
 			// just unblocked by the current call.
-			bool last = read_input(&input_pos, true) == instr_eof;
-			usleep(last ? 1000 : 100);
-			for (int i = 0; i < kMaxThreads; i++) {
-				th = &threads[i];
-				if (__atomic_load_n(&th->done, __ATOMIC_ACQUIRE) && !th->handled)
-					handle_completion(th);
+			if (running < 0)
+				fail("running = %d", running);
+			if (running > 0) {
+				bool last = read_input(&input_pos, true) == instr_eof;
+				usleep(last ? 1000 : 100);
+				for (int i = 0; i < kMaxThreads; i++) {
+					th = &threads[i];
+					if (__atomic_load_n(&th->done, __ATOMIC_ACQUIRE) && !th->handled)
+						handle_completion(th);
+				}
 			}
 		}
 		else {
@@ -365,6 +370,7 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 		th->args[i] = args[i];
 	__atomic_store_n(&th->ready, 1, __ATOMIC_RELEASE);
 	syscall(SYS_futex, &th->ready, FUTEX_WAKE);
+	running++;
 	return th;
 }
 
@@ -400,6 +406,7 @@ void handle_completion(thread_t* th)
 		__atomic_store_n((uint32_t*)&output_data[0], completed, __ATOMIC_RELEASE);
 	}
 	th->handled = true;
+	running--;
 }
 
 void thread_create(thread_t* th, int id, bool root)
