@@ -330,6 +330,8 @@ func fmtFdKind(s string) string {
 		return "FdDRI"
 	case "fuse":
 		return "FdFuse"
+	case "kdbus":
+		return "FdKdbus"
 	default:
 		failf("bad fd type %v", s)
 		return ""

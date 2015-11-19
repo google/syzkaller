@@ -1421,22 +1421,28 @@ define F_SEAL_WRITE		0x0008
 
 
 
-ioctl$kdbus_bus_make(fd fd, cmd const[KDBUS_CMD_BUS_MAKE], arg ptr[in, kdbus_cmd_bus_make])
-ioctl$kdbus_ep_make(fd fd, cmd const[KDBUS_CMD_ENDPOINT_MAKE], arg ptr[in, kdbus_cmd_ep_make])
-ioctl$kdbus_ep_update(fd fd, cmd const[KDBUS_CMD_ENDPOINT_UPDATE], arg ptr[in, kdbus_cmd_ep_update])
-ioctl$kdbus_hello(fd fd, cmd const[KDBUS_CMD_HELLO], arg ptr[in, kdbus_cmd_hello])
-ioctl$kdbus_name_acquire(fd fd, cmd const[KDBUS_CMD_NAME_ACQUIRE], arg ptr[in, kdbus_cmd_name_acquire])
-ioctl$kdbus_name_release(fd fd, cmd const[KDBUS_CMD_NAME_RELEASE], arg ptr[in, kdbus_cmd_name_release])
-ioctl$kdbus_free(fd fd, cmd const[KDBUS_CMD_FREE], arg ptr[in, kdbus_cmd_free])
-ioctl$kdbus_recv(fd fd, cmd const[KDBUS_CMD_RECV], arg ptr[in, kdbus_cmd_recv])
-ioctl$kdbus_send(fd fd, cmd const[KDBUS_CMD_SEND], arg ptr[in, kdbus_cmd_send])
-ioctl$kdbus_update(fd fd, cmd const[KDBUS_CMD_UPDATE], arg ptr[in, kdbus_cmd_update])
-ioctl$kdbus_bye(fd fd, cmd const[KDBUS_CMD_BYEBYE], arg ptr[in, kdbus_cmd_bye])
-ioctl$kdbus_conn_info(fd fd, cmd const[KDBUS_CMD_CONN_INFO], arg ptr[in, kdbus_cmd_info])
-ioctl$kdbus_bus_info(fd fd, cmd const[KDBUS_CMD_BUS_CREATOR_INFO], arg ptr[in, kdbus_cmd_info])
-ioctl$kdbus_list(fd fd, cmd const[KDBUS_CMD_LIST], arg ptr[in, kdbus_cmd_list])
-ioctl$kdbus_match_add(fd fd, cmd const[KDBUS_CMD_MATCH_ADD], arg ptr[in, kdbus_cmd_match])
-ioctl$kdbus_match_remove(fd fd, cmd const[KDBUS_CMD_MATCH_REMOVE], arg ptr[in, kdbus_cmd_match])
+
+# KDBUS support
+
+# TODO: something must create kdbus fds
+# syz_kdbus_open(...) fd[kdbus]
+
+ioctl$kdbus_bus_make(fd fd[kdbus], cmd const[KDBUS_CMD_BUS_MAKE], arg ptr[in, kdbus_cmd_bus_make])
+ioctl$kdbus_ep_make(fd fd[kdbus], cmd const[KDBUS_CMD_ENDPOINT_MAKE], arg ptr[in, kdbus_cmd_ep_make])
+ioctl$kdbus_ep_update(fd fd[kdbus], cmd const[KDBUS_CMD_ENDPOINT_UPDATE], arg ptr[in, kdbus_cmd_ep_update])
+ioctl$kdbus_hello(fd fd[kdbus], cmd const[KDBUS_CMD_HELLO], arg ptr[in, kdbus_cmd_hello])
+ioctl$kdbus_name_acquire(fd fd[kdbus], cmd const[KDBUS_CMD_NAME_ACQUIRE], arg ptr[in, kdbus_cmd_name_acquire])
+ioctl$kdbus_name_release(fd fd[kdbus], cmd const[KDBUS_CMD_NAME_RELEASE], arg ptr[in, kdbus_cmd_name_release])
+ioctl$kdbus_free(fd fd[kdbus], cmd const[KDBUS_CMD_FREE], arg ptr[in, kdbus_cmd_free])
+ioctl$kdbus_recv(fd fd[kdbus], cmd const[KDBUS_CMD_RECV], arg ptr[in, kdbus_cmd_recv])
+ioctl$kdbus_send(fd fd[kdbus], cmd const[KDBUS_CMD_SEND], arg ptr[in, kdbus_cmd_send])
+ioctl$kdbus_update(fd fd[kdbus], cmd const[KDBUS_CMD_UPDATE], arg ptr[in, kdbus_cmd_update])
+ioctl$kdbus_bye(fd fd[kdbus], cmd const[KDBUS_CMD_BYEBYE], arg ptr[in, kdbus_cmd_bye])
+ioctl$kdbus_conn_info(fd fd[kdbus], cmd const[KDBUS_CMD_CONN_INFO], arg ptr[in, kdbus_cmd_info])
+ioctl$kdbus_bus_info(fd fd[kdbus], cmd const[KDBUS_CMD_BUS_CREATOR_INFO], arg ptr[in, kdbus_cmd_info])
+ioctl$kdbus_list(fd fd[kdbus], cmd const[KDBUS_CMD_LIST], arg ptr[in, kdbus_cmd_list])
+ioctl$kdbus_match_add(fd fd[kdbus], cmd const[KDBUS_CMD_MATCH_ADD], arg ptr[in, kdbus_cmd_match])
+ioctl$kdbus_match_remove(fd fd[kdbus], cmd const[KDBUS_CMD_MATCH_REMOVE], arg ptr[in, kdbus_cmd_match])
 
 kdbus_cmd_bus_make {
 	size	len[parent, int64]
