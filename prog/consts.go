@@ -137,6 +137,7 @@ const (
 	FIOQSIZE                             = 21600
 	FITHAW                               = 3221510264
 	FS_IOC_FIEMAP                        = 3223348747
+	FUSE_DEV_IOC_CLONE                   = 2147804416
 	FUTEX_CMP_REQUEUE                    = 4
 	FUTEX_REQUEUE                        = 3
 	FUTEX_WAIT                           = 0
@@ -866,7 +867,9 @@ const (
 	SYZ_PER_XENIX                        = 7
 	S_IFBLK                              = 24576
 	S_IFCHR                              = 8192
+	S_IFDIR                              = 16384
 	S_IFIFO                              = 4096
+	S_IFLNK                              = 40960
 	S_IFREG                              = 32768
 	S_IFSOCK                             = 49152
 	S_IRGRP                              = 32

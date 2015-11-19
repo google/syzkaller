@@ -12,6 +12,8 @@ struct call_t {
 
 #define __NR_syz_openpts	1000001
 #define __NR_syz_dri_open	1000002
+#define __NR_syz_fuse_mount	1000003
+#define __NR_syz_fuseblk_mount	1000004
 
 call_t syscalls[] = {
 	{"open", __NR_open},
@@ -518,4 +520,18 @@ call_t syscalls[] = {
 	{"ioctl$DRM_IOCTL_GET_CAP", __NR_ioctl},
 	{"ioctl$DRM_IOCTL_SET_CLIENT_CAP", __NR_ioctl},
 	{"ioctl$DRM_IOCTL_SET_VERSION", __NR_ioctl},
+	{"syz_fuse_mount", __NR_syz_fuse_mount},
+	{"syz_fuseblk_mount", __NR_syz_fuseblk_mount},
+	{"ioctl$FUSE_DEV_IOC_CLONE", __NR_ioctl},
+	{"write$fuse_init", __NR_write},
+	{"write$fuse_interrupt", __NR_write},
+	{"write$fuse_bmap", __NR_write},
+	{"write$fuse_ioctl", __NR_write},
+	{"write$fuse_poll", __NR_write},
+	{"write$fuse_notify_poll_wakeup", __NR_write},
+	{"write$fuse_notify_inval_inode", __NR_write},
+	{"write$fuse_notify_inval_entry", __NR_write},
+	{"write$fuse_notify_delete", __NR_write},
+	{"write$fuse_notify_store", __NR_write},
+	{"write$fuse_notify_retrieve", __NR_write},
 };
