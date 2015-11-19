@@ -335,21 +335,22 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 		root = true;
 	}
 	// Find a spare thread to execute the call.
-	thread_t* th = 0;
-	for (int i = 0; i < kMaxThreads; i++) {
-		th = &threads[i];
+	int i;
+	for (i = 0; i < kMaxThreads; i++) {
+		thread_t* th = &threads[i];
 		if (!th->created)
 			thread_create(th, i, false);
-		if (flag_drop_privs && root != th->root)
-			continue;
 		if (__atomic_load_n(&th->done, __ATOMIC_ACQUIRE)) {
 			if (!th->handled)
 				handle_completion(th);
+			if (flag_drop_privs && root != th->root)
+				continue;
 			break;
 		}
 	}
-	if (th == &threads[kMaxThreads])
-		fail("out of threads");
+	if (i == kMaxThreads)
+		exitf("out of threads");
+	thread_t* th = &threads[i];
 	debug("scheduling call %d [%s] on thread %d\n", call_index, syscalls[call_num].name, th->id);
 	if (th->ready || !th->done || !th->handled)
 		fail("bad thread state in schedule: ready=%d done=%d handled=%d", th->ready, th->done, th->handled);
