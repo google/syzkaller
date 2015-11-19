@@ -302,7 +302,7 @@ retry:
 			// Check if any of previous calls have completed.
 			// Give them some additional time, because they could have been
 			// just unblocked by the current call.
-			bool last = read_input(&input_pos, true);
+			bool last = read_input(&input_pos, true) == instr_eof;
 			usleep(last ? 1000 : 100);
 			for (int i = 0; i < kMaxThreads; i++) {
 				th = &threads[i];
