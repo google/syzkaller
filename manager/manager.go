@@ -29,6 +29,8 @@ type Manager struct {
 	master     *rpc.Client
 	masterHttp string
 	instances  []vm.Instance
+	startTime  time.Time
+	stats      map[string]uint64
 
 	mu           sync.Mutex
 	masterCorpus [][]byte         // mirror of master corpus
@@ -65,6 +67,8 @@ func RunManager(cfg *Config, syscalls map[int]bool, instances []vm.Instance) {
 		cfg:          cfg,
 		master:       master,
 		masterHttp:   r.Http,
+		startTime:    time.Now(),
+		stats:        make(map[string]uint64),
 		instances:    instances,
 		masterHashes: make(map[Sig]struct{}),
 		syscalls:     syscalls,
@@ -181,6 +185,7 @@ func (mgr *Manager) Connect(a *ManagerConnectArgs, r *ManagerConnectRes) error {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
+	mgr.stats["vm restarts"]++
 	mgr.minimizeCorpus()
 	mgr.fuzzers[a.Name] = &Fuzzer{
 		name:  a.Name,
@@ -202,6 +207,7 @@ func (mgr *Manager) NewInput(a *NewManagerInputArgs, r *int) error {
 	}
 	mgr.corpusCover[call] = cover.Union(mgr.corpusCover[call], a.Cover)
 	mgr.corpus = append(mgr.corpus, a.RpcInput)
+	mgr.stats["manager new inputs"]++
 
 	sig := hash(a.Prog)
 	if _, ok := mgr.masterHashes[sig]; !ok {
@@ -221,6 +227,10 @@ func (mgr *Manager) Poll(a *ManagerPollArgs, r *ManagerPollRes) error {
 	logf(2, "poll from %v", a.Name)
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+
+	for k, v := range a.Stats {
+		mgr.stats[k] += v
+	}
 
 	f := mgr.fuzzers[a.Name]
 	if f == nil {

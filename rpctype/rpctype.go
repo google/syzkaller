@@ -48,7 +48,8 @@ type NewManagerInputArgs struct {
 }
 
 type ManagerPollArgs struct {
-	Name string
+	Name  string
+	Stats map[string]uint64
 }
 
 type ManagerPollRes struct {

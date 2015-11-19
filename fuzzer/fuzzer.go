@@ -69,6 +69,13 @@ var (
 
 	workerIn  = make(chan *prog.Prog, 10)
 	workerOut = make(chan []Input, 10)
+
+	statExecGen       uint64
+	statExecFuzz      uint64
+	statExecCandidate uint64
+	statExecTriage    uint64
+	statExecMinimize  uint64
+	statNewInput      uint64
 )
 
 func main() {
@@ -136,7 +143,26 @@ func main() {
 			continue
 		}
 		if time.Since(lastPoll) > 10*time.Second {
-			a := &ManagerPollArgs{*flagName}
+			a := &ManagerPollArgs{
+				Name:  *flagName,
+				Stats: make(map[string]uint64),
+			}
+			a.Stats["exec total"] = env.StatExecs
+			env.StatExecs = 0
+			a.Stats["executor restarts"] = env.StatRestarts
+			env.StatRestarts = 0
+			a.Stats["exec gen"] = statExecGen
+			statExecGen = 0
+			a.Stats["exec fuzz"] = statExecFuzz
+			statExecFuzz = 0
+			a.Stats["exec candidate"] = statExecCandidate
+			statExecCandidate = 0
+			a.Stats["exec triage"] = statExecTriage
+			statExecTriage = 0
+			a.Stats["exec minimize"] = statExecMinimize
+			statExecMinimize = 0
+			a.Stats["fuzzer new inputs"] = statNewInput
+			statNewInput = 0
 			r := &ManagerPollRes{}
 			if err := manager.Call("Manager.Poll", a, r); err != nil {
 				panic(err)
@@ -153,7 +179,7 @@ func main() {
 					inp := Input{p, 0, nil}
 					corpus = append(corpus, inp)
 				} else {
-					execute(env, p)
+					execute(env, p, &statExecCandidate)
 				}
 			}
 			if len(r.NewInputs) == 0 && len(r.Candidates) == 0 {
@@ -164,16 +190,16 @@ func main() {
 		if len(corpus) == 0 || i%10 == 0 {
 			p := prog.Generate(rnd, programLength, ct)
 			logf(1, "#%v: generated: %s", i, p)
-			execute(env, p)
+			execute(env, p, &statExecGen)
 			p.Mutate(rnd, programLength, ct)
 			logf(1, "#%v: mutated: %s", i, p)
-			execute(env, p)
+			execute(env, p, &statExecFuzz)
 		} else {
 			inp := corpus[rnd.Intn(len(corpus))]
 			p := inp.p.Clone()
 			p.Mutate(rs, programLength, ct)
 			logf(1, "#%v: mutated: %s <- %s", i, p, inp.p)
-			execute(env, p)
+			execute(env, p, &statExecFuzz)
 		}
 	}
 }
@@ -224,7 +250,7 @@ func triageInput(env *ipc.Env, inp Input) {
 
 	minCover := inp.cover
 	for i := 0; i < 3; i++ {
-		allCover := execute1(env, inp.p)
+		allCover := execute1(env, inp.p, &statExecTriage)
 		if len(allCover[inp.call]) == 0 {
 			// The call was not executed. Happens sometimes, reason unknown.
 			continue
@@ -241,7 +267,7 @@ func triageInput(env *ipc.Env, inp Input) {
 		return
 	}
 	inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
-		allCover := execute1(env, p1)
+		allCover := execute1(env, p1, &statExecMinimize)
 		if len(allCover[call1]) == 0 {
 			return false // The call was not executed.
 		}
@@ -260,14 +286,15 @@ func triageInput(env *ipc.Env, inp Input) {
 
 	logf(2, "added new input for %v to corpus:\n%s", call.CallName, data)
 
+	statNewInput++
 	a := &NewManagerInputArgs{*flagName, RpcInput{call.CallName, inp.p.Serialize(), inp.call, []uint32(inp.cover)}}
 	if err := manager.Call("Manager.NewInput", a, nil); err != nil {
 		panic(err)
 	}
 }
 
-func execute(env *ipc.Env, p *prog.Prog) {
-	allCover := execute1(env, p)
+func execute(env *ipc.Env, p *prog.Prog, stat *uint64) {
+	allCover := execute1(env, p, stat)
 	for i, cov := range allCover {
 		if len(cov) == 0 {
 			continue
@@ -283,7 +310,7 @@ func execute(env *ipc.Env, p *prog.Prog) {
 
 var logMu sync.Mutex
 
-func execute1(env *ipc.Env, p *prog.Prog) []cover.Cover {
+func execute1(env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
 	if *flagSaveProg {
 		f, err := os.Create(fmt.Sprintf("%v.prog", *flagName))
 		if err == nil {
@@ -300,6 +327,7 @@ func execute1(env *ipc.Env, p *prog.Prog) []cover.Cover {
 
 	try := 0
 retry:
+	*stat++
 	output, strace, rawCover, failed, hanged, err := env.Exec(p)
 	if err != nil {
 		if try > 10 {

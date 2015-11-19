@@ -28,6 +28,9 @@ type Env struct {
 	bin     []string
 	timeout time.Duration
 	flags   uint64
+
+	StatExecs    uint64
+	StatRestarts uint64
 }
 
 const (
@@ -124,7 +127,9 @@ func (env *Env) Exec(p *prog.Prog) (output, strace []byte, cov [][]uint32, faile
 		}
 	}
 
+	env.StatExecs++
 	if env.cmd == nil {
+		env.StatRestarts++
 		env.cmd, err0 = makeCommand(env.bin, env.timeout, env.flags, env.inFile, env.outFile)
 		if err0 != nil {
 			return
@@ -187,151 +192,6 @@ func (env *Env) Exec(p *prog.Prog) (output, strace []byte, cov [][]uint32, faile
 	}
 	return
 }
-
-/*
-func (env *Env) execBin() (output, strace []byte, failed, hanged bool, err0 error) {
-	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
-	if err != nil {
-		err0 = fmt.Errorf("failed to create temp dir: %v", err)
-		return
-	}
-
-	// Output capture pipe.
-	defer os.RemoveAll(dir)
-	rp, wp, err := os.Pipe()
-	if err != nil {
-		err0 = fmt.Errorf("failed to create pipe: %v", err)
-		return
-	}
-	defer rp.Close()
-	defer wp.Close()
-
-	// Input command pipe.
-	inrp, inwp, err := os.Pipe()
-	if err != nil {
-		err0 = fmt.Errorf("failed to create pipe: %v", err)
-		return
-	}
-	defer inrp.Close()
-	defer inwp.Close()
-
-	// Output command pipe.
-	outrp, outwp, err := os.Pipe()
-	if err != nil {
-		err0 = fmt.Errorf("failed to create pipe: %v", err)
-		return
-	}
-	defer outrp.Close()
-	defer outwp.Close()
-
-	cmd := exec.Command(env.bin[0], env.bin[1:]...)
-	traceFile := ""
-	if env.flags&FlagStrace != 0 {
-		f, err := ioutil.TempFile("./", "syzkaller-strace")
-		if err != nil {
-			err0 = fmt.Errorf("failed to create temp file: %v", err)
-			return
-		}
-		f.Close()
-		defer os.Remove(f.Name())
-		traceFile, _ = filepath.Abs(f.Name())
-		args := []string{"-s", "8", "-o", traceFile}
-		args = append(args, env.bin...)
-		if env.flags&FlagThreaded != 0 {
-			args = append([]string{"-f"}, args...)
-		}
-		cmd = exec.Command("strace", args...)
-	}
-	cmd.ExtraFiles = append(cmd.ExtraFiles, env.inFile, env.outFile, outrp, inwp)
-	cmd.Env = []string{}
-	cmd.Dir = dir
-	if env.flags&FlagDebug == 0 {
-		cmd.Stdout = wp
-		cmd.Stderr = wp
-	} else {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stdout
-	}
-	if syscall.Getuid() == 0 {
-		// Running under root, more isolation is possible.
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Cloneflags: syscall.CLONE_NEWNS}
-	} else {
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	}
-	if _, err := outwp.Write([]byte{0}); err != nil {
-		err0 = fmt.Errorf("failed to write control pipe: %v", err)
-		return
-	}
-	if err := cmd.Start(); err != nil {
-		err0 = fmt.Errorf("failed to start executor binary: %v", err)
-		return
-	}
-	wp.Close()
-	outrp.Close()
-	inwp.Close()
-	done := make(chan bool)
-	hang := make(chan bool)
-	go func() {
-		t := time.NewTimer(env.timeout)
-		select {
-		case <-t.C:
-			// We started the process in its own process group and now kill the whole group.
-			// This solves a potential problem with strace:
-			// if we kill just strace, executor still runs and ReadAll below hangs.
-			fmt.Printf("KILLING %v\n", cmd.Process.Pid)
-			syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-			syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-			syscall.Kill(cmd.Process.Pid, syscall.SIGKILL)
-			syscall.Kill(cmd.Process.Pid, syscall.SIGKILL)
-			hang <- true
-		case <-done:
-			t.Stop()
-			hang <- false
-		}
-	}()
-	var tmp [1]byte
-	if n, err := inrp.Read(tmp[:]); n != 1 || err != nil {
-		err0 = fmt.Errorf("failed to read control pipe: %v", err)
-		return
-	}
-	output, err = ioutil.ReadAll(rp)
-	readErr := err
-	close(done)
-	if err = cmd.Wait(); <-hang && err != nil {
-		hanged = true
-		failed = true
-	}
-	if err != nil {
-		output = append(output, []byte(err.Error())...)
-		output = append(output, '\n')
-	}
-	if cmd.ProcessState != nil {
-		sys := cmd.ProcessState.Sys()
-		if ws, ok := sys.(syscall.WaitStatus); ok {
-			// Magic values returned by executor.
-			if ws.ExitStatus() == 67 {
-				err0 = fmt.Errorf("executor failed: %s", output)
-				return
-			}
-			if ws.ExitStatus() == 68 {
-				failed = true
-			}
-		}
-	}
-	if readErr != nil {
-		err0 = fmt.Errorf("failed to read executor output: %v", err)
-		return
-	}
-	if traceFile != "" {
-		strace, err = ioutil.ReadFile(traceFile)
-		if err != nil {
-			err0 = fmt.Errorf("failed to read strace output: %v", err)
-			return
-		}
-	}
-	return
-}
-*/
 
 func createMapping(size int) (f *os.File, mem []byte, err error) {
 	f, err = ioutil.TempFile("./", "syzkaller-shm")

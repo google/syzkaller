@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/prog"
@@ -47,13 +48,30 @@ func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
 		cc.cov = cover.Union(cc.cov, cover.Cover(inp.Cover))
 	}
 
+	uptime := time.Since(mgr.startTime)
 	data := &UIData{
 		Name:             mgr.cfg.Name,
 		MasterHttp:       mgr.masterHttp,
 		MasterCorpusSize: len(mgr.masterCorpus),
 		CorpusSize:       len(mgr.corpus),
 		TriageQueue:      len(mgr.candidates),
+		Uptime:           fmt.Sprintf("%v", uptime),
 	}
+
+	secs := uint64(uptime) / 1e9
+	for k, v := range mgr.stats {
+		val := ""
+		if x := v / secs; x >= 10 {
+			val = fmt.Sprintf("%v/sec", x)
+		} else if x := v * 60 / secs; x >= 10 {
+			val = fmt.Sprintf("%v/min", x)
+		} else {
+			x := v * 60 * 60 / secs
+			val = fmt.Sprintf("%v/hour", x)
+		}
+		data.Stats = append(data.Stats, UIStat{Name: k, Value: val})
+	}
+	sort.Sort(UIStatArray(data.Stats))
 
 	var cov cover.Cover
 	for c, cc := range calls {
@@ -171,7 +189,14 @@ type UIData struct {
 	CorpusSize       int
 	TriageQueue      int
 	CoverSize        int
+	Uptime           string
+	Stats            []UIStat
 	Calls            []UICallType
+}
+
+type UIStat struct {
+	Name  string
+	Value string
 }
 
 type UICallType struct {
@@ -200,6 +225,12 @@ func (a UIInputArray) Len() int           { return len(a) }
 func (a UIInputArray) Less(i, j int) bool { return a[i].Cover > a[j].Cover }
 func (a UIInputArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
+type UIStatArray []UIStat
+
+func (a UIStatArray) Len() int           { return len(a) }
+func (a UIStatArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
+func (a UIStatArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
 var htmlTemplate = template.Must(template.New("").Parse(`
 <!doctype html>
 <html>
@@ -208,10 +239,16 @@ var htmlTemplate = template.Must(template.New("").Parse(`
 </head>
 <body>
 Manager: {{.Name}} <a href='http://{{.MasterHttp}}'>[master]</a> <br>
+Uptime: {{.Uptime}}<br>
 Master corpus: {{.MasterCorpusSize}} <br>
 Corpus: {{.CorpusSize}}<br>
 Triage queue len: {{.TriageQueue}}<br>
 <a href='/cover'>Cover: {{.CoverSize}}</a> <br>
+<br>
+Stats: <br>
+{{range $stat := $.Stats}}
+	{{$stat.Name}}: {{$stat.Value}}<br>
+{{end}}
 <br>
 {{range $c := $.Calls}}
 	{{$c.Name}} <a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a> <a href='/cover?call={{$c.Name}}'>cover:{{$c.Cover}}</a> <a href='/prio?call={{$c.Name}}'>prio</a> <br>
