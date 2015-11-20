@@ -104,7 +104,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 	p := &parser{r: bufio.NewScanner(bytes.NewReader(data))}
 	vars := make(map[string]*Arg)
 	for p.Scan() {
-		if p.EOF() {
+		if p.EOF() || p.Char() == '#' {
 			continue
 		}
 		name := p.Ident()
