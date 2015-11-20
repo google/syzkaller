@@ -125,6 +125,12 @@ int main()
 		fail("mmap of input file failed");
 	if (mmap(&output_data[0], kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0) != &output_data[0])
 		fail("mmap of output file failed");
+	// Prevent random programs to mess with these fds.
+	// Due to races in collider mode, a program can e.g. ftruncate one of these fds,
+	// which will cause fuzzer to crash.
+	// That's also the reason why we close kInPipeFd/kOutPipeFd below.
+	close(kInFd);
+	close(kOutFd);
 	char cwdbuf[64 << 10];
 	char* cwd = getcwd(cwdbuf, sizeof(cwdbuf));
 
@@ -161,6 +167,8 @@ int main()
 		if (pid == 0) {
 			setpgid(0, 0);
 			unshare(CLONE_NEWNS);
+			close(kInPipeFd);
+			close(kOutPipeFd);
 			if (flag_drop_privs) {
 				// Pre-create one thread with root privileges for execution of special syscalls (e.g. mount).
 				if (flag_threaded)
