@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/google/syzkaller/sys"
@@ -37,6 +38,7 @@ type Config struct {
 	Params           map[string]interface{}
 	Enable_Syscalls  []string
 	Disable_Syscalls []string
+	Suppressions     []string
 }
 
 func main() {
@@ -62,6 +64,22 @@ func main() {
 		EnabledSyscalls: enabledSyscalls,
 		NoCover:         cfg.Nocover,
 	}
+
+	// Add some builtin suppressions.
+	cfg.Suppressions = append(cfg.Suppressions, []string{
+		"panic: failed to start executor binary",
+		"panic: executor failed: pthread_create failed",
+		"panic: failed to create temp dir",
+		"Out of memory: Kill process .* \\(syzkaller_fuzze\\)",
+	}...)
+	for _, s := range cfg.Suppressions {
+		re, err := regexp.Compile(s)
+		if err != nil {
+			fatalf("failed to compile suppression '%v': %v", s, err)
+		}
+		vmCfg.Suppressions = append(vmCfg.Suppressions, re)
+	}
+
 	var instances []vm.Instance
 	for i := 0; i < cfg.Count; i++ {
 		inst, err := vm.Create(cfg.Type, vmCfg, i)

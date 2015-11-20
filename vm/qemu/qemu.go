@@ -34,7 +34,7 @@ type qemu struct {
 	crashdir  string
 	callsFlag string
 	id        int
-	mgrPort   int
+	cfg       *vm.Config
 }
 
 type params struct {
@@ -92,7 +92,7 @@ func ctor(cfg *vm.Config, index int) (vm.Instance, error) {
 		workdir:  workdir,
 		crashdir: crashdir,
 		id:       index,
-		mgrPort:  cfg.ManagerPort,
+		cfg:      cfg,
 	}
 
 	if cfg.EnabledSyscalls != "" {
@@ -147,7 +147,7 @@ func (q *qemu) Run() {
 			log:       logf,
 			rpipe:     rpipe,
 			wpipe:     wpipe,
-			mgrPort:   q.mgrPort,
+			cfg:       q.cfg,
 			cmds:      make(map[*Command]bool),
 		}
 		inst.Run()
@@ -167,7 +167,7 @@ type Instance struct {
 	log       *os.File
 	rpipe     *os.File
 	wpipe     *os.File
-	mgrPort   int
+	cfg       *vm.Config
 	cmds      map[*Command]bool
 	qemu      *Command
 }
@@ -273,7 +273,7 @@ func (inst *Instance) Run() {
 
 	// Run the binary.
 	cmd := inst.CreateSSHCommand(fmt.Sprintf("/syzkaller_fuzzer -name %v -executor /syzkaller_executor -manager %v:%v %v",
-		inst.name, hostAddr, inst.mgrPort, inst.callsFlag))
+		inst.name, hostAddr, inst.cfg.ManagerPort, inst.callsFlag))
 
 	deadline := start.Add(time.Hour)
 	lastOutput := time.Now()
@@ -350,7 +350,15 @@ func (inst *Instance) Run() {
 }
 
 func (inst *Instance) SaveCrasher(output []byte) {
-	ioutil.WriteFile(filepath.Join(inst.crashdir, fmt.Sprintf("crash%v-%v", inst.id, time.Now().UnixNano())), output, 0660)
+	for _, re := range inst.cfg.Suppressions {
+		if re.Match(output) {
+			log.Printf("qemu/%v: suppressing '%v'", inst.id, re.String())
+			return
+		}
+	}
+	filename := fmt.Sprintf("crash%v-%v", inst.id, time.Now().UnixNano())
+	log.Printf("qemu/%v: saving crash to %v", inst.id, filename)
+	ioutil.WriteFile(filepath.Join(inst.crashdir, filename), output, 0660)
 }
 
 func (inst *Instance) Shutdown() {

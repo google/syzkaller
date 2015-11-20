@@ -5,6 +5,7 @@ package vm
 
 import (
 	"fmt"
+	"regexp"
 )
 
 type Instance interface {
@@ -16,6 +17,7 @@ type Config struct {
 	ManagerPort     int
 	Params          []byte
 	EnabledSyscalls string
+	Suppressions    []*regexp.Regexp
 	NoCover         bool
 }
 
