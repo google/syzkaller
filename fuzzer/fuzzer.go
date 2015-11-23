@@ -67,9 +67,6 @@ var (
 	manager      *rpc.Client
 	ct           *prog.ChoiceTable
 
-	workerIn  = make(chan *prog.Prog, 10)
-	workerOut = make(chan []Input, 10)
-
 	statExecGen       uint64
 	statExecFuzz      uint64
 	statExecCandidate uint64
