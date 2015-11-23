@@ -104,7 +104,8 @@ following keys in its top-level object:
       - `cpu`: Number of CPUs to simulate in the VM (*not currently used*).
       - `mem`: Amount of memory (in MiB) for the VM; this is passed as the `-m` option to
         `qemu-system-x86_64`.
- - `disable_syscalls`: List of system calls that should be treated as disabled.
+ - `enable_syscalls`: List of syscalls to test (optional).
+ - `disable_syscalls`: List of system calls that should be treated as disabled (optional).
 
 
 ## Running syzkaller
