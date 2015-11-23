@@ -25,6 +25,10 @@ var (
 	flagOutput   = flag.Bool("output", false, "print executor output to console")
 	flagDebug    = flag.Bool("debug", false, "executor debug output")
 	flagProcs    = flag.Int("procs", runtime.NumCPU(), "number of parallel processes")
+	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
+	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
+	flagNobody   = flag.Bool("nobody", false, "impersonate into nobody")
+	flagTimeout  = flag.Duration("timeout", 5*time.Second, "executor timeout")
 
 	failedRe = regexp.MustCompile("runtime error: |panic: |Panic: ")
 )
@@ -32,14 +36,23 @@ var (
 func main() {
 	flag.Parse()
 	corpus := readCorpus()
-	flags := ipc.FlagThreaded | ipc.FlagCollide | ipc.FlagDropPrivs
+	var flags uint64
+	if *flagThreaded {
+		flags |= ipc.FlagThreaded
+	}
+	if *flagCollide {
+		flags |= ipc.FlagCollide
+	}
+	if *flagNobody {
+		flags |= ipc.FlagDropPrivs
+	}
 	if *flagDebug {
 		flags |= ipc.FlagDebug
 	}
 
 	for p := 0; p < *flagProcs; p++ {
 		go func() {
-			env, err := ipc.MakeEnv(*flagExecutor, 4*time.Second, flags)
+			env, err := ipc.MakeEnv(*flagExecutor, 10*time.Second, flags)
 			if err != nil {
 				failf("failed to create execution environment: %v", err)
 			}
