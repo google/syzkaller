@@ -71,6 +71,7 @@ func main() {
 		"panic: executor failed: pthread_create failed",
 		"panic: failed to create temp dir",
 		"Out of memory: Kill process .* \\(syzkaller_fuzze\\)",
+		"WARNING: KASAN doesn't support memory hot-add",
 	}...)
 	for _, s := range cfg.Suppressions {
 		re, err := regexp.Compile(s)
