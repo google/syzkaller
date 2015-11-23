@@ -30,9 +30,6 @@ func (m *Master) httpInfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Master) httpMinimize(w http.ResponseWriter, r *http.Request) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	corpus := make(map[string]bool)
 	for _, mgr := range m.managers {
 		resp, err := http.Get("http://" + mgr.http + "/current_corpus")
@@ -56,6 +53,10 @@ func (m *Master) httpMinimize(w http.ResponseWriter, r *http.Request) {
 			corpus[hash] = true
 		}
 	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	orig := len(m.corpus.m)
 	m.corpus.minimize(corpus)
 	fmt.Printf("minimized: %v -> %v -> %v\n", orig, len(corpus), len(m.corpus.m))
