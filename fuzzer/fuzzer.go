@@ -300,6 +300,7 @@ func execute(env *ipc.Env, p *prog.Prog, stat *uint64) {
 		diff := cover.Difference(cov, maxCover[c.CallID])
 		diff = cover.Difference(diff, flakes)
 		if len(diff) != 0 {
+			maxCover[call.CallID] = cover.Union(maxCover[call.CallID], diff)
 			triage = append(triage, Input{p.Clone(), i, cover.Copy(cov)})
 		}
 	}
