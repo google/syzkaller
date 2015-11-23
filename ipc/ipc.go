@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -127,9 +128,9 @@ func (env *Env) Exec(p *prog.Prog) (output, strace []byte, cov [][]uint32, faile
 		}
 	}
 
-	env.StatExecs++
+	atomic.AddUint64(&env.StatExecs, 1)
 	if env.cmd == nil {
-		env.StatRestarts++
+		atomic.AddUint64(&env.StatRestarts, 1)
 		env.cmd, err0 = makeCommand(env.bin, env.timeout, env.flags, env.inFile, env.outFile)
 		if err0 != nil {
 			return
@@ -332,8 +333,10 @@ func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.F
 }
 
 func (c *command) close() {
-	c.kill()
-	c.cmd.Wait()
+	if c.cmd != nil {
+		c.kill()
+		c.cmd.Wait()
+	}
 	os.RemoveAll(c.dir)
 	if c.rp != nil {
 		c.rp.Close()
