@@ -272,8 +272,8 @@ func (inst *Instance) Run() {
 	inst.CreateSSHCommand("echo -n 0 > /proc/sys/debug/exception-trace").Wait(10 * time.Second)
 
 	// Run the binary.
-	cmd := inst.CreateSSHCommand(fmt.Sprintf("/syzkaller_fuzzer -name %v -executor /syzkaller_executor -manager %v:%v %v",
-		inst.name, hostAddr, inst.cfg.ManagerPort, inst.callsFlag))
+	cmd := inst.CreateSSHCommand(fmt.Sprintf("/syzkaller_fuzzer -name %v -executor /syzkaller_executor -manager %v:%v -procs %v %v",
+		inst.name, hostAddr, inst.cfg.ManagerPort, inst.cfg.Procs, inst.callsFlag))
 
 	deadline := start.Add(time.Hour)
 	lastOutput := time.Now()

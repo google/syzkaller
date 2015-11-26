@@ -32,7 +32,8 @@ type Config struct {
 	Workdir          string
 	Vmlinux          string
 	Type             string
-	Count            int
+	Count            int // number of VMs
+	Procs            int // number of parallel processes inside of every VM
 	Port             int
 	Nocover          bool
 	Params           map[string]interface{}
@@ -63,6 +64,7 @@ func main() {
 		Params:          params,
 		EnabledSyscalls: enabledSyscalls,
 		NoCover:         cfg.Nocover,
+		Procs:           cfg.Procs,
 	}
 
 	// Add some builtin suppressions.
@@ -124,6 +126,9 @@ func parseConfig() (*Config, map[int]bool) {
 	}
 	if cfg.Count <= 0 || cfg.Count > 1000 {
 		fatalf("invalid config param count: %v, want (1, 1000]", cfg.Count)
+	}
+	if cfg.Procs <= 0 {
+		cfg.Procs = 1
 	}
 
 	match := func(call *sys.Call, str string) bool {

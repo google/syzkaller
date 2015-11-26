@@ -19,6 +19,7 @@ type Config struct {
 	EnabledSyscalls string
 	Suppressions    []*regexp.Regexp
 	NoCover         bool
+	Procs           int
 }
 
 type ctorFunc func(cfg *Config, index int) (Instance, error)
