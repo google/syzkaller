@@ -1,30 +1,30 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
+#include "syscalls.h"
+#include <algorithm>
+#include <errno.h>
+#include <fcntl.h>
+#include <grp.h>
+#include <limits.h>
+#include <linux/futex.h>
+#include <pthread.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <errno.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <time.h>
-#include <signal.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/syscall.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/wait.h>
-#include <linux/futex.h>
 #include <sys/ioctl.h>
-#include <pthread.h>
-#include <grp.h>
-#include <algorithm>
-#include "syscalls.h"
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+#include <unistd.h>
 
 const int kInFd = 3;
 const int kOutFd = 4;
@@ -36,6 +36,7 @@ const int kMaxOutput = 16 << 20;
 const int kMaxArgs = 9;
 const int kMaxThreads = 16;
 const int kMaxCommands = 4 << 10;
+const int kCoverSize = 16 << 10;
 
 const uint64_t instr_eof = -1;
 const uint64_t instr_copyin = -2;
@@ -79,7 +80,7 @@ struct thread_t {
 	bool root;
 	int id;
 	pthread_t th;
-	uint32_t cover_data[16 << 10];
+	uint32_t* cover_data;
 	uint64_t* copyout_pos;
 	int ready;
 	int done;
@@ -90,11 +91,11 @@ struct thread_t {
 	int num_args;
 	uint64_t args[kMaxArgs];
 	uint64_t res;
-	int cover_size;
+	uint32_t cover_size;
+	int cover_fd;
 };
 
 thread_t threads[kMaxThreads];
-int cover_fd;
 
 __attribute__((noreturn)) void fail(const char* msg, ...);
 __attribute__((noreturn)) void error(const char* msg, ...);
@@ -114,10 +115,10 @@ void thread_create(thread_t* th, int id, bool root);
 void* worker_thread(void* arg);
 uint64_t current_time_ms();
 void cover_open();
-void cover_init(thread_t* th);
+void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
-int cover_read(thread_t* th);
-int cover_dedup(thread_t* th, int n);
+uint32_t cover_read(thread_t* th);
+uint32_t cover_dedup(thread_t* th, uint32_t n);
 
 int main()
 {
@@ -235,7 +236,7 @@ retry:
 	write_output(0); // Number of executed syscalls (updated later).
 
 	if (!collide && !flag_threaded)
-		cover_init(&threads[0]);
+		cover_enable(&threads[0]);
 
 	int call_index = 0;
 	for (int n = 0;; n++) {
@@ -412,8 +413,8 @@ void handle_completion(thread_t* th)
 		write_output(th->call_index);
 		write_output(th->call_num);
 		write_output(th->cover_size);
-		for (int i = 0; i < th->cover_size; i++)
-			write_output(th->cover_data[i]);
+		for (uint32_t i = 0; i < th->cover_size; i++)
+			write_output(th->cover_data[i + 1]);
 		completed++;
 		__atomic_store_n((uint32_t*)&output_data[0], completed, __ATOMIC_RELEASE);
 	}
@@ -438,7 +439,7 @@ void* worker_thread(void* arg)
 {
 	thread_t* th = (thread_t*)arg;
 
-	cover_init(th);
+	cover_enable(th);
 	for (;;) {
 		while (!__atomic_load_n(&th->ready, __ATOMIC_ACQUIRE))
 			syscall(SYS_futex, &th->ready, FUTEX_WAIT, 0, 0);
@@ -555,43 +556,49 @@ void cover_open()
 {
 	if (!flag_cover)
 		return;
-	cover_fd = open("/proc/cover", O_RDWR);
-	if (cover_fd == -1)
-		fail("open of /proc/cover failed");
+	for (int i = 0; i < kMaxThreads; i++) {
+		thread_t* th = &threads[i];
+		th->cover_fd = open("/sys/kernel/debug/kcov", O_RDWR);
+		if (th->cover_fd == -1)
+			fail("open of /sys/kernel/debug/kcov failed");
+		char cmd[64];
+		sprintf(cmd, "trace=%d", kCoverSize);
+		int n = write(th->cover_fd, cmd, strlen(cmd));
+		if (n != (int)strlen(cmd))
+			fail("cover enable write failed");
+		th->cover_data = (uint32_t*)mmap(NULL, kCoverSize * sizeof(th->cover_data[0]), PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
+		if ((void*)th->cover_data == MAP_FAILED)
+			fail("cover mmap failed");
+	}
 }
 
-void cover_init(thread_t* th)
+void cover_enable(thread_t* th)
 {
 	if (!flag_cover)
 		return;
-	debug("#%d: enabling /proc/cover\n", th->id);
-	char cmd[128];
-	sprintf(cmd, "enable=%d", (int)(sizeof(th->cover_data) / sizeof(th->cover_data[0])));
-	int n = write(cover_fd, cmd, strlen(cmd));
+	debug("#%d: enabling /sys/kernel/debug/kcov\n", th->id);
+	const char* cmd = "enable";
+	int n = write(th->cover_fd, cmd, strlen(cmd));
 	if (n != (int)strlen(cmd))
 		fail("cover enable write failed");
-	debug("#%d: enabled /proc/cover\n", th->id);
+	debug("#%d: enabled /sys/kernel/debug/kcov\n", th->id);
 }
 
 void cover_reset(thread_t* th)
 {
 	if (!flag_cover)
 		return;
-	debug("#%d: resetting /proc/cover\n", th->id);
-	int n = write(cover_fd, "reset", sizeof("reset") - 1);
-	if (n != sizeof("reset") - 1)
-		fail("cover reset write failed");
+	__atomic_store_n(&th->cover_data[0], 0, __ATOMIC_RELAXED);
 }
 
-int cover_read(thread_t* th)
+uint32_t cover_read(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
-	int n = read(cover_fd, th->cover_data, sizeof(th->cover_data));
-	if (n < 0 || n > (int)sizeof(th->cover_data) || (n % sizeof(th->cover_data[0])) != 0)
-		fail("cover read failed after %s (n=%d)", syscalls[th->call_num].name, n);
-	n /= sizeof(th->cover_data[0]);
-	debug("#%d: read /proc/cover = %d\n", th->id, n);
+	uint32_t n = __atomic_load_n(&th->cover_data[0], __ATOMIC_RELAXED);
+	debug("#%d: read cover = %d\n", th->id, n);
+	if (n >= kCoverSize)
+		fail("#%d: too much cover %d", th->id, n);
 	if (flag_deduplicate) {
 		n = cover_dedup(th, n);
 		debug("#%d: dedup cover %d\n", th->id, n);
@@ -599,16 +606,17 @@ int cover_read(thread_t* th)
 	return n;
 }
 
-int cover_dedup(thread_t* th, int n)
+uint32_t cover_dedup(thread_t* th, uint32_t n)
 {
-	std::sort(th->cover_data, th->cover_data + n);
-	int w = 0;
+	uint32_t* cover_data = th->cover_data + 1;
+	std::sort(cover_data, cover_data + n);
+	uint32_t w = 0;
 	uint32_t last = 0;
-	for (int i = 0; i < n; i++) {
-		uint32_t pc = th->cover_data[i];
+	for (uint32_t i = 0; i < n; i++) {
+		uint32_t pc = cover_data[i];
 		if (pc == last)
 			continue;
-		th->cover_data[w++] = last = pc;
+		cover_data[w++] = last = pc;
 	}
 	return w;
 }
