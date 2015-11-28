@@ -15,7 +15,6 @@ import (
 	"log"
 	"os"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/cover"
@@ -80,7 +79,9 @@ func main() {
 
 	var wg sync.WaitGroup
 	wg.Add(*flagProcs)
-	var pos uint32
+	var posMu sync.Mutex
+	var pos int
+	var lastPrint time.Time
 	for p := 0; p < *flagProcs; p++ {
 		go func() {
 			env, err := ipc.MakeEnv(*flagExecutor, *flagTimeout, flags)
@@ -88,10 +89,14 @@ func main() {
 				log.Fatalf("failed to create ipc env: %v", err)
 			}
 			for {
-				idx := int(atomic.AddUint32(&pos, 1) - 1)
-				if idx%len(progs) == 0 {
+				posMu.Lock()
+				idx := pos
+				pos++
+				if idx%len(progs) == 0 && time.Since(lastPrint) > 5*time.Second {
 					log.Printf("executed %v programs\n", idx)
+					lastPrint = time.Now()
 				}
+				posMu.Unlock()
 				if !*flagLoop && idx >= len(progs) {
 					env.Close()
 					wg.Done()
