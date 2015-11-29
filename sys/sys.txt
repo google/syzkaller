@@ -2464,6 +2464,7 @@ ioctl$PERF_EVENT_IOC_SET_BPF(fd fd[perf], cmd const[PERF_EVENT_IOC_SET_BPF], pro
 perf_flags = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_PID_CGROUP, PERF_FLAG_FD_CLOEXEC
 perf_event_type = PERF_TYPE_HARDWARE, PERF_TYPE_SOFTWARE, PERF_TYPE_TRACEPOINT, PERF_TYPE_HW_CACHE, PERF_TYPE_RAW, PERF_TYPE_BREAKPOINT
 perf_bp_type = HW_BREAKPOINT_EMPTY, HW_BREAKPOINT_R, HW_BREAKPOINT_W, HW_BREAKPOINT_X
+perf_attr_flags = 1, 2, 4
 
 perf_event_attr {
 	type	flags[perf_event_type, int32]
@@ -2474,14 +2475,12 @@ perf_event_attr {
 	format	int64
 # Lots of various bit flags.
 # Split into int8's because for int64 large values generated less frequently than small ones.
+# Kernel checks that unused bits are zero.
 	flags0	int8
 	flags1	int8
 	flags2	int8
-	flags3	int8
-	flags4	int8
-	flags5	int8
-	flags6	int8
-	flags7	int8
+	flags3	flags[perf_attr_flags, int8]
+	freserv	const[0, int32]
 	wakeup	int32
 	bptype	flags[perf_bp_type, int32]
 	config1	int64
