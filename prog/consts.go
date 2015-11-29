@@ -629,6 +629,15 @@ const (
 	O_SYNC                               = 1052672
 	O_TRUNC                              = 512
 	O_WRONLY                             = 1
+	PERF_EVENT_IOC_DISABLE               = 9217
+	PERF_EVENT_IOC_ENABLE                = 9216
+	PERF_EVENT_IOC_ID                    = 2148017159
+	PERF_EVENT_IOC_PERIOD                = 1074275332
+	PERF_EVENT_IOC_REFRESH               = 9218
+	PERF_EVENT_IOC_RESET                 = 9219
+	PERF_EVENT_IOC_SET_BPF               = 1074013192
+	PERF_EVENT_IOC_SET_FILTER            = 1074275334
+	PERF_EVENT_IOC_SET_OUTPUT            = 9221
 	PERF_FLAG_FD_CLOEXEC                 = 8
 	PERF_FLAG_FD_NO_GROUP                = 1
 	PERF_FLAG_FD_OUTPUT                  = 2

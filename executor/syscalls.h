@@ -549,4 +549,13 @@ call_t syscalls[] = {
 	{"bpf$OBJ_GET_MAP", __NR_bpf},
 	{"bpf$OBJ_GET_PROG", __NR_bpf},
 	{"perf_event_open", __NR_perf_event_open},
+	{"ioctl$PERF_EVENT_IOC_ENABLE", __NR_ioctl},
+	{"ioctl$PERF_EVENT_IOC_DISABLE", __NR_ioctl},
+	{"ioctl$PERF_EVENT_IOC_RESET", __NR_ioctl},
+	{"ioctl$PERF_EVENT_IOC_REFRESH", __NR_ioctl},
+	{"ioctl$PERF_EVENT_IOC_PERIOD", __NR_ioctl},
+	{"ioctl$PERF_EVENT_IOC_ID", __NR_ioctl},
+	{"ioctl$PERF_EVENT_IOC_SET_OUTPUT", __NR_ioctl},
+	{"ioctl$PERF_EVENT_IOC_SET_FILTER", __NR_ioctl},
+	{"ioctl$PERF_EVENT_IOC_SET_BPF", __NR_ioctl},
 };

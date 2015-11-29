@@ -2451,6 +2451,16 @@ define SO_ATTACH_BPF			50
 
 perf_event_open(attr ptr[in, perf_event_attr], pid pid, cpu intptr, group fd[perf], flags flags[perf_flags]) fd[perf]
 
+ioctl$PERF_EVENT_IOC_ENABLE(fd fd[perf], cmd const[PERF_EVENT_IOC_ENABLE], flags intptr)
+ioctl$PERF_EVENT_IOC_DISABLE(fd fd[perf], cmd const[PERF_EVENT_IOC_DISABLE], flags intptr)
+ioctl$PERF_EVENT_IOC_RESET(fd fd[perf], cmd const[PERF_EVENT_IOC_RESET], flags intptr)
+ioctl$PERF_EVENT_IOC_REFRESH(fd fd[perf], cmd const[PERF_EVENT_IOC_REFRESH], refresh intptr)
+ioctl$PERF_EVENT_IOC_PERIOD(fd fd[perf], cmd const[PERF_EVENT_IOC_PERIOD], period ptr[in, int64])
+ioctl$PERF_EVENT_IOC_ID(fd fd[perf], cmd const[PERF_EVENT_IOC_ID], id ptr[out, int64])
+ioctl$PERF_EVENT_IOC_SET_OUTPUT(fd fd[perf], cmd const[PERF_EVENT_IOC_SET_OUTPUT], other fd[perf])
+ioctl$PERF_EVENT_IOC_SET_FILTER(fd fd[perf], cmd const[PERF_EVENT_IOC_SET_FILTER], filter string)
+ioctl$PERF_EVENT_IOC_SET_BPF(fd fd[perf], cmd const[PERF_EVENT_IOC_SET_BPF], prog fd[bpf_prog])
+
 perf_flags = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_PID_CGROUP, PERF_FLAG_FD_CLOEXEC
 perf_event_type = PERF_TYPE_HARDWARE, PERF_TYPE_SOFTWARE, PERF_TYPE_TRACEPOINT, PERF_TYPE_HW_CACHE, PERF_TYPE_RAW, PERF_TYPE_BREAKPOINT
 perf_bp_type = HW_BREAKPOINT_EMPTY, HW_BREAKPOINT_R, HW_BREAKPOINT_W, HW_BREAKPOINT_X
@@ -2487,3 +2497,4 @@ perf_event_attr {
 }
 
 define PERF_FLAG_FD_CLOEXEC		(1UL << 3)
+define PERF_EVENT_IOC_SET_BPF		_IOW('$', 8, __u32)
