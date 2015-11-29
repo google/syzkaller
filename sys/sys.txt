@@ -29,6 +29,9 @@
 # Structs are described as:
 #	structname struct "{" "\n" (fieldname type "\n")+ "}"
 
+# Packages with required headers:
+# sudo apt-get install libnuma-dev
+
 include <sys/types.h>
 include <sys/socket.h>
 include <sys/select.h>
