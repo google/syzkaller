@@ -204,6 +204,10 @@ const (
 	GIO_SCRNMAP                          = 19264
 	GIO_UNIMAP                           = 19302
 	GIO_UNISCRNMAP                       = 19305
+	HW_BREAKPOINT_EMPTY                  = 0
+	HW_BREAKPOINT_R                      = 1
+	HW_BREAKPOINT_W                      = 2
+	HW_BREAKPOINT_X                      = 4
 	IN_ACCESS                            = 1
 	IN_ATTRIB                            = 4
 	IN_CLOEXEC                           = 524288
@@ -625,6 +629,16 @@ const (
 	O_SYNC                               = 1052672
 	O_TRUNC                              = 512
 	O_WRONLY                             = 1
+	PERF_FLAG_FD_CLOEXEC                 = 8
+	PERF_FLAG_FD_NO_GROUP                = 1
+	PERF_FLAG_FD_OUTPUT                  = 2
+	PERF_FLAG_PID_CGROUP                 = 4
+	PERF_TYPE_BREAKPOINT                 = 5
+	PERF_TYPE_HARDWARE                   = 0
+	PERF_TYPE_HW_CACHE                   = 3
+	PERF_TYPE_RAW                        = 4
+	PERF_TYPE_SOFTWARE                   = 1
+	PERF_TYPE_TRACEPOINT                 = 2
 	PIO_FONT                             = 19297
 	PIO_FONTRESET                        = 19309
 	PIO_FONTX                            = 19308

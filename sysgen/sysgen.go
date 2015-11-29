@@ -336,6 +336,8 @@ func fmtFdKind(s string) string {
 		return "FdBpfMap"
 	case "bpf_prog":
 		return "FdBpfProg"
+	case "perf":
+		return "FdPerf"
 	default:
 		failf("bad fd type %v", s)
 		return ""

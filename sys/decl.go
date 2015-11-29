@@ -75,6 +75,7 @@ const (
 	FdKdbus
 	FdBpfMap
 	FdBpfProg
+	FdPerf
 
 	IPCMsq
 	IPCSem
@@ -172,8 +173,9 @@ func (t ResourceType) Size() uintptr {
 func (t ResourceType) SubKinds() []ResourceSubkind {
 	switch t.Kind {
 	case ResFD:
-		return []ResourceSubkind{FdFile, FdSock, FdPipe, FdSignal, FdEvent, FdTimer, FdEpoll,
-			FdDir, FdMq, FdInotify, FdFanotify, FdTty, FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg}
+		return []ResourceSubkind{FdFile, FdSock, FdPipe, FdSignal, FdEvent,
+			FdTimer, FdEpoll, FdDir, FdMq, FdInotify, FdFanotify, FdTty,
+			FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg, FdPerf}
 	case ResIPC:
 		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
 	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid:

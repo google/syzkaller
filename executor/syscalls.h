@@ -548,4 +548,5 @@ call_t syscalls[] = {
 	{"bpf$OBJ_PIN_PROG", __NR_bpf},
 	{"bpf$OBJ_GET_MAP", __NR_bpf},
 	{"bpf$OBJ_GET_PROG", __NR_bpf},
+	{"perf_event_open", __NR_perf_event_open},
 };

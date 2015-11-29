@@ -69,6 +69,8 @@ include <linux/fiemap.h>
 include <linux/kd.h>
 include <linux/vt.h>
 include <linux/fuse.h>
+include <linux/perf_event.h>
+include <linux/hw_breakpoint.h>
 
 include <asm/prctl.h>
 
@@ -1405,7 +1407,6 @@ define F_SEAL_WRITE		0x0008
 #define __NR_swapoff 168
 #define __NR_quotactl 179
 #define __NR_nfsservctl 180
-#define __NR_perf_event_open 298
 #define __NR_getcpu 309
 #define __NR_process_vm_readv 310
 #define __NR_process_vm_writev 311
@@ -2442,3 +2443,47 @@ define BPF_PROG_TYPE_SCHED_CLS		3
 define BPF_PROG_TYPE_SCHED_ACT		4
 
 define SO_ATTACH_BPF			50
+
+
+
+
+# Perf
+
+perf_event_open(attr ptr[in, perf_event_attr], pid pid, cpu intptr, group fd[perf], flags flags[perf_flags]) fd[perf]
+
+perf_flags = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_PID_CGROUP, PERF_FLAG_FD_CLOEXEC
+perf_event_type = PERF_TYPE_HARDWARE, PERF_TYPE_SOFTWARE, PERF_TYPE_TRACEPOINT, PERF_TYPE_HW_CACHE, PERF_TYPE_RAW, PERF_TYPE_BREAKPOINT
+perf_bp_type = HW_BREAKPOINT_EMPTY, HW_BREAKPOINT_R, HW_BREAKPOINT_W, HW_BREAKPOINT_X
+
+perf_event_attr {
+	type	flags[perf_event_type, int32]
+	size	len[parent, int32]
+	config	int64
+	freq	int64
+	sample	int64
+	format	int64
+# Lots of various bit flags.
+# Split into int8's because for int64 large values generated less frequently than small ones.
+	flags0	int8
+	flags1	int8
+	flags2	int8
+	flags3	int8
+	flags4	int8
+	flags5	int8
+	flags6	int8
+	flags7	int8
+	wakeup	int32
+	bptype	flags[perf_bp_type, int32]
+	config1	int64
+	config2	int64
+	bsample	int64
+	regs	int64
+	stack	int64
+	clockid	flags[clock_type, int32]
+	pad	const[0, int32]
+	regs2	int64
+	auxwm	int32
+	pad	const[0, int32]
+}
+
+define PERF_FLAG_FD_CLOEXEC		(1UL << 3)
