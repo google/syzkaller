@@ -73,6 +73,8 @@ const (
 	FdDRI
 	FdFuse
 	FdKdbus
+	FdBpfMap
+	FdBpfProg
 
 	IPCMsq
 	IPCSem
@@ -125,7 +127,8 @@ func (t ResourceType) SpecialValues() []uintptr {
 		return []uintptr{0, ^uintptr(0)}
 	case ResKey:
 		// KEY_SPEC_THREAD_KEYRING values
-		return []uintptr{0, ^uintptr(0), ^uintptr(0) - 1, ^uintptr(0) - 2, ^uintptr(0) - 3, ^uintptr(0) - 4, ^uintptr(0) - 5, ^uintptr(0) - 6, ^uintptr(0) - 7}
+		return []uintptr{0, ^uintptr(0), ^uintptr(0) - 1, ^uintptr(0) - 2, ^uintptr(0) - 3,
+			^uintptr(0) - 4, ^uintptr(0) - 5, ^uintptr(0) - 6, ^uintptr(0) - 7}
 	case ResInotifyDesc:
 		return []uintptr{0}
 	case ResPid:
@@ -169,7 +172,8 @@ func (t ResourceType) Size() uintptr {
 func (t ResourceType) SubKinds() []ResourceSubkind {
 	switch t.Kind {
 	case ResFD:
-		return []ResourceSubkind{FdFile, FdSock, FdPipe, FdSignal, FdEvent, FdTimer, FdEpoll, FdDir, FdMq, FdInotify, FdFanotify, FdTty, FdDRI, FdFuse, FdKdbus}
+		return []ResourceSubkind{FdFile, FdSock, FdPipe, FdSignal, FdEvent, FdTimer, FdEpoll,
+			FdDir, FdMq, FdInotify, FdFanotify, FdTty, FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg}
 	case ResIPC:
 		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
 	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid:

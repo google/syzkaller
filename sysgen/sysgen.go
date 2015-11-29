@@ -332,6 +332,10 @@ func fmtFdKind(s string) string {
 		return "FdFuse"
 	case "kdbus":
 		return "FdKdbus"
+	case "bpf_map":
+		return "FdBpfMap"
+	case "bpf_prog":
+		return "FdBpfProg"
 	default:
 		failf("bad fd type %v", s)
 		return ""
@@ -417,6 +421,9 @@ struct call_t {
 // Note: this is x86_64 number
 #ifndef __NR_memfd_create
 #define __NR_memfd_create 319
+#endif
+#ifndef __NR_bpf
+#define __NR_bpf 321
 #endif
 
 #define __NR_syz_openpts	1000001

@@ -193,6 +193,7 @@ getsockopt$sock_cred(fd fd[sock], level const[SOL_SOCKET], optname const[SO_PEER
 setsockopt$sock_cred(fd fd[sock], level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[in, ucred], optlen len[optval])
 getsockopt$sock_timeval(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[out, timeval], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_timeval(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
+setsockopt$sock_attach_bpf(fd fd[sock], level const[SOL_SOCKET], optname const[SO_ATTACH_BPF], optval ptr[in, fd[bpf_prog]], optlen len[optval])
 getsockopt$tcp_int(fd fd[sock], level const[IPPROTO_TCP], optname flags[sockopt_opt_tcp_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$tcp_int(fd fd[sock], level const[IPPROTO_TCP], optname flags[sockopt_opt_tcp_int], optval ptr[in, int32], optlen len[optval])
 getsockopt$tcp_buf(fd fd[sock], level const[IPPROTO_TCP], optname const[TCP_INFO], optval buffer[out], optlen ptr[inout, len[optval, int32]])
@@ -2327,3 +2328,117 @@ fuse_notify_retrieve_out {
 	size	int32
 	pad	const[0, int32]
 }
+
+
+
+
+# BPF
+
+bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd[bpf_map]
+bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
+bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
+bpf$MAP_DELETE_ELEM(cmd const[BPF_MAP_DELETE_ELEM], arg ptr[in, bpf_map_delete_arg], size len[arg])
+bpf$MAP_GET_NEXT_KEY(cmd const[BPF_MAP_GET_NEXT_KEY], arg ptr[in, bpf_map_get_next_arg], size len[arg])
+bpf$PROG_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog], size len[arg]) fd[bpf_prog]
+bpf$OBJ_PIN_MAP(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_map], size len[arg])
+bpf$OBJ_PIN_PROG(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_prog], size len[arg])
+bpf$OBJ_GET_MAP(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd[bpf_map]
+bpf$OBJ_GET_PROG(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd[bpf_prog]
+
+bpf_map_create_arg {
+	type	flags[bpf_map_type, int32]
+	ksize	int32
+	vsize	int32
+	max	int32
+}
+
+bpf_map_lookup_arg {
+	map	fd[bpf_map]
+	pad	const[0, int32]
+	key	buffer[in]
+	val	buffer[out]
+}
+
+bpf_map_update_arg {
+	map	fd[bpf_map]
+	pad	const[0, int32]
+	key	buffer[in]
+	val	buffer[in]
+	flags	flags[bpf_map_flags, int64]
+}
+
+bpf_map_delete_arg {
+	map	fd[bpf_map]
+	pad	const[0, int32]
+	key	buffer[in]
+}
+
+bpf_map_get_next_arg {
+	map	fd[bpf_map]
+	pad	const[0, int32]
+	key	buffer[in]
+	next	buffer[out]
+}
+
+bpf_prog {
+	type	flags[bpf_prog_type, int32]
+	ninsn	len[insns, int32]
+	insns	ptr[in, array[bpf_insn]]
+	license	string
+	loglev	int32
+	logsize	len[log, int32]
+	log	buffer[out]
+	kver	int32
+}
+
+bpf_insn {
+	code	int8
+	dst	int8
+	src	int8
+	off	int16
+	imm	int32
+}
+
+bpf_obj_pin_map {
+	path	filename
+	fd	fd[bpf_map]
+}
+
+bpf_obj_pin_prog {
+	path	filename
+	fd	fd[bpf_prog]
+}
+
+bpf_obj_get {
+	path	filename
+	fd	const[0, int32]
+}
+
+bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY
+bpf_map_flags = BPF_ANY, BPF_NOEXIST, BPF_EXIST
+bpf_prog_type = BPF_PROG_TYPE_SOCKET_FILTER, BPF_PROG_TYPE_KPROBE, BPF_PROG_TYPE_SCHED_CLS, BPF_PROG_TYPE_SCHED_ACT
+
+define BPF_MAP_CREATE			0
+define BPF_MAP_LOOKUP_ELEM		1
+define BPF_MAP_UPDATE_ELEM		2
+define BPF_MAP_DELETE_ELEM		3
+define BPF_MAP_GET_NEXT_KEY		4
+define BPF_PROG_LOAD			5
+define BPF_OBJ_PIN			6
+define BPF_OBJ_GET			7
+
+define BPF_MAP_TYPE_HASH		1
+define BPF_MAP_TYPE_ARRAY		2
+define BPF_MAP_TYPE_PROG_ARRAY		3
+define BPF_MAP_TYPE_PERF_EVENT_ARRAY	4
+
+define BPF_ANY				0
+define BPF_NOEXIST			1
+define BPF_EXIST			2
+
+define BPF_PROG_TYPE_SOCKET_FILTER	1
+define BPF_PROG_TYPE_KPROBE		2
+define BPF_PROG_TYPE_SCHED_CLS		3
+define BPF_PROG_TYPE_SCHED_ACT		4
+
+define SO_ATTACH_BPF			50

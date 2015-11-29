@@ -9,6 +9,9 @@ struct call_t {
 #ifndef __NR_memfd_create
 #define __NR_memfd_create 319
 #endif
+#ifndef __NR_bpf
+#define __NR_bpf 321
+#endif
 
 #define __NR_syz_openpts	1000001
 #define __NR_syz_dri_open	1000002
@@ -111,6 +114,7 @@ call_t syscalls[] = {
 	{"setsockopt$sock_cred", __NR_setsockopt},
 	{"getsockopt$sock_timeval", __NR_getsockopt},
 	{"setsockopt$sock_timeval", __NR_setsockopt},
+	{"setsockopt$sock_attach_bpf", __NR_setsockopt},
 	{"getsockopt$tcp_int", __NR_getsockopt},
 	{"setsockopt$tcp_int", __NR_setsockopt},
 	{"getsockopt$tcp_buf", __NR_getsockopt},
@@ -534,4 +538,14 @@ call_t syscalls[] = {
 	{"write$fuse_notify_delete", __NR_write},
 	{"write$fuse_notify_store", __NR_write},
 	{"write$fuse_notify_retrieve", __NR_write},
+	{"bpf$MAP_CREATE", __NR_bpf},
+	{"bpf$MAP_LOOKUP_ELEM", __NR_bpf},
+	{"bpf$MAP_UPDATE_ELEM", __NR_bpf},
+	{"bpf$MAP_DELETE_ELEM", __NR_bpf},
+	{"bpf$MAP_GET_NEXT_KEY", __NR_bpf},
+	{"bpf$PROG_LOAD", __NR_bpf},
+	{"bpf$OBJ_PIN_MAP", __NR_bpf},
+	{"bpf$OBJ_PIN_PROG", __NR_bpf},
+	{"bpf$OBJ_GET_MAP", __NR_bpf},
+	{"bpf$OBJ_GET_PROG", __NR_bpf},
 };

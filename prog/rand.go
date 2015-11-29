@@ -227,7 +227,7 @@ func (r *randGen) randString(s *state) []byte {
 		"posix_acl_access", "mime_type", "md5sum", "nodev", "self",
 		"bdev", "proc", "cgroup", "cpuset",
 		"lo", "eth0", "eth1", "em0", "em1", "wlan0", "wlan1", "ppp0", "ppp1",
-		"vboxnet0", "vboxnet1", "vmnet0", "vmnet1"}
+		"vboxnet0", "vboxnet1", "vmnet0", "vmnet1", "GPL"}
 	punct := []byte{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '\\',
 		'/', ':', '.', ',', '-', '\'', '[', ']', '{', '}'}
 	buf := new(bytes.Buffer)
