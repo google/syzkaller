@@ -1,7 +1,6 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-#include "syscalls.h"
 #include <algorithm>
 #include <errno.h>
 #include <fcntl.h>
@@ -25,6 +24,8 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "syscalls.h"
 
 const int kInFd = 3;
 const int kOutFd = 4;
@@ -294,8 +295,7 @@ retry:
 		if (collide && (n % 2)) {
 			// Don't wait for every other call.
 			// We already have results from the previous execution.
-		}
-		else if (flag_threaded) {
+		} else if (flag_threaded) {
 			// Wait for call completion.
 			uint64_t start = current_time_ms();
 			uint64_t now = start;
@@ -326,8 +326,7 @@ retry:
 						handle_completion(th);
 				}
 			}
-		}
-		else {
+		} else {
 			// Execute directly.
 			if (th != &threads[0])
 				fail("using non-main thread in non-thread mode");
@@ -475,8 +474,7 @@ void execute_call(thread_t* th)
 			char buf[128];
 			sprintf(buf, "/dev/pts/%d", ptyno);
 			th->res = open(buf, th->args[1], 0);
-		}
-		else {
+		} else {
 			th->res = -1;
 		}
 	}
