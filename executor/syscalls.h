@@ -12,6 +12,9 @@ struct call_t {
 #ifndef __NR_bpf
 #define __NR_bpf 321
 #endif
+#ifndef __NR_userfaultfd
+#define __NR_userfaultfd 323
+#endif
 
 #define __NR_syz_openpts	1000001
 #define __NR_syz_dri_open	1000002
@@ -60,6 +63,13 @@ call_t syscalls[] = {
 	{"timerfd_create", __NR_timerfd_create},
 	{"timerfd_settime", __NR_timerfd_settime},
 	{"timerfd_gettime", __NR_timerfd_gettime},
+	{"userfaultfd", __NR_userfaultfd},
+	{"ioctl$UFFDIO_API", __NR_ioctl},
+	{"ioctl$UFFDIO_REGISTER", __NR_ioctl},
+	{"ioctl$UFFDIO_UNREGISTER", __NR_ioctl},
+	{"ioctl$UFFDIO_WAKE", __NR_ioctl},
+	{"ioctl$UFFDIO_COPY", __NR_ioctl},
+	{"ioctl$UFFDIO_ZEROPAGE", __NR_ioctl},
 	{"mmap", __NR_mmap},
 	{"munmap", __NR_munmap},
 	{"mremap", __NR_mremap},

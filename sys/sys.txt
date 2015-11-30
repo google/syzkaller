@@ -138,6 +138,14 @@ timerfd_create(clockid flags[clock_type], flags flags[timerfd_create_flags]) fd[
 timerfd_settime(fd fd[timer], flags flags[timerfd_settime_flags], new ptr[in, itimerspec], old ptr[out, itimerspec])
 timerfd_gettime(fd fd[timer], cur ptr[out, itimerspec])
 
+userfaultfd(flags flags[userfaultfd_flags]) fd[uffd]
+ioctl$UFFDIO_API(fd fd[uffd], cmd const[UFFDIO_API], arg ptr[in, uffdio_api])
+ioctl$UFFDIO_REGISTER(fd fd[uffd], cmd const[UFFDIO_REGISTER], arg ptr[in, uffdio_register])
+ioctl$UFFDIO_UNREGISTER(fd fd[uffd], cmd const[UFFDIO_UNREGISTER], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_WAKE(fd fd[uffd], cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_COPY(fd fd[uffd], cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_ZEROPAGE(fd fd[uffd], cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
+
 mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd[file, opt], offset fileoff[fd]) vma
 munmap(addr vma, len len[addr])
 mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma) vma
@@ -1127,6 +1135,37 @@ fiemap_extent {
 	pad4	int32
 }
 
+uffdio_api {
+	api	const[170, int64]
+	featur	const[0, int64]
+	ioctls	const[0, int64]
+}
+
+uffdio_range {
+	start	vma
+	len	len[start, int64]
+}
+
+uffdio_register {
+	range	uffdio_range
+	mode	flags[uffdio_register_mode, int64]
+	ioctls	const[0, int64]
+}
+
+uffdio_copy {
+	dst	vma
+	src	vma
+	len	len[dst, int64]
+	mode	flags[uffdio_copy_mode, int64]
+	copy	const[0, int64]
+}
+
+uffdio_zeropage {
+	range	uffdio_range
+	mode	flags[uffdio_zero_mode, int64]
+	zeropg	const[0, int64]
+}
+
 
 
 
@@ -1143,6 +1182,10 @@ mbind_mode = MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE, MPOL_PREFERRED, MPOL_F_ST
 mbind_flags = MPOL_MF_STRICT, MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
 memfd_flags = MFD_CLOEXEC, MFD_ALLOW_SEALING
 pipe_flags = O_NONBLOCK, O_CLOEXEC
+userfaultfd_flags = O_NONBLOCK, O_CLOEXEC
+uffdio_register_mode = UFFDIO_REGISTER_MODE_MISSING, UFFDIO_REGISTER_MODE_WP
+uffdio_copy_mode = UFFDIO_COPY_MODE_DONTWAKE
+uffdio_zero_mode = UFFDIO_ZEROPAGE_MODE_DONTWAKE
 mlockall_flags = MCL_CURRENT, MCL_FUTURE
 dup_flags = O_CLOEXEC
 splice_flags = SPLICE_F_MOVE, SPLICE_F_NONBLOCK, SPLICE_F_MORE, SPLICE_F_GIFT
@@ -1385,6 +1428,17 @@ define F_SEAL_SEAL		0x0001
 define F_SEAL_SHRINK		0x0002
 define F_SEAL_GROW		0x0004
 define F_SEAL_WRITE		0x0008
+
+define UFFDIO_API			_IOWR(0xAA, (0x3F), int)
+define UFFDIO_REGISTER			_IOWR(0xAA, (0x00), int)
+define UFFDIO_UNREGISTER		_IOR(0xAA, (0x01), int)
+define UFFDIO_WAKE			_IOR(0xAA, (0x02), int)
+define UFFDIO_COPY			_IOWR(0xAA, (0x03), int)
+define UFFDIO_ZEROPAGE			_IOWR(0xAA, (0x04), int)
+define UFFDIO_REGISTER_MODE_MISSING	(1<<0)
+define UFFDIO_REGISTER_MODE_WP		(1<<1)
+define UFFDIO_COPY_MODE_DONTWAKE	(1<<0)
+define UFFDIO_ZEROPAGE_MODE_DONTWAKE	(1<<0)
 
 
 

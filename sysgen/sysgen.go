@@ -338,6 +338,8 @@ func fmtFdKind(s string) string {
 		return "FdBpfProg"
 	case "perf":
 		return "FdPerf"
+	case "uffd":
+		return "FdUserFault"
 	default:
 		failf("bad fd type %v", s)
 		return ""
@@ -426,6 +428,9 @@ struct call_t {
 #endif
 #ifndef __NR_bpf
 #define __NR_bpf 321
+#endif
+#ifndef __NR_userfaultfd
+#define __NR_userfaultfd 323
 #endif
 
 #define __NR_syz_openpts	1000001

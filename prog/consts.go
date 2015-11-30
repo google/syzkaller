@@ -972,6 +972,16 @@ const (
 	TIOCSTI                              = 21522
 	TIOCSWINSZ                           = 21524
 	UDP_CORK                             = 1
+	UFFDIO_API                           = 3221531199
+	UFFDIO_COPY                          = 3221531139
+	UFFDIO_COPY_MODE_DONTWAKE            = 1
+	UFFDIO_REGISTER                      = 3221531136
+	UFFDIO_REGISTER_MODE_MISSING         = 1
+	UFFDIO_REGISTER_MODE_WP              = 2
+	UFFDIO_UNREGISTER                    = 2147789313
+	UFFDIO_WAKE                          = 2147789314
+	UFFDIO_ZEROPAGE                      = 3221531140
+	UFFDIO_ZEROPAGE_MODE_DONTWAKE        = 1
 	UMOUNT_NOFOLLOW                      = 8
 	VT_ACTIVATE                          = 22022
 	VT_DISALLOCATE                       = 22024
