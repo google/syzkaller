@@ -162,6 +162,7 @@ set_mempolicy(mode flags[mbind_mode], nodemask ptr[in, int64], maxnode intptr)
 get_mempolicy(mode ptr[out, int32], nodemask ptr[out, int64], maxnode intptr, addr vma, flags flags[mempolicy_flags])
 mincore(addr vma, size len[addr], vec buffer[out])
 mlock(addr vma, size len[addr])
+mlock2(addr vma, size len[addr], flags flags[mlock_flags])
 munlock(addr vma, size len[addr])
 mlockall(flags flags[mlockall_flags])
 munlockall()
@@ -515,6 +516,12 @@ times(buf ptr[out, tms])
 
 set_thread_area(info ptr[in, user_desc])
 get_thread_area(info ptr[in, user_desc])
+modify_ldt$read(func const[0], buf buffer[out], len len[buf])
+modify_ldt$write(func const[1], buf ptr[in, user_desc], len len[buf])
+modify_ldt$read_default(func const[2], buf buffer[out], len len[buf])
+modify_ldt$write2(func const[17], buf ptr[in, user_desc], len len[buf])
+process_vm_readv(pid pid, loc_vec ptr[in, array[iovec_out]], loc_vlen len[loc_vec], rem_vec ptr[in, array[iovec_out]], rem_vlen len[rem_vec], flags const[0])
+process_vm_writev(pid pid, loc_vec ptr[in, array[iovec_out]], loc_vlen len[loc_vec], rem_vec ptr[in, array[iovec_out]], rem_vlen len[rem_vec], flags const[0])
 set_tid_address(tidptr ptr[out, int32])
 getpriority(which flags[priority_which], who pid)
 setpriority(which flags[priority_which], who pid, prio intptr)
@@ -528,6 +535,9 @@ sched_setaffinity(pid pid, cpusetsize len[mask], mask ptr[in, int64])
 sched_getattr(pid pid, attr ptr[out, sched_attr], size len[attr], flags flags[sched_attr_flags])
 sched_setattr(pid pid, attr ptr[in, sched_attr], flags flags[sched_attr_flags])
 sched_yield()
+getrandom(buf buffer[out], len len[buf], flags flags[getrandom_flags])
+# Do only MEMBARRIER_CMD_SHARED
+membarrier(cmd const[1], flags const[0])
 
 
 
@@ -944,9 +954,11 @@ ustat {
 
 user_desc {
 	entry	int32
-	base	int32
-	limit	int32
+	base	vma
+	limit	len[base, int32]
 	flags	int8
+	pad	const[0, int8]
+	pad	const[0, int16]
 }
 
 sched_attr {
@@ -1186,6 +1198,7 @@ userfaultfd_flags = O_NONBLOCK, O_CLOEXEC
 uffdio_register_mode = UFFDIO_REGISTER_MODE_MISSING, UFFDIO_REGISTER_MODE_WP
 uffdio_copy_mode = UFFDIO_COPY_MODE_DONTWAKE
 uffdio_zero_mode = UFFDIO_ZEROPAGE_MODE_DONTWAKE
+mlock_flags = MLOCK_ONFAULT
 mlockall_flags = MCL_CURRENT, MCL_FUTURE
 dup_flags = O_CLOEXEC
 splice_flags = SPLICE_F_MOVE, SPLICE_F_NONBLOCK, SPLICE_F_MORE, SPLICE_F_GIFT
@@ -1316,6 +1329,7 @@ ioctl_int_in = FIONBIO, FIOASYNC
 ioctl_int_out = FIOQSIZE, FIGETBSZ
 fiemap_flags = FIEMAP_FLAG_SYNC, FIEMAP_FLAG_XATTR, FIEMAP_FLAG_CACHE
 fiemap_extent_flags = FIEMAP_EXTENT_LAST, FIEMAP_EXTENT_UNKNOWN, FIEMAP_EXTENT_DELALLOC, FIEMAP_EXTENT_ENCODED, FIEMAP_EXTENT_DATA_ENCRYPTED, FIEMAP_EXTENT_NOT_ALIGNED, FIEMAP_EXTENT_DATA_INLINE, FIEMAP_EXTENT_DATA_TAIL, FIEMAP_EXTENT_UNWRITTEN, FIEMAP_EXTENT_MERGED, FIEMAP_EXTENT_SHARED
+getrandom_flags = GRND_NONBLOCK, GRND_RANDOM
 
 
 
@@ -1428,7 +1442,9 @@ define F_SEAL_SEAL		0x0001
 define F_SEAL_SHRINK		0x0002
 define F_SEAL_GROW		0x0004
 define F_SEAL_WRITE		0x0008
-
+define GRND_NONBLOCK		0x0001
+define GRND_RANDOM		0x0002
+define MLOCK_ONFAULT		0x01
 define UFFDIO_API			_IOWR(0xAA, (0x3F), int)
 define UFFDIO_REGISTER			_IOWR(0xAA, (0x00), int)
 define UFFDIO_UNREGISTER		_IOR(0xAA, (0x01), int)
@@ -1453,7 +1469,6 @@ define UFFDIO_ZEROPAGE_MODE_DONTWAKE	(1<<0)
 #define __NR_fchdir 81
 #define __NR_umask 95
 #define __NR_vhangup 153
-#define __NR_modify_ldt 154
 #define __NR__sysctl 156
 #define __NR_adjtimex 159
 #define __NR_chroot 161
@@ -1462,8 +1477,6 @@ define UFFDIO_ZEROPAGE_MODE_DONTWAKE	(1<<0)
 #define __NR_quotactl 179
 #define __NR_nfsservctl 180
 #define __NR_getcpu 309
-#define __NR_process_vm_readv 310
-#define __NR_process_vm_writev 311
 
 
 

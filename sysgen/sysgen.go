@@ -423,6 +423,9 @@ struct call_t {
 };
 
 // Note: this is x86_64 number
+#ifndef __NR_getrandom
+#define __NR_getrandom 318
+#endif
 #ifndef __NR_memfd_create
 #define __NR_memfd_create 319
 #endif
@@ -431,6 +434,12 @@ struct call_t {
 #endif
 #ifndef __NR_userfaultfd
 #define __NR_userfaultfd 323
+#endif
+#ifndef __NR_membarrier
+#define __NR_membarrier 324
+#endif
+#ifndef __NR_mlock2
+#define __NR_mlock2 325
 #endif
 
 #define __NR_syz_openpts	1000001

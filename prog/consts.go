@@ -204,6 +204,8 @@ const (
 	GIO_SCRNMAP                          = 19264
 	GIO_UNIMAP                           = 19302
 	GIO_UNISCRNMAP                       = 19305
+	GRND_NONBLOCK                        = 1
+	GRND_RANDOM                          = 2
 	HW_BREAKPOINT_EMPTY                  = 0
 	HW_BREAKPOINT_R                      = 1
 	HW_BREAKPOINT_W                      = 2
@@ -547,6 +549,7 @@ const (
 	MCL_FUTURE                           = 2
 	MFD_ALLOW_SEALING                    = 2
 	MFD_CLOEXEC                          = 1
+	MLOCK_ONFAULT                        = 1
 	MMAP_PAGE_ZERO                       = 1048576
 	MNT_DETACH                           = 2
 	MNT_EXPIRE                           = 4

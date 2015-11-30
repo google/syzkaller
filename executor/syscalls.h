@@ -6,6 +6,9 @@ struct call_t {
 };
 
 // Note: this is x86_64 number
+#ifndef __NR_getrandom
+#define __NR_getrandom 318
+#endif
 #ifndef __NR_memfd_create
 #define __NR_memfd_create 319
 #endif
@@ -14,6 +17,12 @@ struct call_t {
 #endif
 #ifndef __NR_userfaultfd
 #define __NR_userfaultfd 323
+#endif
+#ifndef __NR_membarrier
+#define __NR_membarrier 324
+#endif
+#ifndef __NR_mlock2
+#define __NR_mlock2 325
 #endif
 
 #define __NR_syz_openpts	1000001
@@ -86,6 +95,7 @@ call_t syscalls[] = {
 	{"get_mempolicy", __NR_get_mempolicy},
 	{"mincore", __NR_mincore},
 	{"mlock", __NR_mlock},
+	{"mlock2", __NR_mlock2},
 	{"munlock", __NR_munlock},
 	{"mlockall", __NR_mlockall},
 	{"munlockall", __NR_munlockall},
@@ -399,6 +409,12 @@ call_t syscalls[] = {
 	{"times", __NR_times},
 	{"set_thread_area", __NR_set_thread_area},
 	{"get_thread_area", __NR_get_thread_area},
+	{"modify_ldt$read", __NR_modify_ldt},
+	{"modify_ldt$write", __NR_modify_ldt},
+	{"modify_ldt$read_default", __NR_modify_ldt},
+	{"modify_ldt$write2", __NR_modify_ldt},
+	{"process_vm_readv", __NR_process_vm_readv},
+	{"process_vm_writev", __NR_process_vm_writev},
 	{"set_tid_address", __NR_set_tid_address},
 	{"getpriority", __NR_getpriority},
 	{"setpriority", __NR_setpriority},
@@ -412,6 +428,8 @@ call_t syscalls[] = {
 	{"sched_getattr", __NR_sched_getattr},
 	{"sched_setattr", __NR_sched_setattr},
 	{"sched_yield", __NR_sched_yield},
+	{"getrandom", __NR_getrandom},
+	{"membarrier", __NR_membarrier},
 	{"ioctl$kdbus_bus_make", __NR_ioctl},
 	{"ioctl$kdbus_ep_make", __NR_ioctl},
 	{"ioctl$kdbus_ep_update", __NR_ioctl},
