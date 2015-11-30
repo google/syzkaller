@@ -347,6 +347,8 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 	// Figure out whether we need root privs for this call.
 	bool root = false;
 	switch (syscalls[call_num].sys_nr) {
+	case __NR_mount:
+	case __NR_umount2:
 	case __NR_syz_fuse_mount:
 	case __NR_syz_fuseblk_mount:
 		root = true;
