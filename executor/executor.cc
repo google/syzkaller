@@ -27,6 +27,11 @@
 
 #include "syscalls.h"
 
+#define KCOV_INIT_TRACE _IOR('c', 1, unsigned long)
+#define KCOV_INIT_TABLE _IOR('c', 2, unsigned long)
+#define KCOV_ENABLE _IO('c', 100)
+#define KCOV_DISABLE _IO('c', 101)
+
 const int kInFd = 3;
 const int kOutFd = 4;
 const int kInPipeFd = 5;
@@ -295,7 +300,8 @@ retry:
 		if (collide && (n % 2)) {
 			// Don't wait for every other call.
 			// We already have results from the previous execution.
-		} else if (flag_threaded) {
+		}
+		else if (flag_threaded) {
 			// Wait for call completion.
 			uint64_t start = current_time_ms();
 			uint64_t now = start;
@@ -326,7 +332,8 @@ retry:
 						handle_completion(th);
 				}
 			}
-		} else {
+		}
+		else {
 			// Execute directly.
 			if (th != &threads[0])
 				fail("using non-main thread in non-thread mode");
@@ -476,7 +483,8 @@ void execute_call(thread_t* th)
 			char buf[128];
 			sprintf(buf, "/dev/pts/%d", ptyno);
 			th->res = open(buf, th->args[1], 0);
-		} else {
+		}
+		else {
 			th->res = -1;
 		}
 	}
@@ -561,10 +569,7 @@ void cover_open()
 		th->cover_fd = open("/sys/kernel/debug/kcov", O_RDWR);
 		if (th->cover_fd == -1)
 			fail("open of /sys/kernel/debug/kcov failed");
-		char cmd[64];
-		sprintf(cmd, "trace=%d", kCoverSize);
-		int n = write(th->cover_fd, cmd, strlen(cmd));
-		if (n != (int)strlen(cmd))
+		if (ioctl(th->cover_fd, KCOV_INIT_TRACE, kCoverSize))
 			fail("cover enable write failed");
 		th->cover_data = (uint32_t*)mmap(NULL, kCoverSize * sizeof(th->cover_data[0]), PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
 		if ((void*)th->cover_data == MAP_FAILED)
@@ -577,9 +582,7 @@ void cover_enable(thread_t* th)
 	if (!flag_cover)
 		return;
 	debug("#%d: enabling /sys/kernel/debug/kcov\n", th->id);
-	const char* cmd = "enable";
-	int n = write(th->cover_fd, cmd, strlen(cmd));
-	if (n != (int)strlen(cmd))
+	if (ioctl(th->cover_fd, KCOV_ENABLE, 0))
 		fail("cover enable write failed");
 	debug("#%d: enabled /sys/kernel/debug/kcov\n", th->id);
 }
