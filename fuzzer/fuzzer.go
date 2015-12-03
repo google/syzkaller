@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/cover"
@@ -39,6 +40,7 @@ var (
 	flagNoCover   = flag.Bool("nocover", false, "disable coverage collection/handling")
 	flagDropPrivs = flag.Bool("dropprivs", true, "impersonate into nobody")
 	flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
+	flagLeak      = flag.Bool("leak", false, "detect memory leaks")
 	flagV         = flag.Int("v", 0, "verbosity")
 )
 
@@ -82,6 +84,8 @@ var (
 	statExecTriage    uint64
 	statExecMinimize  uint64
 	statNewInput      uint64
+
+	allTriaged uint32
 )
 
 func main() {
@@ -116,6 +120,8 @@ func main() {
 	}
 	ct := prog.BuildChoiceTable(r.Prios, calls)
 
+	kmemleakInit()
+
 	flags := ipc.FlagThreaded | ipc.FlagCollide
 	if *flagStrace {
 		flags |= ipc.FlagStrace
@@ -141,7 +147,7 @@ func main() {
 
 		pid := pid
 		go func() {
-			rs := rand.NewSource(time.Now().UnixNano())
+			rs := rand.NewSource(time.Now().UnixNano() + int64(pid)*1e12)
 			rnd := rand.New(rs)
 
 			for i := 0; ; i++ {
@@ -243,6 +249,14 @@ func main() {
 					triageMu.Lock()
 					candidates = append(candidates, p)
 					triageMu.Unlock()
+				}
+			}
+			if len(r.Candidates) == 0 {
+				if atomic.LoadUint32(&allTriaged) == 0 {
+					if *flagLeak {
+						kmemleakScan(false)
+					}
+					atomic.StoreUint32(&allTriaged, 1)
 				}
 			}
 			if len(r.NewInputs) == 0 && len(r.Candidates) == 0 {
@@ -425,6 +439,12 @@ func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
 retry:
 	atomic.AddUint64(stat, 1)
 	output, strace, rawCover, failed, hanged, err := env.Exec(p)
+	if failed {
+		// BUG in output should be recognized by manager.
+		logf(0, "BUG: executor-detected bug:\n%s", output)
+		// Don't return any cover so that the input is not added to corpus.
+		return make([]cover.Cover, len(p.Calls))
+	}
 	if err != nil {
 		if try > 10 {
 			panic(err)
@@ -484,9 +504,55 @@ func (g *Gate) Leave(idx int) {
 	if !g.busy[idx] {
 		panic("broken gate")
 	}
+	if idx == 0 && *flagLeak && atomic.LoadUint32(&allTriaged) != 0 {
+		// Scan for leaks once in a while (it is damn slow).
+		kmemleakScan(true)
+	}
 	g.busy[idx] = false
 	if idx == g.pos {
 		g.cv.Broadcast()
 	}
 	g.cv.L.Unlock()
+}
+
+func kmemleakInit() {
+	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
+	if err != nil {
+		if !*flagLeak {
+			panic(err)
+		}
+	}
+	defer syscall.Close(fd)
+	if _, err := syscall.Write(fd, []byte("scan=off")); err != nil {
+		panic(err)
+	}
+}
+
+var kmemleakBuf []byte
+
+func kmemleakScan(report bool) {
+	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
+	if err != nil {
+		panic(err)
+	}
+	defer syscall.Close(fd)
+	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
+		panic(err)
+	}
+	if report {
+		if kmemleakBuf == nil {
+			kmemleakBuf = make([]byte, 128<<10)
+		}
+		n, err := syscall.Read(fd, kmemleakBuf)
+		if err != nil {
+			panic(err)
+		}
+		if n != 0 {
+			// BUG in output should be recognized by manager.
+			logf(0, "BUG: memory leak:\n%s\n", kmemleakBuf[:n])
+		}
+	}
+	if _, err := syscall.Write(fd, []byte("clear")); err != nil {
+		panic(err)
+	}
 }

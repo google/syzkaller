@@ -19,6 +19,7 @@ type Config struct {
 	EnabledSyscalls string
 	Suppressions    []*regexp.Regexp
 	NoCover         bool
+	Leak            bool
 	Procs           int
 }
 
