@@ -25,12 +25,8 @@ Setting each of these up is discussed in the following sections.
 ### C Compiler
 
 Syzkaller is a coverage-guided fuzzer and so needs the kernel to be built with coverage support.
-Currently, the Linux kernel only builds with [GCC](https://gcc.gnu.org/), and coverage support
-has not yet been upstreamed into it.
-
-Therefore, a recent upstream version of GCC is needed (revision 228818) and needs to have
-[this patch](https://codereview.appspot.com/267910043) applied.
-
+Therefore, a recent upstream version of GCC is needed. Coverage support is submitted to gcc in
+revision 231296. Sync past it and build fresh gcc.
 
 ### Linux Kernel
 
@@ -40,7 +36,7 @@ to:
  - add extra instrumentation on system call entry/exit (for a `CONFIG_SANCOV` build)
  - add code to track and report per-task coverage information.
 
-This is all implemented in [this coverage patch](https://github.com/dvyukov/linux/commits/coverage);
+This is all implemented in [this coverage patch](https://github.com/dvyukov/linux/commits/kcov);
 once the patch is applied, the kernel should be configured with `CONFIG_SANCOV` plus `CONFIG_KASAN`
 or `CONFIG_KTSAN`.
 
@@ -85,8 +81,10 @@ following keys in its top-level object:
  - `vmlinux`: Location of the `vmlinux` file that corresponds to the kernel being tested.
  - `type`: Type of virtual machine to use, e.g. `qemu`.
  - `count`: Number of VMs to run in parallel.
+ - `procs`: Number of parallel test processes in each VM (4 or 8 would be a reasonable number).
  - `port`: Port that the manager process listens on for communications from the
    fuzzer processes running in the VMs.
+ - `leak`: Detect memory leaks with kmemleak (very slow).
  - `params`: A JSON object containing VM configuation, specific to the particular `type` of VM. For
    `qemu` VMs, this configuration includes:
       - `kernel`: Location of the `bzImage` file for the kernel to be tested; this is passed as the
@@ -106,6 +104,7 @@ following keys in its top-level object:
         `qemu-system-x86_64`.
  - `enable_syscalls`: List of syscalls to test (optional).
  - `disable_syscalls`: List of system calls that should be treated as disabled (optional).
+ - `suppressions`: List of regexps for known bugs.
 
 
 ## Running syzkaller
