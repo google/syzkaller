@@ -242,7 +242,7 @@ func (inst *Instance) Run() {
 	lastOutput := time.Now()
 	lastOutputLen := 0
 	matchPos := 0
-	crashRe := regexp.MustCompile("\\[ cut here \\]|Kernel panic| BUG: | WARNING: | INFO: |unable to handle kernel NULL pointer dereference|general protection fault")
+	crashRe := regexp.MustCompile("\\[ cut here \\]|Kernel panic| BUG: | WARNING: | INFO: |unable to handle kernel NULL pointer dereference|general protection fault|UBSAN:")
 	const contextSize = 64 << 10
 	for range time.NewTicker(5 * time.Second).C {
 		outputMu.Lock()

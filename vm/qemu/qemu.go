@@ -279,7 +279,7 @@ func (inst *Instance) Run() {
 	lastOutput := time.Now()
 	lastOutputLen := 0
 	matchPos := 0
-	crashRe := regexp.MustCompile("\\[ cut here \\]|Kernel panic| BUG: | WARNING: | INFO: |unable to handle kernel NULL pointer dereference|general protection fault")
+	crashRe := regexp.MustCompile("\\[ cut here \\]|Kernel panic| BUG: | WARNING: | INFO: |unable to handle kernel NULL pointer dereference|general protection fault|UBSAN:")
 	const (
 		beforeContext = 256 << 10
 		afterContext  = 64 << 10
