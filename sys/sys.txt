@@ -71,6 +71,7 @@ include <linux/vt.h>
 include <linux/fuse.h>
 include <linux/perf_event.h>
 include <linux/hw_breakpoint.h>
+include <linux/if_alg.h>
 
 include <asm/prctl.h>
 
@@ -2564,3 +2565,113 @@ perf_event_attr {
 
 define PERF_FLAG_FD_CLOEXEC		(1UL << 3)
 define PERF_EVENT_IOC_SET_BPF		_IOW('$', 8, __u32)
+
+
+
+
+# PF_ALG support.
+
+socket$alg(domain const[AF_ALG], type const[SOCK_SEQPACKET], proto const[0]) fd[alg]
+bind$alg(fd fd[alg], addr ptr[in, sockaddr_alg], addrlen len[addr])
+setsockopt$ALG_SET_KEY(fd fd[alg], level const[SOL_ALG], opt const[ALG_SET_KEY], key buffer[in], keylen len[key])
+setsockopt$ALG_SET_AEAD_AUTHSIZE(fd fd[alg], level const[SOL_ALG], opt const[ALG_SET_AEAD_AUTHSIZE], val const[0], size intptr)
+accept$alg(fd fd[alg], peer ptr[out, sockaddr_alg, opt], peerlen ptr[inout, len[peer, int32]]) fd[algconn]
+sendmsg$alg(fd fd[algconn], msg ptr[in, alg_send_msghdr], f flags[send_flags])
+sendmmsg$alg(fd fd[algconn], mmsg ptr[in, array[alg_send_msghdr]], vlen len[mmsg], f flags[send_flags])
+recvmsg$alg(fd fd[algconn], msg ptr[in, alg_recv_msghdr], f flags[recv_flags])
+recvmmsg$alg(fd fd[algconn], mmsg ptr[in, array[alg_recv_msghdr]], vlen len[mmsg], f flags[recv_flags])
+
+sockaddr_alg {
+	family	const[AF_ALG, int16]
+	type	salg_type
+	feat	flags[af_alg_type, int32]
+	mask	flags[af_alg_type, int32]
+	name	salg_name
+}
+
+alg_send_msghdr {
+	addr	const[0, intptr]
+	addrlen	const[0, int32]
+	pad	int32
+	vec	ptr[in, array[iovec_in]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, alg_cmsghdr, opt]
+	ctrllen	len[ctrl, intptr]
+	f	flags[send_flags, int32]
+	pad	int32
+}
+
+alg_recv_msghdr {
+	addr	const[0, intptr]
+	addrlen	const[0, int32]
+	pad	int32
+	vec	ptr[in, array[iovec_out]]
+	vlen	len[vec, intptr]
+	ctrl	buffer[out]
+	ctrllen	len[ctrl, intptr]
+	f	int32
+	pad	int32
+}
+
+alg_cmsghdr {
+	iv	alg_cmsghdr_iv
+	op	alg_cmsghdr_op
+	assoc	alg_cmsghdr_assoc
+}
+
+alg_cmsghdr_iv {
+	len	len[parent, intptr]
+	level	const[SOL_ALG, int32]
+	type	const[ALG_SET_IV, int32]
+	ivlen	len[iv, int32]
+	iv	array[int8]
+}
+
+alg_cmsghdr_op {
+	len	len[parent, intptr]
+	level	const[SOL_ALG, int32]
+	type	const[ALG_SET_OP, int32]
+	op	int32
+}
+
+alg_cmsghdr_assoc {
+	len	len[parent, intptr]
+	level	const[SOL_ALG, int32]
+	type	const[ALG_SET_AEAD_ASSOCLEN, int32]
+	assoc	int32
+}
+
+af_alg_type = CRYPTO_ALG_TYPE_MASK, CRYPTO_ALG_TYPE_CIPHER, CRYPTO_ALG_TYPE_COMPRESS, CRYPTO_ALG_TYPE_AEAD, CRYPTO_ALG_TYPE_BLKCIPHER, CRYPTO_ALG_TYPE_ABLKCIPHER, CRYPTO_ALG_TYPE_GIVCIPHER, CRYPTO_ALG_TYPE_DIGEST, CRYPTO_ALG_TYPE_HASH, CRYPTO_ALG_TYPE_SHASH, CRYPTO_ALG_TYPE_AHASH, CRYPTO_ALG_TYPE_RNG, CRYPTO_ALG_TYPE_AKCIPHER, CRYPTO_ALG_TYPE_PCOMPRESS, CRYPTO_ALG_LARVAL, CRYPTO_ALG_DEAD, CRYPTO_ALG_DYING, CRYPTO_ALG_ASYNC, CRYPTO_ALG_NEED_FALLBACK, CRYPTO_ALG_GENIV, CRYPTO_ALG_TESTED, CRYPTO_ALG_INSTANCE, CRYPTO_ALG_KERN_DRIVER_ONLY, CRYPTO_ALG_INTERNAL
+
+define CRYPTO_ALG_TYPE_MASK		0x0000000f
+define CRYPTO_ALG_TYPE_CIPHER		0x00000001
+define CRYPTO_ALG_TYPE_COMPRESS		0x00000002
+define CRYPTO_ALG_TYPE_AEAD		0x00000003
+define CRYPTO_ALG_TYPE_BLKCIPHER	0x00000004
+define CRYPTO_ALG_TYPE_ABLKCIPHER	0x00000005
+define CRYPTO_ALG_TYPE_GIVCIPHER	0x00000006
+define CRYPTO_ALG_TYPE_DIGEST		0x00000008
+define CRYPTO_ALG_TYPE_HASH		0x00000008
+define CRYPTO_ALG_TYPE_SHASH		0x00000009
+define CRYPTO_ALG_TYPE_AHASH		0x0000000a
+define CRYPTO_ALG_TYPE_RNG		0x0000000c
+define CRYPTO_ALG_TYPE_AKCIPHER		0x0000000d
+define CRYPTO_ALG_TYPE_PCOMPRESS	0x0000000f
+define CRYPTO_ALG_LARVAL		0x00000010
+define CRYPTO_ALG_DEAD			0x00000020
+define CRYPTO_ALG_DYING			0x00000040
+define CRYPTO_ALG_ASYNC			0x00000080
+define CRYPTO_ALG_NEED_FALLBACK		0x00000100
+define CRYPTO_ALG_GENIV			0x00000200
+define CRYPTO_ALG_TESTED		0x00000400
+define CRYPTO_ALG_INSTANCE		0x00000800
+define CRYPTO_ALG_KERN_DRIVER_ONLY	0x00001000
+define CRYPTO_ALG_INTERNAL		0x00002000
+define ALG_SET_KEY			1
+define ALG_SET_IV			2
+define ALG_SET_OP			3
+define ALG_SET_AEAD_ASSOCLEN		4
+define ALG_SET_AEAD_AUTHSIZE		5
+#define AF_ALG				38
+define SOL_ALG				279
+

@@ -84,6 +84,10 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							arg.Data = r.filesystem(s)
 						case sys.BufferSockaddr:
 							arg.Data = r.sockaddr(s)
+						case sys.BufferAlgType:
+							arg.Data = r.algType(s)
+						case sys.BufferAlgName:
+							arg.Data = r.algName(s)
 						default:
 							panic("unknown buffer kind")
 						}

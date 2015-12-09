@@ -180,6 +180,16 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
 		fmt.Fprintf(out, "BufferType{%v, Kind: BufferSockaddr}", common())
+	case "salg_type":
+		if want := 0; len(a) != want {
+			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		}
+		fmt.Fprintf(out, "BufferType{%v, Kind: BufferAlgType}", common())
+	case "salg_name":
+		if want := 0; len(a) != want {
+			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		}
+		fmt.Fprintf(out, "BufferType{%v, Kind: BufferAlgName}", common())
 	case "vma":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -340,6 +350,10 @@ func fmtFdKind(s string) string {
 		return "FdPerf"
 	case "uffd":
 		return "FdUserFault"
+	case "alg":
+		return "FdAlg"
+	case "algconn":
+		return "FdAlgConn"
 	default:
 		failf("bad fd type %v", s)
 		return ""

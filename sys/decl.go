@@ -77,6 +77,8 @@ const (
 	FdBpfProg
 	FdPerf
 	FdUserFault
+	FdAlg
+	FdAlgConn
 
 	IPCMsq
 	IPCSem
@@ -176,7 +178,8 @@ func (t ResourceType) SubKinds() []ResourceSubkind {
 	case ResFD:
 		return []ResourceSubkind{FdFile, FdSock, FdPipe, FdSignal, FdEvent,
 			FdTimer, FdEpoll, FdDir, FdMq, FdInotify, FdFanotify, FdTty,
-			FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg, FdPerf, FdUserFault}
+			FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg, FdPerf, FdUserFault,
+			FdAlg, FdAlgConn}
 	case ResIPC:
 		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
 	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid:
@@ -199,6 +202,8 @@ const (
 	BufferString
 	BufferSockaddr
 	BufferFilesystem
+	BufferAlgType
+	BufferAlgName
 )
 
 type BufferType struct {

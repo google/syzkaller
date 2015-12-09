@@ -61,8 +61,13 @@ func (c *Call) validate(ctx *validCtx) error {
 			return fmt.Errorf("syscall %v: arg '%v' type mismatch", c.Meta.Name, typ.Name())
 		}
 		if arg.Dir == DirOut {
-			if arg.Val != 0 || arg.AddrPage != 0 || arg.AddrOffset != 0 || len(arg.Data) != 0 {
+			if arg.Val != 0 || arg.AddrPage != 0 || arg.AddrOffset != 0 {
 				return fmt.Errorf("syscall %v: output arg '%v' has data", c.Meta.Name, typ.Name())
+			}
+			for _, v := range arg.Data {
+				if v != 0 {
+					return fmt.Errorf("syscall %v: output arg '%v' has data", c.Meta.Name, typ.Name())
+				}
 			}
 		}
 		switch arg.Type.(type) {

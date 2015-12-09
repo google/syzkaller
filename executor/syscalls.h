@@ -586,4 +586,13 @@ call_t syscalls[] = {
 	{"ioctl$PERF_EVENT_IOC_SET_OUTPUT", __NR_ioctl},
 	{"ioctl$PERF_EVENT_IOC_SET_FILTER", __NR_ioctl},
 	{"ioctl$PERF_EVENT_IOC_SET_BPF", __NR_ioctl},
+	{"socket$alg", __NR_socket},
+	{"bind$alg", __NR_bind},
+	{"setsockopt$ALG_SET_KEY", __NR_setsockopt},
+	{"setsockopt$ALG_SET_AEAD_AUTHSIZE", __NR_setsockopt},
+	{"accept$alg", __NR_accept},
+	{"sendmsg$alg", __NR_sendmsg},
+	{"sendmmsg$alg", __NR_sendmmsg},
+	{"recvmsg$alg", __NR_recvmsg},
+	{"recvmmsg$alg", __NR_recvmmsg},
 };
