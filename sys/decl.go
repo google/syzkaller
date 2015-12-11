@@ -83,6 +83,8 @@ const (
 	FdUserFault
 	FdAlg
 	FdAlgConn
+	FdNfcRaw
+	FdNfcLlcp
 
 	IPCMsq
 	IPCSem
@@ -187,7 +189,7 @@ func (t ResourceType) SubKinds() []ResourceSubkind {
 		return []ResourceSubkind{FdFile, FdSock, FdPipe, FdSignal, FdEvent,
 			FdTimer, FdEpoll, FdDir, FdMq, FdInotify, FdFanotify, FdTty,
 			FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg, FdPerf, FdUserFault,
-			FdAlg, FdAlgConn}
+			FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp}
 	case ResIPC:
 		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
 	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid:

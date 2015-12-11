@@ -15,6 +15,7 @@ const (
 	AF_IPX                               = 4
 	AF_LOCAL                             = 1
 	AF_NETLINK                           = 16
+	AF_NFC                               = 39
 	AF_PACKET                            = 17
 	AF_X25                               = 9
 	ALG_SET_AEAD_ASSOCLEN                = 4
@@ -635,6 +636,20 @@ const (
 	MS_STRICTATIME                       = 16777216
 	MS_SYNC                              = 4
 	MS_SYNCHRONOUS                       = 16
+	NFC_LLCP_MIUX                        = 1
+	NFC_LLCP_REMOTE_LTO                  = 3
+	NFC_LLCP_REMOTE_MIU                  = 2
+	NFC_LLCP_REMOTE_RW                   = 4
+	NFC_LLCP_RW                          = 0
+	NFC_PROTO_FELICA                     = 3
+	NFC_PROTO_ISO14443                   = 4
+	NFC_PROTO_ISO14443_B                 = 6
+	NFC_PROTO_ISO15693                   = 7
+	NFC_PROTO_JEWEL                      = 1
+	NFC_PROTO_MIFARE                     = 2
+	NFC_PROTO_NFC_DEP                    = 5
+	NFC_SOCKPROTO_LLCP                   = 1
+	NFC_SOCKPROTO_RAW                    = 0
 	NT_386_IOPERM                        = 513
 	NT_386_TLS                           = 512
 	NT_AUXV                              = 6
@@ -880,6 +895,7 @@ const (
 	SOCK_SEQPACKET                       = 5
 	SOCK_STREAM                          = 1
 	SOL_ALG                              = 279
+	SOL_NFC                              = 280
 	SOL_SOCKET                           = 1
 	SO_ACCEPTCONN                        = 30
 	SO_ATTACH_BPF                        = 50

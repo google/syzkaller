@@ -72,6 +72,7 @@ include <linux/fuse.h>
 include <linux/perf_event.h>
 include <linux/hw_breakpoint.h>
 include <linux/if_alg.h>
+include <linux/nfc.h>
 
 include <asm/prctl.h>
 
@@ -2651,4 +2652,85 @@ define ALG_SET_AEAD_ASSOCLEN		4
 define ALG_SET_AEAD_AUTHSIZE		5
 #define AF_ALG				38
 define SOL_ALG				279
+
+
+
+
+# PF_KEY support.
+
+# See net/key/af_key.c, requires root.
+# socket$key(domain const[AF_KEY], type const[SOCK_RAW], proto const[PF_KEY_V2]) fd[key]
+
+
+
+
+# PF_NFC support.
+
+socket$nfc_llcp(domain const[AF_NFC], type flags[nfc_llcp_type], proto const[NFC_SOCKPROTO_LLCP]) fd[nfc_llcp]
+bind$nfc_llcp(fd fd[nfc_llcp], addr ptr[in, sockaddr_nfc_llcp], addrlen len[addr])
+connect$nfc_llcp(fd fd[nfc_llcp], addr ptr[in, sockaddr_nfc_llcp], addrlen len[addr])
+accept$nfc_llcp(fd fd[nfc_llcp], peer ptr[out, sockaddr_nfc_llcp, opt], peerlen ptr[inout, len[peer, int32]]) fd[nfc_llcp]
+setsockopt$NFC_LLCP_RW(fd fd[nfc_llcp], level const[SOL_NFC], opt const[NFC_LLCP_RW], arg ptr[in, int32], arglen len[arg])
+setsockopt$NFC_LLCP_MIUX(fd fd[nfc_llcp], level const[SOL_NFC], opt const[NFC_LLCP_MIUX], arg ptr[in, int32], arglen len[arg])
+getsockopt$nfc_llcp(fd fd[nfc_llcp], level const[SOL_NFC], opt flags[nfc_llcp_opts], arg buffer[out], arglen len[arg])
+sendmsg$nfc_llcp(fd fd[nfc_llcp], msg ptr[in, nfc_llcp_send_msghdr], f flags[send_flags])
+sendmmsg$nfc_llcp(fd fd[nfc_llcp], mmsg ptr[in, array[nfc_llcp_send_msghdr]], vlen len[mmsg], f flags[send_flags])
+
+socket$nfc_raw(domain const[AF_NFC], type flags[nfc_raw_type], proto const[NFC_SOCKPROTO_RAW]) fd[nfc_raw]
+connect$nfc_raw(fd fd[nfc_raw], addr ptr[in, sockaddr_nfc], addrlen len[addr])
+
+nfc_llcp_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW
+nfc_raw_type = SOCK_STREAM, SOCK_RAW
+nfc_proto = NFC_PROTO_JEWEL, NFC_PROTO_MIFARE, NFC_PROTO_FELICA, NFC_PROTO_ISO14443, NFC_PROTO_NFC_DEP, NFC_PROTO_ISO14443_B, NFC_PROTO_ISO15693
+nfc_llcp_opts = NFC_LLCP_RW, NFC_LLCP_MIUX, NFC_LLCP_REMOTE_MIU, NFC_LLCP_REMOTE_LTO, NFC_LLCP_REMOTE_RW
+
+sockaddr_nfc_llcp {
+	family	const[AF_NFC, int16]
+	devidx	int32
+	target	int32
+	proto	flags[nfc_proto, int32]
+	dsap	int8
+	ssap	int8
+# TODO: need fixed-length arrays
+# char service_name[63]
+	serv0	int8
+	serv1	int8
+	serv2	int32
+	serv3	int32
+	serv4	int32
+	serv5	int32
+	serv6	int32
+	serv7	int32
+	serv8	int32
+	serv9	int32
+	serv10	int32
+	serv11	int32
+	serv12	int32
+	serv13	int32
+	serv14	int32
+	serv15	int32
+	serv16	int32
+	serv17	int8
+	servlen	intptr
+}
+
+sockaddr_nfc {
+	family	const[AF_NFC, int16]
+	dev	int32
+	targ	int32
+	proto	flags[nfc_proto, int32]
+}
+
+nfc_llcp_send_msghdr {
+	addr	ptr[in, sockaddr_nfc_llcp]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_in]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, cmsghdr]
+	ctrllen	len[ctrl, intptr]
+	f	flags[send_flags, int32]
+}
+
+define SOL_NFC			280
+define NFC_PROTO_ISO15693	7
 

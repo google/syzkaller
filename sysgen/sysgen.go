@@ -355,6 +355,10 @@ func fmtFdKind(s string) string {
 		return "FdAlg"
 	case "algconn":
 		return "FdAlgConn"
+	case "nfc_raw":
+		return "FdNfcRaw"
+	case "nfc_llcp":
+		return "FdNfcLlcp"
 	default:
 		failf("bad fd type %v", s)
 		return ""
