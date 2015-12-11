@@ -413,6 +413,7 @@ var (
 )
 
 func init() {
+	initCalls()
 	var rec func(t Type) Type
 	rec = func(t Type) Type {
 		switch t1 := t.(type) {
