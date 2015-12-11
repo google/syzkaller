@@ -37,7 +37,7 @@ const int kOutFd = 4;
 const int kInPipeFd = 5;
 const int kOutPipeFd = 6;
 const int kCoverFd = 5;
-const int kMaxInput = 1 << 20;
+const int kMaxInput = 2 << 20;
 const int kMaxOutput = 16 << 20;
 const int kMaxArgs = 9;
 const int kMaxThreads = 16;
@@ -47,6 +47,8 @@ const int kCoverSize = 16 << 10;
 const uint64_t instr_eof = -1;
 const uint64_t instr_copyin = -2;
 const uint64_t instr_copyout = -3;
+const uint64_t instr_set_pad = -4;
+const uint64_t instr_check_pad = -5;
 
 const uint64_t arg_const = 0;
 const uint64_t arg_result = 1;
@@ -283,6 +285,17 @@ retry:
 			// The copyout will happen when/if the call completes.
 			continue;
 		}
+		if (call_num == instr_set_pad) {
+			char* addr = (char*)read_input(&input_pos); // addr
+			uint64_t size = read_input(&input_pos);     // size
+			memset(addr, 0, size);
+			continue;
+		}
+		if (call_num == instr_check_pad) {
+			read_input(&input_pos); // addr
+			read_input(&input_pos); // size
+			continue;
+		}
 
 		// Normal syscall.
 		if (call_num >= sizeof(syscalls) / sizeof(syscalls[0]))
@@ -401,23 +414,69 @@ void handle_completion(thread_t* th)
 	if (th->ready || !th->done || th->handled)
 		fail("bad thread state in completion: ready=%d done=%d handled=%d",
 		     th->ready, th->done, th->handled);
+	uint64_t* copyout_pos = th->copyout_pos;
 	if (th->res != (uint64_t)-1) {
 		results[th->call_n].executed = true;
 		results[th->call_n].val = th->res;
-		for (;;) {
+		for (bool done = false; !done;) {
 			th->call_n++;
 			uint64_t call_num = read_input(&th->copyout_pos);
-			if (call_num != instr_copyout)
+			switch (call_num) {
+			case instr_copyout: {
+				char* addr = (char*)read_input(&th->copyout_pos);
+				uint64_t size = read_input(&th->copyout_pos);
+				uint64_t val = copyout(addr, size);
+				results[th->call_n].executed = true;
+				results[th->call_n].val = val;
+				debug("copyout from %p\n", addr);
 				break;
-			char* addr = (char*)read_input(&th->copyout_pos);
-			uint64_t size = read_input(&th->copyout_pos);
-			uint64_t val = copyout(addr, size);
-			results[th->call_n].executed = true;
-			results[th->call_n].val = val;
-			debug("copyout from %p\n", addr);
+			}
+			case instr_check_pad: {
+				// Ignore for now, we will process them below.
+				read_input(&th->copyout_pos);
+				read_input(&th->copyout_pos);
+				break;
+			}
+			default:
+				done = true;
+				break;
+			}
 		}
 	}
 	if (!collide) {
+		th->copyout_pos = copyout_pos;
+		for (bool done = false; !done;) {
+			uint64_t call_num = read_input(&th->copyout_pos);
+			switch (call_num) {
+			case instr_copyout: {
+				// Ignore, this is already handled above.
+				read_input(&th->copyout_pos);
+				read_input(&th->copyout_pos);
+				break;
+			}
+			case instr_check_pad: {
+				// Check that kernel returns zeros in struct padding.
+				// Non-zeros can mean an information leak.
+				char* addr = (char*)read_input(&th->copyout_pos);
+				uint64_t size = read_input(&th->copyout_pos);
+				for (uint64_t i = 0; i < size; i++) {
+					if (addr[i] != 0) {
+						printf("syscall '%s' (index %d): non-zero padding output at %p:",
+						       syscalls[th->call_num].name, th->call_index, addr);
+						for (i = 0; i < size; i++)
+							printf(" %02x", addr[i]);
+						printf("\n");
+						error("non-zero padding");
+					}
+				}
+				break;
+			}
+			default:
+				done = true;
+				break;
+			}
+		}
+
 		write_output(th->call_index);
 		write_output(th->call_num);
 		write_output(th->cover_size);

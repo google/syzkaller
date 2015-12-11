@@ -45,7 +45,7 @@ const (
 )
 
 func MakeEnv(bin string, timeout time.Duration, flags uint64) (*Env, error) {
-	inf, inmem, err := createMapping(1 << 20)
+	inf, inmem, err := createMapping(2 << 20)
 	if err != nil {
 		return nil, err
 	}

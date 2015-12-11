@@ -139,7 +139,9 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 		if len(c.Args) != len(meta.Args) {
 			return nil, fmt.Errorf("wrong call arg count: %v, want %v", len(c.Args), len(meta.Args))
 		}
-		assignTypeAndDir(c)
+		if err := assignTypeAndDir(c); err != nil {
+			return nil, err
+		}
 		if r != "" {
 			vars[r] = c.Ret
 		}

@@ -10,6 +10,8 @@ const (
 	instrEOF = ^uintptr(iota)
 	instrCopyin
 	instrCopyout
+	instrSetPad
+	instrCheckPad
 )
 
 const (
@@ -53,13 +55,22 @@ func (p *Prog) SerializeForExec() []byte {
 						}
 						return
 					}
-					if arg1.Dir == DirOut || arg1.Kind == ArgData && len(arg1.Data) == 0 {
+					if arg1.Kind == ArgData && len(arg1.Data) == 0 {
 						return
 					}
-					w.write(instrCopyin)
-					w.write(physicalAddr(arg) + w.args[arg1].Offset)
-					w.writeArg(arg1)
-					instrSeq++
+					pad, padSize := arg1.IsPad()
+					if (arg1.Dir == DirIn && !pad) || (arg1.Dir == DirOut && pad) || arg1.Dir == DirInOut {
+						if pad {
+							w.write(instrSetPad)
+							w.write(physicalAddr(arg) + w.args[arg1].Offset)
+							w.write(padSize)
+						} else {
+							w.write(instrCopyin)
+							w.write(physicalAddr(arg) + w.args[arg1].Offset)
+							w.writeArg(arg1)
+						}
+						instrSeq++
+					}
 				}
 				rec(arg.Res)
 			}
@@ -74,7 +85,16 @@ func (p *Prog) SerializeForExec() []byte {
 		instrSeq++
 		// Generate copyout instructions that persist interesting return values.
 		foreachArg(c, func(arg, base *Arg, _ *[]*Arg) {
-			if len(arg.Uses) == 0 {
+			pad, padSize := arg.IsPad()
+			if pad && arg.Dir != DirIn {
+				instrSeq++
+				info := w.args[arg]
+				w.write(instrCheckPad)
+				w.write(physicalAddr(base) + info.Offset)
+				w.write(padSize)
+				return
+			}
+			if pad || len(arg.Uses) == 0 {
 				return
 			}
 			switch arg.Kind {

@@ -572,14 +572,12 @@ iovec_out {
 
 stat {
 	dev	int16
-	pad	int16
 	ino	int32
 	mode	int16
 	nlink	int16
 	uid	uid
 	gid	gid
 	rdev	int16
-	pad	int16
 	size	int32
 	blksize	int32
 	blocks	int32
@@ -676,7 +674,7 @@ io_event {
 iocb {
 	data	int64
 	key	flags[iocb_key, int32]
-	pad	int32
+	pad	const[0, int32]
 	op	flags[lio_opcode, int16]
 	prio	int16
 	fd	fd
@@ -729,7 +727,6 @@ cap_data {
 
 epoll_event {
 	ev	flags[epoll_ev, int32]
-	pad	int32
 	data	int64
 }
 
@@ -955,11 +952,11 @@ ustat {
 
 user_desc {
 	entry	int32
-	base	vma
-	limit	len[base, int32]
+# Base should be vma and limit should be len[base]
+# But these fields are int32, so we can't use vma.
+	base	int32
+	limit	int32
 	flags	int8
-	pad	const[0, int8]
-	pad	const[0, int16]
 }
 
 sched_attr {
@@ -1130,7 +1127,6 @@ fiemap {
 	mapped	int32
 # TODO: count is number of elements in extents array below
 	count	int32
-	pad	int32
 # TODO: this is variable-length array
 	extent0	fiemap_extent
 	extent1	fiemap_extent
@@ -1140,12 +1136,12 @@ fiemap_extent {
 	logical	int64
 	phys	int64
 	len	int64
-	pad0	int64
-	pad1	int64
+	pad	const[0, int64]
+	pad	const[0, int64]
 	flags	flags[fiemap_extent_flags, int32]
-	pad2	int32
-	pad3	int32
-	pad4	int32
+	pad	const[0, int32]
+	pad	const[0, int32]
+	pad	const[0, int32]
 }
 
 uffdio_api {
@@ -1741,32 +1737,32 @@ kdbus_pids_parameter {
 	size	len[parent, int64]
 	type	const[KDBUS_ITEM_PIDS, int64]
 	pid	pid
-	pad0	int32
+	pad	const[0, int32]
 	tid	pid
-	pad1	int32
+	pad	const[0, int32]
 	ppid	pid
-	pad2	int32
+	pad	const[0, int32]
 }
 
 kdbus_creds_parameter {
 	size	len[parent, int64]
 	type	const[KDBUS_ITEM_CREDS, int64]
 	uid	uid
-	pad0	int32
+	pad	const[0, int32]
 	euid	uid
-	pad1	int32
+	pad	const[0, int32]
 	suid	uid
-	pad2	int32
+	pad	const[0, int32]
 	fsuid	uid
-	pad3	int32
+	pad	const[0, int32]
 	gid	uid
-	pad4	int32
+	pad	const[0, int32]
 	egid	uid
-	pad5	int32
+	pad	const[0, int32]
 	sgid	uid
-	pad6	int32
+	pad	const[0, int32]
 	fsgid	uid
-	pad7	int32
+	pad	const[0, int32]
 }
 
 kdbus_seclabel_parameter {
@@ -1789,7 +1785,6 @@ kdbus_payload_memfd {
 	start	int64
 	size	int64
 	fd	fd
-	pad	int32
 }
 
 kdbus_id_change_parameter {
@@ -2156,9 +2151,6 @@ tiocl_selection {
 
 loadlut {
 	submode	const[5, int8]
-	pad	int8
-	pad	int8
-	pad	int8
 	tab0	int64
 	tab1	int64
 	tab2	int64
@@ -2333,7 +2325,6 @@ fuse_poll_out {
 	unique	int64
 
 	revents	int32
-	pad	int32
 }
 
 fuse_notify_poll_wakeup_out {
@@ -2361,7 +2352,6 @@ fuse_notify_inval_entry_out {
 
 	parent	int64
 	namelen	int32
-	pad	const[0, int32]
 }
 
 fuse_notify_delete_out {
@@ -2372,7 +2362,6 @@ fuse_notify_delete_out {
 	parent	int64
 	child	int64
 	namelen	int32
-	pad	const[0, int32]
 }
 
 fuse_notify_store_out {
@@ -2383,7 +2372,6 @@ fuse_notify_store_out {
 	nodeid	int64
 	off	int64
 	size	int32
-	pad	const[0, int32]
 }
 
 fuse_notify_retrieve_out {
@@ -2395,7 +2383,6 @@ fuse_notify_retrieve_out {
 	nodeid	int64
 	off	int64
 	size	int32
-	pad	const[0, int32]
 }
 
 
@@ -2423,14 +2410,12 @@ bpf_map_create_arg {
 
 bpf_map_lookup_arg {
 	map	fd[bpf_map]
-	pad	const[0, int32]
 	key	buffer[in]
 	val	buffer[out]
 }
 
 bpf_map_update_arg {
 	map	fd[bpf_map]
-	pad	const[0, int32]
 	key	buffer[in]
 	val	buffer[in]
 	flags	flags[bpf_map_flags, int64]
@@ -2438,13 +2423,11 @@ bpf_map_update_arg {
 
 bpf_map_delete_arg {
 	map	fd[bpf_map]
-	pad	const[0, int32]
 	key	buffer[in]
 }
 
 bpf_map_get_next_arg {
 	map	fd[bpf_map]
-	pad	const[0, int32]
 	key	buffer[in]
 	next	buffer[out]
 }
@@ -2557,10 +2540,8 @@ perf_event_attr {
 	regs	int64
 	stack	int64
 	clockid	flags[clock_type, int32]
-	pad	const[0, int32]
 	regs2	int64
 	auxwm	int32
-	pad	const[0, int32]
 }
 
 define PERF_FLAG_FD_CLOEXEC		(1UL << 3)
@@ -2592,25 +2573,21 @@ sockaddr_alg {
 alg_send_msghdr {
 	addr	const[0, intptr]
 	addrlen	const[0, int32]
-	pad	int32
 	vec	ptr[in, array[iovec_in]]
 	vlen	len[vec, intptr]
 	ctrl	ptr[in, alg_cmsghdr, opt]
 	ctrllen	len[ctrl, intptr]
 	f	flags[send_flags, int32]
-	pad	int32
 }
 
 alg_recv_msghdr {
 	addr	const[0, intptr]
 	addrlen	const[0, int32]
-	pad	int32
 	vec	ptr[in, array[iovec_out]]
 	vlen	len[vec, intptr]
 	ctrl	buffer[out]
 	ctrllen	len[ctrl, intptr]
 	f	int32
-	pad	int32
 }
 
 alg_cmsghdr {

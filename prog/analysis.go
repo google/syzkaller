@@ -155,9 +155,9 @@ func referencedArgs(args []*Arg, ret *Arg) (res []*Arg) {
 	return
 }
 
-func assignTypeAndDir(c *Call) {
-	var rec func(arg *Arg, typ sys.Type, dir ArgDir)
-	rec = func(arg *Arg, typ sys.Type, dir ArgDir) {
+func assignTypeAndDir(c *Call) error {
+	var rec func(arg *Arg, typ sys.Type, dir ArgDir) error
+	rec = func(arg *Arg, typ sys.Type, dir ArgDir) error {
 		if arg.Call != nil && arg.Call != c {
 			panic(fmt.Sprintf("different call is already assigned: %p %p %v %v", arg.Call, c, arg.Call.Meta.Name, c.Meta.Name))
 		}
@@ -171,30 +171,47 @@ func assignTypeAndDir(c *Call) {
 			arg.Dir = DirIn
 			switch typ1 := typ.(type) {
 			case sys.FilenameType:
-				rec(arg.Res, typ, dir)
+				if err := rec(arg.Res, typ, dir); err != nil {
+					return err
+				}
 			case sys.PtrType:
 				if arg.Res != nil {
-					rec(arg.Res, typ1.Type, ArgDir(typ1.Dir))
+					if err := rec(arg.Res, typ1.Type, ArgDir(typ1.Dir)); err != nil {
+						return err
+					}
 				}
 			}
 		case ArgGroup:
 			arg.Dir = dir
 			switch typ1 := typ.(type) {
 			case sys.StructType:
+				if len(arg.Inner) != len(typ1.Fields) {
+					return fmt.Errorf("wrong struct field count: %v, want %v", len(arg.Inner), len(typ1.Fields))
+				}
 				for i, arg1 := range arg.Inner {
-					rec(arg1, typ1.Fields[i], dir)
+					if err := rec(arg1, typ1.Fields[i], dir); err != nil {
+						return err
+					}
 				}
 			case sys.ArrayType:
 				for _, arg1 := range arg.Inner {
-					rec(arg1, typ1.Type, dir)
+					if err := rec(arg1, typ1.Type, dir); err != nil {
+						return err
+					}
 				}
 			}
 		default:
 			arg.Dir = dir
 		}
+		return nil
 	}
 	for i, arg := range c.Args {
-		rec(arg, c.Meta.Args[i], DirIn)
+		if c.Meta == nil {
+			panic("nil meta")
+		}
+		if err := rec(arg, c.Meta.Args[i], DirIn); err != nil {
+			return err
+		}
 	}
 	if c.Ret == nil {
 		c.Ret = returnArg()
@@ -202,6 +219,7 @@ func assignTypeAndDir(c *Call) {
 		c.Ret.Type = c.Meta.Ret
 		c.Ret.Dir = DirOut
 	}
+	return nil
 }
 
 func sanitizeCall(c *Call) {

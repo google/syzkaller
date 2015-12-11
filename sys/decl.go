@@ -6,6 +6,8 @@
 
 package sys
 
+const ptrSize = 8
+
 type Call struct {
 	ID       int
 	CallID   int
@@ -19,6 +21,8 @@ type Type interface {
 	Name() string
 	Optional() bool
 	Default() uintptr
+	Size() uintptr
+	Align() uintptr
 }
 
 type TypeCommon struct {
@@ -173,6 +177,10 @@ func (t ResourceType) Size() uintptr {
 	}
 }
 
+func (t ResourceType) Align() uintptr {
+	return t.Size()
+}
+
 func (t ResourceType) SubKinds() []ResourceSubkind {
 	switch t.Kind {
 	case ResFD:
@@ -195,6 +203,14 @@ type FileoffType struct {
 	File     string
 }
 
+func (t FileoffType) Size() uintptr {
+	return t.TypeSize
+}
+
+func (t FileoffType) Align() uintptr {
+	return t.Size()
+}
+
 type BufferKind int
 
 const (
@@ -211,8 +227,31 @@ type BufferType struct {
 	Kind BufferKind
 }
 
+func (t BufferType) Size() uintptr {
+	switch t.Kind {
+	case BufferAlgType:
+		return 14
+	case BufferAlgName:
+		return 64
+	default:
+		panic("buffer size is not statically known")
+	}
+}
+
+func (t BufferType) Align() uintptr {
+	return 1
+}
+
 type VmaType struct {
 	TypeCommon
+}
+
+func (t VmaType) Size() uintptr {
+	return ptrSize
+}
+
+func (t VmaType) Align() uintptr {
+	return t.Size()
 }
 
 type LenType struct {
@@ -221,10 +260,26 @@ type LenType struct {
 	Buf      string
 }
 
+func (t LenType) Size() uintptr {
+	return t.TypeSize
+}
+
+func (t LenType) Align() uintptr {
+	return t.Size()
+}
+
 type FlagsType struct {
 	TypeCommon
 	TypeSize uintptr
 	Vals     []uintptr
+}
+
+func (t FlagsType) Size() uintptr {
+	return t.TypeSize
+}
+
+func (t FlagsType) Align() uintptr {
+	return t.Size()
 }
 
 type ConstType struct {
@@ -233,10 +288,26 @@ type ConstType struct {
 	Val      uintptr
 }
 
+func (t ConstType) Size() uintptr {
+	return t.TypeSize
+}
+
+func (t ConstType) Align() uintptr {
+	return t.Size()
+}
+
 type StrConstType struct {
 	TypeCommon
 	TypeSize uintptr
 	Val      string
+}
+
+func (t StrConstType) Size() uintptr {
+	return ptrSize
+}
+
+func (t StrConstType) Align() uintptr {
+	return t.Size()
 }
 
 type IntKind int
@@ -253,13 +324,37 @@ type IntType struct {
 	Kind     IntKind
 }
 
+func (t IntType) Size() uintptr {
+	return t.TypeSize
+}
+
+func (t IntType) Align() uintptr {
+	return t.Size()
+}
+
 type FilenameType struct {
 	TypeCommon
+}
+
+func (t FilenameType) Size() uintptr {
+	panic("filename size is not statically known")
+}
+
+func (t FilenameType) Align() uintptr {
+	return 1
 }
 
 type ArrayType struct {
 	TypeCommon
 	Type Type
+}
+
+func (t ArrayType) Size() uintptr {
+	return 0 // for trailing embed arrays
+}
+
+func (t ArrayType) Align() uintptr {
+	return t.Type.Align()
 }
 
 type PtrType struct {
@@ -268,9 +363,39 @@ type PtrType struct {
 	Dir  Dir
 }
 
+func (t PtrType) Size() uintptr {
+	return ptrSize
+}
+
+func (t PtrType) Align() uintptr {
+	return t.Size()
+}
+
 type StructType struct {
 	TypeCommon
 	Fields []Type
+	padded bool
+}
+
+func (t StructType) Size() uintptr {
+	if !t.padded {
+		panic("struct is not padded yet")
+	}
+	var size uintptr
+	for _, f := range t.Fields {
+		size += f.Size()
+	}
+	return size
+}
+
+func (t StructType) Align() uintptr {
+	var align uintptr
+	for _, f := range t.Fields {
+		if a1 := f.Align(); align < a1 {
+			align = a1
+		}
+	}
+	return align
 }
 
 type Dir int
@@ -288,6 +413,30 @@ var (
 )
 
 func init() {
+	var rec func(t Type) Type
+	rec = func(t Type) Type {
+		switch t1 := t.(type) {
+		case PtrType:
+			rec(t1.Type)
+		case ArrayType:
+			rec(t1.Type)
+		case StructType:
+			for i, f := range t1.Fields {
+				t1.Fields[i] = rec(f)
+			}
+			t = addAlignment(t1)
+		}
+		return t
+	}
+	for _, c := range Calls {
+		for i, t := range c.Args {
+			c.Args[i] = rec(t)
+		}
+		if c.Ret != nil {
+			c.Ret = rec(c.Ret)
+		}
+	}
+
 	for _, c := range Calls {
 		if CallMap[c.Name] != nil {
 			println(c.Name)
@@ -302,4 +451,43 @@ func init() {
 		CallMap[c.Name] = c
 	}
 	CallCount = len(CallID)
+}
+
+func addAlignment(t StructType) Type {
+	var fields []Type
+	var off, align uintptr
+	varLen := false
+	for i, f := range t.Fields {
+		a := f.Align()
+		if align < a {
+			align = a
+		}
+		if off%a != 0 {
+			pad := a - off%a
+			off += pad
+			fields = append(fields, makePad(pad))
+		}
+		off += f.Size()
+		fields = append(fields, f)
+		_, varLen := f.(ArrayType)
+		if varLen && i != len(t.Fields)-1 {
+			panic("embed array in middle of a struct")
+		}
+	}
+	if align != 0 && off%align != 0 && !varLen {
+		pad := align - off%align
+		off += pad
+		fields = append(fields, makePad(pad))
+	}
+	t.Fields = fields
+	t.padded = true
+	return t
+}
+
+func makePad(sz uintptr) Type {
+	return ConstType{
+		TypeCommon: TypeCommon{TypeName: "pad", IsOptional: false},
+		TypeSize:   sz,
+		Val:        0,
+	}
 }

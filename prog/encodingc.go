@@ -86,6 +86,9 @@ int main()
 			fmt.Fprintf(w, "\tlong r%v = -1;\n", n)
 			fmt.Fprintf(w, "\tif (r%v != -1)\n", lastCall)
 			fmt.Fprintf(w, "\t\tr%v = *(uint%v_t*)0x%x;\n", n, size*8, addr)
+		case instrSetPad, instrCheckPad:
+			read() // addr
+			read() // size
 		default:
 			// Normal syscall.
 			meta := sys.Calls[instr]

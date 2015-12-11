@@ -55,26 +55,13 @@ const (
 
 func (a *Arg) Size(typ sys.Type) uintptr {
 	switch typ1 := typ.(type) {
-	case sys.IntType:
-		return typ1.TypeSize
-	case sys.LenType:
-		return typ1.TypeSize
-	case sys.FlagsType:
-		return typ1.TypeSize
-	case sys.ConstType:
-		return typ1.TypeSize
-	case sys.StrConstType:
-		return ptrSize
-	case sys.FileoffType:
-		return typ1.TypeSize
-	case sys.ResourceType:
-		return typ1.Size()
-	case sys.VmaType:
-		return ptrSize
+	case sys.IntType, sys.LenType, sys.FlagsType, sys.ConstType, sys.StrConstType,
+		sys.FileoffType, sys.ResourceType, sys.VmaType, sys.PtrType:
+		return typ.Size()
 	case sys.FilenameType:
 		return uintptr(len(a.Data))
-	case sys.PtrType:
-		return ptrSize
+	case sys.BufferType:
+		return uintptr(len(a.Data))
 	case sys.StructType:
 		var size uintptr
 		for i, f := range typ1.Fields {
@@ -82,15 +69,21 @@ func (a *Arg) Size(typ sys.Type) uintptr {
 		}
 		return size
 	case sys.ArrayType:
-		if len(a.Inner) == 0 {
-			return 0
+		var size uintptr
+		for _, in := range a.Inner {
+			size += in.Size(typ1.Type)
 		}
-		return uintptr(len(a.Inner)) * a.Inner[0].Size(typ1.Type)
-	case sys.BufferType:
-		return uintptr(len(a.Data))
+		return size
 	default:
 		panic("unknown arg type")
 	}
+}
+
+func (a *Arg) IsPad() (bool, uintptr) {
+	if ct, ok := a.Type.(sys.ConstType); ok && ct.Val == 0 && ct.Name() == "pad" {
+		return true, ct.TypeSize
+	}
+	return false, 0
 }
 
 func constArg(v uintptr) *Arg {
