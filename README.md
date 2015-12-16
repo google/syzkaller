@@ -56,6 +56,8 @@ In particular:
    $SSHID -p $PORT root@localhost` without being prompted for a password (where `SSHID` is the SSH
    identification file and `PORT` is the port that are specified in the `manager` configuration
    file).
+ - The kernel exports coverage information via a debugfs entry, so the VM image needs to mount
+   the debugfs filesystem at `/sys/kernel/debug`.
 
 TODO: Describe how to support other types of VM other than QEMU.
 

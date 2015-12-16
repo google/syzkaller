@@ -518,8 +518,10 @@ func (g *Gate) Leave(idx int) {
 func kmemleakInit() {
 	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
 	if err != nil {
-		if !*flagLeak {
+		if *flagLeak {
 			panic(err)
+		} else {
+			return
 		}
 	}
 	defer syscall.Close(fd)
