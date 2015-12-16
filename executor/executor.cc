@@ -207,6 +207,8 @@ int main()
 			return 0;
 		}
 
+		int status = 0;
+#if 1
 		timespec ts = {};
 		ts.tv_sec = 5;
 		ts.tv_nsec = 0;
@@ -216,7 +218,6 @@ int main()
 			kill(pid, SIGKILL);
 		}
 		debug("waitpid(%d)\n", pid);
-		int status = 0;
 		if (waitpid(pid, &status, __WALL | WUNTRACED) != pid)
 			fail("waitpid failed");
 		debug("waitpid(%d) returned\n", pid);
@@ -225,6 +226,28 @@ int main()
 		ts.tv_nsec = 0;
 		while (sigtimedwait(&sigchldset, NULL, &ts) > 0) {
 		}
+#else
+		// This code is less efficient, but does not require working sigtimedwait.
+		// We've hit 2 systems that mishandle sigtimedwait.
+		uint64_t start = current_time_ms();
+		for (;;) {
+			int res = waitpid(pid, &status, __WALL | WUNTRACED | WNOHANG);
+			debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
+			if (res == pid)
+				break;
+			usleep(1000);
+			if (current_time_ms() - start > 5 * 1000) {
+				debug("killing\n");
+				kill(-pid, SIGKILL);
+				kill(pid, SIGKILL);
+				int res = waitpid(pid, &status, __WALL | WUNTRACED);
+				debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
+				if (res == pid)
+					break;
+				fail("waitpid failed");
+			}
+		}
+#endif
 		status = WEXITSTATUS(status);
 		if (status == kFailStatus)
 			fail("child failed");
