@@ -85,6 +85,13 @@ const (
 	FdAlgConn
 	FdNfcRaw
 	FdNfcLlcp
+	FdBtHci
+	FdBtSco
+	FdBtL2cap
+	FdBtRfcomm
+	FdBtHidp
+	FdBtCmtp
+	FdBtBnep
 
 	IPCMsq
 	IPCSem
@@ -189,7 +196,8 @@ func (t ResourceType) SubKinds() []ResourceSubkind {
 		return []ResourceSubkind{FdFile, FdSock, FdPipe, FdSignal, FdEvent,
 			FdTimer, FdEpoll, FdDir, FdMq, FdInotify, FdFanotify, FdTty,
 			FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg, FdPerf, FdUserFault,
-			FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp}
+			FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp, FdBtHci, FdBtSco, FdBtL2cap,
+			FdBtRfcomm, FdBtHidp, FdBtCmtp, FdBtBnep}
 	case ResIPC:
 		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
 	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid:
@@ -349,6 +357,7 @@ func (t FilenameType) Align() uintptr {
 type ArrayType struct {
 	TypeCommon
 	Type Type
+	Len  uintptr // 0 if variable-length, unused for now
 }
 
 func (t ArrayType) Size() uintptr {

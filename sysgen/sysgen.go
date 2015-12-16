@@ -271,10 +271,18 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 		opt = false
 		fmt.Fprintf(out, "PtrType{%v, Dir: DirIn, Type: FilenameType{%v}}", commonHdr, common())
 	case "array":
-		if want := 1; len(a) != want {
+		want := 1
+		if len(a) == 2 {
+			want = 2
+		}
+		if len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "ArrayType{%v, Type: %v}", common(), generateType(a[0], structs, unnamed, flags, flagVals))
+		sz := "0"
+		if len(a) == 2 {
+			sz = a[1]
+		}
+		fmt.Fprintf(out, "ArrayType{%v, Type: %v, Len: %v}", common(), generateType(a[0], structs, unnamed, flags, flagVals), sz)
 	case "ptr":
 		if want := 2; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -359,6 +367,20 @@ func fmtFdKind(s string) string {
 		return "FdNfcRaw"
 	case "nfc_llcp":
 		return "FdNfcLlcp"
+	case "bt_hci":
+		return "FdBtHci"
+	case "bt_sco":
+		return "FdBtSco"
+	case "bt_l2cap":
+		return "FdBtL2cap"
+	case "bt_rfcomm":
+		return "FdBtRfcomm"
+	case "bt_hidp":
+		return "FdBtHidp"
+	case "bt_cmtp":
+		return "FdBtCmtp"
+	case "bt_bnep":
+		return "FdBtBnep"
 	default:
 		failf("bad fd type %v", s)
 		return ""
