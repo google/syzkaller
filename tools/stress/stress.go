@@ -13,6 +13,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -30,10 +31,12 @@ var (
 	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
 	flagNobody   = flag.Bool("nobody", true, "impersonate into nobody")
 	flagTimeout  = flag.Duration("timeout", 10*time.Second, "executor timeout")
+	flagLogProg  = flag.Bool("logprog", false, "print programs before execution")
 
 	failedRe = regexp.MustCompile("runtime error: |panic: |Panic: ")
 
 	statExec uint64
+	gate     *ipc.Gate
 )
 
 const programLength = 30
@@ -56,28 +59,29 @@ func main() {
 		flags |= ipc.FlagDebug
 	}
 
-	for p := 0; p < *flagProcs; p++ {
-		p := p
+	gate = ipc.NewGate(2 * *flagProcs)
+	for pid := 0; pid < *flagProcs; pid++ {
+		pid := pid
 		go func() {
 			env, err := ipc.MakeEnv(*flagExecutor, *flagTimeout, flags)
 			if err != nil {
 				failf("failed to create execution environment: %v", err)
 			}
-			rs := rand.NewSource(time.Now().UnixNano() + int64(p)*1e12)
+			rs := rand.NewSource(time.Now().UnixNano() + int64(pid)*1e12)
 			rnd := rand.New(rs)
 			for i := 0; ; i++ {
 				var p *prog.Prog
 				if len(corpus) == 0 || i%2 != 0 {
 					p = prog.Generate(rs, programLength, nil)
-					execute(env, p)
+					execute(pid, env, p)
 					p.Mutate(rs, programLength, nil)
-					execute(env, p)
+					execute(pid, env, p)
 				} else {
 					p = corpus[rnd.Intn(len(corpus))].Clone()
 					p.Mutate(rs, programLength, nil)
-					execute(env, p)
+					execute(pid, env, p)
 					p.Mutate(rs, programLength, nil)
-					execute(env, p)
+					execute(pid, env, p)
 				}
 			}
 		}()
@@ -87,11 +91,21 @@ func main() {
 	}
 }
 
-func execute(env *ipc.Env, p *prog.Prog) {
+var outMu sync.Mutex
+
+func execute(pid int, env *ipc.Env, p *prog.Prog) {
 	if *flagExecutor == "" {
 		return
 	}
 	atomic.AddUint64(&statExec, 1)
+	if *flagLogProg {
+		ticket := gate.Enter()
+		defer gate.Leave(ticket, nil)
+		outMu.Lock()
+		fmt.Printf("executing program %v\n%s\n", pid, p.Serialize())
+		outMu.Unlock()
+	}
+
 	output, _, _, _, _, err := env.Exec(p)
 	if err != nil {
 		fmt.Printf("failed to execute executor: %v\n", err)

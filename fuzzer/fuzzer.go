@@ -76,7 +76,7 @@ var (
 	triage     []Input
 	candidates []*prog.Prog
 
-	gate *Gate
+	gate *ipc.Gate
 
 	statExecGen       uint64
 	statExecFuzz      uint64
@@ -136,7 +136,7 @@ func main() {
 		*flagProcs = 1
 	}
 
-	gate = newGate(2 * *flagProcs)
+	gate = ipc.NewGate(2 * *flagProcs)
 	envs := make([]*ipc.Env, *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
 		env, err := ipc.MakeEnv(*flagExecutor, 10*time.Second, flags)
@@ -418,8 +418,15 @@ func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
 		triageMu.Unlock()
 	}
 
+	// Limit concurrency window and do leak checking once in a while.
 	idx := gate.Enter()
-	defer gate.Leave(idx)
+	defer gate.Leave(idx, func() {
+		if idx == 0 && *flagLeak && atomic.LoadUint32(&allTriaged) != 0 {
+			// Scan for leaks once in a while (it is damn slow).
+			kmemleakScan(true)
+		}
+	})
+
 	if *flagSaveProg {
 		f, err := os.Create(fmt.Sprintf("%v-%v.prog", *flagName, pid))
 		if err == nil {
@@ -469,50 +476,6 @@ func logf(v int, msg string, args ...interface{}) {
 	if *flagV >= v {
 		log.Printf(msg, args...)
 	}
-}
-
-type Gate struct {
-	cv   *sync.Cond
-	busy []bool
-	pos  int
-}
-
-func newGate(c int) *Gate {
-	return &Gate{
-		cv:   sync.NewCond(new(sync.Mutex)),
-		busy: make([]bool, c),
-	}
-}
-
-func (g *Gate) Enter() int {
-	g.cv.L.Lock()
-	for g.busy[g.pos] {
-		g.cv.Wait()
-	}
-	idx := g.pos
-	g.pos++
-	if g.pos >= len(g.busy) {
-		g.pos = 0
-	}
-	g.busy[idx] = true
-	g.cv.L.Unlock()
-	return idx
-}
-
-func (g *Gate) Leave(idx int) {
-	g.cv.L.Lock()
-	if !g.busy[idx] {
-		panic("broken gate")
-	}
-	if idx == 0 && *flagLeak && atomic.LoadUint32(&allTriaged) != 0 {
-		// Scan for leaks once in a while (it is damn slow).
-		kmemleakScan(true)
-	}
-	g.busy[idx] = false
-	if idx == g.pos {
-		g.cv.Broadcast()
-	}
-	g.cv.L.Unlock()
 }
 
 func kmemleakInit() {
