@@ -361,7 +361,10 @@ type ArrayType struct {
 }
 
 func (t ArrayType) Size() uintptr {
-	return 0 // for trailing embed arrays
+	if t.Len == 0 {
+		return 0 // for trailing embed arrays
+	}
+	return t.Len * t.Type.Size()
 }
 
 func (t ArrayType) Align() uintptr {
@@ -481,7 +484,9 @@ func addAlignment(t StructType) Type {
 		}
 		off += f.Size()
 		fields = append(fields, f)
-		_, varLen := f.(ArrayType)
+		if at, ok := f.(ArrayType); ok && at.Len == 0 {
+			varLen = true
+		}
 		if varLen && i != len(t.Fields)-1 {
 			panic("embed array in middle of a struct")
 		}

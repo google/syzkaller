@@ -2772,7 +2772,7 @@ getsockopt$RFCOMM_CONNINFO(fd fd[bt_rfcomm], level const[SOL_RFCOMM], opt const[
 
 socket$bt_hidp(fam const[PF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_HIDP]) fd[bt_hidp]
 ioctl$HIDPCONNADD(fd fd[bt_hidp], cmd const[HIDPCONNADD], arg ptr[in, hidp_connadd_req])
-ioctl$HIDPGETCONNLIST(fd fd[bt_hidp], cmd const[HIDPGETCONNLIST], arg ptr[in, hidp_conndel_req])
+ioctl$HIDPCONNDEL(fd fd[bt_hidp], cmd const[HIDPCONNDEL], arg ptr[in, hidp_conndel_req])
 ioctl$HIDPGETCONNLIST(fd fd[bt_hidp], cmd const[HIDPGETCONNLIST], arg ptr[in, hidp_connlist_req])
 ioctl$HIDPGETCONNINFO(fd fd[bt_hidp], cmd const[HIDPGETCONNINFO], arg ptr[in, hidp_conninfo])
 

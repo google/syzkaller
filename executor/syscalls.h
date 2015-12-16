@@ -635,7 +635,7 @@ call_t syscalls[] = {
 	{"getsockopt$RFCOMM_CONNINFO", __NR_getsockopt},
 	{"socket$bt_hidp", __NR_socket},
 	{"ioctl$HIDPCONNADD", __NR_ioctl},
-	{"ioctl$HIDPGETCONNLIST", __NR_ioctl},
+	{"ioctl$HIDPCONNDEL", __NR_ioctl},
 	{"ioctl$HIDPGETCONNLIST", __NR_ioctl},
 	{"ioctl$HIDPGETCONNINFO", __NR_ioctl},
 	{"socket$bt_cmtp", __NR_socket},
