@@ -36,6 +36,7 @@ type Config struct {
 	Procs            int // number of parallel processes inside of every VM
 	Port             int
 	Nocover          bool
+	NoDropPrivs      bool
 	Leak             bool // do memory leak checking
 	Params           map[string]interface{}
 	Enable_Syscalls  []string
@@ -65,6 +66,7 @@ func main() {
 		Params:          params,
 		EnabledSyscalls: enabledSyscalls,
 		NoCover:         cfg.Nocover,
+		NoDropPrivs:     cfg.NoDropPrivs,
 		Leak:            cfg.Leak,
 		Procs:           cfg.Procs,
 	}
