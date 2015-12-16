@@ -207,10 +207,11 @@ func createMapping(size int) (f *os.File, mem []byte, err error) {
 		return
 	}
 	f.Close()
+	fname := f.Name()
 	f, err = os.OpenFile(f.Name(), os.O_RDWR, 0)
 	if err != nil {
 		err = fmt.Errorf("failed to open shm file: %v", err)
-		os.Remove(f.Name())
+		os.Remove(fname)
 		return
 	}
 	mem, err = syscall.Mmap(int(f.Fd()), 0, size, syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
@@ -253,9 +254,6 @@ func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.F
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
 	}
-	if err := os.Chmod(dir, 0777); err != nil {
-		return nil, fmt.Errorf("failed to chmod temp dir: %v", err)
-	}
 
 	c := &command{timeout: timeout, dir: dir}
 	defer func() {
@@ -263,6 +261,12 @@ func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.F
 			c.close()
 		}
 	}()
+
+	if flags&FlagDropPrivs != 0 {
+		if err := os.Chmod(dir, 0777); err != nil {
+			return nil, fmt.Errorf("failed to chmod temp dir: %v", err)
+		}
+	}
 
 	// Output capture pipe.
 	rp, wp, err := os.Pipe()
