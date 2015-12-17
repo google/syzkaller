@@ -37,7 +37,7 @@ to:
  - add code to track and report per-task coverage information.
 
 This is all implemented in [this coverage patch](https://github.com/dvyukov/linux/commits/kcov);
-once the patch is applied, the kernel should be configured with `CONFIG_SANCOV` plus `CONFIG_KASAN`
+once the patch is applied, the kernel should be configured with `CONFIG_KCOV` plus `CONFIG_KASAN`
 or `CONFIG_KTSAN`.
 
 ### QEMU Setup
@@ -70,16 +70,15 @@ to build them.  Build with `make`, which generates compiled binaries in the `bin
 
 The operation of the syzkaller manager process is governed by a configuration file, passed at
 invocation time with the `-config` option.  This configuration can be based on the
-[example file](manager/example.cfg) `manager/example.cfg`; the file is in JSON format with the
+[example file](manager/example.cfg) `syz-manager/example.cfg`; the file is in JSON format with the
 following keys in its top-level object:
 
- - `name`: Name to use for this instance.
  - `http`: URL that will display information about the running manager process.
- - `master`: Location of the master process that the `manager` should communicate with.
  - `workdir`: Location of a working directory for the `manager` process. Outputs here include:
      - `<workdir>/qemu/logN-M-T`: log files
      - `<workdir>/qemu/imageN`: per-instance copies of the VM disk image
      - `<workdir>/crashes/crashN-T`: crash output files
+     - `<workdir>/corpus/*`: corpus with interesting programs
  - `vmlinux`: Location of the `vmlinux` file that corresponds to the kernel being tested.
  - `type`: Type of virtual machine to use, e.g. `qemu`.
  - `count`: Number of VMs to run in parallel.
@@ -111,35 +110,16 @@ following keys in its top-level object:
 
 ## Running syzkaller
 
-First, start the master process as:
+Start the manager process as:
 ```
-./master -workdir=./workdir -addr=myhost.com:48342 -http=myhost.com:29855
-```
-
-The command-line arguments for `master` are:
-
- - `-workdir`: Provide a directory on the host machine where fuzzing input data is stored. Two
-   subdirectories of this directory are used:
-    - `<workdir>/corpus/`: Fuzzing input corpus.
-    - `<workdir>/crashers/`: Fuzzing inputs that cause crashes.
- - `-addr`: Provide the RPC address that `manager` processes will connect to.  This should match
-   the `master` key in the `manager`'s configuration file.
- - `-http`: URL on which the `master` process will expose an HTTP interface.
- - `-v`: Verbosity (lower number is more verbose).
-
-Then, start the manager process as:
-```
-./manager -config my.cfg
+./bin/syz-manager -config my.cfg
 ```
 
 The `-config` command line option gives the location of the configuration file
 [described above](configuration).
 
-The `manager` process will wind up qemu virtual machines and start fuzzing in them.
-If you open the HTTP address for the `master` (in our case `http://myhost.com:29855`),
-you will see how corpus collection progresses.  This page also includes a link to
-the HTTP address for the `manager` process, which displays information about the
-status/progress of the VMs.
+The `syz-manager` process will wind up qemu virtual machines and start fuzzing in them.
+It also reports some statistics on the HTTP address.
 
 
 ## Process Structure
@@ -152,19 +132,18 @@ indicate corresponding configuration options.
 The `master` process is responsible for persistent corpus and crash storage.
 It communicates with one or more `manager` processes via RPC.
 
-The `manager` process starts, monitors and restarts several VM instances (support for
-physical machines is not implemented yet), and starts a `fuzzer` process inside of the VMs.
-The `manager` process also serves as a persistent proxy between `fuzzer` processes and the `master` process.
-As opposed to `fuzzer` processes, it runs on a host with stable kernel which does not
-experience white-noise fuzzer load.
+The `syz-manager` process starts, monitors and restarts several VM instances (support for
+physical machines is not implemented yet), and starts a `syz-fuzzer` process inside of the VMs.
+It is responsible for persistent corpus and crash storage. As opposed to `syz-fuzzer` processes,
+it runs on a host with stable kernel which does not experience white-noise fuzzer load.
 
-The `fuzzer` process runs inside of presumably unstable VMs (or physical machines under test).
-The `fuzzer` guides fuzzing process itself (input generation, mutation, minimization, etc)
-and sends inputs that trigger new coverage back to the `manager` process via RPC.
-It also starts transient `executor` processes.
+The `syz-fuzzer` process runs inside of presumably unstable VMs (or physical machines under test).
+The `syz-fuzzer` guides fuzzing process itself (input generation, mutation, minimization, etc)
+and sends inputs that trigger new coverage back to the `syz-manager` process via RPC.
+It also starts transient `syz-executor` processes.
 
-Each `executor` process executes a single input (a sequence of syscalls).
-It accepts the program to execute from the `fuzzer` process and sends results back.
+Each `syz-executor` process executes a single input (a sequence of syscalls).
+It accepts the program to execute from the `syz-fuzzer` process and sends results back.
 It is designed to be as simple as possible (to not interfere with fuzzing process),
 written in C++, compiled as static binary and uses shared memory for communication.
 
