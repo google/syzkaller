@@ -445,7 +445,8 @@ func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
 	try := 0
 retry:
 	atomic.AddUint64(stat, 1)
-	output, strace, rawCover, failed, hanged, err := env.Exec(p)
+	output, strace, rawCover, errnos, failed, hanged, err := env.Exec(p)
+	_ = errnos
 	if failed {
 		// BUG in output should be recognized by manager.
 		logf(0, "BUG: executor-detected bug:\n%s", output)

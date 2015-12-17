@@ -99,6 +99,7 @@ struct thread_t {
 	int num_args;
 	uint64_t args[kMaxArgs];
 	uint64_t res;
+	uint64_t errno;
 	uint32_t cover_size;
 	int cover_fd;
 };
@@ -502,6 +503,7 @@ void handle_completion(thread_t* th)
 
 		write_output(th->call_index);
 		write_output(th->call_num);
+		write_output(th->res != -1 ? 0 : th->errno);
 		write_output(th->cover_size);
 		for (uint32_t i = 0; i < th->cover_size; i++)
 			write_output(th->cover_data[i + 1]);
@@ -556,6 +558,7 @@ void execute_call(thread_t* th)
 		if (th->num_args > 6)
 			fail("bad number of arguments");
 		th->res = syscall(call->sys_nr, th->args[0], th->args[1], th->args[2], th->args[3], th->args[4], th->args[5]);
+		th->errno = errno;
 		break;
 	}
 	case __NR_syz_openpts: {
@@ -569,12 +572,14 @@ void execute_call(thread_t* th)
 		else {
 			th->res = -1;
 		}
+		th->errno = errno;
 	}
 	case __NR_syz_dri_open: {
 		// syz_dri_open(card_id intptr, flags flags[open_flags]) fd[dri]
 		char buf[128];
 		sprintf(buf, "/dev/dri/card%lu", th->args[0]);
 		th->res = open(buf, th->args[1], 0);
+		th->errno = errno;
 	}
 	case __NR_syz_fuse_mount: {
 		// syz_fuse_mount(target filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd[fuse]
@@ -599,6 +604,7 @@ void execute_call(thread_t* th)
 			// Ignore errors, maybe fuzzer can do something useful with fd alone.
 		}
 		th->res = fd;
+		th->errno = errno;
 	}
 	case __NR_syz_fuseblk_mount: {
 		// syz_fuseblk_mount(target filename, blkdev filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd[fuse]
@@ -629,6 +635,7 @@ void execute_call(thread_t* th)
 			}
 		}
 		th->res = fd;
+		th->errno = errno;
 	}
 	}
 	int errno0 = errno;

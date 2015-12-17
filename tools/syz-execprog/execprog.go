@@ -103,7 +103,7 @@ func main() {
 					return
 				}
 				p := progs[idx%len(progs)]
-				output, strace, cov, failed, hanged, err := env.Exec(p)
+				output, strace, cov, _, failed, hanged, err := env.Exec(p)
 				if *flagDebug || err != nil {
 					fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
 				}

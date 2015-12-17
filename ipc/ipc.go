@@ -111,7 +111,7 @@ func (env *Env) Close() error {
 // failed: true if executor has detected a kernel bug
 // hanged: program hanged and was killed
 // err0: failed to start process, or executor has detected a logical error
-func (env *Env) Exec(p *prog.Prog) (output, strace []byte, cov [][]uint32, failed, hanged bool, err0 error) {
+func (env *Env) Exec(p *prog.Prog) (output, strace []byte, cov [][]uint32, errnos []int, failed, hanged bool, err0 error) {
 	if p != nil {
 		// Copy-in serialized program.
 		progData := p.SerializeForExec()
@@ -154,14 +154,22 @@ func (env *Env) Exec(p *prog.Prog) (output, strace []byte, cov [][]uint32, faile
 		return
 	}
 	cov = make([][]uint32, len(p.Calls))
+	errnos = make([]int, len(p.Calls))
+	for i := range errnos {
+		errnos[i] = -1 // not executed
+	}
 	for i := uint32(0); i < ncmd; i++ {
-		var callIndex, callNum, coverSize, pc uint32
+		var callIndex, callNum, errno, coverSize, pc uint32
 		if err := binary.Read(r, binary.LittleEndian, &callIndex); err != nil {
 			err0 = fmt.Errorf("failed to read output coverage: %v", err)
 			return
 		}
 		if err := binary.Read(r, binary.LittleEndian, &callNum); err != nil {
 			err0 = fmt.Errorf("failed to read output coverage: %v", err)
+			return
+		}
+		if err := binary.Read(r, binary.LittleEndian, &errno); err != nil {
+			err0 = fmt.Errorf("failed to read output errno: %v", err)
 			return
 		}
 		if err := binary.Read(r, binary.LittleEndian, &coverSize); err != nil {
@@ -190,6 +198,7 @@ func (env *Env) Exec(p *prog.Prog) (output, strace []byte, cov [][]uint32, faile
 			cov1[j] = pc
 		}
 		cov[callIndex] = cov1
+		errnos[callIndex] = int(errno)
 	}
 	return
 }
