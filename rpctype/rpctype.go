@@ -12,47 +12,25 @@ type RpcInput struct {
 	Cover     []uint32
 }
 
-type MasterConnectArgs struct {
-	Name string
-	Http string
-}
-
-type MasterConnectRes struct {
-	Http string
-}
-
-type NewMasterInputArgs struct {
-	Name string
-	Prog []byte
-}
-
-type MasterPollArgs struct {
+type ConnectArgs struct {
 	Name string
 }
 
-type MasterPollRes struct {
-	Inputs [][]byte
-}
-
-type ManagerConnectArgs struct {
-	Name string
-}
-
-type ManagerConnectRes struct {
+type ConnectRes struct {
 	Prios [][]float32
 }
 
-type NewManagerInputArgs struct {
+type NewInputArgs struct {
 	Name string
 	RpcInput
 }
 
-type ManagerPollArgs struct {
+type PollArgs struct {
 	Name  string
 	Stats map[string]uint64
 }
 
-type ManagerPollRes struct {
+type PollRes struct {
 	Candidates [][]byte
 	NewInputs  []RpcInput
 }

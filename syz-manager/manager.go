@@ -130,7 +130,7 @@ func (mgr *Manager) minimizeCorpus() {
 	}
 }
 
-func (mgr *Manager) Connect(a *ManagerConnectArgs, r *ManagerConnectRes) error {
+func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 	logf(1, "fuzzer %v connected", a.Name)
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -146,7 +146,7 @@ func (mgr *Manager) Connect(a *ManagerConnectArgs, r *ManagerConnectRes) error {
 	return nil
 }
 
-func (mgr *Manager) NewInput(a *NewManagerInputArgs, r *int) error {
+func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 	logf(2, "new input from fuzzer %v", a.Name)
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
@@ -162,7 +162,7 @@ func (mgr *Manager) NewInput(a *NewManagerInputArgs, r *int) error {
 	return nil
 }
 
-func (mgr *Manager) Poll(a *ManagerPollArgs, r *ManagerPollRes) error {
+func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 	logf(2, "poll from %v", a.Name)
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()

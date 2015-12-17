@@ -113,8 +113,8 @@ func main() {
 		panic(err)
 	}
 	manager = conn
-	a := &ManagerConnectArgs{*flagName}
-	r := &ManagerConnectRes{}
+	a := &ConnectArgs{*flagName}
+	r := &ConnectRes{}
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
@@ -214,7 +214,7 @@ func main() {
 			}
 			triageMu.RUnlock()
 
-			a := &ManagerPollArgs{
+			a := &PollArgs{
 				Name:  *flagName,
 				Stats: make(map[string]uint64),
 			}
@@ -228,7 +228,7 @@ func main() {
 			a.Stats["exec triage"] = atomic.SwapUint64(&statExecTriage, 0)
 			a.Stats["exec minimize"] = atomic.SwapUint64(&statExecMinimize, 0)
 			a.Stats["fuzzer new inputs"] = atomic.SwapUint64(&statNewInput, 0)
-			r := &ManagerPollRes{}
+			r := &PollRes{}
 			if err := manager.Call("Manager.Poll", a, r); err != nil {
 				panic(err)
 			}
@@ -364,7 +364,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	atomic.AddUint64(&statNewInput, 1)
 	data := inp.p.Serialize()
 	logf(2, "added new input for %v to corpus:\n%s", call.CallName, data)
-	a := &NewManagerInputArgs{*flagName, RpcInput{call.CallName, data, inp.call, []uint32(inp.cover)}}
+	a := &NewInputArgs{*flagName, RpcInput{call.CallName, data, inp.call, []uint32(inp.cover)}}
 	if err := manager.Call("Manager.NewInput", a, nil); err != nil {
 		panic(err)
 	}
