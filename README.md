@@ -70,7 +70,7 @@ to build them.  Build with `make`, which generates compiled binaries in the `bin
 
 The operation of the syzkaller manager process is governed by a configuration file, passed at
 invocation time with the `-config` option.  This configuration can be based on the
-[example file](manager/example.cfg) `syz-manager/example.cfg`; the file is in JSON format with the
+[syz-manager/example.cfg](syz-manager/example.cfg); the file is in JSON format with the
 following keys in its top-level object:
 
  - `http`: URL that will display information about the running manager process.
@@ -160,6 +160,6 @@ close(fd fd)
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 ```
 
-The description is contained in `syzkaller/sys/sys.txt` file.
+The description is contained in [sys/sys.txt](sys/sys.txt) file.
 
 This is not an official Google product.
