@@ -4,10 +4,10 @@
 package main
 
 import (
-	"crypto/sha1"
 	"fmt"
 	"net"
 	"net/rpc"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -18,26 +18,17 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
-type Sig [sha1.Size]byte
-
-func hash(data []byte) Sig {
-	return Sig(sha1.Sum(data))
-}
-
 type Manager struct {
-	cfg        *Config
-	master     *rpc.Client
-	masterHttp string
-	instances  []vm.Instance
-	startTime  time.Time
-	stats      map[string]uint64
+	cfg              *Config
+	persistentCorpus *PersistentSet
+	instances        []vm.Instance
+	startTime        time.Time
+	stats            map[string]uint64
 
-	mu           sync.Mutex
-	masterCorpus [][]byte         // mirror of master corpus
-	masterHashes map[Sig]struct{} // hashes of master corpus
-	candidates   [][]byte         // new untriaged inputs from master
-	syscalls     map[int]bool
+	mu       sync.Mutex
+	syscalls map[int]bool
 
+	candidates  [][]byte // untriaged inputs
 	corpus      []RpcInput
 	corpusCover []cover.Cover
 	prios       [][]float32
@@ -51,30 +42,28 @@ type Fuzzer struct {
 }
 
 func RunManager(cfg *Config, syscalls map[int]bool, instances []vm.Instance) {
-	// Connect to master.
-	master, err := rpc.Dial("tcp", cfg.Master)
-	if err != nil {
-		fatalf("failed to dial mastger: %v", err)
-	}
-	a := &MasterConnectArgs{cfg.Name, cfg.Http}
-	r := &MasterConnectRes{}
-	if err := master.Call("Master.Connect", a, r); err != nil {
-		fatalf("failed to connect to master: %v", err)
-	}
-	logf(0, "connected to master at %v", cfg.Master)
-
 	mgr := &Manager{
-		cfg:          cfg,
-		master:       master,
-		masterHttp:   r.Http,
-		startTime:    time.Now(),
-		stats:        make(map[string]uint64),
-		instances:    instances,
-		masterHashes: make(map[Sig]struct{}),
-		syscalls:     syscalls,
-		corpusCover:  make([]cover.Cover, sys.CallCount),
-		fuzzers:      make(map[string]*Fuzzer),
+		cfg:         cfg,
+		startTime:   time.Now(),
+		stats:       make(map[string]uint64),
+		instances:   instances,
+		syscalls:    syscalls,
+		corpusCover: make([]cover.Cover, sys.CallCount),
+		fuzzers:     make(map[string]*Fuzzer),
 	}
+
+	logf(0, "loading corpus...")
+	mgr.persistentCorpus = newPersistentSet(filepath.Join(cfg.Workdir, "corpus"), func(data []byte) bool {
+		if _, err := prog.Deserialize(data); err != nil {
+			logf(0, "deleting broken program: %v\n%s", err, data)
+			return false
+		}
+		return true
+	})
+	for _, prog := range mgr.persistentCorpus.a {
+		mgr.candidates = append(mgr.candidates, prog)
+	}
+	logf(0, "loaded %v programs", len(mgr.persistentCorpus.m))
 
 	// Create HTTP server.
 	mgr.initHttp()
@@ -85,64 +74,15 @@ func RunManager(cfg *Config, syscalls map[int]bool, instances []vm.Instance) {
 	if err != nil {
 		fatalf("failed to listen on port %v: %v", cfg.Port, err)
 	}
+	logf(0, "serving rpc on tcp://%v", rpcAddr)
 	s := rpc.NewServer()
 	s.Register(mgr)
 	go s.Accept(ln)
-	logf(0, "serving rpc on tcp://%v", rpcAddr)
 
-	mgr.run()
-}
-
-func (mgr *Manager) run() {
-	mgr.pollMaster()
 	for _, inst := range mgr.instances {
 		go inst.Run()
 	}
-	pollTicker := time.NewTicker(10 * time.Second).C
-	for {
-		select {
-		case <-pollTicker:
-			mgr.mu.Lock()
-			mgr.pollMaster()
-			mgr.mu.Unlock()
-		}
-	}
-}
-
-func (mgr *Manager) pollMaster() {
-	for {
-		a := &MasterPollArgs{mgr.cfg.Name}
-		r := &MasterPollRes{}
-		if err := mgr.master.Call("Master.PollInputs", a, r); err != nil {
-			fatalf("failed to poll master: %v", err)
-		}
-		logf(3, "polling master, got %v inputs", len(r.Inputs))
-		if len(r.Inputs) == 0 {
-			break
-		}
-	nextProg:
-		for _, prg := range r.Inputs {
-			p, err := prog.Deserialize(prg)
-			if err != nil {
-				logf(0, "failed to deserialize master program: %v", err)
-				continue
-			}
-			if mgr.syscalls != nil {
-				for _, c := range p.Calls {
-					if !mgr.syscalls[c.Meta.ID] {
-						continue nextProg
-					}
-				}
-			}
-			sig := hash(prg)
-			if _, ok := mgr.masterHashes[sig]; ok {
-				continue
-			}
-			mgr.masterHashes[sig] = struct{}{}
-			mgr.masterCorpus = append(mgr.masterCorpus, prg)
-			mgr.candidates = append(mgr.candidates, prg)
-		}
-	}
+	select {}
 }
 
 func (mgr *Manager) minimizeCorpus() {
@@ -178,6 +118,16 @@ func (mgr *Manager) minimizeCorpus() {
 		corpus = append(corpus, p)
 	}
 	mgr.prios = prog.CalculatePriorities(corpus)
+
+	// Don't minimize persistent corpus until fuzzers have triaged all inputs from it.
+	if len(mgr.candidates) == 0 {
+		hashes := make(map[string]bool)
+		for _, inp := range mgr.corpus {
+			h := hash(inp.Prog)
+			hashes[string(h[:])] = true
+		}
+		mgr.persistentCorpus.minimize(hashes)
+	}
 }
 
 func (mgr *Manager) Connect(a *ManagerConnectArgs, r *ManagerConnectRes) error {
@@ -208,18 +158,7 @@ func (mgr *Manager) NewInput(a *NewManagerInputArgs, r *int) error {
 	mgr.corpusCover[call] = cover.Union(mgr.corpusCover[call], a.Cover)
 	mgr.corpus = append(mgr.corpus, a.RpcInput)
 	mgr.stats["manager new inputs"]++
-
-	sig := hash(a.Prog)
-	if _, ok := mgr.masterHashes[sig]; !ok {
-		mgr.masterHashes[sig] = struct{}{}
-		mgr.masterCorpus = append(mgr.masterCorpus, a.Prog)
-
-		a1 := &NewMasterInputArgs{mgr.cfg.Name, a.Prog}
-		if err := mgr.master.Call("Master.NewInput", a1, nil); err != nil {
-			fatalf("call Master.NewInput failed: %v", err)
-		}
-	}
-
+	mgr.persistentCorpus.add(a.RpcInput.Prog)
 	return nil
 }
 

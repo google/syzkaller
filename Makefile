@@ -1,24 +1,18 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-.PHONY: all bin format clean master manager fuzzer executor
+.PHONY: all format clean master manager fuzzer executor
 
-all: master manager fuzzer executor
+all: manager fuzzer executor
 
-bin:
-	mkdir -p bin
+manager:
+	go build -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
 
-master: bin
-	go build -o ./bin/master github.com/google/syzkaller/master
+fuzzer:
+	go build -o ./bin/syz-fuzzer github.com/google/syzkaller/syz-fuzzer
 
-manager: bin
-	go build -o ./bin/manager github.com/google/syzkaller/manager
-
-fuzzer: bin
-	go build -o ./bin/fuzzer github.com/google/syzkaller/fuzzer
-
-executor: bin
-	gcc executor/executor.cc -o ./bin/executor -lpthread -static -Wall -O1 -g
+executor:
+	gcc -o ./bin/syz-executor executor/executor.cc -lpthread -static -Wall -O1 -g
 
 format:
 	go fmt ./...

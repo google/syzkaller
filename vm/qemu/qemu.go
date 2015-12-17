@@ -258,8 +258,8 @@ func (inst *Instance) Run() {
 	inst.Logf("started vm")
 
 	// Copy the binaries into the instance.
-	if !inst.CreateSCPCommand(inst.Fuzzer, "/syzkaller_fuzzer").Wait(1*time.Minute) ||
-		!inst.CreateSCPCommand(inst.Executor, "/syzkaller_executor").Wait(1*time.Minute) {
+	if !inst.CreateSCPCommand(inst.Fuzzer, "/syz-fuzzer").Wait(1*time.Minute) ||
+		!inst.CreateSCPCommand(inst.Executor, "/syz-executor").Wait(1*time.Minute) {
 		outputMu.Lock()
 		output = append(output, "\nfailed to scp binaries into the instance\n"...)
 		inst.SaveCrasher(output)
@@ -280,7 +280,7 @@ func (inst *Instance) Run() {
 	if inst.cfg.NoDropPrivs {
 		dropprivs = "-dropprivs=0"
 	}
-	cmd := inst.CreateSSHCommand(fmt.Sprintf("/syzkaller_fuzzer -name %v -executor /syzkaller_executor -manager %v:%v -procs %v -leak=%v %v %v %v",
+	cmd := inst.CreateSSHCommand(fmt.Sprintf("/syz-fuzzer -name %v -executor /syz-executor -manager %v:%v -procs %v -leak=%v %v %v %v",
 		inst.name, hostAddr, inst.cfg.ManagerPort, inst.cfg.Procs, inst.cfg.Leak, cover, dropprivs, inst.callsFlag))
 
 	deadline := start.Add(time.Hour)

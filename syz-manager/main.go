@@ -26,9 +26,7 @@ var (
 )
 
 type Config struct {
-	Name             string
 	Http             string
-	Master           string
 	Workdir          string
 	Vmlinux          string
 	Type             string
@@ -110,14 +108,8 @@ func parseConfig() (*Config, map[int]bool) {
 	if err := json.Unmarshal(data, cfg); err != nil {
 		fatalf("failed to parse config file: %v", err)
 	}
-	if cfg.Name == "" {
-		fatalf("config param name is empty")
-	}
 	if cfg.Http == "" {
 		fatalf("config param http is empty")
-	}
-	if cfg.Master == "" {
-		fatalf("config param master is empty")
 	}
 	if cfg.Workdir == "" {
 		fatalf("config param workdir is empty")

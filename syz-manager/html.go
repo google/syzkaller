@@ -4,8 +4,6 @@
 package main
 
 import (
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -23,11 +21,8 @@ func (mgr *Manager) initHttp() {
 	http.HandleFunc("/corpus", mgr.httpCorpus)
 	http.HandleFunc("/cover", mgr.httpCover)
 	http.HandleFunc("/prio", mgr.httpPrio)
-	http.HandleFunc("/current_corpus", mgr.httpCurrentCorpus)
-	go func() {
-		logf(0, "serving http on http://%v", mgr.cfg.Http)
-		panic(http.ListenAndServe(mgr.cfg.Http, nil))
-	}()
+	logf(0, "serving http on http://%v", mgr.cfg.Http)
+	go http.ListenAndServe(mgr.cfg.Http, nil)
 }
 
 func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
@@ -50,12 +45,9 @@ func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
 
 	uptime := time.Since(mgr.startTime)
 	data := &UIData{
-		Name:             mgr.cfg.Name,
-		MasterHttp:       mgr.masterHttp,
-		MasterCorpusSize: len(mgr.masterCorpus),
-		CorpusSize:       len(mgr.corpus),
-		TriageQueue:      len(mgr.candidates),
-		Uptime:           fmt.Sprintf("%v", uptime),
+		CorpusSize:  len(mgr.corpus),
+		TriageQueue: len(mgr.candidates),
+		Uptime:      fmt.Sprintf("%v", uptime),
 	}
 
 	secs := uint64(uptime) / 1e9
@@ -164,34 +156,13 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (mgr *Manager) httpCurrentCorpus(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
-	mgr.minimizeCorpus()
-	var hashes []string
-	for _, inp := range mgr.corpus {
-		hash := hash(inp.Prog)
-		hashes = append(hashes, hex.EncodeToString(hash[:]))
-	}
-	data, err := json.Marshal(&hashes)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to marshal corpus: %v", err), http.StatusInternalServerError)
-		return
-	}
-	w.Write(data)
-}
-
 type UIData struct {
-	Name             string
-	MasterHttp       string
-	MasterCorpusSize int
-	CorpusSize       int
-	TriageQueue      int
-	CoverSize        int
-	Uptime           string
-	Stats            []UIStat
-	Calls            []UICallType
+	CorpusSize  int
+	TriageQueue int
+	CoverSize   int
+	Uptime      string
+	Stats       []UIStat
+	Calls       []UICallType
 }
 
 type UIStat struct {
@@ -235,12 +206,10 @@ var htmlTemplate = template.Must(template.New("").Parse(`
 <!doctype html>
 <html>
 <head>
-    <title>syzkaller {{.Name}}</title>
+    <title>syzkaller</title>
 </head>
 <body>
-Manager: {{.Name}} <a href='http://{{.MasterHttp}}'>[master]</a> <br>
 Uptime: {{.Uptime}}<br>
-Master corpus: {{.MasterCorpusSize}} <br>
 Corpus: {{.CorpusSize}}<br>
 Triage queue len: {{.TriageQueue}}<br>
 <a href='/cover'>Cover: {{.CoverSize}}</a> <br>
