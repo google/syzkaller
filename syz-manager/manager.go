@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net"
 	"net/rpc"
@@ -124,7 +125,7 @@ func (mgr *Manager) minimizeCorpus() {
 		hashes := make(map[string]bool)
 		for _, inp := range mgr.corpus {
 			h := hash(inp.Prog)
-			hashes[string(h[:])] = true
+			hashes[hex.EncodeToString(h[:])] = true
 		}
 		mgr.persistentCorpus.minimize(hashes)
 	}
