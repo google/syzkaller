@@ -41,6 +41,7 @@ const (
 	FlagCollide                        // collide syscalls to provoke data races
 	FlagDedupCover                     // deduplicate coverage in executor
 	FlagDropPrivs                      // impersonate nobody user
+	FlagNoSetpgid                      // don't use setpgid
 	FlagStrace                         // run executor under strace
 )
 
@@ -252,6 +253,7 @@ func closeMapping(f *os.File, mem []byte) error {
 type command struct {
 	timeout time.Duration
 	cmd     *exec.Cmd
+	flags   uint64
 	dir     string
 	rp      *os.File
 	inrp    *os.File
@@ -264,7 +266,7 @@ func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.F
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
 	}
 
-	c := &command{timeout: timeout, dir: dir}
+	c := &command{timeout: timeout, flags: flags, dir: dir}
 	defer func() {
 		if c != nil {
 			c.close()
@@ -330,11 +332,10 @@ func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.F
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stdout
 	}
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: flags&FlagNoSetpgid == 0}
 	if syscall.Getuid() == 0 {
 		// Running under root, more isolation is possible.
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true, Cloneflags: syscall.CLONE_NEWNS}
-	} else {
-		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+		cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
 	}
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start executor binary: %v", err)
@@ -366,7 +367,9 @@ func (c *command) kill() {
 	// We started the process in its own process group and now kill the whole group.
 	// This solves a potential problem with strace:
 	// if we kill just strace, executor still runs and ReadAll below hangs.
-	syscall.Kill(-c.cmd.Process.Pid, syscall.SIGKILL)
+	if c.flags&FlagNoSetpgid == 0 {
+		syscall.Kill(-c.cmd.Process.Pid, syscall.SIGKILL)
+	}
 	syscall.Kill(c.cmd.Process.Pid, syscall.SIGKILL)
 }
 

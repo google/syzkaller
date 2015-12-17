@@ -30,6 +30,7 @@ var (
 	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
 	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
 	flagNobody   = flag.Bool("nobody", true, "impersonate into nobody")
+	flagNoPgid   = flag.Bool("nopgid", false, "don't use setpgid syscall")
 	flagTimeout  = flag.Duration("timeout", 10*time.Second, "executor timeout")
 	flagLogProg  = flag.Bool("logprog", false, "print programs before execution")
 
@@ -57,6 +58,9 @@ func main() {
 	}
 	if *flagDebug {
 		flags |= ipc.FlagDebug
+	}
+	if *flagNoPgid {
+		flags |= ipc.FlagNoSetpgid
 	}
 
 	gate = ipc.NewGate(2 * *flagProcs)

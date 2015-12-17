@@ -68,6 +68,7 @@ bool flag_threaded;
 bool flag_collide;
 bool flag_deduplicate;
 bool flag_drop_privs;
+bool flag_no_setpgid;
 
 __attribute__((aligned(64 << 10))) char input_data[kMaxInput];
 __attribute__((aligned(64 << 10))) char output_data[kMaxOutput];
@@ -99,7 +100,7 @@ struct thread_t {
 	int num_args;
 	uint64_t args[kMaxArgs];
 	uint64_t res;
-	uint64_t errno;
+	uint64_t reserrno;
 	uint32_t cover_size;
 	int cover_fd;
 };
@@ -157,8 +158,9 @@ int main()
 	flag_collide = flags & (1 << 3);
 	flag_deduplicate = flags & (1 << 4);
 	flag_drop_privs = flags & (1 << 5);
-	if (flag_collide)
-		flag_threaded = true;
+	flag_no_setpgid = flags & (1 << 6);
+	if (!flag_threaded)
+		flag_collide = false;
 
 	cover_open();
 
@@ -175,7 +177,8 @@ int main()
 		if (pid < 0)
 			fail("fork failed");
 		if (pid == 0) {
-			setpgid(0, 0);
+			if (!flag_no_setpgid)
+				setpgid(0, 0);
 			unshare(CLONE_NEWNS);
 			close(kInPipeFd);
 			close(kOutPipeFd);
@@ -209,46 +212,48 @@ int main()
 		}
 
 		int status = 0;
-#if 1
-		timespec ts = {};
-		ts.tv_sec = 5;
-		ts.tv_nsec = 0;
-		if (sigtimedwait(&sigchldset, NULL, &ts) < 0) {
-			debug("sigtimedwait expired, killing %d\n", pid);
-			kill(-pid, SIGKILL);
-			kill(pid, SIGKILL);
-		}
-		debug("waitpid(%d)\n", pid);
-		if (waitpid(pid, &status, __WALL | WUNTRACED) != pid)
-			fail("waitpid failed");
-		debug("waitpid(%d) returned\n", pid);
-		// Drain SIGCHLD signals.
-		ts.tv_sec = 0;
-		ts.tv_nsec = 0;
-		while (sigtimedwait(&sigchldset, NULL, &ts) > 0) {
-		}
-#else
-		// This code is less efficient, but does not require working sigtimedwait.
-		// We've hit 2 systems that mishandle sigtimedwait.
-		uint64_t start = current_time_ms();
-		for (;;) {
-			int res = waitpid(pid, &status, __WALL | WUNTRACED | WNOHANG);
-			debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
-			if (res == pid)
-				break;
-			usleep(1000);
-			if (current_time_ms() - start > 5 * 1000) {
-				debug("killing\n");
-				kill(-pid, SIGKILL);
+		if (!flag_no_setpgid) {
+			timespec ts = {};
+			ts.tv_sec = 5;
+			ts.tv_nsec = 0;
+			if (sigtimedwait(&sigchldset, NULL, &ts) < 0) {
+				debug("sigtimedwait expired, killing %d\n", pid);
+				if (!flag_no_setpgid)
+					kill(-pid, SIGKILL);
 				kill(pid, SIGKILL);
-				int res = waitpid(pid, &status, __WALL | WUNTRACED);
+			}
+			debug("waitpid(%d)\n", pid);
+			if (waitpid(pid, &status, __WALL | WUNTRACED) != pid)
+				fail("waitpid failed");
+			debug("waitpid(%d) returned\n", pid);
+			// Drain SIGCHLD signals.
+			ts.tv_sec = 0;
+			ts.tv_nsec = 0;
+			while (sigtimedwait(&sigchldset, NULL, &ts) > 0) {
+			}
+		}
+		else {
+			// This code is less efficient, but does not require working sigtimedwait.
+			// We've hit 2 systems that mishandle sigtimedwait.
+			uint64_t start = current_time_ms();
+			for (;;) {
+				int res = waitpid(pid, &status, __WALL | WUNTRACED | WNOHANG);
 				debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
 				if (res == pid)
 					break;
-				fail("waitpid failed");
+				usleep(1000);
+				if (current_time_ms() - start > 5 * 1000) {
+					debug("killing\n");
+					kill(-pid, SIGKILL);
+					kill(pid, SIGKILL);
+					int res = waitpid(pid, &status, __WALL | WUNTRACED);
+					debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
+					if (res == pid)
+						break;
+					fail("waitpid failed");
+				}
 			}
 		}
-#endif
 		status = WEXITSTATUS(status);
 		if (status == kFailStatus)
 			fail("child failed");
@@ -503,7 +508,7 @@ void handle_completion(thread_t* th)
 
 		write_output(th->call_index);
 		write_output(th->call_num);
-		write_output(th->res != -1 ? 0 : th->errno);
+		write_output(th->res != (uint64_t)-1 ? 0 : th->reserrno);
 		write_output(th->cover_size);
 		for (uint32_t i = 0; i < th->cover_size; i++)
 			write_output(th->cover_data[i + 1]);
@@ -558,7 +563,6 @@ void execute_call(thread_t* th)
 		if (th->num_args > 6)
 			fail("bad number of arguments");
 		th->res = syscall(call->sys_nr, th->args[0], th->args[1], th->args[2], th->args[3], th->args[4], th->args[5]);
-		th->errno = errno;
 		break;
 	}
 	case __NR_syz_openpts: {
@@ -572,14 +576,12 @@ void execute_call(thread_t* th)
 		else {
 			th->res = -1;
 		}
-		th->errno = errno;
 	}
 	case __NR_syz_dri_open: {
 		// syz_dri_open(card_id intptr, flags flags[open_flags]) fd[dri]
 		char buf[128];
 		sprintf(buf, "/dev/dri/card%lu", th->args[0]);
 		th->res = open(buf, th->args[1], 0);
-		th->errno = errno;
 	}
 	case __NR_syz_fuse_mount: {
 		// syz_fuse_mount(target filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd[fuse]
@@ -604,7 +606,6 @@ void execute_call(thread_t* th)
 			// Ignore errors, maybe fuzzer can do something useful with fd alone.
 		}
 		th->res = fd;
-		th->errno = errno;
 	}
 	case __NR_syz_fuseblk_mount: {
 		// syz_fuseblk_mount(target filename, blkdev filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd[fuse]
@@ -635,14 +636,13 @@ void execute_call(thread_t* th)
 			}
 		}
 		th->res = fd;
-		th->errno = errno;
 	}
 	}
-	int errno0 = errno;
+	th->reserrno = errno;
 	th->cover_size = cover_read(th);
 
 	if (th->res == (uint64_t)-1)
-		debug("#%d: %s = errno(%d)\n", th->id, call->name, errno0);
+		debug("#%d: %s = errno(%d)\n", th->id, call->name, th->reserrno);
 	else
 		debug("#%d: %s = 0x%lx\n", th->id, call->name, th->res);
 	__atomic_store_n(&th->done, 1, __ATOMIC_RELEASE);
