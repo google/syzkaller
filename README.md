@@ -32,8 +32,8 @@ revision 231296. Sync past it and build fresh gcc.
 
 As well as adding coverage support to the C compiler, the Linux kernel itself needs to be modified
 to:
- - add support in the build system for the coverage options (under `CONFIG_SANCOV`)
- - add extra instrumentation on system call entry/exit (for a `CONFIG_SANCOV` build)
+ - add support in the build system for the coverage options (under `CONFIG_KCOV`)
+ - add extra instrumentation on system call entry/exit (for a `CONFIG_KCOV` build)
  - add code to track and report per-task coverage information.
 
 This is all implemented in [this coverage patch](https://github.com/dvyukov/linux/commits/kcov);
@@ -52,9 +52,9 @@ In particular:
  - The program files for the fuzzer processes are transmitted into the VM using SSH, so the VM image
    needs a running SSH server.
  - The VM's SSH configuration should be set up to allow root access for the identity that is
-   included in the `master`'s configuration.  In other words, you should be able to do `ssh -i
+   included in the `syz-manager`'s configuration.  In other words, you should be able to do `ssh -i
    $SSHID -p $PORT root@localhost` without being prompted for a password (where `SSHID` is the SSH
-   identification file and `PORT` is the port that are specified in the `manager` configuration
+   identification file and `PORT` is the port that are specified in the `syz-manager` configuration
    file).
  - The kernel exports coverage information via a debugfs entry, so the VM image needs to mount
    the debugfs filesystem at `/sys/kernel/debug`.
@@ -68,13 +68,13 @@ to build them.  Build with `make`, which generates compiled binaries in the `bin
 
 ## Configuration
 
-The operation of the syzkaller manager process is governed by a configuration file, passed at
+The operation of the syzkaller `syz-manager` process is governed by a configuration file, passed at
 invocation time with the `-config` option.  This configuration can be based on the
 [syz-manager/example.cfg](syz-manager/example.cfg); the file is in JSON format with the
 following keys in its top-level object:
 
- - `http`: URL that will display information about the running manager process.
- - `workdir`: Location of a working directory for the `manager` process. Outputs here include:
+ - `http`: URL that will display information about the running `syz-manager` process.
+ - `workdir`: Location of a working directory for the `syz-manager` process. Outputs here include:
      - `<workdir>/qemu/logN-M-T`: log files
      - `<workdir>/qemu/imageN`: per-instance copies of the VM disk image
      - `<workdir>/crashes/crashN-T`: crash output files
@@ -83,7 +83,7 @@ following keys in its top-level object:
  - `type`: Type of virtual machine to use, e.g. `qemu`.
  - `count`: Number of VMs to run in parallel.
  - `procs`: Number of parallel test processes in each VM (4 or 8 would be a reasonable number).
- - `port`: Port that the manager process listens on for communications from the
+ - `port`: Port that the `syz-manager` process listens on for communications from the
    fuzzer processes running in the VMs.
  - `leak`: Detect memory leaks with kmemleak (very slow).
  - `params`: A JSON object containing VM configuation, specific to the particular `type` of VM. For
@@ -95,8 +95,8 @@ following keys in its top-level object:
         `-hda` option to `qemu-system-x86_64`.
       - `sshkey`: Location (on the host machine) of an SSH identity to use for communicating with
         the virtual machine.
-      - `fuzzer`: Location (on the host machine) of the syzkaller `fuzzer` binary.
-      - `executor`: Location (on the host machine) of the syzkaller `executor` binary.
+      - `fuzzer`: Location (on the host machine) of the syzkaller `syz-fuzzer` binary.
+      - `executor`: Location (on the host machine) of the syzkaller `syz-executor` binary.
       - `port`: TCP port on the host machine that should be redirected to the SSH port (port 22) on
         the guest VM; this is passed as part of the `hostfwd` option to the `-net` option of
         `qemu-system-x86_64`.
@@ -110,7 +110,7 @@ following keys in its top-level object:
 
 ## Running syzkaller
 
-Start the manager process as:
+Start the `syz-manager` process as:
 ```
 ./bin/syz-manager -config my.cfg
 ```
@@ -128,9 +128,6 @@ The process structure for the syzkaller system is shown in the following diagram
 indicate corresponding configuration options.
 
 ![Process structure for syzkaller](structure.png?raw=true)
-
-The `master` process is responsible for persistent corpus and crash storage.
-It communicates with one or more `manager` processes via RPC.
 
 The `syz-manager` process starts, monitors and restarts several VM instances (support for
 physical machines is not implemented yet), and starts a `syz-fuzzer` process inside of the VMs.
