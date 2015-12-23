@@ -235,10 +235,71 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 // whether it is equal to the orginal program or not. If it is equivalent then
 // the simplification attempt is committed and the process continues.
 func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) (*Prog, int) {
-	if callIndex0 < 0 || callIndex0 >= len(p0.Calls) {
-		panic("bad call index")
+	name0 := ""
+	if callIndex0 != -1 {
+		if callIndex0 < 0 || callIndex0 >= len(p0.Calls) {
+			panic("bad call index")
+		}
+		name0 = p0.Calls[callIndex0].Meta.Name
 	}
-	name0 := p0.Calls[callIndex0].Meta.Name
+
+	// Try to glue all mmap's together.
+	s := analyze(nil, p0, nil)
+	hi := -1
+	for i := 0; i < maxPages; i++ {
+		if s.pages[i] {
+			hi = i
+		}
+	}
+	if hi != -1 {
+		p := p0.Clone()
+		callIndex := callIndex0
+		// Remove all mmaps.
+		for i := 0; i < len(p.Calls); i++ {
+			c := p.Calls[i]
+			if i != callIndex && c.Meta.Name == "mmap" {
+				copy(p.Calls[i:], p.Calls[i+1:])
+				p.Calls = p.Calls[:len(p.Calls)-1]
+
+				for _, arg := range referencedArgs(c.Args, c.Ret) {
+					arg1 := constArg(arg.Type.Default())
+					replaceArg(p, arg, arg1, nil)
+				}
+				foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
+					if arg.Kind == ArgResult {
+						delete(arg.Res.Uses, arg)
+					}
+				})
+
+				if i < callIndex {
+					callIndex--
+				}
+				i--
+			}
+		}
+		// Prepend uber-mmap.
+		mmap := &Call{
+			Meta: sys.CallMap["mmap"],
+			Args: []*Arg{
+				pointerArg(0, 0, nil),
+				pageSizeArg(uintptr(hi)+1, 0),
+				constArg(PROT_READ | PROT_WRITE),
+				constArg(MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED),
+				constArg(sys.InvalidFD),
+				constArg(0),
+			},
+		}
+		assignTypeAndDir(mmap)
+		p.Calls = append([]*Call{mmap}, p.Calls...)
+		if callIndex != -1 {
+			callIndex++
+		}
+		if pred(p, callIndex) {
+			p0 = p
+			callIndex0 = callIndex
+		}
+	}
+
 	// Try to remove all calls except the last one one-by-one.
 	for i := len(p0.Calls) - 1; i >= 0; i-- {
 		if i == callIndex0 {
@@ -248,9 +309,8 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) (*Prog, int)
 		if i < callIndex {
 			callIndex--
 		}
-		c := p0.Calls[i]
 		p := p0.Clone()
-		c = p.Calls[i]
+		c := p.Calls[i]
 		copy(p.Calls[i:], p.Calls[i+1:])
 		p.Calls = p.Calls[:len(p.Calls)-1]
 		for _, arg := range referencedArgs(c.Args, c.Ret) {
@@ -274,9 +334,11 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) (*Prog, int)
 	// - remove offsets from addresses
 	// - replace file descriptors with -1
 	// etc
-	if callIndex0 < 0 || callIndex0 >= len(p0.Calls) || name0 != p0.Calls[callIndex0].Meta.Name {
-		panic(fmt.Sprintf("bad call index after minimizatoin: ncalls=%v index=%v call=%v/%v",
-			len(p0.Calls), callIndex0, name0, p0.Calls[callIndex0].Meta.Name))
+	if callIndex0 != -1 {
+		if callIndex0 < 0 || callIndex0 >= len(p0.Calls) || name0 != p0.Calls[callIndex0].Meta.Name {
+			panic(fmt.Sprintf("bad call index after minimizatoin: ncalls=%v index=%v call=%v/%v",
+				len(p0.Calls), callIndex0, name0, p0.Calls[callIndex0].Meta.Name))
+		}
 	}
 	return p0, callIndex0
 }

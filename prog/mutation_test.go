@@ -150,10 +150,11 @@ nextTest:
 
 func TestMinimize(t *testing.T) {
 	tests := []struct {
-		orig      string
-		callIndex int
-		pred      func(*Prog, int) bool
-		result    string
+		orig            string
+		callIndex       int
+		pred            func(*Prog, int) bool
+		result          string
+		resultCallIndex int
 	}{
 		// Predicate always returns false, so must get the same program.
 		{
@@ -173,6 +174,7 @@ func TestMinimize(t *testing.T) {
 			"mmap(&(0x7f0000000000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"sched_yield()\n" +
 				"pipe2(&(0x7f0000000000)={0x0, 0x0}, 0x0)\n",
+			2,
 		},
 		// Remove a call.
 		{
@@ -186,6 +188,7 @@ func TestMinimize(t *testing.T) {
 			},
 			"mmap(&(0x7f0000000000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"pipe2(&(0x7f0000000000)={0x0, 0x0}, 0x0)\n",
+			1,
 		},
 		// Remove two dependent calls.
 		{
@@ -204,6 +207,7 @@ func TestMinimize(t *testing.T) {
 				return false
 			},
 			"sched_yield()\n",
+			0,
 		},
 		// Remove a call and replace results.
 		{
@@ -218,6 +222,7 @@ func TestMinimize(t *testing.T) {
 			"mmap(&(0x7f0000000000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"write(0xffffffffffffffff, &(0x7f0000000000)=\"1155\", 0x2)\n" +
 				"sched_yield()\n",
+			2,
 		},
 		// Remove a call and replace results.
 		{
@@ -225,13 +230,30 @@ func TestMinimize(t *testing.T) {
 				"r0=open(&(0x7f0000000000)=\"1155\", 0x0, 0x0)\n" +
 				"write(r0, &(0x7f0000000000)=\"1155\", 0x2)\n" +
 				"sched_yield()\n",
-			3,
+			-1,
 			func(p *Prog, callIndex int) bool {
 				return p.String() == "mmap-write-sched_yield"
 			},
 			"mmap(&(0x7f0000000000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"write(0xffffffffffffffff, &(0x7f0000000000)=\"1155\", 0x2)\n" +
 				"sched_yield()\n",
+			-1,
+		},
+		// Glue several mmaps together.
+		{
+			"sched_yield()\n" +
+				"mmap(&(0x7f0000000000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
+				"mmap(&(0x7f0000001000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
+				"getpid()\n" +
+				"mmap(&(0x7f0000005000)=nil, (0x2000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n",
+			3,
+			func(p *Prog, callIndex int) bool {
+				return p.String() == "mmap-sched_yield-getpid"
+			},
+			"mmap(&(0x7f0000000000)=nil, (0x7000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
+				"sched_yield()\n" +
+				"getpid()\n",
+			2,
 		},
 	}
 	for ti, test := range tests {
@@ -239,11 +261,15 @@ func TestMinimize(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to deserialize original program: %v", err)
 		}
-		p1, _ := Minimize(p, test.callIndex, test.pred)
+		p1, ci := Minimize(p, test.callIndex, test.pred)
 		res := p1.Serialize()
 		if string(res) != test.result {
 			t.Fatalf("minimization produced wrong result #%v\norig:\n%v\nexpect:\n%v\ngot:\n%v\n",
 				ti, test.orig, test.result, string(res))
+		}
+		if ci != test.resultCallIndex {
+			t.Fatalf("minimization broke call index #%v: got %v, want %v",
+				ti, ci, test.resultCallIndex)
 		}
 	}
 }
