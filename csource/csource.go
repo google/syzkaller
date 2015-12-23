@@ -7,9 +7,9 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"strings"
 	"os"
 	"os/exec"
+	"strings"
 	"unsafe"
 
 	"github.com/google/syzkaller/prog"
@@ -48,7 +48,7 @@ func Write(p *prog.Prog, opts Options) []byte {
 	}
 	fmt.Fprintf(w, "\n")
 
-	calls,nvar := generateCalls(exec)
+	calls, nvar := generateCalls(exec)
 	fmt.Fprintf(w, "long r[%v];\n\n", nvar)
 
 	if !opts.Threaded && !opts.Collide {
@@ -79,11 +79,11 @@ func Write(p *prog.Prog, opts Options) []byte {
 		fmt.Fprintf(w, "\t\tusleep(10000);\n")
 		fmt.Fprintf(w, "\t}\n")
 		if opts.Collide {
-		fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", len(calls))
-		fmt.Fprintf(w, "\t\tpthread_create(&th[i], 0, thr, (void*)i);\n")
-		fmt.Fprintf(w, "\t\tif (i%%2==0)\n")
-		fmt.Fprintf(w, "\t\t\tusleep(10000);\n")
-		fmt.Fprintf(w, "\t}\n")
+			fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", len(calls))
+			fmt.Fprintf(w, "\t\tpthread_create(&th[i], 0, thr, (void*)i);\n")
+			fmt.Fprintf(w, "\t\tif (i%%2==0)\n")
+			fmt.Fprintf(w, "\t\t\tusleep(10000);\n")
+			fmt.Fprintf(w, "\t}\n")
 		}
 		fmt.Fprintf(w, "\tusleep(100000);\n")
 		fmt.Fprintf(w, "\treturn 0;\n}\n")
@@ -116,15 +116,15 @@ func generateCalls(exec []byte) ([]string, int) {
 	var calls []string
 	w := new(bytes.Buffer)
 	newCall := func() {
-			if seenCall {
-				seenCall = false
-				calls = append(calls, w.String())
-				w = new(bytes.Buffer)
-			}
+		if seenCall {
+			seenCall = false
+			calls = append(calls, w.String())
+			w = new(bytes.Buffer)
+		}
 	}
 	n := 0
 loop:
-	for ;; n++ {
+	for ; ; n++ {
 		switch instr := read(); instr {
 		case prog.ExecInstrEOF:
 			break loop
@@ -198,7 +198,6 @@ loop:
 	newCall()
 	return calls, n
 }
-
 
 // WriteTempFile writes data to a temp file and returns its name.
 func WriteTempFile(data []byte) (string, error) {
