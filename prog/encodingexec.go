@@ -6,18 +6,22 @@
 
 package prog
 
-const (
-	instrEOF = ^uintptr(iota)
-	instrCopyin
-	instrCopyout
-	instrSetPad
-	instrCheckPad
+import (
+	"fmt"
 )
 
 const (
-	execArgConst = uintptr(iota)
-	execArgResult
-	execArgData
+	ExecInstrEOF = ^uintptr(iota)
+	ExecInstrCopyin
+	ExecInstrCopyout
+	ExecInstrSetPad
+	ExecInstrCheckPad
+)
+
+const (
+	ExecArgConst = uintptr(iota)
+	ExecArgResult
+	ExecArgData
 )
 
 const (
@@ -28,7 +32,7 @@ const (
 
 func (p *Prog) SerializeForExec() []byte {
 	if err := p.validate(); err != nil {
-		panic("serializing invalid program")
+		panic(fmt.Errorf("serializing invalid program: %v", err))
 	}
 	var instrSeq uintptr
 	w := &execContext{args: make(map[*Arg]*argInfo)}
@@ -61,11 +65,11 @@ func (p *Prog) SerializeForExec() []byte {
 					pad, padSize := arg1.IsPad()
 					if (arg1.Dir == DirIn && !pad) || (arg1.Dir == DirOut && pad) || arg1.Dir == DirInOut {
 						if pad {
-							w.write(instrSetPad)
+							w.write(ExecInstrSetPad)
 							w.write(physicalAddr(arg) + w.args[arg1].Offset)
 							w.write(padSize)
 						} else {
-							w.write(instrCopyin)
+							w.write(ExecInstrCopyin)
 							w.write(physicalAddr(arg) + w.args[arg1].Offset)
 							w.writeArg(arg1)
 						}
@@ -89,7 +93,7 @@ func (p *Prog) SerializeForExec() []byte {
 			if pad && arg.Dir != DirIn {
 				instrSeq++
 				info := w.args[arg]
-				w.write(instrCheckPad)
+				w.write(ExecInstrCheckPad)
 				w.write(physicalAddr(base) + info.Offset)
 				w.write(padSize)
 				return
@@ -108,7 +112,7 @@ func (p *Prog) SerializeForExec() []byte {
 				info := w.args[arg]
 				info.Idx = instrSeq
 				instrSeq++
-				w.write(instrCopyout)
+				w.write(ExecInstrCopyout)
 				w.write(physicalAddr(base) + info.Offset)
 				w.write(arg.Size(arg.Type))
 			default:
@@ -116,7 +120,7 @@ func (p *Prog) SerializeForExec() []byte {
 			}
 		})
 	}
-	w.write(instrEOF)
+	w.write(ExecInstrEOF)
 	return w.buf
 }
 
@@ -151,25 +155,25 @@ func (w *execContext) write(v uintptr) {
 func (w *execContext) writeArg(arg *Arg) {
 	switch arg.Kind {
 	case ArgConst:
-		w.write(execArgConst)
+		w.write(ExecArgConst)
 		w.write(arg.Size(arg.Type))
 		w.write(arg.Val)
 	case ArgResult:
-		w.write(execArgResult)
+		w.write(ExecArgResult)
 		w.write(arg.Size(arg.Type))
 		w.write(w.args[arg.Res].Idx)
 		w.write(arg.OpDiv)
 		w.write(arg.OpAdd)
 	case ArgPointer:
-		w.write(execArgConst)
+		w.write(ExecArgConst)
 		w.write(arg.Size(arg.Type))
 		w.write(physicalAddr(arg))
 	case ArgPageSize:
-		w.write(execArgConst)
+		w.write(ExecArgConst)
 		w.write(arg.Size(arg.Type))
 		w.write(arg.AddrPage * pageSize)
 	case ArgData:
-		w.write(execArgData)
+		w.write(ExecArgData)
 		w.write(uintptr(len(arg.Data)))
 		for i := 0; i < len(arg.Data); i += 8 {
 			var v uintptr

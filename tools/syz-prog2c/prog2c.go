@@ -4,19 +4,27 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 
+	"github.com/google/syzkaller/csource"
 	"github.com/google/syzkaller/prog"
 )
 
+var (
+	flagThreaded = flag.Bool("threaded", false, "create threaded program")
+	flagCollide  = flag.Bool("collide", false, "create collide program")
+)
+
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Fprintf(os.Stderr, "usage: prog2c prog_file\n")
+	flag.Parse()
+	if len(flag.Args()) != 1 {
+		fmt.Fprintf(os.Stderr, "usage: prog2c [-threaded [-collide]] prog_file\n")
 		os.Exit(1)
 	}
-	data, err := ioutil.ReadFile(os.Args[1])
+	data, err := ioutil.ReadFile(flag.Args()[0])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to read prog file: %v\n", err)
 		os.Exit(1)
@@ -26,6 +34,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
 		os.Exit(1)
 	}
-	src := p.WriteCSource()
+	opts := csource.Options{
+		Threaded: *flagThreaded,
+		Collide:  *flagCollide,
+	}
+	src := csource.Write(p, opts)
 	os.Stdout.Write(src)
 }

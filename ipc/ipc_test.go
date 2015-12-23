@@ -6,14 +6,13 @@ package ipc
 import (
 	"bufio"
 	"bytes"
-	"io/ioutil"
 	"math/rand"
 	"os"
-	"os/exec"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/csource"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -22,33 +21,20 @@ func buildExecutor(t *testing.T) string {
 }
 
 func buildSource(t *testing.T, src []byte) string {
-	srcf, err := ioutil.TempFile("", "syzkaller")
+	tmp, err := csource.WriteTempFile(src)
 	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
+		t.Fatalf("%v", err)
 	}
-	srcf.Close()
-	os.Remove(srcf.Name())
-	name := srcf.Name() + ".c"
-	if err := ioutil.WriteFile(name, src, 0600); err != nil {
-		t.Fatalf("failed to write temp file: %v", err)
-	}
-	defer os.Remove(name)
-	return buildProgram(t, name)
+	defer os.Remove(tmp)
+	return buildProgram(t, tmp)
 }
 
 func buildProgram(t *testing.T, src string) string {
-	bin, err := ioutil.TempFile("", "syzkaller")
+	bin, err := csource.Build(src)
 	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
+		t.Fatalf("%v", err)
 	}
-	bin.Close()
-	out, err := exec.Command("gcc", src, "-o", bin.Name(), "-lpthread", "-static", "-O1", "-g").CombinedOutput()
-	if err != nil {
-		os.Remove(bin.Name())
-		data, _ := ioutil.ReadFile(src)
-		t.Fatalf("failed to build program:\n%s\n%s", data, out)
-	}
-	return bin.Name()
+	return bin
 }
 
 func initTest(t *testing.T) (rand.Source, int) {
@@ -73,7 +59,7 @@ func TestEmptyProg(t *testing.T) {
 	defer env.Close()
 
 	p := new(prog.Prog)
-	output, strace, cov, failed, hanged, err := env.Exec(p)
+	output, strace, cov, _, failed, hanged, err := env.Exec(p)
 	if err != nil {
 		t.Fatalf("failed to run executor: %v", err)
 	}
@@ -102,7 +88,7 @@ func TestStrace(t *testing.T) {
 	defer env.Close()
 
 	p := new(prog.Prog)
-	_, strace, _, failed, hanged, err := env.Exec(p)
+	_, strace, _, _, failed, hanged, err := env.Exec(p)
 	if err != nil {
 		t.Fatalf("failed to run executor: %v", err)
 	}
@@ -129,7 +115,7 @@ func TestExecute(t *testing.T) {
 
 		for i := 0; i < iters/len(flags); i++ {
 			p := prog.Generate(rs, 10, nil)
-			_, _, _, _, _, err := env.Exec(p)
+			_, _, _, _, _, _, err := env.Exec(p)
 			if err != nil {
 				t.Fatalf("failed to run executor: %v", err)
 			}
@@ -163,12 +149,12 @@ func TestCompare(t *testing.T) {
 	rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
 		p := prog.Generate(rs, 10, nil)
-		_, strace1, _, _, _, err := env1.Exec(p)
+		_, strace1, _, _, _, _, err := env1.Exec(p)
 		if err != nil {
 			t.Fatalf("failed to run executor: %v", err)
 		}
 
-		src := p.WriteCSource()
+		src := csource.Write(p, csource.Options{})
 		cprog := buildSource(t, src)
 		defer os.Remove(cprog)
 
@@ -178,7 +164,7 @@ func TestCompare(t *testing.T) {
 		}
 		defer env2.Close() // yes, that's defer in a loop
 
-		_, strace2, _, _, _, err := env2.Exec(nil)
+		_, strace2, _, _, _, _, err := env2.Exec(nil)
 		if err != nil {
 			t.Fatalf("failed to run c binary: %v", err)
 		}
