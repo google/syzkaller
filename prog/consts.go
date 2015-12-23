@@ -1149,3 +1149,16 @@ const (
 	__WCLONE                             = 2147483648
 	__WNOTHREAD                          = 536870912
 )
+
+var NewSyscalls = map[string]int{
+	"userfaultfd":       323,
+	"membarrier":        324,
+	"syz_openpts":       1000001,
+	"syz_fuseblk_mount": 1000004,
+	"memfd_create":      319,
+	"bpf":               321,
+	"mlock2":            325,
+	"syz_dri_open":      1000002,
+	"syz_fuse_mount":    1000003,
+	"getrandom":         318,
+}
