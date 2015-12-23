@@ -32,7 +32,7 @@ var (
 	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
 	flagNobody    = flag.Bool("nobody", true, "impersonate into nobody")
 	flagDedup     = flag.Bool("dedup", false, "deduplicate coverage in executor")
-	flagLoop      = flag.Bool("loop", false, "execute programs in a loop")
+	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
 	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
 	flagNoPgid    = flag.Bool("nopgid", false, "don't use setpgid syscall")
 	flagTimeout   = flag.Duration("timeout", 10*time.Second, "execution timeout")
@@ -101,7 +101,7 @@ func main() {
 					lastPrint = time.Now()
 				}
 				posMu.Unlock()
-				if !*flagLoop && idx >= len(progs) {
+				if *flagRepeat > 0 && idx >= len(progs)**flagRepeat {
 					env.Close()
 					wg.Done()
 					return
