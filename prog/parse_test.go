@@ -34,8 +34,11 @@ gettid()
 
 func TestParseMulti(t *testing.T) {
 	entries := ParseLog([]byte(execLog))
-	if len(entries) != 4 {
-		t.Fatalf("got %v programs, want 4")
+	if len(entries) != 5 {
+		for i, ent := range entries {
+			t.Logf("program #%v: %s\n", i, ent.P)
+		}
+		t.Fatalf("got %v programs, want 5", len(entries))
 	}
 	off := 0
 	for _, ent := range entries {
@@ -43,26 +46,33 @@ func TestParseMulti(t *testing.T) {
 			t.Fatalf("bad offsets")
 		}
 	}
-	if entries[0].Proc != 1 || entries[1].Proc != 2 || entries[2].Proc != 33 || entries[3].Proc != 9 {
+	if entries[0].Proc != 0 ||
+		entries[1].Proc != 1 ||
+		entries[2].Proc != 2 ||
+		entries[3].Proc != 33 ||
+		entries[4].Proc != 9 {
 		t.Fatalf("bad procs")
 	}
-	if s := entries[0].P.String(); s != "getpid-gettid-munlockall" {
+	if s := entries[0].P.String(); s != "getpid-gettid" {
 		t.Fatalf("bad program 0: %s", s)
 	}
-	if s := entries[1].P.String(); s != "getpid-gettid" {
+	if s := entries[1].P.String(); s != "getpid-gettid-munlockall" {
+		t.Fatalf("bad program 0: %s", s)
+	}
+	if s := entries[2].P.String(); s != "getpid-gettid" {
 		t.Fatalf("bad program 1: %s", s)
 	}
-	if s := entries[2].P.String(); s != "gettid-getpid" {
+	if s := entries[3].P.String(); s != "gettid-getpid" {
 		t.Fatalf("bad program 2: %s", s)
 	}
-	if s := entries[3].P.String(); s != "munlockall" {
+	if s := entries[4].P.String(); s != "munlockall" {
 		t.Fatalf("bad program 3: %s", s)
 	}
 }
 
 const execLog = `
 getpid()
-getpid()
+gettid()
 2015/12/21 12:18:05 executing program 1:
 getpid()
 [ 2351.935478] Modules linked in:
