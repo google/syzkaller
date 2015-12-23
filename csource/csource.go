@@ -199,21 +199,6 @@ loop:
 	return calls, n
 }
 
-// WriteTempFile writes data to a temp file and returns its name.
-func WriteTempFile(data []byte) (string, error) {
-	f, err := ioutil.TempFile("", "syz-prog")
-	if err != nil {
-		return "", fmt.Errorf("failed to create a temp file: %v", err)
-	}
-	if _, err := f.Write(data); err != nil {
-		f.Close()
-		os.Remove(f.Name())
-		return "", fmt.Errorf("failed to write temp file: %v", err)
-	}
-	f.Close()
-	return f.Name(), nil
-}
-
 // Build builds a C/C++ program from source file src
 // and returns name of the resulting binary.
 func Build(src string) (string, error) {

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/fileutil"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -40,7 +41,7 @@ func Test(t *testing.T) {
 
 func testOne(t *testing.T, p *prog.Prog, opts Options) {
 	src := Write(p, opts)
-	srcf, err := WriteTempFile(src)
+	srcf, err := fileutil.WriteTempFile(src)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
