@@ -6,7 +6,6 @@
 package main
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/binary"
 	"flag"
@@ -41,14 +40,21 @@ var (
 func main() {
 	flag.Parse()
 	if len(flag.Args()) == 0 {
-		fmt.Fprintf(os.Stderr, "usage: execprog [flags] file-with-programs*\n")
+		fmt.Fprintf(os.Stderr, "usage: execprog [flags] file-with-programs+\n")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
 	var progs []*prog.Prog
 	for _, fn := range flag.Args() {
-		progs = append(progs, parseFile(fn)...)
+		data, err := ioutil.ReadFile(fn)
+		if err != nil {
+			log.Fatalf("failed to read log file: %v", err)
+		}
+		entries := prog.ParseLog(data)
+		for _, ent := range entries {
+			progs = append(progs, ent.P)
+		}
 	}
 	log.Printf("parsed %v programs", len(progs))
 	if len(progs) == 0 {
@@ -141,36 +147,4 @@ func main() {
 		}()
 	}
 	wg.Wait()
-}
-
-func parseFile(fn string) []*prog.Prog {
-	logf, err := os.Open(fn)
-	if err != nil {
-		log.Fatalf("failed to open log file: %v", err)
-	}
-	log.Printf("parsing log %v", fn)
-	s := bufio.NewScanner(logf)
-	var cur []byte
-	var last *prog.Prog
-	var progs []*prog.Prog
-	for s.Scan() {
-		ln := s.Text()
-		tmp := append(cur, ln...)
-		tmp = append(tmp, '\n')
-		p, err := prog.Deserialize(tmp)
-		if err == nil {
-			cur = tmp
-			last = p
-			continue
-		}
-		if last != nil {
-			progs = append(progs, last)
-			last = nil
-			cur = cur[:0]
-		}
-	}
-	if last != nil {
-		progs = append(progs, last)
-	}
-	return progs
 }
