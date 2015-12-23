@@ -75,34 +75,24 @@ following keys in its top-level object:
 
  - `http`: URL that will display information about the running `syz-manager` process.
  - `workdir`: Location of a working directory for the `syz-manager` process. Outputs here include:
-     - `<workdir>/qemu/logN-M-T`: log files
-     - `<workdir>/qemu/imageN`: per-instance copies of the VM disk image
+     - `<workdir>/instance-x`: per VM instance temporary files
      - `<workdir>/crashes/crashN-T`: crash output files
      - `<workdir>/corpus/*`: corpus with interesting programs
+ - `syzkaller`: Location of the `syzkaller` checkout.
  - `vmlinux`: Location of the `vmlinux` file that corresponds to the kernel being tested.
- - `type`: Type of virtual machine to use, e.g. `qemu`.
+ - `type`: Type of virtual machine to use, e.g. `qemu` or `kvm`.
  - `count`: Number of VMs to run in parallel.
  - `procs`: Number of parallel test processes in each VM (4 or 8 would be a reasonable number).
- - `port`: Port that the `syz-manager` process listens on for communications from the
-   fuzzer processes running in the VMs.
  - `leak`: Detect memory leaks with kmemleak (very slow).
- - `params`: A JSON object containing VM configuation, specific to the particular `type` of VM. For
-   `qemu` VMs, this configuration includes:
-      - `kernel`: Location of the `bzImage` file for the kernel to be tested; this is passed as the
-        `-kernel` option to `qemu-system-x86_64`.
-      - `cmdline`: Additional command line options for the booting kernel, for example `root=/dev/sda1`.
-      - `image`: Location of the disk image file for the QEMU instance; a copy of this file is passed as the
-        `-hda` option to `qemu-system-x86_64`.
-      - `sshkey`: Location (on the host machine) of an SSH identity to use for communicating with
-        the virtual machine.
-      - `fuzzer`: Location (on the host machine) of the syzkaller `syz-fuzzer` binary.
-      - `executor`: Location (on the host machine) of the syzkaller `syz-executor` binary.
-      - `port`: TCP port on the host machine that should be redirected to the SSH port (port 22) on
-        the guest VM; this is passed as part of the `hostfwd` option to the `-net` option of
-        `qemu-system-x86_64`.
-      - `cpu`: Number of CPUs to simulate in the VM (*not currently used*).
-      - `mem`: Amount of memory (in MiB) for the VM; this is passed as the `-m` option to
-        `qemu-system-x86_64`.
+ - `kernel`: Location of the `bzImage` file for the kernel to be tested; this is passed as the
+   `-kernel` option to `qemu-system-x86_64`.
+ - `cmdline`: Additional command line options for the booting kernel, for example `root=/dev/sda1`.
+ - `image`: Location of the disk image file for the QEMU instance; a copy of this file is passed as the
+   `-hda` option to `qemu-system-x86_64`.
+ - `sshkey`: Location (on the host machine) of an SSH identity to use for communicating with
+   the virtual machine.
+ - `cpu`: Number of CPUs to simulate in the VM (*not currently used*).
+ - `mem`: Amount of memory (in MiB) for the VM; this is passed as the `-m` option to `qemu-system-x86_64`.
  - `enable_syscalls`: List of syscalls to test (optional).
  - `disable_syscalls`: List of system calls that should be treated as disabled (optional).
  - `suppressions`: List of regexps for known bugs.
