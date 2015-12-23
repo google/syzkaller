@@ -5,7 +5,7 @@
 
 all: manager fuzzer executor
 
-all-tools: execprog mutate prog2c stress
+all-tools: execprog mutate prog2c stress repro
 
 manager:
 	go build -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
@@ -18,6 +18,9 @@ executor:
 
 execprog:
 	go build -o ./bin/syz-execprog github.com/google/syzkaller/tools/syz-execprog
+
+repro:
+	go build -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
 
 mutate:
 	go build -o ./bin/syz-mutate github.com/google/syzkaller/tools/syz-mutate
