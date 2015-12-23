@@ -339,7 +339,7 @@ retry:
 			args[i] = 0;
 		thread_t* th = schedule_call(n, call_index++, call_num, num_args, args, input_pos);
 
-		if (collide && (n % 2)) {
+		if (collide && (call_index % 2) == 0) {
 			// Don't wait for every other call.
 			// We already have results from the previous execution.
 		}
