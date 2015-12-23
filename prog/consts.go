@@ -29,7 +29,6 @@ const (
 	ARCH_SET_GS                          = 4097
 	AT_EACCESS                           = 512
 	AT_EMPTY_PATH                        = 4096
-	AT_FDCWD                             = 18446744073709551516
 	AT_REMOVEDIR                         = 512
 	AT_SYMLINK_FOLLOW                    = 1024
 	AT_SYMLINK_NOFOLLOW                  = 256

@@ -137,7 +137,7 @@ func (t ResourceType) Default() uintptr {
 func (t ResourceType) SpecialValues() []uintptr {
 	switch t.Kind {
 	case ResFD:
-		return []uintptr{InvalidFD, BogusFD}
+		return []uintptr{InvalidFD, BogusFD, ^uintptr(0) - 99 /*AT_FDCWD*/}
 	case ResIOCtx:
 		return []uintptr{0}
 	case ResIPC:
