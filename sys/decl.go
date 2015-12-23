@@ -432,9 +432,11 @@ func init() {
 	rec = func(t Type) Type {
 		switch t1 := t.(type) {
 		case PtrType:
-			rec(t1.Type)
+			t1.Type = rec(t1.Type)
+			t = t1
 		case ArrayType:
-			rec(t1.Type)
+			t1.Type = rec(t1.Type)
+			t = t1
 		case StructType:
 			for i, f := range t1.Fields {
 				t1.Fields[i] = rec(f)
