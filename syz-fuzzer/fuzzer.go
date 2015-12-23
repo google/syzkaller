@@ -108,6 +108,7 @@ func main() {
 	maxCover = make([]cover.Cover, sys.CallCount)
 	corpusHashes = make(map[Sig]struct{})
 
+	logf(0, "dialing manager at %v", *flagManager)
 	conn, err := rpc.Dial("tcp", *flagManager)
 	if err != nil {
 		panic(err)

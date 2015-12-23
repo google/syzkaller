@@ -4,27 +4,41 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
+	"time"
 )
 
+// Instance represents a Linux VM or a remote physical machine.
 type Instance interface {
-	Run()
+	// Copy copies a hostSrc file to vmDst file (think of scp).
+	Copy(hostSrc, vmDst string) error
+	// Run runs cmd inside of the VM (think of ssh cmd).
+	// outc receives combined cmd and kernel console output.
+	// errc receives either command Wait return error or vm.TimeoutErr.
+	Run(timeout time.Duration, command string) (outc <-chan []byte, errc <-chan error, err error)
+	// HostAddr returns ip address of the host as seen by the VM.
+	HostAddr() string
+	// Close stops and destroys the VM.
+	Close()
 }
 
 type Config struct {
-	Workdir         string
-	ManagerPort     int
-	Params          []byte
-	EnabledSyscalls string
-	Suppressions    []*regexp.Regexp
-	NoCover         bool
-	NoDropPrivs     bool
-	Leak            bool
-	Procs           int
+	Name    string
+	Index   int
+	Workdir string
+	Bin     string
+	Kernel  string
+	Cmdline string
+	Image   string
+	Sshkey  string
+	Cpu     int
+	Mem     int
+	Debug   bool
 }
 
-type ctorFunc func(cfg *Config, index int) (Instance, error)
+type ctorFunc func(cfg *Config) (Instance, error)
 
 var ctors = make(map[string]ctorFunc)
 
@@ -32,10 +46,16 @@ func Register(typ string, ctor ctorFunc) {
 	ctors[typ] = ctor
 }
 
-func Create(typ string, cfg *Config, index int) (Instance, error) {
+// Create creates and boots a new VM instance.
+func Create(typ string, cfg *Config) (Instance, error) {
 	ctor := ctors[typ]
 	if ctor == nil {
 		return nil, fmt.Errorf("unknown instance type '%v'", typ)
 	}
-	return ctor(cfg, index)
+	return ctor(cfg)
 }
+
+var (
+	CrashRe    = regexp.MustCompile("\\[ cut here \\]|Kernel panic.*|BUG:.*|WARNING:.*|INFO:.*|unable to handle|general protection fault|UBSAN:.*")
+	TimeoutErr = errors.New("timeout")
+)

@@ -4,496 +4,310 @@
 package qemu
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"log"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/google/syzkaller/fileutil"
 	"github.com/google/syzkaller/vm"
 )
-
-const hostAddr = "10.0.2.10"
-const logOutput = false
 
 func init() {
 	vm.Register("qemu", ctor)
 }
 
-type qemu struct {
-	params
-	workdir   string
-	crashdir  string
-	callsFlag string
-	id        int
-	cfg       *vm.Config
+type instance struct {
+	cfg     *vm.Config
+	port    int
+	image   string
+	rpipe   *os.File
+	wpipe   *os.File
+	qemu    *exec.Cmd
+	readerC chan error
+	waiterC chan error
+
+	mu      sync.Mutex
+	outputB []byte
+	outputC chan []byte
 }
 
-type params struct {
-	Qemu     string
-	Kernel   string
-	Cmdline  string
-	Image    string
-	Sshkey   string
-	Fuzzer   string
-	Executor string
-	Port     int
-	Cpu      int
-	Mem      int
-}
-
-func ctor(cfg *vm.Config, index int) (vm.Instance, error) {
-	p := new(params)
-	if err := json.Unmarshal(cfg.Params, p); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal qemu params: %v", err)
+func ctor(cfg *vm.Config) (vm.Instance, error) {
+	inst := &instance{
+		cfg:   cfg,
+		image: filepath.Join(cfg.Workdir, "image"),
 	}
-	if _, err := os.Stat(p.Image); err != nil {
-		return nil, fmt.Errorf("image file '%v' does not exist: %v", p.Image, err)
-	}
-	if _, err := os.Stat(p.Sshkey); err != nil {
-		return nil, fmt.Errorf("ssh key '%v' does not exist: %v", p.Sshkey, err)
-	}
-	if _, err := os.Stat(p.Fuzzer); err != nil {
-		return nil, fmt.Errorf("fuzzer binary '%v' does not exist: %v", p.Fuzzer, err)
-	}
-	if _, err := os.Stat(p.Executor); err != nil {
-		return nil, fmt.Errorf("executor binary '%v' does not exist: %v", p.Executor, err)
-	}
-	if p.Qemu == "" {
-		p.Qemu = "qemu-system-x86_64"
-	}
-	if p.Port <= 1024 || p.Port >= 64<<10 {
-		return nil, fmt.Errorf("bad qemu port: %v, want (1024-65536)", p.Port)
-	}
-	p.Port += index
-	if p.Cpu <= 0 || p.Cpu > 1024 {
-		return nil, fmt.Errorf("bad qemu cpu: %v, want [1-1024]", p.Cpu)
-	}
-	if p.Mem < 128 || p.Mem > 1048576 {
-		return nil, fmt.Errorf("bad qemu mem: %v, want [128-1048576]", p.Mem)
-	}
-
-	crashdir := filepath.Join(cfg.Workdir, "crashes")
-	os.MkdirAll(crashdir, 0770)
-
-	workdir := filepath.Join(cfg.Workdir, "qemu")
-	os.MkdirAll(workdir, 0770)
-
-	q := &qemu{
-		params:   *p,
-		workdir:  workdir,
-		crashdir: crashdir,
-		id:       index,
-		cfg:      cfg,
-	}
-
-	if cfg.EnabledSyscalls != "" {
-		q.callsFlag = "-calls=" + cfg.EnabledSyscalls
-	}
-
-	return q, nil
-}
-
-func (q *qemu) Run() {
-	log.Printf("qemu/%v: started\n", q.id)
-	imagename := filepath.Join(q.workdir, fmt.Sprintf("image%v", q.id))
-	for run := 0; ; run++ {
-		logname := filepath.Join(q.workdir, fmt.Sprintf("log%v-%v-%v", q.id, run, time.Now().Unix()))
-		var logf *os.File
-		if logOutput {
-			var err error
-			logf, err = os.Create(logname)
-			if err != nil {
-				log.Printf("failed to create log file: %v", err)
-				time.Sleep(10 * time.Second)
-				continue
-			}
-		}
-		rpipe, wpipe, err := os.Pipe()
-		if err != nil {
-			log.Printf("failed to create pipe: %v", err)
-			if logf != nil {
-				logf.Close()
-			}
-			time.Sleep(10 * time.Second)
-			continue
-		}
-		os.Remove(imagename)
-		if err := copyFile(q.Image, imagename); err != nil {
-			log.Printf("failed to copy image file: %v", err)
-			if logf != nil {
-				logf.Close()
-			}
-			rpipe.Close()
-			wpipe.Close()
-			time.Sleep(10 * time.Second)
-			continue
-		}
-		inst := &Instance{
-			id:        q.id,
-			crashdir:  q.crashdir,
-			params:    q.params,
-			name:      fmt.Sprintf("qemu/%v-%v", q.id, run),
-			image:     imagename,
-			callsFlag: q.callsFlag,
-			log:       logf,
-			rpipe:     rpipe,
-			wpipe:     wpipe,
-			cfg:       q.cfg,
-			cmds:      make(map[*Command]bool),
-		}
-		inst.Run()
-		inst.Shutdown()
-		time.Sleep(10 * time.Second)
-	}
-}
-
-type Instance struct {
-	params
-	sync.Mutex
-	id        int
-	crashdir  string
-	name      string
-	image     string
-	callsFlag string
-	log       *os.File
-	rpipe     *os.File
-	wpipe     *os.File
-	cfg       *vm.Config
-	cmds      map[*Command]bool
-	qemu      *Command
-}
-
-type Command struct {
-	sync.Mutex
-	cmd    *exec.Cmd
-	done   chan struct{}
-	failed bool
-	out    []byte
-	outpos int
-}
-
-func (inst *Instance) Run() {
-	var outputMu sync.Mutex
-	var output []byte
-	go func() {
-		var buf [64 << 10]byte
-		for {
-			n, err := inst.rpipe.Read(buf[:])
-			if n != 0 {
-				outputMu.Lock()
-				output = append(output, buf[:n]...)
-				outputMu.Unlock()
-				if inst.log != nil {
-					inst.log.Write(buf[:n])
-				}
-			}
-			if err != nil {
-				break
-			}
+	closeInst := inst
+	defer func() {
+		if closeInst != nil {
+			closeInst.Close()
 		}
 	}()
 
-	// Start the instance.
-	// TODO: ignores inst.Cpu
+	if err := validateConfig(cfg); err != nil {
+		return nil, err
+	}
+
+	os.Remove(inst.image)
+	if err := fileutil.CopyFile(inst.cfg.Image, inst.image, true); err != nil {
+		return nil, fmt.Errorf("failed to copy image file: %v", err)
+	}
+	var err error
+	inst.rpipe, inst.wpipe, err = os.Pipe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pipe: %v", err)
+	}
+
+	for i := 0; ; i++ {
+		err := inst.Boot()
+		if err == nil {
+			break
+		}
+		if i < 1000 && strings.Contains(err.Error(), "could not set up host forwarding rule") {
+			continue
+		}
+		return nil, err
+	}
+	closeInst = nil
+	return inst, nil
+}
+
+func validateConfig(cfg *vm.Config) error {
+	if cfg.Bin == "" {
+		cfg.Bin = "qemu-system-x86_64"
+	}
+	if _, err := os.Stat(cfg.Kernel); err != nil {
+		return fmt.Errorf("kernel file '%v' does not exist: %v", cfg.Kernel, err)
+	}
+	if _, err := os.Stat(cfg.Image); err != nil {
+		return fmt.Errorf("image file '%v' does not exist: %v", cfg.Image, err)
+	}
+	if _, err := os.Stat(cfg.Sshkey); err != nil {
+		return fmt.Errorf("ssh key '%v' does not exist: %v", cfg.Sshkey, err)
+	}
+	if cfg.Cpu <= 0 || cfg.Cpu > 1024 {
+		return fmt.Errorf("bad qemu cpu: %v, want [1-1024]", cfg.Cpu)
+	}
+	if cfg.Mem < 128 || cfg.Mem > 1048576 {
+		return fmt.Errorf("bad qemu mem: %v, want [128-1048576]", cfg.Mem)
+	}
+	return nil
+}
+
+func (inst *instance) HostAddr() string {
+	return "10.0.2.10"
+}
+
+func (inst *instance) Close() {
+	if inst.qemu != nil {
+		inst.qemu.Process.Kill()
+		err := <-inst.waiterC
+		inst.waiterC <- err // repost it for waiting goroutines
+		<-inst.readerC
+	}
+	if inst.rpipe != nil {
+		inst.rpipe.Close()
+	}
+	if inst.wpipe != nil {
+		inst.wpipe.Close()
+	}
+	os.RemoveAll(inst.cfg.Workdir)
+}
+
+func (inst *instance) Boot() error {
+	for {
+		// Find an unused TCP port.
+		inst.port = int(time.Now().UnixNano()%(64<<10-1<<10) + 1<<10)
+		ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", inst.port))
+		if err == nil {
+			ln.Close()
+			break
+		}
+	}
+	// TODO: ignores inst.cfg.Cpu
 	args := []string{
-		inst.Qemu,
 		"-hda", inst.image,
-		"-m", strconv.Itoa(inst.Mem),
+		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-net", "nic",
-		"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.Port),
+		"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", inst.HostAddr(), inst.port),
 		"-nographic",
 		"-enable-kvm",
 		"-numa", "node,nodeid=0,cpus=0-1", "-numa", "node,nodeid=1,cpus=2-3",
 		"-smp", "sockets=2,cores=2,threads=1",
 		"-usb", "-usbdevice", "mouse", "-usbdevice", "tablet",
 	}
-	if inst.Kernel != "" {
+	if inst.cfg.Kernel != "" {
 		args = append(args,
-			"-kernel", inst.Kernel,
-			"-append", "console=ttyS0 root=/dev/sda debug earlyprintk=serial slub_debug=UZ "+inst.Cmdline,
+			"-kernel", inst.cfg.Kernel,
+			"-append", "console=ttyS0 root=/dev/sda debug earlyprintk=serial slub_debug=UZ "+inst.cfg.Cmdline,
 		)
 	}
-	inst.qemu = inst.CreateCommand(args...)
-	// Wait for ssh server.
+	qemu := exec.Command(inst.cfg.Bin, args...)
+	qemu.Stdout = inst.wpipe
+	qemu.Stderr = inst.wpipe
+	if err := qemu.Start(); err != nil {
+		return fmt.Errorf("failed to start %v %+v: %v", inst.cfg.Bin, args, err)
+	}
+	inst.qemu = qemu
+	// Qemu has started.
+
+	// Start output reading goroutine.
+	inst.readerC = make(chan error)
+	go func(rpipe *os.File) {
+		var buf [64 << 10]byte
+		for {
+			n, err := rpipe.Read(buf[:])
+			if n != 0 {
+				if inst.cfg.Debug {
+					os.Stdout.Write(buf[:n])
+					os.Stdout.Write([]byte{'\n'})
+				}
+				inst.mu.Lock()
+				inst.outputB = append(inst.outputB, buf[:n]...)
+				if inst.outputC != nil {
+					select {
+					case inst.outputC <- inst.outputB:
+						inst.outputB = nil
+					default:
+					}
+				}
+				inst.mu.Unlock()
+				time.Sleep(time.Second)
+			}
+			if err != nil {
+				rpipe.Close()
+				inst.readerC <- err
+				return
+			}
+		}
+	}(inst.rpipe)
+	inst.rpipe = nil
+
+	// Wait for the qemu asynchronously.
+	inst.waiterC = make(chan error, 1)
+	go func() {
+		err := qemu.Wait()
+		inst.wpipe.Close()
+		inst.waiterC <- err
+	}()
+
+	// Wait for ssh server to come up.
 	time.Sleep(10 * time.Second)
 	start := time.Now()
 	for {
-		c, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%v", inst.Port), 3*time.Second)
+		c, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%v", inst.port), 3*time.Second)
 		if err == nil {
 			c.SetDeadline(time.Now().Add(3 * time.Second))
 			var tmp [1]byte
 			n, err := c.Read(tmp[:])
 			c.Close()
 			if err == nil && n > 0 {
-				// ssh is up and responding.
-				break
+				break // ssh is up and responding
 			}
-			c.Close()
 			time.Sleep(3 * time.Second)
 		}
-		if inst.qemu.Exited() {
-			output = append(output, "qemu stopped\n"...)
-			inst.SaveCrasher(output)
-			inst.Logf("qemu stopped")
-			return
+		select {
+		case err := <-inst.waiterC:
+			inst.waiterC <- err     // repost it for Close
+			time.Sleep(time.Second) // wait for any pending output
+			inst.mu.Lock()
+			output := inst.outputB
+			inst.mu.Unlock()
+			return fmt.Errorf("qemu stopped:\n%v\n", string(output))
+		default:
 		}
 		if time.Since(start) > 10*time.Minute {
-			outputMu.Lock()
-			output = append(output, "ssh server did not start\n"...)
-			inst.SaveCrasher(output)
-			outputMu.Unlock()
-			inst.Logf("ssh server did not start")
-			return
+			inst.mu.Lock()
+			output := inst.outputB
+			inst.mu.Unlock()
+			return fmt.Errorf("ssh server did not start:\n%v\n", string(output))
 		}
 	}
-	inst.Logf("started vm")
-
-	// Copy the binaries into the instance.
-	if !inst.CreateSCPCommand(inst.Fuzzer, "/syz-fuzzer").Wait(1*time.Minute) ||
-		!inst.CreateSCPCommand(inst.Executor, "/syz-executor").Wait(1*time.Minute) {
-		outputMu.Lock()
-		output = append(output, "\nfailed to scp binaries into the instance\n"...)
-		inst.SaveCrasher(output)
-		outputMu.Unlock()
-		inst.Logf("failed to scp binaries into the instance")
-		return
-	}
-
-	// Disable annoying segfault dmesg messages, fuzzer is going to crash a lot.
-	inst.CreateSSHCommand("echo -n 0 > /proc/sys/debug/exception-trace").Wait(10 * time.Second)
-
-	// Run the binary.
-	cover := ""
-	if inst.cfg.NoCover {
-		cover = "-nocover=1"
-	}
-	dropprivs := ""
-	if inst.cfg.NoDropPrivs {
-		dropprivs = "-dropprivs=0"
-	}
-	cmd := inst.CreateSSHCommand(fmt.Sprintf("/syz-fuzzer -name %v -executor /syz-executor -manager %v:%v -procs %v -leak=%v %v %v %v",
-		inst.name, hostAddr, inst.cfg.ManagerPort, inst.cfg.Procs, inst.cfg.Leak, cover, dropprivs, inst.callsFlag))
-
-	deadline := start.Add(time.Hour)
-	lastOutput := time.Now()
-	lastOutputLen := 0
-	matchPos := 0
-	crashRe := regexp.MustCompile("\\[ cut here \\]|Kernel panic| BUG: | WARNING: | INFO: |unable to handle kernel NULL pointer dereference|general protection fault|UBSAN:")
-	const (
-		beforeContext = 256 << 10
-		afterContext  = 64 << 10
-	)
-	for range time.NewTicker(5 * time.Second).C {
-		outputMu.Lock()
-		if lastOutputLen != len(output) {
-			lastOutput = time.Now()
-		}
-		if loc := crashRe.FindAllIndex(output[matchPos:], -1); len(loc) != 0 {
-			// Give it some time to finish writing the error message.
-			outputMu.Unlock()
-			time.Sleep(5 * time.Second)
-			outputMu.Lock()
-			loc = crashRe.FindAllIndex(output[matchPos:], -1)
-			for i := range loc {
-				loc[i][0] += matchPos
-				loc[i][1] += matchPos
-			}
-			start := loc[0][0] - beforeContext
-			if start < 0 {
-				start = 0
-			}
-			end := loc[len(loc)-1][1] + afterContext
-			if end > len(output) {
-				end = len(output)
-			}
-			inst.SaveCrasher(output[start:end])
-		}
-		if len(output) > 2*beforeContext {
-			copy(output, output[len(output)-beforeContext:])
-			output = output[:beforeContext]
-		}
-		matchPos = len(output) - 128
-		if matchPos < 0 {
-			matchPos = 0
-		}
-		lastOutputLen = len(output)
-		outputMu.Unlock()
-
-		if time.Since(lastOutput) > 3*time.Minute {
-			time.Sleep(time.Second)
-			outputMu.Lock()
-			output = append(output, "\nno output from fuzzer, restarting\n"...)
-			inst.SaveCrasher(output)
-			outputMu.Unlock()
-			inst.Logf("no output from fuzzer, restarting")
-			cmd.cmd.Process.Kill()
-			cmd.cmd.Process.Kill()
-			return
-		}
-		if cmd.Exited() {
-			time.Sleep(time.Second)
-			outputMu.Lock()
-			output = append(output, "\nfuzzer binary stopped or lost connection\n"...)
-			inst.SaveCrasher(output)
-			outputMu.Unlock()
-			inst.Logf("fuzzer binary stopped or lost connection")
-			return
-		}
-		if time.Now().After(deadline) {
-			inst.Logf("running for long enough, restarting")
-			cmd.cmd.Process.Kill()
-			cmd.cmd.Process.Kill()
-			return
-		}
-	}
+	// Drop boot output. It is not interesting if the VM has successfully booted.
+	inst.mu.Lock()
+	inst.outputB = nil
+	inst.mu.Unlock()
+	return nil
 }
 
-func (inst *Instance) SaveCrasher(output []byte) {
-	for _, re := range inst.cfg.Suppressions {
-		if re.Match(output) {
-			log.Printf("qemu/%v: suppressing '%v'", inst.id, re.String())
-			return
-		}
+func (inst *instance) Copy(hostSrc, vmDst string) error {
+	args := append(inst.sshArgs("-P"), hostSrc, "root@localhost:"+vmDst)
+	cmd := exec.Command("scp", args...)
+	if err := cmd.Start(); err != nil {
+		return err
 	}
-	filename := fmt.Sprintf("crash%v-%v", inst.id, time.Now().UnixNano())
-	log.Printf("qemu/%v: saving crash to %v", inst.id, filename)
-	ioutil.WriteFile(filepath.Join(inst.crashdir, filename), output, 0660)
-}
-
-func (inst *Instance) Shutdown() {
-	defer func() {
-		os.Remove(inst.image)
-		inst.rpipe.Close()
-		inst.wpipe.Close()
-		if inst.log != nil {
-			inst.log.Close()
-		}
-	}()
-	if inst.qemu.cmd == nil {
-		// CreateCommand should have been failed very early.
-		return
-	}
-	for try := 0; try < 10; try++ {
-		inst.qemu.cmd.Process.Kill()
-		time.Sleep(time.Second)
-		inst.Lock()
-		n := len(inst.cmds)
-		inst.Unlock()
-		if n == 0 {
-			return
-		}
-	}
-	inst.Logf("hanged processes after kill")
-	inst.Lock()
-	for cmd := range inst.cmds {
-		cmd.cmd.Process.Kill()
-		cmd.cmd.Process.Kill()
-	}
-	inst.Unlock()
-	time.Sleep(3 * time.Second)
-}
-
-func (inst *Instance) CreateCommand(args ...string) *Command {
-	if inst.log != nil {
-		fmt.Fprintf(inst.log, "executing command: %v\n", args)
-	}
-	cmd := &Command{}
-	cmd.done = make(chan struct{})
-	cmd.cmd = exec.Command(args[0], args[1:]...)
-	cmd.cmd.Stdout = inst.wpipe
-	cmd.cmd.Stderr = inst.wpipe
-	if err := cmd.cmd.Start(); err != nil {
-		inst.Logf("failed to start command '%v': %v\n", args, err)
-		cmd.failed = true
-		close(cmd.done)
-		return cmd
-	}
-	inst.Lock()
-	inst.cmds[cmd] = true
-	inst.Unlock()
+	done := make(chan bool)
 	go func() {
-		err := cmd.cmd.Wait()
-		inst.Lock()
-		delete(inst.cmds, cmd)
-		inst.Unlock()
-		if inst.log != nil {
-			fmt.Fprintf(inst.log, "command '%v' exited: %v\n", args, err)
+		select {
+		case <-time.After(time.Minute):
+			cmd.Process.Kill()
+		case <-done:
 		}
-		cmd.failed = err != nil
-		close(cmd.done)
 	}()
-	return cmd
+	err := cmd.Wait()
+	close(done)
+	return err
 }
 
-func (inst *Instance) CreateSSHCommand(args ...string) *Command {
-	args1 := []string{"ssh", "-i", inst.Sshkey, "-p", strconv.Itoa(inst.Port),
-		"-o", "ConnectionAttempts=10", "-o", "ConnectTimeout=10",
-		"-o", "BatchMode=yes", "-o", "UserKnownHostsFile=/dev/null",
-		"-o", "IdentitiesOnly=yes",
-		"-o", "StrictHostKeyChecking=no", "root@localhost"}
-	return inst.CreateCommand(append(args1, args...)...)
+func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte, <-chan error, error) {
+	outputC := make(chan []byte, 10)
+	errorC := make(chan error, 1)
+	inst.mu.Lock()
+	inst.outputB = nil
+	inst.outputC = outputC
+	inst.mu.Unlock()
+	signal := func(err error) {
+		time.Sleep(3 * time.Second) // wait for any pending output
+		inst.mu.Lock()
+		inst.outputB = nil
+		inst.outputC = nil
+		inst.mu.Unlock()
+		select {
+		case errorC <- err:
+		default:
+		}
+	}
+	args := append(inst.sshArgs("-p"), "root@localhost", command)
+	cmd := exec.Command("ssh", args...)
+	cmd.Stdout = inst.wpipe
+	cmd.Stderr = inst.wpipe
+	if err := cmd.Start(); err != nil {
+		inst.mu.Lock()
+		inst.outputC = nil
+		inst.mu.Unlock()
+		return nil, nil, err
+	}
+	done := make(chan bool)
+	go func() {
+		select {
+		case <-time.After(timeout):
+			signal(vm.TimeoutErr)
+			cmd.Process.Kill()
+		case <-done:
+		}
+	}()
+	go func() {
+		err := cmd.Wait()
+		close(done)
+		signal(err)
+	}()
+	return outputC, errorC, nil
 }
 
-func (inst *Instance) CreateSCPCommand(from, to string) *Command {
-	return inst.CreateCommand("scp", "-i", inst.Sshkey, "-P", strconv.Itoa(inst.Port),
-		"-o", "ConnectionAttempts=10", "-o", "ConnectTimeout=10",
-		"-o", "BatchMode=yes", "-o", "UserKnownHostsFile=/dev/null",
+func (inst *instance) sshArgs(portArg string) []string {
+	return []string{
+		"-i", inst.cfg.Sshkey,
+		portArg, strconv.Itoa(inst.port),
+		"-o", "ConnectionAttempts=10",
+		"-o", "ConnectTimeout=10",
+		"-o", "BatchMode=yes",
+		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "IdentitiesOnly=yes",
 		"-o", "StrictHostKeyChecking=no",
-		from, "root@localhost:"+to)
-}
-
-func (inst *Instance) Logf(str string, args ...interface{}) {
-	fmt.Fprintf(inst.wpipe, str+"\n", args...)
-	log.Printf("%v: "+str, append([]interface{}{inst.name}, args...)...)
-}
-
-func (cmd *Command) Wait(max time.Duration) bool {
-	select {
-	case <-cmd.done:
-		return !cmd.failed
-	case <-time.After(max):
-		return false
 	}
-}
-
-func (cmd *Command) Exited() bool {
-	select {
-	case <-cmd.done:
-		return true
-	default:
-		return false
-	}
-}
-
-var copySem sync.Mutex
-
-func copyFile(oldfn, newfn string) error {
-	copySem.Lock()
-	defer copySem.Unlock()
-
-	oldf, err := os.Open(oldfn)
-	if err != nil {
-		return err
-	}
-	defer oldf.Close()
-	newf, err := os.Create(newfn)
-	if err != nil {
-		return err
-	}
-	defer newf.Close()
-	_, err = io.Copy(newf, oldf)
-	if err != nil {
-		return err
-	}
-	return nil
 }

@@ -8,9 +8,22 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
+	"sync"
+	"syscall"
 )
 
-func CopyFile(oldFile, newFile string) error {
+var copyMu sync.Mutex
+
+// CopyFile copies oldFile to newFile, potentially serializing with other
+// file copies (for large files).
+func CopyFile(oldFile, newFile string, serial bool) error {
+	if serial {
+		copyMu.Lock()
+		defer copyMu.Unlock()
+	}
+
 	oldf, err := os.Open(oldFile)
 	if err != nil {
 		return err
@@ -41,4 +54,41 @@ func WriteTempFile(data []byte) (string, error) {
 	}
 	f.Close()
 	return f.Name(), nil
+}
+
+// ProcessTempDir creates a new temp dir in where and returns its path and an unique index.
+// It also cleans up old, unused temp dirs after dead processes.
+func ProcessTempDir(where string) (string, int, error) {
+	for i := 0; i < 1e4; i++ {
+		path := filepath.Join(where, fmt.Sprintf("instance-%v", i))
+		pidfile := filepath.Join(path, ".pid")
+		err := os.Mkdir(path, 0700)
+		if os.IsExist(err) {
+			// Try to clean up.
+			data, err := ioutil.ReadFile(pidfile)
+			if err == nil {
+				pid, err := strconv.Atoi(string(data))
+				if err == nil && pid > 1 {
+					if err := syscall.Kill(pid, 0); err == syscall.ESRCH {
+						if os.Remove(pidfile) == nil {
+							if os.RemoveAll(path) == nil {
+								i--
+								continue
+							}
+						}
+					}
+				}
+			}
+			// If err != nil, assume that the pid file is not created yet.
+			continue
+		}
+		if err != nil {
+			return "", 0, err
+		}
+		if err := ioutil.WriteFile(pidfile, []byte(strconv.Itoa(syscall.Getpid())), 0600); err != nil {
+			return "", 0, err
+		}
+		return path, i, nil
+	}
+	return "", 0, fmt.Errorf("too many live instances")
 }
