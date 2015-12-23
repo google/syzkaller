@@ -108,6 +108,9 @@ func main() {
 				}
 				p := progs[idx%len(progs)]
 				output, strace, cov, _, failed, hanged, err := env.Exec(p)
+				if failed {
+					fmt.Printf("BUG: executor-detected bug:\n%s", output)
+				}
 				if *flagDebug || err != nil {
 					fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
 				}
