@@ -442,7 +442,7 @@ func (a FlagArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 type SortedSyscall struct {
 	name string
-	nr int
+	nr   int
 }
 
 type SortedSyscallArray []SortedSyscall

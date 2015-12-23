@@ -8,12 +8,12 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/rpc"
 	"os"
 	"path/filepath"
 	"regexp"
-	"log"
 	"sync"
 	"time"
 
