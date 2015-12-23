@@ -1151,14 +1151,14 @@ const (
 )
 
 var NewSyscalls = map[string]int{
-	"userfaultfd":       323,
-	"membarrier":        324,
-	"syz_openpts":       1000001,
-	"syz_fuseblk_mount": 1000004,
-	"memfd_create":      319,
 	"bpf":               321,
+	"getrandom":         318,
+	"membarrier":        324,
+	"memfd_create":      319,
 	"mlock2":            325,
 	"syz_dri_open":      1000002,
 	"syz_fuse_mount":    1000003,
-	"getrandom":         318,
+	"syz_fuseblk_mount": 1000004,
+	"syz_openpts":       1000001,
+	"userfaultfd":       323,
 }

@@ -440,6 +440,17 @@ func (a FlagArray) Len() int           { return len(a) }
 func (a FlagArray) Less(i, j int) bool { return a[i].name < a[j].name }
 func (a FlagArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
+type SortedSyscall struct {
+	name string
+	nr int
+}
+
+type SortedSyscallArray []SortedSyscall
+
+func (a SortedSyscallArray) Len() int           { return len(a) }
+func (a SortedSyscallArray) Less(i, j int) bool { return a[i].name < a[j].name }
+func (a SortedSyscallArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
 func generateConsts(flags map[string]string, out io.Writer) {
 	var ff []F
 	for k, v := range flags {
@@ -456,9 +467,15 @@ func generateConsts(flags map[string]string, out io.Writer) {
 	fmt.Fprintf(out, ")\n")
 	fmt.Fprintf(out, "\n")
 
-	fmt.Fprintf(out, "var NewSyscalls = map[string]int {\n")
+	var sorted []SortedSyscall
 	for call, nr := range NewSyscalls {
-		fmt.Fprintf(out, "	\"%v\": %v,\n", call, nr)
+		sorted = append(sorted, SortedSyscall{call, nr})
+	}
+	sort.Sort(SortedSyscallArray(sorted))
+
+	fmt.Fprintf(out, "var NewSyscalls = map[string]int {\n")
+	for _, s := range sorted {
+		fmt.Fprintf(out, "	\"%v\": %v,\n", s.name, s.nr)
 	}
 	fmt.Fprintf(out, "}\n")
 }
