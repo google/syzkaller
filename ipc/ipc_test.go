@@ -79,6 +79,8 @@ func TestEmptyProg(t *testing.T) {
 }
 
 func TestStrace(t *testing.T) {
+	t.Skip("strace is broken")
+
 	bin := buildExecutor(t)
 	defer os.Remove(bin)
 
@@ -118,6 +120,7 @@ func TestExecute(t *testing.T) {
 			p := prog.Generate(rs, 10, nil)
 			_, _, _, _, _, _, err := env.Exec(p)
 			if err != nil {
+				t.Logf("program:\n%s\n", p.Serialize())
 				t.Fatalf("failed to run executor: %v", err)
 			}
 		}

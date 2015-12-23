@@ -43,11 +43,13 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 	src := Write(p, opts)
 	srcf, err := fileutil.WriteTempFile(src)
 	if err != nil {
+		t.Logf("program:\n%s\n", p.Serialize())
 		t.Fatalf("%v", err)
 	}
 	defer os.Remove(srcf)
 	bin, err := Build(srcf)
 	if err != nil {
+		t.Logf("program:\n%s\n", p.Serialize())
 		t.Fatalf("%v", err)
 	}
 	defer os.Remove(bin)
