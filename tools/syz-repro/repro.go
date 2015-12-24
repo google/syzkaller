@@ -134,7 +134,6 @@ func repro(cfg *config.Config, entries []*prog.LogEntry, crashLoc []int) {
 		log.Printf("no program crashed")
 		return
 	}
-	multiplier *= 10
 	log.Printf("minimizing program")
 
 	p, _ = prog.Minimize(p, -1, func(p1 *prog.Prog, callIndex int) bool {
