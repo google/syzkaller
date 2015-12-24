@@ -1,7 +1,7 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-.PHONY: all format clean manager fuzzer executor execprog mutate prog2c stress
+.PHONY: all format clean manager fuzzer executor execprog mutate prog2c stress generate
 
 all: manager fuzzer executor
 
@@ -30,6 +30,9 @@ prog2c:
 
 stress:
 	go build -o ./bin/syz-stress github.com/google/syzkaller/tools/syz-stress
+
+generate:
+	go run sysgen/*.go -linux=$(LINUX) sys/sys.txt
 
 format:
 	go fmt ./...

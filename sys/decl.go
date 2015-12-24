@@ -1,15 +1,13 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-//go:generate go install github.com/google/syzkaller/sysgen
-//go:generate sysgen sys.txt
-
 package sys
 
 const ptrSize = 8
 
 type Call struct {
 	ID       int
+	NR       int // kernel syscall number
 	CallID   int
 	Name     string
 	CallName string
@@ -428,6 +426,11 @@ var (
 
 func init() {
 	initCalls()
+
+	for _, c := range Calls {
+		c.NR = numbers[c.ID]
+	}
+
 	var rec func(t Type) Type
 	rec = func(t Type) Type {
 		switch t1 := t.(type) {

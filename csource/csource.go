@@ -37,13 +37,12 @@ func Write(p *prog.Prog, opts Options) []byte {
 	handled := make(map[string]bool)
 	for _, c := range p.Calls {
 		name := c.Meta.CallName
-		nr, ok := prog.NewSyscalls[name]
-		if !ok || handled[name] {
+		if handled[name] {
 			continue
 		}
 		handled[name] = true
 		fmt.Fprintf(w, "#ifndef SYS_%v\n", name)
-		fmt.Fprintf(w, "#define SYS_%v %v\n", name, nr)
+		fmt.Fprintf(w, "#define SYS_%v %v\n", name, c.Meta.NR)
 		fmt.Fprintf(w, "#endif\n")
 	}
 	fmt.Fprintf(w, "\n")
