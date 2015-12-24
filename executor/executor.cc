@@ -143,12 +143,6 @@ int main()
 	char cwdbuf[64 << 10];
 	char* cwd = getcwd(cwdbuf, sizeof(cwdbuf));
 
-	sigset_t sigchldset;
-	sigemptyset(&sigchldset);
-	sigaddset(&sigchldset, SIGCHLD);
-	if (sigprocmask(SIG_BLOCK, &sigchldset, NULL))
-		fail("sigprocmask failed");
-
 	uint64_t flags = *(uint64_t*)input_data;
 	flag_debug = flags & (1 << 0);
 	flag_cover = flags & (1 << 1);
@@ -209,47 +203,28 @@ int main()
 			return 0;
 		}
 
+		// We used to use sigtimedwait(SIGCHLD) to wait for the subprocess.
+		// But SIGCHLD is also delivered when a process stops/continues,
+		// so it would require a loop with status analysis and timeout recalculation.
+		// SIGCHLD should also unblock the usleep below, so the spin loop
+		// should be as efficient as sigtimedwait.
 		int status = 0;
-		if (!flag_no_setpgid) {
-			timespec ts = {};
-			ts.tv_sec = 5;
-			ts.tv_nsec = 0;
-			if (sigtimedwait(&sigchldset, NULL, &ts) < 0) {
-				debug("sigtimedwait expired, killing %d\n", pid);
-				if (!flag_no_setpgid)
-					kill(-pid, SIGKILL);
+		uint64_t start = current_time_ms();
+		for (;;) {
+			int res = waitpid(pid, &status, __WALL | WNOHANG);
+			debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
+			if (res == pid)
+				break;
+			usleep(1000);
+			if (current_time_ms() - start > 5 * 1000) {
+				debug("killing\n");
+				kill(-pid, SIGKILL);
 				kill(pid, SIGKILL);
-			}
-			debug("waitpid(%d)\n", pid);
-			if (waitpid(pid, &status, __WALL) != pid)
-				fail("waitpid failed");
-			debug("waitpid(%d) returned\n", pid);
-			// Drain SIGCHLD signals.
-			ts.tv_sec = 0;
-			ts.tv_nsec = 0;
-			while (sigtimedwait(&sigchldset, NULL, &ts) > 0) {
-			}
-		}
-		else {
-			// This code is less efficient, but does not require working sigtimedwait.
-			// We've hit 2 systems that mishandle sigtimedwait.
-			uint64_t start = current_time_ms();
-			for (;;) {
-				int res = waitpid(pid, &status, __WALL | WNOHANG);
+				int res = waitpid(pid, &status, __WALL);
 				debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
-				if (res == pid)
-					break;
-				usleep(1000);
-				if (current_time_ms() - start > 5 * 1000) {
-					debug("killing\n");
-					kill(-pid, SIGKILL);
-					kill(pid, SIGKILL);
-					int res = waitpid(pid, &status, __WALL);
-					debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
-					if (res == pid)
-						break;
+				if (res != pid)
 					fail("waitpid failed");
-				}
+				break;
 			}
 		}
 		status = WEXITSTATUS(status);
