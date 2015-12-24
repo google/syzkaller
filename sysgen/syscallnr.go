@@ -46,7 +46,7 @@ func fetchSyscallsNumbers(arch *Arch, syscalls []Syscall) {
 		name := "__NR_" + sc.CallName
 		vals = append(vals, name)
 		defines[name] = "-1"
-		if nr := syzkalls[name]; nr != 0 {
+		if nr := syzkalls[sc.CallName]; nr != 0 {
 			defines[name] = strconv.Itoa(nr)
 		}
 	}
