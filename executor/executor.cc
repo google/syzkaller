@@ -221,7 +221,7 @@ int main()
 				kill(pid, SIGKILL);
 			}
 			debug("waitpid(%d)\n", pid);
-			if (waitpid(pid, &status, __WALL | WUNTRACED) != pid)
+			if (waitpid(pid, &status, __WALL) != pid)
 				fail("waitpid failed");
 			debug("waitpid(%d) returned\n", pid);
 			// Drain SIGCHLD signals.
@@ -235,7 +235,7 @@ int main()
 			// We've hit 2 systems that mishandle sigtimedwait.
 			uint64_t start = current_time_ms();
 			for (;;) {
-				int res = waitpid(pid, &status, __WALL | WUNTRACED | WNOHANG);
+				int res = waitpid(pid, &status, __WALL | WNOHANG);
 				debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
 				if (res == pid)
 					break;
@@ -244,7 +244,7 @@ int main()
 					debug("killing\n");
 					kill(-pid, SIGKILL);
 					kill(pid, SIGKILL);
-					int res = waitpid(pid, &status, __WALL | WUNTRACED);
+					int res = waitpid(pid, &status, __WALL);
 					debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
 					if (res == pid)
 						break;
