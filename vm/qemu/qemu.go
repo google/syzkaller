@@ -5,6 +5,7 @@ package qemu
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
@@ -38,6 +39,19 @@ type instance struct {
 }
 
 func ctor(cfg *vm.Config) (vm.Instance, error) {
+	for i := 0; ; i++ {
+		inst, err := ctorImpl(cfg)
+		if err == nil {
+			return inst, nil
+		}
+		if i < 1000 && strings.Contains(err.Error(), "could not set up host forwarding rule") {
+			continue
+		}
+		return nil, err
+	}
+}
+
+func ctorImpl(cfg *vm.Config) (vm.Instance, error) {
 	inst := &instance{
 		cfg:   cfg,
 		image: filepath.Join(cfg.Workdir, "image"),
@@ -63,16 +77,10 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 		return nil, fmt.Errorf("failed to create pipe: %v", err)
 	}
 
-	for i := 0; ; i++ {
-		err := inst.Boot()
-		if err == nil {
-			break
-		}
-		if i < 1000 && strings.Contains(err.Error(), "could not set up host forwarding rule") {
-			continue
-		}
+	if err := inst.Boot(); err != nil {
 		return nil, err
 	}
+
 	closeInst = nil
 	return inst, nil
 }
@@ -122,7 +130,7 @@ func (inst *instance) Close() {
 func (inst *instance) Boot() error {
 	for {
 		// Find an unused TCP port.
-		inst.port = int(time.Now().UnixNano()%(64<<10-1<<10) + 1<<10)
+		inst.port = rand.Intn(64<<10-1<<10) + 1<<10
 		ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", inst.port))
 		if err == nil {
 			ln.Close()
