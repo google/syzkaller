@@ -4,7 +4,6 @@
 package config
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -46,41 +45,41 @@ type Config struct {
 	Suppressions     []string
 }
 
-func Parse(filename string) (*Config, string, []*regexp.Regexp, error) {
+func Parse(filename string) (*Config, map[int]bool, []*regexp.Regexp, error) {
 	if filename == "" {
-		return nil, "", nil, fmt.Errorf("supply config in -config flag")
+		return nil, nil, nil, fmt.Errorf("supply config in -config flag")
 	}
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, "", nil, fmt.Errorf("failed to read config file: %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to read config file: %v", err)
 	}
 	cfg := new(Config)
 	if err := json.Unmarshal(data, cfg); err != nil {
-		return nil, "", nil, fmt.Errorf("failed to parse config file: %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to parse config file: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-fuzzer")); err != nil {
-		return nil, "", nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-fuzzer")
+		return nil, nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-fuzzer")
 	}
 	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-executor")); err != nil {
-		return nil, "", nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-executor")
+		return nil, nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-executor")
 	}
 	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-execprog")); err != nil {
-		return nil, "", nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-execprog")
+		return nil, nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-execprog")
 	}
 	if cfg.Http == "" {
-		return nil, "", nil, fmt.Errorf("config param http is empty")
+		return nil, nil, nil, fmt.Errorf("config param http is empty")
 	}
 	if cfg.Workdir == "" {
-		return nil, "", nil, fmt.Errorf("config param workdir is empty")
+		return nil, nil, nil, fmt.Errorf("config param workdir is empty")
 	}
 	if cfg.Vmlinux == "" {
-		return nil, "", nil, fmt.Errorf("config param vmlinux is empty")
+		return nil, nil, nil, fmt.Errorf("config param vmlinux is empty")
 	}
 	if cfg.Type == "" {
-		return nil, "", nil, fmt.Errorf("config param type is empty")
+		return nil, nil, nil, fmt.Errorf("config param type is empty")
 	}
 	if cfg.Count <= 0 || cfg.Count > 1000 {
-		return nil, "", nil, fmt.Errorf("invalid config param count: %v, want (1, 1000]", cfg.Count)
+		return nil, nil, nil, fmt.Errorf("invalid config param count: %v, want (1, 1000]", cfg.Count)
 	}
 	if cfg.Procs <= 0 {
 		cfg.Procs = 1
@@ -88,20 +87,20 @@ func Parse(filename string) (*Config, string, []*regexp.Regexp, error) {
 
 	syscalls, err := parseSyscalls(cfg)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, nil, err
 	}
 
 	suppressions, err := parseSuppressions(cfg)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, nil, nil, err
 	}
 
 	return cfg, syscalls, suppressions, nil
 }
 
-func parseSyscalls(cfg *Config) (string, error) {
+func parseSyscalls(cfg *Config) (map[int]bool, error) {
 	if len(cfg.Enable_Syscalls) == 0 && len(cfg.Disable_Syscalls) == 0 {
-		return "", nil
+		return nil, nil
 	}
 
 	match := func(call *sys.Call, str string) bool {
@@ -125,7 +124,7 @@ func parseSyscalls(cfg *Config) (string, error) {
 				}
 			}
 			if n == 0 {
-				return "", fmt.Errorf("unknown enabled syscall: %v", c)
+				return nil, fmt.Errorf("unknown enabled syscall: %v", c)
 			}
 		}
 	} else {
@@ -142,18 +141,14 @@ func parseSyscalls(cfg *Config) (string, error) {
 			}
 		}
 		if n == 0 {
-			return "", fmt.Errorf("unknown disabled syscall: %v", c)
+			return nil, fmt.Errorf("unknown disabled syscall: %v", c)
 		}
 	}
 	// They will be generated anyway.
 	syscalls[sys.CallMap["mmap"].ID] = true
 	syscalls[sys.CallMap["clock_gettime"].ID] = true
 
-	buf := new(bytes.Buffer)
-	for c := range syscalls {
-		fmt.Fprintf(buf, ",%v", c)
-	}
-	return buf.String()[1:], nil
+	return syscalls, nil
 }
 
 func parseSuppressions(cfg *Config) ([]*regexp.Regexp, error) {
