@@ -92,6 +92,8 @@ include <drm/drm.h>
 
 
 open(file filename, flags flags[open_flags], mode flags[open_mode]) fd
+# Just so that we have something that creates fd[dir] resources.
+open$dir(file filename, flags flags[open_flags], mode flags[open_mode]) fd[dir]
 openat(fd fd[dir], file filename, flags flags[open_flags], mode flags[open_mode]) fd
 creat(file filename, mode flags[open_mode]) fd
 close(fd fd)
@@ -1493,9 +1495,7 @@ define UFFDIO_ZEROPAGE_MODE_DONTWAKE	(1<<0)
 
 # KDBUS support
 
-# TODO: something must create kdbus fds
-# syz_kdbus_open(...) fd[kdbus]
-
+open$kdbus(file strconst["/dev/kdbus"], flags flags[open_flags], mode const[0]) fd[kdbus]
 ioctl$kdbus_bus_make(fd fd[kdbus], cmd const[KDBUS_CMD_BUS_MAKE], arg ptr[in, kdbus_cmd_bus_make])
 ioctl$kdbus_ep_make(fd fd[kdbus], cmd const[KDBUS_CMD_ENDPOINT_MAKE], arg ptr[in, kdbus_cmd_ep_make])
 ioctl$kdbus_ep_update(fd fd[kdbus], cmd const[KDBUS_CMD_ENDPOINT_UPDATE], arg ptr[in, kdbus_cmd_ep_update])

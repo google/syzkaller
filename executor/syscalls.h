@@ -15,6 +15,7 @@ struct call_t {
 #ifdef __x86_64__
 call_t syscalls[] = {
 	{"open", 2},
+	{"open$dir", 2},
 	{"openat", 257},
 	{"creat", 85},
 	{"close", 3},
@@ -413,6 +414,7 @@ call_t syscalls[] = {
 	{"sched_yield", 24},
 	{"getrandom", 318},
 	{"membarrier", 324},
+	{"open$kdbus", 2},
 	{"ioctl$kdbus_bus_make", 16},
 	{"ioctl$kdbus_ep_make", 16},
 	{"ioctl$kdbus_ep_update", 16},
@@ -656,6 +658,7 @@ call_t syscalls[] = {
 #ifdef __aarch64__
 call_t syscalls[] = {
 	{"open", -1},
+	{"open$dir", -1},
 	{"openat", 56},
 	{"creat", -1},
 	{"close", 57},
@@ -1054,6 +1057,7 @@ call_t syscalls[] = {
 	{"sched_yield", 124},
 	{"getrandom", -1},
 	{"membarrier", -1},
+	{"open$kdbus", -1},
 	{"ioctl$kdbus_bus_make", 29},
 	{"ioctl$kdbus_ep_make", 29},
 	{"ioctl$kdbus_ep_update", 29},

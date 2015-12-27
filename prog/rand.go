@@ -444,49 +444,14 @@ func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, call
 		sk = all[r.Intn(len(all))]
 	}
 	// Find calls that produce the necessary resources.
+	metas0 := sys.ResourceConstructors(res.Kind, sk)
+	// TODO: reduce priority of ResAny ctors if we have sk ctors.
 	var metas []*sys.Call
-	// Recurse into arguments to see if there is an out/inout arg of necessary type.
-	var checkArg func(typ sys.Type, dir ArgDir) bool
-	checkArg = func(typ sys.Type, dir ArgDir) bool {
-		if resarg, ok := typ.(sys.ResourceType); ok && dir != DirIn && resarg.Kind == res.Kind &&
-			(resarg.Subkind == sk || resarg.Subkind == sys.ResAny || sk == sys.ResAny) {
-			return true
-		}
-		switch typ1 := typ.(type) {
-		case sys.ArrayType:
-			if checkArg(typ1.Type, dir) {
-				return true
-			}
-		case sys.StructType:
-			for _, fld := range typ1.Fields {
-				if checkArg(fld, dir) {
-					return true
-				}
-			}
-		case sys.PtrType:
-			if checkArg(typ1.Type, ArgDir(typ1.Dir)) {
-				return true
-			}
-		}
-		return false
-	}
-	for i, meta := range sys.Calls {
-		if s.ct == nil || s.ct.run[i] == nil {
+	for _, meta := range metas0 {
+		if s.ct == nil || s.ct.run[meta.ID] == nil {
 			continue
 		}
-		ok := false
-		for _, arg := range meta.Args {
-			if checkArg(arg, DirIn) {
-				ok = true
-				break
-			}
-		}
-		if !ok && meta.Ret != nil && checkArg(meta.Ret, DirOut) {
-			ok = true
-		}
-		if ok {
-			metas = append(metas, meta)
-		}
+		metas = append(metas, meta)
 	}
 	if len(metas) == 0 {
 		return constArg(res.Default()), nil

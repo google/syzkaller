@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/cover"
+	"github.com/google/syzkaller/host"
 	"github.com/google/syzkaller/ipc"
 	"github.com/google/syzkaller/prog"
 	. "github.com/google/syzkaller/rpctype"
@@ -93,17 +94,6 @@ func main() {
 	flag.Parse()
 	logf(0, "started")
 
-	var calls []*sys.Call
-	if *flagSyscalls != "" {
-		for _, id := range strings.Split(*flagSyscalls, ",") {
-			n, err := strconv.ParseUint(id, 10, 64)
-			if err != nil || n >= uint64(len(sys.Calls)) {
-				panic(fmt.Sprintf("invalid syscall in -calls flag: '%v", id))
-			}
-			calls = append(calls, sys.Calls[n])
-		}
-	}
-
 	corpusCover = make([]cover.Cover, sys.CallCount)
 	maxCover = make([]cover.Cover, sys.CallCount)
 	corpusHashes = make(map[Sig]struct{})
@@ -119,6 +109,7 @@ func main() {
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
+	calls := buildCallList()
 	ct := prog.BuildChoiceTable(r.Prios, calls)
 
 	kmemleakInit()
@@ -265,6 +256,43 @@ func main() {
 			}
 		}
 	}
+}
+
+func buildCallList() map[*sys.Call]bool {
+	calls := make(map[*sys.Call]bool)
+	if *flagSyscalls != "" {
+		for _, id := range strings.Split(*flagSyscalls, ",") {
+			n, err := strconv.ParseUint(id, 10, 64)
+			if err != nil || n >= uint64(len(sys.Calls)) {
+				panic(fmt.Sprintf("invalid syscall in -calls flag: '%v", id))
+			}
+			calls[sys.Calls[n]] = true
+		}
+	} else {
+		for _, c := range sys.Calls {
+			calls[c] = true
+		}
+	}
+
+	if supp, err := host.DetectSupportedSyscalls(); err != nil {
+		logf(0, "failed to detect host supported syscalls: %v", err)
+	} else {
+		for c := range calls {
+			if !supp[c] {
+				logf(1, "disabling unsupported syscall: %v", c.Name)
+				delete(calls, c)
+			}
+		}
+	}
+
+	trans := sys.TransitivelyEnabledCalls(calls)
+	for c := range calls {
+		if !trans[c] {
+			logf(1, "disabling transitively unsupported syscall: %v", c.Name)
+			delete(calls, c)
+		}
+	}
+	return calls
 }
 
 func addInput(inp RpcInput) {

@@ -227,26 +227,29 @@ func foreachArgType(meta *sys.Call, f func(sys.Type, ArgDir)) {
 type ChoiceTable struct {
 	run          [][]int
 	enabledCalls []*sys.Call
-	enabled      map[int]bool
+	enabled      map[*sys.Call]bool
 }
 
-func BuildChoiceTable(prios [][]float32, enabledCalls []*sys.Call) *ChoiceTable {
-	if len(enabledCalls) == 0 {
-		enabledCalls = sys.Calls
+func BuildChoiceTable(prios [][]float32, enabled map[*sys.Call]bool) *ChoiceTable {
+	if enabled == nil {
+		enabled = make(map[*sys.Call]bool)
+		for _, c := range sys.Calls {
+			enabled[c] = true
+		}
 	}
-	enabled := make(map[int]bool)
-	for _, c := range enabledCalls {
-		enabled[c.ID] = true
+	var enabledCalls []*sys.Call
+	for c := range enabled {
+		enabledCalls = append(enabledCalls, c)
 	}
 	run := make([][]int, len(sys.Calls))
 	for i := range run {
-		if !enabled[i] {
+		if !enabled[sys.Calls[i]] {
 			continue
 		}
 		run[i] = make([]int, len(sys.Calls))
 		sum := 0
 		for j := range run[i] {
-			if enabled[j] {
+			if enabled[sys.Calls[j]] {
 				sum += int(prios[i][j] * 1000)
 			}
 			run[i][j] = sum
@@ -269,7 +272,7 @@ func (ct *ChoiceTable) Choose(r *rand.Rand, call int) int {
 	for {
 		x := r.Intn(run[len(run)-1])
 		i := sort.SearchInts(run, x)
-		if !ct.enabled[i] {
+		if !ct.enabled[sys.Calls[i]] {
 			continue
 		}
 		return i

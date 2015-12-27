@@ -96,6 +96,38 @@ const (
 	IPCShm
 )
 
+func ResourceKinds() []ResourceKind {
+	return []ResourceKind{
+		ResFD,
+		ResIOCtx,
+		ResIPC,
+		ResKey,
+		ResInotifyDesc,
+		ResPid,
+		ResUid,
+		ResGid,
+		ResTimerid,
+		ResIocbPtr,
+	}
+}
+
+func ResourceSubkinds(kind ResourceKind) []ResourceSubkind {
+	switch kind {
+	case ResFD:
+		return []ResourceSubkind{ResAny, FdFile, FdSock, FdPipe, FdSignal, FdEvent,
+			FdTimer, FdEpoll, FdDir, FdMq, FdInotify, FdFanotify, FdTty,
+			FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg, FdPerf, FdUserFault,
+			FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp, FdBtHci, FdBtSco, FdBtL2cap,
+			FdBtRfcomm, FdBtHidp, FdBtCmtp, FdBtBnep}
+	case ResIPC:
+		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
+	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid, ResIocbPtr:
+		return []ResourceSubkind{ResAny}
+	default:
+		panic("unknown resource kind")
+	}
+}
+
 const (
 	InvalidFD = ^uintptr(0)
 	BogusFD   = uintptr(100000 - 1)
@@ -189,20 +221,7 @@ func (t ResourceType) Align() uintptr {
 }
 
 func (t ResourceType) SubKinds() []ResourceSubkind {
-	switch t.Kind {
-	case ResFD:
-		return []ResourceSubkind{FdFile, FdSock, FdPipe, FdSignal, FdEvent,
-			FdTimer, FdEpoll, FdDir, FdMq, FdInotify, FdFanotify, FdTty,
-			FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg, FdPerf, FdUserFault,
-			FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp, FdBtHci, FdBtSco, FdBtL2cap,
-			FdBtRfcomm, FdBtHidp, FdBtCmtp, FdBtBnep}
-	case ResIPC:
-		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
-	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid:
-		return []ResourceSubkind{ResAny}
-	default:
-		panic("unknown resource kind")
-	}
+	return ResourceSubkinds(t.Kind)
 }
 
 type FileoffType struct {
@@ -418,6 +437,129 @@ const (
 	DirInOut
 )
 
+var ctors = make(map[ResourceKind]map[ResourceSubkind][]*Call)
+
+// ResourceConstructors returns a list of calls that can create a resource of the given kind/subkind.
+func ResourceConstructors(kind ResourceKind, sk ResourceSubkind) []*Call {
+	return ctors[kind][sk]
+}
+
+func initResources() {
+	for _, kind := range ResourceKinds() {
+		ctors[kind] = make(map[ResourceSubkind][]*Call)
+		for _, sk := range ResourceSubkinds(kind) {
+			ctors[kind][sk] = ResourceCtors(kind, sk, false)
+		}
+	}
+}
+
+func ResourceCtors(kind ResourceKind, sk ResourceSubkind, precise bool) []*Call {
+	// Find calls that produce the necessary resources.
+	var metas []*Call
+	// Recurse into arguments to see if there is an out/inout arg of necessary type.
+	var checkArg func(typ Type, dir Dir) bool
+	checkArg = func(typ Type, dir Dir) bool {
+		if resarg, ok := typ.(ResourceType); ok && dir != DirIn && resarg.Kind == kind &&
+			(sk == resarg.Subkind || sk == ResAny || (resarg.Subkind == ResAny && !precise)) {
+			return true
+		}
+		switch typ1 := typ.(type) {
+		case ArrayType:
+			if checkArg(typ1.Type, dir) {
+				return true
+			}
+		case StructType:
+			for _, fld := range typ1.Fields {
+				if checkArg(fld, dir) {
+					return true
+				}
+			}
+		case PtrType:
+			if checkArg(typ1.Type, typ1.Dir) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, meta := range Calls {
+		ok := false
+		for _, arg := range meta.Args {
+			if checkArg(arg, DirIn) {
+				ok = true
+				break
+			}
+		}
+		if !ok && meta.Ret != nil && checkArg(meta.Ret, DirOut) {
+			ok = true
+		}
+		if ok {
+			metas = append(metas, meta)
+		}
+	}
+	return metas
+}
+
+func (c *Call) InputResources() []ResourceType {
+	var resources []ResourceType
+	var checkArg func(typ Type, dir Dir)
+	checkArg = func(typ Type, dir Dir) {
+		switch typ1 := typ.(type) {
+		case ResourceType:
+			if dir != DirOut && !typ1.IsOptional {
+				resources = append(resources, typ1)
+			}
+		case ArrayType:
+			checkArg(typ1.Type, dir)
+		case PtrType:
+			checkArg(typ1.Type, typ1.Dir)
+		case StructType:
+			for _, fld := range typ1.Fields {
+				checkArg(fld, dir)
+			}
+		}
+	}
+	for _, arg := range c.Args {
+		checkArg(arg, DirIn)
+	}
+	return resources
+}
+
+func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
+	supported := make(map[*Call]bool)
+	for c := range enabled {
+		supported[c] = true
+	}
+	for {
+		n := len(supported)
+		for c := range enabled {
+			if !supported[c] {
+				continue
+			}
+			canCreate := true
+			for _, res := range c.InputResources() {
+				noctors := true
+				for _, ctor := range ResourceCtors(res.Kind, res.Subkind, true) {
+					if supported[ctor] {
+						noctors = false
+						break
+					}
+				}
+				if noctors {
+					canCreate = false
+					break
+				}
+			}
+			if !canCreate {
+				delete(supported, c)
+			}
+		}
+		if n == len(supported) {
+			break
+		}
+	}
+	return supported
+}
+
 var (
 	CallCount int
 	CallMap   = make(map[string]*Call)
@@ -426,6 +568,7 @@ var (
 
 func init() {
 	initCalls()
+	initResources()
 
 	for _, c := range Calls {
 		c.NR = numbers[c.ID]
