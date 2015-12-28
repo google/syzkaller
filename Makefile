@@ -35,7 +35,7 @@ upgrade:
 	go build -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 generate:
-	go run sysgen/*.go -linux=$(LINUX) sys/sys.txt
+	go run sysgen/*.go -linux=$(LINUX) sys/sys.txt sys/kdbus.txt
 
 format:
 	go fmt ./...

@@ -28,13 +28,22 @@ func main() {
 	if len(flag.Args()) == 0 {
 		failf("usage: sysgen -linux=linux_checkout input_file")
 	}
-	inf, err := os.Open(flag.Args()[0])
-	if err != nil {
-		failf("failed to open input file: %v", err)
-	}
-	defer inf.Close()
 
-	includes, defines, syscalls, structs, unnamed, flags := parse(bufio.NewReader(inf))
+	var r io.Reader
+	for i, f := range flag.Args() {
+		inf, err := os.Open(f)
+		if err != nil {
+			failf("failed to open input file: %v", err)
+		}
+		defer inf.Close()
+		if i == 0 {
+			r = bufio.NewReader(inf)
+		} else {
+			r = io.MultiReader(r, bufio.NewReader(inf))
+		}
+	}
+
+	includes, defines, syscalls, structs, unnamed, flags := parse(r)
 	intFlags, flagVals := compileFlags(includes, defines, flags)
 
 	out := new(bytes.Buffer)
