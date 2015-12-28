@@ -30,12 +30,8 @@ func DetectSupportedSyscalls() (map[*sys.Call]bool, error) {
 		return nil, err
 	}
 	supported := make(map[*sys.Call]bool)
-	tested := make(map[string]bool)
 	for _, c := range sys.Calls {
-		if _, ok := tested[c.CallName]; !ok {
-			tested[c.CallName] = isSupported(kallsyms, c)
-		}
-		if tested[c.CallName] {
+		if isSupported(kallsyms, c) {
 			supported[c] = true
 		}
 	}
@@ -43,14 +39,22 @@ func DetectSupportedSyscalls() (map[*sys.Call]bool, error) {
 }
 
 func isSupported(kallsyms []byte, c *sys.Call) bool {
-	// TODO: detect unsupported socket families.
-	// TOOD: detect syscalls that open /dev/ files (e.g. open$ptmx).
 	if c.NR == -1 {
 		return false // don't even have a syscall number
 	}
-	if !strings.HasPrefix(c.CallName, "syz_") {
-		return bytes.Index(kallsyms, []byte(" T sys_"+c.CallName+"\n")) != -1
+	if strings.HasPrefix(c.CallName, "syz_") {
+		return isSupportedSyzkall(kallsyms, c)
 	}
+	if strings.HasPrefix(c.Name, "socket$") {
+		return isSupportedSocket(kallsyms, c)
+	}
+	if strings.HasPrefix(c.Name, "open$") {
+		return isSupportedOpen(kallsyms, c)
+	}
+	return bytes.Index(kallsyms, []byte(" T sys_"+c.CallName+"\n")) != -1
+}
+
+func isSupportedSyzkall(kallsyms []byte, c *sys.Call) bool {
 	switch c.CallName {
 	case "syz_openpts":
 		return true
@@ -66,4 +70,33 @@ func isSupported(kallsyms []byte, c *sys.Call) bool {
 	default:
 		panic("unknown syzkall")
 	}
+}
+
+func isSupportedSocket(kallsyms []byte, c *sys.Call) bool {
+	af, ok := c.Args[0].(sys.ConstType)
+	if !ok {
+		println(c.Name)
+		panic("socket family is not const")
+	}
+	fd, err := syscall.Socket(int(af.Val), 0, 0)
+	if fd != -1 {
+		syscall.Close(fd)
+	}
+	return err != syscall.ENOSYS && err != syscall.EAFNOSUPPORT
+}
+
+func isSupportedOpen(kallsyms []byte, c *sys.Call) bool {
+	ptr, ok := c.Args[0].(sys.PtrType)
+	if !ok {
+		panic("first open arg is not a pointer")
+	}
+	fname, ok := ptr.Type.(sys.StrConstType)
+	if !ok {
+		return true
+	}
+	fd, err := syscall.Open(fname.Val, syscall.O_RDONLY, 0)
+	if fd != -1 {
+		syscall.Close(fd)
+	}
+	return err == nil
 }
