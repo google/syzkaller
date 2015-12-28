@@ -1,3 +1,6 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
 open$kdbus(file strconst["/dev/kdbus"], flags flags[open_flags], mode const[0]) fd[kdbus]
 ioctl$kdbus_bus_make(fd fd[kdbus], cmd const[KDBUS_CMD_BUS_MAKE], arg ptr[in, kdbus_cmd_bus_make])
 ioctl$kdbus_ep_make(fd fd[kdbus], cmd const[KDBUS_CMD_ENDPOINT_MAKE], arg ptr[in, kdbus_cmd_ep_make])

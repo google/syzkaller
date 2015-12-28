@@ -1,0 +1,76 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+syz_dri_open(card_id intptr, flags flags[open_flags]) fd[dri]
+ioctl$DRM_IOCTL_VERSION(fd fd[dri], cmd const[DRM_IOCTL_VERSION], arg ptr[in, drm_version])
+ioctl$DRM_IOCTL_GET_UNIQUE(fd fd[dri], cmd const[DRM_IOCTL_GET_UNIQUE], arg ptr[in, drm_unique])
+ioctl$DRM_IOCTL_GET_MAGIC(fd fd[dri], cmd const[DRM_IOCTL_GET_MAGIC], arg ptr[in, int32])
+ioctl$DRM_IOCTL_IRQ_BUSID(fd fd[dri], cmd const[DRM_IOCTL_IRQ_BUSID], arg ptr[in, drm_irq_busid])
+ioctl$DRM_IOCTL_GET_MAP(fd fd[dri], cmd const[DRM_IOCTL_GET_MAP], arg ptr[in, drm_map])
+ioctl$DRM_IOCTL_GET_CLIENT(fd fd[dri], cmd const[DRM_IOCTL_GET_CLIENT], arg ptr[in, drm_client])
+ioctl$DRM_IOCTL_GET_STATS(fd fd[dri], cmd const[DRM_IOCTL_GET_STATS], arg buffer[out])
+ioctl$DRM_IOCTL_GET_CAP(fd fd[dri], cmd const[DRM_IOCTL_GET_CAP], arg ptr[in, drm_get_cap])
+ioctl$DRM_IOCTL_SET_CLIENT_CAP(fd fd[dri], cmd const[DRM_IOCTL_SET_CLIENT_CAP], arg ptr[in, drm_get_cap])
+ioctl$DRM_IOCTL_SET_VERSION(fd fd[dri], cmd const[DRM_IOCTL_SET_VERSION], arg ptr[in, drm_set_version])
+
+drm_version {
+	maj	int32
+	min	int32
+	patch	int32
+	namelen	len[name, intptr]
+	name	buffer[out]
+	datelen	len[date, intptr]
+	date	buffer[out]
+	desclen	len[desc, intptr]
+	desc	buffer[out]
+}
+
+drm_unique {
+	len	len[uni, intptr]
+	uni	buffer[out]
+}
+
+drm_irq_busid {
+	irq	int32
+	bus	int32
+	dev	int32
+	func	int32
+}
+
+drm_map {
+	off	intptr
+	size	intptr
+	type	flags[drm_map_type, int32]
+	flags	flags[drm_map_flags, int32]
+	handle	vma
+	mtrr	int32
+}
+
+drm_client {
+	idx	int32
+	auth	int32
+	pid	pid
+# pid is declared is long
+	pid_pad	int32
+	uid	uid
+# uid is declared is long
+	uid_pad	int32
+	magic	intptr
+	iocs	intptr
+}
+
+drm_get_cap {
+	cap	int64
+	val	int64
+}
+
+drm_set_version {
+	di_maj	int32
+	di_min	int32
+	dd_maj	int32
+	dd_min	int32
+}
+
+drm_map_type = _DRM_FRAME_BUFFER, _DRM_REGISTERS, _DRM_SHM, _DRM_AGP, _DRM_SCATTER_GATHER, _DRM_CONSISTENT
+drm_map_flags = _DRM_RESTRICTED, _DRM_READ_ONLY, _DRM_LOCKED, _DRM_KERNEL, _DRM_WRITE_COMBINING, _DRM_CONTAINS_LOCK, _DRM_REMOVABLE, _DRM_DRIVER
+

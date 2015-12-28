@@ -1,0 +1,108 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd[bpf_map]
+bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
+bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
+bpf$MAP_DELETE_ELEM(cmd const[BPF_MAP_DELETE_ELEM], arg ptr[in, bpf_map_delete_arg], size len[arg])
+bpf$MAP_GET_NEXT_KEY(cmd const[BPF_MAP_GET_NEXT_KEY], arg ptr[in, bpf_map_get_next_arg], size len[arg])
+bpf$PROG_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog], size len[arg]) fd[bpf_prog]
+bpf$OBJ_PIN_MAP(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_map], size len[arg])
+bpf$OBJ_PIN_PROG(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_prog], size len[arg])
+bpf$OBJ_GET_MAP(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd[bpf_map]
+bpf$OBJ_GET_PROG(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd[bpf_prog]
+
+bpf_map_create_arg {
+	type	flags[bpf_map_type, int32]
+	ksize	int32
+	vsize	int32
+	max	int32
+}
+
+bpf_map_lookup_arg {
+	map	fd[bpf_map]
+	key	buffer[in]
+	val	buffer[out]
+}
+
+bpf_map_update_arg {
+	map	fd[bpf_map]
+	key	buffer[in]
+	val	buffer[in]
+	flags	flags[bpf_map_flags, int64]
+}
+
+bpf_map_delete_arg {
+	map	fd[bpf_map]
+	key	buffer[in]
+}
+
+bpf_map_get_next_arg {
+	map	fd[bpf_map]
+	key	buffer[in]
+	next	buffer[out]
+}
+
+bpf_prog {
+	type	flags[bpf_prog_type, int32]
+	ninsn	len[insns, int32]
+	insns	ptr[in, array[bpf_insn]]
+	license	string
+	loglev	int32
+	logsize	len[log, int32]
+	log	buffer[out]
+	kver	int32
+}
+
+bpf_insn {
+	code	int8
+	dst	int8
+	src	int8
+	off	int16
+	imm	int32
+}
+
+bpf_obj_pin_map {
+	path	filename
+	fd	fd[bpf_map]
+}
+
+bpf_obj_pin_prog {
+	path	filename
+	fd	fd[bpf_prog]
+}
+
+bpf_obj_get {
+	path	filename
+	fd	const[0, int32]
+}
+
+bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY
+bpf_map_flags = BPF_ANY, BPF_NOEXIST, BPF_EXIST
+bpf_prog_type = BPF_PROG_TYPE_SOCKET_FILTER, BPF_PROG_TYPE_KPROBE, BPF_PROG_TYPE_SCHED_CLS, BPF_PROG_TYPE_SCHED_ACT
+
+define BPF_MAP_CREATE			0
+define BPF_MAP_LOOKUP_ELEM		1
+define BPF_MAP_UPDATE_ELEM		2
+define BPF_MAP_DELETE_ELEM		3
+define BPF_MAP_GET_NEXT_KEY		4
+define BPF_PROG_LOAD			5
+define BPF_OBJ_PIN			6
+define BPF_OBJ_GET			7
+
+define BPF_MAP_TYPE_HASH		1
+define BPF_MAP_TYPE_ARRAY		2
+define BPF_MAP_TYPE_PROG_ARRAY		3
+define BPF_MAP_TYPE_PERF_EVENT_ARRAY	4
+
+define BPF_ANY				0
+define BPF_NOEXIST			1
+define BPF_EXIST			2
+
+define BPF_PROG_TYPE_SOCKET_FILTER	1
+define BPF_PROG_TYPE_KPROBE		2
+define BPF_PROG_TYPE_SCHED_CLS		3
+define BPF_PROG_TYPE_SCHED_ACT		4
+
+define SO_ATTACH_BPF			50
+

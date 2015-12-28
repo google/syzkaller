@@ -1,0 +1,50 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+perf_event_open(attr ptr[in, perf_event_attr], pid pid, cpu intptr, group fd[perf], flags flags[perf_flags]) fd[perf]
+
+ioctl$PERF_EVENT_IOC_ENABLE(fd fd[perf], cmd const[PERF_EVENT_IOC_ENABLE], flags intptr)
+ioctl$PERF_EVENT_IOC_DISABLE(fd fd[perf], cmd const[PERF_EVENT_IOC_DISABLE], flags intptr)
+ioctl$PERF_EVENT_IOC_RESET(fd fd[perf], cmd const[PERF_EVENT_IOC_RESET], flags intptr)
+ioctl$PERF_EVENT_IOC_REFRESH(fd fd[perf], cmd const[PERF_EVENT_IOC_REFRESH], refresh intptr)
+ioctl$PERF_EVENT_IOC_PERIOD(fd fd[perf], cmd const[PERF_EVENT_IOC_PERIOD], period ptr[in, int64])
+ioctl$PERF_EVENT_IOC_ID(fd fd[perf], cmd const[PERF_EVENT_IOC_ID], id ptr[out, int64])
+ioctl$PERF_EVENT_IOC_SET_OUTPUT(fd fd[perf], cmd const[PERF_EVENT_IOC_SET_OUTPUT], other fd[perf])
+ioctl$PERF_EVENT_IOC_SET_FILTER(fd fd[perf], cmd const[PERF_EVENT_IOC_SET_FILTER], filter string)
+ioctl$PERF_EVENT_IOC_SET_BPF(fd fd[perf], cmd const[PERF_EVENT_IOC_SET_BPF], prog fd[bpf_prog])
+
+perf_flags = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_PID_CGROUP, PERF_FLAG_FD_CLOEXEC
+perf_event_type = PERF_TYPE_HARDWARE, PERF_TYPE_SOFTWARE, PERF_TYPE_TRACEPOINT, PERF_TYPE_HW_CACHE, PERF_TYPE_RAW, PERF_TYPE_BREAKPOINT
+perf_bp_type = HW_BREAKPOINT_EMPTY, HW_BREAKPOINT_R, HW_BREAKPOINT_W, HW_BREAKPOINT_X
+perf_attr_flags = 1, 2, 4
+
+perf_event_attr {
+	type	flags[perf_event_type, int32]
+	size	len[parent, int32]
+	config	int64
+	freq	int64
+	sample	int64
+	format	int64
+# Lots of various bit flags.
+# Split into int8's because for int64 large values generated less frequently than small ones.
+# Kernel checks that unused bits are zero.
+	flags0	int8
+	flags1	int8
+	flags2	int8
+	flags3	flags[perf_attr_flags, int8]
+	freserv	const[0, int32]
+	wakeup	int32
+	bptype	flags[perf_bp_type, int32]
+	config1	int64
+	config2	int64
+	bsample	int64
+	regs	int64
+	stack	int64
+	clockid	flags[clock_type, int32]
+	regs2	int64
+	auxwm	int32
+}
+
+define PERF_FLAG_FD_CLOEXEC		(1UL << 3)
+define PERF_EVENT_IOC_SET_BPF		_IOW('$', 8, __u32)
+
