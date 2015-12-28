@@ -395,6 +395,8 @@ func fmtFdKind(s string) string {
 		return "FdBtCmtp"
 	case "bt_bnep":
 		return "FdBtBnep"
+	case "unix":
+		return "FdUnix"
 	default:
 		failf("bad fd type %v", s)
 		return ""

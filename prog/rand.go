@@ -140,7 +140,7 @@ func (r *randGen) filename(s *state) string {
 	return files[r.Intn(len(files))]
 }
 
-var sockFamilies = []uint16{AF_LOCAL, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET}
+var sockFamilies = []uint16{AF_UNIX, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET}
 
 func (r *randGen) inaddr(s *state) uint32 {
 	// TODO: extract addresses of network interfaces.
@@ -177,7 +177,7 @@ func (r *randGen) sockaddr(s *state) []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, fa) // this is actually host byte order
 	switch fa {
-	case AF_LOCAL:
+	case AF_UNIX:
 		buf.WriteString(r.filename(s))
 	case AF_INET:
 		binary.Write(buf, binary.BigEndian, port)

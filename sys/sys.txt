@@ -76,6 +76,8 @@ include <linux/perf_event.h>
 include <linux/hw_breakpoint.h>
 include <linux/if_alg.h>
 include <linux/nfc.h>
+include <linux/sockios.h>
+include <linux/net_tstamp.h>
 
 include <asm/prctl.h>
 
@@ -513,37 +515,6 @@ pollfd {
 	revents	int16
 }
 
-send_msghdr {
-	addr	ptr[in, sockaddr]
-	addrlen	len[addr, int32]
-	vec	ptr[in, array[iovec_in]]
-	vlen	len[vec, intptr]
-	ctrl	ptr[in, cmsghdr]
-	ctrllen	len[ctrl, intptr]
-	f	flags[send_flags, int32]
-# TODO: this field should be deleted
-	len	int32
-}
-
-recv_msghdr {
-	addr	ptr[out, sockaddr]
-	addrlen	len[addr, int32]
-	vec	ptr[in, array[iovec_out]]
-	vlen	len[vec, intptr]
-	ctrl	buffer[out]
-	ctrllen	len[ctrl, intptr]
-	f	int32
-# TODO: this field should be deleted
-	len	int32
-}
-
-cmsghdr {
-	len	intptr
-	level	int32
-	type	int32
-# TODO: this is followed by an embed array of aux data, and len is length of the whole message
-}
-
 sigset {
 	mask	int64
 }
@@ -724,7 +695,7 @@ sembuf {
 }
 
 sock_fprog {
-	len	len[filter, intptr]
+	len	len[filter, int16]
 	filter	ptr[in, array[sock_filter]]
 }
 
@@ -1216,18 +1187,6 @@ flock_type = F_RDLCK, F_WRLCK, F_UNLCK
 f_owner_type = F_OWNER_TID, F_OWNER_PID, F_OWNER_PGRP
 fcntl_notify = DN_MULTISHOT, DN_ACCESS, DN_MODIFY, DN_CREATE, DN_DELETE, DN_RENAME, DN_ATTRIB
 seal_types = F_SEAL_SEAL, F_SEAL_SHRINK, F_SEAL_GROW, F_SEAL_WRITE
-sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PEEK_OFF, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP, SO_TYPE
-sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO
-sockopt_opt_tcp_int = TCP_CORK, TCP_DEFER_ACCEPT, TCP_KEEPCNT, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_LINGER2, TCP_MAXSEG, TCP_NODELAY, TCP_QUICKACK, TCP_SYNCNT, TCP_WINDOW_CLAMP
-sockopt_opt_ip_int = IP_FREEBIND, IP_HDRINCL, IP_MTU, IP_MULTICAST_ALL, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IP_NODEFRAG, IP_RECVOPTS, IP_RECVORIGDSTADDR, IP_RECVTOS, IP_RECVTTL, IP_RETOPTS, IP_ROUTER_ALERT, IP_TOS, IP_TRANSPARENT, IP_TTL, IP_RECVERR, IP_PASSSEC, IP_MINTTL, IP_CHECKSUM, IP_BIND_ADDRESS_NO_PORT
-sockopt_opt_ip_mreq = IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_MULTICAST_IF
-sockopt_opt_ip_mreqsrc = IP_ADD_SOURCE_MEMBERSHIP, IP_BLOCK_SOURCE, IP_DROP_SOURCE_MEMBERSHIP, IP_UNBLOCK_SOURCE
-sockopt_opt_ip_opts = IP_OPTIONS, IP_PKTOPTIONS
-ip_msfilter_mode = MCAST_INCLUDE, MCAST_EXCLUDE
-ip_msfilter_numsrc = 1
-ip_mtu_discover = IP_PMTUDISC_DONT, IP_PMTUDISC_WANT, IP_PMTUDISC_DO, IP_PMTUDISC_PROBE, IP_PMTUDISC_INTERFACE, IP_PMTUDISC_OMIT
-sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, IPV6_RECVPKTINFO, IPV6_RECVERR, IPV6_ROUTER_ALERT, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IPV6_RTHDR, IPV6_AUTHHDR, IPV6_DSTOPTS, IPV6_HOPOPTS, IPV6_FLOWINFO, IPV6_HOPLIMIT, IPV6_CHECKSUM, IPV6_2292PKTINFO, IPV6_2292HOPOPTS, IPV6_2292DSTOPTS, IPV6_2292RTHDR, IPV6_2292HOPLIMIT
-sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
 ioctl_void = FIOCLEX, FIONCLEX, FIFREEZE, FITHAW
 ioctl_int_in = FIONBIO, FIOASYNC
 ioctl_int_out = FIOQSIZE, FIGETBSZ

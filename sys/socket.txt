@@ -20,9 +20,11 @@ getsockname(fd fd[sock], addr ptr[out, sockaddr], addrlen ptr[inout, len[addr, i
 getpeername(fd fd[sock], peer ptr[out, sockaddr], peerlen ptr[inout, len[peer, int32]])
 getsockopt(fd fd[sock], level int32, optname int32, optval ptr[out, ioctl_arg], optlen ptr[inout, len[optval, int32]])
 setsockopt(fd fd[sock], level int32, optname int32, optval ptr[in, ioctl_arg], optlen len[optval])
+
+# SOL_SOCKET
+setsockopt$sock_void(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_void], optval const[0], optlen const[0])
 getsockopt$sock_int(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_int(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[in, int32], optlen len[optval])
-getsockopt$sock_str(fd fd[sock], level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_str(fd fd[sock], level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval string, optlen len[optval])
 getsockopt$sock_linger(fd fd[sock], level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[out, linger], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_linger(fd fd[sock], level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[in, linger], optlen len[optval])
@@ -31,6 +33,11 @@ setsockopt$sock_cred(fd fd[sock], level const[SOL_SOCKET], optname const[SO_PEER
 getsockopt$sock_timeval(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[out, timeval], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_timeval(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_timeval], optval ptr[in, timeval], optlen len[optval])
 setsockopt$sock_attach_bpf(fd fd[sock], level const[SOL_SOCKET], optname const[SO_ATTACH_BPF], optval ptr[in, fd[bpf_prog]], optlen len[optval])
+setsockopt$SO_TIMESTAMPING(fd fd[sock], level const[SOL_SOCKET], optname const[SO_TIMESTAMPING], optval ptr[in, flags[sockopt_so_timestamping, int32]], optlen len[optval])
+getsockopt$SO_TIMESTAMPING(fd fd[sock], level const[SOL_SOCKET], optname const[SO_TIMESTAMPING], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$SO_ATTACH_FILTER(fd fd[sock], level const[SOL_SOCKET], optname const[SO_ATTACH_FILTER], optval ptr[in, sock_fprog], optlen len[optval])
+getsockopt$sock_buf(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+
 getsockopt$tcp_int(fd fd[sock], level const[IPPROTO_TCP], optname flags[sockopt_opt_tcp_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$tcp_int(fd fd[sock], level const[IPPROTO_TCP], optname flags[sockopt_opt_tcp_int], optval ptr[in, int32], optlen len[optval])
 getsockopt$tcp_buf(fd fd[sock], level const[IPPROTO_TCP], optname const[TCP_INFO], optval buffer[out], optlen ptr[inout, len[optval, int32]])
@@ -64,17 +71,147 @@ setsockopt$ipv6_mtu(fd fd[sock], level const[IPPROTO_IPV6], optname const[IPV6_M
 getsockopt$ipv6_opts(fd fd[sock], level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 setsockopt$ipv6_opts(fd fd[sock], level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[in], optlen len[optval])
 
-socket_domain = AF_LOCAL, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET
+socket_domain = AF_UNIX, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET
 socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_SEQPACKET, SOCK_RAW, SOCK_RDM, SOCK_PACKET, SOCK_NONBLOCK, SOCK_CLOEXEC
 accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
 shutdown_flags  = SHUT_RD, SHUT_WR
 send_flags = MSG_CONFIRM, MSG_DONTROUTE, MSG_DONTWAIT, MSG_EOR, MSG_MORE, MSG_NOSIGNAL, MSG_OOB
 recv_flags = MSG_CMSG_CLOEXEC, MSG_DONTWAIT, MSG_ERRQUEUE, MSG_OOB, MSG_PEEK, MSG_TRUNC, MSG_WAITALL, MSG_WAITFORONE
+sockopt_opt_sock_void = SO_DETACH_FILTER, SO_MARK
+sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PEEK_OFF, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP, SO_TYPE, SO_REUSEPORT, SO_OOBINLINE, SO_NO_CHECK, SO_PASSCRED, SO_TIMESTAMPNS, SO_LOCK_FILTER, SO_PASSSEC, SO_RXQ_OVFL, SO_WIFI_STATUS, SO_NOFCS, SO_SELECT_ERR_QUEUE, SO_BUSY_POLL, SO_MAX_PACING_RATE
+sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO
+sockopt_opt_sock_buf = SO_BINDTODEVICE, SO_PEERCRED, SO_PEERNAME, SO_PEERSEC, SO_GET_FILTER
+sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFTWARE, SOF_TIMESTAMPING_RX_HARDWARE, SOF_TIMESTAMPING_RX_SOFTWARE, SOF_TIMESTAMPING_SOFTWARE, SOF_TIMESTAMPING_SYS_HARDWARE, SOF_TIMESTAMPING_RAW_HARDWARE, SOF_TIMESTAMPING_OPT_ID, SOF_TIMESTAMPING_TX_SCHED, SOF_TIMESTAMPING_TX_ACK, SOF_TIMESTAMPING_OPT_CMSG, SOF_TIMESTAMPING_OPT_TSONLY
+sockopt_opt_tcp_int = TCP_CORK, TCP_DEFER_ACCEPT, TCP_KEEPCNT, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_LINGER2, TCP_MAXSEG, TCP_NODELAY, TCP_QUICKACK, TCP_SYNCNT, TCP_WINDOW_CLAMP
+sockopt_opt_ip_int = IP_FREEBIND, IP_HDRINCL, IP_MTU, IP_MULTICAST_ALL, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IP_NODEFRAG, IP_RECVOPTS, IP_RECVORIGDSTADDR, IP_RECVTOS, IP_RECVTTL, IP_RETOPTS, IP_ROUTER_ALERT, IP_TOS, IP_TRANSPARENT, IP_TTL, IP_RECVERR, IP_PASSSEC, IP_MINTTL, IP_CHECKSUM, IP_BIND_ADDRESS_NO_PORT
+sockopt_opt_ip_mreq = IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_MULTICAST_IF
+sockopt_opt_ip_mreqsrc = IP_ADD_SOURCE_MEMBERSHIP, IP_BLOCK_SOURCE, IP_DROP_SOURCE_MEMBERSHIP, IP_UNBLOCK_SOURCE
+sockopt_opt_ip_opts = IP_OPTIONS, IP_PKTOPTIONS
+ip_msfilter_mode = MCAST_INCLUDE, MCAST_EXCLUDE
+ip_msfilter_numsrc = 1
+ip_mtu_discover = IP_PMTUDISC_DONT, IP_PMTUDISC_WANT, IP_PMTUDISC_DO, IP_PMTUDISC_PROBE, IP_PMTUDISC_INTERFACE, IP_PMTUDISC_OMIT
+sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, IPV6_RECVPKTINFO, IPV6_RECVERR, IPV6_ROUTER_ALERT, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IPV6_RTHDR, IPV6_AUTHHDR, IPV6_DSTOPTS, IPV6_HOPOPTS, IPV6_FLOWINFO, IPV6_HOPLIMIT, IPV6_CHECKSUM, IPV6_2292PKTINFO, IPV6_2292HOPOPTS, IPV6_2292DSTOPTS, IPV6_2292RTHDR, IPV6_2292HOPLIMIT
+sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
+
+send_msghdr {
+	addr	ptr[in, sockaddr]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_in]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, cmsghdr]
+	ctrllen	len[ctrl, intptr]
+	f	flags[send_flags, int32]
+# TODO: this field should be deleted
+	len	int32
+}
+
+recv_msghdr {
+	addr	ptr[out, sockaddr]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_out]]
+	vlen	len[vec, intptr]
+	ctrl	buffer[out]
+	ctrllen	len[ctrl, intptr]
+	f	int32
+# TODO: this field should be deleted
+	len	int32
+}
+
+cmsghdr {
+	len	intptr
+	level	int32
+	type	int32
+# TODO: this is followed by an embed array of aux data, and len is length of the whole message
+}
+
+define SOF_TIMESTAMPING_OPT_ID		(1<<7)
+define SOF_TIMESTAMPING_TX_SCHED	(1<<8)
+define SOF_TIMESTAMPING_TX_ACK		(1<<9)
+define SOF_TIMESTAMPING_OPT_CMSG	(1<<10)
+define SOF_TIMESTAMPING_OPT_TSONLY	(1<<11)
 
 
 
 
-# PF_ALG support.
+# AF_UNIX support.
+
+socket$unix(domain const[AF_UNIX], type flags[unix_socket_type], proto const[0]) fd[unix]
+socketpair$unix(domain const[AF_UNIX], type flags[unix_socket_type], proto const[0], fds ptr[out, unix_pair])
+bind$unix(fd fd[unix], addr ptr[in, sockaddr_un], addrlen len[addr])
+connect$unix(fd fd[unix], addr ptr[in, sockaddr_un], addrlen len[addr])
+accept$unix(fd fd[unix], peer ptr[out, sockaddr_un, opt], peerlen ptr[inout, len[peer, int32]]) fd[unix]
+accept4$unix(fd fd[unix], peer ptr[out, sockaddr_un, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) fd[unix]
+ioctl$SIOCOUTQ(fd fd[unix], cmd const[SIOCOUTQ], arg ptr[out, int32])
+ioctl$SIOCINQ(fd fd[unix], cmd const[SIOCINQ], arg ptr[out, int32])
+
+sendto$unix(fd fd[unix], buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_un, opt], addrlen len[addr])
+sendmsg$unix(fd fd[unix], msg ptr[in, send_msghdr], f flags[send_flags])
+sendmmsg$unix(fd fd[unix], mmsg ptr[in, array[send_msghdr]], vlen len[mmsg], f flags[send_flags])
+recvfrom$unix(fd fd[unix], buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_un, opt], addrlen len[addr])
+recvmsg$unix(fd fd[unix], msg ptr[in, recv_msghdr], f flags[recv_flags])
+recvmmsg$unix(fd fd[unix], mmsg ptr[in, array[recv_msghdr]], vlen len[mmsg], f flags[recv_flags])
+getsockname$unix(fd fd[unix], addr ptr[out, sockaddr_un], addrlen ptr[inout, len[addr, int32]])
+getpeername$unix(fd fd[unix], peer ptr[out, sockaddr_un], peerlen ptr[inout, len[peer, int32]])
+
+unix_socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_SEQPACKET
+unix_socket_family = AF_UNIX, AF_UNSPEC
+
+unix_pair {
+	fd0	fd[unix]
+	fd1	fd[unix]
+}
+
+sockaddr_un {
+	family	flags[unix_socket_family, int16]
+	path	array[int8]
+}
+
+send_msghdr_un {
+	addr	ptr[in, sockaddr_un]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_in]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, cmsghdr_un]
+	ctrllen	len[ctrl, intptr]
+	f	flags[send_flags, int32]
+}
+
+recv_msghdr_un {
+	addr	ptr[out, sockaddr_un]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_out]]
+	vlen	len[vec, intptr]
+	ctrl	buffer[out]
+	ctrllen	len[ctrl, intptr]
+	f	int32
+}
+
+# TODO: this should be something along the lines of array[union[cmsghdr_rights, cmsghdr_cred]]
+cmsghdr_un {
+	rights	cmsghdr_rights
+	cred	cmsghdr_rights
+}
+
+cmsghdr_rights {
+	len	len[parent, intptr]
+	level	const[SOL_SOCKET, int32]
+	type	const[SCM_RIGHTS, int32]
+	fds	array[fd]
+}
+
+cmsghdr_cred {
+	len	len[parent, intptr]
+	level	const[SOL_SOCKET, int32]
+	type	const[SCM_CREDENTIALS, int32]
+	pid	pid
+	uid	uid
+	gid	gid
+}
+
+
+
+
+# AF_ALG support.
 
 socket$alg(domain const[AF_ALG], type const[SOCK_SEQPACKET], proto const[0]) fd[alg]
 bind$alg(fd fd[alg], addr ptr[in, sockaddr_alg], addrlen len[addr])
@@ -179,7 +316,7 @@ define SOL_ALG				279
 
 
 
-# PF_KEY support.
+# AF_KEY support.
 
 # See net/key/af_key.c, requires root.
 # socket$key(domain const[AF_KEY], type const[SOCK_RAW], proto const[PF_KEY_V2]) fd[key]
@@ -187,7 +324,7 @@ define SOL_ALG				279
 
 
 
-# PF_NFC support.
+# AF_NFC support.
 
 socket$nfc_llcp(domain const[AF_NFC], type flags[nfc_llcp_type], proto const[NFC_SOCKPROTO_LLCP]) fd[nfc_llcp]
 bind$nfc_llcp(fd fd[nfc_llcp], addr ptr[in, sockaddr_nfc_llcp], addrlen len[addr])
@@ -260,9 +397,9 @@ define NFC_PROTO_ISO15693	7
 
 
 
-# PF_BLUETOOTH support.
+# AF_BLUETOOTH support.
 
-socket$bt_hci(fam const[PF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_HCI]) fd[bt_hci]
+socket$bt_hci(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_HCI]) fd[bt_hci]
 bind$bt_hci(fd fd[bt_hci], addr ptr[in, sockaddr_hci], addrlen len[addr])
 ioctl$bt_hci(fd fd[bt_hci], cmd flags[bt_hci_ioctl], arg buffer[inout])
 setsockopt$HCI_DATA_DIR(fd fd[bt_hci], level const[0], opt const[HCI_DATA_DIR], arg ptr[in, int32], arglen len[arg])
@@ -270,13 +407,13 @@ setsockopt$HCI_TIME_STAMP(fd fd[bt_hci], level const[0], opt const[HCI_TIME_STAM
 setsockopt$HCI_FILTER(fd fd[bt_hci], level const[0], opt const[HCI_FILTER], arg ptr[in, hci_ufilter], arglen len[arg])
 getsockopt$bt_hci(fd fd[sock], level const[0], opt flags[bt_hci_sockopt], arg buffer[out], arglen ptr[inout, len[arg, int32]])
 
-socket$bt_sco(fam const[PF_BLUETOOTH], type const[SOCK_SEQPACKET], proto const[BTPROTO_SCO]) fd[bt_sco]
+socket$bt_sco(fam const[AF_BLUETOOTH], type const[SOCK_SEQPACKET], proto const[BTPROTO_SCO]) fd[bt_sco]
 bind$bt_sco(fd fd[bt_sco], addr ptr[in, sockaddr_sco], addrlen len[addr])
 connect$bt_sco(fd fd[bt_sco], addr ptr[in, sockaddr_sco], addrlen len[addr])
 getsockopt$SCO_OPTIONS(fd fd[bt_sco], level const[SOL_SCO], opt const[SCO_OPTIONS], arg buffer[out], arglen ptr[inout, len[arg, int32]])
 getsockopt$SCO_CONNINFO(fd fd[bt_sco], level const[SOL_SCO], opt const[SCO_CONNINFO], arg buffer[out], arglen ptr[inout, len[arg, int32]])
 
-socket$bt_l2cap(fam const[PF_BLUETOOTH], type flags[bt_l2cap_type], proto const[BTPROTO_L2CAP]) fd[bt_l2cap]
+socket$bt_l2cap(fam const[AF_BLUETOOTH], type flags[bt_l2cap_type], proto const[BTPROTO_L2CAP]) fd[bt_l2cap]
 bind$bt_l2cap(fd fd[bt_l2cap], addr ptr[in, sockaddr_l2], addrlen len[addr])
 connect$bt_l2cap(fd fd[bt_l2cap], addr ptr[in, sockaddr_l2], addrlen len[addr])
 setsockopt$L2CAP_OPTIONS(fd fd[bt_l2cap], level const[SOL_L2CAP], opt const[L2CAP_OPTIONS], arg ptr[in, l2cap_options], arglen len[arg])
@@ -286,26 +423,26 @@ getsockopt$L2CAP_LM(fd fd[bt_l2cap], level const[SOL_L2CAP], opt const[L2CAP_LM]
 setsockopt$L2CAP_CONNINFO(fd fd[bt_l2cap], level const[SOL_L2CAP], opt const[L2CAP_CONNINFO], arg ptr[in, l2cap_conninfo], arglen len[arg])
 getsockopt$L2CAP_CONNINFO(fd fd[bt_l2cap], level const[SOL_L2CAP], opt const[L2CAP_CONNINFO], arg ptr[out, l2cap_conninfo], arglen ptr[inout, len[arg, int32]])
 
-socket$bt_rfcomm(fam const[PF_BLUETOOTH], type flags[bt_rfcomm_type], proto const[BTPROTO_RFCOMM]) fd[bt_rfcomm]
+socket$bt_rfcomm(fam const[AF_BLUETOOTH], type flags[bt_rfcomm_type], proto const[BTPROTO_RFCOMM]) fd[bt_rfcomm]
 bind$bt_rfcomm(fd fd[bt_rfcomm], addr ptr[in, sockaddr_rc], addrlen len[addr])
 connect$bt_rfcomm(fd fd[bt_rfcomm], addr ptr[in, sockaddr_rc], addrlen len[addr])
 setsockopt$RFCOMM_LM(fd fd[bt_rfcomm], level const[SOL_RFCOMM], opt const[RFCOMM_LM], arg ptr[in, flags[bt_l2cap_lm, int32]], arglen len[arg])
 getsockopt$RFCOMM_LM(fd fd[bt_rfcomm], level const[SOL_RFCOMM], opt const[RFCOMM_LM], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
 getsockopt$RFCOMM_CONNINFO(fd fd[bt_rfcomm], level const[SOL_RFCOMM], opt const[RFCOMM_CONNINFO], arg buffer[out], arglen ptr[inout, len[arg, int32]])
 
-socket$bt_hidp(fam const[PF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_HIDP]) fd[bt_hidp]
+socket$bt_hidp(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_HIDP]) fd[bt_hidp]
 ioctl$HIDPCONNADD(fd fd[bt_hidp], cmd const[HIDPCONNADD], arg ptr[in, hidp_connadd_req])
 ioctl$HIDPCONNDEL(fd fd[bt_hidp], cmd const[HIDPCONNDEL], arg ptr[in, hidp_conndel_req])
 ioctl$HIDPGETCONNLIST(fd fd[bt_hidp], cmd const[HIDPGETCONNLIST], arg ptr[in, hidp_connlist_req])
 ioctl$HIDPGETCONNINFO(fd fd[bt_hidp], cmd const[HIDPGETCONNINFO], arg ptr[in, hidp_conninfo])
 
-socket$bt_cmtp(fam const[PF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_CMTP]) fd[bt_cmtp]
+socket$bt_cmtp(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_CMTP]) fd[bt_cmtp]
 ioctl$CMTPCONNADD(fd fd[bt_cmtp], cmd const[CMTPCONNADD], arg ptr[in, cmtp_connadd_req])
 ioctl$CMTPCONNDEL(fd fd[bt_cmtp], cmd const[CMTPCONNDEL], arg ptr[in, cmtp_conndel_req])
 ioctl$CMTPGETCONNLIST(fd fd[bt_cmtp], cmd const[CMTPGETCONNLIST], arg ptr[in, cmtp_connlist_req])
 ioctl$CMTPGETCONNINFO(fd fd[bt_cmtp], cmd const[CMTPGETCONNINFO], arg ptr[in, cmtp_conninfo])
 
-socket$bt_bnep(fam const[PF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_BNEP]) fd[bt_bnep]
+socket$bt_bnep(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_BNEP]) fd[bt_bnep]
 ioctl$BNEPCONNADD(fd fd[bt_bnep], cmd const[BNEPCONNADD], arg ptr[in, bnep_connadd_req])
 ioctl$BNEPCONNDEL(fd fd[bt_bnep], cmd const[BNEPCONNDEL], arg ptr[in, bnep_conndel_req])
 ioctl$BNEPGETCONNLIST(fd fd[bt_bnep], cmd const[BNEPGETCONNLIST], arg ptr[in, bnep_connlist_req])
@@ -332,7 +469,7 @@ setsockopt$BT_RCVMTU(fd fd, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], ar
 getsockopt$BT_RCVMTU(fd fd, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
 
 sockaddr_hci {
-	fam	const[PF_BLUETOOTH, int16]
+	fam	const[AF_BLUETOOTH, int16]
 	dev	int16
 	chan	flags[bt_chi_chan, int16]
 }
@@ -355,12 +492,12 @@ hci_ufilter {
 }
 
 sockaddr_sco {
-	fam	const[PF_BLUETOOTH, int16]
+	fam	const[AF_BLUETOOTH, int16]
 	addr	bdaddr
 }
 
 sockaddr_l2 {
-	fam	const[PF_BLUETOOTH, int16]
+	fam	const[AF_BLUETOOTH, int16]
 	psm	int16
 	addr	bdaddr
 	cid	int16
@@ -399,7 +536,7 @@ l2cap_conninfo {
 }
 
 sockaddr_rc {
-	fam	const[PF_BLUETOOTH, int16]
+	fam	const[AF_BLUETOOTH, int16]
 	addr	bdaddr
 	chan	int8
 }
