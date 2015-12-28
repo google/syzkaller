@@ -158,7 +158,7 @@ func parseSuppressions(cfg *Config) ([]*regexp.Regexp, error) {
 		"panic: executor failed: pthread_create failed",
 		"panic: failed to create temp dir",
 		"fatal error: runtime: out of memory",
-		"Out of memory: Kill process .* \\(syzkaller_fuzze\\)",
+		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
 		"WARNING: KASAN doesn't support memory hot-add",
 	}...)
 	var suppressions []*regexp.Regexp
