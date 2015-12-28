@@ -46,6 +46,11 @@ const (
 )
 
 func MakeEnv(bin string, timeout time.Duration, flags uint64) (*Env, error) {
+	// IPC timeout must be larger then executor timeout.
+	// Otherwise IPC will kill parent executor but leave child executor alive.
+	if timeout < 7*time.Second {
+		timeout = 7 * time.Second
+	}
 	inf, inmem, err := createMapping(2 << 20)
 	if err != nil {
 		return nil, err

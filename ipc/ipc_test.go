@@ -17,6 +17,8 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
+const timeout = 10 * time.Second
+
 func buildExecutor(t *testing.T) string {
 	return buildProgram(t, "../executor/executor.cc")
 }
@@ -53,7 +55,7 @@ func TestEmptyProg(t *testing.T) {
 	bin := buildExecutor(t)
 	defer os.Remove(bin)
 
-	env, err := MakeEnv(bin, time.Second, 0)
+	env, err := MakeEnv(bin, timeout, 0)
 	if err != nil {
 		t.Fatalf("failed to create env: %v", err)
 	}
@@ -84,7 +86,7 @@ func TestStrace(t *testing.T) {
 	bin := buildExecutor(t)
 	defer os.Remove(bin)
 
-	env, err := MakeEnv(bin, time.Second, FlagStrace)
+	env, err := MakeEnv(bin, timeout, FlagStrace)
 	if err != nil {
 		t.Fatalf("failed to create env: %v", err)
 	}
@@ -110,7 +112,7 @@ func TestExecute(t *testing.T) {
 	rs, iters := initTest(t)
 	flags := []uint64{0, FlagStrace, FlagThreaded, FlagStrace | FlagThreaded}
 	for _, flag := range flags {
-		env, err := MakeEnv(bin, time.Second, flag)
+		env, err := MakeEnv(bin, timeout, flag)
 		if err != nil {
 			t.Fatalf("failed to create env: %v", err)
 		}
@@ -144,7 +146,7 @@ func TestCompare(t *testing.T) {
 		"getpid", "getpgid", "getppid", "setsid", "ppoll", "keyctl", "ioprio_get",
 		"move_pages", "kcmp"}
 
-	env1, err := MakeEnv(bin, time.Second, FlagStrace)
+	env1, err := MakeEnv(bin, timeout, FlagStrace)
 	if err != nil {
 		t.Fatalf("failed to create env: %v", err)
 	}
@@ -162,7 +164,7 @@ func TestCompare(t *testing.T) {
 		cprog := buildSource(t, src)
 		defer os.Remove(cprog)
 
-		env2, err := MakeEnv(cprog, time.Second, FlagStrace)
+		env2, err := MakeEnv(cprog, timeout, FlagStrace)
 		if err != nil {
 			t.Fatalf("failed to create env: %v", err)
 		}
