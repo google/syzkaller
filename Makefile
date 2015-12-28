@@ -5,7 +5,7 @@
 
 all: manager fuzzer executor
 
-all-tools: execprog mutate prog2c stress repro
+all-tools: execprog mutate prog2c stress repro upgrade
 
 manager:
 	go build -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
@@ -30,6 +30,9 @@ prog2c:
 
 stress:
 	go build -o ./bin/syz-stress github.com/google/syzkaller/tools/syz-stress
+
+upgrade:
+	go build -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 generate:
 	go run sysgen/*.go -linux=$(LINUX) sys/sys.txt
