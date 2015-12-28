@@ -79,13 +79,6 @@ func (a *Arg) Size(typ sys.Type) uintptr {
 	}
 }
 
-func (a *Arg) IsPad() (bool, uintptr) {
-	if ct, ok := a.Type.(sys.ConstType); ok && ct.Val == 0 && ct.Name() == "pad" {
-		return true, ct.TypeSize
-	}
-	return false, 0
-}
-
 func constArg(v uintptr) *Arg {
 	return &Arg{Kind: ArgConst, Val: v}
 }

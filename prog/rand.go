@@ -462,7 +462,7 @@ func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, call
 		// Generate one of them.
 		meta := metas[r.Intn(len(metas))]
 		calls := r.generateParticularCall(s, meta)
-		assignTypeAndDir(calls[len(calls)-1])
+		//assignTypeAndDir(calls[len(calls)-1])
 		s1 := newState(s.ct)
 		s1.analyze(calls[len(calls)-1])
 		// Now see if we have what we want.

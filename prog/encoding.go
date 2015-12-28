@@ -43,6 +43,9 @@ func (p *Prog) Serialize() []byte {
 		}
 		fmt.Fprintf(buf, "%v(", c.Meta.Name)
 		for i, a := range c.Args {
+			if sys.IsPad(a.Type) {
+				continue
+			}
 			if i != 0 {
 				fmt.Fprintf(buf, ", ")
 			}
@@ -59,7 +62,7 @@ func (a *Arg) serialize(buf io.Writer, vars map[*Arg]int, varSeq *int) {
 		return
 	}
 	if len(a.Uses) != 0 {
-		fmt.Fprintf(buf, "[r%v=]", *varSeq)
+		fmt.Fprintf(buf, "<r%v=>", *varSeq)
 		vars[a] = *varSeq
 		*varSeq++
 	}
@@ -86,14 +89,26 @@ func (a *Arg) serialize(buf io.Writer, vars map[*Arg]int, varSeq *int) {
 	case ArgData:
 		fmt.Fprintf(buf, "\"%v\"", hex.EncodeToString(a.Data))
 	case ArgGroup:
-		fmt.Fprintf(buf, "{")
+		var delims []byte
+		switch a.Type.(type) {
+		case sys.StructType:
+			delims = []byte{'{', '}'}
+		case sys.ArrayType:
+			delims = []byte{'[', ']'}
+		default:
+			panic("unknown group type")
+		}
+		buf.Write([]byte{delims[0]})
 		for i, a1 := range a.Inner {
+			if a1 != nil && sys.IsPad(a1.Type) {
+				continue
+			}
 			if i != 0 {
 				fmt.Fprintf(buf, ", ")
 			}
 			a1.serialize(buf, vars, varSeq)
 		}
-		fmt.Fprintf(buf, "}")
+		buf.Write([]byte{delims[1]})
 	default:
 		panic("unknown arg kind")
 	}
@@ -123,7 +138,14 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 		prog.Calls = append(prog.Calls, c)
 		p.Parse('(')
 		for i := 0; p.Char() != ')'; i++ {
-			arg, err := parseArg(p, vars)
+			if i >= len(meta.Args) {
+				return nil, fmt.Errorf("wrong call arg count: %v, want %v", i+1, len(meta.Args))
+			}
+			typ := meta.Args[i]
+			if sys.IsPad(typ) {
+				return nil, fmt.Errorf("padding in syscall %v arguments", name)
+			}
+			arg, err := parseArg(typ, p, vars)
 			if err != nil {
 				return nil, err
 			}
@@ -155,13 +177,13 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 	return
 }
 
-func parseArg(p *parser, vars map[string]*Arg) (*Arg, error) {
+func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 	r := ""
-	if p.Char() == '[' {
-		p.Parse('[')
+	if p.Char() == '<' {
+		p.Parse('<')
 		r = p.Ident()
 		p.Parse('=')
-		p.Parse(']')
+		p.Parse('>')
 	}
 	var arg *Arg
 	switch p.Char() {
@@ -198,13 +220,21 @@ func parseArg(p *parser, vars map[string]*Arg) (*Arg, error) {
 			arg.OpAdd = uintptr(v)
 		}
 	case '&':
+		var typ1 sys.Type
+		switch t1 := typ.(type) {
+		case sys.PtrType:
+			typ1 = t1.Type
+		case sys.VmaType:
+		default:
+			return nil, fmt.Errorf("& arg is not a pointer: %#v", typ)
+		}
 		p.Parse('&')
 		page, off, err := parseAddr(p, true)
 		if err != nil {
 			return nil, err
 		}
 		p.Parse('=')
-		inner, err := parseArg(p, vars)
+		inner, err := parseArg(typ1, p, vars)
 		if err != nil {
 			return nil, err
 		}
@@ -228,19 +258,53 @@ func parseArg(p *parser, vars map[string]*Arg) (*Arg, error) {
 		}
 		arg = dataArg(data)
 	case '{':
+		t1, ok := typ.(sys.StructType)
+		if !ok {
+			return nil, fmt.Errorf("'{' arg is not a struct: %#v", typ)
+		}
 		p.Parse('{')
 		var inner []*Arg
-		for p.Char() != '}' {
-			arg, err := parseArg(p, vars)
+		for i := 0; p.Char() != '}'; i++ {
+			if i >= len(t1.Fields) {
+				return nil, fmt.Errorf("wrong struct arg count: %v, want %v", i+1, len(t1.Fields))
+			}
+			fld := t1.Fields[i]
+			if sys.IsPad(fld) {
+				inner = append(inner, constArg(0))
+			} else {
+				arg, err := parseArg(fld, p, vars)
+				if err != nil {
+					return nil, err
+				}
+				inner = append(inner, arg)
+				if p.Char() != '}' {
+					p.Parse(',')
+				}
+			}
+		}
+		p.Parse('}')
+		if sys.IsPad(t1.Fields[len(t1.Fields)-1]) {
+			inner = append(inner, constArg(0))
+		}
+		arg = groupArg(inner)
+	case '[':
+		t1, ok := typ.(sys.ArrayType)
+		if !ok {
+			return nil, fmt.Errorf("'[' arg is not an array: %#v", typ)
+		}
+		p.Parse('[')
+		var inner []*Arg
+		for i := 0; p.Char() != ']'; i++ {
+			arg, err := parseArg(t1.Type, p, vars)
 			if err != nil {
 				return nil, err
 			}
 			inner = append(inner, arg)
-			if p.Char() != '}' {
+			if p.Char() != ']' {
 				p.Parse(',')
 			}
 		}
-		p.Parse('}')
+		p.Parse(']')
 		arg = groupArg(inner)
 	case 'n':
 		p.Parse('n')

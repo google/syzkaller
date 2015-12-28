@@ -8,6 +8,8 @@ package prog
 
 import (
 	"fmt"
+
+	"github.com/google/syzkaller/sys"
 )
 
 const (
@@ -57,7 +59,7 @@ func (p *Prog) SerializeForExec() []byte {
 						}
 						return
 					}
-					if pad, _ := arg1.IsPad(); pad {
+					if sys.IsPad(arg1.Type) {
 						return
 					}
 					if arg1.Kind == ArgData && len(arg1.Data) == 0 {

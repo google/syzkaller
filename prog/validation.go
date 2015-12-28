@@ -18,12 +18,6 @@ func (p *Prog) validate() error {
 	ctx := &validCtx{make(map[*Arg]bool), make(map[*Arg]*Arg)}
 	for _, c := range p.Calls {
 		if err := c.validate(ctx); err != nil {
-
-			fmt.Printf("PROGRAM:\n")
-			for _, c := range p.Calls {
-				fmt.Printf("     %v: %+v %p\n", c.Meta.Name, c.Args, c.Ret)
-			}
-
 			return err
 		}
 	}
@@ -36,6 +30,9 @@ func (p *Prog) validate() error {
 }
 
 func (c *Call) validate(ctx *validCtx) error {
+	if c.Meta == nil {
+		return fmt.Errorf("call does not have meta information")
+	}
 	if len(c.Args) != len(c.Meta.Args) {
 		return fmt.Errorf("syscall %v: wrong number of arguments, want %v, got %v", c.Meta.Name, len(c.Meta.Args), len(c.Args))
 	}

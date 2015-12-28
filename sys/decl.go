@@ -23,6 +23,13 @@ type Type interface {
 	Align() uintptr
 }
 
+func IsPad(t Type) bool {
+	if ct, ok := t.(ConstType); ok && ct.IsPad {
+		return true
+	}
+	return false
+}
+
 type TypeCommon struct {
 	TypeName   string
 	IsOptional bool
@@ -313,6 +320,7 @@ type ConstType struct {
 	TypeCommon
 	TypeSize uintptr
 	Val      uintptr
+	IsPad    bool
 }
 
 func (t ConstType) Size() uintptr {
@@ -654,5 +662,6 @@ func makePad(sz uintptr) Type {
 		TypeCommon: TypeCommon{TypeName: "pad", IsOptional: false},
 		TypeSize:   sz,
 		Val:        0,
+		IsPad:      true,
 	}
 }

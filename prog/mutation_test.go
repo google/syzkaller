@@ -212,7 +212,7 @@ func TestMinimize(t *testing.T) {
 		// Remove a call and replace results.
 		{
 			"mmap(&(0x7f0000000000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"pipe2(&(0x7f0000000000)={[r0=]0x0, 0x0}, 0x0)\n" +
+				"pipe2(&(0x7f0000000000)={<r0=>0x0, 0x0}, 0x0)\n" +
 				"write(r0, &(0x7f0000000000)=\"1155\", 0x2)\n" +
 				"sched_yield()\n",
 			3,
@@ -259,7 +259,7 @@ func TestMinimize(t *testing.T) {
 	for ti, test := range tests {
 		p, err := Deserialize([]byte(test.orig))
 		if err != nil {
-			t.Fatalf("failed to deserialize original program: %v", err)
+			t.Fatalf("failed to deserialize original program #%v: %v", ti, err)
 		}
 		p1, ci := Minimize(p, test.callIndex, test.pred)
 		res := p1.Serialize()
