@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/fileutil"
@@ -68,6 +69,9 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pipe: %v", err)
 	}
+	for sz := 128 << 10; sz <= 2<<20; sz *= 2 {
+		syscall.Syscall(syscall.SYS_FCNTL, wpipe.Fd(), syscall.F_SETPIPE_SZ, uintptr(sz))
+	}
 
 	inst.lkvm = exec.Command("taskset", "-c", strconv.Itoa(inst.cfg.Index%runtime.NumCPU()),
 		inst.cfg.Bin, "sandbox",
@@ -108,7 +112,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 					}
 				}
 				inst.mu.Unlock()
-				time.Sleep(time.Second)
+				time.Sleep(time.Millisecond)
 			}
 			if err != nil {
 				rpipe.Close()

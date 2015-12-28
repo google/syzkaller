@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/fileutil"
@@ -75,6 +76,9 @@ func ctorImpl(cfg *vm.Config) (vm.Instance, error) {
 	inst.rpipe, inst.wpipe, err = os.Pipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pipe: %v", err)
+	}
+	for sz := 128 << 10; sz <= 2<<20; sz *= 2 {
+		syscall.Syscall(syscall.SYS_FCNTL, inst.wpipe.Fd(), syscall.F_SETPIPE_SZ, uintptr(sz))
 	}
 
 	if err := inst.Boot(); err != nil {
@@ -185,7 +189,7 @@ func (inst *instance) Boot() error {
 					}
 				}
 				inst.mu.Unlock()
-				time.Sleep(time.Second)
+				time.Sleep(time.Millisecond)
 			}
 			if err != nil {
 				rpipe.Close()
