@@ -224,7 +224,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config) bool {
 			output = append(output, out...)
 			if loc := vm.CrashRe.FindAllIndex(output[matchPos:], -1); len(loc) != 0 {
 				// Give it some time to finish writing the error message.
-				timer := time.NewTimer(5 * time.Second).C
+				timer := time.NewTimer(10 * time.Second).C
 			loop:
 				for {
 					select {
