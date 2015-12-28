@@ -193,7 +193,7 @@ func main() {
 	var lastPoll time.Time
 	var lastPrint time.Time
 	for range time.NewTicker(3 * time.Second).C {
-		if !*flagSaveProg && time.Since(lastPrint) > 10*time.Second {
+		if *flagSaveProg && time.Since(lastPrint) > 10*time.Second {
 			// Keep-alive for manager.
 			logf(0, "alive")
 			lastPrint = time.Now()
