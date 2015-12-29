@@ -31,6 +31,10 @@ type Arg struct {
 	Uses       map[*Arg]bool // this arg is used by those ArgResult args
 	OpDiv      uintptr       // divide result for ArgResult (executed before OpAdd)
 	OpAdd      uintptr       // add to result for ArgResult
+
+	// ArgUnion/UnionType
+	Option     *Arg
+	OptionType sys.Type
 }
 
 type ArgKind int
@@ -41,7 +45,8 @@ const (
 	ArgPointer  // even if these are always constant (for reproducibility), we use a separate type because they are represented in an abstract (base+page+offset) form
 	ArgPageSize // same as ArgPointer but base is not added, so it represents "lengths" in pages
 	ArgData
-	ArgGroup  // logical group of args (struct or array)
+	ArgGroup // logical group of args (struct or array)
+	ArgUnion
 	ArgReturn // fake value denoting syscall return value
 )
 
@@ -68,6 +73,8 @@ func (a *Arg) Size(typ sys.Type) uintptr {
 			size += a.Inner[i].Size(f)
 		}
 		return size
+	case sys.UnionType:
+		return a.Option.Size(a.OptionType)
 	case sys.ArrayType:
 		var size uintptr
 		for _, in := range a.Inner {
@@ -109,6 +116,10 @@ func pageSizeArg(npages uintptr, off int) *Arg {
 
 func groupArg(inner []*Arg) *Arg {
 	return &Arg{Kind: ArgGroup, Inner: inner}
+}
+
+func unionArg(opt *Arg, typ sys.Type) *Arg {
+	return &Arg{Kind: ArgUnion, Option: opt, OptionType: typ}
 }
 
 func returnArg() *Arg {

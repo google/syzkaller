@@ -38,6 +38,7 @@ getsockopt$SO_TIMESTAMPING(fd fd[sock], level const[SOL_SOCKET], optname const[S
 setsockopt$SO_ATTACH_FILTER(fd fd[sock], level const[SOL_SOCKET], optname const[SO_ATTACH_FILTER], optval ptr[in, sock_fprog], optlen len[optval])
 getsockopt$sock_buf(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 
+# IPPROTO_TCP
 getsockopt$tcp_int(fd fd[sock], level const[IPPROTO_TCP], optname flags[sockopt_opt_tcp_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$tcp_int(fd fd[sock], level const[IPPROTO_TCP], optname flags[sockopt_opt_tcp_int], optval ptr[in, int32], optlen len[optval])
 getsockopt$tcp_buf(fd fd[sock], level const[IPPROTO_TCP], optname const[TCP_INFO], optval buffer[out], optlen ptr[inout, len[optval, int32]])
@@ -46,13 +47,13 @@ getsockopt$udp_int(fd fd[sock], level const[IPPROTO_UDP], optname const[UDP_CORK
 setsockopt$udp_int(fd fd[sock], level const[IPPROTO_UDP], optname const[UDP_CORK], optval ptr[in, int32], optlen len[optval])
 getsockopt$ip_int(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$ip_int(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$ip_buf(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 getsockopt$ip_mreq(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreq], optlen ptr[inout, len[optval, int32]])
 setsockopt$ip_mreq(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreq], optlen len[optval])
 getsockopt$ip_mreqn(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreqn], optlen ptr[inout, len[optval, int32]])
 setsockopt$ip_mreqn(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreqn], optlen len[optval])
 getsockopt$ip_mreqsrc(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[out, ip_mreq_source], optlen ptr[inout, len[optval, int32]])
 setsockopt$ip_mreqsrc(fd fd[sock], level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[in, ip_mreq_source], optlen len[optval])
-getsockopt$ip_msfilter(fd fd[sock], level const[IPPROTO_IP], optname const[IP_MSFILTER], optval ptr[out, ip_msfilter], optlen ptr[inout, len[optval, int32]])
 setsockopt$ip_msfilter(fd fd[sock], level const[IPPROTO_IP], optname const[IP_MSFILTER], optval ptr[in, ip_msfilter], optlen len[optval])
 getsockopt$ip_mtu(fd fd[sock], level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
 setsockopt$ip_mtu(fd fd[sock], level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
@@ -62,6 +63,8 @@ getsockopt$ip_pktinfo(fd fd[sock], level const[IPPROTO_IP], optname const[IP_PKT
 setsockopt$ip_pktinfo(fd fd[sock], level const[IPPROTO_IP], optname const[IP_PKTINFO], optval ptr[in, in_pktinfo], optlen len[optval])
 getsockopt$ip_ipsec(fd fd[sock], level const[IPPROTO_IP], optname const[IP_IPSEC_POLICY], optval ptr[out, xfrm_filer], optlen ptr[inout, len[optval, int32]])
 setsockopt$ip_ipsec(fd fd[sock], level const[IPPROTO_IP], optname const[IP_IPSEC_POLICY], optval ptr[in, xfrm_filer], optlen len[optval])
+
+# IPPROTO_IPV6
 getsockopt$ipv6_int(fd fd[sock], level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$ipv6_int(fd fd[sock], level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_int], optval ptr[in, int32], optlen len[optval])
 getsockopt$ipv6_mreq(fd fd[sock], level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[out, ipv6_mreq], optlen ptr[inout, len[optval, int32]])
@@ -84,11 +87,11 @@ sockopt_opt_sock_buf = SO_BINDTODEVICE, SO_PEERCRED, SO_PEERNAME, SO_PEERSEC, SO
 sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFTWARE, SOF_TIMESTAMPING_RX_HARDWARE, SOF_TIMESTAMPING_RX_SOFTWARE, SOF_TIMESTAMPING_SOFTWARE, SOF_TIMESTAMPING_SYS_HARDWARE, SOF_TIMESTAMPING_RAW_HARDWARE, SOF_TIMESTAMPING_OPT_ID, SOF_TIMESTAMPING_TX_SCHED, SOF_TIMESTAMPING_TX_ACK, SOF_TIMESTAMPING_OPT_CMSG, SOF_TIMESTAMPING_OPT_TSONLY
 sockopt_opt_tcp_int = TCP_CORK, TCP_DEFER_ACCEPT, TCP_KEEPCNT, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_LINGER2, TCP_MAXSEG, TCP_NODELAY, TCP_QUICKACK, TCP_SYNCNT, TCP_WINDOW_CLAMP
 sockopt_opt_ip_int = IP_FREEBIND, IP_HDRINCL, IP_MTU, IP_MULTICAST_ALL, IP_MULTICAST_LOOP, IP_MULTICAST_TTL, IP_NODEFRAG, IP_RECVOPTS, IP_RECVORIGDSTADDR, IP_RECVTOS, IP_RECVTTL, IP_RETOPTS, IP_ROUTER_ALERT, IP_TOS, IP_TRANSPARENT, IP_TTL, IP_RECVERR, IP_PASSSEC, IP_MINTTL, IP_CHECKSUM, IP_BIND_ADDRESS_NO_PORT
+sockopt_opt_ip_buf = IP_MSFILTER
 sockopt_opt_ip_mreq = IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_MULTICAST_IF
 sockopt_opt_ip_mreqsrc = IP_ADD_SOURCE_MEMBERSHIP, IP_BLOCK_SOURCE, IP_DROP_SOURCE_MEMBERSHIP, IP_UNBLOCK_SOURCE
 sockopt_opt_ip_opts = IP_OPTIONS, IP_PKTOPTIONS
 ip_msfilter_mode = MCAST_INCLUDE, MCAST_EXCLUDE
-ip_msfilter_numsrc = 1
 ip_mtu_discover = IP_PMTUDISC_DONT, IP_PMTUDISC_WANT, IP_PMTUDISC_DO, IP_PMTUDISC_PROBE, IP_PMTUDISC_INTERFACE, IP_PMTUDISC_OMIT
 sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, IPV6_RECVPKTINFO, IPV6_RECVERR, IPV6_ROUTER_ALERT, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IPV6_RTHDR, IPV6_AUTHHDR, IPV6_DSTOPTS, IPV6_HOPOPTS, IPV6_FLOWINFO, IPV6_HOPLIMIT, IPV6_CHECKSUM, IPV6_2292PKTINFO, IPV6_2292HOPOPTS, IPV6_2292DSTOPTS, IPV6_2292RTHDR, IPV6_2292HOPLIMIT
 sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
@@ -161,9 +164,25 @@ unix_pair {
 	fd1	fd[unix]
 }
 
-sockaddr_un {
+sockaddr_un [
+	file	sockaddr_un_file
+	abs	sockaddr_un_abstract
+]
+
+sockaddr_un_file {
 	family	flags[unix_socket_family, int16]
+# TODO: this must be an embeded file name (currently filename implies indirection).
 	path	array[int8]
+}
+
+sockaddr_un_abstract {
+	family	flags[unix_socket_family, int16]
+	ind	const[0, int8]
+# To ensure isolation.
+# This does not work: prog tries to use output sockaddr_un to create pid's.
+# But since it is in a union, the call does not always creates the resource. 
+#	pid	pid
+	id	int32
 }
 
 send_msghdr_un {
@@ -171,7 +190,7 @@ send_msghdr_un {
 	addrlen	len[addr, int32]
 	vec	ptr[in, array[iovec_in]]
 	vlen	len[vec, intptr]
-	ctrl	ptr[in, cmsghdr_un]
+	ctrl	ptr[in, array[cmsghdr_un], opt]
 	ctrllen	len[ctrl, intptr]
 	f	flags[send_flags, int32]
 }
@@ -186,11 +205,10 @@ recv_msghdr_un {
 	f	int32
 }
 
-# TODO: this should be something along the lines of array[union[cmsghdr_rights, cmsghdr_cred]]
-cmsghdr_un {
+cmsghdr_un [
 	rights	cmsghdr_rights
 	cred	cmsghdr_rights
-}
+]
 
 cmsghdr_rights {
 	len	len[parent, intptr]
@@ -236,7 +254,7 @@ alg_send_msghdr {
 	addrlen	const[0, int32]
 	vec	ptr[in, array[iovec_in]]
 	vlen	len[vec, intptr]
-	ctrl	ptr[in, alg_cmsghdr, opt]
+	ctrl	ptr[in, array[alg_cmsghdr], opt]
 	ctrllen	len[ctrl, intptr]
 	f	flags[send_flags, int32]
 }
@@ -251,11 +269,11 @@ alg_recv_msghdr {
 	f	int32
 }
 
-alg_cmsghdr {
+alg_cmsghdr [
 	iv	alg_cmsghdr_iv
 	op	alg_cmsghdr_op
 	assoc	alg_cmsghdr_assoc
-}
+]
 
 alg_cmsghdr_iv {
 	len	len[parent, intptr]

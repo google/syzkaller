@@ -154,6 +154,8 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							replaceArg(p, arg.Inner[i], f, calls1)
 							calls1 = nil
 						}
+					case sys.UnionType:
+						//!!! implement me
 					case sys.LenType:
 						panic("bad arg returned by mutationArgs: LenType")
 					case sys.ConstType, sys.StrConstType:
@@ -362,13 +364,11 @@ func mutationArgs(c *Call) (args, bases []*Arg, parents []*[]*Arg) {
 	foreachArg(c, func(arg, base *Arg, parent *[]*Arg) {
 		switch arg.Type.(type) {
 		case sys.StructType:
-			switch arg.Type.Name() {
-			default:
+			if isSpecialStruct(arg.Type) == nil {
 				// For structs only individual fields are updated.
 				return
-			case "timespec", "timeval":
-				// These special structs are mutated as a whole.
 			}
+			// These special structs are mutated as a whole.
 		case sys.LenType:
 			// Size is updated when the size-of arg change.
 			return
@@ -380,7 +380,7 @@ func mutationArgs(c *Call) (args, bases []*Arg, parents []*[]*Arg) {
 			return
 		}
 		if base != nil {
-			if _, ok := base.Type.(sys.StructType); ok && (base.Type.Name() == "timespec" || base.Type.Name() == "timeval") {
+			if _, ok := base.Type.(sys.StructType); ok && isSpecialStruct(base.Type) != nil {
 				// These special structs are mutated as a whole.
 				return
 			}

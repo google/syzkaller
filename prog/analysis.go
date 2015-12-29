@@ -129,6 +129,9 @@ func foreachArgArray(args *[]*Arg, ret *Arg, f func(arg, base *Arg, parent *[]*A
 		if arg.Kind == ArgPointer && arg.Res != nil {
 			rec(arg.Res, arg, parent)
 		}
+		if arg.Kind == ArgUnion {
+			rec(arg.Option, base, parent)
+		}
 	}
 	for _, arg := range *args {
 		rec(arg, nil, args)
@@ -143,15 +146,14 @@ func foreachArg(c *Call, f func(arg, base *Arg, parent *[]*Arg)) {
 }
 
 func referencedArgs(args []*Arg, ret *Arg) (res []*Arg) {
-	f := func(arg, _ *Arg, _ *[]*Arg) {
+	foreachArgArray(&args, ret, func(arg, _ *Arg, _ *[]*Arg) {
 		for arg1 := range arg.Uses {
 			if arg1.Kind != ArgResult {
 				panic("use references not ArgResult")
 			}
 			res = append(res, arg1)
 		}
-	}
-	foreachArgArray(&args, ret, f)
+	})
 	return
 }
 
@@ -170,10 +172,6 @@ func assignTypeAndDir(c *Call) error {
 		case ArgPointer:
 			arg.Dir = DirIn
 			switch typ1 := typ.(type) {
-			case sys.FilenameType:
-				if err := rec(arg.Res, typ, dir); err != nil {
-					return err
-				}
 			case sys.PtrType:
 				if arg.Res != nil {
 					if err := rec(arg.Res, typ1.Type, ArgDir(typ1.Dir)); err != nil {
@@ -199,6 +197,11 @@ func assignTypeAndDir(c *Call) error {
 						return err
 					}
 				}
+			}
+		case ArgUnion:
+			arg.Dir = dir
+			if err := rec(arg.Option, arg.OptionType, dir); err != nil {
+				return err
 			}
 		default:
 			arg.Dir = dir

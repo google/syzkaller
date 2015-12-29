@@ -438,6 +438,25 @@ func (t StructType) Align() uintptr {
 	return align
 }
 
+type UnionType struct {
+	TypeCommon
+	Options []Type
+}
+
+func (t UnionType) Size() uintptr {
+	panic("union size is not statically known")
+}
+
+func (t UnionType) Align() uintptr {
+	var align uintptr
+	for _, opt := range t.Options {
+		if a1 := opt.Align(); align < a1 {
+			align = a1
+		}
+	}
+	return align
+}
+
 type Dir int
 
 const (
@@ -483,6 +502,12 @@ func ResourceCtors(kind ResourceKind, sk ResourceSubkind, precise bool) []*Call 
 					return true
 				}
 			}
+		case UnionType:
+			for _, opt := range typ1.Options {
+				if checkArg(opt, dir) {
+					return true
+				}
+			}
 		case PtrType:
 			if checkArg(typ1.Type, typ1.Dir) {
 				return true
@@ -524,6 +549,10 @@ func (c *Call) InputResources() []ResourceType {
 		case StructType:
 			for _, fld := range typ1.Fields {
 				checkArg(fld, dir)
+			}
+		case UnionType:
+			for _, opt := range typ1.Options {
+				checkArg(opt, dir)
 			}
 		}
 	}
@@ -597,6 +626,15 @@ func init() {
 				t1.Fields[i] = rec(f)
 			}
 			t = addAlignment(t1)
+		case UnionType:
+			opts := make(map[string]bool)
+			for i, opt := range t1.Options {
+				if opts[opt.Name()] {
+					panic("duplicate option in union")
+				}
+				opts[opt.Name()] = true
+				t1.Options[i] = rec(opt)
+			}
 		}
 		return t
 	}

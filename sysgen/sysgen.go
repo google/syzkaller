@@ -65,8 +65,9 @@ type Syscall struct {
 }
 
 type Struct struct {
-	Name string
-	Flds [][]string
+	Name    string
+	Flds    [][]string
+	IsUnion bool
 }
 
 func generate(syscalls []Syscall, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string, flagVals map[string]string, out io.Writer) {
@@ -311,7 +312,13 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 			failf("unknown unnamed type '%v'", typ)
 		}
 		if str, ok := structs[typ]; ok {
-			fmt.Fprintf(out, "StructType{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v}, Fields: []Type{", str.Name, false)
+			typ := "StructType"
+			fields := "Fields"
+			if str.IsUnion {
+				typ = "UnionType"
+				fields = "Options"
+			}
+			fmt.Fprintf(out, "%v{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v}, %v: []Type{", typ, str.Name, false, fields)
 			for i, a := range str.Flds {
 				if i != 0 {
 					fmt.Fprintf(out, ", ")
@@ -538,8 +545,8 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 		}
 		if str != nil {
 			// Parsing a struct.
-			if p.Char() == '}' {
-				p.Parse('}')
+			if p.Char() == '}' || p.Char() == ']' {
+				p.Parse(p.Char())
 				if _, ok := structs[str.Name]; ok {
 					failf("%v struct is defined multiple times", str.Name)
 				}
@@ -614,6 +621,9 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 				case '{':
 					p.Parse('{')
 					str = &Struct{Name: name}
+				case '[':
+					p.Parse('[')
+					str = &Struct{Name: name, IsUnion: true}
 				default:
 					failf("bad line (%v)", p.Str())
 				}

@@ -109,6 +109,9 @@ func (a *Arg) serialize(buf io.Writer, vars map[*Arg]int, varSeq *int) {
 			a1.serialize(buf, vars, varSeq)
 		}
 		buf.Write([]byte{delims[1]})
+	case ArgUnion:
+		fmt.Fprintf(buf, "@%v=", a.OptionType.Name())
+		a.Option.serialize(buf, vars, varSeq)
 	default:
 		panic("unknown arg kind")
 	}
@@ -306,6 +309,29 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		}
 		p.Parse(']')
 		arg = groupArg(inner)
+	case '@':
+		t1, ok := typ.(sys.UnionType)
+		if !ok {
+			return nil, fmt.Errorf("'@' arg is not a union: %#v", typ)
+		}
+		p.Parse('@')
+		name := p.Ident()
+		p.Parse('=')
+		var optType sys.Type
+		for _, t2 := range t1.Options {
+			if name == t2.Name() {
+				optType = t2
+				break
+			}
+		}
+		if optType == nil {
+			return nil, fmt.Errorf("union arg %v has unknown option: %v", typ.Name(), name)
+		}
+		opt, err := parseArg(optType, p, vars)
+		if err != nil {
+			return nil, err
+		}
+		arg = unionArg(opt, optType)
 	case 'n':
 		p.Parse('n')
 		p.Parse('i')

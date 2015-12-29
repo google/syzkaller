@@ -31,6 +31,8 @@ func (arg *Arg) clone(c *Call, newargs map[*Arg]*Arg) *Arg {
 		if arg.Res != nil {
 			arg1.Res = arg.Res.clone(c, newargs)
 		}
+	case ArgUnion:
+		arg1.Option = arg.Option.clone(c, newargs)
 	case ArgResult:
 		r := newargs[arg.Res]
 		arg1.Res = r

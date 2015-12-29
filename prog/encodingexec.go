@@ -59,6 +59,10 @@ func (p *Prog) SerializeForExec() []byte {
 						}
 						return
 					}
+					if arg1.Kind == ArgUnion {
+						rec(arg1.Option)
+						return
+					}
 					if sys.IsPad(arg1.Type) {
 						return
 					}
@@ -171,11 +175,6 @@ func (w *execContext) writeArg(arg *Arg) {
 				v |= uintptr(arg.Data[i+j]) << uint(j*8)
 			}
 			w.write(v)
-		}
-	case ArgGroup:
-		// Squash groups.
-		for _, arg1 := range arg.Inner {
-			w.writeArg(arg1)
 		}
 	default:
 		panic("unknown arg type")

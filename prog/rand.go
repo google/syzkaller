@@ -732,6 +732,10 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		}
 		args, calls := r.generateArgs(s, a.Fields, dir)
 		return groupArg(args), nil, calls
+	case sys.UnionType:
+		optType := a.Options[r.Intn(len(a.Options))]
+		opt, size, calls := r.generateArg(s, optType, dir, sizes)
+		return unionArg(opt, optType), size, calls
 	case sys.PtrType:
 		inner, size, calls := r.generateArg(s, a.Type, ArgDir(a.Dir), sizes)
 		if ArgDir(a.Dir) == DirOut && inner == nil {

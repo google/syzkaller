@@ -80,6 +80,12 @@ func calcStaticPriorities() [][]float32 {
 				if _, ok := a.Type.(sys.StructType); ok {
 					noteUsage(1.0, "ptrto-%v", a.Type.Name())
 				}
+				if _, ok := a.Type.(sys.UnionType); ok {
+					noteUsage(1.0, "ptrto-%v", a.Type.Name())
+				}
+				if arr, ok := a.Type.(sys.ArrayType); ok {
+					noteUsage(1.0, "ptrto-%v", arr.Type.Name())
+				}
 			case sys.BufferType:
 				switch a.Kind {
 				case sys.BufferBlob, sys.BufferFilesystem, sys.BufferAlgType, sys.BufferAlgName:
@@ -206,6 +212,10 @@ func foreachArgType(meta *sys.Call, f func(sys.Type, ArgDir)) {
 		case sys.StructType:
 			for _, f := range a.Fields {
 				rec(f, d)
+			}
+		case sys.UnionType:
+			for _, opt := range a.Options {
+				rec(opt, d)
 			}
 		case sys.ResourceType, sys.FileoffType, sys.BufferType,
 			sys.VmaType, sys.LenType, sys.FlagsType, sys.ConstType,

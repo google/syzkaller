@@ -7,10 +7,10 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"testing"
-	"path/filepath"
 )
 
 func TestProcessTempDir(t *testing.T) {

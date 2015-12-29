@@ -707,25 +707,9 @@ sock_filter {
 }
 
 file_handle {
-	bytes	int32
+	bytes	len[parent, int32]
 	type	int32
-# TODO: again embed array of variable length (bytes is the length)
-	handl0	int64
-	handl1	int64
-	handl2	int64
-	handl3	int64
-	handl4	int64
-	handl5	int64
-	handl6	int64
-	handl7	int64
-	handl8	int64
-	handl9	int64
-	handl10	int64
-	handl11	int64
-	handl12	int64
-	handl13	int64
-	handl14	int64
-	handl15	int64
+	handle	array[int8]
 }
 
 mq_attr {
@@ -902,9 +886,8 @@ ip_msfilter {
 	multi	in_addr
 	iface	in_addr
 	fmode	flags[ip_msfilter_mode, int32]
-	numsrc	flags[ip_msfilter_numsrc, int32]
-# TODO: this is variable-length array and numsrc it its length
-	slist	in_addr
+	numsrc	len[slist, int32]
+	slist	array[in_addr]
 }
 
 in_pktinfo {
@@ -1011,11 +994,8 @@ fiemap {
 	len	int64
 	flags	flags[fiemap_flags, int32]
 	mapped	int32
-# TODO: count is number of elements in extents array below
-	count	int32
-# TODO: this is variable-length array
-	extent0	fiemap_extent
-	extent1	fiemap_extent
+	count	len[extent, int32]
+	extent	array[fiemap_extent]
 }
 
 fiemap_extent {

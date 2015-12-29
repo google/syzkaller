@@ -123,7 +123,7 @@ func (c *Call) validate(ctx *validCtx) error {
 			switch typ1 := typ.(type) {
 			case sys.StructType:
 				if len(arg.Inner) != len(typ1.Fields) {
-					return fmt.Errorf("syscall %v: struct arg '%v' has wrong number of fields, want %v, got %v", c.Meta.Name, typ.Name(), len(typ1.Fields), len(arg.Inner))
+					return fmt.Errorf("syscall %v: struct arg '%v' has wrong number of fields: want %v, got %v", c.Meta.Name, typ.Name(), len(typ1.Fields), len(arg.Inner))
 				}
 				for i, arg1 := range arg.Inner {
 					if err := checkArg(arg1, typ1.Fields[i]); err != nil {
@@ -138,6 +138,24 @@ func (c *Call) validate(ctx *validCtx) error {
 				}
 			default:
 				return fmt.Errorf("syscall %v: group arg '%v' has bad underlying type %+v", c.Meta.Name, typ.Name(), typ)
+			}
+		case ArgUnion:
+			typ1, ok := typ.(sys.UnionType)
+			if !ok {
+				return fmt.Errorf("syscall %v: union arg '%v' has bad type", c.Meta.Name, typ.Name())
+			}
+			found := false
+			for _, typ2 := range typ1.Options {
+				if arg.OptionType.Name() == typ2.Name() {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("syscall %v: union arg '%v' has bad option", c.Meta.Name, typ.Name())
+			}
+			if err := checkArg(arg.Option, arg.OptionType); err != nil {
+				return err
 			}
 		case ArgReturn:
 		default:
