@@ -66,7 +66,6 @@ func main() {
 	if err != nil {
 		fatalf("%v", err)
 	}
-	logf(1, "enabled syscalls: %v", syscalls)
 	if *flagDebug {
 		cfg.Debug = true
 		cfg.Count = 1
@@ -85,6 +84,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 			fmt.Fprintf(buf, ",%v", c)
 		}
 		enabledSyscalls = buf.String()[1:]
+		logf(1, "enabled syscalls: %v", enabledSyscalls)
 	}
 
 	mgr := &Manager{
