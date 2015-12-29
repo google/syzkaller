@@ -59,14 +59,25 @@ func WriteTempFile(data []byte) (string, error) {
 // ProcessTempDir creates a new temp dir in where and returns its path and an unique index.
 // It also cleans up old, unused temp dirs after dead processes.
 func ProcessTempDir(where string) (string, int, error) {
-	for i := 0; i < 1e4; i++ {
+	lk := filepath.Join(where, "instance-lock")
+	lkf, err := syscall.Open(lk, syscall.O_RDWR|syscall.O_CREAT, 0600)
+	if err != nil {
+		return "", 0, err
+	}
+	defer syscall.Close(lkf)
+	if err := syscall.Flock(lkf, syscall.LOCK_EX); err != nil {
+		return "", 0, err
+	}
+	defer syscall.Flock(lkf, syscall.LOCK_UN)
+
+	for i := 0; i < 1e3; i++ {
 		path := filepath.Join(where, fmt.Sprintf("instance-%v", i))
 		pidfile := filepath.Join(path, ".pid")
 		err := os.Mkdir(path, 0700)
 		if os.IsExist(err) {
 			// Try to clean up.
 			data, err := ioutil.ReadFile(pidfile)
-			if err == nil {
+			if err == nil && len(data) > 0 {
 				pid, err := strconv.Atoi(string(data))
 				if err == nil && pid > 1 {
 					if err := syscall.Kill(pid, 0); err == syscall.ESRCH {
