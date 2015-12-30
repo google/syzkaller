@@ -68,6 +68,8 @@ type Struct struct {
 	Name    string
 	Flds    [][]string
 	IsUnion bool
+	Packed  bool
+	Align   int
 }
 
 func generate(syscalls []Syscall, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string, flagVals map[string]string, out io.Writer) {
@@ -323,7 +325,15 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 				typ = "UnionType"
 				fields = "Options"
 			}
-			fmt.Fprintf(out, "%v{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v}, %v: []Type{", typ, str.Name, false, fields)
+			packed := ""
+			if str.Packed {
+				packed = ", packed: true"
+			}
+			align := ""
+			if str.Align != 0 {
+				align = fmt.Sprintf(", align: %v", str.Align)
+			}
+			fmt.Fprintf(out, "%v{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v} %v %v, %v: []Type{", typ, str.Name, false, packed, align, fields)
 			for i, a := range str.Flds {
 				if i != 0 {
 					fmt.Fprintf(out, ", ")
@@ -554,8 +564,24 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 			// Parsing a struct.
 			if p.Char() == '}' || p.Char() == ']' {
 				p.Parse(p.Char())
-				if _, ok := structs[str.Name]; ok {
-					failf("%v struct is defined multiple times", str.Name)
+				for _, attr := range parseType1(p, unnamed, flags, "")[1:] {
+					if str.IsUnion {
+						failf("union %v has attribute: %v", str.Name, attr)
+					}
+					switch attr {
+					case "packed":
+						str.Packed = true
+					case "align_1":
+						str.Align = 1
+					case "align_2":
+						str.Align = 2
+					case "align_4":
+						str.Align = 4
+					case "align_8":
+						str.Align = 8
+					default:
+						failf("unknown struct %v attribute: %v", str.Name, attr)
+					}
 				}
 				structs[str.Name] = *str
 				str = nil
@@ -593,7 +619,7 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 				}
 				defines[key] = fmt.Sprintf("(%s)", val)
 			} else {
-				switch p.Char() {
+				switch ch := p.Char(); ch {
 				case '(':
 					// syscall
 					p.Parse('(')
@@ -625,12 +651,12 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 						vals = append(vals, p.Ident())
 					}
 					flags[name] = vals
-				case '{':
-					p.Parse('{')
-					str = &Struct{Name: name}
-				case '[':
-					p.Parse('[')
-					str = &Struct{Name: name, IsUnion: true}
+				case '{', '[':
+					p.Parse(ch)
+					if _, ok := structs[name]; ok {
+						failf("%v struct is defined multiple times", name)
+					}
+					str = &Struct{Name: name, IsUnion: ch == '['}
 				default:
 					failf("bad line (%v)", p.Str())
 				}

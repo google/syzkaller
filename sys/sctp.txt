@@ -182,7 +182,6 @@ sctp_event_subscribe {
 	ev9	int8
 }
 
-# TODO: this struct is __attribute__((packed, aligned(4)))
 sctp_paddrparams {
 	assoc	int32
 	addr	sockaddr_sctp_padded
@@ -192,7 +191,7 @@ sctp_paddrparams {
 	sackdel	int32
 	spp	int32
 	flags	flags[sctp_spp_flags, int32]
-}
+} [packed, align_4]
 
 sctp_authkey {
 	assoc	int32
@@ -201,11 +200,10 @@ sctp_authkey {
 	key	array[int8]
 }
 
-# TODO: __attribute__((packed, aligned(4)))
 sctp_prim {
 	assoc	int32
 	addr	sockaddr_sctp_padded
-}
+} [packed, align_4]
 
 sctp_rtoinfo {
 	assoc	int32
