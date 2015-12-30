@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/fileutil"
@@ -26,6 +27,16 @@ type instance struct {
 }
 
 func ctor(cfg *vm.Config) (vm.Instance, error) {
+	// Disable annoying segfault dmesg messages, fuzzer is going to crash a lot.
+	etrace, err := os.Open("/proc/sys/debug/exception-trace")
+	if err == nil {
+		etrace.Write([]byte{'0'})
+		etrace.Close()
+	}
+
+	// Don't write executor core files.
+	syscall.Setrlimit(syscall.RLIMIT_CORE, &syscall.Rlimit{0, 0})
+
 	inst := &instance{
 		cfg:    cfg,
 		closed: make(chan bool),
