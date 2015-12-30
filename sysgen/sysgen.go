@@ -278,6 +278,11 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
 		fmt.Fprintf(out, "IntType{%v, TypeSize: 4, Kind: IntInaddr}", common())
+	case "in_port":
+		if want := 0; len(a) != want {
+			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		}
+		fmt.Fprintf(out, "IntType{%v, TypeSize: 2, Kind: IntInport}", common())
 	case "filename":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -404,6 +409,8 @@ func fmtFdKind(s string) string {
 		return "FdBtBnep"
 	case "unix":
 		return "FdUnix"
+	case "sctp":
+		return "FdSctp"
 	default:
 		failf("bad fd type %v", s)
 		return ""

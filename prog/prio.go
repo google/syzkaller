@@ -107,6 +107,8 @@ func calcStaticPriorities() [][]float32 {
 					noteUsage(1.0, "signalno")
 				case sys.IntInaddr:
 					noteUsage(1.0, "inaddr")
+				case sys.IntInport:
+					noteUsage(1.0, "inport")
 				default:
 					panic("unknown int kind")
 				}

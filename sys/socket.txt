@@ -20,6 +20,8 @@ getsockname(fd fd[sock], addr ptr[out, sockaddr], addrlen ptr[inout, len[addr, i
 getpeername(fd fd[sock], peer ptr[out, sockaddr], peerlen ptr[inout, len[peer, int32]])
 getsockopt(fd fd[sock], level int32, optname int32, optval ptr[out, ioctl_arg], optlen ptr[inout, len[optval, int32]])
 setsockopt(fd fd[sock], level int32, optname int32, optval ptr[in, ioctl_arg], optlen len[optval])
+ioctl$SIOCOUTQ(fd fd[sock], cmd const[SIOCOUTQ], arg ptr[out, int32])
+ioctl$SIOCINQ(fd fd[sock], cmd const[SIOCINQ], arg ptr[out, int32])
 
 # SOL_SOCKET
 setsockopt$sock_void(fd fd[sock], level const[SOL_SOCKET], optname flags[sockopt_opt_sock_void], optval const[0], optlen const[0])
@@ -96,16 +98,28 @@ ip_mtu_discover = IP_PMTUDISC_DONT, IP_PMTUDISC_WANT, IP_PMTUDISC_DO, IP_PMTUDIS
 sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, IPV6_RECVPKTINFO, IPV6_RECVERR, IPV6_ROUTER_ALERT, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IPV6_RTHDR, IPV6_AUTHHDR, IPV6_DSTOPTS, IPV6_HOPOPTS, IPV6_FLOWINFO, IPV6_HOPLIMIT, IPV6_CHECKSUM, IPV6_2292PKTINFO, IPV6_2292HOPOPTS, IPV6_2292DSTOPTS, IPV6_2292RTHDR, IPV6_2292HOPLIMIT
 sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
 
+sockaddr_in {
+	family	const[AF_INET, int16]
+	port	in_port
+	addr	in_addr
+}
+
+sockaddr_in6 {
+	family	const[AF_INET6, int16]
+	port	in_port
+	flow	int32
+	addr	in6_addr
+	scope	int32
+}
+
 send_msghdr {
 	addr	ptr[in, sockaddr]
 	addrlen	len[addr, int32]
 	vec	ptr[in, array[iovec_in]]
 	vlen	len[vec, intptr]
-	ctrl	ptr[in, cmsghdr]
+	ctrl	ptr[in, array[cmsghdr]]
 	ctrllen	len[ctrl, intptr]
 	f	flags[send_flags, int32]
-# TODO: this field should be deleted
-	len	int32
 }
 
 recv_msghdr {
@@ -116,15 +130,13 @@ recv_msghdr {
 	ctrl	buffer[out]
 	ctrllen	len[ctrl, intptr]
 	f	int32
-# TODO: this field should be deleted
-	len	int32
 }
 
 cmsghdr {
-	len	intptr
+	len	len[parent, intptr]
 	level	int32
 	type	int32
-# TODO: this is followed by an embed array of aux data, and len is length of the whole message
+	data	array[int8]
 }
 
 define SOF_TIMESTAMPING_OPT_ID		(1<<7)
@@ -144,15 +156,11 @@ bind$unix(fd fd[unix], addr ptr[in, sockaddr_un], addrlen len[addr])
 connect$unix(fd fd[unix], addr ptr[in, sockaddr_un], addrlen len[addr])
 accept$unix(fd fd[unix], peer ptr[out, sockaddr_un, opt], peerlen ptr[inout, len[peer, int32]]) fd[unix]
 accept4$unix(fd fd[unix], peer ptr[out, sockaddr_un, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) fd[unix]
-ioctl$SIOCOUTQ(fd fd[unix], cmd const[SIOCOUTQ], arg ptr[out, int32])
-ioctl$SIOCINQ(fd fd[unix], cmd const[SIOCINQ], arg ptr[out, int32])
 
 sendto$unix(fd fd[unix], buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_un, opt], addrlen len[addr])
-sendmsg$unix(fd fd[unix], msg ptr[in, send_msghdr], f flags[send_flags])
-sendmmsg$unix(fd fd[unix], mmsg ptr[in, array[send_msghdr]], vlen len[mmsg], f flags[send_flags])
+sendmsg$unix(fd fd[unix], msg ptr[in, msghdr_un], f flags[send_flags])
+sendmmsg$unix(fd fd[unix], mmsg ptr[in, array[msghdr_un]], vlen len[mmsg], f flags[send_flags])
 recvfrom$unix(fd fd[unix], buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_un, opt], addrlen len[addr])
-recvmsg$unix(fd fd[unix], msg ptr[in, recv_msghdr], f flags[recv_flags])
-recvmmsg$unix(fd fd[unix], mmsg ptr[in, array[recv_msghdr]], vlen len[mmsg], f flags[recv_flags])
 getsockname$unix(fd fd[unix], addr ptr[out, sockaddr_un], addrlen ptr[inout, len[addr, int32]])
 getpeername$unix(fd fd[unix], peer ptr[out, sockaddr_un], peerlen ptr[inout, len[peer, int32]])
 
@@ -185,7 +193,7 @@ sockaddr_un_abstract {
 	id	int32
 }
 
-send_msghdr_un {
+msghdr_un {
 	addr	ptr[in, sockaddr_un]
 	addrlen	len[addr, int32]
 	vec	ptr[in, array[iovec_in]]
@@ -195,29 +203,20 @@ send_msghdr_un {
 	f	flags[send_flags, int32]
 }
 
-recv_msghdr_un {
-	addr	ptr[out, sockaddr_un]
-	addrlen	len[addr, int32]
-	vec	ptr[in, array[iovec_out]]
-	vlen	len[vec, intptr]
-	ctrl	buffer[out]
-	ctrllen	len[ctrl, intptr]
-	f	int32
-}
-
 cmsghdr_un [
-	rights	cmsghdr_rights
-	cred	cmsghdr_rights
+	rights	cmsghdr_un_rights
+	cred	cmsghdr_un_cred
 ]
 
-cmsghdr_rights {
+cmsghdr_un_rights {
 	len	len[parent, intptr]
 	level	const[SOL_SOCKET, int32]
 	type	const[SCM_RIGHTS, int32]
 	fds	array[fd]
+# TODO: this struct must be padded to intptr (see CMSG_ALIGN)
 }
 
-cmsghdr_cred {
+cmsghdr_un_cred {
 	len	len[parent, intptr]
 	level	const[SOL_SOCKET, int32]
 	type	const[SCM_CREDENTIALS, int32]
@@ -225,6 +224,9 @@ cmsghdr_cred {
 	uid	uid
 	gid	gid
 }
+
+define SCM_RIGHTS		1
+define SCM_CREDENTIALS		2
 
 
 
@@ -236,10 +238,8 @@ bind$alg(fd fd[alg], addr ptr[in, sockaddr_alg], addrlen len[addr])
 setsockopt$ALG_SET_KEY(fd fd[alg], level const[SOL_ALG], opt const[ALG_SET_KEY], key buffer[in], keylen len[key])
 setsockopt$ALG_SET_AEAD_AUTHSIZE(fd fd[alg], level const[SOL_ALG], opt const[ALG_SET_AEAD_AUTHSIZE], val const[0], size intptr)
 accept$alg(fd fd[alg], peer ptr[out, sockaddr_alg, opt], peerlen ptr[inout, len[peer, int32]]) fd[algconn]
-sendmsg$alg(fd fd[algconn], msg ptr[in, alg_send_msghdr], f flags[send_flags])
-sendmmsg$alg(fd fd[algconn], mmsg ptr[in, array[alg_send_msghdr]], vlen len[mmsg], f flags[send_flags])
-recvmsg$alg(fd fd[algconn], msg ptr[in, alg_recv_msghdr], f flags[recv_flags])
-recvmmsg$alg(fd fd[algconn], mmsg ptr[in, array[alg_recv_msghdr]], vlen len[mmsg], f flags[recv_flags])
+sendmsg$alg(fd fd[algconn], msg ptr[in, msghdr_alg], f flags[send_flags])
+sendmmsg$alg(fd fd[algconn], mmsg ptr[in, array[msghdr_alg]], vlen len[mmsg], f flags[send_flags])
 
 sockaddr_alg {
 	family	const[AF_ALG, int16]
@@ -249,48 +249,39 @@ sockaddr_alg {
 	name	salg_name
 }
 
-alg_send_msghdr {
+msghdr_alg {
 	addr	const[0, intptr]
 	addrlen	const[0, int32]
 	vec	ptr[in, array[iovec_in]]
 	vlen	len[vec, intptr]
-	ctrl	ptr[in, array[alg_cmsghdr], opt]
+	ctrl	ptr[in, array[cmsghdr_alg], opt]
 	ctrllen	len[ctrl, intptr]
 	f	flags[send_flags, int32]
 }
 
-alg_recv_msghdr {
-	addr	const[0, intptr]
-	addrlen	const[0, int32]
-	vec	ptr[in, array[iovec_out]]
-	vlen	len[vec, intptr]
-	ctrl	buffer[out]
-	ctrllen	len[ctrl, intptr]
-	f	int32
-}
-
-alg_cmsghdr [
-	iv	alg_cmsghdr_iv
-	op	alg_cmsghdr_op
-	assoc	alg_cmsghdr_assoc
+cmsghdr_alg [
+	iv	cmsghdr_alg_iv
+	op	cmsghdr_alg_op
+	assoc	cmsghdr_alg_assoc
 ]
 
-alg_cmsghdr_iv {
+cmsghdr_alg_iv {
 	len	len[parent, intptr]
 	level	const[SOL_ALG, int32]
 	type	const[ALG_SET_IV, int32]
 	ivlen	len[iv, int32]
 	iv	array[int8]
+# TODO: this struct must be padded to intptr (see CMSG_ALIGN)
 }
 
-alg_cmsghdr_op {
+cmsghdr_alg_op {
 	len	len[parent, intptr]
 	level	const[SOL_ALG, int32]
 	type	const[ALG_SET_OP, int32]
 	op	int32
 }
 
-alg_cmsghdr_assoc {
+cmsghdr_alg_assoc {
 	len	len[parent, intptr]
 	level	const[SOL_ALG, int32]
 	type	const[ALG_SET_AEAD_ASSOCLEN, int32]

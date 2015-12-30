@@ -60,6 +60,7 @@ include <sys/personality.h>
 include <sys/wait.h>
 include <sys/user.h>
 include <sys/socket.h>
+include <sys/un.h>
 include <sys/ioctl.h>
 
 include <linux/futex.h>
@@ -77,6 +78,7 @@ include <linux/hw_breakpoint.h>
 include <linux/if_alg.h>
 include <linux/nfc.h>
 include <linux/sockios.h>
+include <linux/socket.h>
 include <linux/net_tstamp.h>
 
 include <asm/prctl.h>
@@ -931,9 +933,9 @@ xfrm_user_tmpl {
 xfrm_selector {
 	daddr	in_addr_any
 	saddr	in_addr_any
-	dport	int16
+	dport	in_port
 	dmask	int16
-	sport	int16
+	sport	in_port
 	smask	int16
 	fam	int16
 	len_d	int8

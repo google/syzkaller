@@ -144,8 +144,18 @@ var sockFamilies = []uint16{AF_UNIX, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X
 
 func (r *randGen) inaddr(s *state) uint32 {
 	// TODO: extract addresses of network interfaces.
-	// Note: assuming little-endian host
-	return uint32(127<<0 + 0<<8 + 0<<16 + 1<<24)
+	var addr uint32
+	r.choose(
+		// Note: assuming little-endian host
+		5, func() { addr = 127<<0 + 0<<8 + 0<<16 + 1<<24 },
+		3, func() { addr = 0 }, // INADDR_ANY
+		1, func() { addr = ^uint32(0) }, // INADDR_NONE/INADDR_BROADCAST
+	)
+	return addr
+}
+
+func (r *randGen) inport(s *state) uint16 {
+	return uint16(r.Intn(20))<<8 + 0xab
 }
 
 func (r *randGen) in6addr(s *state) (arg *Arg, calls []*Call) {
@@ -173,17 +183,16 @@ func (r *randGen) inaddrany(s *state) (arg *Arg, calls []*Call) {
 
 func (r *randGen) sockaddr(s *state) []byte {
 	fa := sockFamilies[r.Intn(len(sockFamilies))]
-	port := 13269 + uint16(r.Intn(20))
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, fa) // this is actually host byte order
 	switch fa {
 	case AF_UNIX:
 		buf.WriteString(r.filename(s))
 	case AF_INET:
-		binary.Write(buf, binary.BigEndian, port)
+		binary.Write(buf, binary.LittleEndian, r.inport(s))
 		binary.Write(buf, binary.LittleEndian, r.inaddr(s))
 	case AF_INET6:
-		binary.Write(buf, binary.BigEndian, port)
+		binary.Write(buf, binary.LittleEndian, r.inport(s))
 		binary.Write(buf, binary.BigEndian, uint32(r.Int63())) // flow info
 		binary.Write(buf, binary.BigEndian, uint64(0))         // addr: loopback
 		binary.Write(buf, binary.BigEndian, uint64(1))         // addr: loopback
@@ -710,6 +719,8 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 			v %= 130
 		case sys.IntInaddr:
 			v = uintptr(r.inaddr(s))
+		case sys.IntInport:
+			v = uintptr(r.inport(s))
 		}
 		return constArg(v), nil, nil
 	case sys.FilenameType:
