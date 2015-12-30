@@ -130,6 +130,21 @@ func calcStaticPriorities() [][]float32 {
 			}
 		}
 	}
+
+	// Sockets essentially form another level of classification. And we want
+	// more priority for generic socket calls (e.g. recvmsg) against particular
+	// protocol socket calls (e.g. AF_ALG bind). But it is not expressable with
+	// the above uses thing, because we don't want more priority for different
+	// protocols (e.g. AF_ALF vs AF_BLUETOOTH).
+	for c0, w0 := range uses[fmt.Sprintf("res%v-%v", sys.ResFD, sys.FdSock)] {
+		for _, sk := range sys.SocketSubkinds() {
+			for c1, w1 := range uses[fmt.Sprintf("res%v-%v", sys.ResFD, sk)] {
+				prios[c0][c1] += w0 * w1
+				prios[c1][c0] += w0 * w1
+			}
+		}
+	}
+
 	// Self-priority (call wrt itself) is assigned to the maximum priority
 	// this call has wrt other calls. This way the priority is high, but not too high.
 	for c0, pp := range prios {

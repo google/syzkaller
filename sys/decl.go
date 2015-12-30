@@ -137,6 +137,11 @@ func ResourceSubkinds(kind ResourceKind) []ResourceSubkind {
 	}
 }
 
+func SocketSubkinds() []ResourceSubkind {
+	return []ResourceSubkind{FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp, FdBtHci, FdBtSco,
+		FdBtL2cap, FdBtRfcomm, FdBtHidp, FdBtCmtp, FdBtBnep, FdUnix, FdSctp}
+}
+
 const (
 	InvalidFD = ^uintptr(0)
 	BogusFD   = uintptr(100000 - 1)
