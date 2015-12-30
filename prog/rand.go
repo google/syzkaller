@@ -727,7 +727,10 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		filename := r.filename(s)
 		return dataArg([]byte(filename)), nil, nil
 	case sys.ArrayType:
-		count := r.rand(6)
+		count := a.Len
+		if count == 0 {
+			count = r.rand(6)
+		}
 		var inner []*Arg
 		var calls []*Call
 		for i := uintptr(0); i < count; i++ {

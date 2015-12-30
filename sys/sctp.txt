@@ -170,16 +170,7 @@ sctp_assoc_value {
 
 
 sctp_event_subscribe {
-	ev0	int8
-	ev1	int8
-	ev2	int8
-	ev3	int8
-	ev4	int8
-	ev5	int8
-	ev6	int8
-	ev7	int8
-	ev8	int8
-	ev9	int8
+	ev	array[int8, 10]
 }
 
 sctp_paddrparams {

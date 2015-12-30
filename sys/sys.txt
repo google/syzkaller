@@ -187,7 +187,7 @@ get_robust_list(pid pid, head ptr[in, ptr[out, robust_list]], len ptr[inout, len
 restart_syscall()
 
 # Almighty!
-ioctl(fd fd, cmd intptr, arg ptr[inout, ioctl_arg])
+ioctl(fd fd, cmd intptr, arg buffer[in])
 
 ioctl$void(fd fd, cmd flags[ioctl_void])
 ioctl$int_in(fd fd, cmd flags[ioctl_int_in], v ptr[in, int64])
@@ -245,7 +245,7 @@ prctl$setptracer(option const[PR_SET_PTRACER], pid pid)
 prctl$seccomp(option const[PR_SET_SECCOMP], mode flags[prctl_seccomp_mode], prog ptr[in, sock_fprog])
 prctl$setmm(option const[PR_SET_MM], option flags[prctl_mm_option], val vma)
 
-arch_prctl(code flags[arch_prctl_code], addr ptr[in, ioctl_arg])
+arch_prctl(code flags[arch_prctl_code], addr buffer[in])
 seccomp(op flags[seccomp_op], flags flags[seccomp_flags], prog ptr[in, sock_fprog])
 
 mq_open(name string, flags flags[mq_open_flags], mode flags[open_mode], attr ptr[in, mq_attr]) fd[mq]
@@ -462,18 +462,6 @@ membarrier(cmd const[1], flags const[0])
 
 
 
-
-# TODO: need something better
-ioctl_arg {
-	a0	intptr
-	a1	intptr
-	a2	intptr
-	a3	intptr
-	a4	intptr
-	a5	intptr
-	a6	intptr
-	a7	intptr
-}
 
 pipefd {
 	rfd	fd

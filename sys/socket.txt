@@ -18,8 +18,8 @@ recvmsg(fd fd[sock], msg ptr[in, recv_msghdr], f flags[recv_flags])
 recvmmsg(fd fd[sock], mmsg ptr[in, array[recv_msghdr]], vlen len[mmsg], f flags[recv_flags])
 getsockname(fd fd[sock], addr ptr[out, sockaddr], addrlen ptr[inout, len[addr, int32]])
 getpeername(fd fd[sock], peer ptr[out, sockaddr], peerlen ptr[inout, len[peer, int32]])
-getsockopt(fd fd[sock], level int32, optname int32, optval ptr[out, ioctl_arg], optlen ptr[inout, len[optval, int32]])
-setsockopt(fd fd[sock], level int32, optname int32, optval ptr[in, ioctl_arg], optlen len[optval])
+getsockopt(fd fd[sock], level int32, optname int32, optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt(fd fd[sock], level int32, optname int32, optval buffer[in], optlen len[optval])
 ioctl$SIOCOUTQ(fd fd[sock], cmd const[SIOCOUTQ], arg ptr[out, int32])
 ioctl$SIOCINQ(fd fd[sock], cmd const[SIOCINQ], arg ptr[out, int32])
 
@@ -360,26 +360,7 @@ sockaddr_nfc_llcp {
 	proto	flags[nfc_proto, int32]
 	dsap	int8
 	ssap	int8
-# TODO: need fixed-length arrays
-# char service_name[63]
-	serv0	int8
-	serv1	int8
-	serv2	int32
-	serv3	int32
-	serv4	int32
-	serv5	int32
-	serv6	int32
-	serv7	int32
-	serv8	int32
-	serv9	int32
-	serv10	int32
-	serv11	int32
-	serv12	int32
-	serv13	int32
-	serv14	int32
-	serv15	int32
-	serv16	int32
-	serv17	int8
+	serv	array[int8, 63]
 	servlen	intptr
 }
 

@@ -362,13 +362,18 @@ func (p *Prog) TrimAfter(idx int) {
 
 func mutationArgs(c *Call) (args, bases []*Arg, parents []*[]*Arg) {
 	foreachArg(c, func(arg, base *Arg, parent *[]*Arg) {
-		switch arg.Type.(type) {
+		switch typ := arg.Type.(type) {
 		case sys.StructType:
-			if isSpecialStruct(arg.Type) == nil {
+			if isSpecialStruct(typ) == nil {
 				// For structs only individual fields are updated.
 				return
 			}
 			// These special structs are mutated as a whole.
+		case sys.ArrayType:
+			// Don't mutate fixed-size arrays.
+			if typ.Len != 0 {
+				return
+			}
 		case sys.LenType:
 			// Size is updated when the size-of arg change.
 			return
