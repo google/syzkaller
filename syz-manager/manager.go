@@ -47,11 +47,10 @@ type Manager struct {
 	enabledSyscalls string
 	suppressions    []*regexp.Regexp
 
-	candidates     [][]byte // untriaged inputs
-	disabledHashes []string
-	corpus         []RpcInput
-	corpusCover    []cover.Cover
-	prios          [][]float32
+	candidates  [][]byte // untriaged inputs
+	corpus      []RpcInput
+	corpusCover []cover.Cover
+	prios       [][]float32
 
 	fuzzers map[string]*Fuzzer
 }
@@ -108,25 +107,6 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		return true
 	})
 	for _, data := range mgr.persistentCorpus.a {
-		p, err := prog.Deserialize(data)
-		if err != nil {
-			fatalf("failed to deserialize program: %v", err)
-		}
-		disabled := false
-		for _, c := range p.Calls {
-			if !syscalls[c.Meta.ID] {
-				disabled = true
-				break
-			}
-		}
-		if disabled {
-			// This program contains a disabled syscall.
-			// We won't execute it, but remeber its hash so
-			// it is not deleted during minimization.
-			h := hash(data)
-			mgr.disabledHashes = append(mgr.disabledHashes, hex.EncodeToString(h[:]))
-			continue
-		}
 		mgr.candidates = append(mgr.candidates, data)
 	}
 	logf(0, "loaded %v programs", len(mgr.persistentCorpus.m))
@@ -320,9 +300,6 @@ func (mgr *Manager) minimizeCorpus() {
 		for _, inp := range mgr.corpus {
 			h := hash(inp.Prog)
 			hashes[hex.EncodeToString(h[:])] = true
-		}
-		for _, h := range mgr.disabledHashes {
-			hashes[h] = true
 		}
 		mgr.persistentCorpus.minimize(hashes)
 	}
