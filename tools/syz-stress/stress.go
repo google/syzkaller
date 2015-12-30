@@ -17,8 +17,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/google/syzkaller/host"
 	"github.com/google/syzkaller/ipc"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys"
 )
 
 var (
@@ -46,6 +48,11 @@ func main() {
 	flag.Parse()
 	corpus := readCorpus()
 	log.Printf("parsed %v programs", len(corpus))
+
+	calls := buildCallList()
+	prios := prog.CalculatePriorities(corpus)
+	ct := prog.BuildChoiceTable(prios, calls)
+
 	var flags uint64
 	if *flagThreaded {
 		flags |= ipc.FlagThreaded
@@ -75,16 +82,16 @@ func main() {
 			rnd := rand.New(rs)
 			for i := 0; ; i++ {
 				var p *prog.Prog
-				if len(corpus) == 0 || i%2 != 0 {
-					p = prog.Generate(rs, programLength, nil)
+				if len(corpus) == 0 || i%4 != 0 {
+					p = prog.Generate(rs, programLength, ct)
 					execute(pid, env, p)
-					p.Mutate(rs, programLength, nil)
+					p.Mutate(rs, programLength, ct)
 					execute(pid, env, p)
 				} else {
 					p = corpus[rnd.Intn(len(corpus))].Clone()
-					p.Mutate(rs, programLength, nil)
+					p.Mutate(rs, programLength, ct)
 					execute(pid, env, p)
-					p.Mutate(rs, programLength, nil)
+					p.Mutate(rs, programLength, ct)
 					execute(pid, env, p)
 				}
 			}
@@ -150,6 +157,29 @@ func readCorpus() []*prog.Prog {
 	}
 	zipr.Close()
 	return progs
+}
+
+func buildCallList() map[*sys.Call]bool {
+	calls, err := host.DetectSupportedSyscalls()
+	if err != nil {
+		log.Printf("failed to detect host supported syscalls: %v", err)
+		for _, c := range sys.Calls {
+			calls[c] = true
+		}
+	}
+	for _, c := range sys.Calls {
+		if !calls[c] {
+			log.Printf("disabling unsupported syscall: %v", c.Name)
+		}
+	}
+	trans := sys.TransitivelyEnabledCalls(calls)
+	for c := range calls {
+		if !trans[c] {
+			log.Printf("disabling transitively unsupported syscall: %v", c.Name)
+			delete(calls, c)
+		}
+	}
+	return calls
 }
 
 func failf(msg string, args ...interface{}) {
