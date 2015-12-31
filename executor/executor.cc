@@ -36,7 +36,6 @@ const int kInFd = 3;
 const int kOutFd = 4;
 const int kInPipeFd = 5;
 const int kOutPipeFd = 6;
-const int kCoverFd = 5;
 const int kMaxInput = 2 << 20;
 const int kMaxOutput = 16 << 20;
 const int kMaxArgs = 9;
@@ -498,12 +497,14 @@ void execute_call(thread_t* th)
 		else {
 			th->res = -1;
 		}
+		break;
 	}
 	case __NR_syz_dri_open: {
 		// syz_dri_open(card_id intptr, flags flags[open_flags]) fd[dri]
 		char buf[128];
 		sprintf(buf, "/dev/dri/card%lu", th->args[0]);
 		th->res = open(buf, th->args[1], 0);
+		break;
 	}
 	case __NR_syz_fuse_mount: {
 		// syz_fuse_mount(target filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd[fuse]
@@ -528,6 +529,7 @@ void execute_call(thread_t* th)
 			// Ignore errors, maybe fuzzer can do something useful with fd alone.
 		}
 		th->res = fd;
+		break;
 	}
 	case __NR_syz_fuseblk_mount: {
 		// syz_fuseblk_mount(target filename, blkdev filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd[fuse]
@@ -558,6 +560,7 @@ void execute_call(thread_t* th)
 			}
 		}
 		th->res = fd;
+		break;
 	}
 	}
 	th->reserrno = errno;
