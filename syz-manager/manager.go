@@ -181,8 +181,8 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
 	leak := first && mgr.cfg.Leak
 
-	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("/syz-fuzzer -name %v -executor /syz-executor -manager %v:%v -procs %v -leak=%v %v %v %v",
-		vmCfg.Name, inst.HostAddr(), mgr.port, mgr.cfg.Procs, leak, cover, dropprivs, calls))
+	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("/syz-fuzzer -name %v -executor /syz-executor -manager %v:%v -output=%v -procs %v -leak=%v %v %v %v",
+		vmCfg.Name, inst.HostAddr(), mgr.port, mgr.cfg.Output, mgr.cfg.Procs, leak, cover, dropprivs, calls))
 	if err != nil {
 		logf(0, "failed to run fuzzer: %v", err)
 		return false

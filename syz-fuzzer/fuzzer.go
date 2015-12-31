@@ -8,6 +8,7 @@ package main
 // i.e. aim at cracking new branches and triggering bugs in that new piece of code.
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"flag"
 	"fmt"
@@ -36,13 +37,13 @@ var (
 	flagExecutor  = flag.String("executor", "", "path to executor binary")
 	flagManager   = flag.String("manager", "", "manager rpc address")
 	flagStrace    = flag.Bool("strace", false, "run executor under strace")
-	flagSaveProg  = flag.Bool("saveprog", false, "save programs into local file before executing")
 	flagSyscalls  = flag.String("calls", "", "comma-delimited list of enabled syscall IDs (empty string for all syscalls)")
 	flagNoCover   = flag.Bool("nocover", false, "disable coverage collection/handling")
 	flagDropPrivs = flag.Bool("dropprivs", true, "impersonate into nobody")
 	flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
 	flagLeak      = flag.Bool("leak", false, "detect memory leaks")
 	flagV         = flag.Int("v", 0, "verbosity")
+	flagOutput    = flag.String("output", "stdout", "write programs to stdout/dmesg/file")
 )
 
 const (
@@ -92,6 +93,10 @@ var (
 func main() {
 	debug.SetGCPercent(50)
 	flag.Parse()
+	if *flagOutput != "stdout" && *flagOutput != "dmesg" && *flagOutput != "file" {
+		fmt.Fprintf(os.Stderr, "-output flag must be one of stdout/dmesg/file\n")
+		os.Exit(1)
+	}
 	logf(0, "started")
 
 	corpusCover = make([]cover.Cover, sys.CallCount)
@@ -193,7 +198,7 @@ func main() {
 	var lastPoll time.Time
 	var lastPrint time.Time
 	for range time.NewTicker(3 * time.Second).C {
-		if *flagSaveProg && time.Since(lastPrint) > 10*time.Second {
+		if *flagOutput != "stdout" && time.Since(lastPrint) > 10*time.Second {
 			// Keep-alive for manager.
 			logf(0, "alive")
 			lastPrint = time.Now()
@@ -456,19 +461,28 @@ func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
 		}
 	})
 
-	if *flagSaveProg {
+	// The following output helps to understand what program crashed kernel.
+	// It must not be intermixed.
+	switch *flagOutput {
+	case "stdout":
+		data := p.Serialize()
+		logMu.Lock()
+		log.Printf("executing program %v:\n%s", pid, data)
+		logMu.Unlock()
+	case "dmesg":
+		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)
+		if err == nil {
+			buf := new(bytes.Buffer)
+			fmt.Fprintf(buf, "syzkaller: executing program %v:\n%s", pid, p.Serialize())
+			syscall.Write(fd, buf.Bytes())
+			syscall.Close(fd)
+		}
+	case "file":
 		f, err := os.Create(fmt.Sprintf("%v-%v.prog", *flagName, pid))
 		if err == nil {
 			f.Write(p.Serialize())
 			f.Close()
 		}
-	} else {
-		// The following output helps to understand what program crashed kernel.
-		// It must not be intermixed.
-		data := p.Serialize()
-		logMu.Lock()
-		log.Printf("executing program %v:\n%s", pid, data)
-		logMu.Unlock()
 	}
 
 	try := 0
