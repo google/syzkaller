@@ -115,7 +115,7 @@ func (s *state) addressable(addr, size *Arg, ok bool) {
 	}
 }
 
-func foreachArgArray(args *[]*Arg, ret *Arg, f func(arg, base *Arg, parent *[]*Arg)) {
+func foreachSubargImpl(arg *Arg, parent *[]*Arg, f func(arg, base *Arg, parent *[]*Arg)) {
 	var rec func(arg, base *Arg, parent *[]*Arg)
 	rec = func(arg, base *Arg, parent *[]*Arg) {
 		f(arg, base, parent)
@@ -133,28 +133,24 @@ func foreachArgArray(args *[]*Arg, ret *Arg, f func(arg, base *Arg, parent *[]*A
 			rec(arg.Option, base, parent)
 		}
 	}
+	rec(arg, nil, parent)
+}
+
+func foreachSubarg(arg *Arg, f func(arg, base *Arg, parent *[]*Arg)) {
+	foreachSubargImpl(arg, nil, f)
+}
+
+func foreachArgArray(args *[]*Arg, ret *Arg, f func(arg, base *Arg, parent *[]*Arg)) {
 	for _, arg := range *args {
-		rec(arg, nil, args)
+		foreachSubargImpl(arg, args, f)
 	}
 	if ret != nil {
-		rec(ret, nil, nil)
+		foreachSubargImpl(ret, nil, f)
 	}
 }
 
 func foreachArg(c *Call, f func(arg, base *Arg, parent *[]*Arg)) {
 	foreachArgArray(&c.Args, nil, f)
-}
-
-func referencedArgs(args []*Arg, ret *Arg) (res []*Arg) {
-	foreachArgArray(&args, ret, func(arg, _ *Arg, _ *[]*Arg) {
-		for arg1 := range arg.Uses {
-			if arg1.Kind != ArgResult {
-				panic("use references not ArgResult")
-			}
-			res = append(res, arg1)
-		}
-	})
-	return
 }
 
 func assignTypeAndDir(c *Call) error {

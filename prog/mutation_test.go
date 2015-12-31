@@ -42,7 +42,7 @@ next:
 				continue next
 			}
 		}
-		t.Fatalf("mutation does not change program")
+		t.Fatalf("mutation does not change program:\n%s", data0)
 	}
 }
 

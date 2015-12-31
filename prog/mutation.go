@@ -12,11 +12,14 @@ import (
 
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 	r := newRand(rs)
-	for stop := false; !stop; stop = r.bin() {
+	retry := false
+	for stop := false; !stop || retry; stop = r.bin() {
+		retry = false
 		r.choose(
 			20, func() {
 				// Insert a new call.
 				if len(p.Calls) >= ncalls {
+					retry = true
 					return
 				}
 				idx := r.biasedRand(len(p.Calls)+1, 5)
@@ -31,16 +34,19 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 			10, func() {
 				// Change args of a call.
 				if len(p.Calls) == 0 {
+					retry = true
 					return
 				}
 				c := p.Calls[r.Intn(len(p.Calls))]
 				if len(c.Args) == 0 {
+					retry = true
 					return
 				}
 				s := analyze(ct, p, c)
 				for stop := false; !stop; stop = r.bin() {
 					args, bases, parents := mutationArgs(c)
 					if len(args) == 0 {
+						retry = true
 						return
 					}
 					idx := r.Intn(len(args))
@@ -56,7 +62,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 					switch a := arg.Type.(type) {
 					case sys.IntType, sys.FlagsType, sys.FileoffType, sys.ResourceType, sys.VmaType:
 						arg1, size1, calls1 := r.generateArg(s, arg.Type, arg.Dir, nil)
-						replaceArg(p, arg, arg1, calls1)
+						p.replaceArg(arg, arg1, calls1)
 						size = size1
 					case sys.BufferType:
 						switch a.Kind {
@@ -97,6 +103,9 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						arg.Data = []byte(filename)
 					case sys.ArrayType:
 						count := r.rand(6)
+						if count == uintptr(len(arg.Inner)) {
+							count++
+						}
 						if count > uintptr(len(arg.Inner)) {
 							var calls []*Call
 							for count > uintptr(len(arg.Inner)) {
@@ -115,24 +124,10 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							sanitizeCall(c)
 							p.insertBefore(c, calls)
 						} else if count < uintptr(len(arg.Inner)) {
-							removed := arg.Inner[count:]
-							arg.Inner = arg.Inner[:count]
-
-							foreachArgArray(&removed, nil, func(arg, _ *Arg, _ *[]*Arg) {
-								if arg.Kind == ArgResult {
-									if _, ok := arg.Res.Uses[arg]; !ok {
-										panic("broken tree")
-									}
-									delete(arg.Res.Uses, arg)
-								}
-							})
-
-							for _, arg := range referencedArgs(removed, nil) {
-								c1 := arg.Call
-								s := analyze(ct, p, c1)
-								arg1, _, calls1 := r.generateArg(s, arg.Type, arg.Dir, nil)
-								replaceArg(p, arg, arg1, calls1)
+							for _, arg := range arg.Inner[count:] {
+								p.removeArg(arg)
 							}
+							arg.Inner = arg.Inner[:count]
 						}
 						// TODO: swap elements of the array
 						size = constArg(count)
@@ -143,7 +138,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							size = arg.Res.Size(arg.Res.Type)
 						}
 						arg1, calls1 := r.addr(s, size, arg.Res)
-						replaceArg(p, arg, arg1, calls1)
+						p.replaceArg(arg, arg1, calls1)
 					case sys.StructType:
 						ctor := isSpecialStruct(a)
 						if ctor == nil {
@@ -151,11 +146,19 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						}
 						arg1, calls1 := ctor(r, s)
 						for i, f := range arg1.Inner {
-							replaceArg(p, arg.Inner[i], f, calls1)
+							p.replaceArg(arg.Inner[i], f, calls1)
 							calls1 = nil
 						}
 					case sys.UnionType:
-						//!!! implement me
+						optType := a.Options[r.Intn(len(a.Options))]
+						for optType.Name() == arg.OptionType.Name() {
+							optType = a.Options[r.Intn(len(a.Options))]
+						}
+						p.removeArg(arg.Option)
+						opt, size1, calls := r.generateArg(s, optType, arg.Dir, nil)
+						arg1 := unionArg(opt, optType)
+						p.replaceArg(arg, arg1, calls)
+						size = size1
 					case sys.LenType:
 						panic("bad arg returned by mutationArgs: LenType")
 					case sys.ConstType, sys.StrConstType:
@@ -198,28 +201,11 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 			1, func() {
 				// Remove a random call.
 				if len(p.Calls) == 0 {
+					retry = true
 					return
 				}
 				idx := r.Intn(len(p.Calls))
-				c := p.Calls[idx]
-				copy(p.Calls[idx:], p.Calls[idx+1:])
-				p.Calls = p.Calls[:len(p.Calls)-1]
-
-				foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
-					if arg.Kind == ArgResult {
-						if _, ok := arg.Res.Uses[arg]; !ok {
-							panic("broken tree")
-						}
-						delete(arg.Res.Uses, arg)
-					}
-				})
-
-				for _, arg := range referencedArgs(c.Args, c.Ret) {
-					c1 := arg.Call
-					s := analyze(ct, p, c1)
-					arg1, _, calls1 := r.generateArg(s, arg.Type, arg.Dir, nil)
-					replaceArg(p, arg, arg1, calls1)
-				}
+				p.removeCall(idx)
 			},
 		)
 	}
@@ -260,19 +246,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) (*Prog, int)
 		for i := 0; i < len(p.Calls); i++ {
 			c := p.Calls[i]
 			if i != callIndex && c.Meta.Name == "mmap" {
-				copy(p.Calls[i:], p.Calls[i+1:])
-				p.Calls = p.Calls[:len(p.Calls)-1]
-
-				for _, arg := range referencedArgs(c.Args, c.Ret) {
-					arg1 := constArg(arg.Type.Default())
-					replaceArg(p, arg, arg1, nil)
-				}
-				foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
-					if arg.Kind == ArgResult {
-						delete(arg.Res.Uses, arg)
-					}
-				})
-
+				p.removeCall(i)
 				if i < callIndex {
 					callIndex--
 				}
@@ -312,18 +286,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) (*Prog, int)
 			callIndex--
 		}
 		p := p0.Clone()
-		c := p.Calls[i]
-		copy(p.Calls[i:], p.Calls[i+1:])
-		p.Calls = p.Calls[:len(p.Calls)-1]
-		for _, arg := range referencedArgs(c.Args, c.Ret) {
-			arg1 := constArg(arg.Type.Default())
-			replaceArg(p, arg, arg1, nil)
-		}
-		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
-			if arg.Kind == ArgResult {
-				delete(arg.Res.Uses, arg)
-			}
-		})
+		p.removeCall(i)
 		if !pred(p, callIndex) {
 			continue
 		}
@@ -428,32 +391,4 @@ func mutateData(r *randGen, data []byte) []byte {
 		)
 	}
 	return data
-}
-
-func replaceArg(p *Prog, arg, arg1 *Arg, calls []*Call) {
-	if arg.Kind != ArgConst && arg.Kind != ArgResult && arg.Kind != ArgPointer {
-		panic(fmt.Sprintf("replaceArg: bad arg kind %v", arg.Kind))
-	}
-	if arg1.Kind != ArgConst && arg1.Kind != ArgResult && arg1.Kind != ArgPointer {
-		panic(fmt.Sprintf("replaceArg: bad arg1 kind %v", arg1.Kind))
-	}
-	if arg.Kind == ArgResult {
-		delete(arg.Res.Uses, arg)
-	}
-	for _, c := range calls {
-		assignTypeAndDir(c)
-		sanitizeCall(c)
-	}
-	c := arg.Call
-	p.insertBefore(c, calls)
-	// Somewhat hacky, but safe and preserves references to arg.
-	uses := arg.Uses
-	*arg = *arg1
-	arg.Uses = uses
-	if arg.Kind == ArgResult {
-		delete(arg.Res.Uses, arg1)
-		arg.Res.Uses[arg] = true
-	}
-	assignTypeAndDir(c)
-	sanitizeCall(c)
 }
