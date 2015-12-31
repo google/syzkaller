@@ -456,7 +456,13 @@ type UnionType struct {
 }
 
 func (t UnionType) Size() uintptr {
-	panic("union size is not statically known")
+	size := t.Options[0].Size()
+	for _, opt := range t.Options {
+		if size != opt.Size() {
+			panic("union size is not statically known")
+		}
+	}
+	return size
 }
 
 func (t UnionType) Align() uintptr {
@@ -619,6 +625,7 @@ var (
 func init() {
 	initCalls()
 	initResources()
+	initAlign()
 
 	for _, c := range Calls {
 		c.NR = numbers[c.ID]
