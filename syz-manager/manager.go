@@ -126,13 +126,14 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 	go s.Accept(ln)
 
 	for i := 0; i < cfg.Count; i++ {
+		first := i == 0
 		go func() {
 			for {
 				vmCfg, err := config.CreateVMConfig(cfg)
 				if err != nil {
 					fatalf("failed to create VM config: %v", err)
 				}
-				if !mgr.runInstance(vmCfg) {
+				if !mgr.runInstance(vmCfg, first) {
 					time.Sleep(10 * time.Second)
 				}
 			}
@@ -141,7 +142,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 	select {}
 }
 
-func (mgr *Manager) runInstance(vmCfg *vm.Config) bool {
+func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	inst, err := vm.Create(mgr.cfg.Type, vmCfg)
 	if err != nil {
 		logf(0, "failed to create instance: %v", err)
@@ -177,9 +178,11 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config) bool {
 	if mgr.enabledSyscalls != "" {
 		calls = "-calls=" + mgr.enabledSyscalls
 	}
+	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
+	leak := first && mgr.cfg.Leak
 
 	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("/syz-fuzzer -name %v -executor /syz-executor -manager %v:%v -procs %v -leak=%v %v %v %v",
-		vmCfg.Name, inst.HostAddr(), mgr.port, mgr.cfg.Procs, mgr.cfg.Leak, cover, dropprivs, calls))
+		vmCfg.Name, inst.HostAddr(), mgr.port, mgr.cfg.Procs, leak, cover, dropprivs, calls))
 	if err != nil {
 		logf(0, "failed to run fuzzer: %v", err)
 		return false
