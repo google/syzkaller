@@ -30,6 +30,7 @@ type Config struct {
 	Port    int    // VM ssh port to use
 	Bin     string // qemu/lkvm binary name
 	Debug   bool   // dump all VM output to console
+	Output  string // one of stdout/dmesg/file (useful only for local VM)
 
 	Syzkaller string // path to syzkaller checkout (syz-manager will look for binaries in bin subdir)
 	Type      string // VM type (qemu, kvm, local)
@@ -83,6 +84,14 @@ func Parse(filename string) (*Config, map[int]bool, []*regexp.Regexp, error) {
 	}
 	if cfg.Procs <= 0 {
 		cfg.Procs = 1
+	}
+	if cfg.Output == "" {
+		cfg.Output = "stdout"
+	}
+	switch cfg.Output {
+	case "stdout", "dmesg", "file":
+	default:
+		return nil, nil, nil, fmt.Errorf("config param output must contain one of stdout/dmesg/file")
 	}
 
 	syscalls, err := parseSyscalls(cfg)
