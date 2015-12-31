@@ -4,6 +4,8 @@
 package prog
 
 import (
+	"fmt"
+
 	"github.com/google/syzkaller/sys"
 )
 
@@ -141,4 +143,63 @@ func (p *Prog) insertBefore(c *Call, calls []*Call) {
 		newCalls = append(newCalls, p.Calls[idx+1:]...)
 	}
 	p.Calls = newCalls
+}
+
+// replaceArg replaces arg with arg1 in p, and inserts calls before arg call.
+func (p *Prog) replaceArg(arg, arg1 *Arg, calls []*Call) {
+	if arg.Kind != ArgConst && arg.Kind != ArgResult && arg.Kind != ArgPointer && arg.Kind != ArgUnion {
+		panic(fmt.Sprintf("replaceArg: bad arg kind %v", arg.Kind))
+	}
+	if arg1.Kind != ArgConst && arg1.Kind != ArgResult && arg1.Kind != ArgPointer && arg.Kind != ArgUnion {
+		panic(fmt.Sprintf("replaceArg: bad arg1 kind %v", arg1.Kind))
+	}
+	if arg.Kind == ArgResult {
+		delete(arg.Res.Uses, arg)
+	}
+	for _, c := range calls {
+		assignTypeAndDir(c)
+		sanitizeCall(c)
+	}
+	c := arg.Call
+	p.insertBefore(c, calls)
+	// Somewhat hacky, but safe and preserves references to arg.
+	uses := arg.Uses
+	*arg = *arg1
+	arg.Uses = uses
+	if arg.Kind == ArgResult {
+		delete(arg.Res.Uses, arg1)
+		arg.Res.Uses[arg] = true
+	}
+	assignTypeAndDir(c)
+	sanitizeCall(c)
+}
+
+// removeArg removes all references to/from arg0 from p.
+func (p *Prog) removeArg(arg0 *Arg) {
+	foreachSubarg(arg0, func(arg, _ *Arg, _ *[]*Arg) {
+		if arg.Kind == ArgResult {
+			if _, ok := arg.Res.Uses[arg]; !ok {
+				panic("broken tree")
+			}
+			delete(arg.Res.Uses, arg)
+		}
+		for arg1 := range arg.Uses {
+			if arg1.Kind != ArgResult {
+				panic("use references not ArgResult")
+			}
+			arg2 := constArg(arg1.Type.Default())
+			p.replaceArg(arg1, arg2, nil)
+		}
+	})
+}
+
+// removeCall removes call idx from p.
+func (p *Prog) removeCall(idx int) {
+	c := p.Calls[idx]
+	copy(p.Calls[idx:], p.Calls[idx+1:])
+	p.Calls = p.Calls[:len(p.Calls)-1]
+	for _, arg := range c.Args {
+		p.removeArg(arg)
+	}
+	p.removeArg(c.Ret)
 }
