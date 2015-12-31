@@ -22,15 +22,20 @@
 #	"flags": a set of flags, type-options: reference to flags description
 #	"filename": a file/link/dir name
 #	"ptr": a pointer to an object, type-options: type of the object; direction (in/out/inout)
-#	"array": a variable-length array, type-options: type of elements
+#	"array": a variable/fixed-length array, type-options: type of elements, optional size for fixed-length arrays
 #	"intN"/"intptr": an integer without a particular meaning
-# flags/len/flags also have trailing underlying type type-option when used in structs/pointers.
+# flags/len/flags also have trailing underlying type type-option when used in structs/unions/pointers.
 #
 # Flags are described as:
 #	flagname = const ["," const]
 #
 # Structs are described as:
-#	structname struct "{" "\n" (fieldname type "\n")+ "}"
+#	structname "{" "\n" (fieldname type "\n")+ "}"
+# Structs can have trailing attributes "packed" and "align_N",
+# they are specified in square brackets after the struct.
+#
+# Unions are described as:
+#	unionname "[" "\n" (fieldname type "\n")+ "]"
 
 # Packages with required headers:
 # sudo apt-get install libnuma-dev
