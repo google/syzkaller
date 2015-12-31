@@ -14,7 +14,7 @@ fuzzer:
 	go build -o ./bin/syz-fuzzer github.com/google/syzkaller/syz-fuzzer
 
 executor:
-	gcc -o ./bin/syz-executor executor/executor.cc -lpthread -static -Wall -O1 -g
+	$(CC) -o ./bin/syz-executor executor/executor.cc -lpthread -static -Wall -O1 -g $(CFLAGS)
 
 execprog:
 	go build -o ./bin/syz-execprog github.com/google/syzkaller/tools/syz-execprog
