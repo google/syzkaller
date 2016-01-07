@@ -59,6 +59,8 @@ In particular:
  - The kernel exports coverage information via a debugfs entry, so the VM image needs to mount
    the debugfs filesystem at `/sys/kernel/debug`.
 
+[create-image.sh](tools/create-image.sh) script can be used to create a suitable Linux image.
+
 TODO: Describe how to support other types of VM other than QEMU.
 
 ### Syzkaller
