@@ -421,6 +421,12 @@ func fmtFdKind(s string) string {
 		return "FdUnix"
 	case "sctp":
 		return "FdSctp"
+	case "kvm":
+		return "FdKvm"
+	case "kvmvm":
+		return "FdKvmVm"
+	case "kvmcpu":
+		return "FdKvmCpu"
 	default:
 		failf("bad fd type %v", s)
 		return ""
