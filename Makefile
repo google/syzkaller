@@ -36,7 +36,8 @@ upgrade:
 
 generate:
 	go run sysgen/*.go -linux=$(LINUX) sys/sys.txt sys/socket.txt sys/tty.txt sys/perf.txt \
-		sys/key.txt sys/bpf.txt sys/fuse.txt sys/dri.txt sys/kdbus.txt sys/sctp.txt
+		sys/key.txt sys/bpf.txt sys/fuse.txt sys/dri.txt sys/kdbus.txt sys/sctp.txt \
+		sys/kvm.txt
 
 format:
 	go fmt ./...
