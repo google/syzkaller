@@ -550,7 +550,7 @@ void execute_call(thread_t* th)
 
 		int fd = open("/dev/fuse", O_RDWR);
 		if (fd != -1) {
-			if (syscall(SYS_mknod, blkdev, S_IFBLK, makedev(7, 199)) == 0) {
+			if (syscall(SYS_mknodat, AT_FDCWD, blkdev, S_IFBLK, makedev(7, 199)) == 0) {
 				char buf[256];
 				sprintf(buf, "fd=%d,user_id=%lu,group_id=%lu,rootmode=0%o", fd, uid, gid, (unsigned)mode & ~3u);
 				if (maxread != 0)
