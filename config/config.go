@@ -41,6 +41,8 @@ type Config struct {
 	NoDropPrivs bool
 	Leak        bool // do memory leak checking
 
+	ConsoleDev string // console device for adb vm
+
 	Enable_Syscalls  []string
 	Disable_Syscalls []string
 	Suppressions     []string
@@ -188,17 +190,18 @@ func CreateVMConfig(cfg *Config) (*vm.Config, error) {
 		return nil, fmt.Errorf("failed to create instance temp dir: %v", err)
 	}
 	vmCfg := &vm.Config{
-		Name:    fmt.Sprintf("%v-%v", cfg.Type, index),
-		Index:   index,
-		Workdir: workdir,
-		Bin:     cfg.Bin,
-		Kernel:  cfg.Kernel,
-		Cmdline: cfg.Cmdline,
-		Image:   cfg.Image,
-		Sshkey:  cfg.Sshkey,
-		Cpu:     cfg.Cpu,
-		Mem:     cfg.Mem,
-		Debug:   cfg.Debug,
+		Name:       fmt.Sprintf("%v-%v", cfg.Type, index),
+		Index:      index,
+		Workdir:    workdir,
+		Bin:        cfg.Bin,
+		Kernel:     cfg.Kernel,
+		Cmdline:    cfg.Cmdline,
+		Image:      cfg.Image,
+		Sshkey:     cfg.Sshkey,
+		ConsoleDev: cfg.ConsoleDev,
+		Cpu:        cfg.Cpu,
+		Mem:        cfg.Mem,
+		Debug:      cfg.Debug,
 	}
 	return vmCfg, nil
 }

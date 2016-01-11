@@ -20,6 +20,10 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
+const (
+	hostAddr = "10.0.2.10"
+)
+
 func init() {
 	vm.Register("qemu", ctor)
 }
@@ -111,10 +115,6 @@ func validateConfig(cfg *vm.Config) error {
 	return nil
 }
 
-func (inst *instance) HostAddr() string {
-	return "10.0.2.10"
-}
-
 func (inst *instance) Close() {
 	if inst.qemu != nil {
 		inst.qemu.Process.Kill()
@@ -146,7 +146,7 @@ func (inst *instance) Boot() error {
 		"-hda", inst.image,
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-net", "nic",
-		"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", inst.HostAddr(), inst.port),
+		"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port),
 		"-nographic",
 		"-enable-kvm",
 		"-numa", "node,nodeid=0,cpus=0-1", "-numa", "node,nodeid=1,cpus=2-3",
@@ -247,11 +247,16 @@ func (inst *instance) Boot() error {
 	return nil
 }
 
-func (inst *instance) Copy(hostSrc, vmDst string) error {
+func (inst *instance) Forward(port int) (string, error) {
+	return fmt.Sprintf("%v:%v", hostAddr, port), nil
+}
+
+func (inst *instance) Copy(hostSrc string) (string, error) {
+	vmDst := filepath.Join("/", filepath.Base(hostSrc))
 	args := append(inst.sshArgs("-P"), hostSrc, "root@localhost:"+vmDst)
 	cmd := exec.Command("scp", args...)
 	if err := cmd.Start(); err != nil {
-		return err
+		return "", err
 	}
 	done := make(chan bool)
 	go func() {
@@ -263,7 +268,10 @@ func (inst *instance) Copy(hostSrc, vmDst string) error {
 	}()
 	err := cmd.Wait()
 	close(done)
-	return err
+	if err != nil {
+		return "", err
+	}
+	return vmDst, nil
 }
 
 func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte, <-chan error, error) {
