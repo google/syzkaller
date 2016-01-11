@@ -361,7 +361,13 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 	case __NR_syz_fuse_mount:
 	case __NR_syz_fuseblk_mount:
 		root = true;
+	default:
+		if (strcmp(syscalls[call_num]
+			       .name,
+			   "open$sndseq") == 0)
+			root = true;
 	}
+
 	// Find a spare thread to execute the call.
 	int i;
 	for (i = 0; i < kMaxThreads; i++) {

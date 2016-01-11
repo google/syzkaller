@@ -102,6 +102,7 @@ const (
 	FdKvm
 	FdKvmVm
 	FdKvmCpu
+	FdSndSeq
 
 	IPCMsq
 	IPCSem
@@ -131,7 +132,7 @@ func ResourceSubkinds(kind ResourceKind) []ResourceSubkind {
 			FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg, FdPerf, FdUserFault,
 			FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp, FdBtHci, FdBtSco, FdBtL2cap,
 			FdBtRfcomm, FdBtHidp, FdBtCmtp, FdBtBnep, FdUnix, FdSctp, FdKvm, FdKvmVm,
-			FdKvmCpu}
+			FdKvmCpu, FdSndSeq}
 	case ResIPC:
 		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
 	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid, ResIocbPtr:
@@ -457,13 +458,17 @@ func (t StructType) Align() uintptr {
 type UnionType struct {
 	TypeCommon
 	Options []Type
+	varlen  bool
 }
 
 func (t UnionType) Size() uintptr {
+	if t.varlen {
+		panic("union size is not statically known")
+	}
 	size := t.Options[0].Size()
 	for _, opt := range t.Options {
-		if size != opt.Size() {
-			panic("union size is not statically known")
+		if size < opt.Size() {
+			size = opt.Size()
 		}
 	}
 	return size
