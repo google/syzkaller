@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"sync"
 	"syscall"
+	"unsafe"
 )
 
 var copyMu sync.Mutex
@@ -102,4 +103,17 @@ func ProcessTempDir(where string) (string, int, error) {
 		return path, i, nil
 	}
 	return "", 0, fmt.Errorf("too many live instances")
+}
+
+// UmountAll recurusively unmounts all mounts in dir.
+func UmountAll(dir string) {
+	files, _ := ioutil.ReadDir(dir)
+	for _, f := range files {
+		name := filepath.Join(dir, f.Name())
+		if f.IsDir() {
+			UmountAll(name)
+		}
+		fn := []byte(name + "\x00")
+		syscall.Syscall(syscall.SYS_UMOUNT2, uintptr(unsafe.Pointer(&fn[0])), syscall.MNT_FORCE, 0)
+	}
 }

@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/syzkaller/fileutil"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -356,6 +357,7 @@ func (c *command) close() {
 		c.kill()
 		c.cmd.Wait()
 	}
+	fileutil.UmountAll(c.dir)
 	os.RemoveAll(c.dir)
 	if c.rp != nil {
 		c.rp.Close()
@@ -400,6 +402,7 @@ func (c *command) exec() (output, strace []byte, failed, hanged bool, err0 error
 	//!!! handle c.rp overflow
 	_, readErr := c.inrp.Read(tmp[:])
 	close(done)
+	fileutil.UmountAll(c.dir)
 	os.RemoveAll(c.dir)
 	if err := os.Mkdir(c.dir, 0777); err != nil {
 		<-hang
