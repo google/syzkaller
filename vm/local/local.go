@@ -23,7 +23,6 @@ func init() {
 type instance struct {
 	cfg    *vm.Config
 	closed chan bool
-	files  map[string]string
 }
 
 func ctor(cfg *vm.Config) (vm.Instance, error) {
@@ -40,13 +39,8 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	inst := &instance{
 		cfg:    cfg,
 		closed: make(chan bool),
-		files:  make(map[string]string),
 	}
 	return inst, nil
-}
-
-func (inst *instance) HostAddr() string {
-	return "127.0.0.1"
 }
 
 func (inst *instance) Close() {
@@ -54,13 +48,19 @@ func (inst *instance) Close() {
 	os.RemoveAll(inst.cfg.Workdir)
 }
 
-func (inst *instance) Copy(hostSrc, vmDst string) error {
-	dst := filepath.Join(inst.cfg.Workdir, vmDst)
-	inst.files[vmDst] = dst
-	if err := fileutil.CopyFile(hostSrc, dst, false); err != nil {
-		return err
+func (inst *instance) Forward(port int) (string, error) {
+	return fmt.Sprintf("127.0.0.1:%v", port), nil
+}
+
+func (inst *instance) Copy(hostSrc string) (string, error) {
+	vmDst := filepath.Join(inst.cfg.Workdir, filepath.Base(hostSrc))
+	if err := fileutil.CopyFile(hostSrc, vmDst, false); err != nil {
+		return "", err
 	}
-	return os.Chmod(dst, 0777)
+	if err := os.Chmod(vmDst, 0777); err != nil {
+		return "", err
+	}
+	return vmDst, nil
 }
 
 func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte, <-chan error, error) {
@@ -68,11 +68,6 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 		command = strings.Replace(command, "  ", " ", -1)
 	}
 	args := strings.Split(command, " ")
-	for i, arg := range args {
-		if inst.files[arg] != "" {
-			args[i] = inst.files[arg]
-		}
-	}
 	cmd := exec.Command(args[0], args[1:]...)
 	if err := cmd.Start(); err != nil {
 		return nil, nil, err

@@ -12,30 +12,35 @@ import (
 
 // Instance represents a Linux VM or a remote physical machine.
 type Instance interface {
-	// Copy copies a hostSrc file to vmDst file (think of scp).
-	Copy(hostSrc, vmDst string) error
+	// Copy copies a hostSrc file into vm and returns file name in vm.
+	Copy(hostSrc string) (string, error)
+
+	// Forward setups forwarding from within VM to host port port
+	// and returns address to use in VM.
+	Forward(port int) (string, error)
+
 	// Run runs cmd inside of the VM (think of ssh cmd).
 	// outc receives combined cmd and kernel console output.
 	// errc receives either command Wait return error or vm.TimeoutErr.
 	Run(timeout time.Duration, command string) (outc <-chan []byte, errc <-chan error, err error)
-	// HostAddr returns ip address of the host as seen by the VM.
-	HostAddr() string
+
 	// Close stops and destroys the VM.
 	Close()
 }
 
 type Config struct {
-	Name    string
-	Index   int
-	Workdir string
-	Bin     string
-	Kernel  string
-	Cmdline string
-	Image   string
-	Sshkey  string
-	Cpu     int
-	Mem     int
-	Debug   bool
+	Name       string
+	Index      int
+	Workdir    string
+	Bin        string
+	Kernel     string
+	Cmdline    string
+	Image      string
+	Sshkey     string
+	ConsoleDev string
+	Cpu        int
+	Mem        int
+	Debug      bool
 }
 
 type ctorFunc func(cfg *Config) (Instance, error)

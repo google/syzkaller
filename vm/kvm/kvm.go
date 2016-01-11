@@ -19,6 +19,10 @@ import (
 	"github.com/google/syzkaller/vm"
 )
 
+const (
+	hostAddr = "192.168.33.1"
+)
+
 func init() {
 	vm.Register("kvm", ctor)
 }
@@ -165,10 +169,6 @@ func validateConfig(cfg *vm.Config) error {
 	return nil
 }
 
-func (inst *instance) HostAddr() string {
-	return "192.168.33.1"
-}
-
 func (inst *instance) Close() {
 	if inst.lkvm != nil {
 		inst.lkvm.Process.Kill()
@@ -181,12 +181,20 @@ func (inst *instance) Close() {
 	os.Remove(inst.sandboxPath + ".sock")
 }
 
-func (inst *instance) Copy(hostSrc, vmDst string) error {
+func (inst *instance) Forward(port int) (string, error) {
+	return fmt.Sprintf("%v:%v", hostAddr, port), nil
+}
+
+func (inst *instance) Copy(hostSrc string) (string, error) {
+	vmDst := filepath.Join("/", filepath.Base(hostSrc))
 	dst := filepath.Join(inst.sandboxPath, vmDst)
 	if err := fileutil.CopyFile(hostSrc, dst, false); err != nil {
-		return err
+		return "", err
 	}
-	return os.Chmod(dst, 0777)
+	if err := os.Chmod(dst, 0777); err != nil {
+		return "", err
+	}
+	return vmDst, nil
 }
 
 func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte, <-chan error, error) {

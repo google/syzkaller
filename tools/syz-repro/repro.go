@@ -26,9 +26,15 @@ var (
 	flagConfig = flag.String("config", "", "configuration file")
 	flagCount  = flag.Int("count", 0, "number of VMs to use (overrides config count param)")
 
-	instances    chan vm.Instance
+	instances    chan VM
 	bootRequests chan bool
 )
+
+type VM struct {
+	vm.Instance
+	execprogBin string
+	executorBin string
+}
 
 func main() {
 	flag.Parse()
@@ -56,7 +62,7 @@ func main() {
 	}
 	log.Printf("target crash: '%s'", data[crashLoc[0]:crashLoc[1]])
 
-	instances = make(chan vm.Instance, cfg.Count)
+	instances = make(chan VM, cfg.Count)
 	bootRequests = make(chan bool, cfg.Count)
 	for i := 0; i < cfg.Count; i++ {
 		bootRequests <- true
@@ -70,13 +76,15 @@ func main() {
 				if err != nil {
 					log.Fatalf("failed to create VM: %v", err)
 				}
-				if err := inst.Copy(filepath.Join(cfg.Syzkaller, "bin/syz-execprog"), "/syz-execprog"); err != nil {
+				execprogBin, err := inst.Copy(filepath.Join(cfg.Syzkaller, "bin/syz-execprog"))
+				if err != nil {
 					log.Fatalf("failed to copy to VM: %v", err)
 				}
-				if err := inst.Copy(filepath.Join(cfg.Syzkaller, "bin/syz-executor"), "/syz-executor"); err != nil {
+				executorBin, err := inst.Copy(filepath.Join(cfg.Syzkaller, "bin/syz-executor"))
+				if err != nil {
 					log.Fatalf("failed to copy to VM: %v", err)
 				}
-				instances <- inst
+				instances <- VM{inst, execprogBin, executorBin}
 			}
 		}()
 	}
@@ -165,7 +173,7 @@ func repro(cfg *config.Config, entries []*prog.LogEntry, crashLoc []int) {
 	testBin(cfg, bin)
 }
 
-func returnInstance(inst vm.Instance, res bool) {
+func returnInstance(inst VM, res bool) {
 	if res {
 		// The test crashed, discard the VM and issue another boot request.
 		bootRequests <- true
@@ -189,7 +197,8 @@ func testProg(cfg *config.Config, p *prog.Prog, multiplier int, threaded, collid
 		log.Fatalf("%v", err)
 	}
 	defer os.Remove(progFile)
-	if err := inst.Copy(progFile, "/syz-prog"); err != nil {
+	bin, err := inst.Copy(progFile)
+	if err != nil {
 		log.Fatalf("failed to copy to VM: %v", err)
 	}
 
@@ -202,8 +211,8 @@ func testProg(cfg *config.Config, p *prog.Prog, multiplier int, threaded, collid
 	repeat *= multiplier
 	timeoutSec *= multiplier
 	timeout := time.Duration(timeoutSec) * time.Second
-	command := fmt.Sprintf("/syz-execprog -executor /syz-executor -cover=0 -procs=%v -repeat=%v -threaded=%v -collide=%v /syz-prog",
-		cfg.Procs, repeat, threaded, collide)
+	command := fmt.Sprintf("%v -executor %v -cover=0 -procs=%v -repeat=%v -threaded=%v -collide=%v %v",
+		inst.execprogBin, inst.executorBin, cfg.Procs, repeat, threaded, collide, bin)
 	log.Printf("testing program (threaded=%v, collide=%v, repeat=%v, timeout=%v):\n%s\n",
 		threaded, collide, repeat, timeout, pstr)
 	return testImpl(inst, command, timeout)
@@ -216,11 +225,12 @@ func testBin(cfg *config.Config, bin string) (res bool) {
 		returnInstance(inst, res)
 	}()
 
-	if err := inst.Copy(bin, "/syz-bin"); err != nil {
+	bin, err := inst.Copy(bin)
+	if err != nil {
 		log.Fatalf("failed to copy to VM: %v", err)
 	}
 	log.Printf("testing compiled C program")
-	return testImpl(inst, "/syz-bin", 10*time.Second)
+	return testImpl(inst, bin, 10*time.Second)
 }
 
 func testImpl(inst vm.Instance, command string, timeout time.Duration) (res bool) {

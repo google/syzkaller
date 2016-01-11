@@ -170,11 +170,18 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	}
 	defer inst.Close()
 
-	if err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin/syz-fuzzer"), "/syz-fuzzer"); err != nil {
+	fwdAddr, err := inst.Forward(mgr.port)
+	if err != nil {
+		logf(0, "failed to setup port forwarding: %v", err)
+		return false
+	}
+	fuzzerBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin/syz-fuzzer"))
+	if err != nil {
 		logf(0, "failed to copy binary: %v", err)
 		return false
 	}
-	if err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin/syz-executor"), "/syz-executor"); err != nil {
+	executorBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin/syz-executor"))
+	if err != nil {
 		logf(0, "failed to copy binary: %v", err)
 		return false
 	}
@@ -201,8 +208,8 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
 	leak := first && mgr.cfg.Leak
 
-	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("/syz-fuzzer -name %v -executor /syz-executor -manager %v:%v -output=%v -procs %v -leak=%v %v %v %v",
-		vmCfg.Name, inst.HostAddr(), mgr.port, mgr.cfg.Output, mgr.cfg.Procs, leak, cover, dropprivs, calls))
+	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("%v -executor %v -name %v -manager %v -output=%v -procs %v -leak=%v %v %v %v",
+		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, cover, dropprivs, calls))
 	if err != nil {
 		logf(0, "failed to run fuzzer: %v", err)
 		return false
@@ -221,6 +228,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 				logf(0, "%v: running long enough, restarting", vmCfg.Name)
 				return true
 			default:
+				logf(0, "%v: lost connection: %v", vmCfg.Name, err)
 				mgr.saveCrasher(vmCfg.Name, "lost connection", output)
 				return true
 			}
