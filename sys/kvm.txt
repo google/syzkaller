@@ -243,18 +243,12 @@ kvm_irq_routing_entry_u [
 kvm_irq_routing_irqchip {
 	irqchip	int32
 	pin	int32
-	pad	const[0, int64]
-	pad	const[0, int64]
-	pad	const[0, int64]
 }
 
 kvm_irq_routing_msi {
 	addrlo	int32
 	addrhi	int32
 	data	int32
-	pad	const[0, int32]
-	pad	const[0, int64]
-	pad	const[0, int64]
 }
 
 kvm_irq_routing_s390_adapter {

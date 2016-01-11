@@ -64,7 +64,7 @@ sctp_pair {
 sockaddr_sctp [
 	in	sockaddr_in
 	in6	sockaddr_in6
-]
+] [varlen]
 
 sockaddr_storage_sctp [
 	in	sockaddr_storage_in
@@ -138,7 +138,7 @@ sctp_sndinfo {
 sctp_delayed_sack [
 	sack	sctp_sack_info
 	assoc	sctp_assoc_value
-]
+] [varlen]
 
 sctp_sack_info {
 	assoc 	int32
@@ -149,12 +149,12 @@ sctp_sack_info {
 sctp_maxseg [
 	assoc	sctp_assoc_value
 	int	int32
-]
+] [varlen]
 
 sctp_max_burst [
 	assoc	sctp_assoc_value
 	int	int32
-]
+] [varlen]
 
 sctp_assoc_value {
 	assoc	int32

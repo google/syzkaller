@@ -185,7 +185,7 @@ unix_pair {
 sockaddr_un [
 	file	sockaddr_un_file
 	abs	sockaddr_un_abstract
-]
+] [varlen]
 
 sockaddr_un_file {
 	family	flags[unix_socket_family, int16]
@@ -216,7 +216,7 @@ msghdr_un {
 cmsghdr_un [
 	rights	cmsghdr_un_rights
 	cred	cmsghdr_un_cred
-]
+] [varlen]
 
 cmsghdr_un_rights {
 	len	len[parent, intptr]
@@ -265,6 +265,7 @@ msghdr_alg {
 	vec	ptr[in, array[iovec_in]]
 	vlen	len[vec, intptr]
 	ctrl	ptr[in, array[cmsghdr_alg], opt]
+#TODO: ctrllen must be len in bytes
 	ctrllen	len[ctrl, intptr]
 	f	flags[send_flags, int32]
 }
@@ -273,7 +274,7 @@ cmsghdr_alg [
 	iv	cmsghdr_alg_iv
 	op	cmsghdr_alg_op
 	assoc	cmsghdr_alg_assoc
-]
+] [varlen]
 
 cmsghdr_alg_iv {
 	len	len[parent, intptr]

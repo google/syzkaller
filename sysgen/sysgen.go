@@ -69,6 +69,7 @@ type Struct struct {
 	Flds    [][]string
 	IsUnion bool
 	Packed  bool
+	Varlen  bool
 	Align   int
 }
 
@@ -329,11 +330,15 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 			if str.Packed {
 				packed = ", packed: true"
 			}
+			varlen := ""
+			if str.Varlen {
+				varlen = ", varlen: true"
+			}
 			align := ""
 			if str.Align != 0 {
 				align = fmt.Sprintf(", align: %v", str.Align)
 			}
-			fmt.Fprintf(out, "%v{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v} %v %v, %v: []Type{", typ, str.Name, false, packed, align, fields)
+			fmt.Fprintf(out, "%v{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v} %v %v %v, %v: []Type{", typ, str.Name, false, packed, align, varlen, fields)
 			for i, a := range str.Flds {
 				if i != 0 {
 					fmt.Fprintf(out, ", ")
@@ -427,6 +432,8 @@ func fmtFdKind(s string) string {
 		return "FdKvmVm"
 	case "kvmcpu":
 		return "FdKvmCpu"
+	case "sndseq":
+		return "FdSndSeq"
 	default:
 		failf("bad fd type %v", s)
 		return ""
@@ -572,21 +579,27 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 				p.Parse(p.Char())
 				for _, attr := range parseType1(p, unnamed, flags, "")[1:] {
 					if str.IsUnion {
-						failf("union %v has attribute: %v", str.Name, attr)
-					}
-					switch attr {
-					case "packed":
-						str.Packed = true
-					case "align_1":
-						str.Align = 1
-					case "align_2":
-						str.Align = 2
-					case "align_4":
-						str.Align = 4
-					case "align_8":
-						str.Align = 8
-					default:
-						failf("unknown struct %v attribute: %v", str.Name, attr)
+						switch attr {
+						case "varlen":
+							str.Varlen = true
+						default:
+							failf("unknown union %v attribute: %v", str.Name, attr)
+						}
+					} else {
+						switch attr {
+						case "packed":
+							str.Packed = true
+						case "align_1":
+							str.Align = 1
+						case "align_2":
+							str.Align = 2
+						case "align_4":
+							str.Align = 4
+						case "align_8":
+							str.Align = 8
+						default:
+							failf("unknown struct %v attribute: %v", str.Name, attr)
+						}
 					}
 				}
 				structs[str.Name] = *str

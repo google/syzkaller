@@ -36,6 +36,10 @@
 #
 # Unions are described as:
 #	unionname "[" "\n" (fieldname type "\n")+ "]"
+# Unions can have a trailing "varlen" attribute (specified in square brackets after the union),
+# which means that union length is not maximum of all option lengths,
+# but rather length of a particular chosen option (such unions can't be part of a struct,
+# because their size is not statically known).
 
 # Packages with required headers:
 # sudo apt-get install libnuma-dev
