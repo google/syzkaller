@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/fileutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/vm"
+	_ "github.com/google/syzkaller/vm/adb"
 	_ "github.com/google/syzkaller/vm/kvm"
 	_ "github.com/google/syzkaller/vm/qemu"
 )
