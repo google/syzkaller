@@ -1,0 +1,67 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+open$sndtimer(file strconst["/dev/snd/timer"], flags flags[open_flags], mode const[0]) fd[sndtimer]
+
+
+ioctl$SNDRV_TIMER_IOCTL_PVERSION(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_PVERSION], arg ptr[out, int32])
+ioctl$SNDRV_TIMER_IOCTL_NEXT_DEVICE(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_NEXT_DEVICE], arg ptr[in, snd_timer_id])
+ioctl$SNDRV_TIMER_IOCTL_TREAD(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_TREAD], arg ptr[in, int32])
+ioctl$SNDRV_TIMER_IOCTL_GINFO(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_GINFO], arg ptr[in, snd_timer_ginfo])
+ioctl$SNDRV_TIMER_IOCTL_GPARAMS(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_GPARAMS], arg ptr[in, snd_timer_gparams])
+ioctl$SNDRV_TIMER_IOCTL_GSTATUS(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_GSTATUS], arg ptr[in, snd_timer_gstatus])
+ioctl$SNDRV_TIMER_IOCTL_SELECT(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_SELECT], arg ptr[in, snd_timer_select])
+ioctl$SNDRV_TIMER_IOCTL_INFO(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_INFO], arg buffer[out])
+ioctl$SNDRV_TIMER_IOCTL_PARAMS(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_PARAMS], arg ptr[in, snd_timer_params])
+ioctl$SNDRV_TIMER_IOCTL_STATUS(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_STATUS], arg buffer[out])
+ioctl$SNDRV_TIMER_IOCTL_START(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_START])
+ioctl$SNDRV_TIMER_IOCTL_STOP(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_STOP])
+ioctl$SNDRV_TIMER_IOCTL_CONTINUE(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_CONTINUE])
+ioctl$SNDRV_TIMER_IOCTL_PAUSE(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_PAUSE])
+
+snd_timer_flags = SNDRV_TIMER_PSFLG_AUTO, SNDRV_TIMER_PSFLG_EXCLUSIVE, SNDRV_TIMER_PSFLG_EARLY_EVENT
+snd_timer_filter = SNDRV_TIMER_EVENT_RESOLUTION, SNDRV_TIMER_EVENT_TICK, SNDRV_TIMER_EVENT_START, SNDRV_TIMER_EVENT_STOP, SNDRV_TIMER_EVENT_CONTINUE, SNDRV_TIMER_EVENT_PAUSE, SNDRV_TIMER_EVENT_EARLY, SNDRV_TIMER_EVENT_SUSPEND, SNDRV_TIMER_EVENT_RESUME, SNDRV_TIMER_EVENT_MSTART, SNDRV_TIMER_EVENT_MSTOP, SNDRV_TIMER_EVENT_MCONTINUE, SNDRV_TIMER_EVENT_MPAUSE, SNDRV_TIMER_EVENT_MSUSPEND, SNDRV_TIMER_EVENT_MRESUME
+
+snd_timer_ginfo {
+	tid	snd_timer_id
+	flags	int32
+	card	int32
+# TODO: the following two fields should be a fixed-size embeded string.
+	id	array[int8, 64]
+	name	array[int8, 80]
+	pad	const[0, intptr]
+	res	intptr
+	resmin	intptr
+	resmax	intptr
+	clients	int32
+	pad	array[const[0, int8], 32]
+}
+
+snd_timer_gparams {
+	tid	snd_timer_id
+	periodn	intptr
+	periodd	intptr
+	pad	array[const[0, int8], 32]
+}
+
+snd_timer_gstatus {
+	tid	snd_timer_id
+	res	intptr
+	resnum	intptr
+	resden	intptr
+	pad	array[const[0, int8], 32]
+}
+
+snd_timer_select {
+	tid	snd_timer_id
+	pad	array[const[0, int8], 32]
+}
+
+snd_timer_params {
+	flags	flags[snd_timer_flags, int32]
+	ticks	int32
+	qsize	int32
+	pad	const[0, int32]
+	filter	flags[snd_timer_filter, int32]
+	pad	array[const[0, int8], 60]
+}
