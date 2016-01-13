@@ -211,11 +211,14 @@ int main()
 		uint64_t start = current_time_ms();
 		for (;;) {
 			int res = waitpid(pid, &status, __WALL | WNOHANG);
-			debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
-			if (res == pid)
+			int errno0 = errno;
+			if (res == pid) {
+				debug("waitpid(%d)=%d (%d)\n", pid, res, errno0);
 				break;
+			}
 			usleep(1000);
 			if (current_time_ms() - start > 5 * 1000) {
+				debug("waitpid(%d)=%d (%d)\n", pid, res, errno0);
 				debug("killing\n");
 				kill(-pid, SIGKILL);
 				kill(pid, SIGKILL);
