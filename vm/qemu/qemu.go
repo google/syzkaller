@@ -152,6 +152,7 @@ func (inst *instance) Boot() error {
 		"-numa", "node,nodeid=0,cpus=0-1", "-numa", "node,nodeid=1,cpus=2-3",
 		"-smp", "sockets=2,cores=2,threads=1",
 		"-usb", "-usbdevice", "mouse", "-usbdevice", "tablet",
+		"-soundhw", "all",
 	}
 	if inst.cfg.Kernel != "" {
 		args = append(args,

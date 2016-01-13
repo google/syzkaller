@@ -67,6 +67,9 @@ func isSupportedSyzkall(kallsyms []byte, c *sys.Call) bool {
 	case "syz_fuseblk_mount":
 		_, err := os.Stat("/dev/fuse")
 		return err == nil && syscall.Getuid() == 0
+	case "syz_open_sndctrl":
+		_, err := os.Stat("/dev/snd/controlC0")
+		return err == nil && syscall.Getuid() == 0
 	default:
 		panic("unknown syzkall")
 	}
