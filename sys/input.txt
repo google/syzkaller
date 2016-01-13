@@ -1,0 +1,19 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# There seems to be nothing special we can do with this fd.
+syz_open_dev$mouse(dev strconst["/dev/input/mouse#"], id intptr, flags flags[open_flags]) fd
+syz_open_dev$mice(dev strconst["/dev/input/mice"], id const[0], flags flags[open_flags]) fd
+
+syz_open_dev$evdev(dev strconst["/dev/input/event#"], id intptr, flags flags[open_flags]) fd[evdev]
+
+# TODO: len should be bute len of data (not array len)
+write$evdev(fd fd[evdev], data ptr[in, array[input_event]], len intptr)
+
+input_event {
+	time	timeval
+	type	int16
+	code	int16
+	val	int32
+}
+
