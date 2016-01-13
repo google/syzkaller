@@ -371,7 +371,7 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 	int i;
 	for (i = 0; i < kMaxThreads; i++) {
 		thread_t* th = &threads[i];
-		if (!th->created)
+		if (!th->created && (!flag_drop_privs || root == th->root))
 			thread_create(th, i, false);
 		if (__atomic_load_n(&th->done, __ATOMIC_ACQUIRE)) {
 			if (!th->handled)
