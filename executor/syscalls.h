@@ -875,6 +875,7 @@ call_t syscalls[] = {
 	{"syz_open_dev$mouse", 1000001},
 	{"syz_open_dev$mice", 1000001},
 	{"syz_open_dev$evdev", 1000001},
+	{"write$evdev", 1},
 
 };
 #endif
@@ -1742,6 +1743,7 @@ call_t syscalls[] = {
 	{"syz_open_dev$mouse", 1000001},
 	{"syz_open_dev$mice", 1000001},
 	{"syz_open_dev$evdev", 1000001},
+	{"write$evdev", 64},
 
 };
 #endif
