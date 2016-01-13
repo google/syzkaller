@@ -3,7 +3,7 @@
 
 include <linux/kvm.h>
 
-open$kvm(file strconst["/dev/kvm"], flags flags[open_flags], mode const[0]) fd[kvm]
+syz_open_dev$kvm(dev strconst["/dev/kvm"], id const[0], flags flags[open_flags]) fd[kvm]
 
 ioctl$KVM_CREATE_VM(fd fd[kvm], cmd const[KVM_CREATE_VM], type const[0]) fd[kvmvm]
 ioctl$KVM_GET_MSR_INDEX_LIST(fd fd[kvm], cmd const[KVM_GET_MSR_INDEX_LIST], arg ptr[in, kvm_msr_list])

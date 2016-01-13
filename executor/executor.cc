@@ -358,21 +358,10 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 		    .sys_nr) {
 	case __NR_mount:
 	case __NR_umount2:
+	case __NR_syz_open_dev:
 	case __NR_syz_fuse_mount:
 	case __NR_syz_fuseblk_mount:
-	case __NR_syz_open_sndctrl:
 		root = true;
-	default:
-		if (strcmp(syscalls[call_num]
-			       .name,
-			   "open$kvm") == 0 ||
-		    strcmp(syscalls[call_num]
-			       .name,
-			   "open$sndseq") == 0 ||
-		    strcmp(syscalls[call_num]
-			       .name,
-			   "open$sndtimer") == 0)
-			root = true;
 	}
 
 	// Find a spare thread to execute the call.
@@ -506,7 +495,23 @@ void execute_call(thread_t* th)
 		th->res = syscall(call->sys_nr, th->args[0], th->args[1], th->args[2], th->args[3], th->args[4], th->args[5]);
 		break;
 	}
-	case __NR_syz_openpts: {
+	case __NR_syz_open_dev: {
+		// syz_open_dev(dev strconst, id intptr, flags flags[open_flags]) fd
+		const char* dev = (char*)th
+				      ->args[0];
+		uint64_t id = th->args[1];
+		uint64_t flags = th->args[2];
+		char buf[128];
+		strncpy(buf, dev, sizeof(buf));
+		buf[sizeof(buf) - 1] = 0;
+		char* hash = strchr(buf, '#');
+		if (hash != NULL)
+			*hash = '0' + (char)(id % 10); // 10 devices should be enough for everyone.
+		debug("syz_open_dev(\"%s\", 0x%lx, 0)\n", buf, flags);
+		th->res = open(buf, flags, 0);
+		break;
+	}
+	case __NR_syz_open_pts: {
 		// syz_openpts(fd fd[tty], flags flags[open_flags]) fd[tty]
 		int ptyno = 0;
 		if (ioctl(th->args[0], TIOCGPTN, &ptyno) == 0) {
@@ -516,13 +521,6 @@ void execute_call(thread_t* th)
 		} else {
 			th->res = -1;
 		}
-		break;
-	}
-	case __NR_syz_dri_open: {
-		// syz_dri_open(card_id intptr, flags flags[open_flags]) fd[dri]
-		char buf[128];
-		sprintf(buf, "/dev/dri/card%lu", th->args[0]);
-		th->res = open(buf, th->args[1], 0);
 		break;
 	}
 	case __NR_syz_fuse_mount: {
@@ -580,15 +578,6 @@ void execute_call(thread_t* th)
 		}
 		th->res = fd;
 		break;
-	}
-	case __NR_syz_open_sndctrl: {
-		// syz_open_sndctrl(id intptr, flags flags[open_flags]) fd[sndctrl]
-		uint64_t id = th->args[0];
-		uint64_t flags = th->args[1];
-		char buf[128];
-
-		sprintf(buf, "/dev/snd/controlC%d", (int)(id % 4));
-		th->res = open(buf, flags);
 	}
 	}
 	th->reserrno = errno;

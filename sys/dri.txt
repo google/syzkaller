@@ -1,7 +1,7 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-syz_dri_open(card_id intptr, flags flags[open_flags]) fd[dri]
+syz_open_dev$dri(dev strconst["/dev/dri/card#"], id intptr, flags flags[open_flags]) fd[dri]
 ioctl$DRM_IOCTL_VERSION(fd fd[dri], cmd const[DRM_IOCTL_VERSION], arg ptr[in, drm_version])
 ioctl$DRM_IOCTL_GET_UNIQUE(fd fd[dri], cmd const[DRM_IOCTL_GET_UNIQUE], arg ptr[in, drm_unique])
 ioctl$DRM_IOCTL_GET_MAGIC(fd fd[dri], cmd const[DRM_IOCTL_GET_MAGIC], arg ptr[in, int32])

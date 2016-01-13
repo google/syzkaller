@@ -4,7 +4,7 @@
 include <sound/asound.h>
 include <sound/asequencer.h>
 
-open$sndseq(file strconst["/dev/snd/seq"], flags flags[open_flags], mode const[0]) fd[sndseq]
+syz_open_dev$sndseq(dev strconst["/dev/snd/seq"], id const[0], flags flags[open_flags]) fd[sndseq]
 #TODO: len must be in bytes, but if we use len type then it will number of array elements.
 write$sndseq(fd fd[sndseq], data ptr[in, array[snd_seq_event]], len intptr)
 

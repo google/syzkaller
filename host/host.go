@@ -56,22 +56,31 @@ func isSupported(kallsyms []byte, c *sys.Call) bool {
 
 func isSupportedSyzkall(kallsyms []byte, c *sys.Call) bool {
 	switch c.CallName {
-	case "syz_openpts":
-		return true
-	case "syz_dri_open":
-		_, err := os.Stat("/dev/dri/card0")
+	case "syz_open_dev":
+		ptr, ok := c.Args[0].(sys.PtrType)
+		if !ok {
+			panic("first open arg is not a pointer")
+		}
+		fname, ok := ptr.Type.(sys.StrConstType)
+		if !ok {
+			panic("first open arg is not a pointer to string const")
+		}
+		if syscall.Getuid() != 0 {
+			return false
+		}
+		dev := strings.Replace(fname.Val, "#", "0", 1)
+		_, err := os.Stat(dev)
 		return err == nil
+	case "syz_open_pts":
+		return true
 	case "syz_fuse_mount":
 		_, err := os.Stat("/dev/fuse")
 		return err == nil
 	case "syz_fuseblk_mount":
 		_, err := os.Stat("/dev/fuse")
 		return err == nil && syscall.Getuid() == 0
-	case "syz_open_sndctrl":
-		_, err := os.Stat("/dev/snd/controlC0")
-		return err == nil && syscall.Getuid() == 0
 	default:
-		panic("unknown syzkall")
+		panic("unknown syzkall: " + c.Name)
 	}
 }
 
