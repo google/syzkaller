@@ -2,7 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 open$ptmx(file strconst["/dev/ptmx"], flags flags[open_flags], mode const[0]) fd[tty]
-syz_openpts(fd fd[tty], flags flags[open_flags]) fd[tty]
+syz_open_pts(fd fd[tty], flags flags[open_flags]) fd[tty]
 ioctl$TCGETS(fd fd[tty], cmd const[TCGETS], arg ptr[out, termios])
 ioctl$TCSETS(fd fd[tty], cmd const[TCSETS], arg ptr[in, termios])
 ioctl$TCSETSW(fd fd[tty], cmd const[TCSETS], arg ptr[in, termios])
