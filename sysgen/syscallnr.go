@@ -28,6 +28,7 @@ var syzkalls = map[string]int{
 	"syz_dri_open":      1000002,
 	"syz_fuse_mount":    1000003,
 	"syz_fuseblk_mount": 1000004,
+	"syz_open_sndctrl":  1000005,
 }
 
 func generateSyscallsNumbers(syscalls []Syscall) {

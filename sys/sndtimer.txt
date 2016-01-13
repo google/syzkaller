@@ -3,7 +3,6 @@
 
 open$sndtimer(file strconst["/dev/snd/timer"], flags flags[open_flags], mode const[0]) fd[sndtimer]
 
-
 ioctl$SNDRV_TIMER_IOCTL_PVERSION(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_PVERSION], arg ptr[out, int32])
 ioctl$SNDRV_TIMER_IOCTL_NEXT_DEVICE(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_NEXT_DEVICE], arg ptr[in, snd_timer_id])
 ioctl$SNDRV_TIMER_IOCTL_TREAD(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_TREAD], arg ptr[in, int32])

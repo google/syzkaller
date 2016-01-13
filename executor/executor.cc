@@ -360,11 +360,18 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 	case __NR_umount2:
 	case __NR_syz_fuse_mount:
 	case __NR_syz_fuseblk_mount:
+	case __NR_syz_open_sndctrl:
 		root = true;
 	default:
 		if (strcmp(syscalls[call_num]
 			       .name,
-			   "open$sndseq") == 0)
+			   "open$kvm") == 0 ||
+		    strcmp(syscalls[call_num]
+			       .name,
+			   "open$sndseq") == 0 ||
+		    strcmp(syscalls[call_num]
+			       .name,
+			   "open$sndtimer") == 0)
 			root = true;
 	}
 
@@ -573,6 +580,15 @@ void execute_call(thread_t* th)
 		}
 		th->res = fd;
 		break;
+	}
+	case __NR_syz_open_sndctrl: {
+		// syz_open_sndctrl(id intptr, flags flags[open_flags]) fd[sndctrl]
+		uint64_t id = th->args[0];
+		uint64_t flags = th->args[1];
+		char buf[128];
+
+		sprintf(buf, "/dev/snd/controlC%d", (int)(id % 4));
+		th->res = open(buf, flags);
 	}
 	}
 	th->reserrno = errno;

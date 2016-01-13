@@ -436,6 +436,8 @@ func fmtFdKind(s string) string {
 		return "FdSndSeq"
 	case "sndtimer":
 		return "FdSndTimer"
+	case "sndctrl":
+		return "FdSndControl"
 	default:
 		failf("bad fd type %v", s)
 		return ""
