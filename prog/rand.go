@@ -42,10 +42,22 @@ func (r *randGen) rand64() uintptr {
 	return v
 }
 
+// Some potentially interesting integers.
+var specialInts = []uintptr{
+	0, 1, 31, 32, 63, 64, 127, 128,
+	129, 255, 256, 257, 511, 512,
+	1023, 1024, 1025, 2047, 2048, 4095, 4096,
+	(1 << 15) - 1, (1 << 15), (1 << 15) + 1,
+	(1 << 16) - 1, (1 << 16), (1 << 16) + 1,
+	(1 << 31) - 1, (1 << 31), (1 << 31) + 1,
+	(1 << 32) - 1, (1 << 32), (1 << 32) + 1,
+}
+
 func (r *randGen) randInt() uintptr {
 	v := r.rand64()
 	r.choose(
 		100, func() { v %= 10 },
+		50, func() { v = specialInts[r.Intn(len(specialInts))] },
 		10, func() { v %= 256 },
 		10, func() { v %= 4 << 10 },
 		10, func() { v %= 64 << 10 },
