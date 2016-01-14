@@ -69,6 +69,10 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 	}
 	args := strings.Split(command, " ")
 	cmd := exec.Command(args[0], args[1:]...)
+	if inst.cfg.Debug {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stdout
+	}
 	if err := cmd.Start(); err != nil {
 		return nil, nil, err
 	}
