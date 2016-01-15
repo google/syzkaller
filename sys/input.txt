@@ -1,6 +1,8 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <linux/input.h>
+
 # There seems to be nothing special we can do with this fd.
 syz_open_dev$mouse(dev strconst["/dev/input/mouse#"], id intptr, flags flags[open_flags]) fd
 syz_open_dev$mice(dev strconst["/dev/input/mice"], id const[0], flags flags[open_flags]) fd
@@ -10,6 +12,48 @@ syz_open_dev$evdev(dev strconst["/dev/input/event#"], id intptr, flags flags[ope
 # TODO: len should be bute len of data (not array len)
 write$evdev(fd fd[evdev], data ptr[in, array[input_event]], len intptr)
 
+ioctl$EVIOCGVERSION(fd fd[evdev], cmd const[EVIOCGVERSION], arg buffer[out])
+ioctl$EVIOCGID(fd fd[evdev], cmd const[EVIOCGID], arg buffer[out])
+ioctl$EVIOCGREP(fd fd[evdev], cmd const[EVIOCGREP], arg buffer[out])
+ioctl$EVIOCGKEYCODE(fd fd[evdev], cmd const[EVIOCGKEYCODE], arg buffer[out])
+ioctl$EVIOCGKEYCODE_V2(fd fd[evdev], cmd const[EVIOCGKEYCODE_V2], arg buffer[out])
+ioctl$EVIOCGEFFECTS(fd fd[evdev], cmd const[EVIOCGEFFECTS], arg buffer[out])
+ioctl$EVIOCGMASK(fd fd[evdev], cmd const[EVIOCGMASK], arg buffer[out])
+ioctl$EVIOCGNAME(fd fd[evdev], cmd const[EVIOCGNAME64], arg buffer[out])
+ioctl$EVIOCGPHYS(fd fd[evdev], cmd const[EVIOCGPHYS64], arg buffer[out])
+ioctl$EVIOCGUNIQ(fd fd[evdev], cmd const[EVIOCGUNIQ64], arg buffer[out])
+ioctl$EVIOCGPROP(fd fd[evdev], cmd const[EVIOCGPROP64], arg buffer[out])
+ioctl$EVIOCGMTSLOTS(fd fd[evdev], cmd const[EVIOCGMTSLOTS64], arg buffer[out])
+ioctl$EVIOCGKEY(fd fd[evdev], cmd const[EVIOCGKEY64], arg buffer[out])
+ioctl$EVIOCGLED(fd fd[evdev], cmd const[EVIOCGLED64], arg buffer[out])
+ioctl$EVIOCGSND(fd fd[evdev], cmd const[EVIOCGSND64], arg buffer[out])
+ioctl$EVIOCGSW(fd fd[evdev], cmd const[EVIOCGSW64], arg buffer[out])
+ioctl$EVIOCGBITKEY(fd fd[evdev], cmd const[EVIOCGBITKEY64], arg buffer[out])
+ioctl$EVIOCGBITSND(fd fd[evdev], cmd const[EVIOCGBITSND64], arg buffer[out])
+ioctl$EVIOCGBITSW(fd fd[evdev], cmd const[EVIOCGBITSW64], arg buffer[out])
+ioctl$EVIOCGABS0(fd fd[evdev], cmd const[EVIOCGABS0], arg buffer[out])
+ioctl$EVIOCGABS20(fd fd[evdev], cmd const[EVIOCGABS20], arg buffer[out])
+ioctl$EVIOCGABS2F(fd fd[evdev], cmd const[EVIOCGABS2F], arg buffer[out])
+ioctl$EVIOCGABS3F(fd fd[evdev], cmd const[EVIOCGABS3F], arg buffer[out])
+
+ioctl$EVIOCSREP(fd fd[evdev], cmd const[EVIOCSREP], arg ptr[in, array[int32, 2]])
+ioctl$EVIOCSKEYCODE(fd fd[evdev], cmd const[EVIOCSKEYCODE], arg ptr[in, array[int32, 2]])
+ioctl$EVIOCSKEYCODE_V2(fd fd[evdev], cmd const[EVIOCSKEYCODE_V2], arg ptr[in, input_keymap_entry])
+ioctl$EVIOCSFF(fd fd[evdev], cmd const[EVIOCSFF], arg ptr[in, ff_effect])
+ioctl$EVIOCRMFF(fd fd[evdev], cmd const[EVIOCRMFF], arg ptr[in, int32])
+ioctl$EVIOCGRAB(fd fd[evdev], cmd const[EVIOCGRAB], arg ptr[in, int32])
+ioctl$EVIOCREVOKE(fd fd[evdev], cmd const[EVIOCREVOKE], arg ptr[in, int32])
+ioctl$EVIOCSMASK(fd fd[evdev], cmd const[EVIOCSMASK], arg ptr[in, input_mask])
+ioctl$EVIOCSCLOCKID(fd fd[evdev], cmd const[EVIOCSCLOCKID], arg ptr[in, int32])
+ioctl$EVIOCSABS0(fd fd[evdev], cmd const[EVIOCSABS0], arg ptr[in, input_absinfo])
+ioctl$EVIOCSABS20(fd fd[evdev], cmd const[EVIOCSABS20], arg ptr[in, input_absinfo])
+ioctl$EVIOCSABS2F(fd fd[evdev], cmd const[EVIOCSABS2F], arg ptr[in, input_absinfo])
+ioctl$EVIOCSABS3F(fd fd[evdev], cmd const[EVIOCSABS3F], arg ptr[in, input_absinfo])
+
+ff_effect_type = FF_PERIODIC, FF_CONSTANT, FF_SPRING, FF_FRICTION, FF_DAMPER, FF_INERTIA, FF_RAMP
+ff_periodic_effect_wave = FF_SQUARE, FF_TRIANGLE, FF_SINE, FF_SAW_UP, FF_SAW_DOWN, FF_CUSTOM
+input_mask_type = EV_SYN, EV_KEY, EV_REL, EV_ABS, EV_MSC, EV_SW, EV_LED, EV_SND, EV_FF
+
 input_event {
 	time	timeval
 	type	int16
@@ -17,3 +61,131 @@ input_event {
 	val	int32
 }
 
+input_keymap_entry {
+	flags	int8
+	len	int8
+	index	int16
+	keycode	int32
+	scancod	array[int8, 32]
+}
+
+ff_effect {
+	type	flags[ff_effect_type, int16]
+	id	int16
+	dir	int16
+	trigger	ff_trigger
+	replay	ff_replay
+	u	ff_effect_u
+}
+
+ff_effect_u [
+	const	ff_constant_effect
+	ramp	ff_ramp_effect
+	period	ff_periodic_effect
+	cond	array[ff_condition_effect, 2]
+	rumble	ff_rumble_effect
+]
+
+ff_trigger {
+	button	int16
+	interv	int16
+}
+
+ff_replay {
+	len	int16
+	delay	int16
+}
+
+ff_constant_effect {
+	level	int16
+	envelop	ff_envelope
+}
+
+ff_ramp_effect {
+	slevel	int16
+	elevel	int16
+	envelop	ff_envelope
+}
+
+ff_periodic_effect {
+	wave	flags[ff_periodic_effect_wave, int16]
+	period	int16
+	magnit	int16
+	offset	int16
+	phase	int16
+	envelop	ff_envelope
+	len	len[custom, int32]
+	custom	array[int16]
+}
+
+ff_condition_effect {
+	rsatur	int16
+	lsatur	int16
+	rcoeff	int16
+	lcoeff	int16
+	dead	int16
+	center	int16
+}
+
+ff_rumble_effect {
+	smagnit	int16
+	wmagnit	int16
+}
+
+ff_envelope {
+	len	int16
+	level	int16
+	flen	int16
+	flevel	int16
+}
+
+input_mask {
+	type	flags[input_mask_type, int32]
+	size	int32
+	ptr	buffer[in]
+}
+
+input_absinfo {
+	val	int32
+	min	int32
+	max	int32
+	fuzz	int32
+	flag	int32
+	res	int32
+}
+
+define EV_SYN                  0x00
+define EV_KEY                  0x01
+define EV_REL                  0x02
+define EV_ABS                  0x03
+define EV_MSC                  0x04
+define EV_SW                   0x05
+define EV_LED                  0x11
+define EV_SND                  0x12
+define EV_REP                  0x14
+define EV_FF                   0x15
+define EV_PWR                  0x16
+define EV_FF_STATUS            0x17
+
+define EVIOCGMASK		_IOR('E', 0x92, int)
+define EVIOCSMASK		_IOW('E', 0x93, int)
+define EVIOCGNAME64		EVIOCGNAME(64)
+define EVIOCGPHYS64		EVIOCGPHYS(64)
+define EVIOCGUNIQ64		EVIOCGUNIQ(64)
+define EVIOCGPROP64		EVIOCGPROP(64)
+define EVIOCGMTSLOTS64		EVIOCGMTSLOTS(64)
+define EVIOCGKEY64		EVIOCGKEY(64)
+define EVIOCGLED64		EVIOCGLED(64)
+define EVIOCGSND64		EVIOCGSND(64)
+define EVIOCGSW64		EVIOCGSW(64)
+define EVIOCGBITKEY64		EVIOCGBIT(EV_KEY, 64)
+define EVIOCGBITSND64		EVIOCGBIT(EV_SND, 64)
+define EVIOCGBITSW64		EVIOCGBIT(EV_SW, 64)
+define EVIOCGABS0		EVIOCGABS(0)
+define EVIOCGABS20		EVIOCGABS(0x20)
+define EVIOCGABS2F		EVIOCGABS(0x2F)
+define EVIOCGABS3F		EVIOCGABS(0x3F)
+define EVIOCSABS0		EVIOCSABS(0)
+define EVIOCSABS20		EVIOCSABS(0x20)
+define EVIOCSABS2F		EVIOCSABS(0x2F)
+define EVIOCSABS3F		EVIOCSABS(0x3F)
