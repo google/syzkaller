@@ -357,8 +357,7 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 {
 	// Figure out whether we need root privs for this call.
 	bool root = false;
-	switch (syscalls[call_num]
-		    .sys_nr) {
+	switch (syscalls[call_num].sys_nr) {
 	case __NR_mount:
 	case __NR_umount2:
 	case __NR_syz_open_dev:
@@ -384,9 +383,7 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 	if (i == kMaxThreads)
 		exitf("out of threads");
 	thread_t* th = &threads[i];
-	debug("scheduling call %d [%s] on thread %d\n", call_index, syscalls[call_num]
-									.name,
-	      th->id);
+	debug("scheduling call %d [%s] on thread %d\n", call_index, syscalls[call_num].name, th->id);
 	if (th->ready || !th->done || !th->handled)
 		fail("bad thread state in schedule: ready=%d done=%d handled=%d", th->ready, th->done, th->handled);
 	th->copyout_pos = pos;
@@ -406,17 +403,13 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 
 void handle_completion(thread_t* th)
 {
-	debug("completion of call %d [%s] on thread %d\n", th->call_index, syscalls[th->call_num]
-									       .name,
-	      th->id);
+	debug("completion of call %d [%s] on thread %d\n", th->call_index, syscalls[th->call_num].name, th->id);
 	if (th->ready || !th->done || th->handled)
 		fail("bad thread state in completion: ready=%d done=%d handled=%d",
 		     th->ready, th->done, th->handled);
 	if (th->res != (uint64_t)-1) {
-		results[th->call_n]
-		    .executed = true;
-		results[th->call_n]
-		    .val = th->res;
+		results[th->call_n].executed = true;
+		results[th->call_n].val = th->res;
 		for (bool done = false; !done;) {
 			th->call_n++;
 			uint64_t call_num = read_input(&th->copyout_pos);
@@ -425,10 +418,8 @@ void handle_completion(thread_t* th)
 				char* addr = (char*)read_input(&th->copyout_pos);
 				uint64_t size = read_input(&th->copyout_pos);
 				uint64_t val = copyout(addr, size);
-				results[th->call_n]
-				    .executed = true;
-				results[th->call_n]
-				    .val = val;
+				results[th->call_n].executed = true;
+				results[th->call_n].val = val;
 				debug("copyout from %p\n", addr);
 				break;
 			}
@@ -500,8 +491,7 @@ void execute_call(thread_t* th)
 	}
 	case __NR_syz_open_dev: {
 		// syz_open_dev(dev strconst, id intptr, flags flags[open_flags]) fd
-		const char* dev = (char*)th
-				      ->args[0];
+		const char* dev = (char*)th->args[0];
 		uint64_t id = th->args[1];
 		uint64_t flags = th->args[2];
 		char buf[128];
@@ -606,8 +596,7 @@ void cover_open()
 		if (ioctl(th->cover_fd, KCOV_INIT_TRACE, kCoverSize))
 			fail("cover enable write failed");
 		th->cover_data = (uint32_t*)mmap(NULL, kCoverSize * sizeof(th->cover_data[0]), PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
-		if ((void*)th
-			->cover_data == MAP_FAILED)
+		if ((void*)th->cover_data == MAP_FAILED)
 			fail("cover mmap failed");
 	}
 }
@@ -724,10 +713,8 @@ uint64_t read_result(uint64_t** input_posp)
 	if (idx >= kMaxCommands)
 		fail("command refers to bad result %ld", idx);
 	uint64_t arg = default_value;
-	if (results[idx]
-		.executed) {
-		arg = results[idx]
-			  .val;
+	if (results[idx].executed) {
+		arg = results[idx].val;
 		if (op_div != 0)
 			arg = arg / op_div;
 		arg += op_add;
@@ -759,12 +746,7 @@ uint64_t current_time_ms()
 	timespec ts;
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
 		fail("clock_gettime failed");
-	return (uint64_t)ts
-		       .tv_sec *
-		   1000 +
-	       (uint64_t)ts
-		       .tv_nsec /
-		   1000000;
+	return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
 }
 
 // logical error (e.g. invalid input program)
