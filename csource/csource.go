@@ -207,3 +207,34 @@ func Build(src string) (string, error) {
 	}
 	return bin.Name(), nil
 }
+
+// Format reformats C source using clang-format.
+func Format(src []byte) ([]byte, error) {
+	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
+	cmd := exec.Command("clang-format", "-assume-filename=/src.c", "-style", style)
+	cmd.Stdin = bytes.NewReader(src)
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to format source: %v\n%v", err, stderr.String())
+	}
+	return stdout.Bytes(), nil
+}
+
+// Something acceptable for kernel developers and email-friendly.
+var style = `{
+BasedOnStyle: LLVM,
+IndentWidth: 2,
+UseTab: Never,
+BreakBeforeBraces: Linux,
+IndentCaseLabels: false,
+DerivePointerAlignment: false,
+PointerAlignment: Left,
+AlignTrailingComments: true,
+AllowShortBlocksOnASingleLine: false,
+AllowShortCaseLabelsOnASingleLine: false,
+AllowShortFunctionsOnASingleLine: false,
+AllowShortIfStatementsOnASingleLine: false,
+AllowShortLoopsOnASingleLine: false,
+ColumnLimit: 72,
+}`
