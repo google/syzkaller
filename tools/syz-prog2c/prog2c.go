@@ -39,5 +39,10 @@ func main() {
 		Collide:  *flagCollide,
 	}
 	src := csource.Write(p, opts)
+	if formatted, err := csource.Format(src); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+	} else {
+		src = formatted
+	}
 	os.Stdout.Write(src)
 }
