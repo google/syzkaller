@@ -161,7 +161,7 @@ func assignTypeAndDir(c *Call) error {
 		}
 		arg.Call = c
 		if arg.Type != nil && arg.Type.Name() != typ.Name() {
-			panic("different type is already assigned")
+			panic("different type is already assigned: " + arg.Type.Name() + " vs " + typ.Name())
 		}
 		arg.Type = typ
 		switch arg.Kind {

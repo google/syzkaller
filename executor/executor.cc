@@ -364,6 +364,12 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 	case __NR_syz_fuse_mount:
 	case __NR_syz_fuseblk_mount:
 		root = true;
+	default:
+		// Lots of dri ioctls require root.
+		// There are some generic permission checks that hopefully don't contain bugs,
+		// so let's just execute all them under root.
+		if (strncmp(syscalls[call_num].name, "ioctl$DRM", sizeof("ioctl$DRM")) == 0)
+			root = true;
 	}
 
 	// Find a spare thread to execute the call.
