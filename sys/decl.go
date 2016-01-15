@@ -63,6 +63,7 @@ const (
 	ResGid
 	ResTimerid
 	ResIocbPtr
+	ResDrmCtx
 )
 
 const (
@@ -138,7 +139,7 @@ func ResourceSubkinds(kind ResourceKind) []ResourceSubkind {
 			FdKvmCpu, FdSndSeq, FdSndTimer, FdSndControl, FdInputEvent}
 	case ResIPC:
 		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
-	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid, ResIocbPtr:
+	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid, ResIocbPtr, ResDrmCtx:
 		return []ResourceSubkind{ResAny}
 	default:
 		panic("unknown resource kind")
@@ -181,6 +182,8 @@ func (t ResourceType) Default() uintptr {
 		return 0
 	case ResTimerid:
 		return 0
+	case ResDrmCtx:
+		return 0
 	default:
 		panic("unknown resource type")
 	}
@@ -208,6 +211,8 @@ func (t ResourceType) SpecialValues() []uintptr {
 		return []uintptr{0, ^uintptr(0)}
 	case ResTimerid:
 		return []uintptr{0}
+	case ResDrmCtx:
+		return []uintptr{0}
 	default:
 		panic("unknown resource kind")
 	}
@@ -232,6 +237,8 @@ func (t ResourceType) Size() uintptr {
 	case ResGid:
 		return 4
 	case ResTimerid:
+		return 4
+	case ResDrmCtx:
 		return 4
 	default:
 		panic("unknown resource kind")

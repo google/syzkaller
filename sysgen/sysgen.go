@@ -160,6 +160,11 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 			failf("wrong number of arguments for %v arg %v want %v, got %v", typ, name, want, len(a))
 		}
 		fmt.Fprintf(out, "ResourceType{%v, Kind: ResGid}", common())
+	case "drmctx":
+		if want := 0; len(a) != want {
+			failf("wrong number of arguments for %v arg %v want %v, got %v", typ, name, want, len(a))
+		}
+		fmt.Fprintf(out, "ResourceType{%v, Kind: ResDrmCtx}", common())
 	case "fileoff":
 		var size uint64
 		if isField {
@@ -303,7 +308,10 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 		}
 		sz := "0"
 		if len(a) == 2 {
-			sz = a[1]
+			sz = flagVals[a[1]]
+			if sz == "" {
+				sz = a[1]
+			}
 		}
 		fmt.Fprintf(out, "ArrayType{%v, Type: %v, Len: %v}", common(), generateType(a[0], structs, unnamed, flags, flagVals), sz)
 	case "ptr":
@@ -723,11 +731,17 @@ func parseType1(p *Parser, unnamed map[string][]string, flags map[string][]strin
 		}
 		p.Parse(']')
 	}
-	if name == "const" && len(typ) == 2 {
+	if name == "const" && len(typ) > 1 {
 		// Create a fake flag with the const value.
 		id := fmt.Sprintf("const_flag_%v", constSeq)
 		constSeq++
-		flags[id] = typ[1:]
+		flags[id] = typ[1:2]
+	}
+	if name == "array" && len(typ) > 2 {
+		// Create a fake flag with the const value.
+		id := fmt.Sprintf("const_flag_%v", constSeq)
+		constSeq++
+		flags[id] = typ[2:3]
 	}
 	return typ
 }
