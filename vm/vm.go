@@ -61,6 +61,8 @@ func Create(typ string, cfg *Config) (Instance, error) {
 }
 
 var (
-	CrashRe    = regexp.MustCompile("Kernel panic[^\r\n]*|BUG:[^\r\n]*|kernel BUG[^\r\n]*|WARNING:[^\r\n]*|INFO:[^\r\n]*|unable to handle|general protection fault|UBSAN:[^\r\n]*|unreferenced object[^\r\n]*")
+	CrashRe    = regexp.MustCompile("Kernel panic[^\r\n]*|BUG:[^\r\n]*|kernel BUG[^\r\n]*|WARNING:[^\r\n]*|" +
+		"INFO:[^\r\n]*|unable to handle|Unable to handle kernel[^\r\n]*|general protection fault|UBSAN:[^\r\n]*|" +
+		"unreferenced object[^\r\n]*")
 	TimeoutErr = errors.New("timeout")
 )
