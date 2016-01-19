@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestCrashRe(t *testing.T) {
+func TestFindCrash(t *testing.T) {
 	tests := map[string]string{
 		`
 [   50.583499] something 
@@ -23,7 +23,7 @@ func TestCrashRe(t *testing.T) {
 		`
 [   50.583499] general protection fault: 0000 [#1] SMP KASAN
 [   50.583499] Modules linked in: 
-`: "general protection fault",
+`: "general protection fault: 0000 [#1] SMP KASAN",
 		`
 [   50.583499] BUG: unable to handle kernel NULL pointer dereference at 000000000000003a
 [   50.583499] Modules linked in: 
@@ -82,19 +82,16 @@ locks_free_lock_context+0x118/0x180()
 		tests[strings.Replace(log, "\n", "\r\n", -1)] = crash
 	}
 	for log, crash := range tests {
-		loc := CrashRe.FindStringIndex(log)
-		if loc == nil && crash != "" {
+		desc, _, _, found := FindCrash([]byte(log))
+		//t.Logf("%v\nexpect '%v', found '%v'\n", log, crash, desc)
+		if !found && crash != "" {
 			t.Fatalf("did not find crash message '%v' in:\n%v", crash, log)
 		}
-		if loc != nil && crash == "" {
-			t.Fatalf("found bogus crash message '%v' in:\n%v", log[loc[0]:loc[1]], log)
+		if found && crash == "" {
+			t.Fatalf("found bogus crash message '%v' in:\n%v", desc, log)
 		}
-		if loc == nil {
-			continue
-		}
-		crash1 := log[loc[0]:loc[1]]
-		if crash1 != crash {
-			t.Fatalf("extracted bad crash message:\n%v\nwant:\n%v", crash1, crash)
+		if desc != crash {
+			t.Fatalf("extracted bad crash message:\n%v\nwant:\n%v", desc, crash)
 		}
 	}
 }
