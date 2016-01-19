@@ -15,6 +15,7 @@ import (
 	"log"
 	"math/rand"
 	"net/rpc"
+	"net/rpc/jsonrpc"
 	"os"
 	"runtime/debug"
 	"strconv"
@@ -104,7 +105,7 @@ func main() {
 	corpusHashes = make(map[Sig]struct{})
 
 	logf(0, "dialing manager at %v", *flagManager)
-	conn, err := rpc.Dial("tcp", *flagManager)
+	conn, err := jsonrpc.Dial("tcp", *flagManager)
 	if err != nil {
 		panic(err)
 	}
