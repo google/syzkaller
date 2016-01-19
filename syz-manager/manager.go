@@ -12,6 +12,7 @@ import (
 	"log"
 	"net"
 	"net/rpc"
+	"net/rpc/jsonrpc"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -144,7 +145,16 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 	mgr.port = ln.Addr().(*net.TCPAddr).Port
 	s := rpc.NewServer()
 	s.Register(mgr)
-	go s.Accept(ln)
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				logf(0, "failed to accept an rpc connection: %v", err)
+				continue
+			}
+			go s.ServeCodec(jsonrpc.NewServerCodec(conn))
+		}
+	}()
 
 	for i := 0; i < cfg.Count; i++ {
 		first := i == 0
@@ -221,7 +231,11 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		beforeContext = 256 << 10
 		afterContext  = 64 << 10
 	)
+	ticker := time.NewTimer(time.Minute)
 	for {
+		if !ticker.Reset(time.Minute) {
+			<-ticker.C
+		}
 		select {
 		case err := <-errorC:
 			switch err {
@@ -270,7 +284,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			if matchPos < 0 {
 				matchPos = 0
 			}
-		case <-time.NewTicker(time.Minute).C:
+		case <-ticker.C:
 			mgr.saveCrasher(vmCfg.Name, "no output", output)
 			return true
 		}
@@ -395,6 +409,9 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 		last := len(mgr.candidates) - 1
 		r.Candidates = append(r.Candidates, mgr.candidates[last])
 		mgr.candidates = mgr.candidates[:last]
+	}
+	if len(mgr.candidates) == 0 {
+		mgr.candidates = nil
 	}
 
 	return nil
