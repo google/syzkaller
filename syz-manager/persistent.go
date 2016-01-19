@@ -96,7 +96,6 @@ func (ps *PersistentSet) add(data []byte) bool {
 	if _, ok := ps.m[sig]; ok {
 		return false
 	}
-	data = append([]byte{}, data...)
 	ps.m[sig] = data
 	ps.a = append(ps.a, data)
 	fname := filepath.Join(ps.dir, hex.EncodeToString(sig[:]))
