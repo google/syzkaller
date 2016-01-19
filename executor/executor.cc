@@ -86,7 +86,7 @@ struct thread_t {
 	bool root;
 	int id;
 	pthread_t th;
-	uint32_t* cover_data;
+	uintptr_t* cover_data;
 	uint64_t* copyout_pos;
 	int ready;
 	int done;
@@ -98,7 +98,7 @@ struct thread_t {
 	uint64_t args[kMaxArgs];
 	uint64_t res;
 	uint64_t reserrno;
-	uint32_t cover_size;
+	uintptr_t cover_size;
 	int cover_fd;
 };
 
@@ -124,8 +124,8 @@ uint64_t current_time_ms();
 void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
-uint32_t cover_read(thread_t* th);
-uint32_t cover_dedup(thread_t* th, uint32_t n);
+uintptr_t cover_read(thread_t* th);
+uintptr_t cover_dedup(thread_t* th, uintptr_t n);
 
 int main()
 {
@@ -440,8 +440,10 @@ void handle_completion(thread_t* th)
 		write_output(th->call_num);
 		write_output(th->res != (uint64_t)-1 ? 0 : th->reserrno);
 		write_output(th->cover_size);
+		// Truncate PCs to uint32_t assuming that they fit into 32-bits.
+		// True for x86_64 and arm64 without KASLR.
 		for (uint32_t i = 0; i < th->cover_size; i++)
-			write_output(th->cover_data[i + 1]);
+			write_output((uint32_t)th->cover_data[i + 1]);
 		completed++;
 		__atomic_store_n((uint32_t*)&output_data[0], completed, __ATOMIC_RELEASE);
 	}
@@ -601,7 +603,7 @@ void cover_open()
 			fail("open of /sys/kernel/debug/kcov failed");
 		if (ioctl(th->cover_fd, KCOV_INIT_TRACE, kCoverSize))
 			fail("cover enable write failed");
-		th->cover_data = (uint32_t*)mmap(NULL, kCoverSize * sizeof(th->cover_data[0]), PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
+		th->cover_data = (uintptr_t*)mmap(NULL, kCoverSize * sizeof(th->cover_data[0]), PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
 		if ((void*)th->cover_data == MAP_FAILED)
 			fail("cover mmap failed");
 	}
@@ -624,11 +626,11 @@ void cover_reset(thread_t* th)
 	__atomic_store_n(&th->cover_data[0], 0, __ATOMIC_RELAXED);
 }
 
-uint32_t cover_read(thread_t* th)
+uintptr_t cover_read(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
-	uint32_t n = __atomic_load_n(&th->cover_data[0], __ATOMIC_RELAXED);
+	uintptr_t n = __atomic_load_n(&th->cover_data[0], __ATOMIC_RELAXED);
 	debug("#%d: read cover = %d\n", th->id, n);
 	if (n >= kCoverSize)
 		fail("#%d: too much cover %d", th->id, n);
@@ -639,14 +641,14 @@ uint32_t cover_read(thread_t* th)
 	return n;
 }
 
-uint32_t cover_dedup(thread_t* th, uint32_t n)
+uintptr_t cover_dedup(thread_t* th, uintptr_t n)
 {
-	uint32_t* cover_data = th->cover_data + 1;
+	uintptr_t* cover_data = th->cover_data + 1;
 	std::sort(cover_data, cover_data + n);
-	uint32_t w = 0;
-	uint32_t last = 0;
-	for (uint32_t i = 0; i < n; i++) {
-		uint32_t pc = cover_data[i];
+	uintptr_t w = 0;
+	uintptr_t last = 0;
+	for (uintptr_t i = 0; i < n; i++) {
+		uintptr_t pc = cover_data[i];
 		if (pc == last)
 			continue;
 		cover_data[w++] = last = pc;
