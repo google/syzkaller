@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	_ "net/http/pprof"
 	"sort"
 	"strconv"
 	"time"
+	"unsafe"
 
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/prog"
@@ -29,6 +31,13 @@ func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
+	uptime := time.Since(mgr.startTime)
+	data := &UIData{
+		CorpusSize:  len(mgr.corpus),
+		TriageQueue: len(mgr.candidates),
+		Uptime:      fmt.Sprintf("%v", uptime),
+	}
+
 	type CallCov struct {
 		count int
 		cov   cover.Cover
@@ -41,13 +50,10 @@ func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
 		cc := calls[inp.Call]
 		cc.count++
 		cc.cov = cover.Union(cc.cov, cover.Cover(inp.Cover))
+		data.CorpusCoverMem += len(inp.Cover) * int(unsafe.Sizeof(inp.Cover[0]))
 	}
-
-	uptime := time.Since(mgr.startTime)
-	data := &UIData{
-		CorpusSize:  len(mgr.corpus),
-		TriageQueue: len(mgr.candidates),
-		Uptime:      fmt.Sprintf("%v", uptime),
+	for _, cov := range mgr.corpusCover {
+		data.CallCoverMem += len(cov) * int(unsafe.Sizeof(cov[0]))
 	}
 
 	secs := uint64(uptime) / 1e9
@@ -157,12 +163,14 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 }
 
 type UIData struct {
-	CorpusSize  int
-	TriageQueue int
-	CoverSize   int
-	Uptime      string
-	Stats       []UIStat
-	Calls       []UICallType
+	CorpusSize     int
+	TriageQueue    int
+	CoverSize      int
+	CorpusCoverMem int
+	CallCoverMem   int
+	Uptime         string
+	Stats          []UIStat
+	Calls          []UICallType
 }
 
 type UIStat struct {
@@ -212,6 +220,7 @@ var htmlTemplate = template.Must(template.New("").Parse(`
 Uptime: {{.Uptime}}<br>
 Corpus: {{.CorpusSize}}<br>
 Triage queue len: {{.TriageQueue}}<br>
+Cover mem: {{.CorpusCoverMem}} + {{.CallCoverMem}} <br>
 <a href='/cover'>Cover: {{.CoverSize}}</a> <br>
 <br>
 Stats: <br>
