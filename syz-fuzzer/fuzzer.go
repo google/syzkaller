@@ -71,7 +71,7 @@ var (
 	flakes      cover.Cover
 
 	corpusMu     sync.RWMutex
-	corpus       []Input
+	corpus       []*prog.Prog
 	corpusHashes map[Sig]struct{}
 
 	triageMu   sync.RWMutex
@@ -184,11 +184,11 @@ func main() {
 					logf(1, "#%v: mutated: %s", i, p)
 					execute(pid, env, p, &statExecFuzz)
 				} else {
-					inp := corpus[rnd.Intn(len(corpus))]
+					p0 := corpus[rnd.Intn(len(corpus))]
 					corpusMu.RUnlock()
-					p := inp.p.Clone()
+					p := p0.Clone()
 					p.Mutate(rs, programLength, ct)
-					logf(1, "#%v: mutated: %s <- %s", i, p, inp.p)
+					logf(1, "#%v: mutated: %s <- %s", i, p, p0)
 					execute(pid, env, p, &statExecFuzz)
 				}
 			}
@@ -238,9 +238,8 @@ func main() {
 					panic(err)
 				}
 				if *flagNoCover {
-					inp := Input{p, 0, nil}
 					corpusMu.Lock()
-					corpus = append(corpus, inp)
+					corpus = append(corpus, p)
 					corpusMu.Unlock()
 				} else {
 					triageMu.Lock()
@@ -327,8 +326,7 @@ func addInput(inp RpcInput) {
 	if len(diff) == 0 {
 		return
 	}
-	inp1 := Input{p, inp.CallIndex, cov}
-	corpus = append(corpus, inp1)
+	corpus = append(corpus, p)
 	corpusCover[call.CallID] = cover.Union(corpusCover[call.CallID], cov)
 	maxCover[call.CallID] = cover.Union(maxCover[call.CallID], cov)
 	corpusHashes[hash(inp.Prog)] = struct{}{}
@@ -409,7 +407,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	defer coverMu.Unlock()
 
 	corpusCover[call.CallID] = cover.Union(corpusCover[call.CallID], minCover)
-	corpus = append(corpus, inp)
+	corpus = append(corpus, inp.p)
 	corpusHashes[hash(data)] = struct{}{}
 }
 
