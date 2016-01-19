@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
-	"sync"
 
 	"github.com/google/syzkaller/sys"
 )
@@ -28,7 +27,7 @@ import (
 // constants.
 
 func CalculatePriorities(corpus []*Prog) [][]float32 {
-	static := getStaticPrio()
+	static := calcStaticPriorities()
 	dynamic := calcDynamicPrio(corpus)
 	for i, prios := range static {
 		for j, p := range prios {
@@ -36,18 +35,6 @@ func CalculatePriorities(corpus []*Prog) [][]float32 {
 		}
 	}
 	return dynamic
-}
-
-var (
-	staticOnce sync.Once
-	staticPrio [][]float32
-)
-
-func getStaticPrio() [][]float32 {
-	staticOnce.Do(func() {
-		staticPrio = calcStaticPriorities()
-	})
-	return staticPrio
 }
 
 func calcStaticPriorities() [][]float32 {
