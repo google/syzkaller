@@ -16,7 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/fileutil"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -31,7 +30,6 @@ func init() {
 type instance struct {
 	cfg     *vm.Config
 	port    int
-	image   string
 	rpipe   *os.File
 	wpipe   *os.File
 	qemu    *exec.Cmd
@@ -57,10 +55,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 }
 
 func ctorImpl(cfg *vm.Config) (vm.Instance, error) {
-	inst := &instance{
-		cfg:   cfg,
-		image: filepath.Join(cfg.Workdir, "image"),
-	}
+	inst := &instance{cfg: cfg}
 	closeInst := inst
 	defer func() {
 		if closeInst != nil {
@@ -72,10 +67,6 @@ func ctorImpl(cfg *vm.Config) (vm.Instance, error) {
 		return nil, err
 	}
 
-	os.Remove(inst.image)
-	if err := fileutil.CopyFile(inst.cfg.Image, inst.image, true); err != nil {
-		return nil, fmt.Errorf("failed to copy image file: %v", err)
-	}
 	var err error
 	inst.rpipe, inst.wpipe, err = os.Pipe()
 	if err != nil {
@@ -143,7 +134,8 @@ func (inst *instance) Boot() error {
 	}
 	// TODO: ignores inst.cfg.Cpu
 	args := []string{
-		"-hda", inst.image,
+		"-hda", inst.cfg.Image,
+		"-snapshot",
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-net", "nic",
 		"-net", fmt.Sprintf("user,host=%v,hostfwd=tcp::%v-:22", hostAddr, inst.port),
