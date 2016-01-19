@@ -249,7 +249,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			}
 		case out := <-outputC:
 			output = append(output, out...)
-			if loc := vm.CrashRe.FindAllIndex(output[matchPos:], -1); len(loc) != 0 {
+			if _, _, _, found := vm.FindCrash(output[matchPos:]); found {
 				// Give it some time to finish writing the error message.
 				timer := time.NewTimer(10 * time.Second).C
 			loop:
@@ -261,20 +261,16 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 						break loop
 					}
 				}
-				loc = vm.CrashRe.FindAllIndex(output[matchPos:], -1)
-				for i := range loc {
-					loc[i][0] += matchPos
-					loc[i][1] += matchPos
-				}
-				start := loc[0][0] - beforeContext
+				desc, start, end, _ := vm.FindCrash(output[matchPos:])
+				start = start + matchPos - beforeContext
 				if start < 0 {
 					start = 0
 				}
-				end := loc[len(loc)-1][1] + afterContext
+				end = end + matchPos + afterContext
 				if end > len(output) {
 					end = len(output)
 				}
-				mgr.saveCrasher(vmCfg.Name, string(output[loc[0][0]:loc[0][1]]), output[start:end])
+				mgr.saveCrasher(vmCfg.Name, desc, output[start:end])
 			}
 			if len(output) > 2*beforeContext {
 				copy(output, output[len(output)-beforeContext:])

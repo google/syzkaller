@@ -57,11 +57,11 @@ func main() {
 	entries := prog.ParseLog(data)
 	log.Printf("parsed %v programs", len(entries))
 
-	crashLoc := vm.CrashRe.FindIndex(data)
-	if crashLoc == nil {
+	crashDesc, crashStart, _, found := vm.FindCrash(data)
+	if !found {
 		log.Fatalf("can't find crash message in the log")
 	}
-	log.Printf("target crash: '%s'", data[crashLoc[0]:crashLoc[1]])
+	log.Printf("target crash: '%s'", crashDesc)
 
 	instances = make(chan VM, cfg.Count)
 	bootRequests = make(chan bool, cfg.Count)
@@ -90,7 +90,7 @@ func main() {
 		}()
 	}
 
-	repro(cfg, entries, crashLoc)
+	repro(cfg, entries, crashStart)
 
 	for {
 		select {
@@ -102,10 +102,10 @@ func main() {
 	}
 }
 
-func repro(cfg *config.Config, entries []*prog.LogEntry, crashLoc []int) {
+func repro(cfg *config.Config, entries []*prog.LogEntry, crashStart int) {
 	// Cut programs that were executed after crash.
 	for i, ent := range entries {
-		if ent.Start > crashLoc[0] {
+		if ent.Start > crashStart {
 			entries = entries[:i]
 			break
 		}
@@ -244,8 +244,8 @@ func testImpl(inst vm.Instance, command string, timeout time.Duration) (res bool
 		select {
 		case out := <-outc:
 			output = append(output, out...)
-			if loc := vm.CrashRe.FindIndex(output); loc != nil {
-				log.Printf("program crashed with '%s'", output[loc[0]:loc[1]])
+			if desc, _, _, found := vm.FindCrash(output); found {
+				log.Printf("program crashed with '%s'", desc)
 				return true
 			}
 		case err := <-errc:
