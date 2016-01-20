@@ -37,6 +37,7 @@ type Config struct {
 	Cmdline    string
 	Image      string
 	Sshkey     string
+	Executor   string
 	ConsoleDev string
 	Cpu        int
 	Mem        int

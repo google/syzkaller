@@ -186,12 +186,12 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		logf(0, "failed to setup port forwarding: %v", err)
 		return false
 	}
-	fuzzerBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin/syz-fuzzer"))
+	fuzzerBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin", "syz-fuzzer"))
 	if err != nil {
 		logf(0, "failed to copy binary: %v", err)
 		return false
 	}
-	executorBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin/syz-executor"))
+	executorBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin", "syz-executor"))
 	if err != nil {
 		logf(0, "failed to copy binary: %v", err)
 		return false

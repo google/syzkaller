@@ -74,9 +74,14 @@ func (inst *instance) adbOK() error {
 }
 
 func (inst *instance) adbReboot() error {
-	if _, err := inst.adb("reboot"); err != nil {
-		return fmt.Errorf("adb reboot failed: %v", err)
+	// adb reboot episodically hangs, so we use a more reliable way.
+	if _, err := inst.adb("push", inst.cfg.Executor, "/data/syz-executor"); err != nil {
+		return err
 	}
+	if _, err := inst.adb("shell", "/data/syz-executor", "reboot"); err != nil {
+		return err
+	}
+	time.Sleep(10 * time.Second)
 	for i := 0; i < 300; i++ {
 		time.Sleep(time.Second)
 		if inst.adbOK() == nil {

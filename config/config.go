@@ -199,6 +199,7 @@ func CreateVMConfig(cfg *Config) (*vm.Config, error) {
 		Cmdline:    cfg.Cmdline,
 		Image:      cfg.Image,
 		Sshkey:     cfg.Sshkey,
+		Executor:   filepath.Join(cfg.Syzkaller, "bin", "syz-executor"),
 		ConsoleDev: cfg.ConsoleDev,
 		Cpu:        cfg.Cpu,
 		Mem:        cfg.Mem,
