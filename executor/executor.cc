@@ -131,8 +131,13 @@ void cover_reset(thread_t* th);
 uintptr_t cover_read(thread_t* th);
 uintptr_t cover_dedup(thread_t* th, uintptr_t n);
 
-int main()
+int main(int argc, char** argv)
 {
+	if (argc == 2 && strcmp(argv[1], "reboot") == 0) {
+		reboot(LINUX_REBOOT_CMD_RESTART);
+		return 0;
+	}
+
 	if (mmap(&input_data[0], kMaxInput, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
 		fail("mmap of input file failed");
 	if (mmap(&output_data[0], kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0) != &output_data[0])
