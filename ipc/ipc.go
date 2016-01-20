@@ -338,11 +338,6 @@ func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.F
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stdout
 	}
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: flags&FlagNoSetpgid == 0}
-	if syscall.Getuid() == 0 {
-		// Running under root, more isolation is possible.
-		cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
-	}
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start executor binary: %v", err)
 	}
@@ -371,12 +366,6 @@ func (c *command) close() {
 }
 
 func (c *command) kill() {
-	// We started the process in its own process group and now kill the whole group.
-	// This solves a potential problem with strace:
-	// if we kill just strace, executor still runs and ReadAll below hangs.
-	if c.flags&FlagNoSetpgid == 0 {
-		syscall.Kill(-c.cmd.Process.Pid, syscall.SIGKILL)
-	}
 	syscall.Kill(c.cmd.Process.Pid, syscall.SIGKILL)
 }
 

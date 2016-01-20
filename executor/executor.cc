@@ -7,6 +7,7 @@
 #include <grp.h>
 #include <limits.h>
 #include <linux/futex.h>
+#include <linux/reboot.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -17,6 +18,9 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/prctl.h>
+#include <sys/reboot.h>
+#include <sys/resource.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
@@ -155,6 +159,15 @@ int main()
 
 	cover_open();
 
+	// Do some sandboxing in parent process.
+	struct rlimit rlim;
+	rlim.rlim_cur = rlim.rlim_max = 64 << 20;
+	setrlimit(RLIMIT_AS, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
+	setrlimit(RLIMIT_FSIZE, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 0;
+	setrlimit(RLIMIT_CORE, &rlim);
+
 	for (;;) {
 		char tmp;
 		if (read(kInPipeFd, &tmp, 1) != 1)
@@ -168,6 +181,7 @@ int main()
 		if (pid < 0)
 			fail("fork failed");
 		if (pid == 0) {
+			prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 			if (!flag_no_setpgid)
 				setpgid(0, 0);
 			unshare(CLONE_NEWNS);
