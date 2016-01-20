@@ -171,6 +171,7 @@ func parseSuppressions(cfg *Config) ([]*regexp.Regexp, error) {
 		"fatal error: runtime: out of memory",
 		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
 		"WARNING: KASAN doesn't support memory hot-add",
+		"INFO: lockdep is turned off", // printed by some sysrq that dumps scheduler state
 	}...)
 	var suppressions []*regexp.Regexp
 	for _, s := range supp {
