@@ -24,12 +24,19 @@ type instance struct {
 }
 
 func ctor(cfg *vm.Config) (vm.Instance, error) {
-	if err := validateConfig(cfg); err != nil {
-		return nil, err
-	}
 	inst := &instance{
 		cfg:    cfg,
 		closed: make(chan bool),
+	}
+	closeInst := inst
+	defer func() {
+		if closeInst != nil {
+			closeInst.Close()
+		}
+	}()
+
+	if err := validateConfig(cfg); err != nil {
+		return nil, err
 	}
 	if err := inst.adbOK(); err != nil {
 		return nil, err
@@ -37,6 +44,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	if err := inst.adbReboot(); err != nil {
 		return nil, err
 	}
+	closeInst = nil
 	return inst, nil
 }
 
