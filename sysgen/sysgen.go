@@ -434,6 +434,8 @@ func fmtFdKind(s string) string {
 		return "FdUnix"
 	case "sctp":
 		return "FdSctp"
+	case "netlink":
+		return "FdNetlink"
 	case "kvm":
 		return "FdKvm"
 	case "kvmvm":
