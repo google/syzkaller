@@ -531,7 +531,11 @@ func kmemleakInit() {
 		}
 	}
 	defer syscall.Close(fd)
-	if _, err := syscall.Write(fd, []byte("scan=off")); err != nil {
+	what := "scan=off"
+	if !*flagLeak {
+		what = "off"
+	}
+	if _, err := syscall.Write(fd, []byte(what)); err != nil {
 		panic(err)
 	}
 }
