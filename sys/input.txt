@@ -9,8 +9,7 @@ syz_open_dev$mice(dev strconst["/dev/input/mice"], id const[0], flags flags[open
 
 syz_open_dev$evdev(dev strconst["/dev/input/event#"], id intptr, flags flags[open_flags]) fd[evdev]
 
-# TODO: len should be bute len of data (not array len)
-write$evdev(fd fd[evdev], data ptr[in, array[input_event]], len intptr)
+write$evdev(fd fd[evdev], data ptr[in, array[input_event]], len bytesize[data])
 
 ioctl$EVIOCGVERSION(fd fd[evdev], cmd const[EVIOCGVERSION], arg buffer[out])
 ioctl$EVIOCGID(fd fd[evdev], cmd const[EVIOCGID], arg buffer[out])

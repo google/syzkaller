@@ -25,6 +25,7 @@ type Arg struct {
 	Kind       ArgKind
 	Dir        ArgDir
 	Val        uintptr       // value of ArgConst
+	ByteSize   uintptr       // size of an array in bytes for ArgConst
 	AddrPage   uintptr       // page index for ArgPointer address, page count for ArgPageSize
 	AddrOffset int           // page offset for ArgPointer address
 	Data       []byte        // data of ArgData

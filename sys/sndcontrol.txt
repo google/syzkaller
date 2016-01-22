@@ -74,9 +74,7 @@ snd_ctl_elem_value {
 
 snd_ctl_tlv {
 	numid	int32
-# TODO: len is byte length of tls
-#	len	len[tlv, int32]
-	len	int32
+	len	bytesize[tlv, int32]
 	tlv	array[int32]
 }
 

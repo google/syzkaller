@@ -131,6 +131,9 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						}
 						// TODO: swap elements of the array
 						size = constArg(count)
+						for _, elem := range arg.Inner {
+							size.ByteSize += elem.Size(a.Type)
+						}
 					case sys.PtrType:
 						// TODO: we don't know size for out args
 						size := uintptr(1)
@@ -168,6 +171,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 					}
 
 					// Update associated size argument if there is one.
+					// TODO: update parent size.
 					if size != nil {
 						name := arg.Type.Name()
 						if name == "" && base != nil {
@@ -179,6 +183,12 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 									panic(fmt.Sprintf("size arg is not const: %#v", *arg1))
 								}
 								arg1.Val = size.Val
+								if sz.ByteSize {
+									if size.Val != 0 && size.ByteSize == 0 {
+										panic(fmt.Sprintf("no byte size for %v in %v: size=%v", name, c.Meta.Name, size.Val))
+									}
+									arg1.Val = size.ByteSize
+								}
 								arg1.AddrPage = size.AddrPage
 								arg1.AddrOffset = size.AddrOffset
 							}
