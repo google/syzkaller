@@ -135,7 +135,7 @@ sockaddr_storage_in6 {
 }
 
 send_msghdr {
-	addr	ptr[in, sockaddr]
+	addr	ptr[in, sockaddr, opt]
 	addrlen	len[addr, int32]
 	vec	ptr[in, array[iovec_in]]
 	vlen	len[vec, intptr]
@@ -145,7 +145,7 @@ send_msghdr {
 }
 
 recv_msghdr {
-	addr	ptr[out, sockaddr]
+	addr	ptr[out, sockaddr, opt]
 	addrlen	len[addr, int32]
 	vec	ptr[in, array[iovec_out]]
 	vlen	len[vec, intptr]
