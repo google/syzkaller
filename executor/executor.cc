@@ -109,13 +109,14 @@ struct thread_t {
 };
 
 thread_t threads[kMaxThreads];
-char loop_stack[1 << 20];
+char sandbox_stack[1 << 20];
 
 __attribute__((noreturn)) void fail(const char* msg, ...);
 __attribute__((noreturn)) void error(const char* msg, ...);
 __attribute__((noreturn)) void exitf(const char* msg, ...);
 void debug(const char* msg, ...);
-int loop(void* arg);
+int sandbox(void* arg);
+void loop();
 void execute_one();
 uint64_t read_input(uint64_t** input_posp, bool peek = false);
 uint64_t read_arg(uint64_t** input_posp);
@@ -128,7 +129,6 @@ void execute_call(thread_t* th);
 void handle_completion(thread_t* th);
 void thread_create(thread_t* th, int id);
 void* worker_thread(void* arg);
-void sandbox();
 bool write_file(const char* file, const char* what, ...);
 void remove_dir(const char* dir);
 uint64_t current_time_ms();
@@ -178,11 +178,19 @@ int main(int argc, char** argv)
 	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
 	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
 
-	real_uid = getuid();
-	real_gid = getgid();
-
-	int pid = clone(loop, &loop_stack[sizeof(loop_stack) - 8],
-			CLONE_NEWUSER | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
+	int pid = -1;
+	if (flag_drop_privs) {
+		real_uid = getuid();
+		real_gid = getgid();
+		pid = clone(sandbox, &sandbox_stack[sizeof(sandbox_stack) - 8],
+			    CLONE_NEWUSER | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
+	} else {
+		pid = fork();
+		if (pid == 0) {
+			loop();
+			exit(1);
+		}
+	}
 	if (pid < 0)
 		fail("clone failed");
 	debug("spawned loop pid %d\n", pid);
@@ -198,18 +206,14 @@ int main(int argc, char** argv)
 	return 0;
 }
 
-int loop(void* arg)
+void loop()
 {
-	sandbox();
-
 	for (int iter = 0;; iter++) {
 		// Create a new private work dir for this test (removed at the end of the loop).
 		char cwdbuf[256];
-		sprintf(cwdbuf, "/%d", iter);
+		sprintf(cwdbuf, "./%d", iter);
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
-		if (chdir(cwdbuf))
-			fail("failed to chdir");
 
 		char tmp;
 		if (read(kInPipeFd, &tmp, 1) != 1)
@@ -221,6 +225,8 @@ int loop(void* arg)
 		if (pid == 0) {
 			prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 			setpgrp();
+			if (chdir(cwdbuf))
+				fail("failed to chdir");
 			close(kInPipeFd);
 			close(kOutPipeFd);
 			execute_one();
@@ -267,7 +273,7 @@ int loop(void* arg)
 	}
 }
 
-void sandbox()
+int sandbox(void* arg)
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	setpgrp();
@@ -320,6 +326,9 @@ void sandbox()
 		fail("chroot failed");
 	if (chdir("/"))
 		fail("chdir failed");
+
+	loop();
+	exit(1);
 }
 
 void execute_one()
