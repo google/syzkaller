@@ -42,7 +42,6 @@ const (
 	FlagCollide                        // collide syscalls to provoke data races
 	FlagDedupCover                     // deduplicate coverage in executor
 	FlagDropPrivs                      // impersonate nobody user
-	FlagNoSetpgid                      // don't use setpgid
 	FlagStrace                         // run executor under strace
 )
 
@@ -372,6 +371,7 @@ func (c *command) kill() {
 func (c *command) exec() (output, strace []byte, failed, hanged bool, err0 error) {
 	var tmp [1]byte
 	if _, err := c.outwp.Write(tmp[:]); err != nil {
+		output, _ = ioutil.ReadAll(c.rp)
 		err0 = fmt.Errorf("failed to write control pipe: %v", err)
 		return
 	}
@@ -391,13 +391,6 @@ func (c *command) exec() (output, strace []byte, failed, hanged bool, err0 error
 	//!!! handle c.rp overflow
 	_, readErr := c.inrp.Read(tmp[:])
 	close(done)
-	fileutil.UmountAll(c.dir)
-	os.RemoveAll(c.dir)
-	if err := os.Mkdir(c.dir, 0777); err != nil {
-		<-hang
-		err0 = fmt.Errorf("failed to create temp dir: %v", err)
-		return
-	}
 	if readErr == nil {
 		<-hang
 		return

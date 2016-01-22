@@ -33,7 +33,6 @@ var (
 	flagDedup     = flag.Bool("dedup", false, "deduplicate coverage in executor")
 	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
 	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
-	flagNoPgid    = flag.Bool("nopgid", false, "don't use setpgid syscall")
 	flagTimeout   = flag.Duration("timeout", 10*time.Second, "execution timeout")
 )
 
@@ -82,9 +81,6 @@ func main() {
 	}
 	if *flagNobody {
 		flags |= ipc.FlagDropPrivs
-	}
-	if *flagNoPgid {
-		flags |= ipc.FlagNoSetpgid
 	}
 
 	var wg sync.WaitGroup

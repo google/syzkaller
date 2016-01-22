@@ -2,6 +2,7 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 #include <algorithm>
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
@@ -18,6 +19,7 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/mount.h>
 #include <sys/prctl.h>
 #include <sys/reboot.h>
 #include <sys/resource.h>
@@ -69,7 +71,6 @@ bool flag_threaded;
 bool flag_collide;
 bool flag_deduplicate;
 bool flag_drop_privs;
-bool flag_no_setpgid;
 
 __attribute__((aligned(64 << 10))) char input_data[kMaxInput];
 __attribute__((aligned(64 << 10))) char output_data[kMaxOutput];
@@ -77,6 +78,8 @@ uint32_t* output_pos;
 int completed;
 int running;
 bool collide;
+int real_uid;
+int real_gid;
 
 struct res_t {
 	bool executed;
@@ -87,7 +90,6 @@ res_t results[kMaxCommands];
 
 struct thread_t {
 	bool created;
-	bool root;
 	int id;
 	pthread_t th;
 	uintptr_t* cover_data;
@@ -107,11 +109,13 @@ struct thread_t {
 };
 
 thread_t threads[kMaxThreads];
+char loop_stack[1 << 20];
 
 __attribute__((noreturn)) void fail(const char* msg, ...);
 __attribute__((noreturn)) void error(const char* msg, ...);
 __attribute__((noreturn)) void exitf(const char* msg, ...);
 void debug(const char* msg, ...);
+int loop(void* arg);
 void execute_one();
 uint64_t read_input(uint64_t** input_posp, bool peek = false);
 uint64_t read_arg(uint64_t** input_posp);
@@ -122,8 +126,11 @@ uint64_t copyout(char* addr, uint64_t size);
 thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, uint64_t* args, uint64_t* pos);
 void execute_call(thread_t* th);
 void handle_completion(thread_t* th);
-void thread_create(thread_t* th, int id, bool root);
+void thread_create(thread_t* th, int id);
 void* worker_thread(void* arg);
+void sandbox();
+bool write_file(const char* file, const char* what, ...);
+void remove_dir(const char* dir);
 uint64_t current_time_ms();
 void cover_open();
 void cover_enable(thread_t* th);
@@ -138,6 +145,7 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
+	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	if (mmap(&input_data[0], kMaxInput, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
 		fail("mmap of input file failed");
 	if (mmap(&output_data[0], kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0) != &output_data[0])
@@ -148,8 +156,6 @@ int main(int argc, char** argv)
 	// That's also the reason why we close kInPipeFd/kOutPipeFd below.
 	close(kInFd);
 	close(kOutFd);
-	char cwdbuf[64 << 10];
-	char* cwd = getcwd(cwdbuf, sizeof(cwdbuf));
 
 	uint64_t flags = *(uint64_t*)input_data;
 	flag_debug = flags & (1 << 0);
@@ -158,68 +164,70 @@ int main(int argc, char** argv)
 	flag_collide = flags & (1 << 3);
 	flag_deduplicate = flags & (1 << 4);
 	flag_drop_privs = flags & (1 << 5);
-	flag_no_setpgid = flags & (1 << 6);
 	if (!flag_threaded)
 		flag_collide = false;
 
 	cover_open();
 
-	// Do some sandboxing in parent process.
-	struct rlimit rlim;
-	rlim.rlim_cur = rlim.rlim_max = 64 << 20;
-	setrlimit(RLIMIT_AS, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
-	setrlimit(RLIMIT_FSIZE, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 0;
-	setrlimit(RLIMIT_CORE, &rlim);
+	// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
+	// SIGCANCEL sent to main thread causes it to exit
+	// without bringing down the whole group.
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_IGN;
+	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
+	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
 
-	for (;;) {
+	real_uid = getuid();
+	real_gid = getgid();
+
+	int pid = clone(loop, &loop_stack[sizeof(loop_stack) - 8],
+			CLONE_NEWUSER | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
+	if (pid < 0)
+		fail("clone failed");
+	debug("spawned loop pid %d\n", pid);
+	int status = 0;
+	while (waitpid(pid, &status, __WALL) != pid) {
+	}
+	status = WEXITSTATUS(status);
+	if (status == kFailStatus)
+		fail("loop failed");
+	if (status == kErrorStatus)
+		error("loop errored");
+	fail("loop exited with status %d", status);
+	return 0;
+}
+
+int loop(void* arg)
+{
+	sandbox();
+
+	for (int iter = 0;; iter++) {
+		// Create a new private work dir for this test (removed at the end of the loop).
+		char cwdbuf[256];
+		sprintf(cwdbuf, "/%d", iter);
+		if (mkdir(cwdbuf, 0777))
+			fail("failed to mkdir");
+		if (chdir(cwdbuf))
+			fail("failed to chdir");
+
 		char tmp;
 		if (read(kInPipeFd, &tmp, 1) != 1)
 			fail("control pipe read failed");
-		debug("received start command\n");
-		// The dir may have been recreated.
-		if (chdir(cwd))
-			fail("failed to chdir");
 
 		int pid = fork();
 		if (pid < 0)
-			fail("fork failed");
+			fail("clone failed");
 		if (pid == 0) {
 			prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-			if (!flag_no_setpgid)
-				setpgid(0, 0);
-			unshare(CLONE_NEWNS);
+			setpgrp();
 			close(kInPipeFd);
 			close(kOutPipeFd);
-			if (flag_drop_privs) {
-				// Pre-create one thread with root privileges for execution of special syscalls (e.g. mount).
-				if (flag_threaded)
-					thread_create(&threads[kMaxThreads - 1], kMaxThreads - 1, true);
-				// TODO: 65534 is meant to be nobody
-				if (setgroups(0, NULL))
-					fail("failed to setgroups");
-				// glibc versions do not we want -- they force all threads to setuid.
-				// We want to preserve the thread above as root.
-				if (syscall(SYS_setresgid, 65534, 65534, 65534))
-					fail("failed to setresgid");
-				if (syscall(SYS_setresuid, 65534, 65534, 65534))
-					fail("failed to setresuid");
-			}
-			// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
-			// SIGCANCEL sent to main thread causes it to exit
-			// without bringing down the whole group.
-			struct sigaction sa;
-			memset(&sa, 0, sizeof(sa));
-			sa.sa_handler = SIG_IGN;
-			syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
-			syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
-
 			execute_one();
-
-			debug("exiting\n");
-			return 0;
+			debug("worker exiting\n");
+			exit(0);
 		}
+		debug("spawned worker pid %d\n", pid);
 
 		// We used to use sigtimedwait(SIGCHLD) to wait for the subprocess.
 		// But SIGCHLD is also delivered when a process stops/continues,
@@ -253,9 +261,65 @@ int main(int argc, char** argv)
 			fail("child failed");
 		if (status == kErrorStatus)
 			error("child errored");
+		remove_dir(cwdbuf);
 		if (write(kOutPipeFd, &tmp, 1) != 1)
 			fail("control pipe write failed");
 	}
+}
+
+void sandbox()
+{
+	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
+	setpgrp();
+	setsid();
+
+	struct rlimit rlim;
+	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
+	setrlimit(RLIMIT_AS, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
+	setrlimit(RLIMIT_FSIZE, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
+	setrlimit(RLIMIT_STACK, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 0;
+	setrlimit(RLIMIT_CORE, &rlim);
+
+	// CLONE_NEWIPC/CLONE_IO cause EINVAL on some systems, so we do them separately of clone.
+	unshare(CLONE_NEWIPC);
+	unshare(CLONE_IO);
+
+	// /proc/self/setgroups is not present on some systems, ignore error.
+	write_file("/proc/self/setgroups", "deny");
+	if (!write_file("/proc/self/uid_map", "0 %d 1\n", real_uid))
+		fail("write of /proc/self/uid_map failed");
+	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
+		fail("write of /proc/self/gid_map failed");
+
+	if (mkdir("./syz-tmp", 0777))
+		fail("mkdir(syz-tmp) failed");
+	if (mount("", "./syz-tmp", "tmpfs", 0, NULL))
+		fail("mount(tmpfs) failed");
+	if (mkdir("./syz-tmp/newroot", 0777))
+		fail("mkdir failed");
+	if (mkdir("./syz-tmp/newroot/dev", 0700))
+		fail("mkdir failed");
+	if (mount("/dev", "./syz-tmp/newroot/dev", NULL, MS_BIND | MS_REC | MS_PRIVATE, NULL))
+		fail("mount(dev) failed");
+	if (mkdir("./syz-tmp/pivot", 0777))
+		fail("mkdir failed");
+	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
+		debug("pivot_root failed\n");
+		if (chdir("./syz-tmp"))
+			fail("chdir failed");
+	} else {
+		if (chdir("/"))
+			fail("chdir failed");
+		if (umount2("./pivot", MNT_DETACH))
+			fail("umount failed");
+	}
+	if (chroot("./newroot"))
+		fail("chroot failed");
+	if (chdir("/"))
+		fail("chdir failed");
 }
 
 void execute_one()
@@ -374,34 +438,15 @@ retry:
 
 thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, uint64_t* args, uint64_t* pos)
 {
-	// Figure out whether we need root privs for this call.
-	bool root = false;
-	switch (syscalls[call_num].sys_nr) {
-	case __NR_mount:
-	case __NR_umount2:
-	case __NR_syz_open_dev:
-	case __NR_syz_fuse_mount:
-	case __NR_syz_fuseblk_mount:
-		root = true;
-	default:
-		// Lots of dri ioctls require root.
-		// There are some generic permission checks that hopefully don't contain bugs,
-		// so let's just execute all them under root.
-		if (strncmp(syscalls[call_num].name, "ioctl$DRM", sizeof("ioctl$DRM")) == 0)
-			root = true;
-	}
-
 	// Find a spare thread to execute the call.
 	int i;
 	for (i = 0; i < kMaxThreads; i++) {
 		thread_t* th = &threads[i];
-		if (!th->created && (!flag_drop_privs || root == th->root))
-			thread_create(th, i, false);
+		if (!th->created)
+			thread_create(th, i);
 		if (__atomic_load_n(&th->done, __ATOMIC_ACQUIRE)) {
 			if (!th->handled)
 				handle_completion(th);
-			if (flag_drop_privs && root != th->root)
-				continue;
 			break;
 		}
 	}
@@ -470,16 +515,19 @@ void handle_completion(thread_t* th)
 	running--;
 }
 
-void thread_create(thread_t* th, int id, bool root)
+void thread_create(thread_t* th, int id)
 {
 	th->created = true;
 	th->id = id;
-	th->root = root;
 	th->done = true;
 	th->handled = true;
 	if (flag_threaded) {
-		if (pthread_create(&th->th, 0, worker_thread, th))
+		pthread_attr_t attr;
+		pthread_attr_init(&attr);
+		pthread_attr_setstacksize(&attr, 128 << 10);
+		if (pthread_create(&th->th, &attr, worker_thread, th))
 			exitf("pthread_create failed");
+		pthread_attr_destroy(&attr);
 	}
 }
 
@@ -766,6 +814,93 @@ void write_output(uint32_t v)
 	if ((char*)output_pos >= output_data + kMaxOutput)
 		fail("output overflow");
 	*output_pos++ = v;
+}
+
+bool write_file(const char* file, const char* what, ...)
+{
+	char buf[1024];
+	va_list args;
+	va_start(args, what);
+	vsnprintf(buf, sizeof(buf), what, args);
+	va_end(args);
+	buf[sizeof(buf) - 1] = 0;
+	int len = strlen(buf);
+
+	int fd = open(file, O_WRONLY | O_CLOEXEC);
+	if (fd == -1)
+		return false;
+	if (write(fd, buf, len) != len) {
+		close(fd);
+		return false;
+	}
+	close(fd);
+	return true;
+}
+
+// One does not simply remove a directory.
+// There can be mounts, so we need to try to umount.
+// Moreover, a mount can be mounted several times, so we need to try to umount in a loop.
+// Moreover, after umount a dir can become non-empty again, so we need another loop.
+// Moreover, a mount can be re-mounted as read-only and then we will fail to make a dir empty.
+void remove_dir(const char* dir)
+{
+	int iter = 0;
+retry:
+	DIR* dp = opendir(dir);
+	if (dp == NULL)
+		fail("opendir(%s) failed", dir);
+	while (dirent* ep = readdir(dp)) {
+		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
+			continue;
+		char filename[FILENAME_MAX];
+		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
+		struct stat st;
+		if (lstat(filename, &st))
+			fail("lstat(%s) failed", filename);
+		if (S_ISDIR(st.st_mode)) {
+			remove_dir(filename);
+			continue;
+		}
+		for (int i = 0;; i++) {
+			debug("unlink(%s)\n", filename);
+			if (unlink(filename) == 0)
+				break;
+			if (errno == EROFS) {
+				debug("ignoring EROFS\n");
+				break;
+			}
+			if (errno != EBUSY || i > 100)
+				fail("unlink(%s) failed", filename);
+			debug("umount(%s)\n", filename);
+			if (umount2(filename, MNT_DETACH))
+				fail("umount(%s) failed", filename);
+		}
+	}
+	closedir(dp);
+	for (int i = 0;; i++) {
+		debug("rmdir(%s)\n", dir);
+		if (rmdir(dir) == 0)
+			break;
+		if (i < 100) {
+			if (errno == EROFS) {
+				debug("ignoring EROFS\n");
+				break;
+			}
+			if (errno == EBUSY) {
+				debug("umount(%s)\n", dir);
+				if (umount2(dir, MNT_DETACH))
+					fail("umount(%s) failed", dir);
+				continue;
+			}
+			if (errno == ENOTEMPTY) {
+				if (iter < 100) {
+					iter++;
+					goto retry;
+				}
+			}
+		}
+		fail("rmdir(%s) failed", dir);
+	}
 }
 
 uint64_t current_time_ms()
