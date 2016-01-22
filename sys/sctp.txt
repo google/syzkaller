@@ -17,8 +17,7 @@ recvfrom$sctp(fd fd[sctp], buf buffer[out], len len[buf], f flags[recv_flags], a
 getsockname$sctp(fd fd[sctp], addr ptr[out, sockaddr_sctp], addrlen ptr[inout, len[addr, int32]])
 getpeername$sctp(fd fd[sctp], peer ptr[out, sockaddr_sctp], peerlen ptr[inout, len[peer, int32]])
 
-# TODO: len will be length of the val array, but we need total memory size.
-setsockopt$SCTP_SOCKOPT_BINDX_ADD(fd fd[sctp], level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_ADD], val ptr[in, array[sockaddr_sctp]], len len[val])
+setsockopt$SCTP_SOCKOPT_BINDX_ADD(fd fd[sctp], level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_ADD], val ptr[in, array[sockaddr_sctp]], len bytesize[val])
 setsockopt$SCTP_SOCKOPT_BINDX_REM(fd fd[sctp], level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_REM], val ptr[in, array[sockaddr_sctp]], len len[val])
 setsockopt$SCTP_SOCKOPT_CONNECTX_OLD(fd fd[sctp], level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX_OLD], val ptr[in, sockaddr_sctp], len len[val])
 setsockopt$SCTP_SOCKOPT_CONNECTX(fd fd[sctp], level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX], val ptr[in, sockaddr_sctp], len len[val])

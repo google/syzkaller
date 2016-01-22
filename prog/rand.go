@@ -604,6 +604,12 @@ func (r *randGen) generateArgs(s *state, types []sys.Type, dir ArgDir) ([]*Arg, 
 			if size == nil {
 				panic(fmt.Sprintf("no size for %v[%v] (%+v)", a.Name(), a.Buf, sizes))
 			}
+			if a.ByteSize {
+				if size.Val != 0 && size.ByteSize == 0 {
+					panic("no byte size")
+				}
+				size = constArg(size.ByteSize)
+			}
 			args[i] = size
 		}
 	}
@@ -743,14 +749,16 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		if count == 0 {
 			count = r.rand(6)
 		}
+		sz := constArg(count)
 		var inner []*Arg
 		var calls []*Call
 		for i := uintptr(0); i < count; i++ {
 			arg1, _, calls1 := r.generateArg(s, a.Type, dir, nil)
 			inner = append(inner, arg1)
 			calls = append(calls, calls1...)
+			sz.ByteSize += arg1.Size(a.Type)
 		}
-		return groupArg(inner), constArg(count), calls
+		return groupArg(inner), sz, calls
 	case sys.StructType:
 		if ctor := isSpecialStruct(a); ctor != nil && dir != DirOut {
 			arg, calls = ctor(r, s)

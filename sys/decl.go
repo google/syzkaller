@@ -313,6 +313,7 @@ func (t VmaType) Align() uintptr {
 type LenType struct {
 	TypeCommon
 	TypeSize uintptr
+	ByteSize bool // want size in bytes instead of array size
 	Buf      string
 }
 

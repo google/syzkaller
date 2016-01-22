@@ -219,7 +219,7 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
 		fmt.Fprintf(out, "VmaType{%v}", common())
-	case "len":
+	case "len", "bytesize":
 		var size uint64
 		if isField {
 			if want := 2; len(a) != want {
@@ -231,7 +231,7 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
 		}
-		fmt.Fprintf(out, "LenType{%v, Buf: \"%v\", TypeSize: %v}", common(), a[0], size)
+		fmt.Fprintf(out, "LenType{%v, Buf: \"%v\", TypeSize: %v, ByteSize: %v}", common(), a[0], size, typ == "bytesize")
 	case "flags":
 		var size uint64
 		if isField {
