@@ -41,37 +41,34 @@
 # but rather length of a particular chosen option (such unions can't be part of a struct,
 # because their size is not statically known).
 
-# Packages with required headers:
-# sudo apt-get install libnuma-dev
-
-include <sys/types.h>
-include <sys/socket.h>
-include <sys/select.h>
-include <sys/ptrace.h>
-include <sys/fanotify.h>
-include <sys/inotify.h>
-include <sys/resource.h>
-include <sys/stat.h>
-include <sys/xattr.h>
-include <sys/mman.h>
-include <sys/time.h>
-include <sys/ipc.h>
-include <sys/shm.h>
-include <sys/msg.h>
-include <sys/sem.h>
-include <sys/prctl.h>
-include <sys/mount.h>
-include <sys/epoll.h>
-include <sys/signalfd.h>
-include <sys/eventfd.h>
-include <sys/timerfd.h>
-include <sys/personality.h>
-include <sys/wait.h>
-include <sys/user.h>
-include <sys/socket.h>
-include <sys/un.h>
-include <sys/ioctl.h>
-
+include <linux/socket.h>
+include <linux/ptrace.h>
+include <linux/fanotify.h>
+include <linux/inotify.h>
+include <linux/resource.h>
+include <linux/stat.h>
+include <linux/xattr.h>
+include <linux/mman.h>
+include <linux/time.h>
+include <linux/ipc.h>
+include <linux/shm.h>
+include <linux/msg.h>
+include <linux/sem.h>
+include <linux/prctl.h>
+include <linux/mount.h>
+include <linux/fs.h>
+include <linux/eventpoll.h>
+include <linux/signalfd.h>
+include <linux/eventfd.h>
+include <linux/timerfd.h>
+include <linux/personality.h>
+include <linux/wait.h>
+include <linux/user.h>
+include <linux/socket.h>
+include <linux/un.h>
+include <linux/ioctl.h>
+include <linux/fadvise.h>
+include <linux/falloc.h>
 include <linux/futex.h>
 include <linux/aio_abi.h>
 include <linux/kexec.h>
@@ -82,26 +79,29 @@ include <linux/fiemap.h>
 include <linux/kd.h>
 include <linux/vt.h>
 include <linux/fuse.h>
-include <linux/perf_event.h>
-include <linux/hw_breakpoint.h>
 include <linux/if_alg.h>
 include <linux/nfc.h>
 include <linux/sockios.h>
-include <linux/socket.h>
 include <linux/net_tstamp.h>
-
+include <linux/termios.h>
+include <linux/fcntl.h>
+include <linux/sched.h>
+include <linux/mqueue.h>
+include <linux/time.h>
+include <linux/mempolicy.h>
+include <linux/mman.h>
+include <linux/in.h>
+include <linux/ip.h>
+include <linux/tcp.h>
+include <linux/udp.h>
+include <linux/kcmp.h>
+include <linux/syslog.h>
+include <linux/userfaultfd.h>
+include <linux/aio_abi.h>
+include <linux/personality.h>
+include <linux/memfd.h>
+include <uapi/linux/module.h>
 include <asm/prctl.h>
-
-include <termios.h>
-include <fcntl.h>
-include <sched.h>
-include <mqueue.h>
-include <time.h>
-include <numaif.h>
-include <netinet/in.h>
-include <netinet/ip.h>
-include <netinet/tcp.h>
-include <netinet/udp.h>
 
 
 
@@ -220,8 +220,8 @@ fcntl$addseals(fd fd, cmd const[F_ADD_SEALS], seals flags[seal_types])
 ptrace(req flags[ptrace_req], pid pid)
 ptrace$peek(req flags[ptrace_req_peek], pid pid, addr ptr[out, intptr])
 ptrace$poke(req flags[ptrace_req_poke], pid pid, addr ptr[out, intptr], data intptr)
-ptrace$peekuser(req const[PTRACE_PEEKUSER], pid pid, addr intptr)
-ptrace$pokeuser(req const[PTRACE_POKEUSER], pid pid, addr intptr, data intptr)
+ptrace$peekuser(req const[PTRACE_PEEKUSR], pid pid, addr intptr)
+ptrace$pokeuser(req const[PTRACE_POKEUSR], pid pid, addr intptr, data intptr)
 ptrace$getregs(req flags[ptrace_req_getregs], pid pid, ignored intptr, data buffer[out])
 ptrace$getregset(req const[PTRACE_GETREGSET], pid pid, what flags[pthread_regset], data ptr[in, iovec_out])
 ptrace$setregs(req flags[ptrace_req_setregs], pid pid, ignored intptr, data buffer[in])
@@ -1042,7 +1042,7 @@ uffdio_zeropage {
 
 
 
-open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, O_ASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC
+open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 madvise_flags = MADV_NORMAL, MADV_RANDOM, MADV_SEQUENTIAL, MADV_WILLNEED, MADV_DONTNEED, MADV_REMOVE, MADV_DONTFORK, MADV_DOFORK, MADV_HWPOISON, MADV_SOFT_OFFLINE, MADV_MERGEABLE, MADV_UNMERGEABLE, MADV_HUGEPAGE, MADV_NOHUGEPAGE, MADV_DONTDUMP, MADV_DODUMP
 fadvise_flags = POSIX_FADV_NORMAL, POSIX_FADV_SEQUENTIAL, POSIX_FADV_RANDOM, POSIX_FADV_NOREUSE, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED
@@ -1069,7 +1069,7 @@ eventfd_flags = EFD_CLOEXEC, EFD_NONBLOCK, EFD_SEMAPHORE
 timerfd_create_flags = TFD_NONBLOCK, TFD_CLOEXEC
 timerfd_settime_flags = TFD_TIMER_ABSTIME
 clock_type = CLOCK_REALTIME, CLOCK_REALTIME_COARSE, CLOCK_MONOTONIC, CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_RAW, CLOCK_BOOTTIME, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
-lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_PREADX, IOCB_CMD_POLL, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV
+lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV
 iocb_flags = IOCB_FLAG_RESFD
 iocb_key = 0
 sigev_notify = SIGEV_NONE, SIGEV_SIGNAL, SIGEV_THREAD
@@ -1084,7 +1084,7 @@ prctl_mm_option = PR_SET_MM_START_CODE, PR_SET_MM_END_CODE, PR_SET_MM_START_DATA
 arch_prctl_code = ARCH_SET_FS, ARCH_GET_FS, ARCH_SET_GS, ARCH_GET_GS
 epoll_flags = EPOLL_CLOEXEC
 epoll_op = EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
-epoll_ev =  EPOLLIN, EPOLLOUT, EPOLLRDHUP, EPOLLPRI, EPOLLERR, EPOLLHUP, EPOLLET, EPOLLONESHOT
+epoll_ev =  POLLIN, POLLOUT, POLLRDHUP, POLLPRI, POLLERR, POLLHUP, EPOLLET, EPOLLONESHOT
 msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 msg_flags = IPC_NOWAIT, MSG_EXCEPT, MSG_NOERROR
 msgctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, MSG_INFO, MSG_STAT
@@ -1116,7 +1116,7 @@ fanotify_flags = FAN_CLASS_PRE_CONTENT, FAN_CLASS_CONTENT, FAN_CLASS_NOTIF, FAN_
 fanotify_events = O_RDONLY, O_WRONLY, O_RDWR, O_LARGEFILE, O_CLOEXEC, O_APPEND, O_DSYNC, O_NOATIME, O_NONBLOCK, O_SYNC
 fanotify_mark = FAN_MARK_ADD, FAN_MARK_REMOVE, FAN_MARK_FLUSH, FAN_MARK_DONT_FOLLOW, FAN_MARK_ONLYDIR, FAN_MARK_MOUNT, FAN_MARK_IGNORED_MASK, FAN_MARK_IGNORED_SURV_MODIFY
 fanotify_mask = FAN_ACCESS, FAN_MODIFY, FAN_CLOSE_WRITE, FAN_CLOSE_NOWRITE, FAN_OPEN, FAN_OPEN_PERM, FAN_ACCESS_PERM, FAN_ONDIR, FAN_EVENT_ON_CHILD
-faccessat_flags = AT_EACCESS, AT_SYMLINK_NOFOLLOW
+faccessat_flags = 0x100, 0x200, 0x400, 0x800, 0x1000
 clone_flags = CLONE_CHILD_CLEARTID, CLONE_CHILD_SETTID, CLONE_FILES, CLONE_FS, CLONE_IO, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWNS, CLONE_NEWPID, CLONE_NEWUTS, CLONE_PARENT, CLONE_PARENT_SETTID, CLONE_PTRACE, CLONE_SETTLS, CLONE_SIGHAND, CLONE_SYSVSEM, CLONE_THREAD, CLONE_UNTRACED, CLONE_VFORK, CLONE_VM
 futex_op = FUTEX_WAIT, FUTEX_WAIT_BITSET, FUTEX_WAKE, FUTEX_REQUEUE, FUTEX_CMP_REQUEUE
 sync_file_flags = SYNC_FILE_RANGE_WAIT_BEFORE, SYNC_FILE_RANGE_WRITE, SYNC_FILE_RANGE_WAIT_AFTER
@@ -1124,12 +1124,12 @@ kcmp_flags = KCMP_FILE, KCMP_FILES, KCMP_FS, KCMP_IO, KCMP_SIGHAND, KCMP_SYSVSEM
 rusage_who = RUSAGE_SELF, RUSAGE_CHILDREN, RUSAGE_THREAD
 rlimit_type = RLIMIT_AS, RLIMIT_CORE, RLIMIT_CPU, RLIMIT_DATA, RLIMIT_FSIZE, RLIMIT_LOCKS, RLIMIT_MEMLOCK, RLIMIT_MSGQUEUE, RLIMIT_NICE, RLIMIT_NOFILE, RLIMIT_NPROC, RLIMIT_RSS, RLIMIT_RTPRIO, RLIMIT_RTTIME, RLIMIT_SIGPENDING, RLIMIT_STACK
 # The ones that disable console output are intentionally omitted.
-syslog_cmd = SYSLOG_ACTION_CLOSE, SYSLOG_ACTION_OPEN, SYSLOG_ACTION_READ, SYSLOG_ACTION_READ_ALL, SYSLOG_ACTION_READ_CLEAR, SYSLOG_ACTION_CLEAR, SYSLOG_ACTION_CONSOLE_ON, SYSLOG_ACTION_SIZE_UNREAD, SYSLOG_ACTION_SIZE_BUFFER
+syslog_cmd = SYSLOG_ACTION_CLOSE, SYSLOG_ACTION_OPEN, SYSLOG_ACTION_READ, SYSLOG_ACTION_READ_ALL, SYSLOG_ACTION_READ_CLEAR, SYSLOG_ACTION_CLEAR, SYSLOG_ACTION_CONSOLE_ON, SYSLOG_ACTION_CONSOLE_OFF, SYSLOG_ACTION_SIZE_UNREAD, SYSLOG_ACTION_SIZE_BUFFER
 ioprio_which_pid = IOPRIO_WHO_PROCESS, IOPRIO_WHO_PGRP
 ioprio_which_uid = IOPRIO_WHO_USER
 setxattr_flags = XATTR_CREATE, XATTR_REPLACE
 ns_type = 0, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWUTS
-personality_flags = SYZ_PER_LINUX, SYZ_PER_SVR4, SYZ_PER_SVR3, SYZ_PER_OSR5, SYZ_PER_WYSEV386, SYZ_PER_ISCR4, SYZ_PER_BSD, SYZ_PER_XENIX, SYZ_PER_LINUX32, SYZ_PER_IRIX32, SYZ_PER_IRIXN32, SYZ_PER_IRIX64, SYZ_PER_RISCOS, SYZ_PER_SOLARIS, SYZ_PER_UW7, SYZ_PER_OSF4, SYZ_PER_HPUX, ADDR_NO_RANDOMIZE, MMAP_PAGE_ZERO, ADDR_COMPAT_LAYOUT, READ_IMPLIES_EXEC, ADDR_LIMIT_32BIT, SHORT_INODE, WHOLE_SECONDS, STICKY_TIMEOUTS, ADDR_LIMIT_3GB
+personality_flags = PER_LINUX, PER_SVR4, PER_SVR3, PER_OSR5, PER_WYSEV386, PER_ISCR4, PER_BSD, PER_XENIX, PER_LINUX32, PER_IRIX32, PER_IRIXN32, PER_IRIX64, PER_RISCOS, PER_SOLARIS, PER_UW7, PER_OSF4, PER_HPUX, ADDR_NO_RANDOMIZE, MMAP_PAGE_ZERO, ADDR_COMPAT_LAYOUT, READ_IMPLIES_EXEC, ADDR_LIMIT_32BIT, SHORT_INODE, WHOLE_SECONDS, STICKY_TIMEOUTS, ADDR_LIMIT_3GB
 sysfs_opt1 = 1
 sysfs_opt2 = 2
 sysfs_opt3 = 3
@@ -1142,7 +1142,7 @@ sigaction_flags = SA_NOCLDSTOP,SA_NOCLDWAIT, SA_NODEFER, SA_ONSTACK, SA_RESETHAN
 timer_flags = 0, TIMER_ABSTIME
 utimensat_flags = 0, AT_SYMLINK_NOFOLLOW
 priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
-sched_policy = SCHED_OTHER, SCHED_BATCH, SCHED_IDLE, SCHED_FIFO, SCHED_RR, SCHED_DEADLINE
+sched_policy = SCHED_NORMAL, SCHED_BATCH, SCHED_IDLE, SCHED_FIFO, SCHED_RR, SCHED_DEADLINE
 sched_attr_flags = 0
 sched_attr_flags2 = 0, SCHED_FLAG_RESET_ON_FORK
 sched_attr_size = 48
@@ -1160,7 +1160,7 @@ fcntl_dupfd = F_DUPFD, F_DUPFD_CLOEXEC
 fcntl_getflags = F_GETFD, F_GETFL, F_GETSIG, F_GETLEASE, F_GETPIPE_SZ, F_GET_SEALS
 fcntl_lock = F_SETLK, F_SETLKW, F_GETLK
 fcntl_flags = FD_CLOEXEC
-fcntl_status = O_APPEND, O_ASYNC, O_DIRECT, O_NOATIME, O_NONBLOCK
+fcntl_status = O_APPEND, FASYNC, O_DIRECT, O_NOATIME, O_NONBLOCK
 flock_type = F_RDLCK, F_WRLCK, F_UNLCK
 f_owner_type = F_OWNER_TID, F_OWNER_PID, F_OWNER_PGRP
 fcntl_notify = DN_MULTISHOT, DN_ACCESS, DN_MODIFY, DN_CREATE, DN_DELETE, DN_RENAME, DN_ATTRIB
@@ -1171,91 +1171,6 @@ ioctl_int_out = FIOQSIZE, FIGETBSZ
 fiemap_flags = FIEMAP_FLAG_SYNC, FIEMAP_FLAG_XATTR, FIEMAP_FLAG_CACHE
 fiemap_extent_flags = FIEMAP_EXTENT_LAST, FIEMAP_EXTENT_UNKNOWN, FIEMAP_EXTENT_DELALLOC, FIEMAP_EXTENT_ENCODED, FIEMAP_EXTENT_DATA_ENCRYPTED, FIEMAP_EXTENT_NOT_ALIGNED, FIEMAP_EXTENT_DATA_INLINE, FIEMAP_EXTENT_DATA_TAIL, FIEMAP_EXTENT_UNWRITTEN, FIEMAP_EXTENT_MERGED, FIEMAP_EXTENT_SHARED
 getrandom_flags = GRND_NONBLOCK, GRND_RANDOM
-
-
-
-
-# Values that are not available with outdated headers.
-define MAP_UNINITIALIZED	0x4000000
-define MADV_SOFT_OFFLINE	101
-define MPOL_F_STATIC_NODES	(1 << 15)
-define MPOL_F_RELATIVE_NODES	(1 << 14)
-define PTRACE_SYSEMU		31
-define PTRACE_SYSEMU_SINGLESTEP	32
-define KCMP_FILE		0
-define KCMP_VM			1
-define KCMP_FILES		2
-define KCMP_FS			3
-define KCMP_SIGHAND		4
-define KCMP_IO			5
-define KCMP_SYSVSEM		6
-define RENAME_NOREPLACE		(1 << 0)
-define RENAME_EXCHANGE		(1 << 1)
-define RENAME_WHITEOUT		(1 << 2)
-define IOCB_CMD_PREADX		4
-define IOCB_CMD_POLL		5
-define IOPRIO_WHO_PROCESS	1
-define IOPRIO_WHO_PGRP		2
-define IOPRIO_WHO_USER		3
-define MODULE_INIT_IGNORE_MODVERSIONS	1
-define MODULE_INIT_IGNORE_VERMAGIC	2
-define SYSLOG_ACTION_CLOSE		0
-define SYSLOG_ACTION_OPEN		1
-define SYSLOG_ACTION_READ		2
-define SYSLOG_ACTION_READ_ALL		3
-define SYSLOG_ACTION_READ_CLEAR		4
-define SYSLOG_ACTION_CLEAR		5
-define SYSLOG_ACTION_CONSOLE_OFF	6
-define SYSLOG_ACTION_CONSOLE_ON		7
-define SYSLOG_ACTION_CONSOLE_LEVEL	8
-define SYSLOG_ACTION_SIZE_UNREAD	9
-define SYSLOG_ACTION_SIZE_BUFFER	10
-define SYZ_PER_LINUX		0x0000
-define SYZ_PER_SVR4		0x0001
-define SYZ_PER_SVR3		0x0002
-define SYZ_PER_OSR5		0x0003
-define SYZ_PER_WYSEV386		0x0004
-define SYZ_PER_ISCR4		0x0005
-define SYZ_PER_BSD		0x0006
-define SYZ_PER_XENIX		0x0007
-define SYZ_PER_LINUX32		0x0008
-define SYZ_PER_IRIX32		0x0009
-define SYZ_PER_IRIXN32		0x000a
-define SYZ_PER_IRIX64		0x000b
-define SYZ_PER_RISCOS		0x000c
-define SYZ_PER_SOLARIS 		0x000d
-define SYZ_PER_UW7		0x000e
-define SYZ_PER_OSF4		0x000f
-define SYZ_PER_HPUX		0x0010
-define SCHED_DEADLINE		6
-define SCHED_FLAG_RESET_ON_FORK	1
-define IP_PMTUDISC_INTERFACE	4
-define IP_PMTUDISC_OMIT		5
-define IP_NODEFRAG		22
-define IP_CHECKSUM		23
-define IP_BIND_ADDRESS_NO_PORT	24
-define IPV6_FLOWINFO		11
-define MFD_CLOEXEC		0x0001U
-define MFD_ALLOW_SEALING	0x0002U
-define F_ADD_SEALS		(1024 + 9)
-define F_GET_SEALS		(1024 + 10)
-define F_SEAL_SEAL		0x0001
-define F_SEAL_SHRINK		0x0002
-define F_SEAL_GROW		0x0004
-define F_SEAL_WRITE		0x0008
-define GRND_NONBLOCK		0x0001
-define GRND_RANDOM		0x0002
-define MLOCK_ONFAULT		0x01
-define UFFDIO_API			_IOWR(0xAA, (0x3F), int)
-define UFFDIO_REGISTER			_IOWR(0xAA, (0x00), int)
-define UFFDIO_UNREGISTER		_IOR(0xAA, (0x01), int)
-define UFFDIO_WAKE			_IOR(0xAA, (0x02), int)
-define UFFDIO_COPY			_IOWR(0xAA, (0x03), int)
-define UFFDIO_ZEROPAGE			_IOWR(0xAA, (0x04), int)
-define UFFDIO_REGISTER_MODE_MISSING	(1<<0)
-define UFFDIO_REGISTER_MODE_WP		(1<<1)
-define UFFDIO_COPY_MODE_DONTWAKE	(1<<0)
-define UFFDIO_ZEROPAGE_MODE_DONTWAKE	(1<<0)
 
 
 
@@ -1291,4 +1206,3 @@ define UFFDIO_ZEROPAGE_MODE_DONTWAKE	(1<<0)
 #define __NR_setdomainname 171
 #define __NR_sched_get_priority_max 146
 #define __NR_sched_get_priority_min 147
-

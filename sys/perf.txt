@@ -1,6 +1,9 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <linux/perf_event.h>
+include <linux/hw_breakpoint.h>
+
 perf_event_open(attr ptr[in, perf_event_attr], pid pid, cpu intptr, group fd[perf], flags flags[perf_flags]) fd[perf]
 
 ioctl$PERF_EVENT_IOC_ENABLE(fd fd[perf], cmd const[PERF_EVENT_IOC_ENABLE], flags intptr)
@@ -44,7 +47,3 @@ perf_event_attr {
 	regs2	int64
 	auxwm	int32
 }
-
-define PERF_FLAG_FD_CLOEXEC		(1UL << 3)
-define PERF_EVENT_IOC_SET_BPF		_IOW('$', 8, __u32)
-

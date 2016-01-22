@@ -542,7 +542,8 @@ func compileFlags(includes []string, defines map[string]string, flags map[string
 	for k := range vals {
 		valArray = append(valArray, k)
 	}
-	flagVals := fetchValues(valArray, includes, defines)
+	// TODO: should use target arch
+	flagVals := fetchValues("x86", valArray, includes, defines)
 	for i, f := range valArray {
 		vals[f] = flagVals[i]
 	}

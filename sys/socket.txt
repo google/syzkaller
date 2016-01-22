@@ -1,6 +1,18 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <linux/net_tstamp.h>
+include <linux/isdn/capilli.h>
+include <linux/crypto.h>
+include <net/bluetooth/bluetooth.h>
+include <net/bluetooth/hci_sock.h>
+include <net/bluetooth/l2cap.h>
+include <net/bluetooth/cmtp/cmtp.h>
+include <net/bluetooth/bnep/bnep.h>
+include <net/bluetooth/hidp/hidp.h>
+include <net/bluetooth/sco.h>
+include <net/bluetooth/rfcomm.h>
+
 socket(domain flags[socket_domain], type flags[socket_type], proto int8) fd[sock]
 socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, pipefd])
 accept(fd fd[sock], peer ptr[out, sockaddr, opt], peerlen ptr[inout, len[peer, int32]]) fd[sock]
@@ -149,12 +161,6 @@ cmsghdr {
 	data	array[int8]
 }
 
-define SOF_TIMESTAMPING_OPT_ID		(1<<7)
-define SOF_TIMESTAMPING_TX_SCHED	(1<<8)
-define SOF_TIMESTAMPING_TX_ACK		(1<<9)
-define SOF_TIMESTAMPING_OPT_CMSG	(1<<10)
-define SOF_TIMESTAMPING_OPT_TSONLY	(1<<11)
-
 
 
 
@@ -235,9 +241,6 @@ cmsghdr_un_cred {
 	gid	gid
 }
 
-define SCM_RIGHTS		1
-define SCM_CREDENTIALS		2
-
 
 
 
@@ -301,38 +304,6 @@ cmsghdr_alg_assoc {
 
 af_alg_type = CRYPTO_ALG_TYPE_MASK, CRYPTO_ALG_TYPE_CIPHER, CRYPTO_ALG_TYPE_COMPRESS, CRYPTO_ALG_TYPE_AEAD, CRYPTO_ALG_TYPE_BLKCIPHER, CRYPTO_ALG_TYPE_ABLKCIPHER, CRYPTO_ALG_TYPE_GIVCIPHER, CRYPTO_ALG_TYPE_DIGEST, CRYPTO_ALG_TYPE_HASH, CRYPTO_ALG_TYPE_SHASH, CRYPTO_ALG_TYPE_AHASH, CRYPTO_ALG_TYPE_RNG, CRYPTO_ALG_TYPE_AKCIPHER, CRYPTO_ALG_TYPE_PCOMPRESS, CRYPTO_ALG_LARVAL, CRYPTO_ALG_DEAD, CRYPTO_ALG_DYING, CRYPTO_ALG_ASYNC, CRYPTO_ALG_NEED_FALLBACK, CRYPTO_ALG_GENIV, CRYPTO_ALG_TESTED, CRYPTO_ALG_INSTANCE, CRYPTO_ALG_KERN_DRIVER_ONLY, CRYPTO_ALG_INTERNAL
 
-define CRYPTO_ALG_TYPE_MASK		0x0000000f
-define CRYPTO_ALG_TYPE_CIPHER		0x00000001
-define CRYPTO_ALG_TYPE_COMPRESS		0x00000002
-define CRYPTO_ALG_TYPE_AEAD		0x00000003
-define CRYPTO_ALG_TYPE_BLKCIPHER	0x00000004
-define CRYPTO_ALG_TYPE_ABLKCIPHER	0x00000005
-define CRYPTO_ALG_TYPE_GIVCIPHER	0x00000006
-define CRYPTO_ALG_TYPE_DIGEST		0x00000008
-define CRYPTO_ALG_TYPE_HASH		0x00000008
-define CRYPTO_ALG_TYPE_SHASH		0x00000009
-define CRYPTO_ALG_TYPE_AHASH		0x0000000a
-define CRYPTO_ALG_TYPE_RNG		0x0000000c
-define CRYPTO_ALG_TYPE_AKCIPHER		0x0000000d
-define CRYPTO_ALG_TYPE_PCOMPRESS	0x0000000f
-define CRYPTO_ALG_LARVAL		0x00000010
-define CRYPTO_ALG_DEAD			0x00000020
-define CRYPTO_ALG_DYING			0x00000040
-define CRYPTO_ALG_ASYNC			0x00000080
-define CRYPTO_ALG_NEED_FALLBACK		0x00000100
-define CRYPTO_ALG_GENIV			0x00000200
-define CRYPTO_ALG_TESTED		0x00000400
-define CRYPTO_ALG_INSTANCE		0x00000800
-define CRYPTO_ALG_KERN_DRIVER_ONLY	0x00001000
-define CRYPTO_ALG_INTERNAL		0x00002000
-define ALG_SET_KEY			1
-define ALG_SET_IV			2
-define ALG_SET_OP			3
-define ALG_SET_AEAD_ASSOCLEN		4
-define ALG_SET_AEAD_AUTHSIZE		5
-#define AF_ALG				38
-define SOL_ALG				279
-
 
 
 
@@ -391,9 +362,6 @@ nfc_llcp_send_msghdr {
 	ctrllen	len[ctrl, intptr]
 	f	flags[send_flags, int32]
 }
-
-define SOL_NFC			280
-define NFC_PROTO_ISO15693	7
 
 
 
@@ -632,93 +600,3 @@ bt_ioctl = TIOCOUTQ, TIOCINQ, SIOCGSTAMP, SIOCGSTAMPNS
 bt_l2cap_type = SOCK_SEQPACKET, SOCK_STREAM, SOCK_DGRAM, SOCK_RAW
 bt_l2cap_lm = L2CAP_LM_MASTER, L2CAP_LM_AUTH, L2CAP_LM_ENCRYPT, L2CAP_LM_TRUSTED, L2CAP_LM_RELIABLE, L2CAP_LM_SECURE, L2CAP_LM_FIPS
 bt_rfcomm_type = SOCK_STREAM, SOCK_RAW
-
-define BTPROTO_L2CAP		0
-define BTPROTO_HCI		1
-define BTPROTO_SCO		2
-define BTPROTO_RFCOMM		3
-define BTPROTO_BNEP		4
-define BTPROTO_CMTP		5
-define BTPROTO_HIDP		6
-define BTPROTO_AVDTP		7
-
-define SOL_BLUETOOTH		274
-define SOL_HCI			0
-define SOL_L2CAP		6
-define SOL_SCO			17
-define SOL_RFCOMM		18
-
-define HCI_DATA_DIR		1
-define HCI_FILTER		2
-define HCI_TIME_STAMP		3
-
-define HCI_CHANNEL_RAW		0
-define HCI_CHANNEL_USER		1
-define HCI_CHANNEL_MONITOR	2
-define HCI_CHANNEL_CONTROL	3
-
-define HCIDEVUP			_IOW('H', 201, int)
-define HCIDEVDOWN		_IOW('H', 202, int)
-define HCIDEVRESET		_IOW('H', 203, int)
-define HCIDEVRESTAT		_IOW('H', 204, int)
-define HCIGETDEVLIST		_IOR('H', 210, int)
-define HCIGETDEVINFO		_IOR('H', 211, int)
-define HCIGETCONNLIST		_IOR('H', 212, int)
-define HCIGETCONNINFO		_IOR('H', 213, int)
-define HCIGETAUTHINFO		_IOR('H', 215, int)
-define HCISETRAW		_IOW('H', 220, int)
-define HCISETSCAN		_IOW('H', 221, int)
-define HCISETAUTH		_IOW('H', 222, int)
-define HCISETENCRYPT		_IOW('H', 223, int)
-define HCISETPTYPE		_IOW('H', 224, int)
-define HCISETLINKPOL		_IOW('H', 225, int)
-define HCISETLINKMODE		_IOW('H', 226, int)
-define HCISETACLMTU		_IOW('H', 227, int)
-define HCISETSCOMTU		_IOW('H', 228, int)
-define HCIBLOCKADDR		_IOW('H', 230, int)
-define HCIUNBLOCKADDR		_IOW('H', 231, int)
-define HCIINQUIRY		_IOR('H', 240, int)
-
-define BT_SECURITY		4
-define BT_DEFER_SETUP		7
-define BT_VOICE			11
-define BT_SNDMTU		12
-define BT_RCVMTU		13
-define BT_CHANNEL_POLICY	10
-define BT_FLUSHABLE		8
-define BT_POWER			9
-
-define SCO_OPTIONS		0x01
-define SCO_CONNINFO		0x02
-
-define L2CAP_OPTIONS		0x01
-define L2CAP_CONNINFO		0x02
-define L2CAP_LM			0x03
-
-define L2CAP_LM_MASTER		0x0001
-define L2CAP_LM_AUTH		0x0002
-define L2CAP_LM_ENCRYPT		0x0004
-define L2CAP_LM_TRUSTED		0x0008
-define L2CAP_LM_RELIABLE	0x0010
-define L2CAP_LM_SECURE		0x0020
-define L2CAP_LM_FIPS		0x0040
-
-define RFCOMM_CONNINFO		0x02
-define RFCOMM_LM		0x03
-
-define HIDPCONNADD		_IOW('H', 200, int)
-define HIDPCONNDEL		_IOW('H', 201, int)
-define HIDPGETCONNLIST		_IOR('H', 210, int)
-define HIDPGETCONNINFO		_IOR('H', 211, int)
-
-define CMTPCONNADD		_IOW('C', 200, int)
-define CMTPCONNDEL		_IOW('C', 201, int)
-define CMTPGETCONNLIST		_IOR('C', 210, int)
-define CMTPGETCONNINFO		_IOR('C', 211, int)
-
-define BNEPCONNADD		_IOW('B', 200, int)
-define BNEPCONNDEL		_IOW('B', 201, int)
-define BNEPGETCONNLIST		_IOR('B', 210, int)
-define BNEPGETCONNINFO		_IOR('B', 211, int)
-define BNEPGETSUPPFEAT		_IOR('B', 212, int)
-

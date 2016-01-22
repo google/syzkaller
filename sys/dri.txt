@@ -332,10 +332,3 @@ drm_buf_flags = _DRM_PAGE_ALIGN, _DRM_AGP_BUFFER, _DRM_SG_BUFFER, _DRM_FB_BUFFER
 drm_dma_flags = _DRM_DMA_BLOCK, _DRM_DMA_WHILE_LOCKED, _DRM_DMA_PRIORITY, _DRM_DMA_WAIT, _DRM_DMA_SMALLER_OK, _DRM_DMA_LARGER_OK
 drm_control_type = DRM_ADD_COMMAND, DRM_RM_COMMAND, DRM_INST_HANDLER, DRM_UNINST_HANDLER
 drm_vblank_seq_type = _DRM_VBLANK_ABSOLUTE, _DRM_VBLANK_RELATIVE, _DRM_VBLANK_HIGH_CRTC_MASK, _DRM_VBLANK_EVENT, _DRM_VBLANK_FLIP, _DRM_VBLANK_NEXTONMISS, _DRM_VBLANK_SECONDARY, _DRM_VBLANK_SIGNAL
-
-# TODO: all manually IO defines that use fake int size generate wrong ioctl numbers,
-# because size is part of ioctl number. We really need to somehow use headers from linux sources.
-define DRM_IOCTL_MODE_ATOMIC		DRM_IOWR(0xBC, int)
-define DRM_IOCTL_MODE_CREATEPROPBLOB	DRM_IOWR(0xBD, int)
-define DRM_IOCTL_MODE_DESTROYPROPBLOB	DRM_IOWR(0xBE, int)
-
