@@ -894,8 +894,6 @@ in_pktinfo {
 	addr	in_addr
 }
 
-# TODO: double-check padding, most likely it is messed up
-# (prog does not align fields... maybe it should)
 xfrm_filer {
 	info	xfrm_userpolicy_info
 	tmpl	xfrm_user_tmpl
