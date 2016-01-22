@@ -1,6 +1,8 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <linux/bpf.h>
+
 bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd[bpf_map]
 bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
 bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
@@ -80,29 +82,3 @@ bpf_obj_get {
 bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY
 bpf_map_flags = BPF_ANY, BPF_NOEXIST, BPF_EXIST
 bpf_prog_type = BPF_PROG_TYPE_SOCKET_FILTER, BPF_PROG_TYPE_KPROBE, BPF_PROG_TYPE_SCHED_CLS, BPF_PROG_TYPE_SCHED_ACT
-
-define BPF_MAP_CREATE			0
-define BPF_MAP_LOOKUP_ELEM		1
-define BPF_MAP_UPDATE_ELEM		2
-define BPF_MAP_DELETE_ELEM		3
-define BPF_MAP_GET_NEXT_KEY		4
-define BPF_PROG_LOAD			5
-define BPF_OBJ_PIN			6
-define BPF_OBJ_GET			7
-
-define BPF_MAP_TYPE_HASH		1
-define BPF_MAP_TYPE_ARRAY		2
-define BPF_MAP_TYPE_PROG_ARRAY		3
-define BPF_MAP_TYPE_PERF_EVENT_ARRAY	4
-
-define BPF_ANY				0
-define BPF_NOEXIST			1
-define BPF_EXIST			2
-
-define BPF_PROG_TYPE_SOCKET_FILTER	1
-define BPF_PROG_TYPE_KPROBE		2
-define BPF_PROG_TYPE_SCHED_CLS		3
-define BPF_PROG_TYPE_SCHED_ACT		4
-
-define SO_ATTACH_BPF			50
-

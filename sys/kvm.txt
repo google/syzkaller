@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <linux/kvm.h>
+include <linux/kvm_host.h>
 
 syz_open_dev$kvm(dev strconst["/dev/kvm"], id const[0], flags flags[open_flags]) fd[kvm]
 
@@ -397,13 +398,3 @@ kvm_msr_list {
 	n	len[indices, int32]
 	indices	array[int32]
 }
-
-define KVM_SMI				_IO(KVMIO, 0xb7)
-
-define KVM_MEMSLOT_INVALID		(1UL << 16)
-define KVM_MEMSLOT_INCOHERENT		(1UL << 17)
-
-define KVM_MP_STATE_STOPPED		5
-define KVM_MP_STATE_CHECK_STOP		6
-define KVM_MP_STATE_OPERATING		7
-define KVM_MP_STATE_LOAD		8

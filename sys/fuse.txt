@@ -19,8 +19,6 @@ write$fuse_notify_retrieve(fd fd[fuse], arg ptr[in, fuse_notify_retrieve_out], l
 # 1 stands for default_permissions, 2 - allow_other
 fuse_mode = 1, 2, S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IFLNK, S_IFDIR
 
-define FUSE_DEV_IOC_CLONE	_IOR(229, 0, uint32_t)
-
 fuse_init_out {
 	len	len[parent, int32]
 	err	int32

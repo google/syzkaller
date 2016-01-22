@@ -221,14 +221,3 @@ sctp_paddrthlds {
 	maxrxt	int16
 	pfthld	int16
 }
-
-define SCTP_RECVRCVINFO		32
-define SCTP_RECVNXTINFO		33
-define SCTP_DEFAULT_SNDINFO	34
-define SOL_SCTP			132
-define SCTP_INIT		0
-define SCTP_SNDRCV		1
-define SCTP_SNDINFO		2
-define SCTP_RCVINFO		3
-define SCTP_NXTINFO		4
-
