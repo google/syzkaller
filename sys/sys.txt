@@ -468,6 +468,10 @@ getrandom(buf buffer[out], len len[buf], flags flags[getrandom_flags])
 # Do only MEMBARRIER_CMD_SHARED
 membarrier(cmd const[1], flags const[0])
 
+# Uncomment on your own account.
+#syz_open_dev$char(dev const[0xc], major intptr, minor intptr) fd
+#syz_open_dev$block(dev const[0xb], major intptr, minor intptr) fd
+
 
 
 
