@@ -59,7 +59,7 @@ func isSupportedSyzkall(kallsyms []byte, c *sys.Call) bool {
 	case "syz_open_dev":
 		ptr, ok := c.Args[0].(sys.PtrType)
 		if !ok {
-			panic("first open arg is not a pointer")
+			return true
 		}
 		fname, ok := ptr.Type.(sys.StrConstType)
 		if !ok {

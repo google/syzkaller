@@ -574,18 +574,30 @@ void execute_call(thread_t* th)
 		break;
 	}
 	case __NR_syz_open_dev: {
-		// syz_open_dev(dev strconst, id intptr, flags flags[open_flags]) fd
 		const char* dev = (char*)th->args[0];
-		uint64_t id = th->args[1];
-		uint64_t flags = th->args[2];
-		char buf[128];
-		strncpy(buf, dev, sizeof(buf));
-		buf[sizeof(buf) - 1] = 0;
-		char* hash = strchr(buf, '#');
-		if (hash != NULL)
-			*hash = '0' + (char)(id % 10); // 10 devices should be enough for everyone.
-		debug("syz_open_dev(\"%s\", 0x%lx, 0)\n", buf, flags);
-		th->res = open(buf, flags, 0);
+		if ((uintptr_t)dev == 0xc || (uintptr_t)dev == 0xb) {
+			// syz_open_dev$char(dev const[0xc], major intptr, minor intptr) fd
+			// syz_open_dev$block(dev const[0xb], major intptr, minor intptr) fd
+			uint64_t major = th->args[1];
+			uint64_t minor = th->args[2];
+			uint64_t flags = O_RDWR;
+			char buf[128];
+			sprintf(buf, "/dev/%s/%d:%d", (uintptr_t)dev == 0xc ? "char" : "block", (uint8_t)major, (uint8_t)minor);
+			debug("open(\"%s\", 0x%lx)\n", buf, flags);
+			th->res = open(buf, flags, 0);
+		} else {
+			// syz_open_dev(dev strconst, id intptr, flags flags[open_flags]) fd
+			uint64_t id = th->args[1];
+			uint64_t flags = th->args[2];
+			char buf[128];
+			strncpy(buf, dev, sizeof(buf));
+			buf[sizeof(buf) - 1] = 0;
+			char* hash = strchr(buf, '#');
+			if (hash != NULL)
+				*hash = '0' + (char)(id % 10); // 10 devices should be enough for everyone.
+			debug("syz_open_dev(\"%s\", 0x%lx, 0)\n", buf, flags);
+			th->res = open(buf, flags, 0);
+		}
 		break;
 	}
 	case __NR_syz_open_pts: {
