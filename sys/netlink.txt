@@ -3,19 +3,27 @@
 
 include <uapi/linux/netlink.h>
 
-socket$netlink(domain const[AF_NETLINK], type flags[netlink_type], proto const[0]) fd[netlink]
+socket$netlink(domain const[AF_NETLINK], type const[SOCK_RAW], proto flags[netlink_proto]) fd[netlink]
 bind$netlink(fd fd[netlink], addr ptr[in, sockaddr_nl], addrlen len[addr])
 connect$netlink(fd fd[netlink], addr ptr[in, sockaddr_nl], addrlen len[addr])
 getsockname$netlink(fd fd[netlink], addr ptr[out, sockaddr_nl], addrlen ptr[inout, len[addr, int32]])
 getpeername$netlink(fd fd[netlink], peer ptr[out, sockaddr_nl], peerlen ptr[inout, len[peer, int32]])
+sendmsg$netlink(fd fd[netlink], msg ptr[in, msghdr_netlink], f flags[send_flags])
+setsockopt$NETLINK_ADD_MEMBERSHIP(fd fd[netlink], level const[SOL_NETLINK], opt const[NETLINK_ADD_MEMBERSHIP], arg ptr[in, int32], arglen len[arg])
+setsockopt$NETLINK_DROP_MEMBERSHIP(fd fd[netlink], level const[SOL_NETLINK], opt const[NETLINK_DROP_MEMBERSHIP], arg ptr[in, int32], arglen len[arg])
+setsockopt$NETLINK_PKTINFO(fd fd[netlink], level const[SOL_NETLINK], opt const[NETLINK_PKTINFO], arg ptr[in, int32], arglen len[arg])
+setsockopt$NETLINK_BROADCAST_ERROR(fd fd[netlink], level const[SOL_NETLINK], opt const[NETLINK_BROADCAST_ERROR], arg ptr[in, int32], arglen len[arg])
+setsockopt$NETLINK_NO_ENOBUFS(fd fd[netlink], level const[SOL_NETLINK], opt const[NETLINK_NO_ENOBUFS], arg ptr[in, int32], arglen len[arg])
+setsockopt$NETLINK_RX_RING(fd fd[netlink], level const[SOL_NETLINK], opt const[NETLINK_RX_RING], arg ptr[in, nl_mmap_req], arglen len[arg])
+setsockopt$NETLINK_TX_RING(fd fd[netlink], level const[SOL_NETLINK], opt const[NETLINK_TX_RING], arg ptr[in, nl_mmap_req], arglen len[arg])
+setsockopt$NETLINK_LISTEN_ALL_NSID(fd fd[netlink], level const[SOL_NETLINK], opt const[NETLINK_LISTEN_ALL_NSID], arg ptr[in, int32], arglen len[arg])
+setsockopt$NETLINK_CAP_ACK(fd fd[netlink], level const[SOL_NETLINK], opt const[NETLINK_CAP_ACK], arg ptr[in, int32], arglen len[arg])
+getsockopt$netlink(fd fd[netlink], level const[SOL_NETLINK], opt flags[netlink_sockopts], arg buffer[out], arglen ptr[inout, len[arg, int32]])
 
-#	.setsockopt =	netlink_setsockopt,
-#	.getsockopt =	netlink_getsockopt,
-#	.sendmsg =	netlink_sendmsg,
-#	.recvmsg =	netlink_recvmsg,
-
-netlink_type = SOCK_RAW, SOCK_DGRAM
 netlink_family = AF_NETLINK, AF_UNSPEC
+netlink_proto = NETLINK_ROUTE, NETLINK_UNUSED, NETLINK_USERSOCK, NETLINK_FIREWALL, NETLINK_SOCK_DIAG, NETLINK_NFLOG, NETLINK_XFRM, NETLINK_SELINUX, NETLINK_ISCSI, NETLINK_AUDIT, NETLINK_FIB_LOOKUP, NETLINK_CONNECTOR, NETLINK_NETFILTER, NETLINK_IP6_FW, NETLINK_DNRTMSG, NETLINK_KOBJECT_UEVENT, NETLINK_GENERIC, NETLINK_SCSITRANSPORT, NETLINK_ECRYPTFS, NETLINK_RDMA, NETLINK_CRYPTO, NETLINK_INET_DIAG
+netlink_sockopts = NETLINK_ADD_MEMBERSHIP, NETLINK_DROP_MEMBERSHIP, NETLINK_PKTINFO, NETLINK_BROADCAST_ERROR, NETLINK_NO_ENOBUFS, NETLINK_RX_RING, NETLINK_TX_RING, NETLINK_LISTEN_ALL_NSID, NETLINK_LIST_MEMBERSHIPS, NETLINK_CAP_ACK
+netlink_msg_flags = NLM_F_REQUEST, NLM_F_MULTI, NLM_F_ACK, NLM_F_ECHO, NLM_F_DUMP_INTR, NLM_F_DUMP_FILTERED, NLM_F_ROOT, NLM_F_MATCH, NLM_F_ATOMIC, NLM_F_DUMP, NLM_F_REPLACE, NLM_F_EXCL, NLM_F_CREATE, NLM_F_APPEND
 
 sockaddr_nl {
 	family	flags[netlink_family, int16]
@@ -24,3 +32,33 @@ sockaddr_nl {
 	groups	int32
 }
 
+msghdr_netlink {
+	addr	ptr[in, sockaddr_nl, opt]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_nl]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, array[cmsghdr_un], opt]
+	ctrllen	len[ctrl, intptr]
+	f	flags[send_flags, int32]
+}
+
+iovec_nl {
+	data	ptr[in, array[netlink_msg]]
+	len	bytesize[data, intptr]
+}
+
+netlink_msg {
+	len	len[parent, int32]
+	type	int16
+	flags	flags[netlink_msg_flags, int16]
+	seq	int32
+	pid	int32
+	data	array[int8]
+}
+
+nl_mmap_req {
+	bsize	int32
+	bnumber	int32
+	fsize	int32
+	fnumber	int32
+}
