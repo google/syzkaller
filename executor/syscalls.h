@@ -12,7 +12,7 @@ struct call_t {
 };
 
 
-#ifdef __x86_64__
+#if defined(__x86_64__) || 0
 call_t syscalls[] = {
 	{"open", 2},
 	{"open$dir", 2},
@@ -978,7 +978,7 @@ call_t syscalls[] = {
 };
 #endif
 
-#ifdef __aarch64__
+#if defined(__aarch64__) || 0
 call_t syscalls[] = {
 	{"open", -1},
 	{"open$dir", -1},
@@ -1944,7 +1944,7 @@ call_t syscalls[] = {
 };
 #endif
 
-#ifdef __ppc64__
+#if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 call_t syscalls[] = {
 	{"open", 5},
 	{"open$dir", 5},
