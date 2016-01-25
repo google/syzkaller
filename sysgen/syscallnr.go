@@ -12,16 +12,16 @@ import (
 
 type Arch struct {
 	GOARCH           string
-	CARCH            string
+	CARCH            []string
 	KernelHeaderArch string
 	KernelInclude    string
 	Numbers          []int
 }
 
 var archs = []*Arch{
-	{"amd64", "__x86_64__", "x86", "asm/unistd.h", nil},
-	{"arm64", "__aarch64__", "arm64", "asm/unistd.h", nil},
-	{"ppc64le", "__ppc64__", "powerpc", "asm/unistd.h", nil},
+	{"amd64", []string{"__x86_64__"}, "x86", "asm/unistd.h", nil},
+	{"arm64", []string{"__aarch64__"}, "arm64", "asm/unistd.h", nil},
+	{"ppc64le", []string{"__ppc64__", "__PPC64__", "__powerpc64__"}, "powerpc", "asm/unistd.h", nil},
 }
 
 var syzkalls = map[string]int{
@@ -95,7 +95,7 @@ type SyscallsData struct {
 }
 
 type ArchData struct {
-	CARCH string
+	CARCH []string
 	Calls []SyscallData
 }
 
@@ -130,7 +130,7 @@ struct call_t {
 };
 
 {{range $arch := $.Archs}}
-#ifdef {{$arch.CARCH}}
+#if {{range $cdef := $arch.CARCH}}defined({{$cdef}}) || {{end}}0
 call_t syscalls[] = {
 {{range $c := $arch.Calls}}	{"{{$c.Name}}", {{$c.NR}}},
 {{end}}
