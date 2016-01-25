@@ -1,20 +1,25 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+NOSTATIC ?= 0
+ifeq ($(NOSTATIC), 0)
+	STATIC_FLAG=-static
+endif
+
 .PHONY: all format clean manager fuzzer executor execprog mutate prog2c stress generate
 
 all: manager fuzzer executor
 
 all-tools: execprog mutate prog2c stress repro upgrade
 
+executor:
+	$(CC) -o ./bin/syz-executor executor/executor.cc -lpthread -Wall -O1 -g $(STATIC_FLAG) $(CFLAGS)
+
 manager:
 	go build -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
 
 fuzzer:
 	go build -o ./bin/syz-fuzzer github.com/google/syzkaller/syz-fuzzer
-
-executor:
-	$(CC) -o ./bin/syz-executor executor/executor.cc -lpthread -static -Wall -O1 -g $(CFLAGS)
 
 execprog:
 	go build -o ./bin/syz-execprog github.com/google/syzkaller/tools/syz-execprog
