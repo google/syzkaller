@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -68,9 +69,20 @@ func isSupportedSyzkall(kallsyms []byte, c *sys.Call) bool {
 		if syscall.Getuid() != 0 {
 			return false
 		}
-		dev := strings.Replace(fname.Val, "#", "0", 1)
-		_, err := os.Stat(dev)
-		return err == nil
+		var check func(dev string) bool
+		check = func(dev string) bool {
+			if !strings.Contains(dev, "#") {
+				_, err := os.Stat(dev)
+				return err == nil
+			}
+			for i := 0; i < 10; i++ {
+				if check(strings.Replace(dev, "#", strconv.Itoa(i), 1)) {
+					return true
+				}
+			}
+			return false
+		}
+		return check(fname.Val)
 	case "syz_open_pts":
 		return true
 	case "syz_fuse_mount":

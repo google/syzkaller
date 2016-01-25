@@ -586,15 +586,17 @@ void execute_call(thread_t* th)
 			debug("open(\"%s\", 0x%lx)\n", buf, flags);
 			th->res = open(buf, flags, 0);
 		} else {
+
 			// syz_open_dev(dev strconst, id intptr, flags flags[open_flags]) fd
 			uint64_t id = th->args[1];
 			uint64_t flags = th->args[2];
 			char buf[128];
 			strncpy(buf, dev, sizeof(buf));
 			buf[sizeof(buf) - 1] = 0;
-			char* hash = strchr(buf, '#');
-			if (hash != NULL)
+			while (char* hash = strchr(buf, '#')) {
 				*hash = '0' + (char)(id % 10); // 10 devices should be enough for everyone.
+				id /= 10;
+			}
 			debug("syz_open_dev(\"%s\", 0x%lx, 0)\n", buf, flags);
 			th->res = open(buf, flags, 0);
 		}
