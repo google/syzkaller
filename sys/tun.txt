@@ -5,7 +5,7 @@ include <linux/if_tun.h>
 include <linux/virtio_net.h>
 
 syz_open_dev$tun(dev strconst["/dev/net/tun"], id const[0], flags flags[open_flags]) fd[tun]
-write$tun(fd fd[tun], buf tun_buffer[in], count len[buf]) len[buf]
+write$tun(fd fd[tun], buf ptr[in, tun_buffer], count len[buf])
 
 ioctl$TUNGETFEATURES(fd fd[tun], cmd const[TUNGETFEATURES], arg ptr[out, int32])
 ioctl$TUNSETQUEUE(fd fd[tun], cmd const[TUNSETQUEUE], arg ptr[in, ifreq])
@@ -28,14 +28,15 @@ ioctl$TUNATTACHFILTER(fd fd[tun], cmd const[TUNATTACHFILTER], arg ptr[in, sock_f
 ioctl$TUNDETACHFILTER(fd fd[tun], cmd const[TUNDETACHFILTER], arg ptr[in, int32])
 ioctl$TTUNGETFILTER(fd fd[tun], cmd const[TUNGETFILTER], arg ptr[out, int32])
 
-tun_buffer {
-	pi	tun_pi[opt]
-	hdr	virtio_net_hdr[opt]
-}
+tun_buffer [
+	pi	tun_pi
+	hdr	virtio_net_hdr
+] [varlen]
 
 tun_pi {
 	flags	flags[ifru_flags, int32]
 	proto	int16
+	data	array[int8]
 }
 
 virtio_net_hdr {
@@ -45,12 +46,13 @@ virtio_net_hdr {
 	gsosize	int16
 	start	int16
 	offset	int16
+	data	array[int8]
 }
 
 tun_filter {
 	flags	flags[ifru_flags, int32]
 	count	len[addr, int32]
-	addr	ptr[in, array[int8, 6]]	
+	addr	ptr[in, array[int8, 6]]
 }
 
 ifreq {
