@@ -450,6 +450,10 @@ func fmtFdKind(s string) string {
 		return "FdSndControl"
 	case "evdev":
 		return "FdInputEvent"
+	case "tun":
+		return "FdTun"
+	case "random":
+		return "FdRandom"
 	default:
 		failf("bad fd type %v", s)
 		return ""

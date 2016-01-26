@@ -1,0 +1,139 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/if_tun.h>
+include <linux/virtio_net.h>
+
+syz_open_dev$tun(dev strconst["/dev/net/tun"], id const[0], flags flags[open_flags]) fd[tun]
+write$tun(fd fd[tun], buf tun_buffer[in], count len[buf]) len[buf]
+
+ioctl$TUNGETFEATURES(fd fd[tun], cmd const[TUNGETFEATURES], arg ptr[out, int32])
+ioctl$TUNSETQUEUE(fd fd[tun], cmd const[TUNSETQUEUE], arg ptr[in, ifreq])
+ioctl$TUNSETIFF(fd fd[tun], cmd const[TUNSETIFF], arg ptr[in, ifreq])
+ioctl$TUNSETIFINDEX(fd fd[tun], cmd const[TUNSETIFINDEX], arg ptr[in, int32])
+ioctl$TUNGETIFF(fd fd[tun], cmd const[TUNGETIFF], arg ptr[in, int32])
+ioctl$TUNSETNOCSUM(fd fd[tun], cmd const[TUNSETNOCSUM], arg ptr[in, int32])
+ioctl$TUNSETPERSIST(fd fd[tun], cmd const[TUNSETPERSIST], arg ptr[in, int32])
+ioctl$TUNSETOWNER(fd fd[tun], cmd const[TUNSETOWNER], arg ptr[in, uid])
+ioctl$TUNSETLINK(fd fd[tun], cmd const[TUNSETLINK], arg ptr[in, int32])
+ioctl$TUNSETOFFLOAD(fd fd[tun], cmd const[TUNSETOFFLOAD], arg ptr[in, int32])
+ioctl$TUNSETTXFILTER(fd fd[tun], cmd const[TUNSETTXFILTER], arg ptr[in, tun_filter])
+ioctl$SIOCGIFHWADDR(fd fd[tun], cmd const[SIOCGIFHWADDR], arg ptr[in, ifreq])
+ioctl$SIOCSIFHWADDR(fd fd[tun], cmd const[SIOCSIFHWADDR], arg ptr[in, ifreq])
+ioctl$TUNGETSNDBUF(fd fd[tun], cmd const[TUNGETSNDBUF], arg ptr[out, int32])
+ioctl$TUNSETSNDBUF(fd fd[tun], cmd const[TUNSETSNDBUF], arg ptr[in, int32])
+ioctl$TUNGETVNETHDRSZ(fd fd[tun], cmd const[TUNGETVNETHDRSZ], arg ptr[out, int32])
+ioctl$TUNSETVNETHDRSZ(fd fd[tun], cmd const[TUNSETVNETHDRSZ], arg ptr[in, int32])
+ioctl$TUNATTACHFILTER(fd fd[tun], cmd const[TUNATTACHFILTER], arg ptr[in, sock_fprog])
+ioctl$TUNDETACHFILTER(fd fd[tun], cmd const[TUNDETACHFILTER], arg ptr[in, int32])
+ioctl$TTUNGETFILTER(fd fd[tun], cmd const[TUNGETFILTER], arg ptr[out, int32])
+
+tun_buffer {
+	pi	tun_pi[opt]
+	hdr	virtio_net_hdr[opt]
+}
+
+tun_pi {
+	flags	flags[ifru_flags, int32]
+	proto	int16
+}
+
+virtio_net_hdr {
+	flags	flags[virtio_net_flags,	int8]
+	gsotype	flags[virtio_net_types,	int8]
+	hdrlen	int16
+	gsosize	int16
+	start	int16
+	offset	int16
+}
+
+tun_filter {
+	flags	flags[ifru_flags, int32]
+	count	len[addr, int32]
+	addr	ptr[in, array[int8, 6]]	
+}
+
+ifreq {
+	name	array[int8, 16]
+	u	ifr_ifru
+}
+
+ifr_ifru [
+	addr	sockaddr_storage
+	flags	flags[ifru_flags, int16]
+	mtu	int32
+	map	ifmap
+	data	array[int8, 16]
+	setting	if_settings
+]
+
+ifmap {
+	start	int32
+	end	int32
+	base	int16
+	irq	int8
+	dma	int8
+	port	int8
+}
+
+if_settings {
+	type	int32
+	size	int32
+	u	ifs_ifsu
+}
+
+ifs_ifsu [
+	hdlc	ptr[in, raw_hdlc_proto]
+	cisco	ptr[in, cisco_proto]
+	fr	ptr[in, fr_proto]
+	pvc	ptr[in, fr_proto_pvc]
+	pvcinfo	ptr[in, fr_proto_pvc_info]
+	sync	ptr[in, sync_serial_settings]
+	tel	ptr[in, te1_settings]
+]
+
+raw_hdlc_proto {
+	encode	int16
+	parity	int16
+}
+
+cisco_proto{
+	val	int32
+	timeout	int32
+}
+
+fr_proto {
+	t391	int32
+	t392	int32
+	n391	int32
+	n392	int32
+	n393	int32
+	lmi	int16
+	dce	int16
+}
+
+fr_proto_pvc {
+	dlcl	int32
+}
+
+fr_proto_pvc_info {
+	dlci	int32
+	master	array[int8, 16]
+}
+
+sync_serial_settings {
+	rate	int32
+	type	int32
+	loop	int16
+}
+
+te1_settings {
+	rate	int32
+	type	int32
+	loop	int16
+	slot	int16
+}
+
+virtio_net_flags = VIRTIO_NET_HDR_F_NEEDS_CSUM, VIRTIO_NET_HDR_F_DATA_VALID
+virtio_net_types = VIRTIO_NET_HDR_GSO_NONE, VIRTIO_NET_HDR_GSO_TCPV4, VIRTIO_NET_HDR_GSO_UDP, VIRTIO_NET_HDR_GSO_TCPV6, VIRTIO_NET_HDR_GSO_ECN
+ifru_flags = IFF_TUN, IFF_TAP, IFF_NO_PI, IFF_ONE_QUEUE, IFF_VNET_HDR, IFF_TUN_EXCL, IFF_MULTI_QUEUE, IFF_ATTACH_QUEUE, IFF_DETACH_QUEUE, IFF_PERSIST, IFF_NOFILTER
