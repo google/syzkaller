@@ -84,6 +84,9 @@ var fetchSrc = `
 [[DEFAULTS]]
 int printf(const char *format, ...);
 unsigned long phys_base;
+#ifndef __phys_addr
+unsigned long __phys_addr(unsigned long addr) { return 0; }
+#endif
 int main() {
 	int i;
 	unsigned long vals[] = {[[VALS]]};
