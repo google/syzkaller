@@ -602,11 +602,11 @@ func (r *randGen) generateArgs(s *state, types []sys.Type, dir ArgDir) ([]*Arg, 
 		if a, ok := typ.(sys.LenType); ok {
 			size := sizes[a.Buf]
 			if size == nil {
-				panic(fmt.Sprintf("no size for %v[%v] (%+v)", a.Name(), a.Buf, sizes))
+				panic(fmt.Sprintf("no size for %v[%v] (%+v), types: %+v", a.Name(), a.Buf, sizes, types))
 			}
 			if a.ByteSize {
 				if size.Val != 0 && size.ByteSize == 0 {
-					panic("no byte size")
+					panic(fmt.Sprintf("no byte size for %v: size=%v", a.Name(), size.Val))
 				}
 				size = constArg(size.ByteSize)
 			}
