@@ -17,7 +17,8 @@ type ConnectArgs struct {
 }
 
 type ConnectRes struct {
-	Prios [][]float32
+	Prios        [][]float32
+	EnabledCalls string
 }
 
 type NewInputArgs struct {

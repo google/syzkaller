@@ -5,6 +5,8 @@ package adb
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -34,16 +36,14 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 			closeInst.Close()
 		}
 	}()
-
 	if err := validateConfig(cfg); err != nil {
 		return nil, err
 	}
-	if err := inst.adbOK(); err != nil {
+	if err := inst.repair(); err != nil {
 		return nil, err
 	}
-	if err := inst.adbReboot(); err != nil {
-		return nil, err
-	}
+	// Remove temp files from previous runs.
+	inst.adb("shell", "rm -Rf /data/syzkaller*")
 	closeInst = nil
 	return inst, nil
 }
@@ -61,42 +61,82 @@ func validateConfig(cfg *vm.Config) error {
 func (inst *instance) Forward(port int) (string, error) {
 	// If 35099 turns out to be busy, try to forward random ports several times.
 	devicePort := 35099
-	if out, err := inst.adb("reverse", fmt.Sprintf("tcp:%v", devicePort), fmt.Sprintf("tcp:%v", port)); err != nil {
-		return "", fmt.Errorf("adb reverse failed: %v\n%s", err, out)
+	if err := inst.adb("reverse", fmt.Sprintf("tcp:%v", devicePort), fmt.Sprintf("tcp:%v", port)); err != nil {
+		return "", err
 	}
 	return fmt.Sprintf("127.0.0.1:%v", devicePort), nil
 }
 
-func (inst *instance) adb(args ...string) ([]byte, error) {
-	out, err := exec.Command(inst.cfg.Bin, args...).CombinedOutput()
-	return out, err
-}
-
-// adbOK checks that adb works and there are is devices attached.
-func (inst *instance) adbOK() error {
-	out, err := inst.adb("shell", "pwd")
+func (inst *instance) adb(args ...string) error {
+	if inst.cfg.Debug {
+		log.Printf("executing adb %+v", args)
+	}
+	rpipe, wpipe, err := os.Pipe()
 	if err != nil {
-		return fmt.Errorf("abd does not work or device is not connected: %v\n%s", err, out)
+		return fmt.Errorf("failed to create pipe: %v", err)
+	}
+	defer wpipe.Close()
+	defer rpipe.Close()
+	cmd := exec.Command(inst.cfg.Bin, args...)
+	cmd.Stdout = wpipe
+	cmd.Stderr = wpipe
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	wpipe.Close()
+	done := make(chan bool)
+	go func() {
+		select {
+		case <-time.After(time.Minute):
+			if inst.cfg.Debug {
+				log.Printf("adb hanged")
+			}
+			cmd.Process.Kill()
+		case <-done:
+		}
+	}()
+	if err := cmd.Wait(); err != nil {
+		close(done)
+		out, _ := ioutil.ReadAll(rpipe)
+		if inst.cfg.Debug {
+			log.Printf("adb failed: %v\n%s", err, out)
+		}
+		return fmt.Errorf("adb %+v failed: %v\n%s", args, err, out)
+	}
+	close(done)
+	if inst.cfg.Debug {
+		log.Printf("adb returned")
 	}
 	return nil
 }
 
-func (inst *instance) adbReboot() error {
-	// adb reboot episodically hangs, so we use a more reliable way.
-	if _, err := inst.adb("push", inst.cfg.Executor, "/data/syz-executor"); err != nil {
-		return err
-	}
-	if _, err := inst.adb("shell", "/data/syz-executor", "reboot"); err != nil {
-		return err
-	}
-	time.Sleep(10 * time.Second)
+func (inst *instance) repair() error {
+	// Give the device up to 5 minutes to come up (it can be rebooting after a previous crash).
+	time.Sleep(3 * time.Second)
 	for i := 0; i < 300; i++ {
 		time.Sleep(time.Second)
-		if inst.adbOK() == nil {
+		if inst.adb("shell", "pwd") == nil {
 			return nil
 		}
 	}
-	return fmt.Errorf("device did not come up after reboot")
+	// If it does not help, reboot.
+	// adb reboot episodically hangs, so we use a more reliable way.
+	// Ignore errors because all other adb commands hang as well
+	// and the binary can already be on the device.
+	inst.adb("push", inst.cfg.Executor, "/data/syz-executor")
+	if err := inst.adb("shell", "/data/syz-executor", "reboot"); err != nil {
+		return err
+	}
+	// Now give it another 5 minutes.
+	time.Sleep(10 * time.Second)
+	var err error
+	for i := 0; i < 300; i++ {
+		time.Sleep(time.Second)
+		if err = inst.adb("shell", "pwd"); err == nil {
+			return nil
+		}
+	}
+	return fmt.Errorf("instance is dead and unrepairable: %v", err)
 }
 
 func (inst *instance) Close() {
@@ -106,7 +146,7 @@ func (inst *instance) Close() {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join("/data", filepath.Base(hostSrc))
-	if _, err := inst.adb("push", hostSrc, vmDst); err != nil {
+	if err := inst.adb("push", hostSrc, vmDst); err != nil {
 		return "", err
 	}
 	return vmDst, nil
@@ -133,9 +173,15 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 	catDone := make(chan error, 1)
 	go func() {
 		err := cat.Wait()
+		if inst.cfg.Debug {
+			log.Printf("cat exited: %v", err)
+		}
 		catDone <- fmt.Errorf("cat exited: %v", err)
 	}()
 
+	if inst.cfg.Debug {
+		log.Printf("starting: adb shell %v", command)
+	}
 	adb := exec.Command(inst.cfg.Bin, "shell", "cd /data; "+command)
 	adb.Stdout = wpipe
 	adb.Stderr = wpipe
@@ -148,6 +194,9 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 	adbDone := make(chan error, 1)
 	go func() {
 		err := adb.Wait()
+		if inst.cfg.Debug {
+			log.Printf("adb exited: %v", err)
+		}
 		adbDone <- fmt.Errorf("adb exited: %v", err)
 	}()
 
@@ -194,6 +243,9 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 			cat.Process.Kill()
 			adb.Process.Kill()
 		case <-inst.closed:
+			if inst.cfg.Debug {
+				log.Printf("instance closed")
+			}
 			signal(fmt.Errorf("instance closed"))
 			cat.Process.Kill()
 			adb.Process.Kill()

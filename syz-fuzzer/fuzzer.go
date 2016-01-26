@@ -38,7 +38,6 @@ var (
 	flagExecutor  = flag.String("executor", "", "path to executor binary")
 	flagManager   = flag.String("manager", "", "manager rpc address")
 	flagStrace    = flag.Bool("strace", false, "run executor under strace")
-	flagSyscalls  = flag.String("calls", "", "comma-delimited list of enabled syscall IDs (empty string for all syscalls)")
 	flagNoCover   = flag.Bool("nocover", false, "disable coverage collection/handling")
 	flagDropPrivs = flag.Bool("dropprivs", true, "impersonate into nobody")
 	flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
@@ -115,7 +114,7 @@ func main() {
 	if err := manager.Call("Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
-	calls := buildCallList()
+	calls := buildCallList(r.EnabledCalls)
 	ct := prog.BuildChoiceTable(r.Prios, calls)
 
 	kmemleakInit()
@@ -263,10 +262,10 @@ func main() {
 	}
 }
 
-func buildCallList() map[*sys.Call]bool {
+func buildCallList(enabledCalls string) map[*sys.Call]bool {
 	calls := make(map[*sys.Call]bool)
-	if *flagSyscalls != "" {
-		for _, id := range strings.Split(*flagSyscalls, ",") {
+	if enabledCalls != "" {
+		for _, id := range strings.Split(enabledCalls, ",") {
 			n, err := strconv.ParseUint(id, 10, 64)
 			if err != nil || n >= uint64(len(sys.Calls)) {
 				panic(fmt.Sprintf("invalid syscall in -calls flag: '%v", id))

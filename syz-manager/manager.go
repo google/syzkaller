@@ -212,15 +212,11 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	if mgr.cfg.NoDropPrivs {
 		dropprivs = "-dropprivs=0"
 	}
-	calls := ""
-	if mgr.enabledSyscalls != "" {
-		calls = "-calls=" + mgr.enabledSyscalls
-	}
 	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
 	leak := first && mgr.cfg.Leak
 
-	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("%v -executor %v -name %v -manager %v -output=%v -procs %v -leak=%v %v %v %v",
-		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, cover, dropprivs, calls))
+	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("%v -executor %v -name %v -manager %v -output=%v -procs %v -leak=%v %v %v",
+		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, cover, dropprivs))
 	if err != nil {
 		logf(0, "failed to run fuzzer: %v", err)
 		return false
@@ -231,6 +227,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		beforeContext = 256 << 10
 		afterContext  = 64 << 10
 	)
+	lastExecuteTime := time.Now()
 	ticker := time.NewTimer(time.Minute)
 	for {
 		if !ticker.Reset(time.Minute) {
@@ -249,6 +246,9 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			}
 		case out := <-outputC:
 			output = append(output, out...)
+			if bytes.Index(output[matchPos:], []byte("executing program")) != -1 {
+				lastExecuteTime = time.Now()
+			}
 			if _, _, _, found := vm.FindCrash(output[matchPos:]); found {
 				// Give it some time to finish writing the error message.
 				timer := time.NewTimer(10 * time.Second).C
@@ -279,6 +279,12 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			matchPos = len(output) - 128
 			if matchPos < 0 {
 				matchPos = 0
+			}
+			// In some cases kernel constantly prints something to console,
+			// but fuzzer is not actually executing programs.
+			if time.Since(lastExecuteTime) > 3*time.Minute {
+				mgr.saveCrasher(vmCfg.Name, "not executing programs", output)
+				return true
 			}
 		case <-ticker.C:
 			mgr.saveCrasher(vmCfg.Name, "no output", output)
@@ -362,6 +368,7 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 		input: 0,
 	}
 	r.Prios = mgr.prios
+	r.EnabledCalls = mgr.enabledSyscalls
 
 	return nil
 }
