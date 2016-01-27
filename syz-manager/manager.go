@@ -221,6 +221,34 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		logf(0, "failed to run fuzzer: %v", err)
 		return false
 	}
+	startTime := time.Now()
+	var crashes []string
+
+	saveCrasher := func(what string, output []byte) {
+		for _, re := range mgr.suppressions {
+			if re.Match(output) {
+				logf(1, "%v: suppressing '%v' with '%v'", vmCfg.Name, what, re.String())
+				return
+			}
+		}
+		buf := new(bytes.Buffer)
+		fmt.Fprintf(buf, "\n\n")
+		if len(crashes) != 0 {
+			fmt.Fprintf(buf, "previous crashes:\n")
+			for _, c := range crashes {
+				fmt.Fprintf(buf, "\t%s\n", c)
+			}
+		}
+		crashes = append(crashes, what)
+		fmt.Fprintf(buf, "after running for %v:\n", time.Since(startTime))
+		fmt.Fprintf(buf, "%v\n", what)
+		output = append([]byte{}, output...)
+		output = append(output, buf.Bytes()...)
+		filename := fmt.Sprintf("crash-%v-%v", vmCfg.Name, time.Now().UnixNano())
+		logf(0, "%v: saving crash '%v' to %v", vmCfg.Name, what, filename)
+		ioutil.WriteFile(filepath.Join(mgr.crashdir, filename), output, 0660)
+	}
+
 	var output []byte
 	matchPos := 0
 	const (
@@ -241,7 +269,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 				return true
 			default:
 				logf(0, "%v: lost connection: %v", vmCfg.Name, err)
-				mgr.saveCrasher(vmCfg.Name, "lost connection", output)
+				saveCrasher("lost connection", output)
 				return true
 			}
 		case out := <-outputC:
@@ -270,7 +298,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 				if end > len(output) {
 					end = len(output)
 				}
-				mgr.saveCrasher(vmCfg.Name, desc, output[start:end])
+				saveCrasher(desc, output[start:end])
 			}
 			if len(output) > 2*beforeContext {
 				copy(output, output[len(output)-beforeContext:])
@@ -283,29 +311,14 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			// In some cases kernel constantly prints something to console,
 			// but fuzzer is not actually executing programs.
 			if time.Since(lastExecuteTime) > 3*time.Minute {
-				mgr.saveCrasher(vmCfg.Name, "not executing programs", output)
+				saveCrasher("not executing programs", output)
 				return true
 			}
 		case <-ticker.C:
-			mgr.saveCrasher(vmCfg.Name, "no output", output)
+			saveCrasher("no output", output)
 			return true
 		}
 	}
-}
-
-func (mgr *Manager) saveCrasher(name, what string, output []byte) {
-	for _, re := range mgr.suppressions {
-		if re.Match(output) {
-			logf(1, "%v: suppressing '%v' with '%v'", name, what, re.String())
-			return
-		}
-	}
-	output = append(output, '\n')
-	output = append(output, what...)
-	output = append(output, '\n')
-	filename := fmt.Sprintf("crash-%v-%v", name, time.Now().UnixNano())
-	logf(0, "%v: saving crash '%v' to %v", name, what, filename)
-	ioutil.WriteFile(filepath.Join(mgr.crashdir, filename), output, 0660)
 }
 
 func (mgr *Manager) minimizeCorpus() {
