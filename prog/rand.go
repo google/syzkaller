@@ -270,7 +270,12 @@ func (r *randGen) filesystem(s *state) []byte {
 		"securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4",
 		"hugetlbfs", "vfat", "ecryptfs", "kdbusfs", "fuseblk", "fuse", "rpc_pipefs",
 		"nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs",
-		"minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs"}
+		"minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs", "configfs", "ncpfs", "qnx6",
+		"exofs", "befs", "vxfs", "gfs2", "gfs2meta", "fusectl", "bfs", "nsfs", "efs",
+		"cifs", "efivarfs", "affs", "tracefs", "bdev", "ocfs2", "ocfs2_dlmfs", "hpfs",
+		"proc", "afs", "reiserfs", "jffs2", "romfs", "aio", "sysv", "v7", "udf",
+		"ceph", "pstore", "adfs", "9p", "hostfs", "squashfs", "cramfs", "iso9660",
+		"coda", "nilfs2", "logfs", "overlay", "f2fs", "omfs", "ubifs", "openpromfs"}
 	return []byte(dict[r.Intn(len(dict))] + "\x00")
 }
 
