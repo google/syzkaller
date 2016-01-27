@@ -225,7 +225,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	matchPos := 0
 	const (
 		beforeContext = 256 << 10
-		afterContext  = 64 << 10
+		afterContext  = 128 << 10
 	)
 	lastExecuteTime := time.Now()
 	ticker := time.NewTimer(time.Minute)
