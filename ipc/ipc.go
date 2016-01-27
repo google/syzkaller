@@ -42,7 +42,6 @@ const (
 	FlagCollide                        // collide syscalls to provoke data races
 	FlagDedupCover                     // deduplicate coverage in executor
 	FlagDropPrivs                      // impersonate nobody user
-	FlagStrace                         // run executor under strace
 )
 
 func MakeEnv(bin string, timeout time.Duration, flags uint64) (*Env, error) {
@@ -112,12 +111,11 @@ func (env *Env) Close() error {
 
 // Exec starts executor binary to execute program p and returns information about the execution:
 // output: process output
-// strace: strace output if env is created with FlagStrace
 // cov: per-call coverage, len(cov) == len(p.Calls)
 // failed: true if executor has detected a kernel bug
 // hanged: program hanged and was killed
 // err0: failed to start process, or executor has detected a logical error
-func (env *Env) Exec(p *prog.Prog) (output, strace []byte, cov [][]uint32, errnos []int, failed, hanged bool, err0 error) {
+func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int, failed, hanged bool, err0 error) {
 	if p != nil {
 		// Copy-in serialized program.
 		progData := p.SerializeForExec()
@@ -142,7 +140,7 @@ func (env *Env) Exec(p *prog.Prog) (output, strace []byte, cov [][]uint32, errno
 			return
 		}
 	}
-	output, strace, failed, hanged, err0 = env.cmd.exec()
+	output, failed, hanged, err0 = env.cmd.exec()
 	if err0 != nil {
 		env.cmd.close()
 		env.cmd = nil
@@ -309,24 +307,6 @@ func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.F
 	c.outwp = outwp
 
 	cmd := exec.Command(bin[0], bin[1:]...)
-	/*
-		traceFile := ""
-		if flags&FlagStrace != 0 {
-			f, err := ioutil.TempFile("./", "syzkaller-strace")
-			if err != nil {
-				return nil, fmt.Errorf("failed to create temp file: %v", err)
-			}
-			f.Close()
-			defer os.Remove(f.Name())
-			traceFile, _ = filepath.Abs(f.Name())
-			args := []string{"-s", "8", "-o", traceFile}
-			args = append(args, env.bin...)
-			if env.flags&FlagThreaded != 0 {
-				args = append([]string{"-f"}, args...)
-			}
-			cmd = exec.Command("strace", args...)
-		}
-	*/
 	cmd.ExtraFiles = []*os.File{inFile, outFile, outrp, inwp}
 	cmd.Env = []string{}
 	cmd.Dir = dir
@@ -368,7 +348,7 @@ func (c *command) kill() {
 	syscall.Kill(c.cmd.Process.Pid, syscall.SIGKILL)
 }
 
-func (c *command) exec() (output, strace []byte, failed, hanged bool, err0 error) {
+func (c *command) exec() (output []byte, failed, hanged bool, err0 error) {
 	var tmp [1]byte
 	if _, err := c.outwp.Write(tmp[:]); err != nil {
 		output, _ = ioutil.ReadAll(c.rp)
@@ -419,14 +399,5 @@ func (c *command) exec() (output, strace []byte, failed, hanged bool, err0 error
 			}
 		}
 	}
-	/*
-		if traceFile != "" {
-			strace, err = ioutil.ReadFile(traceFile)
-			if err != nil {
-				err0 = fmt.Errorf("failed to read strace output: %v", err)
-				return
-			}
-		}
-	*/
 	return
 }
