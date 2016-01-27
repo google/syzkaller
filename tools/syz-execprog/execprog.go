@@ -26,7 +26,6 @@ var (
 	flagThreaded  = flag.Bool("threaded", true, "use threaded mode in executor")
 	flagCollide   = flag.Bool("collide", true, "collide syscalls to provoke data races")
 	flagDebug     = flag.Bool("debug", false, "debug output from executor")
-	flagStrace    = flag.Bool("strace", false, "run executor under strace")
 	flagCover     = flag.Bool("cover", true, "collect coverage")
 	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
 	flagNobody    = flag.Bool("nobody", true, "impersonate into nobody")
@@ -70,9 +69,6 @@ func main() {
 	if *flagDebug {
 		flags |= ipc.FlagDebug
 	}
-	if *flagStrace {
-		flags |= ipc.FlagStrace
-	}
 	if *flagCover || *flagCoverFile != "" {
 		flags |= ipc.FlagCover
 	}
@@ -109,15 +105,12 @@ func main() {
 					return
 				}
 				p := progs[idx%len(progs)]
-				output, strace, cov, _, failed, hanged, err := env.Exec(p)
+				output, cov, _, failed, hanged, err := env.Exec(p)
 				if failed {
 					fmt.Printf("BUG: executor-detected bug:\n%s", output)
 				}
 				if *flagDebug || err != nil {
 					fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
-				}
-				if *flagStrace {
-					fmt.Printf("strace output:\n%s", strace)
 				}
 				if *flagCoverFile != "" {
 					// Coverage is dumped in sanitizer format.

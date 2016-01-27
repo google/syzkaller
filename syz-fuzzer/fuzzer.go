@@ -37,7 +37,6 @@ var (
 	flagName      = flag.String("name", "", "unique name for manager")
 	flagExecutor  = flag.String("executor", "", "path to executor binary")
 	flagManager   = flag.String("manager", "", "manager rpc address")
-	flagStrace    = flag.Bool("strace", false, "run executor under strace")
 	flagNoCover   = flag.Bool("nocover", false, "disable coverage collection/handling")
 	flagDropPrivs = flag.Bool("dropprivs", true, "impersonate into nobody")
 	flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
@@ -120,9 +119,6 @@ func main() {
 	kmemleakInit()
 
 	flags := ipc.FlagThreaded | ipc.FlagCollide
-	if *flagStrace {
-		flags |= ipc.FlagStrace
-	}
 	if !*flagNoCover {
 		flags |= ipc.FlagCover | ipc.FlagDedupCover
 	}
@@ -486,7 +482,7 @@ func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
 	try := 0
 retry:
 	atomic.AddUint64(stat, 1)
-	output, strace, rawCover, errnos, failed, hanged, err := env.Exec(p)
+	output, rawCover, errnos, failed, hanged, err := env.Exec(p)
 	_ = errnos
 	if failed {
 		// BUG in output should be recognized by manager.
@@ -504,9 +500,6 @@ retry:
 		goto retry
 	}
 	logf(4, "result failed=%v hanged=%v:\n%v\n", failed, hanged, string(output))
-	if len(strace) != 0 {
-		logf(4, "strace:\n%s\n", strace)
-	}
 	cov := make([]cover.Cover, len(p.Calls))
 	for i, c := range rawCover {
 		cov[i] = cover.Cover(c)
