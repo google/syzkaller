@@ -23,16 +23,9 @@ import (
 
 var (
 	flagExecutor  = flag.String("executor", "", "path to executor binary")
-	flagThreaded  = flag.Bool("threaded", true, "use threaded mode in executor")
-	flagCollide   = flag.Bool("collide", true, "collide syscalls to provoke data races")
-	flagDebug     = flag.Bool("debug", false, "debug output from executor")
-	flagCover     = flag.Bool("cover", true, "collect coverage")
 	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
-	flagNobody    = flag.Bool("nobody", true, "impersonate into nobody")
-	flagDedup     = flag.Bool("dedup", false, "deduplicate coverage in executor")
 	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
 	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
-	flagTimeout   = flag.Duration("timeout", 10*time.Second, "execution timeout")
 )
 
 func main() {
@@ -59,24 +52,10 @@ func main() {
 		return
 	}
 
-	var flags uint64
-	if *flagThreaded {
-		flags |= ipc.FlagThreaded
-	}
-	if *flagCollide {
-		flags |= ipc.FlagCollide
-	}
-	if *flagDebug {
-		flags |= ipc.FlagDebug
-	}
-	if *flagCover || *flagCoverFile != "" {
+	flags, timeout := ipc.DefaultFlags()
+	if *flagCoverFile != "" {
 		flags |= ipc.FlagCover
-	}
-	if *flagDedup {
-		flags |= ipc.FlagDedupCover
-	}
-	if *flagNobody {
-		flags |= ipc.FlagDropPrivs
+		flags &= ^ipc.FlagDedupCover
 	}
 
 	var wg sync.WaitGroup
@@ -86,7 +65,7 @@ func main() {
 	var lastPrint time.Time
 	for p := 0; p < *flagProcs; p++ {
 		go func() {
-			env, err := ipc.MakeEnv(*flagExecutor, *flagTimeout, flags)
+			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
 			if err != nil {
 				log.Fatalf("failed to create ipc env: %v", err)
 			}
@@ -109,7 +88,7 @@ func main() {
 				if failed {
 					fmt.Printf("BUG: executor-detected bug:\n%s", output)
 				}
-				if *flagDebug || err != nil {
+				if flags&ipc.FlagDebug != 0 || err != nil {
 					fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
 				}
 				if *flagCoverFile != "" {

@@ -37,9 +37,9 @@ type Config struct {
 	Count     int    // number of VMs
 	Procs     int    // number of parallel processes inside of every VM
 
-	NoCover     bool
-	NoDropPrivs bool
-	Leak        bool // do memory leak checking
+	Cover     bool // use kcov coverage (default: true)
+	DropPrivs bool // drop privileges during fuzzing (default: true)
+	Leak      bool // do memory leak checking
 
 	ConsoleDev string // console device for adb vm
 
@@ -57,6 +57,8 @@ func Parse(filename string) (*Config, map[int]bool, []*regexp.Regexp, error) {
 		return nil, nil, nil, fmt.Errorf("failed to read config file: %v", err)
 	}
 	cfg := new(Config)
+	cfg.Cover = true
+	cfg.DropPrivs = true
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to parse config file: %v", err)
 	}
