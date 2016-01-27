@@ -208,6 +208,11 @@ int main(int argc, char** argv)
 
 void loop()
 {
+	// Tell parent that we are ready to serve.
+	char tmp;
+	if (write(kOutPipeFd, &tmp, 1) != 1)
+		fail("control pipe write failed");
+
 	for (int iter = 0;; iter++) {
 		// Create a new private work dir for this test (removed at the end of the loop).
 		char cwdbuf[256];
@@ -215,7 +220,6 @@ void loop()
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
 
-		char tmp;
 		if (read(kInPipeFd, &tmp, 1) != 1)
 			fail("control pipe read failed");
 
