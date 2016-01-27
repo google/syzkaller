@@ -27,12 +27,7 @@ var (
 	flagCorpus   = flag.String("corpus", "", "corpus directory")
 	flagExecutor = flag.String("executor", "", "path to executor binary")
 	flagOutput   = flag.Bool("output", false, "print executor output to console")
-	flagDebug    = flag.Bool("debug", false, "executor debug output")
 	flagProcs    = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes")
-	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
-	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
-	flagNobody   = flag.Bool("nobody", true, "impersonate into nobody")
-	flagTimeout  = flag.Duration("timeout", 10*time.Second, "executor timeout")
 	flagLogProg  = flag.Bool("logprog", false, "print programs before execution")
 
 	failedRe = regexp.MustCompile("runtime error: |panic: |Panic: ")
@@ -52,25 +47,12 @@ func main() {
 	prios := prog.CalculatePriorities(corpus)
 	ct := prog.BuildChoiceTable(prios, calls)
 
-	var flags uint64
-	if *flagThreaded {
-		flags |= ipc.FlagThreaded
-	}
-	if *flagCollide {
-		flags |= ipc.FlagCollide
-	}
-	if *flagNobody {
-		flags |= ipc.FlagDropPrivs
-	}
-	if *flagDebug {
-		flags |= ipc.FlagDebug
-	}
-
+	flags, timeout := ipc.DefaultFlags()
 	gate = ipc.NewGate(2 * *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
 		pid := pid
 		go func() {
-			env, err := ipc.MakeEnv(*flagExecutor, *flagTimeout, flags)
+			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
 			if err != nil {
 				failf("failed to create execution environment: %v", err)
 			}

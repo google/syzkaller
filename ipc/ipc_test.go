@@ -79,7 +79,7 @@ func TestExecute(t *testing.T) {
 	defer os.Remove(bin)
 
 	rs, iters := initTest(t)
-	flags := []uint64{0, FlagThreaded, FlagThreaded | FlagCollide}
+	flags := []uint64{0, FlagThreaded, FlagThreaded | FlagCollide, FlagDropPrivs, FlagDropPrivs | FlagThreaded}
 	for _, flag := range flags {
 		env, err := MakeEnv(bin, timeout, flag)
 		if err != nil {

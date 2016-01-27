@@ -6,6 +6,7 @@ package ipc
 import (
 	"bytes"
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -43,6 +44,36 @@ const (
 	FlagDedupCover                     // deduplicate coverage in executor
 	FlagDropPrivs                      // impersonate nobody user
 )
+
+var (
+	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
+	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
+	flagCover    = flag.Bool("cover", true, "collect coverage")
+	flagNobody   = flag.Bool("nobody", true, "impersonate into nobody")
+	flagDebug    = flag.Bool("debug", false, "debug output from executor")
+	flagTimeout  = flag.Duration("timeout", 10*time.Second, "execution timeout")
+)
+
+func DefaultFlags() (uint64, time.Duration) {
+	var flags uint64
+	if *flagThreaded {
+		flags |= FlagThreaded
+	}
+	if *flagCollide {
+		flags |= FlagCollide
+	}
+	if *flagCover {
+		flags |= FlagCover
+		flags |= FlagDedupCover
+	}
+	if *flagNobody {
+		flags |= FlagDropPrivs
+	}
+	if *flagDebug {
+		flags |= FlagDebug
+	}
+	return flags, *flagTimeout
+}
 
 func MakeEnv(bin string, timeout time.Duration, flags uint64) (*Env, error) {
 	// IPC timeout must be larger then executor timeout.

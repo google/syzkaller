@@ -34,15 +34,13 @@ import (
 )
 
 var (
-	flagName      = flag.String("name", "", "unique name for manager")
-	flagExecutor  = flag.String("executor", "", "path to executor binary")
-	flagManager   = flag.String("manager", "", "manager rpc address")
-	flagNoCover   = flag.Bool("nocover", false, "disable coverage collection/handling")
-	flagDropPrivs = flag.Bool("dropprivs", true, "impersonate into nobody")
-	flagProcs     = flag.Int("procs", 1, "number of parallel test processes")
-	flagLeak      = flag.Bool("leak", false, "detect memory leaks")
-	flagV         = flag.Int("v", 0, "verbosity")
-	flagOutput    = flag.String("output", "stdout", "write programs to stdout/dmesg/file")
+	flagName     = flag.String("name", "", "unique name for manager")
+	flagExecutor = flag.String("executor", "", "path to executor binary")
+	flagManager  = flag.String("manager", "", "manager rpc address")
+	flagProcs    = flag.Int("procs", 1, "number of parallel test processes")
+	flagLeak     = flag.Bool("leak", false, "detect memory leaks")
+	flagV        = flag.Int("v", 0, "verbosity")
+	flagOutput   = flag.String("output", "stdout", "write programs to stdout/dmesg/file")
 )
 
 const (
@@ -87,6 +85,7 @@ var (
 	statNewInput      uint64
 
 	allTriaged uint32
+	noCover    bool
 )
 
 func main() {
@@ -118,21 +117,12 @@ func main() {
 
 	kmemleakInit()
 
-	flags := ipc.FlagThreaded | ipc.FlagCollide
-	if !*flagNoCover {
-		flags |= ipc.FlagCover | ipc.FlagDedupCover
-	}
-	if *flagDropPrivs {
-		flags |= ipc.FlagDropPrivs
-	}
-	if *flagProcs <= 0 {
-		*flagProcs = 1
-	}
-
+	flags, timeout := ipc.DefaultFlags()
+	noCover = flags&ipc.FlagCover == 0
 	gate = ipc.NewGate(2 * *flagProcs)
 	envs := make([]*ipc.Env, *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
-		env, err := ipc.MakeEnv(*flagExecutor, 10*time.Second, flags)
+		env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
 		if err != nil {
 			panic(err)
 		}
@@ -233,7 +223,7 @@ func main() {
 				if err != nil {
 					panic(err)
 				}
-				if *flagNoCover {
+				if noCover {
 					corpusMu.Lock()
 					corpus = append(corpus, p)
 					corpusMu.Unlock()
@@ -301,7 +291,7 @@ func addInput(inp RpcInput) {
 	coverMu.Lock()
 	defer coverMu.Unlock()
 
-	if *flagNoCover {
+	if noCover {
 		panic("should not be called when coverage is disabled")
 	}
 	p, err := prog.Deserialize(inp.Prog)
@@ -329,7 +319,7 @@ func addInput(inp RpcInput) {
 }
 
 func triageInput(pid int, env *ipc.Env, inp Input) {
-	if *flagNoCover {
+	if noCover {
 		panic("should not be called when coverage is disabled")
 	}
 

@@ -203,20 +203,12 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		<-errc
 	}
 
-	// Run the fuzzer binary.
-	cover := ""
-	if mgr.cfg.NoCover {
-		cover = "-nocover=1"
-	}
-	dropprivs := ""
-	if mgr.cfg.NoDropPrivs {
-		dropprivs = "-dropprivs=0"
-	}
 	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
 	leak := first && mgr.cfg.Leak
 
-	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("%v -executor %v -name %v -manager %v -output=%v -procs %v -leak=%v %v %v",
-		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, cover, dropprivs))
+	// Run the fuzzer binary.
+	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("%v -executor %v -name %v -manager %v -output=%v -procs %v -leak=%v -cover=%v -nobody=%v",
+		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, mgr.cfg.Cover, mgr.cfg.DropPrivs))
 	if err != nil {
 		logf(0, "failed to run fuzzer: %v", err)
 		return false
@@ -322,7 +314,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 }
 
 func (mgr *Manager) minimizeCorpus() {
-	if !mgr.cfg.NoCover && len(mgr.corpus) != 0 {
+	if mgr.cfg.Cover && len(mgr.corpus) != 0 {
 		// First, sort corpus per call.
 		type Call struct {
 			inputs []RpcInput
