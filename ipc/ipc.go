@@ -352,6 +352,10 @@ func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.F
 		return nil, fmt.Errorf("failed to start executor binary: %v", err)
 	}
 	c.cmd = cmd
+	if err := c.waitServing(); err != nil {
+		return nil, err
+	}
+
 	tmp := c
 	c = nil // disable defer above
 	return tmp, nil
@@ -372,6 +376,24 @@ func (c *command) close() {
 	}
 	if c.outwp != nil {
 		c.outwp.Close()
+	}
+}
+
+// Wait for executor to start serving (sandbox setup can take significant time).
+func (c *command) waitServing() error {
+	read := make(chan error, 1)
+	go func() {
+		var buf [1]byte
+		_, err := c.inrp.Read(buf[:])
+		read <- err
+	}()
+	timeout := time.NewTimer(time.Minute)
+	select {
+	case err := <-read:
+		timeout.Stop()
+		return err
+	case <-timeout.C:
+		return fmt.Errorf("executor is not serving")
 	}
 }
 
