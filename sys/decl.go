@@ -3,6 +3,10 @@
 
 package sys
 
+import (
+	"fmt"
+)
+
 const ptrSize = 8
 
 type Call struct {
@@ -293,7 +297,7 @@ func (t BufferType) Size() uintptr {
 	case BufferAlgName:
 		return 64
 	default:
-		panic("buffer size is not statically known")
+		panic(fmt.Sprintf("buffer size is not statically known: %v", t.Name()))
 	}
 }
 

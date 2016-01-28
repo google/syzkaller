@@ -3,6 +3,10 @@
 
 package sys
 
+import (
+	"fmt"
+)
+
 func initAlign() {
 	var rec func(t Type) Type
 	rec = func(t Type) Type {
@@ -22,7 +26,7 @@ func initAlign() {
 			opts := make(map[string]bool)
 			for i, opt := range t1.Options {
 				if opts[opt.Name()] {
-					panic("duplicate option in union")
+					panic(fmt.Sprintf("duplicate option %v in union %v", opt.Name(), t.Name()))
 				}
 				opts[opt.Name()] = true
 				t1.Options[i] = rec(opt)
