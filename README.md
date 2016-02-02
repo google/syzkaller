@@ -36,7 +36,7 @@ to:
  - add extra instrumentation on system call entry/exit (for a `CONFIG_KCOV` build)
  - add code to track and report per-task coverage information.
 
-This is all implemented in [this coverage patch](https://github.com/dvyukov/linux/commits/kcov);
+This is all implemented in [this coverage patch](https://github.com/dvyukov/linux/commit/33787098ffaaa83b8a7ccf519913ac5fd6125931);
 once the patch is applied, the kernel should be configured with `CONFIG_KCOV` plus `CONFIG_KASAN`
 or `CONFIG_KTSAN`.
 
