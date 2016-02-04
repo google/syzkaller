@@ -522,7 +522,8 @@ syz_open_dev$audion(dev strconst["/dev/audio#"], id intptr, flags flags[open_fla
 syz_open_dev$usb(dev strconst["/dev/bus/usb/00#/00#"], id intptr, flags flags[open_flags]) fd
 syz_open_dev$sndhw(dev strconst["/dev/snd/hwC#D#"], id intptr, flags flags[open_flags]) fd
 syz_open_dev$sndmidi(dev strconst["/dev/snd/midiC#D#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$sndpcm(dev strconst["/dev/snd/pcmC#D#"], id intptr, flags flags[open_flags]) fd
+syz_open_dev$sndpcmc(dev strconst["/dev/snd/pcmC#D#c"], id intptr, flags flags[open_flags]) fd
+syz_open_dev$sndpcmp(dev strconst["/dev/snd/pcmC#D#p"], id intptr, flags flags[open_flags]) fd
 
 
 
