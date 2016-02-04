@@ -82,7 +82,7 @@ func isSupportedSyzkall(kallsyms []byte, c *sys.Call) bool {
 			}
 			return false
 		}
-		return check(fname.Val)
+		return check(fname.Val[:len(fname.Val)-1])
 	case "syz_open_pts":
 		return true
 	case "syz_fuse_mount":
@@ -118,7 +118,7 @@ func isSupportedOpen(kallsyms []byte, c *sys.Call) bool {
 	if !ok {
 		return true
 	}
-	fd, err := syscall.Open(fname.Val, syscall.O_RDONLY, 0)
+	fd, err := syscall.Open(fname.Val[:len(fname.Val)-1], syscall.O_RDONLY, 0)
 	if fd != -1 {
 		syscall.Close(fd)
 	}
