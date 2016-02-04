@@ -518,7 +518,10 @@ func kmemleakInit() {
 		what = "off"
 	}
 	if _, err := syscall.Write(fd, []byte(what)); err != nil {
-		panic(err)
+		// kmemleak returns EBUSY when kmemleak is already turned off.
+		if err != syscall.EBUSY {
+			panic(err)
+		}
 	}
 }
 
