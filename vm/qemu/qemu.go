@@ -88,9 +88,6 @@ func validateConfig(cfg *vm.Config) error {
 	if cfg.Bin == "" {
 		cfg.Bin = "qemu-system-x86_64"
 	}
-	if _, err := os.Stat(cfg.Kernel); err != nil {
-		return fmt.Errorf("kernel file '%v' does not exist: %v", cfg.Kernel, err)
-	}
 	if _, err := os.Stat(cfg.Image); err != nil {
 		return fmt.Errorf("image file '%v' does not exist: %v", cfg.Image, err)
 	}
