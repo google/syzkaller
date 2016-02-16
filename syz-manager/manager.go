@@ -302,13 +302,15 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			}
 			// In some cases kernel constantly prints something to console,
 			// but fuzzer is not actually executing programs.
-			if time.Since(lastExecuteTime) > 3*time.Minute {
+			if mgr.cfg.Type != "local" && time.Since(lastExecuteTime) > 3*time.Minute {
 				saveCrasher("not executing programs", output)
 				return true
 			}
 		case <-ticker.C:
-			saveCrasher("no output", output)
-			return true
+			if mgr.cfg.Type != "local" {
+				saveCrasher("no output", output)
+				return true
+			}
 		}
 	}
 }

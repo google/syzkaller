@@ -87,12 +87,16 @@ func Parse(filename string) (*Config, map[int]bool, []*regexp.Regexp, error) {
 		cfg.Procs = 1
 	}
 	if cfg.Output == "" {
-		cfg.Output = "stdout"
+		if cfg.Type == "local" {
+			cfg.Output = "none"
+		} else {
+			cfg.Output = "stdout"
+		}
 	}
 	switch cfg.Output {
-	case "stdout", "dmesg", "file":
+	case "none", "stdout", "dmesg", "file":
 	default:
-		return nil, nil, nil, fmt.Errorf("config param output must contain one of stdout/dmesg/file")
+		return nil, nil, nil, fmt.Errorf("config param output must contain one of none/stdout/dmesg/file")
 	}
 
 	syscalls, err := parseSyscalls(cfg)
