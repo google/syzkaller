@@ -28,6 +28,9 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 	if err != nil {
 		return err
 	}
+	if len(info) == 0 {
+		return fmt.Errorf("vmlinux does not have debug info (set CONFIG_DEBUG_INFO=y)")
+	}
 
 	var d templateData
 	for f, covered := range fileSet(info) {
