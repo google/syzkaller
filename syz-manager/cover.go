@@ -14,7 +14,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/google/syzkaller/cover"
 )
@@ -24,35 +23,18 @@ type LineInfo struct {
 	line int
 }
 
-var (
-	mu           sync.Mutex
-	pcLines      = make(map[uint32][]LineInfo)
-	parsedFiles  = make(map[string][][]byte)
-	htmlReplacer = strings.NewReplacer(">", "&gt;", "<", "&lt;", "&", "&amp;", "\t", "        ")
-	sourcePrefix string
-)
-
 func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
-	mu.Lock()
-	defer mu.Unlock()
-
-	info, err := covToLineInfo(vmlinux, cov)
+	info, prefix, err := symbolize(vmlinux, cov)
 	if err != nil {
 		return err
 	}
-	files := fileSet(info)
-	for f := range files {
-		if _, ok := parsedFiles[f]; ok {
-			continue
-		}
-		if err := parseFile(f); err != nil {
-			return err
-		}
-	}
 
 	var d templateData
-	for f, covered := range files {
-		lines := parsedFiles[f]
+	for f, covered := range fileSet(info) {
+		lines, err := parseFile(f)
+		if err != nil {
+			return err
+		}
 		coverage := len(covered)
 		var buf bytes.Buffer
 		for i, ln := range lines {
@@ -66,12 +48,11 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 				buf.Write([]byte("\n"))
 			}
 		}
-		stripped := f
-		if len(stripped) > len(sourcePrefix) {
-			stripped = stripped[len(sourcePrefix):]
+		if len(f) > len(prefix) {
+			f = f[len(prefix):]
 		}
 		d.Files = append(d.Files, &templateFile{
-			Name:     stripped,
+			Name:     f,
 			Body:     template.HTML(buf.String()),
 			Coverage: coverage,
 		})
@@ -82,25 +63,6 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 		return err
 	}
 	return nil
-}
-
-func covToLineInfo(vmlinux string, cov []uint32) ([]LineInfo, error) {
-	var missing []uint32
-	for _, pc := range cov {
-		if _, ok := pcLines[pc]; !ok {
-			missing = append(missing, pc)
-		}
-	}
-	if len(missing) > 0 {
-		if err := symbolize(vmlinux, missing); err != nil {
-			return nil, err
-		}
-	}
-	var info []LineInfo
-	for _, pc := range cov {
-		info = append(info, pcLines[pc]...)
-	}
-	return info, nil
 }
 
 func fileSet(info []LineInfo) map[string][]int {
@@ -123,11 +85,12 @@ func fileSet(info []LineInfo) map[string][]int {
 	return res
 }
 
-func parseFile(fn string) error {
+func parseFile(fn string) ([][]byte, error) {
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	htmlReplacer := strings.NewReplacer(">", "&gt;", "<", "&lt;", "&", "&amp;", "\t", "        ")
 	var lines [][]byte
 	for {
 		idx := bytes.IndexByte(data, '\n')
@@ -140,35 +103,23 @@ func parseFile(fn string) error {
 	if len(data) != 0 {
 		lines = append(lines, data)
 	}
-	parsedFiles[fn] = lines
-	if sourcePrefix == "" {
-		sourcePrefix = fn
-	} else {
-		i := 0
-		for ; i < len(sourcePrefix) && i < len(fn); i++ {
-			if sourcePrefix[i] != fn[i] {
-				break
-			}
-		}
-		sourcePrefix = sourcePrefix[:i]
-	}
-	return nil
+	return lines, nil
 }
 
-func symbolize(vmlinux string, cov []uint32) error {
+func symbolize(vmlinux string, cov []uint32) ([]LineInfo, string, error) {
 	cmd := exec.Command("addr2line", "-a", "-i", "-e", vmlinux)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 	defer stdin.Close()
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 	defer stdout.Close()
 	if err := cmd.Start(); err != nil {
-		return err
+		return nil, "", err
 	}
 	defer cmd.Wait()
 	go func() {
@@ -177,6 +128,8 @@ func symbolize(vmlinux string, cov []uint32) error {
 		}
 		stdin.Close()
 	}()
+	var info []LineInfo
+	prefix := ""
 	s := bufio.NewScanner(stdout)
 	var pc uint32
 	for s.Scan() {
@@ -184,7 +137,7 @@ func symbolize(vmlinux string, cov []uint32) error {
 		if len(ln) > 3 && ln[0] == '0' && ln[1] == 'x' {
 			v, err := strconv.ParseUint(ln, 0, 64)
 			if err != nil {
-				return fmt.Errorf("failed to parse pc in addr2line output: %v", err)
+				return nil, "", fmt.Errorf("failed to parse pc in addr2line output: %v", err)
 			}
 			pc = uint32(v) + 1
 			continue
@@ -198,12 +151,23 @@ func symbolize(vmlinux string, cov []uint32) error {
 		if err != nil || pc == 0 || file == "" || file == "??" || line <= 0 {
 			continue
 		}
-		pcLines[pc] = append(pcLines[pc], LineInfo{file, line})
+		info = append(info, LineInfo{file, line})
+		if prefix == "" {
+			prefix = file
+		} else {
+			i := 0
+			for ; i < len(prefix) && i < len(file); i++ {
+				if prefix[i] != file[i] {
+					break
+				}
+			}
+			prefix = prefix[:i]
+		}
 	}
 	if err := s.Err(); err != nil {
-		return err
+		return nil, "", err
 	}
-	return nil
+	return info, prefix, nil
 }
 
 type templateData struct {
