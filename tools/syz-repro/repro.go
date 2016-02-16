@@ -46,6 +46,9 @@ func main() {
 	if *flagCount > 0 {
 		cfg.Count = *flagCount
 	}
+	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-execprog")); err != nil {
+		log.Fatalf("bin/syz-execprog is missing (run 'make execprog')")
+	}
 
 	if len(flag.Args()) != 1 {
 		log.Fatalf("usage: syz-repro -config=config.file execution.log")

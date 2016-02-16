@@ -68,9 +68,6 @@ func Parse(filename string) (*Config, map[int]bool, []*regexp.Regexp, error) {
 	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-executor")); err != nil {
 		return nil, nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-executor")
 	}
-	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-execprog")); err != nil {
-		return nil, nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-execprog")
-	}
 	if cfg.Http == "" {
 		return nil, nil, nil, fmt.Errorf("config param http is empty")
 	}
