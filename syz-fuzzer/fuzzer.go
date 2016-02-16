@@ -40,7 +40,7 @@ var (
 	flagProcs    = flag.Int("procs", 1, "number of parallel test processes")
 	flagLeak     = flag.Bool("leak", false, "detect memory leaks")
 	flagV        = flag.Int("v", 0, "verbosity")
-	flagOutput   = flag.String("output", "stdout", "write programs to stdout/dmesg/file")
+	flagOutput   = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
 )
 
 const (
@@ -91,8 +91,10 @@ var (
 func main() {
 	debug.SetGCPercent(50)
 	flag.Parse()
-	if *flagOutput != "stdout" && *flagOutput != "dmesg" && *flagOutput != "file" {
-		fmt.Fprintf(os.Stderr, "-output flag must be one of stdout/dmesg/file\n")
+	switch *flagOutput {
+	case "none", "stdout", "dmesg", "file":
+	default:
+		fmt.Fprintf(os.Stderr, "-output flag must be one of none/stdout/dmesg/file\n")
 		os.Exit(1)
 	}
 	logf(0, "started")
@@ -119,6 +121,13 @@ func main() {
 
 	flags, timeout := ipc.DefaultFlags()
 	noCover = flags&ipc.FlagCover == 0
+	if !noCover {
+		fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0)
+		if err != nil {
+			log.Fatalf("BUG: /sys/kernel/debug/kcov is missing (%v). Enable CONFIG_KCOV and mount debugfs.", err)
+		}
+		syscall.Close(fd)
+	}
 	gate = ipc.NewGate(2 * *flagProcs)
 	envs := make([]*ipc.Env, *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
@@ -448,6 +457,8 @@ func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
 	// The following output helps to understand what program crashed kernel.
 	// It must not be intermixed.
 	switch *flagOutput {
+	case "none":
+		// This case intentionally left blank.
 	case "stdout":
 		data := p.Serialize()
 		logMu.Lock()
@@ -507,7 +518,7 @@ func kmemleakInit() {
 	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
 	if err != nil {
 		if *flagLeak {
-			panic(err)
+			log.Fatalf("BUG: /sys/kernel/debug/kmemleak is missing (%v). Enable CONFIG_KMEMLEAK and mount debugfs.", err)
 		} else {
 			return
 		}

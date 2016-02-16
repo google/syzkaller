@@ -64,48 +64,79 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte, <-chan error, error) {
+	rpipe, wpipe, err := os.Pipe()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create pipe: %v", err)
+	}
+	for sz := 128 << 10; sz <= 2<<20; sz *= 2 {
+		syscall.Syscall(syscall.SYS_FCNTL, wpipe.Fd(), syscall.F_SETPIPE_SZ, uintptr(sz))
+	}
 	for strings.Index(command, "  ") != -1 {
 		command = strings.Replace(command, "  ", " ", -1)
 	}
 	args := strings.Split(command, " ")
 	cmd := exec.Command(args[0], args[1:]...)
-	if inst.cfg.Debug {
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stdout
-	}
+	cmd.Stdout = wpipe
+	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
+		rpipe.Close()
+		wpipe.Close()
 		return nil, nil, err
 	}
+	wpipe.Close()
 	outputC := make(chan []byte, 10)
-	errorC := make(chan error, 2)
+	errorC := make(chan error, 1)
 	done := make(chan bool)
+	signal := func(err error) {
+		time.Sleep(3 * time.Second) // wait for any pending output
+		select {
+		case errorC <- err:
+		default:
+		}
+	}
 	go func() {
-		errorC <- cmd.Wait()
+		var buf [64 << 10]byte
+		var output []byte
+		for {
+			n, err := rpipe.Read(buf[:])
+			if n != 0 {
+				if inst.cfg.Debug {
+					os.Stdout.Write(buf[:n])
+					os.Stdout.Write([]byte{'\n'})
+				}
+				output = append(output, buf[:n]...)
+				select {
+				case outputC <- output:
+					output = nil
+				default:
+				}
+				time.Sleep(time.Millisecond)
+			}
+			if err != nil {
+				rpipe.Close()
+				return
+			}
+		}
+	}()
+	go func() {
+		err := cmd.Wait()
+		signal(err)
 		close(done)
 	}()
 	go func() {
-		ticker := time.NewTicker(time.Second)
 		timeout := time.NewTicker(timeout)
 		for {
 			select {
-			case <-ticker.C:
-				select {
-				case outputC <- []byte{'.'}:
-				default:
-				}
 			case <-timeout.C:
-				errorC <- vm.TimeoutErr
+				signal(vm.TimeoutErr)
 				cmd.Process.Kill()
-				ticker.Stop()
 				return
 			case <-done:
-				ticker.Stop()
 				timeout.Stop()
 				return
 			case <-inst.closed:
-				errorC <- fmt.Errorf("closed")
+				signal(fmt.Errorf("closed"))
 				cmd.Process.Kill()
-				ticker.Stop()
 				timeout.Stop()
 				return
 			}
