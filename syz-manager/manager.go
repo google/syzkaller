@@ -14,9 +14,12 @@ import (
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"sync"
+	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/config"
@@ -156,21 +159,43 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		}
 	}()
 
+	var shutdown uint32
+	var wg sync.WaitGroup
+	wg.Add(cfg.Count)
 	for i := 0; i < cfg.Count; i++ {
 		first := i == 0
 		go func() {
+			defer wg.Done()
 			for {
 				vmCfg, err := config.CreateVMConfig(cfg)
+				if atomic.LoadUint32(&shutdown) != 0 {
+					break
+				}
 				if err != nil {
 					fatalf("failed to create VM config: %v", err)
 				}
-				if !mgr.runInstance(vmCfg, first) {
+				ok := mgr.runInstance(vmCfg, first)
+				if atomic.LoadUint32(&shutdown) != 0 {
+					break
+				}
+				if !ok {
 					time.Sleep(10 * time.Second)
 				}
 			}
 		}()
 	}
-	select {}
+
+	go func() {
+		c := make(chan os.Signal, 2)
+		signal.Notify(c, syscall.SIGINT)
+		<-c
+		*flagV = -1 // VMs will fail
+		logf(-1, "shutting down...")
+		atomic.StoreUint32(&shutdown, 1)
+		<-c
+		log.Fatalf("terminating")
+	}()
+	wg.Wait()
 }
 
 func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
