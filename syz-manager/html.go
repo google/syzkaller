@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"net/http"
 	_ "net/http/pprof"
+	"runtime"
 	"sort"
 	"strconv"
 	"time"
@@ -131,6 +132,7 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	if err := generateCoverHtml(w, mgr.cfg.Vmlinux, cov); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 	}
+	runtime.GC()
 }
 
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
