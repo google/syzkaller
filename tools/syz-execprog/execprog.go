@@ -13,7 +13,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 	"sync"
+	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/cover"
@@ -22,7 +25,7 @@ import (
 )
 
 var (
-	flagExecutor  = flag.String("executor", "", "path to executor binary")
+	flagExecutor  = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
 	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
 	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
@@ -63,12 +66,15 @@ func main() {
 	var posMu sync.Mutex
 	var pos int
 	var lastPrint time.Time
+	var shutdown uint32
 	for p := 0; p < *flagProcs; p++ {
 		go func() {
+			defer wg.Done()
 			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
 			if err != nil {
 				log.Fatalf("failed to create ipc env: %v", err)
 			}
+			defer env.Close()
 			for {
 				posMu.Lock()
 				idx := pos
@@ -79,12 +85,13 @@ func main() {
 				}
 				posMu.Unlock()
 				if *flagRepeat > 0 && idx >= len(progs)**flagRepeat {
-					env.Close()
-					wg.Done()
 					return
 				}
 				p := progs[idx%len(progs)]
 				output, cov, _, failed, hanged, err := env.Exec(p)
+				if atomic.LoadUint32(&shutdown) != 0 {
+					return
+				}
 				if failed {
 					fmt.Printf("BUG: executor-detected bug:\n%s", output)
 				}
@@ -114,5 +121,16 @@ func main() {
 			}
 		}()
 	}
+
+	go func() {
+		c := make(chan os.Signal, 2)
+		signal.Notify(c, syscall.SIGINT)
+		<-c
+		log.Printf("shutting down...")
+		atomic.StoreUint32(&shutdown, 1)
+		<-c
+		log.Fatalf("terminating")
+	}()
+
 	wg.Wait()
 }
