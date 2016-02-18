@@ -207,8 +207,8 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	leak := first && mgr.cfg.Leak
 
 	// Run the fuzzer binary.
-	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("%v -executor %v -name %v -manager %v -output=%v -procs %v -leak=%v -cover=%v -nobody=%v",
-		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, mgr.cfg.Cover, mgr.cfg.DropPrivs))
+	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf("%v -executor %v -name %v -manager %v -output=%v -procs %v -leak=%v -cover=%v -nobody=%v -v %d",
+		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, mgr.cfg.Cover, mgr.cfg.DropPrivs, *flagV))
 	if err != nil {
 		logf(0, "failed to run fuzzer: %v", err)
 		return false
