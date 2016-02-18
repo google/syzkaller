@@ -97,7 +97,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "-output flag must be one of none/stdout/dmesg/file\n")
 		os.Exit(1)
 	}
-	logf(0, "started")
+	logf(0, "fuzzer started, log level %v", *flagV)
 
 	corpusCover = make([]cover.Cover, sys.CallCount)
 	maxCover = make([]cover.Cover, sys.CallCount)
@@ -496,11 +496,12 @@ retry:
 			panic(err)
 		}
 		try++
+		logf(4, "fuzzer detected executor failure='%v', retrying #%d\n", err, (try + 1))
 		debug.FreeOSMemory()
 		time.Sleep(time.Second)
 		goto retry
 	}
-	logf(4, "result failed=%v hanged=%v:\n%v\n", failed, hanged, string(output))
+	logf(2, "result failed=%v hanged=%v:\n%v\n", failed, hanged, string(output))
 	cov := make([]cover.Cover, len(p.Calls))
 	for i, c := range rawCover {
 		cov[i] = cover.Cover(c)
