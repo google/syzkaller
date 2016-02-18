@@ -24,16 +24,15 @@ type LineInfo struct {
 }
 
 func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
+	if len(cov) == 0 {
+		return fmt.Errorf("No coverage data available")
+	}
 	info, prefix, err := symbolize(vmlinux, cov)
 	if err != nil {
 		return err
 	}
 	if len(info) == 0 {
-		if len(cov) == 0 {
-			return fmt.Errorf("No coverage data available")
-		} else {
-			return fmt.Errorf("'%s' does not have debug info (set CONFIG_DEBUG_INFO=y)", vmlinux)
-		}
+		return fmt.Errorf("'%s' does not have debug info (set CONFIG_DEBUG_INFO=y)", vmlinux)
 	}
 
 	var d templateData

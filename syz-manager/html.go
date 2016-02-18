@@ -223,7 +223,7 @@ Uptime: {{.Uptime}}<br>
 Corpus: {{.CorpusSize}}<br>
 Triage queue len: {{.TriageQueue}}<br>
 Cover mem: {{.CorpusCoverMem}} + {{.CallCoverMem}} <br>
-<a href='/cover'>Cover: {{.CoverSize}}</a> <br>
+{{if .CoverSize}}<a href='/cover'>Cover: {{.CoverSize}}</a> <br>{{end}}
 <br>
 Stats: <br>
 {{range $stat := $.Stats}}
