@@ -113,10 +113,6 @@ func Parse(filename string) (*Config, map[int]bool, []*regexp.Regexp, error) {
 }
 
 func parseSyscalls(cfg *Config) (map[int]bool, error) {
-	if len(cfg.Enable_Syscalls) == 0 && len(cfg.Disable_Syscalls) == 0 {
-		return nil, nil
-	}
-
 	match := func(call *sys.Call, str string) bool {
 		if str == call.CallName || str == call.Name {
 			return true
