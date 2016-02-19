@@ -199,7 +199,11 @@ func Build(src string) (string, error) {
 		return "", fmt.Errorf("failed to create temp file: %v", err)
 	}
 	bin.Close()
-	out, err := exec.Command("gcc", "-x", "c++", "-std=gnu++11", src, "-o", bin.Name(), "-lpthread", "-static", "-O1", "-g").CombinedOutput()
+	out, err := exec.Command("gcc", "-x", "c++", "-std=gnu++11", src, "-o", bin.Name(), "-pthread", "-static", "-O1", "-g").CombinedOutput()
+	if err != nil {
+		// Some distributions don't have static libraries.
+		out, err = exec.Command("gcc", "-x", "c++", "-std=gnu++11", src, "-o", bin.Name(), "-pthread", "-O1", "-g").CombinedOutput()
+	}
 	if err != nil {
 		os.Remove(bin.Name())
 		data, _ := ioutil.ReadFile(src)
