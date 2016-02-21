@@ -31,7 +31,7 @@ revision 231296. Sync past it and build fresh gcc.
 ### Linux Kernel
 
 As well as adding coverage support to the C compiler, the Linux kernel itself needs to be modified
-to:
+too:
  - add support in the build system for the coverage options (under `CONFIG_KCOV`)
  - add extra instrumentation on system call entry/exit (for a `CONFIG_KCOV` build)
  - add code to track and report per-task coverage information.
