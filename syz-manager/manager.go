@@ -224,11 +224,14 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		return false
 	}
 
-	// TODO: this should be present in the image.
-	_, errc, err := inst.Run(10*time.Second, "echo -n 0 > /proc/sys/debug/exception-trace")
-	if err == nil {
-		<-errc
+	// Run an aux command with best effort.
+	runCommand := func(cmd string) {
+		_, errc, err := inst.Run(10*time.Second, cmd)
+		if err == nil {
+			<-errc
+		}
 	}
+	runCommand("echo -n 0 > /proc/sys/debug/exception-trace")
 
 	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
 	leak := first && mgr.cfg.Leak
@@ -274,6 +277,30 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	}
 
 	var output []byte
+
+	waitForOutput := func(dur time.Duration) {
+		timer := time.NewTimer(dur).C
+	loop:
+		for {
+			select {
+			case out := <-outputC:
+				output = append(output, out...)
+			case <-timer:
+				break loop
+			}
+		}
+	}
+
+	dumpVMState := func() {
+		// Shows all locks that are held.
+		runCommand("echo -n d > /proc/sysrq-trigger")
+		// Shows a stack backtrace for all active CPUs.
+		runCommand("echo -n l > /proc/sysrq-trigger")
+		// Will dump a list of current tasks and their information to your console.
+		runCommand("echo -n t > /proc/sysrq-trigger")
+		waitForOutput(time.Second)
+	}
+
 	matchPos := 0
 	const (
 		beforeContext = 256 << 10
@@ -303,16 +330,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			}
 			if _, _, _, found := vm.FindCrash(output[matchPos:]); found {
 				// Give it some time to finish writing the error message.
-				timer := time.NewTimer(10 * time.Second).C
-			loop:
-				for {
-					select {
-					case out = <-outputC:
-						output = append(output, out...)
-					case <-timer:
-						break loop
-					}
-				}
+				waitForOutput(10 * time.Second)
 				desc, start, end, _ := vm.FindCrash(output[matchPos:])
 				start = start + matchPos - beforeContext
 				if start < 0 {
@@ -335,11 +353,13 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			// In some cases kernel constantly prints something to console,
 			// but fuzzer is not actually executing programs.
 			if mgr.cfg.Type != "local" && time.Since(lastExecuteTime) > 3*time.Minute {
+				dumpVMState()
 				saveCrasher("not executing programs", output)
 				return true
 			}
 		case <-ticker.C:
 			if mgr.cfg.Type != "local" {
+				dumpVMState()
 				saveCrasher("no output", output)
 				return true
 			}
