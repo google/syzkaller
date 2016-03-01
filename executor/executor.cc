@@ -202,7 +202,10 @@ int main(int argc, char** argv)
 		fail("loop failed");
 	if (status == kErrorStatus)
 		error("loop errored");
-	fail("loop exited with status %d", status);
+	// Loop can be killed by a test process with e.g.:
+	// ptrace(PTRACE_SEIZE, 1, 0, 0x100040)
+	// This is unfortunate, but I don't have a better solution than ignoring it for now.
+	exitf("loop exited with status %d", status);
 	return 0;
 }
 
