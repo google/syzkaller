@@ -47,6 +47,7 @@ type Manager struct {
 	persistentCorpus *PersistentSet
 	startTime        time.Time
 	stats            map[string]uint64
+	shutdown         uint32
 
 	mu              sync.Mutex
 	enabledSyscalls string
@@ -189,6 +190,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		c := make(chan os.Signal, 2)
 		signal.Notify(c, syscall.SIGINT)
 		<-c
+		atomic.StoreUint32(&mgr.shutdown, 1)
 		*flagV = -1 // VMs will fail
 		logf(-1, "shutting down...")
 		atomic.StoreUint32(&shutdown, 1)
@@ -242,6 +244,11 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	var crashes []string
 
 	saveCrasher := func(what string, output []byte) {
+		if atomic.LoadUint32(&mgr.shutdown) != 0 {
+			// qemu crashes with "qemu: terminating on signal 2",
+			// which we detect as "lost connection".
+			return
+		}
 		for _, re := range mgr.suppressions {
 			if re.Match(output) {
 				logf(1, "%v: suppressing '%v' with '%v'", vmCfg.Name, what, re.String())
