@@ -48,7 +48,7 @@ func main() {
 	ct := prog.BuildChoiceTable(prios, calls)
 
 	flags, timeout := ipc.DefaultFlags()
-	gate = ipc.NewGate(2 * *flagProcs)
+	gate = ipc.NewGate(2**flagProcs, nil)
 	for pid := 0; pid < *flagProcs; pid++ {
 		pid := pid
 		go func() {
@@ -89,7 +89,7 @@ func execute(pid int, env *ipc.Env, p *prog.Prog) {
 	atomic.AddUint64(&statExec, 1)
 	if *flagLogProg {
 		ticket := gate.Enter()
-		defer gate.Leave(ticket, nil)
+		defer gate.Leave(ticket)
 		outMu.Lock()
 		fmt.Printf("executing program %v\n%s\n", pid, p.Serialize())
 		outMu.Unlock()

@@ -128,7 +128,16 @@ func main() {
 		}
 		syscall.Close(fd)
 	}
-	gate = ipc.NewGate(2 * *flagProcs)
+	leakCallback := func() {
+		if atomic.LoadUint32(&allTriaged) != 0 {
+			// Scan for leaks once in a while (it is damn slow).
+			kmemleakScan(true)
+		}
+	}
+	if !*flagLeak {
+		leakCallback = nil
+	}
+	gate = ipc.NewGate(2**flagProcs, leakCallback)
 	envs := make([]*ipc.Env, *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
 		env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
@@ -447,12 +456,7 @@ func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
 
 	// Limit concurrency window and do leak checking once in a while.
 	idx := gate.Enter()
-	defer gate.Leave(idx, func() {
-		if idx == 0 && *flagLeak && atomic.LoadUint32(&allTriaged) != 0 {
-			// Scan for leaks once in a while (it is damn slow).
-			kmemleakScan(true)
-		}
-	})
+	defer gate.Leave(idx)
 
 	// The following output helps to understand what program crashed kernel.
 	// It must not be intermixed.
@@ -545,6 +549,18 @@ func kmemleakScan(report bool) {
 		panic(err)
 	}
 	defer syscall.Close(fd)
+	// Kmemleak has false positives. To mitigate most of them, it checksums
+	// potentially leaked objects, and reports them only on the next scan
+	// iff the checksum does not change. Because of that we do the following
+	// intricate dance:
+	// Scan, sleep, scan again. At this point we can get some leaks.
+	// If there are leaks, we sleep and scan again, this can remove
+	// false leaks. Then, read kmemleak again. If we get leaks now, then
+	// hopefully these are true positives during the previous testing cycle.
+	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
+		panic(err)
+	}
+	time.Sleep(time.Second)
 	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
 		panic(err)
 	}
@@ -557,8 +573,18 @@ func kmemleakScan(report bool) {
 			panic(err)
 		}
 		if n != 0 {
-			// BUG in output should be recognized by manager.
-			logf(0, "BUG: memory leak:\n%s\n", kmemleakBuf[:n])
+			time.Sleep(time.Second)
+			if _, err := syscall.Write(fd, []byte("scan")); err != nil {
+				panic(err)
+			}
+			n, err := syscall.Read(fd, kmemleakBuf)
+			if err != nil {
+				panic(err)
+			}
+			if n != 0 {
+				// BUG in output should be recognized by manager.
+				logf(0, "BUG: memory leak:\n%s\n", kmemleakBuf[:n])
+			}
 		}
 	}
 	if _, err := syscall.Write(fd, []byte("clear")); err != nil {
