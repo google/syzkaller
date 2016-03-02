@@ -54,7 +54,7 @@ var (
 	// Executor protects against most hangs, so we use quite large timeout here.
 	// Executor can be slow due to global locks in namespaces and other things,
 	// so let's better wait than report false misleading crashes.
-	flagTimeout  = flag.Duration("timeout", 1*time.Minute, "execution timeout")
+	flagTimeout = flag.Duration("timeout", 1*time.Minute, "execution timeout")
 )
 
 func DefaultFlags() (uint64, time.Duration) {
