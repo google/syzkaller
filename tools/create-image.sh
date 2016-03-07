@@ -24,7 +24,8 @@ ssh-keygen -f ssh/id_rsa -t rsa -N ''
 cat ssh/id_rsa.pub | sudo tee wheezy/root/.ssh/authorized_keys
 
 # Install some misc packages.
-sudo chroot wheezy /bin/bash -c "apt-get update; ( yes | apt-get install curl tar time strace)"
+sudo chroot wheezy /bin/bash -c "export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin; " \
+"apt-get update; apt-get install --yes curl tar time strace"
 
 # Build a disk image
 dd if=/dev/zero of=wheezy.img bs=1M seek=1023 count=1
@@ -33,4 +34,3 @@ sudo mkdir -p /mnt/wheezy
 sudo mount -o loop wheezy.img /mnt/wheezy
 sudo cp -a wheezy/. /mnt/wheezy/.
 sudo umount /mnt/wheezy
-
