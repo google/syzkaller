@@ -180,7 +180,7 @@ Here are some things to check if there are problems running syzkaller.
     - Build the test program from `Documentation/kcov.txt` and run it inside the VM.
 
  - Check that debug information (from the `CONFIG_DEBUG_INFO` option) is available
-    - Pass the hex output from the kcov test program to `addrline -a -i -f -e $VMLINUX` (where
+    - Pass the hex output from the kcov test program to `addr2line -a -i -f -e $VMLINUX` (where
       `VMLINUX` is the vmlinux file, as per the `vmlinux` config value), to confirm
       that symbols for the kernel are available.
 
@@ -199,9 +199,8 @@ Here are some things to check if there are problems running syzkaller.
        that the test kernel does not include support for all of the required namespaces.
        In this case, running the `syz-execprog` test with the `-nobody=0` option fixes the problem,
        so the main configuration needs to be updated to set `dropprivs` to `false`.
- 
+
 
 ## Disclaimer
 
 This is not an official Google product.
-
