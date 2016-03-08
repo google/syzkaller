@@ -24,8 +24,8 @@ ssh-keygen -f ssh/id_rsa -t rsa -N ''
 cat ssh/id_rsa.pub | sudo tee wheezy/root/.ssh/authorized_keys
 
 # Install some misc packages.
-sudo chroot wheezy /bin/bash -c "export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin; " \
-"apt-get update; apt-get install --yes curl tar time strace"
+sudo chroot wheezy /bin/bash -c "export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin; \
+apt-get update; apt-get install --yes curl tar time strace"
 
 # Build a disk image
 dd if=/dev/zero of=wheezy.img bs=1M seek=1023 count=1
