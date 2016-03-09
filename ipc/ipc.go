@@ -174,8 +174,9 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 			return
 		}
 	}
-	output, failed, hanged, err0 = env.cmd.exec()
-	if err0 != nil {
+	var restart bool
+	output, failed, hanged, restart, err0 = env.cmd.exec()
+	if err0 != nil || restart {
 		env.cmd.close()
 		env.cmd = nil
 		return
@@ -404,7 +405,7 @@ func (c *command) kill() {
 	syscall.Kill(c.cmd.Process.Pid, syscall.SIGKILL)
 }
 
-func (c *command) exec() (output []byte, failed, hanged bool, err0 error) {
+func (c *command) exec() (output []byte, failed, hanged, restart bool, err0 error) {
 	var tmp [1]byte
 	if _, err := c.outwp.Write(tmp[:]); err != nil {
 		output, _ = ioutil.ReadAll(c.rp)
@@ -448,10 +449,18 @@ func (c *command) exec() (output []byte, failed, hanged bool, err0 error) {
 			// Magic values returned by executor.
 			if ws.ExitStatus() == 67 {
 				err0 = fmt.Errorf("executor failed: %s", output)
-				return
 			}
 			if ws.ExitStatus() == 68 {
 				failed = true
+			}
+			if ws.ExitStatus() == 69 {
+				// This is a temporal error (ENOMEM) or an unfortunate
+				// program that messes with testing setup (e.g. kills executor
+				// loop process). Pretend that nothing happened.
+				// It's better than a false crash report.
+				err0 = nil
+				hanged = false
+				restart = true
 			}
 		}
 	}

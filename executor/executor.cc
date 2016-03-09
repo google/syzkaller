@@ -59,6 +59,7 @@ const uint64_t arg_data = 2;
 
 const int kFailStatus = 67;
 const int kErrorStatus = 68;
+const int kRetryStatus = 69;
 
 // We use the default value instead of results of failed syscalls.
 // -1 is an invalid fd and an invalid address and deterministic,
@@ -976,7 +977,7 @@ void exitf(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
-	exit(1);
+	exit(kRetryStatus);
 }
 
 void debug(const char* msg, ...)
