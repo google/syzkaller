@@ -230,6 +230,9 @@ This will re-create the following source code files:
    (per-architecture) kernel syscall numbers.
  - `executor/syscalls.h`: Constant definitions (in C) for all system call numbers.
 
+If there are problems with this step, run `bin/syz-sysgen` directly and add
+the use `-v=5` flag to show more details of the generation process.
+
 Rebuild syzkaller (`make clean all`) to force use of the new system call definitions.
 
 Finally, adjust the `enable_syscalls` configuration value for syzkaller to specifically target the
