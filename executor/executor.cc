@@ -878,8 +878,15 @@ void remove_dir(const char* dir)
 	int iter = 0;
 retry:
 	DIR* dp = opendir(dir);
-	if (dp == NULL)
+	if (dp == NULL) {
+		if (errno == EMFILE) {
+			// This happens when the test process casts prlimit(NOFILE) on us.
+			// Ideally we somehow prevent test processes from messing with parent processes.
+			// But full sandboxing is expensive, so let's ignore this error for now.
+			exitf("opendir(%s) failed due to NOFILE, exiting");
+		}
 		fail("opendir(%s) failed", dir);
+	}
 	while (dirent* ep = readdir(dp)) {
 		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
 			continue;
