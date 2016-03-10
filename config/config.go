@@ -37,9 +37,10 @@ type Config struct {
 	Count     int    // number of VMs
 	Procs     int    // number of parallel processes inside of every VM
 
-	Cover     bool // use kcov coverage (default: true)
-	DropPrivs bool // drop privileges during fuzzing (default: true)
-	Leak      bool // do memory leak checking
+	Cover       bool // use kcov coverage (default: true)
+	DropPrivs   bool // drop privileges during fuzzing (default: true)
+	Leak        bool // do memory leak checking
+	IgnoreHangs bool // ignore hanged fuzzers
 
 	ConsoleDev string // console device for adb vm
 

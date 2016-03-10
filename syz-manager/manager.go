@@ -332,10 +332,15 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 				return true
 			}
 		case <-ticker.C:
-			if mgr.cfg.Type != "local" {
-				saveCrasher("no output", output)
-				return true
+			if mgr.cfg.Type == "local" {
+				continue
 			}
+
+			if !mgr.cfg.IgnoreHangs {
+				saveCrasher("no output", output)
+			}
+
+			return true
 		}
 	}
 }

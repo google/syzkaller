@@ -101,6 +101,8 @@ following keys in its top-level object:
  - `dropprivs` : Whether the executor program should try to use namespaces to drop privileges
    before executing (requires a kernel built with `CONFIG_NAMESPACES`, `CONFIG_UTS_NS`,
    `CONFIG_USER_NS`, `CONFIG_PID_NS` and `CONFIG_NET_NS`).
+ - `ignorehangs` : Whether the manager should ignore cases where the fuzzer appears to have hanged
+   (a hanged fuzzer might indicate a kernel deadlock so by default this case is not ignored.)
  - `enable_syscalls`: List of syscalls to test (optional).
  - `disable_syscalls`: List of system calls that should be treated as disabled (optional).
  - `suppressions`: List of regexps for known bugs.
