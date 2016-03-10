@@ -36,8 +36,7 @@ to:
  - add extra instrumentation on system call entry/exit (for a `CONFIG_KCOV` build)
  - add code to track and report per-task coverage information.
 
-This is all implemented in [this coverage patch](https://github.com/dvyukov/linux/commit/33787098ffaaa83b8a7ccf519913ac5fd6125931) (copy in [mmotm](http://ozlabs.org/~akpm/mmotm/broken-out/kernel-add-kcov-code-coverage.patch));
-once the patch is applied, the kernel should be configured with `CONFIG_KCOV` plus `CONFIG_KASAN`
+This is all implemented in [this coverage patch](http://git.kernel.org/cgit/linux/kernel/git/next/linux-next.git/patch/kernel/kcov.c?id=ffb9657276580f0bf9327a9ada789a790486792a); once the patch is applied, the kernel should be configured with `CONFIG_KCOV` plus `CONFIG_KASAN`
 or `CONFIG_KTSAN`.
 
 (Note that if the kernel under test does not include support for all namespaces, the `dropprivs`
