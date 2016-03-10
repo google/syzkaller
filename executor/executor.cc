@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <grp.h>
 #include <limits.h>
+#include <linux/capability.h>
 #include <linux/futex.h>
 #include <linux/reboot.h>
 #include <pthread.h>
@@ -334,6 +335,22 @@ int sandbox(void* arg)
 		fail("chroot failed");
 	if (chdir("/"))
 		fail("chdir failed");
+
+	// Drop CAP_SYS_PTRACE so that test processes can't attach to parent processes.
+	// Previously it lead to hangs because the loop process stopped due to SIGSTOP.
+	// Note that a process can always ptrace its direct children, which is enough
+	// for testing purposes.
+	__user_cap_header_struct cap_hdr = {};
+	__user_cap_data_struct cap_data[2] = {};
+	cap_hdr.version = _LINUX_CAPABILITY_VERSION_3;
+	cap_hdr.pid = getpid();
+	if (syscall(SYS_capget, &cap_hdr, &cap_data))
+		fail("capget failed");
+	cap_data[0].effective &= ~(1 << CAP_SYS_PTRACE);
+	cap_data[0].permitted &= ~(1 << CAP_SYS_PTRACE);
+	cap_data[0].inheritable &= ~(1 << CAP_SYS_PTRACE);
+	if (syscall(SYS_capset, &cap_hdr, &cap_data))
+		fail("capset failed");
 
 	loop();
 	exit(1);
