@@ -321,5 +321,6 @@ func (inst *instance) sshArgs(portArg string) []string {
 		"-o", "UserKnownHostsFile=/dev/null",
 		"-o", "IdentitiesOnly=yes",
 		"-o", "StrictHostKeyChecking=no",
+		"-o", "LogLevel=error",
 	}
 }
