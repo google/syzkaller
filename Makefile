@@ -44,7 +44,7 @@ SYSCALL_FILES=sys/sys.txt sys/socket.txt sys/tty.txt sys/perf.txt \
 	sys/kvm.txt sys/sndseq.txt sys/sndtimer.txt sys/sndcontrol.txt sys/input.txt \
 	sys/netlink.txt sys/tun.txt sys/random.txt
 generate: bin/syz-sysgen $(SYSCALL_FILES)
-	bin/syz-sysgen -linux=$(LINUX) $(SYSCALL_FILES)
+	bin/syz-sysgen -linux=$(LINUX) -linuxbld=$(LINUXBLD) $(SYSCALL_FILES)
 bin/syz-sysgen: sysgen/*.go
 	go build -o $@ sysgen/*.go
 

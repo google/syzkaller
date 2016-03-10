@@ -17,13 +17,17 @@ import (
 )
 
 var (
-	flagLinux = flag.String("linux", "", "path to linux kernel checkout")
+	flagLinux = flag.String("linux", "", "path to linux kernel source checkout")
+	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
 )
 
 func main() {
 	flag.Parse()
 	if *flagLinux == "" {
 		failf("provide path to linux kernel checkout via -linux flag (or make generate LINUX= flag)")
+	}
+	if *flagLinuxBld == "" {
+		flagLinuxBld = flagLinux
 	}
 	if len(flag.Args()) == 0 {
 		failf("usage: sysgen -linux=linux_checkout input_file")
