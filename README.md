@@ -200,6 +200,44 @@ Here are some things to check if there are problems running syzkaller.
        so the main configuration needs to be updated to set `dropprivs` to `false`.
 
 
+## Fuzzing new system calls
+
+This section describes how to extend syzkaller to allow fuzz testing of a new system call;
+this is particularly useful for kernel developers who are proposing new system calls.
+
+First, add a declarative description of the new system call to the appropriate file:
+ - Various `sys/<subsystem>.txt` files hold system calls for particular kernel
+   subsystems, for example `bpf` or `socket`.
+ - [sys/sys.txt](sys/sys.txt) holds descriptions for more general system calls.
+ - An entirely new subsystem can be added as a new `sys/<new>.txt` file, but needs
+   the `generate` target in the [Makefile](Makefile) to be updated to include it.
+
+The description format is described [above](#syscall-description) and in the
+master [sys/sys.txt](sys/sys.txt) file.
+
+Next, run `make LINUX=$KSRC generate` with `KSRC` set to the location of a kernel
+source tree (for up to date kernel headers); if the kernel was built into a separate
+directory (with `make O=...`) then also set `LINUXBLD=$KBLD` to the location of the
+build directory.
+
+This will re-create the following source code files:
+ - `sys/sys.go`: Code to initialize a Go [data structure](sys/decl.go) with information
+   about all of the available system calls.
+ - `prog/consts.go`: Constant definitions for all the named constants that are
+   mentioned in the system call descriptions.
+ - `sys/sys_<ARCH>.go`: Data structure to map syzkaller internal syscall IDs to
+   (per-architecture) kernel syscall numbers.
+ - `executor/syscalls.h`: Constant definitions (in C) for all system call numbers.
+
+If there are problems with this step, run `bin/syz-sysgen` directly and add
+the use `-v=5` flag to show more details of the generation process.
+
+Rebuild syzkaller (`make clean all`) to force use of the new system call definitions.
+
+Finally, adjust the `enable_syscalls` configuration value for syzkaller to specifically target the
+new system calls.
+
+
 ## Disclaimer
 
 This is not an official Google product.

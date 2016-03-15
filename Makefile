@@ -39,11 +39,14 @@ stress:
 upgrade:
 	go build -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
-generate:
-	go run sysgen/*.go -linux=$(LINUX) sys/sys.txt sys/socket.txt sys/tty.txt sys/perf.txt \
-		sys/key.txt sys/bpf.txt sys/fuse.txt sys/dri.txt sys/kdbus.txt sys/sctp.txt \
-		sys/kvm.txt sys/sndseq.txt sys/sndtimer.txt sys/sndcontrol.txt sys/input.txt \
-		sys/netlink.txt sys/tun.txt sys/random.txt
+SYSCALL_FILES=sys/sys.txt sys/socket.txt sys/tty.txt sys/perf.txt \
+	sys/key.txt sys/bpf.txt sys/fuse.txt sys/dri.txt sys/kdbus.txt sys/sctp.txt \
+	sys/kvm.txt sys/sndseq.txt sys/sndtimer.txt sys/sndcontrol.txt sys/input.txt \
+	sys/netlink.txt sys/tun.txt sys/random.txt
+generate: bin/syz-sysgen $(SYSCALL_FILES)
+	bin/syz-sysgen -linux=$(LINUX) -linuxbld=$(LINUXBLD) $(SYSCALL_FILES)
+bin/syz-sysgen: sysgen/*.go
+	go build -o $@ sysgen/*.go
 
 format:
 	go fmt ./...

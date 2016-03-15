@@ -61,11 +61,13 @@ func fetchSyscallsNumbers(arch *Arch, syscalls []Syscall) {
 }
 
 func generateSyscallsNumbersArch(arch *Arch, syscalls []Syscall) {
+	var archcode string = "sys/sys_"+arch.GOARCH+".go"
+	logf(1, "Generate code with syscall numbers for arch=%v in %v", arch.GOARCH, archcode)
 	buf := new(bytes.Buffer)
 	if err := archTempl.Execute(buf, arch); err != nil {
 		failf("failed to execute arch template: %v", err)
 	}
-	writeSource("sys/sys_"+arch.GOARCH+".go", buf.Bytes())
+	writeSource(archcode, buf.Bytes())
 }
 
 func generateExecutorSyscalls(syscalls []Syscall) {
@@ -82,11 +84,13 @@ func generateExecutorSyscalls(syscalls []Syscall) {
 	}
 	sort.Sort(SyscallArray(data.FakeCalls))
 
+	var hdrcode string = "executor/syscalls.h"
+	logf(1, "Generate header with syscall numbers in %v", hdrcode)
 	buf := new(bytes.Buffer)
 	if err := syscallsTempl.Execute(buf, data); err != nil {
 		failf("failed to execute syscalls template: %v", err)
 	}
-	writeFile("executor/syscalls.h", buf.Bytes())
+	writeFile(hdrcode, buf.Bytes())
 }
 
 type SyscallsData struct {
