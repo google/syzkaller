@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"go/format"
 	"io"
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -17,13 +18,19 @@ import (
 )
 
 var (
-	flagLinux = flag.String("linux", "", "path to linux kernel checkout")
+	flagLinux = flag.String("linux", "", "path to linux kernel source checkout")
+	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
+	flagV = flag.Int("v", 0, "verbosity")
 )
 
 func main() {
 	flag.Parse()
 	if *flagLinux == "" {
 		failf("provide path to linux kernel checkout via -linux flag (or make generate LINUX= flag)")
+	}
+	if *flagLinuxBld == "" {
+		logf(1, "No kernel build directory provided, assuming in-place build")
+		flagLinuxBld = flagLinux
 	}
 	if len(flag.Args()) == 0 {
 		failf("usage: sysgen -linux=linux_checkout input_file")
@@ -32,6 +39,7 @@ func main() {
 	var r io.Reader
 	for i, f := range flag.Args() {
 		inf, err := os.Open(f)
+		logf(1, "Load descriptions from file %v", f)
 		if err != nil {
 			failf("failed to open input file: %v", err)
 		}
@@ -43,16 +51,22 @@ func main() {
 		}
 	}
 
+	logf(1, "Parse system call descriptions")
 	includes, defines, syscalls, structs, unnamed, flags := parse(r)
+	logf(1, "Build flag definitions")
 	intFlags, flagVals := compileFlags(includes, defines, flags)
 
+	var initcode string = "sys/sys.go"
+	logf(1, "Generate code to init system call data in %v", initcode)
 	out := new(bytes.Buffer)
 	generate(syscalls, structs, unnamed, intFlags, flagVals, out)
-	writeSource("sys/sys.go", out.Bytes())
+	writeSource(initcode, out.Bytes())
 
+	var constcode string = "prog/consts.go"
+	logf(1, "Generate code for constant values in %v", constcode)
 	out = new(bytes.Buffer)
 	generateConsts(flagVals, out)
-	writeSource("prog/consts.go", out.Bytes())
+	writeSource(constcode, out.Bytes())
 
 	generateSyscallsNumbers(syscalls)
 }
@@ -80,6 +94,7 @@ func generate(syscalls []Syscall, structs map[string]Struct, unnamed map[string]
 	fmt.Fprintf(out, "var Calls []*Call\n")
 	fmt.Fprintf(out, "func initCalls() {\n")
 	for i, s := range syscalls {
+		logf(4, "    generate population code for %v", s.Name)
 		fmt.Fprintf(out, "func() { Calls = append(Calls, &Call{ID: %v, Name: \"%v\", CallName: \"%v\"", i, s.Name, s.CallName)
 		if len(s.Ret) != 0 {
 			fmt.Fprintf(out, ", Ret: ")
@@ -90,6 +105,7 @@ func generate(syscalls []Syscall, structs map[string]Struct, unnamed map[string]
 			if i != 0 {
 				fmt.Fprintf(out, ", ")
 			}
+			logf(5, "      generate description for arg %v", i)
 			generateArg(a[0], a[1], a[2:], structs, unnamed, flags, flagVals, false, out)
 		}
 		fmt.Fprintf(out, "}})}()\n")
@@ -623,11 +639,13 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 						}
 					}
 				}
+				logf(2, "  Add struct %v", str.Name)
 				structs[str.Name] = *str
 				str = nil
 			} else {
 				p.SkipWs()
 				fld := []string{p.Ident()}
+				logf(3, "    Add field %f to struct %v", fld, str.Name)
 				fld = append(fld, parseType(p, unnamed, flags)...)
 				str.Flds = append(str.Flds, fld)
 			}
@@ -645,6 +663,7 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 					include = append(include, ch)
 				}
 				p.Parse('>')
+				logf(2, "  Add #include file %v", string(include))
 				includes = append(includes, string(include))
 			} else if name == "define" {
 				key := p.Ident()
@@ -657,6 +676,7 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 				if defines[key] != "" {
 					failf("%v define is defined multiple times", key)
 				}
+				logf(2, "  Add #define %v %v", key, val)
 				defines[key] = fmt.Sprintf("(%s)", val)
 			} else {
 				switch ch := p.Char(); ch {
@@ -681,6 +701,7 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 					if idx := strings.IndexByte(callName, '$'); idx != -1 {
 						callName = callName[:idx]
 					}
+					logf(2, "  Add system call %v", name)
 					syscalls = append(syscalls, Syscall{name, callName, args, ret})
 				case '=':
 					// flag
@@ -690,6 +711,7 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 						p.Parse(',')
 						vals = append(vals, p.Ident())
 					}
+					logf(2, "  Add flag %v", name)
 					flags[name] = vals
 				case '{', '[':
 					p.Parse(ch)
@@ -775,3 +797,10 @@ func failf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
 }
+
+func logf(v int, msg string, args ...interface{}) {
+	if *flagV >= v {
+		log.Printf(msg, args...)
+	}
+}
+

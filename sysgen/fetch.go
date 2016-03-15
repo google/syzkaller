@@ -16,6 +16,7 @@ import (
 // into their respective numeric values. It does so by builting and executing a C program
 // that prints values of the provided expressions.
 func fetchValues(arch string, vals []string, includes []string, defines map[string]string) []string {
+	logf(1, "Use C compiler to fetch constant values for arch=%v", arch)
 	includeText := ""
 	for _, inc := range includes {
 		includeText += fmt.Sprintf("#include <%v>\n", inc)
@@ -33,6 +34,7 @@ func fetchValues(arch string, vals []string, includes []string, defines map[stri
 	}
 	bin.Close()
 	defer os.Remove(bin.Name())
+	logf(2, "  Build C program into temp file %v", bin.Name())
 
 	args := []string{"-x", "c", "-", "-o", bin.Name()}
 	args = append(args, []string{
@@ -43,17 +45,20 @@ func fetchValues(arch string, vals []string, includes []string, defines map[stri
 		"-D__KERNEL__",
 		"-DKBUILD_MODNAME=\"-\"",
 		"-I" + *flagLinux + "/arch/" + arch + "/include",
-		"-I" + *flagLinux + "/arch/" + arch + "/include/generated/uapi",
-		"-I" + *flagLinux + "/arch/" + arch + "/include/generated",
+		"-I" + *flagLinuxBld + "/arch/" + arch + "/include/generated/uapi",
+		"-I" + *flagLinuxBld + "/arch/" + arch + "/include/generated",
+		"-I" + *flagLinuxBld + "/include",
 		"-I" + *flagLinux + "/include",
 		"-I" + *flagLinux + "/arch/" + arch + "/include/uapi",
-		"-I" + *flagLinux + "/arch/" + arch + "/include/generated/uapi",
+		"-I" + *flagLinuxBld + "/arch/" + arch + "/include/generated/uapi",
 		"-I" + *flagLinux + "/include/uapi",
-		"-I" + *flagLinux + "/include/generated/uapi",
+		"-I" + *flagLinuxBld + "/include/generated/uapi",
 		"-I" + *flagLinux,
 		"-include", *flagLinux + "/include/linux/kconfig.h",
 	}...)
 
+	logf(4, "  Source code:\n%v", src)
+	logf(2, "  Execute gcc with: %v", args)
 	cmd := exec.Command("gcc", args...)
 	cmd.Stdin = strings.NewReader(src)
 	out, err := cmd.CombinedOutput()
