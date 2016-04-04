@@ -95,15 +95,15 @@ func execute(pid int, env *ipc.Env, p *prog.Prog) {
 		outMu.Unlock()
 	}
 
-	output, _, _, _, _, err := env.Exec(p)
+	output, _, _, failed, hanged, err := env.Exec(p)
 	if err != nil {
 		fmt.Printf("failed to execute executor: %v\n", err)
 	}
-	failed := failedRe.Match(output)
-	if failed {
+	paniced := failedRe.Match(output)
+	if failed || hanged || paniced || err != nil {
 		fmt.Printf("PROGRAM:\n%s\n", p.Serialize())
 	}
-	if failed || *flagOutput {
+	if failed || hanged || paniced || err != nil || *flagOutput {
 		os.Stdout.Write(output)
 	}
 }
