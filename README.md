@@ -5,7 +5,8 @@ It is meant to be used with [KASAN](https://www.kernel.org/doc/Documentation/kas
 [KTSAN](https://github.com/google/ktsan) (`CONFIG_KTSAN=y`),
 or [KUBSAN] (http://developerblog.redhat.com/2014/10/16/gcc-undefined-behavior-sanitizer-ubsan/) ([patch](https://lkml.org/lkml/2014/10/20/181)).
 
-Project mailing list: [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller).
+Project mailing list: [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller), which you can subscribe to either with an
+google account or by sending an email to syzkaller+subscribe@googlegroups.com.
 
 List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
 
