@@ -112,7 +112,49 @@ func parseFile(fn string) ([][]byte, error) {
 	return lines, nil
 }
 
+func getVmOffset(vmlinux string)(uint32, error) {
+	cmd := exec.Command("readelf", "-SW", vmlinux)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return 0, err
+	}
+	defer stdout.Close()
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+	defer cmd.Wait()
+
+	s := bufio.NewScanner(stdout)
+	var addr uint32 = 0
+	for s.Scan() {
+		ln := s.Text()
+		pieces := strings.Fields(ln)
+		for i := 0; i < len(pieces); i++ {
+			if pieces[i] == "PROGBITS" {
+				v, err := strconv.ParseUint("0x" + pieces[i+1], 0, 64)
+				if err != nil {
+					return 0, fmt.Errorf("failed to parse addr in readelf output: %v", err)
+				}
+				v32 := (uint32)(v >> 32)
+				if v > 0 {
+					if addr == 0 {
+						addr = v32
+					}
+					if addr != v32 {
+						return 0, fmt.Errorf("different section offsets in a single binary")
+					}
+				}
+			}
+		}
+	}
+	return addr, nil
+}
+
 func symbolize(vmlinux string, cov []uint32) ([]LineInfo, string, error) {
+	base, err := getVmOffset(vmlinux)
+	if err != nil {
+		return nil, "", err
+	}
 	cmd := exec.Command("addr2line", "-a", "-i", "-e", vmlinux)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -130,7 +172,7 @@ func symbolize(vmlinux string, cov []uint32) ([]LineInfo, string, error) {
 	defer cmd.Wait()
 	go func() {
 		for _, pc := range cov {
-			fmt.Fprintf(stdin, "0x%x\n", cover.RestorePC(pc)-1)
+			fmt.Fprintf(stdin, "0x%x\n", cover.RestorePC(pc, base)-1)
 		}
 		stdin.Close()
 	}()
