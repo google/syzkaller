@@ -110,7 +110,7 @@ func main() {
 						buf := new(bytes.Buffer)
 						binary.Write(buf, binary.LittleEndian, uint64(0xC0BFFFFFFFFFFF64))
 						for _, pc := range c {
-							binary.Write(buf, binary.LittleEndian, cover.RestorePC(pc))
+							binary.Write(buf, binary.LittleEndian, cover.RestorePC(pc, 0xffffffff))
 						}
 						err := ioutil.WriteFile(fmt.Sprintf("%v.%v", *flagCoverFile, i), buf.Bytes(), 0660)
 						if err != nil {
