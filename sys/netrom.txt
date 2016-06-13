@@ -1,0 +1,62 @@
+# Copyright 2016 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/netrom.h>
+
+socket$netrom(domain const[AF_NETROM], type const[SOCK_SEQPACKET], proto const[0]) fd[netrom]
+bind$netrom(fd fd[netrom], addr ptr[in, sockaddr_netrom], addrlen len[addr])
+connect$netrom(fd fd[netrom], addr ptr[in, sockaddr_netrom], addrlen len[addr])
+accept$netrom(fd fd[netrom], peer ptr[out, sockaddr_netrom, opt], peerlen ptr[inout, len[peer, int32]]) fd[netrom]
+listen$netrom(fd fd[netrom], backlog int32)
+sendmsg$netrom(fd fd[netrom], msg ptr[in, msghdr_netrom], f flags[send_flags])
+recvmsg$netrom(fd fd[netrom], msg ptr[in, msghdr_netrom], f flags[recv_flags])
+getsockname$netrom(fd fd[netrom], addr ptr[out, sockaddr_netrom], addrlen ptr[inout, len[addr, int32]])
+getpeername$netrom(fd fd[netrom], peer ptr[out, sockaddr_netrom], peerlen ptr[inout, len[peer, int32]])
+
+setsockopt$NETROM_T1(fd fd[netrom], level const[SOL_NETROM], opt const[NETROM_T1], arg ptr[in, int32], arglen len[arg])
+setsockopt$NETROM_T2(fd fd[netrom], level const[SOL_NETROM], opt const[NETROM_T2], arg ptr[in, int32], arglen len[arg])
+setsockopt$NETROM_N2(fd fd[netrom], level const[SOL_NETROM], opt const[NETROM_N2], arg ptr[in, int32], arglen len[arg])
+setsockopt$NETROM_T4(fd fd[netrom], level const[SOL_NETROM], opt const[NETROM_T4], arg ptr[in, int32], arglen len[arg])
+setsockopt$NETROM_IDLE(fd fd[netrom], level const[SOL_NETROM], opt const[NETROM_IDLE], arg ptr[in, int32], arglen len[arg])
+
+getsockopt$NETROM_T1(fd fd[netrom], level const[SOL_NETROM], opt const[NETROM_T1], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$NETROM_T2(fd fd[netrom], level const[SOL_NETROM], opt const[NETROM_T2], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$NETROM_N2(fd fd[netrom], level const[SOL_NETROM], opt const[NETROM_N2], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$NETROM_T4(fd fd[netrom], level const[SOL_NETROM], opt const[NETROM_T4], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$NETROM_IDLE(fd fd[netrom], level const[SOL_NETROM], opt const[NETROM_IDLE], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+
+ioctl$NETROM_TIOCOUTQ(fd fd[netrom], cmd const[TIOCOUTQ], arg ptr[out, int32])
+ioctl$NETROM_TIOCINQ(fd fd[netrom], cmd const[TIOCINQ], arg ptr[out, int32])
+ioctl$NETROM_SIOCGSTAMP(fd fd[netrom], cmd const[SIOCGSTAMP], arg ptr[out, int32])
+ioctl$NETROM_SIOCGSTAMPNS(fd fd[netrom], cmd const[SIOCGSTAMPNS], arg ptr[out, int32])
+ioctl$NETROM_SIOCADDRT(fd fd[netrom], cmd const[SIOCADDRT], arg ptr[out, int32])
+
+ax25_address {
+	call	array[int8, 7]
+}
+
+sockaddr_ax25 {
+	family	const[AF_NETROM, int16]
+	call	ax25_address
+	ndigis	int32
+}
+
+full_sockaddr_ax25 {
+	ax25	sockaddr_ax25
+	dig	array[ax25_address, AX25_MAX_DIGIS]
+}
+
+sockaddr_netrom [
+	ax25	sockaddr_ax25
+	full	full_sockaddr_ax25
+] [varlen]
+
+msghdr_netrom {
+	addr	ptr[in, sockaddr_netrom]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_in]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, array[cmsghdr], opt]
+	ctrllen	len[ctrl, intptr]
+	f	flags[send_flags, int32]
+}
