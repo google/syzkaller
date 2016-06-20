@@ -114,6 +114,8 @@ const (
 	FdInputEvent
 	FdTun
 	FdRandom
+	FdKcm
+	FdNetRom
 
 	IPCMsq
 	IPCSem
@@ -143,7 +145,8 @@ func ResourceSubkinds(kind ResourceKind) []ResourceSubkind {
 			FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg, FdPerf, FdUserFault,
 			FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp, FdBtHci, FdBtSco, FdBtL2cap,
 			FdBtRfcomm, FdBtHidp, FdBtCmtp, FdBtBnep, FdUnix, FdSctp, FdNetlink, FdKvm, FdKvmVm,
-			FdKvmCpu, FdSndSeq, FdSndTimer, FdSndControl, FdInputEvent, FdTun, FdRandom}
+			FdKvmCpu, FdSndSeq, FdSndTimer, FdSndControl, FdInputEvent, FdTun, FdRandom, FdKcm,
+			FdNetRom}
 	case ResIPC:
 		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
 	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid, ResIocbPtr, ResDrmCtx:
