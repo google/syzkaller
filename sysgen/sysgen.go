@@ -470,6 +470,10 @@ func fmtFdKind(s string) string {
 		return "FdTun"
 	case "random":
 		return "FdRandom"
+	case "kcm":
+		return "FdKcm"
+	case "netrom":
+		return "FdNetRom"
 	default:
 		failf("bad fd type %v", s)
 		return ""

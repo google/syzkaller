@@ -27,7 +27,7 @@ Setting each of these up is discussed in the following sections.
 
 Syzkaller is a coverage-guided fuzzer and so needs the kernel to be built with coverage support.
 Therefore, a recent upstream version of GCC is needed. Coverage support is submitted to gcc in
-revision 231296. Sync past it and build fresh gcc.
+revision 231296, released in gcc6.
 
 ### Linux Kernel
 

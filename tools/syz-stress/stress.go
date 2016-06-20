@@ -141,6 +141,7 @@ func buildCallList() map[*sys.Call]bool {
 	calls, err := host.DetectSupportedSyscalls()
 	if err != nil {
 		log.Printf("failed to detect host supported syscalls: %v", err)
+		calls = make(map[*sys.Call]bool)
 		for _, c := range sys.Calls {
 			calls[c] = true
 		}
