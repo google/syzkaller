@@ -167,7 +167,7 @@ kvm_pit_channel_state {
 	mode	int8
 	bcd	int8
 	gate	int8
-	ltime	int16
+	ltime	int64
 }
 
 kvm_pit_config {
