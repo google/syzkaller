@@ -24,7 +24,7 @@ type Config struct {
 	Kernel  string // e.g. arch/x86/boot/bzImage
 	Cmdline string // kernel command line
 	Image   string // linux image for VMs
-	Initrd  string
+	Initrd  string // linux initial ramdisk. (optional)
 	Cpu     int    // number of VM CPUs
 	Mem     int    // amount of VM memory in MBs
 	Sshkey  string // root ssh key for the image

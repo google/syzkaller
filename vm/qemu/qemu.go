@@ -5,7 +5,6 @@ package qemu
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"os"
@@ -143,17 +142,19 @@ func (inst *instance) Boot() error {
 		"-smp", "sockets=2,cores=2,threads=1",
 		"-usb", "-usbdevice", "mouse", "-usbdevice", "tablet",
 		"-soundhw", "all",
-		"-initrd", inst.cfg.Initrd,
+	}
+	if inst.cfg.Initrd != "" {
+		args = append(args,
+			"-initrd", inst.cfg.Initrd,
+		)
 	}
 	if inst.cfg.Kernel != "" {
 		args = append(args,
 			"-kernel", inst.cfg.Kernel,
-			"-append", "\"console=ttyS0 root=/dev/sda debug earlyprintk=serial slub_debug=UZ\" "+inst.cfg.Cmdline,
+			"-append", "console=ttyS0 root=/dev/sda debug earlyprintk=serial slub_debug=UZ "+inst.cfg.Cmdline,
 		)
 	}
 	qemu := exec.Command(inst.cfg.Bin, args...)
-
-	log.Printf("qemu command : ", qemu.Args)
 	qemu.Stdout = inst.wpipe
 	qemu.Stderr = inst.wpipe
 	if err := qemu.Start(); err != nil {
