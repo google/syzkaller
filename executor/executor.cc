@@ -902,7 +902,7 @@ retry:
 			// But full sandboxing is expensive, so let's ignore this error for now.
 			exitf("opendir(%s) failed due to NOFILE, exiting");
 		}
-		fail("opendir(%s) failed", dir);
+		exitf("opendir(%s) failed", dir);
 	}
 	while (dirent* ep = readdir(dp)) {
 		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
@@ -911,7 +911,7 @@ retry:
 		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
 		struct stat st;
 		if (lstat(filename, &st))
-			fail("lstat(%s) failed", filename);
+			exitf("lstat(%s) failed", filename);
 		if (S_ISDIR(st.st_mode)) {
 			remove_dir(filename);
 			continue;
@@ -925,10 +925,10 @@ retry:
 				break;
 			}
 			if (errno != EBUSY || i > 100)
-				fail("unlink(%s) failed", filename);
+				exitf("unlink(%s) failed", filename);
 			debug("umount(%s)\n", filename);
 			if (umount2(filename, MNT_DETACH))
-				fail("umount(%s) failed", filename);
+				exitf("umount(%s) failed", filename);
 		}
 	}
 	closedir(dp);
@@ -944,7 +944,7 @@ retry:
 			if (errno == EBUSY) {
 				debug("umount(%s)\n", dir);
 				if (umount2(dir, MNT_DETACH))
-					fail("umount(%s) failed", dir);
+					exitf("umount(%s) failed", dir);
 				continue;
 			}
 			if (errno == ENOTEMPTY) {
@@ -954,7 +954,7 @@ retry:
 				}
 			}
 		}
-		fail("rmdir(%s) failed", dir);
+		exitf("rmdir(%s) failed", dir);
 	}
 }
 
