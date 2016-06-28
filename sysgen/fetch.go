@@ -15,7 +15,7 @@ import (
 // fetchValues converts literal constants (e.g. O_APPEND) or any other C expressions
 // into their respective numeric values. It does so by builting and executing a C program
 // that prints values of the provided expressions.
-func fetchValues(arch string, vals []string, includes []string, defines map[string]string) []string {
+func fetchValues(arch string, vals []string, includes []string, defines map[string]string, cflags []string) []string {
 	logf(1, "Use C compiler to fetch constant values for arch=%v", arch)
 	includeText := ""
 	for _, inc := range includes {
@@ -37,6 +37,7 @@ func fetchValues(arch string, vals []string, includes []string, defines map[stri
 	logf(2, "  Build C program into temp file %v", bin.Name())
 
 	args := []string{"-x", "c", "-", "-o", bin.Name()}
+	args = append(args, cflags...)
 	args = append(args, []string{
 		// This would be useful to ensure that we don't include any host headers,
 		// but kernel includes at least <stdarg.h>

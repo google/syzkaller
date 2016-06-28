@@ -34,8 +34,8 @@
 
 #include "syscalls.h"
 
-#define KCOV_INIT_TRACE _IOR('c', 1, unsigned long)
-#define KCOV_INIT_TABLE _IOR('c', 2, unsigned long)
+#define KCOV_INIT_TRACE _IOR('c', 1, unsigned long long)
+#define KCOV_INIT_TABLE _IOR('c', 2, unsigned long long)
 #define KCOV_ENABLE _IO('c', 100)
 #define KCOV_DISABLE _IO('c', 101)
 
@@ -94,7 +94,7 @@ struct thread_t {
 	bool created;
 	int id;
 	pthread_t th;
-	uintptr_t* cover_data;
+	uint64_t* cover_data;
 	uint64_t* copyout_pos;
 	int ready;
 	int done;
@@ -103,10 +103,10 @@ struct thread_t {
 	int call_index;
 	int call_num;
 	int num_args;
-	uint64_t args[kMaxArgs];
+	uintptr_t args[kMaxArgs];
 	uint64_t res;
 	uint64_t reserrno;
-	uintptr_t cover_size;
+	uint64_t cover_size;
 	int cover_fd;
 };
 
@@ -137,8 +137,8 @@ uint64_t current_time_ms();
 void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
-uintptr_t cover_read(thread_t* th);
-uintptr_t cover_dedup(thread_t* th, uintptr_t n);
+uint64_t cover_read(thread_t* th);
+uint64_t cover_dedup(thread_t* th, uint64_t n);
 
 int main(int argc, char** argv)
 {
@@ -540,7 +540,7 @@ void handle_completion(thread_t* th)
 		write_output(th->cover_size);
 		// Truncate PCs to uint32_t assuming that they fit into 32-bits.
 		// True for x86_64 and arm64 without KASLR.
-		for (uint32_t i = 0; i < th->cover_size; i++)
+		for (uint64_t i = 0; i < th->cover_size; i++)
 			write_output((uint32_t)th->cover_data[i + 1]);
 		completed++;
 		__atomic_store_n((uint32_t*)&output_data[0], completed, __ATOMIC_RELEASE);
@@ -651,9 +651,9 @@ void execute_call(thread_t* th)
 		int fd = open("/dev/fuse", O_RDWR);
 		if (fd != -1) {
 			char buf[256];
-			sprintf(buf, "fd=%d,user_id=%lu,group_id=%lu,rootmode=0%o", fd, uid, gid, (unsigned)mode & ~3u);
+			sprintf(buf, "fd=%d,user_id=%ld,group_id=%ld,rootmode=0%o", fd, (long)uid, (long)gid, (unsigned)mode & ~3u);
 			if (maxread != 0)
-				sprintf(buf + strlen(buf), ",max_read=%lu", maxread);
+				sprintf(buf + strlen(buf), ",max_read=%ld", (long)maxread);
 			if (mode & 1)
 				strcat(buf, ",default_permissions");
 			if (mode & 2)
@@ -679,11 +679,11 @@ void execute_call(thread_t* th)
 		if (fd != -1) {
 			if (syscall(SYS_mknodat, AT_FDCWD, blkdev, S_IFBLK, makedev(7, 199)) == 0) {
 				char buf[256];
-				sprintf(buf, "fd=%d,user_id=%lu,group_id=%lu,rootmode=0%o", fd, uid, gid, (unsigned)mode & ~3u);
+				sprintf(buf, "fd=%d,user_id=%ld,group_id=%ld,rootmode=0%o", fd, (long)uid, (long)gid, (unsigned)mode & ~3u);
 				if (maxread != 0)
-					sprintf(buf + strlen(buf), ",max_read=%lu", maxread);
+					sprintf(buf + strlen(buf), ",max_read=%ld", (long)maxread);
 				if (blksize != 0)
-					sprintf(buf + strlen(buf), ",blksize=%lu", blksize);
+					sprintf(buf + strlen(buf), ",blksize=%ld", (long)blksize);
 				if (mode & 1)
 					strcat(buf, ",default_permissions");
 				if (mode & 2)
@@ -717,8 +717,8 @@ void cover_open()
 		if (th->cover_fd == -1)
 			fail("open of /sys/kernel/debug/kcov failed");
 		if (ioctl(th->cover_fd, KCOV_INIT_TRACE, kCoverSize))
-			fail("cover enable write failed");
-		th->cover_data = (uintptr_t*)mmap(NULL, kCoverSize * sizeof(th->cover_data[0]), PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
+			fail("cover init write failed");
+		th->cover_data = (uint64_t*)mmap(NULL, kCoverSize * sizeof(th->cover_data[0]), PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
 		if ((void*)th->cover_data == MAP_FAILED)
 			fail("cover mmap failed");
 	}
@@ -741,11 +741,11 @@ void cover_reset(thread_t* th)
 	__atomic_store_n(&th->cover_data[0], 0, __ATOMIC_RELAXED);
 }
 
-uintptr_t cover_read(thread_t* th)
+uint64_t cover_read(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
-	uintptr_t n = __atomic_load_n(&th->cover_data[0], __ATOMIC_RELAXED);
+	uint64_t n = __atomic_load_n(&th->cover_data[0], __ATOMIC_RELAXED);
 	debug("#%d: read cover = %d\n", th->id, n);
 	if (n >= kCoverSize)
 		fail("#%d: too much cover %d", th->id, n);
@@ -756,14 +756,14 @@ uintptr_t cover_read(thread_t* th)
 	return n;
 }
 
-uintptr_t cover_dedup(thread_t* th, uintptr_t n)
+uint64_t cover_dedup(thread_t* th, uint64_t n)
 {
-	uintptr_t* cover_data = th->cover_data + 1;
+	uint64_t* cover_data = th->cover_data + 1;
 	std::sort(cover_data, cover_data + n);
-	uintptr_t w = 0;
-	uintptr_t last = 0;
-	for (uintptr_t i = 0; i < n; i++) {
-		uintptr_t pc = cover_data[i];
+	uint64_t w = 0;
+	uint64_t last = 0;
+	for (uint64_t i = 0; i < n; i++) {
+		uint64_t pc = cover_data[i];
 		if (pc == last)
 			continue;
 		cover_data[w++] = last = pc;
