@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	flagLinux = flag.String("linux", "", "path to linux kernel source checkout")
+	flagLinux    = flag.String("linux", "", "path to linux kernel source checkout")
 	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
-	flagV = flag.Int("v", 0, "verbosity")
+	flagV        = flag.Int("v", 0, "verbosity")
 )
 
 func main() {
@@ -569,7 +569,7 @@ func compileFlags(includes []string, defines map[string]string, flags map[string
 		valArray = append(valArray, k)
 	}
 	// TODO: should use target arch
-	flagVals := fetchValues("x86", valArray, includes, defines)
+	flagVals := fetchValues("x86", valArray, includes, defines, []string{})
 	for i, f := range valArray {
 		vals[f] = flagVals[i]
 	}
@@ -649,7 +649,7 @@ func parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 			} else {
 				p.SkipWs()
 				fld := []string{p.Ident()}
-				logf(3, "    Add field %f to struct %v", fld, str.Name)
+				logf(3, "    Add field %v to struct %v", fld, str.Name)
 				fld = append(fld, parseType(p, unnamed, flags)...)
 				str.Flds = append(str.Flds, fld)
 			}
@@ -807,4 +807,3 @@ func logf(v int, msg string, args ...interface{}) {
 		log.Printf(msg, args...)
 	}
 }
-

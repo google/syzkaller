@@ -15,13 +15,15 @@ type Arch struct {
 	CARCH            []string
 	KernelHeaderArch string
 	KernelInclude    string
+	CFlags           []string
 	Numbers          []int
 }
 
 var archs = []*Arch{
-	{"amd64", []string{"__x86_64__"}, "x86", "asm/unistd.h", nil},
-	{"arm64", []string{"__aarch64__"}, "arm64", "asm/unistd.h", nil},
-	{"ppc64le", []string{"__ppc64__", "__PPC64__", "__powerpc64__"}, "powerpc", "asm/unistd.h", nil},
+	{"amd64", []string{"__x86_64__"}, "x86", "asm/unistd.h", []string{"-m64"}, nil},
+	{"386", []string{"__i386__"}, "x86", "asm/unistd.h", []string{"-D__SYSCALL_COMPAT", "-DCONFIG_COMPAT", "-DCONFIG_X86_32"}, nil},
+	{"arm64", []string{"__aarch64__"}, "arm64", "asm/unistd.h", []string{}, nil},
+	{"ppc64le", []string{"__ppc64__", "__PPC64__", "__powerpc64__"}, "powerpc", "asm/unistd.h", []string{}, nil},
 }
 
 var syzkalls = map[string]int{
@@ -51,7 +53,7 @@ func fetchSyscallsNumbers(arch *Arch, syscalls []Syscall) {
 			defines[name] = strconv.Itoa(nr)
 		}
 	}
-	for _, s := range fetchValues(arch.KernelHeaderArch, vals, includes, defines) {
+	for _, s := range fetchValues(arch.KernelHeaderArch, vals, includes, defines, arch.CFlags) {
 		n, err := strconv.ParseUint(s, 10, 64)
 		if err != nil {
 			failf("failed to parse syscall number '%v': %v", s, err)
@@ -61,7 +63,7 @@ func fetchSyscallsNumbers(arch *Arch, syscalls []Syscall) {
 }
 
 func generateSyscallsNumbersArch(arch *Arch, syscalls []Syscall) {
-	var archcode string = "sys/sys_"+arch.GOARCH+".go"
+	var archcode string = "sys/sys_" + arch.GOARCH + ".go"
 	logf(1, "Generate code with syscall numbers for arch=%v in %v", arch.GOARCH, archcode)
 	buf := new(bytes.Buffer)
 	if err := archTempl.Execute(buf, arch); err != nil {
