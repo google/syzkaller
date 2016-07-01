@@ -67,12 +67,19 @@ const int kRetryStatus = 69;
 // so good enough for our purposes.
 const uint64_t default_value = -1;
 
+enum sandbox_type {
+	sandbox_none,
+	sandbox_setuid,
+	sandbox_namespace,
+};
+
 bool flag_debug;
 bool flag_cover;
 bool flag_threaded;
 bool flag_collide;
 bool flag_deduplicate;
-bool flag_drop_privs;
+bool flag_sandbox_privs;
+sandbox_type flag_sandbox;
 
 __attribute__((aligned(64 << 10))) char input_data[kMaxInput];
 __attribute__((aligned(64 << 10))) char output_data[kMaxOutput];
@@ -117,7 +124,11 @@ __attribute__((noreturn)) void fail(const char* msg, ...);
 __attribute__((noreturn)) void error(const char* msg, ...);
 __attribute__((noreturn)) void exitf(const char* msg, ...);
 void debug(const char* msg, ...);
-int sandbox(void* arg);
+int sandbox_proc(void* arg);
+int do_sandbox_none();
+int do_sandbox_setuid();
+int do_sandbox_namespace();
+void sandbox_common();
 void loop();
 void execute_one();
 uint64_t read_input(uint64_t** input_posp, bool peek = false);
@@ -165,7 +176,11 @@ int main(int argc, char** argv)
 	flag_threaded = flags & (1 << 2);
 	flag_collide = flags & (1 << 3);
 	flag_deduplicate = flags & (1 << 4);
-	flag_drop_privs = flags & (1 << 5);
+	flag_sandbox = sandbox_none;
+	if (flags & (1 << 5))
+		flag_sandbox = sandbox_setuid;
+	else if (flags & (1 << 6))
+		flag_sandbox = sandbox_namespace;
 	if (!flag_threaded)
 		flag_collide = false;
 
@@ -181,17 +196,18 @@ int main(int argc, char** argv)
 	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
 
 	int pid = -1;
-	if (flag_drop_privs) {
-		real_uid = getuid();
-		real_gid = getgid();
-		pid = clone(sandbox, &sandbox_stack[sizeof(sandbox_stack) - 8],
-			    CLONE_NEWUSER | CLONE_NEWNS | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
-	} else {
-		pid = fork();
-		if (pid == 0) {
-			loop();
-			exit(1);
-		}
+	switch (flag_sandbox) {
+	case sandbox_none:
+		pid = do_sandbox_none();
+		break;
+	case sandbox_setuid:
+		pid = do_sandbox_setuid();
+		break;
+	case sandbox_namespace:
+		pid = do_sandbox_namespace();
+		break;
+	default:
+		fail("unknown sandbox type");
 	}
 	if (pid < 0)
 		fail("clone failed");
@@ -282,7 +298,46 @@ void loop()
 	}
 }
 
-int sandbox(void* arg)
+int do_sandbox_none()
+{
+	int pid = fork();
+	if (pid)
+		return pid;
+	loop();
+	exit(1);
+}
+
+int do_sandbox_setuid()
+{
+	int pid = fork();
+	if (pid)
+		return pid;
+
+	sandbox_common();
+
+	const int nobody = 65534;
+	if (setgroups(0, NULL))
+		fail("failed to setgroups");
+	// glibc versions do not we want -- they force all threads to setuid.
+	// We want to preserve the thread above as root.
+	if (syscall(SYS_setresgid, nobody, nobody, nobody))
+		fail("failed to setresgid");
+	if (syscall(SYS_setresuid, nobody, nobody, nobody))
+		fail("failed to setresuid");
+
+	loop();
+	exit(1);
+}
+
+int do_sandbox_namespace()
+{
+	real_uid = getuid();
+	real_gid = getgid();
+	return clone(sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 8],
+		     CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
+}
+
+void sandbox_common()
 {
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	setpgrp();
@@ -299,8 +354,14 @@ int sandbox(void* arg)
 	setrlimit(RLIMIT_CORE, &rlim);
 
 	// CLONE_NEWIPC/CLONE_IO cause EINVAL on some systems, so we do them separately of clone.
+	unshare(CLONE_NEWNS);
 	unshare(CLONE_NEWIPC);
 	unshare(CLONE_IO);
+}
+
+int sandbox_proc(void* arg)
+{
+	sandbox_common();
 
 	// /proc/self/setgroups is not present on some systems, ignore error.
 	write_file("/proc/self/setgroups", "deny");

@@ -97,9 +97,12 @@ following keys in its top-level object:
    the virtual machine.
  - `cpu`: Number of CPUs to simulate in the VM (*not currently used*).
  - `mem`: Amount of memory (in MiB) for the VM; this is passed as the `-m` option to `qemu-system-x86_64`.
- - `dropprivs` : Whether the executor program should try to use namespaces to drop privileges
-   before executing (requires a kernel built with `CONFIG_NAMESPACES`, `CONFIG_UTS_NS`,
-   `CONFIG_USER_NS`, `CONFIG_PID_NS` and `CONFIG_NET_NS`).
+ - `sandbox` : Sandboxing mode, one of "none", "setuid", "namespace".
+     "none": don't do anything special (has false positives, e.g. due to killing init)
+     "setuid": impersonate into user nobody (65534), default
+     "namespace": use namespaces to drop privileges,
+     (requires a kernel built with `CONFIG_NAMESPACES`, `CONFIG_UTS_NS`,
+     `CONFIG_USER_NS`, `CONFIG_PID_NS` and `CONFIG_NET_NS`).
  - `enable_syscalls`: List of syscalls to test (optional).
  - `disable_syscalls`: List of system calls that should be treated as disabled (optional).
  - `suppressions`: List of regexps for known bugs.

@@ -37,9 +37,14 @@ type Config struct {
 	Count     int    // number of VMs
 	Procs     int    // number of parallel processes inside of every VM
 
-	Cover     bool // use kcov coverage (default: true)
-	DropPrivs bool // drop privileges during fuzzing (default: true)
-	Leak      bool // do memory leak checking
+	Sandbox string // type of sandbox to use during fuzzing:
+	// "none": don't do anything special (has false positives, e.g. due to killing init)
+	// "setuid": impersonate into user nobody (65534), default
+	// "namespace": create a new namespace for fuzzer using CLONE_NEWNS/CLONE_NEWNET/CLONE_NEWPID/etc,
+	//	requires building kernel with CONFIG_NAMESPACES, CONFIG_UTS_NS, CONFIG_USER_NS, CONFIG_PID_NS and CONFIG_NET_NS.
+
+	Cover bool // use kcov coverage (default: true)
+	Leak  bool // do memory leak checking
 
 	ConsoleDev string // console device for adb vm
 
@@ -69,7 +74,7 @@ func parse(data []byte) (*Config, map[int]bool, []*regexp.Regexp, error) {
 	}
 	cfg := new(Config)
 	cfg.Cover = true
-	cfg.DropPrivs = true
+	cfg.Sandbox = "setuid"
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to parse config file: %v", err)
 	}
@@ -108,6 +113,11 @@ func parse(data []byte) (*Config, map[int]bool, []*regexp.Regexp, error) {
 	case "none", "stdout", "dmesg", "file":
 	default:
 		return nil, nil, nil, fmt.Errorf("config param output must contain one of none/stdout/dmesg/file")
+	}
+	switch cfg.Sandbox {
+	case "none", "setuid", "namespace":
+	default:
+		return nil, nil, nil, fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
 	}
 
 	syscalls, err := parseSyscalls(cfg)
@@ -240,7 +250,7 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Count",
 		"Procs",
 		"Cover",
-		"DropPrivs",
+		"Sandbox",
 		"Leak",
 		"ConsoleDev",
 		"Enable_Syscalls",
