@@ -37,19 +37,20 @@ type Env struct {
 }
 
 const (
-	FlagDebug      = uint64(1) << iota // debug output from executor
-	FlagCover                          // collect coverage
-	FlagThreaded                       // use multiple threads to mitigate blocked syscalls
-	FlagCollide                        // collide syscalls to provoke data races
-	FlagDedupCover                     // deduplicate coverage in executor
-	FlagDropPrivs                      // impersonate nobody user
+	FlagDebug            = uint64(1) << iota // debug output from executor
+	FlagCover                                // collect coverage
+	FlagThreaded                             // use multiple threads to mitigate blocked syscalls
+	FlagCollide                              // collide syscalls to provoke data races
+	FlagDedupCover                           // deduplicate coverage in executor
+	FlagSandboxSetuid                        // impersonate nobody user
+	FlagSandboxNamespace                     // use namespaces for sandboxing
 )
 
 var (
 	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
 	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
 	flagCover    = flag.Bool("cover", true, "collect coverage")
-	flagNobody   = flag.Bool("nobody", true, "impersonate into nobody")
+	flagSandbox  = flag.String("sandbox", "setuid", "sandbox for fuzzing (none/setuid/namespace)")
 	flagDebug    = flag.Bool("debug", false, "debug output from executor")
 	// Executor protects against most hangs, so we use quite large timeout here.
 	// Executor can be slow due to global locks in namespaces and other things,
@@ -57,7 +58,7 @@ var (
 	flagTimeout = flag.Duration("timeout", 1*time.Minute, "execution timeout")
 )
 
-func DefaultFlags() (uint64, time.Duration) {
+func DefaultFlags() (uint64, time.Duration, error) {
 	var flags uint64
 	if *flagThreaded {
 		flags |= FlagThreaded
@@ -69,13 +70,19 @@ func DefaultFlags() (uint64, time.Duration) {
 		flags |= FlagCover
 		flags |= FlagDedupCover
 	}
-	if *flagNobody {
-		flags |= FlagDropPrivs
+	switch *flagSandbox {
+	case "none":
+	case "setuid":
+		flags |= FlagSandboxSetuid
+	case "namespace":
+		flags |= FlagSandboxNamespace
+	default:
+		return 0, 0, fmt.Errorf("flag sandbox must contain one of none/setuid/namespace")
 	}
 	if *flagDebug {
 		flags |= FlagDebug
 	}
-	return flags, *flagTimeout
+	return flags, *flagTimeout, nil
 }
 
 func MakeEnv(bin string, timeout time.Duration, flags uint64) (*Env, error) {
@@ -311,7 +318,7 @@ func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.F
 		}
 	}()
 
-	if flags&FlagDropPrivs != 0 {
+	if flags&(FlagSandboxSetuid|FlagSandboxNamespace) != 0 {
 		if err := os.Chmod(dir, 0777); err != nil {
 			return nil, fmt.Errorf("failed to chmod temp dir: %v", err)
 		}

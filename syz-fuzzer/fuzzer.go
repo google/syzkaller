@@ -119,7 +119,10 @@ func main() {
 
 	kmemleakInit()
 
-	flags, timeout := ipc.DefaultFlags()
+	flags, timeout, err := ipc.DefaultFlags()
+	if err != nil {
+		panic(err)
+	}
 	noCover = flags&ipc.FlagCover == 0
 	if !noCover {
 		fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0)

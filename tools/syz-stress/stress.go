@@ -47,7 +47,10 @@ func main() {
 	prios := prog.CalculatePriorities(corpus)
 	ct := prog.BuildChoiceTable(prios, calls)
 
-	flags, timeout := ipc.DefaultFlags()
+	flags, timeout, err := ipc.DefaultFlags()
+	if err != nil {
+		failf("%v", err)
+	}
 	gate = ipc.NewGate(2**flagProcs, nil)
 	for pid := 0; pid < *flagProcs; pid++ {
 		pid := pid
