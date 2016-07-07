@@ -143,6 +143,11 @@ func (inst *instance) Boot() error {
 		"-usb", "-usbdevice", "mouse", "-usbdevice", "tablet",
 		"-soundhw", "all",
 	}
+	if inst.cfg.Initrd != "" {
+		args = append(args,
+			"-initrd", inst.cfg.Initrd,
+		)
+	}
 	if inst.cfg.Kernel != "" {
 		args = append(args,
 			"-kernel", inst.cfg.Kernel,
