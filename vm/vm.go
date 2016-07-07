@@ -33,6 +33,7 @@ type Config struct {
 	Index      int
 	Workdir    string
 	Bin        string
+	Initrd	   string
 	Kernel     string
 	Cmdline    string
 	Image      string
