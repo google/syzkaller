@@ -55,7 +55,10 @@ func main() {
 		return
 	}
 
-	flags, timeout := ipc.DefaultFlags()
+	flags, timeout, err := ipc.DefaultFlags()
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
 	if *flagCoverFile != "" {
 		flags |= ipc.FlagCover
 		flags &= ^ipc.FlagDedupCover
