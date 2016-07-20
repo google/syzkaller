@@ -258,6 +258,7 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Enable_Syscalls",
 		"Disable_Syscalls",
 		"Suppressions",
+		"Initrd",
 	}
 	f := make(map[string]interface{})
 	if err := json.Unmarshal(data, &f); err != nil {
