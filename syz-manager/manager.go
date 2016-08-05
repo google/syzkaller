@@ -187,6 +187,17 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 	}
 
 	go func() {
+		for {
+			time.Sleep(10 * time.Second)
+			mgr.mu.Lock()
+			executed := mgr.stats["exec total"]
+			crashes := mgr.stats["crashes"]
+			mgr.mu.Unlock()
+			logf(0, "executed programs: %v, crashes: %v", executed, crashes)
+		}
+	}()
+
+	go func() {
 		c := make(chan os.Signal, 2)
 		signal.Notify(c, syscall.SIGINT)
 		<-c
@@ -256,6 +267,9 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		for _, re := range mgr.suppressions {
 			if re.Match(output) {
 				logf(1, "%v: suppressing '%v' with '%v'", vmCfg.Name, what, re.String())
+				mgr.mu.Lock()
+				mgr.stats["suppressed"]++
+				mgr.mu.Unlock()
 				return
 			}
 		}
@@ -275,6 +289,9 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		filename := fmt.Sprintf("crash-%v-%v", vmCfg.Name, time.Now().UnixNano())
 		logf(0, "%v: saving crash '%v' to %v", vmCfg.Name, what, filename)
 		ioutil.WriteFile(filepath.Join(mgr.crashdir, filename), output, 0660)
+		mgr.mu.Lock()
+		mgr.stats["crashes"]++
+		mgr.mu.Unlock()
 	}
 
 	var output []byte

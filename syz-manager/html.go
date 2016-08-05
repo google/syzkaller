@@ -59,14 +59,14 @@ func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
 
 	secs := uint64(uptime) / 1e9
 	for k, v := range mgr.stats {
-		val := ""
+		val := fmt.Sprintf("%v", v)
 		if x := v / secs; x >= 10 {
-			val = fmt.Sprintf("%v/sec", x)
+			val += fmt.Sprintf(" (%v/sec)", x)
 		} else if x := v * 60 / secs; x >= 10 {
-			val = fmt.Sprintf("%v/min", x)
+			val += fmt.Sprintf(" (%v/min)", x)
 		} else {
 			x := v * 60 * 60 / secs
-			val = fmt.Sprintf("%v/hour", x)
+			val += fmt.Sprintf(" (%v/hour)", x)
 		}
 		data.Stats = append(data.Stats, UIStat{Name: k, Value: val})
 	}
