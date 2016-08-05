@@ -18,7 +18,8 @@ import (
 )
 
 type Config struct {
-	Http    string
+	Http    string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
+	Rpc     string // TCP address to serve RPC for fuzzer processes (optional, only useful for type "none")
 	Workdir string
 	Vmlinux string
 	Kernel  string // e.g. arch/x86/boot/bzImage
@@ -97,8 +98,20 @@ func parse(data []byte) (*Config, map[int]bool, []*regexp.Regexp, error) {
 	if cfg.Type == "" {
 		return nil, nil, nil, fmt.Errorf("config param type is empty")
 	}
-	if cfg.Count <= 0 || cfg.Count > 1000 {
-		return nil, nil, nil, fmt.Errorf("invalid config param count: %v, want (1, 1000]", cfg.Count)
+	if cfg.Type == "none" {
+		if cfg.Count != 0 {
+			return nil, nil, nil, fmt.Errorf("invalid config param count: %v, type \"none\" does not support param count", cfg.Count)
+		}
+		if cfg.Rpc == "" {
+			return nil, nil, nil, fmt.Errorf("config param rpc is empty (required for type \"none\")")
+		}
+	} else {
+		if cfg.Count <= 0 || cfg.Count > 1000 {
+			return nil, nil, nil, fmt.Errorf("invalid config param count: %v, want (1, 1000]", cfg.Count)
+		}
+		if cfg.Rpc == "" {
+			cfg.Rpc = "localhost:0"
+		}
 	}
 	if cfg.Procs <= 0 {
 		cfg.Procs = 1
@@ -235,6 +248,7 @@ func checkUnknownFields(data []byte) (string, error) {
 	// we don't have a better way than to enumerate all known fields.
 	var fields = []string{
 		"Http",
+		"Rpc",
 		"Workdir",
 		"Vmlinux",
 		"Kernel",

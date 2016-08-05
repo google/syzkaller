@@ -141,7 +141,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 	mgr.initHttp()
 
 	// Create RPC server for fuzzers.
-	ln, err := net.Listen("tcp", "localhost:0")
+	ln, err := net.Listen("tcp", cfg.Rpc)
 	if err != nil {
 		fatalf("failed to listen on localhost:0: %v", err)
 	}
@@ -162,7 +162,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 
 	var shutdown uint32
 	var wg sync.WaitGroup
-	wg.Add(cfg.Count)
+	wg.Add(cfg.Count + 1)
 	for i := 0; i < cfg.Count; i++ {
 		first := i == 0
 		go func() {
@@ -201,6 +201,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		c := make(chan os.Signal, 2)
 		signal.Notify(c, syscall.SIGINT)
 		<-c
+		wg.Done()
 		atomic.StoreUint32(&mgr.shutdown, 1)
 		*flagV = -1 // VMs will fail
 		logf(-1, "shutting down...")
