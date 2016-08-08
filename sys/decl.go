@@ -1,4 +1,4 @@
-// Copyright 2015 syzkaller project authors. All rights reserved.
+// Copyright 2015/2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 package sys
@@ -385,12 +385,15 @@ const (
 	IntSignalno
 	IntInaddr
 	IntInport
+	IntRange
 )
 
 type IntType struct {
 	TypeCommon
 	TypeSize uintptr
 	Kind     IntKind
+	RangeBegin int64
+	RangeEnd int64
 }
 
 func (t IntType) Size() uintptr {

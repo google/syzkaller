@@ -1,4 +1,4 @@
-// Copyright 2015 syzkaller project authors. All rights reserved.
+// Copyright 2015/2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 package main
@@ -288,10 +288,21 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 		}
 		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: StrConstType{%v, Val: \"%v\"}}", common(), fmtDir("in"), common(), a[0]+"\\x00")
 	case "int8", "int16", "int32", "int64", "intptr":
-		if want := 0; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		if len(a) == 1 {
+			s := a[0]
+			var lo, hi int64
+			if _, err := fmt.Sscanf(s, "%d~%d", &lo, &hi); err != nil {
+				failf("failed to parse int range: %v (%v)", s, err)
+			}
+			if lo >= hi {
+				failf("bad int range: %v", s)
+			}
+			fmt.Fprintf(out, "IntType{%v, TypeSize: %v, Kind: IntRange, RangeBegin: %v, RangeEnd: %v}", common(), typeToSize(typ), lo, hi)
+		} else if len(a) == 0 {
+			fmt.Fprintf(out, "IntType{%v, TypeSize: %v}", common(), typeToSize(typ))
+		} else {
+			failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
 		}
-		fmt.Fprintf(out, "IntType{%v, TypeSize: %v}", common(), typeToSize(typ))
 	case "signalno":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
