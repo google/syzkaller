@@ -1,4 +1,4 @@
-// Copyright 2015 syzkaller project authors. All rights reserved.
+// Copyright 2015/2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 package prog
@@ -69,6 +69,10 @@ func (r *randGen) randInt() uintptr {
 		1, func() { v = uintptr(-int(v)) },
 	)
 	return v
+}
+
+func (r *randGen) randRangeInt(begin int64, end int64) uintptr {
+	return uintptr(begin + r.Int63n(end - begin + 1))
 }
 
 // biasedRand returns a random int in range [0..n),
@@ -744,6 +748,8 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 			v = uintptr(r.inaddr(s))
 		case sys.IntInport:
 			v = uintptr(r.inport(s))
+		case sys.IntRange:
+			v = r.randRangeInt(a.RangeBegin, a.RangeEnd)
 		}
 		return constArg(v), nil, nil
 	case sys.FilenameType:
