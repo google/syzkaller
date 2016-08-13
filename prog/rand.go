@@ -72,6 +72,9 @@ func (r *randGen) randInt() uintptr {
 }
 
 func (r *randGen) randRangeInt(begin int64, end int64) uintptr {
+	if r.oneOf(100) {
+		return r.randInt()
+	}
 	return uintptr(begin + r.Int63n(end-begin+1))
 }
 
