@@ -23,7 +23,7 @@
 #	"filename": a file/link/dir name
 #	"ptr": a pointer to an object, type-options: type of the object; direction (in/out/inout)
 #	"array": a variable/fixed-length array, type-options: type of elements, optional size for fixed-length arrays
-#	"intN"/"intptr": an integer without a particular meaning
+#	"intN"/"intptr": an integer without a particular meaning, type-options: range of values (e.g. "5:10", or "-100:200", optional)
 # flags/len/flags also have trailing underlying type type-option when used in structs/unions/pointers.
 #
 # Flags are described as:
