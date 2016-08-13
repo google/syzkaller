@@ -1,4 +1,4 @@
-// Copyright 2015 syzkaller project authors. All rights reserved.
+// Copyright 2015/2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 package prog
@@ -90,6 +90,7 @@ func calcStaticPriorities() [][]float32 {
 			case sys.IntType:
 				switch a.Kind {
 				case sys.IntPlain:
+				case sys.IntRange:
 				case sys.IntSignalno:
 					noteUsage(1.0, "signalno")
 				case sys.IntInaddr:
