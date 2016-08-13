@@ -426,8 +426,8 @@ func (r *randGen) addr(s *state, size uintptr, data *Arg) (*Arg, []*Call) {
 	}
 	// Patch offset of the address.
 	r.choose(
-		1, func() {},
-		1, func() { arg.AddrOffset = -int(size) },
+		50, func() {},
+		50, func() { arg.AddrOffset = -int(size) },
 		1, func() {
 			if size > 0 {
 				arg.AddrOffset = -r.Intn(int(size))
