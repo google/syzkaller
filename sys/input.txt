@@ -62,7 +62,7 @@ input_event {
 
 input_keymap_entry {
 	flags	int8
-	len	int8
+	len	int8[0:32]
 	index	int16
 	keycode	int32
 	scancod	array[int8, 32]
