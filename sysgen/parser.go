@@ -82,7 +82,7 @@ func (p *Parser) Ident() string {
 				p.s[p.i] >= 'A' && p.s[p.i] <= 'Z' ||
 				p.s[p.i] >= '0' && p.s[p.i] <= '9' ||
 				p.s[p.i] == '_' || p.s[p.i] == '$' || // $ is for n-way syscalls (like ptrace$peek)
-				p.s[p.i] == '-' || p.s[p.i] == '~') { // ~ is for ranged int (like int32[-3~10])
+				p.s[p.i] == '-' || p.s[p.i] == ':') { // : is for ranged int (like int32[-3:10])
 			p.i++
 		}
 		if start == p.i {
