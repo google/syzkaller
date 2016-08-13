@@ -5,7 +5,7 @@ syz_open_dev$sndtimer(dev strconst["/dev/snd/timer"], id const[0], flags flags[o
 
 ioctl$SNDRV_TIMER_IOCTL_PVERSION(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_PVERSION], arg ptr[out, int32])
 ioctl$SNDRV_TIMER_IOCTL_NEXT_DEVICE(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_NEXT_DEVICE], arg ptr[in, snd_timer_id])
-ioctl$SNDRV_TIMER_IOCTL_TREAD(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_TREAD], arg ptr[in, int32])
+ioctl$SNDRV_TIMER_IOCTL_TREAD(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_TREAD], arg ptr[in, int32[0:1]])
 ioctl$SNDRV_TIMER_IOCTL_GINFO(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_GINFO], arg ptr[in, snd_timer_ginfo])
 ioctl$SNDRV_TIMER_IOCTL_GPARAMS(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_GPARAMS], arg ptr[in, snd_timer_gparams])
 ioctl$SNDRV_TIMER_IOCTL_GSTATUS(fd fd[sndtimer], cmd const[SNDRV_TIMER_IOCTL_GSTATUS], arg ptr[in, snd_timer_gstatus])
