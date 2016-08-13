@@ -72,7 +72,7 @@ func (r *randGen) randInt() uintptr {
 }
 
 func (r *randGen) randRangeInt(begin int64, end int64) uintptr {
-	return uintptr(begin + r.Int63n(end - begin + 1))
+	return uintptr(begin + r.Int63n(end-begin+1))
 }
 
 // biasedRand returns a random int in range [0..n),

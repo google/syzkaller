@@ -390,10 +390,10 @@ const (
 
 type IntType struct {
 	TypeCommon
-	TypeSize uintptr
-	Kind     IntKind
+	TypeSize   uintptr
+	Kind       IntKind
 	RangeBegin int64
-	RangeEnd int64
+	RangeEnd   int64
 }
 
 func (t IntType) Size() uintptr {
