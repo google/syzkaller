@@ -26,10 +26,7 @@ func DetectSupportedSyscalls() (map[*sys.Call]bool, error) {
 	// 3. Check sys_syscallname in /proc/kallsyms.
 	//    Requires CONFIG_KALLSYMS. Seems to be the most reliable. That's what we use here.
 
-	kallsyms, err := ioutil.ReadFile("/proc/kallsyms")
-	if err != nil {
-		return nil, err
-	}
+	kallsyms, _ := ioutil.ReadFile("/proc/kallsyms")
 	supported := make(map[*sys.Call]bool)
 	for _, c := range sys.Calls {
 		if isSupported(kallsyms, c) {
@@ -44,18 +41,21 @@ func isSupported(kallsyms []byte, c *sys.Call) bool {
 		return false // don't even have a syscall number
 	}
 	if strings.HasPrefix(c.CallName, "syz_") {
-		return isSupportedSyzkall(kallsyms, c)
+		return isSupportedSyzkall(c)
 	}
 	if strings.HasPrefix(c.Name, "socket$") {
-		return isSupportedSocket(kallsyms, c)
+		return isSupportedSocket(c)
 	}
 	if strings.HasPrefix(c.Name, "open$") {
-		return isSupportedOpen(kallsyms, c)
+		return isSupportedOpen(c)
+	}
+	if len(kallsyms) == 0 {
+		return true
 	}
 	return bytes.Index(kallsyms, []byte(" T sys_"+c.CallName+"\n")) != -1
 }
 
-func isSupportedSyzkall(kallsyms []byte, c *sys.Call) bool {
+func isSupportedSyzkall(c *sys.Call) bool {
 	switch c.CallName {
 	case "syz_open_dev":
 		ptr, ok := c.Args[0].(sys.PtrType)
@@ -96,7 +96,7 @@ func isSupportedSyzkall(kallsyms []byte, c *sys.Call) bool {
 	}
 }
 
-func isSupportedSocket(kallsyms []byte, c *sys.Call) bool {
+func isSupportedSocket(c *sys.Call) bool {
 	af, ok := c.Args[0].(sys.ConstType)
 	if !ok {
 		println(c.Name)
@@ -109,7 +109,7 @@ func isSupportedSocket(kallsyms []byte, c *sys.Call) bool {
 	return err != syscall.ENOSYS && err != syscall.EAFNOSUPPORT
 }
 
-func isSupportedOpen(kallsyms []byte, c *sys.Call) bool {
+func isSupportedOpen(c *sys.Call) bool {
 	ptr, ok := c.Args[0].(sys.PtrType)
 	if !ok {
 		panic("first open arg is not a pointer")
