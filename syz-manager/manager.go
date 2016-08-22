@@ -46,6 +46,7 @@ type Manager struct {
 	port             int
 	persistentCorpus *PersistentSet
 	startTime        time.Time
+	firstConnect     time.Time
 	stats            map[string]uint64
 	shutdown         uint32
 
@@ -438,6 +439,10 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 	logf(1, "fuzzer %v connected", a.Name)
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+
+	if mgr.firstConnect.IsZero() {
+		mgr.firstConnect = time.Now()
+	}
 
 	mgr.stats["vm restarts"]++
 	mgr.minimizeCorpus()
