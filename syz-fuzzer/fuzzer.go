@@ -141,6 +141,8 @@ func main() {
 		leakCallback = nil
 	}
 	gate = ipc.NewGate(2**flagProcs, leakCallback)
+	needPoll := make(chan struct{}, 1)
+	needPoll <- struct{}{}
 	envs := make([]*ipc.Env, *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
 		env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
@@ -163,7 +165,14 @@ func main() {
 						last := len(triage) - 1
 						inp := triage[last]
 						triage = triage[:last]
+						wakePoll := len(triage) < *flagProcs
 						triageMu.Unlock()
+						if wakePoll {
+							select {
+							case needPoll <- struct{}{}:
+							default:
+							}
+						}
 						logf(1, "triaging : %s", inp.p)
 						triageInput(pid, env, inp)
 						continue
@@ -204,15 +213,22 @@ func main() {
 
 	var lastPoll time.Time
 	var lastPrint time.Time
-	for range time.NewTicker(3 * time.Second).C {
+	ticker := time.NewTicker(3 * time.Second).C
+	for {
+		poll := false
+		select {
+		case <-ticker:
+		case <-needPoll:
+			poll = true
+		}
 		if *flagOutput != "stdout" && time.Since(lastPrint) > 10*time.Second {
 			// Keep-alive for manager.
 			logf(0, "alive")
 			lastPrint = time.Now()
 		}
-		if time.Since(lastPoll) > 10*time.Second {
+		if poll || time.Since(lastPoll) > 10*time.Second {
 			triageMu.RLock()
-			if len(candidates) != 0 {
+			if len(candidates) > *flagProcs {
 				triageMu.RUnlock()
 				continue
 			}
