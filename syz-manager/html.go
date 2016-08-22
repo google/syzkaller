@@ -57,7 +57,10 @@ func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
 		data.CallCoverMem += len(cov) * int(unsafe.Sizeof(cov[0]))
 	}
 
-	secs := uint64(uptime) / 1e9
+	secs := uint64(1)
+	if !mgr.firstConnect.IsZero() {
+		secs = uint64(time.Since(mgr.firstConnect))/1e9 + 1
+	}
 	for k, v := range mgr.stats {
 		val := fmt.Sprintf("%v", v)
 		if x := v / secs; x >= 10 {
