@@ -11,6 +11,7 @@
 #include <linux/futex.h>
 #include <linux/reboot.h>
 #include <pthread.h>
+#include <setjmp.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -120,6 +121,9 @@ struct thread_t {
 thread_t threads[kMaxThreads];
 char sandbox_stack[1 << 20];
 
+int skip_segv;
+jmp_buf segv_env;
+
 __attribute__((noreturn)) void fail(const char* msg, ...);
 __attribute__((noreturn)) void error(const char* msg, ...);
 __attribute__((noreturn)) void exitf(const char* msg, ...);
@@ -150,6 +154,7 @@ void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
 uint64_t cover_read(thread_t* th);
 uint64_t cover_dedup(thread_t* th, uint64_t n);
+void handle_segv(int sig, siginfo_t* info, void* uctx);
 
 int main(int argc, char** argv)
 {
@@ -194,6 +199,12 @@ int main(int argc, char** argv)
 	sa.sa_handler = SIG_IGN;
 	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
 	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_sigaction = handle_segv;
+	sa.sa_flags = SA_NODEFER | SA_SIGINFO;
+	sigaction(SIGSEGV, &sa, NULL);
+	sigaction(SIGBUS, &sa, NULL);
 
 	int pid = -1;
 	switch (flag_sandbox) {
@@ -450,7 +461,11 @@ retry:
 				break;
 			}
 			case arg_data: {
-				memcpy(addr, input_pos, size);
+				__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST);
+				if (_setjmp(segv_env) == 0) {
+					memcpy(addr, input_pos, size);
+				}
+				__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST);
 				// Read out the data.
 				for (uint64_t i = 0; i < (size + 7) / 8; i++)
 					read_input(&input_pos);
@@ -832,40 +847,63 @@ uint64_t cover_dedup(thread_t* th, uint64_t n)
 	return w;
 }
 
+void handle_segv(int sig, siginfo_t* info, void* uctx)
+{
+	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED)) {
+		debug("caught signal %d during copyin/copyout, ignoring\n", sig);
+		_longjmp(segv_env, 1);
+	}
+	exitf("caught signal %d, exiting", sig);
+}
+
 void copyin(char* addr, uint64_t val, uint64_t size)
 {
-	switch (size) {
-	case 1:
-		*(uint8_t*)addr = val;
-		break;
-	case 2:
-		*(uint16_t*)addr = val;
-		break;
-	case 4:
-		*(uint32_t*)addr = val;
-		break;
-	case 8:
-		*(uint64_t*)addr = val;
-		break;
-	default:
-		fail("copyin: bad argument size %lu", size);
+	__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST);
+	if (_setjmp(segv_env) == 0) {
+		switch (size) {
+		case 1:
+			*(uint8_t*)addr = val;
+			break;
+		case 2:
+			*(uint16_t*)addr = val;
+			break;
+		case 4:
+			*(uint32_t*)addr = val;
+			break;
+		case 8:
+			*(uint64_t*)addr = val;
+			break;
+		default:
+			fail("copyin: bad argument size %lu", size);
+		}
 	}
+	__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST);
 }
 
 uint64_t copyout(char* addr, uint64_t size)
 {
-	switch (size) {
-	case 1:
-		return *(uint8_t*)addr;
-	case 2:
-		return *(uint16_t*)addr;
-	case 4:
-		return *(uint32_t*)addr;
-	case 8:
-		return *(uint64_t*)addr;
-	default:
-		fail("copyout: bad argument size %lu", size);
+	uint64_t res = default_value;
+	__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST);
+	if (_setjmp(segv_env) == 0) {
+		switch (size) {
+		case 1:
+			res = *(uint8_t*)addr;
+			break;
+		case 2:
+			res = *(uint16_t*)addr;
+			break;
+		case 4:
+			res = *(uint32_t*)addr;
+			break;
+		case 8:
+			res = *(uint64_t*)addr;
+			break;
+		default:
+			fail("copyout: bad argument size %lu", size);
+		}
 	}
+	__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST);
+	return res;
 }
 
 uint64_t read_arg(uint64_t** input_posp)
