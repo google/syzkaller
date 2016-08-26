@@ -2,6 +2,9 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+# Assuming x86 host, you also need to install:
+# sudo apt-get install gcc-aarch64-linux-gnu gcc-powerpc64le-linux-gnu
+
 if [ "$LINUX" == "" ]; then
 	echo "usage: make extract LINUX=/linux/checkout]"
 	exit 1
