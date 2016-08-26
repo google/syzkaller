@@ -124,6 +124,14 @@ func readConsts(arch string) map[string]uint64 {
 	return consts
 }
 
+var skipCurrentSyscall string
+
+func skipSyscall(why string) {
+	if skipCurrentSyscall != "" {
+		skipCurrentSyscall = why
+	}
+}
+
 func generate(arch string, syscalls []Syscall, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string, consts map[string]uint64, out io.Writer) {
 	unsupported := make(map[string]bool)
 
@@ -132,8 +140,9 @@ func generate(arch string, syscalls []Syscall, structs map[string]Struct, unname
 
 	fmt.Fprintf(out, "var Calls []*Call\n")
 	fmt.Fprintf(out, "func initCalls() {\n")
-	for i, s := range syscalls {
+	for _, s := range syscalls {
 		logf(4, "    generate population code for %v", s.Name)
+		skipCurrentSyscall = ""
 		syscallNR := -1
 		if nr, ok := consts["__NR_"+s.CallName]; ok {
 			syscallNR = int(nr)
@@ -143,35 +152,24 @@ func generate(arch string, syscalls []Syscall, structs map[string]Struct, unname
 				logf(0, "unsupported syscall: %v", s.CallName)
 			}
 		}
-		func() {
-			defer func() {
-				err := recover()
-				if err == nil {
-					return
-				}
-				if skip, ok := err.(skipSyscallError); ok {
-					logf(0, "unsupported syscall: %v due to %v", s.Name, skip)
-					return
-				}
-				panic(err)
-			}()
-			callBuffer := new(bytes.Buffer)
-			fmt.Fprintf(callBuffer, "func() { Calls = append(Calls, &Call{ID: %v, Name: \"%v\", CallName: \"%v\", NR: %v", i, s.Name, s.CallName, syscallNR)
-			if len(s.Ret) != 0 {
-				fmt.Fprintf(callBuffer, ", Ret: ")
-				generateArg("ret", s.Ret[0], s.Ret[1:], structs, unnamed, flags, consts, false, callBuffer)
+		fmt.Fprintf(out, "func() { Calls = append(Calls, &Call{Name: \"%v\", CallName: \"%v\"", s.Name, s.CallName)
+		if len(s.Ret) != 0 {
+			fmt.Fprintf(out, ", Ret: ")
+			generateArg("ret", s.Ret[0], s.Ret[1:], structs, unnamed, flags, consts, false, out)
+		}
+		fmt.Fprintf(out, ", Args: []Type{")
+		for i, a := range s.Args {
+			if i != 0 {
+				fmt.Fprintf(out, ", ")
 			}
-			fmt.Fprintf(callBuffer, ", Args: []Type{")
-			for i, a := range s.Args {
-				if i != 0 {
-					fmt.Fprintf(callBuffer, ", ")
-				}
-				logf(5, "      generate description for arg %v", i)
-				generateArg(a[0], a[1], a[2:], structs, unnamed, flags, consts, false, callBuffer)
-			}
-			fmt.Fprintf(callBuffer, "}})}()\n")
-			out.Write(callBuffer.Bytes())
-		}()
+			logf(5, "      generate description for arg %v", i)
+			generateArg(a[0], a[1], a[2:], structs, unnamed, flags, consts, false, out)
+		}
+		if skipCurrentSyscall != "" {
+			logf(0, "unsupported syscall: %v due to %v", s.Name, skipCurrentSyscall)
+			syscallNR = -1
+		}
+		fmt.Fprintf(out, "}, NR: %v})}()\n", syscallNR)
 	}
 	fmt.Fprintf(out, "}\n\n")
 
@@ -187,8 +185,6 @@ func generate(arch string, syscalls []Syscall, structs map[string]Struct, unname
 	}
 	fmt.Fprintf(out, ")\n")
 }
-
-type skipSyscallError string
 
 func generateArg(
 	name, typ string,
@@ -366,7 +362,10 @@ func generateArg(
 		if v, ok := consts[a[0]]; ok {
 			val = fmt.Sprint(v)
 		} else if isIdentifier(a[0]) {
-			panic(skipSyscallError(fmt.Sprintf("missing const %v", a[0])))
+			// This is an identifier for which we don't have a value for this arch.
+			// Skip this syscall on this arch.
+			val = "0"
+			skipSyscall(fmt.Sprintf("missing const %v", a[0]))
 		}
 		fmt.Fprintf(out, "ConstType{%v, TypeSize: %v, Val: uintptr(%v)}", common(), size, val)
 	case "strconst":
