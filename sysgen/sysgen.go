@@ -345,7 +345,11 @@ func generateArg(
 		if !ok {
 			failf("unknown flag %v", a[0])
 		}
-		fmt.Fprintf(out, "FlagsType{%v, TypeSize: %v, Vals: []uintptr{%v}}", common(), size, strings.Join(vals, ","))
+		if len(vals) == 0 {
+			fmt.Fprintf(out, "IntType{%v, TypeSize: %v}", common(), size)
+		} else {
+			fmt.Fprintf(out, "FlagsType{%v, TypeSize: %v, Vals: []uintptr{%v}}", common(), size, strings.Join(vals, ","))
+		}
 	case "const":
 		var size uint64
 		if isField {
