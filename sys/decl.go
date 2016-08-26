@@ -116,6 +116,7 @@ const (
 	FdRandom
 	FdKcm
 	FdNetRom
+	FdTlkDevice
 
 	IPCMsq
 	IPCSem
@@ -146,7 +147,7 @@ func ResourceSubkinds(kind ResourceKind) []ResourceSubkind {
 			FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp, FdBtHci, FdBtSco, FdBtL2cap,
 			FdBtRfcomm, FdBtHidp, FdBtCmtp, FdBtBnep, FdUnix, FdSctp, FdNetlink, FdKvm, FdKvmVm,
 			FdKvmCpu, FdSndSeq, FdSndTimer, FdSndControl, FdInputEvent, FdTun, FdRandom, FdKcm,
-			FdNetRom}
+			FdNetRom, FdTlkDevice}
 	case ResIPC:
 		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
 	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid, ResIocbPtr, ResDrmCtx:
