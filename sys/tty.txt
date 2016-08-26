@@ -1,7 +1,12 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-open$ptmx(file strconst["/dev/ptmx"], flags flags[open_flags], mode const[0]) fd[tty]
+include <asm/ioctls.h>
+include <uapi/linux/kd.h>
+include <uapi/linux/vt.h>
+include <uapi/linux/fcntl.h>
+
+openat$ptmx(fd const[AT_FDCWD], file strconst["/dev/ptmx"], flags flags[open_flags], mode const[0]) fd[tty]
 syz_open_pts(fd fd[tty], flags flags[open_flags]) fd[tty]
 ioctl$TCGETS(fd fd[tty], cmd const[TCGETS], arg ptr[out, termios])
 ioctl$TCSETS(fd fd[tty], cmd const[TCSETS], arg ptr[in, termios])

@@ -269,8 +269,8 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) (*Prog, int)
 			Args: []*Arg{
 				pointerArg(0, 0, nil),
 				pageSizeArg(uintptr(hi)+1, 0),
-				constArg(PROT_READ | PROT_WRITE),
-				constArg(MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED),
+				constArg(sys.PROT_READ | sys.PROT_WRITE),
+				constArg(sys.MAP_ANONYMOUS | sys.MAP_PRIVATE | sys.MAP_FIXED),
 				constArg(sys.InvalidFD),
 				constArg(0),
 			},

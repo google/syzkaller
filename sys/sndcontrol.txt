@@ -1,6 +1,8 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <sound/asound.h>
+
 syz_open_dev$sndctrl(dev strconst["/dev/snd/controlC#"], id intptr, flags flags[open_flags]) fd[sndctrl]
 
 ioctl$SNDRV_CTL_IOCTL_PVERSION(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_PVERSION], arg buffer[out])

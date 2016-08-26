@@ -10,84 +10,123 @@ import (
 	"fmt"
 	"go/format"
 	"io"
-	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
+
+	. "github.com/google/syzkaller/sysparser"
 )
 
 var (
-	flagLinux    = flag.String("linux", "", "path to linux kernel source checkout")
-	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
-	flagV        = flag.Int("v", 0, "verbosity")
+	flagV = flag.Int("v", 0, "verbosity")
 )
 
 func main() {
 	flag.Parse()
-	if *flagLinux == "" {
-		failf("provide path to linux kernel checkout via -linux flag (or make generate LINUX= flag)")
-	}
-	if *flagLinuxBld == "" {
-		logf(1, "No kernel build directory provided, assuming in-place build")
-		flagLinuxBld = flagLinux
-	}
-	if len(flag.Args()) == 0 {
-		failf("usage: sysgen -linux=linux_checkout input_file")
-	}
 
-	var r io.Reader
-	for i, f := range flag.Args() {
+	inputFiles, err := filepath.Glob("sys/*\\.txt")
+	if err != nil {
+		failf("failed to find input files: %v", err)
+	}
+	var r io.Reader = bytes.NewReader(nil)
+	for _, f := range inputFiles {
 		inf, err := os.Open(f)
 		logf(1, "Load descriptions from file %v", f)
 		if err != nil {
 			failf("failed to open input file: %v", err)
 		}
 		defer inf.Close()
-		if i == 0 {
-			r = bufio.NewReader(inf)
-		} else {
-			r = io.MultiReader(r, bufio.NewReader(inf))
-		}
+		r = io.MultiReader(r, bufio.NewReader(inf))
 	}
 
 	logf(1, "Parse system call descriptions")
-	includes, defines, syscalls, structs, unnamed, flags := parse(r)
-	logf(1, "Build flag definitions")
-	intFlags, flagVals := compileFlags(includes, defines, flags)
+	includes, defines, syscalls, structs, unnamed, flags := Parse(r)
+	_, _ = includes, defines
 
-	var initcode string = "sys/sys.go"
-	logf(1, "Generate code to init system call data in %v", initcode)
-	out := new(bytes.Buffer)
-	generate(syscalls, structs, unnamed, intFlags, flagVals, out)
-	writeSource(initcode, out.Bytes())
+	consts := make(map[string]map[string]uint64)
+	for _, arch := range archs {
+		logf(0, "generating %v...", arch.Name)
+		consts[arch.Name] = readConsts(arch.Name)
 
-	var constcode string = "prog/consts.go"
-	logf(1, "Generate code for constant values in %v", constcode)
-	out = new(bytes.Buffer)
-	generateConsts(flagVals, out)
-	writeSource(constcode, out.Bytes())
+		unsupported := make(map[string]bool)
+		archFlags := make(map[string][]string)
+		for f, vals := range flags {
+			var archVals []string
+			for _, val := range vals {
+				if isIdentifier(val) {
+					if v, ok := consts[arch.Name][val]; ok {
+						archVals = append(archVals, fmt.Sprint(v))
+					} else {
+						if !unsupported[val] {
+							unsupported[val] = true
+							logf(0, "unsupported flag: %v", val)
+						}
+					}
+				} else {
+					archVals = append(archVals, val)
+				}
+			}
+			archFlags[f] = archVals
+		}
 
-	generateSyscallsNumbers(syscalls)
+		sysFile := filepath.Join("sys", "sys_"+arch.Name+".go")
+		logf(1, "Generate code to init system call data in %v", sysFile)
+		out := new(bytes.Buffer)
+		generate(arch.Name, syscalls, structs, unnamed, archFlags, consts[arch.Name], out)
+		writeSource(sysFile, out.Bytes())
+		logf(0, "")
+	}
+
+	generateExecutorSyscalls(syscalls, consts)
 }
 
-type Syscall struct {
-	Name     string
-	CallName string
-	Args     [][]string
-	Ret      []string
+func readConsts(arch string) map[string]uint64 {
+	constFiles, err := filepath.Glob("sys/*_" + arch + ".const")
+	if err != nil {
+		failf("failed to find const files: %v", err)
+	}
+	consts := make(map[string]uint64)
+	for _, fname := range constFiles {
+		f, err := os.Open(fname)
+		if err != nil {
+			failf("failed to open const file: %v", err)
+		}
+		defer f.Close()
+		s := bufio.NewScanner(f)
+		for s.Scan() {
+			line := s.Text()
+			if line == "" || line[0] == '#' {
+				continue
+			}
+			eq := strings.IndexByte(line, '=')
+			if eq == -1 {
+				failf("malformed const file %v: no '=' in '%v'", fname, line)
+			}
+			name := strings.TrimSpace(line[:eq])
+			val, err := strconv.ParseUint(strings.TrimSpace(line[eq+1:]), 0, 64)
+			if err != nil {
+				failf("malformed const file %v: bad value in '%v'", fname, line)
+			}
+			if old, ok := consts[name]; ok && old != val {
+				failf("const %v has different values for %v: %v vs %v", name, arch, old, val)
+			}
+			consts[name] = val
+		}
+		if err := s.Err(); err != nil {
+			failf("failed to read const file: %v", err)
+		}
+	}
+	for name, nr := range syzkalls {
+		consts["__NR_"+name] = nr
+	}
+	return consts
 }
 
-type Struct struct {
-	Name    string
-	Flds    [][]string
-	IsUnion bool
-	Packed  bool
-	Varlen  bool
-	Align   int
-}
+func generate(arch string, syscalls []Syscall, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string, consts map[string]uint64, out io.Writer) {
+	unsupported := make(map[string]bool)
 
-func generate(syscalls []Syscall, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string, flagVals map[string]string, out io.Writer) {
 	fmt.Fprintf(out, "// AUTOGENERATED FILE\n")
 	fmt.Fprintf(out, "package sys\n\n")
 
@@ -95,25 +134,71 @@ func generate(syscalls []Syscall, structs map[string]Struct, unnamed map[string]
 	fmt.Fprintf(out, "func initCalls() {\n")
 	for i, s := range syscalls {
 		logf(4, "    generate population code for %v", s.Name)
-		fmt.Fprintf(out, "func() { Calls = append(Calls, &Call{ID: %v, Name: \"%v\", CallName: \"%v\"", i, s.Name, s.CallName)
-		if len(s.Ret) != 0 {
-			fmt.Fprintf(out, ", Ret: ")
-			generateArg("ret", s.Ret[0], s.Ret[1:], structs, unnamed, flags, flagVals, false, out)
-		}
-		fmt.Fprintf(out, ", Args: []Type{")
-		for i, a := range s.Args {
-			if i != 0 {
-				fmt.Fprintf(out, ", ")
+		syscallNR := -1
+		if nr, ok := consts["__NR_"+s.CallName]; ok {
+			syscallNR = int(nr)
+		} else {
+			if !unsupported[s.CallName] {
+				unsupported[s.CallName] = true
+				logf(0, "unsupported syscall: %v", s.CallName)
 			}
-			logf(5, "      generate description for arg %v", i)
-			generateArg(a[0], a[1], a[2:], structs, unnamed, flags, flagVals, false, out)
 		}
-		fmt.Fprintf(out, "}})}()\n")
+		func() {
+			defer func() {
+				err := recover()
+				if err == nil {
+					return
+				}
+				if skip, ok := err.(skipSyscallError); ok {
+					logf(0, "unsupported syscall: %v due to %v", s.Name, skip)
+					return
+				}
+				panic(err)
+			}()
+			callBuffer := new(bytes.Buffer)
+			fmt.Fprintf(callBuffer, "func() { Calls = append(Calls, &Call{ID: %v, Name: \"%v\", CallName: \"%v\", NR: %v", i, s.Name, s.CallName, syscallNR)
+			if len(s.Ret) != 0 {
+				fmt.Fprintf(callBuffer, ", Ret: ")
+				generateArg("ret", s.Ret[0], s.Ret[1:], structs, unnamed, flags, consts, false, callBuffer)
+			}
+			fmt.Fprintf(callBuffer, ", Args: []Type{")
+			for i, a := range s.Args {
+				if i != 0 {
+					fmt.Fprintf(callBuffer, ", ")
+				}
+				logf(5, "      generate description for arg %v", i)
+				generateArg(a[0], a[1], a[2:], structs, unnamed, flags, consts, false, callBuffer)
+			}
+			fmt.Fprintf(callBuffer, "}})}()\n")
+			out.Write(callBuffer.Bytes())
+		}()
 	}
-	fmt.Fprintf(out, "}\n")
+	fmt.Fprintf(out, "}\n\n")
+
+	var constArr []NameValue
+	for name, val := range consts {
+		constArr = append(constArr, NameValue{name, val})
+	}
+	sort.Sort(NameValueArray(constArr))
+
+	fmt.Fprintf(out, "const (\n")
+	for _, nv := range constArr {
+		fmt.Fprintf(out, "%v = %v\n", nv.name, nv.val)
+	}
+	fmt.Fprintf(out, ")\n")
 }
 
-func generateArg(name, typ string, a []string, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string, flagVals map[string]string, isField bool, out io.Writer) {
+type skipSyscallError string
+
+func generateArg(
+	name, typ string,
+	a []string,
+	structs map[string]Struct,
+	unnamed map[string][]string,
+	flags map[string][]string,
+	consts map[string]uint64,
+	isField bool,
+	out io.Writer) {
 	name = "\"" + name + "\""
 	opt := false
 	for i, v := range a {
@@ -260,8 +345,8 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
 		}
-		vals := flags[a[0]]
-		if len(vals) == 0 {
+		vals, ok := flags[a[0]]
+		if !ok {
 			failf("unknown flag %v", a[0])
 		}
 		fmt.Fprintf(out, "FlagsType{%v, TypeSize: %v, Vals: []uintptr{%v}}", common(), size, strings.Join(vals, ","))
@@ -277,9 +362,11 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
 		}
-		val := flagVals[a[0]]
-		if val == "" {
-			val = a[0]
+		val := a[0]
+		if v, ok := consts[a[0]]; ok {
+			val = fmt.Sprint(v)
+		} else if isIdentifier(a[0]) {
+			panic(skipSyscallError(fmt.Sprintf("missing const %v", a[0])))
 		}
 		fmt.Fprintf(out, "ConstType{%v, TypeSize: %v, Val: uintptr(%v)}", common(), size, val)
 	case "strconst":
@@ -335,21 +422,21 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 		}
 		sz := "0"
 		if len(a) == 2 {
-			sz = flagVals[a[1]]
-			if sz == "" {
-				sz = a[1]
+			sz = a[1]
+			if v, ok := consts[sz]; ok {
+				sz = fmt.Sprint(v)
 			}
 		}
-		fmt.Fprintf(out, "ArrayType{%v, Type: %v, Len: %v}", common(), generateType(a[0], structs, unnamed, flags, flagVals), sz)
+		fmt.Fprintf(out, "ArrayType{%v, Type: %v, Len: %v}", common(), generateType(a[0], structs, unnamed, flags, consts), sz)
 	case "ptr":
 		if want := 2; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "PtrType{%v, Type: %v, Dir: %v}", common(), generateType(a[1], structs, unnamed, flags, flagVals), fmtDir(a[0]))
+		fmt.Fprintf(out, "PtrType{%v, Type: %v, Dir: %v}", common(), generateType(a[1], structs, unnamed, flags, consts), fmtDir(a[0]))
 	default:
 		if strings.HasPrefix(typ, "unnamed") {
 			if inner, ok := unnamed[typ]; ok {
-				generateArg("", inner[0], inner[1:], structs, unnamed, flags, flagVals, isField, out)
+				generateArg("", inner[0], inner[1:], structs, unnamed, flags, consts, isField, out)
 				return
 			}
 			failf("unknown unnamed type '%v'", typ)
@@ -378,7 +465,7 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 				if i != 0 {
 					fmt.Fprintf(out, ", ")
 				}
-				generateArg(a[0], a[1], a[2:], structs, unnamed, flags, flagVals, true, out)
+				generateArg(a[0], a[1], a[2:], structs, unnamed, flags, consts, true, out)
 			}
 			fmt.Fprintf(out, "}}")
 			return
@@ -387,9 +474,9 @@ func generateArg(name, typ string, a []string, structs map[string]Struct, unname
 	}
 }
 
-func generateType(typ string, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string, flagVals map[string]string) string {
+func generateType(typ string, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string, consts map[string]uint64) string {
 	buf := new(bytes.Buffer)
-	generateArg("", typ, nil, structs, unnamed, flags, flagVals, true, buf)
+	generateArg("", typ, nil, structs, unnamed, flags, consts, true, buf)
 	return buf.String()
 }
 
@@ -532,78 +619,6 @@ func typeToSize(typ string) uint64 {
 	return uint64(sz / 8)
 }
 
-type F struct {
-	name string
-	val  string
-}
-
-type FlagArray []F
-
-func (a FlagArray) Len() int           { return len(a) }
-func (a FlagArray) Less(i, j int) bool { return a[i].name < a[j].name }
-func (a FlagArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-type SortedSyscall struct {
-	name string
-	nr   int
-}
-
-func generateConsts(flags map[string]string, out io.Writer) {
-	var ff []F
-	for k, v := range flags {
-		ff = append(ff, F{k, v})
-	}
-	sort.Sort(FlagArray(ff))
-
-	fmt.Fprintf(out, "// AUTOGENERATED FILE\n")
-	fmt.Fprintf(out, "package prog\n\n")
-	fmt.Fprintf(out, "const (\n")
-	for _, f := range ff {
-		fmt.Fprintf(out, "	%v = %v\n", f.name, f.val)
-	}
-	fmt.Fprintf(out, ")\n")
-	fmt.Fprintf(out, "\n")
-}
-
-func compileFlags(includes []string, defines map[string]string, flags map[string][]string) (map[string][]string, map[string]string) {
-	vals := make(map[string]string)
-	for _, fvals := range flags {
-		for _, v := range fvals {
-			vals[v] = ""
-		}
-	}
-	for k := range defines {
-		vals[k] = ""
-	}
-	valArray := make([]string, 0, len(vals))
-	for k := range vals {
-		valArray = append(valArray, k)
-	}
-	// TODO: should use target arch
-	flagVals := fetchValues("x86", valArray, includes, defines, []string{})
-	for i, f := range valArray {
-		vals[f] = flagVals[i]
-	}
-	res := make(map[string][]string)
-	for fname, fvals := range flags {
-		var arr []string
-		for _, v := range fvals {
-			arr = append(arr, vals[v])
-		}
-		if res[fname] != nil {
-			failf("flag %v is defined multiple times", fname)
-		}
-		res[fname] = arr
-	}
-	ids := make(map[string]string)
-	for k, v := range vals {
-		if isIdentifier(k) {
-			ids[k] = v
-		}
-	}
-	return res, ids
-}
-
 func isIdentifier(s string) bool {
 	for i, c := range s {
 		if c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || i > 0 && (c >= '0' && c <= '9') {
@@ -612,182 +627,6 @@ func isIdentifier(s string) bool {
 		return false
 	}
 	return true
-}
-
-func parse(in io.Reader) (includes []string, defines map[string]string, syscalls []Syscall, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string) {
-	p := NewParser(in)
-	defines = make(map[string]string)
-	structs = make(map[string]Struct)
-	unnamed = make(map[string][]string)
-	flags = make(map[string][]string)
-	var str *Struct
-	for p.Scan() {
-		if p.EOF() || p.Char() == '#' {
-			continue
-		}
-		if str != nil {
-			// Parsing a struct.
-			if p.Char() == '}' || p.Char() == ']' {
-				p.Parse(p.Char())
-				for _, attr := range parseType1(p, unnamed, flags, "")[1:] {
-					if str.IsUnion {
-						switch attr {
-						case "varlen":
-							str.Varlen = true
-						default:
-							failf("unknown union %v attribute: %v", str.Name, attr)
-						}
-					} else {
-						switch attr {
-						case "packed":
-							str.Packed = true
-						case "align_1":
-							str.Align = 1
-						case "align_2":
-							str.Align = 2
-						case "align_4":
-							str.Align = 4
-						case "align_8":
-							str.Align = 8
-						default:
-							failf("unknown struct %v attribute: %v", str.Name, attr)
-						}
-					}
-				}
-				logf(2, "  Add struct %v", str.Name)
-				structs[str.Name] = *str
-				str = nil
-			} else {
-				p.SkipWs()
-				fld := []string{p.Ident()}
-				logf(3, "    Add field %v to struct %v", fld, str.Name)
-				fld = append(fld, parseType(p, unnamed, flags)...)
-				str.Flds = append(str.Flds, fld)
-			}
-		} else {
-			name := p.Ident()
-			if name == "include" {
-				p.Parse('<')
-				var include []byte
-				for {
-					ch := p.Char()
-					if ch == '>' {
-						break
-					}
-					p.Parse(ch)
-					include = append(include, ch)
-				}
-				p.Parse('>')
-				logf(2, "  Add #include file %v", string(include))
-				includes = append(includes, string(include))
-			} else if name == "define" {
-				key := p.Ident()
-				var val []byte
-				for !p.EOF() {
-					ch := p.Char()
-					p.Parse(ch)
-					val = append(val, ch)
-				}
-				if defines[key] != "" {
-					failf("%v define is defined multiple times", key)
-				}
-				logf(2, "  Add #define %v %v", key, val)
-				defines[key] = fmt.Sprintf("(%s)", val)
-			} else {
-				switch ch := p.Char(); ch {
-				case '(':
-					// syscall
-					p.Parse('(')
-					var args [][]string
-					for p.Char() != ')' {
-						arg := []string{p.Ident()}
-						arg = append(arg, parseType(p, unnamed, flags)...)
-						args = append(args, arg)
-						if p.Char() != ')' {
-							p.Parse(',')
-						}
-					}
-					p.Parse(')')
-					var ret []string
-					if !p.EOF() {
-						ret = parseType(p, unnamed, flags)
-					}
-					callName := name
-					if idx := strings.IndexByte(callName, '$'); idx != -1 {
-						callName = callName[:idx]
-					}
-					logf(2, "  Add system call %v", name)
-					syscalls = append(syscalls, Syscall{name, callName, args, ret})
-				case '=':
-					// flag
-					p.Parse('=')
-					vals := []string{p.Ident()}
-					for !p.EOF() {
-						p.Parse(',')
-						vals = append(vals, p.Ident())
-					}
-					logf(2, "  Add flag %v", name)
-					flags[name] = vals
-				case '{', '[':
-					p.Parse(ch)
-					if _, ok := structs[name]; ok {
-						failf("%v struct is defined multiple times", name)
-					}
-					str = &Struct{Name: name, IsUnion: ch == '['}
-				default:
-					failf("bad line (%v)", p.Str())
-				}
-			}
-		}
-		if !p.EOF() {
-			failf("trailing data (%v)", p.Str())
-		}
-	}
-	return
-}
-
-func parseType(p *Parser, unnamed map[string][]string, flags map[string][]string) []string {
-	return parseType1(p, unnamed, flags, p.Ident())
-}
-
-var (
-	unnamedSeq int
-	constSeq   int
-)
-
-func parseType1(p *Parser, unnamed map[string][]string, flags map[string][]string, name string) []string {
-	typ := []string{name}
-	if !p.EOF() && p.Char() == '[' {
-		p.Parse('[')
-		for {
-			id := p.Ident()
-			if p.Char() == '[' {
-				inner := parseType1(p, unnamed, flags, id)
-				id = fmt.Sprintf("unnamed%v", unnamedSeq)
-				unnamedSeq++
-				unnamed[id] = inner
-			}
-			typ = append(typ, id)
-			if p.Char() == ']' {
-				break
-			}
-			p.Parse(',')
-		}
-		p.Parse(']')
-	}
-	if name == "const" && len(typ) > 1 {
-		// Create a fake flag with the const value.
-		id := fmt.Sprintf("const_flag_%v", constSeq)
-		constSeq++
-		flags[id] = typ[1:2]
-	}
-	if name == "array" && len(typ) > 2 {
-		// Create a fake flag with the const value.
-		id := fmt.Sprintf("const_flag_%v", constSeq)
-		constSeq++
-		flags[id] = typ[2:3]
-	}
-	return typ
 }
 
 func writeSource(file string, data []byte) {
@@ -808,6 +647,17 @@ func writeFile(file string, data []byte) {
 	outf.Write(data)
 }
 
+type NameValue struct {
+	name string
+	val  uint64
+}
+
+type NameValueArray []NameValue
+
+func (a NameValueArray) Len() int           { return len(a) }
+func (a NameValueArray) Less(i, j int) bool { return a[i].name < a[j].name }
+func (a NameValueArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
 func failf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
@@ -815,6 +665,6 @@ func failf(msg string, args ...interface{}) {
 
 func logf(v int, msg string, args ...interface{}) {
 	if *flagV >= v {
-		log.Printf(msg, args...)
+		fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	}
 }

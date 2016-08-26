@@ -202,7 +202,7 @@ func (t ResourceType) Default() uintptr {
 func (t ResourceType) SpecialValues() []uintptr {
 	switch t.Kind {
 	case ResFD:
-		return []uintptr{InvalidFD, BogusFD, ^uintptr(0) - 99 /*AT_FDCWD*/}
+		return []uintptr{InvalidFD, BogusFD, AT_FDCWD}
 	case ResIOCtx:
 		return []uintptr{0}
 	case ResIPC:
@@ -659,10 +659,6 @@ func init() {
 	initCalls()
 	initResources()
 	initAlign()
-
-	for _, c := range Calls {
-		c.NR = numbers[c.ID]
-	}
 
 	for _, c := range Calls {
 		if CallMap[c.Name] != nil {

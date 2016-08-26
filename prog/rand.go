@@ -159,7 +159,18 @@ func (r *randGen) filename(s *state) string {
 	return files[r.Intn(len(files))]
 }
 
-var sockFamilies = []uint16{AF_UNIX, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET}
+var sockFamilies = []uint16{
+	sys.AF_UNIX,
+	sys.AF_INET,
+	sys.AF_INET6,
+	sys.AF_IPX,
+	sys.AF_NETLINK,
+	sys.AF_X25,
+	sys.AF_AX25,
+	sys.AF_ATMPVC,
+	sys.AF_APPLETALK,
+	sys.AF_PACKET,
+}
 
 func (r *randGen) inaddr(s *state) uint32 {
 	// TODO: extract addresses of network interfaces.
@@ -205,24 +216,24 @@ func (r *randGen) sockaddr(s *state) []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, fa) // this is actually host byte order
 	switch fa {
-	case AF_UNIX:
+	case sys.AF_UNIX:
 		buf.WriteString(r.filename(s))
-	case AF_INET:
+	case sys.AF_INET:
 		binary.Write(buf, binary.LittleEndian, r.inport(s))
 		binary.Write(buf, binary.LittleEndian, r.inaddr(s))
-	case AF_INET6:
+	case sys.AF_INET6:
 		binary.Write(buf, binary.LittleEndian, r.inport(s))
 		binary.Write(buf, binary.BigEndian, uint32(r.Int63())) // flow info
 		binary.Write(buf, binary.BigEndian, uint64(0))         // addr: loopback
 		binary.Write(buf, binary.BigEndian, uint64(1))         // addr: loopback
 		binary.Write(buf, binary.BigEndian, uint32(r.Int63())) // scope id
-	case AF_IPX:
-	case AF_NETLINK:
-	case AF_X25:
-	case AF_AX25:
-	case AF_ATMPVC:
-	case AF_APPLETALK:
-	case AF_PACKET:
+	case sys.AF_IPX:
+	case sys.AF_NETLINK:
+	case sys.AF_X25:
+	case sys.AF_AX25:
+	case sys.AF_ATMPVC:
+	case sys.AF_APPLETALK:
+	case sys.AF_PACKET:
 		binary.Write(buf, binary.BigEndian, uint16(0)) // Physical-layer protocol
 		binary.Write(buf, binary.BigEndian, uint32(0)) // Interface number
 		binary.Write(buf, binary.BigEndian, uint16(0)) // ARP hardware type
@@ -368,7 +379,7 @@ func (r *randGen) timespec(s *state, usec bool) (arg *Arg, calls []*Call) {
 			gettime := &Call{
 				Meta: sys.CallMap["clock_gettime"],
 				Args: []*Arg{
-					constArg(CLOCK_REALTIME),
+					constArg(sys.CLOCK_REALTIME),
 					tpaddr,
 				},
 			}
@@ -408,8 +419,8 @@ func (r *randGen) addr1(s *state, size uintptr, data *Arg) (*Arg, []*Call) {
 			Args: []*Arg{
 				pointerArg(i, 0, nil),
 				pageSizeArg(npages, 0),
-				constArg(PROT_READ | PROT_WRITE),
-				constArg(MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED),
+				constArg(sys.PROT_READ | sys.PROT_WRITE),
+				constArg(sys.MAP_ANONYMOUS | sys.MAP_PRIVATE | sys.MAP_FIXED),
 				constArg(sys.InvalidFD),
 				constArg(0),
 			},

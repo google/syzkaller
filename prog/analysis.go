@@ -75,7 +75,7 @@ func (s *state) analyze(c *Call) {
 		if length.AddrPage == 0 && length.AddrOffset == 0 {
 			break
 		}
-		if flags, fd := c.Args[4], c.Args[3]; flags.Val&MAP_ANONYMOUS == 0 && fd.Kind == ArgConst && fd.Val == sys.InvalidFD {
+		if flags, fd := c.Args[4], c.Args[3]; flags.Val&sys.MAP_ANONYMOUS == 0 && fd.Kind == ArgConst && fd.Val == sys.InvalidFD {
 			break
 		}
 		s.addressable(c.Args[0], length, true)
@@ -237,15 +237,15 @@ func sanitizeCall(c *Call) {
 		if flags.Kind != ArgConst {
 			panic("mmap flag arg is not const")
 		}
-		flags.Val |= MAP_FIXED
+		flags.Val |= sys.MAP_FIXED
 	case "mremap":
 		// Add MREMAP_FIXED flag, otherwise it produces non-deterministic results.
 		flags := c.Args[3]
 		if flags.Kind != ArgConst {
 			panic("mremap flag arg is not const")
 		}
-		if flags.Val&MREMAP_MAYMOVE != 0 {
-			flags.Val |= MREMAP_FIXED
+		if flags.Val&sys.MREMAP_MAYMOVE != 0 {
+			flags.Val |= sys.MREMAP_FIXED
 		}
 	case "mknod":
 		mode := c.Args[1]
@@ -254,27 +254,27 @@ func sanitizeCall(c *Call) {
 		}
 		// Char and block devices read/write io ports, kernel memory and do other nasty things.
 		// TODO: not required if executor drops privileges.
-		if mode.Val != S_IFREG && mode.Val != S_IFIFO && mode.Val != S_IFSOCK {
-			mode.Val = S_IFIFO
+		if mode.Val != sys.S_IFREG && mode.Val != sys.S_IFIFO && mode.Val != sys.S_IFSOCK {
+			mode.Val = sys.S_IFIFO
 		}
 	case "syslog":
 		cmd := c.Args[0]
 		// These disable console output, but we need it.
-		if cmd.Val == SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == SYSLOG_ACTION_CONSOLE_ON {
-			cmd.Val = SYSLOG_ACTION_SIZE_UNREAD
+		if cmd.Val == sys.SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == sys.SYSLOG_ACTION_CONSOLE_ON {
+			cmd.Val = sys.SYSLOG_ACTION_SIZE_UNREAD
 		}
 	case "ioctl":
 		cmd := c.Args[1]
 		// Freeze kills machine. Though, it is an interesting functions,
 		// so we need to test it somehow.
 		// TODO: not required if executor drops privileges.
-		if uint32(cmd.Val) == uint32(FIFREEZE) {
-			cmd.Val = FITHAW
+		if uint32(cmd.Val) == sys.FIFREEZE {
+			cmd.Val = sys.FITHAW
 		}
 	case "ptrace":
 		// PTRACE_TRACEME leads to unkillable processes, see:
 		// https://groups.google.com/forum/#!topic/syzkaller/uGzwvhlCXAw
-		if c.Args[0].Val == PTRACE_TRACEME {
+		if c.Args[0].Val == sys.PTRACE_TRACEME {
 			c.Args[0].Val = ^uintptr(0)
 		}
 	case "exit", "exit_group":

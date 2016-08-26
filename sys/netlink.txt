@@ -1,6 +1,7 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <linux/net.h>
 include <uapi/linux/netlink.h>
 
 socket$netlink(domain const[AF_NETLINK], type const[SOCK_RAW], proto flags[netlink_proto]) fd[netlink]

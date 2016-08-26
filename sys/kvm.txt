@@ -3,6 +3,7 @@
 
 include <linux/kvm.h>
 include <linux/kvm_host.h>
+include <uapi/linux/fcntl.h>
 
 syz_open_dev$kvm(dev strconst["/dev/kvm"], id const[0], flags flags[open_flags]) fd[kvm]
 
@@ -94,7 +95,7 @@ ioctl$KVM_SET_GUEST_DEBUG(fd fd[kvmcpu], cmd const[KVM_SET_GUEST_DEBUG], arg ptr
 ioctl$KVM_SMI(fd fd[kvmcpu], cmd const[KVM_SMI])
 
 # TODO: extend support (there are some ioctls)
-open$xenevtchn(file strconst["/dev/xen/evtchn"], flags flags[open_flags], mode const[0]) fd
+openat$xenevtchn(fd const[AT_FDCWD], file strconst["/dev/xen/evtchn"], flags flags[open_flags], mode const[0]) fd
 
 kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY, KVM_MEMSLOT_INVALID, KVM_MEMSLOT_INCOHERENT
 kvm_mp_state = KVM_MP_STATE_RUNNABLE, KVM_MP_STATE_UNINITIALIZED, KVM_MP_STATE_INIT_RECEIVED, KVM_MP_STATE_HALTED, KVM_MP_STATE_SIPI_RECEIVED, KVM_MP_STATE_STOPPED, KVM_MP_STATE_CHECK_STOP, KVM_MP_STATE_OPERATING, KVM_MP_STATE_LOAD
