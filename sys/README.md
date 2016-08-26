@@ -11,7 +11,7 @@ close(fd fd)
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 ```
 
-The description is contained in `sys/*.txt` files. See for example [sys/sys.txt](sys/sys.txt) file.
+The description is contained in `sys/*.txt` files. See for example [sys/sys.txt](/sys/sys.txt) file.
 
 ## Syntax
 
@@ -21,7 +21,8 @@ Pseudo-formal grammar of syscall description:
 	arg = argname type
 	argname = identifier
 	type = typename [ "[" type-options "]" ]
-	typename = "fd" | "fileoff" | "buffer" | "vma" , "len" | "flags" | "filename" | "ptr" | "array" | "intN" | "intptr"
+	typename = "fd" | "fileoff" | "buffer" | "vma" , "len" | "flags" |
+			"filename" | "ptr" | "array" | "intN" | "intptr"
 	type-options = [type-opt ["," type-opt]]
 ```
 common type-options include:
@@ -30,17 +31,25 @@ common type-options include:
 ```
 rest of the type-options are type-specific:
 ```
-	"fd": file descriptor, type-options: kind of fd (file/sock/pipe/rand) (optional)
-	"fileoff": offset within a file, type-options: argname of the file
-	"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options: direction (in/out/inout)
+	"fd": file descriptor, type-options:
+		kind of fd (file/sock/pipe/rand) (optional)
+	"fileoff": offset within a file, type-options:
+		argname of the file
+	"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options:
+		direction (in/out/inout)
 	"string": a pointer to a memory buffer, similar to buffer[in]
 	"vma": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise)
-	"len": length of buffer/vma/arrayptr (for array it is number of elements), type-options: argname of the object
-	"flags": a set of flags, type-options: reference to flags description
+	"len": length of buffer/vma/arrayptr (for array it is number of elements), type-options:
+		argname of the object
+	"flags": a set of flags, type-options:
+		reference to flags description
 	"filename": a file/link/dir name
-	"ptr": a pointer to an object, type-options: type of the object; direction (in/out/inout)
-	"array": a variable/fixed-length array, type-options: type of elements, optional size for fixed-length arrays
-	"intN"/"intptr": an integer without a particular meaning, type-options: range of values (e.g. "5:10", or "-100:200", optional)
+	"ptr": a pointer to an object, type-options:
+		type of the object; direction (in/out/inout)
+	"array": a variable/fixed-length array, type-options:
+		type of elements, optional size for fixed-length arrays
+	"intN"/"intptr": an integer without a particular meaning, type-options:
+		range of values (e.g. "5:10", or "-100:200", optional)
 ```
 flags/len/flags also have trailing underlying type type-option when used in structs/unions/pointers.
 
@@ -80,11 +89,11 @@ constants from Linux sources using `syz-extract` utility.
 `syz-extract` generates a small C program that includes kernel headers referenced
 by `include` directives, defines macros as specified by `define` directives and
 prints values of symbolic constants. Results are stored in `.const` files, one per arch.
-For example, (sys/tty.txt)[sys/tty.txt] is translated into (sys/tty_amd64.const)[sys/tty_amd64.const].
+For example, [sys/tty.txt](/sys/tty.txt) is translated into [sys/tty_amd64.const](/sys/tty_amd64.const).
 
 The second step is generation of Go code for syzkaller. This step uses syscall descriptions
-and the const files generated during the first step. You can see a result in (sys/sys_amd64.go)[sys/sys_amd64.go]
-and in (executor/syscalls.h)[executor/syscalls.h].
+and the const files generated during the first step. You can see a result in [sys/sys_amd64.go](/sys/sys_amd64.go)
+and in [executor/syscalls.h](/executor/syscalls.h).
 
 ## Describing new system calls
 
@@ -94,7 +103,7 @@ this is particularly useful for kernel developers who are proposing new system c
 First, add a declarative description of the new system call to the appropriate file:
  - Various `sys/<subsystem>.txt` files hold system calls for particular kernel
    subsystems, for example `bpf` or `socket`.
- - [sys/sys.txt](sys/sys.txt) holds descriptions for more general system calls.
+ - [sys/sys.txt](/sys/sys.txt) holds descriptions for more general system calls.
  - An entirely new subsystem can be added as a new `sys/<new>.txt` file.
 
 The description format is described [above](#syntax).
