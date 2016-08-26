@@ -1,0 +1,220 @@
+// Copyright 2015/2016 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+package sysparser
+
+import (
+	"fmt"
+	"io"
+	"os"
+	"sort"
+	"strings"
+)
+
+type Syscall struct {
+	Name     string
+	CallName string
+	Args     [][]string
+	Ret      []string
+}
+
+type Struct struct {
+	Name    string
+	Flds    [][]string
+	IsUnion bool
+	Packed  bool
+	Varlen  bool
+	Align   int
+}
+
+func Parse(in io.Reader) (includes []string, defines map[string]string, syscalls []Syscall, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string) {
+	p := newParser(in)
+	defines = make(map[string]string)
+	structs = make(map[string]Struct)
+	unnamed = make(map[string][]string)
+	flags = make(map[string][]string)
+	var str *Struct
+	for p.Scan() {
+		if p.EOF() || p.Char() == '#' {
+			continue
+		}
+		if str != nil {
+			// Parsing a struct.
+			if p.Char() == '}' || p.Char() == ']' {
+				p.Parse(p.Char())
+				for _, attr := range parseType1(p, unnamed, flags, "")[1:] {
+					if str.IsUnion {
+						switch attr {
+						case "varlen":
+							str.Varlen = true
+						default:
+							failf("unknown union %v attribute: %v", str.Name, attr)
+						}
+					} else {
+						switch attr {
+						case "packed":
+							str.Packed = true
+						case "align_1":
+							str.Align = 1
+						case "align_2":
+							str.Align = 2
+						case "align_4":
+							str.Align = 4
+						case "align_8":
+							str.Align = 8
+						default:
+							failf("unknown struct %v attribute: %v", str.Name, attr)
+						}
+					}
+				}
+				structs[str.Name] = *str
+				str = nil
+			} else {
+				p.SkipWs()
+				fld := []string{p.Ident()}
+				fld = append(fld, parseType(p, unnamed, flags)...)
+				str.Flds = append(str.Flds, fld)
+			}
+		} else {
+			name := p.Ident()
+			if name == "include" {
+				p.Parse('<')
+				var include []byte
+				for {
+					ch := p.Char()
+					if ch == '>' {
+						break
+					}
+					p.Parse(ch)
+					include = append(include, ch)
+				}
+				p.Parse('>')
+				includes = append(includes, string(include))
+			} else if name == "define" {
+				key := p.Ident()
+				var val []byte
+				for !p.EOF() {
+					ch := p.Char()
+					p.Parse(ch)
+					val = append(val, ch)
+				}
+				if defines[key] != "" {
+					failf("%v define is defined multiple times", key)
+				}
+				defines[key] = fmt.Sprintf("(%s)", val)
+			} else {
+				switch ch := p.Char(); ch {
+				case '(':
+					// syscall
+					p.Parse('(')
+					var args [][]string
+					for p.Char() != ')' {
+						arg := []string{p.Ident()}
+						arg = append(arg, parseType(p, unnamed, flags)...)
+						args = append(args, arg)
+						if p.Char() != ')' {
+							p.Parse(',')
+						}
+					}
+					p.Parse(')')
+					var ret []string
+					if !p.EOF() {
+						ret = parseType(p, unnamed, flags)
+					}
+					callName := name
+					if idx := strings.IndexByte(callName, '$'); idx != -1 {
+						callName = callName[:idx]
+					}
+					syscalls = append(syscalls, Syscall{name, callName, args, ret})
+				case '=':
+					// flag
+					p.Parse('=')
+					vals := []string{p.Ident()}
+					for !p.EOF() {
+						p.Parse(',')
+						vals = append(vals, p.Ident())
+					}
+					flags[name] = vals
+				case '{', '[':
+					p.Parse(ch)
+					if _, ok := structs[name]; ok {
+						failf("%v struct is defined multiple times", name)
+					}
+					str = &Struct{Name: name, IsUnion: ch == '['}
+				default:
+					failf("bad line (%v)", p.Str())
+				}
+			}
+		}
+		if !p.EOF() {
+			failf("trailing data (%v)", p.Str())
+		}
+	}
+	sort.Sort(syscallArray(syscalls))
+	return
+}
+
+func isIdentifier(s string) bool {
+	for i, c := range s {
+		if c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || i > 0 && (c >= '0' && c <= '9') {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
+func parseType(p *parser, unnamed map[string][]string, flags map[string][]string) []string {
+	return parseType1(p, unnamed, flags, p.Ident())
+}
+
+var (
+	unnamedSeq int
+	constSeq   int
+)
+
+func parseType1(p *parser, unnamed map[string][]string, flags map[string][]string, name string) []string {
+	typ := []string{name}
+	if !p.EOF() && p.Char() == '[' {
+		p.Parse('[')
+		for {
+			id := p.Ident()
+			if p.Char() == '[' {
+				inner := parseType1(p, unnamed, flags, id)
+				id = fmt.Sprintf("unnamed%v", unnamedSeq)
+				unnamedSeq++
+				unnamed[id] = inner
+			}
+			typ = append(typ, id)
+			if p.Char() == ']' {
+				break
+			}
+			p.Parse(',')
+		}
+		p.Parse(']')
+	}
+	if name == "const" && len(typ) > 1 {
+		// Create a fake flag with the const value.
+		id := fmt.Sprintf("const_flag_%v", constSeq)
+		constSeq++
+		flags[id] = typ[1:2]
+	}
+	if name == "array" && len(typ) > 2 {
+		// Create a fake flag with the const value.
+		id := fmt.Sprintf("const_flag_%v", constSeq)
+		constSeq++
+		flags[id] = typ[2:3]
+	}
+	return typ
+}
+
+type syscallArray []Syscall
+
+func (a syscallArray) Len() int           { return len(a) }
+func (a syscallArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
+func (a syscallArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+func failf(msg string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, msg+"\n", args...)
+	os.Exit(1)
+}

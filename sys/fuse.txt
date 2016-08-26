@@ -1,6 +1,10 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <asm/ioctls.h>
+include <linux/stat.h>
+include <uapi/linux/fuse.h>
+
 syz_fuse_mount(target filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd[fuse]
 syz_fuseblk_mount(target filename, blkdev filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd[fuse]
 ioctl$FUSE_DEV_IOC_CLONE(fd fd[fuse], cmd const[FUSE_DEV_IOC_CLONE], arg ptr[in, fd[fuse]])

@@ -1,7 +1,9 @@
 # Copyright 2016 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <linux/net.h>
 include <linux/kcm.h>
+include <linux/sockios.h>
 
 socket$kcm(domain const[AF_KCM], type flags[kcm_socket_type], proto const[KCMPROTO_CONNECTED]) fd[kcm]
 setsockopt$KCM_RECV_DISABLE(fd fd[kcm], level const[SOL_KCM], opt const[KCM_RECV_DISABLE], val ptr[in, int32], len len[val])

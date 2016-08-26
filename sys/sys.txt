@@ -1,45 +1,7 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# Description of syscall arguments.
-
-# A syscall is described as:
-#	syscallname "(" [arg ["," arg]*] ")" [type]
-#	arg = argname type
-#	argname = identifier
-#	type = typename [ "[" type-options "]" ]
-#	typename = "fd" | "fileoff" | "buffer" | "vma" , "len" | "flags" | "filename" | "ptr" | "array" | "intN" | "intptr"
-#	type-options = [type-opt ["," type-opt]]
-# common type-options include:
-#	"opt" - the argument is optional (like mmap fd argument, or accept peer argument)
-# rest of the type-options are type-specific:
-#	"fd": file descriptor, type-options: kind of fd (file/sock/pipe/rand) (optional)
-#	"fileoff": offset within a file, type-options: argname of the file
-#	"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options: direction (in/out/inout)
-#	"string": a pointer to a memory buffer, similar to buffer[in]
-#	"vma": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise)
-#	"len": length of buffer/vma/arrayptr (for array it is number of elements), type-options: argname of the object
-#	"flags": a set of flags, type-options: reference to flags description
-#	"filename": a file/link/dir name
-#	"ptr": a pointer to an object, type-options: type of the object; direction (in/out/inout)
-#	"array": a variable/fixed-length array, type-options: type of elements, optional size for fixed-length arrays
-#	"intN"/"intptr": an integer without a particular meaning, type-options: range of values (e.g. "5:10", or "-100:200", optional)
-# flags/len/flags also have trailing underlying type type-option when used in structs/unions/pointers.
-#
-# Flags are described as:
-#	flagname = const ["," const]
-#
-# Structs are described as:
-#	structname "{" "\n" (fieldname type "\n")+ "}"
-# Structs can have trailing attributes "packed" and "align_N",
-# they are specified in square brackets after the struct.
-#
-# Unions are described as:
-#	unionname "[" "\n" (fieldname type "\n")+ "]"
-# Unions can have a trailing "varlen" attribute (specified in square brackets after the union),
-# which means that union length is not maximum of all option lengths,
-# but rather length of a particular chosen option (such unions can't be part of a struct,
-# because their size is not statically known).
+# Description of syscall arguments. See README.md for details.
 
 include <linux/socket.h>
 include <linux/ptrace.h>

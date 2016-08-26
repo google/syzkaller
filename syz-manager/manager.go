@@ -161,6 +161,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		}
 	}()
 
+	logf(0, "booting test machines...")
 	var shutdown uint32
 	var wg sync.WaitGroup
 	wg.Add(cfg.Count + 1)

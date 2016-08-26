@@ -12,6 +12,11 @@ include <net/bluetooth/bnep/bnep.h>
 include <net/bluetooth/hidp/hidp.h>
 include <net/bluetooth/sco.h>
 include <net/bluetooth/rfcomm.h>
+include <asm/ioctls.h>
+include <uapi/linux/tcp.h>
+include <uapi/linux/nfc.h>
+include <uapi/linux/udp.h>
+include <uapi/linux/if_alg.h>
 
 socket(domain flags[socket_domain], type flags[socket_type], proto int8) fd[sock]
 socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, pipefd])

@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <linux/sctp.h>
+include <asm/ioctls.h>
 
 socket$sctp(domain const[AF_INET], type flags[sctp_socket_type], proto const[IPPROTO_SCTP]) fd[sctp]
 socket$sctp6(domain const[AF_INET6], type flags[sctp_socket_type], proto const[IPPROTO_SCTP]) fd[sctp]

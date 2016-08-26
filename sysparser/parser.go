@@ -1,7 +1,7 @@
 // Copyright 2015/2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package main
+package sysparser
 
 import (
 	"bufio"
@@ -10,18 +10,18 @@ import (
 	"os"
 )
 
-type Parser struct {
+type parser struct {
 	r *bufio.Scanner
 	s string
 	i int
 	l int
 }
 
-func NewParser(r io.Reader) *Parser {
-	return &Parser{r: bufio.NewScanner(r)}
+func newParser(r io.Reader) *parser {
+	return &parser{r: bufio.NewScanner(r)}
 }
 
-func (p *Parser) Scan() bool {
+func (p *parser) Scan() bool {
 	if !p.r.Scan() {
 		if err := p.r.Err(); err != nil {
 			failf("failed to read input file: %v", err)
@@ -34,22 +34,22 @@ func (p *Parser) Scan() bool {
 	return true
 }
 
-func (p *Parser) Str() string {
+func (p *parser) Str() string {
 	return p.s
 }
 
-func (p *Parser) EOF() bool {
+func (p *parser) EOF() bool {
 	return p.i == len(p.s)
 }
 
-func (p *Parser) Char() byte {
+func (p *parser) Char() byte {
 	if p.EOF() {
 		p.failf("unexpected eof")
 	}
 	return p.s[p.i]
 }
 
-func (p *Parser) Parse(ch byte) {
+func (p *parser) Parse(ch byte) {
 	if p.EOF() {
 		p.failf("want %s, got EOF", string(ch))
 	}
@@ -60,13 +60,13 @@ func (p *Parser) Parse(ch byte) {
 	p.SkipWs()
 }
 
-func (p *Parser) SkipWs() {
+func (p *parser) SkipWs() {
 	for p.i < len(p.s) && (p.s[p.i] == ' ' || p.s[p.i] == '\t') {
 		p.i++
 	}
 }
 
-func (p *Parser) Ident() string {
+func (p *parser) Ident() string {
 	start, end := p.i, 0
 	if p.Char() == '"' {
 		p.Parse('"')
@@ -95,7 +95,7 @@ func (p *Parser) Ident() string {
 	return s
 }
 
-func (p *Parser) failf(msg string, args ...interface{}) {
+func (p *parser) failf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, "line #%v: %v\n", p.l, p.s)
 	failf(msg, args...)
 }

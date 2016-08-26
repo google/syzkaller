@@ -1,7 +1,9 @@
 # Copyright 2016 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <linux/net.h>
 include <linux/netrom.h>
+include <asm/ioctls.h>
 
 socket$netrom(domain const[AF_NETROM], type const[SOCK_SEQPACKET], proto const[0]) fd[netrom]
 bind$netrom(fd fd[netrom], addr ptr[in, sockaddr_netrom], addrlen len[addr])
