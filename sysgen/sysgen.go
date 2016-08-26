@@ -571,6 +571,8 @@ func fmtFdKind(s string) string {
 		return "FdKcm"
 	case "netrom":
 		return "FdNetRom"
+	case "tlk_device":
+		return "FdTlkDevice"
 	default:
 		failf("bad fd type %v", s)
 		return ""
