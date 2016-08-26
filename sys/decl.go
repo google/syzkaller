@@ -660,7 +660,8 @@ func init() {
 	initResources()
 	initAlign()
 
-	for _, c := range Calls {
+	for i, c := range Calls {
+		c.ID = i
 		if CallMap[c.Name] != nil {
 			println(c.Name)
 			panic("duplicate syscall")
