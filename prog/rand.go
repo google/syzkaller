@@ -481,15 +481,20 @@ func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, call
 	r.inCreateResource = true
 	defer func() { r.inCreateResource = false }()
 
-	sk := res.Subkind
-	if r.oneOf(50) {
+	kind := res.Desc.Name
+	if r.oneOf(100) {
 		// Spoof resource subkind.
-		all := res.SubKinds()
-		sk = all[r.Intn(len(all))]
+		var all []string
+		for kind1 := range sys.Resources {
+			if sys.IsCompatibleResource(res.Desc.Kind[0], kind1) {
+				all = append(all, kind1)
+			}
+		}
+		kind = all[r.Intn(len(all))]
 	}
 	// Find calls that produce the necessary resources.
-	metas0 := sys.ResourceConstructors(res.Kind, sk)
-	// TODO: reduce priority of ResAny ctors if we have sk ctors.
+	metas0 := sys.ResourceConstructors(kind)
+	// TODO: reduce priority of less specialized ctors.
 	var metas []*sys.Call
 	for _, meta := range metas0 {
 		if s.ct == nil || s.ct.run[meta.ID] == nil {
@@ -506,14 +511,13 @@ func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, call
 		// Generate one of them.
 		meta := metas[r.Intn(len(metas))]
 		calls := r.generateParticularCall(s, meta)
-		//assignTypeAndDir(calls[len(calls)-1])
 		s1 := newState(s.ct)
 		s1.analyze(calls[len(calls)-1])
 		// Now see if we have what we want.
 		var allres []*Arg
-		for sk1, ress := range s1.resources[res.Kind] {
-			if sk1 == sys.ResAny || sk == sys.ResAny || sk1 == sk {
-				allres = append(allres, ress...)
+		for kind1, res1 := range s1.resources {
+			if sys.IsCompatibleResource(kind, kind1) {
+				allres = append(allres, res1...)
 			}
 		}
 		if len(allres) != 0 {
@@ -522,10 +526,10 @@ func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, call
 			return arg, calls
 		}
 		switch meta.Name {
-		case "getgroups":
-			// Returns groups in an array.
+		// Return resources in a variable-length array (length can be 0).
+		case "getgroups", "ioctl$DRM_IOCTL_RES_CTX":
 		default:
-			panic(fmt.Sprintf("unexpected call failed to create a resource %v/%v: %v", res.Kind, sk, meta.Name))
+			panic(fmt.Sprintf("unexpected call failed to create a resource %v: %v", kind, meta.Name))
 		}
 		// Discard unsuccessful calls.
 		for _, c := range calls {
@@ -667,21 +671,16 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 			},
 			90, func() {
 				// Get an existing resource.
-				if ress := s.resources[a.Kind]; ress != nil {
-					allres := ress[a.Subkind]
-					allres = append(allres, ress[sys.ResAny]...)
-					if a.Subkind == sys.ResAny || r.oneOf(10) {
-						for _, v := range ress {
-							allres = append(allres, v...)
-						}
-					}
-					if len(allres) != 0 {
-						// TODO: negative PIDs mean process group,
-						// we should be able to negate an existing PID.
-						arg = resultArg(allres[r.Intn(len(allres))])
+				var allres []*Arg
+				for name1, res1 := range s.resources {
+					if sys.IsCompatibleResource(a.Desc.Name, name1) ||
+						r.oneOf(20) && sys.IsCompatibleResource(a.Desc.Kind[0], name1) {
+						allres = append(allres, res1...)
 					}
 				}
-				if arg == nil {
+				if len(allres) != 0 {
+					arg = resultArg(allres[r.Intn(len(allres))])
+				} else {
 					arg, calls = r.createResource(s, a)
 				}
 			},
@@ -806,10 +805,10 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		if size == nil {
 			size = constArg(inner.Size(a.Type))
 		}
-		if a.Type.Name() == "iocb" && r.bin() && len(s.resources[sys.ResIocbPtr][sys.ResAny]) != 0 {
+		if a.Type.Name() == "iocb" && len(s.resources["iocbptr"]) != 0 {
 			// It is weird, but these are actually identified by kernel by address.
 			// So try to reuse a previously used address.
-			addrs := s.resources[sys.ResIocbPtr][sys.ResAny]
+			addrs := s.resources["iocbptr"]
 			addr := addrs[r.Intn(len(addrs))]
 			arg = pointerArg(addr.AddrPage, addr.AddrOffset, inner)
 			return arg, size, calls

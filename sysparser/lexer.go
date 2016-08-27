@@ -11,6 +11,16 @@ import (
 	"strings"
 )
 
+type Description struct {
+	Includes  []string
+	Defines   map[string]string
+	Syscalls  []Syscall
+	Structs   map[string]Struct
+	Unnamed   map[string][]string
+	Flags     map[string][]string
+	Resources map[string]Resource
+}
+
 type Syscall struct {
 	Name     string
 	CallName string
@@ -27,12 +37,20 @@ type Struct struct {
 	Align   int
 }
 
-func Parse(in io.Reader) (includes []string, defines map[string]string, syscalls []Syscall, structs map[string]Struct, unnamed map[string][]string, flags map[string][]string) {
+type Resource struct {
+	Base   string
+	Values []string
+}
+
+func Parse(in io.Reader) *Description {
 	p := newParser(in)
-	defines = make(map[string]string)
-	structs = make(map[string]Struct)
-	unnamed = make(map[string][]string)
-	flags = make(map[string][]string)
+	var includes []string
+	defines := make(map[string]string)
+	var syscalls []Syscall
+	structs := make(map[string]Struct)
+	unnamed := make(map[string][]string)
+	flags := make(map[string][]string)
+	resources := make(map[string]Resource)
 	var str *Struct
 	for p.Scan() {
 		if p.EOF() || p.Char() == '#' {
@@ -102,6 +120,28 @@ func Parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 					failf("%v define is defined multiple times", key)
 				}
 				defines[key] = fmt.Sprintf("(%s)", val)
+			} else if name == "resource" {
+				p.SkipWs()
+				id := p.Ident()
+				p.Parse('[')
+				base := p.Ident()
+				p.Parse(']')
+				var vals []string
+				if !p.EOF() && p.Char() == ':' {
+					p.Parse(':')
+					vals = append(vals, p.Ident())
+					for !p.EOF() {
+						p.Parse(',')
+						vals = append(vals, p.Ident())
+					}
+				}
+				if _, ok := resources[id]; ok {
+					failf("resource '%v' is defined multiple times", id)
+				}
+				if _, ok := structs[id]; ok {
+					failf("struct '%v' is redefined as resource", name)
+				}
+				resources[id] = Resource{base, vals}
 			} else {
 				switch ch := p.Char(); ch {
 				case '(':
@@ -138,7 +178,10 @@ func Parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 				case '{', '[':
 					p.Parse(ch)
 					if _, ok := structs[name]; ok {
-						failf("%v struct is defined multiple times", name)
+						failf("struct '%v' is defined multiple times", name)
+					}
+					if _, ok := resources[name]; ok {
+						failf("resource '%v' is redefined as struct", name)
 					}
 					str = &Struct{Name: name, IsUnion: ch == '['}
 				default:
@@ -151,7 +194,15 @@ func Parse(in io.Reader) (includes []string, defines map[string]string, syscalls
 		}
 	}
 	sort.Sort(syscallArray(syscalls))
-	return
+	return &Description{
+		Includes:  includes,
+		Defines:   defines,
+		Syscalls:  syscalls,
+		Structs:   structs,
+		Unnamed:   unnamed,
+		Flags:     flags,
+		Resources: resources,
+	}
 }
 
 func isIdentifier(s string) bool {

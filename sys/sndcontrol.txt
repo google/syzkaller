@@ -3,32 +3,34 @@
 
 include <sound/asound.h>
 
-syz_open_dev$sndctrl(dev strconst["/dev/snd/controlC#"], id intptr, flags flags[open_flags]) fd[sndctrl]
+resource fd_sndctrl[fd]
 
-ioctl$SNDRV_CTL_IOCTL_PVERSION(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_PVERSION], arg buffer[out])
-ioctl$SNDRV_CTL_IOCTL_CARD_INFO(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_CARD_INFO], arg buffer[out])
-ioctl$SNDRV_CTL_IOCTL_HWDEP_INFO(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_HWDEP_INFO], arg buffer[out])
-ioctl$SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE], arg buffer[out])
-ioctl$SNDRV_CTL_IOCTL_POWER_STATE(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_POWER_STATE], arg buffer[out])
-ioctl$SNDRV_CTL_IOCTL_ELEM_LIST(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_ELEM_LIST], arg ptr[in, snd_ctl_elem_list])
-ioctl$SNDRV_CTL_IOCTL_ELEM_INFO(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_ELEM_INFO], arg ptr[in, snd_ctl_elem_info])
-ioctl$SNDRV_CTL_IOCTL_ELEM_READ(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_ELEM_READ], arg ptr[in, snd_ctl_elem_value])
-ioctl$SNDRV_CTL_IOCTL_ELEM_WRITE(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_ELEM_WRITE], arg ptr[in, snd_ctl_elem_value])
-ioctl$SNDRV_CTL_IOCTL_ELEM_LOCK(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_ELEM_LOCK], arg ptr[in, snd_ctl_elem_id])
-ioctl$SNDRV_CTL_IOCTL_ELEM_UNLOCK(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_ELEM_UNLOCK], arg ptr[in, snd_ctl_elem_id])
-ioctl$SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS], arg ptr[in, int32])
-ioctl$SNDRV_CTL_IOCTL_ELEM_ADD(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_ELEM_ADD], arg ptr[in, snd_ctl_elem_info])
-ioctl$SNDRV_CTL_IOCTL_ELEM_REPLACE(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_ELEM_REPLACE], arg ptr[in, snd_ctl_elem_info])
-ioctl$SNDRV_CTL_IOCTL_ELEM_REMOVE(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_ELEM_REMOVE], arg ptr[in, snd_ctl_elem_id])
-ioctl$SNDRV_CTL_IOCTL_TLV_READ(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_TLV_READ], arg ptr[in, snd_ctl_tlv])
-ioctl$SNDRV_CTL_IOCTL_TLV_WRITE(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_TLV_WRITE], arg ptr[in, snd_ctl_tlv])
-ioctl$SNDRV_CTL_IOCTL_TLV_COMMAND(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_TLV_COMMAND], arg ptr[in, snd_ctl_tlv])
-ioctl$SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE], arg ptr[in, int32])
-ioctl$SNDRV_CTL_IOCTL_PCM_INFO(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_PCM_INFO], arg ptr[in, snd_pcm_info])
-ioctl$SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE], arg ptr[in, int32])
-ioctl$SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE], arg ptr[in, int32])
-ioctl$SNDRV_CTL_IOCTL_RAWMIDI_INFO(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_RAWMIDI_INFO], arg ptr[in, snd_rawmidi_info])
-ioctl$SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE(fd fd[sndctrl], cmd const[SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE], arg ptr[in, int32])
+syz_open_dev$sndctrl(dev strconst["/dev/snd/controlC#"], id intptr, flags flags[open_flags]) fd_sndctrl
+
+ioctl$SNDRV_CTL_IOCTL_PVERSION(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PVERSION], arg buffer[out])
+ioctl$SNDRV_CTL_IOCTL_CARD_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_CARD_INFO], arg buffer[out])
+ioctl$SNDRV_CTL_IOCTL_HWDEP_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_HWDEP_INFO], arg buffer[out])
+ioctl$SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE], arg buffer[out])
+ioctl$SNDRV_CTL_IOCTL_POWER_STATE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_POWER_STATE], arg buffer[out])
+ioctl$SNDRV_CTL_IOCTL_ELEM_LIST(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_LIST], arg ptr[in, snd_ctl_elem_list])
+ioctl$SNDRV_CTL_IOCTL_ELEM_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_INFO], arg ptr[in, snd_ctl_elem_info])
+ioctl$SNDRV_CTL_IOCTL_ELEM_READ(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_READ], arg ptr[in, snd_ctl_elem_value])
+ioctl$SNDRV_CTL_IOCTL_ELEM_WRITE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_WRITE], arg ptr[in, snd_ctl_elem_value])
+ioctl$SNDRV_CTL_IOCTL_ELEM_LOCK(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_LOCK], arg ptr[in, snd_ctl_elem_id])
+ioctl$SNDRV_CTL_IOCTL_ELEM_UNLOCK(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_UNLOCK], arg ptr[in, snd_ctl_elem_id])
+ioctl$SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS], arg ptr[in, int32])
+ioctl$SNDRV_CTL_IOCTL_ELEM_ADD(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_ADD], arg ptr[in, snd_ctl_elem_info])
+ioctl$SNDRV_CTL_IOCTL_ELEM_REPLACE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_REPLACE], arg ptr[in, snd_ctl_elem_info])
+ioctl$SNDRV_CTL_IOCTL_ELEM_REMOVE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_ELEM_REMOVE], arg ptr[in, snd_ctl_elem_id])
+ioctl$SNDRV_CTL_IOCTL_TLV_READ(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_TLV_READ], arg ptr[in, snd_ctl_tlv])
+ioctl$SNDRV_CTL_IOCTL_TLV_WRITE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_TLV_WRITE], arg ptr[in, snd_ctl_tlv])
+ioctl$SNDRV_CTL_IOCTL_TLV_COMMAND(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_TLV_COMMAND], arg ptr[in, snd_ctl_tlv])
+ioctl$SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE], arg ptr[in, int32])
+ioctl$SNDRV_CTL_IOCTL_PCM_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PCM_INFO], arg ptr[in, snd_pcm_info])
+ioctl$SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE], arg ptr[in, int32])
+ioctl$SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE], arg ptr[in, int32])
+ioctl$SNDRV_CTL_IOCTL_RAWMIDI_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_RAWMIDI_INFO], arg ptr[in, snd_rawmidi_info])
+ioctl$SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE], arg ptr[in, int32])
 
 snd_ctl_iface = SNDRV_CTL_ELEM_IFACE_CARD, SNDRV_CTL_ELEM_IFACE_HWDEP, SNDRV_CTL_ELEM_IFACE_MIXER, SNDRV_CTL_ELEM_IFACE_PCM, SNDRV_CTL_ELEM_IFACE_RAWMIDI, SNDRV_CTL_ELEM_IFACE_TIMER, SNDRV_CTL_ELEM_IFACE_SEQUENCER
 

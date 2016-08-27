@@ -64,10 +64,8 @@ func main() {
 	}
 	defer inf.Close()
 
-	includes, defines, syscalls, structs, unnamed, flags := Parse(inf)
-	_, _ = structs, unnamed
-
-	consts := compileConsts(archs[*flagArch], includes, defines, flags, syscalls)
+	desc := Parse(inf)
+	consts := compileConsts(archs[*flagArch], desc)
 
 	out := new(bytes.Buffer)
 	generateConsts(*flagArch, consts, out)
@@ -89,22 +87,27 @@ func generateConsts(arch string, consts map[string]uint64, out io.Writer) {
 	}
 }
 
-func compileConsts(arch *Arch, includes []string, defines map[string]string, flags map[string][]string, syscalls []Syscall) map[string]uint64 {
+func compileConsts(arch *Arch, desc *Description) map[string]uint64 {
 	vals := make(map[string]bool)
-	for _, fvals := range flags {
+	for _, fvals := range desc.Flags {
 		for _, v := range fvals {
 			vals[v] = true
 		}
 	}
-	for v := range defines {
+	for v := range desc.Defines {
 		vals[v] = true
 	}
-	for _, sc := range syscalls {
+	for _, sc := range desc.Syscalls {
 		if strings.HasPrefix(sc.CallName, "syz_") {
 			continue
 		}
 		name := "__NR_" + sc.CallName
 		vals[name] = true
+	}
+	for _, res := range desc.Resources {
+		for _, v := range res.Values {
+			vals[v] = true
+		}
 	}
 
 	valArr := make([]string, 0, len(vals))
@@ -115,7 +118,7 @@ func compileConsts(arch *Arch, includes []string, defines map[string]string, fla
 		valArr = append(valArr, v)
 	}
 
-	consts, err := fetchValues(arch.KernelHeaderArch, valArr, append(includes, arch.KernelInclude), defines, arch.CFlags)
+	consts, err := fetchValues(arch.KernelHeaderArch, valArr, append(desc.Includes, arch.KernelInclude), desc.Defines, arch.CFlags)
 	if err != nil {
 		failf("%v", err)
 	}

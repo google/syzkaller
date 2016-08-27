@@ -53,15 +53,20 @@ func calcStaticPriorities() [][]float32 {
 		foreachArgType(c, func(t sys.Type, d ArgDir) {
 			switch a := t.(type) {
 			case sys.ResourceType:
-				if a.Kind == sys.ResPid || a.Kind == sys.ResUid || a.Kind == sys.ResGid {
+				if a.Desc.Name == "pid" || a.Desc.Name == "uid" || a.Desc.Name == "gid" {
 					// Pid/uid/gid usually play auxiliary role,
 					// but massively happen in some structs.
-					noteUsage(0.1, "res%v", a.Kind)
-				} else if a.Subkind == sys.ResAny {
-					noteUsage(1.0, "res%v", a.Kind)
+					noteUsage(0.1, "res%v", a.Desc.Name)
 				} else {
-					noteUsage(0.2, "res%v", a.Kind)
-					noteUsage(1.0, "res%v-%v", a.Kind, a.Subkind)
+					str := "res"
+					for i, k := range a.Desc.Kind {
+						str += "-" + k
+						w := 1.0
+						if i < len(a.Desc.Kind)-1 {
+							w = 0.2
+						}
+						noteUsage(float32(w), str)
+					}
 				}
 			case sys.PtrType:
 				if _, ok := a.Type.(sys.StructType); ok {
@@ -115,20 +120,6 @@ func calcStaticPriorities() [][]float32 {
 					continue
 				}
 				prios[c0][c1] += w0 * w1
-			}
-		}
-	}
-
-	// Sockets essentially form another level of classification. And we want
-	// more priority for generic socket calls (e.g. recvmsg) against particular
-	// protocol socket calls (e.g. AF_ALG bind). But it is not expressable with
-	// the above uses thing, because we don't want more priority for different
-	// protocols (e.g. AF_ALF vs AF_BLUETOOTH).
-	for c0, w0 := range uses[fmt.Sprintf("res%v-%v", sys.ResFD, sys.FdSock)] {
-		for _, sk := range sys.SocketSubkinds() {
-			for c1, w1 := range uses[fmt.Sprintf("res%v-%v", sys.ResFD, sk)] {
-				prios[c0][c1] += w0 * w1
-				prios[c1][c0] += w0 * w1
 			}
 		}
 	}
