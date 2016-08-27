@@ -116,7 +116,7 @@ Start the `syz-manager` process as:
 ```
 
 The `-config` command line option gives the location of the configuration file
-[described above](configuration).
+[described above](#configuration).
 
 The `syz-manager` process will wind up qemu virtual machines and start fuzzing in them.
 It also reports some statistics on the HTTP address.
