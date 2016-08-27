@@ -2,6 +2,9 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <linux/keyctl.h>
+include <uapi/linux/keyctl.h>
+
+resource key[int32]: KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING, KEY_SPEC_GROUP_KEYRING, KEY_SPEC_REQKEY_AUTH_KEY, KEY_SPEC_REQUESTOR_KEYRING
 
 add_key(type string, desc string, payload buffer[in, opt], paylen len[payload], keyring flags[keyring_type]) key
 request_key(type string, desc string, callout string, keyring flags[keyring_type]) key
@@ -30,5 +33,5 @@ keyctl$instantiate_iov(code const[KEYCTL_INSTANTIATE_IOV], key key, payload ptr[
 keyctl$invalidate(code const[KEYCTL_INVALIDATE], key key)
 keyctl$get_persistent(code const[KEYCTL_GET_PERSISTENT], uid uid, key key)
 
-keyring_type = KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING
+keyring_type = KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING, KEY_SPEC_GROUP_KEYRING, KEY_SPEC_REQKEY_AUTH_KEY, KEY_SPEC_REQUESTOR_KEYRING
 reqkey_keyring = KEY_REQKEY_DEFL_NO_CHANGE, KEY_REQKEY_DEFL_DEFAULT, KEY_REQKEY_DEFL_THREAD_KEYRING, KEY_REQKEY_DEFL_PROCESS_KEYRING, KEY_REQKEY_DEFL_SESSION_KEYRING, KEY_REQKEY_DEFL_USER_KEYRING, KEY_REQKEY_DEFL_USER_SESSION_KEYRING, KEY_REQKEY_DEFL_GROUP_KEYRING, KEY_REQKEY_DEFL_REQUESTOR_KEYRING

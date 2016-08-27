@@ -21,7 +21,7 @@ Pseudo-formal grammar of syscall description:
 	arg = argname type
 	argname = identifier
 	type = typename [ "[" type-options "]" ]
-	typename = "fd" | "fileoff" | "buffer" | "vma" , "len" | "flags" |
+	typename = "fileoff" | "buffer" | "vma" , "len" | "flags" |
 			"filename" | "ptr" | "array" | "intN" | "intptr"
 	type-options = [type-opt ["," type-opt]]
 ```
@@ -31,8 +31,6 @@ common type-options include:
 ```
 rest of the type-options are type-specific:
 ```
-	"fd": file descriptor, type-options:
-		kind of fd (file/sock/pipe/rand) (optional)
 	"fileoff": offset within a file, type-options:
 		argname of the file
 	"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options:
@@ -55,7 +53,7 @@ flags/len/flags also have trailing underlying type type-option when used in stru
 
 Flags are described as:
 ```
-	flagname = const ["," const]
+	flagname = const ["," const]*
 ```
 
 Structs are described as:
@@ -77,6 +75,22 @@ Unions can have a trailing "varlen" attribute (specified in square brackets afte
 which means that union length is not maximum of all option lengths,
 but rather length of a particular chosen option (such unions can't be part of a struct,
 because their size is not statically known).
+
+Custom resources are described as:
+```
+	resource identifier "[" underlying_type "]" [ ":" const ("," const)* ]
+```
+`underlying_type` is either one of `int8`, `int16`, `int32`, `int64`, `intptr` or another resource.
+Resources can then be used as types. For example:
+```
+resource fd[int32]: 0xffffffffffffffff, AT_FDCWD, 1000000
+resource sock[fd]
+resource sock_unix[sock]
+
+socket(...) sock
+accept(fd sock, ...) sock
+listen(fd sock, backlog int32)
+```
 
 Description files also contain `include` directives that refer to Linux kernel header files
 and `define` directives that define symbolic constant values. See the following section for details.

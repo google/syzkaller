@@ -21,7 +21,7 @@ const (
 type state struct {
 	ct        *ChoiceTable
 	files     map[string]bool
-	resources map[sys.ResourceKind]map[sys.ResourceSubkind][]*Arg
+	resources map[string][]*Arg
 	strings   map[string]bool
 	pages     [maxPages]bool
 }
@@ -42,7 +42,7 @@ func newState(ct *ChoiceTable) *state {
 	s := &state{
 		ct:        ct,
 		files:     make(map[string]bool),
-		resources: make(map[sys.ResourceKind]map[sys.ResourceSubkind][]*Arg),
+		resources: make(map[string][]*Arg),
 		strings:   make(map[string]bool),
 	}
 	return s
@@ -57,10 +57,8 @@ func (s *state) analyze(c *Call) {
 			}
 		case sys.ResourceType:
 			if arg.Dir != DirIn {
-				if s.resources[typ.Kind] == nil {
-					s.resources[typ.Kind] = make(map[sys.ResourceSubkind][]*Arg)
-				}
-				s.resources[typ.Kind][typ.Subkind] = append(s.resources[typ.Kind][typ.Subkind], arg)
+				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], arg)
+				// TODO: negative PIDs and add them as well (that's process groups).
 			}
 		case sys.BufferType:
 			if typ.Kind == sys.BufferString && arg.Kind == ArgData && len(arg.Data) != 0 {
@@ -88,10 +86,7 @@ func (s *state) analyze(c *Call) {
 			for _, ptr := range arr.Inner {
 				if ptr.Kind == ArgPointer {
 					if ptr.Res != nil && ptr.Res.Type.Name() == "iocb" {
-						if s.resources[sys.ResIocbPtr] == nil {
-							s.resources[sys.ResIocbPtr] = make(map[sys.ResourceSubkind][]*Arg)
-						}
-						s.resources[sys.ResIocbPtr][sys.ResAny] = append(s.resources[sys.ResIocbPtr][sys.ResAny], ptr)
+						s.resources["iocbptr"] = append(s.resources["iocbptr"], ptr)
 					}
 				}
 			}

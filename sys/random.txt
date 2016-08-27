@@ -3,14 +3,16 @@
 
 include <linux/random.h>
 
-syz_open_dev$random(dev strconst["/dev/random"], id const[0], flags flags[open_flags]) fd[random]
-syz_open_dev$urandom(dev strconst["/dev/urandom"], id const[0], flags flags[open_flags]) fd[random]
+resource fd_random[fd]
 
-ioctl$RNDGETENTCNT(fd fd[random], cmd const[RNDGETENTCNT], arg ptr[out, int32])
-ioctl$RNDADDTOENTCNT(fd fd[random], cmd const[RNDADDTOENTCNT], arg ptr[in, int32])
-ioctl$RNDADDENTROPY(fd fd[random], cmd const[RNDADDENTROPY], arg ptr[in, rnd_entpropy])
-ioctl$RNDZAPENTCNT(fd fd[random], cmd const[RNDZAPENTCNT], arg ptr[in, int32])
-ioctl$RNDCLEARPOOL(fd fd[random], cmd const[RNDCLEARPOOL], arg ptr[in, int32])
+syz_open_dev$random(dev strconst["/dev/random"], id const[0], flags flags[open_flags]) fd_random
+syz_open_dev$urandom(dev strconst["/dev/urandom"], id const[0], flags flags[open_flags]) fd_random
+
+ioctl$RNDGETENTCNT(fd fd_random, cmd const[RNDGETENTCNT], arg ptr[out, int32])
+ioctl$RNDADDTOENTCNT(fd fd_random, cmd const[RNDADDTOENTCNT], arg ptr[in, int32])
+ioctl$RNDADDENTROPY(fd fd_random, cmd const[RNDADDENTROPY], arg ptr[in, rnd_entpropy])
+ioctl$RNDZAPENTCNT(fd fd_random, cmd const[RNDZAPENTCNT], arg ptr[in, int32])
+ioctl$RNDCLEARPOOL(fd fd_random, cmd const[RNDCLEARPOOL], arg ptr[in, int32])
 
 rnd_entpropy {
 	entcnt	int32

@@ -5,20 +5,22 @@ include <asm/ioctls.h>
 include <linux/stat.h>
 include <uapi/linux/fuse.h>
 
-syz_fuse_mount(target filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd[fuse]
-syz_fuseblk_mount(target filename, blkdev filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd[fuse]
-ioctl$FUSE_DEV_IOC_CLONE(fd fd[fuse], cmd const[FUSE_DEV_IOC_CLONE], arg ptr[in, fd[fuse]])
-write$fuse_init(fd fd[fuse], arg ptr[in, fuse_init_out], len len[arg])
-write$fuse_interrupt(fd fd[fuse], arg ptr[in, fuse_interrupt_out], len len[arg])
-write$fuse_bmap(fd fd[fuse], arg ptr[in, fuse_bmap_out], len len[arg])
-write$fuse_ioctl(fd fd[fuse], arg ptr[in, fuse_ioctl_out], len len[arg])
-write$fuse_poll(fd fd[fuse], arg ptr[in, fuse_poll_out], len len[arg])
-write$fuse_notify_poll_wakeup(fd fd[fuse], arg ptr[in, fuse_notify_poll_wakeup_out], len len[arg])
-write$fuse_notify_inval_inode(fd fd[fuse], arg ptr[in, fuse_notify_inval_inode_out], len len[arg])
-write$fuse_notify_inval_entry(fd fd[fuse], arg ptr[in, fuse_notify_inval_entry_out], len len[arg])
-write$fuse_notify_delete(fd fd[fuse], arg ptr[in, fuse_notify_delete_out], len len[arg])
-write$fuse_notify_store(fd fd[fuse], arg ptr[in, fuse_notify_store_out], len len[arg])
-write$fuse_notify_retrieve(fd fd[fuse], arg ptr[in, fuse_notify_retrieve_out], len len[arg])
+resource fd_fuse[fd]
+
+syz_fuse_mount(target filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd_fuse
+syz_fuseblk_mount(target filename, blkdev filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd_fuse
+ioctl$FUSE_DEV_IOC_CLONE(fd fd_fuse, cmd const[FUSE_DEV_IOC_CLONE], arg ptr[in, fd_fuse])
+write$fuse_init(fd fd_fuse, arg ptr[in, fuse_init_out], len len[arg])
+write$fuse_interrupt(fd fd_fuse, arg ptr[in, fuse_interrupt_out], len len[arg])
+write$fuse_bmap(fd fd_fuse, arg ptr[in, fuse_bmap_out], len len[arg])
+write$fuse_ioctl(fd fd_fuse, arg ptr[in, fuse_ioctl_out], len len[arg])
+write$fuse_poll(fd fd_fuse, arg ptr[in, fuse_poll_out], len len[arg])
+write$fuse_notify_poll_wakeup(fd fd_fuse, arg ptr[in, fuse_notify_poll_wakeup_out], len len[arg])
+write$fuse_notify_inval_inode(fd fd_fuse, arg ptr[in, fuse_notify_inval_inode_out], len len[arg])
+write$fuse_notify_inval_entry(fd fd_fuse, arg ptr[in, fuse_notify_inval_entry_out], len len[arg])
+write$fuse_notify_delete(fd fd_fuse, arg ptr[in, fuse_notify_delete_out], len len[arg])
+write$fuse_notify_store(fd fd_fuse, arg ptr[in, fuse_notify_store_out], len len[arg])
+write$fuse_notify_retrieve(fd fd_fuse, arg ptr[in, fuse_notify_retrieve_out], len len[arg])
 
 # 1 stands for default_permissions, 2 - allow_other
 fuse_mode = 1, 2, S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IFLNK, S_IFDIR

@@ -69,10 +69,13 @@ include <linux/ioprio.h>
 
 
 
+resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
+resource fd_dir[fd]
+
 open(file filename, flags flags[open_flags], mode flags[open_mode]) fd
-# Just so that we have something that creates fd[dir] resources.
-open$dir(file filename, flags flags[open_flags], mode flags[open_mode]) fd[dir]
-openat(fd fd[dir], file filename, flags flags[open_flags], mode flags[open_mode]) fd
+# Just so that we have something that creates fd_dir resources.
+open$dir(file filename, flags flags[open_flags], mode flags[open_mode]) fd_dir
+openat(fd fd_dir, file filename, flags flags[open_flags], mode flags[open_mode]) fd
 creat(file filename, mode flags[open_mode]) fd
 close(fd fd)
 read(fd fd, buf buffer[out], count len[buf]) len[buf]
@@ -106,29 +109,34 @@ ppoll(fds ptr[in, array[pollfd]], nfds len[fds], tsp ptr[in, timespec], sigmask 
 select(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timeval])
 pselect6(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[inout, fd_set], tvp ptr[inout, timespec], sig ptr[in, sigset_size])
 
-epoll_create(size int32) fd[epoll]
-epoll_create1(flags flags[epoll_flags]) fd[epoll]
-epoll_ctl(epfd fd[epoll], op flags[epoll_op], fd fd, ev ptr[in, epoll_event])
-epoll_wait(epfd fd[epoll], events ptr[out, array[epoll_event]], maxevents len[events], timeout int32)
-epoll_pwait(epfd fd[epoll], events ptr[out, array[epoll_event]], maxevents len[events], timeout int32, sigmask ptr[in, sigset], size len[sigmask])
+resource fd_epoll[fd]
+epoll_create(size int32) fd_epoll
+epoll_create1(flags flags[epoll_flags]) fd_epoll
+epoll_ctl(epfd fd_epoll, op flags[epoll_op], fd fd, ev ptr[in, epoll_event])
+epoll_wait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32)
+epoll_pwait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32, sigmask ptr[in, sigset], size len[sigmask])
 
-signalfd(fd fd, mask ptr[in, sigset], size len[mask]) fd[signal]
-signalfd4(fd fd, mask ptr[in, sigset], size len[mask], flags flags[signalfd_flags]) fd[signal]
-eventfd(initval int32) fd[event]
-eventfd2(initval int32, flags flags[eventfd_flags]) fd[event]
-timerfd_create(clockid flags[clock_type], flags flags[timerfd_create_flags]) fd[timer]
-timerfd_settime(fd fd[timer], flags flags[timerfd_settime_flags], new ptr[in, itimerspec], old ptr[out, itimerspec])
-timerfd_gettime(fd fd[timer], cur ptr[out, itimerspec])
+resource fd_signal[fd]
+resource fd_event[fd]
+resource fd_timer[fd]
+signalfd(fd fd, mask ptr[in, sigset], size len[mask]) fd_signal
+signalfd4(fd fd, mask ptr[in, sigset], size len[mask], flags flags[signalfd_flags]) fd_signal
+eventfd(initval int32) fd_event
+eventfd2(initval int32, flags flags[eventfd_flags]) fd_event
+timerfd_create(clockid flags[clock_type], flags flags[timerfd_create_flags]) fd_timer
+timerfd_settime(fd fd_timer, flags flags[timerfd_settime_flags], new ptr[in, itimerspec], old ptr[out, itimerspec])
+timerfd_gettime(fd fd_timer, cur ptr[out, itimerspec])
 
-userfaultfd(flags flags[userfaultfd_flags]) fd[uffd]
-ioctl$UFFDIO_API(fd fd[uffd], cmd const[UFFDIO_API], arg ptr[in, uffdio_api])
-ioctl$UFFDIO_REGISTER(fd fd[uffd], cmd const[UFFDIO_REGISTER], arg ptr[in, uffdio_register])
-ioctl$UFFDIO_UNREGISTER(fd fd[uffd], cmd const[UFFDIO_UNREGISTER], arg ptr[in, uffdio_range])
-ioctl$UFFDIO_WAKE(fd fd[uffd], cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
-ioctl$UFFDIO_COPY(fd fd[uffd], cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
-ioctl$UFFDIO_ZEROPAGE(fd fd[uffd], cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
+resource fd_uffd[fd]
+userfaultfd(flags flags[userfaultfd_flags]) fd_uffd
+ioctl$UFFDIO_API(fd fd_uffd, cmd const[UFFDIO_API], arg ptr[in, uffdio_api])
+ioctl$UFFDIO_REGISTER(fd fd_uffd, cmd const[UFFDIO_REGISTER], arg ptr[in, uffdio_register])
+ioctl$UFFDIO_UNREGISTER(fd fd_uffd, cmd const[UFFDIO_UNREGISTER], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_WAKE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
 
-mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd[file, opt], offset fileoff[fd]) vma
+mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff[fd]) vma
 munmap(addr vma, len len[addr])
 mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma) vma
 remap_file_pages(addr vma, size len[addr], prot flags[mmap_prot], pgoff intptr, flags flags[mmap_flags])
@@ -195,6 +203,8 @@ ptrace$setopts(req flags[ptrace_req_setopts], pid pid, ignored intptr, flags fla
 ptrace$getenv(req const[PTRACE_GETEVENTMSG], pid pid, ignored intptr, data ptr[out, intptr])
 ptrace$cont(req flags[ptrace_req_cont], pid pid, ignored intptr, data intptr)
 
+resource io_ctx[intptr]
+resource iocbptr[intptr]
 io_setup(n int32, ctx ptr[out, io_ctx])
 io_destroy(ctx io_ctx)
 io_getevents(ctx io_ctx, min_nr intptr, nr len[events], events ptr[out, array[io_event]], timeout ptr[in, timespec])
@@ -219,45 +229,55 @@ prctl$setmm(option const[PR_SET_MM], option flags[prctl_mm_option], val vma)
 arch_prctl(code flags[arch_prctl_code], addr buffer[in])
 seccomp(op flags[seccomp_op], flags flags[seccomp_flags], prog ptr[in, sock_fprog])
 
-mq_open(name string, flags flags[mq_open_flags], mode flags[open_mode], attr ptr[in, mq_attr]) fd[mq]
-mq_timedsend(mqd fd[mq], msg buffer[in], msglen len[msg], prio intptr, timeout ptr[in, timespec, opt])
-mq_timedreceive(mqd fd[mq], msg buffer[out], msglen len[msg], prio intptr, timeout ptr[in, timespec, opt])
-mq_notify(mqd fd[mq], notif ptr[in, sigevent])
-mq_getsetattr(mqd fd[mq], attr ptr[in, mq_attr], oldattr ptr[out, mq_attr, opt])
+resource fd_mq[fd]
+mq_open(name string, flags flags[mq_open_flags], mode flags[open_mode], attr ptr[in, mq_attr]) fd_mq
+mq_timedsend(mqd fd_mq, msg buffer[in], msglen len[msg], prio intptr, timeout ptr[in, timespec, opt])
+mq_timedreceive(mqd fd_mq, msg buffer[out], msglen len[msg], prio intptr, timeout ptr[in, timespec, opt])
+mq_notify(mqd fd_mq, notif ptr[in, sigevent])
+mq_getsetattr(mqd fd_mq, attr ptr[in, mq_attr], oldattr ptr[out, mq_attr, opt])
 mq_unlink(name string)
 
-msgget(key int32, flags flags[msgget_flags]) ipc[msq]
-msgsnd(msqid ipc[msq], msgp buffer[in], flags flags[msg_flags])
-msgrcv(msqid ipc[msq], msgp buffer[out], sz len[msgp], typ intptr, flags flags[msg_flags])
-msgctl(msqid ipc[msq], cmd flags[msgctl_cmd], buf ptr[inout, msqid_ds])
+resource ipc[int32]: 0, 0xffffffffffffffff
+resource ipc_msq[ipc]
+resource ipc_sem[ipc]
+resource ipc_shm[ipc]
 
-semget(key int32, nsems intptr, flags flags[semget_flags]) ipc[sem]
-semop(semid ipc[sem], ops ptr[in, array[sembuf]], nops len[ops])
-semtimedop(semid ipc[sem], ops ptr[in, array[sembuf]], nops len[ops], timeout ptr[in, timespec])
-semctl(semid ipc[sem], semnum intptr, cmd flags[semctl_cmd], arg ptr[in, semid_ds])
+msgget(key int32, flags flags[msgget_flags]) ipc_msq
+msgsnd(msqid ipc_msq, msgp buffer[in], flags flags[msg_flags])
+msgrcv(msqid ipc_msq, msgp buffer[out], sz len[msgp], typ intptr, flags flags[msg_flags])
+msgctl(msqid ipc_msq, cmd flags[msgctl_cmd], buf ptr[inout, msqid_ds])
+
+semget(key int32, nsems intptr, flags flags[semget_flags]) ipc_sem
+semop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops])
+semtimedop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops], timeout ptr[in, timespec])
+semctl(semid ipc_sem, semnum intptr, cmd flags[semctl_cmd], arg ptr[in, semid_ds])
 
 # The unused arg is unused by syscall (does not exist at all),
 # but it helps to generate sane size values.
-shmget(key int32, size len[unused], flags flags[shmget_flags], unused vma) ipc[shm]
-shmat(shmid ipc[shm], addr vma, flags flags[shmat_flags])
-shmctl(shmid ipc[shm], cmd flags[shmctl_cmd], buf ptr[inout, shmid_ds])
+shmget(key int32, size len[unused], flags flags[shmget_flags], unused vma) ipc_shm
+shmat(shmid ipc_shm, addr vma, flags flags[shmat_flags])
+shmctl(shmid ipc_shm, cmd flags[shmctl_cmd], buf ptr[inout, shmid_ds])
 shmdt(addr vma)
 
 mknod(file filename, mode flags[mknod_mode], dev int32)
-mknodat(dirfd fd[dir], file filename, mode flags[mknod_mode], dev int32)
+mknodat(dirfd fd_dir, file filename, mode flags[mknod_mode], dev int32)
 chmod(file filename, mode flags[open_mode])
 fchmod(fd fd, mode flags[open_mode])
-fchmodat(dirfd fd[dir], file filename, mode flags[open_mode])
+fchmodat(dirfd fd_dir, file filename, mode flags[open_mode])
 chown(file filename, uid uid, gid gid)
 lchown(file filename, uid uid, gid gid)
 fchown(fd fd, uid uid, gid gid)
-fchownat(dirfd fd[dir], file filename, uid uid, gid gid, flags flags[fchownat_flags])
+fchownat(dirfd fd_dir, file filename, uid uid, gid gid, flags flags[fchownat_flags])
 fallocate(fd fd, mode flags[fallocate_mode], off intptr, len intptr)
-faccessat(dirfd fd[dir], pathname filename, mode flags[open_mode], flags flags[faccessat_flags])
+faccessat(dirfd fd_dir, pathname filename, mode flags[open_mode], flags flags[faccessat_flags])
 utime(filename filename, times ptr[in, utimbuf])
 utimes(filename filename, times ptr[in, itimerval])
-futimesat(dir fd[dir], pathname filename, times ptr[in, itimerval])
-utimensat(dir fd[dir], pathname filename, times ptr[in, itimerval], flags flags[utimensat_flags])
+futimesat(dir fd_dir, pathname filename, times ptr[in, itimerval])
+utimensat(dir fd_dir, pathname filename, times ptr[in, itimerval], flags flags[utimensat_flags])
+
+resource pid[int32]: 0, 0xffffffffffffffff
+resource uid[int32]: 0, 0xffffffffffffffff
+resource gid[int32]: 0, 0xffffffffffffffff
 
 getgid() gid
 getegid() gid
@@ -287,26 +307,29 @@ personality(persona flags[personality_flags])
 #getsid(pid pid) pid
 #setsid() pid
 
-inotify_init() fd[inotify]
-inotify_init1(flags flags[inotify_flags]) fd[inotify]
-inotify_add_watch(fd fd[inotify], file filename, mask flags[inotify_mask]) inotifydesc
-inotify_rm_watch(fd fd[inotify], wd inotifydesc)
-fanotify_init(flags flags[fanotify_flags], events flags[fanotify_events]) fd[fanotify]
-fanotify_mark(fd fd[fanotify], flags flags[fanotify_mark], mask flags[fanotify_mask], fd fd[dir], path filename)
+resource fd_inotify[fd]
+resource fd_fanotify[fd]
+resource inotifydesc[int32]
+inotify_init() fd_inotify
+inotify_init1(flags flags[inotify_flags]) fd_inotify
+inotify_add_watch(fd fd_inotify, file filename, mask flags[inotify_mask]) inotifydesc
+inotify_rm_watch(fd fd_inotify, wd inotifydesc)
+fanotify_init(flags flags[fanotify_flags], events flags[fanotify_events]) fd_fanotify
+fanotify_mark(fd fd_fanotify, flags flags[fanotify_mark], mask flags[fanotify_mask], fd fd_dir, path filename)
 
 link(old filename, new filename)
-linkat(oldfd fd[dir], old filename, newfd fd[dir], new filename, flags flags[linkat_flags])
-symlinkat(old filename, newfd fd[dir], new filename)
+linkat(oldfd fd_dir, old filename, newfd fd_dir, new filename, flags flags[linkat_flags])
+symlinkat(old filename, newfd fd_dir, new filename)
 symlink(old filename, new filename)
 unlink(path filename)
-unlinkat(fd fd[dir], path filename, flags flags[unlinkat_flags])
+unlinkat(fd fd_dir, path filename, flags flags[unlinkat_flags])
 readlink(path filename, buf buffer[out], siz len[buf])
-readlinkat(fd fd[dir], path filename, buf buffer[out], siz len[buf])
+readlinkat(fd fd_dir, path filename, buf buffer[out], siz len[buf])
 rename(old filename, new filename)
-renameat(oldfd fd[dir], old filename, newfd fd[dir], new filename)
-renameat2(oldfd fd[dir], old filename, newfd fd[dir], new filename, flags flags[renameat2_flags])
+renameat(oldfd fd_dir, old filename, newfd fd_dir, new filename)
+renameat2(oldfd fd_dir, old filename, newfd fd_dir, new filename, flags flags[renameat2_flags])
 mkdir(path filename, mode flags[open_mode])
-mkdirat(fd fd[dir], path filename, mode flags[open_mode])
+mkdirat(fd fd_dir, path filename, mode flags[open_mode])
 rmdir(path filename)
 truncate(file filename, len intptr)
 ftruncate(fd fd, len intptr)
@@ -317,9 +340,9 @@ sync()
 syncfs(fd fd)
 sync_file_range(fd fd, off intptr, nbytes intptr, flags flags[sync_file_flags])
 lookup_dcookie(cookie int64, buf buffer[out], len len[buf])
-getdents(fd fd[dir], ent buffer[out], count len[ent])
-getdents64(fd fd[dir], ent buffer[out], count len[ent])
-name_to_handle_at(fd fd[dir], file filename, handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])
+getdents(fd fd_dir, ent buffer[out], count len[ent])
+getdents64(fd fd_dir, ent buffer[out], count len[ent])
+name_to_handle_at(fd fd_dir, file filename, handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])
 open_by_handle_at(mountdirfd fd, handle ptr[in, file_handle], flags flags[open_flags])
 
 mount(src filename, dst filename, type filesystem, flags flags[mount_flags], data buffer[in])
@@ -371,17 +394,19 @@ removexattr(path filename,  name string)
 lremovexattr(path filename,  name string)
 fremovexattr(fd fd,  name string)
 
+resource timerid[int32]
+timer_create(id flags[clock_id], ev ptr[in, sigevent], timerid ptr[out, timerid])
+timer_gettime(timerid timerid, setting ptr[out, itimerspec])
+timer_getoverrun(timerid timerid)
+timer_settime(timerid timerid, flags flags[timer_flags], new ptr[in, itimerspec], old ptr[out, itimerspec, opt])
+timer_delete(timerid timerid)
+
 time(t ptr[out, intptr])
 clock_gettime(id flags[clock_id], tp ptr[out, timespec])
 clock_settime(id flags[clock_id], tp ptr[in, timespec])
 clock_adjtime(id flags[clock_id], tx ptr[in, timex])
 clock_getres(id flags[clock_id], tp ptr[out, timespec])
 clock_nanosleep(id flags[clock_id], flags flags[timer_flags], rqtp ptr[in, timespec], rmtp ptr[out, timespec, opt])
-timer_create(id flags[clock_id], ev ptr[in, sigevent], timerid ptr[out, timerid])
-timer_gettime(timerid timerid, setting ptr[out, itimerspec])
-timer_getoverrun(timerid timerid)
-timer_settime(timerid timerid, flags flags[timer_flags], new ptr[in, itimerspec], old ptr[out, itimerspec, opt])
-timer_delete(timerid timerid)
 rt_sigaction(sig signalno, act ptr[in, sigaction], oact ptr[out, sigaction, opt], sigsetsize len[fake], fake ptr[out, sigset])
 rt_sigprocmask(how flags[sigprocmask_how], nset ptr[in, sigset], oset ptr[out, sigset, opt], sigsetsize len[nset])
 rt_sigreturn()
@@ -589,7 +614,7 @@ iocb {
 	offset	int64
 	reserv	ptr[in, sigevent]
 	flags	flags[iocb_flags, int32]
-	resfd	fd[event]
+	resfd	fd_event
 }
 
 sigevent {

@@ -3,16 +3,19 @@
 
 include <linux/bpf.h>
 
-bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd[bpf_map]
+resource fd_bpf_map[fd]
+resource fd_bpf_prog[fd]
+
+bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
 bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
 bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
 bpf$MAP_DELETE_ELEM(cmd const[BPF_MAP_DELETE_ELEM], arg ptr[in, bpf_map_delete_arg], size len[arg])
 bpf$MAP_GET_NEXT_KEY(cmd const[BPF_MAP_GET_NEXT_KEY], arg ptr[in, bpf_map_get_next_arg], size len[arg])
-bpf$PROG_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog], size len[arg]) fd[bpf_prog]
+bpf$PROG_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog], size len[arg]) fd_bpf_prog
 bpf$OBJ_PIN_MAP(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_map], size len[arg])
 bpf$OBJ_PIN_PROG(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_prog], size len[arg])
-bpf$OBJ_GET_MAP(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd[bpf_map]
-bpf$OBJ_GET_PROG(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd[bpf_prog]
+bpf$OBJ_GET_MAP(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd_bpf_map
+bpf$OBJ_GET_PROG(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd_bpf_prog
 
 bpf_map_create_arg {
 	type	flags[bpf_map_type, int32]
@@ -22,25 +25,25 @@ bpf_map_create_arg {
 }
 
 bpf_map_lookup_arg {
-	map	fd[bpf_map]
+	map	fd_bpf_map
 	key	buffer[in]
 	val	buffer[out]
 }
 
 bpf_map_update_arg {
-	map	fd[bpf_map]
+	map	fd_bpf_map
 	key	buffer[in]
 	val	buffer[in]
 	flags	flags[bpf_map_flags, int64]
 }
 
 bpf_map_delete_arg {
-	map	fd[bpf_map]
+	map	fd_bpf_map
 	key	buffer[in]
 }
 
 bpf_map_get_next_arg {
-	map	fd[bpf_map]
+	map	fd_bpf_map
 	key	buffer[in]
 	next	buffer[out]
 }
@@ -66,12 +69,12 @@ bpf_insn {
 
 bpf_obj_pin_map {
 	path	filename
-	fd	fd[bpf_map]
+	fd	fd_bpf_map
 }
 
 bpf_obj_pin_prog {
 	path	filename
-	fd	fd[bpf_prog]
+	fd	fd_bpf_prog
 }
 
 bpf_obj_get {

@@ -4,29 +4,31 @@
 include <linux/if_tun.h>
 include <linux/virtio_net.h>
 
-syz_open_dev$tun(dev strconst["/dev/net/tun"], id const[0], flags flags[open_flags]) fd[tun]
-write$tun(fd fd[tun], buf ptr[in, tun_buffer], count len[buf])
+resource fd_tun[fd]
 
-ioctl$TUNGETFEATURES(fd fd[tun], cmd const[TUNGETFEATURES], arg ptr[out, int32])
-ioctl$TUNSETQUEUE(fd fd[tun], cmd const[TUNSETQUEUE], arg ptr[in, ifreq])
-ioctl$TUNSETIFF(fd fd[tun], cmd const[TUNSETIFF], arg ptr[in, ifreq])
-ioctl$TUNSETIFINDEX(fd fd[tun], cmd const[TUNSETIFINDEX], arg ptr[in, int32])
-ioctl$TUNGETIFF(fd fd[tun], cmd const[TUNGETIFF], arg ptr[in, int32])
-ioctl$TUNSETNOCSUM(fd fd[tun], cmd const[TUNSETNOCSUM], arg ptr[in, int32])
-ioctl$TUNSETPERSIST(fd fd[tun], cmd const[TUNSETPERSIST], arg ptr[in, int32])
-ioctl$TUNSETOWNER(fd fd[tun], cmd const[TUNSETOWNER], arg ptr[in, uid])
-ioctl$TUNSETLINK(fd fd[tun], cmd const[TUNSETLINK], arg ptr[in, int32])
-ioctl$TUNSETOFFLOAD(fd fd[tun], cmd const[TUNSETOFFLOAD], arg ptr[in, int32])
-ioctl$TUNSETTXFILTER(fd fd[tun], cmd const[TUNSETTXFILTER], arg ptr[in, tun_filter])
-ioctl$SIOCGIFHWADDR(fd fd[tun], cmd const[SIOCGIFHWADDR], arg ptr[in, ifreq])
-ioctl$SIOCSIFHWADDR(fd fd[tun], cmd const[SIOCSIFHWADDR], arg ptr[in, ifreq])
-ioctl$TUNGETSNDBUF(fd fd[tun], cmd const[TUNGETSNDBUF], arg ptr[out, int32])
-ioctl$TUNSETSNDBUF(fd fd[tun], cmd const[TUNSETSNDBUF], arg ptr[in, int32])
-ioctl$TUNGETVNETHDRSZ(fd fd[tun], cmd const[TUNGETVNETHDRSZ], arg ptr[out, int32])
-ioctl$TUNSETVNETHDRSZ(fd fd[tun], cmd const[TUNSETVNETHDRSZ], arg ptr[in, int32])
-ioctl$TUNATTACHFILTER(fd fd[tun], cmd const[TUNATTACHFILTER], arg ptr[in, sock_fprog])
-ioctl$TUNDETACHFILTER(fd fd[tun], cmd const[TUNDETACHFILTER], arg ptr[in, int32])
-ioctl$TTUNGETFILTER(fd fd[tun], cmd const[TUNGETFILTER], arg ptr[out, int32])
+syz_open_dev$tun(dev strconst["/dev/net/tun"], id const[0], flags flags[open_flags]) fd_tun
+write$tun(fd fd_tun, buf ptr[in, tun_buffer], count len[buf])
+
+ioctl$TUNGETFEATURES(fd fd_tun, cmd const[TUNGETFEATURES], arg ptr[out, int32])
+ioctl$TUNSETQUEUE(fd fd_tun, cmd const[TUNSETQUEUE], arg ptr[in, ifreq])
+ioctl$TUNSETIFF(fd fd_tun, cmd const[TUNSETIFF], arg ptr[in, ifreq])
+ioctl$TUNSETIFINDEX(fd fd_tun, cmd const[TUNSETIFINDEX], arg ptr[in, int32])
+ioctl$TUNGETIFF(fd fd_tun, cmd const[TUNGETIFF], arg ptr[in, int32])
+ioctl$TUNSETNOCSUM(fd fd_tun, cmd const[TUNSETNOCSUM], arg ptr[in, int32])
+ioctl$TUNSETPERSIST(fd fd_tun, cmd const[TUNSETPERSIST], arg ptr[in, int32])
+ioctl$TUNSETOWNER(fd fd_tun, cmd const[TUNSETOWNER], arg ptr[in, uid])
+ioctl$TUNSETLINK(fd fd_tun, cmd const[TUNSETLINK], arg ptr[in, int32])
+ioctl$TUNSETOFFLOAD(fd fd_tun, cmd const[TUNSETOFFLOAD], arg ptr[in, int32])
+ioctl$TUNSETTXFILTER(fd fd_tun, cmd const[TUNSETTXFILTER], arg ptr[in, tun_filter])
+ioctl$SIOCGIFHWADDR(fd fd_tun, cmd const[SIOCGIFHWADDR], arg ptr[in, ifreq])
+ioctl$SIOCSIFHWADDR(fd fd_tun, cmd const[SIOCSIFHWADDR], arg ptr[in, ifreq])
+ioctl$TUNGETSNDBUF(fd fd_tun, cmd const[TUNGETSNDBUF], arg ptr[out, int32])
+ioctl$TUNSETSNDBUF(fd fd_tun, cmd const[TUNSETSNDBUF], arg ptr[in, int32])
+ioctl$TUNGETVNETHDRSZ(fd fd_tun, cmd const[TUNGETVNETHDRSZ], arg ptr[out, int32])
+ioctl$TUNSETVNETHDRSZ(fd fd_tun, cmd const[TUNSETVNETHDRSZ], arg ptr[in, int32])
+ioctl$TUNATTACHFILTER(fd fd_tun, cmd const[TUNATTACHFILTER], arg ptr[in, sock_fprog])
+ioctl$TUNDETACHFILTER(fd fd_tun, cmd const[TUNDETACHFILTER], arg ptr[in, int32])
+ioctl$TTUNGETFILTER(fd fd_tun, cmd const[TUNGETFILTER], arg ptr[out, int32])
 
 tun_buffer [
 	pi	tun_pi

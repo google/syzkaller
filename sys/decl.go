@@ -51,216 +51,36 @@ func (t TypeCommon) Default() uintptr {
 	return 0
 }
 
-type (
-	ResourceKind    int
-	ResourceSubkind int
-)
-
-const (
-	ResFD ResourceKind = iota
-	ResIOCtx
-	ResIPC
-	ResKey
-	ResInotifyDesc
-	ResPid
-	ResUid
-	ResGid
-	ResTimerid
-	ResIocbPtr
-	ResDrmCtx
-)
-
-const (
-	ResAny ResourceSubkind = iota
-	FdFile
-	FdSock
-	FdPipe
-	FdSignal
-	FdEvent
-	FdTimer
-	FdEpoll
-	FdDir
-	FdMq
-	FdInotify
-	FdFanotify
-	FdTty
-	FdDRI
-	FdFuse
-	FdKdbus
-	FdBpfMap
-	FdBpfProg
-	FdPerf
-	FdUserFault
-	FdAlg
-	FdAlgConn
-	FdNfcRaw
-	FdNfcLlcp
-	FdBtHci
-	FdBtSco
-	FdBtL2cap
-	FdBtRfcomm
-	FdBtHidp
-	FdBtCmtp
-	FdBtBnep
-	FdUnix
-	FdSctp
-	FdNetlink
-	FdKvm
-	FdKvmVm
-	FdKvmCpu
-	FdSndSeq
-	FdSndTimer
-	FdSndControl
-	FdInputEvent
-	FdTun
-	FdRandom
-	FdKcm
-	FdNetRom
-
-	IPCMsq
-	IPCSem
-	IPCShm
-)
-
-func ResourceKinds() []ResourceKind {
-	return []ResourceKind{
-		ResFD,
-		ResIOCtx,
-		ResIPC,
-		ResKey,
-		ResInotifyDesc,
-		ResPid,
-		ResUid,
-		ResGid,
-		ResTimerid,
-		ResIocbPtr,
-	}
-}
-
-func ResourceSubkinds(kind ResourceKind) []ResourceSubkind {
-	switch kind {
-	case ResFD:
-		return []ResourceSubkind{ResAny, FdFile, FdSock, FdPipe, FdSignal, FdEvent,
-			FdTimer, FdEpoll, FdDir, FdMq, FdInotify, FdFanotify, FdTty,
-			FdDRI, FdFuse, FdKdbus, FdBpfMap, FdBpfProg, FdPerf, FdUserFault,
-			FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp, FdBtHci, FdBtSco, FdBtL2cap,
-			FdBtRfcomm, FdBtHidp, FdBtCmtp, FdBtBnep, FdUnix, FdSctp, FdNetlink, FdKvm, FdKvmVm,
-			FdKvmCpu, FdSndSeq, FdSndTimer, FdSndControl, FdInputEvent, FdTun, FdRandom, FdKcm,
-			FdNetRom}
-	case ResIPC:
-		return []ResourceSubkind{IPCMsq, IPCSem, IPCShm}
-	case ResIOCtx, ResKey, ResInotifyDesc, ResPid, ResUid, ResGid, ResTimerid, ResIocbPtr, ResDrmCtx:
-		return []ResourceSubkind{ResAny}
-	default:
-		panic("unknown resource kind")
-	}
-}
-
-func SocketSubkinds() []ResourceSubkind {
-	return []ResourceSubkind{FdAlg, FdAlgConn, FdNfcRaw, FdNfcLlcp, FdBtHci, FdBtSco,
-		FdBtL2cap, FdBtRfcomm, FdBtHidp, FdBtCmtp, FdBtBnep, FdUnix, FdSctp, FdNetlink}
-}
-
 const (
 	InvalidFD = ^uintptr(0)
-	BogusFD   = uintptr(100000 - 1)
 )
+
+type ResourceDesc struct {
+	Name   string
+	Type   Type
+	Kind   []string
+	Values []uintptr
+}
 
 type ResourceType struct {
 	TypeCommon
-	Kind    ResourceKind
-	Subkind ResourceSubkind
+	Desc *ResourceDesc
 }
 
 func (t ResourceType) Default() uintptr {
-	switch t.Kind {
-	case ResFD:
-		return InvalidFD
-	case ResIOCtx:
-		return 0
-	case ResIPC:
-		return 0
-	case ResKey:
-		return 0
-	case ResInotifyDesc:
-		return 0
-	case ResPid:
-		return 0
-	case ResUid:
-		return 0
-	case ResGid:
-		return 0
-	case ResTimerid:
-		return 0
-	case ResDrmCtx:
-		return 0
-	default:
-		panic("unknown resource type")
-	}
+	return t.Desc.Values[0]
 }
 
 func (t ResourceType) SpecialValues() []uintptr {
-	switch t.Kind {
-	case ResFD:
-		return []uintptr{InvalidFD, BogusFD, AT_FDCWD}
-	case ResIOCtx:
-		return []uintptr{0}
-	case ResIPC:
-		return []uintptr{0, ^uintptr(0)}
-	case ResKey:
-		// KEY_SPEC_THREAD_KEYRING values
-		return []uintptr{0, ^uintptr(0), ^uintptr(0) - 1, ^uintptr(0) - 2, ^uintptr(0) - 3,
-			^uintptr(0) - 4, ^uintptr(0) - 5, ^uintptr(0) - 6, ^uintptr(0) - 7}
-	case ResInotifyDesc:
-		return []uintptr{0}
-	case ResPid:
-		return []uintptr{0, ^uintptr(0)}
-	case ResUid:
-		return []uintptr{0, ^uintptr(0)}
-	case ResGid:
-		return []uintptr{0, ^uintptr(0)}
-	case ResTimerid:
-		return []uintptr{0}
-	case ResDrmCtx:
-		return []uintptr{0}
-	default:
-		panic("unknown resource kind")
-	}
+	return t.Desc.Values
 }
 
 func (t ResourceType) Size() uintptr {
-	switch t.Kind {
-	case ResFD:
-		return 4
-	case ResIOCtx:
-		return 8
-	case ResIPC:
-		return 4
-	case ResKey:
-		return 4
-	case ResInotifyDesc:
-		return 4
-	case ResPid:
-		return 4
-	case ResUid:
-		return 4
-	case ResGid:
-		return 4
-	case ResTimerid:
-		return 4
-	case ResDrmCtx:
-		return 4
-	default:
-		panic("unknown resource kind")
-	}
+	return t.Desc.Type.Size()
 }
 
 func (t ResourceType) Align() uintptr {
-	return t.Size()
-}
-
-func (t ResourceType) SubKinds() []ResourceSubkind {
-	return ResourceSubkinds(t.Kind)
+	return t.Desc.Type.Align()
 }
 
 type FileoffType struct {
@@ -516,30 +336,26 @@ const (
 	DirInOut
 )
 
-var ctors = make(map[ResourceKind]map[ResourceSubkind][]*Call)
+var ctors = make(map[string][]*Call)
 
-// ResourceConstructors returns a list of calls that can create a resource of the given kind/subkind.
-func ResourceConstructors(kind ResourceKind, sk ResourceSubkind) []*Call {
-	return ctors[kind][sk]
+// ResourceConstructors returns a list of calls that can create a resource of the given kind.
+func ResourceConstructors(name string) []*Call {
+	return ctors[name]
 }
 
 func initResources() {
-	for _, kind := range ResourceKinds() {
-		ctors[kind] = make(map[ResourceSubkind][]*Call)
-		for _, sk := range ResourceSubkinds(kind) {
-			ctors[kind][sk] = ResourceCtors(kind, sk, false)
-		}
+	for name, res := range Resources {
+		ctors[name] = resourceCtors(res.Kind, false)
 	}
 }
 
-func ResourceCtors(kind ResourceKind, sk ResourceSubkind, precise bool) []*Call {
+func resourceCtors(kind []string, precise bool) []*Call {
 	// Find calls that produce the necessary resources.
 	var metas []*Call
 	// Recurse into arguments to see if there is an out/inout arg of necessary type.
 	var checkArg func(typ Type, dir Dir) bool
 	checkArg = func(typ Type, dir Dir) bool {
-		if resarg, ok := typ.(ResourceType); ok && dir != DirIn && resarg.Kind == kind &&
-			(sk == resarg.Subkind || sk == ResAny || (resarg.Subkind == ResAny && !precise)) {
+		if resarg, ok := typ.(ResourceType); ok && dir != DirIn && isCompatibleResource(kind, resarg.Desc.Kind, precise) {
 			return true
 		}
 		switch typ1 := typ.(type) {
@@ -582,6 +398,42 @@ func ResourceCtors(kind ResourceKind, sk ResourceSubkind, precise bool) []*Call 
 		}
 	}
 	return metas
+}
+
+// IsCompatibleResource returns true if resource of kind src can be passed as an argument of kind dst.
+func IsCompatibleResource(dst, src string) bool {
+	dstRes := Resources[dst]
+	if dstRes == nil {
+		panic(fmt.Sprintf("unknown resource '%v'", dst))
+	}
+	srcRes := Resources[src]
+	if srcRes == nil {
+		panic(fmt.Sprintf("unknown resource '%v'", src))
+	}
+	return isCompatibleResource(dstRes.Kind, srcRes.Kind, false)
+}
+
+// isCompatibleResource returns true if resource of kind src can be passed as an argument of kind dst.
+// If precise is true, then it does not allow passing a less specialized resource (e.g. fd)
+// as a more specialized resource (e.g. socket). Otherwise it does.
+func isCompatibleResource(dst, src []string, precise bool) bool {
+	if len(dst) > len(src) {
+		// dst is more specialized, e.g dst=socket, src=fd.
+		if precise {
+			return false
+		}
+		dst = dst[:len(src)]
+	}
+	if len(src) > len(dst) {
+		// src is more specialized, e.g dst=fd, src=socket.
+		src = src[:len(dst)]
+	}
+	for i, k := range dst {
+		if k != src[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (c *Call) InputResources() []ResourceType {
@@ -627,7 +479,7 @@ func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
 			canCreate := true
 			for _, res := range c.InputResources() {
 				noctors := true
-				for _, ctor := range ResourceCtors(res.Kind, res.Subkind, true) {
+				for _, ctor := range resourceCtors(res.Desc.Kind, true) {
 					if supported[ctor] {
 						noctors = false
 						break
@@ -650,6 +502,7 @@ func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
 }
 
 var (
+	Calls     []*Call
 	CallCount int
 	CallMap   = make(map[string]*Call)
 	CallID    = make(map[string]int)
