@@ -33,8 +33,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "common.h"
 #include "syscalls.h"
+
+#include "common.h"
 
 #define KCOV_INIT_TRACE _IOR('c', 1, unsigned long long)
 #define KCOV_INIT_TABLE _IOR('c', 2, unsigned long long)
@@ -656,111 +657,7 @@ void execute_call(thread_t* th)
 	debug(")\n");
 
 	cover_reset(th);
-	switch (call->sys_nr) {
-	default: {
-		if (th->num_args > 6)
-			fail("bad number of arguments");
-		th->res = syscall(call->sys_nr, th->args[0], th->args[1], th->args[2], th->args[3], th->args[4], th->args[5]);
-		break;
-	}
-	case __NR_syz_open_dev: {
-		const char* dev = (char*)th->args[0];
-		if ((uintptr_t)dev == 0xc || (uintptr_t)dev == 0xb) {
-			// syz_open_dev$char(dev const[0xc], major intptr, minor intptr) fd
-			// syz_open_dev$block(dev const[0xb], major intptr, minor intptr) fd
-			uint64_t major = th->args[1];
-			uint64_t minor = th->args[2];
-			uint64_t flags = O_RDWR;
-			char buf[128];
-			sprintf(buf, "/dev/%s/%d:%d", (uintptr_t)dev == 0xc ? "char" : "block", (uint8_t)major, (uint8_t)minor);
-			debug("open(\"%s\", 0x%lx)\n", buf, flags);
-			th->res = open(buf, flags, 0);
-		} else {
-
-			// syz_open_dev(dev strconst, id intptr, flags flags[open_flags]) fd
-			uint64_t id = th->args[1];
-			uint64_t flags = th->args[2];
-			char buf[128];
-			strncpy(buf, dev, sizeof(buf));
-			buf[sizeof(buf) - 1] = 0;
-			while (char* hash = strchr(buf, '#')) {
-				*hash = '0' + (char)(id % 10); // 10 devices should be enough for everyone.
-				id /= 10;
-			}
-			debug("syz_open_dev(\"%s\", 0x%lx, 0)\n", buf, flags);
-			th->res = open(buf, flags, 0);
-		}
-		break;
-	}
-	case __NR_syz_open_pts: {
-		// syz_openpts(fd fd[tty], flags flags[open_flags]) fd[tty]
-		int ptyno = 0;
-		if (ioctl(th->args[0], TIOCGPTN, &ptyno) == 0) {
-			char buf[128];
-			sprintf(buf, "/dev/pts/%d", ptyno);
-			th->res = open(buf, th->args[1], 0);
-		} else {
-			th->res = -1;
-		}
-		break;
-	}
-	case __NR_syz_fuse_mount: {
-		// syz_fuse_mount(target filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd[fuse]
-		uint64_t target = th->args[0];
-		uint64_t mode = th->args[1];
-		uint64_t uid = th->args[2];
-		uint64_t gid = th->args[3];
-		uint64_t maxread = th->args[4];
-		uint64_t flags = th->args[5];
-
-		int fd = open("/dev/fuse", O_RDWR);
-		if (fd != -1) {
-			char buf[256];
-			sprintf(buf, "fd=%d,user_id=%ld,group_id=%ld,rootmode=0%o", fd, (long)uid, (long)gid, (unsigned)mode & ~3u);
-			if (maxread != 0)
-				sprintf(buf + strlen(buf), ",max_read=%ld", (long)maxread);
-			if (mode & 1)
-				strcat(buf, ",default_permissions");
-			if (mode & 2)
-				strcat(buf, ",allow_other");
-			syscall(SYS_mount, "", target, "fuse", flags, buf);
-			// Ignore errors, maybe fuzzer can do something useful with fd alone.
-		}
-		th->res = fd;
-		break;
-	}
-	case __NR_syz_fuseblk_mount: {
-		// syz_fuseblk_mount(target filename, blkdev filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd[fuse]
-		uint64_t target = th->args[0];
-		uint64_t blkdev = th->args[1];
-		uint64_t mode = th->args[2];
-		uint64_t uid = th->args[3];
-		uint64_t gid = th->args[4];
-		uint64_t maxread = th->args[5];
-		uint64_t blksize = th->args[6];
-		uint64_t flags = th->args[7];
-
-		int fd = open("/dev/fuse", O_RDWR);
-		if (fd != -1) {
-			if (syscall(SYS_mknodat, AT_FDCWD, blkdev, S_IFBLK, makedev(7, 199)) == 0) {
-				char buf[256];
-				sprintf(buf, "fd=%d,user_id=%ld,group_id=%ld,rootmode=0%o", fd, (long)uid, (long)gid, (unsigned)mode & ~3u);
-				if (maxread != 0)
-					sprintf(buf + strlen(buf), ",max_read=%ld", (long)maxread);
-				if (blksize != 0)
-					sprintf(buf + strlen(buf), ",blksize=%ld", (long)blksize);
-				if (mode & 1)
-					strcat(buf, ",default_permissions");
-				if (mode & 2)
-					strcat(buf, ",allow_other");
-				syscall(SYS_mount, blkdev, target, "fuseblk", flags, buf);
-				// Ignore errors, maybe fuzzer can do something useful with fd alone.
-			}
-		}
-		th->res = fd;
-		break;
-	}
-	}
+	th->res = execute_syscall(call->sys_nr, th->args[0], th->args[1], th->args[2], th->args[3], th->args[4], th->args[5], th->args[6], th->args[7], th->args[8]);
 	th->reserrno = errno;
 	th->cover_size = cover_read(th);
 
