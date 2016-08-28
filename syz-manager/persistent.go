@@ -37,6 +37,9 @@ func newPersistentSet(dir string, verify func(data []byte) bool) *PersistentSet 
 			log.Fatalf("error during dir walk: %v\n", err)
 		}
 		if info.IsDir() {
+			if info.Name() == ".git" {
+				return filepath.SkipDir // in case corpus is checked in
+			}
 			return nil
 		}
 		data, err := ioutil.ReadFile(path)
