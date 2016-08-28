@@ -9,8 +9,10 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
+	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/config"
@@ -29,6 +31,7 @@ var (
 
 	instances    chan VM
 	bootRequests chan bool
+	shutdown     = make(chan struct{})
 )
 
 type VM struct {
@@ -93,14 +96,27 @@ func main() {
 		}()
 	}
 
-	repro(cfg, entries, crashStart)
+	go func() {
+		c := make(chan os.Signal, 2)
+		signal.Notify(c, syscall.SIGINT)
+		<-c
+		close(shutdown)
+		log.Printf("shutting down...")
+		<-c
+		log.Fatalf("terminating")
+	}()
 
+	repro(cfg, entries, crashStart)
+	exit()
+}
+
+func exit() {
 	for {
 		select {
 		case inst := <-instances:
 			inst.Close()
 		default:
-			return
+			os.Exit(0)
 		}
 	}
 }
@@ -191,7 +207,12 @@ func returnInstance(inst VM, res bool) {
 
 func testProg(cfg *config.Config, p *prog.Prog, multiplier int, threaded, collide bool) (res bool) {
 	log.Printf("booting VM")
-	inst := <-instances
+	var inst VM
+	select {
+	case inst = <-instances:
+	case <-shutdown:
+		exit()
+	}
 	defer func() {
 		returnInstance(inst, res)
 	}()
@@ -225,7 +246,12 @@ func testProg(cfg *config.Config, p *prog.Prog, multiplier int, threaded, collid
 
 func testBin(cfg *config.Config, bin string) (res bool) {
 	log.Printf("booting VM")
-	inst := <-instances
+	var inst VM
+	select {
+	case inst = <-instances:
+	case <-shutdown:
+		exit()
+	}
 	defer func() {
 		returnInstance(inst, res)
 	}()
@@ -259,6 +285,9 @@ func testImpl(inst vm.Instance, command string, timeout time.Duration) (res bool
 			}
 			log.Printf("program did not crash")
 			return false
+		case <-shutdown:
+			inst.Close()
+			exit()
 		}
 	}
 }
