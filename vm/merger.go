@@ -41,9 +41,12 @@ func (merger *OutputMerger) Add(r io.ReadCloser) {
 					if merger.tee != nil {
 						merger.tee.Write(out)
 					}
-					merger.Output <- append([]byte{}, out...)
-					r := copy(pending[:], pending[pos+1:])
-					pending = pending[:r]
+					select {
+					case merger.Output <- append([]byte{}, out...):
+						r := copy(pending[:], pending[pos+1:])
+						pending = pending[:r]
+					default:
+					}
 				}
 			}
 			if err != nil {
@@ -52,7 +55,10 @@ func (merger *OutputMerger) Add(r io.ReadCloser) {
 					if merger.tee != nil {
 						merger.tee.Write(pending)
 					}
-					merger.Output <- pending
+					select {
+					case merger.Output <- pending:
+					default:
+					}
 				}
 				r.Close()
 				merger.wg.Done()
