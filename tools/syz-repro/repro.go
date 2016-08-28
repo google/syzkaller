@@ -216,8 +216,8 @@ func testProg(cfg *config.Config, p *prog.Prog, multiplier int, threaded, collid
 	repeat *= multiplier
 	timeoutSec *= multiplier
 	timeout := time.Duration(timeoutSec) * time.Second
-	command := fmt.Sprintf("%v -executor %v -cover=0 -procs=%v -repeat=%v -threaded=%v -collide=%v %v",
-		inst.execprogBin, inst.executorBin, cfg.Procs, repeat, threaded, collide, bin)
+	command := fmt.Sprintf("%v -executor %v -cover=0 -procs=%v -repeat=%v -sandbox %v -threaded=%v -collide=%v %v",
+		inst.execprogBin, inst.executorBin, cfg.Procs, repeat, cfg.Sandbox, threaded, collide, bin)
 	log.Printf("testing program (threaded=%v, collide=%v, repeat=%v, timeout=%v):\n%s\n",
 		threaded, collide, repeat, timeout, pstr)
 	return testImpl(inst, command, timeout)
