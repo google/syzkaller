@@ -31,6 +31,24 @@ func Write(p *prog.Prog, opts Options) []byte {
 #include <string.h>
 #include <stdint.h>
 #include <pthread.h>
+#include <stdlib.h>
+#include <setjmp.h>
+#include <signal.h>
+
+__thread int skip_segv;
+__thread jmp_buf segv_env;
+
+void handle_segv(int sig, siginfo_t* info, void* uctx)
+{
+  if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED))
+    _longjmp(segv_env, 1);
+  exit(sig);
+}
+
+#define NONFAILING(...) { \
+  __atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST); \
+  if (_setjmp(segv_env) == 0) { __VA_ARGS__; } \
+  __atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); } \
 
 `)
 
@@ -48,11 +66,21 @@ func Write(p *prog.Prog, opts Options) []byte {
 	fmt.Fprintf(w, "\n")
 
 	calls, nvar := generateCalls(exec)
-	fmt.Fprintf(w, "long r[%v];\n\n", nvar)
+	fmt.Fprintf(w, "long r[%v];\n", nvar)
 
 	if !opts.Threaded && !opts.Collide {
-		fmt.Fprintf(w, "int main()\n{\n")
-		fmt.Fprintf(w, "\tmemset(r, -1, sizeof(r));\n")
+		fmt.Fprint(w, `
+int main()
+{
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_sigaction = handle_segv;
+	sa.sa_flags = SA_NODEFER | SA_SIGINFO;
+	sigaction(SIGSEGV, &sa, NULL);
+	sigaction(SIGBUS, &sa, NULL);
+
+	memset(r, -1, sizeof(r));
+`)
 		for _, c := range calls {
 			fmt.Fprintf(w, "%s", c)
 		}
@@ -135,9 +163,9 @@ loop:
 			switch typ {
 			case prog.ExecArgConst:
 				arg := read()
-				fmt.Fprintf(w, "\t*(uint%v_t*)0x%x = (uint%v_t)0x%x;\n", size*8, addr, size*8, arg)
+				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = (uint%v_t)0x%x);\n", size*8, addr, size*8, arg)
 			case prog.ExecArgResult:
-				fmt.Fprintf(w, "\t*(uint%v_t*)0x%x = %v;\n", size*8, addr, resultRef())
+				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n", size*8, addr, resultRef())
 			case prog.ExecArgData:
 				data := exec[:size]
 				exec = exec[(size+7)/8*8:]
@@ -151,7 +179,7 @@ loop:
 					}
 					esc = append(esc, '\\', 'x', hex(v>>4), hex(v<<4>>4))
 				}
-				fmt.Fprintf(w, "\tmemcpy((void*)0x%x, \"%s\", %v);\n", addr, esc, size)
+				fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n", addr, esc, size)
 			default:
 				panic("bad argument type")
 			}
@@ -159,7 +187,7 @@ loop:
 			addr := read()
 			size := read()
 			fmt.Fprintf(w, "\tif (r[%v] != -1)\n", lastCall)
-			fmt.Fprintf(w, "\t\tr[%v] = *(uint%v_t*)0x%x;\n", n, size*8, addr)
+			fmt.Fprintf(w, "\t\tNONFAILING(r[%v] = *(uint%v_t*)0x%x);\n", n, size*8, addr)
 		default:
 			// Normal syscall.
 			newCall()
@@ -220,7 +248,7 @@ func Format(src []byte) ([]byte, error) {
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	if err := cmd.Run(); err != nil {
-		return nil, fmt.Errorf("failed to format source: %v\n%v", err, stderr.String())
+		return src, fmt.Errorf("failed to format source: %v\n%v", err, stderr.String())
 	}
 	return stdout.Bytes(), nil
 }
