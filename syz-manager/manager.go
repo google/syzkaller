@@ -301,13 +301,15 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 
 	waitForOutput := func(dur time.Duration) {
 		timer := time.NewTimer(dur).C
-	loop:
 		for {
 			select {
-			case out := <-outputC:
+			case out, ok := <-outputC:
+				if !ok {
+					return
+				}
 				output = append(output, out...)
 			case <-timer:
-				break loop
+				return
 			}
 		}
 	}
@@ -340,7 +342,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 				logf(0, "%v: running long enough, restarting", vmCfg.Name)
 				return true
 			default:
-				logf(0, "%v: lost connection: %v", vmCfg.Name, err)
+				waitForOutput(10 * time.Second)
 				saveCrasher("lost connection", output)
 				return true
 			}
@@ -362,6 +364,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 					end = len(output)
 				}
 				saveCrasher(desc, output[start:end])
+				return true
 			}
 			if len(output) > 2*beforeContext {
 				copy(output, output[len(output)-beforeContext:])

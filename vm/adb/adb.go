@@ -5,12 +5,12 @@ package adb
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/vm"
@@ -153,23 +153,21 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte, <-chan error, error) {
-	rpipe, wpipe, err := os.Pipe()
+	catRpipe, catWpipe, err := vm.LongPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create pipe: %v", err)
-	}
-	for sz := 128 << 10; sz <= 2<<20; sz *= 2 {
-		syscall.Syscall(syscall.SYS_FCNTL, wpipe.Fd(), syscall.F_SETPIPE_SZ, uintptr(sz))
+		return nil, nil, err
 	}
 
 	cat := exec.Command("cat", inst.cfg.ConsoleDev)
-	cat.Stdout = wpipe
-	cat.Stderr = wpipe
+	cat.Stdout = catWpipe
+	cat.Stderr = catWpipe
 	if err := cat.Start(); err != nil {
-		rpipe.Close()
-		wpipe.Close()
+		catRpipe.Close()
+		catWpipe.Close()
 		return nil, nil, fmt.Errorf("failed to start cat %v: %v", inst.cfg.ConsoleDev, err)
 
 	}
+	catWpipe.Close()
 	catDone := make(chan error, 1)
 	go func() {
 		err := cat.Wait()
@@ -179,18 +177,26 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 		catDone <- fmt.Errorf("cat exited: %v", err)
 	}()
 
+	adbRpipe, adbWpipe, err := vm.LongPipe()
+	if err != nil {
+		cat.Process.Kill()
+		catRpipe.Close()
+		return nil, nil, err
+	}
 	if inst.cfg.Debug {
 		log.Printf("starting: adb shell %v", command)
 	}
 	adb := exec.Command(inst.cfg.Bin, "shell", "cd /data; "+command)
-	adb.Stdout = wpipe
-	adb.Stderr = wpipe
+	adb.Stdout = adbWpipe
+	adb.Stderr = adbWpipe
 	if err := adb.Start(); err != nil {
 		cat.Process.Kill()
-		rpipe.Close()
-		wpipe.Close()
+		catRpipe.Close()
+		adbRpipe.Close()
+		adbWpipe.Close()
 		return nil, nil, fmt.Errorf("failed to start adb: %v", err)
 	}
+	adbWpipe.Close()
 	adbDone := make(chan error, 1)
 	go func() {
 		err := adb.Wait()
@@ -200,41 +206,21 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 		adbDone <- fmt.Errorf("adb exited: %v", err)
 	}()
 
-	wpipe.Close()
-	outc := make(chan []byte, 10)
+	var tee io.Writer
+	if inst.cfg.Debug {
+		tee = os.Stdout
+	}
+	merger := vm.NewOutputMerger(tee)
+	merger.Add(catRpipe)
+	merger.Add(adbRpipe)
+
 	errc := make(chan error, 1)
 	signal := func(err error) {
-		time.Sleep(5 * time.Second) // wait for any pending output
 		select {
 		case errc <- err:
 		default:
 		}
 	}
-
-	go func() {
-		var buf [64 << 10]byte
-		var output []byte
-		for {
-			n, err := rpipe.Read(buf[:])
-			if n != 0 {
-				if inst.cfg.Debug {
-					os.Stdout.Write(buf[:n])
-					os.Stdout.Write([]byte{'\n'})
-				}
-				output = append(output, buf[:n]...)
-				select {
-				case outc <- output:
-					output = nil
-				default:
-				}
-				time.Sleep(time.Millisecond)
-			}
-			if err != nil {
-				rpipe.Close()
-				return
-			}
-		}
-	}()
 
 	go func() {
 		select {
@@ -256,6 +242,7 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 			signal(err)
 			cat.Process.Kill()
 		}
+		merger.Wait()
 	}()
-	return outc, errc, nil
+	return merger.Output, errc, nil
 }
