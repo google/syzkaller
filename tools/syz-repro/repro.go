@@ -164,6 +164,7 @@ func repro(cfg *config.Config, entries []*prog.LogEntry, crashStart int) {
 	}
 
 	src := csource.Write(p, opts)
+	src, _ = csource.Format(src)
 	log.Printf("C source:\n%s\n", src)
 	srcf, err := fileutil.WriteTempFile(src)
 	if err != nil {
