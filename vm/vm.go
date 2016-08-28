@@ -7,6 +7,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+	"syscall"
 	"time"
 )
 
@@ -60,6 +63,17 @@ func Create(typ string, cfg *Config) (Instance, error) {
 		return nil, fmt.Errorf("unknown instance type '%v'", typ)
 	}
 	return ctor(cfg)
+}
+
+func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create pipe: %v", err)
+	}
+	for sz := 128 << 10; sz <= 2<<20; sz *= 2 {
+		syscall.Syscall(syscall.SYS_FCNTL, w.Fd(), syscall.F_SETPIPE_SZ, uintptr(sz))
+	}
+	return r, w, err
 }
 
 // FindCrash searches kernel console output for oops messages.

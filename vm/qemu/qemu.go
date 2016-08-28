@@ -5,6 +5,7 @@ package qemu
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -13,8 +14,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
-	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/vm"
@@ -31,15 +30,11 @@ func init() {
 type instance struct {
 	cfg     *vm.Config
 	port    int
-	rpipe   *os.File
-	wpipe   *os.File
+	rpipe   io.ReadCloser
+	wpipe   io.WriteCloser
 	qemu    *exec.Cmd
-	readerC chan error
 	waiterC chan error
-
-	mu      sync.Mutex
-	outputB []byte
-	outputC chan []byte
+	merger  *vm.OutputMerger
 }
 
 func ctor(cfg *vm.Config) (vm.Instance, error) {
@@ -81,12 +76,9 @@ func ctorImpl(cfg *vm.Config) (vm.Instance, error) {
 	}
 
 	var err error
-	inst.rpipe, inst.wpipe, err = os.Pipe()
+	inst.rpipe, inst.wpipe, err = vm.LongPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed to create pipe: %v", err)
-	}
-	for sz := 128 << 10; sz <= 2<<20; sz *= 2 {
-		syscall.Syscall(syscall.SYS_FCNTL, inst.wpipe.Fd(), syscall.F_SETPIPE_SZ, uintptr(sz))
+		return nil, err
 	}
 
 	if err := inst.Boot(); err != nil {
@@ -127,7 +119,9 @@ func (inst *instance) Close() {
 		inst.qemu.Process.Kill()
 		err := <-inst.waiterC
 		inst.waiterC <- err // repost it for waiting goroutines
-		<-inst.readerC
+	}
+	if inst.merger != nil {
+		inst.merger.Wait()
 	}
 	if inst.rpipe != nil {
 		inst.rpipe.Close()
@@ -197,46 +191,38 @@ func (inst *instance) Boot() error {
 	if err := qemu.Start(); err != nil {
 		return fmt.Errorf("failed to start %v %+v: %v", inst.cfg.Bin, args, err)
 	}
+	inst.wpipe.Close()
+	inst.wpipe = nil
 	inst.qemu = qemu
 	// Qemu has started.
 
-	// Start output reading goroutine.
-	inst.readerC = make(chan error)
-	go func(rpipe *os.File) {
-		var buf [64 << 10]byte
+	// Start output merger.
+	var tee io.Writer
+	if inst.cfg.Debug {
+		tee = os.Stdout
+	}
+	inst.merger = vm.NewOutputMerger(tee)
+	inst.merger.Add(inst.rpipe)
+	inst.rpipe = nil
+
+	var bootOutput []byte
+	bootOutputStop := make(chan bool)
+	go func() {
 		for {
-			n, err := rpipe.Read(buf[:])
-			if n != 0 {
-				if inst.cfg.Debug {
-					os.Stdout.Write(buf[:n])
-					os.Stdout.Write([]byte{'\n'})
-				}
-				inst.mu.Lock()
-				inst.outputB = append(inst.outputB, buf[:n]...)
-				if inst.outputC != nil {
-					select {
-					case inst.outputC <- inst.outputB:
-						inst.outputB = nil
-					default:
-					}
-				}
-				inst.mu.Unlock()
-				time.Sleep(time.Millisecond)
-			}
-			if err != nil {
-				rpipe.Close()
-				inst.readerC <- err
+			select {
+			case out := <-inst.merger.Output:
+				bootOutput = append(bootOutput, out...)
+			case <-bootOutputStop:
+				close(bootOutputStop)
 				return
 			}
 		}
-	}(inst.rpipe)
-	inst.rpipe = nil
+	}()
 
 	// Wait for the qemu asynchronously.
 	inst.waiterC = make(chan error, 1)
 	go func() {
 		err := qemu.Wait()
-		inst.wpipe.Close()
 		inst.waiterC <- err
 	}()
 
@@ -259,23 +245,18 @@ func (inst *instance) Boot() error {
 		case err := <-inst.waiterC:
 			inst.waiterC <- err     // repost it for Close
 			time.Sleep(time.Second) // wait for any pending output
-			inst.mu.Lock()
-			output := inst.outputB
-			inst.mu.Unlock()
-			return fmt.Errorf("qemu stopped:\n%v\n", string(output))
+			bootOutputStop <- true
+			<-bootOutputStop
+			return fmt.Errorf("qemu stopped:\n%v\n", string(bootOutput))
 		default:
 		}
 		if time.Since(start) > 10*time.Minute {
-			inst.mu.Lock()
-			output := inst.outputB
-			inst.mu.Unlock()
-			return fmt.Errorf("ssh server did not start:\n%v\n", string(output))
+			bootOutputStop <- true
+			<-bootOutputStop
+			return fmt.Errorf("ssh server did not start:\n%v\n", string(bootOutput))
 		}
 	}
-	// Drop boot output. It is not interesting if the VM has successfully booted.
-	inst.mu.Lock()
-	inst.outputB = nil
-	inst.mu.Unlock()
+	bootOutputStop <- true
 	return nil
 }
 
@@ -311,35 +292,29 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte, <-chan error, error) {
-	outputC := make(chan []byte, 10)
-	errorC := make(chan error, 1)
-	inst.mu.Lock()
-	inst.outputB = nil
-	inst.outputC = outputC
-	inst.mu.Unlock()
+	rpipe, wpipe, err := vm.LongPipe()
+	if err != nil {
+		return nil, nil, err
+	}
+	inst.merger.Add(rpipe)
+
+	args := append(inst.sshArgs("-p"), "root@localhost", command)
+	cmd := exec.Command("ssh", args...)
+	cmd.Stdout = wpipe
+	cmd.Stderr = wpipe
+	if err := cmd.Start(); err != nil {
+		wpipe.Close()
+		return nil, nil, err
+	}
+	wpipe.Close()
+	errc := make(chan error, 1)
 	signal := func(err error) {
-		time.Sleep(3 * time.Second) // wait for any pending output
-		inst.mu.Lock()
-		if inst.outputC == outputC {
-			inst.outputB = nil
-			inst.outputC = nil
-		}
-		inst.mu.Unlock()
 		select {
-		case errorC <- err:
+		case errc <- err:
 		default:
 		}
 	}
-	args := append(inst.sshArgs("-p"), "root@localhost", command)
-	cmd := exec.Command("ssh", args...)
-	cmd.Stdout = inst.wpipe
-	cmd.Stderr = inst.wpipe
-	if err := cmd.Start(); err != nil {
-		inst.mu.Lock()
-		inst.outputC = nil
-		inst.mu.Unlock()
-		return nil, nil, err
-	}
+
 	done := make(chan bool)
 	go func() {
 		select {
@@ -354,7 +329,7 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 		close(done)
 		signal(err)
 	}()
-	return outputC, errorC, nil
+	return inst.merger.Output, errc, nil
 }
 
 func (inst *instance) sshArgs(portArg string) []string {

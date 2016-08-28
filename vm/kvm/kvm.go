@@ -215,7 +215,6 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 	}
 
 	signal := func(err error) {
-		time.Sleep(3 * time.Second) // wait for any pending output
 		inst.mu.Lock()
 		if inst.outputC == outputC {
 			inst.outputB = nil
