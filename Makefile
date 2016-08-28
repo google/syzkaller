@@ -46,12 +46,21 @@ bin/syz-extract: ./syz-extract
 
 generate: bin/syz-sysgen
 	bin/syz-sysgen
+	go generate ./...
 bin/syz-sysgen: sysgen/*.go
 	go build -o $@ ./sysgen
 
 format:
 	go fmt ./...
-	clang-format --style=file -i executor/executor.cc
+	clang-format --style=file -i executor/*.cc executor/*.h
+
+presubmit:
+	$(MAKE) generate
+	$(MAKE) format
+	ARCH=amd64 go install ./...
+	ARCH=arm64 go install ./...
+	ARCH=ppc64le go install ./...
+	go test -short ./...
 
 clean:
 	rm -rf ./bin/
