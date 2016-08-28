@@ -33,6 +33,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "common.h"
 #include "syscalls.h"
 
 #define KCOV_INIT_TRACE _IOR('c', 1, unsigned long long)
@@ -121,9 +122,6 @@ struct thread_t {
 thread_t threads[kMaxThreads];
 char sandbox_stack[1 << 20];
 
-int skip_segv;
-jmp_buf segv_env;
-
 __attribute__((noreturn)) void fail(const char* msg, ...);
 __attribute__((noreturn)) void error(const char* msg, ...);
 __attribute__((noreturn)) void exitf(const char* msg, ...);
@@ -199,12 +197,7 @@ int main(int argc, char** argv)
 	sa.sa_handler = SIG_IGN;
 	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
 	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
-
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_sigaction = handle_segv;
-	sa.sa_flags = SA_NODEFER | SA_SIGINFO;
-	sigaction(SIGSEGV, &sa, NULL);
-	sigaction(SIGBUS, &sa, NULL);
+	install_segv_handler();
 
 	int pid = -1;
 	switch (flag_sandbox) {
@@ -461,11 +454,7 @@ retry:
 				break;
 			}
 			case arg_data: {
-				__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST);
-				if (_setjmp(segv_env) == 0) {
-					memcpy(addr, input_pos, size);
-				}
-				__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST);
+				NONFAILING(memcpy(addr, input_pos, size));
 				// Read out the data.
 				for (uint64_t i = 0; i < (size + 7) / 8; i++)
 					read_input(&input_pos);
@@ -847,20 +836,9 @@ uint64_t cover_dedup(thread_t* th, uint64_t n)
 	return w;
 }
 
-void handle_segv(int sig, siginfo_t* info, void* uctx)
-{
-	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED)) {
-		debug("caught signal %d during copyin/copyout, ignoring\n", sig);
-		_longjmp(segv_env, 1);
-	}
-	exitf("caught signal %d, exiting", sig);
-}
-
 void copyin(char* addr, uint64_t val, uint64_t size)
 {
-	__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST);
-	if (_setjmp(segv_env) == 0) {
-		switch (size) {
+	NONFAILING(switch (size) {
 		case 1:
 			*(uint8_t*)addr = val;
 			break;
@@ -875,17 +853,13 @@ void copyin(char* addr, uint64_t val, uint64_t size)
 			break;
 		default:
 			fail("copyin: bad argument size %lu", size);
-		}
-	}
-	__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST);
+	});
 }
 
 uint64_t copyout(char* addr, uint64_t size)
 {
 	uint64_t res = default_value;
-	__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST);
-	if (_setjmp(segv_env) == 0) {
-		switch (size) {
+	NONFAILING(switch (size) {
 		case 1:
 			res = *(uint8_t*)addr;
 			break;
@@ -900,9 +874,7 @@ uint64_t copyout(char* addr, uint64_t size)
 			break;
 		default:
 			fail("copyout: bad argument size %lu", size);
-		}
-	}
-	__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST);
+	});
 	return res;
 }
 
