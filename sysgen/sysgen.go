@@ -140,8 +140,14 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 	fmt.Fprintf(out, "package sys\n\n")
 
 	fmt.Fprintf(out, "var Resources = map[string]*ResourceDesc{\n")
-	for name, res := range desc.Resources {
+	var resArray ResourceArray
+	for _, res := range desc.Resources {
+		resArray = append(resArray, res)
+	}
+	sort.Sort(resArray)
+	for _, res := range resArray {
 		underlying := ""
+		name := res.Name
 		kind := []string{name}
 		var values []string
 	loop:
@@ -554,6 +560,12 @@ type NameValueArray []NameValue
 func (a NameValueArray) Len() int           { return len(a) }
 func (a NameValueArray) Less(i, j int) bool { return a[i].name < a[j].name }
 func (a NameValueArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+type ResourceArray []Resource
+
+func (a ResourceArray) Len() int           { return len(a) }
+func (a ResourceArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
+func (a ResourceArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 func failf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)

@@ -38,6 +38,7 @@ type Struct struct {
 }
 
 type Resource struct {
+	Name   string
 	Base   string
 	Values []string
 }
@@ -141,7 +142,7 @@ func Parse(in io.Reader) *Description {
 				if _, ok := structs[id]; ok {
 					failf("struct '%v' is redefined as resource", name)
 				}
-				resources[id] = Resource{base, vals}
+				resources[id] = Resource{id, base, vals}
 			} else {
 				switch ch := p.Char(); ch {
 				case '(':
