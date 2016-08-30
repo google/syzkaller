@@ -11,6 +11,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
+	"sync"
 	"time"
 
 	"github.com/google/syzkaller/vm"
@@ -21,8 +24,9 @@ func init() {
 }
 
 type instance struct {
-	cfg    *vm.Config
-	closed chan bool
+	cfg     *vm.Config
+	console string
+	closed  chan bool
 }
 
 func ctor(cfg *vm.Config) (vm.Instance, error) {
@@ -39,6 +43,9 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	if err := validateConfig(cfg); err != nil {
 		return nil, err
 	}
+	if err := inst.findConsole(); err != nil {
+		return nil, err
+	}
 	if err := inst.repair(); err != nil {
 		return nil, err
 	}
@@ -52,9 +59,43 @@ func validateConfig(cfg *vm.Config) error {
 	if cfg.Bin == "" {
 		cfg.Bin = "adb"
 	}
-	if _, err := os.Stat(cfg.ConsoleDev); err != nil {
-		return fmt.Errorf("console device '%v' is missing: %v", cfg.ConsoleDev, err)
+	if !regexp.MustCompile("[0-9A-F]+").MatchString(cfg.Device) {
+		return fmt.Errorf("invalid adb device id '%v'", cfg.Device)
 	}
+	return nil
+}
+
+var (
+	consoleCacheMu sync.Mutex
+	consoleCache   = make(map[string]string)
+)
+
+func (inst *instance) findConsole() error {
+	// Case Closed Debugging using Suzy-Q:
+	// https://chromium.googlesource.com/chromiumos/platform/ec/+/master/docs/case_closed_debugging.md
+	consoleCacheMu.Lock()
+	defer consoleCacheMu.Unlock()
+	if inst.console = consoleCache[inst.cfg.Device]; inst.console != "" {
+		return nil
+	}
+	out, err := exec.Command(inst.cfg.Bin, "devices", "-l").CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to execute 'adb devices -l': %v\n%v\n", err, string(out))
+	}
+	re := regexp.MustCompile(fmt.Sprintf("%v +device usb:([0-9]+)-([0-9]+)\\.([0-9]+) ", inst.cfg.Device))
+	match := re.FindAllStringSubmatch(string(out), 1)
+	if match == nil {
+		return fmt.Errorf("can't find adb device '%v' in 'adb devices' output:\n%v\n", inst.cfg.Device, string(out))
+	}
+	bus, _ := strconv.ParseUint(match[0][1], 10, 64)
+	port, _ := strconv.ParseUint(match[0][2], 10, 64)
+	files, err := filepath.Glob(fmt.Sprintf("/sys/bus/usb/devices/%v-%v.2:1.1/ttyUSB*", bus, port))
+	if err != nil || len(files) == 0 {
+		return fmt.Errorf("can't find any ttyUDB devices for adb device '%v' on bus %v-%v", inst.cfg.Device, bus, port)
+	}
+	inst.console = "/dev/" + filepath.Base(files[0])
+	consoleCache[inst.cfg.Device] = inst.console
+	log.Printf("associating adb device %v with console %v", inst.cfg.Device, inst.console)
 	return nil
 }
 
@@ -77,7 +118,7 @@ func (inst *instance) adb(args ...string) error {
 	}
 	defer wpipe.Close()
 	defer rpipe.Close()
-	cmd := exec.Command(inst.cfg.Bin, args...)
+	cmd := exec.Command(inst.cfg.Bin, append([]string{"-s", inst.cfg.Device}, args...)...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
@@ -158,13 +199,13 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 		return nil, nil, err
 	}
 
-	cat := exec.Command("cat", inst.cfg.ConsoleDev)
+	cat := exec.Command("cat", inst.console)
 	cat.Stdout = catWpipe
 	cat.Stderr = catWpipe
 	if err := cat.Start(); err != nil {
 		catRpipe.Close()
 		catWpipe.Close()
-		return nil, nil, fmt.Errorf("failed to start cat %v: %v", inst.cfg.ConsoleDev, err)
+		return nil, nil, fmt.Errorf("failed to start cat %v: %v", inst.console, err)
 
 	}
 	catWpipe.Close()
@@ -186,7 +227,7 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 	if inst.cfg.Debug {
 		log.Printf("starting: adb shell %v", command)
 	}
-	adb := exec.Command(inst.cfg.Bin, "shell", "cd /data; "+command)
+	adb := exec.Command(inst.cfg.Bin, "-s", inst.cfg.Device, "shell", "cd /data; "+command)
 	adb.Stdout = adbWpipe
 	adb.Stderr = adbWpipe
 	if err := adb.Start(); err != nil {

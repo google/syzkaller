@@ -34,10 +34,11 @@ type Config struct {
 	Debug   bool   // dump all VM output to console
 	Output  string // one of stdout/dmesg/file (useful only for local VM)
 
-	Syzkaller string // path to syzkaller checkout (syz-manager will look for binaries in bin subdir)
-	Type      string // VM type (qemu, kvm, local)
-	Count     int    // number of VMs
-	Procs     int    // number of parallel processes inside of every VM
+	Syzkaller string   // path to syzkaller checkout (syz-manager will look for binaries in bin subdir)
+	Type      string   // VM type (qemu, kvm, local)
+	Count     int      // number of VMs (don't secify for adb, instead specify devices)
+	Devices   []string // device IDs for adb
+	Procs     int      // number of parallel processes inside of every VM
 
 	Sandbox string // type of sandbox to use during fuzzing:
 	// "none": don't do anything special (has false positives, e.g. due to killing init)
@@ -47,8 +48,6 @@ type Config struct {
 
 	Cover bool // use kcov coverage (default: true)
 	Leak  bool // do memory leak checking
-
-	ConsoleDev string // console device for adb vm
 
 	Enable_Syscalls  []string
 	Disable_Syscalls []string
@@ -98,20 +97,35 @@ func parse(data []byte) (*Config, map[int]bool, []*regexp.Regexp, error) {
 	if cfg.Type == "" {
 		return nil, nil, nil, fmt.Errorf("config param type is empty")
 	}
-	if cfg.Type == "none" {
+	switch cfg.Type {
+	case "none":
 		if cfg.Count != 0 {
 			return nil, nil, nil, fmt.Errorf("invalid config param count: %v, type \"none\" does not support param count", cfg.Count)
 		}
 		if cfg.Rpc == "" {
 			return nil, nil, nil, fmt.Errorf("config param rpc is empty (required for type \"none\")")
 		}
-	} else {
+		if len(cfg.Devices) != 0 {
+			return nil, nil, nil, fmt.Errorf("type %v does not support devices param", cfg.Type)
+		}
+	case "adb":
+		if cfg.Count != 0 {
+			return nil, nil, nil, fmt.Errorf("don't specify count for adb, instead specify devices")
+		}
+		if len(cfg.Devices) == 0 {
+			return nil, nil, nil, fmt.Errorf("specify at least 1 adb device")
+		}
+		cfg.Count = len(cfg.Devices)
+	default:
 		if cfg.Count <= 0 || cfg.Count > 1000 {
 			return nil, nil, nil, fmt.Errorf("invalid config param count: %v, want (1, 1000]", cfg.Count)
 		}
-		if cfg.Rpc == "" {
-			cfg.Rpc = "localhost:0"
+		if len(cfg.Devices) != 0 {
+			return nil, nil, nil, fmt.Errorf("type %v does not support devices param", cfg.Type)
 		}
+	}
+	if cfg.Rpc == "" {
+		cfg.Rpc = "localhost:0"
 	}
 	if cfg.Procs <= 0 {
 		cfg.Procs = 1
@@ -219,26 +233,31 @@ func parseSuppressions(cfg *Config) ([]*regexp.Regexp, error) {
 	return suppressions, nil
 }
 
-func CreateVMConfig(cfg *Config) (*vm.Config, error) {
+func CreateVMConfig(cfg *Config, index int) (*vm.Config, error) {
+	if index < 0 || index >= cfg.Count {
+		return nil, fmt.Errorf("invalid VM index %v (count %v)", index, cfg.Count)
+	}
 	workdir, index, err := fileutil.ProcessTempDir(cfg.Workdir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create instance temp dir: %v", err)
 	}
 	vmCfg := &vm.Config{
-		Name:       fmt.Sprintf("%v-%v", cfg.Type, index),
-		Index:      index,
-		Workdir:    workdir,
-		Bin:        cfg.Bin,
-		Kernel:     cfg.Kernel,
-		Cmdline:    cfg.Cmdline,
-		Image:      cfg.Image,
-		Initrd:     cfg.Initrd,
-		Sshkey:     cfg.Sshkey,
-		Executor:   filepath.Join(cfg.Syzkaller, "bin", "syz-executor"),
-		ConsoleDev: cfg.ConsoleDev,
-		Cpu:        cfg.Cpu,
-		Mem:        cfg.Mem,
-		Debug:      cfg.Debug,
+		Name:     fmt.Sprintf("%v-%v", cfg.Type, index),
+		Index:    index,
+		Workdir:  workdir,
+		Bin:      cfg.Bin,
+		Kernel:   cfg.Kernel,
+		Cmdline:  cfg.Cmdline,
+		Image:    cfg.Image,
+		Initrd:   cfg.Initrd,
+		Sshkey:   cfg.Sshkey,
+		Executor: filepath.Join(cfg.Syzkaller, "bin", "syz-executor"),
+		Cpu:      cfg.Cpu,
+		Mem:      cfg.Mem,
+		Debug:    cfg.Debug,
+	}
+	if len(cfg.Devices) != 0 {
+		vmCfg.Device = cfg.Devices[index]
 	}
 	return vmCfg, nil
 }
@@ -264,11 +283,11 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Syzkaller",
 		"Type",
 		"Count",
+		"Devices",
 		"Procs",
 		"Cover",
 		"Sandbox",
 		"Leak",
-		"ConsoleDev",
 		"Enable_Syscalls",
 		"Disable_Syscalls",
 		"Suppressions",
