@@ -1,0 +1,61 @@
+# Copyright 2016 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Open Trusted Execution driver for /dev/tlk_device
+# Reference source code:
+# https://android.googlesource.com/kernel/tegra/+/android-tegra-dragon-3.18-marshmallow-dr-dragon/security/tlk_driver/ote_protocol.h
+
+include <linux/ioctl.h>
+include <linux/types.h>
+include <security/tlk_driver/ote_protocol.h>
+
+resource fd_tlk[fd]
+resource te_session_id[int32]
+
+syz_open_dev$tlk_device(dev strconst["/dev/tlk_device"], id const[0], flags flags[open_flags]) fd_tlk
+
+ioctl$TE_IOCTL_OPEN_CLIENT_SESSION(fd fd_tlk, cmd const[TE_IOCTL_OPEN_CLIENT_SESSION], arg ptr[inout, te_opensession])
+ioctl$TE_IOCTL_CLOSE_CLIENT_SESSION(fd fd_tlk, cmd const[TE_IOCTL_CLOSE_CLIENT_SESSION], arg ptr[inout, te_closesession])
+ioctl$TE_IOCTL_LAUNCH_OPERATION(fd fd_tlk, cmd const[TE_IOCTL_LAUNCH_OPERATION], arg ptr[inout, te_launchop])
+ioctl$TE_IOCTL_SS_CMD(fd fd_tlk, cmd const[TE_IOCTL_SS_CMD], arg int32)
+
+
+te_service_id {
+	time_low	int32
+	time_mid	int16
+	time_hi_and_version	int16
+	clock_seq_and_node	array[int8, 8]
+}
+
+te_opensession {
+        dest_uuid   te_service_id
+        operation   te_operation
+        answer      ptr[out, te_answer]
+}
+
+te_closesession {
+        session_id  te_session_id
+        answer      ptr[in, te_answer]
+}
+
+te_answer {
+        result         int32
+        session_id     te_session_id
+        result_origin  int32
+}
+
+te_launchop {
+        session_id  te_session_id
+        operation   te_operation
+        answer      int64
+}
+
+# TODO(glider): use actual list pointers.
+te_operation {
+        command          int32
+        status           int32
+        list_head        int64
+        list_tail        int64
+        list_count       int32
+        interface_side   int32
+}
