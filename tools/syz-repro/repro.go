@@ -19,6 +19,7 @@ import (
 	"github.com/google/syzkaller/csource"
 	"github.com/google/syzkaller/fileutil"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/report"
 	"github.com/google/syzkaller/vm"
 	_ "github.com/google/syzkaller/vm/adb"
 	_ "github.com/google/syzkaller/vm/kvm"
@@ -64,7 +65,7 @@ func main() {
 	entries := prog.ParseLog(data)
 	log.Printf("parsed %v programs", len(entries))
 
-	crashDesc, crashStart, _, found := vm.FindCrash(data)
+	crashDesc, crashStart, _, found := report.FindCrash(data)
 	if !found {
 		log.Fatalf("can't find crash message in the log")
 	}
@@ -275,7 +276,7 @@ func testImpl(inst vm.Instance, command string, timeout time.Duration) (res bool
 		select {
 		case out := <-outc:
 			output = append(output, out...)
-			if desc, _, _, found := vm.FindCrash(output); found {
+			if desc, _, _, found := report.FindCrash(output); found {
 				log.Printf("program crashed with '%s'", desc)
 				return true
 			}
