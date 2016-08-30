@@ -166,18 +166,18 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 	var wg sync.WaitGroup
 	wg.Add(cfg.Count + 1)
 	for i := 0; i < cfg.Count; i++ {
-		first := i == 0
+		i := i
 		go func() {
 			defer wg.Done()
 			for {
-				vmCfg, err := config.CreateVMConfig(cfg)
+				vmCfg, err := config.CreateVMConfig(cfg, i)
 				if atomic.LoadUint32(&shutdown) != 0 {
 					break
 				}
 				if err != nil {
 					fatalf("failed to create VM config: %v", err)
 				}
-				ok := mgr.runInstance(vmCfg, first)
+				ok := mgr.runInstance(vmCfg, i == 0)
 				if atomic.LoadUint32(&shutdown) != 0 {
 					break
 				}

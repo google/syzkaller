@@ -30,12 +30,13 @@ var (
 	flagCount  = flag.Int("count", 0, "number of VMs to use (overrides config count param)")
 
 	instances    chan VM
-	bootRequests chan bool
+	bootRequests chan int
 	shutdown     = make(chan struct{})
 )
 
 type VM struct {
 	vm.Instance
+	index       int
 	execprogBin string
 	executorBin string
 }
@@ -70,12 +71,12 @@ func main() {
 	log.Printf("target crash: '%s'", crashDesc)
 
 	instances = make(chan VM, cfg.Count)
-	bootRequests = make(chan bool, cfg.Count)
+	bootRequests = make(chan int, cfg.Count)
 	for i := 0; i < cfg.Count; i++ {
-		bootRequests <- true
+		bootRequests <- i
 		go func() {
-			for range bootRequests {
-				vmCfg, err := config.CreateVMConfig(cfg)
+			for index := range bootRequests {
+				vmCfg, err := config.CreateVMConfig(cfg, index)
 				if err != nil {
 					log.Fatalf("failed to create VM config: %v", err)
 				}
@@ -91,7 +92,7 @@ func main() {
 				if err != nil {
 					log.Fatalf("failed to copy to VM: %v", err)
 				}
-				instances <- VM{inst, execprogBin, executorBin}
+				instances <- VM{inst, index, execprogBin, executorBin}
 			}
 		}()
 	}
@@ -197,7 +198,7 @@ func repro(cfg *config.Config, entries []*prog.LogEntry, crashStart int) {
 func returnInstance(inst VM, res bool) {
 	if res {
 		// The test crashed, discard the VM and issue another boot request.
-		bootRequests <- true
+		bootRequests <- inst.index
 		inst.Close()
 	} else {
 		// The test did not crash, reuse the same VM in future.
