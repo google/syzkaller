@@ -25,6 +25,7 @@ import (
 	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/report"
 	. "github.com/google/syzkaller/rpctype"
 	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
@@ -351,10 +352,10 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			if bytes.Index(output[matchPos:], []byte("executing program")) != -1 {
 				lastExecuteTime = time.Now()
 			}
-			if _, _, _, found := vm.FindCrash(output[matchPos:]); found {
+			if _, _, _, found := report.FindCrash(output[matchPos:]); found {
 				// Give it some time to finish writing the error message.
 				waitForOutput(10 * time.Second)
-				desc, start, end, _ := vm.FindCrash(output[matchPos:])
+				desc, start, end, _ := report.FindCrash(output[matchPos:])
 				start = start + matchPos - beforeContext
 				if start < 0 {
 					start = 0
