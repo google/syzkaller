@@ -16,27 +16,23 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/cover"
+	"github.com/google/syzkaller/symbolizer"
 )
-
-type LineInfo struct {
-	file string
-	line int
-}
 
 func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("No coverage data available")
 	}
-	info, prefix, err := symbolize(vmlinux, cov)
+	frames, prefix, err := symbolize(vmlinux, cov)
 	if err != nil {
 		return err
 	}
-	if len(info) == 0 {
+	if len(frames) == 0 {
 		return fmt.Errorf("'%s' does not have debug info (set CONFIG_DEBUG_INFO=y)", vmlinux)
 	}
 
 	var d templateData
-	for f, covered := range fileSet(info) {
+	for f, covered := range fileSet(frames) {
 		lines, err := parseFile(f)
 		if err != nil {
 			return err
@@ -71,13 +67,13 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 	return nil
 }
 
-func fileSet(info []LineInfo) map[string][]int {
+func fileSet(frames []symbolizer.Frame) map[string][]int {
 	files := make(map[string]map[int]struct{})
-	for _, li := range info {
-		if files[li.file] == nil {
-			files[li.file] = make(map[int]struct{})
+	for _, frame := range frames {
+		if files[frame.File] == nil {
+			files[frame.File] = make(map[int]struct{})
 		}
-		files[li.file][li.line] = struct{}{}
+		files[frame.File][frame.Line] = struct{}{}
 	}
 	res := make(map[string][]int)
 	for f, lines := range files {
@@ -145,72 +141,41 @@ func getVmOffset(vmlinux string) (uint32, error) {
 	return addr, nil
 }
 
-func symbolize(vmlinux string, cov []uint32) ([]LineInfo, string, error) {
+func symbolize(vmlinux string, cov []uint32) ([]symbolizer.Frame, string, error) {
 	base, err := getVmOffset(vmlinux)
 	if err != nil {
 		return nil, "", err
 	}
-	cmd := exec.Command("addr2line", "-a", "-i", "-e", vmlinux)
-	stdin, err := cmd.StdinPipe()
+	symb := symbolizer.NewSymbolizer()
+	defer symb.Close()
+
+	pcs := make([]uint64, len(cov))
+	for i, pc := range cov {
+		pcs[i] = cover.RestorePC(pc, base) - 1
+	}
+	frames, err := symb.SymbolizeArray(vmlinux, pcs)
 	if err != nil {
 		return nil, "", err
 	}
-	defer stdin.Close()
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, "", err
-	}
-	defer stdout.Close()
-	if err := cmd.Start(); err != nil {
-		return nil, "", err
-	}
-	defer cmd.Wait()
-	go func() {
-		for _, pc := range cov {
-			fmt.Fprintf(stdin, "0x%x\n", cover.RestorePC(pc, base)-1)
-		}
-		stdin.Close()
-	}()
-	var info []LineInfo
+
 	prefix := ""
-	s := bufio.NewScanner(stdout)
-	var pc uint32
-	for s.Scan() {
-		ln := s.Text()
-		if len(ln) > 3 && ln[0] == '0' && ln[1] == 'x' {
-			v, err := strconv.ParseUint(ln, 0, 64)
-			if err != nil {
-				return nil, "", fmt.Errorf("failed to parse pc in addr2line output: %v", err)
-			}
-			pc = uint32(v) + 1
-			continue
-		}
-		colon := strings.IndexByte(ln, ':')
-		if colon == -1 {
-			continue
-		}
-		file := ln[:colon]
-		line, err := strconv.Atoi(ln[colon+1:])
-		if err != nil || pc == 0 || file == "" || file == "??" || line <= 0 {
-			continue
-		}
-		info = append(info, LineInfo{file, line})
+	for i := range frames {
+		frame := &frames[i]
+		frame.PC--
 		if prefix == "" {
-			prefix = file
+			prefix = frame.File
 		} else {
 			i := 0
-			for ; i < len(prefix) && i < len(file); i++ {
-				if prefix[i] != file[i] {
+			for ; i < len(prefix) && i < len(frame.File); i++ {
+				if prefix[i] != frame.File[i] {
 					break
 				}
 			}
 			prefix = prefix[:i]
 		}
+
 	}
-	if err := s.Err(); err != nil {
-		return nil, "", err
-	}
-	return info, prefix, nil
+	return frames, prefix, nil
 }
 
 type templateData struct {
