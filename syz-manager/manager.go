@@ -352,10 +352,10 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			if bytes.Index(output[matchPos:], []byte("executing program")) != -1 {
 				lastExecuteTime = time.Now()
 			}
-			if _, _, _, found := report.FindCrash(output[matchPos:]); found {
+			if report.ContainsCrash(output[matchPos:]) {
 				// Give it some time to finish writing the error message.
 				waitForOutput(10 * time.Second)
-				desc, start, end, _ := report.FindCrash(output[matchPos:])
+				desc, _, start, end := report.Parse(output[matchPos:])
 				start = start + matchPos - beforeContext
 				if start < 0 {
 					start = 0

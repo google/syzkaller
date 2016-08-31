@@ -65,8 +65,8 @@ func main() {
 	entries := prog.ParseLog(data)
 	log.Printf("parsed %v programs", len(entries))
 
-	crashDesc, crashStart, _, found := report.FindCrash(data)
-	if !found {
+	crashDesc, _, crashStart, _ := report.Parse(data)
+	if crashDesc == "" {
 		log.Fatalf("can't find crash message in the log")
 	}
 	log.Printf("target crash: '%s'", crashDesc)
@@ -276,7 +276,21 @@ func testImpl(inst vm.Instance, command string, timeout time.Duration) (res bool
 		select {
 		case out := <-outc:
 			output = append(output, out...)
-			if desc, _, _, found := report.FindCrash(output); found {
+			if report.ContainsCrash(output) {
+				timer := time.NewTimer(5 * time.Second).C
+			loop:
+				for {
+					select {
+					case out, ok := <-outc:
+						if !ok {
+							break loop
+						}
+						output = append(output, out...)
+					case <-timer:
+						break loop
+					}
+				}
+				desc, _, _, _ := report.Parse(output)
 				log.Printf("program crashed with '%s'", desc)
 				return true
 			}
