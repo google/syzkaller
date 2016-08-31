@@ -43,7 +43,7 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 			if len(covered) > 0 && covered[0] == i+1 {
 				buf.Write([]byte("<span id='covered'>"))
 				buf.Write(ln)
-				buf.Write([]byte("</span>\n"))
+				buf.Write([]byte("</span> /*covered*/\n"))
 				covered = covered[1:]
 			} else {
 				buf.Write(ln)
