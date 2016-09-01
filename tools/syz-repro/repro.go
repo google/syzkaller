@@ -67,9 +67,8 @@ func main() {
 
 	crashDesc, _, crashStart, _ := report.Parse(data)
 	if crashDesc == "" {
-		log.Fatalf("can't find crash message in the log")
+		crashStart = len(data) // assuming VM hanged
 	}
-	log.Printf("target crash: '%s'", crashDesc)
 
 	instances = make(chan VM, cfg.Count)
 	bootRequests = make(chan int, cfg.Count)
@@ -271,39 +270,12 @@ func testImpl(inst vm.Instance, command string, timeout time.Duration) (res bool
 	if err != nil {
 		log.Fatalf("failed to run command in VM: %v", err)
 	}
-	var output []byte
-	for {
-		select {
-		case out := <-outc:
-			output = append(output, out...)
-			if report.ContainsCrash(output) {
-				timer := time.NewTimer(5 * time.Second).C
-			loop:
-				for {
-					select {
-					case out, ok := <-outc:
-						if !ok {
-							break loop
-						}
-						output = append(output, out...)
-					case <-timer:
-						break loop
-					}
-				}
-				desc, _, _, _ := report.Parse(output)
-				log.Printf("program crashed with '%s'", desc)
-				return true
-			}
-		case err := <-errc:
-			if err != nil {
-				log.Printf("program crashed with result '%v'", err)
-				return true
-			}
-			log.Printf("program did not crash")
-			return false
-		case <-shutdown:
-			inst.Close()
-			exit()
-		}
+	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, false, false)
+	_, _ = text, output
+	if crashed || timedout {
+		log.Printf("program crashed with: %v", desc)
+		return true
 	}
+	log.Printf("program did not crash")
+	return false
 }
