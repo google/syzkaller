@@ -4,12 +4,15 @@
 package vm
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"syscall"
 	"time"
+
+	"github.com/google/syzkaller/report"
 )
 
 // Instance represents a Linux VM or a remote physical machine.
@@ -76,3 +79,87 @@ func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
 }
 
 var TimeoutErr = errors.New("timeout")
+
+func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput bool) (desc string, text, output []byte, crashed, timedout bool) {
+	waitForOutput := func() {
+		dur := time.Second
+		if needOutput {
+			dur = 10 * time.Second
+		}
+		timer := time.NewTimer(dur).C
+		for {
+			select {
+			case out, ok := <-outc:
+				if !ok {
+					return
+				}
+				output = append(output, out...)
+			case <-timer:
+				return
+			}
+		}
+	}
+
+	matchPos := 0
+	const (
+		beforeContext = 256 << 10
+		afterContext  = 128 << 10
+	)
+	lastExecuteTime := time.Now()
+	ticker := time.NewTimer(3 * time.Minute)
+	for {
+		if !ticker.Stop() {
+			<-ticker.C
+		}
+		ticker.Reset(3 * time.Minute)
+		select {
+		case err := <-errc:
+			switch err {
+			case nil:
+				waitForOutput()
+				return "", nil, output, false, false
+			case TimeoutErr:
+				return err.Error(), nil, nil, false, true
+			default:
+				waitForOutput()
+				return "lost connection to test machine", nil, output, true, false
+			}
+		case out := <-outc:
+			output = append(output, out...)
+			if bytes.Index(output[matchPos:], []byte("executing program")) != -1 {
+				lastExecuteTime = time.Now()
+			}
+			if report.ContainsCrash(output[matchPos:]) {
+				// Give it some time to finish writing the error message.
+				waitForOutput()
+				desc, text, start, end := report.Parse(output[matchPos:])
+				start = start + matchPos - beforeContext
+				if start < 0 {
+					start = 0
+				}
+				end = end + matchPos + afterContext
+				if end > len(output) {
+					end = len(output)
+				}
+				return desc, text, output[start:end], true, false
+			}
+			if len(output) > 2*beforeContext {
+				copy(output, output[len(output)-beforeContext:])
+				output = output[:beforeContext]
+			}
+			matchPos = len(output) - 128
+			if matchPos < 0 {
+				matchPos = 0
+			}
+			// In some cases kernel constantly prints something to console,
+			// but fuzzer is not actually executing programs.
+			if !local && time.Since(lastExecuteTime) > 3*time.Minute {
+				return "test machine is not executing programs", nil, output, true, false
+			}
+		case <-ticker.C:
+			if !local {
+				return "no output from test machine", nil, output, true, false
+			}
+		}
+	}
+}

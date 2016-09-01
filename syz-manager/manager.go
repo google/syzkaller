@@ -251,7 +251,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	leak := first && mgr.cfg.Leak
 
 	// Run the fuzzer binary.
-	outputC, errorC, err := inst.Run(time.Hour, fmt.Sprintf(
+	outc, errc, err := inst.Run(time.Hour, fmt.Sprintf(
 		"%v -executor=%v -name=%v -manager=%v -output=%v -procs=%v -leak=%v -cover=%v -sandbox=%v -debug=%v -v=%d",
 		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, *flagV))
 	if err != nil {
@@ -259,97 +259,18 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		return false
 	}
 
-	var output []byte
-	waitForOutput := func(dur time.Duration) {
-		timer := time.NewTimer(dur).C
-		for {
-			select {
-			case out, ok := <-outputC:
-				if !ok {
-					return
-				}
-				output = append(output, out...)
-			case <-timer:
-				return
-			}
+	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.cfg.Type != "local", true)
+	if timedout {
+		// This is the only "OK" outcome.
+		logf(0, "%v: running long enough, restarting", vmCfg.Name)
+	} else {
+		if !crashed {
+			// syz-fuzzer exited, but it should not.
+			desc = "lost connection to test machine"
 		}
+		mgr.saveCrasher(vmCfg, desc, text, output)
 	}
-
-	dumpVMState := func() {
-		// Shows all locks that are held.
-		runCommand("echo -n d > /proc/sysrq-trigger")
-		// Shows a stack backtrace for all active CPUs.
-		runCommand("echo -n l > /proc/sysrq-trigger")
-		// Will dump a list of current tasks and their information to your console.
-		runCommand("echo -n t > /proc/sysrq-trigger")
-		waitForOutput(time.Second)
-	}
-
-	matchPos := 0
-	const (
-		beforeContext = 256 << 10
-		afterContext  = 128 << 10
-	)
-	lastExecuteTime := time.Now()
-	ticker := time.NewTimer(time.Minute)
-	for {
-		if !ticker.Reset(time.Minute) {
-			<-ticker.C
-		}
-		select {
-		case err := <-errorC:
-			switch err {
-			case vm.TimeoutErr:
-				logf(0, "%v: running long enough, restarting", vmCfg.Name)
-				return true
-			default:
-				waitForOutput(10 * time.Second)
-				mgr.saveCrasher(vmCfg, "lost connection to test machine", nil, output)
-				return true
-			}
-		case out := <-outputC:
-			output = append(output, out...)
-			if bytes.Index(output[matchPos:], []byte("executing program")) != -1 {
-				lastExecuteTime = time.Now()
-			}
-			if report.ContainsCrash(output[matchPos:]) {
-				// Give it some time to finish writing the error message.
-				waitForOutput(10 * time.Second)
-				desc, text, start, end := report.Parse(output[matchPos:])
-				start = start + matchPos - beforeContext
-				if start < 0 {
-					start = 0
-				}
-				end = end + matchPos + afterContext
-				if end > len(output) {
-					end = len(output)
-				}
-				mgr.saveCrasher(vmCfg, desc, text, output[start:end])
-				return true
-			}
-			if len(output) > 2*beforeContext {
-				copy(output, output[len(output)-beforeContext:])
-				output = output[:beforeContext]
-			}
-			matchPos = len(output) - 128
-			if matchPos < 0 {
-				matchPos = 0
-			}
-			// In some cases kernel constantly prints something to console,
-			// but fuzzer is not actually executing programs.
-			if mgr.cfg.Type != "local" && time.Since(lastExecuteTime) > 3*time.Minute {
-				dumpVMState()
-				mgr.saveCrasher(vmCfg, "test machine is not executing programs", nil, output)
-				return true
-			}
-		case <-ticker.C:
-			if mgr.cfg.Type != "local" {
-				dumpVMState()
-				mgr.saveCrasher(vmCfg, "no output from test machine", nil, output)
-				return true
-			}
-		}
-	}
+	return true
 }
 
 func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []byte) {
