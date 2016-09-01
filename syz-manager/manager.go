@@ -84,7 +84,6 @@ func main() {
 
 func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regexp.Regexp) {
 	crashdir := filepath.Join(cfg.Workdir, "crashes")
-	os.MkdirAll(crashdir, 0700)
 
 	enabledSyscalls := ""
 	if len(syscalls) != 0 {
@@ -259,47 +258,8 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		logf(0, "failed to run fuzzer: %v", err)
 		return false
 	}
-	startTime := time.Now()
-	var crashes []string
-
-	saveCrasher := func(what string, output []byte) {
-		if atomic.LoadUint32(&mgr.shutdown) != 0 {
-			// qemu crashes with "qemu: terminating on signal 2",
-			// which we detect as "lost connection".
-			return
-		}
-		for _, re := range mgr.suppressions {
-			if re.Match(output) {
-				logf(1, "%v: suppressing '%v' with '%v'", vmCfg.Name, what, re.String())
-				mgr.mu.Lock()
-				mgr.stats["suppressed"]++
-				mgr.mu.Unlock()
-				return
-			}
-		}
-		buf := new(bytes.Buffer)
-		fmt.Fprintf(buf, "\n\n")
-		if len(crashes) != 0 {
-			fmt.Fprintf(buf, "previous crashes:\n")
-			for _, c := range crashes {
-				fmt.Fprintf(buf, "\t%s\n", c)
-			}
-		}
-		crashes = append(crashes, what)
-		fmt.Fprintf(buf, "after running for %v:\n", time.Since(startTime))
-		fmt.Fprintf(buf, "%v\n", what)
-		output = append([]byte{}, output...)
-		output = append(output, buf.Bytes()...)
-		filename := fmt.Sprintf("crash-%v-%v", vmCfg.Name, time.Now().UnixNano())
-		logf(0, "%v: saving crash '%v' to %v", vmCfg.Name, what, filename)
-		ioutil.WriteFile(filepath.Join(mgr.crashdir, filename), output, 0660)
-		mgr.mu.Lock()
-		mgr.stats["crashes"]++
-		mgr.mu.Unlock()
-	}
 
 	var output []byte
-
 	waitForOutput := func(dur time.Duration) {
 		timer := time.NewTimer(dur).C
 		for {
@@ -344,7 +304,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 				return true
 			default:
 				waitForOutput(10 * time.Second)
-				saveCrasher("lost connection", output)
+				mgr.saveCrasher(vmCfg, "lost connection to test machine", nil, output)
 				return true
 			}
 		case out := <-outputC:
@@ -355,7 +315,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			if report.ContainsCrash(output[matchPos:]) {
 				// Give it some time to finish writing the error message.
 				waitForOutput(10 * time.Second)
-				desc, _, start, end := report.Parse(output[matchPos:])
+				desc, text, start, end := report.Parse(output[matchPos:])
 				start = start + matchPos - beforeContext
 				if start < 0 {
 					start = 0
@@ -364,7 +324,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 				if end > len(output) {
 					end = len(output)
 				}
-				saveCrasher(desc, output[start:end])
+				mgr.saveCrasher(vmCfg, desc, text, output[start:end])
 				return true
 			}
 			if len(output) > 2*beforeContext {
@@ -379,16 +339,67 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 			// but fuzzer is not actually executing programs.
 			if mgr.cfg.Type != "local" && time.Since(lastExecuteTime) > 3*time.Minute {
 				dumpVMState()
-				saveCrasher("not executing programs", output)
+				mgr.saveCrasher(vmCfg, "test machine is not executing programs", nil, output)
 				return true
 			}
 		case <-ticker.C:
 			if mgr.cfg.Type != "local" {
 				dumpVMState()
-				saveCrasher("no output", output)
+				mgr.saveCrasher(vmCfg, "no output from test machine", nil, output)
 				return true
 			}
 		}
+	}
+}
+
+func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []byte) {
+	if atomic.LoadUint32(&mgr.shutdown) != 0 {
+		// qemu crashes with "qemu: terminating on signal 2",
+		// which we detect as "lost connection".
+		return
+	}
+	for _, re := range mgr.suppressions {
+		if re.Match(output) {
+			logf(1, "%v: suppressing '%v' with '%v'", vmCfg.Name, desc, re.String())
+			mgr.mu.Lock()
+			mgr.stats["suppressed"]++
+			mgr.mu.Unlock()
+			return
+		}
+	}
+
+	logf(0, "%v: crash: %v", vmCfg.Name, desc)
+	mgr.mu.Lock()
+	mgr.stats["crashes"]++
+	mgr.mu.Unlock()
+
+	h := hash([]byte(desc))
+	id := hex.EncodeToString(h[:])
+	dir := filepath.Join(mgr.crashdir, id)
+	os.MkdirAll(dir, 0700)
+	if err := ioutil.WriteFile(filepath.Join(dir, "description"), []byte(desc+"\n"), 0660); err != nil {
+		logf(0, "failed to write crash: %v", err)
+	}
+	const maxReports = 100 // save up to 100 reports
+	if matches, _ := filepath.Glob(filepath.Join(dir, "log*")); len(matches) >= maxReports {
+		return
+	}
+	for i := 0; i < maxReports; i++ {
+		fn := filepath.Join(dir, fmt.Sprintf("log%v", i))
+		if _, err := os.Stat(fn); err == nil {
+			continue
+		}
+		if err := ioutil.WriteFile(fn, output, 0660); err != nil {
+			continue
+		}
+		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text)
+		if err != nil {
+			logf(0, "failed to symbolize crash: %v", err)
+		} else {
+			text = symbolized
+		}
+		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", i)), []byte(text), 0660)
+		break
 	}
 }
 
