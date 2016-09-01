@@ -4,10 +4,15 @@
 package report
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
+
+	"github.com/google/syzkaller/symbolizer"
 )
 
 type oops struct {
@@ -142,12 +147,17 @@ var oopses = []*oops{
 	},
 }
 
-var consoleOutputRe = regexp.MustCompile("^\\[ *[0-9]+\\.[0-9]+\\] ")
+var (
+	consoleOutputRe = regexp.MustCompile(`^\[ *[0-9]+\.[0-9]+\] `)
+	questionableRe  = regexp.MustCompile(`\[\<[0-9a-f]+\>\] \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
+	symbolizeRe     = regexp.MustCompile(`\[\<([0-9a-f]+)\>\] +([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
+	eoi             = []byte("<EOI>")
+)
 
 func compile(re string) *regexp.Regexp {
 	re = strings.Replace(re, "{{ADDR}}", "0x[0-9a-f]+", -1)
-	re = strings.Replace(re, "{{PC}}", "\\[\\<[0-9a-z]+\\>\\]", -1)
-	re = strings.Replace(re, "{{FUNC}}", "([a-zA-Z0-9_]+)(?:\\.(?:constprop|isra)\\.[0-9]+)?\\+", -1)
+	re = strings.Replace(re, "{{PC}}", "\\[\\<[0-9a-f]+\\>\\]", -1)
+	re = strings.Replace(re, "{{FUNC}}", "([a-zA-Z0-9_]+)(?:\\.|\\+)", -1)
 	return regexp.MustCompile(re)
 }
 
@@ -199,7 +209,8 @@ func Parse(output []byte) (desc, text string, start int, end int) {
 			end = next
 		}
 		if oops != nil {
-			if consoleOutputRe.Match(output[pos:next]) {
+			if consoleOutputRe.Match(output[pos:next]) &&
+				(!questionableRe.Match(output[pos:next]) || bytes.Index(output[pos:next], eoi) != -1) {
 				lineStart := bytes.Index(output[pos:next], []byte("] ")) + pos + 2
 				lineEnd := next
 				if lineEnd != 0 && output[lineEnd-1] == '\r' {
@@ -245,4 +256,89 @@ func extractDescription(output []byte, oops *oops) string {
 		end += pos
 	}
 	return string(output[pos:end])
+}
+
+func Symbolize(vmlinux, text string) (string, error) {
+	var symbolized []byte
+	symbols, err := symbolizer.ReadSymbols(vmlinux)
+	if err != nil {
+		return "", err
+	}
+	symb := symbolizer.NewSymbolizer()
+	symbFunc := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
+		return symb.Symbolize(bin, pc)
+	}
+	strip, _ := filepath.Abs(vmlinux)
+	strip = filepath.Dir(strip) + string(filepath.Separator)
+	s := bufio.NewScanner(strings.NewReader(text))
+	for s.Scan() {
+		line := append([]byte{}, s.Bytes()...)
+		line = append(line, '\n')
+		line = symbolizeLine(symbFunc, symbols, vmlinux, strip, line)
+		symbolized = append(symbolized, line...)
+	}
+	return string(symbolized), nil
+}
+
+func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error), symbols map[string][]symbolizer.Symbol, vmlinux, strip string, line []byte) []byte {
+	match := symbolizeRe.FindSubmatchIndex(line)
+	if match == nil {
+		return line
+	}
+	fn := line[match[4]:match[5]]
+	off, err := strconv.ParseUint(string(line[match[6]:match[7]]), 16, 64)
+	if err != nil {
+		return line
+	}
+	size, err := strconv.ParseUint(string(line[match[8]:match[9]]), 16, 64)
+	if err != nil {
+		return line
+	}
+	symb := symbols[string(fn)]
+	if len(symb) == 0 {
+		return line
+	}
+	var funcStart uint64
+	for _, s := range symb {
+		if funcStart == 0 || int(size) == s.Size {
+			funcStart = s.Addr
+		}
+	}
+	frames, err := symbFunc(vmlinux, funcStart+off-1)
+	if err != nil || len(frames) == 0 {
+		return line
+	}
+	var symbolized []byte
+	for _, frame := range frames {
+		file := frame.File
+		if strings.HasPrefix(file, strip) {
+			file = file[len(strip):]
+		}
+		if strings.HasPrefix(file, "./") {
+			file = file[2:]
+		}
+		info := fmt.Sprintf(" %v:%v", file, frame.Line)
+		modified := append([]byte{}, line...)
+		modified = replace(modified, match[9], match[9], []byte(info))
+		if frame.Inline {
+			modified = replace(modified, match[4], match[9], []byte(frame.Func))
+			modified = replace(modified, match[2], match[3], []byte("     inline     "))
+		}
+		symbolized = append(symbolized, modified...)
+	}
+	return symbolized
+}
+
+// replace replaces [start:end] in where with what, inplace.
+func replace(where []byte, start, end int, what []byte) []byte {
+	if len(what) >= end-start {
+		where = append(where, what[end-start:]...)
+		copy(where[start+len(what):], where[end:])
+		copy(where[start:], what)
+	} else {
+		copy(where[start+len(what):], where[end:])
+		where = where[:len(where)-(end-start-len(what))]
+		copy(where[start:], what)
+	}
+	return where
 }

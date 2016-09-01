@@ -4,8 +4,11 @@
 package report
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/google/syzkaller/symbolizer"
 )
 
 func TestParse(t *testing.T) {
@@ -95,7 +98,7 @@ unrelateed line
 `: `BUG: unable to handle kernel NULL pointer dereference in __lock_acquire`,
 
 		`
-[   50.583499] WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 shm_open+0x74/0x80()
+[   50.583499] WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 shm_open.isra.5.part.6+0x74/0x80
 [   50.583499] Modules linked in: 
 `: `WARNING in shm_open`,
 
@@ -334,5 +337,183 @@ BUG UNIX (Not tainted): kasan: bad access detected
 		if desc != crash {
 			t.Fatalf("extracted bad crash message:\n%+q\nwant:\n%+q", desc, crash)
 		}
+	}
+}
+
+func TestReplace(t *testing.T) {
+	tests := []struct {
+		where  string
+		start  int
+		end    int
+		what   string
+		result string
+	}{
+		{"0123456789", 3, 5, "abcdef", "012abcdef56789"},
+		{"0123456789", 3, 5, "ab", "012ab56789"},
+		{"0123456789", 3, 3, "abcd", "012abcd3456789"},
+		{"0123456789", 0, 2, "abcd", "abcd23456789"},
+		{"0123456789", 0, 0, "ab", "ab0123456789"},
+		{"0123456789", 10, 10, "ab", "0123456789ab"},
+		{"0123456789", 8, 10, "ab", "01234567ab"},
+		{"0123456789", 5, 5, "", "0123456789"},
+		{"0123456789", 3, 8, "", "01289"},
+		{"0123456789", 3, 8, "ab", "012ab89"},
+		{"0123456789", 0, 5, "a", "a56789"},
+		{"0123456789", 5, 10, "ab", "01234ab"},
+	}
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%+v", test), func(t *testing.T) {
+			result := replace([]byte(test.where), test.start, test.end, []byte(test.what))
+			if test.result != string(result) {
+				t.Errorf("want '%v', got '%v'", test.result, string(result))
+			}
+		})
+	}
+}
+
+func TestSymbolizeLine(t *testing.T) {
+	tests := []struct {
+		line   string
+		result string
+	}{
+		// Normal symbolization.
+		{
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] foo+0x101/0x185\n",
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] foo+0x101/0x185 foo.c:555\n",
+		},
+		{
+			"RIP: 0010:[<ffffffff8188c0e6>]  [<ffffffff8188c0e6>]  foo+0x101/0x185\n",
+			"RIP: 0010:[<ffffffff8188c0e6>]  [<ffffffff8188c0e6>]  foo+0x101/0x185 foo.c:555\n",
+		},
+		// Strip "./" file prefix.
+		{
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] foo+0x111/0x185\n",
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] foo+0x111/0x185 foo.h:111\n",
+		},
+		// Needs symbolization, but symbolizer returns nothing.
+		{
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] foo+0x121/0x185\n",
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] foo+0x121/0x185\n",
+		},
+		// Needs symbolization, but symbolizer returns error.
+		{
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] foo+0x131/0x185\n",
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] foo+0x131/0x185\n",
+		},
+		// Needs symbolization, but symbol is missing.
+		{
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] bar+0x131/0x185\n",
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] bar+0x131/0x185\n",
+		},
+		// Bad offset.
+		{
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] bar+0xffffffffffffffffffff/0x185\n",
+			"[ 2713.153531]  [<ffffffff82d1b1d9>] bar+0xffffffffffffffffffff/0x185\n",
+		},
+		// Should not be symbolized.
+		{
+			"WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 foo+0x101/0x185\n",
+			"WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 foo+0x101/0x185\n",
+		},
+		// Tricky function name.
+		{
+			"    [<ffffffff84e5bea0>] do_ipv6_setsockopt.isra.7.part.3+0x101/0x2830 \n",
+			"    [<ffffffff84e5bea0>] do_ipv6_setsockopt.isra.7.part.3+0x101/0x2830 net.c:111 \n",
+		},
+		// Inlined frames.
+		{
+			"    [<ffffffff84e5bea0>] foo+0x141/0x185\n",
+			"    [<     inline     >] inlined1 net.c:111\n" +
+				"    [<     inline     >] inlined2 mm.c:222\n" +
+				"    [<ffffffff84e5bea0>] foo+0x141/0x185 kasan.c:333\n",
+		},
+		// Several symbols with the same name.
+		{
+			"[<ffffffff82d1b1d9>] baz+0x101/0x200\n",
+			"[<ffffffff82d1b1d9>] baz+0x101/0x200 baz.c:100\n",
+		},
+	}
+	symbols := map[string][]symbolizer.Symbol{
+		"foo": []symbolizer.Symbol{
+			{Addr: 0x1000000, Size: 0x190},
+		},
+		"do_ipv6_setsockopt.isra.7.part.3": []symbolizer.Symbol{
+			{Addr: 0x2000000, Size: 0x2830},
+		},
+		"baz": []symbolizer.Symbol{
+			{Addr: 0x3000000, Size: 0x100},
+			{Addr: 0x4000000, Size: 0x200},
+			{Addr: 0x5000000, Size: 0x300},
+		},
+	}
+	symb := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
+		if bin != "vmlinux" {
+			return nil, fmt.Errorf("unknown pc 0x%x", pc)
+		}
+		switch pc {
+		case 0x1000100:
+			return []symbolizer.Frame{
+				{
+					File: "/linux/foo.c",
+					Line: 555,
+				},
+			}, nil
+		case 0x1000110:
+			return []symbolizer.Frame{
+				{
+					File: "/linux/./foo.h",
+					Line: 111,
+				},
+			}, nil
+		case 0x1000120:
+			return nil, nil
+		case 0x1000130:
+			return nil, fmt.Errorf("unknown pc 0x%x", pc)
+		case 0x2000100:
+			return []symbolizer.Frame{
+				{
+					File: "/linux/net.c",
+					Line: 111,
+				},
+			}, nil
+		case 0x1000140:
+			return []symbolizer.Frame{
+				{
+					Func:   "inlined1",
+					File:   "/linux/net.c",
+					Line:   111,
+					Inline: true,
+				},
+				{
+					Func:   "inlined2",
+					File:   "/linux/mm.c",
+					Line:   222,
+					Inline: true,
+				},
+				{
+					Func:   "noninlined3",
+					File:   "/linux/kasan.c",
+					Line:   333,
+					Inline: false,
+				},
+			}, nil
+		case 0x4000100:
+			return []symbolizer.Frame{
+				{
+					File: "/linux/baz.c",
+					Line: 100,
+				},
+			}, nil
+		default:
+			return nil, fmt.Errorf("unknown pc 0x%x", pc)
+		}
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			result := symbolizeLine(symb, symbols, "vmlinux", "/linux/", []byte(test.line))
+			if test.result != string(result) {
+				t.Errorf("want %q\n\t     get %q", test.result, string(result))
+			}
+		})
 	}
 }
