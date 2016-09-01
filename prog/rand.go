@@ -65,8 +65,9 @@ func (r *randGen) randInt() uintptr {
 		1, func() {},
 	)
 	r.choose(
-		10, func() {},
-		1, func() { v = uintptr(-int(v)) },
+		100, func() {},
+		5, func() { v = uintptr(-int(v)) },
+		2, func() { v <<= uint(r.Intn(63)) },
 	)
 	return v
 }
