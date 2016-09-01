@@ -186,9 +186,8 @@ func ContainsCrash(output []byte) bool {
 // Desc contains a representative description of the first oops (empty if no oops found),
 // text contains whole oops text,
 // start and end denote region of output with oops message(s).
-func Parse(output []byte) (desc, text string, start int, end int) {
+func Parse(output []byte) (desc string, text []byte, start int, end int) {
 	var oops *oops
-	var textData []byte
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
 		if next != -1 {
@@ -216,8 +215,8 @@ func Parse(output []byte) (desc, text string, start int, end int) {
 				if lineEnd != 0 && output[lineEnd-1] == '\r' {
 					lineEnd--
 				}
-				textData = append(textData, output[lineStart:lineEnd]...)
-				textData = append(textData, '\n')
+				text = append(text, output[lineStart:lineEnd]...)
+				text = append(text, '\n')
 			}
 		}
 		pos = next + 1
@@ -225,7 +224,6 @@ func Parse(output []byte) (desc, text string, start int, end int) {
 	if oops == nil {
 		return
 	}
-	text = string(textData)
 	desc = extractDescription(output[start:], oops)
 	if len(desc) > 0 && desc[len(desc)-1] == '\r' {
 		desc = desc[:len(desc)-1]
@@ -258,11 +256,11 @@ func extractDescription(output []byte, oops *oops) string {
 	return string(output[pos:end])
 }
 
-func Symbolize(vmlinux, text string) (string, error) {
+func Symbolize(vmlinux string, text []byte) ([]byte, error) {
 	var symbolized []byte
 	symbols, err := symbolizer.ReadSymbols(vmlinux)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	symb := symbolizer.NewSymbolizer()
 	symbFunc := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
@@ -270,14 +268,14 @@ func Symbolize(vmlinux, text string) (string, error) {
 	}
 	strip, _ := filepath.Abs(vmlinux)
 	strip = filepath.Dir(strip) + string(filepath.Separator)
-	s := bufio.NewScanner(strings.NewReader(text))
+	s := bufio.NewScanner(bytes.NewReader(text))
 	for s.Scan() {
 		line := append([]byte{}, s.Bytes()...)
 		line = append(line, '\n')
 		line = symbolizeLine(symbFunc, symbols, vmlinux, strip, line)
 		symbolized = append(symbolized, line...)
 	}
-	return string(symbolized), nil
+	return symbolized, nil
 }
 
 func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error), symbols map[string][]symbolizer.Symbol, vmlinux, strip string, line []byte) []byte {
