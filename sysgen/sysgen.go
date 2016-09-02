@@ -174,7 +174,7 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 			}
 		}
 		fmt.Fprintf(out, "\"%v\": &ResourceDesc{Name: \"%v\", Type: ", name, name)
-		generateArg("resource-type", underlying, nil, desc, consts, true, out)
+		generateArg("resource-type", underlying, nil, desc, consts, true, true, out)
 		fmt.Fprintf(out, ", Kind: []string{")
 		for i, k := range kind {
 			if i != 0 {
@@ -212,7 +212,7 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 		fmt.Fprintf(out, "func() { Calls = append(Calls, &Call{Name: \"%v\", CallName: \"%v\"", s.Name, s.CallName)
 		if len(s.Ret) != 0 {
 			fmt.Fprintf(out, ", Ret: ")
-			generateArg("ret", s.Ret[0], s.Ret[1:], desc, consts, false, out)
+			generateArg("ret", s.Ret[0], s.Ret[1:], desc, consts, true, false, out)
 		}
 		fmt.Fprintf(out, ", Args: []Type{")
 		for i, a := range s.Args {
@@ -220,7 +220,7 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 				fmt.Fprintf(out, ", ")
 			}
 			logf(5, "      generate description for arg %v", i)
-			generateArg(a[0], a[1], a[2:], desc, consts, false, out)
+			generateArg(a[0], a[1], a[2:], desc, consts, true, false, out)
 		}
 		if skipCurrentSyscall != "" {
 			logf(0, "unsupported syscall: %v due to %v", s.Name, skipCurrentSyscall)
@@ -248,7 +248,7 @@ func generateArg(
 	a []string,
 	desc *Description,
 	consts map[string]uint64,
-	isField bool,
+	isArg, isField bool,
 	out io.Writer) {
 	name = "\"" + name + "\""
 	opt := false
@@ -263,8 +263,10 @@ func generateArg(
 	common := func() string {
 		return fmt.Sprintf("TypeCommon: TypeCommon{TypeName: %v, IsOptional: %v}", name, opt)
 	}
+	canBeArg := false
 	switch typ {
 	case "fileoff":
+		canBeArg = true
 		var size uint64
 		if isField {
 			if want := 2; len(a) != want {
@@ -278,6 +280,7 @@ func generateArg(
 		}
 		fmt.Fprintf(out, "FileoffType{%v, File: \"%v\", TypeSize: %v}", common(), a[0], size)
 	case "buffer":
+		canBeArg = true
 		if want := 1; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
@@ -285,6 +288,7 @@ func generateArg(
 		opt = false
 		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: BufferType{%v, Kind: BufferBlob}}", commonHdr, fmtDir(a[0]), common())
 	case "string":
+		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
@@ -292,6 +296,7 @@ func generateArg(
 		opt = false
 		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: BufferType{%v, Kind: BufferString}}", commonHdr, fmtDir("in"), common())
 	case "filesystem":
+		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
@@ -314,11 +319,13 @@ func generateArg(
 		}
 		fmt.Fprintf(out, "BufferType{%v, Kind: BufferAlgName}", common())
 	case "vma":
+		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
 		fmt.Fprintf(out, "VmaType{%v}", common())
 	case "len", "bytesize":
+		canBeArg = true
 		var size uint64
 		if isField {
 			if want := 2; len(a) != want {
@@ -332,6 +339,7 @@ func generateArg(
 		}
 		fmt.Fprintf(out, "LenType{%v, Buf: \"%v\", TypeSize: %v, ByteSize: %v}", common(), a[0], size, typ == "bytesize")
 	case "flags":
+		canBeArg = true
 		var size uint64
 		if isField {
 			if want := 2; len(a) != want {
@@ -353,6 +361,7 @@ func generateArg(
 			fmt.Fprintf(out, "FlagsType{%v, TypeSize: %v, Vals: []uintptr{%v}}", common(), size, strings.Join(vals, ","))
 		}
 	case "const":
+		canBeArg = true
 		var size uint64
 		if isField {
 			if want := 2; len(a) != want {
@@ -375,11 +384,13 @@ func generateArg(
 		}
 		fmt.Fprintf(out, "ConstType{%v, TypeSize: %v, Val: uintptr(%v)}", common(), size, val)
 	case "strconst":
+		canBeArg = true
 		if want := 1; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
 		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: StrConstType{%v, Val: \"%v\"}}", common(), fmtDir("in"), common(), a[0]+"\\x00")
 	case "int8", "int16", "int32", "int64", "intptr":
+		canBeArg = true
 		switch len(a) {
 		case 0:
 			fmt.Fprintf(out, "IntType{%v, TypeSize: %v}", common(), typeToSize(typ))
@@ -396,6 +407,7 @@ func generateArg(
 			failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
 		}
 	case "signalno":
+		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
@@ -411,6 +423,7 @@ func generateArg(
 		}
 		fmt.Fprintf(out, "IntType{%v, TypeSize: 2, Kind: IntInport}", common())
 	case "filename":
+		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
@@ -434,6 +447,7 @@ func generateArg(
 		}
 		fmt.Fprintf(out, "ArrayType{%v, Type: %v, Len: %v}", common(), generateType(a[0], desc, consts), sz)
 	case "ptr":
+		canBeArg = true
 		if want := 2; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
@@ -441,7 +455,7 @@ func generateArg(
 	default:
 		if strings.HasPrefix(typ, "unnamed") {
 			if inner, ok := desc.Unnamed[typ]; ok {
-				generateArg("", inner[0], inner[1:], desc, consts, isField, out)
+				generateArg("", inner[0], inner[1:], desc, consts, false, isField, out)
 				return
 			}
 			failf("unknown unnamed type '%v'", typ)
@@ -473,25 +487,27 @@ func generateArg(
 				if i != 0 {
 					fmt.Fprintf(out, ", ")
 				}
-				generateArg(a[0], a[1], a[2:], desc, consts, true, out)
+				generateArg(a[0], a[1], a[2:], desc, consts, false, true, out)
 			}
 			fmt.Fprintf(out, "}}")
-			return
-		}
-		if _, ok := desc.Resources[typ]; ok {
+		} else if _, ok := desc.Resources[typ]; ok {
 			if len(a) != 0 {
 				failf("resource '%v' has args", typ)
 			}
 			fmt.Fprintf(out, "ResourceType{%v, Desc: Resources[\"%v\"]}", common(), typ)
 			return
+		} else {
+			failf("unknown arg type \"%v\" for %v", typ, name)
 		}
-		failf("unknown arg type \"%v\" for %v", typ, name)
+	}
+	if isArg && !canBeArg {
+		failf("%v %v can't be syscall argument/return", name, typ)
 	}
 }
 
 func generateType(typ string, desc *Description, consts map[string]uint64) string {
 	buf := new(bytes.Buffer)
-	generateArg("", typ, nil, desc, consts, true, buf)
+	generateArg("", typ, nil, desc, consts, false, true, buf)
 	return buf.String()
 }
 
