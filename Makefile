@@ -47,6 +47,7 @@ bin/syz-extract: ./syz-extract
 generate: bin/syz-sysgen
 	bin/syz-sysgen
 	go generate ./...
+	$(MAKE) format
 bin/syz-sysgen: sysgen/*.go
 	go build -o $@ ./sysgen
 
