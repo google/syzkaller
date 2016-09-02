@@ -13,7 +13,8 @@ fi
 FILES="sys/sys.txt sys/socket.txt sys/tty.txt sys/perf.txt sys/kvm.txt \
 	sys/key.txt sys/bpf.txt sys/fuse.txt sys/dri.txt sys/kdbus.txt sys/sctp.txt \
 	sys/sndseq.txt sys/sndtimer.txt sys/sndcontrol.txt sys/input.txt \
-	sys/netlink.txt sys/tun.txt sys/random.txt sys/kcm.txt sys/netrom.txt"
+	sys/netlink.txt sys/tun.txt sys/random.txt sys/kcm.txt sys/netrom.txt \
+	sys/tlk_device.txt"
 
 generate_arch() {
 	echo generating arch $1...
