@@ -32,5 +32,5 @@ func main() {
 	} else {
 		text = symbolized
 	}
-	fmt.Printf("%v\n\n%v", desc, text)
+	fmt.Printf("%v\n\n%s", desc, text)
 }
