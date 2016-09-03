@@ -85,6 +85,21 @@ func TestParse(t *testing.T) {
 				"??:0\n",
 			nil,
 		},
+		{
+			0xffffffff81a2aff9,
+			"0xffffffff81a2aff9\n" +
+				"devpts_get_priv\n" +
+				"fs/devpts/inode.c:588 (discriminator 3)\n",
+			[]Frame{
+				Frame{
+					PC:     0xffffffff81a2aff9,
+					Func:   "devpts_get_priv",
+					File:   "fs/devpts/inode.c",
+					Line:   588,
+					Inline: false,
+				},
+			},
+		},
 	}
 
 	// Stub addr2line.

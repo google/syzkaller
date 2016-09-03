@@ -164,8 +164,12 @@ func parse(s *bufio.Scanner) ([]Frame, error) {
 		if colon == -1 {
 			return nil, fmt.Errorf("failed to parse file:line in addr2line output: %v", ln)
 		}
+		lineEnd := colon + 1
+		for lineEnd < len(ln) && ln[lineEnd] >= '0' && ln[lineEnd] <= '9' {
+			lineEnd++
+		}
 		file := ln[:colon]
-		line, err := strconv.Atoi(ln[colon+1:])
+		line, err := strconv.Atoi(ln[colon+1 : lineEnd])
 		if err != nil || fn == "" || fn == "??" || file == "" || file == "??" || line <= 0 {
 			continue
 		}
