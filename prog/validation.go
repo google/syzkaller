@@ -85,6 +85,18 @@ func (c *Call) validate(ctx *validCtx) error {
 			default:
 				return fmt.Errorf("syscall %v: filename arg '%v' has bad kind %v", c.Meta.Name, typ.Name(), arg.Kind)
 			}
+		case *sys.StructType, *sys.ArrayType:
+			switch arg.Kind {
+			case ArgGroup:
+			default:
+				return fmt.Errorf("syscall %v: struct/array arg '%v' has bad kind %v", c.Meta.Name, typ.Name(), arg.Kind)
+			}
+		case *sys.UnionType:
+			switch arg.Kind {
+			case ArgUnion:
+			default:
+				return fmt.Errorf("syscall %v: union arg '%v' has bad kind %v", c.Meta.Name, typ.Name(), arg.Kind)
+			}
 		}
 		switch arg.Kind {
 		case ArgConst:
