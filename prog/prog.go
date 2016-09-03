@@ -70,13 +70,13 @@ func (a *Arg) Size(typ sys.Type) uintptr {
 		return uintptr(len(a.Data))
 	case sys.BufferType:
 		return uintptr(len(a.Data))
-	case sys.StructType:
+	case *sys.StructType:
 		var size uintptr
 		for i, f := range typ1.Fields {
 			size += a.Inner[i].Size(f)
 		}
 		return size
-	case sys.UnionType:
+	case *sys.UnionType:
 		return a.Option.Size(a.OptionType)
 	case sys.ArrayType:
 		var size uintptr

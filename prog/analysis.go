@@ -116,7 +116,7 @@ func foreachSubargImpl(arg *Arg, parent *[]*Arg, f func(arg, base *Arg, parent *
 		f(arg, base, parent)
 		for _, arg1 := range arg.Inner {
 			parent1 := parent
-			if _, ok := arg.Type.(sys.StructType); ok {
+			if _, ok := arg.Type.(*sys.StructType); ok {
 				parent1 = &arg.Inner
 			}
 			rec(arg1, base, parent1)
@@ -173,7 +173,7 @@ func assignTypeAndDir(c *Call) error {
 		case ArgGroup:
 			arg.Dir = dir
 			switch typ1 := typ.(type) {
-			case sys.StructType:
+			case *sys.StructType:
 				if len(arg.Inner) != len(typ1.Fields) {
 					return fmt.Errorf("wrong struct field count: %v, want %v", len(arg.Inner), len(typ1.Fields))
 				}

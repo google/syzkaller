@@ -142,7 +142,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						}
 						arg1, calls1 := r.addr(s, size, arg.Res)
 						p.replaceArg(arg, arg1, calls1)
-					case sys.StructType:
+					case *sys.StructType:
 						ctor := isSpecialStruct(a)
 						if ctor == nil {
 							panic("bad arg returned by mutationArgs: StructType")
@@ -152,7 +152,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							p.replaceArg(arg.Inner[i], f, calls1)
 							calls1 = nil
 						}
-					case sys.UnionType:
+					case *sys.UnionType:
 						optType := a.Options[r.Intn(len(a.Options))]
 						for optType.Name() == arg.OptionType.Name() {
 							optType = a.Options[r.Intn(len(a.Options))]
@@ -336,7 +336,7 @@ func (p *Prog) TrimAfter(idx int) {
 func mutationArgs(c *Call) (args, bases []*Arg, parents []*[]*Arg) {
 	foreachArg(c, func(arg, base *Arg, parent *[]*Arg) {
 		switch typ := arg.Type.(type) {
-		case sys.StructType:
+		case *sys.StructType:
 			if isSpecialStruct(typ) == nil {
 				// For structs only individual fields are updated.
 				return
@@ -358,7 +358,7 @@ func mutationArgs(c *Call) (args, bases []*Arg, parents []*[]*Arg) {
 			return
 		}
 		if base != nil {
-			if _, ok := base.Type.(sys.StructType); ok && isSpecialStruct(base.Type) != nil {
+			if _, ok := base.Type.(*sys.StructType); ok && isSpecialStruct(base.Type) != nil {
 				// These special structs are mutated as a whole.
 				return
 			}

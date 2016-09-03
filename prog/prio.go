@@ -69,10 +69,10 @@ func calcStaticPriorities() [][]float32 {
 					}
 				}
 			case sys.PtrType:
-				if _, ok := a.Type.(sys.StructType); ok {
+				if _, ok := a.Type.(*sys.StructType); ok {
 					noteUsage(1.0, "ptrto-%v", a.Type.Name())
 				}
-				if _, ok := a.Type.(sys.UnionType); ok {
+				if _, ok := a.Type.(*sys.UnionType); ok {
 					noteUsage(1.0, "ptrto-%v", a.Type.Name())
 				}
 				if arr, ok := a.Type.(sys.ArrayType); ok {
@@ -197,6 +197,7 @@ func normalizePrio(prios [][]float32) {
 }
 
 func foreachArgType(meta *sys.Call, f func(sys.Type, ArgDir)) {
+	seen := make(map[sys.Type]bool)
 	var rec func(t sys.Type, dir ArgDir)
 	rec = func(t sys.Type, d ArgDir) {
 		f(t, d)
@@ -205,11 +206,19 @@ func foreachArgType(meta *sys.Call, f func(sys.Type, ArgDir)) {
 			rec(a.Type, d)
 		case sys.PtrType:
 			rec(a.Type, ArgDir(a.Dir))
-		case sys.StructType:
+		case *sys.StructType:
+			if seen[a] {
+				return // prune recursion via pointers to structs/unions
+			}
+			seen[a] = true
 			for _, f := range a.Fields {
 				rec(f, d)
 			}
-		case sys.UnionType:
+		case *sys.UnionType:
+			if seen[a] {
+				return // prune recursion via pointers to structs/unions
+			}
+			seen[a] = true
 			for _, opt := range a.Options {
 				rec(opt, d)
 			}

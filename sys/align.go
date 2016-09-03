@@ -17,12 +17,12 @@ func initAlign() {
 		case ArrayType:
 			t1.Type = rec(t1.Type)
 			t = t1
-		case StructType:
+		case *StructType:
 			for i, f := range t1.Fields {
 				t1.Fields[i] = rec(f)
 			}
 			t = addAlignment(t1)
-		case UnionType:
+		case *UnionType:
 			opts := make(map[string]bool)
 			for i, opt := range t1.Options {
 				if opts[opt.Name()] {
@@ -44,7 +44,7 @@ func initAlign() {
 	}
 }
 
-func addAlignment(t StructType) Type {
+func addAlignment(t *StructType) Type {
 	if t.packed {
 		t.padded = true
 		return t
