@@ -46,6 +46,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 		if i < 1000 && strings.Contains(err.Error(), "could not set up host forwarding rule") {
 			continue
 		}
+		os.RemoveAll(cfg.Workdir)
 		return nil, err
 	}
 }
@@ -55,7 +56,7 @@ func ctorImpl(cfg *vm.Config) (vm.Instance, error) {
 	closeInst := inst
 	defer func() {
 		if closeInst != nil {
-			closeInst.Close()
+			closeInst.close(false)
 		}
 	}()
 
@@ -115,6 +116,10 @@ func validateConfig(cfg *vm.Config) error {
 }
 
 func (inst *instance) Close() {
+	inst.close(true)
+}
+
+func (inst *instance) close(removeWorkDir bool) {
 	if inst.qemu != nil {
 		inst.qemu.Process.Kill()
 		err := <-inst.waiterC
@@ -129,7 +134,10 @@ func (inst *instance) Close() {
 	if inst.wpipe != nil {
 		inst.wpipe.Close()
 	}
-	os.RemoveAll(inst.cfg.Workdir)
+	os.Remove(filepath.Join(inst.cfg.Workdir, "key"))
+	if removeWorkDir {
+		os.RemoveAll(inst.cfg.Workdir)
+	}
 }
 
 func (inst *instance) Boot() error {
