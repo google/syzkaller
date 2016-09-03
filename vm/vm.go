@@ -126,7 +126,10 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 			}
 		case out := <-outc:
 			output = append(output, out...)
-			if bytes.Index(output[matchPos:], []byte("executing program")) != -1 {
+			if bytes.Index(output[matchPos:], []byte("executing program")) != -1 { // syz-fuzzer output
+				lastExecuteTime = time.Now()
+			}
+			if bytes.Index(output[matchPos:], []byte("executed programs:")) != -1 { // syz-execprog output
 				lastExecuteTime = time.Now()
 			}
 			if report.ContainsCrash(output[matchPos:]) {
