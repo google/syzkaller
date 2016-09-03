@@ -313,13 +313,15 @@ func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []by
 		if err := ioutil.WriteFile(fn, output, 0660); err != nil {
 			continue
 		}
-		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text)
-		if err != nil {
-			logf(0, "failed to symbolize crash: %v", err)
-		} else {
-			text = symbolized
+		if len(text) > 0 {
+			symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text)
+			if err != nil {
+				logf(0, "failed to symbolize crash: %v", err)
+			} else {
+				text = symbolized
+			}
+			ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", i)), []byte(text), 0660)
 		}
-		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", i)), []byte(text), 0660)
 		break
 	}
 }
