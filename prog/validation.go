@@ -121,7 +121,7 @@ func (c *Call) validate(ctx *validCtx) error {
 		case ArgData:
 		case ArgGroup:
 			switch typ1 := typ.(type) {
-			case sys.StructType:
+			case *sys.StructType:
 				if len(arg.Inner) != len(typ1.Fields) {
 					return fmt.Errorf("syscall %v: struct arg '%v' has wrong number of fields: want %v, got %v", c.Meta.Name, typ.Name(), len(typ1.Fields), len(arg.Inner))
 				}
@@ -140,7 +140,7 @@ func (c *Call) validate(ctx *validCtx) error {
 				return fmt.Errorf("syscall %v: group arg '%v' has bad underlying type %+v", c.Meta.Name, typ.Name(), typ)
 			}
 		case ArgUnion:
-			typ1, ok := typ.(sys.UnionType)
+			typ1, ok := typ.(*sys.UnionType)
 			if !ok {
 				return fmt.Errorf("syscall %v: union arg '%v' has bad type", c.Meta.Name, typ.Name())
 			}

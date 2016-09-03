@@ -275,7 +275,7 @@ type StructType struct {
 	align  uintptr
 }
 
-func (t StructType) Size() uintptr {
+func (t *StructType) Size() uintptr {
 	if !t.padded {
 		panic("struct is not padded yet")
 	}
@@ -286,7 +286,7 @@ func (t StructType) Size() uintptr {
 	return size
 }
 
-func (t StructType) Align() uintptr {
+func (t *StructType) Align() uintptr {
 	if t.align != 0 {
 		return t.align // overrided by user attribute
 	}
@@ -305,7 +305,7 @@ type UnionType struct {
 	varlen  bool
 }
 
-func (t UnionType) Size() uintptr {
+func (t *UnionType) Size() uintptr {
 	if t.varlen {
 		panic("union size is not statically known")
 	}
@@ -318,7 +318,7 @@ func (t UnionType) Size() uintptr {
 	return size
 }
 
-func (t UnionType) Align() uintptr {
+func (t *UnionType) Align() uintptr {
 	var align uintptr
 	for _, opt := range t.Options {
 		if a1 := opt.Align(); align < a1 {
@@ -353,6 +353,7 @@ func resourceCtors(kind []string, precise bool) []*Call {
 	// Find calls that produce the necessary resources.
 	var metas []*Call
 	// Recurse into arguments to see if there is an out/inout arg of necessary type.
+	seen := make(map[Type]bool)
 	var checkArg func(typ Type, dir Dir) bool
 	checkArg = func(typ Type, dir Dir) bool {
 		if resarg, ok := typ.(ResourceType); ok && dir != DirIn && isCompatibleResource(kind, resarg.Desc.Kind, precise) {
@@ -363,13 +364,21 @@ func resourceCtors(kind []string, precise bool) []*Call {
 			if checkArg(typ1.Type, dir) {
 				return true
 			}
-		case StructType:
+		case *StructType:
+			if seen[typ1] {
+				return false // prune recursion via pointers to structs/unions
+			}
+			seen[typ1] = true
 			for _, fld := range typ1.Fields {
 				if checkArg(fld, dir) {
 					return true
 				}
 			}
-		case UnionType:
+		case *UnionType:
+			if seen[typ1] {
+				return false // prune recursion via pointers to structs/unions
+			}
+			seen[typ1] = true
 			for _, opt := range typ1.Options {
 				if checkArg(opt, dir) {
 					return true
@@ -438,6 +447,7 @@ func isCompatibleResource(dst, src []string, precise bool) bool {
 
 func (c *Call) InputResources() []ResourceType {
 	var resources []ResourceType
+	seen := make(map[Type]bool)
 	var checkArg func(typ Type, dir Dir)
 	checkArg = func(typ Type, dir Dir) {
 		switch typ1 := typ.(type) {
@@ -449,11 +459,19 @@ func (c *Call) InputResources() []ResourceType {
 			checkArg(typ1.Type, dir)
 		case PtrType:
 			checkArg(typ1.Type, typ1.Dir)
-		case StructType:
+		case *StructType:
+			if seen[typ1] {
+				return // prune recursion via pointers to structs/unions
+			}
+			seen[typ1] = true
 			for _, fld := range typ1.Fields {
 				checkArg(fld, dir)
 			}
-		case UnionType:
+		case *UnionType:
+			if seen[typ1] {
+				return // prune recursion via pointers to structs/unions
+			}
+			seen[typ1] = true
 			for _, opt := range typ1.Options {
 				checkArg(opt, dir)
 			}

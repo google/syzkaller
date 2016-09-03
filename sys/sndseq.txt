@@ -210,7 +210,6 @@ snd_seq_event_data [
 	quote	snd_seq_ev_quote
 ]
 
-
 snd_seq_ev_note {
 	chan	int8
 	note	int8
@@ -256,10 +255,7 @@ snd_seq_result {
 snd_seq_ev_quote {
 	origin	snd_seq_addr
 	val	int16
-# TODO: this should be:
-#	event	ptr[in, snd_seq_event, opt]
-# but sysgen goes into inifite recursion.
-	event	buffer[in]
+	event	ptr[in, snd_seq_event, opt]
 } [packed]
 
 snd_seq_queue_skew {

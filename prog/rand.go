@@ -327,7 +327,7 @@ func (r *randGen) algName(s *state) []byte {
 }
 
 func isSpecialStruct(typ sys.Type) func(r *randGen, s *state) (*Arg, []*Call) {
-	if _, ok := typ.(sys.StructType); !ok {
+	if _, ok := typ.(*sys.StructType); !ok {
 		panic("must be a struct")
 	}
 	switch typ.Name() {
@@ -656,7 +656,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		}
 	}
 
-	if typ.Optional() && r.oneOf(10) {
+	if typ.Optional() && r.oneOf(5) {
 		if _, ok := typ.(sys.BufferType); ok {
 			panic("impossible") // parent PtrType must be Optional instead
 		}
@@ -784,14 +784,14 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 			sz.ByteSize += arg1.Size(a.Type)
 		}
 		return groupArg(inner), sz, calls
-	case sys.StructType:
+	case *sys.StructType:
 		if ctor := isSpecialStruct(a); ctor != nil && dir != DirOut {
 			arg, calls = ctor(r, s)
 			return
 		}
 		args, calls := r.generateArgs(s, a.Fields, dir)
 		return groupArg(args), nil, calls
-	case sys.UnionType:
+	case *sys.UnionType:
 		optType := a.Options[r.Intn(len(a.Options))]
 		opt, size, calls := r.generateArg(s, optType, dir, sizes)
 		return unionArg(opt, optType), size, calls

@@ -91,7 +91,7 @@ func (a *Arg) serialize(buf io.Writer, vars map[*Arg]int, varSeq *int) {
 	case ArgGroup:
 		var delims []byte
 		switch a.Type.(type) {
-		case sys.StructType:
+		case *sys.StructType:
 			delims = []byte{'{', '}'}
 		case sys.ArrayType:
 			delims = []byte{'[', ']'}
@@ -261,7 +261,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		}
 		arg = dataArg(data)
 	case '{':
-		t1, ok := typ.(sys.StructType)
+		t1, ok := typ.(*sys.StructType)
 		if !ok {
 			return nil, fmt.Errorf("'{' arg is not a struct: %#v", typ)
 		}
@@ -310,7 +310,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		p.Parse(']')
 		arg = groupArg(inner)
 	case '@':
-		t1, ok := typ.(sys.UnionType)
+		t1, ok := typ.(*sys.UnionType)
 		if !ok {
 			return nil, fmt.Errorf("'@' arg is not a union: %#v", typ)
 		}
