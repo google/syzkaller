@@ -51,7 +51,7 @@ var oopses = []*oops{
 		[]byte("WARNING:"),
 		[]oopsFormat{
 			{
-				compile("WARNING: .* at [a-zA-Z0-9_/.]+:[0-9]+ {{FUNC}}"),
+				compile("WARNING: .* at [a-zA-Z0-9-_/.]+:[0-9]+ {{FUNC}}"),
 				"WARNING in %[1]v",
 			},
 		},
