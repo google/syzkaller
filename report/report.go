@@ -45,6 +45,10 @@ var oopses = []*oops{
 				compile("BUG: unable to handle kernel NULL pointer dereference(?:.*\\n)+.*IP: {{PC}} +{{FUNC}}"),
 				"BUG: unable to handle kernel NULL pointer dereference in %[1]v",
 			},
+			{
+				compile("BUG: spinlock lockup suspected"),
+				"BUG: spinlock lockup suspected",
+			},
 		},
 	},
 	&oops{
