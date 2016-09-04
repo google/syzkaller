@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	flagCorpus   = flag.String("corpus", "", "corpus directory")
+	flagCorpus   = flag.String("corpus", "", "zip file with corpus")
 	flagExecutor = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagOutput   = flag.Bool("output", false, "print executor output to console")
 	flagProcs    = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes")
