@@ -311,7 +311,11 @@ unreferenced object 0xdb8040c0 (size 20):
 		`
 BUG: sleeping function called from invalid context at include/linux/wait.h:1095 
 in_atomic(): 1, irqs_disabled(): 0, pid: 3658, name: syz-fuzzer 
-`: "BUG: sleeping function called from invalid context at include/linux/wait.h:1095 ",
+`: `BUG: sleeping function called from invalid context at include/linux/wait.h:1095 `,
+
+		`
+INFO: rcu_preempt detected stalls on CPUs/tasks: { 2} (detected by 0, t=65008 jiffies, g=48068, c=48067, q=7339)
+`: `INFO: rcu_preempt detected stalls`,
 
 		`
 BUG UNIX (Not tainted): kasan: bad access detected

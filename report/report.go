@@ -63,6 +63,10 @@ var oopses = []*oops{
 				compile("INFO: possible circular locking dependency detected \\](?:.*\\n)+.*is trying to acquire lock(?:.*\\n)+.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
 			},
+			{
+				compile("INFO: rcu_preempt detected stalls"),
+				"INFO: rcu_preempt detected stalls",
+			},
 		},
 	},
 	&oops{
