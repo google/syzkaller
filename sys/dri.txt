@@ -6,6 +6,9 @@ include <drm/drm_mode.h>
 
 resource fd_dri[fd]
 resource drmctx[int32]
+resource drm_agp_handle[intptr]
+resource drm_gem_handle[int32]
+resource drm_gem_name[int32]
 
 syz_open_dev$dri(dev strconst["/dev/dri/card#"], id intptr, flags flags[open_flags]) fd_dri
 syz_open_dev$dricontrol(dev strconst["/dev/dri/controlD#"], id intptr, flags flags[open_flags]) fd_dri
@@ -48,7 +51,7 @@ ioctl$DRM_IOCTL_AGP_ACQUIRE(fd fd_dri, cmd const[DRM_IOCTL_AGP_ACQUIRE])
 ioctl$DRM_IOCTL_AGP_RELEASE(fd fd_dri, cmd const[DRM_IOCTL_AGP_RELEASE])
 ioctl$DRM_IOCTL_AGP_ENABLE(fd fd_dri, cmd const[DRM_IOCTL_AGP_ENABLE], arg ptr[in, int32])
 ioctl$DRM_IOCTL_AGP_INFO(fd fd_dri, cmd const[DRM_IOCTL_AGP_INFO], arg buffer[out])
-ioctl$DRM_IOCTL_AGP_ALLOC(fd fd_dri, cmd const[DRM_IOCTL_AGP_ALLOC], arg ptr[in, drm_agp_buffer])
+ioctl$DRM_IOCTL_AGP_ALLOC(fd fd_dri, cmd const[DRM_IOCTL_AGP_ALLOC], arg ptr[inout, drm_agp_buffer])
 ioctl$DRM_IOCTL_AGP_FREE(fd fd_dri, cmd const[DRM_IOCTL_AGP_FREE], arg ptr[in, drm_agp_buffer])
 ioctl$DRM_IOCTL_AGP_BIND(fd fd_dri, cmd const[DRM_IOCTL_AGP_BIND], arg ptr[in, drm_agp_binding])
 ioctl$DRM_IOCTL_AGP_UNBIND(fd fd_dri, cmd const[DRM_IOCTL_AGP_UNBIND], arg ptr[in, drm_agp_binding])
@@ -56,12 +59,12 @@ ioctl$DRM_IOCTL_SG_ALLOC(fd fd_dri, cmd const[DRM_IOCTL_SG_ALLOC], arg ptr[in, d
 ioctl$DRM_IOCTL_SG_FREE(fd fd_dri, cmd const[DRM_IOCTL_SG_FREE], arg ptr[in, drm_scatter_gather])
 ioctl$DRM_IOCTL_WAIT_VBLANK(fd fd_dri, cmd const[DRM_IOCTL_WAIT_VBLANK], arg ptr[in, drm_wait_vblank])
 ioctl$DRM_IOCTL_MODESET_CTL(fd fd_dri, cmd const[DRM_IOCTL_MODESET_CTL], arg ptr[in, drm_modeset_ctl])
+ioctl$DRM_IOCTL_GEM_OPEN(fd fd_dri, cmd const[DRM_IOCTL_GEM_OPEN], arg ptr[inout, drm_gem_open])
 ioctl$DRM_IOCTL_GEM_CLOSE(fd fd_dri, cmd const[DRM_IOCTL_GEM_CLOSE], arg ptr[in, drm_gem_close])
-ioctl$DRM_IOCTL_GEM_FLINK(fd fd_dri, cmd const[DRM_IOCTL_GEM_FLINK], arg ptr[in, drm_gem_flink])
-ioctl$DRM_IOCTL_GEM_OPEN(fd fd_dri, cmd const[DRM_IOCTL_GEM_OPEN], arg ptr[in, drm_gem_open])
+ioctl$DRM_IOCTL_GEM_FLINK(fd fd_dri, cmd const[DRM_IOCTL_GEM_FLINK], arg ptr[inout, drm_gem_flink])
 ioctl$DRM_IOCTL_MODE_GETRESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETRESOURCES], arg ptr[in, drm_mode_card_res])
-ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_PRIME_HANDLE_TO_FD], arg ptr[in, drm_prime_handle])
-ioctl$DRM_IOCTL_PRIME_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_PRIME_FD_TO_HANDLE], arg ptr[in, drm_prime_handle])
+ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(fd fd_dri, cmd const[DRM_IOCTL_PRIME_HANDLE_TO_FD], arg ptr[inout, drm_prime_handle])
+ioctl$DRM_IOCTL_PRIME_FD_TO_HANDLE(fd fd_dri, cmd const[DRM_IOCTL_PRIME_FD_TO_HANDLE], arg ptr[inout, drm_prime_handle])
 ioctl$DRM_IOCTL_MODE_GETPLANERESOURCES(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETPLANERESOURCES], arg ptr[in, drm_mode_get_plane_res])
 ioctl$DRM_IOCTL_MODE_GETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_GETCRTC], arg ptr[in, drm_mode_crtc])
 ioctl$DRM_IOCTL_MODE_SETCRTC(fd fd_dri, cmd const[DRM_IOCTL_MODE_SETCRTC], arg ptr[in, drm_mode_crtc])
@@ -223,23 +226,19 @@ drm_control {
 
 drm_agp_buffer {
 	size	intptr
-# TODO: Probably needs to be a resource.
-	handle	intptr
-	type	intptr
-# TODO: Physical i810 address probably needs to be a resource.
+	handle	drm_agp_handle
+	type	flags[drm_agp_mem_type, intptr]
 	physic	intptr
 }
 
 drm_agp_binding {
-# TODO: this comes from drm_agp_buffer.handle
-	handle	intptr
+	handle	drm_agp_handle
 	offset	intptr
 }
 
 drm_scatter_gather {
 	size	intptr
-# TODO: probably also comes from drm_agp_buffer.handle
-	handle	intptr
+	handle	drm_agp_handle
 }
 
 drm_wait_vblank {
@@ -253,22 +252,22 @@ drm_modeset_ctl {
 	cmd	int32
 }
 
+drm_gem_open {
+# input:
+	name	drm_gem_name
+# output:
+	handle	drm_gem_handle
+	size	int64
+}
+
 drm_gem_close {
-# TODO: give it a separate type.
-	handle	int32
+	handle	drm_gem_handle
 	pad	const[0, int32]
 }
 
 drm_gem_flink {
-	handle	int32
-	name	int32
-}
-
-drm_gem_open {
-	name	int32
-# TODO: this create handle
-	handle	int32
-	size	int64
+	handle	drm_gem_handle
+	name	drm_gem_name
 }
 
 drm_mode_card_res {
@@ -287,10 +286,9 @@ drm_mode_card_res {
 }
 
 drm_prime_handle {
-# TODO: handle of what?
-	handle	int32
+	handle	drm_gem_handle
 	flags	flags[dup_flags, int32]
-	fd	fd
+	fd	fd_dri
 }
 
 drm_mode_get_plane_res {
@@ -327,6 +325,7 @@ drm_mode_modeinfo {
 	name	array[int8, DRM_DISPLAY_MODE_LEN]
 }
 
+drm_agp_mem_type = AGP_USER_MEMORY, AGP_USER_CACHED_MEMORY
 drm_map_type = _DRM_FRAME_BUFFER, _DRM_REGISTERS, _DRM_SHM, _DRM_AGP, _DRM_SCATTER_GATHER, _DRM_CONSISTENT
 drm_map_flags = _DRM_RESTRICTED, _DRM_READ_ONLY, _DRM_LOCKED, _DRM_KERNEL, _DRM_WRITE_COMBINING, _DRM_CONTAINS_LOCK, _DRM_REMOVABLE, _DRM_DRIVER
 drm_ctx_flags = _DRM_CONTEXT_PRESERVED, _DRM_CONTEXT_2DONLY
