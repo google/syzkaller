@@ -618,27 +618,22 @@ iocb {
 }
 
 sigevent {
-	val	vma
+	val	intptr
 	signo	signalno
 	notify	flags[sigev_notify, int32]
-	pad0	int64
-	pad1	int64
-	pad2	int64
-	pad3	int64
-	pad4	int64
-	pad5	int64
-	pad6	int64
-	pad7	int64
-# TODO: this is actually
-# TODO: function pointer needs special support
-#  union {
-#   int _pad[SIGEV_PAD_SIZE];
-#    int _tid;
-#   struct {
-#    void (*_function)(sigval_t);
-#    void *_attribute;/* really pthread_attr_t */
-#   } _sigev_thread;
-#  } _sigev_un;
+	u	sigevent_u
+}
+
+sigevent_u [
+	pad	array[int64, 8]
+	tid	pid
+	thr	sigevent_thread
+]
+
+sigevent_thread {
+# TODO: this is function pointer and pthread_attr_t (?)
+	func	buffer[in]
+	attr	buffer[in]
 }
 
 cap_header {
@@ -1115,7 +1110,7 @@ clock_type = CLOCK_REALTIME, CLOCK_REALTIME_COARSE, CLOCK_MONOTONIC, CLOCK_MONOT
 lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV
 iocb_flags = IOCB_FLAG_RESFD
 iocb_key = 0
-sigev_notify = SIGEV_NONE, SIGEV_SIGNAL, SIGEV_THREAD
+sigev_notify = SIGEV_NONE, SIGEV_SIGNAL, SIGEV_THREAD, SIGEV_THREAD_ID
 cap_version = 0x19980330, 0x20071026, 0x20080522
 prctl_code_void = PR_GET_DUMPABLE, PR_GET_KEEPCAPS, PR_GET_NO_NEW_PRIVS, PR_GET_SECCOMP, PR_GET_SECUREBITS, PR_GET_TIMERSLACK, PR_GET_TIMING, PR_TASK_PERF_EVENTS_DISABLE, PR_TASK_PERF_EVENTS_ENABLE, PR_MCE_KILL_GET
 prctl_code_intptr = PR_CAPBSET_READ, PR_CAPBSET_DROP, PR_SET_CHILD_SUBREAPER, PR_SET_DUMPABLE, PR_SET_FPEMU, PR_SET_KEEPCAPS, PR_SET_NO_NEW_PRIVS, PR_SET_PDEATHSIG, PR_SET_SECUREBITS, PR_SET_TIMERSLACK, PR_SET_TIMING, PR_SET_TSC, PR_SET_UNALIGN, PR_MCE_KILL
