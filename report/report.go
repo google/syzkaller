@@ -271,6 +271,7 @@ func Symbolize(vmlinux string, text []byte) ([]byte, error) {
 		return nil, err
 	}
 	symb := symbolizer.NewSymbolizer()
+	defer symb.Close()
 	symbFunc := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
 		return symb.Symbolize(bin, pc)
 	}
