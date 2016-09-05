@@ -73,11 +73,9 @@ te_mem {
 	len	int32
 }
 
-# TODO(glider): self-referencing overflows the stack in sysgen.go
 te_oper_param {
 	index		int32
 	type		flags[te_oper_param_type_flags, int32]
 	u		te_int_mem_union
-#	next_ptr_user	ptr[in, te_oper_param, opt]
-	next_ptr_user	const[0, intptr]
+	next_ptr_user	ptr[in, te_oper_param, opt]
 }
