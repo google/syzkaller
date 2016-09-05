@@ -8,7 +8,12 @@ endif
 
 .PHONY: all format clean manager fuzzer executor execprog mutate prog2c stress extract generate
 
-all: manager fuzzer executor
+all:
+	$(MAKE) generate
+	go install ./...
+	$(MAKE) manager
+	$(MAKE) fuzzer
+	$(MAKE) executor
 
 all-tools: execprog mutate prog2c stress repro upgrade
 
