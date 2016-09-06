@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"sync"
 	"time"
 
@@ -82,16 +81,18 @@ func (inst *instance) findConsole() error {
 	if err != nil {
 		return fmt.Errorf("failed to execute 'adb devices -l': %v\n%v\n", err, string(out))
 	}
-	re := regexp.MustCompile(fmt.Sprintf("%v +device usb:([0-9]+)-([0-9]+)\\.([0-9]+) ", inst.cfg.Device))
+	// The regexp matches devices strings of the form usb:a-b.c.d....x, and
+	// then treats everything but the final .x as the bus/port combo to look
+	// for the ttyUSB number
+	re := regexp.MustCompile(fmt.Sprintf("%v +device usb:([0-9]+-[0-9]+.*)(\\.[0-9]+) product.*\n", inst.cfg.Device))
 	match := re.FindAllStringSubmatch(string(out), 1)
 	if match == nil {
 		return fmt.Errorf("can't find adb device '%v' in 'adb devices' output:\n%v\n", inst.cfg.Device, string(out))
 	}
-	bus, _ := strconv.ParseUint(match[0][1], 10, 64)
-	port, _ := strconv.ParseUint(match[0][2], 10, 64)
-	files, err := filepath.Glob(fmt.Sprintf("/sys/bus/usb/devices/%v-%v.2:1.1/ttyUSB*", bus, port))
+	busAndPort := match[0][1]
+	files, err := filepath.Glob(fmt.Sprintf("/sys/bus/usb/devices/%v.2:1.1/ttyUSB*", busAndPort))
 	if err != nil || len(files) == 0 {
-		return fmt.Errorf("can't find any ttyUDB devices for adb device '%v' on bus %v-%v", inst.cfg.Device, bus, port)
+		return fmt.Errorf("can't find any ttyUSB devices for adb device '%v' on bus/port %v", inst.cfg.Device, busAndPort)
 	}
 	inst.console = "/dev/" + filepath.Base(files[0])
 	consoleCache[inst.cfg.Device] = inst.console
