@@ -19,11 +19,73 @@ import (
 	"github.com/google/syzkaller/symbolizer"
 )
 
+type symbol struct {
+	start uint64
+	end   uint64
+	name  string
+}
+
+type symbolArray []symbol
+
+func (a symbolArray) Len() int           { return len(a) }
+func (a symbolArray) Less(i, j int) bool { return a[i].start < a[j].start }
+func (a symbolArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+type coverage struct {
+	line    int
+	covered bool
+}
+
+type coverageArray []coverage
+
+func (a coverageArray) Len() int           { return len(a) }
+func (a coverageArray) Less(i, j int) bool { return a[i].line < a[j].line }
+func (a coverageArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+type uint64Array []uint64
+
+func (a uint64Array) Len() int           { return len(a) }
+func (a uint64Array) Less(i, j int) bool { return a[i] < a[j] }
+func (a uint64Array) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+var (
+	allCoverPCs   []uint64
+	allCoverReady = make(chan bool)
+)
+
+func initAllCover(vmlinux string) {
+	// Running objdump on vmlinux takes 20-30 seconds, so we do it asynchronously on start.
+	go func() {
+		pcs, err := coveredPCs(vmlinux)
+		if err == nil {
+			sort.Sort(uint64Array(pcs))
+			allCoverPCs = pcs
+		} else {
+			logf(0, "failed to run objdump on %v: %v", vmlinux, err)
+		}
+		close(allCoverReady)
+	}()
+}
+
 func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("No coverage data available")
 	}
-	frames, prefix, err := symbolize(vmlinux, cov)
+
+	base, err := getVmOffset(vmlinux)
+	if err != nil {
+		return err
+	}
+	pcs := make([]uint64, len(cov))
+	for i, pc := range cov {
+		pcs[i] = cover.RestorePC(pc, base) - 1
+	}
+	allPcs, err := allPcsInFuncs(vmlinux, pcs)
+	if err != nil {
+		return err
+	}
+
+	frames, prefix, err := symbolize(vmlinux, pcs)
 	if err != nil {
 		return err
 	}
@@ -31,23 +93,35 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 		return fmt.Errorf("'%s' does not have debug info (set CONFIG_DEBUG_INFO=y)", vmlinux)
 	}
 
+	allFrames, prefix, err := symbolize(vmlinux, allPcs)
+	if err != nil {
+		return err
+	}
+
 	var d templateData
-	for f, covered := range fileSet(frames) {
+	for f, covered := range fileSet(frames, allFrames) {
 		lines, err := parseFile(f)
 		if err != nil {
 			return err
 		}
-		coverage := len(covered)
+		coverage := 0
 		var buf bytes.Buffer
 		for i, ln := range lines {
-			if len(covered) > 0 && covered[0] == i+1 {
-				buf.Write([]byte("<span id='covered'>"))
-				buf.Write(ln)
-				buf.Write([]byte("</span> /*covered*/\n"))
+			if len(covered) > 0 && covered[0].line == i+1 {
+				if covered[0].covered {
+					buf.Write([]byte("<span id='covered'>"))
+					buf.Write(ln)
+					buf.Write([]byte("</span> /*covered*/\n"))
+					coverage++
+				} else {
+					buf.Write([]byte("<span id='uncovered'>"))
+					buf.Write(ln)
+					buf.Write([]byte("</span>\n"))
+				}
 				covered = covered[1:]
 			} else {
 				buf.Write(ln)
-				buf.Write([]byte("\n"))
+				buf.Write([]byte{'\n'})
 			}
 		}
 		if len(f) > len(prefix) {
@@ -67,21 +141,34 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 	return nil
 }
 
-func fileSet(frames []symbolizer.Frame) map[string][]int {
-	files := make(map[string]map[int]struct{})
+func fileSet(frames, allFrames []symbolizer.Frame) map[string][]coverage {
+	files := make(map[string]map[int]bool)
+	funcs := make(map[string]bool)
 	for _, frame := range frames {
 		if files[frame.File] == nil {
-			files[frame.File] = make(map[int]struct{})
+			files[frame.File] = make(map[int]bool)
 		}
-		files[frame.File][frame.Line] = struct{}{}
+		files[frame.File][frame.Line] = true
+		funcs[frame.Func] = true
 	}
-	res := make(map[string][]int)
-	for f, lines := range files {
-		sorted := make([]int, 0, len(lines))
-		for ln := range lines {
-			sorted = append(sorted, ln)
+	for _, frame := range allFrames {
+		if !funcs[frame.Func] {
+			continue
 		}
-		sort.Ints(sorted)
+		if files[frame.File] == nil {
+			files[frame.File] = make(map[int]bool)
+		}
+		if !files[frame.File][frame.Line] {
+			files[frame.File][frame.Line] = false
+		}
+	}
+	res := make(map[string][]coverage)
+	for f, lines := range files {
+		sorted := make([]coverage, 0, len(lines))
+		for ln, covered := range lines {
+			sorted = append(sorted, coverage{ln, covered})
+		}
+		sort.Sort(coverageArray(sorted))
 		res[f] = sorted
 	}
 	return res
@@ -141,18 +228,92 @@ func getVmOffset(vmlinux string) (uint32, error) {
 	return addr, nil
 }
 
-func symbolize(vmlinux string, cov []uint32) ([]symbolizer.Frame, string, error) {
-	base, err := getVmOffset(vmlinux)
+// allPcsInFuncs returns all PCs with __sanitizer_cov_trace_pc calls in functions containing pcs.
+func allPcsInFuncs(vmlinux string, pcs []uint64) ([]uint64, error) {
+	allSymbols, err := symbolizer.ReadSymbols(vmlinux)
 	if err != nil {
-		return nil, "", err
+		return nil, fmt.Errorf("failed to run nm on vmlinux: %v", err)
 	}
+	var symbols symbolArray
+	for name, ss := range allSymbols {
+		for _, s := range ss {
+			symbols = append(symbols, symbol{s.Addr, s.Addr + uint64(s.Size), name})
+		}
+	}
+	sort.Sort(symbols)
+
+	<-allCoverReady
+	if len(allCoverPCs) == 0 {
+		return nil, nil
+	}
+
+	var allPcs []uint64
+	for _, pc := range pcs {
+		idx := sort.Search(len(symbols), func(i int) bool {
+			return pc < symbols[i].end
+		})
+		if idx == len(symbols) {
+			continue
+		}
+		s := symbols[idx]
+		if pc < s.start || pc > s.end {
+			continue
+		}
+		startPC := sort.Search(len(allCoverPCs), func(i int) bool {
+			return s.start <= allCoverPCs[i]
+		})
+		endPC := sort.Search(len(allCoverPCs), func(i int) bool {
+			return s.end < allCoverPCs[i]
+		})
+		allPcs = append(allPcs, allCoverPCs[startPC:endPC]...)
+	}
+	return allPcs, nil
+}
+
+// coveredPCs returns list of PCs of __sanitizer_cov_trace_pc calls in binary bin.
+func coveredPCs(bin string) ([]uint64, error) {
+	cmd := exec.Command("objdump", "-d", "--no-show-raw-insn", bin)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	defer stdout.Close()
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	defer cmd.Wait()
+	var pcs []uint64
+	s := bufio.NewScanner(stdout)
+	// A line looks as: "ffffffff8100206a:       callq  ffffffff815cc1d0 <__sanitizer_cov_trace_pc>"
+	callInsn := []byte("callq ")
+	traceFunc := []byte(" <__sanitizer_cov_trace_pc>")
+	for s.Scan() {
+		ln := s.Bytes()
+		if pos := bytes.Index(ln, callInsn); pos == -1 {
+			continue
+		} else if bytes.Index(ln[pos:], traceFunc) == -1 {
+			continue
+		}
+		colon := bytes.IndexByte(ln, ':')
+		if colon == -1 {
+			continue
+		}
+		pc, err := strconv.ParseUint(string(ln[:colon]), 16, 64)
+		if err != nil {
+			continue
+		}
+		pcs = append(pcs, pc)
+	}
+	if err := s.Err(); err != nil {
+		return nil, err
+	}
+	return pcs, nil
+}
+
+func symbolize(vmlinux string, pcs []uint64) ([]symbolizer.Frame, string, error) {
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
 
-	pcs := make([]uint64, len(cov))
-	for i, pc := range cov {
-		pcs[i] = cover.RestorePC(pc, base) - 1
-	}
 	frames, err := symb.SymbolizeArray(vmlinux, pcs)
 	if err != nil {
 		return nil, "", err
@@ -223,6 +384,10 @@ var coverTemplate = template.Must(template.New("").Parse(
 			}
 			#covered {
 				color: rgb(0, 0, 0);
+				font-weight: bold;
+			}
+			#uncovered {
+				color: rgb(255, 0, 0);
 				font-weight: bold;
 			}
 		</style>
