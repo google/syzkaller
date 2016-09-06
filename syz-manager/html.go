@@ -76,9 +76,16 @@ func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
 	sort.Sort(UIStatArray(data.Stats))
 
 	var cov cover.Cover
+	totalUnique := mgr.uniqueCover(true)
 	for c, cc := range calls {
 		cov = cover.Union(cov, cc.cov)
-		data.Calls = append(data.Calls, UICallType{c, cc.count, len(cc.cov)})
+		unique := cover.Intersection(cc.cov, totalUnique)
+		data.Calls = append(data.Calls, UICallType{
+			Name:        c,
+			Inputs:      cc.count,
+			Cover:       len(cc.cov),
+			UniqueCover: len(unique),
+		})
 	}
 	sort.Sort(UICallTypeArray(data.Calls))
 	data.CoverSize = len(cov)
@@ -94,6 +101,7 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 
 	var data []UIInput
 	call := r.FormValue("call")
+	totalUnique := mgr.uniqueCover(false)
 	for i, inp := range mgr.corpus {
 		if call != inp.Call {
 			continue
@@ -102,11 +110,13 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
 		}
+		unique := cover.Intersection(inp.Cover, totalUnique)
 		data = append(data, UIInput{
-			Short: p.String(),
-			Full:  string(inp.Prog),
-			Cover: len(inp.Cover),
-			N:     i,
+			Short:       p.String(),
+			Full:        string(inp.Prog),
+			Cover:       len(inp.Cover),
+			UniqueCover: len(unique),
+			N:           i,
 		})
 	}
 	sort.Sort(UIInputArray(data))
@@ -122,20 +132,53 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 
 	var cov cover.Cover
 	call := r.FormValue("call")
+	unique := r.FormValue("unique") != "" && call != ""
+	perCall := false
 	if n, err := strconv.Atoi(call); err == nil && n < len(mgr.corpus) {
 		cov = mgr.corpus[n].Cover
 	} else {
+		perCall = true
 		for _, inp := range mgr.corpus {
 			if call == "" || call == inp.Call {
 				cov = cover.Union(cov, cover.Cover(inp.Cover))
 			}
 		}
 	}
+	if unique {
+		cov = cover.Intersection(cov, mgr.uniqueCover(perCall))
+	}
 
 	if err := generateCoverHtml(w, mgr.cfg.Vmlinux, cov); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 	}
 	runtime.GC()
+}
+
+func (mgr *Manager) uniqueCover(perCall bool) cover.Cover {
+	totalCover := make(map[uint32]int)
+	callCover := make(map[string]map[uint32]bool)
+	for _, inp := range mgr.corpus {
+		if perCall && callCover[inp.Call] == nil {
+			callCover[inp.Call] = make(map[uint32]bool)
+		}
+		for _, pc := range inp.Cover {
+			if perCall {
+				if callCover[inp.Call][pc] {
+					continue
+				}
+				callCover[inp.Call][pc] = true
+			}
+			totalCover[pc]++
+		}
+	}
+	var cov cover.Cover
+	for pc, count := range totalCover {
+		if count == 1 {
+			cov = append(cov, pc)
+		}
+	}
+	cover.Canonicalize(cov)
+	return cov
 }
 
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
@@ -184,17 +227,19 @@ type UIStat struct {
 }
 
 type UICallType struct {
-	Name   string
-	Inputs int
-	Cover  int
+	Name        string
+	Inputs      int
+	Cover       int
+	UniqueCover int
 }
 
 type UIInput struct {
-	Short string
-	Full  string
-	Calls int
-	Cover int
-	N     int
+	Short       string
+	Full        string
+	Calls       int
+	Cover       int
+	UniqueCover int
+	N           int
 }
 
 type UICallTypeArray []UICallType
@@ -234,7 +279,11 @@ Stats: <br>
 {{end}}
 <br>
 {{range $c := $.Calls}}
-	{{$c.Name}} <a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a> <a href='/cover?call={{$c.Name}}'>cover:{{$c.Cover}}</a> <a href='/prio?call={{$c.Name}}'>prio</a> <br>
+	{{$c.Name}}
+		<a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a>
+		<a href='/cover?call={{$c.Name}}'>cover:{{$c.Cover}}</a>
+		<a href='/cover?call={{$c.Name}}&unique=1'>unique:{{$c.UniqueCover}}</a>
+		<a href='/prio?call={{$c.Name}}'>prio</a> <br>
 {{end}}
 </body></html>
 `))
@@ -247,7 +296,10 @@ var corpusTemplate = template.Must(template.New("").Parse(`
 </head>
 <body>
 {{range $c := $}}
-	<span title="{{$c.Full}}">{{$c.Short}}</span> <a href='/cover?call={{$c.N}}'>cover:{{$c.Cover}}</a> <br>
+	<span title="{{$c.Full}}">{{$c.Short}}</span>
+		<a href='/cover?call={{$c.N}}'>cover:{{$c.Cover}}</a>
+		<a href='/cover?call={{$c.N}}&unique=1'>unique:{{$c.UniqueCover}}</a>
+		<br>
 {{end}}
 </body></html>
 `))
