@@ -79,6 +79,7 @@ func main() {
 		cfg.Debug = true
 		cfg.Count = 1
 	}
+	initAllCover(cfg.Vmlinux)
 	RunManager(cfg, syscalls, suppressions)
 }
 
