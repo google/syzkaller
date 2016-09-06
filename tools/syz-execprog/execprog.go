@@ -90,7 +90,7 @@ func main() {
 					posMu.Lock()
 					idx := pos
 					pos++
-					if /*idx%len(progs) == 0 && time.Since(lastPrint) > 5*time.Second*/ (idx % 10) == 0 {
+					if idx%len(progs) == 0 && time.Since(lastPrint) > 5*time.Second {
 						log.Printf("executed programs: %v", idx)
 						lastPrint = time.Now()
 					}
