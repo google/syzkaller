@@ -24,7 +24,7 @@ func RestorePC(pc uint32, base uint32) uint64 {
 	return uint64(base)<<32 + uint64(pc)
 }
 
-/* Canonicalize sorts and removes duplicates. */
+// Canonicalize sorts and removes duplicates.
 func Canonicalize(cov []uint32) Cover {
 	sort.Sort(Cover(cov))
 	i := 0
