@@ -260,7 +260,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		return false
 	}
 
-	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.cfg.Type != "local", true)
+	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.cfg.Type == "local", true)
 	if timedout {
 		// This is the only "OK" outcome.
 		logf(0, "%v: running long enough, restarting", vmCfg.Name)
