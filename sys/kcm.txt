@@ -21,7 +21,7 @@ kcm_socket_type = SOCK_DGRAM, SOCK_SEQPACKET
 
 kcm_attach {
 	fd	sock
-	bpf_fd	int32
+	bpf_fd	fd_bpf_prog
 }
 
 kcm_unattach {
