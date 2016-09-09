@@ -107,10 +107,12 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 	)
 	lastExecuteTime := time.Now()
 	ticker := time.NewTimer(3 * time.Minute)
+	tickerFired := false
 	for {
-		if !ticker.Stop() {
+		if !tickerFired && !ticker.Stop() {
 			<-ticker.C
 		}
+		tickerFired = false
 		ticker.Reset(3 * time.Minute)
 		select {
 		case err := <-errc:
@@ -160,6 +162,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 				return "test machine is not executing programs", nil, output, true, false
 			}
 		case <-ticker.C:
+			tickerFired = true
 			if !local {
 				return "no output from test machine", nil, output, true, false
 			}
