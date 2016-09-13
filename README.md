@@ -199,6 +199,10 @@ Here are some things to check if there are problems running syzkaller.
  - [ubsan, kasan, syzkaller und co](http://www.strlen.de/talks/debug-w-syzkaller.pdf) ([video](https://www.youtube.com/watch?v=Acp0A9X1254)) (by Florian Westphal)
  - [Debugging a kernel crash found by syzkaller](http://vegardno.blogspot.de/2016/08/sync-debug.html) (by Quentin Casasnovas)
 
+## Contributing
+
+If you want to contribute to the project, you need to [sign Google CLA](https://cla.developers.google.com/) and add yourself to (AUTHORS)/(CONTRIBUTORS) files in the first pull request. Extending/improving [system call descriptions](sys/sys.txt) is always a good idea. If you want to work on something non-trivial, please briefly describe it on [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller) mailing list first so that there is agreement on high level approach and no duplication of work between contributors.
+
 ## Disclaimer
 
 This is not an official Google product.
