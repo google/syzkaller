@@ -490,21 +490,23 @@ func generateArg(
 		opt = false
 		fmt.Fprintf(out, "PtrType{%v, Dir: DirIn, Type: FilenameType{%v}}", commonHdr, common())
 	case "array":
-		want := 1
-		if len(a) == 2 {
-			want = 2
-		}
-		if len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		sz := "0"
-		if len(a) == 2 {
-			sz = a[1]
-			if v, ok := consts[sz]; ok {
-				sz = fmt.Sprint(v)
+		switch len(a) {
+		case 1:
+			fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], desc, consts))
+		case 2:
+			var begin, end uintptr
+			sz := a[1]
+			if _, err := fmt.Sscanf(sz, "%d:%d", &begin, &end); err != nil {
+				if v, ok := consts[sz]; ok {
+					sz = fmt.Sprint(v)
+				}
+				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], desc, consts), sz, sz)
+			} else {
+				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], desc, consts), begin, end)
 			}
+		default:
+			failf("wrong number of arguments for %v arg %v, want 1 or 2, got %v", typ, name, len(a))
 		}
-		fmt.Fprintf(out, "ArrayType{%v, Type: %v, Len: %v}", common(), generateType(a[0], desc, consts), sz)
 	case "ptr":
 		canBeArg = true
 		if want := 2; len(a) != want {
