@@ -236,21 +236,27 @@ func (t FilenameType) Align() uintptr {
 	return 1
 }
 
+type ArrayKind int
+
+const (
+	ArrayRandLen ArrayKind = iota
+	ArrayRangeLen
+)
+
 type ArrayType struct {
 	TypeCommon
-	Type Type
-	Len  uintptr // 0 if variable-length, unused for now
+	Type       Type
+	Kind       ArrayKind
+	RangeBegin uintptr
+	RangeEnd   uintptr
 }
 
 func (t ArrayType) Size() uintptr {
-	if t.Len == 0 {
-		return 0 // for trailing embed arrays
-	}
-	return t.Len * t.Type.Size()
+	panic("should not be called")
 }
 
 func (t ArrayType) Align() uintptr {
-	return t.Type.Align()
+	panic("should not be called")
 }
 
 type PtrType struct {

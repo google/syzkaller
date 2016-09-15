@@ -26,6 +26,10 @@ func (r *randGen) rand(n int) uintptr {
 	return uintptr(r.Intn(n))
 }
 
+func (r *randGen) randRange(begin int, end int) uintptr {
+	return uintptr(begin + r.Intn(end-begin+1))
+}
+
 func (r *randGen) bin() bool {
 	return r.Intn(2) == 0
 }
@@ -770,9 +774,12 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		filename := r.filename(s)
 		return dataArg([]byte(filename)), nil, nil
 	case sys.ArrayType:
-		count := a.Len
-		if count == 0 {
+		count := uintptr(0)
+		switch a.Kind {
+		case sys.ArrayRandLen:
 			count = r.rand(6)
+		case sys.ArrayRangeLen:
+			count = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
 		}
 		sz := constArg(count)
 		var inner []*Arg

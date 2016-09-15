@@ -64,7 +64,7 @@ func addAlignment(t *StructType) Type {
 		}
 		off += f.Size()
 		fields = append(fields, f)
-		if at, ok := f.(ArrayType); ok && at.Len == 0 {
+		if at, ok := f.(ArrayType); ok && (at.Kind == ArrayRandLen || (at.Kind == ArrayRangeLen && at.RangeBegin != at.RangeEnd)) {
 			varLen = true
 		}
 		if varLen && i != len(t.Fields)-1 {
