@@ -80,7 +80,7 @@ following keys in its top-level object:
  - `http`: URL that will display information about the running `syz-manager` process.
  - `workdir`: Location of a working directory for the `syz-manager` process. Outputs here include:
      - `<workdir>/instance-x`: per VM instance temporary files
-     - `<workdir>/crashes/crashN-T`: crash output files
+     - `<workdir>/crashes/*`: crash output files (see [Crash Reports](#Crash Reports))
      - `<workdir>/corpus/*`: corpus with interesting programs
  - `syzkaller`: Location of the `syzkaller` checkout.
  - `vmlinux`: Location of the `vmlinux` file that corresponds to the kernel being tested.
@@ -143,6 +143,10 @@ Each `syz-executor` process executes a single input (a sequence of syscalls).
 It accepts the program to execute from the `syz-fuzzer` process and sends results back.
 It is designed to be as simple as possible (to not interfere with fuzzing process),
 written in C++, compiled as static binary and uses shared memory for communication.
+
+## Crash Reports
+
+TODO
 
 ## Syscall description
 
