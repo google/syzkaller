@@ -1,6 +1,6 @@
 # syzkaller - linux syscall fuzzer
 
-`syzkaller` is a distributed, unsupervised, coverage-guided Linux syscall fuzzer.
+`syzkaller` is an unsupervised, coverage-guided Linux syscall fuzzer.
 It is meant to be used with [KASAN](https://www.kernel.org/doc/Documentation/kasan.txt) (`CONFIG_KASAN=y`),
 [KTSAN](https://github.com/google/ktsan) (`CONFIG_KTSAN=y`),
 or [KUBSAN](https://www.kernel.org/doc/Documentation/ubsan.txt).
