@@ -86,6 +86,9 @@ func Parse(in io.Reader) *Description {
 						}
 					}
 				}
+				if str.IsUnion && len(str.Flds) <= 1 {
+					failf("union %v has only %v fields, need at least 2", str.Name, len(str.Flds))
+				}
 				structs[str.Name] = *str
 				str = nil
 			} else {
