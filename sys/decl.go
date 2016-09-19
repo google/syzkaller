@@ -276,27 +276,11 @@ type StructType struct {
 }
 
 func (t *StructType) Size() uintptr {
-	if !t.padded {
-		panic("struct is not padded yet")
-	}
-	var size uintptr
-	for _, f := range t.Fields {
-		size += f.Size()
-	}
-	return size
+	panic("not called")
 }
 
 func (t *StructType) Align() uintptr {
-	if t.align != 0 {
-		return t.align // overrided by user attribute
-	}
-	var align uintptr
-	for _, f := range t.Fields {
-		if a1 := f.Align(); align < a1 {
-			align = a1
-		}
-	}
-	return align
+	panic("not called")
 }
 
 type UnionType struct {
@@ -306,26 +290,11 @@ type UnionType struct {
 }
 
 func (t *UnionType) Size() uintptr {
-	if t.varlen {
-		panic("union size is not statically known")
-	}
-	size := t.Options[0].Size()
-	for _, opt := range t.Options {
-		if size < opt.Size() {
-			size = opt.Size()
-		}
-	}
-	return size
+	panic("not called")
 }
 
 func (t *UnionType) Align() uintptr {
-	var align uintptr
-	for _, opt := range t.Options {
-		if a1 := opt.Align(); align < a1 {
-			align = a1
-		}
-	}
-	return align
+	panic("not called")
 }
 
 type Dir int
