@@ -39,7 +39,7 @@ func (p *Prog) SerializeForExec() []byte {
 	for _, c := range p.Calls {
 		// Calculate arg offsets within structs.
 		foreachArg(c, func(arg, base *Arg, _ *[]*Arg) {
-			if base == nil || arg.Kind == ArgGroup {
+			if base == nil || arg.Kind == ArgGroup || arg.Kind == ArgUnion {
 				return
 			}
 			if w.args[base] == nil {
