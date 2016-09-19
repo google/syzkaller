@@ -53,7 +53,7 @@ generate: bin/syz-sysgen
 	bin/syz-sysgen
 	go generate ./...
 	$(MAKE) format
-bin/syz-sysgen: sysgen/*.go
+bin/syz-sysgen: sysgen/*.go sysparser/*.go
 	go build -o $@ ./sysgen
 
 format:
