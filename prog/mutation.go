@@ -6,6 +6,7 @@ package prog
 import (
 	"fmt"
 	"math/rand"
+	"unsafe"
 
 	"github.com/google/syzkaller/sys"
 )
@@ -380,19 +381,75 @@ func mutationArgs(c *Call) (args, bases []*Arg, parents []*[]*Arg) {
 	return
 }
 
+func swap16(v uint16) uint16 {
+	v0 := byte(v >> 0)
+	v1 := byte(v >> 8)
+	v = 0
+	v |= uint16(v1) << 0
+	v |= uint16(v0) << 8
+	return v
+}
+
+func swap32(v uint32) uint32 {
+	v0 := byte(v >> 0)
+	v1 := byte(v >> 8)
+	v2 := byte(v >> 16)
+	v3 := byte(v >> 24)
+	v = 0
+	v |= uint32(v3) << 0
+	v |= uint32(v2) << 8
+	v |= uint32(v1) << 16
+	v |= uint32(v0) << 24
+	return v
+}
+
+func swap64(v uint64) uint64 {
+	v0 := byte(v >> 0)
+	v1 := byte(v >> 8)
+	v2 := byte(v >> 16)
+	v3 := byte(v >> 24)
+	v4 := byte(v >> 32)
+	v5 := byte(v >> 40)
+	v6 := byte(v >> 48)
+	v7 := byte(v >> 56)
+	v = 0
+	v |= uint64(v7) << 0
+	v |= uint64(v6) << 8
+	v |= uint64(v5) << 16
+	v |= uint64(v4) << 24
+	v |= uint64(v3) << 32
+	v |= uint64(v2) << 40
+	v |= uint64(v1) << 48
+	v |= uint64(v0) << 56
+	return v
+}
+
 func mutateData(r *randGen, data []byte) []byte {
+	const maxInc = 35
 	for stop := false; !stop; stop = r.bin() {
 		r.choose(
-			1, func() {
+			100, func() {
+				// Append byte.
 				data = append(data, byte(r.rand(256)))
 			},
-			1, func() {
+			100, func() {
+				// Remove byte.
+				if len(data) == 0 {
+					return
+				}
+				i := r.Intn(len(data))
+				copy(data[i:], data[i+1:])
+				data = data[:len(data)-1]
+			},
+			100, func() {
+				// Replace byte with random value.
 				if len(data) == 0 {
 					return
 				}
 				data[r.Intn(len(data))] = byte(r.rand(256))
 			},
-			1, func() {
+			100, func() {
+				// Flip bit in byte.
 				if len(data) == 0 {
 					return
 				}
@@ -400,13 +457,120 @@ func mutateData(r *randGen, data []byte) []byte {
 				bit := r.Intn(8)
 				data[byt] ^= 1 << uint(bit)
 			},
-			1, func() {
+			100, func() {
+				// Swap two bytes.
+				if len(data) < 2 {
+					return
+				}
+				i1 := r.Intn(len(data))
+				i2 := r.Intn(len(data))
+				data[i1], data[i2] = data[i2], data[i1]
+			},
+			100, func() {
+				// Add / subtract from a byte.
 				if len(data) == 0 {
 					return
 				}
 				i := r.Intn(len(data))
-				copy(data[i:], data[i+1:])
-				data = data[:len(data)-1]
+				delta := byte(r.rand(2*maxInc+1) - maxInc)
+				if delta == 0 {
+					delta = 1
+				}
+				data[i] += delta
+			},
+			100, func() {
+				// Add / subtract from a uint16.
+				if len(data) < 2 {
+					return
+				}
+				i := r.Intn(len(data) - 1)
+				p := (*uint16)(unsafe.Pointer(&data[i]))
+				delta := uint16(r.rand(2*maxInc+1) - maxInc)
+				if delta == 0 {
+					delta = 1
+				}
+				if r.bin() {
+					*p += delta
+				} else {
+					*p = swap16(swap16(*p) + delta)
+				}
+			},
+			100, func() {
+				// Add / subtract from a uint32.
+				if len(data) < 4 {
+					return
+				}
+				i := r.Intn(len(data) - 3)
+				p := (*uint32)(unsafe.Pointer(&data[i]))
+				delta := uint32(r.rand(2*maxInc+1) - maxInc)
+				if delta == 0 {
+					delta = 1
+				}
+				if r.bin() {
+					*p += delta
+				} else {
+					*p = swap32(swap32(*p) + delta)
+				}
+			},
+			100, func() {
+				// Add / subtract from a uint64.
+				if len(data) < 8 {
+					return
+				}
+				i := r.Intn(len(data) - 7)
+				p := (*uint64)(unsafe.Pointer(&data[i]))
+				delta := uint64(r.rand(2*maxInc+1) - maxInc)
+				if delta == 0 {
+					delta = 1
+				}
+				if r.bin() {
+					*p += delta
+				} else {
+					*p = swap64(swap64(*p) + delta)
+				}
+			},
+			100, func() {
+				// Set byte to an interesting value.
+				if len(data) == 0 {
+					return
+				}
+				data[r.Intn(len(data))] = byte(r.randInt())
+			},
+			100, func() {
+				// Set uint16 to an interesting value.
+				if len(data) < 2 {
+					return
+				}
+				i := r.Intn(len(data) - 1)
+				value := uint16(r.randInt())
+				if r.bin() {
+					value = swap16(value)
+				}
+				*(*uint16)(unsafe.Pointer(&data[i])) = value
+			},
+			100, func() {
+				// Set uint32 to an interesting value.
+				if len(data) < 4 {
+					return
+				}
+				i := r.Intn(len(data) - 3)
+				value := uint32(r.randInt())
+				if r.bin() {
+					value = swap32(value)
+				}
+				*(*uint32)(unsafe.Pointer(&data[i])) = value
+			},
+			100, func() {
+				// Set uint64 to an interesting value.
+				if len(data) < 8 {
+					return
+				}
+				i := r.Intn(len(data) - 7)
+				value := uint64(r.randInt())
+				if r.bin() {
+					value = swap64(value)
+				}
+				*(*uint64)(unsafe.Pointer(&data[i])) = value
 			},
 		)
 	}
