@@ -790,7 +790,8 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 			return
 		}
 		args, calls := r.generateArgs(s, a.Fields, dir)
-		return groupArg(args), nil, calls
+		group := groupArg(args)
+		return group, constArg(group.Size(a)), calls
 	case *sys.UnionType:
 		optType := a.Options[r.Intn(len(a.Options))]
 		opt, size, calls := r.generateArg(s, optType, dir, sizes)
