@@ -102,9 +102,19 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						filename := r.filename(s)
 						arg.Data = []byte(filename)
 					case sys.ArrayType:
-						count := r.rand(6)
-						if count == uintptr(len(arg.Inner)) {
-							count++
+						count := uintptr(0)
+						switch a.Kind {
+						case sys.ArrayRandLen:
+							for count == uintptr(len(arg.Inner)) {
+								count = r.rand(6)
+							}
+						case sys.ArrayRangeLen:
+							if a.RangeBegin == a.RangeEnd {
+								panic("trying to mutate fixed length array")
+							}
+							for count == uintptr(len(arg.Inner)) {
+								count = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
+							}
 						}
 						if count > uintptr(len(arg.Inner)) {
 							var calls []*Call
@@ -344,7 +354,7 @@ func mutationArgs(c *Call) (args, bases []*Arg, parents []*[]*Arg) {
 			// These special structs are mutated as a whole.
 		case sys.ArrayType:
 			// Don't mutate fixed-size arrays.
-			if typ.Len != 0 {
+			if typ.Kind == sys.ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
 				return
 			}
 		case sys.LenType:
