@@ -45,7 +45,7 @@ rest of the type-options are type-specific:
 	"ptr": a pointer to an object, type-options:
 		type of the object; direction (in/out/inout)
 	"array": a variable/fixed-length array, type-options:
-		type of elements, optional size for fixed-length arrays
+		type of elements, optional size (fixed "5", or ranged "5:10", boundaries inclusive)
 	"intN"/"intptr": an integer without a particular meaning, type-options:
 		range of values (e.g. "5:10", or "-100:200", optional)
 ```
