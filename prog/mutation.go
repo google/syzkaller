@@ -67,7 +67,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						size = size1
 					case sys.BufferType:
 						switch a.Kind {
-						case sys.BufferBlob:
+						case sys.BufferBlobRand, sys.BufferBlobRange:
 							var data []byte
 							switch arg.Kind {
 							case ArgData:
@@ -80,10 +80,16 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							default:
 								panic(fmt.Sprintf("bad arg kind for BufferType: %v", arg.Kind))
 							}
-							arg.Data = mutateData(r, data)
+							minLen := int(0)
+							maxLen := ^int(0)
+							if a.Kind == sys.BufferBlobRange {
+								minLen = int(a.RangeBegin)
+								maxLen = int(a.RangeEnd)
+							}
+							arg.Data = mutateData(r, data, minLen, maxLen)
 						case sys.BufferString:
 							if r.bin() {
-								arg.Data = mutateData(r, append([]byte{}, arg.Data...))
+								arg.Data = mutateData(r, append([]byte{}, arg.Data...), int(0), ^int(0))
 							} else {
 								arg.Data = r.randString(s)
 							}
@@ -424,16 +430,22 @@ func swap64(v uint64) uint64 {
 	return v
 }
 
-func mutateData(r *randGen, data []byte) []byte {
+func mutateData(r *randGen, data []byte, minLen, maxLen int) []byte {
 	const maxInc = 35
 	for stop := false; !stop; stop = r.bin() {
 		r.choose(
 			100, func() {
 				// Append byte.
+				if len(data) == maxLen {
+					return
+				}
 				data = append(data, byte(r.rand(256)))
 			},
 			100, func() {
 				// Remove byte.
+				if len(data) == minLen {
+					return
+				}
 				if len(data) == 0 {
 					return
 				}

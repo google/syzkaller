@@ -100,7 +100,8 @@ func (t FileoffType) Align() uintptr {
 type BufferKind int
 
 const (
-	BufferBlob BufferKind = iota
+	BufferBlobRand BufferKind = iota
+	BufferBlobRange
 	BufferString
 	BufferSockaddr
 	BufferFilesystem
@@ -110,7 +111,9 @@ const (
 
 type BufferType struct {
 	TypeCommon
-	Kind BufferKind
+	Kind       BufferKind
+	RangeBegin uintptr // for BufferBlobRange kind
+	RangeEnd   uintptr // for BufferBlobRange kind
 }
 
 func (t BufferType) Size() uintptr {
@@ -119,6 +122,11 @@ func (t BufferType) Size() uintptr {
 		return 14
 	case BufferAlgName:
 		return 64
+	case BufferBlobRange:
+		if t.RangeBegin == t.RangeEnd {
+			return t.RangeBegin
+		}
+		fallthrough
 	default:
 		panic(fmt.Sprintf("buffer size is not statically known: %v", t.Name()))
 	}
