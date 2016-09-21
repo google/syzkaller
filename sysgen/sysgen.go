@@ -345,7 +345,7 @@ func generateArg(
 		}
 		commonHdr := common()
 		opt = false
-		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: BufferType{%v, Kind: BufferBlob}}", commonHdr, fmtDir(a[0]), common())
+		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: BufferType{%v, Kind: BufferBlobRand}}", commonHdr, fmtDir(a[0]), common())
 	case "string":
 		canBeArg = true
 		if want := 0; len(a) != want {
@@ -490,22 +490,34 @@ func generateArg(
 		opt = false
 		fmt.Fprintf(out, "PtrType{%v, Dir: DirIn, Type: FilenameType{%v}}", commonHdr, common())
 	case "array":
-		switch len(a) {
-		case 1:
-			fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], desc, consts))
-		case 2:
+		if len(a) != 1 && len(a) != 2 {
+			failf("wrong number of arguments for %v arg %v, want 1 or 2, got %v", typ, name, len(a))
+		}
+		if len(a) == 1 {
+			if a[0] == "int8" {
+				fmt.Fprintf(out, "BufferType{%v, Kind: BufferBlobRand}", common())
+			} else {
+				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], desc, consts))
+			}
+		} else {
 			var begin, end uintptr
-			sz := a[1]
-			if _, err := fmt.Sscanf(sz, "%d:%d", &begin, &end); err != nil {
+			var beginStr, endStr string
+			if _, err := fmt.Sscanf(a[1], "%d:%d", &begin, &end); err == nil {
+				beginStr = fmt.Sprint(begin)
+				endStr = fmt.Sprint(end)
+			} else {
+				sz := a[1]
 				if v, ok := consts[sz]; ok {
 					sz = fmt.Sprint(v)
 				}
-				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], desc, consts), sz, sz)
-			} else {
-				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], desc, consts), begin, end)
+				beginStr = sz
+				endStr = sz
 			}
-		default:
-			failf("wrong number of arguments for %v arg %v, want 1 or 2, got %v", typ, name, len(a))
+			if a[0] == "int8" {
+				fmt.Fprintf(out, "BufferType{%v, Kind: BufferBlobRange, RangeBegin: %v, RangeEnd: %v}", common(), beginStr, endStr)
+			} else {
+				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], desc, consts), beginStr, endStr)
+			}
 		}
 	case "ptr":
 		canBeArg = true
