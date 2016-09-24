@@ -46,11 +46,3 @@ func TestSerialize(t *testing.T) {
 		}
 	}
 }
-
-func TestSerializeForExec(t *testing.T) {
-	rs, iters := initTest(t)
-	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
-		p.SerializeForExec()
-	}
-}
