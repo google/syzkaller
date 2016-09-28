@@ -248,16 +248,25 @@ func Parse(output []byte) (desc string, text []byte, start int, end int) {
 }
 
 func extractDescription(output []byte, oops *oops) string {
+	result := ""
+	startPos := -1
 	for _, format := range oops.formats {
-		match := format.re.FindSubmatch(output)
+		match := format.re.FindSubmatchIndex(output)
 		if match == nil {
 			continue
 		}
-		var args []interface{}
-		for i := 1; i < len(match); i++ {
-			args = append(args, string(match[i]))
+		if startPos != -1 && startPos <= match[0] {
+			continue
 		}
-		return fmt.Sprintf(format.fmt, args...)
+		startPos = match[0]
+		var args []interface{}
+		for i := 2; i < len(match); i += 2 {
+			args = append(args, string(output[match[i]:match[i+1]]))
+		}
+		result = fmt.Sprintf(format.fmt, args...)
+	}
+	if result != "" {
+		return result
 	}
 	pos := bytes.Index(output, oops.header)
 	if pos == -1 {
