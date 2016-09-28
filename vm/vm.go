@@ -105,6 +105,24 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 		beforeContext = 256 << 10
 		afterContext  = 128 << 10
 	)
+	extractError := func(defaultError string) (string, []byte, []byte, bool, bool) {
+		// Give it some time to finish writing the error message.
+		waitForOutput()
+		if !report.ContainsCrash(output[matchPos:]) {
+			return defaultError, nil, output, true, false
+		}
+		desc, text, start, end := report.Parse(output[matchPos:])
+		start = start + matchPos - beforeContext
+		if start < 0 {
+			start = 0
+		}
+		end = end + matchPos + afterContext
+		if end > len(output) {
+			end = len(output)
+		}
+		return desc, text, output[start:end], true, false
+	}
+
 	lastExecuteTime := time.Now()
 	ticker := time.NewTimer(3 * time.Minute)
 	tickerFired := false
@@ -123,8 +141,9 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 			case TimeoutErr:
 				return err.Error(), nil, nil, false, true
 			default:
-				waitForOutput()
-				return "lost connection to test machine", nil, output, true, false
+				// Note: connection lost can race with a kernel oops message.
+				// In such case we want to return the kernel oops.
+				return extractError("lost connection to test machine")
 			}
 		case out := <-outc:
 			output = append(output, out...)
@@ -135,18 +154,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 				lastExecuteTime = time.Now()
 			}
 			if report.ContainsCrash(output[matchPos:]) {
-				// Give it some time to finish writing the error message.
-				waitForOutput()
-				desc, text, start, end := report.Parse(output[matchPos:])
-				start = start + matchPos - beforeContext
-				if start < 0 {
-					start = 0
-				}
-				end = end + matchPos + afterContext
-				if end > len(output) {
-					end = len(output)
-				}
-				return desc, text, output[start:end], true, false
+				return extractError("")
 			}
 			if len(output) > 2*beforeContext {
 				copy(output, output[len(output)-beforeContext:])
