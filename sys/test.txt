@@ -1,0 +1,25 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Syscalls used in syzkaller tests.
+
+syz_test()
+
+# Integer types.
+syz_test$int(a0 intptr, a1 int8, a2 int16, a3 int32, a4 int64)
+
+# Opt arguments
+syz_test$opt0(a0 intptr[opt])
+syz_test$opt1(a0 ptr[in, intptr, opt])
+syz_test$opt2(a0 vma[opt])
+
+# Struct alignment.
+syz_test$align0(a0 ptr[in, align0])
+
+align0 {
+	f0	int16
+	f1	int32
+	f2	int8
+	f3	int16
+	f4	int64
+}

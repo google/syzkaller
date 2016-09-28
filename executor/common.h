@@ -142,6 +142,8 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 	switch (nr) {
 	default:
 		return syscall(nr, a0, a1, a2, a3, a4, a5);
+	case __NR_syz_test:
+		return 0;
 	case __NR_syz_open_dev:
 		return syz_open_dev(a0, a1, a2);
 	case __NR_syz_open_pts:
