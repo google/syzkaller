@@ -35,6 +35,11 @@ IP: [<ffffffff810a376f>] __call_rcu.constprop.76+0x1f/0x280 kernel/rcu/tree.c:30
 `: `BUG: unable to handle kernel paging request in __call_rcu`,
 
 		`
+[ 1581.999813] BUG: unable to handle kernel paging request at ffffea0000f0e440
+[ 1581.999824] IP: [<ffffea0000f0e440>] 0xffffea0000f0e440
+`: `BUG: unable to handle kernel paging request`,
+
+		`
 [   50.583499] something
 [   50.583499] INFO: rcu_sched self-detected stall on CPU
 [   50.583499]         0: (20822 ticks this GP) idle=94b/140000000000001/0
@@ -324,6 +329,10 @@ INFO: rcu_preempt detected stalls on CPUs/tasks: { 2} (detected by 0, t=65008 ji
 		`
 BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
 `: `BUG: spinlock lockup suspected`,
+
+		`
+BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]
+`: `BUG: soft lockup`,
 
 		`
 BUG UNIX (Not tainted): kasan: bad access detected
