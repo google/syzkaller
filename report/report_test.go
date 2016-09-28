@@ -335,6 +335,16 @@ BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]
 `: `BUG: soft lockup`,
 
 		`
+BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
+BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]
+`: `BUG: spinlock lockup suspected`,
+
+		`
+BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]
+BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
+`: `BUG: soft lockup`,
+
+		`
 BUG UNIX (Not tainted): kasan: bad access detected
 `: "",
 	}
