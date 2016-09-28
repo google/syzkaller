@@ -57,6 +57,8 @@ func isSupported(kallsyms []byte, c *sys.Call) bool {
 
 func isSupportedSyzkall(c *sys.Call) bool {
 	switch c.CallName {
+	case "syz_test":
+		return false
 	case "syz_open_dev":
 		ptr, ok := c.Args[0].(sys.PtrType)
 		if !ok {
