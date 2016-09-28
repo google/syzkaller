@@ -42,12 +42,20 @@ var oopses = []*oops{
 				"BUG: unable to handle kernel paging request in %[1]v",
 			},
 			{
+				compile("BUG: unable to handle kernel paging request"),
+				"BUG: unable to handle kernel paging request",
+			},
+			{
 				compile("BUG: unable to handle kernel NULL pointer dereference(?:.*\\n)+.*IP: {{PC}} +{{FUNC}}"),
 				"BUG: unable to handle kernel NULL pointer dereference in %[1]v",
 			},
 			{
 				compile("BUG: spinlock lockup suspected"),
 				"BUG: spinlock lockup suspected",
+			},
+			{
+				compile("BUG: soft lockup"),
+				"BUG: soft lockup",
 			},
 		},
 	},
