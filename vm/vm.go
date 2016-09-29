@@ -58,6 +58,9 @@ func Register(typ string, ctor ctorFunc) {
 	ctors[typ] = ctor
 }
 
+// Close to interrupt all pending operations.
+var Shutdown = make(chan struct{})
+
 // Create creates and boots a new VM instance.
 func Create(typ string, cfg *Config) (Instance, error) {
 	ctor := ctors[typ]
@@ -174,6 +177,19 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 			if !local {
 				return "no output from test machine", nil, output, true, false
 			}
+		case <-Shutdown:
+			return "", nil, nil, false, false
 		}
+	}
+}
+
+// Sleep for d.
+// If shutdown is in progress, return false prematurely.
+func SleepInterruptible(d time.Duration) bool {
+	select {
+	case <-time.After(d):
+		return true
+	case <-Shutdown:
+		return false
 	}
 }
