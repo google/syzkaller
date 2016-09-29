@@ -14,12 +14,27 @@ syz_test$opt1(a0 ptr[in, intptr, opt])
 syz_test$opt2(a0 vma[opt])
 
 # Struct alignment.
-syz_test$align0(a0 ptr[in, align0])
+syz_test$align0(a0 ptr[in, syz_align0])
 
-align0 {
+syz_align0 {
 	f0	int16
 	f1	int32
 	f2	int8
 	f3	int16
 	f4	int64
 }
+
+# Unions.
+
+syz_test$union0(a0 ptr[in, syz_union_struct])
+
+syz_union_struct {
+	f	int64
+	u	syz_union0
+}
+
+syz_union0 [
+	f0	int64
+	f1	array[int64, 10]
+	f2	int8
+]
