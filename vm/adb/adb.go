@@ -157,19 +157,15 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 }
 
 func (inst *instance) repair() error {
-	// Give the device up to 5 minutes to come up (it can be rebooting after a previous crash).
-	if !vm.SleepInterruptible(3 * time.Second) {
-		return fmt.Errorf("shutdown in progress")
-	}
+	// Assume that the device is in a bad state initially and reboot it.
 	for i := 0; i < 300; i++ {
+		if _, err := inst.adb("shell", "pwd"); err == nil {
+			break
+		}
 		if !vm.SleepInterruptible(time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
-		if _, err := inst.adb("shell", "pwd"); err == nil {
-			return nil
-		}
 	}
-	// If it does not help, reboot.
 	// adb reboot episodically hangs, so we use a more reliable way.
 	// Ignore errors because all other adb commands hang as well
 	// and the binary can already be on the device.
@@ -177,7 +173,7 @@ func (inst *instance) repair() error {
 	if _, err := inst.adb("shell", "/data/syz-executor", "reboot"); err != nil {
 		return err
 	}
-	// Now give it another 5 minutes.
+	// Now give it another 5 minutes to boot.
 	if !vm.SleepInterruptible(10 * time.Second) {
 		return fmt.Errorf("shutdown in progress")
 	}
