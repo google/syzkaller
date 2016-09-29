@@ -205,8 +205,9 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		signal.Notify(c, syscall.SIGINT)
 		<-c
 		wg.Done()
-		atomic.StoreUint32(&mgr.shutdown, 1)
 		*flagV = -1 // VMs will fail
+		atomic.StoreUint32(&mgr.shutdown, 1)
+		close(vm.Shutdown)
 		logf(-1, "shutting down...")
 		atomic.StoreUint32(&shutdown, 1)
 		<-c

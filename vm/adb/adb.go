@@ -48,6 +48,9 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	if err := inst.repair(); err != nil {
 		return nil, err
 	}
+	if err := inst.checkBatteryLevel(); err != nil {
+		return nil, err
+	}
 	// Remove temp files from previous runs.
 	inst.adb("shell", "rm -Rf /data/syzkaller*")
 	closeInst = nil
@@ -103,19 +106,19 @@ func (inst *instance) findConsole() error {
 func (inst *instance) Forward(port int) (string, error) {
 	// If 35099 turns out to be busy, try to forward random ports several times.
 	devicePort := 35099
-	if err := inst.adb("reverse", fmt.Sprintf("tcp:%v", devicePort), fmt.Sprintf("tcp:%v", port)); err != nil {
+	if _, err := inst.adb("reverse", fmt.Sprintf("tcp:%v", devicePort), fmt.Sprintf("tcp:%v", port)); err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("127.0.0.1:%v", devicePort), nil
 }
 
-func (inst *instance) adb(args ...string) error {
+func (inst *instance) adb(args ...string) ([]byte, error) {
 	if inst.cfg.Debug {
 		log.Printf("executing adb %+v", args)
 	}
 	rpipe, wpipe, err := os.Pipe()
 	if err != nil {
-		return fmt.Errorf("failed to create pipe: %v", err)
+		return nil, fmt.Errorf("failed to create pipe: %v", err)
 	}
 	defer wpipe.Close()
 	defer rpipe.Close()
@@ -123,7 +126,7 @@ func (inst *instance) adb(args ...string) error {
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
-		return err
+		return nil, err
 	}
 	wpipe.Close()
 	done := make(chan bool)
@@ -143,21 +146,26 @@ func (inst *instance) adb(args ...string) error {
 		if inst.cfg.Debug {
 			log.Printf("adb failed: %v\n%s", err, out)
 		}
-		return fmt.Errorf("adb %+v failed: %v\n%s", args, err, out)
+		return nil, fmt.Errorf("adb %+v failed: %v\n%s", args, err, out)
 	}
 	close(done)
 	if inst.cfg.Debug {
 		log.Printf("adb returned")
 	}
-	return nil
+	out, _ := ioutil.ReadAll(rpipe)
+	return out, nil
 }
 
 func (inst *instance) repair() error {
 	// Give the device up to 5 minutes to come up (it can be rebooting after a previous crash).
-	time.Sleep(3 * time.Second)
+	if !vm.SleepInterruptible(3 * time.Second) {
+		return fmt.Errorf("shutdown in progress")
+	}
 	for i := 0; i < 300; i++ {
-		time.Sleep(time.Second)
-		if inst.adb("shell", "pwd") == nil {
+		if !vm.SleepInterruptible(time.Second) {
+			return fmt.Errorf("shutdown in progress")
+		}
+		if _, err := inst.adb("shell", "pwd"); err == nil {
 			return nil
 		}
 	}
@@ -166,19 +174,73 @@ func (inst *instance) repair() error {
 	// Ignore errors because all other adb commands hang as well
 	// and the binary can already be on the device.
 	inst.adb("push", inst.cfg.Executor, "/data/syz-executor")
-	if err := inst.adb("shell", "/data/syz-executor", "reboot"); err != nil {
+	if _, err := inst.adb("shell", "/data/syz-executor", "reboot"); err != nil {
 		return err
 	}
 	// Now give it another 5 minutes.
-	time.Sleep(10 * time.Second)
+	if !vm.SleepInterruptible(10 * time.Second) {
+		return fmt.Errorf("shutdown in progress")
+	}
 	var err error
 	for i := 0; i < 300; i++ {
-		time.Sleep(time.Second)
-		if err = inst.adb("shell", "pwd"); err == nil {
+		if !vm.SleepInterruptible(time.Second) {
+			return fmt.Errorf("shutdown in progress")
+		}
+		if _, err = inst.adb("shell", "pwd"); err == nil {
 			return nil
 		}
 	}
 	return fmt.Errorf("instance is dead and unrepairable: %v", err)
+}
+
+func (inst *instance) checkBatteryLevel() error {
+	const (
+		minLevel      = 20
+		requiredLevel = 30
+	)
+	val, err := inst.getBatteryLevel()
+	if err != nil {
+		return err
+	}
+	if val >= minLevel {
+		log.Printf("device %v: battery level %v%%, OK", inst.cfg.Device, val)
+		return nil
+	}
+	for {
+		log.Printf("device %v: battery level %v%%, waiting for %v%%", inst.cfg.Device, val, requiredLevel)
+		if !vm.SleepInterruptible(time.Minute) {
+			return nil
+		}
+		val, err = inst.getBatteryLevel()
+		if err != nil {
+			return err
+		}
+		if val >= requiredLevel {
+			break
+		}
+	}
+	return nil
+}
+
+func (inst *instance) getBatteryLevel() (int, error) {
+	out, err := inst.adb("shell", "dumpsys battery | grep level:")
+	if err != nil {
+		return 0, err
+	}
+	val := 0
+	for _, c := range out {
+		if c >= '0' && c <= '9' {
+			val = val*10 + int(c) - '0'
+			continue
+		}
+		if val != 0 {
+			break
+		}
+	}
+	if val == 0 {
+		return 0, fmt.Errorf("failed to parse 'dumpsys battery' output: %s", out)
+	}
+	return val, nil
 }
 
 func (inst *instance) Close() {
@@ -188,7 +250,7 @@ func (inst *instance) Close() {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join("/data", filepath.Base(hostSrc))
-	if err := inst.adb("push", hostSrc, vmDst); err != nil {
+	if _, err := inst.adb("push", hostSrc, vmDst); err != nil {
 		return "", err
 	}
 	return vmDst, nil
