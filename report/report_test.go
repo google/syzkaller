@@ -141,6 +141,14 @@ kacpi_hotplug/246 is trying to acquire lock:
 `: `possible deadlock in serial8250_console_write`,
 
 		`
+[ INFO: suspicious RCU usage. ]
+4.3.5-smp-DEV #101 Not tainted
+-------------------------------
+net/core/filter.c:1917 suspicious rcu_dereference_protected() usage!
+other info that might help us debug this:
+`: `suspicious RCU usage at net/core/filter.c:1917`,
+
+		`
 [    4.556968] ================================================================================
 [    4.556972] UBSAN: Undefined behaviour in drivers/usb/core/devio.c:1517:25
 [    4.556975] shift exponent -1 is negative
