@@ -63,8 +63,8 @@ var oopses = []*oops{
 		[]byte("WARNING:"),
 		[]oopsFormat{
 			{
-				compile("WARNING: .* at [a-zA-Z0-9-_/.]+:[0-9]+ {{FUNC}}"),
-				"WARNING in %[1]v",
+				compile("WARNING: .* at {{SRC}} {{FUNC}}"),
+				"WARNING in %[2]v",
 			},
 		},
 	},
@@ -78,6 +78,10 @@ var oopses = []*oops{
 			{
 				compile("INFO: rcu_preempt detected stalls"),
 				"INFO: rcu_preempt detected stalls",
+			},
+			{
+				compile("INFO: suspicious RCU usage(?:.*\n.*)+(?: |\n|\t){{SRC}}"),
+				"suspicious RCU usage at %[1]v",
 			},
 		},
 	},
@@ -174,6 +178,7 @@ func compile(re string) *regexp.Regexp {
 	re = strings.Replace(re, "{{ADDR}}", "0x[0-9a-f]+", -1)
 	re = strings.Replace(re, "{{PC}}", "\\[\\<[0-9a-f]+\\>\\]", -1)
 	re = strings.Replace(re, "{{FUNC}}", "([a-zA-Z0-9_]+)(?:\\.|\\+)", -1)
+	re = strings.Replace(re, "{{SRC}}", "([a-zA-Z0-9-_/.]+:[0-9]+)", -1)
 	return regexp.MustCompile(re)
 }
 
