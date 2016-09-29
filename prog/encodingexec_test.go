@@ -67,15 +67,26 @@ func TestSerializeForExec(t *testing.T) {
 			},
 		},
 		{
-			// TODO: the offsets are currently caclulated incorrectly.
 			"syz_test$align0(&(0x7f0000000000)={0x1, 0x2, 0x3, 0x4, 0x5})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 2, 1,
+				instrCopyin, dataOffset + 4, argConst, 4, 2,
+				instrCopyin, dataOffset + 8, argConst, 1, 3,
+				instrCopyin, dataOffset + 10, argConst, 2, 4,
+				instrCopyin, dataOffset + 16, argConst, 8, 5,
+				callID("syz_test$align0"), 1, argConst, ptrSize, dataOffset,
+				instrEOF,
+			},
+		},
+		{
+			"syz_test$align1(&(0x7f0000000000)={0x1, 0x2, 0x3, 0x4, 0x5})",
 			[]uint64{
 				instrCopyin, dataOffset + 0, argConst, 2, 1,
 				instrCopyin, dataOffset + 2, argConst, 4, 2,
 				instrCopyin, dataOffset + 6, argConst, 1, 3,
 				instrCopyin, dataOffset + 7, argConst, 2, 4,
 				instrCopyin, dataOffset + 9, argConst, 8, 5,
-				callID("syz_test$align0"), 1, argConst, ptrSize, dataOffset,
+				callID("syz_test$align1"), 1, argConst, ptrSize, dataOffset,
 				instrEOF,
 			},
 		},
@@ -85,6 +96,17 @@ func TestSerializeForExec(t *testing.T) {
 				instrCopyin, dataOffset + 0, argConst, 8, 1,
 				instrCopyin, dataOffset + 8, argConst, 1, 2,
 				callID("syz_test$union0"), 1, argConst, ptrSize, dataOffset,
+				instrEOF,
+			},
+		},
+		{
+			"syz_test$array0(&(0x7f0000000000)={0x1, [@f0=0x2, @f1=0x3], 0x4})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 1, 1,
+				instrCopyin, dataOffset + 1, argConst, 2, 2,
+				instrCopyin, dataOffset + 3, argConst, 8, 3,
+				instrCopyin, dataOffset + 11, argConst, 8, 4,
+				callID("syz_test$array0"), 1, argConst, ptrSize, dataOffset,
 				instrEOF,
 			},
 		},

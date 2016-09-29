@@ -15,6 +15,7 @@ syz_test$opt2(a0 vma[opt])
 
 # Struct alignment.
 syz_test$align0(a0 ptr[in, syz_align0])
+syz_test$align1(a0 ptr[in, syz_align1])
 
 syz_align0 {
 	f0	int16
@@ -23,6 +24,14 @@ syz_align0 {
 	f3	int16
 	f4	int64
 }
+
+syz_align1 {
+	f0	int16
+	f1	int32
+	f2	int8
+	f3	int16
+	f4	int64
+} [packed]
 
 # Unions.
 
@@ -38,3 +47,19 @@ syz_union0 [
 	f1	array[int64, 10]
 	f2	int8
 ]
+
+# Arrays.
+
+syz_test$array0(a0 ptr[in, syz_array_struct])
+
+# Struct with a variable-length array or variable-length unions.
+syz_array_struct {
+	f0	int8
+	f1	array[syz_array_union, 1:2]
+	f2	int64
+} [packed]
+
+syz_array_union [
+	f0	int16
+	f1	int64
+] [varlen]

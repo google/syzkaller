@@ -86,8 +86,17 @@ func Parse(in io.Reader) *Description {
 						}
 					}
 				}
-				if str.IsUnion && len(str.Flds) <= 1 {
-					failf("union %v has only %v fields, need at least 2", str.Name, len(str.Flds))
+				if str.IsUnion {
+					if len(str.Flds) <= 1 {
+						failf("union %v has only %v fields, need at least 2", str.Name, len(str.Flds))
+					}
+					fields := make(map[string]bool)
+					for _, f := range str.Flds {
+						if fields[f[0]] {
+							failf("duplicate filed %v in struct/union %v", f[0], str.Name)
+						}
+						fields[f[0]] = true
+					}
 				}
 				structs[str.Name] = *str
 				str = nil
