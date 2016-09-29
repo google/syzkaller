@@ -3,51 +3,37 @@
 
 package sys
 
-import (
-	"fmt"
-)
-
 func initAlign() {
-	var rec func(t Type) Type
-	rec = func(t Type) Type {
+	var rec func(t Type)
+	rec = func(t Type) {
 		switch t1 := t.(type) {
 		case PtrType:
-			t1.Type = rec(t1.Type)
-			t = t1
+			rec(t1.Type)
 		case ArrayType:
-			t1.Type = rec(t1.Type)
-			t = t1
+			rec(t1.Type)
 		case *StructType:
-			for i, f := range t1.Fields {
-				t1.Fields[i] = rec(f)
-			}
-			t = addAlignment(t1)
-		case *UnionType:
-			opts := make(map[string]bool)
-			for i, opt := range t1.Options {
-				if opts[opt.Name()] {
-					panic(fmt.Sprintf("duplicate option %v in union %v", opt.Name(), t.Name()))
+			if !t1.padded {
+				t1.padded = true
+				for _, f := range t1.Fields {
+					rec(f)
 				}
-				opts[opt.Name()] = true
-				t1.Options[i] = rec(opt)
+				addAlignment(t1)
+			}
+		case *UnionType:
+			for _, opt := range t1.Options {
+				rec(opt)
 			}
 		}
-		return t
 	}
-	for _, c := range Calls {
-		for i, t := range c.Args {
-			c.Args[i] = rec(t)
-		}
-		if c.Ret != nil {
-			c.Ret = rec(c.Ret)
-		}
+
+	for _, s := range Structs {
+		rec(s)
 	}
 }
 
-func addAlignment(t *StructType) Type {
+func addAlignment(t *StructType) {
 	if t.packed {
-		t.padded = true
-		return t
+		return
 	}
 	var fields []Type
 	var off, align uintptr
@@ -77,8 +63,6 @@ func addAlignment(t *StructType) Type {
 		fields = append(fields, makePad(pad))
 	}
 	t.Fields = fields
-	t.padded = true
-	return t
 }
 
 func makePad(sz uintptr) Type {

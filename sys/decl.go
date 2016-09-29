@@ -252,11 +252,14 @@ type ArrayType struct {
 }
 
 func (t ArrayType) Size() uintptr {
-	panic("should not be called")
+	if t.RangeBegin == t.RangeEnd {
+		return t.RangeBegin * t.Type.Size()
+	}
+	return 0 // for trailing embed arrays
 }
 
 func (t ArrayType) Align() uintptr {
-	panic("should not be called")
+	return t.Type.Align()
 }
 
 type PtrType struct {
@@ -282,11 +285,27 @@ type StructType struct {
 }
 
 func (t *StructType) Size() uintptr {
-	panic("not called")
+	if !t.padded {
+		panic("struct is not padded yet")
+	}
+	var size uintptr
+	for _, f := range t.Fields {
+		size += f.Size()
+	}
+	return size
 }
 
 func (t *StructType) Align() uintptr {
-	panic("not called")
+	if t.align != 0 {
+		return t.align // overrided by user attribute
+	}
+	var align uintptr
+	for _, f := range t.Fields {
+		if a1 := f.Align(); align < a1 {
+			align = a1
+		}
+	}
+	return align
 }
 
 type UnionType struct {
@@ -296,11 +315,26 @@ type UnionType struct {
 }
 
 func (t *UnionType) Size() uintptr {
-	panic("not called")
+	if t.varlen {
+		panic("union size is not statically known")
+	}
+	size := t.Options[0].Size()
+	for _, opt := range t.Options {
+		if size < opt.Size() {
+			size = opt.Size()
+		}
+	}
+	return size
 }
 
 func (t *UnionType) Align() uintptr {
-	panic("not called")
+	var align uintptr
+	for _, opt := range t.Options {
+		if a1 := opt.Align(); align < a1 {
+			align = a1
+		}
+	}
+	return align
 }
 
 type Dir int
@@ -503,6 +537,7 @@ var (
 
 func init() {
 	initCalls()
+	initStructFields()
 	initResources()
 	initAlign()
 

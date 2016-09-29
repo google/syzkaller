@@ -283,7 +283,7 @@ func generateStructs(desc *Description, consts map[string]uint64, out io.Writer)
 	}
 	fmt.Fprintf(out, "}\n")
 
-	fmt.Fprintf(out, "func init() {\n")
+	fmt.Fprintf(out, "func initStructFields() {\n")
 	for _, str := range structArray {
 		typ := "StructType"
 		fields := "Fields"
