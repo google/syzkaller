@@ -110,6 +110,25 @@ func TestSerializeForExec(t *testing.T) {
 				instrEOF,
 			},
 		},
+		{
+			"syz_test$array1(&(0x7f0000000000)={0x42, \"0102030405\"})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 1, 0x42,
+				instrCopyin, dataOffset + 1, argData, 5, 0x0504030201,
+				callID("syz_test$array1"), 1, argConst, ptrSize, dataOffset,
+				instrEOF,
+			},
+		},
+		{
+			"syz_test$array2(&(0x7f0000000000)={0x42, \"aaaaaaaabbbbbbbbccccccccdddddddd\", 0x43})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 2, 0x42,
+				instrCopyin, dataOffset + 2, argData, 16, 0xbbbbbbbbaaaaaaaa, 0xddddddddcccccccc,
+				instrCopyin, dataOffset + 18, argConst, 2, 0x43,
+				callID("syz_test$array2"), 1, argConst, ptrSize, dataOffset,
+				instrEOF,
+			},
+		},
 	}
 
 	for i, test := range tests {
