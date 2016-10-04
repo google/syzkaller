@@ -16,6 +16,7 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+	"unsafe"
 
 	"github.com/google/syzkaller/fileutil"
 	"github.com/google/syzkaller/prog"
@@ -121,7 +122,8 @@ func MakeEnv(bin string, timeout time.Duration, flags uint64, pid int) (*Env, er
 	for i := 0; i < 8; i++ {
 		inmem[i] = byte(flags >> (8 * uint(i)))
 	}
-	inmem = inmem[8:]
+	*(*uint64)(unsafe.Pointer(&inmem[8])) = uint64(pid)
+	inmem = inmem[16:]
 	env := &Env{
 		In:      inmem,
 		Out:     outmem,
