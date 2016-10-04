@@ -48,13 +48,18 @@ func addAlignment(t *StructType) {
 			off += pad
 			fields = append(fields, makePad(pad))
 		}
-		off += f.Size()
 		fields = append(fields, f)
 		if at, ok := f.(ArrayType); ok && (at.Kind == ArrayRandLen || (at.Kind == ArrayRangeLen && at.RangeBegin != at.RangeEnd)) {
 			varLen = true
 		}
+		if at, ok := f.(BufferType); ok && (at.Kind == BufferBlobRand || (at.Kind == BufferBlobRange && at.RangeBegin != at.RangeEnd)) {
+			varLen = true
+		}
 		if varLen && i != len(t.Fields)-1 {
 			panic("embed array in middle of a struct")
+		}
+		if !varLen {
+			off += f.Size()
 		}
 	}
 	if align != 0 && off%align != 0 && !varLen {
