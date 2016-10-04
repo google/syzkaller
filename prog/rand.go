@@ -706,14 +706,16 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		return arg, nil, nil
 	case sys.BufferType:
 		switch a.Kind {
-		case sys.BufferBlob:
+		case sys.BufferBlobRand, sys.BufferBlobRange:
 			sz := r.randBufLen()
-			if dir == DirOut {
-				return nil, constArg(sz), nil
+			if a.Kind == sys.BufferBlobRange {
+				sz = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
 			}
 			data := make([]byte, sz)
-			for i := range data {
-				data[i] = byte(r.Intn(256))
+			if dir != DirOut {
+				for i := range data {
+					data[i] = byte(r.Intn(256))
+				}
 			}
 			return dataArg(data), constArg(sz), nil
 		case sys.BufferString:

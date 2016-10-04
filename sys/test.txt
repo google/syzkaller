@@ -51,6 +51,8 @@ syz_union0 [
 # Arrays.
 
 syz_test$array0(a0 ptr[in, syz_array_struct])
+syz_test$array1(a0 ptr[in, syz_array_trailing])
+syz_test$array2(a0 ptr[in, syz_array_blob])
 
 # Struct with a variable-length array or variable-length unions.
 syz_array_struct {
@@ -63,3 +65,14 @@ syz_array_union [
 	f0	int16
 	f1	int64
 ] [varlen]
+
+syz_array_trailing {
+	f0	int8
+	f1	array[int8, 4:8]
+}
+
+syz_array_blob {
+	f0	int16
+	f1	array[int8, 16]
+	f2	int16
+}
