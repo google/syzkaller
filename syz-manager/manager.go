@@ -145,7 +145,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 	// Create RPC server for fuzzers.
 	ln, err := net.Listen("tcp", cfg.Rpc)
 	if err != nil {
-		fatalf("failed to listen on localhost:0: %v", err)
+		fatalf("failed to listen on %v: %v", cfg.Rpc, err)
 	}
 	logf(0, "serving rpc on tcp://%v", ln.Addr())
 	mgr.port = ln.Addr().(*net.TCPAddr).Port
