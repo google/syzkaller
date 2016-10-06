@@ -158,7 +158,7 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 		fmt.Fprintf(out, "func() { Calls = append(Calls, &Call{Name: \"%v\", CallName: \"%v\"", s.Name, s.CallName)
 		if len(s.Ret) != 0 {
 			fmt.Fprintf(out, ", Ret: ")
-			generateArg("ret", s.Ret[0], s.Ret[1:], desc, consts, true, false, out)
+			generateArg("", "ret", s.Ret[0], s.Ret[1:], desc, consts, true, false, out)
 		}
 		fmt.Fprintf(out, ", Args: []Type{")
 		for i, a := range s.Args {
@@ -166,7 +166,7 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 				fmt.Fprintf(out, ", ")
 			}
 			logf(5, "      generate description for arg %v", i)
-			generateArg(a[0], a[1], a[2:], desc, consts, true, false, out)
+			generateArg("", a[0], a[1], a[2:], desc, consts, true, false, out)
 		}
 		if skipCurrentSyscall != "" {
 			logf(0, "unsupported syscall: %v due to %v", s.Name, skipCurrentSyscall)
@@ -226,7 +226,7 @@ func generateResources(desc *Description, consts map[string]uint64, out io.Write
 			}
 		}
 		fmt.Fprintf(out, "\"%v\": &ResourceDesc{Name: \"%v\", Type: ", name, name)
-		generateArg("resource-type", underlying, nil, desc, consts, true, true, out)
+		generateArg("", "resource-type", underlying, nil, desc, consts, true, true, out)
 		fmt.Fprintf(out, ", Kind: []string{")
 		for i, k := range kind {
 			if i != 0 {
@@ -249,66 +249,90 @@ func generateResources(desc *Description, consts map[string]uint64, out io.Write
 	fmt.Fprintf(out, "}\n")
 }
 
-func generateStructs(desc *Description, consts map[string]uint64, out io.Writer) {
-	var structArray StructArray
-	for _, str := range desc.Structs {
-		structArray = append(structArray, str)
+func generateStructEntry(str Struct, key string, name string, out io.Writer) {
+	typ := "StructType"
+	if str.IsUnion {
+		typ = "UnionType"
 	}
-	sort.Sort(structArray)
+	packed := ""
+	if str.Packed {
+		packed = ", packed: true"
+	}
+	varlen := ""
+	if str.Varlen {
+		varlen = ", varlen: true"
+	}
+	align := ""
+	if str.Align != 0 {
+		align = fmt.Sprintf(", align: %v", str.Align)
+	}
+	fmt.Fprintf(out, "\"%v\": &%v{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v} %v %v %v},\n",
+		key, typ, name, false, packed, align, varlen)
+}
 
+func generateStructFields(str Struct, key string, desc *Description, consts map[string]uint64, out io.Writer) {
+	typ := "StructType"
+	fields := "Fields"
+	if str.IsUnion {
+		typ = "UnionType"
+		fields = "Options"
+	}
+	fmt.Fprintf(out, "{ s := Structs[\"%v\"].(*%v)\n", key, typ)
+	for _, a := range str.Flds {
+		fmt.Fprintf(out, "s.%v = append(s.%v, ", fields, fields)
+		generateArg(str.Name, a[0], a[1], a[2:], desc, consts, false, true, out)
+		fmt.Fprintf(out, ")\n")
+	}
+	fmt.Fprintf(out, "}\n")
+}
+
+func generateStructs(desc *Description, consts map[string]uint64, out io.Writer) {
 	// Struct fields can refer to other structs. Go compiler won't like if
 	// we refer to Structs map during Structs map initialization. So we do
 	// it in 2 passes: on the first pass create types and assign them to
 	// the map, on the second pass fill in fields.
+
+	// Since structs of the same type can be fields with different names
+	// of multiple other structs, we have an instance of those structs
+	// for each field indexed by the name of the parent struct and the
+	// field name.
+
+	structMap := make(map[string]Struct)
+	for _, str := range desc.Structs {
+		if _, ok := structMap[str.Name]; ok {
+			failf("two structs with the same name '%v'", str.Name)
+		}
+		structMap[str.Name] = str
+		for _, a := range str.Flds {
+			if innerStr, ok := desc.Structs[a[1]]; ok {
+				structMap[fmt.Sprintf("%v-%v", str.Name, a[0])] = innerStr
+			}
+		}
+	}
+
 	fmt.Fprintf(out, "var Structs = map[string]Type{\n")
-	for _, str := range structArray {
-		typ := "StructType"
-		if str.IsUnion {
-			typ = "UnionType"
-		}
-		packed := ""
-		if str.Packed {
-			packed = ", packed: true"
-		}
-		varlen := ""
-		if str.Varlen {
-			varlen = ", varlen: true"
-		}
-		align := ""
-		if str.Align != 0 {
-			align = fmt.Sprintf(", align: %v", str.Align)
-		}
-		fmt.Fprintf(out, "\"%v\": &%v{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v} %v %v %v},\n",
-			str.Name, typ, str.Name, false, packed, align, varlen)
+	for key, str := range structMap {
+		keyParts := strings.Split(key, "-")
+		name := keyParts[len(keyParts)-1]
+		generateStructEntry(str, key, name, out)
 	}
 	fmt.Fprintf(out, "}\n")
 
 	fmt.Fprintf(out, "func initStructFields() {\n")
-	for _, str := range structArray {
-		typ := "StructType"
-		fields := "Fields"
-		if str.IsUnion {
-			typ = "UnionType"
-			fields = "Options"
-		}
-		fmt.Fprintf(out, "{ s := Structs[\"%v\"].(*%v)\n", str.Name, typ)
-		for _, a := range str.Flds {
-			fmt.Fprintf(out, "s.%v = append(s.%v, ", fields, fields)
-			generateArg(a[0], a[1], a[2:], desc, consts, false, true, out)
-			fmt.Fprintf(out, ")\n")
-		}
-		fmt.Fprintf(out, "}\n")
+	for key, str := range structMap {
+		generateStructFields(str, key, desc, consts, out)
 	}
 	fmt.Fprintf(out, "}\n")
 }
 
 func generateArg(
-	name, typ string,
+	parent, name, typ string,
 	a []string,
 	desc *Description,
 	consts map[string]uint64,
 	isArg, isField bool,
 	out io.Writer) {
+	origName := name
 	name = "\"" + name + "\""
 	opt := false
 	for i, v := range a {
@@ -528,7 +552,7 @@ func generateArg(
 	default:
 		if strings.HasPrefix(typ, "unnamed") {
 			if inner, ok := desc.Unnamed[typ]; ok {
-				generateArg("", inner[0], inner[1:], desc, consts, false, isField, out)
+				generateArg("", "", inner[0], inner[1:], desc, consts, false, isField, out)
 			} else {
 				failf("unknown unnamed type '%v'", typ)
 			}
@@ -536,7 +560,11 @@ func generateArg(
 			if len(a) != 0 {
 				failf("struct '%v' has args", typ)
 			}
-			fmt.Fprintf(out, "Structs[\"%v\"]", typ)
+			if parent == "" {
+				fmt.Fprintf(out, "Structs[\"%v\"]", typ)
+			} else {
+				fmt.Fprintf(out, "Structs[\"%v-%v\"]", parent, origName)
+			}
 		} else if _, ok := desc.Resources[typ]; ok {
 			if len(a) != 0 {
 				failf("resource '%v' has args", typ)
@@ -554,7 +582,7 @@ func generateArg(
 
 func generateType(typ string, desc *Description, consts map[string]uint64) string {
 	buf := new(bytes.Buffer)
-	generateArg("", typ, nil, desc, consts, false, true, buf)
+	generateArg("", "", typ, nil, desc, consts, false, true, buf)
 	return buf.String()
 }
 
@@ -629,12 +657,6 @@ type ResourceArray []Resource
 func (a ResourceArray) Len() int           { return len(a) }
 func (a ResourceArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
 func (a ResourceArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-type StructArray []Struct
-
-func (a StructArray) Len() int           { return len(a) }
-func (a StructArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
-func (a StructArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 func failf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
