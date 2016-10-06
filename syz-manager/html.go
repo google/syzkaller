@@ -6,13 +6,18 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 	"unsafe"
 
@@ -21,11 +26,15 @@ import (
 	"github.com/google/syzkaller/sys"
 )
 
+const dateFormat = "Jan 02 2006 15:04:05 MST"
+
 func (mgr *Manager) initHttp() {
-	http.HandleFunc("/", mgr.httpInfo)
+	http.HandleFunc("/", mgr.httpSummary)
 	http.HandleFunc("/corpus", mgr.httpCorpus)
+	http.HandleFunc("/crash", mgr.httpCrash)
 	http.HandleFunc("/cover", mgr.httpCover)
 	http.HandleFunc("/prio", mgr.httpPrio)
+	http.HandleFunc("/file", mgr.httpFile)
 
 	ln, err := net.Listen("tcp4", mgr.cfg.Http)
 	if err != nil {
@@ -38,15 +47,21 @@ func (mgr *Manager) initHttp() {
 	}()
 }
 
-func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
+func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
 	uptime := time.Since(mgr.startTime)
-	data := &UIData{
+	data := &UISummaryData{
 		CorpusSize:  len(mgr.corpus),
 		TriageQueue: len(mgr.candidates),
 		Uptime:      fmt.Sprintf("%v", uptime),
+	}
+
+	var err error
+	if data.Crashes, err = mgr.collectCrashes(); err != nil {
+		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
+		return
 	}
 
 	type CallCov struct {
@@ -100,8 +115,36 @@ func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
 	sort.Sort(UICallTypeArray(data.Calls))
 	data.CoverSize = len(cov)
 
-	if err := htmlTemplate.Execute(w, data); err != nil {
+	if err := summaryTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	crashID := r.FormValue("id")
+	crashes, err := mgr.collectCrashes()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
+		return
+	}
+	var crash *UICrashType
+	for _, c := range crashes {
+		if c.ID == crashID {
+			crash = &c
+			break
+		}
+	}
+	if crash == nil {
+		http.Error(w, fmt.Sprintf("can't find crash %v", crashID), http.StatusInternalServerError)
+		return
+	}
+	if err := crashTemplate.Execute(w, crash); err != nil {
+		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -119,6 +162,7 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		p, err := prog.Deserialize(inp.Prog)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
+			return
 		}
 		unique := cover.Intersection(inp.Cover, totalUnique)
 		data = append(data, UIInput{
@@ -133,6 +177,7 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 
 	if err := corpusTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -160,6 +205,7 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 
 	if err := generateCoverHtml(w, mgr.cfg.Vmlinux, cov); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
+		return
 	}
 	runtime.GC()
 }
@@ -217,10 +263,91 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 
 	if err := prioTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+		return
 	}
 }
 
-type UIData struct {
+func (mgr *Manager) httpFile(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	file := filepath.Clean(r.FormValue("name"))
+	if !strings.HasPrefix(file, "crashes/") && !strings.HasPrefix(file, "corpus/") {
+		http.Error(w, "oh, oh, oh!", http.StatusInternalServerError)
+		return
+	}
+	file = filepath.Join(mgr.cfg.Workdir, file)
+	f, err := os.Open(file)
+	if err != nil {
+		http.Error(w, "failed to open the file", http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	io.Copy(w, f)
+}
+
+func (mgr *Manager) collectCrashes() ([]UICrashType, error) {
+	dirs, err := ioutil.ReadDir(mgr.crashdir)
+	if err != nil {
+		return nil, err
+	}
+	var crashTypes []UICrashType
+	for _, dir := range dirs {
+		if !dir.IsDir() || len(dir.Name()) != 40 {
+			continue
+		}
+		desc, err := ioutil.ReadFile(filepath.Join(mgr.crashdir, dir.Name(), "description"))
+		if err != nil || len(desc) == 0 {
+			continue
+		}
+		if desc[len(desc)-1] == '\n' {
+			desc = desc[:len(desc)-1]
+		}
+		files, err := ioutil.ReadDir(filepath.Join(mgr.crashdir, dir.Name()))
+		if err != nil {
+			return nil, err
+		}
+		n := 0
+		var maxTime time.Time
+		var crashes []UICrash
+		for _, f := range files {
+			if !strings.HasPrefix(f.Name(), "log") {
+				continue
+			}
+			index, err := strconv.ParseUint(f.Name()[3:], 10, 64)
+			if err != nil {
+				continue
+			}
+			crash := UICrash{
+				Index: int(index),
+				Time:  f.ModTime().Format(dateFormat),
+				Log:   filepath.Join("crashes", dir.Name(), f.Name()),
+			}
+			reportFile := filepath.Join("crashes", dir.Name(), "report"+strconv.Itoa(int(index)))
+			if _, err := os.Stat(filepath.Join(mgr.cfg.Workdir, reportFile)); err == nil {
+				crash.Report = reportFile
+			}
+			crashes = append(crashes, crash)
+			n++
+			if maxTime.Before(f.ModTime()) {
+				maxTime = f.ModTime()
+			}
+		}
+		sort.Sort(UICrashArray(crashes))
+		crashTypes = append(crashTypes, UICrashType{
+			Description: string(desc),
+			LastTime:    maxTime.Format(dateFormat),
+			ID:          dir.Name(),
+			Count:       n,
+			Crashes:     crashes,
+		})
+	}
+	sort.Sort(UICrashTypeArray(crashTypes))
+	return crashTypes, nil
+}
+
+type UISummaryData struct {
 	CorpusSize     int
 	TriageQueue    int
 	CoverSize      int
@@ -229,6 +356,22 @@ type UIData struct {
 	Uptime         string
 	Stats          []UIStat
 	Calls          []UICallType
+	Crashes        []UICrashType
+}
+
+type UICrashType struct {
+	Description string
+	LastTime    string
+	ID          string
+	Count       int
+	Crashes     []UICrash
+}
+
+type UICrash struct {
+	Index  int
+	Time   string
+	Log    string
+	Report string
 }
 
 type UIStat struct {
@@ -270,11 +413,24 @@ func (a UIStatArray) Len() int           { return len(a) }
 func (a UIStatArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
 func (a UIStatArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
-var htmlTemplate = template.Must(template.New("").Parse(`
+type UICrashTypeArray []UICrashType
+
+func (a UICrashTypeArray) Len() int           { return len(a) }
+func (a UICrashTypeArray) Less(i, j int) bool { return a[i].Description < a[j].Description }
+func (a UICrashTypeArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+type UICrashArray []UICrash
+
+func (a UICrashArray) Len() int           { return len(a) }
+func (a UICrashArray) Less(i, j int) bool { return a[i].Index < a[j].Index }
+func (a UICrashArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 <!doctype html>
 <html>
 <head>
-    <title>syzkaller</title>
+	<title>syzkaller</title>
+	{{STYLE}}
 </head>
 <body>
 Uptime: {{.Uptime}}<br>
@@ -288,6 +444,24 @@ Stats: <br>
 	{{$stat.Name}}: {{$stat.Value}}<br>
 {{end}}
 <br>
+
+<table>
+	<caption>Crashes:</caption>
+	<tr>
+		<th>Description<th>
+		<th>Count<th>
+		<th>Last Time<th>
+	</tr>
+	{{range $c := $.Crashes}}
+	<tr>
+		<td><a href="/crash?id={{$c.ID}}">{{$c.Description}}</a></td>
+		<td>{{$c.Count}}</td>
+		<td>{{$c.LastTime}}</td>
+	</tr>
+	{{end}}
+</table>
+<br>
+
 {{range $c := $.Calls}}
 	{{$c.Name}}
 		<a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a>
@@ -296,13 +470,39 @@ Stats: <br>
 		<a href='/prio?call={{$c.Name}}'>prio</a> <br>
 {{end}}
 </body></html>
-`))
+`)))
 
-var corpusTemplate = template.Must(template.New("").Parse(`
+var crashTemplate = template.Must(template.New("").Parse(addStyle(`
 <!doctype html>
 <html>
 <head>
-    <title>syzkaller corpus</title>
+	<title>{{.Description}}</title>
+	{{STYLE}}
+</head>
+<body>
+<table>
+	<caption>{{.Description}}</caption>
+	{{range $c := $.Crashes}}
+	<tr>
+		<td><span title="{{$c.Time}}">#{{$c.Index}}</span></td>
+		<td><a href="/file?name={{$c.Log}}">log</a></td>
+		{{if $c.Report}}
+			<td><a href="/file?name={{$c.Report}}">report</a></td>
+		{{else}}
+			<td></td>
+		{{end}}
+	</tr>
+	{{end}}
+</table>
+</body></html>
+`)))
+
+var corpusTemplate = template.Must(template.New("").Parse(addStyle(`
+<!doctype html>
+<html>
+<head>
+	<title>syzkaller corpus</title>
+	{{STYLE}}
 </head>
 <body>
 {{range $c := $}}
@@ -312,7 +512,7 @@ var corpusTemplate = template.Must(template.New("").Parse(`
 		<br>
 {{end}}
 </body></html>
-`))
+`)))
 
 type UIPrioData struct {
 	Call  string
@@ -330,11 +530,12 @@ func (a UIPrioArray) Len() int           { return len(a) }
 func (a UIPrioArray) Less(i, j int) bool { return a[i].Prio > a[j].Prio }
 func (a UIPrioArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
-var prioTemplate = template.Must(template.New("").Parse(`
+var prioTemplate = template.Must(template.New("").Parse(addStyle(`
 <!doctype html>
 <html>
 <head>
-    <title>syzkaller priorities</title>
+	<title>syzkaller priorities</title>
+	{{STYLE}}
 </head>
 <body>
 Priorities for {{$.Call}} <br> <br>
@@ -342,4 +543,20 @@ Priorities for {{$.Call}} <br> <br>
 	{{printf "%.4f\t%s" $p.Prio $p.Call}} <br>
 {{end}}
 </body></html>
-`))
+`)))
+
+func addStyle(html string) string {
+	return strings.Replace(html, "{{STYLE}}", htmlStyle, -1)
+}
+
+const htmlStyle = `
+	<style type="text/css" media="screen">
+		table {
+			border-collapse:collapse;
+			border:1px solid;
+		}
+		table td {
+			border:1px solid;
+		}
+	</style>
+`
