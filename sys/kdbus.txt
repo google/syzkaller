@@ -51,10 +51,10 @@ kdbus_cmd_ep_update {
 kdbus_cmd_hello {
 	size	len[parent, int64]
 	flags	flags[kdbus_hello_flags, int64]
-	rflags	const[0, int64]
+	rflags1	const[0, int64]
 
 	sflags	flags[kdbus_attach_flags, int64]
-	rflags	flags[kdbus_attach_flags, int64]
+	rflags2	flags[kdbus_attach_flags, int64]
 	bflags	int64
 	id	int64
 	poolsz	int64
@@ -248,32 +248,32 @@ kdbus_pids_parameter {
 	size	len[parent, int64]
 	type	const[KDBUS_ITEM_PIDS, int64]
 	pid	pid
-	pad	const[0, int32]
+	pad1	const[0, int32]
 	tid	pid
-	pad	const[0, int32]
+	pad2	const[0, int32]
 	ppid	pid
-	pad	const[0, int32]
+	pad3	const[0, int32]
 }
 
 kdbus_creds_parameter {
 	size	len[parent, int64]
 	type	const[KDBUS_ITEM_CREDS, int64]
 	uid	uid
-	pad	const[0, int32]
+	pad1	const[0, int32]
 	euid	uid
-	pad	const[0, int32]
+	pad2	const[0, int32]
 	suid	uid
-	pad	const[0, int32]
+	pad3	const[0, int32]
 	fsuid	uid
-	pad	const[0, int32]
+	pad4	const[0, int32]
 	gid	uid
-	pad	const[0, int32]
+	pad5	const[0, int32]
 	egid	uid
-	pad	const[0, int32]
+	pad6	const[0, int32]
 	sgid	uid
-	pad	const[0, int32]
+	pad7	const[0, int32]
 	fsgid	uid
-	pad	const[0, int32]
+	pad8	const[0, int32]
 }
 
 kdbus_seclabel_parameter {
@@ -284,17 +284,17 @@ kdbus_seclabel_parameter {
 }
 
 kdbus_payload_vec {
-	size	len[parent, int64]
+	size1	len[parent, int64]
 	type	const[KDBUS_ITEM_PAYLOAD_VEC, int64]
-	size	len[data, int64]
+	size2	len[data, int64]
 	data	buffer[in]
 }
 
 kdbus_payload_memfd {
-	size	len[parent, int64]
+	size1	len[parent, int64]
 	type	const[KDBUS_ITEM_PAYLOAD_MEMFD, int64]
 	start	int64
-	size	int64
+	size2	int64
 	fd	fd
 }
 

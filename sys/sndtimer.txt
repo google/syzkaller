@@ -32,12 +32,12 @@ snd_timer_ginfo {
 # TODO: the following two fields should be a fixed-size embeded string.
 	id	array[int8, 64]
 	name	array[int8, 80]
-	pad	const[0, intptr]
+	pad1	const[0, intptr]
 	res	intptr
 	resmin	intptr
 	resmax	intptr
 	clients	int32
-	pad	array[const[0, int8], 32]
+	pad2	array[const[0, int8], 32]
 }
 
 snd_timer_gparams {
@@ -64,7 +64,7 @@ snd_timer_params {
 	flags	flags[snd_timer_flags, int32]
 	ticks	int32
 	qsize	int32
-	pad	const[0, int32]
+	pad1	const[0, int32]
 	filter	flags[snd_timer_filter, int32]
-	pad	array[const[0, int8], 60]
+	pad2	array[const[0, int8], 60]
 }
