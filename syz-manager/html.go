@@ -6,6 +6,8 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"runtime"
@@ -24,8 +26,16 @@ func (mgr *Manager) initHttp() {
 	http.HandleFunc("/corpus", mgr.httpCorpus)
 	http.HandleFunc("/cover", mgr.httpCover)
 	http.HandleFunc("/prio", mgr.httpPrio)
-	logf(0, "serving http on http://%v", mgr.cfg.Http)
-	go http.ListenAndServe(mgr.cfg.Http, nil)
+
+	ln, err := net.Listen("tcp4", mgr.cfg.Http)
+	if err != nil {
+		fatalf("failed to listen on %v: %v", mgr.cfg.Http, err)
+	}
+	logf(0, "serving http on http://%v", ln.Addr())
+	go func() {
+		err := http.Serve(ln, nil)
+		log.Fatalf("failed to serve http: %v", err)
+	}()
 }
 
 func (mgr *Manager) httpInfo(w http.ResponseWriter, r *http.Request) {
