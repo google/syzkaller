@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/report"
 	"github.com/google/syzkaller/vm"
 	_ "github.com/google/syzkaller/vm/adb"
+	_ "github.com/google/syzkaller/vm/gce"
 	_ "github.com/google/syzkaller/vm/kvm"
 	_ "github.com/google/syzkaller/vm/qemu"
 )
