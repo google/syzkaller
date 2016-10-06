@@ -297,8 +297,24 @@ func Symbolize(vmlinux string, text []byte) ([]byte, error) {
 	symbFunc := func(bin string, pc uint64) ([]symbolizer.Frame, error) {
 		return symb.Symbolize(bin, pc)
 	}
+	// Strip vmlinux location from all paths.
 	strip, _ := filepath.Abs(vmlinux)
 	strip = filepath.Dir(strip) + string(filepath.Separator)
+	// Vmlinux may have been moved, so check if we can find debug info
+	// for __sanitizer_cov_trace_pc. We know where it is located,
+	// so we can infer correct strip prefix from it.
+	if covSymbols := symbols["__sanitizer_cov_trace_pc"]; len(covSymbols) != 0 {
+		for _, covSymb := range covSymbols {
+			frames, _ := symb.Symbolize(vmlinux, covSymb.Addr)
+			if len(frames) > 0 {
+				file := frames[len(frames)-1].File
+				if idx := strings.Index(file, "kernel/kcov.c"); idx != -1 {
+					strip = file[:idx]
+					break
+				}
+			}
+		}
+	}
 	s := bufio.NewScanner(bytes.NewReader(text))
 	for s.Scan() {
 		line := append([]byte{}, s.Bytes()...)
