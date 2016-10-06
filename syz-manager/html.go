@@ -19,7 +19,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"unsafe"
 
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/prog"
@@ -51,12 +50,10 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	uptime := time.Since(mgr.startTime)
-	data := &UISummaryData{
-		CorpusSize:  len(mgr.corpus),
-		TriageQueue: len(mgr.candidates),
-		Uptime:      fmt.Sprintf("%v", uptime),
-	}
+	data := &UISummaryData{}
+	data.Stats = append(data.Stats, UIStat{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)})
+	data.Stats = append(data.Stats, UIStat{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))})
+	data.Stats = append(data.Stats, UIStat{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))})
 
 	var err error
 	if data.Crashes, err = mgr.collectCrashes(); err != nil {
@@ -76,29 +73,12 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 		cc := calls[inp.Call]
 		cc.count++
 		cc.cov = cover.Union(cc.cov, cover.Cover(inp.Cover))
-		data.CorpusCoverMem += len(inp.Cover) * int(unsafe.Sizeof(inp.Cover[0]))
-	}
-	for _, cov := range mgr.corpusCover {
-		data.CallCoverMem += len(cov) * int(unsafe.Sizeof(cov[0]))
 	}
 
 	secs := uint64(1)
 	if !mgr.firstConnect.IsZero() {
 		secs = uint64(time.Since(mgr.firstConnect))/1e9 + 1
 	}
-	for k, v := range mgr.stats {
-		val := fmt.Sprintf("%v", v)
-		if x := v / secs; x >= 10 {
-			val += fmt.Sprintf(" (%v/sec)", x)
-		} else if x := v * 60 / secs; x >= 10 {
-			val += fmt.Sprintf(" (%v/min)", x)
-		} else {
-			x := v * 60 * 60 / secs
-			val += fmt.Sprintf(" (%v/hour)", x)
-		}
-		data.Stats = append(data.Stats, UIStat{Name: k, Value: val})
-	}
-	sort.Sort(UIStatArray(data.Stats))
 
 	var cov cover.Cover
 	totalUnique := mgr.uniqueCover(true)
@@ -113,7 +93,23 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	sort.Sort(UICallTypeArray(data.Calls))
-	data.CoverSize = len(cov)
+	data.Stats = append(data.Stats, UIStat{Name: "cover", Value: fmt.Sprint(len(cov)), Link: "/cover"})
+
+	var intStats []UIStat
+	for k, v := range mgr.stats {
+		val := fmt.Sprintf("%v", v)
+		if x := v / secs; x >= 10 {
+			val += fmt.Sprintf(" (%v/sec)", x)
+		} else if x := v * 60 / secs; x >= 10 {
+			val += fmt.Sprintf(" (%v/min)", x)
+		} else {
+			x := v * 60 * 60 / secs
+			val += fmt.Sprintf(" (%v/hour)", x)
+		}
+		intStats = append(intStats, UIStat{Name: k, Value: val})
+	}
+	sort.Sort(UIStatArray(intStats))
+	data.Stats = append(data.Stats, intStats...)
 
 	if err := summaryTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
@@ -348,15 +344,9 @@ func (mgr *Manager) collectCrashes() ([]UICrashType, error) {
 }
 
 type UISummaryData struct {
-	CorpusSize     int
-	TriageQueue    int
-	CoverSize      int
-	CorpusCoverMem int
-	CallCoverMem   int
-	Uptime         string
-	Stats          []UIStat
-	Calls          []UICallType
-	Crashes        []UICrashType
+	Stats   []UIStat
+	Calls   []UICallType
+	Crashes []UICrashType
 }
 
 type UICrashType struct {
@@ -377,6 +367,7 @@ type UICrash struct {
 type UIStat struct {
 	Name  string
 	Value string
+	Link  string
 }
 
 type UICallType struct {
@@ -433,16 +424,22 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 	{{STYLE}}
 </head>
 <body>
-Uptime: {{.Uptime}}<br>
-Corpus: {{.CorpusSize}}<br>
-Triage queue len: {{.TriageQueue}}<br>
-Cover mem: {{.CorpusCoverMem}} + {{.CallCoverMem}} <br>
-{{if .CoverSize}}<a href='/cover'>Cover: {{.CoverSize}}</a> <br>{{end}}
+<b>ŜɎΖҚΑĻĹӖЯ</b>
 <br>
-Stats: <br>
-{{range $stat := $.Stats}}
-	{{$stat.Name}}: {{$stat.Value}}<br>
-{{end}}
+
+<table>
+	<caption>Stats:</caption>
+	{{range $s := $.Stats}}
+	<tr>
+		<td>{{$s.Name}}</td>
+		{{if $s.Link}}
+			<td><a href="{{$s.Link}}">{{$s.Value}}</a></td>
+		{{else}}
+			<td>{{$s.Value}}</td>
+		{{end}}
+	</tr>
+	{{end}}
+</table>
 <br>
 
 <table>
