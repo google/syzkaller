@@ -315,7 +315,7 @@ kvm_vcpu_events {
 	exinjec	int8
 	exnr	int8
 	exhec	int8
-	pad	const[0, int8]
+	pad1	const[0, int8]
 	exec	int32
 
 	ininjec	int8
@@ -326,7 +326,7 @@ kvm_vcpu_events {
 	nmiinj	int8
 	nmipend	int8
 	nmimask	int8
-	pad	const[0, int8]
+	pad2	const[0, int8]
 
 	sipi	int32
 	flags	int32

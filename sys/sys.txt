@@ -224,7 +224,7 @@ prctl$setname(option const[PR_SET_NAME], name string)
 prctl$getname(option const[PR_GET_NAME], name buffer[out])
 prctl$setptracer(option const[PR_SET_PTRACER], pid pid)
 prctl$seccomp(option const[PR_SET_SECCOMP], mode flags[prctl_seccomp_mode], prog ptr[in, sock_fprog])
-prctl$setmm(option const[PR_SET_MM], option flags[prctl_mm_option], val vma)
+prctl$setmm(option1 const[PR_SET_MM], option2 flags[prctl_mm_option], val vma)
 
 arch_prctl(code flags[arch_prctl_code], addr buffer[in])
 seccomp(op flags[seccomp_op], flags flags[seccomp_flags], prog ptr[in, sock_fprog])
@@ -315,7 +315,7 @@ inotify_init1(flags flags[inotify_flags]) fd_inotify
 inotify_add_watch(fd fd_inotify, file filename, mask flags[inotify_mask]) inotifydesc
 inotify_rm_watch(fd fd_inotify, wd inotifydesc)
 fanotify_init(flags flags[fanotify_flags], events flags[fanotify_events]) fd_fanotify
-fanotify_mark(fd fd_fanotify, flags flags[fanotify_mark], mask flags[fanotify_mask], fd fd_dir, path filename)
+fanotify_mark(fd fd_fanotify, flags flags[fanotify_mark], mask flags[fanotify_mask], fddir fd_dir, path filename)
 
 link(old filename, new filename)
 linkat(oldfd fd_dir, old filename, newfd fd_dir, new filename, flags flags[linkat_flags])
@@ -548,8 +548,8 @@ stat {
 	mnsec	int32
 	ctime	int32
 	cnsec	int32
-	pad	int32
-	pad	int32
+	pad1	int32
+	pad2	int32
 }
 
 pollfd {
@@ -704,7 +704,6 @@ shmid_ds {
 	mode	int16
 	seq	int16
 	segsz	intptr
-	atime	intptr
 	atime	intptr
 	dtime	intptr
 	ctime	intptr
@@ -1038,12 +1037,12 @@ fiemap_extent {
 	logical	int64
 	phys	int64
 	len	int64
-	pad	const[0, int64]
-	pad	const[0, int64]
+	pad1	const[0, int64]
+	pad2	const[0, int64]
 	flags	flags[fiemap_extent_flags, int32]
-	pad	const[0, int32]
-	pad	const[0, int32]
-	pad	const[0, int32]
+	pad3	const[0, int32]
+	pad4	const[0, int32]
+	pad5	const[0, int32]
 }
 
 uffdio_api {
