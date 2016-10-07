@@ -29,7 +29,6 @@ type Config struct {
 	Cpu     int    // number of VM CPUs
 	Mem     int    // amount of VM memory in MBs
 	Sshkey  string // root ssh key for the image
-	Port    int    // VM ssh port to use
 	Bin     string // qemu/lkvm binary name
 	Debug   bool   // dump all VM output to console
 	Output  string // one of stdout/dmesg/file (useful only for local VM)
@@ -285,7 +284,6 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Cpu",
 		"Mem",
 		"Sshkey",
-		"Port",
 		"Bin",
 		"Debug",
 		"Output",
