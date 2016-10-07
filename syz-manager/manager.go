@@ -242,15 +242,6 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		return false
 	}
 
-	// Run an aux command with best effort.
-	runCommand := func(cmd string) {
-		_, errc, err := inst.Run(10*time.Second, cmd)
-		if err == nil {
-			<-errc
-		}
-	}
-	runCommand("echo -n 0 > /proc/sys/debug/exception-trace")
-
 	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
 	leak := first && mgr.cfg.Leak
 
