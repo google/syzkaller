@@ -10,7 +10,7 @@ endif
 
 all:
 	$(MAKE) generate
-	go install ./...
+	go install ./syz-manager ./syz-fuzzer
 	$(MAKE) manager
 	$(MAKE) fuzzer
 	$(MAKE) executor
@@ -51,8 +51,6 @@ bin/syz-extract: ./syz-extract
 
 generate: bin/syz-sysgen
 	bin/syz-sysgen
-	go generate ./...
-	$(MAKE) format
 bin/syz-sysgen: sysgen/*.go sysparser/*.go
 	go build -o $@ ./sysgen
 
@@ -62,6 +60,7 @@ format:
 
 presubmit:
 	$(MAKE) generate
+	go generate ./...
 	$(MAKE) format
 	ARCH=amd64 go install ./...
 	ARCH=arm64 go install ./...
