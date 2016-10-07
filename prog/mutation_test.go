@@ -47,9 +47,6 @@ next:
 }
 
 func TestMutateTable(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping in short mode")
-	}
 	tests := [][2]string{
 		// Insert calls.
 		{
@@ -120,11 +117,11 @@ func TestMutateTable(t *testing.T) {
 		// Extend an array.
 		{
 			"r0 = open(&(0x7f0000001000)=\"2e2f66696c653000\", 0x22c0, 0x1)\n" +
-				"readv(r0, &(0x7f0000000000)={{&(0x7f0000001000)=nil, 0x1}, {&(0x7f0000002000)=nil, 0x2}}, 0x2)\n",
+				"readv(r0, &(0x7f0000000000)=[{&(0x7f0000001000)=nil, 0x1}, {&(0x7f0000002000)=nil, 0x2}], 0x2)\n",
 
 			"mmap(&(0x7f0000000000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"r0 = open(&(0x7f0000001000)=\"2e2f66696c653000\", 0x22c0, 0x1)\n" +
-				"readv(r0, &(0x7f0000000000)={{&(0x7f0000001000)=nil, 0x1}, {&(0x7f0000002000)=nil, 0x2}, {&(0x7f0000000000)=nil, 0x3}}, 0x3)\n",
+				"readv(r0, &(0x7f0000000000)=[{&(0x7f0000001000)=nil, 0x1}, {&(0x7f0000002000)=nil, 0x2}, {&(0x7f0000000000)=nil, 0x3}], 0x3)\n",
 		},
 	}
 	rs, _ := initTest(t)
@@ -133,6 +130,9 @@ nextTest:
 		p, err := Deserialize([]byte(test[0]))
 		if err != nil {
 			t.Fatalf("failed to deserialize original program: %v", err)
+		}
+		if testing.Short() {
+			continue
 		}
 		for i := 0; i < 1e6; i++ {
 			p1 := p.Clone()
