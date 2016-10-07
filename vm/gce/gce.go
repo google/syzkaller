@@ -45,7 +45,8 @@ var (
 )
 
 func initGCE() {
-	GCE, err := gce.NewContext()
+	var err error
+	GCE, err = gce.NewContext()
 	if err != nil {
 		log.Fatalf("failed to init gce: %v", err)
 	}
