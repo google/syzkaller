@@ -1,8 +1,6 @@
 // Copyright 2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// sudo apt-get install golang-go clang-format
-
 package main
 
 import (
@@ -50,9 +48,13 @@ type Config struct {
 func main() {
 	flag.Parse()
 	cfg = readConfig(*flagConfig)
-	log.Printf("config: %+v", cfg)
 
-	var err error
+	gopath, err := filepath.Abs("gopath")
+	if err != nil {
+		fatalf("failed to get absolute path: %v", err)
+	}
+	os.Setenv("GOPATH", gopath)
+
 	ctx = context.Background()
 	storageClient, err = storage.NewClient(ctx)
 	if err != nil {
@@ -65,12 +67,12 @@ func main() {
 	}
 	log.Printf("gce initialized: running on %v, internal IP, %v project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
 
+	log.Printf("downloading image archive...")
 	archive, updated, err := openFile(cfg.Image_Archive)
 	if err != nil {
 		fatalf("%v", err)
 	}
-	log.Printf("archive updated: %v", updated)
-
+	_ = updated
 	if err := os.RemoveAll("image"); err != nil {
 		fatalf("failed to remove image dir: %v", err)
 	}
@@ -78,24 +80,27 @@ func main() {
 		fatalf("failed to download and extract %v: %v", cfg.Image_Archive, err)
 	}
 
+	log.Printf("uploading image...")
 	if err := uploadFile("image/disk.tar.gz", cfg.Image_Path); err != nil {
 		fatalf("failed to upload image: %v", err)
 	}
 
+	log.Printf("creating gce image...")
 	if err := GCE.DeleteImage(cfg.Image_Name); err != nil {
 		fatalf("failed to delete GCE image: %v", err)
 	}
-
 	if err := GCE.CreateImage(cfg.Image_Name, cfg.Image_Path); err != nil {
 		fatalf("failed to create GCE image: %v", err)
 	}
 
+	log.Printf("building syzkaller...")
 	syzBin, err := updateSyzkallerBuild()
 	if err != nil {
 		fatalf("failed to update/build syzkaller: %v", err)
 	}
 	_ = syzBin
 
+	log.Printf("starting syzkaller...")
 	if err := writeManagerConfig("manager.cfg"); err != nil {
 		fatalf("failed to write manager config: %v", err)
 	}
@@ -191,7 +196,7 @@ func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("extracting file: %v", hdr.Name)
+		log.Printf("extracting file: %v (%v bytes)", hdr.Name, hdr.Size)
 		if len(hdr.Name) == 0 || hdr.Name[len(hdr.Name)-1] == '/' {
 			continue
 		}
@@ -231,17 +236,11 @@ func uploadFile(localFile string, gcsFile string) error {
 }
 
 func updateSyzkallerBuild() (string, error) {
-	gopath, err := filepath.Abs("gopath")
-	if err != nil {
-		return "", err
-	}
 	goGet := exec.Command("go", "get", "-u", "-d", "github.com/google/syzkaller/syz-manager", "github.com/google/syzkaller/syz-gce")
-	goGet.Env = append([]string{"GOPATH=" + gopath}, os.Environ()...)
 	if output, err := goGet.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("%v\n%s", err, output)
 	}
 	makeCmd := exec.Command("make")
-	makeCmd.Env = append([]string{"GOPATH=" + gopath}, os.Environ()...)
 	makeCmd.Dir = "gopath/src/github.com/google/syzkaller"
 	if output, err := makeCmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("%v\n%s", err, output)
