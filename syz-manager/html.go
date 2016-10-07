@@ -445,9 +445,9 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 <table>
 	<caption>Crashes:</caption>
 	<tr>
-		<th>Description<th>
-		<th>Count<th>
-		<th>Last Time<th>
+		<th>Description</th>
+		<th>Count</th>
+		<th>Last Time</th>
 	</tr>
 	{{range $c := $.Crashes}}
 	<tr>
