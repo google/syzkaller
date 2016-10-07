@@ -9,7 +9,7 @@
 # - you need a user-space system, a basic Debian system can be created with:
 #   sudo debootstrap --include=openssh-server,curl,tar,time,strace stable debian
 # - you need qemu-nbd, grub and maybe something else:
-#   sudo apt-get install qemu-system-x86 grub
+#   sudo apt-get install qemu-utils grub
 # - you need nbd support in kernel, if it's compiled as module do:
 #   sudo modprobe nbd
 # - you need kernel to use with image (e.g. arch/x86/boot/bzImage)
