@@ -308,6 +308,9 @@ func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []by
 		if err := ioutil.WriteFile(fn, output, 0660); err != nil {
 			continue
 		}
+		if len(mgr.cfg.Tag) > 0 {
+			ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", i)), []byte(mgr.cfg.Tag), 0660)
+		}
 		if len(text) > 0 {
 			symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text)
 			if err != nil {
