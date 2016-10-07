@@ -21,8 +21,9 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/google/syzkaller/config"
+	"github.com/google/syzkaller/gce"
 	"golang.org/x/net/context"
-	"google.golang.org/api/compute/v0.beta"
 )
 
 var (
@@ -31,22 +32,25 @@ var (
 	cfg           *Config
 	ctx           context.Context
 	storageClient *storage.Client
-	computeService *compute.Service
+	GCE           *gce.Context
 )
 
 type Config struct {
-	Image_Archive string
-	Image_Path    string
-	Http_Port     int
-	Machine_Type  string
-	Machine_Count int
-	Sandbox       string
-	Procs         int
+	Image_Archive     string
+	Image_Path        string
+	Image_Name        string
+	Http_Port         int
+	Manager_Http_Port int
+	Machine_Type      string
+	Machine_Count     int
+	Sandbox           string
+	Procs             int
 }
 
 func main() {
 	flag.Parse()
 	cfg = readConfig(*flagConfig)
+	log.Printf("config: %+v", cfg)
 
 	var err error
 	ctx = context.Background()
@@ -55,12 +59,11 @@ func main() {
 		fatalf("failed to create cloud storage client: %v", err)
 	}
 
-	tokenSource, err := google.DefaultTokenSource(ctx, compute.CloudPlatformScope)
+	GCE, err = gce.NewContext()
 	if err != nil {
-		fatalf("failed to get a token source: %v", err)
+		log.Fatalf("failed to init gce: %v", err)
 	}
-	httpClient := oauth2.NewClient(ctx, tokenSource)
-	computeService, _ = compute.New(httpClient)
+	log.Printf("gce initialized: running on %v, internal IP, %v project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
 
 	archive, updated, err := openFile(cfg.Image_Archive)
 	if err != nil {
@@ -68,29 +71,43 @@ func main() {
 	}
 	log.Printf("archive updated: %v", updated)
 
-	if false {
-		if err := os.RemoveAll("image"); err != nil {
-			fatalf("failed to remove image dir: %v", err)
-		}
-		if err := downloadAndExtract(archive, "image"); err != nil {
-			fatalf("failed to download and extract %v: %v", cfg.Image_Archive, err)
-		}
+	if err := os.RemoveAll("image"); err != nil {
+		fatalf("failed to remove image dir: %v", err)
+	}
+	if err := downloadAndExtract(archive, "image"); err != nil {
+		fatalf("failed to download and extract %v: %v", cfg.Image_Archive, err)
+	}
 
 	if err := uploadFile("image/disk.tar.gz", cfg.Image_Path); err != nil {
 		fatalf("failed to upload image: %v", err)
 	}
+
+	if err := GCE.DeleteImage(cfg.Image_Name); err != nil {
+		fatalf("failed to delete GCE image: %v", err)
 	}
 
-
-		
-
-	if false {
-		syzBin, err := updateSyzkallerBuild()
-		if err != nil {
-			fatalf("failed to update/build syzkaller: %v", err)
-		}
-		_ = syzBin
+	if err := GCE.CreateImage(cfg.Image_Name, cfg.Image_Path); err != nil {
+		fatalf("failed to create GCE image: %v", err)
 	}
+
+	syzBin, err := updateSyzkallerBuild()
+	if err != nil {
+		fatalf("failed to update/build syzkaller: %v", err)
+	}
+	_ = syzBin
+
+	if err := writeManagerConfig("manager.cfg"); err != nil {
+		fatalf("failed to write manager config: %v", err)
+	}
+
+	manager := exec.Command("gopath/src/github.com/google/syzkaller/bin/syz-manager", "-config=manager.cfg")
+	manager.Stdout = os.Stdout
+	manager.Stderr = os.Stderr
+	if err := manager.Start(); err != nil {
+		fatalf("failed to start syz-manager: %v", err)
+	}
+	err = manager.Wait()
+	fatalf("syz-manager exited with: %v", err)
 }
 
 func readConfig(filename string) *Config {
@@ -106,6 +123,32 @@ func readConfig(filename string) *Config {
 		fatalf("failed to parse config file: %v", err)
 	}
 	return cfg
+}
+
+func writeManagerConfig(file string) error {
+	managerCfg := &config.Config{
+		Http:         fmt.Sprintf(":%v", cfg.Manager_Http_Port),
+		Rpc:          ":0",
+		Workdir:      "workdir",
+		Vmlinux:      "image/obj/vmlinux",
+		Syzkaller:    "gopath/src/github.com/google/syzkaller",
+		Type:         "gce",
+		Machine_Type: cfg.Machine_Type,
+		Count:        cfg.Machine_Count,
+		Image:        cfg.Image_Name,
+		Sshkey:       "image/key",
+		Sandbox:      cfg.Sandbox,
+		Procs:        cfg.Procs,
+		Cover:        true,
+	}
+	data, err := json.MarshalIndent(managerCfg, "", "\t")
+	if err != nil {
+		return err
+	}
+	if err := ioutil.WriteFile(file, data, 0600); err != nil {
+		return err
+	}
+	return nil
 }
 
 func openFile(file string) (*storage.ObjectHandle, time.Time, error) {
@@ -192,7 +235,7 @@ func updateSyzkallerBuild() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	goGet := exec.Command("go", "get", "-u", "-d", "github.com/google/syzkaller/syz-manager")
+	goGet := exec.Command("go", "get", "-u", "-d", "github.com/google/syzkaller/syz-manager", "github.com/google/syzkaller/syz-gce")
 	goGet.Env = append([]string{"GOPATH=" + gopath}, os.Environ()...)
 	if output, err := goGet.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("%v\n%s", err, output)
