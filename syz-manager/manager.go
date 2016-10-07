@@ -86,6 +86,7 @@ func main() {
 
 func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regexp.Regexp) {
 	crashdir := filepath.Join(cfg.Workdir, "crashes")
+	os.MkdirAll(crashdir)
 
 	enabledSyscalls := ""
 	if len(syscalls) != 0 {
