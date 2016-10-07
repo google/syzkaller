@@ -23,6 +23,7 @@ type Config struct {
 	Workdir string
 	Vmlinux string
 	Kernel  string // e.g. arch/x86/boot/bzImage
+	Tag     string // arbitrary optional tag that is saved along with crash reports (e.g. kernel branch/commit)
 	Cmdline string // kernel command line
 	Image   string // linux image for VMs
 	Initrd  string // linux initial ramdisk. (optional)
@@ -279,6 +280,7 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Workdir",
 		"Vmlinux",
 		"Kernel",
+		"Tag",
 		"Cmdline",
 		"Image",
 		"Cpu",
