@@ -296,31 +296,34 @@ func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []by
 	if err := ioutil.WriteFile(filepath.Join(dir, "description"), []byte(desc+"\n"), 0660); err != nil {
 		logf(0, "failed to write crash: %v", err)
 	}
-	const maxReports = 100 // save up to 100 reports
-	if matches, _ := filepath.Glob(filepath.Join(dir, "log*")); len(matches) >= maxReports {
-		return
+	// Save up to 100 reports. If we already have 100, overwrite the oldest one.
+	// Newer reports are generally more useful. Overwriting is also needed
+	// to be able to understand if a particular bug still happens or already fixed.
+	oldestI := 0
+	var oldestTime time.Time
+	for i := 0; i < 100; i++ {
+		info, err := os.Stat(filepath.Join(dir, fmt.Sprintf("log%v", i)))
+		if err != nil {
+			oldestI = i
+			break
+		}
+		if oldestTime.IsZero() || info.ModTime().Before(oldestTime) {
+			oldestI = i
+			oldestTime = info.ModTime()
+		}
 	}
-	for i := 0; i < maxReports; i++ {
-		fn := filepath.Join(dir, fmt.Sprintf("log%v", i))
-		if _, err := os.Stat(fn); err == nil {
-			continue
+	ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), output, 0660)
+	if len(mgr.cfg.Tag) > 0 {
+		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag), 0660)
+	}
+	if len(text) > 0 {
+		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text)
+		if err != nil {
+			logf(0, "failed to symbolize crash: %v", err)
+		} else {
+			text = symbolized
 		}
-		if err := ioutil.WriteFile(fn, output, 0660); err != nil {
-			continue
-		}
-		if len(mgr.cfg.Tag) > 0 {
-			ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", i)), []byte(mgr.cfg.Tag), 0660)
-		}
-		if len(text) > 0 {
-			symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text)
-			if err != nil {
-				logf(0, "failed to symbolize crash: %v", err)
-			} else {
-				text = symbolized
-			}
-			ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", i)), []byte(text), 0660)
-		}
-		break
+		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), []byte(text), 0660)
 	}
 }
 
