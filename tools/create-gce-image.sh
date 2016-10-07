@@ -85,7 +85,7 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod part_msdos
 	insmod ext2
 	set root='(hd0,1)'
-	linux /vmlinuz root=/dev/sda1 console=ttyS0,38400n8 debug console=ttyS0 earlyprintk=serial ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 panic=86400
+	linux /vmlinuz root=/dev/sda1 debug console=ttyS0 earlyprintk=serial ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 panic=86400
 }
 EOF
 grub-install --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
