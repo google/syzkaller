@@ -25,8 +25,9 @@ import (
 )
 
 var (
-	flagConfig    = flag.String("config", "", "config file")
-	flagNoRebuild = flag.Bool("norebuild", false, "don't download/create image, update/rebuild syzkaller (for testing)")
+	flagConfig        = flag.String("config", "", "config file")
+	flagNoImageCreate = flag.Bool("noimagecreate", false, "don't download/create image (for testing)")
+	flagNoRebuild     = flag.Bool("norebuild", false, "don't update/rebuild syzkaller (for testing)")
 
 	cfg           *Config
 	ctx           context.Context
@@ -70,7 +71,7 @@ func main() {
 	}
 	Logf(0, "gce initialized: running on %v, internal IP, %v project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
 
-	if !*flagNoRebuild {
+	if !*flagNoImageCreate {
 		Logf(0, "downloading image archive...")
 		archive, updated, err := openFile(cfg.Image_Archive)
 		if err != nil {
@@ -96,7 +97,9 @@ func main() {
 		if err := GCE.CreateImage(cfg.Image_Name, cfg.Image_Path); err != nil {
 			Fatalf("failed to create GCE image: %v", err)
 		}
+	}
 
+	if !*flagNoRebuild {
 		Logf(0, "building syzkaller...")
 		syzBin, err := updateSyzkallerBuild()
 		if err != nil {
