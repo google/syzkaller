@@ -25,7 +25,8 @@ import (
 )
 
 var (
-	flagConfig = flag.String("config", "", "config file")
+	flagConfig    = flag.String("config", "", "config file")
+	flagNoRebuild = flag.Bool("norebuild", false, "don't download/create image, update/rebuild syzkaller (for testing)")
 
 	cfg           *Config
 	ctx           context.Context
@@ -48,6 +49,7 @@ type Config struct {
 func main() {
 	flag.Parse()
 	cfg = readConfig(*flagConfig)
+	initHttp(fmt.Sprintf(":%v", cfg.Http_Port))
 
 	gopath, err := filepath.Abs("gopath")
 	if err != nil {
@@ -67,38 +69,40 @@ func main() {
 	}
 	Logf(0, "gce initialized: running on %v, internal IP, %v project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
 
-	Logf(0, "downloading image archive...")
-	archive, updated, err := openFile(cfg.Image_Archive)
-	if err != nil {
-		Fatalf("%v", err)
-	}
-	_ = updated
-	if err := os.RemoveAll("image"); err != nil {
-		Fatalf("failed to remove image dir: %v", err)
-	}
-	if err := downloadAndExtract(archive, "image"); err != nil {
-		Fatalf("failed to download and extract %v: %v", cfg.Image_Archive, err)
-	}
+	if !*flagNoRebuild {
+		Logf(0, "downloading image archive...")
+		archive, updated, err := openFile(cfg.Image_Archive)
+		if err != nil {
+			Fatalf("%v", err)
+		}
+		_ = updated
+		if err := os.RemoveAll("image"); err != nil {
+			Fatalf("failed to remove image dir: %v", err)
+		}
+		if err := downloadAndExtract(archive, "image"); err != nil {
+			Fatalf("failed to download and extract %v: %v", cfg.Image_Archive, err)
+		}
 
-	Logf(0, "uploading image...")
-	if err := uploadFile("image/disk.tar.gz", cfg.Image_Path); err != nil {
-		Fatalf("failed to upload image: %v", err)
-	}
+		Logf(0, "uploading image...")
+		if err := uploadFile("image/disk.tar.gz", cfg.Image_Path); err != nil {
+			Fatalf("failed to upload image: %v", err)
+		}
 
-	Logf(0, "creating gce image...")
-	if err := GCE.DeleteImage(cfg.Image_Name); err != nil {
-		Fatalf("failed to delete GCE image: %v", err)
-	}
-	if err := GCE.CreateImage(cfg.Image_Name, cfg.Image_Path); err != nil {
-		Fatalf("failed to create GCE image: %v", err)
-	}
+		Logf(0, "creating gce image...")
+		if err := GCE.DeleteImage(cfg.Image_Name); err != nil {
+			Fatalf("failed to delete GCE image: %v", err)
+		}
+		if err := GCE.CreateImage(cfg.Image_Name, cfg.Image_Path); err != nil {
+			Fatalf("failed to create GCE image: %v", err)
+		}
 
-	Logf(0, "building syzkaller...")
-	syzBin, err := updateSyzkallerBuild()
-	if err != nil {
-		Fatalf("failed to update/build syzkaller: %v", err)
+		Logf(0, "building syzkaller...")
+		syzBin, err := updateSyzkallerBuild()
+		if err != nil {
+			Fatalf("failed to update/build syzkaller: %v", err)
+		}
+		_ = syzBin
 	}
-	_ = syzBin
 
 	Logf(0, "starting syzkaller...")
 	if err := writeManagerConfig("manager.cfg"); err != nil {
