@@ -27,7 +27,10 @@ func initHttp(addr string) {
 }
 
 func httpSummary(w http.ResponseWriter, r *http.Request) {
-	if err := summaryTemplate.Execute(w, nil); err != nil {
+	data := &UISummaryData{
+		Log: CachedLogOutput(),
+	}
+	if err := summaryTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -35,6 +38,10 @@ func httpSummary(w http.ResponseWriter, r *http.Request) {
 
 func compileTemplate(html string) *template.Template {
 	return template.Must(template.New("").Parse(strings.Replace(html, "{{STYLE}}", htmlStyle, -1)))
+}
+
+type UISummaryData struct {
+	Log string
 }
 
 var summaryTemplate = compileTemplate(`
@@ -45,7 +52,16 @@ var summaryTemplate = compileTemplate(`
 	{{STYLE}}
 </head>
 <body>
-syz-gce
+<b>syz-gce</b>
+<br>
+<br>
+
+Log:
+<br>
+<textarea readonly rows="50">
+{{.Log}}
+</textarea>
+
 </body></html>
 `)
 
@@ -57,6 +73,9 @@ const htmlStyle = `
 		}
 		table td {
 			border:1px solid;
+		}
+		textarea {
+			width:100%;
 		}
 	</style>
 `
