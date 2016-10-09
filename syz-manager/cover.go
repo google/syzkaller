@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/cover"
+	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/symbolizer"
 )
 
@@ -61,7 +62,7 @@ func initAllCover(vmlinux string) {
 			sort.Sort(uint64Array(pcs))
 			allCoverPCs = pcs
 		} else {
-			logf(0, "failed to run objdump on %v: %v", vmlinux, err)
+			Logf(0, "failed to run objdump on %v: %v", vmlinux, err)
 		}
 		close(allCoverReady)
 	}()

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,6 +20,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/gce"
+	. "github.com/google/syzkaller/log"
 	"golang.org/x/net/context"
 )
 
@@ -51,81 +51,81 @@ func main() {
 
 	gopath, err := filepath.Abs("gopath")
 	if err != nil {
-		fatalf("failed to get absolute path: %v", err)
+		Fatalf("failed to get absolute path: %v", err)
 	}
 	os.Setenv("GOPATH", gopath)
 
 	ctx = context.Background()
 	storageClient, err = storage.NewClient(ctx)
 	if err != nil {
-		fatalf("failed to create cloud storage client: %v", err)
+		Fatalf("failed to create cloud storage client: %v", err)
 	}
 
 	GCE, err = gce.NewContext()
 	if err != nil {
-		log.Fatalf("failed to init gce: %v", err)
+		Fatalf("failed to init gce: %v", err)
 	}
-	log.Printf("gce initialized: running on %v, internal IP, %v project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
+	Logf(0, "gce initialized: running on %v, internal IP, %v project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
 
-	log.Printf("downloading image archive...")
+	Logf(0, "downloading image archive...")
 	archive, updated, err := openFile(cfg.Image_Archive)
 	if err != nil {
-		fatalf("%v", err)
+		Fatalf("%v", err)
 	}
 	_ = updated
 	if err := os.RemoveAll("image"); err != nil {
-		fatalf("failed to remove image dir: %v", err)
+		Fatalf("failed to remove image dir: %v", err)
 	}
 	if err := downloadAndExtract(archive, "image"); err != nil {
-		fatalf("failed to download and extract %v: %v", cfg.Image_Archive, err)
+		Fatalf("failed to download and extract %v: %v", cfg.Image_Archive, err)
 	}
 
-	log.Printf("uploading image...")
+	Logf(0, "uploading image...")
 	if err := uploadFile("image/disk.tar.gz", cfg.Image_Path); err != nil {
-		fatalf("failed to upload image: %v", err)
+		Fatalf("failed to upload image: %v", err)
 	}
 
-	log.Printf("creating gce image...")
+	Logf(0, "creating gce image...")
 	if err := GCE.DeleteImage(cfg.Image_Name); err != nil {
-		fatalf("failed to delete GCE image: %v", err)
+		Fatalf("failed to delete GCE image: %v", err)
 	}
 	if err := GCE.CreateImage(cfg.Image_Name, cfg.Image_Path); err != nil {
-		fatalf("failed to create GCE image: %v", err)
+		Fatalf("failed to create GCE image: %v", err)
 	}
 
-	log.Printf("building syzkaller...")
+	Logf(0, "building syzkaller...")
 	syzBin, err := updateSyzkallerBuild()
 	if err != nil {
-		fatalf("failed to update/build syzkaller: %v", err)
+		Fatalf("failed to update/build syzkaller: %v", err)
 	}
 	_ = syzBin
 
-	log.Printf("starting syzkaller...")
+	Logf(0, "starting syzkaller...")
 	if err := writeManagerConfig("manager.cfg"); err != nil {
-		fatalf("failed to write manager config: %v", err)
+		Fatalf("failed to write manager config: %v", err)
 	}
 
 	manager := exec.Command("gopath/src/github.com/google/syzkaller/bin/syz-manager", "-config=manager.cfg")
 	manager.Stdout = os.Stdout
 	manager.Stderr = os.Stderr
 	if err := manager.Start(); err != nil {
-		fatalf("failed to start syz-manager: %v", err)
+		Fatalf("failed to start syz-manager: %v", err)
 	}
 	err = manager.Wait()
-	fatalf("syz-manager exited with: %v", err)
+	Fatalf("syz-manager exited with: %v", err)
 }
 
 func readConfig(filename string) *Config {
 	if filename == "" {
-		fatalf("supply config in -config flag")
+		Fatalf("supply config in -config flag")
 	}
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fatalf("failed to read config file: %v", err)
+		Fatalf("failed to read config file: %v", err)
 	}
 	cfg := new(Config)
 	if err := json.Unmarshal(data, cfg); err != nil {
-		fatalf("failed to parse config file: %v", err)
+		Fatalf("failed to parse config file: %v", err)
 	}
 	return cfg
 }
@@ -196,7 +196,7 @@ func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
 		if err != nil {
 			return err
 		}
-		log.Printf("extracting file: %v (%v bytes)", hdr.Name, hdr.Size)
+		Logf(0, "extracting file: %v (%v bytes)", hdr.Name, hdr.Size)
 		if len(hdr.Name) == 0 || hdr.Name[len(hdr.Name)-1] == '/' {
 			continue
 		}
@@ -246,8 +246,4 @@ func updateSyzkallerBuild() (string, error) {
 		return "", fmt.Errorf("%v\n%s", err, output)
 	}
 	return "gopath/src/github.com/google/syzkaller/bin", nil
-}
-
-func fatalf(msg string, args ...interface{}) {
-	log.Fatalf(msg, args...)
 }

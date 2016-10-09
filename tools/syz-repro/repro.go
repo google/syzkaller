@@ -7,7 +7,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -18,6 +17,7 @@ import (
 	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/csource"
 	"github.com/google/syzkaller/fileutil"
+	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/report"
 	"github.com/google/syzkaller/vm"
@@ -47,24 +47,24 @@ func main() {
 	flag.Parse()
 	cfg, _, _, err := config.Parse(*flagConfig)
 	if err != nil {
-		log.Fatalf("%v", err)
+		Fatalf("%v", err)
 	}
 	if *flagCount > 0 {
 		cfg.Count = *flagCount
 	}
 	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-execprog")); err != nil {
-		log.Fatalf("bin/syz-execprog is missing (run 'make execprog')")
+		Fatalf("bin/syz-execprog is missing (run 'make execprog')")
 	}
 
 	if len(flag.Args()) != 1 {
-		log.Fatalf("usage: syz-repro -config=config.file execution.log")
+		Fatalf("usage: syz-repro -config=config.file execution.log")
 	}
 	data, err := ioutil.ReadFile(flag.Args()[0])
 	if err != nil {
-		log.Fatalf("failed to open log file: %v", err)
+		Fatalf("failed to open log file: %v", err)
 	}
 	entries := prog.ParseLog(data)
-	log.Printf("parsed %v programs", len(entries))
+	Logf(0, "parsed %v programs", len(entries))
 
 	crashDesc, _, crashStart, _ := report.Parse(data)
 	if crashDesc == "" {
@@ -79,19 +79,19 @@ func main() {
 			for index := range bootRequests {
 				vmCfg, err := config.CreateVMConfig(cfg, index)
 				if err != nil {
-					log.Fatalf("failed to create VM config: %v", err)
+					Fatalf("failed to create VM config: %v", err)
 				}
 				inst, err := vm.Create(cfg.Type, vmCfg)
 				if err != nil {
-					log.Fatalf("failed to create VM: %v", err)
+					Fatalf("failed to create VM: %v", err)
 				}
 				execprogBin, err := inst.Copy(filepath.Join(cfg.Syzkaller, "bin/syz-execprog"))
 				if err != nil {
-					log.Fatalf("failed to copy to VM: %v", err)
+					Fatalf("failed to copy to VM: %v", err)
 				}
 				executorBin, err := inst.Copy(filepath.Join(cfg.Syzkaller, "bin/syz-executor"))
 				if err != nil {
-					log.Fatalf("failed to copy to VM: %v", err)
+					Fatalf("failed to copy to VM: %v", err)
 				}
 				instances <- VM{inst, index, execprogBin, executorBin}
 			}
@@ -103,9 +103,9 @@ func main() {
 		signal.Notify(c, syscall.SIGINT)
 		<-c
 		close(shutdown)
-		log.Printf("shutting down...")
+		Logf(-1, "shutting down...")
 		<-c
-		log.Fatalf("terminating")
+		Fatalf("terminating")
 	}()
 
 	repro(cfg, entries, crashStart)
@@ -146,9 +146,9 @@ func repro(cfg *config.Config, entries []*prog.LogEntry, crashStart int) {
 		suspected = append(suspected, entries[indices[i]])
 	}
 	// Execute the suspected programs.
-	log.Printf("the suspected programs are:")
+	Logf(0, "the suspected programs are:")
 	for _, ent := range suspected {
-		log.Printf("on proc %v:\n%s\n", ent.Proc, ent.P.Serialize())
+		Logf(0, "on proc %v:\n%s\n", ent.Proc, ent.P.Serialize())
 	}
 	var p *prog.Prog
 	multiplier := 1
@@ -161,10 +161,10 @@ func repro(cfg *config.Config, entries []*prog.LogEntry, crashStart int) {
 		}
 	}
 	if p == nil {
-		log.Printf("no program crashed")
+		Logf(0, "no program crashed")
 		return
 	}
-	log.Printf("minimizing program")
+	Logf(0, "minimizing program")
 
 	p, _ = prog.Minimize(p, -1, func(p1 *prog.Prog, callIndex int) bool {
 		return testProg(cfg, p1, multiplier, true, true)
@@ -183,14 +183,14 @@ func repro(cfg *config.Config, entries []*prog.LogEntry, crashStart int) {
 
 	src := csource.Write(p, opts)
 	src, _ = csource.Format(src)
-	log.Printf("C source:\n%s\n", src)
+	Logf(0, "C source:\n%s\n", src)
 	srcf, err := fileutil.WriteTempFile(src)
 	if err != nil {
-		log.Fatalf("%v", err)
+		Fatalf("%v", err)
 	}
 	bin, err := csource.Build(srcf)
 	if err != nil {
-		log.Fatalf("%v", err)
+		Fatalf("%v", err)
 	}
 	defer os.Remove(bin)
 	testBin(cfg, bin)
@@ -208,7 +208,7 @@ func returnInstance(inst VM, res bool) {
 }
 
 func testProg(cfg *config.Config, p *prog.Prog, multiplier int, threaded, collide bool) (res bool) {
-	log.Printf("booting VM")
+	Logf(0, "booting VM")
 	var inst VM
 	select {
 	case inst = <-instances:
@@ -222,12 +222,12 @@ func testProg(cfg *config.Config, p *prog.Prog, multiplier int, threaded, collid
 	pstr := p.Serialize()
 	progFile, err := fileutil.WriteTempFile(pstr)
 	if err != nil {
-		log.Fatalf("%v", err)
+		Fatalf("%v", err)
 	}
 	defer os.Remove(progFile)
 	bin, err := inst.Copy(progFile)
 	if err != nil {
-		log.Fatalf("failed to copy to VM: %v", err)
+		Fatalf("failed to copy to VM: %v", err)
 	}
 
 	repeat := 100
@@ -241,13 +241,13 @@ func testProg(cfg *config.Config, p *prog.Prog, multiplier int, threaded, collid
 	timeout := time.Duration(timeoutSec) * time.Second
 	command := fmt.Sprintf("%v -executor %v -cover=0 -procs=%v -repeat=%v -sandbox %v -threaded=%v -collide=%v %v",
 		inst.execprogBin, inst.executorBin, cfg.Procs, repeat, cfg.Sandbox, threaded, collide, bin)
-	log.Printf("testing program (threaded=%v, collide=%v, repeat=%v, timeout=%v):\n%s\n",
+	Logf(0, "testing program (threaded=%v, collide=%v, repeat=%v, timeout=%v):\n%s\n",
 		threaded, collide, repeat, timeout, pstr)
 	return testImpl(inst, command, timeout)
 }
 
 func testBin(cfg *config.Config, bin string) (res bool) {
-	log.Printf("booting VM")
+	Logf(0, "booting VM")
 	var inst VM
 	select {
 	case inst = <-instances:
@@ -260,23 +260,23 @@ func testBin(cfg *config.Config, bin string) (res bool) {
 
 	bin, err := inst.Copy(bin)
 	if err != nil {
-		log.Fatalf("failed to copy to VM: %v", err)
+		Fatalf("failed to copy to VM: %v", err)
 	}
-	log.Printf("testing compiled C program")
+	Logf(0, "testing compiled C program")
 	return testImpl(inst, bin, 10*time.Second)
 }
 
 func testImpl(inst vm.Instance, command string, timeout time.Duration) (res bool) {
 	outc, errc, err := inst.Run(timeout, command)
 	if err != nil {
-		log.Fatalf("failed to run command in VM: %v", err)
+		Fatalf("failed to run command in VM: %v", err)
 	}
 	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, false, false)
 	_, _ = text, output
 	if crashed || timedout {
-		log.Printf("program crashed with: %v", desc)
+		Logf(0, "program crashed with: %v", desc)
 		return true
 	}
-	log.Printf("program did not crash")
+	Logf(0, "program did not crash")
 	return false
 }

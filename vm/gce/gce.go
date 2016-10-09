@@ -14,7 +14,6 @@ package gce
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,6 +21,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/gce"
+	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -48,9 +48,9 @@ func initGCE() {
 	var err error
 	GCE, err = gce.NewContext()
 	if err != nil {
-		log.Fatalf("failed to init gce: %v", err)
+		Fatalf("failed to init gce: %v", err)
 	}
-	log.Printf("gce initialized: running on %v, internal IP, %v project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
+	Logf(0, "gce initialized: running on %v, internal IP, %v project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
 }
 
 func ctor(cfg *vm.Config) (vm.Instance, error) {
@@ -74,11 +74,11 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 		return nil, fmt.Errorf("failed to read file: %v", err)
 	}
 
-	log.Printf("deleting instance: %v", name)
+	Logf(0, "deleting instance: %v", name)
 	if err := GCE.DeleteInstance(name); err != nil {
 		return nil, err
 	}
-	log.Printf("creating instance: %v", name)
+	Logf(0, "creating instance: %v", name)
 	ip, err := GCE.CreateInstance(name, cfg.MachineType, cfg.Image, string(sshkeyPub))
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 			GCE.DeleteInstance(name)
 		}
 	}()
-	log.Printf("wait instance to boot: %v (%v)", name, ip)
+	Logf(0, "wait instance to boot: %v (%v)", name, ip)
 	if err := waitInstanceBoot(ip, cfg.Sshkey); err != nil {
 		return nil, err
 	}

@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/rpc"
 	"net/rpc/jsonrpc"
@@ -24,6 +23,7 @@ import (
 
 	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/cover"
+	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/report"
 	. "github.com/google/syzkaller/rpctype"
@@ -38,7 +38,6 @@ import (
 
 var (
 	flagConfig = flag.String("config", "", "configuration file")
-	flagV      = flag.Int("v", 0, "verbosity")
 	flagDebug  = flag.Bool("debug", false, "dump all VM output to console")
 )
 
@@ -74,7 +73,7 @@ func main() {
 	flag.Parse()
 	cfg, syscalls, suppressions, err := config.Parse(*flagConfig)
 	if err != nil {
-		fatalf("%v", err)
+		Fatalf("%v", err)
 	}
 	if *flagDebug {
 		cfg.Debug = true
@@ -95,7 +94,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 			fmt.Fprintf(buf, ",%v", c)
 		}
 		enabledSyscalls = buf.String()[1:]
-		logf(1, "enabled syscalls: %v", enabledSyscalls)
+		Logf(1, "enabled syscalls: %v", enabledSyscalls)
 	}
 
 	mgr := &Manager{
@@ -109,10 +108,10 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		fuzzers:         make(map[string]*Fuzzer),
 	}
 
-	logf(0, "loading corpus...")
+	Logf(0, "loading corpus...")
 	mgr.persistentCorpus = newPersistentSet(filepath.Join(cfg.Workdir, "corpus"), func(data []byte) bool {
 		if _, err := prog.Deserialize(data); err != nil {
-			logf(0, "deleting broken program: %v\n%s", err, data)
+			Logf(0, "deleting broken program: %v\n%s", err, data)
 			return false
 		}
 		return true
@@ -120,7 +119,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 	for _, data := range mgr.persistentCorpus.a {
 		p, err := prog.Deserialize(data)
 		if err != nil {
-			fatalf("failed to deserialize program: %v", err)
+			Fatalf("failed to deserialize program: %v", err)
 		}
 		disabled := false
 		for _, c := range p.Calls {
@@ -139,7 +138,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		}
 		mgr.candidates = append(mgr.candidates, data)
 	}
-	logf(0, "loaded %v programs", len(mgr.persistentCorpus.m))
+	Logf(0, "loaded %v programs", len(mgr.persistentCorpus.m))
 
 	// Create HTTP server.
 	mgr.initHttp()
@@ -147,9 +146,9 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 	// Create RPC server for fuzzers.
 	ln, err := net.Listen("tcp", cfg.Rpc)
 	if err != nil {
-		fatalf("failed to listen on %v: %v", cfg.Rpc, err)
+		Fatalf("failed to listen on %v: %v", cfg.Rpc, err)
 	}
-	logf(0, "serving rpc on tcp://%v", ln.Addr())
+	Logf(0, "serving rpc on tcp://%v", ln.Addr())
 	mgr.port = ln.Addr().(*net.TCPAddr).Port
 	s := rpc.NewServer()
 	s.Register(mgr)
@@ -157,14 +156,14 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				logf(0, "failed to accept an rpc connection: %v", err)
+				Logf(0, "failed to accept an rpc connection: %v", err)
 				continue
 			}
 			go s.ServeCodec(jsonrpc.NewServerCodec(conn))
 		}
 	}()
 
-	logf(0, "booting test machines...")
+	Logf(0, "booting test machines...")
 	var shutdown uint32
 	var wg sync.WaitGroup
 	wg.Add(cfg.Count + 1)
@@ -178,7 +177,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 					break
 				}
 				if err != nil {
-					fatalf("failed to create VM config: %v", err)
+					Fatalf("failed to create VM config: %v", err)
 				}
 				ok := mgr.runInstance(vmCfg, i == 0)
 				if atomic.LoadUint32(&shutdown) != 0 {
@@ -198,7 +197,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 			executed := mgr.stats["exec total"]
 			crashes := mgr.stats["crashes"]
 			mgr.mu.Unlock()
-			logf(0, "executed programs: %v, crashes: %v", executed, crashes)
+			Logf(0, "executed programs: %v, crashes: %v", executed, crashes)
 		}
 	}()
 
@@ -207,13 +206,13 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		signal.Notify(c, syscall.SIGINT)
 		<-c
 		wg.Done()
-		*flagV = -1 // VMs will fail
+		DisableLog() // VMs will fail
 		atomic.StoreUint32(&mgr.shutdown, 1)
 		close(vm.Shutdown)
-		logf(-1, "shutting down...")
+		Logf(-1, "shutting down...")
 		atomic.StoreUint32(&shutdown, 1)
 		<-c
-		log.Fatalf("terminating")
+		Fatalf("terminating")
 	}()
 	wg.Wait()
 }
@@ -221,24 +220,24 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	inst, err := vm.Create(mgr.cfg.Type, vmCfg)
 	if err != nil {
-		logf(0, "failed to create instance: %v", err)
+		Logf(0, "failed to create instance: %v", err)
 		return false
 	}
 	defer inst.Close()
 
 	fwdAddr, err := inst.Forward(mgr.port)
 	if err != nil {
-		logf(0, "failed to setup port forwarding: %v", err)
+		Logf(0, "failed to setup port forwarding: %v", err)
 		return false
 	}
 	fuzzerBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin", "syz-fuzzer"))
 	if err != nil {
-		logf(0, "failed to copy binary: %v", err)
+		Logf(0, "failed to copy binary: %v", err)
 		return false
 	}
 	executorBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin", "syz-executor"))
 	if err != nil {
-		logf(0, "failed to copy binary: %v", err)
+		Logf(0, "failed to copy binary: %v", err)
 		return false
 	}
 
@@ -254,14 +253,14 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 		"%v -executor=%v -name=%v -manager=%v -output=%v -procs=%v -leak=%v -cover=%v -sandbox=%v -debug=%v -v=%d",
 		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, fuzzerV))
 	if err != nil {
-		logf(0, "failed to run fuzzer: %v", err)
+		Logf(0, "failed to run fuzzer: %v", err)
 		return false
 	}
 
 	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.cfg.Type == "local", true)
 	if timedout {
 		// This is the only "OK" outcome.
-		logf(0, "%v: running long enough, restarting", vmCfg.Name)
+		Logf(0, "%v: running long enough, restarting", vmCfg.Name)
 	} else {
 		if !crashed {
 			// syz-fuzzer exited, but it should not.
@@ -280,7 +279,7 @@ func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []by
 	}
 	for _, re := range mgr.suppressions {
 		if re.Match(output) {
-			logf(1, "%v: suppressing '%v' with '%v'", vmCfg.Name, desc, re.String())
+			Logf(1, "%v: suppressing '%v' with '%v'", vmCfg.Name, desc, re.String())
 			mgr.mu.Lock()
 			mgr.stats["suppressed"]++
 			mgr.mu.Unlock()
@@ -288,7 +287,7 @@ func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []by
 		}
 	}
 
-	logf(0, "%v: crash: %v", vmCfg.Name, desc)
+	Logf(0, "%v: crash: %v", vmCfg.Name, desc)
 	mgr.mu.Lock()
 	mgr.stats["crashes"]++
 	mgr.mu.Unlock()
@@ -298,7 +297,7 @@ func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []by
 	dir := filepath.Join(mgr.crashdir, id)
 	os.MkdirAll(dir, 0700)
 	if err := ioutil.WriteFile(filepath.Join(dir, "description"), []byte(desc+"\n"), 0660); err != nil {
-		logf(0, "failed to write crash: %v", err)
+		Logf(0, "failed to write crash: %v", err)
 	}
 	// Save up to 100 reports. If we already have 100, overwrite the oldest one.
 	// Newer reports are generally more useful. Overwriting is also needed
@@ -323,7 +322,7 @@ func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []by
 	if len(text) > 0 {
 		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text)
 		if err != nil {
-			logf(0, "failed to symbolize crash: %v", err)
+			Logf(0, "failed to symbolize crash: %v", err)
 		} else {
 			text = symbolized
 		}
@@ -352,7 +351,7 @@ func (mgr *Manager) minimizeCorpus() {
 				newCorpus = append(newCorpus, c.inputs[idx])
 			}
 		}
-		logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
+		Logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
 		mgr.corpus = newCorpus
 	}
 	var corpus []*prog.Prog
@@ -380,7 +379,7 @@ func (mgr *Manager) minimizeCorpus() {
 }
 
 func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
-	logf(1, "fuzzer %v connected", a.Name)
+	Logf(1, "fuzzer %v connected", a.Name)
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -401,7 +400,7 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 }
 
 func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
-	logf(2, "new input from %v for syscall %v", a.Name, a.Call)
+	Logf(2, "new input from %v for syscall %v", a.Name, a.Call)
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -417,7 +416,7 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 }
 
 func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
-	logf(2, "poll from %v", a.Name)
+	Logf(2, "poll from %v", a.Name)
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -427,7 +426,7 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 
 	f := mgr.fuzzers[a.Name]
 	if f == nil {
-		fatalf("fuzzer %v is not connected", a.Name)
+		Fatalf("fuzzer %v is not connected", a.Name)
 	}
 
 	for i := 0; i < 100 && f.input < len(mgr.corpus); i++ {
@@ -445,14 +444,4 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 	}
 
 	return nil
-}
-
-func logf(v int, msg string, args ...interface{}) {
-	if *flagV >= v {
-		log.Printf(msg, args...)
-	}
-}
-
-func fatalf(msg string, args ...interface{}) {
-	log.Fatalf(msg, args...)
 }

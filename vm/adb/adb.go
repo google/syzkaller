@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -99,7 +99,7 @@ func (inst *instance) findConsole() error {
 	}
 	inst.console = "/dev/" + filepath.Base(files[0])
 	consoleCache[inst.cfg.Device] = inst.console
-	log.Printf("associating adb device %v with console %v", inst.cfg.Device, inst.console)
+	Logf(0, "associating adb device %v with console %v", inst.cfg.Device, inst.console)
 	return nil
 }
 
@@ -114,7 +114,7 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) adb(args ...string) ([]byte, error) {
 	if inst.cfg.Debug {
-		log.Printf("executing adb %+v", args)
+		Logf(0, "executing adb %+v", args)
 	}
 	rpipe, wpipe, err := os.Pipe()
 	if err != nil {
@@ -134,7 +134,7 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 		select {
 		case <-time.After(time.Minute):
 			if inst.cfg.Debug {
-				log.Printf("adb hanged")
+				Logf(0, "adb hanged")
 			}
 			cmd.Process.Kill()
 		case <-done:
@@ -144,13 +144,13 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 		close(done)
 		out, _ := ioutil.ReadAll(rpipe)
 		if inst.cfg.Debug {
-			log.Printf("adb failed: %v\n%s", err, out)
+			Logf(0, "adb failed: %v\n%s", err, out)
 		}
 		return nil, fmt.Errorf("adb %+v failed: %v\n%s", args, err, out)
 	}
 	close(done)
 	if inst.cfg.Debug {
-		log.Printf("adb returned")
+		Logf(0, "adb returned")
 	}
 	out, _ := ioutil.ReadAll(rpipe)
 	return out, nil
@@ -199,11 +199,11 @@ func (inst *instance) checkBatteryLevel() error {
 		return err
 	}
 	if val >= minLevel {
-		log.Printf("device %v: battery level %v%%, OK", inst.cfg.Device, val)
+		Logf(0, "device %v: battery level %v%%, OK", inst.cfg.Device, val)
 		return nil
 	}
 	for {
-		log.Printf("device %v: battery level %v%%, waiting for %v%%", inst.cfg.Device, val, requiredLevel)
+		Logf(0, "device %v: battery level %v%%, waiting for %v%%", inst.cfg.Device, val, requiredLevel)
 		if !vm.SleepInterruptible(time.Minute) {
 			return nil
 		}
@@ -272,7 +272,7 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 	go func() {
 		err := cat.Wait()
 		if inst.cfg.Debug {
-			log.Printf("cat exited: %v", err)
+			Logf(0, "cat exited: %v", err)
 		}
 		catDone <- fmt.Errorf("cat exited: %v", err)
 	}()
@@ -284,7 +284,7 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 		return nil, nil, err
 	}
 	if inst.cfg.Debug {
-		log.Printf("starting: adb shell %v", command)
+		Logf(0, "starting: adb shell %v", command)
 	}
 	adb := exec.Command(inst.cfg.Bin, "-s", inst.cfg.Device, "shell", "cd /data; "+command)
 	adb.Stdout = adbWpipe
@@ -301,7 +301,7 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 	go func() {
 		err := adb.Wait()
 		if inst.cfg.Debug {
-			log.Printf("adb exited: %v", err)
+			Logf(0, "adb exited: %v", err)
 		}
 		adbDone <- fmt.Errorf("adb exited: %v", err)
 	}()
@@ -330,7 +330,7 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 			adb.Process.Kill()
 		case <-inst.closed:
 			if inst.cfg.Debug {
-				log.Printf("instance closed")
+				Logf(0, "instance closed")
 			}
 			signal(fmt.Errorf("instance closed"))
 			cat.Process.Kill()

@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"os"
 	"regexp"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/google/syzkaller/host"
 	"github.com/google/syzkaller/ipc"
+	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys"
 )
@@ -41,7 +41,7 @@ const programLength = 30
 func main() {
 	flag.Parse()
 	corpus := readCorpus()
-	log.Printf("parsed %v programs", len(corpus))
+	Logf(0, "parsed %v programs", len(corpus))
 
 	calls := buildCallList()
 	prios := prog.CalculatePriorities(corpus)
@@ -49,7 +49,7 @@ func main() {
 
 	flags, timeout, err := ipc.DefaultFlags()
 	if err != nil {
-		failf("%v", err)
+		Fatalf("%v", err)
 	}
 	gate = ipc.NewGate(2**flagProcs, nil)
 	for pid := 0; pid < *flagProcs; pid++ {
@@ -57,7 +57,7 @@ func main() {
 		go func() {
 			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
 			if err != nil {
-				failf("failed to create execution environment: %v", err)
+				Fatalf("failed to create execution environment: %v", err)
 			}
 			rs := rand.NewSource(time.Now().UnixNano() + int64(pid)*1e12)
 			rnd := rand.New(rs)
@@ -79,7 +79,7 @@ func main() {
 		}()
 	}
 	for range time.NewTicker(5 * time.Second).C {
-		log.Printf("executed %v programs", atomic.LoadUint64(&statExec))
+		Logf(0, "executed %v programs", atomic.LoadUint64(&statExec))
 	}
 }
 
@@ -117,21 +117,21 @@ func readCorpus() []*prog.Prog {
 	}
 	zipr, err := zip.OpenReader(*flagCorpus)
 	if err != nil {
-		failf("failed to open bin file: %v", err)
+		Fatalf("failed to open bin file: %v", err)
 	}
 	var progs []*prog.Prog
 	for _, zipf := range zipr.File {
 		r, err := zipf.Open()
 		if err != nil {
-			failf("failed to uzip file from input archive: %v", err)
+			Fatalf("failed to uzip file from input archive: %v", err)
 		}
 		data, err := ioutil.ReadAll(r)
 		if err != nil {
-			failf("failed to read corpus file: %v", err)
+			Fatalf("failed to read corpus file: %v", err)
 		}
 		p, err := prog.Deserialize(data)
 		if err != nil {
-			failf("failed to deserialize corpus program: %v", err)
+			Fatalf("failed to deserialize corpus program: %v", err)
 		}
 		progs = append(progs, p)
 		r.Close()
@@ -143,7 +143,7 @@ func readCorpus() []*prog.Prog {
 func buildCallList() map[*sys.Call]bool {
 	calls, err := host.DetectSupportedSyscalls()
 	if err != nil {
-		log.Printf("failed to detect host supported syscalls: %v", err)
+		Logf(0, "failed to detect host supported syscalls: %v", err)
 		calls = make(map[*sys.Call]bool)
 		for _, c := range sys.Calls {
 			calls[c] = true
@@ -151,19 +151,15 @@ func buildCallList() map[*sys.Call]bool {
 	}
 	for _, c := range sys.Calls {
 		if !calls[c] {
-			log.Printf("disabling unsupported syscall: %v", c.Name)
+			Logf(0, "disabling unsupported syscall: %v", c.Name)
 		}
 	}
 	trans := sys.TransitivelyEnabledCalls(calls)
 	for c := range calls {
 		if !trans[c] {
-			log.Printf("disabling transitively unsupported syscall: %v", c.Name)
+			Logf(0, "disabling transitively unsupported syscall: %v", c.Name)
 			delete(calls, c)
 		}
 	}
 	return calls
-}
-
-func failf(msg string, args ...interface{}) {
-	log.Fatalf(msg, args...)
 }

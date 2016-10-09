@@ -11,7 +11,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -21,6 +20,7 @@ import (
 
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/ipc"
+	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -44,21 +44,21 @@ func main() {
 	for _, fn := range flag.Args() {
 		data, err := ioutil.ReadFile(fn)
 		if err != nil {
-			log.Fatalf("failed to read log file: %v", err)
+			Fatalf("failed to read log file: %v", err)
 		}
 		entries := prog.ParseLog(data)
 		for _, ent := range entries {
 			progs = append(progs, ent.P)
 		}
 	}
-	log.Printf("parsed %v programs", len(progs))
+	Logf(0, "parsed %v programs", len(progs))
 	if len(progs) == 0 {
 		return
 	}
 
 	flags, timeout, err := ipc.DefaultFlags()
 	if err != nil {
-		log.Fatalf("%v", err)
+		Fatalf("%v", err)
 	}
 	if *flagCoverFile != "" {
 		flags |= ipc.FlagCover
@@ -78,7 +78,7 @@ func main() {
 			defer wg.Done()
 			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
 			if err != nil {
-				log.Fatalf("failed to create ipc env: %v", err)
+				Fatalf("failed to create ipc env: %v", err)
 			}
 			defer env.Close()
 			for {
@@ -91,7 +91,7 @@ func main() {
 					idx := pos
 					pos++
 					if idx%len(progs) == 0 && time.Since(lastPrint) > 5*time.Second {
-						log.Printf("executed programs: %v", idx)
+						Logf(0, "executed programs: %v", idx)
 						lastPrint = time.Now()
 					}
 					posMu.Unlock()
@@ -103,7 +103,7 @@ func main() {
 					case "stdout":
 						data := p.Serialize()
 						logMu.Lock()
-						log.Printf("executing program %v:\n%s", pid, data)
+						Logf(0, "executing program %v:\n%s", pid, data)
 						logMu.Unlock()
 					}
 					output, cov, _, failed, hanged, err := env.Exec(p)
@@ -132,7 +132,7 @@ func main() {
 							}
 							err := ioutil.WriteFile(fmt.Sprintf("%v.%v", *flagCoverFile, i), buf.Bytes(), 0660)
 							if err != nil {
-								log.Fatalf("failed to write coverage file: %v", err)
+								Fatalf("failed to write coverage file: %v", err)
 							}
 						}
 					}
@@ -148,10 +148,10 @@ func main() {
 		c := make(chan os.Signal, 2)
 		signal.Notify(c, syscall.SIGINT)
 		<-c
-		log.Printf("shutting down...")
+		Logf(0, "shutting down...")
 		atomic.StoreUint32(&shutdown, 1)
 		<-c
-		log.Fatalf("terminating")
+		Fatalf("terminating")
 	}()
 
 	wg.Wait()
