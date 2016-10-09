@@ -8,7 +8,6 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -21,6 +20,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/cover"
+	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys"
 )
@@ -37,12 +37,12 @@ func (mgr *Manager) initHttp() {
 
 	ln, err := net.Listen("tcp4", mgr.cfg.Http)
 	if err != nil {
-		fatalf("failed to listen on %v: %v", mgr.cfg.Http, err)
+		Fatalf("failed to listen on %v: %v", mgr.cfg.Http, err)
 	}
-	logf(0, "serving http on http://%v", ln.Addr())
+	Logf(0, "serving http on http://%v", ln.Addr())
 	go func() {
 		err := http.Serve(ln, nil)
-		log.Fatalf("failed to serve http: %v", err)
+		Fatalf("failed to serve http: %v", err)
 	}()
 }
 

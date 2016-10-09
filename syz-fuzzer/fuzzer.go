@@ -12,7 +12,6 @@ import (
 	"crypto/sha1"
 	"flag"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/rpc"
 	"net/rpc/jsonrpc"
@@ -28,6 +27,7 @@ import (
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/host"
 	"github.com/google/syzkaller/ipc"
+	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
 	. "github.com/google/syzkaller/rpctype"
 	"github.com/google/syzkaller/sys"
@@ -39,7 +39,6 @@ var (
 	flagManager  = flag.String("manager", "", "manager rpc address")
 	flagProcs    = flag.Int("procs", 1, "number of parallel test processes")
 	flagLeak     = flag.Bool("leak", false, "detect memory leaks")
-	flagV        = flag.Int("v", 0, "verbosity")
 	flagOutput   = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
 )
 
@@ -97,13 +96,13 @@ func main() {
 		fmt.Fprintf(os.Stderr, "-output flag must be one of none/stdout/dmesg/file\n")
 		os.Exit(1)
 	}
-	logf(0, "fuzzer started, log level %v", *flagV)
+	Logf(0, "fuzzer started")
 
 	corpusCover = make([]cover.Cover, sys.CallCount)
 	maxCover = make([]cover.Cover, sys.CallCount)
 	corpusHashes = make(map[Sig]struct{})
 
-	logf(0, "dialing manager at %v", *flagManager)
+	Logf(0, "dialing manager at %v", *flagManager)
 	conn, err := jsonrpc.Dial("tcp", *flagManager)
 	if err != nil {
 		panic(err)
@@ -127,7 +126,7 @@ func main() {
 	if !noCover {
 		fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0)
 		if err != nil {
-			log.Fatalf("BUG: /sys/kernel/debug/kcov is missing (%v). Enable CONFIG_KCOV and mount debugfs.", err)
+			Fatalf("BUG: /sys/kernel/debug/kcov is missing (%v). Enable CONFIG_KCOV and mount debugfs.", err)
 		}
 		syscall.Close(fd)
 	}
@@ -173,7 +172,7 @@ func main() {
 							default:
 							}
 						}
-						logf(1, "triaging : %s", inp.p)
+						Logf(1, "triaging : %s", inp.p)
 						triageInput(pid, env, inp)
 						continue
 					} else if len(candidates) != 0 {
@@ -194,17 +193,17 @@ func main() {
 				if len(corpus) == 0 || i%10 == 0 {
 					corpusMu.RUnlock()
 					p := prog.Generate(rnd, programLength, ct)
-					logf(1, "#%v: generated: %s", i, p)
+					Logf(1, "#%v: generated: %s", i, p)
 					execute(pid, env, p, &statExecGen)
 					p.Mutate(rnd, programLength, ct)
-					logf(1, "#%v: mutated: %s", i, p)
+					Logf(1, "#%v: mutated: %s", i, p)
 					execute(pid, env, p, &statExecFuzz)
 				} else {
 					p0 := corpus[rnd.Intn(len(corpus))]
 					corpusMu.RUnlock()
 					p := p0.Clone()
 					p.Mutate(rs, programLength, ct)
-					logf(1, "#%v: mutated: %s <- %s", i, p, p0)
+					Logf(1, "#%v: mutated: %s <- %s", i, p, p0)
 					execute(pid, env, p, &statExecFuzz)
 				}
 			}
@@ -223,7 +222,7 @@ func main() {
 		}
 		if *flagOutput != "stdout" && time.Since(lastPrint) > 10*time.Second {
 			// Keep-alive for manager.
-			logf(0, "alive")
+			Logf(0, "alive")
 			lastPrint = time.Now()
 		}
 		if poll || time.Since(lastPoll) > 10*time.Second {
@@ -302,11 +301,11 @@ func buildCallList(enabledCalls string) map[*sys.Call]bool {
 	}
 
 	if supp, err := host.DetectSupportedSyscalls(); err != nil {
-		logf(0, "failed to detect host supported syscalls: %v", err)
+		Logf(0, "failed to detect host supported syscalls: %v", err)
 	} else {
 		for c := range calls {
 			if !supp[c] {
-				logf(1, "disabling unsupported syscall: %v", c.Name)
+				Logf(1, "disabling unsupported syscall: %v", c.Name)
 				delete(calls, c)
 			}
 		}
@@ -315,7 +314,7 @@ func buildCallList(enabledCalls string) map[*sys.Call]bool {
 	trans := sys.TransitivelyEnabledCalls(calls)
 	for c := range calls {
 		if !trans[c] {
-			logf(1, "disabling transitively unsupported syscall: %v", c.Name)
+			Logf(1, "disabling transitively unsupported syscall: %v", c.Name)
 			delete(calls, c)
 		}
 	}
@@ -418,7 +417,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 
 	atomic.AddUint64(&statNewInput, 1)
 	data := inp.p.Serialize()
-	logf(2, "added new input for %v to corpus:\n%s", call.CallName, data)
+	Logf(2, "added new input for %v to corpus:\n%s", call.CallName, data)
 	a := &NewInputArgs{*flagName, RpcInput{call.CallName, data, inp.call, []uint32(inp.cover)}}
 	if err := manager.Call("Manager.NewInput", a, nil); err != nil {
 		panic(err)
@@ -485,7 +484,7 @@ func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
 	case "stdout":
 		data := p.Serialize()
 		logMu.Lock()
-		log.Printf("executing program %v:\n%s", pid, data)
+		Logf(0, "executing program %v:\n%s", pid, data)
 		logMu.Unlock()
 	case "dmesg":
 		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)
@@ -510,7 +509,7 @@ retry:
 	_ = errnos
 	if failed {
 		// BUG in output should be recognized by manager.
-		logf(0, "BUG: executor-detected bug:\n%s", output)
+		Logf(0, "BUG: executor-detected bug:\n%s", output)
 		// Don't return any cover so that the input is not added to corpus.
 		return make([]cover.Cover, len(p.Calls))
 	}
@@ -519,12 +518,12 @@ retry:
 			panic(err)
 		}
 		try++
-		logf(4, "fuzzer detected executor failure='%v', retrying #%d\n", err, (try + 1))
+		Logf(4, "fuzzer detected executor failure='%v', retrying #%d\n", err, (try + 1))
 		debug.FreeOSMemory()
 		time.Sleep(time.Second)
 		goto retry
 	}
-	logf(2, "result failed=%v hanged=%v:\n%v\n", failed, hanged, string(output))
+	Logf(2, "result failed=%v hanged=%v:\n%v\n", failed, hanged, string(output))
 	cov := make([]cover.Cover, len(p.Calls))
 	for i, c := range rawCover {
 		cov[i] = cover.Cover(c)
@@ -532,17 +531,11 @@ retry:
 	return cov
 }
 
-func logf(v int, msg string, args ...interface{}) {
-	if *flagV >= v {
-		log.Printf(msg, args...)
-	}
-}
-
 func kmemleakInit() {
 	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
 	if err != nil {
 		if *flagLeak {
-			log.Fatalf("BUG: /sys/kernel/debug/kmemleak is missing (%v). Enable CONFIG_KMEMLEAK and mount debugfs.", err)
+			Fatalf("BUG: /sys/kernel/debug/kmemleak is missing (%v). Enable CONFIG_KMEMLEAK and mount debugfs.", err)
 		} else {
 			return
 		}
@@ -602,7 +595,7 @@ func kmemleakScan(report bool) {
 			}
 			if n != 0 {
 				// BUG in output should be recognized by manager.
-				logf(0, "BUG: memory leak:\n%s\n", kmemleakBuf[:n])
+				Logf(0, "BUG: memory leak:\n%s\n", kmemleakBuf[:n])
 			}
 		}
 	}

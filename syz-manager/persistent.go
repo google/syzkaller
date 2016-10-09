@@ -8,9 +8,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
+
+	. "github.com/google/syzkaller/log"
 )
 
 type Sig [sha1.Size]byte
@@ -34,7 +35,7 @@ func newPersistentSet(dir string, verify func(data []byte) bool) *PersistentSet 
 	os.MkdirAll(dir, 0770)
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			log.Fatalf("error during dir walk: %v\n", err)
+			Fatalf("error during dir walk: %v\n", err)
 		}
 		if info.IsDir() {
 			if info.Name() == ".git" {
@@ -44,7 +45,7 @@ func newPersistentSet(dir string, verify func(data []byte) bool) *PersistentSet 
 		}
 		data, err := ioutil.ReadFile(path)
 		if err != nil {
-			log.Fatalf("error during file read: %v\n", err)
+			Fatalf("error during file read: %v\n", err)
 			return nil
 		}
 		sig := hash(data)
@@ -55,7 +56,7 @@ func newPersistentSet(dir string, verify func(data []byte) bool) *PersistentSet 
 		if len(data) == 0 {
 			// This can happen is master runs on machine-under-test,
 			// and it has crashed midway.
-			log.Printf("removing empty file %v", name)
+			Logf(0, "removing empty file %v", name)
 			os.Remove(path)
 			return nil
 		}
@@ -64,16 +65,16 @@ func newPersistentSet(dir string, verify func(data []byte) bool) *PersistentSet 
 			return nil // description file
 		}
 		if len(name) != hexLen || !isHexString(name) {
-			log.Fatalf("unknown file in persistent dir %v: %v", dir, name)
+			Logf(0, "unknown file in persistent dir %v: %v", dir, name)
 		}
 		if verify != nil && !verify(data) {
 			os.Remove(path)
 			return nil
 		}
 		if name != hex.EncodeToString(sig[:]) {
-			log.Printf("bad hash in persistent dir %v for file %v, expect %v", dir, name, hex.EncodeToString(sig[:]))
+			Logf(0, "bad hash in persistent dir %v for file %v, expect %v", dir, name, hex.EncodeToString(sig[:]))
 			if err := ioutil.WriteFile(filepath.Join(ps.dir, hex.EncodeToString(sig[:])), data, 0660); err != nil {
-				log.Fatalf("failed to write file: %v", err)
+				Fatalf("failed to write file: %v", err)
 			}
 			os.Remove(path)
 		}
@@ -103,7 +104,7 @@ func (ps *PersistentSet) add(data []byte) bool {
 	ps.a = append(ps.a, data)
 	fname := filepath.Join(ps.dir, hex.EncodeToString(sig[:]))
 	if err := ioutil.WriteFile(fname, data, 0660); err != nil {
-		log.Fatalf("failed to write file: %v", err)
+		Fatalf("failed to write file: %v", err)
 	}
 	return true
 }
@@ -113,7 +114,7 @@ func (ps *PersistentSet) addDescription(data []byte, desc []byte, typ string) {
 	sig := hash(data)
 	fname := filepath.Join(ps.dir, fmt.Sprintf("%v.%v", hex.EncodeToString(sig[:]), typ))
 	if err := ioutil.WriteFile(fname, desc, 0660); err != nil {
-		log.Fatalf("failed to write file: %v", err)
+		Fatalf("failed to write file: %v", err)
 	}
 }
 
