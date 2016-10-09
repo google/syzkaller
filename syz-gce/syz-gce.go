@@ -49,6 +49,7 @@ type Config struct {
 func main() {
 	flag.Parse()
 	cfg = readConfig(*flagConfig)
+	EnableLogCaching(1000, 1<<20)
 	initHttp(fmt.Sprintf(":%v", cfg.Http_Port))
 
 	gopath, err := filepath.Abs("gopath")
