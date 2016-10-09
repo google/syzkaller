@@ -110,6 +110,7 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Sort(UIStatArray(intStats))
 	data.Stats = append(data.Stats, intStats...)
+	data.Log = CachedLogOutput()
 
 	if err := summaryTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
@@ -347,6 +348,7 @@ type UISummaryData struct {
 	Stats   []UIStat
 	Calls   []UICallType
 	Crashes []UICrashType
+	Log     string
 }
 
 type UICrashType struct {
@@ -459,6 +461,13 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 </table>
 <br>
 
+Log:
+<br>
+<textarea readonly rows="50">
+{{.Log}}
+</textarea>
+<br>
+
 {{range $c := $.Calls}}
 	{{$c.Name}}
 		<a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a>
@@ -554,6 +563,9 @@ const htmlStyle = `
 		}
 		table td {
 			border:1px solid;
+		}
+		textarea {
+			width:100%;
 		}
 	</style>
 `

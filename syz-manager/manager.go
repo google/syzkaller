@@ -71,6 +71,7 @@ type Fuzzer struct {
 
 func main() {
 	flag.Parse()
+	EnableLogCaching(1000, 1<<20)
 	cfg, syscalls, suppressions, err := config.Parse(*flagConfig)
 	if err != nil {
 		Fatalf("%v", err)
