@@ -463,9 +463,13 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 
 Log:
 <br>
-<textarea readonly rows="50">
+<textarea id="log_textarea" readonly rows="50">
 {{.Log}}
 </textarea>
+<script>
+	var textarea = document.getElementById("log_textarea");
+	textarea.scrollTop = textarea.scrollHeight;
+</script>
 <br>
 
 {{range $c := $.Calls}}
