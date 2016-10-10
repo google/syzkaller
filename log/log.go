@@ -25,6 +25,7 @@ var (
 	cacheMaxMem  int
 	cachePos     int
 	cacheEntries []string
+	prependTime  bool // for testing
 )
 
 // EnableCaching enables in memory caching of log output.
@@ -73,7 +74,11 @@ func Logf(v int, msg string, args ...interface{}) {
 		if cacheMem < 0 {
 			panic("log cache size underflow")
 		}
-		cacheEntries[cachePos] = fmt.Sprintf(time.Now().Format("2006/01/02 15:04:05 ")+msg, args...)
+		timeStr := ""
+		if prependTime {
+			timeStr = time.Now().Format("2006/01/02 15:04:05 ")
+		}
+		cacheEntries[cachePos] = fmt.Sprintf(timeStr+msg, args...)
 		cacheMem += len(cacheEntries[cachePos])
 		cachePos++
 		if cachePos == len(cacheEntries) {
