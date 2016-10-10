@@ -160,7 +160,7 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string) (str
 	return ip, nil
 }
 
-func (ctx *Context) DeleteInstance(name string) error {
+func (ctx *Context) DeleteInstance(name string, wait bool) error {
 	<-ctx.apiRateGate
 	op, err := ctx.computeService.Instances.Delete(ctx.ProjectID, ctx.ZoneID, name).Do()
 	if apiErr, ok := err.(*googleapi.Error); ok && apiErr.Code == 404 {
@@ -169,8 +169,10 @@ func (ctx *Context) DeleteInstance(name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete instance: %v", err)
 	}
-	if err := ctx.waitForCompletion("zone", "delete image", op.Name, true); err != nil {
-		return err
+	if wait {
+		if err := ctx.waitForCompletion("zone", "delete image", op.Name, true); err != nil {
+			return err
+		}
 	}
 	return nil
 }
