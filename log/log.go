@@ -69,7 +69,7 @@ func DisableLog() {
 func Logf(v int, msg string, args ...interface{}) {
 	mu.Lock()
 	doLog := v <= *flagV && (v < 0 || !disabled)
-	if cacheEntries != nil {
+	if cacheEntries != nil && v <= 1 {
 		cacheMem -= len(cacheEntries[cachePos])
 		if cacheMem < 0 {
 			panic("log cache size underflow")
