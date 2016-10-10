@@ -229,11 +229,19 @@ func readConfig(filename string) *Config {
 }
 
 func writeManagerConfig(file string) error {
+	tag, err := ioutil.ReadFile("image/tag")
+	if err != nil {
+		return fmt.Errorf("failed to read tag file: %v", err)
+	}
+	if len(tag) != 0 && tag[len(tag)-1] == '\n' {
+		tag = tag[:len(tag)-1]
+	}
 	managerCfg := &config.Config{
 		Http:         fmt.Sprintf(":%v", cfg.Manager_Http_Port),
 		Rpc:          ":0",
 		Workdir:      "workdir",
 		Vmlinux:      "image/obj/vmlinux",
+		Tag:          string(tag),
 		Syzkaller:    "gopath/src/github.com/google/syzkaller",
 		Type:         "gce",
 		Machine_Type: cfg.Machine_Type,
@@ -285,6 +293,7 @@ func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
 	if err != nil {
 		return err
 	}
+	files := make(map[string]bool)
 	ar := tar.NewReader(gz)
 	for {
 		hdr, err := ar.Next()
@@ -298,6 +307,7 @@ func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
 		if len(hdr.Name) == 0 || hdr.Name[len(hdr.Name)-1] == '/' {
 			continue
 		}
+		files[filepath.Clean(hdr.Name)] = true
 		base, file := filepath.Split(hdr.Name)
 		if err := os.MkdirAll(filepath.Join(dir, base), 0700); err != nil {
 			return err
@@ -310,6 +320,11 @@ func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
 		dst.Close()
 		if err != nil {
 			return err
+		}
+	}
+	for _, need := range []string{"disk.tar.gz", "key", "tag", "obj/vmlinux"} {
+		if !files[need] {
+			return fmt.Errorf("archive misses required file '%v'", need)
 		}
 	}
 	return nil
