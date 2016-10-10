@@ -57,6 +57,22 @@ var oopses = []*oops{
 				compile("BUG: soft lockup"),
 				"BUG: soft lockup",
 			},
+			{
+				compile("BUG: .*still has locks held!(?:.*\\n)+.*{{PC}} +{{FUNC}}"),
+				"BUG: still has locks held in %[1]v",
+			},
+			{
+				compile("BUG: Bad rss-counter state"),
+				"BUG: Bad rss-counter state",
+			},
+			{
+				compile("BUG: non-zero nr_ptes on freeing mm"),
+				"BUG: non-zero nr_ptes on freeing mm",
+			},
+			{
+				compile("BUG: non-zero nr_pmds on freeing mm"),
+				"BUG: non-zero nr_pmds on freeing mm",
+			},
 		},
 	},
 	&oops{

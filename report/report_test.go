@@ -149,6 +149,22 @@ other info that might help us debug this:
 `: `suspicious RCU usage at net/core/filter.c:1917`,
 
 		`
+[   80.586804] =====================================
+[   80.587241] [ BUG: syz-executor/13525 still has locks held! ]
+[   80.587792] 4.8.0+ #29 Not tainted
+[   80.588114] -------------------------------------
+[   80.588585] 1 lock held by syz-executor/13525:
+[   80.588975]  #0:  (&pipe->mutex/1){+.+.+.}, at: [<ffffffff81844c8b>] pipe_lock+0x5b/0x70
+[   80.589809] 
+[   80.589809] stack backtrace:
+[   80.590236] CPU: 2 PID: 13525 Comm: syz-executor Not tainted 4.8.0+ #29
+`: `BUG: still has locks held in pipe_lock`,
+
+		`
+[ 2569.618120] BUG: Bad rss-counter state mm:ffff88005fac4300 idx:0 val:15
+`: `BUG: Bad rss-counter state`,
+
+		`
 [    4.556968] ================================================================================
 [    4.556972] UBSAN: Undefined behaviour in drivers/usb/core/devio.c:1517:25
 [    4.556975] shift exponent -1 is negative
