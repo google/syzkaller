@@ -21,6 +21,7 @@ func TestCaching(t *testing.T) {
 		{"jjjjjjjjjjjjjjjjjjjjjjjjj", "jjjjjjjjjjjjjjjjjjjjjjjjj\n"},
 	}
 	EnableLogCaching(4, 20)
+	prependTime = false
 	for _, test := range tests {
 		Logf(1000, test.str)
 		out := CachedLogOutput()
