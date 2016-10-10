@@ -1,6 +1,10 @@
 // Copyright 2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// syz-gce runs syz-manager on GCE in a continous loop handling image/syzkaller updates.
+// It downloads test image from GCS, downloads and builds syzkaller, then starts syz-manager
+// and pulls for image/syzkaller source updates. If image/syzkaller changes,
+// it stops syz-manager and starts from scratch.
 package main
 
 import (
@@ -13,8 +17,10 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -71,56 +77,140 @@ func main() {
 	}
 	Logf(0, "gce initialized: running on %v, internal IP, %v project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
 
-	if !*flagNoImageCreate {
-		Logf(0, "downloading image archive...")
-		archive, updated, err := openFile(cfg.Image_Archive)
+	sigC := make(chan os.Signal, 2)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGUSR1)
+
+	var managerCmd *exec.Cmd
+	managerStopped := make(chan error)
+	stoppingManager := false
+	var lastImageUpdated time.Time
+	var lastSyzkallerHash string
+	var delayDuration time.Duration
+	for {
+		if delayDuration != 0 {
+			Logf(0, "sleep for %v", delayDuration)
+			select {
+			case <-time.After(delayDuration):
+			case err := <-managerStopped:
+				if managerCmd == nil {
+					Fatalf("spurious manager stop signal")
+				}
+				Logf(0, "syz-manager exited with %v", err)
+				managerCmd = nil
+			case s := <-sigC:
+				switch s {
+				case syscall.SIGUSR1:
+					// just poll for updates
+					Logf(0, "SIGUSR1")
+				case syscall.SIGINT:
+					Logf(0, "SIGINT")
+					if managerCmd != nil {
+						Logf(0, "shutting down syz-manager...")
+						managerCmd.Process.Signal(syscall.SIGINT)
+						select {
+						case err := <-managerStopped:
+							if managerCmd == nil {
+								Fatalf("spurious manager stop signal")
+							}
+							Logf(0, "syz-manager exited with %v", err)
+						case <-sigC:
+							managerCmd.Process.Kill()
+						case <-time.After(time.Minute):
+							managerCmd.Process.Kill()
+						}
+					}
+					os.Exit(0)
+				}
+			}
+		}
+		delayDuration = 10 * time.Minute // assume that an error happened
+		imageArchive, imageUpdated, err := openFile(cfg.Image_Archive)
 		if err != nil {
-			Fatalf("%v", err)
+			Logf(0, "%v", err)
+			continue
 		}
-		_ = updated
-		if err := os.RemoveAll("image"); err != nil {
-			Fatalf("failed to remove image dir: %v", err)
-		}
-		if err := downloadAndExtract(archive, "image"); err != nil {
-			Fatalf("failed to download and extract %v: %v", cfg.Image_Archive, err)
-		}
-
-		Logf(0, "uploading image...")
-		if err := uploadFile("image/disk.tar.gz", cfg.Image_Path); err != nil {
-			Fatalf("failed to upload image: %v", err)
-		}
-
-		Logf(0, "creating gce image...")
-		if err := GCE.DeleteImage(cfg.Image_Name); err != nil {
-			Fatalf("failed to delete GCE image: %v", err)
-		}
-		if err := GCE.CreateImage(cfg.Image_Name, cfg.Image_Path); err != nil {
-			Fatalf("failed to create GCE image: %v", err)
-		}
-	}
-
-	if !*flagNoRebuild {
-		Logf(0, "building syzkaller...")
-		syzBin, err := updateSyzkallerBuild()
+		syzkallerHash, err := updateSyzkallerBuild()
 		if err != nil {
-			Fatalf("failed to update/build syzkaller: %v", err)
+			Logf(0, "failed to update syzkaller: %v", err)
+			continue
 		}
-		_ = syzBin
-	}
+		Logf(0, "image update time %v, syzkaller hash %v", imageUpdated, syzkallerHash)
+		if lastImageUpdated == imageUpdated && lastSyzkallerHash == syzkallerHash && managerCmd != nil {
+			delayDuration = time.Hour
+			continue
+		}
 
-	Logf(0, "starting syzkaller...")
-	if err := writeManagerConfig("manager.cfg"); err != nil {
-		Fatalf("failed to write manager config: %v", err)
-	}
+		if managerCmd != nil {
+			if !stoppingManager {
+				stoppingManager = true
+				Logf(0, "stopping syz-manager...")
+				managerCmd.Process.Signal(syscall.SIGINT)
+			} else {
+				Logf(0, "killing syz-manager...")
+				managerCmd.Process.Kill()
+			}
+			delayDuration = time.Minute
+			continue
+		}
 
-	manager := exec.Command("gopath/src/github.com/google/syzkaller/bin/syz-manager", "-config=manager.cfg")
-	manager.Stdout = os.Stdout
-	manager.Stderr = os.Stderr
-	if err := manager.Start(); err != nil {
-		Fatalf("failed to start syz-manager: %v", err)
+		if !*flagNoImageCreate && lastImageUpdated != imageUpdated {
+			Logf(0, "downloading image archive...")
+			if err := os.RemoveAll("image"); err != nil {
+				Logf(0, "failed to remove image dir: %v", err)
+				continue
+			}
+			if err := downloadAndExtract(imageArchive, "image"); err != nil {
+				Logf(0, "failed to download and extract %v: %v", cfg.Image_Archive, err)
+				continue
+			}
+
+			Logf(0, "uploading image...")
+			if err := uploadFile("image/disk.tar.gz", cfg.Image_Path); err != nil {
+				Logf(0, "failed to upload image: %v", err)
+				continue
+			}
+
+			Logf(0, "creating gce image...")
+			if err := GCE.DeleteImage(cfg.Image_Name); err != nil {
+				Logf(0, "failed to delete GCE image: %v", err)
+				continue
+			}
+			if err := GCE.CreateImage(cfg.Image_Name, cfg.Image_Path); err != nil {
+				Logf(0, "failed to create GCE image: %v", err)
+				continue
+			}
+		}
+		*flagNoImageCreate = false
+		lastImageUpdated = imageUpdated
+
+		if !*flagNoRebuild && lastSyzkallerHash != syzkallerHash {
+			Logf(0, "building syzkaller...")
+			if err := buildSyzkaller(); err != nil {
+				Logf(0, "failed to update/build syzkaller: %v", err)
+				continue
+			}
+		}
+		*flagNoRebuild = false
+		lastSyzkallerHash = syzkallerHash
+
+		if err := writeManagerConfig("manager.cfg"); err != nil {
+			Logf(0, "failed to write manager config: %v", err)
+			continue
+		}
+
+		Logf(0, "starting syz-manager (image %v, syzkaller %v)...", lastImageUpdated, lastSyzkallerHash)
+		managerCmd = exec.Command("gopath/src/github.com/google/syzkaller/bin/syz-manager", "-config=manager.cfg")
+		if err := managerCmd.Start(); err != nil {
+			Logf(0, "failed to start syz-manager: %v", err)
+			managerCmd = nil
+			continue
+		}
+		stoppingManager = false
+		go func() {
+			managerStopped <- managerCmd.Wait()
+		}()
+		delayDuration = time.Hour
 	}
-	err = manager.Wait()
-	Fatalf("syz-manager exited with: %v", err)
 }
 
 func readConfig(filename string) *Config {
@@ -243,15 +333,37 @@ func uploadFile(localFile string, gcsFile string) error {
 	return nil
 }
 
+// updateSyzkallerBuild executes 'git pull' on syzkaller and all depenent packages.
+// Returns syzkaller HEAD hash.
 func updateSyzkallerBuild() (string, error) {
 	goGet := exec.Command("go", "get", "-u", "-d", "github.com/google/syzkaller/syz-manager", "github.com/google/syzkaller/syz-gce")
 	if output, err := goGet.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("%v\n%s", err, output)
 	}
+
+	gitCmd := exec.Command("git", "log", "--pretty=format:'%H'", "-n", "1")
+	gitCmd.Dir = "gopath/src/github.com/google/syzkaller"
+	output, err := gitCmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("%v\n%s", err, output)
+	}
+	if len(output) != 0 && output[len(output)-1] == '\n' {
+		output = output[:len(output)-1]
+	}
+	if len(output) != 0 && output[0] == '\'' && output[len(output)-1] == '\'' {
+		output = output[1 : len(output)-1]
+	}
+	if len(output) != 40 {
+		return "", fmt.Errorf("unexpected git log output, want commit hash: %q", output)
+	}
+	return string(output), nil
+}
+
+func buildSyzkaller() error {
 	makeCmd := exec.Command("make")
 	makeCmd.Dir = "gopath/src/github.com/google/syzkaller"
 	if output, err := makeCmd.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("%v\n%s", err, output)
+		return fmt.Errorf("%v\n%s", err, output)
 	}
-	return "gopath/src/github.com/google/syzkaller/bin", nil
+	return nil
 }
