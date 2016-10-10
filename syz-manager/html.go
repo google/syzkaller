@@ -316,10 +316,12 @@ func (mgr *Manager) collectCrashes() ([]UICrashType, error) {
 			if err != nil {
 				continue
 			}
+			tag, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, dir.Name(), "tag"+strconv.Itoa(int(index))))
 			crash := UICrash{
 				Index: int(index),
 				Time:  f.ModTime().Format(dateFormat),
 				Log:   filepath.Join("crashes", dir.Name(), f.Name()),
+				Tag:   string(tag),
 			}
 			reportFile := filepath.Join("crashes", dir.Name(), "report"+strconv.Itoa(int(index)))
 			if _, err := os.Stat(filepath.Join(mgr.cfg.Workdir, reportFile)); err == nil {
@@ -364,6 +366,7 @@ type UICrash struct {
 	Time   string
 	Log    string
 	Report string
+	Tag    string
 }
 
 type UIStat struct {
@@ -431,7 +434,7 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 <br>
 
 <table>
-	<caption><b>Stats:</b></caption>
+	<caption>Stats:</caption>
 	{{range $s := $.Stats}}
 	<tr>
 		<td>{{$s.Name}}</td>
@@ -446,7 +449,7 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 <br>
 
 <table>
-	<caption><b>Crashes:</b></caption>
+	<caption>Crashes:</caption>
 	<tr>
 		<th>Description</th>
 		<th>Count</th>
@@ -494,17 +497,26 @@ var crashTemplate = template.Must(template.New("").Parse(addStyle(`
 </head>
 <body>
 <b>{{.Description}}</b>
-<br>
+<br><br>
 <table>
+	<tr>
+		<th>#</th>
+		<th>Log</th>
+		<th>Report</th>
+		<th>Time</th>
+		<th>Tag</th>
+	</tr>
 	{{range $c := $.Crashes}}
 	<tr>
-		<td><span title="{{$c.Time}}">#{{$c.Index}}</span></td>
+		<td>{{$c.Index}}</td>
 		<td><a href="/file?name={{$c.Log}}">log</a></td>
 		{{if $c.Report}}
 			<td><a href="/file?name={{$c.Report}}">report</a></td>
 		{{else}}
 			<td></td>
 		{{end}}
+		<td>{{$c.Time}}</td>
+		<td>{{$c.Tag}}</td>
 	</tr>
 	{{end}}
 </table>
@@ -569,8 +581,16 @@ const htmlStyle = `
 			border-collapse:collapse;
 			border:1px solid;
 		}
+		table caption {
+			font-weight: bold;
+		}
 		table td {
 			border:1px solid;
+			padding: 3px;
+		}
+		table th {
+			border:1px solid;
+			padding: 3px;
 		}
 		textarea {
 			width:100%;

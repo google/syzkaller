@@ -75,8 +75,16 @@ const htmlStyle = `
 			border-collapse:collapse;
 			border:1px solid;
 		}
+		table caption {
+			font-weight: bold;
+		}
 		table td {
 			border:1px solid;
+			padding: 3px;
+		}
+		table th {
+			border:1px solid;
+			padding: 3px;
 		}
 		textarea {
 			width:100%;
