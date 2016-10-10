@@ -428,9 +428,10 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 <body>
 <b>ŜɎΖҚΑĻĹӖЯ</b>
 <br>
+<br>
 
 <table>
-	<caption>Stats:</caption>
+	<caption><b>Stats:</b></caption>
 	{{range $s := $.Stats}}
 	<tr>
 		<td>{{$s.Name}}</td>
@@ -445,7 +446,7 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 <br>
 
 <table>
-	<caption>Crashes:</caption>
+	<caption><b>Crashes:</b></caption>
 	<tr>
 		<th>Description</th>
 		<th>Count</th>
@@ -461,7 +462,7 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 </table>
 <br>
 
-Log:
+<b>Log:</b>
 <br>
 <textarea id="log_textarea" readonly rows="50">
 {{.Log}}
@@ -471,7 +472,9 @@ Log:
 	textarea.scrollTop = textarea.scrollHeight;
 </script>
 <br>
+<br>
 
+<b>Per-call coverage:</b>
 {{range $c := $.Calls}}
 	{{$c.Name}}
 		<a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a>
@@ -490,8 +493,9 @@ var crashTemplate = template.Must(template.New("").Parse(addStyle(`
 	{{STYLE}}
 </head>
 <body>
+<b>{{.Description}}</b>
+<br>
 <table>
-	<caption>{{.Description}}</caption>
 	{{range $c := $.Crashes}}
 	<tr>
 		<td><span title="{{$c.Time}}">#{{$c.Index}}</span></td>
