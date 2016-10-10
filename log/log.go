@@ -25,7 +25,7 @@ var (
 	cacheMaxMem  int
 	cachePos     int
 	cacheEntries []string
-	prependTime  bool // for testing
+	prependTime  = true // for testing
 )
 
 // EnableCaching enables in memory caching of log output.
