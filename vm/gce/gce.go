@@ -75,7 +75,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	}
 
 	Logf(0, "deleting instance: %v", name)
-	if err := GCE.DeleteInstance(name); err != nil {
+	if err := GCE.DeleteInstance(name, true); err != nil {
 		return nil, err
 	}
 	Logf(0, "creating instance: %v", name)
@@ -85,7 +85,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	}
 	defer func() {
 		if !ok {
-			GCE.DeleteInstance(name)
+			GCE.DeleteInstance(name, true)
 		}
 	}()
 	Logf(0, "wait instance to boot: %v (%v)", name, ip)
@@ -105,7 +105,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 
 func (inst *instance) Close() {
 	close(inst.closed)
-	GCE.DeleteInstance(inst.name)
+	GCE.DeleteInstance(inst.name, false)
 	os.RemoveAll(inst.cfg.Workdir)
 }
 
