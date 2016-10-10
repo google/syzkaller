@@ -21,8 +21,9 @@ Pseudo-formal grammar of syscall description:
 	arg = argname type
 	argname = identifier
 	type = typename [ "[" type-options "]" ]
-	typename = "fileoff" | "buffer" | "vma" , "len" | "flags" |
-			"filename" | "ptr" | "array" | "intN" | "intptr"
+	typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
+			"buffer" | "string" | "strconst" | "filename" |
+			"fileoff" | "len" | "bytesize" | "vma"
 	type-options = [type-opt ["," type-opt]]
 ```
 common type-options include:
@@ -31,23 +32,29 @@ common type-options include:
 ```
 rest of the type-options are type-specific:
 ```
-	"fileoff": offset within a file, type-options:
-		argname of the file
+	"const": integer constant, type-options:
+		value, underlying type (one if "intN", "intptr")
+	"intN"/"intptr": an integer without a particular meaning, type-options:
+		optional range of values (e.g. "5:10", or "-100:200")
+	"flags": a set of flags, type-options:
+		reference to flags description (see below)
+	"array": a variable/fixed-length array, type-options:
+		type of elements, optional size (fixed "5", or ranged "5:10", boundaries inclusive)
+	"ptr": a pointer to an object, type-options:
+		type of the object; direction (in/out/inout)
 	"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options:
 		direction (in/out/inout)
 	"string": a pointer to a memory buffer, similar to buffer[in]
-	"vma": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise)
-	"len": length of buffer/vma/arrayptr (for array it is number of elements), type-options:
-		argname of the object
-	"flags": a set of flags, type-options:
-		reference to flags description
+	"strconst": a pointer to a constant string, type-options:
+		the underlying string (for example "/dev/dsp")
 	"filename": a file/link/dir name
-	"ptr": a pointer to an object, type-options:
-		type of the object; direction (in/out/inout)
-	"array": a variable/fixed-length array, type-options:
-		type of elements, optional size (fixed "5", or ranged "5:10", boundaries inclusive)
-	"intN"/"intptr": an integer without a particular meaning, type-options:
-		range of values (e.g. "5:10", or "-100:200", optional)
+	"fileoff": offset within a file, type-options:
+		argname of the file
+	"len": length of another field (for array it is number of elements), type-options:
+		argname of the object
+	"bytesize": similar to "len", but always denotes the size in bytes, type-options:
+		argname of the object
+	"vma": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise)
 ```
 flags/len/flags also have trailing underlying type type-option when used in structs/unions/pointers.
 
@@ -55,6 +62,8 @@ Flags are described as:
 ```
 	flagname = const ["," const]*
 ```
+
+### Structs
 
 Structs are described as:
 ```
@@ -65,6 +74,8 @@ Structs are described as:
 Structs can have trailing attributes "packed" and "align_N",
 they are specified in square brackets after the struct.
 
+### Unions
+
 Unions are described as:
 ```
 	unionname "[" "\n"
@@ -73,8 +84,9 @@ Unions are described as:
 ```
 Unions can have a trailing "varlen" attribute (specified in square brackets after the union),
 which means that union length is not maximum of all option lengths,
-but rather length of a particular chosen option (such unions can't be part of a struct,
-because their size is not statically known).
+but rather length of a particular chosen option.
+
+### Resources
 
 Custom resources are described as:
 ```
@@ -91,6 +103,8 @@ socket(...) sock
 accept(fd sock, ...) sock
 listen(fd sock, backlog int32)
 ```
+
+### Misc
 
 Description files also contain `include` directives that refer to Linux kernel header files
 and `define` directives that define symbolic constant values. See the following section for details.
