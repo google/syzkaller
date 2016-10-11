@@ -124,6 +124,9 @@ func (c *Call) validate(ctx *validCtx) error {
 					return fmt.Errorf("syscall %v: vma arg '%v' has size 0", c.Meta.Name, typ.Name())
 				}
 			case sys.PtrType:
+				if arg.Res == nil && !typ.Optional() {
+					return fmt.Errorf("syscall %v: non optional pointer arg '%v' is nil", c.Meta.Name, typ.Name())
+				}
 				if arg.Res != nil {
 					if err := checkArg(arg.Res, typ1.Type); err != nil {
 						return err
