@@ -166,3 +166,24 @@ syz_length_large_struct {
 	f1	int64
 	f2	array[int32, 8]
 }
+
+# Big endian.
+
+syz_test$end0(a0 ptr[in, syz_end_int_struct])
+syz_test$end1(a0 ptr[in, syz_end_var_struct])
+
+syz_end_flags = 0, 1
+
+syz_end_int_struct {
+	f0	int8
+	f1	int16be
+	f2	int32be
+	f3	int64be
+	f4	intptrbe
+} [packed]
+
+syz_end_var_struct {
+	f0	len[parent, int16be]
+	f1	const[0x42, int32be]
+	f2	flags[syz_end_flags, int64be]
+} [packed]
