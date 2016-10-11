@@ -120,11 +120,17 @@ func (c *Call) validate(ctx *validCtx) error {
 				if arg.Res != nil {
 					return fmt.Errorf("syscall %v: vma arg '%v' has data", c.Meta.Name, typ.Name())
 				}
+				if arg.AddrPagesNum == 0 {
+					return fmt.Errorf("syscall %v: vma arg '%v' has size 0", c.Meta.Name, typ.Name())
+				}
 			case sys.PtrType:
 				if arg.Res != nil {
 					if err := checkArg(arg.Res, typ1.Type); err != nil {
 						return err
 					}
+				}
+				if arg.AddrPagesNum != 0 {
+					return fmt.Errorf("syscall %v: pointer arg '%v' has nonzero size", c.Meta.Name, typ.Name())
 				}
 			default:
 				return fmt.Errorf("syscall %v: pointer arg '%v' has bad meta type %+v", c.Meta.Name, typ.Name(), typ)
