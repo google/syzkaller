@@ -91,13 +91,13 @@ fuse_notify_poll_wakeup_out {
 }
 
 fuse_notify_inval_inode_out {
-	len	len[parent, int32]
+	len1	len[parent, int32]
 	err	int32
 	unique	const[0, int64]
 
 	ino	int64
 	off	int64
-	len	int16
+	len2	int16
 }
 
 fuse_notify_inval_entry_out {
@@ -105,7 +105,7 @@ fuse_notify_inval_entry_out {
 	err	int32
 	unique	const[0, int64]
 
-	parent	int64
+	par	int64
 	namelen	int32
 }
 
@@ -114,7 +114,7 @@ fuse_notify_delete_out {
 	err	int32
 	unique	const[0, int64]
 
-	parent	int64
+	par	int64
 	child	int64
 	namelen	int32
 }
@@ -132,9 +132,9 @@ fuse_notify_store_out {
 fuse_notify_retrieve_out {
 	len	len[parent, int32]
 	err	int32
-	unique	const[0, int64]
+	unique1	const[0, int64]
 
-	unique	int64
+	unique2	int64
 	nodeid	int64
 	off	int64
 	size	int32

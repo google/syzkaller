@@ -76,3 +76,93 @@ syz_array_blob {
 	f1	array[int8, 16]
 	f2	int16
 }
+
+# Length.
+
+syz_test$length0(a0 ptr[in, syz_length_int_struct])
+syz_test$length1(a0 ptr[in, syz_length_const_struct])
+syz_test$length2(a0 ptr[in, syz_length_flags_struct])
+syz_test$length3(a0 ptr[in, syz_length_len_struct])
+syz_test$length4(a0 ptr[in, syz_length_len2_struct])
+syz_test$length5(a0 ptr[in, syz_length_parent_struct])
+syz_test$length6(a0 ptr[in, syz_length_array_struct])
+syz_test$length7(a0 ptr[in, syz_length_array2_struct])
+syz_test$length8(a0 ptr[in, syz_length_complex_struct])
+syz_test$length9(a0 ptr[in, syz_length_vma_struct])
+
+syz_test$length10(a0 vma, a1 len[a0])
+syz_test$length11(a0 ptr[in, syz_length_large_struct], a1 len[a0])
+syz_test$length12(a0 ptr[in, syz_length_large_struct, opt], a1 len[a0])
+syz_test$length13(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64]])
+syz_test$length14(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64], opt])
+syz_test$length15(a0 int16, a1 len[a0])
+
+syz_length_flags = 0, 1
+
+syz_length_int_struct {
+	f0	int16
+	f1	len[f0, int16]
+}
+
+syz_length_const_struct {
+	f0	const[0, int32]
+	f1	len[f0, int32]
+}
+
+syz_length_flags_struct {
+	f0	flags[syz_length_flags, int64]
+	f1	len[f0, int64]
+}
+
+syz_length_len_struct {
+	f0	int32
+	f1	len[f0, int16]
+	f2	len[f1, int16]
+}
+
+syz_length_len2_struct {
+	f0	len[f1, int16]
+	f1	len[f0, int16]
+}
+
+syz_length_parent_struct {
+	f0	int16
+	f1	len[parent, int16]
+}
+
+syz_length_array_struct {
+	f0	array[int16, 4]
+	f1	len[f0, int16]
+}
+
+syz_length_array2_struct {
+	f0	array[int16, 4]
+	f1	bytesize[f0, int16]
+}
+
+syz_length_complex_inner_struct {
+	f0	int8
+	f1	len[f0, int8]
+	f2	len[parent, int16]
+	f3	array[int32, 3]
+}
+
+syz_length_complex_struct {
+	f0	len[parent, int64]
+	f1	syz_length_complex_inner_struct
+	f2	array[syz_length_complex_inner_struct, 1]
+	f3	len[f1, int32]
+	f4	len[f2, int16]
+	f5	array[int16]
+}
+
+syz_length_vma_struct {
+	f0	vma
+	f1	len[f0, int64]
+}
+
+syz_length_large_struct {
+	f0	int64
+	f1	int64
+	f2	array[int32, 8]
+}

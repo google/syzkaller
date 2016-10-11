@@ -90,13 +90,13 @@ func Parse(in io.Reader) *Description {
 					if len(str.Flds) <= 1 {
 						failf("union %v has only %v fields, need at least 2", str.Name, len(str.Flds))
 					}
-					fields := make(map[string]bool)
-					for _, f := range str.Flds {
-						if fields[f[0]] {
-							failf("duplicate filed %v in struct/union %v", f[0], str.Name)
-						}
-						fields[f[0]] = true
+				}
+				fields := make(map[string]bool)
+				for _, f := range str.Flds {
+					if fields[f[0]] {
+						failf("duplicate field %v in struct/union %v", f[0], str.Name)
 					}
+					fields[f[0]] = true
 				}
 				structs[str.Name] = *str
 				str = nil
@@ -177,6 +177,13 @@ func Parse(in io.Reader) *Description {
 					callName := name
 					if idx := strings.IndexByte(callName, '$'); idx != -1 {
 						callName = callName[:idx]
+					}
+					fields := make(map[string]bool)
+					for _, a := range args {
+						if fields[a[0]] {
+							failf("duplicate arg %v in syscall %v", a[0], name)
+						}
+						fields[a[0]] = true
 					}
 					syscalls = append(syscalls, Syscall{name, callName, args, ret})
 				case '=':

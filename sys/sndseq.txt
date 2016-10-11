@@ -65,8 +65,8 @@ snd_seq_running_info {
 	client	int8
 	bigend	int8
 	cpumode	int8
-	pad	const[0, int8]
-	pad	array[const[0, int8], 12]
+	pad1	const[0, int8]
+	pad2	array[const[0, int8], 12]
 }
 
 snd_seq_client_info {
@@ -105,8 +105,8 @@ snd_seq_port_subscribe {
 	voices	int32
 	flags	flags[snd_seq_sub_flags, int32]
 	queue	int8
-	pad	array[const[0, int8], 3]
-	pad	array[const[0, int8], 64]
+	pad1	array[const[0, int8], 3]
+	pad2	array[const[0, int8], 64]
 }
 
 snd_seq_queue_info {
