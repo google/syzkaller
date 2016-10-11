@@ -45,13 +45,13 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 				}
 				s := analyze(ct, p, c)
 				for stop := false; !stop; stop = r.bin() {
-					args, bases, parents := mutationArgs(c)
+					args, bases := mutationArgs(c)
 					if len(args) == 0 {
 						retry = true
 						return
 					}
 					idx := r.Intn(len(args))
-					arg, base, parent := args[idx], bases[idx], parents[idx]
+					arg, base := args[idx], bases[idx]
 					var baseSize uintptr
 					if base != nil {
 						if base.Kind != ArgPointer || base.Res == nil {
@@ -59,12 +59,10 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						}
 						baseSize = base.Res.Size(base.Res.Type)
 					}
-					var size *Arg
 					switch a := arg.Type.(type) {
 					case sys.IntType, sys.FlagsType, sys.FileoffType, sys.ResourceType, sys.VmaType:
-						arg1, size1, calls1 := r.generateArg(s, arg.Type, arg.Dir, nil)
+						arg1, calls1 := r.generateArg(s, arg.Type, arg.Dir)
 						p.replaceArg(arg, arg1, calls1)
-						size = size1
 					case sys.BufferType:
 						switch a.Kind {
 						case sys.BufferBlobRand, sys.BufferBlobRange:
@@ -104,7 +102,6 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						default:
 							panic("unknown buffer kind")
 						}
-						size = constArg(uintptr(len(arg.Data)))
 					case sys.FilenameType:
 						filename := r.filename(s)
 						arg.Data = []byte(filename)
@@ -126,7 +123,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						if count > uintptr(len(arg.Inner)) {
 							var calls []*Call
 							for count > uintptr(len(arg.Inner)) {
-								arg1, _, calls1 := r.generateArg(s, a.Type, arg.Dir, nil)
+								arg1, calls1 := r.generateArg(s, a.Type, arg.Dir)
 								arg.Inner = append(arg.Inner, arg1)
 								for _, c1 := range calls1 {
 									calls = append(calls, c1)
@@ -147,10 +144,6 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							arg.Inner = arg.Inner[:count]
 						}
 						// TODO: swap elements of the array
-						size = constArg(count)
-						for _, elem := range arg.Inner {
-							size.ByteSize += elem.Size(a.Type)
-						}
 					case sys.PtrType:
 						// TODO: we don't know size for out args
 						size := uintptr(1)
@@ -175,10 +168,9 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							optType = a.Options[r.Intn(len(a.Options))]
 						}
 						p.removeArg(arg.Option)
-						opt, size1, calls := r.generateArg(s, optType, arg.Dir, nil)
+						opt, calls := r.generateArg(s, optType, arg.Dir)
 						arg1 := unionArg(opt, optType)
 						p.replaceArg(arg, arg1, calls)
-						size = size1
 					case sys.LenType:
 						panic("bad arg returned by mutationArgs: LenType")
 					case sys.ConstType, sys.StrConstType:
@@ -187,42 +179,23 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", *arg, arg.Type))
 					}
 
-					// Update associated size argument if there is one.
-					// TODO: update parent size.
-					if size != nil {
-						name := arg.Type.Name()
-						if name == "" && base != nil {
-							name = base.Type.Name()
-						}
-						for _, arg1 := range *parent {
-							if sz, ok := arg1.Type.(sys.LenType); ok && sz.Buf == name {
-								if arg1.Kind != ArgConst && arg1.Kind != ArgPageSize {
-									panic(fmt.Sprintf("size arg is not const: %#v", *arg1))
-								}
-								arg1.Val = size.Val
-								if sz.ByteSize {
-									if size.Val != 0 && size.ByteSize == 0 {
-										panic(fmt.Sprintf("no byte size for %v in %v: size=%v", name, c.Meta.Name, size.Val))
-									}
-									arg1.Val = size.ByteSize
-								}
-								arg1.AddrPage = size.AddrPage
-								arg1.AddrOffset = size.AddrOffset
-							}
-						}
-					}
-
 					// Update base pointer if size has increased.
 					if base != nil && baseSize < base.Res.Size(base.Res.Type) {
 						arg1, calls1 := r.addr(s, base.Res.Size(base.Res.Type), base.Res)
-						for _, c := range calls1 {
-							assignTypeAndDir(c)
-							sanitizeCall(c)
+						for _, c1 := range calls1 {
+							assignTypeAndDir(c1)
+							sanitizeCall(c1)
 						}
 						p.insertBefore(c, calls1)
 						arg.AddrPage = arg1.AddrPage
 						arg.AddrOffset = arg1.AddrOffset
+						arg.AddrPagesNum = arg1.AddrPagesNum
 					}
+
+					// Update all len fields.
+					assignSizesCall(c)
+					// Assign Arg.Type fields for newly created len args.
+					assignTypeAndDir(c)
 				}
 			},
 			1, func() {
@@ -284,7 +257,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) (*Prog, int)
 		mmap := &Call{
 			Meta: sys.CallMap["mmap"],
 			Args: []*Arg{
-				pointerArg(0, 0, nil),
+				pointerArg(0, 0, uintptr(hi)+1, nil),
 				pageSizeArg(uintptr(hi)+1, 0),
 				constArg(sys.PROT_READ | sys.PROT_WRITE),
 				constArg(sys.MAP_ANONYMOUS | sys.MAP_PRIVATE | sys.MAP_FIXED),
@@ -350,7 +323,7 @@ func (p *Prog) TrimAfter(idx int) {
 	p.Calls = p.Calls[:idx+1]
 }
 
-func mutationArgs(c *Call) (args, bases []*Arg, parents []*[]*Arg) {
+func mutationArgs(c *Call) (args, bases []*Arg) {
 	foreachArg(c, func(arg, base *Arg, parent *[]*Arg) {
 		switch typ := arg.Type.(type) {
 		case *sys.StructType:
@@ -382,7 +355,6 @@ func mutationArgs(c *Call) (args, bases []*Arg, parents []*[]*Arg) {
 		}
 		args = append(args, arg)
 		bases = append(bases, base)
-		parents = append(parents, parent)
 	})
 	return
 }

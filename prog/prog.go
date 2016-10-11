@@ -20,20 +20,20 @@ type Call struct {
 }
 
 type Arg struct {
-	Call       *Call
-	Type       sys.Type
-	Kind       ArgKind
-	Dir        ArgDir
-	Val        uintptr       // value of ArgConst
-	ByteSize   uintptr       // size of an array in bytes for ArgConst
-	AddrPage   uintptr       // page index for ArgPointer address, page count for ArgPageSize
-	AddrOffset int           // page offset for ArgPointer address
-	Data       []byte        // data of ArgData
-	Inner      []*Arg        // subargs of ArgGroup
-	Res        *Arg          // target of ArgResult, pointee for ArgPointer
-	Uses       map[*Arg]bool // this arg is used by those ArgResult args
-	OpDiv      uintptr       // divide result for ArgResult (executed before OpAdd)
-	OpAdd      uintptr       // add to result for ArgResult
+	Call         *Call
+	Type         sys.Type
+	Kind         ArgKind
+	Dir          ArgDir
+	Val          uintptr       // value of ArgConst
+	AddrPage     uintptr       // page index for ArgPointer address, page count for ArgPageSize
+	AddrOffset   int           // page offset for ArgPointer address
+	AddrPagesNum uintptr       // number of available pages for ArgPointer
+	Data         []byte        // data of ArgData
+	Inner        []*Arg        // subargs of ArgGroup
+	Res          *Arg          // target of ArgResult, pointee for ArgPointer
+	Uses         map[*Arg]bool // this arg is used by those ArgResult args
+	OpDiv        uintptr       // divide result for ArgResult (executed before OpAdd)
+	OpAdd        uintptr       // add to result for ArgResult
 
 	// ArgUnion/UnionType
 	Option     *Arg
@@ -60,6 +60,24 @@ const (
 	DirOut   = ArgDir(sys.DirOut)
 	DirInOut = ArgDir(sys.DirInOut)
 )
+
+// Returns inner arg for PtrType args
+func (a *Arg) InnerArg(typ sys.Type) *Arg {
+	switch typ1 := typ.(type) {
+	case sys.PtrType:
+		if a.Res == nil {
+			if typ.Optional() {
+				return nil
+			} else {
+				panic(fmt.Sprintf("non-optional pointer is nil\narg: %+v\ntype: %+v", a, typ1))
+			}
+		} else {
+			return a.Res.InnerArg(typ1.Type)
+		}
+	default:
+		return a
+	}
+}
 
 func (a *Arg) Size(typ sys.Type) uintptr {
 	switch typ1 := typ.(type) {
@@ -109,8 +127,8 @@ func dataArg(data []byte) *Arg {
 	return &Arg{Kind: ArgData, Data: append([]byte{}, data...)}
 }
 
-func pointerArg(page uintptr, off int, obj *Arg) *Arg {
-	return &Arg{Kind: ArgPointer, AddrPage: page, AddrOffset: off, Res: obj}
+func pointerArg(page uintptr, off int, npages uintptr, obj *Arg) *Arg {
+	return &Arg{Kind: ArgPointer, AddrPage: page, AddrOffset: off, AddrPagesNum: npages, Res: obj}
 }
 
 func pageSizeArg(npages uintptr, off int) *Arg {
