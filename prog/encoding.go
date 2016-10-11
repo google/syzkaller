@@ -232,7 +232,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 			return nil, fmt.Errorf("& arg is not a pointer: %#v", typ)
 		}
 		p.Parse('&')
-		page, off, err := parseAddr(p, true)
+		page, off, size, err := parseAddr(p, true)
 		if err != nil {
 			return nil, err
 		}
@@ -241,9 +241,9 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		if err != nil {
 			return nil, err
 		}
-		arg = pointerArg(page, off, inner)
+		arg = pointerArg(page, off, size, inner)
 	case '(':
-		page, off, err := parseAddr(p, false)
+		page, off, _, err := parseAddr(p, false)
 		if err != nil {
 			return nil, err
 		}
@@ -368,22 +368,27 @@ func serializeAddr(a *Arg, base bool) string {
 		}
 		soff = fmt.Sprintf("%v0x%x", sign, off)
 	}
-	return fmt.Sprintf("(0x%x%v)", page, soff)
+	ssize := ""
+	if size := a.AddrPagesNum; size != 0 {
+		size *= encodingPageSize
+		ssize = fmt.Sprintf("/0x%x", size)
+	}
+	return fmt.Sprintf("(0x%x%v%v)", page, soff, ssize)
 }
 
-func parseAddr(p *parser, base bool) (uintptr, int, error) {
+func parseAddr(p *parser, base bool) (uintptr, int, uintptr, error) {
 	p.Parse('(')
 	pstr := p.Ident()
 	page, err := strconv.ParseUint(pstr, 0, 64)
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to parse addr page: '%v'", pstr)
+		return 0, 0, 0, fmt.Errorf("failed to parse addr page: '%v'", pstr)
 	}
 	if page%encodingPageSize != 0 {
-		return 0, 0, fmt.Errorf("address base is not page size aligned: '%v'", pstr)
+		return 0, 0, 0, fmt.Errorf("address base is not page size aligned: '%v'", pstr)
 	}
 	if base {
 		if page < encodingAddrBase {
-			return 0, 0, fmt.Errorf("address without base offset: '%v'", pstr)
+			return 0, 0, 0, fmt.Errorf("address without base offset: '%v'", pstr)
 		}
 		page -= encodingAddrBase
 	}
@@ -399,16 +404,26 @@ func parseAddr(p *parser, base bool) (uintptr, int, error) {
 		ostr := p.Ident()
 		off, err = strconv.ParseInt(ostr, 0, 64)
 		if err != nil {
-			return 0, 0, fmt.Errorf("failed to parse addr offset: '%v'", ostr)
+			return 0, 0, 0, fmt.Errorf("failed to parse addr offset: '%v'", ostr)
 		}
 		if minus {
 			page -= encodingPageSize
 			off = -off
 		}
 	}
+	var size uint64
+	if p.Char() == '/' {
+		p.Parse('/')
+		pstr := p.Ident()
+		size, err = strconv.ParseUint(pstr, 0, 64)
+		if err != nil {
+			return 0, 0, 0, fmt.Errorf("failed to parse addr size: '%v'", pstr)
+		}
+	}
 	p.Parse(')')
 	page /= encodingPageSize
-	return uintptr(page), int(off), nil
+	size /= encodingPageSize
+	return uintptr(page), int(off), uintptr(size), nil
 }
 
 type parser struct {

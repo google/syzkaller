@@ -405,8 +405,11 @@ func (r *randGen) timespec(s *state, usec bool) (arg *Arg, calls []*Call) {
 
 func (r *randGen) addr1(s *state, size uintptr, data *Arg) (*Arg, []*Call) {
 	npages := (size + pageSize - 1) / pageSize
+	if npages == 0 {
+		npages = 1
+	}
 	if r.oneOf(10) {
-		return r.randPageAddr(s, npages, data), nil
+		return r.randPageAddr(s, npages, data, false), nil
 	}
 	for i := uintptr(0); i < maxPages-npages; i++ {
 		free := true
@@ -422,7 +425,7 @@ func (r *randGen) addr1(s *state, size uintptr, data *Arg) (*Arg, []*Call) {
 		c := &Call{
 			Meta: sys.CallMap["mmap"],
 			Args: []*Arg{
-				pointerArg(i, 0, nil),
+				pointerArg(i, 0, npages, nil),
 				pageSizeArg(npages, 0),
 				constArg(sys.PROT_READ | sys.PROT_WRITE),
 				constArg(sys.MAP_ANONYMOUS | sys.MAP_PRIVATE | sys.MAP_FIXED),
@@ -430,9 +433,9 @@ func (r *randGen) addr1(s *state, size uintptr, data *Arg) (*Arg, []*Call) {
 				constArg(0),
 			},
 		}
-		return pointerArg(i, 0, data), []*Call{c}
+		return pointerArg(i, 0, 0, data), []*Call{c}
 	}
-	return r.randPageAddr(s, npages, data), nil
+	return r.randPageAddr(s, npages, data, false), nil
 }
 
 func (r *randGen) addr(s *state, size uintptr, data *Arg) (*Arg, []*Call) {
@@ -454,7 +457,7 @@ func (r *randGen) addr(s *state, size uintptr, data *Arg) (*Arg, []*Call) {
 	return arg, calls
 }
 
-func (r *randGen) randPageAddr(s *state, npages uintptr, data *Arg) *Arg {
+func (r *randGen) randPageAddr(s *state, npages uintptr, data *Arg, vma bool) *Arg {
 	var starts []uintptr
 	for i := uintptr(0); i < maxPages-npages; i++ {
 		busy := true
@@ -471,11 +474,16 @@ func (r *randGen) randPageAddr(s *state, npages uintptr, data *Arg) *Arg {
 		}
 		starts = append(starts, i)
 	}
+	var page uintptr
 	if len(starts) != 0 {
-		return pointerArg(starts[r.rand(len(starts))], 0, data)
+		page = starts[r.rand(len(starts))]
 	} else {
-		return pointerArg(r.rand(int(maxPages-npages)), 0, data)
+		page = r.rand(int(maxPages-npages))
 	}
+	if !vma {
+		npages = 0
+	}
+	return pointerArg(page, 0, npages, data)
 }
 
 func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, calls []*Call) {
@@ -604,51 +612,23 @@ func (r *randGen) generateParticularCall(s *state, meta *sys.Call) (calls []*Cal
 func (r *randGen) generateArgs(s *state, types []sys.Type, dir ArgDir) ([]*Arg, []*Call) {
 	var calls []*Call
 	args := make([]*Arg, len(types))
-	sizes := make(map[string]*Arg)
-	// Pass 1: generate all args except size arguments.
+
+	// Generate all args. Size args have the default value 0 for now.
 	for i, typ := range types {
-		if _, ok := typ.(sys.LenType); ok {
-			continue
+		arg, calls1 := r.generateArg(s, typ, dir)
+		if arg == nil {
+			panic(fmt.Sprintf("generated arg is nil for type '%v', types: %+v", typ.Name(), types))
 		}
-		arg, size, calls1 := r.generateArg(s, typ, dir, sizes)
 		args[i] = arg
 		calls = append(calls, calls1...)
-		if size != nil {
-			sizes[typ.Name()] = size
-		}
 	}
 
-	// Pass 2: calculate size of the whole struct.
-	// Now we know sizes of all non-size arguments and size arguments are const-size.
-	var parentSize uintptr
-	for i, typ := range types {
-		parentSize += args[i].Size(typ)
-	}
-	if sizes["parent"] != nil {
-		panic("parent is reserved len name")
-	}
-	sizes["parent"] = constArg(parentSize)
+	assignSizes(types, args)
 
-	// Pass 3: fill in size arguments.
-	for i, typ := range types {
-		if a, ok := typ.(sys.LenType); ok {
-			size := sizes[a.Buf]
-			if size == nil {
-				panic(fmt.Sprintf("no size for %v[%v] (%+v), types: %+v", a.Name(), a.Buf, sizes, types))
-			}
-			if a.ByteSize {
-				if size.Val != 0 && size.ByteSize == 0 {
-					panic(fmt.Sprintf("no byte size for %v: size=%v", a.Name(), size.Val))
-				}
-				size = constArg(size.ByteSize)
-			}
-			args[i] = size
-		}
-	}
 	return args, calls
 }
 
-func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[string]*Arg) (arg, size *Arg, calls []*Call) {
+func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, calls []*Call) {
 	if dir == DirOut {
 		// No need to generate something interesting for output scalar arguments.
 		// But we still need to generate the argument itself so that it can be referenced
@@ -656,7 +636,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
 		case sys.IntType, sys.FlagsType, sys.ConstType, sys.StrConstType, sys.FileoffType, sys.ResourceType:
-			return constArg(0), nil, nil
+			return constArg(0), nil
 		}
 	}
 
@@ -664,7 +644,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		if _, ok := typ.(sys.BufferType); ok {
 			panic("impossible") // parent PtrType must be Optional instead
 		}
-		return constArg(typ.Default()), constArg(0), nil
+		return constArg(typ.Default()), nil
 	}
 
 	switch a := typ.(type) {
@@ -694,7 +674,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 				arg, calls = r.createResource(s, a)
 			},
 		)
-		return arg, nil, calls
+		return arg, calls
 	case sys.FileoffType:
 		// TODO: can do better
 		var arg *Arg
@@ -703,7 +683,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 			10, func() { arg = constArg(r.rand(100)) },
 			1, func() { arg = constArg(r.randInt()) },
 		)
-		return arg, nil, nil
+		return arg, nil
 	case sys.BufferType:
 		switch a.Kind {
 		case sys.BufferBlobRand, sys.BufferBlobRange:
@@ -717,19 +697,21 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 					data[i] = byte(r.Intn(256))
 				}
 			}
-			return dataArg(data), constArg(sz), nil
+			return dataArg(data), nil
 		case sys.BufferString:
 			data := r.randString(s)
-			return dataArg(data), constArg(uintptr(len(data))), nil
+			return dataArg(data), nil
 		case sys.BufferFilesystem:
 			data := r.filesystem(s)
-			return dataArg(data), constArg(uintptr(len(data))), nil
+			return dataArg(data), nil
 		case sys.BufferSockaddr:
 			data := r.sockaddr(s)
 			if dir == DirOut {
-				return nil, constArg(uintptr(len(data))), nil
+				for i := range data {
+					data[i] = 0
+				}
 			}
-			return dataArg(data), constArg(uintptr(len(data))), nil
+			return dataArg(data), nil
 		case sys.BufferAlgType:
 			data := r.algType(s)
 			if dir == DirOut {
@@ -737,7 +719,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 					data[i] = 0
 				}
 			}
-			return dataArg(data), constArg(uintptr(len(data))), nil
+			return dataArg(data), nil
 		case sys.BufferAlgName:
 			data := r.algName(s)
 			if dir == DirOut {
@@ -745,20 +727,20 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 					data[i] = 0
 				}
 			}
-			return dataArg(data), constArg(uintptr(len(data))), nil
+			return dataArg(data), nil
 		default:
 			panic("unknown buffer kind")
 		}
 	case sys.VmaType:
 		npages := r.randPageCount()
-		arg := r.randPageAddr(s, npages, nil)
-		return arg, pageSizeArg(npages, 0), nil
+		arg := r.randPageAddr(s, npages, nil, true)
+		return arg, nil
 	case sys.FlagsType:
-		return constArg(r.flags(a.Vals)), nil, nil
+		return constArg(r.flags(a.Vals)), nil
 	case sys.ConstType:
-		return constArg(a.Val), nil, nil
+		return constArg(a.Val), nil
 	case sys.StrConstType:
-		return dataArg([]byte(a.Val)), constArg(uintptr(len(a.Val))), nil
+		return dataArg([]byte(a.Val)), nil
 	case sys.IntType:
 		v := r.randInt()
 		switch a.Kind {
@@ -771,10 +753,10 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		case sys.IntRange:
 			v = r.randRangeInt(a.RangeBegin, a.RangeEnd)
 		}
-		return constArg(v), nil, nil
+		return constArg(v), nil
 	case sys.FilenameType:
 		filename := r.filename(s)
-		return dataArg([]byte(filename)), nil, nil
+		return dataArg([]byte(filename)), nil
 	case sys.ArrayType:
 		count := uintptr(0)
 		switch a.Kind {
@@ -783,16 +765,14 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		case sys.ArrayRangeLen:
 			count = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
 		}
-		sz := constArg(count)
 		var inner []*Arg
 		var calls []*Call
 		for i := uintptr(0); i < count; i++ {
-			arg1, _, calls1 := r.generateArg(s, a.Type, dir, nil)
+			arg1, calls1 := r.generateArg(s, a.Type, dir)
 			inner = append(inner, arg1)
 			calls = append(calls, calls1...)
-			sz.ByteSize += arg1.Size(a.Type)
 		}
-		return groupArg(inner), sz, calls
+		return groupArg(inner), calls
 	case *sys.StructType:
 		if ctor := isSpecialStruct(a); ctor != nil && dir != DirOut {
 			arg, calls = ctor(r, s)
@@ -800,39 +780,33 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir, sizes map[stri
 		}
 		args, calls := r.generateArgs(s, a.Fields, dir)
 		group := groupArg(args)
-		return group, constArg(group.Size(a)), calls
+		return group, calls
 	case *sys.UnionType:
 		optType := a.Options[r.Intn(len(a.Options))]
-		opt, size, calls := r.generateArg(s, optType, dir, sizes)
-		return unionArg(opt, optType), size, calls
+		opt, calls := r.generateArg(s, optType, dir)
+		return unionArg(opt, optType), calls
 	case sys.PtrType:
-		inner, size, calls := r.generateArg(s, a.Type, ArgDir(a.Dir), sizes)
+		inner, calls := r.generateArg(s, a.Type, ArgDir(a.Dir))
 		if ArgDir(a.Dir) == DirOut && inner == nil {
 			// No data, but we should have got size.
-			arg, calls1 := r.addr(s, size.Val, nil)
+			arg, calls1 := r.addr(s, inner.Size(a.Type), nil)
 			calls = append(calls, calls1...)
-			return arg, size, calls
-		}
-		if size == nil {
-			size = constArg(inner.Size(a.Type))
+			return arg, calls
 		}
 		if a.Type.Name() == "iocb" && len(s.resources["iocbptr"]) != 0 {
 			// It is weird, but these are actually identified by kernel by address.
 			// So try to reuse a previously used address.
 			addrs := s.resources["iocbptr"]
 			addr := addrs[r.Intn(len(addrs))]
-			arg = pointerArg(addr.AddrPage, addr.AddrOffset, inner)
-			return arg, size, calls
+			arg = pointerArg(addr.AddrPage, addr.AddrOffset, addr.AddrPagesNum, inner)
+			return arg, calls
 		}
 		arg, calls1 := r.addr(s, inner.Size(a.Type), inner)
 		calls = append(calls, calls1...)
-		return arg, size, calls
+		return arg, calls
 	case sys.LenType:
-		if sizes == nil || sizes[a.Buf] == nil {
-			fmt.Printf("name=%v buf=%v sizes=%+v\n", a.Name(), a.Buf, sizes)
-			panic("me no generate len")
-		}
-		return sizes[a.Name()], nil, nil
+		// Return placeholder value of 0 while generating len args.
+		return constArg(0), nil
 	default:
 		panic("unknown argument type")
 	}

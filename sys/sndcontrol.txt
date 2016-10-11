@@ -63,9 +63,9 @@ snd_ctl_elem_info {
 	name	array[int8, 64]
 	nameptr	string
 	namelen	len[nameptr, int32]
-	pad	array[const[0, int8], 44]
+	pad1	array[const[0, int8], 44]
 	d	array[int16, 4]
-	pad	array[const[0, int8], 56]
+	pad2	array[const[0, int8], 56]
 }
 
 snd_ctl_elem_value {
