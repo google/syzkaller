@@ -79,6 +79,39 @@ func (a *Arg) InnerArg(typ sys.Type) *Arg {
 	}
 }
 
+func encodeValue(value, size uintptr, bigEndian bool) uintptr {
+	if !bigEndian {
+		return value
+	}
+	switch size {
+	case 2:
+		return uintptr(swap16(uint16(value)))
+	case 4:
+		return uintptr(swap32(uint32(value)))
+	case 8:
+		return uintptr(swap64(uint64(value)))
+	default:
+		panic(fmt.Sprintf("bad size %v for value %v", size, value))
+	}
+}
+
+// Returns value taking endianness into consideration.
+func (a *Arg) Value(typ sys.Type) uintptr {
+	switch t := typ.(type) {
+	case sys.IntType:
+		return encodeValue(a.Val, t.Size(), t.BigEndian)
+	case sys.ConstType:
+		return encodeValue(a.Val, t.Size(), t.BigEndian)
+	case sys.FlagsType:
+		return encodeValue(a.Val, t.Size(), t.BigEndian)
+	case sys.LenType:
+		return encodeValue(a.Val, t.Size(), t.BigEndian)
+	case sys.FileoffType:
+		return encodeValue(a.Val, t.Size(), t.BigEndian)
+	}
+	return a.Val
+}
+
 func (a *Arg) Size(typ sys.Type) uintptr {
 	switch typ1 := typ.(type) {
 	case sys.IntType, sys.LenType, sys.FlagsType, sys.ConstType, sys.StrConstType,

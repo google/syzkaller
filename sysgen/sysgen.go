@@ -23,6 +23,10 @@ var (
 	flagV = flag.Int("v", 0, "verbosity")
 )
 
+const (
+	ptrSize = 8
+)
+
 func main() {
 	flag.Parse()
 
@@ -325,6 +329,27 @@ func generateStructs(desc *Description, consts map[string]uint64, out io.Writer)
 	fmt.Fprintf(out, "}\n")
 }
 
+func parseRange(buffer string, consts map[string]uint64) (string, string) {
+	lookupConst := func(name string) string {
+		if v, ok := consts[name]; ok {
+			return fmt.Sprint(v)
+		}
+		return name
+	}
+
+	parts := strings.Split(buffer, ":")
+	switch len(parts) {
+	case 1:
+		v := lookupConst(buffer)
+		return v, v
+	case 2:
+		return lookupConst(parts[0]), lookupConst(parts[1])
+	default:
+		failf("bad range: %v", buffer)
+		return "", ""
+	}
+}
+
 func generateArg(
 	parent, name, typ string,
 	a []string,
@@ -350,18 +375,19 @@ func generateArg(
 	switch typ {
 	case "fileoff":
 		canBeArg = true
-		var size uint64
+		size := uint64(ptrSize)
+		bigEndian := false
 		if isField {
 			if want := 2; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
-			size = typeToSize(a[1])
+			size, bigEndian = decodeIntType(a[1])
 		} else {
 			if want := 1; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
 		}
-		fmt.Fprintf(out, "FileoffType{%v, File: \"%v\", TypeSize: %v}", common(), a[0], size)
+		fmt.Fprintf(out, "FileoffType{%v, File: \"%v\", TypeSize: %v, BigEndian: %v}", common(), a[0], size, bigEndian)
 	case "buffer":
 		canBeArg = true
 		if want := 1; len(a) != want {
@@ -409,26 +435,28 @@ func generateArg(
 		fmt.Fprintf(out, "VmaType{%v}", common())
 	case "len", "bytesize":
 		canBeArg = true
-		var size uint64
+		size := uint64(ptrSize)
+		bigEndian := false
 		if isField {
 			if want := 2; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
-			size = typeToSize(a[1])
+			size, bigEndian = decodeIntType(a[1])
 		} else {
 			if want := 1; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
 		}
-		fmt.Fprintf(out, "LenType{%v, Buf: \"%v\", TypeSize: %v, ByteSize: %v}", common(), a[0], size, typ == "bytesize")
+		fmt.Fprintf(out, "LenType{%v, Buf: \"%v\", TypeSize: %v, BigEndian: %v, ByteSize: %v}", common(), a[0], size, bigEndian, typ == "bytesize")
 	case "flags":
 		canBeArg = true
-		var size uint64
+		size := uint64(ptrSize)
+		bigEndian := false
 		if isField {
 			if want := 2; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
-			size = typeToSize(a[1])
+			size, bigEndian = decodeIntType(a[1])
 		} else {
 			if want := 1; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -439,18 +467,19 @@ func generateArg(
 			failf("unknown flag %v", a[0])
 		}
 		if len(vals) == 0 {
-			fmt.Fprintf(out, "IntType{%v, TypeSize: %v}", common(), size)
+			fmt.Fprintf(out, "IntType{%v, TypeSize: %v, BigEndian: %v}", common(), size, bigEndian)
 		} else {
-			fmt.Fprintf(out, "FlagsType{%v, TypeSize: %v, Vals: []uintptr{%v}}", common(), size, strings.Join(vals, ","))
+			fmt.Fprintf(out, "FlagsType{%v, TypeSize: %v, BigEndian: %v, Vals: []uintptr{%v}}", common(), size, bigEndian, strings.Join(vals, ","))
 		}
 	case "const":
 		canBeArg = true
-		var size uint64
+		size := uint64(ptrSize)
+		bigEndian := false
 		if isField {
 			if want := 2; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
-			size = typeToSize(a[1])
+			size, bigEndian = decodeIntType(a[1])
 		} else {
 			if want := 1; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -465,27 +494,22 @@ func generateArg(
 			val = "0"
 			skipSyscall(fmt.Sprintf("missing const %v", a[0]))
 		}
-		fmt.Fprintf(out, "ConstType{%v, TypeSize: %v, Val: uintptr(%v)}", common(), size, val)
+		fmt.Fprintf(out, "ConstType{%v, TypeSize: %v, BigEndian: %v, Val: uintptr(%v)}", common(), size, bigEndian, val)
 	case "strconst":
 		canBeArg = true
 		if want := 1; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
 		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: StrConstType{%v, Val: \"%v\"}}", common(), fmtDir("in"), common(), a[0]+"\\x00")
-	case "int8", "int16", "int32", "int64", "intptr":
+	case "int8", "int16", "int32", "int64", "intptr", "int16be", "int32be", "int64be", "intptrbe":
 		canBeArg = true
+		size, bigEndian := decodeIntType(typ)
 		switch len(a) {
 		case 0:
-			fmt.Fprintf(out, "IntType{%v, TypeSize: %v}", common(), typeToSize(typ))
+			fmt.Fprintf(out, "IntType{%v, TypeSize: %v, BigEndian: %v}", common(), size, bigEndian)
 		case 1:
-			var lo, hi int64
-			if _, err := fmt.Sscanf(a[0], "%d:%d", &lo, &hi); err != nil {
-				failf("failed to parse int range: %v (%v)", a[0], err)
-			}
-			if lo >= hi {
-				failf("bad int range: %v", a[0])
-			}
-			fmt.Fprintf(out, "IntType{%v, TypeSize: %v, Kind: IntRange, RangeBegin: %v, RangeEnd: %v}", common(), typeToSize(typ), lo, hi)
+			begin, end := parseRange(a[0], consts)
+			fmt.Fprintf(out, "IntType{%v, TypeSize: %v, BigEndian: %v, Kind: IntRange, RangeBegin: %v, RangeEnd: %v}", common(), size, bigEndian, begin, end)
 		default:
 			failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
 		}
@@ -524,23 +548,11 @@ func generateArg(
 				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], desc, consts))
 			}
 		} else {
-			var begin, end uintptr
-			var beginStr, endStr string
-			if _, err := fmt.Sscanf(a[1], "%d:%d", &begin, &end); err == nil {
-				beginStr = fmt.Sprint(begin)
-				endStr = fmt.Sprint(end)
-			} else {
-				sz := a[1]
-				if v, ok := consts[sz]; ok {
-					sz = fmt.Sprint(v)
-				}
-				beginStr = sz
-				endStr = sz
-			}
+			begin, end := parseRange(a[1], consts)
 			if a[0] == "int8" {
-				fmt.Fprintf(out, "BufferType{%v, Kind: BufferBlobRange, RangeBegin: %v, RangeEnd: %v}", common(), beginStr, endStr)
+				fmt.Fprintf(out, "BufferType{%v, Kind: BufferBlobRange, RangeBegin: %v, RangeEnd: %v}", common(), begin, end)
 			} else {
-				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], desc, consts), beginStr, endStr)
+				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], desc, consts), begin, end)
 			}
 		}
 	case "ptr":
@@ -600,17 +612,22 @@ func fmtDir(s string) string {
 	}
 }
 
-func typeToSize(typ string) uint64 {
+func decodeIntType(typ string) (uint64, bool) {
+	bigEndian := false
+	if strings.HasSuffix(typ, "be") {
+		bigEndian = true
+		typ = typ[:len(typ)-2]
+	}
 	switch typ {
 	case "int8", "int16", "int32", "int64", "intptr":
 	default:
 		failf("unknown type %v", typ)
 	}
-	sz := int64(64) // TODO: assume that pointer is 8 bytes for now
+	sz := int64(ptrSize * 8)
 	if typ != "intptr" {
 		sz, _ = strconv.ParseInt(typ[3:], 10, 64)
 	}
-	return uint64(sz / 8)
+	return uint64(sz / 8), bigEndian
 }
 
 func isIdentifier(s string) bool {

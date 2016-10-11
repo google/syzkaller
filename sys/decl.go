@@ -90,8 +90,9 @@ func (t ResourceType) InnerType() Type {
 
 type FileoffType struct {
 	TypeCommon
-	TypeSize uintptr
-	File     string
+	TypeSize  uintptr
+	BigEndian bool
+	File      string
 }
 
 func (t FileoffType) Size() uintptr {
@@ -167,9 +168,10 @@ func (t VmaType) InnerType() Type {
 
 type LenType struct {
 	TypeCommon
-	TypeSize uintptr
-	ByteSize bool // want size in bytes instead of array size
-	Buf      string
+	TypeSize  uintptr
+	BigEndian bool
+	ByteSize  bool // want size in bytes instead of array size
+	Buf       string
 }
 
 func (t LenType) Size() uintptr {
@@ -186,8 +188,9 @@ func (t LenType) InnerType() Type {
 
 type FlagsType struct {
 	TypeCommon
-	TypeSize uintptr
-	Vals     []uintptr
+	TypeSize  uintptr
+	BigEndian bool
+	Vals      []uintptr
 }
 
 func (t FlagsType) Size() uintptr {
@@ -204,9 +207,10 @@ func (t FlagsType) InnerType() Type {
 
 type ConstType struct {
 	TypeCommon
-	TypeSize uintptr
-	Val      uintptr
-	IsPad    bool
+	TypeSize  uintptr
+	BigEndian bool
+	Val       uintptr
+	IsPad     bool
 }
 
 func (t ConstType) Size() uintptr {
@@ -252,6 +256,7 @@ const (
 type IntType struct {
 	TypeCommon
 	TypeSize   uintptr
+	BigEndian  bool
 	Kind       IntKind
 	RangeBegin int64
 	RangeEnd   int64
