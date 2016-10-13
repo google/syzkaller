@@ -30,15 +30,15 @@ var oopses = []*oops{
 		[]byte("BUG:"),
 		[]oopsFormat{
 			{
-				compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+.*(Read|Write) of size ([0-9]+)"),
+				compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
 				"KASAN: %[1]v %[3]v of size %[4]v in %[2]v",
 			},
 			{
-				compile("BUG: KASAN: ([a-z\\-]+) on address(?:.*\\n)+.*(Read|Write) of size ([0-9]+)"),
+				compile("BUG: KASAN: ([a-z\\-]+) on address(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
 				"KASAN: %[1]v %[2]v of size %[3]v",
 			},
 			{
-				compile("BUG: unable to handle kernel paging request(?:.*\\n)+.*IP: {{PC}} +{{FUNC}}"),
+				compile("BUG: unable to handle kernel paging request(?:.*\\n)+?.*IP: {{PC}} +{{FUNC}}"),
 				"BUG: unable to handle kernel paging request in %[1]v",
 			},
 			{
@@ -46,7 +46,7 @@ var oopses = []*oops{
 				"BUG: unable to handle kernel paging request",
 			},
 			{
-				compile("BUG: unable to handle kernel NULL pointer dereference(?:.*\\n)+.*IP: {{PC}} +{{FUNC}}"),
+				compile("BUG: unable to handle kernel NULL pointer dereference(?:.*\\n)+?.*IP: {{PC}} +{{FUNC}}"),
 				"BUG: unable to handle kernel NULL pointer dereference in %[1]v",
 			},
 			{
@@ -58,7 +58,7 @@ var oopses = []*oops{
 				"BUG: soft lockup",
 			},
 			{
-				compile("BUG: .*still has locks held!(?:.*\\n)+.*{{PC}} +{{FUNC}}"),
+				compile("BUG: .*still has locks held!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
 				"BUG: still has locks held in %[1]v",
 			},
 			{
@@ -88,7 +88,7 @@ var oopses = []*oops{
 		[]byte("INFO:"),
 		[]oopsFormat{
 			{
-				compile("INFO: possible circular locking dependency detected \\](?:.*\\n)+.*is trying to acquire lock(?:.*\\n)+.*at: {{PC}} +{{FUNC}}"),
+				compile("INFO: possible circular locking dependency detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
 			},
 			{
@@ -105,7 +105,7 @@ var oopses = []*oops{
 		[]byte("Unable to handle kernel paging request"),
 		[]oopsFormat{
 			{
-				compile("Unable to handle kernel paging request(?:.*\\n)+.*PC is at {{FUNC}}"),
+				compile("Unable to handle kernel paging request(?:.*\\n)+?.*PC is at {{FUNC}}"),
 				"unable to handle kernel paging request in %[1]v",
 			},
 		},
@@ -114,7 +114,7 @@ var oopses = []*oops{
 		[]byte("general protection fault:"),
 		[]oopsFormat{
 			{
-				compile("general protection fault:(?:.*\n)+.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
+				compile("general protection fault:(?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
 				"general protection fault in %[1]v",
 			},
 		},
@@ -154,7 +154,7 @@ var oopses = []*oops{
 		[]byte("divide error:"),
 		[]oopsFormat{
 			{
-				compile("divide error: (?:.*\n)+.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
+				compile("divide error: (?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
 				"divide error in %[1]v",
 			},
 		},
@@ -163,7 +163,7 @@ var oopses = []*oops{
 		[]byte("invalid opcode:"),
 		[]oopsFormat{
 			{
-				compile("invalid opcode: (?:.*\n)+.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
+				compile("invalid opcode: (?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
 				"invalid opcode in %[1]v",
 			},
 		},
