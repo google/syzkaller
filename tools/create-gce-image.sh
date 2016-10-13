@@ -26,7 +26,7 @@
 # The image can be tested locally with e.g.:
 #   qemu-system-x86_64 -hda disk.raw -net user,host=10.0.2.10,hostfwd=tcp::10022-:22 -net nic -enable-kvm -m 2G -display none -serial stdio
 # once the kernel boots, you can ssh into it with:
-#   ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -p 10022 -i gce.key root@localhost
+#   ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -p 10022 -i key root@localhost
 #
 # Note: the script creates and deletes some failes in cwd.
 
@@ -89,7 +89,7 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod part_msdos
 	insmod ext2
 	set root='(hd0,1)'
-	linux /vmlinuz root=/dev/sda1 debug console=ttyS0 earlyprintk=serial ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 panic=86400
+	linux /vmlinuz root=/dev/sda1 debug console=ttyS0 earlyprintk=serial vsyscall=native ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 panic=86400
 }
 EOF
 sudo grub-install --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
