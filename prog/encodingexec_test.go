@@ -129,6 +129,28 @@ func TestSerializeForExec(t *testing.T) {
 				instrEOF,
 			},
 		},
+		{
+			"syz_test$end0(&(0x7f0000000000)={0x42, 0x42, 0x42, 0x42, 0x42})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 1, 0x42,
+				instrCopyin, dataOffset + 1, argConst, 2, 0x4200,
+				instrCopyin, dataOffset + 3, argConst, 4, 0x42000000,
+				instrCopyin, dataOffset + 7, argConst, 8, 0x4200000000000000,
+				instrCopyin, dataOffset + 15, argConst, 8, 0x4200000000000000,
+				callID("syz_test$end0"), 1, argConst, ptrSize, dataOffset,
+				instrEOF,
+			},
+		},
+		{
+			"syz_test$end1(&(0x7f0000000000)={0xe, 0x42, 0x1})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 2, 0x0e00,
+				instrCopyin, dataOffset + 2, argConst, 4, 0x42000000,
+				instrCopyin, dataOffset + 6, argConst, 8, 0x0100000000000000,
+				callID("syz_test$end1"), 1, argConst, ptrSize, dataOffset,
+				instrEOF,
+			},
+		},
 	}
 
 	for i, test := range tests {

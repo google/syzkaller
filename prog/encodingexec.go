@@ -148,7 +148,7 @@ func (w *execContext) writeArg(arg *Arg) {
 	case ArgConst:
 		w.write(ExecArgConst)
 		w.write(arg.Size(arg.Type))
-		w.write(arg.Val)
+		w.write(arg.Value(arg.Type))
 	case ArgResult:
 		w.write(ExecArgResult)
 		w.write(arg.Size(arg.Type))
