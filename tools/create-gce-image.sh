@@ -80,6 +80,10 @@ cat << EOF | sudo tee disk.mnt/boot/grub/grub.cfg
 terminal_input console
 terminal_output console
 set timeout=0
+# vsyscall=native: required to run x86_64 executables on android kernels (for some reason they disable VDSO by default)
+# rodata=n: mark_rodata_ro becomes very slow with KASAN (lots of PGDs)
+# panic=86400: prevents kernel from rebooting so that we don't get reboot output in all crash reports
+# debug is not set as it produces too much output
 menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod vbe
 	insmod vga
@@ -89,7 +93,7 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod part_msdos
 	insmod ext2
 	set root='(hd0,1)'
-	linux /vmlinuz root=/dev/sda1 debug console=ttyS0 earlyprintk=serial vsyscall=native ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 panic=86400
+	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 panic=86400
 }
 EOF
 sudo grub-install --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
