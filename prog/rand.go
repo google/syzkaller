@@ -478,7 +478,7 @@ func (r *randGen) randPageAddr(s *state, npages uintptr, data *Arg, vma bool) *A
 	if len(starts) != 0 {
 		page = starts[r.rand(len(starts))]
 	} else {
-		page = r.rand(int(maxPages-npages))
+		page = r.rand(int(maxPages - npages))
 	}
 	if !vma {
 		npages = 0
