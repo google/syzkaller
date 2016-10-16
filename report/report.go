@@ -93,7 +93,19 @@ var oopses = []*oops{
 			},
 			{
 				compile("INFO: rcu_preempt detected stalls"),
-				"INFO: rcu_preempt detected stalls",
+				"INFO: rcu detected stall",
+			},
+			{
+				compile("INFO: rcu_sched detected stalls"),
+				"INFO: rcu detected stall",
+			},
+			{
+				compile("INFO: rcu_preempt self-detected stall on CPU"),
+				"INFO: rcu detected stall",
+			},
+			{
+				compile("INFO: rcu_sched self-detected stall on CPU"),
+				"INFO: rcu detected stall",
 			},
 			{
 				compile("INFO: suspicious RCU usage(?:.*\n.*)+(?: |\n|\t){{SRC}}"),
