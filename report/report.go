@@ -16,8 +16,9 @@ import (
 )
 
 type oops struct {
-	header  []byte
-	formats []oopsFormat
+	header       []byte
+	formats      []oopsFormat
+	suppressions []*regexp.Regexp
 }
 
 type oopsFormat struct {
@@ -74,6 +75,7 @@ var oopses = []*oops{
 				"BUG: non-zero nr_pmds on freeing mm",
 			},
 		},
+		[]*regexp.Regexp{},
 	},
 	&oops{
 		[]byte("WARNING:"),
@@ -83,6 +85,7 @@ var oopses = []*oops{
 				"WARNING in %[2]v",
 			},
 		},
+		[]*regexp.Regexp{},
 	},
 	&oops{
 		[]byte("INFO:"),
@@ -116,6 +119,10 @@ var oopses = []*oops{
 				"INFO: task hung",
 			},
 		},
+		[]*regexp.Regexp{
+			compile("INFO: lockdep is turned off"),
+			compile("INFO: Stall ended before state dump start"),
+		},
 	},
 	&oops{
 		[]byte("Unable to handle kernel paging request"),
@@ -125,6 +132,7 @@ var oopses = []*oops{
 				"unable to handle kernel paging request in %[1]v",
 			},
 		},
+		[]*regexp.Regexp{},
 	},
 	&oops{
 		[]byte("general protection fault:"),
@@ -134,6 +142,7 @@ var oopses = []*oops{
 				"general protection fault in %[1]v",
 			},
 		},
+		[]*regexp.Regexp{},
 	},
 	&oops{
 		[]byte("Kernel panic"),
@@ -147,6 +156,7 @@ var oopses = []*oops{
 				"kernel panic: %[1]v",
 			},
 		},
+		[]*regexp.Regexp{},
 	},
 	&oops{
 		[]byte("kernel BUG"),
@@ -156,6 +166,7 @@ var oopses = []*oops{
 				"kernel BUG %[1]v",
 			},
 		},
+		[]*regexp.Regexp{},
 	},
 	&oops{
 		[]byte("Kernel BUG"),
@@ -165,6 +176,7 @@ var oopses = []*oops{
 				"kernel BUG %[1]v",
 			},
 		},
+		[]*regexp.Regexp{},
 	},
 	&oops{
 		[]byte("divide error:"),
@@ -174,6 +186,7 @@ var oopses = []*oops{
 				"divide error in %[1]v",
 			},
 		},
+		[]*regexp.Regexp{},
 	},
 	&oops{
 		[]byte("invalid opcode:"),
@@ -183,6 +196,7 @@ var oopses = []*oops{
 				"invalid opcode in %[1]v",
 			},
 		},
+		[]*regexp.Regexp{},
 	},
 	&oops{
 		[]byte("unreferenced object"),
@@ -192,10 +206,12 @@ var oopses = []*oops{
 				"memory leak in %[2]v (size %[1]v)",
 			},
 		},
+		[]*regexp.Regexp{},
 	},
 	&oops{
 		[]byte("UBSAN:"),
 		[]oopsFormat{},
+		[]*regexp.Regexp{},
 	},
 }
 
@@ -224,7 +240,7 @@ func ContainsCrash(output []byte) bool {
 			next = len(output)
 		}
 		for _, oops := range oopses {
-			match := bytes.Index(output[pos:next], oops.header)
+			match := matchOops(output[pos:next], oops)
 			if match == -1 {
 				continue
 			}
@@ -249,7 +265,7 @@ func Parse(output []byte) (desc string, text []byte, start int, end int) {
 			next = len(output)
 		}
 		for _, oops1 := range oopses {
-			match := bytes.Index(output[pos:next], oops1.header)
+			match := matchOops(output[pos:next], oops1)
 			if match == -1 {
 				continue
 			}
@@ -282,6 +298,19 @@ func Parse(output []byte) (desc string, text []byte, start int, end int) {
 		desc = desc[:len(desc)-1]
 	}
 	return
+}
+
+func matchOops(line []byte, oops *oops) int {
+	match := bytes.Index(line, oops.header)
+	if match == -1 {
+		return -1
+	}
+	for _, supp := range oops.suppressions {
+		if supp.Match(line) {
+			return -1
+		}
+	}
+	return match
 }
 
 func extractDescription(output []byte, oops *oops) string {
