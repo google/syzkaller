@@ -111,6 +111,10 @@ var oopses = []*oops{
 				compile("INFO: suspicious RCU usage(?:.*\n.*)+(?: |\n|\t){{SRC}}"),
 				"suspicious RCU usage at %[1]v",
 			},
+			{
+				compile("INFO: task .* blocked for more than [0-9]+ seconds"),
+				"INFO: task hung",
+			},
 		},
 	},
 	&oops{
