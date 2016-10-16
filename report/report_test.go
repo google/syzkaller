@@ -431,7 +431,15 @@ BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
 
 		`
 BUG UNIX (Not tainted): kasan: bad access detected
-`: "",
+`: ``,
+
+		`
+[901320.960000] INFO: lockdep is turned off.
+`: ``,
+
+		`
+INFO: Stall ended before state dump start
+`: ``,
 	}
 	for log, crash := range tests {
 		if strings.Index(log, "\r\n") != -1 {
@@ -440,8 +448,13 @@ BUG UNIX (Not tainted): kasan: bad access detected
 		tests[strings.Replace(log, "\n", "\r\n", -1)] = crash
 	}
 	for log, crash := range tests {
-		if ContainsCrash([]byte(log)) != (crash != "") {
+		containsCrash := ContainsCrash([]byte(log))
+		expectCrash := (crash != "")
+		if expectCrash && !containsCrash {
 			t.Fatalf("ContainsCrash did not find crash")
+		}
+		if !expectCrash && containsCrash {
+			t.Fatalf("ContainsCrash found unexpected crash")
 		}
 		desc, _, _, _ := Parse([]byte(log))
 		if desc == "" && crash != "" {
