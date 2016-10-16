@@ -40,12 +40,6 @@ IP: [<ffffffff810a376f>] __call_rcu.constprop.76+0x1f/0x280 kernel/rcu/tree.c:30
 `: `BUG: unable to handle kernel paging request`,
 
 		`
-[   50.583499] something
-[   50.583499] INFO: rcu_sched self-detected stall on CPU
-[   50.583499]         0: (20822 ticks this GP) idle=94b/140000000000001/0
-`: `INFO: rcu_sched self-detected stall on CPU`,
-
-		`
 [ 1021.362826] kasan: CONFIG_KASAN_INLINE enabled
 [ 1021.363613] kasan: GPF could be caused by NULL-ptr deref or user memory access
 [ 1021.364461] general protection fault: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN
@@ -380,7 +374,21 @@ in_atomic(): 1, irqs_disabled(): 0, pid: 3658, name: syz-fuzzer
 
 		`
 INFO: rcu_preempt detected stalls on CPUs/tasks: { 2} (detected by 0, t=65008 jiffies, g=48068, c=48067, q=7339)
-`: `INFO: rcu_preempt detected stalls`,
+`: `INFO: rcu detected stall`,
+
+		`
+[  317.168127] INFO: rcu_sched detected stalls on CPUs/tasks: { 0} (detected by 1, t=2179 jiffies, g=740, c=739, q=1)
+`: `INFO: rcu detected stall`,
+
+		`
+[   50.583499] something
+[   50.583499] INFO: rcu_preempt self-detected stall on CPU
+[   50.583499]         0: (20822 ticks this GP) idle=94b/140000000000001/0
+`: `INFO: rcu detected stall`,
+
+		`
+[   50.583499] INFO: rcu_sched self-detected stall on CPU
+`: `INFO: rcu detected stall`,
 
 		`
 BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
