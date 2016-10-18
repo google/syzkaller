@@ -16,15 +16,19 @@ import (
 var (
 	flagThreaded = flag.Bool("threaded", false, "create threaded program")
 	flagCollide  = flag.Bool("collide", false, "create collide program")
+	flagRepeat   = flag.Bool("repeat", false, "repeat program infinitely or not")
+	flagProcs    = flag.Int("procs", 4, "number of parallel processes")
+	flagSandbox  = flag.String("sandbox", "none", "sandbox to use (none, setuid, namespace)")
+	flagProg     = flag.String("prog", "", "file with program to convert (required)")
 )
 
 func main() {
 	flag.Parse()
-	if len(flag.Args()) != 1 {
-		fmt.Fprintf(os.Stderr, "usage: prog2c [-threaded [-collide]] prog_file\n")
+	if *flagProg == "" {
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	data, err := ioutil.ReadFile(flag.Args()[0])
+	data, err := ioutil.ReadFile(*flagProg)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to read prog file: %v\n", err)
 		os.Exit(1)
@@ -37,8 +41,16 @@ func main() {
 	opts := csource.Options{
 		Threaded: *flagThreaded,
 		Collide:  *flagCollide,
+		Repeat:   *flagRepeat,
+		Procs:    *flagProcs,
+		Sandbox:  *flagSandbox,
+		Repro:    false,
 	}
-	src := csource.Write(p, opts)
+	src, err := csource.Write(p, opts)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to generate C spurce: %v\n", err)
+		os.Exit(1)
+	}
 	if formatted, err := csource.Format(src); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 	} else {

@@ -4,6 +4,7 @@
 package csource
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"testing"
@@ -14,9 +15,9 @@ import (
 )
 
 func initTest(t *testing.T) (rand.Source, int) {
-	iters := 1000
+	iters := 10
 	if testing.Short() {
-		iters = 10
+		iters = 1
 	}
 	seed := int64(time.Now().UnixNano())
 	rs := rand.NewSource(seed)
@@ -24,23 +25,53 @@ func initTest(t *testing.T) (rand.Source, int) {
 	return rs, iters
 }
 
+func allOptionsPermutations() []Options {
+	var options []Options
+	var opt Options
+	for _, opt.Threaded = range []bool{false, true} {
+		for _, opt.Collide = range []bool{false, true} {
+			for _, opt.Repeat = range []bool{false, true} {
+				for _, opt.Repro = range []bool{false, true} {
+					for _, opt.Procs = range []int{1, 4} {
+						for _, opt.Sandbox = range []string{"none", "setuid", "namespace"} {
+							if opt.Collide && !opt.Threaded {
+								continue
+							}
+							if !opt.Repeat && opt.Procs != 1 {
+								continue
+							}
+							if testing.Short() && opt.Procs != 1 {
+								continue
+							}
+							options = append(options, opt)
+						}
+					}
+				}
+			}
+		}
+	}
+	return options
+}
+
 func Test(t *testing.T) {
 	rs, iters := initTest(t)
-	options := []Options{
-		Options{},
-		Options{Threaded: true},
-		Options{Threaded: true, Collide: true},
-	}
-	for i := 0; i < iters; i++ {
-		p := prog.Generate(rs, 10, nil)
-		for _, opts := range options {
-			testOne(t, p, opts)
-		}
+	for i, opts := range allOptionsPermutations() {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			t.Logf("opts: %+v", opts)
+			for i := 0; i < iters; i++ {
+				p := prog.Generate(rs, 10, nil)
+				testOne(t, p, opts)
+			}
+		})
 	}
 }
 
 func testOne(t *testing.T, p *prog.Prog, opts Options) {
-	src := Write(p, opts)
+	src, err := Write(p, opts)
+	if err != nil {
+		t.Logf("program:\n%s\n", p.Serialize())
+		t.Fatalf("%v", err)
+	}
 	srcf, err := fileutil.WriteTempFile(src)
 	if err != nil {
 		t.Logf("program:\n%s\n", p.Serialize())
