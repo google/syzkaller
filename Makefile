@@ -13,6 +13,7 @@ all:
 	go install ./syz-manager ./syz-fuzzer
 	$(MAKE) manager
 	$(MAKE) fuzzer
+	$(MAKE) execprog
 	$(MAKE) executor
 
 all-tools: execprog mutate prog2c stress repro upgrade
@@ -62,6 +63,7 @@ presubmit:
 	$(MAKE) generate
 	go generate ./...
 	$(MAKE) format
+	$(MAKE) executor
 	ARCH=amd64 go install ./...
 	ARCH=arm64 go install ./...
 	ARCH=ppc64le go install ./...
