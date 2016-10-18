@@ -232,11 +232,11 @@ type StrConstType struct {
 }
 
 func (t StrConstType) Size() uintptr {
-	return ptrSize
+	return uintptr(len(t.Val))
 }
 
 func (t StrConstType) Align() uintptr {
-	return t.Size()
+	return 1
 }
 
 func (t StrConstType) InnerType() Type {
