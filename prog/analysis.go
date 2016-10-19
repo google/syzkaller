@@ -51,16 +51,16 @@ func newState(ct *ChoiceTable) *state {
 func (s *state) analyze(c *Call) {
 	foreachArgArray(&c.Args, c.Ret, func(arg, base *Arg, _ *[]*Arg) {
 		switch typ := arg.Type.(type) {
-		case sys.FilenameType:
+		case *sys.FilenameType:
 			if arg.Kind == ArgData && arg.Dir != DirOut {
 				s.files[string(arg.Data)] = true
 			}
-		case sys.ResourceType:
+		case *sys.ResourceType:
 			if arg.Dir != DirIn {
 				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], arg)
 				// TODO: negative PIDs and add them as well (that's process groups).
 			}
-		case sys.BufferType:
+		case *sys.BufferType:
 			if typ.Kind == sys.BufferString && arg.Kind == ArgData && len(arg.Data) != 0 {
 				s.strings[string(arg.Data)] = true
 			}
@@ -164,7 +164,7 @@ func assignTypeAndDir(c *Call) error {
 		case ArgPointer:
 			arg.Dir = DirIn
 			switch typ1 := typ.(type) {
-			case sys.PtrType:
+			case *sys.PtrType:
 				if arg.Res != nil {
 					if err := rec(arg.Res, typ1.Type, ArgDir(typ1.Dir)); err != nil {
 						return err
@@ -183,7 +183,7 @@ func assignTypeAndDir(c *Call) error {
 						return err
 					}
 				}
-			case sys.ArrayType:
+			case *sys.ArrayType:
 				for _, arg1 := range arg.Inner {
 					if err := rec(arg1, typ1.Type, dir); err != nil {
 						return err
@@ -217,16 +217,16 @@ func assignTypeAndDir(c *Call) error {
 	return nil
 }
 
-func generateSize(typ sys.Type, arg *Arg, lenType sys.LenType) *Arg {
+func generateSize(typ sys.Type, arg *Arg, lenType *sys.LenType) *Arg {
 	if arg == nil {
 		// Arg is an optional pointer, set size to 0.
 		return constArg(0)
 	}
 
 	switch typ.(type) {
-	case sys.VmaType:
+	case *sys.VmaType:
 		return pageSizeArg(arg.AddrPagesNum, 0)
-	case sys.ArrayType:
+	case *sys.ArrayType:
 		if lenType.ByteSize {
 			return constArg(arg.Size(typ))
 		} else {
@@ -268,7 +268,7 @@ func assignSizes(types []sys.Type, args []*Arg) {
 
 	// Fill in size arguments.
 	for i, typ := range types {
-		if lenType, ok := typ.InnerType().(sys.LenType); ok {
+		if lenType, ok := typ.InnerType().(*sys.LenType); ok {
 			lenArg := args[i].InnerArg(typ)
 			if lenArg == nil {
 				// Pointer to optional len field, no need to fill in value.
@@ -298,7 +298,7 @@ func assignSizesCall(c *Call) {
 		switch arg.Kind {
 		case ArgPointer:
 			switch typ1 := typ.(type) {
-			case sys.PtrType:
+			case *sys.PtrType:
 				if arg.Res != nil {
 					rec(arg.Res, typ1.Type)
 				}
@@ -313,7 +313,7 @@ func assignSizesCall(c *Call) {
 					rec(arg1, typ1.Fields[i])
 				}
 				assignSizes(typ1.Fields, arg.Inner)
-			case sys.ArrayType:
+			case *sys.ArrayType:
 				for _, arg1 := range arg.Inner {
 					rec(arg1, typ1.Type)
 				}

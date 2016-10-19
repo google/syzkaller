@@ -7,9 +7,9 @@ func initAlign() {
 	var rec func(t Type)
 	rec = func(t Type) {
 		switch t1 := t.(type) {
-		case PtrType:
+		case *PtrType:
 			rec(t1.Type)
-		case ArrayType:
+		case *ArrayType:
 			rec(t1.Type)
 		case *StructType:
 			if !t1.padded {
@@ -49,10 +49,10 @@ func addAlignment(t *StructType) {
 			fields = append(fields, makePad(pad))
 		}
 		fields = append(fields, f)
-		if at, ok := f.(ArrayType); ok && (at.Kind == ArrayRandLen || (at.Kind == ArrayRangeLen && at.RangeBegin != at.RangeEnd)) {
+		if at, ok := f.(*ArrayType); ok && (at.Kind == ArrayRandLen || (at.Kind == ArrayRangeLen && at.RangeBegin != at.RangeEnd)) {
 			varLen = true
 		}
-		if at, ok := f.(BufferType); ok && (at.Kind == BufferBlobRand || (at.Kind == BufferBlobRange && at.RangeBegin != at.RangeEnd)) {
+		if at, ok := f.(*BufferType); ok && (at.Kind == BufferBlobRand || (at.Kind == BufferBlobRange && at.RangeBegin != at.RangeEnd)) {
 			varLen = true
 		}
 		if varLen && i != len(t.Fields)-1 {
@@ -71,7 +71,7 @@ func addAlignment(t *StructType) {
 }
 
 func makePad(sz uintptr) Type {
-	return ConstType{
+	return &ConstType{
 		TypeCommon: TypeCommon{TypeName: "pad", IsOptional: false},
 		TypeSize:   sz,
 		Val:        0,

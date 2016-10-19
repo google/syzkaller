@@ -64,7 +64,7 @@ const (
 // Returns inner arg for PtrType args
 func (a *Arg) InnerArg(typ sys.Type) *Arg {
 	switch typ1 := typ.(type) {
-	case sys.PtrType:
+	case *sys.PtrType:
 		if a.Res == nil {
 			if typ.Optional() {
 				return nil
@@ -98,15 +98,15 @@ func encodeValue(value, size uintptr, bigEndian bool) uintptr {
 // Returns value taking endianness into consideration.
 func (a *Arg) Value(typ sys.Type) uintptr {
 	switch t := typ.(type) {
-	case sys.IntType:
+	case *sys.IntType:
 		return encodeValue(a.Val, t.Size(), t.BigEndian)
-	case sys.ConstType:
+	case *sys.ConstType:
 		return encodeValue(a.Val, t.Size(), t.BigEndian)
-	case sys.FlagsType:
+	case *sys.FlagsType:
 		return encodeValue(a.Val, t.Size(), t.BigEndian)
-	case sys.LenType:
+	case *sys.LenType:
 		return encodeValue(a.Val, t.Size(), t.BigEndian)
-	case sys.FileoffType:
+	case *sys.FileoffType:
 		return encodeValue(a.Val, t.Size(), t.BigEndian)
 	}
 	return a.Val
@@ -114,12 +114,12 @@ func (a *Arg) Value(typ sys.Type) uintptr {
 
 func (a *Arg) Size(typ sys.Type) uintptr {
 	switch typ1 := typ.(type) {
-	case sys.IntType, sys.LenType, sys.FlagsType, sys.ConstType, sys.StrConstType,
-		sys.FileoffType, sys.ResourceType, sys.VmaType, sys.PtrType:
+	case *sys.IntType, *sys.LenType, *sys.FlagsType, *sys.ConstType, *sys.StrConstType,
+		*sys.FileoffType, *sys.ResourceType, *sys.VmaType, *sys.PtrType:
 		return typ.Size()
-	case sys.FilenameType:
+	case *sys.FilenameType:
 		return uintptr(len(a.Data))
-	case sys.BufferType:
+	case *sys.BufferType:
 		return uintptr(len(a.Data))
 	case *sys.StructType:
 		var size uintptr
@@ -129,7 +129,7 @@ func (a *Arg) Size(typ sys.Type) uintptr {
 		return size
 	case *sys.UnionType:
 		return a.Option.Size(a.OptionType)
-	case sys.ArrayType:
+	case *sys.ArrayType:
 		var size uintptr
 		for _, in := range a.Inner {
 			size += in.Size(typ1.Type)

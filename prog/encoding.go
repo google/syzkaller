@@ -93,7 +93,7 @@ func (a *Arg) serialize(buf io.Writer, vars map[*Arg]int, varSeq *int) {
 		switch a.Type.(type) {
 		case *sys.StructType:
 			delims = []byte{'{', '}'}
-		case sys.ArrayType:
+		case *sys.ArrayType:
 			delims = []byte{'[', ']'}
 		default:
 			panic("unknown group type")
@@ -225,9 +225,9 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 	case '&':
 		var typ1 sys.Type
 		switch t1 := typ.(type) {
-		case sys.PtrType:
+		case *sys.PtrType:
 			typ1 = t1.Type
-		case sys.VmaType:
+		case *sys.VmaType:
 		default:
 			return nil, fmt.Errorf("& arg is not a pointer: %#v", typ)
 		}
@@ -291,7 +291,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		}
 		arg = groupArg(inner)
 	case '[':
-		t1, ok := typ.(sys.ArrayType)
+		t1, ok := typ.(*sys.ArrayType)
 		if !ok {
 			return nil, fmt.Errorf("'[' arg is not an array: %#v", typ)
 		}

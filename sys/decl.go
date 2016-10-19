@@ -29,7 +29,7 @@ type Type interface {
 }
 
 func IsPad(t Type) bool {
-	if ct, ok := t.(ConstType); ok && ct.IsPad {
+	if ct, ok := t.(*ConstType); ok && ct.IsPad {
 		return true
 	}
 	return false
@@ -40,15 +40,15 @@ type TypeCommon struct {
 	IsOptional bool
 }
 
-func (t TypeCommon) Name() string {
+func (t *TypeCommon) Name() string {
 	return t.TypeName
 }
 
-func (t TypeCommon) Optional() bool {
+func (t *TypeCommon) Optional() bool {
 	return t.IsOptional
 }
 
-func (t TypeCommon) Default() uintptr {
+func (t *TypeCommon) Default() uintptr {
 	return 0
 }
 
@@ -68,23 +68,23 @@ type ResourceType struct {
 	Desc *ResourceDesc
 }
 
-func (t ResourceType) Default() uintptr {
+func (t *ResourceType) Default() uintptr {
 	return t.Desc.Values[0]
 }
 
-func (t ResourceType) SpecialValues() []uintptr {
+func (t *ResourceType) SpecialValues() []uintptr {
 	return t.Desc.Values
 }
 
-func (t ResourceType) Size() uintptr {
+func (t *ResourceType) Size() uintptr {
 	return t.Desc.Type.Size()
 }
 
-func (t ResourceType) Align() uintptr {
+func (t *ResourceType) Align() uintptr {
 	return t.Desc.Type.Align()
 }
 
-func (t ResourceType) InnerType() Type {
+func (t *ResourceType) InnerType() Type {
 	return t
 }
 
@@ -95,15 +95,15 @@ type FileoffType struct {
 	File      string
 }
 
-func (t FileoffType) Size() uintptr {
+func (t *FileoffType) Size() uintptr {
 	return t.TypeSize
 }
 
-func (t FileoffType) Align() uintptr {
+func (t *FileoffType) Align() uintptr {
 	return t.Size()
 }
 
-func (t FileoffType) InnerType() Type {
+func (t *FileoffType) InnerType() Type {
 	return t
 }
 
@@ -126,7 +126,7 @@ type BufferType struct {
 	RangeEnd   uintptr // for BufferBlobRange kind
 }
 
-func (t BufferType) Size() uintptr {
+func (t *BufferType) Size() uintptr {
 	switch t.Kind {
 	case BufferAlgType:
 		return 14
@@ -142,11 +142,11 @@ func (t BufferType) Size() uintptr {
 	}
 }
 
-func (t BufferType) Align() uintptr {
+func (t *BufferType) Align() uintptr {
 	return 1
 }
 
-func (t BufferType) InnerType() Type {
+func (t *BufferType) InnerType() Type {
 	return t
 }
 
@@ -154,15 +154,15 @@ type VmaType struct {
 	TypeCommon
 }
 
-func (t VmaType) Size() uintptr {
+func (t *VmaType) Size() uintptr {
 	return ptrSize
 }
 
-func (t VmaType) Align() uintptr {
+func (t *VmaType) Align() uintptr {
 	return t.Size()
 }
 
-func (t VmaType) InnerType() Type {
+func (t *VmaType) InnerType() Type {
 	return t
 }
 
@@ -174,15 +174,15 @@ type LenType struct {
 	Buf       string
 }
 
-func (t LenType) Size() uintptr {
+func (t *LenType) Size() uintptr {
 	return t.TypeSize
 }
 
-func (t LenType) Align() uintptr {
+func (t *LenType) Align() uintptr {
 	return t.Size()
 }
 
-func (t LenType) InnerType() Type {
+func (t *LenType) InnerType() Type {
 	return t
 }
 
@@ -193,15 +193,15 @@ type FlagsType struct {
 	Vals      []uintptr
 }
 
-func (t FlagsType) Size() uintptr {
+func (t *FlagsType) Size() uintptr {
 	return t.TypeSize
 }
 
-func (t FlagsType) Align() uintptr {
+func (t *FlagsType) Align() uintptr {
 	return t.Size()
 }
 
-func (t FlagsType) InnerType() Type {
+func (t *FlagsType) InnerType() Type {
 	return t
 }
 
@@ -213,15 +213,15 @@ type ConstType struct {
 	IsPad     bool
 }
 
-func (t ConstType) Size() uintptr {
+func (t *ConstType) Size() uintptr {
 	return t.TypeSize
 }
 
-func (t ConstType) Align() uintptr {
+func (t *ConstType) Align() uintptr {
 	return t.Size()
 }
 
-func (t ConstType) InnerType() Type {
+func (t *ConstType) InnerType() Type {
 	return t
 }
 
@@ -231,15 +231,15 @@ type StrConstType struct {
 	Val      string
 }
 
-func (t StrConstType) Size() uintptr {
+func (t *StrConstType) Size() uintptr {
 	return uintptr(len(t.Val))
 }
 
-func (t StrConstType) Align() uintptr {
+func (t *StrConstType) Align() uintptr {
 	return 1
 }
 
-func (t StrConstType) InnerType() Type {
+func (t *StrConstType) InnerType() Type {
 	return t
 }
 
@@ -262,15 +262,15 @@ type IntType struct {
 	RangeEnd   int64
 }
 
-func (t IntType) Size() uintptr {
+func (t *IntType) Size() uintptr {
 	return t.TypeSize
 }
 
-func (t IntType) Align() uintptr {
+func (t *IntType) Align() uintptr {
 	return t.Size()
 }
 
-func (t IntType) InnerType() Type {
+func (t *IntType) InnerType() Type {
 	return t
 }
 
@@ -278,15 +278,15 @@ type FilenameType struct {
 	TypeCommon
 }
 
-func (t FilenameType) Size() uintptr {
+func (t *FilenameType) Size() uintptr {
 	panic("filename size is not statically known")
 }
 
-func (t FilenameType) Align() uintptr {
+func (t *FilenameType) Align() uintptr {
 	return 1
 }
 
-func (t FilenameType) InnerType() Type {
+func (t *FilenameType) InnerType() Type {
 	return t
 }
 
@@ -305,18 +305,18 @@ type ArrayType struct {
 	RangeEnd   uintptr
 }
 
-func (t ArrayType) Size() uintptr {
+func (t *ArrayType) Size() uintptr {
 	if t.RangeBegin == t.RangeEnd {
 		return t.RangeBegin * t.Type.Size()
 	}
 	return 0 // for trailing embed arrays
 }
 
-func (t ArrayType) Align() uintptr {
+func (t *ArrayType) Align() uintptr {
 	return t.Type.Align()
 }
 
-func (t ArrayType) InnerType() Type {
+func (t *ArrayType) InnerType() Type {
 	return t
 }
 
@@ -326,15 +326,15 @@ type PtrType struct {
 	Dir  Dir
 }
 
-func (t PtrType) Size() uintptr {
+func (t *PtrType) Size() uintptr {
 	return ptrSize
 }
 
-func (t PtrType) Align() uintptr {
+func (t *PtrType) Align() uintptr {
 	return t.Size()
 }
 
-func (t PtrType) InnerType() Type {
+func (t *PtrType) InnerType() Type {
 	return t.Type.InnerType()
 }
 
@@ -435,11 +435,11 @@ func resourceCtors(kind []string, precise bool) []*Call {
 	seen := make(map[Type]bool)
 	var checkArg func(typ Type, dir Dir) bool
 	checkArg = func(typ Type, dir Dir) bool {
-		if resarg, ok := typ.(ResourceType); ok && dir != DirIn && isCompatibleResource(kind, resarg.Desc.Kind, precise) {
+		if resarg, ok := typ.(*ResourceType); ok && dir != DirIn && isCompatibleResource(kind, resarg.Desc.Kind, precise) {
 			return true
 		}
 		switch typ1 := typ.(type) {
-		case ArrayType:
+		case *ArrayType:
 			if checkArg(typ1.Type, dir) {
 				return true
 			}
@@ -463,7 +463,7 @@ func resourceCtors(kind []string, precise bool) []*Call {
 					return true
 				}
 			}
-		case PtrType:
+		case *PtrType:
 			if checkArg(typ1.Type, typ1.Dir) {
 				return true
 			}
@@ -524,19 +524,19 @@ func isCompatibleResource(dst, src []string, precise bool) bool {
 	return true
 }
 
-func (c *Call) InputResources() []ResourceType {
-	var resources []ResourceType
+func (c *Call) InputResources() []*ResourceType {
+	var resources []*ResourceType
 	seen := make(map[Type]bool)
 	var checkArg func(typ Type, dir Dir)
 	checkArg = func(typ Type, dir Dir) {
 		switch typ1 := typ.(type) {
-		case ResourceType:
+		case *ResourceType:
 			if dir != DirOut && !typ1.IsOptional {
 				resources = append(resources, typ1)
 			}
-		case ArrayType:
+		case *ArrayType:
 			checkArg(typ1.Type, dir)
-		case PtrType:
+		case *PtrType:
 			checkArg(typ1.Type, typ1.Dir)
 		case *StructType:
 			if seen[typ1] {

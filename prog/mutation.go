@@ -60,10 +60,10 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						baseSize = base.Res.Size(base.Res.Type)
 					}
 					switch a := arg.Type.(type) {
-					case sys.IntType, sys.FlagsType, sys.FileoffType, sys.ResourceType, sys.VmaType:
+					case *sys.IntType, *sys.FlagsType, *sys.FileoffType, *sys.ResourceType, *sys.VmaType:
 						arg1, calls1 := r.generateArg(s, arg.Type, arg.Dir)
 						p.replaceArg(arg, arg1, calls1)
-					case sys.BufferType:
+					case *sys.BufferType:
 						switch a.Kind {
 						case sys.BufferBlobRand, sys.BufferBlobRange:
 							var data []byte
@@ -102,10 +102,10 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						default:
 							panic("unknown buffer kind")
 						}
-					case sys.FilenameType:
+					case *sys.FilenameType:
 						filename := r.filename(s)
 						arg.Data = []byte(filename)
-					case sys.ArrayType:
+					case *sys.ArrayType:
 						count := uintptr(0)
 						switch a.Kind {
 						case sys.ArrayRandLen:
@@ -144,7 +144,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							arg.Inner = arg.Inner[:count]
 						}
 						// TODO: swap elements of the array
-					case sys.PtrType:
+					case *sys.PtrType:
 						// TODO: we don't know size for out args
 						size := uintptr(1)
 						if arg.Res != nil {
@@ -171,9 +171,9 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						opt, calls := r.generateArg(s, optType, arg.Dir)
 						arg1 := unionArg(opt, optType)
 						p.replaceArg(arg, arg1, calls)
-					case sys.LenType:
+					case *sys.LenType:
 						panic("bad arg returned by mutationArgs: LenType")
-					case sys.ConstType, sys.StrConstType:
+					case *sys.ConstType, *sys.StrConstType:
 						panic("bad arg returned by mutationArgs: ConstType")
 					default:
 						panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", *arg, arg.Type))
@@ -332,15 +332,15 @@ func mutationArgs(c *Call) (args, bases []*Arg) {
 				return
 			}
 			// These special structs are mutated as a whole.
-		case sys.ArrayType:
+		case *sys.ArrayType:
 			// Don't mutate fixed-size arrays.
 			if typ.Kind == sys.ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
 				return
 			}
-		case sys.LenType:
+		case *sys.LenType:
 			// Size is updated when the size-of arg change.
 			return
-		case sys.ConstType, sys.StrConstType:
+		case *sys.ConstType, *sys.StrConstType:
 			// Well, this is const.
 			return
 		}
