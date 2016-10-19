@@ -162,7 +162,7 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 		fmt.Fprintf(out, "func() { Calls = append(Calls, &Call{Name: \"%v\", CallName: \"%v\"", s.Name, s.CallName)
 		if len(s.Ret) != 0 {
 			fmt.Fprintf(out, ", Ret: ")
-			generateArg("", "ret", s.Ret[0], s.Ret[1:], desc, consts, true, false, out)
+			generateArg("", "ret", s.Ret[0], "out", s.Ret[1:], desc, consts, true, false, out)
 		}
 		fmt.Fprintf(out, ", Args: []Type{")
 		for i, a := range s.Args {
@@ -170,7 +170,7 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 				fmt.Fprintf(out, ", ")
 			}
 			logf(5, "      generate description for arg %v", i)
-			generateArg("", a[0], a[1], a[2:], desc, consts, true, false, out)
+			generateArg("", a[0], a[1], "in", a[2:], desc, consts, true, false, out)
 		}
 		if skipCurrentSyscall != "" {
 			logf(0, "unsupported syscall: %v due to %v", s.Name, skipCurrentSyscall)
@@ -230,7 +230,7 @@ func generateResources(desc *Description, consts map[string]uint64, out io.Write
 			}
 		}
 		fmt.Fprintf(out, "\"%v\": &ResourceDesc{Name: \"%v\", Type: ", name, name)
-		generateArg("", "resource-type", underlying, nil, desc, consts, true, true, out)
+		generateArg("", "resource-type", underlying, "inout", nil, desc, consts, true, true, out)
 		fmt.Fprintf(out, ", Kind: []string{")
 		for i, k := range kind {
 			if i != 0 {
@@ -253,10 +253,20 @@ func generateResources(desc *Description, consts map[string]uint64, out io.Write
 	fmt.Fprintf(out, "}\n")
 }
 
-func generateStructEntry(str Struct, key string, name string, out io.Writer) {
+type structKey struct {
+	name  string
+	field string
+	dir   string
+}
+
+func generateStructEntry(str Struct, key structKey, out io.Writer) {
 	typ := "StructType"
 	if str.IsUnion {
 		typ = "UnionType"
+	}
+	name := key.field
+	if name == "" {
+		name = key.name
 	}
 	packed := ""
 	if str.Packed {
@@ -270,11 +280,11 @@ func generateStructEntry(str Struct, key string, name string, out io.Writer) {
 	if str.Align != 0 {
 		align = fmt.Sprintf(", align: %v", str.Align)
 	}
-	fmt.Fprintf(out, "\"%v\": &%v{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v} %v %v %v},\n",
-		key, typ, name, false, packed, align, varlen)
+	fmt.Fprintf(out, "\"%v\": &%v{TypeCommon: TypeCommon{TypeName: \"%v\", ArgDir: %v, IsOptional: %v} %v %v %v},\n",
+		key, typ, name, fmtDir(key.dir), false, packed, align, varlen)
 }
 
-func generateStructFields(str Struct, key string, desc *Description, consts map[string]uint64, out io.Writer) {
+func generateStructFields(str Struct, key structKey, desc *Description, consts map[string]uint64, out io.Writer) {
 	typ := "StructType"
 	fields := "Fields"
 	if str.IsUnion {
@@ -284,7 +294,7 @@ func generateStructFields(str Struct, key string, desc *Description, consts map[
 	fmt.Fprintf(out, "{ s := Structs[\"%v\"].(*%v)\n", key, typ)
 	for _, a := range str.Flds {
 		fmt.Fprintf(out, "s.%v = append(s.%v, ", fields, fields)
-		generateArg(str.Name, a[0], a[1], a[2:], desc, consts, false, true, out)
+		generateArg(str.Name, a[0], a[1], key.dir, a[2:], desc, consts, false, true, out)
 		fmt.Fprintf(out, ")\n")
 	}
 	fmt.Fprintf(out, "}\n")
@@ -301,24 +311,23 @@ func generateStructs(desc *Description, consts map[string]uint64, out io.Writer)
 	// for each field indexed by the name of the parent struct and the
 	// field name.
 
-	structMap := make(map[string]Struct)
+	structMap := make(map[structKey]Struct)
 	for _, str := range desc.Structs {
-		if _, ok := structMap[str.Name]; ok {
-			failf("two structs with the same name '%v'", str.Name)
+		for _, dir := range []string{"in", "out", "inout"} {
+			structMap[structKey{str.Name, "", dir}] = str
 		}
-		structMap[str.Name] = str
 		for _, a := range str.Flds {
 			if innerStr, ok := desc.Structs[a[1]]; ok {
-				structMap[fmt.Sprintf("%v-%v", str.Name, a[0])] = innerStr
+				for _, dir := range []string{"in", "out", "inout"} {
+					structMap[structKey{a[1], a[0], dir}] = innerStr
+				}
 			}
 		}
 	}
 
 	fmt.Fprintf(out, "var Structs = map[string]Type{\n")
 	for key, str := range structMap {
-		keyParts := strings.Split(key, "-")
-		name := keyParts[len(keyParts)-1]
-		generateStructEntry(str, key, name, out)
+		generateStructEntry(str, key, out)
 	}
 	fmt.Fprintf(out, "}\n")
 
@@ -351,7 +360,7 @@ func parseRange(buffer string, consts map[string]uint64) (string, string) {
 }
 
 func generateArg(
-	parent, name, typ string,
+	parent, name, typ, dir string,
 	a []string,
 	desc *Description,
 	consts map[string]uint64,
@@ -369,7 +378,7 @@ func generateArg(
 		}
 	}
 	common := func() string {
-		return fmt.Sprintf("TypeCommon: TypeCommon{TypeName: %v, IsOptional: %v}", name, opt)
+		return fmt.Sprintf("TypeCommon: TypeCommon{TypeName: %v, ArgDir: %v, IsOptional: %v}", name, fmtDir(dir), opt)
 	}
 	canBeArg := false
 	switch typ {
@@ -393,25 +402,28 @@ func generateArg(
 		if want := 1; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		commonHdr := common()
+		ptrCommonHdr := common()
+		dir = a[0]
 		opt = false
-		fmt.Fprintf(out, "&PtrType{%v, Dir: %v, Type: &BufferType{%v, Kind: BufferBlobRand}}", commonHdr, fmtDir(a[0]), common())
+		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferBlobRand}}", ptrCommonHdr, common())
 	case "string":
 		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		commonHdr := common()
+		ptrCommonHdr := common()
+		dir = "in"
 		opt = false
-		fmt.Fprintf(out, "&PtrType{%v, Dir: %v, Type: &BufferType{%v, Kind: BufferString}}", commonHdr, fmtDir("in"), common())
+		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferString}}", ptrCommonHdr, common())
 	case "filesystem":
 		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		commonHdr := common()
+		ptrCommonHdr := common()
+		dir = "in"
 		opt = false
-		fmt.Fprintf(out, "&PtrType{%v, Dir: %v, Type: &BufferType{%v, Kind: BufferFilesystem}}", commonHdr, fmtDir("in"), common())
+		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferFilesystem}}", ptrCommonHdr, common())
 	case "sockaddr":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -500,7 +512,10 @@ func generateArg(
 		if want := 1; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "&PtrType{%v, Dir: %v, Type: &StrConstType{%v, Val: \"%v\"}}", common(), fmtDir("in"), common(), a[0]+"\\x00")
+		ptrCommonHdr := common()
+		dir = "in"
+		opt = false
+		fmt.Fprintf(out, "&PtrType{%v, Type: &StrConstType{%v, Val: \"%v\"}}", ptrCommonHdr, common(), a[0]+"\\x00")
 	case "int8", "int16", "int32", "int64", "intptr", "int16be", "int32be", "int64be", "intptrbe":
 		canBeArg = true
 		size, bigEndian := decodeIntType(typ)
@@ -534,9 +549,10 @@ func generateArg(
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		commonHdr := common()
+		ptrCommonHdr := common()
+		dir = "in"
 		opt = false
-		fmt.Fprintf(out, "&PtrType{%v, Dir: DirIn, Type: &FilenameType{%v}}", commonHdr, common())
+		fmt.Fprintf(out, "&PtrType{%v, Type: &FilenameType{%v}}", ptrCommonHdr, common())
 	case "array":
 		if len(a) != 1 && len(a) != 2 {
 			failf("wrong number of arguments for %v arg %v, want 1 or 2, got %v", typ, name, len(a))
@@ -545,14 +561,14 @@ func generateArg(
 			if a[0] == "int8" {
 				fmt.Fprintf(out, "&BufferType{%v, Kind: BufferBlobRand}", common())
 			} else {
-				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], desc, consts))
+				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], dir, desc, consts))
 			}
 		} else {
 			begin, end := parseRange(a[1], consts)
 			if a[0] == "int8" {
 				fmt.Fprintf(out, "&BufferType{%v, Kind: BufferBlobRange, RangeBegin: %v, RangeEnd: %v}", common(), begin, end)
 			} else {
-				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], desc, consts), begin, end)
+				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], dir, desc, consts), begin, end)
 			}
 		}
 	case "ptr":
@@ -560,11 +576,12 @@ func generateArg(
 		if want := 2; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "&PtrType{%v, Type: %v, Dir: %v}", common(), generateType(a[1], desc, consts), fmtDir(a[0]))
+		dir = "in"
+		fmt.Fprintf(out, "&PtrType{%v, Type: %v}", common(), generateType(a[1], a[0], desc, consts))
 	default:
 		if strings.HasPrefix(typ, "unnamed") {
 			if inner, ok := desc.Unnamed[typ]; ok {
-				generateArg("", "", inner[0], inner[1:], desc, consts, false, isField, out)
+				generateArg("", "", inner[0], dir, inner[1:], desc, consts, false, isField, out)
 			} else {
 				failf("unknown unnamed type '%v'", typ)
 			}
@@ -572,11 +589,7 @@ func generateArg(
 			if len(a) != 0 {
 				failf("struct '%v' has args", typ)
 			}
-			if parent == "" {
-				fmt.Fprintf(out, "Structs[\"%v\"]", typ)
-			} else {
-				fmt.Fprintf(out, "Structs[\"%v-%v\"]", parent, origName)
-			}
+			fmt.Fprintf(out, "Structs[\"%v\"]", structKey{typ, origName, dir})
 		} else if _, ok := desc.Resources[typ]; ok {
 			if len(a) != 0 {
 				failf("resource '%v' has args", typ)
@@ -592,9 +605,9 @@ func generateArg(
 	}
 }
 
-func generateType(typ string, desc *Description, consts map[string]uint64) string {
+func generateType(typ, dir string, desc *Description, consts map[string]uint64) string {
 	buf := new(bytes.Buffer)
-	generateArg("", "", typ, nil, desc, consts, false, true, buf)
+	generateArg("", "", typ, dir, nil, desc, consts, false, true, buf)
 	return buf.String()
 }
 

@@ -57,7 +57,7 @@ func (c *Call) validate(ctx *validCtx) error {
 		if arg.Type.Name() != typ.Name() {
 			return fmt.Errorf("syscall %v: arg '%v' type mismatch", c.Meta.Name, typ.Name())
 		}
-		if arg.Dir == DirOut {
+		if arg.Type.Dir() == sys.DirOut {
 			if arg.Val != 0 || arg.AddrPage != 0 || arg.AddrOffset != 0 {
 				return fmt.Errorf("syscall %v: output arg '%v' has data", c.Meta.Name, typ.Name())
 			}
@@ -73,7 +73,7 @@ func (c *Call) validate(ctx *validCtx) error {
 			case ArgResult:
 			case ArgReturn:
 			case ArgConst:
-				if arg.Dir == DirOut && arg.Val != 0 {
+				if arg.Type.Dir() == sys.DirOut && arg.Val != 0 {
 					return fmt.Errorf("syscall %v: out resource arg '%v' has bad const value %v", c.Meta.Name, typ.Name(), arg.Val)
 				}
 			default:
@@ -112,9 +112,6 @@ func (c *Call) validate(ctx *validCtx) error {
 				return fmt.Errorf("syscall %v: result arg '%v' has broken link (%+v)", c.Meta.Name, typ.Name(), arg.Res.Uses)
 			}
 		case ArgPointer:
-			if arg.Dir != DirIn {
-				return fmt.Errorf("syscall %v: pointer arg '%v' has output direction", c.Meta.Name, typ.Name())
-			}
 			switch typ1 := typ.(type) {
 			case *sys.VmaType:
 				if arg.Res != nil {
@@ -124,6 +121,9 @@ func (c *Call) validate(ctx *validCtx) error {
 					return fmt.Errorf("syscall %v: vma arg '%v' has size 0", c.Meta.Name, typ.Name())
 				}
 			case *sys.PtrType:
+				if arg.Type.Dir() != sys.DirIn {
+					return fmt.Errorf("syscall %v: pointer arg '%v' has output direction", c.Meta.Name, typ.Name())
+				}
 				if arg.Res == nil && !typ.Optional() {
 					return fmt.Errorf("syscall %v: non optional pointer arg '%v' is nil", c.Meta.Name, typ.Name())
 				}

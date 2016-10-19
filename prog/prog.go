@@ -23,7 +23,6 @@ type Arg struct {
 	Call         *Call
 	Type         sys.Type
 	Kind         ArgKind
-	Dir          ArgDir
 	Val          uintptr       // value of ArgConst
 	AddrPage     uintptr       // page index for ArgPointer address, page count for ArgPageSize
 	AddrOffset   int           // page offset for ArgPointer address
@@ -51,14 +50,6 @@ const (
 	ArgGroup // logical group of args (struct or array)
 	ArgUnion
 	ArgReturn // fake value denoting syscall return value
-)
-
-type ArgDir sys.Dir
-
-const (
-	DirIn    = ArgDir(sys.DirIn)
-	DirOut   = ArgDir(sys.DirOut)
-	DirInOut = ArgDir(sys.DirInOut)
 )
 
 // Returns inner arg for PtrType args
@@ -177,7 +168,7 @@ func unionArg(opt *Arg, typ sys.Type) *Arg {
 }
 
 func returnArg() *Arg {
-	return &Arg{Kind: ArgReturn, Dir: DirOut}
+	return &Arg{Kind: ArgReturn}
 }
 
 func (p *Prog) insertBefore(c *Call, calls []*Call) {
