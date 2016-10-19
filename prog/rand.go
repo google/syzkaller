@@ -600,7 +600,7 @@ func (r *randGen) generateCall(s *state, p *Prog) []*Call {
 
 func (r *randGen) generateParticularCall(s *state, meta *sys.Call) (calls []*Call) {
 	c := &Call{Meta: meta}
-	c.Args, calls = r.generateArgs(s, meta.Args, DirIn)
+	c.Args, calls = r.generateArgs(s, meta.Args)
 	calls = append(calls, c)
 	for _, c1 := range calls {
 		assignTypeAndDir(c1)
@@ -609,13 +609,13 @@ func (r *randGen) generateParticularCall(s *state, meta *sys.Call) (calls []*Cal
 	return calls
 }
 
-func (r *randGen) generateArgs(s *state, types []sys.Type, dir ArgDir) ([]*Arg, []*Call) {
+func (r *randGen) generateArgs(s *state, types []sys.Type) ([]*Arg, []*Call) {
 	var calls []*Call
 	args := make([]*Arg, len(types))
 
 	// Generate all args. Size args have the default value 0 for now.
 	for i, typ := range types {
-		arg, calls1 := r.generateArg(s, typ, dir)
+		arg, calls1 := r.generateArg(s, typ)
 		if arg == nil {
 			panic(fmt.Sprintf("generated arg is nil for type '%v', types: %+v", typ.Name(), types))
 		}
@@ -628,14 +628,15 @@ func (r *randGen) generateArgs(s *state, types []sys.Type, dir ArgDir) ([]*Arg, 
 	return args, calls
 }
 
-func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, calls []*Call) {
-	if dir == DirOut {
+func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) {
+	if typ.Dir() == sys.DirOut {
 		// No need to generate something interesting for output scalar arguments.
 		// But we still need to generate the argument itself so that it can be referenced
 		// in subsequent calls. For the same reason we do generate pointer/array/struct
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
-		case *sys.IntType, *sys.FlagsType, *sys.ConstType, *sys.StrConstType, *sys.FileoffType, *sys.ResourceType:
+		case *sys.IntType, *sys.FlagsType, *sys.ConstType, *sys.StrConstType,
+			*sys.FileoffType, *sys.ResourceType, *sys.VmaType:
 			return constArg(0), nil
 		}
 	}
@@ -692,7 +693,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 				sz = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
 			}
 			data := make([]byte, sz)
-			if dir != DirOut {
+			if a.Dir() != sys.DirOut {
 				for i := range data {
 					data[i] = byte(r.Intn(256))
 				}
@@ -706,7 +707,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 			return dataArg(data), nil
 		case sys.BufferSockaddr:
 			data := r.sockaddr(s)
-			if dir == DirOut {
+			if a.Dir() == sys.DirOut {
 				for i := range data {
 					data[i] = 0
 				}
@@ -714,7 +715,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 			return dataArg(data), nil
 		case sys.BufferAlgType:
 			data := r.algType(s)
-			if dir == DirOut {
+			if a.Dir() == sys.DirOut {
 				for i := range data {
 					data[i] = 0
 				}
@@ -722,7 +723,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 			return dataArg(data), nil
 		case sys.BufferAlgName:
 			data := r.algName(s)
-			if dir == DirOut {
+			if a.Dir() == sys.DirOut {
 				for i := range data {
 					data[i] = 0
 				}
@@ -768,26 +769,26 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 		var inner []*Arg
 		var calls []*Call
 		for i := uintptr(0); i < count; i++ {
-			arg1, calls1 := r.generateArg(s, a.Type, dir)
+			arg1, calls1 := r.generateArg(s, a.Type)
 			inner = append(inner, arg1)
 			calls = append(calls, calls1...)
 		}
 		return groupArg(inner), calls
 	case *sys.StructType:
-		if ctor := isSpecialStruct(a); ctor != nil && dir != DirOut {
+		if ctor := isSpecialStruct(a); ctor != nil && a.Dir() != sys.DirOut {
 			arg, calls = ctor(r, s)
 			return
 		}
-		args, calls := r.generateArgs(s, a.Fields, dir)
+		args, calls := r.generateArgs(s, a.Fields)
 		group := groupArg(args)
 		return group, calls
 	case *sys.UnionType:
 		optType := a.Options[r.Intn(len(a.Options))]
-		opt, calls := r.generateArg(s, optType, dir)
+		opt, calls := r.generateArg(s, optType)
 		return unionArg(opt, optType), calls
 	case *sys.PtrType:
-		inner, calls := r.generateArg(s, a.Type, ArgDir(a.Dir))
-		if ArgDir(a.Dir) == DirOut && inner == nil {
+		inner, calls := r.generateArg(s, a.Type)
+		if a.Dir() == sys.DirOut && inner == nil {
 			// No data, but we should have got size.
 			arg, calls1 := r.addr(s, inner.Size(a.Type), nil)
 			calls = append(calls, calls1...)

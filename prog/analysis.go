@@ -52,11 +52,11 @@ func (s *state) analyze(c *Call) {
 	foreachArgArray(&c.Args, c.Ret, func(arg, base *Arg, _ *[]*Arg) {
 		switch typ := arg.Type.(type) {
 		case *sys.FilenameType:
-			if arg.Kind == ArgData && arg.Dir != DirOut {
+			if arg.Kind == ArgData && arg.Type.Dir() != sys.DirOut {
 				s.files[string(arg.Data)] = true
 			}
 		case *sys.ResourceType:
-			if arg.Dir != DirIn {
+			if arg.Type.Dir() != sys.DirIn {
 				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], arg)
 				// TODO: negative PIDs and add them as well (that's process groups).
 			}
@@ -150,8 +150,8 @@ func foreachArg(c *Call, f func(arg, base *Arg, parent *[]*Arg)) {
 }
 
 func assignTypeAndDir(c *Call) error {
-	var rec func(arg *Arg, typ sys.Type, dir ArgDir) error
-	rec = func(arg *Arg, typ sys.Type, dir ArgDir) error {
+	var rec func(arg *Arg, typ sys.Type) error
+	rec = func(arg *Arg, typ sys.Type) error {
 		if arg.Call != nil && arg.Call != c {
 			panic(fmt.Sprintf("different call is already assigned: %p %p %v %v", arg.Call, c, arg.Call.Meta.Name, c.Meta.Name))
 		}
@@ -162,41 +162,37 @@ func assignTypeAndDir(c *Call) error {
 		arg.Type = typ
 		switch arg.Kind {
 		case ArgPointer:
-			arg.Dir = DirIn
 			switch typ1 := typ.(type) {
 			case *sys.PtrType:
 				if arg.Res != nil {
-					if err := rec(arg.Res, typ1.Type, ArgDir(typ1.Dir)); err != nil {
+					if err := rec(arg.Res, typ1.Type); err != nil {
 						return err
 					}
 				}
 			}
 		case ArgGroup:
-			arg.Dir = dir
 			switch typ1 := typ.(type) {
 			case *sys.StructType:
 				if len(arg.Inner) != len(typ1.Fields) {
 					return fmt.Errorf("wrong struct field count: %v, want %v", len(arg.Inner), len(typ1.Fields))
 				}
 				for i, arg1 := range arg.Inner {
-					if err := rec(arg1, typ1.Fields[i], dir); err != nil {
+					if err := rec(arg1, typ1.Fields[i]); err != nil {
 						return err
 					}
 				}
 			case *sys.ArrayType:
 				for _, arg1 := range arg.Inner {
-					if err := rec(arg1, typ1.Type, dir); err != nil {
+					if err := rec(arg1, typ1.Type); err != nil {
 						return err
 					}
 				}
 			}
 		case ArgUnion:
-			arg.Dir = dir
-			if err := rec(arg.Option, arg.OptionType, dir); err != nil {
+			if err := rec(arg.Option, arg.OptionType); err != nil {
 				return err
 			}
 		default:
-			arg.Dir = dir
 		}
 		return nil
 	}
@@ -204,7 +200,7 @@ func assignTypeAndDir(c *Call) error {
 		if c.Meta == nil {
 			panic("nil meta")
 		}
-		if err := rec(arg, c.Meta.Args[i], DirIn); err != nil {
+		if err := rec(arg, c.Meta.Args[i]); err != nil {
 			return err
 		}
 	}
@@ -212,7 +208,6 @@ func assignTypeAndDir(c *Call) error {
 		c.Ret = returnArg()
 		c.Ret.Call = c
 		c.Ret.Type = c.Meta.Ret
-		c.Ret.Dir = DirOut
 	}
 	return nil
 }

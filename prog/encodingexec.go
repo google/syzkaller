@@ -69,7 +69,7 @@ func (p *Prog) SerializeForExec() []byte {
 					if arg1.Kind == ArgData && len(arg1.Data) == 0 {
 						return
 					}
-					if arg1.Dir != DirOut {
+					if arg1.Type.Dir() != sys.DirOut {
 						w.write(ExecInstrCopyin)
 						w.write(physicalAddr(arg) + w.args[arg1].Offset)
 						w.writeArg(arg1)

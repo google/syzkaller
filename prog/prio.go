@@ -50,7 +50,7 @@ func calcStaticPriorities() [][]float32 {
 				uses[id][c.ID] = weight
 			}
 		}
-		foreachArgType(c, func(t sys.Type, d ArgDir) {
+		sys.ForeachType(c, func(t sys.Type) {
 			switch a := t.(type) {
 			case *sys.ResourceType:
 				if a.Desc.Name == "pid" || a.Desc.Name == "uid" || a.Desc.Name == "gid" {
@@ -193,47 +193,6 @@ func normalizePrio(prios [][]float32) {
 			}
 			prio[i] = p
 		}
-	}
-}
-
-func foreachArgType(meta *sys.Call, f func(sys.Type, ArgDir)) {
-	seen := make(map[sys.Type]bool)
-	var rec func(t sys.Type, dir ArgDir)
-	rec = func(t sys.Type, d ArgDir) {
-		f(t, d)
-		switch a := t.(type) {
-		case *sys.ArrayType:
-			rec(a.Type, d)
-		case *sys.PtrType:
-			rec(a.Type, ArgDir(a.Dir))
-		case *sys.StructType:
-			if seen[a] {
-				return // prune recursion via pointers to structs/unions
-			}
-			seen[a] = true
-			for _, f := range a.Fields {
-				rec(f, d)
-			}
-		case *sys.UnionType:
-			if seen[a] {
-				return // prune recursion via pointers to structs/unions
-			}
-			seen[a] = true
-			for _, opt := range a.Options {
-				rec(opt, d)
-			}
-		case *sys.ResourceType, *sys.FileoffType, *sys.BufferType,
-			*sys.VmaType, *sys.LenType, *sys.FlagsType, *sys.ConstType,
-			*sys.StrConstType, *sys.IntType, *sys.FilenameType:
-		default:
-			panic("unknown type")
-		}
-	}
-	for _, t := range meta.Args {
-		rec(t, DirIn)
-	}
-	if meta.Ret != nil {
-		rec(meta.Ret, DirOut)
 	}
 }
 

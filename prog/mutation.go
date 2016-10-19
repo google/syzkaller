@@ -61,7 +61,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 					}
 					switch a := arg.Type.(type) {
 					case *sys.IntType, *sys.FlagsType, *sys.FileoffType, *sys.ResourceType, *sys.VmaType:
-						arg1, calls1 := r.generateArg(s, arg.Type, arg.Dir)
+						arg1, calls1 := r.generateArg(s, arg.Type)
 						p.replaceArg(arg, arg1, calls1)
 					case *sys.BufferType:
 						switch a.Kind {
@@ -123,7 +123,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						if count > uintptr(len(arg.Inner)) {
 							var calls []*Call
 							for count > uintptr(len(arg.Inner)) {
-								arg1, calls1 := r.generateArg(s, a.Type, arg.Dir)
+								arg1, calls1 := r.generateArg(s, a.Type)
 								arg.Inner = append(arg.Inner, arg1)
 								for _, c1 := range calls1 {
 									calls = append(calls, c1)
@@ -168,7 +168,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							optType = a.Options[r.Intn(len(a.Options))]
 						}
 						p.removeArg(arg.Option)
-						opt, calls := r.generateArg(s, optType, arg.Dir)
+						opt, calls := r.generateArg(s, optType)
 						arg1 := unionArg(opt, optType)
 						p.replaceArg(arg, arg1, calls)
 					case *sys.LenType:
@@ -344,7 +344,7 @@ func mutationArgs(c *Call) (args, bases []*Arg) {
 			// Well, this is const.
 			return
 		}
-		if arg.Dir == DirOut {
+		if arg.Type.Dir() == sys.DirOut {
 			return
 		}
 		if base != nil {

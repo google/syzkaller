@@ -19,8 +19,17 @@ type Call struct {
 	Ret      Type
 }
 
+type Dir int
+
+const (
+	DirIn Dir = iota
+	DirOut
+	DirInOut
+)
+
 type Type interface {
 	Name() string
+	Dir() Dir
 	Optional() bool
 	Default() uintptr
 	Size() uintptr
@@ -37,6 +46,7 @@ func IsPad(t Type) bool {
 
 type TypeCommon struct {
 	TypeName   string
+	ArgDir     Dir
 	IsOptional bool
 }
 
@@ -50,6 +60,10 @@ func (t *TypeCommon) Optional() bool {
 
 func (t *TypeCommon) Default() uintptr {
 	return 0
+}
+
+func (t TypeCommon) Dir() Dir {
+	return t.ArgDir
 }
 
 const (
@@ -323,7 +337,6 @@ func (t *ArrayType) InnerType() Type {
 type PtrType struct {
 	TypeCommon
 	Type Type
-	Dir  Dir
 }
 
 func (t *PtrType) Size() uintptr {
@@ -407,14 +420,6 @@ func (t *UnionType) InnerType() Type {
 	return t
 }
 
-type Dir int
-
-const (
-	DirIn Dir = iota
-	DirOut
-	DirInOut
-)
-
 var ctors = make(map[string][]*Call)
 
 // ResourceConstructors returns a list of calls that can create a resource of the given kind.
@@ -431,56 +436,20 @@ func initResources() {
 func resourceCtors(kind []string, precise bool) []*Call {
 	// Find calls that produce the necessary resources.
 	var metas []*Call
-	// Recurse into arguments to see if there is an out/inout arg of necessary type.
-	seen := make(map[Type]bool)
-	var checkArg func(typ Type, dir Dir) bool
-	checkArg = func(typ Type, dir Dir) bool {
-		if resarg, ok := typ.(*ResourceType); ok && dir != DirIn && isCompatibleResource(kind, resarg.Desc.Kind, precise) {
-			return true
-		}
-		switch typ1 := typ.(type) {
-		case *ArrayType:
-			if checkArg(typ1.Type, dir) {
-				return true
-			}
-		case *StructType:
-			if seen[typ1] {
-				return false // prune recursion via pointers to structs/unions
-			}
-			seen[typ1] = true
-			for _, fld := range typ1.Fields {
-				if checkArg(fld, dir) {
-					return true
-				}
-			}
-		case *UnionType:
-			if seen[typ1] {
-				return false // prune recursion via pointers to structs/unions
-			}
-			seen[typ1] = true
-			for _, opt := range typ1.Options {
-				if checkArg(opt, dir) {
-					return true
-				}
-			}
-		case *PtrType:
-			if checkArg(typ1.Type, typ1.Dir) {
-				return true
-			}
-		}
-		return false
-	}
 	for _, meta := range Calls {
+		// Recurse into arguments to see if there is an out/inout arg of necessary type.
 		ok := false
-		for _, arg := range meta.Args {
-			if checkArg(arg, DirIn) {
-				ok = true
-				break
+		ForeachType(meta, func(typ Type) {
+			if ok {
+				return
 			}
-		}
-		if !ok && meta.Ret != nil && checkArg(meta.Ret, DirOut) {
-			ok = true
-		}
+			switch typ1 := typ.(type) {
+			case *ResourceType:
+				if typ1.Dir() != DirIn && isCompatibleResource(kind, typ1.Desc.Kind, precise) {
+					ok = true
+				}
+			}
+		})
 		if ok {
 			metas = append(metas, meta)
 		}
@@ -526,39 +495,14 @@ func isCompatibleResource(dst, src []string, precise bool) bool {
 
 func (c *Call) InputResources() []*ResourceType {
 	var resources []*ResourceType
-	seen := make(map[Type]bool)
-	var checkArg func(typ Type, dir Dir)
-	checkArg = func(typ Type, dir Dir) {
+	ForeachType(c, func(typ Type) {
 		switch typ1 := typ.(type) {
 		case *ResourceType:
-			if dir != DirOut && !typ1.IsOptional {
+			if typ1.Dir() != DirOut && !typ1.IsOptional {
 				resources = append(resources, typ1)
 			}
-		case *ArrayType:
-			checkArg(typ1.Type, dir)
-		case *PtrType:
-			checkArg(typ1.Type, typ1.Dir)
-		case *StructType:
-			if seen[typ1] {
-				return // prune recursion via pointers to structs/unions
-			}
-			seen[typ1] = true
-			for _, fld := range typ1.Fields {
-				checkArg(fld, dir)
-			}
-		case *UnionType:
-			if seen[typ1] {
-				return // prune recursion via pointers to structs/unions
-			}
-			seen[typ1] = true
-			for _, opt := range typ1.Options {
-				checkArg(opt, dir)
-			}
 		}
-	}
-	for _, arg := range c.Args {
-		checkArg(arg, DirIn)
-	}
+	})
 	return resources
 }
 
@@ -596,6 +540,47 @@ func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
 		}
 	}
 	return supported
+}
+
+func ForeachType(meta *Call, f func(Type)) {
+	seen := make(map[Type]bool)
+	var rec func(t Type)
+	rec = func(t Type) {
+		f(t)
+		switch a := t.(type) {
+		case *PtrType:
+			rec(a.Type)
+		case *ArrayType:
+			rec(a.Type)
+		case *StructType:
+			if seen[a] {
+				return // prune recursion via pointers to structs/unions
+			}
+			seen[a] = true
+			for _, f := range a.Fields {
+				rec(f)
+			}
+		case *UnionType:
+			if seen[a] {
+				return // prune recursion via pointers to structs/unions
+			}
+			seen[a] = true
+			for _, opt := range a.Options {
+				rec(opt)
+			}
+		case *ResourceType, *FileoffType, *BufferType,
+			*VmaType, *LenType, *FlagsType, *ConstType,
+			*StrConstType, *IntType, *FilenameType:
+		default:
+			panic("unknown type")
+		}
+	}
+	for _, t := range meta.Args {
+		rec(t)
+	}
+	if meta.Ret != nil {
+		rec(meta.Ret)
+	}
 }
 
 var (
