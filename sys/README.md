@@ -45,8 +45,10 @@ rest of the type-options are type-specific:
 	"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options:
 		direction (in/out/inout)
 	"string": a pointer to a memory buffer, similar to buffer[in]
-	"strconst": a pointer to a constant string, type-options:
-		the underlying string (for example "/dev/dsp")
+	"bufconst": an embed constant string (terminating \x00 byte is automatically appended to the string),
+		type-options: string value (for example "wlan0")
+	"strconst": a pointer to a constant string (terminating \x00 byte is automatically appended to the string),
+		shortcut for ptr[in, bufconst["str"]], type-options: the underlying string (for example "/dev/dsp")
 	"filename": a file/link/dir name
 	"fileoff": offset within a file, type-options:
 		argname of the file

@@ -187,3 +187,18 @@ syz_end_var_struct {
 	f1	const[0x42, int32be]
 	f2	flags[syz_end_flags, int64be]
 } [packed]
+
+# Const buffer type
+
+syz_test$bufconst0(a0 ptr[in, syz_bufconst])
+syz_test$bufconst1(a0 ptr[in, syz_bufconst_align])
+
+syz_bufconst {
+	f0	bufconst["wlan0"]
+	f1	int16
+}
+
+syz_bufconst_align {
+	f0	bufconst["wlan"]
+	f1	int16
+}
