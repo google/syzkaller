@@ -486,7 +486,7 @@ func (r *randGen) randPageAddr(s *state, npages uintptr, data *Arg, vma bool) *A
 	return pointerArg(page, 0, npages, data)
 }
 
-func (r *randGen) createResource(s *state, res sys.ResourceType) (arg *Arg, calls []*Call) {
+func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, calls []*Call) {
 	if r.inCreateResource {
 		special := res.SpecialValues()
 		return constArg(special[r.Intn(len(special))]), nil
@@ -635,20 +635,20 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 		// in subsequent calls. For the same reason we do generate pointer/array/struct
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
-		case sys.IntType, sys.FlagsType, sys.ConstType, sys.StrConstType, sys.FileoffType, sys.ResourceType:
+		case *sys.IntType, *sys.FlagsType, *sys.ConstType, *sys.StrConstType, *sys.FileoffType, *sys.ResourceType:
 			return constArg(0), nil
 		}
 	}
 
 	if typ.Optional() && r.oneOf(5) {
-		if _, ok := typ.(sys.BufferType); ok {
+		if _, ok := typ.(*sys.BufferType); ok {
 			panic("impossible") // parent PtrType must be Optional instead
 		}
 		return constArg(typ.Default()), nil
 	}
 
 	switch a := typ.(type) {
-	case sys.ResourceType:
+	case *sys.ResourceType:
 		r.choose(
 			1, func() {
 				special := a.SpecialValues()
@@ -675,7 +675,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 			},
 		)
 		return arg, calls
-	case sys.FileoffType:
+	case *sys.FileoffType:
 		// TODO: can do better
 		var arg *Arg
 		r.choose(
@@ -684,7 +684,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 			1, func() { arg = constArg(r.randInt()) },
 		)
 		return arg, nil
-	case sys.BufferType:
+	case *sys.BufferType:
 		switch a.Kind {
 		case sys.BufferBlobRand, sys.BufferBlobRange:
 			sz := r.randBufLen()
@@ -731,17 +731,17 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 		default:
 			panic("unknown buffer kind")
 		}
-	case sys.VmaType:
+	case *sys.VmaType:
 		npages := r.randPageCount()
 		arg := r.randPageAddr(s, npages, nil, true)
 		return arg, nil
-	case sys.FlagsType:
+	case *sys.FlagsType:
 		return constArg(r.flags(a.Vals)), nil
-	case sys.ConstType:
+	case *sys.ConstType:
 		return constArg(a.Val), nil
-	case sys.StrConstType:
+	case *sys.StrConstType:
 		return dataArg([]byte(a.Val)), nil
-	case sys.IntType:
+	case *sys.IntType:
 		v := r.randInt()
 		switch a.Kind {
 		case sys.IntSignalno:
@@ -754,10 +754,10 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 			v = r.randRangeInt(a.RangeBegin, a.RangeEnd)
 		}
 		return constArg(v), nil
-	case sys.FilenameType:
+	case *sys.FilenameType:
 		filename := r.filename(s)
 		return dataArg([]byte(filename)), nil
-	case sys.ArrayType:
+	case *sys.ArrayType:
 		count := uintptr(0)
 		switch a.Kind {
 		case sys.ArrayRandLen:
@@ -785,7 +785,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 		optType := a.Options[r.Intn(len(a.Options))]
 		opt, calls := r.generateArg(s, optType, dir)
 		return unionArg(opt, optType), calls
-	case sys.PtrType:
+	case *sys.PtrType:
 		inner, calls := r.generateArg(s, a.Type, ArgDir(a.Dir))
 		if ArgDir(a.Dir) == DirOut && inner == nil {
 			// No data, but we should have got size.
@@ -804,7 +804,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type, dir ArgDir) (arg *Arg, cal
 		arg, calls1 := r.addr(s, inner.Size(a.Type), inner)
 		calls = append(calls, calls1...)
 		return arg, calls
-	case sys.LenType:
+	case *sys.LenType:
 		// Return placeholder value of 0 while generating len args.
 		return constArg(0), nil
 	default:

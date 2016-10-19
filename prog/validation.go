@@ -68,7 +68,7 @@ func (c *Call) validate(ctx *validCtx) error {
 			}
 		}
 		switch arg.Type.(type) {
-		case sys.ResourceType:
+		case *sys.ResourceType:
 			switch arg.Kind {
 			case ArgResult:
 			case ArgReturn:
@@ -79,7 +79,7 @@ func (c *Call) validate(ctx *validCtx) error {
 			default:
 				return fmt.Errorf("syscall %v: fd arg '%v' has bad kind %v", c.Meta.Name, typ.Name(), arg.Kind)
 			}
-		case sys.FilenameType:
+		case *sys.FilenameType:
 			switch arg.Kind {
 			case ArgData:
 			default:
@@ -116,14 +116,14 @@ func (c *Call) validate(ctx *validCtx) error {
 				return fmt.Errorf("syscall %v: pointer arg '%v' has output direction", c.Meta.Name, typ.Name())
 			}
 			switch typ1 := typ.(type) {
-			case sys.VmaType:
+			case *sys.VmaType:
 				if arg.Res != nil {
 					return fmt.Errorf("syscall %v: vma arg '%v' has data", c.Meta.Name, typ.Name())
 				}
 				if arg.AddrPagesNum == 0 {
 					return fmt.Errorf("syscall %v: vma arg '%v' has size 0", c.Meta.Name, typ.Name())
 				}
-			case sys.PtrType:
+			case *sys.PtrType:
 				if arg.Res == nil && !typ.Optional() {
 					return fmt.Errorf("syscall %v: non optional pointer arg '%v' is nil", c.Meta.Name, typ.Name())
 				}
@@ -151,7 +151,7 @@ func (c *Call) validate(ctx *validCtx) error {
 						return err
 					}
 				}
-			case sys.ArrayType:
+			case *sys.ArrayType:
 				for _, arg1 := range arg.Inner {
 					if err := checkArg(arg1, typ1.Type); err != nil {
 						return err

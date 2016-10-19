@@ -52,7 +52,7 @@ func calcStaticPriorities() [][]float32 {
 		}
 		foreachArgType(c, func(t sys.Type, d ArgDir) {
 			switch a := t.(type) {
-			case sys.ResourceType:
+			case *sys.ResourceType:
 				if a.Desc.Name == "pid" || a.Desc.Name == "uid" || a.Desc.Name == "gid" {
 					// Pid/uid/gid usually play auxiliary role,
 					// but massively happen in some structs.
@@ -68,17 +68,17 @@ func calcStaticPriorities() [][]float32 {
 						noteUsage(float32(w), str)
 					}
 				}
-			case sys.PtrType:
+			case *sys.PtrType:
 				if _, ok := a.Type.(*sys.StructType); ok {
 					noteUsage(1.0, "ptrto-%v", a.Type.Name())
 				}
 				if _, ok := a.Type.(*sys.UnionType); ok {
 					noteUsage(1.0, "ptrto-%v", a.Type.Name())
 				}
-				if arr, ok := a.Type.(sys.ArrayType); ok {
+				if arr, ok := a.Type.(*sys.ArrayType); ok {
 					noteUsage(1.0, "ptrto-%v", arr.Type.Name())
 				}
-			case sys.BufferType:
+			case *sys.BufferType:
 				switch a.Kind {
 				case sys.BufferBlobRand, sys.BufferBlobRange, sys.BufferFilesystem, sys.BufferAlgType, sys.BufferAlgName:
 				case sys.BufferString:
@@ -88,11 +88,11 @@ func calcStaticPriorities() [][]float32 {
 				default:
 					panic("unknown buffer kind")
 				}
-			case sys.VmaType:
+			case *sys.VmaType:
 				noteUsage(0.5, "vma")
-			case sys.FilenameType:
+			case *sys.FilenameType:
 				noteUsage(1.0, "filename")
-			case sys.IntType:
+			case *sys.IntType:
 				switch a.Kind {
 				case sys.IntPlain:
 				case sys.IntRange:
@@ -202,9 +202,9 @@ func foreachArgType(meta *sys.Call, f func(sys.Type, ArgDir)) {
 	rec = func(t sys.Type, d ArgDir) {
 		f(t, d)
 		switch a := t.(type) {
-		case sys.ArrayType:
+		case *sys.ArrayType:
 			rec(a.Type, d)
-		case sys.PtrType:
+		case *sys.PtrType:
 			rec(a.Type, ArgDir(a.Dir))
 		case *sys.StructType:
 			if seen[a] {
@@ -222,9 +222,9 @@ func foreachArgType(meta *sys.Call, f func(sys.Type, ArgDir)) {
 			for _, opt := range a.Options {
 				rec(opt, d)
 			}
-		case sys.ResourceType, sys.FileoffType, sys.BufferType,
-			sys.VmaType, sys.LenType, sys.FlagsType, sys.ConstType,
-			sys.StrConstType, sys.IntType, sys.FilenameType:
+		case *sys.ResourceType, *sys.FileoffType, *sys.BufferType,
+			*sys.VmaType, *sys.LenType, *sys.FlagsType, *sys.ConstType,
+			*sys.StrConstType, *sys.IntType, *sys.FilenameType:
 		default:
 			panic("unknown type")
 		}

@@ -387,7 +387,7 @@ func generateArg(
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
 		}
-		fmt.Fprintf(out, "FileoffType{%v, File: \"%v\", TypeSize: %v, BigEndian: %v}", common(), a[0], size, bigEndian)
+		fmt.Fprintf(out, "&FileoffType{%v, File: \"%v\", TypeSize: %v, BigEndian: %v}", common(), a[0], size, bigEndian)
 	case "buffer":
 		canBeArg = true
 		if want := 1; len(a) != want {
@@ -395,7 +395,7 @@ func generateArg(
 		}
 		commonHdr := common()
 		opt = false
-		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: BufferType{%v, Kind: BufferBlobRand}}", commonHdr, fmtDir(a[0]), common())
+		fmt.Fprintf(out, "&PtrType{%v, Dir: %v, Type: &BufferType{%v, Kind: BufferBlobRand}}", commonHdr, fmtDir(a[0]), common())
 	case "string":
 		canBeArg = true
 		if want := 0; len(a) != want {
@@ -403,7 +403,7 @@ func generateArg(
 		}
 		commonHdr := common()
 		opt = false
-		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: BufferType{%v, Kind: BufferString}}", commonHdr, fmtDir("in"), common())
+		fmt.Fprintf(out, "&PtrType{%v, Dir: %v, Type: &BufferType{%v, Kind: BufferString}}", commonHdr, fmtDir("in"), common())
 	case "filesystem":
 		canBeArg = true
 		if want := 0; len(a) != want {
@@ -411,28 +411,28 @@ func generateArg(
 		}
 		commonHdr := common()
 		opt = false
-		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: BufferType{%v, Kind: BufferFilesystem}}", commonHdr, fmtDir("in"), common())
+		fmt.Fprintf(out, "&PtrType{%v, Dir: %v, Type: &BufferType{%v, Kind: BufferFilesystem}}", commonHdr, fmtDir("in"), common())
 	case "sockaddr":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "BufferType{%v, Kind: BufferSockaddr}", common())
+		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferSockaddr}", common())
 	case "salg_type":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "BufferType{%v, Kind: BufferAlgType}", common())
+		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferAlgType}", common())
 	case "salg_name":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "BufferType{%v, Kind: BufferAlgName}", common())
+		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferAlgName}", common())
 	case "vma":
 		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "VmaType{%v}", common())
+		fmt.Fprintf(out, "&VmaType{%v}", common())
 	case "len", "bytesize":
 		canBeArg = true
 		size := uint64(ptrSize)
@@ -447,7 +447,7 @@ func generateArg(
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
 		}
-		fmt.Fprintf(out, "LenType{%v, Buf: \"%v\", TypeSize: %v, BigEndian: %v, ByteSize: %v}", common(), a[0], size, bigEndian, typ == "bytesize")
+		fmt.Fprintf(out, "&LenType{%v, Buf: \"%v\", TypeSize: %v, BigEndian: %v, ByteSize: %v}", common(), a[0], size, bigEndian, typ == "bytesize")
 	case "flags":
 		canBeArg = true
 		size := uint64(ptrSize)
@@ -467,9 +467,9 @@ func generateArg(
 			failf("unknown flag %v", a[0])
 		}
 		if len(vals) == 0 {
-			fmt.Fprintf(out, "IntType{%v, TypeSize: %v, BigEndian: %v}", common(), size, bigEndian)
+			fmt.Fprintf(out, "&IntType{%v, TypeSize: %v, BigEndian: %v}", common(), size, bigEndian)
 		} else {
-			fmt.Fprintf(out, "FlagsType{%v, TypeSize: %v, BigEndian: %v, Vals: []uintptr{%v}}", common(), size, bigEndian, strings.Join(vals, ","))
+			fmt.Fprintf(out, "&FlagsType{%v, TypeSize: %v, BigEndian: %v, Vals: []uintptr{%v}}", common(), size, bigEndian, strings.Join(vals, ","))
 		}
 	case "const":
 		canBeArg = true
@@ -494,22 +494,22 @@ func generateArg(
 			val = "0"
 			skipSyscall(fmt.Sprintf("missing const %v", a[0]))
 		}
-		fmt.Fprintf(out, "ConstType{%v, TypeSize: %v, BigEndian: %v, Val: uintptr(%v)}", common(), size, bigEndian, val)
+		fmt.Fprintf(out, "&ConstType{%v, TypeSize: %v, BigEndian: %v, Val: uintptr(%v)}", common(), size, bigEndian, val)
 	case "strconst":
 		canBeArg = true
 		if want := 1; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: StrConstType{%v, Val: \"%v\"}}", common(), fmtDir("in"), common(), a[0]+"\\x00")
+		fmt.Fprintf(out, "&PtrType{%v, Dir: %v, Type: &StrConstType{%v, Val: \"%v\"}}", common(), fmtDir("in"), common(), a[0]+"\\x00")
 	case "int8", "int16", "int32", "int64", "intptr", "int16be", "int32be", "int64be", "intptrbe":
 		canBeArg = true
 		size, bigEndian := decodeIntType(typ)
 		switch len(a) {
 		case 0:
-			fmt.Fprintf(out, "IntType{%v, TypeSize: %v, BigEndian: %v}", common(), size, bigEndian)
+			fmt.Fprintf(out, "&IntType{%v, TypeSize: %v, BigEndian: %v}", common(), size, bigEndian)
 		case 1:
 			begin, end := parseRange(a[0], consts)
-			fmt.Fprintf(out, "IntType{%v, TypeSize: %v, BigEndian: %v, Kind: IntRange, RangeBegin: %v, RangeEnd: %v}", common(), size, bigEndian, begin, end)
+			fmt.Fprintf(out, "&IntType{%v, TypeSize: %v, BigEndian: %v, Kind: IntRange, RangeBegin: %v, RangeEnd: %v}", common(), size, bigEndian, begin, end)
 		default:
 			failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
 		}
@@ -518,17 +518,17 @@ func generateArg(
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "IntType{%v, TypeSize: 4, Kind: IntSignalno}", common())
+		fmt.Fprintf(out, "&IntType{%v, TypeSize: 4, Kind: IntSignalno}", common())
 	case "in_addr":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "IntType{%v, TypeSize: 4, Kind: IntInaddr}", common())
+		fmt.Fprintf(out, "&IntType{%v, TypeSize: 4, Kind: IntInaddr}", common())
 	case "in_port":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "IntType{%v, TypeSize: 2, Kind: IntInport}", common())
+		fmt.Fprintf(out, "&IntType{%v, TypeSize: 2, Kind: IntInport}", common())
 	case "filename":
 		canBeArg = true
 		if want := 0; len(a) != want {
@@ -536,23 +536,23 @@ func generateArg(
 		}
 		commonHdr := common()
 		opt = false
-		fmt.Fprintf(out, "PtrType{%v, Dir: DirIn, Type: FilenameType{%v}}", commonHdr, common())
+		fmt.Fprintf(out, "&PtrType{%v, Dir: DirIn, Type: &FilenameType{%v}}", commonHdr, common())
 	case "array":
 		if len(a) != 1 && len(a) != 2 {
 			failf("wrong number of arguments for %v arg %v, want 1 or 2, got %v", typ, name, len(a))
 		}
 		if len(a) == 1 {
 			if a[0] == "int8" {
-				fmt.Fprintf(out, "BufferType{%v, Kind: BufferBlobRand}", common())
+				fmt.Fprintf(out, "&BufferType{%v, Kind: BufferBlobRand}", common())
 			} else {
-				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], desc, consts))
+				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], desc, consts))
 			}
 		} else {
 			begin, end := parseRange(a[1], consts)
 			if a[0] == "int8" {
-				fmt.Fprintf(out, "BufferType{%v, Kind: BufferBlobRange, RangeBegin: %v, RangeEnd: %v}", common(), begin, end)
+				fmt.Fprintf(out, "&BufferType{%v, Kind: BufferBlobRange, RangeBegin: %v, RangeEnd: %v}", common(), begin, end)
 			} else {
-				fmt.Fprintf(out, "ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], desc, consts), begin, end)
+				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], desc, consts), begin, end)
 			}
 		}
 	case "ptr":
@@ -560,7 +560,7 @@ func generateArg(
 		if want := 2; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "PtrType{%v, Type: %v, Dir: %v}", common(), generateType(a[1], desc, consts), fmtDir(a[0]))
+		fmt.Fprintf(out, "&PtrType{%v, Type: %v, Dir: %v}", common(), generateType(a[1], desc, consts), fmtDir(a[0]))
 	default:
 		if strings.HasPrefix(typ, "unnamed") {
 			if inner, ok := desc.Unnamed[typ]; ok {
@@ -581,7 +581,7 @@ func generateArg(
 			if len(a) != 0 {
 				failf("resource '%v' has args", typ)
 			}
-			fmt.Fprintf(out, "ResourceType{%v, Desc: Resources[\"%v\"]}", common(), typ)
+			fmt.Fprintf(out, "&ResourceType{%v, Desc: Resources[\"%v\"]}", common(), typ)
 			return
 		} else {
 			failf("unknown arg type \"%v\" for %v", typ, name)

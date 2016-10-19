@@ -60,11 +60,11 @@ func isSupportedSyzkall(c *sys.Call) bool {
 	case "syz_test":
 		return false
 	case "syz_open_dev":
-		ptr, ok := c.Args[0].(sys.PtrType)
+		ptr, ok := c.Args[0].(*sys.PtrType)
 		if !ok {
 			return true
 		}
-		fname, ok := ptr.Type.(sys.StrConstType)
+		fname, ok := ptr.Type.(*sys.StrConstType)
 		if !ok {
 			panic("first open arg is not a pointer to string const")
 		}
@@ -99,7 +99,7 @@ func isSupportedSyzkall(c *sys.Call) bool {
 }
 
 func isSupportedSocket(c *sys.Call) bool {
-	af, ok := c.Args[0].(sys.ConstType)
+	af, ok := c.Args[0].(*sys.ConstType)
 	if !ok {
 		println(c.Name)
 		panic("socket family is not const")
@@ -112,11 +112,11 @@ func isSupportedSocket(c *sys.Call) bool {
 }
 
 func isSupportedOpen(c *sys.Call) bool {
-	ptr, ok := c.Args[0].(sys.PtrType)
+	ptr, ok := c.Args[0].(*sys.PtrType)
 	if !ok {
 		panic("first open arg is not a pointer")
 	}
-	fname, ok := ptr.Type.(sys.StrConstType)
+	fname, ok := ptr.Type.(*sys.StrConstType)
 	if !ok {
 		return true
 	}
