@@ -220,7 +220,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 // predicate pred.  It iteratively generates simpler programs and asks pred
 // whether it is equal to the orginal program or not. If it is equivalent then
 // the simplification attempt is committed and the process continues.
-func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) (*Prog, int) {
+func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) (*Prog, int) {
 	name0 := ""
 	if callIndex0 != -1 {
 		if callIndex0 < 0 || callIndex0 >= len(p0.Calls) {
@@ -280,12 +280,121 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) (*Prog, int)
 		p0 = p
 		callIndex0 = callIndex
 	}
-	// TODO: simplify individual arguments:
-	// - replace constants with 0
-	// - reset bits in constants
-	// - remove offsets from addresses
-	// - replace file descriptors with -1
-	// etc
+
+	var triedPaths map[string]bool
+
+	var rec func(p *Prog, call *Call, arg *Arg, path string) bool
+	rec = func(p *Prog, call *Call, arg *Arg, path string) bool {
+		path += fmt.Sprintf("-%v", arg.Type.Name())
+		switch typ := arg.Type.(type) {
+		case *sys.StructType:
+			for _, innerArg := range arg.Inner {
+				if rec(p, call, innerArg, path) {
+					return true
+				}
+			}
+		case *sys.UnionType:
+			if rec(p, call, arg.Option, path) {
+				return true
+			}
+		case *sys.PtrType:
+			// TODO: try to remove optional ptrs
+			if arg.Res != nil {
+				return rec(p, call, arg.Res, path)
+			}
+		case *sys.ArrayType:
+			for i, innerArg := range arg.Inner {
+				innerPath := fmt.Sprintf("%v-%v", path, i)
+				if !triedPaths[innerPath] && !crash {
+					if (typ.Kind == sys.ArrayRangeLen && len(arg.Inner) > int(typ.RangeBegin)) ||
+						(typ.Kind == sys.ArrayRandLen) {
+						copy(arg.Inner[i:], arg.Inner[i+1:])
+						arg.Inner = arg.Inner[:len(arg.Inner)-1]
+						p.removeArg(call, innerArg)
+						assignSizesCall(call)
+
+						if pred(p, callIndex0) {
+							p0 = p
+						} else {
+							triedPaths[innerPath] = true
+						}
+
+						return true
+					}
+				}
+				if rec(p, call, innerArg, innerPath) {
+					return true
+				}
+			}
+		case *sys.IntType, *sys.FlagsType, *sys.ResourceType:
+			// TODO: try to reset bits in ints
+			// TODO: try to set separate flags
+			if crash {
+				return false
+			}
+			if triedPaths[path] {
+				return false
+			}
+			triedPaths[path] = true
+			if arg.Val == typ.Default() {
+				return false
+			}
+			v0 := arg.Val
+			arg.Val = typ.Default()
+			if pred(p, callIndex0) {
+				p0 = p
+				return true
+			} else {
+				arg.Val = v0
+			}
+		case *sys.BufferType:
+			// TODO: try to set individual bytes to 0
+			if triedPaths[path] {
+				return false
+			}
+			triedPaths[path] = true
+			if typ.Kind != sys.BufferBlobRand && typ.Kind != sys.BufferBlobRange {
+				return false
+			}
+			minLen := int(typ.RangeBegin)
+			for step := len(arg.Data) - minLen; len(arg.Data) > minLen && step > 0; {
+				if len(arg.Data)-step >= minLen {
+					arg.Data = arg.Data[:len(arg.Data)-step]
+					assignSizesCall(call)
+					if pred(p, callIndex0) {
+						continue
+					}
+					arg.Data = arg.Data[:len(arg.Data)+step]
+					assignSizesCall(call)
+				}
+				step /= 2
+				if crash {
+					break
+				}
+			}
+			p0 = p
+		case *sys.VmaType, *sys.LenType, *sys.ConstType:
+			// TODO: try to remove offset from vma
+			return false
+		default:
+			panic(fmt.Sprintf("unknown arg type '%+v'", typ))
+		}
+		return false
+	}
+
+	// Try to minimize individual args.
+	for i := 0; i < len(p0.Calls); i++ {
+		triedPaths = make(map[string]bool)
+	again:
+		p := p0.Clone()
+		call := p.Calls[i]
+		for j, arg := range call.Args {
+			if rec(p, call, arg, fmt.Sprintf("%v", j)) {
+				goto again
+			}
+		}
+	}
+
 	if callIndex0 != -1 {
 		if callIndex0 < 0 || callIndex0 >= len(p0.Calls) || name0 != p0.Calls[callIndex0].Meta.Name {
 			panic(fmt.Sprintf("bad call index after minimizatoin: ncalls=%v index=%v call=%v/%v",
