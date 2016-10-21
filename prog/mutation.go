@@ -11,192 +11,203 @@ import (
 	"github.com/google/syzkaller/sys"
 )
 
-func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
+func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Prog) {
 	r := newRand(rs)
-	retry := false
-	for stop := false; !stop || retry; stop = r.bin() {
-		retry = false
-		r.choose(
-			20, func() {
-				// Insert a new call.
-				if len(p.Calls) >= ncalls {
-					retry = true
-					return
-				}
-				idx := r.biasedRand(len(p.Calls)+1, 5)
-				var c *Call
-				if idx < len(p.Calls) {
-					c = p.Calls[idx]
-				}
-				s := analyze(ct, p, c)
-				calls := r.generateCall(s, p)
-				p.insertBefore(c, calls)
-			},
-			10, func() {
-				// Change args of a call.
-				if len(p.Calls) == 0 {
-					retry = true
-					return
-				}
-				c := p.Calls[r.Intn(len(p.Calls))]
-				if len(c.Args) == 0 {
-					retry = true
-					return
-				}
-				s := analyze(ct, p, c)
-				for stop := false; !stop; stop = r.bin() {
-					args, bases := mutationArgs(c)
-					if len(args) == 0 {
+
+	if r.oneOf(100) && corpus != nil {
+		// Splice with another prog from corpus.
+		p0 := corpus[r.Intn(len(corpus))]
+		p0c := p0.Clone()
+		idx := r.Intn(len(p.Calls))
+		p.Calls = append(p.Calls[:idx], append(p0c.Calls, p.Calls[idx:]...)...)
+	} else {
+		// Mutate current prog without splicing.
+		retry := false
+		for stop := false; !stop || retry; stop = r.bin() {
+			retry = false
+			r.choose(
+				20, func() {
+					// Insert a new call.
+					if len(p.Calls) >= ncalls {
 						retry = true
 						return
 					}
-					idx := r.Intn(len(args))
-					arg, base := args[idx], bases[idx]
-					var baseSize uintptr
-					if base != nil {
-						if base.Kind != ArgPointer || base.Res == nil {
-							panic("bad base arg")
-						}
-						baseSize = base.Res.Size()
+					idx := r.biasedRand(len(p.Calls)+1, 5)
+					var c *Call
+					if idx < len(p.Calls) {
+						c = p.Calls[idx]
 					}
-					switch a := arg.Type.(type) {
-					case *sys.IntType, *sys.FlagsType, *sys.ResourceType, *sys.VmaType:
-						arg1, calls1 := r.generateArg(s, arg.Type)
-						p.replaceArg(c, arg, arg1, calls1)
-					case *sys.BufferType:
-						switch a.Kind {
-						case sys.BufferBlobRand, sys.BufferBlobRange:
-							var data []byte
-							switch arg.Kind {
-							case ArgData:
-								data = append([]byte{}, arg.Data...)
-							case ArgConst:
-								// 0 is OK for optional args.
-								if arg.Val != 0 {
-									panic(fmt.Sprintf("BufferType has non-zero const value: %v", arg.Val))
+					s := analyze(ct, p, c)
+					calls := r.generateCall(s, p)
+					p.insertBefore(c, calls)
+				},
+				10, func() {
+					// Change args of a call.
+					if len(p.Calls) == 0 {
+						retry = true
+						return
+					}
+					c := p.Calls[r.Intn(len(p.Calls))]
+					if len(c.Args) == 0 {
+						retry = true
+						return
+					}
+					s := analyze(ct, p, c)
+					for stop := false; !stop; stop = r.bin() {
+						args, bases := mutationArgs(c)
+						if len(args) == 0 {
+							retry = true
+							return
+						}
+						idx := r.Intn(len(args))
+						arg, base := args[idx], bases[idx]
+						var baseSize uintptr
+						if base != nil {
+							if base.Kind != ArgPointer || base.Res == nil {
+								panic("bad base arg")
+							}
+							baseSize = base.Res.Size()
+						}
+						switch a := arg.Type.(type) {
+						case *sys.IntType, *sys.FlagsType, *sys.ResourceType, *sys.VmaType:
+							arg1, calls1 := r.generateArg(s, arg.Type)
+							p.replaceArg(c, arg, arg1, calls1)
+						case *sys.BufferType:
+							switch a.Kind {
+							case sys.BufferBlobRand, sys.BufferBlobRange:
+								var data []byte
+								switch arg.Kind {
+								case ArgData:
+									data = append([]byte{}, arg.Data...)
+								case ArgConst:
+									// 0 is OK for optional args.
+									if arg.Val != 0 {
+										panic(fmt.Sprintf("BufferType has non-zero const value: %v", arg.Val))
+									}
+								default:
+									panic(fmt.Sprintf("bad arg kind for BufferType: %v", arg.Kind))
 								}
+								minLen := int(0)
+								maxLen := ^int(0)
+								if a.Kind == sys.BufferBlobRange {
+									minLen = int(a.RangeBegin)
+									maxLen = int(a.RangeEnd)
+								}
+								arg.Data = mutateData(r, data, minLen, maxLen)
+							case sys.BufferString:
+								if r.bin() {
+									arg.Data = mutateData(r, append([]byte{}, arg.Data...), int(0), ^int(0))
+								} else {
+									arg.Data = r.randString(s, a.Values, a.Dir())
+								}
+							case sys.BufferFilename:
+								arg.Data = []byte(r.filename(s))
+							case sys.BufferSockaddr:
+								arg.Data = r.sockaddr(s)
 							default:
-								panic(fmt.Sprintf("bad arg kind for BufferType: %v", arg.Kind))
+								panic("unknown buffer kind")
 							}
-							minLen := int(0)
-							maxLen := ^int(0)
-							if a.Kind == sys.BufferBlobRange {
-								minLen = int(a.RangeBegin)
-								maxLen = int(a.RangeEnd)
-							}
-							arg.Data = mutateData(r, data, minLen, maxLen)
-						case sys.BufferString:
-							if r.bin() {
-								arg.Data = mutateData(r, append([]byte{}, arg.Data...), int(0), ^int(0))
-							} else {
-								arg.Data = r.randString(s, a.Values, a.Dir())
-							}
-						case sys.BufferFilename:
-							arg.Data = []byte(r.filename(s))
-						case sys.BufferSockaddr:
-							arg.Data = r.sockaddr(s)
-						default:
-							panic("unknown buffer kind")
-						}
-					case *sys.ArrayType:
-						count := uintptr(0)
-						switch a.Kind {
-						case sys.ArrayRandLen:
-							for count == uintptr(len(arg.Inner)) {
-								count = r.rand(6)
-							}
-						case sys.ArrayRangeLen:
-							if a.RangeBegin == a.RangeEnd {
-								panic("trying to mutate fixed length array")
-							}
-							for count == uintptr(len(arg.Inner)) {
-								count = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
-							}
-						}
-						if count > uintptr(len(arg.Inner)) {
-							var calls []*Call
-							for count > uintptr(len(arg.Inner)) {
-								arg1, calls1 := r.generateArg(s, a.Type)
-								arg.Inner = append(arg.Inner, arg1)
-								for _, c1 := range calls1 {
-									calls = append(calls, c1)
-									s.analyze(c1)
+						case *sys.ArrayType:
+							count := uintptr(0)
+							switch a.Kind {
+							case sys.ArrayRandLen:
+								for count == uintptr(len(arg.Inner)) {
+									count = r.rand(6)
+								}
+							case sys.ArrayRangeLen:
+								if a.RangeBegin == a.RangeEnd {
+									panic("trying to mutate fixed length array")
+								}
+								for count == uintptr(len(arg.Inner)) {
+									count = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
 								}
 							}
-							for _, c1 := range calls {
+							if count > uintptr(len(arg.Inner)) {
+								var calls []*Call
+								for count > uintptr(len(arg.Inner)) {
+									arg1, calls1 := r.generateArg(s, a.Type)
+									arg.Inner = append(arg.Inner, arg1)
+									for _, c1 := range calls1 {
+										calls = append(calls, c1)
+										s.analyze(c1)
+									}
+								}
+								for _, c1 := range calls {
+									sanitizeCall(c1)
+								}
+								sanitizeCall(c)
+								p.insertBefore(c, calls)
+							} else if count < uintptr(len(arg.Inner)) {
+								for _, arg := range arg.Inner[count:] {
+									p.removeArg(c, arg)
+								}
+								arg.Inner = arg.Inner[:count]
+							}
+							// TODO: swap elements of the array
+						case *sys.PtrType:
+							// TODO: we don't know size for out args
+							size := uintptr(1)
+							if arg.Res != nil {
+								size = arg.Res.Size()
+							}
+							arg1, calls1 := r.addr(s, a, size, arg.Res)
+							p.replaceArg(c, arg, arg1, calls1)
+						case *sys.StructType:
+							ctor := isSpecialStruct(a)
+							if ctor == nil {
+								panic("bad arg returned by mutationArgs: StructType")
+							}
+							arg1, calls1 := ctor(r, s)
+							for i, f := range arg1.Inner {
+								p.replaceArg(c, arg.Inner[i], f, calls1)
+								calls1 = nil
+							}
+						case *sys.UnionType:
+							optType := a.Options[r.Intn(len(a.Options))]
+							for optType.Name() == arg.OptionType.Name() {
+								optType = a.Options[r.Intn(len(a.Options))]
+							}
+							p.removeArg(c, arg.Option)
+							opt, calls := r.generateArg(s, optType)
+							arg1 := unionArg(a, opt, optType)
+							p.replaceArg(c, arg, arg1, calls)
+						case *sys.LenType:
+							panic("bad arg returned by mutationArgs: LenType")
+						case *sys.ConstType:
+							panic("bad arg returned by mutationArgs: ConstType")
+						default:
+							panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", *arg, arg.Type))
+						}
+
+						// Update base pointer if size has increased.
+						if base != nil && baseSize < base.Res.Size() {
+							arg1, calls1 := r.addr(s, base.Type, base.Res.Size(), base.Res)
+							for _, c1 := range calls1 {
 								sanitizeCall(c1)
 							}
-							sanitizeCall(c)
-							p.insertBefore(c, calls)
-						} else if count < uintptr(len(arg.Inner)) {
-							for _, arg := range arg.Inner[count:] {
-								p.removeArg(c, arg)
-							}
-							arg.Inner = arg.Inner[:count]
+							p.insertBefore(c, calls1)
+							arg.AddrPage = arg1.AddrPage
+							arg.AddrOffset = arg1.AddrOffset
+							arg.AddrPagesNum = arg1.AddrPagesNum
 						}
-						// TODO: swap elements of the array
-					case *sys.PtrType:
-						// TODO: we don't know size for out args
-						size := uintptr(1)
-						if arg.Res != nil {
-							size = arg.Res.Size()
-						}
-						arg1, calls1 := r.addr(s, a, size, arg.Res)
-						p.replaceArg(c, arg, arg1, calls1)
-					case *sys.StructType:
-						ctor := isSpecialStruct(a)
-						if ctor == nil {
-							panic("bad arg returned by mutationArgs: StructType")
-						}
-						arg1, calls1 := ctor(r, s)
-						for i, f := range arg1.Inner {
-							p.replaceArg(c, arg.Inner[i], f, calls1)
-							calls1 = nil
-						}
-					case *sys.UnionType:
-						optType := a.Options[r.Intn(len(a.Options))]
-						for optType.Name() == arg.OptionType.Name() {
-							optType = a.Options[r.Intn(len(a.Options))]
-						}
-						p.removeArg(c, arg.Option)
-						opt, calls := r.generateArg(s, optType)
-						arg1 := unionArg(a, opt, optType)
-						p.replaceArg(c, arg, arg1, calls)
-					case *sys.LenType:
-						panic("bad arg returned by mutationArgs: LenType")
-					case *sys.ConstType:
-						panic("bad arg returned by mutationArgs: ConstType")
-					default:
-						panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", *arg, arg.Type))
-					}
 
-					// Update base pointer if size has increased.
-					if base != nil && baseSize < base.Res.Size() {
-						arg1, calls1 := r.addr(s, base.Type, base.Res.Size(), base.Res)
-						for _, c1 := range calls1 {
-							sanitizeCall(c1)
-						}
-						p.insertBefore(c, calls1)
-						arg.AddrPage = arg1.AddrPage
-						arg.AddrOffset = arg1.AddrOffset
-						arg.AddrPagesNum = arg1.AddrPagesNum
+						// Update all len fields.
+						assignSizesCall(c)
 					}
-
-					// Update all len fields.
-					assignSizesCall(c)
-				}
-			},
-			1, func() {
-				// Remove a random call.
-				if len(p.Calls) == 0 {
-					retry = true
-					return
-				}
-				idx := r.Intn(len(p.Calls))
-				p.removeCall(idx)
-			},
-		)
+				},
+				1, func() {
+					// Remove a random call.
+					if len(p.Calls) == 0 {
+						retry = true
+						return
+					}
+					idx := r.Intn(len(p.Calls))
+					p.removeCall(idx)
+				},
+			)
+		}
 	}
+
 	for _, c := range p.Calls {
 		sanitizeCall(c)
 	}
