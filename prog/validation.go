@@ -136,6 +136,12 @@ func (c *Call) validate(ctx *validCtx) error {
 			}
 		case ArgPageSize:
 		case ArgData:
+			switch typ1 := typ.(type) {
+			case *sys.ArrayType:
+				if typ2, ok := typ1.Type.(*sys.IntType); !ok || typ2.Size() != 1 {
+					return fmt.Errorf("syscall %v: data arg '%v' should be an array", c.Meta.Name, typ.Name())
+				}
+			}
 		case ArgGroup:
 			switch typ1 := typ.(type) {
 			case *sys.StructType:
