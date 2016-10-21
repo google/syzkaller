@@ -180,14 +180,14 @@ func TestMinimize(t *testing.T) {
 		{
 			"mmap(&(0x7f0000000000/0x1000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"sched_yield()\n" +
-				"pipe2(&(0x7f0000000000)={0x0, 0x0}, 0x0)\n",
+				"pipe2(&(0x7f0000000000)={0xffffffffffffffff, 0xffffffffffffffff}, 0x0)\n",
 			2,
 			func(p *Prog, callIndex int) bool {
 				// Aim at removal of sched_yield.
 				return len(p.Calls) == 2 && p.Calls[0].Meta.Name == "mmap" && p.Calls[1].Meta.Name == "pipe2"
 			},
-			"mmap(&(0x7f0000000000/0x1000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"pipe2(&(0x7f0000000000)={0x0, 0x0}, 0x0)\n",
+			"mmap(&(0x7f0000000000/0x1000)=nil, (0x1000), 0x0, 0x0, 0xffffffffffffffff, 0x0)\n" +
+				"pipe2(&(0x7f0000000000)={0xffffffffffffffff, 0xffffffffffffffff}, 0x0)\n",
 			1,
 		},
 		// Remove two dependent calls.
@@ -219,8 +219,8 @@ func TestMinimize(t *testing.T) {
 			func(p *Prog, callIndex int) bool {
 				return p.String() == "mmap-write-sched_yield"
 			},
-			"mmap(&(0x7f0000000000/0x1000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"write(0xffffffffffffffff, &(0x7f0000000000)=\"1155\", 0x2)\n" +
+			"mmap(&(0x7f0000000000/0x1000)=nil, (0x1000), 0x0, 0x0, 0xffffffffffffffff, 0x0)\n" +
+				"write(0xffffffffffffffff, &(0x7f0000000000)=\"\", 0x0)\n" +
 				"sched_yield()\n",
 			2,
 		},
@@ -234,8 +234,8 @@ func TestMinimize(t *testing.T) {
 			func(p *Prog, callIndex int) bool {
 				return p.String() == "mmap-write-sched_yield"
 			},
-			"mmap(&(0x7f0000000000/0x1000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
-				"write(0xffffffffffffffff, &(0x7f0000000000)=\"1155\", 0x2)\n" +
+			"mmap(&(0x7f0000000000/0x1000)=nil, (0x1000), 0x0, 0x0, 0xffffffffffffffff, 0x0)\n" +
+				"write(0xffffffffffffffff, &(0x7f0000000000)=\"\", 0x0)\n" +
 				"sched_yield()\n",
 			-1,
 		},
@@ -250,7 +250,7 @@ func TestMinimize(t *testing.T) {
 			func(p *Prog, callIndex int) bool {
 				return p.String() == "mmap-sched_yield-getpid"
 			},
-			"mmap(&(0x7f0000000000/0x7000)=nil, (0x7000), 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
+			"mmap(&(0x7f0000000000/0x7000)=nil, (0x7000), 0x0, 0x0, 0xffffffffffffffff, 0x0)\n" +
 				"sched_yield()\n" +
 				"getpid()\n",
 			2,
@@ -261,7 +261,7 @@ func TestMinimize(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to deserialize original program #%v: %v", ti, err)
 		}
-		p1, ci := Minimize(p, test.callIndex, test.pred)
+		p1, ci := Minimize(p, test.callIndex, test.pred, false)
 		res := p1.Serialize()
 		if string(res) != test.result {
 			t.Fatalf("minimization produced wrong result #%v\norig:\n%v\nexpect:\n%v\ngot:\n%v\n",
@@ -283,12 +283,27 @@ func TestMinimizeRandom(t *testing.T) {
 				t.Fatalf("invalid program: %v", err)
 			}
 			return false
-		})
+		}, true)
 		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
 			if err := p1.validate(); err != nil {
 				t.Fatalf("invalid program: %v", err)
 			}
 			return true
-		})
+		}, true)
+	}
+	for i := 0; i < iters; i++ {
+		p := Generate(rs, 10, nil)
+		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
+			if err := p1.validate(); err != nil {
+				t.Fatalf("invalid program: %v", err)
+			}
+			return false
+		}, false)
+		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
+			if err := p1.validate(); err != nil {
+				t.Fatalf("invalid program: %v", err)
+			}
+			return true
+		}, false)
 	}
 }

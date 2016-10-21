@@ -55,12 +55,12 @@ func (c *Call) validate(ctx *validCtx) error {
 			return fmt.Errorf("syscall %v: type name mismatch: %v vs %v", c.Meta.Name, arg.Type.Name(), typ.Name())
 		}
 		if arg.Type.Dir() == sys.DirOut {
-			if arg.Val != 0 || arg.AddrPage != 0 || arg.AddrOffset != 0 {
+			if (arg.Val != 0 && arg.Val != arg.Type.Default()) || arg.AddrPage != 0 || arg.AddrOffset != 0 {
 				// We generate output len arguments, which makes sense
 				// since it can be a length of a variable-length array
 				// which is not known otherwise.
 				if _, ok := arg.Type.(*sys.LenType); !ok {
-					return fmt.Errorf("syscall %v: output arg '%v' has data", c.Meta.Name, typ.Name())
+					return fmt.Errorf("syscall %v: output arg '%v' has non default value '%v'", c.Meta.Name, typ.Name(), arg.Val)
 				}
 			}
 			for _, v := range arg.Data {
@@ -75,7 +75,7 @@ func (c *Call) validate(ctx *validCtx) error {
 			case ArgResult:
 			case ArgReturn:
 			case ArgConst:
-				if arg.Type.Dir() == sys.DirOut && arg.Val != 0 {
+				if arg.Type.Dir() == sys.DirOut && (arg.Val != 0 && arg.Val != arg.Type.Default()) {
 					return fmt.Errorf("syscall %v: out resource arg '%v' has bad const value %v", c.Meta.Name, typ.Name(), arg.Val)
 				}
 			default:
