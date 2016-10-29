@@ -732,6 +732,9 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		case sys.BufferFilesystem:
 			data := r.filesystem(s)
 			return dataArg(a, data), nil
+		case sys.BufferFilename:
+			filename := r.filename(s)
+			return dataArg(a, []byte(filename)), nil
 		case sys.BufferSockaddr:
 			data := r.sockaddr(s)
 			if a.Dir() == sys.DirOut {
@@ -782,9 +785,6 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			v = r.randRangeInt(a.RangeBegin, a.RangeEnd)
 		}
 		return constArg(a, v), nil
-	case *sys.FilenameType:
-		filename := r.filename(s)
-		return dataArg(a, []byte(filename)), nil
 	case *sys.ArrayType:
 		count := uintptr(0)
 		switch a.Kind {

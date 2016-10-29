@@ -85,13 +85,13 @@ func calcStaticPriorities() [][]float32 {
 					noteUsage(0.2, "str")
 				case sys.BufferSockaddr:
 					noteUsage(1.0, "sockaddr")
+				case sys.BufferFilename:
+					noteUsage(1.0, "filename")
 				default:
 					panic("unknown buffer kind")
 				}
 			case *sys.VmaType:
 				noteUsage(0.5, "vma")
-			case *sys.FilenameType:
-				noteUsage(1.0, "filename")
 			case *sys.IntType:
 				switch a.Kind {
 				case sys.IntPlain:
