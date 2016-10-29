@@ -34,7 +34,6 @@ type Type interface {
 	Default() uintptr
 	Size() uintptr
 	Align() uintptr
-	InnerType() Type // returns inner type for PtrType
 }
 
 func IsPad(t Type) bool {
@@ -98,10 +97,6 @@ func (t *ResourceType) Align() uintptr {
 	return t.Desc.Type.Align()
 }
 
-func (t *ResourceType) InnerType() Type {
-	return t
-}
-
 type FileoffType struct {
 	TypeCommon
 	TypeSize  uintptr
@@ -115,10 +110,6 @@ func (t *FileoffType) Size() uintptr {
 
 func (t *FileoffType) Align() uintptr {
 	return t.Size()
-}
-
-func (t *FileoffType) InnerType() Type {
-	return t
 }
 
 type BufferKind int
@@ -160,10 +151,6 @@ func (t *BufferType) Align() uintptr {
 	return 1
 }
 
-func (t *BufferType) InnerType() Type {
-	return t
-}
-
 type VmaType struct {
 	TypeCommon
 }
@@ -174,10 +161,6 @@ func (t *VmaType) Size() uintptr {
 
 func (t *VmaType) Align() uintptr {
 	return t.Size()
-}
-
-func (t *VmaType) InnerType() Type {
-	return t
 }
 
 type LenType struct {
@@ -196,10 +179,6 @@ func (t *LenType) Align() uintptr {
 	return t.Size()
 }
 
-func (t *LenType) InnerType() Type {
-	return t
-}
-
 type FlagsType struct {
 	TypeCommon
 	TypeSize  uintptr
@@ -213,10 +192,6 @@ func (t *FlagsType) Size() uintptr {
 
 func (t *FlagsType) Align() uintptr {
 	return t.Size()
-}
-
-func (t *FlagsType) InnerType() Type {
-	return t
 }
 
 type ConstType struct {
@@ -235,10 +210,6 @@ func (t *ConstType) Align() uintptr {
 	return t.Size()
 }
 
-func (t *ConstType) InnerType() Type {
-	return t
-}
-
 type StrConstType struct {
 	TypeCommon
 	TypeSize uintptr
@@ -251,10 +222,6 @@ func (t *StrConstType) Size() uintptr {
 
 func (t *StrConstType) Align() uintptr {
 	return 1
-}
-
-func (t *StrConstType) InnerType() Type {
-	return t
 }
 
 type IntKind int
@@ -284,10 +251,6 @@ func (t *IntType) Align() uintptr {
 	return t.Size()
 }
 
-func (t *IntType) InnerType() Type {
-	return t
-}
-
 type FilenameType struct {
 	TypeCommon
 }
@@ -298,10 +261,6 @@ func (t *FilenameType) Size() uintptr {
 
 func (t *FilenameType) Align() uintptr {
 	return 1
-}
-
-func (t *FilenameType) InnerType() Type {
-	return t
 }
 
 type ArrayKind int
@@ -330,10 +289,6 @@ func (t *ArrayType) Align() uintptr {
 	return t.Type.Align()
 }
 
-func (t *ArrayType) InnerType() Type {
-	return t
-}
-
 type PtrType struct {
 	TypeCommon
 	Type Type
@@ -345,10 +300,6 @@ func (t *PtrType) Size() uintptr {
 
 func (t *PtrType) Align() uintptr {
 	return t.Size()
-}
-
-func (t *PtrType) InnerType() Type {
-	return t.Type.InnerType()
 }
 
 type StructType struct {
@@ -383,10 +334,6 @@ func (t *StructType) Align() uintptr {
 	return align
 }
 
-func (t *StructType) InnerType() Type {
-	return t
-}
-
 type UnionType struct {
 	TypeCommon
 	Options []Type
@@ -414,10 +361,6 @@ func (t *UnionType) Align() uintptr {
 		}
 	}
 	return align
-}
-
-func (t *UnionType) InnerType() Type {
-	return t
 }
 
 var ctors = make(map[string][]*Call)

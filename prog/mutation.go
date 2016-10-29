@@ -57,7 +57,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						if base.Kind != ArgPointer || base.Res == nil {
 							panic("bad base arg")
 						}
-						baseSize = base.Res.Size(base.Res.Type)
+						baseSize = base.Res.Size()
 					}
 					switch a := arg.Type.(type) {
 					case *sys.IntType, *sys.FlagsType, *sys.FileoffType, *sys.ResourceType, *sys.VmaType:
@@ -146,7 +146,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						// TODO: we don't know size for out args
 						size := uintptr(1)
 						if arg.Res != nil {
-							size = arg.Res.Size(arg.Res.Type)
+							size = arg.Res.Size()
 						}
 						arg1, calls1 := r.addr(s, a, size, arg.Res)
 						p.replaceArg(c, arg, arg1, calls1)
@@ -178,8 +178,8 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 					}
 
 					// Update base pointer if size has increased.
-					if base != nil && baseSize < base.Res.Size(base.Res.Type) {
-						arg1, calls1 := r.addr(s, base.Type, base.Res.Size(base.Res.Type), base.Res)
+					if base != nil && baseSize < base.Res.Size() {
+						arg1, calls1 := r.addr(s, base.Type, base.Res.Size(), base.Res)
 						for _, c1 := range calls1 {
 							sanitizeCall(c1)
 						}

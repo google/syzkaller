@@ -52,17 +52,16 @@ const (
 )
 
 // Returns inner arg for PtrType args
-func (a *Arg) InnerArg(typ sys.Type) *Arg {
-	switch typ1 := typ.(type) {
+func (a *Arg) InnerArg() *Arg {
+	switch typ := a.Type.(type) {
 	case *sys.PtrType:
 		if a.Res == nil {
-			if typ.Optional() {
-				return nil
-			} else {
-				panic(fmt.Sprintf("non-optional pointer is nil\narg: %+v\ntype: %+v", a, typ1))
+			if !typ.Optional() {
+				panic(fmt.Sprintf("non-optional pointer is nil\narg: %+v\ntype: %+v", a, typ))
 			}
+			return nil
 		} else {
-			return a.Res.InnerArg(typ1.Type)
+			return a.Res.InnerArg()
 		}
 	default:
 		return a
@@ -86,24 +85,24 @@ func encodeValue(value, size uintptr, bigEndian bool) uintptr {
 }
 
 // Returns value taking endianness into consideration.
-func (a *Arg) Value(typ sys.Type) uintptr {
-	switch t := typ.(type) {
+func (a *Arg) Value() uintptr {
+	switch typ := a.Type.(type) {
 	case *sys.IntType:
-		return encodeValue(a.Val, t.Size(), t.BigEndian)
+		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
 	case *sys.ConstType:
-		return encodeValue(a.Val, t.Size(), t.BigEndian)
+		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
 	case *sys.FlagsType:
-		return encodeValue(a.Val, t.Size(), t.BigEndian)
+		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
 	case *sys.LenType:
-		return encodeValue(a.Val, t.Size(), t.BigEndian)
+		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
 	case *sys.FileoffType:
-		return encodeValue(a.Val, t.Size(), t.BigEndian)
+		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
 	}
 	return a.Val
 }
 
-func (a *Arg) Size(typ sys.Type) uintptr {
-	switch typ1 := typ.(type) {
+func (a *Arg) Size() uintptr {
+	switch typ := a.Type.(type) {
 	case *sys.IntType, *sys.LenType, *sys.FlagsType, *sys.ConstType, *sys.StrConstType,
 		*sys.FileoffType, *sys.ResourceType, *sys.VmaType, *sys.PtrType:
 		return typ.Size()
@@ -113,16 +112,16 @@ func (a *Arg) Size(typ sys.Type) uintptr {
 		return uintptr(len(a.Data))
 	case *sys.StructType:
 		var size uintptr
-		for i, f := range typ1.Fields {
-			size += a.Inner[i].Size(f)
+		for _, fld := range a.Inner {
+			size += fld.Size()
 		}
 		return size
 	case *sys.UnionType:
-		return a.Option.Size(a.OptionType)
+		return a.Option.Size()
 	case *sys.ArrayType:
 		var size uintptr
 		for _, in := range a.Inner {
-			size += in.Size(typ1.Type)
+			size += in.Size()
 		}
 		return size
 	default:
