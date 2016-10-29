@@ -23,7 +23,7 @@ Pseudo-formal grammar of syscall description:
 	type = typename [ "[" type-options "]" ]
 	typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
 			"buffer" | "string" | "strconst" | "filename" |
-			"fileoff" | "len" | "bytesize" | "vma"
+			"len" | "bytesize" | "vma"
 	type-options = [type-opt ["," type-opt]]
 ```
 common type-options include:
@@ -48,8 +48,7 @@ rest of the type-options are type-specific:
 	"strconst": a pointer to a constant string, type-options:
 		the underlying string (for example "/dev/dsp")
 	"filename": a file/link/dir name
-	"fileoff": offset within a file, type-options:
-		argname of the file
+	"fileoff": offset within a file
 	"len": length of another field (for array it is number of elements), type-options:
 		argname of the object
 	"bytesize": similar to "len", but always denotes the size in bytes, type-options:

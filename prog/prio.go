@@ -94,8 +94,7 @@ func calcStaticPriorities() [][]float32 {
 				noteUsage(0.5, "vma")
 			case *sys.IntType:
 				switch a.Kind {
-				case sys.IntPlain:
-				case sys.IntRange:
+				case sys.IntPlain, sys.IntFileoff, sys.IntRange:
 				case sys.IntSignalno:
 					noteUsage(1.0, "signalno")
 				case sys.IntInaddr:
