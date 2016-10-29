@@ -79,14 +79,14 @@ openat(fd fd_dir, file filename, flags flags[open_flags], mode flags[open_mode])
 creat(file filename, mode flags[open_mode]) fd
 close(fd fd)
 read(fd fd, buf buffer[out], count len[buf]) len[buf]
-pread64(fd fd, buf buffer[out], count len[buf], pos fileoff[fd])
+pread64(fd fd, buf buffer[out], count len[buf], pos fileoff)
 readv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec])
-preadv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec], off fileoff[fd])
+preadv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec], off fileoff)
 write(fd fd, buf buffer[in], count len[buf]) len[buf]
-pwrite64(fd fd, buf buffer[in], count len[buf], pos fileoff[fd])
+pwrite64(fd fd, buf buffer[in], count len[buf], pos fileoff)
 writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
-pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off fileoff[fd])
-lseek(fd fd, offset fileoff[fd], whence flags[seek_whence])
+pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off fileoff)
+lseek(fd fd, offset fileoff, whence flags[seek_whence])
 
 dup(oldfd fd) fd
 dup2(oldfd fd, newfd fd) fd
@@ -96,9 +96,9 @@ pipe(pipefd ptr[out, pipefd])
 pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
 
 tee(fdin fd, fdout fd, len int64, f flags[splice_flags])
-splice(fdin fd, offin fileoff[fdin], fdout fd, offout fileoff[fdout], len int64, f flags[splice_flags])
+splice(fdin fd, offin fileoff, fdout fd, offout fileoff, len int64, f flags[splice_flags])
 vmsplice(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], f flags[splice_flags])
-sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[fdin, int64], opt], count int64)
+sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count int64)
 
 stat(file filename, statbuf ptr[out, stat])
 lstat(file filename, statbuf ptr[out, stat])
@@ -136,14 +136,14 @@ ioctl$UFFDIO_WAKE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
 ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
 ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
 
-mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff[fd]) vma
+mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff) vma
 munmap(addr vma, len len[addr])
 mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma) vma
 remap_file_pages(addr vma, size len[addr], prot flags[mmap_prot], pgoff intptr, flags flags[mmap_flags])
 mprotect(addr vma, len len[addr], prot flags[mmap_prot])
 msync(addr vma, len len[addr], f flags[msync_flags])
 madvise(addr vma, len len[addr], advice flags[madvise_flags])
-fadvise64(fd fd, offset fileoff[fd], len intptr, advice flags[fadvise_flags])
+fadvise64(fd fd, offset fileoff, len intptr, advice flags[fadvise_flags])
 readahead(fd fd, off intptr, count intptr)
 mbind(addr vma, len len[addr], mode flags[mbind_mode], nodemask ptr[in, int64], maxnode intptr, flags flags[mbind_flags])
 move_pages(pid pid, nr len[pages], pages ptr[in, array[vma]], nodes ptr[in, array[int32], opt], status ptr[out, array[int32]], flags flags[move_pages_flags])

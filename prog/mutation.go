@@ -60,7 +60,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						baseSize = base.Res.Size()
 					}
 					switch a := arg.Type.(type) {
-					case *sys.IntType, *sys.FlagsType, *sys.FileoffType, *sys.ResourceType, *sys.VmaType:
+					case *sys.IntType, *sys.FlagsType, *sys.ResourceType, *sys.VmaType:
 						arg1, calls1 := r.generateArg(s, arg.Type)
 						p.replaceArg(c, arg, arg1, calls1)
 					case *sys.BufferType:

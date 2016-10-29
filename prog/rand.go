@@ -663,7 +663,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
 		case *sys.IntType, *sys.FlagsType, *sys.ConstType, *sys.StrConstType,
-			*sys.FileoffType, *sys.ResourceType, *sys.VmaType:
+			*sys.ResourceType, *sys.VmaType:
 			return constArg(typ, 0), nil
 		}
 	}
@@ -703,15 +703,6 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			},
 		)
 		return arg, calls
-	case *sys.FileoffType:
-		// TODO: can do better
-		var arg *Arg
-		r.choose(
-			90, func() { arg = constArg(a, 0) },
-			10, func() { arg = constArg(a, r.rand(100)) },
-			1, func() { arg = constArg(a, r.randInt()) },
-		)
-		return arg, nil
 	case *sys.BufferType:
 		switch a.Kind {
 		case sys.BufferBlobRand, sys.BufferBlobRange:
@@ -781,6 +772,12 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			v = uintptr(r.inaddr(s))
 		case sys.IntInport:
 			v = uintptr(r.inport(s))
+		case sys.IntFileoff:
+			r.choose(
+				90, func() { v = 0 },
+				10, func() { v = r.rand(100) },
+				1, func() { v = r.randInt() },
+			)
 		case sys.IntRange:
 			v = r.randRangeInt(a.RangeBegin, a.RangeEnd)
 		}

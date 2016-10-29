@@ -387,16 +387,16 @@ func generateArg(
 		size := uint64(ptrSize)
 		bigEndian := false
 		if isField {
-			if want := 2; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-			size, bigEndian = decodeIntType(a[1])
-		} else {
 			if want := 1; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
+			size, bigEndian = decodeIntType(a[0])
+		} else {
+			if want := 0; len(a) != want {
+				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+			}
 		}
-		fmt.Fprintf(out, "&FileoffType{%v, File: \"%v\", TypeSize: %v, BigEndian: %v}", common(), a[0], size, bigEndian)
+		fmt.Fprintf(out, "&IntType{%v, TypeSize: %v, BigEndian: %v, Kind: IntFileoff}", common(), size, bigEndian)
 	case "buffer":
 		canBeArg = true
 		if want := 1; len(a) != want {

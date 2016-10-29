@@ -97,21 +97,6 @@ func (t *ResourceType) Align() uintptr {
 	return t.Desc.Type.Align()
 }
 
-type FileoffType struct {
-	TypeCommon
-	TypeSize  uintptr
-	BigEndian bool
-	File      string
-}
-
-func (t *FileoffType) Size() uintptr {
-	return t.TypeSize
-}
-
-func (t *FileoffType) Align() uintptr {
-	return t.Size()
-}
-
 type BufferKind int
 
 const (
@@ -232,6 +217,7 @@ const (
 	IntSignalno
 	IntInaddr
 	IntInport
+	IntFileoff // offset within a file
 	IntRange
 )
 
@@ -500,7 +486,7 @@ func ForeachType(meta *Call, f func(Type)) {
 			for _, opt := range a.Options {
 				rec(opt)
 			}
-		case *ResourceType, *FileoffType, *BufferType,
+		case *ResourceType, *BufferType,
 			*VmaType, *LenType, *FlagsType, *ConstType,
 			*StrConstType, *IntType:
 		default:
