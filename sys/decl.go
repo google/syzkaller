@@ -118,6 +118,7 @@ const (
 	BufferBlobRand BufferKind = iota
 	BufferBlobRange
 	BufferString
+	BufferFilename
 	BufferSockaddr
 	BufferFilesystem
 	BufferAlgType
@@ -249,18 +250,6 @@ func (t *IntType) Size() uintptr {
 
 func (t *IntType) Align() uintptr {
 	return t.Size()
-}
-
-type FilenameType struct {
-	TypeCommon
-}
-
-func (t *FilenameType) Size() uintptr {
-	panic("filename size is not statically known")
-}
-
-func (t *FilenameType) Align() uintptr {
-	return 1
 }
 
 type ArrayKind int
@@ -513,7 +502,7 @@ func ForeachType(meta *Call, f func(Type)) {
 			}
 		case *ResourceType, *FileoffType, *BufferType,
 			*VmaType, *LenType, *FlagsType, *ConstType,
-			*StrConstType, *IntType, *FilenameType:
+			*StrConstType, *IntType:
 		default:
 			panic("unknown type")
 		}

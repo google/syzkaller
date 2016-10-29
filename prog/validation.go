@@ -76,12 +76,6 @@ func (c *Call) validate(ctx *validCtx) error {
 			default:
 				return fmt.Errorf("syscall %v: fd arg '%v' has bad kind %v", c.Meta.Name, typ.Name(), arg.Kind)
 			}
-		case *sys.FilenameType:
-			switch arg.Kind {
-			case ArgData:
-			default:
-				return fmt.Errorf("syscall %v: filename arg '%v' has bad kind %v", c.Meta.Name, typ.Name(), arg.Kind)
-			}
 		case *sys.StructType, *sys.ArrayType:
 			switch arg.Kind {
 			case ArgGroup:

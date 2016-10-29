@@ -552,7 +552,7 @@ func generateArg(
 		ptrCommonHdr := common()
 		dir = "in"
 		opt = false
-		fmt.Fprintf(out, "&PtrType{%v, Type: &FilenameType{%v}}", ptrCommonHdr, common())
+		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferFilename}}", ptrCommonHdr, common())
 	case "array":
 		if len(a) != 1 && len(a) != 2 {
 			failf("wrong number of arguments for %v arg %v, want 1 or 2, got %v", typ, name, len(a))

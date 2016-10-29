@@ -106,8 +106,6 @@ func (a *Arg) Size() uintptr {
 	case *sys.IntType, *sys.LenType, *sys.FlagsType, *sys.ConstType, *sys.StrConstType,
 		*sys.FileoffType, *sys.ResourceType, *sys.VmaType, *sys.PtrType:
 		return typ.Size()
-	case *sys.FilenameType:
-		return uintptr(len(a.Data))
 	case *sys.BufferType:
 		return uintptr(len(a.Data))
 	case *sys.StructType:

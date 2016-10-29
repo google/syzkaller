@@ -51,18 +51,19 @@ func newState(ct *ChoiceTable) *state {
 func (s *state) analyze(c *Call) {
 	foreachArgArray(&c.Args, c.Ret, func(arg, base *Arg, _ *[]*Arg) {
 		switch typ := arg.Type.(type) {
-		case *sys.FilenameType:
-			if arg.Kind == ArgData && arg.Type.Dir() != sys.DirOut {
-				s.files[string(arg.Data)] = true
-			}
 		case *sys.ResourceType:
 			if arg.Type.Dir() != sys.DirIn {
 				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], arg)
 				// TODO: negative PIDs and add them as well (that's process groups).
 			}
 		case *sys.BufferType:
-			if typ.Kind == sys.BufferString && arg.Kind == ArgData && len(arg.Data) != 0 {
-				s.strings[string(arg.Data)] = true
+			if arg.Type.Dir() != sys.DirOut && arg.Kind == ArgData && len(arg.Data) != 0 {
+				switch typ.Kind {
+				case sys.BufferString:
+					s.strings[string(arg.Data)] = true
+				case sys.BufferFilename:
+					s.files[string(arg.Data)] = true
+				}
 			}
 		}
 	})

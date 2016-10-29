@@ -93,6 +93,8 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							}
 						case sys.BufferFilesystem:
 							arg.Data = r.filesystem(s)
+						case sys.BufferFilename:
+							arg.Data = []byte(r.filename(s))
 						case sys.BufferSockaddr:
 							arg.Data = r.sockaddr(s)
 						case sys.BufferAlgType:
@@ -102,9 +104,6 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						default:
 							panic("unknown buffer kind")
 						}
-					case *sys.FilenameType:
-						filename := r.filename(s)
-						arg.Data = []byte(filename)
 					case *sys.ArrayType:
 						count := uintptr(0)
 						switch a.Kind {
