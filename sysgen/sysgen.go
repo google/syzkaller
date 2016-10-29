@@ -407,14 +407,10 @@ func generateArg(
 		opt = false
 		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferBlobRand}}", ptrCommonHdr, common())
 	case "string":
-		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		ptrCommonHdr := common()
-		dir = "in"
-		opt = false
-		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferString}}", ptrCommonHdr, common())
+		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferString}", common())
 	case "filesystem":
 		canBeArg = true
 		if want := 0; len(a) != want {
