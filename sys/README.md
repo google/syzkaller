@@ -44,7 +44,7 @@ rest of the type-options are type-specific:
 		type of the object; direction (in/out/inout)
 	"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options:
 		direction (in/out/inout)
-	"string": a pointer to a memory buffer, similar to buffer[in]
+	"string": a zero-terminated memory buffer (no pointer indirection implied)
 	"strconst": a pointer to a constant string, type-options:
 		the underlying string (for example "/dev/dsp")
 	"filename": a file/link/dir name
