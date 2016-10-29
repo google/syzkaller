@@ -16,7 +16,6 @@ func TestAssignSizeRandom(t *testing.T) {
 		data0 := p.Serialize()
 		for _, call := range p.Calls {
 			assignSizesCall(call)
-			assignTypeAndDir(call)
 		}
 		if data1 := p.Serialize(); !bytes.Equal(data0, data1) {
 			t.Fatalf("different lens assigned, initial: %v, new: %v", data0, data1)
@@ -26,7 +25,6 @@ func TestAssignSizeRandom(t *testing.T) {
 			data0 := p.Serialize()
 			for _, call := range p.Calls {
 				assignSizesCall(call)
-				assignTypeAndDir(call)
 			}
 			if data1 := p.Serialize(); !bytes.Equal(data0, data1) {
 				t.Fatalf("different lens assigned, initial: %v, new: %v", data0, data1)
@@ -113,7 +111,6 @@ func TestAssignSize(t *testing.T) {
 		}
 		for _, call := range p.Calls {
 			assignSizesCall(call)
-			assignTypeAndDir(call)
 		}
 		p1 := strings.TrimSpace(string(p.Serialize()))
 		if p1 != test.sizedProg {

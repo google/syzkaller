@@ -41,9 +41,6 @@ func (c *Call) validate(ctx *validCtx) error {
 		if arg == nil {
 			return fmt.Errorf("syscall %v: nil arg", c.Meta.Name)
 		}
-		if arg.Call != c {
-			return fmt.Errorf("syscall %v: arg has wrong call, call=%p, arg=%+v", c.Meta.Name, c, *arg)
-		}
 		if ctx.args[arg] {
 			return fmt.Errorf("syscall %v: arg is referenced several times in the tree", c.Meta.Name)
 		}
@@ -55,7 +52,7 @@ func (c *Call) validate(ctx *validCtx) error {
 			return fmt.Errorf("syscall %v: no type", c.Meta.Name)
 		}
 		if arg.Type.Name() != typ.Name() {
-			return fmt.Errorf("syscall %v: arg '%v' type mismatch", c.Meta.Name, typ.Name())
+			return fmt.Errorf("syscall %v: type name mismatch: %v vs %v", c.Meta.Name, arg.Type.Name(), typ.Name())
 		}
 		if arg.Type.Dir() == sys.DirOut {
 			if arg.Val != 0 || arg.AddrPage != 0 || arg.AddrOffset != 0 {
@@ -105,8 +102,8 @@ func (c *Call) validate(ctx *validCtx) error {
 				return fmt.Errorf("syscall %v: result arg '%v' has no reference", c.Meta.Name, typ.Name())
 			}
 			if !ctx.args[arg.Res] {
-				return fmt.Errorf("syscall %v: result arg '%v' references out-of-tree result: %p%+v -> %v %p%+v",
-					c.Meta.Name, typ.Name(), arg, arg, arg.Res.Call.Meta.Name, arg.Res, arg.Res)
+				return fmt.Errorf("syscall %v: result arg '%v' references out-of-tree result: %p%+v -> %p%+v",
+					c.Meta.Name, typ.Name(), arg, arg, arg.Res, arg.Res)
 			}
 			if _, ok := arg.Res.Uses[arg]; !ok {
 				return fmt.Errorf("syscall %v: result arg '%v' has broken link (%+v)", c.Meta.Name, typ.Name(), arg.Res.Uses)
@@ -185,7 +182,7 @@ func (c *Call) validate(ctx *validCtx) error {
 		return nil
 	}
 	for i, arg := range c.Args {
-		if c.Ret.Kind != ArgReturn {
+		if arg.Kind == ArgReturn {
 			return fmt.Errorf("syscall %v: arg '%v' has wrong return kind", c.Meta.Name, arg.Type.Name())
 		}
 		if err := checkArg(arg, c.Meta.Args[i]); err != nil {

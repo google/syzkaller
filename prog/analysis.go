@@ -149,86 +149,23 @@ func foreachArg(c *Call, f func(arg, base *Arg, parent *[]*Arg)) {
 	foreachArgArray(&c.Args, nil, f)
 }
 
-func assignTypeAndDir(c *Call) error {
-	var rec func(arg *Arg, typ sys.Type) error
-	rec = func(arg *Arg, typ sys.Type) error {
-		if arg.Call != nil && arg.Call != c {
-			panic(fmt.Sprintf("different call is already assigned: %p %p %v %v", arg.Call, c, arg.Call.Meta.Name, c.Meta.Name))
-		}
-		arg.Call = c
-		if arg.Type != nil && arg.Type.Name() != typ.Name() {
-			panic("different type is already assigned: " + arg.Type.Name() + " vs " + typ.Name())
-		}
-		arg.Type = typ
-		switch arg.Kind {
-		case ArgPointer:
-			switch typ1 := typ.(type) {
-			case *sys.PtrType:
-				if arg.Res != nil {
-					if err := rec(arg.Res, typ1.Type); err != nil {
-						return err
-					}
-				}
-			}
-		case ArgGroup:
-			switch typ1 := typ.(type) {
-			case *sys.StructType:
-				if len(arg.Inner) != len(typ1.Fields) {
-					return fmt.Errorf("wrong struct field count: %v, want %v", len(arg.Inner), len(typ1.Fields))
-				}
-				for i, arg1 := range arg.Inner {
-					if err := rec(arg1, typ1.Fields[i]); err != nil {
-						return err
-					}
-				}
-			case *sys.ArrayType:
-				for _, arg1 := range arg.Inner {
-					if err := rec(arg1, typ1.Type); err != nil {
-						return err
-					}
-				}
-			}
-		case ArgUnion:
-			if err := rec(arg.Option, arg.OptionType); err != nil {
-				return err
-			}
-		default:
-		}
-		return nil
-	}
-	for i, arg := range c.Args {
-		if c.Meta == nil {
-			panic("nil meta")
-		}
-		if err := rec(arg, c.Meta.Args[i]); err != nil {
-			return err
-		}
-	}
-	if c.Ret == nil {
-		c.Ret = returnArg()
-		c.Ret.Call = c
-		c.Ret.Type = c.Meta.Ret
-	}
-	return nil
-}
-
 func generateSize(typ sys.Type, arg *Arg, lenType *sys.LenType) *Arg {
 	if arg == nil {
 		// Arg is an optional pointer, set size to 0.
-		return constArg(0)
+		return constArg(lenType, 0)
 	}
 
 	switch typ.(type) {
 	case *sys.VmaType:
-		return pageSizeArg(arg.AddrPagesNum, 0)
+		return pageSizeArg(lenType, arg.AddrPagesNum, 0)
 	case *sys.ArrayType:
 		if lenType.ByteSize {
-			return constArg(arg.Size(typ))
+			return constArg(lenType, arg.Size(typ))
 		} else {
-			return constArg(uintptr(len(arg.Inner)))
+			return constArg(lenType, uintptr(len(arg.Inner)))
 		}
 	default:
-		return constArg(arg.Size(typ))
+		return constArg(lenType, arg.Size(typ))
 	}
 }
 
@@ -271,7 +208,7 @@ func assignSizes(types []sys.Type, args []*Arg) {
 			}
 
 			if lenType.Buf == "parent" {
-				*lenArg = *constArg(parentSize)
+				*lenArg = *constArg(lenType, parentSize)
 				continue
 			}
 
