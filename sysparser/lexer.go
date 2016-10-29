@@ -93,6 +93,9 @@ func Parse(in io.Reader) *Description {
 				}
 				fields := make(map[string]bool)
 				for _, f := range str.Flds {
+					if f[0] == "parent" {
+						failf("struct/union %v contains reserved field 'parent'", str.Name)
+					}
 					if fields[f[0]] {
 						failf("duplicate field %v in struct/union %v", f[0], str.Name)
 					}
