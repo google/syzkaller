@@ -650,7 +650,7 @@ func (r *randGen) generateArgs(s *state, types []sys.Type) ([]*Arg, []*Call) {
 		calls = append(calls, calls1...)
 	}
 
-	assignSizes(types, args)
+	assignSizes(args)
 
 	return args, calls
 }

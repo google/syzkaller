@@ -149,118 +149,70 @@ func foreachArg(c *Call, f func(arg, base *Arg, parent *[]*Arg)) {
 	foreachArgArray(&c.Args, nil, f)
 }
 
-func generateSize(typ sys.Type, arg *Arg, lenType *sys.LenType) *Arg {
+func generateSize(arg *Arg, lenType *sys.LenType) *Arg {
 	if arg == nil {
 		// Arg is an optional pointer, set size to 0.
 		return constArg(lenType, 0)
 	}
 
-	switch typ.(type) {
+	switch arg.Type.(type) {
 	case *sys.VmaType:
 		return pageSizeArg(lenType, arg.AddrPagesNum, 0)
 	case *sys.ArrayType:
 		if lenType.ByteSize {
-			return constArg(lenType, arg.Size(typ))
+			return constArg(lenType, arg.Size(arg.Type))
 		} else {
 			return constArg(lenType, uintptr(len(arg.Inner)))
 		}
 	default:
-		return constArg(lenType, arg.Size(typ))
+		return constArg(lenType, arg.Size(arg.Type))
 	}
 }
 
-func assignSizes(types []sys.Type, args []*Arg) {
+func assignSizes(args []*Arg) {
+	// Create a map of args and calculate size of the whole struct.
 	argsMap := make(map[string]*Arg)
-	typesMap := make(map[string]sys.Type)
-
-	// Create a map of args and types.
-	for i, typ := range types {
-		if sys.IsPad(typ) {
+	var parentSize uintptr
+	for _, arg := range args {
+		parentSize += arg.Size(arg.Type)
+		if sys.IsPad(arg.Type) {
 			continue
 		}
-		if typ.Name() == "parent" {
-			panic("parent is reserved len name")
-		}
-
-		innerArg := args[i].InnerArg(typ)
-		innerType := typ.InnerType()
-
-		if _, ok := argsMap[typ.Name()]; ok {
-			panic(fmt.Sprintf("mutiple args with the same name '%v', types: %+v, args: %+v", typ.Name(), types, args))
-		}
-		argsMap[typ.Name()] = innerArg
-		typesMap[typ.Name()] = innerType
-	}
-
-	// Calculate size of the whole struct.
-	var parentSize uintptr
-	for i, typ := range types {
-		parentSize += args[i].Size(typ)
+		argsMap[arg.Type.Name()] = arg.InnerArg(arg.Type)
 	}
 
 	// Fill in size arguments.
-	for i, typ := range types {
-		if lenType, ok := typ.InnerType().(*sys.LenType); ok {
-			lenArg := args[i].InnerArg(typ)
-			if lenArg == nil {
+	for _, arg := range args {
+		if typ, ok := arg.Type.InnerType().(*sys.LenType); ok {
+			arg = arg.InnerArg(arg.Type)
+			if arg == nil {
 				// Pointer to optional len field, no need to fill in value.
 				continue
 			}
 
-			if lenType.Buf == "parent" {
-				*lenArg = *constArg(lenType, parentSize)
+			if typ.Buf == "parent" {
+				arg.Val = parentSize
 				continue
 			}
 
-			arg, ok := argsMap[lenType.Buf]
+			buf, ok := argsMap[typ.Buf]
 			if !ok {
-				panic(fmt.Sprintf("len field '%v' references non existent field '%v', argsMap: %+v, typesMap: %+v",
-					lenType.Name(), lenType.Buf, argsMap, typesMap))
+				panic(fmt.Sprintf("len field '%v' references non existent field '%v', argsMap: %+v",
+					typ.Name(), typ.Buf, argsMap))
 			}
-			typ := typesMap[lenType.Buf]
 
-			*lenArg = *generateSize(typ, arg, lenType)
+			*arg = *generateSize(buf, typ)
 		}
 	}
 }
 
 func assignSizesCall(c *Call) {
-	var rec func(arg *Arg, typ sys.Type)
-	rec = func(arg *Arg, typ sys.Type) {
-		switch arg.Kind {
-		case ArgPointer:
-			switch typ1 := typ.(type) {
-			case *sys.PtrType:
-				if arg.Res != nil {
-					rec(arg.Res, typ1.Type)
-				}
-			}
-		case ArgGroup:
-			switch typ1 := typ.(type) {
-			case *sys.StructType:
-				if len(arg.Inner) != len(typ1.Fields) {
-					panic(fmt.Sprintf("wrong struct field count: %v, want %v", len(arg.Inner), len(typ1.Fields)))
-				}
-				for i, arg1 := range arg.Inner {
-					rec(arg1, typ1.Fields[i])
-				}
-				assignSizes(typ1.Fields, arg.Inner)
-			case *sys.ArrayType:
-				for _, arg1 := range arg.Inner {
-					rec(arg1, typ1.Type)
-				}
-			}
-		case ArgUnion:
-			rec(arg.Option, arg.OptionType)
+	assignSizes(c.Args)
+	foreachArg(c, func(arg, base *Arg, parent *[]*Arg) {
+		if _, ok := arg.Type.(*sys.StructType); ok {
+			assignSizes(arg.Inner)
 		}
-	}
-	if c.Meta == nil {
-		panic("nil meta")
-	}
-	for i, arg := range c.Args {
-		rec(arg, c.Meta.Args[i])
-	}
-	assignSizes(c.Meta.Args, c.Args)
+	})
 }
 
 func sanitizeCall(c *Call) {
