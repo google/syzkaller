@@ -817,7 +817,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		inner, calls := r.generateArg(s, a.Type)
 		if a.Dir() == sys.DirOut && inner == nil {
 			// No data, but we should have got size.
-			arg, calls1 := r.addr(s, a, inner.Size(a.Type), nil)
+			arg, calls1 := r.addr(s, a, inner.Size(), nil)
 			calls = append(calls, calls1...)
 			return arg, calls
 		}
@@ -829,7 +829,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			arg = pointerArg(a, addr.AddrPage, addr.AddrOffset, addr.AddrPagesNum, inner)
 			return arg, calls
 		}
-		arg, calls1 := r.addr(s, a, inner.Size(a.Type), inner)
+		arg, calls1 := r.addr(s, a, inner.Size(), inner)
 		calls = append(calls, calls1...)
 		return arg, calls
 	case *sys.LenType:

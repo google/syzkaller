@@ -160,12 +160,12 @@ func generateSize(arg *Arg, lenType *sys.LenType) *Arg {
 		return pageSizeArg(lenType, arg.AddrPagesNum, 0)
 	case *sys.ArrayType:
 		if lenType.ByteSize {
-			return constArg(lenType, arg.Size(arg.Type))
+			return constArg(lenType, arg.Size())
 		} else {
 			return constArg(lenType, uintptr(len(arg.Inner)))
 		}
 	default:
-		return constArg(lenType, arg.Size(arg.Type))
+		return constArg(lenType, arg.Size())
 	}
 }
 
@@ -174,22 +174,19 @@ func assignSizes(args []*Arg) {
 	argsMap := make(map[string]*Arg)
 	var parentSize uintptr
 	for _, arg := range args {
-		parentSize += arg.Size(arg.Type)
+		parentSize += arg.Size()
 		if sys.IsPad(arg.Type) {
 			continue
 		}
-		argsMap[arg.Type.Name()] = arg.InnerArg(arg.Type)
+		argsMap[arg.Type.Name()] = arg
 	}
 
 	// Fill in size arguments.
 	for _, arg := range args {
-		if typ, ok := arg.Type.InnerType().(*sys.LenType); ok {
-			arg = arg.InnerArg(arg.Type)
-			if arg == nil {
-				// Pointer to optional len field, no need to fill in value.
-				continue
-			}
-
+		if arg = arg.InnerArg(); arg == nil {
+			continue // Pointer to optional len field, no need to fill in value.
+		}
+		if typ, ok := arg.Type.(*sys.LenType); ok {
 			if typ.Buf == "parent" {
 				arg.Val = parentSize
 				continue
@@ -201,7 +198,7 @@ func assignSizes(args []*Arg) {
 					typ.Name(), typ.Buf, argsMap))
 			}
 
-			*arg = *generateSize(buf, typ)
+			*arg = *generateSize(buf.InnerArg(), typ)
 		}
 	}
 }
