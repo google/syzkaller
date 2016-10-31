@@ -6,10 +6,10 @@ include <linux/input.h>
 resource fd_evdev[fd]
 
 # There seems to be nothing special we can do with this fd.
-syz_open_dev$mouse(dev strconst["/dev/input/mouse#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$mice(dev strconst["/dev/input/mice"], id const[0], flags flags[open_flags]) fd
+syz_open_dev$mouse(dev ptr[in, string["/dev/input/mouse#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$mice(dev ptr[in, string["/dev/input/mice"]], id const[0], flags flags[open_flags]) fd
 
-syz_open_dev$evdev(dev strconst["/dev/input/event#"], id intptr, flags flags[open_flags]) fd_evdev
+syz_open_dev$evdev(dev ptr[in, string["/dev/input/event#"]], id intptr, flags flags[open_flags]) fd_evdev
 
 write$evdev(fd fd_evdev, data ptr[in, array[input_event]], len bytesize[data])
 

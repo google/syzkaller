@@ -9,7 +9,7 @@ resource fd_kvm[fd]
 resource fd_kvmvm[fd]
 resource fd_kvmcpu[fd]
 
-syz_open_dev$kvm(dev strconst["/dev/kvm"], id const[0], flags flags[open_flags]) fd_kvm
+syz_open_dev$kvm(dev ptr[in, string["/dev/kvm"]], id const[0], flags flags[open_flags]) fd_kvm
 
 ioctl$KVM_CREATE_VM(fd fd_kvm, cmd const[KVM_CREATE_VM], type const[0]) fd_kvmvm
 ioctl$KVM_GET_MSR_INDEX_LIST(fd fd_kvm, cmd const[KVM_GET_MSR_INDEX_LIST], arg ptr[in, kvm_msr_list])
@@ -99,7 +99,7 @@ ioctl$KVM_SET_GUEST_DEBUG(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[
 ioctl$KVM_SMI(fd fd_kvmcpu, cmd const[KVM_SMI])
 
 # TODO: extend support (there are some ioctls)
-openat$xenevtchn(fd const[AT_FDCWD], file strconst["/dev/xen/evtchn"], flags flags[open_flags], mode const[0]) fd
+openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
 
 kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY, KVM_MEMSLOT_INVALID, KVM_MEMSLOT_INCOHERENT
 kvm_mp_state = KVM_MP_STATE_RUNNABLE, KVM_MP_STATE_UNINITIALIZED, KVM_MP_STATE_INIT_RECEIVED, KVM_MP_STATE_HALTED, KVM_MP_STATE_SIPI_RECEIVED, KVM_MP_STATE_STOPPED, KVM_MP_STATE_CHECK_STOP, KVM_MP_STATE_OPERATING, KVM_MP_STATE_LOAD

@@ -105,7 +105,6 @@ const (
 	BufferString
 	BufferFilename
 	BufferSockaddr
-	BufferFilesystem
 	BufferAlgType
 	BufferAlgName
 )
@@ -115,6 +114,8 @@ type BufferType struct {
 	Kind       BufferKind
 	RangeBegin uintptr // for BufferBlobRange kind
 	RangeEnd   uintptr // for BufferBlobRange kind
+	SubKind    string
+	Values     []string // possible values for BufferString kind
 }
 
 func (t *BufferType) Size() uintptr {
@@ -123,14 +124,16 @@ func (t *BufferType) Size() uintptr {
 		return 14
 	case BufferAlgName:
 		return 64
+	case BufferString:
+		if len(t.Values) == 1 {
+			return uintptr(len(t.Values[0]))
+		}
 	case BufferBlobRange:
 		if t.RangeBegin == t.RangeEnd {
 			return t.RangeBegin
 		}
-		fallthrough
-	default:
-		panic(fmt.Sprintf("buffer size is not statically known: %v", t.Name()))
 	}
+	panic(fmt.Sprintf("buffer size is not statically known: %v", t.Name()))
 }
 
 func (t *BufferType) Align() uintptr {
@@ -194,20 +197,6 @@ func (t *ConstType) Size() uintptr {
 
 func (t *ConstType) Align() uintptr {
 	return t.Size()
-}
-
-type StrConstType struct {
-	TypeCommon
-	TypeSize uintptr
-	Val      string
-}
-
-func (t *StrConstType) Size() uintptr {
-	return uintptr(len(t.Val))
-}
-
-func (t *StrConstType) Align() uintptr {
-	return 1
 }
 
 type IntKind int
@@ -486,9 +475,8 @@ func ForeachType(meta *Call, f func(Type)) {
 			for _, opt := range a.Options {
 				rec(opt)
 			}
-		case *ResourceType, *BufferType,
-			*VmaType, *LenType, *FlagsType, *ConstType,
-			*StrConstType, *IntType:
+		case *ResourceType, *BufferType, *VmaType, *LenType,
+			*FlagsType, *ConstType, *IntType:
 		default:
 			panic("unknown type")
 		}

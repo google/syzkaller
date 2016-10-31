@@ -258,7 +258,10 @@ func (r *randGen) sockaddr(s *state) []byte {
 	return data
 }
 
-func (r *randGen) randString(s *state) []byte {
+func (r *randGen) randString(s *state, vals []string) []byte {
+	if len(vals) != 0 {
+		return []byte(vals[r.Intn(len(vals))])
+	}
 	if len(s.strings) != 0 && r.bin() {
 		// Return an existing string.
 		strings := make([]string, 0, len(s.strings))
@@ -286,20 +289,6 @@ func (r *randGen) randString(s *state) []byte {
 		buf.Write([]byte{0})
 	}
 	return buf.Bytes()
-}
-
-func (r *randGen) filesystem(s *state) []byte {
-	dict := []string{"sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs",
-		"securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4",
-		"hugetlbfs", "vfat", "ecryptfs", "kdbusfs", "fuseblk", "fuse", "rpc_pipefs",
-		"nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs",
-		"minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs", "configfs", "ncpfs", "qnx6",
-		"exofs", "befs", "vxfs", "gfs2", "gfs2meta", "fusectl", "bfs", "nsfs", "efs",
-		"cifs", "efivarfs", "affs", "tracefs", "bdev", "ocfs2", "ocfs2_dlmfs", "hpfs",
-		"proc", "afs", "reiserfs", "jffs2", "romfs", "aio", "sysv", "v7", "udf",
-		"ceph", "pstore", "adfs", "9p", "hostfs", "squashfs", "cramfs", "iso9660",
-		"coda", "nilfs2", "logfs", "overlay", "f2fs", "omfs", "ubifs", "openpromfs"}
-	return []byte(dict[r.Intn(len(dict))] + "\x00")
 }
 
 func (r *randGen) algType(s *state) []byte {
@@ -662,7 +651,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		// in subsequent calls. For the same reason we do generate pointer/array/struct
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
-		case *sys.IntType, *sys.FlagsType, *sys.ConstType, *sys.StrConstType,
+		case *sys.IntType, *sys.FlagsType, *sys.ConstType,
 			*sys.ResourceType, *sys.VmaType:
 			return constArg(typ, 0), nil
 		}
@@ -718,10 +707,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			}
 			return dataArg(a, data), nil
 		case sys.BufferString:
-			data := r.randString(s)
-			return dataArg(a, data), nil
-		case sys.BufferFilesystem:
-			data := r.filesystem(s)
+			data := r.randString(s, a.Values)
 			return dataArg(a, data), nil
 		case sys.BufferFilename:
 			filename := r.filename(s)
@@ -761,8 +747,6 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		return constArg(a, r.flags(a.Vals)), nil
 	case *sys.ConstType:
 		return constArg(a, a.Val), nil
-	case *sys.StrConstType:
-		return dataArg(a, []byte(a.Val)), nil
 	case *sys.IntType:
 		v := r.randInt()
 		switch a.Kind {
