@@ -89,10 +89,8 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							if r.bin() {
 								arg.Data = mutateData(r, append([]byte{}, arg.Data...), int(0), ^int(0))
 							} else {
-								arg.Data = r.randString(s)
+								arg.Data = r.randString(s, a.Values)
 							}
-						case sys.BufferFilesystem:
-							arg.Data = r.filesystem(s)
 						case sys.BufferFilename:
 							arg.Data = []byte(r.filename(s))
 						case sys.BufferSockaddr:
@@ -170,7 +168,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						p.replaceArg(c, arg, arg1, calls)
 					case *sys.LenType:
 						panic("bad arg returned by mutationArgs: LenType")
-					case *sys.ConstType, *sys.StrConstType:
+					case *sys.ConstType:
 						panic("bad arg returned by mutationArgs: ConstType")
 					default:
 						panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", *arg, arg.Type))
@@ -322,9 +320,13 @@ func mutationArgs(c *Call) (args, bases []*Arg) {
 		case *sys.LenType:
 			// Size is updated when the size-of arg change.
 			return
-		case *sys.ConstType, *sys.StrConstType:
+		case *sys.ConstType:
 			// Well, this is const.
 			return
+		case *sys.BufferType:
+			if typ.Kind == sys.BufferString && len(typ.Values) == 1 {
+				return // string const
+			}
 		}
 		if arg.Type.Dir() == sys.DirOut {
 			return

@@ -44,9 +44,9 @@ rest of the type-options are type-specific:
 		type of the object; direction (in/out/inout)
 	"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options:
 		direction (in/out/inout)
-	"string": a zero-terminated memory buffer (no pointer indirection implied)
-	"strconst": a pointer to a constant string, type-options:
-		the underlying string (for example "/dev/dsp")
+	"string": a zero-terminated memory buffer (no pointer indirection implied), type-options:
+		either a string value in quotes for constant strings (e.g. "foo"),
+		or a reference to string flags
 	"filename": a file/link/dir name
 	"fileoff": offset within a file
 	"len": length of another field (for array it is number of elements), type-options:
@@ -60,6 +60,10 @@ flags/len/flags also have trailing underlying type type-option when used in stru
 Flags are described as:
 ```
 	flagname = const ["," const]*
+```
+or for string flags as:
+```
+	flagname = "\"" literal "\"" ["," "\"" literal "\""]*
 ```
 
 ### Structs

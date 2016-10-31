@@ -101,7 +101,7 @@ func (a *Arg) Value() uintptr {
 
 func (a *Arg) Size() uintptr {
 	switch typ := a.Type.(type) {
-	case *sys.IntType, *sys.LenType, *sys.FlagsType, *sys.ConstType, *sys.StrConstType,
+	case *sys.IntType, *sys.LenType, *sys.FlagsType, *sys.ConstType,
 		*sys.ResourceType, *sys.VmaType, *sys.PtrType:
 		return typ.Size()
 	case *sys.BufferType:

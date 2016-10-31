@@ -407,19 +407,27 @@ func generateArg(
 		opt = false
 		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferBlobRand}}", ptrCommonHdr, common())
 	case "string":
-		if want := 0; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		if len(a) != 0 && len(a) != 1 {
+			failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
 		}
-		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferString}", common())
-	case "filesystem":
-		canBeArg = true
-		if want := 0; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		var vals []string
+		subkind := ""
+		if len(a) == 1 {
+			if a[0][0] == '"' {
+				vals = append(vals, a[0][1:len(a[0])-1])
+			} else {
+				ok := false
+				vals, ok = desc.StrFlags[a[0]]
+				if !ok {
+					failf("unknown string flags %v", a[0])
+				}
+				subkind = a[0]
+			}
+			for i, s := range vals {
+				vals[i] = s + "\x00"
+			}
 		}
-		ptrCommonHdr := common()
-		dir = "in"
-		opt = false
-		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferFilesystem}}", ptrCommonHdr, common())
+		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferString, SubKind: %q, Values: %#v}", common(), subkind, vals)
 	case "sockaddr":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -503,15 +511,6 @@ func generateArg(
 			skipSyscall(fmt.Sprintf("missing const %v", a[0]))
 		}
 		fmt.Fprintf(out, "&ConstType{%v, TypeSize: %v, BigEndian: %v, Val: uintptr(%v)}", common(), size, bigEndian, val)
-	case "strconst":
-		canBeArg = true
-		if want := 1; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		ptrCommonHdr := common()
-		dir = "in"
-		opt = false
-		fmt.Fprintf(out, "&PtrType{%v, Type: &StrConstType{%v, Val: \"%v\"}}", ptrCommonHdr, common(), a[0]+"\\x00")
 	case "int8", "int16", "int32", "int64", "intptr", "int16be", "int32be", "int64be", "intptrbe":
 		canBeArg = true
 		size, bigEndian := decodeIntType(typ)

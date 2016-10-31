@@ -345,14 +345,16 @@ getdents64(fd fd_dir, ent buffer[out], count len[ent])
 name_to_handle_at(fd fd_dir, file filename, handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])
 open_by_handle_at(mountdirfd fd, handle ptr[in, file_handle], flags flags[open_flags])
 
-mount(src filename, dst filename, type filesystem, flags flags[mount_flags], data buffer[in])
-mount$fs(src filesystem, dst filename, type filesystem, flags flags[mount_flags], data buffer[in])
+mount(src filename, dst filename, type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in])
+mount$fs(src ptr[in, string[filesystem]], dst filename, type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in])
 umount2(path filename, flags flags[umount_flags])
 pivot_root(new_root filename, put_old filename)
 
-sysfs$1(option flags[sysfs_opt1], fsname ptr[in, string])
-sysfs$2(option flags[sysfs_opt2], fsindex intptr, fsname buffer[out])
-sysfs$3(option flags[sysfs_opt3])
+filesystem = "sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs", "securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4", "hugetlbfs", "vfat", "ecryptfs", "kdbusfs", "fuseblk", "fuse", "rpc_pipefs", "nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs", "configfs", "ncpfs", "qnx6", "exofs", "befs", "vxfs", "gfs2", "gfs2meta", "fusectl", "bfs", "nsfs", "efs", "cifs", "efivarfs", "affs", "tracefs", "bdev", "ocfs2", "ocfs2_dlmfs", "hpfs", "proc", "afs", "reiserfs", "jffs2", "romfs", "aio", "sysv", "v7", "udf", "ceph", "pstore", "adfs", "9p", "hostfs", "squashfs", "cramfs", "iso9660", "coda", "nilfs2", "logfs", "overlay", "f2fs", "omfs", "ubifs", "openpromfs"
+
+sysfs$1(option const[1], fsname ptr[in, string])
+sysfs$2(option const[2], fsindex intptr, fsname buffer[out])
+sysfs$3(option const[3])
 statfs(path filename, buf buffer[out])
 fstatfs(fd fd, buf buffer[out])
 
@@ -463,55 +465,55 @@ membarrier(cmd const[1], flags const[0])
 # These devices are relatively safe (don't reboot and don't corrupt kernel memory).
 # They need a more comprehensive support. But let at least open them for now,
 # maybe fuzzer will be able to skrew them in a useful way.
-syz_open_dev$floppy(dev strconst["/dev/fd#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$pktcdvd(dev strconst["/dev/pktcdvd/control"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$lightnvm(dev strconst["/dev/lightnvm/control"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$vcs(dev strconst["/dev/vcs"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$vcsn(dev strconst["/dev/vcs#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$vcsa(dev strconst["/dev/vcsa#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$vga_arbiter(dev strconst["/dev/vga_arbiter"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$vhci(dev strconst["/dev/vhci"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$userio(dev strconst["/dev/userio"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$rtc(dev strconst["/dev/rtc"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$rfkill(dev strconst["/dev/rfkill"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$qat_adf_ctl(dev strconst["/dev/qat_adf_ctl"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$ppp(dev strconst["/dev/ppp"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$mixer(dev strconst["/dev/mixer"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$irnet(dev strconst["/dev/irnet"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$hwrng(dev strconst["/dev/hwrng"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$hpet(dev strconst["/dev/hpet"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$hidraw0(dev strconst["/dev/hidraw0"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$fb0(dev strconst["/dev/fb0"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$cuse(dev strconst["/dev/cuse"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$console(dev strconst["/dev/console"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$capi20(dev strconst["/dev/capi20"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$autofs(dev strconst["/dev/autofs"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$binder(dev strconst["/dev/binder"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$ion(dev strconst["/dev/ion"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$keychord(dev strconst["/dev/keychord"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$zygote(dev strconst["/dev/socket/zygote"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$sw_sync(dev strconst["/dev/sw_sync"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$sr(dev strconst["/dev/sr0"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$sequencer(dev strconst["/dev/sequencer"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$sequencer2(dev strconst["/dev/sequencer2"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$dsp(dev strconst["/dev/dsp"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$audio(dev strconst["/dev/audio"], id const[0], flags flags[open_flags]) fd
-syz_open_dev$usbmon(dev strconst["/dev/usbmon#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$sg(dev strconst["/dev/sg#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$midi(dev strconst["/dev/midi#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$loop(dev strconst["/dev/loop#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$ircomm(dev strconst["/dev/ircomm#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$dspn(dev strconst["/dev/dsp#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$dmmidi(dev strconst["/dev/dmmidi#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$admmidi(dev strconst["/dev/admmidi#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$adsp(dev strconst["/dev/adsp#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$amidi(dev strconst["/dev/amidi#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$audion(dev strconst["/dev/audio#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$usb(dev strconst["/dev/bus/usb/00#/00#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$sndhw(dev strconst["/dev/snd/hwC#D#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$sndmidi(dev strconst["/dev/snd/midiC#D#"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$sndpcmc(dev strconst["/dev/snd/pcmC#D#c"], id intptr, flags flags[open_flags]) fd
-syz_open_dev$sndpcmp(dev strconst["/dev/snd/pcmC#D#p"], id intptr, flags flags[open_flags]) fd
+syz_open_dev$floppy(dev ptr[in, string["/dev/fd#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$pktcdvd(dev ptr[in, string["/dev/pktcdvd/control"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$lightnvm(dev ptr[in, string["/dev/lightnvm/control"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$vcs(dev ptr[in, string["/dev/vcs"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$vcsn(dev ptr[in, string["/dev/vcs#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$vcsa(dev ptr[in, string["/dev/vcsa#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$vga_arbiter(dev ptr[in, string["/dev/vga_arbiter"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$vhci(dev ptr[in, string["/dev/vhci"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$userio(dev ptr[in, string["/dev/userio"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$rtc(dev ptr[in, string["/dev/rtc"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$rfkill(dev ptr[in, string["/dev/rfkill"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$qat_adf_ctl(dev ptr[in, string["/dev/qat_adf_ctl"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$ppp(dev ptr[in, string["/dev/ppp"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$mixer(dev ptr[in, string["/dev/mixer"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$irnet(dev ptr[in, string["/dev/irnet"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$hwrng(dev ptr[in, string["/dev/hwrng"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$hpet(dev ptr[in, string["/dev/hpet"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$hidraw0(dev ptr[in, string["/dev/hidraw0"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$fb0(dev ptr[in, string["/dev/fb0"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$cuse(dev ptr[in, string["/dev/cuse"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$console(dev ptr[in, string["/dev/console"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$capi20(dev ptr[in, string["/dev/capi20"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$autofs(dev ptr[in, string["/dev/autofs"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$binder(dev ptr[in, string["/dev/binder"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$ion(dev ptr[in, string["/dev/ion"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$keychord(dev ptr[in, string["/dev/keychord"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$zygote(dev ptr[in, string["/dev/socket/zygote"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$sw_sync(dev ptr[in, string["/dev/sw_sync"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$sr(dev ptr[in, string["/dev/sr0"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$sequencer(dev ptr[in, string["/dev/sequencer"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$sequencer2(dev ptr[in, string["/dev/sequencer2"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$dsp(dev ptr[in, string["/dev/dsp"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$audio(dev ptr[in, string["/dev/audio"]], id const[0], flags flags[open_flags]) fd
+syz_open_dev$usbmon(dev ptr[in, string["/dev/usbmon#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$sg(dev ptr[in, string["/dev/sg#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$midi(dev ptr[in, string["/dev/midi#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$loop(dev ptr[in, string["/dev/loop#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$ircomm(dev ptr[in, string["/dev/ircomm#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$dspn(dev ptr[in, string["/dev/dsp#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$dmmidi(dev ptr[in, string["/dev/dmmidi#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$admmidi(dev ptr[in, string["/dev/admmidi#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$adsp(dev ptr[in, string["/dev/adsp#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$amidi(dev ptr[in, string["/dev/amidi#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$audion(dev ptr[in, string["/dev/audio#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$usb(dev ptr[in, string["/dev/bus/usb/00#/00#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$sndhw(dev ptr[in, string["/dev/snd/hwC#D#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$sndmidi(dev ptr[in, string["/dev/snd/midiC#D#"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$sndpcmc(dev ptr[in, string["/dev/snd/pcmC#D#c"]], id intptr, flags flags[open_flags]) fd
+syz_open_dev$sndpcmp(dev ptr[in, string["/dev/snd/pcmC#D#p"]], id intptr, flags flags[open_flags]) fd
 
 
 
@@ -1167,9 +1169,6 @@ ioprio_which_uid = IOPRIO_WHO_USER
 setxattr_flags = XATTR_CREATE, XATTR_REPLACE
 ns_type = 0, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWUTS
 personality_flags = PER_LINUX, PER_SVR4, PER_SVR3, PER_OSR5, PER_WYSEV386, PER_ISCR4, PER_BSD, PER_XENIX, PER_LINUX32, PER_IRIX32, PER_IRIXN32, PER_IRIX64, PER_RISCOS, PER_SOLARIS, PER_UW7, PER_OSF4, PER_HPUX, ADDR_NO_RANDOMIZE, MMAP_PAGE_ZERO, ADDR_COMPAT_LAYOUT, READ_IMPLIES_EXEC, ADDR_LIMIT_32BIT, SHORT_INODE, WHOLE_SECONDS, STICKY_TIMEOUTS, ADDR_LIMIT_3GB
-sysfs_opt1 = 1
-sysfs_opt2 = 2
-sysfs_opt3 = 3
 clock_id = CLOCK_REALTIME, CLOCK_REALTIME_COARSE, CLOCK_MONOTONIC, CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_RAW, CLOCK_BOOTTIME, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
 sigprocmask_how = SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK
 getitimer_which = ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF
