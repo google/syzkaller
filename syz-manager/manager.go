@@ -154,7 +154,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		}
 		mgr.candidates = append(mgr.candidates, data)
 	}
-	Logf(0, "loaded %v programs", len(mgr.persistentCorpus.m))
+	Logf(0, "loaded %v programs (%v total)", len(mgr.candidates), len(mgr.persistentCorpus.m))
 
 	// Create HTTP server.
 	mgr.initHttp()
