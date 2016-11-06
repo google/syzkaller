@@ -501,6 +501,11 @@ func generateArg(
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
 		fmt.Fprintf(out, "PtrType{%v, Dir: %v, Type: StrConstType{%v, Val: \"%v\"}}", common(), fmtDir("in"), common(), a[0]+"\\x00")
+	case "bufconst":
+		if want := 1; len(a) != want {
+			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		}
+		fmt.Fprintf(out, "StrConstType{%v, Val: \"%v\"}", common(), a[0]+"\\x00")
 	case "int8", "int16", "int32", "int64", "intptr", "int16be", "int32be", "int64be", "intptrbe":
 		canBeArg = true
 		size, bigEndian := decodeIntType(typ)
