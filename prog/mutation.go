@@ -89,16 +89,12 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							if r.bin() {
 								arg.Data = mutateData(r, append([]byte{}, arg.Data...), int(0), ^int(0))
 							} else {
-								arg.Data = r.randString(s, a.Values)
+								arg.Data = r.randString(s, a.Values, a.Dir())
 							}
 						case sys.BufferFilename:
 							arg.Data = []byte(r.filename(s))
 						case sys.BufferSockaddr:
 							arg.Data = r.sockaddr(s)
-						case sys.BufferAlgType:
-							arg.Data = r.algType(s)
-						case sys.BufferAlgName:
-							arg.Data = r.algName(s)
 						default:
 							panic("unknown buffer kind")
 						}
