@@ -105,8 +105,6 @@ const (
 	BufferString
 	BufferFilename
 	BufferSockaddr
-	BufferAlgType
-	BufferAlgName
 )
 
 type BufferType struct {
@@ -120,13 +118,17 @@ type BufferType struct {
 
 func (t *BufferType) Size() uintptr {
 	switch t.Kind {
-	case BufferAlgType:
-		return 14
-	case BufferAlgName:
-		return 64
 	case BufferString:
-		if len(t.Values) == 1 {
-			return uintptr(len(t.Values[0]))
+		size := 0
+		for _, s := range t.Values {
+			if size != 0 && size != len(s) {
+				size = 0
+				break
+			}
+			size = len(s)
+		}
+		if size != 0 {
+			return uintptr(size)
 		}
 	case BufferBlobRange:
 		if t.RangeBegin == t.RangeEnd {

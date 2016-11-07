@@ -80,9 +80,11 @@ func calcStaticPriorities() [][]float32 {
 				}
 			case *sys.BufferType:
 				switch a.Kind {
-				case sys.BufferBlobRand, sys.BufferBlobRange, sys.BufferAlgType, sys.BufferAlgName:
+				case sys.BufferBlobRand, sys.BufferBlobRange:
 				case sys.BufferString:
-					noteUsage(0.2, "str")
+					if a.SubKind != "" {
+						noteUsage(0.2, fmt.Sprintf("str-%v", a.SubKind))
+					}
 				case sys.BufferSockaddr:
 					noteUsage(1.0, "sockaddr")
 				case sys.BufferFilename:

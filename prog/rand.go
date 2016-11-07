@@ -258,7 +258,17 @@ func (r *randGen) sockaddr(s *state) []byte {
 	return data
 }
 
-func (r *randGen) randString(s *state, vals []string) []byte {
+func (r *randGen) randString(s *state, vals []string, dir sys.Dir) []byte {
+	data := r.randStringImpl(s, vals)
+	if dir == sys.DirOut {
+		for i := range data {
+			data[i] = 0
+		}
+	}
+	return data
+}
+
+func (r *randGen) randStringImpl(s *state, vals []string) []byte {
 	if len(vals) != 0 {
 		return []byte(vals[r.Intn(len(vals))])
 	}
@@ -289,34 +299,6 @@ func (r *randGen) randString(s *state, vals []string) []byte {
 		buf.Write([]byte{0})
 	}
 	return buf.Bytes()
-}
-
-func (r *randGen) algType(s *state) []byte {
-	dict := []string{"aead", "hash", "rng", "skcipher"}
-	res := make([]byte, 14)
-	copy(res, dict[r.Intn(len(dict))])
-	return res
-}
-
-func (r *randGen) algName(s *state) []byte {
-	dict := []string{"cmac(aes)", "ecb(aes)", "cbc(aes)", "hmac(sha1)", "pcbc(fcrypt)", "ghash",
-		"jitterentropy_rng", "stdrng", "stdrng", "stdrng", "stdrng", "hmac(sha256)", "stdrng",
-		"stdrng", "stdrng", "stdrng", "stdrng", "842", "lz4hc", "lz4", "lzo", "crct10dif", "crc32",
-		"crc32c", "michael_mic", "zlib", "deflate", "poly1305", "chacha20", "salsa20", "seed",
-		"anubis", "khazad", "xeta", "xtea", "tea", "ecb(arc4)", "arc4", "cast6", "cast5", "camellia",
-		"aes", "tnepres", "serpent", "twofish", "blowfish", "fcrypt", "des3_ede", "des", "tgr128",
-		"tgr160", "tgr192", "wp256", "wp384", "wp512", "sha384", "sha512", "sha224", "sha256",
-		"sha1", "rmd320", "rmd256", "rmd160", "rmd128", "md5", "md4", "digest_null", "compress_null",
-		"ecb(cipher_null)", "cipher_null", "rsa", "poly1305", "xts(serpent)", "lrw(serpent)",
-		"ctr(serpent)", "cbc(serpent)", "__ecb-serpent-sse2", "ecb(serpent)", "__xts-serpent-sse2",
-		"__lrw-serpent-sse2", "__ctr-serpent-sse2", "__cbc-serpent-sse2", "__ecb-serpent-sse2",
-		"salsa20", "xts(twofish)", "lrw(twofish)", "ctr(twofish)", "cbc(twofish)", "ecb(twofish)",
-		"twofish", "ctr(blowfish)", "cbc(blowfish)", "ecb(blowfish)", "blowfish", "xts(camellia)",
-		"lrw(camellia)", "ctr(camellia)", "cbc(camellia)", "ecb(camellia)", "camellia", "ctr(des3_ede)",
-		"cbc(des3_ede)", "ecb(des3_ede)", "des3_ede", "aes"}
-	res := make([]byte, 64)
-	copy(res, dict[r.Intn(len(dict))])
-	return res
 }
 
 func isSpecialStruct(typ sys.Type) func(r *randGen, s *state) (*Arg, []*Call) {
@@ -707,29 +689,13 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			}
 			return dataArg(a, data), nil
 		case sys.BufferString:
-			data := r.randString(s, a.Values)
+			data := r.randString(s, a.Values, a.Dir())
 			return dataArg(a, data), nil
 		case sys.BufferFilename:
 			filename := r.filename(s)
 			return dataArg(a, []byte(filename)), nil
 		case sys.BufferSockaddr:
 			data := r.sockaddr(s)
-			if a.Dir() == sys.DirOut {
-				for i := range data {
-					data[i] = 0
-				}
-			}
-			return dataArg(a, data), nil
-		case sys.BufferAlgType:
-			data := r.algType(s)
-			if a.Dir() == sys.DirOut {
-				for i := range data {
-					data[i] = 0
-				}
-			}
-			return dataArg(a, data), nil
-		case sys.BufferAlgName:
-			data := r.algName(s)
 			if a.Dir() == sys.DirOut {
 				for i := range data {
 					data[i] = 0

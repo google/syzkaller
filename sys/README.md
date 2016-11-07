@@ -46,7 +46,8 @@ rest of the type-options are type-specific:
 		direction (in/out/inout)
 	"string": a zero-terminated memory buffer (no pointer indirection implied), type-options:
 		either a string value in quotes for constant strings (e.g. "foo"),
-		or a reference to string flags
+		or a reference to string flags,
+		optionally followed by a buffer size (string values will be padded with \x00 to that size)
 	"filename": a file/link/dir name
 	"fileoff": offset within a file
 	"len": length of another field (for array it is number of elements), type-options:

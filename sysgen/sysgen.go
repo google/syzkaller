@@ -407,24 +407,45 @@ func generateArg(
 		opt = false
 		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferBlobRand}}", ptrCommonHdr, common())
 	case "string":
-		if len(a) != 0 && len(a) != 1 {
-			failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
+		if len(a) != 0 && len(a) != 1 && len(a) != 2 {
+			failf("wrong number of arguments for %v arg %v, want 0-2, got %v", typ, name, len(a))
 		}
 		var vals []string
 		subkind := ""
-		if len(a) == 1 {
+		if len(a) >= 1 {
 			if a[0][0] == '"' {
 				vals = append(vals, a[0][1:len(a[0])-1])
 			} else {
-				ok := false
-				vals, ok = desc.StrFlags[a[0]]
+				vals1, ok := desc.StrFlags[a[0]]
 				if !ok {
 					failf("unknown string flags %v", a[0])
 				}
+				vals = append([]string{}, vals1...)
 				subkind = a[0]
 			}
+		}
+		for i, s := range vals {
+			vals[i] = s + "\x00"
+		}
+		if len(a) >= 2 {
+			var size uint64
+			if v, ok := consts[a[1]]; ok {
+				size = v
+			} else {
+				v, err := strconv.ParseUint(a[1], 10, 64)
+				if err != nil {
+					failf("failed to parse string length for %v", name, a[1])
+				}
+				size = v
+			}
 			for i, s := range vals {
-				vals[i] = s + "\x00"
+				if uint64(len(s)) > size {
+					failf("string value %q exceeds buffer length %v for arg %v", s, size, name)
+				}
+				for uint64(len(s)) < size {
+					s += "\x00"
+				}
+				vals[i] = s
 			}
 		}
 		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferString, SubKind: %q, Values: %#v}", common(), subkind, vals)
