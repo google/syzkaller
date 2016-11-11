@@ -276,10 +276,10 @@ func openFile(file string) (*storage.ObjectHandle, time.Time, error) {
 	if !attrs.Deleted.IsZero() {
 		return nil, time.Time{}, fmt.Errorf("file %v is deleted", file)
 	}
-	f = f.WithConditions(
-		storage.IfGenerationMatch(attrs.Generation),
-		storage.IfMetaGenerationMatch(attrs.MetaGeneration),
-	)
+	f = f.If(storage.Conditions{
+		GenerationMatch:     attrs.Generation,
+		MetagenerationMatch: attrs.MetaGeneration,
+	})
 	return f, attrs.Updated, nil
 }
 
