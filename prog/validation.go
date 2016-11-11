@@ -41,9 +41,6 @@ func (c *Call) validate(ctx *validCtx) error {
 		if arg == nil {
 			return fmt.Errorf("syscall %v: nil arg", c.Meta.Name)
 		}
-		if arg.Call != c {
-			return fmt.Errorf("syscall %v: arg has wrong call, call=%p, arg=%+v", c.Meta.Name, c, *arg)
-		}
 		if ctx.args[arg] {
 			return fmt.Errorf("syscall %v: arg is referenced several times in the tree", c.Meta.Name)
 		}
@@ -55,9 +52,9 @@ func (c *Call) validate(ctx *validCtx) error {
 			return fmt.Errorf("syscall %v: no type", c.Meta.Name)
 		}
 		if arg.Type.Name() != typ.Name() {
-			return fmt.Errorf("syscall %v: arg '%v' type mismatch", c.Meta.Name, typ.Name())
+			return fmt.Errorf("syscall %v: type name mismatch: %v vs %v", c.Meta.Name, arg.Type.Name(), typ.Name())
 		}
-		if arg.Dir == DirOut {
+		if arg.Type.Dir() == sys.DirOut {
 			if arg.Val != 0 || arg.AddrPage != 0 || arg.AddrOffset != 0 {
 				return fmt.Errorf("syscall %v: output arg '%v' has data", c.Meta.Name, typ.Name())
 			}
@@ -68,22 +65,16 @@ func (c *Call) validate(ctx *validCtx) error {
 			}
 		}
 		switch arg.Type.(type) {
-		case sys.ResourceType:
+		case *sys.ResourceType:
 			switch arg.Kind {
 			case ArgResult:
 			case ArgReturn:
 			case ArgConst:
-				if arg.Dir == DirOut && arg.Val != 0 {
+				if arg.Type.Dir() == sys.DirOut && arg.Val != 0 {
 					return fmt.Errorf("syscall %v: out resource arg '%v' has bad const value %v", c.Meta.Name, typ.Name(), arg.Val)
 				}
 			default:
 				return fmt.Errorf("syscall %v: fd arg '%v' has bad kind %v", c.Meta.Name, typ.Name(), arg.Kind)
-			}
-		case sys.FilenameType:
-			switch arg.Kind {
-			case ArgData:
-			default:
-				return fmt.Errorf("syscall %v: filename arg '%v' has bad kind %v", c.Meta.Name, typ.Name(), arg.Kind)
 			}
 		case *sys.StructType, *sys.ArrayType:
 			switch arg.Kind {
@@ -105,25 +96,25 @@ func (c *Call) validate(ctx *validCtx) error {
 				return fmt.Errorf("syscall %v: result arg '%v' has no reference", c.Meta.Name, typ.Name())
 			}
 			if !ctx.args[arg.Res] {
-				return fmt.Errorf("syscall %v: result arg '%v' references out-of-tree result: %p%+v -> %v %p%+v",
-					c.Meta.Name, typ.Name(), arg, arg, arg.Res.Call.Meta.Name, arg.Res, arg.Res)
+				return fmt.Errorf("syscall %v: result arg '%v' references out-of-tree result: %p%+v -> %p%+v",
+					c.Meta.Name, typ.Name(), arg, arg, arg.Res, arg.Res)
 			}
 			if _, ok := arg.Res.Uses[arg]; !ok {
 				return fmt.Errorf("syscall %v: result arg '%v' has broken link (%+v)", c.Meta.Name, typ.Name(), arg.Res.Uses)
 			}
 		case ArgPointer:
-			if arg.Dir != DirIn {
-				return fmt.Errorf("syscall %v: pointer arg '%v' has output direction", c.Meta.Name, typ.Name())
-			}
 			switch typ1 := typ.(type) {
-			case sys.VmaType:
+			case *sys.VmaType:
 				if arg.Res != nil {
 					return fmt.Errorf("syscall %v: vma arg '%v' has data", c.Meta.Name, typ.Name())
 				}
 				if arg.AddrPagesNum == 0 {
 					return fmt.Errorf("syscall %v: vma arg '%v' has size 0", c.Meta.Name, typ.Name())
 				}
-			case sys.PtrType:
+			case *sys.PtrType:
+				if arg.Type.Dir() != sys.DirIn {
+					return fmt.Errorf("syscall %v: pointer arg '%v' has output direction", c.Meta.Name, typ.Name())
+				}
 				if arg.Res == nil && !typ.Optional() {
 					return fmt.Errorf("syscall %v: non optional pointer arg '%v' is nil", c.Meta.Name, typ.Name())
 				}
@@ -151,7 +142,7 @@ func (c *Call) validate(ctx *validCtx) error {
 						return err
 					}
 				}
-			case sys.ArrayType:
+			case *sys.ArrayType:
 				for _, arg1 := range arg.Inner {
 					if err := checkArg(arg1, typ1.Type); err != nil {
 						return err
@@ -185,7 +176,7 @@ func (c *Call) validate(ctx *validCtx) error {
 		return nil
 	}
 	for i, arg := range c.Args {
-		if c.Ret.Kind != ArgReturn {
+		if arg.Kind == ArgReturn {
 			return fmt.Errorf("syscall %v: arg '%v' has wrong return kind", c.Meta.Name, arg.Type.Name())
 		}
 		if err := checkArg(arg, c.Meta.Args[i]); err != nil {

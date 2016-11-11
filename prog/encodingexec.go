@@ -46,7 +46,7 @@ func (p *Prog) SerializeForExec() []byte {
 				w.args[base] = &argInfo{}
 			}
 			w.args[arg] = &argInfo{Offset: w.args[base].CurSize}
-			w.args[base].CurSize += arg.Size(arg.Type)
+			w.args[base].CurSize += arg.Size()
 		})
 		// Generate copyin instructions that fill in data into pointer arguments.
 		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
@@ -69,7 +69,7 @@ func (p *Prog) SerializeForExec() []byte {
 					if arg1.Kind == ArgData && len(arg1.Data) == 0 {
 						return
 					}
-					if arg1.Dir != DirOut {
+					if arg1.Type.Dir() != sys.DirOut {
 						w.write(ExecInstrCopyin)
 						w.write(physicalAddr(arg) + w.args[arg1].Offset)
 						w.writeArg(arg1)
@@ -105,7 +105,7 @@ func (p *Prog) SerializeForExec() []byte {
 				instrSeq++
 				w.write(ExecInstrCopyout)
 				w.write(physicalAddr(base) + info.Offset)
-				w.write(arg.Size(arg.Type))
+				w.write(arg.Size())
 			default:
 				panic("bad arg kind in copyout")
 			}
@@ -147,21 +147,21 @@ func (w *execContext) writeArg(arg *Arg) {
 	switch arg.Kind {
 	case ArgConst:
 		w.write(ExecArgConst)
-		w.write(arg.Size(arg.Type))
-		w.write(arg.Value(arg.Type))
+		w.write(arg.Size())
+		w.write(arg.Value())
 	case ArgResult:
 		w.write(ExecArgResult)
-		w.write(arg.Size(arg.Type))
+		w.write(arg.Size())
 		w.write(w.args[arg.Res].Idx)
 		w.write(arg.OpDiv)
 		w.write(arg.OpAdd)
 	case ArgPointer:
 		w.write(ExecArgConst)
-		w.write(arg.Size(arg.Type))
+		w.write(arg.Size())
 		w.write(physicalAddr(arg))
 	case ArgPageSize:
 		w.write(ExecArgConst)
-		w.write(arg.Size(arg.Type))
+		w.write(arg.Size())
 		w.write(arg.AddrPage * pageSize)
 	case ArgData:
 		w.write(ExecArgData)

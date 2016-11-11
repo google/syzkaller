@@ -93,7 +93,7 @@ func (a *Arg) serialize(buf io.Writer, vars map[*Arg]int, varSeq *int) {
 		switch a.Type.(type) {
 		case *sys.StructType:
 			delims = []byte{'{', '}'}
-		case sys.ArrayType:
+		case *sys.ArrayType:
 			delims = []byte{'[', ']'}
 		default:
 			panic("unknown group type")
@@ -137,7 +137,10 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 		if meta == nil {
 			return nil, fmt.Errorf("unknown syscall %v", name)
 		}
-		c := &Call{Meta: meta}
+		c := &Call{
+			Meta: meta,
+			Ret:  returnArg(meta.Ret),
+		}
 		prog.Calls = append(prog.Calls, c)
 		p.Parse('(')
 		for i := 0; p.Char() != ')'; i++ {
@@ -163,9 +166,6 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 		}
 		if len(c.Args) != len(meta.Args) {
 			return nil, fmt.Errorf("wrong call arg count: %v, want %v", len(c.Args), len(meta.Args))
-		}
-		if err := assignTypeAndDir(c); err != nil {
-			return nil, err
 		}
 		if r != "" {
 			vars[r] = c.Ret
@@ -196,14 +196,14 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		if err != nil {
 			return nil, fmt.Errorf("wrong arg value '%v': %v", val, err)
 		}
-		arg = constArg(uintptr(v))
+		arg = constArg(typ, uintptr(v))
 	case 'r':
 		id := p.Ident()
 		v, ok := vars[id]
 		if !ok || v == nil {
 			return nil, fmt.Errorf("result %v references unknown variable (vars=%+v)", id, vars)
 		}
-		arg = resultArg(v)
+		arg = resultArg(typ, v)
 		if p.Char() == '/' {
 			p.Parse('/')
 			op := p.Ident()
@@ -225,9 +225,9 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 	case '&':
 		var typ1 sys.Type
 		switch t1 := typ.(type) {
-		case sys.PtrType:
+		case *sys.PtrType:
 			typ1 = t1.Type
-		case sys.VmaType:
+		case *sys.VmaType:
 		default:
 			return nil, fmt.Errorf("& arg is not a pointer: %#v", typ)
 		}
@@ -241,13 +241,13 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		if err != nil {
 			return nil, err
 		}
-		arg = pointerArg(page, off, size, inner)
+		arg = pointerArg(typ, page, off, size, inner)
 	case '(':
 		page, off, _, err := parseAddr(p, false)
 		if err != nil {
 			return nil, err
 		}
-		arg = pageSizeArg(page, off)
+		arg = pageSizeArg(typ, page, off)
 	case '"':
 		p.Parse('"')
 		val := ""
@@ -259,7 +259,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		if err != nil {
 			return nil, fmt.Errorf("data arg has bad value '%v'", val)
 		}
-		arg = dataArg(data)
+		arg = dataArg(typ, data)
 	case '{':
 		t1, ok := typ.(*sys.StructType)
 		if !ok {
@@ -273,7 +273,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 			}
 			fld := t1.Fields[i]
 			if sys.IsPad(fld) {
-				inner = append(inner, constArg(0))
+				inner = append(inner, constArg(fld, 0))
 			} else {
 				arg, err := parseArg(fld, p, vars)
 				if err != nil {
@@ -286,12 +286,12 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 			}
 		}
 		p.Parse('}')
-		if sys.IsPad(t1.Fields[len(t1.Fields)-1]) {
-			inner = append(inner, constArg(0))
+		if last := t1.Fields[len(t1.Fields)-1]; sys.IsPad(last) {
+			inner = append(inner, constArg(last, 0))
 		}
-		arg = groupArg(inner)
+		arg = groupArg(typ, inner)
 	case '[':
-		t1, ok := typ.(sys.ArrayType)
+		t1, ok := typ.(*sys.ArrayType)
 		if !ok {
 			return nil, fmt.Errorf("'[' arg is not an array: %#v", typ)
 		}
@@ -308,7 +308,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 			}
 		}
 		p.Parse(']')
-		arg = groupArg(inner)
+		arg = groupArg(typ, inner)
 	case '@':
 		t1, ok := typ.(*sys.UnionType)
 		if !ok {
@@ -331,7 +331,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		if err != nil {
 			return nil, err
 		}
-		arg = unionArg(opt, optType)
+		arg = unionArg(typ, opt, optType)
 	case 'n':
 		p.Parse('n')
 		p.Parse('i')

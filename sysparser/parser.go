@@ -70,11 +70,10 @@ func (p *parser) Ident() string {
 	start, end := p.i, 0
 	if p.Char() == '"' {
 		p.Parse('"')
-		start++
 		for p.Char() != '"' {
 			p.i++
 		}
-		end = p.i
+		end = p.i + 1
 		p.Parse('"')
 	} else {
 		for p.i < len(p.s) &&

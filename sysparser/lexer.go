@@ -18,6 +18,7 @@ type Description struct {
 	Structs   map[string]Struct
 	Unnamed   map[string][]string
 	Flags     map[string][]string
+	StrFlags  map[string][]string
 	Resources map[string]Resource
 }
 
@@ -51,6 +52,7 @@ func Parse(in io.Reader) *Description {
 	structs := make(map[string]Struct)
 	unnamed := make(map[string][]string)
 	flags := make(map[string][]string)
+	strflags := make(map[string][]string)
 	resources := make(map[string]Resource)
 	var str *Struct
 	for p.Scan() {
@@ -93,6 +95,9 @@ func Parse(in io.Reader) *Description {
 				}
 				fields := make(map[string]bool)
 				for _, f := range str.Flds {
+					if f[0] == "parent" {
+						failf("struct/union %v contains reserved field 'parent'", str.Name)
+					}
 					if fields[f[0]] {
 						failf("duplicate field %v in struct/union %v", f[0], str.Name)
 					}
@@ -189,12 +194,24 @@ func Parse(in io.Reader) *Description {
 				case '=':
 					// flag
 					p.Parse('=')
-					vals := []string{p.Ident()}
-					for !p.EOF() {
+					str := p.Char() == '"'
+					var vals []string
+					for {
+						v := p.Ident()
+						if str {
+							v = v[1 : len(v)-1]
+						}
+						vals = append(vals, v)
+						if p.EOF() {
+							break
+						}
 						p.Parse(',')
-						vals = append(vals, p.Ident())
 					}
-					flags[name] = vals
+					if str {
+						strflags[name] = vals
+					} else {
+						flags[name] = vals
+					}
 				case '{', '[':
 					p.Parse(ch)
 					if _, ok := structs[name]; ok {
@@ -221,6 +238,7 @@ func Parse(in io.Reader) *Description {
 		Structs:   structs,
 		Unnamed:   unnamed,
 		Flags:     flags,
+		StrFlags:  strflags,
 		Resources: resources,
 	}
 }

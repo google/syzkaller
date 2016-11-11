@@ -60,11 +60,7 @@ func isSupportedSyzkall(c *sys.Call) bool {
 	case "syz_test":
 		return false
 	case "syz_open_dev":
-		ptr, ok := c.Args[0].(sys.PtrType)
-		if !ok {
-			return true
-		}
-		fname, ok := ptr.Type.(sys.StrConstType)
+		fname, ok := extractStringConst(c.Args[0])
 		if !ok {
 			panic("first open arg is not a pointer to string const")
 		}
@@ -84,7 +80,7 @@ func isSupportedSyzkall(c *sys.Call) bool {
 			}
 			return false
 		}
-		return check(fname.Val[:len(fname.Val)-1])
+		return check(fname)
 	case "syz_open_pts":
 		return true
 	case "syz_fuse_mount":
@@ -99,7 +95,7 @@ func isSupportedSyzkall(c *sys.Call) bool {
 }
 
 func isSupportedSocket(c *sys.Call) bool {
-	af, ok := c.Args[0].(sys.ConstType)
+	af, ok := c.Args[0].(*sys.ConstType)
 	if !ok {
 		println(c.Name)
 		panic("socket family is not const")
@@ -112,17 +108,27 @@ func isSupportedSocket(c *sys.Call) bool {
 }
 
 func isSupportedOpen(c *sys.Call) bool {
-	ptr, ok := c.Args[0].(sys.PtrType)
-	if !ok {
-		panic("first open arg is not a pointer")
-	}
-	fname, ok := ptr.Type.(sys.StrConstType)
+	fname, ok := extractStringConst(c.Args[0])
 	if !ok {
 		return true
 	}
-	fd, err := syscall.Open(fname.Val[:len(fname.Val)-1], syscall.O_RDONLY, 0)
+	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0)
 	if fd != -1 {
 		syscall.Close(fd)
 	}
 	return err == nil
+}
+
+func extractStringConst(typ sys.Type) (string, bool) {
+	ptr, ok := typ.(*sys.PtrType)
+	if !ok {
+		panic("first open arg is not a pointer to string const")
+	}
+	str, ok := ptr.Type.(*sys.BufferType)
+	if !ok || str.Kind != sys.BufferString || len(str.Values) != 1 {
+		return "", false
+	}
+	v := str.Values[0]
+	v = v[:len(v)-1] // string terminating \x00
+	return v, true
 }

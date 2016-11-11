@@ -6,7 +6,7 @@ include <uapi/linux/fcntl.h>
 
 resource fd_kdbus[fd]
 
-openat$kdbus(fd const[AT_FDCWD], file strconst["/dev/kdbus"], flags flags[open_flags], mode const[0]) fd_kdbus
+openat$kdbus(fd const[AT_FDCWD], file ptr[in, string["/dev/kdbus"]], flags flags[open_flags], mode const[0]) fd_kdbus
 ioctl$kdbus_bus_make(fd fd_kdbus, cmd const[KDBUS_CMD_BUS_MAKE], arg ptr[in, kdbus_cmd_bus_make])
 ioctl$kdbus_ep_make(fd fd_kdbus, cmd const[KDBUS_CMD_ENDPOINT_MAKE], arg ptr[in, kdbus_cmd_ep_make])
 ioctl$kdbus_ep_update(fd fd_kdbus, cmd const[KDBUS_CMD_ENDPOINT_UPDATE], arg ptr[in, kdbus_cmd_ep_update])
