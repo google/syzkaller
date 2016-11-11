@@ -6,17 +6,17 @@ include <uapi/linux/keyctl.h>
 
 resource key[int32]: KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING, KEY_SPEC_GROUP_KEYRING, KEY_SPEC_REQKEY_AUTH_KEY, KEY_SPEC_REQUESTOR_KEYRING
 
-add_key(type string, desc string, payload buffer[in, opt], paylen len[payload], keyring flags[keyring_type]) key
-request_key(type string, desc string, callout string, keyring flags[keyring_type]) key
+add_key(type ptr[in, string], desc ptr[in, string], payload buffer[in, opt], paylen len[payload], keyring flags[keyring_type]) key
+request_key(type ptr[in, string], desc ptr[in, string], callout ptr[in, string], keyring flags[keyring_type]) key
 keyctl$get_keyring_id(code const[KEYCTL_GET_KEYRING_ID], key key, create intptr)
-keyctl$join(code const[KEYCTL_JOIN_SESSION_KEYRING], session string)
+keyctl$join(code const[KEYCTL_JOIN_SESSION_KEYRING], session ptr[in, string])
 keyctl$update(code const[KEYCTL_UPDATE], key key, payload buffer[in, opt], paylen len[payload])
 keyctl$revoke(code const[KEYCTL_REVOKE], key key)
 keyctl$describe(code const[KEYCTL_DESCRIBE], key key, desc buffer[out], len len[desc])
 keyctl$clear(code const[KEYCTL_CLEAR], key key)
 keyctl$link(code const[KEYCTL_LINK], key1 key, key2 key)
 keyctl$unlink(code const[KEYCTL_UNLINK], key1 key, key2 key)
-keyctl$search(code const[KEYCTL_SEARCH], key key, type string, desc string, ring key)
+keyctl$search(code const[KEYCTL_SEARCH], key key, type ptr[in, string], desc ptr[in, string], ring key)
 keyctl$read(code const[KEYCTL_READ], key key, payload buffer[out], len len[payload])
 keyctl$chown(code const[KEYCTL_CHOWN], key key, uid uid, gid gid)
 # perm is a mask of KEY_POS_VIEW, etc consants, but they cover almost whole int32.

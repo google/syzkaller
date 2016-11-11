@@ -46,7 +46,7 @@ ioctl$SIOCINQ(fd sock, cmd const[SIOCINQ], arg ptr[out, int32])
 setsockopt$sock_void(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_void], optval const[0], optlen const[0])
 getsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[in, int32], optlen len[optval])
-setsockopt$sock_str(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval string, optlen len[optval])
+setsockopt$sock_str(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[in, string], optlen len[optval])
 getsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[out, linger], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[in, linger], optlen len[optval])
 getsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen ptr[inout, len[optval, int32]])
@@ -273,10 +273,10 @@ sendmmsg$alg(fd sock_algconn, mmsg ptr[in, array[msghdr_alg]], vlen len[mmsg], f
 
 sockaddr_alg {
 	family	const[AF_ALG, int16]
-	type	salg_type
+	type	string[salg_type, 14]
 	feat	flags[af_alg_type, int32]
 	mask	flags[af_alg_type, int32]
-	name	salg_name
+	name	string[salg_name, 64]
 }
 
 msghdr_alg {
@@ -319,6 +319,9 @@ cmsghdr_alg_assoc {
 }
 
 af_alg_type = CRYPTO_ALG_TYPE_MASK, CRYPTO_ALG_TYPE_CIPHER, CRYPTO_ALG_TYPE_COMPRESS, CRYPTO_ALG_TYPE_AEAD, CRYPTO_ALG_TYPE_BLKCIPHER, CRYPTO_ALG_TYPE_ABLKCIPHER, CRYPTO_ALG_TYPE_GIVCIPHER, CRYPTO_ALG_TYPE_DIGEST, CRYPTO_ALG_TYPE_HASH, CRYPTO_ALG_TYPE_SHASH, CRYPTO_ALG_TYPE_AHASH, CRYPTO_ALG_TYPE_RNG, CRYPTO_ALG_TYPE_AKCIPHER, CRYPTO_ALG_TYPE_PCOMPRESS, CRYPTO_ALG_LARVAL, CRYPTO_ALG_DEAD, CRYPTO_ALG_DYING, CRYPTO_ALG_ASYNC, CRYPTO_ALG_NEED_FALLBACK, CRYPTO_ALG_GENIV, CRYPTO_ALG_TESTED, CRYPTO_ALG_INSTANCE, CRYPTO_ALG_KERN_DRIVER_ONLY, CRYPTO_ALG_INTERNAL
+
+salg_type = "aead", "hash", "rng", "skcipher"
+salg_name = "cmac(aes)", "ecb(aes)", "cbc(aes)", "hmac(sha1)", "pcbc(fcrypt)", "ghash", "jitterentropy_rng", "stdrng", "stdrng", "stdrng", "stdrng", "hmac(sha256)", "stdrng", "stdrng", "stdrng", "stdrng", "stdrng", "842", "lz4hc", "lz4", "lzo", "crct10dif", "crc32", "crc32c", "michael_mic", "zlib", "deflate", "poly1305", "chacha20", "salsa20", "seed", "anubis", "khazad", "xeta", "xtea", "tea", "ecb(arc4)", "arc4", "cast6", "cast5", "camellia", "aes", "tnepres", "serpent", "twofish", "blowfish", "fcrypt", "des3_ede", "des", "tgr128", "tgr160", "tgr192", "wp256", "wp384", "wp512", "sha384", "sha512", "sha224", "sha256", "sha1", "rmd320", "rmd256", "rmd160", "rmd128", "md5", "md4", "digest_null", "compress_null", "ecb(cipher_null)", "cipher_null", "rsa", "poly1305", "xts(serpent)", "lrw(serpent)", "ctr(serpent)", "cbc(serpent)", "__ecb-serpent-sse2", "ecb(serpent)", "__xts-serpent-sse2", "__lrw-serpent-sse2", "__ctr-serpent-sse2", "__cbc-serpent-sse2", "__ecb-serpent-sse2", "salsa20", "xts(twofish)", "lrw(twofish)", "ctr(twofish)", "cbc(twofish)", "ecb(twofish)", "twofish", "ctr(blowfish)", "cbc(blowfish)", "ecb(blowfish)", "blowfish", "xts(camellia)", "lrw(camellia)", "ctr(camellia)", "cbc(camellia)", "ecb(camellia)", "camellia", "ctr(des3_ede)", "cbc(des3_ede)", "ecb(des3_ede)", "des3_ede", "aes"
 
 
 

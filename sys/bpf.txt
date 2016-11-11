@@ -52,7 +52,7 @@ bpf_prog {
 	type	flags[bpf_prog_type, int32]
 	ninsn	len[insns, int32]
 	insns	ptr[in, array[bpf_insn]]
-	license	string
+	license	ptr[in, string]
 	loglev	int32
 	logsize	len[log, int32]
 	log	buffer[out]

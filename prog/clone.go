@@ -24,7 +24,6 @@ func (p *Prog) Clone() *Prog {
 func (arg *Arg) clone(c *Call, newargs map[*Arg]*Arg) *Arg {
 	arg1 := new(Arg)
 	*arg1 = *arg
-	arg1.Call = c
 	arg1.Data = append([]byte{}, arg.Data...)
 	switch arg.Kind {
 	case ArgPointer:

@@ -23,7 +23,7 @@ Pseudo-formal grammar of syscall description:
 	type = typename [ "[" type-options "]" ]
 	typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
 			"buffer" | "string" | "strconst" | "filename" |
-			"fileoff" | "len" | "bytesize" | "vma"
+			"len" | "bytesize" | "vma"
 	type-options = [type-opt ["," type-opt]]
 ```
 common type-options include:
@@ -44,12 +44,12 @@ rest of the type-options are type-specific:
 		type of the object; direction (in/out/inout)
 	"buffer": a pointer to a memory buffer (like read/write buffer argument), type-options:
 		direction (in/out/inout)
-	"string": a pointer to a memory buffer, similar to buffer[in]
-	"strconst": a pointer to a constant string, type-options:
-		the underlying string (for example "/dev/dsp")
+	"string": a zero-terminated memory buffer (no pointer indirection implied), type-options:
+		either a string value in quotes for constant strings (e.g. "foo"),
+		or a reference to string flags,
+		optionally followed by a buffer size (string values will be padded with \x00 to that size)
 	"filename": a file/link/dir name
-	"fileoff": offset within a file, type-options:
-		argname of the file
+	"fileoff": offset within a file
 	"len": length of another field (for array it is number of elements), type-options:
 		argname of the object
 	"bytesize": similar to "len", but always denotes the size in bytes, type-options:
@@ -61,6 +61,10 @@ flags/len/flags also have trailing underlying type type-option when used in stru
 Flags are described as:
 ```
 	flagname = const ["," const]*
+```
+or for string flags as:
+```
+	flagname = "\"" literal "\"" ["," "\"" literal "\""]*
 ```
 
 ### Structs

@@ -6,7 +6,7 @@ include <linux/virtio_net.h>
 
 resource fd_tun[fd]
 
-syz_open_dev$tun(dev strconst["/dev/net/tun"], id const[0], flags flags[open_flags]) fd_tun
+syz_open_dev$tun(dev ptr[in, string["/dev/net/tun"]], id const[0], flags flags[open_flags]) fd_tun
 write$tun(fd fd_tun, buf ptr[in, tun_buffer], count len[buf])
 
 ioctl$TUNGETFEATURES(fd fd_tun, cmd const[TUNGETFEATURES], arg ptr[out, int32])

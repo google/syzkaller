@@ -57,13 +57,13 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						if base.Kind != ArgPointer || base.Res == nil {
 							panic("bad base arg")
 						}
-						baseSize = base.Res.Size(base.Res.Type)
+						baseSize = base.Res.Size()
 					}
 					switch a := arg.Type.(type) {
-					case sys.IntType, sys.FlagsType, sys.FileoffType, sys.ResourceType, sys.VmaType:
-						arg1, calls1 := r.generateArg(s, arg.Type, arg.Dir)
-						p.replaceArg(arg, arg1, calls1)
-					case sys.BufferType:
+					case *sys.IntType, *sys.FlagsType, *sys.ResourceType, *sys.VmaType:
+						arg1, calls1 := r.generateArg(s, arg.Type)
+						p.replaceArg(c, arg, arg1, calls1)
+					case *sys.BufferType:
 						switch a.Kind {
 						case sys.BufferBlobRand, sys.BufferBlobRange:
 							var data []byte
@@ -89,23 +89,16 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 							if r.bin() {
 								arg.Data = mutateData(r, append([]byte{}, arg.Data...), int(0), ^int(0))
 							} else {
-								arg.Data = r.randString(s)
+								arg.Data = r.randString(s, a.Values, a.Dir())
 							}
-						case sys.BufferFilesystem:
-							arg.Data = r.filesystem(s)
+						case sys.BufferFilename:
+							arg.Data = []byte(r.filename(s))
 						case sys.BufferSockaddr:
 							arg.Data = r.sockaddr(s)
-						case sys.BufferAlgType:
-							arg.Data = r.algType(s)
-						case sys.BufferAlgName:
-							arg.Data = r.algName(s)
 						default:
 							panic("unknown buffer kind")
 						}
-					case sys.FilenameType:
-						filename := r.filename(s)
-						arg.Data = []byte(filename)
-					case sys.ArrayType:
+					case *sys.ArrayType:
 						count := uintptr(0)
 						switch a.Kind {
 						case sys.ArrayRandLen:
@@ -123,7 +116,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						if count > uintptr(len(arg.Inner)) {
 							var calls []*Call
 							for count > uintptr(len(arg.Inner)) {
-								arg1, calls1 := r.generateArg(s, a.Type, arg.Dir)
+								arg1, calls1 := r.generateArg(s, a.Type)
 								arg.Inner = append(arg.Inner, arg1)
 								for _, c1 := range calls1 {
 									calls = append(calls, c1)
@@ -131,27 +124,25 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 								}
 							}
 							for _, c1 := range calls {
-								assignTypeAndDir(c1)
 								sanitizeCall(c1)
 							}
-							assignTypeAndDir(c)
 							sanitizeCall(c)
 							p.insertBefore(c, calls)
 						} else if count < uintptr(len(arg.Inner)) {
 							for _, arg := range arg.Inner[count:] {
-								p.removeArg(arg)
+								p.removeArg(c, arg)
 							}
 							arg.Inner = arg.Inner[:count]
 						}
 						// TODO: swap elements of the array
-					case sys.PtrType:
+					case *sys.PtrType:
 						// TODO: we don't know size for out args
 						size := uintptr(1)
 						if arg.Res != nil {
-							size = arg.Res.Size(arg.Res.Type)
+							size = arg.Res.Size()
 						}
-						arg1, calls1 := r.addr(s, size, arg.Res)
-						p.replaceArg(arg, arg1, calls1)
+						arg1, calls1 := r.addr(s, a, size, arg.Res)
+						p.replaceArg(c, arg, arg1, calls1)
 					case *sys.StructType:
 						ctor := isSpecialStruct(a)
 						if ctor == nil {
@@ -159,7 +150,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						}
 						arg1, calls1 := ctor(r, s)
 						for i, f := range arg1.Inner {
-							p.replaceArg(arg.Inner[i], f, calls1)
+							p.replaceArg(c, arg.Inner[i], f, calls1)
 							calls1 = nil
 						}
 					case *sys.UnionType:
@@ -167,23 +158,22 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 						for optType.Name() == arg.OptionType.Name() {
 							optType = a.Options[r.Intn(len(a.Options))]
 						}
-						p.removeArg(arg.Option)
-						opt, calls := r.generateArg(s, optType, arg.Dir)
-						arg1 := unionArg(opt, optType)
-						p.replaceArg(arg, arg1, calls)
-					case sys.LenType:
+						p.removeArg(c, arg.Option)
+						opt, calls := r.generateArg(s, optType)
+						arg1 := unionArg(a, opt, optType)
+						p.replaceArg(c, arg, arg1, calls)
+					case *sys.LenType:
 						panic("bad arg returned by mutationArgs: LenType")
-					case sys.ConstType, sys.StrConstType:
+					case *sys.ConstType:
 						panic("bad arg returned by mutationArgs: ConstType")
 					default:
 						panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", *arg, arg.Type))
 					}
 
 					// Update base pointer if size has increased.
-					if base != nil && baseSize < base.Res.Size(base.Res.Type) {
-						arg1, calls1 := r.addr(s, base.Res.Size(base.Res.Type), base.Res)
+					if base != nil && baseSize < base.Res.Size() {
+						arg1, calls1 := r.addr(s, base.Type, base.Res.Size(), base.Res)
 						for _, c1 := range calls1 {
-							assignTypeAndDir(c1)
 							sanitizeCall(c1)
 						}
 						p.insertBefore(c, calls1)
@@ -194,8 +184,6 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 
 					// Update all len fields.
 					assignSizesCall(c)
-					// Assign Arg.Type fields for newly created len args.
-					assignTypeAndDir(c)
 				}
 			},
 			1, func() {
@@ -210,7 +198,6 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable) {
 		)
 	}
 	for _, c := range p.Calls {
-		assignTypeAndDir(c)
 		sanitizeCall(c)
 	}
 	if err := p.validate(); err != nil {
@@ -254,18 +241,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool) (*Prog, int)
 			}
 		}
 		// Prepend uber-mmap.
-		mmap := &Call{
-			Meta: sys.CallMap["mmap"],
-			Args: []*Arg{
-				pointerArg(0, 0, uintptr(hi)+1, nil),
-				pageSizeArg(uintptr(hi)+1, 0),
-				constArg(sys.PROT_READ | sys.PROT_WRITE),
-				constArg(sys.MAP_ANONYMOUS | sys.MAP_PRIVATE | sys.MAP_FIXED),
-				constArg(sys.InvalidFD),
-				constArg(0),
-			},
-		}
-		assignTypeAndDir(mmap)
+		mmap := createMmapCall(0, uintptr(hi)+1)
 		p.Calls = append([]*Call{mmap}, p.Calls...)
 		if callIndex != -1 {
 			callIndex++
@@ -332,19 +308,23 @@ func mutationArgs(c *Call) (args, bases []*Arg) {
 				return
 			}
 			// These special structs are mutated as a whole.
-		case sys.ArrayType:
+		case *sys.ArrayType:
 			// Don't mutate fixed-size arrays.
 			if typ.Kind == sys.ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
 				return
 			}
-		case sys.LenType:
+		case *sys.LenType:
 			// Size is updated when the size-of arg change.
 			return
-		case sys.ConstType, sys.StrConstType:
+		case *sys.ConstType:
 			// Well, this is const.
 			return
+		case *sys.BufferType:
+			if typ.Kind == sys.BufferString && len(typ.Values) == 1 {
+				return // string const
+			}
 		}
-		if arg.Dir == DirOut {
+		if arg.Type.Dir() == sys.DirOut {
 			return
 		}
 		if base != nil {

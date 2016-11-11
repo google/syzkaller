@@ -19,17 +19,25 @@ type Call struct {
 	Ret      Type
 }
 
+type Dir int
+
+const (
+	DirIn Dir = iota
+	DirOut
+	DirInOut
+)
+
 type Type interface {
 	Name() string
+	Dir() Dir
 	Optional() bool
 	Default() uintptr
 	Size() uintptr
 	Align() uintptr
-	InnerType() Type // returns inner type for PtrType
 }
 
 func IsPad(t Type) bool {
-	if ct, ok := t.(ConstType); ok && ct.IsPad {
+	if ct, ok := t.(*ConstType); ok && ct.IsPad {
 		return true
 	}
 	return false
@@ -37,19 +45,24 @@ func IsPad(t Type) bool {
 
 type TypeCommon struct {
 	TypeName   string
+	ArgDir     Dir
 	IsOptional bool
 }
 
-func (t TypeCommon) Name() string {
+func (t *TypeCommon) Name() string {
 	return t.TypeName
 }
 
-func (t TypeCommon) Optional() bool {
+func (t *TypeCommon) Optional() bool {
 	return t.IsOptional
 }
 
-func (t TypeCommon) Default() uintptr {
+func (t *TypeCommon) Default() uintptr {
 	return 0
+}
+
+func (t TypeCommon) Dir() Dir {
+	return t.ArgDir
 }
 
 const (
@@ -68,43 +81,20 @@ type ResourceType struct {
 	Desc *ResourceDesc
 }
 
-func (t ResourceType) Default() uintptr {
+func (t *ResourceType) Default() uintptr {
 	return t.Desc.Values[0]
 }
 
-func (t ResourceType) SpecialValues() []uintptr {
+func (t *ResourceType) SpecialValues() []uintptr {
 	return t.Desc.Values
 }
 
-func (t ResourceType) Size() uintptr {
+func (t *ResourceType) Size() uintptr {
 	return t.Desc.Type.Size()
 }
 
-func (t ResourceType) Align() uintptr {
+func (t *ResourceType) Align() uintptr {
 	return t.Desc.Type.Align()
-}
-
-func (t ResourceType) InnerType() Type {
-	return t
-}
-
-type FileoffType struct {
-	TypeCommon
-	TypeSize  uintptr
-	BigEndian bool
-	File      string
-}
-
-func (t FileoffType) Size() uintptr {
-	return t.TypeSize
-}
-
-func (t FileoffType) Align() uintptr {
-	return t.Size()
-}
-
-func (t FileoffType) InnerType() Type {
-	return t
 }
 
 type BufferKind int
@@ -113,10 +103,8 @@ const (
 	BufferBlobRand BufferKind = iota
 	BufferBlobRange
 	BufferString
+	BufferFilename
 	BufferSockaddr
-	BufferFilesystem
-	BufferAlgType
-	BufferAlgName
 )
 
 type BufferType struct {
@@ -124,46 +112,46 @@ type BufferType struct {
 	Kind       BufferKind
 	RangeBegin uintptr // for BufferBlobRange kind
 	RangeEnd   uintptr // for BufferBlobRange kind
+	SubKind    string
+	Values     []string // possible values for BufferString kind
 }
 
-func (t BufferType) Size() uintptr {
+func (t *BufferType) Size() uintptr {
 	switch t.Kind {
-	case BufferAlgType:
-		return 14
-	case BufferAlgName:
-		return 64
+	case BufferString:
+		size := 0
+		for _, s := range t.Values {
+			if size != 0 && size != len(s) {
+				size = 0
+				break
+			}
+			size = len(s)
+		}
+		if size != 0 {
+			return uintptr(size)
+		}
 	case BufferBlobRange:
 		if t.RangeBegin == t.RangeEnd {
 			return t.RangeBegin
 		}
-		fallthrough
-	default:
-		panic(fmt.Sprintf("buffer size is not statically known: %v", t.Name()))
 	}
+	panic(fmt.Sprintf("buffer size is not statically known: %v", t.Name()))
 }
 
-func (t BufferType) Align() uintptr {
+func (t *BufferType) Align() uintptr {
 	return 1
-}
-
-func (t BufferType) InnerType() Type {
-	return t
 }
 
 type VmaType struct {
 	TypeCommon
 }
 
-func (t VmaType) Size() uintptr {
+func (t *VmaType) Size() uintptr {
 	return ptrSize
 }
 
-func (t VmaType) Align() uintptr {
+func (t *VmaType) Align() uintptr {
 	return t.Size()
-}
-
-func (t VmaType) InnerType() Type {
-	return t
 }
 
 type LenType struct {
@@ -174,16 +162,12 @@ type LenType struct {
 	Buf       string
 }
 
-func (t LenType) Size() uintptr {
+func (t *LenType) Size() uintptr {
 	return t.TypeSize
 }
 
-func (t LenType) Align() uintptr {
+func (t *LenType) Align() uintptr {
 	return t.Size()
-}
-
-func (t LenType) InnerType() Type {
-	return t
 }
 
 type FlagsType struct {
@@ -193,16 +177,12 @@ type FlagsType struct {
 	Vals      []uintptr
 }
 
-func (t FlagsType) Size() uintptr {
+func (t *FlagsType) Size() uintptr {
 	return t.TypeSize
 }
 
-func (t FlagsType) Align() uintptr {
+func (t *FlagsType) Align() uintptr {
 	return t.Size()
-}
-
-func (t FlagsType) InnerType() Type {
-	return t
 }
 
 type ConstType struct {
@@ -213,34 +193,12 @@ type ConstType struct {
 	IsPad     bool
 }
 
-func (t ConstType) Size() uintptr {
+func (t *ConstType) Size() uintptr {
 	return t.TypeSize
 }
 
-func (t ConstType) Align() uintptr {
+func (t *ConstType) Align() uintptr {
 	return t.Size()
-}
-
-func (t ConstType) InnerType() Type {
-	return t
-}
-
-type StrConstType struct {
-	TypeCommon
-	TypeSize uintptr
-	Val      string
-}
-
-func (t StrConstType) Size() uintptr {
-	return uintptr(len(t.Val))
-}
-
-func (t StrConstType) Align() uintptr {
-	return 1
-}
-
-func (t StrConstType) InnerType() Type {
-	return t
 }
 
 type IntKind int
@@ -250,6 +208,7 @@ const (
 	IntSignalno
 	IntInaddr
 	IntInport
+	IntFileoff // offset within a file
 	IntRange
 )
 
@@ -262,32 +221,12 @@ type IntType struct {
 	RangeEnd   int64
 }
 
-func (t IntType) Size() uintptr {
+func (t *IntType) Size() uintptr {
 	return t.TypeSize
 }
 
-func (t IntType) Align() uintptr {
+func (t *IntType) Align() uintptr {
 	return t.Size()
-}
-
-func (t IntType) InnerType() Type {
-	return t
-}
-
-type FilenameType struct {
-	TypeCommon
-}
-
-func (t FilenameType) Size() uintptr {
-	panic("filename size is not statically known")
-}
-
-func (t FilenameType) Align() uintptr {
-	return 1
-}
-
-func (t FilenameType) InnerType() Type {
-	return t
 }
 
 type ArrayKind int
@@ -305,37 +244,28 @@ type ArrayType struct {
 	RangeEnd   uintptr
 }
 
-func (t ArrayType) Size() uintptr {
+func (t *ArrayType) Size() uintptr {
 	if t.RangeBegin == t.RangeEnd {
 		return t.RangeBegin * t.Type.Size()
 	}
 	return 0 // for trailing embed arrays
 }
 
-func (t ArrayType) Align() uintptr {
+func (t *ArrayType) Align() uintptr {
 	return t.Type.Align()
-}
-
-func (t ArrayType) InnerType() Type {
-	return t
 }
 
 type PtrType struct {
 	TypeCommon
 	Type Type
-	Dir  Dir
 }
 
-func (t PtrType) Size() uintptr {
+func (t *PtrType) Size() uintptr {
 	return ptrSize
 }
 
-func (t PtrType) Align() uintptr {
+func (t *PtrType) Align() uintptr {
 	return t.Size()
-}
-
-func (t PtrType) InnerType() Type {
-	return t.Type.InnerType()
 }
 
 type StructType struct {
@@ -370,10 +300,6 @@ func (t *StructType) Align() uintptr {
 	return align
 }
 
-func (t *StructType) InnerType() Type {
-	return t
-}
-
 type UnionType struct {
 	TypeCommon
 	Options []Type
@@ -403,18 +329,6 @@ func (t *UnionType) Align() uintptr {
 	return align
 }
 
-func (t *UnionType) InnerType() Type {
-	return t
-}
-
-type Dir int
-
-const (
-	DirIn Dir = iota
-	DirOut
-	DirInOut
-)
-
 var ctors = make(map[string][]*Call)
 
 // ResourceConstructors returns a list of calls that can create a resource of the given kind.
@@ -431,56 +345,20 @@ func initResources() {
 func resourceCtors(kind []string, precise bool) []*Call {
 	// Find calls that produce the necessary resources.
 	var metas []*Call
-	// Recurse into arguments to see if there is an out/inout arg of necessary type.
-	seen := make(map[Type]bool)
-	var checkArg func(typ Type, dir Dir) bool
-	checkArg = func(typ Type, dir Dir) bool {
-		if resarg, ok := typ.(ResourceType); ok && dir != DirIn && isCompatibleResource(kind, resarg.Desc.Kind, precise) {
-			return true
-		}
-		switch typ1 := typ.(type) {
-		case ArrayType:
-			if checkArg(typ1.Type, dir) {
-				return true
-			}
-		case *StructType:
-			if seen[typ1] {
-				return false // prune recursion via pointers to structs/unions
-			}
-			seen[typ1] = true
-			for _, fld := range typ1.Fields {
-				if checkArg(fld, dir) {
-					return true
-				}
-			}
-		case *UnionType:
-			if seen[typ1] {
-				return false // prune recursion via pointers to structs/unions
-			}
-			seen[typ1] = true
-			for _, opt := range typ1.Options {
-				if checkArg(opt, dir) {
-					return true
-				}
-			}
-		case PtrType:
-			if checkArg(typ1.Type, typ1.Dir) {
-				return true
-			}
-		}
-		return false
-	}
 	for _, meta := range Calls {
+		// Recurse into arguments to see if there is an out/inout arg of necessary type.
 		ok := false
-		for _, arg := range meta.Args {
-			if checkArg(arg, DirIn) {
-				ok = true
-				break
+		ForeachType(meta, func(typ Type) {
+			if ok {
+				return
 			}
-		}
-		if !ok && meta.Ret != nil && checkArg(meta.Ret, DirOut) {
-			ok = true
-		}
+			switch typ1 := typ.(type) {
+			case *ResourceType:
+				if typ1.Dir() != DirIn && isCompatibleResource(kind, typ1.Desc.Kind, precise) {
+					ok = true
+				}
+			}
+		})
 		if ok {
 			metas = append(metas, meta)
 		}
@@ -524,41 +402,16 @@ func isCompatibleResource(dst, src []string, precise bool) bool {
 	return true
 }
 
-func (c *Call) InputResources() []ResourceType {
-	var resources []ResourceType
-	seen := make(map[Type]bool)
-	var checkArg func(typ Type, dir Dir)
-	checkArg = func(typ Type, dir Dir) {
+func (c *Call) InputResources() []*ResourceType {
+	var resources []*ResourceType
+	ForeachType(c, func(typ Type) {
 		switch typ1 := typ.(type) {
-		case ResourceType:
-			if dir != DirOut && !typ1.IsOptional {
+		case *ResourceType:
+			if typ1.Dir() != DirOut && !typ1.IsOptional {
 				resources = append(resources, typ1)
 			}
-		case ArrayType:
-			checkArg(typ1.Type, dir)
-		case PtrType:
-			checkArg(typ1.Type, typ1.Dir)
-		case *StructType:
-			if seen[typ1] {
-				return // prune recursion via pointers to structs/unions
-			}
-			seen[typ1] = true
-			for _, fld := range typ1.Fields {
-				checkArg(fld, dir)
-			}
-		case *UnionType:
-			if seen[typ1] {
-				return // prune recursion via pointers to structs/unions
-			}
-			seen[typ1] = true
-			for _, opt := range typ1.Options {
-				checkArg(opt, dir)
-			}
 		}
-	}
-	for _, arg := range c.Args {
-		checkArg(arg, DirIn)
-	}
+	})
 	return resources
 }
 
@@ -596,6 +449,46 @@ func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
 		}
 	}
 	return supported
+}
+
+func ForeachType(meta *Call, f func(Type)) {
+	seen := make(map[Type]bool)
+	var rec func(t Type)
+	rec = func(t Type) {
+		f(t)
+		switch a := t.(type) {
+		case *PtrType:
+			rec(a.Type)
+		case *ArrayType:
+			rec(a.Type)
+		case *StructType:
+			if seen[a] {
+				return // prune recursion via pointers to structs/unions
+			}
+			seen[a] = true
+			for _, f := range a.Fields {
+				rec(f)
+			}
+		case *UnionType:
+			if seen[a] {
+				return // prune recursion via pointers to structs/unions
+			}
+			seen[a] = true
+			for _, opt := range a.Options {
+				rec(opt)
+			}
+		case *ResourceType, *BufferType, *VmaType, *LenType,
+			*FlagsType, *ConstType, *IntType:
+		default:
+			panic("unknown type")
+		}
+	}
+	for _, t := range meta.Args {
+		rec(t)
+	}
+	if meta.Ret != nil {
+		rec(meta.Ret)
+	}
 }
 
 var (

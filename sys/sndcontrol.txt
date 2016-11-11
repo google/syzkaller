@@ -5,7 +5,7 @@ include <sound/asound.h>
 
 resource fd_sndctrl[fd]
 
-syz_open_dev$sndctrl(dev strconst["/dev/snd/controlC#"], id intptr, flags flags[open_flags]) fd_sndctrl
+syz_open_dev$sndctrl(dev ptr[in, string["/dev/snd/controlC#"]], id intptr, flags flags[open_flags]) fd_sndctrl
 
 ioctl$SNDRV_CTL_IOCTL_PVERSION(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_PVERSION], arg buffer[out])
 ioctl$SNDRV_CTL_IOCTL_CARD_INFO(fd fd_sndctrl, cmd const[SNDRV_CTL_IOCTL_CARD_INFO], arg buffer[out])
@@ -61,7 +61,7 @@ snd_ctl_elem_info {
 	items	int32
 	item	int32
 	name	array[int8, 64]
-	nameptr	string
+	nameptr	ptr[in, string]
 	namelen	len[nameptr, int32]
 	pad1	array[const[0, int8], 44]
 	d	array[int16, 4]

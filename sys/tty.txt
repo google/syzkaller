@@ -8,7 +8,7 @@ include <uapi/linux/fcntl.h>
 
 resource fd_tty[fd]
 
-openat$ptmx(fd const[AT_FDCWD], file strconst["/dev/ptmx"], flags flags[open_flags], mode const[0]) fd_tty
+openat$ptmx(fd const[AT_FDCWD], file ptr[in, string["/dev/ptmx"]], flags flags[open_flags], mode const[0]) fd_tty
 syz_open_pts(fd fd_tty, flags flags[open_flags]) fd_tty
 ioctl$TCGETS(fd fd_tty, cmd const[TCGETS], arg ptr[out, termios])
 ioctl$TCSETS(fd fd_tty, cmd const[TCSETS], arg ptr[in, termios])
