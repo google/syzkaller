@@ -4,6 +4,7 @@
 package adb
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -42,10 +43,11 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	if err := validateConfig(cfg); err != nil {
 		return nil, err
 	}
-	if err := inst.findConsole(); err != nil {
+	if err := inst.repair(); err != nil {
 		return nil, err
 	}
-	if err := inst.repair(); err != nil {
+	var err error
+	if inst.console, err = findConsole(inst.cfg.Device); err != nil {
 		return nil, err
 	}
 	if err := inst.checkBatteryLevel(); err != nil {
@@ -69,38 +71,95 @@ func validateConfig(cfg *vm.Config) error {
 
 var (
 	consoleCacheMu sync.Mutex
-	consoleCache   = make(map[string]string)
+	consoleToDev   = make(map[string]string)
+	devToConsole   = make(map[string]string)
 )
 
-func (inst *instance) findConsole() error {
-	// Case Closed Debugging using Suzy-Q:
-	// https://chromium.googlesource.com/chromiumos/platform/ec/+/master/docs/case_closed_debugging.md
+// findConsole returns console file associated with the dev device (e.g. /dev/ttyUSB0).
+// This code was tested with Suzy-Q and Android Serial Cable (ASC). For Suzy-Q see:
+// https://chromium.googlesource.com/chromiumos/platform/ec/+/master/docs/case_closed_debugging.md
+// The difference between Suzy-Q and ASC is that ASC is a separate cable,
+// so it is not possible to match USB bus/port used by adb with the serial console device;
+// while Suzy-Q console uses the same USB calbe as adb.
+// The overall idea is as follows. We use 'adb shell' to write a unique string onto console,
+// then we read from all console devices and see on what console the unique string appears.
+func findConsole(dev string) (string, error) {
 	consoleCacheMu.Lock()
 	defer consoleCacheMu.Unlock()
-	if inst.console = consoleCache[inst.cfg.Device]; inst.console != "" {
-		return nil
+	if con := devToConsole[dev]; con != "" {
+		return con, nil
 	}
-	out, err := exec.Command(inst.cfg.Bin, "devices", "-l").CombinedOutput()
+	consoles, err := filepath.Glob("/dev/ttyUSB*")
 	if err != nil {
-		return fmt.Errorf("failed to execute 'adb devices -l': %v\n%v\n", err, string(out))
+		return "", fmt.Errorf("failed to list /dev/ttyUSB devices: %v", err)
 	}
-	// The regexp matches devices strings of the form usb:a-b.c.d....x, and
-	// then treats everything but the final .x as the bus/port combo to look
-	// for the ttyUSB number
-	re := regexp.MustCompile(fmt.Sprintf("%v +device usb:([0-9]+-[0-9]+.*)(\\.[0-9]+) product.*\n", inst.cfg.Device))
-	match := re.FindAllStringSubmatch(string(out), 1)
-	if match == nil {
-		return fmt.Errorf("can't find adb device '%v' in 'adb devices' output:\n%v\n", inst.cfg.Device, string(out))
+	output := make(map[string]*[]byte)
+	errors := make(chan error, len(consoles))
+	done := make(chan bool)
+	for _, con := range consoles {
+		if consoleToDev[con] != "" {
+			continue
+		}
+		out := new([]byte)
+		output[con] = out
+		go func(con string) {
+			cmd := exec.Command("cat", con)
+			stdout, err := cmd.StdoutPipe()
+			if err != nil {
+				errors <- err
+			}
+			if cmd.Start() != nil {
+				errors <- err
+			}
+			go func() {
+				<-done
+				cmd.Process.Kill()
+			}()
+			*out, _ = ioutil.ReadAll(stdout)
+			cmd.Wait()
+			errors <- nil
+		}(con)
 	}
-	busAndPort := match[0][1]
-	files, err := filepath.Glob(fmt.Sprintf("/sys/bus/usb/devices/%v.2:1.1/ttyUSB*", busAndPort))
-	if err != nil || len(files) == 0 {
-		return fmt.Errorf("can't find any ttyUSB devices for adb device '%v' on bus/port %v", inst.cfg.Device, busAndPort)
+	if len(output) == 0 {
+		return "", fmt.Errorf("no unassociated console devices left")
 	}
-	inst.console = "/dev/" + filepath.Base(files[0])
-	consoleCache[inst.cfg.Device] = inst.console
-	Logf(0, "associating adb device %v with console %v", inst.cfg.Device, inst.console)
-	return nil
+	time.Sleep(500 * time.Millisecond)
+	unique := fmt.Sprintf(">>>%v<<<", dev)
+	cmd := exec.Command("adb", "-s", dev, "shell", "echo", "\"", unique, "\"", ">", "/dev/kmsg")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return "", fmt.Errorf("failed to run adb shell: %v\n%s", err, out)
+	}
+	time.Sleep(500 * time.Millisecond)
+	close(done)
+
+	var anyErr error
+	for range output {
+		err := <-errors
+		if anyErr == nil && err != nil {
+			anyErr = err
+		}
+	}
+
+	con := ""
+	for con1, out := range output {
+		if bytes.Contains(*out, []byte(unique)) {
+			if con == "" {
+				con = con1
+			} else {
+				anyErr = fmt.Errorf("device is associated with several consoles: %v and %v", con, con1)
+			}
+		}
+	}
+
+	if con == "" {
+		if anyErr != nil {
+			return "", anyErr
+		}
+		return "", fmt.Errorf("no console is associated with this device")
+	}
+	devToConsole[dev] = con
+	consoleToDev[con] = dev
+	return con, nil
 }
 
 func (inst *instance) Forward(port int) (string, error) {
