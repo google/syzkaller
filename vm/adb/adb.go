@@ -158,14 +158,8 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 
 func (inst *instance) repair() error {
 	// Assume that the device is in a bad state initially and reboot it.
-	for i := 0; i < 300; i++ {
-		if _, err := inst.adb("shell", "pwd"); err == nil {
-			break
-		}
-		if !vm.SleepInterruptible(time.Second) {
-			return fmt.Errorf("shutdown in progress")
-		}
-	}
+	// Ignore errors, maybe we will manage to reboot it anyway.
+	inst.waitForSsh()
 	// adb reboot episodically hangs, so we use a more reliable way.
 	// Ignore errors because all other adb commands hang as well
 	// and the binary can already be on the device.
@@ -177,6 +171,18 @@ func (inst *instance) repair() error {
 	if !vm.SleepInterruptible(10 * time.Second) {
 		return fmt.Errorf("shutdown in progress")
 	}
+	if err := inst.waitForSsh(); err != nil {
+		return err
+	}
+	// Switch to root for userdebug builds.
+	inst.adb("root")
+	if err := inst.waitForSsh(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (inst *instance) waitForSsh() error {
 	var err error
 	for i := 0; i < 300; i++ {
 		if !vm.SleepInterruptible(time.Second) {
