@@ -56,7 +56,12 @@ func (c *Call) validate(ctx *validCtx) error {
 		}
 		if arg.Type.Dir() == sys.DirOut {
 			if arg.Val != 0 || arg.AddrPage != 0 || arg.AddrOffset != 0 {
-				return fmt.Errorf("syscall %v: output arg '%v' has data", c.Meta.Name, typ.Name())
+				// We generate output len arguments, which makes sense
+				// since it can be a length of a variable-length array
+				// which is not known otherwise.
+				if _, ok := arg.Type.(*sys.LenType); !ok {
+					return fmt.Errorf("syscall %v: output arg '%v' has data", c.Meta.Name, typ.Name())
+				}
 			}
 			for _, v := range arg.Data {
 				if v != 0 {
