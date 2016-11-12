@@ -117,15 +117,18 @@ epoll_wait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[eve
 epoll_pwait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32, sigmask ptr[in, sigset], size len[sigmask])
 
 resource fd_signal[fd]
-resource fd_event[fd]
 resource fd_timer[fd]
 signalfd(fd fd, mask ptr[in, sigset], size len[mask]) fd_signal
 signalfd4(fd fd, mask ptr[in, sigset], size len[mask], flags flags[signalfd_flags]) fd_signal
-eventfd(initval int32) fd_event
-eventfd2(initval int32, flags flags[eventfd_flags]) fd_event
 timerfd_create(clockid flags[clock_type], flags flags[timerfd_create_flags]) fd_timer
 timerfd_settime(fd fd_timer, flags flags[timerfd_settime_flags], new ptr[in, itimerspec], old ptr[out, itimerspec])
 timerfd_gettime(fd fd_timer, cur ptr[out, itimerspec])
+
+resource fd_event[fd]
+eventfd(initval int32) fd_event
+eventfd2(initval int32, flags flags[eventfd_flags]) fd_event
+read$eventfd(fd fd_event, val ptr[out, int64], len len[val])
+write$eventfd(fd fd_event, val ptr[in, int64], len len[val])
 
 resource fd_uffd[fd]
 userfaultfd(flags flags[userfaultfd_flags]) fd_uffd
