@@ -145,6 +145,30 @@ other info that might help us debug this:
 `: `suspicious RCU usage at net/core/filter.c:1917`,
 
 		`
+[   37.540474] ===============================
+[   37.540478] [ INFO: suspicious RCU usage. ]
+[   37.540495] 4.9.0-rc4+ #47 Not tainted
+2016/11/12 06:52:29 executing program 1:
+r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
+[   37.540522] -------------------------------
+[   37.540535] ./include/linux/kvm_host.h:536 suspicious rcu_dereference_check() usage!
+[   37.540539] 
+[   37.540539] other info that might help us debug this:
+[   37.540539] 
+[   37.540548] 
+[   37.540548] rcu_scheduler_active = 1, debug_locks = 0
+[   37.540557] 1 lock held by syz-executor/3985:
+[   37.540566]  #0: 
+[   37.540571]  (
+[   37.540576] &vcpu->mutex
+[   37.540580] ){+.+.+.}
+[   37.540609] , at: 
+[   37.540610] [<ffffffff81055862>] vcpu_load+0x22/0x70
+[   37.540614] 
+[   37.540614] stack backtrace:
+`: `suspicious RCU usage at ./include/linux/kvm_host.h:536`,
+
+		`
 [   80.586804] =====================================
 [  734.270366] [ BUG: syz-executor/31761 still has locks held! ]
 [  734.307462] 4.8.0+ #30 Not tainted
