@@ -126,7 +126,7 @@ kvm_guest_debug_flags = KVM_GUESTDBG_ENABLE, KVM_GUESTDBG_SINGLESTEP, KVM_GUESTD
 kvm_chip_id = KVM_IRQCHIP_PIC_MASTER, KVM_IRQCHIP_PIC_SLAVE, KVM_IRQCHIP_IOAPIC
 
 kvm_mem_slots = 0, 1, 2, 3, 4, 5, 509, 510, 511, 10000, 65536, 65537, 65538, 65539, 65540, 66047, 66048, 66049
-kvm_guest_addrs = 0x1000, 0x8000, 0xf000, 0x100000, 0x10000
+kvm_guest_addrs = 0, 1, 2, 4, 0x1000, 0x8000, 0xf000, 0x100000, 0x10000
 kvm_guest_addr_size = 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x100000
 kvm_x86_tss_addr = 0xffffffffffffd000
 kvm_x86_selector_type = 0, 1
@@ -334,8 +334,10 @@ kvm_userspace_memory_region {
 	slot	flags[kvm_mem_slots, int32]
 	flags	flags[kvm_mem_region_flags, int32]
 	paddr	flags[kvm_guest_addrs, int64]
-	size	len[addr, int64]
-	addr	vma
+#TODO: this should be len of addr, but it also must be multiple of page size
+# there is currently to way to make kvm_guest_memory_region multiple of page size
+	size	const[4096, int64]
+	addr	ptr[in, kvm_guest_memory_region]
 }
 
 kvm_vcpu_events {
@@ -604,4 +606,16 @@ kvm_coalesced_mmio_zone {
 	addr	flags[kvm_guest_addrs, int64]
 	size	flags[kvm_guest_addr_size, int32]
 	pad	const[0, int32]
+}
+
+# This struct contains things that make sense to copy into guest.
+#TODO: add page tables.
+kvm_guest_memory_region [
+	blob	array[int8]
+	gdt	array[kvm_gdt_entry]
+] [varlen]
+
+#TODO: detail this struct
+kvm_gdt_entry {
+	val	int64
 }
