@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -72,17 +73,18 @@ func Parse(in io.Reader) *Description {
 							failf("unknown union %v attribute: %v", str.Name, attr)
 						}
 					} else {
-						switch attr {
-						case "packed":
+						switch {
+						case attr == "packed":
 							str.Packed = true
-						case "align_1":
-							str.Align = 1
-						case "align_2":
-							str.Align = 2
-						case "align_4":
-							str.Align = 4
-						case "align_8":
-							str.Align = 8
+						case strings.HasPrefix(attr, "align_"):
+							a, err := strconv.ParseUint(attr[6:], 10, 64)
+							if err != nil {
+								failf("bad struct %v alignment %v: %v", str.Name, attr, err)
+							}
+							if a&(a-1) != 0 || a == 0 || a > 1<<30 {
+								failf("bad struct %v alignment %v: must be sane power of 2", str.Name, a)
+							}
+							str.Align = int(a)
 						default:
 							failf("unknown struct %v attribute: %v", str.Name, attr)
 						}
