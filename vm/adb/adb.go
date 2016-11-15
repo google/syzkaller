@@ -260,7 +260,7 @@ func (inst *instance) checkBatteryLevel() error {
 		minLevel      = 20
 		requiredLevel = 30
 	)
-	val, err := inst.getBatteryLevel()
+	val, err := inst.getBatteryLevel(3)
 	if err != nil {
 		return err
 	}
@@ -273,7 +273,7 @@ func (inst *instance) checkBatteryLevel() error {
 		if !vm.SleepInterruptible(time.Minute) {
 			return nil
 		}
-		val, err = inst.getBatteryLevel()
+		val, err = inst.getBatteryLevel(0)
 		if err != nil {
 			return err
 		}
@@ -284,10 +284,20 @@ func (inst *instance) checkBatteryLevel() error {
 	return nil
 }
 
-func (inst *instance) getBatteryLevel() (int, error) {
+func (inst *instance) getBatteryLevel(numRetry int) (int, error) {
 	out, err := inst.adb("shell", "dumpsys battery | grep level:")
-	if err != nil {
-		return 0, err
+
+	// allow for retrying for devices that does not boot up so fast
+	for ; numRetry >= 0 && err != nil; numRetry-- {
+		if numRetry > 0 {
+			// sleep for 5 seconds before retrying
+			time.Sleep(5 * time.Second)
+			out, err = inst.adb("shell", "dumpsys battery | grep level:")
+		} else {
+			if err != nil {
+				return 0, err
+			}
+		}
 	}
 	val := 0
 	for _, c := range out {
