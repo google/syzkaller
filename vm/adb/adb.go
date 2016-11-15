@@ -159,6 +159,7 @@ func findConsole(dev string) (string, error) {
 	}
 	devToConsole[dev] = con
 	consoleToDev[con] = dev
+	Logf(0, "associating adb device %v with console %v", dev, con)
 	return con, nil
 }
 
