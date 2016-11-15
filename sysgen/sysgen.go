@@ -291,13 +291,13 @@ func generateStructFields(str Struct, key structKey, desc *Description, consts m
 		typ = "UnionType"
 		fields = "Options"
 	}
-	fmt.Fprintf(out, "{ s := Structs[\"%v\"].(*%v)\n", key, typ)
+	fmt.Fprintf(out, "func() { s := Structs[\"%v\"].(*%v)\n", key, typ)
 	for _, a := range str.Flds {
 		fmt.Fprintf(out, "s.%v = append(s.%v, ", fields, fields)
 		generateArg(str.Name, a[0], a[1], key.dir, a[2:], desc, consts, false, true, out)
 		fmt.Fprintf(out, ")\n")
 	}
-	fmt.Fprintf(out, "}\n")
+	fmt.Fprintf(out, "}()\n")
 }
 
 func generateStructs(desc *Description, consts map[string]uint64, out io.Writer) {
