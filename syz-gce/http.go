@@ -6,15 +6,19 @@ package main
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"net"
 	"net/http"
 	"strings"
+	"sync/atomic"
 
 	. "github.com/google/syzkaller/log"
 )
 
 func initHttp(addr string) {
-	http.HandleFunc("/", httpSummary)
+	http.HandleFunc("/", httpManager)
+	http.HandleFunc("/syz-gce", httpSummary)
+
 	ln, err := net.Listen("tcp4", addr)
 	if err != nil {
 		Fatalf("failed to listen on %v: %v", addr, err)
@@ -28,8 +32,9 @@ func initHttp(addr string) {
 
 func httpSummary(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
-		Name: cfg.Name,
-		Log:  CachedLogOutput(),
+		Name:    cfg.Name,
+		Manager: atomic.LoadUint32(&managerHttpPort) != 0,
+		Log:     CachedLogOutput(),
 	}
 	if err := summaryTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
@@ -37,13 +42,28 @@ func httpSummary(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func httpManager(w http.ResponseWriter, r *http.Request) {
+	port := atomic.LoadUint32(&managerHttpPort)
+	if port == 0 {
+		http.Error(w, "manager is not running", http.StatusInternalServerError)
+		return
+	}
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%v/%v", port, r.RequestURI))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	io.Copy(w, resp.Body)
+}
+
 func compileTemplate(html string) *template.Template {
 	return template.Must(template.New("").Parse(strings.Replace(html, "{{STYLE}}", htmlStyle, -1)))
 }
 
 type UISummaryData struct {
-	Name string
-	Log  string
+	Name    string
+	Manager bool
+	Log     string
 }
 
 var summaryTemplate = compileTemplate(`
@@ -55,8 +75,14 @@ var summaryTemplate = compileTemplate(`
 </head>
 <body>
 <b>{{.Name}} syz-gce</b>
-<br>
-<br>
+<br><br>
+
+{{if .Manager}}
+<a href="/">manager</a>
+{{else}}
+manager is not running
+{{end}}
+<br><br>
 
 Log:
 <br>
