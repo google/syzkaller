@@ -55,7 +55,6 @@ func initGCE() {
 
 func ctor(cfg *vm.Config) (vm.Instance, error) {
 	initOnce.Do(initGCE)
-	name := fmt.Sprintf("syzkaller-%v-%v", cfg.Name, cfg.Index)
 	ok := false
 	defer func() {
 		if !ok {
@@ -74,28 +73,28 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 		return nil, fmt.Errorf("failed to read file: %v", err)
 	}
 
-	Logf(0, "deleting instance: %v", name)
-	if err := GCE.DeleteInstance(name, true); err != nil {
+	Logf(0, "deleting instance: %v", cfg.Name)
+	if err := GCE.DeleteInstance(cfg.Name, true); err != nil {
 		return nil, err
 	}
-	Logf(0, "creating instance: %v", name)
-	ip, err := GCE.CreateInstance(name, cfg.MachineType, cfg.Image, string(sshkeyPub))
+	Logf(0, "creating instance: %v", cfg.Name)
+	ip, err := GCE.CreateInstance(cfg.Name, cfg.MachineType, cfg.Image, string(sshkeyPub))
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if !ok {
-			GCE.DeleteInstance(name, true)
+			GCE.DeleteInstance(cfg.Name, true)
 		}
 	}()
-	Logf(0, "wait instance to boot: %v (%v)", name, ip)
+	Logf(0, "wait instance to boot: %v (%v)", cfg.Name, ip)
 	if err := waitInstanceBoot(ip, cfg.Sshkey); err != nil {
 		return nil, err
 	}
 	ok = true
 	inst := &instance{
 		cfg:    cfg,
-		name:   name,
+		name:   cfg.Name,
 		ip:     ip,
 		sshkey: sshkey,
 		closed: make(chan bool),
