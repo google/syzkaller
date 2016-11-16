@@ -10,13 +10,12 @@
 #   sudo debootstrap --include=openssh-server,curl,tar,time,strace stable debian
 # - you need qemu-nbd, grub and maybe something else:
 #   sudo apt-get install qemu-utils grub
-# - you need nbd support in kernel, if it's compiled as module do:
-#   sudo modprobe nbd
+# - you need nbd support in kernel
 # - you need kernel to use with image (e.g. arch/x86/boot/bzImage)
 #   note: kernel modules are not supported
 #
 # Usage:
-#   sudo ./create-gce-image.sh /dir/with/user/space/system /path/to/bzImage /path/to/vmlinux 'image tag'
+#   ./create-gce-image.sh /dir/with/user/space/system /path/to/bzImage /path/to/vmlinux 'image tag'
 #
 # The image can then be uploaded to GCS with:
 #   gsutil cp disk.tar.gz gs://my-images
@@ -52,6 +51,7 @@ if [ "$(grep nbd0 /proc/partitions)" != "" ]; then
 	exit 1
 fi
 
+sudo modprobe nbd
 fallocate -l 2G disk.raw
 sudo qemu-nbd -c /dev/nbd0 --format=raw disk.raw
 mkdir -p disk.mnt
@@ -66,6 +66,8 @@ echo "V0:23:respawn:/sbin/getty 115200 hvc0" | sudo tee -a disk.mnt/etc/inittab
 echo -en "\nauto eth0\niface eth0 inet dhcp\n" | sudo tee -a disk.mnt/etc/network/interfaces
 echo "debugfs /sys/kernel/debug debugfs defaults 0 0" | sudo tee -a disk.mnt/etc/fstab
 echo "debug.exception-trace = 0" | sudo tee -a disk.mnt/etc/sysctl.conf
+echo "net.core.bpf_jit_enable = 2" | sudo tee -a disk.mnt/etc/sysctl.conf
+echo "net.core.bpf_jit_harden = 2" | sudo tee -a disk.mnt/etc/sysctl.conf
 echo -en "127.0.0.1\tlocalhost\n" | sudo tee disk.mnt/etc/hosts
 echo "nameserver 8.8.8.8" | sudo tee -a disk.mnt/etc/resolve.conf
 echo "ClientAliveInterval 420" | sudo tee -a disk.mnt/etc/ssh/sshd_config
