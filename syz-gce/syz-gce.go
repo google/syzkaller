@@ -42,6 +42,7 @@ var (
 )
 
 type Config struct {
+	Name              string
 	Image_Archive     string
 	Image_Path        string
 	Image_Name        string
@@ -237,6 +238,7 @@ func writeManagerConfig(file string) error {
 		tag = tag[:len(tag)-1]
 	}
 	managerCfg := &config.Config{
+		Name:         cfg.Name,
 		Http:         fmt.Sprintf(":%v", cfg.Manager_Http_Port),
 		Rpc:          ":0",
 		Workdir:      "workdir",

@@ -55,7 +55,7 @@ func initGCE() {
 
 func ctor(cfg *vm.Config) (vm.Instance, error) {
 	initOnce.Do(initGCE)
-	name := fmt.Sprintf("syzkaller-%v", cfg.Index)
+	name := fmt.Sprintf("syzkaller-%v-%v", cfg.Name, cfg.Index)
 	ok := false
 	defer func() {
 		if !ok {

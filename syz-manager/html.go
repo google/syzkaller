@@ -50,7 +50,9 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	data := &UISummaryData{}
+	data := &UISummaryData{
+		Name: mgr.cfg.Name,
+	}
 	data.Stats = append(data.Stats, UIStat{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)})
 	data.Stats = append(data.Stats, UIStat{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))})
 	data.Stats = append(data.Stats, UIStat{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))})
@@ -347,6 +349,7 @@ func (mgr *Manager) collectCrashes() ([]UICrashType, error) {
 }
 
 type UISummaryData struct {
+	Name    string
 	Stats   []UIStat
 	Calls   []UICallType
 	Crashes []UICrashType
@@ -425,11 +428,11 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 <!doctype html>
 <html>
 <head>
-	<title>syzkaller</title>
+	<title>{{.Name }} syzkaller</title>
 	{{STYLE}}
 </head>
 <body>
-<b>ŜɎΖҚΑĻĹӖЯ</b>
+<b>{{.Name }} syzkaller</b>
 <br>
 <br>
 
