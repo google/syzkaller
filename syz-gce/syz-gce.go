@@ -15,11 +15,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -35,23 +37,23 @@ var (
 	flagNoImageCreate = flag.Bool("noimagecreate", false, "don't download/create image (for testing)")
 	flagNoRebuild     = flag.Bool("norebuild", false, "don't update/rebuild syzkaller (for testing)")
 
-	cfg           *Config
-	ctx           context.Context
-	storageClient *storage.Client
-	GCE           *gce.Context
+	cfg             *Config
+	ctx             context.Context
+	storageClient   *storage.Client
+	GCE             *gce.Context
+	managerHttpPort uint32
 )
 
 type Config struct {
-	Name              string
-	Image_Archive     string
-	Image_Path        string
-	Image_Name        string
-	Http_Port         int
-	Manager_Http_Port int
-	Machine_Type      string
-	Machine_Count     int
-	Sandbox           string
-	Procs             int
+	Name          string
+	Image_Archive string
+	Image_Path    string
+	Image_Name    string
+	Http_Port     int
+	Machine_Type  string
+	Machine_Count int
+	Sandbox       string
+	Procs         int
 }
 
 func main() {
@@ -98,6 +100,7 @@ func main() {
 				}
 				Logf(0, "syz-manager exited with %v", err)
 				managerCmd = nil
+				atomic.StoreUint32(&managerHttpPort, 0)
 			case s := <-sigC:
 				switch s {
 				case syscall.SIGUSR1:
@@ -194,7 +197,12 @@ func main() {
 		*flagNoRebuild = false
 		lastSyzkallerHash = syzkallerHash
 
-		if err := writeManagerConfig("manager.cfg"); err != nil {
+		port, err := chooseUnusedPort()
+		if err != nil {
+			Logf(0, "failed to choose an unused port: %v", err)
+			continue
+		}
+		if err := writeManagerConfig(port, "manager.cfg"); err != nil {
 			Logf(0, "failed to write manager config: %v", err)
 			continue
 		}
@@ -207,6 +215,7 @@ func main() {
 			continue
 		}
 		stoppingManager = false
+		atomic.StoreUint32(&managerHttpPort, uint32(port))
 		go func() {
 			managerStopped <- managerCmd.Wait()
 		}()
@@ -229,7 +238,7 @@ func readConfig(filename string) *Config {
 	return cfg
 }
 
-func writeManagerConfig(file string) error {
+func writeManagerConfig(httpPort int, file string) error {
 	tag, err := ioutil.ReadFile("image/tag")
 	if err != nil {
 		return fmt.Errorf("failed to read tag file: %v", err)
@@ -239,7 +248,7 @@ func writeManagerConfig(file string) error {
 	}
 	managerCfg := &config.Config{
 		Name:         cfg.Name,
-		Http:         fmt.Sprintf(":%v", cfg.Manager_Http_Port),
+		Http:         fmt.Sprintf(":%v", httpPort),
 		Rpc:          ":0",
 		Workdir:      "workdir",
 		Vmlinux:      "image/obj/vmlinux",
@@ -262,6 +271,16 @@ func writeManagerConfig(file string) error {
 		return err
 	}
 	return nil
+}
+
+func chooseUnusedPort() (int, error) {
+	ln, err := net.Listen("tcp4", ":")
+	if err != nil {
+		return 0, err
+	}
+	port := ln.Addr().(*net.TCPAddr).Port
+	ln.Close()
+	return port, nil
 }
 
 func openFile(file string) (*storage.ObjectHandle, time.Time, error) {
