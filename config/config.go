@@ -276,6 +276,7 @@ func checkUnknownFields(data []byte) (string, error) {
 	// While https://github.com/golang/go/issues/15314 is not resolved
 	// we don't have a better way than to enumerate all known fields.
 	var fields = []string{
+		"Name",
 		"Http",
 		"Rpc",
 		"Workdir",
