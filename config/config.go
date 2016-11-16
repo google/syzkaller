@@ -251,7 +251,7 @@ func CreateVMConfig(cfg *Config, index int) (*vm.Config, error) {
 		return nil, fmt.Errorf("failed to create instance temp dir: %v", err)
 	}
 	vmCfg := &vm.Config{
-		Name:        fmt.Sprintf("%v-%v", cfg.Type, index),
+		Name:        fmt.Sprintf("%v-%v-%v", cfg.Type, cfg.Name, index),
 		Index:       index,
 		Workdir:     workdir,
 		Bin:         cfg.Bin,
