@@ -18,6 +18,7 @@ import (
 )
 
 type Config struct {
+	Name    string // Instance name (used for identification and as GCE instance prefix)
 	Http    string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
 	Rpc     string // TCP address to serve RPC for fuzzer processes (optional, only useful for type "none")
 	Workdir string

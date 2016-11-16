@@ -28,7 +28,8 @@ func initHttp(addr string) {
 
 func httpSummary(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
-		Log: CachedLogOutput(),
+		Name: cfg.Name,
+		Log:  CachedLogOutput(),
 	}
 	if err := summaryTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
@@ -41,18 +42,19 @@ func compileTemplate(html string) *template.Template {
 }
 
 type UISummaryData struct {
-	Log string
+	Name string
+	Log  string
 }
 
 var summaryTemplate = compileTemplate(`
 <!doctype html>
 <html>
 <head>
-	<title>syz-gce</title>
+	<title>{{.Name}} syz-gce</title>
 	{{STYLE}}
 </head>
 <body>
-<b>syz-gce</b>
+<b>{{.Name}} syz-gce</b>
 <br>
 <br>
 
