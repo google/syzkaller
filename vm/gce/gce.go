@@ -34,7 +34,9 @@ type instance struct {
 	name    string
 	ip      string
 	offset  int64
-	sshkey  string // per-instance private ssh key
+	gceKey  string // per-instance private ssh key associated with the instance
+	sshKey  string // ssh key
+	sshUser string
 	workdir string
 	closed  chan bool
 }
@@ -50,7 +52,7 @@ func initGCE() {
 	if err != nil {
 		Fatalf("failed to init gce: %v", err)
 	}
-	Logf(0, "gce initialized: running on %v, internal IP, %v project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
+	Logf(0, "gce initialized: running on %v, internal IP %v, project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
 }
 
 func ctor(cfg *vm.Config) (vm.Instance, error) {
@@ -63,12 +65,12 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	}()
 
 	// Create SSH key for the instance.
-	sshkey := filepath.Join(cfg.Workdir, "key")
-	keygen := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "syzkaller", "-f", sshkey)
+	gceKey := filepath.Join(cfg.Workdir, "key")
+	keygen := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "syzkaller", "-f", gceKey)
 	if out, err := keygen.CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
 	}
-	sshkeyPub, err := ioutil.ReadFile(sshkey + ".pub")
+	gceKeyPub, err := ioutil.ReadFile(gceKey + ".pub")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %v", err)
 	}
@@ -78,7 +80,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 		return nil, err
 	}
 	Logf(0, "creating instance: %v", cfg.Name)
-	ip, err := GCE.CreateInstance(cfg.Name, cfg.MachineType, cfg.Image, string(sshkeyPub))
+	ip, err := GCE.CreateInstance(cfg.Name, cfg.MachineType, cfg.Image, string(gceKeyPub))
 	if err != nil {
 		return nil, err
 	}
@@ -87,17 +89,26 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 			GCE.DeleteInstance(cfg.Name, true)
 		}
 	}()
+	sshKey := cfg.Sshkey
+	sshUser := "root"
+	if sshKey == "" {
+		// Assuming image supports GCE ssh fanciness.
+		sshKey = gceKey
+		sshUser = "syzkaller"
+	}
 	Logf(0, "wait instance to boot: %v (%v)", cfg.Name, ip)
-	if err := waitInstanceBoot(ip, cfg.Sshkey); err != nil {
+	if err := waitInstanceBoot(ip, sshKey, sshUser); err != nil {
 		return nil, err
 	}
 	ok = true
 	inst := &instance{
-		cfg:    cfg,
-		name:   cfg.Name,
-		ip:     ip,
-		sshkey: sshkey,
-		closed: make(chan bool),
+		cfg:     cfg,
+		name:    cfg.Name,
+		ip:      ip,
+		gceKey:  gceKey,
+		sshKey:  sshKey,
+		sshUser: sshUser,
+		closed:  make(chan bool),
 	}
 	return inst, nil
 }
@@ -113,8 +124,8 @@ func (inst *instance) Forward(port int) (string, error) {
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
-	vmDst := filepath.Join("/", filepath.Base(hostSrc))
-	args := append(sshArgs(inst.cfg.Sshkey, "-P", 22), hostSrc, "root@"+inst.name+":"+vmDst)
+	vmDst := "./" + filepath.Base(hostSrc)
+	args := append(sshArgs(inst.sshKey, "-P", 22), hostSrc, inst.sshUser+"@"+inst.name+":"+vmDst)
 	cmd := exec.Command("scp", args...)
 	if err := cmd.Start(); err != nil {
 		return "", err
@@ -142,7 +153,7 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 	}
 
 	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com", GCE.ProjectID, GCE.ZoneID, inst.name)
-	conArgs := append(sshArgs(inst.sshkey, "-p", 9600), conAddr)
+	conArgs := append(sshArgs(inst.gceKey, "-p", 9600), conAddr)
 	con := exec.Command("ssh", conArgs...)
 	con.Env = []string{}
 	con.Stdout = conWpipe
@@ -171,7 +182,10 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 		sshRpipe.Close()
 		return nil, nil, err
 	}
-	args := append(sshArgs(inst.cfg.Sshkey, "-p", 22), "root@"+inst.name, command)
+	if inst.sshUser != "root" {
+		command = fmt.Sprintf("sudo bash -c '%v'", command)
+	}
+	args := append(sshArgs(inst.sshKey, "-p", 22), inst.sshUser+"@"+inst.name, command)
 	ssh := exec.Command("ssh", args...)
 	ssh.Stdout = sshWpipe
 	ssh.Stderr = sshWpipe
@@ -223,12 +237,12 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 	return merger.Output, errc, nil
 }
 
-func waitInstanceBoot(ip, sshkey string) error {
+func waitInstanceBoot(ip, sshKey, sshUser string) error {
 	for i := 0; i < 100; i++ {
 		if !vm.SleepInterruptible(5 * time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
-		cmd := exec.Command("ssh", append(sshArgs(sshkey, "-p", 22), "root@"+ip, "pwd")...)
+		cmd := exec.Command("ssh", append(sshArgs(sshKey, "-p", 22), sshUser+"@"+ip, "pwd")...)
 		if _, err := cmd.CombinedOutput(); err == nil {
 			return nil
 		}

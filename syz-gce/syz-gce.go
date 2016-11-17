@@ -258,10 +258,12 @@ func writeManagerConfig(httpPort int, file string) error {
 		Machine_Type: cfg.Machine_Type,
 		Count:        cfg.Machine_Count,
 		Image:        cfg.Image_Name,
-		Sshkey:       "image/key",
 		Sandbox:      cfg.Sandbox,
 		Procs:        cfg.Procs,
 		Cover:        true,
+	}
+	if _, err := os.Stat("image/key"); err == nil {
+		managerCfg.Sshkey = "image/key"
 	}
 	data, err := json.MarshalIndent(managerCfg, "", "\t")
 	if err != nil {
@@ -343,7 +345,7 @@ func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
 			return err
 		}
 	}
-	for _, need := range []string{"disk.tar.gz", "key", "tag", "obj/vmlinux"} {
+	for _, need := range []string{"disk.tar.gz", "tag", "obj/vmlinux"} {
 		if !files[need] {
 			return fmt.Errorf("archive misses required file '%v'", need)
 		}
