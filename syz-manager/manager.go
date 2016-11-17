@@ -5,7 +5,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/hex"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -23,6 +22,7 @@ import (
 
 	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/cover"
+	"github.com/google/syzkaller/hash"
 	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/report"
@@ -50,9 +50,12 @@ type Manager struct {
 	firstConnect     time.Time
 	stats            map[string]uint64
 	shutdown         uint32
+	vmChecked        bool
+	fresh            bool
 
 	mu              sync.Mutex
 	enabledSyscalls string
+	enabledCalls    []string // as determined by fuzzer
 	suppressions    []*regexp.Regexp
 
 	candidates     [][]byte // untriaged inputs
@@ -61,12 +64,14 @@ type Manager struct {
 	corpusCover    []cover.Cover
 	prios          [][]float32
 
-	fuzzers map[string]*Fuzzer
+	fuzzers   map[string]*Fuzzer
+	hub       *rpc.Client
+	hubCorpus map[hash.Sig]bool
 }
 
 type Fuzzer struct {
-	name  string
-	input int
+	name   string
+	inputs []RpcInput
 }
 
 func main() {
@@ -107,10 +112,12 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		suppressions:    suppressions,
 		corpusCover:     make([]cover.Cover, sys.CallCount),
 		fuzzers:         make(map[string]*Fuzzer),
+		fresh:           true,
 	}
 
 	Logf(0, "loading corpus...")
 	mgr.persistentCorpus = newPersistentSet(filepath.Join(cfg.Workdir, "corpus"), func(data []byte) bool {
+		mgr.fresh = false
 		if _, err := prog.Deserialize(data); err != nil {
 			Logf(0, "deleting broken program: %v\n%s", err, data)
 			return false
@@ -133,8 +140,10 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 			// This program contains a disabled syscall.
 			// We won't execute it, but remeber its hash so
 			// it is not deleted during minimization.
-			h := hash(data)
-			mgr.disabledHashes = append(mgr.disabledHashes, hex.EncodeToString(h[:]))
+			// TODO: use mgr.enabledCalls which accounts for missing devices, etc.
+			// But it is available only after vm check.
+			sig := hash.Hash(data)
+			mgr.disabledHashes = append(mgr.disabledHashes, sig.String())
 			continue
 		}
 		mgr.candidates = append(mgr.candidates, data)
@@ -201,6 +210,15 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 			Logf(0, "executed programs: %v, crashes: %v", executed, crashes)
 		}
 	}()
+
+	if mgr.cfg.Hub_Addr != "" {
+		go func() {
+			for {
+				time.Sleep(time.Minute)
+				mgr.hubSync()
+			}
+		}()
+	}
 
 	go func() {
 		c := make(chan os.Signal, 2)
@@ -293,8 +311,8 @@ func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []by
 	mgr.stats["crashes"]++
 	mgr.mu.Unlock()
 
-	h := hash([]byte(desc))
-	id := hex.EncodeToString(h[:])
+	sig := hash.Hash([]byte(desc))
+	id := sig.String()
 	dir := filepath.Join(mgr.crashdir, id)
 	os.MkdirAll(dir, 0700)
 	if err := ioutil.WriteFile(filepath.Join(dir, "description"), []byte(desc+"\n"), 0660); err != nil {
@@ -369,8 +387,8 @@ func (mgr *Manager) minimizeCorpus() {
 	if len(mgr.candidates) == 0 {
 		hashes := make(map[string]bool)
 		for _, inp := range mgr.corpus {
-			h := hash(inp.Prog)
-			hashes[hex.EncodeToString(h[:])] = true
+			sig := hash.Hash(inp.Prog)
+			hashes[sig.String()] = true
 		}
 		for _, h := range mgr.disabledHashes {
 			hashes[h] = true
@@ -389,14 +407,37 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 	}
 
 	mgr.stats["vm restarts"]++
+	f := &Fuzzer{
+		name: a.Name,
+	}
+	mgr.fuzzers[a.Name] = f
 	mgr.minimizeCorpus()
-	mgr.fuzzers[a.Name] = &Fuzzer{
-		name:  a.Name,
-		input: 0,
+	for _, inp := range mgr.corpus {
+		f.inputs = append(f.inputs, inp)
 	}
 	r.Prios = mgr.prios
 	r.EnabledCalls = mgr.enabledSyscalls
+	r.NeedCheck = !mgr.vmChecked
 
+	return nil
+}
+
+func (mgr *Manager) Check(a *CheckArgs, r *int) error {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	if mgr.vmChecked {
+		return nil
+	}
+	Logf(1, "fuzzer %v vm check: %v calls enabled", a.Name, len(a.Calls))
+	if len(a.Calls) == 0 {
+		Fatalf("no system calls enabled")
+	}
+	if mgr.cfg.Cover && !a.Kcov {
+		Fatalf("/sys/kernel/debug/kcov is missing. Enable CONFIG_KCOV and mount debugfs")
+	}
+	mgr.vmChecked = true
+	mgr.enabledCalls = a.Calls
 	return nil
 }
 
@@ -404,6 +445,11 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 	Logf(2, "new input from %v for syscall %v", a.Name, a.Call)
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
+
+	f := mgr.fuzzers[a.Name]
+	if f == nil {
+		Fatalf("fuzzer %v is not connected", a.Name)
+	}
 
 	call := sys.CallID[a.Call]
 	if len(cover.Difference(a.Cover, mgr.corpusCover[call])) == 0 {
@@ -413,6 +459,12 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 	mgr.corpus = append(mgr.corpus, a.RpcInput)
 	mgr.stats["manager new inputs"]++
 	mgr.persistentCorpus.add(a.RpcInput.Prog)
+	for _, f1 := range mgr.fuzzers {
+		if f1 == f {
+			continue
+		}
+		f1.inputs = append(f1.inputs, a.RpcInput)
+	}
 	return nil
 }
 
@@ -430,9 +482,13 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 		Fatalf("fuzzer %v is not connected", a.Name)
 	}
 
-	for i := 0; i < 100 && f.input < len(mgr.corpus); i++ {
-		r.NewInputs = append(r.NewInputs, mgr.corpus[f.input])
-		f.input++
+	for i := 0; i < 100 && len(f.inputs) > 0; i++ {
+		last := len(f.inputs) - 1
+		r.NewInputs = append(r.NewInputs, f.inputs[last])
+		f.inputs = f.inputs[:last]
+	}
+	if len(f.inputs) == 0 {
+		f.inputs = nil
 	}
 
 	for i := 0; i < 10 && len(mgr.candidates) > 0; i++ {
@@ -445,4 +501,84 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 	}
 
 	return nil
+}
+
+func (mgr *Manager) hubSync() {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+	if !mgr.vmChecked || len(mgr.candidates) != 0 {
+		return
+	}
+
+	mgr.minimizeCorpus()
+	if mgr.hub == nil {
+		conn, err := rpc.Dial("tcp", mgr.cfg.Hub_Addr)
+		if err != nil {
+			Logf(0, "failed to connect to hub at %v: %v", mgr.cfg.Hub_Addr, err)
+			return
+		}
+		mgr.hub = conn
+		a := &HubConnectArgs{
+			Name:  mgr.cfg.Name,
+			Key:   mgr.cfg.Hub_Key,
+			Fresh: mgr.fresh,
+			Calls: mgr.enabledCalls,
+		}
+		mgr.hubCorpus = make(map[hash.Sig]bool)
+		for _, inp := range mgr.corpus {
+			mgr.hubCorpus[hash.Hash(inp.Prog)] = true
+			a.Corpus = append(a.Corpus, inp.Prog)
+		}
+		if err := mgr.hub.Call("Hub.Connect", a, nil); err != nil {
+			Logf(0, "Hub.Connect rpc failed: %v", err)
+			mgr.hub.Close()
+			mgr.hub = nil
+			return
+		}
+		mgr.fresh = false
+		Logf(0, "connected to hub at %v, corpus %v", mgr.cfg.Hub_Addr, len(mgr.corpus))
+	}
+
+	a := &HubSyncArgs{
+		Name: mgr.cfg.Name,
+		Key:  mgr.cfg.Hub_Key,
+	}
+	corpus := make(map[hash.Sig]bool)
+	for _, inp := range mgr.corpus {
+		sig := hash.Hash(inp.Prog)
+		corpus[sig] = true
+		if mgr.hubCorpus[sig] {
+			continue
+		}
+		mgr.hubCorpus[sig] = true
+		a.Add = append(a.Add, inp.Prog)
+	}
+	for sig := range mgr.hubCorpus {
+		if corpus[sig] {
+			continue
+		}
+		delete(mgr.hubCorpus, sig)
+		a.Del = append(a.Del, sig.String())
+	}
+	r := new(HubSyncRes)
+	if err := mgr.hub.Call("Hub.Sync", a, r); err != nil {
+		Logf(0, "Hub.Sync rpc failed: %v", err)
+		mgr.hub.Close()
+		mgr.hub = nil
+		return
+	}
+	dropped := 0
+	for _, inp := range r.Inputs {
+		_, err := prog.Deserialize(inp)
+		if err != nil {
+			dropped++
+			continue
+		}
+		mgr.candidates = append(mgr.candidates, inp)
+	}
+	mgr.stats["hub add"] += uint64(len(a.Add))
+	mgr.stats["hub del"] += uint64(len(a.Del))
+	mgr.stats["hub drop"] += uint64(dropped)
+	mgr.stats["hub new"] += uint64(len(r.Inputs) - dropped)
+	Logf(0, "hub sync: add %v, del %v, drop %v, new %v", len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped)
 }

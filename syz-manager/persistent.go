@@ -4,33 +4,25 @@
 package main
 
 import (
-	"crypto/sha1"
-	"encoding/hex"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/google/syzkaller/hash"
 	. "github.com/google/syzkaller/log"
 )
-
-type Sig [sha1.Size]byte
 
 // PersistentSet is a set of binary blobs with a persistent mirror on disk.
 type PersistentSet struct {
 	dir string
-	m   map[Sig][]byte
+	m   map[hash.Sig][]byte
 	a   [][]byte
-}
-
-func hash(data []byte) Sig {
-	return Sig(sha1.Sum(data))
 }
 
 func newPersistentSet(dir string, verify func(data []byte) bool) *PersistentSet {
 	ps := &PersistentSet{
 		dir: dir,
-		m:   make(map[Sig][]byte),
+		m:   make(map[hash.Sig][]byte),
 	}
 	os.MkdirAll(dir, 0770)
 	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -48,7 +40,7 @@ func newPersistentSet(dir string, verify func(data []byte) bool) *PersistentSet 
 			Fatalf("error during file read: %v\n", err)
 			return nil
 		}
-		sig := hash(data)
+		sig := hash.Hash(data)
 		if _, ok := ps.m[sig]; ok {
 			return nil
 		}
@@ -60,20 +52,17 @@ func newPersistentSet(dir string, verify func(data []byte) bool) *PersistentSet 
 			os.Remove(path)
 			return nil
 		}
-		const hexLen = 2 * sha1.Size
-		if len(name) > hexLen+1 && isHexString(name[:hexLen]) && name[hexLen] == '.' {
-			return nil // description file
-		}
-		if len(name) != hexLen || !isHexString(name) {
+		if _, err := hash.FromString(name); err != nil {
 			Logf(0, "unknown file in persistent dir %v: %v", dir, name)
+			return nil
 		}
 		if verify != nil && !verify(data) {
 			os.Remove(path)
 			return nil
 		}
-		if name != hex.EncodeToString(sig[:]) {
-			Logf(0, "bad hash in persistent dir %v for file %v, expect %v", dir, name, hex.EncodeToString(sig[:]))
-			if err := ioutil.WriteFile(filepath.Join(ps.dir, hex.EncodeToString(sig[:])), data, 0660); err != nil {
+		if name != sig.String() {
+			Logf(0, "bad hash in persistent dir %v for file %v, expect %v", dir, name, sig.String())
+			if err := ioutil.WriteFile(filepath.Join(ps.dir, sig.String()), data, 0660); err != nil {
 				Fatalf("failed to write file: %v", err)
 			}
 			os.Remove(path)
@@ -85,43 +74,24 @@ func newPersistentSet(dir string, verify func(data []byte) bool) *PersistentSet 
 	return ps
 }
 
-func isHexString(s string) bool {
-	for _, v := range []byte(s) {
-		if v >= '0' && v <= '9' || v >= 'a' && v <= 'f' {
-			continue
-		}
-		return false
-	}
-	return true
-}
-
 func (ps *PersistentSet) add(data []byte) bool {
-	sig := hash(data)
+	sig := hash.Hash(data)
 	if _, ok := ps.m[sig]; ok {
 		return false
 	}
 	ps.m[sig] = data
 	ps.a = append(ps.a, data)
-	fname := filepath.Join(ps.dir, hex.EncodeToString(sig[:]))
+	fname := filepath.Join(ps.dir, sig.String())
 	if err := ioutil.WriteFile(fname, data, 0660); err != nil {
 		Fatalf("failed to write file: %v", err)
 	}
 	return true
 }
 
-// addDescription creates a complementary to data file on disk.
-func (ps *PersistentSet) addDescription(data []byte, desc []byte, typ string) {
-	sig := hash(data)
-	fname := filepath.Join(ps.dir, fmt.Sprintf("%v.%v", hex.EncodeToString(sig[:]), typ))
-	if err := ioutil.WriteFile(fname, desc, 0660); err != nil {
-		Fatalf("failed to write file: %v", err)
-	}
-}
-
 func (ps *PersistentSet) minimize(set map[string]bool) {
 	ps.a = nil
 	for sig, data := range ps.m {
-		s := hex.EncodeToString(sig[:])
+		s := sig.String()
 		if set[s] {
 			ps.a = append(ps.a, data)
 		} else {

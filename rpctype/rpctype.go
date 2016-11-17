@@ -19,6 +19,13 @@ type ConnectArgs struct {
 type ConnectRes struct {
 	Prios        [][]float32
 	EnabledCalls string
+	NeedCheck    bool
+}
+
+type CheckArgs struct {
+	Name  string
+	Kcov  bool
+	Calls []string
 }
 
 type NewInputArgs struct {
@@ -34,4 +41,23 @@ type PollArgs struct {
 type PollRes struct {
 	Candidates [][]byte
 	NewInputs  []RpcInput
+}
+
+type HubConnectArgs struct {
+	Name   string
+	Key    string
+	Fresh  bool
+	Calls  []string
+	Corpus [][]byte
+}
+
+type HubSyncArgs struct {
+	Name string
+	Key  string
+	Add  [][]byte
+	Del  []string
+}
+
+type HubSyncRes struct {
+	Inputs [][]byte
 }

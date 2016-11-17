@@ -46,6 +46,8 @@ var (
 
 type Config struct {
 	Name          string
+	Hub_Addr      string
+	Hub_Key       string
 	Image_Archive string
 	Image_Path    string
 	Image_Name    string
@@ -248,6 +250,8 @@ func writeManagerConfig(httpPort int, file string) error {
 	}
 	managerCfg := &config.Config{
 		Name:         cfg.Name,
+		Hub_Addr:     cfg.Hub_Addr,
+		Hub_Key:      cfg.Hub_Key,
 		Http:         fmt.Sprintf(":%v", httpPort),
 		Rpc:          ":0",
 		Workdir:      "workdir",

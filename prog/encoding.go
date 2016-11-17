@@ -516,3 +516,36 @@ func (p *parser) Ident() string {
 func (p *parser) failf(msg string, args ...interface{}) {
 	p.e = fmt.Errorf("%v\nline #%v: %v", fmt.Sprintf(msg, args...), p.l, p.s)
 }
+
+// CallSet returns a set of all calls in the program.
+// It does very conservative parsing and is intended to parse paste/future serialization formats.
+func CallSet(data []byte) (map[string]struct{}, error) {
+	calls := make(map[string]struct{})
+	s := bufio.NewScanner(bytes.NewReader(data))
+	for s.Scan() {
+		ln := s.Bytes()
+		if len(ln) == 0 || ln[0] == '#' {
+			continue
+		}
+		bracket := bytes.IndexByte(ln, '(')
+		if bracket == -1 {
+			return nil, fmt.Errorf("line does not contain opening bracket")
+		}
+		call := ln[:bracket]
+		if eq := bytes.IndexByte(call, '='); eq != -1 {
+			eq++
+			for eq < len(call) && call[eq] == ' ' {
+				eq++
+			}
+			call = call[eq:]
+		}
+		if len(call) == 0 {
+			return nil, fmt.Errorf("call name is empty")
+		}
+		calls[string(call)] = struct{}{}
+	}
+	if len(calls) == 0 {
+		return nil, fmt.Errorf("program does not contain any calls")
+	}
+	return calls, nil
+}
