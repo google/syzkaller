@@ -35,6 +35,9 @@ type Config struct {
 	Debug   bool   // dump all VM output to console
 	Output  string // one of stdout/dmesg/file (useful only for local VM)
 
+	Hub_Addr string
+	Hub_Key  string
+
 	Syzkaller string   // path to syzkaller checkout (syz-manager will look for binaries in bin subdir)
 	Type      string   // VM type (qemu, kvm, local)
 	Count     int      // number of VMs (don't secify for adb, instead specify devices)
@@ -291,6 +294,8 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Bin",
 		"Debug",
 		"Output",
+		"Hub_Addr",
+		"Hub_Key",
 		"Syzkaller",
 		"Type",
 		"Count",

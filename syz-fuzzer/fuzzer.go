@@ -116,6 +116,20 @@ func main() {
 	calls := buildCallList(r.EnabledCalls)
 	ct := prog.BuildChoiceTable(r.Prios, calls)
 
+	if r.NeedCheck {
+		a := &CheckArgs{Name: *flagName}
+		if fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0); err == nil {
+			syscall.Close(fd)
+			a.Kcov = true
+		}
+		for c := range calls {
+			a.Calls = append(a.Calls, c.Name)
+		}
+		if err := manager.Call("Manager.Check", a, nil); err != nil {
+			panic(err)
+		}
+	}
+
 	kmemleakInit()
 
 	flags, timeout, err := ipc.DefaultFlags()
@@ -123,13 +137,6 @@ func main() {
 		panic(err)
 	}
 	noCover = flags&ipc.FlagCover == 0
-	if !noCover {
-		fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0)
-		if err != nil {
-			Fatalf("BUG: /sys/kernel/debug/kcov is missing (%v). Enable CONFIG_KCOV and mount debugfs.", err)
-		}
-		syscall.Close(fd)
-	}
 	leakCallback := func() {
 		if atomic.LoadUint32(&allTriaged) != 0 {
 			// Scan for leaks once in a while (it is damn slow).
@@ -269,13 +276,11 @@ func main() {
 					triageMu.Unlock()
 				}
 			}
-			if len(r.Candidates) == 0 {
-				if atomic.LoadUint32(&allTriaged) == 0 {
-					if *flagLeak {
-						kmemleakScan(false)
-					}
-					atomic.StoreUint32(&allTriaged, 1)
+			if len(r.Candidates) == 0 && atomic.LoadUint32(&allTriaged) == 0 {
+				if *flagLeak {
+					kmemleakScan(false)
 				}
+				atomic.StoreUint32(&allTriaged, 1)
 			}
 			if len(r.NewInputs) == 0 && len(r.Candidates) == 0 {
 				lastPoll = time.Now()
