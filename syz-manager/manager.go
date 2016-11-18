@@ -169,6 +169,8 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 				Logf(0, "failed to accept an rpc connection: %v", err)
 				continue
 			}
+			conn.SetKeepAlive(true)
+			conn.SetKeepAlivePeriod(time.Minute)
 			go s.ServeCodec(jsonrpc.NewServerCodec(conn))
 		}
 	}()

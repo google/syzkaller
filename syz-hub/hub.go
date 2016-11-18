@@ -65,7 +65,16 @@ func main() {
 	Logf(0, "serving rpc on tcp://%v", ln.Addr())
 	s := rpc.NewServer()
 	s.Register(hub)
-	s.Accept(ln)
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			Logf(0, "failed to accept an rpc connection: %v", err)
+			continue
+		}
+		conn.SetKeepAlive(true)
+		conn.SetKeepAlivePeriod(time.Minute)
+		go s.ServeConn(conn)
+	}
 }
 
 func (hub *Hub) Connect(a *HubConnectArgs, r *int) error {
