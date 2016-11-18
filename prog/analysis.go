@@ -239,8 +239,11 @@ func sanitizeCall(c *Call) {
 		if flags.Val&sys.MREMAP_MAYMOVE != 0 {
 			flags.Val |= sys.MREMAP_FIXED
 		}
-	case "mknod":
+	case "mknod", "mknodat":
 		mode := c.Args[1]
+		if c.Meta.CallName == "mknodat" {
+			mode = c.Args[2]
+		}
 		if mode.Kind != ArgConst {
 			panic("mknod mode is not const")
 		}
