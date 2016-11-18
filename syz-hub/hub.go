@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/rpc"
 	"sync"
+	"time"
 
 	. "github.com/google/syzkaller/log"
 	. "github.com/google/syzkaller/rpctype"
@@ -71,8 +72,8 @@ func main() {
 			Logf(0, "failed to accept an rpc connection: %v", err)
 			continue
 		}
-		conn.SetKeepAlive(true)
-		conn.SetKeepAlivePeriod(time.Minute)
+		conn.(*net.TCPConn).SetKeepAlive(true)
+		conn.(*net.TCPConn).SetKeepAlivePeriod(time.Minute)
 		go s.ServeConn(conn)
 	}
 }
