@@ -465,6 +465,11 @@ membarrier(cmd const[1], flags const[0])
 #syz_open_dev$char(dev const[0xc], major intptr, minor intptr) fd
 #syz_open_dev$block(dev const[0xb], major intptr, minor intptr) fd
 
+# /dev/console known to cause problems on at least two different kernels.
+# It can turn off all output or produce massive amounts of garbage on console.
+# Disable it for now.
+#syz_open_dev$console(dev ptr[in, string["/dev/console"]], id const[0], flags flags[open_flags]) fd
+
 # These devices are relatively safe (don't reboot and don't corrupt kernel memory).
 # They need a more comprehensive support. But let at least open them for now,
 # maybe fuzzer will be able to skrew them in a useful way.
@@ -488,7 +493,6 @@ syz_open_dev$hpet(dev ptr[in, string["/dev/hpet"]], id const[0], flags flags[ope
 syz_open_dev$hidraw0(dev ptr[in, string["/dev/hidraw0"]], id const[0], flags flags[open_flags]) fd
 syz_open_dev$fb0(dev ptr[in, string["/dev/fb0"]], id const[0], flags flags[open_flags]) fd
 syz_open_dev$cuse(dev ptr[in, string["/dev/cuse"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$console(dev ptr[in, string["/dev/console"]], id const[0], flags flags[open_flags]) fd
 syz_open_dev$capi20(dev ptr[in, string["/dev/capi20"]], id const[0], flags flags[open_flags]) fd
 syz_open_dev$autofs(dev ptr[in, string["/dev/autofs"]], id const[0], flags flags[open_flags]) fd
 syz_open_dev$binder(dev ptr[in, string["/dev/binder"]], id const[0], flags flags[open_flags]) fd
