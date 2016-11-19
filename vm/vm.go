@@ -27,7 +27,8 @@ type Instance interface {
 	// Run runs cmd inside of the VM (think of ssh cmd).
 	// outc receives combined cmd and kernel console output.
 	// errc receives either command Wait return error or vm.TimeoutErr.
-	Run(timeout time.Duration, command string) (outc <-chan []byte, errc <-chan error, err error)
+	// Command is terminated after timeout. Send on the stop chan can be used to terminate it earlier.
+	Run(timeout time.Duration, stop <-chan bool, command string) (outc <-chan []byte, errc <-chan error, err error)
 
 	// Close stops and destroys the VM.
 	Close()

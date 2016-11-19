@@ -318,7 +318,7 @@ func (ctx *context) testBin(bin string, duration time.Duration, reboot bool) (cr
 }
 
 func (ctx *context) testImpl(inst vm.Instance, command string, duration time.Duration) (crashed bool, err error) {
-	outc, errc, err := inst.Run(duration, command)
+	outc, errc, err := inst.Run(duration, nil, command)
 	if err != nil {
 		return false, fmt.Errorf("failed to run command in VM: %v", err)
 	}
