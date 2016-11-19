@@ -135,7 +135,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	}()
 
 	// Wait for the script to start serving.
-	_, errc, err := inst.Run(10*time.Minute, "mount -t debugfs none /sys/kernel/debug/")
+	_, errc, err := inst.Run(10*time.Minute, nil, "mount -t debugfs none /sys/kernel/debug/")
 	if err == nil {
 		err = <-errc
 	}
@@ -197,7 +197,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, nil
 }
 
-func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte, <-chan error, error) {
+func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
 	outputC := make(chan []byte, 10)
 	errorC := make(chan error, 1)
 	inst.mu.Lock()
@@ -232,6 +232,9 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 		for {
 			select {
 			case <-timeoutTicker.C:
+				resultErr = vm.TimeoutErr
+				break loop
+			case <-stop:
 				resultErr = vm.TimeoutErr
 				break loop
 			case <-secondTicker.C:

@@ -63,7 +63,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, nil
 }
 
-func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte, <-chan error, error) {
+func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
 	rpipe, wpipe, err := os.Pipe()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create pipe: %v", err)
@@ -130,6 +130,11 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 			case <-timeout.C:
 				signal(vm.TimeoutErr)
 				cmd.Process.Kill()
+				return
+			case <-stop:
+				signal(vm.TimeoutErr)
+				cmd.Process.Kill()
+				timeout.Stop()
 				return
 			case <-done:
 				timeout.Stop()

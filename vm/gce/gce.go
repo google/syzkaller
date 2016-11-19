@@ -146,7 +146,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	return vmDst, nil
 }
 
-func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte, <-chan error, error) {
+func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
 	conRpipe, conWpipe, err := vm.LongPipe()
 	if err != nil {
 		return nil, nil, err
@@ -218,6 +218,10 @@ func (inst *instance) Run(timeout time.Duration, command string) (<-chan []byte,
 	go func() {
 		select {
 		case <-time.After(timeout):
+			signal(vm.TimeoutErr)
+			con.Process.Kill()
+			ssh.Process.Kill()
+		case <-stop:
 			signal(vm.TimeoutErr)
 			con.Process.Kill()
 			ssh.Process.Kill()

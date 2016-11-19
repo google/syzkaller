@@ -74,6 +74,12 @@ type Fuzzer struct {
 	inputs []RpcInput
 }
 
+type Crash struct {
+	desc   string
+	text   []byte
+	output []byte
+}
+
 func main() {
 	flag.Parse()
 	EnableLogCaching(1000, 1<<20)
@@ -191,12 +197,12 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 				if err != nil {
 					Fatalf("failed to create VM config: %v", err)
 				}
-				ok := mgr.runInstance(vmCfg, i == 0)
+				crash := mgr.runInstance(vmCfg, i == 0)
 				if atomic.LoadUint32(&shutdown) != 0 {
 					break
 				}
-				if !ok {
-					time.Sleep(10 * time.Second)
+				if crash != nil {
+					mgr.saveCrasher(vmCfg.Name, crash)
 				}
 			}
 		}()
@@ -238,28 +244,28 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 	wg.Wait()
 }
 
-func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
+func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) *Crash {
 	inst, err := vm.Create(mgr.cfg.Type, vmCfg)
 	if err != nil {
 		Logf(0, "failed to create instance: %v", err)
-		return false
+		return nil
 	}
 	defer inst.Close()
 
 	fwdAddr, err := inst.Forward(mgr.port)
 	if err != nil {
 		Logf(0, "failed to setup port forwarding: %v", err)
-		return false
+		return nil
 	}
 	fuzzerBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin", "syz-fuzzer"))
 	if err != nil {
 		Logf(0, "failed to copy binary: %v", err)
-		return false
+		return nil
 	}
 	executorBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin", "syz-executor"))
 	if err != nil {
 		Logf(0, "failed to copy binary: %v", err)
-		return false
+		return nil
 	}
 
 	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
@@ -270,37 +276,36 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) bool {
 	}
 
 	// Run the fuzzer binary.
-	outc, errc, err := inst.Run(time.Hour, fmt.Sprintf(
-		"%v -executor=%v -name=%v -manager=%v -output=%v -procs=%v -leak=%v -cover=%v -sandbox=%v -debug=%v -v=%d",
-		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, fuzzerV))
+	cmd := fmt.Sprintf("%v -executor=%v -name=%v -manager=%v -output=%v -procs=%v -leak=%v -cover=%v -sandbox=%v -debug=%v -v=%d",
+		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, fuzzerV)
+	outc, errc, err := inst.Run(time.Hour, nil, cmd)
 	if err != nil {
 		Logf(0, "failed to run fuzzer: %v", err)
-		return false
+		return nil
 	}
 
 	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.cfg.Type == "local", true)
 	if timedout {
 		// This is the only "OK" outcome.
 		Logf(0, "%v: running long enough, restarting", vmCfg.Name)
-	} else {
-		if !crashed {
-			// syz-fuzzer exited, but it should not.
-			desc = "lost connection to test machine"
-		}
-		mgr.saveCrasher(vmCfg, desc, text, output)
+		return nil
 	}
-	return true
+	if !crashed {
+		// syz-fuzzer exited, but it should not.
+		desc = "lost connection to test machine"
+	}
+	return &Crash{desc, text, output}
 }
 
-func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []byte) {
+func (mgr *Manager) saveCrasher(vmName string, crash *Crash) {
 	if atomic.LoadUint32(&mgr.shutdown) != 0 {
 		// qemu crashes with "qemu: terminating on signal 2",
 		// which we detect as "lost connection".
 		return
 	}
 	for _, re := range mgr.suppressions {
-		if re.Match(output) {
-			Logf(1, "%v: suppressing '%v' with '%v'", vmCfg.Name, desc, re.String())
+		if re.Match(crash.output) {
+			Logf(1, "%v: suppressing '%v' with '%v'", vmName, crash.desc, re.String())
 			mgr.mu.Lock()
 			mgr.stats["suppressed"]++
 			mgr.mu.Unlock()
@@ -308,16 +313,16 @@ func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []by
 		}
 	}
 
-	Logf(0, "%v: crash: %v", vmCfg.Name, desc)
+	Logf(0, "%v: crash: %v", vmName, crash.desc)
 	mgr.mu.Lock()
 	mgr.stats["crashes"]++
 	mgr.mu.Unlock()
 
-	sig := hash.Hash([]byte(desc))
+	sig := hash.Hash([]byte(crash.desc))
 	id := sig.String()
 	dir := filepath.Join(mgr.crashdir, id)
 	os.MkdirAll(dir, 0700)
-	if err := ioutil.WriteFile(filepath.Join(dir, "description"), []byte(desc+"\n"), 0660); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.desc+"\n"), 0660); err != nil {
 		Logf(0, "failed to write crash: %v", err)
 	}
 	// Save up to 100 reports. If we already have 100, overwrite the oldest one.
@@ -336,18 +341,18 @@ func (mgr *Manager) saveCrasher(vmCfg *vm.Config, desc string, text, output []by
 			oldestTime = info.ModTime()
 		}
 	}
-	ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), output, 0660)
+	ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.output, 0660)
 	if len(mgr.cfg.Tag) > 0 {
 		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag), 0660)
 	}
-	if len(text) > 0 {
-		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text)
+	if len(crash.text) > 0 {
+		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text)
 		if err != nil {
 			Logf(0, "failed to symbolize crash: %v", err)
 		} else {
-			text = symbolized
+			crash.text = symbolized
 		}
-		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), []byte(text), 0660)
+		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), []byte(crash.text), 0660)
 	}
 }
 

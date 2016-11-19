@@ -105,9 +105,9 @@ func runInstance(cfg *config.Config, vmCfg *vm.Config) {
 		return
 	}
 
-	outc, errc, err := inst.Run(time.Hour, fmt.Sprintf(
-		"%v -executor=%v -repeat=0 -procs=%v -cover=0 -sandbox=%v %v",
-		execprogBin, executorBin, cfg.Procs, cfg.Sandbox, logFile))
+	cmd := fmt.Sprintf("%v -executor=%v -repeat=0 -procs=%v -cover=0 -sandbox=%v %v",
+		execprogBin, executorBin, cfg.Procs, cfg.Sandbox, logFile)
+	outc, errc, err := inst.Run(time.Hour, nil, cmd)
 	if err != nil {
 		Logf(0, "failed to run execprog: %v", err)
 		return
