@@ -223,7 +223,7 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 			return
 		}
 		if int(callIndex) > len(cov) {
-			err0 = fmt.Errorf("failed to read output coverage: expect index %v, got %v", i, callIndex)
+			err0 = fmt.Errorf("failed to read output coverage: record %v, call %v, total calls %v", i, callIndex, len(cov))
 			return
 		}
 		if cov[callIndex] != nil {
@@ -238,7 +238,7 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 		cov1 := make([]uint32, coverSize)
 		for j := uint32(0); j < coverSize; j++ {
 			if err := binary.Read(r, binary.LittleEndian, &pc); err != nil {
-				err0 = fmt.Errorf("failed to read output coverage: expect index %v, got %v", i, callIndex)
+				err0 = fmt.Errorf("failed to read output coverage: record %v, call %v, coversize=%v err=%v", i, callIndex, coverSize, err)
 				return
 			}
 			cov1[j] = pc
