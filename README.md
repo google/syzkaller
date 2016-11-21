@@ -10,8 +10,6 @@ google account or by sending an email to syzkaller+subscribe@googlegroups.com.
 
 List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
 
-This is work-in-progress, some things may not work yet.
-
 ## Usage
 
 Various components are needed to build and run syzkaller.
@@ -26,8 +24,8 @@ Setting each of these up is discussed in the following sections.
 ### C Compiler
 
 Syzkaller is a coverage-guided fuzzer and so needs the kernel to be built with coverage support.
-Therefore, a recent upstream version of GCC is needed. Coverage support is submitted to gcc in
-revision 231296, released in gcc6.
+Therefore, a recent version of GCC is needed. Coverage support is submitted to gcc in
+revision `231296`, released in gcc6.
 
 ### Linux Kernel
 
@@ -37,10 +35,9 @@ to:
  - add extra instrumentation on system call entry/exit (for a `CONFIG_KCOV` build)
  - add code to track and report per-task coverage information.
 
-KCOV is upstreamed in linux 4.6. For older kernels you need to backport commit [5c9a8750a6409c63a0f01d51a9024861022f6593](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593). The kernel should be configured with `CONFIG_KCOV` plus `CONFIG_KASAN` or `CONFIG_KTSAN`.
+KCOV is upstreamed in linux 4.6. For older kernels you need to backport commit [5c9a8750a6409c63a0f01d51a9024861022f6593](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593). The kernel should be configured with `CONFIG_KCOV`.
 
-(Note that if the kernel under test does not include support for all namespaces, the `dropprivs`
-configuration value should be set to `false`.)
+See [Kernel configs](https://github.com/google/syzkaller/wiki/Kernel-configs) for details on configuring kernel.
 
 ### QEMU Setup
 
@@ -63,12 +60,21 @@ In particular:
 
 [create-image.sh](tools/create-image.sh) script can be used to create a suitable Linux image.
 
-TODO: Describe how to support other types of VM other than QEMU.
+Syzkaller also supports kvmtool VMs, GCE VMs and running on real android devices. TODO: Describe how to support other types of VMs.
 
 ### Syzkaller
 
-The syzkaller tools are written in [Go](https://golang.org), so a Go compiler (>= 1.4) is needed
-to build them.  Build with `make`, which generates compiled binaries in the `bin/` folder.
+The syzkaller tools are written in [Go](https://golang.org), so a Go compiler (>= 1.7) is needed
+to build them.
+
+Go distribution can be downloaded from https://golang.org/dl/.
+Unpack Go into a directory, say, `$HOME/go`.
+Then, set `GOROOT=$HOME/go` env var.
+Then, add Go binaries to `PATH`, `PATH=$HOME/go/bin:$PATH`.
+Then, set `GOPATH` env var to some empty dir, say `GOPATH=$HOME/gopath`.
+Then, run `go get github.com/google/syzkaller/...` to checkout syzkaller sources with all dependencies.
+Then, `cd $GOPATH/src/github.com/google/syzkaller` and
+build with `make`, which generates compiled binaries in the `bin/` folder.
 
 ## Configuration
 
@@ -106,6 +112,8 @@ following keys in its top-level object:
  - `enable_syscalls`: List of syscalls to test (optional).
  - `disable_syscalls`: List of system calls that should be treated as disabled (optional).
  - `suppressions`: List of regexps for known bugs.
+
+See also [config/config.go](config/config.go) for all config parameters.
 
 
 ## Running syzkaller
