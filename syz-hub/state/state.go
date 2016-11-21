@@ -165,7 +165,7 @@ func (st *State) Sync(name string, add [][]byte, del []string) ([][]byte, error)
 		for _, h := range del {
 			sig, err := hash.FromString(h)
 			if err != nil {
-				Logf(0, "manager %v: bad hash: %v", h)
+				Logf(0, "manager %v: bad hash: %v", mgr.name, h)
 				continue
 			}
 			delete(mgr.Corpus, sig)
