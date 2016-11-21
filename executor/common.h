@@ -2,11 +2,13 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // This file is shared between executor and csource package.
+#define _GNU_SOURCE
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <linux/capability.h>
+#include <linux/sched.h>
 #include <pthread.h>
 #include <setjmp.h>
 #include <signal.h>
