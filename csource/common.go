@@ -3,7 +3,9 @@ package csource
 
 var commonHeader = `
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -227,6 +229,8 @@ static void setup_main_process()
 	char* tmpdir = mkdtemp(tmpdir_template);
 	if (!tmpdir)
 		fail("failed to mkdtemp");
+	if (chmod(tmpdir, 0777))
+		fail("failed to chmod");
 	if (chdir(tmpdir))
 		fail("failed to chdir");
 }
