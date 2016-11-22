@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -158,11 +159,18 @@ func (inst *instance) Boot() error {
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
-		"-enable-kvm",
 		"-numa", "node,nodeid=0,cpus=0-1", "-numa", "node,nodeid=1,cpus=2-3",
 		"-smp", "sockets=2,cores=2,threads=1",
-		"-usb", "-usbdevice", "mouse", "-usbdevice", "tablet",
-		"-soundhw", "all",
+	}
+	if inst.cfg.BinArgs == "" {
+		// This is reasonable defaults for x86 kvm-enabled host.
+		args = append(args,
+			"-enable-kvm",
+			"-usb", "-usbdevice", "mouse", "-usbdevice", "tablet",
+			"-soundhw", "all",
+		)
+	} else {
+		args = append(args, strings.Split(inst.cfg.BinArgs, " ")...)
 	}
 	if inst.cfg.Image == "9p" {
 		args = append(args,
@@ -193,6 +201,9 @@ func (inst *instance) Boot() error {
 			"-kernel", inst.cfg.Kernel,
 			"-append", cmdline+inst.cfg.Cmdline,
 		)
+	}
+	if inst.cfg.Debug {
+		Logf(0, "running command: %v %#v", inst.cfg.Bin, args)
 	}
 	qemu := exec.Command(inst.cfg.Bin, args...)
 	qemu.Stdout = inst.wpipe
@@ -281,13 +292,18 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join(basePath, filepath.Base(hostSrc))
 	args := append(inst.sshArgs("-P"), hostSrc, "root@localhost:"+vmDst)
 	cmd := exec.Command("scp", args...)
+	if inst.cfg.Debug {
+		Logf(0, "running command: scp %#v", args)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stdout
+	}
 	if err := cmd.Start(); err != nil {
 		return "", err
 	}
 	done := make(chan bool)
 	go func() {
 		select {
-		case <-time.After(time.Minute):
+		case <-time.After(3 * time.Minute):
 			cmd.Process.Kill()
 		case <-done:
 		}
@@ -308,6 +324,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	inst.merger.Add(rpipe)
 
 	args := append(inst.sshArgs("-p"), "root@localhost", command)
+	if inst.cfg.Debug {
+		Logf(0, "running command: ssh %#v", args)
+	}
 	cmd := exec.Command("ssh", args...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
@@ -345,7 +364,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 }
 
 func (inst *instance) sshArgs(portArg string) []string {
-	return []string{
+	args := []string{
 		"-i", inst.cfg.Sshkey,
 		portArg, strconv.Itoa(inst.port),
 		"-F", "/dev/null",
@@ -357,6 +376,10 @@ func (inst *instance) sshArgs(portArg string) []string {
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "LogLevel=error",
 	}
+	if inst.cfg.Debug {
+		args = append(args, "-v")
+	}
+	return args
 }
 
 const initScript = `#! /bin/bash
