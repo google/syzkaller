@@ -481,6 +481,7 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 <br>
 
 <b>Per-call coverage:</b>
+<br>
 {{range $c := $.Calls}}
 	{{$c.Name}}
 		<a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a>
