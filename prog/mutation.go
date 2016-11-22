@@ -388,14 +388,14 @@ func mutateData(r *randGen, data []byte, minLen, maxLen int) []byte {
 		r.choose(
 			100, func() {
 				// Append byte.
-				if len(data) == maxLen {
+				if len(data) >= maxLen {
 					return
 				}
 				data = append(data, byte(r.rand(256)))
 			},
 			100, func() {
 				// Remove byte.
-				if len(data) == minLen {
+				if len(data) <= minLen {
 					return
 				}
 				if len(data) == 0 {
