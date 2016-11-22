@@ -18,22 +18,23 @@ import (
 )
 
 type Config struct {
-	Name    string // Instance name (used for identification and as GCE instance prefix)
-	Http    string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
-	Rpc     string // TCP address to serve RPC for fuzzer processes (optional, only useful for type "none")
-	Workdir string
-	Vmlinux string
-	Kernel  string // e.g. arch/x86/boot/bzImage
-	Tag     string // arbitrary optional tag that is saved along with crash reports (e.g. kernel branch/commit)
-	Cmdline string // kernel command line
-	Image   string // linux image for VMs
-	Initrd  string // linux initial ramdisk. (optional)
-	Cpu     int    // number of VM CPUs
-	Mem     int    // amount of VM memory in MBs
-	Sshkey  string // root ssh key for the image
-	Bin     string // qemu/lkvm binary name
-	Debug   bool   // dump all VM output to console
-	Output  string // one of stdout/dmesg/file (useful only for local VM)
+	Name     string // Instance name (used for identification and as GCE instance prefix)
+	Http     string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
+	Rpc      string // TCP address to serve RPC for fuzzer processes (optional, only useful for type "none")
+	Workdir  string
+	Vmlinux  string
+	Kernel   string // e.g. arch/x86/boot/bzImage
+	Tag      string // arbitrary optional tag that is saved along with crash reports (e.g. kernel branch/commit)
+	Cmdline  string // kernel command line
+	Image    string // linux image for VMs
+	Initrd   string // linux initial ramdisk. (optional)
+	Cpu      int    // number of VM CPUs
+	Mem      int    // amount of VM memory in MBs
+	Sshkey   string // root ssh key for the image
+	Bin      string // qemu/lkvm binary name
+	Bin_Args string // additional command line arguments for qemu/lkvm binary
+	Debug    bool   // dump all VM output to console
+	Output   string // one of stdout/dmesg/file (useful only for local VM)
 
 	Hub_Addr string
 	Hub_Key  string
@@ -258,6 +259,7 @@ func CreateVMConfig(cfg *Config, index int) (*vm.Config, error) {
 		Index:       index,
 		Workdir:     workdir,
 		Bin:         cfg.Bin,
+		BinArgs:     cfg.Bin_Args,
 		Kernel:      cfg.Kernel,
 		Cmdline:     cfg.Cmdline,
 		Image:       cfg.Image,
@@ -292,6 +294,7 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Mem",
 		"Sshkey",
 		"Bin",
+		"Bin_Args",
 		"Debug",
 		"Output",
 		"Hub_Addr",
