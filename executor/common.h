@@ -2,7 +2,9 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // This file is shared between executor and csource package.
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -240,6 +242,8 @@ static void setup_main_process()
 	char* tmpdir = mkdtemp(tmpdir_template);
 	if (!tmpdir)
 		fail("failed to mkdtemp");
+	if (chmod(tmpdir, 0777))
+		fail("failed to chmod");
 	if (chdir(tmpdir))
 		fail("failed to chdir");
 }
@@ -292,8 +296,6 @@ static int do_sandbox_setuid()
 	const int nobody = 65534;
 	if (setgroups(0, NULL))
 		fail("failed to setgroups");
-	// glibc versions do not we want -- they force all threads to setuid.
-	// We want to preserve the thread above as root.
 	if (syscall(SYS_setresgid, nobody, nobody, nobody))
 		fail("failed to setresgid");
 	if (syscall(SYS_setresuid, nobody, nobody, nobody))
