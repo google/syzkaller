@@ -1,11 +1,172 @@
-# Copyright 2016 syzkaller project authors. All rights reserved.
+# Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 include <linux/types.h>
 include <linux/byteorder/generic.h>
 
-eth_packet {
-	data		array[int8, 0:256]
+syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
+
+################################################################################
+################################### Ethernet ###################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/Ethernet_frame#Structure
+# https://en.wikipedia.org/wiki/IEEE_802.1Q
+
+include <uapi/linux/if.h>
+include <uapi/linux/if_ether.h>
+
+mac_addr_local {
+# This corresponds to LOCAL_MAC ("aa:aa:aa:aa:aa:%02hx" % pid) in executor/common.h
+	a0		array[const[0xaa, int8], 5]
+	a1		proc[int8, 0, 1]
 } [packed]
 
-syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
+mac_addr_remote {
+# This corresponds to REMOTE_MAC ("bb:bb:bb:bb:bb:%02hx" % pid) in executor/common.h
+	a0		array[const[0xbb, int8], 5]
+	a1		proc[int8, 0, 1]
+} [packed]
+
+mac_addr [
+	empty		array[const[0x00, int8], 6]
+	local		mac_addr_local
+	remote		mac_addr_remote
+	random		array[int8, 6]
+]
+
+vlan_tag_ad {
+	tpid		const[0x9100, int16be]
+	pcp		int16:3
+	dei		int16:1
+	vid		int16:12
+} [packed]
+
+vlan_tag_q {
+	tpid		const[0x8100, int16be]
+	pcp		int16:3
+	dei		int16:1
+	vid		int16:12
+} [packed]
+
+vlan_tag {
+	tag_ad		array[vlan_tag_ad, 0:1]
+	tag_q		vlan_tag_q
+} [packed]
+
+eth_packet {
+	dst_mac		mac_addr
+	src_mac		mac_addr
+	vtag		array[vlan_tag, 0:1]
+	payload		eth_payload
+} [packed]
+
+eth_payload {
+	eth2		eth2_packet
+} [packed]
+
+################################################################################
+################################## Ethernet 2 ##################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/Ethernet_frame#Ethernet_II
+
+ether_types = ETH_P_LOOP, ETH_P_PUP, ETH_P_PUPAT, ETH_P_TSN, ETH_P_IP, ETH_P_X25, ETH_P_ARP, ETH_P_IEEEPUP, ETH_P_IEEEPUPAT, ETH_P_BATMAN, ETH_P_DEC, ETH_P_DNA_DL, ETH_P_DNA_RC, ETH_P_DNA_RT, ETH_P_LAT, ETH_P_DIAG, ETH_P_CUST, ETH_P_SCA, ETH_P_TEB, ETH_P_RARP, ETH_P_ATALK, ETH_P_AARP, ETH_P_8021Q, ETH_P_IPX, ETH_P_IPV6, ETH_P_PAUSE, ETH_P_SLOW, ETH_P_WCCP, ETH_P_MPLS_UC, ETH_P_MPLS_MC, ETH_P_ATMMPOA, ETH_P_PPP_DISC, ETH_P_PPP_SES, ETH_P_LINK_CTL, ETH_P_ATMFATE, ETH_P_PAE, ETH_P_AOE, ETH_P_8021AD, ETH_P_802_EX1, ETH_P_TIPC, ETH_P_MACSEC, ETH_P_8021AH, ETH_P_MVRP, ETH_P_1588, ETH_P_NCSI, ETH_P_PRP, ETH_P_FCOE, ETH_P_TDLS, ETH_P_FIP, ETH_P_80221, ETH_P_HSR, ETH_P_LOOPBACK, ETH_P_QINQ1, ETH_P_QINQ2, ETH_P_QINQ3, ETH_P_EDSA, ETH_P_AF_IUCV, ETH_P_802_3_MIN
+
+eth2_packet {
+	etype		flags[ether_types, int16be]
+	payload		eth2_payload
+} [packed]
+
+eth2_payload {
+	ipv4		ipv4_packet
+} [packed]
+
+################################################################################
+##################################### IPv4 #####################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/IPv4#Header
+
+# TODO: https://en.wikipedia.org/wiki/IPsec#Authentication_Header
+# TODO: https://en.wikipedia.org/wiki/IPsec#Encapsulating_Security_Payload
+
+include <uapi/linux/in.h>
+include <uapi/linux/ip.h>
+
+ipv4_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, IPPROTO_EGP, IPPROTO_PUP, IPPROTO_UDP, IPPROTO_IDP, IPPROTO_TP, IPPROTO_DCCP, IPPROTO_IPV6, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_ESP, IPPROTO_AH, IPPROTO_MTP, IPPROTO_BEETPH, IPPROTO_ENCAP, IPPROTO_PIM, IPPROTO_COMP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_MPLS, IPPROTO_RAW
+
+# This corresponds to LOCAL_IPV4 ("172.20.%d.170" % pid) in executor/common.h
+ipv4_addr_local {
+	a0		const[0xac, int8]
+	a1		const[0x14, int8]
+	a2		proc[int8, 0, 1]
+	a3		const[0xaa, int8]
+} [packed]
+
+# This corresponds to LOCAL_IPV4 ("172.20.%d.187" % pid) in executor/common.h
+ipv4_addr_remote {
+	a0		const[0xac, int8]
+	a1		const[0x14, int8]
+	a2		proc[int8, 0, 1]
+	a3		const[0xbb, int8]
+} [packed]
+
+ipv4_addr [
+# 0.0.0.0
+	empty		const[0x00000000, int32be]
+# 172.20.%d.170
+	local		ipv4_addr_local
+# 172.20.%d.187
+	remote		ipv4_addr_remote
+# 127.0.0.1
+	loopback	const[0x7f000001, int32be]
+# 224.0.0.1
+	multicast1	const[0xe0000001, int32be]
+# 224.0.0.2
+	multicast2	const[0xe0000002, int32be]
+# 255.255.255.255
+	broadcast	const[0xffffffff, int32be]
+# random
+	rand_addr	int32be
+]
+
+ipv4_option_types = IPOPT_END, IPOPT_NOOP, IPOPT_SEC, IPOPT_LSRR, IPOPT_TIMESTAMP, IPOPT_CIPSO, IPOPT_RR, IPOPT_SID, IPOPT_SSRR, IPOPT_RA
+
+# TODO: describe particular options
+ipv4_option {
+	type		flags[ipv4_option_types, int8]
+	length		len[data, int8]
+	data		array[int8, 0:16]
+} [packed]
+
+ipv4_options {
+	options		array[ipv4_option, 0:4]
+} [packed, align_4]
+
+ipv4_header {
+	ihl		bytesize4[parent, int8:4]
+	version		const[4, int8:4]
+	ecn		int8:2
+	dscp		int8:6
+	tot_len		len[ipv4_packet, int16be]
+	identification	int16be
+	frag_off	int16:13
+	flags		int16:3
+	ttl		int8
+	protocol	flags[ipv4_types, int8]
+# TODO: embed correct checksum
+	csum		const[0, int16]
+	src_ip		ipv4_addr
+	dst_ip		ipv4_addr
+	options		ipv4_options
+} [packed]
+
+ipv4_packet {
+	header		ipv4_header
+	payload		ip_payload
+} [packed]
+
+ip_payload {
+	dummy		array[int8, 0:128]
+} [packed]
