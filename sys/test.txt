@@ -187,3 +187,11 @@ syz_end_var_struct {
 	f1	const[0x42, int32be]
 	f2	flags[syz_end_flags, int64be]
 } [packed]
+
+# Regression tests.
+
+syz_test$regression0(a0 ptr[inout, syz_regression0_struct])
+
+syz_regression0_struct {
+	f0	buffer[out]
+}

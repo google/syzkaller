@@ -117,7 +117,7 @@ func (c *Call) validate(ctx *validCtx) error {
 					return fmt.Errorf("syscall %v: vma arg '%v' has size 0", c.Meta.Name, typ.Name())
 				}
 			case *sys.PtrType:
-				if arg.Type.Dir() != sys.DirIn {
+				if arg.Type.Dir() == sys.DirOut {
 					return fmt.Errorf("syscall %v: pointer arg '%v' has output direction", c.Meta.Name, typ.Name())
 				}
 				if arg.Res == nil && !typ.Optional() {
