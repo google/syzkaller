@@ -566,7 +566,7 @@ func generateArg(
 		if valuesStartInt >= (1 << (size * 8)) {
 			failf("values starting from '%v' overflow desired type of size '%v'", valuesStartInt, size)
 		}
-		if valuesStartInt + 32 * valuesPerProcInt >= (1 << (size * 8)) {
+		if valuesStartInt+32*valuesPerProcInt >= (1 << (size * 8)) {
 			failf("not enough values starting from '%v' with step '%v' and type size '%v' for 32 procs", valuesStartInt, valuesPerProcInt, size)
 		}
 		fmt.Fprintf(out, "&ProcType{%v, TypeSize: %v, BigEndian: %v, ValuesStart: %v, ValuesPerProc: %v}", common(), size, bigEndian, valuesStartInt, valuesPerProcInt)

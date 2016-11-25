@@ -31,7 +31,7 @@ type Env struct {
 	bin     []string
 	timeout time.Duration
 	flags   uint64
-	pid	int
+	pid     int
 
 	StatExecs    uint64
 	StatRestarts uint64
@@ -122,7 +122,7 @@ func MakeEnv(bin string, timeout time.Duration, flags uint64, pid int) (*Env, er
 		bin:     strings.Split(bin, " "),
 		timeout: timeout,
 		flags:   flags,
-		pid:	pid,
+		pid:     pid,
 	}
 	if len(env.bin) == 0 {
 		return nil, fmt.Errorf("binary is empty string")
