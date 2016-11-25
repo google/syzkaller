@@ -250,7 +250,7 @@ func CreateVMConfig(cfg *Config, index int) (*vm.Config, error) {
 	if index < 0 || index >= cfg.Count {
 		return nil, fmt.Errorf("invalid VM index %v (count %v)", index, cfg.Count)
 	}
-	workdir, index, err := fileutil.ProcessTempDir(cfg.Workdir)
+	workdir, err := fileutil.ProcessTempDir(cfg.Workdir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create instance temp dir: %v", err)
 	}
