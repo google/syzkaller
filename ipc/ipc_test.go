@@ -52,7 +52,7 @@ func TestEmptyProg(t *testing.T) {
 	bin := buildExecutor(t)
 	defer os.Remove(bin)
 
-	env, err := MakeEnv(bin, timeout, 0)
+	env, err := MakeEnv(bin, timeout, 0, 0)
 	if err != nil {
 		t.Fatalf("failed to create env: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestExecute(t *testing.T) {
 	flags := []uint64{0, FlagThreaded, FlagThreaded | FlagCollide}
 	for _, flag := range flags {
 		t.Logf("testing flags 0x%x\n", flag)
-		env, err := MakeEnv(bin, timeout, flag)
+		env, err := MakeEnv(bin, timeout, flag, 0)
 		if err != nil {
 			t.Fatalf("failed to create env: %v", err)
 		}

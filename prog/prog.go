@@ -85,7 +85,7 @@ func encodeValue(value, size uintptr, bigEndian bool) uintptr {
 }
 
 // Returns value taking endianness into consideration.
-func (a *Arg) Value() uintptr {
+func (a *Arg) Value(pid int) uintptr {
 	switch typ := a.Type.(type) {
 	case *sys.IntType:
 		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
@@ -95,6 +95,9 @@ func (a *Arg) Value() uintptr {
 		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
 	case *sys.LenType:
 		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
+	case *sys.ProcType:
+		val := uintptr(typ.ValuesStart) + uintptr(typ.ValuesPerProc) * uintptr(pid) + a.Val
+		return encodeValue(val, typ.Size(), typ.BigEndian)
 	}
 	return a.Val
 }
@@ -102,7 +105,7 @@ func (a *Arg) Value() uintptr {
 func (a *Arg) Size() uintptr {
 	switch typ := a.Type.(type) {
 	case *sys.IntType, *sys.LenType, *sys.FlagsType, *sys.ConstType,
-		*sys.ResourceType, *sys.VmaType, *sys.PtrType:
+		*sys.ResourceType, *sys.VmaType, *sys.PtrType, *sys.ProcType:
 		return typ.Size()
 	case *sys.BufferType:
 		return uintptr(len(a.Data))

@@ -532,6 +532,44 @@ func generateArg(
 			skipSyscall(fmt.Sprintf("missing const %v", a[0]))
 		}
 		fmt.Fprintf(out, "&ConstType{%v, TypeSize: %v, BigEndian: %v, Val: uintptr(%v)}", common(), size, bigEndian, val)
+	case "proc":
+		canBeArg = true
+		size := uint64(ptrSize)
+		bigEndian := false
+		var valuesStart string
+		var valuesPerProc string
+		if isField {
+			if want := 3; len(a) != want {
+				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+			}
+			size, bigEndian = decodeIntType(a[0])
+			valuesStart = a[1]
+			valuesPerProc = a[2]
+		} else {
+			if want := 2; len(a) != want {
+				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+			}
+			valuesStart = a[0]
+			valuesPerProc = a[1]
+		}
+		valuesStartInt, err := strconv.ParseInt(valuesStart, 10, 64)
+		if err != nil {
+			failf("couldn't parse '%v' as int64", valuesStart)
+		}
+		valuesPerProcInt, err := strconv.ParseInt(valuesPerProc, 10, 64)
+		if err != nil {
+			failf("couldn't parse '%v' as int64", valuesPerProc)
+		}
+		if valuesPerProcInt < 1 {
+			failf("values per proc '%v' should be >= 1", valuesPerProcInt)
+		}
+		if valuesStartInt >= (1 << (size * 8)) {
+			failf("values starting from '%v' overflow desired type of size '%v'", valuesStartInt, size)
+		}
+		if valuesStartInt + 32 * valuesPerProcInt >= (1 << (size * 8)) {
+			failf("not enough values starting from '%v' with step '%v' and type size '%v' for 32 procs", valuesStartInt, valuesPerProcInt, size)
+		}
+		fmt.Fprintf(out, "&ProcType{%v, TypeSize: %v, BigEndian: %v, ValuesStart: %v, ValuesPerProc: %v}", common(), size, bigEndian, valuesStartInt, valuesPerProcInt)
 	case "int8", "int16", "int32", "int64", "intptr", "int16be", "int32be", "int64be", "intptrbe":
 		canBeArg = true
 		size, bigEndian := decodeIntType(typ)
@@ -555,11 +593,6 @@ func generateArg(
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
 		fmt.Fprintf(out, "&IntType{%v, TypeSize: 4, Kind: IntInaddr}", common())
-	case "in_port":
-		if want := 0; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		fmt.Fprintf(out, "&IntType{%v, TypeSize: 2, Kind: IntInport}", common())
 	case "filename":
 		canBeArg = true
 		if want := 0; len(a) != want {

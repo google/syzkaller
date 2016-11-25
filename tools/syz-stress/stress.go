@@ -55,7 +55,7 @@ func main() {
 	for pid := 0; pid < *flagProcs; pid++ {
 		pid := pid
 		go func() {
-			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
+			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags, pid)
 			if err != nil {
 				Fatalf("failed to create execution environment: %v", err)
 			}

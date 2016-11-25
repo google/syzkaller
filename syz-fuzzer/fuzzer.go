@@ -151,7 +151,7 @@ func main() {
 	needPoll <- struct{}{}
 	envs := make([]*ipc.Env, *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
-		env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
+		env, err := ipc.MakeEnv(*flagExecutor, timeout, flags, pid)
 		if err != nil {
 			panic(err)
 		}

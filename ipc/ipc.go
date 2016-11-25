@@ -31,6 +31,7 @@ type Env struct {
 	bin     []string
 	timeout time.Duration
 	flags   uint64
+	pid	int
 
 	StatExecs    uint64
 	StatRestarts uint64
@@ -85,7 +86,7 @@ func DefaultFlags() (uint64, time.Duration, error) {
 	return flags, *flagTimeout, nil
 }
 
-func MakeEnv(bin string, timeout time.Duration, flags uint64) (*Env, error) {
+func MakeEnv(bin string, timeout time.Duration, flags uint64, pid int) (*Env, error) {
 	// IPC timeout must be larger then executor timeout.
 	// Otherwise IPC will kill parent executor but leave child executor alive.
 	if timeout < 7*time.Second {
@@ -121,6 +122,7 @@ func MakeEnv(bin string, timeout time.Duration, flags uint64) (*Env, error) {
 		bin:     strings.Split(bin, " "),
 		timeout: timeout,
 		flags:   flags,
+		pid:	pid,
 	}
 	if len(env.bin) == 0 {
 		return nil, fmt.Errorf("binary is empty string")
@@ -159,7 +161,7 @@ func (env *Env) Close() error {
 func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int, failed, hanged bool, err0 error) {
 	if p != nil {
 		// Copy-in serialized program.
-		progData := p.SerializeForExec()
+		progData := p.SerializeForExec(env.pid)
 		if len(progData) > len(env.In) {
 			panic("program is too long")
 		}

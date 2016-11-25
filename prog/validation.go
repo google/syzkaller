@@ -69,7 +69,7 @@ func (c *Call) validate(ctx *validCtx) error {
 				}
 			}
 		}
-		switch arg.Type.(type) {
+		switch typ1 := arg.Type.(type) {
 		case *sys.ResourceType:
 			switch arg.Kind {
 			case ArgResult:
@@ -92,6 +92,10 @@ func (c *Call) validate(ctx *validCtx) error {
 			case ArgUnion:
 			default:
 				return fmt.Errorf("syscall %v: union arg '%v' has bad kind %v", c.Meta.Name, typ.Name(), arg.Kind)
+			}
+		case *sys.ProcType:
+			if arg.Val >= uintptr(typ1.ValuesPerProc) {
+				return fmt.Errorf("syscall %v: per proc arg '%v' has bad value '%v'", c.Meta.Name, typ.Name(), arg.Val)
 			}
 		}
 		switch arg.Kind {

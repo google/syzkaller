@@ -975,9 +975,9 @@ xfrm_user_tmpl {
 xfrm_selector {
 	daddr	in_addr_any
 	saddr	in_addr_any
-	dport	in_port
+	dport	proc[int16be, 20000, 4]
 	dmask	int16
-	sport	in_port
+	sport	proc[int16be, 20000, 4]
 	smask	int16
 	fam	int16
 	len_d	int8

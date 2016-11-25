@@ -634,7 +634,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
 		case *sys.IntType, *sys.FlagsType, *sys.ConstType,
-			*sys.ResourceType, *sys.VmaType:
+			*sys.ResourceType, *sys.VmaType, *sys.ProcType:
 			return constArg(typ, typ.Default()), nil
 		}
 	}
@@ -720,8 +720,6 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			v %= 130
 		case sys.IntInaddr:
 			v = uintptr(r.inaddr(s))
-		case sys.IntInport:
-			v = uintptr(r.inport(s))
 		case sys.IntFileoff:
 			r.choose(
 				90, func() { v = 0 },
@@ -732,6 +730,8 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			v = r.randRangeInt(a.RangeBegin, a.RangeEnd)
 		}
 		return constArg(a, v), nil
+	case *sys.ProcType:
+		return constArg(a, r.rand(int(a.ValuesPerProc))), nil
 	case *sys.ArrayType:
 		count := uintptr(0)
 		switch a.Kind {
