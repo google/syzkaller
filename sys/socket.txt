@@ -119,7 +119,7 @@ sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANY
 
 sockaddr_in {
 	family	const[AF_INET, int16]
-	port	in_port
+	port	proc[int16be, 20000, 4]
 	addr	in_addr
 }
 
@@ -130,7 +130,7 @@ sockaddr_storage_in {
 
 sockaddr_in6 {
 	family	const[AF_INET6, int16]
-	port	in_port
+	port	proc[int16be, 20000, 4]
 	flow	int32
 	addr	in6_addr
 	scope	int32

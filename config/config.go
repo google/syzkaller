@@ -142,6 +142,9 @@ func parse(data []byte) (*Config, map[int]bool, []*regexp.Regexp, error) {
 	if cfg.Procs <= 0 {
 		cfg.Procs = 1
 	}
+	if cfg.Procs > 32 {
+		return nil, nil, nil, fmt.Errorf("config param procs has higher value '%v' then the max supported 32", cfg.Procs)
+	}
 	if cfg.Output == "" {
 		if cfg.Type == "local" {
 			cfg.Output = "none"

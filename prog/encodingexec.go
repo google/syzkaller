@@ -30,7 +30,7 @@ const (
 	dataOffset = 512 << 20
 )
 
-func (p *Prog) SerializeForExec() []byte {
+func (p *Prog) SerializeForExec(pid int) []byte {
 	if err := p.validate(); err != nil {
 		panic(fmt.Errorf("serializing invalid program: %v", err))
 	}
@@ -72,7 +72,7 @@ func (p *Prog) SerializeForExec() []byte {
 					if arg1.Type.Dir() != sys.DirOut {
 						w.write(ExecInstrCopyin)
 						w.write(physicalAddr(arg) + w.args[arg1].Offset)
-						w.writeArg(arg1)
+						w.writeArg(arg1, pid)
 						instrSeq++
 					}
 				}
@@ -83,7 +83,7 @@ func (p *Prog) SerializeForExec() []byte {
 		w.write(uintptr(c.Meta.ID))
 		w.write(uintptr(len(c.Args)))
 		for _, arg := range c.Args {
-			w.writeArg(arg)
+			w.writeArg(arg, pid)
 		}
 		w.args[c.Ret] = &argInfo{Idx: instrSeq}
 		instrSeq++
@@ -143,12 +143,12 @@ func (w *execContext) write(v uintptr) {
 	w.buf = append(w.buf, byte(v>>0), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
 }
 
-func (w *execContext) writeArg(arg *Arg) {
+func (w *execContext) writeArg(arg *Arg, pid int) {
 	switch arg.Kind {
 	case ArgConst:
 		w.write(ExecArgConst)
 		w.write(arg.Size())
-		w.write(arg.Value())
+		w.write(arg.Value(pid))
 	case ArgResult:
 		w.write(ExecArgResult)
 		w.write(arg.Size())

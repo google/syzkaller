@@ -69,7 +69,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 							baseSize = base.Res.Size()
 						}
 						switch a := arg.Type.(type) {
-						case *sys.IntType, *sys.FlagsType, *sys.ResourceType, *sys.VmaType:
+						case *sys.IntType, *sys.FlagsType, *sys.ResourceType, *sys.VmaType, *sys.ProcType:
 							arg1, calls1 := r.generateArg(s, arg.Type)
 							p.replaceArg(c, arg, arg1, calls1)
 						case *sys.BufferType:
@@ -326,7 +326,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 					return true
 				}
 			}
-		case *sys.IntType, *sys.FlagsType, *sys.ResourceType:
+		case *sys.IntType, *sys.FlagsType, *sys.ResourceType, *sys.ProcType:
 			// TODO: try to reset bits in ints
 			// TODO: try to set separate flags
 			if crash {

@@ -23,7 +23,7 @@ Pseudo-formal grammar of syscall description:
 	type = typename [ "[" type-options "]" ]
 	typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
 			"buffer" | "string" | "strconst" | "filename" |
-			"len" | "bytesize" | "vma"
+			"len" | "bytesize" | "vma" | "proc"
 	type-options = [type-opt ["," type-opt]]
 ```
 common type-options include:
@@ -55,6 +55,8 @@ rest of the type-options are type-specific:
 	"bytesize": similar to "len", but always denotes the size in bytes, type-options:
 		argname of the object
 	"vma": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise)
+	"proc": per process int (see description below), type-options:
+		underlying type, value range start, how many values per process
 ```
 flags/len/flags also have trailing underlying type type-option when used in structs/unions/pointers.
 
@@ -107,6 +109,15 @@ socket(...) sock
 accept(fd sock, ...) sock
 listen(fd sock, backlog int32)
 ```
+
+### Proc
+
+The `proc` type can be used to denote per process integers.
+The idea is to have a separate range of values for each executor, so they don't interfere.
+
+The simplest example is a port number.
+The `proc[int16be, 20000, 4]` type means that we want to generate an `int16be` integer starting from `20000` and assign no more than `4` integers for each process.
+As a result the executor number `n` will get values in the `[20000 + n * 4, 20000 + (n + 1) * 4)` range.
 
 ### Misc
 
