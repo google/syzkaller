@@ -32,7 +32,7 @@ var oopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
-				"KASAN: %[1]v %[3]v of size %[4]v in %[2]v",
+				"KASAN: %[1]v %[3]v in %[2]v",
 			},
 			{
 				compile("BUG: KASAN: ([a-z\\-]+) on address(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),

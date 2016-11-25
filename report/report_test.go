@@ -77,12 +77,17 @@ BUG: KASAN: slab-out-of-bounds in memcpy+0x1d/0x40 at addr ffff88003a6bd110
 Read of size 8 by task a.out/6260
 BUG: KASAN: slab-out-of-bounds in memcpy+0x1d/0x40 at addr ffff88003a6bd110
 Write of size 4 by task a.out/6260
-`: `KASAN: slab-out-of-bounds Read of size 8 in memcpy`,
+`: `KASAN: slab-out-of-bounds Read in memcpy`,
 
 		`
 [   50.583499] BUG: KASAN: use-after-free in remove_wait_queue+0xfb/0x120 at addr ffff88002db3cf50
 [   50.583499] Write of size 8 by task syzkaller_execu/10568 
-`: `KASAN: use-after-free Write of size 8 in remove_wait_queue`,
+`: `KASAN: use-after-free Write in remove_wait_queue`,
+
+		`
+[  380.688570] BUG: KASAN: use-after-free in copy_from_iter+0xf30/0x15e0 at addr ffff880033f4b02a
+[  380.688570] Read of size 4059 by task syz-executor/29957
+`: `KASAN: use-after-free Read in copy_from_iter`,
 
 		`
 [23818.431954] BUG: KASAN: null-ptr-deref on address           (null)
