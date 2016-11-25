@@ -16,16 +16,17 @@ import (
 	"path/filepath"
 	"regexp"
 	"sync"
-	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/cover"
+	"github.com/google/syzkaller/csource"
 	"github.com/google/syzkaller/hash"
 	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/report"
+	"github.com/google/syzkaller/repro"
 	. "github.com/google/syzkaller/rpctype"
 	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
@@ -49,7 +50,7 @@ type Manager struct {
 	startTime        time.Time
 	firstConnect     time.Time
 	stats            map[string]uint64
-	shutdown         uint32
+	vmStop           chan bool
 	vmChecked        bool
 	fresh            bool
 
@@ -75,6 +76,7 @@ type Fuzzer struct {
 }
 
 type Crash struct {
+	vmName string
 	desc   string
 	text   []byte
 	output []byte
@@ -119,6 +121,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		corpusCover:     make([]cover.Cover, sys.CallCount),
 		fuzzers:         make(map[string]*Fuzzer),
 		fresh:           true,
+		vmStop:          make(chan bool),
 	}
 
 	Logf(0, "loading corpus...")
@@ -181,33 +184,6 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		}
 	}()
 
-	Logf(0, "booting test machines...")
-	var shutdown uint32
-	var wg sync.WaitGroup
-	wg.Add(cfg.Count + 1)
-	for i := 0; i < cfg.Count; i++ {
-		i := i
-		go func() {
-			defer wg.Done()
-			for {
-				vmCfg, err := config.CreateVMConfig(cfg, i)
-				if atomic.LoadUint32(&shutdown) != 0 {
-					break
-				}
-				if err != nil {
-					Fatalf("failed to create VM config: %v", err)
-				}
-				crash := mgr.runInstance(vmCfg, i == 0)
-				if atomic.LoadUint32(&shutdown) != 0 {
-					break
-				}
-				if crash != nil {
-					mgr.saveCrasher(vmCfg.Name, crash)
-				}
-			}
-		}()
-	}
-
 	go func() {
 		for {
 			time.Sleep(10 * time.Second)
@@ -232,40 +208,155 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		c := make(chan os.Signal, 2)
 		signal.Notify(c, syscall.SIGINT)
 		<-c
-		wg.Done()
-		DisableLog() // VMs will fail
-		atomic.StoreUint32(&mgr.shutdown, 1)
 		close(vm.Shutdown)
-		Logf(-1, "shutting down...")
-		atomic.StoreUint32(&shutdown, 1)
+		Logf(0, "shutting down...")
 		<-c
 		Fatalf("terminating")
 	}()
-	wg.Wait()
+
+	mgr.vmLoop()
 }
 
-func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) *Crash {
+type RunResult struct {
+	idx   int
+	crash *Crash
+	err   error
+}
+
+type ReproResult struct {
+	instances []int
+	crash     *Crash
+	res       *repro.Result
+	err       error
+}
+
+func (mgr *Manager) vmLoop() {
+	Logf(0, "booting test machines...")
+	reproInstances := 4
+	if reproInstances > mgr.cfg.Count {
+		reproInstances = mgr.cfg.Count
+	}
+	instances := make([]int, mgr.cfg.Count)
+	for i := range instances {
+		instances[i] = mgr.cfg.Count - i - 1
+	}
+	runDone := make(chan *RunResult, 1)
+	pendingRepro := make(map[*Crash]bool)
+	reproducing := make(map[string]bool)
+	var reproQueue []*Crash
+	reproDone := make(chan *ReproResult, 1)
+	stopPending := false
+	shutdown := vm.Shutdown
+	for {
+		for crash := range pendingRepro {
+			if reproducing[crash.desc] {
+				continue
+			}
+			delete(pendingRepro, crash)
+			if !mgr.needRepro(crash.desc) {
+				continue
+			}
+			Logf(1, "loop: add to repro queue '%v'", crash.desc)
+			reproducing[crash.desc] = true
+			reproQueue = append(reproQueue, crash)
+		}
+
+		Logf(1, "loop: shutdown=%v instances=%v/%v %+v repro: pending=%v reproducing=%v queued=%v",
+			shutdown == nil, len(instances), mgr.cfg.Count, instances,
+			len(pendingRepro), len(reproducing), len(reproQueue))
+		if shutdown == nil {
+			if len(instances) == mgr.cfg.Count {
+				return
+			}
+		} else {
+			for len(reproQueue) != 0 && len(instances) >= reproInstances {
+				last := len(reproQueue) - 1
+				crash := reproQueue[last]
+				reproQueue[last] = nil
+				reproQueue = reproQueue[:last]
+				vmIndexes := append([]int{}, instances[len(instances)-reproInstances:]...)
+				instances = instances[:len(instances)-reproInstances]
+				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.desc, vmIndexes)
+				go func() {
+					res, err := repro.Run(crash.output, mgr.cfg, vmIndexes)
+					reproDone <- &ReproResult{vmIndexes, crash, res, err}
+				}()
+			}
+			for len(reproQueue) == 0 && len(instances) != 0 {
+				last := len(instances) - 1
+				idx := instances[last]
+				instances = instances[:last]
+				Logf(1, "loop: starting instance %v", idx)
+				go func() {
+					vmCfg, err := config.CreateVMConfig(mgr.cfg, idx)
+					if err != nil {
+						Fatalf("failed to create VM config: %v", err)
+					}
+					crash, err := mgr.runInstance(vmCfg, idx == 0)
+					runDone <- &RunResult{idx, crash, err}
+				}()
+			}
+		}
+
+		var stopRequest chan bool
+		if len(reproQueue) != 0 && !stopPending {
+			stopRequest = mgr.vmStop
+		}
+
+		select {
+		case stopRequest <- true:
+			Logf(1, "loop: issued stop request")
+			stopPending = true
+		case res := <-runDone:
+			Logf(1, "loop: instance %v finished, crash=%v", res.idx, res.crash != nil)
+			if res.err != nil && shutdown != nil {
+				Logf(0, "%v", res.err)
+			}
+			stopPending = false
+			instances = append(instances, res.idx)
+			// On shutdown qemu crashes with "qemu: terminating on signal 2",
+			// which we detect as "lost connection". Don't save that as crash.
+			if shutdown != nil && res.crash != nil && !mgr.isSuppressed(res.crash) {
+				mgr.saveCrash(res.crash)
+				if mgr.needRepro(res.crash.desc) {
+					Logf(1, "loop: add pending repro for '%v'", res.crash.desc)
+					pendingRepro[res.crash] = true
+				}
+			}
+		case res := <-reproDone:
+			Logf(1, "loop: repro on instances %+v finished '%v', repro=%v crepro=%v",
+				res.instances, res.crash.desc, res.res != nil && res.res.CRepro)
+			if res.err != nil {
+				Logf(0, "repro failed: %v", res.err)
+			}
+			delete(reproducing, res.crash.desc)
+			instances = append(instances, res.instances...)
+			mgr.saveRepro(res.crash, res.res)
+		case <-shutdown:
+			Logf(1, "loop: shutting down...")
+			shutdown = nil
+		}
+	}
+}
+
+func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) (*Crash, error) {
 	inst, err := vm.Create(mgr.cfg.Type, vmCfg)
 	if err != nil {
-		Logf(0, "failed to create instance: %v", err)
-		return nil
+		return nil, fmt.Errorf("failed to create instance: %v", err)
 	}
 	defer inst.Close()
 
 	fwdAddr, err := inst.Forward(mgr.port)
 	if err != nil {
-		Logf(0, "failed to setup port forwarding: %v", err)
-		return nil
+		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
 	fuzzerBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin", "syz-fuzzer"))
 	if err != nil {
-		Logf(0, "failed to copy binary: %v", err)
-		return nil
+		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
 	executorBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin", "syz-executor"))
 	if err != nil {
-		Logf(0, "failed to copy binary: %v", err)
-		return nil
+		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
 
 	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
@@ -278,42 +369,40 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) *Crash {
 	// Run the fuzzer binary.
 	cmd := fmt.Sprintf("%v -executor=%v -name=%v -manager=%v -output=%v -procs=%v -leak=%v -cover=%v -sandbox=%v -debug=%v -v=%d",
 		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, fuzzerV)
-	outc, errc, err := inst.Run(time.Hour, nil, cmd)
+	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
 	if err != nil {
-		Logf(0, "failed to run fuzzer: %v", err)
-		return nil
+		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
 
 	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.cfg.Type == "local", true)
 	if timedout {
 		// This is the only "OK" outcome.
 		Logf(0, "%v: running long enough, restarting", vmCfg.Name)
-		return nil
+		return nil, nil
 	}
 	if !crashed {
 		// syz-fuzzer exited, but it should not.
 		desc = "lost connection to test machine"
 	}
-	return &Crash{desc, text, output}
+	return &Crash{vmCfg.Name, desc, text, output}, nil
 }
 
-func (mgr *Manager) saveCrasher(vmName string, crash *Crash) {
-	if atomic.LoadUint32(&mgr.shutdown) != 0 {
-		// qemu crashes with "qemu: terminating on signal 2",
-		// which we detect as "lost connection".
-		return
-	}
+func (mgr *Manager) isSuppressed(crash *Crash) bool {
 	for _, re := range mgr.suppressions {
-		if re.Match(crash.output) {
-			Logf(1, "%v: suppressing '%v' with '%v'", vmName, crash.desc, re.String())
-			mgr.mu.Lock()
-			mgr.stats["suppressed"]++
-			mgr.mu.Unlock()
-			return
+		if !re.Match(crash.output) {
+			continue
 		}
+		Logf(1, "%v: suppressing '%v' with '%v'", crash.vmName, crash.desc, re.String())
+		mgr.mu.Lock()
+		mgr.stats["suppressed"]++
+		mgr.mu.Unlock()
+		return true
 	}
+	return false
+}
 
-	Logf(0, "%v: crash: %v", vmName, crash.desc)
+func (mgr *Manager) saveCrash(crash *Crash) {
+	Logf(0, "%v: crash: %v", crash.vmName, crash.desc)
 	mgr.mu.Lock()
 	mgr.stats["crashes"]++
 	mgr.mu.Unlock()
@@ -353,6 +442,58 @@ func (mgr *Manager) saveCrasher(vmName string, crash *Crash) {
 			crash.text = symbolized
 		}
 		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), []byte(crash.text), 0660)
+	}
+}
+
+const maxReproAttempts = 3
+
+func (mgr *Manager) needRepro(desc string) bool {
+	sig := hash.Hash([]byte(desc))
+	dir := filepath.Join(mgr.crashdir, sig.String())
+	if _, err := os.Stat(filepath.Join(dir, "repro.prog")); err == nil {
+		return false
+	}
+	for i := 0; i < maxReproAttempts; i++ {
+		if _, err := os.Stat(filepath.Join(dir, fmt.Sprintf("repro%v", i))); err != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
+	sig := hash.Hash([]byte(crash.desc))
+	dir := filepath.Join(mgr.crashdir, sig.String())
+	if res == nil {
+		for i := 0; i < maxReproAttempts; i++ {
+			name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
+			if _, err := os.Stat(name); err != nil {
+				ioutil.WriteFile(name, nil, 0660)
+				break
+			}
+		}
+		return
+	}
+	opts := fmt.Sprintf("# %+v\n", res.Opts)
+	prog := res.Prog.Serialize()
+	ioutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...), 0660)
+	if len(mgr.cfg.Tag) > 0 {
+		ioutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag), 0660)
+	}
+	if len(crash.text) > 0 {
+		ioutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(crash.text), 0660)
+	}
+	if res.CRepro {
+		cprog, err := csource.Write(res.Prog, res.Opts)
+		if err == nil {
+			formatted, err := csource.Format(cprog)
+			if err == nil {
+				cprog = formatted
+			}
+			ioutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprog, 0660)
+		} else {
+			Logf(0, "failed to write C source: %v", err)
+		}
 	}
 }
 

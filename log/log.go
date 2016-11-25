@@ -20,7 +20,6 @@ import (
 var (
 	flagV        = flag.Int("v", 0, "verbosity")
 	mu           sync.Mutex
-	disabled     bool
 	cacheMem     int
 	cacheMaxMem  int
 	cachePos     int
@@ -60,15 +59,9 @@ func CachedLogOutput() string {
 	return buf.String()
 }
 
-func DisableLog() {
-	mu.Lock()
-	defer mu.Unlock()
-	disabled = true
-}
-
 func Logf(v int, msg string, args ...interface{}) {
 	mu.Lock()
-	doLog := v <= *flagV && (v < 0 || !disabled)
+	doLog := v <= *flagV
 	if cacheEntries != nil && v <= 1 {
 		cacheMem -= len(cacheEntries[cachePos])
 		if cacheMem < 0 {

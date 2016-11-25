@@ -185,6 +185,9 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		Logf(0, "reproducing crash '%v': no program crashed", ctx.crashDesc)
 		return nil, nil
 	}
+	defer func() {
+		res.Opts.Repro = false
+	}()
 
 	Logf(2, "reproducing crash '%v': minimizing guilty program", ctx.crashDesc)
 	res.Prog, _ = prog.Minimize(res.Prog, -1, func(p1 *prog.Prog, callIndex int) bool {

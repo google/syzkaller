@@ -34,6 +34,7 @@ func (mgr *Manager) initHttp() {
 	http.HandleFunc("/cover", mgr.httpCover)
 	http.HandleFunc("/prio", mgr.httpPrio)
 	http.HandleFunc("/file", mgr.httpFile)
+	http.HandleFunc("/report", mgr.httpReport)
 
 	ln, err := net.Listen("tcp4", mgr.cfg.Http)
 	if err != nil {
@@ -286,6 +287,35 @@ func (mgr *Manager) httpFile(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, f)
 }
 
+func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	crashID := r.FormValue("id")
+	desc, err := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "description"))
+	if err != nil {
+		http.Error(w, "failed to read description file", http.StatusInternalServerError)
+		return
+	}
+	tag, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.tag"))
+	prog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.prog"))
+	cprog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.cprog"))
+	report, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.report"))
+
+	fmt.Fprintf(w, "Syzkaller hit '%s' bug on commit %s.\n\n", trimNewLines(desc), trimNewLines(tag))
+	if len(report) != 0 {
+		fmt.Fprintf(w, "%s\n\n", report)
+	}
+	if len(prog) == 0 && len(cprog) == 0 {
+		fmt.Fprintf(w, "The bug is not reproducible.\n")
+	} else {
+		fmt.Fprintf(w, "Syzkaller reproducer:\n%s\n\n", prog)
+		if len(cprog) != 0 {
+			fmt.Fprintf(w, "C reproducer:\n%s\n\n", cprog)
+		}
+	}
+}
+
 func (mgr *Manager) collectCrashes() ([]UICrashType, error) {
 	dirs, err := ioutil.ReadDir(mgr.crashdir)
 	if err != nil {
@@ -300,14 +330,11 @@ func (mgr *Manager) collectCrashes() ([]UICrashType, error) {
 		if err != nil || len(desc) == 0 {
 			continue
 		}
-		if desc[len(desc)-1] == '\n' {
-			desc = desc[:len(desc)-1]
-		}
+		desc = trimNewLines(desc)
 		files, err := ioutil.ReadDir(filepath.Join(mgr.crashdir, dir.Name()))
 		if err != nil {
 			return nil, err
 		}
-		n := 0
 		var maxTime time.Time
 		var crashes []UICrash
 		for _, f := range files {
@@ -330,22 +357,40 @@ func (mgr *Manager) collectCrashes() ([]UICrashType, error) {
 				crash.Report = reportFile
 			}
 			crashes = append(crashes, crash)
-			n++
 			if maxTime.Before(f.ModTime()) {
 				maxTime = f.ModTime()
 			}
 		}
 		sort.Sort(UICrashArray(crashes))
+
+		triaged := ""
+		if _, err := os.Stat(filepath.Join(mgr.crashdir, dir.Name(), "repro.prog")); err == nil {
+			if _, err := os.Stat(filepath.Join(mgr.crashdir, dir.Name(), "repro.cprog")); err == nil {
+				triaged = "has C repro"
+			} else {
+				triaged = "has repro"
+			}
+		} else if _, err := os.Stat(filepath.Join(mgr.crashdir, dir.Name(), "repro.report")); err == nil && !mgr.needRepro(string(desc)) {
+			triaged = "non-reproducible"
+		}
 		crashTypes = append(crashTypes, UICrashType{
 			Description: string(desc),
 			LastTime:    maxTime.Format(dateFormat),
 			ID:          dir.Name(),
-			Count:       n,
+			Count:       len(crashes),
+			Triaged:     triaged,
 			Crashes:     crashes,
 		})
 	}
 	sort.Sort(UICrashTypeArray(crashTypes))
 	return crashTypes, nil
+}
+
+func trimNewLines(data []byte) []byte {
+	for len(data) > 0 && data[len(data)-1] == '\n' {
+		data = data[:len(data)-1]
+	}
+	return data
 }
 
 type UISummaryData struct {
@@ -361,6 +406,7 @@ type UICrashType struct {
 	LastTime    string
 	ID          string
 	Count       int
+	Triaged     string
 	Crashes     []UICrash
 }
 
@@ -457,12 +503,18 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 		<th>Description</th>
 		<th>Count</th>
 		<th>Last Time</th>
+		<th>Report</th>
 	</tr>
 	{{range $c := $.Crashes}}
 	<tr>
 		<td><a href="/crash?id={{$c.ID}}">{{$c.Description}}</a></td>
 		<td>{{$c.Count}}</td>
 		<td>{{$c.LastTime}}</td>
+		<td>
+			{{if $c.Triaged}}
+				<a href="/report?id={{$c.ID}}">{{$c.Triaged}}</a>
+			{{end}}
+		</td>
 	</tr>
 	{{end}}
 </table>
@@ -502,6 +554,12 @@ var crashTemplate = template.Must(template.New("").Parse(addStyle(`
 <body>
 <b>{{.Description}}</b>
 <br><br>
+
+{{if .Triaged}}
+Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
+{{end}}
+<br><br>
+
 <table>
 	<tr>
 		<th>#</th>

@@ -70,7 +70,6 @@ func main() {
 		signal.Notify(c, syscall.SIGINT)
 		<-c
 		wg.Done()
-		DisableLog() // VMs will fail
 		atomic.StoreUint32(&shutdown, 1)
 		close(vm.Shutdown)
 		Logf(-1, "shutting down...")
