@@ -207,7 +207,6 @@ const (
 	IntPlain IntKind = iota
 	IntSignalno
 	IntInaddr
-	IntInport
 	IntFileoff // offset within a file
 	IntRange
 )
@@ -226,6 +225,22 @@ func (t *IntType) Size() uintptr {
 }
 
 func (t *IntType) Align() uintptr {
+	return t.Size()
+}
+
+type ProcType struct {
+	TypeCommon
+	TypeSize      uintptr
+	BigEndian     bool
+	ValuesStart   int64
+	ValuesPerProc uint64
+}
+
+func (t *ProcType) Size() uintptr {
+	return t.TypeSize
+}
+
+func (t *ProcType) Align() uintptr {
 	return t.Size()
 }
 
@@ -478,7 +493,7 @@ func ForeachType(meta *Call, f func(Type)) {
 				rec(opt)
 			}
 		case *ResourceType, *BufferType, *VmaType, *LenType,
-			*FlagsType, *ConstType, *IntType:
+			*FlagsType, *ConstType, *IntType, *ProcType:
 		default:
 			panic("unknown type")
 		}

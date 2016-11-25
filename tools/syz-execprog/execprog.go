@@ -76,7 +76,7 @@ func main() {
 		pid := p
 		go func() {
 			defer wg.Done()
-			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags)
+			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags, pid)
 			if err != nil {
 				Fatalf("failed to create ipc env: %v", err)
 			}
