@@ -66,13 +66,13 @@ func main() {
 				if len(corpus) == 0 || i%4 != 0 {
 					p = prog.Generate(rs, programLength, ct)
 					execute(pid, env, p)
-					p.Mutate(rs, programLength, ct)
+					p.Mutate(rs, programLength, ct, corpus)
 					execute(pid, env, p)
 				} else {
 					p = corpus[rnd.Intn(len(corpus))].Clone()
-					p.Mutate(rs, programLength, ct)
+					p.Mutate(rs, programLength, ct, corpus)
 					execute(pid, env, p)
-					p.Mutate(rs, programLength, ct)
+					p.Mutate(rs, programLength, ct, corpus)
 					execute(pid, env, p)
 				}
 			}

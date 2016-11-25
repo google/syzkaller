@@ -32,7 +32,7 @@ next:
 		// There is a chance that mutation will produce the same program.
 		// So we check that at least 1 out of 10 mutations actually change the program.
 		for try := 0; try < 10; try++ {
-			p1.Mutate(rs, 10, nil)
+			p1.Mutate(rs, 10, nil, nil)
 			data := p.Serialize()
 			if !bytes.Equal(data0, data) {
 				t.Fatalf("program changed after clone/mutate\noriginal:\n%s\n\nnew:\n%s\n", data0, data)
@@ -136,7 +136,7 @@ nextTest:
 		}
 		for i := 0; i < 1e6; i++ {
 			p1 := p.Clone()
-			p1.Mutate(rs, 30, nil)
+			p1.Mutate(rs, 30, nil, nil)
 			data1 := p1.Serialize()
 			if string(data1) == test[1] {
 				t.Logf("test #%v: success on iter %v", ti, i)
