@@ -635,7 +635,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		switch typ.(type) {
 		case *sys.IntType, *sys.FlagsType, *sys.ConstType,
 			*sys.ResourceType, *sys.VmaType:
-			return constArg(typ, 0), nil
+			return constArg(typ, typ.Default()), nil
 		}
 	}
 

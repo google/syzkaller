@@ -419,7 +419,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 		}
 		minCover = cover.Intersection(minCover, cov)
 		return true
-	})
+	}, false)
 	inp.cover = minCover
 
 	atomic.AddUint64(&statNewInput, 1)
