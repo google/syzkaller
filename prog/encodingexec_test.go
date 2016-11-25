@@ -16,7 +16,7 @@ func TestSerializeForExecRandom(t *testing.T) {
 	rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
 		p := Generate(rs, 10, nil)
-		p.SerializeForExec()
+		p.SerializeForExec(i % 16)
 	}
 }
 
@@ -159,7 +159,7 @@ func TestSerializeForExec(t *testing.T) {
 			t.Fatalf("failed to deserialize prog %v: %v", i, err)
 		}
 		t.Run(fmt.Sprintf("%v:%v", i, p.String()), func(t *testing.T) {
-			data := p.SerializeForExec()
+			data := p.SerializeForExec(i % 16)
 			w := new(bytes.Buffer)
 			binary.Write(w, binary.LittleEndian, test.serialized)
 			if !bytes.Equal(data, w.Bytes()) {
