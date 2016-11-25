@@ -4,7 +4,6 @@
 package fileutil
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -25,12 +24,9 @@ func TestProcessTempDir(t *testing.T) {
 			// Pre-create half of the instances with stale pid.
 			var dirs []string
 			for i := 0; i < P/2; i++ {
-				dir, idx, err := ProcessTempDir(tmp)
+				dir, err := ProcessTempDir(tmp)
 				if err != nil {
 					t.Fatalf("failed to create process temp dir")
-				}
-				if idx != i {
-					t.Fatalf("unexpected index: want %v, got %v", i, idx)
 				}
 				dirs = append(dirs, dir)
 			}
@@ -41,34 +37,23 @@ func TestProcessTempDir(t *testing.T) {
 			}
 			// Now request a bunch of instances concurrently.
 			done := make(chan bool)
-			indices := make(map[int]bool)
+			allDirs := make(map[string]bool)
 			var mu sync.Mutex
 			for p := 0; p < P; p++ {
 				go func() {
 					defer func() {
 						done <- true
 					}()
-					dir, idx, err := ProcessTempDir(tmp)
+					dir, err := ProcessTempDir(tmp)
 					if err != nil {
 						t.Fatalf("failed to create process temp dir")
 					}
 					mu.Lock()
-					present := indices[idx]
-					indices[idx] = true
+					present := allDirs[dir]
+					allDirs[dir] = true
 					mu.Unlock()
 					if present {
-						t.Fatalf("duplicate index %v", idx)
-					}
-					data := []byte(strconv.Itoa(idx))
-					if err := ioutil.WriteFile(filepath.Join(dir, "data"), data, 0600); err != nil {
-						t.Fatalf("failed to write data file: %v", err)
-					}
-					data1, err := ioutil.ReadFile(filepath.Join(dir, "data"))
-					if err != nil {
-						t.Fatalf("failed to read data file: %v", err)
-					}
-					if bytes.Compare(data, data1) != 0 {
-						t.Fatalf("corrupted data file")
+						t.Fatalf("duplicate dir %v", dir)
 					}
 				}()
 			}

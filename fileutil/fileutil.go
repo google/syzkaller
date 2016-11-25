@@ -59,15 +59,15 @@ func WriteTempFile(data []byte) (string, error) {
 
 // ProcessTempDir creates a new temp dir in where and returns its path and an unique index.
 // It also cleans up old, unused temp dirs after dead processes.
-func ProcessTempDir(where string) (string, int, error) {
+func ProcessTempDir(where string) (string, error) {
 	lk := filepath.Join(where, "instance-lock")
 	lkf, err := syscall.Open(lk, syscall.O_RDWR|syscall.O_CREAT, 0600)
 	if err != nil {
-		return "", 0, err
+		return "", err
 	}
 	defer syscall.Close(lkf)
 	if err := syscall.Flock(lkf, syscall.LOCK_EX); err != nil {
-		return "", 0, err
+		return "", err
 	}
 	defer syscall.Flock(lkf, syscall.LOCK_UN)
 
@@ -95,14 +95,14 @@ func ProcessTempDir(where string) (string, int, error) {
 			continue
 		}
 		if err != nil {
-			return "", 0, err
+			return "", err
 		}
 		if err := ioutil.WriteFile(pidfile, []byte(strconv.Itoa(syscall.Getpid())), 0600); err != nil {
-			return "", 0, err
+			return "", err
 		}
-		return path, i, nil
+		return path, nil
 	}
-	return "", 0, fmt.Errorf("too many live instances")
+	return "", fmt.Errorf("too many live instances")
 }
 
 // UmountAll recurusively unmounts all mounts in dir.
