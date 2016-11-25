@@ -198,18 +198,20 @@ func main() {
 
 				corpusMu.RLock()
 				if len(corpus) == 0 || i%10 == 0 {
+					// Generate a new prog.
 					corpusMu.RUnlock()
 					p := prog.Generate(rnd, programLength, ct)
 					Logf(1, "#%v: generated: %s", i, p)
 					execute(pid, env, p, &statExecGen)
-					p.Mutate(rnd, programLength, ct)
+					p.Mutate(rnd, programLength, ct, nil)
 					Logf(1, "#%v: mutated: %s", i, p)
 					execute(pid, env, p, &statExecFuzz)
 				} else {
+					// Mutate an existing prog.
 					p0 := corpus[rnd.Intn(len(corpus))]
-					corpusMu.RUnlock()
 					p := p0.Clone()
-					p.Mutate(rs, programLength, ct)
+					p.Mutate(rs, programLength, ct, corpus)
+					corpusMu.RUnlock()
 					Logf(1, "#%v: mutated: %s <- %s", i, p, p0)
 					execute(pid, env, p, &statExecFuzz)
 				}

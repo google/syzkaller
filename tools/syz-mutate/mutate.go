@@ -44,6 +44,6 @@ func main() {
 		seed = int64(*flagSeed)
 	}
 	rs := rand.NewSource(seed)
-	p.Mutate(rs, len(p.Calls)+10, ct)
+	p.Mutate(rs, len(p.Calls)+10, ct, nil)
 	fmt.Printf("%s\n", p.Serialize())
 }
