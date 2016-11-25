@@ -96,7 +96,7 @@ func (a *Arg) Value(pid int) uintptr {
 	case *sys.LenType:
 		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
 	case *sys.ProcType:
-		val := uintptr(typ.ValuesStart) + uintptr(typ.ValuesPerProc) * uintptr(pid) + a.Val
+		val := uintptr(typ.ValuesStart) + uintptr(typ.ValuesPerProc)*uintptr(pid) + a.Val
 		return encodeValue(val, typ.Size(), typ.BigEndian)
 	}
 	return a.Val
