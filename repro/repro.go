@@ -197,7 +197,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 			return false
 		}
 		return crashed
-	})
+	}, true)
 
 	// Try to "minimize" threaded/collide/sandbox/etc to find simpler reproducer.
 	opts = res.Opts

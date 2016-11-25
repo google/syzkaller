@@ -162,6 +162,9 @@ func unionArg(t sys.Type, opt *Arg, typ sys.Type) *Arg {
 }
 
 func returnArg(t sys.Type) *Arg {
+	if t != nil {
+		return &Arg{Type: t, Kind: ArgReturn, Val: t.Default()}
+	}
 	return &Arg{Type: t, Kind: ArgReturn}
 }
 
