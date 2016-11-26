@@ -117,6 +117,7 @@ static void install_segv_handler()
 		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
 	}
 
+#ifdef __NR_syz_open_dev
 static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 {
 	if (a0 == 0xc || a0 == 0xb) {
@@ -138,7 +139,9 @@ static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 		return open(buf, a2, 0);
 	}
 }
+#endif
 
+#ifdef __NR_syz_open_pts
 static uintptr_t syz_open_pts(uintptr_t a0, uintptr_t a1)
 {
 	// syz_openpts(fd fd[tty], flags flags[open_flags]) fd[tty]
@@ -149,7 +152,9 @@ static uintptr_t syz_open_pts(uintptr_t a0, uintptr_t a1)
 	sprintf(buf, "/dev/pts/%d", ptyno);
 	return open(buf, a1, 0);
 }
+#endif
 
+#ifdef __NR_syz_fuse_mount
 static uintptr_t syz_fuse_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5)
 {
 	// syz_fuse_mount(target filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd[fuse]
@@ -175,7 +180,9 @@ static uintptr_t syz_fuse_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintpt
 	// Ignore errors, maybe fuzzer can do something useful with fd alone.
 	return fd;
 }
+#endif
 
+#ifdef __NR_syz_fuseblk_mount
 static uintptr_t syz_fuseblk_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
 {
 	// syz_fuseblk_mount(target filename, blkdev filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd[fuse]
@@ -207,22 +214,33 @@ static uintptr_t syz_fuseblk_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	// Ignore errors, maybe fuzzer can do something useful with fd alone.
 	return fd;
 }
+#endif
 
 static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7, uintptr_t a8)
 {
 	switch (nr) {
 	default:
 		return syscall(nr, a0, a1, a2, a3, a4, a5);
+#ifdef __NR_syz_test
 	case __NR_syz_test:
 		return 0;
+#endif
+#ifdef __NR_syz_open_dev
 	case __NR_syz_open_dev:
 		return syz_open_dev(a0, a1, a2);
+#endif
+#ifdef __NR_syz_open_pts
 	case __NR_syz_open_pts:
 		return syz_open_pts(a0, a1);
+#endif
+#ifdef __NR_syz_fuse_mount
 	case __NR_syz_fuse_mount:
 		return syz_fuse_mount(a0, a1, a2, a3, a4, a5);
+#endif
+#ifdef __NR_syz_fuseblk_mount
 	case __NR_syz_fuseblk_mount:
 		return syz_fuseblk_mount(a0, a1, a2, a3, a4, a5, a6, a7);
+#endif
 	}
 }
 
@@ -432,7 +450,8 @@ retry:
 			remove_dir(filename);
 			continue;
 		}
-		for (int i = 0;; i++) {
+		int i;
+		for (i = 0;; i++) {
 			debug("unlink(%s)\n", filename);
 			if (unlink(filename) == 0)
 				break;
@@ -448,7 +467,8 @@ retry:
 		}
 	}
 	closedir(dp);
-	for (int i = 0;; i++) {
+	int i;
+	for (i = 0;; i++) {
 		debug("rmdir(%s)\n", dir);
 		if (rmdir(dir) == 0)
 			break;
@@ -474,6 +494,7 @@ retry:
 	}
 }
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
 static uint64_t current_time_ms()
 {
 	struct timespec ts;
@@ -482,13 +503,15 @@ static uint64_t current_time_ms()
 		fail("clock_gettime failed");
 	return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
 }
+#endif
 
 #if defined(SYZ_REPEAT)
 static void test();
 
 void loop()
 {
-	for (int iter = 0;; iter++) {
+	int iter;
+	for (iter = 0;; iter++) {
 		char cwdbuf[256];
 		sprintf(cwdbuf, "./%d", iter);
 		if (mkdir(cwdbuf, 0777))

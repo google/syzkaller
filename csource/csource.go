@@ -38,11 +38,6 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	for _, c := range p.Calls {
 		handled[c.Meta.CallName] = c.Meta.NR
 	}
-	for _, c := range sys.Calls {
-		if strings.HasPrefix(c.CallName, "syz_") {
-			handled[c.CallName] = c.NR
-		}
-	}
 	for name, nr := range handled {
 		fmt.Fprintf(w, "#ifndef __NR_%v\n", name)
 		fmt.Fprintf(w, "#define __NR_%v %v\n", name, nr)
@@ -80,7 +75,8 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			fmt.Fprint(w, "\treturn 0;\n}\n")
 		} else {
 			fmt.Fprint(w, "int main()\n{\n")
-			fmt.Fprintf(w, "\tfor (int i = 0; i < %v; i++) {\n", opts.Procs)
+			fmt.Fprint(w, "\tint i;")
+			fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", opts.Procs)
 			fmt.Fprint(w, "\t\tif (fork() == 0) {\n")
 			fmt.Fprint(w, "\t\t\tsetup_main_process();\n")
 			fmt.Fprintf(w, "\t\t\tdo_sandbox_%v();\n", opts.Sandbox)
