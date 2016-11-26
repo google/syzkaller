@@ -131,6 +131,21 @@ func MakeEnv(bin string, timeout time.Duration, flags uint64, pid int) (*Env, er
 	if err != nil {
 		return nil, fmt.Errorf("filepath.Abs failed: %v", err)
 	}
+	// Append pid to binary name.
+	// E.g. if binary is 'syz-executor' and pid=15,
+	// we create a link from 'syz-executor15' to 'syz-executor' and use 'syz-executor15' as binary.
+	// This allows to easily identify program that lead to a crash in the log.
+	// Log contains pid in "executing program 15" and crashes usually contain "Comm: syz-executor15".
+	base := filepath.Base(env.bin[0])
+	pidStr := fmt.Sprint(pid)
+	if len(base)+len(pidStr) >= 16 {
+		// TASK_COMM_LEN is currently set to 16
+		base = base[:15-len(pidStr)]
+	}
+	binCopy := filepath.Join(filepath.Dir(env.bin[0]), base+pidStr)
+	if err := os.Link(env.bin[0], binCopy); err == nil {
+		env.bin[0] = binCopy
+	}
 	inf = nil
 	outf = nil
 	return env, nil
