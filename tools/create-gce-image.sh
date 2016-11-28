@@ -62,7 +62,7 @@ sudo mount /dev/nbd0p1 disk.mnt
 sudo cp -a $1/. disk.mnt/.
 sudo cp $2 disk.mnt/vmlinuz
 sudo sed -i "/^root/ { s/:x:/::/ }" disk.mnt/etc/passwd
-echo "V0:23:respawn:/sbin/getty 115200 hvc0" | sudo tee -a disk.mnt/etc/inittab
+echo "T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100" | sudo tee -a disk.mnt/etc/inittab
 echo -en "\nauto eth0\niface eth0 inet dhcp\n" | sudo tee -a disk.mnt/etc/network/interfaces
 echo "debugfs /sys/kernel/debug debugfs defaults 0 0" | sudo tee -a disk.mnt/etc/fstab
 echo "debug.exception-trace = 0" | sudo tee -a disk.mnt/etc/sysctl.conf
