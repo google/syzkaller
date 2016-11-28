@@ -17,7 +17,9 @@ echo 'T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100' | sudo tee -a wheezy/etc/
 printf '\nauto eth0\niface eth0 inet dhcp\n' | sudo tee -a wheezy/etc/network/interfaces
 echo 'debugfs /sys/kernel/debug debugfs defaults 0 0' | sudo tee -a wheezy/etc/fstab
 echo 'debug.exception-trace = 0' | sudo tee -a wheezy/etc/sysctl.conf
-sudo mkdir wheezy/root/.ssh/
+echo "net.core.bpf_jit_enable = 2" | sudo tee -a wheezy/etc/sysctl.conf
+echo "net.core.bpf_jit_harden = 2" | sudo tee -a wheezy/etc/sysctl.conf
+sudo mkdir -p wheezy/root/.ssh/
 rm -rf ssh
 mkdir -p ssh
 ssh-keygen -f ssh/id_rsa -t rsa -N ''
