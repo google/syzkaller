@@ -104,7 +104,6 @@ const (
 	BufferBlobRange
 	BufferString
 	BufferFilename
-	BufferSockaddr
 )
 
 type BufferType struct {

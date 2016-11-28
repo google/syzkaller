@@ -117,6 +117,22 @@ ip_mtu_discover = IP_PMTUDISC_DONT, IP_PMTUDISC_WANT, IP_PMTUDISC_DO, IP_PMTUDIS
 sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, IPV6_RECVPKTINFO, IPV6_RECVERR, IPV6_ROUTER_ALERT, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IPV6_RTHDR, IPV6_AUTHHDR, IPV6_DSTOPTS, IPV6_HOPOPTS, IPV6_FLOWINFO, IPV6_HOPLIMIT, IPV6_CHECKSUM, IPV6_2292PKTINFO, IPV6_2292HOPOPTS, IPV6_2292DSTOPTS, IPV6_2292RTHDR, IPV6_2292HOPLIMIT
 sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
 
+sockaddr [
+	un		sockaddr_un
+	in		sockaddr_in
+	in6		sockaddr_in6
+	nl		sockaddr_nl
+	ax25		sockaddr_ax25
+	alg		sockaddr_alg
+	nfc		sockaddr_nfc
+	nfc_llcp	sockaddr_nfc_llcp
+	hci		sockaddr_hci
+	sco		sockaddr_sco
+	l2		sockaddr_l2
+	rc		sockaddr_rc
+# TODO: other kinds of sockaddrs
+] [varlen]
+
 sockaddr_in {
 	family	const[AF_INET, int16]
 	port	proc[int16be, 20000, 4]

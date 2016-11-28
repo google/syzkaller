@@ -85,8 +85,6 @@ func calcStaticPriorities() [][]float32 {
 					if a.SubKind != "" {
 						noteUsage(0.2, fmt.Sprintf("str-%v", a.SubKind))
 					}
-				case sys.BufferSockaddr:
-					noteUsage(1.0, "sockaddr")
 				case sys.BufferFilename:
 					noteUsage(1.0, "filename")
 				default:

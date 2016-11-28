@@ -5,7 +5,6 @@ package prog
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"math/rand"
@@ -191,48 +190,6 @@ func (r *randGen) inaddr(s *state) uint32 {
 
 func (r *randGen) inport(s *state) uint16 {
 	return uint16(r.Intn(20))<<8 + 0xab
-}
-
-func (r *randGen) sockaddr(s *state) []byte {
-	fa := sockFamilies[r.Intn(len(sockFamilies))]
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, fa) // this is actually host byte order
-	switch fa {
-	case sys.AF_UNIX:
-		buf.WriteString(r.filename(s))
-	case sys.AF_INET:
-		binary.Write(buf, binary.LittleEndian, r.inport(s))
-		binary.Write(buf, binary.LittleEndian, r.inaddr(s))
-	case sys.AF_INET6:
-		binary.Write(buf, binary.LittleEndian, r.inport(s))
-		binary.Write(buf, binary.BigEndian, uint32(r.Int63())) // flow info
-		binary.Write(buf, binary.BigEndian, uint64(0))         // addr: loopback
-		binary.Write(buf, binary.BigEndian, uint64(1))         // addr: loopback
-		binary.Write(buf, binary.BigEndian, uint32(r.Int63())) // scope id
-	case sys.AF_IPX:
-	case sys.AF_NETLINK:
-	case sys.AF_X25:
-	case sys.AF_AX25:
-	case sys.AF_ATMPVC:
-	case sys.AF_APPLETALK:
-	case sys.AF_PACKET:
-		binary.Write(buf, binary.BigEndian, uint16(0)) // Physical-layer protocol
-		binary.Write(buf, binary.BigEndian, uint32(0)) // Interface number
-		binary.Write(buf, binary.BigEndian, uint16(0)) // ARP hardware type
-		binary.Write(buf, binary.BigEndian, uint8(0))  // Packet type
-		binary.Write(buf, binary.BigEndian, uint8(0))  // Length of address
-		binary.Write(buf, binary.BigEndian, uint64(0)) // Physical-layer address
-	default:
-		panic("unknown socket domain")
-	}
-	if r.oneOf(2) {
-		buf.Write(make([]byte, 128-len(buf.Bytes())))
-	}
-	data := buf.Bytes()
-	if r.oneOf(100) {
-		data = data[:r.Intn(len(data))]
-	}
-	return data
 }
 
 func (r *randGen) randString(s *state, vals []string, dir sys.Dir) []byte {
@@ -663,14 +620,6 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		case sys.BufferFilename:
 			filename := r.filename(s)
 			return dataArg(a, []byte(filename)), nil
-		case sys.BufferSockaddr:
-			data := r.sockaddr(s)
-			if a.Dir() == sys.DirOut {
-				for i := range data {
-					data[i] = 0
-				}
-			}
-			return dataArg(a, data), nil
 		default:
 			panic("unknown buffer kind")
 		}
