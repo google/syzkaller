@@ -449,11 +449,6 @@ func generateArg(
 			}
 		}
 		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferString, SubKind: %q, Values: %#v}", common(), subkind, vals)
-	case "sockaddr":
-		if want := 0; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferSockaddr}", common())
 	case "salg_type":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
