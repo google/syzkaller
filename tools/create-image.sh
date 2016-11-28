@@ -13,7 +13,7 @@ sudo debootstrap --include=openssh-server wheezy wheezy
 
 # Set some defaults and enable promtless ssh to the machine for root.
 sudo sed -i '/^root/ { s/:x:/::/ }' wheezy/etc/passwd
-echo 'V0:23:respawn:/sbin/getty 115200 hvc0' | sudo tee -a wheezy/etc/inittab
+echo 'T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100' | sudo tee -a wheezy/etc/inittab
 printf '\nauto eth0\niface eth0 inet dhcp\n' | sudo tee -a wheezy/etc/network/interfaces
 echo 'debugfs /sys/kernel/debug debugfs defaults 0 0' | sudo tee -a wheezy/etc/fstab
 echo 'debug.exception-trace = 0' | sudo tee -a wheezy/etc/sysctl.conf
