@@ -190,7 +190,7 @@ func (inst *instance) Boot() error {
 	}
 	if inst.cfg.Kernel != "" {
 		cmdline := "console=ttyS0 vsyscall=native rodata=n oops=panic panic_on_warn=1 panic=-1" +
-			" ftrace_dump_on_oops=orig_cpu earlyprintk=serial slub_debug=UZ "
+			" ftrace_dump_on_oops=orig_cpu earlyprintk=serial slub_debug=UZ net.ifnames=0 biosdevname=0 "
 		if inst.cfg.Image == "9p" {
 			cmdline += "root=/dev/root rootfstype=9p rootflags=trans=virtio,version=9p2000.L,cache=loose "
 			cmdline += "init=" + filepath.Join(inst.cfg.Workdir, "init.sh") + " "
