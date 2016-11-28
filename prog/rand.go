@@ -193,29 +193,6 @@ func (r *randGen) inport(s *state) uint16 {
 	return uint16(r.Intn(20))<<8 + 0xab
 }
 
-func (r *randGen) in6addr(s *state, typ sys.Type) (arg *Arg, calls []*Call) {
-	// addr: loopback (big endian)
-	return groupArg(typ, []*Arg{
-		constArg(nil, 0),
-		constArg(nil, 0),
-		constArg(nil, 0),
-		constArg(nil, 1<<24),
-	}), nil
-}
-
-func (r *randGen) inaddrany(s *state, typ sys.Type) (arg *Arg, calls []*Call) {
-	if r.bin() {
-		return r.in6addr(s, typ)
-	} else {
-		return groupArg(typ, []*Arg{
-			constArg(nil, uintptr(r.inaddr(s))),
-			constArg(nil, 0),
-			constArg(nil, 0),
-			constArg(nil, 0),
-		}), nil
-	}
-}
-
 func (r *randGen) sockaddr(s *state) []byte {
 	fa := sockFamilies[r.Intn(len(sockFamilies))]
 	buf := new(bytes.Buffer)
@@ -314,14 +291,6 @@ func isSpecialStruct(typ sys.Type) func(r *randGen, s *state) (*Arg, []*Call) {
 	case "timeval":
 		return func(r *randGen, s *state) (*Arg, []*Call) {
 			return r.timespec(s, a, true)
-		}
-	case "in6_addr":
-		return func(r *randGen, s *state) (*Arg, []*Call) {
-			return r.in6addr(s, a)
-		}
-	case "in_addr_any":
-		return func(r *randGen, s *state) (*Arg, []*Call) {
-			return r.inaddrany(s, a)
 		}
 	}
 	return nil
@@ -718,8 +687,6 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		switch a.Kind {
 		case sys.IntSignalno:
 			v %= 130
-		case sys.IntInaddr:
-			v = uintptr(r.inaddr(s))
 		case sys.IntFileoff:
 			r.choose(
 				90, func() { v = 0 },
