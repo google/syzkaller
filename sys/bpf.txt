@@ -20,6 +20,8 @@ bpf$OBJ_PIN_MAP(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_map], size len[a
 bpf$OBJ_PIN_PROG(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_prog], size len[arg])
 bpf$OBJ_GET_MAP(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd_bpf_map
 bpf$OBJ_GET_PROG(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd_bpf_prog
+bpf$BPF_PROG_ATTACH(cmd const[BPF_PROG_ATTACH], arg ptr[in, bpf_attach_arg], size len[arg])
+bpf$BPF_PROG_DETACH(cmd const[BPF_PROG_DETACH], arg ptr[in, bpf_detach_arg], size len[arg])
 
 bpf_map_create_arg {
 	type	flags[bpf_map_type, int32]
@@ -101,7 +103,20 @@ bpf_obj_get {
 	fd	const[0, int32]
 }
 
-bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY, BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_CGROUP_ARRAY, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_PERCPU_ARRAY
+bpf_attach_arg {
+	target	fd
+	prog	fd_bpf_prog
+	type	flags[bpf_attach_type, int32]
+}
+
+bpf_detach_arg {
+	target	const[0, int32]
+	prog	fd_bpf_prog
+	type	flags[bpf_attach_type, int32]
+}
+
+bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY, BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_CGROUP_ARRAY, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_PERCPU_ARRAY, BPF_MAP_TYPE_LRU_HASH, BPF_MAP_TYPE_LRU_PERCPU_HASH
 bpf_map_flags = BPF_ANY, BPF_NOEXIST, BPF_EXIST
-bpf_prog_type = BPF_PROG_TYPE_SOCKET_FILTER, BPF_PROG_TYPE_KPROBE, BPF_PROG_TYPE_SCHED_CLS, BPF_PROG_TYPE_SCHED_ACT, BPF_PROG_TYPE_TRACEPOINT, BPF_PROG_TYPE_XDP, BPF_PROG_TYPE_PERF_EVENT
-map_flags = BPF_F_NO_PREALLOC
+bpf_prog_type = BPF_PROG_TYPE_SOCKET_FILTER, BPF_PROG_TYPE_KPROBE, BPF_PROG_TYPE_SCHED_CLS, BPF_PROG_TYPE_SCHED_ACT, BPF_PROG_TYPE_TRACEPOINT, BPF_PROG_TYPE_XDP, BPF_PROG_TYPE_PERF_EVENT, BPF_PROG_TYPE_CGROUP_SKB
+map_flags = BPF_F_NO_PREALLOC, BPF_F_NO_COMMON_LRU
+bpf_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS
