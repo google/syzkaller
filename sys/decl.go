@@ -104,7 +104,6 @@ const (
 	BufferBlobRange
 	BufferString
 	BufferFilename
-	BufferSockaddr
 )
 
 type BufferType struct {
@@ -206,7 +205,6 @@ type IntKind int
 const (
 	IntPlain IntKind = iota
 	IntSignalno
-	IntInaddr
 	IntFileoff // offset within a file
 	IntRange
 )

@@ -962,7 +962,7 @@ xfrm_userpolicy_info {
 xfrm_user_tmpl {
 	id	xfrm_id
 	fam	int16
-	saddr	in_addr_any
+	saddr	xfrm_in_addr
 	reqid	int32
 	mode	int8
 	share	int8
@@ -973,8 +973,8 @@ xfrm_user_tmpl {
 }
 
 xfrm_selector {
-	daddr	in_addr_any
-	saddr	in_addr_any
+	daddr	xfrm_in_addr
+	saddr	xfrm_in_addr
 	dport	proc[int16be, 20000, 4]
 	dmask	int16
 	sport	proc[int16be, 20000, 4]
@@ -1006,27 +1006,39 @@ xfrm_lifetime_cur {
 }
 
 xfrm_id {
-	daddr	in_addr_any
+	daddr	xfrm_in_addr
 	spi	int32
 	proto	int8
 }
 
-# in_addr or in6_addr
-# prog knows about this struct
-in_addr_any {
-	a0	in_addr
-	a1	int32
-	a2	int32
-	a3	int32
+xfrm_in_addr [
+	in	in_addr
+	in6	in6_addr
+]
+
+in_addr [
+# 0.0.0.0
+	empty		const[0x00000000, int32be]
+# 127.0.0.1
+	loopback	const[0x7f000001, int32be]
+# 255.255.255.255
+	broadcast	const[0xffffffff, int32be]
 }
 
-# prog knows about this struct
-in6_addr {
-	a0	int32
-	a1	int32
-	a2	int32
-	a3	int32
+in6_addr_empty {
+	a0		const[0, int64be]
+	a1		const[0, int64be]
 }
+
+in6_addr_loopback {
+	a0		const[0, int64be]
+	a1		const[1, int64be]
+}
+
+in6_addr [
+	empty		in6_addr_empty
+	loopback	in6_addr_loopback
+]
 
 ipv6_mreq {
 	multi	in6_addr
