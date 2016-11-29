@@ -163,35 +163,6 @@ func (r *randGen) filename(s *state) string {
 	return files[r.Intn(len(files))]
 }
 
-var sockFamilies = []uint16{
-	sys.AF_UNIX,
-	sys.AF_INET,
-	sys.AF_INET6,
-	sys.AF_IPX,
-	sys.AF_NETLINK,
-	sys.AF_X25,
-	sys.AF_AX25,
-	sys.AF_ATMPVC,
-	sys.AF_APPLETALK,
-	sys.AF_PACKET,
-}
-
-func (r *randGen) inaddr(s *state) uint32 {
-	// TODO: extract addresses of network interfaces.
-	var addr uint32
-	r.choose(
-		// Note: assuming little-endian host
-		5, func() { addr = 127<<0 + 0<<8 + 0<<16 + 1<<24 },
-		3, func() { addr = 0 }, // INADDR_ANY
-		1, func() { addr = ^uint32(0) }, // INADDR_NONE/INADDR_BROADCAST
-	)
-	return addr
-}
-
-func (r *randGen) inport(s *state) uint16 {
-	return uint16(r.Intn(20))<<8 + 0xab
-}
-
 func (r *randGen) randString(s *state, vals []string, dir sys.Dir) []byte {
 	data := r.randStringImpl(s, vals)
 	if dir == sys.DirOut {
