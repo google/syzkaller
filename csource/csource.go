@@ -262,7 +262,7 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 		cmd.Args = append(cmd.Args, "-DSYZ_REPEAT")
 	}
 	for name, _ := range handled {
-		cmd.Args = append(cmd.Args, "-D__NR_" + name)
+		cmd.Args = append(cmd.Args, "-D__NR_"+name)
 	}
 	cmd.Stdin = strings.NewReader(commonHeader)
 	stderr := new(bytes.Buffer)
@@ -279,7 +279,7 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 			continue
 		}
 		define := strings.TrimPrefix(arg, "-D")
-		out = strings.Replace(out, "#define " + define + " 1\n", "", -1)
+		out = strings.Replace(out, "#define "+define+" 1\n", "", -1)
 	}
 	return out, nil
 }
