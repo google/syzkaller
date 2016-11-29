@@ -1,0 +1,11 @@
+# Copyright 2016 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/types.h>
+include <linux/byteorder/generic.h>
+
+eth_packet {
+	data		array[int8, 0:256]
+} [packed]
+
+syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])

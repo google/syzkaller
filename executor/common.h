@@ -2,15 +2,33 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // This file is shared between executor and csource package.
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
+
+#include <sys/ioctl.h>
+#include <sys/mount.h>
+#include <sys/prctl.h>
+#include <sys/resource.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/syscall.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#include <linux/capability.h>
+#include <linux/if.h>
+#include <linux/if_tun.h>
+#include <linux/sched.h>
+#include <net/if_arp.h>
+
+#include <assert.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <grp.h>
-#include <linux/capability.h>
-#include <linux/sched.h>
 #include <pthread.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -20,22 +38,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/ioctl.h>
-#include <sys/mount.h>
-#include <sys/prctl.h>
-#include <sys/resource.h>
-#include <sys/stat.h>
-#include <sys/syscall.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 const int kFailStatus = 67;
 const int kErrorStatus = 68;
 const int kRetryStatus = 69;
 
-// logical error (e.g. invalid input program)
+// logical error (e.g. invalid input program), use as an assert() alernative
 __attribute__((noreturn)) void fail(const char* msg, ...)
 {
 	int e = errno;
@@ -116,6 +125,110 @@ static void install_segv_handler()
 		}                                                    \
 		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
 	}
+
+#ifdef __NR_syz_emit_ethernet
+static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
+{
+	int rv;
+
+	rv = vsnprintf(str, size, format, args);
+	if (rv < 0)
+		fail("tun: snprintf failed");
+	if ((size_t)rv >= size)
+		fail("tun: string '%s...' doesn't fit into buffer", str);
+}
+
+static void snprintf_check(char* str, size_t size, const char* format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	vsnprintf_check(str, size, format, args);
+	va_end(args);
+}
+
+#define COMMAND_MAX_LEN 128
+
+static void execute_command(const char* format, ...)
+{
+	va_list args;
+	char command[COMMAND_MAX_LEN];
+
+	va_start(args, format);
+
+	vsnprintf_check(command, sizeof(command), format, args);
+	if (system(command) < 0)
+		fail("tun: command \"%s\" failed", &command[0]);
+
+	va_end(args);
+}
+
+int tunfd;
+
+#define ADDR_MAX_LEN 32
+
+#define LOCAL_MAC "aa:aa:aa:aa:aa:%02hx"
+#define REMOTE_MAC "bb:bb:bb:bb:bb:%02hx"
+
+#define LOCAL_IPV4 "192.168.%d.170"
+#define REMOTE_IPV4 "192.168.%d.187"
+
+#define LOCAL_IPV6 "fd00::%02hxaa"
+#define REMOTE_IPV6 "fd00::%02hxbb"
+
+static void initialize_tun(uint64_t pid)
+{
+	if (getuid() != 0)
+		return;
+
+	if (pid >= 0xff)
+		fail("tun: no more than 255 executors");
+	int id = pid & 0xff;
+
+	tunfd = open("/dev/net/tun", O_RDWR);
+	if (tunfd == -1)
+		fail("tun: can't open /dev/net/tun");
+
+	char iface[IFNAMSIZ];
+	snprintf_check(iface, sizeof(iface), "syz%d", id);
+
+	struct ifreq ifr;
+	memset(&ifr, 0, sizeof(ifr));
+	strncpy(ifr.ifr_name, iface, IFNAMSIZ);
+	ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+	if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0)
+		fail("tun: ioctl(TUNSETIFF) failed");
+
+	char local_mac[ADDR_MAX_LEN];
+	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC, id);
+	char remote_mac[ADDR_MAX_LEN];
+	snprintf_check(remote_mac, sizeof(remote_mac), REMOTE_MAC, id);
+
+	char local_ipv4[ADDR_MAX_LEN];
+	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, id);
+	char remote_ipv4[ADDR_MAX_LEN];
+	snprintf_check(remote_ipv4, sizeof(remote_ipv4), REMOTE_IPV4, id);
+
+	char local_ipv6[ADDR_MAX_LEN];
+	snprintf_check(local_ipv6, sizeof(local_ipv6), LOCAL_IPV6, id);
+	char remote_ipv6[ADDR_MAX_LEN];
+	snprintf_check(remote_ipv6, sizeof(remote_ipv6), REMOTE_IPV6, id);
+
+	execute_command("ip link set dev %s address %s", iface, local_mac);
+	execute_command("ip addr add %s/24 dev %s", local_ipv4, iface);
+	execute_command("ip -6 addr add %s/120 dev %s", local_ipv6, iface);
+	execute_command("ip neigh add %s lladdr %s dev %s nud permanent", remote_ipv4, remote_mac, iface);
+	execute_command("ip -6 neigh add %s lladdr %s dev %s nud permanent", remote_ipv6, remote_mac, iface);
+	execute_command("ip link set %s up", iface);
+}
+
+static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
+{
+	int64_t length = a0;
+	char* data = (char*)a1;
+	return write(tunfd, data, length);
+}
+#endif // __NR_syz_emit_ethernet
 
 #ifdef __NR_syz_open_dev
 static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
@@ -241,10 +354,14 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 	case __NR_syz_fuseblk_mount:
 		return syz_fuseblk_mount(a0, a1, a2, a3, a4, a5, a6, a7);
 #endif
+#ifdef __NR_syz_emit_ethernet
+	case __NR_syz_emit_ethernet:
+		return syz_emit_ethernet(a0, a1);
+#endif
 	}
 }
 
-static void setup_main_process()
+static void setup_main_process(uint64_t pid)
 {
 	// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
 	// SIGCANCEL sent to main thread causes it to exit
@@ -255,6 +372,10 @@ static void setup_main_process()
 	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
 	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
 	install_segv_handler();
+
+#ifdef __NR_syz_emit_ethernet
+	initialize_tun(pid);
+#endif
 
 	char tmpdir_template[] = "./syzkaller.XXXXXX";
 	char* tmpdir = mkdtemp(tmpdir_template);
