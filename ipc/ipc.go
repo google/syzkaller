@@ -59,6 +59,14 @@ var (
 	flagTimeout = flag.Duration("timeout", 1*time.Minute, "execution timeout")
 )
 
+// ExecutorFailure is returned from MakeEnv or from env.Exec when executor terminates by calling fail function.
+// This is considered a logical error (a failed assert).
+type ExecutorFailure string
+
+func (err ExecutorFailure) Error() string {
+	return string(err)
+}
+
 func DefaultFlags() (uint64, time.Duration, error) {
 	var flags uint64
 	if *flagThreaded {
@@ -403,6 +411,8 @@ func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.F
 		return nil, fmt.Errorf("failed to start executor binary: %v", err)
 	}
 	c.cmd = cmd
+	wp.Close()
+	inwp.Close()
 	if err := c.waitServing(); err != nil {
 		return nil, err
 	}
@@ -439,6 +449,21 @@ func (c *command) waitServing() error {
 	select {
 	case err := <-read:
 		timeout.Stop()
+		if err != nil {
+			c.kill()
+			output := <-c.readDone
+			err = fmt.Errorf("executor is not serving: %v\n%s", err, output)
+			c.cmd.Wait()
+			if c.cmd.ProcessState != nil {
+				sys := c.cmd.ProcessState.Sys()
+				if ws, ok := sys.(syscall.WaitStatus); ok {
+					// Magic values returned by executor.
+					if ws.ExitStatus() == 67 {
+						err = ExecutorFailure(fmt.Sprintf("executor is not serving:\n%s", output))
+					}
+				}
+			}
+		}
 		return err
 	case <-timeout.C:
 		return fmt.Errorf("executor is not serving")
@@ -488,7 +513,7 @@ func (c *command) exec() (output []byte, failed, hanged, restart bool, err0 erro
 		if ws, ok := sys.(syscall.WaitStatus); ok {
 			// Magic values returned by executor.
 			if ws.ExitStatus() == 67 {
-				err0 = fmt.Errorf("executor failed: %s", output)
+				err0 = ExecutorFailure(fmt.Sprintf("executor failed: %s", output))
 			}
 			if ws.ExitStatus() == 68 {
 				failed = true
