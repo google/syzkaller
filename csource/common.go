@@ -519,6 +519,7 @@ static int do_sandbox_namespace()
 }
 #endif
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
 static void remove_dir(const char* dir)
 {
 	DIR* dp;
@@ -587,6 +588,7 @@ retry:
 		exitf("rmdir(%s) failed", dir);
 	}
 }
+#endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
 static uint64_t current_time_ms()
