@@ -45,7 +45,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	}
 	fmt.Fprintf(w, "\n")
 
-	hdr, err := preprocessCommonHeader(opts)
+	hdr, err := preprocessCommonHeader(opts, handled)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +246,7 @@ loop:
 	return calls, n
 }
 
-func preprocessCommonHeader(opts Options) (string, error) {
+func preprocessCommonHeader(opts Options, handled map[string]int) (string, error) {
 	cmd := exec.Command("cpp", "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
 	switch opts.Sandbox {
 	case "none":
@@ -261,6 +261,9 @@ func preprocessCommonHeader(opts Options) (string, error) {
 	if opts.Repeat {
 		cmd.Args = append(cmd.Args, "-DSYZ_REPEAT")
 	}
+	for name, _ := range handled {
+		cmd.Args = append(cmd.Args, "-D__NR_" + name)
+	}
 	cmd.Stdin = strings.NewReader(commonHeader)
 	stderr := new(bytes.Buffer)
 	stdout := new(bytes.Buffer)
@@ -271,6 +274,13 @@ func preprocessCommonHeader(opts Options) (string, error) {
 	}
 	out := strings.Replace(stdout.String(), "#define __STDC__ 1\n", "", -1)
 	out = strings.Replace(out, "#define __STDC_HOSTED__ 1\n", "", -1)
+	for _, arg := range cmd.Args {
+		if !strings.HasPrefix(arg, "-D") {
+			continue
+		}
+		define := strings.TrimPrefix(arg, "-D")
+		out = strings.Replace(out, "#define " + define + " 1\n", "", -1)
+	}
 	return out, nil
 }
 
