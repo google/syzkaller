@@ -538,6 +538,7 @@ static int do_sandbox_namespace()
 }
 #endif
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
 // One does not simply remove a directory.
 // There can be mounts, so we need to try to umount.
 // Moreover, a mount can be mounted several times, so we need to try to umount in a loop.
@@ -614,6 +615,7 @@ retry:
 		exitf("rmdir(%s) failed", dir);
 	}
 }
+#endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
 static uint64_t current_time_ms()
