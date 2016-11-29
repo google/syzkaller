@@ -362,13 +362,15 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) (*Crash, error) {
 	// Leak detection significantly slows down fuzzing, so detect leaks only on the first instance.
 	leak := first && mgr.cfg.Leak
 	fuzzerV := 0
+	procs := mgr.cfg.Procs
 	if *flagDebug {
 		fuzzerV = 100
+		procs = 1
 	}
 
 	// Run the fuzzer binary.
 	cmd := fmt.Sprintf("%v -executor=%v -name=%v -manager=%v -output=%v -procs=%v -leak=%v -cover=%v -sandbox=%v -debug=%v -v=%d",
-		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, mgr.cfg.Procs, leak, mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, fuzzerV)
+		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, procs, leak, mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, fuzzerV)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
