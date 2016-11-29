@@ -161,9 +161,10 @@ int main(int argc, char** argv)
 		flag_sandbox = sandbox_namespace;
 	if (!flag_threaded)
 		flag_collide = false;
+	uint64_t executor_pid = *((uint64_t*)input_data + 1);
 
 	cover_open();
-	setup_main_process();
+	setup_main_process(executor_pid);
 
 	int pid = -1;
 	switch (flag_sandbox) {
@@ -273,6 +274,7 @@ void execute_one()
 retry:
 	uint64_t* input_pos = (uint64_t*)&input_data[0];
 	read_input(&input_pos); // flags
+	read_input(&input_pos); // pid
 	output_pos = (uint32_t*)&output_data[0];
 	write_output(0); // Number of executed syscalls (updated later).
 

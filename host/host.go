@@ -89,6 +89,9 @@ func isSupportedSyzkall(c *sys.Call) bool {
 	case "syz_fuseblk_mount":
 		_, err := os.Stat("/dev/fuse")
 		return err == nil && syscall.Getuid() == 0
+	case "syz_emit_ethernet":
+		_, err := os.Stat("/dev/net/tun")
+		return err == nil && syscall.Getuid() == 0
 	default:
 		panic("unknown syzkall: " + c.Name)
 	}
