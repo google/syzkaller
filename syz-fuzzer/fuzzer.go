@@ -521,7 +521,7 @@ retry:
 		return make([]cover.Cover, len(p.Calls))
 	}
 	if err != nil {
-		if try > 10 {
+		if _, ok := err.(ipc.ExecutorFailure); ok || try > 10 {
 			panic(err)
 		}
 		try++
