@@ -5,7 +5,6 @@ package prog
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"math"
 	"math/rand"
@@ -193,71 +192,6 @@ func (r *randGen) inport(s *state) uint16 {
 	return uint16(r.Intn(20))<<8 + 0xab
 }
 
-func (r *randGen) in6addr(s *state, typ sys.Type) (arg *Arg, calls []*Call) {
-	// addr: loopback (big endian)
-	return groupArg(typ, []*Arg{
-		constArg(nil, 0),
-		constArg(nil, 0),
-		constArg(nil, 0),
-		constArg(nil, 1<<24),
-	}), nil
-}
-
-func (r *randGen) inaddrany(s *state, typ sys.Type) (arg *Arg, calls []*Call) {
-	if r.bin() {
-		return r.in6addr(s, typ)
-	} else {
-		return groupArg(typ, []*Arg{
-			constArg(nil, uintptr(r.inaddr(s))),
-			constArg(nil, 0),
-			constArg(nil, 0),
-			constArg(nil, 0),
-		}), nil
-	}
-}
-
-func (r *randGen) sockaddr(s *state) []byte {
-	fa := sockFamilies[r.Intn(len(sockFamilies))]
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, fa) // this is actually host byte order
-	switch fa {
-	case sys.AF_UNIX:
-		buf.WriteString(r.filename(s))
-	case sys.AF_INET:
-		binary.Write(buf, binary.LittleEndian, r.inport(s))
-		binary.Write(buf, binary.LittleEndian, r.inaddr(s))
-	case sys.AF_INET6:
-		binary.Write(buf, binary.LittleEndian, r.inport(s))
-		binary.Write(buf, binary.BigEndian, uint32(r.Int63())) // flow info
-		binary.Write(buf, binary.BigEndian, uint64(0))         // addr: loopback
-		binary.Write(buf, binary.BigEndian, uint64(1))         // addr: loopback
-		binary.Write(buf, binary.BigEndian, uint32(r.Int63())) // scope id
-	case sys.AF_IPX:
-	case sys.AF_NETLINK:
-	case sys.AF_X25:
-	case sys.AF_AX25:
-	case sys.AF_ATMPVC:
-	case sys.AF_APPLETALK:
-	case sys.AF_PACKET:
-		binary.Write(buf, binary.BigEndian, uint16(0)) // Physical-layer protocol
-		binary.Write(buf, binary.BigEndian, uint32(0)) // Interface number
-		binary.Write(buf, binary.BigEndian, uint16(0)) // ARP hardware type
-		binary.Write(buf, binary.BigEndian, uint8(0))  // Packet type
-		binary.Write(buf, binary.BigEndian, uint8(0))  // Length of address
-		binary.Write(buf, binary.BigEndian, uint64(0)) // Physical-layer address
-	default:
-		panic("unknown socket domain")
-	}
-	if r.oneOf(2) {
-		buf.Write(make([]byte, 128-len(buf.Bytes())))
-	}
-	data := buf.Bytes()
-	if r.oneOf(100) {
-		data = data[:r.Intn(len(data))]
-	}
-	return data
-}
-
 func (r *randGen) randString(s *state, vals []string, dir sys.Dir) []byte {
 	data := r.randStringImpl(s, vals)
 	if dir == sys.DirOut {
@@ -314,14 +248,6 @@ func isSpecialStruct(typ sys.Type) func(r *randGen, s *state) (*Arg, []*Call) {
 	case "timeval":
 		return func(r *randGen, s *state) (*Arg, []*Call) {
 			return r.timespec(s, a, true)
-		}
-	case "in6_addr":
-		return func(r *randGen, s *state) (*Arg, []*Call) {
-			return r.in6addr(s, a)
-		}
-	case "in_addr_any":
-		return func(r *randGen, s *state) (*Arg, []*Call) {
-			return r.inaddrany(s, a)
 		}
 	}
 	return nil
@@ -694,14 +620,6 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		case sys.BufferFilename:
 			filename := r.filename(s)
 			return dataArg(a, []byte(filename)), nil
-		case sys.BufferSockaddr:
-			data := r.sockaddr(s)
-			if a.Dir() == sys.DirOut {
-				for i := range data {
-					data[i] = 0
-				}
-			}
-			return dataArg(a, data), nil
 		default:
 			panic("unknown buffer kind")
 		}
@@ -718,8 +636,6 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		switch a.Kind {
 		case sys.IntSignalno:
 			v %= 130
-		case sys.IntInaddr:
-			v = uintptr(r.inaddr(s))
 		case sys.IntFileoff:
 			r.choose(
 				90, func() { v = 0 },
