@@ -33,6 +33,7 @@
 #include <setjmp.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -163,7 +164,7 @@ static void execute_command(const char* format, ...)
 	va_end(args);
 }
 
-int tunfd;
+int tunfd = -1;
 
 #define ADDR_MAX_LEN 32
 
@@ -224,6 +225,9 @@ static void initialize_tun(uint64_t pid)
 
 static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 {
+	if (tunfd < 0)
+		return (uintptr_t)-1;
+
 	int64_t length = a0;
 	char* data = (char*)a1;
 	return write(tunfd, data, length);
@@ -361,7 +365,7 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 	}
 }
 
-static void setup_main_process(uint64_t pid)
+static void setup_main_process(uint64_t pid, bool enable_tun)
 {
 	// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
 	// SIGCANCEL sent to main thread causes it to exit
@@ -374,7 +378,8 @@ static void setup_main_process(uint64_t pid)
 	install_segv_handler();
 
 #ifdef __NR_syz_emit_ethernet
-	initialize_tun(pid);
+	if (enable_tun)
+		initialize_tun(pid);
 #endif
 
 	char tmpdir_template[] = "./syzkaller.XXXXXX";

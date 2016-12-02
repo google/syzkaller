@@ -73,6 +73,7 @@ bool flag_collide;
 bool flag_deduplicate;
 bool flag_sandbox_privs;
 sandbox_type flag_sandbox;
+bool flag_enable_tun;
 
 __attribute__((aligned(64 << 10))) char input_data[kMaxInput];
 __attribute__((aligned(64 << 10))) char output_data[kMaxOutput];
@@ -161,10 +162,11 @@ int main(int argc, char** argv)
 		flag_sandbox = sandbox_namespace;
 	if (!flag_threaded)
 		flag_collide = false;
+	flag_enable_tun = flags & (1 << 7);
 	uint64_t executor_pid = *((uint64_t*)input_data + 1);
 
 	cover_open();
-	setup_main_process(executor_pid);
+	setup_main_process(executor_pid, flag_enable_tun);
 
 	int pid = -1;
 	switch (flag_sandbox) {

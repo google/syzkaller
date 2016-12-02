@@ -136,6 +136,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	if _, ok := calls[sys.CallMap["syz_emit_ethernet"]]; ok {
+		flags |= ipc.FlagEnableTun
+	}
 	noCover = flags&ipc.FlagCover == 0
 	leakCallback := func() {
 		if atomic.LoadUint32(&allTriaged) != 0 {
