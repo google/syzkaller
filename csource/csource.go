@@ -45,6 +45,11 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	}
 	fmt.Fprintf(w, "\n")
 
+	enableTun := "false"
+	if _, ok := handled["syz_emit_ethernet"]; ok {
+		enableTun = "true"
+	}
+
 	hdr, err := preprocessCommonHeader(opts, handled)
 	if err != nil {
 		return nil, err
@@ -59,7 +64,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		generateTestFunc(w, opts, calls, "loop")
 
 		fmt.Fprint(w, "int main()\n{\n")
-		fmt.Fprint(w, "\tsetup_main_process(0);\n")
+		fmt.Fprintf(w, "\tsetup_main_process(0, %v);\n", enableTun)
 		fmt.Fprintf(w, "\tint pid = do_sandbox_%v();\n", opts.Sandbox)
 		fmt.Fprint(w, "\tint status = 0;\n")
 		fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
@@ -68,7 +73,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		generateTestFunc(w, opts, calls, "test")
 		if opts.Procs <= 1 {
 			fmt.Fprint(w, "int main()\n{\n")
-			fmt.Fprint(w, "\tsetup_main_process(0);\n")
+			fmt.Fprintf(w, "\tsetup_main_process(0, %v);\n", enableTun)
 			fmt.Fprintf(w, "\tint pid = do_sandbox_%v();\n", opts.Sandbox)
 			fmt.Fprint(w, "\tint status = 0;\n")
 			fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
@@ -78,7 +83,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			fmt.Fprint(w, "\tint i;")
 			fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", opts.Procs)
 			fmt.Fprint(w, "\t\tif (fork() == 0) {\n")
-			fmt.Fprint(w, "\t\t\tsetup_main_process(i);\n")
+			fmt.Fprintf(w, "\t\t\tsetup_main_process(i, %v);\n", enableTun)
 			fmt.Fprintf(w, "\t\t\tdo_sandbox_%v();\n", opts.Sandbox)
 			fmt.Fprint(w, "\t\t}\n")
 			fmt.Fprint(w, "\t}\n")
