@@ -126,17 +126,22 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string) (str
 		},
 		Scheduling: &compute.Scheduling{
 			AutomaticRestart:  false,
-			Preemptible:       false,
-			OnHostMaintenance: "MIGRATE",
+			Preemptible:       true,
+			OnHostMaintenance: "TERMINATE",
 		},
 	}
 
+retry:
 	<-ctx.apiRateGate
 	op, err := ctx.computeService.Instances.Insert(ctx.ProjectID, ctx.ZoneID, instance).Do()
 	if err != nil {
 		return "", fmt.Errorf("failed to create instance: %v", err)
 	}
 	if err := ctx.waitForCompletion("zone", "create image", op.Name, false); err != nil {
+		if _, ok := err.(resourcePoolExhaustedError); ok && instance.Scheduling.Preemptible {
+			instance.Scheduling.Preemptible = false
+			goto retry
+		}
 		return "", err
 	}
 
@@ -177,15 +182,33 @@ func (ctx *Context) DeleteInstance(name string, wait bool) error {
 	return nil
 }
 
+func (ctx *Context) IsInstanceRunning(name string) bool {
+	<-ctx.apiRateGate
+	instance, err := ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, name).Do()
+	if err != nil {
+		return false
+	}
+	return instance.Status == "RUNNING"
+}
+
 func (ctx *Context) CreateImage(imageName, gcsFile string) error {
 	image := &compute.Image{
 		Name: imageName,
 		RawDisk: &compute.ImageRawDisk{
 			Source: "https://storage.googleapis.com/" + gcsFile,
 		},
+		Licenses: []string{
+			"https://www.googleapis.com/compute/v1/projects/vm-options/global/licenses/enable-vmx",
+		},
 	}
 	<-ctx.apiRateGate
 	op, err := ctx.computeService.Images.Insert(ctx.ProjectID, image).Do()
+	if err != nil {
+		// Try again without the vmx license in case it is not supported.
+		image.Licenses = nil
+		<-ctx.apiRateGate
+		op, err = ctx.computeService.Images.Insert(ctx.ProjectID, image).Do()
+	}
 	if err != nil {
 		return fmt.Errorf("failed to create image: %v", err)
 	}
@@ -208,6 +231,12 @@ func (ctx *Context) DeleteImage(imageName string) error {
 		return err
 	}
 	return nil
+}
+
+type resourcePoolExhaustedError string
+
+func (err resourcePoolExhaustedError) Error() string {
+	return string(err)
 }
 
 func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound bool) error {
@@ -234,6 +263,9 @@ func (ctx *Context) waitForCompletion(typ, desc, opName string, ignoreNotFound b
 			if op.Error != nil {
 				reason := ""
 				for _, operr := range op.Error.Errors {
+					if operr.Code == "ZONE_RESOURCE_POOL_EXHAUSTED" {
+						return resourcePoolExhaustedError(fmt.Sprintf("%+v", operr))
+					}
 					if ignoreNotFound && operr.Code == "RESOURCE_NOT_FOUND" {
 						return nil
 					}
