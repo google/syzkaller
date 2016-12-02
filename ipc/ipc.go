@@ -46,6 +46,7 @@ const (
 	FlagDedupCover                           // deduplicate coverage in executor
 	FlagSandboxSetuid                        // impersonate nobody user
 	FlagSandboxNamespace                     // use namespaces for sandboxing
+	FlagEnableTun                            // initialize and use tun in executor
 )
 
 var (
