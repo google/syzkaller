@@ -658,7 +658,7 @@ void loop()
 		int status = 0;
 		uint64_t start = current_time_ms();
 		for (;;) {
-			int res = waitpid(pid, &status, __WALL | WNOHANG);
+			int res = waitpid(-1, &status, __WALL | WNOHANG);
 			int errno0 = errno;
 			if (res == pid)
 				break;
@@ -666,7 +666,8 @@ void loop()
 			if (current_time_ms() - start > 5 * 1000) {
 				kill(-pid, SIGKILL);
 				kill(pid, SIGKILL);
-				waitpid(pid, &status, __WALL);
+				while (waitpid(-1, &status, __WALL) != pid) {
+				}
 				break;
 			}
 		}
