@@ -186,7 +186,7 @@ int main(int argc, char** argv)
 		fail("clone failed");
 	debug("spawned loop pid %d\n", pid);
 	int status = 0;
-	while (waitpid(pid, &status, __WALL) != pid) {
+	while (waitpid(-1, &status, __WALL) != pid) {
 	}
 	status = WEXITSTATUS(status);
 	if (status == kFailStatus)
@@ -241,7 +241,7 @@ void loop()
 		int status = 0;
 		uint64_t start = current_time_ms();
 		for (;;) {
-			int res = waitpid(pid, &status, __WALL | WNOHANG);
+			int res = waitpid(-1, &status, __WALL | WNOHANG);
 			int errno0 = errno;
 			if (res == pid) {
 				debug("waitpid(%d)=%d (%d)\n", pid, res, errno0);
@@ -253,10 +253,12 @@ void loop()
 				debug("killing\n");
 				kill(-pid, SIGKILL);
 				kill(pid, SIGKILL);
-				int res = waitpid(pid, &status, __WALL);
-				debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
-				if (res != pid)
-					fail("waitpid failed");
+				for (;;) {
+					int res = waitpid(-1, &status, __WALL);
+					debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
+					if (res == pid)
+						break;
+				}
 				break;
 			}
 		}
