@@ -166,6 +166,8 @@ static void execute_command(const char* format, ...)
 
 int tunfd = -1;
 
+// sysgen knowns about this constant (maxPids)
+#define MAX_PIDS 32
 #define ADDR_MAX_LEN 32
 
 #define LOCAL_MAC "aa:aa:aa:aa:aa:%02hx"
@@ -182,9 +184,11 @@ static void initialize_tun(uint64_t pid)
 	if (getuid() != 0)
 		return;
 
-	if (pid >= 0xff)
-		fail("tun: no more than 255 executors");
-	int id = pid & 0xff;
+	if (pid >= MAX_PIDS)
+		fail("tun: no more than %d executors", MAX_PIDS);
+	// IP addresses like 192.168.0.1/192.168.1.1 are often used for routing between VM and the host.
+	// Offset our IP addresses to start from 192.168.218.0 to reduce potential conflicts.
+	int id = pid + 250 - MAX_PIDS;
 
 	tunfd = open("/dev/net/tun", O_RDWR);
 	if (tunfd == -1)
