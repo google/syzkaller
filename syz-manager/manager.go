@@ -324,8 +324,12 @@ func (mgr *Manager) vmLoop() {
 				}
 			}
 		case res := <-reproDone:
+			crepro := false
+			if res.res != nil {
+				crepro = res.res.CRepro
+			}
 			Logf(1, "loop: repro on instances %+v finished '%v', repro=%v crepro=%v",
-				res.instances, res.crash.desc, res.res != nil && res.res.CRepro)
+				res.instances, res.crash.desc, res.res != nil, crepro)
 			if res.err != nil {
 				Logf(0, "repro failed: %v", res.err)
 			}
