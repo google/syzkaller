@@ -164,6 +164,7 @@ static void execute_command(const char* format, ...)
 
 int tunfd = -1;
 
+#define MAX_PIDS 32
 #define ADDR_MAX_LEN 32
 
 #define LOCAL_MAC "aa:aa:aa:aa:aa:%02hx"
@@ -180,9 +181,9 @@ static void initialize_tun(uint64_t pid)
 	if (getuid() != 0)
 		return;
 
-	if (pid >= 0xff)
-		fail("tun: no more than 255 executors");
-	int id = pid & 0xff;
+	if (pid >= MAX_PIDS)
+		fail("tun: no more than %d executors", MAX_PIDS);
+	int id = pid + 250 - MAX_PIDS;
 
 	tunfd = open("/dev/net/tun", O_RDWR);
 	if (tunfd == -1)
@@ -499,8 +500,8 @@ static int namespace_sandbox_proc(void* arg)
 	if (chdir("/"))
 		fail("chdir failed");
 
-	__user_cap_header_struct cap_hdr = {};
-	__user_cap_data_struct cap_data[2] = {};
+	struct __user_cap_header_struct cap_hdr = {};
+	struct __user_cap_data_struct cap_data[2] = {};
 	cap_hdr.version = _LINUX_CAPABILITY_VERSION_3;
 	cap_hdr.pid = getpid();
 	if (syscall(SYS_capget, &cap_hdr, &cap_data))
@@ -631,7 +632,7 @@ void loop()
 		int status = 0;
 		uint64_t start = current_time_ms();
 		for (;;) {
-			int res = waitpid(pid, &status, __WALL | WNOHANG);
+			int res = waitpid(-1, &status, __WALL | WNOHANG);
 			int errno0 = errno;
 			if (res == pid)
 				break;
@@ -639,7 +640,8 @@ void loop()
 			if (current_time_ms() - start > 5 * 1000) {
 				kill(-pid, SIGKILL);
 				kill(pid, SIGKILL);
-				waitpid(pid, &status, __WALL);
+				while (waitpid(-1, &status, __WALL) != pid) {
+				}
 				break;
 			}
 		}
