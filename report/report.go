@@ -55,6 +55,10 @@ var oopses = []*oops{
 				"BUG: spinlock lockup suspected",
 			},
 			{
+				compile("BUG: spinlock recursion"),
+				"BUG: spinlock recursion",
+			},
+			{
 				compile("BUG: soft lockup"),
 				"BUG: soft lockup",
 			},
