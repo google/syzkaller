@@ -522,8 +522,8 @@ static int namespace_sandbox_proc(void* arg)
 	// Previously it lead to hangs because the loop process stopped due to SIGSTOP.
 	// Note that a process can always ptrace its direct children, which is enough
 	// for testing purposes.
-	__user_cap_header_struct cap_hdr = {};
-	__user_cap_data_struct cap_data[2] = {};
+	struct __user_cap_header_struct cap_hdr = {};
+	struct __user_cap_data_struct cap_data[2] = {};
 	cap_hdr.version = _LINUX_CAPABILITY_VERSION_3;
 	cap_hdr.pid = getpid();
 	if (syscall(SYS_capget, &cap_hdr, &cap_data))
