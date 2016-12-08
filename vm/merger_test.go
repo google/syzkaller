@@ -18,14 +18,14 @@ func TestMerger(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer wp1.Close()
-	merger.Add(rp1)
+	merger.Add("pipe1", rp1)
 
 	rp2, wp2, err := LongPipe()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer wp2.Close()
-	merger.Add(rp2)
+	merger.Add("pipe2", rp2)
 
 	wp1.Write([]byte("111"))
 	select {
@@ -57,6 +57,10 @@ func TestMerger(t *testing.T) {
 	got = string(<-merger.Output)
 	if want := "444\n"; got != want {
 		t.Fatalf("bad line: '%s', want '%s'", got, want)
+	}
+
+	if err := <-merger.Err; err == nil || err.Error() != "failed to read from pipe1: EOF" {
+		t.Fatalf("merger did not produce io.EOF: %v", err)
 	}
 
 	wp2.Close()

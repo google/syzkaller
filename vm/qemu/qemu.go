@@ -222,7 +222,7 @@ func (inst *instance) Boot() error {
 		tee = os.Stdout
 	}
 	inst.merger = vm.NewOutputMerger(tee)
-	inst.merger.Add(inst.rpipe)
+	inst.merger.Add("qemu", inst.rpipe)
 	inst.rpipe = nil
 
 	var bootOutput []byte
@@ -321,7 +321,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	if err != nil {
 		return nil, nil, err
 	}
-	inst.merger.Add(rpipe)
+	inst.merger.Add("ssh", rpipe)
 
 	args := append(inst.sshArgs("-p"), "root@localhost", command)
 	if inst.cfg.Debug {
@@ -343,22 +343,17 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		}
 	}
 
-	done := make(chan bool)
 	go func() {
 		select {
 		case <-time.After(timeout):
 			signal(vm.TimeoutErr)
-			cmd.Process.Kill()
 		case <-stop:
 			signal(vm.TimeoutErr)
-			cmd.Process.Kill()
-		case <-done:
+		case err := <-inst.merger.Err:
+			signal(err)
 		}
-	}()
-	go func() {
-		err := cmd.Wait()
-		close(done)
-		signal(err)
+		cmd.Process.Kill()
+		cmd.Wait()
 	}()
 	return inst.merger.Output, errc, nil
 }

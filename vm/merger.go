@@ -5,12 +5,14 @@ package vm
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sync"
 )
 
 type OutputMerger struct {
 	Output chan []byte
+	Err    chan error
 	tee    io.Writer
 	wg     sync.WaitGroup
 }
@@ -18,6 +20,7 @@ type OutputMerger struct {
 func NewOutputMerger(tee io.Writer) *OutputMerger {
 	return &OutputMerger{
 		Output: make(chan []byte, 1000),
+		Err:    make(chan error, 1),
 		tee:    tee,
 	}
 }
@@ -27,7 +30,7 @@ func (merger *OutputMerger) Wait() {
 	close(merger.Output)
 }
 
-func (merger *OutputMerger) Add(r io.ReadCloser) {
+func (merger *OutputMerger) Add(name string, r io.ReadCloser) {
 	merger.wg.Add(1)
 	go func() {
 		var pending []byte
@@ -61,6 +64,10 @@ func (merger *OutputMerger) Add(r io.ReadCloser) {
 					}
 				}
 				r.Close()
+				select {
+				case merger.Err <- fmt.Errorf("failed to read from %v: %v", name, err):
+				default:
+				}
 				merger.wg.Done()
 				return
 			}
