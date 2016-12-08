@@ -189,7 +189,8 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 		// Copy-in serialized program.
 		progData := p.SerializeForExec(env.pid)
 		if len(progData) > len(env.In) {
-			panic("program is too long")
+			err0 = fmt.Errorf("executor %v: program is too long: %v/%v", env.pid, len(progData), len(env.In))
+			return
 		}
 		copy(env.In, progData)
 	}
@@ -204,7 +205,7 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 	atomic.AddUint64(&env.StatExecs, 1)
 	if env.cmd == nil {
 		atomic.AddUint64(&env.StatRestarts, 1)
-		env.cmd, err0 = makeCommand(env.bin, env.timeout, env.flags, env.inFile, env.outFile)
+		env.cmd, err0 = makeCommand(env.pid, env.bin, env.timeout, env.flags, env.inFile, env.outFile)
 		if err0 != nil {
 			return
 		}
@@ -224,7 +225,7 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 	r := bytes.NewReader(env.Out)
 	var ncmd uint32
 	if err := binary.Read(r, binary.LittleEndian, &ncmd); err != nil {
-		err0 = fmt.Errorf("failed to read output coverage: %v", err)
+		err0 = fmt.Errorf("executor %v: failed to read output coverage: %v", env.pid, err)
 		return
 	}
 	cov = make([][]uint32, len(p.Calls))
@@ -232,41 +233,55 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 	for i := range errnos {
 		errnos[i] = -1 // not executed
 	}
+	dumpCov := func() string {
+		buf := new(bytes.Buffer)
+		for i, c := range cov {
+			str := "nil"
+			if c != nil {
+				str = fmt.Sprint(len(c))
+			}
+			fmt.Fprintf(buf, "%v:%v|", i, str)
+		}
+		return buf.String()
+	}
 	for i := uint32(0); i < ncmd; i++ {
 		var callIndex, callNum, errno, coverSize, pc uint32
 		if err := binary.Read(r, binary.LittleEndian, &callIndex); err != nil {
-			err0 = fmt.Errorf("failed to read output coverage: %v", err)
+			err0 = fmt.Errorf("executor %v: failed to read output coverage: %v", env.pid, err)
 			return
 		}
 		if err := binary.Read(r, binary.LittleEndian, &callNum); err != nil {
-			err0 = fmt.Errorf("failed to read output coverage: %v", err)
+			err0 = fmt.Errorf("executor %v: failed to read output coverage: %v", env.pid, err)
 			return
 		}
 		if err := binary.Read(r, binary.LittleEndian, &errno); err != nil {
-			err0 = fmt.Errorf("failed to read output errno: %v", err)
+			err0 = fmt.Errorf("executor %v: failed to read output errno: %v", env.pid, err)
 			return
 		}
 		if err := binary.Read(r, binary.LittleEndian, &coverSize); err != nil {
-			err0 = fmt.Errorf("failed to read output coverage: %v", err)
+			err0 = fmt.Errorf("executor %v: failed to read output coverage: %v", env.pid, err)
 			return
 		}
 		if int(callIndex) > len(cov) {
-			err0 = fmt.Errorf("failed to read output coverage: record %v, call %v, total calls %v", i, callIndex, len(cov))
+			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, total calls %v (cov: %v)",
+				env.pid, i, callIndex, len(cov), dumpCov())
 			return
 		}
 		if cov[callIndex] != nil {
-			err0 = fmt.Errorf("failed to read output coverage: double coverage for call %v", callIndex)
+			err0 = fmt.Errorf("executor %v: failed to read output coverage: double coverage for call %v (cov: %v)",
+				env.pid, callIndex, dumpCov())
 			return
 		}
 		c := p.Calls[callIndex]
 		if num := c.Meta.ID; uint32(num) != callNum {
-			err0 = fmt.Errorf("failed to read output coverage: call %v: expect syscall %v, got %v, executed %v", callIndex, num, callNum, ncmd)
+			err0 = fmt.Errorf("executor %v: failed to read output coverage: call %v: expect syscall %v, got %v, executed %v (cov: %v)",
+				env.pid, callIndex, num, callNum, ncmd, dumpCov())
 			return
 		}
 		cov1 := make([]uint32, coverSize)
 		for j := uint32(0); j < coverSize; j++ {
 			if err := binary.Read(r, binary.LittleEndian, &pc); err != nil {
-				err0 = fmt.Errorf("failed to read output coverage: record %v, call %v, coversize=%v err=%v", i, callIndex, coverSize, err)
+				err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, coversize=%v err=%v", env.pid, i, callIndex, coverSize, err)
 				return
 			}
 			cov1[j] = pc
@@ -324,6 +339,7 @@ func closeMapping(f *os.File, mem []byte) error {
 }
 
 type command struct {
+	pid      int
 	timeout  time.Duration
 	cmd      *exec.Cmd
 	flags    uint64
@@ -333,13 +349,18 @@ type command struct {
 	outwp    *os.File
 }
 
-func makeCommand(bin []string, timeout time.Duration, flags uint64, inFile *os.File, outFile *os.File) (*command, error) {
+func makeCommand(pid int, bin []string, timeout time.Duration, flags uint64, inFile *os.File, outFile *os.File) (*command, error) {
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
 	}
 
-	c := &command{timeout: timeout, flags: flags, dir: dir}
+	c := &command{
+		pid:     pid,
+		timeout: timeout,
+		flags:   flags,
+		dir:     dir,
+	}
 	defer func() {
 		if c != nil {
 			c.close()
@@ -497,9 +518,12 @@ func (c *command) exec() (output []byte, failed, hanged, restart bool, err0 erro
 			hang <- false
 		}
 	}()
-	_, readErr := c.inrp.Read(tmp[:])
+	readN, readErr := c.inrp.Read(tmp[:])
 	close(done)
 	if readErr == nil {
+		if readN != len(tmp) {
+			panic(fmt.Sprintf("executor %v: read only %v bytes", c.pid, readN))
+		}
 		<-hang
 		return
 	}
