@@ -373,6 +373,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) (*Crash, error) {
 	}
 
 	// Run the fuzzer binary.
+	start := time.Now()
 	cmd := fmt.Sprintf("%v -executor=%v -name=%v -manager=%v -output=%v -procs=%v -leak=%v -cover=%v -sandbox=%v -debug=%v -v=%d",
 		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, procs, leak, mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, fuzzerV)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)
@@ -383,7 +384,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) (*Crash, error) {
 	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.cfg.Type == "local", true)
 	if timedout {
 		// This is the only "OK" outcome.
-		Logf(0, "%v: running long enough, restarting", vmCfg.Name)
+		Logf(0, "%v: running for %v, restarting", vmCfg.Name, time.Since(start))
 		return nil, nil
 	}
 	if !crashed {
