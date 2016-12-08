@@ -170,11 +170,6 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	}
 	conWpipe.Close()
-	conDone := make(chan error, 1)
-	go func() {
-		err := con.Wait()
-		conDone <- fmt.Errorf("console connection closed: %v", err)
-	}()
 
 	sshRpipe, sshWpipe, err := vm.LongPipe()
 	if err != nil {
@@ -197,15 +192,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		return nil, nil, fmt.Errorf("failed to connect to instance: %v", err)
 	}
 	sshWpipe.Close()
-	sshDone := make(chan error, 1)
-	go func() {
-		err := ssh.Wait()
-		sshDone <- fmt.Errorf("ssh exited: %v", err)
-	}()
 
 	merger := vm.NewOutputMerger(nil)
-	merger.Add(conRpipe)
-	merger.Add(sshRpipe)
+	merger.Add("console", conRpipe)
+	merger.Add("ssh", sshRpipe)
 
 	errc := make(chan error, 1)
 	signal := func(err error) {
@@ -219,20 +209,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		select {
 		case <-time.After(timeout):
 			signal(vm.TimeoutErr)
-			con.Process.Kill()
-			ssh.Process.Kill()
 		case <-stop:
 			signal(vm.TimeoutErr)
-			con.Process.Kill()
-			ssh.Process.Kill()
 		case <-inst.closed:
 			signal(fmt.Errorf("instance closed"))
-			con.Process.Kill()
-			ssh.Process.Kill()
-		case err := <-conDone:
-			signal(err)
-			ssh.Process.Kill()
-		case err := <-sshDone:
+		case err := <-merger.Err:
 			// Check if the instance was terminated due to preemption or host maintenance.
 			time.Sleep(5 * time.Second) // just to avoid any GCE races
 			if !GCE.IsInstanceRunning(inst.name) {
@@ -240,9 +221,12 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 				err = vm.TimeoutErr
 			}
 			signal(err)
-			con.Process.Kill()
 		}
+		con.Process.Kill()
+		ssh.Process.Kill()
 		merger.Wait()
+		con.Wait()
+		ssh.Wait()
 	}()
 	return merger.Output, errc, nil
 }

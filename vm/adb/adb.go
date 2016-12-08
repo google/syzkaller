@@ -47,7 +47,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 		return nil, err
 	}
 	var err error
-	if inst.console, err = findConsole(inst.cfg.Device); err != nil {
+	if inst.console, err = findConsole(inst.cfg.Bin, inst.cfg.Device); err != nil {
 		return nil, err
 	}
 	if err := inst.checkBatteryLevel(); err != nil {
@@ -83,7 +83,7 @@ var (
 // while Suzy-Q console uses the same USB calbe as adb.
 // The overall idea is as follows. We use 'adb shell' to write a unique string onto console,
 // then we read from all console devices and see on what console the unique string appears.
-func findConsole(dev string) (string, error) {
+func findConsole(adb, dev string) (string, error) {
 	consoleCacheMu.Lock()
 	defer consoleCacheMu.Unlock()
 	if con := devToConsole[dev]; con != "" {
@@ -103,20 +103,17 @@ func findConsole(dev string) (string, error) {
 		out := new([]byte)
 		output[con] = out
 		go func(con string) {
-			cmd := exec.Command("cat", con)
-			stdout, err := cmd.StdoutPipe()
+			tty, err := openConsole(con)
 			if err != nil {
 				errors <- err
+				return
 			}
-			if cmd.Start() != nil {
-				errors <- err
-			}
+			defer tty.Close()
 			go func() {
 				<-done
-				cmd.Process.Kill()
+				tty.Close()
 			}()
-			*out, _ = ioutil.ReadAll(stdout)
-			cmd.Wait()
+			*out, _ = ioutil.ReadAll(tty)
 			errors <- nil
 		}(con)
 	}
@@ -125,7 +122,7 @@ func findConsole(dev string) (string, error) {
 	}
 	time.Sleep(500 * time.Millisecond)
 	unique := fmt.Sprintf(">>>%v<<<", dev)
-	cmd := exec.Command("adb", "-s", dev, "shell", "echo", "\"", unique, "\"", ">", "/dev/kmsg")
+	cmd := exec.Command(adb, "-s", dev, "shell", "echo", "\"", unique, "\"", ">", "/dev/kmsg")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("failed to run adb shell: %v\n%s", err, out)
 	}
@@ -329,34 +326,14 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
-	catRpipe, catWpipe, err := vm.LongPipe()
+	tty, err := openConsole(inst.console)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	cat := exec.Command("cat", inst.console)
-	cat.Stdout = catWpipe
-	cat.Stderr = catWpipe
-	if err := cat.Start(); err != nil {
-		catRpipe.Close()
-		catWpipe.Close()
-		return nil, nil, fmt.Errorf("failed to start cat %v: %v", inst.console, err)
-
-	}
-	catWpipe.Close()
-	catDone := make(chan error, 1)
-	go func() {
-		err := cat.Wait()
-		if inst.cfg.Debug {
-			Logf(0, "cat exited: %v", err)
-		}
-		catDone <- fmt.Errorf("cat exited: %v", err)
-	}()
-
 	adbRpipe, adbWpipe, err := vm.LongPipe()
 	if err != nil {
-		cat.Process.Kill()
-		catRpipe.Close()
+		tty.Close()
 		return nil, nil, err
 	}
 	if inst.cfg.Debug {
@@ -366,29 +343,20 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	adb.Stdout = adbWpipe
 	adb.Stderr = adbWpipe
 	if err := adb.Start(); err != nil {
-		cat.Process.Kill()
-		catRpipe.Close()
+		tty.Close()
 		adbRpipe.Close()
 		adbWpipe.Close()
 		return nil, nil, fmt.Errorf("failed to start adb: %v", err)
 	}
 	adbWpipe.Close()
-	adbDone := make(chan error, 1)
-	go func() {
-		err := adb.Wait()
-		if inst.cfg.Debug {
-			Logf(0, "adb exited: %v", err)
-		}
-		adbDone <- fmt.Errorf("adb exited: %v", err)
-	}()
 
 	var tee io.Writer
 	if inst.cfg.Debug {
 		tee = os.Stdout
 	}
 	merger := vm.NewOutputMerger(tee)
-	merger.Add(catRpipe)
-	merger.Add(adbRpipe)
+	merger.Add("console", tty)
+	merger.Add("adb", adbRpipe)
 
 	errc := make(chan error, 1)
 	signal := func(err error) {
@@ -402,27 +370,20 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		select {
 		case <-time.After(timeout):
 			signal(vm.TimeoutErr)
-			cat.Process.Kill()
-			adb.Process.Kill()
 		case <-stop:
 			signal(vm.TimeoutErr)
-			cat.Process.Kill()
-			adb.Process.Kill()
 		case <-inst.closed:
 			if inst.cfg.Debug {
 				Logf(0, "instance closed")
 			}
 			signal(fmt.Errorf("instance closed"))
-			cat.Process.Kill()
-			adb.Process.Kill()
-		case err := <-catDone:
+		case err := <-merger.Err:
 			signal(err)
-			adb.Process.Kill()
-		case err := <-adbDone:
-			signal(err)
-			cat.Process.Kill()
 		}
+		tty.Close()
+		adb.Process.Kill()
 		merger.Wait()
+		adb.Wait()
 	}()
 	return merger.Output, errc, nil
 }
