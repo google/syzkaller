@@ -16,7 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/mman.h>
 #include <sys/prctl.h>
 #include <sys/reboot.h>
 #include <sys/stat.h>
@@ -229,7 +228,7 @@ void loop()
 			close(kOutPipeFd);
 			execute_one();
 			debug("worker exiting\n");
-			exit(0);
+			doexit(0);
 		}
 		debug("spawned worker pid %d\n", pid);
 

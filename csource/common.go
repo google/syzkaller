@@ -9,6 +9,7 @@ var commonHeader = `
 #endif
 
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <sys/mount.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
@@ -46,6 +47,18 @@ const int kFailStatus = 67;
 const int kErrorStatus = 68;
 const int kRetryStatus = 69;
 
+__attribute__((noreturn)) void doexit(int status)
+{
+	syscall(__NR_exit_group, status);
+	for (volatile unsigned i = 0;; i++) {
+	}
+}
+
+#if defined(SYZ_EXECUTOR)
+#define exit use_doexit_instead
+#define _exit use_doexit_instead
+#endif
+
 __attribute__((noreturn)) void fail(const char* msg, ...)
 {
 	int e = errno;
@@ -55,7 +68,7 @@ __attribute__((noreturn)) void fail(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
-	exit(kFailStatus);
+	doexit(kFailStatus);
 }
 
 #if defined(SYZ_EXECUTOR)
@@ -67,7 +80,7 @@ __attribute__((noreturn)) void error(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, "\n");
-	exit(kErrorStatus);
+	doexit(kErrorStatus);
 }
 #endif
 
@@ -80,7 +93,7 @@ __attribute__((noreturn)) void exitf(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
-	exit(kRetryStatus);
+	doexit(kRetryStatus);
 }
 
 static int flag_debug;
@@ -103,7 +116,9 @@ static void segv_handler(int sig, siginfo_t* info, void* uctx)
 {
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED))
 		_longjmp(segv_env, 1);
-	exit(sig);
+	doexit(sig);
+	for (;;) {
+	}
 }
 
 static void install_segv_handler()
@@ -411,7 +426,7 @@ static int do_sandbox_none()
 		return pid;
 	sandbox_common();
 	loop();
-	exit(1);
+	doexit(1);
 }
 #endif
 
@@ -433,14 +448,14 @@ static int do_sandbox_setuid()
 		fail("failed to setresuid");
 
 	loop();
-	exit(1);
+	doexit(1);
 }
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
 static int real_uid;
 static int real_gid;
-static char sandbox_stack[1 << 20];
+__attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
 
 static bool write_file(const char* file, const char* what, ...)
 {
@@ -513,13 +528,14 @@ static int namespace_sandbox_proc(void* arg)
 		fail("capset failed");
 
 	loop();
-	exit(1);
+	doexit(1);
 }
 
 static int do_sandbox_namespace()
 {
 	real_uid = getuid();
 	real_gid = getgid();
+	mprotect(sandbox_stack, 4096, PROT_NONE);
 	return clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 8],
 		     CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
 }
@@ -627,7 +643,7 @@ void loop()
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
 			test();
-			exit(0);
+			doexit(0);
 		}
 		int status = 0;
 		uint64_t start = current_time_ms();

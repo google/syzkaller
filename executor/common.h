@@ -8,6 +8,7 @@
 #endif
 
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <sys/mount.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
@@ -45,6 +46,30 @@ const int kFailStatus = 67;
 const int kErrorStatus = 68;
 const int kRetryStatus = 69;
 
+// One does not simply exit.
+// _exit can in fact fail.
+// syzkaller did manage to generate a seccomp filter that prohibits exit_group syscall.
+// Previously, we get into infinite recursion via segv_handler in such case
+// and corrupted output_data, which does matter in our case since it is shared
+// with fuzzer process. Loop infinitely instead. Parent will kill us.
+// But one does not simply loop either. Compilers are sure that _exit never returns,
+// so they remove all code after _exit as dead. Call _exit via volatile indirection.
+// And this does not work as well. _exit has own handling of failing exit_group
+// in the form of HLT instruction, it will divert control flow from our loop.
+// So call the syscall directly.
+__attribute__((noreturn)) void doexit(int status)
+{
+	syscall(__NR_exit_group, status);
+	for (volatile unsigned i = 0;; i++) {
+	}
+}
+
+#if defined(SYZ_EXECUTOR)
+// exit/_exit do not necessary work.
+#define exit use_doexit_instead
+#define _exit use_doexit_instead
+#endif
+
 // logical error (e.g. invalid input program), use as an assert() alernative
 __attribute__((noreturn)) void fail(const char* msg, ...)
 {
@@ -55,7 +80,7 @@ __attribute__((noreturn)) void fail(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
-	exit(kFailStatus);
+	doexit(kFailStatus);
 }
 
 #if defined(SYZ_EXECUTOR)
@@ -68,7 +93,7 @@ __attribute__((noreturn)) void error(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, "\n");
-	exit(kErrorStatus);
+	doexit(kErrorStatus);
 }
 #endif
 
@@ -82,7 +107,7 @@ __attribute__((noreturn)) void exitf(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
-	exit(kRetryStatus);
+	doexit(kRetryStatus);
 }
 
 static int flag_debug;
@@ -105,7 +130,9 @@ static void segv_handler(int sig, siginfo_t* info, void* uctx)
 {
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED))
 		_longjmp(segv_env, 1);
-	exit(sig);
+	doexit(sig);
+	for (;;) {
+	}
 }
 
 static void install_segv_handler()
@@ -428,7 +455,7 @@ static int do_sandbox_none()
 		return pid;
 	sandbox_common();
 	loop();
-	exit(1);
+	doexit(1);
 }
 #endif
 
@@ -450,14 +477,14 @@ static int do_sandbox_setuid()
 		fail("failed to setresuid");
 
 	loop();
-	exit(1);
+	doexit(1);
 }
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
 static int real_uid;
 static int real_gid;
-static char sandbox_stack[1 << 20];
+__attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
 
 static bool write_file(const char* file, const char* what, ...)
 {
@@ -535,13 +562,14 @@ static int namespace_sandbox_proc(void* arg)
 		fail("capset failed");
 
 	loop();
-	exit(1);
+	doexit(1);
 }
 
 static int do_sandbox_namespace()
 {
 	real_uid = getuid();
 	real_gid = getgid();
+	mprotect(sandbox_stack, 4096, PROT_NONE); // to catch stack underflows
 	return clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 8],
 		     CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
 }
@@ -657,7 +685,7 @@ void loop()
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
 			test();
-			exit(0);
+			doexit(0);
 		}
 		int status = 0;
 		uint64_t start = current_time_ms();
