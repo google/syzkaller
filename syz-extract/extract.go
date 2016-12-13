@@ -117,6 +117,9 @@ func compileConsts(arch *Arch, desc *Description) map[string]uint64 {
 		}
 		valArr = append(valArr, v)
 	}
+	if len(valArr) == 0 {
+		return nil
+	}
 
 	consts, err := fetchValues(arch.KernelHeaderArch, valArr, append(desc.Includes, arch.KernelInclude), desc.Defines, arch.CFlags)
 	if err != nil {
