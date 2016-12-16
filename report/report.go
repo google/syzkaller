@@ -221,8 +221,8 @@ var oopses = []*oops{
 
 var (
 	consoleOutputRe = regexp.MustCompile(`^\[ *[0-9]+\.[0-9]+\] `)
-	questionableRe  = regexp.MustCompile(`\[\<[0-9a-f]+\>\] \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
-	symbolizeRe     = regexp.MustCompile(`\[\<([0-9a-f]+)\>\] +([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
+	questionableRe  = regexp.MustCompile(`(?:\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
+	symbolizeRe     = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])? +(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
 	eoi             = []byte("<EOI>")
 )
 
@@ -395,12 +395,12 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 	if match == nil {
 		return line
 	}
-	fn := line[match[4]:match[5]]
-	off, err := strconv.ParseUint(string(line[match[6]:match[7]]), 16, 64)
+	fn := line[match[2]:match[3]]
+	off, err := strconv.ParseUint(string(line[match[4]:match[5]]), 16, 64)
 	if err != nil {
 		return line
 	}
-	size, err := strconv.ParseUint(string(line[match[8]:match[9]]), 16, 64)
+	size, err := strconv.ParseUint(string(line[match[6]:match[7]]), 16, 64)
 	if err != nil {
 		return line
 	}
@@ -429,10 +429,11 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 		}
 		info := fmt.Sprintf(" %v:%v", file, frame.Line)
 		modified := append([]byte{}, line...)
-		modified = replace(modified, match[9], match[9], []byte(info))
+		modified = replace(modified, match[7], match[7], []byte(info))
 		if frame.Inline {
-			modified = replace(modified, match[4], match[9], []byte(frame.Func))
-			modified = replace(modified, match[2], match[3], []byte("     inline     "))
+			end := match[7] + len(info)
+			modified = replace(modified, end, end, []byte(" [inline]"))
+			modified = replace(modified, match[2], match[7], []byte(frame.Func))
 		}
 		symbolized = append(symbolized, modified...)
 	}
