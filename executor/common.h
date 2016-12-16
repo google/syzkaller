@@ -80,7 +80,9 @@ __attribute__((noreturn)) void fail(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
-	doexit(kFailStatus);
+	// ENOMEM is frequent cause of failures in fuzzing context,
+	// so handle it here as non-fatal error.
+	doexit(e == ENOMEM ? kRetryStatus : kFailStatus);
 }
 
 #if defined(SYZ_EXECUTOR)
