@@ -89,7 +89,9 @@ var oopses = []*oops{
 				"WARNING in %[2]v",
 			},
 		},
-		[]*regexp.Regexp{},
+		[]*regexp.Regexp{
+			compile("WARNING: /etc/ssh/moduli does not exist, using fixed modulus"), // printed by sshd
+		},
 	},
 	&oops{
 		[]byte("INFO:"),
