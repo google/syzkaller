@@ -488,6 +488,10 @@ BUG UNIX (Not tainted): kasan: bad access detected
 		`
 INFO: Stall ended before state dump start
 `: ``,
+
+		`
+WARNING: /etc/ssh/moduli does not exist, using fixed modulus
+`: ``,
 	}
 	for log, crash := range tests {
 		if strings.Index(log, "\r\n") != -1 {
