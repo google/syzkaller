@@ -122,12 +122,6 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string) (str
 		NetworkInterfaces: []*compute.NetworkInterface{
 			&compute.NetworkInterface{
 				Network: "global/networks/default",
-				AccessConfigs: []*compute.AccessConfig{
-					{
-						Name: "External NAT",
-						Type: "ONE_TO_ONE_NAT",
-					},
-				},
 			},
 		},
 		Scheduling: &compute.Scheduling{
