@@ -590,7 +590,7 @@ func TestSymbolizeLine(t *testing.T) {
 		// Should not be symbolized.
 		{
 			"WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 foo+0x101/0x185\n",
-			"WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 foo+0x101/0x185\n",
+			"WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 foo+0x101/0x185 foo.c:555\n",
 		},
 		// Tricky function name.
 		{
@@ -600,8 +600,8 @@ func TestSymbolizeLine(t *testing.T) {
 		// Inlined frames.
 		{
 			"    [<ffffffff84e5bea0>] foo+0x141/0x185\n",
-			"    [<     inline     >] inlined1 net.c:111\n" +
-				"    [<     inline     >] inlined2 mm.c:222\n" +
+			"    [<ffffffff84e5bea0>] inlined1 net.c:111 [inline]\n" +
+				"    [<ffffffff84e5bea0>] inlined2 mm.c:222 [inline]\n" +
 				"    [<ffffffff84e5bea0>] foo+0x141/0x185 kasan.c:333\n",
 		},
 		// Several symbols with the same name.
