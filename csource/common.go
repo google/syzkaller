@@ -68,7 +68,7 @@ __attribute__((noreturn)) void fail(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
-	doexit(kFailStatus);
+	doexit(e == ENOMEM ? kRetryStatus : kFailStatus);
 }
 
 #if defined(SYZ_EXECUTOR)
