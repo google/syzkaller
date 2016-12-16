@@ -384,7 +384,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) (*Crash, error) {
 	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.cfg.Type == "local", true)
 	if timedout {
 		// This is the only "OK" outcome.
-		Logf(0, "%v: running for %v, restarting", vmCfg.Name, time.Since(start))
+		Logf(0, "%v: running for %v, restarting (%v)", vmCfg.Name, time.Since(start), desc)
 		return nil, nil
 	}
 	if !crashed {

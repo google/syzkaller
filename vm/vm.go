@@ -114,6 +114,9 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 	extractError := func(defaultError string) (string, []byte, []byte, bool, bool) {
 		// Give it some time to finish writing the error message.
 		waitForOutput()
+		if bytes.Contains(output, []byte("SYZ-FUZZER: PREEMPTED")) {
+			return "preempted", nil, nil, false, true
+		}
 		if !report.ContainsCrash(output[matchPos:]) {
 			return defaultError, nil, output, true, false
 		}
