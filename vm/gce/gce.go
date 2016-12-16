@@ -234,7 +234,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			ssh.Process.Kill()
 		case err := <-sshDone:
 			// Check if the instance was terminated due to preemption or host maintenance.
-			time.Sleep(time.Second) // just to avoid any GCE races
+			time.Sleep(5 * time.Second) // just to avoid any GCE races
 			if !GCE.IsInstanceRunning(inst.name) {
 				Logf(1, "%v: ssh exited but instance is not running", inst.name)
 				err = vm.TimeoutErr

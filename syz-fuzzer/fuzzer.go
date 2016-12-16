@@ -16,6 +16,7 @@ import (
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"os"
+	"os/signal"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -97,6 +98,15 @@ func main() {
 		os.Exit(1)
 	}
 	Logf(0, "fuzzer started")
+
+	go func() {
+		// Handles graceful preemption on GCE.
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+		<-c
+		Logf(0, "SYZ-FUZZER: PREEMPTED")
+		os.Exit(1)
+	}()
 
 	corpusCover = make([]cover.Cover, sys.CallCount)
 	maxCover = make([]cover.Cover, sys.CallCount)
