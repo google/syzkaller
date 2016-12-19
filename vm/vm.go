@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"syscall"
 	"time"
 
@@ -86,7 +87,7 @@ func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
 
 var TimeoutErr = errors.New("timeout")
 
-func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput bool) (desc string, text, output []byte, crashed, timedout bool) {
+func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput bool, ignores []*regexp.Regexp) (desc string, text, output []byte, crashed, timedout bool) {
 	waitForOutput := func() {
 		dur := time.Second
 		if needOutput {
@@ -117,10 +118,10 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 		if bytes.Contains(output, []byte("SYZ-FUZZER: PREEMPTED")) {
 			return "preempted", nil, nil, false, true
 		}
-		if !report.ContainsCrash(output[matchPos:]) {
+		if !report.ContainsCrash(output[matchPos:], ignores) {
 			return defaultError, nil, output, true, false
 		}
-		desc, text, start, end := report.Parse(output[matchPos:])
+		desc, text, start, end := report.Parse(output[matchPos:], ignores)
 		start = start + matchPos - beforeContext
 		if start < 0 {
 			start = 0
@@ -162,7 +163,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 			if bytes.Index(output[matchPos:], []byte("executed programs:")) != -1 { // syz-execprog output
 				lastExecuteTime = time.Now()
 			}
-			if report.ContainsCrash(output[matchPos:]) {
+			if report.ContainsCrash(output[matchPos:], ignores) {
 				return extractError("")
 			}
 			if len(output) > 2*beforeContext {

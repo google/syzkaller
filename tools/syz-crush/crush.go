@@ -33,7 +33,7 @@ var (
 
 func main() {
 	flag.Parse()
-	cfg, _, _, err := config.Parse(*flagConfig)
+	cfg, _, err := config.Parse(*flagConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -113,7 +113,7 @@ func runInstance(cfg *config.Config, vmCfg *vm.Config) {
 	}
 
 	Logf(0, "%v: crushing...", vmCfg.Name)
-	desc, _, output, crashed, timedout := vm.MonitorExecution(outc, errc, cfg.Type == "local", true)
+	desc, _, output, crashed, timedout := vm.MonitorExecution(outc, errc, cfg.Type == "local", true, cfg.ParsedIgnores)
 	if timedout {
 		// This is the only "OK" outcome.
 		Logf(0, "%v: running long enough, restarting", vmCfg.Name)

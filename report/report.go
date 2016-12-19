@@ -237,7 +237,7 @@ func compile(re string) *regexp.Regexp {
 }
 
 // ContainsCrash searches kernel console output for oops messages.
-func ContainsCrash(output []byte) bool {
+func ContainsCrash(output []byte, ignores []*regexp.Regexp) bool {
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
 		if next != -1 {
@@ -246,7 +246,7 @@ func ContainsCrash(output []byte) bool {
 			next = len(output)
 		}
 		for _, oops := range oopses {
-			match := matchOops(output[pos:next], oops)
+			match := matchOops(output[pos:next], oops, ignores)
 			if match == -1 {
 				continue
 			}
@@ -261,7 +261,7 @@ func ContainsCrash(output []byte) bool {
 // Desc contains a representative description of the first oops (empty if no oops found),
 // text contains whole oops text,
 // start and end denote region of output with oops message(s).
-func Parse(output []byte) (desc string, text []byte, start int, end int) {
+func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, start int, end int) {
 	var oops *oops
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
@@ -271,7 +271,7 @@ func Parse(output []byte) (desc string, text []byte, start int, end int) {
 			next = len(output)
 		}
 		for _, oops1 := range oopses {
-			match := matchOops(output[pos:next], oops1)
+			match := matchOops(output[pos:next], oops1, ignores)
 			if match == -1 {
 				continue
 			}
@@ -306,13 +306,18 @@ func Parse(output []byte) (desc string, text []byte, start int, end int) {
 	return
 }
 
-func matchOops(line []byte, oops *oops) int {
+func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) int {
 	match := bytes.Index(line, oops.header)
 	if match == -1 {
 		return -1
 	}
 	for _, supp := range oops.suppressions {
 		if supp.Match(line) {
+			return -1
+		}
+	}
+	for _, ignore := range ignores {
+		if ignore.Match(line) {
 			return -1
 		}
 	}

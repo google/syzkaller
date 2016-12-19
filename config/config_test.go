@@ -9,7 +9,7 @@ import (
 
 func TestUnknown(t *testing.T) {
 	data := `{"foo": "bar"}`
-	_, _, _, err := parse([]byte(data))
+	_, _, err := parse([]byte(data))
 	if err == nil || err.Error() != "unknown field 'foo' in config" {
 		t.Fatalf("unknown field is not detected (%v)", err)
 	}
