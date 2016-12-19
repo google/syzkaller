@@ -29,7 +29,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to open input file: %v\n", err)
 		os.Exit(1)
 	}
-	if _, parsed, _, _ := report.Parse(text); len(parsed) != 0 {
+	if _, parsed, _, _ := report.Parse(text, nil); len(parsed) != 0 {
 		text = parsed
 	}
 	text, err = report.Symbolize(filepath.Join(*flagLinux, "vmlinux"), text)

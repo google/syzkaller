@@ -5,6 +5,7 @@ package report
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -500,7 +501,7 @@ WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 		tests[strings.Replace(log, "\n", "\r\n", -1)] = crash
 	}
 	for log, crash := range tests {
-		containsCrash := ContainsCrash([]byte(log))
+		containsCrash := ContainsCrash([]byte(log), nil)
 		expectCrash := (crash != "")
 		if expectCrash && !containsCrash {
 			t.Fatalf("ContainsCrash did not find crash")
@@ -508,7 +509,7 @@ WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 		if !expectCrash && containsCrash {
 			t.Fatalf("ContainsCrash found unexpected crash")
 		}
-		desc, _, _, _ := Parse([]byte(log))
+		desc, _, _, _ := Parse([]byte(log), nil)
 		if desc == "" && crash != "" {
 			t.Fatalf("did not find crash message '%v' in:\n%v", crash, log)
 		}
@@ -518,6 +519,52 @@ WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 		if desc != crash {
 			t.Fatalf("extracted bad crash message:\n%+q\nwant:\n%+q", desc, crash)
 		}
+	}
+}
+
+func TestIgnores(t *testing.T) {
+	const log = `
+		BUG: bug1
+		BUG: bug2
+	`
+	if !ContainsCrash([]byte(log), nil) {
+		t.Fatalf("no crash")
+	}
+	if desc, _, _, _ := Parse([]byte(log), nil); desc != "BUG: bug1" {
+		t.Fatalf("want `BUG: bug1`, found `%v`", desc)
+	}
+
+	ignores1 := []*regexp.Regexp{
+		regexp.MustCompile("BUG: bug3"),
+	}
+	if !ContainsCrash([]byte(log), ignores1) {
+		t.Fatalf("no crash")
+	}
+	if desc, _, _, _ := Parse([]byte(log), ignores1); desc != "BUG: bug1" {
+		t.Fatalf("want `BUG: bug1`, found `%v`", desc)
+	}
+
+	ignores2 := []*regexp.Regexp{
+		regexp.MustCompile("BUG: bug3"),
+		regexp.MustCompile("BUG: bug1"),
+	}
+	if !ContainsCrash([]byte(log), ignores2) {
+		t.Fatalf("no crash")
+	}
+	if desc, _, _, _ := Parse([]byte(log), ignores2); desc != "BUG: bug2" {
+		t.Fatalf("want `BUG: bug2`, found `%v`", desc)
+	}
+
+	ignores3 := []*regexp.Regexp{
+		regexp.MustCompile("BUG: bug3"),
+		regexp.MustCompile("BUG: bug1"),
+		regexp.MustCompile("BUG: bug2"),
+	}
+	if ContainsCrash([]byte(log), ignores3) {
+		t.Fatalf("found crash, should be ignored")
+	}
+	if desc, _, _, _ := Parse([]byte(log), ignores3); desc != "" {
+		t.Fatalf("found `%v`, should be ignored", desc)
 	}
 }
 

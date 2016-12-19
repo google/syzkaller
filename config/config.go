@@ -58,82 +58,87 @@ type Config struct {
 
 	Enable_Syscalls  []string
 	Disable_Syscalls []string
-	Suppressions     []string
+	Suppressions     []string // don't save reports matching these regexps, but reboot VM after them
+	Ignores          []string // completely ignore reports matching these regexps (don't save nor reboot)
+
+	// Implementation details beyond this point.
+	ParsedSuppressions []*regexp.Regexp `json:"-"`
+	ParsedIgnores      []*regexp.Regexp `json:"-"`
 }
 
-func Parse(filename string) (*Config, map[int]bool, []*regexp.Regexp, error) {
+func Parse(filename string) (*Config, map[int]bool, error) {
 	if filename == "" {
-		return nil, nil, nil, fmt.Errorf("supply config in -config flag")
+		return nil, nil, fmt.Errorf("supply config in -config flag")
 	}
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to read config file: %v", err)
+		return nil, nil, fmt.Errorf("failed to read config file: %v", err)
 	}
 	return parse(data)
 }
 
-func parse(data []byte) (*Config, map[int]bool, []*regexp.Regexp, error) {
+func parse(data []byte) (*Config, map[int]bool, error) {
 	unknown, err := checkUnknownFields(data)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	if unknown != "" {
-		return nil, nil, nil, fmt.Errorf("unknown field '%v' in config", unknown)
+		return nil, nil, fmt.Errorf("unknown field '%v' in config", unknown)
 	}
 	cfg := new(Config)
 	cfg.Cover = true
 	cfg.Sandbox = "setuid"
 	if err := json.Unmarshal(data, cfg); err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to parse config file: %v", err)
+		return nil, nil, fmt.Errorf("failed to parse config file: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-fuzzer")); err != nil {
-		return nil, nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-fuzzer")
+		return nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-fuzzer")
 	}
 	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-executor")); err != nil {
-		return nil, nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-executor")
+		return nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-executor")
 	}
 	if cfg.Http == "" {
-		return nil, nil, nil, fmt.Errorf("config param http is empty")
+		return nil, nil, fmt.Errorf("config param http is empty")
 	}
 	if cfg.Workdir == "" {
-		return nil, nil, nil, fmt.Errorf("config param workdir is empty")
+		return nil, nil, fmt.Errorf("config param workdir is empty")
 	}
 	if cfg.Vmlinux == "" {
-		return nil, nil, nil, fmt.Errorf("config param vmlinux is empty")
+		return nil, nil, fmt.Errorf("config param vmlinux is empty")
 	}
 	if cfg.Type == "" {
-		return nil, nil, nil, fmt.Errorf("config param type is empty")
+		return nil, nil, fmt.Errorf("config param type is empty")
 	}
 	switch cfg.Type {
 	case "none":
 		if cfg.Count != 0 {
-			return nil, nil, nil, fmt.Errorf("invalid config param count: %v, type \"none\" does not support param count", cfg.Count)
+			return nil, nil, fmt.Errorf("invalid config param count: %v, type \"none\" does not support param count", cfg.Count)
 		}
 		if cfg.Rpc == "" {
-			return nil, nil, nil, fmt.Errorf("config param rpc is empty (required for type \"none\")")
+			return nil, nil, fmt.Errorf("config param rpc is empty (required for type \"none\")")
 		}
 		if len(cfg.Devices) != 0 {
-			return nil, nil, nil, fmt.Errorf("type %v does not support devices param", cfg.Type)
+			return nil, nil, fmt.Errorf("type %v does not support devices param", cfg.Type)
 		}
 	case "adb":
 		if cfg.Count != 0 {
-			return nil, nil, nil, fmt.Errorf("don't specify count for adb, instead specify devices")
+			return nil, nil, fmt.Errorf("don't specify count for adb, instead specify devices")
 		}
 		if len(cfg.Devices) == 0 {
-			return nil, nil, nil, fmt.Errorf("specify at least 1 adb device")
+			return nil, nil, fmt.Errorf("specify at least 1 adb device")
 		}
 		cfg.Count = len(cfg.Devices)
 	case "gce":
 		if cfg.Machine_Type == "" {
-			return nil, nil, nil, fmt.Errorf("machine_type parameter is empty (required for gce)")
+			return nil, nil, fmt.Errorf("machine_type parameter is empty (required for gce)")
 		}
 		fallthrough
 	default:
 		if cfg.Count <= 0 || cfg.Count > 1000 {
-			return nil, nil, nil, fmt.Errorf("invalid config param count: %v, want (1, 1000]", cfg.Count)
+			return nil, nil, fmt.Errorf("invalid config param count: %v, want (1, 1000]", cfg.Count)
 		}
 		if len(cfg.Devices) != 0 {
-			return nil, nil, nil, fmt.Errorf("type %v does not support devices param", cfg.Type)
+			return nil, nil, fmt.Errorf("type %v does not support devices param", cfg.Type)
 		}
 	}
 	if cfg.Rpc == "" {
@@ -143,7 +148,7 @@ func parse(data []byte) (*Config, map[int]bool, []*regexp.Regexp, error) {
 		cfg.Procs = 1
 	}
 	if cfg.Procs > 32 {
-		return nil, nil, nil, fmt.Errorf("config param procs has higher value '%v' then the max supported 32", cfg.Procs)
+		return nil, nil, fmt.Errorf("config param procs has higher value '%v' then the max supported 32", cfg.Procs)
 	}
 	if cfg.Output == "" {
 		if cfg.Type == "local" {
@@ -155,25 +160,24 @@ func parse(data []byte) (*Config, map[int]bool, []*regexp.Regexp, error) {
 	switch cfg.Output {
 	case "none", "stdout", "dmesg", "file":
 	default:
-		return nil, nil, nil, fmt.Errorf("config param output must contain one of none/stdout/dmesg/file")
+		return nil, nil, fmt.Errorf("config param output must contain one of none/stdout/dmesg/file")
 	}
 	switch cfg.Sandbox {
 	case "none", "setuid", "namespace":
 	default:
-		return nil, nil, nil, fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
+		return nil, nil, fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
 	}
 
 	syscalls, err := parseSyscalls(cfg)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	suppressions, err := parseSuppressions(cfg)
-	if err != nil {
-		return nil, nil, nil, err
+	if err := parseSuppressions(cfg); err != nil {
+		return nil, nil, err
 	}
 
-	return cfg, syscalls, suppressions, nil
+	return cfg, syscalls, nil
 }
 
 func parseSyscalls(cfg *Config) (map[int]bool, error) {
@@ -225,7 +229,7 @@ func parseSyscalls(cfg *Config) (map[int]bool, error) {
 	return syscalls, nil
 }
 
-func parseSuppressions(cfg *Config) ([]*regexp.Regexp, error) {
+func parseSuppressions(cfg *Config) error {
 	// Add some builtin suppressions.
 	supp := append(cfg.Suppressions, []string{
 		"panic: failed to start executor binary",
@@ -237,16 +241,21 @@ func parseSuppressions(cfg *Config) ([]*regexp.Regexp, error) {
 		"lowmemorykiller: Killing 'syz-fuzzer'",
 		//"INFO: lockdep is turned off", // printed by some sysrq that dumps scheduler state, but also on all lockdep reports
 	}...)
-	var suppressions []*regexp.Regexp
 	for _, s := range supp {
 		re, err := regexp.Compile(s)
 		if err != nil {
-			return nil, fmt.Errorf("failed to compile suppression '%v': %v", s, err)
+			return fmt.Errorf("failed to compile suppression '%v': %v", s, err)
 		}
-		suppressions = append(suppressions, re)
+		cfg.ParsedSuppressions = append(cfg.ParsedSuppressions, re)
 	}
-
-	return suppressions, nil
+	for _, ignore := range cfg.Ignores {
+		re, err := regexp.Compile(ignore)
+		if err != nil {
+			return fmt.Errorf("failed to compile ignore '%v': %v", ignore, err)
+		}
+		cfg.ParsedIgnores = append(cfg.ParsedIgnores, re)
+	}
+	return nil
 }
 
 func CreateVMConfig(cfg *Config, index int) (*vm.Config, error) {
@@ -313,6 +322,7 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Enable_Syscalls",
 		"Disable_Syscalls",
 		"Suppressions",
+		"Ignores",
 		"Initrd",
 		"Machine_Type",
 	}

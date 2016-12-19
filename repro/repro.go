@@ -51,7 +51,7 @@ func Run(crashLog []byte, cfg *config.Config, vmIndexes []int) (*Result, error) 
 	if len(entries) == 0 {
 		return nil, fmt.Errorf("crash log does not contain any programs")
 	}
-	crashDesc, _, crashStart, _ := report.Parse(crashLog)
+	crashDesc, _, crashStart, _ := report.Parse(crashLog, cfg.ParsedIgnores)
 	if crashDesc == "" {
 		crashStart = len(crashLog) // assuming VM hanged
 		crashDesc = "hang"
@@ -325,7 +325,7 @@ func (ctx *context) testImpl(inst vm.Instance, command string, duration time.Dur
 	if err != nil {
 		return false, fmt.Errorf("failed to run command in VM: %v", err)
 	}
-	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, false, false)
+	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, false, false, ctx.cfg.ParsedIgnores)
 	_, _, _ = text, output, timedout
 	if !crashed {
 		Logf(2, "reproducing crash '%v': program did not crash", ctx.crashDesc)

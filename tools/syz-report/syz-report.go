@@ -21,7 +21,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to read report file: %v\n", err)
 		os.Exit(1)
 	}
-	desc, text, _, _ := report.Parse(output)
+	desc, text, _, _ := report.Parse(output, nil)
 	if desc == "" {
 		fmt.Fprintf(os.Stderr, "report file does not contain a crash\n")
 		os.Exit(1)

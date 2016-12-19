@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"regexp"
 	"sync"
 	"syscall"
 	"time"
@@ -57,7 +56,6 @@ type Manager struct {
 	mu              sync.Mutex
 	enabledSyscalls string
 	enabledCalls    []string // as determined by fuzzer
-	suppressions    []*regexp.Regexp
 
 	candidates     [][]byte // untriaged inputs
 	disabledHashes []string
@@ -85,7 +83,7 @@ type Crash struct {
 func main() {
 	flag.Parse()
 	EnableLogCaching(1000, 1<<20)
-	cfg, syscalls, suppressions, err := config.Parse(*flagConfig)
+	cfg, syscalls, err := config.Parse(*flagConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -94,10 +92,10 @@ func main() {
 		cfg.Count = 1
 	}
 	initAllCover(cfg.Vmlinux)
-	RunManager(cfg, syscalls, suppressions)
+	RunManager(cfg, syscalls)
 }
 
-func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regexp.Regexp) {
+func RunManager(cfg *config.Config, syscalls map[int]bool) {
 	crashdir := filepath.Join(cfg.Workdir, "crashes")
 	os.MkdirAll(crashdir, 0700)
 
@@ -117,7 +115,6 @@ func RunManager(cfg *config.Config, syscalls map[int]bool, suppressions []*regex
 		startTime:       time.Now(),
 		stats:           make(map[string]uint64),
 		enabledSyscalls: enabledSyscalls,
-		suppressions:    suppressions,
 		corpusCover:     make([]cover.Cover, sys.CallCount),
 		fuzzers:         make(map[string]*Fuzzer),
 		fresh:           true,
@@ -381,7 +378,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) (*Crash, error) {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
 
-	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.cfg.Type == "local", true)
+	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.cfg.Type == "local", true, mgr.cfg.ParsedIgnores)
 	if timedout {
 		// This is the only "OK" outcome.
 		Logf(0, "%v: running for %v, restarting (%v)", vmCfg.Name, time.Since(start), desc)
@@ -395,7 +392,7 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) (*Crash, error) {
 }
 
 func (mgr *Manager) isSuppressed(crash *Crash) bool {
-	for _, re := range mgr.suppressions {
+	for _, re := range mgr.cfg.ParsedSuppressions {
 		if !re.Match(crash.output) {
 			continue
 		}
