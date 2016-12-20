@@ -465,7 +465,7 @@ func generateArg(
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
 		fmt.Fprintf(out, "&VmaType{%v}", common())
-	case "len", "bytesize":
+	case "len", "bytesize", "bytesize2", "bytesize4", "bytesize8":
 		canBeArg = true
 		size := uint64(ptrSize)
 		bigEndian := false
@@ -479,7 +479,11 @@ func generateArg(
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
 		}
-		fmt.Fprintf(out, "&LenType{%v, Buf: \"%v\", TypeSize: %v, BigEndian: %v, ByteSize: %v}", common(), a[0], size, bigEndian, typ == "bytesize")
+		byteSize := uint8(0)
+		if typ != "len" {
+			byteSize = decodeByteSizeType(typ)
+		}
+		fmt.Fprintf(out, "&LenType{%v, Buf: \"%v\", TypeSize: %v, BigEndian: %v, ByteSize: %v}", common(), a[0], size, bigEndian, byteSize)
 	case "flags":
 		canBeArg = true
 		size := uint64(ptrSize)
@@ -681,6 +685,19 @@ func decodeIntType(typ string) (uint64, bool) {
 		sz, _ = strconv.ParseInt(typ[3:], 10, 64)
 	}
 	return uint64(sz / 8), bigEndian
+}
+
+func decodeByteSizeType(typ string) uint8 {
+	switch typ {
+	case "bytesize", "bytesize2", "bytesize4", "bytesize8":
+	default:
+		failf("unknown type %v", typ)
+	}
+	sz := int64(1)
+	if typ != "bytesize" {
+		sz, _ = strconv.ParseInt(typ[8:], 10, 8)
+	}
+	return uint8(sz)
 }
 
 func isIdentifier(s string) bool {
