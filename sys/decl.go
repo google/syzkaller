@@ -157,7 +157,7 @@ type LenType struct {
 	TypeCommon
 	TypeSize  uintptr
 	BigEndian bool
-	ByteSize  bool // want size in bytes instead of array size
+	ByteSize  uintptr // want size in multiple of bytes instead of array size
 	Buf       string
 }
 
