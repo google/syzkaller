@@ -56,6 +56,13 @@ type Config struct {
 
 	Machine_Type string // GCE machine type (e.g. "n1-highcpu-2")
 
+	Odroid_Host_Addr  string // ip address of the host machine
+	Odroid_Slave_Addr string // ip address of the Odroid board
+	Odroid_Console    string // console device name (e.g. "/dev/ttyUSB0")
+	Odroid_Hub_Bus    int    // host USB bus number for the USB hub
+	Odroid_Hub_Device int    // host USB device number for the USB hub
+	Odroid_Hub_Port   int    // port on the USB hub to which Odroid is connected
+
 	Cover     bool // use kcov coverage (default: true)
 	Leak      bool // do memory leak checking
 	Reproduce bool // reproduce, localize and minimize crashers (on by default)
@@ -138,6 +145,28 @@ func parse(data []byte) (*Config, map[int]bool, error) {
 			return nil, nil, fmt.Errorf("machine_type parameter is empty (required for gce)")
 		}
 		fallthrough
+	case "odroid":
+		if cfg.Count != 1 {
+			return nil, nil, fmt.Errorf("no support for multiple Odroid devices yet, count should be 1")
+		}
+		if cfg.Odroid_Host_Addr == "" {
+			return nil, nil, fmt.Errorf("config param odroid_host_addr is empty")
+		}
+		if cfg.Odroid_Slave_Addr == "" {
+			return nil, nil, fmt.Errorf("config param odroid_slave_addr is empty")
+		}
+		if cfg.Odroid_Console == "" {
+			return nil, nil, fmt.Errorf("config param odroid_console is empty")
+		}
+		if cfg.Odroid_Hub_Bus == 0 {
+			return nil, nil, fmt.Errorf("config param odroid_hub_bus is empty")
+		}
+		if cfg.Odroid_Hub_Device == 0 {
+			return nil, nil, fmt.Errorf("config param odroid_hub_device is empty")
+		}
+		if cfg.Odroid_Hub_Port == 0 {
+			return nil, nil, fmt.Errorf("config param odroid_hub_port is empty")
+		}
 	default:
 		if cfg.Count <= 0 || cfg.Count > 1000 {
 			return nil, nil, fmt.Errorf("invalid config param count: %v, want (1, 1000]", cfg.Count)
@@ -308,21 +337,27 @@ func CreateVMConfig(cfg *Config, index int) (*vm.Config, error) {
 		return nil, fmt.Errorf("failed to create instance temp dir: %v", err)
 	}
 	vmCfg := &vm.Config{
-		Name:        fmt.Sprintf("%v-%v-%v", cfg.Type, cfg.Name, index),
-		Index:       index,
-		Workdir:     workdir,
-		Bin:         cfg.Bin,
-		BinArgs:     cfg.Bin_Args,
-		Kernel:      cfg.Kernel,
-		Cmdline:     cfg.Cmdline,
-		Image:       cfg.Image,
-		Initrd:      cfg.Initrd,
-		Sshkey:      cfg.Sshkey,
-		Executor:    filepath.Join(cfg.Syzkaller, "bin", "syz-executor"),
-		Cpu:         cfg.Cpu,
-		Mem:         cfg.Mem,
-		Debug:       cfg.Debug,
-		MachineType: cfg.Machine_Type,
+		Name:            fmt.Sprintf("%v-%v-%v", cfg.Type, cfg.Name, index),
+		Index:           index,
+		Workdir:         workdir,
+		Bin:             cfg.Bin,
+		BinArgs:         cfg.Bin_Args,
+		Kernel:          cfg.Kernel,
+		Cmdline:         cfg.Cmdline,
+		Image:           cfg.Image,
+		Initrd:          cfg.Initrd,
+		Sshkey:          cfg.Sshkey,
+		Executor:        filepath.Join(cfg.Syzkaller, "bin", "syz-executor"),
+		Cpu:             cfg.Cpu,
+		Mem:             cfg.Mem,
+		Debug:           cfg.Debug,
+		MachineType:     cfg.Machine_Type,
+		OdroidHostAddr:  cfg.Odroid_Host_Addr,
+		OdroidSlaveAddr: cfg.Odroid_Slave_Addr,
+		OdroidConsole:   cfg.Odroid_Console,
+		OdroidHubBus:    cfg.Odroid_Hub_Bus,
+		OdroidHubDevice: cfg.Odroid_Hub_Device,
+		OdroidHubPort:   cfg.Odroid_Hub_Port,
 	}
 	if len(cfg.Devices) != 0 {
 		vmCfg.Device = cfg.Devices[index]
@@ -369,6 +404,12 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Ignores",
 		"Initrd",
 		"Machine_Type",
+		"Odroid_Host_Addr",
+		"Odroid_Slave_Addr",
+		"Odroid_Console",
+		"Odroid_Hub_Bus",
+		"Odroid_Hub_Device",
+		"Odroid_Hub_Port",
 	}
 	f := make(map[string]interface{})
 	if err := json.Unmarshal(data, &f); err != nil {

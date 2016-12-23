@@ -633,7 +633,7 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 	epid = executor_pid;
 	etun = enable_tun;
 	mprotect(sandbox_stack, 4096, PROT_NONE); // to catch stack underflows
-	return clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 8],
+	return clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
 		     CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
 }
 #endif
