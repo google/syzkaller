@@ -1,9 +1,9 @@
-// Copyright 2016 syzkaller project authors. All rights reserved.
+// Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // +build !ppc64le
 
-package adb
+package vm
 
 import (
 	"fmt"
@@ -13,12 +13,11 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/google/syzkaller/vm"
-	. "golang.org/x/sys/unix"
+	"golang.org/x/sys/unix"
 )
 
 // Tested on Suzy-Q and BeagleBone.
-func openConsole(con string) (rc io.ReadCloser, err error) {
+func OpenConsole(con string) (rc io.ReadCloser, err error) {
 	fd, err := syscall.Open(con, syscall.O_RDONLY|syscall.O_NOCTTY|syscall.O_SYNC, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open console file: %v", err)
@@ -28,21 +27,21 @@ func openConsole(con string) (rc io.ReadCloser, err error) {
 			syscall.Close(fd)
 		}
 	}()
-	var term Termios
-	if _, _, errno := syscall.Syscall(SYS_IOCTL, uintptr(fd), TCGETS2, uintptr(unsafe.Pointer(&term))); errno != 0 {
+	var term unix.Termios
+	if _, _, errno := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), unix.TCGETS2, uintptr(unsafe.Pointer(&term))); errno != 0 {
 		return nil, fmt.Errorf("failed to get console termios: %v", errno)
 	}
 	// no parity bit, only need 1 stop bit, no hardware flowcontrol
-	term.Cflag &^= CBAUD | CSIZE | PARENB | CSTOPB | CRTSCTS
+	term.Cflag &^= unix.CBAUD | unix.CSIZE | unix.PARENB | unix.CSTOPB | unix.CRTSCTS
 	// ignore modem controls
-	term.Cflag |= B115200 | CS8 | CLOCAL | CREAD
+	term.Cflag |= unix.B115200 | unix.CS8 | unix.CLOCAL | unix.CREAD
 	// setup for non-canonical mode
-	term.Iflag &^= IGNBRK | BRKINT | PARMRK | ISTRIP | INLCR | IGNCR | ICRNL | IXON
-	term.Lflag &^= ECHO | ECHONL | ICANON | ISIG | IEXTEN
-	term.Oflag &^= OPOST
-	term.Cc[VMIN] = 0
-	term.Cc[VTIME] = 10 // 1 second timeout
-	if _, _, errno := syscall.Syscall(SYS_IOCTL, uintptr(fd), TCSETS2, uintptr(unsafe.Pointer(&term))); errno != 0 {
+	term.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
+	term.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
+	term.Oflag &^= unix.OPOST
+	term.Cc[unix.VMIN] = 0
+	term.Cc[unix.VTIME] = 10 // 1 second timeout
+	if _, _, errno := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), unix.TCSETS2, uintptr(unsafe.Pointer(&term))); errno != 0 {
 		return nil, fmt.Errorf("failed to get console termios: %v", errno)
 	}
 	tmp := fd
@@ -78,9 +77,9 @@ func (t *tty) Close() error {
 	return nil
 }
 
-// openAdbConsole provides fallback console output using 'adb shell dmesg -w'.
-func openAdbConsole(bin, dev string) (rc io.ReadCloser, err error) {
-	rpipe, wpipe, err := vm.LongPipe()
+// OpenAdbConsole provides fallback console output using 'adb shell dmesg -w'.
+func OpenAdbConsole(bin, dev string) (rc io.ReadCloser, err error) {
+	rpipe, wpipe, err := LongPipe()
 	if err != nil {
 		return nil, err
 	}
