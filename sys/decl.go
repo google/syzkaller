@@ -437,10 +437,8 @@ func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
 	}
 	for {
 		n := len(supported)
-		for c := range enabled {
-			if !supported[c] {
-				continue
-			}
+		haveGettime := supported[CallMap["clock_gettime"]]
+		for c := range supported {
 			canCreate := true
 			for _, res := range c.InputResources() {
 				noctors := true
@@ -454,6 +452,15 @@ func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
 					canCreate = false
 					break
 				}
+			}
+			// We need to support structs as resources,
+			// but for now we just special-case timespec/timeval.
+			if canCreate && !haveGettime {
+				ForeachType(c, func(typ Type) {
+					if a, ok := typ.(*StructType); ok && a.Dir() != DirOut && (a.Name() == "timespec" || a.Name() == "timeval") {
+						canCreate = false
+					}
+				})
 			}
 			if !canCreate {
 				delete(supported, c)

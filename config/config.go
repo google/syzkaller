@@ -222,9 +222,8 @@ func parseSyscalls(cfg *Config) (map[int]bool, error) {
 			return nil, fmt.Errorf("unknown disabled syscall: %v", c)
 		}
 	}
-	// They will be generated anyway.
+	// mmap is used to allocate memory.
 	syscalls[sys.CallMap["mmap"].ID] = true
-	syscalls[sys.CallMap["clock_gettime"].ID] = true
 
 	return syscalls, nil
 }
