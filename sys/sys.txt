@@ -480,37 +480,8 @@ membarrier(cmd const[1], flags const[0])
 # They need a more comprehensive support. But let at least open them for now,
 # maybe fuzzer will be able to skrew them in a useful way.
 syz_open_dev$floppy(dev ptr[in, string["/dev/fd#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$pktcdvd(dev ptr[in, string["/dev/pktcdvd/control"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$lightnvm(dev ptr[in, string["/dev/lightnvm/control"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$vcs(dev ptr[in, string["/dev/vcs"]], id const[0], flags flags[open_flags]) fd
 syz_open_dev$vcsn(dev ptr[in, string["/dev/vcs#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$vcsa(dev ptr[in, string["/dev/vcsa#"]], id intptr, flags flags[open_flags]) fd
-syz_open_dev$vga_arbiter(dev ptr[in, string["/dev/vga_arbiter"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$vhci(dev ptr[in, string["/dev/vhci"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$userio(dev ptr[in, string["/dev/userio"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$rtc(dev ptr[in, string["/dev/rtc"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$rfkill(dev ptr[in, string["/dev/rfkill"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$qat_adf_ctl(dev ptr[in, string["/dev/qat_adf_ctl"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$ppp(dev ptr[in, string["/dev/ppp"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$mixer(dev ptr[in, string["/dev/mixer"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$irnet(dev ptr[in, string["/dev/irnet"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$hwrng(dev ptr[in, string["/dev/hwrng"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$hpet(dev ptr[in, string["/dev/hpet"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$hidraw0(dev ptr[in, string["/dev/hidraw0"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$fb0(dev ptr[in, string["/dev/fb0"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$cuse(dev ptr[in, string["/dev/cuse"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$capi20(dev ptr[in, string["/dev/capi20"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$autofs(dev ptr[in, string["/dev/autofs"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$binder(dev ptr[in, string["/dev/binder"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$ion(dev ptr[in, string["/dev/ion"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$keychord(dev ptr[in, string["/dev/keychord"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$zygote(dev ptr[in, string["/dev/socket/zygote"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$sw_sync(dev ptr[in, string["/dev/sw_sync"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$sr(dev ptr[in, string["/dev/sr0"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$sequencer(dev ptr[in, string["/dev/sequencer"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$sequencer2(dev ptr[in, string["/dev/sequencer2"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$dsp(dev ptr[in, string["/dev/dsp"]], id const[0], flags flags[open_flags]) fd
-syz_open_dev$audio(dev ptr[in, string["/dev/audio"]], id const[0], flags flags[open_flags]) fd
 syz_open_dev$usbmon(dev ptr[in, string["/dev/usbmon#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$sg(dev ptr[in, string["/dev/sg#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$midi(dev ptr[in, string["/dev/midi#"]], id intptr, flags flags[open_flags]) fd
@@ -527,6 +498,36 @@ syz_open_dev$sndhw(dev ptr[in, string["/dev/snd/hwC#D#"]], id intptr, flags flag
 syz_open_dev$sndmidi(dev ptr[in, string["/dev/snd/midiC#D#"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$sndpcmc(dev ptr[in, string["/dev/snd/pcmC#D#c"]], id intptr, flags flags[open_flags]) fd
 syz_open_dev$sndpcmp(dev ptr[in, string["/dev/snd/pcmC#D#p"]], id intptr, flags flags[open_flags]) fd
+
+openat$vga_arbiter(fd const[AT_FDCWD], file ptr[in, string["/dev/vga_arbiter"]], flags flags[open_flags], mode const[0]) fd
+openat$vhci(fd const[AT_FDCWD], file ptr[in, string["/dev/vhci"]], flags flags[open_flags], mode const[0]) fd
+openat$userio(fd const[AT_FDCWD], file ptr[in, string["/dev/userio"]], flags flags[open_flags], mode const[0]) fd
+openat$rtc(fd const[AT_FDCWD], file ptr[in, string["/dev/rtc"]], flags flags[open_flags], mode const[0]) fd
+openat$rfkill(fd const[AT_FDCWD], file ptr[in, string["/dev/rfkill"]], flags flags[open_flags], mode const[0]) fd
+openat$qat_adf_ctl(fd const[AT_FDCWD], file ptr[in, string["/dev/qat_adf_ctl"]], flags flags[open_flags], mode const[0]) fd
+openat$ppp(fd const[AT_FDCWD], file ptr[in, string["/dev/ppp"]], flags flags[open_flags], mode const[0]) fd
+openat$mixer(fd const[AT_FDCWD], file ptr[in, string["/dev/mixer"]], flags flags[open_flags], mode const[0]) fd
+openat$irnet(fd const[AT_FDCWD], file ptr[in, string["/dev/irnet"]], flags flags[open_flags], mode const[0]) fd
+openat$hwrng(fd const[AT_FDCWD], file ptr[in, string["/dev/hwrng"]], flags flags[open_flags], mode const[0]) fd
+openat$hpet(fd const[AT_FDCWD], file ptr[in, string["/dev/hpet"]], flags flags[open_flags], mode const[0]) fd
+openat$hidraw0(fd const[AT_FDCWD], file ptr[in, string["/dev/hidraw0"]], flags flags[open_flags], mode const[0]) fd
+openat$fb0(fd const[AT_FDCWD], file ptr[in, string["/dev/fb0"]], flags flags[open_flags], mode const[0]) fd
+openat$cuse(fd const[AT_FDCWD], file ptr[in, string["/dev/cuse"]], flags flags[open_flags], mode const[0]) fd
+openat$capi20(fd const[AT_FDCWD], file ptr[in, string["/dev/capi20"]], flags flags[open_flags], mode const[0]) fd
+openat$autofs(fd const[AT_FDCWD], file ptr[in, string["/dev/autofs"]], flags flags[open_flags], mode const[0]) fd
+openat$binder(fd const[AT_FDCWD], file ptr[in, string["/dev/binder"]], flags flags[open_flags], mode const[0]) fd
+openat$ion(fd const[AT_FDCWD], file ptr[in, string["/dev/ion"]], flags flags[open_flags], mode const[0]) fd
+openat$keychord(fd const[AT_FDCWD], file ptr[in, string["/dev/keychord"]], flags flags[open_flags], mode const[0]) fd
+openat$zygote(fd const[AT_FDCWD], file ptr[in, string["/dev/socket/zygote"]], flags flags[open_flags], mode const[0]) fd
+openat$sw_sync(fd const[AT_FDCWD], file ptr[in, string["/dev/sw_sync"]], flags flags[open_flags], mode const[0]) fd
+openat$sr(fd const[AT_FDCWD], file ptr[in, string["/dev/sr0"]], flags flags[open_flags], mode const[0]) fd
+openat$pktcdvd(fd const[AT_FDCWD], file ptr[in, string["/dev/pktcdvd/control"]], flags flags[open_flags], mode const[0]) fd
+openat$lightnvm(fd const[AT_FDCWD], file ptr[in, string["/dev/lightnvm/control"]], flags flags[open_flags], mode const[0]) fd
+openat$vcs(fd const[AT_FDCWD], file ptr[in, string["/dev/vcs"]], flags flags[open_flags], mode const[0]) fd
+openat$sequencer(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer"]], flags flags[open_flags], mode const[0]) fd
+openat$sequencer2(fd const[AT_FDCWD], file ptr[in, string["/dev/sequencer2"]], flags flags[open_flags], mode const[0]) fd
+openat$dsp(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp"]], flags flags[open_flags], mode const[0]) fd
+openat$audio(fd const[AT_FDCWD], file ptr[in, string["/dev/audio"]], flags flags[open_flags], mode const[0]) fd
 openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
 
 
