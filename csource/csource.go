@@ -252,22 +252,27 @@ loop:
 }
 
 func preprocessCommonHeader(opts Options, handled map[string]int) (string, error) {
-	cmd := exec.Command("cpp", "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
+	var defines []string
 	switch opts.Sandbox {
 	case "none":
-		cmd.Args = append(cmd.Args, "-DSYZ_SANDBOX_NONE")
+		defines = append(defines, "SYZ_SANDBOX_NONE")
 	case "setuid":
-		cmd.Args = append(cmd.Args, "-DSYZ_SANDBOX_SETUID")
+		defines = append(defines, "SYZ_SANDBOX_SETUID")
 	case "namespace":
-		cmd.Args = append(cmd.Args, "-DSYZ_SANDBOX_NAMESPACE")
+		defines = append(defines, "SYZ_SANDBOX_NAMESPACE")
 	default:
 		return "", fmt.Errorf("unknown sandbox mode: %v", opts.Sandbox)
 	}
 	if opts.Repeat {
-		cmd.Args = append(cmd.Args, "-DSYZ_REPEAT")
+		defines = append(defines, "SYZ_REPEAT")
 	}
 	for name, _ := range handled {
-		cmd.Args = append(cmd.Args, "-D__NR_"+name)
+		defines = append(defines, "__NR_"+name)
+	}
+
+	cmd := exec.Command("cpp", "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
+	for _, def := range defines {
+		cmd.Args = append(cmd.Args, "-D"+def)
 	}
 	cmd.Stdin = strings.NewReader(commonHeader)
 	stderr := new(bytes.Buffer)
@@ -277,14 +282,16 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 	if err := cmd.Run(); len(stdout.Bytes()) == 0 {
 		return "", fmt.Errorf("cpp failed: %v\n%v\n%v\n", err, stdout.String(), stderr.String())
 	}
-	out := strings.Replace(stdout.String(), "#define __STDC__ 1\n", "", -1)
-	out = strings.Replace(out, "#define __STDC_HOSTED__ 1\n", "", -1)
-	for _, arg := range cmd.Args {
-		if !strings.HasPrefix(arg, "-D") {
-			continue
-		}
-		define := strings.TrimPrefix(arg, "-D")
-		out = strings.Replace(out, "#define "+define+" 1\n", "", -1)
+	remove := append(defines, []string{
+		"__STDC__",
+		"__STDC_VERSION__",
+		"__STDC_HOSTED__",
+		"__STDC_UTF_16__",
+		"__STDC_UTF_32__",
+	}...)
+	out := stdout.String()
+	for _, def := range remove {
+		out = strings.Replace(out, "#define "+def+" 1\n", "", -1)
 	}
 	return out, nil
 }
