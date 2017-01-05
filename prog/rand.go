@@ -596,6 +596,9 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		}
 	case *sys.VmaType:
 		npages := r.randPageCount()
+		if a.RangeBegin != 0 || a.RangeEnd != 0 {
+			npages = uintptr(int(a.RangeBegin) + r.Intn(int(a.RangeEnd-a.RangeBegin+1)))
+		}
 		arg := r.randPageAddr(s, a, npages, nil, true)
 		return arg, nil
 	case *sys.FlagsType:

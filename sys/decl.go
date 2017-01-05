@@ -143,6 +143,8 @@ func (t *BufferType) Align() uintptr {
 
 type VmaType struct {
 	TypeCommon
+	RangeBegin int64 // in pages
+	RangeEnd   int64
 }
 
 func (t *VmaType) Size() uintptr {
