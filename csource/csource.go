@@ -85,6 +85,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			fmt.Fprint(w, "\t\tif (fork() == 0) {\n")
 			fmt.Fprintf(w, "\t\t\tsetup_main_process(i, %v);\n", enableTun)
 			fmt.Fprintf(w, "\t\t\tdo_sandbox_%v();\n", opts.Sandbox)
+			fmt.Fprint(w, "\t\t\treturn 0;\n")
 			fmt.Fprint(w, "\t\t}\n")
 			fmt.Fprint(w, "\t}\n")
 			fmt.Fprint(w, "\tsleep(1000000);\n")
