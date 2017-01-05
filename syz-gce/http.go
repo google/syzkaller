@@ -86,7 +86,7 @@ manager is not running
 
 Log:
 <br>
-<textarea id="log_textarea" readonly rows="50">
+<textarea id="log_textarea" readonly rows="20">
 {{.Log}}
 </textarea>
 <script>
