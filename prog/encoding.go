@@ -120,6 +120,7 @@ func (a *Arg) serialize(buf io.Writer, vars map[*Arg]int, varSeq *int) {
 func Deserialize(data []byte) (prog *Prog, err error) {
 	prog = new(Prog)
 	p := &parser{r: bufio.NewScanner(bytes.NewReader(data))}
+	p.r.Buffer(nil, maxLineLen)
 	vars := make(map[string]*Arg)
 	for p.Scan() {
 		if p.EOF() || p.Char() == '#' {
@@ -171,7 +172,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 			vars[r] = c.Ret
 		}
 	}
-	if p.Err() != nil {
+	if err := p.Err(); err != nil {
 		return nil, err
 	}
 	if err := prog.validate(); err != nil {
@@ -351,6 +352,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 const (
 	encodingAddrBase = 0x7f0000000000
 	encodingPageSize = 4 << 10
+	maxLineLen       = 64 << 10
 )
 
 func serializeAddr(a *Arg, base bool) string {
@@ -522,6 +524,7 @@ func (p *parser) failf(msg string, args ...interface{}) {
 func CallSet(data []byte) (map[string]struct{}, error) {
 	calls := make(map[string]struct{})
 	s := bufio.NewScanner(bytes.NewReader(data))
+	s.Buffer(nil, maxLineLen)
 	for s.Scan() {
 		ln := s.Bytes()
 		if len(ln) == 0 || ln[0] == '#' {
@@ -543,6 +546,9 @@ func CallSet(data []byte) (map[string]struct{}, error) {
 			return nil, fmt.Errorf("call name is empty")
 		}
 		calls[string(call)] = struct{}{}
+	}
+	if err := s.Err(); err != nil {
+		return nil, err
 	}
 	if len(calls) == 0 {
 		return nil, fmt.Errorf("program does not contain any calls")
