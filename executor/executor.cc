@@ -45,7 +45,7 @@ const int kMaxOutput = 16 << 20;
 const int kMaxArgs = 9;
 const int kMaxThreads = 16;
 const int kMaxCommands = 4 << 10;
-const int kCoverSize = 16 << 10;
+const int kCoverSize = 64 << 10;
 
 const uint64_t instr_eof = -1;
 const uint64_t instr_copyin = -2;
