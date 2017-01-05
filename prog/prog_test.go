@@ -37,6 +37,9 @@ func TestSerialize(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to deserialize program: %v\n%s", err, data)
 		}
+		if p1 == nil {
+			t.Fatalf("deserialized nil program:\n%s", data)
+		}
 		data1 := p1.Serialize()
 		if len(p.Calls) != len(p1.Calls) {
 			t.Fatalf("different number of calls")
