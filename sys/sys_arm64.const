@@ -797,6 +797,7 @@ __NR_wait4 = 260
 __NR_waitid = 95
 __NR_write = 64
 __NR_writev = 66
+__O_TMPFILE = 4194304
 __WALL = 1073741824
 __WCLONE = 2147483648
 __WNOTHREAD = 536870912
