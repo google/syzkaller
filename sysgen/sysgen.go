@@ -461,10 +461,15 @@ func generateArg(
 		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferAlgName}", common())
 	case "vma":
 		canBeArg = true
-		if want := 0; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		begin, end := "0", "0"
+		switch len(a) {
+		case 0:
+		case 1:
+			begin, end = parseRange(a[0], consts)
+		default:
+			failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
 		}
-		fmt.Fprintf(out, "&VmaType{%v}", common())
+		fmt.Fprintf(out, "&VmaType{%v, RangeBegin: %v, RangeEnd: %v}", common(), begin, end)
 	case "len", "bytesize", "bytesize2", "bytesize4", "bytesize8":
 		canBeArg = true
 		size := uint64(ptrSize)

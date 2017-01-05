@@ -54,7 +54,8 @@ rest of the type-options are type-specific:
 		argname of the object
 	"bytesize": similar to "len", but always denotes the size in bytes, type-options:
 		argname of the object
-	"vma": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise)
+	"vma": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise), type-options:
+		optional number of pages (e.g. vma[7]), or a range of pages (e.g. vma[2-4])
 	"proc": per process int (see description below), type-options:
 		underlying type, value range start, how many values per process
 ```

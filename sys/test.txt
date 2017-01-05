@@ -199,6 +199,10 @@ syz_end_var_struct {
 	f2	flags[syz_end_flags, int64be]
 } [packed]
 
+# Vma type.
+
+syz_test$vma0(v0 vma, l0 len[v0], v1 vma[5], l1 len[v1], v2 vma[7:9], l2 len[v2])
+
 # Regression tests.
 
 syz_test$regression0(a0 ptr[inout, syz_regression0_struct])
