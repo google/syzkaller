@@ -49,6 +49,9 @@ func isSupported(kallsyms []byte, c *sys.Call) bool {
 	if strings.HasPrefix(c.Name, "open$") {
 		return isSupportedOpen(c)
 	}
+	if strings.HasPrefix(c.Name, "openat$") {
+		return isSupportedOpenAt(c)
+	}
 	if len(kallsyms) == 0 {
 		return true
 	}
@@ -112,6 +115,18 @@ func isSupportedSocket(c *sys.Call) bool {
 
 func isSupportedOpen(c *sys.Call) bool {
 	fname, ok := extractStringConst(c.Args[0])
+	if !ok {
+		return true
+	}
+	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0)
+	if fd != -1 {
+		syscall.Close(fd)
+	}
+	return err == nil
+}
+
+func isSupportedOpenAt(c *sys.Call) bool {
+	fname, ok := extractStringConst(c.Args[1])
 	if !ok {
 		return true
 	}
