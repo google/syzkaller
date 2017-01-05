@@ -95,7 +95,7 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod part_msdos
 	insmod ext2
 	set root='(hd0,1)'
-	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 panic=86400
+	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1 kvm-intel.enable_unrestricted_guest=1 kvm-intel.ept=1 kvm-intel.flexpriority=1 kvm-intel.vpid=1 kvm-intel.emulate_invalid_guest_state=1 kvm-intel.eptad=1 kvm-intel.enable_shadow_vmcs=1 kvm-intel.pml=1 kvm-intel.enable_apicv=1
 }
 EOF
 sudo grub-install --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
