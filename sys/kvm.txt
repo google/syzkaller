@@ -4,6 +4,7 @@
 include <linux/kvm.h>
 include <linux/kvm_host.h>
 include <uapi/linux/fcntl.h>
+include <asm/mce.h>
 
 resource fd_kvm[fd]
 resource fd_kvmvm[fd]
@@ -19,9 +20,8 @@ ioctl$KVM_GET_SUPPORTED_CPUID(fd fd_kvm, cmd const[KVM_GET_SUPPORTED_CPUID], arg
 ioctl$KVM_GET_EMULATED_CPUID(fd fd_kvmvm, cmd const[KVM_GET_EMULATED_CPUID], arg buffer[out])
 ioctl$KVM_X86_GET_MCE_CAP_SUPPORTED(fd fd_kvmvm, cmd const[KVM_X86_GET_MCE_CAP_SUPPORTED], arg buffer[out])
 
-ioctl$KVM_CREATE_VCPU(fd fd_kvmvm, cmd const[KVM_CREATE_VCPU], id intptr) fd_kvmcpu
+ioctl$KVM_CREATE_VCPU(fd fd_kvmvm, cmd const[KVM_CREATE_VCPU], id intptr[0:2]) fd_kvmcpu
 ioctl$KVM_CHECK_EXTENSION_VM(fd fd_kvmvm, cmd const[KVM_CHECK_EXTENSION], arg intptr)
-ioctl$KVM_SET_MEMORY_REGION(fd fd_kvmvm, cmd const[KVM_SET_MEMORY_REGION], type ptr[in, kvm_memory_region])
 ioctl$KVM_GET_DIRTY_LOG(fd fd_kvmvm, cmd const[KVM_GET_DIRTY_LOG], arg ptr[in, kvm_dirty_log])
 ioctl$KVM_CREATE_IRQCHIP(fd fd_kvmvm, cmd const[KVM_CREATE_IRQCHIP])
 ioctl$KVM_IRQ_LINE(fd fd_kvmvm, cmd const[KVM_IRQ_LINE], arg ptr[in, kvm_irq_level])
@@ -35,7 +35,7 @@ ioctl$KVM_SET_USER_MEMORY_REGION(fd fd_kvmvm, cmd const[KVM_SET_USER_MEMORY_REGI
 ioctl$KVM_SET_TSS_ADDR(fd fd_kvmvm, cmd const[KVM_SET_TSS_ADDR], arg flags[kvm_x86_tss_addr])
 ioctl$KVM_ENABLE_CAP(fd fd_kvmvm, cmd const[KVM_ENABLE_CAP], arg ptr[in, kvm_enable_cap])
 ioctl$KVM_SET_IDENTITY_MAP_ADDR(fd fd_kvmvm, cmd const[KVM_SET_IDENTITY_MAP_ADDR], arg ptr[in, flags[kvm_guest_addrs, int64]])
-ioctl$KVM_SET_BOOT_CPU_ID(fd fd_kvmvm, cmd const[KVM_SET_BOOT_CPU_ID], arg ptr[in, intptr])
+ioctl$KVM_SET_BOOT_CPU_ID(fd fd_kvmvm, cmd const[KVM_SET_BOOT_CPU_ID], arg ptr[in, intptr[0:2]])
 ioctl$KVM_PPC_GET_PVINFO(fd fd_kvmvm, cmd const[KVM_PPC_GET_PVINFO], arg buffer[out])
 ioctl$KVM_ASSIGN_PCI_DEVICE(fd fd_kvmvm, cmd const[KVM_ASSIGN_PCI_DEVICE], arg ptr[in, kvm_assigned_pci_dev])
 ioctl$KVM_DEASSIGN_PCI_DEVICE(fd fd_kvmvm, cmd const[KVM_DEASSIGN_PCI_DEVICE], arg ptr[in, kvm_assigned_pci_dev])
@@ -48,6 +48,8 @@ ioctl$KVM_IOEVENTFD(fd fd_kvmvm, cmd const[KVM_IOEVENTFD], arg ptr[in, kvm_ioeve
 ioctl$KVM_ASSIGN_SET_INTX_MASK(fd fd_kvmvm, cmd const[KVM_ASSIGN_SET_INTX_MASK], arg ptr[in, kvm_assigned_pci_dev])
 ioctl$KVM_SIGNAL_MSI(fd fd_kvmvm, cmd const[KVM_SIGNAL_MSI], arg ptr[in, kvm_msi])
 ioctl$KVM_CREATE_PIT2(fd fd_kvmvm, cmd const[KVM_CREATE_PIT2], arg ptr[in, kvm_pit_config])
+ioctl$KVM_GET_PIT(fd fd_kvmvm, cmd const[KVM_GET_PIT], arg ptr[out, kvm_pit_state2])
+ioctl$KVM_SET_PIT(fd fd_kvmvm, cmd const[KVM_SET_PIT], arg ptr[in, kvm_pit_state2])
 ioctl$KVM_GET_PIT2(fd fd_kvmvm, cmd const[KVM_GET_PIT2], arg ptr[out, kvm_pit_state2])
 ioctl$KVM_SET_PIT2(fd fd_kvmvm, cmd const[KVM_SET_PIT2], arg ptr[in, kvm_pit_state2])
 ioctl$KVM_PPC_GET_SMMU_INFO(fd fd_kvmvm, cmd const[KVM_PPC_GET_SMMU_INFO], arg buffer[out])
@@ -74,6 +76,7 @@ ioctl$KVM_INTERRUPT(fd fd_kvmcpu, cmd const[KVM_INTERRUPT], arg ptr[in, int32])
 ioctl$KVM_GET_MSRS(fd fd_kvmcpu, cmd const[KVM_GET_MSRS], arg ptr[out, kvm_msrs])
 ioctl$KVM_SET_MSRS(fd fd_kvmcpu, cmd const[KVM_SET_MSRS], arg ptr[in, kvm_msrs])
 ioctl$KVM_SET_CPUID(fd fd_kvmcpu, cmd const[KVM_SET_CPUID], arg ptr[in, kvm_cpuid])
+# TODO: we should be able to read kvm_cpuid2 with KVM_GET_CPUID2, alter few bits and then call KVM_SET_CPUID2 with that object.
 ioctl$KVM_GET_CPUID2(fd fd_kvmcpu, cmd const[KVM_GET_CPUID2], arg ptr[out, kvm_cpuid2])
 ioctl$KVM_SET_CPUID2(fd fd_kvmcpu, cmd const[KVM_SET_CPUID2], arg ptr[in, kvm_cpuid2])
 ioctl$KVM_SET_SIGNAL_MASK(fd fd_kvmcpu, cmd const[KVM_SET_SIGNAL_MASK], arg ptr[in, kvm_signal_mask])
@@ -108,32 +111,36 @@ ioctl$KVM_SET_GUEST_DEBUG(fd fd_kvmcpu, cmd const[KVM_SET_GUEST_DEBUG], arg ptr[
 ioctl$KVM_SMI(fd fd_kvmcpu, cmd const[KVM_SMI])
 ioctl$KVM_TPR_ACCESS_REPORTING(fd fd_kvmcpu, cmd const[KVM_TPR_ACCESS_REPORTING], arg ptr[in, kvm_tpr_access_ctl])
 ioctl$KVM_SET_VAPIC_ADDR(fd fd_kvmcpu, cmd const[KVM_SET_VAPIC_ADDR], arg ptr[in, flags[kvm_guest_addrs, int64]])
-ioctl$KVM_X86_SETUP_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SETUP_MCE], arg ptr[in, int64])
+ioctl$KVM_X86_SETUP_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SETUP_MCE], arg ptr[in, kvm_mce_cap])
 ioctl$KVM_X86_SET_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SET_MCE], arg ptr[in, kvm_x86_mce])
 
-# TODO: extend support (there are some ioctls)
-openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
-
-kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY, KVM_MEMSLOT_INVALID, KVM_MEMSLOT_INCOHERENT
+kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY
 kvm_mp_state = KVM_MP_STATE_RUNNABLE, KVM_MP_STATE_UNINITIALIZED, KVM_MP_STATE_INIT_RECEIVED, KVM_MP_STATE_HALTED, KVM_MP_STATE_SIPI_RECEIVED, KVM_MP_STATE_STOPPED, KVM_MP_STATE_CHECK_STOP, KVM_MP_STATE_OPERATING, KVM_MP_STATE_LOAD
 kvm_assigned_irq_flags = KVM_DEV_IRQ_HOST_INTX, KVM_DEV_IRQ_HOST_MSI, KVM_DEV_IRQ_HOST_MSIX, KVM_DEV_IRQ_GUEST_INTX, KVM_DEV_IRQ_GUEST_MSI, KVM_DEV_IRQ_GUEST_MSIX
-kvm_irq_routing_entry_type = KVM_IRQ_ROUTING_IRQCHIP, KVM_IRQ_ROUTING_MSI
+kvm_irq_routing_entry_type = KVM_IRQ_ROUTING_IRQCHIP, KVM_IRQ_ROUTING_MSI, KVM_IRQ_ROUTING_S390_ADAPTER, KVM_IRQ_ROUTING_HV_SINT
 kvm_ioeventfd_flags = KVM_IOEVENTFD_FLAG_DATAMATCH, KVM_IOEVENTFD_FLAG_PIO, KVM_IOEVENTFD_FLAG_DEASSIGN, KVM_IOEVENTFD_FLAG_VIRTIO_CCW_NOTIFY
 kvm_ioeventfd_len = 0, 1, 2, 4, 8
 kvm_device_type = KVM_DEV_TYPE_FSL_MPIC_20, KVM_DEV_TYPE_FSL_MPIC_42, KVM_DEV_TYPE_XICS, KVM_DEV_TYPE_VFIO, KVM_DEV_TYPE_FLIC
 kvm_device_flags = 0, KVM_CREATE_DEVICE_TEST
 kvm_guest_debug_flags = KVM_GUESTDBG_ENABLE, KVM_GUESTDBG_SINGLESTEP, KVM_GUESTDBG_USE_SW_BP, KVM_GUESTDBG_USE_HW_BP, KVM_GUESTDBG_INJECT_DB, KVM_GUESTDBG_INJECT_BP
 kvm_chip_id = KVM_IRQCHIP_PIC_MASTER, KVM_IRQCHIP_PIC_SLAVE, KVM_IRQCHIP_IOAPIC
+kvm_cpu_funciton = 0, 1, 2, 4, 6, 7, 10, 11, 13, KVM_CPUID_SIGNATURE, KVM_CPUID_FEATURES, 0x80000000, 0x80000001, 0x80000007, 0x80000008, 0x80000019, 0xC0000000, 0xC0000001
+kvm_guest_selector = 0, 3, 4, 8, 9, 10, 11, 12, 13, 14, 15, 16
+kvm_mce_flags = 1, 2, 4
+kvm_mcg_status = MCG_STATUS_RIPV, MCG_STATUS_EIPV, MCG_STATUS_MCIP, MCG_STATUS_LMCES
+kvm_mce_status = MCI_STATUS_VAL, MCI_STATUS_OVER, MCI_STATUS_UC, MCI_STATUS_EN, MCI_STATUS_MISCV, MCI_STATUS_ADDRV, MCI_STATUS_PCC, MCI_STATUS_S, MCI_STATUS_AR
+kvm_caps = KVM_CAP_HYPERV_SYNIC
+kvm_cpuid_flags = KVM_CPUID_FLAG_SIGNIFCANT_INDEX, KVM_CPUID_FLAG_STATEFUL_FUNC, KVM_CPUID_FLAG_STATE_READ_NEXT
 
 kvm_mem_slots = 0, 1, 2, 3, 4, 5, 509, 510, 511, 10000, 65536, 65537, 65538, 65539, 65540, 66047, 66048, 66049
-kvm_guest_addrs = 0, 1, 2, 4, 0x1000, 0x8000, 0xf000, 0x100000, 0x10000
+kvm_guest_addrs = 0, 1, 2, 4, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0xd000, 0xf000, 0x100000, 0x10000
 kvm_guest_addr_size = 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x100000
-kvm_x86_tss_addr = 0xffffffffffffd000
-kvm_x86_selector_type = 0, 1
+kvm_x86_tss_addr = 0xd000
 kvm_x86_cr0 = 1, 2, 4, 8, 16, 32, 65536, 262144, 536870912, 1073741824, 2147483648
 kvm_x86_cr4 = 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 8192, 16384, 65536, 131072, 262144, 1048576, 2097152, 4194304
 kvm_x86_efer = 1, 256, 1024, 2048, 4096, 8192, 16384, 32768
 kvm_x86_dr7 = 1, 2, 4, 8, 16, 32, 64, 128
+kvm_x86_rflags = 1, 2, 4, 16, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152
 
 kvm_guest_debug {
 	ctrl	flags[kvm_guest_debug_flags, int32]
@@ -271,6 +278,7 @@ kvm_irq_routing_entry_u [
 	irqchip	kvm_irq_routing_irqchip
 	msi	kvm_irq_routing_msi
 	adapter	kvm_irq_routing_s390_adapter
+	sint	kvm_irq_routing_hv_sint
 ]
 
 kvm_irq_routing_irqchip {
@@ -290,6 +298,11 @@ kvm_irq_routing_s390_adapter {
 	indoff	int64
 	soff	int32
 	aid	int32
+}
+
+kvm_irq_routing_hv_sint {
+	vcpu	int32
+	sint	int32
 }
 
 kvm_assigned_irq {
@@ -324,7 +337,7 @@ kvm_xsave {
 }
 
 kvm_enable_cap {
-	cap	int32
+	cap	flags[kvm_caps, int32]
 	flags	const[0, int32]
 	args	array[int64, 4]
 	pad	array[const[0, int8], 64]
@@ -393,7 +406,7 @@ kvm_signal_mask {
 }
 
 kvm_cpuid_entry {
-	func	int32
+	func	flags[kvm_cpu_funciton, int32]
 	eax	int32
 	ebx	int32
 	ecx	int32
@@ -408,9 +421,9 @@ kvm_cpuid {
 }
 
 kvm_cpuid_entry2 {
-	func	int32
+	func	flags[kvm_cpu_funciton, int32]
 	index	int32
-	flags	int32
+	flags	flags[kvm_cpuid_flags, int32]
 	eax	int32
 	ebx	int32
 	ecx	int32
@@ -453,7 +466,7 @@ kvm_msr_list {
 kvm_regs {
 	gp	array[int64, 16]
 	rip	flags[kvm_guest_addrs, int64]
-	rflags	int64
+	rflags	flags[kvm_x86_rflags, int64]
 }
 
 kvm_sregs {
@@ -481,9 +494,9 @@ kvm_sregs {
 kvm_segment {
 	base	flags[kvm_guest_addrs, int64]
 	limit	flags[kvm_guest_addrs, int32]
-	select	flags[kvm_guest_addrs, int16]
-	type	flags[kvm_x86_selector_type, int8]
-	preset	int8
+	select	flags[kvm_guest_selector, int16]
+	type	int8
+	present	int8
 	dpl	int8
 	db	int8
 	s	int8
@@ -587,12 +600,19 @@ kvm_tpr_access_ctl {
 	reserv	array[const[0, int32], 8]
 }
 
+kvm_mce_cap {
+	banks	int8[0:32]
+	flags	flags[kvm_mce_flags, int8]
+	count	int8
+	pad	const[0, int8]
+}
+
 kvm_x86_mce {
-	status	int64
+	status	flags[kvm_mce_status, int64]
 	addr	flags[kvm_guest_addrs, int64]
 	misc	int64
-	mcg	int64
-	bank	int8
+	mcg	flags[kvm_mcg_status, int64]
+	bank	int8[0:32]
 	pad1	array[const[0, int8], 7]
 	pad2	array[const[0, int64], 3]
 }
