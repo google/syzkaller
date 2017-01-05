@@ -522,7 +522,7 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 
 <b>Log:</b>
 <br>
-<textarea id="log_textarea" readonly rows="50">
+<textarea id="log_textarea" readonly rows="20">
 {{.Log}}
 </textarea>
 <script>
