@@ -29,6 +29,7 @@ var (
 	flagOutput   = flag.Bool("output", false, "print executor output to console")
 	flagProcs    = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes")
 	flagLogProg  = flag.Bool("logprog", false, "print programs before execution")
+	flagGenerate = flag.Bool("generate", true, "generate new programs, otherwise only mutate corpus")
 
 	failedRe = regexp.MustCompile("runtime error: |panic: |Panic: ")
 
@@ -42,6 +43,9 @@ func main() {
 	flag.Parse()
 	corpus := readCorpus()
 	Logf(0, "parsed %v programs", len(corpus))
+	if !*flagGenerate && len(corpus) == 0 {
+		Fatalf("nothing to mutate (-generate=false and no corpus)")
+	}
 
 	calls := buildCallList()
 	prios := prog.CalculatePriorities(corpus)
@@ -63,7 +67,7 @@ func main() {
 			rnd := rand.New(rs)
 			for i := 0; ; i++ {
 				var p *prog.Prog
-				if len(corpus) == 0 || i%4 != 0 {
+				if *flagGenerate && len(corpus) == 0 || i%4 != 0 {
 					p = prog.Generate(rs, programLength, ct)
 					execute(pid, env, p)
 					p.Mutate(rs, programLength, ct, corpus)
