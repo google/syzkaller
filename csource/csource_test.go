@@ -78,7 +78,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		t.Fatalf("%v", err)
 	}
 	defer os.Remove(srcf)
-	bin, err := Build(srcf)
+	bin, err := Build("c", srcf)
 	if err != nil {
 		t.Logf("program:\n%s\n", p.Serialize())
 		t.Fatalf("%v", err)

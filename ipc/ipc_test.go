@@ -30,7 +30,7 @@ func buildSource(t *testing.T, src []byte) string {
 }
 
 func buildProgram(t *testing.T, src string) string {
-	bin, err := csource.Build(src)
+	bin, err := csource.Build("c++", src)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

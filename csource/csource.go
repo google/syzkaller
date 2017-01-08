@@ -108,7 +108,7 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 	if !opts.Threaded && !opts.Collide {
 		fmt.Fprintf(w, "void %v()\n{\n", name)
 		if opts.Repro {
-			fmt.Fprintf(w, "\twrite(1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
+			fmt.Fprintf(w, "\tsyscall(SYS_write, 1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
 		}
 		fmt.Fprintf(w, "\tmemset(r, -1, sizeof(r));\n")
 		for _, c := range calls {
@@ -131,7 +131,7 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 		fmt.Fprintf(w, "\tpthread_t th[%v];\n", 2*len(calls))
 		fmt.Fprintf(w, "\n")
 		if opts.Repro {
-			fmt.Fprintf(w, "\twrite(1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
+			fmt.Fprintf(w, "\tsyscall(SYS_write, 1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
 		}
 		fmt.Fprintf(w, "\tmemset(r, -1, sizeof(r));\n")
 		fmt.Fprintf(w, "\tsrand(getpid());\n")
@@ -297,18 +297,18 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 	return out, nil
 }
 
-// Build builds a C/C++ program from source file src
-// and returns name of the resulting binary.
-func Build(src string) (string, error) {
+// Build builds a C/C++ program from source src and returns name of the resulting binary.
+// lang can be "c" or "c++".
+func Build(lang, src string) (string, error) {
 	bin, err := ioutil.TempFile("", "syzkaller")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %v", err)
 	}
 	bin.Close()
-	out, err := exec.Command("gcc", "-x", "c", "-std=gnu99", src, "-o", bin.Name(), "-pthread", "-static", "-O1", "-g").CombinedOutput()
+	out, err := exec.Command("gcc", "-x", lang, "-Wall", "-Werror", src, "-o", bin.Name(), "-pthread", "-static", "-O1", "-g").CombinedOutput()
 	if err != nil {
 		// Some distributions don't have static libraries.
-		out, err = exec.Command("gcc", "-x", "c++", "-std=gnu++11", src, "-o", bin.Name(), "-pthread", "-O1", "-g").CombinedOutput()
+		out, err = exec.Command("gcc", "-x", lang, "-Wall", "-Werror", src, "-o", bin.Name(), "-pthread", "-O1", "-g").CombinedOutput()
 	}
 	if err != nil {
 		os.Remove(bin.Name())
