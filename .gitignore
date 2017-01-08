@@ -1,5 +1,7 @@
 *.swp
 *~
+*.cfg
+workdir*
 
 bin/
 sys/sys_amd64.go
