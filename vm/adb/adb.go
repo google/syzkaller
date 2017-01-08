@@ -257,7 +257,7 @@ func (inst *instance) checkBatteryLevel() error {
 		minLevel      = 20
 		requiredLevel = 30
 	)
-	val, err := inst.getBatteryLevel(3)
+	val, err := inst.getBatteryLevel(30)
 	if err != nil {
 		return err
 	}
