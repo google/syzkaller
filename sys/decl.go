@@ -104,13 +104,24 @@ const (
 	BufferBlobRange
 	BufferString
 	BufferFilename
+	BufferText
+)
+
+type TextKind int
+
+const (
+	Text_x86_real TextKind = iota
+	Text_x86_16
+	Text_x86_32
+	Text_x86_64
 )
 
 type BufferType struct {
 	TypeCommon
 	Kind       BufferKind
-	RangeBegin uintptr // for BufferBlobRange kind
-	RangeEnd   uintptr // for BufferBlobRange kind
+	RangeBegin uintptr  // for BufferBlobRange kind
+	RangeEnd   uintptr  // for BufferBlobRange kind
+	Text       TextKind // for BufferText
 	SubKind    string
 	Values     []string // possible values for BufferString kind
 }

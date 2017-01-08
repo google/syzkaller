@@ -58,6 +58,7 @@ rest of the type-options are type-specific:
 		optional number of pages (e.g. vma[7]), or a range of pages (e.g. vma[2-4])
 	"proc": per process int (see description below), type-options:
 		underlying type, value range start, how many values per process
+	"text16", "text32", "text64": machine code of the specified bitness
 ```
 flags/len/flags also have trailing underlying type type-option when used in structs/unions/pointers.
 

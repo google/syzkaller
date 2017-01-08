@@ -602,6 +602,18 @@ func generateArg(
 		dir = "in"
 		opt = false
 		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferFilename}}", ptrCommonHdr, common())
+	case "text":
+		if want := 1; len(a) != want {
+			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		}
+		kind := ""
+		switch a[0] {
+		case "x86_real", "x86_16", "x86_32", "x86_64":
+			kind = "Text_" + a[0]
+		default:
+			failf("unknown text type %v for %v arg %v", a[0], typ, name)
+		}
+		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferText, Text: %v}", common(), kind)
 	case "array":
 		if len(a) != 1 && len(a) != 2 {
 			failf("wrong number of arguments for %v arg %v, want 1 or 2, got %v", typ, name, len(a))
