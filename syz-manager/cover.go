@@ -352,9 +352,22 @@ type templateFile struct {
 
 type templateFileArray []*templateFile
 
-func (a templateFileArray) Len() int           { return len(a) }
-func (a templateFileArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
-func (a templateFileArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a templateFileArray) Len() int { return len(a) }
+func (a templateFileArray) Less(i, j int) bool {
+	n1 := a[i].Name
+	n2 := a[j].Name
+	// Move include files to the bottom.
+	if len(n1) != 0 && len(n2) != 0 {
+		if n1[0] != '.' && n2[0] == '.' {
+			return true
+		}
+		if n1[0] == '.' && n2[0] != '.' {
+			return false
+		}
+	}
+	return n1 < n2
+}
+func (a templateFileArray) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
 var coverTemplate = template.Must(template.New("").Parse(
 	`
