@@ -259,7 +259,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if err != nil {
 		return res, err
 	}
-	bin, err := csource.Build(srcf)
+	bin, err := csource.Build("c", srcf)
 	if err != nil {
 		return res, err
 	}

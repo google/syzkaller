@@ -59,8 +59,9 @@ const int kRetryStatus = 69;
 // So call the syscall directly.
 __attribute__((noreturn)) void doexit(int status)
 {
+	volatile unsigned i;
 	syscall(__NR_exit_group, status);
-	for (volatile unsigned i = 0;; i++) {
+	for (i = 0;; i++) {
 	}
 }
 
@@ -693,7 +694,6 @@ void loop()
 		uint64_t start = current_time_ms();
 		for (;;) {
 			int res = waitpid(-1, &status, __WALL | WNOHANG);
-			int errno0 = errno;
 			if (res == pid)
 				break;
 			usleep(1000);
