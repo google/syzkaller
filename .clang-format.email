@@ -1,0 +1,2 @@
+{BasedOnStyle: LLVM, IndentWidth: 2, UseTab: Never, BreakBeforeBraces: Linux, IndentCaseLabels: false, DerivePointerAlignment: false, PointerAlignment: Left, AlignTrailingComments: true, AllowShortBlocksOnASingleLine: false, AllowShortCaseLabelsOnASingleLine: false, AllowShortFunctionsOnASingleLine: false, AllowShortIfStatementsOnASingleLine: false, AllowShortLoopsOnASingleLine: false, ColumnLimit: 72}
+
