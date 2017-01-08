@@ -259,7 +259,7 @@ static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	} else {
 		char buf[1024];
 		char* hash;
-		strncpy(buf, (char*)a0, sizeof(buf));
+		NONFAILING(strncpy(buf, (char*)a0, sizeof(buf)));
 		buf[sizeof(buf) - 1] = 0;
 		while ((hash = strchr(buf, '#'))) {
 			*hash = '0' + (char)(a1 % 10);
