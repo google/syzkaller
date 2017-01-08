@@ -388,7 +388,7 @@ func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, cal
 	defer func() { r.inCreateResource = false }()
 
 	kind := res.Desc.Name
-	if r.oneOf(100) {
+	if r.oneOf(1000) {
 		// Spoof resource subkind.
 		var all []string
 		for kind1 := range sys.Resources {
@@ -550,7 +550,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 				special := a.SpecialValues()
 				arg = constArg(a, special[r.Intn(len(special))])
 			},
-			90, func() {
+			1000, func() {
 				// Get an existing resource.
 				var allres []*Arg
 				for name1, res1 := range s.resources {
@@ -565,7 +565,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 					arg, calls = r.createResource(s, a)
 				}
 			},
-			5, func() {
+			10, func() {
 				// Create a new resource.
 				arg, calls = r.createResource(s, a)
 			},
