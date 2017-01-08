@@ -22,6 +22,7 @@
 #include <linux/capability.h>
 #include <linux/if.h>
 #include <linux/if_tun.h>
+#include <linux/kvm.h>
 #include <linux/sched.h>
 #include <net/if_arp.h>
 
@@ -367,6 +368,10 @@ static uintptr_t syz_fuseblk_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 }
 #endif
 
+#ifdef __NR_syz_kvm_setup_cpu
+#include "common_kvm.h"
+#endif // #ifdef __NR_syz_kvm_setup_cpu
+
 static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7, uintptr_t a8)
 {
 	switch (nr) {
@@ -395,6 +400,10 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 #ifdef __NR_syz_emit_ethernet
 	case __NR_syz_emit_ethernet:
 		return syz_emit_ethernet(a0, a1);
+#endif
+#ifdef __NR_syz_kvm_setup_cpu
+	case __NR_syz_kvm_setup_cpu:
+		return syz_kvm_setup_cpu(a0, a1, a2, a3, a4, a5, a6, a7);
 #endif
 	}
 }

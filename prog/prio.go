@@ -80,7 +80,7 @@ func calcStaticPriorities() [][]float32 {
 				}
 			case *sys.BufferType:
 				switch a.Kind {
-				case sys.BufferBlobRand, sys.BufferBlobRange:
+				case sys.BufferBlobRand, sys.BufferBlobRange, sys.BufferText:
 				case sys.BufferString:
 					if a.SubKind != "" {
 						noteUsage(0.2, fmt.Sprintf("str-%v", a.SubKind))

@@ -452,6 +452,19 @@ func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, cal
 	panic("failed to create a resource")
 }
 
+func (r *randGen) generateText(kind sys.TextKind) []byte {
+	// Just a stub, need something better.
+	text := make([]byte, 100)
+	for i := range text {
+		text[i] = byte(r.Intn(256))
+	}
+	return text
+}
+
+func (r *randGen) mutateText(kind sys.TextKind, text []byte) []byte {
+	return mutateData(r, text, 80, 120)
+}
+
 func (r *randGen) choose(args ...interface{}) {
 	if len(args) == 0 || len(args)%2 != 0 {
 		panic("bad number of args to choose")
@@ -591,6 +604,8 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		case sys.BufferFilename:
 			filename := r.filename(s)
 			return dataArg(a, []byte(filename)), nil
+		case sys.BufferText:
+			return dataArg(a, r.generateText(a.Text)), nil
 		default:
 			panic("unknown buffer kind")
 		}

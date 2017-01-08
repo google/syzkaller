@@ -203,6 +203,13 @@ syz_end_var_struct {
 
 syz_test$vma0(v0 vma, l0 len[v0], v1 vma[5], l1 len[v1], v2 vma[7:9], l2 len[v2])
 
+# Text type.
+
+syz_test$text_x86_real(a0 ptr[in, text[x86_real]], a1 len[a0])
+syz_test$text_x86_16(a0 ptr[in, text[x86_16]], a1 len[a0])
+syz_test$text_x86_32(a0 ptr[in, text[x86_32]], a1 len[a0])
+syz_test$text_x86_64(a0 ptr[in, text[x86_64]], a1 len[a0])
+
 # Regression tests.
 
 syz_test$regression0(a0 ptr[inout, syz_regression0_struct])

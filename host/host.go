@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -95,9 +96,13 @@ func isSupportedSyzkall(c *sys.Call) bool {
 	case "syz_emit_ethernet":
 		_, err := os.Stat("/dev/net/tun")
 		return err == nil && syscall.Getuid() == 0
-	default:
-		panic("unknown syzkall: " + c.Name)
+	case "syz_kvm_setup_cpu":
+		switch c.Name {
+		case "syz_kvm_setup_cpu$x86":
+			return runtime.GOARCH == "amd64" || runtime.GOARCH == "386"
+		}
 	}
+	panic("unknown syzkall: " + c.Name)
 }
 
 func isSupportedSocket(c *sys.Call) bool {

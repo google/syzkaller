@@ -10,7 +10,7 @@ resource fd_kvm[fd]
 resource fd_kvmvm[fd]
 resource fd_kvmcpu[fd]
 
-syz_open_dev$kvm(dev ptr[in, string["/dev/kvm"]], id const[0], flags flags[open_flags]) fd_kvm
+openat$kvm(fd const[AT_FDCWD], file ptr[in, string["/dev/kvm"]], flags flags[open_flags], mode const[0]) fd_kvm
 
 ioctl$KVM_CREATE_VM(fd fd_kvm, cmd const[KVM_CREATE_VM], type const[0]) fd_kvmvm
 ioctl$KVM_GET_MSR_INDEX_LIST(fd fd_kvm, cmd const[KVM_GET_MSR_INDEX_LIST], arg ptr[in, kvm_msr_list])
@@ -131,6 +131,7 @@ kvm_mcg_status = MCG_STATUS_RIPV, MCG_STATUS_EIPV, MCG_STATUS_MCIP, MCG_STATUS_L
 kvm_mce_status = MCI_STATUS_VAL, MCI_STATUS_OVER, MCI_STATUS_UC, MCI_STATUS_EN, MCI_STATUS_MISCV, MCI_STATUS_ADDRV, MCI_STATUS_PCC, MCI_STATUS_S, MCI_STATUS_AR
 kvm_caps = KVM_CAP_HYPERV_SYNIC
 kvm_cpuid_flags = KVM_CPUID_FLAG_SIGNIFCANT_INDEX, KVM_CPUID_FLAG_STATEFUL_FUNC, KVM_CPUID_FLAG_STATE_READ_NEXT
+kvm_dev_flags = KVM_DEV_ASSIGN_ENABLE_IOMMU, KVM_DEV_ASSIGN_PCI_2_3, KVM_DEV_ASSIGN_MASK_INTX
 
 kvm_mem_slots = 0, 1, 2, 3, 4, 5, 509, 510, 511, 10000, 65536, 65537, 65538, 65539, 65540, 66047, 66048, 66049
 kvm_guest_addrs = 0, 1, 2, 4, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0xd000, 0xf000, 0x100000, 0x10000
@@ -141,6 +142,78 @@ kvm_x86_cr4 = 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 8192, 16384, 65536, 1
 kvm_x86_efer = 1, 256, 1024, 2048, 4096, 8192, 16384, 32768
 kvm_x86_dr7 = 1, 2, 4, 8, 16, 32, 64, 128
 kvm_x86_rflags = 1, 2, 4, 16, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152
+
+# Pseudo call that setups VCPU into a reasonable interesting state for execution.
+# The interface is designed for extensibility so that addition of new options does not invalidate all existing programs.
+syz_kvm_setup_cpu$x86(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_x86, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
+
+kvm_text_x86 [
+	textreal	kvm_text_x86_real
+	text16	kvm_text_x86_16
+	text32	kvm_text_x86_32
+	text64	kvm_text_x86_64
+] [varlen]
+
+kvm_text_x86_real {
+	typ	const[8, intptr]
+	text	ptr[in, text[x86_real]]
+	size	len[text, intptr]
+}
+
+kvm_text_x86_16 {
+	typ	const[16, intptr]
+	text	ptr[in, text[x86_16]]
+	size	len[text, intptr]
+}
+
+kvm_text_x86_32 {
+	typ	const[32, intptr]
+	text	ptr[in, text[x86_32]]
+	size	len[text, intptr]
+}
+
+kvm_text_x86_64 {
+	typ	const[64, intptr]
+	text	ptr[in, text[x86_64]]
+	size	len[text, intptr]
+}
+
+kvm_setup_opt [
+	cr0	kvm_setup_opt_cr0
+	cr4	kvm_setup_opt_cr4
+	efer	kvm_setup_opt_efer
+	flags	kvm_setup_opt_flags
+] [varlen]
+
+kvm_setup_opt_cr0 {
+	typ	const[1, int64]
+	val	flags[kvm_x86_cr0, int64]
+}
+
+kvm_setup_opt_cr4 {
+	typ	const[2, int64]
+	val	flags[kvm_x86_cr4, int64]
+}
+
+kvm_setup_opt_efer {
+	typ	const[3, int64]
+	val	flags[kvm_x86_efer, int64]
+}
+
+kvm_setup_opt_flags {
+	typ	const[4, int64]
+	val	flags[kvm_x86_rflags, int64]
+}
+
+kvm_setup_flags = KVM_SETUP_PAGING, KVM_SETUP_PAE, KVM_SETUP_PROTECTED, KVM_SETUP_CPL3, KVM_SETUP_VIRT86, KVM_SETUP_SMM, KVM_SETUP_VM
+
+define KVM_SETUP_PAGING		(1<<0)
+define KVM_SETUP_PAE		(1<<1)
+define KVM_SETUP_PROTECTED	(1<<2)
+define KVM_SETUP_CPL3		(1<<3)
+define KVM_SETUP_VIRT86		(1<<4)
+define KVM_SETUP_SMM		(1<<5)
+define KVM_SETUP_VM		(1<<6)
 
 kvm_guest_debug {
 	ctrl	flags[kvm_guest_debug_flags, int32]
@@ -316,7 +389,7 @@ kvm_assigned_pci_dev {
 	devid	int32
 	busnr	int32
 	devfn	int32
-	flags	int32
+	flags	flags[kvm_dev_flags, int32]
 	segnr	int32
 }
 
@@ -347,10 +420,8 @@ kvm_userspace_memory_region {
 	slot	flags[kvm_mem_slots, int32]
 	flags	flags[kvm_mem_region_flags, int32]
 	paddr	flags[kvm_guest_addrs, int64]
-#TODO: this should be len of addr, but it also must be multiple of page size
-# there is currently to way to make kvm_guest_memory_region multiple of page size
-	size	const[4096, int64]
-	addr	ptr[in, kvm_guest_memory_region]
+	size	len[addr, int64]
+	addr	vma[1:2]
 }
 
 kvm_vcpu_events {
@@ -626,16 +697,4 @@ kvm_coalesced_mmio_zone {
 	addr	flags[kvm_guest_addrs, int64]
 	size	flags[kvm_guest_addr_size, int32]
 	pad	const[0, int32]
-}
-
-# This struct contains things that make sense to copy into guest.
-#TODO: add page tables.
-kvm_guest_memory_region [
-	blob	array[int8]
-	gdt	array[kvm_gdt_entry]
-] [varlen]
-
-#TODO: detail this struct
-kvm_gdt_entry {
-	val	int64
 }

@@ -102,6 +102,8 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 								}
 							case sys.BufferFilename:
 								arg.Data = []byte(r.filename(s))
+							case sys.BufferText:
+								arg.Data = r.mutateText(a.Text, arg.Data)
 							default:
 								panic("unknown buffer kind")
 							}

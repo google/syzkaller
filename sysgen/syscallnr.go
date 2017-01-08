@@ -29,6 +29,7 @@ var syzkalls = map[string]uint64{
 	"syz_fuse_mount":    1000004,
 	"syz_fuseblk_mount": 1000005,
 	"syz_emit_ethernet": 1000006,
+	"syz_kvm_setup_cpu": 1000007,
 }
 
 func generateExecutorSyscalls(syscalls []Syscall, consts map[string]map[string]uint64) {
