@@ -9,6 +9,7 @@ import (
 	"math"
 	"math/rand"
 
+	"github.com/google/syzkaller/ifuzz"
 	"github.com/google/syzkaller/sys"
 )
 
@@ -453,16 +454,45 @@ func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, cal
 }
 
 func (r *randGen) generateText(kind sys.TextKind) []byte {
-	// Just a stub, need something better.
-	text := make([]byte, 100)
-	for i := range text {
-		text[i] = byte(r.Intn(256))
-	}
-	return text
+	cfg := createIfuzzConfig(kind)
+	return ifuzz.Generate(cfg, r.Rand)
 }
 
 func (r *randGen) mutateText(kind sys.TextKind, text []byte) []byte {
-	return mutateData(r, text, 80, 120)
+	cfg := createIfuzzConfig(kind)
+	return ifuzz.Mutate(cfg, r.Rand, text)
+}
+
+func createIfuzzConfig(kind sys.TextKind) *ifuzz.Config {
+	cfg := &ifuzz.Config{
+		Len:  10,
+		Priv: true,
+		Exec: true,
+		MemRegions: []ifuzz.MemRegion{
+			{0 << 12, 1 << 12},
+			{1 << 12, 1 << 12},
+			{2 << 12, 1 << 12},
+			{3 << 12, 1 << 12},
+			{4 << 12, 1 << 12},
+			{5 << 12, 1 << 12},
+			{6 << 12, 1 << 12},
+			{7 << 12, 1 << 12},
+			{8 << 12, 1 << 12},
+			{9 << 12, 1 << 12},
+			{0xfec00000, 0x100}, // ioapic
+		},
+	}
+	switch kind {
+	case sys.Text_x86_real:
+		cfg.Mode = ifuzz.ModeReal16
+	case sys.Text_x86_16:
+		cfg.Mode = ifuzz.ModeProt16
+	case sys.Text_x86_32:
+		cfg.Mode = ifuzz.ModeProt32
+	case sys.Text_x86_64:
+		cfg.Mode = ifuzz.ModeLong64
+	}
+	return cfg
 }
 
 func (r *randGen) choose(args ...interface{}) {
