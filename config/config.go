@@ -235,6 +235,7 @@ func parseSuppressions(cfg *Config) error {
 		"panic: executor failed: pthread_create failed",
 		"panic: failed to create temp dir",
 		"fatal error: runtime: out of memory",
+		"fatal error: runtime: cannot allocate memory",
 		"fatal error: unexpected signal during runtime execution", // presubmably OOM turned into SIGBUS
 		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
 		"lowmemorykiller: Killing 'syz-fuzzer'",
