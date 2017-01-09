@@ -161,7 +161,7 @@ func generateSize(arg *Arg, lenType *sys.LenType) *Arg {
 		return pageSizeArg(lenType, arg.AddrPagesNum, 0)
 	case *sys.ArrayType:
 		if lenType.ByteSize != 0 {
-			return constArg(lenType, arg.Size() / lenType.ByteSize)
+			return constArg(lenType, arg.Size()/lenType.ByteSize)
 		} else {
 			return constArg(lenType, uintptr(len(arg.Inner)))
 		}
