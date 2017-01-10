@@ -117,7 +117,7 @@ uint64_t read_input(uint64_t** input_posp, bool peek = false);
 uint64_t read_arg(uint64_t** input_posp);
 uint64_t read_result(uint64_t** input_posp);
 void write_output(uint32_t v);
-void copyin(char* addr, uint64_t val, uint64_t size);
+void copyin(char* addr, uint64_t val, uint64_t size, uint64_t bf_off, uint64_t bf_len);
 uint64_t copyout(char* addr, uint64_t size);
 thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, uint64_t* args, uint64_t* pos);
 void execute_call(thread_t* th);
@@ -299,12 +299,14 @@ retry:
 			switch (typ) {
 			case arg_const: {
 				uint64_t arg = read_input(&input_pos);
-				copyin(addr, arg, size);
+				uint64_t bf_off = read_input(&input_pos);
+				uint64_t bf_len = read_input(&input_pos);
+				copyin(addr, arg, size, bf_off, bf_len);
 				break;
 			}
 			case arg_result: {
 				uint64_t val = read_result(&input_pos);
-				copyin(addr, val, size);
+				copyin(addr, val, size, 0, 0);
 				break;
 			}
 			case arg_data: {
@@ -586,20 +588,20 @@ uint64_t cover_dedup(thread_t* th, uint64_t n)
 	return w;
 }
 
-void copyin(char* addr, uint64_t val, uint64_t size)
+void copyin(char* addr, uint64_t val, uint64_t size, uint64_t bf_off, uint64_t bf_len)
 {
 	NONFAILING(switch (size) {
 		case 1:
-			*(uint8_t*)addr = val;
+			STORE_BY_BITMASK(uint8_t, addr, val, bf_off, bf_len);
 			break;
 		case 2:
-			*(uint16_t*)addr = val;
+			STORE_BY_BITMASK(uint16_t, addr, val, bf_off, bf_len);
 			break;
 		case 4:
-			*(uint32_t*)addr = val;
+			STORE_BY_BITMASK(uint32_t, addr, val, bf_off, bf_len);
 			break;
 		case 8:
-			*(uint64_t*)addr = val;
+			STORE_BY_BITMASK(uint64_t, addr, val, bf_off, bf_len);
 			break;
 		default:
 			fail("copyin: bad argument size %lu", size);
@@ -637,6 +639,9 @@ uint64_t read_arg(uint64_t** input_posp)
 	switch (typ) {
 	case arg_const: {
 		arg = read_input(input_posp);
+		// Bitfields can't be args of a normal syscall, so just ignore them.
+		read_input(input_posp); // bit field offset
+		read_input(input_posp); // bit field length
 		break;
 	}
 	case arg_result: {
