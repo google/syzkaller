@@ -137,11 +137,11 @@ func main() {
 
 	var deduped []*ifuzz.Insn
 nextInsn:
-	for i, insn := range insns {
+	for _, insn := range insns {
 		mod0 := insn.Mod
-		for j := 0; j < i; j++ {
-			insn1 := insns[j]
-			if insn.Mod == 3 && insn1.Mod == -3 || insn.Mod == -3 && insn1.Mod == 3 {
+		for j := len(deduped) - 1; j >= 0; j-- {
+			insn1 := deduped[j]
+			if insn.Mod == 3 && insn1.Mod == -3 || insn.Mod == -3 && insn1.Mod == 3 || insn1.Mod == -1 {
 				insn.Mod = insn1.Mod
 			}
 			if reflect.DeepEqual(insn, insn1) {
