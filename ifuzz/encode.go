@@ -33,6 +33,7 @@ func (insn *Insn) Encode(cfg *Config, r *rand.Rand) []byte {
 
 	var code []byte
 
+	rexR := false
 	var vvvv, vexR, vexX, vexB byte
 
 	// LEGACY PREFIXES
@@ -78,6 +79,7 @@ func (insn *Insn) Encode(cfg *Config, r *rand.Rand) []byte {
 			} else if insn.Rexw == 1 {
 				rex &^= 1 << 3
 			}
+			rexR = rex&0x4 != 0
 			code = append(code, rex)
 		}
 
@@ -174,11 +176,12 @@ func (insn *Insn) Encode(cfg *Config, r *rand.Rand) []byte {
 		} else if insn.Reg == -6 {
 			reg = byte(r.Intn(6)) // segment register
 		} else if insn.Reg == -8 {
-			reg = byte(r.Intn(7)) // control register
-			if reg >= 1 {
-				reg++
+			if rexR {
+				reg = 0 // CR8
+			} else {
+				crs := []byte{0, 2, 3, 4}
+				reg = crs[r.Intn(len(crs))]
 			}
-			reg = 0
 		}
 		if insn.Avx2Gather {
 			if reg|(1-vexR)<<3 == vvvv^0xf {
