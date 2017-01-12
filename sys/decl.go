@@ -114,6 +114,7 @@ const (
 	Text_x86_16
 	Text_x86_32
 	Text_x86_64
+	Text_arm64
 )
 
 type BufferType struct {

@@ -342,6 +342,7 @@ static uintptr_t syz_fuseblk_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 #endif
 
 #ifdef __NR_syz_kvm_setup_cpu
+#if defined(__x86_64__)
 
 
 
@@ -593,7 +594,8 @@ static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
 	uint64_t* idt = (uint64_t*)(host_mem + sregs->idt.base);
-	for (int i = 0; i < 32; i++) {
+	int i;
+	for (i = 0; i < 32; i++) {
 		struct kvm_segment gate;
 		gate.selector = i << 3;
 		switch (i % 6) {
@@ -639,7 +641,8 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
 	uint64_t* idt = (uint64_t*)(host_mem + sregs->idt.base);
-	for (int i = 0; i < 32; i++) {
+	int i;
+	for (i = 0; i < 32; i++) {
 		struct kvm_segment gate;
 		gate.selector = (i * 2) << 3;
 		gate.type = (i & 1) ? 14 : 15;
@@ -691,8 +694,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	const uintptr_t guest_mem_size = 24 * page_size;
 	const uintptr_t guest_mem = 0;
 
-	if (text_count != 1)
-		fail("syz_kvm_setup_cpu: bad text count %d, want 1", text_count);
+	(void)text_count;
 	int text_type = 0;
 	const void* text = 0;
 	int text_size = 0;
@@ -942,7 +944,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	fill_segment_descriptor_dword(gdt, ldt, &seg_cgate64);
 
 	int kvmfd = open("/dev/kvm", O_RDWR);
-	char buf[sizeof(kvm_cpuid2) + 128 * sizeof(struct kvm_cpuid_entry2)];
+	char buf[sizeof(struct kvm_cpuid2) + 128 * sizeof(struct kvm_cpuid_entry2)];
 	memset(buf, 0, sizeof(buf));
 	struct kvm_cpuid2* cpuid = (struct kvm_cpuid2*)buf;
 	cpuid->nent = 128;
@@ -954,7 +956,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	int text_prefix_size = 0;
 	char* host_text = host_mem + ADDR_TEXT;
 
-	if (text_type == 16) {
+	if (text_type == 8) {
 		if (flags & KVM_SETUP_SMM) {
 			if (flags & KVM_SETUP_PROTECTED) {
 				sregs.cs = seg_cs16;
@@ -991,19 +993,21 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 				text_prefix = kvm_asm32_vm86;
 				text_prefix_size = sizeof(kvm_asm32_vm86) - 1;
 			}
-		} else if (flags & KVM_SETUP_PROTECTED) {
-			sregs.cr0 |= CR0_PE;
-			sregs.cs = seg_cs16;
-			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds16;
-		} else if (flags & KVM_SETUP_CPL3) {
+		} else {
+			sregs.cs.selector = 0;
+			sregs.cs.base = 0;
+		}
+	} else if (text_type == 16) {
+		if (flags & KVM_SETUP_CPL3) {
 			sregs.cs = seg_cs16;
 			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds16;
 
 			text_prefix = kvm_asm16_cpl3;
 			text_prefix_size = sizeof(kvm_asm16_cpl3) - 1;
 		} else {
-			sregs.cs.selector = 0;
-			sregs.cs.base = 0;
+			sregs.cr0 |= CR0_PE;
+			sregs.cs = seg_cs16;
+			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds16;
 		}
 	} else if (text_type == 32) {
 		sregs.cr0 |= CR0_PE;
@@ -1168,6 +1172,87 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 		return -1;
 	return 0;
 }
+#elif defined(__aarch64__)
+
+
+
+struct kvm_text {
+	uintptr_t typ;
+	const void* text;
+	uintptr_t size;
+};
+
+struct kvm_opt {
+	uint64_t typ;
+	uint64_t val;
+};
+
+static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
+{
+	const int vmfd = a0;
+	const int cpufd = a1;
+	char* const host_mem = (char*)a2;
+	const struct kvm_text* const text_array_ptr = (struct kvm_text*)a3;
+	const uintptr_t text_count = a4;
+	const uintptr_t flags = a5;
+	const struct kvm_opt* const opt_array_ptr = (struct kvm_opt*)a6;
+	uintptr_t opt_count = a7;
+
+	(void)flags;
+	(void)opt_count;
+
+	const uintptr_t page_size = 4 << 10;
+	const uintptr_t guest_mem = 0;
+	const uintptr_t guest_mem_size = 24 * page_size;
+
+	(void)text_count;
+	int text_type = 0;
+	const void* text = 0;
+	int text_size = 0;
+	NONFAILING(text_type = text_array_ptr[0].typ);
+	NONFAILING(text = text_array_ptr[0].text);
+	NONFAILING(text_size = text_array_ptr[0].size);
+	(void)text_type;
+	(void)opt_array_ptr;
+
+	uint32_t features = 0;
+	if (opt_count > 1)
+		opt_count = 1;
+	uintptr_t i;
+	for (i = 0; i < opt_count; i++) {
+		uint64_t typ = 0;
+		uint64_t val = 0;
+		NONFAILING(typ = opt_array_ptr[i].typ);
+		NONFAILING(val = opt_array_ptr[i].val);
+		switch (typ) {
+		case 1:
+			features = val;
+			break;
+		}
+	}
+
+	for (i = 0; i < guest_mem_size / page_size; i++) {
+		struct kvm_userspace_memory_region memreg;
+		memreg.slot = i;
+		memreg.flags = 0;
+		memreg.guest_phys_addr = guest_mem + i * page_size;
+		memreg.memory_size = page_size;
+		memreg.userspace_addr = (uintptr_t)host_mem + i * page_size;
+		ioctl(vmfd, KVM_SET_USER_MEMORY_REGION, &memreg);
+	}
+
+	struct kvm_vcpu_init init;
+	ioctl(cpufd, KVM_ARM_PREFERRED_TARGET, &init);
+	init.features[0] = features;
+	ioctl(cpufd, KVM_ARM_VCPU_INIT, &init);
+
+	if (text_size > 1000)
+		text_size = 1000;
+	NONFAILING(memcpy(host_mem, text, text_size));
+
+	return 0;
+}
+#endif
 #endif
 
 static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7, uintptr_t a8)

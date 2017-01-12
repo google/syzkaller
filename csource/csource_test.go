@@ -53,8 +53,24 @@ func allOptionsPermutations() []Options {
 	return options
 }
 
+func TestSyz(t *testing.T) {
+	rs, _ := initTest(t)
+	opts := Options{
+		Threaded: true,
+		Collide:  true,
+		Repeat:   true,
+		Procs:    2,
+		Sandbox:  "namespace",
+		Repro:    true,
+	}
+	p := prog.GenerateAllSyzProg(rs)
+	testOne(t, p, opts)
+}
+
 func Test(t *testing.T) {
 	rs, iters := initTest(t)
+	syzProg := prog.GenerateAllSyzProg(rs)
+	t.Logf("syz program:\n%s\n", syzProg.Serialize())
 	for i, opts := range allOptionsPermutations() {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			t.Logf("opts: %+v", opts)
@@ -62,6 +78,7 @@ func Test(t *testing.T) {
 				p := prog.Generate(rs, 10, nil)
 				testOne(t, p, opts)
 			}
+			testOne(t, syzProg, opts)
 		})
 	}
 }

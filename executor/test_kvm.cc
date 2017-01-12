@@ -108,16 +108,18 @@ extern "C" int test_kvm()
 	//if (res = test_one(32, text32_div0, sizeof(text32_div0)-1, 0, KVM_EXIT_HLT, true))
 	//	return res;
 
+	const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
+	if (res = test_one(8, text8, sizeof(text8) - 1, 0, KVM_EXIT_HLT, true))
+		return res;
+	if (res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86, KVM_EXIT_SHUTDOWN, true))
+		return res;
+	if (res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86 | KVM_SETUP_PAGING, KVM_EXIT_SHUTDOWN, true))
+		return res;
+
 	const char text16[] = "\x66\xb8\xde\xc0\xad\x0b";
 	if (res = test_one(16, text16, sizeof(text16) - 1, 0, KVM_EXIT_HLT, true))
 		return res;
-	if (res = test_one(16, text16, sizeof(text16) - 1, KVM_SETUP_PROTECTED, KVM_EXIT_HLT, true))
-		return res;
 	if (res = test_one(16, text16, sizeof(text16) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true))
-		return res;
-	if (res = test_one(16, text16, sizeof(text16) - 1, KVM_SETUP_VIRT86, KVM_EXIT_SHUTDOWN, true))
-		return res;
-	if (res = test_one(16, text16, sizeof(text16) - 1, KVM_SETUP_VIRT86 | KVM_SETUP_PAGING, KVM_EXIT_SHUTDOWN, true))
 		return res;
 
 	const char text32[] = "\xb8\xde\xc0\xad\x0b";
@@ -142,14 +144,14 @@ extern "C" int test_kvm()
 
 	// Note: SMM does not work on 3.13 kernels.
 	if (ver >= 404) {
-		const char text16_smm[] = "\x66\xb8\xde\xc0\xad\x0b";
-		if (res = test_one(16, text16_smm, sizeof(text16_smm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, true))
+		const char text8_smm[] = "\x66\xb8\xde\xc0\xad\x0b";
+		if (res = test_one(8, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, true))
 			return res;
-		if (res = test_one(16, text16_smm, sizeof(text16_smm) - 1, KVM_SETUP_SMM | KVM_SETUP_PROTECTED, KVM_EXIT_HLT, true))
+		if (res = test_one(8, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM | KVM_SETUP_PROTECTED, KVM_EXIT_HLT, true))
 			return res;
 
 		//const char text32_smm[] = "\xb8\xde\xc0\xad\x0b";
-		if (res = test_one(32, text16_smm, sizeof(text16_smm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, true))
+		if (res = test_one(32, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, true))
 			return res;
 
 		// Also ensure that we are actually in SMM.

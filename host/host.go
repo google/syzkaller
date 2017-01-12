@@ -100,6 +100,8 @@ func isSupportedSyzkall(c *sys.Call) bool {
 		switch c.Name {
 		case "syz_kvm_setup_cpu$x86":
 			return runtime.GOARCH == "amd64" || runtime.GOARCH == "386"
+		case "syz_kvm_setup_cpu$arm64":
+			return runtime.GOARCH == "arm64"
 		}
 	}
 	panic("unknown syzkall: " + c.Name)

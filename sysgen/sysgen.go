@@ -608,7 +608,7 @@ func generateArg(
 		}
 		kind := ""
 		switch a[0] {
-		case "x86_real", "x86_16", "x86_32", "x86_64":
+		case "x86_real", "x86_16", "x86_32", "x86_64", "arm64":
 			kind = "Text_" + a[0]
 		default:
 			failf("unknown text type %v for %v arg %v", a[0], typ, name)

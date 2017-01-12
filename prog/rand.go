@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 
 	"github.com/google/syzkaller/ifuzz"
 	"github.com/google/syzkaller/sys"
@@ -454,13 +455,28 @@ func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, cal
 }
 
 func (r *randGen) generateText(kind sys.TextKind) []byte {
-	cfg := createIfuzzConfig(kind)
-	return ifuzz.Generate(cfg, r.Rand)
+	switch kind {
+	case sys.Text_arm64:
+		// Just a stub, need something better.
+		text := make([]byte, 50)
+		for i := range text {
+			text[i] = byte(r.Intn(256))
+		}
+		return text
+	default:
+		cfg := createIfuzzConfig(kind)
+		return ifuzz.Generate(cfg, r.Rand)
+	}
 }
 
 func (r *randGen) mutateText(kind sys.TextKind, text []byte) []byte {
-	cfg := createIfuzzConfig(kind)
-	return ifuzz.Mutate(cfg, r.Rand, text)
+	switch kind {
+	case sys.Text_arm64:
+		return mutateData(r, text, 40, 60)
+	default:
+		cfg := createIfuzzConfig(kind)
+		return ifuzz.Mutate(cfg, r.Rand, text)
+	}
 }
 
 func createIfuzzConfig(kind sys.TextKind) *ifuzz.Config {
@@ -545,6 +561,29 @@ func (r *randGen) generateParticularCall(s *state, meta *sys.Call) (calls []*Cal
 		sanitizeCall(c1)
 	}
 	return calls
+}
+
+// GenerateAllSyzProg generates a program that contains all pseudo syz_ calls for testing.
+func GenerateAllSyzProg(rs rand.Source) *Prog {
+	p := new(Prog)
+	r := newRand(rs)
+	s := newState(nil)
+	handled := make(map[string]bool)
+	for _, meta := range sys.Calls {
+		if !strings.HasPrefix(meta.CallName, "syz_") || handled[meta.CallName] {
+			continue
+		}
+		handled[meta.CallName] = true
+		calls := r.generateParticularCall(s, meta)
+		for _, c := range calls {
+			s.analyze(c)
+			p.Calls = append(p.Calls, c)
+		}
+	}
+	if err := p.validate(); err != nil {
+		panic(err)
+	}
+	return p
 }
 
 func (r *randGen) generateArgs(s *state, types []sys.Type) ([]*Arg, []*Call) {
