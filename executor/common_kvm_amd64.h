@@ -177,7 +177,8 @@ static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
 	uint64_t* idt = (uint64_t*)(host_mem + sregs->idt.base);
-	for (int i = 0; i < 32; i++) {
+	int i;
+	for (i = 0; i < 32; i++) {
 		struct kvm_segment gate;
 		gate.selector = i << 3;
 		switch (i % 6) {
@@ -229,7 +230,8 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
 	uint64_t* idt = (uint64_t*)(host_mem + sregs->idt.base);
-	for (int i = 0; i < 32; i++) {
+	int i;
+	for (i = 0; i < 32; i++) {
 		struct kvm_segment gate;
 		gate.selector = (i * 2) << 3;
 		gate.type = (i & 1) ? 14 : 15; // interrupt or trap gate
@@ -282,8 +284,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	const uintptr_t guest_mem_size = 24 * page_size;
 	const uintptr_t guest_mem = 0;
 
-	if (text_count != 1)
-		fail("syz_kvm_setup_cpu: bad text count %d, want 1", text_count);
+	(void)text_count; // fuzzer can spoof count and we need just 1 text, so ignore text_count
 	int text_type = 0;
 	const void* text = 0;
 	int text_size = 0;
@@ -534,7 +535,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	fill_segment_descriptor_dword(gdt, ldt, &seg_cgate64);
 
 	int kvmfd = open("/dev/kvm", O_RDWR);
-	char buf[sizeof(kvm_cpuid2) + 128 * sizeof(struct kvm_cpuid_entry2)];
+	char buf[sizeof(struct kvm_cpuid2) + 128 * sizeof(struct kvm_cpuid_entry2)];
 	memset(buf, 0, sizeof(buf));
 	struct kvm_cpuid2* cpuid = (struct kvm_cpuid2*)buf;
 	cpuid->nent = 128;
@@ -546,7 +547,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	int text_prefix_size = 0;
 	char* host_text = host_mem + ADDR_TEXT;
 
-	if (text_type == 16) {
+	if (text_type == 8) {
 		if (flags & KVM_SETUP_SMM) {
 			if (flags & KVM_SETUP_PROTECTED) {
 				sregs.cs = seg_cs16;
@@ -584,19 +585,21 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 				text_prefix = kvm_asm32_vm86;
 				text_prefix_size = sizeof(kvm_asm32_vm86) - 1;
 			}
-		} else if (flags & KVM_SETUP_PROTECTED) {
-			sregs.cr0 |= CR0_PE;
-			sregs.cs = seg_cs16;
-			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds16;
-		} else if (flags & KVM_SETUP_CPL3) {
+		} else {
+			sregs.cs.selector = 0;
+			sregs.cs.base = 0;
+		}
+	} else if (text_type == 16) {
+		if (flags & KVM_SETUP_CPL3) {
 			sregs.cs = seg_cs16;
 			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds16;
 
 			text_prefix = kvm_asm16_cpl3;
 			text_prefix_size = sizeof(kvm_asm16_cpl3) - 1;
 		} else {
-			sregs.cs.selector = 0;
-			sregs.cs.base = 0;
+			sregs.cr0 |= CR0_PE;
+			sregs.cs = seg_cs16;
+			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds16;
 		}
 	} else if (text_type == 32) {
 		sregs.cr0 |= CR0_PE;

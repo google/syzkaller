@@ -113,6 +113,8 @@ ioctl$KVM_TPR_ACCESS_REPORTING(fd fd_kvmcpu, cmd const[KVM_TPR_ACCESS_REPORTING]
 ioctl$KVM_SET_VAPIC_ADDR(fd fd_kvmcpu, cmd const[KVM_SET_VAPIC_ADDR], arg ptr[in, flags[kvm_guest_addrs, int64]])
 ioctl$KVM_X86_SETUP_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SETUP_MCE], arg ptr[in, kvm_mce_cap])
 ioctl$KVM_X86_SET_MCE(fd fd_kvmcpu, cmd const[KVM_X86_SET_MCE], arg ptr[in, kvm_x86_mce])
+ioctl$KVM_ARM_VCPU_INIT(fd fd_kvmcpu, cmd const[KVM_ARM_VCPU_INIT], arg ptr[in, kvm_vcpu_init])
+ioctl$KVM_ARM_SET_DEVICE_ADDR(fd fd_kvmcpu, cmd const[KVM_ARM_SET_DEVICE_ADDR], arg ptr[in, kvm_arm_device_addr])
 
 kvm_mem_region_flags = KVM_MEM_LOG_DIRTY_PAGES, KVM_MEM_READONLY
 kvm_mp_state = KVM_MP_STATE_RUNNABLE, KVM_MP_STATE_UNINITIALIZED, KVM_MP_STATE_INIT_RECEIVED, KVM_MP_STATE_HALTED, KVM_MP_STATE_SIPI_RECEIVED, KVM_MP_STATE_STOPPED, KVM_MP_STATE_CHECK_STOP, KVM_MP_STATE_OPERATING, KVM_MP_STATE_LOAD
@@ -132,6 +134,8 @@ kvm_mce_status = MCI_STATUS_VAL, MCI_STATUS_OVER, MCI_STATUS_UC, MCI_STATUS_EN, 
 kvm_caps = KVM_CAP_HYPERV_SYNIC
 kvm_cpuid_flags = KVM_CPUID_FLAG_SIGNIFCANT_INDEX, KVM_CPUID_FLAG_STATEFUL_FUNC, KVM_CPUID_FLAG_STATE_READ_NEXT
 kvm_dev_flags = KVM_DEV_ASSIGN_ENABLE_IOMMU, KVM_DEV_ASSIGN_PCI_2_3, KVM_DEV_ASSIGN_MASK_INTX
+kvm_vcpu_target = KVM_ARM_TARGET_CORTEX_A53, KVM_ARM_TARGET_AEM_V8, KVM_ARM_TARGET_FOUNDATION_V8, KVM_ARM_TARGET_CORTEX_A57, KVM_ARM_TARGET_XGENE_POTENZA, KVM_ARM_TARGET_GENERIC_V8
+kvm_vcpu_features_arm64 = KVM_ARM_VCPU_POWER_OFF, KVM_ARM_VCPU_EL1_32BIT, KVM_ARM_VCPU_PSCI_0_2, KVM_ARM_VCPU_PMU_V3
 
 kvm_mem_slots = 0, 1, 2, 3, 4, 5, 509, 510, 511, 10000, 65536, 65537, 65538, 65539, 65540, 66047, 66048, 66049
 kvm_guest_addrs = 0, 1, 2, 4, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0xd000, 0xf000, 0x100000, 0x10000
@@ -145,7 +149,8 @@ kvm_x86_rflags = 1, 2, 4, 16, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 
 
 # Pseudo call that setups VCPU into a reasonable interesting state for execution.
 # The interface is designed for extensibility so that addition of new options does not invalidate all existing programs.
-syz_kvm_setup_cpu$x86(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_x86, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
+syz_kvm_setup_cpu$x86(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_x86, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt_x86, 0:2]], nopt len[opts])
+syz_kvm_setup_cpu$arm64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_arm64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts])
 
 kvm_text_x86 [
 	textreal	kvm_text_x86_real
@@ -178,7 +183,13 @@ kvm_text_x86_64 {
 	size	len[text, intptr]
 }
 
-kvm_setup_opt [
+kvm_text_arm64 {
+	typ	const[0, intptr]
+	text	ptr[in, text[arm64]]
+	size	len[text, intptr]
+}
+
+kvm_setup_opt_x86 [
 	cr0	kvm_setup_opt_cr0
 	cr4	kvm_setup_opt_cr4
 	efer	kvm_setup_opt_efer
@@ -205,6 +216,17 @@ kvm_setup_opt_flags {
 	val	flags[kvm_x86_rflags, int64]
 }
 
+kvm_setup_opt_arm64 [
+# unions need at least 2 fields, but we have only 1 now, but we want to have it as union for future extention
+	featur1	kvm_setup_opt_feature
+	featur2	kvm_setup_opt_feature
+] [varlen]
+
+kvm_setup_opt_feature {
+	typ	const[1, int64]
+	val	flags[kvm_vcpu_features_arm64, int64]
+}
+
 kvm_setup_flags = KVM_SETUP_PAGING, KVM_SETUP_PAE, KVM_SETUP_PROTECTED, KVM_SETUP_CPL3, KVM_SETUP_VIRT86, KVM_SETUP_SMM, KVM_SETUP_VM
 
 define KVM_SETUP_PAGING		(1<<0)
@@ -223,7 +245,7 @@ kvm_guest_debug {
 
 kvm_arm_device_addr {
 	id	int64
-	addr	int64
+	addr	flags[kvm_guest_addrs, int64]
 }
 
 kvm_reg_list {
@@ -697,4 +719,10 @@ kvm_coalesced_mmio_zone {
 	addr	flags[kvm_guest_addrs, int64]
 	size	flags[kvm_guest_addr_size, int32]
 	pad	const[0, int32]
+}
+
+kvm_vcpu_init {
+	target	flags[kvm_vcpu_target, int32]
+	feature	flags[kvm_vcpu_features_arm64, int32]
+	pad	array[const[0, int32], 6]
 }

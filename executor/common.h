@@ -369,7 +369,11 @@ static uintptr_t syz_fuseblk_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 #endif
 
 #ifdef __NR_syz_kvm_setup_cpu
-#include "common_kvm.h"
+#if defined(__x86_64__)
+#include "common_kvm_amd64.h"
+#elif defined(__aarch64__)
+#include "common_kvm_arm64.h"
+#endif
 #endif // #ifdef __NR_syz_kvm_setup_cpu
 
 static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7, uintptr_t a8)
