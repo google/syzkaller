@@ -33,9 +33,7 @@ import (
 )
 
 var (
-	flagConfig        = flag.String("config", "", "config file")
-	flagNoImageCreate = flag.Bool("noimagecreate", false, "don't download/create image (for testing)")
-	flagNoRebuild     = flag.Bool("norebuild", false, "don't update/rebuild syzkaller (for testing)")
+	flagConfig = flag.String("config", "", "config file")
 
 	cfg             *Config
 	ctx             context.Context
@@ -159,7 +157,7 @@ func main() {
 			continue
 		}
 
-		if !*flagNoImageCreate && lastImageUpdated != imageUpdated {
+		if lastImageUpdated != imageUpdated {
 			Logf(0, "downloading image archive...")
 			if err := os.RemoveAll("image"); err != nil {
 				Logf(0, "failed to remove image dir: %v", err)
@@ -186,17 +184,15 @@ func main() {
 				continue
 			}
 		}
-		*flagNoImageCreate = false
 		lastImageUpdated = imageUpdated
 
-		if !*flagNoRebuild && lastSyzkallerHash != syzkallerHash {
+		if lastSyzkallerHash != syzkallerHash {
 			Logf(0, "building syzkaller...")
 			if err := buildSyzkaller(); err != nil {
 				Logf(0, "failed to update/build syzkaller: %v", err)
 				continue
 			}
 		}
-		*flagNoRebuild = false
 		lastSyzkallerHash = syzkallerHash
 
 		port, err := chooseUnusedPort()
