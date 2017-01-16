@@ -167,6 +167,7 @@ func main() {
 			linuxHash, err = gitUpdate(linuxDir, cfg.Linux_Git, cfg.Linux_Branch)
 			if err != nil {
 				Logf(0, "%v", err)
+				delayDuration = time.Hour // cloning linux is expensive
 				continue
 			}
 			Logf(0, "kernel hash %v, syzkaller hash %v", linuxHash, syzkallerHash)
@@ -485,7 +486,7 @@ func updateSyzkallerBuild() (string, error) {
 }
 
 func gitUpdate(dir, repo, branch string) (string, error) {
-	if _, err := gitRevision(dir); err != nil {
+	if _, err := runCmd(dir, "git", "pull"); err != nil {
 		if err := os.RemoveAll(dir); err != nil {
 			return "", fmt.Errorf("failed to remove repo dir: %v", err)
 		}
@@ -495,9 +496,9 @@ func gitUpdate(dir, repo, branch string) (string, error) {
 		if _, err := runCmd("", "git", "clone", repo, dir); err != nil {
 			return "", err
 		}
-	}
-	if _, err := runCmd(dir, "git", "pull"); err != nil {
-		return "", err
+		if _, err := runCmd(dir, "git", "pull"); err != nil {
+			return "", err
+		}
 	}
 	if branch != "" {
 		if _, err := runCmd(dir, "git", "checkout", branch); err != nil {
