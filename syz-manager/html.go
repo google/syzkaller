@@ -126,20 +126,9 @@ func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
 	defer mgr.mu.Unlock()
 
 	crashID := r.FormValue("id")
-	crashes, err := mgr.collectCrashes()
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
-		return
-	}
-	var crash *UICrashType
-	for _, c := range crashes {
-		if c.ID == crashID {
-			crash = &c
-			break
-		}
-	}
+	crash := mgr.readCrash(crashID, true)
 	if crash == nil {
-		http.Error(w, fmt.Sprintf("can't find crash %v", crashID), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("failed to read crash info"), http.StatusInternalServerError)
 		return
 	}
 	if err := crashTemplate.Execute(w, crash); err != nil {
@@ -316,74 +305,116 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (mgr *Manager) collectCrashes() ([]UICrashType, error) {
-	dirs, err := ioutil.ReadDir(mgr.crashdir)
+func (mgr *Manager) collectCrashes() ([]*UICrashType, error) {
+	dirs, err := readdirnames(mgr.crashdir)
 	if err != nil {
 		return nil, err
 	}
-	var crashTypes []UICrashType
+	var crashTypes []*UICrashType
 	for _, dir := range dirs {
-		if !dir.IsDir() || len(dir.Name()) != 40 {
-			continue
+		crash := mgr.readCrash(dir, false)
+		if crash != nil {
+			crashTypes = append(crashTypes, crash)
 		}
-		desc, err := ioutil.ReadFile(filepath.Join(mgr.crashdir, dir.Name(), "description"))
-		if err != nil || len(desc) == 0 {
-			continue
-		}
-		desc = trimNewLines(desc)
-		files, err := ioutil.ReadDir(filepath.Join(mgr.crashdir, dir.Name()))
-		if err != nil {
-			return nil, err
-		}
-		var maxTime time.Time
-		var crashes []UICrash
-		for _, f := range files {
-			if !strings.HasPrefix(f.Name(), "log") {
-				continue
-			}
-			index, err := strconv.ParseUint(f.Name()[3:], 10, 64)
-			if err != nil {
-				continue
-			}
-			tag, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, dir.Name(), "tag"+strconv.Itoa(int(index))))
-			crash := UICrash{
-				Index: int(index),
-				Time:  f.ModTime().Format(dateFormat),
-				Log:   filepath.Join("crashes", dir.Name(), f.Name()),
-				Tag:   string(tag),
-			}
-			reportFile := filepath.Join("crashes", dir.Name(), "report"+strconv.Itoa(int(index)))
-			if _, err := os.Stat(filepath.Join(mgr.cfg.Workdir, reportFile)); err == nil {
-				crash.Report = reportFile
-			}
-			crashes = append(crashes, crash)
-			if maxTime.Before(f.ModTime()) {
-				maxTime = f.ModTime()
-			}
-		}
-		sort.Sort(UICrashArray(crashes))
-
-		triaged := ""
-		if _, err := os.Stat(filepath.Join(mgr.crashdir, dir.Name(), "repro.prog")); err == nil {
-			if _, err := os.Stat(filepath.Join(mgr.crashdir, dir.Name(), "repro.cprog")); err == nil {
-				triaged = "has C repro"
-			} else {
-				triaged = "has repro"
-			}
-		} else if _, err := os.Stat(filepath.Join(mgr.crashdir, dir.Name(), "repro.report")); err == nil && !mgr.needRepro(string(desc)) {
-			triaged = "non-reproducible"
-		}
-		crashTypes = append(crashTypes, UICrashType{
-			Description: string(desc),
-			LastTime:    maxTime.Format(dateFormat),
-			ID:          dir.Name(),
-			Count:       len(crashes),
-			Triaged:     triaged,
-			Crashes:     crashes,
-		})
 	}
 	sort.Sort(UICrashTypeArray(crashTypes))
 	return crashTypes, nil
+}
+
+func (mgr *Manager) readCrash(dir string, full bool) *UICrashType {
+	if len(dir) != 40 {
+		return nil
+	}
+	descFile, err := os.Open(filepath.Join(mgr.crashdir, dir, "description"))
+	if err != nil {
+		return nil
+	}
+	defer descFile.Close()
+	desc, err := ioutil.ReadAll(descFile)
+	if err != nil || len(desc) == 0 {
+		return nil
+	}
+	desc = trimNewLines(desc)
+	stat, err := descFile.Stat()
+	if err != nil {
+		return nil
+	}
+	modTime := stat.ModTime()
+	descFile.Close()
+
+	files, err := readdirnames(filepath.Join(mgr.crashdir, dir))
+	if err != nil {
+		return nil
+	}
+	var crashes []*UICrash
+	reproAttempts := 0
+	hasRepro, hasCRepro := false, false
+	reports := make(map[string]bool)
+	for _, f := range files {
+		if strings.HasPrefix(f, "log") {
+			index, err := strconv.ParseUint(f[3:], 10, 64)
+			if err == nil {
+				crashes = append(crashes, &UICrash{
+					Index: int(index),
+				})
+			}
+		} else if strings.HasPrefix(f, "report") {
+			reports[f] = true
+		} else if f == "repro.prog" {
+			hasRepro = true
+		} else if f == "repro.cprog" {
+			hasCRepro = true
+		} else if f == "repro.report" {
+		} else if f == "repro0" || f == "repro1" || f == "repro2" {
+			reproAttempts++
+		}
+	}
+
+	if full {
+		for _, crash := range crashes {
+			index := strconv.Itoa(crash.Index)
+			crash.Log = filepath.Join("crashes", dir, "log"+index)
+			if stat, err := os.Stat(filepath.Join(mgr.cfg.Workdir, crash.Log)); err == nil {
+				crash.Time = stat.ModTime()
+				crash.TimeStr = crash.Time.Format(dateFormat)
+			}
+			tag, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, dir, "tag"+index))
+			crash.Tag = string(tag)
+			reportFile := filepath.Join("crashes", dir, "report"+index)
+			if _, err := os.Stat(filepath.Join(mgr.cfg.Workdir, reportFile)); err == nil {
+				crash.Report = reportFile
+			}
+		}
+		sort.Sort(UICrashArray(crashes))
+	}
+
+	triaged := ""
+	if hasRepro {
+		if hasCRepro {
+			triaged = "has C repro"
+		} else {
+			triaged = "has repro"
+		}
+	} else if reproAttempts >= maxReproAttempts {
+		triaged = "non-reproducible"
+	}
+	return &UICrashType{
+		Description: string(desc),
+		LastTime:    modTime.Format(dateFormat),
+		ID:          dir,
+		Count:       len(crashes),
+		Triaged:     triaged,
+		Crashes:     crashes,
+	}
+}
+
+func readdirnames(dir string) ([]string, error) {
+	f, err := os.Open(dir)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return f.Readdirnames(-1)
 }
 
 func trimNewLines(data []byte) []byte {
@@ -397,7 +428,7 @@ type UISummaryData struct {
 	Name    string
 	Stats   []UIStat
 	Calls   []UICallType
-	Crashes []UICrashType
+	Crashes []*UICrashType
 	Log     string
 }
 
@@ -407,15 +438,16 @@ type UICrashType struct {
 	ID          string
 	Count       int
 	Triaged     string
-	Crashes     []UICrash
+	Crashes     []*UICrash
 }
 
 type UICrash struct {
-	Index  int
-	Time   string
-	Log    string
-	Report string
-	Tag    string
+	Index   int
+	Time    time.Time
+	TimeStr string
+	Log     string
+	Report  string
+	Tag     string
 }
 
 type UIStat struct {
@@ -458,16 +490,16 @@ func (a UIStatArray) Len() int           { return len(a) }
 func (a UIStatArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
 func (a UIStatArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
-type UICrashTypeArray []UICrashType
+type UICrashTypeArray []*UICrashType
 
 func (a UICrashTypeArray) Len() int           { return len(a) }
 func (a UICrashTypeArray) Less(i, j int) bool { return a[i].Description < a[j].Description }
 func (a UICrashTypeArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
-type UICrashArray []UICrash
+type UICrashArray []*UICrash
 
 func (a UICrashArray) Len() int           { return len(a) }
-func (a UICrashArray) Less(i, j int) bool { return a[i].Index < a[j].Index }
+func (a UICrashArray) Less(i, j int) bool { return a[i].Time.After(a[j].Time) }
 func (a UICrashArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
@@ -577,7 +609,7 @@ Report: <a href="/report?id={{.ID}}">{{.Triaged}}</a>
 		{{else}}
 			<td></td>
 		{{end}}
-		<td>{{$c.Time}}</td>
+		<td>{{$c.TimeStr}}</td>
 		<td>{{$c.Tag}}</td>
 	</tr>
 	{{end}}
