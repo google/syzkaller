@@ -308,7 +308,7 @@ func main() {
 			continue
 		}
 
-		Logf(0, "starting syz-manager (image %v, syzkaller %v)...", lastImageUpdated, lastSyzkallerHash)
+		Logf(0, "starting syz-manager...")
 		managerCmd = exec.Command("gopath/src/github.com/google/syzkaller/bin/syz-manager", "-config=manager.cfg")
 		if err := managerCmd.Start(); err != nil {
 			Logf(0, "failed to start syz-manager: %v", err)
