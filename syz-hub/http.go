@@ -37,7 +37,7 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	total := UIManager{
 		Name:   "total",
-		Corpus: len(hub.st.Corpus),
+		Corpus: len(hub.st.Corpus.Records),
 	}
 	for name, mgr := range hub.st.Managers {
 		total.Added += mgr.Added
@@ -45,7 +45,7 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 		total.New += mgr.New
 		data.Managers = append(data.Managers, UIManager{
 			Name:    name,
-			Corpus:  len(mgr.Corpus),
+			Corpus:  len(mgr.Corpus.Records),
 			Added:   mgr.Added,
 			Deleted: mgr.Deleted,
 			New:     mgr.New,
