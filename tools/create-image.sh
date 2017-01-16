@@ -9,7 +9,7 @@ set -eux
 # Create a minimal Debian-wheezy distributive as a directory.
 sudo rm -rf wheezy
 mkdir -p wheezy
-sudo debootstrap --include=openssh-server wheezy wheezy
+sudo debootstrap --include=openssh-server,curl,tar,time,strace,sudo,less wheezy wheezy
 
 # Set some defaults and enable promtless ssh to the machine for root.
 sudo sed -i '/^root/ { s/:x:/::/ }' wheezy/etc/passwd
@@ -24,10 +24,6 @@ rm -rf ssh
 mkdir -p ssh
 ssh-keygen -f ssh/id_rsa -t rsa -N ''
 cat ssh/id_rsa.pub | sudo tee wheezy/root/.ssh/authorized_keys
-
-# Install some misc packages.
-sudo chroot wheezy /bin/bash -c "export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin; \
-apt-get update; apt-get install --yes curl tar time strace sudo"
 
 # Build a disk image
 dd if=/dev/zero of=wheezy.img bs=1M seek=1023 count=1
