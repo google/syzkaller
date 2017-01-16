@@ -9,9 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
+	"github.com/google/syzkaller/db"
 	"github.com/google/syzkaller/hash"
 	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
@@ -22,7 +22,7 @@ import (
 type State struct {
 	seq      uint64
 	dir      string
-	Corpus   map[hash.Sig]*Input
+	Corpus   *db.DB
 	Managers map[string]*Manager
 }
 
@@ -36,56 +36,39 @@ type Manager struct {
 	Deleted   int
 	New       int
 	Calls     map[string]struct{}
-	Corpus    map[hash.Sig]bool
-}
-
-// Input holds info about a single corpus program.
-type Input struct {
-	seq  uint64
-	prog []byte
+	Corpus    *db.DB
 }
 
 // Make creates State and initializes it from dir.
 func Make(dir string) (*State, error) {
 	st := &State{
 		dir:      dir,
-		Corpus:   make(map[hash.Sig]*Input),
 		Managers: make(map[string]*Manager),
 	}
 
-	corpusDir := filepath.Join(st.dir, "corpus")
-	os.MkdirAll(corpusDir, 0700)
-	inputs, err := ioutil.ReadDir(corpusDir)
+	os.MkdirAll(st.dir, 0750)
+	var err error
+	st.Corpus, err = db.Open(filepath.Join(st.dir, "corpus.db"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %v dir: %v", corpusDir, err)
+		Fatalf("failed to open corpus database: %v", err)
 	}
-	for _, inp := range inputs {
-		data, err := ioutil.ReadFile(filepath.Join(corpusDir, inp.Name()))
-		if err != nil {
-			return nil, err
+	for key, rec := range st.Corpus.Records {
+		if _, err := prog.CallSet(rec.Val); err != nil {
+			Logf(0, "bad file in corpus: can't parse call set: %v", err)
+			st.Corpus.Delete(key)
+			continue
 		}
-		if _, err := prog.CallSet(data); err != nil {
-			return nil, err
+		if sig := hash.Hash(rec.Val); sig.String() != key {
+			Logf(0, "bad file in corpus: hash %v, want hash %v", key, sig.String())
+			st.Corpus.Delete(key)
+			continue
 		}
-		parts := strings.Split(inp.Name(), "-")
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("bad file in corpus: %v", inp.Name())
+		if st.seq < rec.Seq {
+			st.seq = rec.Seq
 		}
-		seq, err := strconv.ParseUint(parts[1], 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("bad file in corpus: %v", inp.Name())
-		}
-		sig := hash.Hash(data)
-		if sig.String() != parts[0] {
-			return nil, fmt.Errorf("bad file in corpus: %v, want hash %v", inp.Name(), sig.String())
-		}
-		st.Corpus[sig] = &Input{
-			seq:  seq,
-			prog: data,
-		}
-		if st.seq < seq {
-			st.seq = seq
-		}
+	}
+	if err := st.Corpus.Flush(); err != nil {
+		Fatalf("failed to flush corpus database: %v", err)
 	}
 
 	managersDir := filepath.Join(st.dir, "manager")
@@ -105,20 +88,9 @@ func Make(dir string) (*State, error) {
 		if st.seq < mgr.seq {
 			st.seq = mgr.seq
 		}
-
-		mgr.Corpus = make(map[hash.Sig]bool)
-		corpusDir := filepath.Join(mgr.dir, "corpus")
-		os.MkdirAll(corpusDir, 0700)
-		corpus, err := ioutil.ReadDir(corpusDir)
+		mgr.Corpus, err = db.Open(filepath.Join(mgr.dir, "corpus.db"))
 		if err != nil {
-			return nil, fmt.Errorf("failed to read %v dir: %v", corpusDir, err)
-		}
-		for _, input := range corpus {
-			sig, err := hash.FromString(input.Name())
-			if err != nil {
-				return nil, fmt.Errorf("bad file in corpus: %v", input.Name())
-			}
-			mgr.Corpus[sig] = true
+			return nil, fmt.Errorf("failed to open manager corpus database %v: %v", mgr.dir, err)
 		}
 	}
 
@@ -126,7 +98,6 @@ func Make(dir string) (*State, error) {
 }
 
 func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byte) error {
-	st.seq++
 	mgr := st.Managers[name]
 	if mgr == nil {
 		mgr = new(Manager)
@@ -145,13 +116,15 @@ func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byt
 		mgr.Calls[c] = struct{}{}
 	}
 
-	corpusDir := filepath.Join(mgr.dir, "corpus")
-	os.RemoveAll(corpusDir)
-	os.MkdirAll(corpusDir, 0700)
-	mgr.Corpus = make(map[hash.Sig]bool)
-	for _, prog := range corpus {
-		st.addInput(mgr, prog)
+	corpusFile := filepath.Join(mgr.dir, "corpus.db")
+	os.Remove(corpusFile)
+	var err error
+	mgr.Corpus, err = db.Open(corpusFile)
+	if err != nil {
+		Logf(0, "failed to open corpus database: %v", err)
+		return err
 	}
+	st.addInputs(mgr, corpus)
 	st.purgeCorpus()
 	return nil
 }
@@ -162,22 +135,15 @@ func (st *State) Sync(name string, add [][]byte, del []string) ([][]byte, error)
 		return nil, fmt.Errorf("unconnected manager %v", name)
 	}
 	if len(del) != 0 {
-		for _, h := range del {
-			sig, err := hash.FromString(h)
-			if err != nil {
-				Logf(0, "manager %v: bad hash: %v", mgr.name, h)
-				continue
-			}
-			delete(mgr.Corpus, sig)
+		for _, sig := range del {
+			mgr.Corpus.Delete(sig)
+		}
+		if err := mgr.Corpus.Flush(); err != nil {
+			Logf(0, "failed to flush corpus database: %v", err)
 		}
 		st.purgeCorpus()
 	}
-	if len(add) != 0 {
-		st.seq++
-		for _, prog := range add {
-			st.addInput(mgr, prog)
-		}
-	}
+	st.addInputs(mgr, add)
 	inputs, err := st.pendingInputs(mgr)
 	mgr.Added += len(add)
 	mgr.Deleted += len(del)
@@ -190,22 +156,41 @@ func (st *State) pendingInputs(mgr *Manager) ([][]byte, error) {
 		return nil, nil
 	}
 	var inputs [][]byte
-	for sig, inp := range st.Corpus {
-		if mgr.seq > inp.seq || mgr.Corpus[sig] {
+	for key, rec := range st.Corpus.Records {
+		if mgr.seq > rec.Seq {
 			continue
 		}
-		calls, err := prog.CallSet(inp.prog)
+		if _, ok := mgr.Corpus.Records[key]; ok {
+			continue
+		}
+		calls, err := prog.CallSet(rec.Val)
 		if err != nil {
-			return nil, fmt.Errorf("failed to extract call set: %v\nprogram: %v", err, string(inp.prog))
+			return nil, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
 		}
 		if !managerSupportsAllCalls(mgr.Calls, calls) {
 			continue
 		}
-		inputs = append(inputs, inp.prog)
+		inputs = append(inputs, rec.Val)
 	}
 	mgr.seq = st.seq
 	writeFile(filepath.Join(mgr.dir, "seq"), []byte(fmt.Sprint(mgr.seq)))
 	return inputs, nil
+}
+
+func (st *State) addInputs(mgr *Manager, inputs [][]byte) {
+	if len(inputs) == 0 {
+		return
+	}
+	st.seq++
+	for _, input := range inputs {
+		st.addInput(mgr, input)
+	}
+	if err := mgr.Corpus.Flush(); err != nil {
+		Logf(0, "failed to flush corpus database: %v", err)
+	}
+	if err := st.Corpus.Flush(); err != nil {
+		Logf(0, "failed to flush corpus database: %v", err)
+	}
 }
 
 func (st *State) addInput(mgr *Manager, input []byte) {
@@ -213,17 +198,13 @@ func (st *State) addInput(mgr *Manager, input []byte) {
 		Logf(0, "manager %v: failed to extract call set: %v, program:\n%v", mgr.name, err, string(input))
 		return
 	}
-	sig := hash.Hash(input)
-	mgr.Corpus[sig] = true
-	fname := filepath.Join(mgr.dir, "corpus", sig.String())
-	writeFile(fname, nil)
-	if st.Corpus[sig] == nil {
-		st.Corpus[sig] = &Input{
-			seq:  st.seq,
-			prog: input,
+	sig := hash.String(input)
+	mgr.Corpus.Save(sig, nil, 0)
+	if _, ok := st.Corpus.Records[sig]; !ok {
+		st.Corpus.Save(sig, input, st.seq)
+		if err := st.Corpus.Flush(); err != nil {
+			Logf(0, "failed to flush corpus database: %v", err)
 		}
-		fname := filepath.Join(st.dir, "corpus", fmt.Sprintf("%v-%v", sig.String(), st.seq))
-		writeFile(fname, input)
 	}
 }
 
@@ -234,18 +215,20 @@ func writeFile(name string, data []byte) {
 }
 
 func (st *State) purgeCorpus() {
-	used := make(map[hash.Sig]bool)
+	used := make(map[string]bool)
 	for _, mgr := range st.Managers {
-		for sig := range mgr.Corpus {
+		for sig := range mgr.Corpus.Records {
 			used[sig] = true
 		}
 	}
-	for sig, inp := range st.Corpus {
-		if used[sig] {
+	for key := range st.Corpus.Records {
+		if used[key] {
 			continue
 		}
-		delete(st.Corpus, sig)
-		os.Remove(filepath.Join(st.dir, "corpus", fmt.Sprintf("%v-%v", sig.String(), inp.seq)))
+		st.Corpus.Delete(key)
+	}
+	if err := st.Corpus.Flush(); err != nil {
+		Logf(0, "failed to flush corpus database: %v", err)
 	}
 }
 
