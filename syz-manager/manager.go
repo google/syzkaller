@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/csource"
+	"github.com/google/syzkaller/db"
 	"github.com/google/syzkaller/hash"
 	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
@@ -42,16 +43,16 @@ var (
 )
 
 type Manager struct {
-	cfg              *config.Config
-	crashdir         string
-	port             int
-	persistentCorpus *PersistentSet
-	startTime        time.Time
-	firstConnect     time.Time
-	stats            map[string]uint64
-	vmStop           chan bool
-	vmChecked        bool
-	fresh            bool
+	cfg          *config.Config
+	crashdir     string
+	port         int
+	corpusDB     *db.DB
+	startTime    time.Time
+	firstConnect time.Time
+	stats        map[string]uint64
+	vmStop       chan bool
+	vmChecked    bool
+	fresh        bool
 
 	mu              sync.Mutex
 	enabledSyscalls string
@@ -122,18 +123,23 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 	}
 
 	Logf(0, "loading corpus...")
-	mgr.persistentCorpus = newPersistentSet(filepath.Join(cfg.Workdir, "corpus"), func(data []byte) bool {
-		mgr.fresh = false
-		if _, err := prog.Deserialize(data); err != nil {
-			Logf(0, "deleting broken program: %v\n%s", err, data)
-			return false
+	dbFilename := filepath.Join(cfg.Workdir, "corpus.db")
+	if _, err := os.Stat(dbFilename); err != nil {
+		if err := convertPersistentToDB(filepath.Join(cfg.Workdir, "corpus"), dbFilename); err != nil {
+			Fatalf("failed to convert old corpus: %v", err)
 		}
-		return true
-	})
-	for _, data := range mgr.persistentCorpus.a {
-		p, err := prog.Deserialize(data)
+	}
+	var err error
+	mgr.corpusDB, err = db.Open(dbFilename)
+	if err != nil {
+		Fatalf("failed to open corpus database: %v", err)
+	}
+	for key, rec := range mgr.corpusDB.Records {
+		p, err := prog.Deserialize(rec.Val)
 		if err != nil {
-			Fatalf("failed to deserialize program: %v", err)
+			Logf(0, "deleting broken program: %v\n%s", err, rec.Val)
+			mgr.corpusDB.Delete(key)
+			continue
 		}
 		disabled := false
 		for _, c := range p.Calls {
@@ -148,13 +154,14 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 			// it is not deleted during minimization.
 			// TODO: use mgr.enabledCalls which accounts for missing devices, etc.
 			// But it is available only after vm check.
-			sig := hash.Hash(data)
+			sig := hash.Hash(rec.Val)
 			mgr.disabledHashes = append(mgr.disabledHashes, sig.String())
 			continue
 		}
-		mgr.candidates = append(mgr.candidates, data)
+		mgr.candidates = append(mgr.candidates, rec.Val)
 	}
-	Logf(0, "loaded %v programs (%v total)", len(mgr.candidates), len(mgr.persistentCorpus.m))
+	mgr.fresh = len(mgr.corpusDB.Records) == 0
+	Logf(0, "loaded %v programs (%v total)", len(mgr.candidates), len(mgr.corpusDB.Records))
 
 	// Create HTTP server.
 	mgr.initHttp()
@@ -545,7 +552,12 @@ func (mgr *Manager) minimizeCorpus() {
 		for _, h := range mgr.disabledHashes {
 			hashes[h] = true
 		}
-		mgr.persistentCorpus.minimize(hashes)
+		for key := range mgr.corpusDB.Records {
+			if !hashes[key] {
+				mgr.corpusDB.Delete(key)
+			}
+		}
+		mgr.corpusDB.Flush()
 	}
 }
 
@@ -610,7 +622,11 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 	mgr.corpusCover[call] = cover.Union(mgr.corpusCover[call], a.Cover)
 	mgr.corpus = append(mgr.corpus, a.RpcInput)
 	mgr.stats["manager new inputs"]++
-	mgr.persistentCorpus.add(a.RpcInput.Prog)
+	sig := hash.Hash(a.RpcInput.Prog)
+	mgr.corpusDB.Save(sig.String(), a.RpcInput.Prog, 0)
+	if err := mgr.corpusDB.Flush(); err != nil {
+		Logf(0, "failed to save corpus database: %v", err)
+	}
 	for _, f1 := range mgr.fuzzers {
 		if f1 == f {
 			continue
@@ -685,6 +701,7 @@ func (mgr *Manager) hubSync() {
 			Logf(0, "Hub.Connect rpc failed: %v", err)
 			mgr.hub.Close()
 			mgr.hub = nil
+			mgr.hubCorpus = nil
 			return
 		}
 		mgr.fresh = false

@@ -15,6 +15,11 @@ func Hash(data []byte) Sig {
 	return Sig(sha1.Sum(data))
 }
 
+func String(data []byte) string {
+	sig := Hash(data)
+	return sig.String()
+}
+
 func (sig *Sig) String() string {
 	return hex.EncodeToString((*sig)[:])
 }
