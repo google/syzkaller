@@ -4,13 +4,41 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/google/syzkaller/db"
 	"github.com/google/syzkaller/hash"
 	. "github.com/google/syzkaller/log"
+	"github.com/google/syzkaller/prog"
 )
+
+// PersistentSet is now superseded by db package that stores corpus in a single file.
+// This code is left here to convert old corpuses to the new format.
+// It needs to be delete in Mar 2017.
+func convertPersistentToDB(persistentDir, dbFilename string) error {
+	persistentCorpus := newPersistentSet(persistentDir, func(data []byte) bool {
+		if _, err := prog.Deserialize(data); err != nil {
+			Logf(0, "deleting broken program: %v\n%s", err, data)
+			return false
+		}
+		return true
+	})
+	tmpDB, err := db.Open(dbFilename)
+	if err != nil {
+		return fmt.Errorf("failed to create corpus database: %v", err)
+	}
+	for key, data := range persistentCorpus.m {
+		tmpDB.Save(key.String(), data, 0)
+	}
+	if err := tmpDB.Flush(); err != nil {
+		return fmt.Errorf("failed to save corpus database: %v", err)
+	}
+	Logf(0, "converted %v programs to new corpus database format", len(persistentCorpus.m))
+	return nil
+}
 
 // PersistentSet is a set of binary blobs with a persistent mirror on disk.
 type PersistentSet struct {
