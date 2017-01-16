@@ -9,7 +9,7 @@
 # - you need a user-space system, a basic Debian system can be created with:
 #   sudo debootstrap --include=openssh-server,curl,tar,time,strace stable debian
 # - you need qemu-nbd, grub and maybe something else:
-#   sudo apt-get install qemu-utils grub
+#   sudo apt-get install qemu-utils grub-efi
 # - you need nbd support in kernel
 # - you need kernel to use with image (e.g. arch/x86/boot/bzImage)
 #   note: kernel modules are not supported
@@ -46,10 +46,10 @@ if [ "$(basename $3)" != "vmlinux" ]; then
 	exit 1
 fi
 
-if [ "$(grep nbd0 /proc/partitions)" != "" ]; then
-	echo "/dev/nbd0 is already in use, try sudo qemu-nbd -d /dev/nbd0"
-	exit 1
-fi
+# Clean up after previous unsuccessful run.
+sudo umount disk.mnt || true
+sudo qemu-nbd -d /dev/nbd0 || true
+rm -rf disk.mnt disk.raw tag obj || true
 
 sudo modprobe nbd
 fallocate -l 2G disk.raw
