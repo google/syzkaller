@@ -81,7 +81,8 @@ func addAlignment(t *StructType) {
 		return
 	}
 	var fields []Type
-	var off, align uintptr
+	var off uintptr
+	align := t.align
 	varLen := false
 	for i, f := range t.Fields {
 		a := f.Align()
