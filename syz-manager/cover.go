@@ -54,6 +54,10 @@ var (
 	allCoverReady = make(chan bool)
 )
 
+const (
+	callLen = 5 // length of a call instruction, x86-ism
+)
+
 func initAllCover(vmlinux string) {
 	// Running objdump on vmlinux takes 20-30 seconds, so we do it asynchronously on start.
 	go func() {
@@ -79,28 +83,28 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 	}
 	pcs := make([]uint64, len(cov))
 	for i, pc := range cov {
-		pcs[i] = cover.RestorePC(pc, base) - 1
+		pcs[i] = cover.RestorePC(pc, base) - callLen
 	}
-	allPcs, err := allPcsInFuncs(vmlinux, pcs)
+	uncovered, err := uncoveredPcsInFuncs(vmlinux, pcs)
 	if err != nil {
 		return err
 	}
 
-	frames, prefix, err := symbolize(vmlinux, pcs)
+	coveredFrames, prefix, err := symbolize(vmlinux, pcs)
 	if err != nil {
 		return err
 	}
-	if len(frames) == 0 {
+	if len(coveredFrames) == 0 {
 		return fmt.Errorf("'%s' does not have debug info (set CONFIG_DEBUG_INFO=y)", vmlinux)
 	}
 
-	allFrames, prefix, err := symbolize(vmlinux, allPcs)
+	uncoveredFrames, prefix, err := symbolize(vmlinux, uncovered)
 	if err != nil {
 		return err
 	}
 
 	var d templateData
-	for f, covered := range fileSet(frames, allFrames) {
+	for f, covered := range fileSet(coveredFrames, uncoveredFrames) {
 		lines, err := parseFile(f)
 		if err != nil {
 			return err
@@ -142,17 +146,17 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 	return nil
 }
 
-func fileSet(frames, allFrames []symbolizer.Frame) map[string][]coverage {
+func fileSet(covered, uncovered []symbolizer.Frame) map[string][]coverage {
 	files := make(map[string]map[int]bool)
 	funcs := make(map[string]bool)
-	for _, frame := range frames {
+	for _, frame := range covered {
 		if files[frame.File] == nil {
 			files[frame.File] = make(map[int]bool)
 		}
 		files[frame.File][frame.Line] = true
 		funcs[frame.Func] = true
 	}
-	for _, frame := range allFrames {
+	for _, frame := range uncovered {
 		if !funcs[frame.Func] {
 			continue
 		}
@@ -229,8 +233,8 @@ func getVmOffset(vmlinux string) (uint32, error) {
 	return addr, nil
 }
 
-// allPcsInFuncs returns all PCs with __sanitizer_cov_trace_pc calls in functions containing pcs.
-func allPcsInFuncs(vmlinux string, pcs []uint64) ([]uint64, error) {
+// uncoveredPcsInFuncs returns uncovered PCs with __sanitizer_cov_trace_pc calls in functions containing pcs.
+func uncoveredPcsInFuncs(vmlinux string, pcs []uint64) ([]uint64, error) {
 	allSymbols, err := symbolizer.ReadSymbols(vmlinux)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run nm on vmlinux: %v", err)
@@ -248,7 +252,8 @@ func allPcsInFuncs(vmlinux string, pcs []uint64) ([]uint64, error) {
 		return nil, nil
 	}
 
-	var allPcs []uint64
+	handledFuncs := make(map[uint64]bool)
+	uncovered := make(map[uint64]bool)
 	for _, pc := range pcs {
 		idx := sort.Search(len(symbols), func(i int) bool {
 			return pc < symbols[i].end
@@ -260,15 +265,25 @@ func allPcsInFuncs(vmlinux string, pcs []uint64) ([]uint64, error) {
 		if pc < s.start || pc > s.end {
 			continue
 		}
-		startPC := sort.Search(len(allCoverPCs), func(i int) bool {
-			return s.start <= allCoverPCs[i]
-		})
-		endPC := sort.Search(len(allCoverPCs), func(i int) bool {
-			return s.end < allCoverPCs[i]
-		})
-		allPcs = append(allPcs, allCoverPCs[startPC:endPC]...)
+		if !handledFuncs[s.start] {
+			handledFuncs[s.start] = true
+			startPC := sort.Search(len(allCoverPCs), func(i int) bool {
+				return s.start <= allCoverPCs[i]
+			})
+			endPC := sort.Search(len(allCoverPCs), func(i int) bool {
+				return s.end < allCoverPCs[i]
+			})
+			for _, pc1 := range allCoverPCs[startPC:endPC] {
+				uncovered[pc1] = true
+			}
+		}
+		delete(uncovered, pc)
 	}
-	return allPcs, nil
+	uncoveredPCs := make([]uint64, 0, len(uncovered))
+	for pc := range uncovered {
+		uncoveredPCs = append(uncoveredPCs, pc)
+	}
+	return uncoveredPCs, nil
 }
 
 // coveredPCs returns list of PCs of __sanitizer_cov_trace_pc calls in binary bin.
