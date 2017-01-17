@@ -142,17 +142,19 @@ static void install_segv_handler()
 		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
 	}
 
-#define BITMASK_LEN(type, bf_len) (type)((1ul << bf_len) - 1)
+#define BITMASK_LEN(type, bf_len) (type)((1ull << (bf_len)) - 1)
 
-#define BITMASK_LEN_OFF(type, bf_off, bf_len) (type)(BITMASK_LEN(type, bf_len) << bf_off)
+#define BITMASK_LEN_OFF(type, bf_off, bf_len) (type)(BITMASK_LEN(type, (bf_len)) << (bf_off))
 
-#define STORE_BY_BITMASK(type, addr, val, bf_off, bf_len)                     \
-	do {                                                                  \
-		type new_val = *(type*)addr;                                  \
-		new_val &= ~BITMASK_LEN_OFF(type, bf_off, bf_len);            \
-		new_val |= ((type)val & BITMASK_LEN(type, bf_len)) << bf_off; \
-		*(type*)addr = new_val;                                       \
-	} while (0)
+#define STORE_BY_BITMASK(type, addr, val, bf_off, bf_len)                         \
+	if ((bf_off) == 0 && (bf_len) == 0) {                                     \
+		*(type*)(addr) = (val);                                           \
+	} else {                                                                  \
+		type new_val = *(type*)(addr);                                    \
+		new_val &= ~BITMASK_LEN_OFF(type, (bf_off), (bf_len));            \
+		new_val |= ((type)(val)&BITMASK_LEN(type, (bf_len))) << (bf_off); \
+		*(type*)(addr) = new_val;                                         \
+	}
 
 #ifdef __NR_syz_emit_ethernet
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
