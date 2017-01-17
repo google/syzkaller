@@ -197,7 +197,13 @@ loop:
 			switch typ {
 			case prog.ExecArgConst:
 				arg := read()
-				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = (uint%v_t)0x%x);\n", size*8, addr, size*8, arg)
+				bfOff := read()
+				bfLen := read()
+				if bfOff == 0 && bfLen == 0 {
+					fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = (uint%v_t)0x%x);\n", size*8, addr, size*8, arg)
+				} else {
+					fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, %v, %v, %v, %v);\n", size*8, addr, arg, bfOff, bfLen)
+				}
 			case prog.ExecArgResult:
 				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n", size*8, addr, resultRef())
 			case prog.ExecArgData:
@@ -235,6 +241,9 @@ loop:
 				switch typ {
 				case prog.ExecArgConst:
 					fmt.Fprintf(w, ", 0x%xul", read())
+					// Bitfields can't be args of a normal syscall, so just ignore them.
+					read() // bit field offset
+					read() // bit field length
 				case prog.ExecArgResult:
 					fmt.Fprintf(w, ", %v", resultRef())
 				default:

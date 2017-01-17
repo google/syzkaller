@@ -46,7 +46,9 @@ func (p *Prog) SerializeForExec(pid int) []byte {
 				w.args[base] = &argInfo{}
 			}
 			w.args[arg] = &argInfo{Offset: w.args[base].CurSize}
-			w.args[base].CurSize += arg.Size()
+			if arg.Type.BitfieldLength() == 0 || arg.Type.BitfieldLast() {
+				w.args[base].CurSize += arg.Size()
+			}
 		})
 		// Generate copyin instructions that fill in data into pointer arguments.
 		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
@@ -149,6 +151,8 @@ func (w *execContext) writeArg(arg *Arg, pid int) {
 		w.write(ExecArgConst)
 		w.write(arg.Size())
 		w.write(arg.Value(pid))
+		w.write(arg.Type.BitfieldOffset())
+		w.write(arg.Type.BitfieldLength())
 	case ArgResult:
 		w.write(ExecArgResult)
 		w.write(arg.Size())
@@ -159,10 +163,14 @@ func (w *execContext) writeArg(arg *Arg, pid int) {
 		w.write(ExecArgConst)
 		w.write(arg.Size())
 		w.write(physicalAddr(arg))
+		w.write(0) // bit field offset
+		w.write(0) // bit field length
 	case ArgPageSize:
 		w.write(ExecArgConst)
 		w.write(arg.Size())
 		w.write(arg.AddrPage * pageSize)
+		w.write(0) // bit field offset
+		w.write(0) // bit field length
 	case ArgData:
 		w.write(ExecArgData)
 		w.write(uintptr(len(arg.Data)))

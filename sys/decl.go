@@ -34,6 +34,9 @@ type Type interface {
 	Default() uintptr
 	Size() uintptr
 	Align() uintptr
+	BitfieldOffset() uintptr
+	BitfieldLength() uintptr
+	BitfieldLast() bool
 }
 
 func IsPad(t Type) bool {
@@ -59,6 +62,18 @@ func (t *TypeCommon) Optional() bool {
 
 func (t *TypeCommon) Default() uintptr {
 	return 0
+}
+
+func (t *TypeCommon) BitfieldOffset() uintptr {
+	return 0
+}
+
+func (t *TypeCommon) BitfieldLength() uintptr {
+	return 0
+}
+
+func (t *TypeCommon) BitfieldLast() bool {
+	return false
 }
 
 func (t TypeCommon) Dir() Dir {
@@ -95,6 +110,88 @@ func (t *ResourceType) Size() uintptr {
 
 func (t *ResourceType) Align() uintptr {
 	return t.Desc.Type.Align()
+}
+
+type IntTypeCommon struct {
+	TypeCommon
+	TypeSize    uintptr
+	BigEndian   bool
+	BitfieldOff uintptr
+	BitfieldLen uintptr
+	BitfieldLst bool
+}
+
+func (t *IntTypeCommon) Size() uintptr {
+	return t.TypeSize
+}
+
+func (t *IntTypeCommon) Align() uintptr {
+	return t.Size()
+}
+
+func (t *IntTypeCommon) BitfieldOffset() uintptr {
+	return t.BitfieldOff
+}
+
+func (t *IntTypeCommon) BitfieldLength() uintptr {
+	return t.BitfieldLen
+}
+
+func (t *IntTypeCommon) BitfieldLast() bool {
+	return t.BitfieldLst
+}
+
+type ConstType struct {
+	IntTypeCommon
+	Val   uintptr
+	IsPad bool
+}
+
+type IntKind int
+
+const (
+	IntPlain IntKind = iota
+	IntSignalno
+	IntFileoff // offset within a file
+	IntRange
+)
+
+type IntType struct {
+	IntTypeCommon
+	Kind       IntKind
+	RangeBegin int64
+	RangeEnd   int64
+}
+
+type FlagsType struct {
+	IntTypeCommon
+	Vals []uintptr
+}
+
+type LenType struct {
+	IntTypeCommon
+	ByteSize uintptr // want size in multiple of bytes instead of array size
+	Buf      string
+}
+
+type ProcType struct {
+	IntTypeCommon
+	ValuesStart   int64
+	ValuesPerProc uint64
+}
+
+type VmaType struct {
+	TypeCommon
+	RangeBegin int64 // in pages
+	RangeEnd   int64
+}
+
+func (t *VmaType) Size() uintptr {
+	return ptrSize
+}
+
+func (t *VmaType) Align() uintptr {
+	return t.Size()
 }
 
 type BufferKind int
@@ -151,109 +248,6 @@ func (t *BufferType) Size() uintptr {
 
 func (t *BufferType) Align() uintptr {
 	return 1
-}
-
-type VmaType struct {
-	TypeCommon
-	RangeBegin int64 // in pages
-	RangeEnd   int64
-}
-
-func (t *VmaType) Size() uintptr {
-	return ptrSize
-}
-
-func (t *VmaType) Align() uintptr {
-	return t.Size()
-}
-
-type LenType struct {
-	TypeCommon
-	TypeSize  uintptr
-	BigEndian bool
-	ByteSize  uintptr // want size in multiple of bytes instead of array size
-	Buf       string
-}
-
-func (t *LenType) Size() uintptr {
-	return t.TypeSize
-}
-
-func (t *LenType) Align() uintptr {
-	return t.Size()
-}
-
-type FlagsType struct {
-	TypeCommon
-	TypeSize  uintptr
-	BigEndian bool
-	Vals      []uintptr
-}
-
-func (t *FlagsType) Size() uintptr {
-	return t.TypeSize
-}
-
-func (t *FlagsType) Align() uintptr {
-	return t.Size()
-}
-
-type ConstType struct {
-	TypeCommon
-	TypeSize  uintptr
-	BigEndian bool
-	Val       uintptr
-	IsPad     bool
-}
-
-func (t *ConstType) Size() uintptr {
-	return t.TypeSize
-}
-
-func (t *ConstType) Align() uintptr {
-	return t.Size()
-}
-
-type IntKind int
-
-const (
-	IntPlain IntKind = iota
-	IntSignalno
-	IntFileoff // offset within a file
-	IntRange
-)
-
-type IntType struct {
-	TypeCommon
-	TypeSize   uintptr
-	BigEndian  bool
-	Kind       IntKind
-	RangeBegin int64
-	RangeEnd   int64
-}
-
-func (t *IntType) Size() uintptr {
-	return t.TypeSize
-}
-
-func (t *IntType) Align() uintptr {
-	return t.Size()
-}
-
-type ProcType struct {
-	TypeCommon
-	TypeSize      uintptr
-	BigEndian     bool
-	ValuesStart   int64
-	ValuesPerProc uint64
-}
-
-func (t *ProcType) Size() uintptr {
-	return t.TypeSize
-}
-
-func (t *ProcType) Align() uintptr {
-	return t.Size()
 }
 
 type ArrayKind int

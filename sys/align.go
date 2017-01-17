@@ -3,6 +3,10 @@
 
 package sys
 
+import (
+	"fmt"
+)
+
 func initAlign() {
 	var rec func(t Type)
 	rec = func(t Type) {
@@ -17,6 +21,7 @@ func initAlign() {
 				for _, f := range t1.Fields {
 					rec(f)
 				}
+				markBitfields(t1)
 				addAlignment(t1)
 			}
 		case *UnionType:
@@ -28,6 +33,46 @@ func initAlign() {
 
 	for _, s := range Structs {
 		rec(s)
+	}
+}
+
+func setBitfieldOffset(t Type, offset uintptr, last bool) {
+	switch t1 := t.(type) {
+	case *IntType:
+		t1.BitfieldOff = offset
+		t1.BitfieldLst = last
+	case *ConstType:
+		t1.BitfieldOff = offset
+		t1.BitfieldLst = last
+	case *LenType:
+		t1.BitfieldOff = offset
+		t1.BitfieldLst = last
+	case *FlagsType:
+		t1.BitfieldOff = offset
+		t1.BitfieldLst = last
+	case *ProcType:
+		t1.BitfieldOff = offset
+		t1.BitfieldLst = last
+	default:
+		panic(fmt.Sprintf("type %+v can't be a bitfield", t1))
+	}
+}
+
+func markBitfields(t *StructType) {
+	var bfOffset uintptr
+	for i, f := range t.Fields {
+		if f.BitfieldLength() == 0 {
+			continue
+		}
+		off, last := bfOffset, false
+		bfOffset += f.BitfieldLength()
+		if i == len(t.Fields)-1 || // Last bitfield in a group, if last field of the struct...
+			t.Fields[i+1].BitfieldLength() == 0 || // or next field is not a bitfield...
+			f.Size() != t.Fields[i+1].Size() || // or next field is of different size...
+			bfOffset+t.Fields[i+1].BitfieldLength() > f.Size()*8 { // or next field does not fit into the current group.
+			last, bfOffset = true, 0
+		}
+		setBitfieldOffset(f, off, last)
 	}
 }
 
@@ -43,10 +88,13 @@ func addAlignment(t *StructType) {
 		if align < a {
 			align = a
 		}
-		if off%a != 0 {
-			pad := a - off%a
-			off += pad
-			fields = append(fields, makePad(pad))
+		if i > 0 && (t.Fields[i-1].BitfieldLength() == 0 || t.Fields[i-1].BitfieldLast()) {
+			// Append padding if the last field is not a bitfield or it's the last bitfield in a set.
+			if off%a != 0 {
+				pad := a - off%a
+				off += pad
+				fields = append(fields, makePad(pad))
+			}
 		}
 		fields = append(fields, f)
 		if at, ok := f.(*ArrayType); ok && (at.Kind == ArrayRandLen || (at.Kind == ArrayRangeLen && at.RangeBegin != at.RangeEnd)) {
@@ -58,7 +106,8 @@ func addAlignment(t *StructType) {
 		if varLen && i != len(t.Fields)-1 {
 			panic("embed array in middle of a struct")
 		}
-		if !varLen {
+		if (f.BitfieldLength() == 0 || f.BitfieldLast()) && !varLen {
+			// Increase offset if the current field is not a bitfield or it's the last bitfield in a set.
 			off += f.Size()
 		}
 	}
@@ -72,9 +121,11 @@ func addAlignment(t *StructType) {
 
 func makePad(sz uintptr) Type {
 	return &ConstType{
-		TypeCommon: TypeCommon{TypeName: "pad", IsOptional: false},
-		TypeSize:   sz,
-		Val:        0,
-		IsPad:      true,
+		IntTypeCommon: IntTypeCommon{
+			TypeCommon: TypeCommon{TypeName: "pad", IsOptional: false},
+			TypeSize:   sz,
+		},
+		Val:   0,
+		IsPad: true,
 	}
 }
