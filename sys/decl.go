@@ -312,6 +312,9 @@ func (t *StructType) Align() uintptr {
 	if t.align != 0 {
 		return t.align // overrided by user attribute
 	}
+	if t.packed {
+		return 1
+	}
 	var align uintptr
 	for _, f := range t.Fields {
 		if a1 := f.Align(); align < a1 {
