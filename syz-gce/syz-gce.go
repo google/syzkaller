@@ -321,7 +321,7 @@ func main() {
 		go func() {
 			managerStopped <- managerCmd.Wait()
 		}()
-		delayDuration = time.Hour
+		delayDuration = 6 * time.Hour
 	}
 }
 
