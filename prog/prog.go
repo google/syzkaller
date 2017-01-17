@@ -116,7 +116,11 @@ func (a *Arg) Size() uintptr {
 		}
 		return size
 	case *sys.UnionType:
-		return a.Option.Size()
+		if !typ.Varlen {
+			return typ.Size()
+		} else {
+			return a.Option.Size()
+		}
 	case *sys.ArrayType:
 		var size uintptr
 		for _, in := range a.Inner {

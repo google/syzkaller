@@ -275,7 +275,7 @@ func generateStructEntry(str Struct, key structKey, out io.Writer) {
 	}
 	varlen := ""
 	if str.Varlen {
-		varlen = ", varlen: true"
+		varlen = ", Varlen: true"
 	}
 	align := ""
 	if str.Align != 0 {
