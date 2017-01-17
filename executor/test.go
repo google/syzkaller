@@ -5,8 +5,13 @@
 
 package executor
 
+// int test_copyin();
 // int test_kvm();
 import "C"
+
+func testCopyin() int {
+	return int(C.test_copyin())
+}
 
 func testKVM() int {
 	return int(C.test_kvm())

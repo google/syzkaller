@@ -5,6 +5,16 @@ package executor
 
 import "testing"
 
+func TestCopyin(t *testing.T) {
+	switch res := testCopyin(); {
+	case res < 0:
+		t.Skip()
+	case res > 0:
+		t.Fail()
+	default:
+	}
+}
+
 func TestKVM(t *testing.T) {
 	switch res := testKVM(); {
 	case res < 0:

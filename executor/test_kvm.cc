@@ -8,6 +8,22 @@
 
 #include <sys/utsname.h>
 
+extern "C" int test_copyin()
+{
+	unsigned char x[4] = {};
+	STORE_BY_BITMASK(uint16_t, &x[1], 0x1234, 0, 0);
+	if (x[0] != 0 || x[1] != 0x34 || x[2] != 0x12 || x[3] != 0) {
+		printf("bad result of STORE_BY_BITMASK(0, 0): %x %x %x %x\n", x[0], x[1], x[2], x[3]);
+		return 1;
+	}
+	STORE_BY_BITMASK(uint16_t, &x[1], 0x555a, 5, 4);
+	if (x[0] != 0 || x[1] != 0x54 || x[2] != 0x13 || x[3] != 0) {
+		printf("bad result of STORE_BY_BITMASK(7, 3): %x %x %x %x\n", x[0], x[1], x[2], x[3]);
+		return 1;
+	}
+	return 0;
+}
+
 static unsigned host_kernel_version();
 static void dump_cpu_state(int cpufd, char* vm_mem);
 
