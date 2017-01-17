@@ -327,11 +327,11 @@ func (t *StructType) Align() uintptr {
 type UnionType struct {
 	TypeCommon
 	Options []Type
-	varlen  bool
+	Varlen  bool
 }
 
 func (t *UnionType) Size() uintptr {
-	if t.varlen {
+	if t.Varlen {
 		panic("union size is not statically known")
 	}
 	size := t.Options[0].Size()
