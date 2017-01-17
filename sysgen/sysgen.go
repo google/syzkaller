@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -380,23 +381,28 @@ func generateArg(
 	common := func() string {
 		return fmt.Sprintf("TypeCommon: TypeCommon{TypeName: %v, ArgDir: %v, IsOptional: %v}", name, fmtDir(dir), opt)
 	}
+	intCommon := func(typeSize uint64, bigEndian bool, bitfieldLen uint64) string {
+		// BitfieldOff and BitfieldLst will be filled in in initAlign().
+		return fmt.Sprintf("IntTypeCommon: IntTypeCommon{%v, TypeSize: %v, BigEndian: %v, BitfieldLen: %v}", common(), typeSize, bigEndian, bitfieldLen)
+	}
 	canBeArg := false
 	switch typ {
 	case "fileoff":
 		canBeArg = true
 		size := uint64(ptrSize)
 		bigEndian := false
+		bitfieldLen := uint64(0)
 		if isField {
 			if want := 1; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
-			size, bigEndian = decodeIntType(a[0])
+			size, bigEndian, bitfieldLen = decodeIntType(a[0])
 		} else {
 			if want := 0; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
 		}
-		fmt.Fprintf(out, "&IntType{%v, TypeSize: %v, BigEndian: %v, Kind: IntFileoff}", common(), size, bigEndian)
+		fmt.Fprintf(out, "&IntType{%v, Kind: IntFileoff}", intCommon(size, bigEndian, bitfieldLen))
 	case "buffer":
 		canBeArg = true
 		if want := 1; len(a) != want {
@@ -474,11 +480,12 @@ func generateArg(
 		canBeArg = true
 		size := uint64(ptrSize)
 		bigEndian := false
+		bitfieldLen := uint64(0)
 		if isField {
 			if want := 2; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
-			size, bigEndian = decodeIntType(a[1])
+			size, bigEndian, bitfieldLen = decodeIntType(a[1])
 		} else {
 			if want := 1; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -488,16 +495,17 @@ func generateArg(
 		if typ != "len" {
 			byteSize = decodeByteSizeType(typ)
 		}
-		fmt.Fprintf(out, "&LenType{%v, Buf: \"%v\", TypeSize: %v, BigEndian: %v, ByteSize: %v}", common(), a[0], size, bigEndian, byteSize)
+		fmt.Fprintf(out, "&LenType{%v, Buf: \"%v\", ByteSize: %v}", intCommon(size, bigEndian, bitfieldLen), a[0], byteSize)
 	case "flags":
 		canBeArg = true
 		size := uint64(ptrSize)
 		bigEndian := false
+		bitfieldLen := uint64(0)
 		if isField {
 			if want := 2; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
-			size, bigEndian = decodeIntType(a[1])
+			size, bigEndian, bitfieldLen = decodeIntType(a[1])
 		} else {
 			if want := 1; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -508,19 +516,20 @@ func generateArg(
 			failf("unknown flag %v", a[0])
 		}
 		if len(vals) == 0 {
-			fmt.Fprintf(out, "&IntType{%v, TypeSize: %v, BigEndian: %v}", common(), size, bigEndian)
+			fmt.Fprintf(out, "&IntType{%v}", intCommon(size, bigEndian, bitfieldLen))
 		} else {
-			fmt.Fprintf(out, "&FlagsType{%v, TypeSize: %v, BigEndian: %v, Vals: []uintptr{%v}}", common(), size, bigEndian, strings.Join(vals, ","))
+			fmt.Fprintf(out, "&FlagsType{%v, Vals: []uintptr{%v}}", intCommon(size, bigEndian, bitfieldLen), strings.Join(vals, ","))
 		}
 	case "const":
 		canBeArg = true
 		size := uint64(ptrSize)
 		bigEndian := false
+		bitfieldLen := uint64(0)
 		if isField {
 			if want := 2; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
-			size, bigEndian = decodeIntType(a[1])
+			size, bigEndian, bitfieldLen = decodeIntType(a[1])
 		} else {
 			if want := 1; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
@@ -535,18 +544,19 @@ func generateArg(
 			val = "0"
 			skipSyscall(fmt.Sprintf("missing const %v", a[0]))
 		}
-		fmt.Fprintf(out, "&ConstType{%v, TypeSize: %v, BigEndian: %v, Val: uintptr(%v)}", common(), size, bigEndian, val)
+		fmt.Fprintf(out, "&ConstType{%v, Val: uintptr(%v)}", intCommon(size, bigEndian, bitfieldLen), val)
 	case "proc":
 		canBeArg = true
 		size := uint64(ptrSize)
 		bigEndian := false
+		bitfieldLen := uint64(0)
 		var valuesStart string
 		var valuesPerProc string
 		if isField {
 			if want := 3; len(a) != want {
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
-			size, bigEndian = decodeIntType(a[0])
+			size, bigEndian, bitfieldLen = decodeIntType(a[0])
 			valuesStart = a[1]
 			valuesPerProc = a[2]
 		} else {
@@ -574,25 +584,13 @@ func generateArg(
 		if valuesStartInt+maxPids*valuesPerProcInt >= (1 << (size * 8)) {
 			failf("not enough values starting from '%v' with step '%v' and type size '%v' for 32 procs", valuesStartInt, valuesPerProcInt, size)
 		}
-		fmt.Fprintf(out, "&ProcType{%v, TypeSize: %v, BigEndian: %v, ValuesStart: %v, ValuesPerProc: %v}", common(), size, bigEndian, valuesStartInt, valuesPerProcInt)
-	case "int8", "int16", "int32", "int64", "intptr", "int16be", "int32be", "int64be", "intptrbe":
-		canBeArg = true
-		size, bigEndian := decodeIntType(typ)
-		switch len(a) {
-		case 0:
-			fmt.Fprintf(out, "&IntType{%v, TypeSize: %v, BigEndian: %v}", common(), size, bigEndian)
-		case 1:
-			begin, end := parseRange(a[0], consts)
-			fmt.Fprintf(out, "&IntType{%v, TypeSize: %v, BigEndian: %v, Kind: IntRange, RangeBegin: %v, RangeEnd: %v}", common(), size, bigEndian, begin, end)
-		default:
-			failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
-		}
+		fmt.Fprintf(out, "&ProcType{%v, ValuesStart: %v, ValuesPerProc: %v}", intCommon(size, bigEndian, bitfieldLen), valuesStartInt, valuesPerProcInt)
 	case "signalno":
 		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		fmt.Fprintf(out, "&IntType{%v, TypeSize: 4, Kind: IntSignalno}", common())
+		fmt.Fprintf(out, "&IntType{%v, Kind: IntSignalno}", intCommon(4, false, 0))
 	case "filename":
 		canBeArg = true
 		if want := 0; len(a) != want {
@@ -640,7 +638,21 @@ func generateArg(
 		dir = "in"
 		fmt.Fprintf(out, "&PtrType{%v, Type: %v}", common(), generateType(a[1], a[0], desc, consts))
 	default:
-		if strings.HasPrefix(typ, "unnamed") {
+		intRegExp := regexp.MustCompile("^int([0-9]+|ptr)(be)?(:[0-9]+)?$")
+		if intRegExp.MatchString(typ) {
+			canBeArg = true
+			size, bigEndian, bitfieldLen := decodeIntType(typ)
+			switch len(a) {
+			case 0:
+				fmt.Fprintf(out, "&IntType{%v}", intCommon(size, bigEndian, bitfieldLen))
+			case 1:
+				begin, end := parseRange(a[0], consts)
+				fmt.Fprintf(out, "&IntType{%v, Kind: IntRange, RangeBegin: %v, RangeEnd: %v}",
+					intCommon(size, bigEndian, bitfieldLen), begin, end)
+			default:
+				failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
+			}
+		} else if strings.HasPrefix(typ, "unnamed") {
 			if inner, ok := desc.Unnamed[typ]; ok {
 				generateArg("", "", inner[0], dir, inner[1:], desc, consts, false, isField, out)
 			} else {
@@ -686,12 +698,25 @@ func fmtDir(s string) string {
 	}
 }
 
-func decodeIntType(typ string) (uint64, bool) {
+func decodeIntType(typ string) (uint64, bool, uint64) {
 	bigEndian := false
+	bitfieldLen := uint64(0)
+
+	parts := strings.Split(typ, ":")
+	if len(parts) == 2 {
+		var err error
+		bitfieldLen, err = strconv.ParseUint(parts[1], 10, 64)
+		if err != nil {
+			failf("failed to parse bitfield length '%v'", parts[1])
+		}
+		typ = parts[0]
+	}
+
 	if strings.HasSuffix(typ, "be") {
 		bigEndian = true
 		typ = typ[:len(typ)-2]
 	}
+
 	switch typ {
 	case "int8", "int16", "int32", "int64", "intptr":
 	default:
@@ -701,7 +726,12 @@ func decodeIntType(typ string) (uint64, bool) {
 	if typ != "intptr" {
 		sz, _ = strconv.ParseInt(typ[3:], 10, 64)
 	}
-	return uint64(sz / 8), bigEndian
+
+	if bitfieldLen >= uint64(sz) {
+		failf("bitfield of size %v is too large for base type of size %v", bitfieldLen, sz/8)
+	}
+
+	return uint64(sz / 8), bigEndian, bitfieldLen
 }
 
 func decodeByteSizeType(typ string) uint8 {

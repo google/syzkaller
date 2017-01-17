@@ -71,6 +71,27 @@ or for string flags as:
 	flagname = "\"" literal "\"" ["," "\"" literal "\""]*
 ```
 
+### Ints
+
+You can use `int8`, `int16`, `int32`, `int64` and `int64` to denote an integer of the corresponding size.
+
+By appending `be` suffix (like `int16be`) integers become big-endian.
+
+It's possible to specify range of values for an integer in the format of `int32[0:100]`.
+
+To denote a bitfield of size N use `int64:N`.
+
+It's possible to use these various kinds of ints as base types for `const`, `flags`, `len` and `proc`.
+
+```
+example_struct {
+	f0	int8			# random 1-byte integer
+	f1	const[0x42, int16be]	# const 2-byte integer with value 0x4200 (big-endian 0x42)
+	f2	int32[0:100]		# random 4-byte integer with values from 0 to 100 inclusive
+	f3	int64:20		# random 20-bit bitfield
+}
+```
+
 ### Structs
 
 Structs are described as:
