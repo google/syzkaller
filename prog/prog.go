@@ -112,7 +112,9 @@ func (a *Arg) Size() uintptr {
 	case *sys.StructType:
 		var size uintptr
 		for _, fld := range a.Inner {
-			size += fld.Size()
+			if fld.Type.BitfieldLength() == 0 || fld.Type.BitfieldLast() {
+				size += fld.Size()
+			}
 		}
 		return size
 	case *sys.UnionType:

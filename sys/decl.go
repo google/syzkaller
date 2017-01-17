@@ -303,7 +303,9 @@ func (t *StructType) Size() uintptr {
 	}
 	var size uintptr
 	for _, f := range t.Fields {
-		size += f.Size()
+		if f.BitfieldLength() == 0 || f.BitfieldLast() {
+			size += f.Size()
+		}
 	}
 	return size
 }
