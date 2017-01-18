@@ -89,17 +89,17 @@ bpf_insn_map {
 
 # Note: these filenames must be on bpf filesystem
 bpf_obj_pin_map {
-	path	filename
+	path	ptr[in, filename]
 	fd	fd_bpf_map
 }
 
 bpf_obj_pin_prog {
-	path	filename
+	path	ptr[in, filename]
 	fd	fd_bpf_prog
 }
 
 bpf_obj_get {
-	path	filename
+	path	ptr[in, filename]
 	fd	const[0, int32]
 }
 
