@@ -50,6 +50,14 @@ snd_seq_port_flags = SNDRV_SEQ_PORT_FLG_GIVEN_PORT, SNDRV_SEQ_PORT_FLG_TIMESTAMP
 snd_seq_sub_flags = SNDRV_SEQ_PORT_SUBS_EXCLUSIVE, SNDRV_SEQ_PORT_SUBS_TIMESTAMP, SNDRV_SEQ_PORT_SUBS_TIME_REAL
 snd_seq_timer_type = SNDRV_SEQ_TIMER_ALSA, SNDRV_SEQ_TIMER_MIDI_CLOCK, SNDRV_SEQ_TIMER_MIDI_TICK
 snd_seq_remove_mode = SNDRV_SEQ_REMOVE_INPUT, SNDRV_SEQ_REMOVE_OUTPUT, SNDRV_SEQ_REMOVE_DEST, SNDRV_SEQ_REMOVE_DEST_CHANNEL, SNDRV_SEQ_REMOVE_TIME_BEFORE, SNDRV_SEQ_REMOVE_TIME_AFTER, SNDRV_SEQ_REMOVE_TIME_TICK, SNDRV_SEQ_REMOVE_EVENT_TYPE, SNDRV_SEQ_REMOVE_IGNORE_OFF, SNDRV_SEQ_REMOVE_TAG_MATCH
+snd_timer_class = SNDRV_TIMER_CLASS_NONE, SNDRV_TIMER_CLASS_SLAVE, SNDRV_TIMER_CLASS_GLOBAL, SNDRV_TIMER_CLASS_CARD, SNDRV_TIMER_CLASS_PCM
+snd_timer_sclass = SNDRV_TIMER_SCLASS_NONE, SNDRV_TIMER_SCLASS_APPLICATION, SNDRV_TIMER_SCLASS_SEQUENCER, SNDRV_TIMER_SCLASS_OSS_SEQUENCER
+snd_timer_dev = SNDRV_TIMER_GLOBAL_SYSTEM, SNDRV_TIMER_GLOBAL_RTC, SNDRV_TIMER_GLOBAL_HPET, SNDRV_TIMER_GLOBAL_HRTIMER
+snd_seq_subs_type = SNDRV_SEQ_QUERY_SUBS_READ, SNDRV_SEQ_QUERY_SUBS_WRITE
+
+snd_seq_client_name = "client0", "client1"
+snd_seq_port_name = "port0", "port1"
+snd_seq_queue_name = "queue0", "queue1"
 
 snd_seq_system_info {
 	queues	int32
@@ -72,8 +80,7 @@ snd_seq_running_info {
 snd_seq_client_info {
 	client	int32
 	type	flags[snd_seq_client_type, int32]
-#TODO: need something like fixed-size embeded string.
-	name	array[int8, 64]
+	name	string[snd_seq_client_name, 64]
 	filter	flags[snd_seq_filter, int32]
 	mfilt	array[int8, 8]
 	evfilt	array[int8, 32]
@@ -84,8 +91,7 @@ snd_seq_client_info {
 
 snd_seq_port_info {
 	addr	snd_seq_addr
-#TODO: need something like fixed-size embeded string.
-	name	array[int8, 64]
+	name	string[snd_seq_port_name, 64]
 	cap	flags[snd_seq_port_cap, int32]
 	type	flags[snd_seq_port_type, int32]
 	chans	int32
@@ -113,8 +119,7 @@ snd_seq_queue_info {
 	queue	int32
 	owner	int32
 	locked	int32
-#TODO: need something like fixed-size embeded string.
-	name	array[int8, 64]
+	name	string[snd_seq_queue_name, 64]
 	flags	int32
 	pad	array[const[0, int8], 60]
 }
@@ -137,10 +142,10 @@ snd_seq_queue_timer {
 }
 
 snd_timer_id {
-	class	int32
-	subcl	int32
+	class	flags[snd_timer_class, int32]
+	sclass	flags[snd_timer_sclass, int32]
 	card	int32
-	dev	int32
+	dev	flags[snd_timer_dev, int32]
 	subdev	int32
 }
 
@@ -171,8 +176,6 @@ snd_seq_remove_events {
 	tag	int8
 	pad	array[const[0, int32], 10]
 }
-
-snd_seq_subs_type = SNDRV_SEQ_QUERY_SUBS_READ, SNDRV_SEQ_QUERY_SUBS_WRITE
 
 snd_seq_query_subs {
 	root	snd_seq_addr
