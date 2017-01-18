@@ -72,7 +72,7 @@ Unpack Go into a directory, say, `$HOME/go`.
 Then, set `GOROOT=$HOME/go` env var.
 Then, add Go binaries to `PATH`, `PATH=$HOME/go/bin:$PATH`.
 Then, set `GOPATH` env var to some empty dir, say `GOPATH=$HOME/gopath`.
-Then, run `go get github.com/google/syzkaller/...` to checkout syzkaller sources with all dependencies.
+Then, run `go get -d github.com/google/syzkaller/...` to checkout syzkaller sources with all dependencies.
 Then, `cd $GOPATH/src/github.com/google/syzkaller` and
 build with `make`, which generates compiled binaries in the `bin/` folder.
 
