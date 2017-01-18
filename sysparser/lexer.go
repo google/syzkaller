@@ -76,6 +76,8 @@ func Parse(in io.Reader) *Description {
 						switch {
 						case attr == "packed":
 							str.Packed = true
+						case strings.HasPrefix(attr, "align_ptr"):
+							str.Align = 8 // TODO: this must be target pointer size
 						case strings.HasPrefix(attr, "align_"):
 							a, err := strconv.ParseUint(attr[6:], 10, 64)
 							if err != nil {
