@@ -182,6 +182,7 @@ syz_test$length14(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, 
 syz_test$length15(a0 int16, a1 len[a0])
 
 syz_test$length16(a0 ptr[in, syz_length_bytesize_struct])
+syz_test$length17(a0 ptr[in, syz_length_bf_struct])
 
 syz_length_flags = 0, 1
 
@@ -260,6 +261,19 @@ syz_length_bytesize_struct {
 	f3	bytesize2[f0, int8]
 	f4	bytesize4[f0, int8]
 	f5	bytesize8[f0, int8]
+}
+
+syz_length_bf_struct_inner {
+	f0	int32:10
+	f1	int32:10
+	f2	int32:10
+	f4	len[parent, int32]
+}
+
+syz_length_bf_struct {
+	f0	syz_length_bf_struct_inner
+	f1	len[f0, int8]
+	f2	bytesize[f0, int8]
 }
 
 # Big endian
