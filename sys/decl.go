@@ -293,6 +293,7 @@ func (t *PtrType) Align() uintptr {
 type StructType struct {
 	TypeCommon
 	Fields []Type
+	Varlen bool
 	padded bool
 	packed bool
 	align  uintptr
