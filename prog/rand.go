@@ -141,16 +141,6 @@ func (r *randGen) filename(s *state) string {
 	}
 	if len(s.files) == 0 || r.oneOf(10) {
 		// Generate a new name.
-		if r.bin() {
-			special := []string{
-				"control", // kdbus control file
-				"bus",     // kdbus main bus
-			}
-			f := fmt.Sprintf("%v/%v\x00", dir, special[r.Intn(len(special))])
-			if !s.files[f] {
-				return f
-			}
-		}
 		for i := 0; ; i++ {
 			f := fmt.Sprintf("%v/file%v\x00", dir, i)
 			if !s.files[f] {
