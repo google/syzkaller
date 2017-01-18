@@ -116,6 +116,14 @@ func (a *Arg) Size() uintptr {
 				size += fld.Size()
 			}
 		}
+		align := typ.Align()
+		if size%align != 0 {
+			if typ.Varlen {
+				size += align - size%align
+			} else {
+				panic(fmt.Sprintf("struct %+v with type %+v has static size %v, which isn't aligned to %v", a, typ, size, align))
+			}
+		}
 		return size
 	case *sys.UnionType:
 		if !typ.Varlen {
