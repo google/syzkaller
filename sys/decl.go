@@ -222,6 +222,7 @@ type BufferType struct {
 	Text       TextKind // for BufferText
 	SubKind    string
 	Values     []string // possible values for BufferString kind
+	Length     uintptr  // max string length for BufferString kind
 }
 
 func (t *BufferType) Size() uintptr {
@@ -292,6 +293,7 @@ func (t *PtrType) Align() uintptr {
 type StructType struct {
 	TypeCommon
 	Fields []Type
+	Varlen bool
 	padded bool
 	packed bool
 	align  uintptr
@@ -303,7 +305,9 @@ func (t *StructType) Size() uintptr {
 	}
 	var size uintptr
 	for _, f := range t.Fields {
-		size += f.Size()
+		if f.BitfieldLength() == 0 || f.BitfieldLast() {
+			size += f.Size()
+		}
 	}
 	return size
 }
@@ -311,6 +315,9 @@ func (t *StructType) Size() uintptr {
 func (t *StructType) Align() uintptr {
 	if t.align != 0 {
 		return t.align // overrided by user attribute
+	}
+	if t.packed {
+		return 1
 	}
 	var align uintptr
 	for _, f := range t.Fields {
@@ -324,11 +331,11 @@ func (t *StructType) Align() uintptr {
 type UnionType struct {
 	TypeCommon
 	Options []Type
-	varlen  bool
+	Varlen  bool
 }
 
 func (t *UnionType) Size() uintptr {
-	if t.varlen {
+	if t.Varlen {
 		panic("union size is not statically known")
 	}
 	size := t.Options[0].Size()

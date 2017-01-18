@@ -97,6 +97,13 @@ func (c *Call) validate(ctx *validCtx) error {
 			if arg.Val >= uintptr(typ1.ValuesPerProc) {
 				return fmt.Errorf("syscall %v: per proc arg '%v' has bad value '%v'", c.Meta.Name, typ.Name(), arg.Val)
 			}
+		case *sys.BufferType:
+			switch typ1.Kind {
+			case sys.BufferString:
+				if typ1.Length != 0 && len(arg.Data) != int(typ1.Length) {
+					return fmt.Errorf("syscall %v: string arg '%v' has size %v, which should be %v", c.Meta.Name, len(arg.Data), typ1.Length)
+				}
+			}
 		}
 		switch arg.Kind {
 		case ArgConst:
