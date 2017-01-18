@@ -3,6 +3,7 @@
 
 include <drm/drm.h>
 include <drm/drm_mode.h>
+include <linux/agp_backend.h>
 
 resource fd_dri[fd]
 resource drmctx[int32]
@@ -325,7 +326,7 @@ drm_mode_modeinfo {
 	name	array[int8, DRM_DISPLAY_MODE_LEN]
 }
 
-drm_agp_mem_type = AGP_USER_MEMORY, AGP_USER_CACHED_MEMORY
+drm_agp_mem_type = 0, 1, 2, AGP_USER_MEMORY, AGP_USER_CACHED_MEMORY
 drm_map_type = _DRM_FRAME_BUFFER, _DRM_REGISTERS, _DRM_SHM, _DRM_AGP, _DRM_SCATTER_GATHER, _DRM_CONSISTENT
 drm_map_flags = _DRM_RESTRICTED, _DRM_READ_ONLY, _DRM_LOCKED, _DRM_KERNEL, _DRM_WRITE_COMBINING, _DRM_CONTAINS_LOCK, _DRM_REMOVABLE, _DRM_DRIVER
 drm_ctx_flags = _DRM_CONTEXT_PRESERVED, _DRM_CONTEXT_2DONLY
