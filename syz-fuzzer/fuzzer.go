@@ -436,7 +436,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 
 	if !inp.minimized {
 		inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
-			allCover := execute1(pid, env, p1, &statExecMinimize)
+			allCover := execute(pid, env, p1, false, &statExecMinimize)
 			coverMu.RLock()
 			defer coverMu.RUnlock()
 
@@ -471,7 +471,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	corpusHashes[hash(data)] = struct{}{}
 }
 
-func execute(pid int, env *ipc.Env, p *prog.Prog, minimized bool, stat *uint64) {
+func execute(pid int, env *ipc.Env, p *prog.Prog, minimized bool, stat *uint64) []cover.Cover {
 	allCover := execute1(pid, env, p, stat)
 	coverMu.RLock()
 	defer coverMu.RUnlock()
@@ -500,6 +500,7 @@ func execute(pid int, env *ipc.Env, p *prog.Prog, minimized bool, stat *uint64) 
 			triageMu.Unlock()
 		}
 	}
+	return allCover
 }
 
 var logMu sync.Mutex
