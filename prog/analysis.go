@@ -175,7 +175,9 @@ func assignSizes(args []*Arg) {
 	argsMap := make(map[string]*Arg)
 	var parentSize uintptr
 	for _, arg := range args {
-		parentSize += arg.Size()
+		if arg.Type.BitfieldLength() == 0 || arg.Type.BitfieldLast() {
+			parentSize += arg.Size()
+		}
 		if sys.IsPad(arg.Type) {
 			continue
 		}
