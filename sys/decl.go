@@ -222,6 +222,7 @@ type BufferType struct {
 	Text       TextKind // for BufferText
 	SubKind    string
 	Values     []string // possible values for BufferString kind
+	Length     uintptr  // max string length for BufferString kind
 }
 
 func (t *BufferType) Size() uintptr {
