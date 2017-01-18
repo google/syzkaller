@@ -661,8 +661,17 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			data := r.randString(s, a.Values, a.Dir())
 			return dataArg(a, data), nil
 		case sys.BufferFilename:
-			filename := r.filename(s)
-			return dataArg(a, []byte(filename)), nil
+			var data []byte
+			if a.Dir() == sys.DirOut {
+				r.choose(
+					10, func() { data = make([]byte, r.Intn(100)) },
+					10, func() { data = make([]byte, r.Intn(108)) }, // UNIX_PATH_MAX
+					10, func() { data = make([]byte, r.Intn(4096)) }, // PATH_MAX
+				)
+			} else {
+				data = []byte(r.filename(s))
+			}
+			return dataArg(a, data), nil
 		case sys.BufferText:
 			return dataArg(a, r.generateText(a.Text)), nil
 		default:
