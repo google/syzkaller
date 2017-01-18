@@ -58,7 +58,7 @@ type Manager struct {
 	enabledSyscalls string
 	enabledCalls    []string // as determined by fuzzer
 
-	candidates     [][]byte // untriaged inputs
+	candidates     []RpcCandidate // untriaged inputs
 	disabledHashes []string
 	corpus         []RpcInput
 	corpusCover    []cover.Cover
@@ -158,7 +158,10 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 			mgr.disabledHashes = append(mgr.disabledHashes, sig.String())
 			continue
 		}
-		mgr.candidates = append(mgr.candidates, rec.Val)
+		mgr.candidates = append(mgr.candidates, RpcCandidate{
+			Prog:      rec.Val,
+			Minimized: true, // don't reminimize programs from corpus, it takes lots of time on start
+		})
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
 	Logf(0, "loaded %v programs (%v total)", len(mgr.candidates), len(mgr.corpusDB.Records))
@@ -743,7 +746,10 @@ func (mgr *Manager) hubSync() {
 			dropped++
 			continue
 		}
-		mgr.candidates = append(mgr.candidates, inp)
+		mgr.candidates = append(mgr.candidates, RpcCandidate{
+			Prog:      inp,
+			Minimized: false, // don't trust programs from hub
+		})
 	}
 	mgr.stats["hub add"] += uint64(len(a.Add))
 	mgr.stats["hub del"] += uint64(len(a.Del))

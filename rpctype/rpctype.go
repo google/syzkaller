@@ -12,6 +12,11 @@ type RpcInput struct {
 	Cover     []uint32
 }
 
+type RpcCandidate struct {
+	Prog      []byte
+	Minimized bool
+}
+
 type ConnectArgs struct {
 	Name string
 }
@@ -39,7 +44,7 @@ type PollArgs struct {
 }
 
 type PollRes struct {
-	Candidates [][]byte
+	Candidates []RpcCandidate
 	NewInputs  []RpcInput
 }
 
