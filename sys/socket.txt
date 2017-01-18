@@ -225,18 +225,13 @@ sockaddr_un [
 
 sockaddr_un_file {
 	family	flags[unix_socket_family, int16]
-# TODO: this must be an embeded file name (currently filename implies indirection).
-	path	array[int8]
-}
+	path	filename
+} [packed]
 
 sockaddr_un_abstract {
 	family	flags[unix_socket_family, int16]
 	ind	const[0, int8]
-# To ensure isolation.
-# This does not work: prog tries to use output sockaddr_un to create pid's.
-# But since it is in a union, the call does not always creates the resource. 
-#	pid	pid
-	id	int32
+	id	proc[int32, 20000, 4]
 }
 
 msghdr_un {
