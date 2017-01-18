@@ -395,11 +395,16 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	}
 	corpusMu.RUnlock()
 
+	notexecuted := false
 	minCover := inp.cover
 	for i := 0; i < 3; i++ {
 		allCover := execute1(pid, env, inp.p, &statExecTriage)
 		if len(allCover[inp.call]) == 0 {
 			// The call was not executed. Happens sometimes, reason unknown.
+			if notexecuted {
+				return // if it happened twice, give up
+			}
+			notexecuted = true
 			continue
 		}
 		coverMu.RLock()
@@ -412,10 +417,14 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 			coverMu.Lock()
 			flakes = cover.Union(flakes, diff)
 			coverMu.Unlock()
+			newCover = cover.Intersection(newCover, minCover)
+			if len(newCover) == 0 {
+				break
+			}
 		}
 	}
-	stableNewCover := cover.Intersection(newCover, minCover)
-	if len(stableNewCover) == 0 {
+	newCover = cover.Intersection(newCover, minCover)
+	if len(newCover) == 0 {
 		return
 	}
 	inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
@@ -427,7 +436,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 			return false // The call was not executed.
 		}
 		cov := allCover[call1]
-		if len(cover.Intersection(stableNewCover, cov)) != len(stableNewCover) {
+		if len(cover.Intersection(newCover, cov)) != len(newCover) {
 			return false
 		}
 		minCover = cover.Intersection(minCover, cov)
