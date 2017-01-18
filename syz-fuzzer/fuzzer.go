@@ -222,9 +222,6 @@ func main() {
 					p := prog.Generate(rnd, programLength, ct)
 					Logf(1, "#%v: generated: %s", i, p)
 					execute(pid, env, p, false, &statExecGen)
-					p.Mutate(rnd, programLength, ct, nil)
-					Logf(1, "#%v: mutated: %s", i, p)
-					execute(pid, env, p, false, &statExecFuzz)
 				} else {
 					// Mutate an existing prog.
 					p0 := corpus[rnd.Intn(len(corpus))]
