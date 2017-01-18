@@ -7,8 +7,8 @@ include <uapi/linux/fuse.h>
 
 resource fd_fuse[fd]
 
-syz_fuse_mount(target filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd_fuse
-syz_fuseblk_mount(target filename, blkdev filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd_fuse
+syz_fuse_mount(target ptr[in, filename], mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd_fuse
+syz_fuseblk_mount(target ptr[in, filename], blkdev ptr[in, filename], mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd_fuse
 ioctl$FUSE_DEV_IOC_CLONE(fd fd_fuse, cmd const[FUSE_DEV_IOC_CLONE], arg ptr[in, fd_fuse])
 write$fuse_init(fd fd_fuse, arg ptr[in, fuse_init_out], len len[arg])
 write$fuse_interrupt(fd fd_fuse, arg ptr[in, fuse_interrupt_out], len len[arg])

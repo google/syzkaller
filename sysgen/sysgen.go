@@ -592,14 +592,10 @@ func generateArg(
 		}
 		fmt.Fprintf(out, "&IntType{%v, Kind: IntSignalno}", intCommon(4, false, 0))
 	case "filename":
-		canBeArg = true
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
-		ptrCommonHdr := common()
-		dir = "in"
-		opt = false
-		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferFilename}}", ptrCommonHdr, common())
+		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferFilename}", common())
 	case "text":
 		if want := 1; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))

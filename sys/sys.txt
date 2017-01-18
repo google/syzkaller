@@ -72,11 +72,11 @@ include <linux/ioprio.h>
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
 resource fd_dir[fd]
 
-open(file filename, flags flags[open_flags], mode flags[open_mode]) fd
+open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 # Just so that we have something that creates fd_dir resources.
-open$dir(file filename, flags flags[open_flags], mode flags[open_mode]) fd_dir
-openat(fd fd_dir, file filename, flags flags[open_flags], mode flags[open_mode]) fd
-creat(file filename, mode flags[open_mode]) fd
+open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
+openat(fd fd_dir, file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+creat(file ptr[in, filename], mode flags[open_mode]) fd
 close(fd fd)
 read(fd fd, buf buffer[out], count len[buf]) len[buf]
 pread64(fd fd, buf buffer[out], count len[buf], pos fileoff)
@@ -100,8 +100,8 @@ splice(fdin fd, offin fileoff, fdout fd, offout fileoff, len int64, f flags[spli
 vmsplice(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], f flags[splice_flags])
 sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count int64)
 
-stat(file filename, statbuf ptr[out, stat])
-lstat(file filename, statbuf ptr[out, stat])
+stat(file ptr[in, filename], statbuf ptr[out, stat])
+lstat(file ptr[in, filename], statbuf ptr[out, stat])
 fstat(fd fd, statbuf ptr[out, stat])
 
 poll(fds ptr[in, array[pollfd]], nfds len[fds], timeout int32)
@@ -268,21 +268,21 @@ shmat(shmid ipc_shm, addr vma, flags flags[shmat_flags])
 shmctl(shmid ipc_shm, cmd flags[shmctl_cmd], buf ptr[inout, shmid_ds])
 shmdt(addr vma)
 
-mknod(file filename, mode flags[mknod_mode], dev int32)
-mknodat(dirfd fd_dir, file filename, mode flags[mknod_mode], dev int32)
-chmod(file filename, mode flags[open_mode])
+mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
+mknodat(dirfd fd_dir, file ptr[in, filename], mode flags[mknod_mode], dev int32)
+chmod(file ptr[in, filename], mode flags[open_mode])
 fchmod(fd fd, mode flags[open_mode])
-fchmodat(dirfd fd_dir, file filename, mode flags[open_mode])
-chown(file filename, uid uid, gid gid)
-lchown(file filename, uid uid, gid gid)
+fchmodat(dirfd fd_dir, file ptr[in, filename], mode flags[open_mode])
+chown(file ptr[in, filename], uid uid, gid gid)
+lchown(file ptr[in, filename], uid uid, gid gid)
 fchown(fd fd, uid uid, gid gid)
-fchownat(dirfd fd_dir, file filename, uid uid, gid gid, flags flags[fchownat_flags])
+fchownat(dirfd fd_dir, file ptr[in, filename], uid uid, gid gid, flags flags[fchownat_flags])
 fallocate(fd fd, mode flags[fallocate_mode], off intptr, len intptr)
-faccessat(dirfd fd_dir, pathname filename, mode flags[open_mode], flags flags[faccessat_flags])
-utime(filename filename, times ptr[in, utimbuf])
-utimes(filename filename, times ptr[in, itimerval])
-futimesat(dir fd_dir, pathname filename, times ptr[in, itimerval])
-utimensat(dir fd_dir, pathname filename, times ptr[in, itimerval], flags flags[utimensat_flags])
+faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[open_mode], flags flags[faccessat_flags])
+utime(filename ptr[in, filename], times ptr[in, utimbuf])
+utimes(filename ptr[in, filename], times ptr[in, itimerval])
+futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
+utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
 resource pid[int32]: 0, 0xffffffffffffffff
 resource uid[int32]: 0, 0xffffffffffffffff
@@ -321,26 +321,26 @@ resource fd_fanotify[fd]
 resource inotifydesc[int32]
 inotify_init() fd_inotify
 inotify_init1(flags flags[inotify_flags]) fd_inotify
-inotify_add_watch(fd fd_inotify, file filename, mask flags[inotify_mask]) inotifydesc
+inotify_add_watch(fd fd_inotify, file ptr[in, filename], mask flags[inotify_mask]) inotifydesc
 inotify_rm_watch(fd fd_inotify, wd inotifydesc)
 fanotify_init(flags flags[fanotify_flags], events flags[fanotify_events]) fd_fanotify
-fanotify_mark(fd fd_fanotify, flags flags[fanotify_mark], mask flags[fanotify_mask], fddir fd_dir, path filename)
+fanotify_mark(fd fd_fanotify, flags flags[fanotify_mark], mask flags[fanotify_mask], fddir fd_dir, path ptr[in, filename])
 
-link(old filename, new filename)
-linkat(oldfd fd_dir, old filename, newfd fd_dir, new filename, flags flags[linkat_flags])
-symlinkat(old filename, newfd fd_dir, new filename)
-symlink(old filename, new filename)
-unlink(path filename)
-unlinkat(fd fd_dir, path filename, flags flags[unlinkat_flags])
-readlink(path filename, buf buffer[out], siz len[buf])
-readlinkat(fd fd_dir, path filename, buf buffer[out], siz len[buf])
-rename(old filename, new filename)
-renameat(oldfd fd_dir, old filename, newfd fd_dir, new filename)
-renameat2(oldfd fd_dir, old filename, newfd fd_dir, new filename, flags flags[renameat2_flags])
-mkdir(path filename, mode flags[open_mode])
-mkdirat(fd fd_dir, path filename, mode flags[open_mode])
-rmdir(path filename)
-truncate(file filename, len intptr)
+link(old ptr[in, filename], new ptr[in, filename])
+linkat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename], flags flags[linkat_flags])
+symlinkat(old ptr[in, filename], newfd fd_dir, new ptr[in, filename])
+symlink(old ptr[in, filename], new ptr[in, filename])
+unlink(path ptr[in, filename])
+unlinkat(fd fd_dir, path ptr[in, filename], flags flags[unlinkat_flags])
+readlink(path ptr[in, filename], buf buffer[out], siz len[buf])
+readlinkat(fd fd_dir, path ptr[in, filename], buf buffer[out], siz len[buf])
+rename(old ptr[in, filename], new ptr[in, filename])
+renameat(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename])
+renameat2(oldfd fd_dir, old ptr[in, filename], newfd fd_dir, new ptr[in, filename], flags flags[renameat2_flags])
+mkdir(path ptr[in, filename], mode flags[open_mode])
+mkdirat(fd fd_dir, path ptr[in, filename], mode flags[open_mode])
+rmdir(path ptr[in, filename])
+truncate(file ptr[in, filename], len intptr)
 ftruncate(fd fd, len intptr)
 flock(fd fd, op flags[flock_op])
 fsync(fd fd)
@@ -351,23 +351,23 @@ sync_file_range(fd fd, off intptr, nbytes intptr, flags flags[sync_file_flags])
 lookup_dcookie(cookie int64, buf buffer[out], len len[buf])
 getdents(fd fd_dir, ent buffer[out], count len[ent])
 getdents64(fd fd_dir, ent buffer[out], count len[ent])
-name_to_handle_at(fd fd_dir, file filename, handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])
+name_to_handle_at(fd fd_dir, file ptr[in, filename], handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])
 open_by_handle_at(mountdirfd fd, handle ptr[in, file_handle], flags flags[open_flags])
 
-mount(src filename, dst filename, type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in])
-mount$fs(src ptr[in, string[filesystem]], dst filename, type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in])
-umount2(path filename, flags flags[umount_flags])
-pivot_root(new_root filename, put_old filename)
+mount(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in])
+mount$fs(src ptr[in, string[filesystem]], dst ptr[in, filename], type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in])
+umount2(path ptr[in, filename], flags flags[umount_flags])
+pivot_root(new_root ptr[in, filename], put_old ptr[in, filename])
 
 filesystem = "sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs", "securityfs", "sockfs", "pipefs", "anon_inodefs", "devpts", "ext3", "ext2", "ext4", "hugetlbfs", "vfat", "ecryptfs", "fuseblk", "fuse", "rpc_pipefs", "nfs", "nfs4", "nfsd", "binfmt_misc", "autofs", "xfs", "jfs", "msdos", "ntfs", "minix", "hfs", "hfsplus", "qnx4", "ufs", "btrfs", "configfs", "ncpfs", "qnx6", "exofs", "befs", "vxfs", "gfs2", "gfs2meta", "fusectl", "bfs", "nsfs", "efs", "cifs", "efivarfs", "affs", "tracefs", "bdev", "ocfs2", "ocfs2_dlmfs", "hpfs", "proc", "afs", "reiserfs", "jffs2", "romfs", "aio", "sysv", "v7", "udf", "ceph", "pstore", "adfs", "9p", "hostfs", "squashfs", "cramfs", "iso9660", "coda", "nilfs2", "logfs", "overlay", "f2fs", "omfs", "ubifs", "openpromfs", "bpf", "cgroup", "cgroup2"
 
 sysfs$1(option const[1], fsname ptr[in, string])
 sysfs$2(option const[2], fsindex intptr, fsname buffer[out])
 sysfs$3(option const[3])
-statfs(path filename, buf buffer[out])
+statfs(path ptr[in, filename], buf buffer[out])
 fstatfs(fd fd, buf buffer[out])
 
-uselib(lib filename)
+uselib(lib ptr[in, filename])
 init_module(mod ptr[in, string], len len[mod], args ptr[in, string])
 finit_module(fd fd, args ptr[in, string], flags flags[finit_module_flags])
 delete_module(name ptr[in, string], flags flags[delete_module_flags])
@@ -377,7 +377,7 @@ syslog(cmd flags[syslog_cmd], buf buffer[out, opt], len len[buf])
 uname(buf buffer[out])
 sysinfo(info buffer[out])
 ustat(dev intptr, buf ptr[out, ustat])
-acct(filename filename[opt])
+acct(filename ptr[in, filename, opt])
 
 getrusage(who flags[rusage_who], usage ptr[out, rusage])
 getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
@@ -392,17 +392,17 @@ ioprio_set$pid(which flags[ioprio_which_pid], who pid, prio intptr)
 ioprio_set$uid(which flags[ioprio_which_uid], who uid, prio intptr)
 setns(fd fd, type flags[ns_type])
 
-setxattr(path filename, name ptr[in, string], val ptr[in, string], size len[val], flags flags[setxattr_flags])
-lsetxattr(path filename,  name ptr[in, string], val ptr[in, string], size len[val], flags flags[setxattr_flags])
+setxattr(path ptr[in, filename], name ptr[in, string], val ptr[in, string], size len[val], flags flags[setxattr_flags])
+lsetxattr(path ptr[in, filename],  name ptr[in, string], val ptr[in, string], size len[val], flags flags[setxattr_flags])
 fsetxattr(fd fd,  name ptr[in, string], val ptr[in, string], size len[val], flags flags[setxattr_flags])
-getxattr(path filename,  name ptr[in, string], val buffer[out], size len[val])
-lgetxattr(path filename,  name ptr[in, string], val buffer[out], size len[val])
+getxattr(path ptr[in, filename],  name ptr[in, string], val buffer[out], size len[val])
+lgetxattr(path ptr[in, filename],  name ptr[in, string], val buffer[out], size len[val])
 fgetxattr(fd fd,  name ptr[in, string], val buffer[out], size len[val])
-listxattr(path filename, list buffer[out], size len[list])
-llistxattr(path filename, list buffer[out], size len[list])
+listxattr(path ptr[in, filename], list buffer[out], size len[list])
+llistxattr(path ptr[in, filename], list buffer[out], size len[list])
 flistxattr(fd fd, list buffer[out], size len[list])
-removexattr(path filename,  name ptr[in, string])
-lremovexattr(path filename,  name ptr[in, string])
+removexattr(path ptr[in, filename],  name ptr[in, string])
+lremovexattr(path ptr[in, filename],  name ptr[in, string])
 fremovexattr(fd fd,  name ptr[in, string])
 
 resource timerid[int32]
