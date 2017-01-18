@@ -236,6 +236,30 @@ func initPseudo() {
 			return gen.text
 		},
 	})
+	Insns = append(Insns, &Insn{
+		Name:   "PSEUDO_HYPERCALL",
+		Mode:   1<<ModeLong64 | 1<<ModeProt32 | 1<<ModeProt16,
+		Priv:   true,
+		Pseudo: true,
+		generator: func(cfg *Config, r *rand.Rand) []byte {
+			gen := makeGen(cfg, r)
+			switch r.Intn(2) {
+			case 0:
+				gen.mov32(regEAX, 1) // KVM_HC_VAPIC_POLL_IRQ
+			case 1:
+				gen.mov32(regEAX, 5)                              // KVM_HC_KICK_CPU
+				gen.mov32(regECX, uint32(generateInt(cfg, r, 4))) // APIC ID
+			default:
+				panic("bad")
+			}
+			if r.Intn(2) == 0 {
+				gen.byte(0x0f, 0x01, 0xd9) // vmmcall
+			} else {
+				gen.byte(0x0f, 0x01, 0xc1) // vmcall
+			}
+			return gen.text
+		},
+	})
 }
 
 const (
