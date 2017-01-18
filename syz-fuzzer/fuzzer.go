@@ -54,9 +54,15 @@ func hash(data []byte) Sig {
 }
 
 type Input struct {
-	p     *prog.Prog
-	call  int
-	cover cover.Cover
+	p         *prog.Prog
+	call      int
+	cover     cover.Cover
+	minimized bool
+}
+
+type Candidate struct {
+	p         *prog.Prog
+	minimized bool
 }
 
 var (
@@ -73,7 +79,7 @@ var (
 
 	triageMu   sync.RWMutex
 	triage     []Input
-	candidates []*prog.Prog
+	candidates []Candidate
 
 	gate *ipc.Gate
 
@@ -197,10 +203,10 @@ func main() {
 						continue
 					} else if len(candidates) != 0 {
 						last := len(candidates) - 1
-						p := candidates[last]
+						candidate := candidates[last]
 						candidates = candidates[:last]
 						triageMu.Unlock()
-						execute(pid, env, p, &statExecCandidate)
+						execute(pid, env, candidate.p, candidate.minimized, &statExecCandidate)
 						continue
 					} else {
 						triageMu.Unlock()
@@ -215,10 +221,10 @@ func main() {
 					corpusMu.RUnlock()
 					p := prog.Generate(rnd, programLength, ct)
 					Logf(1, "#%v: generated: %s", i, p)
-					execute(pid, env, p, &statExecGen)
+					execute(pid, env, p, false, &statExecGen)
 					p.Mutate(rnd, programLength, ct, nil)
 					Logf(1, "#%v: mutated: %s", i, p)
-					execute(pid, env, p, &statExecFuzz)
+					execute(pid, env, p, false, &statExecFuzz)
 				} else {
 					// Mutate an existing prog.
 					p0 := corpus[rnd.Intn(len(corpus))]
@@ -226,7 +232,7 @@ func main() {
 					p.Mutate(rs, programLength, ct, corpus)
 					corpusMu.RUnlock()
 					Logf(1, "#%v: mutated: %s <- %s", i, p, p0)
-					execute(pid, env, p, &statExecFuzz)
+					execute(pid, env, p, false, &statExecFuzz)
 				}
 			}
 		}()
@@ -276,8 +282,8 @@ func main() {
 			for _, inp := range r.NewInputs {
 				addInput(inp)
 			}
-			for _, data := range r.Candidates {
-				p, err := prog.Deserialize(data)
+			for _, candidate := range r.Candidates {
+				p, err := prog.Deserialize(candidate.Prog)
 				if err != nil {
 					panic(err)
 				}
@@ -287,7 +293,7 @@ func main() {
 					corpusMu.Unlock()
 				} else {
 					triageMu.Lock()
-					candidates = append(candidates, p)
+					candidates = append(candidates, Candidate{p, candidate.Minimized})
 					triageMu.Unlock()
 				}
 			}
@@ -427,21 +433,24 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	if len(newCover) == 0 {
 		return
 	}
-	inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
-		allCover := execute1(pid, env, p1, &statExecMinimize)
-		coverMu.RLock()
-		defer coverMu.RUnlock()
 
-		if len(allCover[call1]) == 0 {
-			return false // The call was not executed.
-		}
-		cov := allCover[call1]
-		if len(cover.Intersection(newCover, cov)) != len(newCover) {
-			return false
-		}
-		minCover = cover.Intersection(minCover, cov)
-		return true
-	}, false)
+	if !inp.minimized {
+		inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
+			allCover := execute1(pid, env, p1, &statExecMinimize)
+			coverMu.RLock()
+			defer coverMu.RUnlock()
+
+			if len(allCover[call1]) == 0 {
+				return false // The call was not executed.
+			}
+			cov := allCover[call1]
+			if len(cover.Intersection(newCover, cov)) != len(newCover) {
+				return false
+			}
+			minCover = cover.Intersection(minCover, cov)
+			return true
+		}, false)
+	}
 	inp.cover = minCover
 
 	atomic.AddUint64(&statNewInput, 1)
@@ -462,7 +471,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	corpusHashes[hash(data)] = struct{}{}
 }
 
-func execute(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) {
+func execute(pid int, env *ipc.Env, p *prog.Prog, minimized bool, stat *uint64) {
 	allCover := execute1(pid, env, p, stat)
 	coverMu.RLock()
 	defer coverMu.RUnlock()
@@ -480,7 +489,12 @@ func execute(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) {
 			coverMu.Unlock()
 			coverMu.RLock()
 
-			inp := Input{p.Clone(), i, cover.Copy(cov)}
+			inp := Input{
+				p:         p.Clone(),
+				call:      i,
+				cover:     cover.Copy(cov),
+				minimized: minimized,
+			}
 			triageMu.Lock()
 			triage = append(triage, inp)
 			triageMu.Unlock()
