@@ -275,7 +275,7 @@ func generateStructEntry(str Struct, key structKey, out io.Writer) {
 	}
 	varlen := ""
 	if str.Varlen {
-		varlen = ", varlen: true"
+		varlen = ", Varlen: true"
 	}
 	align := ""
 	if str.Align != 0 {
@@ -433,8 +433,8 @@ func generateArg(
 		for i, s := range vals {
 			vals[i] = s + "\x00"
 		}
+		var size uint64
 		if len(a) >= 2 {
-			var size uint64
 			if v, ok := consts[a[1]]; ok {
 				size = v
 			} else {
@@ -454,7 +454,7 @@ func generateArg(
 				vals[i] = s
 			}
 		}
-		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferString, SubKind: %q, Values: %#v}", common(), subkind, vals)
+		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferString, SubKind: %q, Values: %#v, Length: %v}", common(), subkind, vals, size)
 	case "salg_type":
 		if want := 0; len(a) != want {
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))

@@ -38,47 +38,45 @@ func (p *Prog) SerializeForExec(pid int) []byte {
 	w := &execContext{args: make(map[*Arg]*argInfo)}
 	for _, c := range p.Calls {
 		// Calculate arg offsets within structs.
-		foreachArg(c, func(arg, base *Arg, _ *[]*Arg) {
-			if base == nil || arg.Kind == ArgGroup || arg.Kind == ArgUnion {
-				return
-			}
-			if w.args[base] == nil {
-				w.args[base] = &argInfo{}
-			}
-			w.args[arg] = &argInfo{Offset: w.args[base].CurSize}
-			if arg.Type.BitfieldLength() == 0 || arg.Type.BitfieldLast() {
-				w.args[base].CurSize += arg.Size()
-			}
-		})
 		// Generate copyin instructions that fill in data into pointer arguments.
 		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
 			if arg.Kind == ArgPointer && arg.Res != nil {
-				var rec func(*Arg)
-				rec = func(arg1 *Arg) {
+				var rec func(*Arg, uintptr) uintptr
+				rec = func(arg1 *Arg, offset uintptr) uintptr {
+					w.args[arg1] = &argInfo{Offset: offset}
 					if arg1.Kind == ArgGroup {
+						var totalSize uintptr
 						for _, arg2 := range arg1.Inner {
-							rec(arg2)
+							size := rec(arg2, offset)
+							if arg2.Type.BitfieldLength() == 0 || arg2.Type.BitfieldLast() {
+								offset += size
+								totalSize += size
+							}
 						}
-						return
+						if totalSize > arg1.Size() {
+							panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %+v", totalSize, arg1.Size(), arg1))
+						}
+						return arg1.Size()
 					}
 					if arg1.Kind == ArgUnion {
-						rec(arg1.Option)
-						return
+						size := rec(arg1.Option, offset)
+						offset += size
+						if size > arg1.Size() {
+							panic(fmt.Sprintf("bad union arg size %v, should be <= %v for %+v", size, arg1.Size(), arg1))
+						}
+						return arg1.Size()
 					}
-					if sys.IsPad(arg1.Type) {
-						return
-					}
-					if arg1.Kind == ArgData && len(arg1.Data) == 0 {
-						return
-					}
-					if arg1.Type.Dir() != sys.DirOut {
+					if !sys.IsPad(arg1.Type) &&
+						!(arg1.Kind == ArgData && len(arg1.Data) == 0) &&
+						arg1.Type.Dir() != sys.DirOut {
 						w.write(ExecInstrCopyin)
-						w.write(physicalAddr(arg) + w.args[arg1].Offset)
+						w.write(physicalAddr(arg) + offset)
 						w.writeArg(arg1, pid)
 						instrSeq++
 					}
+					return arg1.Size()
 				}
-				rec(arg.Res)
+				rec(arg.Res, 0)
 			}
 		})
 		// Generate the call itself.
@@ -136,9 +134,8 @@ type execContext struct {
 }
 
 type argInfo struct {
-	Offset  uintptr // from base pointer
-	CurSize uintptr
-	Idx     uintptr // instruction index
+	Offset uintptr // from base pointer
+	Idx    uintptr // instruction index
 }
 
 func (w *execContext) write(v uintptr) {

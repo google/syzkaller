@@ -112,11 +112,25 @@ func (a *Arg) Size() uintptr {
 	case *sys.StructType:
 		var size uintptr
 		for _, fld := range a.Inner {
-			size += fld.Size()
+			if fld.Type.BitfieldLength() == 0 || fld.Type.BitfieldLast() {
+				size += fld.Size()
+			}
+		}
+		align := typ.Align()
+		if size%align != 0 {
+			if typ.Varlen {
+				size += align - size%align
+			} else {
+				panic(fmt.Sprintf("struct %+v with type %+v has static size %v, which isn't aligned to %v", a, typ, size, align))
+			}
 		}
 		return size
 	case *sys.UnionType:
-		return a.Option.Size()
+		if !typ.Varlen {
+			return typ.Size()
+		} else {
+			return a.Option.Size()
+		}
 	case *sys.ArrayType:
 		var size uintptr
 		for _, in := range a.Inner {

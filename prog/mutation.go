@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"unsafe"
 
@@ -88,7 +89,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 									panic(fmt.Sprintf("bad arg kind for BufferType: %v", arg.Kind))
 								}
 								minLen := int(0)
-								maxLen := ^int(0)
+								maxLen := math.MaxInt32
 								if a.Kind == sys.BufferBlobRange {
 									minLen = int(a.RangeBegin)
 									maxLen = int(a.RangeEnd)
@@ -96,7 +97,13 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 								arg.Data = mutateData(r, data, minLen, maxLen)
 							case sys.BufferString:
 								if r.bin() {
-									arg.Data = mutateData(r, append([]byte{}, arg.Data...), int(0), ^int(0))
+									minLen := int(0)
+									maxLen := math.MaxInt32
+									if a.Length != 0 {
+										minLen = int(a.Length)
+										maxLen = int(a.Length)
+									}
+									arg.Data = mutateData(r, append([]byte{}, arg.Data...), minLen, maxLen)
 								} else {
 									arg.Data = r.randString(s, a.Values, a.Dir())
 								}

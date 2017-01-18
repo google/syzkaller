@@ -91,11 +91,72 @@ func TestSerializeForExec(t *testing.T) {
 			},
 		},
 		{
+			"syz_test$align2(&(0x7f0000000000)={0x42, {[0x43]}, {[0x44]}})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 1, 0x42, 0, 0,
+				instrCopyin, dataOffset + 1, argConst, 2, 0x43, 0, 0,
+				instrCopyin, dataOffset + 4, argConst, 2, 0x44, 0, 0,
+				callID("syz_test$align2"), 1, argConst, ptrSize, dataOffset, 0, 0,
+				instrEOF,
+			},
+		},
+		{
+			"syz_test$align3(&(0x7f0000000000)={0x42, {0x43}, {0x44}})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 1, 0x42, 0, 0,
+				instrCopyin, dataOffset + 1, argConst, 1, 0x43, 0, 0,
+				instrCopyin, dataOffset + 4, argConst, 1, 0x44, 0, 0,
+				callID("syz_test$align3"), 1, argConst, ptrSize, dataOffset, 0, 0,
+				instrEOF,
+			},
+		},
+		{
+			"syz_test$align4(&(0x7f0000000000)={{0x42, 0x43}, 0x44})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 1, 0x42, 0, 0,
+				instrCopyin, dataOffset + 1, argConst, 2, 0x43, 0, 0,
+				instrCopyin, dataOffset + 4, argConst, 1, 0x44, 0, 0,
+				callID("syz_test$align4"), 1, argConst, ptrSize, dataOffset, 0, 0,
+				instrEOF,
+			},
+		},
+		{
+			"syz_test$align5(&(0x7f0000000000)={{0x42, []}, {0x43, [0x44, 0x45, 0x46]}, 0x47})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 8, 0x42, 0, 0,
+				instrCopyin, dataOffset + 8, argConst, 8, 0x43, 0, 0,
+				instrCopyin, dataOffset + 16, argConst, 2, 0x44, 0, 0,
+				instrCopyin, dataOffset + 18, argConst, 2, 0x45, 0, 0,
+				instrCopyin, dataOffset + 20, argConst, 2, 0x46, 0, 0,
+				instrCopyin, dataOffset + 24, argConst, 1, 0x47, 0, 0,
+				callID("syz_test$align5"), 1, argConst, ptrSize, dataOffset, 0, 0,
+				instrEOF,
+			},
+		},
+		{
 			"syz_test$union0(&(0x7f0000000000)={0x1, @f2=0x2})",
 			[]uint64{
 				instrCopyin, dataOffset + 0, argConst, 8, 1, 0, 0,
 				instrCopyin, dataOffset + 8, argConst, 1, 2, 0, 0,
 				callID("syz_test$union0"), 1, argConst, ptrSize, dataOffset, 0, 0,
+				instrEOF,
+			},
+		},
+		{
+			"syz_test$union1(&(0x7f0000000000)={@f1=0x42, 0x43})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 4, 0x42, 0, 0,
+				instrCopyin, dataOffset + 8, argConst, 1, 0x43, 0, 0,
+				callID("syz_test$union1"), 1, argConst, ptrSize, dataOffset, 0, 0,
+				instrEOF,
+			},
+		},
+		{
+			"syz_test$union2(&(0x7f0000000000)={@f1=0x42, 0x43})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 4, 0x42, 0, 0,
+				instrCopyin, dataOffset + 4, argConst, 1, 0x43, 0, 0,
+				callID("syz_test$union2"), 1, argConst, ptrSize, dataOffset, 0, 0,
 				instrEOF,
 			},
 		},
@@ -152,7 +213,7 @@ func TestSerializeForExec(t *testing.T) {
 			},
 		},
 		{
-			"syz_test$bf(&(0x7f0000000000)={0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42})",
+			"syz_test$bf0(&(0x7f0000000000)={0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42, 0x42})",
 			[]uint64{
 				instrCopyin, dataOffset + 0, argConst, 2, 0x42, 0, 10,
 				instrCopyin, dataOffset + 8, argConst, 8, 0x42, 0, 0,
@@ -162,7 +223,18 @@ func TestSerializeForExec(t *testing.T) {
 				instrCopyin, dataOffset + 24, argConst, 2, 0x42, 0, 11,
 				instrCopyin, dataOffset + 26, argConst, 2, 0x4200, 0, 11,
 				instrCopyin, dataOffset + 28, argConst, 1, 0x42, 0, 0,
-				callID("syz_test$bf"), 1, argConst, ptrSize, dataOffset, 0, 0,
+				callID("syz_test$bf0"), 1, argConst, ptrSize, dataOffset, 0, 0,
+				instrEOF,
+			},
+		},
+		{
+			"syz_test$bf1(&(0x7f0000000000)={{0x42, 0x42, 0x42}, 0x42})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 4, 0x42, 0, 10,
+				instrCopyin, dataOffset + 0, argConst, 4, 0x42, 10, 10,
+				instrCopyin, dataOffset + 0, argConst, 4, 0x42, 20, 10,
+				instrCopyin, dataOffset + 4, argConst, 1, 0x42, 0, 0,
+				callID("syz_test$bf1"), 1, argConst, ptrSize, dataOffset, 0, 0,
 				instrEOF,
 			},
 		},

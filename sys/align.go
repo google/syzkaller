@@ -22,6 +22,7 @@ func initAlign() {
 					rec(f)
 				}
 				markBitfields(t1)
+				markVarlen(t1)
 				addAlignment(t1)
 			}
 		case *UnionType:
@@ -76,13 +77,38 @@ func markBitfields(t *StructType) {
 	}
 }
 
+func markVarlen(t *StructType) {
+	for i, f := range t.Fields {
+		if at, ok := f.(*StructType); ok && at.Varlen {
+			t.Varlen = true
+		}
+		if at, ok := f.(*UnionType); ok && at.Varlen {
+			t.Varlen = true
+		}
+		if at, ok := f.(*ArrayType); ok && (at.Kind == ArrayRandLen || (at.Kind == ArrayRangeLen && at.RangeBegin != at.RangeEnd)) {
+			t.Varlen = true
+		}
+		if at, ok := f.(*BufferType); ok && (at.Kind == BufferBlobRand || (at.Kind == BufferBlobRange && at.RangeBegin != at.RangeEnd)) {
+			t.Varlen = true
+		}
+		if !t.packed && t.Varlen && i != len(t.Fields)-1 {
+			panic(fmt.Sprintf("variable length field %+v in the middle of a struct %+v", f, t))
+		}
+	}
+}
+
 func addAlignment(t *StructType) {
 	if t.packed {
+		// If a struct is packed, statically sized and has explicitly set alignment, add a padding.
+		if !t.Varlen && t.align != 0 && t.Size()%t.align != 0 {
+			pad := t.align - t.Size()%t.align
+			t.Fields = append(t.Fields, makePad(pad))
+		}
 		return
 	}
 	var fields []Type
-	var off, align uintptr
-	varLen := false
+	var off uintptr
+	align := t.align
 	for i, f := range t.Fields {
 		a := f.Align()
 		if align < a {
@@ -97,21 +123,12 @@ func addAlignment(t *StructType) {
 			}
 		}
 		fields = append(fields, f)
-		if at, ok := f.(*ArrayType); ok && (at.Kind == ArrayRandLen || (at.Kind == ArrayRangeLen && at.RangeBegin != at.RangeEnd)) {
-			varLen = true
-		}
-		if at, ok := f.(*BufferType); ok && (at.Kind == BufferBlobRand || (at.Kind == BufferBlobRange && at.RangeBegin != at.RangeEnd)) {
-			varLen = true
-		}
-		if varLen && i != len(t.Fields)-1 {
-			panic("embed array in middle of a struct")
-		}
-		if (f.BitfieldLength() == 0 || f.BitfieldLast()) && !varLen {
+		if (f.BitfieldLength() == 0 || f.BitfieldLast()) && !t.Varlen {
 			// Increase offset if the current field is not a bitfield or it's the last bitfield in a set.
 			off += f.Size()
 		}
 	}
-	if align != 0 && off%align != 0 && !varLen {
+	if align != 0 && off%align != 0 && !t.Varlen {
 		pad := align - off%align
 		off += pad
 		fields = append(fields, makePad(pad))
