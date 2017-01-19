@@ -15,6 +15,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -49,10 +50,12 @@ type Manager struct {
 	corpusDB     *db.DB
 	startTime    time.Time
 	firstConnect time.Time
+	fuzzingTime  time.Duration
 	stats        map[string]uint64
 	vmStop       chan bool
 	vmChecked    bool
 	fresh        bool
+	numFuzzing   uint32
 
 	mu              sync.Mutex
 	enabledSyscalls string
@@ -192,9 +195,13 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 	}()
 
 	go func() {
-		for {
+		for lastTime := time.Now(); ; {
 			time.Sleep(10 * time.Second)
+			now := time.Now()
+			diff := now.Sub(lastTime)
+			lastTime = now
 			mgr.mu.Lock()
+			mgr.fuzzingTime += diff * time.Duration(atomic.LoadUint32(&mgr.numFuzzing))
 			executed := mgr.stats["exec total"]
 			crashes := mgr.stats["crashes"]
 			mgr.mu.Unlock()
@@ -381,6 +388,8 @@ func (mgr *Manager) runInstance(vmCfg *vm.Config, first bool) (*Crash, error) {
 
 	// Run the fuzzer binary.
 	start := time.Now()
+	atomic.AddUint32(&mgr.numFuzzing, 1)
+	defer atomic.AddUint32(&mgr.numFuzzing, ^uint32(0))
 	cmd := fmt.Sprintf("%v -executor=%v -name=%v -manager=%v -output=%v -procs=%v -leak=%v -cover=%v -sandbox=%v -debug=%v -v=%d",
 		fuzzerBin, executorBin, vmCfg.Name, fwdAddr, mgr.cfg.Output, procs, leak, mgr.cfg.Cover, mgr.cfg.Sandbox, *flagDebug, fuzzerV)
 	outc, errc, err := inst.Run(time.Hour, mgr.vmStop, cmd)

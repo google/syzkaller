@@ -55,6 +55,7 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 		Name: mgr.cfg.Name,
 	}
 	data.Stats = append(data.Stats, UIStat{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)})
+	data.Stats = append(data.Stats, UIStat{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)})
 	data.Stats = append(data.Stats, UIStat{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))})
 	data.Stats = append(data.Stats, UIStat{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))})
 
