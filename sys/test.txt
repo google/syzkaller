@@ -23,6 +23,7 @@ syz_test$align2(a0 ptr[in, syz_align2])
 syz_test$align3(a0 ptr[in, syz_align3])
 syz_test$align4(a0 ptr[in, syz_align4])
 syz_test$align5(a0 ptr[in, syz_align5])
+syz_test$align6(a0 ptr[in, syz_align6])
 
 syz_align0 {
 	f0	int16
@@ -88,6 +89,11 @@ syz_align5 {
 	f1	syz_align5_internal
 	f2	int8
 } [packed]
+
+syz_align6 {
+	f0	int8
+	f1	array[int32]
+}
 
 # Unions
 

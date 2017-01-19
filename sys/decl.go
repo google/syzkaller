@@ -32,6 +32,7 @@ type Type interface {
 	Dir() Dir
 	Optional() bool
 	Default() uintptr
+	Varlen() bool
 	Size() uintptr
 	Align() uintptr
 	BitfieldOffset() uintptr
@@ -62,6 +63,10 @@ func (t *TypeCommon) Optional() bool {
 
 func (t *TypeCommon) Default() uintptr {
 	return 0
+}
+
+func (t *TypeCommon) Varlen() bool {
+	return false
 }
 
 func (t *TypeCommon) BitfieldOffset() uintptr {
@@ -225,26 +230,35 @@ type BufferType struct {
 	Length     uintptr  // max string length for BufferString kind
 }
 
+func (t *BufferType) Varlen() bool {
+	switch t.Kind {
+	case BufferBlobRand:
+		return true
+	case BufferBlobRange:
+		return t.RangeBegin != t.RangeEnd
+	case BufferString:
+		return t.Length == 0
+	case BufferFilename:
+		return true
+	case BufferText:
+		return true
+	default:
+		panic("bad buffer kind")
+	}
+}
+
 func (t *BufferType) Size() uintptr {
+	if t.Varlen() {
+		panic(fmt.Sprintf("buffer size is not statically known: %v", t.Name()))
+	}
 	switch t.Kind {
 	case BufferString:
-		size := 0
-		for _, s := range t.Values {
-			if size != 0 && size != len(s) {
-				size = 0
-				break
-			}
-			size = len(s)
-		}
-		if size != 0 {
-			return uintptr(size)
-		}
+		return t.Length
 	case BufferBlobRange:
-		if t.RangeBegin == t.RangeEnd {
-			return t.RangeBegin
-		}
+		return t.RangeBegin
+	default:
+		panic("bad buffer kind")
 	}
-	panic(fmt.Sprintf("buffer size is not statically known: %v", t.Name()))
 }
 
 func (t *BufferType) Align() uintptr {
@@ -266,11 +280,27 @@ type ArrayType struct {
 	RangeEnd   uintptr
 }
 
-func (t *ArrayType) Size() uintptr {
-	if t.RangeBegin == t.RangeEnd {
-		return t.RangeBegin * t.Type.Size()
+func (t *ArrayType) Varlen() bool {
+	switch t.Kind {
+	case ArrayRandLen:
+		return true
+	case ArrayRangeLen:
+		return t.RangeBegin != t.RangeEnd
+	default:
+		panic("bad array kind")
 	}
-	return 0 // for trailing embed arrays
+}
+
+func (t *ArrayType) Size() uintptr {
+	if t.Varlen() {
+		panic(fmt.Sprintf("array size is not statically known: %v", t.Name()))
+	}
+	switch t.Kind {
+	case ArrayRangeLen:
+		return t.RangeBegin * t.Type.Size()
+	default:
+		panic("bad array type")
+	}
 }
 
 func (t *ArrayType) Align() uintptr {
@@ -292,14 +322,34 @@ func (t *PtrType) Align() uintptr {
 
 type StructType struct {
 	TypeCommon
-	Fields []Type
-	Varlen bool
-	padded bool
-	packed bool
-	align  uintptr
+	Fields         []Type
+	padded         bool
+	packed         bool
+	align          uintptr
+	varlen         bool
+	varlenAssigned bool
+}
+
+func (t *StructType) Varlen() bool {
+	if t.varlenAssigned {
+		return t.varlen
+	}
+	for _, f := range t.Fields {
+		if f.Varlen() {
+			t.varlen = true
+			t.varlenAssigned = true
+			return t.varlen
+		}
+	}
+	t.varlen = false
+	t.varlenAssigned = true
+	return t.varlen
 }
 
 func (t *StructType) Size() uintptr {
+	if t.Varlen() {
+		panic(fmt.Sprintf("struct size is not statically known: %v", t.Name()))
+	}
 	if !t.padded {
 		panic("struct is not padded yet")
 	}
@@ -331,12 +381,16 @@ func (t *StructType) Align() uintptr {
 type UnionType struct {
 	TypeCommon
 	Options []Type
-	Varlen  bool
+	varlen  bool // provided by user
+}
+
+func (t *UnionType) Varlen() bool {
+	return t.varlen
 }
 
 func (t *UnionType) Size() uintptr {
-	if t.Varlen {
-		panic("union size is not statically known")
+	if t.Varlen() {
+		panic(fmt.Sprintf("union size is not statically known: %v", t.Name()))
 	}
 	size := t.Options[0].Size()
 	for _, opt := range t.Options {
