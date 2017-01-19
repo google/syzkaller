@@ -85,7 +85,7 @@ ff_effect_u [
 	period	ff_periodic_effect
 	cond	array[ff_condition_effect, 2]
 	rumble	ff_rumble_effect
-]
+] [varlen]
 
 ff_trigger {
 	button	int16

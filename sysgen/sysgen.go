@@ -275,7 +275,7 @@ func generateStructEntry(str Struct, key structKey, out io.Writer) {
 	}
 	varlen := ""
 	if str.Varlen {
-		varlen = ", Varlen: true"
+		varlen = ", varlen: true"
 	}
 	align := ""
 	if str.Align != 0 {
@@ -452,6 +452,14 @@ func generateArg(
 					s += "\x00"
 				}
 				vals[i] = s
+			}
+		} else {
+			for _, s := range vals {
+				if size != 0 && size != uint64(len(s)) {
+					size = 0
+					break
+				}
+				size = uint64(len(s))
 			}
 		}
 		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferString, SubKind: %q, Values: %#v, Length: %v}", common(), subkind, vals, size)
