@@ -462,6 +462,9 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 const maxReproAttempts = 3
 
 func (mgr *Manager) needRepro(desc string) bool {
+	if !mgr.cfg.Reproduce {
+		return false
+	}
 	sig := hash.Hash([]byte(desc))
 	dir := filepath.Join(mgr.crashdir, sig.String())
 	if _, err := os.Stat(filepath.Join(dir, "repro.prog")); err == nil {

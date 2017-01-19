@@ -53,8 +53,9 @@ type Config struct {
 
 	Machine_Type string // GCE machine type (e.g. "n1-highcpu-2")
 
-	Cover bool // use kcov coverage (default: true)
-	Leak  bool // do memory leak checking
+	Cover     bool // use kcov coverage (default: true)
+	Leak      bool // do memory leak checking
+	Reproduce bool // reproduce, localize and minimize crashers (on by default)
 
 	Enable_Syscalls  []string
 	Disable_Syscalls []string
@@ -87,6 +88,7 @@ func parse(data []byte) (*Config, map[int]bool, error) {
 	}
 	cfg := new(Config)
 	cfg.Cover = true
+	cfg.Reproduce = true
 	cfg.Sandbox = "setuid"
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return nil, nil, fmt.Errorf("failed to parse config file: %v", err)
@@ -317,6 +319,7 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Devices",
 		"Procs",
 		"Cover",
+		"Reproduce",
 		"Sandbox",
 		"Leak",
 		"Enable_Syscalls",
