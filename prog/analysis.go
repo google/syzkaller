@@ -166,7 +166,11 @@ func generateSize(arg *Arg, lenType *sys.LenType) *Arg {
 			return constArg(lenType, uintptr(len(arg.Inner)))
 		}
 	default:
-		return constArg(lenType, arg.Size())
+		if lenType.ByteSize != 0 {
+			return constArg(lenType, arg.Size()/lenType.ByteSize)
+		} else {
+			return constArg(lenType, arg.Size())
+		}
 	}
 }
 
@@ -192,6 +196,9 @@ func assignSizes(args []*Arg) {
 		if typ, ok := arg.Type.(*sys.LenType); ok {
 			if typ.Buf == "parent" {
 				arg.Val = parentSize
+				if typ.ByteSize != 0 {
+					arg.Val /= typ.ByteSize
+				}
 				continue
 			}
 
