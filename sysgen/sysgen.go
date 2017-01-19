@@ -731,7 +731,7 @@ func decodeIntType(typ string) (uint64, bool, uint64) {
 		sz, _ = strconv.ParseInt(typ[3:], 10, 64)
 	}
 
-	if bitfieldLen >= uint64(sz) {
+	if bitfieldLen > uint64(sz) {
 		failf("bitfield of size %v is too large for base type of size %v", bitfieldLen, sz/8)
 	}
 
