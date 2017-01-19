@@ -134,6 +134,15 @@ func TestSerializeForExec(t *testing.T) {
 			},
 		},
 		{
+			"syz_test$align6(&(0x7f0000000000)={0x42, [0x43]})",
+			[]uint64{
+				instrCopyin, dataOffset + 0, argConst, 1, 0x42, 0, 0,
+				instrCopyin, dataOffset + 4, argConst, 4, 0x43, 0, 0,
+				callID("syz_test$align6"), 1, argConst, ptrSize, dataOffset, 0, 0,
+				instrEOF,
+			},
+		},
+		{
 			"syz_test$union0(&(0x7f0000000000)={0x1, @f2=0x2})",
 			[]uint64{
 				instrCopyin, dataOffset + 0, argConst, 8, 1, 0, 0,
