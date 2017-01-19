@@ -21,8 +21,8 @@ func initAlign() {
 				for _, f := range t1.Fields {
 					rec(f)
 				}
+				t1.Varlen() // dummy call to initialize t1.varlen
 				markBitfields(t1)
-				markVarlen(t1)
 				addAlignment(t1)
 			}
 		case *UnionType:
@@ -77,30 +77,10 @@ func markBitfields(t *StructType) {
 	}
 }
 
-func markVarlen(t *StructType) {
-	for i, f := range t.Fields {
-		if at, ok := f.(*StructType); ok && at.Varlen {
-			t.Varlen = true
-		}
-		if at, ok := f.(*UnionType); ok && at.Varlen {
-			t.Varlen = true
-		}
-		if at, ok := f.(*ArrayType); ok && (at.Kind == ArrayRandLen || (at.Kind == ArrayRangeLen && at.RangeBegin != at.RangeEnd)) {
-			t.Varlen = true
-		}
-		if at, ok := f.(*BufferType); ok && (at.Kind == BufferBlobRand || (at.Kind == BufferBlobRange && at.RangeBegin != at.RangeEnd)) {
-			t.Varlen = true
-		}
-		if !t.packed && t.Varlen && i != len(t.Fields)-1 {
-			panic(fmt.Sprintf("variable length field %+v in the middle of a struct %+v", f, t))
-		}
-	}
-}
-
 func addAlignment(t *StructType) {
 	if t.packed {
 		// If a struct is packed, statically sized and has explicitly set alignment, add a padding.
-		if !t.Varlen && t.align != 0 && t.Size()%t.align != 0 {
+		if !t.Varlen() && t.align != 0 && t.Size()%t.align != 0 {
 			pad := t.align - t.Size()%t.align
 			t.Fields = append(t.Fields, makePad(pad))
 		}
@@ -122,13 +102,17 @@ func addAlignment(t *StructType) {
 				fields = append(fields, makePad(pad))
 			}
 		}
+		if f.Varlen() && i != len(t.Fields)-1 {
+			panic(fmt.Sprintf("variable length field %+v in the middle of a struct %+v", f, t))
+		}
 		fields = append(fields, f)
-		if (f.BitfieldLength() == 0 || f.BitfieldLast()) && !t.Varlen {
-			// Increase offset if the current field is not a bitfield or it's the last bitfield in a set.
+		if (f.BitfieldLength() == 0 || f.BitfieldLast()) && (i != len(t.Fields)-1 || !f.Varlen()) {
+			// Increase offset if the current field is not a bitfield or it's the last bitfield in a set,
+			// except when it's the last field in a struct and has variable length.
 			off += f.Size()
 		}
 	}
-	if align != 0 && off%align != 0 && !t.Varlen {
+	if align != 0 && off%align != 0 && !t.Varlen() {
 		pad := align - off%align
 		off += pad
 		fields = append(fields, makePad(pad))

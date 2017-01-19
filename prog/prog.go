@@ -118,7 +118,7 @@ func (a *Arg) Size() uintptr {
 		}
 		align := typ.Align()
 		if size%align != 0 {
-			if typ.Varlen {
+			if typ.Varlen() {
 				size += align - size%align
 			} else {
 				panic(fmt.Sprintf("struct %+v with type %+v has static size %v, which isn't aligned to %v", a, typ, size, align))
@@ -126,7 +126,7 @@ func (a *Arg) Size() uintptr {
 		}
 		return size
 	case *sys.UnionType:
-		if !typ.Varlen {
+		if !typ.Varlen() {
 			return typ.Size()
 		} else {
 			return a.Option.Size()

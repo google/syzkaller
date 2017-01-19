@@ -62,7 +62,7 @@ func (p *Prog) SerializeForExec(pid int) []byte {
 						size := rec(arg1.Option, offset)
 						offset += size
 						if size > arg1.Size() {
-							panic(fmt.Sprintf("bad union arg size %v, should be <= %v for %+v", size, arg1.Size(), arg1))
+							panic(fmt.Sprintf("bad union arg size %v, should be <= %v for arg %+v with type %+v", size, arg1.Size(), arg1, arg1.Type))
 						}
 						return arg1.Size()
 					}
