@@ -248,6 +248,7 @@ func main() {
 		}()
 	}
 
+	var execTotal uint64
 	var lastPoll time.Time
 	var lastPrint time.Time
 	ticker := time.NewTicker(3 * time.Second).C
@@ -260,7 +261,7 @@ func main() {
 		}
 		if *flagOutput != "stdout" && time.Since(lastPrint) > 10*time.Second {
 			// Keep-alive for manager.
-			Logf(0, "alive")
+			Logf(0, "alive, executed %v", execTotal)
 			lastPrint = time.Now()
 		}
 		if poll || time.Since(lastPoll) > 10*time.Second {
@@ -279,11 +280,21 @@ func main() {
 				a.Stats["exec total"] += atomic.SwapUint64(&env.StatExecs, 0)
 				a.Stats["executor restarts"] += atomic.SwapUint64(&env.StatRestarts, 0)
 			}
-			a.Stats["exec gen"] = atomic.SwapUint64(&statExecGen, 0)
-			a.Stats["exec fuzz"] = atomic.SwapUint64(&statExecFuzz, 0)
-			a.Stats["exec candidate"] = atomic.SwapUint64(&statExecCandidate, 0)
-			a.Stats["exec triage"] = atomic.SwapUint64(&statExecTriage, 0)
-			a.Stats["exec minimize"] = atomic.SwapUint64(&statExecMinimize, 0)
+			execGen := atomic.SwapUint64(&statExecGen, 0)
+			a.Stats["exec gen"] = execGen
+			execTotal += execGen
+			execFuzz := atomic.SwapUint64(&statExecFuzz, 0)
+			a.Stats["exec fuzz"] = execFuzz
+			execTotal += execFuzz
+			execCandidate := atomic.SwapUint64(&statExecCandidate, 0)
+			a.Stats["exec candidate"] = execCandidate
+			execTotal += execCandidate
+			execTriage := atomic.SwapUint64(&statExecTriage, 0)
+			a.Stats["exec triage"] = execTriage
+			execTotal += execTriage
+			execMinimize := atomic.SwapUint64(&statExecMinimize, 0)
+			a.Stats["exec minimize"] = execMinimize
+			execTotal += execMinimize
 			a.Stats["fuzzer new inputs"] = atomic.SwapUint64(&statNewInput, 0)
 			r := &PollRes{}
 			if err := manager.Call("Manager.Poll", a, r); err != nil {
