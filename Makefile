@@ -57,7 +57,7 @@ bin/syz-sysgen: sysgen/*.go sysparser/*.go
 
 format:
 	go fmt ./...
-	clang-format --style=file -i executor/*.cc executor/*.h
+	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
 
 presubmit:
 	$(MAKE) generate
