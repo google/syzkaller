@@ -351,12 +351,12 @@ retry:
 			for (;;) {
 				timespec ts = {};
 				ts.tv_sec = 0;
-				ts.tv_nsec = (100 - (now - start)) * 1000 * 1000;
+				ts.tv_nsec = (20 - (now - start)) * 1000 * 1000;
 				syscall(SYS_futex, &th->done, FUTEX_WAIT, 0, &ts);
 				if (__atomic_load_n(&th->done, __ATOMIC_RELAXED))
 					break;
 				now = current_time_ms();
-				if (now - start > 100)
+				if (now - start > 20)
 					break;
 			}
 			if (__atomic_load_n(&th->done, __ATOMIC_ACQUIRE))
