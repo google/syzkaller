@@ -180,9 +180,6 @@ func parse(data []byte) (*Config, map[int]bool, error) {
 		}
 		return path
 	}
-	if cfg.Image != "9p" {
-		cfg.Image = abs(cfg.Image)
-	}
 	cfg.Workdir = abs(cfg.Workdir)
 	cfg.Kernel = abs(cfg.Kernel)
 	cfg.Vmlinux = abs(cfg.Vmlinux)
