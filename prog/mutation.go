@@ -70,7 +70,18 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 							baseSize = base.Res.Size()
 						}
 						switch a := arg.Type.(type) {
-						case *sys.IntType, *sys.FlagsType, *sys.ResourceType, *sys.VmaType, *sys.ProcType:
+						case *sys.IntType, *sys.FlagsType:
+							if r.bin() {
+								arg1, calls1 := r.generateArg(s, arg.Type)
+								p.replaceArg(c, arg, arg1, calls1)
+							} else {
+								r.choose(
+									1, func() { arg.Val += uintptr(r.Intn(4)) + 1 },
+									1, func() { arg.Val -= uintptr(r.Intn(4)) + 1 },
+									1, func() { arg.Val ^= 1 << uintptr(r.Intn(64)) },
+								)
+							}
+						case *sys.ResourceType, *sys.VmaType, *sys.ProcType:
 							arg1, calls1 := r.generateArg(s, arg.Type)
 							p.replaceArg(c, arg, arg1, calls1)
 						case *sys.BufferType:
