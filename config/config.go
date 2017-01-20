@@ -170,6 +170,27 @@ func parse(data []byte) (*Config, map[int]bool, error) {
 		return nil, nil, fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
 	}
 
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get wd: %v", err)
+	}
+	abs := func(path string) string {
+		if path != "" && !filepath.IsAbs(path) {
+			path = filepath.Join(wd, path)
+		}
+		return path
+	}
+	if cfg.Image != "9p" {
+		cfg.Image = abs(cfg.Image)
+	}
+	cfg.Workdir = abs(cfg.Workdir)
+	cfg.Kernel = abs(cfg.Kernel)
+	cfg.Vmlinux = abs(cfg.Vmlinux)
+	cfg.Syzkaller = abs(cfg.Syzkaller)
+	cfg.Initrd = abs(cfg.Initrd)
+	cfg.Sshkey = abs(cfg.Sshkey)
+	cfg.Bin = abs(cfg.Bin)
+
 	syscalls, err := parseSyscalls(cfg)
 	if err != nil {
 		return nil, nil, err
