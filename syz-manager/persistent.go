@@ -19,6 +19,9 @@ import (
 // This code is left here to convert old corpuses to the new format.
 // It needs to be delete in Mar 2017.
 func convertPersistentToDB(persistentDir, dbFilename string) error {
+	if _, err := os.Stat(persistentDir); err != nil {
+		return nil
+	}
 	persistentCorpus := newPersistentSet(persistentDir, func(data []byte) bool {
 		if _, err := prog.Deserialize(data); err != nil {
 			Logf(0, "deleting broken program: %v\n%s", err, data)
