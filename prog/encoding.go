@@ -352,7 +352,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 const (
 	encodingAddrBase = 0x7f0000000000
 	encodingPageSize = 4 << 10
-	maxLineLen       = 64 << 10
+	maxLineLen       = 256 << 10
 )
 
 func serializeAddr(a *Arg, base bool) string {

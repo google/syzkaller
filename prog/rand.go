@@ -93,6 +93,13 @@ func (r *randGen) biasedRand(n, k int) int {
 	return int(bf)
 }
 
+func (r *randGen) randArrayLen() uintptr {
+	const maxLen = 10
+	// biasedRand produces: 10, 9, ..., 1, 0,
+	// we want: 1, 2, ..., 9, 10, 0
+	return uintptr(maxLen-r.biasedRand(maxLen+1, 10)+1) % (maxLen + 1)
+}
+
 func (r *randGen) randBufLen() (n uintptr) {
 	r.choose(
 		1, func() { n = 0 },
@@ -709,7 +716,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		count := uintptr(0)
 		switch a.Kind {
 		case sys.ArrayRandLen:
-			count = r.rand(6)
+			count = r.randArrayLen()
 		case sys.ArrayRangeLen:
 			count = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
 		}
