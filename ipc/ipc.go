@@ -5,7 +5,6 @@ package ipc
 
 import (
 	"bytes"
-	"encoding/binary"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -102,7 +101,7 @@ func MakeEnv(bin string, timeout time.Duration, flags uint64, pid int) (*Env, er
 	if timeout < 7*time.Second {
 		timeout = 7 * time.Second
 	}
-	inf, inmem, err := createMapping(2 << 20)
+	inf, inmem, err := createMapping(prog.ExecBufferSize)
 	if err != nil {
 		return nil, err
 	}
@@ -187,12 +186,10 @@ func (env *Env) Close() error {
 func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int, failed, hanged bool, err0 error) {
 	if p != nil {
 		// Copy-in serialized program.
-		progData := p.SerializeForExec(env.pid)
-		if len(progData) > len(env.In) {
-			err0 = fmt.Errorf("executor %v: program is too long: %v/%v", env.pid, len(progData), len(env.In))
+		if err := p.SerializeForExec(env.In, env.pid); err != nil {
+			err0 = fmt.Errorf("executor %v: failed to serialize: %v", env.pid, err)
 			return
 		}
-		copy(env.In, progData)
 	}
 	if env.flags&FlagCover != 0 {
 		// Zero out the first word (ncmd), so that we don't have garbage there
@@ -221,11 +218,24 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 	if env.flags&FlagCover == 0 || p == nil {
 		return
 	}
-	// Read out coverage information.
-	r := bytes.NewReader(env.Out)
+	cov, errnos, err0 = env.readOutCoverage(p)
+	return
+}
+
+func (env *Env) readOutCoverage(p *prog.Prog) (cov [][]uint32, errnos []int, err0 error) {
+	out := ((*[1 << 28]uint32)(unsafe.Pointer(&env.Out[0])))[:len(env.Out)/int(unsafe.Sizeof(uint32(0)))]
+	readOut := func(v *uint32) bool {
+		if len(out) == 0 {
+			return false
+		}
+		*v = out[0]
+		out = out[1:]
+		return true
+	}
+
 	var ncmd uint32
-	if err := binary.Read(r, binary.LittleEndian, &ncmd); err != nil {
-		err0 = fmt.Errorf("executor %v: failed to read output coverage: %v", env.pid, err)
+	if !readOut(&ncmd) {
+		err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 		return
 	}
 	cov = make([][]uint32, len(p.Calls))
@@ -245,21 +255,22 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 		return buf.String()
 	}
 	for i := uint32(0); i < ncmd; i++ {
-		var callIndex, callNum, errno, coverSize, pc uint32
-		if err := binary.Read(r, binary.LittleEndian, &callIndex); err != nil {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage: %v", env.pid, err)
+		var callIndex, callNum, errno, coverSize uint32
+		if !readOut(&callIndex) {
+			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 			return
 		}
-		if err := binary.Read(r, binary.LittleEndian, &callNum); err != nil {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage: %v", env.pid, err)
+		if !readOut(&callNum) {
+			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 			return
 		}
-		if err := binary.Read(r, binary.LittleEndian, &errno); err != nil {
-			err0 = fmt.Errorf("executor %v: failed to read output errno: %v", env.pid, err)
+		if !readOut(&errno) {
+			err0 = fmt.Errorf("executor %v: failed to read output errno", env.pid)
 			return
 		}
-		if err := binary.Read(r, binary.LittleEndian, &coverSize); err != nil {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage: %v", env.pid, err)
+		errnos[callIndex] = int(errno)
+		if !readOut(&coverSize) {
+			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 			return
 		}
 		if int(callIndex) > len(cov) {
@@ -278,16 +289,12 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 				env.pid, callIndex, num, callNum, ncmd, dumpCov())
 			return
 		}
-		cov1 := make([]uint32, coverSize)
-		for j := uint32(0); j < coverSize; j++ {
-			if err := binary.Read(r, binary.LittleEndian, &pc); err != nil {
-				err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, coversize=%v err=%v", env.pid, i, callIndex, coverSize, err)
-				return
-			}
-			cov1[j] = pc
+		if coverSize > uint32(len(out)) {
+			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, coversize=%v", env.pid, i, callIndex, coverSize)
+			return
 		}
-		cov[callIndex] = cov1
-		errnos[callIndex] = int(errno)
+		cov[callIndex] = out[:coverSize:coverSize]
+		out = out[coverSize:]
 	}
 	return
 }

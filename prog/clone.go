@@ -44,7 +44,9 @@ func (arg *Arg) clone(c *Call, newargs map[*Arg]*Arg) *Arg {
 	for _, arg2 := range arg.Inner {
 		arg1.Inner = append(arg1.Inner, arg2.clone(c, newargs))
 	}
-	arg1.Uses = nil // filled when we clone the referent
-	newargs[arg] = arg1
+	if len(arg1.Uses) != 0 {
+		arg1.Uses = nil // filled when we clone the referent
+		newargs[arg] = arg1
+	}
 	return arg1
 }

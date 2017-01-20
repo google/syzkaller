@@ -500,13 +500,13 @@ func execute(pid int, env *ipc.Env, p *prog.Prog, minimized bool, stat *uint64) 
 		if len(cov) == 0 {
 			continue
 		}
-		c := p.Calls[i].Meta
-		diff := cover.Difference(cov, maxCover[c.CallID])
-		diff = cover.Difference(diff, flakes)
-		if len(diff) != 0 {
+		callID := p.Calls[i].Meta.CallID
+		if cover.HasDifference(cov, maxCover[callID]) {
+			diff := cover.Difference(cov, maxCover[callID])
+
 			coverMu.RUnlock()
 			coverMu.Lock()
-			maxCover[c.CallID] = cover.Union(maxCover[c.CallID], diff)
+			maxCover[callID] = cover.Union(maxCover[callID], diff)
 			coverMu.Unlock()
 			coverMu.RLock()
 

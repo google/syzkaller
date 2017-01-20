@@ -14,9 +14,12 @@ import (
 
 func TestSerializeForExecRandom(t *testing.T) {
 	rs, iters := initTest(t)
+	buf := make([]byte, ExecBufferSize)
 	for i := 0; i < iters; i++ {
 		p := Generate(rs, 10, nil)
-		p.SerializeForExec(i % 16)
+		if err := p.SerializeForExec(buf, i%16); err != nil {
+			t.Fatalf("failed to serialize: %v", err)
+		}
 	}
 }
 
@@ -249,15 +252,22 @@ func TestSerializeForExec(t *testing.T) {
 		},
 	}
 
+	buf := make([]byte, ExecBufferSize)
 	for i, test := range tests {
 		p, err := Deserialize([]byte(test.prog))
 		if err != nil {
 			t.Fatalf("failed to deserialize prog %v: %v", i, err)
 		}
 		t.Run(fmt.Sprintf("%v:%v", i, p.String()), func(t *testing.T) {
-			data := p.SerializeForExec(i % 16)
+			if err := p.SerializeForExec(buf, i%16); err != nil {
+				t.Fatalf("failed to serialize: %v", err)
+			}
 			w := new(bytes.Buffer)
 			binary.Write(w, binary.LittleEndian, test.serialized)
+			data := buf
+			if len(data) > len(w.Bytes()) {
+				data = data[:len(w.Bytes())]
+			}
 			if !bytes.Equal(data, w.Bytes()) {
 				got := make([]uint64, len(data)/8)
 				binary.Read(bytes.NewReader(data), binary.LittleEndian, &got)

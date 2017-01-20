@@ -26,203 +26,203 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 		retry := false
 		for stop := false; !stop || retry; stop = r.oneOf(3) {
 			retry = false
-			r.choose(
-				20, func() {
-					// Insert a new call.
-					if len(p.Calls) >= ncalls {
+			switch {
+			case r.nOutOf(20, 31):
+				// Insert a new call.
+				if len(p.Calls) >= ncalls {
+					retry = true
+					continue
+				}
+				idx := r.biasedRand(len(p.Calls)+1, 5)
+				var c *Call
+				if idx < len(p.Calls) {
+					c = p.Calls[idx]
+				}
+				s := analyze(ct, p, c)
+				calls := r.generateCall(s, p)
+				p.insertBefore(c, calls)
+			case r.nOutOf(10, 11):
+				// Change args of a call.
+				if len(p.Calls) == 0 {
+					retry = true
+					continue
+				}
+				c := p.Calls[r.Intn(len(p.Calls))]
+				if len(c.Args) == 0 {
+					retry = true
+					continue
+				}
+				s := analyze(ct, p, c)
+				for stop := false; !stop; stop = r.oneOf(3) {
+					args, bases := mutationArgs(c)
+					if len(args) == 0 {
 						retry = true
-						return
+						continue
 					}
-					idx := r.biasedRand(len(p.Calls)+1, 5)
-					var c *Call
-					if idx < len(p.Calls) {
-						c = p.Calls[idx]
-					}
-					s := analyze(ct, p, c)
-					calls := r.generateCall(s, p)
-					p.insertBefore(c, calls)
-				},
-				10, func() {
-					// Change args of a call.
-					if len(p.Calls) == 0 {
-						retry = true
-						return
-					}
-					c := p.Calls[r.Intn(len(p.Calls))]
-					if len(c.Args) == 0 {
-						retry = true
-						return
-					}
-					s := analyze(ct, p, c)
-					for stop := false; !stop; stop = r.oneOf(3) {
-						args, bases := mutationArgs(c)
-						if len(args) == 0 {
-							retry = true
-							return
+					idx := r.Intn(len(args))
+					arg, base := args[idx], bases[idx]
+					var baseSize uintptr
+					if base != nil {
+						if base.Kind != ArgPointer || base.Res == nil {
+							panic("bad base arg")
 						}
-						idx := r.Intn(len(args))
-						arg, base := args[idx], bases[idx]
-						var baseSize uintptr
-						if base != nil {
-							if base.Kind != ArgPointer || base.Res == nil {
-								panic("bad base arg")
-							}
-							baseSize = base.Res.Size()
-						}
-						switch a := arg.Type.(type) {
-						case *sys.IntType, *sys.FlagsType:
-							if r.bin() {
-								arg1, calls1 := r.generateArg(s, arg.Type)
-								p.replaceArg(c, arg, arg1, calls1)
-							} else {
-								r.choose(
-									1, func() { arg.Val += uintptr(r.Intn(4)) + 1 },
-									1, func() { arg.Val -= uintptr(r.Intn(4)) + 1 },
-									1, func() { arg.Val ^= 1 << uintptr(r.Intn(64)) },
-								)
-							}
-						case *sys.ResourceType, *sys.VmaType, *sys.ProcType:
+						baseSize = base.Res.Size()
+					}
+					switch a := arg.Type.(type) {
+					case *sys.IntType, *sys.FlagsType:
+						if r.bin() {
 							arg1, calls1 := r.generateArg(s, arg.Type)
 							p.replaceArg(c, arg, arg1, calls1)
-						case *sys.BufferType:
-							switch a.Kind {
-							case sys.BufferBlobRand, sys.BufferBlobRange:
-								var data []byte
-								switch arg.Kind {
-								case ArgData:
-									data = append([]byte{}, arg.Data...)
-								case ArgConst:
-									// 0 is OK for optional args.
-									if arg.Val != 0 {
-										panic(fmt.Sprintf("BufferType has non-zero const value: %v", arg.Val))
-									}
-								default:
-									panic(fmt.Sprintf("bad arg kind for BufferType: %v", arg.Kind))
+						} else {
+							switch {
+							case r.nOutOf(1, 3):
+								arg.Val += uintptr(r.Intn(4)) + 1
+							case r.nOutOf(1, 2):
+								arg.Val -= uintptr(r.Intn(4)) + 1
+							default:
+								arg.Val ^= 1 << uintptr(r.Intn(64))
+							}
+						}
+					case *sys.ResourceType, *sys.VmaType, *sys.ProcType:
+						arg1, calls1 := r.generateArg(s, arg.Type)
+						p.replaceArg(c, arg, arg1, calls1)
+					case *sys.BufferType:
+						switch a.Kind {
+						case sys.BufferBlobRand, sys.BufferBlobRange:
+							var data []byte
+							switch arg.Kind {
+							case ArgData:
+								data = append([]byte{}, arg.Data...)
+							case ArgConst:
+								// 0 is OK for optional args.
+								if arg.Val != 0 {
+									panic(fmt.Sprintf("BufferType has non-zero const value: %v", arg.Val))
 								}
+							default:
+								panic(fmt.Sprintf("bad arg kind for BufferType: %v", arg.Kind))
+							}
+							minLen := int(0)
+							maxLen := math.MaxInt32
+							if a.Kind == sys.BufferBlobRange {
+								minLen = int(a.RangeBegin)
+								maxLen = int(a.RangeEnd)
+							}
+							arg.Data = mutateData(r, data, minLen, maxLen)
+						case sys.BufferString:
+							if r.bin() {
 								minLen := int(0)
 								maxLen := math.MaxInt32
-								if a.Kind == sys.BufferBlobRange {
-									minLen = int(a.RangeBegin)
-									maxLen = int(a.RangeEnd)
+								if a.Length != 0 {
+									minLen = int(a.Length)
+									maxLen = int(a.Length)
 								}
-								arg.Data = mutateData(r, data, minLen, maxLen)
-							case sys.BufferString:
-								if r.bin() {
-									minLen := int(0)
-									maxLen := math.MaxInt32
-									if a.Length != 0 {
-										minLen = int(a.Length)
-										maxLen = int(a.Length)
-									}
-									arg.Data = mutateData(r, append([]byte{}, arg.Data...), minLen, maxLen)
-								} else {
-									arg.Data = r.randString(s, a.Values, a.Dir())
-								}
-							case sys.BufferFilename:
-								arg.Data = []byte(r.filename(s))
-							case sys.BufferText:
-								arg.Data = r.mutateText(a.Text, arg.Data)
-							default:
-								panic("unknown buffer kind")
+								arg.Data = mutateData(r, append([]byte{}, arg.Data...), minLen, maxLen)
+							} else {
+								arg.Data = r.randString(s, a.Values, a.Dir())
 							}
-						case *sys.ArrayType:
-							count := uintptr(0)
-							switch a.Kind {
-							case sys.ArrayRandLen:
-								for count == uintptr(len(arg.Inner)) {
-									count = r.randArrayLen()
-								}
-							case sys.ArrayRangeLen:
-								if a.RangeBegin == a.RangeEnd {
-									panic("trying to mutate fixed length array")
-								}
-								for count == uintptr(len(arg.Inner)) {
-									count = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
-								}
-							}
-							if count > uintptr(len(arg.Inner)) {
-								var calls []*Call
-								for count > uintptr(len(arg.Inner)) {
-									arg1, calls1 := r.generateArg(s, a.Type)
-									arg.Inner = append(arg.Inner, arg1)
-									for _, c1 := range calls1 {
-										calls = append(calls, c1)
-										s.analyze(c1)
-									}
-								}
-								for _, c1 := range calls {
-									sanitizeCall(c1)
-								}
-								sanitizeCall(c)
-								p.insertBefore(c, calls)
-							} else if count < uintptr(len(arg.Inner)) {
-								for _, arg := range arg.Inner[count:] {
-									p.removeArg(c, arg)
-								}
-								arg.Inner = arg.Inner[:count]
-							}
-							// TODO: swap elements of the array
-						case *sys.PtrType:
-							// TODO: we don't know size for out args
-							size := uintptr(1)
-							if arg.Res != nil {
-								size = arg.Res.Size()
-							}
-							arg1, calls1 := r.addr(s, a, size, arg.Res)
-							p.replaceArg(c, arg, arg1, calls1)
-						case *sys.StructType:
-							ctor := isSpecialStruct(a)
-							if ctor == nil {
-								panic("bad arg returned by mutationArgs: StructType")
-							}
-							arg1, calls1 := ctor(r, s)
-							for i, f := range arg1.Inner {
-								p.replaceArg(c, arg.Inner[i], f, calls1)
-								calls1 = nil
-							}
-						case *sys.UnionType:
-							optType := a.Options[r.Intn(len(a.Options))]
-							for optType.Name() == arg.OptionType.Name() {
-								optType = a.Options[r.Intn(len(a.Options))]
-							}
-							p.removeArg(c, arg.Option)
-							opt, calls := r.generateArg(s, optType)
-							arg1 := unionArg(a, opt, optType)
-							p.replaceArg(c, arg, arg1, calls)
-						case *sys.LenType:
-							panic("bad arg returned by mutationArgs: LenType")
-						case *sys.ConstType:
-							panic("bad arg returned by mutationArgs: ConstType")
+						case sys.BufferFilename:
+							arg.Data = []byte(r.filename(s))
+						case sys.BufferText:
+							arg.Data = r.mutateText(a.Text, arg.Data)
 						default:
-							panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", *arg, arg.Type))
+							panic("unknown buffer kind")
 						}
-
-						// Update base pointer if size has increased.
-						if base != nil && baseSize < base.Res.Size() {
-							arg1, calls1 := r.addr(s, base.Type, base.Res.Size(), base.Res)
-							for _, c1 := range calls1 {
+					case *sys.ArrayType:
+						count := uintptr(0)
+						switch a.Kind {
+						case sys.ArrayRandLen:
+							for count == uintptr(len(arg.Inner)) {
+								count = r.randArrayLen()
+							}
+						case sys.ArrayRangeLen:
+							if a.RangeBegin == a.RangeEnd {
+								panic("trying to mutate fixed length array")
+							}
+							for count == uintptr(len(arg.Inner)) {
+								count = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
+							}
+						}
+						if count > uintptr(len(arg.Inner)) {
+							var calls []*Call
+							for count > uintptr(len(arg.Inner)) {
+								arg1, calls1 := r.generateArg(s, a.Type)
+								arg.Inner = append(arg.Inner, arg1)
+								for _, c1 := range calls1 {
+									calls = append(calls, c1)
+									s.analyze(c1)
+								}
+							}
+							for _, c1 := range calls {
 								sanitizeCall(c1)
 							}
-							p.insertBefore(c, calls1)
-							arg.AddrPage = arg1.AddrPage
-							arg.AddrOffset = arg1.AddrOffset
-							arg.AddrPagesNum = arg1.AddrPagesNum
+							sanitizeCall(c)
+							p.insertBefore(c, calls)
+						} else if count < uintptr(len(arg.Inner)) {
+							for _, arg := range arg.Inner[count:] {
+								p.removeArg(c, arg)
+							}
+							arg.Inner = arg.Inner[:count]
 						}
+						// TODO: swap elements of the array
+					case *sys.PtrType:
+						// TODO: we don't know size for out args
+						size := uintptr(1)
+						if arg.Res != nil {
+							size = arg.Res.Size()
+						}
+						arg1, calls1 := r.addr(s, a, size, arg.Res)
+						p.replaceArg(c, arg, arg1, calls1)
+					case *sys.StructType:
+						ctor := isSpecialStruct(a)
+						if ctor == nil {
+							panic("bad arg returned by mutationArgs: StructType")
+						}
+						arg1, calls1 := ctor(r, s)
+						for i, f := range arg1.Inner {
+							p.replaceArg(c, arg.Inner[i], f, calls1)
+							calls1 = nil
+						}
+					case *sys.UnionType:
+						optType := a.Options[r.Intn(len(a.Options))]
+						for optType.Name() == arg.OptionType.Name() {
+							optType = a.Options[r.Intn(len(a.Options))]
+						}
+						p.removeArg(c, arg.Option)
+						opt, calls := r.generateArg(s, optType)
+						arg1 := unionArg(a, opt, optType)
+						p.replaceArg(c, arg, arg1, calls)
+					case *sys.LenType:
+						panic("bad arg returned by mutationArgs: LenType")
+					case *sys.ConstType:
+						panic("bad arg returned by mutationArgs: ConstType")
+					default:
+						panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", *arg, arg.Type))
+					}
 
-						// Update all len fields.
-						assignSizesCall(c)
+					// Update base pointer if size has increased.
+					if base != nil && baseSize < base.Res.Size() {
+						arg1, calls1 := r.addr(s, base.Type, base.Res.Size(), base.Res)
+						for _, c1 := range calls1 {
+							sanitizeCall(c1)
+						}
+						p.insertBefore(c, calls1)
+						arg.AddrPage = arg1.AddrPage
+						arg.AddrOffset = arg1.AddrOffset
+						arg.AddrPagesNum = arg1.AddrPagesNum
 					}
-				},
-				1, func() {
-					// Remove a random call.
-					if len(p.Calls) == 0 {
-						retry = true
-						return
-					}
-					idx := r.Intn(len(p.Calls))
-					p.removeCall(idx)
-				},
-			)
+
+					// Update all len fields.
+					assignSizesCall(c)
+				}
+			default:
+				// Remove a random call.
+				if len(p.Calls) == 0 {
+					retry = true
+					continue
+				}
+				idx := r.Intn(len(p.Calls))
+				p.removeCall(idx)
+			}
 		}
 	}
 
@@ -522,159 +522,161 @@ func swap64(v uint64) uint64 {
 
 func mutateData(r *randGen, data []byte, minLen, maxLen int) []byte {
 	const maxInc = 35
-	for stop := false; !stop; stop = r.bin() {
-		r.choose(
-			100, func() {
-				// Append byte.
-				if len(data) >= maxLen {
-					return
-				}
-				data = append(data, byte(r.rand(256)))
-			},
-			100, func() {
-				// Remove byte.
-				if len(data) <= minLen {
-					return
-				}
-				if len(data) == 0 {
-					return
-				}
-				i := r.Intn(len(data))
-				copy(data[i:], data[i+1:])
-				data = data[:len(data)-1]
-			},
-			100, func() {
-				// Replace byte with random value.
-				if len(data) == 0 {
-					return
-				}
-				data[r.Intn(len(data))] = byte(r.rand(256))
-			},
-			100, func() {
-				// Flip bit in byte.
-				if len(data) == 0 {
-					return
-				}
-				byt := r.Intn(len(data))
-				bit := r.Intn(8)
-				data[byt] ^= 1 << uint(bit)
-			},
-			100, func() {
-				// Swap two bytes.
-				if len(data) < 2 {
-					return
-				}
-				i1 := r.Intn(len(data))
-				i2 := r.Intn(len(data))
-				data[i1], data[i2] = data[i2], data[i1]
-			},
-			100, func() {
-				// Add / subtract from a byte.
-				if len(data) == 0 {
-					return
-				}
-				i := r.Intn(len(data))
-				delta := byte(r.rand(2*maxInc+1) - maxInc)
-				if delta == 0 {
-					delta = 1
-				}
-				data[i] += delta
-			},
-			100, func() {
-				// Add / subtract from a uint16.
-				if len(data) < 2 {
-					return
-				}
-				i := r.Intn(len(data) - 1)
-				p := (*uint16)(unsafe.Pointer(&data[i]))
-				delta := uint16(r.rand(2*maxInc+1) - maxInc)
-				if delta == 0 {
-					delta = 1
-				}
-				if r.bin() {
-					*p += delta
-				} else {
-					*p = swap16(swap16(*p) + delta)
-				}
-			},
-			100, func() {
-				// Add / subtract from a uint32.
-				if len(data) < 4 {
-					return
-				}
-				i := r.Intn(len(data) - 3)
-				p := (*uint32)(unsafe.Pointer(&data[i]))
-				delta := uint32(r.rand(2*maxInc+1) - maxInc)
-				if delta == 0 {
-					delta = 1
-				}
-				if r.bin() {
-					*p += delta
-				} else {
-					*p = swap32(swap32(*p) + delta)
-				}
-			},
-			100, func() {
-				// Add / subtract from a uint64.
-				if len(data) < 8 {
-					return
-				}
-				i := r.Intn(len(data) - 7)
-				p := (*uint64)(unsafe.Pointer(&data[i]))
-				delta := uint64(r.rand(2*maxInc+1) - maxInc)
-				if delta == 0 {
-					delta = 1
-				}
-				if r.bin() {
-					*p += delta
-				} else {
-					*p = swap64(swap64(*p) + delta)
-				}
-			},
-			100, func() {
-				// Set byte to an interesting value.
-				if len(data) == 0 {
-					return
-				}
-				data[r.Intn(len(data))] = byte(r.randInt())
-			},
-			100, func() {
-				// Set uint16 to an interesting value.
-				if len(data) < 2 {
-					return
-				}
-				i := r.Intn(len(data) - 1)
-				value := uint16(r.randInt())
-				if r.bin() {
-					value = swap16(value)
-				}
-				*(*uint16)(unsafe.Pointer(&data[i])) = value
-			},
-			100, func() {
-				// Set uint32 to an interesting value.
-				if len(data) < 4 {
-					return
-				}
-				i := r.Intn(len(data) - 3)
-				value := uint32(r.randInt())
-				if r.bin() {
-					value = swap32(value)
-				}
-				*(*uint32)(unsafe.Pointer(&data[i])) = value
-			},
-			100, func() {
-				// Set uint64 to an interesting value.
-				if len(data) < 8 {
-					return
-				}
-				i := r.Intn(len(data) - 7)
-				value := uint64(r.randInt())
-				if r.bin() {
-					value = swap64(value)
-				}
-				*(*uint64)(unsafe.Pointer(&data[i])) = value
-			},
-		)
+	retry := false
+loop:
+	for stop := false; !stop || retry; stop = r.oneOf(3) {
+		retry = false
+		switch r.Intn(13) {
+		case 0:
+			// Append byte.
+			if len(data) >= maxLen {
+				retry = true
+				continue loop
+			}
+			data = append(data, byte(r.rand(256)))
+		case 1:
+			// Remove byte.
+			if len(data) == 0 || len(data) <= minLen {
+				retry = true
+				continue loop
+			}
+			i := r.Intn(len(data))
+			copy(data[i:], data[i+1:])
+			data = data[:len(data)-1]
+		case 2:
+			// Replace byte with random value.
+			if len(data) == 0 {
+				retry = true
+				continue loop
+			}
+			data[r.Intn(len(data))] = byte(r.rand(256))
+		case 3:
+			// Flip bit in byte.
+			if len(data) == 0 {
+				retry = true
+				continue loop
+			}
+			byt := r.Intn(len(data))
+			bit := r.Intn(8)
+			data[byt] ^= 1 << uint(bit)
+		case 4:
+			// Swap two bytes.
+			if len(data) < 2 {
+				retry = true
+				continue loop
+			}
+			i1 := r.Intn(len(data))
+			i2 := r.Intn(len(data))
+			data[i1], data[i2] = data[i2], data[i1]
+		case 5:
+			// Add / subtract from a byte.
+			if len(data) == 0 {
+				retry = true
+				continue loop
+			}
+			i := r.Intn(len(data))
+			delta := byte(r.rand(2*maxInc+1) - maxInc)
+			if delta == 0 {
+				delta = 1
+			}
+			data[i] += delta
+		case 6:
+			// Add / subtract from a uint16.
+			if len(data) < 2 {
+				retry = true
+				continue loop
+			}
+			i := r.Intn(len(data) - 1)
+			p := (*uint16)(unsafe.Pointer(&data[i]))
+			delta := uint16(r.rand(2*maxInc+1) - maxInc)
+			if delta == 0 {
+				delta = 1
+			}
+			if r.bin() {
+				*p += delta
+			} else {
+				*p = swap16(swap16(*p) + delta)
+			}
+		case 7:
+			// Add / subtract from a uint32.
+			if len(data) < 4 {
+				retry = true
+				continue loop
+			}
+			i := r.Intn(len(data) - 3)
+			p := (*uint32)(unsafe.Pointer(&data[i]))
+			delta := uint32(r.rand(2*maxInc+1) - maxInc)
+			if delta == 0 {
+				delta = 1
+			}
+			if r.bin() {
+				*p += delta
+			} else {
+				*p = swap32(swap32(*p) + delta)
+			}
+		case 8:
+			// Add / subtract from a uint64.
+			if len(data) < 8 {
+				retry = true
+				continue loop
+			}
+			i := r.Intn(len(data) - 7)
+			p := (*uint64)(unsafe.Pointer(&data[i]))
+			delta := uint64(r.rand(2*maxInc+1) - maxInc)
+			if delta == 0 {
+				delta = 1
+			}
+			if r.bin() {
+				*p += delta
+			} else {
+				*p = swap64(swap64(*p) + delta)
+			}
+		case 9:
+			// Set byte to an interesting value.
+			if len(data) == 0 {
+				retry = true
+				continue loop
+			}
+			data[r.Intn(len(data))] = byte(r.randInt())
+		case 10:
+			// Set uint16 to an interesting value.
+			if len(data) < 2 {
+				retry = true
+				continue loop
+			}
+			i := r.Intn(len(data) - 1)
+			value := uint16(r.randInt())
+			if r.bin() {
+				value = swap16(value)
+			}
+			*(*uint16)(unsafe.Pointer(&data[i])) = value
+		case 11:
+			// Set uint32 to an interesting value.
+			if len(data) < 4 {
+				retry = true
+				continue loop
+			}
+			i := r.Intn(len(data) - 3)
+			value := uint32(r.randInt())
+			if r.bin() {
+				value = swap32(value)
+			}
+			*(*uint32)(unsafe.Pointer(&data[i])) = value
+		case 12:
+			// Set uint64 to an interesting value.
+			if len(data) < 8 {
+				retry = true
+				continue loop
+			}
+			i := r.Intn(len(data) - 7)
+			value := uint64(r.randInt())
+			if r.bin() {
+				value = swap64(value)
+			}
+			*(*uint64)(unsafe.Pointer(&data[i])) = value
+		default:
+			panic("bad")
+		}
 	}
 	return data
 }

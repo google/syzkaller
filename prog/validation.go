@@ -9,12 +9,17 @@ import (
 	"github.com/google/syzkaller/sys"
 )
 
+var debug = false // enabled in tests
+
 type validCtx struct {
 	args map[*Arg]bool
 	uses map[*Arg]*Arg
 }
 
 func (p *Prog) validate() error {
+	if !debug {
+		return nil
+	}
 	ctx := &validCtx{make(map[*Arg]bool), make(map[*Arg]*Arg)}
 	for _, c := range p.Calls {
 		if err := c.validate(ctx); err != nil {
