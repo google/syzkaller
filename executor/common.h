@@ -218,8 +218,8 @@ int tunfd = -1;
 #define LOCAL_MAC "aa:aa:aa:aa:aa:%02hx"
 #define REMOTE_MAC "bb:bb:bb:bb:bb:%02hx"
 
-#define LOCAL_IPV4 "192.168.%d.170"
-#define REMOTE_IPV4 "192.168.%d.187"
+#define LOCAL_IPV4 "172.20.%d.170"
+#define REMOTE_IPV4 "172.20.%d.187"
 
 #define LOCAL_IPV6 "fd00::%02hxaa"
 #define REMOTE_IPV6 "fd00::%02hxbb"
@@ -231,9 +231,7 @@ static void initialize_tun(uint64_t pid)
 
 	if (pid >= MAX_PIDS)
 		fail("tun: no more than %d executors", MAX_PIDS);
-	// IP addresses like 192.168.0.1/192.168.1.1 are often used for routing between VM and the host.
-	// Offset our IP addresses to start from 192.168.218.0 to reduce potential conflicts.
-	int id = pid + 250 - MAX_PIDS;
+	int id = pid;
 
 	tunfd = open("/dev/net/tun", O_RDWR);
 	if (tunfd == -1)
