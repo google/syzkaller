@@ -24,7 +24,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 	} else {
 		// Mutate current prog without splicing.
 		retry := false
-		for stop := false; !stop || retry; stop = r.bin() {
+		for stop := false; !stop || retry; stop = r.oneOf(3) {
 			retry = false
 			r.choose(
 				20, func() {
@@ -54,7 +54,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 						return
 					}
 					s := analyze(ct, p, c)
-					for stop := false; !stop; stop = r.bin() {
+					for stop := false; !stop; stop = r.oneOf(3) {
 						args, bases := mutationArgs(c)
 						if len(args) == 0 {
 							retry = true
