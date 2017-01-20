@@ -12,9 +12,9 @@ import (
 )
 
 func initTest(t *testing.T) (*rand.Rand, int) {
-	iters := 1000
+	iters := 100000
 	if testing.Short() {
-		iters = 100
+		iters = 1000
 	}
 	seed := int64(time.Now().UnixNano())
 	rs := rand.NewSource(seed)
@@ -167,17 +167,21 @@ func TestMinimize(t *testing.T) {
 	}
 }
 
+func randCover(rnd *rand.Rand, maxLen int) Cover {
+	tmp := make(Cover, rnd.Intn(maxLen))
+	for j := range tmp {
+		tmp[j] = uint32(rnd.Intn(100))
+	}
+	return Canonicalize(tmp)
+}
+
 func TestMinimizeRandom(t *testing.T) {
 	rnd, iters := initTest(t)
 	for i := 0; i < iters; i++ {
 		n := rnd.Intn(20)
 		cov := make([]Cover, n)
 		for i := range cov {
-			tmp := make(Cover, rnd.Intn(10))
-			for j := range tmp {
-				tmp[j] = uint32(rnd.Intn(100))
-			}
-			cov[i] = Canonicalize(tmp)
+			cov[i] = randCover(rnd, 10)
 		}
 		var total Cover
 		for _, c := range cov {
@@ -188,8 +192,8 @@ func TestMinimizeRandom(t *testing.T) {
 		for _, idx := range mini {
 			minimized = Union(minimized, cov[idx])
 		}
-		t.Logf("minimized %v -> %v", len(cov), len(mini))
 		if !reflect.DeepEqual(total, minimized) {
+			t.Logf("minimized %v -> %v", len(cov), len(mini))
 			t.Logf("corpus:")
 			for _, in := range cov {
 				t.Logf("  %+v", in)
@@ -198,8 +202,34 @@ func TestMinimizeRandom(t *testing.T) {
 			for _, in := range cov {
 				t.Logf("  %+v", in)
 			}
-
 			t.Fatalf("better luck next time")
 		}
+	}
+}
+
+func TestHasDifference(t *testing.T) {
+	rnd, iters := initTest(t)
+	for i := 0; i < iters; i++ {
+		cov1 := randCover(rnd, 20)
+		cov2 := randCover(rnd, 20)
+		diff := Difference(cov1, cov2)
+		hasDiff := HasDifference(cov1, cov2)
+		if len(diff) != 0 != hasDiff {
+			t.Fatalf("cov1=%+v cov2=%+v diff=%+v hasDiff=%v", cov1, cov2, diff, hasDiff)
+		}
+	}
+}
+
+func BenchmarkHasDifference(b *testing.B) {
+	rnd := rand.New(rand.NewSource(0))
+	cov0 := make(Cover, 70000)
+	for i := range cov0 {
+		cov0[i] = uint32(rnd.Intn(1 << 30))
+	}
+	cov1 := Canonicalize(append(Cover{}, cov0[:500]...))
+	cov0 = Canonicalize(cov0)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = HasDifference(cov1, cov0)
 	}
 }

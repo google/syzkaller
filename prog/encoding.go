@@ -27,11 +27,9 @@ func (p *Prog) String() string {
 }
 
 func (p *Prog) Serialize() []byte {
-	/*
-		if err := p.validate(); err != nil {
-			panic("serializing invalid program")
-		}
-	*/
+	if err := p.validate(); err != nil {
+		panic("serializing invalid program")
+	}
 	buf := new(bytes.Buffer)
 	vars := make(map[*Arg]int)
 	varSeq := 0

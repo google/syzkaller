@@ -101,6 +101,21 @@ func foreach(cov0, cov1 Cover, f func(uint32, uint32) uint32) Cover {
 	return res
 }
 
+// HasDifference returns true if cov0 has some coverage that is not present in cov1.
+// This is called on fuzzer hot path.
+func HasDifference(cov0, cov1 Cover) bool {
+	i1 := 0
+	for _, v0 := range cov0 {
+		for ; i1 < len(cov1) && cov1[i1] < v0; i1++ {
+		}
+		if i1 == len(cov1) || cov1[i1] > v0 {
+			return true
+		}
+		i1++
+	}
+	return false
+}
+
 // Minimize returns a minimal set of inputs that give the same coverage as the full corpus.
 func Minimize(corpus []Cover) []int {
 	inputs := make([]*minInput, len(corpus))

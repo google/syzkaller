@@ -25,17 +25,25 @@ const (
 )
 
 const (
+	ExecBufferSize = 2 << 20
+
 	ptrSize    = 8
 	pageSize   = 4 << 10
 	dataOffset = 512 << 20
 )
 
-func (p *Prog) SerializeForExec(pid int) []byte {
+// SerializeForExec serializes program p for execution by process pid into the provided buffer.
+// If the provided buffer is too small for the program an error is returned.
+func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 	if err := p.validate(); err != nil {
 		panic(fmt.Errorf("serializing invalid program: %v", err))
 	}
 	var instrSeq uintptr
-	w := &execContext{args: make(map[*Arg]*argInfo)}
+	w := &execContext{
+		buf:  buffer,
+		eof:  false,
+		args: make(map[*Arg]argInfo),
+	}
 	for _, c := range p.Calls {
 		// Calculate arg offsets within structs.
 		// Generate copyin instructions that fill in data into pointer arguments.
@@ -43,7 +51,9 @@ func (p *Prog) SerializeForExec(pid int) []byte {
 			if arg.Kind == ArgPointer && arg.Res != nil {
 				var rec func(*Arg, uintptr) uintptr
 				rec = func(arg1 *Arg, offset uintptr) uintptr {
-					w.args[arg1] = &argInfo{Offset: offset}
+					if len(arg1.Uses) != 0 {
+						w.args[arg1] = argInfo{Offset: offset}
+					}
 					if arg1.Kind == ArgGroup {
 						var totalSize uintptr
 						for _, arg2 := range arg1.Inner {
@@ -85,7 +95,9 @@ func (p *Prog) SerializeForExec(pid int) []byte {
 		for _, arg := range c.Args {
 			w.writeArg(arg, pid)
 		}
-		w.args[c.Ret] = &argInfo{Idx: instrSeq}
+		if len(c.Ret.Uses) != 0 {
+			w.args[c.Ret] = argInfo{Idx: instrSeq}
+		}
 		instrSeq++
 		// Generate copyout instructions that persist interesting return values.
 		foreachArg(c, func(arg, base *Arg, _ *[]*Arg) {
@@ -103,6 +115,7 @@ func (p *Prog) SerializeForExec(pid int) []byte {
 				info := w.args[arg]
 				info.Idx = instrSeq
 				instrSeq++
+				w.args[arg] = info
 				w.write(ExecInstrCopyout)
 				w.write(physicalAddr(base) + info.Offset)
 				w.write(arg.Size())
@@ -112,7 +125,10 @@ func (p *Prog) SerializeForExec(pid int) []byte {
 		})
 	}
 	w.write(ExecInstrEOF)
-	return w.buf
+	if w.eof {
+		return fmt.Errorf("provided buffer is too small")
+	}
+	return nil
 }
 
 func physicalAddr(arg *Arg) uintptr {
@@ -130,7 +146,8 @@ func physicalAddr(arg *Arg) uintptr {
 
 type execContext struct {
 	buf  []byte
-	args map[*Arg]*argInfo
+	eof  bool
+	args map[*Arg]argInfo
 }
 
 type argInfo struct {
@@ -139,7 +156,19 @@ type argInfo struct {
 }
 
 func (w *execContext) write(v uintptr) {
-	w.buf = append(w.buf, byte(v>>0), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
+	if len(w.buf) < 8 {
+		w.eof = true
+		return
+	}
+	w.buf[0] = byte(v >> 0)
+	w.buf[1] = byte(v >> 8)
+	w.buf[2] = byte(v >> 16)
+	w.buf[3] = byte(v >> 24)
+	w.buf[4] = byte(v >> 32)
+	w.buf[5] = byte(v >> 40)
+	w.buf[6] = byte(v >> 48)
+	w.buf[7] = byte(v >> 56)
+	w.buf = w.buf[8:]
 }
 
 func (w *execContext) writeArg(arg *Arg, pid int) {
@@ -171,15 +200,15 @@ func (w *execContext) writeArg(arg *Arg, pid int) {
 	case ArgData:
 		w.write(ExecArgData)
 		w.write(uintptr(len(arg.Data)))
-		for i := 0; i < len(arg.Data); i += 8 {
-			var v uintptr
-			for j := 0; j < 8; j++ {
-				if i+j >= len(arg.Data) {
-					break
-				}
-				v |= uintptr(arg.Data[i+j]) << uint(j*8)
-			}
-			w.write(v)
+		padded := len(arg.Data)
+		if pad := 8 - len(arg.Data)%8; pad != 8 {
+			padded += pad
+		}
+		if len(w.buf) < padded {
+			w.eof = true
+		} else {
+			copy(w.buf, arg.Data)
+			w.buf = w.buf[padded:]
 		}
 	default:
 		panic("unknown arg type")

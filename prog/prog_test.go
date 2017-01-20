@@ -12,6 +12,10 @@ import (
 	"github.com/google/syzkaller/sys"
 )
 
+func init() {
+	debug = true
+}
+
 func initTest(t *testing.T) (rand.Source, int) {
 	t.Parallel()
 	iters := 10000
