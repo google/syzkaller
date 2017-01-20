@@ -130,7 +130,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 							switch a.Kind {
 							case sys.ArrayRandLen:
 								for count == uintptr(len(arg.Inner)) {
-									count = r.rand(6)
+									count = r.randArrayLen()
 								}
 							case sys.ArrayRangeLen:
 								if a.RangeBegin == a.RangeEnd {
