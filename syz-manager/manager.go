@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -41,6 +42,7 @@ import (
 var (
 	flagConfig = flag.String("config", "", "configuration file")
 	flagDebug  = flag.Bool("debug", false, "dump all VM output to console")
+	flagBench  = flag.String("bench", "", "write execution statistics into this file periodically")
 )
 
 type Manager struct {
@@ -52,6 +54,7 @@ type Manager struct {
 	firstConnect time.Time
 	fuzzingTime  time.Duration
 	stats        map[string]uint64
+	crashTypes   map[string]bool
 	vmStop       chan bool
 	vmChecked    bool
 	fresh        bool
@@ -118,6 +121,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 		crashdir:        crashdir,
 		startTime:       time.Now(),
 		stats:           make(map[string]uint64),
+		crashTypes:      make(map[string]bool),
 		enabledSyscalls: enabledSyscalls,
 		corpusCover:     make([]cover.Cover, sys.CallCount),
 		fuzzers:         make(map[string]*Fuzzer),
@@ -208,6 +212,45 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 			Logf(0, "executed programs: %v, crashes: %v", executed, crashes)
 		}
 	}()
+
+	if *flagBench != "" {
+		f, err := os.OpenFile(*flagBench, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0640)
+		if err != nil {
+			Fatalf("failed to open bench file: %v", err)
+		}
+		go func() {
+			for {
+				time.Sleep(time.Minute)
+				vals := make(map[string]uint64)
+				mgr.mu.Lock()
+				if mgr.firstConnect.IsZero() {
+					mgr.mu.Unlock()
+					continue
+				}
+				mgr.minimizeCorpus()
+				vals["corpus"] = uint64(len(mgr.corpus))
+				vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
+				vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
+				for k, v := range mgr.stats {
+					vals[k] = v
+				}
+				var cov cover.Cover
+				for _, cc := range mgr.corpusCover {
+					cov = cover.Union(cov, cc)
+				}
+				vals["coverage"] = uint64(len(cov))
+				mgr.mu.Unlock()
+
+				data, err := json.MarshalIndent(vals, "", "  ")
+				if err != nil {
+					Fatalf("failed to serialize bench data")
+				}
+				if _, err := f.Write(append(data, '\n')); err != nil {
+					Fatalf("failed to write bench data")
+				}
+			}
+		}()
+	}
 
 	if mgr.cfg.Hub_Addr != "" {
 		go func() {
@@ -428,6 +471,10 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 	Logf(0, "%v: crash: %v", crash.vmName, crash.desc)
 	mgr.mu.Lock()
 	mgr.stats["crashes"]++
+	if !mgr.crashTypes[crash.desc] {
+		mgr.crashTypes[crash.desc] = true
+		mgr.stats["crash types"]++
+	}
 	mgr.mu.Unlock()
 
 	sig := hash.Hash([]byte(crash.desc))
