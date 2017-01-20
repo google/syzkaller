@@ -216,7 +216,7 @@ func main() {
 				}
 
 				corpusMu.RLock()
-				if len(corpus) == 0 || i%10 == 0 {
+				if len(corpus) == 0 || i%100 == 0 {
 					// Generate a new prog.
 					corpusMu.RUnlock()
 					p := prog.Generate(rnd, programLength, ct)
