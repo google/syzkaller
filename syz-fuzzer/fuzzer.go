@@ -13,10 +13,13 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"net/http"
+	_ "net/http/pprof"
 	"net/rpc"
 	"net/rpc/jsonrpc"
 	"os"
 	"os/signal"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -41,6 +44,7 @@ var (
 	flagProcs    = flag.Int("procs", 1, "number of parallel test processes")
 	flagLeak     = flag.Bool("leak", false, "detect memory leaks")
 	flagOutput   = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
+	flagPprof    = flag.String("pprof", "", "address to serve pprof profiles")
 )
 
 const (
@@ -113,6 +117,15 @@ func main() {
 		Logf(0, "SYZ-FUZZER: PREEMPTED")
 		os.Exit(1)
 	}()
+
+	if *flagPprof != "" {
+		go func() {
+			err := http.ListenAndServe(*flagPprof, nil)
+			Fatalf("failed to serve pprof profiles: %v", err)
+		}()
+	} else {
+		runtime.MemProfileRate = 0
+	}
 
 	corpusCover = make([]cover.Cover, sys.CallCount)
 	maxCover = make([]cover.Cover, sys.CallCount)
