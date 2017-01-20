@@ -164,7 +164,7 @@ static void install_segv_handler()
 
 #define STORE_BY_BITMASK(type, addr, val, bf_off, bf_len)                         \
 	if ((bf_off) == 0 && (bf_len) == 0) {                                     \
-		*(type*)(addr) = (val);                                           \
+		*(type*)(addr) = (type)(val);                                     \
 	} else {                                                                  \
 		type new_val = *(type*)(addr);                                    \
 		new_val &= ~BITMASK_LEN_OFF(type, (bf_off), (bf_len));            \
