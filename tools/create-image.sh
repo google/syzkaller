@@ -9,13 +9,14 @@ set -eux
 # Create a minimal Debian-wheezy distributive as a directory.
 sudo rm -rf wheezy
 mkdir -p wheezy
-sudo debootstrap --include=openssh-server,curl,tar,time,strace,sudo,less wheezy wheezy
+sudo debootstrap --include=openssh-server,curl,tar,time,strace,sudo,less,psmisc wheezy wheezy
 
 # Set some defaults and enable promtless ssh to the machine for root.
 sudo sed -i '/^root/ { s/:x:/::/ }' wheezy/etc/passwd
 echo 'T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100' | sudo tee -a wheezy/etc/inittab
 printf '\nauto eth0\niface eth0 inet dhcp\n' | sudo tee -a wheezy/etc/network/interfaces
 echo 'debugfs /sys/kernel/debug debugfs defaults 0 0' | sudo tee -a wheezy/etc/fstab
+echo "kernel.printk = 7 4 1 3" | sudo tee -a wheezy/etc/sysctl.conf
 echo 'debug.exception-trace = 0' | sudo tee -a wheezy/etc/sysctl.conf
 echo "net.core.bpf_jit_enable = 1" | sudo tee -a wheezy/etc/sysctl.conf
 echo "net.core.bpf_jit_harden = 2" | sudo tee -a wheezy/etc/sysctl.conf

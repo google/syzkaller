@@ -65,6 +65,7 @@ sudo sed -i "/^root/ { s/:x:/::/ }" disk.mnt/etc/passwd
 echo "T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100" | sudo tee -a disk.mnt/etc/inittab
 echo -en "\nauto eth0\niface eth0 inet dhcp\n" | sudo tee -a disk.mnt/etc/network/interfaces
 echo "debugfs /sys/kernel/debug debugfs defaults 0 0" | sudo tee -a disk.mnt/etc/fstab
+echo "kernel.printk = 7 4 1 3" | sudo tee -a disk.mnt/etc/sysctl.conf
 echo "debug.exception-trace = 0" | sudo tee -a disk.mnt/etc/sysctl.conf
 echo "net.core.bpf_jit_enable = 1" | sudo tee -a disk.mnt/etc/sysctl.conf
 echo "net.core.bpf_jit_harden = 2" | sudo tee -a disk.mnt/etc/sysctl.conf
