@@ -133,6 +133,36 @@ accept(fd sock, ...) sock
 listen(fd sock, backlog int32)
 ```
 
+### Length
+
+You can specify length of a particular field in struct or a named argument by using `len` and `bytesize` types, for example:
+```
+write(fd fd, buf buffer[in], count len[buf]) len[buf]
+
+sock_fprog {
+	len	len[filter, int16]
+	filter	ptr[in, array[sock_filter]]
+}
+```
+
+If `len`'s argument is a pointer (or a `buffer`), then the length of the pointee argument is used.
+
+To denote the length of a field in N-byte words use `bytesizeN`, possible values for N are 1, 2, 4 and 8.
+
+To denote the length of the parent struct, you can use `len[parent, int8]`.
+To denote the length of the higher level parent when structs are embedded into one another, you can specify the type name of the particular parent:
+```
+struct s1 {
+    f0      len[s2]  # length of s2
+}
+
+struct s2 {
+    f0      s1
+    f1      array[int32]
+}
+
+```
+
 ### Proc
 
 The `proc` type can be used to denote per process integers.

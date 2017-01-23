@@ -557,6 +557,7 @@ func (r *randGen) generateParticularCall(s *state, meta *sys.Call) (calls []*Cal
 		Ret:  returnArg(meta.Ret),
 	}
 	c.Args, calls = r.generateArgs(s, meta.Args)
+	assignSizesCall(c)
 	calls = append(calls, c)
 	for _, c1 := range calls {
 		sanitizeCall(c1)
@@ -600,8 +601,6 @@ func (r *randGen) generateArgs(s *state, types []sys.Type) ([]*Arg, []*Call) {
 		args[i] = arg
 		calls = append(calls, calls1...)
 	}
-
-	assignSizes(args)
 
 	return args, calls
 }
