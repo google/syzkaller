@@ -185,7 +185,7 @@ func assignSizes(args []*Arg) {
 		if sys.IsPad(arg.Type) {
 			continue
 		}
-		argsMap[arg.Type.Name()] = arg
+		argsMap[arg.Type.FieldName()] = arg
 	}
 
 	// Fill in size arguments.
@@ -205,7 +205,7 @@ func assignSizes(args []*Arg) {
 			buf, ok := argsMap[typ.Buf]
 			if !ok {
 				panic(fmt.Sprintf("len field '%v' references non existent field '%v', argsMap: %+v",
-					typ.Name(), typ.Buf, argsMap))
+					typ.FieldName(), typ.Buf, argsMap))
 			}
 
 			*arg = *generateSize(buf.InnerArg(), typ)

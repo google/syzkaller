@@ -265,10 +265,6 @@ func generateStructEntry(str Struct, key structKey, out io.Writer) {
 	if str.IsUnion {
 		typ = "UnionType"
 	}
-	name := key.field
-	if name == "" {
-		name = key.name
-	}
 	packed := ""
 	if str.Packed {
 		packed = ", packed: true"
@@ -281,8 +277,8 @@ func generateStructEntry(str Struct, key structKey, out io.Writer) {
 	if str.Align != 0 {
 		align = fmt.Sprintf(", align: %v", str.Align)
 	}
-	fmt.Fprintf(out, "\"%v\": &%v{TypeCommon: TypeCommon{TypeName: \"%v\", ArgDir: %v, IsOptional: %v} %v %v %v},\n",
-		key, typ, name, fmtDir(key.dir), false, packed, align, varlen)
+	fmt.Fprintf(out, "\"%v\": &%v{TypeCommon: TypeCommon{TypeName: \"%v\", FldName: \"%v\", ArgDir: %v, IsOptional: %v} %v %v %v},\n",
+		key, typ, key.name, key.field, fmtDir(key.dir), false, packed, align, varlen)
 }
 
 func generateStructFields(str Struct, key structKey, desc *Description, consts map[string]uint64, out io.Writer) {
@@ -379,7 +375,7 @@ func generateArg(
 		}
 	}
 	common := func() string {
-		return fmt.Sprintf("TypeCommon: TypeCommon{TypeName: %v, ArgDir: %v, IsOptional: %v}", name, fmtDir(dir), opt)
+		return fmt.Sprintf("TypeCommon: TypeCommon{TypeName: \"%v\", FldName: %v, ArgDir: %v, IsOptional: %v}", typ, name, fmtDir(dir), opt)
 	}
 	intCommon := func(typeSize uint64, bigEndian bool, bitfieldLen uint64) string {
 		// BitfieldOff and BitfieldLst will be filled in in initAlign().
