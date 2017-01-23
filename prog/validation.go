@@ -59,6 +59,9 @@ func (c *Call) validate(ctx *validCtx) error {
 		if arg.Type.Name() != typ.Name() {
 			return fmt.Errorf("syscall %v: type name mismatch: %v vs %v", c.Meta.Name, arg.Type.Name(), typ.Name())
 		}
+		if arg.Type.FieldName() != typ.FieldName() {
+			return fmt.Errorf("syscall %v: field name mismatch: %v vs %v", c.Meta.Name, arg.Type.FieldName(), typ.FieldName())
+		}
 		if arg.Type.Dir() == sys.DirOut {
 			if (arg.Val != 0 && arg.Val != arg.Type.Default()) || arg.AddrPage != 0 || arg.AddrOffset != 0 {
 				// We generate output len arguments, which makes sense

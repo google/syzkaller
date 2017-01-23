@@ -29,6 +29,7 @@ const (
 
 type Type interface {
 	Name() string
+	FieldName() string
 	Dir() Dir
 	Optional() bool
 	Default() uintptr
@@ -49,12 +50,17 @@ func IsPad(t Type) bool {
 
 type TypeCommon struct {
 	TypeName   string
+	FldName    string // for struct fields and named args
 	ArgDir     Dir
 	IsOptional bool
 }
 
 func (t *TypeCommon) Name() string {
 	return t.TypeName
+}
+
+func (t *TypeCommon) FieldName() string {
+	return t.FldName
 }
 
 func (t *TypeCommon) Optional() bool {

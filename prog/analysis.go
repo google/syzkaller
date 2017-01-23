@@ -174,18 +174,14 @@ func generateSize(arg *Arg, lenType *sys.LenType) *Arg {
 	}
 }
 
-func assignSizes(args []*Arg) {
+func assignSizes(args []*Arg, parentsMap map[*Arg]*Arg) {
 	// Create a map of args and calculate size of the whole struct.
 	argsMap := make(map[string]*Arg)
-	var parentSize uintptr
 	for _, arg := range args {
-		if arg.Type.BitfieldLength() == 0 || arg.Type.BitfieldLast() {
-			parentSize += arg.Size()
-		}
 		if sys.IsPad(arg.Type) {
 			continue
 		}
-		argsMap[arg.Type.Name()] = arg
+		argsMap[arg.Type.FieldName()] = arg
 	}
 
 	// Fill in size arguments.
@@ -194,32 +190,60 @@ func assignSizes(args []*Arg) {
 			continue // Pointer to optional len field, no need to fill in value.
 		}
 		if typ, ok := arg.Type.(*sys.LenType); ok {
+			buf, ok := argsMap[typ.Buf]
+			if ok {
+				*arg = *generateSize(buf.InnerArg(), typ)
+				continue
+			}
+
 			if typ.Buf == "parent" {
-				arg.Val = parentSize
+				arg.Val = parentsMap[arg].Size()
 				if typ.ByteSize != 0 {
 					arg.Val /= typ.ByteSize
 				}
 				continue
 			}
 
-			buf, ok := argsMap[typ.Buf]
-			if !ok {
-				panic(fmt.Sprintf("len field '%v' references non existent field '%v', argsMap: %+v",
-					typ.Name(), typ.Buf, argsMap))
+			sizeAssigned := false
+			for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
+				if typ.Buf == parent.Type.Name() {
+					arg.Val = parent.Size()
+					if typ.ByteSize != 0 {
+						arg.Val /= typ.ByteSize
+					}
+					sizeAssigned = true
+					break
+				}
+			}
+			if sizeAssigned {
+				continue
 			}
 
-			*arg = *generateSize(buf.InnerArg(), typ)
+			panic(fmt.Sprintf("len field '%v' references non existent field '%v', argsMap: %+v",
+				typ.FieldName(), typ.Buf, argsMap))
 		}
 	}
 }
 
-func assignSizesCall(c *Call) {
-	assignSizes(c.Args)
-	foreachArg(c, func(arg, base *Arg, parent *[]*Arg) {
+func assignSizesArray(args []*Arg) {
+	parentsMap := make(map[*Arg]*Arg)
+	foreachArgArray(&args, nil, func(arg, base *Arg, _ *[]*Arg) {
 		if _, ok := arg.Type.(*sys.StructType); ok {
-			assignSizes(arg.Inner)
+			for _, field := range arg.Inner {
+				parentsMap[field.InnerArg()] = arg
+			}
 		}
 	})
+	assignSizes(args, parentsMap)
+	foreachArgArray(&args, nil, func(arg, base *Arg, _ *[]*Arg) {
+		if _, ok := arg.Type.(*sys.StructType); ok {
+			assignSizes(arg.Inner, parentsMap)
+		}
+	})
+}
+
+func assignSizesCall(c *Call) {
+	assignSizesArray(c.Args)
 }
 
 func sanitizeCall(c *Call) {
