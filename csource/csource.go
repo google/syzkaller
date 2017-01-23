@@ -205,7 +205,7 @@ loop:
 				if bfOff == 0 && bfLen == 0 {
 					fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = (uint%v_t)0x%x);\n", size*8, addr, size*8, arg)
 				} else {
-					fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, %v, %v, %v, %v));\n", size*8, addr, arg, bfOff, bfLen)
+					fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, 0x%x, 0x%x, %v, %v));\n", size*8, addr, arg, bfOff, bfLen)
 				}
 			case prog.ExecArgResult:
 				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n", size*8, addr, resultRef())
