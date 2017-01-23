@@ -184,8 +184,12 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 						}
 					case *sys.UnionType:
 						optType := a.Options[r.Intn(len(a.Options))]
-						for optType.Name() == arg.OptionType.Name() {
+						maxIters := 1000
+						for i := 0; optType.FieldName() == arg.OptionType.FieldName(); i++ {
 							optType = a.Options[r.Intn(len(a.Options))]
+							if i >= maxIters {
+								panic(fmt.Sprintf("couldn't generate a different union option after %v iterations, type: %+v", maxIters, a))
+							}
 						}
 						p.removeArg(c, arg.Option)
 						opt, calls := r.generateArg(s, optType)
@@ -303,7 +307,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 
 	var rec func(p *Prog, call *Call, arg *Arg, path string) bool
 	rec = func(p *Prog, call *Call, arg *Arg, path string) bool {
-		path += fmt.Sprintf("-%v", arg.Type.Name())
+		path += fmt.Sprintf("-%v", arg.Type.FieldName())
 		switch typ := arg.Type.(type) {
 		case *sys.StructType:
 			for _, innerArg := range arg.Inner {
@@ -438,7 +442,7 @@ func (p *Prog) TrimAfter(idx int) {
 }
 
 func mutationArgs(c *Call) (args, bases []*Arg) {
-	foreachArg(c, func(arg, base *Arg, parent *[]*Arg) {
+	foreachArg(c, func(arg, base *Arg, _ *[]*Arg) {
 		switch typ := arg.Type.(type) {
 		case *sys.StructType:
 			if isSpecialStruct(typ) == nil {

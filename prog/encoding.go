@@ -108,7 +108,7 @@ func (a *Arg) serialize(buf io.Writer, vars map[*Arg]int, varSeq *int) {
 		}
 		buf.Write([]byte{delims[1]})
 	case ArgUnion:
-		fmt.Fprintf(buf, "@%v=", a.OptionType.Name())
+		fmt.Fprintf(buf, "@%v=", a.OptionType.FieldName())
 		a.Option.serialize(buf, vars, varSeq)
 	default:
 		panic("unknown arg kind")
@@ -318,7 +318,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		p.Parse('=')
 		var optType sys.Type
 		for _, t2 := range t1.Options {
-			if name == t2.Name() {
+			if name == t2.FieldName() {
 				optType = t2
 				break
 			}
