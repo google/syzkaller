@@ -493,6 +493,12 @@ INFO: Stall ended before state dump start
 		`
 WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 `: ``,
+
+		`
+[   92.396607] APIC base relocation is unsupported by KVM
+[   95.445015] INFO: NMI handler (perf_event_nmi_handler) took too long to run: 1.356 msecs
+[   95.445015] perf: interrupt took too long (3985 > 3976), lowering kernel.perf_event_max_sample_rate to 50000
+`: ``,
 	}
 	for log, crash := range tests {
 		if strings.Index(log, "\r\n") != -1 {
