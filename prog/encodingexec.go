@@ -35,8 +35,10 @@ const (
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
 // If the provided buffer is too small for the program an error is returned.
 func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
-	if err := p.validate(); err != nil {
-		panic(fmt.Errorf("serializing invalid program: %v", err))
+	if debug {
+		if err := p.validate(); err != nil {
+			panic(fmt.Errorf("serializing invalid program: %v", err))
+		}
 	}
 	var instrSeq uintptr
 	w := &execContext{

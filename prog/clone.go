@@ -15,8 +15,10 @@ func (p *Prog) Clone() *Prog {
 		}
 		p1.Calls = append(p1.Calls, c1)
 	}
-	if err := p1.validate(); err != nil {
-		panic(err)
+	if debug {
+		if err := p1.validate(); err != nil {
+			panic(err)
+		}
 	}
 	return p1
 }

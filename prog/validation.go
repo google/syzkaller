@@ -17,9 +17,6 @@ type validCtx struct {
 }
 
 func (p *Prog) validate() error {
-	if !debug {
-		return nil
-	}
 	ctx := &validCtx{make(map[*Arg]bool), make(map[*Arg]*Arg)}
 	for _, c := range p.Calls {
 		if err := c.validate(ctx); err != nil {
