@@ -27,8 +27,10 @@ func (p *Prog) String() string {
 }
 
 func (p *Prog) Serialize() []byte {
-	if err := p.validate(); err != nil {
-		panic("serializing invalid program")
+	if debug {
+		if err := p.validate(); err != nil {
+			panic("serializing invalid program")
+		}
 	}
 	buf := new(bytes.Buffer)
 	vars := make(map[*Arg]int)
@@ -173,6 +175,9 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 	if err := p.Err(); err != nil {
 		return nil, err
 	}
+	// This validation is done even in non-debug mode because deserialization
+	// procedure does not catch all bugs (e.g. mismatched types).
+	// And we can receive bad programs from corpus and hub.
 	if err := prog.validate(); err != nil {
 		return nil, err
 	}

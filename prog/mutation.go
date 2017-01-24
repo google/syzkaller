@@ -233,8 +233,10 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 	for _, c := range p.Calls {
 		sanitizeCall(c)
 	}
-	if err := p.validate(); err != nil {
-		panic(err)
+	if debug {
+		if err := p.validate(); err != nil {
+			panic(err)
+		}
 	}
 }
 

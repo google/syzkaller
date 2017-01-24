@@ -20,8 +20,10 @@ func Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Prog {
 			p.Calls = append(p.Calls, c)
 		}
 	}
-	if err := p.validate(); err != nil {
-		panic(err)
+	if debug {
+		if err := p.validate(); err != nil {
+			panic(err)
+		}
 	}
 	return p
 }
