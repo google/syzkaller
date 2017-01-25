@@ -48,7 +48,7 @@ func main() {
 	}
 	src, err := csource.Write(p, opts)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to generate C spurce: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to generate C source: %v\n", err)
 		os.Exit(1)
 	}
 	if formatted, err := csource.Format(src); err != nil {
