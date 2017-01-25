@@ -150,6 +150,36 @@ func foreachArg(c *Call, f func(arg, base *Arg, parent *[]*Arg)) {
 	foreachArgArray(&c.Args, nil, f)
 }
 
+func foreachSubargOffset(arg *Arg, f func(arg *Arg, offset uintptr)) {
+	var rec func(*Arg, uintptr) uintptr
+	rec = func(arg1 *Arg, offset uintptr) uintptr {
+		switch arg1.Kind {
+		case ArgGroup:
+			var totalSize uintptr
+			for _, arg2 := range arg1.Inner {
+				size := rec(arg2, offset)
+				if arg2.Type.BitfieldLength() == 0 || arg2.Type.BitfieldLast() {
+					offset += size
+					totalSize += size
+				}
+			}
+			if totalSize > arg1.Size() {
+				panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %+v", totalSize, arg1.Size(), arg1))
+			}
+		case ArgUnion:
+			size := rec(arg1.Option, offset)
+			offset += size
+			if size > arg1.Size() {
+				panic(fmt.Sprintf("bad union arg size %v, should be <= %v for arg %+v with type %+v", size, arg1.Size(), arg1, arg1.Type))
+			}
+		default:
+			f(arg1, offset)
+		}
+		return arg1.Size()
+	}
+	rec(arg, 0)
+}
+
 func sanitizeCall(c *Call) {
 	switch c.Meta.CallName {
 	case "mmap":

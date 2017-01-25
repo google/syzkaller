@@ -106,8 +106,12 @@ func (c *Call) validate(ctx *validCtx) error {
 			switch typ1.Kind {
 			case sys.BufferString:
 				if typ1.Length != 0 && len(arg.Data) != int(typ1.Length) {
-					return fmt.Errorf("syscall %v: string arg '%v' has size %v, which should be %v", c.Meta.Name, len(arg.Data), typ1.Length)
+					return fmt.Errorf("syscall %v: string arg '%v' has size %v, which should be %v", c.Meta.Name, typ.Name(), len(arg.Data), typ1.Length)
 				}
+			}
+		case *sys.CsumType:
+			if arg.Val != 0 {
+				return fmt.Errorf("syscall %v: csum arg '%v' has nonzero value %v", c.Meta.Name, typ.Name(), arg.Val)
 			}
 		}
 		switch arg.Kind {
