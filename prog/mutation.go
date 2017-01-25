@@ -197,6 +197,8 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 						p.replaceArg(c, arg, arg1, calls)
 					case *sys.LenType:
 						panic("bad arg returned by mutationArgs: LenType")
+					case *sys.CsumType:
+						panic("bad arg returned by mutationArgs: CsumType")
 					case *sys.ConstType:
 						panic("bad arg returned by mutationArgs: ConstType")
 					default:
@@ -397,7 +399,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 				}
 			}
 			p0 = p
-		case *sys.VmaType, *sys.LenType, *sys.ConstType:
+		case *sys.VmaType, *sys.LenType, *sys.CsumType, *sys.ConstType:
 			// TODO: try to remove offset from vma
 			return false
 		default:
@@ -459,6 +461,9 @@ func mutationArgs(c *Call) (args, bases []*Arg) {
 			}
 		case *sys.LenType:
 			// Size is updated when the size-of arg change.
+			return
+		case *sys.CsumType:
+			// Checksum is updated when the checksummed data changes.
 			return
 		case *sys.ConstType:
 			// Well, this is const.

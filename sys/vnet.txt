@@ -149,14 +149,13 @@ ipv4_header {
 	version		const[4, int8:4]
 	ecn		int8:2
 	dscp		int8:6
-	tot_len		len[ipv4_packet, int16be]
-	identification	int16be
+	total_len	len[ipv4_packet, int16be]
+	id		int16be
 	frag_off	int16:13
 	flags		int16:3
 	ttl		int8
 	protocol	flags[ipv4_types, int8]
-# TODO: embed correct checksum
-	csum		const[0, int16]
+	csum		csum[ipv4, int16be]
 	src_ip		ipv4_addr
 	dst_ip		ipv4_addr
 	options		ipv4_options
