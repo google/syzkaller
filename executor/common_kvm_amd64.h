@@ -287,7 +287,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	(void)text_count; // fuzzer can spoof count and we need just 1 text, so ignore text_count
 	int text_type = 0;
 	const void* text = 0;
-	int text_size = 0;
+	uintptr_t text_size = 0;
 	NONFAILING(text_type = text_array_ptr[0].typ);
 	NONFAILING(text = text_array_ptr[0].text);
 	NONFAILING(text_size = text_array_ptr[0].size);
