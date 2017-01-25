@@ -132,8 +132,20 @@ __thread jmp_buf segv_env;
 
 static void segv_handler(int sig, siginfo_t* info, void* uctx)
 {
-	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED))
+	// Generated programs can contain bad (unmapped/protected) addresses,
+	// which cause SIGSEGVs during copyin/copyout.
+	// This handler ignores such crashes to allow the program to proceed.
+	// We additionally opportunistically check that the faulty address
+	// is not within executable data region, because such accesses can corrupt
+	// output region and then fuzzer will fail on corrupted data.
+	uintptr_t addr = (uintptr_t)info->si_addr;
+	const uintptr_t prog_start = 1 << 20;
+	const uintptr_t prog_end = 100 << 20;
+	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
+		debug("SIGSEGV on %p, skipping\n", addr);
 		_longjmp(segv_env, 1);
+	}
+	debug("SIGSEGV on %p, exiting\n", addr);
 	doexit(sig);
 	for (;;) {
 	}

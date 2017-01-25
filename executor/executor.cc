@@ -139,7 +139,7 @@ int main(int argc, char** argv)
 	}
 
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-	if (mmap(&input_data[0], kMaxInput, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
+	if (mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
 		fail("mmap of input file failed");
 	if (mmap(&output_data[0], kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0) != &output_data[0])
 		fail("mmap of output file failed");
