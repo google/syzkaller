@@ -47,55 +47,32 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 		args: make(map[*Arg]argInfo),
 	}
 	for _, c := range p.Calls {
+		// Calculate checksums.
+		csumMap := calcChecksumsCall(c, pid)
 		// Calculate arg offsets within structs.
 		// Generate copyin instructions that fill in data into pointer arguments.
 		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
 			if arg.Kind == ArgPointer && arg.Res != nil {
-				var rec func(*Arg, uintptr) uintptr
-				rec = func(arg1 *Arg, offset uintptr) uintptr {
+				foreachSubargOffset(arg.Res, func(arg1 *Arg, offset uintptr) {
 					if len(arg1.Uses) != 0 {
 						w.args[arg1] = argInfo{Offset: offset}
-					}
-					if arg1.Kind == ArgGroup {
-						var totalSize uintptr
-						for _, arg2 := range arg1.Inner {
-							size := rec(arg2, offset)
-							if arg2.Type.BitfieldLength() == 0 || arg2.Type.BitfieldLast() {
-								offset += size
-								totalSize += size
-							}
-						}
-						if totalSize > arg1.Size() {
-							panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %+v", totalSize, arg1.Size(), arg1))
-						}
-						return arg1.Size()
-					}
-					if arg1.Kind == ArgUnion {
-						size := rec(arg1.Option, offset)
-						offset += size
-						if size > arg1.Size() {
-							panic(fmt.Sprintf("bad union arg size %v, should be <= %v for arg %+v with type %+v", size, arg1.Size(), arg1, arg1.Type))
-						}
-						return arg1.Size()
 					}
 					if !sys.IsPad(arg1.Type) &&
 						!(arg1.Kind == ArgData && len(arg1.Data) == 0) &&
 						arg1.Type.Dir() != sys.DirOut {
 						w.write(ExecInstrCopyin)
 						w.write(physicalAddr(arg) + offset)
-						w.writeArg(arg1, pid)
+						w.writeArg(arg1, pid, csumMap)
 						instrSeq++
 					}
-					return arg1.Size()
-				}
-				rec(arg.Res, 0)
+				})
 			}
 		})
 		// Generate the call itself.
 		w.write(uintptr(c.Meta.ID))
 		w.write(uintptr(len(c.Args)))
 		for _, arg := range c.Args {
-			w.writeArg(arg, pid)
+			w.writeArg(arg, pid, csumMap)
 		}
 		if len(c.Ret.Uses) != 0 {
 			w.args[c.Ret] = argInfo{Idx: instrSeq}
@@ -173,9 +150,14 @@ func (w *execContext) write(v uintptr) {
 	w.buf = w.buf[8:]
 }
 
-func (w *execContext) writeArg(arg *Arg, pid int) {
+func (w *execContext) writeArg(arg *Arg, pid int, csumMap map[*Arg]*Arg) {
 	switch arg.Kind {
 	case ArgConst:
+		if _, ok := arg.Type.(*sys.CsumType); ok {
+			if arg, ok = csumMap[arg]; !ok {
+				panic("csum arg is not in csum map")
+			}
+		}
 		w.write(ExecArgConst)
 		w.write(arg.Size())
 		w.write(arg.Value(pid))

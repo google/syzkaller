@@ -500,6 +500,19 @@ func generateArg(
 			byteSize = decodeByteSizeType(typ)
 		}
 		fmt.Fprintf(out, "&LenType{%v, Buf: \"%v\", ByteSize: %v}", intCommon(size, bigEndian, bitfieldLen), a[0], byteSize)
+	case "csum":
+		if want := 2; len(a) != want {
+			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		}
+		size, bigEndian, bitfieldLen := decodeIntType(a[1])
+		var kind string
+		switch a[0] {
+		case "ipv4":
+			kind = "CsumIPv4"
+		default:
+			failf("unknown checksum kind '%v'", a[0])
+		}
+		fmt.Fprintf(out, "&CsumType{%v, Kind: %v}", intCommon(size, bigEndian, bitfieldLen), kind)
 	case "flags":
 		canBeArg = true
 		size := uint64(ptrSize)
