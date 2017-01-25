@@ -191,6 +191,17 @@ type ProcType struct {
 	ValuesPerProc uint64
 }
 
+type CsumKind int
+
+const (
+	CsumIPv4 CsumKind = iota
+)
+
+type CsumType struct {
+	IntTypeCommon
+	Kind CsumKind
+}
+
 type VmaType struct {
 	TypeCommon
 	RangeBegin int64 // in pages
@@ -573,7 +584,7 @@ func ForeachType(meta *Call, f func(Type)) {
 				rec(opt)
 			}
 		case *ResourceType, *BufferType, *VmaType, *LenType,
-			*FlagsType, *ConstType, *IntType, *ProcType:
+			*FlagsType, *ConstType, *IntType, *ProcType, *CsumType:
 		default:
 			panic("unknown type")
 		}
