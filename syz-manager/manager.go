@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/rpc"
 	"net/rpc/jsonrpc"
@@ -30,7 +31,6 @@ import (
 	"github.com/google/syzkaller/report"
 	"github.com/google/syzkaller/repro"
 	. "github.com/google/syzkaller/rpctype"
-	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
 	_ "github.com/google/syzkaller/vm/adb"
 	_ "github.com/google/syzkaller/vm/gce"
@@ -65,9 +65,11 @@ type Manager struct {
 	enabledCalls    []string // as determined by fuzzer
 
 	candidates     []RpcCandidate // untriaged inputs
-	disabledHashes []string
-	corpus         []RpcInput
-	corpusCover    []cover.Cover
+	disabledHashes map[string]struct{}
+	corpus         map[string]RpcInput
+	corpusSignal   map[uint32]struct{}
+	maxSignal      map[uint32]struct{}
+	corpusCover    map[uint32]struct{}
 	prios          [][]float32
 
 	fuzzers   map[string]*Fuzzer
@@ -76,8 +78,9 @@ type Manager struct {
 }
 
 type Fuzzer struct {
-	name   string
-	inputs []RpcInput
+	name         string
+	inputs       []RpcInput
+	newMaxSignal []uint32
 }
 
 type Crash struct {
@@ -123,7 +126,10 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 		stats:           make(map[string]uint64),
 		crashTypes:      make(map[string]bool),
 		enabledSyscalls: enabledSyscalls,
-		corpusCover:     make([]cover.Cover, sys.CallCount),
+		corpus:          make(map[string]RpcInput),
+		corpusSignal:    make(map[uint32]struct{}),
+		maxSignal:       make(map[uint32]struct{}),
+		corpusCover:     make(map[uint32]struct{}),
 		fuzzers:         make(map[string]*Fuzzer),
 		fresh:           true,
 		vmStop:          make(chan bool),
@@ -161,8 +167,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 			// it is not deleted during minimization.
 			// TODO: use mgr.enabledCalls which accounts for missing devices, etc.
 			// But it is available only after vm check.
-			sig := hash.Hash(rec.Val)
-			mgr.disabledHashes = append(mgr.disabledHashes, sig.String())
+			mgr.disabledHashes[hash.String(rec.Val)] = struct{}{}
 			continue
 		}
 		mgr.candidates = append(mgr.candidates, RpcCandidate{
@@ -172,6 +177,19 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
 	Logf(0, "loaded %v programs (%v total)", len(mgr.candidates), len(mgr.corpusDB.Records))
+
+	// Now this is ugly.
+	// We duplicate all inputs in the corpus and shuffle the second part.
+	// This solves the following problem. A fuzzer can crash while triaging candidates,
+	// in such case it will also lost all cached candidates. Or, the input can be somewhat flaky
+	// and doesn't give the coverage on first try. So we give each input the second chance.
+	// Shuffling should alleviate deterministically losing the same inputs on fuzzer crashing.
+	mgr.candidates = append(mgr.candidates, mgr.candidates...)
+	shuffle := mgr.candidates[len(mgr.candidates)/2:]
+	for i := range shuffle {
+		j := i + rand.Intn(len(shuffle)-i)
+		shuffle[i], shuffle[j] = shuffle[j], shuffle[i]
+	}
 
 	// Create HTTP server.
 	mgr.initHttp()
@@ -231,14 +249,11 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 				vals["corpus"] = uint64(len(mgr.corpus))
 				vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
 				vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
+				vals["signal"] = uint64(len(mgr.corpusSignal))
+				vals["coverage"] = uint64(len(mgr.corpusCover))
 				for k, v := range mgr.stats {
 					vals[k] = v
 				}
-				var cov cover.Cover
-				for _, cc := range mgr.corpusCover {
-					cov = cover.Union(cov, cc)
-				}
-				vals["coverage"] = uint64(len(cov))
 				mgr.mu.Unlock()
 
 				data, err := json.MarshalIndent(vals, "", "  ")
@@ -572,28 +587,21 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 
 func (mgr *Manager) minimizeCorpus() {
 	if mgr.cfg.Cover && len(mgr.corpus) != 0 {
-		// First, sort corpus per call.
-		type Call struct {
-			inputs []RpcInput
-			cov    []cover.Cover
-		}
-		calls := make(map[string]Call)
+		var cov []cover.Cover
+		var inputs []RpcInput
 		for _, inp := range mgr.corpus {
-			c := calls[inp.Call]
-			c.inputs = append(c.inputs, inp)
-			c.cov = append(c.cov, inp.Cover)
-			calls[inp.Call] = c
+			cov = append(cov, inp.Signal)
+			inputs = append(inputs, inp)
 		}
-		// Now minimize and build new corpus.
-		var newCorpus []RpcInput
-		for _, c := range calls {
-			for _, idx := range cover.Minimize(c.cov) {
-				newCorpus = append(newCorpus, c.inputs[idx])
-			}
+		newCorpus := make(map[string]RpcInput)
+		for _, idx := range cover.Minimize(cov) {
+			inp := inputs[idx]
+			newCorpus[hash.String(inp.Prog)] = inp
 		}
 		Logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
 		mgr.corpus = newCorpus
 	}
+
 	var corpus []*prog.Prog
 	for _, inp := range mgr.corpus {
 		p, err := prog.Deserialize(inp.Prog)
@@ -606,16 +614,10 @@ func (mgr *Manager) minimizeCorpus() {
 
 	// Don't minimize persistent corpus until fuzzers have triaged all inputs from it.
 	if len(mgr.candidates) == 0 {
-		hashes := make(map[string]bool)
-		for _, inp := range mgr.corpus {
-			sig := hash.Hash(inp.Prog)
-			hashes[sig.String()] = true
-		}
-		for _, h := range mgr.disabledHashes {
-			hashes[h] = true
-		}
 		for key := range mgr.corpusDB.Records {
-			if !hashes[key] {
+			_, ok1 := mgr.corpus[key]
+			_, ok2 := mgr.disabledHashes[key]
+			if !ok1 && !ok2 {
 				mgr.corpusDB.Delete(key)
 			}
 		}
@@ -644,7 +646,19 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 	r.Prios = mgr.prios
 	r.EnabledCalls = mgr.enabledSyscalls
 	r.NeedCheck = !mgr.vmChecked
-
+	r.MaxSignal = make([]uint32, 0, len(mgr.maxSignal))
+	for s := range mgr.maxSignal {
+		r.MaxSignal = append(r.MaxSignal, s)
+	}
+	f.newMaxSignal = nil
+	for i := 0; i < mgr.cfg.Procs && len(mgr.candidates) > 0; i++ {
+		last := len(mgr.candidates) - 1
+		r.Candidates = append(r.Candidates, mgr.candidates[last])
+		mgr.candidates = mgr.candidates[:last]
+	}
+	if len(mgr.candidates) == 0 {
+		mgr.candidates = nil
+	}
 	return nil
 }
 
@@ -668,7 +682,7 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 }
 
 func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
-	Logf(2, "new input from %v for syscall %v", a.Name, a.Call)
+	Logf(2, "new input from %v for syscall %v (signal=%v cover=%v)", a.Name, a.Call, len(a.Signal), len(a.Cover))
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -677,29 +691,37 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 		Fatalf("fuzzer %v is not connected", a.Name)
 	}
 
-	call := sys.CallID[a.Call]
-	if len(cover.Difference(a.Cover, mgr.corpusCover[call])) == 0 {
+	if !cover.SignalNew(mgr.corpusSignal, a.Signal) {
 		return nil
 	}
-	mgr.corpusCover[call] = cover.Union(mgr.corpusCover[call], a.Cover)
-	mgr.corpus = append(mgr.corpus, a.RpcInput)
 	mgr.stats["manager new inputs"]++
-	sig := hash.Hash(a.RpcInput.Prog)
-	mgr.corpusDB.Save(sig.String(), a.RpcInput.Prog, 0)
-	if err := mgr.corpusDB.Flush(); err != nil {
-		Logf(0, "failed to save corpus database: %v", err)
-	}
-	for _, f1 := range mgr.fuzzers {
-		if f1 == f {
-			continue
+	cover.SignalAdd(mgr.corpusSignal, a.Signal)
+	cover.SignalAdd(mgr.corpusCover, a.Cover)
+	sig := hash.String(a.RpcInput.Prog)
+	if inp, ok := mgr.corpus[sig]; ok {
+		// The input is already present, but possibly with diffent signal/coverage/call.
+		inp.Signal = cover.Union(inp.Signal, a.RpcInput.Signal)
+		inp.Cover = cover.Union(inp.Cover, a.RpcInput.Cover)
+		mgr.corpus[sig] = inp
+	} else {
+		mgr.corpus[sig] = a.RpcInput
+		mgr.corpusDB.Save(sig, a.RpcInput.Prog, 0)
+		if err := mgr.corpusDB.Flush(); err != nil {
+			Logf(0, "failed to save corpus database: %v", err)
 		}
-		f1.inputs = append(f1.inputs, a.RpcInput)
+		for _, f1 := range mgr.fuzzers {
+			if f1 == f {
+				continue
+			}
+			inp := a.RpcInput
+			inp.Cover = nil // Don't send coverage back to all fuzzers.
+			f1.inputs = append(f1.inputs, inp)
+		}
 	}
 	return nil
 }
 
 func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
-	Logf(2, "poll from %v", a.Name)
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -711,7 +733,22 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 	if f == nil {
 		Fatalf("fuzzer %v is not connected", a.Name)
 	}
-
+	var newMaxSignal []uint32
+	for _, s := range a.MaxSignal {
+		if _, ok := mgr.maxSignal[s]; ok {
+			continue
+		}
+		mgr.maxSignal[s] = struct{}{}
+		newMaxSignal = append(newMaxSignal, s)
+	}
+	for _, f1 := range mgr.fuzzers {
+		if f1 == f {
+			continue
+		}
+		f1.newMaxSignal = append(f1.newMaxSignal, newMaxSignal...)
+	}
+	r.MaxSignal = f.newMaxSignal
+	f.newMaxSignal = nil
 	for i := 0; i < 100 && len(f.inputs) > 0; i++ {
 		last := len(f.inputs) - 1
 		r.NewInputs = append(r.NewInputs, f.inputs[last])
@@ -721,7 +758,7 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 		f.inputs = nil
 	}
 
-	for i := 0; i < 10 && len(mgr.candidates) > 0; i++ {
+	for i := 0; i < mgr.cfg.Procs && len(mgr.candidates) > 0; i++ {
 		last := len(mgr.candidates) - 1
 		r.Candidates = append(r.Candidates, mgr.candidates[last])
 		mgr.candidates = mgr.candidates[:last]
@@ -729,7 +766,8 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 	if len(mgr.candidates) == 0 {
 		mgr.candidates = nil
 	}
-
+	Logf(2, "poll from %v: recv maxsignal=%v, send maxsignal=%v candidates=%v inputs=%v",
+		a.Name, len(a.MaxSignal), len(r.MaxSignal), len(r.Candidates), len(r.NewInputs))
 	return nil
 }
 

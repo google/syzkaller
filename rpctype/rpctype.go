@@ -9,6 +9,7 @@ type RpcInput struct {
 	Call      string
 	Prog      []byte
 	CallIndex int
+	Signal    []uint32
 	Cover     []uint32
 }
 
@@ -23,6 +24,8 @@ type ConnectArgs struct {
 
 type ConnectRes struct {
 	Prios        [][]float32
+	MaxSignal    []uint32
+	Candidates   []RpcCandidate
 	EnabledCalls string
 	NeedCheck    bool
 }
@@ -39,13 +42,15 @@ type NewInputArgs struct {
 }
 
 type PollArgs struct {
-	Name  string
-	Stats map[string]uint64
+	Name      string
+	MaxSignal []uint32
+	Stats     map[string]uint64
 }
 
 type PollRes struct {
 	Candidates []RpcCandidate
 	NewInputs  []RpcInput
+	MaxSignal  []uint32
 }
 
 type HubConnectArgs struct {

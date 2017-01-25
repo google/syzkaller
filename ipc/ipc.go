@@ -39,19 +39,21 @@ type Env struct {
 
 const (
 	FlagDebug            = uint64(1) << iota // debug output from executor
-	FlagCover                                // collect coverage
+	FlagSignal                               // collect feedback signals (coverage)
 	FlagThreaded                             // use multiple threads to mitigate blocked syscalls
 	FlagCollide                              // collide syscalls to provoke data races
-	FlagDedupCover                           // deduplicate coverage in executor
 	FlagSandboxSetuid                        // impersonate nobody user
 	FlagSandboxNamespace                     // use namespaces for sandboxing
 	FlagEnableTun                            // initialize and use tun in executor
+
+	outputSize   = 16 << 20
+	signalOffset = 15 << 20
 )
 
 var (
 	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
 	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")
-	flagCover    = flag.Bool("cover", true, "collect coverage")
+	flagSignal   = flag.Bool("cover", true, "collect feedback signals (coverage)")
 	flagSandbox  = flag.String("sandbox", "setuid", "sandbox for fuzzing (none/setuid/namespace)")
 	flagDebug    = flag.Bool("debug", false, "debug output from executor")
 	// Executor protects against most hangs, so we use quite large timeout here.
@@ -76,9 +78,8 @@ func DefaultFlags() (uint64, time.Duration, error) {
 	if *flagCollide {
 		flags |= FlagCollide
 	}
-	if *flagCover {
-		flags |= FlagCover
-		flags |= FlagDedupCover
+	if *flagSignal {
+		flags |= FlagSignal
 	}
 	switch *flagSandbox {
 	case "none":
@@ -110,7 +111,7 @@ func MakeEnv(bin string, timeout time.Duration, flags uint64, pid int) (*Env, er
 			closeMapping(inf, inmem)
 		}
 	}()
-	outf, outmem, err := createMapping(16 << 20)
+	outf, outmem, err := createMapping(outputSize)
 	if err != nil {
 		return nil, err
 	}
@@ -177,13 +178,20 @@ func (env *Env) Close() error {
 	}
 }
 
+type CallInfo struct {
+	Signal []uint32 // feedback signal, filled if FlagSignal is set
+	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
+	//if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
+	Errno int // call errno (0 if the call was successful)
+}
+
 // Exec starts executor binary to execute program p and returns information about the execution:
 // output: process output
-// cov: per-call coverage, len(cov) == len(p.Calls)
+// info: per-call info
 // failed: true if executor has detected a kernel bug
 // hanged: program hanged and was killed
 // err0: failed to start process, or executor has detected a logical error
-func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int, failed, hanged bool, err0 error) {
+func (env *Env) Exec(p *prog.Prog, cover, dedup bool) (output []byte, info []CallInfo, failed, hanged bool, err0 error) {
 	if p != nil {
 		// Copy-in serialized program.
 		if err := p.SerializeForExec(env.In, env.pid); err != nil {
@@ -191,8 +199,8 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 			return
 		}
 	}
-	if env.flags&FlagCover != 0 {
-		// Zero out the first word (ncmd), so that we don't have garbage there
+	if env.flags&FlagSignal != 0 {
+		// Zero out the first two words (ncmd and nsig), so that we don't have garbage there
 		// if executor crashes before writing non-garbage there.
 		for i := 0; i < 4; i++ {
 			env.Out[i] = 0
@@ -208,21 +216,21 @@ func (env *Env) Exec(p *prog.Prog) (output []byte, cov [][]uint32, errnos []int,
 		}
 	}
 	var restart bool
-	output, failed, hanged, restart, err0 = env.cmd.exec()
+	output, failed, hanged, restart, err0 = env.cmd.exec(cover, dedup)
 	if err0 != nil || restart {
 		env.cmd.close()
 		env.cmd = nil
 		return
 	}
 
-	if env.flags&FlagCover == 0 || p == nil {
+	if env.flags&FlagSignal == 0 || p == nil {
 		return
 	}
-	cov, errnos, err0 = env.readOutCoverage(p)
+	info, err0 = env.readOutCoverage(p)
 	return
 }
 
-func (env *Env) readOutCoverage(p *prog.Prog) (cov [][]uint32, errnos []int, err0 error) {
+func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 	out := ((*[1 << 28]uint32)(unsafe.Pointer(&env.Out[0])))[:len(env.Out)/int(unsafe.Sizeof(uint32(0)))]
 	readOut := func(v *uint32) bool {
 		if len(out) == 0 {
@@ -238,49 +246,30 @@ func (env *Env) readOutCoverage(p *prog.Prog) (cov [][]uint32, errnos []int, err
 		err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 		return
 	}
-	cov = make([][]uint32, len(p.Calls))
-	errnos = make([]int, len(p.Calls))
-	for i := range errnos {
-		errnos[i] = -1 // not executed
+	info = make([]CallInfo, len(p.Calls))
+	for i := range info {
+		info[i].Errno = -1 // not executed
 	}
 	dumpCov := func() string {
 		buf := new(bytes.Buffer)
-		for i, c := range cov {
+		for i, inf := range info {
 			str := "nil"
-			if c != nil {
-				str = fmt.Sprint(len(c))
+			if inf.Signal != nil {
+				str = fmt.Sprint(len(inf.Signal))
 			}
 			fmt.Fprintf(buf, "%v:%v|", i, str)
 		}
 		return buf.String()
 	}
 	for i := uint32(0); i < ncmd; i++ {
-		var callIndex, callNum, errno, coverSize uint32
-		if !readOut(&callIndex) {
+		var callIndex, callNum, errno, signalSize, coverSize uint32
+		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) || !readOut(&signalSize) || !readOut(&coverSize) {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 			return
 		}
-		if !readOut(&callNum) {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
-			return
-		}
-		if !readOut(&errno) {
-			err0 = fmt.Errorf("executor %v: failed to read output errno", env.pid)
-			return
-		}
-		errnos[callIndex] = int(errno)
-		if !readOut(&coverSize) {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
-			return
-		}
-		if int(callIndex) > len(cov) {
+		if int(callIndex) >= len(info) {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, total calls %v (cov: %v)",
-				env.pid, i, callIndex, len(cov), dumpCov())
-			return
-		}
-		if cov[callIndex] != nil {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage: double coverage for call %v (cov: %v)",
-				env.pid, callIndex, dumpCov())
+				env.pid, i, callIndex, len(info), dumpCov())
 			return
 		}
 		c := p.Calls[callIndex]
@@ -289,11 +278,25 @@ func (env *Env) readOutCoverage(p *prog.Prog) (cov [][]uint32, errnos []int, err
 				env.pid, callIndex, num, callNum, ncmd, dumpCov())
 			return
 		}
-		if coverSize > uint32(len(out)) {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, coversize=%v", env.pid, i, callIndex, coverSize)
+		if info[callIndex].Signal != nil {
+			err0 = fmt.Errorf("executor %v: failed to read output coverage: double coverage for call %v (cov: %v)",
+				env.pid, callIndex, dumpCov())
 			return
 		}
-		cov[callIndex] = out[:coverSize:coverSize]
+		info[callIndex].Errno = int(errno)
+		if signalSize > uint32(len(out)) {
+			err0 = fmt.Errorf("executor %v: failed to read output signal: record %v, call %v, signalsize=%v coversize=%v",
+				env.pid, i, callIndex, signalSize, coverSize)
+			return
+		}
+		info[callIndex].Signal = out[:signalSize:signalSize]
+		out = out[signalSize:]
+		if coverSize > uint32(len(out)) {
+			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, signalsize=%v coversize=%v",
+				env.pid, i, callIndex, signalSize, coverSize)
+			return
+		}
+		info[callIndex].Cover = out[:coverSize:coverSize]
 		out = out[coverSize:]
 	}
 	return
@@ -505,9 +508,15 @@ func (c *command) kill() {
 	syscall.Kill(c.cmd.Process.Pid, syscall.SIGKILL)
 }
 
-func (c *command) exec() (output []byte, failed, hanged, restart bool, err0 error) {
-	var tmp [1]byte
-	if _, err := c.outwp.Write(tmp[:]); err != nil {
+func (c *command) exec(cover, dedup bool) (output []byte, failed, hanged, restart bool, err0 error) {
+	var flags [1]byte
+	if cover {
+		flags[0] |= 1 << 0
+		if dedup {
+			flags[0] |= 1 << 1
+		}
+	}
+	if _, err := c.outwp.Write(flags[:]); err != nil {
 		output = <-c.readDone
 		err0 = fmt.Errorf("failed to write control pipe: %v", err)
 		return
@@ -525,10 +534,10 @@ func (c *command) exec() (output []byte, failed, hanged, restart bool, err0 erro
 			hang <- false
 		}
 	}()
-	readN, readErr := c.inrp.Read(tmp[:])
+	readN, readErr := c.inrp.Read(flags[:])
 	close(done)
 	if readErr == nil {
-		if readN != len(tmp) {
+		if readN != len(flags) {
 			panic(fmt.Sprintf("executor %v: read only %v bytes", c.pid, readN))
 		}
 		<-hang

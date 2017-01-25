@@ -58,6 +58,8 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	data.Stats = append(data.Stats, UIStat{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)})
 	data.Stats = append(data.Stats, UIStat{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))})
 	data.Stats = append(data.Stats, UIStat{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))})
+	data.Stats = append(data.Stats, UIStat{Name: "cover", Value: fmt.Sprint(len(mgr.corpusCover)), Link: "/cover"})
+	data.Stats = append(data.Stats, UIStat{Name: "signal", Value: fmt.Sprint(len(mgr.corpusSignal))})
 
 	var err error
 	if data.Crashes, err = mgr.collectCrashes(); err != nil {
@@ -85,19 +87,15 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cov cover.Cover
-	totalUnique := mgr.uniqueCover(true)
 	for c, cc := range calls {
 		cov = cover.Union(cov, cc.cov)
-		unique := cover.Intersection(cc.cov, totalUnique)
 		data.Calls = append(data.Calls, UICallType{
-			Name:        c,
-			Inputs:      cc.count,
-			Cover:       len(cc.cov),
-			UniqueCover: len(unique),
+			Name:   c,
+			Inputs: cc.count,
+			Cover:  len(cc.cov),
 		})
 	}
 	sort.Sort(UICallTypeArray(data.Calls))
-	data.Stats = append(data.Stats, UIStat{Name: "cover", Value: fmt.Sprint(len(cov)), Link: "/cover"})
 
 	var intStats []UIStat
 	for k, v := range mgr.stats {
@@ -144,8 +142,7 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 
 	var data []UIInput
 	call := r.FormValue("call")
-	totalUnique := mgr.uniqueCover(false)
-	for i, inp := range mgr.corpus {
+	for sig, inp := range mgr.corpus {
 		if call != inp.Call {
 			continue
 		}
@@ -154,13 +151,11 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
 			return
 		}
-		unique := cover.Intersection(inp.Cover, totalUnique)
 		data = append(data, UIInput{
-			Short:       p.String(),
-			Full:        string(inp.Prog),
-			Cover:       len(inp.Cover),
-			UniqueCover: len(unique),
-			N:           i,
+			Short: p.String(),
+			Full:  string(inp.Prog),
+			Cover: len(inp.Cover),
+			Sig:   sig,
 		})
 	}
 	sort.Sort(UIInputArray(data))
@@ -176,21 +171,15 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	defer mgr.mu.Unlock()
 
 	var cov cover.Cover
-	call := r.FormValue("call")
-	unique := r.FormValue("unique") != "" && call != ""
-	perCall := false
-	if n, err := strconv.Atoi(call); err == nil && n < len(mgr.corpus) {
-		cov = mgr.corpus[n].Cover
+	if sig := r.FormValue("input"); sig != "" {
+		cov = mgr.corpus[sig].Cover
 	} else {
-		perCall = true
+		call := r.FormValue("call")
 		for _, inp := range mgr.corpus {
 			if call == "" || call == inp.Call {
 				cov = cover.Union(cov, cover.Cover(inp.Cover))
 			}
 		}
-	}
-	if unique {
-		cov = cover.Intersection(cov, mgr.uniqueCover(perCall))
 	}
 
 	if err := generateCoverHtml(w, mgr.cfg.Vmlinux, cov); err != nil {
@@ -198,33 +187,6 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	runtime.GC()
-}
-
-func (mgr *Manager) uniqueCover(perCall bool) cover.Cover {
-	totalCover := make(map[uint32]int)
-	callCover := make(map[string]map[uint32]bool)
-	for _, inp := range mgr.corpus {
-		if perCall && callCover[inp.Call] == nil {
-			callCover[inp.Call] = make(map[uint32]bool)
-		}
-		for _, pc := range inp.Cover {
-			if perCall {
-				if callCover[inp.Call][pc] {
-					continue
-				}
-				callCover[inp.Call][pc] = true
-			}
-			totalCover[pc]++
-		}
-	}
-	var cov cover.Cover
-	for pc, count := range totalCover {
-		if count == 1 {
-			cov = append(cov, pc)
-		}
-	}
-	cover.Canonicalize(cov)
-	return cov
 }
 
 func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
@@ -458,19 +420,17 @@ type UIStat struct {
 }
 
 type UICallType struct {
-	Name        string
-	Inputs      int
-	Cover       int
-	UniqueCover int
+	Name   string
+	Inputs int
+	Cover  int
 }
 
 type UIInput struct {
-	Short       string
-	Full        string
-	Calls       int
-	Cover       int
-	UniqueCover int
-	N           int
+	Short string
+	Full  string
+	Calls int
+	Cover int
+	Sig   string
 }
 
 type UICallTypeArray []UICallType
@@ -571,7 +531,6 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 	{{$c.Name}}
 		<a href='/corpus?call={{$c.Name}}'>inputs:{{$c.Inputs}}</a>
 		<a href='/cover?call={{$c.Name}}'>cover:{{$c.Cover}}</a>
-		<a href='/cover?call={{$c.Name}}&unique=1'>unique:{{$c.UniqueCover}}</a>
 		<a href='/prio?call={{$c.Name}}'>prio</a> <br>
 {{end}}
 </body></html>
@@ -628,8 +587,7 @@ var corpusTemplate = template.Must(template.New("").Parse(addStyle(`
 <body>
 {{range $c := $}}
 	<span title="{{$c.Full}}">{{$c.Short}}</span>
-		<a href='/cover?call={{$c.N}}'>cover:{{$c.Cover}}</a>
-		<a href='/cover?call={{$c.N}}&unique=1'>unique:{{$c.UniqueCover}}</a>
+		<a href='/cover?input={{$c.Sig}}'>cover:{{$c.Cover}}</a>
 		<br>
 {{end}}
 </body></html>

@@ -156,3 +156,27 @@ type minInputArray []*minInput
 func (a minInputArray) Len() int           { return len(a) }
 func (a minInputArray) Less(i, j int) bool { return len(a[i].cov) > len(a[j].cov) }
 func (a minInputArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+func SignalNew(base map[uint32]struct{}, signal []uint32) bool {
+	for _, s := range signal {
+		if _, ok := base[s]; !ok {
+			return true
+		}
+	}
+	return false
+}
+
+func SignalDiff(base map[uint32]struct{}, signal []uint32) (diff []uint32) {
+	for _, s := range signal {
+		if _, ok := base[s]; !ok {
+			diff = append(diff, s)
+		}
+	}
+	return
+}
+
+func SignalAdd(base map[uint32]struct{}, signal []uint32) {
+	for _, s := range signal {
+		base[s] = struct{}{}
+	}
+}
