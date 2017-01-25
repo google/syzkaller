@@ -71,15 +71,17 @@ enum sandbox_type {
 bool flag_cover;
 bool flag_threaded;
 bool flag_collide;
-bool flag_deduplicate;
 bool flag_sandbox_privs;
 sandbox_type flag_sandbox;
 bool flag_enable_tun;
 
+bool flag_collect_cover;
+bool flag_dedup_cover;
+
 __attribute__((aligned(64 << 10))) char input_data[kMaxInput];
 __attribute__((aligned(64 << 10))) char output_data[kMaxOutput];
 uint32_t* output_pos;
-int completed;
+uint32_t completed;
 int running;
 bool collide;
 
@@ -116,7 +118,7 @@ void execute_one();
 uint64_t read_input(uint64_t** input_posp, bool peek = false);
 uint64_t read_arg(uint64_t** input_posp);
 uint64_t read_result(uint64_t** input_posp);
-void write_output(uint32_t v);
+uint32_t* write_output(uint32_t v);
 void copyin(char* addr, uint64_t val, uint64_t size, uint64_t bf_off, uint64_t bf_len);
 uint64_t copyout(char* addr, uint64_t size);
 thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, uint64_t* args, uint64_t* pos);
@@ -129,7 +131,8 @@ void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
 uint64_t cover_read(thread_t* th);
-uint64_t cover_dedup(thread_t* th, uint64_t n);
+static uint32_t hash(uint32_t a);
+static bool dedup(uint32_t sig);
 
 int main(int argc, char** argv)
 {
@@ -150,15 +153,14 @@ int main(int argc, char** argv)
 	flag_cover = flags & (1 << 1);
 	flag_threaded = flags & (1 << 2);
 	flag_collide = flags & (1 << 3);
-	flag_deduplicate = flags & (1 << 4);
 	flag_sandbox = sandbox_none;
-	if (flags & (1 << 5))
+	if (flags & (1 << 4))
 		flag_sandbox = sandbox_setuid;
-	else if (flags & (1 << 6))
+	else if (flags & (1 << 5))
 		flag_sandbox = sandbox_namespace;
 	if (!flag_threaded)
 		flag_collide = false;
-	flag_enable_tun = flags & (1 << 7);
+	flag_enable_tun = flags & (1 << 6);
 	uint64_t executor_pid = *((uint64_t*)input_data + 1);
 
 	cover_open();
@@ -199,7 +201,7 @@ int main(int argc, char** argv)
 void loop()
 {
 	// Tell parent that we are ready to serve.
-	char tmp;
+	char tmp = 0;
 	if (write(kOutPipeFd, &tmp, 1) != 1)
 		fail("control pipe write failed");
 
@@ -210,8 +212,14 @@ void loop()
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
 
-		if (read(kInPipeFd, &tmp, 1) != 1)
+		// TODO: consider moving the read into the child.
+		// Potentially it can speed up things a bit -- when the read finishes
+		// we already have a forked worker process.
+		char flags = 0;
+		if (read(kInPipeFd, &flags, 1) != 1)
 			fail("control pipe read failed");
+		flag_collect_cover = flags & (1 << 0);
+		flag_dedup_cover = flags & (1 << 1);
 
 		int pid = fork();
 		if (pid < 0)
@@ -236,6 +244,8 @@ void loop()
 		// should be as efficient as sigtimedwait.
 		int status = 0;
 		uint64_t start = current_time_ms();
+		uint64_t last_executed = start;
+		uint32_t executed_calls = *(uint32_t*)output_data;
 		for (;;) {
 			int res = waitpid(-1, &status, __WALL | WNOHANG);
 			int errno0 = errno;
@@ -244,19 +254,35 @@ void loop()
 				break;
 			}
 			usleep(1000);
-			if (current_time_ms() - start > 5 * 1000) {
-				debug("waitpid(%d)=%d (%d)\n", pid, res, errno0);
-				debug("killing\n");
-				kill(-pid, SIGKILL);
-				kill(pid, SIGKILL);
-				for (;;) {
-					int res = waitpid(-1, &status, __WALL);
-					debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
-					if (res == pid)
-						break;
-				}
-				break;
+			// Even though the test process executes exit at the end
+			// and execution time of each syscall is bounded by 20ms,
+			// this backup watchdog is necessary and its performance is important.
+			// The problem is that exit in the test processes can fail (sic).
+			// One observed scenario is that the test processes prohibits
+			// exit_group syscall using seccomp. Another observed scenario
+			// is that the test processes setups a userfaultfd for itself,
+			// then the main thread hangs when it wants to page in a page.
+			// Below we check if the test process still executes syscalls
+			// and kill it after 200ms of inactivity.
+			uint64_t now = current_time_ms();
+			uint32_t now_executed = *(uint32_t*)output_data;
+			if (executed_calls != now_executed) {
+				executed_calls = now_executed;
+				last_executed = now;
 			}
+			if ((now - start < 3 * 1000) && (now - last_executed < 200))
+				continue;
+			debug("waitpid(%d)=%d (%d)\n", pid, res, errno0);
+			debug("killing\n");
+			kill(-pid, SIGKILL);
+			kill(pid, SIGKILL);
+			for (;;) {
+				int res = waitpid(-1, &status, __WALL);
+				debug("waitpid(%d)=%d (%d)\n", pid, res, errno);
+				if (res == pid)
+					break;
+			}
+			break;
 		}
 		status = WEXITSTATUS(status);
 		if (status == kFailStatus)
@@ -453,13 +479,49 @@ void handle_completion(thread_t* th)
 		write_output(th->call_index);
 		write_output(th->call_num);
 		write_output(th->res != (uint64_t)-1 ? 0 : th->reserrno);
-		write_output(th->cover_size);
-		// Truncate PCs to uint32_t assuming that they fit into 32-bits.
-		// True for x86_64 and arm64 without KASLR.
-		for (uint64_t i = 0; i < th->cover_size; i++)
-			write_output((uint32_t)th->cover_data[i + 1]);
+		uint32_t* signal_count_pos = write_output(0); // filled in later
+		uint32_t* cover_count_pos = write_output(0);  // filled in later
+
+		// Write out feedback signals.
+		// Currently it is code edges computed as xor of two subsequent basic block PCs.
+		uint64_t* cover_data = th->cover_data + 1;
+		uint32_t cover_size = th->cover_size;
+		uint32_t prev = 0;
+		uint32_t nsig = 0;
+		for (uint32_t i = 0; i < cover_size; i++) {
+			uint32_t pc = cover_data[i];
+			uint32_t sig = pc ^ prev;
+			prev = hash(pc);
+			if (dedup(sig))
+				continue;
+			write_output(sig);
+			nsig++;
+		}
+		*signal_count_pos = nsig;
+		if (flag_collect_cover) {
+			// Write out real coverage (basic block PCs).
+			if (flag_dedup_cover) {
+				std::sort(cover_data, cover_data + cover_size);
+				uint64_t w = 0;
+				uint64_t last = 0;
+				for (uint32_t i = 0; i < cover_size; i++) {
+					uint64_t pc = cover_data[i];
+					if (pc == last)
+						continue;
+					cover_data[w++] = last = pc;
+				}
+				cover_size = w;
+			}
+			// Truncate PCs to uint32_t assuming that they fit into 32-bits.
+			// True for x86_64 and arm64 without KASLR.
+			for (uint32_t i = 0; i < cover_size; i++)
+				write_output((uint32_t)cover_data[i]);
+			*cover_count_pos = cover_size;
+		}
+		debug("signal=%d cover=%d\n", nsig, cover_size);
+
 		completed++;
-		__atomic_store_n((uint32_t*)&output_data[0], completed, __ATOMIC_RELEASE);
+		__atomic_store_n(&output_data[0], completed, __ATOMIC_RELEASE);
 	}
 	th->handled = true;
 	running--;
@@ -512,7 +574,7 @@ void execute_call(thread_t* th)
 	th->cover_size = cover_read(th);
 
 	if (th->res == (uint64_t)-1)
-		debug("#%d: %s = errno(%d)\n", th->id, call->name, th->reserrno);
+		debug("#%d: %s = errno(%ld)\n", th->id, call->name, th->reserrno);
 	else
 		debug("#%d: %s = 0x%lx\n", th->id, call->name, th->res);
 	__atomic_store_n(&th->done, 1, __ATOMIC_RELEASE);
@@ -561,26 +623,38 @@ uint64_t cover_read(thread_t* th)
 	debug("#%d: read cover = %d\n", th->id, n);
 	if (n >= kCoverSize)
 		fail("#%d: too much cover %d", th->id, n);
-	if (flag_deduplicate) {
-		n = cover_dedup(th, n);
-		debug("#%d: dedup cover %d\n", th->id, n);
-	}
 	return n;
 }
 
-uint64_t cover_dedup(thread_t* th, uint64_t n)
+static uint32_t hash(uint32_t a)
 {
-	uint64_t* cover_data = th->cover_data + 1;
-	std::sort(cover_data, cover_data + n);
-	uint64_t w = 0;
-	uint64_t last = 0;
-	for (uint64_t i = 0; i < n; i++) {
-		uint64_t pc = cover_data[i];
-		if (pc == last)
-			continue;
-		cover_data[w++] = last = pc;
+	a = (a ^ 61) ^ (a >> 16);
+	a = a + (a << 3);
+	a = a ^ (a >> 4);
+	a = a * 0x27d4eb2d;
+	a = a ^ (a >> 15);
+	return a;
+}
+
+const uint32_t dedup_table_size = 8 << 10;
+uint32_t dedup_table[dedup_table_size];
+
+// Poorman's best-effort hashmap-based deduplication.
+// The hashmap is global which means that we deduplicate across different calls.
+// This is OK because we are interested only in new signals.
+static bool dedup(uint32_t sig)
+{
+	for (uint32_t i = 0; i < 4; i++) {
+		uint32_t pos = (sig + i) % dedup_table_size;
+		if (dedup_table[pos] == sig)
+			return true;
+		if (dedup_table[pos] == 0) {
+			dedup_table[pos] = sig;
+			return false;
+		}
 	}
-	return w;
+	dedup_table[sig % dedup_table_size] = sig;
+	return false;
 }
 
 void copyin(char* addr, uint64_t val, uint64_t size, uint64_t bf_off, uint64_t bf_len)
@@ -676,11 +750,12 @@ uint64_t read_input(uint64_t** input_posp, bool peek)
 	return *input_pos;
 }
 
-void write_output(uint32_t v)
+uint32_t* write_output(uint32_t v)
 {
 	if (collide)
-		return;
+		return 0;
 	if ((char*)output_pos >= output_data + kMaxOutput)
 		fail("output overflow");
-	*output_pos++ = v;
+	*output_pos = v;
+	return output_pos++;
 }
