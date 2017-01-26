@@ -389,3 +389,22 @@ syz_bf_struct1 {
 
 syz_test$bf0(a0 ptr[in, syz_bf_struct0])
 syz_test$bf1(a0 ptr[in, syz_bf_struct1])
+
+# Checksums
+
+syz_test$csum_encode(a0 ptr[in, syz_csum_encode])
+syz_test$csum_ipv4(a0 ptr[in, syz_csum_ipv4])
+
+syz_csum_encode {
+	f0	int16
+	f1	int16be
+	f2	array[int32, 0:4]
+	f3	int8:4
+	f4	int8:4
+	f5	array[int8, 4]
+} [packed]
+
+syz_csum_ipv4 {
+	f0	csum[ipv4, int16]
+	f1	syz_csum_encode
+} [packed]
