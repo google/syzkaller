@@ -221,7 +221,12 @@ func (inst *instance) repair() error {
 	// Ignore errors because all other adb commands hang as well
 	// and the binary can already be on the device.
 	inst.adb("push", inst.cfg.Executor, "/data/syz-executor")
-	if _, err := inst.adb("shell", "/data/syz-executor", "reboot"); err != nil {
+	// History: This was previously `adb shell /data/syz-executor reboot`,
+	// but it seems like this has stopped working with the latest android:
+	// error code 159, which translates into "Bad system call". Therefore
+	// this is now reverted to `adb shell reboot` to get devices to reboot
+	// until a more reliable solution can be sought out.
+	if _, err := inst.adb("shell", "reboot"); err != nil {
 		return err
 	}
 	// Now give it another 5 minutes to boot.
