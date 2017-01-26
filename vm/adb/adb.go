@@ -217,11 +217,12 @@ func (inst *instance) repair() error {
 	// Assume that the device is in a bad state initially and reboot it.
 	// Ignore errors, maybe we will manage to reboot it anyway.
 	inst.waitForSsh()
-	// adb reboot episodically hangs, so we use a more reliable way.
-	// Ignore errors because all other adb commands hang as well
-	// and the binary can already be on the device.
-	inst.adb("push", inst.cfg.Executor, "/data/syz-executor")
-	if _, err := inst.adb("shell", "/data/syz-executor", "reboot"); err != nil {
+	// History: adb reboot episodically hangs, so we used a more reliable way:
+	// using syz-executor to issue reboot syscall. However, this has stopped
+	// working, probably due to the introduction of seccomp. Therefore,
+	// we revert this to `adb shell reboot` in the meantime, until a more
+	// reliable solution can be sought out.
+	if _, err := inst.adb("shell", "reboot"); err != nil {
 		return err
 	}
 	// Now give it another 5 minutes to boot.
