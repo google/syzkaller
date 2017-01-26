@@ -86,6 +86,7 @@ eth2_payload {
 ##################################### IPv4 #####################################
 ################################################################################
 
+# https://tools.ietf.org/html/rfc791#section-3.1
 # https://en.wikipedia.org/wiki/IPv4#Header
 
 # TODO: https://en.wikipedia.org/wiki/IPsec#Authentication_Header
@@ -93,8 +94,7 @@ eth2_payload {
 
 include <uapi/linux/in.h>
 include <uapi/linux/ip.h>
-
-ipv4_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, IPPROTO_EGP, IPPROTO_PUP, IPPROTO_UDP, IPPROTO_IDP, IPPROTO_TP, IPPROTO_DCCP, IPPROTO_IPV6, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_ESP, IPPROTO_AH, IPPROTO_MTP, IPPROTO_BEETPH, IPPROTO_ENCAP, IPPROTO_PIM, IPPROTO_COMP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_MPLS, IPPROTO_RAW
+include <net/cipso_ipv4.h>
 
 # This corresponds to LOCAL_IPV4 ("172.20.%d.170" % pid) in executor/common.h
 ipv4_addr_local {
@@ -131,18 +131,109 @@ ipv4_addr [
 	rand_addr	int32be
 ]
 
+# http://www.iana.org/assignments/ip-parameters/ip-parameters.xhtml#ip-parameters-1
+ipv4_option [
+	generic		ipv4_option_generic
+	end		ipv4_option_end
+	noop		ipv4_option_noop
+	lsrr		ipv4_option_lsrr
+	ssrr		ipv4_option_ssrr
+	rr		ipv4_option_rr
+	timestamp	ipv4_option_timestamp
+	cipso		ipv4_option_cipso
+	ra		ipv4_option_ra
+# IPOPT_SEC and IPOPT_SID are not supported by Linux kernel
+] [varlen]
+
 ipv4_option_types = IPOPT_END, IPOPT_NOOP, IPOPT_SEC, IPOPT_LSRR, IPOPT_TIMESTAMP, IPOPT_CIPSO, IPOPT_RR, IPOPT_SID, IPOPT_SSRR, IPOPT_RA
 
-# TODO: describe particular options
-ipv4_option {
+ipv4_option_generic {
 	type		flags[ipv4_option_types, int8]
-	length		len[data, int8]
+	length		len[parent, int8]
 	data		array[int8, 0:16]
 } [packed]
 
+# https://tools.ietf.org/html/rfc791#section-3.1
+ipv4_option_end {
+	type		const[IPOPT_END, int8]
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+ipv4_option_noop {
+	type		const[IPOPT_NOOP, int8]
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+ipv4_option_lsrr {
+	type		const[IPOPT_LSRR, int8]
+	length		len[parent, int8]
+	pointer		int8
+	data		array[ipv4_addr]
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+ipv4_option_ssrr {
+	type		const[IPOPT_SSRR, int8]
+	length		len[parent, int8]
+	pointer		int8
+	data		array[ipv4_addr]
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+ipv4_option_rr {
+	type		const[IPOPT_RR, int8]
+	length		len[parent, int8]
+	pointer		int8
+	data		array[ipv4_addr]
+} [packed]
+
+ipv4_option_timestamp_flags = IPOPT_TS_TSONLY, IPOPT_TS_TSANDADDR, IPOPT_TS_PRESPEC
+
+ipv4_option_timestamp_timestamp {
+	addr		array[ipv4_addr, 0:1]
+	timestamp	int32be
+} [packed]
+
+# https://tools.ietf.org/html/rfc791#section-3.1
+# http://www.networksorcery.com/enp/protocol/ip/option004.htm
+ipv4_option_timestamp {
+	type		const[IPOPT_TIMESTAMP, int8]
+	length		len[parent, int8]
+	pointer		int8
+	flg		flags[ipv4_option_timestamp_flags, int8:4]
+	oflw		int8:4
+	timestamps	array[ipv4_option_timestamp_timestamp]
+} [packed]
+
+ipv4_option_cipso_tag_types = CIPSO_V4_TAG_INVALID, CIPSO_V4_TAG_RBITMAP, CIPSO_V4_TAG_ENUM, CIPSO_V4_TAG_RANGE, CIPSO_V4_TAG_PBITMAP, CIPSO_V4_TAG_FREEFORM
+
+# TODO: describe particular tag types
+ipv4_option_cipso_tag {
+	type		flags[ipv4_option_cipso_tag_types, int8]
+	length		len[parent, int8]
+	data		array[int8, 0:16]
+} [packed]
+
+# https://www.ietf.org/archive/id/draft-ietf-cipso-ipsecurity-01.txt
+ipv4_option_cipso {
+	type		const[IPOPT_CIPSO, int8]
+	length		len[parent, int8]
+	doi		int32be
+	tags		array[ipv4_option_cipso_tag]
+} [packed]
+
+# https://tools.ietf.org/html/rfc2113
+ipv4_option_ra {
+	type		const[IPOPT_RA, int8]
+	length		len[parent, int8]
+	value		int32be
+} [packed]
+
 ipv4_options {
-	options		array[ipv4_option, 0:4]
+	options		array[ipv4_option]
 } [packed, align_4]
+
+ipv4_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, IPPROTO_EGP, IPPROTO_PUP, IPPROTO_UDP, IPPROTO_IDP, IPPROTO_TP, IPPROTO_DCCP, IPPROTO_IPV6, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_ESP, IPPROTO_AH, IPPROTO_MTP, IPPROTO_BEETPH, IPPROTO_ENCAP, IPPROTO_PIM, IPPROTO_COMP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_MPLS, IPPROTO_RAW
 
 ipv4_header {
 	ihl		bytesize4[parent, int8:4]
