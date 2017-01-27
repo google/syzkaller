@@ -9,7 +9,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha1"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -29,6 +28,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/cover"
+	"github.com/google/syzkaller/hash"
 	"github.com/google/syzkaller/host"
 	"github.com/google/syzkaller/ipc"
 	. "github.com/google/syzkaller/log"
@@ -51,16 +51,10 @@ const (
 	programLength = 30
 )
 
-type Sig [sha1.Size]byte
-
-func hash(data []byte) Sig {
-	return Sig(sha1.Sum(data))
-}
-
 type Input struct {
 	p         *prog.Prog
 	call      int
-	cover     cover.Cover
+	signal    []uint32
 	minimized bool
 }
 
@@ -72,18 +66,19 @@ type Candidate struct {
 var (
 	manager *rpc.Client
 
-	coverMu     sync.RWMutex
-	corpusCover []cover.Cover
-	maxCover    []cover.Cover
-	flakes      cover.Cover
+	signalMu     sync.RWMutex
+	corpusSignal map[uint32]struct{}
+	maxSignal    map[uint32]struct{}
+	newSignal    map[uint32]struct{}
 
 	corpusMu     sync.RWMutex
 	corpus       []*prog.Prog
-	corpusHashes map[Sig]struct{}
+	corpusHashes map[hash.Sig]struct{}
 
-	triageMu   sync.RWMutex
-	triage     []Input
-	candidates []Candidate
+	triageMu        sync.RWMutex
+	triage          []Input
+	triageCandidate []Input
+	candidates      []Candidate
 
 	gate *ipc.Gate
 
@@ -127,9 +122,10 @@ func main() {
 		runtime.MemProfileRate = 0
 	}
 
-	corpusCover = make([]cover.Cover, sys.CallCount)
-	maxCover = make([]cover.Cover, sys.CallCount)
-	corpusHashes = make(map[Sig]struct{})
+	corpusSignal = make(map[uint32]struct{})
+	maxSignal = make(map[uint32]struct{})
+	newSignal = make(map[uint32]struct{})
+	corpusHashes = make(map[hash.Sig]struct{})
 
 	Logf(0, "dialing manager at %v", *flagManager)
 	conn, err := jsonrpc.Dial("tcp", *flagManager)
@@ -144,6 +140,24 @@ func main() {
 	}
 	calls := buildCallList(r.EnabledCalls)
 	ct := prog.BuildChoiceTable(r.Prios, calls)
+	for _, s := range r.MaxSignal {
+		maxSignal[s] = struct{}{}
+	}
+	for _, candidate := range r.Candidates {
+		p, err := prog.Deserialize(candidate.Prog)
+		if err != nil {
+			panic(err)
+		}
+		if noCover {
+			corpusMu.Lock()
+			corpus = append(corpus, p)
+			corpusMu.Unlock()
+		} else {
+			triageMu.Lock()
+			candidates = append(candidates, Candidate{p, candidate.Minimized})
+			triageMu.Unlock()
+		}
+	}
 
 	if r.NeedCheck {
 		a := &CheckArgs{Name: *flagName}
@@ -168,7 +182,7 @@ func main() {
 	if _, ok := calls[sys.CallMap["syz_emit_ethernet"]]; ok {
 		flags |= ipc.FlagEnableTun
 	}
-	noCover = flags&ipc.FlagCover == 0
+	noCover = flags&ipc.FlagSignal == 0
 	leakCallback := func() {
 		if atomic.LoadUint32(&allTriaged) != 0 {
 			// Scan for leaks once in a while (it is damn slow).
@@ -196,14 +210,22 @@ func main() {
 
 			for i := 0; ; i++ {
 				triageMu.RLock()
-				if len(triage) != 0 || len(candidates) != 0 {
+				if len(triageCandidate) != 0 || len(candidates) != 0 || len(triage) != 0 {
 					triageMu.RUnlock()
 					triageMu.Lock()
-					if len(triage) != 0 {
-						last := len(triage) - 1
-						inp := triage[last]
-						triage = triage[:last]
-						wakePoll := len(triage) < *flagProcs
+					if len(triageCandidate) != 0 {
+						last := len(triageCandidate) - 1
+						inp := triageCandidate[last]
+						triageCandidate = triageCandidate[:last]
+						triageMu.Unlock()
+						Logf(1, "triaging candidate: %s", inp.p)
+						triageInput(pid, env, inp)
+						continue
+					} else if len(candidates) != 0 {
+						last := len(candidates) - 1
+						candidate := candidates[last]
+						candidates = candidates[:last]
+						wakePoll := len(candidates) < *flagProcs
 						triageMu.Unlock()
 						if wakePoll {
 							select {
@@ -211,15 +233,16 @@ func main() {
 							default:
 							}
 						}
+						Logf(1, "executing candidate: %s", candidate.p)
+						execute(pid, env, candidate.p, false, candidate.minimized, true, &statExecCandidate)
+						continue
+					} else if len(triage) != 0 {
+						last := len(triage) - 1
+						inp := triage[last]
+						triage = triage[:last]
+						triageMu.Unlock()
 						Logf(1, "triaging : %s", inp.p)
 						triageInput(pid, env, inp)
-						continue
-					} else if len(candidates) != 0 {
-						last := len(candidates) - 1
-						candidate := candidates[last]
-						candidates = candidates[:last]
-						triageMu.Unlock()
-						execute(pid, env, candidate.p, candidate.minimized, &statExecCandidate)
 						continue
 					} else {
 						triageMu.Unlock()
@@ -234,15 +257,14 @@ func main() {
 					corpusMu.RUnlock()
 					p := prog.Generate(rnd, programLength, ct)
 					Logf(1, "#%v: generated: %s", i, p)
-					execute(pid, env, p, false, &statExecGen)
+					execute(pid, env, p, false, false, false, &statExecGen)
 				} else {
 					// Mutate an existing prog.
-					p0 := corpus[rnd.Intn(len(corpus))]
-					p := p0.Clone()
-					p.Mutate(rs, programLength, ct, corpus)
+					p := corpus[rnd.Intn(len(corpus))].Clone()
 					corpusMu.RUnlock()
-					Logf(1, "#%v: mutated: %s <- %s", i, p, p0)
-					execute(pid, env, p, false, &statExecFuzz)
+					p.Mutate(rs, programLength, ct, corpus)
+					Logf(1, "#%v: mutated: %s", i, p)
+					execute(pid, env, p, false, false, false, &statExecFuzz)
 				}
 			}
 		}()
@@ -276,6 +298,13 @@ func main() {
 				Name:  *flagName,
 				Stats: make(map[string]uint64),
 			}
+			signalMu.Lock()
+			a.MaxSignal = make([]uint32, 0, len(newSignal))
+			for s := range newSignal {
+				a.MaxSignal = append(a.MaxSignal, s)
+			}
+			newSignal = make(map[uint32]struct{})
+			signalMu.Unlock()
 			for _, env := range envs {
 				a.Stats["exec total"] += atomic.SwapUint64(&env.StatExecs, 0)
 				a.Stats["executor restarts"] += atomic.SwapUint64(&env.StatRestarts, 0)
@@ -299,6 +328,13 @@ func main() {
 			r := &PollRes{}
 			if err := manager.Call("Manager.Poll", a, r); err != nil {
 				panic(err)
+			}
+			if len(r.MaxSignal) != 0 {
+				signalMu.Lock()
+				for _, s := range r.MaxSignal {
+					maxSignal[s] = struct{}{}
+				}
+				signalMu.Unlock()
 			}
 			for _, inp := range r.NewInputs {
 				addInput(inp)
@@ -371,8 +407,8 @@ func buildCallList(enabledCalls string) map[*sys.Call]bool {
 func addInput(inp RpcInput) {
 	corpusMu.Lock()
 	defer corpusMu.Unlock()
-	coverMu.Lock()
-	defer coverMu.Unlock()
+	signalMu.Lock()
+	defer signalMu.Unlock()
 
 	if noCover {
 		panic("should not be called when coverage is disabled")
@@ -384,21 +420,15 @@ func addInput(inp RpcInput) {
 	if inp.CallIndex < 0 || inp.CallIndex >= len(p.Calls) {
 		panic("bad call index")
 	}
-	call := p.Calls[inp.CallIndex].Meta
-	sig := hash(inp.Prog)
-	if _, ok := corpusHashes[sig]; ok {
-		return
+	sig := hash.Hash(inp.Prog)
+	if _, ok := corpusHashes[sig]; !ok {
+		corpus = append(corpus, p)
+		corpusHashes[sig] = struct{}{}
 	}
-	cov := cover.Canonicalize(inp.Cover)
-	diff := cover.Difference(cov, maxCover[call.CallID])
-	diff = cover.Difference(diff, flakes)
-	if len(diff) == 0 {
-		return
+	if diff := cover.SignalDiff(maxSignal, inp.Signal); len(diff) != 0 {
+		cover.SignalAdd(corpusSignal, diff)
+		cover.SignalAdd(maxSignal, diff)
 	}
-	corpus = append(corpus, p)
-	corpusCover[call.CallID] = cover.Union(corpusCover[call.CallID], cov)
-	maxCover[call.CallID] = cover.Union(maxCover[call.CallID], cov)
-	corpusHashes[hash(inp.Prog)] = struct{}{}
 }
 
 func triageInput(pid int, env *ipc.Env, inp Input) {
@@ -406,133 +436,143 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 		panic("should not be called when coverage is disabled")
 	}
 
+	signalMu.RLock()
+	newSignal := cover.SignalDiff(corpusSignal, inp.signal)
+	signalMu.RUnlock()
+	if len(newSignal) == 0 {
+		return
+	}
+	newSignal = cover.Canonicalize(newSignal)
+
 	call := inp.p.Calls[inp.call].Meta
-	coverMu.RLock()
-	newCover := cover.Difference(inp.cover, corpusCover[call.CallID])
-	newCover = cover.Difference(newCover, flakes)
-	coverMu.RUnlock()
-	if len(newCover) == 0 {
-		return
-	}
+	data := inp.p.Serialize()
+	sig := hash.Hash(data)
 
-	corpusMu.RLock()
-	if _, ok := corpusHashes[hash(inp.p.Serialize())]; ok {
-		corpusMu.RUnlock()
-		return
-	}
-	corpusMu.RUnlock()
-
-	notexecuted := false
-	minCover := inp.cover
-	for i := 0; i < 3; i++ {
-		allCover := execute1(pid, env, inp.p, &statExecTriage)
-		if len(allCover[inp.call]) == 0 {
-			// The call was not executed. Happens sometimes, reason unknown.
-			if notexecuted {
-				return // if it happened twice, give up
+	Logf(3, "triaging input for %v (new signal=%v):\n%s", call.CallName, len(newSignal), data)
+	var inputCover cover.Cover
+	if inp.minimized {
+		// We just need to get input coverage.
+		for i := 0; i < 3; i++ {
+			info := execute1(pid, env, inp.p, &statExecTriage, true)
+			if len(info) == 0 || len(info[inp.call].Cover) == 0 {
+				continue // The call was not executed. Happens sometimes.
 			}
-			notexecuted = true
-			continue
+			inputCover = append([]uint32{}, info[inp.call].Cover...)
+			break
 		}
-		coverMu.RLock()
-		cov := allCover[inp.call]
-		diff := cover.SymmetricDifference(inp.cover, cov)
-		minCover = cover.Intersection(minCover, cov)
-		updateFlakes := len(diff) != 0 && len(cover.Difference(diff, flakes)) != 0
-		coverMu.RUnlock()
-		if updateFlakes {
-			coverMu.Lock()
-			flakes = cover.Union(flakes, diff)
-			coverMu.Unlock()
-			newCover = cover.Intersection(newCover, minCover)
-			if len(newCover) == 0 {
-				break
+	} else {
+		// We need to compute input coverage and non-flaky signal for minimization.
+		notexecuted := false
+		for i := 0; i < 3; i++ {
+			info := execute1(pid, env, inp.p, &statExecTriage, true)
+			if len(info) == 0 || len(info[inp.call].Signal) == 0 {
+				// The call was not executed. Happens sometimes.
+				if notexecuted {
+					return // if it happened twice, give up
+				}
+				notexecuted = true
+				continue
+			}
+			inf := info[inp.call]
+			newSignal = cover.Intersection(newSignal, cover.Canonicalize(inf.Signal))
+			if len(newSignal) == 0 {
+				return
+			}
+			if len(inputCover) == 0 {
+				inputCover = append([]uint32{}, inf.Cover...)
+			} else {
+				inputCover = cover.Union(inputCover, inf.Cover)
 			}
 		}
-	}
-	newCover = cover.Intersection(newCover, minCover)
-	if len(newCover) == 0 {
-		return
-	}
 
-	if !inp.minimized {
 		inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
-			allCover := execute(pid, env, p1, false, &statExecMinimize)
-			coverMu.RLock()
-			defer coverMu.RUnlock()
-
-			if len(allCover[call1]) == 0 {
+			info := execute(pid, env, p1, false, false, false, &statExecMinimize)
+			if len(info) == 0 || len(info[call1].Signal) == 0 {
 				return false // The call was not executed.
 			}
-			cov := allCover[call1]
-			if len(cover.Intersection(newCover, cov)) != len(newCover) {
+			inf := info[call1]
+			signal := cover.Canonicalize(inf.Signal)
+			signalMu.RLock()
+			defer signalMu.RUnlock()
+			if len(cover.Intersection(newSignal, signal)) != len(newSignal) {
 				return false
 			}
-			minCover = cover.Intersection(minCover, cov)
 			return true
 		}, false)
 	}
-	inp.cover = minCover
 
 	atomic.AddUint64(&statNewInput, 1)
-	data := inp.p.Serialize()
 	Logf(2, "added new input for %v to corpus:\n%s", call.CallName, data)
-	a := &NewInputArgs{*flagName, RpcInput{call.CallName, data, inp.call, []uint32(inp.cover)}}
+	a := &NewInputArgs{
+		Name: *flagName,
+		RpcInput: RpcInput{
+			Call:      call.CallName,
+			Prog:      data,
+			CallIndex: inp.call,
+			Signal:    []uint32(cover.Canonicalize(inp.signal)),
+			Cover:     []uint32(inputCover),
+		},
+	}
 	if err := manager.Call("Manager.NewInput", a, nil); err != nil {
 		panic(err)
 	}
 
-	corpusMu.Lock()
-	defer corpusMu.Unlock()
-	coverMu.Lock()
-	defer coverMu.Unlock()
+	signalMu.Lock()
+	cover.SignalAdd(corpusSignal, inp.signal)
+	signalMu.Unlock()
 
-	corpusCover[call.CallID] = cover.Union(corpusCover[call.CallID], minCover)
-	corpus = append(corpus, inp.p)
-	corpusHashes[hash(data)] = struct{}{}
+	corpusMu.Lock()
+	if _, ok := corpusHashes[sig]; !ok {
+		corpus = append(corpus, inp.p)
+		corpusHashes[sig] = struct{}{}
+	}
+	corpusMu.Unlock()
 }
 
-func execute(pid int, env *ipc.Env, p *prog.Prog, minimized bool, stat *uint64) []cover.Cover {
-	allCover := execute1(pid, env, p, stat)
-	coverMu.RLock()
-	defer coverMu.RUnlock()
-	for i, cov := range allCover {
-		if len(cov) == 0 {
+func execute(pid int, env *ipc.Env, p *prog.Prog, needCover, minimized, candidate bool, stat *uint64) []ipc.CallInfo {
+	info := execute1(pid, env, p, stat, needCover)
+	signalMu.RLock()
+	defer signalMu.RUnlock()
+
+	for i, inf := range info {
+		if !cover.SignalNew(maxSignal, inf.Signal) {
 			continue
 		}
-		callID := p.Calls[i].Meta.CallID
-		if cover.HasDifference(cov, maxCover[callID]) {
-			diff := cover.Difference(cov, maxCover[callID])
+		diff := cover.SignalDiff(maxSignal, inf.Signal)
 
-			coverMu.RUnlock()
-			coverMu.Lock()
-			maxCover[callID] = cover.Union(maxCover[callID], diff)
-			coverMu.Unlock()
-			coverMu.RLock()
+		signalMu.RUnlock()
+		signalMu.Lock()
+		cover.SignalAdd(maxSignal, diff)
+		cover.SignalAdd(newSignal, diff)
+		signalMu.Unlock()
+		signalMu.RLock()
 
-			inp := Input{
-				p:         p.Clone(),
-				call:      i,
-				cover:     cover.Copy(cov),
-				minimized: minimized,
-			}
-			triageMu.Lock()
-			triage = append(triage, inp)
-			triageMu.Unlock()
+		inp := Input{
+			p:         p.Clone(),
+			call:      i,
+			signal:    append([]uint32{}, inf.Signal...),
+			minimized: minimized,
 		}
+		triageMu.Lock()
+		if candidate {
+			triageCandidate = append(triageCandidate, inp)
+		} else {
+			triage = append(triage, inp)
+		}
+		triageMu.Unlock()
 	}
-	return allCover
+	return info
 }
 
 var logMu sync.Mutex
 
-func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
+func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64, needCover bool) []ipc.CallInfo {
 	if false {
 		// For debugging, this function must not be executed with locks held.
 		corpusMu.Lock()
 		corpusMu.Unlock()
-		coverMu.Lock()
-		coverMu.Unlock()
+		signalMu.Lock()
+		signalMu.Unlock()
 		triageMu.Lock()
 		triageMu.Unlock()
 	}
@@ -570,13 +610,12 @@ func execute1(pid int, env *ipc.Env, p *prog.Prog, stat *uint64) []cover.Cover {
 	try := 0
 retry:
 	atomic.AddUint64(stat, 1)
-	output, rawCover, errnos, failed, hanged, err := env.Exec(p)
-	_ = errnos
+	output, info, failed, hanged, err := env.Exec(p, needCover, true)
 	if failed {
 		// BUG in output should be recognized by manager.
 		Logf(0, "BUG: executor-detected bug:\n%s", output)
 		// Don't return any cover so that the input is not added to corpus.
-		return make([]cover.Cover, len(p.Calls))
+		return nil
 	}
 	if err != nil {
 		if _, ok := err.(ipc.ExecutorFailure); ok || try > 10 {
@@ -588,12 +627,8 @@ retry:
 		time.Sleep(time.Second)
 		goto retry
 	}
-	Logf(2, "result failed=%v hanged=%v:\n%v\n", failed, hanged, string(output))
-	cov := make([]cover.Cover, len(p.Calls))
-	for i, c := range rawCover {
-		cov[i] = cover.Cover(c)
-	}
-	return cov
+	Logf(2, "result failed=%v hanged=%v: %v\n", failed, hanged, string(output))
+	return info
 }
 
 func kmemleakInit() {
