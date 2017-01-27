@@ -12,7 +12,6 @@ const ptrSize = 8
 type Call struct {
 	ID       int
 	NR       int // kernel syscall number
-	CallID   int
 	Name     string
 	CallName string
 	Args     []Type
@@ -598,10 +597,8 @@ func ForeachType(meta *Call, f func(Type)) {
 }
 
 var (
-	Calls     []*Call
-	CallCount int
-	CallMap   = make(map[string]*Call)
-	CallID    = make(map[string]int)
+	Calls   []*Call
+	CallMap = make(map[string]*Call)
 )
 
 func init() {
@@ -616,13 +613,6 @@ func init() {
 			println(c.Name)
 			panic("duplicate syscall")
 		}
-		id, ok := CallID[c.CallName]
-		if !ok {
-			id = len(CallID)
-			CallID[c.CallName] = id
-		}
-		c.CallID = id
 		CallMap[c.Name] = c
 	}
-	CallCount = len(CallID)
 }

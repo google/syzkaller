@@ -174,7 +174,7 @@ extern "C" int test_kvm()
 		// If we do MOV to RAX and then RSM, RAX will be restored to host value so RAX check will fail.
 		// So instead we execute just RSM, if we are in SMM we will get KVM_EXIT_HLT, otherwise KVM_EXIT_INTERNAL_ERROR.
 		const char text_rsm[] = "\x0f\xaa";
-		if (res = test_one(16, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false))
+		if (res = test_one(8, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false))
 			return res;
 		if (res = test_one(32, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false))
 			return res;
