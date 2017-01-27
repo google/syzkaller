@@ -127,7 +127,7 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string) (str
 		Scheduling: &compute.Scheduling{
 			AutomaticRestart:  false,
 			Preemptible:       true,
-			OnHostMaintenance: "MIGRATE",
+			OnHostMaintenance: "TERMINATE",
 		},
 	}
 
