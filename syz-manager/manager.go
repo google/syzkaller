@@ -127,6 +127,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 		crashTypes:      make(map[string]bool),
 		enabledSyscalls: enabledSyscalls,
 		corpus:          make(map[string]RpcInput),
+		disabledHashes:  make(map[string]struct{}),
 		corpusSignal:    make(map[uint32]struct{}),
 		maxSignal:       make(map[uint32]struct{}),
 		corpusCover:     make(map[uint32]struct{}),
