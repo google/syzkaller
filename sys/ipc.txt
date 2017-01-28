@@ -1,0 +1,105 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/fcntl.h>
+include <linux/stat.h>
+include <linux/ipc.h>
+include <linux/shm.h>
+include <linux/msg.h>
+include <linux/sem.h>
+
+resource ipc[int32]: 0, 0xffffffffffffffff
+resource ipc_msq[ipc]
+resource ipc_sem[ipc]
+resource ipc_shm[ipc]
+
+msgget(key int32, flags flags[msgget_flags]) ipc_msq
+msgsnd(msqid ipc_msq, msgp buffer[in], flags flags[msg_flags])
+msgrcv(msqid ipc_msq, msgp buffer[out], sz len[msgp], typ intptr, flags flags[msg_flags])
+msgctl(msqid ipc_msq, cmd flags[msgctl_cmd], buf ptr[inout, msqid_ds])
+
+semget(key int32, nsems intptr, flags flags[semget_flags]) ipc_sem
+semop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops])
+semtimedop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops], timeout ptr[in, timespec])
+semctl(semid ipc_sem, semnum intptr, cmd flags[semctl_cmd], arg ptr[in, semid_ds])
+
+# The unused arg is unused by syscall (does not exist at all),
+# but it helps to generate sane size values.
+shmget(key int32, size len[unused], flags flags[shmget_flags], unused vma) ipc_shm
+shmat(shmid ipc_shm, addr vma, flags flags[shmat_flags])
+shmctl(shmid ipc_shm, cmd flags[shmctl_cmd], buf ptr[inout, shmid_ds])
+shmdt(addr vma)
+
+msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+msg_flags = IPC_NOWAIT, MSG_EXCEPT, MSG_NOERROR
+msgctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, MSG_INFO, MSG_STAT
+semget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+semop_flags = IPC_NOWAIT, SEM_UNDO
+semctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, SEM_INFO, SEM_STAT, GETALL, GETNCNT, GETPID, GETVAL, GETZCNT, SETALL, SETVAL
+shmget_flags = IPC_CREAT, IPC_EXCL, SHM_HUGETLB, SHM_NORESERVE, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+shmat_flags = SHM_RND, SHM_RDONLY, SHM_REMAP
+shmctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, SHM_INFO, SHM_STAT, SHM_LOCK, SHM_UNLOCK
+
+ipc_perm {
+	key	int32
+	uid	uid
+	gid	gid
+	cuid	uid
+	cgid	gid
+	mode	int16
+	seq	int16
+}
+
+msqid_ds {
+	key	int32
+	uid	uid
+	gid	gid
+	cuid	uid
+	cgid	gid
+	mode	int16
+	seq	int16
+	stime	intptr
+	rtime	intptr
+	ctime	intptr
+	cbytes	intptr
+	qnum	intptr
+	qbytes	intptr
+	lspid	pid
+	lrpid	pid
+}
+
+shmid_ds {
+	key	int32
+	uid	uid
+	gid	gid
+	cuid	uid
+	cgid	gid
+	mode	int16
+	seq	int16
+	segsz	intptr
+	atime	intptr
+	dtime	intptr
+	ctime	intptr
+	cpid	pid
+	lpid	pid
+	nattch	intptr
+}
+
+semid_ds {
+	key	int32
+	uid	uid
+	gid	gid
+	cuid	uid
+	cgid	gid
+	mode	int16
+	seq	int16
+	otime	intptr
+	ctime	intptr
+	nsems	intptr
+}
+
+sembuf {
+	num	int16
+	op	int16
+	flg	flags[semop_flags, int64]
+}

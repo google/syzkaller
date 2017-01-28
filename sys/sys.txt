@@ -12,10 +12,6 @@ include <linux/stat.h>
 include <linux/xattr.h>
 include <linux/mman.h>
 include <linux/time.h>
-include <linux/ipc.h>
-include <linux/shm.h>
-include <linux/msg.h>
-include <linux/sem.h>
 include <linux/prctl.h>
 include <linux/mount.h>
 include <linux/fs.h>
@@ -245,28 +241,6 @@ mq_timedreceive(mqd fd_mq, msg buffer[out], msglen len[msg], prio intptr, timeou
 mq_notify(mqd fd_mq, notif ptr[in, sigevent])
 mq_getsetattr(mqd fd_mq, attr ptr[in, mq_attr], oldattr ptr[out, mq_attr, opt])
 mq_unlink(name ptr[in, string])
-
-resource ipc[int32]: 0, 0xffffffffffffffff
-resource ipc_msq[ipc]
-resource ipc_sem[ipc]
-resource ipc_shm[ipc]
-
-msgget(key int32, flags flags[msgget_flags]) ipc_msq
-msgsnd(msqid ipc_msq, msgp buffer[in], flags flags[msg_flags])
-msgrcv(msqid ipc_msq, msgp buffer[out], sz len[msgp], typ intptr, flags flags[msg_flags])
-msgctl(msqid ipc_msq, cmd flags[msgctl_cmd], buf ptr[inout, msqid_ds])
-
-semget(key int32, nsems intptr, flags flags[semget_flags]) ipc_sem
-semop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops])
-semtimedop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops], timeout ptr[in, timespec])
-semctl(semid ipc_sem, semnum intptr, cmd flags[semctl_cmd], arg ptr[in, semid_ds])
-
-# The unused arg is unused by syscall (does not exist at all),
-# but it helps to generate sane size values.
-shmget(key int32, size len[unused], flags flags[shmget_flags], unused vma) ipc_shm
-shmat(shmid ipc_shm, addr vma, flags flags[shmat_flags])
-shmctl(shmid ipc_shm, cmd flags[shmctl_cmd], buf ptr[inout, shmid_ds])
-shmdt(addr vma)
 
 mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
 mknodat(dirfd fd_dir, file ptr[in, filename], mode flags[mknod_mode], dev int32)
@@ -684,70 +658,6 @@ fd_set {
 	mask7	int64
 }
 
-ipc_perm {
-	key	int32
-	uid	uid
-	gid	gid
-	cuid	uid
-	cgid	gid
-	mode	int16
-	seq	int16
-}
-
-msqid_ds {
-	key	int32
-	uid	uid
-	gid	gid
-	cuid	uid
-	cgid	gid
-	mode	int16
-	seq	int16
-	stime	intptr
-	rtime	intptr
-	ctime	intptr
-	cbytes	intptr
-	qnum	intptr
-	qbytes	intptr
-	lspid	pid
-	lrpid	pid
-}
-
-shmid_ds {
-	key	int32
-	uid	uid
-	gid	gid
-	cuid	uid
-	cgid	gid
-	mode	int16
-	seq	int16
-	segsz	intptr
-	atime	intptr
-	dtime	intptr
-	ctime	intptr
-	cpid	pid
-	lpid	pid
-	nattch	intptr
-}
-
-semid_ds {
-	key	int32
-	uid	uid
-	gid	gid
-	cuid	uid
-	cgid	gid
-	mode	int16
-	seq	int16
-	otime	intptr
-	ctime	intptr
-	nsems	intptr
-}
-
-sembuf {
-	num	int16
-	op	int16
-	flg	flags[semop_flags, int64]
-}
-
 sock_fprog {
 	len	len[filter, int16]
 	filter	ptr[in, array[sock_filter]]
@@ -1151,15 +1061,6 @@ arch_prctl_code = ARCH_SET_FS, ARCH_GET_FS, ARCH_SET_GS, ARCH_GET_GS
 epoll_flags = EPOLL_CLOEXEC
 epoll_op = EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
 epoll_ev =  POLLIN, POLLOUT, POLLRDHUP, POLLPRI, POLLERR, POLLHUP, EPOLLET, EPOLLONESHOT
-msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
-msg_flags = IPC_NOWAIT, MSG_EXCEPT, MSG_NOERROR
-msgctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, MSG_INFO, MSG_STAT
-semget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
-semop_flags = IPC_NOWAIT, SEM_UNDO
-semctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, SEM_INFO, SEM_STAT, GETALL, GETNCNT, GETPID, GETVAL, GETZCNT, SETALL, SETVAL
-shmget_flags = IPC_CREAT, IPC_EXCL, SHM_HUGETLB, SHM_NORESERVE, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
-shmat_flags = SHM_RND, SHM_RDONLY, SHM_REMAP
-shmctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, SHM_INFO, SHM_STAT, SHM_LOCK, SHM_UNLOCK
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 fchownat_flags = AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW
 fallocate_mode = 0, FALLOC_FL_KEEP_SIZE, FALLOC_FL_PUNCH_HOLE
