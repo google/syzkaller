@@ -1,26 +1,27 @@
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <linux/key.h>
 include <linux/keyctl.h>
 include <uapi/linux/keyctl.h>
 
-resource key[int32]: KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING, KEY_SPEC_GROUP_KEYRING, KEY_SPEC_REQKEY_AUTH_KEY, KEY_SPEC_REQUESTOR_KEYRING
+resource key[int32]: 0, KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING, KEY_SPEC_GROUP_KEYRING, KEY_SPEC_REQKEY_AUTH_KEY, KEY_SPEC_REQUESTOR_KEYRING
 
-add_key(type ptr[in, string], desc ptr[in, string], payload buffer[in, opt], paylen len[payload], keyring flags[keyring_type]) key
-request_key(type ptr[in, string], desc ptr[in, string], callout ptr[in, string], keyring flags[keyring_type]) key
+add_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], payload buffer[in, opt], paylen len[payload], keyring flags[keyring_type]) key
+request_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], callout ptr[in, string], keyring flags[keyring_type]) key
 keyctl$get_keyring_id(code const[KEYCTL_GET_KEYRING_ID], key key, create intptr)
-keyctl$join(code const[KEYCTL_JOIN_SESSION_KEYRING], session ptr[in, string])
+keyctl$join(code const[KEYCTL_JOIN_SESSION_KEYRING], session ptr[in, key_desc, opt])
 keyctl$update(code const[KEYCTL_UPDATE], key key, payload buffer[in, opt], paylen len[payload])
 keyctl$revoke(code const[KEYCTL_REVOKE], key key)
 keyctl$describe(code const[KEYCTL_DESCRIBE], key key, desc buffer[out], len len[desc])
 keyctl$clear(code const[KEYCTL_CLEAR], key key)
 keyctl$link(code const[KEYCTL_LINK], key1 key, key2 key)
 keyctl$unlink(code const[KEYCTL_UNLINK], key1 key, key2 key)
-keyctl$search(code const[KEYCTL_SEARCH], key key, type ptr[in, string], desc ptr[in, string], ring key)
+keyctl$search(code const[KEYCTL_SEARCH], key key, type ptr[in, string[key_type]], desc ptr[in, key_desc], ring key)
 keyctl$read(code const[KEYCTL_READ], key key, payload buffer[out], len len[payload])
 keyctl$chown(code const[KEYCTL_CHOWN], key key, uid uid, gid gid)
 # perm is a mask of KEY_POS_VIEW, etc consants, but they cover almost whole int32.
-keyctl$setperm(code const[KEYCTL_SETPERM], key key, perm int32)
+keyctl$setperm(code const[KEYCTL_SETPERM], key key, perm flags[key_perm])
 keyctl$instantiate(code const[KEYCTL_INSTANTIATE], key key, payload buffer[in, opt], paylen len[payload], ring key)
 keyctl$negate(code const[KEYCTL_NEGATE], key key, timeout intptr, ring key)
 keyctl$set_reqkey_keyring(code const[KEYCTL_SET_REQKEY_KEYRING], reqkey flags[reqkey_keyring])
@@ -35,3 +36,15 @@ keyctl$get_persistent(code const[KEYCTL_GET_PERSISTENT], uid uid, key key)
 
 keyring_type = KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING, KEY_SPEC_GROUP_KEYRING, KEY_SPEC_REQKEY_AUTH_KEY, KEY_SPEC_REQUESTOR_KEYRING
 reqkey_keyring = KEY_REQKEY_DEFL_NO_CHANGE, KEY_REQKEY_DEFL_DEFAULT, KEY_REQKEY_DEFL_THREAD_KEYRING, KEY_REQKEY_DEFL_PROCESS_KEYRING, KEY_REQKEY_DEFL_SESSION_KEYRING, KEY_REQKEY_DEFL_USER_KEYRING, KEY_REQKEY_DEFL_USER_SESSION_KEYRING, KEY_REQKEY_DEFL_GROUP_KEYRING, KEY_REQKEY_DEFL_REQUESTOR_KEYRING
+key_perm = KEY_POS_VIEW, KEY_POS_READ, KEY_POS_WRITE, KEY_POS_SEARCH, KEY_POS_LINK, KEY_POS_SETATTR, KEY_USR_VIEW, KEY_USR_READ, KEY_USR_WRITE, KEY_USR_SEARCH, KEY_USR_LINK, KEY_USR_SETATTR, KEY_GRP_VIEW, KEY_GRP_READ, KEY_GRP_WRITE, KEY_GRP_SEARCH, KEY_GRP_LINK, KEY_GRP_SETATTR, KEY_OTH_VIEW, KEY_OTH_READ, KEY_OTH_WRITE, KEY_OTH_SEARCH, KEY_OTH_LINK, KEY_OTH_SETATTR, KEY_PERM_UNDEF
+
+key_type = "user", "keyring", "logon", "trusted", "big_key", "dead", ".request_key_auth", "syzkaller"
+
+# "syzP\x00"
+key_desc {
+	name0	const[115, int8]
+	name1	const[121, int8]
+	name2	const[122, int8]
+	name3	proc[int8, 32, 4]
+	name4	const[0, int8]
+}
