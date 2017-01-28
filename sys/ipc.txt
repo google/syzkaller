@@ -9,36 +9,64 @@ include <linux/msg.h>
 include <linux/sem.h>
 
 resource ipc[int32]: 0, 0xffffffffffffffff
+
 resource ipc_msq[ipc]
+msgget(key proc[2039379027, 4], flags flags[msgget_flags]) ipc_msq
+msgget$private(key const[IPC_PRIVATE], flags flags[msgget_flags]) ipc_msq
+msgsnd(msqid ipc_msq, msgp ptr[in, msgbuf], sz len[msgp], flags flags[msgsnd_flags])
+msgrcv(msqid ipc_msq, msgp ptr[out, msgbuf], sz len[msgp], typ flags[msgbuf_type], flags flags[msgrcv_flags])
+msgctl$IPC_STAT(msqid ipc_msq, cmd const[IPC_STAT], buf buffer[out])
+msgctl$IPC_SET(msqid ipc_msq, cmd const[IPC_SET], buf ptr[in, msqid_ds])
+msgctl$IPC_RMID(msqid ipc_msq, cmd const[IPC_RMID])
+msgctl$IPC_INFO(msqid ipc_msq, cmd const[IPC_INFO], buf buffer[out])
+msgctl$MSG_INFO(msqid ipc_msq, cmd const[MSG_INFO], buf buffer[out])
+msgctl$MSG_STAT(msqid ipc_msq, cmd const[MSG_STAT], buf buffer[out])
+
 resource ipc_sem[ipc]
-resource ipc_shm[ipc]
-
-msgget(key int32, flags flags[msgget_flags]) ipc_msq
-msgsnd(msqid ipc_msq, msgp buffer[in], flags flags[msg_flags])
-msgrcv(msqid ipc_msq, msgp buffer[out], sz len[msgp], typ intptr, flags flags[msg_flags])
-msgctl(msqid ipc_msq, cmd flags[msgctl_cmd], buf ptr[inout, msqid_ds])
-
-semget(key int32, nsems intptr, flags flags[semget_flags]) ipc_sem
+semget(key proc[2039359027, 4], nsems flags[sem_sem_id], flags flags[semget_flags]) ipc_sem
+semget$private(key const[IPC_PRIVATE], nsems flags[sem_sem_id], flags flags[semget_flags]) ipc_sem
 semop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops])
 semtimedop(semid ipc_sem, ops ptr[in, array[sembuf]], nops len[ops], timeout ptr[in, timespec])
-semctl(semid ipc_sem, semnum intptr, cmd flags[semctl_cmd], arg ptr[in, semid_ds])
+semctl$IPC_STAT(semid ipc_sem, semnum const[0], cmd const[IPC_STAT], arg buffer[out])
+semctl$IPC_SET(semid ipc_sem, semnum const[0], cmd const[IPC_SET], arg ptr[in, semid_ds])
+semctl$IPC_RMID(semid ipc_sem, semnum const[0], cmd const[IPC_RMID])
+semctl$IPC_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[IPC_INFO], buf buffer[out])
+semctl$SEM_INFO(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_INFO], arg buffer[out])
+semctl$SEM_STAT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SEM_STAT], arg buffer[out])
+semctl$GETALL(semid ipc_sem, semnum const[0], cmd const[GETALL], arg buffer[out])
+semctl$GETNCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETNCNT], arg buffer[out])
+semctl$GETPID(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETPID], arg buffer[out])
+semctl$GETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETVAL], arg buffer[out])
+semctl$GETZCNT(semid ipc_sem, semnum flags[sem_sem_id], cmd const[GETZCNT], arg buffer[out])
+semctl$SETALL(semid ipc_sem, semnum const[0], cmd const[SETALL], arg ptr[in, array[int16]])
+semctl$SETVAL(semid ipc_sem, semnum flags[sem_sem_id], cmd const[SETVAL], arg ptr[in, int32])
 
+resource ipc_shm[ipc]
+resource shmaddr[intptr]: 0
 # The unused arg is unused by syscall (does not exist at all),
 # but it helps to generate sane size values.
-shmget(key int32, size len[unused], flags flags[shmget_flags], unused vma) ipc_shm
-shmat(shmid ipc_shm, addr vma, flags flags[shmat_flags])
-shmctl(shmid ipc_shm, cmd flags[shmctl_cmd], buf ptr[inout, shmid_ds])
-shmdt(addr vma)
+shmget(key proc[2039339027, 4], size len[unused], flags flags[shmget_flags], unused vma) ipc_shm
+shmget$private(key const[IPC_PRIVATE], size len[unused], flags flags[shmget_flags], unused vma) ipc_shm
+shmat(shmid ipc_shm, addr vma, flags flags[shmat_flags]) shmaddr
+shmctl$IPC_STAT(shmid ipc_shm, cmd const[IPC_STAT], buf buffer[out])
+shmctl$IPC_SET(shmid ipc_shm, cmd const[IPC_SET], buf ptr[in, shmid_ds])
+shmctl$IPC_RMID(shmid ipc_shm, cmd const[IPC_RMID])
+shmctl$IPC_INFO(shmid ipc_shm, cmd const[IPC_INFO], buf buffer[out])
+shmctl$SHM_INFO(shmid ipc_shm, cmd const[SHM_INFO], buf buffer[out])
+shmctl$SHM_STAT(shmid ipc_shm, cmd const[SHM_STAT], buf buffer[out])
+shmctl$SHM_LOCK(shmid ipc_shm, cmd const[SHM_LOCK])
+shmctl$SHM_UNLOCK(shmid ipc_shm, cmd const[SHM_UNLOCK])
+shmdt(addr shmaddr)
 
 msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
-msg_flags = IPC_NOWAIT, MSG_EXCEPT, MSG_NOERROR
-msgctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, MSG_INFO, MSG_STAT
+msgbuf_type = 0, 1, 2, 3
+msgsnd_flags = IPC_NOWAIT
+msgrcv_flags = IPC_NOWAIT, MSG_EXCEPT, MSG_NOERROR
 semget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 semop_flags = IPC_NOWAIT, SEM_UNDO
-semctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, SEM_INFO, SEM_STAT, GETALL, GETNCNT, GETPID, GETVAL, GETZCNT, SETALL, SETVAL
-shmget_flags = IPC_CREAT, IPC_EXCL, SHM_HUGETLB, SHM_NORESERVE, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+sem_sem_id = 0, 1, 2, 3, 4
+shmget_flags = IPC_CREAT, IPC_EXCL, SHM_HUGETLB, SHM_HUGE_2MB, SHM_HUGE_1GB, SHM_NORESERVE, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 shmat_flags = SHM_RND, SHM_RDONLY, SHM_REMAP
-shmctl_cmd = IPC_STAT, IPC_SET, IPC_RMID, IPC_INFO, SHM_INFO, SHM_STAT, SHM_LOCK, SHM_UNLOCK
 
 ipc_perm {
 	key	int32
@@ -46,18 +74,15 @@ ipc_perm {
 	gid	gid
 	cuid	uid
 	cgid	gid
-	mode	int16
+	mode	flags[open_mode, int32]
 	seq	int16
+	pad0	const[0, int16]
+	pad1	const[0, intptr]
+	pad2	const[0, intptr]
 }
 
 msqid_ds {
-	key	int32
-	uid	uid
-	gid	gid
-	cuid	uid
-	cgid	gid
-	mode	int16
-	seq	int16
+	perm	ipc_perm
 	stime	intptr
 	rtime	intptr
 	ctime	intptr
@@ -66,40 +91,40 @@ msqid_ds {
 	qbytes	intptr
 	lspid	pid
 	lrpid	pid
+	pad0	const[0, intptr]
+	pad1	const[0, intptr]
 }
 
 shmid_ds {
-	key	int32
-	uid	uid
-	gid	gid
-	cuid	uid
-	cgid	gid
-	mode	int16
-	seq	int16
-	segsz	intptr
+	perm	ipc_perm
+	segsz	int32
 	atime	intptr
 	dtime	intptr
 	ctime	intptr
 	cpid	pid
 	lpid	pid
-	nattch	intptr
+	nattch	int16
+	unused0	const[0, int16]
+	unused1	const[0, intptr]
+	unused2	const[0, intptr]
 }
 
 semid_ds {
-	key	int32
-	uid	uid
-	gid	gid
-	cuid	uid
-	cgid	gid
-	mode	int16
-	seq	int16
+	perm	ipc_perm
 	otime	intptr
 	ctime	intptr
 	nsems	intptr
+	pad0	const[0, intptr]
+	pad1	const[0, intptr]
 }
 
 sembuf {
-	num	int16
+	num	flags[sem_sem_id, int16]
 	op	int16
-	flg	flags[semop_flags, int64]
+	flg	flags[semop_flags, int16]
 }
+
+msgbuf {
+	typ	flags[msgbuf_type, intptr]
+	data	array[int8]
+} [packed]

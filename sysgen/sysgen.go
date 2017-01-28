@@ -594,11 +594,11 @@ func generateArg(
 		if valuesPerProcInt < 1 {
 			failf("values per proc '%v' should be >= 1", valuesPerProcInt)
 		}
-		if valuesStartInt >= (1 << (size * 8)) {
+		if size != 8 && valuesStartInt >= (1<<(size*8)) {
 			failf("values starting from '%v' overflow desired type of size '%v'", valuesStartInt, size)
 		}
 		const maxPids = 32 // executor knows about this constant (MAX_PIDS)
-		if valuesStartInt+maxPids*valuesPerProcInt >= (1 << (size * 8)) {
+		if size != 8 && valuesStartInt+maxPids*valuesPerProcInt >= (1<<(size*8)) {
 			failf("not enough values starting from '%v' with step '%v' and type size '%v' for 32 procs", valuesStartInt, valuesPerProcInt, size)
 		}
 		fmt.Fprintf(out, "&ProcType{%v, ValuesStart: %v, ValuesPerProc: %v}", intCommon(size, bigEndian, bitfieldLen), valuesStartInt, valuesPerProcInt)
