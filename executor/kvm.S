@@ -134,10 +134,10 @@ kvm_asm64_init_vm:
 	// Write VMCS revision into VMXON and VMCS regions
 	mov $MSR_IA32_VMX_BASIC, %rcx
 	rdmsr
-	mov $ADDR_VAR_VMXON,%rdx
-	mov %eax,(%rdx)
-	mov $ADDR_VAR_VMCS,%rdx
-	mov %eax,(%rdx)
+	mov $ADDR_VAR_VMXON, %rdx
+	mov %eax, (%rdx)
+	mov $ADDR_VAR_VMCS, %rdx
+	mov %eax, (%rdx)
 
 	mov $ADDR_VAR_VMXON_PTR, %rax
 	vmxon (%rax)
@@ -289,6 +289,16 @@ kvm_asm64_init_vm:
 	VMSET(0x00006802, %rax) // Guest CR3
 	mov %cr4, %rax
 	VMSET(0x00006804, %rax) // Guest CR4
+
+	// Write 1 additional random field.
+	mov $ADDR_VAR_VMWRITE_FLD, %rax
+	mov (%rax), %rdx
+	mov $ADDR_VAR_VMWRITE_VAL, %rax
+	mov (%rax), %rcx
+	xor %rax, %rax
+	vmread %rdx, %rax
+	xor %rcx, %rax
+	vmwrite %rax, %rdx
 
 	vmlaunch
 

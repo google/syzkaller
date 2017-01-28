@@ -195,26 +195,64 @@ kvm_setup_opt_x86 [
 	cr4	kvm_setup_opt_cr4
 	efer	kvm_setup_opt_efer
 	flags	kvm_setup_opt_flags
+	cstype0	kvm_setup_opt_cstype0
+	cstype3	kvm_setup_opt_cstype3
+	dstype0	kvm_setup_opt_dstype0
+	dstype3	kvm_setup_opt_dstype3
+	vmwrite	kvm_setup_opt_vmwrite
 ] [varlen]
 
 kvm_setup_opt_cr0 {
-	typ	const[1, int64]
+	typ	const[0, int64]
 	val	flags[kvm_x86_cr0, int64]
 }
 
 kvm_setup_opt_cr4 {
-	typ	const[2, int64]
+	typ	const[1, int64]
 	val	flags[kvm_x86_cr4, int64]
 }
 
 kvm_setup_opt_efer {
-	typ	const[3, int64]
+	typ	const[2, int64]
 	val	flags[kvm_x86_efer, int64]
 }
 
 kvm_setup_opt_flags {
-	typ	const[4, int64]
+	typ	const[3, int64]
 	val	flags[kvm_x86_rflags, int64]
+}
+
+kvm_setup_opt_cstype0 {
+	typ	const[4, int64]
+	val	int64[0:15]
+}
+
+kvm_setup_opt_cstype3 {
+	typ	const[5, int64]
+	val	int64[0:15]
+}
+
+kvm_setup_opt_dstype0 {
+	typ	const[6, int64]
+	val	int64[0:15]
+}
+
+kvm_setup_opt_dstype3 {
+	typ	const[7, int64]
+	val	int64[0:15]
+}
+
+kvm_setup_opt_vmwrite {
+	typ	const[8, int64]
+# Low 16 bits are field index, high 48 bits are value.
+	sz	const[0, int64:1]
+	fld	int64:5
+	pad0	const[0, int64:4]
+	ftyp	int64:2
+	pad1	const[0, int64:1]
+	fsz	int64:2
+	pad2	const[0, int64:1]
+	val	int64:48
 }
 
 kvm_setup_opt_arm64 [

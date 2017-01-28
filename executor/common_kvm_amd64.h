@@ -322,33 +322,6 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	regs.rip = guest_mem + ADDR_TEXT;
 	regs.rsp = ADDR_STACK0;
 
-	if (opt_count > 2)
-		opt_count = 2;
-	for (i = 0; i < opt_count; i++) {
-		uint64_t typ = 0;
-		uint64_t val = 0;
-		NONFAILING(typ = opt_array_ptr[i].typ);
-		NONFAILING(val = opt_array_ptr[i].val);
-		switch (typ) {
-		case 1:
-			sregs.cr0 ^= val & (CR0_MP | CR0_EM | CR0_ET | CR0_NE | CR0_WP | CR0_AM | CR0_NW | CR0_CD);
-			break;
-		case 2:
-			sregs.cr4 ^= val & (CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_MCE | CR4_PGE | CR4_PCE |
-					    CR4_OSFXSR | CR4_OSXMMEXCPT | CR4_UMIP | CR4_VMXE | CR4_SMXE | CR4_FSGSBASE | CR4_PCIDE |
-					    CR4_OSXSAVE | CR4_SMEP | CR4_SMAP | CR4_PKE);
-			break;
-		case 3:
-			sregs.efer ^= val & (EFER_SCE | EFER_NXE | EFER_SVME | EFER_LMSLE | EFER_FFXSR | EFER_TCE);
-			break;
-		case 4:
-			regs.rflags ^= val & ((1 << 8) | (1 << 9) | (1 << 10) | (1 << 12) | (1 << 13) | (1 << 14) |
-					      (1 << 15) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21));
-			break;
-		}
-	}
-	regs.rflags |= 2; // bit 1 is always set
-
 	sregs.gdt.base = guest_mem + ADDR_GDT;
 	sregs.gdt.limit = 256 * sizeof(uint64_t) - 1;
 	uint64_t* gdt = (uint64_t*)(host_mem + sregs.gdt.base);
@@ -364,9 +337,8 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	seg_ldt.g = 0;
 	seg_ldt.db = 1;
 	seg_ldt.l = 0;
-	uint64_t* ldt = (uint64_t*)(host_mem + sregs.ldt.base);
-	fill_segment_descriptor(gdt, ldt, &seg_ldt);
 	sregs.ldt = seg_ldt;
+	uint64_t* ldt = (uint64_t*)(host_mem + sregs.ldt.base);
 
 	struct kvm_segment seg_cs16;
 	seg_cs16.selector = SEL_CS16;
@@ -379,61 +351,49 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	seg_cs16.g = 0;
 	seg_cs16.db = 0;
 	seg_cs16.l = 0;
-	fill_segment_descriptor(gdt, ldt, &seg_cs16);
 
 	struct kvm_segment seg_ds16 = seg_cs16;
 	seg_ds16.selector = SEL_DS16;
 	seg_ds16.type = 3;
-	fill_segment_descriptor(gdt, ldt, &seg_ds16);
 
 	struct kvm_segment seg_cs16_cpl3 = seg_cs16;
 	seg_cs16_cpl3.selector = SEL_CS16_CPL3;
 	seg_cs16_cpl3.dpl = 3;
-	fill_segment_descriptor(gdt, ldt, &seg_cs16_cpl3);
 
 	struct kvm_segment seg_ds16_cpl3 = seg_ds16;
 	seg_ds16_cpl3.selector = SEL_DS16_CPL3;
 	seg_ds16_cpl3.dpl = 3;
-	fill_segment_descriptor(gdt, ldt, &seg_ds16_cpl3);
 
 	struct kvm_segment seg_cs32 = seg_cs16;
 	seg_cs32.selector = SEL_CS32;
 	seg_cs32.db = 1;
-	fill_segment_descriptor(gdt, ldt, &seg_cs32);
 
 	struct kvm_segment seg_ds32 = seg_ds16;
 	seg_ds32.selector = SEL_DS32;
 	seg_ds32.db = 1;
-	fill_segment_descriptor(gdt, ldt, &seg_ds32);
 
 	struct kvm_segment seg_cs32_cpl3 = seg_cs32;
 	seg_cs32_cpl3.selector = SEL_CS32_CPL3;
 	seg_cs32_cpl3.dpl = 3;
-	fill_segment_descriptor(gdt, ldt, &seg_cs32_cpl3);
 
 	struct kvm_segment seg_ds32_cpl3 = seg_ds32;
 	seg_ds32_cpl3.selector = SEL_DS32_CPL3;
 	seg_ds32_cpl3.dpl = 3;
-	fill_segment_descriptor(gdt, ldt, &seg_ds32_cpl3);
 
 	struct kvm_segment seg_cs64 = seg_cs16;
 	seg_cs64.selector = SEL_CS64;
 	seg_cs64.l = 1;
-	fill_segment_descriptor(gdt, ldt, &seg_cs64);
 
 	struct kvm_segment seg_ds64 = seg_ds32;
 	seg_ds64.selector = SEL_DS64;
-	fill_segment_descriptor(gdt, ldt, &seg_ds64);
 
 	struct kvm_segment seg_cs64_cpl3 = seg_cs64;
 	seg_cs64_cpl3.selector = SEL_CS64_CPL3;
 	seg_cs64_cpl3.dpl = 3;
-	fill_segment_descriptor(gdt, ldt, &seg_cs64_cpl3);
 
 	struct kvm_segment seg_ds64_cpl3 = seg_ds64;
 	seg_ds64_cpl3.selector = SEL_DS64_CPL3;
 	seg_ds64_cpl3.dpl = 3;
-	fill_segment_descriptor(gdt, ldt, &seg_ds64_cpl3);
 
 	struct kvm_segment seg_tss32;
 	seg_tss32.selector = SEL_TSS32;
@@ -446,53 +406,44 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	seg_tss32.g = 0;
 	seg_tss32.db = 0;
 	seg_tss32.l = 0;
-	fill_segment_descriptor(gdt, ldt, &seg_tss32);
 
 	struct kvm_segment seg_tss32_2 = seg_tss32;
 	seg_tss32_2.selector = SEL_TSS32_2;
 	seg_tss32_2.base = ADDR_VAR_TSS32_2;
-	fill_segment_descriptor(gdt, ldt, &seg_tss32_2);
 
 	struct kvm_segment seg_tss32_cpl3 = seg_tss32;
 	seg_tss32_cpl3.selector = SEL_TSS32_CPL3;
 	seg_tss32_cpl3.base = ADDR_VAR_TSS32_CPL3;
-	fill_segment_descriptor(gdt, ldt, &seg_tss32_cpl3);
 
 	struct kvm_segment seg_tss32_vm86 = seg_tss32;
 	seg_tss32_vm86.selector = SEL_TSS32_VM86;
 	seg_tss32_vm86.base = ADDR_VAR_TSS32_VM86;
-	fill_segment_descriptor(gdt, ldt, &seg_tss32_vm86);
 
 	struct kvm_segment seg_tss16 = seg_tss32;
 	seg_tss16.selector = SEL_TSS16;
 	seg_tss16.base = ADDR_VAR_TSS16;
 	seg_tss16.limit = 0xff;
 	seg_tss16.type = 1;
-	fill_segment_descriptor(gdt, ldt, &seg_tss16);
 
 	struct kvm_segment seg_tss16_2 = seg_tss16;
 	seg_tss16_2.selector = SEL_TSS16_2;
 	seg_tss16_2.base = ADDR_VAR_TSS16_2;
 	seg_tss16_2.dpl = 0;
-	fill_segment_descriptor(gdt, ldt, &seg_tss16_2);
 
 	struct kvm_segment seg_tss16_cpl3 = seg_tss16;
 	seg_tss16_cpl3.selector = SEL_TSS16_CPL3;
 	seg_tss16_cpl3.base = ADDR_VAR_TSS16_CPL3;
 	seg_tss16_cpl3.dpl = 3;
-	fill_segment_descriptor(gdt, ldt, &seg_tss16_cpl3);
 
 	struct kvm_segment seg_tss64 = seg_tss32;
 	seg_tss64.selector = SEL_TSS64;
 	seg_tss64.base = ADDR_VAR_TSS64;
 	seg_tss64.limit = 0x1ff;
-	fill_segment_descriptor_dword(gdt, ldt, &seg_tss64);
 
 	struct kvm_segment seg_tss64_cpl3 = seg_tss64;
 	seg_tss64_cpl3.selector = SEL_TSS64_CPL3;
 	seg_tss64_cpl3.base = ADDR_VAR_TSS64_CPL3;
 	seg_tss64_cpl3.dpl = 3;
-	fill_segment_descriptor_dword(gdt, ldt, &seg_tss64_cpl3);
 
 	struct kvm_segment seg_cgate16;
 	seg_cgate16.selector = SEL_CGATE16;
@@ -506,33 +457,28 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	seg_cgate16.db = 0;
 	seg_cgate16.l = 0;
 	seg_cgate16.avl = 0;
-	fill_segment_descriptor(gdt, ldt, &seg_cgate16);
 
 	struct kvm_segment seg_tgate16 = seg_cgate16;
 	seg_tgate16.selector = SEL_TGATE16;
 	seg_tgate16.type = 3;
 	seg_cgate16.base = SEL_TSS16_2;
 	seg_tgate16.limit = 0;
-	fill_segment_descriptor(gdt, ldt, &seg_tgate16);
 
 	struct kvm_segment seg_cgate32 = seg_cgate16;
 	seg_cgate32.selector = SEL_CGATE32;
 	seg_cgate32.type = 12;
 	seg_cgate32.base = SEL_CS32 | (2 << 16); // selector + param count
-	fill_segment_descriptor(gdt, ldt, &seg_cgate32);
 
 	struct kvm_segment seg_tgate32 = seg_cgate32;
 	seg_tgate32.selector = SEL_TGATE32;
 	seg_tgate32.type = 11;
 	seg_tgate32.base = SEL_TSS32_2;
 	seg_tgate32.limit = 0;
-	fill_segment_descriptor(gdt, ldt, &seg_tgate32);
 
 	struct kvm_segment seg_cgate64 = seg_cgate16;
 	seg_cgate64.selector = SEL_CGATE64;
 	seg_cgate64.type = 12;
 	seg_cgate64.base = SEL_CS64;
-	fill_segment_descriptor_dword(gdt, ldt, &seg_cgate64);
 
 	int kvmfd = open("/dev/kvm", O_RDWR);
 	char buf[sizeof(struct kvm_cpuid2) + 128 * sizeof(struct kvm_cpuid_entry2)];
@@ -543,7 +489,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	ioctl(cpufd, KVM_SET_CPUID2, cpuid);
 	close(kvmfd);
 
-	const char* text_prefix;
+	const char* text_prefix = 0;
 	int text_prefix_size = 0;
 	char* host_text = host_mem + ADDR_TEXT;
 
@@ -677,8 +623,9 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 		}
 	}
 
+	struct tss16* tss16 = (struct tss16*)(host_mem + seg_tss16_2.base);
 	NONFAILING(
-	    struct tss16* tss = (struct tss16*)(host_mem + seg_tss16_2.base);
+	    struct tss16* tss = tss16;
 	    memset(tss, 0, sizeof(*tss));
 	    tss->ss0 = tss->ss1 = tss->ss2 = SEL_DS16;
 	    tss->sp0 = tss->sp1 = tss->sp2 = ADDR_STACK0;
@@ -687,8 +634,9 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	    tss->cs = SEL_CS16;
 	    tss->es = tss->ds = tss->ss = SEL_DS16;
 	    tss->ldt = SEL_LDT);
+	struct tss16* tss16_cpl3 = (struct tss16*)(host_mem + seg_tss16_cpl3.base);
 	NONFAILING(
-	    struct tss16* tss = (struct tss16*)(host_mem + seg_tss16_cpl3.base);
+	    struct tss16* tss = tss16_cpl3;
 	    memset(tss, 0, sizeof(*tss));
 	    tss->ss0 = tss->ss1 = tss->ss2 = SEL_DS16;
 	    tss->sp0 = tss->sp1 = tss->sp2 = ADDR_STACK0;
@@ -697,8 +645,9 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	    tss->cs = SEL_CS16_CPL3;
 	    tss->es = tss->ds = tss->ss = SEL_DS16_CPL3;
 	    tss->ldt = SEL_LDT);
+	struct tss32* tss32 = (struct tss32*)(host_mem + seg_tss32_vm86.base);
 	NONFAILING(
-	    struct tss32* tss = (struct tss32*)(host_mem + seg_tss32_vm86.base);
+	    struct tss32* tss = tss32;
 	    memset(tss, 0, sizeof(*tss));
 	    tss->ss0 = tss->ss1 = tss->ss2 = SEL_DS32;
 	    tss->sp0 = tss->sp1 = tss->sp2 = ADDR_STACK0;
@@ -707,8 +656,9 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	    tss->ldt = SEL_LDT;
 	    tss->cr3 = sregs.cr3;
 	    tss->io_bitmap = offsetof(struct tss32, io_bitmap));
+	struct tss32* tss32_cpl3 = (struct tss32*)(host_mem + seg_tss32_2.base);
 	NONFAILING(
-	    struct tss32* tss = (struct tss32*)(host_mem + seg_tss32_2.base);
+	    struct tss32* tss = tss32_cpl3;
 	    memset(tss, 0, sizeof(*tss));
 	    tss->ss0 = tss->ss1 = tss->ss2 = SEL_DS32;
 	    tss->sp0 = tss->sp1 = tss->sp2 = ADDR_STACK0;
@@ -720,15 +670,17 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	    tss->ldt = SEL_LDT;
 	    tss->cr3 = sregs.cr3;
 	    tss->io_bitmap = offsetof(struct tss32, io_bitmap));
+	struct tss64* tss64 = (struct tss64*)(host_mem + seg_tss64.base);
 	NONFAILING(
-	    struct tss64* tss = (struct tss64*)(host_mem + seg_tss64.base);
+	    struct tss64* tss = tss64;
 	    memset(tss, 0, sizeof(*tss));
 	    tss->rsp[0] = ADDR_STACK0;
 	    tss->rsp[1] = ADDR_STACK0;
 	    tss->rsp[2] = ADDR_STACK0;
 	    tss->io_bitmap = offsetof(struct tss64, io_bitmap));
+	struct tss64* tss64_cpl3 = (struct tss64*)(host_mem + seg_tss64_cpl3.base);
 	NONFAILING(
-	    struct tss64* tss = (struct tss64*)(host_mem + seg_tss64_cpl3.base);
+	    struct tss64* tss = tss64_cpl3;
 	    memset(tss, 0, sizeof(*tss));
 	    tss->rsp[0] = ADDR_STACK0;
 	    tss->rsp[1] = ADDR_STACK0;
@@ -759,6 +711,95 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	NONFAILING(*(host_mem + ADDR_VAR_HLT) = 0xf4); // hlt
 	NONFAILING(memcpy(host_mem + ADDR_VAR_SYSRET, "\x0f\x07\xf4", 3));
 	NONFAILING(memcpy(host_mem + ADDR_VAR_SYSEXIT, "\x0f\x35\xf4", 3));
+
+	NONFAILING(*(uint64_t*)(host_mem + ADDR_VAR_VMWRITE_FLD) = 0);
+	NONFAILING(*(uint64_t*)(host_mem + ADDR_VAR_VMWRITE_VAL) = 0);
+
+	if (opt_count > 2)
+		opt_count = 2;
+	for (i = 0; i < opt_count; i++) {
+		uint64_t typ = 0;
+		uint64_t val = 0;
+		NONFAILING(typ = opt_array_ptr[i].typ);
+		NONFAILING(val = opt_array_ptr[i].val);
+		switch (typ % 9) {
+		case 0:
+			sregs.cr0 ^= val & (CR0_MP | CR0_EM | CR0_ET | CR0_NE | CR0_WP | CR0_AM | CR0_NW | CR0_CD);
+			break;
+		case 1:
+			sregs.cr4 ^= val & (CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_MCE | CR4_PGE | CR4_PCE |
+					    CR4_OSFXSR | CR4_OSXMMEXCPT | CR4_UMIP | CR4_VMXE | CR4_SMXE | CR4_FSGSBASE | CR4_PCIDE |
+					    CR4_OSXSAVE | CR4_SMEP | CR4_SMAP | CR4_PKE);
+			break;
+		case 2:
+			sregs.efer ^= val & (EFER_SCE | EFER_NXE | EFER_SVME | EFER_LMSLE | EFER_FFXSR | EFER_TCE);
+			break;
+		case 3:
+			val &= ((1 << 8) | (1 << 9) | (1 << 10) | (1 << 12) | (1 << 13) | (1 << 14) |
+				(1 << 15) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21));
+			regs.rflags ^= val;
+			NONFAILING(tss16->flags ^= val);
+			NONFAILING(tss16_cpl3->flags ^= val);
+			NONFAILING(tss32->flags ^= val);
+			NONFAILING(tss32_cpl3->flags ^= val);
+			break;
+		case 4:
+			seg_cs16.type = val & 0xf;
+			seg_cs32.type = val & 0xf;
+			seg_cs64.type = val & 0xf;
+			break;
+		case 5:
+			seg_cs16_cpl3.type = val & 0xf;
+			seg_cs32_cpl3.type = val & 0xf;
+			seg_cs64_cpl3.type = val & 0xf;
+			break;
+		case 6:
+			seg_ds16.type = val & 0xf;
+			seg_ds32.type = val & 0xf;
+			seg_ds64.type = val & 0xf;
+			break;
+		case 7:
+			seg_ds16_cpl3.type = val & 0xf;
+			seg_ds32_cpl3.type = val & 0xf;
+			seg_ds64_cpl3.type = val & 0xf;
+			break;
+		case 8:
+			NONFAILING(*(uint64_t*)(host_mem + ADDR_VAR_VMWRITE_FLD) = (val & 0xffff));
+			NONFAILING(*(uint64_t*)(host_mem + ADDR_VAR_VMWRITE_VAL) = (val >> 16));
+			break;
+		default:
+			fail("bad kvm setup opt");
+		}
+	}
+	regs.rflags |= 2; // bit 1 is always set
+
+	fill_segment_descriptor(gdt, ldt, &seg_ldt);
+	fill_segment_descriptor(gdt, ldt, &seg_cs16);
+	fill_segment_descriptor(gdt, ldt, &seg_ds16);
+	fill_segment_descriptor(gdt, ldt, &seg_cs16_cpl3);
+	fill_segment_descriptor(gdt, ldt, &seg_ds16_cpl3);
+	fill_segment_descriptor(gdt, ldt, &seg_cs32);
+	fill_segment_descriptor(gdt, ldt, &seg_ds32);
+	fill_segment_descriptor(gdt, ldt, &seg_cs32_cpl3);
+	fill_segment_descriptor(gdt, ldt, &seg_ds32_cpl3);
+	fill_segment_descriptor(gdt, ldt, &seg_cs64);
+	fill_segment_descriptor(gdt, ldt, &seg_ds64);
+	fill_segment_descriptor(gdt, ldt, &seg_cs64_cpl3);
+	fill_segment_descriptor(gdt, ldt, &seg_ds64_cpl3);
+	fill_segment_descriptor(gdt, ldt, &seg_tss32);
+	fill_segment_descriptor(gdt, ldt, &seg_tss32_2);
+	fill_segment_descriptor(gdt, ldt, &seg_tss32_cpl3);
+	fill_segment_descriptor(gdt, ldt, &seg_tss32_vm86);
+	fill_segment_descriptor(gdt, ldt, &seg_tss16);
+	fill_segment_descriptor(gdt, ldt, &seg_tss16_2);
+	fill_segment_descriptor(gdt, ldt, &seg_tss16_cpl3);
+	fill_segment_descriptor_dword(gdt, ldt, &seg_tss64);
+	fill_segment_descriptor_dword(gdt, ldt, &seg_tss64_cpl3);
+	fill_segment_descriptor(gdt, ldt, &seg_cgate16);
+	fill_segment_descriptor(gdt, ldt, &seg_tgate16);
+	fill_segment_descriptor(gdt, ldt, &seg_cgate32);
+	fill_segment_descriptor(gdt, ldt, &seg_tgate32);
+	fill_segment_descriptor_dword(gdt, ldt, &seg_cgate64);
 
 	if (ioctl(cpufd, KVM_SET_SREGS, &sregs))
 		return -1;
