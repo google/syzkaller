@@ -148,11 +148,15 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 	if err != nil {
 		Fatalf("failed to open corpus database: %v", err)
 	}
+	deleted := 0
 	for key, rec := range mgr.corpusDB.Records {
 		p, err := prog.Deserialize(rec.Val)
 		if err != nil {
-			Logf(0, "deleting broken program: %v\n%s", err, rec.Val)
+			if deleted < 10 {
+				Logf(0, "deleting broken program: %v\n%s", err, rec.Val)
+			}
 			mgr.corpusDB.Delete(key)
+			deleted++
 			continue
 		}
 		disabled := false
@@ -177,7 +181,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 		})
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
-	Logf(0, "loaded %v programs (%v total)", len(mgr.candidates), len(mgr.corpusDB.Records))
+	Logf(0, "loaded %v programs (%v total, %v deleted)", len(mgr.candidates), len(mgr.corpusDB.Records), deleted)
 
 	// Now this is ugly.
 	// We duplicate all inputs in the corpus and shuffle the second part.
