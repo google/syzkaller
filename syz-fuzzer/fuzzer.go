@@ -424,7 +424,7 @@ func addInput(inp RpcInput) {
 		panic(err)
 	}
 	if inp.CallIndex < 0 || inp.CallIndex >= len(p.Calls) {
-		panic("bad call index")
+		Fatalf("bad call index %v, calls %v, program:\n%s", inp.CallIndex, len(p.Calls), inp.Prog)
 	}
 	sig := hash.Hash(inp.Prog)
 	if _, ok := corpusHashes[sig]; !ok {
