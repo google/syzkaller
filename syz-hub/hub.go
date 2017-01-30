@@ -8,10 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"net"
-	"net/rpc"
 	"sync"
-	"time"
 
 	. "github.com/google/syzkaller/log"
 	. "github.com/google/syzkaller/rpctype"
@@ -59,23 +56,12 @@ func main() {
 
 	hub.initHttp(cfg.Http)
 
-	ln, err := net.Listen("tcp", cfg.Rpc)
+	s, err := NewRpcServer(cfg.Rpc, hub)
 	if err != nil {
-		Fatalf("failed to listen on %v: %v", cfg.Rpc, err)
+		Fatalf("failed to create rpc server: %v", err)
 	}
-	Logf(0, "serving rpc on tcp://%v", ln.Addr())
-	s := rpc.NewServer()
-	s.Register(hub)
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			Logf(0, "failed to accept an rpc connection: %v", err)
-			continue
-		}
-		conn.(*net.TCPConn).SetKeepAlive(true)
-		conn.(*net.TCPConn).SetKeepAlivePeriod(time.Minute)
-		go s.ServeConn(conn)
-	}
+	Logf(0, "serving rpc on tcp://%v", s.Addr())
+	s.Serve()
 }
 
 func (hub *Hub) Connect(a *HubConnectArgs, r *int) error {

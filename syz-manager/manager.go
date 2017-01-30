@@ -11,8 +11,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net"
-	"net/rpc"
-	"net/rpc/jsonrpc"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -73,7 +71,7 @@ type Manager struct {
 	prios          [][]float32
 
 	fuzzers   map[string]*Fuzzer
-	hub       *rpc.Client
+	hub       *RpcClient
 	hubCorpus map[hash.Sig]bool
 }
 
@@ -200,26 +198,13 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 	mgr.initHttp()
 
 	// Create RPC server for fuzzers.
-	ln, err := net.Listen("tcp", cfg.Rpc)
+	s, err := NewRpcServer(cfg.Rpc, mgr)
 	if err != nil {
-		Fatalf("failed to listen on %v: %v", cfg.Rpc, err)
+		Fatalf("failed to create rpc server: %v", err)
 	}
-	Logf(0, "serving rpc on tcp://%v", ln.Addr())
-	mgr.port = ln.Addr().(*net.TCPAddr).Port
-	s := rpc.NewServer()
-	s.Register(mgr)
-	go func() {
-		for {
-			conn, err := ln.Accept()
-			if err != nil {
-				Logf(0, "failed to accept an rpc connection: %v", err)
-				continue
-			}
-			conn.(*net.TCPConn).SetKeepAlive(true)
-			conn.(*net.TCPConn).SetKeepAlivePeriod(time.Minute)
-			go s.ServeCodec(jsonrpc.NewServerCodec(conn))
-		}
-	}()
+	Logf(0, "serving rpc on tcp://%v", s.Addr())
+	mgr.port = s.Addr().(*net.TCPAddr).Port
+	go s.Serve()
 
 	go func() {
 		for lastTime := time.Now(); ; {
@@ -645,8 +630,10 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 	}
 	mgr.fuzzers[a.Name] = f
 	mgr.minimizeCorpus()
+
+	f.inputs = nil
 	for _, inp := range mgr.corpus {
-		f.inputs = append(f.inputs, inp)
+		r.Inputs = append(r.Inputs, inp)
 	}
 	r.Prios = mgr.prios
 	r.EnabledCalls = mgr.enabledSyscalls
@@ -785,30 +772,35 @@ func (mgr *Manager) hubSync() {
 
 	mgr.minimizeCorpus()
 	if mgr.hub == nil {
-		conn, err := rpc.Dial("tcp", mgr.cfg.Hub_Addr)
-		if err != nil {
-			Logf(0, "failed to connect to hub at %v: %v", mgr.cfg.Hub_Addr, err)
-			return
-		}
-		mgr.hub = conn
 		a := &HubConnectArgs{
 			Name:  mgr.cfg.Name,
 			Key:   mgr.cfg.Hub_Key,
 			Fresh: mgr.fresh,
 			Calls: mgr.enabledCalls,
 		}
-		mgr.hubCorpus = make(map[hash.Sig]bool)
+		hubCorpus := make(map[hash.Sig]bool)
 		for _, inp := range mgr.corpus {
-			mgr.hubCorpus[hash.Hash(inp.Prog)] = true
+			hubCorpus[hash.Hash(inp.Prog)] = true
 			a.Corpus = append(a.Corpus, inp.Prog)
 		}
-		if err := mgr.hub.Call("Hub.Connect", a, nil); err != nil {
+		mgr.mu.Unlock()
+		// Hub.Connect request can be very large, so do it on a transient connection
+		// (rpc connection buffers never shrink).
+		// Also don't do hub rpc's under the mutex -- hub can be slow or inaccessible.
+		if err := RpcCall(mgr.cfg.Hub_Addr, "Hub.Connect", a, nil); err != nil {
+			mgr.mu.Lock()
 			Logf(0, "Hub.Connect rpc failed: %v", err)
-			mgr.hub.Close()
-			mgr.hub = nil
-			mgr.hubCorpus = nil
 			return
 		}
+		conn, err := NewRpcClient(mgr.cfg.Hub_Addr)
+		if err != nil {
+			mgr.mu.Lock()
+			Logf(0, "failed to connect to hub at %v: %v", mgr.cfg.Hub_Addr, err)
+			return
+		}
+		mgr.mu.Lock()
+		mgr.hub = conn
+		mgr.hubCorpus = hubCorpus
 		mgr.fresh = false
 		Logf(0, "connected to hub at %v, corpus %v", mgr.cfg.Hub_Addr, len(mgr.corpus))
 	}
@@ -834,13 +826,16 @@ func (mgr *Manager) hubSync() {
 		delete(mgr.hubCorpus, sig)
 		a.Del = append(a.Del, sig.String())
 	}
+	mgr.mu.Unlock()
 	r := new(HubSyncRes)
 	if err := mgr.hub.Call("Hub.Sync", a, r); err != nil {
+		mgr.mu.Lock()
 		Logf(0, "Hub.Sync rpc failed: %v", err)
 		mgr.hub.Close()
 		mgr.hub = nil
 		return
 	}
+	mgr.mu.Lock()
 	dropped := 0
 	for _, inp := range r.Inputs {
 		_, err := prog.Deserialize(inp)
