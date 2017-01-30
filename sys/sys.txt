@@ -941,7 +941,7 @@ in_addr [
 	loopback	const[0x7f000001, int32be]
 # 255.255.255.255
 	broadcast	const[0xffffffff, int32be]
-}
+]
 
 in6_addr_empty {
 	a0		const[0, int64be]

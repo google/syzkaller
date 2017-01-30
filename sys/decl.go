@@ -194,6 +194,7 @@ type CsumKind int
 
 const (
 	CsumIPv4 CsumKind = iota
+	CsumTCP
 )
 
 type CsumType struct {
