@@ -48,10 +48,12 @@ func Make(dir string) (*State, error) {
 
 	os.MkdirAll(st.dir, 0750)
 	var err error
+	Logf(0, "reading corpus...")
 	st.Corpus, err = db.Open(filepath.Join(st.dir, "corpus.db"))
 	if err != nil {
 		Fatalf("failed to open corpus database: %v", err)
 	}
+	Logf(0, "read %v programs", len(st.Corpus.Records))
 	for key, rec := range st.Corpus.Records {
 		if _, err := prog.CallSet(rec.Val); err != nil {
 			Logf(0, "bad file in corpus: can't parse call set: %v", err)
@@ -88,11 +90,16 @@ func Make(dir string) (*State, error) {
 		if st.seq < mgr.seq {
 			st.seq = mgr.seq
 		}
+		Logf(0, "reading %v corpus...", mgr.name)
 		mgr.Corpus, err = db.Open(filepath.Join(mgr.dir, "corpus.db"))
 		if err != nil {
 			return nil, fmt.Errorf("failed to open manager corpus database %v: %v", mgr.dir, err)
 		}
+		Logf(0, "read %v programs", len(mgr.Corpus.Records))
 	}
+	Logf(0, "purging corpus...")
+	st.purgeCorpus()
+	Logf(0, "done, %v programs", len(st.Corpus.Records))
 
 	return st, err
 }
@@ -202,9 +209,6 @@ func (st *State) addInput(mgr *Manager, input []byte) {
 	mgr.Corpus.Save(sig, nil, 0)
 	if _, ok := st.Corpus.Records[sig]; !ok {
 		st.Corpus.Save(sig, input, st.seq)
-		if err := st.Corpus.Flush(); err != nil {
-			Logf(0, "failed to flush corpus database: %v", err)
-		}
 	}
 }
 
