@@ -50,6 +50,7 @@ type Manager struct {
 	corpusDB     *db.DB
 	startTime    time.Time
 	firstConnect time.Time
+	lastPrioCalc time.Time
 	fuzzingTime  time.Duration
 	stats        map[string]uint64
 	crashTypes   map[string]bool
@@ -592,16 +593,6 @@ func (mgr *Manager) minimizeCorpus() {
 		mgr.corpus = newCorpus
 	}
 
-	var corpus []*prog.Prog
-	for _, inp := range mgr.corpus {
-		p, err := prog.Deserialize(inp.Prog)
-		if err != nil {
-			panic(err)
-		}
-		corpus = append(corpus, p)
-	}
-	mgr.prios = prog.CalculatePriorities(corpus)
-
 	// Don't minimize persistent corpus until fuzzers have triaged all inputs from it.
 	if len(mgr.candidates) == 0 {
 		for key := range mgr.corpusDB.Records {
@@ -630,6 +621,29 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 	}
 	mgr.fuzzers[a.Name] = f
 	mgr.minimizeCorpus()
+
+	if mgr.prios == nil || time.Since(mgr.lastPrioCalc) > 30*time.Minute {
+		// Deserializing all programs is slow, so we do it episodically and without holding the mutex.
+		mgr.lastPrioCalc = time.Now()
+		inputs := make([][]byte, 0, len(mgr.corpus))
+		for _, inp := range mgr.corpus {
+			inputs = append(inputs, inp.Prog)
+		}
+		mgr.mu.Unlock()
+
+		corpus := make([]*prog.Prog, 0, len(inputs))
+		for _, inp := range inputs {
+			p, err := prog.Deserialize(inp)
+			if err != nil {
+				panic(err)
+			}
+			corpus = append(corpus, p)
+		}
+		prios := prog.CalculatePriorities(corpus)
+
+		mgr.mu.Lock()
+		mgr.prios = prios
+	}
 
 	f.inputs = nil
 	for _, inp := range mgr.corpus {
