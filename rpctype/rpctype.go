@@ -24,6 +24,7 @@ type ConnectArgs struct {
 
 type ConnectRes struct {
 	Prios        [][]float32
+	Inputs       []RpcInput
 	MaxSignal    []uint32
 	Candidates   []RpcCandidate
 	EnabledCalls string

@@ -14,8 +14,6 @@ import (
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
-	"net/rpc"
-	"net/rpc/jsonrpc"
 	"os"
 	"os/signal"
 	"runtime"
@@ -64,7 +62,7 @@ type Candidate struct {
 }
 
 var (
-	manager *rpc.Client
+	manager *RpcClient
 
 	signalMu     sync.RWMutex
 	corpusSignal map[uint32]struct{}
@@ -128,18 +126,16 @@ func main() {
 	corpusHashes = make(map[hash.Sig]struct{})
 
 	Logf(0, "dialing manager at %v", *flagManager)
-	conn, err := jsonrpc.Dial("tcp", *flagManager)
-	if err != nil {
-		panic(err)
-	}
-	manager = conn
 	a := &ConnectArgs{*flagName}
 	r := &ConnectRes{}
-	if err := manager.Call("Manager.Connect", a, r); err != nil {
+	if err := RpcCall(*flagManager, "Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
 	calls := buildCallList(r.EnabledCalls)
 	ct := prog.BuildChoiceTable(r.Prios, calls)
+	for _, inp := range r.Inputs {
+		addInput(inp)
+	}
 	for _, s := range r.MaxSignal {
 		maxSignal[s] = struct{}{}
 	}
@@ -168,9 +164,19 @@ func main() {
 		for c := range calls {
 			a.Calls = append(a.Calls, c.Name)
 		}
-		if err := manager.Call("Manager.Check", a, nil); err != nil {
+		if err := RpcCall(*flagManager, "Manager.Check", a, nil); err != nil {
 			panic(err)
 		}
+	}
+
+	// Manager.Connect reply can ve very large and that memory will be permanently cached in the connection.
+	// So we do the call on a transient connection, free all memory and reconnect.
+	// The rest of rpc requests have bounded size.
+	debug.FreeOSMemory()
+	if conn, err := NewRpcClient(*flagManager); err != nil {
+		panic(err)
+	} else {
+		manager = conn
 	}
 
 	kmemleakInit()
