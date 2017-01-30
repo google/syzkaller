@@ -48,24 +48,25 @@ func (mgr *Manager) initHttp() {
 }
 
 func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
 	data := &UISummaryData{
 		Name: mgr.cfg.Name,
 	}
+
+	var err error
+	if data.Crashes, err = collectCrashes(mgr.cfg.Workdir); err != nil {
+		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
 	data.Stats = append(data.Stats, UIStat{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)})
 	data.Stats = append(data.Stats, UIStat{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)})
 	data.Stats = append(data.Stats, UIStat{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))})
 	data.Stats = append(data.Stats, UIStat{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))})
 	data.Stats = append(data.Stats, UIStat{Name: "cover", Value: fmt.Sprint(len(mgr.corpusCover)), Link: "/cover"})
 	data.Stats = append(data.Stats, UIStat{Name: "signal", Value: fmt.Sprint(len(mgr.corpusSignal))})
-
-	var err error
-	if data.Crashes, err = mgr.collectCrashes(); err != nil {
-		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
-		return
-	}
 
 	type CallCov struct {
 		count int
@@ -121,11 +122,8 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
 	crashID := r.FormValue("id")
-	crash := mgr.readCrash(crashID, true)
+	crash := readCrash(mgr.cfg.Workdir, crashID, true)
 	if crash == nil {
 		http.Error(w, fmt.Sprintf("failed to read crash info"), http.StatusInternalServerError)
 		return
@@ -268,14 +266,15 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (mgr *Manager) collectCrashes() ([]*UICrashType, error) {
-	dirs, err := readdirnames(mgr.crashdir)
+func collectCrashes(workdir string) ([]*UICrashType, error) {
+	crashdir := filepath.Join(workdir, "crashes")
+	dirs, err := readdirnames(crashdir)
 	if err != nil {
 		return nil, err
 	}
 	var crashTypes []*UICrashType
 	for _, dir := range dirs {
-		crash := mgr.readCrash(dir, false)
+		crash := readCrash(workdir, dir, false)
 		if crash != nil {
 			crashTypes = append(crashTypes, crash)
 		}
@@ -284,11 +283,12 @@ func (mgr *Manager) collectCrashes() ([]*UICrashType, error) {
 	return crashTypes, nil
 }
 
-func (mgr *Manager) readCrash(dir string, full bool) *UICrashType {
+func readCrash(workdir, dir string, full bool) *UICrashType {
 	if len(dir) != 40 {
 		return nil
 	}
-	descFile, err := os.Open(filepath.Join(mgr.crashdir, dir, "description"))
+	crashdir := filepath.Join(workdir, "crashes")
+	descFile, err := os.Open(filepath.Join(crashdir, dir, "description"))
 	if err != nil {
 		return nil
 	}
@@ -305,7 +305,7 @@ func (mgr *Manager) readCrash(dir string, full bool) *UICrashType {
 	modTime := stat.ModTime()
 	descFile.Close()
 
-	files, err := readdirnames(filepath.Join(mgr.crashdir, dir))
+	files, err := readdirnames(filepath.Join(crashdir, dir))
 	if err != nil {
 		return nil
 	}
@@ -337,14 +337,14 @@ func (mgr *Manager) readCrash(dir string, full bool) *UICrashType {
 		for _, crash := range crashes {
 			index := strconv.Itoa(crash.Index)
 			crash.Log = filepath.Join("crashes", dir, "log"+index)
-			if stat, err := os.Stat(filepath.Join(mgr.cfg.Workdir, crash.Log)); err == nil {
+			if stat, err := os.Stat(filepath.Join(workdir, crash.Log)); err == nil {
 				crash.Time = stat.ModTime()
 				crash.TimeStr = crash.Time.Format(dateFormat)
 			}
-			tag, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, dir, "tag"+index))
+			tag, _ := ioutil.ReadFile(filepath.Join(crashdir, dir, "tag"+index))
 			crash.Tag = string(tag)
 			reportFile := filepath.Join("crashes", dir, "report"+index)
-			if _, err := os.Stat(filepath.Join(mgr.cfg.Workdir, reportFile)); err == nil {
+			if _, err := os.Stat(filepath.Join(workdir, reportFile)); err == nil {
 				crash.Report = reportFile
 			}
 		}
