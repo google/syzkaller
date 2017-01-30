@@ -6,6 +6,8 @@ package prog
 import (
 	"bytes"
 	"testing"
+
+	"github.com/google/syzkaller/sys"
 )
 
 func TestChecksumIP(t *testing.T) {
@@ -52,6 +54,10 @@ func TestChecksumIP(t *testing.T) {
 		{
 			"\x00\x00\x42\x00\x00\x43\x44\x00\x00\x00\x45\x00\x00\x00\xba\xaa\xbb\xcc\xdd",
 			0xe143,
+		},
+		{
+			"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\xab\xcd",
+			0x542e,
 		},
 	}
 
@@ -102,7 +108,7 @@ func TestChecksumEncode(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to deserialize prog %v: %v", test.prog, err)
 		}
-		encoded := encodeStruct(p.Calls[0].Args[0].Res, 0)
+		encoded := encodeArg(p.Calls[0].Args[0].Res, 0)
 		if !bytes.Equal(encoded, []byte(test.encoded)) {
 			t.Fatalf("incorrect encoding for prog #%v, got: %+v, want: %+v", i, encoded, []byte(test.encoded))
 		}
@@ -115,7 +121,7 @@ func TestChecksumIPv4Calc(t *testing.T) {
 		csum uint16
 	}{
 		{
-			"syz_test$csum_ipv4(&(0x7f0000000000)={0x0, {0x42, 0x43, [0x44, 0x45], 0xa, 0xb, \"aabbccdd\"}})",
+			"syz_test$csum_ipv4(&(0x7f0000000000)={0x0, {0x42, 0x43, [0x44, 0x45], 0xa, 0xb, \"aabbccdd\"}, 0x0, 0x0, 0x0})",
 			0xe143,
 		},
 	}
@@ -129,6 +135,37 @@ func TestChecksumIPv4Calc(t *testing.T) {
 		csum := csumField.Value(i % 32)
 		if csum != uintptr(test.csum) {
 			t.Fatalf("failed to calc ipv4 checksum, got %x, want %x, prog: '%v'", csum, test.csum, test.prog)
+		}
+	}
+}
+
+func TestChecksumTCPCalc(t *testing.T) {
+	tests := []struct {
+		prog string
+		csum uint16
+	}{
+		{
+			"syz_test$csum_ipv4_tcp(&(0x7f0000000000)={{0x0, {0x42, 0x43, [0x44, 0x45], 0xa, 0xb, \"aabbccdd\"}, 0x0, 0x0, 0x0}, {{0x0}, \"abcd\"}})",
+			0x542e,
+		},
+	}
+	for i, test := range tests {
+		p, err := Deserialize([]byte(test.prog))
+		if err != nil {
+			t.Fatalf("failed to deserialize prog %v: %v", test.prog, err)
+		}
+		csumMap := calcChecksumsCall(p.Calls[0], i % 32)
+		for oldField, newField := range csumMap {
+			if typ, ok := newField.Type.(*sys.CsumType); ok {
+				if typ.Kind == sys.CsumTCP {
+					csum := newField.Value(i % 32)
+					if csum != uintptr(test.csum) {
+						t.Fatalf("failed to calc tcp checksum, got %x, want %x, prog: '%v'", csum, test.csum, test.prog)
+					}
+				}
+			} else {
+				t.Fatalf("non csum key %+v in csum map %+v", oldField, csumMap)
+			}
 		}
 	}
 }
