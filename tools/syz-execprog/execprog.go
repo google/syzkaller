@@ -68,6 +68,16 @@ func main() {
 		dedupCover = false
 	}
 
+	handled := make(map[string]bool)
+	for _, prog := range progs {
+		for _, call := range prog.Calls {
+			handled[call.Meta.CallName] = true
+		}
+	}
+	if handled["syz_emit_ethernet"] {
+		flags |= ipc.FlagEnableTun
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(*flagProcs)
 	var posMu, logMu sync.Mutex

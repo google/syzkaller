@@ -154,7 +154,7 @@ func TestChecksumTCPCalc(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to deserialize prog %v: %v", test.prog, err)
 		}
-		csumMap := calcChecksumsCall(p.Calls[0], i % 32)
+		csumMap := calcChecksumsCall(p.Calls[0], i%32)
 		for oldField, newField := range csumMap {
 			if typ, ok := newField.Type.(*sys.CsumType); ok {
 				if typ.Kind == sys.CsumTCP {
