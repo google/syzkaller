@@ -189,12 +189,14 @@ static void execute_command(const char* format, ...)
 {
 	va_list args;
 	char command[COMMAND_MAX_LEN];
+	int rv;
 
 	va_start(args, format);
 
 	vsnprintf_check(command, sizeof(command), format, args);
-	if (system(command) < 0)
-		fail("tun: command \"%s\" failed", &command[0]);
+	rv = system(command);
+	if (rv != 0)
+		fail("tun: command \"%s\" failed with code %d", &command[0], rv);
 
 	va_end(args);
 }
@@ -215,9 +217,6 @@ int tunfd = -1;
 
 static void initialize_tun(uint64_t pid)
 {
-	if (getuid() != 0)
-		return;
-
 	if (pid >= MAX_PIDS)
 		fail("tun: no more than %d executors", MAX_PIDS);
 	int id = pid;
@@ -257,6 +256,13 @@ static void initialize_tun(uint64_t pid)
 	execute_command("ip neigh add %s lladdr %s dev %s nud permanent", remote_ipv4, remote_mac, iface);
 	execute_command("ip -6 neigh add %s lladdr %s dev %s nud permanent", remote_ipv6, remote_mac, iface);
 	execute_command("ip link set %s up", iface);
+}
+
+static void setup_tun(uint64_t pid, bool enable_tun) {
+#ifdef __NR_syz_emit_ethernet
+	if (enable_tun)
+		initialize_tun(pid);
+#endif
 }
 
 static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
@@ -1354,7 +1360,7 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 	}
 }
 
-static void setup_main_process(uint64_t pid, bool enable_tun)
+static void setup_main_process()
 {
 	struct sigaction sa;
 	memset(&sa, 0, sizeof(sa));
@@ -1362,11 +1368,6 @@ static void setup_main_process(uint64_t pid, bool enable_tun)
 	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
 	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
 	install_segv_handler();
-
-#ifdef __NR_syz_emit_ethernet
-	if (enable_tun)
-		initialize_tun(pid);
-#endif
 
 	char tmpdir_template[] = "./syzkaller.XXXXXX";
 	char* tmpdir = mkdtemp(tmpdir_template);
@@ -1402,25 +1403,29 @@ static void sandbox_common()
 }
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE)
-static int do_sandbox_none()
+static int do_sandbox_none(int executor_pid, bool enable_tun)
 {
 	int pid = fork();
 	if (pid)
 		return pid;
+
 	sandbox_common();
+	setup_tun(executor_pid, enable_tun);
+
 	loop();
 	doexit(1);
 }
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_SETUID)
-static int do_sandbox_setuid()
+static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 {
 	int pid = fork();
 	if (pid)
 		return pid;
 
 	sandbox_common();
+	setup_tun(executor_pid, enable_tun);
 
 	const int nobody = 65534;
 	if (setgroups(0, NULL))
@@ -1438,6 +1443,8 @@ static int do_sandbox_setuid()
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
 static int real_uid;
 static int real_gid;
+static int epid;
+static bool etun;
 __attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
 
 static bool write_file(const char* file, const char* what, ...)
@@ -1470,6 +1477,8 @@ static int namespace_sandbox_proc(void* arg)
 		fail("write of /proc/self/uid_map failed");
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
+
+	setup_tun(epid, etun);
 
 	if (mkdir("./syz-tmp", 0777))
 		fail("mkdir(syz-tmp) failed");
@@ -1514,10 +1523,12 @@ static int namespace_sandbox_proc(void* arg)
 	doexit(1);
 }
 
-static int do_sandbox_namespace()
+static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 {
 	real_uid = getuid();
 	real_gid = getgid();
+	epid = executor_pid;
+	etun = enable_tun;
 	mprotect(sandbox_stack, 4096, PROT_NONE);
 	return clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 8],
 		     CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);

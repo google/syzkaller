@@ -164,18 +164,18 @@ int main(int argc, char** argv)
 	uint64_t executor_pid = *((uint64_t*)input_data + 1);
 
 	cover_open();
-	setup_main_process(executor_pid, flag_enable_tun);
+	setup_main_process();
 
 	int pid = -1;
 	switch (flag_sandbox) {
 	case sandbox_none:
-		pid = do_sandbox_none();
+		pid = do_sandbox_none(executor_pid, flag_enable_tun);
 		break;
 	case sandbox_setuid:
-		pid = do_sandbox_setuid();
+		pid = do_sandbox_setuid(executor_pid, flag_enable_tun);
 		break;
 	case sandbox_namespace:
-		pid = do_sandbox_namespace();
+		pid = do_sandbox_namespace(executor_pid, flag_enable_tun);
 		break;
 	default:
 		fail("unknown sandbox type");
