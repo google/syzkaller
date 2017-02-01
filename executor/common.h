@@ -283,10 +283,8 @@ static void initialize_tun(uint64_t pid)
 
 static void setup_tun(uint64_t pid, bool enable_tun)
 {
-#ifdef __NR_syz_emit_ethernet
 	if (enable_tun)
 		initialize_tun(pid);
-#endif
 }
 
 static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
@@ -497,7 +495,9 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 		return pid;
 
 	sandbox_common();
+#ifdef __NR_syz_emit_ethernet
 	setup_tun(executor_pid, enable_tun);
+#endif
 
 	loop();
 	doexit(1);
@@ -512,7 +512,9 @@ static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 		return pid;
 
 	sandbox_common();
+#ifdef __NR_syz_emit_ethernet
 	setup_tun(executor_pid, enable_tun);
+#endif
 
 	const int nobody = 65534;
 	if (setgroups(0, NULL))
@@ -566,9 +568,11 @@ static int namespace_sandbox_proc(void* arg)
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
 
+#ifdef __NR_syz_emit_ethernet
 	// For sandbox namespace we setup tun after initializing uid mapping,
 	// otherwise ip commands fail.
 	setup_tun(epid, etun);
+#endif
 
 	if (mkdir("./syz-tmp", 0777))
 		fail("mkdir(syz-tmp) failed");
