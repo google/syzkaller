@@ -438,6 +438,7 @@ func makeCommand(pid int, bin []string, timeout time.Duration, flags uint64, inF
 			}
 		}(c)
 	} else {
+		close(c.readDone)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stdout
 	}
