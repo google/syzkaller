@@ -164,7 +164,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	var duration time.Duration
 	for _, dur := range []time.Duration{10 * time.Second, 5 * time.Minute} {
 		for _, ent := range suspected {
-			crashed, err := ctx.testProg(ent.P, dur, opts, true)
+			crashed, err := ctx.testProg(ent.P, dur, opts)
 			if err != nil {
 				return nil, err
 			}
@@ -191,7 +191,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 
 	Logf(2, "reproducing crash '%v': minimizing guilty program", ctx.crashDesc)
 	res.Prog, _ = prog.Minimize(res.Prog, -1, func(p1 *prog.Prog, callIndex int) bool {
-		crashed, err := ctx.testProg(p1, duration, res.Opts, false)
+		crashed, err := ctx.testProg(p1, duration, res.Opts)
 		if err != nil {
 			Logf(1, "reproducing crash '%v': minimization failed with %v", ctx.crashDesc, err)
 			return false
@@ -202,14 +202,14 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	// Try to "minimize" threaded/collide/sandbox/etc to find simpler reproducer.
 	opts = res.Opts
 	opts.Collide = false
-	crashed, err := ctx.testProg(res.Prog, duration, opts, false)
+	crashed, err := ctx.testProg(res.Prog, duration, opts)
 	if err != nil {
 		return res, err
 	}
 	if crashed {
 		res.Opts = opts
 		opts.Threaded = false
-		crashed, err := ctx.testProg(res.Prog, duration, opts, false)
+		crashed, err := ctx.testProg(res.Prog, duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -220,7 +220,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.Sandbox == "namespace" {
 		opts = res.Opts
 		opts.Sandbox = "none"
-		crashed, err := ctx.testProg(res.Prog, duration, opts, false)
+		crashed, err := ctx.testProg(res.Prog, duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -231,7 +231,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.Procs > 1 {
 		opts = res.Opts
 		opts.Procs = 1
-		crashed, err := ctx.testProg(res.Prog, duration, opts, false)
+		crashed, err := ctx.testProg(res.Prog, duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -242,7 +242,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.Repeat {
 		opts = res.Opts
 		opts.Repeat = false
-		crashed, err := ctx.testProg(res.Prog, duration, opts, false)
+		crashed, err := ctx.testProg(res.Prog, duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -264,7 +264,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		return res, err
 	}
 	defer os.Remove(bin)
-	crashed, err = ctx.testBin(bin, duration, false)
+	crashed, err = ctx.testBin(bin, duration)
 	if err != nil {
 		return res, err
 	}
@@ -272,14 +272,12 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	return res, nil
 }
 
-func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.Options, reboot bool) (crashed bool, err error) {
+func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.Options) (crashed bool, err error) {
 	inst := <-ctx.instances
 	if inst == nil {
 		return false, fmt.Errorf("all VMs failed to boot")
 	}
-	defer func() {
-		ctx.returnInstance(inst, reboot, crashed)
-	}()
+	defer ctx.returnInstance(inst)
 
 	pstr := p.Serialize()
 	progFile, err := fileutil.WriteTempFile(pstr)
@@ -303,14 +301,12 @@ func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.
 	return ctx.testImpl(inst, command, duration)
 }
 
-func (ctx *context) testBin(bin string, duration time.Duration, reboot bool) (crashed bool, err error) {
+func (ctx *context) testBin(bin string, duration time.Duration) (crashed bool, err error) {
 	inst := <-ctx.instances
 	if inst == nil {
 		return false, fmt.Errorf("all VMs failed to boot")
 	}
-	defer func() {
-		ctx.returnInstance(inst, reboot, crashed)
-	}()
+	defer ctx.returnInstance(inst)
 
 	bin, err = inst.Copy(bin)
 	if err != nil {
@@ -335,13 +331,7 @@ func (ctx *context) testImpl(inst vm.Instance, command string, duration time.Dur
 	return true, nil
 }
 
-func (ctx *context) returnInstance(inst *instance, reboot, crashed bool) {
-	if reboot || crashed {
-		// The test crashed, discard the VM and issue another boot request.
-		ctx.bootRequests <- inst.index
-		inst.Close()
-	} else {
-		// The test did not crash, reuse the same VM in future.
-		ctx.instances <- inst
-	}
+func (ctx *context) returnInstance(inst *instance) {
+	ctx.bootRequests <- inst.index
+	inst.Close()
 }
