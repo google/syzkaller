@@ -214,13 +214,24 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		case <-inst.closed:
 			signal(fmt.Errorf("instance closed"))
 		case err := <-merger.Err:
-			// Check if the instance was terminated due to preemption or host maintenance.
-			time.Sleep(5 * time.Second) // just to avoid any GCE races
-			if !GCE.IsInstanceRunning(inst.name) {
-				Logf(1, "%v: ssh exited but instance is not running", inst.name)
-				err = vm.TimeoutErr
+			con.Process.Kill()
+			ssh.Process.Kill()
+			merger.Wait()
+			con.Wait()
+			if cmdErr := ssh.Wait(); cmdErr == nil {
+				// If the command exited successfully, we got EOF error from merger.
+				// But in this case no error has happened and the EOF is expected.
+				err = nil
+			} else {
+				// Check if the instance was terminated due to preemption or host maintenance.
+				time.Sleep(5 * time.Second) // just to avoid any GCE races
+				if !GCE.IsInstanceRunning(inst.name) {
+					Logf(1, "%v: ssh exited but instance is not running", inst.name)
+					err = vm.TimeoutErr
+				}
 			}
 			signal(err)
+			return
 		}
 		con.Process.Kill()
 		ssh.Process.Kill()
