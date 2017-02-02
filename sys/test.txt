@@ -395,6 +395,7 @@ syz_test$bf1(a0 ptr[in, syz_bf_struct1])
 syz_test$csum_encode(a0 ptr[in, syz_csum_encode])
 syz_test$csum_ipv4(a0 ptr[in, syz_csum_ipv4_header])
 syz_test$csum_ipv4_tcp(a0 ptr[in, syz_csum_ipv4_tcp_packet])
+syz_test$csum_ipv6_tcp(a0 ptr[in, syz_csum_ipv6_tcp_packet])
 
 syz_csum_encode {
 	f0	int16
@@ -408,7 +409,6 @@ syz_csum_encode {
 syz_csum_ipv4_header {
 	csum		csum[ipv4, int16]
 	data		syz_csum_encode
-	protocol	int8
 	src_ip		int32be
 	dst_ip		int32be
 } [packed]
@@ -424,5 +424,15 @@ syz_csum_tcp_packet {
 
 syz_csum_ipv4_tcp_packet {
 	header		syz_csum_ipv4_header
+	payload		syz_csum_tcp_packet
+} [packed]
+
+syz_csum_ipv6_header {
+	src_ip		array[int8, 16]
+	dst_ip		array[int8, 16]
+} [packed]
+
+syz_csum_ipv6_tcp_packet {
+	header		syz_csum_ipv6_header
 	payload		syz_csum_tcp_packet
 } [packed]

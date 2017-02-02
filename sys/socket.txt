@@ -216,6 +216,30 @@ tcp_pair {
 
 
 
+
+# AF_INET6: TCP support
+
+resource sock_tcp6[sock]
+
+socket$tcp6(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0]) sock_tcp6
+socketpair$tcp6(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0], fds ptr[out, tcp6_pair])
+accept$tcp6(fd sock_tcp6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]]) sock_tcp6
+accept4$tcp6(fd sock_tcp6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_tcp6
+bind$tcp6(fd sock_tcp6, addr ptr[in, sockaddr_in6], addrlen len[addr])
+connect$tcp6(fd sock_tcp6, addr ptr[in, sockaddr_in6], addrlen len[addr])
+sendto$tcp6(fd sock_tcp6, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_in6, opt], addrlen len[addr])
+recvfrom$tcp6(fd sock_tcp6, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_in6, opt], addrlen len[addr])
+getsockname$tcp6(fd sock_tcp6, addr ptr[out, sockaddr_in6], addrlen ptr[inout, len[addr, int32]])
+getpeername$tcp6(fd sock_tcp6, peer ptr[out, sockaddr_in6], peerlen ptr[inout, len[peer, int32]])
+
+tcp6_pair {
+	f0	sock_tcp6
+	f1	sock_tcp6
+}
+
+
+
+
 # AF_UNIX support.
 
 resource sock_unix[sock]

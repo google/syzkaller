@@ -56,8 +56,12 @@ func TestChecksumIP(t *testing.T) {
 			0xe143,
 		},
 		{
-			"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\xab\xcd",
-			0x542e,
+			"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\xab\xcd",
+			0x3250,
+		},
+		{
+			"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\xff\xee\xdd\xcc\xbb\xaa\x99\x88\x77\x66\x55\x44\x33\x22\x11\x00\x00\x00\x00\x04\x00\x00\x00\x06\x00\x00\xab\xcd",
+			0x5428,
 		},
 	}
 
@@ -121,7 +125,7 @@ func TestChecksumIPv4Calc(t *testing.T) {
 		csum uint16
 	}{
 		{
-			"syz_test$csum_ipv4(&(0x7f0000000000)={0x0, {0x42, 0x43, [0x44, 0x45], 0xa, 0xb, \"aabbccdd\"}, 0x0, 0x0, 0x0})",
+			"syz_test$csum_ipv4(&(0x7f0000000000)={0x0, {0x42, 0x43, [0x44, 0x45], 0xa, 0xb, \"aabbccdd\"}, 0x0, 0x0})",
 			0xe143,
 		},
 	}
@@ -145,8 +149,12 @@ func TestChecksumTCPCalc(t *testing.T) {
 		csum uint16
 	}{
 		{
-			"syz_test$csum_ipv4_tcp(&(0x7f0000000000)={{0x0, {0x42, 0x43, [0x44, 0x45], 0xa, 0xb, \"aabbccdd\"}, 0x0, 0x0, 0x0}, {{0x0}, \"abcd\"}})",
-			0x542e,
+			"syz_test$csum_ipv4_tcp(&(0x7f0000000000)={{0x0, {0x42, 0x43, [0x44, 0x45], 0xa, 0xb, \"aabbccdd\"}, 0x0, 0x0}, {{0x0}, \"abcd\"}})",
+			0x5428,
+		},
+		{
+			"syz_test$csum_ipv6_tcp(&(0x7f0000000000)={{\"00112233445566778899aabbccddeeff\", \"ffeeddccbbaa99887766554433221100\"}, {{0x0}, \"abcd\"}})",
+			0x5428,
 		},
 	}
 	for i, test := range tests {
