@@ -119,7 +119,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 			return "preempted", nil, nil, false, true
 		}
 		if !report.ContainsCrash(output[matchPos:], ignores) {
-			return defaultError, nil, output, true, false
+			return defaultError, nil, output, defaultError != "", false
 		}
 		desc, text, start, end := report.Parse(output[matchPos:], ignores)
 		start = start + matchPos - beforeContext
@@ -146,8 +146,9 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 		case err := <-errc:
 			switch err {
 			case nil:
-				waitForOutput()
-				return "", nil, output, false, false
+				// The program has exited without errors,
+				// but wait for kernel output in case there is some delayed oops.
+				return extractError("")
 			case TimeoutErr:
 				return err.Error(), nil, nil, false, true
 			default:
@@ -164,7 +165,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 				lastExecuteTime = time.Now()
 			}
 			if report.ContainsCrash(output[matchPos:], ignores) {
-				return extractError("")
+				return extractError("unknown error")
 			}
 			if len(output) > 2*beforeContext {
 				copy(output, output[len(output)-beforeContext:])
