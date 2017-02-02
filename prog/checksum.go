@@ -147,7 +147,7 @@ func calcChecksumIPv4(arg *Arg, pid int) (*Arg, *Arg) {
 	return csumField, &newCsumField
 }
 
-func extractHeaderParamsIPv4(arg *Arg) (*Arg, *Arg, *Arg) {
+func extractHeaderParamsIPv4(arg *Arg) (*Arg, *Arg) {
 	srcAddr := getFieldByName(arg, "src_ip")
 	if srcAddr.Size() != 4 {
 		panic(fmt.Sprintf("src_ip field in %v must be 4 bytes", arg.Type.Name()))
@@ -156,14 +156,44 @@ func extractHeaderParamsIPv4(arg *Arg) (*Arg, *Arg, *Arg) {
 	if dstAddr.Size() != 4 {
 		panic(fmt.Sprintf("dst_ip field in %v must be 4 bytes", arg.Type.Name()))
 	}
-	protocol := getFieldByName(arg, "protocol")
-	if protocol.Size() != 1 {
-		panic(fmt.Sprintf("protocol field in %v must be 1 byte", arg.Type.Name()))
-	}
-	return srcAddr, dstAddr, protocol
+	return srcAddr, dstAddr
 }
 
-func calcChecksumTCP(tcpPacket, srcAddr, dstAddr, protocol *Arg, pid int) (*Arg, *Arg) {
+func extractHeaderParamsIPv6(arg *Arg) (*Arg, *Arg) {
+	srcAddr := getFieldByName(arg, "src_ip")
+	if srcAddr.Size() != 16 {
+		panic(fmt.Sprintf("src_ip field in %v must be 4 bytes", arg.Type.Name()))
+	}
+	dstAddr := getFieldByName(arg, "dst_ip")
+	if dstAddr.Size() != 16 {
+		panic(fmt.Sprintf("dst_ip field in %v must be 4 bytes", arg.Type.Name()))
+	}
+	return srcAddr, dstAddr
+}
+
+func composeTCPPseudoHeaderIPv4(tcpPacket, srcAddr, dstAddr *Arg, pid int) []byte {
+	header := []byte{}
+	header = append(header, encodeArg(srcAddr, pid)...)
+	header = append(header, encodeArg(dstAddr, pid)...)
+	header = append(header, []byte{0, 6}...) // IPPROTO_TCP == 6
+	length := []byte{0, 0}
+	binary.BigEndian.PutUint16(length, uint16(tcpPacket.Size()))
+	header = append(header, length...)
+	return header
+}
+
+func composeTCPPseudoHeaderIPv6(tcpPacket, srcAddr, dstAddr *Arg, pid int) []byte {
+	header := []byte{}
+	header = append(header, encodeArg(srcAddr, pid)...)
+	header = append(header, encodeArg(dstAddr, pid)...)
+	length := []byte{0, 0, 0, 0}
+	binary.BigEndian.PutUint32(length, uint32(tcpPacket.Size()))
+	header = append(header, length...)
+	header = append(header, []byte{0, 0, 0, 6}...) // IPPROTO_TCP == 6
+	return header
+}
+
+func calcChecksumTCP(tcpPacket *Arg, pseudoHeader []byte, pid int) (*Arg, *Arg) {
 	tcpHeaderField := getFieldByName(tcpPacket, "header")
 	csumField := getFieldByName(tcpHeaderField, "csum")
 	if typ, ok := csumField.Type.(*sys.CsumType); !ok {
@@ -173,12 +203,7 @@ func calcChecksumTCP(tcpPacket, srcAddr, dstAddr, protocol *Arg, pid int) (*Arg,
 	}
 
 	var csum IPChecksum
-	csum.Update(encodeArg(srcAddr, pid))
-	csum.Update(encodeArg(dstAddr, pid))
-	csum.Update([]byte{0, byte(protocol.Value(pid))})
-	length := []byte{0, 0}
-	binary.BigEndian.PutUint16(length, uint16(tcpPacket.Size()))
-	csum.Update(length)
+	csum.Update(pseudoHeader)
 	csum.Update(encodeArg(tcpPacket, pid))
 
 	newCsumField := *csumField
@@ -189,9 +214,9 @@ func calcChecksumTCP(tcpPacket, srcAddr, dstAddr, protocol *Arg, pid int) (*Arg,
 func calcChecksumsCall(c *Call, pid int) map[*Arg]*Arg {
 	var csumMap map[*Arg]*Arg
 	ipv4HeaderParsed := false
-	var ipv4SrcAddr *Arg
-	var ipv4DstAddr *Arg
-	var ipv4Protocol *Arg
+	ipv6HeaderParsed := false
+	var ipSrcAddr *Arg
+	var ipDstAddr *Arg
 	foreachArgArray(&c.Args, nil, func(arg, base *Arg, _ *[]*Arg) {
 		// syz_csum_ipv4_header struct is used in tests
 		if arg.Type.Name() == "ipv4_header" || arg.Type.Name() == "syz_csum_ipv4_header" {
@@ -200,15 +225,29 @@ func calcChecksumsCall(c *Call, pid int) map[*Arg]*Arg {
 			}
 			csumField, newCsumField := calcChecksumIPv4(arg, pid)
 			csumMap[csumField] = newCsumField
-			ipv4SrcAddr, ipv4DstAddr, ipv4Protocol = extractHeaderParamsIPv4(arg)
+			ipSrcAddr, ipDstAddr = extractHeaderParamsIPv4(arg)
 			ipv4HeaderParsed = true
+		}
+		// syz_csum_ipv6_header struct is used in tests
+		if arg.Type.Name() == "ipv6_packet" || arg.Type.Name() == "syz_csum_ipv6_header" {
+			ipSrcAddr, ipDstAddr = extractHeaderParamsIPv6(arg)
+			ipv6HeaderParsed = true
 		}
 		// syz_csum_tcp_packet struct is used in tests
 		if arg.Type.Name() == "tcp_packet" || arg.Type.Name() == "syz_csum_tcp_packet" {
-			if !ipv4HeaderParsed {
-				panic("tcp_packet is being parsed before ipv4_header")
+			if csumMap == nil {
+				csumMap = make(map[*Arg]*Arg)
 			}
-			csumField, newCsumField := calcChecksumTCP(arg, ipv4SrcAddr, ipv4DstAddr, ipv4Protocol, pid)
+			if !ipv4HeaderParsed && !ipv6HeaderParsed {
+				panic("tcp packet is being parsed before ipv4 or ipv6 header")
+			}
+			var pseudoHeader []byte
+			if ipv4HeaderParsed {
+				pseudoHeader = composeTCPPseudoHeaderIPv4(arg, ipSrcAddr, ipDstAddr, pid)
+			} else {
+				pseudoHeader = composeTCPPseudoHeaderIPv6(arg, ipSrcAddr, ipDstAddr, pid)
+			}
+			csumField, newCsumField := calcChecksumTCP(arg, pseudoHeader, pid)
 			csumMap[csumField] = newCsumField
 		}
 	})
