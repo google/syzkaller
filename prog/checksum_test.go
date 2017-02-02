@@ -60,8 +60,24 @@ func TestChecksumIP(t *testing.T) {
 			0x3250,
 		},
 		{
+			"\x00\x00\x12\x34\x56\x78",
+			0x9753,
+		},
+		{
+			"\x00\x00\x12\x34\x00\x00\x56\x78\x00\x06\x00\x04\xab\xcd",
+			0xeb7b,
+		},
+		{
 			"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\xff\xee\xdd\xcc\xbb\xaa\x99\x88\x77\x66\x55\x44\x33\x22\x11\x00\x00\x00\x00\x04\x00\x00\x00\x06\x00\x00\xab\xcd",
 			0x5428,
+		},
+		{
+			"\x00\x00\x12\x34\x00\x00\x56\x78\x00\x11\x00\x04\xab\xcd",
+			0xeb70,
+		},
+		{
+			"\x00\x11\x22\x33\x44\x55\x66\x77\x88\x99\xaa\xbb\xcc\xdd\xee\xff\xff\xee\xdd\xcc\xbb\xaa\x99\x88\x77\x66\x55\x44\x33\x22\x11\x00\x00\x00\x00\x04\x00\x00\x00\x11\x00\x00\xab\xcd",
+			0x541d,
 		},
 	}
 
@@ -119,42 +135,36 @@ func TestChecksumEncode(t *testing.T) {
 	}
 }
 
-func TestChecksumIPv4Calc(t *testing.T) {
+func TestChecksumCalc(t *testing.T) {
 	tests := []struct {
 		prog string
+		kind sys.CsumKind
 		csum uint16
 	}{
 		{
-			"syz_test$csum_ipv4(&(0x7f0000000000)={0x0, {0x42, 0x43, [0x44, 0x45], 0xa, 0xb, \"aabbccdd\"}, 0x0, 0x0})",
-			0xe143,
+			"syz_test$csum_ipv4(&(0x7f0000000000)={0x0, 0x1234, 0x5678})",
+			sys.CsumIPv4,
+			0x9753,
 		},
-	}
-	for i, test := range tests {
-		p, err := Deserialize([]byte(test.prog))
-		if err != nil {
-			t.Fatalf("failed to deserialize prog %v: %v", test.prog, err)
-		}
-		_, csumField := calcChecksumIPv4(p.Calls[0].Args[0].Res, i%32)
-		// Can't compare serialized progs, since checksums are zerod on serialization.
-		csum := csumField.Value(i % 32)
-		if csum != uintptr(test.csum) {
-			t.Fatalf("failed to calc ipv4 checksum, got %x, want %x, prog: '%v'", csum, test.csum, test.prog)
-		}
-	}
-}
-
-func TestChecksumTCPCalc(t *testing.T) {
-	tests := []struct {
-		prog string
-		csum uint16
-	}{
 		{
-			"syz_test$csum_ipv4_tcp(&(0x7f0000000000)={{0x0, {0x42, 0x43, [0x44, 0x45], 0xa, 0xb, \"aabbccdd\"}, 0x0, 0x0}, {{0x0}, \"abcd\"}})",
-			0x5428,
+			"syz_test$csum_ipv4_tcp(&(0x7f0000000000)={{0x0, 0x1234, 0x5678}, {{0x0}, \"abcd\"}})",
+			sys.CsumTCP,
+			0xeb7b,
 		},
 		{
 			"syz_test$csum_ipv6_tcp(&(0x7f0000000000)={{\"00112233445566778899aabbccddeeff\", \"ffeeddccbbaa99887766554433221100\"}, {{0x0}, \"abcd\"}})",
+			sys.CsumTCP,
 			0x5428,
+		},
+		{
+			"syz_test$csum_ipv4_udp(&(0x7f0000000000)={{0x0, 0x1234, 0x5678}, {0x0, \"abcd\"}})",
+			sys.CsumUDP,
+			0xeb70,
+		},
+		{
+			"syz_test$csum_ipv6_udp(&(0x7f0000000000)={{\"00112233445566778899aabbccddeeff\", \"ffeeddccbbaa99887766554433221100\"}, {0x0, \"abcd\"}})",
+			sys.CsumUDP,
+			0x541d,
 		},
 	}
 	for i, test := range tests {
@@ -163,17 +173,22 @@ func TestChecksumTCPCalc(t *testing.T) {
 			t.Fatalf("failed to deserialize prog %v: %v", test.prog, err)
 		}
 		csumMap := calcChecksumsCall(p.Calls[0], i%32)
+		found := false
 		for oldField, newField := range csumMap {
 			if typ, ok := newField.Type.(*sys.CsumType); ok {
-				if typ.Kind == sys.CsumTCP {
+				if typ.Kind == test.kind {
+					found = true
 					csum := newField.Value(i % 32)
 					if csum != uintptr(test.csum) {
-						t.Fatalf("failed to calc tcp checksum, got %x, want %x, prog: '%v'", csum, test.csum, test.prog)
+						t.Fatalf("failed to calc checksum, got %x, want %x, kind %v, prog '%v'", csum, test.csum, test.kind, test.prog)
 					}
 				}
 			} else {
 				t.Fatalf("non csum key %+v in csum map %+v", oldField, csumMap)
 			}
+		}
+		if !found {
+			t.Fatalf("csum field not found, kind %v, prog '%v'", test.kind, test.prog);
 		}
 	}
 }
