@@ -511,6 +511,8 @@ func generateArg(
 			kind = "CsumIPv4"
 		case "tcp":
 			kind = "CsumTCP"
+		case "udp":
+			kind = "CsumUDP"
 		default:
 			failf("unknown checksum kind '%v'", a[0])
 		}
