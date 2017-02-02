@@ -78,9 +78,10 @@ eth2_packet {
 	payload		eth2_payload
 } [packed]
 
-eth2_payload {
+eth2_payload [
 	ipv4		ipv4_packet
-} [packed]
+	ipv6		ipv6_packet
+] [varlen]
 
 ################################################################################
 ##################################### IPv4 #####################################
@@ -242,8 +243,8 @@ ipv4_header {
 	dscp		int8:6
 	total_len	len[ipv4_packet, int16be]
 	id		int16be
-	frag_off	int16:13
-	flags		int16:3
+	frag_off	int16be
+# TODO: frag_off is actually 13 bits, 3 bits are flags
 	ttl		int8
 	protocol	flags[ipv4_types, int8]
 	csum		csum[ipv4, int16be]
@@ -254,6 +255,122 @@ ipv4_header {
 
 ipv4_packet {
 	header		ipv4_header
+	payload		ip_payload
+} [packed]
+
+################################################################################
+##################################### IPv6 #####################################
+################################################################################
+
+# https://tools.ietf.org/html/rfc2460#section-3
+# https://en.wikipedia.org/wiki/IPv6_packet#Fixed_header
+
+include <uapi/linux/in6.h>
+include <uapi/linux/ipv6.h>
+include <net/ipv6.h>
+
+ipv6_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, IPPROTO_EGP, IPPROTO_PUP, IPPROTO_UDP, IPPROTO_IDP, IPPROTO_TP, IPPROTO_DCCP, IPPROTO_IPV6, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_ESP, IPPROTO_AH, IPPROTO_MTP, IPPROTO_BEETPH, IPPROTO_ENCAP, IPPROTO_PIM, IPPROTO_COMP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_MPLS, IPPROTO_RAW, IPPROTO_HOPOPTS, IPPROTO_ROUTING, IPPROTO_FRAGMENT, IPPROTO_ICMPV6, IPPROTO_NONE, IPPROTO_DSTOPTS, IPPROTO_MH, NEXTHDR_HOP, NEXTHDR_TCP, NEXTHDR_UDP, NEXTHDR_IPV6, NEXTHDR_ROUTING, NEXTHDR_FRAGMENT, NEXTHDR_GRE, NEXTHDR_ESP, NEXTHDR_AUTH, NEXTHDR_ICMP, NEXTHDR_NONE, NEXTHDR_DEST, NEXTHDR_SCTP, NEXTHDR_MOBILITY
+
+# This corresponds to LOCAL_IPV6 ("fd00::%02hxaa" % pid) in executor/common.h
+ipv6_addr_local {
+	a0		const[0xfd, int8]
+	a1		array[const[0x00, int8], 13]
+	a2		proc[int8, 0, 1]
+	a3		const[0xaa, int8]
+} [packed]
+
+# This corresponds to REMOTE_IPV6 ("fd00::%02hxbb" % pid) in executor/common.h
+ipv6_addr_remote {
+	a0		const[0xfd, int8]
+	a1		array[const[0x00, int8], 13]
+	a2		proc[int8, 0, 1]
+	a3		const[0xbb, int8]
+} [packed]
+
+ipv6_addr_loopback {
+	a0		const[0, int64be]
+	a1		const[1, int64be]
+} [packed]
+
+ipv6_addr [
+	local		ipv6_addr_local
+	remote		ipv6_addr_remote
+	loopback	ipv6_addr_loopback
+]
+
+# TODO: Describe more types of headers
+# NEXTHDR_HOP, NEXTHDR_TCP, NEXTHDR_UDP, NEXTHDR_IPV6, NEXTHDR_ROUTING, NEXTHDR_FRAGMENT, NEXTHDR_GRE, NEXTHDR_ESP, NEXTHDR_AUTH, NEXTHDR_ICMP, NEXTHDR_NONE, NEXTHDR_DEST, NEXTHDR_SCTP, NEXTHDR_MOBILITY
+# https://tools.ietf.org/html/rfc2402
+# https://tools.ietf.org/html/rfc2406
+
+# https://tools.ietf.org/html/rfc2460#section-4
+# The length field in each of the extension headers specifies the
+# length of the header in 8-octet units not including the first 8 octets.
+ipv6_ext_header [
+	hopopts 	ipv6_hopots_ext_header
+	routing 	ipv6_routing_ext_header
+	fragment	ipv6_fragment_ext_header
+	dstopts		ipv6_dstopts_ext_header
+] [varlen]
+
+ipv6_hopots_ext_header {
+	next_header	flags[ipv6_types, int8]
+	length		bytesize8[options, int8]
+	pad		array[const[0, int8], 6]
+	options		array[ipv6_tlv_option]
+} [packed, align_8]
+
+ipv6_routing_types = IPV6_SRCRT_STRICT, IPV6_SRCRT_TYPE_0, IPV6_SRCRT_TYPE_2
+
+ipv6_routing_ext_header {
+	next_header	flags[ipv6_types, int8]
+	length		bytesize8[data, int8]
+	routing_type	flags[ipv6_routing_types, int8]
+	segments_left	int8
+	reserved	int32be
+	data		array[ipv6_addr]
+} [packed, align_8]
+
+ipv6_fragment_ext_header {
+	next_header	flags[ipv6_types, int8]
+	reserved1	int8
+	m_flag		int16:1
+	reserved2	int16:2
+	fragment_offset	int16be:13
+	identification	int32
+} [packed]
+
+ipv6_dstopts_ext_header {
+	next_header	flags[ipv6_types, int8]
+	length		bytesize8[options, int8]
+	pad		array[const[0, int8], 6]
+	options		array[ipv6_tlv_option]
+} [packed]
+
+# TODO: describe particular tlv options
+ipv6_tlv_option_types = IPV6_TLV_PAD1, IPV6_TLV_PADN, IPV6_TLV_ROUTERALERT, IPV6_TLV_CALIPSO, IPV6_TLV_JUMBO, IPV6_TLV_HAO, 0xff, 0xfe
+
+ipv6_tlv_option {
+	type		flags[ipv6_tlv_option_types, int8]
+	length		len[data, int8]
+	data		array[int8]
+} [packed]
+
+ipv6_packet {
+	priority	int8:4
+	version		const[6, int8:4]
+	flow_label	array[int8, 3]
+# TODO: flow_label is actually 20 bits, 4 bits are part of priority
+	length		len[payload, int16be]
+	next_header	flags[ipv6_types, int8]
+	hop_limit	int8
+	src_ip		ipv6_addr
+	dst_ip		ipv6_addr
+	payload		ipv6_packet_payload
+} [packed]
+
+ipv6_packet_payload {
+	ext_headers	array[ipv6_ext_header]
 	payload		ip_payload
 } [packed]
 
