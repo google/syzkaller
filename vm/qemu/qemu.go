@@ -354,7 +354,14 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		case <-stop:
 			signal(vm.TimeoutErr)
 		case err := <-inst.merger.Err:
+			cmd.Process.Kill()
+			if cmdErr := cmd.Wait(); cmdErr == nil {
+				// If the command exited successfully, we got EOF error from merger.
+				// But in this case no error has happened and the EOF is expected.
+				err = nil
+			}
 			signal(err)
+			return
 		}
 		cmd.Process.Kill()
 		cmd.Wait()
