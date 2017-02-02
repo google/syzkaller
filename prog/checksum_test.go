@@ -188,7 +188,7 @@ func TestChecksumCalc(t *testing.T) {
 			}
 		}
 		if !found {
-			t.Fatalf("csum field not found, kind %v, prog '%v'", test.kind, test.prog);
+			t.Fatalf("csum field not found, kind %v, prog '%v'", test.kind, test.prog)
 		}
 	}
 }
