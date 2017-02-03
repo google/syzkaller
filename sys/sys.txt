@@ -108,7 +108,9 @@ pselect6(n len[inp], inp ptr[inout, fd_set], outp ptr[inout, fd_set], exp ptr[in
 resource fd_epoll[fd]
 epoll_create(size int32) fd_epoll
 epoll_create1(flags flags[epoll_flags]) fd_epoll
-epoll_ctl(epfd fd_epoll, op flags[epoll_op], fd fd, ev ptr[in, epoll_event])
+epoll_ctl$EPOLL_CTL_ADD(epfd fd_epoll, op const[EPOLL_CTL_ADD], fd fd, ev ptr[in, epoll_event])
+epoll_ctl$EPOLL_CTL_MOD(epfd fd_epoll, op const[EPOLL_CTL_MOD], fd fd, ev ptr[in, epoll_event])
+epoll_ctl$EPOLL_CTL_DEL(epfd fd_epoll, op const[EPOLL_CTL_DEL], fd fd)
 epoll_wait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32)
 epoll_pwait(epfd fd_epoll, events ptr[out, array[epoll_event]], maxevents len[events], timeout int32, sigmask ptr[in, sigset], size len[sigmask])
 
@@ -545,8 +547,8 @@ stat {
 
 pollfd {
 	fd	fd
-	events	int16
-	revents	int16
+	events	flags[pollfd_events, int16]
+	revents	const[0, int16]
 }
 
 sigset {
@@ -593,7 +595,7 @@ io_event {
 }
 
 iocb {
-	data	int64
+	data	const[0, int64]
 	key	flags[iocb_key, int32]
 	pad	const[0, int32]
 	op	flags[lio_opcode, int16]
@@ -643,8 +645,8 @@ cap_data {
 
 epoll_event {
 	ev	flags[epoll_ev, int32]
-	data	int64
-}
+	data	const[0, int64]
+} [packed]
 
 # fd_set needs to be a separate type
 fd_set {
@@ -985,7 +987,7 @@ fiemap_extent {
 }
 
 uffdio_api {
-	api	const[170, int64]
+	api	const[UFFD_API, int64]
 	featur	const[0, int64]
 	ioctls	const[0, int64]
 }
@@ -1046,7 +1048,7 @@ timerfd_create_flags = TFD_NONBLOCK, TFD_CLOEXEC
 timerfd_settime_flags = TFD_TIMER_ABSTIME
 clock_type = CLOCK_REALTIME, CLOCK_REALTIME_COARSE, CLOCK_MONOTONIC, CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_RAW, CLOCK_BOOTTIME, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
 lio_opcode = IOCB_CMD_PREAD, IOCB_CMD_PWRITE, IOCB_CMD_FSYNC, IOCB_CMD_FDSYNC, IOCB_CMD_NOOP, IOCB_CMD_PREADV, IOCB_CMD_PWRITEV
-iocb_flags = IOCB_FLAG_RESFD
+iocb_flags = 0, IOCB_FLAG_RESFD
 iocb_key = 0
 sigev_notify = SIGEV_NONE, SIGEV_SIGNAL, SIGEV_THREAD, SIGEV_THREAD_ID
 cap_version = 0x19980330, 0x20071026, 0x20080522
@@ -1060,7 +1062,8 @@ prctl_mm_option = PR_SET_MM_START_CODE, PR_SET_MM_END_CODE, PR_SET_MM_START_DATA
 arch_prctl_code = ARCH_SET_FS, ARCH_GET_FS, ARCH_SET_GS, ARCH_GET_GS
 epoll_flags = EPOLL_CLOEXEC
 epoll_op = EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
-epoll_ev =  POLLIN, POLLOUT, POLLRDHUP, POLLPRI, POLLERR, POLLHUP, EPOLLET, EPOLLONESHOT
+epoll_ev =  POLLIN, POLLOUT, POLLRDHUP, POLLPRI, POLLERR, POLLHUP, EPOLLET, EPOLLONESHOT, EPOLLEXCLUSIVE, EPOLLWAKEUP
+pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND, POLLMSG, POLLREMOVE, POLLRDHUP, POLLFREE, POLL_BUSY_LOOP
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 fchownat_flags = AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW
 fallocate_mode = 0, FALLOC_FL_KEEP_SIZE, FALLOC_FL_PUNCH_HOLE
