@@ -148,6 +148,10 @@ var oopses = []*oops{
 				compile("general protection fault:(?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
 				"general protection fault in %[1]v",
 			},
+			{
+				compile("general protection fault:(?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
+				"general protection fault in %[1]v",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
@@ -192,6 +196,10 @@ var oopses = []*oops{
 				compile("divide error: (?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
 				"divide error in %[1]v",
 			},
+			{
+				compile("divide error: (?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
+				"divide error in %[1]v",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
@@ -200,6 +208,10 @@ var oopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("invalid opcode: (?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
+				"invalid opcode in %[1]v",
+			},
+			{
+				compile("invalid opcode: (?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
 				"invalid opcode in %[1]v",
 			},
 		},
