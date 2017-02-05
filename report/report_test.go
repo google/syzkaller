@@ -73,6 +73,26 @@ IP: [<ffffffff810a376f>] __call_rcu.constprop.76+0x1f/0x280 kernel/rcu/tree.c:30
 `: `general protection fault in logfs_init_inode`,
 
 		`
+general protection fault: 0000 [#1] SMP KASAN
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 0 PID: 27388 Comm: syz-executor5 Not tainted 4.10.0-rc6+ #117
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+task: ffff88006252db40 task.stack: ffff880062090000
+RIP: 0010:__ip_options_echo+0x120a/0x1770
+RSP: 0018:ffff880062097530 EFLAGS: 00010206
+RAX: dffffc0000000000 RBX: ffff880062097910 RCX: 0000000000000000
+RDX: 0000000000000003 RSI: ffffffff83988dca RDI: 0000000000000018
+RBP: ffff8800620976a0 R08: ffff88006209791c R09: ffffed000c412f26
+R10: 0000000000000004 R11: ffffed000c412f25 R12: ffff880062097900
+R13: ffff88003a8c0a6c R14: 1ffff1000c412eb3 R15: 000000000000000d
+FS:  00007fd61b443700(0000) GS:ffff88003ec00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000000002095f000 CR3: 0000000062876000 CR4: 00000000000006f0
+`: `general protection fault in __ip_options_echo`,
+
+		`
 ==================================================================
 BUG: KASAN: slab-out-of-bounds in memcpy+0x1d/0x40 at addr ffff88003a6bd110
 Read of size 8 by task a.out/6260
@@ -331,6 +351,26 @@ sp : c23e1db0  ip : c3cf8848  fp : c23e1df4
 [  616.312546] RIP: 0010:[<ffffffff8575b41c>]  [<ffffffff8575b41c>] snd_hrtimer_callback+0x1bc/0x3c0
 [  616.312546] RSP: 0018:ffff88003ed07d98  EFLAGS: 00010006
 `: `divide error in snd_hrtimer_callback`,
+
+		`
+divide error: 0000 [#1] SMP KASAN
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 2 PID: 5664 Comm: syz-executor5 Not tainted 4.10.0-rc6+ #122
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+task: ffff88003a46adc0 task.stack: ffff880036a00000
+RIP: 0010:__tcp_select_window+0x6db/0x920
+RSP: 0018:ffff880036a07638 EFLAGS: 00010212
+RAX: 0000000000000480 RBX: ffff880036a077d0 RCX: ffffc900030db000
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffff88003809c3b5
+RBP: ffff880036a077f8 R08: ffff880039de5dc0 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000480
+R13: 0000000000000000 R14: ffff88003809bb00 R15: 0000000000000000
+FS:  00007f35ecf32700(0000) GS:ffff88006de00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00000000205fb000 CR3: 0000000032467000 CR4: 00000000000006e0
+`: `divide error in __tcp_select_window`,
 
 		`
 unreferenced object 0xffff880039a55260 (size 64): 
