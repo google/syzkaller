@@ -19,7 +19,7 @@ ioctl$EVIOCGREP(fd fd_evdev, cmd const[EVIOCGREP], arg buffer[out])
 ioctl$EVIOCGKEYCODE(fd fd_evdev, cmd const[EVIOCGKEYCODE], arg buffer[out])
 ioctl$EVIOCGKEYCODE_V2(fd fd_evdev, cmd const[EVIOCGKEYCODE_V2], arg buffer[out])
 ioctl$EVIOCGEFFECTS(fd fd_evdev, cmd const[EVIOCGEFFECTS], arg buffer[out])
-ioctl$EVIOCGMASK(fd fd_evdev, cmd const[EVIOCGMASK], arg buffer[out])
+ioctl$EVIOCGMASK(fd fd_evdev, cmd const[EVIOCGMASK], arg ptr[in, input_mask])
 ioctl$EVIOCGNAME(fd fd_evdev, cmd const[EVIOCGNAME64], arg buffer[out])
 ioctl$EVIOCGPHYS(fd fd_evdev, cmd const[EVIOCGPHYS64], arg buffer[out])
 ioctl$EVIOCGUNIQ(fd fd_evdev, cmd const[EVIOCGUNIQ64], arg buffer[out])
@@ -142,7 +142,7 @@ ff_envelope {
 
 input_mask {
 	type	flags[input_mask_type, int32]
-	size	int32
+	size	bytesize[ptr, int32]
 	ptr	buffer[in]
 }
 
