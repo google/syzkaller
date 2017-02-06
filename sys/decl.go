@@ -193,7 +193,7 @@ type ProcType struct {
 type CsumKind int
 
 const (
-	CsumIPv4 CsumKind = iota
+	CsumInet CsumKind = iota
 	CsumTCP
 	CsumUDP
 )
