@@ -499,6 +499,8 @@ WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 [   95.445015] INFO: NMI handler (perf_event_nmi_handler) took too long to run: 1.356 msecs
 [   95.445015] perf: interrupt took too long (3985 > 3976), lowering kernel.perf_event_max_sample_rate to 50000
 `: ``,
+
+		`[   92.396607] general protection fault: 0000 [#1] [ 387.811073] audit: type=1326 audit(1486238739.637:135): auid=4294967295 uid=0 gid=0 ses=4294967295 pid=10020 comm="syz-executor1" exe="/root/syz-executor1" sig=31 arch=c000003e syscall=202 compat=0 ip=0x44fad9 code=0x0`: `general protection fault: 0000 [#1] [ 387.811073] audit: type=1326 audit(1486238739.637:135): auid=4294967295 uid=0 gid=0 ses=4294967295 pid=10020 comm="syz-executor1" exe="/root/s`,
 	}
 	for log, crash := range tests {
 		if strings.Index(log, "\r\n") != -1 {
@@ -571,6 +573,41 @@ func TestIgnores(t *testing.T) {
 	}
 	if desc, _, _, _ := Parse([]byte(log), ignores3); desc != "" {
 		t.Fatalf("found `%v`, should be ignored", desc)
+	}
+}
+
+func TestParseText(t *testing.T) {
+	tests := map[string]string{
+		`mmap(&(0x7f00008dd000/0x1000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)
+getsockopt$NETROM_N2(r2, 0x103, 0x3, &(0x7f00008de000-0x4)=0x1, &(0x7f00008dd000)=0x4)
+[  522.560667] nla_parse: 5 callbacks suppressed
+[  522.565344] netlink: 3 bytes leftover after parsing attributes in process 'syz-executor5'.
+[  536.429346] NMI watchdog: BUG: soft lockup - CPU#1 stuck for 11s! [syz-executor7:16813]
+mmap(&(0x7f0000557000/0x2000)=nil, (0x2000), 0x1, 0x11, r2, 0x1b)
+[  536.437530] Modules linked in:
+[  536.440808] CPU: 1 PID: 16813 Comm: syz-executor7 Not tainted 4.3.5-smp-DEV #119`: `NMI watchdog: BUG: soft lockup - CPU#1 stuck for 11s! [syz-executor7:16813]
+Modules linked in:
+CPU: 1 PID: 16813 Comm: syz-executor7 Not tainted 4.3.5-smp-DEV #119
+`,
+
+		// Raw 'dmesg -r' and /proc/kmsg output.
+		`<6>[   85.501187] WARNING: foo
+<6>[   85.501187] nouveau  [     DRM] suspending kernel object tree...
+executing program 1:
+<6>[   85.525111] nouveau  [     DRM] nouveau suspended
+<14>[   85.912347] init: computing context for service 'clear-bcb'`: `WARNING: foo
+nouveau  [     DRM] suspending kernel object tree...
+nouveau  [     DRM] nouveau suspended
+init: computing context for service 'clear-bcb'
+`,
+	}
+	for log, text0 := range tests {
+		if desc, text, _, _ := Parse([]byte(log), nil); string(text) != text0 {
+			t.Logf("log:\n%s", log)
+			t.Logf("want text:\n%s", text0)
+			t.Logf("got text:\n%s", text)
+			t.Fatalf("bad text, desc: '%v'", desc)
+		}
 	}
 }
 
