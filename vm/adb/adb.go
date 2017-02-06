@@ -46,10 +46,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	if err := inst.repair(); err != nil {
 		return nil, err
 	}
-	var err error
-	if inst.console, err = findConsole(inst.cfg.Bin, inst.cfg.Device); err != nil {
-		return nil, err
-	}
+	inst.console = findConsole(inst.cfg.Bin, inst.cfg.Device)
 	if err := inst.checkBatteryLevel(); err != nil {
 		return nil, err
 	}
@@ -83,12 +80,28 @@ var (
 // while Suzy-Q console uses the same USB calbe as adb.
 // The overall idea is as follows. We use 'adb shell' to write a unique string onto console,
 // then we read from all console devices and see on what console the unique string appears.
-func findConsole(adb, dev string) (string, error) {
+func findConsole(adb, dev string) string {
 	consoleCacheMu.Lock()
 	defer consoleCacheMu.Unlock()
 	if con := devToConsole[dev]; con != "" {
-		return con, nil
+		return con
 	}
+	con, err := findConsoleImpl(adb, dev)
+	if err != nil {
+		Logf(0, "failed to associate adb device %v with console: %v", dev, err)
+		Logf(0, "falling back to 'adb shell dmesg -w'")
+		Logf(0, "note: some bugs may be detected as 'lost connection to test machine' with no kernel output")
+		con = "adb"
+		devToConsole[dev] = con
+		return con
+	}
+	devToConsole[dev] = con
+	consoleToDev[con] = dev
+	Logf(0, "associating adb device %v with console %v", dev, con)
+	return con
+}
+
+func findConsoleImpl(adb, dev string) (string, error) {
 	consoles, err := filepath.Glob("/dev/ttyUSB*")
 	if err != nil {
 		return "", fmt.Errorf("failed to list /dev/ttyUSB devices: %v", err)
@@ -154,9 +167,6 @@ func findConsole(adb, dev string) (string, error) {
 		}
 		return "", fmt.Errorf("no console is associated with this device")
 	}
-	devToConsole[dev] = con
-	consoleToDev[con] = dev
-	Logf(0, "associating adb device %v with console %v", dev, con)
 	return con, nil
 }
 
@@ -327,7 +337,13 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
-	tty, err := openConsole(inst.console)
+	var tty io.ReadCloser
+	var err error
+	if inst.console == "adb" {
+		tty, err = openAdbConsole(inst.cfg.Bin, inst.cfg.Device)
+	} else {
+		tty, err = openConsole(inst.console)
+	}
 	if err != nil {
 		return nil, nil, err
 	}

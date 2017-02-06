@@ -223,7 +223,7 @@ var oopses = []*oops{
 }
 
 var (
-	consoleOutputRe = regexp.MustCompile(`^\[ *[0-9]+\.[0-9]+\] `)
+	consoleOutputRe = regexp.MustCompile(`^(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\] `)
 	questionableRe  = regexp.MustCompile(`(?:\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
 	symbolizeRe     = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])? +(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
 	eoi             = []byte("<EOI>")
@@ -303,6 +303,11 @@ func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, s
 	desc = extractDescription(output[start:], oops)
 	if len(desc) > 0 && desc[len(desc)-1] == '\r' {
 		desc = desc[:len(desc)-1]
+	}
+	// Corrupted/intermixed lines can be very long.
+	const maxDescLen = 180
+	if len(desc) > maxDescLen {
+		desc = desc[:maxDescLen]
 	}
 	return
 }

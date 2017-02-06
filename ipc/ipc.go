@@ -274,8 +274,8 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		}
 		c := p.Calls[callIndex]
 		if num := c.Meta.ID; uint32(num) != callNum {
-			err0 = fmt.Errorf("executor %v: failed to read output coverage: call %v: expect syscall %v, got %v, executed %v (cov: %v)",
-				env.pid, callIndex, num, callNum, ncmd, dumpCov())
+			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v call %v: expect syscall %v, got %v, executed %v (cov: %v)",
+				env.pid, i, callIndex, num, callNum, ncmd, dumpCov())
 			return
 		}
 		if info[callIndex].Signal != nil {
