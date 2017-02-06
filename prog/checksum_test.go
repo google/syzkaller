@@ -143,7 +143,7 @@ func TestChecksumCalc(t *testing.T) {
 	}{
 		{
 			"syz_test$csum_ipv4(&(0x7f0000000000)={0x0, 0x1234, 0x5678})",
-			sys.CsumIPv4,
+			sys.CsumInet,
 			0x9753,
 		},
 		{

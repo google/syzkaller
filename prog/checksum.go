@@ -130,20 +130,7 @@ func getFieldByName(arg *Arg, name string) *Arg {
 	panic(fmt.Sprintf("failed to find %v field in %v", name, arg.Type.Name()))
 }
 
-func findCsumFieldIPv4(packet *Arg, pid int) *Arg {
-	csumField := getFieldByName(packet, "csum")
-	if typ, ok := csumField.Type.(*sys.CsumType); !ok {
-		panic(fmt.Sprintf("checksum field has bad type %v, arg: %+v", csumField.Type, csumField))
-	} else if typ.Kind != sys.CsumIPv4 {
-		panic(fmt.Sprintf("checksum field has bad kind %v, arg: %+v", typ.Kind, csumField))
-	}
-	if csumField.Value(pid) != 0 {
-		panic(fmt.Sprintf("checksum field has nonzero value %v, arg: %+v", csumField.Value(pid), csumField))
-	}
-	return csumField
-}
-
-func calcChecksumIPv4(packet, csumField *Arg, pid int) *Arg {
+func calcChecksumInet(packet, csumField *Arg, pid int) *Arg {
 	bytes := encodeArg(packet, pid)
 	csum := ipChecksum(bytes)
 	newCsumField := *csumField
@@ -234,16 +221,29 @@ func calcChecksumsCall(c *Call, pid int) map[*Arg]*Arg {
 	var ipSrcAddr *Arg
 	var ipDstAddr *Arg
 	tcp := false
+
+	// Calculate inet checksums.
+	foreachArgArray(&c.Args, nil, func(arg, base *Arg, _ *[]*Arg) {
+		if _, ok := arg.Type.(*sys.StructType); ok {
+			for _, field := range arg.Inner {
+				if typ, ok1 := field.Type.(*sys.CsumType); ok1 {
+					if typ.Kind == sys.CsumInet {
+						newCsumField := calcChecksumInet(arg, field, pid)
+						if csumMap == nil {
+							csumMap = make(map[*Arg]*Arg)
+						}
+						csumMap[field] = newCsumField
+					}
+				}
+			}
+		}
+	})
+
+	// Calculate tcp and udp checksums.
 	foreachArgArray(&c.Args, nil, func(arg, base *Arg, _ *[]*Arg) {
 		// syz_csum_* structs are used in tests
 		switch arg.Type.Name() {
 		case "ipv4_header", "syz_csum_ipv4_header":
-			if csumMap == nil {
-				csumMap = make(map[*Arg]*Arg)
-			}
-			csumField := findCsumFieldIPv4(arg, pid)
-			newCsumField := calcChecksumIPv4(arg, csumField, pid)
-			csumMap[csumField] = newCsumField
 			ipSrcAddr, ipDstAddr = extractHeaderParamsIPv4(arg)
 			ipv4HeaderParsed = true
 		case "ipv6_packet", "syz_csum_ipv6_header":
