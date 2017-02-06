@@ -6,10 +6,12 @@ package adb
 import (
 	"fmt"
 	"io"
+	"os/exec"
 	"sync"
 	"syscall"
 	"unsafe"
 
+	"github.com/google/syzkaller/vm"
 	. "golang.org/x/sys/unix"
 )
 
@@ -71,5 +73,60 @@ func (t *tty) Close() error {
 		syscall.Close(t.fd)
 		t.fd = -1
 	}
+	return nil
+}
+
+// openAdbConsole provides fallback console output using 'adb shell dmesg -w'.
+func openAdbConsole(bin, dev string) (rc io.ReadCloser, err error) {
+	rpipe, wpipe, err := vm.LongPipe()
+	if err != nil {
+		return nil, err
+	}
+	cmd := exec.Command(bin, "-s", dev, "shell", "dmesg -w")
+	cmd.Stdout = wpipe
+	cmd.Stderr = wpipe
+	if err := cmd.Start(); err != nil {
+		rpipe.Close()
+		wpipe.Close()
+		return nil, fmt.Errorf("failed to start adb: %v", err)
+	}
+	wpipe.Close()
+	con := &adbCon{
+		cmd:   cmd,
+		rpipe: rpipe,
+	}
+	return con, err
+}
+
+type adbCon struct {
+	closeMu sync.Mutex
+	readMu  sync.Mutex
+	cmd     *exec.Cmd
+	rpipe   io.ReadCloser
+}
+
+func (t *adbCon) Read(buf []byte) (int, error) {
+	t.readMu.Lock()
+	n, err := t.rpipe.Read(buf)
+	t.readMu.Unlock()
+	return n, err
+}
+
+func (t *adbCon) Close() error {
+	t.closeMu.Lock()
+	cmd := t.cmd
+	t.cmd = nil
+	t.closeMu.Unlock()
+	if cmd == nil {
+		return nil
+	}
+
+	cmd.Process.Kill()
+
+	t.readMu.Lock()
+	t.rpipe.Close()
+	t.readMu.Unlock()
+
+	cmd.Process.Wait()
 	return nil
 }
