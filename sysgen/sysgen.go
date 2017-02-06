@@ -507,8 +507,8 @@ func generateArg(
 		size, bigEndian, bitfieldLen := decodeIntType(a[1])
 		var kind string
 		switch a[0] {
-		case "ipv4":
-			kind = "CsumIPv4"
+		case "inet":
+			kind = "CsumInet"
 		case "tcp":
 			kind = "CsumTCP"
 		case "udp":
