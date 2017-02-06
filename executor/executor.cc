@@ -48,6 +48,7 @@ const int kMaxArgs = 9;
 const int kMaxThreads = 16;
 const int kMaxCommands = 4 << 10;
 const int kCoverSize = 64 << 10;
+const int kPageSize = 4 << 10;
 
 const uint64_t instr_eof = -1;
 const uint64_t instr_copyin = -2;
@@ -79,7 +80,7 @@ bool flag_collect_cover;
 bool flag_dedup_cover;
 
 __attribute__((aligned(64 << 10))) char input_data[kMaxInput];
-__attribute__((aligned(64 << 10))) char output_data[kMaxOutput];
+uint32_t* output_data;
 uint32_t* output_pos;
 uint32_t completed;
 int running;
@@ -139,7 +140,13 @@ int main(int argc, char** argv)
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	if (mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
 		fail("mmap of input file failed");
-	if (mmap(&output_data[0], kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0) != &output_data[0])
+	// The output region is the only thing in executor process for which consistency matters.
+	// If it is corrupted ipc package will fail to parse its contents and panic.
+	// But fuzzer constantly invents new ways of how to currupt the region,
+	// so we map the region at a (hopefully) hard to guess address surrounded by unmapped pages.
+	void* const kOutputDataAddr = (void*)0x1ddbc20000;
+	output_data = (uint32_t*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
+	if (output_data != kOutputDataAddr)
 		fail("mmap of output file failed");
 	// Prevent random programs to mess with these fds.
 	// Due to races in collider mode, a program can e.g. ftruncate one of these fds,
@@ -245,7 +252,7 @@ void loop()
 		int status = 0;
 		uint64_t start = current_time_ms();
 		uint64_t last_executed = start;
-		uint32_t executed_calls = *(uint32_t*)output_data;
+		uint32_t executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 		for (;;) {
 			int res = waitpid(-1, &status, __WALL | WNOHANG);
 			int errno0 = errno;
@@ -265,7 +272,7 @@ void loop()
 			// Below we check if the test process still executes syscalls
 			// and kill it after 200ms of inactivity.
 			uint64_t now = current_time_ms();
-			uint32_t now_executed = *(uint32_t*)output_data;
+			uint32_t now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 			if (executed_calls != now_executed) {
 				executed_calls = now_executed;
 				last_executed = now;
@@ -301,7 +308,7 @@ retry:
 	uint64_t* input_pos = (uint64_t*)&input_data[0];
 	read_input(&input_pos); // flags
 	read_input(&input_pos); // pid
-	output_pos = (uint32_t*)&output_data[0];
+	output_pos = output_data;
 	write_output(0); // Number of executed syscalls (updated later).
 
 	if (!collide && !flag_threaded)
@@ -478,7 +485,8 @@ void handle_completion(thread_t* th)
 	if (!collide) {
 		write_output(th->call_index);
 		write_output(th->call_num);
-		write_output(th->res != (uint64_t)-1 ? 0 : th->reserrno);
+		uint32_t reserrno = th->res != (uint64_t)-1 ? 0 : th->reserrno;
+		write_output(reserrno);
 		uint32_t* signal_count_pos = write_output(0); // filled in later
 		uint32_t* cover_count_pos = write_output(0);  // filled in later
 
@@ -518,10 +526,11 @@ void handle_completion(thread_t* th)
 				write_output((uint32_t)cover_data[i]);
 			*cover_count_pos = cover_size;
 		}
-		debug("signal=%d cover=%d\n", nsig, cover_size);
+		debug("out #%u: index=%u num=%u errno=%d sig=%u cover=%u\n",
+		      completed, th->call_index, th->call_num, reserrno, nsig, cover_size);
 
 		completed++;
-		__atomic_store_n(&output_data[0], completed, __ATOMIC_RELEASE);
+		__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
 	}
 	th->handled = true;
 	running--;
@@ -754,7 +763,7 @@ uint32_t* write_output(uint32_t v)
 {
 	if (collide)
 		return 0;
-	if ((char*)output_pos >= output_data + kMaxOutput)
+	if (output_pos < output_data || (char*)output_pos >= (char*)output_data + kMaxOutput)
 		fail("output overflow");
 	*output_pos = v;
 	return output_pos++;
