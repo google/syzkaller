@@ -409,7 +409,7 @@ syz_csum_encode {
 } [packed]
 
 syz_csum_ipv4_header {
-	csum		csum[ipv4, int16]
+	csum		csum[inet, int16]
 	src_ip		int32be
 	dst_ip		int32be
 } [packed]
