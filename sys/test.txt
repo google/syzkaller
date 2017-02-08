@@ -398,6 +398,7 @@ syz_test$csum_ipv4_tcp(a0 ptr[in, syz_csum_ipv4_tcp_packet])
 syz_test$csum_ipv6_tcp(a0 ptr[in, syz_csum_ipv6_tcp_packet])
 syz_test$csum_ipv4_udp(a0 ptr[in, syz_csum_ipv4_udp_packet])
 syz_test$csum_ipv6_udp(a0 ptr[in, syz_csum_ipv6_udp_packet])
+syz_test$csum_ipv6_icmp(a0 ptr[in, syz_csum_ipv6_icmp_packet])
 
 syz_csum_encode {
 	f0	int16
@@ -409,13 +410,13 @@ syz_csum_encode {
 } [packed]
 
 syz_csum_ipv4_header {
-	csum		csum[inet, int16]
+	csum		csum[parent, inet, int16]
 	src_ip		int32be
 	dst_ip		int32be
 } [packed]
 
 syz_csum_tcp_header {
-	csum		csum[tcp, int16]
+	csum		csum[syz_csum_tcp_packet, pseudo, IPPROTO_TCP, int16]
 } [packed]
 
 syz_csum_tcp_packet {
@@ -439,7 +440,7 @@ syz_csum_ipv6_tcp_packet {
 } [packed]
 
 syz_csum_udp_packet {
-	csum		csum[udp, int16]
+	csum		csum[parent, pseudo, IPPROTO_UDP, int16]
 	payload		array[int8]
 } [packed]
 
@@ -451,4 +452,14 @@ syz_csum_ipv4_udp_packet {
 syz_csum_ipv6_udp_packet {
 	header		syz_csum_ipv6_header
 	payload		syz_csum_udp_packet
+} [packed]
+
+syz_csum_icmp_packet {
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16]
+	payload		array[int8]
+} [packed]
+
+syz_csum_ipv6_icmp_packet {
+	header		syz_csum_ipv6_header
+	payload		syz_csum_icmp_packet
 } [packed]
