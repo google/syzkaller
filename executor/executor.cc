@@ -46,7 +46,7 @@ const int kMaxInput = 2 << 20;
 const int kMaxOutput = 16 << 20;
 const int kMaxArgs = 9;
 const int kMaxThreads = 16;
-const int kMaxCommands = 4 << 10;
+const int kMaxCommands = 16 << 10;
 const int kCoverSize = 64 << 10;
 const int kPageSize = 4 << 10;
 
@@ -461,6 +461,8 @@ void handle_completion(thread_t* th)
 		fail("bad thread state in completion: ready=%d done=%d handled=%d",
 		     th->ready, th->done, th->handled);
 	if (th->res != (uint64_t)-1) {
+		if (th->call_n >= kMaxCommands)
+			fail("result idx %ld overflows kMaxCommands", th->call_n);
 		results[th->call_n].executed = true;
 		results[th->call_n].val = th->res;
 		for (bool done = false; !done;) {
@@ -471,6 +473,8 @@ void handle_completion(thread_t* th)
 				char* addr = (char*)read_input(&th->copyout_pos);
 				uint64_t size = read_input(&th->copyout_pos);
 				uint64_t val = copyout(addr, size);
+				if (th->call_n >= kMaxCommands)
+					fail("result idx %ld overflows kMaxCommands", th->call_n);
 				results[th->call_n].executed = true;
 				results[th->call_n].val = val;
 				debug("copyout from %p\n", addr);
