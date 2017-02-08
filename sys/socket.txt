@@ -303,10 +303,10 @@ udp6_pair {
 
 resource sock_icmp6[sock]
 
-socket$icmp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_ICMP]) sock_icmp6
-socket$icmp6_raw(domain const[AF_INET6], type const[SOCK_RAW], proto const[IPPROTO_ICMP]) sock_icmp6
-socketpair$icmp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_ICMP], fds ptr[out, icmp6_pair])
-socketpair$icmp6_raw(domain const[AF_INET6], type const[SOCK_RAW], proto const[IPPROTO_ICMP], fds ptr[out, icmp6_pair])
+socket$icmp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_ICMPV6]) sock_icmp6
+socket$icmp6_raw(domain const[AF_INET6], type const[SOCK_RAW], proto const[IPPROTO_ICMPV6]) sock_icmp6
+socketpair$icmp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_ICMPV6], fds ptr[out, icmp6_pair])
+socketpair$icmp6_raw(domain const[AF_INET6], type const[SOCK_RAW], proto const[IPPROTO_ICMPV6], fds ptr[out, icmp6_pair])
 accept$icmp6(fd sock_icmp6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]]) sock_icmp6
 accept4$icmp6(fd sock_icmp6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_icmp6
 bind$icmp6(fd sock_icmp6, addr ptr[in, sockaddr_in6], addrlen len[addr])

@@ -501,22 +501,34 @@ func generateArg(
 		}
 		fmt.Fprintf(out, "&LenType{%v, Buf: \"%v\", ByteSize: %v}", intCommon(size, bigEndian, bitfieldLen), a[0], byteSize)
 	case "csum":
-		if want := 2; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		if len(a) != 3 && len(a) != 4 {
+			failf("wrong number of arguments for %v arg %v, want 3-4, got %v", typ, name, len(a))
 		}
-		size, bigEndian, bitfieldLen := decodeIntType(a[1])
+		var size uint64
+		var bigEndian bool
+		var bitfieldLen uint64
+		var protocol uint64
 		var kind string
-		switch a[0] {
+		switch a[1] {
 		case "inet":
 			kind = "CsumInet"
-		case "tcp":
-			kind = "CsumTCP"
-		case "udp":
-			kind = "CsumUDP"
+			size, bigEndian, bitfieldLen = decodeIntType(a[2])
+		case "pseudo":
+			kind = "CsumPseudo"
+			size, bigEndian, bitfieldLen = decodeIntType(a[3])
+			if v, ok := consts[a[2]]; ok {
+				protocol = v
+			} else {
+				v, err := strconv.ParseUint(a[2], 10, 64)
+				if err != nil {
+					failf("failed to parse protocol %v", a[2])
+				}
+				protocol = v
+			}
 		default:
 			failf("unknown checksum kind '%v'", a[0])
 		}
-		fmt.Fprintf(out, "&CsumType{%v, Kind: %v}", intCommon(size, bigEndian, bitfieldLen), kind)
+		fmt.Fprintf(out, "&CsumType{%v, Buf: \"%s\", Kind: %v, Protocol: %v}", intCommon(size, bigEndian, bitfieldLen), a[0], kind, protocol)
 	case "flags":
 		canBeArg = true
 		size := uint64(ptrSize)
