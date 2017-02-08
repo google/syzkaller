@@ -247,7 +247,7 @@ ipv4_header {
 # TODO: frag_off is actually 13 bits, 3 bits are flags
 	ttl		int8
 	protocol	flags[ipv4_types, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	src_ip		ipv4_addr
 	dst_ip		ipv4_addr
 	options		ipv4_options
@@ -255,7 +255,7 @@ ipv4_header {
 
 ipv4_packet {
 	header		ipv4_header
-	payload		ip_payload
+	payload		ipv4_payload
 } [packed]
 
 ################################################################################
@@ -302,6 +302,7 @@ ipv6_addr [
 # NEXTHDR_HOP, NEXTHDR_TCP, NEXTHDR_UDP, NEXTHDR_IPV6, NEXTHDR_ROUTING, NEXTHDR_FRAGMENT, NEXTHDR_GRE, NEXTHDR_ESP, NEXTHDR_AUTH, NEXTHDR_ICMP, NEXTHDR_NONE, NEXTHDR_DEST, NEXTHDR_SCTP, NEXTHDR_MOBILITY
 # https://tools.ietf.org/html/rfc2402
 # https://tools.ietf.org/html/rfc2406
+# https://tools.ietf.org/html/rfc3775
 
 # https://tools.ietf.org/html/rfc2460#section-4
 # The length field in each of the extension headers specifies the
@@ -371,17 +372,23 @@ ipv6_packet {
 
 ipv6_packet_payload {
 	ext_headers	array[ipv6_ext_header]
-	payload		ip_payload
+	payload		ipv6_payload
 } [packed]
 
 ################################################################################
 ###################################### IP ######################################
 ################################################################################
 
-ip_payload [
+ipv4_payload [
 	tcp		tcp_packet
 	udp		udp_packet
 	icmp		icmp_packet
+] [varlen]
+
+ipv6_payload [
+	tcp		tcp_packet
+	udp		udp_packet
+	icmpv6		icmpv6_packet
 ] [varlen]
 
 ################################################################################
@@ -500,7 +507,7 @@ tcp_header {
 	data_off	bytesize4[parent, int8:4]
 	flags		flags[tcp_flags, int8]
 	window_size	int16be
-	csum		csum[tcp, int16be]
+	csum		csum[tcp_packet, pseudo, IPPROTO_TCP, int16be]
 	urg_ptr		int16be
 	options		tcp_options
 } [packed]
@@ -525,7 +532,7 @@ udp_packet {
 	src_port	proc[int16be, 20000, 4]
 	dst_port	proc[int16be, 20000, 4]
 	length		len[parent, int16be]
-	csum		csum[udp, int16be]
+	csum		csum[parent, pseudo, IPPROTO_UDP, int16be]
 	data		array[int8]
 } [packed]
 
@@ -535,6 +542,8 @@ udp_packet {
 
 # https://en.wikipedia.org/wiki/Internet_Control_Message_Protocol#ICMP_datagram_structure
 # https://tools.ietf.org/html/rfc792
+# https://tools.ietf.org/html/rfc4884#section-4.1
+# http://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml
 
 include <uapi/linux/icmp.h>
 
@@ -557,7 +566,7 @@ icmp_ipv4_header {
 icmp_echo_reply_packet {
 	type		const[ICMP_ECHOREPLY, int8]
 	code		const[0, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	id		int16be
 	seq_num		int16be
 	data		array[int8]
@@ -568,8 +577,9 @@ icmp_dest_unreach_codes = ICMP_NET_UNREACH, ICMP_HOST_UNREACH, ICMP_PROT_UNREACH
 icmp_dest_unreach_packet {
 	type		const[ICMP_DEST_UNREACH, int8]
 	code		flags[icmp_dest_unreach_codes, int8]
-	csum		csum[inet, int16be]
-	unused		const[0, int16]
+	csum		csum[parent, inet, int16be]
+	unused		const[0, int8]
+	length		int8
 	mtu		int16be
 	iph		icmp_ipv4_header
 	data		array[int8, 0:8]
@@ -578,7 +588,7 @@ icmp_dest_unreach_packet {
 icmp_source_quench_packet {
 	type		const[ICMP_SOURCE_QUENCH, int8]
 	code		const[0, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	unused		const[0, int32]
 	iph		icmp_ipv4_header
 	data		array[int8, 0:8]
@@ -589,7 +599,7 @@ icmp_redirect_codes = ICMP_REDIR_NET, ICMP_REDIR_HOST, ICMP_REDIR_NETTOS, ICMP_R
 icmp_redirect_packet {
 	type		const[ICMP_REDIRECT, int8]
 	code		flags[icmp_redirect_codes, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	ip		ipv4_addr
 	iph		icmp_ipv4_header
 	data		array[int8, 0:8]
@@ -598,7 +608,7 @@ icmp_redirect_packet {
 icmp_echo_packet {
 	type		const[ICMP_ECHO, int8]
 	code		const[0, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	id		int16be
 	seq_num		int16be
 	data		array[int8]
@@ -609,8 +619,10 @@ icmp_time_exceeded_codes = ICMP_EXC_TTL, ICMP_EXC_FRAGTIME
 icmp_time_exceeded_packet {
 	type		const[ICMP_TIME_EXCEEDED, int8]
 	code		flags[icmp_time_exceeded_codes, int8]
-	csum		csum[inet, int16be]
-	unsed		const[0, int32]
+	csum		csum[parent, inet, int16be]
+	unused1		const[0, int8]
+	length		int8
+	unused2		const[0, int16]
 	iph		icmp_ipv4_header
 	data		array[int8, 0:8]
 } [packed]
@@ -618,9 +630,10 @@ icmp_time_exceeded_packet {
 icmp_parameter_prob_packet {
 	type		const[ICMP_PARAMETERPROB, int8]
 	code		const[0, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	pointer		int8
-	unsed		array[const[0, int8], 3]
+	length		int8
+	unsed		const[0, int16]
 	iph		icmp_ipv4_header
 	data		array[int8, 0:8]
 } [packed]
@@ -628,7 +641,7 @@ icmp_parameter_prob_packet {
 icmp_timestamp_packet {
 	type		const[ICMP_TIMESTAMP, int8]
 	code		const[0, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	id		int16be
 	seq_num		int16be
 	orig_ts		int32be
@@ -639,7 +652,7 @@ icmp_timestamp_packet {
 icmp_timestamp_reply_packet {
 	type		const[ICMP_TIMESTAMPREPLY, int8]
 	code		const[0, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	id		int16be
 	seq_num		int16be
 	orig_ts		int32be
@@ -650,7 +663,7 @@ icmp_timestamp_reply_packet {
 icmp_info_request_packet {
 	type		const[ICMP_INFO_REQUEST, int8]
 	code		const[0, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	id		int16be
 	seq_num		int16be
 } [packed]
@@ -658,7 +671,7 @@ icmp_info_request_packet {
 icmp_info_reply_packet {
 	type		const[ICMP_INFO_REPLY, int8]
 	code		const[0, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	id		int16be
 	seq_num		int16be
 } [packed]
@@ -666,14 +679,14 @@ icmp_info_reply_packet {
 icmp_address_request_packet {
 	type		const[ICMP_ADDRESS, int8]
 	code		const[0, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	mask		int32be
 } [packed]
 
 icmp_address_reply_packet {
 	type		const[ICMP_ADDRESSREPLY, int8]
 	code		const[0, int8]
-	csum		csum[inet, int16be]
+	csum		csum[parent, inet, int16be]
 	mask		int32be
 } [packed]
 
@@ -693,4 +706,121 @@ icmp_packet [
 	info_reply	icmp_info_reply_packet
 	address_request	icmp_address_request_packet
 	address_reply	icmp_address_reply_packet
+] [varlen]
+
+################################################################################
+##################################### ICMPv6 ###################################
+################################################################################
+
+# https://tools.ietf.org/html/rfc4443
+# http://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml
+
+include <uapi/linux/icmpv6.h>
+
+icmpv6_ipv6_packet {
+	priority	int8:4
+	version		const[6, int8:4]
+	flow_label	array[int8, 3]
+	length		int16be
+	next_header	flags[ipv6_types, int8]
+	hop_limit	int8
+	src_ip		ipv6_addr
+	dst_ip		ipv6_addr
+	ext_headers	array[ipv6_ext_header]
+	data		array[int8]
+} [packed]
+
+icmpv6_dest_unreach_codes = ICMPV6_NOROUTE, ICMPV6_ADM_PROHIBITED, ICMPV6_NOT_NEIGHBOUR, ICMPV6_ADDR_UNREACH, ICMPV6_PORT_UNREACH, ICMPV6_POLICY_FAIL, ICMPV6_REJECT_ROUTE
+
+icmpv6_dest_unreach_packet {
+	type		const[ICMPV6_DEST_UNREACH, int8]
+	code		flags[icmpv6_dest_unreach_codes, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	length		int8
+	unused		array[const[0, int8], 3]
+	packet		icmpv6_ipv6_packet
+} [packed]
+
+icmpv6_pkt_toobig_packet {
+	type		const[ICMPV6_PKT_TOOBIG, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	mtu		int32be
+	packet		icmpv6_ipv6_packet
+} [packed]
+
+icmpv6_time_exceed_codes = ICMPV6_EXC_HOPLIMIT, ICMPV6_EXC_FRAGTIME
+
+icmpv6_time_exceed_packet {
+	type		const[ICMPV6_TIME_EXCEED, int8]
+	code		flags[icmpv6_time_exceed_codes, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	length		int8
+	unused		array[const[0, int8], 3]
+	packet		icmpv6_ipv6_packet
+} [packed]
+
+icmpv6_param_prob_codes = ICMPV6_HDR_FIELD, ICMPV6_UNK_NEXTHDR, ICMPV6_UNK_OPTION
+
+icmpv6_param_prob_packet {
+	type		const[ICMPV6_PARAMPROB, int8]
+	code		flags[icmpv6_param_prob_codes, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	pointer		int32be
+	packet		icmpv6_ipv6_packet
+} [packed]
+
+icmpv6_echo_request_packet {
+	type		const[ICMPV6_ECHO_REQUEST, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	id		int16be
+	seq_num		int16be
+	data		array[int8]
+} [packed]
+
+icmpv6_echo_reply_packet {
+	type		const[ICMPV6_ECHO_REPLY, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	id		int16be
+	seq_num		int16be
+	data		array[int8]
+} [packed]
+
+icmpv6_mld_types = ICMPV6_MGM_QUERY, ICMPV6_MGM_REPORT, ICMPV6_MGM_REDUCTION
+
+# https://tools.ietf.org/html/rfc2710#section-3
+icmpv6_mld_packet {
+	type		flags[icmpv6_mld_types, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	mrd		int16be
+	unused		int16
+	addr		ipv6_addr
+} [packed]
+
+icmpv6_ni_types = ICMPV6_NI_QUERY, ICMPV6_NI_REPLY
+
+# https://tools.ietf.org/html/rfc4620#section-4
+icmpv6_ni_packet {
+	type		flags[icmpv6_ni_types, int8]
+	code		const[0, int8]
+	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16be]
+	qtype		int16be
+	flags		int16be
+	nonce		int64be
+	data		array[int8]
+} [packed]
+
+icmpv6_packet [
+	dest_unreach	icmpv6_dest_unreach_packet
+	pkt_toobig	icmpv6_pkt_toobig_packet
+	time_exceed	icmpv6_time_exceed_packet
+	param_prob	icmpv6_param_prob_packet
+	echo_request	icmpv6_echo_request_packet
+	echo_reply	icmpv6_echo_reply_packet
+	mld		icmpv6_mld_packet
+# TODO: ICMPV6_MLD2_REPORT
+# TODO: ICMPV6_DHAAD_REQUEST, ICMPV6_DHAAD_REPLY, ICMPV6_MOBILE_PREFIX_SOL, ICMPV6_MOBILE_PREFIX_ADV (with ipv6 ext headers)
 ] [varlen]
