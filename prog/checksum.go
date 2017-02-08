@@ -184,28 +184,7 @@ func composePseudoHeaderIPv6(tcpPacket, srcAddr, dstAddr *Arg, protocol uint8, p
 	return header
 }
 
-func findCsumFieldUDP(udpPacket *Arg) *Arg {
-	csumField := getFieldByName(udpPacket, "csum")
-	if typ, ok := csumField.Type.(*sys.CsumType); !ok {
-		panic(fmt.Sprintf("checksum field has bad type %v, arg: %+v", csumField.Type, csumField))
-	} else if typ.Kind != sys.CsumUDP {
-		panic(fmt.Sprintf("checksum field has bad kind %v, arg: %+v", typ.Kind, csumField))
-	}
-	return csumField
-}
-
-func findCsumFieldTCP(tcpPacket *Arg) *Arg {
-	tcpHeaderField := getFieldByName(tcpPacket, "header")
-	csumField := getFieldByName(tcpHeaderField, "csum")
-	if typ, ok := csumField.Type.(*sys.CsumType); !ok {
-		panic(fmt.Sprintf("checksum field has bad type %v, arg: %+v", csumField.Type, csumField))
-	} else if typ.Kind != sys.CsumTCP {
-		panic(fmt.Sprintf("checksum field has bad kind %v, arg: %+v", typ.Kind, csumField))
-	}
-	return csumField
-}
-
-func calcChecksumTCPUDP(packet, csumField *Arg, pseudoHeader []byte, pid int) *Arg {
+func calcChecksumPseudo(packet, csumField *Arg, pseudoHeader []byte, pid int) *Arg {
 	var csum IPChecksum
 	csum.Update(pseudoHeader)
 	csum.Update(encodeArg(packet, pid))
@@ -214,32 +193,75 @@ func calcChecksumTCPUDP(packet, csumField *Arg, pseudoHeader []byte, pid int) *A
 	return &newCsumField
 }
 
-func calcChecksumsCall(c *Call, pid int) map[*Arg]*Arg {
-	var csumMap map[*Arg]*Arg
-	ipv4HeaderParsed := false
-	ipv6HeaderParsed := false
-	var ipSrcAddr *Arg
-	var ipDstAddr *Arg
-	tcp := false
+func findCsummedArg(arg *Arg, typ *sys.CsumType, parentsMap map[*Arg]*Arg) *Arg {
+	if typ.Buf == "parent" {
+		if csummedArg, ok := parentsMap[arg]; ok {
+			return csummedArg
+		}
+		panic(fmt.Sprintf("parent for %v is not in parents map", typ.Name()))
+	} else {
+		for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
+			if typ.Buf == parent.Type.Name() {
+				return parent
+			}
+		}
+	}
+	panic(fmt.Sprintf("csum field '%v' references non existent field '%v'", typ.FieldName(), typ.Buf))
+}
 
-	// Calculate inet checksums.
+func calcChecksumsCall(c *Call, pid int) map[*Arg]*Arg {
+	var inetCsumFields []*Arg
+	var pseudoCsumFields []*Arg
+
+	// Find all csum fields.
 	foreachArgArray(&c.Args, nil, func(arg, base *Arg, _ *[]*Arg) {
-		if _, ok := arg.Type.(*sys.StructType); ok {
-			for _, field := range arg.Inner {
-				if typ, ok1 := field.Type.(*sys.CsumType); ok1 {
-					if typ.Kind == sys.CsumInet {
-						newCsumField := calcChecksumInet(arg, field, pid)
-						if csumMap == nil {
-							csumMap = make(map[*Arg]*Arg)
-						}
-						csumMap[field] = newCsumField
-					}
-				}
+		if typ, ok := arg.Type.(*sys.CsumType); ok {
+			switch typ.Kind {
+			case sys.CsumInet:
+				inetCsumFields = append(inetCsumFields, arg)
+			case sys.CsumPseudo:
+				pseudoCsumFields = append(pseudoCsumFields, arg)
+			default:
+				panic(fmt.Sprintf("unknown csum kind %v\n", typ.Kind))
 			}
 		}
 	})
 
-	// Calculate tcp and udp checksums.
+	// Return if no csum fields found.
+	if len(inetCsumFields) == 0 && len(pseudoCsumFields) == 0 {
+		return nil
+	}
+
+	// Build map of each field to its parent struct.
+	parentsMap := make(map[*Arg]*Arg)
+	foreachArgArray(&c.Args, nil, func(arg, base *Arg, _ *[]*Arg) {
+		if _, ok := arg.Type.(*sys.StructType); ok {
+			for _, field := range arg.Inner {
+				parentsMap[field.InnerArg()] = arg
+			}
+		}
+	})
+
+	csumMap := make(map[*Arg]*Arg)
+
+	// Calculate inet checksums.
+	for _, arg := range inetCsumFields {
+		typ, _ := arg.Type.(*sys.CsumType)
+		csummedArg := findCsummedArg(arg, typ, parentsMap)
+		newCsumField := calcChecksumInet(csummedArg, arg, pid)
+		csumMap[arg] = newCsumField
+	}
+
+	// No need to continue if there are no pseudo csum fields.
+	if len(pseudoCsumFields) == 0 {
+		return csumMap
+	}
+
+	// Extract ipv4 or ipv6 source and destination addresses.
+	ipv4HeaderParsed := false
+	ipv6HeaderParsed := false
+	var ipSrcAddr *Arg
+	var ipDstAddr *Arg
 	foreachArgArray(&c.Args, nil, func(arg, base *Arg, _ *[]*Arg) {
 		// syz_csum_* structs are used in tests
 		switch arg.Type.Name() {
@@ -249,34 +271,26 @@ func calcChecksumsCall(c *Call, pid int) map[*Arg]*Arg {
 		case "ipv6_packet", "syz_csum_ipv6_header":
 			ipSrcAddr, ipDstAddr = extractHeaderParamsIPv6(arg)
 			ipv6HeaderParsed = true
-		case "tcp_packet", "syz_csum_tcp_packet":
-			tcp = true
-			fallthrough
-		case "udp_packet", "syz_csum_udp_packet":
-			if !ipv4HeaderParsed && !ipv6HeaderParsed {
-				panic(fmt.Sprintf("%s is being parsed before ipv4 or ipv6 header", arg.Type.Name()))
-			}
-			var csumField *Arg
-			var protocol uint8
-			if tcp {
-				csumField = findCsumFieldTCP(arg)
-				protocol = 6 // IPPROTO_TCP
-			} else {
-				csumField = findCsumFieldUDP(arg)
-				protocol = 17 // IPPROTO_UDP
-			}
-			var pseudoHeader []byte
-			if ipv4HeaderParsed {
-				pseudoHeader = composePseudoHeaderIPv4(arg, ipSrcAddr, ipDstAddr, protocol, pid)
-			} else {
-				pseudoHeader = composePseudoHeaderIPv6(arg, ipSrcAddr, ipDstAddr, protocol, pid)
-			}
-			if csumMap == nil {
-				csumMap = make(map[*Arg]*Arg)
-			}
-			newCsumField := calcChecksumTCPUDP(arg, csumField, pseudoHeader, pid)
-			csumMap[csumField] = newCsumField
 		}
 	})
+	if !ipv4HeaderParsed && !ipv6HeaderParsed {
+		panic("no ipv4 nor ipv6 header found")
+	}
+
+	// Calculate pseudo checksums.
+	for _, arg := range pseudoCsumFields {
+		typ, _ := arg.Type.(*sys.CsumType)
+		csummedArg := findCsummedArg(arg, typ, parentsMap)
+		protocol := uint8(typ.Protocol)
+		var pseudoHeader []byte
+		if ipv4HeaderParsed {
+			pseudoHeader = composePseudoHeaderIPv4(csummedArg, ipSrcAddr, ipDstAddr, protocol, pid)
+		} else {
+			pseudoHeader = composePseudoHeaderIPv6(csummedArg, ipSrcAddr, ipDstAddr, protocol, pid)
+		}
+		newCsumField := calcChecksumPseudo(csummedArg, arg, pseudoHeader, pid)
+		csumMap[arg] = newCsumField
+	}
+
 	return csumMap
 }
