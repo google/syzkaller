@@ -4,6 +4,7 @@
 include <linux/socket.h>
 include <linux/net.h>
 include <linux/net_tstamp.h>
+include <uapi/linux/in.h>
 include <asm/ioctls.h>
 
 resource sock[fd]
