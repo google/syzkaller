@@ -29,3 +29,10 @@ icmp6_pair {
 	f0	sock_icmp6
 	f1	sock_icmp6
 }
+
+icmp_option_types_buf = ICMP_FILTER
+
+getsockopt$tcp_buf(fd sock_icmp, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$tcp_buf(fd sock_icmp, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$tcp6_buf(fd sock_icmp6, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$tcp6_buf(fd sock_icmp6, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[in], optlen len[optval])
