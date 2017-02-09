@@ -1,0 +1,13 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_KEY support.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <uapi/linux/pfkeyv2.h>
+
+resource sock_key[sock]
+
+# See net/key/af_key.c, requires root.
+# socket$key(domain const[AF_KEY], type const[SOCK_RAW], proto const[PF_KEY_V2]) sock_key
