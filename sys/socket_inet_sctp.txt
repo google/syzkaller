@@ -1,5 +1,7 @@
-# Copyright 2015 syzkaller project authors. All rights reserved.
+# Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_INET and AF_INET6: SCTP support
 
 include <linux/sctp.h>
 include <asm/ioctls.h>

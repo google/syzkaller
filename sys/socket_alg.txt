@@ -1,0 +1,74 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_ALG support.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <linux/crypto.h>
+include <uapi/linux/if_alg.h>
+
+resource sock_alg[sock]
+resource sock_algconn[sock]
+
+socket$alg(domain const[AF_ALG], type const[SOCK_SEQPACKET], proto const[0]) sock_alg
+bind$alg(fd sock_alg, addr ptr[in, sockaddr_alg], addrlen len[addr])
+setsockopt$ALG_SET_KEY(fd sock_alg, level const[SOL_ALG], opt const[ALG_SET_KEY], key buffer[in], keylen len[key])
+setsockopt$ALG_SET_AEAD_AUTHSIZE(fd sock_alg, level const[SOL_ALG], opt const[ALG_SET_AEAD_AUTHSIZE], val const[0], size intptr)
+accept$alg(fd sock_alg, peer ptr[out, sockaddr_alg, opt], peerlen ptr[inout, len[peer, int32]]) sock_algconn
+sendmsg$alg(fd sock_algconn, msg ptr[in, msghdr_alg], f flags[send_flags])
+sendmmsg$alg(fd sock_algconn, mmsg ptr[in, array[msghdr_alg]], vlen len[mmsg], f flags[send_flags])
+
+sockaddr_alg {
+	family	const[AF_ALG, int16]
+	type	string[salg_type, 14]
+	feat	flags[af_alg_type, int32]
+	mask	flags[af_alg_type, int32]
+	name	string[salg_name, 64]
+}
+
+msghdr_alg {
+	addr	const[0, intptr]
+	addrlen	const[0, int32]
+	vec	ptr[in, array[iovec_in]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, array[cmsghdr_alg], opt]
+	ctrllen	bytesize[ctrl, intptr]
+	f	flags[send_flags, int32]
+}
+
+cmsghdr_alg [
+	iv	cmsghdr_alg_iv
+	op	cmsghdr_alg_op
+	assoc	cmsghdr_alg_assoc
+] [varlen]
+
+cmsghdr_alg_iv {
+	len	len[parent, intptr]
+	level	const[SOL_ALG, int32]
+	type	const[ALG_SET_IV, int32]
+	ivlen	len[iv, int32]
+	iv	array[int8]
+} [align_ptr]
+
+cmsghdr_alg_op {
+	len	len[parent, intptr]
+	level	const[SOL_ALG, int32]
+	type	const[ALG_SET_OP, int32]
+	op	int32
+} [align_ptr]
+
+cmsghdr_alg_assoc {
+	len	len[parent, intptr]
+	level	const[SOL_ALG, int32]
+	type	const[ALG_SET_AEAD_ASSOCLEN, int32]
+	assoc	int32
+} [align_ptr]
+
+af_alg_type = CRYPTO_ALG_TYPE_MASK, CRYPTO_ALG_TYPE_CIPHER, CRYPTO_ALG_TYPE_COMPRESS, CRYPTO_ALG_TYPE_AEAD, CRYPTO_ALG_TYPE_BLKCIPHER, CRYPTO_ALG_TYPE_ABLKCIPHER, CRYPTO_ALG_TYPE_GIVCIPHER, CRYPTO_ALG_TYPE_DIGEST, CRYPTO_ALG_TYPE_HASH, CRYPTO_ALG_TYPE_SHASH, CRYPTO_ALG_TYPE_AHASH, CRYPTO_ALG_TYPE_RNG, CRYPTO_ALG_TYPE_AKCIPHER, CRYPTO_ALG_TYPE_PCOMPRESS, CRYPTO_ALG_LARVAL, CRYPTO_ALG_DEAD, CRYPTO_ALG_DYING, CRYPTO_ALG_ASYNC, CRYPTO_ALG_NEED_FALLBACK, CRYPTO_ALG_GENIV, CRYPTO_ALG_TESTED, CRYPTO_ALG_INSTANCE, CRYPTO_ALG_KERN_DRIVER_ONLY, CRYPTO_ALG_INTERNAL
+
+salg_type = "aead", "hash", "rng", "skcipher"
+salg_name = "cmac(aes)", "ecb(aes)", "cbc(aes)", "hmac(sha1)", "pcbc(fcrypt)", "ghash", "jitterentropy_rng", "stdrng", "stdrng", "stdrng", "stdrng", "hmac(sha256)", "stdrng", "stdrng", "stdrng", "stdrng", "stdrng", "842", "lz4hc", "lz4", "lzo", "crct10dif", "crc32", "crc32c", "michael_mic", "zlib", "deflate", "poly1305", "chacha20", "salsa20", "seed", "anubis", "khazad", "xeta", "xtea", "tea", "ecb(arc4)", "arc4", "cast6", "cast5", "camellia", "aes", "tnepres", "serpent", "twofish", "blowfish", "fcrypt", "des3_ede", "des", "tgr128", "tgr160", "tgr192", "wp256", "wp384", "wp512", "sha384", "sha512", "sha224", "sha256", "sha1", "rmd320", "rmd256", "rmd160", "rmd128", "md5", "md4", "digest_null", "compress_null", "ecb(cipher_null)", "cipher_null", "rsa", "poly1305", "xts(serpent)", "lrw(serpent)", "ctr(serpent)", "cbc(serpent)", "__ecb-serpent-sse2", "ecb(serpent)", "__xts-serpent-sse2", "__lrw-serpent-sse2", "__ctr-serpent-sse2", "__cbc-serpent-sse2", "__ecb-serpent-sse2", "salsa20", "xts(twofish)", "lrw(twofish)", "ctr(twofish)", "cbc(twofish)", "ecb(twofish)", "twofish", "ctr(blowfish)", "cbc(blowfish)", "ecb(blowfish)", "blowfish", "xts(camellia)", "lrw(camellia)", "ctr(camellia)", "cbc(camellia)", "ecb(camellia)", "camellia", "ctr(des3_ede)", "cbc(des3_ede)", "ecb(des3_ede)", "des3_ede", "aes"
+
+# Removed in next-20160210 (commit 11049218)
+define CRYPTO_ALG_TYPE_PCOMPRESS 0x0000000f

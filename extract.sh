@@ -18,17 +18,20 @@ else
 	BUILD_FOR_ANDROID=no
 fi
 
-COMMON_FILES="sys/socket.txt sys/tty.txt sys/perf.txt sys/kvm.txt \
-	sys/key.txt sys/bpf.txt sys/fuse.txt sys/dri.txt sys/sctp.txt \
-	sys/sndseq.txt sys/sndtimer.txt sys/sndcontrol.txt sys/input.txt \
-	sys/netlink.txt sys/tun.txt sys/random.txt sys/netrom.txt \
-	sys/vnet.txt sys/ipc.txt sys/loop.txt"
+UPSTREAM_FILES="sys/bpf.txt sys/dri.txt sys/fuse.txt sys/input.txt sys/ipc.txt
+		sys/key.txt sys/kvm.txt sys/loop.txt sys/perf.txt sys/random.txt
+		sys/sndcontrol.txt sys/sndseq.txt sys/sndtimer.txt sys/socket.txt
+		sys/socket_alg.txt sys/socket_bluetooth.txt sys/socket_inet.txt
+		sys/socket_inet_icmp.txt sys/socket_inet_sctp.txt sys/socket_inet_tcp.txt
+		sys/socket_inet_udp.txt sys/socket_kcm.txt sys/socket_key.txt
+		sys/socket_netlink.txt sys/socket_netrom.txt sys/socket_nfc.txt
+		sys/socket_unix.txt sys/sys.txt sys/test.txt sys/tty.txt sys/tun.txt
+		sys/vnet.txt"
 
-UPSTREAM_FILES="sys/sys.txt sys/kcm.txt"
-ANDROID_FILES=sys/tlk_device.txt
+ANDROID_FILES="sys/tlk_device.txt"
 
 if [ "$BUILD_FOR_ANDROID" == "no" ]; then
-	FILES="$COMMON_FILES $UPSTREAM_FILES"
+	FILES="$UPSTREAM_FILES"
 else
 	FILES="$ANDROID_FILES"
 fi
