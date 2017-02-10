@@ -1,9 +1,12 @@
 # Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+# TODO: due to autobind a socket can bind to port 0, that will result in a random port which is not reproducible
+
 include <linux/socket.h>
 include <linux/net.h>
 include <linux/net_tstamp.h>
+include <uapi/linux/in.h>
 include <asm/ioctls.h>
 
 resource sock[fd]
@@ -12,7 +15,6 @@ socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
 socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, pipefd])
 accept(fd sock, peer ptr[out, sockaddr, opt], peerlen ptr[inout, len[peer, int32]]) sock
 accept4(fd sock, peer ptr[out, sockaddr, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
-# TODO: must not bind to port 0, that will result in a random port which is not reproducible
 bind(fd sock, addr ptr[in, sockaddr], addrlen len[addr])
 listen(fd sock, backlog int32)
 connect(fd sock, addr ptr[in, sockaddr], addrlen len[addr])
@@ -58,6 +60,7 @@ sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERRO
 sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO
 sockopt_opt_sock_buf = SO_BINDTODEVICE, SO_PEERCRED, SO_PEERNAME, SO_PEERSEC, SO_GET_FILTER
 sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFTWARE, SOF_TIMESTAMPING_RX_HARDWARE, SOF_TIMESTAMPING_RX_SOFTWARE, SOF_TIMESTAMPING_SOFTWARE, SOF_TIMESTAMPING_SYS_HARDWARE, SOF_TIMESTAMPING_RAW_HARDWARE, SOF_TIMESTAMPING_OPT_ID, SOF_TIMESTAMPING_TX_SCHED, SOF_TIMESTAMPING_TX_ACK, SOF_TIMESTAMPING_OPT_CMSG, SOF_TIMESTAMPING_OPT_TSONLY
+sock_level = IPPROTO_ICMP, SOL_IP, SOL_TCP, SOL_UDP, SOL_IPV6, SOL_ICMPV6, SOL_SCTP, SOL_UDPLITE, SOL_RAW, SOL_IPX, SOL_AX25, SOL_ATALK, SOL_NETROM, SOL_ROSE, SOL_DECNET, SOL_PACKET, SOL_ATM, SOL_AAL, SOL_IRDA, SOL_NETBEUI, SOL_LLC, SOL_DCCP, SOL_NETLINK, SOL_TIPC, SOL_RXRPC, SOL_PPPOL2TP, SOL_BLUETOOTH, SOL_PNPIPE, SOL_RDS, SOL_IUCV, SOL_CAIF, SOL_ALG, SOL_NFC, SOL_KCM
 
 sockaddr [
 	un		sockaddr_un

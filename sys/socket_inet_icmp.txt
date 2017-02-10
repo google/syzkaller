@@ -6,42 +6,33 @@
 include <linux/icmp.h>
 include <linux/icmpv6.h>
 
-resource sock_icmp[sock]
+resource sock_icmp[sock_in]
 
 socket$icmp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_ICMP]) sock_icmp
 socket$icmp_raw(domain const[AF_INET], type const[SOCK_RAW], proto const[IPPROTO_ICMP]) sock_icmp
 socketpair$icmp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_ICMP], fds ptr[out, icmp_pair])
 socketpair$icmp_raw(domain const[AF_INET], type const[SOCK_RAW], proto const[IPPROTO_ICMP], fds ptr[out, icmp_pair])
-accept$icmp(fd sock_icmp, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]]) sock_icmp
-accept4$icmp(fd sock_icmp, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_icmp
-bind$icmp(fd sock_icmp, addr ptr[in, sockaddr_in], addrlen len[addr])
-connect$icmp(fd sock_icmp, addr ptr[in, sockaddr_in], addrlen len[addr])
-sendto$icmp(fd sock_icmp, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_in, opt], addrlen len[addr])
-recvfrom$icmp(fd sock_icmp, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_in, opt], addrlen len[addr])
-getsockname$icmp(fd sock_icmp, addr ptr[out, sockaddr_in], addrlen ptr[inout, len[addr, int32]])
-getpeername$icmp(fd sock_icmp, peer ptr[out, sockaddr_in], peerlen ptr[inout, len[peer, int32]])
 
 icmp_pair {
 	f0	sock_icmp
 	f1	sock_icmp
 }
 
-resource sock_icmp6[sock]
+resource sock_icmp6[sock_in6]
 
 socket$icmp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_ICMPV6]) sock_icmp6
 socket$icmp6_raw(domain const[AF_INET6], type const[SOCK_RAW], proto const[IPPROTO_ICMPV6]) sock_icmp6
 socketpair$icmp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_ICMPV6], fds ptr[out, icmp6_pair])
 socketpair$icmp6_raw(domain const[AF_INET6], type const[SOCK_RAW], proto const[IPPROTO_ICMPV6], fds ptr[out, icmp6_pair])
-accept$icmp6(fd sock_icmp6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]]) sock_icmp6
-accept4$icmp6(fd sock_icmp6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_icmp6
-bind$icmp6(fd sock_icmp6, addr ptr[in, sockaddr_in6], addrlen len[addr])
-connect$icmp6(fd sock_icmp6, addr ptr[in, sockaddr_in6], addrlen len[addr])
-sendto$icmp6(fd sock_icmp6, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_in6, opt], addrlen len[addr])
-recvfrom$icmp6(fd sock_icmp6, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_in6, opt], addrlen len[addr])
-getsockname$icmp6(fd sock_icmp6, addr ptr[out, sockaddr_in6], addrlen ptr[inout, len[addr, int32]])
-getpeername$icmp6(fd sock_icmp6, peer ptr[out, sockaddr_in6], peerlen ptr[inout, len[peer, int32]])
 
 icmp6_pair {
 	f0	sock_icmp6
 	f1	sock_icmp6
 }
+
+icmp_option_types_buf = ICMP_FILTER
+
+getsockopt$tcp_buf(fd sock_icmp, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$tcp_buf(fd sock_icmp, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$tcp6_buf(fd sock_icmp6, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$tcp6_buf(fd sock_icmp6, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[in], optlen len[optval])
