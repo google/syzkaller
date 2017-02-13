@@ -80,6 +80,7 @@ eth2_packet {
 
 eth2_payload [
 	arp		arp_packet
+	llc		llc_packet
 	ipx		ipx_packet
 	x25		x25_packet
 	ipv4		ipv4_packet
@@ -139,6 +140,46 @@ arp_packet [
 	ether_ipv4	arp_ether_ipv4_packet
 	ether_ipv6	arp_ether_ipv6_packet
 ] [varlen]
+
+################################################################################
+################################## 802.2 (LLC) #################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/IEEE_802.2
+# https://en.wikipedia.org/wiki/Subnetwork_Access_Protocol
+
+include <uapi/linux/llc.h>
+
+# Adding '1' as a SAP value since the lower bit in SAP has a special meaning.
+sap_values = 1, LLC_SAP_NULL, LLC_SAP_LLC, LLC_SAP_SNA, LLC_SAP_PNM, LLC_SAP_IP, LLC_SAP_BSPAN, LLC_SAP_MMS, LLC_SAP_8208, LLC_SAP_3COM, LLC_SAP_PRO, LLC_SAP_SNAP, LLC_SAP_BANYAN, LLC_SAP_IPX, LLC_SAP_NETBEUI, LLC_SAP_LANMGR, LLC_SAP_IMPL, LLC_SAP_DISC, LLC_SAP_OSI, LLC_SAP_LAR, LLC_SAP_RM, LLC_SAP_GLOBAL
+
+llc_generic_packet {
+	dsap		flags[sap_values, int8]
+	ssap		flags[sap_values, int8]
+	ctrl		array[int8, 1:2]
+	payload		array[int8]
+} [packed]
+
+sap_snap_values = 1, LLC_SAP_SNAP
+
+llc_snap_packet {
+	dsap		flags[sap_snap_values, int8]
+	ssap		flags[sap_snap_values, int8]
+	control		array[int8, 1:2]
+	oui		array[int8, 3]
+	protocol_id	flags[ether_types, int16be]
+	payload		array[int8]
+} [packed]
+
+llc_payload [
+	llc		llc_generic_packet
+	snap		llc_snap_packet
+] [varlen]
+
+llc_packet {
+	length		len[payload, int16be]
+	payload		llc_payload
+} [packed]
 
 ################################################################################
 ###################################### IPX #####################################
