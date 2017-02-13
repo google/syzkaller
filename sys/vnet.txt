@@ -79,8 +79,63 @@ eth2_packet {
 } [packed]
 
 eth2_payload [
+	arp		arp_packet
 	ipv4		ipv4_packet
 	ipv6		ipv6_packet
+] [varlen]
+
+################################################################################
+###################################### ARP #####################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/Address_Resolution_Protocol#Packet_structure
+
+include <uapi/linux/if_arp.h>
+
+arp_htypes = ARPHRD_NETROM, ARPHRD_ETHER, ARPHRD_EETHER, ARPHRD_AX25, ARPHRD_PRONET, ARPHRD_CHAOS, ARPHRD_IEEE802, ARPHRD_ARCNET, ARPHRD_APPLETLK, ARPHRD_DLCI, ARPHRD_ATM, ARPHRD_METRICOM, ARPHRD_IEEE1394, ARPHRD_EUI64, ARPHRD_INFINIBAND, ARPHRD_SLIP, ARPHRD_CSLIP, ARPHRD_SLIP6, ARPHRD_CSLIP6, ARPHRD_RSRVD, ARPHRD_ADAPT, ARPHRD_ROSE, ARPHRD_X25, ARPHRD_HWX25, ARPHRD_CAN, ARPHRD_PPP, ARPHRD_CISCO, ARPHRD_HDLC, ARPHRD_LAPB, ARPHRD_DDCMP, ARPHRD_RAWHDLC, ARPHRD_TUNNEL, ARPHRD_TUNNEL6, ARPHRD_FRAD, ARPHRD_SKIP, ARPHRD_LOOPBACK, ARPHRD_LOCALTLK, ARPHRD_FDDI, ARPHRD_BIF, ARPHRD_SIT, ARPHRD_IPDDP, ARPHRD_IPGRE, ARPHRD_PIMREG, ARPHRD_HIPPI, ARPHRD_ASH, ARPHRD_ECONET, ARPHRD_IRDA, ARPHRD_FCPP, ARPHRD_FCAL, ARPHRD_FCPL, ARPHRD_FCFABRIC, ARPHRD_IEEE802_TR, ARPHRD_IEEE80211, ARPHRD_IEEE80211_PRISM, ARPHRD_IEEE80211_RADIOTAP, ARPHRD_IEEE802154, ARPHRD_IEEE802154_MONITOR, ARPHRD_PHONET, ARPHRD_PHONET_PIPE, ARPHRD_CAIF, ARPHRD_IP6GRE, ARPHRD_NETLINK, ARPHRD_6LOWPAN, ARPHRD_VOID, ARPHRD_NONE
+
+arp_ops = ARPOP_REQUEST, ARPOP_REPLY, ARPOP_RREQUEST, ARPOP_RREPLY, ARPOP_InREQUEST, ARPOP_InREPLY, ARPOP_NAK
+
+arp_generic_packet {
+	htype		flags[arp_htypes, int16be]
+	ptype		flags[ether_types, int16be]
+	hlen		const[6, int8]
+	plen		len[spa, int8]
+	op		flags[arp_ops, int16be]
+	sha		mac_addr
+	spa		array[int8, 0:16]
+	tha		mac_addr
+	tpa		array[int8, 16]
+} [packed]
+
+arp_ether_ipv4_packet {
+	htype		const[ARPHRD_ETHER, int16be]
+	ptype		const[ETH_P_IP, int16be]
+	hlen		const[6, int8]
+	plen		const[4, int8]
+	op		flags[arp_ops, int16be]
+	sha		mac_addr
+	spa		ipv4_addr
+	tha		mac_addr
+	tpa		ipv4_addr
+} [packed]
+
+arp_ether_ipv6_packet {
+	htype		const[ARPHRD_ETHER, int16be]
+	ptype		const[ETH_P_IPV6, int16be]
+	hlen		const[6, int8]
+	plen		const[16, int8]
+	op		flags[arp_ops, int16be]
+	sha		mac_addr
+	spa		ipv6_addr
+	tha		mac_addr
+	tpa		ipv6_addr
+} [packed]
+
+arp_packet [
+	generic		arp_generic_packet
+	ether_ipv4	arp_ether_ipv4_packet
+	ether_ipv6	arp_ether_ipv6_packet
 ] [varlen]
 
 ################################################################################
