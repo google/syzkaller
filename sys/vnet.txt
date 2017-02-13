@@ -80,6 +80,7 @@ eth2_packet {
 
 eth2_payload [
 	arp		arp_packet
+	ipx		ipx_packet
 	ipv4		ipv4_packet
 	ipv6		ipv6_packet
 ] [varlen]
@@ -137,6 +138,49 @@ arp_packet [
 	ether_ipv4	arp_ether_ipv4_packet
 	ether_ipv6	arp_ether_ipv6_packet
 ] [varlen]
+
+################################################################################
+###################################### IPX #####################################
+################################################################################
+
+# http://www.networksorcery.com/enp/protocol/ipx.htm
+# https://en.wikipedia.org/wiki/Internetwork_Packet_Exchange#IPX_packet_structure
+
+include <net/ipx.h>
+
+ipx_network [
+	random		int32be
+	current		const[0x00000000, int32be]
+	broadcast	const[0xffffffff, int32be]
+]
+
+ipx_node [
+	random		array[int8, 6]
+	current		array[const[0x00, int8], 6]
+	broadcast	array[const[0xff, int8], 6]
+]
+
+ipx_addr {
+	network		ipx_network
+	node		ipx_node
+	socket		int16be
+} [packed]
+
+ipx_packet_types = IPX_TYPE_UNKNOWN, IPX_TYPE_RIP, IPX_TYPE_SAP, IPX_TYPE_SPX, IPX_TYPE_NCP, IPX_TYPE_PPROP
+
+ipx_packet {
+	csum		const[0xffff, int16be]
+	length		len[parent, int16be]
+	control		int8
+	type		flags[ipx_packet_types, int8]
+	dst_addr	ipx_addr
+	src_addr	ipx_addr
+	payload		array[int8]
+} [packed]
+
+# TODO: setup ipx on virtual interfaces in executor
+# TODO: describe particular ipx types
+# TODO: open ipx sockets from userspace
 
 ################################################################################
 ##################################### IPv4 #####################################
