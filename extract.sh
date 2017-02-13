@@ -20,13 +20,13 @@ fi
 
 UPSTREAM_FILES="sys/bpf.txt sys/dri.txt sys/fuse.txt sys/input.txt sys/ipc.txt
 		sys/key.txt sys/kvm.txt sys/loop.txt sys/perf.txt sys/random.txt
-		sys/sndcontrol.txt sys/sndseq.txt sys/sndtimer.txt sys/socket.txt
-		sys/socket_alg.txt sys/socket_bluetooth.txt sys/socket_inet.txt
-		sys/socket_inet_icmp.txt sys/socket_inet_sctp.txt sys/socket_inet_tcp.txt
-		sys/socket_inet_udp.txt sys/socket_kcm.txt sys/socket_key.txt
-		sys/socket_netlink.txt sys/socket_netrom.txt sys/socket_nfc.txt
-		sys/socket_unix.txt sys/sys.txt sys/test.txt sys/tty.txt sys/tun.txt
-		sys/vnet.txt"
+		sys/sndcontrol.txt sys/sndseq.txt sys/sndtimer.txt
+		sys/sys.txt sys/test.txt sys/tty.txt sys/tun.txt sys/vnet.txt
+		sys/socket.txt sys/socket_alg.txt sys/socket_bluetooth.txt
+		sys/socket_inet.txt sys/socket_inet_tcp.txt sys/socket_inet_udp.txt
+		sys/socket_inet_icmp.txt sys/socket_inet_sctp.txt sys/socket_inet_dccp.txt
+		sys/socket_kcm.txt sys/socket_key.txt sys/socket_netlink.txt
+		sys/socket_netrom.txt sys/socket_nfc.txt sys/socket_unix.txt"
 
 ANDROID_FILES="sys/tlk_device.txt"
 
