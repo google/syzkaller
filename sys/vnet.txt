@@ -79,9 +79,174 @@ eth2_packet {
 } [packed]
 
 eth2_payload [
+	arp		arp_packet
+	llc		llc_packet
+	ipx		ipx_packet
+	x25		x25_packet
 	ipv4		ipv4_packet
 	ipv6		ipv6_packet
 ] [varlen]
+
+################################################################################
+###################################### ARP #####################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/Address_Resolution_Protocol#Packet_structure
+
+include <uapi/linux/if_arp.h>
+
+arp_htypes = ARPHRD_NETROM, ARPHRD_ETHER, ARPHRD_EETHER, ARPHRD_AX25, ARPHRD_PRONET, ARPHRD_CHAOS, ARPHRD_IEEE802, ARPHRD_ARCNET, ARPHRD_APPLETLK, ARPHRD_DLCI, ARPHRD_ATM, ARPHRD_METRICOM, ARPHRD_IEEE1394, ARPHRD_EUI64, ARPHRD_INFINIBAND, ARPHRD_SLIP, ARPHRD_CSLIP, ARPHRD_SLIP6, ARPHRD_CSLIP6, ARPHRD_RSRVD, ARPHRD_ADAPT, ARPHRD_ROSE, ARPHRD_X25, ARPHRD_HWX25, ARPHRD_CAN, ARPHRD_PPP, ARPHRD_CISCO, ARPHRD_HDLC, ARPHRD_LAPB, ARPHRD_DDCMP, ARPHRD_RAWHDLC, ARPHRD_TUNNEL, ARPHRD_TUNNEL6, ARPHRD_FRAD, ARPHRD_SKIP, ARPHRD_LOOPBACK, ARPHRD_LOCALTLK, ARPHRD_FDDI, ARPHRD_BIF, ARPHRD_SIT, ARPHRD_IPDDP, ARPHRD_IPGRE, ARPHRD_PIMREG, ARPHRD_HIPPI, ARPHRD_ASH, ARPHRD_ECONET, ARPHRD_IRDA, ARPHRD_FCPP, ARPHRD_FCAL, ARPHRD_FCPL, ARPHRD_FCFABRIC, ARPHRD_IEEE802_TR, ARPHRD_IEEE80211, ARPHRD_IEEE80211_PRISM, ARPHRD_IEEE80211_RADIOTAP, ARPHRD_IEEE802154, ARPHRD_IEEE802154_MONITOR, ARPHRD_PHONET, ARPHRD_PHONET_PIPE, ARPHRD_CAIF, ARPHRD_IP6GRE, ARPHRD_NETLINK, ARPHRD_6LOWPAN, ARPHRD_VOID, ARPHRD_NONE
+
+arp_ops = ARPOP_REQUEST, ARPOP_REPLY, ARPOP_RREQUEST, ARPOP_RREPLY, ARPOP_InREQUEST, ARPOP_InREPLY, ARPOP_NAK
+
+arp_generic_packet {
+	htype		flags[arp_htypes, int16be]
+	ptype		flags[ether_types, int16be]
+	hlen		const[6, int8]
+	plen		len[spa, int8]
+	op		flags[arp_ops, int16be]
+	sha		mac_addr
+	spa		array[int8, 0:16]
+	tha		mac_addr
+	tpa		array[int8, 16]
+} [packed]
+
+arp_ether_ipv4_packet {
+	htype		const[ARPHRD_ETHER, int16be]
+	ptype		const[ETH_P_IP, int16be]
+	hlen		const[6, int8]
+	plen		const[4, int8]
+	op		flags[arp_ops, int16be]
+	sha		mac_addr
+	spa		ipv4_addr
+	tha		mac_addr
+	tpa		ipv4_addr
+} [packed]
+
+arp_ether_ipv6_packet {
+	htype		const[ARPHRD_ETHER, int16be]
+	ptype		const[ETH_P_IPV6, int16be]
+	hlen		const[6, int8]
+	plen		const[16, int8]
+	op		flags[arp_ops, int16be]
+	sha		mac_addr
+	spa		ipv6_addr
+	tha		mac_addr
+	tpa		ipv6_addr
+} [packed]
+
+arp_packet [
+	generic		arp_generic_packet
+	ether_ipv4	arp_ether_ipv4_packet
+	ether_ipv6	arp_ether_ipv6_packet
+] [varlen]
+
+################################################################################
+################################## 802.2 (LLC) #################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/IEEE_802.2
+# https://en.wikipedia.org/wiki/Subnetwork_Access_Protocol
+
+include <uapi/linux/llc.h>
+
+# Adding '1' as a SAP value since the lower bit in SAP has a special meaning.
+sap_values = 1, LLC_SAP_NULL, LLC_SAP_LLC, LLC_SAP_SNA, LLC_SAP_PNM, LLC_SAP_IP, LLC_SAP_BSPAN, LLC_SAP_MMS, LLC_SAP_8208, LLC_SAP_3COM, LLC_SAP_PRO, LLC_SAP_SNAP, LLC_SAP_BANYAN, LLC_SAP_IPX, LLC_SAP_NETBEUI, LLC_SAP_LANMGR, LLC_SAP_IMPL, LLC_SAP_DISC, LLC_SAP_OSI, LLC_SAP_LAR, LLC_SAP_RM, LLC_SAP_GLOBAL
+
+llc_generic_packet {
+	dsap		flags[sap_values, int8]
+	ssap		flags[sap_values, int8]
+	ctrl		array[int8, 1:2]
+	payload		array[int8]
+} [packed]
+
+sap_snap_values = 1, LLC_SAP_SNAP
+
+llc_snap_packet {
+	dsap		flags[sap_snap_values, int8]
+	ssap		flags[sap_snap_values, int8]
+	control		array[int8, 1:2]
+	oui		array[int8, 3]
+	protocol_id	flags[ether_types, int16be]
+	payload		array[int8]
+} [packed]
+
+llc_payload [
+	llc		llc_generic_packet
+	snap		llc_snap_packet
+] [varlen]
+
+llc_packet {
+	length		len[payload, int16be]
+	payload		llc_payload
+} [packed]
+
+################################################################################
+###################################### IPX #####################################
+################################################################################
+
+# http://www.networksorcery.com/enp/protocol/ipx.htm
+# https://en.wikipedia.org/wiki/Internetwork_Packet_Exchange#IPX_packet_structure
+
+include <net/ipx.h>
+
+ipx_network [
+	random		int32be
+	current		const[0x00000000, int32be]
+	broadcast	const[0xffffffff, int32be]
+]
+
+ipx_node [
+	random		array[int8, 6]
+	current		array[const[0x00, int8], 6]
+	broadcast	array[const[0xff, int8], 6]
+]
+
+ipx_addr {
+	network		ipx_network
+	node		ipx_node
+	socket		int16be
+} [packed]
+
+ipx_packet_types = IPX_TYPE_UNKNOWN, IPX_TYPE_RIP, IPX_TYPE_SAP, IPX_TYPE_SPX, IPX_TYPE_NCP, IPX_TYPE_PPROP
+
+ipx_packet {
+	csum		const[0xffff, int16be]
+	length		len[parent, int16be]
+	control		int8
+	type		flags[ipx_packet_types, int8]
+	dst_addr	ipx_addr
+	src_addr	ipx_addr
+	payload		array[int8]
+} [packed]
+
+# TODO: setup ipx on virtual interfaces in executor
+# TODO: describe particular ipx types
+# TODO: open ipx sockets from userspace
+
+################################################################################
+###################################### x25 #####################################
+################################################################################
+
+# Documentation/networking/x25.txt
+# Documentation/networking/x25-iface.txt
+# http://www.dafuer.com/kleinehelferlein/x25layer.htm
+
+include <uapi/linux/if_x25.h>
+include <net/x25.h>
+
+x25_iface_types = X25_IFACE_DATA, X25_IFACE_CONNECT, X25_IFACE_DISCONNECT, X25_IFACE_PARAMS
+
+x25_frame_types = X25_CALL_REQUEST, X25_CALL_ACCEPTED, X25_CLEAR_REQUEST, X25_CLEAR_CONFIRMATION, X25_DATA, X25_INTERRUPT, X25_INTERRUPT_CONFIRMATION, X25_RR, X25_RNR, X25_REJ, X25_RESET_REQUEST, X25_RESET_CONFIRMATION, X25_REGISTRATION_REQUEST, X25_REGISTRATION_CONFIRMATION, X25_RESTART_REQUEST, X25_RESTART_CONFIRMATION, X25_DIAGNOSTIC, X25_ILLEGAL
+
+x25_packet {
+	iface		flags[x25_iface_types, int8]
+	wtf		int8
+	frame		flags[x25_frame_types, int8]
+	payload		array[int8]
+} [packed]
+
+# TODO: open x25 sockets from userspace
 
 ################################################################################
 ##################################### IPv4 #####################################
@@ -383,12 +548,15 @@ ipv4_payload [
 	tcp		tcp_packet
 	udp		udp_packet
 	icmp		icmp_packet
+	dccp		dccp_packet
+	igmp		igmp_packet
 ] [varlen]
 
 ipv6_payload [
 	tcp		tcp_packet
 	udp		udp_packet
 	icmpv6		icmpv6_packet
+	dccp		dccp_packet
 ] [varlen]
 
 ################################################################################
@@ -824,3 +992,59 @@ icmpv6_packet [
 # TODO: ICMPV6_MLD2_REPORT
 # TODO: ICMPV6_DHAAD_REQUEST, ICMPV6_DHAAD_REPLY, ICMPV6_MOBILE_PREFIX_SOL, ICMPV6_MOBILE_PREFIX_ADV (with ipv6 ext headers)
 ] [varlen]
+
+################################################################################
+###################################### DCCP ####################################
+################################################################################
+
+# https://tools.ietf.org/html/rfc4340#section-5
+
+include <uapi/linux/dccp.h>
+
+# TODO: describe each type
+dccp_types = DCCP_PKT_REQUEST, DCCP_PKT_RESPONSE, DCCP_PKT_DATA, DCCP_PKT_ACK, DCCP_PKT_DATAACK, DCCP_PKT_CLOSEREQ, DCCP_PKT_CLOSE, DCCP_PKT_RESET, DCCP_PKT_SYNC, DCCP_PKT_SYNCACK, DCCP_PKT_INVALID
+
+dccp_header {
+	src_port	proc[int16be, 20000, 4]
+	dst_port	proc[int16be, 20000, 4]
+	offset		bytesize4[parent, int8]
+	cscov		const[1, int8:4]
+# TODO: cscov might have other values, affects checksummed data
+	ccval		int8:4
+	csum		csum[parent, pseudo, IPPROTO_DCCP, int16be]
+	x		const[0, int8:1]
+	type		flags[dccp_types, int8:4]
+	reserved1	int8:3
+	seq_num		array[int8, 3]
+	reserved2	int8
+	ack_num		array[int8, 3]
+# TODO: seq_num and ack_num might have different size depending on x
+# TODO: options
+} [packed]
+
+dccp_packet {
+	header		dccp_header
+	payload		array[int8]
+} [packed]
+
+################################################################################
+###################################### IGMP ####################################
+################################################################################
+
+# https://tools.ietf.org/html/rfc2236
+# https://tools.ietf.org/html/rfc3376#section-4
+
+include <uapi/linux/igmp.h>
+
+igmp_types = IGMP_HOST_MEMBERSHIP_QUERY, IGMP_HOST_MEMBERSHIP_REPORT, IGMP_DVMRP, IGMP_PIM, IGMP_TRACE, IGMPV2_HOST_MEMBERSHIP_REPORT, IGMP_HOST_LEAVE_MESSAGE, IGMPV3_HOST_MEMBERSHIP_REPORT, IGMP_MTRACE_RESP, IGMP_MTRACE
+
+igmp_packet {
+	type		flags[igmp_types, int8]
+	mrtime		int8
+	csum		csum[parent, inet, int16be]
+	addr		ipv4_addr
+	data		array[int8]
+} [packed]
+
+# TODO: describe particular IGMP packets
+# TODO: open IGMP sockets from userspace
