@@ -383,12 +383,14 @@ ipv4_payload [
 	tcp		tcp_packet
 	udp		udp_packet
 	icmp		icmp_packet
+	dccp		dccp_packet
 ] [varlen]
 
 ipv6_payload [
 	tcp		tcp_packet
 	udp		udp_packet
 	icmpv6		icmpv6_packet
+	dccp		dccp_packet
 ] [varlen]
 
 ################################################################################
@@ -824,3 +826,37 @@ icmpv6_packet [
 # TODO: ICMPV6_MLD2_REPORT
 # TODO: ICMPV6_DHAAD_REQUEST, ICMPV6_DHAAD_REPLY, ICMPV6_MOBILE_PREFIX_SOL, ICMPV6_MOBILE_PREFIX_ADV (with ipv6 ext headers)
 ] [varlen]
+
+################################################################################
+###################################### DCCP ####################################
+################################################################################
+
+# https://tools.ietf.org/html/rfc4340#section-5
+
+include <uapi/linux/dccp.h>
+
+# TODO: describe each type
+dccp_types = DCCP_PKT_REQUEST, DCCP_PKT_RESPONSE, DCCP_PKT_DATA, DCCP_PKT_ACK, DCCP_PKT_DATAACK, DCCP_PKT_CLOSEREQ, DCCP_PKT_CLOSE, DCCP_PKT_RESET, DCCP_PKT_SYNC, DCCP_PKT_SYNCACK, DCCP_PKT_INVALID
+
+dccp_header {
+	src_port	proc[int16be, 20000, 4]
+	dst_port	proc[int16be, 20000, 4]
+	offset		bytesize4[parent, int8]
+	cscov		const[1, int8:4]
+# TODO: cscov might have other values, affects checksummed data
+	ccval		int8:4
+	csum		csum[parent, pseudo, IPPROTO_DCCP, int16be]
+	x		const[0, int8:1]
+	type		flags[dccp_types, int8:4]
+	reserved1	int8:3
+	seq_num		array[int8, 3]
+	reserved2	int8
+	ack_num		array[int8, 3]
+# TODO: seq_num and ack_num might have different size depending on x
+# TODO: options
+} [packed]
+
+dccp_packet {
+	header		dccp_header
+	payload		array[int8]
+} [packed]
