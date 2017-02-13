@@ -384,6 +384,7 @@ ipv4_payload [
 	udp		udp_packet
 	icmp		icmp_packet
 	dccp		dccp_packet
+	igmp		igmp_packet
 ] [varlen]
 
 ipv6_payload [
@@ -860,3 +861,25 @@ dccp_packet {
 	header		dccp_header
 	payload		array[int8]
 } [packed]
+
+################################################################################
+###################################### IGMP ####################################
+################################################################################
+
+# https://tools.ietf.org/html/rfc2236
+# https://tools.ietf.org/html/rfc3376#section-4
+
+include <uapi/linux/igmp.h>
+
+igmp_types = IGMP_HOST_MEMBERSHIP_QUERY, IGMP_HOST_MEMBERSHIP_REPORT, IGMP_DVMRP, IGMP_PIM, IGMP_TRACE, IGMPV2_HOST_MEMBERSHIP_REPORT, IGMP_HOST_LEAVE_MESSAGE, IGMPV3_HOST_MEMBERSHIP_REPORT, IGMP_MTRACE_RESP, IGMP_MTRACE
+
+igmp_packet {
+	type		flags[igmp_types, int8]
+	mrtime		int8
+	csum		csum[parent, inet, int16be]
+	addr		ipv4_addr
+	data		array[int8]
+} [packed]
+
+# TODO: describe particular IGMP packets
+# TODO: open IGMP sockets from userspace
