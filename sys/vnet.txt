@@ -81,6 +81,7 @@ eth2_packet {
 eth2_payload [
 	arp		arp_packet
 	ipx		ipx_packet
+	x25		x25_packet
 	ipv4		ipv4_packet
 	ipv6		ipv6_packet
 ] [varlen]
@@ -181,6 +182,30 @@ ipx_packet {
 # TODO: setup ipx on virtual interfaces in executor
 # TODO: describe particular ipx types
 # TODO: open ipx sockets from userspace
+
+################################################################################
+###################################### x25 #####################################
+################################################################################
+
+# Documentation/networking/x25.txt
+# Documentation/networking/x25-iface.txt
+# http://www.dafuer.com/kleinehelferlein/x25layer.htm
+
+include <uapi/linux/if_x25.h>
+include <net/x25.h>
+
+x25_iface_types = X25_IFACE_DATA, X25_IFACE_CONNECT, X25_IFACE_DISCONNECT, X25_IFACE_PARAMS
+
+x25_frame_types = X25_CALL_REQUEST, X25_CALL_ACCEPTED, X25_CLEAR_REQUEST, X25_CLEAR_CONFIRMATION, X25_DATA, X25_INTERRUPT, X25_INTERRUPT_CONFIRMATION, X25_RR, X25_RNR, X25_REJ, X25_RESET_REQUEST, X25_RESET_CONFIRMATION, X25_REGISTRATION_REQUEST, X25_REGISTRATION_CONFIRMATION, X25_RESTART_REQUEST, X25_RESTART_CONFIRMATION, X25_DIAGNOSTIC, X25_ILLEGAL
+
+x25_packet {
+	iface		flags[x25_iface_types, int8]
+	wtf		int8
+	frame		flags[x25_frame_types, int8]
+	payload		array[int8]
+} [packed]
+
+# TODO: open x25 sockets from userspace
 
 ################################################################################
 ##################################### IPv4 #####################################
