@@ -54,7 +54,7 @@ type RpcClient struct {
 }
 
 func NewRpcClient(addr string) (*RpcClient, error) {
-	conn, err := net.DialTimeout("tcp", addr, 15*time.Second)
+	conn, err := net.DialTimeout("tcp", addr, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func NewRpcClient(addr string) (*RpcClient, error) {
 }
 
 func (cli *RpcClient) Call(method string, args, reply interface{}) error {
-	cli.conn.SetDeadline(time.Now().Add(30 * time.Second))
+	cli.conn.SetDeadline(time.Now().Add(60 * time.Second))
 	err := cli.c.Call(method, args, reply)
 	cli.conn.SetDeadline(time.Time{})
 	return err
