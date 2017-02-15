@@ -257,6 +257,7 @@ func parseSuppressions(cfg *Config) error {
 		"fatal error: runtime: out of memory",
 		"fatal error: runtime: cannot allocate memory",
 		"fatal error: unexpected signal during runtime execution", // presubmably OOM turned into SIGBUS
+		"signal SIGBUS: bus error",                                // presubmably OOM turned into SIGBUS
 		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
 		"lowmemorykiller: Killing 'syz-fuzzer'",
 		//"INFO: lockdep is turned off", // printed by some sysrq that dumps scheduler state, but also on all lockdep reports
