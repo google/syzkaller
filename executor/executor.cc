@@ -616,8 +616,12 @@ void cover_enable(thread_t* th)
 	if (!flag_cover)
 		return;
 	debug("#%d: enabling /sys/kernel/debug/kcov\n", th->id);
-	if (ioctl(th->cover_fd, KCOV_ENABLE, 0))
-		fail("cover enable write failed");
+	if (ioctl(th->cover_fd, KCOV_ENABLE, 0)) {
+		// This should be fatal,
+		// but in practice ioctl fails with assorted errors (9, 14, 25),
+		// so we use exitf.
+		exitf("cover enable write failed");
+	}
 	debug("#%d: enabled /sys/kernel/debug/kcov\n", th->id);
 }
 
