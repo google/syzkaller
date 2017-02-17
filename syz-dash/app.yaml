@@ -1,0 +1,16 @@
+application: syzkaller
+version: 1
+runtime: go
+api_version: go1
+
+handlers:
+- url: /static
+  static_dir: static
+  secure: always
+- url: /(|bug|text|client)
+  script: _go_app
+  login: admin
+  secure: always
+- url: /api
+  script: _go_app
+  secure: always

@@ -1,0 +1,34 @@
+{{define "bug_table"}}
+	<table>
+		<caption>{{.Name}}:</caption>
+		<tr>
+			<th>Title</th>
+			<th>Count</th>
+			<th>Time</th>
+			<th>Happens on</th>
+		</tr>
+		{{range $b := $.Bugs}}
+			<tr>
+				<td><a href="/bug?id={{$b.ID}}">{{$b.Title}}</a></td>
+				<td>{{$b.NumCrashes}}</td>
+				<td>{{formatTime $b.LastTime}} - {{formatTime $b.FirstTime}}</td>
+				<td>{{$b.Managers}}</td>
+			</tr>
+		{{end}}
+	</table>
+{{end}}
+
+<!doctype html>
+<html>
+<head>
+	<title>Syzkaller Dashboard</title>
+	<link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+	{{range $g := $.BugGroups}}
+		{{if $g.Bugs}}
+			{{template "bug_table" $g}} <br>
+		{{end}}
+	{{end}}
+</body>
+</html>
