@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+<head>
+	<title>Syzkaller Dashboard</title>
+	<link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+	<form action="/bug?id={{.ID}}" method="post">
+		<table>
+			<tr>
+				<td>Title:</td>
+				<td><input name="title" type="text" size="200" maxlength="200" value="{{.Title}}" required/></td>
+			</tr>
+			<tr>
+				<td>Status:</td>
+				<td><select name="status">
+					<option value="new" {{if eq .Status "new"}}selected{{end}}>New</option>
+					<option value="reported" {{if eq .Status "reported"}}selected{{end}}>Reported</option>
+					<option value="fixed" {{if eq .Status "fixed"}}selected{{end}}>Fixed</option>
+					<option value="unclear" {{if eq .Status "unclear"}}selected{{end}}>Unclear</option>
+				</select></td>
+			</tr>
+			<tr>
+				<td>Crashes:</td>
+				<td>{{.NumCrashes}}</td>
+			</tr>
+			<tr>
+				<td>Time:</td>
+				<td>{{formatTime .LastTime}} - {{formatTime .FirstTime}}</td>
+			</tr>
+			<tr>
+				<td>Happens on:</td>
+				<td>{{.Managers}}</td>
+			</tr>
+			<tr>
+				<td>Report link:</td>
+				<td><input name="report_link" type="text" size="200" maxlength="1000" value="{{.ReportLink}}"/></td>
+			</tr>
+			<tr>
+				<td>CVE:</td>
+				<td><input name="cve" type="text" size="200" maxlength="100" value="{{.CVE}}"/></td>
+			</tr>
+			<tr>
+				<td>Comment:</td>
+				<td><input name="comment" type="text" size="200" maxlength="4000" value="{{.Comment}}"/></td>
+			</tr>
+		</table>
+		<input name="ver" type="hidden" value="{{.Version}}"/>
+		<input type="submit" name="action" value="Update"/>
+		<input type="submit" name="action" value="Close" title="fixed and is not happening anymore
+new crashes won't be associated with this bug
+and instead produce a new bug"/>
+		<input type="submit" name="action" value="Delete" title="trash/not interesting
+new crashes will produce a new bug"/>
+		<b>{{.Message}}</b>
+	</form>
+	<br>
+
+	<form action="/bug?id={{$.ID}}" method="post">
+		Merge into:
+		<select name="bug_id">
+			{{range $b := $.AllBugs}}
+				<option value="{{$b.ID}}">{{$b.Title}}</option>
+			{{end}}
+		</select>
+		<input type="submit" name="action" value="Merge"/>
+	</form>
+	<br>
+
+	{{if $.Groups}}
+	<table>
+		<caption>Crash groups:</caption>
+		{{range $g := $.Groups}}
+			<tr>
+				<td>{{$g.Title}}</td>
+				<td>
+					<form action="/bug?id={{$.ID}}" method="post">
+						<input name="hash" type="hidden" value="{{$g.Hash}}"/>
+						<input type="submit" name="action" value="Unmerge"/>
+					</form>
+				</td>
+			</tr>
+		{{end}}
+	</table>
+	<br>
+	{{end}}
+
+	{{if $.Patches}}
+	<table>
+		{{range $p := $.Patches}}
+			<tr>
+				<td>Patch:</td>
+				<td><a href="/text?id={{$p.Diff}}">{{$p.Title}}</a></td>
+				<td>
+					<form action="/bug?id={{$.ID}}" method="post">
+						<input name="title" type="hidden" value="{{$p.Title}}"/>
+						<input type="submit" name="action" value="Delete patch"/>
+					</form>
+				</td>
+			</tr>
+		{{end}}
+	</table>
+	<br>
+	{{end}}
+
+	<form action="/bug?id={{$.ID}}" method="post">
+		<p><textarea name="patch" cols="88" rows="10" required></textarea></p>
+		<input type="submit" name="action" value="Add patch"/>
+	</form>
+	<br>
+
+	<table>
+		<caption>Crashes:</caption>
+		<tr>
+			<th>Title</th>
+			<th>Manager</th>
+			<th>Time</th>
+			<th>Tag</th>
+			<th>Log</th>
+			<th>Report</th>
+		</tr>
+		{{range $c := $.Crashes}}
+			<tr>
+				<td>{{$c.Title}}</td>
+				<td>{{$c.Manager}}</td>
+				<td>{{formatTime $c.Time}}</td>
+				<td>{{$c.Tag}}</td>
+				<td>{{if $c.Log}}<a href="/text?id={{$c.Log}}">log</a>{{end}}</td>
+				<td>{{if $c.Report}}<a href="/text?id={{$c.Report}}">report</a>{{end}}</td>
+			</tr>
+		{{end}}
+	</table>
+</body>
+</html>

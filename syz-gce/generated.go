@@ -365,4 +365,3 @@ echo -n "$4" > tag
 tar -czvf image.tar.gz disk.tar.gz key tag obj/vmlinux
 rm -rf tag obj
 `
-
