@@ -99,7 +99,10 @@ func isSupportedSyzkall(c *sys.Call) bool {
 		_, err := os.Stat("/dev/fuse")
 		return err == nil && syscall.Getuid() == 0
 	case "syz_emit_ethernet":
-		_, err := os.Stat("/dev/net/tun")
+		fd, err := syscall.Open("/dev/net/tun", syscall.O_RDWR, 0)
+		if err == nil {
+			syscall.Close(fd)
+		}
 		return err == nil && syscall.Getuid() == 0
 	case "syz_kvm_setup_cpu":
 		switch c.Name {
