@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/csource"
+	"github.com/google/syzkaller/dashboard"
 	"github.com/google/syzkaller/db"
 	"github.com/google/syzkaller/hash"
 	. "github.com/google/syzkaller/log"
@@ -58,6 +59,8 @@ type Manager struct {
 	vmChecked    bool
 	fresh        bool
 	numFuzzing   uint32
+
+	dash *dashboard.Dashboard
 
 	mu              sync.Mutex
 	enabledSyscalls string
@@ -206,6 +209,14 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 	Logf(0, "serving rpc on tcp://%v", s.Addr())
 	mgr.port = s.Addr().(*net.TCPAddr).Port
 	go s.Serve()
+
+	if cfg.Dashboard_Addr != "" {
+		mgr.dash = &dashboard.Dashboard{
+			Addr:   cfg.Dashboard_Addr,
+			Client: cfg.Name,
+			Key:    cfg.Dashboard_Key,
+		}
+	}
 
 	go func() {
 		for lastTime := time.Now(); ; {
@@ -517,7 +528,19 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 		} else {
 			crash.text = symbolized
 		}
-		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), []byte(crash.text), 0660)
+		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.text, 0660)
+	}
+
+	if mgr.dash != nil {
+		dc := &dashboard.Crash{
+			Tag:    mgr.cfg.Tag,
+			Desc:   crash.desc,
+			Log:    crash.output,
+			Report: crash.text,
+		}
+		if err := mgr.dash.ReportCrash(dc); err != nil {
+			Logf(0, "failed to report crash to dashboard: %v", err)
+		}
 	}
 }
 
@@ -544,6 +567,18 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 	sig := hash.Hash([]byte(crash.desc))
 	dir := filepath.Join(mgr.crashdir, sig.String())
 	if res == nil {
+		if mgr.dash != nil {
+			dr := &dashboard.Repro{
+				Crash: dashboard.Crash{
+					Tag:  mgr.cfg.Tag,
+					Desc: crash.desc,
+				},
+				Reproduced: false,
+			}
+			if err := mgr.dash.ReportRepro(dr); err != nil {
+				Logf(0, "failed to report repro to dashboard: %v", err)
+			}
+		}
 		for i := 0; i < maxReproAttempts; i++ {
 			name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
 			if _, err := os.Stat(name); err != nil {
@@ -562,6 +597,7 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 	if len(crash.text) > 0 {
 		ioutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(crash.text), 0660)
 	}
+	var cprogText []byte
 	if res.CRepro {
 		cprog, err := csource.Write(res.Prog, res.Opts)
 		if err == nil {
@@ -570,8 +606,26 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 				cprog = formatted
 			}
 			ioutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprog, 0660)
+			cprogText = cprog
 		} else {
 			Logf(0, "failed to write C source: %v", err)
+		}
+	}
+
+	if mgr.dash != nil {
+		dr := &dashboard.Repro{
+			Crash: dashboard.Crash{
+				Tag:    mgr.cfg.Tag,
+				Desc:   crash.desc,
+				Report: crash.text,
+			},
+			Reproduced: true,
+			Opts:       fmt.Sprintf("%+v", res.Opts),
+			Prog:       res.Prog.Serialize(),
+			CProg:      cprogText,
+		}
+		if err := mgr.dash.ReportRepro(dr); err != nil {
+			Logf(0, "failed to report repro to dashboard: %v", err)
 		}
 	}
 }
