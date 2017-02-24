@@ -16,7 +16,7 @@ func parsePatch(text string) (title string, diff string, err error) {
 	lastLine := ""
 	for s.Scan() {
 		ln := s.Text()
-		if strings.HasPrefix(ln, "--- a/") {
+		if strings.HasPrefix(ln, "--- a/") || strings.HasPrefix(ln, "--- /dev/null") {
 			parsingDiff = true
 			if title == "" {
 				title = lastLine

@@ -17,23 +17,38 @@ import (
 
 	"appengine"
 	ds "appengine/datastore"
+	"appengine/user"
 )
 
 func init() {
-	http.Handle("/", handlerWrapper(handleDash))
-	http.Handle("/bug", handlerWrapper(handleBug))
-	http.Handle("/text", handlerWrapper(handleText))
-	http.Handle("/client", handlerWrapper(handleClient))
+	http.Handle("/", handlerWrapper(handleAuth(handleDash)))
+	http.Handle("/bug", handlerWrapper(handleAuth(handleBug)))
+	http.Handle("/text", handlerWrapper(handleAuth(handleText)))
+	http.Handle("/client", handlerWrapper(handleAuth(handleClient)))
 }
 
-func handlerWrapper(fn func(c appengine.Context, w http.ResponseWriter, r *http.Request) error) http.Handler {
+type aeHandler func(c appengine.Context, w http.ResponseWriter, r *http.Request) error
+
+func handlerWrapper(fn aeHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
 		if err := fn(c, w, r); err != nil {
 			c.Errorf("Error: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			if err1 := templates.ExecuteTemplate(w, "error.html", err.Error()); err1 != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 		}
 	})
+}
+
+func handleAuth(fn aeHandler) aeHandler {
+	return func(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
+		u := user.Current(c)
+		if !u.Admin && (u.AuthDomain != "gmail.com" || !strings.HasSuffix(u.Email, "@google.com")) {
+			return fmt.Errorf("You are not authorized to view this. This incident will be reported.")
+		}
+		return fn(c, w, r)
+	}
 }
 
 func handleClient(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
@@ -44,7 +59,7 @@ func handleClient(c appengine.Context, w http.ResponseWriter, r *http.Request) e
 			return fmt.Errorf("failed to fetch clients: %v", err)
 		}
 		for _, client := range clients {
-			fmt.Fprintf(w, "%v: %v<br>\n", client.Name, client.Key)
+			fmt.Fprintf(w, "%v: %v\n", client.Name, client.Key)
 		}
 		return nil
 	}
@@ -79,10 +94,21 @@ func handleDash(c appengine.Context, w http.ResponseWriter, r *http.Request) err
 	}
 	data.BugGroups = append(data.BugGroups, bugGroups[BugStatusNew], bugGroups[BugStatusReported], bugGroups[BugStatusUnclear], bugGroups[BugStatusFixed])
 
+	all := r.FormValue("all") != ""
+	if all {
+		bugGroups[BugStatusClosed] = &uiBugGroup{Name: "Closed bugs"}
+		bugGroups[BugStatusDeleted] = &uiBugGroup{Name: "Deleted bugs"}
+		data.BugGroups = append(data.BugGroups, bugGroups[BugStatusClosed], bugGroups[BugStatusDeleted])
+	}
+
 	var bugs []*Bug
 	var keys []*ds.Key
 	var err error
-	if keys, err = ds.NewQuery("Bug").Filter("Status <", BugStatusClosed).GetAll(c, &bugs); err != nil {
+	query := ds.NewQuery("Bug").Project("Title", "Status")
+	if !all {
+		query = query.Filter("Status <", BugStatusClosed)
+	}
+	if keys, err = query.GetAll(c, &bugs); err != nil {
 		return fmt.Errorf("failed to fetch bugs: %v", err)
 	}
 	bugMap := make(map[int64]*uiBug)
@@ -90,10 +116,9 @@ func handleDash(c appengine.Context, w http.ResponseWriter, r *http.Request) err
 	for i, bug := range bugs {
 		id := keys[i].IntID()
 		ui := &uiBug{
-			ID:      id,
-			Title:   bug.Title,
-			Status:  statusToString(bug.Status),
-			Comment: bug.Comment,
+			ID:     id,
+			Title:  bug.Title,
+			Status: statusToString(bug.Status),
 		}
 		bugMap[id] = ui
 		managers[id] = make(map[string]bool)
@@ -107,9 +132,17 @@ func handleDash(c appengine.Context, w http.ResponseWriter, r *http.Request) err
 	for _, group := range groups {
 		ui := bugMap[group.Bug]
 		if ui == nil {
+			if !all {
+				continue
+			}
 			return fmt.Errorf("failed to find bug for crash %v (%v)", group.Title, group.Seq)
 		}
 		ui.NumCrashes += group.NumCrashes
+		if group.HasCRepro {
+			ui.Repro = "C repro"
+		} else if group.HasRepro && ui.Repro != "C repro" {
+			ui.Repro = "repro"
+		}
 		if ui.FirstTime.IsZero() || ui.FirstTime.After(group.FirstTime) {
 			ui.FirstTime = group.FirstTime
 		}
@@ -134,7 +167,14 @@ func handleDash(c appengine.Context, w http.ResponseWriter, r *http.Request) err
 	for _, group := range data.BugGroups {
 		sort.Sort(uiBugArray(group.Bugs))
 	}
-	return templateDash.Execute(w, data)
+
+	cached, err := getCached(c)
+	if err != nil {
+		return err
+	}
+	data.Header = headerFromCached(cached)
+
+	return templates.ExecuteTemplate(w, "dash.html", data)
 }
 
 func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
@@ -142,9 +182,14 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return fmt.Errorf("failed to parse bug id: %v", err)
 	}
+	action := r.FormValue("action")
+	if action != "" && !user.IsAdmin(c) {
+		return fmt.Errorf("can't touch this")
+	}
 
+	msg := ""
 	bug := new(Bug)
-	switch r.FormValue("action") {
+	switch action {
 	case "Update":
 		ver, err := strconv.ParseInt(r.FormValue("ver"), 10, 64)
 		if err != nil {
@@ -162,14 +207,17 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			return fmt.Errorf("title can't be empty")
 		}
 		switch status {
-		case BugStatusReported:
-		case BugStatusFixed:
+		case BugStatusReported, BugStatusFixed:
+			if reportLink == "" {
+				return fmt.Errorf("enter report link")
+			}
 		case BugStatusUnclear:
 			if comment == "" {
 				return fmt.Errorf("enter comment as to why it's unclear")
 			}
 		}
 
+		flushCached := false
 		if err := ds.RunInTransaction(c, func(c appengine.Context) error {
 			if err := ds.Get(c, ds.NewKey(c, "Bug", "", id, nil), bug); err != nil {
 				return err
@@ -177,6 +225,10 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			if bug.Version != ver {
 				return fmt.Errorf("bug has changed by somebody else")
 			}
+			if status == BugStatusFixed && len(bug.Patches) == 0 {
+				return fmt.Errorf("add a patch for fixed bugs")
+			}
+			flushCached = bug.Status != status
 			bug.Title = title
 			bug.Status = status
 			bug.ReportLink = reportLink
@@ -190,7 +242,47 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 		}, nil); err != nil {
 			return err
 		}
+		if flushCached {
+			dropCached(c)
+		}
+		msg = "bug is updated"
+	case "Close", "Delete", "Reopen":
+		ver, err := strconv.ParseInt(r.FormValue("ver"), 10, 64)
+		if err != nil {
+			return fmt.Errorf("failed to parse bug version: %v", err)
+		}
+		if err := ds.RunInTransaction(c, func(c appengine.Context) error {
+			if err := ds.Get(c, ds.NewKey(c, "Bug", "", id, nil), bug); err != nil {
+				return err
+			}
+			if bug.Version != ver {
+				return fmt.Errorf("bug has changed by somebody else")
+			}
+			switch action {
+			case "Close":
+				bug.Status = BugStatusClosed
+				msg = "bug is closed"
+			case "Delete":
+				bug.Status = BugStatusDeleted
+				msg = "bug is deleted"
+			case "Reopen":
+				bug.Status = BugStatusNew
+				msg = "bug is reopened"
+			}
+			bug.Version++
+			if _, err := ds.Put(c, ds.NewKey(c, "Bug", "", id, nil), bug); err != nil {
+				return err
+			}
+			return nil
+		}, nil); err != nil {
+			return err
+		}
+		dropCached(c)
 	case "Merge":
+		ver, err := strconv.ParseInt(r.FormValue("ver"), 10, 64)
+		if err != nil {
+			return fmt.Errorf("failed to parse bug version: %v", err)
+		}
 		otherID, err := strconv.ParseInt(r.FormValue("bug_id"), 10, 64)
 		if err != nil {
 			return fmt.Errorf("failed to parse bug id: %v", err)
@@ -200,10 +292,29 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			if err := ds.Get(c, ds.NewKey(c, "Bug", "", id, nil), srcBug); err != nil {
 				return err
 			}
+			if srcBug.Version != ver {
+				return fmt.Errorf("bug has changed by somebody else")
+			}
 			dstBug := new(Bug)
 			if err := ds.Get(c, ds.NewKey(c, "Bug", "", otherID, nil), dstBug); err != nil {
 				return err
 			}
+			if dstBug.Status >= BugStatusClosed {
+				return fmt.Errorf("target bug is already closed")
+			}
+			mergeStrings := func(s1, s2 string) string {
+				if s1 == "" {
+					return s2
+				} else if s2 == "" {
+					return s1
+				} else {
+					return s1 + ", " + s2
+				}
+			}
+			dstBug.Version++
+			dstBug.ReportLink = mergeStrings(dstBug.ReportLink, srcBug.ReportLink)
+			dstBug.Comment = mergeStrings(dstBug.Comment, srcBug.Comment)
+			dstBug.CVE = mergeStrings(dstBug.ReportLink, srcBug.CVE)
 			var groupKeys []*ds.Key
 			var groups []*Group
 			for _, hash := range srcBug.Groups {
@@ -220,6 +331,15 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 				}
 			}
 			dstBug.Groups = append(dstBug.Groups, srcBug.Groups...)
+		nextPatch:
+			for _, patch := range srcBug.Patches {
+				for _, patch1 := range dstBug.Patches {
+					if patch1.Title == patch.Title {
+						continue nextPatch
+					}
+				}
+				dstBug.Patches = append(dstBug.Patches, patch)
+			}
 			if _, err := ds.Put(c, ds.NewKey(c, "Bug", "", otherID, nil), dstBug); err != nil {
 				return err
 			}
@@ -232,6 +352,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 		}, &ds.TransactionOptions{XG: true}); err != nil {
 			return err
 		}
+		dropCached(c)
 		http.Redirect(w, r, fmt.Sprintf("bug?id=%v", otherID), http.StatusMovedPermanently)
 		return nil
 	case "Unmerge":
@@ -263,7 +384,6 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			newBug := &Bug{
 				Title:  group.DisplayTitle(),
 				Status: BugStatusNew,
-				//Updated: now,
 				Groups: []string{group.hash()},
 			}
 			bugKey, err := ds.Put(c, ds.NewIncompleteKey(c, "Bug", nil), newBug)
@@ -274,10 +394,12 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			if _, err := ds.Put(c, group.Key(c), group); err != nil {
 				return err
 			}
+			msg = fmt.Sprintf("group '%v' is unmerged into separate bug", group.Title)
 			return nil
 		}, &ds.TransactionOptions{XG: true}); err != nil {
 			return err
 		}
+		dropCached(c)
 	case "Add patch":
 		title, diff, err := parsePatch(r.FormValue("patch"))
 		if err != nil {
@@ -308,6 +430,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 		}, &ds.TransactionOptions{XG: true}); err != nil {
 			return err
 		}
+		msg = fmt.Sprintf("patch '%v' added", title)
 	case "Delete patch":
 		title := r.FormValue("title")
 		if err := ds.RunInTransaction(c, func(c appengine.Context) error {
@@ -333,6 +456,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 		}, &ds.TransactionOptions{XG: true}); err != nil {
 			return err
 		}
+		msg = fmt.Sprintf("patch '%v' deleted", title)
 	case "":
 		if err := ds.Get(c, ds.NewKey(c, "Bug", "", id, nil), bug); err != nil {
 			return err
@@ -349,22 +473,22 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 	data.CVE = bug.CVE
 	data.Comment = bug.Comment
 	data.Status = statusToString(bug.Status)
+	data.Closed = bug.Status >= BugStatusClosed
 	data.Patches = bug.Patches
-	//data.Updated = bug.Updated
+	data.Message = msg
 
-	var bugs []*Bug
-	var keys []*ds.Key
-	if keys, err = ds.NewQuery("Bug").Filter("Status <", BugStatusClosed).GetAll(c, &bugs); err != nil {
-		return fmt.Errorf("failed to fetch bugs: %v", err)
+	cached, err := getCached(c)
+	if err != nil {
+		return err
 	}
-	for i, bug1 := range bugs {
-		id1 := keys[i].IntID()
-		if id1 == id {
+	data.Header = headerFromCached(cached)
+	for _, bug1 := range cached.Bugs {
+		if bug1.ID == id {
 			continue
 		}
 		data.AllBugs = append(data.AllBugs, &uiBug{
-			ID:    id1,
-			Title: fmt.Sprintf("%v (%v)", bug1.Title, statusToString(bug1.Status)),
+			ID:    bug1.ID,
+			Title: bug1.Title,
 		})
 	}
 	sort.Sort(uiBugTitleSorter(data.AllBugs))
@@ -402,9 +526,27 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 				Report:  crash.Report,
 			})
 		}
+
+		var repros []*Repro
+		if _, err := ds.NewQuery("Repro").Ancestor(group.Key(c)).GetAll(c, &repros); err != nil {
+			return fmt.Errorf("failed to fetch repros: %v", err)
+		}
+		for _, repro := range repros {
+			data.Repros = append(data.Repros, &uiRepro{
+				Title:   group.DisplayTitle(),
+				Manager: repro.Manager,
+				Tag:     repro.Tag,
+				Time:    repro.Time,
+				Report:  repro.Report,
+				Opts:    repro.Opts,
+				Prog:    repro.Prog,
+				CProg:   repro.CProg,
+			})
+		}
 	}
 
 	sort.Sort(uiCrashArray(data.Crashes))
+	sort.Sort(uiReproArray(data.Repros))
 
 	if len(data.Groups) == 1 {
 		data.Groups = nil
@@ -417,7 +559,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 	sort.Strings(arr)
 	data.Managers = strings.Join(arr, ", ")
 
-	return templateBug.Execute(w, data)
+	return templates.ExecuteTemplate(w, "bug.html", data)
 }
 
 func handleText(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
@@ -434,13 +576,30 @@ func handleText(c appengine.Context, w http.ResponseWriter, r *http.Request) err
 	return nil
 }
 
+type dataHeader struct {
+	Found   int64
+	Fixed   int64
+	Crashed int64
+}
+
+func headerFromCached(cached *Cached) *dataHeader {
+	return &dataHeader{
+		Found:   cached.Found,
+		Fixed:   cached.Fixed,
+		Crashed: cached.Crashed,
+	}
+}
+
 type dataDash struct {
+	Header    *dataHeader
 	BugGroups []*uiBugGroup
 }
 
 type dataBug struct {
+	Header *dataHeader
 	uiBug
 	Crashes []*uiCrash
+	Repros  []*uiRepro
 	Message string
 	AllBugs []*uiBug
 }
@@ -460,10 +619,11 @@ type uiBug struct {
 	Version    int64
 	Title      string
 	Status     string
+	Closed     bool
 	NumCrashes int64
+	Repro      string
 	FirstTime  time.Time
 	LastTime   time.Time
-	Updated    time.Time
 	Managers   string
 	ReportLink string
 	Comment    string
@@ -479,6 +639,17 @@ type uiCrash struct {
 	Time    time.Time
 	Log     int64
 	Report  int64
+}
+
+type uiRepro struct {
+	Title   string
+	Manager string
+	Tag     string
+	Time    time.Time
+	Report  int64
+	Opts    string
+	Prog    int64
+	CProg   int64
 }
 
 type uiBugArray []*uiBug
@@ -516,10 +687,24 @@ func (a uiCrashArray) Len() int {
 }
 
 func (a uiCrashArray) Less(i, j int) bool {
-	return a[i].Time.Before(a[j].Time)
+	return a[i].Time.After(a[j].Time)
 }
 
 func (a uiCrashArray) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+
+type uiReproArray []*uiRepro
+
+func (a uiReproArray) Len() int {
+	return len(a)
+}
+
+func (a uiReproArray) Less(i, j int) bool {
+	return a[i].Time.After(a[j].Time)
+}
+
+func (a uiReproArray) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
 }
 
@@ -536,7 +721,4 @@ func formatTime(t time.Time) string {
 	return t.Format("Jan 02 15:04")
 }
 
-var (
-	templateDash = template.Must(template.New("dash.html").Funcs(tmplFuncs).ParseFiles("dash.html"))
-	templateBug  = template.Must(template.New("bug.html").Funcs(tmplFuncs).ParseFiles("bug.html"))
-)
+var templates = template.Must(template.New("").Funcs(tmplFuncs).ParseGlob("*.html"))
