@@ -68,7 +68,7 @@ const (
 	BugStatusReported
 	BugStatusFixed
 	BugStatusUnclear
-	BugStatusClosed
+	BugStatusClosed = 1000 + iota
 	BugStatusDeleted
 )
 
@@ -187,6 +187,8 @@ const (
 	maxLinkLen    = 1000
 	maxOptsLen    = 1000
 	maxCommentLen = 4000
+
+	maxCrashes = 20
 )
 
 func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
@@ -194,14 +196,16 @@ func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal crash: %v", err)
 	}
+	addedBug := false
+	var group *Group
 	if err := ds.RunInTransaction(c, func(c appengine.Context) error {
 		now := time.Now()
+		addedBug = false
 		manager := r.FormValue("client")
 		crash := &Crash{
 			Manager: limitLength(manager, maxTextLen),
 			Tag:     limitLength(req.Tag, maxTextLen),
-			//Title: limitLength(req.Desc, maxTitleLen),
-			Time: now,
+			Time:    now,
 		}
 		var err error
 		if crash.Log, err = putText(c, "CrashLog", req.Log); err != nil {
@@ -211,7 +215,7 @@ func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
 			return err
 		}
 
-		group := &Group{Title: limitLength(req.Desc, maxTitleLen), Seq: 0}
+		group = &Group{Title: limitLength(req.Desc, maxTitleLen), Seq: 0}
 		for {
 			if err := ds.Get(c, group.Key(c), group); err != nil {
 				if err != ds.ErrNoSuchEntity {
@@ -220,7 +224,6 @@ func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
 				bug := &Bug{
 					Title:  group.DisplayTitle(),
 					Status: BugStatusNew,
-					//Updated: now,
 					Groups: []string{group.hash()},
 				}
 				bugKey, err := ds.Put(c, ds.NewIncompleteKey(c, "Bug", nil), bug)
@@ -235,6 +238,7 @@ func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
 				if _, err := ds.Put(c, group.Key(c), group); err != nil {
 					return err
 				}
+				addedBug = true
 				break
 			}
 			bug := new(Bug)
@@ -269,7 +273,59 @@ func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
 	}, &ds.TransactionOptions{XG: true}); err != nil {
 		return nil, err
 	}
+	if addedBug {
+		dropCached(c)
+	}
+	purgeOldCrashes(c, group)
 	return nil, nil
+}
+
+func purgeOldCrashes(c appengine.Context, group *Group) int {
+	if group.NumCrashes <= maxCrashes {
+		return 0
+	}
+	var keys []*ds.Key
+	var crashes []*Crash
+	keys, err := ds.NewQuery("Crash").Ancestor(group.Key(c)).Order("Time").Limit(2000).GetAll(c, &crashes)
+	if err != nil {
+		c.Errorf("Error: failed to fetch purge group crashes: %v", err)
+		return -1
+	}
+	if len(keys) <= maxCrashes {
+		return 0
+	}
+	keys = keys[:len(keys)-maxCrashes]
+	crashes = crashes[:len(crashes)-maxCrashes]
+	nn := len(keys)
+	for len(keys) != 0 {
+		n := len(keys)
+		if n > 200 {
+			n = 200
+		}
+		var textKeys []*ds.Key
+		for _, crash := range crashes[:n] {
+			if crash.Log != 0 {
+				textKeys = append(textKeys, ds.NewKey(c, "Text", "", crash.Log, nil))
+			}
+			if crash.Report != 0 {
+				textKeys = append(textKeys, ds.NewKey(c, "Text", "", crash.Report, nil))
+			}
+		}
+		if len(textKeys) != 0 {
+			if err := ds.DeleteMulti(c, textKeys); err != nil {
+				c.Errorf("Error: failed to delete old crash texts: %v", err)
+				return -1
+			}
+		}
+		if err := ds.DeleteMulti(c, keys[:n]); err != nil {
+			c.Errorf("Error: failed to delete old crashes: %v", err)
+			return -1
+		}
+		keys = keys[n:]
+		crashes = crashes[n:]
+	}
+	c.Infof("deleted %v crashes '%v'", nn, group.Title)
+	return nn
 }
 
 func handleAddRepro(c appengine.Context, r *http.Request) (interface{}, error) {
@@ -394,10 +450,24 @@ func putText(c appengine.Context, tag string, data []byte) (int64, error) {
 	if len(data) == 0 {
 		return 0, nil
 	}
+	const (
+		maxTextLen       = 2 << 20
+		maxCompressedLen = 1000 << 10 // datastore entity limit is 1MB
+	)
+	if len(data) > maxTextLen {
+		data = data[:maxTextLen]
+	}
 	b := new(bytes.Buffer)
-	z, _ := gzip.NewWriterLevel(b, gzip.BestCompression)
-	z.Write(data)
-	z.Close()
+	for {
+		z, _ := gzip.NewWriterLevel(b, gzip.BestCompression)
+		z.Write(data)
+		z.Close()
+		if len(b.Bytes()) < maxCompressedLen {
+			break
+		}
+		data = data[:len(data)/10*9]
+		b.Reset()
+	}
 	text := &Text{
 		Tag:  tag,
 		Text: b.Bytes(),

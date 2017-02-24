@@ -1,18 +1,20 @@
 {{define "bug_table"}}
-	<table>
+	<table class="list_table">
 		<caption>{{.Name}}:</caption>
 		<tr>
 			<th>Title</th>
 			<th>Count</th>
+			<th>Repro</th>
 			<th>Time</th>
 			<th>Happens on</th>
 		</tr>
 		{{range $b := $.Bugs}}
 			<tr>
-				<td><a href="/bug?id={{$b.ID}}">{{$b.Title}}</a></td>
-				<td>{{$b.NumCrashes}}</td>
-				<td>{{formatTime $b.LastTime}} - {{formatTime $b.FirstTime}}</td>
-				<td>{{$b.Managers}}</td>
+				<td class="title"><a href="/bug?id={{$b.ID}}">{{$b.Title}}</a></td>
+				<td class="count">{{$b.NumCrashes}}</td>
+				<td class="repro">{{$b.Repro}}</td>
+				<td class="time">{{formatTime $b.LastTime}}</td>
+				<td class="managers" title="{{$b.Managers}}">{{$b.Managers}}</td>
 			</tr>
 		{{end}}
 	</table>
@@ -25,6 +27,8 @@
 	<link rel="stylesheet" href="/static/style.css"/>
 </head>
 <body>
+	{{template "header" .Header}}
+
 	{{range $g := $.BugGroups}}
 		{{if $g.Bugs}}
 			{{template "bug_table" $g}} <br>

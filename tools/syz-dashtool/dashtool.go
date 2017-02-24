@@ -6,6 +6,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -36,16 +37,22 @@ func main() {
 		Key:    *flagKey,
 	}
 	if len(flag.Args()) == 0 {
-		fmt.Fprintf(os.Stderr, "specify command: report, report-all\n")
+		fmt.Fprintf(os.Stderr, "specify command: report-crash/report-repro/report-all\n")
 		os.Exit(1)
 	}
 	switch flag.Args()[0] {
-	case "report":
+	case "report-crash":
 		if len(flag.Args()) != 2 {
-			fmt.Fprintf(os.Stderr, "usage: report logN\n")
+			fmt.Fprintf(os.Stderr, "usage: report-crash logN\n")
 			os.Exit(1)
 		}
-		report(dash, flag.Args()[1])
+		reportCrash(dash, flag.Args()[1])
+	case "report-repro":
+		if len(flag.Args()) != 2 {
+			fmt.Fprintf(os.Stderr, "usage: report-repro crashdir\n")
+			os.Exit(1)
+		}
+		reportRepro(dash, flag.Args()[1])
 	case "report-all":
 		if len(flag.Args()) != 2 {
 			fmt.Fprintf(os.Stderr, "usage: report-all workdir/crashes\n")
@@ -58,7 +65,7 @@ func main() {
 	}
 }
 
-func report(dash *dashboard.Dashboard, logfile string) {
+func reportCrash(dash *dashboard.Dashboard, logfile string) {
 	n := -1
 	for i := range logfile {
 		x, err := strconv.Atoi(logfile[i:])
@@ -80,7 +87,7 @@ func report(dash *dashboard.Dashboard, logfile string) {
 	}
 	desc, err := ioutil.ReadFile(filepath.Join(dir, "description"))
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to description file: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to read description file: %v\n", err)
 		os.Exit(1)
 	}
 	tag, _ := ioutil.ReadFile(filepath.Join(dir, fmt.Sprintf("tag%v", n)))
@@ -94,6 +101,47 @@ func report(dash *dashboard.Dashboard, logfile string) {
 	}
 
 	if err := dash.ReportCrash(crash); err != nil {
+		fmt.Fprintf(os.Stderr, "failed: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func reportRepro(dash *dashboard.Dashboard, crashdir string) {
+	desc, err := ioutil.ReadFile(filepath.Join(crashdir, "description"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to read description file: %v\n", err)
+		os.Exit(1)
+	}
+	prog, err := ioutil.ReadFile(filepath.Join(crashdir, "repro.prog"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to repro.prog file: %v\n", err)
+		os.Exit(1)
+	}
+	report, err := ioutil.ReadFile(filepath.Join(crashdir, "repro.report"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to repro.report file: %v\n", err)
+		os.Exit(1)
+	}
+	tag, _ := ioutil.ReadFile(filepath.Join(crashdir, "repro.tag"))
+	cprog, _ := ioutil.ReadFile(filepath.Join(crashdir, "repro.cprog"))
+	opts := ""
+	if nl := bytes.IndexByte(prog, '\n'); nl > 1 && prog[0] == '#' {
+		opts = string(prog[:nl-1])
+		prog = prog[nl+1:]
+	}
+
+	repro := &dashboard.Repro{
+		Crash: dashboard.Crash{
+			Tag:    string(tag),
+			Desc:   string(desc),
+			Report: report,
+		},
+		Reproduced: true,
+		Opts:       opts,
+		Prog:       prog,
+		CProg:      cprog,
+	}
+	if err := dash.ReportRepro(repro); err != nil {
 		fmt.Fprintf(os.Stderr, "failed: %v\n", err)
 		os.Exit(1)
 	}
@@ -115,7 +163,7 @@ func reportAll(dash *dashboard.Dashboard, crashes string) {
 			if !strings.HasPrefix(file.Name(), "log") {
 				continue
 			}
-			report(dash, filepath.Join(crashes, dir.Name(), file.Name()))
+			reportCrash(dash, filepath.Join(crashes, dir.Name(), file.Name()))
 		}
 	}
 }

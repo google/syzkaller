@@ -285,4 +285,22 @@ Subject: Re: [PATCH v3] net/irda: fix lockdep annotation
  };
 `,
 	},
+
+	{
+		text: `syz-dash: first version of dashboard app
+diff --git a/syz-dash/api.go b/syz-dash/api.go
+new file mode 100644
+index 0000000..a1a0499
+--- /dev/null
++++ b/syz-dash/api.go
+@@ -0,0 +1,444 @@
++package dash
+`,
+		title: "syz-dash: first version of dashboard app",
+		diff: `--- /dev/null
++++ b/syz-dash/api.go
+@@ -0,0 +1,444 @@
++package dash
+`,
+	},
 }
