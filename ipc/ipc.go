@@ -48,6 +48,10 @@ const (
 
 	outputSize   = 16 << 20
 	signalOffset = 15 << 20
+
+	statusFail  = 67
+	statusError = 68
+	statusRetry = 69
 )
 
 var (
@@ -493,7 +497,7 @@ func (c *command) waitServing() error {
 				sys := c.cmd.ProcessState.Sys()
 				if ws, ok := sys.(syscall.WaitStatus); ok {
 					// Magic values returned by executor.
-					if ws.ExitStatus() == 67 {
+					if ws.ExitStatus() == statusFail {
 						err = ExecutorFailure(fmt.Sprintf("executor is not serving:\n%s", output))
 					}
 				}
@@ -537,12 +541,19 @@ func (c *command) exec(cover, dedup bool) (output []byte, failed, hanged, restar
 	}()
 	readN, readErr := c.inrp.Read(flags[:])
 	close(done)
+	status := 0
 	if readErr == nil {
 		if readN != len(flags) {
 			panic(fmt.Sprintf("executor %v: read only %v bytes", c.pid, readN))
 		}
-		<-hang
-		return
+		status = int(flags[0])
+		if status == 0 {
+			<-hang
+			return
+		}
+		// Executor writes magic values into the pipe before exiting,
+		// so proceed with killing and joining it.
+		status = int(flags[0])
 	}
 	err0 = fmt.Errorf("executor did not answer")
 	c.kill()
@@ -552,26 +563,30 @@ func (c *command) exec(cover, dedup bool) (output []byte, failed, hanged, restar
 		output = append(output, []byte(err.Error())...)
 		output = append(output, '\n')
 	}
-	if c.cmd.ProcessState != nil {
-		sys := c.cmd.ProcessState.Sys()
-		if ws, ok := sys.(syscall.WaitStatus); ok {
-			// Magic values returned by executor.
-			if ws.ExitStatus() == 67 {
-				err0 = ExecutorFailure(fmt.Sprintf("executor failed: %s", output))
-			}
-			if ws.ExitStatus() == 68 {
-				failed = true
-			}
-			if ws.ExitStatus() == 69 {
-				// This is a temporal error (ENOMEM) or an unfortunate
-				// program that messes with testing setup (e.g. kills executor
-				// loop process). Pretend that nothing happened.
-				// It's better than a false crash report.
-				err0 = nil
-				hanged = false
-				restart = true
+	switch status {
+	case statusFail, statusError, statusRetry:
+	default:
+		if c.cmd.ProcessState != nil {
+			sys := c.cmd.ProcessState.Sys()
+			if ws, ok := sys.(syscall.WaitStatus); ok {
+				status = ws.ExitStatus()
 			}
 		}
+	}
+	// Handle magic values returned by executor.
+	switch status {
+	case statusFail:
+		err0 = ExecutorFailure(fmt.Sprintf("executor failed: %s", output))
+	case statusError:
+		failed = true
+	case statusRetry:
+		// This is a temporal error (ENOMEM) or an unfortunate
+		// program that messes with testing setup (e.g. kills executor
+		// loop process). Pretend that nothing happened.
+		// It's better than a false crash report.
+		err0 = nil
+		hanged = false
+		restart = true
 	}
 	return
 }

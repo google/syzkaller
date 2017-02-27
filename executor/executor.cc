@@ -194,6 +194,16 @@ int main(int argc, char** argv)
 	while (waitpid(-1, &status, __WALL) != pid) {
 	}
 	status = WEXITSTATUS(status);
+	// If an external sandbox process wraps executor, the out pipe will be closed
+	// before the sandbox process exits this will make ipc package kill the sandbox.
+	// As the result sandbox process will exit with exit status 9 instead of the executor
+	// exit status (notably kRetryStatus). Consequently, ipc will treat it as hard
+	// failure rather than a temporal failure. So we duplicate the exit status on the pipe.
+	char tmp = status;
+	if (write(kOutPipeFd, &tmp, 1)) {
+		// Not much we can do, but gcc wants us to check the return value.
+	}
+	errno = 0;
 	if (status == kFailStatus)
 		fail("loop failed");
 	if (status == kErrorStatus)
