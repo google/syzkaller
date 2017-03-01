@@ -105,6 +105,10 @@ var oopses = []*oops{
 				"possible deadlock in %[1]v",
 			},
 			{
+				compile("INFO: inconsistent lock state \\](?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"inconsistent lock state in %[1]v",
+			},
+			{
 				compile("INFO: rcu_preempt detected stalls"),
 				"INFO: rcu detected stall",
 			},
