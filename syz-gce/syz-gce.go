@@ -18,6 +18,7 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"encoding/json"
 	"flag"
@@ -38,6 +39,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/google/syzkaller/config"
+	"github.com/google/syzkaller/dashboard"
 	"github.com/google/syzkaller/gce"
 	. "github.com/google/syzkaller/log"
 	"golang.org/x/net/context"
@@ -51,6 +53,8 @@ var (
 	storageClient   *storage.Client
 	GCE             *gce.Context
 	managerHttpPort uint32
+	patchesHash     string
+	patches         []dashboard.Patch
 )
 
 type Config struct {
@@ -69,6 +73,15 @@ type Config struct {
 	Linux_Branch    string
 	Linux_Compiler  string
 	Linux_Userspace string
+
+	Dashboard_Addr string
+	Dashboard_Key  string
+}
+
+type Action interface {
+	Name() string
+	Poll() (string, error)
+	Build() error
 }
 
 func main() {
@@ -99,15 +112,45 @@ func main() {
 	sigC := make(chan os.Signal, 2)
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGUSR1)
 
+	var actions []Action
+	actions = append(actions, new(SyzkallerAction))
+	if cfg.Image_Archive == "local" {
+		if syscall.Getuid() != 0 {
+			Fatalf("building local image requires root")
+		}
+		if cfg.Dashboard_Addr != "" {
+			actions = append(actions, &DashboardAction{
+				Dash: &dashboard.Dashboard{
+					Addr:   cfg.Dashboard_Addr,
+					Client: cfg.Name,
+					Key:    cfg.Dashboard_Key,
+				},
+			})
+		}
+		actions = append(actions, &LocalBuildAction{
+			Dir:          abs(wd, "build"),
+			Repo:         cfg.Linux_Git,
+			Branch:       cfg.Linux_Branch,
+			Compiler:     cfg.Linux_Compiler,
+			UserspaceDir: abs(wd, cfg.Linux_Userspace),
+			ImagePath:    cfg.Image_Path,
+			ImageName:    cfg.Image_Name,
+		})
+	} else {
+		actions = append(actions, &GCSImageAction{
+			ImageArchive: cfg.Image_Archive,
+			ImagePath:    cfg.Image_Path,
+			ImageName:    cfg.Image_Name,
+		})
+	}
+	currHashes := make(map[string]string)
+	nextHashes := make(map[string]string)
+
 	var managerCmd *exec.Cmd
 	managerStopped := make(chan error)
 	stoppingManager := false
-	var lastImageUpdated time.Time
-	lastSyzkallerHash := ""
-	lastLinuxHash := ""
-	buildDir := abs(wd, "build")
-	linuxDir := filepath.Join(buildDir, "linux")
 	var delayDuration time.Duration
+loop:
 	for {
 		if delayDuration != 0 {
 			Logf(0, "sleep for %v", delayDuration)
@@ -146,45 +189,27 @@ func main() {
 				}
 			}
 		}
-		delayDuration = 10 * time.Minute // assume that an error happened
+		delayDuration = 15 * time.Minute // assume that an error happened
 
-		// Poll syzkaller repo.
-		syzkallerHash, err := updateSyzkallerBuild()
-		if err != nil {
-			Logf(0, "failed to update syzkaller: %v", err)
-			continue
-		}
-
-		// Poll kernel git repo or GCS image.
-		var imageArchive *storage.ObjectHandle
-		var imageUpdated time.Time
-		linuxHash := ""
-		if cfg.Image_Archive == "local" {
-			if syscall.Getuid() != 0 {
-				Fatalf("building local image requires root")
-			}
-			var err error
-			linuxHash, err = gitUpdate(linuxDir, cfg.Linux_Git, cfg.Linux_Branch)
+		Logf(0, "polling...")
+		for _, a := range actions {
+			hash, err := a.Poll()
 			if err != nil {
-				Logf(0, "%v", err)
-				delayDuration = time.Hour // cloning linux is expensive
-				continue
+				Logf(0, "failed to poll %v: %v", a.Name(), err)
+				continue loop
 			}
-			Logf(0, "kernel hash %v, syzkaller hash %v", linuxHash, syzkallerHash)
-		} else {
-			var err error
-			imageArchive, imageUpdated, err = openFile(cfg.Image_Archive)
-			if err != nil {
-				Logf(0, "%v", err)
-				continue
-			}
-			Logf(0, "image update time %v, syzkaller hash %v", imageUpdated, syzkallerHash)
+			nextHashes[a.Name()] = hash
 		}
-
-		if lastImageUpdated == imageUpdated &&
-			lastLinuxHash == linuxHash &&
-			lastSyzkallerHash == syzkallerHash &&
-			managerCmd != nil {
+		changed := managerCmd == nil
+		for _, a := range actions {
+			next := nextHashes[a.Name()]
+			curr := currHashes[a.Name()]
+			if curr != next {
+				Logf(0, "%v changed %v -> %v", a, curr, next)
+				changed = true
+			}
+		}
+		if !changed {
 			// Nothing has changed, sleep for another hour.
 			delayDuration = time.Hour
 			continue
@@ -204,99 +229,17 @@ func main() {
 			continue
 		}
 
-		// Download and extract image from GCS.
-		if lastImageUpdated != imageUpdated {
-			Logf(0, "downloading image archive...")
-			if err := os.RemoveAll("image"); err != nil {
-				Logf(0, "failed to remove image dir: %v", err)
+		for _, a := range actions {
+			if currHashes[a.Name()] == nextHashes[a.Name()] {
 				continue
 			}
-			if err := downloadAndExtract(imageArchive, "image"); err != nil {
-				Logf(0, "failed to download and extract %v: %v", cfg.Image_Archive, err)
-				continue
+			Logf(0, "building %v...", a.Name())
+			if err := a.Build(); err != nil {
+				Logf(0, "building %v failed: %v", a.Name(), err)
+				continue loop
 			}
-
-			Logf(0, "uploading image...")
-			if err := uploadFile("image/disk.tar.gz", cfg.Image_Path); err != nil {
-				Logf(0, "failed to upload image: %v", err)
-				continue
-			}
-
-			Logf(0, "creating gce image...")
-			if err := GCE.DeleteImage(cfg.Image_Name); err != nil {
-				Logf(0, "failed to delete GCE image: %v", err)
-				continue
-			}
-			if err := GCE.CreateImage(cfg.Image_Name, cfg.Image_Path); err != nil {
-				Logf(0, "failed to create GCE image: %v", err)
-				continue
-			}
+			currHashes[a.Name()] = nextHashes[a.Name()]
 		}
-		lastImageUpdated = imageUpdated
-
-		// Rebuild kernel.
-		if lastLinuxHash != linuxHash {
-			Logf(0, "building linux kernel...")
-			if err := buildKernel(linuxDir, cfg.Linux_Compiler); err != nil {
-				Logf(0, "build failed: %v", err)
-				continue
-			}
-
-			scriptFile := filepath.Join(buildDir, "create-gce-image.sh")
-			if err := ioutil.WriteFile(scriptFile, []byte(createImageScript), 0700); err != nil {
-				Logf(0, "failed to write script file: %v", err)
-				continue
-			}
-
-			Logf(0, "building image...")
-			vmlinux := filepath.Join(linuxDir, "vmlinux")
-			bzImage := filepath.Join(linuxDir, "arch/x86/boot/bzImage")
-			if _, err := runCmd(buildDir, scriptFile, abs(wd, cfg.Linux_Userspace), bzImage, vmlinux, linuxHash); err != nil {
-				Logf(0, "image build failed: %v", err)
-				continue
-			}
-			os.Remove(filepath.Join(buildDir, "disk.raw"))
-			os.Remove(filepath.Join(buildDir, "image.tar.gz"))
-			os.MkdirAll("image/obj", 0700)
-			if err := ioutil.WriteFile("image/tag", []byte(linuxHash), 0600); err != nil {
-				Logf(0, "failed to write tag file: %v", err)
-				continue
-			}
-			if err := os.Rename(filepath.Join(buildDir, "key"), "image/key"); err != nil {
-				Logf(0, "failed to rename key file: %v", err)
-				continue
-			}
-			if err := os.Rename(vmlinux, "image/obj/vmlinux"); err != nil {
-				Logf(0, "failed to rename vmlinux file: %v", err)
-				continue
-			}
-			Logf(0, "uploading image...")
-			if err := uploadFile(filepath.Join(buildDir, "disk.tar.gz"), cfg.Image_Path); err != nil {
-				Logf(0, "failed to upload image: %v", err)
-				continue
-			}
-
-			Logf(0, "creating gce image...")
-			if err := GCE.DeleteImage(cfg.Image_Name); err != nil {
-				Logf(0, "failed to delete GCE image: %v", err)
-				continue
-			}
-			if err := GCE.CreateImage(cfg.Image_Name, cfg.Image_Path); err != nil {
-				Logf(0, "failed to create GCE image: %v", err)
-				continue
-			}
-		}
-		lastLinuxHash = linuxHash
-
-		// Rebuild syzkaller.
-		if lastSyzkallerHash != syzkallerHash {
-			Logf(0, "building syzkaller...")
-			if _, err := runCmd("gopath/src/github.com/google/syzkaller", "make"); err != nil {
-				Logf(0, "failed to update/build syzkaller: %v", err)
-				continue
-			}
-		}
-		lastSyzkallerHash = syzkallerHash
 
 		// Restart syz-manager.
 		port, err := chooseUnusedPort()
@@ -304,7 +247,7 @@ func main() {
 			Logf(0, "failed to choose an unused port: %v", err)
 			continue
 		}
-		if err := writeManagerConfig(port, "manager.cfg"); err != nil {
+		if err := writeManagerConfig(cfg, port, "manager.cfg"); err != nil {
 			Logf(0, "failed to write manager config: %v", err)
 			continue
 		}
@@ -325,6 +268,211 @@ func main() {
 	}
 }
 
+type SyzkallerAction struct {
+}
+
+func (a *SyzkallerAction) Name() string {
+	return "syzkaller"
+}
+
+// Poll executes 'git pull' on syzkaller and all depenent packages.
+// Returns syzkaller HEAD hash.
+func (a *SyzkallerAction) Poll() (string, error) {
+	if _, err := runCmd("", "go", "get", "-u", "-d", "github.com/google/syzkaller/syz-manager"); err != nil {
+		return "", err
+	}
+	return gitRevision("gopath/src/github.com/google/syzkaller")
+}
+
+func (a *SyzkallerAction) Build() error {
+	if _, err := runCmd("gopath/src/github.com/google/syzkaller", "make"); err != nil {
+		return err
+	}
+	return nil
+}
+
+type DashboardAction struct {
+	Dash *dashboard.Dashboard
+}
+
+func (a *DashboardAction) Name() string {
+	return "dashboard"
+}
+
+func (a *DashboardAction) Poll() (hash string, err error) {
+	patchesHash, err = a.Dash.PollPatches()
+	return patchesHash, err
+}
+
+func (a *DashboardAction) Build() (err error) {
+	patches, err = a.Dash.GetPatches()
+	return
+}
+
+type LocalBuildAction struct {
+	Dir          string
+	Repo         string
+	Branch       string
+	Compiler     string
+	UserspaceDir string
+	ImagePath    string
+	ImageName    string
+}
+
+func (a *LocalBuildAction) Name() string {
+	return "kernel"
+}
+
+func (a *LocalBuildAction) Poll() (string, error) {
+	dir := filepath.Join(a.Dir, "linux")
+	runCmd(dir, "git", "reset", "--hard")
+	if _, err := runCmd(dir, "git", "pull"); err != nil {
+		if err := os.RemoveAll(dir); err != nil {
+			return "", fmt.Errorf("failed to remove repo dir: %v", err)
+		}
+		if err := os.MkdirAll(dir, 0700); err != nil {
+			return "", fmt.Errorf("failed to create repo dir: %v", err)
+		}
+		if _, err := runCmd("", "git", "clone", a.Repo, dir); err != nil {
+			return "", err
+		}
+		if _, err := runCmd(dir, "git", "pull"); err != nil {
+			return "", err
+		}
+	}
+	if a.Branch != "" {
+		if _, err := runCmd(dir, "git", "checkout", a.Branch); err != nil {
+			return "", err
+		}
+	}
+	rev, err := gitRevision(dir)
+	if err != nil {
+		return "", err
+	}
+	if patchesHash != "" {
+		rev += "/" + patchesHash
+	}
+	return rev, nil
+}
+
+func (a *LocalBuildAction) Build() error {
+	dir := filepath.Join(a.Dir, "linux")
+	hash, err := gitRevision(dir)
+	if err != nil {
+		return err
+	}
+	for _, p := range patches {
+		if err := a.apply(p); err != nil {
+			return err
+		}
+	}
+	Logf(0, "building kernel on %v...", hash)
+	if err := buildKernel(dir, a.Compiler); err != nil {
+		return fmt.Errorf("build failed: %v", err)
+	}
+	scriptFile := filepath.Join(a.Dir, "create-gce-image.sh")
+	if err := ioutil.WriteFile(scriptFile, []byte(createImageScript), 0700); err != nil {
+		return fmt.Errorf("failed to write script file: %v", err)
+	}
+	Logf(0, "building image...")
+	vmlinux := filepath.Join(dir, "vmlinux")
+	bzImage := filepath.Join(dir, "arch/x86/boot/bzImage")
+	if _, err := runCmd(a.Dir, scriptFile, a.UserspaceDir, bzImage, vmlinux, hash); err != nil {
+		return fmt.Errorf("image build failed: %v", err)
+	}
+	os.Remove(filepath.Join(a.Dir, "disk.raw"))
+	os.Remove(filepath.Join(a.Dir, "image.tar.gz"))
+	os.MkdirAll("image/obj", 0700)
+	if err := ioutil.WriteFile("image/tag", []byte(hash), 0600); err != nil {
+		return fmt.Errorf("failed to write tag file: %v", err)
+	}
+	if err := os.Rename(filepath.Join(a.Dir, "key"), "image/key"); err != nil {
+		return fmt.Errorf("failed to rename key file: %v", err)
+	}
+	if err := os.Rename(vmlinux, "image/obj/vmlinux"); err != nil {
+		return fmt.Errorf("failed to rename vmlinux file: %v", err)
+	}
+	if err := createImage(filepath.Join(a.Dir, "disk.tar.gz"), a.ImagePath, a.ImageName); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *LocalBuildAction) apply(p dashboard.Patch) error {
+	// Do --dry-run first to not mess with partially consistent state.
+	cmd := exec.Command("patch", "-p1", "--force", "--ignore-whitespace", "--dry-run")
+	cmd.Dir = filepath.Join(a.Dir, "linux")
+	cmd.Stdin = bytes.NewReader(p.Diff)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		// If it reverses clean, then it's already applied (seems to be the easiest way to detect it).
+		cmd = exec.Command("patch", "-p1", "--force", "--ignore-whitespace", "--reverse", "--dry-run")
+		cmd.Dir = filepath.Join(a.Dir, "linux")
+		cmd.Stdin = bytes.NewReader(p.Diff)
+		if _, err := cmd.CombinedOutput(); err == nil {
+			Logf(0, "patch already present: %v", p.Title)
+			return nil
+		}
+		Logf(0, "patch failed: %v\n%s", p.Title, output)
+		return nil
+	}
+	// Now apply for real.
+	cmd = exec.Command("patch", "-p1", "--force", "--ignore-whitespace")
+	cmd.Dir = filepath.Join(a.Dir, "linux")
+	cmd.Stdin = bytes.NewReader(p.Diff)
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("patch '%v' failed after dry run:\n%s", p.Title, output)
+	}
+	Logf(0, "patch applied: %v", p.Title)
+	return nil
+}
+
+type GCSImageAction struct {
+	ImageArchive string
+	ImagePath    string
+	ImageName    string
+
+	handle *storage.ObjectHandle
+}
+
+func (a *GCSImageAction) Name() string {
+	return "GCS image"
+}
+
+func (a *GCSImageAction) Poll() (string, error) {
+	pos := strings.IndexByte(a.ImageArchive, '/')
+	if pos == -1 {
+		return "", fmt.Errorf("invalid GCS file name: %v", a.ImageArchive)
+	}
+	bkt := storageClient.Bucket(a.ImageArchive[:pos])
+	f := bkt.Object(a.ImageArchive[pos+1:])
+	attrs, err := f.Attrs(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed to read %v attributes: %v", a.ImageArchive, err)
+	}
+	if !attrs.Deleted.IsZero() {
+		return "", fmt.Errorf("file %v is deleted", a.ImageArchive)
+	}
+	a.handle = f.If(storage.Conditions{
+		GenerationMatch:     attrs.Generation,
+		MetagenerationMatch: attrs.MetaGeneration,
+	})
+	return attrs.Updated.Format(time.RFC1123Z), nil
+}
+
+func (a *GCSImageAction) Build() error {
+	Logf(0, "downloading image archive...")
+	if err := os.RemoveAll("image"); err != nil {
+		return fmt.Errorf("failed to remove image dir: %v", err)
+	}
+	if err := downloadAndExtract(a.handle, "image"); err != nil {
+		return fmt.Errorf("failed to download and extract %v: %v", a.ImageArchive, err)
+	}
+	if err := createImage("image/disk.tar.gz", a.ImagePath, a.ImageName); err != nil {
+		return err
+	}
+	return nil
+}
+
 func readConfig(filename string) *Config {
 	if filename == "" {
 		Fatalf("supply config in -config flag")
@@ -340,7 +488,7 @@ func readConfig(filename string) *Config {
 	return cfg
 }
 
-func writeManagerConfig(httpPort int, file string) error {
+func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 	tag, err := ioutil.ReadFile("image/tag")
 	if err != nil {
 		return fmt.Errorf("failed to read tag file: %v", err)
@@ -349,22 +497,24 @@ func writeManagerConfig(httpPort int, file string) error {
 		tag = tag[:len(tag)-1]
 	}
 	managerCfg := &config.Config{
-		Name:         cfg.Name,
-		Hub_Addr:     cfg.Hub_Addr,
-		Hub_Key:      cfg.Hub_Key,
-		Http:         fmt.Sprintf(":%v", httpPort),
-		Rpc:          ":0",
-		Workdir:      "workdir",
-		Vmlinux:      "image/obj/vmlinux",
-		Tag:          string(tag),
-		Syzkaller:    "gopath/src/github.com/google/syzkaller",
-		Type:         "gce",
-		Machine_Type: cfg.Machine_Type,
-		Count:        cfg.Machine_Count,
-		Image:        cfg.Image_Name,
-		Sandbox:      cfg.Sandbox,
-		Procs:        cfg.Procs,
-		Cover:        true,
+		Name:           cfg.Name,
+		Hub_Addr:       cfg.Hub_Addr,
+		Hub_Key:        cfg.Hub_Key,
+		Dashboard_Addr: cfg.Dashboard_Addr,
+		Dashboard_Key:  cfg.Dashboard_Key,
+		Http:           fmt.Sprintf(":%v", httpPort),
+		Rpc:            ":0",
+		Workdir:        "workdir",
+		Vmlinux:        "image/obj/vmlinux",
+		Tag:            string(tag),
+		Syzkaller:      "gopath/src/github.com/google/syzkaller",
+		Type:           "gce",
+		Machine_Type:   cfg.Machine_Type,
+		Count:          cfg.Machine_Count,
+		Image:          cfg.Image_Name,
+		Sandbox:        cfg.Sandbox,
+		Procs:          cfg.Procs,
+		Cover:          true,
 	}
 	if _, err := os.Stat("image/key"); err == nil {
 		managerCfg.Sshkey = "image/key"
@@ -387,27 +537,6 @@ func chooseUnusedPort() (int, error) {
 	port := ln.Addr().(*net.TCPAddr).Port
 	ln.Close()
 	return port, nil
-}
-
-func openFile(file string) (*storage.ObjectHandle, time.Time, error) {
-	pos := strings.IndexByte(file, '/')
-	if pos == -1 {
-		return nil, time.Time{}, fmt.Errorf("invalid GCS file name: %v", file)
-	}
-	bkt := storageClient.Bucket(file[:pos])
-	f := bkt.Object(file[pos+1:])
-	attrs, err := f.Attrs(ctx)
-	if err != nil {
-		return nil, time.Time{}, fmt.Errorf("failed to read %v attributes: %v", file, err)
-	}
-	if !attrs.Deleted.IsZero() {
-		return nil, time.Time{}, fmt.Errorf("file %v is deleted", file)
-	}
-	f = f.If(storage.Conditions{
-		GenerationMatch:     attrs.Generation,
-		MetagenerationMatch: attrs.MetaGeneration,
-	})
-	return f, attrs.Updated, nil
 }
 
 func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
@@ -457,7 +586,22 @@ func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
 	return nil
 }
 
-func uploadFile(localFile string, gcsFile string) error {
+func createImage(localFile, gcsFile, imageName string) error {
+	Logf(0, "uploading image...")
+	if err := uploadFile(localFile, gcsFile); err != nil {
+		return fmt.Errorf("failed to upload image: %v", err)
+	}
+	Logf(0, "creating gce image...")
+	if err := GCE.DeleteImage(imageName); err != nil {
+		return fmt.Errorf("failed to delete GCE image: %v", err)
+	}
+	if err := GCE.CreateImage(imageName, gcsFile); err != nil {
+		return fmt.Errorf("failed to create GCE image: %v", err)
+	}
+	return nil
+}
+
+func uploadFile(localFile, gcsFile string) error {
 	local, err := os.Open(localFile)
 	if err != nil {
 		return err
@@ -473,39 +617,6 @@ func uploadFile(localFile string, gcsFile string) error {
 	defer w.Close()
 	io.Copy(w, local)
 	return nil
-}
-
-// updateSyzkallerBuild executes 'git pull' on syzkaller and all depenent packages.
-// Returns syzkaller HEAD hash.
-func updateSyzkallerBuild() (string, error) {
-	cmd := exec.Command("go", "get", "-u", "-d", "github.com/google/syzkaller/syz-manager")
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return "", fmt.Errorf("%v\n%s", err, output)
-	}
-	return gitRevision("gopath/src/github.com/google/syzkaller")
-}
-
-func gitUpdate(dir, repo, branch string) (string, error) {
-	if _, err := runCmd(dir, "git", "pull"); err != nil {
-		if err := os.RemoveAll(dir); err != nil {
-			return "", fmt.Errorf("failed to remove repo dir: %v", err)
-		}
-		if err := os.MkdirAll(dir, 0700); err != nil {
-			return "", fmt.Errorf("failed to create repo dir: %v", err)
-		}
-		if _, err := runCmd("", "git", "clone", repo, dir); err != nil {
-			return "", err
-		}
-		if _, err := runCmd(dir, "git", "pull"); err != nil {
-			return "", err
-		}
-	}
-	if branch != "" {
-		if _, err := runCmd(dir, "git", "checkout", branch); err != nil {
-			return "", err
-		}
-	}
-	return gitRevision(dir)
 }
 
 func gitRevision(dir string) (string, error) {

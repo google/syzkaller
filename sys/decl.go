@@ -194,13 +194,14 @@ type CsumKind int
 
 const (
 	CsumInet CsumKind = iota
-	CsumTCP
-	CsumUDP
+	CsumPseudo
 )
 
 type CsumType struct {
 	IntTypeCommon
-	Kind CsumKind
+	Kind     CsumKind
+	Buf      string
+	Protocol uint64 // for CsumPseudo
 }
 
 type VmaType struct {

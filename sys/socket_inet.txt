@@ -1,0 +1,269 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/ip.h>
+include <linux/ipv6.h>
+include <uapi/linux/netfilter_ipv6/ip6_tables.h>
+
+# IP sockets
+
+resource sock_in[sock]
+
+sock_in_pair {
+	f0	sock_in
+	f1	sock_in
+}
+
+in_addr [
+# 0.0.0.0
+	empty		const[0x00000000, int32be]
+# 127.0.0.1
+	loopback	const[0x7f000001, int32be]
+# 255.255.255.255
+	broadcast	const[0xffffffff, int32be]
+]
+
+sockaddr_in {
+	family	const[AF_INET, int16]
+	port	proc[int16be, 20000, 4]
+	addr	in_addr
+	pad     array[const[0, int8], 8]
+}
+
+socket$inet(domain const[AF_INET], type flags[socket_type], proto int8) sock_in
+socketpair$inet(domain const[AF_INET], type flags[socket_type], proto int8, fds ptr[out, sock_in_pair])
+accept$inet(fd sock_in, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]]) sock_in
+accept4$inet(fd sock_in, peer ptr[out, sockaddr_in, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_in
+bind$inet(fd sock_in, addr ptr[in, sockaddr_in], addrlen len[addr])
+connect$inet(fd sock_in, addr ptr[in, sockaddr_in], addrlen len[addr])
+sendto$inet(fd sock_in, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_in, opt], addrlen len[addr])
+recvfrom$inet(fd sock_in, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_in, opt], addrlen len[addr])
+getsockname$inet(fd sock_in, addr ptr[out, sockaddr_in], addrlen ptr[inout, len[addr, int32]])
+getpeername$inet(fd sock_in, peer ptr[out, sockaddr_in], peerlen ptr[inout, len[peer, int32]])
+
+# IPv6 sockets
+
+resource sock_in6[sock]
+
+sock_in6_pair {
+	f0	sock_in6
+	f1	sock_in6
+}
+
+
+in6_addr_empty {
+	a0		const[0, int64be]
+	a1		const[0, int64be]
+}
+
+in6_addr_loopback {
+	a0		const[0, int64be]
+	a1		const[1, int64be]
+}
+
+in6_addr [
+	empty		in6_addr_empty
+	loopback	in6_addr_loopback
+]
+
+sockaddr_in6 {
+	family	const[AF_INET6, int16]
+	port	proc[int16be, 20000, 4]
+	flow	int32
+	addr	in6_addr
+	scope	int32
+}
+
+sockaddr_storage_in {
+	addr	sockaddr_in
+	pad	array[const[0, int64], 15]
+}
+
+sockaddr_storage_in6 {
+	addr	sockaddr_in6
+	pad	array[const[0, int64], 12]
+}
+
+sockaddr_storage [
+	in	sockaddr_storage_in
+	in6	sockaddr_storage_in6
+]
+
+socket$inet6(domain const[AF_INET6], type flags[socket_type], proto int8) sock_in6
+socketpair$inet6(domain const[AF_INET6], type flags[socket_type], proto int8, fds ptr[out, sock_in6_pair])
+accept$inet6(fd sock_in6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]]) sock_in6
+accept4$inet6(fd sock_in6, peer ptr[out, sockaddr_in6, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_in6
+bind$inet6(fd sock_in6, addr ptr[in, sockaddr_in6], addrlen len[addr])
+connect$inet6(fd sock_in6, addr ptr[in, sockaddr_in6], addrlen len[addr])
+sendto$inet6(fd sock_in6, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_in6, opt], addrlen len[addr])
+recvfrom$inet6(fd sock_in6, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_in6, opt], addrlen len[addr])
+getsockname$inet6(fd sock_in6, addr ptr[out, sockaddr_in6], addrlen ptr[inout, len[addr, int32]])
+getpeername$inet6(fd sock_in6, peer ptr[out, sockaddr_in6], peerlen ptr[inout, len[peer, int32]])
+
+# Generic IP options
+
+inet_option_types_int = IP_TOS, IP_TTL, IP_HDRINCL, IP_ROUTER_ALERT, IP_RECVOPTS, IP_RETOPTS, IP_PKTINFO, IP_MTU_DISCOVER, IP_RECVERR, IP_RECVTTL, IP_RECVTOS, IP_MTU, IP_FREEBIND, IP_PASSSEC, IP_TRANSPARENT, IP_RECVORIGDSTADDR, IP_MINTTL, IP_NODEFRAG, IP_CHECKSUM, IP_BIND_ADDRESS_NO_PORT, IP_MULTICAST_TTL, IP_MULTICAST_LOOP, IP_MULTICAST_ALL, IP_UNICAST_IF
+
+inet_option_types_buf = IP_OPTIONS, IP_PKTOPTIONS, IP_IPSEC_POLICY, IP_XFRM_POLICY, IP_MULTICAST_IF, IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_UNBLOCK_SOURCE, IP_BLOCK_SOURCE, IP_ADD_SOURCE_MEMBERSHIP, IP_DROP_SOURCE_MEMBERSHIP, IP_MSFILTER, MCAST_JOIN_GROUP, MCAST_BLOCK_SOURCE, MCAST_UNBLOCK_SOURCE, MCAST_LEAVE_GROUP, MCAST_JOIN_SOURCE_GROUP, MCAST_LEAVE_SOURCE_GROUP, MCAST_MSFILTER
+
+getsockopt$ip_int(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_int(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$ip_buf(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_buf(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_buf], optval buffer[in], optlen len[optval])
+
+# Generic IPv6 options
+
+inet6_option_types_int = IPV6_ADDRFORM, IPV6_2292PKTINFO, IPV6_2292HOPOPTS, IPV6_2292DSTOPTS, IPV6_2292RTHDR, IPV6_CHECKSUM, IPV6_2292HOPLIMIT, IPV6_NEXTHOP, IPV6_AUTHHDR, IPV6_FLOWINFO, IPV6_UNICAST_HOPS, IPV6_MULTICAST_IF, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_LOOP, IPV6_ROUTER_ALERT, IPV6_MTU_DISCOVER, IPV6_MTU, IPV6_RECVERR, IPV6_V6ONLY, IPV6_FLOWINFO_SEND, IPV6_HDRINCL, IPV6_RECVPKTINFO, IPV6_RECVHOPLIMIT, IPV6_HOPLIMIT, IPV6_RECVHOPOPTS, IPV6_RECVRTHDR, IPV6_RECVDSTOPTS, IPV6_RECVPATHMTU, IPV6_DONTFRAG, IPV6_RECVTCLASS, IPV6_TCLASS, IP6T_SO_ORIGINAL_DST, IPV6_AUTOFLOWLABEL, IPV6_ADDR_PREFERENCES, IPV6_MINHOPCOUNT, IPV6_RECVORIGDSTADDR, IPV6_TRANSPARENT, IPV6_UNICAST_IF
+
+inet6_option_types_buf = IPV6_2292PKTOPTIONS, IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST, IPV6_FLOWLABEL_MGR, IPV6_IPSEC_POLICY, IPV6_XFRM_POLICY, MCAST_JOIN_GROUP, MCAST_BLOCK_SOURCE, MCAST_UNBLOCK_SOURCE, MCAST_LEAVE_GROUP, MCAST_JOIN_SOURCE_GROUP, MCAST_LEAVE_SOURCE_GROUP, MCAST_MSFILTER, IPV6_PKTINFO, IPV6_HOPOPTS, IPV6_RTHDRDSTOPTS, IPV6_RTHDR, IPV6_DSTOPTS, IPV6_PATHMTU, IP6T_SO_GET_REVISION_MATCH, IP6T_SO_GET_REVISION_TARGET
+
+getsockopt$ip6_int(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip6_int(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$ip6_buf(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip6_buf(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_buf], optval buffer[in], optlen len[optval])
+
+# Specific IP options
+
+getsockopt$ip_mreq(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreq], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_mreq(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreq], optlen len[optval])
+getsockopt$ip_mreqn(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreqn], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_mreqn(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreqn], optlen len[optval])
+getsockopt$ip_mreqsrc(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[out, ip_mreq_source], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_mreqsrc(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[in, ip_mreq_source], optlen len[optval])
+setsockopt$ip_msfilter(fd sock_in, level const[IPPROTO_IP], optname const[IP_MSFILTER], optval ptr[in, ip_msfilter], optlen len[optval])
+getsockopt$ip_mtu(fd sock_in, level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_mtu(fd sock_in, level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
+getsockopt$ip_opts(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_opts(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[in], optlen len[optval])
+getsockopt$ip_pktinfo(fd sock_in, level const[IPPROTO_IP], optname const[IP_PKTINFO], optval ptr[out, in_pktinfo], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_pktinfo(fd sock_in, level const[IPPROTO_IP], optname const[IP_PKTINFO], optval ptr[in, in_pktinfo], optlen len[optval])
+getsockopt$ip_ipsec(fd sock_in, level const[IPPROTO_IP], optname const[IP_IPSEC_POLICY], optval ptr[out, xfrm_filer], optlen ptr[inout, len[optval, int32]])
+setsockopt$ip_ipsec(fd sock_in, level const[IPPROTO_IP], optname const[IP_IPSEC_POLICY], optval ptr[in, xfrm_filer], optlen len[optval])
+
+sockopt_opt_ip_mreq = IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_MULTICAST_IF
+sockopt_opt_ip_mreqsrc = IP_ADD_SOURCE_MEMBERSHIP, IP_BLOCK_SOURCE, IP_DROP_SOURCE_MEMBERSHIP, IP_UNBLOCK_SOURCE
+sockopt_opt_ip_opts = IP_OPTIONS, IP_PKTOPTIONS
+ip_msfilter_mode = MCAST_INCLUDE, MCAST_EXCLUDE
+ip_mtu_discover = IP_PMTUDISC_DONT, IP_PMTUDISC_WANT, IP_PMTUDISC_DO, IP_PMTUDISC_PROBE, IP_PMTUDISC_INTERFACE, IP_PMTUDISC_OMIT
+
+ip_mreq {
+	multi	in_addr
+	addr	in_addr
+}
+
+ip_mreqn {
+	multi	in_addr
+	addr	in_addr
+	ifindex	int32
+}
+
+ip_mreq_source {
+	multi	in_addr
+	iface	in_addr
+	source	in_addr
+}
+
+ip_msfilter {
+	multi	in_addr
+	iface	in_addr
+	fmode	flags[ip_msfilter_mode, int32]
+	numsrc	len[slist, int32]
+	slist	array[in_addr]
+}
+
+in_pktinfo {
+	ifindex	int32
+	dst	in_addr
+	addr	in_addr
+}
+
+xfrm_filer {
+	info	xfrm_userpolicy_info
+	tmpl	xfrm_user_tmpl
+}
+
+xfrm_userpolicy_info {
+	sel	xfrm_selector
+	lft	xfrm_lifetime_cfg
+	cur	xfrm_lifetime_cur
+	prio	int32
+	index	int32
+	dir	int8
+	action	int8
+	flags	int8
+	share	int8
+}
+
+xfrm_user_tmpl {
+	id	xfrm_id
+	fam	int16
+	saddr	xfrm_in_addr
+	reqid	int32
+	mode	int8
+	share	int8
+	opt	int8
+	aalgod	int32
+	ealgos	int32
+	calgos	int32
+}
+
+xfrm_selector {
+	daddr	xfrm_in_addr
+	saddr	xfrm_in_addr
+	dport	proc[int16be, 20000, 4]
+	dmask	int16
+	sport	proc[int16be, 20000, 4]
+	smask	int16
+	fam	int16
+	len_d	int8
+	len_s	int8
+	proto	int8
+	ifindex	int32
+	user	int32
+}
+
+xfrm_lifetime_cfg {
+	x0	int64
+	x1	int64
+	x2	int64
+	x3	int64
+	x4	int64
+	x5	int64
+	x6	int64
+	x7	int64
+}
+
+xfrm_lifetime_cur {
+	bytes	int64
+	packets	int64
+	atime	int64
+	utime	int64
+}
+
+xfrm_id {
+	daddr	xfrm_in_addr
+	spi	int32
+	proto	int8
+}
+
+xfrm_in_addr [
+	in	in_addr
+	in6	in6_addr
+]
+
+# Specific IPv6 options
+
+getsockopt$ipv6_mreq(fd sock_in6, level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[out, ipv6_mreq], optlen ptr[inout, len[optval, int32]])
+setsockopt$ipv6_mreq(fd sock_in6, level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[in, ipv6_mreq], optlen len[optval])
+getsockopt$ipv6_mtu(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
+setsockopt$ipv6_mtu(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
+getsockopt$ipv6_opts(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$ipv6_opts(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[in], optlen len[optval])
+
+sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, IPV6_RECVPKTINFO, IPV6_RECVERR, IPV6_ROUTER_ALERT, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IPV6_RTHDR, IPV6_AUTHHDR, IPV6_DSTOPTS, IPV6_HOPOPTS, IPV6_FLOWINFO, IPV6_HOPLIMIT, IPV6_CHECKSUM, IPV6_2292PKTINFO, IPV6_2292HOPOPTS, IPV6_2292DSTOPTS, IPV6_2292RTHDR, IPV6_2292HOPLIMIT
+sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
+
+ipv6_mreq {
+	multi	in6_addr
+	ifindex	int32
+}

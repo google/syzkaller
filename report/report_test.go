@@ -162,6 +162,16 @@ kacpi_hotplug/246 is trying to acquire lock:
 [  131.449866] 
 `: `possible deadlock in serial8250_console_write`,
 
+	`
+[   52.261501] =================================
+[   52.261501] [ INFO: inconsistent lock state ]
+[   52.261501] 4.10.0+ #60 Not tainted
+[   52.261501] ---------------------------------
+[   52.261501] inconsistent {IN-SOFTIRQ-W} -> {SOFTIRQ-ON-W} usage.
+[   52.261501] syz-executor3/5076 [HC0[0]:SC0[0]:HE1:SE1] takes:
+[   52.261501]  (&(&hashinfo->ehash_locks[i])->rlock){+.?...}, at: [<ffffffff83a6a370>] inet_ehash_insert+0x240/0xad0
+` : `inconsistent lock state in inet_ehash_insert`,
+
 		`
 [ INFO: suspicious RCU usage. ]
 4.3.5-smp-DEV #101 Not tainted
@@ -535,6 +545,30 @@ WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 `: ``,
 
 		`
+[ 1579.244514] BUG: KASAN: slab-out-of-bounds in ip6_fragment+0x1052/0x2d80 at addr ffff88004ec29b58
+`: `KASAN: slab-out-of-bounds in ip6_fragment at addr ADDR`,
+
+		`
+[  982.271203] BUG: spinlock bad magic on CPU#0, syz-executor12/24932
+`: `BUG: spinlock bad magic on CPU, syz-executor`,
+
+		`
+[  374.860710] BUG: KASAN: use-after-free in do_con_write.part.23+0x1c50/0x1cb0 at addr ffff88000012c43a
+`: `KASAN: use-after-free in do_con_write.part.23 at addr ADDR`,
+
+		`
+[  163.314570] WARNING: kernel stack regs at ffff8801d100fea8 in syz-executor1:16059 has bad 'bp' value ffff8801d100ff28
+`: `WARNING: kernel stack regs at ADDR in syz-executor has bad 'bp' value ADDR`,
+
+		`
+[   76.825838] BUG: using __this_cpu_add() in preemptible [00000000] code: syz-executor0/10076
+`: `BUG: using __this_cpu_add() in preemptible [00000000] code: syz-executor`,
+
+		`
+[  367.131148] BUG kmalloc-8 (Tainted: G    B         ): Object already free
+`: `BUG: Object already free`,
+
+		`
 [   92.396607] APIC base relocation is unsupported by KVM
 [   95.445015] INFO: NMI handler (perf_event_nmi_handler) took too long to run: 1.356 msecs
 [   95.445015] perf: interrupt took too long (3985 > 3976), lowering kernel.perf_event_max_sample_rate to 50000
@@ -625,7 +659,9 @@ getsockopt$NETROM_N2(r2, 0x103, 0x3, &(0x7f00008de000-0x4)=0x1, &(0x7f00008dd000
 [  536.429346] NMI watchdog: BUG: soft lockup - CPU#1 stuck for 11s! [syz-executor7:16813]
 mmap(&(0x7f0000557000/0x2000)=nil, (0x2000), 0x1, 0x11, r2, 0x1b)
 [  536.437530] Modules linked in:
-[  536.440808] CPU: 1 PID: 16813 Comm: syz-executor7 Not tainted 4.3.5-smp-DEV #119`: `NMI watchdog: BUG: soft lockup - CPU#1 stuck for 11s! [syz-executor7:16813]
+[  536.440808] CPU: 1 PID: 16813 Comm: syz-executor7 Not tainted 4.3.5-smp-DEV #119`: `nla_parse: 5 callbacks suppressed
+netlink: 3 bytes leftover after parsing attributes in process 'syz-executor5'.
+NMI watchdog: BUG: soft lockup - CPU#1 stuck for 11s! [syz-executor7:16813]
 Modules linked in:
 CPU: 1 PID: 16813 Comm: syz-executor7 Not tainted 4.3.5-smp-DEV #119
 `,
@@ -639,6 +675,23 @@ executing program 1:
 nouveau  [     DRM] suspending kernel object tree...
 nouveau  [     DRM] nouveau suspended
 init: computing context for service 'clear-bcb'
+`,
+
+		`[   94.864848] line 0
+[   94.864848] line 1
+[   94.864848] line 2
+[   94.864848] line 3
+[   94.864848] line 4
+[   94.864848] line 5
+[   95.145581] ==================================================================
+[   95.152992] BUG: KASAN: use-after-free in snd_seq_queue_alloc+0x670/0x690 at addr ffff8801d0c6b080
+[   95.162080] Read of size 4 by task syz-executor2/5764`: `line 2
+line 3
+line 4
+line 5
+==================================================================
+BUG: KASAN: use-after-free in snd_seq_queue_alloc+0x670/0x690 at addr ffff8801d0c6b080
+Read of size 4 by task syz-executor2/5764
 `,
 	}
 	for log, text0 := range tests {

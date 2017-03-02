@@ -1,0 +1,44 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_INET and AF_INET6: UDP support
+
+include <linux/udp.h>
+
+resource sock_udp[sock_in]
+
+udp_pair {
+	f0	sock_udp
+	f1	sock_udp
+}
+
+socket$udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0]) sock_udp
+socketpair$udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp_pair])
+
+resource sock_udp6[sock_in6]
+
+udp6_pair {
+	f0	sock_udp6
+	f1	sock_udp6
+}
+
+socket$udp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0]) sock_udp6
+socketpair$udp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp6_pair])
+
+# Generic UDP socket options
+
+udp_option_types_int = UDP_CORK, UDP_ENCAP, UDP_NO_CHECK6_TX, UDP_NO_CHECK6_RX
+
+getsockopt$udp_int(fd sock_udp, level const[IPPROTO_UDP], optname flags[udp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$udp_int(fd sock_udp, level const[IPPROTO_UDP], optname flags[udp_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$udp6_int(fd sock_udp6, level const[IPPROTO_UDP], optname flags[udp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$udp6_int(fd sock_udp6, level const[IPPROTO_UDP], optname flags[udp_option_types_int], optval ptr[in, int32], optlen len[optval])
+
+# Specific UDP socket options
+
+udp_encap_option_values = UDP_ENCAP_ESPINUDP_NON_IKE, UDP_ENCAP_ESPINUDP, UDP_ENCAP_L2TPINUDP, UDP_ENCAP_GTP0, UDP_ENCAP_GTP1U
+
+setsockopt$udp_encap(fd sock_udp, level const[IPPROTO_UDP], optname const[UDP_ENCAP], optval ptr[in, flags[udp_encap_option_values, int32]], optlen len[optval])
+setsockopt$udp6_encap(fd sock_udp6, level const[IPPROTO_UDP], optname const[UDP_ENCAP], optval ptr[in, flags[udp_encap_option_values, int32]], optlen len[optval])
+
+# TODO: UDPLITE_SEND_CSCOV, UDPLITE_RECV_CSCOV

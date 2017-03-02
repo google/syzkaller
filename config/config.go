@@ -39,6 +39,9 @@ type Config struct {
 	Hub_Addr string
 	Hub_Key  string
 
+	Dashboard_Addr string
+	Dashboard_Key  string
+
 	Syzkaller string   // path to syzkaller checkout (syz-manager will look for binaries in bin subdir)
 	Type      string   // VM type (qemu, kvm, local)
 	Count     int      // number of VMs (don't secify for adb, instead specify devices)
@@ -197,6 +200,23 @@ func parse(data []byte) (*Config, map[int]bool, error) {
 		return nil, nil, err
 	}
 
+	if cfg.Hub_Addr != "" {
+		if cfg.Name == "" {
+			return nil, nil, fmt.Errorf("hub_addr is set, but name is empty")
+		}
+		if cfg.Hub_Key == "" {
+			return nil, nil, fmt.Errorf("hub_addr is set, but hub_key is empty")
+		}
+	}
+	if cfg.Dashboard_Addr != "" {
+		if cfg.Name == "" {
+			return nil, nil, fmt.Errorf("dashboard_addr is set, but name is empty")
+		}
+		if cfg.Dashboard_Key == "" {
+			return nil, nil, fmt.Errorf("dashboard_addr is set, but dashboard_key is empty")
+		}
+	}
+
 	return cfg, syscalls, nil
 }
 
@@ -257,6 +277,7 @@ func parseSuppressions(cfg *Config) error {
 		"fatal error: runtime: out of memory",
 		"fatal error: runtime: cannot allocate memory",
 		"fatal error: unexpected signal during runtime execution", // presubmably OOM turned into SIGBUS
+		"signal SIGBUS: bus error",                                // presubmably OOM turned into SIGBUS
 		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
 		"lowmemorykiller: Killing 'syz-fuzzer'",
 		//"INFO: lockdep is turned off", // printed by some sysrq that dumps scheduler state, but also on all lockdep reports
@@ -331,6 +352,8 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Output",
 		"Hub_Addr",
 		"Hub_Key",
+		"Dashboard_Addr",
+		"Dashboard_Key",
 		"Syzkaller",
 		"Type",
 		"Count",

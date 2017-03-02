@@ -1,0 +1,42 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_INET and AF_INET6: TCP support
+
+include <linux/tcp.h>
+
+resource sock_tcp[sock_in]
+
+tcp_pair {
+	f0	sock_tcp
+	f1	sock_tcp
+}
+
+socket$tcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[0]) sock_tcp
+socketpair$tcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[0], fds ptr[out, tcp_pair])
+
+resource sock_tcp6[sock_in6]
+
+tcp6_pair {
+	f0	sock_tcp6
+	f1	sock_tcp6
+}
+
+socket$tcp6(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0]) sock_tcp6
+socketpair$tcp6(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0], fds ptr[out, tcp6_pair])
+
+# Generic TCP socket options
+
+tcp_option_types_int = TCP_NODELAY, TCP_MAXSEG, TCP_CORK, TCP_KEEPIDLE, TCP_KEEPINTVL, TCP_KEEPCNT, TCP_SYNCNT, TCP_LINGER2, TCP_DEFER_ACCEPT, TCP_WINDOW_CLAMP, TCP_QUICKACK, TCP_THIN_LINEAR_TIMEOUTS, TCP_THIN_DUPACK, TCP_USER_TIMEOUT, TCP_REPAIR, TCP_REPAIR_QUEUE, TCP_QUEUE_SEQ, TCP_FASTOPEN, TCP_TIMESTAMP, TCP_NOTSENT_LOWAT, TCP_SAVE_SYN
+
+tcp_option_types_buf = TCP_INFO, TCP_CONGESTION, TCP_MD5SIG, TCP_REPAIR_OPTIONS, TCP_CC_INFO, TCP_SAVED_SYN, TCP_REPAIR_WINDOW
+
+getsockopt$tcp_int(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$tcp_int(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$tcp6_int(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$tcp6_int(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_int], optval ptr[in, int32], optlen len[optval])
+
+getsockopt$tcp_buf(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$tcp_buf(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$tcp6_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$tcp6_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[in], optlen len[optval])

@@ -39,6 +39,10 @@ var oopses = []*oops{
 				"KASAN: %[1]v %[2]v of size %[3]v",
 			},
 			{
+				compile("BUG: KASAN: (.*)"),
+				"KASAN: %[1]v",
+			},
+			{
 				compile("BUG: unable to handle kernel paging request(?:.*\\n)+?.*IP: {{PC}} +{{FUNC}}"),
 				"BUG: unable to handle kernel paging request in %[1]v",
 			},
@@ -99,6 +103,10 @@ var oopses = []*oops{
 			{
 				compile("INFO: possible circular locking dependency detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+			},
+			{
+				compile("INFO: inconsistent lock state \\](?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"inconsistent lock state in %[1]v",
 			},
 			{
 				compile("INFO: rcu_preempt detected stalls"),
@@ -190,6 +198,16 @@ var oopses = []*oops{
 		[]*regexp.Regexp{},
 	},
 	&oops{
+		[]byte("BUG kmalloc-"),
+		[]oopsFormat{
+			{
+				compile("BUG kmalloc-.*: Object already free"),
+				"BUG: Object already free",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	&oops{
 		[]byte("divide error:"),
 		[]oopsFormat{
 			{
@@ -238,6 +256,10 @@ var (
 	consoleOutputRe = regexp.MustCompile(`^(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\] `)
 	questionableRe  = regexp.MustCompile(`(?:\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
 	symbolizeRe     = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])? +(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
+	addrRe          = regexp.MustCompile(`[0-9a-f]{16}`)
+	funcRe          = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9_.]+)\+0x[0-9a-z]+/0x[0-9a-z]+`)
+	cpuRe           = regexp.MustCompile(`CPU#[0-9]+`)
+	executorRe      = regexp.MustCompile(`syz-executor[0-9]+(/|:)[0-9]+`)
 	eoi             = []byte("<EOI>")
 )
 
@@ -276,6 +298,7 @@ func ContainsCrash(output []byte, ignores []*regexp.Regexp) bool {
 // start and end denote region of output with oops message(s).
 func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, start int, end int) {
 	var oops *oops
+	var textPrefix [][]byte
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
 		if next != -1 {
@@ -295,14 +318,26 @@ func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, s
 			}
 			end = next
 		}
-		if oops != nil {
-			if consoleOutputRe.Match(output[pos:next]) &&
-				(!questionableRe.Match(output[pos:next]) || bytes.Index(output[pos:next], eoi) != -1) {
-				lineStart := bytes.Index(output[pos:next], []byte("] ")) + pos + 2
-				lineEnd := next
-				if lineEnd != 0 && output[lineEnd-1] == '\r' {
-					lineEnd--
+		if consoleOutputRe.Match(output[pos:next]) &&
+			(!questionableRe.Match(output[pos:next]) || bytes.Index(output[pos:next], eoi) != -1) {
+			lineStart := bytes.Index(output[pos:next], []byte("] ")) + pos + 2
+			lineEnd := next
+			if lineEnd != 0 && output[lineEnd-1] == '\r' {
+				lineEnd--
+			}
+			if oops == nil {
+				textPrefix = append(textPrefix, append([]byte{}, output[lineStart:lineEnd]...))
+				if len(textPrefix) > 5 {
+					textPrefix = textPrefix[1:]
 				}
+			} else {
+				// Prepend 5 lines preceding start of the report,
+				// they can contain additional info related to the report.
+				for _, prefix := range textPrefix {
+					text = append(text, prefix...)
+					text = append(text, '\n')
+				}
+				textPrefix = nil
 				text = append(text, output[lineStart:lineEnd]...)
 				text = append(text, '\n')
 			}
@@ -316,6 +351,16 @@ func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, s
 	if len(desc) > 0 && desc[len(desc)-1] == '\r' {
 		desc = desc[:len(desc)-1]
 	}
+	// Replace that everything looks like an address with "ADDR",
+	// addresses in descriptions can't be good regardless of the oops regexps.
+	desc = addrRe.ReplaceAllLiteralString(desc, "ADDR")
+	// Replace all raw references to runctions (e.g. "ip6_fragment+0x1052/0x2d80")
+	// with just function name ("ip6_fragment"). Offsets and sizes are not stable.
+	desc = funcRe.ReplaceAllString(desc, "$1")
+	// CPU numbers are not interesting.
+	desc = cpuRe.ReplaceAllLiteralString(desc, "CPU")
+	// Executor PIDs are not interesting.
+	desc = executorRe.ReplaceAllLiteralString(desc, "syz-executor")
 	// Corrupted/intermixed lines can be very long.
 	const maxDescLen = 180
 	if len(desc) > maxDescLen {

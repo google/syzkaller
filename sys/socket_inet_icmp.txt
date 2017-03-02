@@ -1,0 +1,38 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_INET and AF_INET6: ICMP support
+
+include <linux/icmp.h>
+include <linux/icmpv6.h>
+
+resource sock_icmp[sock_in]
+
+socket$icmp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_ICMP]) sock_icmp
+socket$icmp_raw(domain const[AF_INET], type const[SOCK_RAW], proto const[IPPROTO_ICMP]) sock_icmp
+socketpair$icmp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[IPPROTO_ICMP], fds ptr[out, icmp_pair])
+socketpair$icmp_raw(domain const[AF_INET], type const[SOCK_RAW], proto const[IPPROTO_ICMP], fds ptr[out, icmp_pair])
+
+icmp_pair {
+	f0	sock_icmp
+	f1	sock_icmp
+}
+
+resource sock_icmp6[sock_in6]
+
+socket$icmp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_ICMPV6]) sock_icmp6
+socket$icmp6_raw(domain const[AF_INET6], type const[SOCK_RAW], proto const[IPPROTO_ICMPV6]) sock_icmp6
+socketpair$icmp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[IPPROTO_ICMPV6], fds ptr[out, icmp6_pair])
+socketpair$icmp6_raw(domain const[AF_INET6], type const[SOCK_RAW], proto const[IPPROTO_ICMPV6], fds ptr[out, icmp6_pair])
+
+icmp6_pair {
+	f0	sock_icmp6
+	f1	sock_icmp6
+}
+
+icmp_option_types_buf = ICMP_FILTER
+
+getsockopt$icmp_buf(fd sock_icmp, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$icmp_buf(fd sock_icmp, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$icmp6_buf(fd sock_icmp6, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$icmp6_buf(fd sock_icmp6, level const[IPPROTO_ICMP], optname flags[icmp_option_types_buf], optval buffer[in], optlen len[optval])

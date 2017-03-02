@@ -245,6 +245,7 @@ mq_getsetattr(mqd fd_mq, attr ptr[in, mq_attr], oldattr ptr[out, mq_attr, opt])
 mq_unlink(name ptr[in, string])
 
 mknod(file ptr[in, filename], mode flags[mknod_mode], dev int32)
+mknod$loop(file ptr[in, filename], mode flags[mknod_mode], dev proc[1792, 2])
 mknodat(dirfd fd_dir, file ptr[in, filename], mode flags[mknod_mode], dev int32)
 chmod(file ptr[in, filename], mode flags[open_mode])
 fchmod(fd fd, mode flags[open_mode])
@@ -330,8 +331,7 @@ getdents64(fd fd_dir, ent buffer[out], count len[ent])
 name_to_handle_at(fd fd_dir, file ptr[in, filename], handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])
 open_by_handle_at(mountdirfd fd, handle ptr[in, file_handle], flags flags[open_flags])
 
-mount(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in])
-mount$fs(src ptr[in, string[filesystem]], dst ptr[in, filename], type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in])
+mount(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in, opt])
 umount2(path ptr[in, filename], flags flags[umount_flags])
 pivot_root(new_root ptr[in, filename], put_old ptr[in, filename])
 
@@ -828,140 +828,6 @@ ucred {
 	pid	pid
 	uid	uid
 	gid	gid
-}
-
-ip_mreq {
-	multi	in_addr
-	addr	in_addr
-}
-
-ip_mreqn {
-	multi	in_addr
-	addr	in_addr
-	ifindex	int32
-}
-
-ip_mreq_source {
-	multi	in_addr
-	iface	in_addr
-	source	in_addr
-}
-
-ip_msfilter {
-	multi	in_addr
-	iface	in_addr
-	fmode	flags[ip_msfilter_mode, int32]
-	numsrc	len[slist, int32]
-	slist	array[in_addr]
-}
-
-in_pktinfo {
-	ifindex	int32
-	dst	in_addr
-	addr	in_addr
-}
-
-xfrm_filer {
-	info	xfrm_userpolicy_info
-	tmpl	xfrm_user_tmpl
-}
-
-xfrm_userpolicy_info {
-	sel	xfrm_selector
-	lft	xfrm_lifetime_cfg
-	cur	xfrm_lifetime_cur
-	prio	int32
-	index	int32
-	dir	int8
-	action	int8
-	flags	int8
-	share	int8
-}
-
-xfrm_user_tmpl {
-	id	xfrm_id
-	fam	int16
-	saddr	xfrm_in_addr
-	reqid	int32
-	mode	int8
-	share	int8
-	opt	int8
-	aalgod	int32
-	ealgos	int32
-	calgos	int32
-}
-
-xfrm_selector {
-	daddr	xfrm_in_addr
-	saddr	xfrm_in_addr
-	dport	proc[int16be, 20000, 4]
-	dmask	int16
-	sport	proc[int16be, 20000, 4]
-	smask	int16
-	fam	int16
-	len_d	int8
-	len_s	int8
-	proto	int8
-	ifindex	int32
-	user	int32
-}
-
-xfrm_lifetime_cfg {
-	x0	int64
-	x1	int64
-	x2	int64
-	x3	int64
-	x4	int64
-	x5	int64
-	x6	int64
-	x7	int64
-}
-
-xfrm_lifetime_cur {
-	bytes	int64
-	packets	int64
-	atime	int64
-	utime	int64
-}
-
-xfrm_id {
-	daddr	xfrm_in_addr
-	spi	int32
-	proto	int8
-}
-
-xfrm_in_addr [
-	in	in_addr
-	in6	in6_addr
-]
-
-in_addr [
-# 0.0.0.0
-	empty		const[0x00000000, int32be]
-# 127.0.0.1
-	loopback	const[0x7f000001, int32be]
-# 255.255.255.255
-	broadcast	const[0xffffffff, int32be]
-]
-
-in6_addr_empty {
-	a0		const[0, int64be]
-	a1		const[0, int64be]
-}
-
-in6_addr_loopback {
-	a0		const[0, int64be]
-	a1		const[1, int64be]
-}
-
-in6_addr [
-	empty		in6_addr_empty
-	loopback	in6_addr_loopback
-]
-
-ipv6_mreq {
-	multi	in6_addr
-	ifindex	int32
 }
 
 fiemap {
