@@ -7,6 +7,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -148,22 +149,45 @@ func reportRepro(dash *dashboard.Dashboard, crashdir string) {
 }
 
 func reportAll(dash *dashboard.Dashboard, crashes string) {
+	if _, err := os.Stat(filepath.Join(crashes, "description")); err == nil {
+		uploadDir(dash, crashes)
+		return
+	}
 	dirs, err := ioutil.ReadDir(crashes)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to read crashes dir: %v\n", err)
 		os.Exit(1)
 	}
 	for _, dir := range dirs {
-		files, err := ioutil.ReadDir(filepath.Join(crashes, dir.Name()))
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "failed to read crashes dir: %v\n", err)
-			os.Exit(1)
+		if !dir.IsDir() || !isCrashDir(dir.Name()) {
+			continue
 		}
-		for _, file := range files {
-			if !strings.HasPrefix(file.Name(), "log") {
-				continue
-			}
-			reportCrash(dash, filepath.Join(crashes, dir.Name(), file.Name()))
+		uploadDir(dash, filepath.Join(crashes, dir.Name()))
+	}
+}
+
+func uploadDir(dash *dashboard.Dashboard, dir string) {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to read crashes dir: %v\n", err)
+		os.Exit(1)
+	}
+	for _, file := range files {
+		switch {
+		case strings.HasPrefix(file.Name(), "log"):
+			reportCrash(dash, filepath.Join(dir, file.Name()))
+		case file.Name() == "repro.prog":
+			reportRepro(dash, dir)
 		}
 	}
+}
+
+func isCrashDir(dir string) bool {
+	if len(dir) != 40 {
+		return false
+	}
+	if _, err := hex.DecodeString(dir); err != nil {
+		return false
+	}
+	return true
 }
