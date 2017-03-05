@@ -1,6 +1,6 @@
 {{define "bug_table"}}
 	<table class="list_table">
-		<caption>{{.Name}}:</caption>
+		<caption>{{.Name}} ({{len $.Bugs}}):</caption>
 		<tr>
 			<th>Title</th>
 			<th>Count</th>
@@ -10,7 +10,7 @@
 		</tr>
 		{{range $b := $.Bugs}}
 			<tr>
-				<td class="title"><a href="/bug?id={{$b.ID}}">{{$b.Title}}</a></td>
+				<td class="title"><a href="/bug?id={{$b.ID}}" title="{{$b.Comment}}">{{$b.Title}}</a></td>
 				<td class="count">{{$b.NumCrashes}}</td>
 				<td class="repro">{{$b.Repro}}</td>
 				<td class="time">{{formatTime $b.LastTime}}</td>

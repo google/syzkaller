@@ -34,16 +34,7 @@ func parsePatch(text string) (title string, diff string, err error) {
 			continue
 		}
 		if strings.HasPrefix(ln, "Subject: ") {
-			ln = ln[len("Subject: "):]
-			if strings.Contains(strings.ToLower(ln), "[patch") {
-				pos := strings.IndexByte(ln, ']')
-				if pos == -1 {
-					err = fmt.Errorf("subject line does not contain ']'")
-					return
-				}
-				ln = ln[pos+1:]
-			}
-			title = ln
+			title = ln[len("Subject: "):]
 			continue
 		}
 		if ln == "" || title != "" || diffStarted {
@@ -56,6 +47,14 @@ func parsePatch(text string) (title string, diff string, err error) {
 	}
 	if err = s.Err(); err != nil {
 		return
+	}
+	if strings.Contains(strings.ToLower(title), "[patch") {
+		pos := strings.IndexByte(title, ']')
+		if pos == -1 {
+			err = fmt.Errorf("title contains '[patch' but not ']'")
+			return
+		}
+		title = title[pos+1:]
 	}
 	title = strings.TrimSpace(title)
 	if title == "" {

@@ -7,7 +7,7 @@ handlers:
 - url: /static
   static_dir: static
   secure: always
-- url: /(|bug|text)
+- url: /(|bug|search|text)
   script: _go_app
   login: required
   secure: always
