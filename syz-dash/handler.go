@@ -6,6 +6,7 @@
 package dash
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -24,6 +25,7 @@ func init() {
 	http.Handle("/", handlerWrapper(handleAuth(handleDash)))
 	http.Handle("/bug", handlerWrapper(handleAuth(handleBug)))
 	http.Handle("/text", handlerWrapper(handleAuth(handleText)))
+	http.Handle("/search", handlerWrapper(handleAuth(handleSearch)))
 	http.Handle("/client", handlerWrapper(handleAuth(handleClient)))
 }
 
@@ -88,11 +90,18 @@ func handleDash(c appengine.Context, w http.ResponseWriter, r *http.Request) err
 	data := &dataDash{}
 	bugGroups := map[int]*uiBugGroup{
 		BugStatusNew:      &uiBugGroup{Name: "New bugs"},
+		BugStatusClaimed:  &uiBugGroup{Name: "Claimed bugs"},
 		BugStatusReported: &uiBugGroup{Name: "Reported bugs"},
 		BugStatusUnclear:  &uiBugGroup{Name: "Unclear bugs"},
 		BugStatusFixed:    &uiBugGroup{Name: "Fixed bugs"},
 	}
-	data.BugGroups = append(data.BugGroups, bugGroups[BugStatusNew], bugGroups[BugStatusReported], bugGroups[BugStatusUnclear], bugGroups[BugStatusFixed])
+	data.BugGroups = append(data.BugGroups,
+		bugGroups[BugStatusNew],
+		bugGroups[BugStatusClaimed],
+		bugGroups[BugStatusReported],
+		bugGroups[BugStatusUnclear],
+		bugGroups[BugStatusFixed],
+	)
 
 	all := r.FormValue("all") != ""
 	if all {
@@ -104,7 +113,7 @@ func handleDash(c appengine.Context, w http.ResponseWriter, r *http.Request) err
 	var bugs []*Bug
 	var keys []*ds.Key
 	var err error
-	query := ds.NewQuery("Bug").Project("Title", "Status")
+	query := ds.NewQuery("Bug").Project("Title", "Status", "Comment")
 	if !all {
 		query = query.Filter("Status <", BugStatusClosed)
 	}
@@ -116,9 +125,10 @@ func handleDash(c appengine.Context, w http.ResponseWriter, r *http.Request) err
 	for i, bug := range bugs {
 		id := keys[i].IntID()
 		ui := &uiBug{
-			ID:     id,
-			Title:  bug.Title,
-			Status: statusToString(bug.Status),
+			ID:      id,
+			Title:   bug.Title,
+			Status:  statusToString(bug.Status),
+			Comment: bug.Comment,
 		}
 		bugMap[id] = ui
 		managers[id] = make(map[string]bool)
@@ -211,9 +221,9 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			if reportLink == "" {
 				return fmt.Errorf("enter report link")
 			}
-		case BugStatusUnclear:
+		case BugStatusClaimed, BugStatusUnclear:
 			if comment == "" {
-				return fmt.Errorf("enter comment as to why it's unclear")
+				return fmt.Errorf("enter comment as to why it's unclear/who claimed it")
 			}
 		}
 
@@ -228,7 +238,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			if status == BugStatusFixed && len(bug.Patches) == 0 {
 				return fmt.Errorf("add a patch for fixed bugs")
 			}
-			flushCached = bug.Status != status
+			flushCached = bug.Status != status || bug.Title != title
 			bug.Title = title
 			bug.Status = status
 			bug.ReportLink = reportLink
@@ -314,7 +324,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			dstBug.Version++
 			dstBug.ReportLink = mergeStrings(dstBug.ReportLink, srcBug.ReportLink)
 			dstBug.Comment = mergeStrings(dstBug.Comment, srcBug.Comment)
-			dstBug.CVE = mergeStrings(dstBug.ReportLink, srcBug.CVE)
+			dstBug.CVE = mergeStrings(dstBug.CVE, srcBug.CVE)
 			var groupKeys []*ds.Key
 			var groups []*Group
 			for _, hash := range srcBug.Groups {
@@ -517,7 +527,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			return fmt.Errorf("failed to fetch crashes: %v", err)
 		}
 		for _, crash := range crashes {
-			data.Crashes = append(data.Crashes, &uiCrash{
+			data.Crashes.List = append(data.Crashes.List, &uiCrash{
 				Title:   group.DisplayTitle(),
 				Manager: crash.Manager,
 				Tag:     crash.Tag,
@@ -545,7 +555,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 		}
 	}
 
-	sort.Sort(uiCrashArray(data.Crashes))
+	sort.Sort(uiCrashArray(data.Crashes.List))
 	sort.Sort(uiReproArray(data.Repros))
 
 	if len(data.Groups) == 1 {
@@ -576,10 +586,75 @@ func handleText(c appengine.Context, w http.ResponseWriter, r *http.Request) err
 	return nil
 }
 
+func handleSearch(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
+	cached, err := getCached(c)
+	if err != nil {
+		return err
+	}
+	data := &dataSearch{
+		Header: headerFromCached(cached),
+	}
+	data.Header.Query = r.FormValue("query")
+	query := []byte(data.Header.Query)
+
+	bugTitles := make(map[int64]string)
+	for _, b := range cached.Bugs {
+		bugTitles[b.ID] = b.Title
+	}
+	resMap := make(map[int64]*uiCrashGroup)
+
+	var groups []*Group
+	if _, err := ds.NewQuery("Group").GetAll(c, &groups); err != nil {
+		return fmt.Errorf("failed to fetch crash groups: %v", err)
+	}
+	for _, group := range groups {
+		var crashes []*Crash
+		if _, err := ds.NewQuery("Crash").Ancestor(group.Key(c)).GetAll(c, &crashes); err != nil {
+			return fmt.Errorf("failed to fetch crashes: %v", err)
+		}
+		for _, crash := range crashes {
+			if crash.Report == 0 {
+				continue
+			}
+			report, err := getText(c, crash.Report)
+			if err != nil {
+				return err
+			}
+			if !bytes.Contains(report, query) {
+				continue
+			}
+			cg := resMap[group.Bug]
+			if cg == nil {
+				cg = &uiCrashGroup{
+					Title: bugTitles[group.Bug],
+					Link:  fmt.Sprintf("/bug?id=%v", group.Bug),
+				}
+				resMap[group.Bug] = cg
+			}
+			cg.List = append(cg.List, &uiCrash{
+				Title:   group.DisplayTitle(),
+				Manager: crash.Manager,
+				Tag:     crash.Tag,
+				Time:    crash.Time,
+				Log:     crash.Log,
+				Report:  crash.Report,
+			})
+		}
+	}
+	for _, res := range resMap {
+		sort.Sort(uiCrashArray(res.List))
+		data.Results = append(data.Results, res)
+	}
+	sort.Sort(uiCrashGroupArray(data.Results))
+
+	return templates.ExecuteTemplate(w, "search.html", data)
+}
+
 type dataHeader struct {
 	Found   int64
 	Fixed   int64
 	Crashed int64
+	Query   string
 }
 
 func headerFromCached(cached *Cached) *dataHeader {
@@ -590,6 +665,11 @@ func headerFromCached(cached *Cached) *dataHeader {
 	}
 }
 
+type dataSearch struct {
+	Header  *dataHeader
+	Results []*uiCrashGroup
+}
+
 type dataDash struct {
 	Header    *dataHeader
 	BugGroups []*uiBugGroup
@@ -598,10 +678,16 @@ type dataDash struct {
 type dataBug struct {
 	Header *dataHeader
 	uiBug
-	Crashes []*uiCrash
+	Crashes uiCrashGroup
 	Repros  []*uiRepro
 	Message string
 	AllBugs []*uiBug
+}
+
+type uiCrashGroup struct {
+	Title string
+	Link  string
+	List  []*uiCrash
 }
 
 type uiBugGroup struct {
@@ -691,6 +777,20 @@ func (a uiCrashArray) Less(i, j int) bool {
 }
 
 func (a uiCrashArray) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+
+type uiCrashGroupArray []*uiCrashGroup
+
+func (a uiCrashGroupArray) Len() int {
+	return len(a)
+}
+
+func (a uiCrashGroupArray) Less(i, j int) bool {
+	return a[i].Title < a[j].Title
+}
+
+func (a uiCrashGroupArray) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
 }
 

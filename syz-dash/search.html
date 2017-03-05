@@ -1,0 +1,18 @@
+<!doctype html>
+<html>
+<head>
+	<title>Syzkaller Dashboard</title>
+	<link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+	{{template "header" .Header}}
+
+	{{if .Results}}
+		{{range $r := .Results}}
+			{{template "crash_list" $r}}
+		{{end}}
+	{{else}}
+		<b>No matches found</b>
+	{{end}}
+</body>
+</html>
