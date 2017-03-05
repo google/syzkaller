@@ -70,7 +70,7 @@ __attribute__((noreturn)) void fail(const char* msg, ...)
 	vfprintf(stderr, msg, args);
 	va_end(args);
 	fprintf(stderr, " (errno %d)\n", e);
-	doexit(e == ENOMEM ? kRetryStatus : kFailStatus);
+	doexit((e == ENOMEM || e == EAGAIN) ? kRetryStatus : kFailStatus);
 }
 
 #if defined(SYZ_EXECUTOR)
@@ -1318,6 +1318,11 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 		text_size = 1000;
 	NONFAILING(memcpy(host_mem, text, text_size));
 
+	return 0;
+}
+#else
+static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
+{
 	return 0;
 }
 #endif
