@@ -205,7 +205,7 @@ loop:
 			next := nextHashes[a.Name()]
 			curr := currHashes[a.Name()]
 			if curr != next {
-				Logf(0, "%v changed %v -> %v", a, curr, next)
+				Logf(0, "%v changed %v -> %v", a.Name(), curr, next)
 				changed = true
 			}
 		}
