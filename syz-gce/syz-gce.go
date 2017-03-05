@@ -58,24 +58,25 @@ var (
 )
 
 type Config struct {
-	Name            string
-	Hub_Addr        string
-	Hub_Key         string
-	Image_Archive   string
-	Image_Path      string
-	Image_Name      string
-	Http_Port       int
-	Machine_Type    string
-	Machine_Count   int
-	Sandbox         string
-	Procs           int
-	Linux_Git       string
-	Linux_Branch    string
-	Linux_Compiler  string
-	Linux_Userspace string
-
-	Dashboard_Addr string
-	Dashboard_Key  string
+	Name             string
+	Hub_Addr         string
+	Hub_Key          string
+	Image_Archive    string
+	Image_Path       string
+	Image_Name       string
+	Http_Port        int
+	Machine_Type     string
+	Machine_Count    int
+	Sandbox          string
+	Procs            int
+	Linux_Git        string
+	Linux_Branch     string
+	Linux_Compiler   string
+	Linux_Userspace  string
+	Enable_Syscalls  []string
+	Disable_Syscalls []string
+	Dashboard_Addr   string
+	Dashboard_Key    string
 }
 
 type Action interface {
@@ -497,24 +498,26 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		tag = tag[:len(tag)-1]
 	}
 	managerCfg := &config.Config{
-		Name:           cfg.Name,
-		Hub_Addr:       cfg.Hub_Addr,
-		Hub_Key:        cfg.Hub_Key,
-		Dashboard_Addr: cfg.Dashboard_Addr,
-		Dashboard_Key:  cfg.Dashboard_Key,
-		Http:           fmt.Sprintf(":%v", httpPort),
-		Rpc:            ":0",
-		Workdir:        "workdir",
-		Vmlinux:        "image/obj/vmlinux",
-		Tag:            string(tag),
-		Syzkaller:      "gopath/src/github.com/google/syzkaller",
-		Type:           "gce",
-		Machine_Type:   cfg.Machine_Type,
-		Count:          cfg.Machine_Count,
-		Image:          cfg.Image_Name,
-		Sandbox:        cfg.Sandbox,
-		Procs:          cfg.Procs,
-		Cover:          true,
+		Name:             cfg.Name,
+		Hub_Addr:         cfg.Hub_Addr,
+		Hub_Key:          cfg.Hub_Key,
+		Dashboard_Addr:   cfg.Dashboard_Addr,
+		Dashboard_Key:    cfg.Dashboard_Key,
+		Http:             fmt.Sprintf(":%v", httpPort),
+		Rpc:              ":0",
+		Workdir:          "workdir",
+		Vmlinux:          "image/obj/vmlinux",
+		Tag:              string(tag),
+		Syzkaller:        "gopath/src/github.com/google/syzkaller",
+		Type:             "gce",
+		Machine_Type:     cfg.Machine_Type,
+		Count:            cfg.Machine_Count,
+		Image:            cfg.Image_Name,
+		Sandbox:          cfg.Sandbox,
+		Procs:            cfg.Procs,
+		Enable_Syscalls:  cfg.Enable_Syscalls,
+		Disable_Syscalls: cfg.Disable_Syscalls,
+		Cover:            true,
 	}
 	if _, err := os.Stat("image/key"); err == nil {
 		managerCfg.Sshkey = "image/key"
