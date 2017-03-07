@@ -106,7 +106,7 @@ sockaddr_storage [
 # TODO: AF_ROSE
 # TODO: AF_DECnet
 	nl		sockaddr_nl
-# TODO: AF_PACKET
+	ll		sockaddr_ll
 # TODO: AF_ATMSVC
 # TODO: AF_RDS
 # TODO: AF_IRDA
