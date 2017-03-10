@@ -118,7 +118,7 @@ func findConsoleImpl(adb, dev string) (string, error) {
 		out := new([]byte)
 		output[con] = out
 		go func(con string) {
-			tty, err := openConsole(con)
+			tty, err := vm.OpenConsole(con)
 			if err != nil {
 				errors <- err
 				return
@@ -342,9 +342,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	var tty io.ReadCloser
 	var err error
 	if inst.console == "adb" {
-		tty, err = openAdbConsole(inst.cfg.Bin, inst.cfg.Device)
+		tty, err = vm.OpenAdbConsole(inst.cfg.Bin, inst.cfg.Device)
 	} else {
-		tty, err = openConsole(inst.console)
+		tty, err = vm.OpenConsole(inst.console)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -398,6 +398,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(fmt.Errorf("instance closed"))
 		case err := <-merger.Err:
 			adb.Process.Kill()
+			tty.Close()
 			merger.Wait()
 			if cmdErr := adb.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.
@@ -408,6 +409,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			return
 		}
 		adb.Process.Kill()
+		tty.Close()
 		merger.Wait()
 		adb.Wait()
 	}()
