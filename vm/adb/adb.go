@@ -398,6 +398,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			signal(fmt.Errorf("instance closed"))
 		case err := <-merger.Err:
 			adb.Process.Kill()
+			tty.Close()
 			merger.Wait()
 			if cmdErr := adb.Wait(); cmdErr == nil {
 				// If the command exited successfully, we got EOF error from merger.
@@ -408,6 +409,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			return
 		}
 		adb.Process.Kill()
+		tty.Close()
 		merger.Wait()
 		adb.Wait()
 	}()
