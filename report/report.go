@@ -256,10 +256,11 @@ var (
 	consoleOutputRe = regexp.MustCompile(`^(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\] `)
 	questionableRe  = regexp.MustCompile(`(?:\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
 	symbolizeRe     = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])? +(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
-	addrRe          = regexp.MustCompile(`[0-9a-f]{16}`)
+	decNumRe        = regexp.MustCompile(`[0-9]{5,}`)
+	addrRe          = regexp.MustCompile(`[0-9a-f]{8,}`)
 	funcRe          = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9_.]+)\+0x[0-9a-z]+/0x[0-9a-z]+`)
 	cpuRe           = regexp.MustCompile(`CPU#[0-9]+`)
-	executorRe      = regexp.MustCompile(`syz-executor[0-9]+(/|:)[0-9]+`)
+	executorRe      = regexp.MustCompile(`syz-executor[0-9]+((/|:)[0-9]+)?`)
 	eoi             = []byte("<EOI>")
 )
 
@@ -351,16 +352,18 @@ func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, s
 	if len(desc) > 0 && desc[len(desc)-1] == '\r' {
 		desc = desc[:len(desc)-1]
 	}
+	// Executor PIDs are not interesting.
+	desc = executorRe.ReplaceAllLiteralString(desc, "syz-executor")
 	// Replace that everything looks like an address with "ADDR",
 	// addresses in descriptions can't be good regardless of the oops regexps.
 	desc = addrRe.ReplaceAllLiteralString(desc, "ADDR")
+	// Replace that everything looks like a decimal number with "NUM".
+	desc = decNumRe.ReplaceAllLiteralString(desc, "NUM")
 	// Replace all raw references to runctions (e.g. "ip6_fragment+0x1052/0x2d80")
 	// with just function name ("ip6_fragment"). Offsets and sizes are not stable.
 	desc = funcRe.ReplaceAllString(desc, "$1")
 	// CPU numbers are not interesting.
 	desc = cpuRe.ReplaceAllLiteralString(desc, "CPU")
-	// Executor PIDs are not interesting.
-	desc = executorRe.ReplaceAllLiteralString(desc, "syz-executor")
 	// Corrupted/intermixed lines can be very long.
 	const maxDescLen = 180
 	if len(desc) > maxDescLen {
