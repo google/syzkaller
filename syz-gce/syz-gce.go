@@ -150,11 +150,13 @@ func main() {
 	var managerCmd *exec.Cmd
 	managerStopped := make(chan error)
 	stoppingManager := false
+	alreadyPolled := false
 	var delayDuration time.Duration
 loop:
 	for {
 		if delayDuration != 0 {
 			Logf(0, "sleep for %v", delayDuration)
+			start := time.Now()
 			select {
 			case <-time.After(delayDuration):
 			case err := <-managerStopped:
@@ -164,6 +166,11 @@ loop:
 				Logf(0, "syz-manager exited with %v", err)
 				managerCmd = nil
 				atomic.StoreUint32(&managerHttpPort, 0)
+				minSleep := 5 * time.Minute
+				if !stoppingManager && time.Since(start) < minSleep {
+					Logf(0, "syz-manager exited too quickly, sleeping for %v", minSleep)
+					time.Sleep(minSleep)
+				}
 			case s := <-sigC:
 				switch s {
 				case syscall.SIGUSR1:
@@ -192,15 +199,18 @@ loop:
 		}
 		delayDuration = 15 * time.Minute // assume that an error happened
 
-		Logf(0, "polling...")
-		for _, a := range actions {
-			hash, err := a.Poll()
-			if err != nil {
-				Logf(0, "failed to poll %v: %v", a.Name(), err)
-				continue loop
+		if !alreadyPolled {
+			Logf(0, "polling...")
+			for _, a := range actions {
+				hash, err := a.Poll()
+				if err != nil {
+					Logf(0, "failed to poll %v: %v", a.Name(), err)
+					continue loop
+				}
+				nextHashes[a.Name()] = hash
 			}
-			nextHashes[a.Name()] = hash
 		}
+
 		changed := managerCmd == nil
 		for _, a := range actions {
 			next := nextHashes[a.Name()]
@@ -227,8 +237,10 @@ loop:
 				managerCmd.Process.Kill()
 			}
 			delayDuration = time.Minute
+			alreadyPolled = true
 			continue
 		}
+		alreadyPolled = false
 
 		for _, a := range actions {
 			if currHashes[a.Name()] == nextHashes[a.Name()] {
