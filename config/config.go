@@ -140,11 +140,6 @@ func parse(data []byte) (*Config, map[int]bool, error) {
 			return nil, nil, fmt.Errorf("specify at least 1 adb device")
 		}
 		cfg.Count = len(cfg.Devices)
-	case "gce":
-		if cfg.Machine_Type == "" {
-			return nil, nil, fmt.Errorf("machine_type parameter is empty (required for gce)")
-		}
-		fallthrough
 	case "odroid":
 		if cfg.Count != 1 {
 			return nil, nil, fmt.Errorf("no support for multiple Odroid devices yet, count should be 1")
@@ -167,6 +162,11 @@ func parse(data []byte) (*Config, map[int]bool, error) {
 		if cfg.Odroid_Hub_Port == 0 {
 			return nil, nil, fmt.Errorf("config param odroid_hub_port is empty")
 		}
+	case "gce":
+		if cfg.Machine_Type == "" {
+			return nil, nil, fmt.Errorf("machine_type parameter is empty (required for gce)")
+		}
+		fallthrough
 	default:
 		if cfg.Count <= 0 || cfg.Count > 1000 {
 			return nil, nil, fmt.Errorf("invalid config param count: %v, want (1, 1000]", cfg.Count)
