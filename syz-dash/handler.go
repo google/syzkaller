@@ -554,6 +554,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			})
 		}
 	}
+	data.Crashes.Title = fmt.Sprintf("crashes (%v total)", data.NumCrashes)
 
 	sort.Sort(uiCrashArray(data.Crashes.List))
 	sort.Sort(uiReproArray(data.Repros))
