@@ -47,6 +47,7 @@ func Decode(mode int, text []byte) (int, error) {
 		prefixLen = 3
 		if text[0] == 0xc5 {
 			prefixLen = 2
+			vexMap = 1 // V0F
 		}
 		if len(text) < prefixLen {
 			return 0, fmt.Errorf("bad VEX/XOP prefix")
