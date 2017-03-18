@@ -598,6 +598,7 @@ func handleSearch(c appengine.Context, w http.ResponseWriter, r *http.Request) e
 	data.Header.Query = r.FormValue("query")
 	query := []byte(data.Header.Query)
 
+	// TODO: we also search closed/deleted bugs, but cached does not contain them.
 	bugTitles := make(map[int64]string)
 	for _, b := range cached.Bugs {
 		bugTitles[b.ID] = b.Title
