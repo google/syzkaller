@@ -287,7 +287,7 @@ void loop()
 				executed_calls = now_executed;
 				last_executed = now;
 			}
-			if ((now - start < 3 * 1000) && (now - last_executed < 200))
+			if ((now - start < 3 * 1000) && (now - last_executed < 500))
 				continue;
 			debug("waitpid(%d)=%d (%d)\n", pid, res, errno0);
 			debug("killing\n");
