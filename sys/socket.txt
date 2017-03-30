@@ -64,7 +64,7 @@ sockaddr [
 # TODO: AF_RDS
 # TODO: AF_IRDA
 # TODO: AF_PPPOX
-# TODO: AF_LLC
+	llc		sockaddr_llc
 # TODO: AF_IB
 # TODO: AF_MPLS
 # TODO: AF_CAN
@@ -107,7 +107,7 @@ sockaddr_storage [
 # TODO: AF_RDS
 # TODO: AF_IRDA
 # TODO: AF_PPPOX
-# TODO: AF_LLC
+	llc		sockaddr_llc
 # TODO: AF_IB
 # TODO: AF_MPLS
 # TODO: AF_CAN
