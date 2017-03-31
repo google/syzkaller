@@ -29,26 +29,12 @@ getsockopt$NETROM_N2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_N
 getsockopt$NETROM_T4(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T4], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
 getsockopt$NETROM_IDLE(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_IDLE], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
 
+# TODO: make these more generic
 ioctl$NETROM_TIOCOUTQ(fd sock_netrom, cmd const[TIOCOUTQ], arg ptr[out, int32])
 ioctl$NETROM_TIOCINQ(fd sock_netrom, cmd const[TIOCINQ], arg ptr[out, int32])
 ioctl$NETROM_SIOCGSTAMP(fd sock_netrom, cmd const[SIOCGSTAMP], arg ptr[out, int32])
 ioctl$NETROM_SIOCGSTAMPNS(fd sock_netrom, cmd const[SIOCGSTAMPNS], arg ptr[out, int32])
 ioctl$NETROM_SIOCADDRT(fd sock_netrom, cmd const[SIOCADDRT], arg ptr[out, int32])
-
-ax25_address {
-	call	array[int8, 7]
-}
-
-sockaddr_ax25 {
-	family	const[AF_NETROM, int16]
-	call	ax25_address
-	ndigis	int32
-}
-
-full_sockaddr_ax25 {
-	ax25	sockaddr_ax25
-	dig	array[ax25_address, AX25_MAX_DIGIS]
-}
 
 sockaddr_netrom [
 	ax25	sockaddr_ax25
