@@ -207,10 +207,19 @@ ifreq {
 	ifr_ifru	ifr_ifru
 }
 
-# TODO: use strings
-devname {
-	devname         array[int8, IFNAMSIZ]
+syzn_devname {
+	s	const[115, int8]
+	y	const[121, int8]
+	z	const[122, int8]
+	N	proc[int8, 48, 1]
+	0	const[0, int8]
 }
+
+devname [
+	generic         array[int8, IFNAMSIZ]
+	loopback	string["lo", IFNAMSIZ]
+	ethernet	syzn_devname
+]
 
 ifr_ifru [
 	ifru_addrs	sockaddr
