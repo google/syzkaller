@@ -51,7 +51,6 @@ full_sockaddr_ax25 {
 
 ax25_option_types_int = AX25_WINDOW, AX25_T1, AX25_T2, AX25_N2, AX25_T3, AX25_IDLE, AX25_BACKOFF, AX25_EXTSEQ, AX25_PIDINCL, AX25_IAMDIGI, AX25_PACLEN
 
-# TODO: special type for device names
 ax25_option_types_buf = SO_BINDTODEVICE
 
 getsockopt$ax25_int(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
