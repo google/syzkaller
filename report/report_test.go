@@ -31,6 +31,11 @@ unrelateed line
 `: `BUG: unable to handle kernel paging request in __memset`,
 
 		`
+[ 1019.110825] BUG: unable to handle kernel paging request at 000000010000001a
+[ 1019.112065] IP: skb_release_data+0x258/0x470
+`: `BUG: unable to handle kernel paging request in skb_release_data`,
+
+		`
 BUG: unable to handle kernel paging request at 00000000ffffff8a
 IP: [<ffffffff810a376f>] __call_rcu.constprop.76+0x1f/0x280 kernel/rcu/tree.c:3046
 `: `BUG: unable to handle kernel paging request in __call_rcu`,
@@ -125,6 +130,11 @@ unrelateed line
 `: `BUG: unable to handle kernel NULL pointer dereference in __lock_acquire`,
 
 		`
+[   55.112844] BUG: unable to handle kernel NULL pointer dereference at 000000000000001a
+[   55.113569] IP: skb_release_data+0x258/0x470
+`: `BUG: unable to handle kernel NULL pointer dereference in skb_release_data`,
+
+		`
 [   50.583499] WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 shm_open.isra.5.part.6+0x74/0x80
 [   50.583499] Modules linked in: 
 `: `WARNING in shm_open`,
@@ -151,6 +161,33 @@ WARNING: CPU: 3 PID: 23810 at /linux-src-3.18/net/netlink/genetlink.c:1037 genl_
 kacpi_hotplug/246 is trying to acquire lock:
  (kacpid){+.+.+.}, at: [<ffffffff8105bbd0>] flush_workqueue+0x0/0xb0
 `: `possible deadlock in flush_workqueue`,
+
+		`
+[   44.025025] =========================================================
+[   44.025025] [ INFO: possible irq lock inversion dependency detected ]
+[   44.025025] 4.10.0-rc8+ #228 Not tainted
+[   44.025025] ---------------------------------------------------------
+[   44.025025] syz-executor6/1577 just changed the state of lock:
+[   44.025025]  (&(&r->consumer_lock)->rlock){+.+...}, at: [<ffffffff82de6c86>] tun_queue_purge+0xe6/0x210
+`: `possible deadlock in tun_queue_purge`,
+
+		`
+[  121.451623] ======================================================
+[  121.452013] [ INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected ]
+[  121.452013] 4.10.0-rc8+ #228 Not tainted
+[  121.453507] ------------------------------------------------------
+[  121.453507] syz-executor1/19557 [HC0[0]:SC0[0]:HE0:SE1] is trying to acquire:
+[  121.453507]  (&(&r->consumer_lock)->rlock){+.+...}, at: [<ffffffff82df4347>] tun_device_event+0x897/0xc70
+`: `possible deadlock in tun_device_event`,
+
+		`
+[   48.981019] =============================================
+[   48.981019] [ INFO: possible recursive locking detected ]
+[   48.981019] 4.11.0-rc4+ #198 Not tainted
+[   48.981019] ---------------------------------------------
+[   48.981019] kauditd/901 is trying to acquire lock:
+[   48.981019]  (audit_cmd_mutex){+.+.+.}, at: [<ffffffff81585f59>] audit_receive+0x79/0x360
+`: `possible deadlock in audit_receive`,
 
 		`
 [  131.449768] ======================================================
@@ -245,6 +282,24 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  734.710821]  [<ffffffff86da6d05>] entry_SYSCALL_64_fastpath+0x23/0xc6
 [  734.717436]  [<ffffffff816939e7>] ? perf_event_mmap+0x77/0xb20
 `: `BUG: still has locks held in pipe_lock`,
+
+		`
+=====================================
+[ BUG: bad unlock balance detected! ]
+4.10.0+ #179 Not tainted
+-------------------------------------
+syz-executor1/21439 is trying to release lock (sk_lock-AF_INET) at:
+[<ffffffff83f7ac8b>] sctp_sendmsg+0x2a3b/0x38a0 net/sctp/socket.c:2007
+`: `BUG: bad unlock balance in sctp_sendmsg`,
+
+		`
+[  633.049984] =========================
+[  633.049987] [ BUG: held lock freed! ]
+[  633.049993] 4.10.0+ #260 Not tainted
+[  633.049996] -------------------------
+[  633.050005] syz-executor7/27251 is freeing memory ffff8800178f8180-ffff8800178f8a77, with a lock still held there!
+[  633.050009]  (slock-AF_INET6){+.-...}, at: [<ffffffff835f22c9>] sk_clone_lock+0x3d9/0x12c0
+`: `BUG: held lock freed in sk_clone_lock`,
 
 		`
 [ 2569.618120] BUG: Bad rss-counter state mm:ffff88005fac4300 idx:0 val:15
