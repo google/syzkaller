@@ -129,16 +129,32 @@ var oopses = []*oops{
 				"inconsistent lock state in %[1]v",
 			},
 			{
+				compile("INFO: rcu_preempt detected stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				"INFO: rcu detected stall in %[1]v",
+			},
+			{
 				compile("INFO: rcu_preempt detected stalls"),
 				"INFO: rcu detected stall",
+			},
+			{
+				compile("INFO: rcu_sched detected stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				"INFO: rcu detected stall in %[1]v",
 			},
 			{
 				compile("INFO: rcu_sched detected stalls"),
 				"INFO: rcu detected stall",
 			},
 			{
+				compile("INFO: rcu_preempt self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				"INFO: rcu detected stall in %[1]v",
+			},
+			{
 				compile("INFO: rcu_preempt self-detected stall on CPU"),
 				"INFO: rcu detected stall",
+			},
+			{
+				compile("INFO: rcu_sched self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				"INFO: rcu detected stall in %[1]v",
 			},
 			{
 				compile("INFO: rcu_sched self-detected stall on CPU"),
