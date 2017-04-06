@@ -130,7 +130,12 @@ func runCompiler(arch string, vals []string, includes []string, defines map[stri
 		"-I" + *flagLinux,
 		"-include", *flagLinux + "/include/linux/kconfig.h",
 	}...)
-
+	
+	if custIncludeDirList != nil {
+		for _, incDir := range custIncludeDirList {
+			args = append(args,"-I" + *flagLinux +"/"+incDir)
+		}
+	}
 	cmd := exec.Command("gcc", args...)
 	cmd.Stdin = strings.NewReader(src)
 	out, err = cmd.CombinedOutput()

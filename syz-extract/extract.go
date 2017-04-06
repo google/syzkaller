@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"bufio"
 	"os"
 	"sort"
 	"strings"
@@ -17,11 +18,15 @@ import (
 )
 
 var (
-	flagLinux    = flag.String("linux", "", "path to linux kernel source checkout")
-	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
-	flagArch     = flag.String("arch", "", "arch to generate")
-	flagV        = flag.Int("v", 0, "verbosity")
+	flagLinux          = flag.String("linux", "", "path to linux kernel source checkout")
+	flagLinuxBld       = flag.String("linuxbld", "", "path to linux kernel build directory")
+	flagIncludeDirfile = flag.String("incdirfile", "", " file to describe  module's customized include directories")
+	flagArch           = flag.String("arch", "", "arch to generate")
+	flagV              = flag.Int("v", 0, "verbosity")
 )
+
+var custIncludeDirList []string
+var err error
 
 type Arch struct {
 	CARCH            []string
@@ -54,7 +59,14 @@ func main() {
 	if len(flag.Args()) != 1 {
 		failf("usage: syz-extract -linux=/linux/checkout -arch=arch sys/input_file.txt")
 	}
-
+	
+	if *flagIncludeDirfile != "" {
+		custIncludeDirList,err=readLines(*flagIncludeDirfile)
+		if err != nil {
+			failf("failed to read customized include file")
+		}
+	}
+	
 	inname := flag.Args()[0]
 	outname := strings.TrimSuffix(inname, ".txt") + "_" + *flagArch + ".const"
 
@@ -136,6 +148,21 @@ func isIdentifier(s string) bool {
 		return false
 	}
 	return true
+}
+
+func readLines(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
 }
 
 type NameValue struct {
