@@ -24,6 +24,7 @@ type Config struct {
 	Workdir  string
 	Vmlinux  string
 	Kernel   string // e.g. arch/x86/boot/bzImage
+    Dtb      string
 	Tag      string // arbitrary optional tag that is saved along with crash reports (e.g. kernel branch/commit)
 	Cmdline  string // kernel command line
 	Image    string // linux image for VMs
@@ -214,6 +215,7 @@ func parse(data []byte) (*Config, map[int]bool, error) {
 	}
 	cfg.Workdir = abs(cfg.Workdir)
 	cfg.Kernel = abs(cfg.Kernel)
+    cfg.Dtb = abs(cfg.Dtb)
 	cfg.Vmlinux = abs(cfg.Vmlinux)
 	cfg.Syzkaller = abs(cfg.Syzkaller)
 	cfg.Initrd = abs(cfg.Initrd)
@@ -343,6 +345,7 @@ func CreateVMConfig(cfg *Config, index int) (*vm.Config, error) {
 		Bin:             cfg.Bin,
 		BinArgs:         cfg.Bin_Args,
 		Kernel:          cfg.Kernel,
+        Dtb:             cfg.Dtb,
 		Cmdline:         cfg.Cmdline,
 		Image:           cfg.Image,
 		Initrd:          cfg.Initrd,
@@ -375,6 +378,7 @@ func checkUnknownFields(data []byte) (string, error) {
 		"Workdir",
 		"Vmlinux",
 		"Kernel",
+        "Dtb",
 		"Tag",
 		"Cmdline",
 		"Image",
