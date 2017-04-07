@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -45,6 +46,14 @@ const (
 	FlagSandboxSetuid                        // impersonate nobody user
 	FlagSandboxNamespace                     // use namespaces for sandboxing
 	FlagEnableTun                            // initialize and use tun in executor
+	FlagEnableFault                          // enable fault injection support
+)
+
+// Per-exec flags for ExecOpts.Flags:
+const (
+	FlagCollectCover = uint64(1) << iota // collect coverage
+	FlagDedupCover                       // deduplicate coverage in executor
+	FlagInjectFault                      // inject a fault in this execution (see ExecOpts)
 )
 
 const (
@@ -69,6 +78,12 @@ var (
 	flagAbortSignal = flag.Int("abort_signal", 0, "initial signal to send to executor in error conditions; upgrades to SIGKILL if executor does not exit")
 	flagBufferSize  = flag.Uint64("buffer_size", 0, "internal buffer size (in bytes) for executor output")
 )
+
+type ExecOpts struct {
+	Flags     uint64
+	FaultCall int // call index for fault injection (0-based)
+	FaultNth  int // fault n-th operation in the call (0-based)
+}
 
 // ExecutorFailure is returned from MakeEnv or from env.Exec when executor terminates by calling fail function.
 // This is considered a logical error (a failed assert).
@@ -147,10 +162,8 @@ func MakeEnv(bin string, pid int, config Config) (*Env, error) {
 			closeMapping(outf, outmem)
 		}
 	}()
-	for i := 0; i < 8; i++ {
-		inmem[i] = byte(config.Flags >> (8 * uint(i)))
-	}
-	*(*uint64)(unsafe.Pointer(&inmem[8])) = uint64(pid)
+	serializeUint64(inmem[0:], config.Flags)
+	serializeUint64(inmem[8:], uint64(pid))
 	inmem = inmem[16:]
 	env := &Env{
 		In:      inmem,
@@ -208,7 +221,8 @@ type CallInfo struct {
 	Signal []uint32 // feedback signal, filled if FlagSignal is set
 	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
 	//if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
-	Errno int // call errno (0 if the call was successful)
+	Errno         int // call errno (0 if the call was successful)
+	FaultInjected bool
 }
 
 // Exec starts executor binary to execute program p and returns information about the execution:
@@ -217,7 +231,7 @@ type CallInfo struct {
 // failed: true if executor has detected a kernel bug
 // hanged: program hanged and was killed
 // err0: failed to start process, or executor has detected a logical error
-func (env *Env) Exec(p *prog.Prog, cover, dedup bool) (output []byte, info []CallInfo, failed, hanged bool, err0 error) {
+func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallInfo, failed, hanged bool, err0 error) {
 	if p != nil {
 		// Copy-in serialized program.
 		if err := p.SerializeForExec(env.In, env.pid); err != nil {
@@ -242,7 +256,7 @@ func (env *Env) Exec(p *prog.Prog, cover, dedup bool) (output []byte, info []Cal
 		}
 	}
 	var restart bool
-	output, failed, hanged, restart, err0 = env.cmd.exec(cover, dedup)
+	output, failed, hanged, restart, err0 = env.cmd.exec(opts)
 	if err0 != nil || restart {
 		env.cmd.close()
 		env.cmd = nil
@@ -288,8 +302,8 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		return buf.String()
 	}
 	for i := uint32(0); i < ncmd; i++ {
-		var callIndex, callNum, errno, signalSize, coverSize uint32
-		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) || !readOut(&signalSize) || !readOut(&coverSize) {
+		var callIndex, callNum, errno, faultInjected, signalSize, coverSize uint32
+		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) || !readOut(&faultInjected) || !readOut(&signalSize) || !readOut(&coverSize) {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 			return
 		}
@@ -310,6 +324,7 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 			return
 		}
 		info[callIndex].Errno = int(errno)
+		info[callIndex].FaultInjected = faultInjected != 0
 		if signalSize > uint32(len(out)) {
 			err0 = fmt.Errorf("executor %v: failed to read output signal: record %v, call %v, signalsize=%v coversize=%v",
 				env.pid, i, callIndex, signalSize, coverSize)
@@ -566,15 +581,15 @@ func (c *command) wait() error {
 	return err
 }
 
-func (c *command) exec(cover, dedup bool) (output []byte, failed, hanged, restart bool, err0 error) {
-	var flags [1]byte
-	if cover {
-		flags[0] |= 1 << 0
-		if dedup {
-			flags[0] |= 1 << 1
-		}
+func (c *command) exec(opts *ExecOpts) (output []byte, failed, hanged, restart bool, err0 error) {
+	if opts.Flags&FlagInjectFault != 0 {
+		enableFaultOnce.Do(enableFaultInjection)
 	}
-	if _, err := c.outwp.Write(flags[:]); err != nil {
+	var inCmd [24]byte
+	serializeUint64(inCmd[0:], opts.Flags)
+	serializeUint64(inCmd[8:], uint64(opts.FaultCall))
+	serializeUint64(inCmd[16:], uint64(opts.FaultNth))
+	if _, err := c.outwp.Write(inCmd[:]); err != nil {
 		output = <-c.readDone
 		err0 = fmt.Errorf("failed to write control pipe: %v", err)
 		return
@@ -592,21 +607,22 @@ func (c *command) exec(cover, dedup bool) (output []byte, failed, hanged, restar
 			hang <- false
 		}
 	}()
-	readN, readErr := c.inrp.Read(flags[:])
+	var reply [1]byte
+	readN, readErr := c.inrp.Read(reply[:])
 	close(done)
 	status := 0
 	if readErr == nil {
-		if readN != len(flags) {
+		if readN != len(reply) {
 			panic(fmt.Sprintf("executor %v: read only %v bytes", c.pid, readN))
 		}
-		status = int(flags[0])
+		status = int(reply[0])
 		if status == 0 {
 			<-hang
 			return
 		}
 		// Executor writes magic values into the pipe before exiting,
 		// so proceed with killing and joining it.
-		status = int(flags[0])
+		status = int(reply[0])
 	}
 	err0 = fmt.Errorf("executor did not answer")
 	c.abort()
@@ -642,4 +658,21 @@ func (c *command) exec(cover, dedup bool) (output []byte, failed, hanged, restar
 		restart = true
 	}
 	return
+}
+
+func serializeUint64(buf []byte, v uint64) {
+	for i := 0; i < 8; i++ {
+		buf[i] = byte(v >> (8 * uint(i)))
+	}
+}
+
+var enableFaultOnce sync.Once
+
+func enableFaultInjection() {
+	if err := ioutil.WriteFile("/sys/kernel/debug/failslab/ignore-gfp-wait", []byte("N"), 0600); err != nil {
+		panic(fmt.Sprintf("failed to write /sys/kernel/debug/failslab/ignore-gfp-wait: %v", err))
+	}
+	if err := ioutil.WriteFile("/sys/kernel/debug/fail_futex/ignore-private", []byte("N"), 0600); err != nil {
+		panic(fmt.Sprintf("failed to write /sys/kernel/debug/fail_futex/ignore-private: %v", err))
+	}
 }
