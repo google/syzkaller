@@ -49,28 +49,28 @@ inet_option_types_int = IP_TOS, IP_TTL, IP_HDRINCL, IP_ROUTER_ALERT, IP_RECVOPTS
 
 inet_option_types_buf = IP_OPTIONS, IP_PKTOPTIONS, IP_IPSEC_POLICY, IP_XFRM_POLICY, IP_MULTICAST_IF, IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_UNBLOCK_SOURCE, IP_BLOCK_SOURCE, IP_ADD_SOURCE_MEMBERSHIP, IP_DROP_SOURCE_MEMBERSHIP, IP_MSFILTER, MCAST_JOIN_GROUP, MCAST_BLOCK_SOURCE, MCAST_UNBLOCK_SOURCE, MCAST_LEAVE_GROUP, MCAST_JOIN_SOURCE_GROUP, MCAST_LEAVE_SOURCE_GROUP, MCAST_MSFILTER
 
-getsockopt$ip_int(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_int(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_int], optval ptr[in, int32], optlen len[optval])
-getsockopt$ip_buf(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_buf(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$inet_int(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_int(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$inet_buf(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_buf(fd sock_in, level const[IPPROTO_IP], optname flags[inet_option_types_buf], optval buffer[in], optlen len[optval])
 
 # Specific IP options
 
-getsockopt$ip_mreq(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreq], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_mreq(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreq], optlen len[optval])
-getsockopt$ip_mreqn(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreqn], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_mreqn(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreqn], optlen len[optval])
-getsockopt$ip_mreqsrc(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[out, ip_mreq_source], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_mreqsrc(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[in, ip_mreq_source], optlen len[optval])
-setsockopt$ip_msfilter(fd sock_in, level const[IPPROTO_IP], optname const[IP_MSFILTER], optval ptr[in, ip_msfilter], optlen len[optval])
-getsockopt$ip_mtu(fd sock_in, level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_mtu(fd sock_in, level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
-getsockopt$ip_opts(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_opts(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[in], optlen len[optval])
-getsockopt$ip_pktinfo(fd sock_in, level const[IPPROTO_IP], optname const[IP_PKTINFO], optval ptr[out, in_pktinfo], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_pktinfo(fd sock_in, level const[IPPROTO_IP], optname const[IP_PKTINFO], optval ptr[in, in_pktinfo], optlen len[optval])
-getsockopt$ip_ipsec(fd sock_in, level const[IPPROTO_IP], optname const[IP_IPSEC_POLICY], optval ptr[out, xfrm_filer], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip_ipsec(fd sock_in, level const[IPPROTO_IP], optname const[IP_IPSEC_POLICY], optval ptr[in, xfrm_filer], optlen len[optval])
+getsockopt$inet_mreq(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreq], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_mreq(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreq], optlen len[optval])
+getsockopt$inet_mreqn(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[out, ip_mreqn], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_mreqn(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreq], optval ptr[in, ip_mreqn], optlen len[optval])
+getsockopt$inet_mreqsrc(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[out, ip_mreq_source], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_mreqsrc(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_mreqsrc], optval ptr[in, ip_mreq_source], optlen len[optval])
+setsockopt$inet_msfilter(fd sock_in, level const[IPPROTO_IP], optname const[IP_MSFILTER], optval ptr[in, ip_msfilter], optlen len[optval])
+getsockopt$inet_mtu(fd sock_in, level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_mtu(fd sock_in, level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
+getsockopt$inet_opts(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_opts(fd sock_in, level const[IPPROTO_IP], optname flags[sockopt_opt_ip_opts], optval buffer[in], optlen len[optval])
+getsockopt$inet_pktinfo(fd sock_in, level const[IPPROTO_IP], optname const[IP_PKTINFO], optval ptr[out, in_pktinfo], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_pktinfo(fd sock_in, level const[IPPROTO_IP], optname const[IP_PKTINFO], optval ptr[in, in_pktinfo], optlen len[optval])
+getsockopt$inet_ipsec(fd sock_in, level const[IPPROTO_IP], optname const[IP_IPSEC_POLICY], optval ptr[out, xfrm_filer], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_ipsec(fd sock_in, level const[IPPROTO_IP], optname const[IP_IPSEC_POLICY], optval ptr[in, xfrm_filer], optlen len[optval])
 
 sockopt_opt_ip_mreq = IP_ADD_MEMBERSHIP, IP_DROP_MEMBERSHIP, IP_MULTICAST_IF
 sockopt_opt_ip_mreqsrc = IP_ADD_SOURCE_MEMBERSHIP, IP_BLOCK_SOURCE, IP_DROP_SOURCE_MEMBERSHIP, IP_UNBLOCK_SOURCE

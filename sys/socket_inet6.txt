@@ -56,19 +56,19 @@ inet6_option_types_int = IPV6_ADDRFORM, IPV6_2292PKTINFO, IPV6_2292HOPOPTS, IPV6
 
 inet6_option_types_buf = IPV6_2292PKTOPTIONS, IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST, IPV6_FLOWLABEL_MGR, IPV6_IPSEC_POLICY, IPV6_XFRM_POLICY, MCAST_JOIN_GROUP, MCAST_BLOCK_SOURCE, MCAST_UNBLOCK_SOURCE, MCAST_LEAVE_GROUP, MCAST_JOIN_SOURCE_GROUP, MCAST_LEAVE_SOURCE_GROUP, MCAST_MSFILTER, IPV6_PKTINFO, IPV6_HOPOPTS, IPV6_RTHDRDSTOPTS, IPV6_RTHDR, IPV6_DSTOPTS, IPV6_PATHMTU, IP6T_SO_GET_REVISION_MATCH, IP6T_SO_GET_REVISION_TARGET
 
-getsockopt$ip6_int(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip6_int(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_int], optval ptr[in, int32], optlen len[optval])
-getsockopt$ip6_buf(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
-setsockopt$ip6_buf(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$inet6_int(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_int(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$inet6_buf(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_buf(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6_option_types_buf], optval buffer[in], optlen len[optval])
 
 # Specific IPv6 options
 
-getsockopt$ipv6_mreq(fd sock_in6, level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[out, ipv6_mreq], optlen ptr[inout, len[optval, int32]])
-setsockopt$ipv6_mreq(fd sock_in6, level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[in, ipv6_mreq], optlen len[optval])
-getsockopt$ipv6_mtu(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
-setsockopt$ipv6_mtu(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
-getsockopt$ipv6_opts(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[out], optlen ptr[inout, len[optval, int32]])
-setsockopt$ipv6_opts(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[in], optlen len[optval])
+getsockopt$inet6_mreq(fd sock_in6, level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[out, ipv6_mreq], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_mreq(fd sock_in6, level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_mreq], optval ptr[in, ipv6_mreq], optlen len[optval])
+getsockopt$inet6_mtu(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_mtu(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
+getsockopt$inet6_opts(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_opts(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_2292PKTOPTIONS], optval buffer[in], optlen len[optval])
 
 sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTICAST_IF, IPV6_MULTICAST_LOOP, IPV6_RECVPKTINFO, IPV6_RECVERR, IPV6_ROUTER_ALERT, IPV6_UNICAST_HOPS, IPV6_V6ONLY, IPV6_RTHDR, IPV6_AUTHHDR, IPV6_DSTOPTS, IPV6_HOPOPTS, IPV6_FLOWINFO, IPV6_HOPLIMIT, IPV6_CHECKSUM, IPV6_2292PKTINFO, IPV6_2292HOPOPTS, IPV6_2292DSTOPTS, IPV6_2292RTHDR, IPV6_2292HOPLIMIT
 sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
