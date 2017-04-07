@@ -39,8 +39,8 @@ sockaddr_ipx {
 
 # Specific options
 
-getsockopt$IPX_TYPE(fd sock_ipx, level const[SOL_IPX], optname const[IPX_TYPE], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$IPX_TYPE(fd sock_ipx, level const[SOL_IPX], optname const[IPX_TYPE], optval ptr[in, int32], optlen len[optval])
+getsockopt$ipx_IPX_TYPE(fd sock_ipx, level const[SOL_IPX], optname const[IPX_TYPE], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$ipx_IPX_TYPE(fd sock_ipx, level const[SOL_IPX], optname const[IPX_TYPE], optval ptr[in, int32], optlen len[optval])
 
 # ioctls
 
