@@ -82,6 +82,7 @@ sockaddr [
 	nfc		sockaddr_nfc
 # TODO: AF_VSOCK
 # TODO: AF_QIPCRTR
+	ethernet	sockaddr_ethernet
 	generic		sockaddr_generic
 ]
 
@@ -125,6 +126,7 @@ sockaddr_all [
 	nfc_llcp	sockaddr_nfc_llcp
 # TODO: AF_VSOCK
 # TODO: AF_QIPCRTR
+	ethernet	sockaddr_ethernet
 	generic		sockaddr_all_generic
 ] [varlen]
 
@@ -204,7 +206,7 @@ sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFT
 
 # TODO: SIOCADDRT, SIOCDELRT, SIOCRTMSG
 # TODO: ETHTOOL commands (SIOCETHTOOL, ...)
-# TODO: SIOCDARP, SIOCGARP, SIOCSARP, SIOCDRARP, SIOCGRARP, SIOCSRARP
+# TODO: SIOCDRARP, SIOCGRARP, SIOCSRARP
 # TODO: SIOCGIFVLAN, SIOCSIFVLAN
 # TODO: SIOCGSTAMP, SIOCGSTAMPNS
 
