@@ -1,0 +1,63 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_AX25 support.
+
+include <linux/socket.h>
+include <linux/net.h>
+include <linux/if_ether.h>
+include <linux/if_arp.h>
+include <linux/ax25.h>
+include <net/ax25.h>
+
+resource sock_ax25[sock]
+
+socket$ax25(domain const[AF_AX25], type flags[ax25_socket_types], proto flags[ax25_protocols]) sock_ax25
+socketpair$ax25(domain const[AF_AX25], type flags[ax25_socket_types], proto flags[ax25_protocols], fds ptr[out, ax25_pair])
+bind$ax25(fd sock_ax25, addr ptr[in, sockaddr_ax25], addrlen len[addr])
+connect$ax25(fd sock_ax25, addr ptr[in, sockaddr_ax25], addrlen len[addr])
+accept$ax25(fd sock_ax25, peer ptr[out, sockaddr_ax25, opt], peerlen ptr[inout, len[peer, int32]]) sock_ax25
+accept4$ax25(fd sock_ax25, peer ptr[out, sockaddr_ax25, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_ax25
+
+sendto$ax25(fd sock_ax25, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_ax25, opt], addrlen len[addr])
+recvfrom$ax25(fd sock_ax25, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_ax25, opt], addrlen len[addr])
+getsockname$ax25(fd sock_ax25, addr ptr[out, sockaddr_ax25], addrlen ptr[inout, len[addr, int32]])
+getpeername$ax25(fd sock_ax25, peer ptr[out, sockaddr_ax25], peerlen ptr[inout, len[peer, int32]])
+
+ax25_socket_types = SOCK_DGRAM, SOCK_SEQPACKET, SOCK_RAW
+ax25_protocols = AX25_P_ROSE, AX25_P_VJCOMP, AX25_P_VJUNCOMP, AX25_P_SEGMENT, AX25_P_TEXNET, AX25_P_LQ, AX25_P_ATALK, AX25_P_ATALK_ARP, AX25_P_IP, AX25_P_ARP, AX25_P_FLEXNET, AX25_P_NETROM, AX25_P_TEXT
+
+ax25_pair {
+	fd0	sock_ax25
+	fd1	sock_ax25
+}
+
+ax25_address {
+	ax25_call	array[int8, 7]
+}
+
+sockaddr_ax25 {
+	sax25_family	const[AF_AX25, int16]
+	sax25_call	ax25_address
+	sax25_ndigis	int32
+}
+
+full_sockaddr_ax25 {
+	fsa_ax25	sockaddr_ax25
+	fsa_digipeater	array[ax25_address, AX25_MAX_DIGIS]
+}
+
+# Generic options
+
+ax25_option_types_int = AX25_WINDOW, AX25_T1, AX25_T2, AX25_N2, AX25_T3, AX25_IDLE, AX25_BACKOFF, AX25_EXTSEQ, AX25_PIDINCL, AX25_IAMDIGI, AX25_PACLEN
+
+ax25_option_types_buf = SO_BINDTODEVICE
+
+getsockopt$ax25_int(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$ax25_int(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$ax25_buf(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$ax25_buf(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_option_types_buf], optval buffer[in], optlen len[optval])
+
+# TODO: Specific options
+
+# TODO: ioctls
