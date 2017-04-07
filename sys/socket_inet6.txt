@@ -16,26 +16,11 @@ sock_in6_pair {
 }
 
 
-in6_addr_empty {
-	a0		const[0, int64be]
-	a1		const[0, int64be]
-}
-
-in6_addr_loopback {
-	a0		const[0, int64be]
-	a1		const[1, int64be]
-}
-
-in6_addr [
-	empty		in6_addr_empty
-	loopback	in6_addr_loopback
-]
-
 sockaddr_in6 {
 	family	const[AF_INET6, int16]
 	port	proc[int16be, 20000, 4]
 	flow	int32
-	addr	in6_addr
+	addr	ipv6_addr
 	scope	int32
 }
 
@@ -74,8 +59,10 @@ sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTIC
 sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
 
 ipv6_mreq {
-	multi	in6_addr
+	multi	ipv6_addr
 	ifindex	int32
 }
 
-# TODO: ipv6 ioctls
+# IPv6 ioctls
+
+# TODO: http://lxr.free-electrons.com/ident?i=inet6_ioctl
