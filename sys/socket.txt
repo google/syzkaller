@@ -3,9 +3,11 @@
 
 # TODO: due to autobind a socket can bind to port 0, that will result in a random port which is not reproducible
 
+include <linux/if_tun.h>
 include <linux/socket.h>
 include <linux/net.h>
 include <linux/net_tstamp.h>
+include <linux/route.h>
 include <uapi/linux/in.h>
 include <asm/ioctls.h>
 
@@ -13,26 +15,157 @@ resource sock[fd]
 
 socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
 socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, pipefd])
-accept(fd sock, peer ptr[out, sockaddr, opt], peerlen ptr[inout, len[peer, int32]]) sock
-accept4(fd sock, peer ptr[out, sockaddr, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
-bind(fd sock, addr ptr[in, sockaddr], addrlen len[addr])
+bind(fd sock, addr ptr[in, sockaddr_all], addrlen len[addr])
+connect(fd sock, addr ptr[in, sockaddr_all], addrlen len[addr])
+accept(fd sock, peer ptr[out, sockaddr_all, opt], peerlen ptr[inout, len[peer, int32]]) sock
+accept4(fd sock, peer ptr[out, sockaddr_all, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
+sendto(fd sock, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_all, opt], addrlen len[addr])
+recvfrom(fd sock, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_all, opt], addrlen len[addr])
+getsockname(fd sock, addr ptr[out, sockaddr_all], addrlen ptr[inout, len[addr, int32]])
+getpeername(fd sock, peer ptr[out, sockaddr_all], peerlen ptr[inout, len[peer, int32]])
+
 listen(fd sock, backlog int32)
-connect(fd sock, addr ptr[in, sockaddr], addrlen len[addr])
 shutdown(fd sock, how flags[shutdown_flags])
-sendto(fd sock, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr, opt], addrlen len[addr])
 sendmsg(fd sock, msg ptr[in, send_msghdr], f flags[send_flags])
 sendmmsg(fd sock, mmsg ptr[in, array[send_msghdr]], vlen len[mmsg], f flags[send_flags])
-recvfrom(fd sock, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr, opt], addrlen len[addr])
 recvmsg(fd sock, msg ptr[in, recv_msghdr], f flags[recv_flags])
 recvmmsg(fd sock, mmsg ptr[in, array[recv_msghdr]], vlen len[mmsg], f flags[recv_flags])
-getsockname(fd sock, addr ptr[out, sockaddr], addrlen ptr[inout, len[addr, int32]])
-getpeername(fd sock, peer ptr[out, sockaddr], peerlen ptr[inout, len[peer, int32]])
+
 getsockopt(fd sock, level int32, optname int32, optval buffer[out], optlen ptr[inout, len[optval, int32]])
 setsockopt(fd sock, level int32, optname int32, optval buffer[in], optlen len[optval])
-ioctl$SIOCOUTQ(fd sock, cmd const[SIOCOUTQ], arg ptr[out, int32])
-ioctl$SIOCINQ(fd sock, cmd const[SIOCINQ], arg ptr[out, int32])
 
-# SOL_SOCKET
+socket_domain = AF_UNIX, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET
+socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_SEQPACKET, SOCK_RAW, SOCK_RDM, SOCK_PACKET, SOCK_NONBLOCK, SOCK_CLOEXEC
+accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
+shutdown_flags  = SHUT_RD, SHUT_WR
+send_flags = MSG_CONFIRM, MSG_DONTROUTE, MSG_DONTWAIT, MSG_EOR, MSG_MORE, MSG_NOSIGNAL, MSG_OOB, MSG_PROBE, MSG_BATCH, MSG_FASTOPEN
+recv_flags = MSG_CMSG_CLOEXEC, MSG_DONTWAIT, MSG_ERRQUEUE, MSG_OOB, MSG_PEEK, MSG_TRUNC, MSG_WAITALL, MSG_WAITFORONE
+sock_level = IPPROTO_ICMP, SOL_IP, SOL_TCP, SOL_UDP, SOL_IPV6, SOL_ICMPV6, SOL_SCTP, SOL_UDPLITE, SOL_RAW, SOL_IPX, SOL_AX25, SOL_ATALK, SOL_NETROM, SOL_ROSE, SOL_DECNET, SOL_PACKET, SOL_ATM, SOL_AAL, SOL_IRDA, SOL_NETBEUI, SOL_LLC, SOL_DCCP, SOL_NETLINK, SOL_TIPC, SOL_RXRPC, SOL_PPPOL2TP, SOL_BLUETOOTH, SOL_PNPIPE, SOL_RDS, SOL_IUCV, SOL_CAIF, SOL_ALG, SOL_NFC, SOL_KCM
+
+# This sockaddr type corresponds to the struct sockaddr and is 16 bytes or less.
+sockaddr [
+# AF_UNIX sockaddr in bigger than 16 bytes
+	in		sockaddr_in
+	ax25		sockaddr_ax25
+	ipx		sockaddr_ipx
+# TODO: AF_APPLETALK
+# AF_NETROM sockaddr is the same as AF_AX25
+# TODO: AF_BRIDGE
+# TODO: AF_ATMPVC
+# TODO: AF_X25
+# AF_INET6 sockaddr is bigger than 16 bytes
+# TODO: AF_ROSE
+# TODO: AF_DECnet
+	nl		sockaddr_nl
+# AF_PACKET sockaddr is bigger than 16 bytes
+# TODO: AF_ATMSVC
+# TODO: AF_RDS
+# TODO: AF_IRDA
+# TODO: AF_PPPOX
+# TODO: AF_LLC
+# TODO: AF_IB
+# TODO: AF_MPLS
+# TODO: AF_CAN
+# TODO: AF_TIPC
+	sco		sockaddr_sco
+	l2		sockaddr_l2
+	hci		sockaddr_hci
+	rc		sockaddr_rc
+# TODO: AF_IUCV
+# TODO: AF_RXRPC
+# TODO: AF_ISDN
+# TODO: AF_PHONET
+# TODO: AF_IEEE802154
+# TODO: AF_CAIF
+# AF_ALG sockaddr is bigger than 16 bytes
+	nfc		sockaddr_nfc
+# TODO: AF_VSOCK
+# TODO: AF_QIPCRTR
+	generic		sockaddr_generic
+]
+
+# This sockaddr can be of arbitrary size and it's meant to be passed as a pointer.
+sockaddr_all [
+	un		sockaddr_un
+	in		sockaddr_in
+	ax25		sockaddr_ax25
+	ipx		sockaddr_ipx
+# TODO: AF_APPLETALK
+# AF_NETROM sockaddr is the same as AF_AX25
+# TODO: AF_BRIDGE
+# TODO: AF_ATMPVC
+# TODO: AF_X25
+	in6		sockaddr_in6
+# TODO: AF_ROSE
+# TODO: AF_DECnet
+	nl		sockaddr_nl
+# TODO: AF_PACKET
+# TODO: AF_ATMSVC
+# TODO: AF_RDS
+# TODO: AF_IRDA
+# TODO: AF_PPPOX
+# TODO: AF_LLC
+# TODO: AF_IB
+# TODO: AF_MPLS
+# TODO: AF_CAN
+# TODO: AF_TIPC
+	sco		sockaddr_sco
+	l2		sockaddr_l2
+	hci		sockaddr_hci
+	rc		sockaddr_rc
+# TODO: AF_IUCV
+# TODO: AF_RXRPC
+# TODO: AF_ISDN
+# TODO: AF_PHONET
+# TODO: AF_IEEE802154
+# TODO: AF_CAIF
+	alg		sockaddr_alg
+	nfc		sockaddr_nfc
+	nfc_llcp	sockaddr_nfc_llcp
+# TODO: AF_VSOCK
+# TODO: AF_QIPCRTR
+	generic		sockaddr_all_generic
+] [varlen]
+
+sockaddr_generic {
+	sa_family	flags[socket_domain, int16]
+	sa_data		array[int8, 14]
+}
+
+sockaddr_all_generic {
+	sa_family	flags[socket_domain, int16]
+	sa_data		array[int8, 126]
+}
+
+send_msghdr {
+	addr	ptr[in, sockaddr_all, opt]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_in]]
+	vlen	len[vec, intptr]
+	ctrl	ptr[in, array[cmsghdr]]
+	ctrllen	len[ctrl, intptr]
+	f	flags[send_flags, int32]
+}
+
+recv_msghdr {
+	addr	ptr[out, sockaddr_all, opt]
+	addrlen	len[addr, int32]
+	vec	ptr[in, array[iovec_out]]
+	vlen	len[vec, intptr]
+	ctrl	buffer[out]
+	ctrllen	len[ctrl, intptr]
+	f	int32
+}
+
+cmsghdr {
+	len	len[parent, intptr]
+	level	flags[sock_level, int32]
+	type	int32
+	data	array[int8]
+} [align_ptr]
+
+# Generic socket options
+
 setsockopt$sock_void(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_void], optval const[0], optlen const[0])
 getsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[in, int32], optlen len[optval])
@@ -49,58 +182,136 @@ getsockopt$SO_TIMESTAMPING(fd sock, level const[SOL_SOCKET], optname const[SO_TI
 setsockopt$SO_ATTACH_FILTER(fd sock, level const[SOL_SOCKET], optname const[SO_ATTACH_FILTER], optval ptr[in, sock_fprog], optlen len[optval])
 getsockopt$sock_buf(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 
-socket_domain = AF_UNIX, AF_INET, AF_INET6, AF_IPX, AF_NETLINK, AF_X25, AF_AX25, AF_ATMPVC, AF_APPLETALK, AF_PACKET
-socket_type = SOCK_STREAM, SOCK_DGRAM, SOCK_SEQPACKET, SOCK_RAW, SOCK_RDM, SOCK_PACKET, SOCK_NONBLOCK, SOCK_CLOEXEC
-accept_flags = SOCK_NONBLOCK, SOCK_CLOEXEC
-shutdown_flags  = SHUT_RD, SHUT_WR
-send_flags = MSG_CONFIRM, MSG_DONTROUTE, MSG_DONTWAIT, MSG_EOR, MSG_MORE, MSG_NOSIGNAL, MSG_OOB, MSG_PROBE, MSG_BATCH, MSG_FASTOPEN
-recv_flags = MSG_CMSG_CLOEXEC, MSG_DONTWAIT, MSG_ERRQUEUE, MSG_OOB, MSG_PEEK, MSG_TRUNC, MSG_WAITALL, MSG_WAITFORONE
 sockopt_opt_sock_void = SO_DETACH_FILTER, SO_MARK
 sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PEEK_OFF, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP, SO_TYPE, SO_REUSEPORT, SO_OOBINLINE, SO_NO_CHECK, SO_PASSCRED, SO_TIMESTAMPNS, SO_LOCK_FILTER, SO_PASSSEC, SO_RXQ_OVFL, SO_WIFI_STATUS, SO_NOFCS, SO_SELECT_ERR_QUEUE, SO_BUSY_POLL, SO_MAX_PACING_RATE
 sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO
 sockopt_opt_sock_buf = SO_BINDTODEVICE, SO_PEERCRED, SO_PEERNAME, SO_PEERSEC, SO_GET_FILTER
 sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFTWARE, SOF_TIMESTAMPING_RX_HARDWARE, SOF_TIMESTAMPING_RX_SOFTWARE, SOF_TIMESTAMPING_SOFTWARE, SOF_TIMESTAMPING_SYS_HARDWARE, SOF_TIMESTAMPING_RAW_HARDWARE, SOF_TIMESTAMPING_OPT_ID, SOF_TIMESTAMPING_TX_SCHED, SOF_TIMESTAMPING_TX_ACK, SOF_TIMESTAMPING_OPT_CMSG, SOF_TIMESTAMPING_OPT_TSONLY
-sock_level = IPPROTO_ICMP, SOL_IP, SOL_TCP, SOL_UDP, SOL_IPV6, SOL_ICMPV6, SOL_SCTP, SOL_UDPLITE, SOL_RAW, SOL_IPX, SOL_AX25, SOL_ATALK, SOL_NETROM, SOL_ROSE, SOL_DECNET, SOL_PACKET, SOL_ATM, SOL_AAL, SOL_IRDA, SOL_NETBEUI, SOL_LLC, SOL_DCCP, SOL_NETLINK, SOL_TIPC, SOL_RXRPC, SOL_PPPOL2TP, SOL_BLUETOOTH, SOL_PNPIPE, SOL_RDS, SOL_IUCV, SOL_CAIF, SOL_ALG, SOL_NFC, SOL_KCM
 
-sockaddr [
-	un		sockaddr_un
-	in		sockaddr_in
-	in6		sockaddr_in6
-	nl		sockaddr_nl
-	ax25		sockaddr_ax25
-	alg		sockaddr_alg
-	nfc		sockaddr_nfc
-	nfc_llcp	sockaddr_nfc_llcp
-	hci		sockaddr_hci
-	sco		sockaddr_sco
-	l2		sockaddr_l2
-	rc		sockaddr_rc
-# TODO: other kinds of sockaddrs
-] [varlen]
+# Generic socket ioctls
 
-send_msghdr {
-	addr	ptr[in, sockaddr, opt]
-	addrlen	len[addr, int32]
-	vec	ptr[in, array[iovec_in]]
-	vlen	len[vec, intptr]
-	ctrl	ptr[in, array[cmsghdr]]
-	ctrllen	len[ctrl, intptr]
-	f	flags[send_flags, int32]
+# http://lxr.free-electrons.com/source/include/uapi/linux/sockios.h
+
+ioctl$SIOCOUTQ(fd sock, cmd const[SIOCOUTQ], arg ptr[out, int32])
+ioctl$SIOCINQ(fd sock, cmd const[SIOCINQ], arg ptr[out, int32])
+ioctl$SIOCGIFNAME(fd sock, cmd const[SIOCGIFNAME], arg ptr[inout, ifreq])
+
+# SIOCSIFLINK not used
+
+ioctl$SIOCGIFCONF(fd sock, cmd const[SIOCGIFNAME], arg ptr[inout, ifconf])
+
+# TODO: more here
+
+ifreq {
+	ifr_ifrn	devname
+	ifr_ifru	ifr_ifru
 }
 
-recv_msghdr {
-	addr	ptr[out, sockaddr, opt]
-	addrlen	len[addr, int32]
-	vec	ptr[in, array[iovec_out]]
-	vlen	len[vec, intptr]
-	ctrl	buffer[out]
-	ctrllen	len[ctrl, intptr]
-	f	int32
+syzn_devname {
+	s	const[115, int8]
+	y	const[121, int8]
+	z	const[122, int8]
+	N	proc[int8, 48, 1]
+	0	const[0, int8]
 }
 
-cmsghdr {
-	len	len[parent, intptr]
-	level	flags[sock_level, int32]
-	type	int32
-	data	array[int8]
-} [align_ptr]
+devname [
+	generic         array[int8, IFNAMSIZ]
+	loopback	string["lo", IFNAMSIZ]
+	ethernet	syzn_devname
+]
+
+ifr_ifru [
+	ifru_addrs	sockaddr
+	ifru_flags	flags[ifru_flags, int16]
+	ifru_ivalue	int32
+	ifru_mtu	int32
+	ifru_map	ifmap
+	ifru_names	devname
+	ifru_data	ptr[in, array[int8, 32]]
+	ifru_settings	if_settings
+]
+
+ifru_flags = IFF_TUN, IFF_TAP, IFF_NO_PI, IFF_ONE_QUEUE, IFF_VNET_HDR, IFF_TUN_EXCL, IFF_MULTI_QUEUE, IFF_ATTACH_QUEUE, IFF_DETACH_QUEUE, IFF_PERSIST, IFF_NOFILTER
+
+ifmap {
+	mem_start	int64
+	mem_end		int64
+	base_addr	int16
+	irq		int8
+	dma		int8
+	port		int8
+}
+
+if_settings {
+	type		int32
+	size		int32
+	ifs_ifsu	ifs_ifsu
+}
+
+ifs_ifsu [
+	raw_hdlc	ptr[in, raw_hdlc_proto]
+	cisco		ptr[in, cisco_proto]
+	fr		ptr[in, fr_proto]
+	fr_pvc		ptr[in, fr_proto_pvc]
+	fr_pvc_info	ptr[in, fr_proto_pvc_info]
+	sync		ptr[in, sync_serial_settings]
+	te1		ptr[in, te1_settings]
+]
+
+raw_hdlc_proto {
+	encode		int16
+	parity		int16
+}
+
+cisco_proto {
+	val		int32
+	timeout		int32
+}
+
+fr_proto {
+	t391		int32
+	t392		int32
+	n391		int32
+	n392		int32
+	n393		int32
+	lmi		int16
+	dce		int16
+}
+
+fr_proto_pvc {
+	dlcl		int32
+}
+
+fr_proto_pvc_info {
+	dlci		int32
+	master		devname
+}
+
+sync_serial_settings {
+	rate		int32
+	type		int32
+	loop		int16
+}
+
+te1_settings {
+	rate		int32
+	type		int32
+	loop		int16
+	slot		int32
+}
+
+ifconf [
+	buf		ifconf_buf
+	req		ifconf_req
+]
+
+ifconf_buf {
+	ifc_len		len[ifcu_buf, int32]
+	ifcu_buf	ptr[inout, array[int8], opt]
+}
+
+ifconf_req {
+	ifc_len		len[ifcu_req, int32]
+	ifcu_req	ptr[inout, ifreq, opt]
+}
