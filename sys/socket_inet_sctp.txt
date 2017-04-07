@@ -93,7 +93,7 @@ getsockopt$SCTP_GET_ASSOC_STATS(fd sock_sctp, level const[SOL_SCTP], opt const[S
 getsockopt$SCTP_RECVRCVINFO(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RECVRCVINFO], val ptr[out, int32], len ptr[inout, len[val, int32]] )
 getsockopt$SCTP_RECVNXTINFO(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RECVNXTINFO], val ptr[out, int32], len ptr[inout, len[val, int32]] )
 
-ioctl$SCTP_SIOCINQ(fd sock_sctp, cmd const[SIOCINQ], arg ptr[out, int32])
+ioctl$sock_inet_sctp_SIOCINQ(fd sock_sctp, cmd const[SIOCINQ], arg ptr[out, int32])
 
 sctp_socket_type = SOCK_STREAM, SOCK_SEQPACKET
 sctp_sndrcv_flags = SCTP_UNORDERED, SCTP_ADDR_OVER, SCTP_ABORT, SCTP_EOF

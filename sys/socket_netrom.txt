@@ -30,11 +30,11 @@ getsockopt$NETROM_T4(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T
 getsockopt$NETROM_IDLE(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_IDLE], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
 
 # TODO: make these more generic
-ioctl$NETROM_TIOCOUTQ(fd sock_netrom, cmd const[TIOCOUTQ], arg ptr[out, int32])
-ioctl$NETROM_TIOCINQ(fd sock_netrom, cmd const[TIOCINQ], arg ptr[out, int32])
-ioctl$NETROM_SIOCGSTAMP(fd sock_netrom, cmd const[SIOCGSTAMP], arg ptr[out, int32])
-ioctl$NETROM_SIOCGSTAMPNS(fd sock_netrom, cmd const[SIOCGSTAMPNS], arg ptr[out, int32])
-ioctl$NETROM_SIOCADDRT(fd sock_netrom, cmd const[SIOCADDRT], arg ptr[out, int32])
+ioctl$sock_kcm_NETROM_TIOCOUTQ(fd sock_netrom, cmd const[TIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_kcm_NETROM_TIOCINQ(fd sock_netrom, cmd const[TIOCINQ], arg ptr[out, int32])
+ioctl$sock_kcm_NETROM_SIOCGSTAMP(fd sock_netrom, cmd const[SIOCGSTAMP], arg ptr[out, int32])
+ioctl$sock_kcm_NETROM_SIOCGSTAMPNS(fd sock_netrom, cmd const[SIOCGSTAMPNS], arg ptr[out, int32])
+ioctl$sock_kcm_NETROM_SIOCADDRT(fd sock_netrom, cmd const[SIOCADDRT], arg ptr[out, int32])
 
 sockaddr_netrom [
 	ax25	sockaddr_ax25
