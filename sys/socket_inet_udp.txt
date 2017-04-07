@@ -3,7 +3,9 @@
 
 # AF_INET and AF_INET6: UDP support
 
+include <asm/ioctls.h>
 include <linux/udp.h>
+include <uapi/linux/sockios.h>
 
 resource sock_udp[sock_in]
 
@@ -42,3 +44,11 @@ setsockopt$inet_udp_encap(fd sock_udp, level const[IPPROTO_UDP], optname const[U
 setsockopt$inet6_udp_encap(fd sock_udp6, level const[IPPROTO_UDP], optname const[UDP_ENCAP], optval ptr[in, flags[udp_encap_option_values, int32]], optlen len[optval])
 
 # TODO: UDPLITE_SEND_CSCOV, UDPLITE_RECV_CSCOV
+
+# UDP ioctls
+
+ioctl$sock_inet_udp_SIOCINQ(fd sock_udp, cmd const[SIOCINQ], arg ptr[out, int32])
+ioctl$sock_inet6_udp_SIOCINQ(fd sock_udp6, cmd const[SIOCINQ], arg ptr[out, int32])
+
+ioctl$sock_inet_udp_SIOCOUTQ(fd sock_udp, cmd const[SIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_inet6_udp_SIOCOUTQ(fd sock_udp6, cmd const[SIOCOUTQ], arg ptr[out, int32])
