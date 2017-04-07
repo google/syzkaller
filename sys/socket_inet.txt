@@ -4,6 +4,7 @@
 include <linux/ip.h>
 include <linux/ipv6.h>
 include <linux/route.h>
+include <uapi/linux/if_arp.h>
 include <uapi/linux/netfilter_ipv6/ip6_tables.h>
 
 # IP sockets
@@ -190,7 +191,13 @@ ioctl$inet_SIOCADDRT(fd sock_in, cmd const[SIOCADDRT], arg ptr[in, rtentry_in])
 ioctl$inet_SIOCDELRT(fd sock_in, cmd const[SIOCDELRT], arg ptr[in, rtentry_in])
 ioctl$inet_SIOCRTMSG(fd sock_in, cmd const[SIOCRTMSG], arg ptr[in, rtentry_in])
 
+ioctl$inet_SIOCDARP(fd sock_in, cmd const[SIOCDARP], arg ptr[in, arpreq_in])
+ioctl$inet_SIOCGARP(fd sock_in, cmd const[SIOCGARP], arg ptr[inout, arpreq_in])
+ioctl$inet_SIOCSARP(fd sock_in, cmd const[SIOCSARP], arg ptr[in, arpreq_in])
+
 # TODO: more here
+
+rt_flags = RTF_UP, RTF_GATEWAY, RTF_HOST, RTF_REINSTATE, RTF_DYNAMIC, RTF_MODIFIED, RTF_MTU, RTF_WINDOW, RTF_IRTT, RTF_REJECT
 
 rtentry_in {
 	rt_pad1		int64
@@ -208,4 +215,20 @@ rtentry_in {
 	rt_irtt		int16
 }
 
-rt_flags = RTF_UP, RTF_GATEWAY, RTF_HOST, RTF_REINSTATE, RTF_DYNAMIC, RTF_MODIFIED, RTF_MTU, RTF_WINDOW, RTF_IRTT, RTF_REJECT
+sockaddr_ethernet_family = ARPHRD_ETHER, ARPHRD_FDDI, ARPHRD_IEEE802
+
+sockaddr_ethernet {
+	sa_family	flags[sockaddr_ethernet_family, int16]
+	sa_data		mac_addr
+	pad		array[const[0, int8], 8]
+}
+
+arp_flags = ATF_COM, ATF_PERM, ATF_PUBL, ATF_USETRAILERS, ATF_NETMASK, ATF_DONTPUB
+
+arpreq_in {
+	arp_pa		sockaddr_in
+	arp_ha		sockaddr_ethernet
+	arp_flags	flags[arp_flags, int32]
+	arp_netmask	sockaddr_in
+	arp_dev		devname
+}
