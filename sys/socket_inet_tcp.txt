@@ -3,7 +3,9 @@
 
 # AF_INET and AF_INET6: TCP support
 
+include <asm/ioctls.h>
 include <linux/tcp.h>
+include <uapi/linux/sockios.h>
 
 resource sock_tcp[sock_in]
 
@@ -40,3 +42,19 @@ getsockopt$inet_tcp_buf(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp
 setsockopt$inet_tcp_buf(fd sock_tcp, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[in], optlen len[optval])
 getsockopt$inet6_tcp_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 setsockopt$inet6_tcp_buf(fd sock_tcp6, level const[IPPROTO_TCP], optname flags[tcp_option_types_buf], optval buffer[in], optlen len[optval])
+
+# TCP ioctls
+
+# http://lxr.free-electrons.com/ident?i=tcp_ioctl
+
+ioctl$sock_inet_tcp_SIOCINQ(fd sock_tcp, cmd const[SIOCINQ], arg ptr[out, int32])
+ioctl$sock_inet6_tcp_SIOCINQ(fd sock_tcp6, cmd const[SIOCINQ], arg ptr[out, int32])
+
+ioctl$sock_inet_tcp_SIOCATMARK(fd sock_tcp, cmd const[SIOCATMARK], arg ptr[out, int32])
+ioctl$sock_inet6_tcp_SIOCATMARK(fd sock_tcp6, cmd const[SIOCATMARK], arg ptr[out, int32])
+
+ioctl$sock_inet_tcp_SIOCOUTQ(fd sock_tcp, cmd const[SIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_inet6_tcp_SIOCOUTQ(fd sock_tcp6, cmd const[SIOCOUTQ], arg ptr[out, int32])
+
+ioctl$sock_inet_tcp_SIOCOUTQNSD(fd sock_tcp, cmd const[SIOCOUTQNSD], arg ptr[out, int32])
+ioctl$sock_inet6_tcp_SIOCOUTQNSD(fd sock_tcp6, cmd const[SIOCOUTQNSD], arg ptr[out, int32])
