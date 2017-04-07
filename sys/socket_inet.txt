@@ -185,7 +185,7 @@ xfrm_in_addr [
 
 # IP ioctls
 
-# http://lxr.free-electrons.com/source/include/uapi/linux/sockios.h
+# http://lxr.free-electrons.com/ident?i=inet_ioctl
 
 ioctl$sock_inet_SIOCADDRT(fd sock_in, cmd const[SIOCADDRT], arg ptr[in, rtentry_in])
 ioctl$sock_inet_SIOCDELRT(fd sock_in, cmd const[SIOCDELRT], arg ptr[in, rtentry_in])
@@ -195,7 +195,9 @@ ioctl$sock_inet_SIOCDARP(fd sock_in, cmd const[SIOCDARP], arg ptr[in, arpreq_in]
 ioctl$sock_inet_SIOCGARP(fd sock_in, cmd const[SIOCGARP], arg ptr[inout, arpreq_in])
 ioctl$sock_inet_SIOCSARP(fd sock_in, cmd const[SIOCSARP], arg ptr[in, arpreq_in])
 
-# TODO: more here
+inet_ifreq_ioctls = SIOCGIFADDR, SIOCSIFADDR, SIOCGIFBRDADDR, SIOCSIFBRDADDR, SIOCGIFNETMASK, SIOCSIFNETMASK, SIOCGIFDSTADDR, SIOCSIFDSTADDR, SIOCSIFPFLAGS, SIOCGIFPFLAGS, SIOCSIFFLAGS
+
+ioctl$sock_inet_ifreq(fd sock, cmd flags[inet_ifreq_ioctls], arg ptr[inout, ifreq_in])
 
 rt_flags = RTF_UP, RTF_GATEWAY, RTF_HOST, RTF_REINSTATE, RTF_DYNAMIC, RTF_MODIFIED, RTF_MTU, RTF_WINDOW, RTF_IRTT, RTF_REJECT
 
@@ -232,3 +234,13 @@ arpreq_in {
 	arp_netmask	sockaddr_in
 	arp_dev		devname
 }
+
+ifreq_in {
+	ifr_ifrn	devname
+	ifr_ifru	ifr_ifru_in
+}
+
+ifr_ifru_in [
+	ifru_addrs	sockaddr_in
+	ifru_flags	flags[ifru_flags, int16]
+]
