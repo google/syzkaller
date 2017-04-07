@@ -31,6 +31,11 @@ unrelateed line
 `: `BUG: unable to handle kernel paging request in __memset`,
 
 		`
+[ 1019.110825] BUG: unable to handle kernel paging request at 000000010000001a
+[ 1019.112065] IP: skb_release_data+0x258/0x470
+`: `BUG: unable to handle kernel paging request in skb_release_data`,
+
+		`
 BUG: unable to handle kernel paging request at 00000000ffffff8a
 IP: [<ffffffff810a376f>] __call_rcu.constprop.76+0x1f/0x280 kernel/rcu/tree.c:3046
 `: `BUG: unable to handle kernel paging request in __call_rcu`,
@@ -125,6 +130,11 @@ unrelateed line
 `: `BUG: unable to handle kernel NULL pointer dereference in __lock_acquire`,
 
 		`
+[   55.112844] BUG: unable to handle kernel NULL pointer dereference at 000000000000001a
+[   55.113569] IP: skb_release_data+0x258/0x470
+`: `BUG: unable to handle kernel NULL pointer dereference in skb_release_data`,
+
+		`
 [   50.583499] WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 shm_open.isra.5.part.6+0x74/0x80
 [   50.583499] Modules linked in: 
 `: `WARNING in shm_open`,
@@ -151,6 +161,33 @@ WARNING: CPU: 3 PID: 23810 at /linux-src-3.18/net/netlink/genetlink.c:1037 genl_
 kacpi_hotplug/246 is trying to acquire lock:
  (kacpid){+.+.+.}, at: [<ffffffff8105bbd0>] flush_workqueue+0x0/0xb0
 `: `possible deadlock in flush_workqueue`,
+
+		`
+[   44.025025] =========================================================
+[   44.025025] [ INFO: possible irq lock inversion dependency detected ]
+[   44.025025] 4.10.0-rc8+ #228 Not tainted
+[   44.025025] ---------------------------------------------------------
+[   44.025025] syz-executor6/1577 just changed the state of lock:
+[   44.025025]  (&(&r->consumer_lock)->rlock){+.+...}, at: [<ffffffff82de6c86>] tun_queue_purge+0xe6/0x210
+`: `possible deadlock in tun_queue_purge`,
+
+		`
+[  121.451623] ======================================================
+[  121.452013] [ INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected ]
+[  121.452013] 4.10.0-rc8+ #228 Not tainted
+[  121.453507] ------------------------------------------------------
+[  121.453507] syz-executor1/19557 [HC0[0]:SC0[0]:HE0:SE1] is trying to acquire:
+[  121.453507]  (&(&r->consumer_lock)->rlock){+.+...}, at: [<ffffffff82df4347>] tun_device_event+0x897/0xc70
+`: `possible deadlock in tun_device_event`,
+
+		`
+[   48.981019] =============================================
+[   48.981019] [ INFO: possible recursive locking detected ]
+[   48.981019] 4.11.0-rc4+ #198 Not tainted
+[   48.981019] ---------------------------------------------
+[   48.981019] kauditd/901 is trying to acquire lock:
+[   48.981019]  (audit_cmd_mutex){+.+.+.}, at: [<ffffffff81585f59>] audit_receive+0x79/0x360
+`: `possible deadlock in audit_receive`,
 
 		`
 [  131.449768] ======================================================
@@ -245,6 +282,24 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  734.710821]  [<ffffffff86da6d05>] entry_SYSCALL_64_fastpath+0x23/0xc6
 [  734.717436]  [<ffffffff816939e7>] ? perf_event_mmap+0x77/0xb20
 `: `BUG: still has locks held in pipe_lock`,
+
+		`
+=====================================
+[ BUG: bad unlock balance detected! ]
+4.10.0+ #179 Not tainted
+-------------------------------------
+syz-executor1/21439 is trying to release lock (sk_lock-AF_INET) at:
+[<ffffffff83f7ac8b>] sctp_sendmsg+0x2a3b/0x38a0 net/sctp/socket.c:2007
+`: `BUG: bad unlock balance in sctp_sendmsg`,
+
+		`
+[  633.049984] =========================
+[  633.049987] [ BUG: held lock freed! ]
+[  633.049993] 4.10.0+ #260 Not tainted
+[  633.049996] -------------------------
+[  633.050005] syz-executor7/27251 is freeing memory ffff8800178f8180-ffff8800178f8a77, with a lock still held there!
+[  633.050009]  (slock-AF_INET6){+.-...}, at: [<ffffffff835f22c9>] sk_clone_lock+0x3d9/0x12c0
+`: `BUG: held lock freed in sk_clone_lock`,
 
 		`
 [ 2569.618120] BUG: Bad rss-counter state mm:ffff88005fac4300 idx:0 val:15
@@ -451,6 +506,54 @@ unreferenced object 0xdb8040c0 (size 20):
 BUG: sleeping function called from invalid context at include/linux/wait.h:1095 
 in_atomic(): 1, irqs_disabled(): 0, pid: 3658, name: syz-fuzzer 
 `: `BUG: sleeping function called from invalid context at include/linux/wait.h:1095 `,
+
+		`
+[  277.780013] INFO: rcu_sched self-detected stall on CPU
+[  277.781045] INFO: rcu_sched detected stalls on CPUs/tasks:
+[  277.781153] 	1-...: (65000 ticks this GP) idle=395/140000000000001/0 softirq=122875/122875 fqs=16248 
+[  277.781197] 	(detected by 0, t=65002 jiffies, g=72940, c=72939, q=1777)
+[  277.781212] Sending NMI from CPU 0 to CPUs 1:
+[  277.782014] NMI backtrace for cpu 1
+[  277.782014] CPU: 1 PID: 12579 Comm: syz-executor0 Not tainted 4.11.0-rc3+ #71
+[  277.782014] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  277.782014] task: ffff8801d379e140 task.stack: ffff8801cd590000
+[  277.782014] RIP: 0010:io_serial_in+0x6b/0x90
+[  277.782014] RSP: 0018:ffff8801dbf066a0 EFLAGS: 00000002
+[  277.782014] RAX: dffffc0000000000 RBX: 00000000000003fd RCX: 0000000000000000
+[  277.782014] RDX: 00000000000003fd RSI: 0000000000000005 RDI: ffffffff87020018
+[  277.782014] RBP: ffff8801dbf066b0 R08: 0000000000000003 R09: 0000000000000001
+[  277.782014] R10: dffffc0000000000 R11: ffffffff867ba200 R12: ffffffff8701ffe0
+[  277.782014] R13: 0000000000000020 R14: fffffbfff0e04041 R15: fffffbfff0e04005
+[  277.782014] FS:  00007fce6fc10700(0000) GS:ffff8801dbf00000(0000) knlGS:0000000000000000
+[  277.782014] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  277.782014] CR2: 000000002084fffc CR3: 00000001c4500000 CR4: 00000000001406e0
+[  277.782014] Call Trace:
+[  277.782014]  <IRQ>
+[  277.782014]  wait_for_xmitr+0x89/0x1c0
+[  277.782014]  ? wait_for_xmitr+0x1c0/0x1c0
+[  277.782014]  serial8250_console_putchar+0x1f/0x60
+[  277.782014]  uart_console_write+0x57/0xe0
+[  277.782014]  serial8250_console_write+0x423/0x840
+[  277.782014]  ? check_noncircular+0x20/0x20
+[  277.782014]  hrtimer_interrupt+0x1c2/0x5e0
+[  277.782014]  local_apic_timer_interrupt+0x6f/0xe0
+[  277.782014]  smp_apic_timer_interrupt+0x71/0xa0
+[  277.782014]  apic_timer_interrupt+0x93/0xa0
+[  277.782014] RIP: 0010:debug_lockdep_rcu_enabled.part.19+0xf/0x60
+[  277.782014] RSP: 0018:ffff8801cd596778 EFLAGS: 00000202 ORIG_RAX: ffffffffffffff10
+[  277.782014] RAX: dffffc0000000000 RBX: 1ffff10039ab2cf7 RCX: ffffc90001758000
+[  277.782014] RDX: 0000000000000004 RSI: ffffffff840561f1 RDI: ffffffff852a75c0
+[  277.782014] RBP: ffff8801cd596780 R08: 0000000000000001 R09: 0000000000000000
+[  277.782014] R10: dffffc0000000000 R11: ffffffff867ba200 R12: 1ffff10039ab2d1b
+[  277.782014] R13: ffff8801c44d1880 R14: ffff8801cd596918 R15: ffff8801d9b47840
+[  277.782014]  </IRQ>
+[  277.782014]  ? __sctp_write_space+0x5b1/0x920
+[  277.782014]  debug_lockdep_rcu_enabled+0x77/0x90
+[  277.782014]  __sctp_write_space+0x5b6/0x920
+[  277.782014]  ? __sctp_write_space+0x3f7/0x920
+[  277.782014]  ? sctp_transport_lookup_process+0x190/0x190
+[  277.782014]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+`: `INFO: rcu detected stall in __sctp_write_space`,
 
 		`
 INFO: rcu_preempt detected stalls on CPUs/tasks: { 2} (detected by 0, t=65008 jiffies, g=48068, c=48067, q=7339)
