@@ -210,27 +210,27 @@ sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFT
 # TODO: SIOCGIFVLAN, SIOCSIFVLAN
 # TODO: SIOCGSTAMP, SIOCGSTAMPNS
 
-ioctl$SIOCOUTQ(fd sock, cmd const[SIOCOUTQ], arg ptr[out, int32])
-ioctl$SIOCINQ(fd sock, cmd const[SIOCINQ], arg ptr[out, int32])
+ioctl$sock_SIOCOUTQ(fd sock, cmd const[SIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_SIOCINQ(fd sock, cmd const[SIOCINQ], arg ptr[out, int32])
 
-ioctl$SIOCGIFCONF(fd sock, cmd const[SIOCGIFNAME], arg ptr[inout, ifconf])
+ioctl$sock_SIOCGIFCONF(fd sock, cmd const[SIOCGIFNAME], arg ptr[inout, ifconf])
 
 ifreq_ioctls = SIOCGIFNAME, SIOCSIFLINK, SIOCGIFFLAGS, SIOCSIFFLAGS, SIOCGIFADDR, SIOCSIFADDR, SIOCGIFDSTADDR, SIOCSIFDSTADDR, SIOCGIFBRDADDR, SIOCSIFBRDADDR, SIOCGIFNETMASK, SIOCSIFNETMASK, SIOCGIFMETRIC, SIOCSIFMETRIC, SIOCGIFMEM, SIOCSIFMEM, SIOCGIFMTU, SIOCSIFMTU, SIOCSIFNAME, SIOCSIFHWADDR, SIOCGIFENCAP, SIOCSIFENCAP, SIOCGIFHWADDR, SIOCGIFSLAVE, SIOCSIFSLAVE, SIOCADDMULTI, SIOCDELMULTI, SIOCGIFINDEX, SIOCSIFPFLAGS, SIOCGIFPFLAGS, SIOCDIFADDR, SIOCSIFHWBROADCAST, SIOCGIFCOUNT, SIOCGIFTXQLEN, SIOCSIFTXQLEN, SIOCETHTOOL, SIOCGMIIPHY, SIOCGMIIREG, SIOCSMIIREG, SIOCWANDEV, SIOCGIFMAP, SIOCSIFMAP, SIOCBONDENSLAVE, SIOCBONDRELEASE, SIOCBONDSETHWADDR, SIOCBONDSLAVEINFOQUERY, SIOCBONDINFOQUERY, SIOCBONDCHANGEACTIVE, SIOCBRADDIF, SIOCBRDELIF, SIOCSHWTSTAMP, SIOCGHWTSTAMP
 
-ioctl$ifreq(fd sock, cmd flags[ifreq_ioctls], arg ptr[inout, ifreq])
+ioctl$sock_ifreq(fd sock, cmd flags[ifreq_ioctls], arg ptr[inout, ifreq])
 
-ioctl$SIOCGIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
-ioctl$SIOCSIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
+ioctl$sock_SIOCGIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
+ioctl$sock_SIOCSIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
 
-ioctl$SIOCOUTQNSD(fd sock, cmd const[SIOCOUTQNSD], arg ptr[out, int32])
+ioctl$sock_SIOCOUTQNSD(fd sock, cmd const[SIOCOUTQNSD], arg ptr[out, int32])
 
-ioctl$SIOCGSKNS(fd sock, cmd const[SIOCGSKNS], arg ptr[inout, int32])
+ioctl$sock_SIOCGSKNS(fd sock, cmd const[SIOCGSKNS], arg ptr[inout, int32])
 
-ioctl$SIOCADDDLCI(fd sock, cmd const[SIOCADDDLCI], arg ptr[inout, dlci_add])
-ioctl$SIOCDELDLCI(fd sock, cmd const[SIOCDELDLCI], arg ptr[in, dlci_add])
+ioctl$sock_SIOCADDDLCI(fd sock, cmd const[SIOCADDDLCI], arg ptr[inout, dlci_add])
+ioctl$sock_SIOCDELDLCI(fd sock, cmd const[SIOCDELDLCI], arg ptr[in, dlci_add])
 
-ioctl$SIOCBRADDBR(fd sock, cmd const[SIOCBRADDBR], arg ptr[in, devname])
-ioctl$SIOCBRDELBR(fd sock, cmd const[SIOCBRDELBR], arg ptr[in, devname])
+ioctl$sock_SIOCBRADDBR(fd sock, cmd const[SIOCBRADDBR], arg ptr[in, devname])
+ioctl$sock_SIOCBRDELBR(fd sock, cmd const[SIOCBRDELBR], arg ptr[in, devname])
 
 define SIOCDEVPRIVATE_BEG (SIOCDEVPRIVATE)
 define SIOCDEVPRIVATE_END (SIOCDEVPRIVATE + 15)
@@ -238,14 +238,14 @@ define SIOCDEVPRIVATE_END (SIOCDEVPRIVATE + 15)
 define SIOCPROTOPRIVATE_BEG (SIOCPROTOPRIVATE)
 define SIOCPROTOPRIVATE_END (SIOCPROTOPRIVATE + 15)
 
-ioctl$netdev_private(fd sock, cmd int16[SIOCDEVPRIVATE_BEG:SIOCDEVPRIVATE_END], arg ptr[in, array[int8]])
-ioctl$proto_private(fd sock, cmd int16[SIOCPROTOPRIVATE_BEG:SIOCPROTOPRIVATE_END], arg ptr[in, array[int8]])
+ioctl$sock_netdev_private(fd sock, cmd int16[SIOCDEVPRIVATE_BEG:SIOCDEVPRIVATE_END], arg ptr[in, array[int8]])
+ioctl$sock_proto_private(fd sock, cmd int16[SIOCPROTOPRIVATE_BEG:SIOCPROTOPRIVATE_END], arg ptr[in, array[int8]])
 
-ioctl$FIOSETOWN(fd sock, cmd const[FIOSETOWN], arg ptr[in, pid])
-ioctl$SIOCSPGRP(fd sock, cmd const[SIOCSPGRP], arg ptr[in, pid])
+ioctl$sock_FIOSETOWN(fd sock, cmd const[FIOSETOWN], arg ptr[in, pid])
+ioctl$sock_SIOCSPGRP(fd sock, cmd const[SIOCSPGRP], arg ptr[in, pid])
 
-ioctl$FIOGETOWN(fd sock, cmd const[FIOGETOWN], arg ptr[out, pid])
-ioctl$SIOCGPGRP(fd sock, cmd const[SIOCGPGRP], arg ptr[out, pid])
+ioctl$sock_FIOGETOWN(fd sock, cmd const[FIOGETOWN], arg ptr[out, pid])
+ioctl$sock_SIOCGPGRP(fd sock, cmd const[SIOCGPGRP], arg ptr[out, pid])
 
 ifreq {
 	ifr_ifrn	devname

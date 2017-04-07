@@ -187,13 +187,13 @@ xfrm_in_addr [
 
 # http://lxr.free-electrons.com/source/include/uapi/linux/sockios.h
 
-ioctl$inet_SIOCADDRT(fd sock_in, cmd const[SIOCADDRT], arg ptr[in, rtentry_in])
-ioctl$inet_SIOCDELRT(fd sock_in, cmd const[SIOCDELRT], arg ptr[in, rtentry_in])
-ioctl$inet_SIOCRTMSG(fd sock_in, cmd const[SIOCRTMSG], arg ptr[in, rtentry_in])
+ioctl$sock_inet_SIOCADDRT(fd sock_in, cmd const[SIOCADDRT], arg ptr[in, rtentry_in])
+ioctl$sock_inet_SIOCDELRT(fd sock_in, cmd const[SIOCDELRT], arg ptr[in, rtentry_in])
+ioctl$sock_inet_SIOCRTMSG(fd sock_in, cmd const[SIOCRTMSG], arg ptr[in, rtentry_in])
 
-ioctl$inet_SIOCDARP(fd sock_in, cmd const[SIOCDARP], arg ptr[in, arpreq_in])
-ioctl$inet_SIOCGARP(fd sock_in, cmd const[SIOCGARP], arg ptr[inout, arpreq_in])
-ioctl$inet_SIOCSARP(fd sock_in, cmd const[SIOCSARP], arg ptr[in, arpreq_in])
+ioctl$sock_inet_SIOCDARP(fd sock_in, cmd const[SIOCDARP], arg ptr[in, arpreq_in])
+ioctl$sock_inet_SIOCGARP(fd sock_in, cmd const[SIOCGARP], arg ptr[inout, arpreq_in])
+ioctl$sock_inet_SIOCSARP(fd sock_in, cmd const[SIOCSARP], arg ptr[in, arpreq_in])
 
 # TODO: more here
 
