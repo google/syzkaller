@@ -62,7 +62,8 @@ func TestEmptyProg(t *testing.T) {
 	defer env.Close()
 
 	p := new(prog.Prog)
-	output, _, failed, hanged, err := env.Exec(p, false, false)
+	opts := &ExecOpts{}
+	output, _, failed, hanged, err := env.Exec(opts, p)
 	if err != nil {
 		t.Fatalf("failed to run executor: %v", err)
 	}
@@ -94,7 +95,8 @@ func TestExecute(t *testing.T) {
 
 		for i := 0; i < iters/len(flags); i++ {
 			p := prog.Generate(rs, 10, nil)
-			output, _, _, _, err := env.Exec(p, false, false)
+			opts := &ExecOpts{}
+			output, _, _, _, err := env.Exec(opts, p)
 			if err != nil {
 				t.Logf("program:\n%s\n", p.Serialize())
 				t.Fatalf("failed to run executor: %v\n%s", err, output)
