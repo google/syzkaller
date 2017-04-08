@@ -16,19 +16,10 @@ sock_in_pair {
 	f1	sock_in
 }
 
-in_addr [
-# 0.0.0.0
-	empty		const[0x00000000, int32be]
-# 127.0.0.1
-	loopback	const[0x7f000001, int32be]
-# 255.255.255.255
-	broadcast	const[0xffffffff, int32be]
-]
-
 sockaddr_in {
 	family	const[AF_INET, int16]
 	port	proc[int16be, 20000, 4]
-	addr	in_addr
+	addr	ipv4_addr
 	pad     array[const[0, int8], 8]
 }
 
@@ -79,34 +70,34 @@ ip_msfilter_mode = MCAST_INCLUDE, MCAST_EXCLUDE
 ip_mtu_discover = IP_PMTUDISC_DONT, IP_PMTUDISC_WANT, IP_PMTUDISC_DO, IP_PMTUDISC_PROBE, IP_PMTUDISC_INTERFACE, IP_PMTUDISC_OMIT
 
 ip_mreq {
-	multi	in_addr
-	addr	in_addr
+	multi	ipv4_addr
+	addr	ipv4_addr
 }
 
 ip_mreqn {
-	multi	in_addr
-	addr	in_addr
+	multi	ipv4_addr
+	addr	ipv4_addr
 	ifindex	int32
 }
 
 ip_mreq_source {
-	multi	in_addr
-	iface	in_addr
-	source	in_addr
+	multi	ipv4_addr
+	iface	ipv4_addr
+	source	ipv4_addr
 }
 
 ip_msfilter {
-	multi	in_addr
-	iface	in_addr
+	multi	ipv4_addr
+	iface	ipv4_addr
 	fmode	flags[ip_msfilter_mode, int32]
 	numsrc	len[slist, int32]
-	slist	array[in_addr]
+	slist	array[ipv4_addr]
 }
 
 in_pktinfo {
 	ifindex	int32
-	dst	in_addr
-	addr	in_addr
+	dst	ipv4_addr
+	addr	ipv4_addr
 }
 
 xfrm_filer {
@@ -179,13 +170,13 @@ xfrm_id {
 }
 
 xfrm_in_addr [
-	in	in_addr
-	in6	in6_addr
+	in	ipv4_addr
+	in6	ipv6_addr
 ]
 
 # IP ioctls
 
-# http://lxr.free-electrons.com/source/include/uapi/linux/sockios.h
+# http://lxr.free-electrons.com/ident?i=inet_ioctl
 
 ioctl$sock_inet_SIOCADDRT(fd sock_in, cmd const[SIOCADDRT], arg ptr[in, rtentry_in])
 ioctl$sock_inet_SIOCDELRT(fd sock_in, cmd const[SIOCDELRT], arg ptr[in, rtentry_in])
@@ -195,7 +186,9 @@ ioctl$sock_inet_SIOCDARP(fd sock_in, cmd const[SIOCDARP], arg ptr[in, arpreq_in]
 ioctl$sock_inet_SIOCGARP(fd sock_in, cmd const[SIOCGARP], arg ptr[inout, arpreq_in])
 ioctl$sock_inet_SIOCSARP(fd sock_in, cmd const[SIOCSARP], arg ptr[in, arpreq_in])
 
-# TODO: more here
+inet_ifreq_ioctls = SIOCGIFADDR, SIOCSIFADDR, SIOCGIFBRDADDR, SIOCSIFBRDADDR, SIOCGIFNETMASK, SIOCSIFNETMASK, SIOCGIFDSTADDR, SIOCSIFDSTADDR, SIOCSIFPFLAGS, SIOCGIFPFLAGS, SIOCSIFFLAGS
+
+ioctl$sock_inet_ifreq(fd sock, cmd flags[inet_ifreq_ioctls], arg ptr[inout, ifreq_in])
 
 rt_flags = RTF_UP, RTF_GATEWAY, RTF_HOST, RTF_REINSTATE, RTF_DYNAMIC, RTF_MODIFIED, RTF_MTU, RTF_WINDOW, RTF_IRTT, RTF_REJECT
 
@@ -232,3 +225,13 @@ arpreq_in {
 	arp_netmask	sockaddr_in
 	arp_dev		devname
 }
+
+ifreq_in {
+	ifr_ifrn	devname
+	ifr_ifru	ifr_ifru_in
+}
+
+ifr_ifru_in [
+	ifru_addrs	sockaddr_in
+	ifru_flags	flags[ifru_flags, int16]
+]
