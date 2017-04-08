@@ -4,6 +4,8 @@
 include <linux/ip.h>
 include <linux/ipv6.h>
 include <linux/route.h>
+include <uapi/linux/route.h>
+include <uapi/linux/ipv6_route.h>
 include <uapi/linux/netfilter_ipv6/ip6_tables.h>
 
 # IPv6 sockets
@@ -16,26 +18,11 @@ sock_in6_pair {
 }
 
 
-in6_addr_empty {
-	a0		const[0, int64be]
-	a1		const[0, int64be]
-}
-
-in6_addr_loopback {
-	a0		const[0, int64be]
-	a1		const[1, int64be]
-}
-
-in6_addr [
-	empty		in6_addr_empty
-	loopback	in6_addr_loopback
-]
-
 sockaddr_in6 {
 	family	const[AF_INET6, int16]
 	port	proc[int16be, 20000, 4]
 	flow	int32
-	addr	in6_addr
+	addr	ipv6_addr
 	scope	int32
 }
 
@@ -74,8 +61,40 @@ sockopt_opt_ipv6_int = IPV6_ADDRFORM, IPV6_MTU, IPV6_MULTICAST_HOPS, IPV6_MULTIC
 sockopt_opt_ipv6_mreq = IPV6_ADD_MEMBERSHIP, IPV6_DROP_MEMBERSHIP, IPV6_JOIN_ANYCAST, IPV6_LEAVE_ANYCAST
 
 ipv6_mreq {
-	multi	in6_addr
+	multi	ipv6_addr
 	ifindex	int32
 }
 
-# TODO: ipv6 ioctls
+# IPv6 ioctls
+
+# TODO: http://lxr.free-electrons.com/ident?i=inet6_ioctl
+
+ioctl$sock_inet6_SIOCADDRT(fd sock_in6, cmd const[SIOCADDRT], arg ptr[in, in6_rtmsg])
+ioctl$sock_inet6_SIOCDELRT(fd sock_in6, cmd const[SIOCDELRT], arg ptr[in, in6_rtmsg])
+
+ioctl$sock_inet6_SIOCSIFADDR(fd sock_in6, cmd const[SIOCSIFADDR], arg ptr[in, in6_ifreq])
+ioctl$sock_inet6_SIOCDIFADDR(fd sock_in6, cmd const[SIOCDIFADDR], arg ptr[in, in6_ifreq])
+ioctl$sock_inet6_SIOCSIFDSTADDR(fd sock_in6, cmd const[SIOCSIFDSTADDR], arg ptr[in, in6_ifreq])
+
+rtmsg_metrics = IP6_RT_PRIO_USER, IP6_RT_PRIO_ADDRCONF
+
+rtmsg_flags = RTF_UP, RTF_GATEWAY, RTF_HOST, RTF_REINSTATE, RTF_DYNAMIC, RTF_MODIFIED, RTF_MTU, RTF_WINDOW, RTF_IRTT, RTF_REJECT, RTF_DEFAULT, RTF_ALLONLINK, RTF_ADDRCONF, RTF_PREFIX_RT, RTF_ANYCAST, RTF_NONEXTHOP, RTF_EXPIRES, RTF_ROUTEINFO, RTF_CACHE, RTF_FLOW, RTF_POLICY, RTF_PCPU, RTF_LOCAL
+
+in6_rtmsg {
+	rtmsg_dst	ipv6_addr
+	rtmsg_src	ipv6_addr
+	rtmsg_gateway	ipv6_addr
+	rtmsg_type	int32
+	rtmsg_dst_len	int16
+	rtmsg_src_len	int16
+	rtmsg_metric	flags[rtmsg_metrics, int32]
+	rtmsg_info	int64
+	rtmsg_flags	flags[rtmsg_flags, int32]
+	rtmsg_ifindex	int32
+}
+
+in6_ifreq {
+	ifr6_addr	ipv6_addr
+	ifr6_prefixlen	int32
+	ifr6_ifindex	int32
+}
