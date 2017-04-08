@@ -3,13 +3,14 @@
 
 # TODO: due to autobind a socket can bind to port 0, that will result in a random port which is not reproducible
 
+include <asm/ioctls.h>
 include <linux/if_tun.h>
-include <linux/socket.h>
+include <linux/if_bridge.h>
 include <linux/net.h>
 include <linux/net_tstamp.h>
 include <linux/route.h>
+include <linux/socket.h>
 include <uapi/linux/in.h>
-include <asm/ioctls.h>
 
 resource sock[fd]
 
@@ -81,6 +82,7 @@ sockaddr [
 	nfc		sockaddr_nfc
 # TODO: AF_VSOCK
 # TODO: AF_QIPCRTR
+	ethernet	sockaddr_ethernet
 	generic		sockaddr_generic
 ]
 
@@ -124,6 +126,7 @@ sockaddr_all [
 	nfc_llcp	sockaddr_nfc_llcp
 # TODO: AF_VSOCK
 # TODO: AF_QIPCRTR
+	ethernet	sockaddr_ethernet
 	generic		sockaddr_all_generic
 ] [varlen]
 
@@ -164,7 +167,9 @@ cmsghdr {
 	data	array[int8]
 } [align_ptr]
 
-# Generic socket options
+# Socket options
+
+# http://lxr.free-electrons.com/source/include/uapi/asm-generic/socket.h
 
 setsockopt$sock_void(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_void], optval const[0], optlen const[0])
 getsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
@@ -180,27 +185,67 @@ setsockopt$sock_attach_bpf(fd sock, level const[SOL_SOCKET], optname const[SO_AT
 setsockopt$SO_TIMESTAMPING(fd sock, level const[SOL_SOCKET], optname const[SO_TIMESTAMPING], optval ptr[in, flags[sockopt_so_timestamping, int32]], optlen len[optval])
 getsockopt$SO_TIMESTAMPING(fd sock, level const[SOL_SOCKET], optname const[SO_TIMESTAMPING], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$SO_ATTACH_FILTER(fd sock, level const[SOL_SOCKET], optname const[SO_ATTACH_FILTER], optval ptr[in, sock_fprog], optlen len[optval])
+setsockopt$SO_BINDTODEVICE(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[in, devname], optlen len[optval])
+getsockopt$SO_BINDTODEVICE(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[out, devname], optlen len[optval])
+getsockopt$SO_PEERCRED(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen len[optval])
 getsockopt$sock_buf(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 
 sockopt_opt_sock_void = SO_DETACH_FILTER, SO_MARK
 sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PEEK_OFF, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP, SO_TYPE, SO_REUSEPORT, SO_OOBINLINE, SO_NO_CHECK, SO_PASSCRED, SO_TIMESTAMPNS, SO_LOCK_FILTER, SO_PASSSEC, SO_RXQ_OVFL, SO_WIFI_STATUS, SO_NOFCS, SO_SELECT_ERR_QUEUE, SO_BUSY_POLL, SO_MAX_PACING_RATE
 sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO
-sockopt_opt_sock_buf = SO_BINDTODEVICE, SO_PEERCRED, SO_PEERNAME, SO_PEERSEC, SO_GET_FILTER
+sockopt_opt_sock_buf = SO_PEERNAME, SO_PEERSEC, SO_GET_FILTER
 sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFTWARE, SOF_TIMESTAMPING_RX_HARDWARE, SOF_TIMESTAMPING_RX_SOFTWARE, SOF_TIMESTAMPING_SOFTWARE, SOF_TIMESTAMPING_SYS_HARDWARE, SOF_TIMESTAMPING_RAW_HARDWARE, SOF_TIMESTAMPING_OPT_ID, SOF_TIMESTAMPING_TX_SCHED, SOF_TIMESTAMPING_TX_ACK, SOF_TIMESTAMPING_OPT_CMSG, SOF_TIMESTAMPING_OPT_TSONLY
 
-# Generic socket ioctls
+# Socket ioctls
+
+# Since some socket ioctls are forwarded to the network device, adding device ioctls here as well.
 
 # http://lxr.free-electrons.com/source/include/uapi/linux/sockios.h
 
-ioctl$SIOCOUTQ(fd sock, cmd const[SIOCOUTQ], arg ptr[out, int32])
-ioctl$SIOCINQ(fd sock, cmd const[SIOCINQ], arg ptr[out, int32])
-ioctl$SIOCGIFNAME(fd sock, cmd const[SIOCGIFNAME], arg ptr[inout, ifreq])
+# http://lxr.free-electrons.com/source/include/uapi/asm-generic/sockios.h
 
-# SIOCSIFLINK not used
+# TODO: SIOCADDRT, SIOCDELRT, SIOCRTMSG
+# TODO: ETHTOOL commands (SIOCETHTOOL, ...)
+# TODO: SIOCDRARP, SIOCGRARP, SIOCSRARP
+# TODO: SIOCGIFVLAN, SIOCSIFVLAN
+# TODO: SIOCGSTAMP, SIOCGSTAMPNS
 
-ioctl$SIOCGIFCONF(fd sock, cmd const[SIOCGIFNAME], arg ptr[inout, ifconf])
+ioctl$sock_SIOCOUTQ(fd sock, cmd const[SIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_SIOCINQ(fd sock, cmd const[SIOCINQ], arg ptr[out, int32])
 
-# TODO: more here
+ioctl$sock_SIOCGIFCONF(fd sock, cmd const[SIOCGIFNAME], arg ptr[inout, ifconf])
+
+ifreq_ioctls = SIOCGIFNAME, SIOCSIFLINK, SIOCGIFFLAGS, SIOCSIFFLAGS, SIOCGIFADDR, SIOCSIFADDR, SIOCGIFDSTADDR, SIOCSIFDSTADDR, SIOCGIFBRDADDR, SIOCSIFBRDADDR, SIOCGIFNETMASK, SIOCSIFNETMASK, SIOCGIFMETRIC, SIOCSIFMETRIC, SIOCGIFMEM, SIOCSIFMEM, SIOCGIFMTU, SIOCSIFMTU, SIOCSIFNAME, SIOCSIFHWADDR, SIOCGIFENCAP, SIOCSIFENCAP, SIOCGIFHWADDR, SIOCGIFSLAVE, SIOCSIFSLAVE, SIOCADDMULTI, SIOCDELMULTI, SIOCGIFINDEX, SIOCSIFPFLAGS, SIOCGIFPFLAGS, SIOCDIFADDR, SIOCSIFHWBROADCAST, SIOCGIFCOUNT, SIOCGIFTXQLEN, SIOCSIFTXQLEN, SIOCETHTOOL, SIOCGMIIPHY, SIOCGMIIREG, SIOCSMIIREG, SIOCWANDEV, SIOCGIFMAP, SIOCSIFMAP, SIOCBONDENSLAVE, SIOCBONDRELEASE, SIOCBONDSETHWADDR, SIOCBONDSLAVEINFOQUERY, SIOCBONDINFOQUERY, SIOCBONDCHANGEACTIVE, SIOCBRADDIF, SIOCBRDELIF, SIOCSHWTSTAMP, SIOCGHWTSTAMP
+
+ioctl$sock_ifreq(fd sock, cmd flags[ifreq_ioctls], arg ptr[inout, ifreq])
+
+ioctl$sock_SIOCGIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
+ioctl$sock_SIOCSIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
+
+ioctl$sock_SIOCOUTQNSD(fd sock, cmd const[SIOCOUTQNSD], arg ptr[out, int32])
+
+ioctl$sock_SIOCGSKNS(fd sock, cmd const[SIOCGSKNS], arg ptr[inout, int32])
+
+ioctl$sock_SIOCADDDLCI(fd sock, cmd const[SIOCADDDLCI], arg ptr[inout, dlci_add])
+ioctl$sock_SIOCDELDLCI(fd sock, cmd const[SIOCDELDLCI], arg ptr[in, dlci_add])
+
+ioctl$sock_SIOCBRADDBR(fd sock, cmd const[SIOCBRADDBR], arg ptr[in, devname])
+ioctl$sock_SIOCBRDELBR(fd sock, cmd const[SIOCBRDELBR], arg ptr[in, devname])
+
+define SIOCDEVPRIVATE_BEG (SIOCDEVPRIVATE)
+define SIOCDEVPRIVATE_END (SIOCDEVPRIVATE + 15)
+
+define SIOCPROTOPRIVATE_BEG (SIOCPROTOPRIVATE)
+define SIOCPROTOPRIVATE_END (SIOCPROTOPRIVATE + 15)
+
+ioctl$sock_netdev_private(fd sock, cmd int16[SIOCDEVPRIVATE_BEG:SIOCDEVPRIVATE_END], arg ptr[in, array[int8]])
+ioctl$sock_proto_private(fd sock, cmd int16[SIOCPROTOPRIVATE_BEG:SIOCPROTOPRIVATE_END], arg ptr[in, array[int8]])
+
+ioctl$sock_FIOSETOWN(fd sock, cmd const[FIOSETOWN], arg ptr[in, pid])
+ioctl$sock_SIOCSPGRP(fd sock, cmd const[SIOCSPGRP], arg ptr[in, pid])
+
+ioctl$sock_FIOGETOWN(fd sock, cmd const[FIOGETOWN], arg ptr[out, pid])
+ioctl$sock_SIOCGPGRP(fd sock, cmd const[SIOCGPGRP], arg ptr[out, pid])
 
 ifreq {
 	ifr_ifrn	devname
@@ -314,4 +359,35 @@ ifconf_buf {
 ifconf_req {
 	ifc_len		len[ifcu_req, int32]
 	ifcu_req	ptr[inout, ifreq, opt]
+}
+
+brctl_cmds = BRCTL_GET_VERSION, BRCTL_GET_BRIDGES, BRCTL_ADD_BRIDGE, BRCTL_DEL_BRIDGE
+
+brctl_arg [
+	get		brctl_arg_get
+	add_del		brctl_arg_add_del
+	generic		brctl_arg_generic
+]
+
+brctl_arg_get {
+	cmd		const[BRCTL_GET_BRIDGES, int64]
+	buf		ptr[out, array[int8]]
+	indices		int64
+}
+
+brctl_arg_add_del {
+	cmd		const[BRCTL_ADD_BRIDGE, int64]
+	devname		ptr[in, devname]
+	pad		int64
+}
+
+brctl_arg_generic {
+	a0		int64
+	a1		int64
+	a2		int64
+}
+
+dlci_add {
+	devname		devname
+	dlci		int16
 }
