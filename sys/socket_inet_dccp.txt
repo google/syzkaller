@@ -31,12 +31,12 @@ dccp_option_types_int = DCCP_SOCKOPT_PACKET_SIZE, DCCP_SOCKOPT_CHANGE_L, DCCP_SO
 
 dccp_option_types_buf = DCCP_SOCKOPT_SERVICE, DCCP_SOCKOPT_AVAILABLE_CCIDS, DCCP_SOCKOPT_CCID, DCCP_SOCKOPT_TX_CCID, DCCP_SOCKOPT_RX_CCID, DCCP_SOCKOPT_CCID_RX_INFO, DCCP_SOCKOPT_CCID_TX_INFO
 
-getsockopt$dccp_int(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$dccp_int(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[in, int32], optlen len[optval])
-getsockopt$dccp6_int(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
-setsockopt$dccp6_int(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$inet_dccp_int(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_dccp_int(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[in, int32], optlen len[optval])
+getsockopt$inet6_dccp_int(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_dccp_int(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_int], optval ptr[in, int32], optlen len[optval])
 
-getsockopt$dccp_buf(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
-setsockopt$dccp_buf(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[in], optlen len[optval])
-getsockopt$dccp6_buf(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
-setsockopt$dccp6_buf(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$inet_dccp_buf(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet_dccp_buf(fd sock_dccp, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[in], optlen len[optval])
+getsockopt$inet6_dccp_buf(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
+setsockopt$inet6_dccp_buf(fd sock_dccp6, level const[IPPROTO_DCCP], optname flags[dccp_option_types_buf], optval buffer[in], optlen len[optval])
