@@ -374,6 +374,7 @@ func generateArg(
 			break
 		}
 	}
+	fmtDir(dir) // Make sure that dir is "in", "out" or "inout"
 	common := func() string {
 		return fmt.Sprintf("TypeCommon: TypeCommon{TypeName: \"%v\", FldName: %v, ArgDir: %v, IsOptional: %v}", typ, name, fmtDir(dir), opt)
 	}
