@@ -12,8 +12,8 @@ dccp_pair {
 	f1	sock_dccp
 }
 
-socket$dccp(domain const[AF_INET], type const[SOCK_DCCP], proto const[0]) sock_dccp
-socketpair$dccp(domain const[AF_INET], type const[SOCK_DCCP], proto const[0], fds ptr[out, dccp_pair])
+socket$inet_dccp(domain const[AF_INET], type const[SOCK_DCCP], proto const[0]) sock_dccp
+socketpair$inet_dccp(domain const[AF_INET], type const[SOCK_DCCP], proto const[0], fds ptr[out, dccp_pair])
 
 resource sock_dccp6[sock_in6]
 
@@ -22,8 +22,8 @@ dccp6_pair {
 	f1	sock_dccp6
 }
 
-socket$dccp6(domain const[AF_INET6], type const[SOCK_DCCP], proto const[0]) sock_dccp6
-socketpair$dccp6(domain const[AF_INET6], type const[SOCK_DCCP], proto const[0], fds ptr[out, dccp6_pair])
+socket$inet6_dccp(domain const[AF_INET6], type const[SOCK_DCCP], proto const[0]) sock_dccp6
+socketpair$inet6_dccp(domain const[AF_INET6], type const[SOCK_DCCP], proto const[0], fds ptr[out, dccp6_pair])
 
 # Generic DCCP socket options
 
