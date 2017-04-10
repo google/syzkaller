@@ -14,8 +14,8 @@ udp_pair {
 	f1	sock_udp
 }
 
-socket$udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0]) sock_udp
-socketpair$udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp_pair])
+socket$inet_udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0]) sock_udp
+socketpair$inet_udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp_pair])
 
 resource sock_udp6[sock_in6]
 
@@ -24,8 +24,8 @@ udp6_pair {
 	f1	sock_udp6
 }
 
-socket$udp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0]) sock_udp6
-socketpair$udp6(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp6_pair])
+socket$inet6_udp(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0]) sock_udp6
+socketpair$inet6_udp(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp6_pair])
 
 # Generic UDP socket options
 
