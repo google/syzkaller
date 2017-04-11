@@ -16,14 +16,14 @@ resource sock[fd]
 
 socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
 socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, pipefd])
-bind(fd sock, addr ptr[in, sockaddr_all], addrlen len[addr])
-connect(fd sock, addr ptr[in, sockaddr_all], addrlen len[addr])
-accept(fd sock, peer ptr[out, sockaddr_all, opt], peerlen ptr[inout, len[peer, int32]]) sock
-accept4(fd sock, peer ptr[out, sockaddr_all, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
-sendto(fd sock, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_all, opt], addrlen len[addr])
-recvfrom(fd sock, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_all, opt], addrlen len[addr])
-getsockname(fd sock, addr ptr[out, sockaddr_all], addrlen ptr[inout, len[addr, int32]])
-getpeername(fd sock, peer ptr[out, sockaddr_all], peerlen ptr[inout, len[peer, int32]])
+bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
+connect(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
+accept(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]]) sock
+accept4(fd sock, peer ptr[out, sockaddr_storage, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock
+sendto(fd sock, buf buffer[in], len len[buf], f flags[send_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
+recvfrom(fd sock, buf buffer[out], len len[buf], f flags[recv_flags], addr ptr[in, sockaddr_storage, opt], addrlen len[addr])
+getsockname(fd sock, addr ptr[out, sockaddr_storage], addrlen ptr[inout, len[addr, int32]])
+getpeername(fd sock, peer ptr[out, sockaddr_storage], peerlen ptr[inout, len[peer, int32]])
 
 sendmsg(fd sock, msg ptr[in, send_msghdr], f flags[send_flags])
 sendmmsg(fd sock, mmsg ptr[in, array[send_mmsghdr]], vlen len[mmsg], f flags[send_flags])
@@ -87,8 +87,8 @@ sockaddr [
 	generic		sockaddr_generic
 ]
 
-# This sockaddr can be of arbitrary size and it's meant to be passed as a pointer.
-sockaddr_all [
+# This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
+sockaddr_storage [
 	un		sockaddr_un
 	in		sockaddr_in
 	ax25		sockaddr_ax25
@@ -128,7 +128,7 @@ sockaddr_all [
 # TODO: AF_VSOCK
 # TODO: AF_QIPCRTR
 	ethernet	sockaddr_ethernet
-	generic		sockaddr_all_generic
+	generic		sockaddr_storage_generic
 ] [varlen]
 
 sockaddr_generic {
@@ -136,13 +136,13 @@ sockaddr_generic {
 	sa_data		array[int8, 14]
 }
 
-sockaddr_all_generic {
+sockaddr_storage_generic {
 	sa_family	flags[socket_domain, int16]
 	sa_data		array[int8, 126]
 }
 
 send_msghdr {
-	msg_name	ptr[in, sockaddr_all, opt]
+	msg_name	ptr[in, sockaddr_storage, opt]
 	msg_namelen	len[msg_name, int32]
 	msg_iov		ptr[in, array[iovec_in]]
 	msg_iovlen	len[msg_iov, intptr]
@@ -157,7 +157,7 @@ send_mmsghdr {
 }
 
 recv_msghdr {
-	msg_name	ptr[out, sockaddr_all, opt]
+	msg_name	ptr[out, sockaddr_storage, opt]
 	msg_namelen	len[msg_name, int32]
 	msg_iov		ptr[in, array[iovec_out]]
 	msg_iovlen	len[msg_iov, intptr]
