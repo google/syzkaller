@@ -36,22 +36,28 @@ type Instance interface {
 }
 
 type Config struct {
-	Name        string
-	Index       int
-	Workdir     string
-	Bin         string
-	BinArgs     string
-	Initrd      string
-	Kernel      string
-	Cmdline     string
-	Image       string
-	Sshkey      string
-	Executor    string
-	Device      string
-	MachineType string
-	Cpu         int
-	Mem         int
-	Debug       bool
+	Name            string
+	Index           int
+	Workdir         string
+	Bin             string
+	BinArgs         string
+	Initrd          string
+	Kernel          string
+	Cmdline         string
+	Image           string
+	Sshkey          string
+	Executor        string
+	Device          string
+	MachineType     string
+	OdroidHostAddr  string
+	OdroidSlaveAddr string
+	OdroidConsole   string
+	OdroidHubBus    int
+	OdroidHubDevice int
+	OdroidHubPort   int
+	Cpu             int
+	Mem             int
+	Debug           bool
 }
 
 type ctorFunc func(cfg *Config) (Instance, error)

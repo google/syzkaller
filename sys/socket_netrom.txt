@@ -17,38 +17,24 @@ recvmsg$netrom(fd sock_netrom, msg ptr[in, msghdr_netrom], f flags[recv_flags])
 getsockname$netrom(fd sock_netrom, addr ptr[out, sockaddr_netrom], addrlen ptr[inout, len[addr, int32]])
 getpeername$netrom(fd sock_netrom, peer ptr[out, sockaddr_netrom], peerlen ptr[inout, len[peer, int32]])
 
-setsockopt$NETROM_T1(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T1], arg ptr[in, int32], arglen len[arg])
-setsockopt$NETROM_T2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T2], arg ptr[in, int32], arglen len[arg])
-setsockopt$NETROM_N2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_N2], arg ptr[in, int32], arglen len[arg])
-setsockopt$NETROM_T4(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T4], arg ptr[in, int32], arglen len[arg])
-setsockopt$NETROM_IDLE(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_IDLE], arg ptr[in, int32], arglen len[arg])
+setsockopt$netrom_NETROM_T1(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T1], arg ptr[in, int32], arglen len[arg])
+setsockopt$netrom_NETROM_T2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T2], arg ptr[in, int32], arglen len[arg])
+setsockopt$netrom_NETROM_N2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_N2], arg ptr[in, int32], arglen len[arg])
+setsockopt$netrom_NETROM_T4(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T4], arg ptr[in, int32], arglen len[arg])
+setsockopt$netrom_NETROM_IDLE(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_IDLE], arg ptr[in, int32], arglen len[arg])
 
-getsockopt$NETROM_T1(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T1], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
-getsockopt$NETROM_T2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T2], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
-getsockopt$NETROM_N2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_N2], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
-getsockopt$NETROM_T4(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T4], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
-getsockopt$NETROM_IDLE(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_IDLE], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$netrom_NETROM_T1(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T1], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$netrom_NETROM_T2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T2], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$netrom_NETROM_N2(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_N2], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$netrom_NETROM_T4(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_T4], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$netrom_NETROM_IDLE(fd sock_netrom, level const[SOL_NETROM], opt const[NETROM_IDLE], arg ptr[in, int32], arglen ptr[inout, len[arg, int32]])
 
-ioctl$NETROM_TIOCOUTQ(fd sock_netrom, cmd const[TIOCOUTQ], arg ptr[out, int32])
-ioctl$NETROM_TIOCINQ(fd sock_netrom, cmd const[TIOCINQ], arg ptr[out, int32])
-ioctl$NETROM_SIOCGSTAMP(fd sock_netrom, cmd const[SIOCGSTAMP], arg ptr[out, int32])
-ioctl$NETROM_SIOCGSTAMPNS(fd sock_netrom, cmd const[SIOCGSTAMPNS], arg ptr[out, int32])
-ioctl$NETROM_SIOCADDRT(fd sock_netrom, cmd const[SIOCADDRT], arg ptr[out, int32])
-
-ax25_address {
-	call	array[int8, 7]
-}
-
-sockaddr_ax25 {
-	family	const[AF_NETROM, int16]
-	call	ax25_address
-	ndigis	int32
-}
-
-full_sockaddr_ax25 {
-	ax25	sockaddr_ax25
-	dig	array[ax25_address, AX25_MAX_DIGIS]
-}
+# TODO: make these more generic
+ioctl$sock_netrom_TIOCOUTQ(fd sock_netrom, cmd const[TIOCOUTQ], arg ptr[out, int32])
+ioctl$sock_netrom_TIOCINQ(fd sock_netrom, cmd const[TIOCINQ], arg ptr[out, int32])
+ioctl$sock_netrom_SIOCGSTAMP(fd sock_netrom, cmd const[SIOCGSTAMP], arg ptr[out, int32])
+ioctl$sock_netrom_SIOCGSTAMPNS(fd sock_netrom, cmd const[SIOCGSTAMPNS], arg ptr[out, int32])
+ioctl$sock_netrom_SIOCADDRT(fd sock_netrom, cmd const[SIOCADDRT], arg ptr[out, int32])
 
 sockaddr_netrom [
 	ax25	sockaddr_ax25

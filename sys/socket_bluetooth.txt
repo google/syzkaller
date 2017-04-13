@@ -21,10 +21,10 @@ resource sock_bt_hci[sock_bt]
 
 socket$bt_hci(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_HCI]) sock_bt_hci
 bind$bt_hci(fd sock_bt_hci, addr ptr[in, sockaddr_hci], addrlen len[addr])
-ioctl$bt_hci(fd sock_bt_hci, cmd flags[bt_hci_ioctl], arg buffer[inout])
-setsockopt$HCI_DATA_DIR(fd sock_bt_hci, level const[0], opt const[HCI_DATA_DIR], arg ptr[in, int32], arglen len[arg])
-setsockopt$HCI_TIME_STAMP(fd sock_bt_hci, level const[0], opt const[HCI_TIME_STAMP], arg ptr[in, int32], arglen len[arg])
-setsockopt$HCI_FILTER(fd sock_bt_hci, level const[0], opt const[HCI_FILTER], arg ptr[in, hci_ufilter], arglen len[arg])
+ioctl$sock_bt_hci(fd sock_bt_hci, cmd flags[bt_hci_ioctl], arg buffer[inout])
+setsockopt$bt_hci_HCI_DATA_DIR(fd sock_bt_hci, level const[0], opt const[HCI_DATA_DIR], arg ptr[in, int32], arglen len[arg])
+setsockopt$bt_hci_HCI_TIME_STAMP(fd sock_bt_hci, level const[0], opt const[HCI_TIME_STAMP], arg ptr[in, int32], arglen len[arg])
+setsockopt$bt_hci_HCI_FILTER(fd sock_bt_hci, level const[0], opt const[HCI_FILTER], arg ptr[in, hci_ufilter], arglen len[arg])
 getsockopt$bt_hci(fd sock, level const[0], opt flags[bt_hci_sockopt], arg buffer[out], arglen ptr[inout, len[arg, int32]])
 
 resource sock_bt_sco[sock_bt]
@@ -32,72 +32,72 @@ resource sock_bt_sco[sock_bt]
 socket$bt_sco(fam const[AF_BLUETOOTH], type const[SOCK_SEQPACKET], proto const[BTPROTO_SCO]) sock_bt_sco
 bind$bt_sco(fd sock_bt_sco, addr ptr[in, sockaddr_sco], addrlen len[addr])
 connect$bt_sco(fd sock_bt_sco, addr ptr[in, sockaddr_sco], addrlen len[addr])
-getsockopt$SCO_OPTIONS(fd sock_bt_sco, level const[SOL_SCO], opt const[SCO_OPTIONS], arg buffer[out], arglen ptr[inout, len[arg, int32]])
-getsockopt$SCO_CONNINFO(fd sock_bt_sco, level const[SOL_SCO], opt const[SCO_CONNINFO], arg buffer[out], arglen ptr[inout, len[arg, int32]])
+getsockopt$bt_sco_SCO_OPTIONS(fd sock_bt_sco, level const[SOL_SCO], opt const[SCO_OPTIONS], arg buffer[out], arglen ptr[inout, len[arg, int32]])
+getsockopt$bt_sco_SCO_CONNINFO(fd sock_bt_sco, level const[SOL_SCO], opt const[SCO_CONNINFO], arg buffer[out], arglen ptr[inout, len[arg, int32]])
 
 resource sock_bt_l2cap[sock_bt]
 
 socket$bt_l2cap(fam const[AF_BLUETOOTH], type flags[bt_l2cap_type], proto const[BTPROTO_L2CAP]) sock_bt_l2cap
 bind$bt_l2cap(fd sock_bt_l2cap, addr ptr[in, sockaddr_l2], addrlen len[addr])
 connect$bt_l2cap(fd sock_bt_l2cap, addr ptr[in, sockaddr_l2], addrlen len[addr])
-setsockopt$L2CAP_OPTIONS(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_OPTIONS], arg ptr[in, l2cap_options], arglen len[arg])
-getsockopt$L2CAP_OPTIONS(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_OPTIONS], arg ptr[out, l2cap_options], arglen ptr[inout, len[arg, int32]])
-setsockopt$L2CAP_LM(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_LM], arg ptr[in, flags[bt_l2cap_lm, int32]], arglen len[arg])
-getsockopt$L2CAP_LM(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_LM], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
-setsockopt$L2CAP_CONNINFO(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_CONNINFO], arg ptr[in, l2cap_conninfo], arglen len[arg])
-getsockopt$L2CAP_CONNINFO(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_CONNINFO], arg ptr[out, l2cap_conninfo], arglen ptr[inout, len[arg, int32]])
+setsockopt$bt_l2cap_L2CAP_OPTIONS(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_OPTIONS], arg ptr[in, l2cap_options], arglen len[arg])
+getsockopt$bt_l2cap_L2CAP_OPTIONS(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_OPTIONS], arg ptr[out, l2cap_options], arglen ptr[inout, len[arg, int32]])
+setsockopt$bt_l2cap_L2CAP_LM(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_LM], arg ptr[in, flags[bt_l2cap_lm, int32]], arglen len[arg])
+getsockopt$bt_l2cap_L2CAP_LM(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_LM], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
+setsockopt$bt_l2cap_L2CAP_CONNINFO(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_CONNINFO], arg ptr[in, l2cap_conninfo], arglen len[arg])
+getsockopt$bt_l2cap_L2CAP_CONNINFO(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_CONNINFO], arg ptr[out, l2cap_conninfo], arglen ptr[inout, len[arg, int32]])
 
 resource sock_bt_rfcomm[sock_bt]
 
 socket$bt_rfcomm(fam const[AF_BLUETOOTH], type flags[bt_rfcomm_type], proto const[BTPROTO_RFCOMM]) sock_bt_rfcomm
 bind$bt_rfcomm(fd sock_bt_rfcomm, addr ptr[in, sockaddr_rc], addrlen len[addr])
 connect$bt_rfcomm(fd sock_bt_rfcomm, addr ptr[in, sockaddr_rc], addrlen len[addr])
-setsockopt$RFCOMM_LM(fd sock_bt_rfcomm, level const[SOL_RFCOMM], opt const[RFCOMM_LM], arg ptr[in, flags[bt_l2cap_lm, int32]], arglen len[arg])
-getsockopt$RFCOMM_LM(fd sock_bt_rfcomm, level const[SOL_RFCOMM], opt const[RFCOMM_LM], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
-getsockopt$RFCOMM_CONNINFO(fd sock_bt_rfcomm, level const[SOL_RFCOMM], opt const[RFCOMM_CONNINFO], arg buffer[out], arglen ptr[inout, len[arg, int32]])
+setsockopt$bt_rfcomm_RFCOMM_LM(fd sock_bt_rfcomm, level const[SOL_RFCOMM], opt const[RFCOMM_LM], arg ptr[in, flags[bt_l2cap_lm, int32]], arglen len[arg])
+getsockopt$bt_rfcomm_RFCOMM_LM(fd sock_bt_rfcomm, level const[SOL_RFCOMM], opt const[RFCOMM_LM], arg ptr[out, int32], arglen ptr[inout, len[arg, int32]])
+getsockopt$bt_rfcomm_RFCOMM_CONNINFO(fd sock_bt_rfcomm, level const[SOL_RFCOMM], opt const[RFCOMM_CONNINFO], arg buffer[out], arglen ptr[inout, len[arg, int32]])
 
 resource sock_bt_hidp[sock_bt]
 
 socket$bt_hidp(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_HIDP]) sock_bt_hidp
-ioctl$HIDPCONNADD(fd sock_bt_hidp, cmd const[HIDPCONNADD], arg ptr[in, hidp_connadd_req])
-ioctl$HIDPCONNDEL(fd sock_bt_hidp, cmd const[HIDPCONNDEL], arg ptr[in, hidp_conndel_req])
-ioctl$HIDPGETCONNLIST(fd sock_bt_hidp, cmd const[HIDPGETCONNLIST], arg ptr[in, hidp_connlist_req])
-ioctl$HIDPGETCONNINFO(fd sock_bt_hidp, cmd const[HIDPGETCONNINFO], arg ptr[in, hidp_conninfo])
+ioctl$sock_bt_hidp_HIDPCONNADD(fd sock_bt_hidp, cmd const[HIDPCONNADD], arg ptr[in, hidp_connadd_req])
+ioctl$sock_bt_hidp_HIDPCONNDEL(fd sock_bt_hidp, cmd const[HIDPCONNDEL], arg ptr[in, hidp_conndel_req])
+ioctl$sock_bt_hidp_HIDPGETCONNLIST(fd sock_bt_hidp, cmd const[HIDPGETCONNLIST], arg ptr[in, hidp_connlist_req])
+ioctl$sock_bt_hidp_HIDPGETCONNINFO(fd sock_bt_hidp, cmd const[HIDPGETCONNINFO], arg ptr[in, hidp_conninfo])
 
 resource sock_bt_cmtp[sock_bt]
 
 socket$bt_cmtp(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_CMTP]) sock_bt_cmtp
-ioctl$CMTPCONNADD(fd sock_bt_cmtp, cmd const[CMTPCONNADD], arg ptr[in, cmtp_connadd_req])
-ioctl$CMTPCONNDEL(fd sock_bt_cmtp, cmd const[CMTPCONNDEL], arg ptr[in, cmtp_conndel_req])
-ioctl$CMTPGETCONNLIST(fd sock_bt_cmtp, cmd const[CMTPGETCONNLIST], arg ptr[in, cmtp_connlist_req])
-ioctl$CMTPGETCONNINFO(fd sock_bt_cmtp, cmd const[CMTPGETCONNINFO], arg ptr[in, cmtp_conninfo])
+ioctl$sock_bt_cmtp_CMTPCONNADD(fd sock_bt_cmtp, cmd const[CMTPCONNADD], arg ptr[in, cmtp_connadd_req])
+ioctl$sock_bt_cmtp_CMTPCONNDEL(fd sock_bt_cmtp, cmd const[CMTPCONNDEL], arg ptr[in, cmtp_conndel_req])
+ioctl$sock_bt_cmtp_CMTPGETCONNLIST(fd sock_bt_cmtp, cmd const[CMTPGETCONNLIST], arg ptr[in, cmtp_connlist_req])
+ioctl$sock_bt_cmtp_CMTPGETCONNINFO(fd sock_bt_cmtp, cmd const[CMTPGETCONNINFO], arg ptr[in, cmtp_conninfo])
 
 resource sock_bt_bnep[sock_bt]
 
 socket$bt_bnep(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_BNEP]) sock_bt_bnep
-ioctl$BNEPCONNADD(fd sock_bt_bnep, cmd const[BNEPCONNADD], arg ptr[in, bnep_connadd_req])
-ioctl$BNEPCONNDEL(fd sock_bt_bnep, cmd const[BNEPCONNDEL], arg ptr[in, bnep_conndel_req])
-ioctl$BNEPGETCONNLIST(fd sock_bt_bnep, cmd const[BNEPGETCONNLIST], arg ptr[in, bnep_connlist_req])
-ioctl$BNEPGETCONNINFO(fd sock_bt_bnep, cmd const[BNEPGETCONNINFO], arg ptr[in, bnep_conninfo])
-ioctl$BNEPGETSUPPFEAT(fd sock_bt_bnep, cmd const[BNEPGETSUPPFEAT], arg ptr[in, int32])
+ioctl$sock_bt_bnep_BNEPCONNADD(fd sock_bt_bnep, cmd const[BNEPCONNADD], arg ptr[in, bnep_connadd_req])
+ioctl$sock_bt_bnep_BNEPCONNDEL(fd sock_bt_bnep, cmd const[BNEPCONNDEL], arg ptr[in, bnep_conndel_req])
+ioctl$sock_bt_bnep_BNEPGETCONNLIST(fd sock_bt_bnep, cmd const[BNEPGETCONNLIST], arg ptr[in, bnep_connlist_req])
+ioctl$sock_bt_bnep_BNEPGETCONNINFO(fd sock_bt_bnep, cmd const[BNEPGETCONNINFO], arg ptr[in, bnep_conninfo])
+ioctl$sock_bt_bnep_BNEPGETSUPPFEAT(fd sock_bt_bnep, cmd const[BNEPGETSUPPFEAT], arg ptr[in, int32])
 
-ioctl$bt(fd sock_bt, cmd flags[bt_ioctl], arg buffer[inout])
-setsockopt$BT_SECURITY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SECURITY], arg ptr[in, bt_security], arglen len[arg])
-getsockopt$BT_SECURITY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SECURITY], arg ptr[out, bt_security], arglen len[arg])
-setsockopt$BT_DEFER_SETUP(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_DEFER_SETUP], arg ptr[in, int32], arglen len[arg])
-getsockopt$BT_DEFER_SETUP(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_DEFER_SETUP], arg ptr[in, int32], arglen ptr[in, len[arg, intptr]])
-setsockopt$BT_VOICE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_VOICE], arg ptr[in, int16], arglen len[arg])
-getsockopt$BT_VOICE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_VOICE], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
-setsockopt$BT_FLUSHABLE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_FLUSHABLE], arg ptr[in, int32], arglen len[arg])
-getsockopt$BT_FLUSHABLE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_FLUSHABLE], arg ptr[in, int32], arglen ptr[in, len[arg, intptr]])
-setsockopt$BT_POWER(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_POWER], arg ptr[in, int8], arglen len[arg])
-getsockopt$BT_POWER(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_POWER], arg ptr[in, int8], arglen ptr[in, len[arg, intptr]])
-setsockopt$BT_CHANNEL_POLICY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_CHANNEL_POLICY], arg ptr[in, int32], arglen len[arg])
-getsockopt$BT_CHANNEL_POLICY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_CHANNEL_POLICY], arg ptr[in, int32], arglen ptr[in, len[arg, intptr]])
-setsockopt$BT_SNDMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SNDMTU], arg ptr[in, int16], arglen len[arg])
-getsockopt$BT_SNDMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SNDMTU], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
-setsockopt$BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen len[arg])
-getsockopt$BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
+ioctl$sock_bt(fd sock_bt, cmd flags[bt_ioctl], arg buffer[inout])
+setsockopt$bt_BT_SECURITY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SECURITY], arg ptr[in, bt_security], arglen len[arg])
+getsockopt$bt_BT_SECURITY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SECURITY], arg ptr[out, bt_security], arglen len[arg])
+setsockopt$bt_BT_DEFER_SETUP(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_DEFER_SETUP], arg ptr[in, int32], arglen len[arg])
+getsockopt$bt_BT_DEFER_SETUP(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_DEFER_SETUP], arg ptr[in, int32], arglen ptr[in, len[arg, intptr]])
+setsockopt$bt_BT_VOICE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_VOICE], arg ptr[in, int16], arglen len[arg])
+getsockopt$bt_BT_VOICE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_VOICE], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
+setsockopt$bt_BT_FLUSHABLE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_FLUSHABLE], arg ptr[in, int32], arglen len[arg])
+getsockopt$bt_BT_FLUSHABLE(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_FLUSHABLE], arg ptr[in, int32], arglen ptr[in, len[arg, intptr]])
+setsockopt$bt_BT_POWER(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_POWER], arg ptr[in, int8], arglen len[arg])
+getsockopt$bt_BT_POWER(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_POWER], arg ptr[in, int8], arglen ptr[in, len[arg, intptr]])
+setsockopt$bt_BT_CHANNEL_POLICY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_CHANNEL_POLICY], arg ptr[in, int32], arglen len[arg])
+getsockopt$bt_BT_CHANNEL_POLICY(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_CHANNEL_POLICY], arg ptr[in, int32], arglen ptr[in, len[arg, intptr]])
+setsockopt$bt_BT_SNDMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SNDMTU], arg ptr[in, int16], arglen len[arg])
+getsockopt$bt_BT_SNDMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_SNDMTU], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
+setsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen len[arg])
+getsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCVMTU], arg ptr[in, int16], arglen ptr[in, len[arg, intptr]])
 
 sockaddr_hci {
 	fam	const[AF_BLUETOOTH, int16]

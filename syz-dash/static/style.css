@@ -35,6 +35,22 @@ table td, table th {
 	overflow: hidden;
 }
 
+.position_table {
+	border: 0px;
+	margin: 0px;
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.position_table td, .position_table tr {
+	vertical-align: center;
+	padding: 0px;
+}
+
+.position_table .search {
+	text-align: right;
+}
+
 .list_table td, .list_table th {
 	border-left: 1px solid #ccc;
 }
@@ -62,7 +78,9 @@ table td, table th {
 
 .list_table .tag {
 	font-family: monospace;
-	font-size: 9pt;
+	font-size: 8pt;
+	width: 200pt;
+	max-width: 200pt;
 }
 
 .list_table .opts {

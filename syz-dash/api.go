@@ -68,6 +68,7 @@ const (
 	BugStatusReported
 	BugStatusFixed
 	BugStatusUnclear
+	BugStatusClaimed
 	BugStatusClosed = 1000 + iota
 	BugStatusDeleted
 )
@@ -82,6 +83,8 @@ func statusToString(status int) string {
 		return "fixed"
 	case BugStatusUnclear:
 		return "unclear"
+	case BugStatusClaimed:
+		return "claimed"
 	case BugStatusClosed:
 		return "closed"
 	case BugStatusDeleted:
@@ -101,6 +104,8 @@ func stringToStatus(status string) (int, error) {
 		return BugStatusFixed, nil
 	case "unclear":
 		return BugStatusUnclear, nil
+	case "claimed":
+		return BugStatusClaimed, nil
 	case "closed":
 		return BugStatusClosed, nil
 	case "deleted":

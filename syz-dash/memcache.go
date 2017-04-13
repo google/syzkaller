@@ -75,7 +75,7 @@ func buildCached(c appengine.Context) (*Cached, error) {
 			})
 		}
 		switch bug.Status {
-		case BugStatusNew, BugStatusReported, BugStatusUnclear:
+		case BugStatusNew, BugStatusReported, BugStatusUnclear, BugStatusClaimed:
 			cached.Found++
 		case BugStatusFixed, BugStatusClosed:
 			cached.Found++
@@ -95,7 +95,7 @@ func buildCached(c appengine.Context) (*Cached, error) {
 			return nil, fmt.Errorf("failed to find bug for crash %v (%v)", group.Title, group.Seq)
 		}
 		switch status {
-		case BugStatusNew, BugStatusReported, BugStatusFixed, BugStatusUnclear, BugStatusClosed:
+		case BugStatusNew, BugStatusReported, BugStatusFixed, BugStatusUnclear, BugStatusClaimed, BugStatusClosed:
 			cached.Crashed += group.NumCrashes
 		case BugStatusDeleted:
 		default:

@@ -43,7 +43,7 @@ var oopses = []*oops{
 				"KASAN: %[1]v",
 			},
 			{
-				compile("BUG: unable to handle kernel paging request(?:.*\\n)+?.*IP: {{PC}} +{{FUNC}}"),
+				compile("BUG: unable to handle kernel paging request(?:.*\\n)+?.*IP: (?:{{PC}} +)?{{FUNC}}"),
 				"BUG: unable to handle kernel paging request in %[1]v",
 			},
 			{
@@ -51,7 +51,7 @@ var oopses = []*oops{
 				"BUG: unable to handle kernel paging request",
 			},
 			{
-				compile("BUG: unable to handle kernel NULL pointer dereference(?:.*\\n)+?.*IP: {{PC}} +{{FUNC}}"),
+				compile("BUG: unable to handle kernel NULL pointer dereference(?:.*\\n)+?.*IP: (?:{{PC}} +)?{{FUNC}}"),
 				"BUG: unable to handle kernel NULL pointer dereference in %[1]v",
 			},
 			{
@@ -69,6 +69,14 @@ var oopses = []*oops{
 			{
 				compile("BUG: .*still has locks held!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
 				"BUG: still has locks held in %[1]v",
+			},
+			{
+				compile("BUG: bad unlock balance detected!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
+				"BUG: bad unlock balance in %[1]v",
+			},
+			{
+				compile("BUG: held lock freed!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
+				"BUG: held lock freed in %[1]v",
 			},
 			{
 				compile("BUG: Bad rss-counter state"),
@@ -105,20 +113,48 @@ var oopses = []*oops{
 				"possible deadlock in %[1]v",
 			},
 			{
+				compile("INFO: possible irq lock inversion dependency detected \\](?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
+				compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected \\](?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
+				compile("INFO: possible recursive locking detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
 				compile("INFO: inconsistent lock state \\](?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"inconsistent lock state in %[1]v",
+			},
+			{
+				compile("INFO: rcu_preempt detected stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				"INFO: rcu detected stall in %[1]v",
 			},
 			{
 				compile("INFO: rcu_preempt detected stalls"),
 				"INFO: rcu detected stall",
 			},
 			{
+				compile("INFO: rcu_sched detected stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				"INFO: rcu detected stall in %[1]v",
+			},
+			{
 				compile("INFO: rcu_sched detected stalls"),
 				"INFO: rcu detected stall",
 			},
 			{
+				compile("INFO: rcu_preempt self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				"INFO: rcu detected stall in %[1]v",
+			},
+			{
 				compile("INFO: rcu_preempt self-detected stall on CPU"),
 				"INFO: rcu detected stall",
+			},
+			{
+				compile("INFO: rcu_sched self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				"INFO: rcu detected stall in %[1]v",
 			},
 			{
 				compile("INFO: rcu_sched self-detected stall on CPU"),
@@ -256,10 +292,11 @@ var (
 	consoleOutputRe = regexp.MustCompile(`^(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\] `)
 	questionableRe  = regexp.MustCompile(`(?:\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
 	symbolizeRe     = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])? +(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
-	addrRe          = regexp.MustCompile(`[0-9a-f]{16}`)
+	decNumRe        = regexp.MustCompile(`[0-9]{5,}`)
+	addrRe          = regexp.MustCompile(`[0-9a-f]{8,}`)
 	funcRe          = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9_.]+)\+0x[0-9a-z]+/0x[0-9a-z]+`)
 	cpuRe           = regexp.MustCompile(`CPU#[0-9]+`)
-	executorRe      = regexp.MustCompile(`syz-executor[0-9]+(/|:)[0-9]+`)
+	executorRe      = regexp.MustCompile(`syz-executor[0-9]+((/|:)[0-9]+)?`)
 	eoi             = []byte("<EOI>")
 )
 
@@ -351,16 +388,18 @@ func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, s
 	if len(desc) > 0 && desc[len(desc)-1] == '\r' {
 		desc = desc[:len(desc)-1]
 	}
+	// Executor PIDs are not interesting.
+	desc = executorRe.ReplaceAllLiteralString(desc, "syz-executor")
 	// Replace that everything looks like an address with "ADDR",
 	// addresses in descriptions can't be good regardless of the oops regexps.
 	desc = addrRe.ReplaceAllLiteralString(desc, "ADDR")
+	// Replace that everything looks like a decimal number with "NUM".
+	desc = decNumRe.ReplaceAllLiteralString(desc, "NUM")
 	// Replace all raw references to runctions (e.g. "ip6_fragment+0x1052/0x2d80")
 	// with just function name ("ip6_fragment"). Offsets and sizes are not stable.
 	desc = funcRe.ReplaceAllString(desc, "$1")
 	// CPU numbers are not interesting.
 	desc = cpuRe.ReplaceAllLiteralString(desc, "CPU")
-	// Executor PIDs are not interesting.
-	desc = executorRe.ReplaceAllLiteralString(desc, "syz-executor")
 	// Corrupted/intermixed lines can be very long.
 	const maxDescLen = 180
 	if len(desc) > maxDescLen {
