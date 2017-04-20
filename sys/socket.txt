@@ -230,6 +230,8 @@ ifreq_ioctls = SIOCGIFNAME, SIOCSIFLINK, SIOCGIFFLAGS, SIOCSIFFLAGS, SIOCGIFADDR
 
 ioctl$sock_ifreq(fd sock, cmd flags[ifreq_ioctls], arg ptr[inout, ifreq])
 
+ioctl$sock_SIOCGIFINDEX(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_SIOCGIFINDEX])
+
 ioctl$sock_SIOCGIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
 ioctl$sock_SIOCSIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
 
@@ -258,6 +260,14 @@ ioctl$sock_SIOCSPGRP(fd sock, cmd const[SIOCSPGRP], arg ptr[in, pid])
 ioctl$sock_FIOGETOWN(fd sock, cmd const[FIOGETOWN], arg ptr[out, pid])
 ioctl$sock_SIOCGPGRP(fd sock, cmd const[SIOCGPGRP], arg ptr[out, pid])
 
+resource ifindex[int32]
+
+ifreq_SIOCGIFINDEX {
+	ifr_ifrn	devname
+	ifr_ifru	ifindex
+	pad		array[const[0, int8], 20]
+} [packed]
+
 ifreq {
 	ifr_ifrn	devname
 	ifr_ifru	ifr_ifru
@@ -271,10 +281,13 @@ syzn_devname {
 	0	const[0, int8]
 }
 
+# We could add "eth0" to this list as well, but this will affect the connection between fuzzer and manager and produce lots of "no output" crashes.
+devnames = "lo", "tunl0", "gre0", "gretap0", "ip_vti0", "ip6_vti0", "sit0", "ip6tnl0", "ip6gre0", "bond0", "dummy0", "eql", "ifb0", "ipddp0", "yam0", "bcsf0", "bcsh0", "teql0", "nr0", "rose0", "irlan0", "bpq0"
+
 devname [
 	generic         array[int8, IFNAMSIZ]
-	loopback	string["lo", IFNAMSIZ]
-	ethernet	syzn_devname
+	common		string[devnames, IFNAMSIZ]
+	syzn		syzn_devname
 ]
 
 ifr_ifru [
