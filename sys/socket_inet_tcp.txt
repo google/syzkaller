@@ -15,8 +15,8 @@ tcp_pair {
 	f1	sock_tcp
 }
 
-socket$tcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[0]) sock_tcp
-socketpair$tcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[0], fds ptr[out, tcp_pair])
+socket$inet_tcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[0]) sock_tcp
+socketpair$inet_tcp(domain const[AF_INET], type const[SOCK_STREAM], proto const[0], fds ptr[out, tcp_pair])
 
 resource sock_tcp6[sock_in6]
 
@@ -25,8 +25,8 @@ tcp6_pair {
 	f1	sock_tcp6
 }
 
-socket$tcp6(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0]) sock_tcp6
-socketpair$tcp6(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0], fds ptr[out, tcp6_pair])
+socket$inet6_tcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0]) sock_tcp6
+socketpair$inet6_tcp(domain const[AF_INET6], type const[SOCK_STREAM], proto const[0], fds ptr[out, tcp6_pair])
 
 # Generic TCP socket options
 
