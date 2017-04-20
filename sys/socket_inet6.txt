@@ -113,8 +113,8 @@ mf6cctl {
 }
 
 ipv6_mreq {
-	multi	ipv6_addr
-	ifindex	int32
+	multi		ipv6_addr
+	ifindex		ifindex
 }
 
 in6_flowlabel_req {
@@ -153,7 +153,7 @@ group_filter_in6 {
 
 in6_pktinfo {
 	ipi6_addr	ipv6_addr
-	ipi6_ifindex	int32
+	ipi6_ifindex	ifindex
 }
 
 # IPv6 ioctls
@@ -181,11 +181,11 @@ in6_rtmsg {
 	rtmsg_metric	flags[rtmsg_metrics, int32]
 	rtmsg_info	int64
 	rtmsg_flags	flags[rtmsg_flags, int32]
-	rtmsg_ifindex	int32
+	rtmsg_ifindex	ifindex
 }
 
 in6_ifreq {
 	ifr6_addr	ipv6_addr
 	ifr6_prefixlen	int32
-	ifr6_ifindex	int32
+	ifr6_ifindex	ifindex
 }
