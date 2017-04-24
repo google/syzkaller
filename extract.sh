@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Copyright 2015 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
@@ -32,7 +33,8 @@ UPSTREAM_FILES="sys/bpf.txt sys/dri.txt sys/fuse.txt sys/input.txt sys/ipc.txt
 
 ANDROID_FILES="sys/tlk_device.txt"
 
-if [ "$BUILD_FOR_ANDROID" == "no" ]; then
+if [ "$BUILD_FOR_ANDROID" == "no" ]; 
+then
 	FILES="$UPSTREAM_FILES"
 else
 	FILES="$ANDROID_FILES"
