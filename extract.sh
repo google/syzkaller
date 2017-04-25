@@ -30,7 +30,7 @@ UPSTREAM_FILES="sys/bpf.txt sys/dri.txt sys/fuse.txt sys/input.txt sys/ipc.txt
 		sys/socket_netrom.txt sys/socket_nfc.txt sys/socket_unix.txt
 		sys/socket_ipx.txt sys/socket_ax25.txt"
 
-ANDROID_FILES="sys/tlk_device.txt"
+ANDROID_FILES="sys/tlk_device.txt sys/ion.txt"
 
 if [ "$BUILD_FOR_ANDROID" == "no" ]; then
 	FILES="$UPSTREAM_FILES"
