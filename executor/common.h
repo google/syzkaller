@@ -298,6 +298,36 @@ static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 }
 #endif // __NR_syz_emit_ethernet
 
+struct csum_inet {
+	uint32_t acc;
+};
+
+void csum_inet_init(struct csum_inet* csum)
+{
+	csum->acc = 0;
+}
+
+void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
+{
+	if (length == 0)
+		return;
+
+	size_t i;
+	for (i = 0; i < length - 1; i += 2)
+		csum->acc += *(uint16_t*)&data[i];
+
+	if (length & 1)
+		csum->acc += (uint16_t)data[length - 1];
+
+	while (csum->acc > 0xffff)
+		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
+}
+
+uint16_t csum_inet_digest(struct csum_inet* csum)
+{
+	return ~csum->acc;
+}
+
 #ifdef __NR_syz_open_dev
 static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 {

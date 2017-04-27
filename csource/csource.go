@@ -226,8 +226,33 @@ loop:
 					esc = append(esc, '\\', 'x', hex(v>>4), hex(v<<4>>4))
 				}
 				fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n", addr, esc, size)
+			case prog.ExecArgCsum:
+				csum_kind := read()
+				switch csum_kind {
+				case prog.ExecArgCsumInet:
+					fmt.Fprintf(w, "\tstruct csum_inet csum_%d;\n", n)
+					fmt.Fprintf(w, "\tcsum_inet_init(&csum_%d);\n", n)
+					csum_chunks_num := read()
+					for i := uintptr(0); i < csum_chunks_num; i++ {
+						chunk_kind := read()
+						chunk_value := read()
+						chunk_size := read()
+						switch chunk_kind {
+						case prog.ExecArgCsumChunkData:
+							fmt.Fprintf(w, "\tNONFAILING(csum_inet_update(&csum_%d, (const uint8_t*)0x%x, %d));\n", n, chunk_value, chunk_size)
+						case prog.ExecArgCsumChunkConst:
+							fmt.Fprintf(w, "\tuint%d_t csum_%d_chunk_%d = 0x%x;\n", chunk_size*8, n, i, chunk_value)
+							fmt.Fprintf(w, "\tcsum_inet_update(&csum_%d, (const uint8_t*)&csum_%d_chunk_%d, %d);\n", n, n, i, chunk_size)
+						default:
+							panic(fmt.Sprintf("unknown checksum chunk kind %v", chunk_kind))
+						}
+					}
+					fmt.Fprintf(w, "\tNONFAILING(*(uint16_t*)0x%x = csum_inet_digest(&csum_%d));\n", addr, n)
+				default:
+					panic(fmt.Sprintf("unknown csum kind %v", csum_kind))
+				}
 			default:
-				panic("bad argument type")
+				panic(fmt.Sprintf("bad argument type %v", instr))
 			}
 		case prog.ExecInstrCopyout:
 			addr := read()
