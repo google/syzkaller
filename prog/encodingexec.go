@@ -8,6 +8,7 @@ package prog
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/google/syzkaller/sys"
 )
@@ -22,6 +23,16 @@ const (
 	ExecArgConst = uintptr(iota)
 	ExecArgResult
 	ExecArgData
+	ExecArgCsum
+)
+
+const (
+	ExecArgCsumInet = uintptr(iota)
+)
+
+const (
+	ExecArgCsumChunkData = uintptr(iota)
+	ExecArgCsumChunkConst
 )
 
 const (
@@ -31,6 +42,25 @@ const (
 	pageSize   = 4 << 10
 	dataOffset = 512 << 20
 )
+
+type Args []*Arg
+
+func (s Args) Len() int {
+	return len(s)
+}
+
+func (s Args) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+
+type ByPhysicalAddr struct {
+	Args
+	Context *execContext
+}
+
+func (s ByPhysicalAddr) Less(i, j int) bool {
+	return s.Context.args[s.Args[i]].Addr < s.Context.args[s.Args[j]].Addr
+}
 
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
 // If the provided buffer is too small for the program an error is returned.
@@ -49,13 +79,30 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 	for _, c := range p.Calls {
 		// Calculate checksums.
 		csumMap := calcChecksumsCall(c, pid)
+		var csumUses map[*Arg]bool
+		if csumMap != nil {
+			csumUses = make(map[*Arg]bool)
+			for arg, info := range csumMap {
+				csumUses[arg] = true
+				if info.Kind == CsumInet {
+					for _, chunk := range info.Chunks {
+						if chunk.Kind == CsumChunkArg {
+							csumUses[chunk.Arg] = true
+						}
+					}
+				}
+			}
+		}
 		// Calculate arg offsets within structs.
 		// Generate copyin instructions that fill in data into pointer arguments.
 		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
 			if arg.Kind == ArgPointer && arg.Res != nil {
 				foreachSubargOffset(arg.Res, func(arg1 *Arg, offset uintptr) {
-					if len(arg1.Uses) != 0 {
-						w.args[arg1] = argInfo{Offset: offset}
+					if len(arg1.Uses) != 0 || csumUses[arg1] {
+						w.args[arg1] = argInfo{Addr: physicalAddr(arg) + offset}
+					}
+					if arg1.Kind == ArgGroup || arg1.Kind == ArgUnion {
+						return
 					}
 					if !sys.IsPad(arg1.Type) &&
 						!(arg1.Kind == ArgData && len(arg1.Data) == 0) &&
@@ -68,6 +115,47 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 				})
 			}
 		})
+		// Generate checksum calculation instructions starting from the last one,
+		// since checksum values can depend on values of the latter ones
+		if csumMap != nil {
+			var csumArgs []*Arg
+			for arg, _ := range csumMap {
+				csumArgs = append(csumArgs, arg)
+			}
+			sort.Sort(ByPhysicalAddr{Args: csumArgs, Context: w})
+			for i := len(csumArgs) - 1; i >= 0; i-- {
+				arg := csumArgs[i]
+				if _, ok := arg.Type.(*sys.CsumType); !ok {
+					panic("csum arg is not csum type")
+				}
+				w.write(ExecInstrCopyin)
+				w.write(w.args[arg].Addr)
+				w.write(ExecArgCsum)
+				w.write(arg.Size())
+				switch csumMap[arg].Kind {
+				case CsumInet:
+					w.write(ExecArgCsumInet)
+					w.write(uintptr(len(csumMap[arg].Chunks)))
+					for _, chunk := range csumMap[arg].Chunks {
+						switch chunk.Kind {
+						case CsumChunkArg:
+							w.write(ExecArgCsumChunkData)
+							w.write(w.args[chunk.Arg].Addr)
+							w.write(chunk.Arg.Size())
+						case CsumChunkConst:
+							w.write(ExecArgCsumChunkConst)
+							w.write(chunk.Value)
+							w.write(chunk.Size)
+						default:
+							panic(fmt.Sprintf("csum chunk has unknown kind %v", chunk.Kind))
+						}
+					}
+				default:
+					panic(fmt.Sprintf("csum arg has unknown kind %v", csumMap[arg].Kind))
+				}
+				instrSeq++
+			}
+		}
 		// Generate the call itself.
 		w.write(uintptr(c.Meta.ID))
 		w.write(uintptr(len(c.Args)))
@@ -96,7 +184,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 				instrSeq++
 				w.args[arg] = info
 				w.write(ExecInstrCopyout)
-				w.write(physicalAddr(base) + info.Offset)
+				w.write(info.Addr)
 				w.write(arg.Size())
 			default:
 				panic("bad arg kind in copyout")
@@ -130,8 +218,8 @@ type execContext struct {
 }
 
 type argInfo struct {
-	Offset uintptr // from base pointer
-	Idx    uintptr // instruction index
+	Addr uintptr // physical addr
+	Idx  uintptr // instruction index
 }
 
 func (w *execContext) write(v uintptr) {
@@ -150,14 +238,9 @@ func (w *execContext) write(v uintptr) {
 	w.buf = w.buf[8:]
 }
 
-func (w *execContext) writeArg(arg *Arg, pid int, csumMap map[*Arg]*Arg) {
+func (w *execContext) writeArg(arg *Arg, pid int, csumMap map[*Arg]CsumInfo) {
 	switch arg.Kind {
 	case ArgConst:
-		if _, ok := arg.Type.(*sys.CsumType); ok {
-			if arg, ok = csumMap[arg]; !ok {
-				panic("csum arg is not in csum map")
-			}
-		}
 		w.write(ExecArgConst)
 		w.write(arg.Size())
 		w.write(arg.Value(pid))

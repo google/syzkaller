@@ -57,6 +57,7 @@ const uint64_t instr_copyout = -3;
 const uint64_t arg_const = 0;
 const uint64_t arg_result = 1;
 const uint64_t arg_data = 2;
+const uint64_t arg_csum = 3;
 
 // We use the default value instead of results of failed syscalls.
 // -1 is an invalid fd and an invalid address and deterministic,
@@ -114,6 +115,13 @@ struct thread_t {
 };
 
 thread_t threads[kMaxThreads];
+
+// Checksum kinds.
+const uint64_t arg_csum_inet = 0;
+
+// Checksum chunk kinds.
+const uint64_t arg_csum_chunk_data = 0;
+const uint64_t arg_csum_chunk_const = 1;
 
 void execute_one();
 uint64_t read_input(uint64_t** input_posp, bool peek = false);
@@ -352,6 +360,52 @@ retry:
 				// Read out the data.
 				for (uint64_t i = 0; i < (size + 7) / 8; i++)
 					read_input(&input_pos);
+				break;
+			}
+			case arg_csum: {
+				debug("checksum found at %llx\n", addr);
+				char* csum_addr = addr;
+				uint64_t csum_size = size;
+				uint64_t csum_kind = read_input(&input_pos);
+				switch (csum_kind) {
+				case arg_csum_inet: {
+					if (csum_size != 2) {
+						fail("inet checksum must be 2 bytes, not %lu", size);
+					}
+					debug("calculating checksum for %llx\n", csum_addr);
+					struct csum_inet csum;
+					csum_inet_init(&csum);
+					uint64_t chunks_num = read_input(&input_pos);
+					uint64_t chunk;
+					for (chunk = 0; chunk < chunks_num; chunk++) {
+						uint64_t chunk_kind = read_input(&input_pos);
+						uint64_t chunk_value = read_input(&input_pos);
+						uint64_t chunk_size = read_input(&input_pos);
+						switch (chunk_kind) {
+						case arg_csum_chunk_data:
+							debug("#%d: data chunk, addr: %llx, size: %llu\n", chunk, chunk_value, chunk_size);
+							NONFAILING(csum_inet_update(&csum, (const uint8_t*)chunk_value, chunk_size));
+							break;
+						case arg_csum_chunk_const:
+							if (chunk_size != 2 && chunk_size != 4 && chunk_size != 8) {
+								fail("bad checksum const chunk size %lld\n", chunk_size);
+							}
+							// Here we assume that const values come to us big endian.
+							debug("#%d: const chunk, value: %llx, size: %llu\n", chunk, chunk_value, chunk_size);
+							csum_inet_update(&csum, (const uint8_t*)&chunk_value, chunk_size);
+							break;
+						default:
+							fail("bad checksum chunk kind %lu", chunk_kind);
+						}
+					}
+					int16_t csum_value = csum_inet_digest(&csum);
+					debug("writing inet checksum %hx to %llx\n", csum_value, csum_addr);
+					NONFAILING(copyin(csum_addr, csum_value, 2, 0, 0));
+					break;
+				}
+				default:
+					fail("bad checksum kind %lu", csum_kind);
+				}
 				break;
 			}
 			default:
