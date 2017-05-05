@@ -467,7 +467,7 @@ func (a *GCSImageAction) Poll() (string, error) {
 	}
 	a.handle = f.If(storage.Conditions{
 		GenerationMatch:     attrs.Generation,
-		MetagenerationMatch: attrs.MetaGeneration,
+		MetagenerationMatch: attrs.Metageneration,
 	})
 	return attrs.Updated.Format(time.RFC1123Z), nil
 }
