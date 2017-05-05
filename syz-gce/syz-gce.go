@@ -530,6 +530,7 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		Enable_Syscalls:  cfg.Enable_Syscalls,
 		Disable_Syscalls: cfg.Disable_Syscalls,
 		Cover:            true,
+		Reproduce:        true,
 	}
 	if _, err := os.Stat("image/key"); err == nil {
 		managerCfg.Sshkey = "image/key"
