@@ -346,7 +346,12 @@ func (a *LocalBuildAction) Poll() (string, error) {
 		if err := os.MkdirAll(dir, 0700); err != nil {
 			return "", fmt.Errorf("failed to create repo dir: %v", err)
 		}
-		if _, err := runCmd("", "git", "clone", a.Repo, dir); err != nil {
+		cloneArgs := []string{"clone", a.Repo, "--single-branch", "--depth", "1"}
+		if a.Branch != "" {
+			cloneArgs = append(cloneArgs, "--branch", a.Branch)
+		}
+		cloneArgs = append(cloneArgs, dir)
+		if _, err := runCmd("", "git", cloneArgs...); err != nil {
 			return "", err
 		}
 		if _, err := runCmd(dir, "git", "pull"); err != nil {
