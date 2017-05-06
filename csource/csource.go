@@ -303,7 +303,6 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 	}
 	remove := append(defines, []string{
 		"__STDC__",
-		"__STDC_VERSION__",
 		"__STDC_HOSTED__",
 		"__STDC_UTF_16__",
 		"__STDC_UTF_32__",
@@ -311,6 +310,18 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 	out := stdout.String()
 	for _, def := range remove {
 		out = strings.Replace(out, "#define "+def+" 1\n", "", -1)
+	}
+	// strip: #define __STDC_VERSION__ 201112L
+	for _, def := range []string{"__STDC_VERSION__"} {
+		pos := strings.Index(out, "#define "+def)
+		if pos == -1 {
+			continue
+		}
+		end := strings.IndexByte(out[pos:], '\n')
+		if end == -1 {
+			continue
+		}
+		out = strings.Replace(out, out[pos:end+1], "", -1)
 	}
 	return out, nil
 }
