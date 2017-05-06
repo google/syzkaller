@@ -58,25 +58,26 @@ var (
 )
 
 type Config struct {
-	Name             string
-	Hub_Addr         string
-	Hub_Key          string
-	Image_Archive    string
-	Image_Path       string
-	Image_Name       string
-	Http_Port        int
-	Machine_Type     string
-	Machine_Count    int
-	Sandbox          string
-	Procs            int
-	Linux_Git        string
-	Linux_Branch     string
-	Linux_Compiler   string
-	Linux_Userspace  string
-	Enable_Syscalls  []string
-	Disable_Syscalls []string
-	Dashboard_Addr   string
-	Dashboard_Key    string
+	Name                  string
+	Hub_Addr              string
+	Hub_Key               string
+	Image_Archive         string
+	Image_Path            string
+	Image_Name            string
+	Http_Port             int
+	Machine_Type          string
+	Machine_Count         int
+	Sandbox               string
+	Procs                 int
+	Linux_Git             string
+	Linux_Branch          string
+	Linux_Compiler        string
+	Linux_Userspace       string
+	Enable_Syscalls       []string
+	Disable_Syscalls      []string
+	Dashboard_Addr        string
+	Dashboard_Key         string
+	Use_Dashboard_Patches bool
 }
 
 type Action interface {
@@ -119,7 +120,7 @@ func main() {
 		if syscall.Getuid() != 0 {
 			Fatalf("building local image requires root")
 		}
-		if cfg.Dashboard_Addr != "" {
+		if cfg.Use_Dashboard_Patches && cfg.Dashboard_Addr != "" {
 			actions = append(actions, &DashboardAction{
 				Dash: &dashboard.Dashboard{
 					Addr:   cfg.Dashboard_Addr,
@@ -500,6 +501,7 @@ func readConfig(filename string) *Config {
 		Fatalf("failed to read config file: %v", err)
 	}
 	cfg := new(Config)
+	cfg.Use_Dashboard_Patches = true
 	if err := json.Unmarshal(data, cfg); err != nil {
 		Fatalf("failed to parse config file: %v", err)
 	}
