@@ -47,7 +47,8 @@ func handleAuth(fn aeHandler) aeHandler {
 	return func(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
 		u := user.Current(c)
 		if !u.Admin && (u.AuthDomain != "gmail.com" || !strings.HasSuffix(u.Email, "@google.com")) {
-			return fmt.Errorf("You are not authorized to view this. This incident will be reported.")
+			c.Errorf("Error: unauthorized user: authdomain='%v' email='%v'", u.AuthDomain, u.Email)
+			return fmt.Errorf("%v is not authorized to view this. This incident will be reported.", u.Email)
 		}
 		return fn(c, w, r)
 	}
