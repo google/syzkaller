@@ -62,30 +62,22 @@ func NewContext() (*Context, error) {
 	if i := strings.LastIndexByte(ctx.ZoneID, '/'); i != -1 {
 		ctx.ZoneID = ctx.ZoneID[i+1:] // the query returns some nonsense prefix
 	}
-	instID, err := ctx.getMeta("instance/id")
+	ctx.Instance, err = ctx.getMeta("instance/name")
 	if err != nil {
-		return nil, fmt.Errorf("failed to query gce instance id: %v", err)
+		return nil, fmt.Errorf("failed to query gce instance name: %v", err)
 	}
-	instances, err := ctx.computeService.Instances.List(ctx.ProjectID, ctx.ZoneID).Do()
+	inst, err := ctx.computeService.Instances.Get(ctx.ProjectID, ctx.ZoneID, ctx.Instance).Do()
 	if err != nil {
-		return nil, fmt.Errorf("error getting instance list: %v", err)
+		return nil, fmt.Errorf("error getting instance info: %v", err)
 	}
-	// Finds this instance internal IP.
-	for _, inst := range instances.Items {
-		if fmt.Sprint(inst.Id) != instID {
-			continue
+	for _, iface := range inst.NetworkInterfaces {
+		if strings.HasPrefix(iface.NetworkIP, "10.") {
+			ctx.InternalIP = iface.NetworkIP
+			break
 		}
-		ctx.Instance = inst.Name
-		for _, iface := range inst.NetworkInterfaces {
-			if strings.HasPrefix(iface.NetworkIP, "10.") {
-				ctx.InternalIP = iface.NetworkIP
-				break
-			}
-		}
-		break
 	}
-	if ctx.Instance == "" || ctx.InternalIP == "" {
-		return nil, fmt.Errorf("failed to get current instance name and internal IP")
+	if ctx.InternalIP == "" {
+		return nil, fmt.Errorf("failed to get current instance internal IP")
 	}
 	return ctx, nil
 }
