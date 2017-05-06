@@ -71,6 +71,7 @@ type Config struct {
 	Procs                 int
 	Linux_Git             string
 	Linux_Branch          string
+	Linux_Config          string
 	Linux_Compiler        string
 	Linux_Userspace       string
 	Enable_Syscalls       []string
@@ -667,9 +668,12 @@ func buildKernel(dir, ccompiler string) error {
 	if _, err := runCmd(dir, "make", "kvmconfig"); err != nil {
 		return err
 	}
-	configFile := filepath.Join(dir, "syz.config")
-	if err := ioutil.WriteFile(configFile, []byte(syzconfig), 0600); err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
+	configFile := cfg.Linux_Config
+	if configFile == "" {
+		configFile = filepath.Join(dir, "syz.config")
+		if err := ioutil.WriteFile(configFile, []byte(syzconfig), 0600); err != nil {
+			return fmt.Errorf("failed to write config file: %v", err)
+		}
 	}
 	if _, err := runCmd(dir, "scripts/kconfig/merge_config.sh", "-n", ".config", configFile); err != nil {
 		return err
