@@ -10,6 +10,8 @@ google account or by sending an email to syzkaller+subscribe@googlegroups.com.
 
 List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
 
+When reporting bugs found with `syzkaller` please add `syzkaller@googlegroups.com` to CC list. Also consider principles of [responsible disclosure](https://en.wikipedia.org/wiki/Responsible_disclosure) when reporting bugs that can be security vulnerabilities.
+
 ## Usage
 
 Various components are needed to build and run syzkaller.
