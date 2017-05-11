@@ -58,25 +58,27 @@ var (
 )
 
 type Config struct {
-	Name             string
-	Hub_Addr         string
-	Hub_Key          string
-	Image_Archive    string
-	Image_Path       string
-	Image_Name       string
-	Http_Port        int
-	Machine_Type     string
-	Machine_Count    int
-	Sandbox          string
-	Procs            int
-	Linux_Git        string
-	Linux_Branch     string
-	Linux_Compiler   string
-	Linux_Userspace  string
-	Enable_Syscalls  []string
-	Disable_Syscalls []string
-	Dashboard_Addr   string
-	Dashboard_Key    string
+	Name                  string
+	Hub_Addr              string
+	Hub_Key               string
+	Image_Archive         string
+	Image_Path            string
+	Image_Name            string
+	Http_Port             int
+	Machine_Type          string
+	Machine_Count         int
+	Sandbox               string
+	Procs                 int
+	Linux_Git             string
+	Linux_Branch          string
+	Linux_Config          string
+	Linux_Compiler        string
+	Linux_Userspace       string
+	Enable_Syscalls       []string
+	Disable_Syscalls      []string
+	Dashboard_Addr        string
+	Dashboard_Key         string
+	Use_Dashboard_Patches bool
 }
 
 type Action interface {
@@ -119,7 +121,7 @@ func main() {
 		if syscall.Getuid() != 0 {
 			Fatalf("building local image requires root")
 		}
-		if cfg.Dashboard_Addr != "" {
+		if cfg.Use_Dashboard_Patches && cfg.Dashboard_Addr != "" {
 			actions = append(actions, &DashboardAction{
 				Dash: &dashboard.Dashboard{
 					Addr:   cfg.Dashboard_Addr,
@@ -346,7 +348,12 @@ func (a *LocalBuildAction) Poll() (string, error) {
 		if err := os.MkdirAll(dir, 0700); err != nil {
 			return "", fmt.Errorf("failed to create repo dir: %v", err)
 		}
-		if _, err := runCmd("", "git", "clone", a.Repo, dir); err != nil {
+		cloneArgs := []string{"clone", a.Repo, "--single-branch", "--depth", "1"}
+		if a.Branch != "" {
+			cloneArgs = append(cloneArgs, "--branch", a.Branch)
+		}
+		cloneArgs = append(cloneArgs, dir)
+		if _, err := runCmd("", "git", cloneArgs...); err != nil {
 			return "", err
 		}
 		if _, err := runCmd(dir, "git", "pull"); err != nil {
@@ -467,7 +474,7 @@ func (a *GCSImageAction) Poll() (string, error) {
 	}
 	a.handle = f.If(storage.Conditions{
 		GenerationMatch:     attrs.Generation,
-		MetagenerationMatch: attrs.MetaGeneration,
+		MetagenerationMatch: attrs.Metageneration,
 	})
 	return attrs.Updated.Format(time.RFC1123Z), nil
 }
@@ -495,6 +502,7 @@ func readConfig(filename string) *Config {
 		Fatalf("failed to read config file: %v", err)
 	}
 	cfg := new(Config)
+	cfg.Use_Dashboard_Patches = true
 	if err := json.Unmarshal(data, cfg); err != nil {
 		Fatalf("failed to parse config file: %v", err)
 	}
@@ -530,6 +538,7 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		Enable_Syscalls:  cfg.Enable_Syscalls,
 		Disable_Syscalls: cfg.Disable_Syscalls,
 		Cover:            true,
+		Reproduce:        true,
 	}
 	if _, err := os.Stat("image/key"); err == nil {
 		managerCfg.Sshkey = "image/key"
@@ -659,9 +668,12 @@ func buildKernel(dir, ccompiler string) error {
 	if _, err := runCmd(dir, "make", "kvmconfig"); err != nil {
 		return err
 	}
-	configFile := filepath.Join(dir, "syz.config")
-	if err := ioutil.WriteFile(configFile, []byte(syzconfig), 0600); err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
+	configFile := cfg.Linux_Config
+	if configFile == "" {
+		configFile = filepath.Join(dir, "syz.config")
+		if err := ioutil.WriteFile(configFile, []byte(syzconfig), 0600); err != nil {
+			return fmt.Errorf("failed to write config file: %v", err)
+		}
 	}
 	if _, err := runCmd(dir, "scripts/kconfig/merge_config.sh", "-n", ".config", configFile); err != nil {
 		return err

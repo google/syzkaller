@@ -202,7 +202,7 @@ func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
 		return nil, fmt.Errorf("failed to unmarshal crash: %v", err)
 	}
 	addedBug := false
-	var group *Group
+	var group0 *Group
 	if err := ds.RunInTransaction(c, func(c appengine.Context) error {
 		now := time.Now()
 		addedBug = false
@@ -220,8 +220,8 @@ func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
 			return err
 		}
 
-		group = &Group{Title: limitLength(req.Desc, maxTitleLen), Seq: 0}
-		for {
+		for seq := int64(0); ; seq++ {
+			group := &Group{Title: limitLength(req.Desc, maxTitleLen), Seq: seq}
 			if err := ds.Get(c, group.Key(c), group); err != nil {
 				if err != ds.ErrNoSuchEntity {
 					return err
@@ -244,6 +244,7 @@ func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
 					return err
 				}
 				addedBug = true
+				group0 = group
 				break
 			}
 			bug := new(Bug)
@@ -266,12 +267,12 @@ func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
 				if _, err := ds.Put(c, group.Key(c), group); err != nil {
 					return err
 				}
+				group0 = group
 				break
 			}
-			group.Seq++
 		}
 
-		if _, err := ds.Put(c, ds.NewIncompleteKey(c, "Crash", group.Key(c)), crash); err != nil {
+		if _, err := ds.Put(c, ds.NewIncompleteKey(c, "Crash", group0.Key(c)), crash); err != nil {
 			return err
 		}
 		return nil
@@ -281,7 +282,7 @@ func handleAddCrash(c appengine.Context, r *http.Request) (interface{}, error) {
 	if addedBug {
 		dropCached(c)
 	}
-	purgeOldCrashes(c, group)
+	purgeOldCrashes(c, group0)
 	return nil, nil
 }
 
@@ -340,19 +341,20 @@ func handleAddRepro(c appengine.Context, r *http.Request) (interface{}, error) {
 	}
 	if err := ds.RunInTransaction(c, func(c appengine.Context) error {
 		now := time.Now()
-		group := &Group{Title: limitLength(req.Crash.Desc, maxTitleLen), Seq: 0}
-		for {
-			if err := ds.Get(c, group.Key(c), group); err != nil {
+		var group *Group
+		for seq := int64(0); ; seq++ {
+			group1 := &Group{Title: limitLength(req.Crash.Desc, maxTitleLen), Seq: seq}
+			if err := ds.Get(c, group1.Key(c), group1); err != nil {
 				return err
 			}
 			bug := new(Bug)
-			if err := ds.Get(c, ds.NewKey(c, "Bug", "", group.Bug, nil), bug); err != nil {
+			if err := ds.Get(c, ds.NewKey(c, "Bug", "", group1.Bug, nil), bug); err != nil {
 				return err
 			}
 			if bug.Status < BugStatusClosed {
+				group = group1
 				break
 			}
-			group.Seq++
 		}
 		group.NumRepro++
 		group.LastTime = now

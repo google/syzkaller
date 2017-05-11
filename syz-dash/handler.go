@@ -47,7 +47,8 @@ func handleAuth(fn aeHandler) aeHandler {
 	return func(c appengine.Context, w http.ResponseWriter, r *http.Request) error {
 		u := user.Current(c)
 		if !u.Admin && (u.AuthDomain != "gmail.com" || !strings.HasSuffix(u.Email, "@google.com")) {
-			return fmt.Errorf("You are not authorized to view this. This incident will be reported.")
+			c.Errorf("Error: unauthorized user: authdomain='%v' email='%v'", u.AuthDomain, u.Email)
+			return fmt.Errorf("%v is not authorized to view this. This incident will be reported.", u.Email)
 		}
 		return fn(c, w, r)
 	}
@@ -554,6 +555,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 			})
 		}
 	}
+	data.Crashes.Title = fmt.Sprintf("crashes (%v total)", data.NumCrashes)
 
 	sort.Sort(uiCrashArray(data.Crashes.List))
 	sort.Sort(uiReproArray(data.Repros))
@@ -597,6 +599,7 @@ func handleSearch(c appengine.Context, w http.ResponseWriter, r *http.Request) e
 	data.Header.Query = r.FormValue("query")
 	query := []byte(data.Header.Query)
 
+	// TODO: we also search closed/deleted bugs, but cached does not contain them.
 	bugTitles := make(map[int64]string)
 	for _, b := range cached.Bugs {
 		bugTitles[b.ID] = b.Title

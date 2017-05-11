@@ -140,12 +140,15 @@ func calcDynamicPrio(corpus []*Prog) [][]float32 {
 		prios[i] = make([]float32, len(sys.Calls))
 	}
 	for _, p := range corpus {
-		for i0 := 0; i0 < len(p.Calls); i0++ {
-			for i1 := 0; i1 < len(p.Calls); i1++ {
-				if i0 == i1 {
+		for _, c0 := range p.Calls {
+			for _, c1 := range p.Calls {
+				id0 := c0.Meta.ID
+				id1 := c1.Meta.ID
+				// There are too many mmap's anyway.
+				if id0 == id1 || c0.Meta.Name == "mmap" || c1.Meta.Name == "mmap" {
 					continue
 				}
-				prios[i0][i1] += 1.0
+				prios[id0][id1] += 1.0
 			}
 		}
 	}
