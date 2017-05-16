@@ -72,7 +72,14 @@ func Run(crashLog []byte, cfg *config.Config, vmIndexes []int) (*Result, error) 
 			defer wg.Done()
 			for vmIndex := range ctx.bootRequests {
 				var inst *instance
-				for try := 0; try < 3; try++ {
+				maxTry := 3
+				for try := 0; try < maxTry; try++ {
+					select {
+					case <-vm.Shutdown:
+						try = maxTry
+						continue
+					default:
+					}
 					vmCfg, err := config.CreateVMConfig(cfg, vmIndex)
 					if err != nil {
 						Logf(0, "reproducing crash '%v': failed to create VM config: %v", crashDesc, err)
