@@ -155,6 +155,7 @@ func foreachSubargOffset(arg *Arg, f func(arg *Arg, offset uintptr)) {
 	rec = func(arg1 *Arg, offset uintptr) uintptr {
 		switch arg1.Kind {
 		case ArgGroup:
+			f(arg1, offset)
 			var totalSize uintptr
 			for _, arg2 := range arg1.Inner {
 				size := rec(arg2, offset)
@@ -167,6 +168,7 @@ func foreachSubargOffset(arg *Arg, f func(arg *Arg, offset uintptr)) {
 				panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %+v", totalSize, arg1.Size(), arg1))
 			}
 		case ArgUnion:
+			f(arg1, offset)
 			size := rec(arg1.Option, offset)
 			offset += size
 			if size > arg1.Size() {

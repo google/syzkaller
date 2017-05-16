@@ -765,8 +765,10 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		arg, calls1 := r.addr(s, a, inner.Size(), inner)
 		calls = append(calls, calls1...)
 		return arg, calls
-	case *sys.LenType, *sys.CsumType:
-		// Return placeholder value of 0 while generating len and csum args.
+	case *sys.LenType:
+		// Return placeholder value of 0 while generating len arg.
+		return constArg(a, 0), nil
+	case *sys.CsumType:
 		return constArg(a, 0), nil
 	default:
 		panic("unknown argument type")
