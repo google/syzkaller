@@ -256,6 +256,11 @@ void loop()
 				fail("failed to chdir");
 			close(kInPipeFd);
 			close(kOutPipeFd);
+			if (flag_enable_tun) {
+				// Read all remaining packets from tun to better
+				// isolate consequently executing programs.
+				flush_tun();
+			}
 			execute_one();
 			debug("worker exiting\n");
 			doexit(0);
