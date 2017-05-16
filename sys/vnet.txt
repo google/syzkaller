@@ -6,6 +6,18 @@ include <linux/byteorder/generic.h>
 
 syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
 
+resource tcp_seq_num[int32]: 0x42424242
+
+tcp_resources {
+	seq	tcp_seq_num
+	ack	tcp_seq_num
+}
+
+# These pseudo syscalls read a packet from /dev/net/tun and extract tcp sequence and acknowledgement numbers from it.
+# They also adds the inc arguments to the returned values, this way sequence numbers get incremented.
+syz_extract_tcp_res(res ptr[out, tcp_resources], seq_inc int32, ack_inc int32)
+syz_extract_tcp_res$synack(res ptr[out, tcp_resources], seq_inc const[1], ack_inc const[0])
+
 ################################################################################
 ################################### Ethernet ###################################
 ################################################################################
@@ -440,20 +452,22 @@ ipv6_addr_empty {
 	a0	array[const[0x00, int8], 16]
 }
 
-# This corresponds to LOCAL_IPV6 ("fd00::%02hxaa" % pid) in executor/common.h
+# This corresponds to LOCAL_IPV6 ("fe80::%02hxaa" % pid) in executor/common.h
 ipv6_addr_local {
-	a0		const[0xfd, int8]
-	a1		array[const[0x00, int8], 13]
-	a2		proc[int8, 0, 1]
-	a3		const[0xaa, int8]
+	a0		const[0xfe, int8]
+	a1		const[0x80, int8]
+	a2		array[const[0x00, int8], 12]
+	a3		proc[int8, 0, 1]
+	a4		const[0xaa, int8]
 } [packed]
 
-# This corresponds to REMOTE_IPV6 ("fd00::%02hxbb" % pid) in executor/common.h
+# This corresponds to REMOTE_IPV6 ("fe80::%02hxbb" % pid) in executor/common.h
 ipv6_addr_remote {
-	a0		const[0xfd, int8]
-	a1		array[const[0x00, int8], 13]
-	a2		proc[int8, 0, 1]
-	a3		const[0xbb, int8]
+	a0		const[0xfe, int8]
+	a1		const[0x80, int8]
+	a2		array[const[0x00, int8], 12]
+	a3		proc[int8, 0, 1]
+	a4		const[0xbb, int8]
 } [packed]
 
 ipv6_addr_loopback {
@@ -659,14 +673,6 @@ tcp_fastopen_option {
 tcp_options {
 	options		array[tcp_option]
 } [packed, align_4]
-
-# TODO: extract sequence numbers from packets
-tcp_seq_num [
-	init	const[0x56565656, int32be]
-	next	const[0x56565657, int32be]
-	nextn	int32be[0x56565656:0x56566000]
-	random	int32be
-]
 
 tcp_flags = 0, TCPHDR_FIN, TCPHDR_SYN, TCPHDR_RST, TCPHDR_PSH, TCPHDR_ACK, TCPHDR_URG, TCPHDR_ECE, TCPHDR_CWR, TCPHDR_SYN_ECN
 
