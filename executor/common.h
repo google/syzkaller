@@ -399,13 +399,6 @@ int read_tun(char* data, int size)
 	return rv;
 }
 
-void flush_tun()
-{
-	char data[SYZ_TUN_MAX_PACKET_SIZE];
-	while (read_tun(&data[0], sizeof(data)) != -1)
-		;
-}
-
 static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 {
 	// syz_extract_tcp_res(res ptr[out, tcp_resources], seq_inc int32, ack_inc int32)
@@ -455,6 +448,15 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	debug("extracted ack: %08x\n", res->ack);
 
 	return 0;
+}
+#endif
+
+#if defined(SYZ_TUN_ENABLE) && (defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT))
+void flush_tun()
+{
+	char data[SYZ_TUN_MAX_PACKET_SIZE];
+	while (read_tun(&data[0], sizeof(data)) != -1)
+		;
 }
 #endif
 
@@ -939,6 +941,9 @@ void loop()
 			setpgrp();
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
+#if defined(SYZ_TUN_ENABLE)
+			flush_tun();
+#endif
 			test();
 			doexit(0);
 		}
