@@ -31,6 +31,7 @@
 #include "syscalls.h"
 
 #define SYZ_EXECUTOR
+#define SYZ_TUN_ENABLE
 #include "common.h"
 
 #define KCOV_INIT_TRACE _IOR('c', 1, unsigned long long)
