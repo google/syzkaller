@@ -137,11 +137,28 @@ static void segv_handler(int sig, siginfo_t* info, void* uctx)
 static void install_segv_handler()
 {
 	struct sigaction sa;
+
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_IGN;
+	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
+	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
+
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_sigaction = segv_handler;
 	sa.sa_flags = SA_NODEFER | SA_SIGINFO;
 	sigaction(SIGSEGV, &sa, NULL);
 	sigaction(SIGBUS, &sa, NULL);
+}
+
+static void use_temporary_dir() {
+	char tmpdir_template[] = "./syzkaller.XXXXXX";
+	char* tmpdir = mkdtemp(tmpdir_template);
+	if (!tmpdir)
+		fail("failed to mkdtemp");
+	if (chmod(tmpdir, 0777))
+		fail("failed to chmod");
+	if (chdir(tmpdir))
+		fail("failed to chdir");
 }
 
 #define NONFAILING(...)                                              \
@@ -1522,25 +1539,6 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 		return syz_kvm_setup_cpu(a0, a1, a2, a3, a4, a5, a6, a7);
 #endif
 	}
-}
-
-static void setup_main_process()
-{
-	struct sigaction sa;
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = SIG_IGN;
-	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
-	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
-	install_segv_handler();
-
-	char tmpdir_template[] = "./syzkaller.XXXXXX";
-	char* tmpdir = mkdtemp(tmpdir_template);
-	if (!tmpdir)
-		fail("failed to mkdtemp");
-	if (chmod(tmpdir, 0777))
-		fail("failed to chmod");
-	if (chdir(tmpdir))
-		fail("failed to chdir");
 }
 
 static void loop();
