@@ -151,12 +151,13 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	}
 	Logf(2, "reproducing crash '%v': suspecting %v programs", ctx.crashDesc, len(suspected))
 	opts := csource.Options{
-		Threaded: true,
-		Collide:  true,
-		Repeat:   true,
-		Procs:    ctx.cfg.Procs,
-		Sandbox:  ctx.cfg.Sandbox,
-		Repro:    true,
+		Threaded:  true,
+		Collide:   true,
+		Repeat:    true,
+		Procs:     ctx.cfg.Procs,
+		Sandbox:   ctx.cfg.Sandbox,
+		EnableTun: true,
+		Repro:     true,
 	}
 	// Execute the suspected programs.
 	// We first try to execute each program for 10 seconds, that should detect simple crashes
@@ -264,24 +265,29 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		}
 	}
 
-	src, err := csource.Write(res.Prog, res.Opts)
-	if err != nil {
-		return res, err
-	}
-	srcf, err := fileutil.WriteTempFile(src)
-	if err != nil {
-		return res, err
-	}
-	bin, err := csource.Build("c", srcf)
-	if err != nil {
-		return res, err
-	}
-	defer os.Remove(bin)
-	crashed, err = ctx.testBin(bin, duration)
+	// Try triggering crash with a C reproducer.
+	crashed, err = ctx.testCProg(res.Prog, duration, res.Opts)
 	if err != nil {
 		return res, err
 	}
 	res.CRepro = crashed
+	if !crashed {
+		return res, nil
+	}
+
+	// Try to simplify the C reproducer.
+	if res.Opts.EnableTun {
+		opts = res.Opts
+		opts.EnableTun = false
+		crashed, err := ctx.testCProg(res.Prog, duration, opts)
+		if err != nil {
+			return res, err
+		}
+		if crashed {
+			res.Opts = opts
+		}
+	}
+
 	return res, nil
 }
 
@@ -315,6 +321,29 @@ func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.
 	Logf(2, "reproducing crash '%v': testing program (duration=%v, %+v): %s",
 		ctx.crashDesc, duration, opts, p)
 	return ctx.testImpl(inst.Instance, command, duration)
+}
+
+func (ctx *context) testCProg(p *prog.Prog, duration time.Duration, opts csource.Options) (crashed bool, err error) {
+	src, err := csource.Write(p, opts)
+	if err != nil {
+		return false, err
+	}
+	srcf, err := fileutil.WriteTempFile(src)
+	if err != nil {
+		return false, err
+	}
+	bin, err := csource.Build("c", srcf)
+	if err != nil {
+		return false, err
+	}
+	defer os.Remove(bin)
+	Logf(2, "reproducing crash '%v': testing compiled C program (duration=%v, %+v): %s",
+		ctx.crashDesc, duration, opts, p)
+	crashed, err = ctx.testBin(bin, duration)
+	if err != nil {
+		return false, err
+	}
+	return crashed, nil
 }
 
 func (ctx *context) testBin(bin string, duration time.Duration) (crashed bool, err error) {

@@ -22,15 +22,22 @@ import (
 )
 
 type Options struct {
-	Threaded  bool
-	Collide   bool
-	Repeat    bool
-	Procs     int
-	Sandbox   string
+	Threaded bool
+	Collide  bool
+	Repeat   bool
+	Procs    int
+	Sandbox  string
+
 	Fault     bool // inject fault into FaultCall/FaultNth
 	FaultCall int
 	FaultNth  int
-	Repro     bool // generate code for use with repro package
+
+	// These options allow for a more fine-tuned control over the generated C code.
+	EnableTun bool
+
+	// Generate code for use with repro package to prints log messages,
+	// which allows to distinguish between a hang and an absent crash.
+	Repro bool
 }
 
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
@@ -53,14 +60,6 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	}
 	fmt.Fprintf(w, "\n")
 
-	enableTun := "false"
-	if _, ok := handled["syz_emit_ethernet"]; ok {
-		enableTun = "true"
-	}
-	if _, ok := handled["syz_extract_tcp_res"]; ok {
-		enableTun = "true"
-	}
-
 	hdr, err := preprocessCommonHeader(opts, handled)
 	if err != nil {
 		return nil, err
@@ -76,7 +75,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 
 		fmt.Fprint(w, "int main()\n{\n")
 		fmt.Fprintf(w, "\tsetup_main_process();\n")
-		fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, enableTun)
+		fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
 		fmt.Fprint(w, "\tint status = 0;\n")
 		fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
 		fmt.Fprint(w, "\treturn 0;\n}\n")
@@ -85,7 +84,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		if opts.Procs <= 1 {
 			fmt.Fprint(w, "int main()\n{\n")
 			fmt.Fprintf(w, "\tsetup_main_process();\n")
-			fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, enableTun)
+			fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
 			fmt.Fprint(w, "\tint status = 0;\n")
 			fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
 			fmt.Fprint(w, "\treturn 0;\n}\n")
@@ -95,7 +94,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", opts.Procs)
 			fmt.Fprint(w, "\t\tif (fork() == 0) {\n")
 			fmt.Fprintf(w, "\t\t\tsetup_main_process();\n")
-			fmt.Fprintf(w, "\t\t\tint pid = do_sandbox_%v(i, %v);\n", opts.Sandbox, enableTun)
+			fmt.Fprintf(w, "\t\t\tint pid = do_sandbox_%v(i, %v);\n", opts.Sandbox, opts.EnableTun)
 			fmt.Fprint(w, "\t\t\tint status = 0;\n")
 			fmt.Fprint(w, "\t\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
 			fmt.Fprint(w, "\t\t\treturn 0;\n")
@@ -321,6 +320,9 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 	}
 	if opts.Fault {
 		defines = append(defines, "SYZ_FAULT_INJECTION")
+	}
+	if opts.EnableTun {
+		defines = append(defines, "SYZ_TUN_ENABLE")
 	}
 	for name, _ := range handled {
 		defines = append(defines, "__NR_"+name)

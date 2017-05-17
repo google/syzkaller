@@ -32,20 +32,22 @@ func allOptionsPermutations() []Options {
 	for _, opt.Threaded = range []bool{false, true} {
 		for _, opt.Collide = range []bool{false, true} {
 			for _, opt.Repeat = range []bool{false, true} {
-				for _, opt.Repro = range []bool{false, true} {
-					for _, opt.Procs = range []int{1, 4} {
-						for _, opt.Sandbox = range []string{"none", "setuid", "namespace"} {
-							for _, opt.Fault = range []bool{false, true} {
-								if opt.Collide && !opt.Threaded {
-									continue
+				for _, opt.Procs = range []int{1, 4} {
+					for _, opt.Sandbox = range []string{"none", "setuid", "namespace"} {
+						for _, opt.Repro = range []bool{false, true} {
+							for _, opt.EnableTun = range []bool{false, true} {
+								for _, opt.Fault = range []bool{false, true} {
+									if opt.Collide && !opt.Threaded {
+										continue
+									}
+									if !opt.Repeat && opt.Procs != 1 {
+										continue
+									}
+									if testing.Short() && opt.Procs != 1 {
+										continue
+									}
+									options = append(options, opt)
 								}
-								if !opt.Repeat && opt.Procs != 1 {
-									continue
-								}
-								if testing.Short() && opt.Procs != 1 {
-									continue
-								}
-								options = append(options, opt)
 							}
 						}
 					}
