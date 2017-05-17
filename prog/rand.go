@@ -448,12 +448,6 @@ func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, cal
 			arg := resultArg(res, allres[r.Intn(len(allres))])
 			return arg, calls
 		}
-		switch meta.Name {
-		// Return resources in a variable-length array (length can be 0).
-		case "getgroups", "ioctl$DRM_IOCTL_RES_CTX":
-		default:
-			panic(fmt.Sprintf("unexpected call failed to create a resource %v: %v", kind, meta.Name))
-		}
 		// Discard unsuccessful calls.
 		for _, c := range calls {
 			foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
