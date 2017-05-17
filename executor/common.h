@@ -320,6 +320,38 @@ void debug_dump_data(const char* data, int length)
 }
 #endif // SYZ_TUN_ENABLE
 
+#if defined(__NR_syz_emit_ethernet) || defined(__NR_syz_test)
+struct csum_inet {
+	uint32_t acc;
+};
+
+void csum_inet_init(struct csum_inet* csum)
+{
+	csum->acc = 0;
+}
+
+void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
+{
+	if (length == 0)
+		return;
+
+	size_t i;
+	for (i = 0; i < length - 1; i += 2)
+		csum->acc += *(uint16_t*)&data[i];
+
+	if (length & 1)
+		csum->acc += (uint16_t)data[length - 1];
+
+	while (csum->acc > 0xffff)
+		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
+}
+
+uint16_t csum_inet_digest(struct csum_inet* csum)
+{
+	return ~csum->acc;
+}
+#endif
+
 #ifdef __NR_syz_emit_ethernet
 static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 {
@@ -425,36 +457,6 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	return 0;
 }
 #endif
-
-struct csum_inet {
-	uint32_t acc;
-};
-
-void csum_inet_init(struct csum_inet* csum)
-{
-	csum->acc = 0;
-}
-
-void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
-{
-	if (length == 0)
-		return;
-
-	size_t i;
-	for (i = 0; i < length - 1; i += 2)
-		csum->acc += *(uint16_t*)&data[i];
-
-	if (length & 1)
-		csum->acc += (uint16_t)data[length - 1];
-
-	while (csum->acc > 0xffff)
-		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
-}
-
-uint16_t csum_inet_digest(struct csum_inet* csum)
-{
-	return ~csum->acc;
-}
 
 #ifdef __NR_syz_open_dev
 static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
