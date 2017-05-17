@@ -14,6 +14,7 @@ import (
 
 type Description struct {
 	Includes  []string
+	Incdirs   []string
 	Defines   map[string]string
 	Syscalls  []Syscall
 	Structs   map[string]*Struct
@@ -48,6 +49,7 @@ type Resource struct {
 func Parse(in io.Reader) *Description {
 	p := newParser(in)
 	var includes []string
+	var incdirs []string
 	defines := make(map[string]string)
 	var syscalls []Syscall
 	structs := make(map[string]*Struct)
@@ -57,7 +59,28 @@ func Parse(in io.Reader) *Description {
 	resources := make(map[string]Resource)
 	var str *Struct
 	for p.Scan() {
-		if p.EOF() || p.Char() == '#' {
+		if p.EOF() {
+			continue
+		}
+		if p.Char() == '#' {
+			p.Parse(p.Char())
+			line := p.Str()
+			if strings.HasPrefix(line, "#incdir") {
+				p.Ident()
+				p.Parse('"')
+				var incdir []byte
+				for {
+					ch := p.Char()
+					if ch == '"' {
+						break
+					}
+					p.Parse(ch)
+					incdir = append(incdir, ch)
+				}
+				p.Parse('"')
+				fmt.Printf("find incdir:[%v]\n", string(incdir))
+				incdirs = append(incdirs, string(incdir))
+			}
 			continue
 		}
 		if str != nil {
@@ -237,6 +260,7 @@ func Parse(in io.Reader) *Description {
 	sort.Sort(syscallArray(syscalls))
 	return &Description{
 		Includes:  includes,
+		Incdirs:   incdirs,
 		Defines:   defines,
 		Syscalls:  syscalls,
 		Structs:   structs,
