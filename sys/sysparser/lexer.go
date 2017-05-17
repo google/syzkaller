@@ -78,7 +78,6 @@ func Parse(in io.Reader) *Description {
 					incdir = append(incdir, ch)
 				}
 				p.Parse('"')
-				fmt.Printf("find incdir:[%v]\n", string(incdir))
 				incdirs = append(incdirs, string(incdir))
 			}
 			continue
