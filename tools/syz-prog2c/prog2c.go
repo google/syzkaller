@@ -14,16 +14,17 @@ import (
 )
 
 var (
-	flagThreaded  = flag.Bool("threaded", false, "create threaded program")
-	flagCollide   = flag.Bool("collide", false, "create collide program")
-	flagRepeat    = flag.Bool("repeat", false, "repeat program infinitely or not")
-	flagProcs     = flag.Int("procs", 4, "number of parallel processes")
-	flagSandbox   = flag.String("sandbox", "none", "sandbox to use (none, setuid, namespace)")
-	flagProg      = flag.String("prog", "", "file with program to convert (required)")
-	flagFaultCall = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
-	flagFaultNth  = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
-	flagEnableTun = flag.Bool("tun", false, "set up TUN/TAP interface")
-	flagUseTmpDir = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
+	flagThreaded   = flag.Bool("threaded", false, "create threaded program")
+	flagCollide    = flag.Bool("collide", false, "create collide program")
+	flagRepeat     = flag.Bool("repeat", false, "repeat program infinitely or not")
+	flagProcs      = flag.Int("procs", 4, "number of parallel processes")
+	flagSandbox    = flag.String("sandbox", "none", "sandbox to use (none, setuid, namespace)")
+	flagProg       = flag.String("prog", "", "file with program to convert (required)")
+	flagFaultCall  = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
+	flagFaultNth   = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
+	flagEnableTun  = flag.Bool("tun", false, "set up TUN/TAP interface")
+	flagUseTmpDir  = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
+	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
 )
 
 func main() {
@@ -43,17 +44,18 @@ func main() {
 		os.Exit(1)
 	}
 	opts := csource.Options{
-		Threaded:  *flagThreaded,
-		Collide:   *flagCollide,
-		Repeat:    *flagRepeat,
-		Procs:     *flagProcs,
-		Sandbox:   *flagSandbox,
-		Fault:     *flagFaultCall >= 0,
-		FaultCall: *flagFaultCall,
-		FaultNth:  *flagFaultNth,
-		EnableTun: *flagEnableTun,
-		UseTmpDir: *flagUseTmpDir,
-		Repro:     false,
+		Threaded:   *flagThreaded,
+		Collide:    *flagCollide,
+		Repeat:     *flagRepeat,
+		Procs:      *flagProcs,
+		Sandbox:    *flagSandbox,
+		Fault:      *flagFaultCall >= 0,
+		FaultCall:  *flagFaultCall,
+		FaultNth:   *flagFaultNth,
+		EnableTun:  *flagEnableTun,
+		UseTmpDir:  *flagUseTmpDir,
+		HandleSegv: *flagHandleSegv,
+		Repro:      false,
 	}
 	src, err := csource.Write(p, opts)
 	if err != nil {

@@ -151,14 +151,15 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	}
 	Logf(2, "reproducing crash '%v': suspecting %v programs", ctx.crashDesc, len(suspected))
 	opts := csource.Options{
-		Threaded:  true,
-		Collide:   true,
-		Repeat:    true,
-		Procs:     ctx.cfg.Procs,
-		Sandbox:   ctx.cfg.Sandbox,
-		EnableTun: true,
-		UseTmpDir: true,
-		Repro:     true,
+		Threaded:   true,
+		Collide:    true,
+		Repeat:     true,
+		Procs:      ctx.cfg.Procs,
+		Sandbox:    ctx.cfg.Sandbox,
+		EnableTun:  true,
+		UseTmpDir:  true,
+		HandleSegv: true,
+		Repro:      true,
 	}
 	// Execute the suspected programs.
 	// We first try to execute each program for 10 seconds, that should detect simple crashes
@@ -291,6 +292,17 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.UseTmpDir {
 		opts = res.Opts
 		opts.UseTmpDir = false
+		crashed, err := ctx.testCProg(res.Prog, duration, opts)
+		if err != nil {
+			return res, err
+		}
+		if crashed {
+			res.Opts = opts
+		}
+	}
+	if res.Opts.HandleSegv {
+		opts = res.Opts
+		opts.HandleSegv = false
 		crashed, err := ctx.testCProg(res.Prog, duration, opts)
 		if err != nil {
 			return res, err
