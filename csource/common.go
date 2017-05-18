@@ -1556,6 +1556,7 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 	}
 }
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)
 static void loop();
 
 static void sandbox_common()
@@ -1578,6 +1579,7 @@ static void sandbox_common()
 	unshare(CLONE_NEWIPC);
 	unshare(CLONE_IO);
 }
+#endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE)
 static int do_sandbox_none(int executor_pid, bool enable_tun)

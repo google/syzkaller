@@ -289,6 +289,17 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 			res.Opts = opts
 		}
 	}
+	if res.Opts.Sandbox != "" {
+		opts = res.Opts
+		opts.Sandbox = ""
+		crashed, err := ctx.testCProg(res.Prog, duration, opts)
+		if err != nil {
+			return res, err
+		}
+		if crashed {
+			res.Opts = opts
+		}
+	}
 	if res.Opts.UseTmpDir {
 		opts = res.Opts
 		opts.UseTmpDir = false
