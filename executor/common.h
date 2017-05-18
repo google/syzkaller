@@ -48,10 +48,18 @@
 #include <string.h>
 #include <unistd.h>
 
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
+    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
 const int kFailStatus = 67;
-const int kErrorStatus = 68;
 const int kRetryStatus = 69;
+#endif
 
+#if defined(SYZ_EXECUTOR)
+const int kErrorStatus = 68;
+#endif
+
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || \
+    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NONE) || defined(__NR_syz_kvm_setup_cpu)
 // One does not simply exit.
 // _exit can in fact fail.
 // syzkaller did manage to generate a seccomp filter that prohibits exit_group syscall.
@@ -70,6 +78,7 @@ __attribute__((noreturn)) void doexit(int status)
 	for (i = 0;; i++) {
 	}
 }
+#endif
 
 #if defined(SYZ_EXECUTOR)
 // exit/_exit do not necessary work.
@@ -77,6 +86,8 @@ __attribute__((noreturn)) void doexit(int status)
 #define _exit use_doexit_instead
 #endif
 
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
+    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
 // logical error (e.g. invalid input program), use as an assert() alernative
 __attribute__((noreturn)) void fail(const char* msg, ...)
 {
@@ -91,6 +102,7 @@ __attribute__((noreturn)) void fail(const char* msg, ...)
 	// so handle it here as non-fatal error.
 	doexit((e == ENOMEM || e == EAGAIN) ? kRetryStatus : kFailStatus);
 }
+#endif
 
 #if defined(SYZ_EXECUTOR)
 // kernel error (e.g. wrong syscall return value)
@@ -106,6 +118,7 @@ __attribute__((noreturn)) void error(const char* msg, ...)
 }
 #endif
 
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
 // just exit (e.g. due to temporal ENOMEM error)
 __attribute__((noreturn)) void exitf(const char* msg, ...)
 {
@@ -118,6 +131,7 @@ __attribute__((noreturn)) void exitf(const char* msg, ...)
 	fprintf(stderr, " (errno %d)\n", e);
 	doexit(kRetryStatus);
 }
+#endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 static int flag_debug;

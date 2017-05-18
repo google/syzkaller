@@ -49,10 +49,18 @@ var commonHeader = `
 #include <string.h>
 #include <unistd.h>
 
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
+    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
 const int kFailStatus = 67;
-const int kErrorStatus = 68;
 const int kRetryStatus = 69;
+#endif
 
+#if defined(SYZ_EXECUTOR)
+const int kErrorStatus = 68;
+#endif
+
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || \
+    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NONE) || defined(__NR_syz_kvm_setup_cpu)
 __attribute__((noreturn)) void doexit(int status)
 {
 	volatile unsigned i;
@@ -60,12 +68,15 @@ __attribute__((noreturn)) void doexit(int status)
 	for (i = 0;; i++) {
 	}
 }
+#endif
 
 #if defined(SYZ_EXECUTOR)
 #define exit use_doexit_instead
 #define _exit use_doexit_instead
 #endif
 
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
+    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
 __attribute__((noreturn)) void fail(const char* msg, ...)
 {
 	int e = errno;
@@ -77,6 +88,7 @@ __attribute__((noreturn)) void fail(const char* msg, ...)
 	fprintf(stderr, " (errno %d)\n", e);
 	doexit((e == ENOMEM || e == EAGAIN) ? kRetryStatus : kFailStatus);
 }
+#endif
 
 #if defined(SYZ_EXECUTOR)
 __attribute__((noreturn)) void error(const char* msg, ...)
@@ -91,6 +103,7 @@ __attribute__((noreturn)) void error(const char* msg, ...)
 }
 #endif
 
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
 __attribute__((noreturn)) void exitf(const char* msg, ...)
 {
 	int e = errno;
@@ -102,6 +115,7 @@ __attribute__((noreturn)) void exitf(const char* msg, ...)
 	fprintf(stderr, " (errno %d)\n", e);
 	doexit(kRetryStatus);
 }
+#endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 static int flag_debug;
