@@ -34,6 +34,7 @@ type Options struct {
 
 	// These options allow for a more fine-tuned control over the generated C code.
 	EnableTun bool
+	UseTmpDir bool
 
 	// Generate code for use with repro package to prints log messages,
 	// which allows to distinguish between a hang and an absent crash.
@@ -75,7 +76,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 
 		fmt.Fprint(w, "int main()\n{\n")
 		fmt.Fprintf(w, "\tinstall_segv_handler();\n")
-		fmt.Fprintf(w, "\tuse_temporary_dir();\n")
+		if opts.UseTmpDir {
+			fmt.Fprintf(w, "\tuse_temporary_dir();\n")
+		}
 		fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
 		fmt.Fprint(w, "\tint status = 0;\n")
 		fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
@@ -85,7 +88,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		if opts.Procs <= 1 {
 			fmt.Fprint(w, "int main()\n{\n")
 			fmt.Fprintf(w, "\tinstall_segv_handler();\n")
-			fmt.Fprintf(w, "\tuse_temporary_dir();\n")
+			if opts.UseTmpDir {
+				fmt.Fprintf(w, "\tuse_temporary_dir();\n")
+			}
 			fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
 			fmt.Fprint(w, "\tint status = 0;\n")
 			fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
@@ -96,7 +101,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", opts.Procs)
 			fmt.Fprint(w, "\t\tif (fork() == 0) {\n")
 			fmt.Fprintf(w, "\t\t\tinstall_segv_handler();\n")
-			fmt.Fprintf(w, "\t\t\tuse_temporary_dir();\n")
+			if opts.UseTmpDir {
+				fmt.Fprintf(w, "\t\t\tuse_temporary_dir();\n")
+			}
 			fmt.Fprintf(w, "\t\t\tint pid = do_sandbox_%v(i, %v);\n", opts.Sandbox, opts.EnableTun)
 			fmt.Fprint(w, "\t\t\tint status = 0;\n")
 			fmt.Fprint(w, "\t\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
@@ -326,6 +333,9 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 	}
 	if opts.EnableTun {
 		defines = append(defines, "SYZ_TUN_ENABLE")
+	}
+	if opts.UseTmpDir {
+		defines = append(defines, "SYZ_USE_TMP_DIR")
 	}
 	for name, _ := range handled {
 		defines = append(defines, "__NR_"+name)
