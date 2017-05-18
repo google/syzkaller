@@ -116,6 +116,22 @@ void debug(const char* msg, ...)
 	fflush(stdout);
 }
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_BITMASKS)
+#define BITMASK_LEN(type, bf_len) (type)((1ull << (bf_len)) - 1)
+
+#define BITMASK_LEN_OFF(type, bf_off, bf_len) (type)(BITMASK_LEN(type, (bf_len)) << (bf_off))
+
+#define STORE_BY_BITMASK(type, addr, val, bf_off, bf_len)                         \
+	if ((bf_off) == 0 && (bf_len) == 0) {                                     \
+		*(type*)(addr) = (type)(val);                                     \
+	} else {                                                                  \
+		type new_val = *(type*)(addr);                                    \
+		new_val &= ~BITMASK_LEN_OFF(type, (bf_off), (bf_len));            \
+		new_val |= ((type)(val)&BITMASK_LEN(type, (bf_len))) << (bf_off); \
+		*(type*)(addr) = new_val;                                         \
+	}
+#endif
+
 #if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
 __thread int skip_segv;
 __thread jmp_buf segv_env;
@@ -174,20 +190,6 @@ static void use_temporary_dir()
 		fail("failed to chdir");
 }
 #endif
-
-#define BITMASK_LEN(type, bf_len) (type)((1ull << (bf_len)) - 1)
-
-#define BITMASK_LEN_OFF(type, bf_off, bf_len) (type)(BITMASK_LEN(type, (bf_len)) << (bf_off))
-
-#define STORE_BY_BITMASK(type, addr, val, bf_off, bf_len)                         \
-	if ((bf_off) == 0 && (bf_len) == 0) {                                     \
-		*(type*)(addr) = (type)(val);                                     \
-	} else {                                                                  \
-		type new_val = *(type*)(addr);                                    \
-		new_val &= ~BITMASK_LEN_OFF(type, (bf_off), (bf_len));            \
-		new_val |= ((type)(val)&BITMASK_LEN(type, (bf_len))) << (bf_off); \
-		*(type*)(addr) = new_val;                                         \
-	}
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
@@ -551,7 +553,10 @@ static uintptr_t syz_fuseblk_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 
 
 #ifndef NONFAILING
-#define NONFAILING(x) { x; }
+#define NONFAILING(x) \
+	{             \
+		x;    \
+	}
 #endif
 
 const char kvm_asm16_cpl3[] = "\x0f\x20\xc0\x66\x83\xc8\x01\x0f\x22\xc0\xb8\xa0\x00\x0f\x00\xd8\xb8\x2b\x00\x8e\xd8\x8e\xc0\x8e\xe0\x8e\xe8\xbc\x00\x01\xc7\x06\x00\x01\x1d\xba\xc7\x06\x02\x01\x23\x00\xc7\x06\x04\x01\x00\x01\xc7\x06\x06\x01\x2b\x00\xcb";

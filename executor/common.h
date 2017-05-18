@@ -132,6 +132,22 @@ void debug(const char* msg, ...)
 	fflush(stdout);
 }
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_BITMASKS)
+#define BITMASK_LEN(type, bf_len) (type)((1ull << (bf_len)) - 1)
+
+#define BITMASK_LEN_OFF(type, bf_off, bf_len) (type)(BITMASK_LEN(type, (bf_len)) << (bf_off))
+
+#define STORE_BY_BITMASK(type, addr, val, bf_off, bf_len)                         \
+	if ((bf_off) == 0 && (bf_len) == 0) {                                     \
+		*(type*)(addr) = (type)(val);                                     \
+	} else {                                                                  \
+		type new_val = *(type*)(addr);                                    \
+		new_val &= ~BITMASK_LEN_OFF(type, (bf_off), (bf_len));            \
+		new_val |= ((type)(val)&BITMASK_LEN(type, (bf_len))) << (bf_off); \
+		*(type*)(addr) = new_val;                                         \
+	}
+#endif
+
 #if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
 __thread int skip_segv;
 __thread jmp_buf segv_env;
@@ -199,20 +215,6 @@ static void use_temporary_dir()
 		fail("failed to chdir");
 }
 #endif
-
-#define BITMASK_LEN(type, bf_len) (type)((1ull << (bf_len)) - 1)
-
-#define BITMASK_LEN_OFF(type, bf_off, bf_len) (type)(BITMASK_LEN(type, (bf_len)) << (bf_off))
-
-#define STORE_BY_BITMASK(type, addr, val, bf_off, bf_len)                         \
-	if ((bf_off) == 0 && (bf_len) == 0) {                                     \
-		*(type*)(addr) = (type)(val);                                     \
-	} else {                                                                  \
-		type new_val = *(type*)(addr);                                    \
-		new_val &= ~BITMASK_LEN_OFF(type, (bf_off), (bf_len));            \
-		new_val |= ((type)(val)&BITMASK_LEN(type, (bf_len))) << (bf_off); \
-		*(type*)(addr) = new_val;                                         \
-	}
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
