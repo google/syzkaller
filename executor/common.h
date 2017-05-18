@@ -212,7 +212,7 @@ static void use_temporary_dir()
 		*(type*)(addr) = new_val;                                         \
 	}
 
-#ifdef SYZ_TUN_ENABLE
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
 	int rv;
@@ -348,9 +348,9 @@ void debug_dump_data(const char* data, int length)
 	if (i % 16 != 0)
 		debug("\n");
 }
-#endif // SYZ_TUN_ENABLE
+#endif
 
-#if (defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE)) || defined(__NR_syz_test)
+#if defined(SYZ_EXECUTOR) || (defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE)) || defined(__NR_syz_test)
 struct csum_inet {
 	uint32_t acc;
 };
@@ -382,7 +382,7 @@ uint16_t csum_inet_digest(struct csum_inet* csum)
 }
 #endif
 
-#if defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE)
+#if defined(SYZ_EXECUTOR) || (defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE))
 static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 {
 	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
@@ -397,7 +397,7 @@ static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 }
 #endif
 
-#if (defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)) && defined(SYZ_TUN_ENABLE)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_TUN_ENABLE))
 void flush_tun()
 {
 	char data[SYZ_TUN_MAX_PACKET_SIZE];
@@ -406,7 +406,7 @@ void flush_tun()
 }
 #endif
 
-#if defined(__NR_syz_extract_tcp_res) && defined(SYZ_TUN_ENABLE)
+#if defined(SYZ_EXECUTOR) || (defined(__NR_syz_extract_tcp_res) && defined(SYZ_TUN_ENABLE))
 // Can't include <linux/ipv6.h>, since it causes
 // conflicts due to some structs redefinition.
 struct ipv6hdr {
@@ -618,20 +618,20 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 #endif
 #if defined(__NR_syz_emit_ethernet)
 	case __NR_syz_emit_ethernet:
-#if defined(SYZ_TUN_ENABLE)
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 		return syz_emit_ethernet(a0, a1);
 #else
 		return 0;
-#endif // defined(SYZ_TUN_ENABLE)
-#endif // defined(__NR_syz_emit_ethernet)
+#endif
+#endif
 #if defined(__NR_syz_extract_tcp_res)
 	case __NR_syz_extract_tcp_res:
-#if defined(SYZ_TUN_ENABLE)
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 		return syz_extract_tcp_res(a0, a1, a2);
 #else
 		return 0;
-#endif // defined(SYZ_TUN_ENABLE)
-#endif // defined(__NR_syz_extract_tcp_res)
+#endif
+#endif
 #ifdef __NR_syz_kvm_setup_cpu
 	case __NR_syz_kvm_setup_cpu:
 		return syz_kvm_setup_cpu(a0, a1, a2, a3, a4, a5, a6, a7);
@@ -671,7 +671,7 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 		return pid;
 
 	sandbox_common();
-#ifdef SYZ_TUN_ENABLE
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	setup_tun(executor_pid, enable_tun);
 #endif
 
@@ -688,7 +688,7 @@ static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 		return pid;
 
 	sandbox_common();
-#ifdef SYZ_TUN_ENABLE
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	setup_tun(executor_pid, enable_tun);
 #endif
 
@@ -751,7 +751,7 @@ static int namespace_sandbox_proc(void* arg)
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
 
-#ifdef SYZ_TUN_ENABLE
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	// For sandbox namespace we setup tun after initializing uid mapping,
 	// otherwise ip commands fail.
 	setup_tun(epid, etun);
@@ -946,7 +946,7 @@ void loop()
 			setpgrp();
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
-#if defined(SYZ_TUN_ENABLE)
+#ifdef SYZ_TUN_ENABLE
 			flush_tun();
 #endif
 			test();
