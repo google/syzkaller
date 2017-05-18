@@ -260,3 +260,29 @@ func sanitizeCall(c *Call) {
 		}
 	}
 }
+
+func RequiresTun(p *Prog) bool {
+	for _, c := range p.Calls {
+		switch c.Meta.CallName {
+		case "syz_emit_ethernet":
+			return true
+		case "syz_extract_tcp_res":
+			return true
+		}
+	}
+	return false
+}
+
+func RequiresBitmasks(p *Prog) bool {
+	result := false
+	for _, c := range p.Calls {
+		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
+			if arg.Kind == ArgConst {
+				if arg.Type.BitfieldOffset() != 0 || arg.Type.BitfieldLength() != 0 {
+					result = true
+				}
+			}
+		})
+	}
+	return result
+}
