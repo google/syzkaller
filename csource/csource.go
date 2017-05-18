@@ -36,6 +36,7 @@ type Options struct {
 	EnableTun  bool
 	UseTmpDir  bool
 	HandleSegv bool
+	WaitRepeat bool
 
 	// Generate code for use with repro package to prints log messages,
 	// which allows to distinguish between a hang and an absent crash.
@@ -380,6 +381,9 @@ func preprocessCommonHeader(opts Options, handled map[string]int, useBitmasks bo
 	}
 	if opts.HandleSegv {
 		defines = append(defines, "SYZ_HANDLE_SEGV")
+	}
+	if opts.WaitRepeat {
+		defines = append(defines, "SYZ_WAIT_REPEAT")
 	}
 	for name, _ := range handled {
 		defines = append(defines, "__NR_"+name)

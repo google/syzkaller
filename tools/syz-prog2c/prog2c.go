@@ -25,6 +25,7 @@ var (
 	flagEnableTun  = flag.Bool("tun", false, "set up TUN/TAP interface")
 	flagUseTmpDir  = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
+	flagWaitRepeat = flag.Bool("waitrepeat", false, "wait for each repeat attempt")
 )
 
 func main() {
@@ -55,6 +56,7 @@ func main() {
 		EnableTun:  *flagEnableTun,
 		UseTmpDir:  *flagUseTmpDir,
 		HandleSegv: *flagHandleSegv,
+		WaitRepeat: *flagWaitRepeat,
 		Repro:      false,
 	}
 	src, err := csource.Write(p, opts)
