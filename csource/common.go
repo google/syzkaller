@@ -1760,7 +1760,7 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
 static void remove_dir(const char* dir)
 {
 	DIR* dp;
@@ -1841,7 +1841,9 @@ retry:
 		exitf("rmdir(%s) failed", dir);
 	}
 }
+#endif
 
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
 static uint64_t current_time_ms()
 {
 	struct timespec ts;
@@ -1877,18 +1879,22 @@ void loop()
 {
 	int iter;
 	for (iter = 0;; iter++) {
+#ifdef SYZ_USE_TMP_DIR
 		char cwdbuf[256];
 		sprintf(cwdbuf, "./%d", iter);
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
+#endif
 		int pid = fork();
 		if (pid < 0)
 			fail("clone failed");
 		if (pid == 0) {
 			prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 			setpgrp();
+#ifdef SYZ_USE_TMP_DIR
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
+#endif
 #ifdef SYZ_TUN_ENABLE
 			flush_tun();
 #endif
@@ -1910,7 +1916,9 @@ void loop()
 				break;
 			}
 		}
+#ifdef SYZ_USE_TMP_DIR
 		remove_dir(cwdbuf);
+#endif
 	}
 }
 #else
