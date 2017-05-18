@@ -1728,7 +1728,7 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
 static void remove_dir(const char* dir)
 {
 	DIR* dp;
@@ -1797,9 +1797,7 @@ retry:
 		exitf("rmdir(%s) failed", dir);
 	}
 }
-#endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
 static uint64_t current_time_ms()
 {
 	struct timespec ts;
@@ -1830,6 +1828,7 @@ static int inject_fault(int nth)
 #if defined(SYZ_REPEAT)
 static void test();
 
+#if defined(SYZ_WAIT_REPEAT)
 void loop()
 {
 	int iter;
@@ -1870,5 +1869,13 @@ void loop()
 		remove_dir(cwdbuf);
 	}
 }
+#else
+void loop()
+{
+	while (1) {
+		test();
+	}
+}
+#endif
 #endif
 `

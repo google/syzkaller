@@ -39,16 +39,21 @@ func allOptionsPermutations() []Options {
 								for _, opt.EnableTun = range []bool{false, true} {
 									for _, opt.UseTmpDir = range []bool{false, true} {
 										for _, opt.HandleSegv = range []bool{false, true} {
-											if opt.Collide && !opt.Threaded {
-												continue
+											for _, opt.WaitRepeat = range []bool{false, true} {
+												if opt.Collide && !opt.Threaded {
+													continue
+												}
+												if !opt.Repeat && opt.Procs != 1 {
+													continue
+												}
+												if !opt.Repeat && opt.WaitRepeat {
+													continue
+												}
+												if testing.Short() && opt.Procs != 1 {
+													continue
+												}
+												options = append(options, opt)
 											}
-											if !opt.Repeat && opt.Procs != 1 {
-												continue
-											}
-											if testing.Short() && opt.Procs != 1 {
-												continue
-											}
-											options = append(options, opt)
 										}
 									}
 								}
