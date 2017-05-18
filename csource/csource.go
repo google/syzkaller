@@ -33,8 +33,9 @@ type Options struct {
 	FaultNth  int
 
 	// These options allow for a more fine-tuned control over the generated C code.
-	EnableTun bool
-	UseTmpDir bool
+	EnableTun  bool
+	UseTmpDir  bool
+	HandleSegv bool
 
 	// Generate code for use with repro package to prints log messages,
 	// which allows to distinguish between a hang and an absent crash.
@@ -75,7 +76,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		generateTestFunc(w, opts, calls, "loop")
 
 		fmt.Fprint(w, "int main()\n{\n")
-		fmt.Fprintf(w, "\tinstall_segv_handler();\n")
+		if opts.HandleSegv {
+			fmt.Fprintf(w, "\tinstall_segv_handler();\n")
+		}
 		if opts.UseTmpDir {
 			fmt.Fprintf(w, "\tuse_temporary_dir();\n")
 		}
@@ -87,7 +90,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		generateTestFunc(w, opts, calls, "test")
 		if opts.Procs <= 1 {
 			fmt.Fprint(w, "int main()\n{\n")
-			fmt.Fprintf(w, "\tinstall_segv_handler();\n")
+			if opts.HandleSegv {
+				fmt.Fprintf(w, "\tinstall_segv_handler();\n")
+			}
 			if opts.UseTmpDir {
 				fmt.Fprintf(w, "\tuse_temporary_dir();\n")
 			}
@@ -100,7 +105,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			fmt.Fprint(w, "\tint i;")
 			fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", opts.Procs)
 			fmt.Fprint(w, "\t\tif (fork() == 0) {\n")
-			fmt.Fprintf(w, "\t\t\tinstall_segv_handler();\n")
+			if opts.HandleSegv {
+				fmt.Fprintf(w, "\t\t\tinstall_segv_handler();\n")
+			}
 			if opts.UseTmpDir {
 				fmt.Fprintf(w, "\t\t\tuse_temporary_dir();\n")
 			}
@@ -136,7 +143,7 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 		for _, c := range calls {
 			fmt.Fprintf(w, "%s", c)
 		}
-		fmt.Fprintf(w, "}\n")
+		fmt.Fprintf(w, "}\n\n")
 	} else {
 		fmt.Fprintf(w, "void *thr(void *arg)\n{\n")
 		fmt.Fprintf(w, "\tswitch ((long)arg) {\n")
@@ -193,6 +200,10 @@ func generateCalls(exec []byte, opts Options) ([]string, int) {
 		}
 		return res
 	}
+	nonfailPre, nonfailPost := "", ""
+	if opts.HandleSegv {
+		nonfailPre, nonfailPost = "NONFAILING(", ")"
+	}
 	lastCall := 0
 	seenCall := false
 	var calls []string
@@ -221,12 +232,12 @@ loop:
 				bfOff := read()
 				bfLen := read()
 				if bfOff == 0 && bfLen == 0 {
-					fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = (uint%v_t)0x%x);\n", size*8, addr, size*8, arg)
+					fmt.Fprintf(w, "\t%s*(uint%v_t*)0x%x = (uint%v_t)0x%x%s;\n", nonfailPre, size*8, addr, size*8, arg, nonfailPost)
 				} else {
-					fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, 0x%x, 0x%x, %v, %v));\n", size*8, addr, arg, bfOff, bfLen)
+					fmt.Fprintf(w, "\t%sSTORE_BY_BITMASK(uint%v_t, 0x%x, 0x%x, %v, %v)%s;\n", nonfailPre, size*8, addr, arg, bfOff, bfLen, nonfailPost)
 				}
 			case prog.ExecArgResult:
-				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n", size*8, addr, resultRef())
+				fmt.Fprintf(w, "\t%s*(uint%v_t*)0x%x = %v%s;\n", nonfailPre, size*8, addr, resultRef(), nonfailPost)
 			case prog.ExecArgData:
 				data := exec[:size]
 				exec = exec[(size+7)/8*8:]
@@ -240,7 +251,7 @@ loop:
 					}
 					esc = append(esc, '\\', 'x', hex(v>>4), hex(v<<4>>4))
 				}
-				fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n", addr, esc, size)
+				fmt.Fprintf(w, "\t%smemcpy((void*)0x%x, \"%s\", %v)%s;\n", nonfailPre, addr, esc, size, nonfailPost)
 			case prog.ExecArgCsum:
 				csum_kind := read()
 				switch csum_kind {
@@ -254,7 +265,7 @@ loop:
 						chunk_size := read()
 						switch chunk_kind {
 						case prog.ExecArgCsumChunkData:
-							fmt.Fprintf(w, "\tNONFAILING(csum_inet_update(&csum_%d, (const uint8_t*)0x%x, %d));\n", n, chunk_value, chunk_size)
+							fmt.Fprintf(w, "\t%scsum_inet_update(&csum_%d, (const uint8_t*)0x%x, %d)%s;\n", nonfailPre, n, chunk_value, chunk_size, nonfailPost)
 						case prog.ExecArgCsumChunkConst:
 							fmt.Fprintf(w, "\tuint%d_t csum_%d_chunk_%d = 0x%x;\n", chunk_size*8, n, i, chunk_value)
 							fmt.Fprintf(w, "\tcsum_inet_update(&csum_%d, (const uint8_t*)&csum_%d_chunk_%d, %d);\n", n, n, i, chunk_size)
@@ -262,7 +273,7 @@ loop:
 							panic(fmt.Sprintf("unknown checksum chunk kind %v", chunk_kind))
 						}
 					}
-					fmt.Fprintf(w, "\tNONFAILING(*(uint16_t*)0x%x = csum_inet_digest(&csum_%d));\n", addr, n)
+					fmt.Fprintf(w, "\t%s*(uint16_t*)0x%x = csum_inet_digest(&csum_%d)%s;\n", nonfailPre, addr, n, nonfailPost)
 				default:
 					panic(fmt.Sprintf("unknown csum kind %v", csum_kind))
 				}
@@ -273,7 +284,7 @@ loop:
 			addr := read()
 			size := read()
 			fmt.Fprintf(w, "\tif (r[%v] != -1)\n", lastCall)
-			fmt.Fprintf(w, "\t\tNONFAILING(r[%v] = *(uint%v_t*)0x%x);\n", n, size*8, addr)
+			fmt.Fprintf(w, "\t\t%sr[%v] = *(uint%v_t*)0x%x%s;\n", nonfailPre, n, size*8, addr, nonfailPost)
 		default:
 			// Normal syscall.
 			newCall()
@@ -336,6 +347,9 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 	}
 	if opts.UseTmpDir {
 		defines = append(defines, "SYZ_USE_TMP_DIR")
+	}
+	if opts.HandleSegv {
+		defines = append(defines, "SYZ_HANDLE_SEGV")
 	}
 	for name, _ := range handled {
 		defines = append(defines, "__NR_"+name)

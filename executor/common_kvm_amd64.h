@@ -7,6 +7,15 @@
 // See Intel Software Developer’s Manual Volume 3: System Programming Guide
 // for details on what happens here.
 
+// We could put each NONFAILING use in this file under ifdef,
+// but I don't think it's worth it.
+#ifndef NONFAILING
+#define NONFAILING(x) \
+	{             \
+		x;    \
+	}
+#endif
+
 #include "kvm.S.h"
 #include "kvm.h"
 

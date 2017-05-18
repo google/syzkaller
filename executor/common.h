@@ -132,6 +132,7 @@ void debug(const char* msg, ...)
 	fflush(stdout);
 }
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
 __thread int skip_segv;
 __thread jmp_buf segv_env;
 
@@ -175,6 +176,16 @@ static void install_segv_handler()
 	sigaction(SIGBUS, &sa, NULL);
 }
 
+#define NONFAILING(...)                                              \
+	{                                                            \
+		__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST); \
+		if (_setjmp(segv_env) == 0) {                        \
+			__VA_ARGS__;                                 \
+		}                                                    \
+		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
+	}
+#endif
+
 #if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
 static void use_temporary_dir()
 {
@@ -188,15 +199,6 @@ static void use_temporary_dir()
 		fail("failed to chdir");
 }
 #endif
-
-#define NONFAILING(...)                                              \
-	{                                                            \
-		__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST); \
-		if (_setjmp(segv_env) == 0) {                        \
-			__VA_ARGS__;                                 \
-		}                                                    \
-		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
-	}
 
 #define BITMASK_LEN(type, bf_len) (type)((1ull << (bf_len)) - 1)
 
@@ -469,8 +471,13 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	}
 
 	struct tcp_resources* res = (struct tcp_resources*)a0;
+#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
 	NONFAILING(res->seq = htonl((ntohl(tcphdr->seq) + (uint32_t)a1)));
 	NONFAILING(res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32_t)a2)));
+#else
+	res->seq = htonl((ntohl(tcphdr->seq) + (uint32_t)a1));
+	res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32_t)a2));
+#endif
 
 	debug("extracted seq: %08x\n", res->seq);
 	debug("extracted ack: %08x\n", res->ack);
@@ -492,7 +499,11 @@ static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 		// syz_open_dev(dev strconst, id intptr, flags flags[open_flags]) fd
 		char buf[1024];
 		char* hash;
+#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
 		NONFAILING(strncpy(buf, (char*)a0, sizeof(buf)));
+#else
+		strncpy(buf, (char*)a0, sizeof(buf));
+#endif
 		buf[sizeof(buf) - 1] = 0;
 		while ((hash = strchr(buf, '#'))) {
 			*hash = '0' + (char)(a1 % 10); // 10 devices should be enough for everyone.
