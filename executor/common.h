@@ -627,21 +627,13 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 	case __NR_syz_fuseblk_mount:
 		return syz_fuseblk_mount(a0, a1, a2, a3, a4, a5, a6, a7);
 #endif
-#if defined(__NR_syz_emit_ethernet)
+#ifdef __NR_syz_emit_ethernet
 	case __NR_syz_emit_ethernet:
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 		return syz_emit_ethernet(a0, a1);
-#else
-		return 0;
 #endif
-#endif
-#if defined(__NR_syz_extract_tcp_res)
+#ifdef __NR_syz_extract_tcp_res
 	case __NR_syz_extract_tcp_res:
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 		return syz_extract_tcp_res(a0, a1, a2);
-#else
-		return 0;
-#endif
 #endif
 #ifdef __NR_syz_kvm_setup_cpu
 	case __NR_syz_kvm_setup_cpu:
