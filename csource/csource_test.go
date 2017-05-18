@@ -33,7 +33,7 @@ func allOptionsPermutations() []Options {
 		for _, opt.Collide = range []bool{false, true} {
 			for _, opt.Repeat = range []bool{false, true} {
 				for _, opt.Procs = range []int{1, 4} {
-					for _, opt.Sandbox = range []string{"none", "setuid", "namespace"} {
+					for _, opt.Sandbox = range []string{"", "none", "setuid", "namespace"} {
 						for _, opt.Repro = range []bool{false, true} {
 							for _, opt.Fault = range []bool{false, true} {
 								for _, opt.EnableTun = range []bool{false, true} {

@@ -86,9 +86,16 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		if opts.UseTmpDir {
 			fmt.Fprintf(w, "\tuse_temporary_dir();\n")
 		}
-		fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
-		fmt.Fprint(w, "\tint status = 0;\n")
-		fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+		if opts.Sandbox != "" {
+			fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
+			fmt.Fprint(w, "\tint status = 0;\n")
+			fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+		} else {
+			if opts.EnableTun {
+				fmt.Fprintf(w, "\tsetup_tun(0, %v);\n", opts.EnableTun)
+			}
+			fmt.Fprint(w, "\tloop();\n")
+		}
 		fmt.Fprint(w, "\treturn 0;\n}\n")
 	} else {
 		generateTestFunc(w, opts, calls, "test")
@@ -100,9 +107,16 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			if opts.UseTmpDir {
 				fmt.Fprintf(w, "\tuse_temporary_dir();\n")
 			}
-			fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
-			fmt.Fprint(w, "\tint status = 0;\n")
-			fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+			if opts.Sandbox != "" {
+				fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
+				fmt.Fprint(w, "\tint status = 0;\n")
+				fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+			} else {
+				if opts.EnableTun {
+					fmt.Fprintf(w, "\tsetup_tun(0, %v);\n", opts.EnableTun)
+				}
+				fmt.Fprint(w, "\tloop();\n")
+			}
 			fmt.Fprint(w, "\treturn 0;\n}\n")
 		} else {
 			fmt.Fprint(w, "int main()\n{\n")
@@ -115,9 +129,16 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			if opts.UseTmpDir {
 				fmt.Fprintf(w, "\t\t\tuse_temporary_dir();\n")
 			}
-			fmt.Fprintf(w, "\t\t\tint pid = do_sandbox_%v(i, %v);\n", opts.Sandbox, opts.EnableTun)
-			fmt.Fprint(w, "\t\t\tint status = 0;\n")
-			fmt.Fprint(w, "\t\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+			if opts.Sandbox != "" {
+				fmt.Fprintf(w, "\t\t\tint pid = do_sandbox_%v(i, %v);\n", opts.Sandbox, opts.EnableTun)
+				fmt.Fprint(w, "\t\t\tint status = 0;\n")
+				fmt.Fprint(w, "\t\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+			} else {
+				if opts.EnableTun {
+					fmt.Fprintf(w, "\t\t\tsetup_tun(i, %v);\n", opts.EnableTun)
+				}
+				fmt.Fprint(w, "\t\t\tloop();\n")
+			}
 			fmt.Fprint(w, "\t\t\treturn 0;\n")
 			fmt.Fprint(w, "\t\t}\n")
 			fmt.Fprint(w, "\t}\n")
@@ -334,6 +355,8 @@ func preprocessCommonHeader(opts Options, handled map[string]int, useBitmasks bo
 		defines = append(defines, "SYZ_USE_BITMASKS")
 	}
 	switch opts.Sandbox {
+	case "":
+		// No sandbox, do nothing.
 	case "none":
 		defines = append(defines, "SYZ_SANDBOX_NONE")
 	case "setuid":
