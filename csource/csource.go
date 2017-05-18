@@ -42,18 +42,6 @@ type Options struct {
 	Repro bool
 }
 
-func RequiresTun(p *prog.Prog) bool {
-	for _, c := range p.Calls {
-		switch c.Meta.CallName {
-		case "syz_emit_ethernet":
-			return true
-		case "syz_extract_tcp_seq":
-			return true
-		}
-	}
-	return false
-}
-
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	exec := make([]byte, prog.ExecBufferSize)
 	if err := p.SerializeForExec(exec, 0); err != nil {
@@ -61,7 +49,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	}
 	w := new(bytes.Buffer)
 
-	if RequiresTun(p) {
+	if prog.RequiresTun(p) {
 		opts.EnableTun = true
 	}
 
@@ -78,7 +66,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	}
 	fmt.Fprintf(w, "\n")
 
-	hdr, err := preprocessCommonHeader(opts, handled)
+	hdr, err := preprocessCommonHeader(opts, handled, prog.RequiresBitmasks(p))
 	if err != nil {
 		return nil, err
 	}
@@ -340,8 +328,11 @@ loop:
 	return calls, n
 }
 
-func preprocessCommonHeader(opts Options, handled map[string]int) (string, error) {
+func preprocessCommonHeader(opts Options, handled map[string]int, useBitmasks bool) (string, error) {
 	var defines []string
+	if useBitmasks {
+		defines = append(defines, "SYZ_USE_BITMASKS")
+	}
 	switch opts.Sandbox {
 	case "none":
 		defines = append(defines, "SYZ_SANDBOX_NONE")
