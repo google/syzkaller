@@ -119,6 +119,7 @@ __attribute__((noreturn)) void exitf(const char* msg, ...)
 	doexit(kRetryStatus);
 }
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 static int flag_debug;
 
 void debug(const char* msg, ...)
@@ -131,6 +132,7 @@ void debug(const char* msg, ...)
 	va_end(args);
 	fflush(stdout);
 }
+#endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_USE_BITMASKS)
 #define BITMASK_LEN(type, bf_len) (type)((1ull << (bf_len)) - 1)
@@ -164,10 +166,14 @@ static void segv_handler(int sig, siginfo_t* info, void* uctx)
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 		debug("SIGSEGV on %p, skipping\n", addr);
+#endif
 		_longjmp(segv_env, 1);
 	}
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 	debug("SIGSEGV on %p, exiting\n", addr);
+#endif
 	doexit(sig);
 	for (;;) {
 	}
@@ -329,8 +335,10 @@ static void setup_tun(uint64_t pid, bool enable_tun)
 	if (enable_tun)
 		initialize_tun(pid);
 }
+#endif
 
-int read_tun(char* data, int size)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_TUN_ENABLE) && (defined(__NR_syz_extract_tcp_res) || defined(SYZ_REPEAT)))
+static int read_tun(char* data, int size)
 {
 	int rv = read(tunfd, data, size);
 	if (rv < 0) {
@@ -340,8 +348,10 @@ int read_tun(char* data, int size)
 	}
 	return rv;
 }
+#endif
 
-void debug_dump_data(const char* data, int length)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_DEBUG) && defined(SYZ_TUN_ENABLE) && (defined(__NR_syz_emit_ethernet) || defined(__NR_syz_extract_tcp_res)))
+static void debug_dump_data(const char* data, int length)
 {
 	int i;
 	for (i = 0; i < length; i++) {
@@ -396,7 +406,9 @@ static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 
 	int64_t length = a0;
 	char* data = (char*)a1;
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 	debug_dump_data(data, length);
+#endif
 	return write(tunfd, data, length);
 }
 #endif
@@ -443,7 +455,9 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	if (rv == -1)
 		return (uintptr_t)-1;
 	size_t length = rv;
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 	debug_dump_data(data, length);
+#endif
 
 	struct tcphdr* tcphdr;
 
@@ -481,8 +495,10 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32_t)a2));
 #endif
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 	debug("extracted seq: %08x\n", res->seq);
 	debug("extracted ack: %08x\n", res->ack);
+#endif
 
 	return 0;
 }
@@ -781,7 +797,9 @@ static int namespace_sandbox_proc(void* arg)
 	if (mkdir("./syz-tmp/pivot", 0777))
 		fail("mkdir failed");
 	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 		debug("pivot_root failed");
+#endif
 		if (chdir("./syz-tmp"))
 			fail("chdir failed");
 	} else {
@@ -863,16 +881,22 @@ retry:
 		}
 		int i;
 		for (i = 0;; i++) {
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 			debug("unlink(%s)\n", filename);
+#endif
 			if (unlink(filename) == 0)
 				break;
 			if (errno == EROFS) {
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 				debug("ignoring EROFS\n");
+#endif
 				break;
 			}
 			if (errno != EBUSY || i > 100)
 				exitf("unlink(%s) failed", filename);
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 			debug("umount(%s)\n", filename);
+#endif
 			if (umount2(filename, MNT_DETACH))
 				exitf("umount(%s) failed", filename);
 		}
@@ -880,16 +904,22 @@ retry:
 	closedir(dp);
 	int i;
 	for (i = 0;; i++) {
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 		debug("rmdir(%s)\n", dir);
+#endif
 		if (rmdir(dir) == 0)
 			break;
 		if (i < 100) {
 			if (errno == EROFS) {
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 				debug("ignoring EROFS\n");
+#endif
 				break;
 			}
 			if (errno == EBUSY) {
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 				debug("umount(%s)\n", dir);
+#endif
 				if (umount2(dir, MNT_DETACH))
 					exitf("umount(%s) failed", dir);
 				continue;

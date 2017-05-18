@@ -160,6 +160,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		UseTmpDir:  true,
 		HandleSegv: true,
 		WaitRepeat: true,
+		Debug:      true,
 		Repro:      true,
 	}
 	// Execute the suspected programs.
@@ -326,6 +327,17 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.WaitRepeat {
 		opts = res.Opts
 		opts.WaitRepeat = false
+		crashed, err := ctx.testCProg(res.Prog, duration, opts)
+		if err != nil {
+			return res, err
+		}
+		if crashed {
+			res.Opts = opts
+		}
+	}
+	if res.Opts.Debug {
+		opts = res.Opts
+		opts.Debug = false
 		crashed, err := ctx.testCProg(res.Prog, duration, opts)
 		if err != nil {
 			return res, err

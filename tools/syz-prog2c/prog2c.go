@@ -26,6 +26,7 @@ var (
 	flagUseTmpDir  = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
 	flagHandleSegv = flag.Bool("segv", false, "catch and ignore SIGSEGV")
 	flagWaitRepeat = flag.Bool("waitrepeat", false, "wait for each repeat attempt")
+	flagDebug      = flag.Bool("debug", false, "generate debug printfs")
 )
 
 func main() {
@@ -57,6 +58,7 @@ func main() {
 		UseTmpDir:  *flagUseTmpDir,
 		HandleSegv: *flagHandleSegv,
 		WaitRepeat: *flagWaitRepeat,
+		Debug:      *flagDebug,
 		Repro:      false,
 	}
 	src, err := csource.Write(p, opts)
