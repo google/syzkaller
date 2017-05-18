@@ -23,6 +23,7 @@ var (
 	flagFaultCall = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
 	flagFaultNth  = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
 	flagEnableTun = flag.Bool("tun", false, "set up TUN/TAP interface")
+	flagUseTmpDir = flag.Bool("tmpdir", false, "create a temporary dir and execute inside it")
 )
 
 func main() {
@@ -51,6 +52,7 @@ func main() {
 		FaultCall: *flagFaultCall,
 		FaultNth:  *flagFaultNth,
 		EnableTun: *flagEnableTun,
+		UseTmpDir: *flagUseTmpDir,
 		Repro:     false,
 	}
 	src, err := csource.Write(p, opts)

@@ -175,6 +175,7 @@ static void install_segv_handler()
 	sigaction(SIGBUS, &sa, NULL);
 }
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
 static void use_temporary_dir()
 {
 	char tmpdir_template[] = "./syzkaller.XXXXXX";
@@ -186,6 +187,7 @@ static void use_temporary_dir()
 	if (chdir(tmpdir))
 		fail("failed to chdir");
 }
+#endif
 
 #define NONFAILING(...)                                              \
 	{                                                            \
