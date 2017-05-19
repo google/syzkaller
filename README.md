@@ -10,7 +10,12 @@ google account or by sending an email to syzkaller+subscribe@googlegroups.com.
 
 List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
 
-When reporting bugs found with `syzkaller` please add `syzkaller@googlegroups.com` to CC list. Also consider principles of [responsible disclosure](https://en.wikipedia.org/wiki/Responsible_disclosure) when reporting bugs that can be security vulnerabilities.
+## Reporting Linux kernel bugs
+
+Please report found bugs to the Linux kernel maintainers.
+To find out the list of maintainers responsible for a particular kernel subsystem, run `./scripts/get_maintainer.pl guilty_file.c`. Please also add `syzkaller@googlegroups.com` to CC list.
+
+If you believe that a found bug poses potential security threat, consider reporting it directly to `security@kernel.org`.
 
 ## Usage
 
