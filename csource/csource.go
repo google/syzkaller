@@ -321,28 +321,46 @@ loop:
 				fmt.Fprintf(w, "\tinject_fault(%v);\n", opts.FaultNth)
 			}
 			meta := sys.Calls[instr]
-			fmt.Fprintf(w, "\tr[%v] = execute_syscall(__NR_%v", n, meta.CallName)
+			emitCall := true
+			if meta.CallName == "syz_test" {
+				emitCall = false
+			}
+			if emitCall {
+				if meta.Native {
+					fmt.Fprintf(w, "\tr[%v] = syscall(__NR_%v", n, meta.CallName)
+				} else {
+					fmt.Fprintf(w, "\tr[%v] = %v(", n, meta.CallName)
+				}
+			}
 			nargs := read()
 			for i := uintptr(0); i < nargs; i++ {
 				typ := read()
 				size := read()
 				_ = size
+				if emitCall && (meta.Native || i > 0) {
+					fmt.Fprintf(w, ", ")
+				}
 				switch typ {
 				case prog.ExecArgConst:
-					fmt.Fprintf(w, ", 0x%xul", read())
+					value := read()
+					if emitCall {
+						fmt.Fprintf(w, "0x%xul", value)
+					}
 					// Bitfields can't be args of a normal syscall, so just ignore them.
 					read() // bit field offset
 					read() // bit field length
 				case prog.ExecArgResult:
-					fmt.Fprintf(w, ", %v", resultRef())
+					ref := resultRef()
+					if emitCall {
+						fmt.Fprintf(w, "%v", ref)
+					}
 				default:
 					panic(fmt.Sprintf("unknown arg type %v", typ))
 				}
 			}
-			for i := nargs; i < 9; i++ {
-				fmt.Fprintf(w, ", 0")
+			if emitCall {
+				fmt.Fprintf(w, ");\n")
 			}
-			fmt.Fprintf(w, ");\n")
 			lastCall = n
 			seenCall = true
 		}
