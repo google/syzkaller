@@ -56,14 +56,14 @@ func main() {
 		return
 	}
 
-	flags, timeout, err := ipc.DefaultFlags()
+	config, err := ipc.DefaultConfig()
 	if err != nil {
 		Fatalf("%v", err)
 	}
-	needCover := flags&ipc.FlagSignal != 0
+	needCover := config.Flags&ipc.FlagSignal != 0
 	dedupCover := true
 	if *flagCoverFile != "" {
-		flags |= ipc.FlagSignal
+		config.Flags |= ipc.FlagSignal
 		needCover = true
 		dedupCover = false
 	}
@@ -75,7 +75,7 @@ func main() {
 		}
 	}
 	if handled["syz_emit_ethernet"] {
-		flags |= ipc.FlagEnableTun
+		config.Flags |= ipc.FlagEnableTun
 	}
 
 	var wg sync.WaitGroup
@@ -89,7 +89,7 @@ func main() {
 		pid := p
 		go func() {
 			defer wg.Done()
-			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags, pid)
+			env, err := ipc.MakeEnv(*flagExecutor, pid, config)
 			if err != nil {
 				Fatalf("failed to create ipc env: %v", err)
 			}
@@ -126,7 +126,7 @@ func main() {
 					if failed {
 						fmt.Printf("BUG: executor-detected bug:\n%s", output)
 					}
-					if flags&ipc.FlagDebug != 0 || err != nil {
+					if config.Flags&ipc.FlagDebug != 0 || err != nil {
 						fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
 					}
 					if *flagCoverFile != "" {
