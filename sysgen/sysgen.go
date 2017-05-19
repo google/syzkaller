@@ -177,7 +177,11 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 				logf(0, "unsupported syscall: %v", s.CallName)
 			}
 		}
-		fmt.Fprintf(out, "&Call{Name: \"%v\", CallName: \"%v\"", s.Name, s.CallName)
+		native := true
+		if _, ok := syzkalls[s.CallName]; ok {
+			native = false
+		}
+		fmt.Fprintf(out, "&Call{Name: \"%v\", CallName: \"%v\", Native: %v", s.Name, s.CallName, native)
 		if len(s.Ret) != 0 {
 			fmt.Fprintf(out, ", Ret: ")
 			generateArg("", "ret", s.Ret[0], "out", s.Ret[1:], desc, consts, true, false, out)
