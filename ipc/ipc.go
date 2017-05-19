@@ -67,6 +67,7 @@ var (
 	// so let's better wait than report false misleading crashes.
 	flagTimeout     = flag.Duration("timeout", 1*time.Minute, "execution timeout")
 	flagAbortSignal = flag.Int("abort_signal", int(syscall.SIGKILL), "initial signal to send to executor in error conditions; upgrades to SIGKILL if executor does not exit")
+	flagBufferSize  = flag.Uint64("buffer_size", 128<<10, "internal buffer size (in bytes) for executor output")
 )
 
 // ExecutorFailure is returned from MakeEnv or from env.Exec when executor terminates by calling fail function.
@@ -88,6 +89,9 @@ type Config struct {
 	// AbortSignal is the signal to send to the executor in error
 	// conditions.
 	AbortSignal syscall.Signal
+
+	// BufferSize is the size of the internal buffer for executor output.
+	BufferSize uint64
 }
 
 func DefaultConfig() (Config, error) {
@@ -115,6 +119,7 @@ func DefaultConfig() (Config, error) {
 	}
 	c.Timeout = *flagTimeout
 	c.AbortSignal = syscall.Signal(*flagAbortSignal)
+	c.BufferSize = *flagBufferSize
 	return c, nil
 }
 
@@ -438,16 +443,15 @@ func makeCommand(pid int, bin []string, config Config, inFile *os.File, outFile 
 		cmd.Stderr = wp
 		go func(c *command) {
 			// Read out output in case executor constantly prints something.
-			const BufSize = 128 << 10
-			output := make([]byte, BufSize)
-			size := 0
+			output := make([]byte, c.config.BufferSize)
+			var size uint64
 			for {
 				n, err := rp.Read(output[size:])
 				if n > 0 {
-					size += n
-					if size >= BufSize*3/4 {
-						copy(output, output[size-BufSize/2:size])
-						size = BufSize / 2
+					size += uint64(n)
+					if size >= c.config.BufferSize*3/4 {
+						copy(output, output[size-c.config.BufferSize/2:size])
+						size = c.config.BufferSize / 2
 					}
 				}
 				if err != nil {
