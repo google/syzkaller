@@ -226,6 +226,10 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 			diff := now.Sub(lastTime)
 			lastTime = now
 			mgr.mu.Lock()
+			if mgr.firstConnect.IsZero() {
+				mgr.mu.Unlock()
+				continue
+			}
 			mgr.fuzzingTime += diff * time.Duration(atomic.LoadUint32(&mgr.numFuzzing))
 			executed := mgr.stats["exec total"]
 			crashes := mgr.stats["crashes"]
@@ -307,6 +311,7 @@ type ReproResult struct {
 
 func (mgr *Manager) vmLoop() {
 	Logf(0, "booting test machines...")
+	Logf(0, "wait for the connection from test machine...")
 	reproInstances := 4
 	if reproInstances > mgr.cfg.Count {
 		reproInstances = mgr.cfg.Count
@@ -668,6 +673,7 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 
 	if mgr.firstConnect.IsZero() {
 		mgr.firstConnect = time.Now()
+		Logf(0, "received first connection from test machine %v", a.Name)
 	}
 
 	mgr.stats["vm restarts"]++
