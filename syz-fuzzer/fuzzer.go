@@ -181,14 +181,14 @@ func main() {
 
 	kmemleakInit()
 
-	flags, timeout, err := ipc.DefaultFlags()
+	config, err := ipc.DefaultConfig()
 	if err != nil {
 		panic(err)
 	}
 	if _, ok := calls[sys.CallMap["syz_emit_ethernet"]]; ok {
-		flags |= ipc.FlagEnableTun
+		config.Flags |= ipc.FlagEnableTun
 	}
-	noCover = flags&ipc.FlagSignal == 0
+	noCover = config.Flags&ipc.FlagSignal == 0
 	leakCallback := func() {
 		if atomic.LoadUint32(&allTriaged) != 0 {
 			// Scan for leaks once in a while (it is damn slow).
@@ -203,7 +203,7 @@ func main() {
 	needPoll <- struct{}{}
 	envs := make([]*ipc.Env, *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
-		env, err := ipc.MakeEnv(*flagExecutor, timeout, flags, pid)
+		env, err := ipc.MakeEnv(*flagExecutor, pid, config)
 		if err != nil {
 			panic(err)
 		}
