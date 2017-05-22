@@ -1,0 +1,28 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+0x42		### unexpected int, expecting comment, define, include, resource, identifier
+foo		### unexpected '\n', expecting '(', '{', '[', '='
+%		### illegal character U+0025 '%'
+
+int_flags0 = 0, 0x1, 0xab
+int_flags1 = 123ab0x			### bad integer "123ab0x"
+int_flags1 == 0, 1			### unexpected '=', expecting int, identifier, string
+int_flags = 0, "foo"			### unexpected string, expecting int, identifier
+
+str_flags0 = "foo", "bar"
+str_flags1 = "non terminated		### string literal is not terminated
+str_flags2 = "bad chars здесь"		### illegal character U+00D0 'Ð' in string literal
+str_flags3 = "string", not a string	### unexpected identifier, expecting string
+str_flags4 = "string", 42		### unexpected int, expecting string
+
+call(foo ,int32 , bar int32)		### unexpected ',', expecting int, identifier, string
+call(foo int32:"bar")			### unexpected string, expecting int, identifier
+
+define FOO `bar`
+define FOO `bar				### C expression is not terminated
+
+include <linux/foo.h>
+include "linux/foo.h"
+incdir </foo/bar>
+incdir "/foo/bar"
