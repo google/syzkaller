@@ -50,7 +50,7 @@ func main() {
 	prios := prog.CalculatePriorities(corpus)
 	ct := prog.BuildChoiceTable(prios, calls)
 
-	flags, timeout, err := ipc.DefaultFlags()
+	config, err := ipc.DefaultConfig()
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -58,7 +58,7 @@ func main() {
 	for pid := 0; pid < *flagProcs; pid++ {
 		pid := pid
 		go func() {
-			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags, pid)
+			env, err := ipc.MakeEnv(*flagExecutor, pid, config)
 			if err != nil {
 				Fatalf("failed to create execution environment: %v", err)
 			}

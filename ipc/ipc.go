@@ -29,14 +29,14 @@ type Env struct {
 	inFile  *os.File
 	outFile *os.File
 	bin     []string
-	timeout time.Duration
-	flags   uint64
 	pid     int
+	config  Config
 
 	StatExecs    uint64
 	StatRestarts uint64
 }
 
+// Configuration flags for Config.Flags.
 const (
 	FlagDebug            = uint64(1) << iota // debug output from executor
 	FlagSignal                               // collect feedback signals (coverage)
@@ -45,7 +45,9 @@ const (
 	FlagSandboxSetuid                        // impersonate nobody user
 	FlagSandboxNamespace                     // use namespaces for sandboxing
 	FlagEnableTun                            // initialize and use tun in executor
+)
 
+const (
 	outputSize   = 16 << 20
 	signalOffset = 15 << 20
 
@@ -63,7 +65,9 @@ var (
 	// Executor protects against most hangs, so we use quite large timeout here.
 	// Executor can be slow due to global locks in namespaces and other things,
 	// so let's better wait than report false misleading crashes.
-	flagTimeout = flag.Duration("timeout", 1*time.Minute, "execution timeout")
+	flagTimeout     = flag.Duration("timeout", 1*time.Minute, "execution timeout")
+	flagAbortSignal = flag.Int("abort_signal", int(syscall.SIGKILL), "initial signal to send to executor in error conditions; upgrades to SIGKILL if executor does not exit")
+	flagBufferSize  = flag.Uint64("buffer_size", 128<<10, "internal buffer size (in bytes) for executor output")
 )
 
 // ExecutorFailure is returned from MakeEnv or from env.Exec when executor terminates by calling fail function.
@@ -74,37 +78,56 @@ func (err ExecutorFailure) Error() string {
 	return string(err)
 }
 
-func DefaultFlags() (uint64, time.Duration, error) {
-	var flags uint64
+// Config is the configuration for Env.
+type Config struct {
+	// Flags are configuation flags, defined above.
+	Flags uint64
+
+	// Timeout is the execution timeout for a single program.
+	Timeout time.Duration
+
+	// AbortSignal is the signal to send to the executor in error
+	// conditions.
+	AbortSignal syscall.Signal
+
+	// BufferSize is the size of the internal buffer for executor output.
+	BufferSize uint64
+}
+
+func DefaultConfig() (Config, error) {
+	var c Config
 	if *flagThreaded {
-		flags |= FlagThreaded
+		c.Flags |= FlagThreaded
 	}
 	if *flagCollide {
-		flags |= FlagCollide
+		c.Flags |= FlagCollide
 	}
 	if *flagSignal {
-		flags |= FlagSignal
+		c.Flags |= FlagSignal
 	}
 	switch *flagSandbox {
 	case "none":
 	case "setuid":
-		flags |= FlagSandboxSetuid
+		c.Flags |= FlagSandboxSetuid
 	case "namespace":
-		flags |= FlagSandboxNamespace
+		c.Flags |= FlagSandboxNamespace
 	default:
-		return 0, 0, fmt.Errorf("flag sandbox must contain one of none/setuid/namespace")
+		return Config{}, fmt.Errorf("flag sandbox must contain one of none/setuid/namespace")
 	}
 	if *flagDebug {
-		flags |= FlagDebug
+		c.Flags |= FlagDebug
 	}
-	return flags, *flagTimeout, nil
+	c.Timeout = *flagTimeout
+	c.AbortSignal = syscall.Signal(*flagAbortSignal)
+	c.BufferSize = *flagBufferSize
+	return c, nil
 }
 
-func MakeEnv(bin string, timeout time.Duration, flags uint64, pid int) (*Env, error) {
+func MakeEnv(bin string, pid int, config Config) (*Env, error) {
 	// IPC timeout must be larger then executor timeout.
 	// Otherwise IPC will kill parent executor but leave child executor alive.
-	if timeout < 7*time.Second {
-		timeout = 7 * time.Second
+	if config.Timeout < 7*time.Second {
+		config.Timeout = 7 * time.Second
 	}
 	inf, inmem, err := createMapping(prog.ExecBufferSize)
 	if err != nil {
@@ -125,7 +148,7 @@ func MakeEnv(bin string, timeout time.Duration, flags uint64, pid int) (*Env, er
 		}
 	}()
 	for i := 0; i < 8; i++ {
-		inmem[i] = byte(flags >> (8 * uint(i)))
+		inmem[i] = byte(config.Flags >> (8 * uint(i)))
 	}
 	*(*uint64)(unsafe.Pointer(&inmem[8])) = uint64(pid)
 	inmem = inmem[16:]
@@ -135,9 +158,8 @@ func MakeEnv(bin string, timeout time.Duration, flags uint64, pid int) (*Env, er
 		inFile:  inf,
 		outFile: outf,
 		bin:     strings.Split(bin, " "),
-		timeout: timeout,
-		flags:   flags,
 		pid:     pid,
+		config:  config,
 	}
 	if len(env.bin) == 0 {
 		return nil, fmt.Errorf("binary is empty string")
@@ -203,7 +225,7 @@ func (env *Env) Exec(p *prog.Prog, cover, dedup bool) (output []byte, info []Cal
 			return
 		}
 	}
-	if env.flags&FlagSignal != 0 {
+	if env.config.Flags&FlagSignal != 0 {
 		// Zero out the first two words (ncmd and nsig), so that we don't have garbage there
 		// if executor crashes before writing non-garbage there.
 		for i := 0; i < 4; i++ {
@@ -214,7 +236,7 @@ func (env *Env) Exec(p *prog.Prog, cover, dedup bool) (output []byte, info []Cal
 	atomic.AddUint64(&env.StatExecs, 1)
 	if env.cmd == nil {
 		atomic.AddUint64(&env.StatRestarts, 1)
-		env.cmd, err0 = makeCommand(env.pid, env.bin, env.timeout, env.flags, env.inFile, env.outFile)
+		env.cmd, err0 = makeCommand(env.pid, env.bin, env.config, env.inFile, env.outFile)
 		if err0 != nil {
 			return
 		}
@@ -227,7 +249,7 @@ func (env *Env) Exec(p *prog.Prog, cover, dedup bool) (output []byte, info []Cal
 		return
 	}
 
-	if env.flags&FlagSignal == 0 || p == nil {
+	if env.config.Flags&FlagSignal == 0 || p == nil {
 		return
 	}
 	info, err0 = env.readOutCoverage(p)
@@ -354,26 +376,25 @@ func closeMapping(f *os.File, mem []byte) error {
 
 type command struct {
 	pid      int
-	timeout  time.Duration
+	config   Config
 	cmd      *exec.Cmd
-	flags    uint64
 	dir      string
 	readDone chan []byte
+	exited   chan struct{}
 	inrp     *os.File
 	outwp    *os.File
 }
 
-func makeCommand(pid int, bin []string, timeout time.Duration, flags uint64, inFile *os.File, outFile *os.File) (*command, error) {
+func makeCommand(pid int, bin []string, config Config, inFile *os.File, outFile *os.File) (*command, error) {
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
 	}
 
 	c := &command{
-		pid:     pid,
-		timeout: timeout,
-		flags:   flags,
-		dir:     dir,
+		pid:    pid,
+		config: config,
+		dir:    dir,
 	}
 	defer func() {
 		if c != nil {
@@ -381,7 +402,7 @@ func makeCommand(pid int, bin []string, timeout time.Duration, flags uint64, inF
 		}
 	}()
 
-	if flags&(FlagSandboxSetuid|FlagSandboxNamespace) != 0 {
+	if config.Flags&(FlagSandboxSetuid|FlagSandboxNamespace) != 0 {
 		if err := os.Chmod(dir, 0777); err != nil {
 			return nil, fmt.Errorf("failed to chmod temp dir: %v", err)
 		}
@@ -411,26 +432,26 @@ func makeCommand(pid int, bin []string, timeout time.Duration, flags uint64, inF
 	c.outwp = outwp
 
 	c.readDone = make(chan []byte, 1)
+	c.exited = make(chan struct{})
 
 	cmd := exec.Command(bin[0], bin[1:]...)
 	cmd.ExtraFiles = []*os.File{inFile, outFile, outrp, inwp}
 	cmd.Env = []string{}
 	cmd.Dir = dir
-	if flags&FlagDebug == 0 {
+	if config.Flags&FlagDebug == 0 {
 		cmd.Stdout = wp
 		cmd.Stderr = wp
 		go func(c *command) {
 			// Read out output in case executor constantly prints something.
-			const BufSize = 128 << 10
-			output := make([]byte, BufSize)
-			size := 0
+			output := make([]byte, c.config.BufferSize)
+			var size uint64
 			for {
 				n, err := rp.Read(output[size:])
 				if n > 0 {
-					size += n
-					if size >= BufSize*3/4 {
-						copy(output, output[size-BufSize/2:size])
-						size = BufSize / 2
+					size += uint64(n)
+					if size >= c.config.BufferSize*3/4 {
+						copy(output, output[size-c.config.BufferSize/2:size])
+						size = c.config.BufferSize / 2
 					}
 				}
 				if err != nil {
@@ -463,8 +484,8 @@ func makeCommand(pid int, bin []string, timeout time.Duration, flags uint64, inF
 
 func (c *command) close() {
 	if c.cmd != nil {
-		c.kill()
-		c.cmd.Wait()
+		c.abort()
+		c.wait()
 	}
 	fileutil.UmountAll(c.dir)
 	os.RemoveAll(c.dir)
@@ -489,10 +510,10 @@ func (c *command) waitServing() error {
 	case err := <-read:
 		timeout.Stop()
 		if err != nil {
-			c.kill()
+			c.abort()
 			output := <-c.readDone
 			err = fmt.Errorf("executor is not serving: %v\n%s", err, output)
-			c.cmd.Wait()
+			c.wait()
 			if c.cmd.ProcessState != nil {
 				sys := c.cmd.ProcessState.Sys()
 				if ws, ok := sys.(syscall.WaitStatus); ok {
@@ -509,8 +530,32 @@ func (c *command) waitServing() error {
 	}
 }
 
-func (c *command) kill() {
-	syscall.Kill(c.cmd.Process.Pid, syscall.SIGKILL)
+// abort sends the abort signal to the command and then SIGKILL if wait doesn't
+// return within 5s.
+func (c *command) abort() {
+	syscall.Kill(c.cmd.Process.Pid, c.config.AbortSignal)
+	if c.config.AbortSignal != syscall.SIGKILL {
+		go func() {
+			t := time.NewTimer(5 * time.Second)
+			select {
+			case <-t.C:
+				syscall.Kill(c.cmd.Process.Pid, syscall.SIGKILL)
+			case <-c.exited:
+				t.Stop()
+			}
+		}()
+	}
+}
+
+func (c *command) wait() error {
+	err := c.cmd.Wait()
+	select {
+	case <-c.exited:
+		// c.exited closed by an earlier call to wait.
+	default:
+		close(c.exited)
+	}
+	return err
 }
 
 func (c *command) exec(cover, dedup bool) (output []byte, failed, hanged, restart bool, err0 error) {
@@ -529,10 +574,10 @@ func (c *command) exec(cover, dedup bool) (output []byte, failed, hanged, restar
 	done := make(chan bool)
 	hang := make(chan bool)
 	go func() {
-		t := time.NewTimer(c.timeout)
+		t := time.NewTimer(c.config.Timeout)
 		select {
 		case <-t.C:
-			c.kill()
+			c.abort()
 			hang <- true
 		case <-done:
 			t.Stop()
@@ -556,9 +601,9 @@ func (c *command) exec(cover, dedup bool) (output []byte, failed, hanged, restar
 		status = int(flags[0])
 	}
 	err0 = fmt.Errorf("executor did not answer")
-	c.kill()
+	c.abort()
 	output = <-c.readDone
-	if err := c.cmd.Wait(); <-hang && err != nil {
+	if err := c.wait(); <-hang && err != nil {
 		hanged = true
 		output = append(output, []byte(err.Error())...)
 		output = append(output, '\n')
