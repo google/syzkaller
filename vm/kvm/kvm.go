@@ -151,6 +151,9 @@ func validateConfig(cfg *vm.Config) error {
 	if cfg.Bin == "" {
 		cfg.Bin = "lkvm"
 	}
+	if _, err := exec.LookPath(cfg.Bin); err != nil {
+		return err
+	}
 	if cfg.Image != "" {
 		return fmt.Errorf("lkvm does not support custom images")
 	}
