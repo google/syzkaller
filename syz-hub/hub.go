@@ -88,13 +88,14 @@ func (hub *Hub) Sync(a *HubSyncArgs, r *HubSyncRes) error {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 
-	inputs, err := hub.st.Sync(a.Name, a.Add, a.Del)
+	inputs, more, err := hub.st.Sync(a.Name, a.Add, a.Del)
 	if err != nil {
 		Logf(0, "sync error: %v", err)
 		return err
 	}
 	r.Inputs = inputs
-	Logf(0, "sync from %v: add=%v del=%v new=%v", a.Name, len(a.Add), len(a.Del), len(inputs))
+	r.More = more
+	Logf(0, "sync from %v: add=%v del=%v new=%v pending=%v", a.Name, len(a.Add), len(a.Del), len(inputs), more)
 	return nil
 }
 
