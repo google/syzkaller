@@ -440,10 +440,11 @@ retry:
 			// Wait for call completion.
 			uint64_t start = current_time_ms();
 			uint64_t now = start;
+			const uint64_t timeout_ms = flag_debug ? 500 : 20;
 			for (;;) {
 				timespec ts = {};
 				ts.tv_sec = 0;
-				ts.tv_nsec = (20 - (now - start)) * 1000 * 1000;
+				ts.tv_nsec = (timeout_ms - (now - start)) * 1000 * 1000;
 				syscall(SYS_futex, &th->done, FUTEX_WAIT, 0, &ts);
 				if (__atomic_load_n(&th->done, __ATOMIC_RELAXED))
 					break;
