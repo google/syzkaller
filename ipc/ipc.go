@@ -66,8 +66,8 @@ var (
 	// Executor can be slow due to global locks in namespaces and other things,
 	// so let's better wait than report false misleading crashes.
 	flagTimeout     = flag.Duration("timeout", 1*time.Minute, "execution timeout")
-	flagAbortSignal = flag.Int("abort_signal", int(syscall.SIGKILL), "initial signal to send to executor in error conditions; upgrades to SIGKILL if executor does not exit")
-	flagBufferSize  = flag.Uint64("buffer_size", 128<<10, "internal buffer size (in bytes) for executor output")
+	flagAbortSignal = flag.Int("abort_signal", 0, "initial signal to send to executor in error conditions; upgrades to SIGKILL if executor does not exit")
+	flagBufferSize  = flag.Uint64("buffer_size", 0, "internal buffer size (in bytes) for executor output")
 )
 
 // ExecutorFailure is returned from MakeEnv or from env.Exec when executor terminates by calling fail function.
@@ -443,15 +443,19 @@ func makeCommand(pid int, bin []string, config Config, inFile *os.File, outFile 
 		cmd.Stderr = wp
 		go func(c *command) {
 			// Read out output in case executor constantly prints something.
-			output := make([]byte, c.config.BufferSize)
+			bufSize := c.config.BufferSize
+			if bufSize == 0 {
+				bufSize = 128 << 10
+			}
+			output := make([]byte, bufSize)
 			var size uint64
 			for {
 				n, err := rp.Read(output[size:])
 				if n > 0 {
 					size += uint64(n)
-					if size >= c.config.BufferSize*3/4 {
-						copy(output, output[size-c.config.BufferSize/2:size])
-						size = c.config.BufferSize / 2
+					if size >= bufSize*3/4 {
+						copy(output, output[size-bufSize/2:size])
+						size = bufSize / 2
 					}
 				}
 				if err != nil {
@@ -533,8 +537,12 @@ func (c *command) waitServing() error {
 // abort sends the abort signal to the command and then SIGKILL if wait doesn't
 // return within 5s.
 func (c *command) abort() {
-	syscall.Kill(c.cmd.Process.Pid, c.config.AbortSignal)
-	if c.config.AbortSignal != syscall.SIGKILL {
+	sig := c.config.AbortSignal
+	if sig <= 0 || sig >= 32 {
+		sig = syscall.SIGKILL
+	}
+	syscall.Kill(c.cmd.Process.Pid, sig)
+	if sig != syscall.SIGKILL {
 		go func() {
 			t := time.NewTimer(5 * time.Second)
 			select {
