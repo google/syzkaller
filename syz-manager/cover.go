@@ -50,8 +50,11 @@ func (a uint64Array) Less(i, j int) bool { return a[i] < a[j] }
 func (a uint64Array) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 var (
-	allCoverPCs   []uint64
-	allCoverReady = make(chan bool)
+	allCoverPCs     []uint64
+	allCoverReady   = make(chan bool)
+	allSymbols      map[string][]symbolizer.Symbol
+	allSymbolsReady = make(chan bool)
+	vmOffsets     = make(map[string]uint32)
 )
 
 const (
@@ -60,6 +63,8 @@ const (
 
 func initAllCover(vmlinux string) {
 	// Running objdump on vmlinux takes 20-30 seconds, so we do it asynchronously on start.
+	// Running nm on vmlinux may takes 200 microsecond and being called during symbolization of every crash,
+	// so also do it asynchronously on start and reuse the value during each crash.
 	go func() {
 		pcs, err := coveredPCs(vmlinux)
 		if err == nil {
@@ -68,7 +73,13 @@ func initAllCover(vmlinux string) {
 		} else {
 			Logf(0, "failed to run objdump on %v: %v", vmlinux, err)
 		}
+
+		allSymbols, err = symbolizer.ReadSymbols(vmlinux)
+		if err != nil {
+			Logf(0, "failed to run nm on %v: %v", vmlinux, err)
+		}
 		close(allCoverReady)
+		close(allSymbolsReady)
 	}()
 }
 
@@ -201,6 +212,9 @@ func parseFile(fn string) ([][]byte, error) {
 }
 
 func getVmOffset(vmlinux string) (uint32, error) {
+	if v, ok := vmOffsets[vmlinux]; ok {
+		return v, nil
+	}
 	out, err := exec.Command("readelf", "-SW", vmlinux).CombinedOutput()
 	if err != nil {
 		return 0, fmt.Errorf("readelf failed: %v\n%s", err, out)
@@ -230,14 +244,15 @@ func getVmOffset(vmlinux string) (uint32, error) {
 			}
 		}
 	}
+	vmOffsets[vmlinux] = addr
 	return addr, nil
 }
 
 // uncoveredPcsInFuncs returns uncovered PCs with __sanitizer_cov_trace_pc calls in functions containing pcs.
 func uncoveredPcsInFuncs(vmlinux string, pcs []uint64) ([]uint64, error) {
-	allSymbols, err := symbolizer.ReadSymbols(vmlinux)
-	if err != nil {
-		return nil, fmt.Errorf("failed to run nm on vmlinux: %v", err)
+	<-allSymbolsReady
+	if allSymbols == nil {
+		return nil, fmt.Errorf("failed to run nm on vmlinux")
 	}
 	var symbols symbolArray
 	for name, ss := range allSymbols {

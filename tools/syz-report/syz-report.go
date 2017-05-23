@@ -26,7 +26,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "report file does not contain a crash\n")
 		os.Exit(1)
 	}
-	symbolized, err := report.Symbolize(os.Args[1], text)
+	symbolized, err := report.Symbolize(os.Args[1], text, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to symbolize report: %v\n", err)
 	} else {

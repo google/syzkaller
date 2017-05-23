@@ -528,7 +528,8 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag), 0660)
 	}
 	if len(crash.text) > 0 {
-		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text)
+		<-allSymbolsReady
+		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text, allSymbols)
 		if err != nil {
 			Logf(0, "failed to symbolize crash: %v", err)
 		} else {
