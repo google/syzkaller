@@ -71,4 +71,5 @@ type HubSyncArgs struct {
 
 type HubSyncRes struct {
 	Inputs [][]byte
+	More   int
 }

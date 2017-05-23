@@ -901,31 +901,38 @@ func (mgr *Manager) hubSync() {
 		delete(mgr.hubCorpus, sig)
 		a.Del = append(a.Del, sig.String())
 	}
-	mgr.mu.Unlock()
-	r := new(HubSyncRes)
-	if err := mgr.hub.Call("Hub.Sync", a, r); err != nil {
-		mgr.mu.Lock()
-		Logf(0, "Hub.Sync rpc failed: %v", err)
-		mgr.hub.Close()
-		mgr.hub = nil
-		return
-	}
-	mgr.mu.Lock()
-	dropped := 0
-	for _, inp := range r.Inputs {
-		_, err := prog.Deserialize(inp)
-		if err != nil {
-			dropped++
-			continue
+	for {
+		mgr.mu.Unlock()
+		r := new(HubSyncRes)
+		if err := mgr.hub.Call("Hub.Sync", a, r); err != nil {
+			mgr.mu.Lock()
+			Logf(0, "Hub.Sync rpc failed: %v", err)
+			mgr.hub.Close()
+			mgr.hub = nil
+			return
 		}
-		mgr.candidates = append(mgr.candidates, RpcCandidate{
-			Prog:      inp,
-			Minimized: false, // don't trust programs from hub
-		})
+		mgr.mu.Lock()
+		dropped := 0
+		for _, inp := range r.Inputs {
+			_, err := prog.Deserialize(inp)
+			if err != nil {
+				dropped++
+				continue
+			}
+			mgr.candidates = append(mgr.candidates, RpcCandidate{
+				Prog:      inp,
+				Minimized: false, // don't trust programs from hub
+			})
+		}
+		mgr.stats["hub add"] += uint64(len(a.Add))
+		mgr.stats["hub del"] += uint64(len(a.Del))
+		mgr.stats["hub drop"] += uint64(dropped)
+		mgr.stats["hub new"] += uint64(len(r.Inputs) - dropped)
+		Logf(0, "hub sync: add %v, del %v, drop %v, new %v, more %v", len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped, r.More)
+		if len(r.Inputs)+r.More == 0 {
+			break
+		}
+		a.Add = nil
+		a.Del = nil
 	}
-	mgr.stats["hub add"] += uint64(len(a.Add))
-	mgr.stats["hub del"] += uint64(len(a.Del))
-	mgr.stats["hub drop"] += uint64(dropped)
-	mgr.stats["hub new"] += uint64(len(r.Inputs) - dropped)
-	Logf(0, "hub sync: add %v, del %v, drop %v, new %v", len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped)
 }
