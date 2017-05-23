@@ -408,6 +408,29 @@ func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, s
 	return
 }
 
+func ExtractConsoleOutput(output []byte) (result []byte) {
+	for pos := 0; pos < len(output); {
+		next := bytes.IndexByte(output[pos:], '\n')
+		if next != -1 {
+			next += pos
+		} else {
+			next = len(output)
+		}
+		if consoleOutputRe.Match(output[pos:next]) &&
+			(!questionableRe.Match(output[pos:next]) || bytes.Index(output[pos:next], eoi) != -1) {
+			lineStart := bytes.Index(output[pos:next], []byte("] ")) + pos + 2
+			lineEnd := next
+			if lineEnd != 0 && output[lineEnd-1] == '\r' {
+				lineEnd--
+			}
+			result = append(result, output[lineStart:lineEnd]...)
+			result = append(result, '\n')
+		}
+		pos = next + 1
+	}
+	return
+}
+
 func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) int {
 	match := bytes.Index(line, oops.header)
 	if match == -1 {
