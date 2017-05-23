@@ -559,6 +559,11 @@ static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 	if (syscall(SYS_setresuid, nobody, nobody, nobody))
 		fail("failed to setresuid");
 
+	// This is required to open /proc/self/* files.
+	// Otherwise they are owned by root and we can't open them after setuid.
+	// See task_dump_owner function in kernel.
+	prctl(PR_SET_DUMPABLE, 1, 0, 0, 0);
+
 	loop();
 	doexit(1);
 }
@@ -619,6 +624,10 @@ static int namespace_sandbox_proc(void* arg)
 		fail("mkdir failed");
 	if (mount("/dev", "./syz-tmp/newroot/dev", NULL, MS_BIND | MS_REC | MS_PRIVATE, NULL))
 		fail("mount(dev) failed");
+	if (mkdir("./syz-tmp/newroot/proc", 0700))
+		fail("mkdir failed");
+	if (mount(NULL, "./syz-tmp/newroot/proc", "proc", 0, NULL))
+		fail("mount(proc) failed");
 	if (mkdir("./syz-tmp/pivot", 0777))
 		fail("mkdir failed");
 	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
