@@ -668,14 +668,7 @@ void execute_call(thread_t* th)
 		if (collide)
 			fail("both collide and fault injection are enabled");
 		debug("injecting fault into %d-th operation\n", flag_fault_nth);
-		char buf[128];
-		sprintf(buf, "/proc/self/task/%d/fail-nth", (int)syscall(SYS_gettid));
-		fail_fd = open(buf, O_RDWR);
-		if (fail_fd == -1)
-			fail("failed to open /proc/self/task/tid/fail-nth");
-		sprintf(buf, "%d", flag_fault_nth + 1);
-		if (write(fail_fd, buf, strlen(buf)) != (ssize_t)strlen(buf))
-			fail("failed to write /proc/self/task/tid/fail-nth");
+		fail_fd = inject_fault(flag_fault_nth);
 	}
 
 	cover_reset(th);
