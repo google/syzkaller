@@ -34,16 +34,18 @@ func allOptionsPermutations() []Options {
 				for _, opt.Repro = range []bool{false, true} {
 					for _, opt.Procs = range []int{1, 4} {
 						for _, opt.Sandbox = range []string{"none", "setuid", "namespace"} {
-							if opt.Collide && !opt.Threaded {
-								continue
+							for _, opt.Fault = range []bool{false, true} {
+								if opt.Collide && !opt.Threaded {
+									continue
+								}
+								if !opt.Repeat && opt.Procs != 1 {
+									continue
+								}
+								if testing.Short() && opt.Procs != 1 {
+									continue
+								}
+								options = append(options, opt)
 							}
-							if !opt.Repeat && opt.Procs != 1 {
-								continue
-							}
-							if testing.Short() && opt.Procs != 1 {
-								continue
-							}
-							options = append(options, opt)
 						}
 					}
 				}

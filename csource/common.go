@@ -1602,13 +1602,7 @@ static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
-static int real_uid;
-static int real_gid;
-static int epid;
-static bool etun;
-__attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
-
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_FAULT_INJECTION)
 static bool write_file(const char* file, const char* what, ...)
 {
 	char buf[1024];
@@ -1629,6 +1623,14 @@ static bool write_file(const char* file, const char* what, ...)
 	close(fd);
 	return true;
 }
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
+static int real_uid;
+static int real_gid;
+static int epid;
+static bool etun;
+__attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
 
 static int namespace_sandbox_proc(void* arg)
 {
@@ -1782,6 +1784,23 @@ static uint64_t current_time_ms()
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
 		fail("clock_gettime failed");
 	return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
+static int inject_fault(int nth)
+{
+	int fd;
+	char buf[128];
+
+	sprintf(buf, "/proc/self/task/%d/fail-nth", (int)syscall(SYS_gettid));
+	fd = open(buf, O_RDWR);
+	if (fd == -1)
+		fail("failed to open /proc/self/task/tid/fail-nth");
+	sprintf(buf, "%d", nth + 1);
+	if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf))
+		fail("failed to write /proc/self/task/tid/fail-nth");
+	return fd;
 }
 #endif
 

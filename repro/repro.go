@@ -171,6 +171,12 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	var duration time.Duration
 	for _, dur := range []time.Duration{10 * time.Second, 5 * time.Minute} {
 		for _, ent := range suspected {
+			opts.Fault = ent.Fault
+			opts.FaultCall = ent.FaultCall
+			opts.FaultNth = ent.FaultNth
+			if opts.FaultCall < 0 || opts.FaultCall >= len(ent.P.Calls) {
+				opts.FaultCall = len(ent.P.Calls) - 1
+			}
 			crashed, err := ctx.testProg(ent.P, dur, opts)
 			if err != nil {
 				return nil, err
@@ -197,7 +203,11 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	}()
 
 	Logf(2, "reproducing crash '%v': minimizing guilty program", ctx.crashDesc)
-	res.Prog, _ = prog.Minimize(res.Prog, -1, func(p1 *prog.Prog, callIndex int) bool {
+	call := -1
+	if res.Opts.Fault {
+		call = res.Opts.FaultCall
+	}
+	res.Prog, res.Opts.FaultCall = prog.Minimize(res.Prog, call, func(p1 *prog.Prog, callIndex int) bool {
 		crashed, err := ctx.testProg(p1, duration, res.Opts)
 		if err != nil {
 			Logf(1, "reproducing crash '%v': minimization failed with %v", ctx.crashDesc, err)
@@ -297,12 +307,15 @@ func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.
 		return false, fmt.Errorf("failed to copy to VM: %v", err)
 	}
 
-	repeat := "1"
+	repeat := 1
 	if opts.Repeat {
-		repeat = "0"
+		repeat = 0
 	}
-	command := fmt.Sprintf("%v -executor %v -cover=0 -procs=%v -repeat=%v -sandbox %v -threaded=%v -collide=%v %v",
-		inst.execprogBin, inst.executorBin, opts.Procs, repeat, opts.Sandbox, opts.Threaded, opts.Collide, vmProgFile)
+	if !opts.Fault {
+		opts.FaultCall = -1
+	}
+	command := fmt.Sprintf("%v -executor %v -cover=0 -procs=%v -repeat=%v -sandbox %v -threaded=%v -collide=%v -fault_call=%v -fault_nth=%v %v",
+		inst.execprogBin, inst.executorBin, opts.Procs, repeat, opts.Sandbox, opts.Threaded, opts.Collide, opts.FaultCall, opts.FaultNth, vmProgFile)
 	Logf(2, "reproducing crash '%v': testing program (duration=%v, %+v): %s",
 		ctx.crashDesc, duration, opts, p)
 	return ctx.testImpl(inst, command, duration)
