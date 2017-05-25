@@ -11,6 +11,7 @@ import (
 )
 
 func TestLog(t *testing.T) {
+	t.Parallel()
 	// Dump for manual inspection.
 	supp, err := DetectSupportedSyscalls()
 	if err != nil {
@@ -40,6 +41,7 @@ func TestLog(t *testing.T) {
 }
 
 func TestSupportedSyscalls(t *testing.T) {
+	t.Parallel()
 	supp, err := DetectSupportedSyscalls()
 	if err != nil {
 		t.Skipf("skipping: %v", err)

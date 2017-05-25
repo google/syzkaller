@@ -15,6 +15,7 @@ import (
 )
 
 func initTest(t *testing.T) (rand.Source, int) {
+	t.Parallel()
 	iters := 10
 	if testing.Short() {
 		iters = 1
@@ -70,11 +71,12 @@ func TestSyz(t *testing.T) {
 }
 
 func Test(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, _ := initTest(t)
 	syzProg := prog.GenerateAllSyzProg(rs)
 	t.Logf("syz program:\n%s\n", syzProg.Serialize())
 	for i, opts := range allOptionsPermutations() {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			rs, iters := initTest(t)
 			t.Logf("opts: %+v", opts)
 			for i := 0; i < iters; i++ {
 				p := prog.Generate(rs, 10, nil)
