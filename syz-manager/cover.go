@@ -54,7 +54,7 @@ var (
 	allCoverReady   = make(chan bool)
 	allSymbols      map[string][]symbolizer.Symbol
 	allSymbolsReady = make(chan bool)
-	vmOffsets     = make(map[string]uint32)
+	vmOffsets       = make(map[string]uint32)
 )
 
 const (
