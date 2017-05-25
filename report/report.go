@@ -483,11 +483,14 @@ func extractDescription(output []byte, oops *oops) string {
 	return string(output[pos:end])
 }
 
-func Symbolize(vmlinux string, text []byte) ([]byte, error) {
+func Symbolize(vmlinux string, text []byte, symbols map[string][]symbolizer.Symbol) ([]byte, error) {
 	var symbolized []byte
-	symbols, err := symbolizer.ReadSymbols(vmlinux)
-	if err != nil {
-		return nil, err
+	if symbols == nil {
+		var err error
+		symbols, err = symbolizer.ReadSymbols(vmlinux)
+		if err != nil {
+			return nil, err
+		}
 	}
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
