@@ -3,10 +3,6 @@
 
 package main
 
-// TODO: implement some form of smashing of new inputs.
-// E.g. alter arguments while the program still gives the new coverage,
-// i.e. aim at cracking new branches and triggering bugs in that new piece of code.
-
 import (
 	"bytes"
 	"flag"
@@ -77,6 +73,7 @@ var (
 	triage          []Input
 	triageCandidate []Input
 	candidates      []Candidate
+	smashQueue      []Input
 
 	gate *ipc.Gate
 
@@ -85,6 +82,7 @@ var (
 	statExecCandidate uint64
 	statExecTriage    uint64
 	statExecMinimize  uint64
+	statExecSmash     uint64
 	statNewInput      uint64
 
 	allTriaged uint32
@@ -216,7 +214,7 @@ func main() {
 
 			for i := 0; ; i++ {
 				triageMu.RLock()
-				if len(triageCandidate) != 0 || len(candidates) != 0 || len(triage) != 0 {
+				if len(triageCandidate) != 0 || len(candidates) != 0 || len(triage) != 0 || len(smashQueue) != 0 {
 					triageMu.RUnlock()
 					triageMu.Lock()
 					if len(triageCandidate) != 0 {
@@ -249,6 +247,14 @@ func main() {
 						triageMu.Unlock()
 						Logf(1, "triaging : %s", inp.p)
 						triageInput(pid, env, inp)
+						continue
+					} else if len(smashQueue) != 0 {
+						last := len(smashQueue) - 1
+						inp := smashQueue[last]
+						smashQueue = smashQueue[:last]
+						triageMu.Unlock()
+						Logf(1, "%v: smashing call %v in program: %v", pid, inp.call, inp.p.String())
+						smashInput(pid, env, ct, rs, inp)
 						continue
 					} else {
 						triageMu.Unlock()
@@ -330,6 +336,9 @@ func main() {
 			execMinimize := atomic.SwapUint64(&statExecMinimize, 0)
 			a.Stats["exec minimize"] = execMinimize
 			execTotal += execMinimize
+			execSmash := atomic.SwapUint64(&statExecSmash, 0)
+			a.Stats["exec smash"] = execSmash
+			execTotal += execSmash
 			a.Stats["fuzzer new inputs"] = atomic.SwapUint64(&statNewInput, 0)
 			r := &PollRes{}
 			if err := manager.Call("Manager.Poll", a, r); err != nil {
@@ -437,6 +446,15 @@ func addInput(inp RpcInput) {
 	}
 }
 
+func smashInput(pid int, env *ipc.Env, ct *prog.ChoiceTable, rs rand.Source, inp Input) {
+	for i := 0; i < 100; i++ {
+		p := inp.p.Clone()
+		p.Mutate(rs, programLength, ct, corpus)
+		Logf(1, "#%v: mutated: %s", pid, p)
+		execute(pid, env, p, false, false, false, &statExecSmash)
+	}
+}
+
 func triageInput(pid int, env *ipc.Env, inp Input) {
 	if noCover {
 		panic("should not be called when coverage is disabled")
@@ -533,6 +551,12 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 		corpusHashes[sig] = struct{}{}
 	}
 	corpusMu.Unlock()
+
+	if !inp.minimized {
+		triageMu.Lock()
+		smashQueue = append(smashQueue, inp)
+		triageMu.Unlock()
+	}
 }
 
 func execute(pid int, env *ipc.Env, p *prog.Prog, needCover, minimized, candidate bool, stat *uint64) []ipc.CallInfo {
