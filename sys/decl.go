@@ -521,14 +521,26 @@ func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
 	for c := range enabled {
 		supported[c] = true
 	}
+	inputResources := make(map[*Call][]*ResourceType)
+	ctors := make(map[string][]*Call)
+	for c := range supported {
+		inputs := c.InputResources()
+		inputResources[c] = inputs
+		for _, res := range inputs {
+			if _, ok := ctors[res.Desc.Name]; ok {
+				continue
+			}
+			ctors[res.Desc.Name] = resourceCtors(res.Desc.Kind, true)
+		}
+	}
 	for {
 		n := len(supported)
 		haveGettime := supported[CallMap["clock_gettime"]]
 		for c := range supported {
 			canCreate := true
-			for _, res := range c.InputResources() {
+			for _, res := range inputResources[c] {
 				noctors := true
-				for _, ctor := range resourceCtors(res.Desc.Kind, true) {
+				for _, ctor := range ctors[res.Desc.Name] {
 					if supported[ctor] {
 						noctors = false
 						break

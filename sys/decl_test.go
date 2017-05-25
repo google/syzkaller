@@ -8,6 +8,7 @@ import (
 )
 
 func TestTransitivelyEnabledCalls(t *testing.T) {
+	t.Parallel()
 	calls := make(map[*Call]bool)
 	for _, c := range Calls {
 		calls[c] = true
@@ -37,6 +38,7 @@ func TestTransitivelyEnabledCalls(t *testing.T) {
 }
 
 func TestClockGettime(t *testing.T) {
+	t.Parallel()
 	calls := make(map[*Call]bool)
 	for _, c := range Calls {
 		calls[c] = true

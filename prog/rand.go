@@ -382,8 +382,6 @@ func (r *randGen) randPageAddr(s *state, typ sys.Type, npages uintptr, data *Arg
 		}
 		starts = append(starts, i)
 	}
-	*poolPtr = starts
-	pageStartPool.Put(poolPtr)
 	var page uintptr
 	if len(starts) != 0 {
 		page = starts[r.rand(len(starts))]
@@ -393,6 +391,8 @@ func (r *randGen) randPageAddr(s *state, typ sys.Type, npages uintptr, data *Arg
 	if !vma {
 		npages = 0
 	}
+	*poolPtr = starts
+	pageStartPool.Put(poolPtr)
 	return pointerArg(typ, page, 0, npages, data)
 }
 
