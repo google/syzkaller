@@ -191,6 +191,11 @@ func (inst *instance) Boot() error {
 			"-initrd", inst.cfg.Initrd,
 		)
 	}
+    	if inst.cfg.Dtb != "" {
+        	args = append(args,
+            		"-dtb", inst.cfg.Dtb,
+        	)
+    	}
 	if inst.cfg.Kernel != "" {
 		cmdline := "console=ttyS0 vsyscall=native rodata=n oops=panic panic_on_warn=1 panic=86400" +
 			" ftrace_dump_on_oops=orig_cpu earlyprintk=serial slub_debug=UZ net.ifnames=0 biosdevname=0 " +
