@@ -61,23 +61,23 @@ func TestMutateTable(t *testing.T) {
 		{
 			"r0 = open(&(0x7f0000001000)=\"2e2f66696c653000\", 0x22c0, 0x1)\n" +
 				"sched_yield()\n" +
-				"read(r0, &(0x7f0000000000)=0x0, 0x1)\n" +
+				"read(r0, &(0x7f0000000000)=\"\", 0x1)\n" +
 				"sched_yield()\n",
 
 			"sched_yield()\n" +
-				"read(0xffffffffffffffff, &(0x7f0000000000)=0x0, 0x1)\n" +
+				"read(0xffffffffffffffff, &(0x7f0000000000)=\"\", 0x1)\n" +
 				"sched_yield()\n",
 		},
 		// Mutate flags.
 		{
 			"r0 = open(&(0x7f0000001000)=\"2e2f66696c653000\", 0x22c0, 0x1)\n" +
 				"sched_yield()\n" +
-				"read(r0, &(0x7f0000000000)=0x0, 0x1)\n" +
+				"read(r0, &(0x7f0000000000)=\"\", 0x1)\n" +
 				"sched_yield()\n",
 
 			"r0 = open(&(0x7f0000001000)=\"2e2f66696c653000\", 0x22c0, 0x2)\n" +
 				"sched_yield()\n" +
-				"read(r0, &(0x7f0000000000)=0x0, 0x1)\n" +
+				"read(r0, &(0x7f0000000000)=\"\", 0x1)\n" +
 				"sched_yield()\n",
 		},
 		// Mutate data (delete byte and update size).
@@ -129,7 +129,7 @@ nextTest:
 	for ti, test := range tests {
 		p, err := Deserialize([]byte(test[0]))
 		if err != nil {
-			t.Fatalf("failed to deserialize original program: %v", err)
+			t.Fatalf("failed to deserialize original program %v: %v", ti, err)
 		}
 		if testing.Short() {
 			continue
