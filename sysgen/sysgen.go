@@ -8,12 +8,13 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"go/format"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
+	"runtime/pprof"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,7 +23,10 @@ import (
 )
 
 var (
-	flagV = flag.Int("v", 0, "verbosity")
+	flagV          = flag.Int("v", 0, "verbosity")
+	flagMemProfile = flag.String("memprofile", "", "write a memory profile to the file")
+
+	intRegExp = regexp.MustCompile("^int([0-9]+|ptr)(be)?(:[0-9]+)?$")
 )
 
 const (
@@ -87,6 +91,18 @@ func main() {
 	}
 
 	generateExecutorSyscalls(desc.Syscalls, consts)
+
+	if *flagMemProfile != "" {
+		f, err := os.Create(*flagMemProfile)
+		if err != nil {
+			failf("could not create memory profile: ", err)
+		}
+		runtime.GC() // get up-to-date statistics
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			failf("could not write memory profile: ", err)
+		}
+		f.Close()
+	}
 }
 
 func readConsts(arch string) map[string]uint64 {
@@ -672,7 +688,6 @@ func generateArg(
 		dir = "in"
 		fmt.Fprintf(out, "&PtrType{%v, Type: %v}", common(), generateType(a[1], a[0], desc, consts))
 	default:
-		intRegExp := regexp.MustCompile("^int([0-9]+|ptr)(be)?(:[0-9]+)?$")
 		if intRegExp.MatchString(typ) {
 			canBeArg = true
 			size, bigEndian, bitfieldLen := decodeIntType(typ)
@@ -791,12 +806,7 @@ func isIdentifier(s string) bool {
 	return true
 }
 
-func writeSource(file string, data []byte) {
-	src, err := format.Source(data)
-	if err != nil {
-		fmt.Printf("%s\n", data)
-		failf("failed to format output: %v", err)
-	}
+func writeSource(file string, src []byte) {
 	if oldSrc, err := ioutil.ReadFile(file); err == nil && bytes.Equal(src, oldSrc) {
 		return
 	}
