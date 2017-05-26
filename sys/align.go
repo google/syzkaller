@@ -32,7 +32,7 @@ func initAlign() {
 		}
 	}
 
-	for _, s := range Structs {
+	for _, s := range keyedStructs {
 		rec(s)
 	}
 }
