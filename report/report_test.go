@@ -162,6 +162,18 @@ kacpi_hotplug/246 is trying to acquire lock:
  (kacpid){+.+.+.}, at: [<ffffffff8105bbd0>] flush_workqueue+0x0/0xb0
 `: `possible deadlock in flush_workqueue`,
 
+		`WARNING: possible circular locking dependency detected
+4.12.0-rc2-next-20170525+ #1 Not tainted
+------------------------------------------------------
+kworker/u4:2/54 is trying to acquire lock:
+ (&buf->lock){+.+...}, at: [<ffffffff9edb41bb>] tty_buffer_flush+0xbb/0x3a0 drivers/tty/tty_buffer.c:221
+
+but task is already holding lock:
+ (&o_tty->termios_rwsem/1){++++..}, at: [<ffffffff9eda4961>] isig+0xa1/0x4d0 drivers/tty/n_tty.c:1100
+
+which lock already depends on the new lock.
+`: `possible deadlock in tty_buffer_flush`,
+
 		`
 [   44.025025] =========================================================
 [   44.025025] [ INFO: possible irq lock inversion dependency detected ]
