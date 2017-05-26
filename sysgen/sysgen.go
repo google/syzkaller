@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"go/format"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -260,7 +261,7 @@ type structKey struct {
 	dir   string
 }
 
-func generateStructEntry(str Struct, out io.Writer) {
+func generateStructEntry(str *Struct, out io.Writer) {
 	typ := "StructType"
 	if str.IsUnion {
 		typ = "UnionType"
@@ -281,7 +282,7 @@ func generateStructEntry(str Struct, out io.Writer) {
 		typ, str.Name, false, packed, align, varlen)
 }
 
-func generateStructFields(str Struct, key structKey, desc *Description, consts map[string]uint64, out io.Writer) {
+func generateStructFields(str *Struct, key structKey, desc *Description, consts map[string]uint64, out io.Writer) {
 	fmt.Fprintf(out, "{structKey{\"%v\", \"%v\", %v}, []Type{\n", key.name, key.field, fmtDir(key.dir))
 	for _, a := range str.Flds {
 		generateArg(str.Name, a[0], a[1], key.dir, a[2:], desc, consts, false, true, out)
@@ -301,7 +302,7 @@ func generateStructs(desc *Description, consts map[string]uint64, out io.Writer)
 	// of multiple other structs, we have an instance of those structs
 	// for each field indexed by the name of the parent struct, field name and dir.
 
-	structMap := make(map[structKey]Struct)
+	structMap := make(map[structKey]*Struct)
 	for _, str := range desc.Structs {
 		for _, dir := range []string{"in", "out", "inout"} {
 			structMap[structKey{str.Name, "", dir}] = str
@@ -316,14 +317,24 @@ func generateStructs(desc *Description, consts map[string]uint64, out io.Writer)
 	}
 
 	fmt.Fprintf(out, "var structArray = []Type{\n")
+	sortedStructs := make([]*Struct, 0, len(desc.Structs))
 	for _, str := range desc.Structs {
+		sortedStructs = append(sortedStructs, str)
+	}
+	sort.Sort(structSorter(sortedStructs))
+	for _, str := range sortedStructs {
 		generateStructEntry(str, out)
 	}
 	fmt.Fprintf(out, "}\n")
 
 	fmt.Fprintf(out, "var structFields = []struct{key structKey; fields []Type}{")
-	for key, str := range structMap {
-		generateStructFields(str, key, desc, consts, out)
+	sortedKeys := make([]structKey, 0, len(structMap))
+	for key := range structMap {
+		sortedKeys = append(sortedKeys, key)
+	}
+	sort.Sort(structKeySorter(sortedKeys))
+	for _, key := range sortedKeys {
+		generateStructFields(structMap[key], key, desc, consts, out)
 	}
 	fmt.Fprintf(out, "}\n")
 }
@@ -786,6 +797,9 @@ func writeSource(file string, data []byte) {
 		fmt.Printf("%s\n", data)
 		failf("failed to format output: %v", err)
 	}
+	if oldSrc, err := ioutil.ReadFile(file); err == nil && bytes.Equal(src, oldSrc) {
+		return
+	}
 	writeFile(file, src)
 }
 
@@ -814,6 +828,32 @@ type ResourceArray []Resource
 func (a ResourceArray) Len() int           { return len(a) }
 func (a ResourceArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
 func (a ResourceArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+type structSorter []*Struct
+
+func (a structSorter) Len() int           { return len(a) }
+func (a structSorter) Less(i, j int) bool { return a[i].Name < a[j].Name }
+func (a structSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+type structKeySorter []structKey
+
+func (a structKeySorter) Len() int { return len(a) }
+func (a structKeySorter) Less(i, j int) bool {
+	if a[i].name < a[j].name {
+		return true
+	}
+	if a[i].name > a[j].name {
+		return false
+	}
+	if a[i].field < a[j].field {
+		return true
+	}
+	if a[i].field > a[j].field {
+		return false
+	}
+	return a[i].dir < a[j].dir
+}
+func (a structKeySorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
 func failf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
