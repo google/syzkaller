@@ -42,6 +42,7 @@ type Config struct {
 	Bin             string
 	BinArgs         string
 	Initrd          string
+	Dtb		string
 	Kernel          string
 	Cmdline         string
 	Image           string
