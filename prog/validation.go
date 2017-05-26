@@ -69,6 +69,17 @@ func (c *Call) validate(ctx *validCtx) error {
 			}
 		}
 		switch typ1 := arg.Type.(type) {
+		case *sys.IntType:
+			switch arg.Kind {
+			case ArgConst:
+			case ArgResult:
+			case ArgReturn:
+				if arg.Type.Dir() == sys.DirOut && (arg.Val != 0 && arg.Val != arg.Type.Default()) {
+					return fmt.Errorf("syscall %v: out int arg '%v' has bad const value %v", c.Meta.Name, arg.Type.Name(), arg.Val)
+				}
+			default:
+				return fmt.Errorf("syscall %v: int arg '%v' has bad kind %v", c.Meta.Name, arg.Type.Name(), arg.Kind)
+			}
 		case *sys.ResourceType:
 			switch arg.Kind {
 			case ArgResult:
@@ -97,6 +108,11 @@ func (c *Call) validate(ctx *validCtx) error {
 				return fmt.Errorf("syscall %v: per proc arg '%v' has bad value '%v'", c.Meta.Name, arg.Type.Name(), arg.Val)
 			}
 		case *sys.BufferType:
+			switch arg.Kind {
+			case ArgData:
+			default:
+				return fmt.Errorf("syscall %v: buffer arg '%v' has bad kind %v", c.Meta.Name, arg.Type.Name(), arg.Kind)
+			}
 			switch typ1.Kind {
 			case sys.BufferString:
 				if typ1.Length != 0 && len(arg.Data) != int(typ1.Length) {
