@@ -21,39 +21,45 @@ all-tools: execprog mutate prog2c stress repro upgrade
 executor:
 	$(CC) -o ./bin/syz-executor executor/executor.cc -pthread -Wall -O1 -g $(STATIC_FLAG) $(CFLAGS)
 
+# Don't generate symbol table and DWARF debug info.
+# Reduces build time and binary sizes considerably.
+# That's only needed if you use gdb or nm.
+# If you need that, build manually without these flags.
+GOFLAGS="-ldflags=-s -w"
+
 manager:
-	go build -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
+	go build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
 
 fuzzer:
-	go build -o ./bin/syz-fuzzer github.com/google/syzkaller/syz-fuzzer
+	go build $(GOFLAGS) -o ./bin/syz-fuzzer github.com/google/syzkaller/syz-fuzzer
 
 execprog:
-	go build -o ./bin/syz-execprog github.com/google/syzkaller/tools/syz-execprog
+	go build $(GOFLAGS) -o ./bin/syz-execprog github.com/google/syzkaller/tools/syz-execprog
 
 repro:
-	go build -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
+	go build $(GOFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
 
 mutate:
-	go build -o ./bin/syz-mutate github.com/google/syzkaller/tools/syz-mutate
+	go build $(GOFLAGS) -o ./bin/syz-mutate github.com/google/syzkaller/tools/syz-mutate
 
 prog2c:
-	go build -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
+	go build $(GOFLAGS) -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
 
 stress:
-	go build -o ./bin/syz-stress github.com/google/syzkaller/tools/syz-stress
+	go build $(GOFLAGS) -o ./bin/syz-stress github.com/google/syzkaller/tools/syz-stress
 
 upgrade:
-	go build -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
+	go build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 extract: bin/syz-extract
 	LINUX=$(LINUX) LINUXBLD=$(LINUXBLD) ./extract.sh
 bin/syz-extract: syz-extract/*.go sysparser/*.go
-	go build -o $@ ./syz-extract
+	go build $(GOFLAGS) -o $@ ./syz-extract
 
 generate: bin/syz-sysgen
 	bin/syz-sysgen
 bin/syz-sysgen: sysgen/*.go sysparser/*.go
-	go build -o $@ ./sysgen
+	go build $(GOFLAGS) -o $@ ./sysgen
 
 format:
 	go fmt ./...
