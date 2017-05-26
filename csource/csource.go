@@ -54,6 +54,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	if _, ok := handled["syz_emit_ethernet"]; ok {
 		enableTun = "true"
 	}
+	if _, ok := handled["syz_extract_tcp_res"]; ok {
+		enableTun = "true"
+	}
 
 	hdr, err := preprocessCommonHeader(opts, handled)
 	if err != nil {
@@ -278,7 +281,7 @@ loop:
 				case prog.ExecArgResult:
 					fmt.Fprintf(w, ", %v", resultRef())
 				default:
-					panic("unknown arg type")
+					panic(fmt.Sprintf("unknown arg type %v", typ))
 				}
 			}
 			for i := nargs; i < 9; i++ {

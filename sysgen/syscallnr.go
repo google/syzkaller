@@ -23,13 +23,14 @@ var archs = []*Arch{
 }
 
 var syzkalls = map[string]uint64{
-	"syz_test":          1000001,
-	"syz_open_dev":      1000002,
-	"syz_open_pts":      1000003,
-	"syz_fuse_mount":    1000004,
-	"syz_fuseblk_mount": 1000005,
-	"syz_emit_ethernet": 1000006,
-	"syz_kvm_setup_cpu": 1000007,
+	"syz_test":            1000001,
+	"syz_open_dev":        1000002,
+	"syz_open_pts":        1000003,
+	"syz_fuse_mount":      1000004,
+	"syz_fuseblk_mount":   1000005,
+	"syz_emit_ethernet":   1000006,
+	"syz_kvm_setup_cpu":   1000007,
+	"syz_extract_tcp_res": 1000008,
 }
 
 func generateExecutorSyscalls(syscalls []Syscall, consts map[string]map[string]uint64) {
