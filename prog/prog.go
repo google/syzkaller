@@ -98,6 +98,12 @@ func (a *Arg) Value(pid int) uintptr {
 	case *sys.CsumType:
 		// Checksums are computed dynamically in executor.
 		return 0
+	case *sys.ResourceType:
+		if t, ok := typ.Desc.Type.(*sys.IntType); ok {
+			return encodeValue(a.Val, t.Size(), t.BigEndian)
+		} else {
+			panic(fmt.Sprintf("bad base type for a resource: %v", t))
+		}
 	case *sys.ProcType:
 		val := uintptr(typ.ValuesStart) + uintptr(typ.ValuesPerProc)*uintptr(pid) + a.Val
 		return encodeValue(val, typ.Size(), typ.BigEndian)

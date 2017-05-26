@@ -98,7 +98,7 @@ func isSupportedSyzkall(c *sys.Call) bool {
 	case "syz_fuseblk_mount":
 		_, err := os.Stat("/dev/fuse")
 		return err == nil && syscall.Getuid() == 0
-	case "syz_emit_ethernet":
+	case "syz_emit_ethernet", "syz_extract_tcp_res":
 		fd, err := syscall.Open("/dev/net/tun", syscall.O_RDWR, 0)
 		if err == nil {
 			syscall.Close(fd)
