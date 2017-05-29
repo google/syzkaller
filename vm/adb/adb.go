@@ -53,7 +53,9 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 		return nil, err
 	}
 	// Remove temp files from previous runs.
-	inst.adb("shell", "rm -Rf /data/syzkaller*")
+	if _, err := inst.adb("shell", "rm -Rf /data/syzkaller*"); err != nil {
+		return nil, err
+	}
 	closeInst = nil
 	return inst, nil
 }
@@ -61,6 +63,9 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 func validateConfig(cfg *vm.Config) error {
 	if cfg.Bin == "" {
 		cfg.Bin = "adb"
+	}
+	if _, err := exec.LookPath(cfg.Bin); err != nil {
+		return err
 	}
 	if !regexp.MustCompile("[0-9A-F]+").MatchString(cfg.Device) {
 		return fmt.Errorf("invalid adb device id '%v'", cfg.Device)

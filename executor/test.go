@@ -6,11 +6,21 @@
 package executor
 
 // int test_copyin();
+// int test_csum_inet();
+// int test_csum_inet_acc();
 // int test_kvm();
 import "C"
 
 func testCopyin() int {
 	return int(C.test_copyin())
+}
+
+func testCsumInet() int {
+	return int(C.test_csum_inet())
+}
+
+func testCsumInetAcc() int {
+	return int(C.test_csum_inet_acc())
 }
 
 func testKVM() int {

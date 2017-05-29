@@ -382,8 +382,6 @@ func (r *randGen) randPageAddr(s *state, typ sys.Type, npages uintptr, data *Arg
 		}
 		starts = append(starts, i)
 	}
-	*poolPtr = starts
-	pageStartPool.Put(poolPtr)
 	var page uintptr
 	if len(starts) != 0 {
 		page = starts[r.rand(len(starts))]
@@ -393,6 +391,8 @@ func (r *randGen) randPageAddr(s *state, typ sys.Type, npages uintptr, data *Arg
 	if !vma {
 		npages = 0
 	}
+	*poolPtr = starts
+	pageStartPool.Put(poolPtr)
 	return pointerArg(typ, page, 0, npages, data)
 }
 
@@ -447,12 +447,6 @@ func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, cal
 			// Bingo!
 			arg := resultArg(res, allres[r.Intn(len(allres))])
 			return arg, calls
-		}
-		switch meta.Name {
-		// Return resources in a variable-length array (length can be 0).
-		case "getgroups", "ioctl$DRM_IOCTL_RES_CTX":
-		default:
-			panic(fmt.Sprintf("unexpected call failed to create a resource %v: %v", kind, meta.Name))
 		}
 		// Discard unsuccessful calls.
 		for _, c := range calls {
@@ -765,8 +759,10 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		arg, calls1 := r.addr(s, a, inner.Size(), inner)
 		calls = append(calls, calls1...)
 		return arg, calls
-	case *sys.LenType, *sys.CsumType:
-		// Return placeholder value of 0 while generating len and csum args.
+	case *sys.LenType:
+		// Return placeholder value of 0 while generating len arg.
+		return constArg(a, 0), nil
+	case *sys.CsumType:
 		return constArg(a, 0), nil
 	default:
 		panic("unknown argument type")

@@ -10,7 +10,12 @@ google account or by sending an email to syzkaller+subscribe@googlegroups.com.
 
 List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
 
-When reporting bugs found with `syzkaller` please add `syzkaller@googlegroups.com` to CC list. Also consider principles of [responsible disclosure](https://en.wikipedia.org/wiki/Responsible_disclosure) when reporting bugs that can be security vulnerabilities.
+## Reporting Linux kernel bugs
+
+Please report found bugs to the Linux kernel maintainers.
+To find out the list of maintainers responsible for a particular kernel subsystem, run `./scripts/get_maintainer.pl guilty_file.c`. Please also add `syzkaller@googlegroups.com` to CC list.
+
+If you believe that a found bug poses potential security threat, consider reporting it directly to `security@kernel.org`.
 
 ## Usage
 
@@ -74,7 +79,7 @@ Unpack Go into a directory, say, `$HOME/go`.
 Then, set `GOROOT=$HOME/go` env var.
 Then, add Go binaries to `PATH`, `PATH=$HOME/go/bin:$PATH`.
 Then, set `GOPATH` env var to some empty dir, say `GOPATH=$HOME/gopath`.
-Then, run `go get -d github.com/google/syzkaller/...` to checkout syzkaller sources with all dependencies.
+Then, run `go get -u -d github.com/google/syzkaller/...` to checkout syzkaller sources with all dependencies.
 Then, `cd $GOPATH/src/github.com/google/syzkaller` and
 build with `make`, which generates compiled binaries in the `bin/` folder.
 
@@ -238,6 +243,7 @@ Here are some things to check if there are problems running syzkaller.
  - [ubsan, kasan, syzkaller und co](http://www.strlen.de/talks/debug-w-syzkaller.pdf) ([video](https://www.youtube.com/watch?v=Acp0A9X1254)) (by Florian Westphal)
  - [Debugging a kernel crash found by syzkaller](http://vegardno.blogspot.de/2016/08/sync-debug.html) (by Quentin Casasnovas)
  - [Linux Plumbers 2016 talk slides](https://docs.google.com/presentation/d/1iAuTvzt_xvDzS2misXwlYko_VDvpvCmDevMOq2rXIcA/edit?usp=sharing)
+ - [syzkaller: the next gen kernel fuzzer](https://www.slideshare.net/DmitryVyukov/syzkaller-the-next-gen-kernel-fuzzer) (basics of operations, tutorial on how to run syzkaller and how to extend it to fuzz new drivers)
 
 ## Contributing
 

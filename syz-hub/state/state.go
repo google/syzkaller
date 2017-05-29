@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"time"
 
@@ -136,10 +137,10 @@ func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byt
 	return nil
 }
 
-func (st *State) Sync(name string, add [][]byte, del []string) ([][]byte, error) {
+func (st *State) Sync(name string, add [][]byte, del []string) ([][]byte, int, error) {
 	mgr := st.Managers[name]
 	if mgr == nil || mgr.Connected.IsZero() {
-		return nil, fmt.Errorf("unconnected manager %v", name)
+		return nil, 0, fmt.Errorf("unconnected manager %v", name)
 	}
 	if len(del) != 0 {
 		for _, sig := range del {
@@ -151,20 +152,20 @@ func (st *State) Sync(name string, add [][]byte, del []string) ([][]byte, error)
 		st.purgeCorpus()
 	}
 	st.addInputs(mgr, add)
-	inputs, err := st.pendingInputs(mgr)
+	inputs, more, err := st.pendingInputs(mgr)
 	mgr.Added += len(add)
 	mgr.Deleted += len(del)
 	mgr.New += len(inputs)
-	return inputs, err
+	return inputs, more, err
 }
 
-func (st *State) pendingInputs(mgr *Manager) ([][]byte, error) {
+func (st *State) pendingInputs(mgr *Manager) ([][]byte, int, error) {
 	if mgr.seq == st.seq {
-		return nil, nil
+		return nil, 0, nil
 	}
-	var inputs [][]byte
+	var records []db.Record
 	for key, rec := range st.Corpus.Records {
-		if mgr.seq > rec.Seq {
+		if mgr.seq >= rec.Seq {
 			continue
 		}
 		if _, ok := mgr.Corpus.Records[key]; ok {
@@ -172,16 +173,35 @@ func (st *State) pendingInputs(mgr *Manager) ([][]byte, error) {
 		}
 		calls, err := prog.CallSet(rec.Val)
 		if err != nil {
-			return nil, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
+			return nil, 0, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
 		}
 		if !managerSupportsAllCalls(mgr.Calls, calls) {
 			continue
 		}
-		inputs = append(inputs, rec.Val)
+		records = append(records, rec)
 	}
-	mgr.seq = st.seq
+	maxSeq := st.seq
+	more := 0
+	// Send at most that many records (rounded up to next seq number).
+	const maxRecords = 1000
+	if len(records) > maxRecords {
+		sort.Sort(recordSeqSorter(records))
+		pos := maxRecords
+		maxSeq = records[pos].Seq
+		for pos+1 < len(records) && records[pos+1].Seq == maxSeq {
+			pos++
+		}
+		pos++
+		more = len(records) - pos
+		records = records[:pos]
+	}
+	inputs := make([][]byte, len(records))
+	for i, rec := range records {
+		inputs[i] = rec.Val
+	}
+	mgr.seq = maxSeq
 	writeFile(filepath.Join(mgr.dir, "seq"), []byte(fmt.Sprint(mgr.seq)))
-	return inputs, nil
+	return inputs, more, nil
 }
 
 func (st *State) addInputs(mgr *Manager, inputs [][]byte) {
@@ -243,4 +263,18 @@ func managerSupportsAllCalls(mgr, prog map[string]struct{}) bool {
 		}
 	}
 	return true
+}
+
+type recordSeqSorter []db.Record
+
+func (a recordSeqSorter) Len() int {
+	return len(a)
+}
+
+func (a recordSeqSorter) Less(i, j int) bool {
+	return a[i].Seq < a[j].Seq
+}
+
+func (a recordSeqSorter) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
 }

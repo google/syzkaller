@@ -226,6 +226,10 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 			diff := now.Sub(lastTime)
 			lastTime = now
 			mgr.mu.Lock()
+			if mgr.firstConnect.IsZero() {
+				mgr.mu.Unlock()
+				continue
+			}
 			mgr.fuzzingTime += diff * time.Duration(atomic.LoadUint32(&mgr.numFuzzing))
 			executed := mgr.stats["exec total"]
 			crashes := mgr.stats["crashes"]
@@ -307,6 +311,7 @@ type ReproResult struct {
 
 func (mgr *Manager) vmLoop() {
 	Logf(0, "booting test machines...")
+	Logf(0, "wait for the connection from test machine...")
 	reproInstances := 4
 	if reproInstances > mgr.cfg.Count {
 		reproInstances = mgr.cfg.Count
@@ -523,7 +528,8 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag), 0660)
 	}
 	if len(crash.text) > 0 {
-		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text)
+		<-allSymbolsReady
+		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text, allSymbols)
 		if err != nil {
 			Logf(0, "failed to symbolize crash: %v", err)
 		} else {
@@ -668,6 +674,7 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 
 	if mgr.firstConnect.IsZero() {
 		mgr.firstConnect = time.Now()
+		Logf(0, "received first connection from test machine %v", a.Name)
 	}
 
 	mgr.stats["vm restarts"]++
@@ -730,7 +737,8 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 	if mgr.vmChecked {
 		return nil
 	}
-	Logf(1, "fuzzer %v vm check: %v calls enabled", a.Name, len(a.Calls))
+	Logf(1, "fuzzer %v vm check: %v calls enabled, kcov=%v, kleakcheck=%v, faultinjection=%v",
+		a.Name, len(a.Calls), a.Kcov, a.Leak, a.Fault)
 	if len(a.Calls) == 0 {
 		Fatalf("no system calls enabled")
 	}
@@ -895,31 +903,38 @@ func (mgr *Manager) hubSync() {
 		delete(mgr.hubCorpus, sig)
 		a.Del = append(a.Del, sig.String())
 	}
-	mgr.mu.Unlock()
-	r := new(HubSyncRes)
-	if err := mgr.hub.Call("Hub.Sync", a, r); err != nil {
-		mgr.mu.Lock()
-		Logf(0, "Hub.Sync rpc failed: %v", err)
-		mgr.hub.Close()
-		mgr.hub = nil
-		return
-	}
-	mgr.mu.Lock()
-	dropped := 0
-	for _, inp := range r.Inputs {
-		_, err := prog.Deserialize(inp)
-		if err != nil {
-			dropped++
-			continue
+	for {
+		mgr.mu.Unlock()
+		r := new(HubSyncRes)
+		if err := mgr.hub.Call("Hub.Sync", a, r); err != nil {
+			mgr.mu.Lock()
+			Logf(0, "Hub.Sync rpc failed: %v", err)
+			mgr.hub.Close()
+			mgr.hub = nil
+			return
 		}
-		mgr.candidates = append(mgr.candidates, RpcCandidate{
-			Prog:      inp,
-			Minimized: false, // don't trust programs from hub
-		})
+		mgr.mu.Lock()
+		dropped := 0
+		for _, inp := range r.Inputs {
+			_, err := prog.Deserialize(inp)
+			if err != nil {
+				dropped++
+				continue
+			}
+			mgr.candidates = append(mgr.candidates, RpcCandidate{
+				Prog:      inp,
+				Minimized: false, // don't trust programs from hub
+			})
+		}
+		mgr.stats["hub add"] += uint64(len(a.Add))
+		mgr.stats["hub del"] += uint64(len(a.Del))
+		mgr.stats["hub drop"] += uint64(dropped)
+		mgr.stats["hub new"] += uint64(len(r.Inputs) - dropped)
+		Logf(0, "hub sync: add %v, del %v, drop %v, new %v, more %v", len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped, r.More)
+		if len(r.Inputs)+r.More == 0 {
+			break
+		}
+		a.Add = nil
+		a.Del = nil
 	}
-	mgr.stats["hub add"] += uint64(len(a.Add))
-	mgr.stats["hub del"] += uint64(len(a.Del))
-	mgr.stats["hub drop"] += uint64(dropped)
-	mgr.stats["hub new"] += uint64(len(r.Inputs) - dropped)
-	Logf(0, "hub sync: add %v, del %v, drop %v, new %v", len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped)
 }

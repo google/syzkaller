@@ -15,6 +15,7 @@ import (
 )
 
 func initTest(t *testing.T) (rand.Source, int) {
+	t.Parallel()
 	iters := 10
 	if testing.Short() {
 		iters = 1
@@ -34,16 +35,18 @@ func allOptionsPermutations() []Options {
 				for _, opt.Repro = range []bool{false, true} {
 					for _, opt.Procs = range []int{1, 4} {
 						for _, opt.Sandbox = range []string{"none", "setuid", "namespace"} {
-							if opt.Collide && !opt.Threaded {
-								continue
+							for _, opt.Fault = range []bool{false, true} {
+								if opt.Collide && !opt.Threaded {
+									continue
+								}
+								if !opt.Repeat && opt.Procs != 1 {
+									continue
+								}
+								if testing.Short() && opt.Procs != 1 {
+									continue
+								}
+								options = append(options, opt)
 							}
-							if !opt.Repeat && opt.Procs != 1 {
-								continue
-							}
-							if testing.Short() && opt.Procs != 1 {
-								continue
-							}
-							options = append(options, opt)
 						}
 					}
 				}
@@ -68,11 +71,12 @@ func TestSyz(t *testing.T) {
 }
 
 func Test(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, _ := initTest(t)
 	syzProg := prog.GenerateAllSyzProg(rs)
 	t.Logf("syz program:\n%s\n", syzProg.Serialize())
 	for i, opts := range allOptionsPermutations() {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			rs, iters := initTest(t)
 			t.Logf("opts: %+v", opts)
 			for i := 0; i < iters; i++ {
 				p := prog.Generate(rs, 10, nil)

@@ -38,6 +38,7 @@ func buildProgram(t *testing.T, src string) string {
 }
 
 func initTest(t *testing.T) (rand.Source, int) {
+	t.Parallel()
 	iters := 100
 	if testing.Short() {
 		iters = 10
@@ -52,14 +53,18 @@ func TestEmptyProg(t *testing.T) {
 	bin := buildExecutor(t)
 	defer os.Remove(bin)
 
-	env, err := MakeEnv(bin, timeout, 0, 0)
+	cfg := Config{
+		Timeout: timeout,
+	}
+	env, err := MakeEnv(bin, 0, cfg)
 	if err != nil {
 		t.Fatalf("failed to create env: %v", err)
 	}
 	defer env.Close()
 
 	p := new(prog.Prog)
-	output, _, failed, hanged, err := env.Exec(p, false, false)
+	opts := &ExecOpts{}
+	output, _, failed, hanged, err := env.Exec(opts, p)
 	if err != nil {
 		t.Fatalf("failed to run executor: %v", err)
 	}
@@ -72,14 +77,19 @@ func TestEmptyProg(t *testing.T) {
 }
 
 func TestExecute(t *testing.T) {
+	rs, iters := initTest(t)
+	flags := []uint64{0, FlagThreaded, FlagThreaded | FlagCollide}
+
 	bin := buildExecutor(t)
 	defer os.Remove(bin)
 
-	rs, iters := initTest(t)
-	flags := []uint64{0, FlagThreaded, FlagThreaded | FlagCollide}
 	for _, flag := range flags {
 		t.Logf("testing flags 0x%x\n", flag)
-		env, err := MakeEnv(bin, timeout, flag, 0)
+		cfg := Config{
+			Flags:   flag,
+			Timeout: timeout,
+		}
+		env, err := MakeEnv(bin, 0, cfg)
 		if err != nil {
 			t.Fatalf("failed to create env: %v", err)
 		}
@@ -87,7 +97,8 @@ func TestExecute(t *testing.T) {
 
 		for i := 0; i < iters/len(flags); i++ {
 			p := prog.Generate(rs, 10, nil)
-			output, _, _, _, err := env.Exec(p, false, false)
+			opts := &ExecOpts{}
+			output, _, _, _, err := env.Exec(opts, p)
 			if err != nil {
 				t.Logf("program:\n%s\n", p.Serialize())
 				t.Fatalf("failed to run executor: %v\n%s", err, output)

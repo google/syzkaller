@@ -100,6 +100,30 @@ var oopses = []*oops{
 				compile("WARNING: .* at {{SRC}} {{FUNC}}"),
 				"WARNING in %[2]v",
 			},
+			{
+				compile("WARNING: possible circular locking dependency detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
+				compile("WARNING: possible irq lock inversion dependency detected(?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
+				compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected(?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
+				compile("WARNING: possible recursive locking detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
+				compile("WARNING: inconsistent lock state(?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"inconsistent lock state in %[1]v",
+			},
+			{
+				compile("WARNING: suspicious RCU usage(?:.*\n)+?.*?{{SRC}}"),
+				"suspicious RCU usage at %[1]v",
+			},
 		},
 		[]*regexp.Regexp{
 			compile("WARNING: /etc/ssh/moduli does not exist, using fixed modulus"), // printed by sshd
@@ -408,6 +432,29 @@ func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, s
 	return
 }
 
+func ExtractConsoleOutput(output []byte) (result []byte) {
+	for pos := 0; pos < len(output); {
+		next := bytes.IndexByte(output[pos:], '\n')
+		if next != -1 {
+			next += pos
+		} else {
+			next = len(output)
+		}
+		if consoleOutputRe.Match(output[pos:next]) &&
+			(!questionableRe.Match(output[pos:next]) || bytes.Index(output[pos:next], eoi) != -1) {
+			lineStart := bytes.Index(output[pos:next], []byte("] ")) + pos + 2
+			lineEnd := next
+			if lineEnd != 0 && output[lineEnd-1] == '\r' {
+				lineEnd--
+			}
+			result = append(result, output[lineStart:lineEnd]...)
+			result = append(result, '\n')
+		}
+		pos = next + 1
+	}
+	return
+}
+
 func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) int {
 	match := bytes.Index(line, oops.header)
 	if match == -1 {
@@ -460,11 +507,14 @@ func extractDescription(output []byte, oops *oops) string {
 	return string(output[pos:end])
 }
 
-func Symbolize(vmlinux string, text []byte) ([]byte, error) {
+func Symbolize(vmlinux string, text []byte, symbols map[string][]symbolizer.Symbol) ([]byte, error) {
 	var symbolized []byte
-	symbols, err := symbolizer.ReadSymbols(vmlinux)
-	if err != nil {
-		return nil, err
+	if symbols == nil {
+		var err error
+		symbols, err = symbolizer.ReadSymbols(vmlinux)
+		if err != nil {
+			return nil, err
+		}
 	}
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()

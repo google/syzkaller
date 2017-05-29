@@ -95,6 +95,9 @@ func validateConfig(cfg *vm.Config) error {
 	if cfg.Bin == "" {
 		cfg.Bin = "qemu-system-x86_64"
 	}
+	if _, err := exec.LookPath(cfg.Bin); err != nil {
+		return err
+	}
 	if cfg.Image == "9p" {
 		if cfg.Kernel == "" {
 			return fmt.Errorf("9p image requires kernel")

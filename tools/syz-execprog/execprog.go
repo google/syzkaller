@@ -30,6 +30,8 @@ var (
 	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
 	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
 	flagOutput    = flag.String("output", "none", "write programs to none/stdout")
+	flagFaultCall = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
+	flagFaultNth  = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
 )
 
 func main() {
@@ -56,16 +58,26 @@ func main() {
 		return
 	}
 
-	flags, timeout, err := ipc.DefaultFlags()
+	execOpts := &ipc.ExecOpts{}
+	config, err := ipc.DefaultConfig()
 	if err != nil {
 		Fatalf("%v", err)
 	}
-	needCover := flags&ipc.FlagSignal != 0
-	dedupCover := true
+	if config.Flags&ipc.FlagSignal != 0 {
+		execOpts.Flags |= ipc.FlagCollectCover
+	}
+	execOpts.Flags |= ipc.FlagDedupCover
 	if *flagCoverFile != "" {
-		flags |= ipc.FlagSignal
-		needCover = true
-		dedupCover = false
+		config.Flags |= ipc.FlagSignal
+		execOpts.Flags |= ipc.FlagCollectCover
+		execOpts.Flags &^= ipc.FlagDedupCover
+	}
+
+	if *flagFaultCall >= 0 {
+		config.Flags |= ipc.FlagEnableFault
+		execOpts.Flags |= ipc.FlagInjectFault
+		execOpts.FaultCall = *flagFaultCall
+		execOpts.FaultNth = *flagFaultNth
 	}
 
 	handled := make(map[string]bool)
@@ -74,8 +86,8 @@ func main() {
 			handled[call.Meta.CallName] = true
 		}
 	}
-	if handled["syz_emit_ethernet"] {
-		flags |= ipc.FlagEnableTun
+	if handled["syz_emit_ethernet"] || handled["syz_extract_tcp_res"] {
+		config.Flags |= ipc.FlagEnableTun
 	}
 
 	var wg sync.WaitGroup
@@ -89,7 +101,7 @@ func main() {
 		pid := p
 		go func() {
 			defer wg.Done()
-			env, err := ipc.MakeEnv(*flagExecutor, timeout, flags, pid)
+			env, err := ipc.MakeEnv(*flagExecutor, pid, config)
 			if err != nil {
 				Fatalf("failed to create ipc env: %v", err)
 			}
@@ -119,14 +131,14 @@ func main() {
 						Logf(0, "executing program %v:\n%s", pid, data)
 						logMu.Unlock()
 					}
-					output, info, failed, hanged, err := env.Exec(p, needCover, dedupCover)
+					output, info, failed, hanged, err := env.Exec(execOpts, p)
 					if atomic.LoadUint32(&shutdown) != 0 {
 						return false
 					}
 					if failed {
 						fmt.Printf("BUG: executor-detected bug:\n%s", output)
 					}
-					if flags&ipc.FlagDebug != 0 || err != nil {
+					if config.Flags&ipc.FlagDebug != 0 || err != nil {
 						fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
 					}
 					if *flagCoverFile != "" {

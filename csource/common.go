@@ -21,10 +21,15 @@ var commonHeader = `
 #include <sys/wait.h>
 
 #include <linux/capability.h>
-#include <linux/if.h>
-#include <linux/if_tun.h>
 #include <linux/kvm.h>
 #include <linux/sched.h>
+
+#include <arpa/inet.h>
+#include <linux/if.h>
+#include <linux/if_ether.h>
+#include <linux/if_tun.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
 #include <net/if_arp.h>
 
 #include <assert.h>
@@ -162,7 +167,11 @@ static void install_segv_handler()
 		*(type*)(addr) = new_val;                                         \
 	}
 
-#ifdef __NR_syz_emit_ethernet
+#if defined(__NR_syz_emit_ethernet) || defined(__NR_syz_extract_tcp_res)
+#define SYZ_TUN_ENABLE
+#endif
+
+#ifdef SYZ_TUN_ENABLE
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
 	int rv;
@@ -203,6 +212,8 @@ static void execute_command(const char* format, ...)
 
 int tunfd = -1;
 
+#define SYZ_TUN_MAX_PACKET_SIZE (64 << 10)
+
 #define MAX_PIDS 32
 #define ADDR_MAX_LEN 32
 
@@ -212,8 +223,8 @@ int tunfd = -1;
 #define LOCAL_IPV4 "172.20.%d.170"
 #define REMOTE_IPV4 "172.20.%d.187"
 
-#define LOCAL_IPV6 "fd00::%02hxaa"
-#define REMOTE_IPV6 "fd00::%02hxbb"
+#define LOCAL_IPV6 "fe80::%02hxaa"
+#define REMOTE_IPV6 "fe80::%02hxbb"
 
 static void initialize_tun(uint64_t pid)
 {
@@ -221,7 +232,7 @@ static void initialize_tun(uint64_t pid)
 		fail("tun: no more than %d executors", MAX_PIDS);
 	int id = pid;
 
-	tunfd = open("/dev/net/tun", O_RDWR);
+	tunfd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
 	if (tunfd == -1)
 		fail("tun: can't open /dev/net/tun");
 
@@ -250,12 +261,16 @@ static void initialize_tun(uint64_t pid)
 	char remote_ipv6[ADDR_MAX_LEN];
 	snprintf_check(remote_ipv6, sizeof(remote_ipv6), REMOTE_IPV6, id);
 
+	execute_command("sysctl -w net.ipv6.conf.%s.accept_dad=0", iface);
+
+	execute_command("sysctl -w net.ipv6.conf.%s.router_solicitations=0", iface);
+
 	execute_command("ip link set dev %s address %s", iface, local_mac);
 	execute_command("ip addr add %s/24 dev %s", local_ipv4, iface);
 	execute_command("ip -6 addr add %s/120 dev %s", local_ipv6, iface);
 	execute_command("ip neigh add %s lladdr %s dev %s nud permanent", remote_ipv4, remote_mac, iface);
 	execute_command("ip -6 neigh add %s lladdr %s dev %s nud permanent", remote_ipv6, remote_mac, iface);
-	execute_command("ip link set %s up", iface);
+	execute_command("ip link set dev %s up", iface);
 }
 
 static void setup_tun(uint64_t pid, bool enable_tun)
@@ -264,16 +279,149 @@ static void setup_tun(uint64_t pid, bool enable_tun)
 		initialize_tun(pid);
 }
 
+void debug_dump_data(const char* data, int length)
+{
+	int i;
+	for (i = 0; i < length; i++) {
+		debug("%02hx ", (uint8_t)data[i] & (uint8_t)0xff);
+		if (i % 16 == 15)
+			debug("\n");
+	}
+	if (i % 16 != 0)
+		debug("\n");
+}
+#endif
+
+#ifdef __NR_syz_emit_ethernet
 static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 {
+
 	if (tunfd < 0)
 		return (uintptr_t)-1;
 
 	int64_t length = a0;
 	char* data = (char*)a1;
+	debug_dump_data(data, length);
 	return write(tunfd, data, length);
 }
 #endif
+
+#ifdef __NR_syz_extract_tcp_res
+struct ipv6hdr {
+	__u8 priority : 4,
+	    version : 4;
+	__u8 flow_lbl[3];
+
+	__be16 payload_len;
+	__u8 nexthdr;
+	__u8 hop_limit;
+
+	struct in6_addr saddr;
+	struct in6_addr daddr;
+};
+
+struct tcp_resources {
+	int32_t seq;
+	int32_t ack;
+};
+
+int read_tun(char* data, int size)
+{
+	int rv = read(tunfd, data, size);
+	if (rv < 0) {
+		if (errno == EAGAIN)
+			return -1;
+		fail("tun: read failed with %d, errno: %d", rv, errno);
+	}
+	return rv;
+}
+
+void flush_tun()
+{
+	char data[SYZ_TUN_MAX_PACKET_SIZE];
+	while (read_tun(&data[0], sizeof(data)) != -1)
+		;
+}
+
+static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
+{
+
+	if (tunfd < 0)
+		return (uintptr_t)-1;
+
+	char data[SYZ_TUN_MAX_PACKET_SIZE];
+	int rv = read_tun(&data[0], sizeof(data));
+	if (rv == -1)
+		return (uintptr_t)-1;
+	size_t length = rv;
+	debug_dump_data(data, length);
+
+	struct tcphdr* tcphdr;
+
+	if (length < sizeof(struct ethhdr))
+		return (uintptr_t)-1;
+	struct ethhdr* ethhdr = (struct ethhdr*)&data[0];
+
+	if (ethhdr->h_proto == htons(ETH_P_IP)) {
+		if (length < sizeof(struct ethhdr) + sizeof(struct iphdr))
+			return (uintptr_t)-1;
+		struct iphdr* iphdr = (struct iphdr*)&data[sizeof(struct ethhdr)];
+		if (iphdr->protocol != IPPROTO_TCP)
+			return (uintptr_t)-1;
+		if (length < sizeof(struct ethhdr) + iphdr->ihl * 4 + sizeof(struct tcphdr))
+			return (uintptr_t)-1;
+		tcphdr = (struct tcphdr*)&data[sizeof(struct ethhdr) + iphdr->ihl * 4];
+	} else {
+		if (length < sizeof(struct ethhdr) + sizeof(struct ipv6hdr))
+			return (uintptr_t)-1;
+		struct ipv6hdr* ipv6hdr = (struct ipv6hdr*)&data[sizeof(struct ethhdr)];
+		if (ipv6hdr->nexthdr != IPPROTO_TCP)
+			return (uintptr_t)-1;
+		if (length < sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct tcphdr))
+			return (uintptr_t)-1;
+		tcphdr = (struct tcphdr*)&data[sizeof(struct ethhdr) + sizeof(struct ipv6hdr)];
+	}
+
+	struct tcp_resources* res = (struct tcp_resources*)a0;
+	NONFAILING(res->seq = htonl((ntohl(tcphdr->seq) + (uint32_t)a1)));
+	NONFAILING(res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32_t)a2)));
+
+	debug("extracted seq: %08x\n", res->seq);
+	debug("extracted ack: %08x\n", res->ack);
+
+	return 0;
+}
+#endif
+
+struct csum_inet {
+	uint32_t acc;
+};
+
+void csum_inet_init(struct csum_inet* csum)
+{
+	csum->acc = 0;
+}
+
+void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
+{
+	if (length == 0)
+		return;
+
+	size_t i;
+	for (i = 0; i < length - 1; i += 2)
+		csum->acc += *(uint16_t*)&data[i];
+
+	if (length & 1)
+		csum->acc += (uint16_t)data[length - 1];
+
+	while (csum->acc > 0xffff)
+		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
+}
+
+uint16_t csum_inet_digest(struct csum_inet* csum)
+{
+	return ~csum->acc;
+}
 
 #ifdef __NR_syz_open_dev
 static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
@@ -1357,6 +1505,10 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 	case __NR_syz_emit_ethernet:
 		return syz_emit_ethernet(a0, a1);
 #endif
+#ifdef __NR_syz_extract_tcp_res
+	case __NR_syz_extract_tcp_res:
+		return syz_extract_tcp_res(a0, a1, a2);
+#endif
 #ifdef __NR_syz_kvm_setup_cpu
 	case __NR_syz_kvm_setup_cpu:
 		return syz_kvm_setup_cpu(a0, a1, a2, a3, a4, a5, a6, a7);
@@ -1414,7 +1566,7 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 		return pid;
 
 	sandbox_common();
-#ifdef __NR_syz_emit_ethernet
+#ifdef SYZ_TUN_ENABLE
 	setup_tun(executor_pid, enable_tun);
 #endif
 
@@ -1431,7 +1583,7 @@ static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 		return pid;
 
 	sandbox_common();
-#ifdef __NR_syz_emit_ethernet
+#ifdef SYZ_TUN_ENABLE
 	setup_tun(executor_pid, enable_tun);
 #endif
 
@@ -1443,18 +1595,14 @@ static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 	if (syscall(SYS_setresuid, nobody, nobody, nobody))
 		fail("failed to setresuid");
 
+	prctl(PR_SET_DUMPABLE, 1, 0, 0, 0);
+
 	loop();
 	doexit(1);
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
-static int real_uid;
-static int real_gid;
-static int epid;
-static bool etun;
-__attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
-
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_FAULT_INJECTION)
 static bool write_file(const char* file, const char* what, ...)
 {
 	char buf[1024];
@@ -1475,6 +1623,14 @@ static bool write_file(const char* file, const char* what, ...)
 	close(fd);
 	return true;
 }
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
+static int real_uid;
+static int real_gid;
+static int epid;
+static bool etun;
+__attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
 
 static int namespace_sandbox_proc(void* arg)
 {
@@ -1486,7 +1642,7 @@ static int namespace_sandbox_proc(void* arg)
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
 
-#ifdef __NR_syz_emit_ethernet
+#ifdef SYZ_TUN_ENABLE
 	setup_tun(epid, etun);
 #endif
 
@@ -1500,6 +1656,10 @@ static int namespace_sandbox_proc(void* arg)
 		fail("mkdir failed");
 	if (mount("/dev", "./syz-tmp/newroot/dev", NULL, MS_BIND | MS_REC | MS_PRIVATE, NULL))
 		fail("mount(dev) failed");
+	if (mkdir("./syz-tmp/newroot/proc", 0700))
+		fail("mkdir failed");
+	if (mount(NULL, "./syz-tmp/newroot/proc", "proc", 0, NULL))
+		fail("mount(proc) failed");
 	if (mkdir("./syz-tmp/pivot", 0777))
 		fail("mkdir failed");
 	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
@@ -1624,6 +1784,23 @@ static uint64_t current_time_ms()
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
 		fail("clock_gettime failed");
 	return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
+static int inject_fault(int nth)
+{
+	int fd;
+	char buf[128];
+
+	sprintf(buf, "/proc/self/task/%d/fail-nth", (int)syscall(SYS_gettid));
+	fd = open(buf, O_RDWR);
+	if (fd == -1)
+		fail("failed to open /proc/self/task/tid/fail-nth");
+	sprintf(buf, "%d", nth + 1);
+	if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf))
+		fail("failed to write /proc/self/task/tid/fail-nth");
+	return fd;
 }
 #endif
 

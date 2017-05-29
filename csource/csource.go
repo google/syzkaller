@@ -22,12 +22,15 @@ import (
 )
 
 type Options struct {
-	Threaded bool
-	Collide  bool
-	Repeat   bool
-	Procs    int
-	Sandbox  string
-	Repro    bool // generate code for use with repro package
+	Threaded  bool
+	Collide   bool
+	Repeat    bool
+	Procs     int
+	Sandbox   string
+	Fault     bool // inject fault into FaultCall/FaultNth
+	FaultCall int
+	FaultNth  int
+	Repro     bool // generate code for use with repro package
 }
 
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
@@ -54,6 +57,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	if _, ok := handled["syz_emit_ethernet"]; ok {
 		enableTun = "true"
 	}
+	if _, ok := handled["syz_extract_tcp_res"]; ok {
+		enableTun = "true"
+	}
 
 	hdr, err := preprocessCommonHeader(opts, handled)
 	if err != nil {
@@ -62,7 +68,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	fmt.Fprint(w, hdr)
 	fmt.Fprint(w, "\n")
 
-	calls, nvar := generateCalls(exec)
+	calls, nvar := generateCalls(exec, opts)
 	fmt.Fprintf(w, "long r[%v];\n", nvar)
 
 	if !opts.Repeat {
@@ -158,7 +164,7 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 	}
 }
 
-func generateCalls(exec []byte) ([]string, int) {
+func generateCalls(exec []byte, opts Options) ([]string, int) {
 	read := func() uintptr {
 		if len(exec) < 8 {
 			panic("exec program overflow")
@@ -226,8 +232,33 @@ loop:
 					esc = append(esc, '\\', 'x', hex(v>>4), hex(v<<4>>4))
 				}
 				fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n", addr, esc, size)
+			case prog.ExecArgCsum:
+				csum_kind := read()
+				switch csum_kind {
+				case prog.ExecArgCsumInet:
+					fmt.Fprintf(w, "\tstruct csum_inet csum_%d;\n", n)
+					fmt.Fprintf(w, "\tcsum_inet_init(&csum_%d);\n", n)
+					csum_chunks_num := read()
+					for i := uintptr(0); i < csum_chunks_num; i++ {
+						chunk_kind := read()
+						chunk_value := read()
+						chunk_size := read()
+						switch chunk_kind {
+						case prog.ExecArgCsumChunkData:
+							fmt.Fprintf(w, "\tNONFAILING(csum_inet_update(&csum_%d, (const uint8_t*)0x%x, %d));\n", n, chunk_value, chunk_size)
+						case prog.ExecArgCsumChunkConst:
+							fmt.Fprintf(w, "\tuint%d_t csum_%d_chunk_%d = 0x%x;\n", chunk_size*8, n, i, chunk_value)
+							fmt.Fprintf(w, "\tcsum_inet_update(&csum_%d, (const uint8_t*)&csum_%d_chunk_%d, %d);\n", n, n, i, chunk_size)
+						default:
+							panic(fmt.Sprintf("unknown checksum chunk kind %v", chunk_kind))
+						}
+					}
+					fmt.Fprintf(w, "\tNONFAILING(*(uint16_t*)0x%x = csum_inet_digest(&csum_%d));\n", addr, n)
+				default:
+					panic(fmt.Sprintf("unknown csum kind %v", csum_kind))
+				}
 			default:
-				panic("bad argument type")
+				panic(fmt.Sprintf("bad argument type %v", instr))
 			}
 		case prog.ExecInstrCopyout:
 			addr := read()
@@ -237,6 +268,11 @@ loop:
 		default:
 			// Normal syscall.
 			newCall()
+			if opts.Fault && opts.FaultCall == len(calls) {
+				fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/failslab/ignore-gfp-wait\", \"N\");\n")
+				fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_futex/ignore-private\", \"N\");\n")
+				fmt.Fprintf(w, "\tinject_fault(%v);\n", opts.FaultNth)
+			}
 			meta := sys.Calls[instr]
 			fmt.Fprintf(w, "\tr[%v] = execute_syscall(__NR_%v", n, meta.CallName)
 			nargs := read()
@@ -253,7 +289,7 @@ loop:
 				case prog.ExecArgResult:
 					fmt.Fprintf(w, ", %v", resultRef())
 				default:
-					panic("unknown arg type")
+					panic(fmt.Sprintf("unknown arg type %v", typ))
 				}
 			}
 			for i := nargs; i < 9; i++ {
@@ -282,6 +318,9 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 	}
 	if opts.Repeat {
 		defines = append(defines, "SYZ_REPEAT")
+	}
+	if opts.Fault {
+		defines = append(defines, "SYZ_FAULT_INJECTION")
 	}
 	for name, _ := range handled {
 		defines = append(defines, "__NR_"+name)
