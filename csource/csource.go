@@ -190,7 +190,9 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 			fmt.Fprintf(w, "\tsyscall(SYS_write, 1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
 		}
 		fmt.Fprintf(w, "\tmemset(r, -1, sizeof(r));\n")
-		fmt.Fprintf(w, "\tsrand(getpid());\n")
+		if opts.Collide {
+			fmt.Fprintf(w, "\tsrand(getpid());\n")
+		}
 		fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", len(calls))
 		fmt.Fprintf(w, "\t\tpthread_create(&th[i], 0, thr, (void*)i);\n")
 		fmt.Fprintf(w, "\t\tusleep(10000);\n")
@@ -385,6 +387,12 @@ func preprocessCommonHeader(opts Options, handled map[string]int, useBitmasks bo
 		defines = append(defines, "SYZ_SANDBOX_NAMESPACE")
 	default:
 		return "", fmt.Errorf("unknown sandbox mode: %v", opts.Sandbox)
+	}
+	if opts.Threaded {
+		defines = append(defines, "SYZ_THREADED")
+	}
+	if opts.Collide {
+		defines = append(defines, "SYZ_COLLIDE")
 	}
 	if opts.Repeat {
 		defines = append(defines, "SYZ_REPEAT")

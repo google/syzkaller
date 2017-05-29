@@ -8,49 +8,123 @@ var commonHeader = `
 #define _GNU_SOURCE
 #endif
 
-#include <sys/ioctl.h>
-#include <sys/mman.h>
+#include <stdint.h>
+#include <string.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#if defined(SYZ_EXECUTOR) || defined(SYZ_THREADED) || defined(SYZ_COLLIDE)
+#include <pthread.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_COLLIDE)
+#include <stdlib.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
+#include <setjmp.h>
+#include <signal.h>
+#include <string.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#endif
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
+#include <errno.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <sys/prctl.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+#include <time.h>
+#endif
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
+#include <dirent.h>
 #include <sys/mount.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)
+#include <errno.h>
+#include <sched.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/syscall.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <sys/wait.h>
-
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_SETUID)
+#include <grp.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
+#include <fcntl.h>
 #include <linux/capability.h>
-#include <linux/kvm.h>
-#include <linux/sched.h>
-
+#include <sys/mman.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 #include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <linux/if.h>
 #include <linux/if_ether.h>
 #include <linux/if_tun.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <net/if_arp.h>
-
-#include <assert.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <grp.h>
-#include <pthread.h>
-#include <setjmp.h>
-#include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
+#include <errno.h>
+#include <fcntl.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
+#include <stdarg.h>
+#include <stdio.h>
+#endif
+#ifdef __NR_syz_open_dev
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#endif
+#if defined(__NR_syz_fuse_mount) || defined(__NR_syz_fuseblk_mount)
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#endif
+#ifdef __NR_syz_open_pts
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#endif
+#ifdef __NR_syz_kvm_setup_cpu
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/kvm.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
-    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
+    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||               \
+    defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
 const int kFailStatus = 67;
 const int kRetryStatus = 69;
 #endif
@@ -59,8 +133,10 @@ const int kRetryStatus = 69;
 const int kErrorStatus = 68;
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || \
-    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NONE) || defined(__NR_syz_kvm_setup_cpu)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
+    defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) ||                  \
+    defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) ||               \
+    defined(__NR_syz_kvm_setup_cpu)
 __attribute__((noreturn)) void doexit(int status)
 {
 	volatile unsigned i;
@@ -76,7 +152,8 @@ __attribute__((noreturn)) void doexit(int status)
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
-    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
+    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||               \
+    defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
 __attribute__((noreturn)) void fail(const char* msg, ...)
 {
 	int e = errno;
