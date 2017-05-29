@@ -16,7 +16,7 @@ type Description struct {
 	Includes  []string
 	Defines   map[string]string
 	Syscalls  []Syscall
-	Structs   map[string]Struct
+	Structs   map[string]*Struct
 	Unnamed   map[string][]string
 	Flags     map[string][]string
 	StrFlags  map[string][]string
@@ -50,7 +50,7 @@ func Parse(in io.Reader) *Description {
 	var includes []string
 	defines := make(map[string]string)
 	var syscalls []Syscall
-	structs := make(map[string]Struct)
+	structs := make(map[string]*Struct)
 	unnamed := make(map[string][]string)
 	flags := make(map[string][]string)
 	strflags := make(map[string][]string)
@@ -107,7 +107,7 @@ func Parse(in io.Reader) *Description {
 					}
 					fields[f[0]] = true
 				}
-				structs[str.Name] = *str
+				structs[str.Name] = str
 				str = nil
 			} else {
 				p.SkipWs()
