@@ -17,7 +17,7 @@ var (
 	flagThreaded   = flag.Bool("threaded", false, "create threaded program")
 	flagCollide    = flag.Bool("collide", false, "create collide program")
 	flagRepeat     = flag.Bool("repeat", false, "repeat program infinitely or not")
-	flagProcs      = flag.Int("procs", 4, "number of parallel processes")
+	flagProcs      = flag.Int("procs", 1, "number of parallel processes")
 	flagSandbox    = flag.String("sandbox", "", "sandbox to use (none, setuid, namespace)")
 	flagProg       = flag.String("prog", "", "file with program to convert (required)")
 	flagFaultCall  = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
