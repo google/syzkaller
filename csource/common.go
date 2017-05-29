@@ -424,7 +424,7 @@ static void debug_dump_data(const char* data, int length)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE)) || defined(__NR_syz_test)
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_CHECKSUMS) || defined(__NR_syz_test)
 struct csum_inet {
 	uint32_t acc;
 };

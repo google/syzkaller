@@ -280,7 +280,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	}
 
 	// Try to simplify the C reproducer.
-	if res.Opts.EnableTun && !prog.RequiresTun(res.Prog) {
+	if res.Opts.EnableTun {
 		opts = res.Opts
 		opts.EnableTun = false
 		crashed, err := ctx.testCProg(res.Prog, duration, opts)
