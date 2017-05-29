@@ -737,7 +737,8 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 	if mgr.vmChecked {
 		return nil
 	}
-	Logf(1, "fuzzer %v vm check: %v calls enabled", a.Name, len(a.Calls))
+	Logf(1, "fuzzer %v vm check: %v calls enabled, kcov=%v, kleakcheck=%v, faultinjection=%v",
+		a.Name, len(a.Calls), a.Kcov, a.Leak, a.Fault)
 	if len(a.Calls) == 0 {
 		Fatalf("no system calls enabled")
 	}

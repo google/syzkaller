@@ -10,10 +10,13 @@ import (
 
 // LogEntry describes one program in execution log.
 type LogEntry struct {
-	P     *Prog
-	Proc  int // index of parallel proc
-	Start int // start offset in log
-	End   int // end offset in log
+	P         *Prog
+	Proc      int  // index of parallel proc
+	Start     int  // start offset in log
+	End       int  // end offset in log
+	Fault     bool // program was executed with fault injection in FaultCall/FaultNth
+	FaultCall int
+	FaultNth  int
 }
 
 func ParseLog(data []byte) []*LogEntry {
@@ -30,21 +33,20 @@ func ParseLog(data []byte) []*LogEntry {
 		line := data[pos : nl+1]
 		pos0 := pos
 		pos = nl + 1
-		const delim = "executing program "
-		if delimPos := bytes.Index(line, []byte(delim)); delimPos != -1 {
+
+		if proc, ok := extractInt(line, "executing program "); ok {
 			if ent.P != nil && len(ent.P.Calls) != 0 {
 				ent.End = pos0
 				entries = append(entries, ent)
 			}
-			procStart := delimPos + len(delim)
-			procEnd := procStart
-			for procEnd != len(line) && line[procEnd] >= '0' && line[procEnd] <= '9' {
-				procEnd++
-			}
-			proc, _ := strconv.Atoi(string(line[procStart:procEnd]))
 			ent = &LogEntry{
 				Proc:  proc,
 				Start: pos0,
+			}
+			if faultCall, ok := extractInt(line, "fault-call:"); ok {
+				ent.Fault = true
+				ent.FaultCall = faultCall
+				ent.FaultNth, _ = extractInt(line, "fault-nth:")
 			}
 			cur = nil
 			continue
@@ -65,4 +67,18 @@ func ParseLog(data []byte) []*LogEntry {
 		entries = append(entries, ent)
 	}
 	return entries
+}
+
+func extractInt(line []byte, prefix string) (int, bool) {
+	pos := bytes.Index(line, []byte(prefix))
+	if pos == -1 {
+		return 0, false
+	}
+	pos += len(prefix)
+	end := pos
+	for end != len(line) && line[end] >= '0' && line[end] <= '9' {
+		end++
+	}
+	v, _ := strconv.Atoi(string(line[pos:end]))
+	return v, true
 }

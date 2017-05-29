@@ -100,8 +100,8 @@ func execute(pid int, env *ipc.Env, p *prog.Prog) {
 		fmt.Printf("executing program %v\n%s\n", pid, p.Serialize())
 		outMu.Unlock()
 	}
-
-	output, _, failed, hanged, err := env.Exec(p, false, false)
+	opts := &ipc.ExecOpts{}
+	output, _, failed, hanged, err := env.Exec(opts, p)
 	if err != nil {
 		fmt.Printf("failed to execute executor: %v\n", err)
 	}

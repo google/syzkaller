@@ -100,6 +100,30 @@ var oopses = []*oops{
 				compile("WARNING: .* at {{SRC}} {{FUNC}}"),
 				"WARNING in %[2]v",
 			},
+			{
+				compile("WARNING: possible circular locking dependency detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
+				compile("WARNING: possible irq lock inversion dependency detected(?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
+				compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected(?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
+				compile("WARNING: possible recursive locking detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"possible deadlock in %[1]v",
+			},
+			{
+				compile("WARNING: inconsistent lock state(?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				"inconsistent lock state in %[1]v",
+			},
+			{
+				compile("WARNING: suspicious RCU usage(?:.*\n)+?.*?{{SRC}}"),
+				"suspicious RCU usage at %[1]v",
+			},
 		},
 		[]*regexp.Regexp{
 			compile("WARNING: /etc/ssh/moduli does not exist, using fixed modulus"), // printed by sshd

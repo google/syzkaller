@@ -13,6 +13,7 @@ import (
 type OutputMerger struct {
 	Output chan []byte
 	Err    chan error
+	teeMu  sync.Mutex
 	tee    io.Writer
 	wg     sync.WaitGroup
 }
@@ -42,7 +43,9 @@ func (merger *OutputMerger) Add(name string, r io.ReadCloser) {
 				if pos := bytes.LastIndexByte(pending, '\n'); pos != -1 {
 					out := pending[:pos+1]
 					if merger.tee != nil {
+						merger.teeMu.Lock()
 						merger.tee.Write(out)
+						merger.teeMu.Unlock()
 					}
 					select {
 					case merger.Output <- append([]byte{}, out...):
@@ -56,7 +59,9 @@ func (merger *OutputMerger) Add(name string, r io.ReadCloser) {
 				if len(pending) != 0 {
 					pending = append(pending, '\n')
 					if merger.tee != nil {
+						merger.teeMu.Lock()
 						merger.tee.Write(pending)
+						merger.teeMu.Unlock()
 					}
 					select {
 					case merger.Output <- pending:

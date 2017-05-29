@@ -22,12 +22,15 @@ import (
 )
 
 type Options struct {
-	Threaded bool
-	Collide  bool
-	Repeat   bool
-	Procs    int
-	Sandbox  string
-	Repro    bool // generate code for use with repro package
+	Threaded  bool
+	Collide   bool
+	Repeat    bool
+	Procs     int
+	Sandbox   string
+	Fault     bool // inject fault into FaultCall/FaultNth
+	FaultCall int
+	FaultNth  int
+	Repro     bool // generate code for use with repro package
 }
 
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
@@ -65,7 +68,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	fmt.Fprint(w, hdr)
 	fmt.Fprint(w, "\n")
 
-	calls, nvar := generateCalls(exec)
+	calls, nvar := generateCalls(exec, opts)
 	fmt.Fprintf(w, "long r[%v];\n", nvar)
 
 	if !opts.Repeat {
@@ -161,7 +164,7 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 	}
 }
 
-func generateCalls(exec []byte) ([]string, int) {
+func generateCalls(exec []byte, opts Options) ([]string, int) {
 	read := func() uintptr {
 		if len(exec) < 8 {
 			panic("exec program overflow")
@@ -265,6 +268,11 @@ loop:
 		default:
 			// Normal syscall.
 			newCall()
+			if opts.Fault && opts.FaultCall == len(calls) {
+				fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/failslab/ignore-gfp-wait\", \"N\");\n")
+				fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_futex/ignore-private\", \"N\");\n")
+				fmt.Fprintf(w, "\tinject_fault(%v);\n", opts.FaultNth)
+			}
 			meta := sys.Calls[instr]
 			fmt.Fprintf(w, "\tr[%v] = execute_syscall(__NR_%v", n, meta.CallName)
 			nargs := read()
@@ -310,6 +318,9 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 	}
 	if opts.Repeat {
 		defines = append(defines, "SYZ_REPEAT")
+	}
+	if opts.Fault {
+		defines = append(defines, "SYZ_FAULT_INJECTION")
 	}
 	for name, _ := range handled {
 		defines = append(defines, "__NR_"+name)
