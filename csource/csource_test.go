@@ -16,14 +16,53 @@ import (
 
 func initTest(t *testing.T) (rand.Source, int) {
 	t.Parallel()
-	iters := 10
-	if testing.Short() {
-		iters = 1
-	}
+	iters := 1
 	seed := int64(time.Now().UnixNano())
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
 	return rs, iters
+}
+
+func allOptionsSingle() []Options {
+	var options []Options
+	var opt Options
+	for _, opt.Threaded = range []bool{false, true} {
+		options = append(options, opt)
+	}
+	for _, opt.Collide = range []bool{false, true} {
+		options = append(options, opt)
+	}
+	for _, opt.Repeat = range []bool{false, true} {
+		options = append(options, opt)
+	}
+	for _, opt.Procs = range []int{1, 4} {
+		options = append(options, opt)
+	}
+	for _, opt.Sandbox = range []string{"", "none", "setuid", "namespace"} {
+		options = append(options, opt)
+	}
+	for _, opt.Repro = range []bool{false, true} {
+		options = append(options, opt)
+	}
+	for _, opt.Fault = range []bool{false, true} {
+		options = append(options, opt)
+	}
+	for _, opt.EnableTun = range []bool{false, true} {
+		options = append(options, opt)
+	}
+	for _, opt.UseTmpDir = range []bool{false, true} {
+		options = append(options, opt)
+	}
+	for _, opt.HandleSegv = range []bool{false, true} {
+		options = append(options, opt)
+	}
+	for _, opt.WaitRepeat = range []bool{false, true} {
+		options = append(options, opt)
+	}
+	for _, opt.Debug = range []bool{false, true} {
+		options = append(options, opt)
+	}
+	return options
 }
 
 func allOptionsPermutations() []Options {
@@ -69,7 +108,7 @@ func allOptionsPermutations() []Options {
 	return options
 }
 
-func TestSyz(t *testing.T) {
+func TestOne(t *testing.T) {
 	rs, _ := initTest(t)
 	opts := Options{
 		Threaded: true,
@@ -83,11 +122,38 @@ func TestSyz(t *testing.T) {
 	testOne(t, p, opts)
 }
 
-func Test(t *testing.T) {
+func TestOptionsSingle(t *testing.T) {
 	rs, _ := initTest(t)
 	syzProg := prog.GenerateAllSyzProg(rs)
 	t.Logf("syz program:\n%s\n", syzProg.Serialize())
-	for i, opts := range allOptionsPermutations() {
+	for i, opts := range allOptionsSingle() {
+		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
+			rs, iters := initTest(t)
+			t.Logf("opts: %+v", opts)
+			for i := 0; i < iters; i++ {
+				p := prog.Generate(rs, 10, nil)
+				testOne(t, p, opts)
+			}
+			testOne(t, syzProg, opts)
+		})
+	}
+}
+
+func TestOptionsPermutations(t *testing.T) {
+	rs, _ := initTest(t)
+	syzProg := prog.GenerateAllSyzProg(rs)
+	t.Logf("syz program:\n%s\n", syzProg.Serialize())
+	allPermutations := allOptionsPermutations()
+	var permutations []Options
+	if testing.Short() {
+		r := rand.New(rs)
+		for i := 0; i < 32; i++ {
+			permutations = append(permutations, allPermutations[r.Intn(len(allPermutations)-1)])
+		}
+	} else {
+		permutations = allPermutations
+	}
+	for i, opts := range permutations {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			rs, iters := initTest(t)
 			t.Logf("opts: %+v", opts)
