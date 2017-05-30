@@ -1,57 +1,58 @@
 # syzkaller - linux syscall fuzzer
 
 `syzkaller` is an unsupervised, coverage-guided Linux syscall fuzzer.
-It is meant to be used with [KASAN](https://kernel.org/doc/html/latest/dev-tools/kasan.html) (`CONFIG_KASAN=y`),
-[KTSAN](https://github.com/google/ktsan) (`CONFIG_KTSAN=y`),
-or [KUBSAN](https://kernel.org/doc/html/latest/dev-tools/ubsan.html).
+It is meant to be used with
+[KASAN](https://kernel.org/doc/html/latest/dev-tools/kasan.html) (available upstream with `CONFIG_KASAN=y`),
+[KTSAN](https://github.com/google/ktsan) (prototype available),
+[KMSAN](https://github.com/google/kmsan) (prototype available),
+or [KUBSAN](https://kernel.org/doc/html/latest/dev-tools/ubsan.html) (available upstream with `CONFIG_UBSAN=y`).
 
-Project mailing list: [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller), which you can subscribe to either with an
-google account or by sending an email to syzkaller+subscribe@googlegroups.com.
+Project mailing list: [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller).
+You can subscribe to it with a google account or by sending an email to syzkaller+subscribe@googlegroups.com.
 
 List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
 
 ## Reporting Linux kernel bugs
 
 Please report found bugs to the Linux kernel maintainers.
-To find out the list of maintainers responsible for a particular kernel subsystem, run `./scripts/get_maintainer.pl guilty_file.c`. Please also add `syzkaller@googlegroups.com` to CC list.
+To find out the list of maintainers responsible for a particular kernel subsystem, run `./scripts/get_maintainer.pl guilty_file.c`.
+Please also add `syzkaller@googlegroups.com` to the CC list.
 
 If you believe that a found bug poses potential security threat, consider reporting it directly to `security@kernel.org`.
 
 ## Usage
 
-Various components are needed to build and run syzkaller.
+The following components are needed to use syzkaller:
 
  - C compiler with coverage support
  - Linux kernel with coverage additions
- - QEMU and disk image
- - The syzkaller components
+ - Virtual machine or a physical device
+ - syzkaller itself
 
-Setting each of these up is discussed in the following sections.
+Generic steps to set up syzkaller are described below.
+More specific information (like the exact steps for a particular host system, VM type and a kernel architecture) can be found on [the wiki](https://github.com/google/syzkaller/wiki).
 
 ### C Compiler
 
-Syzkaller is a coverage-guided fuzzer and so needs the kernel to be built with coverage support.
-Therefore, a recent version of GCC is needed. Coverage support is submitted to gcc in
-revision `231296`, released in gcc6.
+Syzkaller is a coverage-guided fuzzer and therefore it needs the kernel to be built with coverage support, which requires a recent GCC version.
+Coverage support was submitted to GCC in revision `231296`, released in GCC v6.0.
 
 ### Linux Kernel
 
-As well as adding coverage support to the C compiler, the Linux kernel itself needs to be modified
-to:
- - add support in the build system for the coverage options (under `CONFIG_KCOV`)
- - add extra instrumentation on system call entry/exit (for a `CONFIG_KCOV` build)
- - add code to track and report per-task coverage information.
+Besides coverage support in GCC, you also need support for it on the kernel side.
+KCOV was committed upstream in Linux kernel version 4.6 and can be enabled by configuring the kernel with `CONFIG_KCOV=y`.
+For older kernels you need to backport commit [kernel: add kcov code coverage](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593).
 
-KCOV is upstreamed in linux 4.6. For older kernels you need to backport commit [5c9a8750a6409c63a0f01d51a9024861022f6593](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593). The kernel should be configured with `CONFIG_KCOV`.
+To enable more syzkaller features and improve bug detection abilities, it's recommended to use additional config options.
+See [Kernel configs](https://github.com/google/syzkaller/wiki/Kernel-configs) for details.
 
-See [Kernel configs](https://github.com/google/syzkaller/wiki/Kernel-configs) for details on configuring kernel.
+### VM Setup
 
-### QEMU Setup
+Syzkaller performs kernel fuzzing on slave virtual machines or physical devices.
+These slave enviroments are referred to as VMs.
+Out-of-the-box syzkaller supports QEMU, kvmtool and GCE virtual machines, Android devices and Odroid C2 boards.
 
-Syzkaller runs its fuzzer processes inside QEMU virtual machines, so a working QEMU system is needed
-&ndash; see [QEMU docs](http://wiki.qemu.org/Manual) for details.
-
-In particular:
+These are the generic requirements for a syzkaller VM:
 
  - The fuzzing processes communicate with the outside world, so the VM image needs to include
    networking support.
@@ -65,9 +66,11 @@ In particular:
  - The kernel exports coverage information via a debugfs entry, so the VM image needs to mount
    the debugfs filesystem at `/sys/kernel/debug`.
 
-[create-image.sh](tools/create-image.sh) script can be used to create a suitable Linux image.
+To use QEMU syzkaller VMs you have to install QEMU on your host system, see [QEMU docs](http://wiki.qemu.org/Manual) for details.
+The [create-image.sh](tools/create-image.sh) script can be used to create a suitable Linux image.
+Detailed steps for setting up syzkaller with QEMU on a Linux host can be found on wiki for [x86-64](https://github.com/google/syzkaller/wiki/Setup:-Ubuntu-host,-QEMU-vm,-x86_64-kernel) and [arm64](https://github.com/google/syzkaller/wiki/Setup:-Linux-host,-QEMU-vm,-arm64-kernel) kernels.
 
-Syzkaller also supports kvmtool VMs, GCE VMs and running on real android devices. TODO: Describe how to support other types of VMs.
+For some details on fuzzing the kernel on an Android device check out [this wiki page](https://github.com/google/syzkaller/wiki/Setup:-Linux-host,-Android-device,-arm64-kernel) and the explicit instructions for an Odroid C2 board are available [here](https://github.com/google/syzkaller/wiki/Setup:-Ubuntu-host,-Odroid-C2-board,-arm64-kernel).
 
 ### Syzkaller
 
@@ -82,6 +85,8 @@ Then, set `GOPATH` env var to some empty dir, say `GOPATH=$HOME/gopath`.
 Then, run `go get -u -d github.com/google/syzkaller/...` to checkout syzkaller sources with all dependencies.
 Then, `cd $GOPATH/src/github.com/google/syzkaller` and
 build with `make`, which generates compiled binaries in the `bin/` folder.
+
+To build additional syzkaller tools run `make all-tools`.
 
 ## Configuration
 
@@ -130,17 +135,16 @@ Start the `syz-manager` process as:
 ./bin/syz-manager -config my.cfg
 ```
 
-The `-config` command line option gives the location of the configuration file
-[described above](#configuration).
+The `-config` command line option gives the location of the configuration file [described above](#configuration).
 
-The `syz-manager` process will wind up qemu virtual machines and start fuzzing in them.
-It also reports some statistics on the HTTP address.
+The `syz-manager` process will wind up QEMU virtual machines and start fuzzing in them.
+Found crashes, statistics and other information is exposed on the HTTP address provided in manager config.
 
 
 ## Process Structure
 
-The process structure for the syzkaller system is shown in the following diagram; red labels
-indicate corresponding configuration options.
+The process structure for the syzkaller system is shown in the following diagram;
+red labels indicate corresponding configuration options.
 
 ![Process structure for syzkaller](structure.png?raw=true)
 
