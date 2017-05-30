@@ -496,7 +496,6 @@ func initStructFields() {
 			panic(fmt.Sprintf("unexpected type of struct prototype for %v: %+v", f.key.name, untyped))
 		}
 	}
-	fmt.Printf("missed %v/%v\n", missed, len(structFields))
 }
 
 func resource(name string) *ResourceDesc {
