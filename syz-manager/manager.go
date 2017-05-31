@@ -745,6 +745,9 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 	if mgr.cfg.Cover && !a.Kcov {
 		Fatalf("/sys/kernel/debug/kcov is missing. Enable CONFIG_KCOV and mount debugfs")
 	}
+	if mgr.cfg.Sandbox == "namespace" && !a.UserNamespaces {
+		Fatalf("/proc/self/ns/user is missing or permission is denied. Requested namespace sandbox but user namespaces are not enabled. Enable CONFIG_USER_NS")
+	}
 	mgr.vmChecked = true
 	mgr.enabledCalls = a.Calls
 	return nil
