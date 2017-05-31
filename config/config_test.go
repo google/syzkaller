@@ -14,3 +14,11 @@ func TestUnknown(t *testing.T) {
 		t.Fatalf("unknown field is not detected (%v)", err)
 	}
 }
+
+func TestReflectUnknown(t *testing.T) {
+	data := `{"http": "localhost:56741","ParsedIgnores": [], "Odroid_Hub_Bus": "bus"}`
+	_, _, err := parse([]byte(data))
+	if err == nil || err.Error() != "unknown field 'ParsedIgnores' in config" {
+		t.Fatalf("unknown field is not detected (%v)", err)
+	}
+}
