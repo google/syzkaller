@@ -234,7 +234,9 @@ static void execute_command(const char* format, ...)
 
 int tunfd = -1;
 
-#define SYZ_TUN_MAX_PACKET_SIZE (64 << 10)
+// We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
+// Rest of the packet (if any) will be silently truncated which is fine.
+#define SYZ_TUN_MAX_PACKET_SIZE 1000
 
 // sysgen knowns about this constant (maxPids)
 #define MAX_PIDS 32
