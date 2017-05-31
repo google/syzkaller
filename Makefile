@@ -18,8 +18,9 @@ all:
 
 all-tools: execprog mutate prog2c stress repro upgrade
 
+# executor uses stacks of limited size, so no jumbo frames.
 executor:
-	$(CC) -o ./bin/syz-executor executor/executor.cc -pthread -Wall -O1 -g $(STATIC_FLAG) $(CFLAGS)
+	$(CC) -o ./bin/syz-executor executor/executor.cc -pthread -Wall -Wframe-larger-than=8192 -Werror -O1 -g $(STATIC_FLAG) $(CFLAGS)
 
 # Don't generate symbol table and DWARF debug info.
 # Reduces build time and binary sizes considerably.
