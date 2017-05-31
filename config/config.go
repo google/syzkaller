@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -89,12 +90,9 @@ func Parse(filename string) (*Config, map[int]bool, error) {
 }
 
 func parse(data []byte) (*Config, map[int]bool, error) {
-	unknown, err := checkUnknownFields(data)
+	err := checkUnknownFields(data)
 	if err != nil {
 		return nil, nil, err
-	}
-	if unknown != "" {
-		return nil, nil, fmt.Errorf("unknown field '%v' in config", unknown)
 	}
 	cfg := new(Config)
 	cfg.Cover = true
@@ -365,67 +363,24 @@ func CreateVMConfig(cfg *Config, index int) (*vm.Config, error) {
 	return vmCfg, nil
 }
 
-func checkUnknownFields(data []byte) (string, error) {
-	// While https://github.com/golang/go/issues/15314 is not resolved
-	// we don't have a better way than to enumerate all known fields.
-	var fields = []string{
-		"Name",
-		"Http",
-		"Rpc",
-		"Workdir",
-		"Vmlinux",
-		"Kernel",
-		"Tag",
-		"Cmdline",
-		"Image",
-		"Cpu",
-		"Mem",
-		"Sshkey",
-		"Bin",
-		"Bin_Args",
-		"Debug",
-		"Output",
-		"Hub_Addr",
-		"Hub_Key",
-		"Dashboard_Addr",
-		"Dashboard_Key",
-		"Syzkaller",
-		"Type",
-		"Count",
-		"Devices",
-		"Procs",
-		"Cover",
-		"Reproduce",
-		"Sandbox",
-		"Leak",
-		"Enable_Syscalls",
-		"Disable_Syscalls",
-		"Suppressions",
-		"Ignores",
-		"Initrd",
-		"Machine_Type",
-		"Odroid_Host_Addr",
-		"Odroid_Slave_Addr",
-		"Odroid_Console",
-		"Odroid_Hub_Bus",
-		"Odroid_Hub_Device",
-		"Odroid_Hub_Port",
+func checkUnknownFields(data []byte) error {
+	structType := reflect.ValueOf(Config{}).Type()
+	fields := make(map[string]bool)
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		if field.Tag.Get("json") == "-" {
+			continue
+		}
+		fields[strings.ToLower(field.Name)] = true
 	}
 	f := make(map[string]interface{})
 	if err := json.Unmarshal(data, &f); err != nil {
-		return "", fmt.Errorf("failed to parse config file: %v", err)
+		return fmt.Errorf("failed to parse config file: %v", err)
 	}
 	for k := range f {
-		ok := false
-		for _, k1 := range fields {
-			if strings.ToLower(k) == strings.ToLower(k1) {
-				ok = true
-				break
-			}
-		}
-		if !ok {
-			return k, nil
+		if !fields[strings.ToLower(k)] {
+			return fmt.Errorf("unknown field '%v' in config", k)
 		}
 	}
-	return "", nil
+	return nil
 }
