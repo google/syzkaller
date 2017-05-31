@@ -617,36 +617,28 @@ func (c *command) exec(opts *ExecOpts) (output []byte, failed, hanged, restart b
 		}
 		status = int(reply[0])
 		if status == 0 {
+			// Program was OK.
 			<-hang
 			return
 		}
 		// Executor writes magic values into the pipe before exiting,
 		// so proceed with killing and joining it.
-		status = int(reply[0])
 	}
-	err0 = fmt.Errorf("executor did not answer")
 	c.abort()
 	output = <-c.readDone
-	if err := c.wait(); <-hang && err != nil {
+	if err := c.wait(); <-hang {
 		hanged = true
+		// In all likelihood, this will be duplicated by the default
+		// case below, but that's fine.
 		output = append(output, []byte(err.Error())...)
 		output = append(output, '\n')
-	}
-	switch status {
-	case statusFail, statusError, statusRetry:
-	default:
-		if c.cmd.ProcessState != nil {
-			sys := c.cmd.ProcessState.Sys()
-			if ws, ok := sys.(syscall.WaitStatus); ok {
-				status = ws.ExitStatus()
-			}
-		}
 	}
 	// Handle magic values returned by executor.
 	switch status {
 	case statusFail:
 		err0 = ExecutorFailure(fmt.Sprintf("executor failed: %s", output))
 	case statusError:
+		err0 = fmt.Errorf("executor detected kernel bug")
 		failed = true
 	case statusRetry:
 		// This is a temporal error (ENOMEM) or an unfortunate
@@ -656,6 +648,14 @@ func (c *command) exec(opts *ExecOpts) (output []byte, failed, hanged, restart b
 		err0 = nil
 		hanged = false
 		restart = true
+	default:
+		// Failed to get a valid (or perhaps any) status from the
+		// executor.
+		//
+		// Once the executor is serving the status is always written to
+		// the pipe, so we don't bother to check the specific exit
+		// codes from wait.
+		err0 = fmt.Errorf("invalid (or no) executor status received: %d, executor exit: %s", status, c.cmd.ProcessState)
 	}
 	return
 }

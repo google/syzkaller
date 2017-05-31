@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"regexp"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -29,8 +28,6 @@ var (
 	flagProcs    = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes")
 	flagLogProg  = flag.Bool("logprog", false, "print programs before execution")
 	flagGenerate = flag.Bool("generate", true, "generate new programs, otherwise only mutate corpus")
-
-	failedRe = regexp.MustCompile("runtime error: |panic: |Panic: ")
 
 	statExec uint64
 	gate     *ipc.Gate
@@ -105,11 +102,10 @@ func execute(pid int, env *ipc.Env, p *prog.Prog) {
 	if err != nil {
 		fmt.Printf("failed to execute executor: %v\n", err)
 	}
-	paniced := failedRe.Match(output)
-	if failed || hanged || paniced || err != nil {
+	if failed || hanged || err != nil {
 		fmt.Printf("PROGRAM:\n%s\n", p.Serialize())
 	}
-	if failed || hanged || paniced || err != nil || *flagOutput {
+	if failed || hanged || err != nil || *flagOutput {
 		os.Stdout.Write(output)
 	}
 }
