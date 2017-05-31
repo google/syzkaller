@@ -32,11 +32,12 @@ type ConnectRes struct {
 }
 
 type CheckArgs struct {
-	Name  string
-	Kcov  bool
-	Leak  bool
-	Fault bool
-	Calls []string
+	Name           string
+	Kcov           bool
+	Leak           bool
+	Fault          bool
+	UserNamespaces bool
+	Calls          []string
 }
 
 type NewInputArgs struct {
