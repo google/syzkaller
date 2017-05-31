@@ -97,6 +97,7 @@ vmsplice(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], f flags[splice_flag
 sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count int64)
 
 stat(file ptr[in, filename], statbuf ptr[out, stat])
+statx(dfd int64, file ptr[in, filename], flags flags[statx_flags], mask flags[statx_mask], statxbuf ptr[out, statx])
 lstat(file ptr[in, filename], statbuf ptr[out, stat])
 fstat(fd fd, statbuf ptr[out, stat])
 
@@ -543,6 +544,30 @@ stat {
 	pad2	int32
 }
 
+statx {
+	mask int32
+	blksize int32
+	attributes int64
+	nlink int32
+	uid int32
+	gid int32
+	mode int16
+	__spare0 int16
+	ino int64
+	size int64
+	blocks int64
+	__spare1 int64
+	atime statx_timestamp
+	btime statx_timestamp
+	ctime statx_timestamp
+	mtime statx_timestamp
+	rdev_major int32
+	rdev_minor int32
+	dev_major int32
+	dev_minor int32
+	__spare2 array[int64, 14]
+}
+
 pollfd {
 	fd	fd
 	events	flags[pollfd_events, int16]
@@ -562,6 +587,12 @@ sigset_size {
 timespec {
 	sec	intptr
 	nsec	intptr
+}
+
+statx_timestamp {
+	sec  int64
+	nsec int32
+	__reserved  int32
 }
 
 # prog knowns about this struct type
@@ -937,6 +968,8 @@ renameat2_flags = RENAME_EXCHANGE, RENAME_NOREPLACE, RENAME_WHITEOUT
 flock_op = LOCK_SH, LOCK_EX, LOCK_UN, LOCK_NB
 seccomp_op = SECCOMP_SET_MODE_STRICT, SECCOMP_SET_MODE_FILTER
 seccomp_flags = 0, SECCOMP_FILTER_FLAG_TSYNC
+statx_flags = STATX_ATTR_COMPRESSED, STATX_ATTR_IMMUTABLE, STATX_ATTR_APPEND, STATX_ATTR_NODUMP, STATX_ATTR_ENCRYPTED, KSTAT_ATTR_FS_IOC_FLAGS, STATX_ATTR_AUTOMOUNT
+statx_mask = STATX_TYPE, STATX_MODE, STATX_NLINK, STATX_UID, STATX_GID, STATX_ATIME, STATX_MTIME, STATX_CTIME, STATX_INO, STATX_SIZE, STATX_BLOCKS, STATX_BASIC_STATS, STATX_BTIME, STATX_ALL
 name_to_handle_at_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
 mq_open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_NONBLOCK, O_CREAT, O_EXCL, O_CREAT
 mount_flags = MS_BIND, MS_DIRSYNC, MS_MANDLOCK, MS_MOVE, MS_NOATIME, MS_NODEV, MS_NODIRATIME, MS_NOEXEC, MS_NOSUID, MS_RDONLY, MS_RELATIME, MS_REMOUNT, MS_SILENT, MS_STRICTATIME, MS_SYNCHRONOUS, MS_REC, MS_POSIXACL, MS_UNBINDABLE, MS_PRIVATE, MS_SLAVE, MS_SHARED, MS_I_VERSION, MS_LAZYTIME
