@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/db"
+	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
 )
 

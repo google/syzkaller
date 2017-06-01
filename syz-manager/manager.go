@@ -22,7 +22,7 @@ import (
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/csource"
 	"github.com/google/syzkaller/dashboard"
-	"github.com/google/syzkaller/db"
+	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"

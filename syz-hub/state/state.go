@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/google/syzkaller/db"
+	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
