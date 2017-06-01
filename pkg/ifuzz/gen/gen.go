@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/ifuzz"
+	"github.com/google/syzkaller/pkg/ifuzz"
 )
 
 func main() {
