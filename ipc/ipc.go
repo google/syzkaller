@@ -18,7 +18,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/google/syzkaller/fileutil"
+	"github.com/google/syzkaller/pkg/fileutil"
 	"github.com/google/syzkaller/prog"
 )
 
