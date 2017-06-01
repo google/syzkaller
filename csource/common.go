@@ -212,7 +212,7 @@ static void execute_command(const char* format, ...)
 
 int tunfd = -1;
 
-#define SYZ_TUN_MAX_PACKET_SIZE (64 << 10)
+#define SYZ_TUN_MAX_PACKET_SIZE 1000
 
 #define MAX_PIDS 32
 #define ADDR_MAX_LEN 32
