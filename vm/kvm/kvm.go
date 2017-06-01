@@ -191,7 +191,7 @@ func (inst *instance) Forward(port int) (string, error) {
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join("/", filepath.Base(hostSrc))
 	dst := filepath.Join(inst.sandboxPath, vmDst)
-	if err := fileutil.CopyFile(hostSrc, dst, false); err != nil {
+	if err := fileutil.CopyFile(hostSrc, dst); err != nil {
 		return "", err
 	}
 	if err := os.Chmod(dst, 0777); err != nil {
