@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 
 	"github.com/google/syzkaller/db"
-	"github.com/google/syzkaller/hash"
 	. "github.com/google/syzkaller/log"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/prog"
 )
 

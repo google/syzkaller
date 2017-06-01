@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/db"
-	"github.com/google/syzkaller/hash"
+	"github.com/google/syzkaller/pkg/hash"
 )
 
 func main() {

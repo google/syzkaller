@@ -48,7 +48,7 @@ import (
 var (
 	flagConfig = flag.String("config", "", "config file")
 
-	cfg *Config
+	cfg             *Config
 	GCS             *gcs.Client
 	GCE             *gce.Context
 	managerHttpPort uint32
