@@ -38,10 +38,11 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
-	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/dashboard"
 	"github.com/google/syzkaller/gce"
 	. "github.com/google/syzkaller/log"
+	pkgconfig "github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/syz-manager/config"
 	"golang.org/x/net/context"
 )
 
@@ -89,7 +90,12 @@ type Action interface {
 
 func main() {
 	flag.Parse()
-	cfg = readConfig(*flagConfig)
+	cfg = &Config{
+		Use_Dashboard_Patches: true,
+	}
+	if err := pkgconfig.Load(*flagConfig, cfg); err != nil {
+		Fatalf("failed to load config file: %v", err)
+	}
 	EnableLogCaching(1000, 1<<20)
 	initHttp(fmt.Sprintf(":%v", cfg.Http_Port))
 
@@ -491,22 +497,6 @@ func (a *GCSImageAction) Build() error {
 		return err
 	}
 	return nil
-}
-
-func readConfig(filename string) *Config {
-	if filename == "" {
-		Fatalf("supply config in -config flag")
-	}
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		Fatalf("failed to read config file: %v", err)
-	}
-	cfg := new(Config)
-	cfg.Use_Dashboard_Patches = true
-	if err := json.Unmarshal(data, cfg); err != nil {
-		Fatalf("failed to parse config file: %v", err)
-	}
-	return cfg
 }
 
 func writeManagerConfig(cfg *Config, httpPort int, file string) error {
