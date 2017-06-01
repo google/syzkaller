@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -71,4 +72,15 @@ func CreateImage(kernelDir, userspaceDir, tag, image string) error {
 		return err
 	}
 	return nil
+}
+
+func CompilerIdentity(compiler string) (string, error) {
+	output, err := osutil.RunCmd(time.Minute, "", compiler, "--version")
+	if err != nil {
+		return "", err
+	}
+	if len(output) == 0 {
+		return "", fmt.Errorf("no output from compiler --version")
+	}
+	return strings.Split(string(output), "\n")[0], nil
 }
