@@ -22,10 +22,10 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/cover"
-	"github.com/google/syzkaller/hash"
 	"github.com/google/syzkaller/host"
 	"github.com/google/syzkaller/ipc"
 	. "github.com/google/syzkaller/log"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/prog"
 	. "github.com/google/syzkaller/rpctype"
 	"github.com/google/syzkaller/sys"
