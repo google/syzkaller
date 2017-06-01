@@ -37,8 +37,8 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard"
-	"github.com/google/syzkaller/gce"
 	pkgconfig "github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/git"
 	. "github.com/google/syzkaller/pkg/log"

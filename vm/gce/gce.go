@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/syzkaller/gce"
+	"github.com/google/syzkaller/pkg/gce"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/vm"
 )
