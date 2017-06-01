@@ -74,7 +74,7 @@ For some details on fuzzing the kernel on an Android device check out [this wiki
 
 ### Syzkaller
 
-The syzkaller tools are written in [Go](https://golang.org), so a Go compiler (>= 1.7) is needed
+The syzkaller tools are written in [Go](https://golang.org), so a Go compiler (>= 1.8) is needed
 to build them.
 
 Go distribution can be downloaded from https://golang.org/dl/.
