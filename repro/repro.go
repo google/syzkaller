@@ -11,12 +11,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/csource"
 	"github.com/google/syzkaller/fileutil"
 	. "github.com/google/syzkaller/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/report"
+	"github.com/google/syzkaller/syz-manager/config"
 	"github.com/google/syzkaller/vm"
 )
 

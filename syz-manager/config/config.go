@@ -4,16 +4,14 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strings"
 
 	"github.com/google/syzkaller/fileutil"
+	pkgconfig "github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
 )
@@ -79,27 +77,13 @@ type Config struct {
 }
 
 func Parse(filename string) (*Config, map[int]bool, error) {
-	if filename == "" {
-		return nil, nil, fmt.Errorf("supply config in -config flag")
+	cfg := &Config{
+		Cover:     true,
+		Reproduce: true,
+		Sandbox:   "setuid",
 	}
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to read config file: %v", err)
-	}
-	return parse(data)
-}
-
-func parse(data []byte) (*Config, map[int]bool, error) {
-	err := checkUnknownFields(data)
-	if err != nil {
+	if err := pkgconfig.Load(filename, cfg); err != nil {
 		return nil, nil, err
-	}
-	cfg := new(Config)
-	cfg.Cover = true
-	cfg.Reproduce = true
-	cfg.Sandbox = "setuid"
-	if err := json.Unmarshal(data, cfg); err != nil {
-		return nil, nil, fmt.Errorf("failed to parse config file: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-fuzzer")); err != nil {
 		return nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-fuzzer")
@@ -361,26 +345,4 @@ func CreateVMConfig(cfg *Config, index int) (*vm.Config, error) {
 		vmCfg.Device = cfg.Devices[index]
 	}
 	return vmCfg, nil
-}
-
-func checkUnknownFields(data []byte) error {
-	structType := reflect.ValueOf(Config{}).Type()
-	fields := make(map[string]bool)
-	for i := 0; i < structType.NumField(); i++ {
-		field := structType.Field(i)
-		if field.Tag.Get("json") == "-" {
-			continue
-		}
-		fields[strings.ToLower(field.Name)] = true
-	}
-	f := make(map[string]interface{})
-	if err := json.Unmarshal(data, &f); err != nil {
-		return fmt.Errorf("failed to parse config file: %v", err)
-	}
-	for k := range f {
-		if !fields[strings.ToLower(k)] {
-			return fmt.Errorf("unknown field '%v' in config", k)
-		}
-	}
-	return nil
 }
