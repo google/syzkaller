@@ -22,7 +22,7 @@ import (
 	"time"
 	"unsafe"
 
-	. "github.com/google/syzkaller/log"
+	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/vm"
 )
 

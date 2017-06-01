@@ -18,7 +18,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	. "github.com/google/syzkaller/log"
+	. "github.com/google/syzkaller/pkg/log"
 )
 
 type DB struct {

@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/google/syzkaller/log"
+	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/vm"
 )
 

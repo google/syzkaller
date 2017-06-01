@@ -38,10 +38,10 @@ import (
 
 	"github.com/google/syzkaller/dashboard"
 	"github.com/google/syzkaller/gce"
-	. "github.com/google/syzkaller/log"
 	pkgconfig "github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/git"
+	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/syz-manager/config"
 )
 
