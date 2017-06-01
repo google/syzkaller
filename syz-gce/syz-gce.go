@@ -42,6 +42,7 @@ import (
 	"github.com/google/syzkaller/gce"
 	. "github.com/google/syzkaller/log"
 	pkgconfig "github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/syz-manager/config"
 	"golang.org/x/net/context"
 )
@@ -302,7 +303,7 @@ func (a *SyzkallerAction) Poll() (string, error) {
 	if _, err := runCmd("", "go", "get", "-u", "-d", "github.com/google/syzkaller/syz-manager"); err != nil {
 		return "", err
 	}
-	return gitRevision("gopath/src/github.com/google/syzkaller")
+	return git.HeadCommit("gopath/src/github.com/google/syzkaller")
 }
 
 func (a *SyzkallerAction) Build() error {
@@ -346,32 +347,7 @@ func (a *LocalBuildAction) Name() string {
 
 func (a *LocalBuildAction) Poll() (string, error) {
 	dir := filepath.Join(a.Dir, "linux")
-	runCmd(dir, "git", "reset", "--hard")
-	if _, err := runCmd(dir, "git", "pull"); err != nil {
-		if err := os.RemoveAll(dir); err != nil {
-			return "", fmt.Errorf("failed to remove repo dir: %v", err)
-		}
-		if err := os.MkdirAll(dir, 0700); err != nil {
-			return "", fmt.Errorf("failed to create repo dir: %v", err)
-		}
-		cloneArgs := []string{"clone", a.Repo, "--single-branch", "--depth", "1"}
-		if a.Branch != "" {
-			cloneArgs = append(cloneArgs, "--branch", a.Branch)
-		}
-		cloneArgs = append(cloneArgs, dir)
-		if _, err := runCmd("", "git", cloneArgs...); err != nil {
-			return "", err
-		}
-		if _, err := runCmd(dir, "git", "pull"); err != nil {
-			return "", err
-		}
-	}
-	if a.Branch != "" {
-		if _, err := runCmd(dir, "git", "checkout", a.Branch); err != nil {
-			return "", err
-		}
-	}
-	rev, err := gitRevision(dir)
+	rev, err := git.Poll(dir, a.Repo, a.Branch)
 	if err != nil {
 		return "", err
 	}
@@ -383,7 +359,7 @@ func (a *LocalBuildAction) Poll() (string, error) {
 
 func (a *LocalBuildAction) Build() error {
 	dir := filepath.Join(a.Dir, "linux")
-	hash, err := gitRevision(dir)
+	hash, err := git.HeadCommit(dir)
 	if err != nil {
 		return err
 	}
@@ -631,23 +607,6 @@ func uploadFile(localFile, gcsFile string) error {
 	defer w.Close()
 	io.Copy(w, local)
 	return nil
-}
-
-func gitRevision(dir string) (string, error) {
-	output, err := runCmd(dir, "git", "log", "--pretty=format:'%H'", "-n", "1")
-	if err != nil {
-		return "", err
-	}
-	if len(output) != 0 && output[len(output)-1] == '\n' {
-		output = output[:len(output)-1]
-	}
-	if len(output) != 0 && output[0] == '\'' && output[len(output)-1] == '\'' {
-		output = output[1 : len(output)-1]
-	}
-	if len(output) != 40 {
-		return "", fmt.Errorf("unexpected git log output, want commit hash: %q", output)
-	}
-	return string(output), nil
 }
 
 func buildKernel(dir, ccompiler string) error {
