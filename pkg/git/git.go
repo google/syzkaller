@@ -5,19 +5,21 @@
 package git
 
 import (
-	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"time"
+
+	"github.com/google/syzkaller/pkg/osutil"
 )
+
+const timeout = time.Hour // timeout for all git invocations
 
 // Poll checkouts the specified repository/branch in dir.
 // This involves fetching/resetting/cloning as necessary to recover from all possible problems.
 // Returns hash of the HEAD commit in the specified branch.
 func Poll(dir, repo, branch string) (string, error) {
-	runCmd(dir, "git", "reset", "--hard")
-	if _, err := runCmd(dir, "git", "fetch", "--no-tags", "--depth=", "1"); err != nil {
+	osutil.RunCmd(timeout, dir, "git", "reset", "--hard")
+	if _, err := osutil.RunCmd(timeout, dir, "git", "fetch", "--no-tags", "--depth=", "1"); err != nil {
 		if err := os.RemoveAll(dir); err != nil {
 			return "", fmt.Errorf("failed to remove repo dir: %v", err)
 		}
@@ -33,11 +35,11 @@ func Poll(dir, repo, branch string) (string, error) {
 			"--branch", branch,
 			dir,
 		}
-		if _, err := runCmd("", "git", args...); err != nil {
+		if _, err := osutil.RunCmd(timeout, "", "git", args...); err != nil {
 			return "", err
 		}
 	}
-	if _, err := runCmd(dir, "git", "checkout", branch); err != nil {
+	if _, err := osutil.RunCmd(timeout, dir, "git", "checkout", branch); err != nil {
 		return "", err
 	}
 	return HeadCommit(dir)
@@ -45,7 +47,7 @@ func Poll(dir, repo, branch string) (string, error) {
 
 // HeadCommit returns hash of the HEAD commit of the current branch of git repository in dir.
 func HeadCommit(dir string) (string, error) {
-	output, err := runCmd(dir, "git", "log", "--pretty=format:'%H'", "-n", "1")
+	output, err := osutil.RunCmd(timeout, dir, "git", "log", "--pretty=format:'%H'", "-n", "1")
 	if err != nil {
 		return "", err
 	}
@@ -59,28 +61,4 @@ func HeadCommit(dir string) (string, error) {
 		return "", fmt.Errorf("unexpected git log output, want commit hash: %q", output)
 	}
 	return string(output), nil
-}
-
-func runCmd(dir, bin string, args ...string) ([]byte, error) {
-	output := new(bytes.Buffer)
-	cmd := exec.Command(bin, args...)
-	cmd.Dir = dir
-	cmd.Stdout = output
-	cmd.Stderr = output
-	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start %v %+v: %v", bin, args, err)
-	}
-	done := make(chan bool)
-	go func() {
-		select {
-		case <-time.After(time.Hour):
-			cmd.Process.Kill()
-		case <-done:
-		}
-	}()
-	defer close(done)
-	if err := cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("failed to run %v %+v: %v\n%v", bin, args, err, output.String())
-	}
-	return output.Bytes(), nil
 }
