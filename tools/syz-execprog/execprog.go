@@ -20,7 +20,7 @@ import (
 
 	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/ipc"
-	. "github.com/google/syzkaller/log"
+	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 )
 

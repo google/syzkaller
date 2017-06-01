@@ -16,7 +16,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/cover"
-	. "github.com/google/syzkaller/log"
+	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/symbolizer"
 )
 

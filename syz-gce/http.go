@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	. "github.com/google/syzkaller/log"
+	. "github.com/google/syzkaller/pkg/log"
 )
 
 func initHttp(addr string) {

@@ -12,7 +12,7 @@ import (
 	"syscall"
 
 	"github.com/google/syzkaller/csource"
-	. "github.com/google/syzkaller/log"
+	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/repro"
 	"github.com/google/syzkaller/syz-manager/config"
 	"github.com/google/syzkaller/vm"

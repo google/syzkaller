@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	. "github.com/google/syzkaller/log"
+	. "github.com/google/syzkaller/pkg/log"
 )
 
 func (hub *Hub) initHttp(addr string) {

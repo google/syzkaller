@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/gce"
-	. "github.com/google/syzkaller/log"
+	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/vm"
 )
 
