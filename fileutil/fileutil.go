@@ -10,21 +10,12 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"sync"
 	"syscall"
 	"unsafe"
 )
 
-var copyMu sync.Mutex
-
-// CopyFile copies oldFile to newFile, potentially serializing with other
-// file copies (for large files).
-func CopyFile(oldFile, newFile string, serial bool) error {
-	if serial {
-		copyMu.Lock()
-		defer copyMu.Unlock()
-	}
-
+// CopyFile copies oldFile to newFile.
+func CopyFile(oldFile, newFile string) error {
 	oldf, err := os.Open(oldFile)
 	if err != nil {
 		return err
