@@ -32,27 +32,24 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
-	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
 
-	"cloud.google.com/go/storage"
 	"github.com/google/syzkaller/dashboard"
 	"github.com/google/syzkaller/gce"
 	. "github.com/google/syzkaller/log"
 	pkgconfig "github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/syz-manager/config"
-	"golang.org/x/net/context"
 )
 
 var (
 	flagConfig = flag.String("config", "", "config file")
 
-	cfg             *Config
-	ctx             context.Context
-	storageClient   *storage.Client
+	cfg *Config
+	GCS             *gcs.Client
 	GCE             *gce.Context
 	managerHttpPort uint32
 	patchesHash     string
@@ -107,9 +104,7 @@ func main() {
 	gopath := abs(wd, "gopath")
 	os.Setenv("GOPATH", gopath)
 
-	ctx = context.Background()
-	storageClient, err = storage.NewClient(ctx)
-	if err != nil {
+	if GCS, err = gcs.NewClient(); err != nil {
 		Fatalf("failed to create cloud storage client: %v", err)
 	}
 
@@ -433,7 +428,7 @@ type GCSImageAction struct {
 	ImagePath    string
 	ImageName    string
 
-	handle *storage.ObjectHandle
+	file *gcs.File
 }
 
 func (a *GCSImageAction) Name() string {
@@ -441,24 +436,12 @@ func (a *GCSImageAction) Name() string {
 }
 
 func (a *GCSImageAction) Poll() (string, error) {
-	pos := strings.IndexByte(a.ImageArchive, '/')
-	if pos == -1 {
-		return "", fmt.Errorf("invalid GCS file name: %v", a.ImageArchive)
-	}
-	bkt := storageClient.Bucket(a.ImageArchive[:pos])
-	f := bkt.Object(a.ImageArchive[pos+1:])
-	attrs, err := f.Attrs(ctx)
+	f, err := GCS.Read(a.ImageArchive)
 	if err != nil {
-		return "", fmt.Errorf("failed to read %v attributes: %v", a.ImageArchive, err)
+		return "", err
 	}
-	if !attrs.Deleted.IsZero() {
-		return "", fmt.Errorf("file %v is deleted", a.ImageArchive)
-	}
-	a.handle = f.If(storage.Conditions{
-		GenerationMatch:     attrs.Generation,
-		MetagenerationMatch: attrs.Metageneration,
-	})
-	return attrs.Updated.Format(time.RFC1123Z), nil
+	a.file = f
+	return f.Updated.Format(time.RFC1123Z), nil
 }
 
 func (a *GCSImageAction) Build() error {
@@ -466,7 +449,7 @@ func (a *GCSImageAction) Build() error {
 	if err := os.RemoveAll("image"); err != nil {
 		return fmt.Errorf("failed to remove image dir: %v", err)
 	}
-	if err := downloadAndExtract(a.handle, "image"); err != nil {
+	if err := downloadAndExtract(a.file, "image"); err != nil {
 		return fmt.Errorf("failed to download and extract %v: %v", a.ImageArchive, err)
 	}
 	if err := createImage("image/disk.tar.gz", a.ImagePath, a.ImageName); err != nil {
@@ -529,8 +512,8 @@ func chooseUnusedPort() (int, error) {
 	return port, nil
 }
 
-func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
-	r, err := f.NewReader(ctx)
+func downloadAndExtract(f *gcs.File, dir string) error {
+	r, err := f.Reader()
 	if err != nil {
 		return err
 	}
@@ -578,7 +561,7 @@ func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
 
 func createImage(localFile, gcsFile, imageName string) error {
 	Logf(0, "uploading image...")
-	if err := uploadFile(localFile, gcsFile); err != nil {
+	if err := GCS.UploadFile(localFile, gcsFile); err != nil {
 		return fmt.Errorf("failed to upload image: %v", err)
 	}
 	Logf(0, "creating gce image...")
@@ -588,24 +571,6 @@ func createImage(localFile, gcsFile, imageName string) error {
 	if err := GCE.CreateImage(imageName, gcsFile); err != nil {
 		return fmt.Errorf("failed to create GCE image: %v", err)
 	}
-	return nil
-}
-
-func uploadFile(localFile, gcsFile string) error {
-	local, err := os.Open(localFile)
-	if err != nil {
-		return err
-	}
-	defer local.Close()
-	pos := strings.IndexByte(gcsFile, '/')
-	if pos == -1 {
-		return fmt.Errorf("invalid GCS file name: %v", gcsFile)
-	}
-	bkt := storageClient.Bucket(gcsFile[:pos])
-	f := bkt.Object(gcsFile[pos+1:])
-	w := f.NewWriter(ctx)
-	defer w.Close()
-	io.Copy(w, local)
 	return nil
 }
 
