@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/syzkaller/fileutil"
 	pkgconfig "github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/fileutil"
 	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
 )
