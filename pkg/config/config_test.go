@@ -4,17 +4,33 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
 )
 
-func TestUnknown(t *testing.T) {
+func TestLoad(t *testing.T) {
+	type NestedNested struct {
+		Ccc int
+		Ddd string
+	}
+	type Nested struct {
+		Aaa  int
+		Bbb  string
+		More NestedNested
+	}
 	type Config struct {
 		Foo int
 		Bar string
 		Baz string `json:"-"`
+		Raw json.RawMessage
+		Qux []string
+		Box Nested
+		Boq *Nested
+		Arr []Nested
 	}
+
 	tests := []struct {
 		input  string
 		output Config
@@ -45,6 +61,102 @@ func TestUnknown(t *testing.T) {
 			Config{},
 			"unknown field 'baz' in config",
 		},
+		{
+			`{"foo": 1, "box": {"aaa": 12, "bbb": "bbb"}}`,
+			Config{
+				Foo: 1,
+				Box: Nested{
+					Aaa: 12,
+					Bbb: "bbb",
+				},
+			},
+			"",
+		},
+		{
+			`{"qux": ["aaa", "bbb"]}`,
+			Config{
+				Qux: []string{"aaa", "bbb"},
+			},
+			"",
+		},
+		{
+			`{"box": {"aaa": 12, "ccc": "bbb"}}`,
+			Config{},
+			"unknown field 'box.ccc' in config",
+		},
+		{
+			`{"foo": 1, "boq": {"aaa": 12, "bbb": "bbb"}}`,
+			Config{
+				Foo: 1,
+				Boq: &Nested{
+					Aaa: 12,
+					Bbb: "bbb",
+				},
+			},
+			"",
+		},
+		{
+			`{"boq": {"aaa": 12, "ccc": "bbb"}}`,
+			Config{},
+			"unknown field 'boq.ccc' in config",
+		},
+
+		{
+			`{"foo": 1, "arr": []}`,
+			Config{
+				Foo: 1,
+				Arr: []Nested{},
+			},
+			"",
+		},
+		{
+			`{"foo": 1, "arr": [{"aaa": 12, "bbb": "bbb"}, {"aaa": 13, "bbb": "ccc"}]}`,
+			Config{
+				Foo: 1,
+				Arr: []Nested{
+					Nested{
+						Aaa: 12,
+						Bbb: "bbb",
+					},
+					Nested{
+						Aaa: 13,
+						Bbb: "ccc",
+					},
+				},
+			},
+			"",
+		},
+		{
+			`{"arr": [{"aaa": 12, "ccc": "bbb"}]}`,
+			Config{},
+			"unknown field 'arr[0].ccc' in config",
+		},
+		{
+			`{"foo": 1, "boq": {"aaa": 12, "more": {"ccc": 13, "ddd": "ddd"}}}`,
+			Config{
+				Foo: 1,
+				Boq: &Nested{
+					Aaa: 12,
+					More: NestedNested{
+						Ccc: 13,
+						Ddd: "ddd",
+					},
+				},
+			},
+			"",
+		},
+		{
+			`{"foo": 1, "boq": {"aaa": 12, "more": {"ccc": 13, "eee": "eee"}}}`,
+			Config{},
+			"unknown field 'boq.more.eee' in config",
+		},
+		{
+			`{"raw": {"zux": 11}}`,
+			Config{
+				Raw: []byte(`{"zux": 11}`),
+			},
+			"",
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
@@ -58,8 +170,23 @@ func TestUnknown(t *testing.T) {
 				t.Fatalf("bad err: want '%v', got '%v'", test.err, errStr)
 			}
 			if !reflect.DeepEqual(test.output, cfg) {
-				t.Fatalf("bad output: want '%#v', got '%#v'", test.output, cfg)
+				t.Fatalf("bad output: want:\n%#v\n, got:\n%#v", test.output, cfg)
 			}
 		})
+	}
+}
+
+func TestLoadBadType(t *testing.T) {
+	want := "config type is not pointer to struct"
+	if err := load([]byte("{}"), 1); err == nil || err.Error() != want {
+		t.Fatalf("got '%v', want '%v'", err, want)
+	}
+	i := 0
+	if err := load([]byte("{}"), &i); err == nil || err.Error() != want {
+		t.Fatalf("got '%v', want '%v'", err, want)
+	}
+	s := struct{}{}
+	if err := load([]byte("{}"), s); err == nil || err.Error() != want {
+		t.Fatalf("got '%v', want '%v'", err, want)
 	}
 }
