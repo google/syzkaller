@@ -91,7 +91,7 @@ func main() {
 	cfg = &Config{
 		Use_Dashboard_Patches: true,
 	}
-	if err := pkgconfig.Load(*flagConfig, cfg); err != nil {
+	if err := pkgconfig.LoadFile(*flagConfig, cfg); err != nil {
 		Fatalf("failed to load config file: %v", err)
 	}
 	EnableLogCaching(1000, 1<<20)
@@ -466,6 +466,10 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 	if len(tag) != 0 && tag[len(tag)-1] == '\n' {
 		tag = tag[:len(tag)-1]
 	}
+	sshKey := ""
+	if _, err := os.Stat("image/key"); err == nil {
+		sshKey = "image/key"
+	}
 	managerCfg := &config.Config{
 		Name:             cfg.Name,
 		Hub_Addr:         cfg.Hub_Addr,
@@ -479,8 +483,6 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		Tag:              string(tag),
 		Syzkaller:        "gopath/src/github.com/google/syzkaller",
 		Type:             "gce",
-		Machine_Type:     cfg.Machine_Type,
-		Count:            cfg.Machine_Count,
 		Image:            cfg.Image_Name,
 		Sandbox:          cfg.Sandbox,
 		Procs:            cfg.Procs,
@@ -488,9 +490,8 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		Disable_Syscalls: cfg.Disable_Syscalls,
 		Cover:            true,
 		Reproduce:        true,
-	}
-	if _, err := os.Stat("image/key"); err == nil {
-		managerCfg.Sshkey = "image/key"
+		VM: []byte(fmt.Sprintf(`{"count": %v, "machine_type": %q, "sshkey": %q}`,
+			cfg.Machine_Count, cfg.Machine_Type, sshKey)),
 	}
 	data, err := json.MarshalIndent(managerCfg, "", "\t")
 	if err != nil {

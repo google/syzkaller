@@ -34,18 +34,15 @@ type context struct {
 }
 
 type instance struct {
-	vm.Instance
+	*vm.Instance
 	index       int
 	execprogBin string
 	executorBin string
 }
 
-func Run(crashLog []byte, cfg *config.Config, vmIndexes []int) (*Result, error) {
+func Run(crashLog []byte, cfg *config.Config, vmPool *vm.Pool, vmIndexes []int) (*Result, error) {
 	if len(vmIndexes) == 0 {
 		return nil, fmt.Errorf("no VMs provided")
-	}
-	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-execprog")); err != nil {
-		return nil, fmt.Errorf("bin/syz-execprog is missing (run 'make execprog')")
 	}
 	entries := prog.ParseLog(crashLog)
 	if len(entries) == 0 {
@@ -80,13 +77,7 @@ func Run(crashLog []byte, cfg *config.Config, vmIndexes []int) (*Result, error) 
 						continue
 					default:
 					}
-					vmCfg, err := config.CreateVMConfig(cfg, vmIndex)
-					if err != nil {
-						Logf(0, "reproducing crash '%v': failed to create VM config: %v", crashDesc, err)
-						time.Sleep(10 * time.Second)
-						continue
-					}
-					vmInst, err := vm.Create(cfg.Type, vmCfg)
+					vmInst, err := vmPool.Create(vmIndex)
 					if err != nil {
 						Logf(0, "reproducing crash '%v': failed to create VM: %v", crashDesc, err)
 						time.Sleep(10 * time.Second)
@@ -107,7 +98,12 @@ func Run(crashLog []byte, cfg *config.Config, vmIndexes []int) (*Result, error) 
 						time.Sleep(10 * time.Second)
 						continue
 					}
-					inst = &instance{vmInst, vmIndex, execprogBin, executorBin}
+					inst = &instance{
+						Instance:    vmInst,
+						index:       vmIndex,
+						execprogBin: execprogBin,
+						executorBin: executorBin,
+					}
 					break
 				}
 				if inst == nil {
@@ -318,7 +314,7 @@ func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.
 		inst.execprogBin, inst.executorBin, opts.Procs, repeat, opts.Sandbox, opts.Threaded, opts.Collide, opts.FaultCall, opts.FaultNth, vmProgFile)
 	Logf(2, "reproducing crash '%v': testing program (duration=%v, %+v): %s",
 		ctx.crashDesc, duration, opts, p)
-	return ctx.testImpl(inst, command, duration)
+	return ctx.testImpl(inst.Instance, command, duration)
 }
 
 func (ctx *context) testBin(bin string, duration time.Duration) (crashed bool, err error) {
@@ -333,15 +329,15 @@ func (ctx *context) testBin(bin string, duration time.Duration) (crashed bool, e
 		return false, fmt.Errorf("failed to copy to VM: %v", err)
 	}
 	Logf(2, "reproducing crash '%v': testing compiled C program", ctx.crashDesc)
-	return ctx.testImpl(inst, bin, duration)
+	return ctx.testImpl(inst.Instance, bin, duration)
 }
 
-func (ctx *context) testImpl(inst vm.Instance, command string, duration time.Duration) (crashed bool, err error) {
+func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Duration) (crashed bool, err error) {
 	outc, errc, err := inst.Run(duration, nil, command)
 	if err != nil {
 		return false, fmt.Errorf("failed to run command in VM: %v", err)
 	}
-	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, false, false, ctx.cfg.ParsedIgnores)
+	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, false, ctx.cfg.ParsedIgnores)
 	_, _, _ = text, output, timedout
 	if !crashed {
 		Logf(2, "reproducing crash '%v': program did not crash", ctx.crashDesc)

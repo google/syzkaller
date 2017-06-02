@@ -14,23 +14,36 @@ package gce
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"os/exec"
 	"path/filepath"
-	"sync"
 	"time"
 
+	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gce"
 	. "github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/vm"
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 func init() {
-	vm.Register("gce", ctor)
+	vmimpl.Register("gce", ctor)
+}
+
+type Config struct {
+	Count        int    // number of VMs to use
+	Machine_Type string // GCE machine type (e.g. "n1-highcpu-2")
+	Sshkey       string // root ssh key for the image
+}
+
+type Pool struct {
+	env *vmimpl.Env
+	cfg *Config
+	GCE *gce.Context
 }
 
 type instance struct {
-	cfg     *vm.Config
+	cfg     *Config
+	GCE     *gce.Context
 	name    string
 	ip      string
 	offset  int64
@@ -41,31 +54,49 @@ type instance struct {
 	closed  chan bool
 }
 
-var (
-	initOnce sync.Once
-	GCE      *gce.Context
-)
-
-func initGCE() {
-	var err error
-	GCE, err = gce.NewContext()
-	if err != nil {
-		Fatalf("failed to init gce: %v", err)
+func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
+	if env.Name == "" {
+		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
-	Logf(0, "gce initialized: running on %v, internal IP %v, project %v, zone %v", GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
+	cfg := &Config{
+		Count: 1,
+	}
+	if err := config.LoadData(env.Config, cfg); err != nil {
+		return nil, err
+	}
+	if cfg.Count < 1 || cfg.Count > 1000 {
+		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1000]", cfg.Count)
+	}
+	if env.Debug {
+		cfg.Count = 1
+	}
+	if cfg.Machine_Type == "" {
+		return nil, fmt.Errorf("machine_type parameter is empty")
+	}
+	cfg.Sshkey = osutil.Abs(cfg.Sshkey)
+
+	GCE, err := gce.NewContext()
+	if err != nil {
+		return nil, fmt.Errorf("failed to init gce: %v", err)
+	}
+	Logf(0, "gce initialized: running on %v, internal IP %v, project %v, zone %v",
+		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
+	pool := &Pool{
+		cfg: cfg,
+		env: env,
+		GCE: GCE,
+	}
+	return pool, nil
 }
 
-func ctor(cfg *vm.Config) (vm.Instance, error) {
-	initOnce.Do(initGCE)
-	ok := false
-	defer func() {
-		if !ok {
-			os.RemoveAll(cfg.Workdir)
-		}
-	}()
+func (pool *Pool) Count() int {
+	return pool.cfg.Count
+}
 
+func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+	name := fmt.Sprintf("%v-%v", pool.env.Name, index)
 	// Create SSH key for the instance.
-	gceKey := filepath.Join(cfg.Workdir, "key")
+	gceKey := filepath.Join(workdir, "key")
 	keygen := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "syzkaller", "-f", gceKey)
 	if out, err := keygen.CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
@@ -75,35 +106,38 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 		return nil, fmt.Errorf("failed to read file: %v", err)
 	}
 
-	Logf(0, "deleting instance: %v", cfg.Name)
-	if err := GCE.DeleteInstance(cfg.Name, true); err != nil {
+	Logf(0, "deleting instance: %v", name)
+	if err := pool.GCE.DeleteInstance(name, true); err != nil {
 		return nil, err
 	}
-	Logf(0, "creating instance: %v", cfg.Name)
-	ip, err := GCE.CreateInstance(cfg.Name, cfg.MachineType, cfg.Image, string(gceKeyPub))
+	Logf(0, "creating instance: %v", name)
+	ip, err := pool.GCE.CreateInstance(name, pool.cfg.Machine_Type, pool.env.Image, string(gceKeyPub))
 	if err != nil {
 		return nil, err
 	}
+
+	ok := false
 	defer func() {
 		if !ok {
-			GCE.DeleteInstance(cfg.Name, true)
+			pool.GCE.DeleteInstance(name, true)
 		}
 	}()
-	sshKey := cfg.Sshkey
+	sshKey := pool.cfg.Sshkey
 	sshUser := "root"
 	if sshKey == "" {
 		// Assuming image supports GCE ssh fanciness.
 		sshKey = gceKey
 		sshUser = "syzkaller"
 	}
-	Logf(0, "wait instance to boot: %v (%v)", cfg.Name, ip)
+	Logf(0, "wait instance to boot: %v (%v)", name, ip)
 	if err := waitInstanceBoot(ip, sshKey, sshUser); err != nil {
 		return nil, err
 	}
 	ok = true
 	inst := &instance{
-		cfg:     cfg,
-		name:    cfg.Name,
+		cfg:     pool.cfg,
+		GCE:     pool.GCE,
+		name:    name,
 		ip:      ip,
 		gceKey:  gceKey,
 		sshKey:  sshKey,
@@ -115,12 +149,11 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 
 func (inst *instance) Close() {
 	close(inst.closed)
-	GCE.DeleteInstance(inst.name, false)
-	os.RemoveAll(inst.cfg.Workdir)
+	inst.GCE.DeleteInstance(inst.name, false)
 }
 
 func (inst *instance) Forward(port int) (string, error) {
-	return fmt.Sprintf("%v:%v", GCE.InternalIP, port), nil
+	return fmt.Sprintf("%v:%v", inst.GCE.InternalIP, port), nil
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
@@ -147,12 +180,13 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
-	conRpipe, conWpipe, err := vm.LongPipe()
+	conRpipe, conWpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com", GCE.ProjectID, GCE.ZoneID, inst.name)
+	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com",
+		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name)
 	conArgs := append(sshArgs(inst.gceKey, "-p", 9600), conAddr)
 	con := exec.Command("ssh", conArgs...)
 	con.Env = []string{}
@@ -171,7 +205,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	conWpipe.Close()
 
-	sshRpipe, sshWpipe, err := vm.LongPipe()
+	sshRpipe, sshWpipe, err := osutil.LongPipe()
 	if err != nil {
 		con.Process.Kill()
 		sshRpipe.Close()
@@ -193,7 +227,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	sshWpipe.Close()
 
-	merger := vm.NewOutputMerger(nil)
+	merger := vmimpl.NewOutputMerger(nil)
 	merger.Add("console", conRpipe)
 	merger.Add("ssh", sshRpipe)
 
@@ -208,9 +242,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	go func() {
 		select {
 		case <-time.After(timeout):
-			signal(vm.TimeoutErr)
+			signal(vmimpl.TimeoutErr)
 		case <-stop:
-			signal(vm.TimeoutErr)
+			signal(vmimpl.TimeoutErr)
 		case <-inst.closed:
 			signal(fmt.Errorf("instance closed"))
 		case err := <-merger.Err:
@@ -225,9 +259,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.
 				time.Sleep(5 * time.Second) // just to avoid any GCE races
-				if !GCE.IsInstanceRunning(inst.name) {
+				if !inst.GCE.IsInstanceRunning(inst.name) {
 					Logf(1, "%v: ssh exited but instance is not running", inst.name)
-					err = vm.TimeoutErr
+					err = vmimpl.TimeoutErr
 				}
 			}
 			signal(err)
@@ -244,7 +278,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 func waitInstanceBoot(ip, sshKey, sshUser string) error {
 	for i := 0; i < 100; i++ {
-		if !vm.SleepInterruptible(5 * time.Second) {
+		if !vmimpl.SleepInterruptible(5 * time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
 		cmd := exec.Command("ssh", append(sshArgs(sshKey, "-p", 22), sshUser+"@"+ip, "pwd")...)

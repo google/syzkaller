@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func Load(filename string, cfg interface{}) error {
+func LoadFile(filename string, cfg interface{}) error {
 	if filename == "" {
 		return fmt.Errorf("no config file specified")
 	}
@@ -19,10 +19,10 @@ func Load(filename string, cfg interface{}) error {
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %v", err)
 	}
-	return load(data, cfg)
+	return LoadData(data, cfg)
 }
 
-func load(data []byte, cfg interface{}) error {
+func LoadData(data []byte, cfg interface{}) error {
 	if err := checkUnknownFields(data, reflect.ValueOf(cfg).Type()); err != nil {
 		return err
 	}

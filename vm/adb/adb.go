@@ -17,24 +17,73 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/syzkaller/pkg/config"
 	. "github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/vm"
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 func init() {
-	vm.Register("adb", ctor)
+	vmimpl.Register("adb", ctor)
+}
+
+type Config struct {
+	Adb     string   // adb binary name ("adb" by default)
+	Devices []string // list of adb device IDs to use
+}
+
+type Pool struct {
+	env *vmimpl.Env
+	cfg *Config
 }
 
 type instance struct {
-	cfg     *vm.Config
+	adbBin  string
+	device  string
 	console string
 	closed  chan bool
+	debug   bool
 }
 
-func ctor(cfg *vm.Config) (vm.Instance, error) {
+func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
+	cfg := &Config{
+		Adb: "adb",
+	}
+	if err := config.LoadData(env.Config, cfg); err != nil {
+		return nil, err
+	}
+	if _, err := exec.LookPath(cfg.Adb); err != nil {
+		return nil, err
+	}
+	if len(cfg.Devices) == 0 {
+		return nil, fmt.Errorf("no adb devices specified")
+	}
+	devRe := regexp.MustCompile("[0-9A-F]+")
+	for _, dev := range cfg.Devices {
+		if !devRe.MatchString(dev) {
+			return nil, fmt.Errorf("invalid adb device id '%v'", dev)
+		}
+	}
+	if env.Debug {
+		cfg.Devices = cfg.Devices[:1]
+	}
+	pool := &Pool{
+		cfg: cfg,
+		env: env,
+	}
+	return pool, nil
+}
+
+func (pool *Pool) Count() int {
+	return len(pool.cfg.Devices)
+}
+
+func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
-		cfg:    cfg,
+		adbBin: pool.cfg.Adb,
+		device: pool.cfg.Devices[index],
 		closed: make(chan bool),
+		debug:  pool.env.Debug,
 	}
 	closeInst := inst
 	defer func() {
@@ -42,13 +91,10 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 			closeInst.Close()
 		}
 	}()
-	if err := validateConfig(cfg); err != nil {
-		return nil, err
-	}
 	if err := inst.repair(); err != nil {
 		return nil, err
 	}
-	inst.console = findConsole(inst.cfg.Bin, inst.cfg.Device)
+	inst.console = findConsole(inst.adbBin, inst.device)
 	if err := inst.checkBatteryLevel(); err != nil {
 		return nil, err
 	}
@@ -58,19 +104,6 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	}
 	closeInst = nil
 	return inst, nil
-}
-
-func validateConfig(cfg *vm.Config) error {
-	if cfg.Bin == "" {
-		cfg.Bin = "adb"
-	}
-	if _, err := exec.LookPath(cfg.Bin); err != nil {
-		return err
-	}
-	if !regexp.MustCompile("[0-9A-F]+").MatchString(cfg.Device) {
-		return fmt.Errorf("invalid adb device id '%v'", cfg.Device)
-	}
-	return nil
 }
 
 var (
@@ -123,7 +156,7 @@ func findConsoleImpl(adb, dev string) (string, error) {
 		out := new([]byte)
 		output[con] = out
 		go func(con string) {
-			tty, err := vm.OpenConsole(con)
+			tty, err := vmimpl.OpenConsole(con)
 			if err != nil {
 				errors <- err
 				return
@@ -187,7 +220,7 @@ func (inst *instance) Forward(port int) (string, error) {
 }
 
 func (inst *instance) adb(args ...string) ([]byte, error) {
-	if inst.cfg.Debug {
+	if inst.debug {
 		Logf(0, "executing adb %+v", args)
 	}
 	rpipe, wpipe, err := os.Pipe()
@@ -196,7 +229,7 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 	}
 	defer wpipe.Close()
 	defer rpipe.Close()
-	cmd := exec.Command(inst.cfg.Bin, append([]string{"-s", inst.cfg.Device}, args...)...)
+	cmd := exec.Command(inst.adbBin, append([]string{"-s", inst.device}, args...)...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
@@ -207,7 +240,7 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 	go func() {
 		select {
 		case <-time.After(time.Minute):
-			if inst.cfg.Debug {
+			if inst.debug {
 				Logf(0, "adb hanged")
 			}
 			cmd.Process.Kill()
@@ -217,13 +250,13 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 	if err := cmd.Wait(); err != nil {
 		close(done)
 		out, _ := ioutil.ReadAll(rpipe)
-		if inst.cfg.Debug {
+		if inst.debug {
 			Logf(0, "adb failed: %v\n%s", err, out)
 		}
 		return nil, fmt.Errorf("adb %+v failed: %v\n%s", args, err, out)
 	}
 	close(done)
-	if inst.cfg.Debug {
+	if inst.debug {
 		Logf(0, "adb returned")
 	}
 	out, _ := ioutil.ReadAll(rpipe)
@@ -243,7 +276,7 @@ func (inst *instance) repair() error {
 		return err
 	}
 	// Now give it another 5 minutes to boot.
-	if !vm.SleepInterruptible(10 * time.Second) {
+	if !vmimpl.SleepInterruptible(10 * time.Second) {
 		return fmt.Errorf("shutdown in progress")
 	}
 	if err := inst.waitForSsh(); err != nil {
@@ -260,7 +293,7 @@ func (inst *instance) repair() error {
 func (inst *instance) waitForSsh() error {
 	var err error
 	for i := 0; i < 300; i++ {
-		if !vm.SleepInterruptible(time.Second) {
+		if !vmimpl.SleepInterruptible(time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
 		if _, err = inst.adb("shell", "pwd"); err == nil {
@@ -280,12 +313,12 @@ func (inst *instance) checkBatteryLevel() error {
 		return err
 	}
 	if val >= minLevel {
-		Logf(0, "device %v: battery level %v%%, OK", inst.cfg.Device, val)
+		Logf(0, "device %v: battery level %v%%, OK", inst.device, val)
 		return nil
 	}
 	for {
-		Logf(0, "device %v: battery level %v%%, waiting for %v%%", inst.cfg.Device, val, requiredLevel)
-		if !vm.SleepInterruptible(time.Minute) {
+		Logf(0, "device %v: battery level %v%%, waiting for %v%%", inst.device, val, requiredLevel)
+		if !vmimpl.SleepInterruptible(time.Minute) {
 			return nil
 		}
 		val, err = inst.getBatteryLevel(0)
@@ -332,7 +365,6 @@ func (inst *instance) getBatteryLevel(numRetry int) (int, error) {
 
 func (inst *instance) Close() {
 	close(inst.closed)
-	os.RemoveAll(inst.cfg.Workdir)
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
@@ -347,23 +379,23 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	var tty io.ReadCloser
 	var err error
 	if inst.console == "adb" {
-		tty, err = vm.OpenAdbConsole(inst.cfg.Bin, inst.cfg.Device)
+		tty, err = vmimpl.OpenAdbConsole(inst.adbBin, inst.device)
 	} else {
-		tty, err = vm.OpenConsole(inst.console)
+		tty, err = vmimpl.OpenConsole(inst.console)
 	}
 	if err != nil {
 		return nil, nil, err
 	}
 
-	adbRpipe, adbWpipe, err := vm.LongPipe()
+	adbRpipe, adbWpipe, err := osutil.LongPipe()
 	if err != nil {
 		tty.Close()
 		return nil, nil, err
 	}
-	if inst.cfg.Debug {
+	if inst.debug {
 		Logf(0, "starting: adb shell %v", command)
 	}
-	adb := exec.Command(inst.cfg.Bin, "-s", inst.cfg.Device, "shell", "cd /data; "+command)
+	adb := exec.Command(inst.adbBin, "-s", inst.device, "shell", "cd /data; "+command)
 	adb.Stdout = adbWpipe
 	adb.Stderr = adbWpipe
 	if err := adb.Start(); err != nil {
@@ -375,10 +407,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	adbWpipe.Close()
 
 	var tee io.Writer
-	if inst.cfg.Debug {
+	if inst.debug {
 		tee = os.Stdout
 	}
-	merger := vm.NewOutputMerger(tee)
+	merger := vmimpl.NewOutputMerger(tee)
 	merger.Add("console", tty)
 	merger.Add("adb", adbRpipe)
 
@@ -393,11 +425,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	go func() {
 		select {
 		case <-time.After(timeout):
-			signal(vm.TimeoutErr)
+			signal(vmimpl.TimeoutErr)
 		case <-stop:
-			signal(vm.TimeoutErr)
+			signal(vmimpl.TimeoutErr)
 		case <-inst.closed:
-			if inst.cfg.Debug {
+			if inst.debug {
 				Logf(0, "instance closed")
 			}
 			signal(fmt.Errorf("instance closed"))

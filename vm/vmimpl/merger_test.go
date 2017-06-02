@@ -1,26 +1,28 @@
 // Copyright 2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package vm
+package vmimpl
 
 import (
 	"bytes"
 	"testing"
 	"time"
+
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func TestMerger(t *testing.T) {
 	tee := new(bytes.Buffer)
 	merger := NewOutputMerger(tee)
 
-	rp1, wp1, err := LongPipe()
+	rp1, wp1, err := osutil.LongPipe()
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer wp1.Close()
 	merger.Add("pipe1", rp1)
 
-	rp2, wp2, err := LongPipe()
+	rp2, wp2, err := osutil.LongPipe()
 	if err != nil {
 		t.Fatal(err)
 	}

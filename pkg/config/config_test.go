@@ -161,7 +161,7 @@ func TestLoad(t *testing.T) {
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			var cfg Config
-			err := load([]byte(test.input), &cfg)
+			err := LoadData([]byte(test.input), &cfg)
 			errStr := ""
 			if err != nil {
 				errStr = err.Error()
@@ -178,15 +178,15 @@ func TestLoad(t *testing.T) {
 
 func TestLoadBadType(t *testing.T) {
 	want := "config type is not pointer to struct"
-	if err := load([]byte("{}"), 1); err == nil || err.Error() != want {
+	if err := LoadData([]byte("{}"), 1); err == nil || err.Error() != want {
 		t.Fatalf("got '%v', want '%v'", err, want)
 	}
 	i := 0
-	if err := load([]byte("{}"), &i); err == nil || err.Error() != want {
+	if err := LoadData([]byte("{}"), &i); err == nil || err.Error() != want {
 		t.Fatalf("got '%v', want '%v'", err, want)
 	}
 	s := struct{}{}
-	if err := load([]byte("{}"), s); err == nil || err.Error() != want {
+	if err := LoadData([]byte("{}"), s); err == nil || err.Error() != want {
 		t.Fatalf("got '%v', want '%v'", err, want)
 	}
 }
