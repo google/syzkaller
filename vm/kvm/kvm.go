@@ -1,6 +1,8 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package kvm provides VMs based on lkvm (kvmtool) virtualization.
+// It is not well tested.
 package kvm
 
 import (
@@ -12,11 +14,12 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
-	"syscall"
 	"time"
 
+	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/fileutil"
-	"github.com/google/syzkaller/vm"
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 const (
@@ -24,28 +27,85 @@ const (
 )
 
 func init() {
-	vm.Register("kvm", ctor)
+	vmimpl.Register("kvm", ctor)
+}
+
+type Config struct {
+	Count   int    // number of VMs to use
+	Lkvm    string // lkvm binary name
+	Kernel  string // e.g. arch/x86/boot/bzImage
+	Cmdline string // kernel command line
+	Cpu     int    // number of VM CPUs
+	Mem     int    // amount of VM memory in MBs
+}
+
+type Pool struct {
+	env *vmimpl.Env
+	cfg *Config
 }
 
 type instance struct {
-	cfg         *vm.Config
+	cfg         *Config
 	sandbox     string
 	sandboxPath string
 	lkvm        *exec.Cmd
 	readerC     chan error
 	waiterC     chan error
+	debug       bool
 
 	mu      sync.Mutex
 	outputB []byte
 	outputC chan []byte
 }
 
-func ctor(cfg *vm.Config) (vm.Instance, error) {
-	sandbox := fmt.Sprintf("syz-%v", cfg.Index)
+func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
+	cfg := &Config{
+		Count: 1,
+		Lkvm:  "lkvm",
+	}
+	if err := config.LoadData(env.Config, cfg); err != nil {
+		return nil, err
+	}
+	if cfg.Count < 1 || cfg.Count > 1000 {
+		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1000]", cfg.Count)
+	}
+	if env.Debug {
+		cfg.Count = 1
+	}
+	if env.Image != "" {
+		return nil, fmt.Errorf("lkvm does not support custom images")
+	}
+	if _, err := exec.LookPath(cfg.Lkvm); err != nil {
+		return nil, err
+	}
+	if _, err := os.Stat(cfg.Kernel); err != nil {
+		return nil, fmt.Errorf("kernel file '%v' does not exist: %v", cfg.Kernel, err)
+	}
+	if cfg.Cpu < 1 || cfg.Cpu > 1024 {
+		return nil, fmt.Errorf("invalid config param cpu: %v, want [1-1024]", cfg.Cpu)
+	}
+	if cfg.Mem < 128 || cfg.Mem > 1048576 {
+		return nil, fmt.Errorf("invalid config param mem: %v, want [128-1048576]", cfg.Mem)
+	}
+	cfg.Kernel = osutil.Abs(cfg.Kernel)
+	pool := &Pool{
+		cfg: cfg,
+		env: env,
+	}
+	return pool, nil
+}
+
+func (pool *Pool) Count() int {
+	return pool.cfg.Count
+}
+
+func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+	sandbox := fmt.Sprintf("syz-%v", index)
 	inst := &instance{
-		cfg:         cfg,
+		cfg:         pool.cfg,
 		sandbox:     sandbox,
 		sandboxPath: filepath.Join(os.Getenv("HOME"), ".lkvm", sandbox),
+		debug:       pool.env.Debug,
 	}
 	closeInst := inst
 	defer func() {
@@ -54,31 +114,24 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 		}
 	}()
 
-	if err := validateConfig(cfg); err != nil {
-		return nil, err
-	}
-
 	os.RemoveAll(inst.sandboxPath)
 	os.Remove(inst.sandboxPath + ".sock")
-	out, err := exec.Command(inst.cfg.Bin, "setup", sandbox).CombinedOutput()
+	out, err := exec.Command(inst.cfg.Lkvm, "setup", sandbox).CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to lkvm setup: %v\n%s", err, out)
 	}
-	scriptPath := filepath.Join(cfg.Workdir, "script.sh")
+	scriptPath := filepath.Join(workdir, "script.sh")
 	if err := ioutil.WriteFile(scriptPath, []byte(script), 0700); err != nil {
 		return nil, fmt.Errorf("failed to create temp file: %v", err)
 	}
 
-	rpipe, wpipe, err := os.Pipe()
+	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pipe: %v", err)
 	}
-	for sz := 128 << 10; sz <= 2<<20; sz *= 2 {
-		syscall.Syscall(syscall.SYS_FCNTL, wpipe.Fd(), syscall.F_SETPIPE_SZ, uintptr(sz))
-	}
 
-	inst.lkvm = exec.Command("taskset", "-c", strconv.Itoa(inst.cfg.Index%runtime.NumCPU()),
-		inst.cfg.Bin, "sandbox",
+	inst.lkvm = exec.Command("taskset", "-c", strconv.Itoa(index%runtime.NumCPU()),
+		inst.cfg.Lkvm, "sandbox",
 		"--disk", inst.sandbox,
 		"--kernel", inst.cfg.Kernel,
 		"--params", "slub_debug=UZ "+inst.cfg.Cmdline,
@@ -102,7 +155,7 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 		for {
 			n, err := rpipe.Read(buf[:])
 			if n != 0 {
-				if inst.cfg.Debug {
+				if inst.debug {
 					os.Stdout.Write(buf[:n])
 					os.Stdout.Write([]byte{'\n'})
 				}
@@ -147,31 +200,6 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	return inst, nil
 }
 
-func validateConfig(cfg *vm.Config) error {
-	if cfg.Bin == "" {
-		cfg.Bin = "lkvm"
-	}
-	if _, err := exec.LookPath(cfg.Bin); err != nil {
-		return err
-	}
-	if cfg.Image != "" {
-		return fmt.Errorf("lkvm does not support custom images")
-	}
-	if cfg.Sshkey != "" {
-		return fmt.Errorf("lkvm does not need ssh key")
-	}
-	if _, err := os.Stat(cfg.Kernel); err != nil {
-		return fmt.Errorf("kernel file '%v' does not exist: %v", cfg.Kernel, err)
-	}
-	if cfg.Cpu <= 0 || cfg.Cpu > 1024 {
-		return fmt.Errorf("bad qemu cpu: %v, want [1-1024]", cfg.Cpu)
-	}
-	if cfg.Mem < 128 || cfg.Mem > 1048576 {
-		return fmt.Errorf("bad qemu mem: %v, want [128-1048576]", cfg.Mem)
-	}
-	return nil
-}
-
 func (inst *instance) Close() {
 	if inst.lkvm != nil {
 		inst.lkvm.Process.Kill()
@@ -179,7 +207,6 @@ func (inst *instance) Close() {
 		inst.waiterC <- err // repost it for waiting goroutines
 		<-inst.readerC
 	}
-	os.RemoveAll(inst.cfg.Workdir)
 	os.RemoveAll(inst.sandboxPath)
 	os.Remove(inst.sandboxPath + ".sock")
 }
@@ -235,10 +262,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		for {
 			select {
 			case <-timeoutTicker.C:
-				resultErr = vm.TimeoutErr
+				resultErr = vmimpl.TimeoutErr
 				break loop
 			case <-stop:
-				resultErr = vm.TimeoutErr
+				resultErr = vmimpl.TimeoutErr
 				break loop
 			case <-secondTicker.C:
 				if _, err := os.Stat(cmdFile); err != nil {

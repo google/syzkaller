@@ -3,7 +3,7 @@
 
 // +build !ppc64le
 
-package vm
+package vmimpl
 
 import (
 	"fmt"
@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/google/syzkaller/pkg/osutil"
 	"golang.org/x/sys/unix"
 )
 
@@ -79,7 +80,7 @@ func (t *tty) Close() error {
 
 // OpenAdbConsole provides fallback console output using 'adb shell dmesg -w'.
 func OpenAdbConsole(bin, dev string) (rc io.ReadCloser, err error) {
-	rpipe, wpipe, err := LongPipe()
+	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, err
 	}

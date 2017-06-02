@@ -21,10 +21,6 @@ import (
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/syz-manager/config"
 	"github.com/google/syzkaller/vm"
-	_ "github.com/google/syzkaller/vm/adb"
-	_ "github.com/google/syzkaller/vm/gce"
-	_ "github.com/google/syzkaller/vm/kvm"
-	_ "github.com/google/syzkaller/vm/qemu"
 )
 
 var (
@@ -40,24 +36,28 @@ func main() {
 	if len(flag.Args()) != 1 {
 		Fatalf("usage: syz-crush -config=config.file execution.log")
 	}
+	env := &vm.Env{
+		Name:    cfg.Name,
+		Workdir: cfg.Workdir,
+		Image:   cfg.Image,
+		Debug:   false,
+		Config:  cfg.VM,
+	}
+	vmPool, err := vm.Create(cfg.Type, env)
+	if err != nil {
+		Fatalf("%v", err)
+	}
 
 	Logf(0, "booting test machines...")
 	var shutdown uint32
 	var wg sync.WaitGroup
-	wg.Add(cfg.Count + 1)
-	for i := 0; i < cfg.Count; i++ {
+	wg.Add(vmPool.Count() + 1)
+	for i := 0; i < vmPool.Count(); i++ {
 		i := i
 		go func() {
 			defer wg.Done()
 			for {
-				vmCfg, err := config.CreateVMConfig(cfg, i)
-				if atomic.LoadUint32(&shutdown) != 0 {
-					break
-				}
-				if err != nil {
-					Fatalf("failed to create VM config: %v", err)
-				}
-				runInstance(cfg, vmCfg)
+				runInstance(cfg, vmPool, i)
 				if atomic.LoadUint32(&shutdown) != 0 {
 					break
 				}
@@ -80,8 +80,8 @@ func main() {
 	wg.Wait()
 }
 
-func runInstance(cfg *config.Config, vmCfg *vm.Config) {
-	inst, err := vm.Create(cfg.Type, vmCfg)
+func runInstance(cfg *config.Config, vmPool *vm.Pool, index int) {
+	inst, err := vmPool.Create(index)
 	if err != nil {
 		Logf(0, "failed to create instance: %v", err)
 		return
@@ -112,11 +112,11 @@ func runInstance(cfg *config.Config, vmCfg *vm.Config) {
 		return
 	}
 
-	Logf(0, "%v: crushing...", vmCfg.Name)
-	desc, _, output, crashed, timedout := vm.MonitorExecution(outc, errc, cfg.Type == "local", true, cfg.ParsedIgnores)
+	Logf(0, "vm-%v: crushing...", index)
+	desc, _, output, crashed, timedout := vm.MonitorExecution(outc, errc, true, cfg.ParsedIgnores)
 	if timedout {
 		// This is the only "OK" outcome.
-		Logf(0, "%v: running long enough, restarting", vmCfg.Name)
+		Logf(0, "vm-%v: running long enough, restarting", index)
 	} else {
 		if !crashed {
 			// syz-execprog exited, but it should not.
@@ -128,7 +128,7 @@ func runInstance(cfg *config.Config, vmCfg *vm.Config) {
 			return
 		}
 		defer f.Close()
-		Logf(0, "%v: crashed: %v, saving to %v", vmCfg.Name, desc, f.Name())
+		Logf(0, "vm-%v: crashed: %v, saving to %v", index, desc, f.Name())
 		f.Write(output)
 	}
 	return
