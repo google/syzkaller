@@ -157,6 +157,11 @@ func TestLoad(t *testing.T) {
 			},
 			"",
 		},
+		{
+			`{"foo": null, "qux": null}`,
+			Config{},
+			"",
+		},
 	}
 	for i, test := range tests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
