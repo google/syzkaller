@@ -62,7 +62,6 @@ type Config struct {
 	Hub_Key               string
 	Image_Archive         string
 	Image_Path            string
-	Image_Name            string
 	Http_Port             int
 	Machine_Type          string
 	Machine_Count         int
@@ -138,14 +137,10 @@ func main() {
 			Branch:       cfg.Linux_Branch,
 			Compiler:     cfg.Linux_Compiler,
 			UserspaceDir: abs(wd, cfg.Linux_Userspace),
-			ImagePath:    cfg.Image_Path,
-			ImageName:    cfg.Image_Name,
 		})
 	} else {
 		actions = append(actions, &GCSImageAction{
 			ImageArchive: cfg.Image_Archive,
-			ImagePath:    cfg.Image_Path,
-			ImageName:    cfg.Image_Name,
 		})
 	}
 	currHashes := make(map[string]string)
@@ -332,8 +327,6 @@ type LocalBuildAction struct {
 	Branch       string
 	Compiler     string
 	UserspaceDir string
-	ImagePath    string
-	ImageName    string
 }
 
 func (a *LocalBuildAction) Name() string {
@@ -389,8 +382,8 @@ func (a *LocalBuildAction) Build() error {
 	if err := os.Rename(vmlinux, "image/obj/vmlinux"); err != nil {
 		return fmt.Errorf("failed to rename vmlinux file: %v", err)
 	}
-	if err := createImage(filepath.Join(a.Dir, "disk.tar.gz"), a.ImagePath, a.ImageName); err != nil {
-		return err
+	if err := os.Rename(filepath.Join(a.Dir, "disk.tar.gz"), "image/disk.tar.gz"); err != nil {
+		return fmt.Errorf("failed to rename vmlinux file: %v", err)
 	}
 	return nil
 }
@@ -425,8 +418,6 @@ func (a *LocalBuildAction) apply(p dashboard.Patch) error {
 
 type GCSImageAction struct {
 	ImageArchive string
-	ImagePath    string
-	ImageName    string
 
 	file *gcs.File
 }
@@ -451,9 +442,6 @@ func (a *GCSImageAction) Build() error {
 	}
 	if err := downloadAndExtract(a.file, "image"); err != nil {
 		return fmt.Errorf("failed to download and extract %v: %v", a.ImageArchive, err)
-	}
-	if err := createImage("image/disk.tar.gz", a.ImagePath, a.ImageName); err != nil {
-		return err
 	}
 	return nil
 }
@@ -483,7 +471,7 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		Tag:              string(tag),
 		Syzkaller:        "gopath/src/github.com/google/syzkaller",
 		Type:             "gce",
-		Image:            cfg.Image_Name,
+		Image:            "image/disk.tar.gz",
 		Sandbox:          cfg.Sandbox,
 		Procs:            cfg.Procs,
 		Enable_Syscalls:  cfg.Enable_Syscalls,
@@ -556,21 +544,6 @@ func downloadAndExtract(f *gcs.File, dir string) error {
 		if !files[need] {
 			return fmt.Errorf("archive misses required file '%v'", need)
 		}
-	}
-	return nil
-}
-
-func createImage(localFile, gcsFile, imageName string) error {
-	Logf(0, "uploading image...")
-	if err := GCS.UploadFile(localFile, gcsFile); err != nil {
-		return fmt.Errorf("failed to upload image: %v", err)
-	}
-	Logf(0, "creating gce image...")
-	if err := GCE.DeleteImage(imageName); err != nil {
-		return fmt.Errorf("failed to delete GCE image: %v", err)
-	}
-	if err := GCE.CreateImage(imageName, gcsFile); err != nil {
-		return fmt.Errorf("failed to create GCE image: %v", err)
 	}
 	return nil
 }

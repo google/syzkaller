@@ -49,6 +49,10 @@ func NewClient() (*Client, error) {
 	return client, nil
 }
 
+func (client *Client) Close() {
+	client.client.Close()
+}
+
 func (client *Client) Read(gcsFile string) (*File, error) {
 	bucket, filename, err := split(gcsFile)
 	if err != nil {
