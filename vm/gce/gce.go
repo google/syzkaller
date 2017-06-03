@@ -20,6 +20,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gce"
+	"github.com/google/syzkaller/pkg/gcs"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/vm/vmimpl"
@@ -32,13 +33,15 @@ func init() {
 type Config struct {
 	Count        int    // number of VMs to use
 	Machine_Type string // GCE machine type (e.g. "n1-highcpu-2")
+	GCS_Path     string // GCS path to upload image
 	Sshkey       string // root ssh key for the image
 }
 
 type Pool struct {
-	env *vmimpl.Env
-	cfg *Config
-	GCE *gce.Context
+	env      *vmimpl.Env
+	cfg      *Config
+	GCE      *gce.Context
+	gceImage string
 }
 
 type instance struct {
@@ -58,6 +61,9 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if env.Name == "" {
 		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
+	if env.Image == "" {
+		return nil, fmt.Errorf("config param image is empty (required for GCE)")
+	}
 	cfg := &Config{
 		Count: 1,
 	}
@@ -73,18 +79,40 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.Machine_Type == "" {
 		return nil, fmt.Errorf("machine_type parameter is empty")
 	}
+	if cfg.GCS_Path == "" {
+		return nil, fmt.Errorf("gcs_path parameter is empty")
+	}
 	cfg.Sshkey = osutil.Abs(cfg.Sshkey)
 
 	GCE, err := gce.NewContext()
 	if err != nil {
 		return nil, fmt.Errorf("failed to init gce: %v", err)
 	}
-	Logf(0, "gce initialized: running on %v, internal IP %v, project %v, zone %v",
+	Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v",
 		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
+	GCS, err := gcs.NewClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GCS client: %v", err)
+	}
+	defer GCS.Close()
+	gcsImage := filepath.Join(cfg.GCS_Path, env.Name+"-image.tar.gz")
+	gceImage := env.Name
+	Logf(0, "uploading image to %v...", gcsImage)
+	if err := GCS.UploadFile(env.Image, gcsImage); err != nil {
+		return nil, fmt.Errorf("failed to upload image: %v", err)
+	}
+	Logf(0, "creating GCE image...")
+	if err := GCE.DeleteImage(gceImage); err != nil {
+		return nil, fmt.Errorf("failed to delete GCE image: %v", err)
+	}
+	if err := GCE.CreateImage(gceImage, gcsImage); err != nil {
+		return nil, fmt.Errorf("failed to create GCE image: %v", err)
+	}
 	pool := &Pool{
-		cfg: cfg,
-		env: env,
-		GCE: GCE,
+		cfg:      cfg,
+		env:      env,
+		GCE:      GCE,
+		gceImage: gceImage,
 	}
 	return pool, nil
 }
@@ -111,7 +139,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 	Logf(0, "creating instance: %v", name)
-	ip, err := pool.GCE.CreateInstance(name, pool.cfg.Machine_Type, pool.env.Image, string(gceKeyPub))
+	ip, err := pool.GCE.CreateInstance(name, pool.cfg.Machine_Type, pool.gceImage, string(gceKeyPub))
 	if err != nil {
 		return nil, err
 	}
