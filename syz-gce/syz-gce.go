@@ -61,7 +61,7 @@ type Config struct {
 	Hub_Addr              string
 	Hub_Key               string
 	Image_Archive         string
-	Image_Path            string
+	GCS_Path              string
 	Http_Port             int
 	Machine_Type          string
 	Machine_Count         int
@@ -472,14 +472,15 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		Syzkaller:        "gopath/src/github.com/google/syzkaller",
 		Type:             "gce",
 		Image:            "image/disk.tar.gz",
+		Output:           "stdout",
 		Sandbox:          cfg.Sandbox,
 		Procs:            cfg.Procs,
 		Enable_Syscalls:  cfg.Enable_Syscalls,
 		Disable_Syscalls: cfg.Disable_Syscalls,
 		Cover:            true,
 		Reproduce:        true,
-		VM: []byte(fmt.Sprintf(`{"count": %v, "machine_type": %q, "sshkey": %q}`,
-			cfg.Machine_Count, cfg.Machine_Type, sshKey)),
+		VM: []byte(fmt.Sprintf(`{"count": %v, "machine_type": %q, "gcs_path": %q, "sshkey": %q}`,
+			cfg.Machine_Count, cfg.Machine_Type, cfg.GCS_Path, sshKey)),
 	}
 	data, err := json.MarshalIndent(managerCfg, "", "\t")
 	if err != nil {
