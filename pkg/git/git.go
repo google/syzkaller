@@ -29,7 +29,6 @@ func Poll(dir, repo, branch string) (string, error) {
 		args := []string{
 			"clone",
 			repo,
-			"--no-tags",
 			"--depth", "1",
 			"--single-branch",
 			"--branch", branch,
