@@ -100,9 +100,6 @@ func (client *Client) UploadFile(localFile, gcsFile string) error {
 }
 
 func split(file string) (bucket, filename string, err error) {
-	if strings.HasPrefix(file, "gs://") {
-		file = file[5:]
-	}
 	pos := strings.IndexByte(file, '/')
 	if pos == -1 {
 		return "", "", fmt.Errorf("invalid GCS file name: %v", file)
