@@ -63,7 +63,7 @@ func checkUnknownFieldsRec(data []byte, prefix string, typ reflect.Type) error {
 		if !ok {
 			return fmt.Errorf("unknown field '%v%v' in config", prefix, k)
 		}
-		if field.Kind() == reflect.Slice &&
+		if v != nil && field.Kind() == reflect.Slice &&
 			(field.PkgPath() != "encoding/json" || field.Name() != "RawMessage") {
 			vv := reflect.ValueOf(v)
 			if vv.Type().Kind() != reflect.Slice {
