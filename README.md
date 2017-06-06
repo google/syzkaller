@@ -12,13 +12,7 @@ You can subscribe to it with a google account or by sending an email to syzkalle
 
 List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
 
-## Reporting Linux kernel bugs
-
-Please report found bugs to the Linux kernel maintainers.
-To find out the list of maintainers responsible for a particular kernel subsystem, run `./scripts/get_maintainer.pl guilty_file.c`.
-Please also add `syzkaller@googlegroups.com` to the CC list.
-
-If you believe that a found bug poses potential security threat, consider reporting it directly to `security@kernel.org`.
+How to [report Linux kernel bugs](https://github.com/google/syzkaller/wiki/Reporting-kernel-bugs).
 
 ## Usage
 
