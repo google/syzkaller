@@ -59,7 +59,7 @@ func (c *Call) validate(ctx *validCtx) error {
 				// since it can be a length of a variable-length array
 				// which is not known otherwise.
 				if _, ok := arg.Type.(*sys.LenType); !ok {
-					return fmt.Errorf("syscall %v: output arg '%v' has non default value '%v'", c.Meta.Name, arg.Type.Name(), arg.Val)
+					return fmt.Errorf("syscall %v: output arg '%v'/'%v' has non default value '%+v'", c.Meta.Name, arg.Type.FieldName(), arg.Type.Name(), *arg)
 				}
 			}
 			for _, v := range arg.Data {
