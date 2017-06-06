@@ -257,14 +257,10 @@ static void segv_handler(int sig, siginfo_t* info, void* uctx)
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 		debug("SIGSEGV on %p, skipping\n", addr);
-#endif
 		_longjmp(segv_env, 1);
 	}
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 	debug("SIGSEGV on %p, exiting\n", addr);
-#endif
 	doexit(sig);
 	for (;;) {
 	}
@@ -497,9 +493,7 @@ static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 
 	int64_t length = a0;
 	char* data = (char*)a1;
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 	debug_dump_data(data, length);
-#endif
 	return write(tunfd, data, length);
 }
 #endif
@@ -546,9 +540,7 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	if (rv == -1)
 		return (uintptr_t)-1;
 	size_t length = rv;
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 	debug_dump_data(data, length);
-#endif
 
 	struct tcphdr* tcphdr;
 
@@ -578,18 +570,11 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	}
 
 	struct tcp_resources* res = (struct tcp_resources*)a0;
-#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
 	NONFAILING(res->seq = htonl((ntohl(tcphdr->seq) + (uint32_t)a1)));
 	NONFAILING(res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32_t)a2)));
-#else
-	res->seq = htonl((ntohl(tcphdr->seq) + (uint32_t)a1));
-	res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32_t)a2));
-#endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 	debug("extracted seq: %08x\n", res->seq);
 	debug("extracted ack: %08x\n", res->ack);
-#endif
 
 	return 0;
 }
@@ -608,11 +593,7 @@ static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 		// syz_open_dev(dev strconst, id intptr, flags flags[open_flags]) fd
 		char buf[1024];
 		char* hash;
-#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
 		NONFAILING(strncpy(buf, (char*)a0, sizeof(buf)));
-#else
-		strncpy(buf, (char*)a0, sizeof(buf));
-#endif
 		buf[sizeof(buf) - 1] = 0;
 		while ((hash = strchr(buf, '#'))) {
 			*hash = '0' + (char)(a1 % 10); // 10 devices should be enough for everyone.
@@ -890,9 +871,7 @@ static int namespace_sandbox_proc(void* arg)
 	if (mkdir("./syz-tmp/pivot", 0777))
 		fail("mkdir failed");
 	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 		debug("pivot_root failed");
-#endif
 		if (chdir("./syz-tmp"))
 			fail("chdir failed");
 	} else {
@@ -974,22 +953,16 @@ retry:
 		}
 		int i;
 		for (i = 0;; i++) {
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 			debug("unlink(%s)\n", filename);
-#endif
 			if (unlink(filename) == 0)
 				break;
 			if (errno == EROFS) {
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 				debug("ignoring EROFS\n");
-#endif
 				break;
 			}
 			if (errno != EBUSY || i > 100)
 				exitf("unlink(%s) failed", filename);
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 			debug("umount(%s)\n", filename);
-#endif
 			if (umount2(filename, MNT_DETACH))
 				exitf("umount(%s) failed", filename);
 		}
@@ -997,22 +970,16 @@ retry:
 	closedir(dp);
 	int i;
 	for (i = 0;; i++) {
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 		debug("rmdir(%s)\n", dir);
-#endif
 		if (rmdir(dir) == 0)
 			break;
 		if (i < 100) {
 			if (errno == EROFS) {
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 				debug("ignoring EROFS\n");
-#endif
 				break;
 			}
 			if (errno == EBUSY) {
-#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 				debug("umount(%s)\n", dir);
-#endif
 				if (umount2(dir, MNT_DETACH))
 					exitf("umount(%s) failed", dir);
 				continue;

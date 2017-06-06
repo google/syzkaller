@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"unsafe"
 
@@ -144,16 +145,31 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			fmt.Fprint(w, "\treturn 0;\n}\n")
 		}
 	}
+
+	// Remove NONFAILING and debug calls.
+	out0 := w.String()
+	if !opts.HandleSegv {
+		re := regexp.MustCompile(`\t*NONFAILING\((.*)\);\n`)
+		out0 = re.ReplaceAllString(out0, "$1;\n")
+	}
+	if !opts.Debug {
+		re := regexp.MustCompile(`\t*debug\(.*\);\n`)
+		out0 = re.ReplaceAllString(out0, "")
+		re = regexp.MustCompile(`\t*debug_dump_data\(.*\);\n`)
+		out0 = re.ReplaceAllString(out0, "")
+	}
+
 	// Remove duplicate new lines.
-	out := w.Bytes()
+	out1 := []byte(out0)
 	for {
-		out1 := bytes.Replace(out, []byte{'\n', '\n', '\n'}, []byte{'\n', '\n'}, -1)
-		if len(out) == len(out1) {
+		out2 := bytes.Replace(out1, []byte{'\n', '\n', '\n'}, []byte{'\n', '\n'}, -1)
+		if len(out1) == len(out2) {
 			break
 		}
-		out = out1
+		out1 = out2
 	}
-	return out, nil
+
+	return out1, nil
 }
 
 func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
@@ -225,10 +241,6 @@ func generateCalls(exec []byte, opts Options) ([]string, int) {
 		}
 		return res
 	}
-	nonfailPre, nonfailPost := "", ""
-	if opts.HandleSegv {
-		nonfailPre, nonfailPost = "NONFAILING(", ")"
-	}
 	lastCall := 0
 	seenCall := false
 	var calls []string
@@ -257,12 +269,12 @@ loop:
 				bfOff := read()
 				bfLen := read()
 				if bfOff == 0 && bfLen == 0 {
-					fmt.Fprintf(w, "\t%s*(uint%v_t*)0x%x = (uint%v_t)0x%x%s;\n", nonfailPre, size*8, addr, size*8, arg, nonfailPost)
+					fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = (uint%v_t)0x%x);\n", size*8, addr, size*8, arg)
 				} else {
-					fmt.Fprintf(w, "\t%sSTORE_BY_BITMASK(uint%v_t, 0x%x, 0x%x, %v, %v)%s;\n", nonfailPre, size*8, addr, arg, bfOff, bfLen, nonfailPost)
+					fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, 0x%x, 0x%x, %v, %v));\n", size*8, addr, arg, bfOff, bfLen)
 				}
 			case prog.ExecArgResult:
-				fmt.Fprintf(w, "\t%s*(uint%v_t*)0x%x = %v%s;\n", nonfailPre, size*8, addr, resultRef(), nonfailPost)
+				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n", size*8, addr, resultRef())
 			case prog.ExecArgData:
 				data := exec[:size]
 				exec = exec[(size+7)/8*8:]
@@ -276,7 +288,7 @@ loop:
 					}
 					esc = append(esc, '\\', 'x', hex(v>>4), hex(v<<4>>4))
 				}
-				fmt.Fprintf(w, "\t%smemcpy((void*)0x%x, \"%s\", %v)%s;\n", nonfailPre, addr, esc, size, nonfailPost)
+				fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n", addr, esc, size)
 			case prog.ExecArgCsum:
 				csum_kind := read()
 				switch csum_kind {
@@ -290,7 +302,7 @@ loop:
 						chunk_size := read()
 						switch chunk_kind {
 						case prog.ExecArgCsumChunkData:
-							fmt.Fprintf(w, "\t%scsum_inet_update(&csum_%d, (const uint8_t*)0x%x, %d)%s;\n", nonfailPre, n, chunk_value, chunk_size, nonfailPost)
+							fmt.Fprintf(w, "\tNONFAILING(csum_inet_update(&csum_%d, (const uint8_t*)0x%x, %d));\n", n, chunk_value, chunk_size)
 						case prog.ExecArgCsumChunkConst:
 							fmt.Fprintf(w, "\tuint%d_t csum_%d_chunk_%d = 0x%x;\n", chunk_size*8, n, i, chunk_value)
 							fmt.Fprintf(w, "\tcsum_inet_update(&csum_%d, (const uint8_t*)&csum_%d_chunk_%d, %d);\n", n, n, i, chunk_size)
@@ -298,7 +310,7 @@ loop:
 							panic(fmt.Sprintf("unknown checksum chunk kind %v", chunk_kind))
 						}
 					}
-					fmt.Fprintf(w, "\t%s*(uint16_t*)0x%x = csum_inet_digest(&csum_%d)%s;\n", nonfailPre, addr, n, nonfailPost)
+					fmt.Fprintf(w, "\tNONFAILING(*(uint16_t*)0x%x = csum_inet_digest(&csum_%d));\n", addr, n)
 				default:
 					panic(fmt.Sprintf("unknown csum kind %v", csum_kind))
 				}
@@ -309,7 +321,7 @@ loop:
 			addr := read()
 			size := read()
 			fmt.Fprintf(w, "\tif (r[%v] != -1)\n", lastCall)
-			fmt.Fprintf(w, "\t\t%sr[%v] = *(uint%v_t*)0x%x%s;\n", nonfailPre, n, size*8, addr, nonfailPost)
+			fmt.Fprintf(w, "\t\tNONFAILING(r[%v] = *(uint%v_t*)0x%x);\n", n, size*8, addr)
 		default:
 			// Normal syscall.
 			newCall()
