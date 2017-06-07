@@ -12,7 +12,7 @@ You can subscribe to it with a google account or by sending an email to syzkalle
 
 List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
 
-How to [report Linux kernel bugs](https://github.com/google/syzkaller/wiki/Reporting-kernel-bugs).
+How to [report Linux kernel bugs](https://github.com/google/syzkaller/wiki/How-to-report-kernel-bugs).
 
 ## Usage
 
