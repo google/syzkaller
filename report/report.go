@@ -90,6 +90,18 @@ var oopses = []*oops{
 				compile("BUG: non-zero nr_pmds on freeing mm"),
 				"BUG: non-zero nr_pmds on freeing mm",
 			},
+			{
+				compile("BUG: Dentry .* still in use \\([0-9]+\\) \\[unmount of ([^\\]]+)\\]"),
+				"BUG: Dentry still in use [unmount of %[1]v]",
+			},
+			{
+				compile("BUG: Bad page state .*"),
+				"BUG: Bad page state",
+			},
+			{
+				compile("BUG: spinlock bad magic .*"),
+				"BUG: spinlock bad magic",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
@@ -123,6 +135,14 @@ var oopses = []*oops{
 			{
 				compile("WARNING: suspicious RCU usage(?:.*\n)+?.*?{{SRC}}"),
 				"suspicious RCU usage at %[1]v",
+			},
+			{
+				compile("WARNING: kernel stack regs at [0-9a-f]+ in [^ ]* has bad '([^']+)' value"),
+				"WARNING: kernel stack regs has bad '%[1]v' value",
+			},
+			{
+				compile("WARNING: kernel stack frame pointer at [0-9a-f]+ in [^ ]* has bad value"),
+				"WARNING: kernel stack frame pointer has bad value",
 			},
 		},
 		[]*regexp.Regexp{
@@ -229,6 +249,10 @@ var oopses = []*oops{
 			{
 				compile("Kernel panic - not syncing: Attempted to kill init!"),
 				"kernel panic: Attempted to kill init!",
+			},
+			{
+				compile("Kernel panic - not syncing: Couldn't open N_TTY ldisc for [^ ]+ --- error -[0-9]+"),
+				"kernel panic: Couldn't open N_TTY ldisc",
 			},
 			{
 				compile("Kernel panic - not syncing: (.*)"),

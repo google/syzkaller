@@ -665,7 +665,7 @@ WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 
 		`
 [  982.271203] BUG: spinlock bad magic on CPU#0, syz-executor12/24932
-`: `BUG: spinlock bad magic on CPU, syz-executor`,
+`: `BUG: spinlock bad magic`,
 
 		`
 [  374.860710] BUG: KASAN: use-after-free in do_con_write.part.23+0x1c50/0x1cb0 at addr ffff88000012c43a
@@ -673,7 +673,7 @@ WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 
 		`
 [  163.314570] WARNING: kernel stack regs at ffff8801d100fea8 in syz-executor1:16059 has bad 'bp' value ffff8801d100ff28
-`: `WARNING: kernel stack regs at ADDR in syz-executor has bad 'bp' value ADDR`,
+`: `WARNING: kernel stack regs has bad 'bp' value`,
 
 		`
 [   76.825838] BUG: using __this_cpu_add() in preemptible [00000000] code: syz-executor0/10076
@@ -696,6 +696,51 @@ WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 [   40.447217] addr:00000000009ca000 vm_flags:00100073 anon_vma:ffff8801d16f20e0 mapping:          (null) index:9ca
 [   40.457560] file:          (null) fault:          (null) mmap:          (null) readpage:          (null)
 `: `BUG: Bad page map in process syz-executor  pte:ADDR pmd:ADDR`,
+
+		`
+======================================================
+WARNING: possible circular locking dependency detected
+4.12.0-rc2-next-20170529+ #1 Not tainted
+------------------------------------------------------
+kworker/u4:2/58 is trying to acquire lock:
+ (&buf->lock){+.+...}, at: [<ffffffffa41b4e5b>] tty_buffer_flush+0xbb/0x3a0 drivers/tty/tty_buffer.c:221
+
+but task is already holding lock:
+ (&o_tty->termios_rwsem/1){++++..}, at: [<ffffffffa41a5601>] isig+0xa1/0x4d0 drivers/tty/n_tty.c:1100
+
+which lock already depends on the new lock.
+`: `possible deadlock in tty_buffer_flush`,
+
+		`
+Buffer I/O error on dev loop0, logical block 6, async page read
+BUG: Dentry ffff880175978600{i=8bb9,n=lo}  still in use (1) [unmount of proc proc]
+------------[ cut here ]------------
+WARNING: CPU: 1 PID: 8922 at fs/dcache.c:1445 umount_check+0x246/0x2c0 fs/dcache.c:1436
+Kernel panic - not syncing: panic_on_warn set ...
+`: `BUG: Dentry still in use [unmount of proc proc]`,
+
+		`
+WARNING: kernel stack frame pointer at ffff88003e1f7f40 in migration/1:14 has bad value ffffffff85632fb0
+unwind stack type:0 next_sp:          (null) mask:0x6 graph_idx:0
+ffff88003ed06ef0: ffff88003ed06f78 (0xffff88003ed06f78)
+`: `WARNING: kernel stack frame pointer has bad value`,
+
+		`
+BUG: Bad page state in process syz-executor9  pfn:199e00
+page:ffffea00059a9000 count:0 mapcount:0 mapping:          (null) index:0x20a00
+TCP: request_sock_TCPv6: Possible SYN flooding on port 20032. Sending cookies.  Check SNMP counters.
+flags: 0x200000000040019(locked|uptodate|dirty|swapbacked)
+raw: 0200000000040019 0000000000000000 0000000000020a00 00000000ffffffff
+raw: dead000000000100 dead000000000200 0000000000000000
+page dumped because: PAGE_FLAGS_CHECK_AT_FREE flag(s)
+`: `BUG: Bad page state`,
+
+		`
+Kernel panic - not syncing: Couldn't open N_TTY ldisc for ptm1 --- error -12.
+CPU: 1 PID: 14836 Comm: syz-executor5 Not tainted 4.12.0-rc4+ #15
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+Call Trace:
+`: `kernel panic: Couldn't open N_TTY ldisc`,
 	}
 	for log, crash := range tests {
 		if strings.Index(log, "\r\n") != -1 {
