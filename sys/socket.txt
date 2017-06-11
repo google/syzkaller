@@ -11,6 +11,8 @@ include <linux/net_tstamp.h>
 include <linux/route.h>
 include <linux/socket.h>
 include <uapi/linux/in.h>
+include <uapi/linux/ethtool.h>
+include <uapi/linux/if_ether.h>
 
 resource sock[fd]
 
@@ -216,7 +218,9 @@ sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFT
 # http://lxr.free-electrons.com/source/include/uapi/asm-generic/sockios.h
 
 # TODO: SIOCADDRT, SIOCDELRT, SIOCRTMSG
-# TODO: ETHTOOL commands (SIOCETHTOOL, ...)
+
+ioctl$sock_SIOCETHTOOL(fd sock, cmd const[SIOCETHTOOL], arg ptr[inout, ifreq_SIOCETHTOOL])
+
 # TODO: SIOCDRARP, SIOCGRARP, SIOCSRARP
 # TODO: SIOCGIFVLAN, SIOCSIFVLAN
 # TODO: SIOCGSTAMP, SIOCGSTAMPNS
@@ -266,6 +270,13 @@ ifreq_SIOCGIFINDEX {
 	ifr_ifrn	devname
 	ifr_ifru	ifindex
 	pad		array[const[0, int8], 20]
+} [packed]
+
+
+ifreq_SIOCETHTOOL {
+	ifr_ifrn	devname
+	ifr_ifru	ptr[inout, ethtool_cmd_u]
+	pad		array[const[0, int8], 16]
 } [packed]
 
 ifreq {
@@ -414,4 +425,437 @@ brctl_arg_generic {
 dlci_add {
 	devname		devname
 	dlci		int16
+}
+
+
+
+# ETHTOOL declaration part
+# http://elixir.free-electrons.com/linux/latest/source/include/uapi/linux/ethtool.h
+
+ethtool_cmd_flags = ETHTOOL_GSET, ETHTOOL_SSET, ETHTOOL_GDRVINFO, ETHTOOL_GREGS, ETHTOOL_GWOL, ETHTOOL_SWOL, ETHTOOL_GMSGLVL, ETHTOOL_SMSGLVL, ETHTOOL_NWAY_RST, ETHTOOL_GLINK, ETHTOOL_GEEPROM, ETHTOOL_SEEPROM, ETHTOOL_GCOALESCE, ETHTOOL_SCOALESCE, ETHTOOL_GRINGPARAM, ETHTOOL_SRINGPARAM, ETHTOOL_GPAUSEPARAM, ETHTOOL_SPAUSEPARAM, ETHTOOL_GRXCSUM, ETHTOOL_SRXCSUM, ETHTOOL_GTXCSUM, ETHTOOL_STXCSUM, ETHTOOL_GSG, ETHTOOL_SSG, ETHTOOL_TEST, ETHTOOL_GSTRINGS, ETHTOOL_PHYS_ID, ETHTOOL_GSTATS, ETHTOOL_GTSO, ETHTOOL_STSO, ETHTOOL_GPERMADDR, ETHTOOL_GUFO, ETHTOOL_SUFO, ETHTOOL_GGSO, ETHTOOL_SGSO, ETHTOOL_GFLAGS, ETHTOOL_SFLAGS, ETHTOOL_GPFLAGS, ETHTOOL_SPFLAGS, ETHTOOL_GRXFH, ETHTOOL_SRXFH, ETHTOOL_GGRO, ETHTOOL_SGRO, ETHTOOL_GRXRINGS, ETHTOOL_GRXCLSRLCNT, ETHTOOL_GRXCLSRULE, ETHTOOL_GRXCLSRLALL, ETHTOOL_SRXCLSRLDEL, ETHTOOL_SRXCLSRLINS, ETHTOOL_FLASHDEV, ETHTOOL_RESET, ETHTOOL_SRXNTUPLE, ETHTOOL_GRXNTUPLE, ETHTOOL_GSSET_INFO, ETHTOOL_GRXFHINDIR, ETHTOOL_SRXFHINDIR, ETHTOOL_GFEATURES, ETHTOOL_SFEATURES, ETHTOOL_GCHANNELS, ETHTOOL_SCHANNELS, ETHTOOL_SET_DUMP, ETHTOOL_GET_DUMP_FLAG, ETHTOOL_GET_DUMP_DATA, ETHTOOL_GET_TS_INFO, ETHTOOL_GMODULEINFO, ETHTOOL_GMODULEEEPROM, ETHTOOL_GEEE, ETHTOOL_SEEE, ETHTOOL_GRSSH, ETHTOOL_SRSSH, ETHTOOL_GTUNABLE, ETHTOOL_STUNABLE, ETHTOOL_GPHYSTATS, ETHTOOL_PERQUEUE, ETHTOOL_GLINKSETTINGS, ETHTOOL_SLINKSETTINGS, ETHTOOL_PHY_GTUNABLE, ETHTOOL_PHY_STUNABLE
+
+ethtool_cmd_u [
+	ethtool_cmd			ethtool_cmd
+	ethtool_drvinfo			ethtool_drvinfo
+	ethtool_wolinfo			ethtool_wolinfo
+	ethtool_regs			ethtool_regs
+	ethtool_eeprom			ethtool_eeprom
+	ethtool_eee			ethtool_eee
+	ethtool_modinfo			ethtool_modinfo
+	ethtool_coalesce		ethtool_coalesce
+	ethtool_ringparam		ethtool_ringparam
+	ethtool_channels		ethtool_channels
+	ethtool_pauseparam		ethtool_pauseparam
+	ethtool_gstrings		ethtool_gstrings
+	ethtool_sset_info		ethtool_sset_info
+	ethtool_test			ethtool_test
+	ethtool_stats			ethtool_stats
+	ethtool_perm_addr		ethtool_perm_addr
+	ethtool_rxnfc			ethtool_rxnfc
+	ethtool_rxfh_indir		ethtool_rxfh_indir
+	ethtool_rxfh			ethtool_rxfh
+	ethtool_rx_ntuple		ethtool_rx_ntuple
+	ethtool_flash			ethtool_flash
+	ethtool_dump			ethtool_dump
+	ethtool_gfeatures		ethtool_gfeatures
+	ethtool_sfeatures		ethtool_sfeatures
+	ethtool_ts_info			ethtool_ts_info
+	ethtool_per_queue_op		ethtool_per_queue_op
+	ethtool_link_settings		ethtool_link_settings
+][varlen]
+
+ethtool_cmd_flags = ETHTOOL_GSET, ETHTOOL_SSET
+ethtool_cmd {
+	cmd 				flags[ethtool_cmd_flags, int32]
+	supported 			int32
+	advertising 			int32
+	speed 				int16
+	duplex				int8
+	port				int8
+	phy_address			int8
+	transceiver			int8
+	autoneg				int8
+	mdio_support			int8
+	maxtxpkt			int32
+	maxrxpkt			int32
+	speed_hi			int16
+	eth_tp_mdix			int8
+	eth_tp_mdix_ctrl		int8
+	lp_advertising			int32
+	reserved			array[int32, 2]
+}
+
+ethtool_drvinfo {
+	cmd 			const[ETHTOOL_GDRVINFO, int32]
+	driver 			array[int8, 32]
+	version 		array[int8, 32]
+	fw_version 		array[int8, ETHTOOL_FWVERS_LEN]
+	bus_info		array[int8, ETHTOOL_BUSINFO_LEN]
+	erom_version		array[int8, ETHTOOL_EROMVERS_LEN]
+	reserved2		array[int8, 12]
+	n_priv_flags		int32
+	n_stats			int32
+	testinfo_len		int32
+	eedump_len		int32
+	regdump_len		int32
+}
+
+ethtool_wolinfo_cmd_flags = ETHTOOL_GWOL, ETHTOOL_SWOL
+ethtool_wolinfo {
+	cmd		flags[ethtool_wolinfo_cmd_flags, int32]
+	supported	int32
+	wolopts		int32
+	sopass		array[int8, SOPASS_MAX]
+}
+
+ethtool_regs {
+	cmd		const[ETHTOOL_GREGS, int32]
+	version		int32
+	len		len[data, int32]
+	data		array[int8]
+}
+
+ethtool_eeprom_cmd_flags = ETHTOOL_GEEPROM, ETHTOOL_GMODULEEEPROM, ETHTOOL_SEEPROM
+ethtool_eeprom {
+	cmd		flags[ethtool_eeprom_cmd_flags, int32]
+	magic		int32
+	offset		int32
+	len		len[data, int32]
+	data		array[int8]
+}
+
+ethtool_eee_cmd_flags = ETHTOOL_GEEE, ETHTOOL_SEEE
+ethtool_eee {
+	cmd			flags[ethtool_eee_cmd_flags, int32]
+	supported		int32
+	advertised		int32
+	lp_advertised		int32
+	eee_active		int32
+	eee_enabled		int32
+	tx_lpi_enabled		int32
+	tx_lpi_timer		int32
+	reserved		array[int32, 2]
+}
+
+ethtool_modinfo {
+	cmd			const[ETHTOOL_GMODULEINFO, int32]
+	type			int32
+	eeprom_len		int32
+	reserved		array[int8, 8]
+}
+
+ethtool_coalesce_cmd_flags = ETHTOOL_GCOALESCE, ETHTOOL_SCOALESCE
+ethtool_coalesce {
+	cmd					flags[ethtool_coalesce_cmd_flags, int32]
+	rx_coalesce_usecs			int32
+	rx_max_coalesced_frames			int32
+	rx_coalesce_usecs_irq			int32
+	rx_max_coalesced_frames_irq		int32
+	tx_coalesce_usecs			int32
+	tx_max_coalesced_frames			int32
+	tx_coalesce_usecs_irq			int32
+	tx_max_coalesced_frames_irq		int32
+	stats_block_coalesce_usecs		int32
+	use_adaptive_rx_coalesce		int32
+	use_adaptive_tx_coalesce		int32
+	pkt_rate_low				int32
+	rx_coalesce_usecs_low			int32
+	rx_max_coalesced_frames_low		int32
+	tx_coalesce_usecs_low			int32
+	tx_max_coalesced_frames_low		int32
+	pkt_rate_high				int32
+	rx_coalesce_usecs_high			int32
+	rx_max_coalesced_frames_high		int32
+	tx_coalesce_usecs_high			int32
+	tx_max_coalesced_frames_high		int32
+	rate_sample_interval			int32
+}
+
+ethtool_ringparam_cmd_flags = ETHTOOL_GRINGPARAM, ETHTOOL_SRINGPARAM
+ethtool_ringparam {
+	cmd				flags[ethtool_ringparam_cmd_flags, int32]
+	rx_max_pending			int32
+	rx_mini_max_pending		int32
+	rx_jumbo_max_pending		int32
+	tx_max_pending			int32
+	rx_pending			int32
+	rx_mini_pending			int32
+	rx_jumbo_pending		int32
+	tx_pending			int32
+}
+
+ethtool_channels_cmd_flags = ETHTOOLGCHANNELS, ETHTOOL_SCHANNELS
+ethtool_channels {
+	cmd			flags[ethtool_channels_cmd_flags, int32]
+	max_rx			int32
+	max_tx			int32
+	max_other		int32
+	max_combined		int32
+	rx_count		int32
+	tx_count		int32
+	other_count		int32
+	combined_count		int32
+}
+
+ethtool_pauseparam_cmd_flags = ETHTOOL_GPAUSEPARAM, ETHTOOL_SPAUSEPARAM
+ethtool_pauseparam {
+	cmd		flags[ethtool_pauseparam_cmd_flags, int32]
+	autoneg		int32
+	rx_pause	int32
+	tx_pause	int32
+}
+
+ethtool_gstrings {
+	cmd			const[ETHTOOL_GSTRINGS, int32]
+	string_set		int32
+	len			len[data, int32]
+	data			array[int8]
+}
+
+ethtool_sset_info {
+	cmd			const[ETHTOOL_GSSET_INFO, int32]
+	reserved		int32
+	sset_mask		int64
+	data			array[int32]
+}
+
+ethtool_test {
+	cmd			const[ETHTOOL_TEST, int32]
+	flags			int32
+	reserved		int32
+	len			len[data, int32]
+	data 			array[int64]
+}
+
+ethtool_stats {
+	cmd			const[ETHTOOL_GSTATS, int32]
+	n_stats			len[data, int32]
+	data 			array[int64]
+}
+
+ethtool_perm_addr {
+	cmd 			const[ETHTOOL_GPERMADDR, int32]
+	size			len[data, int32]
+	data 			array[int8]
+}
+
+# http://elixir.free-electrons.com/linux/latest/source/include/uapi/linux/ethtool.h#L1565
+traffic_flow_types = TCP_V4_FLOW, UDP_V4_FLOW, SCTP_V4_FLOW, AH_ESP_V4_FLOW, TCP_V6_FLOW, UDP_V6_FLOW, SCTP_V6_FLOW, AH_ESP_V6_FLOW, AH_V4_FLOW, ESP_V4_FLOW, AH_V6_FLOW, ESP_V6_FLOW, IPV4_USER_FLOW, IP_USER_FLOW, IPV6_USER_FLOW, IPV4_FLOW, IPV6_FLOW, ETHER_FLOW
+
+ethtool_rxnfc_cmd_flags = ETHTOOL_GRXFH, ETHTOOL_SRXFH, ETHTOOL_GRXRINGS, ETHTOOL_GRXCLSRLCNT, ETHTOOL_GRXCLSRULE, ETHTOOL_GRXCLSRLALL, ETHTOOL_SRXCLSRLDEL, ETHTOOL_SRXCLSRLINS
+ethtool_rxnfc {
+	cmd			flags[ethtool_rxnfc_cmd_flags, int32]
+	flow_type		flags[traffic_flow_types, int32]
+	data			int64
+	fs			ethtool_rx_flow_spec
+	rule_cnt		len[rule_locs, int32]
+	rule_locs		array[int32]
+}
+
+ethtool_rx_flow_spec {
+	flow_type		flags[traffic_flow_types, int32]
+	h_u			ethtool_flow_union
+	h_ext			ethtool_flow_ext
+	m_u			ethtool_flow_union
+	m_ext			ethtool_flow_ext
+	ring_cookie		int64
+	location		int32
+}
+
+ethtool_flow_union [
+	tcp_ip4_spec		ethtool_tcpip4_spec
+	udp_ip4_spec		ethtool_tcpip4_spec
+	sctp_ip4_spec		ethtool_tcpip4_spec
+	ah_ip4_spec		ethtool_ah_espip4_spec
+	esp_ip4_spec		ethtool_ah_espip4_spec
+	usr_ip4_spec		ethtool_usrip4_spec
+	tcp_ip6_spec		ethtool_tcpip6_spec
+	udp_ip6_spec		ethtool_tcpip6_spec
+	sctp_ip6_spec		ethtool_tcpip6_spec
+	ah_ip6_spec		ethtool_ah_espip6_spec
+	esp_ip6_spec		ethtool_ah_espip6_spec
+	usr_ip6_spec		ethtool_usrip6_spec
+	ether_spec		ethhdr
+	hdata			array[int8, 52]
+]
+
+ethtool_flow_ext {
+	padding		array[int8, 2]
+	h_dest		mac_addr
+	vlan_etype	int16be
+	vlan_tci	int16be
+	data		array[int32be, 2]
+}
+
+ethtool_tcpip4_spec {
+	ip4src		ipv4_addr
+	ip4dst		ipv4_addr
+	psrc		proc[int16be, 20000, 4]
+	pdst		proc[int16be, 20000, 4]
+	tos		int8
+}
+
+ethtool_ah_espip4_spec {
+	ip4src		ipv4_addr
+	ip4dst		ipv4_addr
+	spi		int32be
+	tos		int8
+}
+
+ethtool_usrip4_spec {
+	ip4src		ipv4_addr
+	ip4dst		ipv4_addr
+	l4_4_bytes	int32be
+	tos		int8
+	ip_ver		const[ETH_RX_NFC_IP4, int8]
+	proto		int8
+}
+
+ethtool_tcpip6_spec {
+	ip6src		ipv6_addr
+	ip6dst		ipv6_addr
+	psrc		proc[int16be, 20000, 4]
+	pdst		proc[int16be, 20000, 4]
+	tclass		int8
+}
+
+ethtool_ah_espip6_spec {
+	ip6src		ipv6_addr
+	ip6dst		ipv6_addr
+	spi		int32be
+	tclass		int8
+}
+
+ethtool_usrip6_spec {
+	ip6src		ipv6_addr
+	ip6dst		ipv6_addr
+	l4_4_bytes	int32be
+	tclass		int8
+	l4_proto	int8
+}
+
+ethhdr {
+	h_dest		mac_addr
+	h_source	mac_addr
+	h_proto		int16be
+} [packed]
+
+ethtool_rxfh_indir_flags = ETHTOOL_GRXFHINDIR, ETHTOOL_SRXFHINDIR
+ethtool_rxfh_indir {
+	cmd		flags[ethtool_rxfh_indir_flags, int32]
+	size		len[ring_index, int32]
+	ring_index	array[int32]
+}
+
+ethtool_rxfh_cmd_flags = ETHTOOL_GRSSH, ETHTOOL_SRSSH
+
+ethtool_rxfh {
+	cmd			flags[ethtool_rxfh_cmd_flags, int32]
+	rss_context		int32
+	indir_size		int32
+	key_size		int32
+	hfunc			int8
+	rsvd8			array[int8, 3]
+	rsvd32			int32
+	rss_config		array[int32]
+}
+
+ethtool_rx_ntuple {
+	cmd		const[ETHTOOL_SRXNTUPLE, int32]
+	fs		ethtool_rx_ntuple_flow_spec
+}
+
+ethtool_rx_ntuple_flow_spec_action_flags = ETHTOOL_RXNTUPLE_ACTION_DROP, ETHTOOL_RXNTUPLE_ACTION_CLEAR
+ethtool_rx_ntuple_flow_spec {
+	flow_type		flags[traffic_flow_types, int32]
+	h_u			ethtool_rx_ntuple_flow_spec_union
+	m_u			ethtool_rx_ntuple_flow_spec_union
+	vlan_tag		int16
+	vlan_tag_mask		int16
+	data			int64
+	data_mask		int64
+	action			flags[ethtool_rx_ntuple_flow_spec_action_flags, int32]
+}
+
+ethtool_rx_ntuple_flow_spec_union [
+	tcp_ip4_spec	ethtool_tcpip4_spec
+	udp_ip4_spec	ethtool_tcpip4_spec
+	sctp_ip4_spec	ethtool_tcpip4_spec
+	ah_ip4_spec	ethtool_ah_espip4_spec
+	esp_ip4_spec	ethtool_ah_espip4_spec
+	usr_ip4_spec	ethtool_usrip4_spec
+	ether_spec	ethhdr
+	hdata 		array[int8, 72]
+]
+
+ethtool_flash {
+	cmd		const[ETHTOOL_FLASHDEV, int32]
+	region		int32
+	data		array[int8, ETHTOOL_FLASH_MAX_FILENAME]
+}
+
+ethtool_dump_cmd_flags = ETHTOOL_GET_DUMP_FLAG, ETHTOOL_GET_DUMP_DATA, ETHTOOL_SET_DUMP
+ethtool_dump {
+	cmd		flags[ethtool_dump_cmd_flags, int32]
+	version		int32
+	flag		int32
+	len		len[data, int32]
+	data		array[int8]
+}
+
+ethtool_gfeatures {
+	cmd		const[ETHTOOL_GFEATURES, int32]
+	size		len[features, int32]
+	features	array[ethtool_get_features_block]
+}
+
+ethtool_get_features_block {
+	available		int32
+	requested		int32
+	active			int32
+	never_changed		int32
+}
+
+ethtool_sfeatures {
+	cmd		const[ETHTOOL_SFEATURES, int32]
+	size		len[features, int32]
+	features	array[ethtool_set_features_block]
+}
+
+ethtool_set_features_block {
+	valid		int32
+	requested	int32
+}
+
+ethtool_ts_info {
+	cmd			const[ETHTOOL_GET_TS_INFO, int32]
+	so_timestamping		int32
+	phc_index		int32
+	tx_types		int32
+	tx_reserved		array[int32, 3]
+	rx_filters		int32
+	rx_reserved		array[int32, 3]
+}
+
+ethtool_per_queue_op {
+	cmd			const[ETHTOOL_PERQUEUE, int32]
+	sub_command		int32
+	queue_mask		array[int32, MAX_NUM_QUEUE]
+	data			array[int8]
+}
+
+ethtool_link_settings_cmd_flags = ETHTOOL_GLINKSETTINGS, ETHTOOL_SLINKSETTINGS
+ethtool_link_settings {
+	cmd				flags[ethtool_link_settings_cmd_flags, int32]
+	speed				int32
+	duplex				int8
+	port				int8
+	phy_address			int8
+	autoneg				int8
+	mdio_support			int8
+	eth_tp_mdix			int8
+	eth_tp_mdix_ctrl		int8
+	link_mode_masks_nwords		int8
+	reserved			array[int32, 8]
+	link_mode_masks			array[int32]
 }
