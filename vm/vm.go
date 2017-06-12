@@ -21,6 +21,7 @@ import (
 
 	_ "github.com/google/syzkaller/vm/adb"
 	_ "github.com/google/syzkaller/vm/gce"
+	_ "github.com/google/syzkaller/vm/isolated"
 	_ "github.com/google/syzkaller/vm/kvm"
 	_ "github.com/google/syzkaller/vm/odroid"
 	_ "github.com/google/syzkaller/vm/qemu"
