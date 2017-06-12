@@ -14,6 +14,7 @@ type Call struct {
 	NR       int // kernel syscall number
 	Name     string
 	CallName string
+	Native   bool // real of fake syscall
 	Args     []Type
 	Ret      Type
 }

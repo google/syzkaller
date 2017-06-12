@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"unsafe"
 
@@ -22,15 +23,26 @@ import (
 )
 
 type Options struct {
-	Threaded  bool
-	Collide   bool
-	Repeat    bool
-	Procs     int
-	Sandbox   string
+	Threaded bool
+	Collide  bool
+	Repeat   bool
+	Procs    int
+	Sandbox  string
+
 	Fault     bool // inject fault into FaultCall/FaultNth
 	FaultCall int
 	FaultNth  int
-	Repro     bool // generate code for use with repro package
+
+	// These options allow for a more fine-tuned control over the generated C code.
+	EnableTun  bool
+	UseTmpDir  bool
+	HandleSegv bool
+	WaitRepeat bool
+	Debug      bool
+
+	// Generate code for use with repro package to prints log messages,
+	// which allows to distinguish between a hang and an absent crash.
+	Repro bool
 }
 
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
@@ -53,15 +65,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	}
 	fmt.Fprintf(w, "\n")
 
-	enableTun := "false"
-	if _, ok := handled["syz_emit_ethernet"]; ok {
-		enableTun = "true"
-	}
-	if _, ok := handled["syz_extract_tcp_res"]; ok {
-		enableTun = "true"
-	}
-
-	hdr, err := preprocessCommonHeader(opts, handled)
+	hdr, err := preprocessCommonHeader(opts, handled, prog.RequiresBitmasks(p), prog.RequiresChecksums(p))
 	if err != nil {
 		return nil, err
 	}
@@ -75,29 +79,65 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		generateTestFunc(w, opts, calls, "loop")
 
 		fmt.Fprint(w, "int main()\n{\n")
-		fmt.Fprintf(w, "\tsetup_main_process();\n")
-		fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, enableTun)
-		fmt.Fprint(w, "\tint status = 0;\n")
-		fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+		if opts.HandleSegv {
+			fmt.Fprintf(w, "\tinstall_segv_handler();\n")
+		}
+		if opts.UseTmpDir {
+			fmt.Fprintf(w, "\tuse_temporary_dir();\n")
+		}
+		if opts.Sandbox != "" {
+			fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
+			fmt.Fprint(w, "\tint status = 0;\n")
+			fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+		} else {
+			if opts.EnableTun {
+				fmt.Fprintf(w, "\tsetup_tun(0, %v);\n", opts.EnableTun)
+			}
+			fmt.Fprint(w, "\tloop();\n")
+		}
 		fmt.Fprint(w, "\treturn 0;\n}\n")
 	} else {
 		generateTestFunc(w, opts, calls, "test")
 		if opts.Procs <= 1 {
 			fmt.Fprint(w, "int main()\n{\n")
-			fmt.Fprintf(w, "\tsetup_main_process();\n")
-			fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, enableTun)
-			fmt.Fprint(w, "\tint status = 0;\n")
-			fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+			if opts.HandleSegv {
+				fmt.Fprintf(w, "\tinstall_segv_handler();\n")
+			}
+			if opts.UseTmpDir {
+				fmt.Fprintf(w, "\tuse_temporary_dir();\n")
+			}
+			if opts.Sandbox != "" {
+				fmt.Fprintf(w, "\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
+				fmt.Fprint(w, "\tint status = 0;\n")
+				fmt.Fprint(w, "\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+			} else {
+				if opts.EnableTun {
+					fmt.Fprintf(w, "\tsetup_tun(0, %v);\n", opts.EnableTun)
+				}
+				fmt.Fprint(w, "\tloop();\n")
+			}
 			fmt.Fprint(w, "\treturn 0;\n}\n")
 		} else {
 			fmt.Fprint(w, "int main()\n{\n")
 			fmt.Fprint(w, "\tint i;")
 			fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", opts.Procs)
 			fmt.Fprint(w, "\t\tif (fork() == 0) {\n")
-			fmt.Fprintf(w, "\t\t\tsetup_main_process();\n")
-			fmt.Fprintf(w, "\t\t\tint pid = do_sandbox_%v(i, %v);\n", opts.Sandbox, enableTun)
-			fmt.Fprint(w, "\t\t\tint status = 0;\n")
-			fmt.Fprint(w, "\t\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+			if opts.HandleSegv {
+				fmt.Fprintf(w, "\t\t\tinstall_segv_handler();\n")
+			}
+			if opts.UseTmpDir {
+				fmt.Fprintf(w, "\t\t\tuse_temporary_dir();\n")
+			}
+			if opts.Sandbox != "" {
+				fmt.Fprintf(w, "\t\t\tint pid = do_sandbox_%v(i, %v);\n", opts.Sandbox, opts.EnableTun)
+				fmt.Fprint(w, "\t\t\tint status = 0;\n")
+				fmt.Fprint(w, "\t\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+			} else {
+				if opts.EnableTun {
+					fmt.Fprintf(w, "\t\t\tsetup_tun(i, %v);\n", opts.EnableTun)
+				}
+				fmt.Fprint(w, "\t\t\tloop();\n")
+			}
 			fmt.Fprint(w, "\t\t\treturn 0;\n")
 			fmt.Fprint(w, "\t\t}\n")
 			fmt.Fprint(w, "\t}\n")
@@ -105,16 +145,31 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			fmt.Fprint(w, "\treturn 0;\n}\n")
 		}
 	}
+
+	// Remove NONFAILING and debug calls.
+	out0 := w.String()
+	if !opts.HandleSegv {
+		re := regexp.MustCompile(`\t*NONFAILING\((.*)\);\n`)
+		out0 = re.ReplaceAllString(out0, "$1;\n")
+	}
+	if !opts.Debug {
+		re := regexp.MustCompile(`\t*debug\(.*\);\n`)
+		out0 = re.ReplaceAllString(out0, "")
+		re = regexp.MustCompile(`\t*debug_dump_data\(.*\);\n`)
+		out0 = re.ReplaceAllString(out0, "")
+	}
+
 	// Remove duplicate new lines.
-	out := w.Bytes()
+	out1 := []byte(out0)
 	for {
-		out1 := bytes.Replace(out, []byte{'\n', '\n', '\n'}, []byte{'\n', '\n'}, -1)
-		if len(out) == len(out1) {
+		out2 := bytes.Replace(out1, []byte{'\n', '\n', '\n'}, []byte{'\n', '\n'}, -1)
+		if len(out1) == len(out2) {
 			break
 		}
-		out = out1
+		out1 = out2
 	}
-	return out, nil
+
+	return out1, nil
 }
 
 func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
@@ -127,7 +182,7 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 		for _, c := range calls {
 			fmt.Fprintf(w, "%s", c)
 		}
-		fmt.Fprintf(w, "}\n")
+		fmt.Fprintf(w, "}\n\n")
 	} else {
 		fmt.Fprintf(w, "void *thr(void *arg)\n{\n")
 		fmt.Fprintf(w, "\tswitch ((long)arg) {\n")
@@ -147,7 +202,9 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 			fmt.Fprintf(w, "\tsyscall(SYS_write, 1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
 		}
 		fmt.Fprintf(w, "\tmemset(r, -1, sizeof(r));\n")
-		fmt.Fprintf(w, "\tsrand(getpid());\n")
+		if opts.Collide {
+			fmt.Fprintf(w, "\tsrand(getpid());\n")
+		}
 		fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", len(calls))
 		fmt.Fprintf(w, "\t\tpthread_create(&th[i], 0, thr, (void*)i);\n")
 		fmt.Fprintf(w, "\t\tusleep(10000);\n")
@@ -274,28 +331,49 @@ loop:
 				fmt.Fprintf(w, "\tinject_fault(%v);\n", opts.FaultNth)
 			}
 			meta := sys.Calls[instr]
-			fmt.Fprintf(w, "\tr[%v] = execute_syscall(__NR_%v", n, meta.CallName)
+			emitCall := true
+			if meta.CallName == "syz_test" {
+				emitCall = false
+			}
+			if !opts.EnableTun && (meta.CallName == "syz_emit_ethernet" || meta.CallName == "syz_extract_tcp_res") {
+				emitCall = false
+			}
+			if emitCall {
+				if meta.Native {
+					fmt.Fprintf(w, "\tr[%v] = syscall(__NR_%v", n, meta.CallName)
+				} else {
+					fmt.Fprintf(w, "\tr[%v] = %v(", n, meta.CallName)
+				}
+			}
 			nargs := read()
 			for i := uintptr(0); i < nargs; i++ {
 				typ := read()
 				size := read()
 				_ = size
+				if emitCall && (meta.Native || i > 0) {
+					fmt.Fprintf(w, ", ")
+				}
 				switch typ {
 				case prog.ExecArgConst:
-					fmt.Fprintf(w, ", 0x%xul", read())
+					value := read()
+					if emitCall {
+						fmt.Fprintf(w, "0x%xul", value)
+					}
 					// Bitfields can't be args of a normal syscall, so just ignore them.
 					read() // bit field offset
 					read() // bit field length
 				case prog.ExecArgResult:
-					fmt.Fprintf(w, ", %v", resultRef())
+					ref := resultRef()
+					if emitCall {
+						fmt.Fprintf(w, "%v", ref)
+					}
 				default:
 					panic(fmt.Sprintf("unknown arg type %v", typ))
 				}
 			}
-			for i := nargs; i < 9; i++ {
-				fmt.Fprintf(w, ", 0")
+			if emitCall {
+				fmt.Fprintf(w, ");\n")
 			}
-			fmt.Fprintf(w, ");\n")
 			lastCall = n
 			seenCall = true
 		}
@@ -304,9 +382,17 @@ loop:
 	return calls, n
 }
 
-func preprocessCommonHeader(opts Options, handled map[string]int) (string, error) {
+func preprocessCommonHeader(opts Options, handled map[string]int, useBitmasks, useChecksums bool) (string, error) {
 	var defines []string
+	if useBitmasks {
+		defines = append(defines, "SYZ_USE_BITMASKS")
+	}
+	if useBitmasks {
+		defines = append(defines, "SYZ_USE_CHECKSUMS")
+	}
 	switch opts.Sandbox {
+	case "":
+		// No sandbox, do nothing.
 	case "none":
 		defines = append(defines, "SYZ_SANDBOX_NONE")
 	case "setuid":
@@ -316,11 +402,32 @@ func preprocessCommonHeader(opts Options, handled map[string]int) (string, error
 	default:
 		return "", fmt.Errorf("unknown sandbox mode: %v", opts.Sandbox)
 	}
+	if opts.Threaded {
+		defines = append(defines, "SYZ_THREADED")
+	}
+	if opts.Collide {
+		defines = append(defines, "SYZ_COLLIDE")
+	}
 	if opts.Repeat {
 		defines = append(defines, "SYZ_REPEAT")
 	}
 	if opts.Fault {
 		defines = append(defines, "SYZ_FAULT_INJECTION")
+	}
+	if opts.EnableTun {
+		defines = append(defines, "SYZ_TUN_ENABLE")
+	}
+	if opts.UseTmpDir {
+		defines = append(defines, "SYZ_USE_TMP_DIR")
+	}
+	if opts.HandleSegv {
+		defines = append(defines, "SYZ_HANDLE_SEGV")
+	}
+	if opts.WaitRepeat {
+		defines = append(defines, "SYZ_WAIT_REPEAT")
+	}
+	if opts.Debug {
+		defines = append(defines, "SYZ_DEBUG")
 	}
 	for name, _ := range handled {
 		defines = append(defines, "__NR_"+name)

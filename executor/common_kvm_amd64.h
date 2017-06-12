@@ -623,69 +623,71 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 		}
 	}
 
-	struct tss16* tss16 = (struct tss16*)(host_mem + seg_tss16_2.base);
-	NONFAILING(
-	    struct tss16* tss = tss16;
-	    memset(tss, 0, sizeof(*tss));
-	    tss->ss0 = tss->ss1 = tss->ss2 = SEL_DS16;
-	    tss->sp0 = tss->sp1 = tss->sp2 = ADDR_STACK0;
-	    tss->ip = ADDR_VAR_USER_CODE2;
-	    tss->flags = (1 << 1);
-	    tss->cs = SEL_CS16;
-	    tss->es = tss->ds = tss->ss = SEL_DS16;
-	    tss->ldt = SEL_LDT);
-	struct tss16* tss16_cpl3 = (struct tss16*)(host_mem + seg_tss16_cpl3.base);
-	NONFAILING(
-	    struct tss16* tss = tss16_cpl3;
-	    memset(tss, 0, sizeof(*tss));
-	    tss->ss0 = tss->ss1 = tss->ss2 = SEL_DS16;
-	    tss->sp0 = tss->sp1 = tss->sp2 = ADDR_STACK0;
-	    tss->ip = ADDR_VAR_USER_CODE2;
-	    tss->flags = (1 << 1);
-	    tss->cs = SEL_CS16_CPL3;
-	    tss->es = tss->ds = tss->ss = SEL_DS16_CPL3;
-	    tss->ldt = SEL_LDT);
-	struct tss32* tss32 = (struct tss32*)(host_mem + seg_tss32_vm86.base);
-	NONFAILING(
-	    struct tss32* tss = tss32;
-	    memset(tss, 0, sizeof(*tss));
-	    tss->ss0 = tss->ss1 = tss->ss2 = SEL_DS32;
-	    tss->sp0 = tss->sp1 = tss->sp2 = ADDR_STACK0;
-	    tss->ip = ADDR_VAR_USER_CODE;
-	    tss->flags = (1 << 1) | (1 << 17);
-	    tss->ldt = SEL_LDT;
-	    tss->cr3 = sregs.cr3;
-	    tss->io_bitmap = offsetof(struct tss32, io_bitmap));
-	struct tss32* tss32_cpl3 = (struct tss32*)(host_mem + seg_tss32_2.base);
-	NONFAILING(
-	    struct tss32* tss = tss32_cpl3;
-	    memset(tss, 0, sizeof(*tss));
-	    tss->ss0 = tss->ss1 = tss->ss2 = SEL_DS32;
-	    tss->sp0 = tss->sp1 = tss->sp2 = ADDR_STACK0;
-	    tss->ip = ADDR_VAR_USER_CODE;
-	    tss->flags = (1 << 1);
-	    tss->cr3 = sregs.cr3;
-	    tss->es = tss->ds = tss->ss = tss->gs = tss->fs = SEL_DS32;
-	    tss->cs = SEL_CS32;
-	    tss->ldt = SEL_LDT;
-	    tss->cr3 = sregs.cr3;
-	    tss->io_bitmap = offsetof(struct tss32, io_bitmap));
-	struct tss64* tss64 = (struct tss64*)(host_mem + seg_tss64.base);
-	NONFAILING(
-	    struct tss64* tss = tss64;
-	    memset(tss, 0, sizeof(*tss));
-	    tss->rsp[0] = ADDR_STACK0;
-	    tss->rsp[1] = ADDR_STACK0;
-	    tss->rsp[2] = ADDR_STACK0;
-	    tss->io_bitmap = offsetof(struct tss64, io_bitmap));
-	struct tss64* tss64_cpl3 = (struct tss64*)(host_mem + seg_tss64_cpl3.base);
-	NONFAILING(
-	    struct tss64* tss = tss64_cpl3;
-	    memset(tss, 0, sizeof(*tss));
-	    tss->rsp[0] = ADDR_STACK0;
-	    tss->rsp[1] = ADDR_STACK0;
-	    tss->rsp[2] = ADDR_STACK0;
-	    tss->io_bitmap = offsetof(struct tss64, io_bitmap));
+	struct tss16 tss16;
+	memset(&tss16, 0, sizeof(tss16));
+	tss16.ss0 = tss16.ss1 = tss16.ss2 = SEL_DS16;
+	tss16.sp0 = tss16.sp1 = tss16.sp2 = ADDR_STACK0;
+	tss16.ip = ADDR_VAR_USER_CODE2;
+	tss16.flags = (1 << 1);
+	tss16.cs = SEL_CS16;
+	tss16.es = tss16.ds = tss16.ss = SEL_DS16;
+	tss16.ldt = SEL_LDT;
+	struct tss16* tss16_addr = (struct tss16*)(host_mem + seg_tss16_2.base);
+	NONFAILING(memcpy(tss16_addr, &tss16, sizeof(tss16)));
+
+	memset(&tss16, 0, sizeof(tss16));
+	tss16.ss0 = tss16.ss1 = tss16.ss2 = SEL_DS16;
+	tss16.sp0 = tss16.sp1 = tss16.sp2 = ADDR_STACK0;
+	tss16.ip = ADDR_VAR_USER_CODE2;
+	tss16.flags = (1 << 1);
+	tss16.cs = SEL_CS16_CPL3;
+	tss16.es = tss16.ds = tss16.ss = SEL_DS16_CPL3;
+	tss16.ldt = SEL_LDT;
+	struct tss16* tss16_cpl3_addr = (struct tss16*)(host_mem + seg_tss16_cpl3.base);
+	NONFAILING(memcpy(tss16_cpl3_addr, &tss16, sizeof(tss16)));
+
+	struct tss32 tss32;
+	memset(&tss32, 0, sizeof(tss32));
+	tss32.ss0 = tss32.ss1 = tss32.ss2 = SEL_DS32;
+	tss32.sp0 = tss32.sp1 = tss32.sp2 = ADDR_STACK0;
+	tss32.ip = ADDR_VAR_USER_CODE;
+	tss32.flags = (1 << 1) | (1 << 17);
+	tss32.ldt = SEL_LDT;
+	tss32.cr3 = sregs.cr3;
+	tss32.io_bitmap = offsetof(struct tss32, io_bitmap);
+	struct tss32* tss32_addr = (struct tss32*)(host_mem + seg_tss32_vm86.base);
+	NONFAILING(memcpy(tss32_addr, &tss32, sizeof(tss32)));
+
+	memset(&tss32, 0, sizeof(tss32));
+	tss32.ss0 = tss32.ss1 = tss32.ss2 = SEL_DS32;
+	tss32.sp0 = tss32.sp1 = tss32.sp2 = ADDR_STACK0;
+	tss32.ip = ADDR_VAR_USER_CODE;
+	tss32.flags = (1 << 1);
+	tss32.cr3 = sregs.cr3;
+	tss32.es = tss32.ds = tss32.ss = tss32.gs = tss32.fs = SEL_DS32;
+	tss32.cs = SEL_CS32;
+	tss32.ldt = SEL_LDT;
+	tss32.cr3 = sregs.cr3;
+	tss32.io_bitmap = offsetof(struct tss32, io_bitmap);
+	struct tss32* tss32_cpl3_addr = (struct tss32*)(host_mem + seg_tss32_2.base);
+	NONFAILING(memcpy(tss32_cpl3_addr, &tss32, sizeof(tss32)));
+
+	struct tss64 tss64;
+	memset(&tss64, 0, sizeof(tss64));
+	tss64.rsp[0] = ADDR_STACK0;
+	tss64.rsp[1] = ADDR_STACK0;
+	tss64.rsp[2] = ADDR_STACK0;
+	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
+	struct tss64* tss64_addr = (struct tss64*)(host_mem + seg_tss64.base);
+	NONFAILING(memcpy(tss64_addr, &tss64, sizeof(tss64)));
+
+	memset(&tss64, 0, sizeof(tss64));
+	tss64.rsp[0] = ADDR_STACK0;
+	tss64.rsp[1] = ADDR_STACK0;
+	tss64.rsp[2] = ADDR_STACK0;
+	tss64.io_bitmap = offsetof(struct tss64, io_bitmap);
+	struct tss64* tss64_cpl3_addr = (struct tss64*)(host_mem + seg_tss64_cpl3.base);
+	NONFAILING(memcpy(tss64_cpl3_addr, &tss64, sizeof(tss64)));
 
 	if (text_size > 1000)
 		text_size = 1000;
@@ -738,10 +740,10 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 			val &= ((1 << 8) | (1 << 9) | (1 << 10) | (1 << 12) | (1 << 13) | (1 << 14) |
 				(1 << 15) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21));
 			regs.rflags ^= val;
-			NONFAILING(tss16->flags ^= val);
-			NONFAILING(tss16_cpl3->flags ^= val);
-			NONFAILING(tss32->flags ^= val);
-			NONFAILING(tss32_cpl3->flags ^= val);
+			NONFAILING(tss16_addr->flags ^= val);
+			NONFAILING(tss16_cpl3_addr->flags ^= val);
+			NONFAILING(tss32_addr->flags ^= val);
+			NONFAILING(tss32_cpl3_addr->flags ^= val);
 			break;
 		case 4:
 			seg_cs16.type = val & 0xf;
