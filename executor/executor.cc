@@ -185,7 +185,8 @@ int main(int argc, char** argv)
 
 	uint64_t executor_pid = *((uint64_t*)input_data + 1);
 	cover_open();
-	setup_main_process();
+	install_segv_handler();
+	use_temporary_dir();
 
 	int pid = -1;
 	switch (flag_sandbox) {
