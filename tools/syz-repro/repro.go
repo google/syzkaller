@@ -49,7 +49,7 @@ func main() {
 		Fatalf("%v", err)
 	}
 	vmCount := vmPool.Count()
-	if *flagCount > 0 {
+	if *flagCount > 0 && *flagCount < vmCount {
 		vmCount = *flagCount
 	}
 	if vmCount > 4 {
