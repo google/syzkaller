@@ -103,6 +103,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 #endif
 #ifdef __NR_syz_open_pts
 #include <fcntl.h>
