@@ -58,6 +58,8 @@ bin/syz-extract: syz-extract/*.go sysparser/*.go
 
 generate: bin/syz-sysgen
 	bin/syz-sysgen
+	go generate ./...
+	$(MAKE) format
 bin/syz-sysgen: sysgen/*.go sysparser/*.go
 	go build $(GOFLAGS) -o $@ ./sysgen
 
@@ -71,7 +73,6 @@ tidy:
 
 presubmit:
 	$(MAKE) generate
-	go generate ./...
 	$(MAKE) format
 	$(MAKE) executor
 	ARCH=amd64 go install ./...
