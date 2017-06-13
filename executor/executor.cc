@@ -576,7 +576,7 @@ void handle_completion(thread_t* th)
 		write_output(reserrno);
 		write_output(th->fault_injected);
 		uint32_t* signal_count_pos = write_output(0); // filled in later
-		uint32_t* cover_count_pos = write_output(0);  // filled in later
+		uint32_t* cover_count_pos = write_output(0); // filled in later
 
 		// Write out feedback signals.
 		// Currently it is code edges computed as xor of two subsequent basic block PCs.
