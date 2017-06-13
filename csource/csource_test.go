@@ -64,7 +64,7 @@ func allOptionsSingle() []Options {
 }
 
 func allOptionsPermutations() []Options {
-	opts := []Options{ Options{} }
+	opts := []Options{Options{}}
 	fields := reflect.TypeOf(Options{}).NumField()
 	for i := 0; i < fields; i++ {
 		var newOpts []Options
