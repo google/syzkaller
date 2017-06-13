@@ -159,5 +159,5 @@ As a result the executor number `n` will get values in the `[20000 + n * 4, 2000
 
 ## Misc
 
-Description files also contain `include` directives that refer to Linux kernel header files
+Description files also contain `include` directives that refer to Linux kernel header files, `incdir` directives that refer to custom Linux kernel header directories 
 and `define` directives that define symbolic constant values. See the following section for details.
