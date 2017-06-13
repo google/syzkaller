@@ -59,27 +59,7 @@ func Parse(in io.Reader) *Description {
 	resources := make(map[string]Resource)
 	var str *Struct
 	for p.Scan() {
-		if p.EOF() {
-			continue
-		}
-		if p.Char() == '#' {
-			p.Parse(p.Char())
-			line := p.Str()
-			if strings.HasPrefix(line, "#incdir") {
-				p.Ident()
-				p.Parse('"')
-				var incdir []byte
-				for {
-					ch := p.Char()
-					if ch == '"' {
-						break
-					}
-					p.Parse(ch)
-					incdir = append(incdir, ch)
-				}
-				p.Parse('"')
-				incdirs = append(incdirs, string(incdir))
-			}
+		if p.EOF() || p.Char() == '#' {
 			continue
 		}
 		if str != nil {
@@ -186,6 +166,19 @@ func Parse(in io.Reader) *Description {
 					failf("struct '%v' is redefined as resource", name)
 				}
 				resources[id] = Resource{id, base, vals}
+			} else if name == "incdir" {
+				p.Parse('"')
+				var incdir []byte
+				for {
+					ch := p.Char()
+					if ch == '"' {
+						break
+					}
+					p.Parse(ch)
+					incdir = append(incdir, ch)
+				}
+				p.Parse('"')
+				incdirs = append(incdirs, string(incdir))
 			} else {
 				switch ch := p.Char(); ch {
 				case '(':
