@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"go/format"
 	"io"
 	"io/ioutil"
 	"os"
@@ -810,7 +811,12 @@ func isIdentifier(s string) bool {
 	return true
 }
 
-func writeSource(file string, src []byte) {
+func writeSource(file string, data []byte) {
+	src, err := format.Source(data)
+	if err != nil {
+		fmt.Printf("%s\n", data)
+		failf("failed to format output: %v", err)
+	}
 	if oldSrc, err := ioutil.ReadFile(file); err == nil && bytes.Equal(src, oldSrc) {
 		return
 	}
