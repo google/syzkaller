@@ -10,7 +10,7 @@
 //
 // NOTE: UNDER CONSTRUCTION. This API may change in backwards incompatible ways
 // and without notice.
-package bidi // import "golang.org/x/text/unicode/bidi"
+package bidi
 
 // TODO:
 // The following functionality would not be hard to implement, but hinges on
