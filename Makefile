@@ -9,7 +9,6 @@ endif
 .PHONY: all format clean manager fuzzer executor execprog mutate prog2c stress extract generate repro
 
 all:
-	$(MAKE) generate
 	go install ./syz-manager ./syz-fuzzer
 	$(MAKE) manager
 	$(MAKE) fuzzer
