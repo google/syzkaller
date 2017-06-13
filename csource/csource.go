@@ -175,6 +175,10 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 	if !opts.Threaded && !opts.Collide {
 		fmt.Fprintf(w, "void %v()\n{\n", name)
+		if opts.Debug {
+			// Use debug to avoid: error: ‘debug’ defined but not used.
+			fmt.Fprintf(w, "\tdebug(\"%v\\n\");\n", name)
+		}
 		if opts.Repro {
 			fmt.Fprintf(w, "\tsyscall(SYS_write, 1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
 		}
@@ -198,6 +202,10 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 		fmt.Fprintf(w, "\tlong i;\n")
 		fmt.Fprintf(w, "\tpthread_t th[%v];\n", 2*len(calls))
 		fmt.Fprintf(w, "\n")
+		if opts.Debug {
+			// Use debug to avoid: error: ‘debug’ defined but not used.
+			fmt.Fprintf(w, "\tdebug(\"%v\\n\");\n", name)
+		}
 		if opts.Repro {
 			fmt.Fprintf(w, "\tsyscall(SYS_write, 1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
 		}
@@ -387,7 +395,7 @@ func preprocessCommonHeader(opts Options, handled map[string]int, useBitmasks, u
 	if useBitmasks {
 		defines = append(defines, "SYZ_USE_BITMASKS")
 	}
-	if useBitmasks {
+	if useChecksums {
 		defines = append(defines, "SYZ_USE_CHECKSUMS")
 	}
 	switch opts.Sandbox {

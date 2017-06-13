@@ -138,7 +138,7 @@ const int kErrorStatus = 68;
     defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) ||                  \
     defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) ||               \
     defined(__NR_syz_kvm_setup_cpu)
-__attribute__((noreturn)) void doexit(int status)
+__attribute__((noreturn)) static void doexit(int status)
 {
 	volatile unsigned i;
 	syscall(__NR_exit_group, status);
@@ -155,7 +155,7 @@ __attribute__((noreturn)) void doexit(int status)
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
     defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||               \
     defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
-__attribute__((noreturn)) void fail(const char* msg, ...)
+__attribute__((noreturn)) static void fail(const char* msg, ...)
 {
 	int e = errno;
 	fflush(stdout);
@@ -169,7 +169,7 @@ __attribute__((noreturn)) void fail(const char* msg, ...)
 #endif
 
 #if defined(SYZ_EXECUTOR)
-__attribute__((noreturn)) void error(const char* msg, ...)
+__attribute__((noreturn)) static void error(const char* msg, ...)
 {
 	fflush(stdout);
 	va_list args;
@@ -182,7 +182,7 @@ __attribute__((noreturn)) void error(const char* msg, ...)
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-__attribute__((noreturn)) void exitf(const char* msg, ...)
+__attribute__((noreturn)) static void exitf(const char* msg, ...)
 {
 	int e = errno;
 	fflush(stdout);
@@ -198,7 +198,7 @@ __attribute__((noreturn)) void exitf(const char* msg, ...)
 #if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 static int flag_debug;
 
-void debug(const char* msg, ...)
+static void debug(const char* msg, ...)
 {
 	if (!flag_debug)
 		return;
@@ -227,8 +227,8 @@ void debug(const char* msg, ...)
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
-__thread int skip_segv;
-__thread jmp_buf segv_env;
+static __thread int skip_segv;
+static __thread jmp_buf segv_env;
 
 static void segv_handler(int sig, siginfo_t* info, void* uctx)
 {
@@ -324,7 +324,7 @@ static void execute_command(const char* format, ...)
 	va_end(args);
 }
 
-int tunfd = -1;
+static int tunfd = -1;
 
 #define SYZ_TUN_MAX_PACKET_SIZE 1000
 
@@ -394,7 +394,7 @@ static void setup_tun(uint64_t pid, bool enable_tun)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_TUN_ENABLE) && (defined(__NR_syz_extract_tcp_res) || defined(SYZ_REPEAT)))
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_TUN_ENABLE) && (defined(__NR_syz_extract_tcp_res) || defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)))
 static int read_tun(char* data, int size)
 {
 	int rv = read(tunfd, data, size);
@@ -421,17 +421,17 @@ static void debug_dump_data(const char* data, int length)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_CHECKSUMS) || defined(__NR_syz_test)
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_CHECKSUMS)
 struct csum_inet {
 	uint32_t acc;
 };
 
-void csum_inet_init(struct csum_inet* csum)
+static void csum_inet_init(struct csum_inet* csum)
 {
 	csum->acc = 0;
 }
 
-void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
+static void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
 {
 	if (length == 0)
 		return;
@@ -447,7 +447,7 @@ void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length
 		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
 }
 
-uint16_t csum_inet_digest(struct csum_inet* csum)
+static uint16_t csum_inet_digest(struct csum_inet* csum)
 {
 	return ~csum->acc;
 }
@@ -467,8 +467,8 @@ static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_TUN_ENABLE))
-void flush_tun()
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_TUN_ENABLE))
+static void flush_tun()
 {
 	char data[SYZ_TUN_MAX_PACKET_SIZE];
 	while (read_tun(&data[0], sizeof(data)) != -1)

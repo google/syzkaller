@@ -6,7 +6,7 @@ ifeq ($(NOSTATIC), 0)
 	STATIC_FLAG=-static
 endif
 
-.PHONY: all format clean manager fuzzer executor execprog mutate prog2c stress extract generate repro
+.PHONY: all format tidy clean manager fuzzer executor execprog mutate prog2c stress extract generate repro
 
 all:
 	go install ./syz-manager ./syz-fuzzer
@@ -64,6 +64,10 @@ bin/syz-sysgen: sysgen/*.go sysparser/*.go
 format:
 	go fmt ./...
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
+
+# A single check is enabled for now. But it's always fixable and proved to be useful.
+tidy:
+	clang-tidy -quiet -header-filter=.* -checks=-*,misc-definitions-in-headers -warnings-as-errors=* executor/*.cc
 
 presubmit:
 	$(MAKE) generate
