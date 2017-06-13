@@ -5,7 +5,7 @@
 // +build go1.7
 
 // Package ctxhttp provides helper functions for performing context-aware HTTP requests.
-package ctxhttp // import "golang.org/x/net/context/ctxhttp"
+package ctxhttp
 
 import (
 	"io"
