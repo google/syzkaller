@@ -15,7 +15,7 @@ struct call_t {
 };
 
 #if defined(__x86_64__) || 0
-call_t syscalls[] = {
+static call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
     {"accept$ax25", 43},
@@ -1524,7 +1524,7 @@ call_t syscalls[] = {
 #endif
 
 #if defined(__aarch64__) || 0
-call_t syscalls[] = {
+static call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
     {"accept$ax25", 202},
@@ -3033,7 +3033,7 @@ call_t syscalls[] = {
 #endif
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
-call_t syscalls[] = {
+static call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
     {"accept$ax25", 330},
