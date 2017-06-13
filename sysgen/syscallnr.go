@@ -94,7 +94,7 @@ struct call_t {
 
 {{range $arch := $.Archs}}
 #if {{range $cdef := $arch.CARCH}}defined({{$cdef}}) || {{end}}0
-call_t syscalls[] = {
+static call_t syscalls[] = {
 {{range $c := $arch.Calls}}	{"{{$c.Name}}", {{$c.NR}}},
 {{end}}
 };
