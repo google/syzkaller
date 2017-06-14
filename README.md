@@ -12,7 +12,7 @@ You can subscribe to it with a google account or by sending an email to syzkalle
 
 List of [found bugs](docs/found_bugs.md).
 
-How to [report Linux kernel bugs](docs/reporting_linux_kernel_bugs.md).
+How to [report Linux kernel bugs](docs/linux_kernel_reporting_bugs.md).
 
 How to [contribute](docs/contributing.md).
 
@@ -26,7 +26,7 @@ The following components are needed to use syzkaller:
  - syzkaller itself
 
 Generic steps to set up syzkaller are described below.
-More specific information (like the exact steps for a particular host system, VM type and a kernel architecture) can be found on [the wiki](https://github.com/google/syzkaller/wiki).
+More specific information (like the exact steps for a particular host system, VM type and a kernel architecture) can be found in [the documentation](docs/).
 
 ### C Compiler
 
@@ -64,9 +64,9 @@ These are the generic requirements for a syzkaller VM:
 
 To use QEMU syzkaller VMs you have to install QEMU on your host system, see [QEMU docs](http://wiki.qemu.org/Manual) for details.
 The [create-image.sh](tools/create-image.sh) script can be used to create a suitable Linux image.
-Detailed steps for setting up syzkaller with QEMU on a Linux host can be found on wiki for [x86-64](docs/setup_ubuntu-host_qemu-vm_x86-64-kernel.md) and [arm64](docs/setup_linux-host_qemu-vm_arm64-kernel.md) kernels.
+Detailed steps for setting up syzkaller with QEMU on a Linux host are avaialble for [x86-64](docs/setup_ubuntu-host_qemu-vm_x86-64-kernel.md) and [arm64](docs/setup_linux-host_qemu-vm_arm64-kernel.md) kernels.
 
-For some details on fuzzing the kernel on an Android device check out [this wiki page](docs/setup_linux-host_android-device_arm64-kernel.md) and the explicit instructions for an Odroid C2 board are available [here](docs/setup_ubuntu-host_odroid-c2-board_arm64-kernel.md).
+For some details on fuzzing the kernel on an Android device check out [this page](docs/setup_linux-host_android-device_arm64-kernel.md) and the explicit instructions for an Odroid C2 board are available [here](docs/setup_ubuntu-host_odroid-c2-board_arm64-kernel.md).
 
 ### Syzkaller
 
