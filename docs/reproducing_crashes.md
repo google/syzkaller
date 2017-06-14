@@ -1,4 +1,4 @@
-# Tools: syz-execprog, syz-prog2c, syz-repro
+# How to reproduce crashes
 
 The process of creating reproducer programs for syzkaller bugs is automated, however it's not perfect, so syzkaller provides a few tools for executing and reproducing programs manually.
 

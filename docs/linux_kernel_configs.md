@@ -34,7 +34,13 @@ If your kernel doesn't have commits [arm64: setup: introduce kaslr_offset()](htt
 
 ## Bug detection configs
 
-`KASAN` for use-after-free and out-of-bounds detection:
+Syzkaller is meant to be used with
+[KASAN](https://kernel.org/doc/html/latest/dev-tools/kasan.html) (available upstream with `CONFIG_KASAN=y`),
+[KTSAN](https://github.com/google/ktsan) (prototype available),
+[KMSAN](https://github.com/google/kmsan) (prototype available),
+or [KUBSAN](https://kernel.org/doc/html/latest/dev-tools/ubsan.html) (available upstream with `CONFIG_UBSAN=y`).
+
+Enable `KASAN` for use-after-free and out-of-bounds detection:
 ```
 CONFIG_KASAN=y
 CONFIG_KASAN_INLINE=y
