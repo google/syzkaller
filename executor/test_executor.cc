@@ -207,7 +207,7 @@ static int test_one(int text_type, const char* text, int text_size, int flags, u
 			printf("/dev/kvm is not present\n");
 			return -1;
 		}
-		if (errno == EPERM) {
+		if (errno == EPERM || errno == EACCES) {
 			printf("no permissions to open /dev/kvm\n");
 			return -1;
 		}
