@@ -40,7 +40,7 @@ KCOV was committed upstream in Linux kernel version 4.6 and can be enabled by co
 For older kernels you need to backport commit [kernel: add kcov code coverage](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593).
 
 To enable more syzkaller features and improve bug detection abilities, it's recommended to use additional config options.
-See [Kernel configs](https://github.com/google/syzkaller/wiki/Kernel-configs) for details.
+See [this page](docs/linux_kernel_configs.md) for details.
 
 ### VM Setup
 
