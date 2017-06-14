@@ -10,7 +10,7 @@ or [KUBSAN](https://kernel.org/doc/html/latest/dev-tools/ubsan.html) (available 
 Project mailing list: [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller).
 You can subscribe to it with a google account or by sending an email to syzkaller+subscribe@googlegroups.com.
 
-List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
+List of [found bugs](docs/found_bugs.md).
 
 How to [report Linux kernel bugs](docs/reporting_linux_kernel_bugs.md).
 
