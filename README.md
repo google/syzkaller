@@ -64,9 +64,9 @@ These are the generic requirements for a syzkaller VM:
 
 To use QEMU syzkaller VMs you have to install QEMU on your host system, see [QEMU docs](http://wiki.qemu.org/Manual) for details.
 The [create-image.sh](tools/create-image.sh) script can be used to create a suitable Linux image.
-Detailed steps for setting up syzkaller with QEMU on a Linux host can be found on wiki for [x86-64](https://github.com/google/syzkaller/wiki/Setup:-Ubuntu-host,-QEMU-vm,-x86_64-kernel) and [arm64](https://github.com/google/syzkaller/wiki/Setup:-Linux-host,-QEMU-vm,-arm64-kernel) kernels.
+Detailed steps for setting up syzkaller with QEMU on a Linux host can be found on wiki for [x86-64](docs/setup_ubuntu-host_qemu-vm_x86-64-kernel.md) and [arm64](docs/setup_linux-host_qemu-vm_arm64-kernel.md) kernels.
 
-For some details on fuzzing the kernel on an Android device check out [this wiki page](https://github.com/google/syzkaller/wiki/Setup:-Linux-host,-Android-device,-arm64-kernel) and the explicit instructions for an Odroid C2 board are available [here](https://github.com/google/syzkaller/wiki/Setup:-Ubuntu-host,-Odroid-C2-board,-arm64-kernel).
+For some details on fuzzing the kernel on an Android device check out [this wiki page](docs/setup_linux-host_android-device_arm64-kernel.md) and the explicit instructions for an Odroid C2 board are available [here](docs/setup_ubuntu-host_odroid-c2-board_arm64-kernel.md).
 
 ### Syzkaller
 
