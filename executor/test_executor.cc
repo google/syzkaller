@@ -188,8 +188,8 @@ extern "C" int test_csum_inet_acc()
 
 		if (csum_inet_digest(&csum_acc) != csum_inet_digest(&csum))
 			return 1;
-		return 0;
 	}
+	return 0;
 }
 
 static unsigned host_kernel_version();
