@@ -61,7 +61,7 @@ bin/syz-extract: syz-extract/*.go sysparser/*.go
 
 generate: bin/syz-sysgen
 	bin/syz-sysgen
-	go generate ./...
+	go generate ./csource ./executor ./syz-gce ./pkg/ifuzz ./pkg/kernel
 	$(MAKE) format
 bin/syz-sysgen: sysgen/*.go sysparser/*.go
 	go build $(GOFLAGS) -o $@ ./sysgen
