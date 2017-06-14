@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package dash
+package kernel
 
 import (
 	"bufio"
@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func parsePatch(text string) (title string, diff string, err error) {
+func ParsePatch(text string) (title string, diff string, err error) {
 	s := bufio.NewScanner(strings.NewReader(text))
 	parsingDiff := false
 	diffStarted := false
