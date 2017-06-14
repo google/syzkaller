@@ -193,7 +193,7 @@ Most likely you won't see `reportN` files for these crashes (e.g. if there is no
 
 `syzkaller` uses declarative description of syscalls to generate, mutate, minimize,
 serialize and deserialize programs (sequences of syscalls). See details about the
-format and extending the descriptions in [sys/README.md](sys/README.md).
+format and extending the descriptions [here](docs/syscall_descriptions.md).
 
 ## Troubleshooting
 

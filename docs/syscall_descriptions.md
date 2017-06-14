@@ -1,4 +1,4 @@
-# Syscall Description
+# Syscall descriptions
 
 `syzkaller` uses declarative description of syscalls to generate, mutate, minimize,
 serialize and deserialize programs (sequences of syscalls). Below you can see
