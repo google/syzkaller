@@ -14,6 +14,8 @@ List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
 
 How to [report Linux kernel bugs](https://github.com/google/syzkaller/wiki/How-to-report-kernel-bugs).
 
+How to [contribute](docs/contributing.md).
+
 ## Usage
 
 The following components are needed to use syzkaller:
@@ -245,10 +247,6 @@ Here are some things to check if there are problems running syzkaller.
  - [Debugging a kernel crash found by syzkaller](http://vegardno.blogspot.de/2016/08/sync-debug.html) (by Quentin Casasnovas)
  - [Linux Plumbers 2016 talk slides](https://docs.google.com/presentation/d/1iAuTvzt_xvDzS2misXwlYko_VDvpvCmDevMOq2rXIcA/edit?usp=sharing)
  - [syzkaller: the next gen kernel fuzzer](https://www.slideshare.net/DmitryVyukov/syzkaller-the-next-gen-kernel-fuzzer) (basics of operations, tutorial on how to run syzkaller and how to extend it to fuzz new drivers)
-
-## Contributing
-
-If you want to contribute to the project, you need to [sign Google CLA](https://cla.developers.google.com/) and add yourself to [AUTHORS](AUTHORS)/[CONTRIBUTORS](CONTRIBUTORS) files in the first pull request. Extending/improving [system call descriptions](sys/sys.txt) is always a good idea. If you want to work on something non-trivial, please briefly describe it on [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller) mailing list first so that there is agreement on high level approach and no duplication of work between contributors.
 
 ## Disclaimer
 
