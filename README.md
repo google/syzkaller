@@ -10,9 +10,11 @@ or [KUBSAN](https://kernel.org/doc/html/latest/dev-tools/ubsan.html) (available 
 Project mailing list: [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller).
 You can subscribe to it with a google account or by sending an email to syzkaller+subscribe@googlegroups.com.
 
-List of [found bugs](https://github.com/google/syzkaller/wiki/Found-Bugs).
+List of [found bugs](docs/found_bugs.md).
 
-How to [report Linux kernel bugs](https://github.com/google/syzkaller/wiki/How-to-report-kernel-bugs).
+How to [report Linux kernel bugs](docs/linux_kernel_reporting_bugs.md).
+
+How to [contribute](docs/contributing.md).
 
 ## Usage
 
@@ -24,7 +26,7 @@ The following components are needed to use syzkaller:
  - syzkaller itself
 
 Generic steps to set up syzkaller are described below.
-More specific information (like the exact steps for a particular host system, VM type and a kernel architecture) can be found on [the wiki](https://github.com/google/syzkaller/wiki).
+More specific information (like the exact steps for a particular host system, VM type and a kernel architecture) can be found in [the documentation](docs/).
 
 ### C Compiler
 
@@ -38,7 +40,7 @@ KCOV was committed upstream in Linux kernel version 4.6 and can be enabled by co
 For older kernels you need to backport commit [kernel: add kcov code coverage](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593).
 
 To enable more syzkaller features and improve bug detection abilities, it's recommended to use additional config options.
-See [Kernel configs](https://github.com/google/syzkaller/wiki/Kernel-configs) for details.
+See [this page](docs/linux_kernel_configs.md) for details.
 
 ### VM Setup
 
@@ -62,9 +64,9 @@ These are the generic requirements for a syzkaller VM:
 
 To use QEMU syzkaller VMs you have to install QEMU on your host system, see [QEMU docs](http://wiki.qemu.org/Manual) for details.
 The [create-image.sh](tools/create-image.sh) script can be used to create a suitable Linux image.
-Detailed steps for setting up syzkaller with QEMU on a Linux host can be found on wiki for [x86-64](https://github.com/google/syzkaller/wiki/Setup:-Ubuntu-host,-QEMU-vm,-x86_64-kernel) and [arm64](https://github.com/google/syzkaller/wiki/Setup:-Linux-host,-QEMU-vm,-arm64-kernel) kernels.
+Detailed steps for setting up syzkaller with QEMU on a Linux host are avaialble for [x86-64](docs/setup_ubuntu-host_qemu-vm_x86-64-kernel.md) and [arm64](docs/setup_linux-host_qemu-vm_arm64-kernel.md) kernels.
 
-For some details on fuzzing the kernel on an Android device check out [this wiki page](https://github.com/google/syzkaller/wiki/Setup:-Linux-host,-Android-device,-arm64-kernel) and the explicit instructions for an Odroid C2 board are available [here](https://github.com/google/syzkaller/wiki/Setup:-Ubuntu-host,-Odroid-C2-board,-arm64-kernel).
+For some details on fuzzing the kernel on an Android device check out [this page](docs/setup_linux-host_android-device_arm64-kernel.md) and the explicit instructions for an Odroid C2 board are available [here](docs/setup_ubuntu-host_odroid-c2-board_arm64-kernel.md).
 
 ### Syzkaller
 
@@ -179,7 +181,7 @@ When `syzkaller` finds a crasher, it saves information about it into `workdir/cr
 
 Descriptions are extracted using a set of [regular expressions](report/report.go#L33). This set may need to be extended if you are using a different kernel architecture, or are just seeing a previously unseen kernel error messages.
 
-`logN` files contain raw `syzkaller` logs and include kernel console output as well as programs executed before the crash. These logs can be fed to `syz-repro` tool for [crash location and minimization](https://github.com/google/syzkaller/wiki/Tools:-execprog,-prog2c,-repro), or to `syz-execprog` tool for [manual localization](https://github.com/google/syzkaller/wiki/How-to-execute-syzkaller-programs). `reportN` files contain post-processed and symbolized kernel crash reports (e.g. a KASAN report). Normally you need just 1 pair of these files (i.e. `log0` and `report0`), because they all presumably describe the same kernel bug. However, `syzkaller` saves up to 100 of them for the case when the crash is poorly reproducible, or if you just want to look at a set of crash reports to infer some similarities or differences.
+`logN` files contain raw `syzkaller` logs and include kernel console output as well as programs executed before the crash. These logs can be fed to `syz-repro` tool for [crash location and minimization](docs/tools_syz-execprog_syz-prog2c_syz-repro.md), or to `syz-execprog` tool for [manual localization](docs/executing_syzkaller_programs.md). `reportN` files contain post-processed and symbolized kernel crash reports (e.g. a KASAN report). Normally you need just 1 pair of these files (i.e. `log0` and `report0`), because they all presumably describe the same kernel bug. However, `syzkaller` saves up to 100 of them for the case when the crash is poorly reproducible, or if you just want to look at a set of crash reports to infer some similarities or differences.
 
 There are 3 special types of crashes:
  - `no output from test machine`: the test machine produces no output whatsoever
@@ -191,7 +193,7 @@ Most likely you won't see `reportN` files for these crashes (e.g. if there is no
 
 `syzkaller` uses declarative description of syscalls to generate, mutate, minimize,
 serialize and deserialize programs (sequences of syscalls). See details about the
-format and extending the descriptions in [sys/README.md](sys/README.md).
+format and extending the descriptions [here](docs/syscall_descriptions.md).
 
 ## Troubleshooting
 
@@ -245,10 +247,6 @@ Here are some things to check if there are problems running syzkaller.
  - [Debugging a kernel crash found by syzkaller](http://vegardno.blogspot.de/2016/08/sync-debug.html) (by Quentin Casasnovas)
  - [Linux Plumbers 2016 talk slides](https://docs.google.com/presentation/d/1iAuTvzt_xvDzS2misXwlYko_VDvpvCmDevMOq2rXIcA/edit?usp=sharing)
  - [syzkaller: the next gen kernel fuzzer](https://www.slideshare.net/DmitryVyukov/syzkaller-the-next-gen-kernel-fuzzer) (basics of operations, tutorial on how to run syzkaller and how to extend it to fuzz new drivers)
-
-## Contributing
-
-If you want to contribute to the project, you need to [sign Google CLA](https://cla.developers.google.com/) and add yourself to [AUTHORS](AUTHORS)/[CONTRIBUTORS](CONTRIBUTORS) files in the first pull request. Extending/improving [system call descriptions](sys/sys.txt) is always a good idea. If you want to work on something non-trivial, please briefly describe it on [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller) mailing list first so that there is agreement on high level approach and no duplication of work between contributors.
 
 ## Disclaimer
 
