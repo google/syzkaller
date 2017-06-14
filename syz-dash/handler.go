@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/kernel"
 	"appengine"
 	ds "appengine/datastore"
 	"appengine/user"
@@ -412,7 +413,7 @@ func handleBug(c appengine.Context, w http.ResponseWriter, r *http.Request) erro
 		}
 		dropCached(c)
 	case "Add patch":
-		title, diff, err := parsePatch(r.FormValue("patch"))
+		title, diff, err := kernel.ParsePatch(r.FormValue("patch"))
 		if err != nil {
 			return fmt.Errorf("failed to parse patch: %v", err)
 		}
