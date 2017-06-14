@@ -19,7 +19,7 @@ all-tools: execprog mutate prog2c stress repro upgrade db
 
 # executor uses stacks of limited size, so no jumbo frames.
 executor:
-	$(CC) -o ./bin/syz-executor executor/executor.cc -pthread -Wall -Wframe-larger-than=8192 -Werror -O1 -g $(STATIC_FLAG) $(CFLAGS)
+	$(CC) -o ./bin/syz-executor executor/executor.cc -pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 -g $(STATIC_FLAG) $(CFLAGS)
 
 # Don't generate symbol table and DWARF debug info.
 # Reduces build time and binary sizes considerably.
@@ -70,9 +70,11 @@ format:
 	go fmt ./...
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
 
-# A single check is enabled for now. But it's always fixable and proved to be useful.
 tidy:
+	# A single check is enabled for now. But it's always fixable and proved to be useful.
 	clang-tidy -quiet -header-filter=.* -checks=-*,misc-definitions-in-headers -warnings-as-errors=* executor/*.cc
+	# Just check for compiler warnings.
+	$(CC) executor/test_executor.cc -c -o /dev/null -Wparentheses -Wno-unused -Wall
 
 presubmit:
 	$(MAKE) generate
