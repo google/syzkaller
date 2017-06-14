@@ -4,12 +4,17 @@
 package kernel
 
 import (
+	"os/exec"
 	"strings"
 	"testing"
 )
 
 func TestCompilerIdentity(t *testing.T) {
-	id, err := CompilerIdentity("gcc")
+	compiler := "gcc"
+	if _, err := exec.LookPath(compiler); err != nil {
+		t.Skipf("compiler '%v' is not found: %v", compiler, err)
+	}
+	id, err := CompilerIdentity(compiler)
 	if err != nil {
 		t.Fatalf("failed: %v", err)
 	}
