@@ -41,7 +41,7 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	for name, mgr := range hub.st.Managers {
 		total.Added += mgr.Added
-		total.Deleted += mgr.Added
+		total.Deleted += mgr.Deleted
 		total.New += mgr.New
 		data.Managers = append(data.Managers, UIManager{
 			Name:    name,
