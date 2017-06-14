@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package dash
+package kernel
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 func TestParsePatch(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.title, func(t *testing.T) {
-			title, diff, err := parsePatch(test.text)
+			title, diff, err := ParsePatch(test.text)
 			if err != nil {
 				t.Fatalf("failed to parse patch: %v", err)
 			}
