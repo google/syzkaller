@@ -1,4 +1,4 @@
-# Tools: syz-hub
+# How to connect several managers via Hub
 
 `syz-hub` program can be used to connect several `syz-manager`'s together and allow them to exchange programs.
 
