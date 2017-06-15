@@ -158,13 +158,7 @@ func RunManager(cfg *config.Config, syscalls map[int]bool) {
 	}
 
 	Logf(0, "loading corpus...")
-	dbFilename := filepath.Join(cfg.Workdir, "corpus.db")
-	if _, err := os.Stat(dbFilename); err != nil {
-		if err := convertPersistentToDB(filepath.Join(cfg.Workdir, "corpus"), dbFilename); err != nil {
-			Fatalf("failed to convert old corpus: %v", err)
-		}
-	}
-	mgr.corpusDB, err = db.Open(dbFilename)
+	mgr.corpusDB, err = db.Open(filepath.Join(cfg.Workdir, "corpus.db"))
 	if err != nil {
 		Fatalf("failed to open corpus database: %v", err)
 	}
