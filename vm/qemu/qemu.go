@@ -230,21 +230,47 @@ func (inst *instance) Boot() error {
 		)
 	}
 	if inst.cfg.Kernel != "" {
-		cmdline := "console=ttyS0 vsyscall=native rodata=n oops=panic panic_on_warn=1 panic=86400" +
-			" ftrace_dump_on_oops=orig_cpu earlyprintk=serial slub_debug=UZ net.ifnames=0 biosdevname=0 " +
-			" kvm-intel.nested=1 kvm-intel.unrestricted_guest=1 kvm-intel.vmm_exclusive=1 kvm-intel.fasteoi=1 " +
-			" kvm-intel.ept=1 kvm-intel.flexpriority=1 " +
-			" kvm-intel.vpid=1 kvm-intel.emulate_invalid_guest_state=1 kvm-intel.eptad=1 " +
-			" kvm-intel.enable_shadow_vmcs=1 kvm-intel.pml=1 kvm-intel.enable_apicv=1 "
-		if inst.image == "9p" {
-			cmdline += "root=/dev/root rootfstype=9p rootflags=trans=virtio,version=9p2000.L,cache=loose "
-			cmdline += "init=" + filepath.Join(inst.workdir, "init.sh") + " "
-		} else {
-			cmdline += "root=/dev/sda "
+		cmdline := []string{
+			"console=ttyS0",
+			"vsyscall=native",
+			"rodata=n",
+			"oops=panic",
+			"nmi_watchdog=panic",
+			"panic_on_warn=1",
+			"panic=86400",
+			"ftrace_dump_on_oops=orig_cpu",
+			"earlyprintk=serial",
+			"net.ifnames=0",
+			"biosdevname=0",
+			"kvm-intel.nested=1",
+			"kvm-intel.unrestricted_guest=1",
+			"kvm-intel.vmm_exclusive=1",
+			"kvm-intel.fasteoi=1",
+			"kvm-intel.ept=1",
+			"kvm-intel.flexpriority=1",
+			"kvm-intel.vpid=1",
+			"kvm-intel.emulate_invalid_guest_state=1",
+			"kvm-intel.eptad=1",
+			"kvm-intel.enable_shadow_vmcs=1",
+			"kvm-intel.pml=1",
+			"kvm-intel.enable_apicv=1",
 		}
+		if inst.image == "9p" {
+			cmdline = append(cmdline,
+				"root=/dev/root",
+				"rootfstype=9p",
+				"rootflags=trans=virtio,version=9p2000.L,cache=loose",
+				"init="+filepath.Join(inst.workdir, "init.sh"),
+			)
+		} else {
+			cmdline = append(cmdline,
+				"root=/dev/sda",
+			)
+		}
+		cmdline = append(cmdline, inst.cfg.Cmdline)
 		args = append(args,
 			"-kernel", inst.cfg.Kernel,
-			"-append", cmdline+inst.cfg.Cmdline,
+			"-append", strings.Join(cmdline, " "),
 		)
 	}
 	if inst.debug {
