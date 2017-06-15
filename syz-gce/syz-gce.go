@@ -30,8 +30,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"runtime"
-	"strconv"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -41,6 +39,7 @@ import (
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/git"
+	"github.com/google/syzkaller/pkg/kernel"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/syz-manager/config"
 )
@@ -357,7 +356,15 @@ func (a *LocalBuildAction) Build() error {
 		}
 	}
 	Logf(0, "building kernel on %v...", hash)
-	if err := buildKernel(dir, a.Compiler); err != nil {
+	config, full := syzconfig, false
+	if cfg.Linux_Config != "" {
+		data, err := ioutil.ReadFile(cfg.Linux_Config)
+		if err != nil {
+			return fmt.Errorf("failed to read config file: %v", err)
+		}
+		config, full = string(data), true
+	}
+	if err := kernel.Build(dir, a.Compiler, config, full); err != nil {
 		return fmt.Errorf("build failed: %v", err)
 	}
 	scriptFile := filepath.Join(a.Dir, "create-gce-image.sh")
@@ -545,33 +552,6 @@ func downloadAndExtract(f *gcs.File, dir string) error {
 		if !files[need] {
 			return fmt.Errorf("archive misses required file '%v'", need)
 		}
-	}
-	return nil
-}
-
-func buildKernel(dir, ccompiler string) error {
-	os.Remove(filepath.Join(dir, ".config"))
-	if _, err := runCmd(dir, "make", "defconfig"); err != nil {
-		return err
-	}
-	if _, err := runCmd(dir, "make", "kvmconfig"); err != nil {
-		return err
-	}
-	configFile := cfg.Linux_Config
-	if configFile == "" {
-		configFile = filepath.Join(dir, "syz.config")
-		if err := ioutil.WriteFile(configFile, []byte(syzconfig), 0600); err != nil {
-			return fmt.Errorf("failed to write config file: %v", err)
-		}
-	}
-	if _, err := runCmd(dir, "scripts/kconfig/merge_config.sh", "-n", ".config", configFile); err != nil {
-		return err
-	}
-	if _, err := runCmd(dir, "make", "olddefconfig"); err != nil {
-		return err
-	}
-	if _, err := runCmd(dir, "make", "-j", strconv.Itoa(runtime.NumCPU()*2), "CC="+ccompiler); err != nil {
-		return err
 	}
 	return nil
 }
