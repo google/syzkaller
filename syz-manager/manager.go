@@ -368,13 +368,17 @@ func (mgr *Manager) vmLoop() {
 			phase, shutdown == nil, len(instances), vmCount, instances,
 			len(pendingRepro), len(reproducing), len(reproQueue))
 
+		canRepro := func() bool {
+			return phase >= phaseTriagedHub &&
+				len(reproQueue) != 0 && reproInstances+instancesPerRepro <= vmCount
+		}
+
 		if shutdown == nil {
 			if len(instances) == vmCount {
 				return
 			}
 		} else {
-			for phase >= phaseTriagedHub &&
-				len(reproQueue) != 0 && len(instances) >= instancesPerRepro {
+			for canRepro() && len(instances) >= instancesPerRepro {
 				last := len(reproQueue) - 1
 				crash := reproQueue[last]
 				reproQueue[last] = nil
@@ -388,8 +392,7 @@ func (mgr *Manager) vmLoop() {
 					reproDone <- &ReproResult{vmIndexes, crash, res, err}
 				}()
 			}
-			for len(instances) != 0 &&
-				(len(reproQueue) == 0 || reproInstances+instancesPerRepro > vmCount) {
+			for !canRepro() && len(instances) != 0 {
 				last := len(instances) - 1
 				idx := instances[last]
 				instances = instances[:last]
@@ -402,8 +405,7 @@ func (mgr *Manager) vmLoop() {
 		}
 
 		var stopRequest chan bool
-		if !stopPending && phase >= phaseTriagedHub &&
-			len(reproQueue) != 0 && reproInstances+instancesPerRepro <= vmCount {
+		if !stopPending && canRepro() {
 			stopRequest = mgr.vmStop
 		}
 
