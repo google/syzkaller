@@ -59,10 +59,11 @@ type Manager struct {
 	dash *dashboard.Dashboard
 
 	mu              sync.Mutex
+	phase           int
 	enabledSyscalls string
 	enabledCalls    []string // as determined by fuzzer
 
-	candidates     []RpcCandidate // untriaged inputs
+	candidates     []RpcCandidate // untriaged inputs from corpus and hub
 	disabledHashes map[string]struct{}
 	corpus         map[string]RpcInput
 	corpusSignal   map[uint32]struct{}
@@ -74,6 +75,19 @@ type Manager struct {
 	hub       *RpcClient
 	hubCorpus map[hash.Sig]bool
 }
+
+const (
+	// Just started, nothing done yet.
+	phaseInit = iota
+	// Triaged all inputs from corpus.
+	// This is when we start querying hub and minimizing persistent corpus.
+	phaseTriagedCorpus
+	// Done the first request to hub.
+	phaseQueriedHub
+	// Triaged all new inputs from hub.
+	// This is when we start reproducing crashes.
+	phaseTriagedHub
+)
 
 type Fuzzer struct {
 	name         string
@@ -315,10 +329,10 @@ type ReproResult struct {
 func (mgr *Manager) vmLoop() {
 	Logf(0, "booting test machines...")
 	Logf(0, "wait for the connection from test machine...")
-	reproInstances := 4
+	instancesPerRepro := 4
 	vmCount := mgr.vmPool.Count()
-	if reproInstances > vmCount {
-		reproInstances = vmCount
+	if instancesPerRepro > vmCount {
+		instancesPerRepro = vmCount
 	}
 	instances := make([]int, vmCount)
 	for i := range instances {
@@ -327,11 +341,16 @@ func (mgr *Manager) vmLoop() {
 	runDone := make(chan *RunResult, 1)
 	pendingRepro := make(map[*Crash]bool)
 	reproducing := make(map[string]bool)
+	reproInstances := 0
 	var reproQueue []*Crash
 	reproDone := make(chan *ReproResult, 1)
 	stopPending := false
 	shutdown := vm.Shutdown
 	for {
+		mgr.mu.Lock()
+		phase := mgr.phase
+		mgr.mu.Unlock()
+
 		for crash := range pendingRepro {
 			if reproducing[crash.desc] {
 				continue
@@ -345,28 +364,32 @@ func (mgr *Manager) vmLoop() {
 			reproQueue = append(reproQueue, crash)
 		}
 
-		Logf(1, "loop: shutdown=%v instances=%v/%v %+v repro: pending=%v reproducing=%v queued=%v",
-			shutdown == nil, len(instances), vmCount, instances,
+		Logf(1, "loop: phase=%v shutdown=%v instances=%v/%v %+v repro: pending=%v reproducing=%v queued=%v",
+			phase, shutdown == nil, len(instances), vmCount, instances,
 			len(pendingRepro), len(reproducing), len(reproQueue))
+
 		if shutdown == nil {
 			if len(instances) == vmCount {
 				return
 			}
 		} else {
-			for len(reproQueue) != 0 && len(instances) >= reproInstances {
+			for phase >= phaseTriagedHub &&
+				len(reproQueue) != 0 && len(instances) >= instancesPerRepro {
 				last := len(reproQueue) - 1
 				crash := reproQueue[last]
 				reproQueue[last] = nil
 				reproQueue = reproQueue[:last]
-				vmIndexes := append([]int{}, instances[len(instances)-reproInstances:]...)
-				instances = instances[:len(instances)-reproInstances]
+				vmIndexes := append([]int{}, instances[len(instances)-instancesPerRepro:]...)
+				instances = instances[:len(instances)-instancesPerRepro]
+				reproInstances += instancesPerRepro
 				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.desc, vmIndexes)
 				go func() {
 					res, err := repro.Run(crash.output, mgr.cfg, mgr.vmPool, vmIndexes)
 					reproDone <- &ReproResult{vmIndexes, crash, res, err}
 				}()
 			}
-			for len(reproQueue) == 0 && len(instances) != 0 {
+			for len(instances) != 0 &&
+				(len(reproQueue) == 0 || reproInstances+instancesPerRepro > vmCount) {
 				last := len(instances) - 1
 				idx := instances[last]
 				instances = instances[:last]
@@ -379,7 +402,8 @@ func (mgr *Manager) vmLoop() {
 		}
 
 		var stopRequest chan bool
-		if len(reproQueue) != 0 && !stopPending {
+		if !stopPending && phase >= phaseTriagedHub &&
+			len(reproQueue) != 0 && reproInstances+instancesPerRepro <= vmCount {
 			stopRequest = mgr.vmStop
 		}
 
@@ -415,6 +439,7 @@ func (mgr *Manager) vmLoop() {
 			}
 			delete(reproducing, res.crash.desc)
 			instances = append(instances, res.instances...)
+			reproInstances -= instancesPerRepro
 			mgr.saveRepro(res.crash, res.res)
 		case <-shutdown:
 			Logf(1, "loop: shutting down...")
@@ -655,7 +680,7 @@ func (mgr *Manager) minimizeCorpus() {
 	}
 
 	// Don't minimize persistent corpus until fuzzers have triaged all inputs from it.
-	if len(mgr.candidates) == 0 {
+	if mgr.phase >= phaseTriagedCorpus {
 		for key := range mgr.corpusDB.Records {
 			_, ok1 := mgr.corpus[key]
 			_, ok2 := mgr.disabledHashes[key]
@@ -837,6 +862,13 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 	}
 	if len(mgr.candidates) == 0 {
 		mgr.candidates = nil
+		if mgr.phase == phaseInit {
+			if mgr.cfg.Hub_Addr != "" {
+				mgr.phase = phaseTriagedCorpus
+			} else {
+				mgr.phase = phaseTriagedHub
+			}
+		}
 	}
 	Logf(2, "poll from %v: recv maxsignal=%v, send maxsignal=%v candidates=%v inputs=%v",
 		a.Name, len(a.MaxSignal), len(r.MaxSignal), len(r.Candidates), len(r.NewInputs))
@@ -846,8 +878,19 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 func (mgr *Manager) hubSync() {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
-	if !mgr.vmChecked || len(mgr.candidates) != 0 {
+
+	switch mgr.phase {
+	case phaseInit:
 		return
+	case phaseTriagedCorpus:
+		mgr.phase = phaseQueriedHub
+	case phaseQueriedHub:
+		if len(mgr.candidates) == 0 {
+			mgr.phase = phaseTriagedHub
+		}
+	case phaseTriagedHub:
+	default:
+		panic("unknown phase")
 	}
 
 	mgr.minimizeCorpus()
