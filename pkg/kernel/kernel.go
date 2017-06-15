@@ -24,27 +24,35 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-func Build(dir, compiler, config string) error {
+func Build(dir, compiler, config string, fullConfig bool) error {
 	const timeout = 10 * time.Minute // default timeout for command invocations
-	os.Remove(filepath.Join(dir, ".config"))
-	configFile := filepath.Join(dir, "syz.config")
-	if err := ioutil.WriteFile(configFile, []byte(config), 0600); err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
-	}
-	if _, err := osutil.RunCmd(timeout, dir, "make", "defconfig"); err != nil {
-		return err
-	}
-	if _, err := osutil.RunCmd(timeout, dir, "make", "kvmconfig"); err != nil {
-		return err
-	}
-	if _, err := osutil.RunCmd(timeout, dir, "scripts/kconfig/merge_config.sh", "-n", ".config", configFile); err != nil {
-		return err
+	if fullConfig {
+		if err := ioutil.WriteFile(filepath.Join(dir, ".config"), []byte(config), 0600); err != nil {
+			return fmt.Errorf("failed to write config file: %v", err)
+		}
+	} else {
+		os.Remove(filepath.Join(dir, ".config"))
+		configFile := filepath.Join(dir, "syz.config")
+		if err := ioutil.WriteFile(configFile, []byte(config), 0600); err != nil {
+			return fmt.Errorf("failed to write config file: %v", err)
+		}
+		defer os.Remove(configFile)
+		if _, err := osutil.RunCmd(timeout, dir, "make", "defconfig"); err != nil {
+			return err
+		}
+		if _, err := osutil.RunCmd(timeout, dir, "make", "kvmconfig"); err != nil {
+			return err
+		}
+		if _, err := osutil.RunCmd(timeout, dir, "scripts/kconfig/merge_config.sh", "-n", ".config", configFile); err != nil {
+			return err
+		}
 	}
 	if _, err := osutil.RunCmd(timeout, dir, "make", "olddefconfig"); err != nil {
 		return err
 	}
+	// We build only bzImage as we currently don't use modules.
 	// Build of a large kernel can take a while on a 1 CPU VM.
-	if _, err := osutil.RunCmd(3*time.Hour, dir, "make", "-j", strconv.Itoa(runtime.NumCPU()*2), "CC="+compiler); err != nil {
+	if _, err := osutil.RunCmd(3*time.Hour, dir, "make", "bzImage", "-j", strconv.Itoa(runtime.NumCPU()*2), "CC="+compiler); err != nil {
 		return err
 	}
 	return nil
