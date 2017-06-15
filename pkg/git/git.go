@@ -19,7 +19,7 @@ const timeout = time.Hour // timeout for all git invocations
 // Returns hash of the HEAD commit in the specified branch.
 func Poll(dir, repo, branch string) (string, error) {
 	osutil.RunCmd(timeout, dir, "git", "reset", "--hard")
-	if _, err := osutil.RunCmd(timeout, dir, "git", "fetch", "--no-tags", "--depth=", "1"); err != nil {
+	if _, err := osutil.RunCmd(timeout, dir, "git", "fetch", "--no-tags", "--depth", "1"); err != nil {
 		if err := os.RemoveAll(dir); err != nil {
 			return "", fmt.Errorf("failed to remove repo dir: %v", err)
 		}
