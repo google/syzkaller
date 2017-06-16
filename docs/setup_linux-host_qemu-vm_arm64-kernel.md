@@ -115,7 +115,7 @@ Open `/etc/ssh/sshd_config` and modify the following lines as shown below.
 
 Reboot the machine, and ensure that you can ssh from host to guest as.
 
-    $ ssh -i /path/to/id_rsa root@localhost -P10023
+    $ ssh -i /path/to/id_rsa root@localhost -p 10023
 
 ## Build syzkaller
 
