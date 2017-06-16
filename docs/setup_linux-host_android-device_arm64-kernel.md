@@ -3,7 +3,7 @@
 Prerequisites:
  - go1.8+ toolchain (can be downloaded from [here](https://golang.org/dl/))
  - Android NDK (tested with r12b) (can be downloaded from [here](https://developer.android.com/ndk/downloads/index.html))
- - [Suzy-Q](https://chromium.googlesource.com/chromiumos/platform/ec/+/master/docs/case_closed_debugging.md) device to capture console output (support for other development boards is possible, but it not implemented yet)
+ - Android Serial Cable or [Suzy-Q](https://chromium.googlesource.com/chromiumos/platform/ec/+/master/docs/case_closed_debugging.md) device to capture console output is preferable but optional. syzkaller can work with normal USB cable as well, but that can be somewhat unreliable and turn lots of crashes into "lost connection to test machine" crashes with no additional info.
 
 From `syzkaller` checkout:
  - Build `syz-manager` for host:
