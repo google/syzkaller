@@ -480,7 +480,6 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		Syzkaller:        "gopath/src/github.com/google/syzkaller",
 		Type:             "gce",
 		Image:            "image/disk.tar.gz",
-		Output:           "stdout",
 		Sandbox:          cfg.Sandbox,
 		Procs:            cfg.Procs,
 		Enable_Syscalls:  cfg.Enable_Syscalls,
