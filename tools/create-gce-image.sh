@@ -104,9 +104,9 @@ sudo grub-install --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
 sudo umount disk.mnt
 rm -rf disk.mnt
 sudo qemu-nbd -d /dev/nbd0
-tar -Szcf disk.tar.gz disk.raw
+tar -Sczf disk.tar.gz disk.raw
 mkdir -p obj
 cp $3 obj/
 echo -n "$4" > tag
-tar -czvf image.tar.gz disk.tar.gz key tag obj/vmlinux
+tar -czf image.tar.gz disk.tar.gz key tag obj/vmlinux
 rm -rf tag obj
