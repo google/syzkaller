@@ -60,8 +60,8 @@ func Build(dir, compiler, config string, fullConfig bool) error {
 
 // CreateImage creates a disk image that is suitable for syzkaller.
 // Kernel is taken from kernelDir, userspace system is taken from userspaceDir.
-// The resulting image is marked with tag and copied to the specified image file.
-func CreateImage(kernelDir, userspaceDir, tag, image string) error {
+// Produces image and root ssh key in the specified files.
+func CreateImage(kernelDir, userspaceDir, image, sshkey string) error {
 	tempDir, err := ioutil.TempDir("", "syz-build")
 	if err != nil {
 		return err
@@ -71,12 +71,14 @@ func CreateImage(kernelDir, userspaceDir, tag, image string) error {
 	if err := ioutil.WriteFile(scriptFile, []byte(createImageScript), 0700); err != nil {
 		return fmt.Errorf("failed to write script file: %v", err)
 	}
-	vmlinux := filepath.Join(kernelDir, "vmlinux")
-	bzImage := filepath.Join(kernelDir, "arch/x86/boot/bzImage")
-	if _, err := osutil.RunCmd(time.Hour, tempDir, scriptFile, userspaceDir, bzImage, vmlinux, tag); err != nil {
+	bzImage := filepath.Join(kernelDir, filepath.FromSlash("arch/x86/boot/bzImage"))
+	if _, err := osutil.RunCmd(time.Hour, tempDir, scriptFile, userspaceDir, bzImage); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
-	if err := os.Rename(filepath.Join(tempDir, "image.tar.gz"), image); err != nil {
+	if err := os.Rename(filepath.Join(tempDir, "disk.raw"), image); err != nil {
+		return err
+	}
+	if err := os.Rename(filepath.Join(tempDir, "key"), sshkey); err != nil {
 		return err
 	}
 	return nil

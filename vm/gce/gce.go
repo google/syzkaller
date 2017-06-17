@@ -12,8 +12,12 @@
 package gce
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -88,18 +92,14 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	}
 	Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v",
 		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
-	GCS, err := gcs.NewClient()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create GCS client: %v", err)
-	}
-	defer GCS.Close()
+
 	gcsImage := filepath.Join(cfg.GCS_Path, env.Name+"-image.tar.gz")
-	gceImage := env.Name
 	Logf(0, "uploading image to %v...", gcsImage)
-	if err := GCS.UploadFile(env.Image, gcsImage); err != nil {
-		return nil, fmt.Errorf("failed to upload image: %v", err)
+	if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
+		return nil, err
 	}
-	Logf(0, "creating GCE image...")
+	gceImage := env.Name
+	Logf(0, "creating GCE image %v...", gceImage)
 	if err := GCE.DeleteImage(gceImage); err != nil {
 		return nil, fmt.Errorf("failed to delete GCE image: %v", err)
 	}
@@ -313,6 +313,60 @@ func waitInstanceBoot(ip, sshKey, sshUser string) error {
 		}
 	}
 	return fmt.Errorf("can't ssh into the instance")
+}
+
+func uploadImageToGCS(localImage, gcsImage string) error {
+	GCS, err := gcs.NewClient()
+	if err != nil {
+		return fmt.Errorf("failed to create GCS client: %v", err)
+	}
+	defer GCS.Close()
+
+	localReader, err := os.Open(localImage)
+	if err != nil {
+		return fmt.Errorf("failed to open image file: %v")
+	}
+	defer localReader.Close()
+	localStat, err := localReader.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat image file: %v")
+	}
+
+	gcsWriter, err := GCS.FileWriter(gcsImage)
+	if err != nil {
+		return fmt.Errorf("failed to upload image: %v", err)
+	}
+	defer gcsWriter.Close()
+
+	gzipWriter := gzip.NewWriter(gcsWriter)
+	tarWriter := tar.NewWriter(gzipWriter)
+	tarHeader := &tar.Header{
+		Name:     "disk.raw",
+		Typeflag: tar.TypeReg,
+		Mode:     0640,
+		Size:     localStat.Size(),
+		ModTime:  time.Now(),
+		Uid:      0,
+		Uname:    "root",
+		Gid:      0,
+		Gname:    "",
+	}
+	if err := tarWriter.WriteHeader(tarHeader); err != nil {
+		return fmt.Errorf("failed to write image tar header: %v", err)
+	}
+	if _, err := io.Copy(tarWriter, localReader); err != nil {
+		return fmt.Errorf("failed to write image file: %v", err)
+	}
+	if err := tarWriter.Close(); err != nil {
+		return fmt.Errorf("failed to write image file: %v", err)
+	}
+	if err := gzipWriter.Close(); err != nil {
+		return fmt.Errorf("failed to write image file: %v", err)
+	}
+	if err := gcsWriter.Close(); err != nil {
+		return fmt.Errorf("failed to write image file: %v", err)
+	}
+	return nil
 }
 
 func sshArgs(sshKey, portArg string, port int) []string {
