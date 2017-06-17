@@ -64,7 +64,7 @@ generate: bin/syz-sysgen
 	go generate ./pkg/csource ./executor ./syz-gce ./pkg/ifuzz ./pkg/kernel
 	$(MAKE) format
 bin/syz-sysgen:
-	go build $(GOFLAGS) -o $@ ./sysgen
+	go build $(GOFLAGS) -o $@ ./sys/syz-sysgen
 
 format:
 	go fmt ./...
