@@ -6,7 +6,7 @@ ifeq ($(NOSTATIC), 0)
 	STATIC_FLAG=-static
 endif
 
-.PHONY: all format tidy clean manager fuzzer executor execprog mutate prog2c stress extract generate repro db
+.PHONY: all format tidy clean manager fuzzer executor execprog mutate prog2c stress extract generate repro db bin/syz-extract bin/syz-sysgen
 
 all:
 	go install ./syz-manager ./syz-fuzzer
@@ -56,14 +56,14 @@ upgrade:
 
 extract: bin/syz-extract
 	LINUX=$(LINUX) LINUXBLD=$(LINUXBLD) ./extract.sh
-bin/syz-extract: syz-extract/*.go sysparser/*.go
+bin/syz-extract:
 	go build $(GOFLAGS) -o $@ ./syz-extract
 
 generate: bin/syz-sysgen
 	bin/syz-sysgen
 	go generate ./pkg/csource ./executor ./syz-gce ./pkg/ifuzz ./pkg/kernel
 	$(MAKE) format
-bin/syz-sysgen: sysgen/*.go sysparser/*.go
+bin/syz-sysgen:
 	go build $(GOFLAGS) -o $@ ./sysgen
 
 format:

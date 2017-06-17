@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/google/syzkaller/sysparser"
+	. "github.com/google/syzkaller/sys/sysparser"
 )
 
 var (
