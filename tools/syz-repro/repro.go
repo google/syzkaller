@@ -11,7 +11,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/google/syzkaller/csource"
+	"github.com/google/syzkaller/pkg/csource"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/repro"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"

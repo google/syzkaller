@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/google/syzkaller/csource"
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/prog"
 )
 
