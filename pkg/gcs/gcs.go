@@ -80,23 +80,33 @@ func (client *Client) Read(gcsFile string) (*File, error) {
 }
 
 func (client *Client) UploadFile(localFile, gcsFile string) error {
-	bucket, filename, err := split(gcsFile)
-	if err != nil {
-		return err
-	}
 	local, err := os.Open(localFile)
 	if err != nil {
 		return err
 	}
 	defer local.Close()
-	bkt := client.client.Bucket(bucket)
-	f := bkt.Object(filename)
-	w := f.NewWriter(client.ctx)
+
+	w, err := client.FileWriter(gcsFile)
+	if err != nil {
+		return err
+	}
 	defer w.Close()
+
 	if _, err := io.Copy(w, local); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (client *Client) FileWriter(gcsFile string) (io.WriteCloser, error) {
+	bucket, filename, err := split(gcsFile)
+	if err != nil {
+		return nil, err
+	}
+	bkt := client.client.Bucket(bucket)
+	f := bkt.Object(filename)
+	w := f.NewWriter(client.ctx)
+	return w, nil
 }
 
 func split(file string) (bucket, filename string, err error) {

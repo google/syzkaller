@@ -8,17 +8,12 @@ const createImageScript = `#!/bin/bash
 set -eux
 
 if [ ! -e $1/sbin/init ]; then
-	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage /path/to/vmlinux 'image tag'"
+	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage"
 	exit 1
 fi
 
 if [ "$(basename $2)" != "bzImage" ]; then
-	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage /path/to/vmlinux 'image tag'"
-	exit 1
-fi
-
-if [ "$(basename $3)" != "vmlinux" ]; then
-	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage /path/to/vmlinux 'image tag'"
+	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage"
 	exit 1
 fi
 
@@ -75,10 +70,4 @@ sudo grub-install --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
 sudo umount disk.mnt
 rm -rf disk.mnt
 sudo qemu-nbd -d /dev/nbd0
-tar -Szcf disk.tar.gz disk.raw
-mkdir -p obj
-cp $3 obj/
-echo -n "$4" > tag
-tar -czvf image.tar.gz disk.tar.gz key tag obj/vmlinux
-rm -rf tag obj
 `

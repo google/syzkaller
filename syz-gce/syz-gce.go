@@ -6,9 +6,6 @@
 //go:generate bash -c "echo -en 'const syzconfig = `\n' >> generated.go"
 //go:generate bash -c "cat kernel.config | grep -v '#' >> generated.go"
 //go:generate bash -c "echo -en '`\n\n' >> generated.go"
-//go:generate bash -c "echo -en 'const createImageScript = `#!/bin/bash\n' >> generated.go"
-//go:generate bash -c "cat ../tools/create-gce-image.sh | grep -v '#' >> generated.go"
-//go:generate bash -c "echo -en '`\n\n' >> generated.go"
 
 // syz-gce runs syz-manager on GCE in a continous loop handling image/syzkaller updates.
 // It downloads test image from GCS, downloads and builds syzkaller, then starts syz-manager
@@ -352,7 +349,7 @@ func (a *LocalBuildAction) Build() error {
 		return err
 	}
 	for _, p := range patches {
-		if err := a.apply(p); err != nil {
+		if err := applyPatch(dir, p); err != nil {
 			return err
 		}
 	}
@@ -368,43 +365,31 @@ func (a *LocalBuildAction) Build() error {
 	if err := kernel.Build(dir, a.Compiler, config, full); err != nil {
 		return fmt.Errorf("build failed: %v", err)
 	}
-	scriptFile := filepath.Join(a.Dir, "create-gce-image.sh")
-	if err := ioutil.WriteFile(scriptFile, []byte(createImageScript), 0700); err != nil {
-		return fmt.Errorf("failed to write script file: %v", err)
-	}
 	Logf(0, "building image...")
-	vmlinux := filepath.Join(dir, "vmlinux")
-	bzImage := filepath.Join(dir, "arch/x86/boot/bzImage")
-	if _, err := runCmd(a.Dir, scriptFile, a.UserspaceDir, bzImage, vmlinux, hash); err != nil {
+	if err := kernel.CreateImage(dir, a.UserspaceDir, "image/disk.raw", "image/key"); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
-	os.Remove(filepath.Join(a.Dir, "disk.raw"))
-	os.Remove(filepath.Join(a.Dir, "image.tar.gz"))
-	os.MkdirAll("image/obj", 0700)
 	if err := ioutil.WriteFile("image/tag", []byte(hash), 0600); err != nil {
 		return fmt.Errorf("failed to write tag file: %v", err)
 	}
-	if err := os.Rename(filepath.Join(a.Dir, "key"), "image/key"); err != nil {
-		return fmt.Errorf("failed to rename key file: %v", err)
-	}
+	os.MkdirAll("image/obj", 0700)
+	vmlinux := filepath.Join(dir, "vmlinux")
 	if err := os.Rename(vmlinux, "image/obj/vmlinux"); err != nil {
-		return fmt.Errorf("failed to rename vmlinux file: %v", err)
-	}
-	if err := os.Rename(filepath.Join(a.Dir, "disk.tar.gz"), "image/disk.tar.gz"); err != nil {
 		return fmt.Errorf("failed to rename vmlinux file: %v", err)
 	}
 	return nil
 }
 
-func (a *LocalBuildAction) apply(p dashboard.Patch) error {
+func applyPatch(kernelDir string, p dashboard.Patch) error {
 	// Do --dry-run first to not mess with partially consistent state.
 	cmd := exec.Command("patch", "-p1", "--force", "--ignore-whitespace", "--dry-run")
-	cmd.Dir = filepath.Join(a.Dir, "linux")
+	cmd.Dir = kernelDir
 	cmd.Stdin = bytes.NewReader(p.Diff)
 	if output, err := cmd.CombinedOutput(); err != nil {
-		// If it reverses clean, then it's already applied (seems to be the easiest way to detect it).
+		// If it reverses clean, then it's already applied
+		// (seems to be the easiest way to detect it).
 		cmd = exec.Command("patch", "-p1", "--force", "--ignore-whitespace", "--reverse", "--dry-run")
-		cmd.Dir = filepath.Join(a.Dir, "linux")
+		cmd.Dir = kernelDir
 		cmd.Stdin = bytes.NewReader(p.Diff)
 		if _, err := cmd.CombinedOutput(); err == nil {
 			Logf(0, "patch already present: %v", p.Title)
@@ -415,7 +400,7 @@ func (a *LocalBuildAction) apply(p dashboard.Patch) error {
 	}
 	// Now apply for real.
 	cmd = exec.Command("patch", "-p1", "--force", "--ignore-whitespace")
-	cmd.Dir = filepath.Join(a.Dir, "linux")
+	cmd.Dir = kernelDir
 	cmd.Stdin = bytes.NewReader(p.Diff)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("patch '%v' failed after dry run:\n%s", p.Title, output)
@@ -479,7 +464,7 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		Tag:              string(tag),
 		Syzkaller:        "gopath/src/github.com/google/syzkaller",
 		Type:             "gce",
-		Image:            "image/disk.tar.gz",
+		Image:            "image/disk.raw",
 		Sshkey:           sshKey,
 		Sandbox:          cfg.Sandbox,
 		Procs:            cfg.Procs,
