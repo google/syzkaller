@@ -29,7 +29,7 @@ var (
 
 func main() {
 	flag.Parse()
-	cfg, _, err := mgrconfig.Parse(*flagConfig)
+	cfg, _, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}
