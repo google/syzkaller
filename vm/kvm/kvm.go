@@ -64,7 +64,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		Lkvm:  "lkvm",
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse kvm vm config: %v", err)
 	}
 	if cfg.Count < 1 || cfg.Count > 1000 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1000]", cfg.Count)

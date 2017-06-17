@@ -16,6 +16,8 @@ following keys in its top-level object:
  - `leak`: Detect memory leaks with kmemleak.
  - `image`: Location of the disk image file for the QEMU instance; a copy of this file is passed as the
    `-hda` option to `qemu-system-x86_64`.
+ - `sshkey`: Location (on the host machine) of a root SSH identity to use for communicating with
+   the virtual machine.
  - `sandbox` : Sandboxing mode, the following modes are supported:
      - "none": don't do anything special (has false positives, e.g. due to killing init)
      - "setuid": impersonate into user nobody (65534), default
@@ -31,8 +33,6 @@ following keys in its top-level object:
      - `kernel`: Location of the `bzImage` file for the kernel to be tested;
        this is passed as the `-kernel` option to `qemu-system-x86_64`.
      - `cmdline`: Additional command line options for the booting kernel, for example `root=/dev/sda1`.
-     - `sshkey`: Location (on the host machine) of an SSH identity to use for communicating with
-       the virtual machine.
      - `cpu`: Number of CPUs to simulate in the VM (*not currently used*).
      - `mem`: Amount of memory (in MiB) for the VM; this is passed as the `-m` option to `qemu-system-x86_64`.
 

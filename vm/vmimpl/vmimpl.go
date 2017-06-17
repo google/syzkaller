@@ -48,6 +48,7 @@ type Env struct {
 	Name    string
 	Workdir string
 	Image   string
+	Sshkey  string
 	Debug   bool
 	Config  []byte // json-serialized VM-type-specific config
 }

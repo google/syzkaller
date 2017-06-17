@@ -480,14 +480,15 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		Syzkaller:        "gopath/src/github.com/google/syzkaller",
 		Type:             "gce",
 		Image:            "image/disk.tar.gz",
+		Sshkey:           sshKey,
 		Sandbox:          cfg.Sandbox,
 		Procs:            cfg.Procs,
 		Enable_Syscalls:  cfg.Enable_Syscalls,
 		Disable_Syscalls: cfg.Disable_Syscalls,
 		Cover:            true,
 		Reproduce:        true,
-		VM: []byte(fmt.Sprintf(`{"count": %v, "machine_type": %q, "gcs_path": %q, "sshkey": %q}`,
-			cfg.Machine_Count, cfg.Machine_Type, cfg.GCS_Path, sshKey)),
+		VM: []byte(fmt.Sprintf(`{"count": %v, "machine_type": %q, "gcs_path": %q}`,
+			cfg.Machine_Count, cfg.Machine_Type, cfg.GCS_Path)),
 	}
 	data, err := json.MarshalIndent(managerCfg, "", "\t")
 	if err != nil {

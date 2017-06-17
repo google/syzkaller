@@ -34,7 +34,6 @@ type Config struct {
 	Count        int    // number of VMs to use
 	Machine_Type string // GCE machine type (e.g. "n1-highcpu-2")
 	GCS_Path     string // GCS path to upload image
-	Sshkey       string // root ssh key for the image
 }
 
 type Pool struct {
@@ -68,7 +67,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		Count: 1,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse gce vm config: %v", err)
 	}
 	if cfg.Count < 1 || cfg.Count > 1000 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1000]", cfg.Count)
@@ -82,7 +81,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.GCS_Path == "" {
 		return nil, fmt.Errorf("gcs_path parameter is empty")
 	}
-	cfg.Sshkey = osutil.Abs(cfg.Sshkey)
 
 	GCE, err := gce.NewContext()
 	if err != nil {
@@ -150,7 +148,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 			pool.GCE.DeleteInstance(name, true)
 		}
 	}()
-	sshKey := pool.cfg.Sshkey
+	sshKey := pool.env.Sshkey
 	sshUser := "root"
 	if sshKey == "" {
 		// Assuming image supports GCE ssh fanciness.

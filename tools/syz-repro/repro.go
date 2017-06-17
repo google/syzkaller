@@ -37,13 +37,7 @@ func main() {
 	if err != nil {
 		Fatalf("failed to open log file: %v", err)
 	}
-	env := &vm.Env{
-		Name:    cfg.Name,
-		Workdir: cfg.Workdir,
-		Image:   cfg.Image,
-		Debug:   false,
-		Config:  cfg.VM,
-	}
+	env := mgrconfig.CreateVMEnv(cfg, false)
 	vmPool, err := vm.Create(cfg.Type, env)
 	if err != nil {
 		Fatalf("%v", err)

@@ -115,13 +115,7 @@ func main() {
 }
 
 func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
-	env := &vm.Env{
-		Name:    cfg.Name,
-		Workdir: cfg.Workdir,
-		Image:   cfg.Image,
-		Debug:   *flagDebug,
-		Config:  cfg.VM,
-	}
+	env := mgrconfig.CreateVMEnv(cfg, *flagDebug)
 	vmPool, err := vm.Create(cfg.Type, env)
 	if err != nil {
 		Fatalf("%v", err)

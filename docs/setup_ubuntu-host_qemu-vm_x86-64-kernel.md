@@ -213,13 +213,13 @@ Create manager config like this:
 	"workdir": "/gopath/src/github.com/google/syzkaller/workdir",
 	"vmlinux": "/linux/upstream/vmlinux",
 	"image": "/image/wheezy.img",
+	"sshkey": "/image/ssh/id_rsa",
 	"syzkaller": "/gopath/src/github.com/google/syzkaller",
 	"procs": 8,
 	"type": "qemu",
 	"vm": {
 		"count": 4,
 		"kernel": "/linux/arch/x86/boot/bzImage",
-		"sshkey": "/image/ssh/id_rsa",
 		"cpu": 2,
 		"mem": 2048
 	}

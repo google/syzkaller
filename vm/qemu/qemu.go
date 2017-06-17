@@ -34,12 +34,11 @@ type Config struct {
 	Count     int    // number of VMs to use
 	Qemu      string // qemu binary name (qemu-system-x86_64 by default)
 	Qemu_Args string // additional command line arguments for qemu binary
-	Kernel    string // e.g. arch/x86/boot/bzImage
+	Kernel    string // kernel for injected boot (e.g. arch/x86/boot/bzImage)
 	Cmdline   string // kernel command line (can only be specified with kernel)
 	Initrd    string // linux initial ramdisk. (optional)
 	Cpu       int    // number of VM CPUs
 	Mem       int    // amount of VM memory in MBs
-	Sshkey    string // root ssh key for the image
 }
 
 type Pool struct {
@@ -67,7 +66,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		Qemu:  "qemu-system-x86_64",
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse qemu vm config: %v", err)
 	}
 	if cfg.Count < 1 || cfg.Count > 1000 {
 		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1000]", cfg.Count)
@@ -86,8 +85,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		if !osutil.IsExist(env.Image) {
 			return nil, fmt.Errorf("image file '%v' does not exist", env.Image)
 		}
-		if !osutil.IsExist(cfg.Sshkey) {
-			return nil, fmt.Errorf("ssh key '%v' does not exist", cfg.Sshkey)
+		if !osutil.IsExist(env.Sshkey) {
+			return nil, fmt.Errorf("ssh key '%v' does not exist", env.Sshkey)
 		}
 	}
 	if cfg.Cpu <= 0 || cfg.Cpu > 1024 {
@@ -98,7 +97,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	}
 	cfg.Kernel = osutil.Abs(cfg.Kernel)
 	cfg.Initrd = osutil.Abs(cfg.Initrd)
-	cfg.Sshkey = osutil.Abs(cfg.Sshkey)
 	pool := &Pool{
 		cfg: cfg,
 		env: env,
@@ -111,7 +109,7 @@ func (pool *Pool) Count() int {
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	sshkey := pool.cfg.Sshkey
+	sshkey := pool.env.Sshkey
 	if pool.env.Image == "9p" {
 		sshkey = filepath.Join(workdir, "key")
 		keygen := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "", "-f", sshkey)
