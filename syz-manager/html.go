@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/syzkaller/cover"
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/report"
 	"github.com/google/syzkaller/sys"
@@ -349,7 +350,7 @@ func readCrash(workdir, dir string, full bool) *UICrashType {
 			tag, _ := ioutil.ReadFile(filepath.Join(crashdir, dir, "tag"+index))
 			crash.Tag = string(tag)
 			reportFile := filepath.Join("crashes", dir, "report"+index)
-			if _, err := os.Stat(filepath.Join(workdir, reportFile)); err == nil {
+			if osutil.IsExist(filepath.Join(workdir, reportFile)) {
 				crash.Report = reportFile
 			}
 		}

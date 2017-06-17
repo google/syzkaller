@@ -6,7 +6,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -70,13 +69,13 @@ func Parse(filename string) (*Config, map[int]bool, error) {
 	if err := pkgconfig.LoadFile(filename, cfg); err != nil {
 		return nil, nil, err
 	}
-	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-fuzzer")); err != nil {
+	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-fuzzer")) {
 		return nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-fuzzer")
 	}
-	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-executor")); err != nil {
+	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-executor")) {
 		return nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-executor")
 	}
-	if _, err := os.Stat(filepath.Join(cfg.Syzkaller, "bin/syz-execprog")); err != nil {
+	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-execprog")) {
 		return nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-execprog")
 	}
 	if cfg.Http == "" {

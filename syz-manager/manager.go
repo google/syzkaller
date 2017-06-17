@@ -25,6 +25,7 @@ import (
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/report"
 	"github.com/google/syzkaller/repro"
@@ -580,11 +581,11 @@ func (mgr *Manager) needRepro(desc string) bool {
 	}
 	sig := hash.Hash([]byte(desc))
 	dir := filepath.Join(mgr.crashdir, sig.String())
-	if _, err := os.Stat(filepath.Join(dir, "repro.prog")); err == nil {
+	if osutil.IsExist(filepath.Join(dir, "repro.prog")) {
 		return false
 	}
 	for i := 0; i < maxReproAttempts; i++ {
-		if _, err := os.Stat(filepath.Join(dir, fmt.Sprintf("repro%v", i))); err != nil {
+		if !osutil.IsExist(filepath.Join(dir, fmt.Sprintf("repro%v", i))) {
 			return true
 		}
 	}
@@ -609,7 +610,7 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 		}
 		for i := 0; i < maxReproAttempts; i++ {
 			name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
-			if _, err := os.Stat(name); err != nil {
+			if !osutil.IsExist(name) {
 				ioutil.WriteFile(name, nil, 0660)
 				break
 			}

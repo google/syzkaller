@@ -41,6 +41,7 @@ import (
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/kernel"
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/syz-manager/config"
 )
 
@@ -462,7 +463,7 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		tag = tag[:len(tag)-1]
 	}
 	sshKey := ""
-	if _, err := os.Stat("image/key"); err == nil {
+	if osutil.IsExist("image/key") {
 		sshKey = "image/key"
 	}
 	managerCfg := &config.Config{

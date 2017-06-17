@@ -78,8 +78,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if _, err := exec.LookPath(cfg.Lkvm); err != nil {
 		return nil, err
 	}
-	if _, err := os.Stat(cfg.Kernel); err != nil {
-		return nil, fmt.Errorf("kernel file '%v' does not exist: %v", cfg.Kernel, err)
+	if !osutil.IsExist(cfg.Kernel) {
+		return nil, fmt.Errorf("kernel file '%v' does not exist", cfg.Kernel)
 	}
 	if cfg.Cpu < 1 || cfg.Cpu > 1024 {
 		return nil, fmt.Errorf("invalid config param cpu: %v, want [1-1024]", cfg.Cpu)
@@ -268,7 +268,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 				resultErr = vmimpl.TimeoutErr
 				break loop
 			case <-secondTicker.C:
-				if _, err := os.Stat(cmdFile); err != nil {
+				if !osutil.IsExist(cmdFile) {
 					resultErr = nil
 					break loop
 				}

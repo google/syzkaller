@@ -76,11 +76,11 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.Hub_Port == 0 {
 		return nil, fmt.Errorf("config param hub_port is empty")
 	}
-	if _, err := os.Stat(cfg.Sshkey); err != nil {
-		return nil, fmt.Errorf("ssh key '%v' does not exist: %v", cfg.Sshkey, err)
+	if !osutil.IsExist(cfg.Sshkey) {
+		return nil, fmt.Errorf("ssh key '%v' does not exist", cfg.Sshkey)
 	}
-	if _, err := os.Stat(cfg.Console); err != nil {
-		return nil, fmt.Errorf("console file '%v' does not exist: %v", cfg.Console, err)
+	if !osutil.IxExist(cfg.Console) {
+		return nil, fmt.Errorf("console file '%v' does not exist", cfg.Console)
 	}
 	pool := &Pool{
 		cfg: cfg,

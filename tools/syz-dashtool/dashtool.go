@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/dashboard"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 var (
@@ -149,7 +150,7 @@ func reportRepro(dash *dashboard.Dashboard, crashdir string) {
 }
 
 func reportAll(dash *dashboard.Dashboard, crashes string) {
-	if _, err := os.Stat(filepath.Join(crashes, "description")); err == nil {
+	if osutil.IsExist(filepath.Join(crashes, "description")) {
 		uploadDir(dash, crashes)
 		return
 	}
