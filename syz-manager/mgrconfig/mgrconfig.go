@@ -57,7 +57,15 @@ type Config struct {
 	ParsedIgnores      []*regexp.Regexp `json:"-"`
 }
 
-func Parse(filename string) (*Config, map[int]bool, error) {
+func LoadData(data []byte) (*Config, map[int]bool, error) {
+	return load(data, "")
+}
+
+func LoadFile(filename string) (*Config, map[int]bool, error) {
+	return load(nil, filename)
+}
+
+func load(data []byte, filename string) (*Config, map[int]bool, error) {
 	cfg := &Config{
 		Cover:     true,
 		Reproduce: true,
@@ -66,8 +74,14 @@ func Parse(filename string) (*Config, map[int]bool, error) {
 		Output:    "stdout",
 		Procs:     1,
 	}
-	if err := config.LoadFile(filename, cfg); err != nil {
-		return nil, nil, err
+	if data != nil {
+		if err := config.LoadData(data, cfg); err != nil {
+			return nil, nil, err
+		}
+	} else {
+		if err := config.LoadFile(filename, cfg); err != nil {
+			return nil, nil, err
+		}
 	}
 	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-fuzzer")) {
 		return nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-fuzzer")

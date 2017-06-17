@@ -26,7 +26,7 @@ var (
 func main() {
 	os.Args = append(append([]string{}, os.Args[0], "-v=10"), os.Args[1:]...)
 	flag.Parse()
-	cfg, _, err := mgrconfig.Parse(*flagConfig)
+	cfg, _, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}
