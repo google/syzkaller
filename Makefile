@@ -55,9 +55,9 @@ upgrade:
 	go build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 extract: bin/syz-extract
-	LINUX=$(LINUX) LINUXBLD=$(LINUXBLD) ./extract.sh
+	LINUX=$(LINUX) LINUXBLD=$(LINUXBLD) ./sys/extract.sh
 bin/syz-extract:
-	go build $(GOFLAGS) -o $@ ./syz-extract
+	go build $(GOFLAGS) -o $@ ./sys/syz-extract
 
 generate: bin/syz-sysgen
 	bin/syz-sysgen
