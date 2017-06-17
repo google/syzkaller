@@ -657,6 +657,51 @@ Call Trace:
 		`
 driver/foo/lib/foo.c:10
 `: `driver/foo/lib/foo.c`,
+		`
+BUG: soft lockup - CPU#1 stuck for 22s! [syz-executor2:7067]
+hardirqs last  enabled at (210421): [<ffffffff82c51728>] restore_regs_and_iret+0x0/0x1d
+hardirqs last disabled at (210422): [<ffffffff8100fb22>] apic_timer_interrupt+0x82/0x90 arch/x86/entry/entry_64.S:710
+softirqs last  enabled at (210420): [<ffffffff810114a3>] __do_softirq+0x613/0x8c4 kernel/softirq.c:344
+softirqs last disabled at (210415): [<ffffffff812c1650>] invoke_softirq kernel/softirq.c:395 [inline]
+softirqs last disabled at (210415): [<ffffffff812c1650>] irq_exit+0x170/0x1a0 kernel/softirq.c:436
+RIP: 0010:[<ffffffff8181134a>]  [<ffffffff8181134a>] next_group+0x5a/0x2e0 fs/pnode.c:172
+`: `fs/pnode.c`,
+		`
+------------[ cut here ]------------
+WARNING: CPU: 1 PID: 7733 at mm/vmalloc.c:1473 __vunmap+0x1ca/0x300 mm/vmalloc.c:1472()
+Trying to vfree() bad address (ffff8800b3254fc0)
+Kernel panic - not syncing: panic_on_warn set ...
+
+Call Trace:
+ [<ffffffff81c8f6cd>] __dump_stack lib/dump_stack.c:15 [inline]
+ [<ffffffff81c8f6cd>] dump_stack+0xc1/0x124 lib/dump_stack.c:51
+ [<ffffffff815f5f34>] __panic+0x11f/0x30b kernel/panic.c:179
+ [<ffffffff815f61da>] panic_saved_regs+0xba/0xba kernel/panic.c:280
+ [<ffffffff812b148f>] warn_slowpath_common+0x12f/0x150 kernel/panic.c:642
+ [<ffffffff812b1560>] warn_slowpath_fmt+0xb0/0xe0 kernel/panic.c:658
+ [<ffffffff816d015a>] __vunmap+0x1ca/0x300 mm/vmalloc.c:1472
+ [<ffffffff816d0355>] vfree+0x55/0xe0 mm/vmalloc.c:1533
+ [<ffffffff81b26404>] ipc_free+0x44/0x50 ipc/util.c:420
+ [<ffffffff81b3203d>] semctl_main+0x20d/0x1ba0 ipc/sem.c:1496
+`: `ipc/util.c`,
+		`
+
+===============================
+[ INFO: suspicious RCU usage. ]
+Call Trace:
+ [<ffffffff81c8f6cd>] __dump_stack lib/dump_stack.c:15 [inline]
+ [<ffffffff81c8f6cd>] dump_stack+0xc1/0x124 lib/dump_stack.c:51
+ [<ffffffff81614578>] warn_alloc+0x208/0x230 mm/page_alloc.c:2850
+ [<ffffffff816d0915>] __vmalloc_area_node_memcg mm/vmalloc.c:1647 [inline]
+ [<ffffffff816d0915>] __vmalloc_node_range_memcg+0x375/0x670 mm/vmalloc.c:1690
+ [<ffffffff816d0c79>] __vmalloc_node_memcg mm/vmalloc.c:1751 [inline]
+ [<ffffffff816d0c79>] __vmalloc_node_memcg_flags mm/vmalloc.c:1788 [inline]
+ [<ffffffff816d0c79>] vmalloc+0x69/0x70 mm/vmalloc.c:1803
+ [<ffffffff8279a0b0>] xt_alloc_table_info+0xd0/0x100 net/netfilter/x_tables.c:952
+ [<ffffffff829a50bc>] do_replace net/ipv4/netfilter/ip_tables.c:1140 [inline]
+ [<ffffffff829a50bc>] do_ipt_set_ctl+0x21c/0x430 net/ipv4/netfilter/ip_tables.c:1687
+ [<ffffffff827436ac>] nf_sockopt net/netfilter/nf_sockopt.c:105 [inline]
+`: `net/netfilter/x_tables.c`,
 	}
 	for log, guilty0 := range tests {
 		if guilty := ExtractGuiltyFile(log); guilty != guilty0 {
