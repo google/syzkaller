@@ -366,13 +366,13 @@ func (a *LocalBuildAction) Build() error {
 		return fmt.Errorf("build failed: %v", err)
 	}
 	Logf(0, "building image...")
+	os.MkdirAll("image/obj", 0700)
 	if err := kernel.CreateImage(dir, a.UserspaceDir, "image/disk.raw", "image/key"); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
 	if err := ioutil.WriteFile("image/tag", []byte(hash), 0600); err != nil {
 		return fmt.Errorf("failed to write tag file: %v", err)
 	}
-	os.MkdirAll("image/obj", 0700)
 	vmlinux := filepath.Join(dir, "vmlinux")
 	if err := os.Rename(vmlinux, "image/obj/vmlinux"); err != nil {
 		return fmt.Errorf("failed to rename vmlinux file: %v", err)
