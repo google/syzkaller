@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/syzkaller/symbolizer"
+	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
 func TestParse(t *testing.T) {
