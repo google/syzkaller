@@ -19,9 +19,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/cover"
 	"github.com/google/syzkaller/csource"
 	"github.com/google/syzkaller/dashboard"
+	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
 	. "github.com/google/syzkaller/pkg/log"
