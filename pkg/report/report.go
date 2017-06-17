@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/symbolizer"
+	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
 type oops struct {

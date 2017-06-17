@@ -17,7 +17,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/cover"
 	. "github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/symbolizer"
+	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
 type symbol struct {
