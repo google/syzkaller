@@ -1,7 +1,7 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package config
+package mgrconfig
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	pkgconfig "github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys"
 )
@@ -66,7 +66,7 @@ func Parse(filename string) (*Config, map[int]bool, error) {
 		Output:    "stdout",
 		Procs:     1,
 	}
-	if err := pkgconfig.LoadFile(filename, cfg); err != nil {
+	if err := config.LoadFile(filename, cfg); err != nil {
 		return nil, nil, err
 	}
 	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-fuzzer")) {

@@ -30,7 +30,7 @@ import (
 	"github.com/google/syzkaller/report"
 	"github.com/google/syzkaller/repro"
 	. "github.com/google/syzkaller/rpctype"
-	"github.com/google/syzkaller/syz-manager/config"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -41,7 +41,7 @@ var (
 )
 
 type Manager struct {
-	cfg          *config.Config
+	cfg          *mgrconfig.Config
 	vmPool       *vm.Pool
 	crashdir     string
 	port         int
@@ -106,7 +106,7 @@ type Crash struct {
 func main() {
 	flag.Parse()
 	EnableLogCaching(1000, 1<<20)
-	cfg, syscalls, err := config.Parse(*flagConfig)
+	cfg, syscalls, err := mgrconfig.Parse(*flagConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -114,7 +114,7 @@ func main() {
 	RunManager(cfg, syscalls)
 }
 
-func RunManager(cfg *config.Config, syscalls map[int]bool) {
+func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 	env := &vm.Env{
 		Name:    cfg.Name,
 		Workdir: cfg.Workdir,

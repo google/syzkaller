@@ -19,7 +19,7 @@ import (
 	"time"
 
 	. "github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/syz-manager/config"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -29,7 +29,7 @@ var (
 
 func main() {
 	flag.Parse()
-	cfg, _, err := config.Parse(*flagConfig)
+	cfg, _, err := mgrconfig.Parse(*flagConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -80,7 +80,7 @@ func main() {
 	wg.Wait()
 }
 
-func runInstance(cfg *config.Config, vmPool *vm.Pool, index int) {
+func runInstance(cfg *mgrconfig.Config, vmPool *vm.Pool, index int) {
 	inst, err := vmPool.Create(index)
 	if err != nil {
 		Logf(0, "failed to create instance: %v", err)

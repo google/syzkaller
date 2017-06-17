@@ -14,7 +14,7 @@ import (
 	"github.com/google/syzkaller/csource"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/repro"
-	"github.com/google/syzkaller/syz-manager/config"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -26,7 +26,7 @@ var (
 func main() {
 	os.Args = append(append([]string{}, os.Args[0], "-v=10"), os.Args[1:]...)
 	flag.Parse()
-	cfg, _, err := config.Parse(*flagConfig)
+	cfg, _, err := mgrconfig.Parse(*flagConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}
