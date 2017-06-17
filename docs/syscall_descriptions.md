@@ -44,7 +44,7 @@ First, add a declarative description of the new system call to the appropriate f
 
 The description of the syntax can be found [here](syscall_descriptions_syntax.md).
 
-If the subsystem is present in the mainline kernel, add the new txt file to `extract.sh` file
+If the subsystem is present in the mainline kernel, add the new txt file to `sys/extract.sh` file
 and run `make extract LINUX=$KSRC` with `$KSRC` set to the location of a kernel source tree.
 This will generate const files.
 Not, that this will overwrite `.config` file you have in `$KSRC`.
