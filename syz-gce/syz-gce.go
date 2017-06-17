@@ -35,14 +35,14 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard"
-	pkgconfig "github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/gcs"
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/kernel"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/syz-manager/config"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 var (
@@ -90,7 +90,7 @@ func main() {
 	cfg = &Config{
 		Use_Dashboard_Patches: true,
 	}
-	if err := pkgconfig.LoadFile(*flagConfig, cfg); err != nil {
+	if err := config.LoadFile(*flagConfig, cfg); err != nil {
 		Fatalf("failed to load config file: %v", err)
 	}
 	EnableLogCaching(1000, 1<<20)
@@ -466,7 +466,7 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 	if osutil.IsExist("image/key") {
 		sshKey = "image/key"
 	}
-	managerCfg := &config.Config{
+	managerCfg := &mgrconfig.Config{
 		Name:             cfg.Name,
 		Hub_Addr:         cfg.Hub_Addr,
 		Hub_Key:          cfg.Hub_Key,

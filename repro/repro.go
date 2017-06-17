@@ -16,7 +16,7 @@ import (
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/report"
-	"github.com/google/syzkaller/syz-manager/config"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -27,7 +27,7 @@ type Result struct {
 }
 
 type context struct {
-	cfg          *config.Config
+	cfg          *mgrconfig.Config
 	crashDesc    string
 	instances    chan *instance
 	bootRequests chan int
@@ -40,7 +40,7 @@ type instance struct {
 	executorBin string
 }
 
-func Run(crashLog []byte, cfg *config.Config, vmPool *vm.Pool, vmIndexes []int) (*Result, error) {
+func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []int) (*Result, error) {
 	if len(vmIndexes) == 0 {
 		return nil, fmt.Errorf("no VMs provided")
 	}
