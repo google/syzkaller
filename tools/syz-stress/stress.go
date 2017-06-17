@@ -13,9 +13,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/syzkaller/host"
 	"github.com/google/syzkaller/ipc"
 	"github.com/google/syzkaller/pkg/db"
+	"github.com/google/syzkaller/pkg/host"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys"
