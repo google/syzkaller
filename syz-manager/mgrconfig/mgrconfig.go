@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/vm"
 )
 
 type Config struct {
@@ -23,6 +24,7 @@ type Config struct {
 	Vmlinux string
 	Tag     string // arbitrary optional tag that is saved along with crash reports (e.g. branch/commit)
 	Image   string // linux image for VMs
+	Sshkey  string // root ssh key for the image (may be empty for some VM types)
 
 	Hub_Addr string
 	Hub_Key  string
@@ -213,4 +215,15 @@ func parseSuppressions(cfg *Config) error {
 		cfg.ParsedIgnores = append(cfg.ParsedIgnores, re)
 	}
 	return nil
+}
+
+func CreateVMEnv(cfg *Config, debug bool) *vm.Env {
+	return &vm.Env{
+		Name:    cfg.Name,
+		Workdir: cfg.Workdir,
+		Image:   cfg.Image,
+		Sshkey:  cfg.Sshkey,
+		Debug:   debug,
+		Config:  cfg.VM,
+	}
 }

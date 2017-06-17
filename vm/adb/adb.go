@@ -50,7 +50,7 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		Adb: "adb",
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse adb vm config: %v", err)
 	}
 	if _, err := exec.LookPath(cfg.Adb); err != nil {
 		return nil, err

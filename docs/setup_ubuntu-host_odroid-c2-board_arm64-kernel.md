@@ -300,13 +300,13 @@ Use the following config:
 	"workdir": "/syzkaller/workdir",
 	"vmlinux": "/linux-next/vmlinux",
 	"syzkaller": "/go/src/github.com/google/syzkaller",
+	"sshkey": "/odroid/ssh/id_rsa",
 	"rpc": "172.16.0.30:0",
 	"sandbox": "namespace",
 	"reproduce": false,
 	"procs": 8,
 	"type": "odroid",
 	"vm": {
-		"sshkey": "/odroid/ssh/id_rsa",
 		"host_addr": "172.16.0.30",
 		"slave_addr": "172.16.0.31",
 		"console": "/dev/ttyUSB0",
@@ -320,7 +320,7 @@ Use the following config:
 Don't forget to update:
  - `workdir` (path to the workdir)
  - `vmlinux` (path to the `vmlinux` binary)
- - `vm.sshkey` (path to the generated ssh private key)
+ - `sshkey` (path to the generated ssh private key)
  - `vm.console` (serial device you used in `minicom`)
  - `vm.hub_bus` (number of the bus to which USB hub is connected, view with `lsusb`)
  - `vm.hub_device` (device number for the USB hub, view with `lsusb`)

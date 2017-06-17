@@ -133,6 +133,7 @@ A sample config file that exercises the required options are shown below. Modify
     "vmlinux": “/path/to/vmlinux",
     "syzkaller": "/path/to/syzkaller/arm64/",
     "image": "/path/to/rootfs.ext3",
+    "sshkey": "/path/to/ida_rsa",
     "procs": 8,
     "type": "qemu",
     "vm": {
@@ -141,7 +142,6 @@ A sample config file that exercises the required options are shown below. Modify
         "qemu_args": "-machine virt -cpu cortex-a57",
         "cmdline": "console=ttyAMA0 root=/dev/vda",
         "kernel": “/path/to/Image",
-        "sshkey": "/path/to/ida_rsa",
         "cpu": 2,
         "mem": 2048
     }

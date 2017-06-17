@@ -39,7 +39,6 @@ type Config struct {
 	Hub_Bus    int    // host USB bus number for the USB hub
 	Hub_Device int    // host USB device number for the USB hub
 	Hub_Port   int    // port on the USB hub to which Odroid is connected
-	Sshkey     string // root ssh key for the image
 }
 
 type Pool struct {
@@ -49,6 +48,7 @@ type Pool struct {
 
 type instance struct {
 	cfg    *Config
+	sshkey string
 	closed chan bool
 	debug  bool
 }
@@ -56,7 +56,7 @@ type instance struct {
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{}
 	if err := config.LoadData(env.Config, cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse odroid vm config: %v", err)
 	}
 	if cfg.Host_Addr == "" {
 		return nil, fmt.Errorf("config param host_addr is empty")
@@ -76,8 +76,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.Hub_Port == 0 {
 		return nil, fmt.Errorf("config param hub_port is empty")
 	}
-	if !osutil.IsExist(cfg.Sshkey) {
-		return nil, fmt.Errorf("ssh key '%v' does not exist", cfg.Sshkey)
+	if !osutil.IsExist(env.Sshkey) {
+		return nil, fmt.Errorf("ssh key '%v' does not exist", env.Sshkey)
 	}
 	if !osutil.IxExist(cfg.Console) {
 		return nil, fmt.Errorf("console file '%v' does not exist", cfg.Console)
@@ -96,6 +96,7 @@ func (pool *Pool) Count() int {
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
 		cfg:    pool.cfg,
+		sshkey: pool.env.Sshkey,
 		closed: make(chan bool),
 		debug:  pool.env.Debug,
 	}
@@ -397,7 +398,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 func (inst *instance) sshArgs(portArg string) []string {
 	args := []string{
-		"-i", inst.cfg.Sshkey,
+		"-i", inst.sshkey,
 		portArg, "22",
 		"-F", "/dev/null",
 		"-o", "ConnectionAttempts=10",
