@@ -14,8 +14,8 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/fileutil"
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/report"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
 )
