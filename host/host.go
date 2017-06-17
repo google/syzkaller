@@ -6,12 +6,12 @@ package host
 import (
 	"bytes"
 	"io/ioutil"
-	"os"
 	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
 
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys"
 )
 
@@ -79,8 +79,7 @@ func isSupportedSyzkall(c *sys.Call) bool {
 		var check func(dev string) bool
 		check = func(dev string) bool {
 			if !strings.Contains(dev, "#") {
-				_, err := os.Stat(dev)
-				return err == nil
+				return osutil.IsExist(dev)
 			}
 			for i := 0; i < 10; i++ {
 				if check(strings.Replace(dev, "#", strconv.Itoa(i), 1)) {
@@ -93,11 +92,9 @@ func isSupportedSyzkall(c *sys.Call) bool {
 	case "syz_open_pts":
 		return true
 	case "syz_fuse_mount":
-		_, err := os.Stat("/dev/fuse")
-		return err == nil
+		return osutil.IsExist("/dev/fuse")
 	case "syz_fuseblk_mount":
-		_, err := os.Stat("/dev/fuse")
-		return err == nil && syscall.Getuid() == 0
+		return osutil.IsExist("/dev/fuse") && syscall.Getuid() == 0
 	case "syz_emit_ethernet", "syz_extract_tcp_res":
 		fd, err := syscall.Open("/dev/net/tun", syscall.O_RDWR, 0)
 		if err == nil {

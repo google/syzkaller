@@ -83,11 +83,11 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 			return nil, fmt.Errorf("9p image requires kernel")
 		}
 	} else {
-		if _, err := os.Stat(env.Image); err != nil {
-			return nil, fmt.Errorf("image file '%v' does not exist: %v", env.Image, err)
+		if !osutil.IsExist(env.Image) {
+			return nil, fmt.Errorf("image file '%v' does not exist", env.Image)
 		}
-		if _, err := os.Stat(cfg.Sshkey); err != nil {
-			return nil, fmt.Errorf("ssh key '%v' does not exist: %v", cfg.Sshkey, err)
+		if !osutil.IsExist(cfg.Sshkey) {
+			return nil, fmt.Errorf("ssh key '%v' does not exist", cfg.Sshkey)
 		}
 	}
 	if cfg.Cpu <= 0 || cfg.Cpu > 1024 {

@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/ipc"
 	"github.com/google/syzkaller/pkg/hash"
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	. "github.com/google/syzkaller/rpctype"
 	"github.com/google/syzkaller/sys"
@@ -161,7 +162,10 @@ func main() {
 	}
 
 	if r.NeedCheck {
-		a := &CheckArgs{Name: *flagName, UserNamespaces: hasUserNamespaces()}
+		a := &CheckArgs{
+			Name:           *flagName,
+			UserNamespaces: osutil.IsExist("/proc/self/ns/user"),
+		}
 		if fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0); err == nil {
 			syscall.Close(fd)
 			a.Kcov = true
@@ -785,15 +789,4 @@ func kmemleakScan(report bool) {
 	if _, err := syscall.Write(fd, []byte("clear")); err != nil {
 		panic(err)
 	}
-}
-
-func hasUserNamespaces() bool {
-	if _, err := os.Stat("/proc/self/ns/user"); err != nil {
-		// failed to stat /proc/self/ns/user this could be because
-		// 1) the file does not exist
-		// 2) we do not have permission
-		return false
-	}
-
-	return true
 }
