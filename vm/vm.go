@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/fileutil"
-	"github.com/google/syzkaller/report"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm/vmimpl"
 
 	_ "github.com/google/syzkaller/vm/adb"

@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/google/syzkaller/report"
+	"github.com/google/syzkaller/pkg/report"
 )
 
 func main() {
