@@ -23,7 +23,6 @@ type Config struct {
 	Vmlinux string
 	Tag     string // arbitrary optional tag that is saved along with crash reports (e.g. branch/commit)
 	Image   string // linux image for VMs
-	Output  string // one of stdout/dmesg/file (useful only for local VM)
 
 	Hub_Addr string
 	Hub_Key  string
@@ -71,7 +70,6 @@ func load(data []byte, filename string) (*Config, map[int]bool, error) {
 		Reproduce: true,
 		Sandbox:   "setuid",
 		Rpc:       "localhost:0",
-		Output:    "stdout",
 		Procs:     1,
 	}
 	if data != nil {
@@ -106,11 +104,6 @@ func load(data []byte, filename string) (*Config, map[int]bool, error) {
 	}
 	if cfg.Procs < 1 || cfg.Procs > 32 {
 		return nil, nil, fmt.Errorf("bad config param procs: '%v', want [1, 32]", cfg.Procs)
-	}
-	switch cfg.Output {
-	case "none", "stdout", "dmesg", "file":
-	default:
-		return nil, nil, fmt.Errorf("config param output must contain one of none/stdout/dmesg/file")
 	}
 	switch cfg.Sandbox {
 	case "none", "setuid", "namespace":
