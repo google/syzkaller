@@ -53,7 +53,7 @@ func Build(dir, compiler, config string, fullConfig bool) error {
 	}
 	// We build only bzImage as we currently don't use modules.
 	// Build of a large kernel can take a while on a 1 CPU VM.
-	if _, err := osutil.RunCmd(3*time.Hour, dir, "make", "bzImage", "-j", strconv.Itoa(runtime.NumCPU()*2), "CC="+compiler); err != nil {
+	if _, err := osutil.RunCmd(3*time.Hour, dir, "make", "bzImage", "-j", strconv.Itoa(runtime.NumCPU()), "CC="+compiler); err != nil {
 		return err
 	}
 	return nil
