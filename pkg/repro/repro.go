@@ -283,7 +283,7 @@ func (ctx *context) reproMinimizeProg(res *Result) (*Result, error) {
 }
 
 func (ctx *context) reproExtractC(res *Result) (*Result, error) {
-	Logf(2, "reproducing crash '%v': testing C reproducer", ctx.crashDesc)
+	Logf(2, "reproducing crash '%v': extracting C reproducer", ctx.crashDesc)
 
 	// Try triggering crash with a C reproducer.
 	crashed, err := ctx.testCProg(res.Prog, res.Duration, res.Opts)
@@ -471,7 +471,6 @@ func (ctx *context) testBin(bin string, duration time.Duration) (crashed bool, e
 	if err != nil {
 		return false, fmt.Errorf("failed to copy to VM: %v", err)
 	}
-	Logf(2, "reproducing crash '%v': testing compiled C program", ctx.crashDesc)
 	return ctx.testImpl(inst.Instance, bin, duration)
 }
 
