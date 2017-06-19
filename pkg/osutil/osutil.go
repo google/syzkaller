@@ -74,7 +74,7 @@ func Abs(path string) string {
 // IsExist returns true if the file name exists.
 func IsExist(name string) bool {
 	_, err := os.Stat(name)
-	return err == nil || !os.IsNotExist(err)
+	return err == nil
 }
 
 // HandleInterrupts closes shutdown chan on first SIGINT
