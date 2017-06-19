@@ -21,6 +21,10 @@ func CopyFile(oldFile, newFile string) error {
 		return err
 	}
 	defer oldf.Close()
+	stat, err := oldf.Stat()
+	if err != nil {
+		return err
+	}
 	newf, err := os.Create(newFile)
 	if err != nil {
 		return err
@@ -28,6 +32,12 @@ func CopyFile(oldFile, newFile string) error {
 	defer newf.Close()
 	_, err = io.Copy(newf, oldf)
 	if err != nil {
+		return err
+	}
+	if err := newf.Close(); err != nil {
+		return err
+	}
+	if err := os.Chtimes(newFile, stat.ModTime(), stat.ModTime()); err != nil {
 		return err
 	}
 	return nil
