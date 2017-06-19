@@ -93,6 +93,10 @@ func Logf(v int, msg string, args ...interface{}) {
 	}
 }
 
+func Fatal(err error) {
+	golog.Fatal(err)
+}
+
 func Fatalf(msg string, args ...interface{}) {
 	golog.Fatalf(msg, args...)
 }
