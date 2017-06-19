@@ -21,9 +21,10 @@ import (
 )
 
 type Result struct {
-	Prog   *prog.Prog
-	Opts   csource.Options
-	CRepro bool
+	Prog     *prog.Prog
+	Duration time.Duration
+	Opts     csource.Options
+	CRepro   bool
 }
 
 type context struct {
@@ -135,6 +136,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 			break
 		}
 	}
+
 	// Extract last program on every proc.
 	procs := make(map[int]int)
 	for i, ent := range entries {
@@ -169,7 +171,6 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	// to catch races and hangs. Note that the max duration must be larger than
 	// hang/no output detection duration in vm.MonitorExecution, which is currently set to 3 mins.
 	var res *Result
-	var duration time.Duration
 	for _, dur := range []time.Duration{10 * time.Second, 5 * time.Minute} {
 		for _, ent := range suspected {
 			opts.Fault = ent.Fault
@@ -184,10 +185,10 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 			}
 			if crashed {
 				res = &Result{
-					Prog: ent.P,
-					Opts: opts,
+					Prog:     ent.P,
+					Duration: dur * 3 / 2,
+					Opts:     opts,
 				}
-				duration = dur * 3 / 2
 				break
 			}
 		}
@@ -209,7 +210,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		call = res.Opts.FaultCall
 	}
 	res.Prog, res.Opts.FaultCall = prog.Minimize(res.Prog, call, func(p1 *prog.Prog, callIndex int) bool {
-		crashed, err := ctx.testProg(p1, duration, res.Opts)
+		crashed, err := ctx.testProg(p1, res.Duration, res.Opts)
 		if err != nil {
 			Logf(1, "reproducing crash '%v': minimization failed with %v", ctx.crashDesc, err)
 			return false
@@ -220,14 +221,14 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	// Try to "minimize" threaded/collide/sandbox/etc to find simpler reproducer.
 	opts = res.Opts
 	opts.Collide = false
-	crashed, err := ctx.testProg(res.Prog, duration, opts)
+	crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
 	if err != nil {
 		return res, err
 	}
 	if crashed {
 		res.Opts = opts
 		opts.Threaded = false
-		crashed, err := ctx.testProg(res.Prog, duration, opts)
+		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -238,7 +239,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.Sandbox == "namespace" {
 		opts = res.Opts
 		opts.Sandbox = "none"
-		crashed, err := ctx.testProg(res.Prog, duration, opts)
+		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -249,7 +250,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.Procs > 1 {
 		opts = res.Opts
 		opts.Procs = 1
-		crashed, err := ctx.testProg(res.Prog, duration, opts)
+		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -260,7 +261,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.Repeat {
 		opts = res.Opts
 		opts.Repeat = false
-		crashed, err := ctx.testProg(res.Prog, duration, opts)
+		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -270,7 +271,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	}
 
 	// Try triggering crash with a C reproducer.
-	crashed, err = ctx.testCProg(res.Prog, duration, res.Opts)
+	crashed, err = ctx.testCProg(res.Prog, res.Duration, res.Opts)
 	if err != nil {
 		return res, err
 	}
@@ -283,7 +284,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.EnableTun {
 		opts = res.Opts
 		opts.EnableTun = false
-		crashed, err := ctx.testCProg(res.Prog, duration, opts)
+		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -294,7 +295,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.Sandbox != "" {
 		opts = res.Opts
 		opts.Sandbox = ""
-		crashed, err := ctx.testCProg(res.Prog, duration, opts)
+		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -305,7 +306,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.UseTmpDir {
 		opts = res.Opts
 		opts.UseTmpDir = false
-		crashed, err := ctx.testCProg(res.Prog, duration, opts)
+		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -316,7 +317,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.HandleSegv {
 		opts = res.Opts
 		opts.HandleSegv = false
-		crashed, err := ctx.testCProg(res.Prog, duration, opts)
+		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -327,7 +328,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.WaitRepeat {
 		opts = res.Opts
 		opts.WaitRepeat = false
-		crashed, err := ctx.testCProg(res.Prog, duration, opts)
+		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return res, err
 		}
@@ -338,7 +339,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if res.Opts.Debug {
 		opts = res.Opts
 		opts.Debug = false
-		crashed, err := ctx.testCProg(res.Prog, duration, opts)
+		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
 			return res, err
 		}
