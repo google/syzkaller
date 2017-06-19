@@ -128,15 +128,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 	return res, err
 }
 
-func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, error) {
-	// Cut programs that were executed after crash.
-	for i, ent := range entries {
-		if ent.Start > crashStart {
-			entries = entries[:i]
-			break
-		}
-	}
-
+func (ctx *context) reproExtractProg(entries []*prog.LogEntry) (*Result, error) {
 	// Extract last program on every proc.
 	procs := make(map[int]int)
 	for i, ent := range entries {
@@ -165,6 +157,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		Debug:      true,
 		Repro:      true,
 	}
+
 	// Execute the suspected programs.
 	// We first try to execute each program for 10 seconds, that should detect simple crashes
 	// (i.e. no races and no hangs). Then we execute each program for 5 minutes
@@ -200,11 +193,14 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		Logf(0, "reproducing crash '%v': no program crashed", ctx.crashDesc)
 		return nil, nil
 	}
-	defer func() {
-		res.Opts.Repro = false
-	}()
 
+	return res, nil
+}
+
+func (ctx *context) reproMinimizeProg(res *Result) (*Result, error) {
 	Logf(2, "reproducing crash '%v': minimizing guilty program", ctx.crashDesc)
+
+	// Minimize calls and arguments.
 	call := -1
 	if res.Opts.Fault {
 		call = res.Opts.FaultCall
@@ -218,8 +214,8 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		return crashed
 	}, true)
 
-	// Try to "minimize" threaded/collide/sandbox/etc to find simpler reproducer.
-	opts = res.Opts
+	// Minimize repro options (threaded, collide, sandbox, etc).
+	opts := res.Opts
 	opts.Collide = false
 	crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
 	if err != nil {
@@ -270,19 +266,27 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		}
 	}
 
+	return res, nil
+}
+
+func (ctx *context) reproExtractC(res *Result) (*Result, error) {
+	Logf(2, "reproducing crash '%v': testing C reproducer", ctx.crashDesc)
+
 	// Try triggering crash with a C reproducer.
-	crashed, err = ctx.testCProg(res.Prog, res.Duration, res.Opts)
+	crashed, err := ctx.testCProg(res.Prog, res.Duration, res.Opts)
 	if err != nil {
 		return res, err
 	}
 	res.CRepro = crashed
-	if !crashed {
-		return res, nil
-	}
+	return res, nil
+}
+
+func (ctx *context) reproMinimizeC(res *Result) (*Result, error) {
+	Logf(2, "reproducing crash '%v': minimizing C reproducer", ctx.crashDesc)
 
 	// Try to simplify the C reproducer.
 	if res.Opts.EnableTun {
-		opts = res.Opts
+		opts := res.Opts
 		opts.EnableTun = false
 		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
@@ -293,7 +297,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		}
 	}
 	if res.Opts.Sandbox != "" {
-		opts = res.Opts
+		opts := res.Opts
 		opts.Sandbox = ""
 		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
@@ -304,7 +308,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		}
 	}
 	if res.Opts.UseTmpDir {
-		opts = res.Opts
+		opts := res.Opts
 		opts.UseTmpDir = false
 		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
@@ -315,7 +319,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		}
 	}
 	if res.Opts.HandleSegv {
-		opts = res.Opts
+		opts := res.Opts
 		opts.HandleSegv = false
 		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
@@ -326,7 +330,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		}
 	}
 	if res.Opts.WaitRepeat {
-		opts = res.Opts
+		opts := res.Opts
 		opts.WaitRepeat = false
 		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
@@ -337,7 +341,7 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		}
 	}
 	if res.Opts.Debug {
-		opts = res.Opts
+		opts := res.Opts
 		opts.Debug = false
 		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
 		if err != nil {
@@ -348,6 +352,43 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		}
 	}
 
+	return res, nil
+}
+
+func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, error) {
+	// Cut programs that were executed after crash.
+	for i, ent := range entries {
+		if ent.Start > crashStart {
+			entries = entries[:i]
+			break
+		}
+	}
+
+	res, err := ctx.reproExtractProg(entries)
+	if err != nil {
+		return res, err
+	}
+
+	res, err = ctx.reproMinimizeProg(res)
+	if err != nil {
+		return res, err
+	}
+
+	res, err = ctx.reproExtractC(res)
+	if err != nil {
+		return res, err
+	}
+	if !res.CRepro {
+		res.Opts.Repro = false
+		return res, nil
+	}
+
+	res, err = ctx.reproMinimizeC(res)
+	if err != nil {
+		return res, err
+	}
+
+	res.Opts.Repro = false
 	return res, nil
 }
 
