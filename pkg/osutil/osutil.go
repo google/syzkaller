@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"syscall"
 	"time"
@@ -74,4 +75,22 @@ func Abs(path string) string {
 func IsExist(name string) bool {
 	_, err := os.Stat(name)
 	return err == nil || !os.IsNotExist(err)
+}
+
+// HandleInterrupts closes shutdown chan on first SIGINT
+// (expecting that the program will gracefully shutdown and exit)
+// and terminates the process on third SIGINT.
+func HandleInterrupts(shutdown chan struct{}) {
+	go func() {
+		c := make(chan os.Signal, 3)
+		signal.Notify(c, syscall.SIGINT)
+		<-c
+		close(shutdown)
+		fmt.Fprint(os.Stderr, "SIGINT: shutting down...\n")
+		<-c
+		fmt.Fprint(os.Stderr, "SIGINT: shutting down harder...\n")
+		<-c
+		fmt.Fprint(os.Stderr, "SIGINT: terminating\n")
+		os.Exit(int(syscall.SIGINT))
+	}()
 }
