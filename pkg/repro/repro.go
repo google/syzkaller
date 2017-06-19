@@ -41,6 +41,14 @@ type instance struct {
 	executorBin string
 }
 
+func reverseEntries(entries []*prog.LogEntry) []*prog.LogEntry {
+	last := len(entries) - 1
+	for i := 0; i < len(entries)/2; i++ {
+		entries[i], entries[last-i] = entries[last-i], entries[i]
+	}
+	return entries
+}
+
 func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []int) (*Result, error) {
 	if len(vmIndexes) == 0 {
 		return nil, fmt.Errorf("no VMs provided")
@@ -129,6 +137,8 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 }
 
 func (ctx *context) reproExtractProg(entries []*prog.LogEntry) (*Result, error) {
+	Logf(2, "reproducing crash '%v': suspecting %v programs", ctx.crashDesc, len(entries))
+
 	// Extract last program on every proc.
 	procs := make(map[int]int)
 	for i, ent := range entries {
@@ -139,11 +149,11 @@ func (ctx *context) reproExtractProg(entries []*prog.LogEntry) (*Result, error) 
 		indices = append(indices, idx)
 	}
 	sort.Ints(indices)
-	var suspected []*prog.LogEntry
+	var lastEntries []*prog.LogEntry
 	for i := len(indices) - 1; i >= 0; i-- {
-		suspected = append(suspected, entries[indices[i]])
+		lastEntries = append(lastEntries, entries[indices[i]])
 	}
-	Logf(2, "reproducing crash '%v': suspecting %v programs", ctx.crashDesc, len(suspected))
+
 	opts := csource.Options{
 		Threaded:   true,
 		Collide:    true,
@@ -163,9 +173,12 @@ func (ctx *context) reproExtractProg(entries []*prog.LogEntry) (*Result, error) 
 	// (i.e. no races and no hangs). Then we execute each program for 5 minutes
 	// to catch races and hangs. Note that the max duration must be larger than
 	// hang/no output detection duration in vm.MonitorExecution, which is currently set to 3 mins.
+	// Programs are executed in reverse order, usually the last program is the guilty one.
+	durations := []time.Duration{10 * time.Second, 5 * time.Minute}
+	suspected := [][]*prog.LogEntry{reverseEntries(entries), reverseEntries(lastEntries)}
 	var res *Result
-	for _, dur := range []time.Duration{10 * time.Second, 5 * time.Minute} {
-		for _, ent := range suspected {
+	for i, dur := range durations {
+		for _, ent := range suspected[i] {
 			opts.Fault = ent.Fault
 			opts.FaultCall = ent.FaultCall
 			opts.FaultNth = ent.FaultNth
