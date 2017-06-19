@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/syzkaller/pkg/fileutil"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
@@ -75,10 +76,13 @@ func CreateImage(kernelDir, userspaceDir, image, sshkey string) error {
 	if _, err := osutil.RunCmd(time.Hour, tempDir, scriptFile, userspaceDir, bzImage); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
-	if err := os.Rename(filepath.Join(tempDir, "disk.raw"), image); err != nil {
+	if err := fileutil.CopyFile(filepath.Join(tempDir, "disk.raw"), image); err != nil {
 		return err
 	}
-	if err := os.Rename(filepath.Join(tempDir, "key"), sshkey); err != nil {
+	if err := fileutil.CopyFile(filepath.Join(tempDir, "key"), sshkey); err != nil {
+		return err
+	}
+	if err := os.Chmod(sshkey, 0600); err != nil {
 		return err
 	}
 	return nil
