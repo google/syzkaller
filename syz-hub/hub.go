@@ -10,8 +10,8 @@ import (
 	"io/ioutil"
 	"sync"
 
-	. "github.com/google/syzkaller/log"
-	. "github.com/google/syzkaller/rpctype"
+	. "github.com/google/syzkaller/pkg/log"
+	. "github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/syz-hub/state"
 )
 

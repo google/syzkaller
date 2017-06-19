@@ -11,16 +11,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/google/syzkaller/config"
-	"github.com/google/syzkaller/csource"
-	. "github.com/google/syzkaller/log"
-	"github.com/google/syzkaller/repro"
+	"github.com/google/syzkaller/pkg/csource"
+	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/repro"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
-	_ "github.com/google/syzkaller/vm/adb"
-	_ "github.com/google/syzkaller/vm/gce"
-	_ "github.com/google/syzkaller/vm/kvm"
-	_ "github.com/google/syzkaller/vm/odroid"
-	_ "github.com/google/syzkaller/vm/qemu"
 )
 
 var (
@@ -31,15 +26,9 @@ var (
 func main() {
 	os.Args = append(append([]string{}, os.Args[0], "-v=10"), os.Args[1:]...)
 	flag.Parse()
-	cfg, _, err := config.Parse(*flagConfig)
+	cfg, _, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		Fatalf("%v", err)
-	}
-	if *flagCount > 0 {
-		cfg.Count = *flagCount
-	}
-	if cfg.Count > 4 {
-		cfg.Count = 4
 	}
 	if len(flag.Args()) != 1 {
 		Fatalf("usage: syz-repro -config=config.file execution.log")
@@ -48,7 +37,19 @@ func main() {
 	if err != nil {
 		Fatalf("failed to open log file: %v", err)
 	}
-	vmIndexes := make([]int, cfg.Count)
+	env := mgrconfig.CreateVMEnv(cfg, false)
+	vmPool, err := vm.Create(cfg.Type, env)
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	vmCount := vmPool.Count()
+	if *flagCount > 0 && *flagCount < vmCount {
+		vmCount = *flagCount
+	}
+	if vmCount > 4 {
+		vmCount = 4
+	}
+	vmIndexes := make([]int, vmCount)
 	for i := range vmIndexes {
 		vmIndexes[i] = i
 	}
@@ -63,7 +64,7 @@ func main() {
 		Fatalf("terminating")
 	}()
 
-	res, err := repro.Run(data, cfg, vmIndexes)
+	res, err := repro.Run(data, cfg, vmPool, vmIndexes)
 	if err != nil {
 		Logf(0, "reproduction failed: %v", err)
 	}

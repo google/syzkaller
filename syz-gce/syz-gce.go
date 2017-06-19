@@ -6,9 +6,6 @@
 //go:generate bash -c "echo -en 'const syzconfig = `\n' >> generated.go"
 //go:generate bash -c "cat kernel.config | grep -v '#' >> generated.go"
 //go:generate bash -c "echo -en '`\n\n' >> generated.go"
-//go:generate bash -c "echo -en 'const createImageScript = `#!/bin/bash\n' >> generated.go"
-//go:generate bash -c "cat ../tools/create-gce-image.sh | grep -v '#' >> generated.go"
-//go:generate bash -c "echo -en '`\n\n' >> generated.go"
 
 // syz-gce runs syz-manager on GCE in a continous loop handling image/syzkaller updates.
 // It downloads test image from GCS, downloads and builds syzkaller, then starts syz-manager
@@ -30,27 +27,26 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
-	"runtime"
-	"strconv"
-	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
 
-	"cloud.google.com/go/storage"
-	"github.com/google/syzkaller/config"
 	"github.com/google/syzkaller/dashboard"
-	"github.com/google/syzkaller/gce"
-	. "github.com/google/syzkaller/log"
-	"golang.org/x/net/context"
+	"github.com/google/syzkaller/pkg/config"
+	"github.com/google/syzkaller/pkg/gce"
+	"github.com/google/syzkaller/pkg/gcs"
+	"github.com/google/syzkaller/pkg/git"
+	"github.com/google/syzkaller/pkg/kernel"
+	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 var (
 	flagConfig = flag.String("config", "", "config file")
 
 	cfg             *Config
-	ctx             context.Context
-	storageClient   *storage.Client
+	GCS             *gcs.Client
 	GCE             *gce.Context
 	managerHttpPort uint32
 	patchesHash     string
@@ -62,8 +58,7 @@ type Config struct {
 	Hub_Addr              string
 	Hub_Key               string
 	Image_Archive         string
-	Image_Path            string
-	Image_Name            string
+	GCS_Path              string
 	Http_Port             int
 	Machine_Type          string
 	Machine_Count         int
@@ -89,7 +84,12 @@ type Action interface {
 
 func main() {
 	flag.Parse()
-	cfg = readConfig(*flagConfig)
+	cfg = &Config{
+		Use_Dashboard_Patches: true,
+	}
+	if err := config.LoadFile(*flagConfig, cfg); err != nil {
+		Fatalf("failed to load config file: %v", err)
+	}
 	EnableLogCaching(1000, 1<<20)
 	initHttp(fmt.Sprintf(":%v", cfg.Http_Port))
 
@@ -100,9 +100,7 @@ func main() {
 	gopath := abs(wd, "gopath")
 	os.Setenv("GOPATH", gopath)
 
-	ctx = context.Background()
-	storageClient, err = storage.NewClient(ctx)
-	if err != nil {
+	if GCS, err = gcs.NewClient(); err != nil {
 		Fatalf("failed to create cloud storage client: %v", err)
 	}
 
@@ -136,14 +134,10 @@ func main() {
 			Branch:       cfg.Linux_Branch,
 			Compiler:     cfg.Linux_Compiler,
 			UserspaceDir: abs(wd, cfg.Linux_Userspace),
-			ImagePath:    cfg.Image_Path,
-			ImageName:    cfg.Image_Name,
 		})
 	} else {
 		actions = append(actions, &GCSImageAction{
 			ImageArchive: cfg.Image_Archive,
-			ImagePath:    cfg.Image_Path,
-			ImageName:    cfg.Image_Name,
 		})
 	}
 	currHashes := make(map[string]string)
@@ -296,7 +290,7 @@ func (a *SyzkallerAction) Poll() (string, error) {
 	if _, err := runCmd("", "go", "get", "-u", "-d", "github.com/google/syzkaller/syz-manager"); err != nil {
 		return "", err
 	}
-	return gitRevision("gopath/src/github.com/google/syzkaller")
+	return git.HeadCommit("gopath/src/github.com/google/syzkaller")
 }
 
 func (a *SyzkallerAction) Build() error {
@@ -330,8 +324,6 @@ type LocalBuildAction struct {
 	Branch       string
 	Compiler     string
 	UserspaceDir string
-	ImagePath    string
-	ImageName    string
 }
 
 func (a *LocalBuildAction) Name() string {
@@ -340,32 +332,7 @@ func (a *LocalBuildAction) Name() string {
 
 func (a *LocalBuildAction) Poll() (string, error) {
 	dir := filepath.Join(a.Dir, "linux")
-	runCmd(dir, "git", "reset", "--hard")
-	if _, err := runCmd(dir, "git", "pull"); err != nil {
-		if err := os.RemoveAll(dir); err != nil {
-			return "", fmt.Errorf("failed to remove repo dir: %v", err)
-		}
-		if err := os.MkdirAll(dir, 0700); err != nil {
-			return "", fmt.Errorf("failed to create repo dir: %v", err)
-		}
-		cloneArgs := []string{"clone", a.Repo, "--single-branch", "--depth", "1"}
-		if a.Branch != "" {
-			cloneArgs = append(cloneArgs, "--branch", a.Branch)
-		}
-		cloneArgs = append(cloneArgs, dir)
-		if _, err := runCmd("", "git", cloneArgs...); err != nil {
-			return "", err
-		}
-		if _, err := runCmd(dir, "git", "pull"); err != nil {
-			return "", err
-		}
-	}
-	if a.Branch != "" {
-		if _, err := runCmd(dir, "git", "checkout", a.Branch); err != nil {
-			return "", err
-		}
-	}
-	rev, err := gitRevision(dir)
+	rev, err := git.Poll(dir, a.Repo, a.Branch)
 	if err != nil {
 		return "", err
 	}
@@ -377,56 +344,52 @@ func (a *LocalBuildAction) Poll() (string, error) {
 
 func (a *LocalBuildAction) Build() error {
 	dir := filepath.Join(a.Dir, "linux")
-	hash, err := gitRevision(dir)
+	hash, err := git.HeadCommit(dir)
 	if err != nil {
 		return err
 	}
 	for _, p := range patches {
-		if err := a.apply(p); err != nil {
+		if err := applyPatch(dir, p); err != nil {
 			return err
 		}
 	}
 	Logf(0, "building kernel on %v...", hash)
-	if err := buildKernel(dir, a.Compiler); err != nil {
+	config, full := syzconfig, false
+	if cfg.Linux_Config != "" {
+		data, err := ioutil.ReadFile(cfg.Linux_Config)
+		if err != nil {
+			return fmt.Errorf("failed to read config file: %v", err)
+		}
+		config, full = string(data), true
+	}
+	if err := kernel.Build(dir, a.Compiler, config, full); err != nil {
 		return fmt.Errorf("build failed: %v", err)
 	}
-	scriptFile := filepath.Join(a.Dir, "create-gce-image.sh")
-	if err := ioutil.WriteFile(scriptFile, []byte(createImageScript), 0700); err != nil {
-		return fmt.Errorf("failed to write script file: %v", err)
-	}
 	Logf(0, "building image...")
-	vmlinux := filepath.Join(dir, "vmlinux")
-	bzImage := filepath.Join(dir, "arch/x86/boot/bzImage")
-	if _, err := runCmd(a.Dir, scriptFile, a.UserspaceDir, bzImage, vmlinux, hash); err != nil {
+	os.MkdirAll("image/obj", 0700)
+	if err := kernel.CreateImage(dir, a.UserspaceDir, "image/disk.raw", "image/key"); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
-	os.Remove(filepath.Join(a.Dir, "disk.raw"))
-	os.Remove(filepath.Join(a.Dir, "image.tar.gz"))
-	os.MkdirAll("image/obj", 0700)
 	if err := ioutil.WriteFile("image/tag", []byte(hash), 0600); err != nil {
 		return fmt.Errorf("failed to write tag file: %v", err)
 	}
-	if err := os.Rename(filepath.Join(a.Dir, "key"), "image/key"); err != nil {
-		return fmt.Errorf("failed to rename key file: %v", err)
-	}
+	vmlinux := filepath.Join(dir, "vmlinux")
 	if err := os.Rename(vmlinux, "image/obj/vmlinux"); err != nil {
 		return fmt.Errorf("failed to rename vmlinux file: %v", err)
-	}
-	if err := createImage(filepath.Join(a.Dir, "disk.tar.gz"), a.ImagePath, a.ImageName); err != nil {
-		return err
 	}
 	return nil
 }
 
-func (a *LocalBuildAction) apply(p dashboard.Patch) error {
+func applyPatch(kernelDir string, p dashboard.Patch) error {
 	// Do --dry-run first to not mess with partially consistent state.
 	cmd := exec.Command("patch", "-p1", "--force", "--ignore-whitespace", "--dry-run")
-	cmd.Dir = filepath.Join(a.Dir, "linux")
+	cmd.Dir = kernelDir
 	cmd.Stdin = bytes.NewReader(p.Diff)
 	if output, err := cmd.CombinedOutput(); err != nil {
-		// If it reverses clean, then it's already applied (seems to be the easiest way to detect it).
+		// If it reverses clean, then it's already applied
+		// (seems to be the easiest way to detect it).
 		cmd = exec.Command("patch", "-p1", "--force", "--ignore-whitespace", "--reverse", "--dry-run")
-		cmd.Dir = filepath.Join(a.Dir, "linux")
+		cmd.Dir = kernelDir
 		cmd.Stdin = bytes.NewReader(p.Diff)
 		if _, err := cmd.CombinedOutput(); err == nil {
 			Logf(0, "patch already present: %v", p.Title)
@@ -437,7 +400,7 @@ func (a *LocalBuildAction) apply(p dashboard.Patch) error {
 	}
 	// Now apply for real.
 	cmd = exec.Command("patch", "-p1", "--force", "--ignore-whitespace")
-	cmd.Dir = filepath.Join(a.Dir, "linux")
+	cmd.Dir = kernelDir
 	cmd.Stdin = bytes.NewReader(p.Diff)
 	if output, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("patch '%v' failed after dry run:\n%s", p.Title, output)
@@ -448,10 +411,8 @@ func (a *LocalBuildAction) apply(p dashboard.Patch) error {
 
 type GCSImageAction struct {
 	ImageArchive string
-	ImagePath    string
-	ImageName    string
 
-	handle *storage.ObjectHandle
+	file *gcs.File
 }
 
 func (a *GCSImageAction) Name() string {
@@ -459,24 +420,12 @@ func (a *GCSImageAction) Name() string {
 }
 
 func (a *GCSImageAction) Poll() (string, error) {
-	pos := strings.IndexByte(a.ImageArchive, '/')
-	if pos == -1 {
-		return "", fmt.Errorf("invalid GCS file name: %v", a.ImageArchive)
-	}
-	bkt := storageClient.Bucket(a.ImageArchive[:pos])
-	f := bkt.Object(a.ImageArchive[pos+1:])
-	attrs, err := f.Attrs(ctx)
+	f, err := GCS.Read(a.ImageArchive)
 	if err != nil {
-		return "", fmt.Errorf("failed to read %v attributes: %v", a.ImageArchive, err)
+		return "", err
 	}
-	if !attrs.Deleted.IsZero() {
-		return "", fmt.Errorf("file %v is deleted", a.ImageArchive)
-	}
-	a.handle = f.If(storage.Conditions{
-		GenerationMatch:     attrs.Generation,
-		MetagenerationMatch: attrs.Metageneration,
-	})
-	return attrs.Updated.Format(time.RFC1123Z), nil
+	a.file = f
+	return f.Updated.Format(time.RFC1123Z), nil
 }
 
 func (a *GCSImageAction) Build() error {
@@ -484,29 +433,10 @@ func (a *GCSImageAction) Build() error {
 	if err := os.RemoveAll("image"); err != nil {
 		return fmt.Errorf("failed to remove image dir: %v", err)
 	}
-	if err := downloadAndExtract(a.handle, "image"); err != nil {
+	if err := downloadAndExtract(a.file, "image"); err != nil {
 		return fmt.Errorf("failed to download and extract %v: %v", a.ImageArchive, err)
 	}
-	if err := createImage("image/disk.tar.gz", a.ImagePath, a.ImageName); err != nil {
-		return err
-	}
 	return nil
-}
-
-func readConfig(filename string) *Config {
-	if filename == "" {
-		Fatalf("supply config in -config flag")
-	}
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		Fatalf("failed to read config file: %v", err)
-	}
-	cfg := new(Config)
-	cfg.Use_Dashboard_Patches = true
-	if err := json.Unmarshal(data, cfg); err != nil {
-		Fatalf("failed to parse config file: %v", err)
-	}
-	return cfg
 }
 
 func writeManagerConfig(cfg *Config, httpPort int, file string) error {
@@ -517,7 +447,11 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 	if len(tag) != 0 && tag[len(tag)-1] == '\n' {
 		tag = tag[:len(tag)-1]
 	}
-	managerCfg := &config.Config{
+	sshKey := ""
+	if osutil.IsExist("image/key") {
+		sshKey = "image/key"
+	}
+	managerCfg := &mgrconfig.Config{
 		Name:             cfg.Name,
 		Hub_Addr:         cfg.Hub_Addr,
 		Hub_Key:          cfg.Hub_Key,
@@ -530,18 +464,16 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 		Tag:              string(tag),
 		Syzkaller:        "gopath/src/github.com/google/syzkaller",
 		Type:             "gce",
-		Machine_Type:     cfg.Machine_Type,
-		Count:            cfg.Machine_Count,
-		Image:            cfg.Image_Name,
+		Image:            "image/disk.raw",
+		Sshkey:           sshKey,
 		Sandbox:          cfg.Sandbox,
 		Procs:            cfg.Procs,
 		Enable_Syscalls:  cfg.Enable_Syscalls,
 		Disable_Syscalls: cfg.Disable_Syscalls,
 		Cover:            true,
 		Reproduce:        true,
-	}
-	if _, err := os.Stat("image/key"); err == nil {
-		managerCfg.Sshkey = "image/key"
+		VM: []byte(fmt.Sprintf(`{"count": %v, "machine_type": %q, "gcs_path": %q}`,
+			cfg.Machine_Count, cfg.Machine_Type, cfg.GCS_Path)),
 	}
 	data, err := json.MarshalIndent(managerCfg, "", "\t")
 	if err != nil {
@@ -563,8 +495,8 @@ func chooseUnusedPort() (int, error) {
 	return port, nil
 }
 
-func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
-	r, err := f.NewReader(ctx)
+func downloadAndExtract(f *gcs.File, dir string) error {
+	r, err := f.Reader()
 	if err != nil {
 		return err
 	}
@@ -606,83 +538,6 @@ func downloadAndExtract(f *storage.ObjectHandle, dir string) error {
 		if !files[need] {
 			return fmt.Errorf("archive misses required file '%v'", need)
 		}
-	}
-	return nil
-}
-
-func createImage(localFile, gcsFile, imageName string) error {
-	Logf(0, "uploading image...")
-	if err := uploadFile(localFile, gcsFile); err != nil {
-		return fmt.Errorf("failed to upload image: %v", err)
-	}
-	Logf(0, "creating gce image...")
-	if err := GCE.DeleteImage(imageName); err != nil {
-		return fmt.Errorf("failed to delete GCE image: %v", err)
-	}
-	if err := GCE.CreateImage(imageName, gcsFile); err != nil {
-		return fmt.Errorf("failed to create GCE image: %v", err)
-	}
-	return nil
-}
-
-func uploadFile(localFile, gcsFile string) error {
-	local, err := os.Open(localFile)
-	if err != nil {
-		return err
-	}
-	defer local.Close()
-	pos := strings.IndexByte(gcsFile, '/')
-	if pos == -1 {
-		return fmt.Errorf("invalid GCS file name: %v", gcsFile)
-	}
-	bkt := storageClient.Bucket(gcsFile[:pos])
-	f := bkt.Object(gcsFile[pos+1:])
-	w := f.NewWriter(ctx)
-	defer w.Close()
-	io.Copy(w, local)
-	return nil
-}
-
-func gitRevision(dir string) (string, error) {
-	output, err := runCmd(dir, "git", "log", "--pretty=format:'%H'", "-n", "1")
-	if err != nil {
-		return "", err
-	}
-	if len(output) != 0 && output[len(output)-1] == '\n' {
-		output = output[:len(output)-1]
-	}
-	if len(output) != 0 && output[0] == '\'' && output[len(output)-1] == '\'' {
-		output = output[1 : len(output)-1]
-	}
-	if len(output) != 40 {
-		return "", fmt.Errorf("unexpected git log output, want commit hash: %q", output)
-	}
-	return string(output), nil
-}
-
-func buildKernel(dir, ccompiler string) error {
-	os.Remove(filepath.Join(dir, ".config"))
-	if _, err := runCmd(dir, "make", "defconfig"); err != nil {
-		return err
-	}
-	if _, err := runCmd(dir, "make", "kvmconfig"); err != nil {
-		return err
-	}
-	configFile := cfg.Linux_Config
-	if configFile == "" {
-		configFile = filepath.Join(dir, "syz.config")
-		if err := ioutil.WriteFile(configFile, []byte(syzconfig), 0600); err != nil {
-			return fmt.Errorf("failed to write config file: %v", err)
-		}
-	}
-	if _, err := runCmd(dir, "scripts/kconfig/merge_config.sh", "-n", ".config", configFile); err != nil {
-		return err
-	}
-	if _, err := runCmd(dir, "make", "olddefconfig"); err != nil {
-		return err
-	}
-	if _, err := runCmd(dir, "make", "-j", strconv.Itoa(runtime.NumCPU()*2), "CC="+ccompiler); err != nil {
-		return err
 	}
 	return nil
 }

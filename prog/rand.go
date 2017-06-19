@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/google/syzkaller/ifuzz"
+	"github.com/google/syzkaller/pkg/ifuzz"
 	"github.com/google/syzkaller/sys"
 )
 

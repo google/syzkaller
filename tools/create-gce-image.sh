@@ -15,34 +15,35 @@
 #   note: kernel modules are not supported
 #
 # Usage:
-#   ./create-gce-image.sh /dir/with/user/space/system /path/to/bzImage /path/to/vmlinux 'image tag'
+#   ./create-gce-image.sh /dir/with/user/space/system /path/to/bzImage
 #
-# The image can then be uploaded to GCS with:
-#   gsutil cp disk.tar.gz gs://my-images
-# and then my-images/disk.tar.gz can be used to create new GCE bootable image.
-# image.tar.gz can be used with syz-gce.
+# Outputs are (in the current dir):
+# - disk.raw: the image
+# - key: root ssh key
+# The script can also create/delete temp files in the current dir.
+#
+# The image then needs to be compressed with:
+#   tar -Sczf disk.tar.gz disk.raw
+# and uploaded to GCS with:
+#   gsutil cp disk.tar.gz gs://my-images/image.tar.gz
+# finally, my-images/image.tar.gz can be used to create a new GCE image.
 #
 # The image can be tested locally with e.g.:
-#   qemu-system-x86_64 -hda disk.raw -net user,host=10.0.2.10,hostfwd=tcp::10022-:22 -net nic -enable-kvm -m 2G -display none -serial stdio
+#   qemu-system-x86_64 -hda disk.raw -net user,host=10.0.2.10,hostfwd=tcp::10022-:22 \
+#       -net nic -enable-kvm -m 2G -display none -serial stdio
 # once the kernel boots, you can ssh into it with:
-#   ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -p 10022 -i key root@localhost
-#
-# Note: the script creates and deletes some failes in cwd.
+#   ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o IdentitiesOnly=yes \
+#       -p 10022 -i key root@localhost
 
 set -eux
 
 if [ ! -e $1/sbin/init ]; then
-	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage /path/to/vmlinux 'image tag'"
+	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage"
 	exit 1
 fi
 
 if [ "$(basename $2)" != "bzImage" ]; then
-	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage /path/to/vmlinux 'image tag'"
-	exit 1
-fi
-
-if [ "$(basename $3)" != "vmlinux" ]; then
-	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage /path/to/vmlinux 'image tag'"
+	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage"
 	exit 1
 fi
 
@@ -63,7 +64,7 @@ sudo cp -a $1/. disk.mnt/.
 sudo cp $2 disk.mnt/vmlinuz
 sudo sed -i "/^root/ { s/:x:/::/ }" disk.mnt/etc/passwd
 echo "T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100" | sudo tee -a disk.mnt/etc/inittab
-echo -en "\nauto eth0\niface eth0 inet dhcp\n" | sudo tee -a disk.mnt/etc/network/interfaces
+echo -en "auto lo\niface lo inet loopback\nauto eth0\niface eth0 inet dhcp\n" | sudo tee disk.mnt/etc/network/interfaces
 echo "debugfs /sys/kernel/debug debugfs defaults 0 0" | sudo tee -a disk.mnt/etc/fstab
 echo "kernel.printk = 7 4 1 3" | sudo tee -a disk.mnt/etc/sysctl.conf
 echo "debug.exception-trace = 0" | sudo tee -a disk.mnt/etc/sysctl.conf
@@ -97,16 +98,10 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	insmod part_msdos
 	insmod ext2
 	set root='(hd0,1)'
-	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1 kvm-intel.unrestricted_guest=1 kvm-intel.vmm_exclusive=1 kvm-intel.fasteoi=1 kvm-intel.ept=1 kvm-intel.flexpriority=1 kvm-intel.vpid=1 kvm-intel.emulate_invalid_guest_state=1 kvm-intel.eptad=1 kvm-intel.enable_shadow_vmcs=1 kvm-intel.pml=1 kvm-intel.enable_apicv=1
+	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 kvm-intel.nested=1 kvm-intel.unrestricted_guest=1 kvm-intel.vmm_exclusive=1 kvm-intel.fasteoi=1 kvm-intel.ept=1 kvm-intel.flexpriority=1 kvm-intel.vpid=1 kvm-intel.emulate_invalid_guest_state=1 kvm-intel.eptad=1 kvm-intel.enable_shadow_vmcs=1 kvm-intel.pml=1 kvm-intel.enable_apicv=1
 }
 EOF
 sudo grub-install --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
 sudo umount disk.mnt
 rm -rf disk.mnt
 sudo qemu-nbd -d /dev/nbd0
-tar -Szcf disk.tar.gz disk.raw
-mkdir -p obj
-cp $3 obj/
-echo -n "$4" > tag
-tar -czvf image.tar.gz disk.tar.gz key tag obj/vmlinux
-rm -rf tag obj

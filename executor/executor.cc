@@ -185,7 +185,8 @@ int main(int argc, char** argv)
 
 	uint64_t executor_pid = *((uint64_t*)input_data + 1);
 	cover_open();
-	setup_main_process();
+	install_segv_handler();
+	use_temporary_dir();
 
 	int pid = -1;
 	switch (flag_sandbox) {
@@ -575,7 +576,7 @@ void handle_completion(thread_t* th)
 		write_output(reserrno);
 		write_output(th->fault_injected);
 		uint32_t* signal_count_pos = write_output(0); // filled in later
-		uint32_t* cover_count_pos = write_output(0);  // filled in later
+		uint32_t* cover_count_pos = write_output(0); // filled in later
 
 		// Write out feedback signals.
 		// Currently it is code edges computed as xor of two subsequent basic block PCs.

@@ -8,6 +8,10 @@
 
 #include <sys/utsname.h>
 
+void loop()
+{
+} // to prevent warning: ‘void loop()’ used but never defined
+
 extern "C" int test_copyin()
 {
 	unsigned char x[4] = {};
@@ -142,13 +146,12 @@ extern "C" int test_csum_inet()
 		0xf453,
 	    }};
 
-	int i;
-	for (i = 0; i < ARRAY_SIZE(tests); i++) {
+	for (unsigned i = 0; i < ARRAY_SIZE(tests); i++) {
 		struct csum_inet csum;
 		csum_inet_init(&csum);
 		csum_inet_update(&csum, (const uint8_t*)tests[i].data, tests[i].length);
 		if (csum_inet_digest(&csum) != tests[i].csum) {
-			fprintf(stderr, "bad checksum in test #%d, want: %hx, got: %hx\n", i, tests[i].csum, csum_inet_digest(&csum));
+			fprintf(stderr, "bad checksum in test #%u, want: %hx, got: %hx\n", i, tests[i].csum, csum_inet_digest(&csum));
 			return 1;
 		}
 	}
@@ -188,14 +191,14 @@ extern "C" int test_csum_inet_acc()
 
 		if (csum_inet_digest(&csum_acc) != csum_inet_digest(&csum))
 			return 1;
-		return 0;
 	}
+	return 0;
 }
 
 static unsigned host_kernel_version();
 static void dump_cpu_state(int cpufd, char* vm_mem);
 
-static int test_one(int text_type, const char* text, int text_size, int flags, int reason, bool check_rax)
+static int test_one(int text_type, const char* text, int text_size, int flags, unsigned reason, bool check_rax)
 {
 	printf("=== testing text %d, text size 0x%x, flags 0x%x\n", text_type, text_size, flags);
 	int kvmfd = open("/dev/kvm", O_RDWR);
@@ -204,7 +207,7 @@ static int test_one(int text_type, const char* text, int text_size, int flags, i
 			printf("/dev/kvm is not present\n");
 			return -1;
 		}
-		if (errno == EPERM) {
+		if (errno == EPERM || errno == EACCES) {
 			printf("no permissions to open /dev/kvm\n");
 			return -1;
 		}
@@ -293,58 +296,58 @@ extern "C" int test_kvm()
 	//	return res;
 
 	const char text8[] = "\x66\xb8\xde\xc0\xad\x0b";
-	if (res = test_one(8, text8, sizeof(text8) - 1, 0, KVM_EXIT_HLT, true))
+	if ((res = test_one(8, text8, sizeof(text8) - 1, 0, KVM_EXIT_HLT, true)))
 		return res;
-	if (res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86, KVM_EXIT_SHUTDOWN, true))
+	if ((res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86, KVM_EXIT_SHUTDOWN, true)))
 		return res;
-	if (res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86 | KVM_SETUP_PAGING, KVM_EXIT_SHUTDOWN, true))
+	if ((res = test_one(8, text8, sizeof(text8) - 1, KVM_SETUP_VIRT86 | KVM_SETUP_PAGING, KVM_EXIT_SHUTDOWN, true)))
 		return res;
 
 	const char text16[] = "\x66\xb8\xde\xc0\xad\x0b";
-	if (res = test_one(16, text16, sizeof(text16) - 1, 0, KVM_EXIT_HLT, true))
+	if ((res = test_one(16, text16, sizeof(text16) - 1, 0, KVM_EXIT_HLT, true)))
 		return res;
-	if (res = test_one(16, text16, sizeof(text16) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true))
+	if ((res = test_one(16, text16, sizeof(text16) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
 		return res;
 
 	const char text32[] = "\xb8\xde\xc0\xad\x0b";
-	if (res = test_one(32, text32, sizeof(text32) - 1, 0, KVM_EXIT_HLT, true))
+	if ((res = test_one(32, text32, sizeof(text32) - 1, 0, KVM_EXIT_HLT, true)))
 		return res;
-	if (res = test_one(32, text32, sizeof(text32) - 1, KVM_SETUP_PAGING, KVM_EXIT_HLT, true))
+	if ((res = test_one(32, text32, sizeof(text32) - 1, KVM_SETUP_PAGING, KVM_EXIT_HLT, true)))
 		return res;
-	if (res = test_one(32, text32, sizeof(text32) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true))
+	if ((res = test_one(32, text32, sizeof(text32) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
 		return res;
 
 	const char text64[] = "\x90\xb8\xde\xc0\xad\x0b";
-	if (res = test_one(64, text64, sizeof(text64) - 1, 0, KVM_EXIT_HLT, true))
+	if ((res = test_one(64, text64, sizeof(text64) - 1, 0, KVM_EXIT_HLT, true)))
 		return res;
-	if (res = test_one(64, text64, sizeof(text64) - 1, KVM_SETUP_PAGING, KVM_EXIT_HLT, true))
+	if ((res = test_one(64, text64, sizeof(text64) - 1, KVM_SETUP_PAGING, KVM_EXIT_HLT, true)))
 		return res;
-	if (res = test_one(64, text64, sizeof(text64) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true))
+	if ((res = test_one(64, text64, sizeof(text64) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
 		return res;
 
 	const char text64_sysenter[] = "\xb8\xde\xc0\xad\x0b\x0f\x34";
-	if (res = test_one(64, text64_sysenter, sizeof(text64_sysenter) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true))
+	if ((res = test_one(64, text64_sysenter, sizeof(text64_sysenter) - 1, KVM_SETUP_CPL3, KVM_EXIT_SHUTDOWN, true)))
 		return res;
 
 	// Note: SMM does not work on 3.13 kernels.
 	if (ver >= 404) {
 		const char text8_smm[] = "\x66\xb8\xde\xc0\xad\x0b";
-		if (res = test_one(8, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, true))
+		if ((res = test_one(8, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, true)))
 			return res;
-		if (res = test_one(8, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM | KVM_SETUP_PROTECTED, KVM_EXIT_HLT, true))
+		if ((res = test_one(8, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM | KVM_SETUP_PROTECTED, KVM_EXIT_HLT, true)))
 			return res;
 
 		//const char text32_smm[] = "\xb8\xde\xc0\xad\x0b";
-		if (res = test_one(32, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, true))
+		if ((res = test_one(32, text8_smm, sizeof(text8_smm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, true)))
 			return res;
 
 		// Also ensure that we are actually in SMM.
 		// If we do MOV to RAX and then RSM, RAX will be restored to host value so RAX check will fail.
 		// So instead we execute just RSM, if we are in SMM we will get KVM_EXIT_HLT, otherwise KVM_EXIT_INTERNAL_ERROR.
 		const char text_rsm[] = "\x0f\xaa";
-		if (res = test_one(8, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false))
+		if ((res = test_one(8, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false)))
 			return res;
-		if (res = test_one(32, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false))
+		if ((res = test_one(32, text_rsm, sizeof(text_rsm) - 1, KVM_SETUP_SMM, KVM_EXIT_HLT, false)))
 			return res;
 	}
 

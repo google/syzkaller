@@ -21,13 +21,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/cover"
-	"github.com/google/syzkaller/hash"
-	"github.com/google/syzkaller/host"
-	"github.com/google/syzkaller/ipc"
-	. "github.com/google/syzkaller/log"
+	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/host"
+	"github.com/google/syzkaller/pkg/ipc"
+	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
+	. "github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
-	. "github.com/google/syzkaller/rpctype"
 	"github.com/google/syzkaller/sys"
 )
 
@@ -161,7 +162,10 @@ func main() {
 	}
 
 	if r.NeedCheck {
-		a := &CheckArgs{Name: *flagName}
+		a := &CheckArgs{
+			Name:           *flagName,
+			UserNamespaces: osutil.IsExist("/proc/self/ns/user"),
+		}
 		if fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0); err == nil {
 			syscall.Close(fd)
 			a.Kcov = true

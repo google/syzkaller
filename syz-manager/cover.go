@@ -15,9 +15,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/cover"
-	. "github.com/google/syzkaller/log"
-	"github.com/google/syzkaller/symbolizer"
+	"github.com/google/syzkaller/pkg/cover"
+	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
 type symbol struct {

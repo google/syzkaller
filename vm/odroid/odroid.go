@@ -22,23 +22,83 @@ import (
 	"time"
 	"unsafe"
 
-	. "github.com/google/syzkaller/log"
-	"github.com/google/syzkaller/vm"
+	"github.com/google/syzkaller/pkg/config"
+	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 func init() {
-	vm.Register("odroid", ctor)
+	vmimpl.Register("odroid", ctor)
+}
+
+type Config struct {
+	Host_Addr  string // ip address of the host machine
+	Slave_Addr string // ip address of the Odroid board
+	Console    string // console device name (e.g. "/dev/ttyUSB0")
+	Hub_Bus    int    // host USB bus number for the USB hub
+	Hub_Device int    // host USB device number for the USB hub
+	Hub_Port   int    // port on the USB hub to which Odroid is connected
+}
+
+type Pool struct {
+	env *vmimpl.Env
+	cfg *Config
 }
 
 type instance struct {
-	cfg    *vm.Config
+	cfg    *Config
+	sshkey string
 	closed chan bool
+	debug  bool
 }
 
-func ctor(cfg *vm.Config) (vm.Instance, error) {
+func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
+	cfg := &Config{}
+	if err := config.LoadData(env.Config, cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse odroid vm config: %v", err)
+	}
+	if cfg.Host_Addr == "" {
+		return nil, fmt.Errorf("config param host_addr is empty")
+	}
+	if cfg.Slave_Addr == "" {
+		return nil, fmt.Errorf("config param slave_addr is empty")
+	}
+	if cfg.Console == "" {
+		return nil, fmt.Errorf("config param console is empty")
+	}
+	if cfg.Hub_Bus == 0 {
+		return nil, fmt.Errorf("config param hub_bus is empty")
+	}
+	if cfg.Hub_Device == 0 {
+		return nil, fmt.Errorf("config param hub_device is empty")
+	}
+	if cfg.Hub_Port == 0 {
+		return nil, fmt.Errorf("config param hub_port is empty")
+	}
+	if !osutil.IsExist(env.Sshkey) {
+		return nil, fmt.Errorf("ssh key '%v' does not exist", env.Sshkey)
+	}
+	if !osutil.IxExist(cfg.Console) {
+		return nil, fmt.Errorf("console file '%v' does not exist", cfg.Console)
+	}
+	pool := &Pool{
+		cfg: cfg,
+		env: env,
+	}
+	return pool, nil
+}
+
+func (pool *Pool) Count() int {
+	return 1 // no support for multiple Odroid devices yet
+}
+
+func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
-		cfg:    cfg,
+		cfg:    pool.cfg,
+		sshkey: pool.env.Sshkey,
 		closed: make(chan bool),
+		debug:  pool.env.Debug,
 	}
 	closeInst := inst
 	defer func() {
@@ -46,9 +106,6 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 			closeInst.Close()
 		}
 	}()
-	if err := validateConfig(cfg); err != nil {
-		return nil, err
-	}
 	if err := inst.repair(); err != nil {
 		return nil, err
 	}
@@ -63,32 +120,22 @@ func ctor(cfg *vm.Config) (vm.Instance, error) {
 	return inst, nil
 }
 
-func validateConfig(cfg *vm.Config) error {
-	if _, err := os.Stat(cfg.Sshkey); err != nil {
-		return fmt.Errorf("ssh key '%v' does not exist: %v", cfg.Sshkey, err)
-	}
-	if _, err := os.Stat(cfg.OdroidConsole); err != nil {
-		return fmt.Errorf("console file '%v' does not exist: %v", cfg.OdroidConsole, err)
-	}
-	return nil
-}
-
 func (inst *instance) Forward(port int) (string, error) {
-	return fmt.Sprintf(inst.cfg.OdroidHostAddr+":%v", port), nil
+	return fmt.Sprintf(inst.cfg.Host_Addr+":%v", port), nil
 }
 
 func (inst *instance) ssh(command string) ([]byte, error) {
-	if inst.cfg.Debug {
+	if inst.debug {
 		Logf(0, "executing ssh %+v", command)
 	}
 
-	rpipe, wpipe, err := vm.LongPipe()
+	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, err
 	}
 
-	args := append(inst.sshArgs("-p"), "root@"+inst.cfg.OdroidSlaveAddr, command)
-	if inst.cfg.Debug {
+	args := append(inst.sshArgs("-p"), "root@"+inst.cfg.Slave_Addr, command)
+	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
 	cmd := exec.Command("ssh", args...)
@@ -104,7 +151,7 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 	go func() {
 		select {
 		case <-time.After(time.Minute):
-			if inst.cfg.Debug {
+			if inst.debug {
 				Logf(0, "ssh hanged")
 			}
 			cmd.Process.Kill()
@@ -114,13 +161,13 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 	if err := cmd.Wait(); err != nil {
 		close(done)
 		out, _ := ioutil.ReadAll(rpipe)
-		if inst.cfg.Debug {
+		if inst.debug {
 			Logf(0, "ssh failed: %v\n%s", err, out)
 		}
 		return nil, fmt.Errorf("ssh %+v failed: %v\n%s", args, err, out)
 	}
 	close(done)
-	if inst.cfg.Debug {
+	if inst.debug {
 		Logf(0, "ssh returned")
 	}
 	out, _ := ioutil.ReadAll(rpipe)
@@ -196,7 +243,7 @@ func (inst *instance) repair() error {
 	if err := inst.waitForSsh(10); err == nil {
 		Logf(1, "odroid: ssh succeeded, shutting down now")
 		inst.ssh("shutdown now")
-		if !vm.SleepInterruptible(20 * time.Second) {
+		if !vmimpl.SleepInterruptible(20 * time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
 	} else {
@@ -205,13 +252,13 @@ func (inst *instance) repair() error {
 
 	// Hard reset by turning off and back on power on a hub port.
 	Logf(1, "odroid: hard reset, turning off power")
-	if err := switchPortPower(inst.cfg.OdroidHubBus, inst.cfg.OdroidHubDevice, inst.cfg.OdroidHubPort, false); err != nil {
+	if err := switchPortPower(inst.cfg.Hub_Bus, inst.cfg.Hub_Device, inst.cfg.Hub_Port, false); err != nil {
 		return err
 	}
-	if !vm.SleepInterruptible(5 * time.Second) {
+	if !vmimpl.SleepInterruptible(5 * time.Second) {
 		return fmt.Errorf("shutdown in progress")
 	}
-	if err := switchPortPower(inst.cfg.OdroidHubBus, inst.cfg.OdroidHubDevice, inst.cfg.OdroidHubPort, true); err != nil {
+	if err := switchPortPower(inst.cfg.Hub_Bus, inst.cfg.Hub_Device, inst.cfg.Hub_Port, true); err != nil {
 		return err
 	}
 
@@ -229,7 +276,7 @@ func (inst *instance) waitForSsh(timeout int) error {
 	var err error
 	start := time.Now()
 	for {
-		if !vm.SleepInterruptible(time.Second) {
+		if !vmimpl.SleepInterruptible(time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
 		if _, err = inst.ssh("pwd"); err == nil {
@@ -244,15 +291,14 @@ func (inst *instance) waitForSsh(timeout int) error {
 
 func (inst *instance) Close() {
 	close(inst.closed)
-	os.RemoveAll(inst.cfg.Workdir)
 }
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	basePath := "/data/"
 	vmDst := filepath.Join(basePath, filepath.Base(hostSrc))
-	args := append(inst.sshArgs("-P"), hostSrc, "root@"+inst.cfg.OdroidSlaveAddr+":"+vmDst)
+	args := append(inst.sshArgs("-P"), hostSrc, "root@"+inst.cfg.Slave_Addr+":"+vmDst)
 	cmd := exec.Command("scp", args...)
-	if inst.cfg.Debug {
+	if inst.debug {
 		Logf(0, "running command: scp %#v", args)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stdout
@@ -277,19 +323,19 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
-	tty, err := vm.OpenConsole(inst.cfg.OdroidConsole)
+	tty, err := vmimpl.OpenConsole(inst.cfg.Console)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	rpipe, wpipe, err := vm.LongPipe()
+	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		tty.Close()
 		return nil, nil, err
 	}
 
-	args := append(inst.sshArgs("-p"), "root@"+inst.cfg.OdroidSlaveAddr, "cd /data; "+command)
-	if inst.cfg.Debug {
+	args := append(inst.sshArgs("-p"), "root@"+inst.cfg.Slave_Addr, "cd /data; "+command)
+	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
 	cmd := exec.Command("ssh", args...)
@@ -304,10 +350,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	wpipe.Close()
 
 	var tee io.Writer
-	if inst.cfg.Debug {
+	if inst.debug {
 		tee = os.Stdout
 	}
-	merger := vm.NewOutputMerger(tee)
+	merger := vmimpl.NewOutputMerger(tee)
 	merger.Add("console", tty)
 	merger.Add("ssh", rpipe)
 
@@ -322,11 +368,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	go func() {
 		select {
 		case <-time.After(timeout):
-			signal(vm.TimeoutErr)
+			signal(vmimpl.TimeoutErr)
 		case <-stop:
-			signal(vm.TimeoutErr)
+			signal(vmimpl.TimeoutErr)
 		case <-inst.closed:
-			if inst.cfg.Debug {
+			if inst.debug {
 				Logf(0, "instance closed")
 			}
 			signal(fmt.Errorf("instance closed"))
@@ -352,7 +398,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 func (inst *instance) sshArgs(portArg string) []string {
 	args := []string{
-		"-i", inst.cfg.Sshkey,
+		"-i", inst.sshkey,
 		portArg, "22",
 		"-F", "/dev/null",
 		"-o", "ConnectionAttempts=10",
@@ -363,7 +409,7 @@ func (inst *instance) sshArgs(portArg string) []string {
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "LogLevel=error",
 	}
-	if inst.cfg.Debug {
+	if inst.debug {
 		args = append(args, "-v")
 	}
 	return args

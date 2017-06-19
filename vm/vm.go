@@ -1,99 +1,102 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package vm provides an abstract test machine (VM, physical machine, etc)
+// interface for the rest of the system.
+// For convenience test machines are subsequently collectively called VMs.
+// Package wraps vmimpl package interface with some common functionality
+// and higher-level interface.
 package vm
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-	"io"
 	"os"
 	"regexp"
-	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/report"
+	"github.com/google/syzkaller/pkg/fileutil"
+	"github.com/google/syzkaller/pkg/report"
+	"github.com/google/syzkaller/vm/vmimpl"
+
+	_ "github.com/google/syzkaller/vm/adb"
+	_ "github.com/google/syzkaller/vm/gce"
+	_ "github.com/google/syzkaller/vm/kvm"
+	_ "github.com/google/syzkaller/vm/odroid"
+	_ "github.com/google/syzkaller/vm/qemu"
 )
 
-// Instance represents a Linux VM or a remote physical machine.
-type Instance interface {
-	// Copy copies a hostSrc file into vm and returns file name in vm.
-	Copy(hostSrc string) (string, error)
-
-	// Forward setups forwarding from within VM to host port port
-	// and returns address to use in VM.
-	Forward(port int) (string, error)
-
-	// Run runs cmd inside of the VM (think of ssh cmd).
-	// outc receives combined cmd and kernel console output.
-	// errc receives either command Wait return error or vm.TimeoutErr.
-	// Command is terminated after timeout. Send on the stop chan can be used to terminate it earlier.
-	Run(timeout time.Duration, stop <-chan bool, command string) (outc <-chan []byte, errc <-chan error, err error)
-
-	// Close stops and destroys the VM.
-	Close()
+type Pool struct {
+	impl    vmimpl.Pool
+	workdir string
 }
 
-type Config struct {
-	Name            string
-	Index           int
-	Workdir         string
-	Bin             string
-	BinArgs         string
-	Initrd          string
-	Kernel          string
-	Cmdline         string
-	Image           string
-	Sshkey          string
-	Executor        string
-	Device          string
-	MachineType     string
-	OdroidHostAddr  string
-	OdroidSlaveAddr string
-	OdroidConsole   string
-	OdroidHubBus    int
-	OdroidHubDevice int
-	OdroidHubPort   int
-	Cpu             int
-	Mem             int
-	Debug           bool
+type Instance struct {
+	impl    vmimpl.Instance
+	workdir string
+	index   int
 }
 
-type ctorFunc func(cfg *Config) (Instance, error)
+type Env vmimpl.Env
 
-var ctors = make(map[string]ctorFunc)
+var (
+	Shutdown   = vmimpl.Shutdown
+	TimeoutErr = vmimpl.TimeoutErr
+)
 
-func Register(typ string, ctor ctorFunc) {
-	ctors[typ] = ctor
-}
-
-// Close to interrupt all pending operations.
-var Shutdown = make(chan struct{})
-
-// Create creates and boots a new VM instance.
-func Create(typ string, cfg *Config) (Instance, error) {
-	ctor := ctors[typ]
-	if ctor == nil {
-		return nil, fmt.Errorf("unknown instance type '%v'", typ)
-	}
-	return ctor(cfg)
-}
-
-func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
-	r, w, err := os.Pipe()
+func Create(typ string, env *Env) (*Pool, error) {
+	impl, err := vmimpl.Create(typ, (*vmimpl.Env)(env))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create pipe: %v", err)
+		return nil, err
 	}
-	for sz := 128 << 10; sz <= 2<<20; sz *= 2 {
-		syscall.Syscall(syscall.SYS_FCNTL, w.Fd(), syscall.F_SETPIPE_SZ, uintptr(sz))
-	}
-	return r, w, err
+	return &Pool{
+		impl:    impl,
+		workdir: env.Workdir,
+	}, nil
 }
 
-var TimeoutErr = errors.New("timeout")
+func (pool *Pool) Count() int {
+	return pool.impl.Count()
+}
 
-func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput bool, ignores []*regexp.Regexp) (desc string, text, output []byte, crashed, timedout bool) {
+func (pool *Pool) Create(index int) (*Instance, error) {
+	if index < 0 || index >= pool.Count() {
+		return nil, fmt.Errorf("invalid VM index %v (count %v)", index, pool.Count())
+	}
+	workdir, err := fileutil.ProcessTempDir(pool.workdir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create instance temp dir: %v", err)
+	}
+	impl, err := pool.impl.Create(workdir, index)
+	if err != nil {
+		os.RemoveAll(workdir)
+		return nil, err
+	}
+	return &Instance{
+		impl:    impl,
+		workdir: workdir,
+		index:   index,
+	}, nil
+}
+
+func (inst *Instance) Copy(hostSrc string) (string, error) {
+	return inst.impl.Copy(hostSrc)
+}
+
+func (inst *Instance) Forward(port int) (string, error) {
+	return inst.impl.Forward(port)
+}
+
+func (inst *Instance) Run(timeout time.Duration, stop <-chan bool, command string) (outc <-chan []byte, errc <-chan error, err error) {
+	return inst.impl.Run(timeout, stop, command)
+}
+
+func (inst *Instance) Close() {
+	inst.impl.Close()
+	os.RemoveAll(inst.workdir)
+}
+
+func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool, ignores []*regexp.Regexp) (desc string, text, output []byte, crashed, timedout bool) {
 	waitForOutput := func() {
 		dur := time.Second
 		if needOutput {
@@ -183,27 +186,14 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, local, needOutput b
 			}
 			// In some cases kernel constantly prints something to console,
 			// but fuzzer is not actually executing programs.
-			if !local && time.Since(lastExecuteTime) > 3*time.Minute {
+			if time.Since(lastExecuteTime) > 3*time.Minute {
 				return "test machine is not executing programs", nil, output, true, false
 			}
 		case <-ticker.C:
 			tickerFired = true
-			if !local {
-				return "no output from test machine", nil, output, true, false
-			}
+			return "no output from test machine", nil, output, true, false
 		case <-Shutdown:
 			return "", nil, nil, false, false
 		}
-	}
-}
-
-// Sleep for d.
-// If shutdown is in progress, return false prematurely.
-func SleepInterruptible(d time.Duration) bool {
-	select {
-	case <-time.After(d):
-		return true
-	case <-Shutdown:
-		return false
 	}
 }

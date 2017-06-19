@@ -16,8 +16,10 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/google/syzkaller/log"
-	"github.com/google/syzkaller/vm"
+	"github.com/google/syzkaller/pkg/config"
+	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/vm/vmimpl"
 )
 
 const (
@@ -25,60 +27,130 @@ const (
 )
 
 func init() {
-	vm.Register("qemu", ctor)
+	vmimpl.Register("qemu", ctor)
+}
+
+type Config struct {
+	Count     int    // number of VMs to use
+	Qemu      string // qemu binary name (qemu-system-x86_64 by default)
+	Qemu_Args string // additional command line arguments for qemu binary
+	Kernel    string // kernel for injected boot (e.g. arch/x86/boot/bzImage)
+	Cmdline   string // kernel command line (can only be specified with kernel)
+	Initrd    string // linux initial ramdisk. (optional)
+	Cpu       int    // number of VM CPUs
+	Mem       int    // amount of VM memory in MBs
+}
+
+type Pool struct {
+	env *vmimpl.Env
+	cfg *Config
 }
 
 type instance struct {
-	cfg     *vm.Config
+	cfg     *Config
+	image   string
+	debug   bool
+	workdir string
+	sshkey  string
 	port    int
 	rpipe   io.ReadCloser
 	wpipe   io.WriteCloser
 	qemu    *exec.Cmd
 	waiterC chan error
-	merger  *vm.OutputMerger
+	merger  *vmimpl.OutputMerger
 }
 
-func ctor(cfg *vm.Config) (vm.Instance, error) {
+func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
+	cfg := &Config{
+		Count: 1,
+		Qemu:  "qemu-system-x86_64",
+	}
+	if err := config.LoadData(env.Config, cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse qemu vm config: %v", err)
+	}
+	if cfg.Count < 1 || cfg.Count > 1000 {
+		return nil, fmt.Errorf("invalid config param count: %v, want [1, 1000]", cfg.Count)
+	}
+	if env.Debug {
+		cfg.Count = 1
+	}
+	if _, err := exec.LookPath(cfg.Qemu); err != nil {
+		return nil, err
+	}
+	if env.Image == "9p" {
+		if cfg.Kernel == "" {
+			return nil, fmt.Errorf("9p image requires kernel")
+		}
+	} else {
+		if !osutil.IsExist(env.Image) {
+			return nil, fmt.Errorf("image file '%v' does not exist", env.Image)
+		}
+		if !osutil.IsExist(env.Sshkey) {
+			return nil, fmt.Errorf("ssh key '%v' does not exist", env.Sshkey)
+		}
+	}
+	if cfg.Cpu <= 0 || cfg.Cpu > 1024 {
+		return nil, fmt.Errorf("bad qemu cpu: %v, want [1-1024]", cfg.Cpu)
+	}
+	if cfg.Mem < 128 || cfg.Mem > 1048576 {
+		return nil, fmt.Errorf("bad qemu mem: %v, want [128-1048576]", cfg.Mem)
+	}
+	cfg.Kernel = osutil.Abs(cfg.Kernel)
+	cfg.Initrd = osutil.Abs(cfg.Initrd)
+	pool := &Pool{
+		cfg: cfg,
+		env: env,
+	}
+	return pool, nil
+}
+
+func (pool *Pool) Count() int {
+	return pool.cfg.Count
+}
+
+func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
+	sshkey := pool.env.Sshkey
+	if pool.env.Image == "9p" {
+		sshkey = filepath.Join(workdir, "key")
+		keygen := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "", "-f", sshkey)
+		if out, err := keygen.CombinedOutput(); err != nil {
+			return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
+		}
+		initFile := filepath.Join(workdir, "init.sh")
+		if err := ioutil.WriteFile(initFile, []byte(strings.Replace(initScript, "{{KEY}}", sshkey, -1)), 0777); err != nil {
+			return nil, fmt.Errorf("failed to create init file: %v", err)
+		}
+	}
+
 	for i := 0; ; i++ {
-		inst, err := ctorImpl(cfg)
+		inst, err := pool.ctor(workdir, sshkey, index)
 		if err == nil {
 			return inst, nil
 		}
 		if i < 1000 && strings.Contains(err.Error(), "could not set up host forwarding rule") {
 			continue
 		}
-		os.RemoveAll(cfg.Workdir)
 		return nil, err
 	}
 }
 
-func ctorImpl(cfg *vm.Config) (vm.Instance, error) {
-	inst := &instance{cfg: cfg}
+func (pool *Pool) ctor(workdir, sshkey string, index int) (vmimpl.Instance, error) {
+	inst := &instance{
+		cfg:     pool.cfg,
+		image:   pool.env.Image,
+		debug:   pool.env.Debug,
+		workdir: workdir,
+		sshkey:  sshkey,
+	}
 	closeInst := inst
 	defer func() {
 		if closeInst != nil {
-			closeInst.close(false)
+			closeInst.Close()
 		}
 	}()
 
-	if err := validateConfig(cfg); err != nil {
-		return nil, err
-	}
-
-	if cfg.Image == "9p" {
-		inst.cfg.Sshkey = filepath.Join(inst.cfg.Workdir, "key")
-		keygen := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "", "-f", inst.cfg.Sshkey)
-		if out, err := keygen.CombinedOutput(); err != nil {
-			return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
-		}
-		initFile := filepath.Join(cfg.Workdir, "init.sh")
-		if err := ioutil.WriteFile(initFile, []byte(strings.Replace(initScript, "{{KEY}}", inst.cfg.Sshkey, -1)), 0777); err != nil {
-			return nil, fmt.Errorf("failed to create init file: %v", err)
-		}
-	}
-
 	var err error
-	inst.rpipe, inst.wpipe, err = vm.LongPipe()
+	inst.rpipe, inst.wpipe, err = osutil.LongPipe()
 	if err != nil {
 		return nil, err
 	}
@@ -91,39 +163,7 @@ func ctorImpl(cfg *vm.Config) (vm.Instance, error) {
 	return inst, nil
 }
 
-func validateConfig(cfg *vm.Config) error {
-	if cfg.Bin == "" {
-		cfg.Bin = "qemu-system-x86_64"
-	}
-	if _, err := exec.LookPath(cfg.Bin); err != nil {
-		return err
-	}
-	if cfg.Image == "9p" {
-		if cfg.Kernel == "" {
-			return fmt.Errorf("9p image requires kernel")
-		}
-	} else {
-		if _, err := os.Stat(cfg.Image); err != nil {
-			return fmt.Errorf("image file '%v' does not exist: %v", cfg.Image, err)
-		}
-		if _, err := os.Stat(cfg.Sshkey); err != nil {
-			return fmt.Errorf("ssh key '%v' does not exist: %v", cfg.Sshkey, err)
-		}
-	}
-	if cfg.Cpu <= 0 || cfg.Cpu > 1024 {
-		return fmt.Errorf("bad qemu cpu: %v, want [1-1024]", cfg.Cpu)
-	}
-	if cfg.Mem < 128 || cfg.Mem > 1048576 {
-		return fmt.Errorf("bad qemu mem: %v, want [128-1048576]", cfg.Mem)
-	}
-	return nil
-}
-
 func (inst *instance) Close() {
-	inst.close(true)
-}
-
-func (inst *instance) close(removeWorkDir bool) {
 	if inst.qemu != nil {
 		inst.qemu.Process.Kill()
 		err := <-inst.waiterC
@@ -137,10 +177,6 @@ func (inst *instance) close(removeWorkDir bool) {
 	}
 	if inst.wpipe != nil {
 		inst.wpipe.Close()
-	}
-	os.Remove(filepath.Join(inst.cfg.Workdir, "key"))
-	if removeWorkDir {
-		os.RemoveAll(inst.cfg.Workdir)
 	}
 }
 
@@ -165,7 +201,7 @@ func (inst *instance) Boot() error {
 		"-numa", "node,nodeid=0,cpus=0-1", "-numa", "node,nodeid=1,cpus=2-3",
 		"-smp", "sockets=2,cores=2,threads=1",
 	}
-	if inst.cfg.BinArgs == "" {
+	if inst.cfg.Qemu_Args == "" {
 		// This is reasonable defaults for x86 kvm-enabled host.
 		args = append(args,
 			"-enable-kvm",
@@ -173,16 +209,16 @@ func (inst *instance) Boot() error {
 			"-soundhw", "all",
 		)
 	} else {
-		args = append(args, strings.Split(inst.cfg.BinArgs, " ")...)
+		args = append(args, strings.Split(inst.cfg.Qemu_Args, " ")...)
 	}
-	if inst.cfg.Image == "9p" {
+	if inst.image == "9p" {
 		args = append(args,
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",
 			"-device", "virtio-9p-pci,fsdev=fsdev0,mount_tag=/dev/root",
 		)
 	} else {
 		args = append(args,
-			"-hda", inst.cfg.Image,
+			"-hda", inst.image,
 			"-snapshot",
 		)
 	}
@@ -192,31 +228,57 @@ func (inst *instance) Boot() error {
 		)
 	}
 	if inst.cfg.Kernel != "" {
-		cmdline := "console=ttyS0 vsyscall=native rodata=n oops=panic panic_on_warn=1 panic=86400" +
-			" ftrace_dump_on_oops=orig_cpu earlyprintk=serial slub_debug=UZ net.ifnames=0 biosdevname=0 " +
-			" kvm-intel.nested=1 kvm-intel.unrestricted_guest=1 kvm-intel.vmm_exclusive=1 kvm-intel.fasteoi=1 " +
-			" kvm-intel.ept=1 kvm-intel.flexpriority=1 " +
-			" kvm-intel.vpid=1 kvm-intel.emulate_invalid_guest_state=1 kvm-intel.eptad=1 " +
-			" kvm-intel.enable_shadow_vmcs=1 kvm-intel.pml=1 kvm-intel.enable_apicv=1 "
-		if inst.cfg.Image == "9p" {
-			cmdline += "root=/dev/root rootfstype=9p rootflags=trans=virtio,version=9p2000.L,cache=loose "
-			cmdline += "init=" + filepath.Join(inst.cfg.Workdir, "init.sh") + " "
-		} else {
-			cmdline += "root=/dev/sda "
+		cmdline := []string{
+			"console=ttyS0",
+			"vsyscall=native",
+			"rodata=n",
+			"oops=panic",
+			"nmi_watchdog=panic",
+			"panic_on_warn=1",
+			"panic=86400",
+			"ftrace_dump_on_oops=orig_cpu",
+			"earlyprintk=serial",
+			"net.ifnames=0",
+			"biosdevname=0",
+			"kvm-intel.nested=1",
+			"kvm-intel.unrestricted_guest=1",
+			"kvm-intel.vmm_exclusive=1",
+			"kvm-intel.fasteoi=1",
+			"kvm-intel.ept=1",
+			"kvm-intel.flexpriority=1",
+			"kvm-intel.vpid=1",
+			"kvm-intel.emulate_invalid_guest_state=1",
+			"kvm-intel.eptad=1",
+			"kvm-intel.enable_shadow_vmcs=1",
+			"kvm-intel.pml=1",
+			"kvm-intel.enable_apicv=1",
 		}
+		if inst.image == "9p" {
+			cmdline = append(cmdline,
+				"root=/dev/root",
+				"rootfstype=9p",
+				"rootflags=trans=virtio,version=9p2000.L,cache=loose",
+				"init="+filepath.Join(inst.workdir, "init.sh"),
+			)
+		} else {
+			cmdline = append(cmdline,
+				"root=/dev/sda",
+			)
+		}
+		cmdline = append(cmdline, inst.cfg.Cmdline)
 		args = append(args,
 			"-kernel", inst.cfg.Kernel,
-			"-append", cmdline+inst.cfg.Cmdline,
+			"-append", strings.Join(cmdline, " "),
 		)
 	}
-	if inst.cfg.Debug {
-		Logf(0, "running command: %v %#v", inst.cfg.Bin, args)
+	if inst.debug {
+		Logf(0, "running command: %v %#v", inst.cfg.Qemu, args)
 	}
-	qemu := exec.Command(inst.cfg.Bin, args...)
+	qemu := exec.Command(inst.cfg.Qemu, args...)
 	qemu.Stdout = inst.wpipe
 	qemu.Stderr = inst.wpipe
 	if err := qemu.Start(); err != nil {
-		return fmt.Errorf("failed to start %v %+v: %v", inst.cfg.Bin, args, err)
+		return fmt.Errorf("failed to start %v %+v: %v", inst.cfg.Qemu, args, err)
 	}
 	inst.wpipe.Close()
 	inst.wpipe = nil
@@ -225,10 +287,10 @@ func (inst *instance) Boot() error {
 
 	// Start output merger.
 	var tee io.Writer
-	if inst.cfg.Debug {
+	if inst.debug {
 		tee = os.Stdout
 	}
-	inst.merger = vm.NewOutputMerger(tee)
+	inst.merger = vmimpl.NewOutputMerger(tee)
 	inst.merger.Add("qemu", inst.rpipe)
 	inst.rpipe = nil
 
@@ -293,13 +355,13 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	basePath := "/"
-	if inst.cfg.Image == "9p" {
+	if inst.image == "9p" {
 		basePath = "/tmp"
 	}
 	vmDst := filepath.Join(basePath, filepath.Base(hostSrc))
 	args := append(inst.sshArgs("-P"), hostSrc, "root@localhost:"+vmDst)
 	cmd := exec.Command("scp", args...)
-	if inst.cfg.Debug {
+	if inst.debug {
 		Logf(0, "running command: scp %#v", args)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stdout
@@ -324,14 +386,14 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
-	rpipe, wpipe, err := vm.LongPipe()
+	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, nil, err
 	}
 	inst.merger.Add("ssh", rpipe)
 
 	args := append(inst.sshArgs("-p"), "root@localhost", command)
-	if inst.cfg.Debug {
+	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
 	cmd := exec.Command("ssh", args...)
@@ -353,9 +415,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	go func() {
 		select {
 		case <-time.After(timeout):
-			signal(vm.TimeoutErr)
+			signal(vmimpl.TimeoutErr)
 		case <-stop:
-			signal(vm.TimeoutErr)
+			signal(vmimpl.TimeoutErr)
 		case err := <-inst.merger.Err:
 			cmd.Process.Kill()
 			if cmdErr := cmd.Wait(); cmdErr == nil {
@@ -374,7 +436,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 func (inst *instance) sshArgs(portArg string) []string {
 	args := []string{
-		"-i", inst.cfg.Sshkey,
+		"-i", inst.sshkey,
 		portArg, strconv.Itoa(inst.port),
 		"-F", "/dev/null",
 		"-o", "ConnectionAttempts=10",
@@ -385,7 +447,7 @@ func (inst *instance) sshArgs(portArg string) []string {
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "LogLevel=error",
 	}
-	if inst.cfg.Debug {
+	if inst.debug {
 		args = append(args, "-v")
 	}
 	return args

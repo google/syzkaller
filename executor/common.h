@@ -7,51 +7,136 @@
 #define _GNU_SOURCE
 #endif
 
-#include <sys/ioctl.h>
-#include <sys/mman.h>
+#include <stdint.h>
+#include <string.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#if defined(SYZ_EXECUTOR) || defined(SYZ_THREADED) || defined(SYZ_COLLIDE)
+#include <pthread.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_COLLIDE)
+#include <stdlib.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
+#include <setjmp.h>
+#include <signal.h>
+#include <string.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
+#include <errno.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#endif
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
+#include <errno.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <sys/prctl.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+#include <time.h>
+#endif
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
+#include <dirent.h>
 #include <sys/mount.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)
+#include <errno.h>
+#include <sched.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <sys/prctl.h>
 #include <sys/resource.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/syscall.h>
 #include <sys/time.h>
-#include <sys/types.h>
 #include <sys/wait.h>
-
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_SETUID)
+#include <grp.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
+#include <fcntl.h>
 #include <linux/capability.h>
-#include <linux/kvm.h>
-#include <linux/sched.h>
-
+#include <sys/mman.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 #include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <linux/if.h>
 #include <linux/if_ether.h>
 #include <linux/if_tun.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <net/if_arp.h>
-
-#include <assert.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <grp.h>
-#include <pthread.h>
-#include <setjmp.h>
-#include <signal.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
+#include <errno.h>
+#include <fcntl.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
+#include <stdarg.h>
+#include <stdio.h>
+#endif
+#ifdef __NR_syz_open_dev
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#endif
+#if defined(__NR_syz_fuse_mount) || defined(__NR_syz_fuseblk_mount)
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/sysmacros.h>
+#endif
+#ifdef __NR_syz_open_pts
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#endif
+#ifdef __NR_syz_kvm_setup_cpu
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/kvm.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#endif
 
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
+    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||               \
+    defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
 const int kFailStatus = 67;
-const int kErrorStatus = 68;
 const int kRetryStatus = 69;
+#endif
 
+#if defined(SYZ_EXECUTOR)
+const int kErrorStatus = 68;
+#endif
+
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
+    defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) ||                  \
+    defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) ||               \
+    defined(__NR_syz_kvm_setup_cpu)
 // One does not simply exit.
 // _exit can in fact fail.
 // syzkaller did manage to generate a seccomp filter that prohibits exit_group syscall.
@@ -63,13 +148,14 @@ const int kRetryStatus = 69;
 // And this does not work as well. _exit has own handling of failing exit_group
 // in the form of HLT instruction, it will divert control flow from our loop.
 // So call the syscall directly.
-__attribute__((noreturn)) void doexit(int status)
+__attribute__((noreturn)) static void doexit(int status)
 {
 	volatile unsigned i;
 	syscall(__NR_exit_group, status);
 	for (i = 0;; i++) {
 	}
 }
+#endif
 
 #if defined(SYZ_EXECUTOR)
 // exit/_exit do not necessary work.
@@ -77,8 +163,11 @@ __attribute__((noreturn)) void doexit(int status)
 #define _exit use_doexit_instead
 #endif
 
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) || defined(SYZ_USE_TMP_DIR) || \
+    defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||               \
+    defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
 // logical error (e.g. invalid input program), use as an assert() alernative
-__attribute__((noreturn)) void fail(const char* msg, ...)
+__attribute__((noreturn)) static void fail(const char* msg, ...)
 {
 	int e = errno;
 	fflush(stdout);
@@ -91,10 +180,11 @@ __attribute__((noreturn)) void fail(const char* msg, ...)
 	// so handle it here as non-fatal error.
 	doexit((e == ENOMEM || e == EAGAIN) ? kRetryStatus : kFailStatus);
 }
+#endif
 
 #if defined(SYZ_EXECUTOR)
 // kernel error (e.g. wrong syscall return value)
-__attribute__((noreturn)) void error(const char* msg, ...)
+__attribute__((noreturn)) static void error(const char* msg, ...)
 {
 	fflush(stdout);
 	va_list args;
@@ -106,8 +196,9 @@ __attribute__((noreturn)) void error(const char* msg, ...)
 }
 #endif
 
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
 // just exit (e.g. due to temporal ENOMEM error)
-__attribute__((noreturn)) void exitf(const char* msg, ...)
+__attribute__((noreturn)) static void exitf(const char* msg, ...)
 {
 	int e = errno;
 	fflush(stdout);
@@ -118,10 +209,12 @@ __attribute__((noreturn)) void exitf(const char* msg, ...)
 	fprintf(stderr, " (errno %d)\n", e);
 	doexit(kRetryStatus);
 }
+#endif
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 static int flag_debug;
 
-void debug(const char* msg, ...)
+static void debug(const char* msg, ...)
 {
 	if (!flag_debug)
 		return;
@@ -131,9 +224,27 @@ void debug(const char* msg, ...)
 	va_end(args);
 	fflush(stdout);
 }
+#endif
 
-__thread int skip_segv;
-__thread jmp_buf segv_env;
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_BITMASKS)
+#define BITMASK_LEN(type, bf_len) (type)((1ull << (bf_len)) - 1)
+
+#define BITMASK_LEN_OFF(type, bf_off, bf_len) (type)(BITMASK_LEN(type, (bf_len)) << (bf_off))
+
+#define STORE_BY_BITMASK(type, addr, val, bf_off, bf_len)                         \
+	if ((bf_off) == 0 && (bf_len) == 0) {                                     \
+		*(type*)(addr) = (type)(val);                                     \
+	} else {                                                                  \
+		type new_val = *(type*)(addr);                                    \
+		new_val &= ~BITMASK_LEN_OFF(type, (bf_off), (bf_len));            \
+		new_val |= ((type)(val)&BITMASK_LEN(type, (bf_len))) << (bf_off); \
+		*(type*)(addr) = new_val;                                         \
+	}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
+static __thread int skip_segv;
+static __thread jmp_buf segv_env;
 
 static void segv_handler(int sig, siginfo_t* info, void* uctx)
 {
@@ -159,6 +270,15 @@ static void segv_handler(int sig, siginfo_t* info, void* uctx)
 static void install_segv_handler()
 {
 	struct sigaction sa;
+
+	// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
+	// SIGCANCEL sent to main thread causes it to exit
+	// without bringing down the whole group.
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = SIG_IGN;
+	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
+	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
+
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_sigaction = segv_handler;
 	sa.sa_flags = SA_NODEFER | SA_SIGINFO;
@@ -174,26 +294,23 @@ static void install_segv_handler()
 		}                                                    \
 		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
 	}
-
-#define BITMASK_LEN(type, bf_len) (type)((1ull << (bf_len)) - 1)
-
-#define BITMASK_LEN_OFF(type, bf_off, bf_len) (type)(BITMASK_LEN(type, (bf_len)) << (bf_off))
-
-#define STORE_BY_BITMASK(type, addr, val, bf_off, bf_len)                         \
-	if ((bf_off) == 0 && (bf_len) == 0) {                                     \
-		*(type*)(addr) = (type)(val);                                     \
-	} else {                                                                  \
-		type new_val = *(type*)(addr);                                    \
-		new_val &= ~BITMASK_LEN_OFF(type, (bf_off), (bf_len));            \
-		new_val |= ((type)(val)&BITMASK_LEN(type, (bf_len))) << (bf_off); \
-		*(type*)(addr) = new_val;                                         \
-	}
-
-#if defined(__NR_syz_emit_ethernet) || defined(__NR_syz_extract_tcp_res)
-#define SYZ_TUN_ENABLE
 #endif
 
-#ifdef SYZ_TUN_ENABLE
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
+static void use_temporary_dir()
+{
+	char tmpdir_template[] = "./syzkaller.XXXXXX";
+	char* tmpdir = mkdtemp(tmpdir_template);
+	if (!tmpdir)
+		fail("failed to mkdtemp");
+	if (chmod(tmpdir, 0777))
+		fail("failed to chmod");
+	if (chdir(tmpdir))
+		fail("failed to chdir");
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 static void vsnprintf_check(char* str, size_t size, const char* format, va_list args)
 {
 	int rv;
@@ -232,9 +349,11 @@ static void execute_command(const char* format, ...)
 	va_end(args);
 }
 
-int tunfd = -1;
+static int tunfd = -1;
 
-#define SYZ_TUN_MAX_PACKET_SIZE (64 << 10)
+// We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
+// Rest of the packet (if any) will be silently truncated which is fine.
+#define SYZ_TUN_MAX_PACKET_SIZE 1000
 
 // sysgen knowns about this constant (maxPids)
 #define MAX_PIDS 32
@@ -304,8 +423,23 @@ static void setup_tun(uint64_t pid, bool enable_tun)
 	if (enable_tun)
 		initialize_tun(pid);
 }
+#endif
 
-void debug_dump_data(const char* data, int length)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_TUN_ENABLE) && (defined(__NR_syz_extract_tcp_res) || defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)))
+static int read_tun(char* data, int size)
+{
+	int rv = read(tunfd, data, size);
+	if (rv < 0) {
+		if (errno == EAGAIN)
+			return -1;
+		fail("tun: read failed with %d, errno: %d", rv, errno);
+	}
+	return rv;
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_DEBUG) && defined(SYZ_TUN_ENABLE) && (defined(__NR_syz_emit_ethernet) || defined(__NR_syz_extract_tcp_res)))
+static void debug_dump_data(const char* data, int length)
 {
 	int i;
 	for (i = 0; i < length; i++) {
@@ -316,9 +450,41 @@ void debug_dump_data(const char* data, int length)
 	if (i % 16 != 0)
 		debug("\n");
 }
-#endif // SYZ_TUN_ENABLE
+#endif
 
-#ifdef __NR_syz_emit_ethernet
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USE_CHECKSUMS)
+struct csum_inet {
+	uint32_t acc;
+};
+
+static void csum_inet_init(struct csum_inet* csum)
+{
+	csum->acc = 0;
+}
+
+static void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
+{
+	if (length == 0)
+		return;
+
+	size_t i;
+	for (i = 0; i < length - 1; i += 2)
+		csum->acc += *(uint16_t*)&data[i];
+
+	if (length & 1)
+		csum->acc += (uint16_t)data[length - 1];
+
+	while (csum->acc > 0xffff)
+		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
+}
+
+static uint16_t csum_inet_digest(struct csum_inet* csum)
+{
+	return ~csum->acc;
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || (defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE))
 static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 {
 	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
@@ -333,7 +499,16 @@ static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
 }
 #endif
 
-#ifdef __NR_syz_extract_tcp_res
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_TUN_ENABLE))
+static void flush_tun()
+{
+	char data[SYZ_TUN_MAX_PACKET_SIZE];
+	while (read_tun(&data[0], sizeof(data)) != -1)
+		;
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || (defined(__NR_syz_extract_tcp_res) && defined(SYZ_TUN_ENABLE))
 // Can't include <linux/ipv6.h>, since it causes
 // conflicts due to some structs redefinition.
 struct ipv6hdr {
@@ -353,24 +528,6 @@ struct tcp_resources {
 	int32_t seq;
 	int32_t ack;
 };
-
-int read_tun(char* data, int size)
-{
-	int rv = read(tunfd, data, size);
-	if (rv < 0) {
-		if (errno == EAGAIN)
-			return -1;
-		fail("tun: read failed with %d, errno: %d", rv, errno);
-	}
-	return rv;
-}
-
-void flush_tun()
-{
-	char data[SYZ_TUN_MAX_PACKET_SIZE];
-	while (read_tun(&data[0], sizeof(data)) != -1)
-		;
-}
 
 static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 {
@@ -423,36 +580,6 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	return 0;
 }
 #endif
-
-struct csum_inet {
-	uint32_t acc;
-};
-
-void csum_inet_init(struct csum_inet* csum)
-{
-	csum->acc = 0;
-}
-
-void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
-{
-	if (length == 0)
-		return;
-
-	size_t i;
-	for (i = 0; i < length - 1; i += 2)
-		csum->acc += *(uint16_t*)&data[i];
-
-	if (length & 1)
-		csum->acc += (uint16_t)data[length - 1];
-
-	while (csum->acc > 0xffff)
-		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
-}
-
-uint16_t csum_inet_digest(struct csum_inet* csum)
-{
-	return ~csum->acc;
-}
 
 #ifdef __NR_syz_open_dev
 static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
@@ -566,6 +693,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 #endif
 #endif // #ifdef __NR_syz_kvm_setup_cpu
 
+#ifdef SYZ_EXECUTOR
 static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7, uintptr_t a8)
 {
 	switch (nr) {
@@ -605,29 +733,9 @@ static uintptr_t execute_syscall(int nr, uintptr_t a0, uintptr_t a1, uintptr_t a
 #endif
 	}
 }
+#endif
 
-static void setup_main_process()
-{
-	// Don't need that SIGCANCEL/SIGSETXID glibc stuff.
-	// SIGCANCEL sent to main thread causes it to exit
-	// without bringing down the whole group.
-	struct sigaction sa;
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_handler = SIG_IGN;
-	syscall(SYS_rt_sigaction, 0x20, &sa, NULL, 8);
-	syscall(SYS_rt_sigaction, 0x21, &sa, NULL, 8);
-	install_segv_handler();
-
-	char tmpdir_template[] = "./syzkaller.XXXXXX";
-	char* tmpdir = mkdtemp(tmpdir_template);
-	if (!tmpdir)
-		fail("failed to mkdtemp");
-	if (chmod(tmpdir, 0777))
-		fail("failed to chmod");
-	if (chdir(tmpdir))
-		fail("failed to chdir");
-}
-
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)
 static void loop();
 
 static void sandbox_common()
@@ -651,6 +759,7 @@ static void sandbox_common()
 	unshare(CLONE_NEWIPC);
 	unshare(CLONE_IO);
 }
+#endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE)
 static int do_sandbox_none(int executor_pid, bool enable_tun)
@@ -660,7 +769,7 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 		return pid;
 
 	sandbox_common();
-#ifdef SYZ_TUN_ENABLE
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	setup_tun(executor_pid, enable_tun);
 #endif
 
@@ -677,7 +786,7 @@ static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 		return pid;
 
 	sandbox_common();
-#ifdef SYZ_TUN_ENABLE
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	setup_tun(executor_pid, enable_tun);
 #endif
 
@@ -740,7 +849,7 @@ static int namespace_sandbox_proc(void* arg)
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
 
-#ifdef SYZ_TUN_ENABLE
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	// For sandbox namespace we setup tun after initializing uid mapping,
 	// otherwise ip commands fail.
 	setup_tun(epid, etun);
@@ -809,7 +918,7 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
 // One does not simply remove a directory.
 // There can be mounts, so we need to try to umount.
 // Moreover, a mount can be mounted several times, so we need to try to umount in a loop.
@@ -888,7 +997,7 @@ retry:
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(SYZ_REPEAT)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
 static uint64_t current_time_ms()
 {
 	struct timespec ts;
@@ -919,22 +1028,30 @@ static int inject_fault(int nth)
 #if defined(SYZ_REPEAT)
 static void test();
 
+#if defined(SYZ_WAIT_REPEAT)
 void loop()
 {
 	int iter;
 	for (iter = 0;; iter++) {
+#ifdef SYZ_USE_TMP_DIR
 		char cwdbuf[256];
 		sprintf(cwdbuf, "./%d", iter);
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
+#endif
 		int pid = fork();
 		if (pid < 0)
 			fail("clone failed");
 		if (pid == 0) {
 			prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 			setpgrp();
+#ifdef SYZ_USE_TMP_DIR
 			if (chdir(cwdbuf))
 				fail("failed to chdir");
+#endif
+#ifdef SYZ_TUN_ENABLE
+			flush_tun();
+#endif
 			test();
 			doexit(0);
 		}
@@ -953,7 +1070,17 @@ void loop()
 				break;
 			}
 		}
+#ifdef SYZ_USE_TMP_DIR
 		remove_dir(cwdbuf);
+#endif
 	}
 }
+#else
+void loop()
+{
+	while (1) {
+		test();
+	}
+}
+#endif
 #endif

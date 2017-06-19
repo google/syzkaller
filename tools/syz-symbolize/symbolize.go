@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/google/syzkaller/report"
+	"github.com/google/syzkaller/pkg/report"
 )
 
 var (

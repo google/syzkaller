@@ -260,3 +260,29 @@ func sanitizeCall(c *Call) {
 		}
 	}
 }
+
+func RequiresBitmasks(p *Prog) bool {
+	result := false
+	for _, c := range p.Calls {
+		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
+			if arg.Kind == ArgConst {
+				if arg.Type.BitfieldOffset() != 0 || arg.Type.BitfieldLength() != 0 {
+					result = true
+				}
+			}
+		})
+	}
+	return result
+}
+
+func RequiresChecksums(p *Prog) bool {
+	result := false
+	for _, c := range p.Calls {
+		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
+			if _, ok := arg.Type.(*sys.CsumType); ok {
+				result = true
+			}
+		})
+	}
+	return result
+}

@@ -6,20 +6,20 @@ ifeq ($(NOSTATIC), 0)
 	STATIC_FLAG=-static
 endif
 
-.PHONY: all format clean manager fuzzer executor execprog mutate prog2c stress extract generate repro
+.PHONY: all format tidy clean manager fuzzer executor execprog mutate prog2c stress extract generate repro db bin/syz-extract bin/syz-sysgen
 
 all:
-	$(MAKE) generate
 	go install ./syz-manager ./syz-fuzzer
 	$(MAKE) manager
 	$(MAKE) fuzzer
 	$(MAKE) execprog
 	$(MAKE) executor
 
-all-tools: execprog mutate prog2c stress repro upgrade
+all-tools: execprog mutate prog2c stress repro upgrade db
 
+# executor uses stacks of limited size, so no jumbo frames.
 executor:
-	$(CC) -o ./bin/syz-executor executor/executor.cc -pthread -Wall -O1 -g $(STATIC_FLAG) $(CFLAGS)
+	$(CC) -o ./bin/syz-executor executor/executor.cc -pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 -g $(STATIC_FLAG) $(CFLAGS)
 
 # Don't generate symbol table and DWARF debug info.
 # Reduces build time and binary sizes considerably.
@@ -48,26 +48,36 @@ prog2c:
 stress:
 	go build $(GOFLAGS) -o ./bin/syz-stress github.com/google/syzkaller/tools/syz-stress
 
+db:
+	go build $(GOFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db
+
 upgrade:
 	go build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 extract: bin/syz-extract
-	LINUX=$(LINUX) LINUXBLD=$(LINUXBLD) ./extract.sh
-bin/syz-extract: syz-extract/*.go sysparser/*.go
-	go build $(GOFLAGS) -o $@ ./syz-extract
+	LINUX=$(LINUX) LINUXBLD=$(LINUXBLD) ./sys/extract.sh
+bin/syz-extract:
+	go build $(GOFLAGS) -o $@ ./sys/syz-extract
 
 generate: bin/syz-sysgen
 	bin/syz-sysgen
-bin/syz-sysgen: sysgen/*.go sysparser/*.go
-	go build $(GOFLAGS) -o $@ ./sysgen
+	go generate ./pkg/csource ./executor ./syz-gce ./pkg/ifuzz ./pkg/kernel
+	$(MAKE) format
+bin/syz-sysgen:
+	go build $(GOFLAGS) -o $@ ./sys/syz-sysgen
 
 format:
 	go fmt ./...
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
 
+tidy:
+	# A single check is enabled for now. But it's always fixable and proved to be useful.
+	clang-tidy -quiet -header-filter=.* -checks=-*,misc-definitions-in-headers -warnings-as-errors=* executor/*.cc
+	# Just check for compiler warnings.
+	$(CC) executor/test_executor.cc -c -o /dev/null -Wparentheses -Wno-unused -Wall
+
 presubmit:
 	$(MAKE) generate
-	go generate ./...
 	$(MAKE) format
 	$(MAKE) executor
 	ARCH=amd64 go install ./...
