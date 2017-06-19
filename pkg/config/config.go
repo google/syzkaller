@@ -32,6 +32,14 @@ func LoadData(data []byte, cfg interface{}) error {
 	return nil
 }
 
+func SaveFile(filename string, cfg interface{}) error {
+	data, err := json.MarshalIndent(cfg, "", "\t")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, data, 0600)
+}
+
 func checkUnknownFields(data []byte, typ reflect.Type) error {
 	if typ.Kind() != reflect.Ptr || typ.Elem().Kind() != reflect.Struct {
 		return fmt.Errorf("config type is not pointer to struct")
