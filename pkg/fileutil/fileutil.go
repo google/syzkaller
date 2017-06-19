@@ -14,7 +14,7 @@ import (
 	"unsafe"
 )
 
-// CopyFile copies oldFile to newFile.
+// CopyFile atomically copies oldFile to newFile preserving permissions and modification time.
 func CopyFile(oldFile, newFile string) error {
 	oldf, err := os.Open(oldFile)
 	if err != nil {
@@ -25,7 +25,8 @@ func CopyFile(oldFile, newFile string) error {
 	if err != nil {
 		return err
 	}
-	newf, err := os.Create(newFile)
+	tmpFile := newFile + ".tmp"
+	newf, err := os.OpenFile(tmpFile, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, stat.Mode()&os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -37,10 +38,10 @@ func CopyFile(oldFile, newFile string) error {
 	if err := newf.Close(); err != nil {
 		return err
 	}
-	if err := os.Chtimes(newFile, stat.ModTime(), stat.ModTime()); err != nil {
+	if err := os.Chtimes(tmpFile, stat.ModTime(), stat.ModTime()); err != nil {
 		return err
 	}
-	return nil
+	return os.Rename(tmpFile, newFile)
 }
 
 // WriteTempFile writes data to a temp file and returns its name.
