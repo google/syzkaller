@@ -14,6 +14,11 @@ indexes:
   properties:
   - name: Status
   - name: Title
+
+- kind: Bug
+  properties:
+  - name: Status
+  - name: Title
   - name: Comment
 
 - kind: Crash
