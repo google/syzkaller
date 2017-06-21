@@ -2,6 +2,8 @@
 
 _newer first_
 
+* [net/ipv6: GPF in rt6_ifdown](https://groups.google.com/forum/#!topic/syzkaller/dQ0r_bHOrJk)
+* [net/ipv4: trying to register non-static key in ip_mc_clear_src](https://groups.google.com/forum/#!topic/syzkaller/E60_ya1wNxs)
 * [usb/gadget: potential deadlock in gadgetfs_suspend](https://groups.google.com/forum/#!topic/syzkaller/J_It9ipKXhk)
 * [net/can: trying to register non-static key in can_rx_register](https://groups.google.com/forum/#!topic/syzkaller/to2Or4lUrTU)
 * [usb/gadget: another GPF in usb_gadget_unregister_driver](https://groups.google.com/forum/#!topic/syzkaller/I6t-ToS5cxE)
