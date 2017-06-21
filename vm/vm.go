@@ -118,7 +118,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool, ig
 
 	matchPos := 0
 	const (
-		beforeContext = 256 << 10
+		beforeContext = 1024 << 10
 		afterContext  = 128 << 10
 	)
 	extractError := func(defaultError string) (string, []byte, []byte, bool, bool) {
