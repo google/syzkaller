@@ -770,7 +770,7 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 }
 
 func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
-	Logf(2, "new input from %v for syscall %v (signal=%v cover=%v)", a.Name, a.Call, len(a.Signal), len(a.Cover))
+	Logf(4, "new input from %v for syscall %v (signal=%v cover=%v)", a.Name, a.Call, len(a.Signal), len(a.Cover))
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -861,7 +861,7 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 			}
 		}
 	}
-	Logf(2, "poll from %v: recv maxsignal=%v, send maxsignal=%v candidates=%v inputs=%v",
+	Logf(4, "poll from %v: recv maxsignal=%v, send maxsignal=%v candidates=%v inputs=%v",
 		a.Name, len(a.MaxSignal), len(r.MaxSignal), len(r.Candidates), len(r.NewInputs))
 	return nil
 }

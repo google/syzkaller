@@ -4,6 +4,7 @@
 package repro
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -39,14 +40,6 @@ type instance struct {
 	index       int
 	execprogBin string
 	executorBin string
-}
-
-func reverseEntries(entries []*prog.LogEntry) []*prog.LogEntry {
-	last := len(entries) - 1
-	for i := 0; i < len(entries)/2; i++ {
-		entries[i], entries[last-i] = entries[last-i], entries[i]
-	}
-	return entries
 }
 
 func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []int) (*Result, error) {
@@ -136,6 +129,46 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 	return res, err
 }
 
+func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, error) {
+	// Cut programs that were executed after crash.
+	for i, ent := range entries {
+		if ent.Start > crashStart {
+			entries = entries[:i]
+			break
+		}
+	}
+
+	res, err := ctx.reproExtractProg(entries)
+	if err != nil {
+		return res, err
+	}
+	if res == nil {
+		return nil, nil
+	}
+
+	res, err = ctx.reproMinimizeProg(res)
+	if err != nil {
+		return res, err
+	}
+
+	res, err = ctx.reproExtractC(res)
+	if err != nil {
+		return res, err
+	}
+	if !res.CRepro {
+		res.Opts.Repro = false
+		return res, nil
+	}
+
+	res, err = ctx.reproMinimizeC(res)
+	if err != nil {
+		return res, err
+	}
+
+	res.Opts.Repro = false
+	return res, nil
+}
+
 func (ctx *context) reproExtractProg(entries []*prog.LogEntry) (*Result, error) {
 	Logf(2, "reproducing crash '%v': suspecting %v programs", ctx.crashDesc, len(entries))
 
@@ -154,6 +187,49 @@ func (ctx *context) reproExtractProg(entries []*prog.LogEntry) (*Result, error) 
 		lastEntries = append(lastEntries, entries[indices[i]])
 	}
 
+	// Execute each program separately for 10 seconds, that should detect simple crashes (i.e. no races and no hangs).
+	// Programs are executed in reverse order, usually the last program is the guilty one.
+	res, err := ctx.reproExtractProgSingle(reverseEntries(lastEntries), 10*time.Second)
+	if err != nil {
+		return res, err
+	}
+	if res != nil {
+		return res, nil
+	}
+
+	// Execute all programs and bisect the log to find guilty programs.
+	res, err = ctx.reproExtractProgBisect(reverseEntries(entries), 10*time.Second)
+	if err != nil {
+		return res, err
+	}
+	if res != nil {
+		return res, nil
+	}
+
+	// Execute each program separately for 5 minutes to catch races and hangs. Note that the max duration must be larger
+	// than hang/no output detection duration in vm.MonitorExecution, which is currently set to 3 mins.
+	res, err = ctx.reproExtractProgSingle(reverseEntries(lastEntries), 5*time.Minute)
+	if err != nil {
+		return res, err
+	}
+	if res != nil {
+		return res, nil
+	}
+
+	// Execute all programs and bisect the log with 5 minute timeout.
+	res, err = ctx.reproExtractProgBisect(reverseEntries(entries), 5*time.Minute)
+	if err != nil {
+		return res, err
+	}
+	if res != nil {
+		return res, nil
+	}
+
+	Logf(0, "reproducing crash '%v': no program crashed", ctx.crashDesc)
+	return nil, nil
+}
+
+func (ctx *context) reproExtractProgSingle(entries []*prog.LogEntry, duration time.Duration) (*Result, error) {
 	opts := csource.Options{
 		Threaded:   true,
 		Collide:    true,
@@ -168,46 +244,207 @@ func (ctx *context) reproExtractProg(entries []*prog.LogEntry) (*Result, error) 
 		Repro:      true,
 	}
 
-	// Execute the suspected programs.
-	// We first try to execute each program for 10 seconds, that should detect simple crashes
-	// (i.e. no races and no hangs). Then we execute each program for 5 minutes
-	// to catch races and hangs. Note that the max duration must be larger than
-	// hang/no output detection duration in vm.MonitorExecution, which is currently set to 3 mins.
-	// Programs are executed in reverse order, usually the last program is the guilty one.
-	durations := []time.Duration{10 * time.Second, 5 * time.Minute}
-	suspected := [][]*prog.LogEntry{reverseEntries(entries), reverseEntries(lastEntries)}
-	var res *Result
-	for i, dur := range durations {
-		for _, ent := range suspected[i] {
-			opts.Fault = ent.Fault
-			opts.FaultCall = ent.FaultCall
-			opts.FaultNth = ent.FaultNth
-			if opts.FaultCall < 0 || opts.FaultCall >= len(ent.P.Calls) {
-				opts.FaultCall = len(ent.P.Calls) - 1
+	for _, ent := range entries {
+		opts.Fault = ent.Fault
+		opts.FaultCall = ent.FaultCall
+		opts.FaultNth = ent.FaultNth
+		if opts.FaultCall < 0 || opts.FaultCall >= len(ent.P.Calls) {
+			opts.FaultCall = len(ent.P.Calls) - 1
+		}
+		crashed, err := ctx.testProg(ent.P, duration, opts)
+		if err != nil {
+			return nil, err
+		}
+		if crashed {
+			res := &Result{
+				Prog:     ent.P,
+				Duration: duration * 3 / 2,
+				Opts:     opts,
 			}
-			crashed, err := ctx.testProg(ent.P, dur, opts)
+			return res, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (ctx *context) reproExtractProgBisect(entries []*prog.LogEntry, baseDuration time.Duration) (*Result, error) {
+	Logf(3, "reproducing crash '%v': bisect: bisecting %d programs", ctx.crashDesc, len(entries))
+
+	opts := csource.Options{
+		Threaded:   true,
+		Collide:    true,
+		Repeat:     true,
+		Procs:      ctx.cfg.Procs,
+		Sandbox:    ctx.cfg.Sandbox,
+		EnableTun:  true,
+		UseTmpDir:  true,
+		HandleSegv: true,
+		WaitRepeat: true,
+		Debug:      true,
+		Repro:      true,
+	}
+
+	duration := func(entries int) time.Duration {
+		return baseDuration + time.Duration((entries/4))*time.Second
+	}
+
+	// Check that executing the whole log results in a crash.
+	Logf(3, "reproducing crash '%v': bisect: executing all %d programs", ctx.crashDesc, len(entries))
+	crashed, err := ctx.testProgs(entries, duration(len(entries)), opts)
+	if err != nil {
+		return nil, err
+	}
+	if !crashed {
+		Logf(3, "reproducing crash '%v': bisect: didn't crash", ctx.crashDesc)
+		return nil, nil
+	}
+
+	compose := func(guilty1, guilty2 [][]*prog.LogEntry, chunk []*prog.LogEntry) []*prog.LogEntry {
+		progs := []*prog.LogEntry{}
+		for _, c := range guilty1 {
+			progs = append(progs, c...)
+		}
+		progs = append(progs, chunk...)
+		for _, c := range guilty2 {
+			progs = append(progs, c...)
+		}
+		return progs
+	}
+
+	logGuilty := func(guilty [][]*prog.LogEntry) string {
+		log := "["
+		for i, chunk := range guilty {
+			log += fmt.Sprintf("<%d>", len(chunk))
+			if i != len(guilty)-1 {
+				log += ", "
+			}
+		}
+		log += "]"
+		return log
+	}
+
+	// Bisect the programs to find the ones that cause the crash.
+	guilty := [][]*prog.LogEntry{entries}
+again:
+	Logf(3, "reproducing crash '%v': bisect: guilty chunks: %v", ctx.crashDesc, logGuilty(guilty))
+	for i, chunk := range guilty {
+		if len(chunk) == 1 {
+			continue
+		}
+
+		guilty1 := guilty[:i]
+		guilty2 := guilty[i+1:]
+		Logf(3, "reproducing crash '%v': bisect: guilty chunks split: %v, <%v>, %v", ctx.crashDesc, logGuilty(guilty1), len(chunk), logGuilty(guilty2))
+
+		chunk1 := chunk[0 : len(chunk)/2]
+		chunk2 := chunk[len(chunk)/2 : len(chunk)]
+		Logf(3, "reproducing crash '%v': bisect: chunk split: <%v> => <%v>, <%v>", ctx.crashDesc, len(chunk), len(chunk1), len(chunk2))
+
+		Logf(3, "reproducing crash '%v': bisect: triggering crash without chunk #1", ctx.crashDesc)
+		progs := compose(guilty1, guilty2, chunk2)
+		crashed, err := ctx.testProgs(progs, duration(len(progs)), opts)
+		if err != nil {
+			return nil, err
+		}
+
+		if crashed {
+			guilty = nil
+			guilty = append(guilty, guilty1...)
+			guilty = append(guilty, chunk2)
+			guilty = append(guilty, guilty2...)
+			Logf(3, "reproducing crash '%v': bisect: crashed, chunk #1 evicted", ctx.crashDesc)
+			goto again
+		}
+
+		Logf(3, "reproducing crash '%v': bisect: triggering crash without chunk #2", ctx.crashDesc)
+		progs = compose(guilty1, guilty2, chunk1)
+		crashed, err = ctx.testProgs(progs, duration(len(progs)), opts)
+		if err != nil {
+			return nil, err
+		}
+
+		if crashed {
+			guilty = nil
+			guilty = append(guilty, guilty1...)
+			guilty = append(guilty, chunk1)
+			guilty = append(guilty, guilty2...)
+			Logf(3, "reproducing crash '%v': bisect: crashed, chunk #2 evicted", ctx.crashDesc)
+			goto again
+		}
+
+		guilty = nil
+		guilty = append(guilty, guilty1...)
+		guilty = append(guilty, chunk1)
+		guilty = append(guilty, chunk2)
+		guilty = append(guilty, guilty2...)
+
+		Logf(3, "reproducing crash '%v': bisect: not crashed, both chunks required", ctx.crashDesc)
+
+		goto again
+	}
+
+	// Concatenate all programs into one.
+	entries = []*prog.LogEntry{}
+	var prog prog.Prog
+	for _, chunk := range guilty {
+		if len(chunk) != 1 {
+			return nil, fmt.Errorf("bad bisect result: %v", guilty)
+		}
+		entries = append(entries, chunk[0])
+		prog.Calls = append(prog.Calls, chunk[0].P.Calls...)
+	}
+
+	// TODO: Minimize each program before concatenation.
+	// TODO: Return multiple programs if concatenation fails.
+
+	Logf(3, "reproducing crash '%v': bisect: %d programs left:\n\n%s\n", ctx.crashDesc, len(entries), encodeEntries(entries))
+	Logf(3, "reproducing crash '%v': bisect: concatenating", ctx.crashDesc)
+
+	// Execute the program without fault injection.
+	dur := duration(len(entries)) * 3 / 2
+	crashed, err = ctx.testProg(&prog, dur, opts)
+	if err != nil {
+		return nil, err
+	}
+	if crashed {
+		res := &Result{
+			Prog:     &prog,
+			Duration: dur,
+			Opts:     opts,
+		}
+		Logf(3, "reproducing crash '%v': bisect: concatenation succeded", ctx.crashDesc)
+		return res, nil
+	}
+
+	// Try with fault injection.
+	calls := 0
+	for _, entry := range entries {
+		if entry.Fault {
+			opts.FaultCall = calls + entry.FaultCall
+			opts.FaultNth = entry.FaultNth
+			if entry.FaultCall < 0 || entry.FaultCall >= len(entry.P.Calls) {
+				opts.FaultCall = calls + len(entry.P.Calls) - 1
+			}
+			crashed, err := ctx.testProg(&prog, dur, opts)
 			if err != nil {
 				return nil, err
 			}
 			if crashed {
-				res = &Result{
-					Prog:     ent.P,
-					Duration: dur * 3 / 2,
+				res := &Result{
+					Prog:     &prog,
+					Duration: dur,
 					Opts:     opts,
 				}
-				break
+				Logf(3, "reproducing crash '%v': bisect: concatenation succeded with fault injection", ctx.crashDesc)
+				return res, nil
 			}
 		}
-		if res != nil {
-			break
-		}
-	}
-	if res == nil {
-		Logf(0, "reproducing crash '%v': no program crashed", ctx.crashDesc)
-		return nil, nil
+		calls += len(entry.P.Calls)
 	}
 
-	return res, nil
+	Logf(3, "reproducing crash '%v': bisect: concatenation failed", ctx.crashDesc)
+	return nil, nil
 }
 
 func (ctx *context) reproMinimizeProg(res *Result) (*Result, error) {
@@ -221,7 +458,7 @@ func (ctx *context) reproMinimizeProg(res *Result) (*Result, error) {
 	res.Prog, res.Opts.FaultCall = prog.Minimize(res.Prog, call, func(p1 *prog.Prog, callIndex int) bool {
 		crashed, err := ctx.testProg(p1, res.Duration, res.Opts)
 		if err != nil {
-			Logf(1, "reproducing crash '%v': minimization failed with %v", ctx.crashDesc, err)
+			Logf(0, "reproducing crash '%v': minimization failed with %v", ctx.crashDesc, err)
 			return false
 		}
 		return crashed
@@ -368,54 +605,27 @@ func (ctx *context) reproMinimizeC(res *Result) (*Result, error) {
 	return res, nil
 }
 
-func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, error) {
-	// Cut programs that were executed after crash.
-	for i, ent := range entries {
-		if ent.Start > crashStart {
-			entries = entries[:i]
-			break
-		}
+func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.Options) (crashed bool, err error) {
+	entry := prog.LogEntry{P: p}
+	if opts.FaultCall != -1 {
+		entry.Fault = true
+		entry.FaultCall = opts.FaultCall
+		entry.FaultNth = opts.FaultNth
 	}
-
-	res, err := ctx.reproExtractProg(entries)
-	if err != nil {
-		return res, err
-	}
-	if res == nil {
-		return nil, nil
-	}
-
-	res, err = ctx.reproMinimizeProg(res)
-	if err != nil {
-		return res, err
-	}
-
-	res, err = ctx.reproExtractC(res)
-	if err != nil {
-		return res, err
-	}
-	if !res.CRepro {
-		res.Opts.Repro = false
-		return res, nil
-	}
-
-	res, err = ctx.reproMinimizeC(res)
-	if err != nil {
-		return res, err
-	}
-
-	res.Opts.Repro = false
-	return res, nil
+	return ctx.testProgs([]*prog.LogEntry{&entry}, duration, opts)
 }
 
-func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.Options) (crashed bool, err error) {
+func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, opts csource.Options) (crashed bool, err error) {
 	inst := <-ctx.instances
 	if inst == nil {
 		return false, fmt.Errorf("all VMs failed to boot")
 	}
 	defer ctx.returnInstance(inst)
+	if len(entries) == 0 {
+		return false, fmt.Errorf("no programs to execute")
+	}
 
-	pstr := p.Serialize()
+	pstr := encodeEntries(entries)
 	progFile, err := fileutil.WriteTempFile(pstr)
 	if err != nil {
 		return false, err
@@ -433,10 +643,21 @@ func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.
 	if !opts.Fault {
 		opts.FaultCall = -1
 	}
-	command := fmt.Sprintf("%v -executor %v -cover=0 -procs=%v -repeat=%v -sandbox %v -threaded=%v -collide=%v -fault_call=%v -fault_nth=%v %v",
-		inst.execprogBin, inst.executorBin, opts.Procs, repeat, opts.Sandbox, opts.Threaded, opts.Collide, opts.FaultCall, opts.FaultNth, vmProgFile)
+	program := entries[0].P.String()
+	if len(entries) > 1 {
+		program = "["
+		for i, entry := range entries {
+			program += fmt.Sprintf("%v", len(entry.P.Calls))
+			if i != len(entries)-1 {
+				program += ", "
+			}
+		}
+		program += "]"
+	}
+	command := fmt.Sprintf("%v -executor %v -cover=0 -procs=%v -repeat=%v -sandbox %v -threaded=%v -collide=%v %v",
+		inst.execprogBin, inst.executorBin, opts.Procs, repeat, opts.Sandbox, opts.Threaded, opts.Collide, vmProgFile)
 	Logf(2, "reproducing crash '%v': testing program (duration=%v, %+v): %s",
-		ctx.crashDesc, duration, opts, p)
+		ctx.crashDesc, duration, opts, program)
 	return ctx.testImpl(inst.Instance, command, duration)
 }
 
@@ -495,4 +716,24 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 func (ctx *context) returnInstance(inst *instance) {
 	ctx.bootRequests <- inst.index
 	inst.Close()
+}
+
+func reverseEntries(entries []*prog.LogEntry) []*prog.LogEntry {
+	last := len(entries) - 1
+	for i := 0; i < len(entries)/2; i++ {
+		entries[i], entries[last-i] = entries[last-i], entries[i]
+	}
+	return entries
+}
+
+func encodeEntries(entries []*prog.LogEntry) []byte {
+	buf := new(bytes.Buffer)
+	for _, ent := range entries {
+		opts := ""
+		if ent.Fault {
+			opts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)", ent.FaultCall, ent.FaultNth)
+		}
+		fmt.Fprintf(buf, "executing program %v%v:\n%v", ent.Proc, opts, string(ent.P.Serialize()))
+	}
+	return buf.Bytes()
 }
