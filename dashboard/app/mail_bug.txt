@@ -1,0 +1,10 @@
+Hello,
+
+syzkaller hit the following crash on {{.KernelCommit}}
+{{.KernelRepo}}/{{.KernelBranch}}
+compiler: {{.CompilerID}}
+{{if .ReproC}}C reproducer is attached{{end}}{{if .ReproSyz}}syzkaller reproducer is attached{{end}}
+.config is attached
+
+
+{{.Report}}

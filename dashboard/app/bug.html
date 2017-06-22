@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+	<title>Syzkaller Dashboard</title>
+	<link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+	{{template "header" .Header}}
+
+	Title: {{.Bug.Title}}<br>
+	Namespace: {{.Bug.Namespace}}<br>
+	Crashes: {{.Bug.NumCrashes}}<br>
+	First: {{formatTime .Bug.FirstTime}}<br>
+	Last: {{formatTime .Bug.LastTime}}<br>
+	Reporting: {{if .Bug.Link}}<a href="{{.Bug.Link}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
+	Commits: {{.Bug.Commits}}<br>
+
+	<table class="list_table">
+		<caption>Crashes:</caption>
+		<tr>
+			<th>Manager</th>
+			<th>Time</th>
+			<th>Log</th>
+			<th>Report</th>
+			<th>Syz repro</th>
+			<th>C repro</th>
+			<th>Maintainers</th>
+		</tr>
+		{{range $c := $.Crashes}}
+			<tr>
+				<td class="manager">{{$c.Manager}}</td>
+				<td class="time">{{formatTime $c.Time}}</td>
+				<td class="repro">{{if $c.LogLink}}<a href="{{$c.LogLink}}">log</a>{{end}}</td>
+				<td class="repro">{{if $c.ReportLink}}<a href="{{$c.ReportLink}}">report</a>{{end}}</td>
+				<td class="repro">{{if $c.ReproSyzLink}}<a href="{{$c.ReproSyzLink}}">syz</a>{{end}}</td>
+				<td class="repro">{{if $c.ReproCLink}}<a href="{{$c.ReproCLink}}">C</a>{{end}}</td>
+				<td class="maintainers" title="{{$c.Maintainers}}">{{$c.Maintainers}}</td>
+			</tr>
+		{{end}}
+	</table>
+</body>
+</html>
