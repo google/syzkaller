@@ -165,6 +165,66 @@
 			"Rev": "1faa39f42f12a54fa82ca5902a7ab642d5b09ad1"
 		},
 		{
+			"ImportPath": "google.golang.org/appengine",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/datastore",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/internal",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/internal/app_identity",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/internal/base",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/internal/datastore",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/internal/log",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/internal/modules",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/internal/remote_api",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/internal/user",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/log",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/user",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
 			"ImportPath": "google.golang.org/genproto/googleapis/api/annotations",
 			"Rev": "aa2eb687b4d3e17154372564ad8d6bf11c3cf21f"
 		},
