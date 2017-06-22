@@ -36,7 +36,7 @@ func Poll(dir, repo, branch string) (string, error) {
 			return "", err
 		}
 	}
-	if _, err := osutil.RunCmd(timeout, dir, "git", "fetch", "--no-tags", "--depth", "1"); err != nil {
+	if _, err := osutil.RunCmd(timeout, dir, "git", "fetch", "--no-tags"); err != nil {
 		// Something else is wrong, re-clone.
 		if err := clone(dir, repo, branch); err != nil {
 			return "", err
@@ -58,7 +58,6 @@ func clone(dir, repo, branch string) error {
 	args := []string{
 		"clone",
 		repo,
-		"--depth", "1",
 		"--single-branch",
 		"--branch", branch,
 		dir,
