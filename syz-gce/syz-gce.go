@@ -354,16 +354,14 @@ func (a *LocalBuildAction) Build() error {
 		}
 	}
 	Logf(0, "building kernel on %v...", hash)
-	config, full := syzconfig, false
 	if cfg.Linux_Config != "" {
-		data, err := ioutil.ReadFile(cfg.Linux_Config)
-		if err != nil {
-			return fmt.Errorf("failed to read config file: %v", err)
+		if err := kernel.Build(dir, a.Compiler, cfg.Linux_Config); err != nil {
+			return fmt.Errorf("build failed: %v", err)
 		}
-		config, full = string(data), true
-	}
-	if err := kernel.Build(dir, a.Compiler, config, full); err != nil {
-		return fmt.Errorf("build failed: %v", err)
+	} else {
+		if err := kernel.BuildWithPartConfig(dir, a.Compiler, syzconfig); err != nil {
+			return fmt.Errorf("build failed: %v", err)
+		}
 	}
 	Logf(0, "building image...")
 	os.MkdirAll("image/obj", 0700)

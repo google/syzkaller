@@ -41,6 +41,15 @@ type Patch struct {
 	Diff  []byte
 }
 
+func New(client, addr, key string) (*Dashboard, error) {
+	dash := &Dashboard{
+		Client: client,
+		Addr:   addr,
+		Key:    key,
+	}
+	return dash, nil
+}
+
 func (dash *Dashboard) ReportCrash(crash *Crash) error {
 	return dash.query("add_crash", crash, nil)
 }
