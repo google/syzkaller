@@ -269,8 +269,6 @@ func (ctx *context) reproExtractProgSingle(entries []*prog.LogEntry, duration ti
 }
 
 func (ctx *context) reproExtractProgBisect(entries []*prog.LogEntry, baseDuration time.Duration) (*Result, error) {
-	Logf(3, "reproducing crash '%v': bisect: bisecting %d programs", ctx.crashDesc, len(entries))
-
 	opts := csource.Options{
 		Threaded:   true,
 		Collide:    true,
@@ -289,121 +287,32 @@ func (ctx *context) reproExtractProgBisect(entries []*prog.LogEntry, baseDuratio
 		return baseDuration + time.Duration((entries/4))*time.Second
 	}
 
-	// Check that executing the whole log results in a crash.
-	Logf(3, "reproducing crash '%v': bisect: executing all %d programs", ctx.crashDesc, len(entries))
-	crashed, err := ctx.testProgs(entries, duration(len(entries)), opts)
+	// Bisect the log to find multiple guilty programs.
+	entries, err := bisectProgs(entries, ctx.crashDesc, func(progs []*prog.LogEntry) (bool, error) {
+		return ctx.testProgs(progs, duration(len(progs)), opts)
+	})
 	if err != nil {
 		return nil, err
 	}
-	if !crashed {
-		Logf(3, "reproducing crash '%v': bisect: didn't crash", ctx.crashDesc)
+	if entries == nil {
 		return nil, nil
 	}
 
-	compose := func(guilty1, guilty2 [][]*prog.LogEntry, chunk []*prog.LogEntry) []*prog.LogEntry {
-		progs := []*prog.LogEntry{}
-		for _, c := range guilty1 {
-			progs = append(progs, c...)
-		}
-		progs = append(progs, chunk...)
-		for _, c := range guilty2 {
-			progs = append(progs, c...)
-		}
-		return progs
-	}
-
-	logGuilty := func(guilty [][]*prog.LogEntry) string {
-		log := "["
-		for i, chunk := range guilty {
-			log += fmt.Sprintf("<%d>", len(chunk))
-			if i != len(guilty)-1 {
-				log += ", "
-			}
-		}
-		log += "]"
-		return log
-	}
-
-	// Bisect the programs to find the ones that cause the crash.
-	guilty := [][]*prog.LogEntry{entries}
-again:
-	Logf(3, "reproducing crash '%v': bisect: guilty chunks: %v", ctx.crashDesc, logGuilty(guilty))
-	for i, chunk := range guilty {
-		if len(chunk) == 1 {
-			continue
-		}
-
-		guilty1 := guilty[:i]
-		guilty2 := guilty[i+1:]
-		Logf(3, "reproducing crash '%v': bisect: guilty chunks split: %v, <%v>, %v", ctx.crashDesc, logGuilty(guilty1), len(chunk), logGuilty(guilty2))
-
-		chunk1 := chunk[0 : len(chunk)/2]
-		chunk2 := chunk[len(chunk)/2 : len(chunk)]
-		Logf(3, "reproducing crash '%v': bisect: chunk split: <%v> => <%v>, <%v>", ctx.crashDesc, len(chunk), len(chunk1), len(chunk2))
-
-		Logf(3, "reproducing crash '%v': bisect: triggering crash without chunk #1", ctx.crashDesc)
-		progs := compose(guilty1, guilty2, chunk2)
-		crashed, err := ctx.testProgs(progs, duration(len(progs)), opts)
-		if err != nil {
-			return nil, err
-		}
-
-		if crashed {
-			guilty = nil
-			guilty = append(guilty, guilty1...)
-			guilty = append(guilty, chunk2)
-			guilty = append(guilty, guilty2...)
-			Logf(3, "reproducing crash '%v': bisect: crashed, chunk #1 evicted", ctx.crashDesc)
-			goto again
-		}
-
-		Logf(3, "reproducing crash '%v': bisect: triggering crash without chunk #2", ctx.crashDesc)
-		progs = compose(guilty1, guilty2, chunk1)
-		crashed, err = ctx.testProgs(progs, duration(len(progs)), opts)
-		if err != nil {
-			return nil, err
-		}
-
-		if crashed {
-			guilty = nil
-			guilty = append(guilty, guilty1...)
-			guilty = append(guilty, chunk1)
-			guilty = append(guilty, guilty2...)
-			Logf(3, "reproducing crash '%v': bisect: crashed, chunk #2 evicted", ctx.crashDesc)
-			goto again
-		}
-
-		guilty = nil
-		guilty = append(guilty, guilty1...)
-		guilty = append(guilty, chunk1)
-		guilty = append(guilty, chunk2)
-		guilty = append(guilty, guilty2...)
-
-		Logf(3, "reproducing crash '%v': bisect: not crashed, both chunks required", ctx.crashDesc)
-
-		goto again
-	}
-
 	// Concatenate all programs into one.
-	entries = []*prog.LogEntry{}
 	var prog prog.Prog
-	for _, chunk := range guilty {
-		if len(chunk) != 1 {
-			return nil, fmt.Errorf("bad bisect result: %v", guilty)
-		}
-		entries = append(entries, chunk[0])
-		prog.Calls = append(prog.Calls, chunk[0].P.Calls...)
+	for _, entry := range entries {
+		prog.Calls = append(prog.Calls, entry.P.Calls...)
 	}
 
 	// TODO: Minimize each program before concatenation.
 	// TODO: Return multiple programs if concatenation fails.
 
-	Logf(3, "reproducing crash '%v': bisect: %d programs left:\n\n%s\n", ctx.crashDesc, len(entries), encodeEntries(entries))
+	Logf(3, "reproducing crash '%v': bisect: \n\n%s\n", ctx.crashDesc, encodeEntries(entries))
 	Logf(3, "reproducing crash '%v': bisect: concatenating", ctx.crashDesc)
 
 	// Execute the program without fault injection.
 	dur := duration(len(entries)) * 3 / 2
-	crashed, err = ctx.testProg(&prog, dur, opts)
+	crashed, err := ctx.testProg(&prog, dur, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -716,6 +625,114 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 func (ctx *context) returnInstance(inst *instance) {
 	ctx.bootRequests <- inst.index
 	inst.Close()
+}
+
+func bisectProgs(progs []*prog.LogEntry, crashDesc string, pred func([]*prog.LogEntry) (bool, error)) ([]*prog.LogEntry, error) {
+	Logf(3, "reproducing crash '%v': bisect: bisecting %d programs", crashDesc, len(progs))
+
+	compose := func(guilty1, guilty2 [][]*prog.LogEntry, chunk []*prog.LogEntry) []*prog.LogEntry {
+		progs := []*prog.LogEntry{}
+		for _, c := range guilty1 {
+			progs = append(progs, c...)
+		}
+		progs = append(progs, chunk...)
+		for _, c := range guilty2 {
+			progs = append(progs, c...)
+		}
+		return progs
+	}
+
+	logGuilty := func(guilty [][]*prog.LogEntry) string {
+		log := "["
+		for i, chunk := range guilty {
+			log += fmt.Sprintf("<%d>", len(chunk))
+			if i != len(guilty)-1 {
+				log += ", "
+			}
+		}
+		log += "]"
+		return log
+	}
+
+	Logf(3, "reproducing crash '%v': bisect: executing all %d programs", crashDesc, len(progs))
+	crashed, err := pred(progs)
+	if err != nil {
+		return nil, err
+	}
+	if !crashed {
+		Logf(3, "reproducing crash '%v': bisect: didn't crash", crashDesc)
+		return nil, nil
+	}
+
+	guilty := [][]*prog.LogEntry{progs}
+again:
+	Logf(3, "reproducing crash '%v': bisect: guilty chunks: %v", crashDesc, logGuilty(guilty))
+	for i, chunk := range guilty {
+		if len(chunk) == 1 {
+			continue
+		}
+
+		guilty1 := guilty[:i]
+		guilty2 := guilty[i+1:]
+		Logf(3, "reproducing crash '%v': bisect: guilty chunks split: %v, <%v>, %v", crashDesc, logGuilty(guilty1), len(chunk), logGuilty(guilty2))
+
+		chunk1 := chunk[0 : len(chunk)/2]
+		chunk2 := chunk[len(chunk)/2 : len(chunk)]
+		Logf(3, "reproducing crash '%v': bisect: chunk split: <%v> => <%v>, <%v>", crashDesc, len(chunk), len(chunk1), len(chunk2))
+
+		Logf(3, "reproducing crash '%v': bisect: triggering crash without chunk #1", crashDesc)
+		progs := compose(guilty1, guilty2, chunk2)
+		crashed, err := pred(progs)
+		if err != nil {
+			return nil, err
+		}
+
+		if crashed {
+			guilty = nil
+			guilty = append(guilty, guilty1...)
+			guilty = append(guilty, chunk2)
+			guilty = append(guilty, guilty2...)
+			Logf(3, "reproducing crash '%v': bisect: crashed, chunk #1 evicted", crashDesc)
+			goto again
+		}
+
+		Logf(3, "reproducing crash '%v': bisect: triggering crash without chunk #2", crashDesc)
+		progs = compose(guilty1, guilty2, chunk1)
+		crashed, err = pred(progs)
+		if err != nil {
+			return nil, err
+		}
+
+		if crashed {
+			guilty = nil
+			guilty = append(guilty, guilty1...)
+			guilty = append(guilty, chunk1)
+			guilty = append(guilty, guilty2...)
+			Logf(3, "reproducing crash '%v': bisect: crashed, chunk #2 evicted", crashDesc)
+			goto again
+		}
+
+		guilty = nil
+		guilty = append(guilty, guilty1...)
+		guilty = append(guilty, chunk1)
+		guilty = append(guilty, chunk2)
+		guilty = append(guilty, guilty2...)
+
+		Logf(3, "reproducing crash '%v': bisect: not crashed, both chunks required", crashDesc)
+
+		goto again
+	}
+
+	progs = nil
+	for _, chunk := range guilty {
+		if len(chunk) != 1 {
+			return nil, fmt.Errorf("bad bisect result: %v", guilty)
+		}
+		progs = append(progs, chunk[0])
+	}
+
+	Logf(3, "reproducing crash '%v': bisect: success, %d programs left", crashDesc, len(progs))
+	return progs, nil
 }
 
 func reverseEntries(entries []*prog.LogEntry) []*prog.LogEntry {
