@@ -170,6 +170,11 @@
 			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
 		},
 		{
+			"ImportPath": "google.golang.org/appengine/aetest",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
 			"ImportPath": "google.golang.org/appengine/datastore",
 			"Comment": "v1.0.0-37-ga2f4131",
 			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
