@@ -54,10 +54,10 @@ import (
 	"os"
 	"sync"
 
-	"github.com/google/syzkaller/dashboard"
 	"github.com/google/syzkaller/pkg/config"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/syz-dash/dashboard"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
