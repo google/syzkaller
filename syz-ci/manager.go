@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/syzkaller/dashboard"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/fileutil"
 	"github.com/google/syzkaller/pkg/git"
@@ -18,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/kernel"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/syz-dash/dashboard"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 

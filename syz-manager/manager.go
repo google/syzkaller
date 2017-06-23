@@ -19,7 +19,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/dashboard"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
@@ -30,6 +29,7 @@ import (
 	"github.com/google/syzkaller/pkg/repro"
 	. "github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/syz-dash/dashboard"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
 )
