@@ -187,42 +187,30 @@ func (ctx *context) reproExtractProg(entries []*prog.LogEntry) (*Result, error) 
 		lastEntries = append(lastEntries, entries[indices[i]])
 	}
 
-	// Execute each program separately for 10 seconds, that should detect simple crashes (i.e. no races and no hangs).
-	// Programs are executed in reverse order, usually the last program is the guilty one.
-	res, err := ctx.reproExtractProgSingle(reverseEntries(lastEntries), 10*time.Second)
-	if err != nil {
-		return res, err
-	}
-	if res != nil {
-		return res, nil
-	}
-
-	// Execute all programs and bisect the log to find guilty programs.
-	res, err = ctx.reproExtractProgBisect(reverseEntries(entries), 10*time.Second)
-	if err != nil {
-		return res, err
-	}
-	if res != nil {
-		return res, nil
-	}
-
-	// Execute each program separately for 5 minutes to catch races and hangs. Note that the max duration must be larger
+	// The shortest duration is 10 seconds to detect simple crashes (i.e. no races and no hangs).
+	// The longest duration is 5 minutes to catch races and hangs. Note that this value must be larger
 	// than hang/no output detection duration in vm.MonitorExecution, which is currently set to 3 mins.
-	res, err = ctx.reproExtractProgSingle(reverseEntries(lastEntries), 5*time.Minute)
-	if err != nil {
-		return res, err
-	}
-	if res != nil {
-		return res, nil
-	}
+	timeouts := []time.Duration{10*time.Second, 1*time.Minute, 5*time.Minute}
 
-	// Execute all programs and bisect the log with 5 minute timeout.
-	res, err = ctx.reproExtractProgBisect(reverseEntries(entries), 5*time.Minute)
-	if err != nil {
-		return res, err
-	}
-	if res != nil {
-		return res, nil
+	for _, timeout := range timeouts {
+		// Execute each program separately to detect simple crashes caused by a single program.
+		// Programs are executed in reverse order, usually the last program is the guilty one.
+		res, err := ctx.reproExtractProgSingle(reverseEntries(lastEntries), timeout)
+		if err != nil {
+			return res, err
+		}
+		if res != nil {
+			return res, nil
+		}
+
+		// Execute all programs and bisect the log to find multiple guilty programs.
+		res, err = ctx.reproExtractProgBisect(reverseEntries(entries), timeout)
+		if err != nil {
+			return res, err
+		}
+		if res != nil {
+			return res, nil
+		}
 	}
 
 	Logf(0, "reproducing crash '%v': no program crashed", ctx.crashDesc)
