@@ -11,8 +11,8 @@ import (
 )
 
 const (
-    CBAUD = unix.CBAUD
-    CRTSCTS = unix.CRTSCTS
-    TCGETS = syscall.TCGETS
-    TCSETS = syscall.TCSETS
+    unix_CBAUD = unix.CBAUD
+    unix_CRTSCTS = unix.CRTSCTS
+    syscall_TCGETS = syscall.TCGETS
+    syscall_TCSETS = syscall.TCSETS
 )

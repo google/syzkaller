@@ -8,8 +8,8 @@ package vmimpl
 import "syscall"
 
 const (
-    CBAUD = 0
-    CRTSCTS = 0
-    TCGETS = syscall.TIOCGETA
-    TCSETS = syscall.TIOCSETA
+    unix_CBAUD = 0
+    unix_CRTSCTS = 0
+    syscall_TCGETS = syscall.TIOCGETA
+    syscall_TCSETS = syscall.TIOCSETA
 )
