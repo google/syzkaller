@@ -586,6 +586,14 @@ INFO: rcu_preempt detected stalls on CPUs/tasks: { 2} (detected by 0, t=65008 ji
 `: `INFO: rcu detected stall`,
 
 		`
+[  152.002376] INFO: rcu_bh detected stalls on CPUs/tasks:
+`: `INFO: rcu detected stall`,
+
+		`
+[   72.159680] INFO: rcu_sched detected expedited stalls on CPUs/tasks: {
+`: `INFO: rcu detected stall`,
+
+		`
 BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
 `: `BUG: spinlock lockup suspected`,
 
