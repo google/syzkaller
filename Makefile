@@ -6,7 +6,7 @@ ifeq ($(NOSTATIC), 0)
 	STATIC_FLAG=-static
 endif
 
-.PHONY: all format tidy clean manager fuzzer executor execprog ci mutate prog2c stress extract generate repro db bin/syz-extract bin/syz-sysgen
+.PHONY: all format tidy clean manager fuzzer executor execprog ci mutate prog2c stress extract generate repro db bin/syz-extract bin/syz-sysgen android
 
 all:
 	go install ./syz-manager ./syz-fuzzer
@@ -89,6 +89,18 @@ presubmit:
 	GOOS=darwin GOARCH=amd64 go build -o /dev/null ./syz-manager
 	go test -short ./...
 	echo LGTM
+
+android: UNAME=$(shell uname | tr '[:upper:]' '[:lower:]')
+android: ANDROID_ARCH=arm64
+android: ANDROID_API=24
+android: TOOLCHAIN=aarch64-linux-android
+android:
+	test -d $(NDK)
+	$(MAKE) manager
+	env GOOS=linux GOARCH=arm64 $(MAKE) execprog fuzzer
+	env CC="$(NDK)/toolchains/$(TOOLCHAIN)-4.9/prebuilt/$(UNAME)-x86_64/bin/$(TOOLCHAIN)-g++" \
+		CFLAGS="-I $(NDK)/sources/cxx-stl/llvm-libc++/include --sysroot=$(NDK)/platforms/android-$(ANDROID_API)/arch-$(ANDROID_ARCH) -O1 -g -Wall -static" \
+		$(MAKE) executor
 
 clean:
 	rm -rf ./bin/
