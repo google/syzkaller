@@ -181,11 +181,11 @@ var oopses = []*oops{
 				"INFO: rcu detected stall",
 			},
 			{
-				compile("INFO: rcu_sched detected stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				compile("INFO: rcu_sched detected(?: expedited)? stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
 				"INFO: rcu detected stall in %[1]v",
 			},
 			{
-				compile("INFO: rcu_sched detected stalls"),
+				compile("INFO: rcu_sched detected(?: expedited)? stalls"),
 				"INFO: rcu detected stall",
 			},
 			{
@@ -202,6 +202,10 @@ var oopses = []*oops{
 			},
 			{
 				compile("INFO: rcu_sched self-detected stall on CPU"),
+				"INFO: rcu detected stall",
+			},
+			{
+				compile("INFO: rcu_bh detected stalls on CPU"),
 				"INFO: rcu detected stall",
 			},
 			{
