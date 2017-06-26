@@ -131,7 +131,7 @@ func runCompiler(arch string, vals []string, includes []string, incdirs []string
 		"-include", *flagLinux + "/include/linux/kconfig.h",
 	}...)
 	for _, incdir := range incdirs {
-		args = append(args, "-I" + *flagLinux + "/" + incdir,)
+		args = append(args, "-I"+*flagLinux+"/"+incdir)
 	}
 	cmd := exec.Command("gcc", args...)
 	cmd.Stdin = strings.NewReader(src)
