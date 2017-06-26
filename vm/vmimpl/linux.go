@@ -6,13 +6,14 @@
 package vmimpl
 
 import (
-    "syscall"
-    "unix"
+	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 const (
-    unix_CBAUD = unix.CBAUD
-    unix_CRTSCTS = unix.CRTSCTS
-    syscall_TCGETS = syscall.TCGETS
-    syscall_TCSETS = syscall.TCSETS
+	unix_CBAUD     = unix.CBAUD
+	unix_CRTSCTS   = unix.CRTSCTS
+	syscall_TCGETS = syscall.TCGETS
+	syscall_TCSETS = syscall.TCSETS
 )
