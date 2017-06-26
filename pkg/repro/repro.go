@@ -381,6 +381,9 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 	if err != nil {
 		return res, err
 	}
+	if res == nil {
+		return nil, nil
+	}
 
 	res, err = ctx.reproMinimizeProg(res)
 	if err != nil {
