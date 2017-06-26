@@ -477,6 +477,7 @@ static void flush_tun()
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(__NR_syz_extract_tcp_res) && defined(SYZ_TUN_ENABLE))
+#ifndef __ANDROID__
 struct ipv6hdr {
 	__u8 priority : 4,
 	    version : 4;
@@ -489,6 +490,7 @@ struct ipv6hdr {
 	struct in6_addr saddr;
 	struct in6_addr daddr;
 };
+#endif
 
 struct tcp_resources {
 	int32_t seq;

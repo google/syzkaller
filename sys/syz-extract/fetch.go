@@ -16,8 +16,8 @@ import (
 // fetchValues converts literal constants (e.g. O_APPEND) or any other C expressions
 // into their respective numeric values. It does so by builting and executing a C program
 // that prints values of the provided expressions.
-func fetchValues(arch string, vals []string, includes []string, defines map[string]string, cflags []string) (map[string]uint64, error) {
-	bin, out, err := runCompiler(arch, nil, includes, nil, cflags, nil)
+func fetchValues(arch string, vals []string, includes []string, incdirs []string, defines map[string]string, cflags []string) (map[string]uint64, error) {
+	bin, out, err := runCompiler(arch, nil, includes, incdirs, nil, cflags, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
 	}
@@ -29,7 +29,7 @@ func fetchValues(arch string, vals []string, includes []string, defines map[stri
 	}
 
 	undeclared := make(map[string]bool)
-	bin, out, err = runCompiler(arch, vals, includes, defines, cflags, undeclared)
+	bin, out, err = runCompiler(arch, vals, includes, incdirs, defines, cflags, undeclared)
 	if err != nil {
 		for _, errMsg := range []string{
 			"error: ‘([a-zA-Z0-9_]+)’ undeclared",
@@ -45,7 +45,7 @@ func fetchValues(arch string, vals []string, includes []string, defines map[stri
 				}
 			}
 		}
-		bin, out, err = runCompiler(arch, vals, includes, defines, cflags, undeclared)
+		bin, out, err = runCompiler(arch, vals, includes, incdirs, defines, cflags, undeclared)
 		if err != nil {
 			return nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
 		}
@@ -79,7 +79,7 @@ func fetchValues(arch string, vals []string, includes []string, defines map[stri
 	return res, nil
 }
 
-func runCompiler(arch string, vals []string, includes []string, defines map[string]string, cflags []string, undeclared map[string]bool) (bin string, out []byte, err error) {
+func runCompiler(arch string, vals []string, includes []string, incdirs []string, defines map[string]string, cflags []string, undeclared map[string]bool) (bin string, out []byte, err error) {
 	includeText := ""
 	for _, inc := range includes {
 		includeText += fmt.Sprintf("#include <%v>\n", inc)
@@ -130,7 +130,9 @@ func runCompiler(arch string, vals []string, includes []string, defines map[stri
 		"-I" + *flagLinux,
 		"-include", *flagLinux + "/include/linux/kconfig.h",
 	}...)
-
+	for _, incdir := range incdirs {
+		args = append(args, "-I"+*flagLinux+"/"+incdir)
+	}
 	cmd := exec.Command("gcc", args...)
 	cmd.Stdin = strings.NewReader(src)
 	out, err = cmd.CombinedOutput()

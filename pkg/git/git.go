@@ -22,16 +22,27 @@ func Poll(dir, repo, branch string) (string, error) {
 	osutil.RunCmd(timeout, dir, "git", "reset", "--hard")
 	origin, err := osutil.RunCmd(timeout, dir, "git", "remote", "get-url", "origin")
 	if err != nil || strings.TrimSpace(string(origin)) != repo {
+		// The repo is here, but it has wrong origin (e.g. repo in config has changed), re-clone.
+		if err := clone(dir, repo, branch); err != nil {
+			return "", err
+		}
+	}
+	// Use origin/branch for the case the branch was force-pushed,
+	// in such case branch is not the same is origin/branch and we will
+	// stuck with the local version forever (git checkout won't fail).
+	if _, err := osutil.RunCmd(timeout, dir, "git", "checkout", "origin/"+branch); err != nil {
+		// No such branch (e.g. branch in config has changed), re-clone.
 		if err := clone(dir, repo, branch); err != nil {
 			return "", err
 		}
 	}
 	if _, err := osutil.RunCmd(timeout, dir, "git", "fetch", "--no-tags", "--depth", "1"); err != nil {
+		// Something else is wrong, re-clone.
 		if err := clone(dir, repo, branch); err != nil {
 			return "", err
 		}
 	}
-	if _, err := osutil.RunCmd(timeout, dir, "git", "checkout", branch); err != nil {
+	if _, err := osutil.RunCmd(timeout, dir, "git", "checkout", "origin/"+branch); err != nil {
 		return "", err
 	}
 	return HeadCommit(dir)

@@ -20,7 +20,7 @@ import (
 
 	"appengine"
 	ds "appengine/datastore"
-	"github.com/google/syzkaller/dashboard"
+	"github.com/google/syzkaller/syz-dash/dashboard"
 )
 
 func init() {

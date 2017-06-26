@@ -13,6 +13,13 @@ import (
 	"path/filepath"
 	"syscall"
 	"time"
+
+	"github.com/google/syzkaller/pkg/fileutil"
+)
+
+const (
+	DefaultDirPerm  = 0755
+	DefaultFilePerm = 0644
 )
 
 // RunCmd runs "bin args..." in dir with timeout and returns its output.
@@ -45,9 +52,7 @@ func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create pipe: %v", err)
 	}
-	for sz := 128 << 10; sz <= 2<<20; sz *= 2 {
-		syscall.Syscall(syscall.SYS_FCNTL, w.Fd(), syscall.F_SETPIPE_SZ, uintptr(sz))
-	}
+	prolongPipe(r, w)
 	return r, w, err
 }
 
@@ -93,4 +98,67 @@ func HandleInterrupts(shutdown chan struct{}) {
 		fmt.Fprint(os.Stderr, "SIGINT: terminating\n")
 		os.Exit(int(syscall.SIGINT))
 	}()
+}
+
+// FilesExist returns true if all files exist in dir.
+// Files are assumed to be relative names in slash notation.
+func FilesExist(dir string, files []string) bool {
+	for _, f := range files {
+		if !IsExist(filepath.Join(dir, filepath.FromSlash(f))) {
+			return false
+		}
+	}
+	return true
+}
+
+// CopyFiles copies files from srcDir to dstDir as atomically as possible.
+// Files are assumed to be relative names in slash notation.
+// All other files in dstDir are removed.
+func CopyFiles(srcDir, dstDir string, files []string) error {
+	// Linux does not support atomic dir replace, so we copy to tmp dir first.
+	// Then remove dst dir and rename tmp to dst (as atomic as can get on Linux).
+	tmpDir := dstDir + ".tmp"
+	if err := os.RemoveAll(tmpDir); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(tmpDir, DefaultDirPerm); err != nil {
+		return err
+	}
+	for _, f := range files {
+		src := filepath.Join(srcDir, filepath.FromSlash(f))
+		dst := filepath.Join(tmpDir, filepath.FromSlash(f))
+		if err := os.MkdirAll(filepath.Dir(dst), DefaultDirPerm); err != nil {
+			return err
+		}
+		if err := fileutil.CopyFile(src, dst); err != nil {
+			return err
+		}
+	}
+	if err := os.RemoveAll(dstDir); err != nil {
+		return err
+	}
+	return os.Rename(tmpDir, dstDir)
+}
+
+// LinkFiles creates hard links for files from dstDir to srcDir.
+// Files are assumed to be relative names in slash notation.
+// All other files in dstDir are removed.
+func LinkFiles(srcDir, dstDir string, files []string) error {
+	if err := os.RemoveAll(dstDir); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dstDir, DefaultDirPerm); err != nil {
+		return err
+	}
+	for _, f := range files {
+		src := filepath.Join(srcDir, filepath.FromSlash(f))
+		dst := filepath.Join(dstDir, filepath.FromSlash(f))
+		if err := os.MkdirAll(filepath.Dir(dst), DefaultDirPerm); err != nil {
+			return err
+		}
+		if err := os.Link(src, dst); err != nil {
+			return err
+		}
+	}
+	return nil
 }

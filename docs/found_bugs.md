@@ -2,6 +2,7 @@
 
 _newer first_
 
+* [net/ipv6: warning in __alloc_pages_slowpath/ipip6_tunnel_get_prl](https://groups.google.com/forum/#!topic/syzkaller/VtONA6oTiio)
 * [net/ipv6: GPF in rt6_ifdown](https://groups.google.com/forum/#!topic/syzkaller/dQ0r_bHOrJk)
 * [net/ipv4: trying to register non-static key in ip_mc_clear_src](https://groups.google.com/forum/#!topic/syzkaller/E60_ya1wNxs)
 * [usb/gadget: potential deadlock in gadgetfs_suspend](https://groups.google.com/forum/#!topic/syzkaller/J_It9ipKXhk)

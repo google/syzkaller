@@ -14,6 +14,7 @@ import (
 
 type Description struct {
 	Includes  []string
+	Incdirs   []string
 	Defines   map[string]string
 	Syscalls  []Syscall
 	Structs   map[string]*Struct
@@ -48,6 +49,7 @@ type Resource struct {
 func Parse(in io.Reader) *Description {
 	p := newParser(in)
 	var includes []string
+	var incdirs []string
 	defines := make(map[string]string)
 	var syscalls []Syscall
 	structs := make(map[string]*Struct)
@@ -164,6 +166,19 @@ func Parse(in io.Reader) *Description {
 					failf("struct '%v' is redefined as resource", name)
 				}
 				resources[id] = Resource{id, base, vals}
+			} else if name == "incdir" {
+				p.Parse('"')
+				var incdir []byte
+				for {
+					ch := p.Char()
+					if ch == '"' {
+						break
+					}
+					p.Parse(ch)
+					incdir = append(incdir, ch)
+				}
+				p.Parse('"')
+				incdirs = append(incdirs, string(incdir))
 			} else {
 				switch ch := p.Char(); ch {
 				case '(':
@@ -237,6 +252,7 @@ func Parse(in io.Reader) *Description {
 	sort.Sort(syscallArray(syscalls))
 	return &Description{
 		Includes:  includes,
+		Incdirs:   incdirs,
 		Defines:   defines,
 		Syscalls:  syscalls,
 		Structs:   structs,
