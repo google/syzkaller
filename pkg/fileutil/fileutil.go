@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
-	"unsafe"
 )
 
 // CopyFile atomically copies oldFile to newFile preserving permissions and modification time.
@@ -105,17 +104,4 @@ func ProcessTempDir(where string) (string, error) {
 		return path, nil
 	}
 	return "", fmt.Errorf("too many live instances")
-}
-
-// UmountAll recurusively unmounts all mounts in dir.
-func UmountAll(dir string) {
-	files, _ := ioutil.ReadDir(dir)
-	for _, f := range files {
-		name := filepath.Join(dir, f.Name())
-		if f.IsDir() {
-			UmountAll(name)
-		}
-		fn := []byte(name + "\x00")
-		syscall.Syscall(syscall.SYS_UMOUNT2, uintptr(unsafe.Pointer(&fn[0])), syscall.MNT_FORCE, 0)
-	}
 }
