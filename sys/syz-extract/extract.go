@@ -121,7 +121,7 @@ func compileConsts(arch *Arch, desc *Description) map[string]uint64 {
 		return nil
 	}
 
-	consts, err := fetchValues(arch.KernelHeaderArch, valArr, append(desc.Includes, arch.KernelInclude), desc.Defines, arch.CFlags)
+	consts, err := fetchValues(arch.KernelHeaderArch, valArr, append(desc.Includes, arch.KernelInclude), desc.Incdirs, desc.Defines, arch.CFlags)
 	if err != nil {
 		failf("%v", err)
 	}
