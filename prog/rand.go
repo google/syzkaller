@@ -742,12 +742,6 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		return unionArg(a, opt, optType), calls
 	case *sys.PtrType:
 		inner, calls := r.generateArg(s, a.Type)
-		if a.Dir() == sys.DirOut && inner == nil {
-			// No data, but we should have got size.
-			arg, calls1 := r.addr(s, a, inner.Size(), nil)
-			calls = append(calls, calls1...)
-			return arg, calls
-		}
 		if a.Type.Name() == "iocb" && len(s.resources["iocbptr"]) != 0 {
 			// It is weird, but these are actually identified by kernel by address.
 			// So try to reuse a previously used address.
