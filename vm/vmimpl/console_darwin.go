@@ -1,17 +1,13 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// +build linux
-
 package vmimpl
 
-import (
-	"golang.org/x/sys/unix"
-)
+import "syscall"
 
 const (
-	unix_CBAUD     = unix.CBAUD
-	unix_CRTSCTS   = unix.CRTSCTS
-	syscall_TCGETS = unix.TCGETS2
-	syscall_TCSETS = unix.TCSETS2
+	unix_CBAUD     = 0
+	unix_CRTSCTS   = 0
+	syscall_TCGETS = syscall.TIOCGETA
+	syscall_TCSETS = syscall.TIOCSETA
 )
