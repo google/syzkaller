@@ -19,7 +19,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "usage: %v /dev/ttyUSBx\n", os.Args[0])
 		os.Exit(1)
 	}
-	con, err := vmimpl.OpenConsole(os.Args[0])
+	con, err := vmimpl.OpenConsole(os.Args[1])
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to open console: %v\n", err)
 		os.Exit(1)
