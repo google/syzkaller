@@ -280,7 +280,7 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 		}()
 	}
 
-	if mgr.cfg.Hub_Addr != "" {
+	if mgr.cfg.Hub_Client != "" {
 		go func() {
 			for {
 				time.Sleep(time.Minute)
@@ -858,7 +858,7 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 	if len(mgr.candidates) == 0 {
 		mgr.candidates = nil
 		if mgr.phase == phaseInit {
-			if mgr.cfg.Hub_Addr != "" {
+			if mgr.cfg.Hub_Client != "" {
 				mgr.phase = phaseTriagedCorpus
 			} else {
 				mgr.phase = phaseTriagedHub
@@ -891,10 +891,11 @@ func (mgr *Manager) hubSync() {
 	mgr.minimizeCorpus()
 	if mgr.hub == nil {
 		a := &HubConnectArgs{
-			Name:  mgr.cfg.Name,
-			Key:   mgr.cfg.Hub_Key,
-			Fresh: mgr.fresh,
-			Calls: mgr.enabledCalls,
+			Client:  mgr.cfg.Hub_Client,
+			Key:     mgr.cfg.Hub_Key,
+			Manager: mgr.cfg.Name,
+			Fresh:   mgr.fresh,
+			Calls:   mgr.enabledCalls,
 		}
 		hubCorpus := make(map[hash.Sig]bool)
 		for _, inp := range mgr.corpus {
@@ -924,8 +925,9 @@ func (mgr *Manager) hubSync() {
 	}
 
 	a := &HubSyncArgs{
-		Name: mgr.cfg.Name,
-		Key:  mgr.cfg.Hub_Key,
+		Client:  mgr.cfg.Hub_Client,
+		Key:     mgr.cfg.Hub_Key,
+		Manager: mgr.cfg.Name,
 	}
 	corpus := make(map[hash.Sig]bool)
 	for _, inp := range mgr.corpus {
@@ -971,7 +973,8 @@ func (mgr *Manager) hubSync() {
 		mgr.stats["hub del"] += uint64(len(a.Del))
 		mgr.stats["hub drop"] += uint64(dropped)
 		mgr.stats["hub new"] += uint64(len(r.Inputs) - dropped)
-		Logf(0, "hub sync: add %v, del %v, drop %v, new %v, more %v", len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped, r.More)
+		Logf(0, "hub sync: add %v, del %v, drop %v, new %v, more %v",
+			len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped, r.More)
 		if len(r.Inputs)+r.More == 0 {
 			break
 		}

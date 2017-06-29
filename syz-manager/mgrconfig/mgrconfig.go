@@ -26,8 +26,9 @@ type Config struct {
 	Image   string // linux image for VMs
 	Sshkey  string // root ssh key for the image (may be empty for some VM types)
 
-	Hub_Addr string
-	Hub_Key  string
+	Hub_Client string
+	Hub_Addr   string
+	Hub_Key    string
 
 	Dashboard_Addr string
 	Dashboard_Key  string
@@ -126,14 +127,11 @@ func load(data []byte, filename string) (*Config, map[int]bool, error) {
 		return nil, nil, err
 	}
 
-	if (cfg.Hub_Addr != "" || cfg.Dashboard_Addr != "") && cfg.Name == "" {
-		return nil, nil, fmt.Errorf("hub_addr//dashboard_addr is set, but name is empty")
+	if cfg.Hub_Client != "" && (cfg.Name == "" || cfg.Hub_Addr == "" || cfg.Hub_Key == "") {
+		return nil, nil, fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}
-	if cfg.Hub_Addr != "" && cfg.Hub_Key == "" {
-		return nil, nil, fmt.Errorf("hub_addr is set, but hub_key is empty")
-	}
-	if cfg.Dashboard_Addr != "" && cfg.Dashboard_Key == "" {
-		return nil, nil, fmt.Errorf("dashboard_addr is set, but dashboard_key is empty")
+	if cfg.Dashboard_Addr != "" && (cfg.Name == "" || cfg.Dashboard_Key == "") {
+		return nil, nil, fmt.Errorf("dashboard_addr is set, but name/dashboard_key is empty")
 	}
 
 	return cfg, syscalls, nil
