@@ -6,7 +6,7 @@ ifeq ($(NOSTATIC), 0)
 	STATIC_FLAG=-static
 endif
 
-.PHONY: all format tidy clean manager fuzzer executor execprog ci mutate prog2c stress extract generate repro db bin/syz-extract bin/syz-sysgen android
+.PHONY: all format tidy clean manager fuzzer executor execprog ci hub mutate prog2c stress extract generate repro db bin/syz-extract bin/syz-sysgen android
 
 all:
 	go install ./syz-manager ./syz-fuzzer
@@ -38,6 +38,9 @@ execprog:
 
 ci:
 	go build $(GOFLAGS) -o ./bin/syz-ci github.com/google/syzkaller/syz-ci
+
+hub:
+	go build $(GOFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
 
 repro:
 	go build $(GOFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
