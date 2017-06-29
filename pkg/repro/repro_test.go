@@ -23,6 +23,8 @@ func initTest(t *testing.T) (*rand.Rand, int) {
 }
 
 func TestBisect(t *testing.T) {
+	ctx := &context{}
+
 	rd, iters := initTest(t)
 	for n := 0; n < iters; n++ {
 		var progs []*prog.LogEntry
@@ -42,7 +44,7 @@ func TestBisect(t *testing.T) {
 			progs = append(progs, &prog)
 			numGuilty += 1
 		}
-		progs, _ = bisectProgs(progs, "test", func(p []*prog.LogEntry) (bool, error) {
+		progs, _ = ctx.bisectProgs(progs, func(p []*prog.LogEntry) (bool, error) {
 			guilty := 0
 			for _, prog := range p {
 				if prog.Proc == 42 {
