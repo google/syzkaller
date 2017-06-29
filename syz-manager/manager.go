@@ -620,6 +620,10 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 	if len(crash.text) > 0 {
 		ioutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(crash.text), 0660)
 	}
+	ioutil.WriteFile(filepath.Join(dir, "repro.log"), res.Stats.Log, 0660)
+	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\nExtracting C: %s\nSimplifying C: %s\n",
+		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime, res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
+	ioutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats), 0660)
 	var cprogText []byte
 	if res.CRepro {
 		cprog, err := csource.Write(res.Prog, res.Opts)
@@ -770,7 +774,7 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 }
 
 func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
-	Logf(2, "new input from %v for syscall %v (signal=%v cover=%v)", a.Name, a.Call, len(a.Signal), len(a.Cover))
+	Logf(4, "new input from %v for syscall %v (signal=%v cover=%v)", a.Name, a.Call, len(a.Signal), len(a.Cover))
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -861,7 +865,7 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 			}
 		}
 	}
-	Logf(2, "poll from %v: recv maxsignal=%v, send maxsignal=%v candidates=%v inputs=%v",
+	Logf(4, "poll from %v: recv maxsignal=%v, send maxsignal=%v candidates=%v inputs=%v",
 		a.Name, len(a.MaxSignal), len(r.MaxSignal), len(r.Candidates), len(r.NewInputs))
 	return nil
 }
