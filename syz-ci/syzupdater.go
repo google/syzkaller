@@ -95,8 +95,12 @@ func (upd *SyzUpdater) UpdateOnStart(shutdown chan struct{}) {
 		}
 		return
 	}
-	Logf(0, "current executable is on %v", formatTag(exeTag))
-	Logf(0, "latest syzkaller build is on %v", formatTag(latestTag))
+	if exeTag == "" {
+		Logf(0, "current executable is bootstrap")
+	} else {
+		Logf(0, "current executable is on %v", exeTag)
+		Logf(0, "latest syzkaller build is on %v", latestTag)
+	}
 
 	// No syzkaller build or executable is stale.
 	lastCommit := ""
@@ -219,11 +223,4 @@ func readTag(file string) (tag string, mod time.Time) {
 		mod = time.Time{}
 	}
 	return
-}
-
-func formatTag(tag string) string {
-	if tag == "" {
-		return "unknown"
-	}
-	return tag
 }
