@@ -4,6 +4,7 @@
 package report
 
 import (
+	"bytes"
 	"net/mail"
 	"regexp"
 	"strings"
@@ -34,17 +35,17 @@ var (
 	}
 )
 
-func extractFiles(log string) []string {
-	matches := filename.FindAllString(log, -1)
+func extractFiles(report []byte) []string {
+	matches := filename.FindAll(report, -1)
 	var files []string
 	for _, match := range matches {
-		files = append(files, strings.Split(match, ":")[0])
+		files = append(files, string(bytes.Split(match, []byte{':'})[0]))
 	}
 	return files
 }
 
-func ExtractGuiltyFile(log string) string {
-	files := extractFiles(log)
+func ExtractGuiltyFile(report []byte) string {
+	files := extractFiles(report)
 nextFile:
 	for _, file := range files {
 		for _, re := range blacklist {
