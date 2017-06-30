@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/fileutil"
 	"github.com/google/syzkaller/pkg/git"
@@ -17,7 +18,6 @@ import (
 	"github.com/google/syzkaller/pkg/kernel"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/syz-dash/dashboard"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
@@ -53,11 +53,11 @@ type Manager struct {
 	cfg        *Config
 	mgrcfg     *ManagerConfig
 	cmd        *ManagerCmd
-	dash       *dashboard.Dashboard
+	dash       *dashapi.Dashboard
 	stop       chan struct{}
 }
 
-func createManager(dash *dashboard.Dashboard, cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Manager {
+func createManager(dash *dashapi.Dashboard, cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Manager {
 	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
 	if err := os.MkdirAll(dir, osutil.DefaultDirPerm); err != nil {
 		Fatal(err)
@@ -288,6 +288,10 @@ func (mgr *Manager) restartManager() {
 		Logf(0, "%v: failed to create manager config: %v", mgr.name, err)
 		return
 	}
+	if err := mgr.uploadBuild(info); err != nil {
+		Logf(0, "%v: failed to upload build: %v", mgr.name, err)
+		return
+	}
 	bin := filepath.FromSlash("syzkaller/current/bin/syz-manager")
 	logFile := filepath.Join(mgr.currentDir, "manager.log")
 	mgr.cmd = NewManagerCmd(mgr.name, logFile, bin, "-config", cfgFile)
@@ -316,8 +320,10 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 		tag = info.KernelCommit
 	}
 	mgrcfg.Name = mgr.cfg.Name + "-" + mgr.name
+	mgrcfg.Hub_Client = mgr.cfg.Name
 	mgrcfg.Hub_Addr = mgr.cfg.Hub_Addr
 	mgrcfg.Hub_Key = mgr.cfg.Hub_Key
+	mgrcfg.Dashboard_Client = mgr.cfg.Name
 	mgrcfg.Dashboard_Addr = mgr.cfg.Dashboard_Addr
 	mgrcfg.Dashboard_Key = mgr.cfg.Dashboard_Key
 	mgrcfg.Workdir = mgr.workDir
@@ -339,4 +345,29 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 		return "", err
 	}
 	return configFile, nil
+}
+
+func (mgr *Manager) uploadBuild(info *BuildInfo) error {
+	if mgr.dash == nil {
+		return nil
+	}
+
+	syzkallerCommit, _ := readTag(filepath.FromSlash("syzkaller/current/tag"))
+	if syzkallerCommit == "" {
+		return fmt.Errorf("no tag in syzkaller/current/tag")
+	}
+	kernelConfig, err := ioutil.ReadFile(filepath.Join(mgr.currentDir, "kernel.config"))
+	if err != nil {
+		return fmt.Errorf("failed to read kernel.config: %v", err)
+	}
+	build := &dashapi.Build{
+		ID:              info.Tag,
+		SyzkallerCommit: syzkallerCommit,
+		CompilerID:      info.CompilerID,
+		KernelRepo:      info.KernelRepo,
+		KernelBranch:    info.KernelBranch,
+		KernelCommit:    info.KernelCommit,
+		KernelConfig:    kernelConfig,
+	}
+	return mgr.dash.UploadBuild(build)
 }
