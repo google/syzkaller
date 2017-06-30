@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestLoad(t *testing.T) {
@@ -29,6 +30,7 @@ func TestLoad(t *testing.T) {
 		Box Nested
 		Boq *Nested
 		Arr []Nested
+		T   time.Time
 	}
 
 	tests := []struct {
@@ -160,6 +162,13 @@ func TestLoad(t *testing.T) {
 		{
 			`{"foo": null, "qux": null}`,
 			Config{},
+			"",
+		},
+		{
+			`{"t": "2000-01-02T03:04:05Z"}`,
+			Config{
+				T: time.Date(2000, 1, 2, 3, 4, 5, 0, time.UTC),
+			},
 			"",
 		},
 	}

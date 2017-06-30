@@ -99,6 +99,9 @@ func checkUnknownFieldsStruct(val interface{}, prefix string, typ reflect.Type) 
 	if typ.Kind() != reflect.Struct {
 		return nil
 	}
+	if typ.PkgPath() == "time" && typ.Name() == "Time" {
+		return nil
+	}
 	inner, err := json.Marshal(val)
 	if err != nil {
 		return fmt.Errorf("failed to marshal inner struct '%v%v':", prefix, err)
