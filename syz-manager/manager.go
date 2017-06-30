@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
@@ -29,7 +30,6 @@ import (
 	"github.com/google/syzkaller/pkg/repro"
 	. "github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/syz-dash/dashboard"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
 )
@@ -57,7 +57,7 @@ type Manager struct {
 	fresh        bool
 	numFuzzing   uint32
 
-	dash *dashboard.Dashboard
+	dash *dashapi.Dashboard
 
 	mu              sync.Mutex
 	phase           int
@@ -218,11 +218,7 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 	go s.Serve()
 
 	if cfg.Dashboard_Addr != "" {
-		mgr.dash = &dashboard.Dashboard{
-			Addr:   cfg.Dashboard_Addr,
-			Client: cfg.Name,
-			Key:    cfg.Dashboard_Key,
-		}
+		mgr.dash = dashapi.New(cfg.Dashboard_Client, cfg.Dashboard_Addr, cfg.Dashboard_Key)
 	}
 
 	go func() {
@@ -516,6 +512,43 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 	}
 	mgr.mu.Unlock()
 
+	if len(crash.text) > 0 {
+		<-allSymbolsReady
+		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text, allSymbols)
+		if err != nil {
+			Logf(0, "failed to symbolize crash: %v", err)
+		} else {
+			crash.text = symbolized
+		}
+	}
+
+	if mgr.dash != nil {
+		var maintainers []string
+		guiltyFile := report.ExtractGuiltyFile(crash.text)
+		if guiltyFile != "" {
+			var err error
+			maintainers, err = report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
+			if err != nil {
+				Logf(0, "failed to get maintainers: %v", err)
+			}
+		}
+		dc := &dashapi.Crash{
+			Manager:     mgr.cfg.Name,
+			BuildID:     mgr.cfg.Tag,
+			Title:       crash.desc,
+			Maintainers: maintainers,
+			Log:         crash.output,
+			Report:      crash.text,
+		}
+		if err := mgr.dash.ReportCrash(dc); err != nil {
+			Logf(0, "failed to report crash to dashboard: %v", err)
+		} else {
+			// Don't store the crash locally, if we've successfully
+			// uploaded it to the dashboard. These will just eat disk space.
+			return
+		}
+	}
+
 	sig := hash.Hash([]byte(crash.desc))
 	id := sig.String()
 	dir := filepath.Join(mgr.crashdir, id)
@@ -544,26 +577,7 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag), 0660)
 	}
 	if len(crash.text) > 0 {
-		<-allSymbolsReady
-		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text, allSymbols)
-		if err != nil {
-			Logf(0, "failed to symbolize crash: %v", err)
-		} else {
-			crash.text = symbolized
-		}
 		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.text, 0660)
-	}
-
-	if mgr.dash != nil {
-		dc := &dashboard.Crash{
-			Tag:    mgr.cfg.Tag,
-			Desc:   crash.desc,
-			Log:    crash.output,
-			Report: crash.text,
-		}
-		if err := mgr.dash.ReportCrash(dc); err != nil {
-			Logf(0, "failed to report crash to dashboard: %v", err)
-		}
 	}
 }
 
@@ -591,15 +605,13 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 	dir := filepath.Join(mgr.crashdir, sig.String())
 	if res == nil {
 		if mgr.dash != nil {
-			dr := &dashboard.Repro{
-				Crash: dashboard.Crash{
-					Tag:  mgr.cfg.Tag,
-					Desc: crash.desc,
-				},
-				Reproduced: false,
+			fr := &dashapi.FailedRepro{
+				Manager: mgr.cfg.Name,
+				BuildID: mgr.cfg.Tag,
+				Title:   crash.desc,
 			}
-			if err := mgr.dash.ReportRepro(dr); err != nil {
-				Logf(0, "failed to report repro to dashboard: %v", err)
+			if err := mgr.dash.ReportFailedRepro(fr); err != nil {
+				Logf(0, "failed to report failed repro to dashboard: %v", err)
 			}
 		}
 		for i := 0; i < maxReproAttempts; i++ {
@@ -640,18 +652,27 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 	}
 
 	if mgr.dash != nil {
-		dr := &dashboard.Repro{
-			Crash: dashboard.Crash{
-				Tag:    mgr.cfg.Tag,
-				Desc:   crash.desc,
-				Report: crash.text,
-			},
-			Reproduced: true,
-			Opts:       fmt.Sprintf("%+v", res.Opts),
-			Prog:       res.Prog.Serialize(),
-			CProg:      cprogText,
+		var maintainers []string
+		guiltyFile := report.ExtractGuiltyFile(crash.text)
+		if guiltyFile != "" {
+			var err error
+			maintainers, err = report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
+			if err != nil {
+				Logf(0, "failed to get maintainers: %v", err)
+			}
 		}
-		if err := mgr.dash.ReportRepro(dr); err != nil {
+		dc := &dashapi.Crash{
+			Manager:     mgr.cfg.Name,
+			BuildID:     mgr.cfg.Tag,
+			Title:       crash.desc,
+			Maintainers: maintainers,
+			Log:         crash.output,
+			Report:      crash.text,
+			ReproOpts:   []byte(fmt.Sprintf("%+v", res.Opts)),
+			ReproSyz:    []byte(res.Prog.Serialize()),
+			ReproC:      cprogText,
+		}
+		if err := mgr.dash.ReportCrash(dc); err != nil {
 			Logf(0, "failed to report repro to dashboard: %v", err)
 		}
 	}
