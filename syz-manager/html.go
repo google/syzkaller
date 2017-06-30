@@ -258,7 +258,7 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, "Syzkaller hit '%s' bug on commit %s.\n\n", trimNewLines(desc), trimNewLines(tag))
 	if len(rep) != 0 {
-		guiltyFile := report.ExtractGuiltyFile(string(rep))
+		guiltyFile := report.ExtractGuiltyFile(rep)
 		if guiltyFile != "" {
 			fmt.Fprintf(w, "The guilty file is: %v.\n\n", guiltyFile)
 		}
