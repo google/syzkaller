@@ -31,8 +31,9 @@ type Config struct {
 	Hub_Addr   string
 	Hub_Key    string
 
-	Dashboard_Addr string
-	Dashboard_Key  string
+	Dashboard_Client string
+	Dashboard_Addr   string
+	Dashboard_Key    string
 
 	Syzkaller string // path to syzkaller checkout (syz-manager will look for binaries in bin subdir)
 	Procs     int    // number of parallel processes inside of every VM
@@ -134,8 +135,10 @@ func load(data []byte, filename string) (*Config, map[int]bool, error) {
 	if cfg.Hub_Client != "" && (cfg.Name == "" || cfg.Hub_Addr == "" || cfg.Hub_Key == "") {
 		return nil, nil, fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}
-	if cfg.Dashboard_Addr != "" && (cfg.Name == "" || cfg.Dashboard_Key == "") {
-		return nil, nil, fmt.Errorf("dashboard_addr is set, but name/dashboard_key is empty")
+	if cfg.Dashboard_Client != "" && (cfg.Name == "" ||
+		cfg.Dashboard_Addr == "" ||
+		cfg.Dashboard_Key == "") {
+		return nil, nil, fmt.Errorf("dashboard_client is set, but name/dashboard_addr/dashboard_key is empty")
 	}
 
 	return cfg, syscalls, nil

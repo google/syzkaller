@@ -54,10 +54,10 @@ import (
 	"os"
 	"sync"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/config"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/syz-dash/dashboard"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
@@ -114,12 +114,9 @@ func main() {
 		close(stop)
 	}()
 
-	var dash *dashboard.Dashboard
+	var dash *dashapi.Dashboard
 	if cfg.Dashboard_Addr != "" {
-		dash, err = dashboard.New(cfg.Name, cfg.Dashboard_Addr, cfg.Dashboard_Key)
-		if err != nil {
-			Fatalf("failed to create dashboard client: %v", err)
-		}
+		dash = dashapi.New(cfg.Name, cfg.Dashboard_Addr, cfg.Dashboard_Key)
 	}
 
 	var wg sync.WaitGroup
