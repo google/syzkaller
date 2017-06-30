@@ -50,6 +50,7 @@ type Pool struct {
 type instance struct {
 	cfg     *Config
 	GCE     *gce.Context
+	debug   bool
 	name    string
 	ip      string
 	offset  int64
@@ -156,12 +157,13 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		sshUser = "syzkaller"
 	}
 	Logf(0, "wait instance to boot: %v (%v)", name, ip)
-	if err := waitInstanceBoot(ip, sshKey, sshUser); err != nil {
+	if err := waitInstanceBoot(pool.env.Debug, ip, sshKey, sshUser); err != nil {
 		return nil, err
 	}
 	ok = true
 	inst := &instance{
 		cfg:     pool.cfg,
+		debug:   pool.env.Debug,
 		GCE:     pool.GCE,
 		name:    name,
 		ip:      ip,
@@ -184,22 +186,8 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := "./" + filepath.Base(hostSrc)
-	args := append(sshArgs(inst.sshKey, "-P", 22), hostSrc, inst.sshUser+"@"+inst.name+":"+vmDst)
-	cmd := exec.Command("scp", args...)
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-	done := make(chan bool)
-	go func() {
-		select {
-		case <-time.After(time.Minute):
-			cmd.Process.Kill()
-		case <-done:
-		}
-	}()
-	err := cmd.Wait()
-	close(done)
-	if err != nil {
+	args := append(sshArgs(inst.debug, inst.sshKey, "-P", 22), hostSrc, inst.sshUser+"@"+inst.name+":"+vmDst)
+	if _, err := runCmd(inst.debug, "scp", args...); err != nil {
 		return "", err
 	}
 	return vmDst, nil
@@ -213,7 +201,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 
 	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com",
 		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name)
-	conArgs := append(sshArgs(inst.gceKey, "-p", 9600), conAddr)
+	conArgs := append(sshArgs(inst.debug, inst.gceKey, "-p", 9600), conAddr)
 	con := exec.Command("ssh", conArgs...)
 	con.Env = []string{}
 	con.Stdout = conWpipe
@@ -240,7 +228,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	if inst.sshUser != "root" {
 		command = fmt.Sprintf("sudo bash -c '%v'", command)
 	}
-	args := append(sshArgs(inst.sshKey, "-p", 22), inst.sshUser+"@"+inst.name, command)
+	args := append(sshArgs(inst.debug, inst.sshKey, "-p", 22), inst.sshUser+"@"+inst.name, command)
 	ssh := exec.Command("ssh", args...)
 	ssh.Stdout = sshWpipe
 	ssh.Stderr = sshWpipe
@@ -253,7 +241,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	sshWpipe.Close()
 
-	merger := vmimpl.NewOutputMerger(nil)
+	var tee io.Writer
+	if inst.debug {
+		tee = os.Stdout
+	}
+	merger := vmimpl.NewOutputMerger(tee)
 	merger.Add("console", conRpipe)
 	merger.Add("ssh", sshRpipe)
 
@@ -302,13 +294,13 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return merger.Output, errc, nil
 }
 
-func waitInstanceBoot(ip, sshKey, sshUser string) error {
+func waitInstanceBoot(debug bool, ip, sshKey, sshUser string) error {
 	for i := 0; i < 100; i++ {
 		if !vmimpl.SleepInterruptible(5 * time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
-		cmd := exec.Command("ssh", append(sshArgs(sshKey, "-p", 22), sshUser+"@"+ip, "pwd")...)
-		if _, err := cmd.CombinedOutput(); err == nil {
+		args := append(sshArgs(debug, sshKey, "-p", 22), sshUser+"@"+ip, "pwd")
+		if _, err := runCmd(debug, "ssh", args...); err == nil {
 			return nil
 		}
 	}
@@ -373,8 +365,19 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 	return nil
 }
 
-func sshArgs(sshKey, portArg string, port int) []string {
-	return []string{
+func runCmd(debug bool, bin string, args ...string) ([]byte, error) {
+	if debug {
+		Logf(0, "running command: %v %#v", bin, args)
+	}
+	output, err := osutil.RunCmd(time.Minute, "", bin, args...)
+	if debug {
+		Logf(0, "result: %v\n%s", err, output)
+	}
+	return output, err
+}
+
+func sshArgs(debug bool, sshKey, portArg string, port int) []string {
+	args := []string{
 		portArg, fmt.Sprint(port),
 		"-i", sshKey,
 		"-F", "/dev/null",
@@ -384,4 +387,8 @@ func sshArgs(sshKey, portArg string, port int) []string {
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "ConnectTimeout=5",
 	}
+	if debug {
+		args = append(args, "-v")
+	}
+	return args
 }
