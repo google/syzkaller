@@ -30,10 +30,8 @@ const kernelRebuildPeriod = syzkallerRebuildPeriod + time.Hour
 
 // List of required files in kernel build (contents of latest/current dirs).
 var imageFiles = []string{
-	"kernel.tag",    // git hash of kernel checkout
-	"compiler.tag",  // compiler identity string (e.g. "gcc 7.1.1")
-	"kernel.config", // kernel config used for the build (identified with SHA1 hash of contents)
-	"tag",           // SHA1 hash of the previous 3 tags (this is what uniquely identifies the build)
+	"tag",           // serialized BuildInfo
+	"kernel.config", // kernel config used for build
 	"image",         // kernel image
 	"key",           // root ssh key for the image
 	"obj/vmlinux",   // vmlinux with debug info
@@ -45,18 +43,18 @@ var imageFiles = []string{
 //  - latest: latest known good kernel build
 //  - current: currently used kernel build
 type Manager struct {
-	name        string
-	workDir     string
-	kernelDir   string
-	currentDir  string
-	latestDir   string
-	compilerTag string
-	configTag   string
-	cfg         *Config
-	mgrcfg      *ManagerConfig
-	cmd         *ManagerCmd
-	dash        *dashboard.Dashboard
-	stop        chan struct{}
+	name       string
+	workDir    string
+	kernelDir  string
+	currentDir string
+	latestDir  string
+	compilerID string
+	configTag  string
+	cfg        *Config
+	mgrcfg     *ManagerConfig
+	cmd        *ManagerCmd
+	dash       *dashboard.Dashboard
+	stop       chan struct{}
 }
 
 func createManager(dash *dashboard.Dashboard, cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Manager {
@@ -66,7 +64,7 @@ func createManager(dash *dashboard.Dashboard, cfg *Config, mgrcfg *ManagerConfig
 	}
 
 	// Assume compiler and config don't change underneath us.
-	compilerTag, err := kernel.CompilerIdentity(mgrcfg.Compiler)
+	compilerID, err := kernel.CompilerIdentity(mgrcfg.Compiler)
 	if err != nil {
 		Fatal(err)
 	}
@@ -76,17 +74,17 @@ func createManager(dash *dashboard.Dashboard, cfg *Config, mgrcfg *ManagerConfig
 	}
 
 	mgr := &Manager{
-		name:        mgrcfg.Name,
-		workDir:     filepath.Join(dir, "workdir"),
-		kernelDir:   filepath.Join(dir, "kernel"),
-		currentDir:  filepath.Join(dir, "current"),
-		latestDir:   filepath.Join(dir, "latest"),
-		compilerTag: compilerTag,
-		configTag:   hash.String(configData),
-		cfg:         cfg,
-		mgrcfg:      mgrcfg,
-		dash:        dash,
-		stop:        stop,
+		name:       mgrcfg.Name,
+		workDir:    filepath.Join(dir, "workdir"),
+		kernelDir:  filepath.Join(dir, "kernel"),
+		currentDir: filepath.Join(dir, "current"),
+		latestDir:  filepath.Join(dir, "latest"),
+		compilerID: compilerID,
+		configTag:  hash.String(configData),
+		cfg:        cfg,
+		mgrcfg:     mgrcfg,
+		dash:       dash,
+		stop:       stop,
 	}
 	os.RemoveAll(mgr.currentDir)
 	return mgr
@@ -101,19 +99,19 @@ func (mgr *Manager) loop() {
 	lastCommit := ""
 	nextBuildTime := time.Now()
 	var managerRestartTime time.Time
-	latestTime, latestKernelTag, latestCompilerTag, latestConfigTag := mgr.checkLatest()
-	if time.Since(latestTime) < kernelRebuildPeriod/2 {
+	latestInfo := mgr.checkLatest()
+	if latestInfo != nil && time.Since(latestInfo.Time) < kernelRebuildPeriod/2 {
 		// If we have a reasonably fresh build,
 		// start manager straight away and don't rebuild kernel for a while.
-		Logf(0, "%v: using latest image built on %v", mgr.name, latestKernelTag)
-		managerRestartTime = latestTime
+		Logf(0, "%v: using latest image built on %v", mgr.name, latestInfo.KernelCommit)
+		managerRestartTime = latestInfo.Time
 		nextBuildTime = time.Now().Add(kernelRebuildPeriod)
 		mgr.restartManager()
-	} else {
-		Logf(0, "%v: latest image is on %v", mgr.name, formatTag(latestKernelTag))
+	} else if latestInfo != nil {
+		Logf(0, "%v: latest image is on %v", mgr.name, latestInfo.KernelCommit)
 	}
 
-	ticker := time.NewTicker(kernelRebuildPeriod)
+	ticker := time.NewTicker(buildRetryPeriod)
 	defer ticker.Stop()
 
 loop:
@@ -126,9 +124,10 @@ loop:
 			} else {
 				Logf(0, "%v: poll: %v", mgr.name, commit)
 				if commit != lastCommit &&
-					(commit != latestKernelTag ||
-						mgr.compilerTag != latestCompilerTag ||
-						mgr.configTag != latestConfigTag) {
+					(latestInfo == nil ||
+						commit != latestInfo.KernelCommit ||
+						mgr.compilerID != latestInfo.CompilerID ||
+						mgr.configTag != latestInfo.KernelConfigTag) {
 					lastCommit = commit
 					select {
 					case kernelBuildSem <- struct{}{}:
@@ -138,7 +137,10 @@ loop:
 						} else {
 							Logf(0, "%v: build successful, [re]starting manager", mgr.name)
 							rebuildAfter = kernelRebuildPeriod
-							latestTime, latestKernelTag, latestCompilerTag, latestConfigTag = mgr.checkLatest()
+							latestInfo = mgr.checkLatest()
+							if latestInfo == nil {
+								Logf(0, "%v: failed to read build info after build", mgr.name)
+							}
 						}
 						<-kernelBuildSem
 					case <-mgr.stop:
@@ -155,8 +157,8 @@ loop:
 		default:
 		}
 
-		if managerRestartTime != latestTime {
-			managerRestartTime = latestTime
+		if latestInfo != nil && (latestInfo.Time != managerRestartTime || mgr.cmd == nil) {
+			managerRestartTime = latestInfo.Time
 			mgr.restartManager()
 		}
 
@@ -174,24 +176,33 @@ loop:
 	Logf(0, "%v: stopped", mgr.name)
 }
 
-// checkLatest checks if we have a good working latest build
-// and returns its kernel/compiler/config tags.
-// If the build is missing/broken, zero mod time is returned.
-func (mgr *Manager) checkLatest() (mod time.Time, kernelTag, compilerTag, configTag string) {
+// BuildInfo characterizes a kernel build.
+type BuildInfo struct {
+	Time            time.Time // when the build was done
+	Tag             string    // unique tag combined from compiler id, kernel commit and config tag
+	CompilerID      string    // compiler identity string (e.g. "gcc 7.1.1")
+	KernelRepo      string
+	KernelBranch    string
+	KernelCommit    string // git hash of kernel checkout
+	KernelConfigTag string // SHA1 hash of .config contents
+}
+
+func loadBuildInfo(dir string) (*BuildInfo, error) {
+	info := new(BuildInfo)
+	if err := config.LoadFile(filepath.Join(dir, "tag"), info); err != nil {
+		return nil, err
+	}
+	return info, nil
+}
+
+// checkLatest checks if we have a good working latest build and returns its build info.
+// If the build is missing/broken, nil is returned.
+func (mgr *Manager) checkLatest() *BuildInfo {
 	if !osutil.FilesExist(mgr.latestDir, imageFiles) {
-		return
+		return nil
 	}
-	configData, err := ioutil.ReadFile(filepath.Join(mgr.latestDir, "kernel.config"))
-	if err != nil {
-		return
-	}
-	configTag = hash.String(configData)
-	compilerTag, _ = readTag(filepath.Join(mgr.latestDir, "compiler.tag"))
-	if compilerTag == "" {
-		return
-	}
-	kernelTag, mod = readTag(filepath.Join(mgr.latestDir, "kernel.tag"))
-	return
+	info, _ := loadBuildInfo(mgr.latestDir)
+	return info
 }
 
 func (mgr *Manager) build() error {
@@ -230,26 +241,21 @@ func (mgr *Manager) build() error {
 		return err
 	}
 
-	writeTagFile := func(filename, data string) error {
-		f := filepath.Join(tmpDir, filename)
-		if err := ioutil.WriteFile(f, []byte(data), osutil.DefaultFilePerm); err != nil {
-			return fmt.Errorf("failed to write tag file: %v", err)
-		}
-		return nil
+	var tagData []byte
+	tagData = append(tagData, kernelCommit...)
+	tagData = append(tagData, mgr.compilerID...)
+	tagData = append(tagData, mgr.configTag...)
+	info := &BuildInfo{
+		Time:            time.Now(),
+		Tag:             hash.String(tagData),
+		CompilerID:      mgr.compilerID,
+		KernelRepo:      mgr.mgrcfg.Repo,
+		KernelBranch:    mgr.mgrcfg.Branch,
+		KernelCommit:    kernelCommit,
+		KernelConfigTag: mgr.configTag,
 	}
-	if err := writeTagFile("kernel.tag", kernelCommit); err != nil {
-		return err
-	}
-	if err := writeTagFile("compiler.tag", mgr.compilerTag); err != nil {
-		return err
-	}
-
-	var tag []byte
-	tag = append(tag, kernelCommit...)
-	tag = append(tag, mgr.configTag...)
-	tag = append(tag, mgr.compilerTag...)
-	if err := writeTagFile("tag", hash.String(tag)); err != nil {
-		return err
+	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
+		return fmt.Errorf("failed to write tag file: %v", err)
 	}
 
 	// Now try to replace latest with our tmp dir as atomically as we can get on Linux.
@@ -272,7 +278,12 @@ func (mgr *Manager) restartManager() {
 		Logf(0, "%v: failed to create current image dir: %v", mgr.name, err)
 		return
 	}
-	cfgFile, err := mgr.writeConfig()
+	info, err := loadBuildInfo(mgr.currentDir)
+	if err != nil {
+		Logf(0, "%v: failed to load build info: %v", mgr.name, err)
+		return
+	}
+	cfgFile, err := mgr.writeConfig(info)
 	if err != nil {
 		Logf(0, "%v: failed to create manager config: %v", mgr.name, err)
 		return
@@ -282,12 +293,12 @@ func (mgr *Manager) restartManager() {
 	mgr.cmd = NewManagerCmd(mgr.name, logFile, bin, "-config", cfgFile)
 }
 
-func (mgr *Manager) writeConfig() (string, error) {
+func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 	mgrcfg := &mgrconfig.Config{
 		Cover:     true,
 		Reproduce: true,
 		Sandbox:   "setuid",
-		Rpc:       "localhost:0",
+		Rpc:       ":0",
 		Procs:     1,
 	}
 	err := config.LoadData(mgr.mgrcfg.Manager_Config, mgrcfg)
@@ -295,11 +306,14 @@ func (mgr *Manager) writeConfig() (string, error) {
 		return "", err
 	}
 	current := mgr.currentDir
-	// TODO(dvyukov): we use kernel.tag because dashboard does not support build info yet.
-	// Later we should use tag file because it identifies kernel+compiler+config.
-	tag, err := ioutil.ReadFile(filepath.Join(current, "kernel.tag"))
-	if err != nil {
-		return "", fmt.Errorf("failed to read tag file: %v", err)
+	tag := info.Tag
+	if mgr.dash == nil {
+		// Dashboard identifies builds by unique tags that are combined
+		// from kernel tag, compiler tag and config tag.
+		// This combined tag is meaningless without dashboard,
+		// so we use kenrel tag (commit tag) because it communicates
+		// at least some useful information.
+		tag = info.KernelCommit
 	}
 	mgrcfg.Name = mgr.cfg.Name + "-" + mgr.name
 	mgrcfg.Hub_Addr = mgr.cfg.Hub_Addr
@@ -308,7 +322,11 @@ func (mgr *Manager) writeConfig() (string, error) {
 	mgrcfg.Dashboard_Key = mgr.cfg.Dashboard_Key
 	mgrcfg.Workdir = mgr.workDir
 	mgrcfg.Vmlinux = filepath.Join(current, "obj", "vmlinux")
-	mgrcfg.Tag = string(tag)
+	// Strictly saying this is somewhat racy as builder can concurrently
+	// update the source, or even delete and re-clone. If this causes
+	// problems, we need to make a copy of sources after build.
+	mgrcfg.Kernel_Src = mgr.kernelDir
+	mgrcfg.Tag = tag
 	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 	mgrcfg.Image = filepath.Join(current, "image")
 	mgrcfg.Sshkey = filepath.Join(current, "key")
