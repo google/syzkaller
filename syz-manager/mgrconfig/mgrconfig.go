@@ -17,14 +17,15 @@ import (
 )
 
 type Config struct {
-	Name    string // Instance name (used for identification and as GCE instance prefix)
-	Http    string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
-	Rpc     string // TCP address to serve RPC for fuzzer processes (optional)
-	Workdir string
-	Vmlinux string
-	Tag     string // arbitrary optional tag that is saved along with crash reports (e.g. branch/commit)
-	Image   string // linux image for VMs
-	Sshkey  string // root ssh key for the image (may be empty for some VM types)
+	Name       string // Instance name (used for identification and as GCE instance prefix)
+	Http       string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
+	Rpc        string // TCP address to serve RPC for fuzzer processes (optional)
+	Workdir    string
+	Vmlinux    string
+	Kernel_Src string // kernel source directory
+	Tag        string // arbitrary optional tag that is saved along with crash reports (e.g. branch/commit)
+	Image      string // linux image for VMs
+	Sshkey     string // root ssh key for the image (may be empty for some VM types)
 
 	Hub_Client string
 	Hub_Addr   string
@@ -117,6 +118,9 @@ func load(data []byte, filename string) (*Config, map[int]bool, error) {
 	cfg.Workdir = osutil.Abs(cfg.Workdir)
 	cfg.Vmlinux = osutil.Abs(cfg.Vmlinux)
 	cfg.Syzkaller = osutil.Abs(cfg.Syzkaller)
+	if cfg.Kernel_Src == "" {
+		cfg.Kernel_Src = filepath.Dir(cfg.Vmlinux) // assume in-tree build by default
+	}
 
 	syscalls, err := parseSyscalls(cfg)
 	if err != nil {
