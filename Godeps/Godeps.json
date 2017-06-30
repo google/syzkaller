@@ -205,6 +205,11 @@
 			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
 		},
 		{
+			"ImportPath": "google.golang.org/appengine/internal/mail",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
 			"ImportPath": "google.golang.org/appengine/internal/modules",
 			"Comment": "v1.0.0-37-ga2f4131",
 			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
@@ -221,6 +226,11 @@
 		},
 		{
 			"ImportPath": "google.golang.org/appengine/log",
+			"Comment": "v1.0.0-37-ga2f4131",
+			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
+		},
+		{
+			"ImportPath": "google.golang.org/appengine/mail",
 			"Comment": "v1.0.0-37-ga2f4131",
 			"Rev": "a2f4131514e563cedfdb6e7d267df9ad48591e93"
 		},
