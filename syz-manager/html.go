@@ -261,6 +261,12 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 		guiltyFile := report.ExtractGuiltyFile(rep)
 		if guiltyFile != "" {
 			fmt.Fprintf(w, "The guilty file is: %v.\n\n", guiltyFile)
+			maintainers, err := report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
+			if err == nil {
+				fmt.Fprintf(w, "Maintainers: %v\n\n", maintainers)
+			} else {
+				fmt.Fprintf(w, "Failed to extract maintainers: %v\n\n", err)
+			}
 		}
 		fmt.Fprintf(w, "%s\n\n", rep)
 	}
