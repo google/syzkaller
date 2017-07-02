@@ -27,6 +27,8 @@ type Email struct {
 	CommandArgs []string // arguments for the command
 }
 
+const commandPrefix = "#syzbot "
+
 func Parse(r io.Reader, ownEmail string) (*Email, error) {
 	msg, err := mail.ReadMessage(r)
 	if err != nil {
@@ -112,7 +114,7 @@ func extractBugID(from, canonical string) string {
 // Commands are of the following form:
 // ^#syzbot cmd args...
 func extractCommand(body []byte) (cmd string, args []string) {
-	cmdPos := bytes.Index(append([]byte{'\n'}, body...), []byte("\n#syzbot "))
+	cmdPos := bytes.Index(append([]byte{'\n'}, body...), []byte("\n"+commandPrefix))
 	if cmdPos == -1 {
 		return
 	}
