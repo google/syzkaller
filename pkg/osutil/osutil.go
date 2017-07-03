@@ -6,13 +6,10 @@ package osutil
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
 )
 
@@ -47,15 +44,6 @@ func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, err
 	return output.Bytes(), nil
 }
 
-func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
-	r, w, err := os.Pipe()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create pipe: %v", err)
-	}
-	prolongPipe(r, w)
-	return r, w, err
-}
-
 var wd string
 
 func init() {
@@ -80,24 +68,6 @@ func Abs(path string) string {
 func IsExist(name string) bool {
 	_, err := os.Stat(name)
 	return err == nil
-}
-
-// HandleInterrupts closes shutdown chan on first SIGINT
-// (expecting that the program will gracefully shutdown and exit)
-// and terminates the process on third SIGINT.
-func HandleInterrupts(shutdown chan struct{}) {
-	go func() {
-		c := make(chan os.Signal, 3)
-		signal.Notify(c, syscall.SIGINT)
-		<-c
-		close(shutdown)
-		fmt.Fprint(os.Stderr, "SIGINT: shutting down...\n")
-		<-c
-		fmt.Fprint(os.Stderr, "SIGINT: shutting down harder...\n")
-		<-c
-		fmt.Fprint(os.Stderr, "SIGINT: terminating\n")
-		os.Exit(int(syscall.SIGINT))
-	}()
 }
 
 // FilesExist returns true if all files exist in dir.
