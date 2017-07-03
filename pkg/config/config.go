@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"reflect"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func LoadFile(filename string, cfg interface{}) error {
@@ -37,7 +39,7 @@ func SaveFile(filename string, cfg interface{}) error {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, data, 0600)
+	return osutil.WriteFile(filename, data)
 }
 
 func checkUnknownFields(data []byte, typ reflect.Type) error {

@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/pkg/fileutil"
 	"github.com/google/syzkaller/pkg/git"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -68,7 +67,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	os.Setenv("PATH", filepath.Join(cfg.Goroot, "bin")+
 		string(filepath.ListSeparator)+os.Getenv("PATH"))
 	syzkallerDir := filepath.Join(gopath, "src", "github.com", "google", "syzkaller")
-	os.MkdirAll(syzkallerDir, osutil.DefaultDirPerm)
+	osutil.MkdirAll(syzkallerDir)
 
 	return &SyzUpdater{
 		exe:          exe,
@@ -152,10 +151,10 @@ func (upd *SyzUpdater) UpdateAndRestart() {
 	Logf(0, "restarting executable for update")
 	latestBin := filepath.Join(upd.latestDir, "bin", upd.exe)
 	latestTag := filepath.Join(upd.latestDir, "tag")
-	if err := fileutil.CopyFile(latestBin, upd.exe); err != nil {
+	if err := osutil.CopyFile(latestBin, upd.exe); err != nil {
 		Fatal(err)
 	}
-	if err := fileutil.CopyFile(latestTag, upd.exe+".tag"); err != nil {
+	if err := osutil.CopyFile(latestTag, upd.exe+".tag"); err != nil {
 		Fatal(err)
 	}
 	if err := syscall.Exec(upd.exe, os.Args, os.Environ()); err != nil {
@@ -193,7 +192,7 @@ func (upd *SyzUpdater) build() error {
 		return fmt.Errorf("tests failed: %v", err)
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
-	if err := ioutil.WriteFile(tagFile, []byte(commit), osutil.DefaultFilePerm); err != nil {
+	if err := osutil.WriteFile(tagFile, []byte(commit)); err != nil {
 		return fmt.Errorf("filed to write tag file: %v", err)
 	}
 	if err := osutil.CopyFiles(upd.syzkallerDir, upd.latestDir, syzFiles); err != nil {

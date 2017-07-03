@@ -52,7 +52,7 @@ func clone(dir, repo, branch string) error {
 	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("failed to remove repo dir: %v", err)
 	}
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := osutil.MkdirAll(dir); err != nil {
 		return fmt.Errorf("failed to create repo dir: %v", err)
 	}
 	args := []string{

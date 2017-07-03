@@ -21,12 +21,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/syzkaller/pkg/fileutil"
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func Build(dir, compiler, config string) error {
-	if err := fileutil.CopyFile(config, filepath.Join(dir, ".config")); err != nil {
+	if err := osutil.CopyFile(config, filepath.Join(dir, ".config")); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
 	}
 	return build(dir, compiler)
@@ -37,7 +36,7 @@ func BuildWithPartConfig(dir, compiler, config string) error {
 	const timeout = 10 * time.Minute // default timeout for command invocations
 	os.Remove(filepath.Join(dir, ".config"))
 	configFile := filepath.Join(dir, "syz.config")
-	if err := ioutil.WriteFile(configFile, []byte(config), 0600); err != nil {
+	if err := osutil.WriteFile(configFile, []byte(config)); err != nil {
 		return fmt.Errorf("failed to write config file: %v", err)
 	}
 	defer os.Remove(configFile)
@@ -77,17 +76,17 @@ func CreateImage(kernelDir, userspaceDir, image, sshkey string) error {
 	}
 	defer os.RemoveAll(tempDir)
 	scriptFile := filepath.Join(tempDir, "create.sh")
-	if err := ioutil.WriteFile(scriptFile, []byte(createImageScript), 0700); err != nil {
+	if err := osutil.WriteExecFile(scriptFile, []byte(createImageScript)); err != nil {
 		return fmt.Errorf("failed to write script file: %v", err)
 	}
 	bzImage := filepath.Join(kernelDir, filepath.FromSlash("arch/x86/boot/bzImage"))
 	if _, err := osutil.RunCmd(time.Hour, tempDir, scriptFile, userspaceDir, bzImage); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
-	if err := fileutil.CopyFile(filepath.Join(tempDir, "disk.raw"), image); err != nil {
+	if err := osutil.CopyFile(filepath.Join(tempDir, "disk.raw"), image); err != nil {
 		return err
 	}
-	if err := fileutil.CopyFile(filepath.Join(tempDir, "key"), sshkey); err != nil {
+	if err := osutil.CopyFile(filepath.Join(tempDir, "key"), sshkey); err != nil {
 		return err
 	}
 	if err := os.Chmod(sshkey, 0600); err != nil {

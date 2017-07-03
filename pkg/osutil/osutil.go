@@ -7,19 +7,19 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"syscall"
 	"time"
-
-	"github.com/google/syzkaller/pkg/fileutil"
 )
 
 const (
 	DefaultDirPerm  = 0755
 	DefaultFilePerm = 0644
+	DefaultExecPerm = 0755
 )
 
 // RunCmd runs "bin args..." in dir with timeout and returns its output.
@@ -121,16 +121,16 @@ func CopyFiles(srcDir, dstDir string, files []string) error {
 	if err := os.RemoveAll(tmpDir); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(tmpDir, DefaultDirPerm); err != nil {
+	if err := MkdirAll(tmpDir); err != nil {
 		return err
 	}
 	for _, f := range files {
 		src := filepath.Join(srcDir, filepath.FromSlash(f))
 		dst := filepath.Join(tmpDir, filepath.FromSlash(f))
-		if err := os.MkdirAll(filepath.Dir(dst), DefaultDirPerm); err != nil {
+		if err := MkdirAll(filepath.Dir(dst)); err != nil {
 			return err
 		}
-		if err := fileutil.CopyFile(src, dst); err != nil {
+		if err := CopyFile(src, dst); err != nil {
 			return err
 		}
 	}
@@ -147,13 +147,13 @@ func LinkFiles(srcDir, dstDir string, files []string) error {
 	if err := os.RemoveAll(dstDir); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dstDir, DefaultDirPerm); err != nil {
+	if err := MkdirAll(dstDir); err != nil {
 		return err
 	}
 	for _, f := range files {
 		src := filepath.Join(srcDir, filepath.FromSlash(f))
 		dst := filepath.Join(dstDir, filepath.FromSlash(f))
-		if err := os.MkdirAll(filepath.Dir(dst), DefaultDirPerm); err != nil {
+		if err := MkdirAll(filepath.Dir(dst)); err != nil {
 			return err
 		}
 		if err := os.Link(src, dst); err != nil {
@@ -161,4 +161,16 @@ func LinkFiles(srcDir, dstDir string, files []string) error {
 		}
 	}
 	return nil
+}
+
+func MkdirAll(dir string) error {
+	return os.MkdirAll(dir, DefaultDirPerm)
+}
+
+func WriteFile(filename string, data []byte) error {
+	return ioutil.WriteFile(filename, data, DefaultFilePerm)
+}
+
+func WriteExecFile(filename string, data []byte) error {
+	return ioutil.WriteFile(filename, data, DefaultExecPerm)
 }

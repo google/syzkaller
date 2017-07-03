@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/fileutil"
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
@@ -581,7 +581,7 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 	}
 
 	pstr := encodeEntries(entries)
-	progFile, err := fileutil.WriteTempFile(pstr)
+	progFile, err := osutil.WriteTempFile(pstr)
 	if err != nil {
 		return false, err
 	}
@@ -620,7 +620,7 @@ func (ctx *context) testCProg(p *prog.Prog, duration time.Duration, opts csource
 	if err != nil {
 		return false, err
 	}
-	srcf, err := fileutil.WriteTempFile(src)
+	srcf, err := osutil.WriteTempFile(src)
 	if err != nil {
 		return false, err
 	}

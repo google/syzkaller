@@ -8,11 +8,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/osutil"
 	. "github.com/google/syzkaller/sys/sysparser"
 )
 
@@ -69,7 +69,7 @@ func main() {
 
 	out := new(bytes.Buffer)
 	generateConsts(*flagArch, consts, out)
-	if err := ioutil.WriteFile(outname, out.Bytes(), 0660); err != nil {
+	if err := osutil.WriteFile(outname, out.Bytes()); err != nil {
 		failf("failed to write output file: %v", err)
 	}
 }

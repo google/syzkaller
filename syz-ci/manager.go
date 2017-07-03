@@ -12,7 +12,6 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/config"
-	"github.com/google/syzkaller/pkg/fileutil"
 	"github.com/google/syzkaller/pkg/git"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/kernel"
@@ -59,7 +58,7 @@ type Manager struct {
 
 func createManager(dash *dashapi.Dashboard, cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Manager {
 	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
-	if err := os.MkdirAll(dir, osutil.DefaultDirPerm); err != nil {
+	if err := osutil.MkdirAll(dir); err != nil {
 		Fatal(err)
 	}
 
@@ -219,7 +218,7 @@ func (mgr *Manager) build() error {
 	if err := os.RemoveAll(tmpDir); err != nil {
 		return fmt.Errorf("failed to remove tmp dir: %v", err)
 	}
-	if err := os.MkdirAll(tmpDir, osutil.DefaultDirPerm); err != nil {
+	if err := osutil.MkdirAll(tmpDir); err != nil {
 		return fmt.Errorf("failed to create tmp dir: %v", err)
 	}
 
@@ -232,12 +231,12 @@ func (mgr *Manager) build() error {
 
 	vmlinux := filepath.Join(mgr.kernelDir, "vmlinux")
 	objDir := filepath.Join(tmpDir, "obj")
-	os.MkdirAll(objDir, osutil.DefaultDirPerm)
+	osutil.MkdirAll(objDir)
 	if err := os.Rename(vmlinux, filepath.Join(objDir, "vmlinux")); err != nil {
 		return fmt.Errorf("failed to rename vmlinux file: %v", err)
 	}
 	kernelConfig := filepath.Join(tmpDir, "kernel.config")
-	if err := fileutil.CopyFile(mgr.mgrcfg.Kernel_Config, kernelConfig); err != nil {
+	if err := osutil.CopyFile(mgr.mgrcfg.Kernel_Config, kernelConfig); err != nil {
 		return err
 	}
 
