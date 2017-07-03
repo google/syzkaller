@@ -6,7 +6,6 @@ package qemu
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
@@ -117,7 +116,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 			return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
 		}
 		initFile := filepath.Join(workdir, "init.sh")
-		if err := ioutil.WriteFile(initFile, []byte(strings.Replace(initScript, "{{KEY}}", sshkey, -1)), 0777); err != nil {
+		if err := osutil.WriteExecFile(initFile, []byte(strings.Replace(initScript, "{{KEY}}", sshkey, -1))); err != nil {
 			return nil, fmt.Errorf("failed to create init file: %v", err)
 		}
 	}

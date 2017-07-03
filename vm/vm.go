@@ -15,7 +15,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/google/syzkaller/pkg/fileutil"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm/vmimpl"
 
@@ -63,7 +63,7 @@ func (pool *Pool) Create(index int) (*Instance, error) {
 	if index < 0 || index >= pool.Count() {
 		return nil, fmt.Errorf("invalid VM index %v (count %v)", index, pool.Count())
 	}
-	workdir, err := fileutil.ProcessTempDir(pool.workdir)
+	workdir, err := osutil.ProcessTempDir(pool.workdir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create instance temp dir: %v", err)
 	}
@@ -118,7 +118,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool, ig
 
 	matchPos := 0
 	const (
-		beforeContext = 256 << 10
+		beforeContext = 1024 << 10
 		afterContext  = 128 << 10
 	)
 	extractError := func(defaultError string) (string, []byte, []byte, bool, bool) {

@@ -15,6 +15,7 @@ import (
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -47,7 +48,7 @@ func Make(dir string) (*State, error) {
 		Managers: make(map[string]*Manager),
 	}
 
-	os.MkdirAll(st.dir, 0750)
+	osutil.MkdirAll(st.dir)
 	var err error
 	Logf(0, "reading corpus...")
 	st.Corpus, err = db.Open(filepath.Join(st.dir, "corpus.db"))
@@ -75,7 +76,7 @@ func Make(dir string) (*State, error) {
 	}
 
 	managersDir := filepath.Join(st.dir, "manager")
-	os.MkdirAll(managersDir, 0700)
+	osutil.MkdirAll(managersDir)
 	managers, err := ioutil.ReadDir(managersDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %v dir: %v", managersDir, err)
@@ -111,7 +112,7 @@ func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byt
 		mgr = new(Manager)
 		st.Managers[name] = mgr
 		mgr.dir = filepath.Join(st.dir, "manager", name)
-		os.MkdirAll(mgr.dir, 0700)
+		osutil.MkdirAll(mgr.dir)
 	}
 	mgr.Connected = time.Now()
 	if fresh {
@@ -233,7 +234,7 @@ func (st *State) addInput(mgr *Manager, input []byte) {
 }
 
 func writeFile(name string, data []byte) {
-	if err := ioutil.WriteFile(name, data, 0600); err != nil {
+	if err := osutil.WriteFile(name, data); err != nil {
 		Logf(0, "failed to write file %v: %v", name, err)
 	}
 }

@@ -17,20 +17,23 @@ import (
 )
 
 type Config struct {
-	Name    string // Instance name (used for identification and as GCE instance prefix)
-	Http    string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
-	Rpc     string // TCP address to serve RPC for fuzzer processes (optional)
-	Workdir string
-	Vmlinux string
-	Tag     string // arbitrary optional tag that is saved along with crash reports (e.g. branch/commit)
-	Image   string // linux image for VMs
-	Sshkey  string // root ssh key for the image (may be empty for some VM types)
+	Name       string // Instance name (used for identification and as GCE instance prefix)
+	Http       string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
+	Rpc        string // TCP address to serve RPC for fuzzer processes (optional)
+	Workdir    string
+	Vmlinux    string
+	Kernel_Src string // kernel source directory
+	Tag        string // arbitrary optional tag that is saved along with crash reports (e.g. branch/commit)
+	Image      string // linux image for VMs
+	Sshkey     string // root ssh key for the image (may be empty for some VM types)
 
-	Hub_Addr string
-	Hub_Key  string
+	Hub_Client string
+	Hub_Addr   string
+	Hub_Key    string
 
-	Dashboard_Addr string
-	Dashboard_Key  string
+	Dashboard_Client string
+	Dashboard_Addr   string
+	Dashboard_Key    string
 
 	Syzkaller string // path to syzkaller checkout (syz-manager will look for binaries in bin subdir)
 	Procs     int    // number of parallel processes inside of every VM
@@ -116,6 +119,9 @@ func load(data []byte, filename string) (*Config, map[int]bool, error) {
 	cfg.Workdir = osutil.Abs(cfg.Workdir)
 	cfg.Vmlinux = osutil.Abs(cfg.Vmlinux)
 	cfg.Syzkaller = osutil.Abs(cfg.Syzkaller)
+	if cfg.Kernel_Src == "" {
+		cfg.Kernel_Src = filepath.Dir(cfg.Vmlinux) // assume in-tree build by default
+	}
 
 	syscalls, err := parseSyscalls(cfg)
 	if err != nil {
@@ -126,14 +132,13 @@ func load(data []byte, filename string) (*Config, map[int]bool, error) {
 		return nil, nil, err
 	}
 
-	if (cfg.Hub_Addr != "" || cfg.Dashboard_Addr != "") && cfg.Name == "" {
-		return nil, nil, fmt.Errorf("hub_addr//dashboard_addr is set, but name is empty")
+	if cfg.Hub_Client != "" && (cfg.Name == "" || cfg.Hub_Addr == "" || cfg.Hub_Key == "") {
+		return nil, nil, fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}
-	if cfg.Hub_Addr != "" && cfg.Hub_Key == "" {
-		return nil, nil, fmt.Errorf("hub_addr is set, but hub_key is empty")
-	}
-	if cfg.Dashboard_Addr != "" && cfg.Dashboard_Key == "" {
-		return nil, nil, fmt.Errorf("dashboard_addr is set, but dashboard_key is empty")
+	if cfg.Dashboard_Client != "" && (cfg.Name == "" ||
+		cfg.Dashboard_Addr == "" ||
+		cfg.Dashboard_Key == "") {
+		return nil, nil, fmt.Errorf("dashboard_client is set, but name/dashboard_addr/dashboard_key is empty")
 	}
 
 	return cfg, syscalls, nil

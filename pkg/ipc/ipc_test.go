@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/fileutil"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -22,7 +22,7 @@ func buildExecutor(t *testing.T) string {
 }
 
 func buildSource(t *testing.T, src []byte) string {
-	tmp, err := fileutil.WriteTempFile(src)
+	tmp, err := osutil.WriteTempFile(src)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}

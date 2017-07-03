@@ -388,6 +388,8 @@ func ContainsCrash(output []byte, ignores []*regexp.Regexp) bool {
 func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, start int, end int) {
 	var oops *oops
 	var textPrefix [][]byte
+	textLines := 0
+	skipText := false
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
 		if next != -1 {
@@ -427,8 +429,28 @@ func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, s
 					text = append(text, '\n')
 				}
 				textPrefix = nil
-				text = append(text, output[lineStart:lineEnd]...)
-				text = append(text, '\n')
+				textLines++
+				ln := output[lineStart:lineEnd]
+				skipLine := skipText
+				if bytes.Contains(ln, []byte("Disabling lock debugging due to kernel taint")) {
+					skipLine = true
+				} else if textLines > 40 && bytes.Contains(ln, []byte("Kernel panic - not syncing")) {
+					// If panic_on_warn set, then we frequently have 2 stacks:
+					// one for the actual report (or maybe even more than one),
+					// and then one for panic caused by panic_on_warn. This makes
+					// reports unnecessary long and the panic (current) stack
+					// is always present in the actual report. So we strip the
+					// panic message. However, we check that we have enough lines
+					// before the panic, because sometimes we have, for example,
+					// a single WARNING line without a stack and then the panic
+					// with the stack.
+					skipText = true
+					skipLine = true
+				}
+				if !skipLine {
+					text = append(text, ln...)
+					text = append(text, '\n')
+				}
 			}
 		}
 		pos = next + 1

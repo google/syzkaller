@@ -253,12 +253,20 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	prog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.prog"))
 	cprog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.cprog"))
 	rep, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.report"))
+	log, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.log"))
+	stats, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.stats"))
 
 	fmt.Fprintf(w, "Syzkaller hit '%s' bug on commit %s.\n\n", trimNewLines(desc), trimNewLines(tag))
 	if len(rep) != 0 {
-		guiltyFile := report.ExtractGuiltyFile(string(rep))
+		guiltyFile := report.ExtractGuiltyFile(rep)
 		if guiltyFile != "" {
 			fmt.Fprintf(w, "The guilty file is: %v.\n\n", guiltyFile)
+			maintainers, err := report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
+			if err == nil {
+				fmt.Fprintf(w, "Maintainers: %v\n\n", maintainers)
+			} else {
+				fmt.Fprintf(w, "Failed to extract maintainers: %v\n\n", err)
+			}
 		}
 		fmt.Fprintf(w, "%s\n\n", rep)
 	}
@@ -269,6 +277,12 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 		if len(cprog) != 0 {
 			fmt.Fprintf(w, "C reproducer:\n%s\n\n", cprog)
 		}
+	}
+	if len(stats) > 0 {
+		fmt.Fprintf(w, "Reproducing stats:\n%s\n\n", stats)
+	}
+	if len(log) > 0 {
+		fmt.Fprintf(w, "Reproducing log:\n%s\n\n", log)
 	}
 }
 

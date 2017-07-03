@@ -18,7 +18,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/google/syzkaller/pkg/fileutil"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -357,7 +357,7 @@ func createMapping(size int) (f *os.File, mem []byte, err error) {
 	}
 	f.Close()
 	fname := f.Name()
-	f, err = os.OpenFile(f.Name(), os.O_RDWR, 0)
+	f, err = os.OpenFile(f.Name(), os.O_RDWR, osutil.DefaultFilePerm)
 	if err != nil {
 		err = fmt.Errorf("failed to open shm file: %v", err)
 		os.Remove(fname)
@@ -506,7 +506,7 @@ func (c *command) close() {
 		c.abort()
 		c.wait()
 	}
-	fileutil.UmountAll(c.dir)
+	osutil.UmountAll(c.dir)
 	os.RemoveAll(c.dir)
 	if c.inrp != nil {
 		c.inrp.Close()
@@ -669,10 +669,10 @@ func serializeUint64(buf []byte, v uint64) {
 var enableFaultOnce sync.Once
 
 func enableFaultInjection() {
-	if err := ioutil.WriteFile("/sys/kernel/debug/failslab/ignore-gfp-wait", []byte("N"), 0600); err != nil {
+	if err := osutil.WriteFile("/sys/kernel/debug/failslab/ignore-gfp-wait", []byte("N")); err != nil {
 		panic(fmt.Sprintf("failed to write /sys/kernel/debug/failslab/ignore-gfp-wait: %v", err))
 	}
-	if err := ioutil.WriteFile("/sys/kernel/debug/fail_futex/ignore-private", []byte("N"), 0600); err != nil {
+	if err := osutil.WriteFile("/sys/kernel/debug/fail_futex/ignore-private", []byte("N")); err != nil {
 		panic(fmt.Sprintf("failed to write /sys/kernel/debug/fail_futex/ignore-private: %v", err))
 	}
 }

@@ -703,10 +703,10 @@ Call Trace:
  [<ffffffff827436ac>] nf_sockopt net/netfilter/nf_sockopt.c:105 [inline]
 `: `net/netfilter/x_tables.c`,
 	}
-	for log, guilty0 := range tests {
-		if guilty := ExtractGuiltyFile(log); guilty != guilty0 {
-			t.Logf("log:\n%s", log)
-			t.Logf("extracted files:\n%s", extractFiles(log))
+	for report, guilty0 := range tests {
+		if guilty := ExtractGuiltyFile([]byte(report)); guilty != guilty0 {
+			t.Logf("log:\n%s", report)
+			t.Logf("extracted files:\n%s", extractFiles([]byte(report)))
 			t.Logf("want guilty:\n%s", guilty0)
 			t.Logf("got guilty:\n%s", guilty)
 			t.Fatalf("couldn't extract guilty file")

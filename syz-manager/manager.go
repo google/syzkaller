@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
@@ -29,7 +29,6 @@ import (
 	"github.com/google/syzkaller/pkg/repro"
 	. "github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/syz-dash/dashboard"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
 )
@@ -57,7 +56,7 @@ type Manager struct {
 	fresh        bool
 	numFuzzing   uint32
 
-	dash *dashboard.Dashboard
+	dash *dashapi.Dashboard
 
 	mu              sync.Mutex
 	phase           int
@@ -122,7 +121,7 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 	}
 
 	crashdir := filepath.Join(cfg.Workdir, "crashes")
-	os.MkdirAll(crashdir, 0700)
+	osutil.MkdirAll(crashdir)
 
 	enabledSyscalls := ""
 	if len(syscalls) != 0 {
@@ -218,11 +217,7 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 	go s.Serve()
 
 	if cfg.Dashboard_Addr != "" {
-		mgr.dash = &dashboard.Dashboard{
-			Addr:   cfg.Dashboard_Addr,
-			Client: cfg.Name,
-			Key:    cfg.Dashboard_Key,
-		}
+		mgr.dash = dashapi.New(cfg.Dashboard_Client, cfg.Dashboard_Addr, cfg.Dashboard_Key)
 	}
 
 	go func() {
@@ -245,7 +240,7 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 	}()
 
 	if *flagBench != "" {
-		f, err := os.OpenFile(*flagBench, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0640)
+		f, err := os.OpenFile(*flagBench, os.O_WRONLY|os.O_CREATE|os.O_EXCL, osutil.DefaultFilePerm)
 		if err != nil {
 			Fatalf("failed to open bench file: %v", err)
 		}
@@ -280,7 +275,7 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 		}()
 	}
 
-	if mgr.cfg.Hub_Addr != "" {
+	if mgr.cfg.Hub_Client != "" {
 		go func() {
 			for {
 				time.Sleep(time.Minute)
@@ -516,11 +511,48 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 	}
 	mgr.mu.Unlock()
 
+	if len(crash.text) > 0 {
+		<-allSymbolsReady
+		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text, allSymbols)
+		if err != nil {
+			Logf(0, "failed to symbolize crash: %v", err)
+		} else {
+			crash.text = symbolized
+		}
+	}
+
+	if mgr.dash != nil {
+		var maintainers []string
+		guiltyFile := report.ExtractGuiltyFile(crash.text)
+		if guiltyFile != "" {
+			var err error
+			maintainers, err = report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
+			if err != nil {
+				Logf(0, "failed to get maintainers: %v", err)
+			}
+		}
+		dc := &dashapi.Crash{
+			Manager:     mgr.cfg.Name,
+			BuildID:     mgr.cfg.Tag,
+			Title:       crash.desc,
+			Maintainers: maintainers,
+			Log:         crash.output,
+			Report:      crash.text,
+		}
+		if err := mgr.dash.ReportCrash(dc); err != nil {
+			Logf(0, "failed to report crash to dashboard: %v", err)
+		} else {
+			// Don't store the crash locally, if we've successfully
+			// uploaded it to the dashboard. These will just eat disk space.
+			return
+		}
+	}
+
 	sig := hash.Hash([]byte(crash.desc))
 	id := sig.String()
 	dir := filepath.Join(mgr.crashdir, id)
-	os.MkdirAll(dir, 0700)
-	if err := ioutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.desc+"\n"), 0660); err != nil {
+	osutil.MkdirAll(dir)
+	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.desc+"\n")); err != nil {
 		Logf(0, "failed to write crash: %v", err)
 	}
 	// Save up to 100 reports. If we already have 100, overwrite the oldest one.
@@ -539,31 +571,12 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 			oldestTime = info.ModTime()
 		}
 	}
-	ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.output, 0660)
+	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.output)
 	if len(mgr.cfg.Tag) > 0 {
-		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag), 0660)
+		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag))
 	}
 	if len(crash.text) > 0 {
-		<-allSymbolsReady
-		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text, allSymbols)
-		if err != nil {
-			Logf(0, "failed to symbolize crash: %v", err)
-		} else {
-			crash.text = symbolized
-		}
-		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.text, 0660)
-	}
-
-	if mgr.dash != nil {
-		dc := &dashboard.Crash{
-			Tag:    mgr.cfg.Tag,
-			Desc:   crash.desc,
-			Log:    crash.output,
-			Report: crash.text,
-		}
-		if err := mgr.dash.ReportCrash(dc); err != nil {
-			Logf(0, "failed to report crash to dashboard: %v", err)
-		}
+		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.text)
 	}
 }
 
@@ -591,21 +604,19 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 	dir := filepath.Join(mgr.crashdir, sig.String())
 	if res == nil {
 		if mgr.dash != nil {
-			dr := &dashboard.Repro{
-				Crash: dashboard.Crash{
-					Tag:  mgr.cfg.Tag,
-					Desc: crash.desc,
-				},
-				Reproduced: false,
+			fr := &dashapi.FailedRepro{
+				Manager: mgr.cfg.Name,
+				BuildID: mgr.cfg.Tag,
+				Title:   crash.desc,
 			}
-			if err := mgr.dash.ReportRepro(dr); err != nil {
-				Logf(0, "failed to report repro to dashboard: %v", err)
+			if err := mgr.dash.ReportFailedRepro(fr); err != nil {
+				Logf(0, "failed to report failed repro to dashboard: %v", err)
 			}
 		}
 		for i := 0; i < maxReproAttempts; i++ {
 			name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
 			if !osutil.IsExist(name) {
-				ioutil.WriteFile(name, nil, 0660)
+				osutil.WriteFile(name, nil)
 				break
 			}
 		}
@@ -613,13 +624,17 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 	}
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
 	prog := res.Prog.Serialize()
-	ioutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...), 0660)
+	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...))
 	if len(mgr.cfg.Tag) > 0 {
-		ioutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag), 0660)
+		osutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag))
 	}
 	if len(crash.text) > 0 {
-		ioutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(crash.text), 0660)
+		osutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(crash.text))
 	}
+	osutil.WriteFile(filepath.Join(dir, "repro.log"), res.Stats.Log)
+	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\nExtracting C: %s\nSimplifying C: %s\n",
+		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime, res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
+	osutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats))
 	var cprogText []byte
 	if res.CRepro {
 		cprog, err := csource.Write(res.Prog, res.Opts)
@@ -628,7 +643,7 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 			if err == nil {
 				cprog = formatted
 			}
-			ioutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprog, 0660)
+			osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprog)
 			cprogText = cprog
 		} else {
 			Logf(0, "failed to write C source: %v", err)
@@ -636,18 +651,27 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 	}
 
 	if mgr.dash != nil {
-		dr := &dashboard.Repro{
-			Crash: dashboard.Crash{
-				Tag:    mgr.cfg.Tag,
-				Desc:   crash.desc,
-				Report: crash.text,
-			},
-			Reproduced: true,
-			Opts:       fmt.Sprintf("%+v", res.Opts),
-			Prog:       res.Prog.Serialize(),
-			CProg:      cprogText,
+		var maintainers []string
+		guiltyFile := report.ExtractGuiltyFile(crash.text)
+		if guiltyFile != "" {
+			var err error
+			maintainers, err = report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
+			if err != nil {
+				Logf(0, "failed to get maintainers: %v", err)
+			}
 		}
-		if err := mgr.dash.ReportRepro(dr); err != nil {
+		dc := &dashapi.Crash{
+			Manager:     mgr.cfg.Name,
+			BuildID:     mgr.cfg.Tag,
+			Title:       crash.desc,
+			Maintainers: maintainers,
+			Log:         crash.output,
+			Report:      crash.text,
+			ReproOpts:   []byte(fmt.Sprintf("%+v", res.Opts)),
+			ReproSyz:    []byte(res.Prog.Serialize()),
+			ReproC:      cprogText,
+		}
+		if err := mgr.dash.ReportCrash(dc); err != nil {
 			Logf(0, "failed to report repro to dashboard: %v", err)
 		}
 	}
@@ -770,7 +794,7 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 }
 
 func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
-	Logf(2, "new input from %v for syscall %v (signal=%v cover=%v)", a.Name, a.Call, len(a.Signal), len(a.Cover))
+	Logf(4, "new input from %v for syscall %v (signal=%v cover=%v)", a.Name, a.Call, len(a.Signal), len(a.Cover))
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -854,14 +878,14 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 	if len(mgr.candidates) == 0 {
 		mgr.candidates = nil
 		if mgr.phase == phaseInit {
-			if mgr.cfg.Hub_Addr != "" {
+			if mgr.cfg.Hub_Client != "" {
 				mgr.phase = phaseTriagedCorpus
 			} else {
 				mgr.phase = phaseTriagedHub
 			}
 		}
 	}
-	Logf(2, "poll from %v: recv maxsignal=%v, send maxsignal=%v candidates=%v inputs=%v",
+	Logf(4, "poll from %v: recv maxsignal=%v, send maxsignal=%v candidates=%v inputs=%v",
 		a.Name, len(a.MaxSignal), len(r.MaxSignal), len(r.Candidates), len(r.NewInputs))
 	return nil
 }
@@ -887,10 +911,11 @@ func (mgr *Manager) hubSync() {
 	mgr.minimizeCorpus()
 	if mgr.hub == nil {
 		a := &HubConnectArgs{
-			Name:  mgr.cfg.Name,
-			Key:   mgr.cfg.Hub_Key,
-			Fresh: mgr.fresh,
-			Calls: mgr.enabledCalls,
+			Client:  mgr.cfg.Hub_Client,
+			Key:     mgr.cfg.Hub_Key,
+			Manager: mgr.cfg.Name,
+			Fresh:   mgr.fresh,
+			Calls:   mgr.enabledCalls,
 		}
 		hubCorpus := make(map[hash.Sig]bool)
 		for _, inp := range mgr.corpus {
@@ -920,8 +945,9 @@ func (mgr *Manager) hubSync() {
 	}
 
 	a := &HubSyncArgs{
-		Name: mgr.cfg.Name,
-		Key:  mgr.cfg.Hub_Key,
+		Client:  mgr.cfg.Hub_Client,
+		Key:     mgr.cfg.Hub_Key,
+		Manager: mgr.cfg.Name,
 	}
 	corpus := make(map[hash.Sig]bool)
 	for _, inp := range mgr.corpus {
@@ -967,7 +993,8 @@ func (mgr *Manager) hubSync() {
 		mgr.stats["hub del"] += uint64(len(a.Del))
 		mgr.stats["hub drop"] += uint64(dropped)
 		mgr.stats["hub new"] += uint64(len(r.Inputs) - dropped)
-		Logf(0, "hub sync: add %v, del %v, drop %v, new %v, more %v", len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped, r.More)
+		Logf(0, "hub sync: add %v, del %v, drop %v, new %v, more %v",
+			len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped, r.More)
 		if len(r.Inputs)+r.More == 0 {
 			break
 		}

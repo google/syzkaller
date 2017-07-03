@@ -30,6 +30,13 @@ func init() {
 type Config struct {
 	Adb     string   // adb binary name ("adb" by default)
 	Devices []string // list of adb device IDs to use
+
+	// Ensure that a device battery level is at 20+% before fuzzing.
+	// Sometimes we observe that a device can't charge during heavy fuzzing
+	// and eventually powers down (which then requires manual intervention).
+	// This option is enabled by default. Turn it off if your devices
+	// don't have battery service, or it causes problems otherwise.
+	Battery_Check bool
 }
 
 type Pool struct {
@@ -47,7 +54,8 @@ type instance struct {
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	cfg := &Config{
-		Adb: "adb",
+		Adb:           "adb",
+		Battery_Check: true,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse adb vm config: %v", err)
@@ -95,8 +103,10 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 	inst.console = findConsole(inst.adbBin, inst.device)
-	if err := inst.checkBatteryLevel(); err != nil {
-		return nil, err
+	if pool.cfg.Battery_Check {
+		if err := inst.checkBatteryLevel(); err != nil {
+			return nil, err
+		}
 	}
 	// Remove temp files from previous runs.
 	if _, err := inst.adb("shell", "rm -Rf /data/syzkaller*"); err != nil {

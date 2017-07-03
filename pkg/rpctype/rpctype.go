@@ -58,21 +58,35 @@ type PollRes struct {
 }
 
 type HubConnectArgs struct {
-	Name   string
+	// Client/Key are used for authentication.
+	Client string
 	Key    string
-	Fresh  bool
-	Calls  []string
+	// Manager name, must start with Client.
+	Manager string
+	// Manager has started with an empty corpus and requests whole hub corpus.
+	Fresh bool
+	// Set of system call names supported by this manager.
+	// Used to filter out programs with unsupported calls.
+	Calls []string
+	// Current manager corpus.
 	Corpus [][]byte
 }
 
 type HubSyncArgs struct {
-	Name string
-	Key  string
-	Add  [][]byte
-	Del  []string
+	// see HubConnectArgs.
+	Client  string
+	Key     string
+	Manager string
+	// Programs added to corpus since last sync or connect.
+	Add [][]byte
+	// Hashed of programs removed from corpus since last sync or connect.
+	Del []string
 }
 
 type HubSyncRes struct {
+	// Set of programs from other managers.
 	Inputs [][]byte
-	More   int
+	// Number of remaining pending programs,
+	// if >0 manager should do sync again.
+	More int
 }

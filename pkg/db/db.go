@@ -19,6 +19,7 @@ import (
 	"os"
 
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 type DB struct {
@@ -38,7 +39,7 @@ func Open(filename string) (*DB, error) {
 	db := &DB{
 		filename: filename,
 	}
-	f, err := os.OpenFile(db.filename, os.O_RDONLY|os.O_CREATE, 0640)
+	f, err := os.OpenFile(db.filename, os.O_RDONLY|os.O_CREATE, osutil.DefaultFilePerm)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +80,7 @@ func (db *DB) Flush() error {
 	if db.pending == nil {
 		return nil
 	}
-	f, err := os.OpenFile(db.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0640)
+	f, err := os.OpenFile(db.filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, osutil.DefaultFilePerm)
 	if err != nil {
 		return err
 	}

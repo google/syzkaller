@@ -364,11 +364,11 @@ func (a *LocalBuildAction) Build() error {
 		}
 	}
 	Logf(0, "building image...")
-	os.MkdirAll("image/obj", 0700)
+	osutil.MkdirAll("image/obj")
 	if err := kernel.CreateImage(dir, a.UserspaceDir, "image/disk.raw", "image/key"); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
-	if err := ioutil.WriteFile("image/tag", []byte(hash), 0600); err != nil {
+	if err := osutil.WriteFile("image/tag", []byte(hash)); err != nil {
 		return fmt.Errorf("failed to write tag file: %v", err)
 	}
 	vmlinux := filepath.Join(dir, "vmlinux")
@@ -477,7 +477,7 @@ func writeManagerConfig(cfg *Config, httpPort int, file string) error {
 	if err != nil {
 		return err
 	}
-	if err := ioutil.WriteFile(file, data, 0600); err != nil {
+	if err := osutil.WriteFile(file, data); err != nil {
 		return err
 	}
 	return nil
@@ -519,10 +519,10 @@ func downloadAndExtract(f *gcs.File, dir string) error {
 		}
 		files[filepath.Clean(hdr.Name)] = true
 		base, file := filepath.Split(hdr.Name)
-		if err := os.MkdirAll(filepath.Join(dir, base), 0700); err != nil {
+		if err := osutil.MkdirAll(filepath.Join(dir, base)); err != nil {
 			return err
 		}
-		dst, err := os.OpenFile(filepath.Join(dir, base, file), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+		dst, err := os.OpenFile(filepath.Join(dir, base, file), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, osutil.DefaultFilePerm)
 		if err != nil {
 			return err
 		}

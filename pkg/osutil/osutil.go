@@ -6,20 +6,17 @@ package osutil
 import (
 	"bytes"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 	"time"
-
-	"github.com/google/syzkaller/pkg/fileutil"
 )
 
 const (
 	DefaultDirPerm  = 0755
 	DefaultFilePerm = 0644
+	DefaultExecPerm = 0755
 )
 
 // RunCmd runs "bin args..." in dir with timeout and returns its output.
@@ -45,15 +42,6 @@ func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, err
 		return nil, fmt.Errorf("failed to run %v %+v: %v\n%v", bin, args, err, output.String())
 	}
 	return output.Bytes(), nil
-}
-
-func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
-	r, w, err := os.Pipe()
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create pipe: %v", err)
-	}
-	prolongPipe(r, w)
-	return r, w, err
 }
 
 var wd string
@@ -82,24 +70,6 @@ func IsExist(name string) bool {
 	return err == nil
 }
 
-// HandleInterrupts closes shutdown chan on first SIGINT
-// (expecting that the program will gracefully shutdown and exit)
-// and terminates the process on third SIGINT.
-func HandleInterrupts(shutdown chan struct{}) {
-	go func() {
-		c := make(chan os.Signal, 3)
-		signal.Notify(c, syscall.SIGINT)
-		<-c
-		close(shutdown)
-		fmt.Fprint(os.Stderr, "SIGINT: shutting down...\n")
-		<-c
-		fmt.Fprint(os.Stderr, "SIGINT: shutting down harder...\n")
-		<-c
-		fmt.Fprint(os.Stderr, "SIGINT: terminating\n")
-		os.Exit(int(syscall.SIGINT))
-	}()
-}
-
 // FilesExist returns true if all files exist in dir.
 // Files are assumed to be relative names in slash notation.
 func FilesExist(dir string, files []string) bool {
@@ -121,16 +91,16 @@ func CopyFiles(srcDir, dstDir string, files []string) error {
 	if err := os.RemoveAll(tmpDir); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(tmpDir, DefaultDirPerm); err != nil {
+	if err := MkdirAll(tmpDir); err != nil {
 		return err
 	}
 	for _, f := range files {
 		src := filepath.Join(srcDir, filepath.FromSlash(f))
 		dst := filepath.Join(tmpDir, filepath.FromSlash(f))
-		if err := os.MkdirAll(filepath.Dir(dst), DefaultDirPerm); err != nil {
+		if err := MkdirAll(filepath.Dir(dst)); err != nil {
 			return err
 		}
-		if err := fileutil.CopyFile(src, dst); err != nil {
+		if err := CopyFile(src, dst); err != nil {
 			return err
 		}
 	}
@@ -147,13 +117,13 @@ func LinkFiles(srcDir, dstDir string, files []string) error {
 	if err := os.RemoveAll(dstDir); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dstDir, DefaultDirPerm); err != nil {
+	if err := MkdirAll(dstDir); err != nil {
 		return err
 	}
 	for _, f := range files {
 		src := filepath.Join(srcDir, filepath.FromSlash(f))
 		dst := filepath.Join(dstDir, filepath.FromSlash(f))
-		if err := os.MkdirAll(filepath.Dir(dst), DefaultDirPerm); err != nil {
+		if err := MkdirAll(filepath.Dir(dst)); err != nil {
 			return err
 		}
 		if err := os.Link(src, dst); err != nil {
@@ -161,4 +131,16 @@ func LinkFiles(srcDir, dstDir string, files []string) error {
 		}
 	}
 	return nil
+}
+
+func MkdirAll(dir string) error {
+	return os.MkdirAll(dir, DefaultDirPerm)
+}
+
+func WriteFile(filename string, data []byte) error {
+	return ioutil.WriteFile(filename, data, DefaultFilePerm)
+}
+
+func WriteExecFile(filename string, data []byte) error {
+	return ioutil.WriteFile(filename, data, DefaultExecPerm)
 }

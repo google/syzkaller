@@ -4,12 +4,12 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"strings"
 	"sync"
 
+	"github.com/google/syzkaller/pkg/config"
 	. "github.com/google/syzkaller/pkg/log"
 	. "github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/syz-hub/state"
@@ -17,15 +17,13 @@ import (
 
 var (
 	flagConfig = flag.String("config", "", "config file")
-
-	cfg *Config
 )
 
 type Config struct {
-	Http     string
-	Rpc      string
-	Workdir  string
-	Managers []struct {
+	Http    string
+	Rpc     string
+	Workdir string
+	Clients []struct {
 		Name string
 		Key  string
 	}
@@ -39,7 +37,10 @@ type Hub struct {
 
 func main() {
 	flag.Parse()
-	cfg = readConfig(*flagConfig)
+	cfg := new(Config)
+	if err := config.LoadFile(*flagConfig, cfg); err != nil {
+		Fatal(err)
+	}
 	EnableLogCaching(1000, 1<<20)
 
 	st, err := state.Make(cfg.Workdir)
@@ -50,7 +51,7 @@ func main() {
 		st:   st,
 		keys: make(map[string]string),
 	}
-	for _, mgr := range cfg.Managers {
+	for _, mgr := range cfg.Clients {
 		hub.keys[mgr.Name] = mgr.Key
 	}
 
@@ -65,15 +66,16 @@ func main() {
 }
 
 func (hub *Hub) Connect(a *HubConnectArgs, r *int) error {
-	if key, ok := hub.keys[a.Name]; !ok || key != a.Key {
-		Logf(0, "connect from unauthorized manager %v", a.Name)
-		return fmt.Errorf("unauthorized manager")
+	name, err := hub.auth(a.Client, a.Key, a.Manager)
+	if err != nil {
+		return err
 	}
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 
-	Logf(0, "connect from %v: fresh=%v calls=%v corpus=%v", a.Name, a.Fresh, len(a.Calls), len(a.Corpus))
-	if err := hub.st.Connect(a.Name, a.Fresh, a.Calls, a.Corpus); err != nil {
+	Logf(0, "connect from %v: fresh=%v calls=%v corpus=%v",
+		name, a.Fresh, len(a.Calls), len(a.Corpus))
+	if err := hub.st.Connect(name, a.Fresh, a.Calls, a.Corpus); err != nil {
 		Logf(0, "connect error: %v", err)
 		return err
 	}
@@ -81,35 +83,35 @@ func (hub *Hub) Connect(a *HubConnectArgs, r *int) error {
 }
 
 func (hub *Hub) Sync(a *HubSyncArgs, r *HubSyncRes) error {
-	if key, ok := hub.keys[a.Name]; !ok || key != a.Key {
-		Logf(0, "sync from unauthorized manager %v", a.Name)
-		return fmt.Errorf("unauthorized manager")
+	name, err := hub.auth(a.Client, a.Key, a.Manager)
+	if err != nil {
+		return err
 	}
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 
-	inputs, more, err := hub.st.Sync(a.Name, a.Add, a.Del)
+	inputs, more, err := hub.st.Sync(name, a.Add, a.Del)
 	if err != nil {
 		Logf(0, "sync error: %v", err)
 		return err
 	}
 	r.Inputs = inputs
 	r.More = more
-	Logf(0, "sync from %v: add=%v del=%v new=%v pending=%v", a.Name, len(a.Add), len(a.Del), len(inputs), more)
+	Logf(0, "sync from %v: add=%v del=%v new=%v pending=%v",
+		name, len(a.Add), len(a.Del), len(inputs), more)
 	return nil
 }
 
-func readConfig(filename string) *Config {
-	if filename == "" {
-		Fatalf("supply config in -config flag")
+func (hub *Hub) auth(client, key, manager string) (string, error) {
+	if key, ok := hub.keys[client]; !ok || key != key {
+		Logf(0, "connect from unauthorized client %v", client)
+		return "", fmt.Errorf("unauthorized manager")
 	}
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		Fatalf("failed to read config file: %v", err)
+	if manager == "" {
+		manager = client
+	} else if !strings.HasPrefix(manager, client) {
+		Logf(0, "manager %v does not have client prefix %v", manager, client)
+		return "", fmt.Errorf("unauthorized manager")
 	}
-	cfg := new(Config)
-	if err := json.Unmarshal(data, cfg); err != nil {
-		Fatalf("failed to parse config file: %v", err)
-	}
-	return cfg
+	return manager, nil
 }
