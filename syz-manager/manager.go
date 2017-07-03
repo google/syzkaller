@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
@@ -122,7 +121,7 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 	}
 
 	crashdir := filepath.Join(cfg.Workdir, "crashes")
-	os.MkdirAll(crashdir, 0700)
+	osutil.MkdirAll(crashdir)
 
 	enabledSyscalls := ""
 	if len(syscalls) != 0 {
@@ -241,7 +240,7 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 	}()
 
 	if *flagBench != "" {
-		f, err := os.OpenFile(*flagBench, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0640)
+		f, err := os.OpenFile(*flagBench, os.O_WRONLY|os.O_CREATE|os.O_EXCL, osutil.DefaultFilePerm)
 		if err != nil {
 			Fatalf("failed to open bench file: %v", err)
 		}
@@ -552,8 +551,8 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 	sig := hash.Hash([]byte(crash.desc))
 	id := sig.String()
 	dir := filepath.Join(mgr.crashdir, id)
-	os.MkdirAll(dir, 0700)
-	if err := ioutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.desc+"\n"), 0660); err != nil {
+	osutil.MkdirAll(dir)
+	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.desc+"\n")); err != nil {
 		Logf(0, "failed to write crash: %v", err)
 	}
 	// Save up to 100 reports. If we already have 100, overwrite the oldest one.
@@ -572,12 +571,12 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 			oldestTime = info.ModTime()
 		}
 	}
-	ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.output, 0660)
+	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.output)
 	if len(mgr.cfg.Tag) > 0 {
-		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag), 0660)
+		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag))
 	}
 	if len(crash.text) > 0 {
-		ioutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.text, 0660)
+		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.text)
 	}
 }
 
@@ -617,7 +616,7 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 		for i := 0; i < maxReproAttempts; i++ {
 			name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
 			if !osutil.IsExist(name) {
-				ioutil.WriteFile(name, nil, 0660)
+				osutil.WriteFile(name, nil)
 				break
 			}
 		}
@@ -625,17 +624,17 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 	}
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
 	prog := res.Prog.Serialize()
-	ioutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...), 0660)
+	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...))
 	if len(mgr.cfg.Tag) > 0 {
-		ioutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag), 0660)
+		osutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag))
 	}
 	if len(crash.text) > 0 {
-		ioutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(crash.text), 0660)
+		osutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(crash.text))
 	}
-	ioutil.WriteFile(filepath.Join(dir, "repro.log"), res.Stats.Log, 0660)
+	osutil.WriteFile(filepath.Join(dir, "repro.log"), res.Stats.Log)
 	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\nExtracting C: %s\nSimplifying C: %s\n",
 		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime, res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
-	ioutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats), 0660)
+	osutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats))
 	var cprogText []byte
 	if res.CRepro {
 		cprog, err := csource.Write(res.Prog, res.Opts)
@@ -644,7 +643,7 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 			if err == nil {
 				cprog = formatted
 			}
-			ioutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprog, 0660)
+			osutil.WriteFile(filepath.Join(dir, "repro.cprog"), cprog)
 			cprogText = cprog
 		} else {
 			Logf(0, "failed to write C source: %v", err)

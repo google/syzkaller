@@ -1,7 +1,7 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package fileutil
+package osutil
 
 import (
 	"fmt"
@@ -62,7 +62,7 @@ func WriteTempFile(data []byte) (string, error) {
 // It also cleans up old, unused temp dirs after dead processes.
 func ProcessTempDir(where string) (string, error) {
 	lk := filepath.Join(where, "instance-lock")
-	lkf, err := syscall.Open(lk, syscall.O_RDWR|syscall.O_CREAT, 0600)
+	lkf, err := syscall.Open(lk, syscall.O_RDWR|syscall.O_CREAT, DefaultFilePerm)
 	if err != nil {
 		return "", err
 	}
@@ -75,7 +75,7 @@ func ProcessTempDir(where string) (string, error) {
 	for i := 0; i < 1e3; i++ {
 		path := filepath.Join(where, fmt.Sprintf("instance-%v", i))
 		pidfile := filepath.Join(path, ".pid")
-		err := os.Mkdir(path, 0700)
+		err := os.Mkdir(path, DefaultDirPerm)
 		if os.IsExist(err) {
 			// Try to clean up.
 			data, err := ioutil.ReadFile(pidfile)
@@ -98,7 +98,7 @@ func ProcessTempDir(where string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if err := ioutil.WriteFile(pidfile, []byte(strconv.Itoa(syscall.Getpid())), 0600); err != nil {
+		if err := WriteFile(pidfile, []byte(strconv.Itoa(syscall.Getpid()))); err != nil {
 			return "", err
 		}
 		return path, nil

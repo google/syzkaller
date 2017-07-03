@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/hash"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func main() {
@@ -76,13 +77,13 @@ func unpack(file, dir string) {
 	if err != nil {
 		failf("failed to open database: %v", err)
 	}
-	os.Mkdir(dir, 0750)
+	osutil.MkdirAll(dir)
 	for key, rec := range db.Records {
 		fname := filepath.Join(dir, key)
 		if rec.Seq != 0 {
 			fname += fmt.Sprintf("-%v", rec.Seq)
 		}
-		if err := ioutil.WriteFile(fname, rec.Val, 0640); err != nil {
+		if err := osutil.WriteFile(fname, rec.Val); err != nil {
 			failf("failed to output file: %v", err)
 		}
 	}

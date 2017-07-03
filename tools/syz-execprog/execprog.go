@@ -21,6 +21,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/ipc"
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -155,7 +156,7 @@ func main() {
 							for _, pc := range inf.Cover {
 								binary.Write(buf, binary.LittleEndian, cover.RestorePC(pc, 0xffffffff))
 							}
-							err := ioutil.WriteFile(fmt.Sprintf("%v.%v", *flagCoverFile, i), buf.Bytes(), 0660)
+							err := osutil.WriteFile(fmt.Sprintf("%v.%v", *flagCoverFile, i), buf.Bytes())
 							if err != nil {
 								Fatalf("failed to write coverage file: %v", err)
 							}

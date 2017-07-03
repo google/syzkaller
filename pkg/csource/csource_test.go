@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/syzkaller/pkg/fileutil"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -123,7 +123,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		t.Logf("program:\n%s\n", p.Serialize())
 		t.Fatalf("%v", err)
 	}
-	srcf, err := fileutil.WriteTempFile(src)
+	srcf, err := osutil.WriteTempFile(src)
 	if err != nil {
 		t.Logf("program:\n%s\n", p.Serialize())
 		t.Fatalf("%v", err)
