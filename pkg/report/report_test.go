@@ -1055,3 +1055,378 @@ func TestSymbolizeLine(t *testing.T) {
 		})
 	}
 }
+
+func TestParseReport(t *testing.T) {
+	for i, test := range parseReportTests {
+		t.Run(fmt.Sprint(i), func(t *testing.T) {
+			_, text, _, _ := Parse([]byte(test.in), nil)
+			if test.out != string(text) {
+				t.Logf("expect:\n%v", test.out)
+				t.Logf("got:\n%v", string(text))
+				t.Fail()
+			}
+		})
+	}
+}
+
+var parseReportTests = []struct {
+	in  string
+	out string
+}{
+	// Test that we strip the report after "Kernel panic - not syncing" line.
+	{
+		in: `clock_gettime(0x0, &(0x7f0000475000-0x10)={<r2=>0x0, <r3=>0x0})
+write$sndseq(0xffffffffffffffff, &(0x7f0000929000-0x150)=[{0x3197a6bf, 0x0, 0x4, 0x100, @tick=0x6, {0x7, 0x6c}, {0x2, 0x9}, @connect={{0x1ff, 0x1}, {0x3ff, 0x118c}}}, {0x100000000, 0x2, 0xfffffffffffffffa, 0x2, @tick=0x5d0, {0xf556, 0x7}, {0x3, 0x1000}, @quote={{0x5, 0xfffffffffffffff7}, 0x401, &(0x7f000084a000)={0x10000, 0x9d, 0x8, 0x4, @tick=0x336f, {0x5, 0x1d}, {0x8, 0x7}, @time=@time={0x0, 0x989680}}}}, {0x200, 0x0, 0x99a, 0x6, @tick=0x1, {0x1, 0x158}, {0x200, 0x5}, @connect={{0x8, 0x4}, {0xf2, 0x100000000}}}, {0x40, 0xfffffffffffffffa, 0x100000000, 0x5, @time={r2, r3+10000000}, {0x7, 0x5}, {0x3, 0x0}, @raw32={[0x2, 0x225, 0x1]}}, {0x75f, 0x8, 0x80, 0x80, @tick=0x6, {0x9, 0x9}, {0x1, 0x6}, @queue={0x7, {0x7, 0x6}}}, {0x80, 0x6, 0x3f, 0x80000001, @time={0x0, 0x0}, {0x3f, 0x9}, {0x96, 0xfffffffffffff800}, @raw8={"e5660e9238e6f58b35448e94"}}, {0x6, 0x6f8, 0x3, 0x6, @time={0x77359400, 0x0}, {0x100000001, 0x0}, {0xe870, 0x7}, @connect={{0x4, 0x80}, {0x7ff, 0xfffffffffffffffa}}}], 0x150)
+open$dir(&(0x7f0000265000-0x8)="2e2f66696c653000", 0x400, 0x44)
+[   96.237449] blk_update_request: I/O error, dev loop0, sector 0
+[   96.255274] ==================================================================
+[   96.262735] BUG: KASAN: double-free or invalid-free in selinux_tun_dev_free_security+0x15/0x20
+[   96.271481] 
+[   96.273098] CPU: 0 PID: 11514 Comm: syz-executor5 Not tainted 4.12.0-rc7+ #2
+[   96.280268] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   96.289602] Call Trace:
+[   96.292180]  dump_stack+0x194/0x257
+[   96.295796]  ? arch_local_irq_restore+0x53/0x53
+[   96.300454]  ? load_image_and_restore+0x10f/0x10f
+[   96.305299]  ? selinux_tun_dev_free_security+0x15/0x20
+[   96.310565]  print_address_description+0x7f/0x260
+[   96.315393]  ? selinux_tun_dev_free_security+0x15/0x20
+[   96.320656]  ? selinux_tun_dev_free_security+0x15/0x20
+[   96.325919]  kasan_report_double_free+0x55/0x80
+[   96.330577]  kasan_slab_free+0xa0/0xc0
+[   96.334450]  kfree+0xd3/0x260
+[   96.337545]  selinux_tun_dev_free_security+0x15/0x20
+[   96.342636]  security_tun_dev_free_security+0x48/0x80
+[   96.347822]  __tun_chr_ioctl+0x2cc1/0x3d60
+[   96.352054]  ? tun_chr_close+0x60/0x60
+[   96.355925]  ? lock_downgrade+0x990/0x990
+[   96.360059]  ? lock_release+0xa40/0xa40
+[   96.364025]  ? __lock_is_held+0xb6/0x140
+[   96.368213]  ? check_same_owner+0x320/0x320
+[   96.372530]  ? tun_chr_compat_ioctl+0x30/0x30
+[   96.377005]  tun_chr_ioctl+0x2a/0x40
+[   96.380701]  ? tun_chr_ioctl+0x2a/0x40
+[   96.385099]  do_vfs_ioctl+0x1b1/0x15c0
+[   96.388981]  ? ioctl_preallocate+0x2d0/0x2d0
+[   96.393378]  ? selinux_capable+0x40/0x40
+[   96.397430]  ? SyS_futex+0x2b0/0x3a0
+[   96.401147]  ? security_file_ioctl+0x89/0xb0
+[   96.405547]  SyS_ioctl+0x8f/0xc0
+[   96.408912]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   96.413651] RIP: 0033:0x4512c9
+[   96.416824] RSP: 002b:00007fc65827bc08 EFLAGS: 00000216 ORIG_RAX: 0000000000000010
+[   96.424603] RAX: ffffffffffffffda RBX: 0000000000718000 RCX: 00000000004512c9
+[   96.431863] RDX: 000000002053c000 RSI: 00000000400454ca RDI: 0000000000000005
+[   96.439133] RBP: 0000000000000082 R08: 0000000000000000 R09: 0000000000000000
+[   96.446389] R10: 0000000000000000 R11: 0000000000000216 R12: 00000000004baa97
+[   96.453647] R13: 00000000ffffffff R14: 0000000020124ff3 R15: 0000000000000000
+[   96.460931] 
+[   96.462552] Allocated by task 11514:
+[   96.466258]  save_stack_trace+0x16/0x20
+[   96.470212]  save_stack+0x43/0xd0
+[   96.473649]  kasan_kmalloc+0xaa/0xd0
+[   96.477347]  kmem_cache_alloc_trace+0x101/0x6f0
+[   96.481995]  selinux_tun_dev_alloc_security+0x49/0x170
+[   96.487250]  security_tun_dev_alloc_security+0x6d/0xa0
+[   96.492508]  __tun_chr_ioctl+0x16bc/0x3d60
+[   96.496722]  tun_chr_ioctl+0x2a/0x40
+[   96.500417]  do_vfs_ioctl+0x1b1/0x15c0
+[   96.504282]  SyS_ioctl+0x8f/0xc0
+[   96.507630]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   96.512367] 
+[   96.513973] Freed by task 11514:
+[   96.517323]  save_stack_trace+0x16/0x20
+[   96.521276]  save_stack+0x43/0xd0
+[   96.524709]  kasan_slab_free+0x6e/0xc0
+[   96.528577]  kfree+0xd3/0x260
+[   96.531666]  selinux_tun_dev_free_security+0x15/0x20
+[   96.536747]  security_tun_dev_free_security+0x48/0x80
+[   96.541918]  tun_free_netdev+0x13b/0x1b0
+[   96.545959]  register_netdevice+0x8d0/0xee0
+[   96.550260]  __tun_chr_ioctl+0x1bae/0x3d60
+[   96.554475]  tun_chr_ioctl+0x2a/0x40
+[   96.558169]  do_vfs_ioctl+0x1b1/0x15c0
+[   96.562035]  SyS_ioctl+0x8f/0xc0
+[   96.565385]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   96.570116] 
+[   96.571724] The buggy address belongs to the object at ffff8801d5961a40
+[   96.571724]  which belongs to the cache kmalloc-32 of size 32
+[   96.584186] The buggy address is located 0 bytes inside of
+[   96.584186]  32-byte region [ffff8801d5961a40, ffff8801d5961a60)
+[   96.595775] The buggy address belongs to the page:
+[   96.600686] page:ffffea00066b8d38 count:1 mapcount:0 mapping:ffff8801d5961000 index:0xffff8801d5961fc1
+[   96.610118] flags: 0x200000000000100(slab)
+[   96.614335] raw: 0200000000000100 ffff8801d5961000 ffff8801d5961fc1 000000010000003f
+[   96.622292] raw: ffffea0006723300 ffffea00066738b8 ffff8801dbc00100
+[   96.628675] page dumped because: kasan: bad access detected
+[   96.634373] 
+[   96.635978] Memory state around the buggy address:
+[   96.640884]  ffff8801d5961900: 00 00 01 fc fc fc fc fc 00 00 00 fc fc fc fc fc
+[   96.648222]  ffff8801d5961980: 00 00 00 00 fc fc fc fc fb fb fb fb fc fc fc fc
+[   96.655567] >ffff8801d5961a00: 00 00 00 fc fc fc fc fc fb fb fb fb fc fc fc fc
+[   96.663255]                                            ^
+[   96.668685]  ffff8801d5961a80: fb fb fb fb fc fc fc fc 00 00 00 fc fc fc fc fc
+[   96.676022]  ffff8801d5961b00: 04 fc fc fc fc fc fc fc fb fb fb fb fc fc fc fc
+[   96.683357] ==================================================================
+[   96.690692] Disabling lock debugging due to kernel taint
+[   96.696117] Kernel panic - not syncing: panic_on_warn set ...
+[   96.696117] 
+[   96.703470] CPU: 0 PID: 11514 Comm: syz-executor5 Tainted: G    B           4.12.0-rc7+ #2
+[   96.711847] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   96.721354] Call Trace:
+[   96.723926]  dump_stack+0x194/0x257
+[   96.727539]  ? arch_local_irq_restore+0x53/0x53
+[   96.732366]  ? kasan_end_report+0x32/0x50
+[   96.736497]  ? lock_downgrade+0x990/0x990
+[   96.740631]  panic+0x1e4/0x3fb
+[   96.743807]  ? percpu_up_read_preempt_enable.constprop.38+0xae/0xae
+[   96.750194]  ? add_taint+0x40/0x50
+[   96.753723]  ? selinux_tun_dev_free_security+0x15/0x20
+[   96.758976]  ? selinux_tun_dev_free_security+0x15/0x20
+[   96.764233]  kasan_end_report+0x50/0x50
+[   96.768192]  kasan_report_double_free+0x72/0x80
+[   96.772843]  kasan_slab_free+0xa0/0xc0
+[   96.776711]  kfree+0xd3/0x260
+[   96.779802]  selinux_tun_dev_free_security+0x15/0x20
+[   96.784886]  security_tun_dev_free_security+0x48/0x80
+[   96.790061]  __tun_chr_ioctl+0x2cc1/0x3d60
+[   96.794285]  ? tun_chr_close+0x60/0x60
+[   96.798152]  ? lock_downgrade+0x990/0x990
+[   96.802803]  ? lock_release+0xa40/0xa40
+[   96.806763]  ? __lock_is_held+0xb6/0x140
+[   96.810829]  ? check_same_owner+0x320/0x320
+[   96.815137]  ? tun_chr_compat_ioctl+0x30/0x30
+[   96.819611]  tun_chr_ioctl+0x2a/0x40
+[   96.823306]  ? tun_chr_ioctl+0x2a/0x40
+[   96.827181]  do_vfs_ioctl+0x1b1/0x15c0
+[   96.831057]  ? ioctl_preallocate+0x2d0/0x2d0
+[   96.835450]  ? selinux_capable+0x40/0x40
+[   96.839494]  ? SyS_futex+0x2b0/0x3a0
+[   96.843200]  ? security_file_ioctl+0x89/0xb0
+[   96.847590]  SyS_ioctl+0x8f/0xc0
+[   96.850941]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   96.855676] RIP: 0033:0x4512c9
+[   96.859020] RSP: 002b:00007fc65827bc08 EFLAGS: 00000216 ORIG_RAX: 0000000000000010
+[   96.866708] RAX: ffffffffffffffda RBX: 0000000000718000 RCX: 00000000004512c9
+[   96.873956] RDX: 000000002053c000 RSI: 00000000400454ca RDI: 0000000000000005
+[   96.881208] RBP: 0000000000000082 R08: 0000000000000000 R09: 0000000000000000
+[   96.888461] R10: 0000000000000000 R11: 0000000000000216 R12: 00000000004baa97
+[   96.895708] R13: 00000000ffffffff R14: 0000000020124ff3 R15: 0000000000000000
+[   96.903943] Dumping ftrace buffer:
+[   96.907460]    (ftrace buffer empty)
+[   96.911148] Kernel Offset: disabled
+[   96.914753] Rebooting in 86400 seconds..`,
+		out: `blk_update_request: I/O error, dev loop0, sector 0
+==================================================================
+BUG: KASAN: double-free or invalid-free in selinux_tun_dev_free_security+0x15/0x20
+
+CPU: 0 PID: 11514 Comm: syz-executor5 Not tainted 4.12.0-rc7+ #2
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ dump_stack+0x194/0x257
+ print_address_description+0x7f/0x260
+ kasan_report_double_free+0x55/0x80
+ kasan_slab_free+0xa0/0xc0
+ kfree+0xd3/0x260
+ selinux_tun_dev_free_security+0x15/0x20
+ security_tun_dev_free_security+0x48/0x80
+ __tun_chr_ioctl+0x2cc1/0x3d60
+ tun_chr_ioctl+0x2a/0x40
+ do_vfs_ioctl+0x1b1/0x15c0
+ SyS_ioctl+0x8f/0xc0
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+RIP: 0033:0x4512c9
+RSP: 002b:00007fc65827bc08 EFLAGS: 00000216 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 0000000000718000 RCX: 00000000004512c9
+RDX: 000000002053c000 RSI: 00000000400454ca RDI: 0000000000000005
+RBP: 0000000000000082 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000216 R12: 00000000004baa97
+R13: 00000000ffffffff R14: 0000000020124ff3 R15: 0000000000000000
+
+Allocated by task 11514:
+ save_stack_trace+0x16/0x20
+ save_stack+0x43/0xd0
+ kasan_kmalloc+0xaa/0xd0
+ kmem_cache_alloc_trace+0x101/0x6f0
+ selinux_tun_dev_alloc_security+0x49/0x170
+ security_tun_dev_alloc_security+0x6d/0xa0
+ __tun_chr_ioctl+0x16bc/0x3d60
+ tun_chr_ioctl+0x2a/0x40
+ do_vfs_ioctl+0x1b1/0x15c0
+ SyS_ioctl+0x8f/0xc0
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+
+Freed by task 11514:
+ save_stack_trace+0x16/0x20
+ save_stack+0x43/0xd0
+ kasan_slab_free+0x6e/0xc0
+ kfree+0xd3/0x260
+ selinux_tun_dev_free_security+0x15/0x20
+ security_tun_dev_free_security+0x48/0x80
+ tun_free_netdev+0x13b/0x1b0
+ register_netdevice+0x8d0/0xee0
+ __tun_chr_ioctl+0x1bae/0x3d60
+ tun_chr_ioctl+0x2a/0x40
+ do_vfs_ioctl+0x1b1/0x15c0
+ SyS_ioctl+0x8f/0xc0
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+
+The buggy address belongs to the object at ffff8801d5961a40
+ which belongs to the cache kmalloc-32 of size 32
+The buggy address is located 0 bytes inside of
+ 32-byte region [ffff8801d5961a40, ffff8801d5961a60)
+The buggy address belongs to the page:
+page:ffffea00066b8d38 count:1 mapcount:0 mapping:ffff8801d5961000 index:0xffff8801d5961fc1
+flags: 0x200000000000100(slab)
+raw: 0200000000000100 ffff8801d5961000 ffff8801d5961fc1 000000010000003f
+raw: ffffea0006723300 ffffea00066738b8 ffff8801dbc00100
+page dumped because: kasan: bad access detected
+
+Memory state around the buggy address:
+ ffff8801d5961900: 00 00 01 fc fc fc fc fc 00 00 00 fc fc fc fc fc
+ ffff8801d5961980: 00 00 00 00 fc fc fc fc fb fb fb fb fc fc fc fc
+>ffff8801d5961a00: 00 00 00 fc fc fc fc fc fb fb fb fb fc fc fc fc
+                                           ^
+ ffff8801d5961a80: fb fb fb fb fc fc fc fc 00 00 00 fc fc fc fc fc
+ ffff8801d5961b00: 04 fc fc fc fc fc fc fc fb fb fb fb fc fc fc fc
+==================================================================
+`,
+	},
+
+	// Test that we don't strip the report after "Kernel panic - not syncing" line
+	// because we have too few lines before it.
+	{
+		in: `2017/06/30 10:13:30 executing program 1:
+mmap(&(0x7f0000000000/0xd000)=nil, (0xd000), 0x2000001, 0x4012, 0xffffffffffffffff, 0x0)
+r0 = socket$inet6_sctp(0xa, 0x205, 0x84)
+mmap(&(0x7f000000d000/0x1000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)
+r1 = openat$autofs(0xffffffffffffff9c, &(0x7f000000d000)="2f6465762f6175746f667300", 0x472440, 0x0)
+mmap(&(0x7f000000d000/0x1000)=nil, (0x1000), 0x3, 0x32, 0xffffffffffffffff, 0x0)
+ioctl$KVM_CREATE_DEVICE(r1, 0xc00caee0, &(0x7f000000d000)={0x3, r0, 0x0})
+setsockopt$inet_sctp6_SCTP_I_WANT_MAPPED_V4_ADDR(r0, 0x84, 0xc, &(0x7f0000007000)=0x1, 0x4)
+setsockopt$inet_sctp6_SCTP_ASSOCINFO(r0, 0x84, 0x1, &(0x7f0000ece000)={0x0, 0x20, 0x0, 0x7, 0x0, 0x0}, 0x14)
+[   55.950418] ------------[ cut here ]------------
+[   55.967976] WARNING: CPU: 1 PID: 8377 at arch/x86/kvm/x86.c:7209 kvm_arch_vcpu_ioctl_run+0x1f7/0x5a00
+[   56.041277] Kernel panic - not syncing: panic_on_warn set ...
+[   56.041277] 
+[   56.048693] CPU: 1 PID: 8377 Comm: syz-executor6 Not tainted 4.12.0-rc7+ #2
+[   56.055794] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   56.065137] Call Trace:
+[   56.067707]  dump_stack+0x194/0x257
+[   56.071334]  ? arch_local_irq_restore+0x53/0x53
+[   56.076017]  panic+0x1e4/0x3fb
+[   56.079188]  ? percpu_up_read_preempt_enable.constprop.38+0xae/0xae
+[   56.085571]  ? load_image_and_restore+0x10f/0x10f
+[   56.090396]  ? __warn+0x1a9/0x1e0
+[   56.093850]  ? kvm_arch_vcpu_ioctl_run+0x1f7/0x5a00
+[   56.098863]  __warn+0x1c4/0x1e0
+[   56.102131]  ? kvm_arch_vcpu_ioctl_run+0x1f7/0x5a00
+[   56.107126]  report_bug+0x211/0x2d0
+[   56.110735]  fixup_bug+0x40/0x90
+[   56.114123]  do_trap+0x260/0x390
+[   56.117481]  do_error_trap+0x120/0x390
+[   56.121352]  ? do_trap+0x390/0x390
+[   56.124875]  ? kvm_arch_vcpu_ioctl_run+0x1f7/0x5a00
+[   56.129868]  ? fpu__activate_curr+0xed/0x650
+[   56.134251]  ? futex_wait_setup+0x14a/0x3d0
+[   56.138551]  ? fpstate_init+0x160/0x160
+[   56.142510]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   56.147324]  ? vcpu_load+0x1c/0x70
+[   56.150845]  do_invalid_op+0x1b/0x20
+[   56.154533]  invalid_op+0x1e/0x30
+[   56.157961] RIP: 0010:kvm_arch_vcpu_ioctl_run+0x1f7/0x5a00
+[   56.163554] RSP: 0018:ffff8801c5e37720 EFLAGS: 00010212
+[   56.168891] RAX: 0000000000010000 RBX: ffff8801c8baa000 RCX: ffffc90004763000
+[   56.176134] RDX: 0000000000000052 RSI: ffffffff810de507 RDI: ffff8801c6358f60
+[   56.183377] RBP: ffff8801c5e37a80 R08: 1ffffffff097c151 R09: 0000000000000001
+[   56.190621] R10: 0000000000000000 R11: ffffffff81066ddc R12: 0000000000000000
+[   56.197865] R13: ffff8801c52be780 R14: ffff8801c65be600 R15: ffff8801c6358d40
+[   56.205118]  ? vcpu_load+0x1c/0x70
+[   56.208636]  ? kvm_arch_vcpu_ioctl_run+0x1f7/0x5a00
+[   56.213644]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   56.218815]  ? drop_futex_key_refs.isra.12+0x63/0xb0
+[   56.223894]  ? futex_wait+0x6cf/0xa00
+[   56.227671]  ? kvm_arch_vcpu_runnable+0x520/0x520
+[   56.232513]  ? vmcs_load+0xb3/0x180
+[   56.236115]  ? kvm_arch_has_assigned_device+0x57/0xe0
+[   56.241280]  ? kvm_arch_end_assignment+0x20/0x20
+[   56.246008]  ? futex_wait_setup+0x3d0/0x3d0
+[   56.250303]  ? lock_downgrade+0x990/0x990
+[   56.254430]  ? vmx_vcpu_load+0x63f/0xa30
+[   56.258468]  ? handle_invept+0x5f0/0x5f0
+[   56.262505]  ? get_futex_key+0x1c10/0x1c10
+[   56.266721]  ? kvm_arch_vcpu_load+0x4b0/0x8f0
+[   56.271193]  ? kvm_arch_dev_ioctl+0x490/0x490
+[   56.275663]  ? task_rq_unlock+0x90/0x90
+[   56.279615]  ? up_write+0x6b/0x120
+[   56.283141]  kvm_vcpu_ioctl+0x627/0x1110
+[   56.287176]  ? kvm_vcpu_ioctl+0x627/0x1110
+[   56.291393]  ? vcpu_stat_get_per_vm_open+0x30/0x30
+[   56.296298]  ? find_held_lock+0x35/0x1d0
+[   56.300342]  ? __fget+0x333/0x570
+[   56.303777]  ? lock_downgrade+0x990/0x990
+[   56.307907]  ? lock_release+0xa40/0xa40
+[   56.311866]  ? __lock_is_held+0xb6/0x140
+[   56.315916]  ? __fget+0x35c/0x570
+[   56.319349]  ? iterate_fd+0x3f0/0x3f0
+[   56.323135]  ? vcpu_stat_get_per_vm_open+0x30/0x30
+[   56.328041]  do_vfs_ioctl+0x1b1/0x15c0
+[   56.331907]  ? ioctl_preallocate+0x2d0/0x2d0
+[   56.336292]  ? selinux_capable+0x40/0x40
+[   56.340332]  ? SyS_futex+0x2b0/0x3a0
+[   56.344032]  ? security_file_ioctl+0x89/0xb0
+[   56.348420]  SyS_ioctl+0x8f/0xc0
+[   56.351776]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   56.356509] RIP: 0033:0x4512c9
+[   56.359673] RSP: 002b:00007f7e59d4fc08 EFLAGS: 00000216 ORIG_RAX: 0000000000000010
+[   56.367353] RAX: ffffffffffffffda RBX: 0000000000718000 RCX: 00000000004512c9
+[   56.374598] RDX: 0000000000000000 RSI: 000000000000ae80 RDI: 0000000000000016
+[   56.381841] RBP: 0000000000000082 R08: 0000000000000000 R09: 0000000000000000
+[   56.389084] R10: 0000000000000000 R11: 0000000000000216 R12: 00000000004b93f0
+[   56.396328] R13: 00000000ffffffff R14: 0000000020000000 R15: 0000000000ffa000
+[   56.404665] Dumping ftrace buffer:
+[   56.408256]    (ftrace buffer empty)
+[   56.411940] Kernel Offset: disabled
+[   56.415543] Rebooting in 86400 seconds..
+`,
+		out: `------------[ cut here ]------------
+WARNING: CPU: 1 PID: 8377 at arch/x86/kvm/x86.c:7209 kvm_arch_vcpu_ioctl_run+0x1f7/0x5a00
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 1 PID: 8377 Comm: syz-executor6 Not tainted 4.12.0-rc7+ #2
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ dump_stack+0x194/0x257
+ panic+0x1e4/0x3fb
+ __warn+0x1c4/0x1e0
+ report_bug+0x211/0x2d0
+ fixup_bug+0x40/0x90
+ do_trap+0x260/0x390
+ do_error_trap+0x120/0x390
+ do_invalid_op+0x1b/0x20
+ invalid_op+0x1e/0x30
+RIP: 0010:kvm_arch_vcpu_ioctl_run+0x1f7/0x5a00
+RSP: 0018:ffff8801c5e37720 EFLAGS: 00010212
+RAX: 0000000000010000 RBX: ffff8801c8baa000 RCX: ffffc90004763000
+RDX: 0000000000000052 RSI: ffffffff810de507 RDI: ffff8801c6358f60
+RBP: ffff8801c5e37a80 R08: 1ffffffff097c151 R09: 0000000000000001
+R10: 0000000000000000 R11: ffffffff81066ddc R12: 0000000000000000
+R13: ffff8801c52be780 R14: ffff8801c65be600 R15: ffff8801c6358d40
+ kvm_vcpu_ioctl+0x627/0x1110
+ do_vfs_ioctl+0x1b1/0x15c0
+ SyS_ioctl+0x8f/0xc0
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+RIP: 0033:0x4512c9
+RSP: 002b:00007f7e59d4fc08 EFLAGS: 00000216 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 0000000000718000 RCX: 00000000004512c9
+RDX: 0000000000000000 RSI: 000000000000ae80 RDI: 0000000000000016
+RBP: 0000000000000082 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000216 R12: 00000000004b93f0
+R13: 00000000ffffffff R14: 0000000020000000 R15: 0000000000ffa000
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..
+`,
+	},
+}
