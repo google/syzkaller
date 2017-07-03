@@ -319,12 +319,16 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 		tag = info.KernelCommit
 	}
 	mgrcfg.Name = mgr.cfg.Name + "-" + mgr.name
-	mgrcfg.Hub_Client = mgr.cfg.Name
-	mgrcfg.Hub_Addr = mgr.cfg.Hub_Addr
-	mgrcfg.Hub_Key = mgr.cfg.Hub_Key
-	mgrcfg.Dashboard_Client = mgr.cfg.Name
-	mgrcfg.Dashboard_Addr = mgr.cfg.Dashboard_Addr
-	mgrcfg.Dashboard_Key = mgr.cfg.Dashboard_Key
+	if mgr.cfg.Hub_Addr != "" {
+		mgrcfg.Hub_Client = mgr.cfg.Name
+		mgrcfg.Hub_Addr = mgr.cfg.Hub_Addr
+		mgrcfg.Hub_Key = mgr.cfg.Hub_Key
+	}
+	if mgr.cfg.Dashboard_Addr != "" {
+		mgrcfg.Dashboard_Client = mgr.cfg.Name
+		mgrcfg.Dashboard_Addr = mgr.cfg.Dashboard_Addr
+		mgrcfg.Dashboard_Key = mgr.cfg.Dashboard_Key
+	}
 	mgrcfg.Workdir = mgr.workDir
 	mgrcfg.Vmlinux = filepath.Join(current, "obj", "vmlinux")
 	// Strictly saying this is somewhat racy as builder can concurrently
