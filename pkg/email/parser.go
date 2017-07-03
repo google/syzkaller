@@ -50,10 +50,13 @@ func Parse(r io.Reader, ownEmail string) (*Email, error) {
 	bugID := ""
 	var ccList []string
 	for _, addr := range append(cc, to...) {
+		bugID1, own := extractBugID(addr.Address, ownEmail)
 		if bugID == "" {
-			bugID = extractBugID(addr.Address, ownEmail)
+			bugID = bugID1
 		}
-		ccList = append(ccList, addr.String())
+		if !own {
+			ccList = append(ccList, addr.String())
+		}
 	}
 	body, attachments, err := parseBody(msg.Body, msg.Header)
 	if err != nil {
@@ -89,25 +92,26 @@ func Parse(r io.Reader, ownEmail string) (*Email, error) {
 // from is potentially such email address, canonical is <something@something.com>.
 // This function returns BUG_ID_HASH, or an empty string if from does not contain
 // the hash or is different from canonical.
-func extractBugID(from, canonical string) string {
+func extractBugID(from, canonical string) (string, bool) {
 	if email, err := mail.ParseAddress(canonical); err == nil {
 		canonical = email.Address
 	}
+	canonical = strings.ToLower(canonical)
 	plusPos := strings.IndexByte(from, '+')
 	if plusPos == -1 {
-		return ""
+		return "", strings.ToLower(from) == canonical
 	}
 	atPos := strings.IndexByte(from[plusPos:], '@')
 	if atPos == -1 {
-		return ""
+		return "", false
 	}
 	user := from[:plusPos]
 	domain := from[plusPos+atPos:]
 	hash := from[plusPos+1 : plusPos+atPos]
-	if strings.ToLower(user+domain) != strings.ToLower(canonical) {
-		return ""
+	if strings.ToLower(user+domain) != canonical {
+		return "", false
 	}
-	return hash
+	return hash, true
 }
 
 // extractCommand extracts command to syzbot from email body.

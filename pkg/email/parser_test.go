@@ -26,10 +26,10 @@ func TestExtractCommand(t *testing.T) {
 func TestExtractBugID(t *testing.T) {
 	for i, test := range extractBugIDTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			bugID := extractBugID(test.email, `"Foo Bar" <foo@bar.com>`)
-			if bugID != test.bugID {
-				t.Logf("expect: %q", test.bugID)
-				t.Logf("got   : %q", bugID)
+			bugID, own := extractBugID(test.email, `"Foo Bar" <foo@bar.com>`)
+			if bugID != test.bugID || own != test.own {
+				t.Logf("expect: own=%v %q", test.own, test.bugID)
+				t.Logf("got   : own=%v %q", test.own, bugID)
 				t.Fail()
 			}
 		})
@@ -89,18 +89,22 @@ line 2
 var extractBugIDTests = []struct {
 	email string
 	bugID string
+	own   bool
 }{
 	{
 		`foo@bar.com`,
 		``,
+		true,
 	},
 	{
 		`foo+123@baz.com`,
 		``,
+		false,
 	},
 	{
 		`foo+123@bar.com`,
 		`123`,
+		true,
 	},
 }
 
