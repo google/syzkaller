@@ -23,16 +23,55 @@ func TestExtractCommand(t *testing.T) {
 	}
 }
 
-func TestExtractBugID(t *testing.T) {
-	for i, test := range extractBugIDTests {
-		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			bugID, own := extractBugID(test.email, `"Foo Bar" <foo@bar.com>`)
-			if bugID != test.bugID || own != test.own {
-				t.Logf("expect: own=%v %q", test.own, test.bugID)
-				t.Logf("got   : own=%v %q", test.own, bugID)
-				t.Fail()
-			}
-		})
+func TestAddRemoveAddrContext(t *testing.T) {
+	email := `"Foo Bar" <foo@bar.com>`
+	email00, context00, err := RemoveAddrContext(email)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if email != email00 {
+		t.Fatalf("want: %q, got %q", email, email00)
+	}
+	if context00 != "" {
+		t.Fatalf("want context: %q, got %q", "", context00)
+	}
+	context1 := "context1"
+	email1, err := AddAddrContext(email, context1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want1 := `"Foo Bar" <foo+context1@bar.com>`
+	if want1 != email1 {
+		t.Fatalf("want: %q, got %q", want1, email1)
+	}
+	context2 := "context2"
+	email2, err := AddAddrContext(email1, context2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want2 := `"Foo Bar" <foo+context1+context2@bar.com>`
+	if want2 != email2 {
+		t.Fatalf("want: %q, got %q", want2, email2)
+	}
+	email1, context20, err := RemoveAddrContext(email2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want1 != email1 {
+		t.Fatalf("want: %q, got %q", want1, email1)
+	}
+	if context2 != context20 {
+		t.Fatalf("want context: %q, got %q", context2, context20)
+	}
+	email0, context10, err := RemoveAddrContext(email1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if email != email0 {
+		t.Fatalf("want: %q, got %q", email, email0)
+	}
+	if context1 != context10 {
+		t.Fatalf("want context: %q, got %q", context1, context10)
 	}
 }
 
@@ -83,28 +122,6 @@ line 2
 `,
 		cmd:  "",
 		args: nil,
-	},
-}
-
-var extractBugIDTests = []struct {
-	email string
-	bugID string
-	own   bool
-}{
-	{
-		`foo@bar.com`,
-		``,
-		true,
-	},
-	{
-		`foo+123@baz.com`,
-		``,
-		false,
-	},
-	{
-		`foo+123@bar.com`,
-		`123`,
-		true,
 	},
 }
 
