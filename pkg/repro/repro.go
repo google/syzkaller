@@ -140,6 +140,9 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 	}()
 
 	res, err := ctx.repro(entries, crashStart)
+	if err != nil {
+		return nil, err
+	}
 	if res != nil {
 		ctx.reproLog(3, "repro crashed as:\n%s", string(ctx.report))
 		res.Stats = ctx.stats
@@ -171,37 +174,41 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 
 	res, err := ctx.extractProg(entries)
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 	if res == nil {
 		return nil, nil
 	}
-
+	defer func() {
+		res.Opts.Repro = false
+	}()
 	res, err = ctx.minimizeProg(res)
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 
-	res, err = ctx.simplifyProg(res)
-	if err != nil {
-		return res, err
-	}
-
+	// Try extracting C repro without simplifying options first.
 	res, err = ctx.extractC(res)
 	if err != nil {
-		return res, err
+		return nil, err
 	}
+
+	// Simplify options and try extracting C repro.
 	if !res.CRepro {
-		res.Opts.Repro = false
-		return res, nil
+		res, err = ctx.simplifyProg(res)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	res, err = ctx.simplifyC(res)
-	if err != nil {
-		return res, err
+	// Simplify C related options.
+	if res.CRepro {
+		res, err = ctx.simplifyC(res)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	res.Opts.Repro = false
 	return res, nil
 }
 
@@ -237,7 +244,7 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 		// Programs are executed in reverse order, usually the last program is the guilty one.
 		res, err := ctx.extractProgSingle(reverseEntries(lastEntries), timeout)
 		if err != nil {
-			return res, err
+			return nil, err
 		}
 		if res != nil {
 			ctx.reproLog(3, "found reproducer with %d syscalls", len(res.Prog.Calls))
@@ -247,7 +254,7 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 		// Execute all programs and bisect the log to find multiple guilty programs.
 		res, err = ctx.extractProgBisect(reverseEntries(entries), timeout)
 		if err != nil {
-			return res, err
+			return nil, err
 		}
 		if res != nil {
 			ctx.reproLog(3, "found reproducer with %d syscalls", len(res.Prog.Calls))
@@ -424,60 +431,31 @@ func (ctx *context) simplifyProg(res *Result) (*Result, error) {
 		ctx.stats.SimplifyProgTime = time.Since(start)
 	}()
 
-	opts := res.Opts
-	opts.Collide = false
-	crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
-	if err != nil {
-		return res, err
-	}
-	if crashed {
-		res.Opts = opts
-		opts.Threaded = false
-		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
-		if err != nil {
-			return res, err
-		}
-		if crashed {
-			res.Opts = opts
-		}
-	}
-	if res.Opts.Sandbox == "namespace" {
-		opts = res.Opts
-		opts.Sandbox = "none"
-		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
-		if err != nil {
-			return res, err
-		}
-		if crashed {
-			res.Opts = opts
-		}
-	}
-	if res.Opts.Procs > 1 {
-		opts = res.Opts
-		opts.Procs = 1
-		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
-		if err != nil {
-			return res, err
-		}
-		if crashed {
-			res.Opts = opts
-		}
-	}
-	if res.Opts.Repeat {
-		opts = res.Opts
-		opts.Repeat = false
-		crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
-		if err != nil {
-			return res, err
-		}
-		if crashed {
-			res.Opts = opts
+	for _, simplify := range progSimplifies {
+		opts := res.Opts
+		if simplify(&opts) {
+			crashed, err := ctx.testProg(res.Prog, res.Duration, opts)
+			if err != nil {
+				return nil, err
+			}
+			if crashed {
+				res.Opts = opts
+				// Simplification successfull, try extracting C repro.
+				res, err := ctx.extractC(res)
+				if err != nil {
+					return nil, err
+				}
+				if res.CRepro {
+					return res, nil
+				}
+			}
 		}
 	}
 
 	return res, nil
 }
 
+// Try triggering crash with a C reproducer.
 func (ctx *context) extractC(res *Result) (*Result, error) {
 	ctx.reproLog(2, "extracting C reproducer")
 	start := time.Now()
@@ -485,15 +463,15 @@ func (ctx *context) extractC(res *Result) (*Result, error) {
 		ctx.stats.ExtractCTime = time.Since(start)
 	}()
 
-	// Try triggering crash with a C reproducer.
 	crashed, err := ctx.testCProg(res.Prog, res.Duration, res.Opts)
 	if err != nil {
-		return res, err
+		return nil, err
 	}
 	res.CRepro = crashed
 	return res, nil
 }
 
+// Try to simplify the C reproducer.
 func (ctx *context) simplifyC(res *Result) (*Result, error) {
 	ctx.reproLog(2, "simplifying C reproducer")
 	start := time.Now()
@@ -501,74 +479,18 @@ func (ctx *context) simplifyC(res *Result) (*Result, error) {
 		ctx.stats.SimplifyCTime = time.Since(start)
 	}()
 
-	// Try to simplify the C reproducer.
-	if res.Opts.EnableTun {
+	for _, simplify := range cSimplifies {
 		opts := res.Opts
-		opts.EnableTun = false
-		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
-		if err != nil {
-			return res, err
-		}
-		if crashed {
-			res.Opts = opts
+		if simplify(&opts) {
+			crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
+			if err != nil {
+				return nil, err
+			}
+			if crashed {
+				res.Opts = opts
+			}
 		}
 	}
-	if res.Opts.Sandbox != "" {
-		opts := res.Opts
-		opts.Sandbox = ""
-		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
-		if err != nil {
-			return res, err
-		}
-		if crashed {
-			res.Opts = opts
-		}
-	}
-	if res.Opts.UseTmpDir {
-		opts := res.Opts
-		opts.UseTmpDir = false
-		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
-		if err != nil {
-			return res, err
-		}
-		if crashed {
-			res.Opts = opts
-		}
-	}
-	if res.Opts.HandleSegv {
-		opts := res.Opts
-		opts.HandleSegv = false
-		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
-		if err != nil {
-			return res, err
-		}
-		if crashed {
-			res.Opts = opts
-		}
-	}
-	if res.Opts.WaitRepeat {
-		opts := res.Opts
-		opts.WaitRepeat = false
-		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
-		if err != nil {
-			return res, err
-		}
-		if crashed {
-			res.Opts = opts
-		}
-	}
-	if res.Opts.Debug {
-		opts := res.Opts
-		opts.Debug = false
-		crashed, err := ctx.testCProg(res.Prog, res.Duration, opts)
-		if err != nil {
-			return res, err
-		}
-		if crashed {
-			res.Opts = opts
-		}
-	}
-
 	return res, nil
 }
 
@@ -818,3 +740,88 @@ func encodeEntries(entries []*prog.LogEntry) []byte {
 	}
 	return buf.Bytes()
 }
+
+type Simplify func(opts *csource.Options) bool
+
+var progSimplifies = []Simplify{
+	func(opts *csource.Options) bool {
+		if !opts.Collide {
+			return false
+		}
+		opts.Collide = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if opts.Collide || !opts.Threaded {
+			return false
+		}
+		opts.Collide = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.Repeat {
+			return false
+		}
+		opts.Repeat = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if opts.Procs == 1 {
+			return false
+		}
+		opts.Procs = 1
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if opts.Sandbox == "none" {
+			return false
+		}
+		opts.Sandbox = "none"
+		return true
+	},
+}
+
+var cSimplifies = append(progSimplifies, []Simplify{
+	func(opts *csource.Options) bool {
+		if opts.Sandbox == "" {
+			return false
+		}
+		opts.Sandbox = ""
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.EnableTun {
+			return false
+		}
+		opts.EnableTun = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.UseTmpDir {
+			return false
+		}
+		opts.UseTmpDir = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.HandleSegv {
+			return false
+		}
+		opts.HandleSegv = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.WaitRepeat {
+			return false
+		}
+		opts.WaitRepeat = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.Debug {
+			return false
+		}
+		opts.Debug = false
+		return true
+	},
+}...)
