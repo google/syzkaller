@@ -49,8 +49,14 @@ func Parse(r io.Reader, ownEmail string) (*Email, error) {
 	cc, _ := msg.Header.AddressList("Cc")
 	bugID := ""
 	var ccList []string
+	if addr, err := mail.ParseAddress(ownEmail); err == nil {
+		ownEmail = addr.Address
+	}
 	for _, addr := range append(cc, to...) {
 		cleaned, context, _ := RemoveAddrContext(addr.Address)
+		if addr, err := mail.ParseAddress(cleaned); err == nil {
+			cleaned = addr.Address
+		}
 		if cleaned == ownEmail {
 			if bugID == "" {
 				bugID = context
