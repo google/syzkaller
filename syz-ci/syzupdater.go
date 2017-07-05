@@ -102,7 +102,7 @@ func (upd *SyzUpdater) UpdateOnStart(shutdown chan struct{}) {
 	}
 
 	// No syzkaller build or executable is stale.
-	lastCommit := ""
+	lastCommit := exeTag
 	for {
 		lastCommit = upd.pollAndBuild(lastCommit)
 		latestTag := upd.checkLatest()
