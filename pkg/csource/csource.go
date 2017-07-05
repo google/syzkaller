@@ -61,7 +61,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	for name, nr := range handled {
 		// Only generate defines for new (added after commit 8a1ab3155c2ac on 2012-10-04) native syscalls.
 		// TODO: the syscall number 313 implies that we're dealing with linux/amd64.
-		if nr >= 313 && !strings.HasPrefix(name, "syz_")  {
+		if nr >= 313 && !strings.HasPrefix(name, "syz_") {
 			fmt.Fprintf(w, "#ifndef __NR_%v\n", name)
 			fmt.Fprintf(w, "#define __NR_%v %v\n", name, nr)
 			fmt.Fprintf(w, "#endif\n")
