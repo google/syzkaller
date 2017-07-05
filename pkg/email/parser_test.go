@@ -78,7 +78,7 @@ func TestAddRemoveAddrContext(t *testing.T) {
 func TestParse(t *testing.T) {
 	for i, test := range parseTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			email, err := Parse(strings.NewReader(test.email), "")
+			email, err := Parse(strings.NewReader(test.email), "bot <foo@bar.com>")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -133,7 +133,7 @@ var parseTests = []struct {
 Message-ID: <123>
 Subject: test subject
 From: Bob <bob@example.com>
-To: syzbot <bot@example.com>
+To: syzbot <foo+4564456@bar.com>
 Content-Type: text/plain; charset="UTF-8"
 
 text body
@@ -141,10 +141,10 @@ second line
 #syzbot command arg1 arg2 arg3
 last line`,
 		&Email{
+			BugID:     "4564456",
 			MessageID: "<123>",
 			Subject:   "test subject",
 			From:      "\"Bob\" <bob@example.com>",
-			Cc:        []string{"\"syzbot\" <bot@example.com>"},
 			Body: `text body
 second line
 #syzbot command arg1 arg2 arg3
