@@ -14,8 +14,6 @@ var commonHeader = `
 #include <unistd.h>
 #if defined(SYZ_EXECUTOR) || defined(SYZ_THREADED) || defined(SYZ_COLLIDE)
 #include <pthread.h>
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_COLLIDE)
 #include <stdlib.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
