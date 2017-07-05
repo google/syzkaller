@@ -36,6 +36,7 @@ type Result struct {
 	Opts     csource.Options
 	CRepro   bool
 	Stats    Stats
+	Report   []byte
 }
 
 type context struct {
@@ -44,6 +45,7 @@ type context struct {
 	instances    chan *instance
 	bootRequests chan int
 	stats        Stats
+	report       []byte
 }
 
 type instance struct {
@@ -133,7 +135,9 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 
 	res, err := ctx.repro(entries, crashStart)
 	if res != nil {
+		ctx.reproLog(3, "repro crashed as:\n%s", string(ctx.report))
 		res.Stats = ctx.stats
+		res.Report = ctx.report
 	}
 
 	close(ctx.bootRequests)
@@ -656,12 +660,13 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 	if err != nil {
 		return false, fmt.Errorf("failed to run command in VM: %v", err)
 	}
-	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, false, ctx.cfg.ParsedIgnores)
-	_, _, _ = text, output, timedout
+	desc, report, output, crashed, timedout := vm.MonitorExecution(outc, errc, false, ctx.cfg.ParsedIgnores)
+	_, _, _ = report, output, timedout
 	if !crashed {
 		ctx.reproLog(2, "program did not crash")
 		return false, nil
 	}
+	ctx.report = report
 	ctx.reproLog(2, "program crashed: %v", desc)
 	return true, nil
 }
