@@ -9,10 +9,8 @@ import (
 	"os/exec"
 	"sync"
 	"syscall"
-	"unsafe"
 
 	"github.com/google/syzkaller/pkg/osutil"
-	"golang.org/x/sys/unix"
 )
 
 // Tested on Suzy-Q and BeagleBone.
@@ -26,23 +24,18 @@ func OpenConsole(con string) (rc io.ReadCloser, err error) {
 			syscall.Close(fd)
 		}
 	}()
-	var term unix.Termios
-	if _, _, errno := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), syscall_TCGETS, uintptr(unsafe.Pointer(&term))); errno != 0 {
-		return nil, fmt.Errorf("failed to get console termios: %v", errno)
+
+	// Shell out to stty to modify the baudrate of the file descriptor
+	// that we have opened.
+	fd_name := fmt.Sprintf("/dev/fd/%v", int(fd))
+	cmd := exec.Command("stty", "-f", fd_name, "115200")
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("stty %v could not start: %v", fd_name, err)
 	}
-	// no parity bit, only need 1 stop bit, no hardware flowcontrol
-	term.Cflag &^= unix_CBAUD | unix.CSIZE | unix.PARENB | unix.CSTOPB | unix_CRTSCTS
-	// ignore modem controls
-	term.Cflag |= unix.B115200 | unix.CS8 | unix.CLOCAL | unix.CREAD
-	// setup for non-canonical mode
-	term.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
-	term.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
-	term.Oflag &^= unix.OPOST
-	term.Cc[unix.VMIN] = 0
-	term.Cc[unix.VTIME] = 10 // 1 second timeout
-	if _, _, errno := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), syscall_TCSETS, uintptr(unsafe.Pointer(&term))); errno != 0 {
-		return nil, fmt.Errorf("failed to get console termios: %v", errno)
+	if err := cmd.Wait(); err != nil {
+		return nil, fmt.Errorf("stty %v exited with error code: %v", fd_name, err)
 	}
+
 	tmp := fd
 	fd = -1
 	return &tty{fd: tmp}, nil
