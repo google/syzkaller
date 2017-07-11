@@ -223,34 +223,34 @@ func (r *randGen) randStringImpl(s *state, vals []string) []byte {
 	return buf.Bytes()
 }
 
-func isSpecialStruct(typ sys.Type) func(r *randGen, s *state) (*Arg, []*Call) {
+func isSpecialStruct(typ sys.Type) func(r *randGen, s *state) (Arg, []*Call) {
 	a, ok := typ.(*sys.StructType)
 	if !ok {
 		panic("must be a struct")
 	}
 	switch typ.Name() {
 	case "timespec":
-		return func(r *randGen, s *state) (*Arg, []*Call) {
+		return func(r *randGen, s *state) (Arg, []*Call) {
 			return r.timespec(s, a, false)
 		}
 	case "timeval":
-		return func(r *randGen, s *state) (*Arg, []*Call) {
+		return func(r *randGen, s *state) (Arg, []*Call) {
 			return r.timespec(s, a, true)
 		}
 	}
 	return nil
 }
 
-func (r *randGen) timespec(s *state, typ *sys.StructType, usec bool) (arg *Arg, calls []*Call) {
+func (r *randGen) timespec(s *state, typ *sys.StructType, usec bool) (arg Arg, calls []*Call) {
 	// We need to generate timespec/timeval that are either (1) definitely in the past,
 	// or (2) definitely in unreachable fututre, or (3) few ms ahead of now.
 	// Note timespec/timeval can be absolute or relative to now.
 	switch {
 	case r.nOutOf(1, 4):
 		// now for relative, past for absolute
-		arg = groupArg(typ, []*Arg{
-			constArg(typ.Fields[0], 0),
-			constArg(typ.Fields[1], 0),
+		arg = groupArg(typ, []Arg{
+			resultArg(typ.Fields[0], nil, 0),
+			resultArg(typ.Fields[1], nil, 0),
 		})
 	case r.nOutOf(1, 3):
 		// few ms ahead for relative, past for absolute
@@ -258,45 +258,45 @@ func (r *randGen) timespec(s *state, typ *sys.StructType, usec bool) (arg *Arg, 
 		if usec {
 			nsec /= 1e3
 		}
-		arg = groupArg(typ, []*Arg{
-			constArg(typ.Fields[0], 0),
-			constArg(typ.Fields[1], nsec),
+		arg = groupArg(typ, []Arg{
+			resultArg(typ.Fields[0], nil, 0),
+			resultArg(typ.Fields[1], nil, nsec),
 		})
 	case r.nOutOf(1, 2):
 		// unreachable fututre for both relative and absolute
-		arg = groupArg(typ, []*Arg{
-			constArg(typ.Fields[0], 2e9),
-			constArg(typ.Fields[1], 0),
+		arg = groupArg(typ, []Arg{
+			resultArg(typ.Fields[0], nil, 2e9),
+			resultArg(typ.Fields[1], nil, 0),
 		})
 	default:
 		// few ms ahead for absolute
 		meta := sys.CallMap["clock_gettime"]
 		ptrArgType := meta.Args[1].(*sys.PtrType)
 		argType := ptrArgType.Type.(*sys.StructType)
-		tp := groupArg(argType, []*Arg{
-			constArg(argType.Fields[0], 0),
-			constArg(argType.Fields[1], 0),
+		tp := groupArg(argType, []Arg{
+			resultArg(argType.Fields[0], nil, 0),
+			resultArg(argType.Fields[1], nil, 0),
 		})
-		var tpaddr *Arg
+		var tpaddr Arg
 		tpaddr, calls = r.addr(s, ptrArgType, 2*ptrSize, tp)
 		gettime := &Call{
 			Meta: meta,
-			Args: []*Arg{
+			Args: []Arg{
 				constArg(meta.Args[0], sys.CLOCK_REALTIME),
 				tpaddr,
 			},
 			Ret: returnArg(meta.Ret),
 		}
 		calls = append(calls, gettime)
-		sec := resultArg(typ.Fields[0], tp.Inner[0])
-		nsec := resultArg(typ.Fields[1], tp.Inner[1])
+		sec := resultArg(typ.Fields[0], tp.(*GroupArg).Inner[0], 0)
+		nsec := resultArg(typ.Fields[1], tp.(*GroupArg).Inner[1], 0)
 		if usec {
-			nsec.OpDiv = 1e3
-			nsec.OpAdd = 10 * 1e3
+			nsec.(*ResultArg).OpDiv = 1e3
+			nsec.(*ResultArg).OpAdd = 10 * 1e3
 		} else {
-			nsec.OpAdd = 10 * 1e6
+			nsec.(*ResultArg).OpAdd = 10 * 1e6
 		}
-		arg = groupArg(typ, []*Arg{sec, nsec})
+		arg = groupArg(typ, []Arg{sec, nsec})
 	}
 	return
 }
@@ -306,12 +306,12 @@ func createMmapCall(start, npages uintptr) *Call {
 	meta := sys.CallMap["mmap"]
 	mmap := &Call{
 		Meta: meta,
-		Args: []*Arg{
+		Args: []Arg{
 			pointerArg(meta.Args[0], start, 0, npages, nil),
-			pageSizeArg(meta.Args[1], npages, 0),
+			constArg(meta.Args[1], npages*pageSize),
 			constArg(meta.Args[2], sys.PROT_READ|sys.PROT_WRITE),
 			constArg(meta.Args[3], sys.MAP_ANONYMOUS|sys.MAP_PRIVATE|sys.MAP_FIXED),
-			constArg(meta.Args[4], sys.InvalidFD),
+			resultArg(meta.Args[4], nil, sys.InvalidFD),
 			constArg(meta.Args[5], 0),
 		},
 		Ret: returnArg(meta.Ret),
@@ -319,7 +319,7 @@ func createMmapCall(start, npages uintptr) *Call {
 	return mmap
 }
 
-func (r *randGen) addr1(s *state, typ sys.Type, size uintptr, data *Arg) (*Arg, []*Call) {
+func (r *randGen) addr1(s *state, typ sys.Type, size uintptr, data Arg) (Arg, []*Call) {
 	npages := (size + pageSize - 1) / pageSize
 	if npages == 0 {
 		npages = 1
@@ -344,27 +344,28 @@ func (r *randGen) addr1(s *state, typ sys.Type, size uintptr, data *Arg) (*Arg, 
 	return r.randPageAddr(s, typ, npages, data, false), nil
 }
 
-func (r *randGen) addr(s *state, typ sys.Type, size uintptr, data *Arg) (*Arg, []*Call) {
+func (r *randGen) addr(s *state, typ sys.Type, size uintptr, data Arg) (Arg, []*Call) {
 	arg, calls := r.addr1(s, typ, size, data)
-	if arg.Kind != ArgPointer {
+	a, ok := arg.(*PointerArg)
+	if !ok {
 		panic("bad")
 	}
 	// Patch offset of the address.
 	switch {
 	case r.nOutOf(50, 102):
 	case r.nOutOf(50, 52):
-		arg.AddrOffset = -int(size)
+		a.PageOffset = -int(size)
 	case r.nOutOf(1, 2):
-		arg.AddrOffset = r.Intn(pageSize)
+		a.PageOffset = r.Intn(pageSize)
 	default:
 		if size > 0 {
-			arg.AddrOffset = -r.Intn(int(size))
+			a.PageOffset = -r.Intn(int(size))
 		}
 	}
 	return arg, calls
 }
 
-func (r *randGen) randPageAddr(s *state, typ sys.Type, npages uintptr, data *Arg, vma bool) *Arg {
+func (r *randGen) randPageAddr(s *state, typ sys.Type, npages uintptr, data Arg, vma bool) Arg {
 	poolPtr := pageStartPool.Get().(*[]uintptr)
 	starts := (*poolPtr)[:0]
 	for i := uintptr(0); i < maxPages-npages; i++ {
@@ -396,10 +397,10 @@ func (r *randGen) randPageAddr(s *state, typ sys.Type, npages uintptr, data *Arg
 	return pointerArg(typ, page, 0, npages, data)
 }
 
-func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, calls []*Call) {
+func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg Arg, calls []*Call) {
 	if r.inCreateResource {
 		special := res.SpecialValues()
-		return constArg(res, special[r.Intn(len(special))]), nil
+		return resultArg(res, nil, special[r.Intn(len(special))]), nil
 	}
 	r.inCreateResource = true
 	defer func() { r.inCreateResource = false }()
@@ -426,7 +427,7 @@ func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, cal
 		metas = append(metas, meta)
 	}
 	if len(metas) == 0 {
-		return constArg(res, res.Default()), nil
+		return resultArg(res, nil, res.Default()), nil
 	}
 
 	// Now we have a set of candidate calls that can create the necessary resource.
@@ -437,7 +438,7 @@ func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, cal
 		s1 := newState(s.ct)
 		s1.analyze(calls[len(calls)-1])
 		// Now see if we have what we want.
-		var allres []*Arg
+		var allres []Arg
 		for kind1, res1 := range s1.resources {
 			if sys.IsCompatibleResource(kind, kind1) {
 				allres = append(allres, res1...)
@@ -445,14 +446,14 @@ func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg *Arg, cal
 		}
 		if len(allres) != 0 {
 			// Bingo!
-			arg := resultArg(res, allres[r.Intn(len(allres))])
+			arg := resultArg(res, allres[r.Intn(len(allres))], 0)
 			return arg, calls
 		}
 		// Discard unsuccessful calls.
 		for _, c := range calls {
-			foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
-				if arg.Kind == ArgResult {
-					delete(arg.Res.Uses, arg)
+			foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+				if a, ok := arg.(*ResultArg); ok && a.Res != nil {
+					delete(*a.Res.(ArgUsed).Used(), arg)
 				}
 			})
 		}
@@ -582,9 +583,9 @@ func GenerateAllSyzProg(rs rand.Source) *Prog {
 	return p
 }
 
-func (r *randGen) generateArgs(s *state, types []sys.Type) ([]*Arg, []*Call) {
+func (r *randGen) generateArgs(s *state, types []sys.Type) ([]Arg, []*Call) {
 	var calls []*Call
-	args := make([]*Arg, len(types))
+	args := make([]Arg, len(types))
 
 	// Generate all args. Size args have the default value 0 for now.
 	for i, typ := range types {
@@ -599,24 +600,33 @@ func (r *randGen) generateArgs(s *state, types []sys.Type) ([]*Arg, []*Call) {
 	return args, calls
 }
 
-func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) {
+func (r *randGen) generateArg(s *state, typ sys.Type) (arg Arg, calls []*Call) {
 	if typ.Dir() == sys.DirOut {
 		// No need to generate something interesting for output scalar arguments.
 		// But we still need to generate the argument itself so that it can be referenced
 		// in subsequent calls. For the same reason we do generate pointer/array/struct
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
-		case *sys.IntType, *sys.FlagsType, *sys.ConstType,
-			*sys.ResourceType, *sys.VmaType, *sys.ProcType:
+		case *sys.IntType, *sys.FlagsType, *sys.ConstType, *sys.ProcType:
 			return constArg(typ, typ.Default()), nil
+		case *sys.VmaType:
+			return pointerArg(typ, 0, 0, 0, nil), nil
+		case *sys.ResourceType:
+			return resultArg(typ, nil, typ.Default()), nil
 		}
 	}
 
 	if typ.Optional() && r.oneOf(5) {
-		if _, ok := typ.(*sys.BufferType); ok {
+		switch typ.(type) {
+		case *sys.PtrType:
+			return pointerArg(typ, 0, 0, 0, nil), nil
+		case *sys.BufferType:
 			panic("impossible") // parent PtrType must be Optional instead
+		case *sys.VmaType:
+			return pointerArg(typ, 0, 0, 0, nil), nil
+		default:
+			return constArg(typ, typ.Default()), nil
 		}
-		return constArg(typ, typ.Default()), nil
 	}
 
 	switch a := typ.(type) {
@@ -624,7 +634,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		switch {
 		case r.nOutOf(1000, 1011):
 			// Get an existing resource.
-			var allres []*Arg
+			var allres []Arg
 			for name1, res1 := range s.resources {
 				if sys.IsCompatibleResource(a.Desc.Name, name1) ||
 					r.oneOf(20) && sys.IsCompatibleResource(a.Desc.Kind[0], name1) {
@@ -632,7 +642,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 				}
 			}
 			if len(allres) != 0 {
-				arg = resultArg(a, allres[r.Intn(len(allres))])
+				arg = resultArg(a, allres[r.Intn(len(allres))], 0)
 			} else {
 				arg, calls = r.createResource(s, a)
 			}
@@ -641,7 +651,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			arg, calls = r.createResource(s, a)
 		default:
 			special := a.SpecialValues()
-			arg = constArg(a, special[r.Intn(len(special))])
+			arg = resultArg(a, nil, special[r.Intn(len(special))])
 		}
 		return arg, calls
 	case *sys.BufferType:
@@ -720,7 +730,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 		case sys.ArrayRangeLen:
 			count = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
 		}
-		var inner []*Arg
+		var inner []Arg
 		var calls []*Call
 		for i := uintptr(0); i < count; i++ {
 			arg1, calls1 := r.generateArg(s, a.Type)
@@ -746,8 +756,8 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg *Arg, calls []*Call) 
 			// It is weird, but these are actually identified by kernel by address.
 			// So try to reuse a previously used address.
 			addrs := s.resources["iocbptr"]
-			addr := addrs[r.Intn(len(addrs))]
-			arg = pointerArg(a, addr.AddrPage, addr.AddrOffset, addr.AddrPagesNum, inner)
+			addr := addrs[r.Intn(len(addrs))].(*PointerArg)
+			arg = pointerArg(a, addr.PageIndex, addr.PageOffset, addr.PagesNum, inner)
 			return arg, calls
 		}
 		arg, calls1 := r.addr(s, a, inner.Size(), inner)

@@ -29,45 +29,45 @@ type CsumInfo struct {
 
 type CsumChunk struct {
 	Kind  CsumChunkKind
-	Arg   *Arg    // for CsumChunkArg
+	Arg   Arg     // for CsumChunkArg
 	Value uintptr // for CsumChunkConst
 	Size  uintptr // for CsumChunkConst
 }
 
-func getFieldByName(arg *Arg, name string) *Arg {
-	for _, field := range arg.Inner {
-		if field.Type.FieldName() == name {
+func getFieldByName(arg Arg, name string) Arg {
+	for _, field := range arg.(*GroupArg).Inner {
+		if field.Type().FieldName() == name {
 			return field
 		}
 	}
-	panic(fmt.Sprintf("failed to find %v field in %v", name, arg.Type.Name()))
+	panic(fmt.Sprintf("failed to find %v field in %v", name, arg.Type().Name()))
 }
 
-func extractHeaderParamsIPv4(arg *Arg) (*Arg, *Arg) {
+func extractHeaderParamsIPv4(arg Arg) (Arg, Arg) {
 	srcAddr := getFieldByName(arg, "src_ip")
 	if srcAddr.Size() != 4 {
-		panic(fmt.Sprintf("src_ip field in %v must be 4 bytes", arg.Type.Name()))
+		panic(fmt.Sprintf("src_ip field in %v must be 4 bytes", arg.Type().Name()))
 	}
 	dstAddr := getFieldByName(arg, "dst_ip")
 	if dstAddr.Size() != 4 {
-		panic(fmt.Sprintf("dst_ip field in %v must be 4 bytes", arg.Type.Name()))
+		panic(fmt.Sprintf("dst_ip field in %v must be 4 bytes", arg.Type().Name()))
 	}
 	return srcAddr, dstAddr
 }
 
-func extractHeaderParamsIPv6(arg *Arg) (*Arg, *Arg) {
+func extractHeaderParamsIPv6(arg Arg) (Arg, Arg) {
 	srcAddr := getFieldByName(arg, "src_ip")
 	if srcAddr.Size() != 16 {
-		panic(fmt.Sprintf("src_ip field in %v must be 4 bytes", arg.Type.Name()))
+		panic(fmt.Sprintf("src_ip field in %v must be 4 bytes", arg.Type().Name()))
 	}
 	dstAddr := getFieldByName(arg, "dst_ip")
 	if dstAddr.Size() != 16 {
-		panic(fmt.Sprintf("dst_ip field in %v must be 4 bytes", arg.Type.Name()))
+		panic(fmt.Sprintf("dst_ip field in %v must be 4 bytes", arg.Type().Name()))
 	}
 	return srcAddr, dstAddr
 }
 
-func composePseudoCsumIPv4(tcpPacket, srcAddr, dstAddr *Arg, protocol uint8, pid int) CsumInfo {
+func composePseudoCsumIPv4(tcpPacket, srcAddr, dstAddr Arg, protocol uint8, pid int) CsumInfo {
 	info := CsumInfo{Kind: CsumInet}
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, srcAddr, 0, 0})
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, dstAddr, 0, 0})
@@ -77,7 +77,7 @@ func composePseudoCsumIPv4(tcpPacket, srcAddr, dstAddr *Arg, protocol uint8, pid
 	return info
 }
 
-func composePseudoCsumIPv6(tcpPacket, srcAddr, dstAddr *Arg, protocol uint8, pid int) CsumInfo {
+func composePseudoCsumIPv6(tcpPacket, srcAddr, dstAddr Arg, protocol uint8, pid int) CsumInfo {
 	info := CsumInfo{Kind: CsumInet}
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, srcAddr, 0, 0})
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, dstAddr, 0, 0})
@@ -87,7 +87,7 @@ func composePseudoCsumIPv6(tcpPacket, srcAddr, dstAddr *Arg, protocol uint8, pid
 	return info
 }
 
-func findCsummedArg(arg *Arg, typ *sys.CsumType, parentsMap map[*Arg]*Arg) *Arg {
+func findCsummedArg(arg Arg, typ *sys.CsumType, parentsMap map[Arg]Arg) Arg {
 	if typ.Buf == "parent" {
 		if csummedArg, ok := parentsMap[arg]; ok {
 			return csummedArg
@@ -95,7 +95,7 @@ func findCsummedArg(arg *Arg, typ *sys.CsumType, parentsMap map[*Arg]*Arg) *Arg 
 		panic(fmt.Sprintf("parent for %v is not in parents map", typ.Name()))
 	} else {
 		for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
-			if typ.Buf == parent.Type.Name() {
+			if typ.Buf == parent.Type().Name() {
 				return parent
 			}
 		}
@@ -103,13 +103,13 @@ func findCsummedArg(arg *Arg, typ *sys.CsumType, parentsMap map[*Arg]*Arg) *Arg 
 	panic(fmt.Sprintf("csum field '%v' references non existent field '%v'", typ.FieldName(), typ.Buf))
 }
 
-func calcChecksumsCall(c *Call, pid int) map[*Arg]CsumInfo {
-	var inetCsumFields []*Arg
-	var pseudoCsumFields []*Arg
+func calcChecksumsCall(c *Call, pid int) map[Arg]CsumInfo {
+	var inetCsumFields []Arg
+	var pseudoCsumFields []Arg
 
 	// Find all csum fields.
-	foreachArgArray(&c.Args, nil, func(arg, base *Arg, _ *[]*Arg) {
-		if typ, ok := arg.Type.(*sys.CsumType); ok {
+	foreachArgArray(&c.Args, nil, func(arg, base Arg, _ *[]Arg) {
+		if typ, ok := arg.Type().(*sys.CsumType); ok {
 			switch typ.Kind {
 			case sys.CsumInet:
 				inetCsumFields = append(inetCsumFields, arg)
@@ -127,20 +127,20 @@ func calcChecksumsCall(c *Call, pid int) map[*Arg]CsumInfo {
 	}
 
 	// Build map of each field to its parent struct.
-	parentsMap := make(map[*Arg]*Arg)
-	foreachArgArray(&c.Args, nil, func(arg, base *Arg, _ *[]*Arg) {
-		if _, ok := arg.Type.(*sys.StructType); ok {
-			for _, field := range arg.Inner {
-				parentsMap[field.InnerArg()] = arg
+	parentsMap := make(map[Arg]Arg)
+	foreachArgArray(&c.Args, nil, func(arg, base Arg, _ *[]Arg) {
+		if _, ok := arg.Type().(*sys.StructType); ok {
+			for _, field := range arg.(*GroupArg).Inner {
+				parentsMap[InnerArg(field)] = arg
 			}
 		}
 	})
 
-	csumMap := make(map[*Arg]CsumInfo)
+	csumMap := make(map[Arg]CsumInfo)
 
 	// Calculate generic inet checksums.
 	for _, arg := range inetCsumFields {
-		typ, _ := arg.Type.(*sys.CsumType)
+		typ, _ := arg.Type().(*sys.CsumType)
 		csummedArg := findCsummedArg(arg, typ, parentsMap)
 		chunk := CsumChunk{CsumChunkArg, csummedArg, 0, 0}
 		info := CsumInfo{Kind: CsumInet, Chunks: make([]CsumChunk, 0)}
@@ -156,11 +156,11 @@ func calcChecksumsCall(c *Call, pid int) map[*Arg]CsumInfo {
 	// Extract ipv4 or ipv6 source and destination addresses.
 	ipv4HeaderParsed := false
 	ipv6HeaderParsed := false
-	var ipSrcAddr *Arg
-	var ipDstAddr *Arg
-	foreachArgArray(&c.Args, nil, func(arg, base *Arg, _ *[]*Arg) {
+	var ipSrcAddr Arg
+	var ipDstAddr Arg
+	foreachArgArray(&c.Args, nil, func(arg, base Arg, _ *[]Arg) {
 		// syz_csum_* structs are used in tests
-		switch arg.Type.Name() {
+		switch arg.Type().Name() {
 		case "ipv4_header", "syz_csum_ipv4_header":
 			ipSrcAddr, ipDstAddr = extractHeaderParamsIPv4(arg)
 			ipv4HeaderParsed = true
@@ -175,7 +175,7 @@ func calcChecksumsCall(c *Call, pid int) map[*Arg]CsumInfo {
 
 	// Calculate pseudo checksums.
 	for _, arg := range pseudoCsumFields {
-		typ, _ := arg.Type.(*sys.CsumType)
+		typ, _ := arg.Type().(*sys.CsumType)
 		csummedArg := findCsummedArg(arg, typ, parentsMap)
 		protocol := uint8(typ.Protocol)
 		var info CsumInfo

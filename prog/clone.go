@@ -1,17 +1,17 @@
-// Copyright 2015 syzkaller project authors. All rights reserved.
+// Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 package prog
 
 func (p *Prog) Clone() *Prog {
 	p1 := new(Prog)
-	newargs := make(map[*Arg]*Arg)
+	newargs := make(map[Arg]Arg)
 	for _, c := range p.Calls {
 		c1 := new(Call)
 		c1.Meta = c.Meta
-		c1.Ret = c.Ret.clone(c1, newargs)
+		c1.Ret = clone(c.Ret, newargs)
 		for _, arg := range c.Args {
-			c1.Args = append(c1.Args, arg.clone(c1, newargs))
+			c1.Args = append(c1.Args, clone(arg, newargs))
 		}
 		p1.Calls = append(p1.Calls, c1)
 	}
@@ -23,31 +23,60 @@ func (p *Prog) Clone() *Prog {
 	return p1
 }
 
-func (arg *Arg) clone(c *Call, newargs map[*Arg]*Arg) *Arg {
-	arg1 := new(Arg)
-	*arg1 = *arg
-	arg1.Data = append([]byte{}, arg.Data...)
-	switch arg.Kind {
-	case ArgPointer:
-		if arg.Res != nil {
-			arg1.Res = arg.Res.clone(c, newargs)
+func clone(arg Arg, newargs map[Arg]Arg) Arg {
+	var arg1 Arg
+	switch a := arg.(type) {
+	case *ConstArg:
+		a1 := new(ConstArg)
+		*a1 = *a
+		arg1 = a1
+	case *PointerArg:
+		a1 := new(PointerArg)
+		*a1 = *a
+		arg1 = a1
+		if a.Res != nil {
+			a1.Res = clone(a.Res, newargs)
 		}
-	case ArgUnion:
-		arg1.Option = arg.Option.clone(c, newargs)
-	case ArgResult:
-		r := newargs[arg.Res]
-		arg1.Res = r
-		if r.Uses == nil {
-			r.Uses = make(map[*Arg]bool)
+	case *DataArg:
+		a1 := new(DataArg)
+		*a1 = *a
+		a1.Data = append([]byte{}, a.Data...)
+		arg1 = a1
+	case *GroupArg:
+		a1 := new(GroupArg)
+		*a1 = *a
+		arg1 = a1
+		a1.Inner = nil
+		for _, arg2 := range a.Inner {
+			a1.Inner = append(a1.Inner, clone(arg2, newargs))
 		}
-		r.Uses[arg1] = true
+	case *UnionArg:
+		a1 := new(UnionArg)
+		*a1 = *a
+		arg1 = a1
+		a1.Option = clone(a.Option, newargs)
+	case *ResultArg:
+		a1 := new(ResultArg)
+		*a1 = *a
+		arg1 = a1
+	case *ReturnArg:
+		a1 := new(ReturnArg)
+		*a1 = *a
+		arg1 = a1
+	default:
+		panic("bad arg kind")
 	}
-	arg1.Inner = nil
-	for _, arg2 := range arg.Inner {
-		arg1.Inner = append(arg1.Inner, arg2.clone(c, newargs))
+	if user, ok := arg1.(ArgUser); ok && *user.Uses() != nil {
+		r := newargs[*user.Uses()]
+		*user.Uses() = r
+		used := r.(ArgUsed)
+		if *used.Used() == nil {
+			*used.Used() = make(map[Arg]bool)
+		}
+		(*used.Used())[arg1] = true
 	}
-	if len(arg1.Uses) != 0 {
-		arg1.Uses = nil // filled when we clone the referent
+	if used, ok := arg1.(ArgUsed); ok {
+		*used.Used() = nil // filled when we clone the referent
 		newargs[arg] = arg1
 	}
 	return arg1

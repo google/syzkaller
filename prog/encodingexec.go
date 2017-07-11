@@ -43,7 +43,7 @@ const (
 	dataOffset = 512 << 20
 )
 
-type Args []*Arg
+type Args []Arg
 
 func (s Args) Len() int {
 	return len(s)
@@ -74,14 +74,14 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 	w := &execContext{
 		buf:  buffer,
 		eof:  false,
-		args: make(map[*Arg]argInfo),
+		args: make(map[Arg]argInfo),
 	}
 	for _, c := range p.Calls {
 		// Calculate checksums.
 		csumMap := calcChecksumsCall(c, pid)
-		var csumUses map[*Arg]bool
+		var csumUses map[Arg]bool
 		if csumMap != nil {
-			csumUses = make(map[*Arg]bool)
+			csumUses = make(map[Arg]bool)
 			for arg, info := range csumMap {
 				csumUses[arg] = true
 				if info.Kind == CsumInet {
@@ -95,18 +95,23 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 		}
 		// Calculate arg offsets within structs.
 		// Generate copyin instructions that fill in data into pointer arguments.
-		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
-			if arg.Kind == ArgPointer && arg.Res != nil {
-				foreachSubargOffset(arg.Res, func(arg1 *Arg, offset uintptr) {
-					if len(arg1.Uses) != 0 || csumUses[arg1] {
+		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+			if a, ok := arg.(*PointerArg); ok && a.Res != nil {
+				foreachSubargOffset(a.Res, func(arg1 Arg, offset uintptr) {
+					used, ok := arg1.(ArgUsed)
+					if (ok && len(*used.Used()) != 0) || csumUses[arg1] {
 						w.args[arg1] = argInfo{Addr: physicalAddr(arg) + offset}
 					}
-					if arg1.Kind == ArgGroup || arg1.Kind == ArgUnion {
+					if _, ok := arg1.(*GroupArg); ok {
 						return
 					}
-					if !sys.IsPad(arg1.Type) &&
-						!(arg1.Kind == ArgData && len(arg1.Data) == 0) &&
-						arg1.Type.Dir() != sys.DirOut {
+					if _, ok := arg1.(*UnionArg); ok {
+						return
+					}
+					if a1, ok := arg1.(*DataArg); ok && len(a1.Data) == 0 {
+						return
+					}
+					if !sys.IsPad(arg1.Type()) && arg1.Type().Dir() != sys.DirOut {
 						w.write(ExecInstrCopyin)
 						w.write(physicalAddr(arg) + offset)
 						w.writeArg(arg1, pid, csumMap)
@@ -118,14 +123,14 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 		// Generate checksum calculation instructions starting from the last one,
 		// since checksum values can depend on values of the latter ones
 		if csumMap != nil {
-			var csumArgs []*Arg
+			var csumArgs []Arg
 			for arg, _ := range csumMap {
 				csumArgs = append(csumArgs, arg)
 			}
 			sort.Sort(ByPhysicalAddr{Args: csumArgs, Context: w})
 			for i := len(csumArgs) - 1; i >= 0; i-- {
 				arg := csumArgs[i]
-				if _, ok := arg.Type.(*sys.CsumType); !ok {
+				if _, ok := arg.Type().(*sys.CsumType); !ok {
 					panic("csum arg is not csum type")
 				}
 				w.write(ExecInstrCopyin)
@@ -162,21 +167,21 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 		for _, arg := range c.Args {
 			w.writeArg(arg, pid, csumMap)
 		}
-		if len(c.Ret.Uses) != 0 {
+		if len(*c.Ret.(ArgUsed).Used()) != 0 {
 			w.args[c.Ret] = argInfo{Idx: instrSeq}
 		}
 		instrSeq++
 		// Generate copyout instructions that persist interesting return values.
-		foreachArg(c, func(arg, base *Arg, _ *[]*Arg) {
-			if len(arg.Uses) == 0 {
+		foreachArg(c, func(arg, base Arg, _ *[]Arg) {
+			if used, ok := arg.(ArgUsed); !ok || len(*used.Used()) == 0 {
 				return
 			}
-			switch arg.Kind {
-			case ArgReturn:
+			switch arg.(type) {
+			case *ReturnArg:
 				// Idx is already assigned above.
-			case ArgConst, ArgResult:
+			case *ConstArg, *ResultArg:
 				// Create a separate copyout instruction that has own Idx.
-				if base.Kind != ArgPointer {
+				if _, ok := base.(*PointerArg); !ok {
 					panic("arg base is not a pointer")
 				}
 				info := w.args[arg]
@@ -198,15 +203,16 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 	return nil
 }
 
-func physicalAddr(arg *Arg) uintptr {
-	if arg.Kind != ArgPointer {
+func physicalAddr(arg Arg) uintptr {
+	a, ok := arg.(*PointerArg)
+	if !ok {
 		panic("physicalAddr: bad arg kind")
 	}
-	addr := arg.AddrPage*pageSize + dataOffset
-	if arg.AddrOffset >= 0 {
-		addr += uintptr(arg.AddrOffset)
+	addr := a.PageIndex*pageSize + dataOffset
+	if a.PageOffset >= 0 {
+		addr += uintptr(a.PageOffset)
 	} else {
-		addr += pageSize - uintptr(-arg.AddrOffset)
+		addr += pageSize - uintptr(-a.PageOffset)
 	}
 	return addr
 }
@@ -214,7 +220,7 @@ func physicalAddr(arg *Arg) uintptr {
 type execContext struct {
 	buf  []byte
 	eof  bool
-	args map[*Arg]argInfo
+	args map[Arg]argInfo
 }
 
 type argInfo struct {
@@ -238,43 +244,37 @@ func (w *execContext) write(v uintptr) {
 	w.buf = w.buf[8:]
 }
 
-func (w *execContext) writeArg(arg *Arg, pid int, csumMap map[*Arg]CsumInfo) {
-	switch arg.Kind {
-	case ArgConst:
+func (w *execContext) writeArg(arg Arg, pid int, csumMap map[Arg]CsumInfo) {
+	switch a := arg.(type) {
+	case *ConstArg:
 		w.write(ExecArgConst)
-		w.write(arg.Size())
-		w.write(arg.Value(pid))
-		w.write(arg.Type.BitfieldOffset())
-		w.write(arg.Type.BitfieldLength())
-	case ArgResult:
+		w.write(a.Size())
+		w.write(a.Value(pid))
+		w.write(a.Type().BitfieldOffset())
+		w.write(a.Type().BitfieldLength())
+	case *ResultArg:
 		w.write(ExecArgResult)
-		w.write(arg.Size())
-		w.write(w.args[arg.Res].Idx)
-		w.write(arg.OpDiv)
-		w.write(arg.OpAdd)
-	case ArgPointer:
+		w.write(a.Size())
+		w.write(w.args[a.Res].Idx)
+		w.write(a.OpDiv)
+		w.write(a.OpAdd)
+	case *PointerArg:
 		w.write(ExecArgConst)
-		w.write(arg.Size())
+		w.write(a.Size())
 		w.write(physicalAddr(arg))
 		w.write(0) // bit field offset
 		w.write(0) // bit field length
-	case ArgPageSize:
-		w.write(ExecArgConst)
-		w.write(arg.Size())
-		w.write(arg.AddrPage * pageSize)
-		w.write(0) // bit field offset
-		w.write(0) // bit field length
-	case ArgData:
+	case *DataArg:
 		w.write(ExecArgData)
-		w.write(uintptr(len(arg.Data)))
-		padded := len(arg.Data)
-		if pad := 8 - len(arg.Data)%8; pad != 8 {
+		w.write(uintptr(len(a.Data)))
+		padded := len(a.Data)
+		if pad := 8 - len(a.Data)%8; pad != 8 {
 			padded += pad
 		}
 		if len(w.buf) < padded {
 			w.eof = true
 		} else {
-			copy(w.buf, arg.Data)
+			copy(w.buf, a.Data)
 			w.buf = w.buf[padded:]
 		}
 	default:
