@@ -517,16 +517,7 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 	}
 	mgr.mu.Unlock()
 
-	if len(crash.text) > 0 {
-		<-allSymbolsReady
-		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text, allSymbols)
-		if err != nil {
-			Logf(0, "failed to symbolize crash: %v", err)
-		} else {
-			crash.text = symbolized
-		}
-	}
-
+	crash.text = mgr.symbolizeReport(crash.text)
 	if mgr.dash != nil {
 		var maintainers []string
 		guiltyFile := report.ExtractGuiltyFile(crash.text)
@@ -627,6 +618,7 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 }
 
 func (mgr *Manager) saveRepro(res *repro.Result) {
+	res.Report = mgr.symbolizeReport(res.Report)
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(res.Desc)))
 
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
@@ -682,6 +674,19 @@ func (mgr *Manager) saveRepro(res *repro.Result) {
 			Logf(0, "failed to report repro to dashboard: %v", err)
 		}
 	}
+}
+
+func (mgr *Manager) symbolizeReport(text []byte) []byte {
+	if len(text) == 0 {
+		return nil
+	}
+	<-allSymbolsReady
+	symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text, allSymbols)
+	if err != nil {
+		Logf(0, "failed to symbolize report: %v", err)
+		return text
+	}
+	return symbolized
 }
 
 func (mgr *Manager) minimizeCorpus() {
