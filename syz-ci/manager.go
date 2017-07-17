@@ -302,13 +302,7 @@ func (mgr *Manager) restartManager() {
 }
 
 func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
-	mgrcfg := &mgrconfig.Config{
-		Cover:     true,
-		Reproduce: true,
-		Sandbox:   "setuid",
-		Rpc:       ":0",
-		Procs:     1,
-	}
+	mgrcfg := mgrconfig.DefaultValues()
 	err := config.LoadData(mgr.mgrcfg.Manager_Config, mgrcfg)
 	if err != nil {
 		return "", err
