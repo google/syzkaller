@@ -69,14 +69,18 @@ func LoadFile(filename string) (*Config, map[int]bool, error) {
 	return load(nil, filename)
 }
 
-func load(data []byte, filename string) (*Config, map[int]bool, error) {
-	cfg := &Config{
+func DefaultValues() *Config {
+	return &Config{
 		Cover:     true,
 		Reproduce: true,
 		Sandbox:   "setuid",
-		Rpc:       "localhost:0",
+		Rpc:       ":0",
 		Procs:     1,
 	}
+}
+
+func load(data []byte, filename string) (*Config, map[int]bool, error) {
+	cfg := DefaultValues()
 	if data != nil {
 		if err := config.LoadData(data, cfg); err != nil {
 			return nil, nil, err
