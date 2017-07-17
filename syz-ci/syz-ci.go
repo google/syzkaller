@@ -65,10 +65,10 @@ var flagConfig = flag.String("config", "", "config file")
 type Config struct {
 	Name             string
 	Http             string
-	Dashboard_Addr   string
-	Hub_Addr         string
-	Hub_Key          string
-	Goroot           string
+	Dashboard_Addr   string // Optional.
+	Hub_Addr         string // Optional.
+	Hub_Key          string // Optional.
+	Goroot           string // Go 1.8+ toolchain dir.
 	Syzkaller_Repo   string
 	Syzkaller_Branch string
 	Managers         []*ManagerConfig
@@ -83,6 +83,8 @@ type ManagerConfig struct {
 	Compiler         string
 	Userspace        string
 	Kernel_Config    string
+	Kernel_Cmdline   string // File with kernel cmdline values (optional).
+	Kernel_Sysctl    string // File with sysctl values (e.g. output of sysctl -a, optional).
 	Manager_Config   json.RawMessage
 }
 

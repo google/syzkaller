@@ -229,7 +229,9 @@ func (mgr *Manager) build() error {
 
 	image := filepath.Join(tmpDir, "image")
 	key := filepath.Join(tmpDir, "key")
-	if err := kernel.CreateImage(mgr.kernelDir, mgr.mgrcfg.Userspace, image, key); err != nil {
+	err = kernel.CreateImage(mgr.kernelDir, mgr.mgrcfg.Userspace,
+		mgr.mgrcfg.Kernel_Cmdline, mgr.mgrcfg.Kernel_Sysctl, image, key)
+	if err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
 	// TODO(dvyukov): test that the image is good (boots and we can ssh into it).
