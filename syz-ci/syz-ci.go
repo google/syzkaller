@@ -54,7 +54,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/config"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -67,7 +66,6 @@ type Config struct {
 	Name             string
 	Http             string
 	Dashboard_Addr   string
-	Dashboard_Key    string
 	Hub_Addr         string
 	Hub_Key          string
 	Goroot           string
@@ -77,13 +75,15 @@ type Config struct {
 }
 
 type ManagerConfig struct {
-	Name           string
-	Repo           string
-	Branch         string
-	Compiler       string
-	Userspace      string
-	Kernel_Config  string
-	Manager_Config json.RawMessage
+	Name             string
+	Dashboard_Client string
+	Dashboard_Key    string
+	Repo             string
+	Branch           string
+	Compiler         string
+	Userspace        string
+	Kernel_Config    string
+	Manager_Config   json.RawMessage
 }
 
 func main() {
@@ -114,16 +114,11 @@ func main() {
 		close(stop)
 	}()
 
-	var dash *dashapi.Dashboard
-	if cfg.Dashboard_Addr != "" {
-		dash = dashapi.New(cfg.Name, cfg.Dashboard_Addr, cfg.Dashboard_Key)
-	}
-
 	var wg sync.WaitGroup
 	wg.Add(len(cfg.Managers))
 	managers := make([]*Manager, len(cfg.Managers))
 	for i, mgrcfg := range cfg.Managers {
-		managers[i] = createManager(dash, cfg, mgrcfg, stop)
+		managers[i] = createManager(cfg, mgrcfg, stop)
 	}
 	for _, mgr := range managers {
 		mgr := mgr

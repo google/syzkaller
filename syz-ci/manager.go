@@ -56,10 +56,15 @@ type Manager struct {
 	stop       chan struct{}
 }
 
-func createManager(dash *dashapi.Dashboard, cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Manager {
+func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Manager {
 	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
 	if err := osutil.MkdirAll(dir); err != nil {
 		Fatal(err)
+	}
+
+	var dash *dashapi.Dashboard
+	if cfg.Dashboard_Addr != "" && mgrcfg.Dashboard_Client != "" {
+		dash = dashapi.New(mgrcfg.Dashboard_Client, cfg.Dashboard_Addr, mgrcfg.Dashboard_Key)
 	}
 
 	// Assume compiler and config don't change underneath us.
@@ -317,17 +322,16 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 		// so we use kenrel tag (commit tag) because it communicates
 		// at least some useful information.
 		tag = info.KernelCommit
+
+		mgrcfg.Dashboard_Client = mgr.dash.Client
+		mgrcfg.Dashboard_Addr = mgr.dash.Addr
+		mgrcfg.Dashboard_Key = mgr.dash.Key
 	}
 	mgrcfg.Name = mgr.cfg.Name + "-" + mgr.name
 	if mgr.cfg.Hub_Addr != "" {
 		mgrcfg.Hub_Client = mgr.cfg.Name
 		mgrcfg.Hub_Addr = mgr.cfg.Hub_Addr
 		mgrcfg.Hub_Key = mgr.cfg.Hub_Key
-	}
-	if mgr.cfg.Dashboard_Addr != "" {
-		mgrcfg.Dashboard_Client = mgr.cfg.Name
-		mgrcfg.Dashboard_Addr = mgr.cfg.Dashboard_Addr
-		mgrcfg.Dashboard_Key = mgr.cfg.Dashboard_Key
 	}
 	mgrcfg.Workdir = mgr.workDir
 	mgrcfg.Vmlinux = filepath.Join(current, "obj", "vmlinux")
