@@ -7,6 +7,8 @@ const createImageScript = `#!/bin/bash
 
 set -eux
 
+trap "" SIGINT
+
 if [ ! -e $1/sbin/init ]; then
 	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage"
 	exit 1

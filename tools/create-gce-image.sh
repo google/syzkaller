@@ -42,6 +42,11 @@
 
 set -eux
 
+# If the script is aborted at an unfortunate point, it leaves the whole system broken.
+# E.g. we've seen that fdisk cannot update partition table until the next reboot.
+# If you really need to kill it, use a different signal. But better wait.
+trap "" SIGINT
+
 if [ ! -e $1/sbin/init ]; then
 	echo "usage: create-gce-image.sh /dir/with/user/space/system /path/to/bzImage"
 	exit 1
