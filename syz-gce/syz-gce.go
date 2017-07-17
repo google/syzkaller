@@ -365,7 +365,7 @@ func (a *LocalBuildAction) Build() error {
 	}
 	Logf(0, "building image...")
 	osutil.MkdirAll("image/obj")
-	if err := kernel.CreateImage(dir, a.UserspaceDir, "image/disk.raw", "image/key"); err != nil {
+	if err := kernel.CreateImage(dir, a.UserspaceDir, "", "", "image/disk.raw", "image/key"); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
 	if err := osutil.WriteFile("image/tag", []byte(hash)); err != nil {
