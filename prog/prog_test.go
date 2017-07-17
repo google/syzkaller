@@ -71,18 +71,20 @@ func TestVmaType(t *testing.T) {
 		if len(c.Args) != 6 {
 			t.Fatalf("generated wrong number of args %v", len(c.Args))
 		}
-		check := func(v, l *Arg, min, max uintptr) {
-			if v.Kind != ArgPointer {
-				t.Fatalf("vma has bad type: %v, want %v", v.Kind, ArgPointer)
+		check := func(v, l Arg, min, max uintptr) {
+			va, ok := v.(*PointerArg)
+			if !ok {
+				t.Fatalf("vma has bad type: %v", v)
 			}
-			if l.Kind != ArgPageSize {
-				t.Fatalf("len has bad type: %v, want %v", l.Kind, ArgPageSize)
+			la, ok := l.(*ConstArg)
+			if !ok {
+				t.Fatalf("len has bad type: %v", l)
 			}
-			if v.AddrPagesNum < min || v.AddrPagesNum > max {
-				t.Fatalf("vma has bad number of pages: %v, want [%v-%v]", v.AddrPagesNum, min, max)
+			if va.PagesNum < min || va.PagesNum > max {
+				t.Fatalf("vma has bad number of pages: %v, want [%v-%v]", va.PagesNum, min, max)
 			}
-			if l.AddrPage < min || l.AddrPage > max {
-				t.Fatalf("len has bad number of pages: %v, want [%v-%v]", l.AddrPage, min, max)
+			if la.Val/pageSize < min || la.Val/pageSize > max {
+				t.Fatalf("len has bad number of pages: %v, want [%v-%v]", la.Val/pageSize, min, max)
 			}
 		}
 		check(c.Args[0], c.Args[1], 1, 1e5)

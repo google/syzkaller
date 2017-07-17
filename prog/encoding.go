@@ -33,43 +33,80 @@ func (p *Prog) Serialize() []byte {
 		}
 	}
 	buf := new(bytes.Buffer)
-	vars := make(map[*Arg]int)
+	vars := make(map[Arg]int)
 	varSeq := 0
 	for _, c := range p.Calls {
-		if len(c.Ret.Uses) != 0 {
+		if len(*c.Ret.(ArgUsed).Used()) != 0 {
 			fmt.Fprintf(buf, "r%v = ", varSeq)
 			vars[c.Ret] = varSeq
 			varSeq++
 		}
 		fmt.Fprintf(buf, "%v(", c.Meta.Name)
 		for i, a := range c.Args {
-			if sys.IsPad(a.Type) {
+			if sys.IsPad(a.Type()) {
 				continue
 			}
 			if i != 0 {
 				fmt.Fprintf(buf, ", ")
 			}
-			a.serialize(buf, vars, &varSeq)
+			serialize(a, buf, vars, &varSeq)
 		}
 		fmt.Fprintf(buf, ")\n")
 	}
 	return buf.Bytes()
 }
 
-func (a *Arg) serialize(buf io.Writer, vars map[*Arg]int, varSeq *int) {
-	if a == nil {
+func serialize(arg Arg, buf io.Writer, vars map[Arg]int, varSeq *int) {
+	if arg == nil {
 		fmt.Fprintf(buf, "nil")
 		return
 	}
-	if len(a.Uses) != 0 {
+	if used, ok := arg.(ArgUsed); ok && len(*used.Used()) != 0 {
 		fmt.Fprintf(buf, "<r%v=>", *varSeq)
-		vars[a] = *varSeq
+		vars[arg] = *varSeq
 		*varSeq++
 	}
-	switch a.Kind {
-	case ArgConst:
+	switch a := arg.(type) {
+	case *ConstArg:
 		fmt.Fprintf(buf, "0x%x", a.Val)
-	case ArgResult:
+	case *PointerArg:
+		if a.Res == nil && a.PagesNum == 0 {
+			fmt.Fprintf(buf, "0x0")
+			break
+		}
+		fmt.Fprintf(buf, "&%v=", serializeAddr(arg))
+		serialize(a.Res, buf, vars, varSeq)
+	case *DataArg:
+		fmt.Fprintf(buf, "\"%v\"", hex.EncodeToString(a.Data))
+	case *GroupArg:
+		var delims []byte
+		switch arg.Type().(type) {
+		case *sys.StructType:
+			delims = []byte{'{', '}'}
+		case *sys.ArrayType:
+			delims = []byte{'[', ']'}
+		default:
+			panic("unknown group type")
+		}
+		buf.Write([]byte{delims[0]})
+		for i, arg1 := range a.Inner {
+			if arg1 != nil && sys.IsPad(arg1.Type()) {
+				continue
+			}
+			if i != 0 {
+				fmt.Fprintf(buf, ", ")
+			}
+			serialize(arg1, buf, vars, varSeq)
+		}
+		buf.Write([]byte{delims[1]})
+	case *UnionArg:
+		fmt.Fprintf(buf, "@%v=", a.OptionType.FieldName())
+		serialize(a.Option, buf, vars, varSeq)
+	case *ResultArg:
+		if a.Res == nil {
+			fmt.Fprintf(buf, "0x%x", a.Val)
+			break
+		}
 		id, ok := vars[a.Res]
 		if !ok {
 			panic("no result")
@@ -81,37 +118,6 @@ func (a *Arg) serialize(buf io.Writer, vars map[*Arg]int, varSeq *int) {
 		if a.OpAdd != 0 {
 			fmt.Fprintf(buf, "+%v", a.OpAdd)
 		}
-	case ArgPointer:
-		fmt.Fprintf(buf, "&%v=", serializeAddr(a, true))
-		a.Res.serialize(buf, vars, varSeq)
-	case ArgPageSize:
-		fmt.Fprintf(buf, "%v", serializeAddr(a, false))
-	case ArgData:
-		fmt.Fprintf(buf, "\"%v\"", hex.EncodeToString(a.Data))
-	case ArgGroup:
-		var delims []byte
-		switch a.Type.(type) {
-		case *sys.StructType:
-			delims = []byte{'{', '}'}
-		case *sys.ArrayType:
-			delims = []byte{'[', ']'}
-		default:
-			panic("unknown group type")
-		}
-		buf.Write([]byte{delims[0]})
-		for i, a1 := range a.Inner {
-			if a1 != nil && sys.IsPad(a1.Type) {
-				continue
-			}
-			if i != 0 {
-				fmt.Fprintf(buf, ", ")
-			}
-			a1.serialize(buf, vars, varSeq)
-		}
-		buf.Write([]byte{delims[1]})
-	case ArgUnion:
-		fmt.Fprintf(buf, "@%v=", a.OptionType.FieldName())
-		a.Option.serialize(buf, vars, varSeq)
 	default:
 		panic("unknown arg kind")
 	}
@@ -121,7 +127,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 	prog = new(Prog)
 	p := &parser{r: bufio.NewScanner(bytes.NewReader(data))}
 	p.r.Buffer(nil, maxLineLen)
-	vars := make(map[string]*Arg)
+	vars := make(map[string]Arg)
 	for p.Scan() {
 		if p.EOF() || p.Char() == '#' {
 			continue
@@ -184,7 +190,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 	return
 }
 
-func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
+func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 	r := ""
 	if p.Char() == '<' {
 		p.Parse('<')
@@ -192,7 +198,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		p.Parse('=')
 		p.Parse('>')
 	}
-	var arg *Arg
+	var arg Arg
 	switch p.Char() {
 	case '0':
 		val := p.Ident()
@@ -200,14 +206,25 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		if err != nil {
 			return nil, fmt.Errorf("wrong arg value '%v': %v", val, err)
 		}
-		arg = constArg(typ, uintptr(v))
+		switch typ.(type) {
+		case *sys.ConstType, *sys.IntType, *sys.FlagsType, *sys.ProcType, *sys.LenType, *sys.CsumType:
+			arg = constArg(typ, uintptr(v))
+		case *sys.ResourceType:
+			arg = resultArg(typ, nil, uintptr(v))
+		case *sys.PtrType:
+			arg = pointerArg(typ, 0, 0, 0, nil)
+		case *sys.VmaType:
+			arg = pointerArg(typ, 0, 0, 0, nil)
+		default:
+			panic(fmt.Sprintf("bad const type %+v", typ))
+		}
 	case 'r':
 		id := p.Ident()
 		v, ok := vars[id]
 		if !ok || v == nil {
 			return nil, fmt.Errorf("result %v references unknown variable (vars=%+v)", id, vars)
 		}
-		arg = resultArg(typ, v)
+		arg = resultArg(typ, v, 0)
 		if p.Char() == '/' {
 			p.Parse('/')
 			op := p.Ident()
@@ -215,7 +232,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 			if err != nil {
 				return nil, fmt.Errorf("wrong result div op: '%v'", op)
 			}
-			arg.OpDiv = uintptr(v)
+			arg.(*ResultArg).OpDiv = uintptr(v)
 		}
 		if p.Char() == '+' {
 			p.Parse('+')
@@ -224,7 +241,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 			if err != nil {
 				return nil, fmt.Errorf("wrong result add op: '%v'", op)
 			}
-			arg.OpAdd = uintptr(v)
+			arg.(*ResultArg).OpAdd = uintptr(v)
 		}
 	case '&':
 		var typ1 sys.Type
@@ -247,11 +264,13 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 		}
 		arg = pointerArg(typ, page, off, size, inner)
 	case '(':
-		page, off, _, err := parseAddr(p, false)
+		// This used to parse length of VmaType and return ArgPageSize, which is now removed.
+		// Leaving this for now for backwards compatibility.
+		pages, _, _, err := parseAddr(p, false)
 		if err != nil {
 			return nil, err
 		}
-		arg = pageSizeArg(typ, page, off)
+		arg = constArg(typ, pages*pageSize)
 	case '"':
 		p.Parse('"')
 		val := ""
@@ -270,7 +289,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 			return nil, fmt.Errorf("'{' arg is not a struct: %#v", typ)
 		}
 		p.Parse('{')
-		var inner []*Arg
+		var inner []Arg
 		for i := 0; p.Char() != '}'; i++ {
 			if i >= len(t1.Fields) {
 				return nil, fmt.Errorf("wrong struct arg count: %v, want %v", i+1, len(t1.Fields))
@@ -300,7 +319,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]*Arg) (*Arg, error) {
 			return nil, fmt.Errorf("'[' arg is not an array: %#v", typ)
 		}
 		p.Parse('[')
-		var inner []*Arg
+		var inner []Arg
 		for i := 0; p.Char() != ']'; i++ {
 			arg, err := parseArg(t1.Type, p, vars)
 			if err != nil {
@@ -358,13 +377,22 @@ const (
 	maxLineLen       = 256 << 10
 )
 
-func serializeAddr(a *Arg, base bool) string {
-	page := a.AddrPage * encodingPageSize
-	if base {
-		page += encodingAddrBase
+func serializeAddr(arg Arg) string {
+	var pageIndex uintptr
+	var pageOffset int
+	var pagesNum uintptr
+	switch a := arg.(type) {
+	case *PointerArg:
+		pageIndex = a.PageIndex
+		pageOffset = a.PageOffset
+		pagesNum = a.PagesNum
+	default:
+		panic("bad addr arg")
 	}
+	page := pageIndex * encodingPageSize
+	page += encodingAddrBase
 	soff := ""
-	if off := a.AddrOffset; off != 0 {
+	if off := pageOffset; off != 0 {
 		sign := "+"
 		if off < 0 {
 			sign = "-"
@@ -374,7 +402,7 @@ func serializeAddr(a *Arg, base bool) string {
 		soff = fmt.Sprintf("%v0x%x", sign, off)
 	}
 	ssize := ""
-	if size := a.AddrPagesNum; size != 0 {
+	if size := pagesNum; size != 0 {
 		size *= encodingPageSize
 		ssize = fmt.Sprintf("/0x%x", size)
 	}

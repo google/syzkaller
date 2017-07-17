@@ -21,7 +21,7 @@ const (
 type state struct {
 	ct        *ChoiceTable
 	files     map[string]bool
-	resources map[string][]*Arg
+	resources map[string][]Arg
 	strings   map[string]bool
 	pages     [maxPages]bool
 }
@@ -42,27 +42,28 @@ func newState(ct *ChoiceTable) *state {
 	s := &state{
 		ct:        ct,
 		files:     make(map[string]bool),
-		resources: make(map[string][]*Arg),
+		resources: make(map[string][]Arg),
 		strings:   make(map[string]bool),
 	}
 	return s
 }
 
 func (s *state) analyze(c *Call) {
-	foreachArgArray(&c.Args, c.Ret, func(arg, base *Arg, _ *[]*Arg) {
-		switch typ := arg.Type.(type) {
+	foreachArgArray(&c.Args, c.Ret, func(arg, base Arg, _ *[]Arg) {
+		switch typ := arg.Type().(type) {
 		case *sys.ResourceType:
-			if arg.Type.Dir() != sys.DirIn {
+			if arg.Type().Dir() != sys.DirIn {
 				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], arg)
 				// TODO: negative PIDs and add them as well (that's process groups).
 			}
 		case *sys.BufferType:
-			if arg.Type.Dir() != sys.DirOut && arg.Kind == ArgData && len(arg.Data) != 0 {
+			a := arg.(*DataArg)
+			if a.Type().Dir() != sys.DirOut && len(a.Data) != 0 {
 				switch typ.Kind {
 				case sys.BufferString:
-					s.strings[string(arg.Data)] = true
+					s.strings[string(a.Data)] = true
 				case sys.BufferFilename:
-					s.files[string(arg.Data)] = true
+					s.files[string(a.Data)] = true
 				}
 			}
 		}
@@ -70,74 +71,72 @@ func (s *state) analyze(c *Call) {
 	switch c.Meta.Name {
 	case "mmap":
 		// Filter out only very wrong arguments.
-		length := c.Args[1]
-		if length.AddrPage == 0 && length.AddrOffset == 0 {
+		length := c.Args[1].(*ConstArg)
+		if length.Val == 0 {
 			break
 		}
-		if flags, fd := c.Args[4], c.Args[3]; flags.Val&sys.MAP_ANONYMOUS == 0 && fd.Kind == ArgConst && fd.Val == sys.InvalidFD {
+		flags := c.Args[3].(*ConstArg)
+		fd := c.Args[4].(*ResultArg)
+		if flags.Val&sys.MAP_ANONYMOUS == 0 && fd.Val == sys.InvalidFD {
 			break
 		}
-		s.addressable(c.Args[0], length, true)
+		s.addressable(c.Args[0].(*PointerArg), length, true)
 	case "munmap":
-		s.addressable(c.Args[0], c.Args[1], false)
+		s.addressable(c.Args[0].(*PointerArg), c.Args[1].(*ConstArg), false)
 	case "mremap":
-		s.addressable(c.Args[4], c.Args[2], true)
+		s.addressable(c.Args[4].(*PointerArg), c.Args[2].(*ConstArg), true)
 	case "io_submit":
-		if arr := c.Args[2].Res; arr != nil {
-			for _, ptr := range arr.Inner {
-				if ptr.Kind == ArgPointer {
-					if ptr.Res != nil && ptr.Res.Type.Name() == "iocb" {
-						s.resources["iocbptr"] = append(s.resources["iocbptr"], ptr)
-					}
+		if arr := c.Args[2].(*PointerArg).Res; arr != nil {
+			for _, ptr := range arr.(*GroupArg).Inner {
+				p := ptr.(*PointerArg)
+				if p.Res != nil && p.Res.Type().Name() == "iocb" {
+					s.resources["iocbptr"] = append(s.resources["iocbptr"], ptr)
 				}
 			}
 		}
 	}
 }
 
-func (s *state) addressable(addr, size *Arg, ok bool) {
-	if addr.Kind != ArgPointer || size.Kind != ArgPageSize {
-		panic("mmap/munmap/mremap args are not pages")
+func (s *state) addressable(addr *PointerArg, size *ConstArg, ok bool) {
+	sizePages := size.Val / pageSize
+	if addr.PageIndex+sizePages > uintptr(len(s.pages)) {
+		panic(fmt.Sprintf("address is out of bounds: page=%v len=%v bound=%v\naddr: %+v\nsize: %+v",
+			addr.PageIndex, sizePages, len(s.pages), addr, size))
 	}
-	n := size.AddrPage
-	if size.AddrOffset != 0 {
-		n++
-	}
-	if addr.AddrPage+n > uintptr(len(s.pages)) {
-		panic(fmt.Sprintf("address is out of bounds: page=%v len=%v (%v, %v) bound=%v, addr: %+v, size: %+v",
-			addr.AddrPage, n, size.AddrPage, size.AddrOffset, len(s.pages), addr, size))
-	}
-	for i := uintptr(0); i < n; i++ {
-		s.pages[addr.AddrPage+i] = ok
+	for i := uintptr(0); i < sizePages; i++ {
+		s.pages[addr.PageIndex+i] = ok
 	}
 }
 
-func foreachSubargImpl(arg *Arg, parent *[]*Arg, f func(arg, base *Arg, parent *[]*Arg)) {
-	var rec func(arg, base *Arg, parent *[]*Arg)
-	rec = func(arg, base *Arg, parent *[]*Arg) {
+func foreachSubargImpl(arg Arg, parent *[]Arg, f func(arg, base Arg, parent *[]Arg)) {
+	var rec func(arg, base Arg, parent *[]Arg)
+	rec = func(arg, base Arg, parent *[]Arg) {
 		f(arg, base, parent)
-		for _, arg1 := range arg.Inner {
-			parent1 := parent
-			if _, ok := arg.Type.(*sys.StructType); ok {
-				parent1 = &arg.Inner
+		switch a := arg.(type) {
+		case *GroupArg:
+			for _, arg1 := range a.Inner {
+				parent1 := parent
+				if _, ok := arg.Type().(*sys.StructType); ok {
+					parent1 = &a.Inner
+				}
+				rec(arg1, base, parent1)
 			}
-			rec(arg1, base, parent1)
-		}
-		if arg.Kind == ArgPointer && arg.Res != nil {
-			rec(arg.Res, arg, parent)
-		}
-		if arg.Kind == ArgUnion {
-			rec(arg.Option, base, parent)
+		case *PointerArg:
+			if a.Res != nil {
+				rec(a.Res, arg, parent)
+			}
+		case *UnionArg:
+			rec(a.Option, base, parent)
 		}
 	}
 	rec(arg, nil, parent)
 }
 
-func foreachSubarg(arg *Arg, f func(arg, base *Arg, parent *[]*Arg)) {
+func foreachSubarg(arg Arg, f func(arg, base Arg, parent *[]Arg)) {
 	foreachSubargImpl(arg, nil, f)
 }
 
-func foreachArgArray(args *[]*Arg, ret *Arg, f func(arg, base *Arg, parent *[]*Arg)) {
+func foreachArgArray(args *[]Arg, ret Arg, f func(arg, base Arg, parent *[]Arg)) {
 	for _, arg := range *args {
 		foreachSubargImpl(arg, args, f)
 	}
@@ -146,20 +145,20 @@ func foreachArgArray(args *[]*Arg, ret *Arg, f func(arg, base *Arg, parent *[]*A
 	}
 }
 
-func foreachArg(c *Call, f func(arg, base *Arg, parent *[]*Arg)) {
+func foreachArg(c *Call, f func(arg, base Arg, parent *[]Arg)) {
 	foreachArgArray(&c.Args, nil, f)
 }
 
-func foreachSubargOffset(arg *Arg, f func(arg *Arg, offset uintptr)) {
-	var rec func(*Arg, uintptr) uintptr
-	rec = func(arg1 *Arg, offset uintptr) uintptr {
-		switch arg1.Kind {
-		case ArgGroup:
+func foreachSubargOffset(arg Arg, f func(arg Arg, offset uintptr)) {
+	var rec func(Arg, uintptr) uintptr
+	rec = func(arg1 Arg, offset uintptr) uintptr {
+		switch a := arg1.(type) {
+		case *GroupArg:
 			f(arg1, offset)
 			var totalSize uintptr
-			for _, arg2 := range arg1.Inner {
+			for _, arg2 := range a.Inner {
 				size := rec(arg2, offset)
-				if arg2.Type.BitfieldLength() == 0 || arg2.Type.BitfieldLast() {
+				if arg2.Type().BitfieldLength() == 0 || arg2.Type().BitfieldLast() {
 					offset += size
 					totalSize += size
 				}
@@ -167,12 +166,12 @@ func foreachSubargOffset(arg *Arg, f func(arg *Arg, offset uintptr)) {
 			if totalSize > arg1.Size() {
 				panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %+v", totalSize, arg1.Size(), arg1))
 			}
-		case ArgUnion:
+		case *UnionArg:
 			f(arg1, offset)
-			size := rec(arg1.Option, offset)
+			size := rec(a.Option, offset)
 			offset += size
 			if size > arg1.Size() {
-				panic(fmt.Sprintf("bad union arg size %v, should be <= %v for arg %+v with type %+v", size, arg1.Size(), arg1, arg1.Type))
+				panic(fmt.Sprintf("bad union arg size %v, should be <= %v for arg %+v with type %+v", size, arg1.Size(), arg1, arg1.Type()))
 			}
 		default:
 			f(arg1, offset)
@@ -186,36 +185,36 @@ func sanitizeCall(c *Call) {
 	switch c.Meta.CallName {
 	case "mmap":
 		// Add MAP_FIXED flag, otherwise it produces non-deterministic results.
-		addr := c.Args[0]
-		if addr.Kind != ArgPointer {
+		_, ok := c.Args[0].(*PointerArg)
+		if !ok {
 			panic("mmap address is not ArgPointer")
 		}
-		length := c.Args[1]
-		if length.Kind != ArgPageSize {
+		_, ok = c.Args[1].(*ConstArg)
+		if !ok {
 			panic("mmap length is not ArgPageSize")
 		}
-		flags := c.Args[3]
-		if flags.Kind != ArgConst {
+		flags, ok := c.Args[3].(*ConstArg)
+		if !ok {
 			panic("mmap flag arg is not const")
 		}
 		flags.Val |= sys.MAP_FIXED
 	case "mremap":
 		// Add MREMAP_FIXED flag, otherwise it produces non-deterministic results.
-		flags := c.Args[3]
-		if flags.Kind != ArgConst {
+		flags, ok := c.Args[3].(*ConstArg)
+		if !ok {
 			panic("mremap flag arg is not const")
 		}
 		if flags.Val&sys.MREMAP_MAYMOVE != 0 {
 			flags.Val |= sys.MREMAP_FIXED
 		}
 	case "mknod", "mknodat":
-		mode := c.Args[1]
-		dev := c.Args[2]
+		mode, ok1 := c.Args[1].(*ConstArg)
+		dev, ok2 := c.Args[2].(*ConstArg)
 		if c.Meta.CallName == "mknodat" {
-			mode = c.Args[2]
-			dev = c.Args[3]
+			mode, ok1 = c.Args[2].(*ConstArg)
+			dev, ok2 = c.Args[3].(*ConstArg)
 		}
-		if mode.Kind != ArgConst || dev.Kind != ArgConst {
+		if !ok1 || !ok2 {
 			panic("mknod mode is not const")
 		}
 		// Char and block devices read/write io ports, kernel memory and do other nasty things.
@@ -233,13 +232,13 @@ func sanitizeCall(c *Call) {
 			mode.Val |= sys.S_IFREG
 		}
 	case "syslog":
-		cmd := c.Args[0]
+		cmd := c.Args[0].(*ConstArg)
 		// These disable console output, but we need it.
 		if cmd.Val == sys.SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == sys.SYSLOG_ACTION_CONSOLE_ON {
 			cmd.Val = sys.SYSLOG_ACTION_SIZE_UNREAD
 		}
 	case "ioctl":
-		cmd := c.Args[1]
+		cmd := c.Args[1].(*ConstArg)
 		// Freeze kills machine. Though, it is an interesting functions,
 		// so we need to test it somehow.
 		// TODO: not required if executor drops privileges.
@@ -247,13 +246,14 @@ func sanitizeCall(c *Call) {
 			cmd.Val = sys.FITHAW
 		}
 	case "ptrace":
+		req := c.Args[0].(*ConstArg)
 		// PTRACE_TRACEME leads to unkillable processes, see:
 		// https://groups.google.com/forum/#!topic/syzkaller/uGzwvhlCXAw
-		if c.Args[0].Val == sys.PTRACE_TRACEME {
-			c.Args[0].Val = ^uintptr(0)
+		if req.Val == sys.PTRACE_TRACEME {
+			req.Val = ^uintptr(0)
 		}
 	case "exit", "exit_group":
-		code := c.Args[0]
+		code := c.Args[0].(*ConstArg)
 		// These codes are reserved by executor.
 		if code.Val%128 == 67 || code.Val%128 == 68 {
 			code.Val = 1
@@ -264,9 +264,9 @@ func sanitizeCall(c *Call) {
 func RequiresBitmasks(p *Prog) bool {
 	result := false
 	for _, c := range p.Calls {
-		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
-			if arg.Kind == ArgConst {
-				if arg.Type.BitfieldOffset() != 0 || arg.Type.BitfieldLength() != 0 {
+		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+			if a, ok := arg.(*ConstArg); ok {
+				if a.Type().BitfieldOffset() != 0 || a.Type().BitfieldLength() != 0 {
 					result = true
 				}
 			}
@@ -278,8 +278,8 @@ func RequiresBitmasks(p *Prog) bool {
 func RequiresChecksums(p *Prog) bool {
 	result := false
 	for _, c := range p.Calls {
-		foreachArg(c, func(arg, _ *Arg, _ *[]*Arg) {
-			if _, ok := arg.Type.(*sys.CsumType); ok {
+		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+			if _, ok := arg.Type().(*sys.CsumType); ok {
 				result = true
 			}
 		})

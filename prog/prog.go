@@ -15,57 +15,198 @@ type Prog struct {
 
 type Call struct {
 	Meta *sys.Call
-	Args []*Arg
-	Ret  *Arg
+	Args []Arg
+	Ret  Arg
 }
 
-type Arg struct {
-	Type         sys.Type
-	Kind         ArgKind
-	Val          uintptr       // value of ArgConst
-	AddrPage     uintptr       // page index for ArgPointer address, page count for ArgPageSize
-	AddrOffset   int           // page offset for ArgPointer address
-	AddrPagesNum uintptr       // number of available pages for ArgPointer
-	Data         []byte        // data of ArgData
-	Inner        []*Arg        // subargs of ArgGroup
-	Res          *Arg          // target of ArgResult, pointee for ArgPointer
-	Uses         map[*Arg]bool // this arg is used by those ArgResult args
-	OpDiv        uintptr       // divide result for ArgResult (executed before OpAdd)
-	OpAdd        uintptr       // add to result for ArgResult
+type Arg interface {
+	Type() sys.Type
+	Size() uintptr
+}
 
-	// ArgUnion/UnionType
-	Option     *Arg
+type ArgCommon struct {
+	typ sys.Type
+}
+
+func (arg *ArgCommon) Type() sys.Type {
+	return arg.typ
+}
+
+// Used for ConstType, IntType, FlagsType, LenType, ProcType and CsumType.
+type ConstArg struct {
+	ArgCommon
+	Val uintptr
+}
+
+func (arg *ConstArg) Size() uintptr {
+	return arg.typ.Size()
+}
+
+// Returns value taking endianness and executor pid into consideration.
+func (arg *ConstArg) Value(pid int) uintptr {
+	switch typ := (*arg).Type().(type) {
+	case *sys.IntType:
+		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
+	case *sys.ConstType:
+		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
+	case *sys.FlagsType:
+		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
+	case *sys.LenType:
+		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
+	case *sys.CsumType:
+		// Checksums are computed dynamically in executor.
+		return 0
+	case *sys.ResourceType:
+		if t, ok := typ.Desc.Type.(*sys.IntType); ok {
+			return encodeValue(arg.Val, t.Size(), t.BigEndian)
+		} else {
+			panic(fmt.Sprintf("bad base type for a resource: %v", t))
+		}
+	case *sys.ProcType:
+		val := uintptr(typ.ValuesStart) + uintptr(typ.ValuesPerProc)*uintptr(pid) + arg.Val
+		return encodeValue(val, typ.Size(), typ.BigEndian)
+	}
+	return arg.Val
+}
+
+// Used for PtrType and VmaType.
+// Even if these are always constant (for reproducibility), we use a separate
+// type because they are represented in an abstract (base+page+offset) form.
+type PointerArg struct {
+	ArgCommon
+	PageIndex  uintptr
+	PageOffset int     // offset within a page
+	PagesNum   uintptr // number of available pages
+	Res        Arg     // pointee
+}
+
+func (arg *PointerArg) Size() uintptr {
+	return arg.typ.Size()
+}
+
+// Used for BufferType.
+type DataArg struct {
+	ArgCommon
+	Data []byte
+}
+
+func (arg *DataArg) Size() uintptr {
+	return uintptr(len(arg.Data))
+}
+
+// Used for StructType and ArrayType.
+// Logical group of args (struct or array).
+type GroupArg struct {
+	ArgCommon
+	Inner []Arg
+}
+
+func (arg *GroupArg) Size() uintptr {
+	switch typ := (*arg).Type().(type) {
+	case *sys.StructType:
+		var size uintptr
+		for _, fld := range arg.Inner {
+			if fld.Type().BitfieldLength() == 0 || fld.Type().BitfieldLast() {
+				size += fld.Size()
+			}
+		}
+		align := typ.Align()
+		if size%align != 0 {
+			if typ.Varlen() {
+				size += align - size%align
+			} else {
+				panic(fmt.Sprintf("struct %+v with type %+v has static size %v, which isn't aligned to %v", arg, typ, size, align))
+			}
+		}
+		return size
+	case *sys.ArrayType:
+		var size uintptr
+		for _, in := range arg.Inner {
+			size += in.Size()
+		}
+		return size
+	default:
+		panic(fmt.Sprintf("bad group arg type %v", typ))
+	}
+}
+
+// Used for UnionType.
+type UnionArg struct {
+	ArgCommon
+	Option     Arg
 	OptionType sys.Type
 }
 
-type ArgKind int
-
-const (
-	ArgConst ArgKind = iota
-	ArgResult
-	ArgPointer  // even if these are always constant (for reproducibility), we use a separate type because they are represented in an abstract (base+page+offset) form
-	ArgPageSize // same as ArgPointer but base is not added, so it represents "lengths" in pages
-	ArgData
-	ArgGroup // logical group of args (struct or array)
-	ArgUnion
-	ArgReturn // fake value denoting syscall return value
-)
-
-// Returns inner arg for PtrType args
-func (a *Arg) InnerArg() *Arg {
-	switch typ := a.Type.(type) {
-	case *sys.PtrType:
-		if a.Res == nil {
-			if !typ.Optional() {
-				panic(fmt.Sprintf("non-optional pointer is nil\narg: %+v\ntype: %+v", a, typ))
-			}
-			return nil
-		} else {
-			return a.Res.InnerArg()
-		}
-	default:
-		return a
+func (arg *UnionArg) Size() uintptr {
+	if !arg.Type().Varlen() {
+		return arg.Type().Size()
+	} else {
+		return arg.Option.Size()
 	}
+}
+
+// Used for ResourceType.
+// Either holds constant value or reference another ResultArg or ReturnArg.
+type ResultArg struct {
+	ArgCommon
+	Res   Arg          // reference to arg which we use
+	OpDiv uintptr      // divide result (executed before OpAdd)
+	OpAdd uintptr      // add to result
+	Val   uintptr      // value used if Res is nil
+	uses  map[Arg]bool // ArgResult args that use this arg
+}
+
+func (arg *ResultArg) Size() uintptr {
+	return arg.typ.Size()
+}
+
+// Used for ResourceType and VmaType.
+// This argument denotes syscall return value.
+type ReturnArg struct {
+	ArgCommon
+	uses map[Arg]bool // ArgResult args that use this arg
+}
+
+func (arg *ReturnArg) Size() uintptr {
+	panic("not called")
+}
+
+type ArgUsed interface {
+	Used() *map[Arg]bool
+}
+
+func (arg *ResultArg) Used() *map[Arg]bool {
+	return &arg.uses
+}
+
+func (arg *ReturnArg) Used() *map[Arg]bool {
+	return &arg.uses
+}
+
+type ArgUser interface {
+	Uses() *Arg
+}
+
+func (arg *ResultArg) Uses() *Arg {
+	return &arg.Res
+}
+
+// Returns inner arg for pointer args.
+func InnerArg(arg Arg) Arg {
+	if t, ok := arg.Type().(*sys.PtrType); ok {
+		if a, ok := arg.(*PointerArg); ok {
+			if a.Res == nil {
+				if !t.Optional() {
+					panic(fmt.Sprintf("non-optional pointer is nil\narg: %+v\ntype: %+v", a, t))
+				}
+				return nil
+			} else {
+				return InnerArg(a.Res)
+			}
+		}
+		return nil // *ConstArg.
+	}
+	return arg // Not a pointer.
 }
 
 func encodeValue(value, size uintptr, bigEndian bool) uintptr {
@@ -84,114 +225,45 @@ func encodeValue(value, size uintptr, bigEndian bool) uintptr {
 	}
 }
 
-// Returns value taking endianness into consideration.
-func (a *Arg) Value(pid int) uintptr {
-	switch typ := a.Type.(type) {
-	case *sys.IntType:
-		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
-	case *sys.ConstType:
-		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
-	case *sys.FlagsType:
-		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
-	case *sys.LenType:
-		return encodeValue(a.Val, typ.Size(), typ.BigEndian)
-	case *sys.CsumType:
-		// Checksums are computed dynamically in executor.
-		return 0
-	case *sys.ResourceType:
-		if t, ok := typ.Desc.Type.(*sys.IntType); ok {
-			return encodeValue(a.Val, t.Size(), t.BigEndian)
-		} else {
-			panic(fmt.Sprintf("bad base type for a resource: %v", t))
-		}
-	case *sys.ProcType:
-		val := uintptr(typ.ValuesStart) + uintptr(typ.ValuesPerProc)*uintptr(pid) + a.Val
-		return encodeValue(val, typ.Size(), typ.BigEndian)
-	}
-	return a.Val
+func constArg(t sys.Type, v uintptr) Arg {
+	return &ConstArg{ArgCommon: ArgCommon{typ: t}, Val: v}
 }
 
-func (a *Arg) Size() uintptr {
-	switch typ := a.Type.(type) {
-	case *sys.IntType, *sys.LenType, *sys.FlagsType, *sys.ConstType,
-		*sys.ResourceType, *sys.VmaType, *sys.PtrType, *sys.ProcType, *sys.CsumType:
-		return typ.Size()
-	case *sys.BufferType:
-		return uintptr(len(a.Data))
-	case *sys.StructType:
-		var size uintptr
-		for _, fld := range a.Inner {
-			if fld.Type.BitfieldLength() == 0 || fld.Type.BitfieldLast() {
-				size += fld.Size()
-			}
-		}
-		align := typ.Align()
-		if size%align != 0 {
-			if typ.Varlen() {
-				size += align - size%align
-			} else {
-				panic(fmt.Sprintf("struct %+v with type %+v has static size %v, which isn't aligned to %v", a, typ, size, align))
-			}
-		}
-		return size
-	case *sys.UnionType:
-		if !typ.Varlen() {
-			return typ.Size()
-		} else {
-			return a.Option.Size()
-		}
-	case *sys.ArrayType:
-		var size uintptr
-		for _, in := range a.Inner {
-			size += in.Size()
-		}
-		return size
-	default:
-		panic("unknown arg type")
+func resultArg(t sys.Type, r Arg, v uintptr) Arg {
+	arg := &ResultArg{ArgCommon: ArgCommon{typ: t}, Res: r, Val: v}
+	if r == nil {
+		return arg
 	}
-}
-
-func constArg(t sys.Type, v uintptr) *Arg {
-	return &Arg{Type: t, Kind: ArgConst, Val: v}
-}
-
-func resultArg(t sys.Type, r *Arg) *Arg {
-	arg := &Arg{Type: t, Kind: ArgResult, Res: r}
-	if r.Uses == nil {
-		r.Uses = make(map[*Arg]bool)
+	if used, ok := r.(ArgUsed); ok {
+		if *used.Used() == nil {
+			*used.Used() = make(map[Arg]bool)
+		}
+		if (*used.Used())[arg] {
+			panic("already used")
+		}
+		(*used.Used())[arg] = true
 	}
-	if r.Uses[arg] {
-		panic("already used")
-	}
-	r.Uses[arg] = true
 	return arg
 }
 
-func dataArg(t sys.Type, data []byte) *Arg {
-	return &Arg{Type: t, Kind: ArgData, Data: append([]byte{}, data...)}
+func dataArg(t sys.Type, data []byte) Arg {
+	return &DataArg{ArgCommon: ArgCommon{typ: t}, Data: append([]byte{}, data...)}
 }
 
-func pointerArg(t sys.Type, page uintptr, off int, npages uintptr, obj *Arg) *Arg {
-	return &Arg{Type: t, Kind: ArgPointer, AddrPage: page, AddrOffset: off, AddrPagesNum: npages, Res: obj}
+func pointerArg(t sys.Type, page uintptr, off int, npages uintptr, obj Arg) Arg {
+	return &PointerArg{ArgCommon: ArgCommon{typ: t}, PageIndex: page, PageOffset: off, PagesNum: npages, Res: obj}
 }
 
-func pageSizeArg(t sys.Type, npages uintptr, off int) *Arg {
-	return &Arg{Type: t, Kind: ArgPageSize, AddrPage: npages, AddrOffset: off}
+func groupArg(t sys.Type, inner []Arg) Arg {
+	return &GroupArg{ArgCommon: ArgCommon{typ: t}, Inner: inner}
 }
 
-func groupArg(t sys.Type, inner []*Arg) *Arg {
-	return &Arg{Type: t, Kind: ArgGroup, Inner: inner}
+func unionArg(t sys.Type, opt Arg, typ sys.Type) Arg {
+	return &UnionArg{ArgCommon: ArgCommon{typ: t}, Option: opt, OptionType: typ}
 }
 
-func unionArg(t sys.Type, opt *Arg, typ sys.Type) *Arg {
-	return &Arg{Type: t, Kind: ArgUnion, Option: opt, OptionType: typ}
-}
-
-func returnArg(t sys.Type) *Arg {
-	if t != nil {
-		return &Arg{Type: t, Kind: ArgReturn, Val: t.Default()}
-	}
-	return &Arg{Type: t, Kind: ArgReturn}
+func returnArg(t sys.Type) Arg {
+	return &ReturnArg{ArgCommon: ArgCommon{typ: t}}
 }
 
 func (p *Prog) insertBefore(c *Call, calls []*Call) {
@@ -212,46 +284,55 @@ func (p *Prog) insertBefore(c *Call, calls []*Call) {
 }
 
 // replaceArg replaces arg with arg1 in call c in program p, and inserts calls before arg call.
-func (p *Prog) replaceArg(c *Call, arg, arg1 *Arg, calls []*Call) {
-	if arg.Kind != ArgConst && arg.Kind != ArgResult && arg.Kind != ArgPointer && arg.Kind != ArgUnion {
-		panic(fmt.Sprintf("replaceArg: bad arg kind %v", arg.Kind))
-	}
-	if arg1.Kind != ArgConst && arg1.Kind != ArgResult && arg1.Kind != ArgPointer && arg.Kind != ArgUnion {
-		panic(fmt.Sprintf("replaceArg: bad arg1 kind %v", arg1.Kind))
-	}
-	if arg.Kind == ArgResult {
-		delete(arg.Res.Uses, arg)
-	}
+func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
 	for _, c := range calls {
 		sanitizeCall(c)
 	}
 	p.insertBefore(c, calls)
-	// Somewhat hacky, but safe and preserves references to arg.
-	uses := arg.Uses
-	*arg = *arg1
-	arg.Uses = uses
-	if arg.Kind == ArgResult {
-		delete(arg.Res.Uses, arg1)
-		arg.Res.Uses[arg] = true
+	switch a := arg.(type) {
+	case *ConstArg:
+		*a = *arg1.(*ConstArg)
+	case *ResultArg:
+		// Remove link from `a.Res` to `arg`.
+		if a.Res != nil {
+			delete(*a.Res.(ArgUsed).Used(), arg)
+		}
+		// Copy all fields from `arg1` to `arg` except for the list of args that use `arg`.
+		used := *arg.(ArgUsed).Used()
+		*a = *arg1.(*ResultArg)
+		*arg.(ArgUsed).Used() = used
+		// Make the link in `a.Res` (which is now `Res` of `arg1`) to point to `arg` instead of `arg1`.
+		if a.Res != nil {
+			delete(*a.Res.(ArgUsed).Used(), arg1)
+			(*a.Res.(ArgUsed).Used())[arg] = true
+		}
+	case *PointerArg:
+		*a = *arg1.(*PointerArg)
+	case *UnionArg:
+		*a = *arg1.(*UnionArg)
+	default:
+		panic(fmt.Sprintf("replaceArg: bad arg kind %v", arg))
 	}
 	sanitizeCall(c)
 }
 
 // removeArg removes all references to/from arg0 of call c from p.
-func (p *Prog) removeArg(c *Call, arg0 *Arg) {
-	foreachSubarg(arg0, func(arg, _ *Arg, _ *[]*Arg) {
-		if arg.Kind == ArgResult {
-			if _, ok := arg.Res.Uses[arg]; !ok {
+func (p *Prog) removeArg(c *Call, arg0 Arg) {
+	foreachSubarg(arg0, func(arg, _ Arg, _ *[]Arg) {
+		if a, ok := arg.(*ResultArg); ok && a.Res != nil {
+			if _, ok := (*a.Res.(ArgUsed).Used())[arg]; !ok {
 				panic("broken tree")
 			}
-			delete(arg.Res.Uses, arg)
+			delete(*a.Res.(ArgUsed).Used(), arg)
 		}
-		for arg1 := range arg.Uses {
-			if arg1.Kind != ArgResult {
-				panic("use references not ArgResult")
+		if used, ok := arg.(ArgUsed); ok {
+			for arg1 := range *used.Used() {
+				if _, ok := arg1.(*ResultArg); !ok {
+					panic("use references not ArgResult")
+				}
+				arg2 := resultArg(arg1.Type(), nil, arg1.Type().Default())
+				p.replaceArg(c, arg1, arg2, nil)
 			}
-			arg2 := constArg(arg1.Type, arg1.Type.Default())
-			p.replaceArg(c, arg1, arg2, nil)
 		}
 	})
 }
