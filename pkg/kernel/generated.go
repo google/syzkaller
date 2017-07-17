@@ -38,7 +38,8 @@ echo "debugfs /sys/kernel/debug debugfs defaults 0 0" | sudo tee -a disk.mnt/etc
 
 echo "kernel.printk = 7 4 1 3" | sudo tee -a disk.mnt/etc/sysctl.conf
 echo "debug.exception-trace = 0" | sudo tee -a disk.mnt/etc/sysctl.conf
-if [ -f $SYZ_SYSCTL_FILE ]; then
+SYZ_SYSCTL_FILE="${SYZ_SYSCTL_FILE:-}"
+if [ "$SYZ_SYSCTL_FILE" != "" ]; then
 	cat $SYZ_SYSCTL_FILE | sudo tee -a disk.mnt/etc/sysctl.conf
 fi
 
@@ -54,7 +55,8 @@ sudo chown root disk.mnt/root/.ssh/authorized_keys
 sudo mkdir -p disk.mnt/boot/grub
 
 CMDLINE=""
-if [ -f $SYZ_CMDLINE_FILE ]; then
+SYZ_CMDLINE_FILE="${SYZ_CMDLINE_FILE:-}"
+if [ "$SYZ_CMDLINE_FILE" != "" ]; then
 	CMDLINE=$(awk '{printf("%s ", $0)}' $SYZ_CMDLINE_FILE)
 fi
 

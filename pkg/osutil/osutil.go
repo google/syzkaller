@@ -21,11 +21,22 @@ const (
 
 // RunCmd runs "bin args..." in dir with timeout and returns its output.
 func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, error) {
+	return runCmd(timeout, nil, dir, bin, args...)
+}
+
+// RunCmdEnv is the same as RunCmd but also appends env.
+func RunCmdEnv(timeout time.Duration, env []string, dir, bin string, args ...string) ([]byte, error) {
+	return runCmd(timeout, env, dir, bin, args...)
+}
+
+func runCmd(timeout time.Duration, env []string, dir, bin string, args ...string) ([]byte, error) {
 	output := new(bytes.Buffer)
 	cmd := exec.Command(bin, args...)
 	cmd.Dir = dir
 	cmd.Stdout = output
 	cmd.Stderr = output
+	cmd.Env = append([]string{}, os.Environ()...)
+	cmd.Env = append(cmd.Env, env...)
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed to start %v %+v: %v", bin, args, err)
 	}
