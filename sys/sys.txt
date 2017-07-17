@@ -74,11 +74,11 @@ open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode])
 openat(fd fd_dir, file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 creat(file ptr[in, filename], mode flags[open_mode]) fd
 close(fd fd)
-read(fd fd, buf buffer[out], count len[buf]) len[buf]
+read(fd fd, buf buffer[out], count len[buf])
 pread64(fd fd, buf buffer[out], count len[buf], pos fileoff)
 readv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec])
 preadv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec], off fileoff)
-write(fd fd, buf buffer[in], count len[buf]) len[buf]
+write(fd fd, buf buffer[in], count len[buf])
 pwrite64(fd fd, buf buffer[in], count len[buf], pos fileoff)
 writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
 pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off fileoff)
@@ -583,10 +583,20 @@ sigset_size {
 	len	len[ss, intptr]
 }
 
+resource time_sec[intptr]
+resource time_nsec[intptr]
+resource time_usec[intptr]
+
 # prog knowns about this struct type
 timespec {
-	sec	intptr
-	nsec	intptr
+	sec	time_sec
+	nsec	time_nsec
+}
+
+# prog knowns about this struct type
+timeval {
+	sec	time_sec
+	usec	time_usec
 }
 
 statx_timestamp {
@@ -595,11 +605,6 @@ statx_timestamp {
 	__reserved  int32
 }
 
-# prog knowns about this struct type
-timeval {
-	sec	intptr
-	usec	intptr
-}
 
 itimerspec {
 	interv	timespec
