@@ -36,9 +36,10 @@ type Result struct {
 	Opts     csource.Options
 	CRepro   bool
 	Stats    Stats
-	// Description and report of the final crash that we reproduced.
+	// Description, log and report of the final crash that we reproduced.
 	// Can be different from what we started reproducing.
 	Desc   string
+	Log    []byte
 	Report []byte
 }
 
@@ -49,6 +50,7 @@ type context struct {
 	bootRequests chan int
 	stats        Stats
 	desc         string
+	log          []byte
 	report       []byte
 }
 
@@ -142,6 +144,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 		ctx.reproLog(3, "repro crashed as:\n%s", string(ctx.report))
 		res.Stats = ctx.stats
 		res.Desc = ctx.desc
+		res.Log = ctx.log
 		res.Report = ctx.report
 	}
 
@@ -665,13 +668,13 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 	if err != nil {
 		return false, fmt.Errorf("failed to run command in VM: %v", err)
 	}
-	desc, report, output, crashed, timedout := vm.MonitorExecution(outc, errc, false, ctx.cfg.ParsedIgnores)
-	_, _, _ = report, output, timedout
+	desc, report, output, crashed, _ := vm.MonitorExecution(outc, errc, false, ctx.cfg.ParsedIgnores)
 	if !crashed {
 		ctx.reproLog(2, "program did not crash")
 		return false, nil
 	}
 	ctx.desc = desc
+	ctx.log = output
 	ctx.report = report
 	ctx.reproLog(2, "program crashed: %v", desc)
 	return true, nil
