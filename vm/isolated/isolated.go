@@ -221,7 +221,6 @@ func (inst *instance) waitForReboot(timeout int) error {
 	return fmt.Errorf("isolated: the machine did not reboot on repair")
 }
 
-
 func (inst *instance) Close() {
 	close(inst.closed)
 }
