@@ -310,18 +310,19 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 		return "", err
 	}
 	current := mgr.currentDir
-	tag := info.Tag
-	if mgr.dash == nil {
+	if mgr.dash != nil {
+		mgrcfg.Tag = info.Tag
+
+		mgrcfg.Dashboard_Client = mgr.dash.Client
+		mgrcfg.Dashboard_Addr = mgr.dash.Addr
+		mgrcfg.Dashboard_Key = mgr.dash.Key
+	} else {
 		// Dashboard identifies builds by unique tags that are combined
 		// from kernel tag, compiler tag and config tag.
 		// This combined tag is meaningless without dashboard,
 		// so we use kenrel tag (commit tag) because it communicates
 		// at least some useful information.
-		tag = info.KernelCommit
-
-		mgrcfg.Dashboard_Client = mgr.dash.Client
-		mgrcfg.Dashboard_Addr = mgr.dash.Addr
-		mgrcfg.Dashboard_Key = mgr.dash.Key
+		mgrcfg.Tag = info.KernelCommit
 	}
 	mgrcfg.Name = mgr.cfg.Name + "-" + mgr.name
 	if mgr.cfg.Hub_Addr != "" {
@@ -335,7 +336,6 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.
 	mgrcfg.Kernel_Src = mgr.kernelDir
-	mgrcfg.Tag = tag
 	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 	mgrcfg.Image = filepath.Join(current, "image")
 	mgrcfg.Sshkey = filepath.Join(current, "key")
