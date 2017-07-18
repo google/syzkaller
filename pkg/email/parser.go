@@ -49,11 +49,21 @@ func Parse(r io.Reader, ownEmail string) (*Email, error) {
 	cc, _ := msg.Header.AddressList("Cc")
 	bugID := ""
 	var ccList []string
+	if addr, err := mail.ParseAddress(ownEmail); err == nil {
+		ownEmail = addr.Address
+	}
 	for _, addr := range append(cc, to...) {
-		if bugID == "" {
-			bugID = extractBugID(addr.Address, ownEmail)
+		cleaned, context, _ := RemoveAddrContext(addr.Address)
+		if addr, err := mail.ParseAddress(cleaned); err == nil {
+			cleaned = addr.Address
 		}
-		ccList = append(ccList, addr.String())
+		if cleaned == ownEmail {
+			if bugID == "" {
+				bugID = context
+			}
+		} else {
+			ccList = append(ccList, addr.String())
+		}
 	}
 	body, attachments, err := parseBody(msg.Body, msg.Header)
 	if err != nil {
@@ -84,30 +94,39 @@ func Parse(r io.Reader, ownEmail string) (*Email, error) {
 	return email, nil
 }
 
-// extractBugID extracts bug ID encoded in receiver email.
-// We send emails from <something+BUG_ID_HASH@something.com>.
-// from is potentially such email address, canonical is <something@something.com>.
-// This function returns BUG_ID_HASH, or an empty string if from does not contain
-// the hash or is different from canonical.
-func extractBugID(from, canonical string) string {
-	if email, err := mail.ParseAddress(canonical); err == nil {
-		canonical = email.Address
+// AddAddrContext embeds context into local part of the provided email address using '+'.
+// Returns the resulting email address.
+func AddAddrContext(email, context string) (string, error) {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse %q as email: %v", email, err)
 	}
-	plusPos := strings.IndexByte(from, '+')
-	if plusPos == -1 {
-		return ""
+	at := strings.IndexByte(addr.Address, '@')
+	if at == -1 {
+		return "", fmt.Errorf("failed to parse %q as email: no @", email)
 	}
-	atPos := strings.IndexByte(from[plusPos:], '@')
-	if atPos == -1 {
-		return ""
+	addr.Address = addr.Address[:at] + "+" + context + addr.Address[at:]
+	return addr.String(), nil
+}
+
+// RemoveAddrContext extracts context after '+' from the local part of the provided email address.
+// Returns address without the context and the context.
+func RemoveAddrContext(email string) (string, string, error) {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse %q as email: %v", email, err)
 	}
-	user := from[:plusPos]
-	domain := from[plusPos+atPos:]
-	hash := from[plusPos+1 : plusPos+atPos]
-	if strings.ToLower(user+domain) != strings.ToLower(canonical) {
-		return ""
+	at := strings.IndexByte(addr.Address, '@')
+	if at == -1 {
+		return "", "", fmt.Errorf("failed to parse %q as email: no @", email)
 	}
-	return hash
+	plus := strings.LastIndexByte(addr.Address[:at], '+')
+	if plus == -1 {
+		return email, "", nil
+	}
+	context := addr.Address[plus+1 : at]
+	addr.Address = addr.Address[:plus] + addr.Address[at:]
+	return addr.String(), context, nil
 }
 
 // extractCommand extracts command to syzbot from email body.

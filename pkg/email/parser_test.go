@@ -23,23 +23,62 @@ func TestExtractCommand(t *testing.T) {
 	}
 }
 
-func TestExtractBugID(t *testing.T) {
-	for i, test := range extractBugIDTests {
-		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			bugID := extractBugID(test.email, `"Foo Bar" <foo@bar.com>`)
-			if bugID != test.bugID {
-				t.Logf("expect: %q", test.bugID)
-				t.Logf("got   : %q", bugID)
-				t.Fail()
-			}
-		})
+func TestAddRemoveAddrContext(t *testing.T) {
+	email := `"Foo Bar" <foo@bar.com>`
+	email00, context00, err := RemoveAddrContext(email)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if email != email00 {
+		t.Fatalf("want: %q, got %q", email, email00)
+	}
+	if context00 != "" {
+		t.Fatalf("want context: %q, got %q", "", context00)
+	}
+	context1 := "context1"
+	email1, err := AddAddrContext(email, context1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want1 := `"Foo Bar" <foo+context1@bar.com>`
+	if want1 != email1 {
+		t.Fatalf("want: %q, got %q", want1, email1)
+	}
+	context2 := "context2"
+	email2, err := AddAddrContext(email1, context2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want2 := `"Foo Bar" <foo+context1+context2@bar.com>`
+	if want2 != email2 {
+		t.Fatalf("want: %q, got %q", want2, email2)
+	}
+	email1, context20, err := RemoveAddrContext(email2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want1 != email1 {
+		t.Fatalf("want: %q, got %q", want1, email1)
+	}
+	if context2 != context20 {
+		t.Fatalf("want context: %q, got %q", context2, context20)
+	}
+	email0, context10, err := RemoveAddrContext(email1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if email != email0 {
+		t.Fatalf("want: %q, got %q", email, email0)
+	}
+	if context1 != context10 {
+		t.Fatalf("want context: %q, got %q", context1, context10)
 	}
 }
 
 func TestParse(t *testing.T) {
 	for i, test := range parseTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			email, err := Parse(strings.NewReader(test.email), "")
+			email, err := Parse(strings.NewReader(test.email), "bot <foo@bar.com>")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -86,24 +125,6 @@ line 2
 	},
 }
 
-var extractBugIDTests = []struct {
-	email string
-	bugID string
-}{
-	{
-		`foo@bar.com`,
-		``,
-	},
-	{
-		`foo+123@baz.com`,
-		``,
-	},
-	{
-		`foo+123@bar.com`,
-		`123`,
-	},
-}
-
 var parseTests = []struct {
 	email string
 	res   *Email
@@ -112,7 +133,7 @@ var parseTests = []struct {
 Message-ID: <123>
 Subject: test subject
 From: Bob <bob@example.com>
-To: syzbot <bot@example.com>
+To: syzbot <foo+4564456@bar.com>
 Content-Type: text/plain; charset="UTF-8"
 
 text body
@@ -120,10 +141,10 @@ second line
 #syzbot command arg1 arg2 arg3
 last line`,
 		&Email{
+			BugID:     "4564456",
 			MessageID: "<123>",
 			Subject:   "test subject",
 			From:      "\"Bob\" <bob@example.com>",
-			Cc:        []string{"\"syzbot\" <bot@example.com>"},
 			Body: `text body
 second line
 #syzbot command arg1 arg2 arg3

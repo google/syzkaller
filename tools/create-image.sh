@@ -31,7 +31,7 @@ ssh-keygen -f ssh/id_rsa -t rsa -N ''
 cat ssh/id_rsa.pub | sudo tee wheezy/root/.ssh/authorized_keys
 
 # Build a disk image
-dd if=/dev/zero of=wheezy.img bs=1M seek=1023 count=1
+dd if=/dev/zero of=wheezy.img bs=1M seek=2047 count=1
 sudo mkfs.ext4 -F wheezy.img
 sudo mkdir -p /mnt/wheezy
 sudo mount -o loop wheezy.img /mnt/wheezy

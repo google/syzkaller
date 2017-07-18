@@ -305,7 +305,7 @@ type RunResult struct {
 
 type ReproResult struct {
 	instances []int
-	crash     *Crash
+	desc0     string
 	res       *repro.Result
 	err       error
 }
@@ -373,7 +373,7 @@ func (mgr *Manager) vmLoop() {
 				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.desc, vmIndexes)
 				go func() {
 					res, err := repro.Run(crash.output, mgr.cfg, mgr.vmPool, vmIndexes)
-					reproDone <- &ReproResult{vmIndexes, crash, res, err}
+					reproDone <- &ReproResult{vmIndexes, crash.desc, res, err}
 				}()
 			}
 			for !canRepro() && len(instances) != 0 {
@@ -415,18 +415,24 @@ func (mgr *Manager) vmLoop() {
 			}
 		case res := <-reproDone:
 			crepro := false
+			desc := ""
 			if res.res != nil {
 				crepro = res.res.CRepro
+				desc = res.res.Desc
 			}
-			Logf(1, "loop: repro on instances %+v finished '%v', repro=%v crepro=%v",
-				res.instances, res.crash.desc, res.res != nil, crepro)
+			Logf(1, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'",
+				res.instances, res.desc0, res.res != nil, crepro, desc)
 			if res.err != nil {
 				Logf(0, "repro failed: %v", res.err)
 			}
-			delete(reproducing, res.crash.desc)
+			delete(reproducing, res.desc0)
 			instances = append(instances, res.instances...)
 			reproInstances -= instancesPerRepro
-			mgr.saveRepro(res.crash, res.res)
+			if res.res == nil {
+				mgr.saveFailedRepro(res.desc0)
+			} else {
+				mgr.saveRepro(res.res)
+			}
 		case <-shutdown:
 			Logf(1, "loop: shutting down...")
 			shutdown = nil
@@ -511,16 +517,7 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 	}
 	mgr.mu.Unlock()
 
-	if len(crash.text) > 0 {
-		<-allSymbolsReady
-		symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, crash.text, allSymbols)
-		if err != nil {
-			Logf(0, "failed to symbolize crash: %v", err)
-		} else {
-			crash.text = symbolized
-		}
-	}
-
+	crash.text = mgr.symbolizeReport(crash.text)
 	if mgr.dash != nil {
 		var maintainers []string
 		guiltyFile := report.ExtractGuiltyFile(crash.text)
@@ -599,37 +596,39 @@ func (mgr *Manager) needRepro(desc string) bool {
 	return false
 }
 
-func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
-	sig := hash.Hash([]byte(crash.desc))
-	dir := filepath.Join(mgr.crashdir, sig.String())
-	if res == nil {
-		if mgr.dash != nil {
-			fr := &dashapi.FailedRepro{
-				Manager: mgr.cfg.Name,
-				BuildID: mgr.cfg.Tag,
-				Title:   crash.desc,
-			}
-			if err := mgr.dash.ReportFailedRepro(fr); err != nil {
-				Logf(0, "failed to report failed repro to dashboard: %v", err)
-			}
+func (mgr *Manager) saveFailedRepro(desc string) {
+	if mgr.dash != nil {
+		fr := &dashapi.FailedRepro{
+			Manager: mgr.cfg.Name,
+			BuildID: mgr.cfg.Tag,
+			Title:   desc,
 		}
-		for i := 0; i < maxReproAttempts; i++ {
-			name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
-			if !osutil.IsExist(name) {
-				osutil.WriteFile(name, nil)
-				break
-			}
+		if err := mgr.dash.ReportFailedRepro(fr); err != nil {
+			Logf(0, "failed to report failed repro to dashboard: %v", err)
 		}
-		return
 	}
+	dir := filepath.Join(mgr.crashdir, hash.String([]byte(desc)))
+	for i := 0; i < maxReproAttempts; i++ {
+		name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
+		if !osutil.IsExist(name) {
+			osutil.WriteFile(name, nil)
+			break
+		}
+	}
+}
+
+func (mgr *Manager) saveRepro(res *repro.Result) {
+	res.Report = mgr.symbolizeReport(res.Report)
+	dir := filepath.Join(mgr.crashdir, hash.String([]byte(res.Desc)))
+
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
 	prog := res.Prog.Serialize()
 	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...))
 	if len(mgr.cfg.Tag) > 0 {
 		osutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag))
 	}
-	if len(crash.text) > 0 {
-		osutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(crash.text))
+	if len(res.Report) > 0 {
+		osutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(res.Report))
 	}
 	osutil.WriteFile(filepath.Join(dir, "repro.log"), res.Stats.Log)
 	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\nExtracting C: %s\nSimplifying C: %s\n",
@@ -652,7 +651,7 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 
 	if mgr.dash != nil {
 		var maintainers []string
-		guiltyFile := report.ExtractGuiltyFile(crash.text)
+		guiltyFile := report.ExtractGuiltyFile(res.Report)
 		if guiltyFile != "" {
 			var err error
 			maintainers, err = report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
@@ -663,10 +662,10 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 		dc := &dashapi.Crash{
 			Manager:     mgr.cfg.Name,
 			BuildID:     mgr.cfg.Tag,
-			Title:       crash.desc,
+			Title:       res.Desc,
 			Maintainers: maintainers,
-			Log:         crash.output,
-			Report:      crash.text,
+			Log:         nil,
+			Report:      res.Report,
 			ReproOpts:   []byte(fmt.Sprintf("%+v", res.Opts)),
 			ReproSyz:    []byte(res.Prog.Serialize()),
 			ReproC:      cprogText,
@@ -675,6 +674,19 @@ func (mgr *Manager) saveRepro(crash *Crash, res *repro.Result) {
 			Logf(0, "failed to report repro to dashboard: %v", err)
 		}
 	}
+}
+
+func (mgr *Manager) symbolizeReport(text []byte) []byte {
+	if len(text) == 0 {
+		return nil
+	}
+	<-allSymbolsReady
+	symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text, allSymbols)
+	if err != nil {
+		Logf(0, "failed to symbolize report: %v", err)
+		return text
+	}
+	return symbolized
 }
 
 func (mgr *Manager) minimizeCorpus() {

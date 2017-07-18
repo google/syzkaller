@@ -76,13 +76,14 @@ func (t *tty) Close() error {
 	return nil
 }
 
-// OpenAdbConsole provides fallback console output using 'adb shell dmesg -w'.
-func OpenAdbConsole(bin, dev string) (rc io.ReadCloser, err error) {
+// Open dmesg remotely
+func OpenRemoteConsole(bin string, args ...string) (rc io.ReadCloser, err error) {
 	rpipe, wpipe, err := osutil.LongPipe()
 	if err != nil {
 		return nil, err
 	}
-	cmd := exec.Command(bin, "-s", dev, "shell", "dmesg -w")
+	args = append(args, "dmesg -w")
+	cmd := exec.Command(bin, args...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
@@ -91,28 +92,33 @@ func OpenAdbConsole(bin, dev string) (rc io.ReadCloser, err error) {
 		return nil, fmt.Errorf("failed to start adb: %v", err)
 	}
 	wpipe.Close()
-	con := &adbCon{
+	con := &remoteCon{
 		cmd:   cmd,
 		rpipe: rpipe,
 	}
 	return con, err
 }
 
-type adbCon struct {
+// OpenAdbConsole provides fallback console output using 'adb shell dmesg -w'.
+func OpenAdbConsole(bin, dev string) (rc io.ReadCloser, err error) {
+	return OpenRemoteConsole(bin, "-s", dev, "shell")
+}
+
+type remoteCon struct {
 	closeMu sync.Mutex
 	readMu  sync.Mutex
 	cmd     *exec.Cmd
 	rpipe   io.ReadCloser
 }
 
-func (t *adbCon) Read(buf []byte) (int, error) {
+func (t *remoteCon) Read(buf []byte) (int, error) {
 	t.readMu.Lock()
 	n, err := t.rpipe.Read(buf)
 	t.readMu.Unlock()
 	return n, err
 }
 
-func (t *adbCon) Close() error {
+func (t *remoteCon) Close() error {
 	t.closeMu.Lock()
 	cmd := t.cmd
 	t.cmd = nil

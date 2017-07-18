@@ -68,8 +68,10 @@ func build(dir, compiler string) error {
 
 // CreateImage creates a disk image that is suitable for syzkaller.
 // Kernel is taken from kernelDir, userspace system is taken from userspaceDir.
+// If cmdlineFile is not empty, contents of the file are appended to the kernel command line.
+// If sysctlFile is not empty, contents of the file are appended to the image /etc/sysctl.conf.
 // Produces image and root ssh key in the specified files.
-func CreateImage(kernelDir, userspaceDir, image, sshkey string) error {
+func CreateImage(kernelDir, userspaceDir, cmdlineFile, sysctlFile, image, sshkey string) error {
 	tempDir, err := ioutil.TempDir("", "syz-build")
 	if err != nil {
 		return err
@@ -80,7 +82,12 @@ func CreateImage(kernelDir, userspaceDir, image, sshkey string) error {
 		return fmt.Errorf("failed to write script file: %v", err)
 	}
 	bzImage := filepath.Join(kernelDir, filepath.FromSlash("arch/x86/boot/bzImage"))
-	if _, err := osutil.RunCmd(time.Hour, tempDir, scriptFile, userspaceDir, bzImage); err != nil {
+	env := []string{
+		"SYZ_CMDLINE_FILE=" + osutil.Abs(cmdlineFile),
+		"SYZ_SYSCTL_FILE=" + osutil.Abs(sysctlFile),
+	}
+	_, err = osutil.RunCmdEnv(time.Hour, env, tempDir, scriptFile, userspaceDir, bzImage)
+	if err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
 	if err := osutil.CopyFile(filepath.Join(tempDir, "disk.raw"), image); err != nil {

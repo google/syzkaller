@@ -54,7 +54,6 @@ import (
 	"os"
 	"sync"
 
-	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/config"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -66,24 +65,27 @@ var flagConfig = flag.String("config", "", "config file")
 type Config struct {
 	Name             string
 	Http             string
-	Dashboard_Addr   string
-	Dashboard_Key    string
-	Hub_Addr         string
-	Hub_Key          string
-	Goroot           string
+	Dashboard_Addr   string // Optional.
+	Hub_Addr         string // Optional.
+	Hub_Key          string // Optional.
+	Goroot           string // Go 1.8+ toolchain dir.
 	Syzkaller_Repo   string
 	Syzkaller_Branch string
 	Managers         []*ManagerConfig
 }
 
 type ManagerConfig struct {
-	Name           string
-	Repo           string
-	Branch         string
-	Compiler       string
-	Userspace      string
-	Kernel_Config  string
-	Manager_Config json.RawMessage
+	Name             string
+	Dashboard_Client string
+	Dashboard_Key    string
+	Repo             string
+	Branch           string
+	Compiler         string
+	Userspace        string
+	Kernel_Config    string
+	Kernel_Cmdline   string // File with kernel cmdline values (optional).
+	Kernel_Sysctl    string // File with sysctl values (e.g. output of sysctl -a, optional).
+	Manager_Config   json.RawMessage
 }
 
 func main() {
@@ -114,16 +116,11 @@ func main() {
 		close(stop)
 	}()
 
-	var dash *dashapi.Dashboard
-	if cfg.Dashboard_Addr != "" {
-		dash = dashapi.New(cfg.Name, cfg.Dashboard_Addr, cfg.Dashboard_Key)
-	}
-
 	var wg sync.WaitGroup
 	wg.Add(len(cfg.Managers))
 	managers := make([]*Manager, len(cfg.Managers))
 	for i, mgrcfg := range cfg.Managers {
-		managers[i] = createManager(dash, cfg, mgrcfg, stop)
+		managers[i] = createManager(cfg, mgrcfg, stop)
 	}
 	for _, mgr := range managers {
 		mgr := mgr
