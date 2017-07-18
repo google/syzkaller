@@ -627,10 +627,13 @@ func (mgr *Manager) saveRepro(res *repro.Result) {
 	if len(mgr.cfg.Tag) > 0 {
 		osutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag))
 	}
-	if len(res.Report) > 0 {
-		osutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(res.Report))
+	if len(res.Log) > 0 {
+		osutil.WriteFile(filepath.Join(dir, "repro.log"), res.Log)
 	}
-	osutil.WriteFile(filepath.Join(dir, "repro.log"), res.Stats.Log)
+	if len(res.Report) > 0 {
+		osutil.WriteFile(filepath.Join(dir, "repro.report"), res.Report)
+	}
+	osutil.WriteFile(filepath.Join(dir, "repro.stats.log"), res.Stats.Log)
 	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\nExtracting C: %s\nSimplifying C: %s\n",
 		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime, res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
 	osutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats))
@@ -664,7 +667,7 @@ func (mgr *Manager) saveRepro(res *repro.Result) {
 			BuildID:     mgr.cfg.Tag,
 			Title:       res.Desc,
 			Maintainers: maintainers,
-			Log:         nil,
+			Log:         res.Log,
 			Report:      res.Report,
 			ReproOpts:   []byte(fmt.Sprintf("%+v", res.Opts)),
 			ReproSyz:    []byte(res.Prog.Serialize()),
