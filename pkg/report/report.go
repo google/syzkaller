@@ -345,6 +345,7 @@ var (
 	questionableRe  = regexp.MustCompile(`(?:\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
 	symbolizeRe     = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])? +(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
 	decNumRe        = regexp.MustCompile(`[0-9]{5,}`)
+	lineNumRe       = regexp.MustCompile(`(:[0-9]+)+`)
 	addrRe          = regexp.MustCompile(`[0-9a-f]{8,}`)
 	funcRe          = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9_.]+)\+0x[0-9a-z]+/0x[0-9a-z]+`)
 	cpuRe           = regexp.MustCompile(`CPU#[0-9]+`)
@@ -469,6 +470,8 @@ func Parse(output []byte, ignores []*regexp.Regexp) (desc string, text []byte, s
 	desc = addrRe.ReplaceAllLiteralString(desc, "ADDR")
 	// Replace that everything looks like a decimal number with "NUM".
 	desc = decNumRe.ReplaceAllLiteralString(desc, "NUM")
+	// Replace that everything looks like a file line number with "LINE".
+	desc = lineNumRe.ReplaceAllLiteralString(desc, ":LINE")
 	// Replace all raw references to runctions (e.g. "ip6_fragment+0x1052/0x2d80")
 	// with just function name ("ip6_fragment"). Offsets and sizes are not stable.
 	desc = funcRe.ReplaceAllString(desc, "$1")
