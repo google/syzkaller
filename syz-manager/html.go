@@ -253,7 +253,7 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	prog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.prog"))
 	cprog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.cprog"))
 	rep, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.report"))
-	log, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.log"))
+	log, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.stats.log"))
 	stats, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.stats"))
 
 	fmt.Fprintf(w, "Syzkaller hit '%s' bug on commit %s.\n\n", trimNewLines(desc), trimNewLines(tag))
