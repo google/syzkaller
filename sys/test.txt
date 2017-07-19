@@ -463,3 +463,34 @@ syz_csum_ipv6_icmp_packet {
 	header		syz_csum_ipv6_header
 	payload		syz_csum_icmp_packet
 } [packed]
+
+# Recursion
+
+syz_recur_0 {
+	a0	ptr[in, syz_recur_0, opt]
+}
+
+syz_recur_1 {
+	a0	ptr[in, syz_recur_1, opt]
+	a1	ptr[in, syz_recur_2, opt]
+}
+
+syz_recur_2_0 {
+	a0	ptr[in, syz_recur_2_0, opt]
+	a1	ptr[in, syz_recur_2_0, opt]
+	a2	ptr[in, syz_recur_2_0, opt]
+	a3	ptr[in, syz_recur_2_0, opt]
+}
+
+syz_recur_2 {
+	a0	ptr[in, syz_recur_0, opt]
+	a1	ptr[in, syz_recur_1, opt]
+	a2	ptr[in, syz_recur_2_0, opt]
+	a3	ptr[in, syz_recur_2_0, opt]
+	a4	ptr[in, syz_recur_2, opt]
+	a5	ptr[in, syz_recur_2, opt]
+}
+
+syz_test$recur0(a0 ptr[inout, syz_recur_0])
+syz_test$recur1(a0 ptr[inout, syz_recur_1])
+syz_test$recur2(a0 ptr[inout, syz_recur_2])
