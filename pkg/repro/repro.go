@@ -266,9 +266,7 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 	return nil, nil
 }
 
-func (ctx *context) extractProgSingle(entries []*prog.LogEntry, duration time.Duration) (*Result, error) {
-	ctx.reproLog(3, "single: executing %d programs separately with timeout %s", len(entries), duration)
-
+func (ctx *context) createDefaultOps() csource.Options {
 	opts := csource.Options{
 		Threaded:   true,
 		Collide:    true,
@@ -279,9 +277,15 @@ func (ctx *context) extractProgSingle(entries []*prog.LogEntry, duration time.Du
 		UseTmpDir:  true,
 		HandleSegv: true,
 		WaitRepeat: true,
-		Debug:      true,
 		Repro:      true,
 	}
+	return opts
+}
+
+func (ctx *context) extractProgSingle(entries []*prog.LogEntry, duration time.Duration) (*Result, error) {
+	ctx.reproLog(3, "single: executing %d programs separately with timeout %s", len(entries), duration)
+
+	opts := ctx.createDefaultOps()
 
 	for _, ent := range entries {
 		opts.Fault = ent.Fault
@@ -312,19 +316,7 @@ func (ctx *context) extractProgSingle(entries []*prog.LogEntry, duration time.Du
 func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration time.Duration) (*Result, error) {
 	ctx.reproLog(3, "bisect: bisecting %d programs with base timeout %s", len(entries), baseDuration)
 
-	opts := csource.Options{
-		Threaded:   true,
-		Collide:    true,
-		Repeat:     true,
-		Procs:      ctx.cfg.Procs,
-		Sandbox:    ctx.cfg.Sandbox,
-		EnableTun:  true,
-		UseTmpDir:  true,
-		HandleSegv: true,
-		WaitRepeat: true,
-		Debug:      true,
-		Repro:      true,
-	}
+	opts := ctx.createDefaultOps()
 
 	duration := func(entries int) time.Duration {
 		return baseDuration + time.Duration((entries/4))*time.Second
@@ -815,13 +807,6 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.WaitRepeat = false
-		return true
-	},
-	func(opts *csource.Options) bool {
-		if !opts.Debug {
-			return false
-		}
-		opts.Debug = false
 		return true
 	},
 }...)
