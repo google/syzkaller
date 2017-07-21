@@ -69,9 +69,10 @@ func (mc *ManagerCmd) loop() {
 			// don't restart too frequently (in case it instantly exits with an error)
 			if time.Since(started) > restartPeriod {
 				started = time.Now()
+				os.Rename(mc.log, mc.log+".old")
 				logfile, err := os.Create(mc.log)
 				if err != nil {
-					Logf(1, "%v: failed to create manager log: %v", mc.name, err)
+					Logf(0, "%v: failed to create manager log: %v", mc.name, err)
 				} else {
 					cmd = exec.Command(mc.bin, mc.args...)
 					cmd.Stdout = logfile
@@ -79,7 +80,7 @@ func (mc *ManagerCmd) loop() {
 					err := cmd.Start()
 					logfile.Close()
 					if err != nil {
-						Logf(1, "%v: failed to start manager: %v", mc.name, err)
+						Logf(0, "%v: failed to start manager: %v", mc.name, err)
 						cmd = nil
 					} else {
 						Logf(1, "%v: started manager", mc.name)
