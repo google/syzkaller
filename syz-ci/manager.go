@@ -78,7 +78,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	}
 
 	mgr := &Manager{
-		name:       mgrcfg.Name,
+		name:       cfg.Name + "-" + mgrcfg.Name,
 		workDir:    filepath.Join(dir, "workdir"),
 		kernelDir:  filepath.Join(dir, "kernel"),
 		currentDir: filepath.Join(dir, "current"),
@@ -324,7 +324,7 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 		// at least some useful information.
 		mgrcfg.Tag = info.KernelCommit
 	}
-	mgrcfg.Name = mgr.cfg.Name + "-" + mgr.name
+	mgrcfg.Name = mgr.name
 	if mgr.cfg.Hub_Addr != "" {
 		mgrcfg.Hub_Client = mgr.cfg.Name
 		mgrcfg.Hub_Addr = mgr.cfg.Hub_Addr
@@ -364,6 +364,7 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 		return fmt.Errorf("failed to read kernel.config: %v", err)
 	}
 	build := &dashapi.Build{
+		Manager:         mgr.name,
 		ID:              info.Tag,
 		SyzkallerCommit: syzkallerCommit,
 		CompilerID:      info.CompilerID,
