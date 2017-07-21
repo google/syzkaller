@@ -608,6 +608,7 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 		}
 	}
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(desc)))
+	osutil.MkdirAll(dir)
 	for i := 0; i < maxReproAttempts; i++ {
 		name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
 		if !osutil.IsExist(name) {
@@ -620,6 +621,7 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 func (mgr *Manager) saveRepro(res *repro.Result) {
 	res.Report = mgr.symbolizeReport(res.Report)
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(res.Desc)))
+	osutil.MkdirAll(dir)
 
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
 	prog := res.Prog.Serialize()
