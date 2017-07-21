@@ -33,6 +33,7 @@ func New(client, addr, key string) *Dashboard {
 
 // Build describes all aspects of a kernel build.
 type Build struct {
+	Manager         string
 	ID              string
 	SyzkallerCommit string
 	CompilerID      string
@@ -75,6 +76,71 @@ func (dash *Dashboard) ReportFailedRepro(repro *FailedRepro) error {
 	return dash.query("report_failed_repro", repro, nil)
 }
 
+type LogEntry struct {
+	Name string
+	Text string
+}
+
+// Centralized logging on dashboard.
+func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
+	req := &LogEntry{
+		Name: name,
+		Text: fmt.Sprintf(msg, args...),
+	}
+	dash.query("log_error", req, nil)
+}
+
+// BugReport describes a single bug.
+// Used by dashboard external reporting.
+type BugReport struct {
+	Config       []byte
+	ID           string
+	Title        string
+	Maintainers  []string
+	CompilerID   string
+	KernelRepo   string
+	KernelBranch string
+	KernelCommit string
+	Log          []byte
+	Report       []byte
+	KernelConfig []byte
+	ReproC       []byte
+	ReproSyz     []byte
+}
+
+type BugUpdate struct {
+	ID         string
+	Status     BugStatus
+	ReproLevel ReproLevel
+	DupOf      string
+}
+
+type PollRequest struct {
+	Type string
+}
+
+type PollResponse struct {
+	Reports []*BugReport
+}
+
+type (
+	BugStatus  int
+	ReproLevel int
+)
+
+const (
+	BugStatusOpen BugStatus = iota
+	BugStatusUpstream
+	BugStatusInvalid
+	BugStatusDup
+)
+
+const (
+	ReproLevelNone ReproLevel = iota
+	ReproLevelSyz
+	ReproLevelC
+)
+
 func (dash *Dashboard) query(method string, req, reply interface{}) error {
 	values := make(url.Values)
 	values.Add("client", dash.Client)
@@ -87,8 +153,9 @@ func (dash *Dashboard) query(method string, req, reply interface{}) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal request: %v", err)
 		}
-		if strings.HasPrefix(dash.Addr, "http://localhost:") {
-			// This is probably dev_appserver which does not support gzip.
+		if len(data) < 100 || strings.HasPrefix(dash.Addr, "http://localhost:") {
+			// Don't bother compressing tiny requests.
+			// Don't compress for dev_appserver which does not support gzip.
 			body = bytes.NewReader(data)
 		} else {
 			buf := new(bytes.Buffer)
