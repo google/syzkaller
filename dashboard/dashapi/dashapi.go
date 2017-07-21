@@ -142,9 +142,19 @@ const (
 )
 
 func (dash *Dashboard) query(method string, req, reply interface{}) error {
+	return Query(dash.Client, dash.Addr, dash.Key, method,
+		http.NewRequest, http.DefaultClient.Do, req, reply)
+}
+
+type (
+	RequestCtor func(method, url string, body io.Reader) (*http.Request, error)
+	RequestDoer func(req *http.Request) (*http.Response, error)
+)
+
+func Query(client, addr, key, method string, ctor RequestCtor, doer RequestDoer, req, reply interface{}) error {
 	values := make(url.Values)
-	values.Add("client", dash.Client)
-	values.Add("key", dash.Key)
+	values.Add("client", client)
+	values.Add("key", key)
 	values.Add("method", method)
 	var body io.Reader
 	gzipped := false
@@ -153,7 +163,7 @@ func (dash *Dashboard) query(method string, req, reply interface{}) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal request: %v", err)
 		}
-		if len(data) < 100 || strings.HasPrefix(dash.Addr, "http://localhost:") {
+		if len(data) < 100 || addr == "" || strings.HasPrefix(addr, "http://localhost:") {
 			// Don't bother compressing tiny requests.
 			// Don't compress for dev_appserver which does not support gzip.
 			body = bytes.NewReader(data)
@@ -170,8 +180,8 @@ func (dash *Dashboard) query(method string, req, reply interface{}) error {
 			gzipped = true
 		}
 	}
-	url := fmt.Sprintf("%v/api?%v", dash.Addr, values.Encode())
-	r, err := http.NewRequest("POST", url, body)
+	url := fmt.Sprintf("%v/api?%v", addr, values.Encode())
+	r, err := ctor("POST", url, body)
 	if err != nil {
 		return err
 	}
@@ -181,7 +191,7 @@ func (dash *Dashboard) query(method string, req, reply interface{}) error {
 			r.Header.Set("Content-Encoding", "gzip")
 		}
 	}
-	resp, err := http.DefaultClient.Do(r)
+	resp, err := doer(r)
 	if err != nil {
 		return fmt.Errorf("http request failed: %v", err)
 	}
