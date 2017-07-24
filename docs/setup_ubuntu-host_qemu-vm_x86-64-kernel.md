@@ -232,3 +232,6 @@ Run syzkaller manager:
 ```
 
 Now syzkaller should be running, you can check manager status with your web browser at `127.0.0.1:56741`.
+
+If you get issues after `syz-manager` starts, consider running it with the `-debug` flag.
+Also see [this page](troubleshooting.md) for troubleshooting tips.

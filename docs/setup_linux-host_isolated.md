@@ -106,3 +106,6 @@ Run syzkaller manager:
 ``` bash
 ./bin/syz-manager -config=my.cfg
 ```
+
+If you get issues after `syz-manager` starts, consider running it with the `-debug` flag.
+Also see [this page](troubleshooting.md) for troubleshooting tips.
