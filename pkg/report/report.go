@@ -343,7 +343,7 @@ var oopses = []*oops{
 var (
 	consoleOutputRe = regexp.MustCompile(`^(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\] `)
 	questionableRe  = regexp.MustCompile(`(?:\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
-	symbolizeRe     = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])? +(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
+	symbolizeRe     = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
 	decNumRe        = regexp.MustCompile(`[0-9]{5,}`)
 	lineNumRe       = regexp.MustCompile(`(:[0-9]+)+`)
 	addrRe          = regexp.MustCompile(`[0-9a-f]{8,}`)
