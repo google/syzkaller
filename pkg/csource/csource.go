@@ -219,7 +219,7 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 		}
 		fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", len(calls))
 		fmt.Fprintf(w, "\t\tpthread_create(&th[i], 0, thr, (void*)i);\n")
-		fmt.Fprintf(w, "\t\tusleep(10000);\n")
+		fmt.Fprintf(w, "\t\tusleep(rand()%%10000);\n")
 		fmt.Fprintf(w, "\t}\n")
 		if opts.Collide {
 			fmt.Fprintf(w, "\tfor (i = 0; i < %v; i++) {\n", len(calls))
@@ -228,7 +228,7 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 			fmt.Fprintf(w, "\t\t\tusleep(rand()%%10000);\n")
 			fmt.Fprintf(w, "\t}\n")
 		}
-		fmt.Fprintf(w, "\tusleep(100000);\n")
+		fmt.Fprintf(w, "\tusleep(rand()%%100000);\n")
 		fmt.Fprintf(w, "}\n\n")
 	}
 }
