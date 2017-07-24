@@ -970,6 +970,11 @@ func TestSymbolizeLine(t *testing.T) {
 			"    [<ffffffff84e5bea0>] do_ipv6_setsockopt.isra.7.part.3+0x101/0x2830 \n",
 			"    [<ffffffff84e5bea0>] do_ipv6_setsockopt.isra.7.part.3+0x101/0x2830 net.c:111 \n",
 		},
+		// Old KASAN frame format (with tab).
+		{
+			"[   50.419727] 	baz+0x101/0x200\n",
+			"[   50.419727] 	baz+0x101/0x200 baz.c:100\n",
+		},
 		// Inlined frames.
 		{
 			"    [<ffffffff84e5bea0>] foo+0x141/0x185\n",
