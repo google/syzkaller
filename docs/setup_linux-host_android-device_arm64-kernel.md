@@ -39,3 +39,6 @@ bin/syz-manager:  Mach-O 64-bit executable x86_64
 ```
 
  - Start `syz-manager -config adb.cfg` as usual.
+
+If you get issues after `syz-manager` starts, consider running it with the `-debug` flag.
+Also see [this page](troubleshooting.md) for troubleshooting tips.
