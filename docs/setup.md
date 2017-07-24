@@ -27,3 +27,5 @@ $ ./bin/syz-manager -config=my.cfg
 ```
 
 More information on the configuration file format is available [here](configuration.md).
+
+See [this page](troubleshooting.md) for troubleshooting tips.

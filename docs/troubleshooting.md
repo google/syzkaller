@@ -25,6 +25,10 @@ Here are some things to check if there are problems running syzkaller.
       `VMLINUX` is the vmlinux file, as per the `vmlinux` config value), to confirm
       that symbols for the kernel are available.
 
+ - Use the `-debug` command line option to make syzkaller print all possible debug output,
+   from both the `syz-manager` top-level program and the `syz-fuzzer` instances. With this option
+   syzkaller will only run one VM instance.
+
  - Use the `-v N` command line option to increase the amount of logging output, from both
    the `syz-manager` top-level program and the `syz-fuzzer` instances (which go to the
    output files in the `crashes` subdirectory of the working directory). Higher values of
@@ -41,4 +45,6 @@ Here are some things to check if there are problems running syzkaller.
        In this case, running the `syz-execprog` test with the `-nobody=0` option fixes the problem,
        so the main configuration needs to be updated to set `dropprivs` to `false`.
 
-If none of the above helps, file a bug on [the bug tracker](https://github.com/google/syzkaller/issues) or ask us directly on the syzkaller@googlegroups.com mailing list.
+If none of the above helps, file a bug on [the bug tracker](https://github.com/google/syzkaller/issues)
+or ask us directly on the syzkaller@googlegroups.com mailing list.
+Please include syzkaller commit id that you use and `syz-manager` output with `-debug` flag enabled if applicable.
