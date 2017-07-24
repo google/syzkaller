@@ -216,7 +216,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		case *sys.VmaType:
 			arg = pointerArg(typ, 0, 0, 0, nil)
 		default:
-			panic(fmt.Sprintf("bad const type %+v", typ))
+			return nil, fmt.Errorf("bad const type %+v", typ)
 		}
 	case 'r':
 		id := p.Ident()
