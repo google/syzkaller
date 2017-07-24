@@ -6,6 +6,7 @@ package prog
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"testing"
 )
@@ -90,6 +91,35 @@ func TestCallSetRandom(t *testing.T) {
 		callArray1 := setToArray(calls1)
 		if !reflect.DeepEqual(callArray0, callArray1) {
 			t.Fatalf("got call set:\n%+v\nexpect:\n%+v", callArray1, callArray0)
+		}
+	}
+}
+
+func TestDeserialize(t *testing.T) {
+	tests := []struct {
+		data string
+		err  *regexp.Regexp
+	}{
+		{
+			"syz_test$struct(&(0x7f0000000000)={0x0, {0x0}})",
+			nil,
+		},
+		{
+			"syz_test$struct(&(0x7f0000000000)=0x0)",
+			regexp.MustCompile(`bad const type.*`),
+		},
+	}
+	for _, test := range tests {
+		_, err := Deserialize([]byte(test.data))
+		if err != nil {
+			if test.err == nil {
+				t.Fatalf("deserialization failed with\n%s\ndata:\n%s\n", err, test.data)
+			}
+			if !test.err.MatchString(err.Error()) {
+				t.Fatalf("deserialization failed with\n%s\nwhich doesn't match\n%s\ndata:\n%s\n", err, test.err, test.data)
+			}
+		} else if test.err != nil {
+			t.Fatalf("deserialization should have failed with:\n%s\ndata:\n%s\n", test.err, test.data)
 		}
 	}
 }
