@@ -49,7 +49,6 @@ func (dash *Dashboard) UploadBuild(build *Build) error {
 
 // Crash describes a single kernel crash (potentially with repro).
 type Crash struct {
-	Manager     string
 	BuildID     string // refers to Build.ID
 	Title       string
 	Maintainers []string

@@ -529,7 +529,6 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 			}
 		}
 		dc := &dashapi.Crash{
-			Manager:     mgr.cfg.Name,
 			BuildID:     mgr.cfg.Tag,
 			Title:       crash.desc,
 			Maintainers: maintainers,
@@ -665,7 +664,6 @@ func (mgr *Manager) saveRepro(res *repro.Result) {
 			}
 		}
 		dc := &dashapi.Crash{
-			Manager:     mgr.cfg.Name,
 			BuildID:     mgr.cfg.Tag,
 			Title:       res.Desc,
 			Maintainers: maintainers,
