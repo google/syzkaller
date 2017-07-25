@@ -13,6 +13,7 @@ package gce
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -219,9 +220,47 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	conWpipe.Close()
 
+	var tee io.Writer
+	if inst.debug {
+		tee = os.Stdout
+	}
+	merger := vmimpl.NewOutputMerger(tee)
+	merger.Add("console", conRpipe)
+
+	// We've started the console reading ssh command, but it has not necessary connected yet.
+	// If we proceed to running the target command right away, we can miss part
+	// of console output. During repro we can crash machines very quickly and
+	// would miss beginning of a crash. Before ssh starts piping console output,
+	// it usually prints:
+	// "serialport: Connected to ... port 1 (session ID: ..., active connections: 1)"
+	// So we wait for this line, or at least a minute and at least some output.
+	{
+		var output []byte
+		timeout := time.NewTimer(time.Minute)
+	loop:
+		for {
+			select {
+			case out := <-merger.Output:
+				output = append(output, out...)
+				if bytes.Contains(output, []byte("serialport")) {
+					break loop
+				}
+			case <-timeout.C:
+				break loop
+			}
+		}
+		timeout.Stop()
+		if len(output) == 0 {
+			con.Process.Kill()
+			merger.Wait()
+			return nil, nil, fmt.Errorf("no output from console")
+		}
+	}
+
 	sshRpipe, sshWpipe, err := osutil.LongPipe()
 	if err != nil {
 		con.Process.Kill()
+		merger.Wait()
 		sshRpipe.Close()
 		return nil, nil, err
 	}
@@ -234,19 +273,12 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	ssh.Stderr = sshWpipe
 	if err := ssh.Start(); err != nil {
 		con.Process.Kill()
-		conRpipe.Close()
+		merger.Wait()
 		sshRpipe.Close()
 		sshWpipe.Close()
 		return nil, nil, fmt.Errorf("failed to connect to instance: %v", err)
 	}
 	sshWpipe.Close()
-
-	var tee io.Writer
-	if inst.debug {
-		tee = os.Stdout
-	}
-	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("console", conRpipe)
 	merger.Add("ssh", sshRpipe)
 
 	errc := make(chan error, 1)
