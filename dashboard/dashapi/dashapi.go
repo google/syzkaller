@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 )
 
@@ -157,6 +158,16 @@ type (
 )
 
 func Query(client, addr, key, method string, ctor RequestCtor, doer RequestDoer, req, reply interface{}) error {
+	if reply != nil {
+		// json decoding behavior is somewhat surprising
+		// (see // https://github.com/golang/go/issues/21092).
+		// To avoid any surprises, we zero the reply.
+		typ := reflect.TypeOf(reply)
+		if typ.Kind() != reflect.Ptr {
+			return fmt.Errorf("resp must be a pointer")
+		}
+		reflect.ValueOf(reply).Elem().Set(reflect.New(typ.Elem()).Elem())
+	}
 	values := make(url.Values)
 	values.Add("client", client)
 	values.Add("key", key)
