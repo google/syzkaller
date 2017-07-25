@@ -100,18 +100,24 @@ type BugReport struct {
 	KernelRepo   string
 	KernelBranch string
 	KernelCommit string
+	KernelConfig []byte
 	Log          []byte
 	Report       []byte
-	KernelConfig []byte
 	ReproC       []byte
 	ReproSyz     []byte
 }
 
 type BugUpdate struct {
 	ID         string
+	Link       string
 	Status     BugStatus
 	ReproLevel ReproLevel
 	DupOf      string
+}
+
+type BugUpdateReply struct {
+	OK   bool
+	Text string
 }
 
 type PollRequest struct {
