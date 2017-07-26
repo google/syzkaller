@@ -747,7 +747,7 @@ var progSimplifies = []Simplify{
 		if opts.Collide || !opts.Threaded {
 			return false
 		}
-		opts.Collide = false
+		opts.Threaded = false
 		return true
 	},
 	func(opts *csource.Options) bool {
