@@ -42,10 +42,34 @@ type Build struct {
 	KernelBranch    string
 	KernelCommit    string
 	KernelConfig    []byte
+	Commits         []string // see BuilderPoll
 }
 
 func (dash *Dashboard) UploadBuild(build *Build) error {
 	return dash.query("upload_build", build, nil)
+}
+
+// BuilderPoll request is done by kernel builder before uploading a new build
+// with UploadBuild request. Response contains list of commits that dashboard
+// is interested in (i.e. commits that fix open bugs). When uploading a new
+// build builder should pass subset of the commits that are present in the build
+// in Build.Commits field.
+
+type BuilderPollReq struct {
+	Manager string
+}
+
+type BuilderPollResp struct {
+	PendingCommits []string
+}
+
+func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
+	req := &BuilderPollReq{
+		Manager: manager,
+	}
+	resp := new(BuilderPollResp)
+	err := dash.query("builder_poll", req, resp)
+	return resp, err
 }
 
 // Crash describes a single kernel crash (potentially with repro).
@@ -114,6 +138,7 @@ type BugUpdate struct {
 	Status     BugStatus
 	ReproLevel ReproLevel
 	DupOf      string
+	FixCommits []string // Titles of commits that fix this bug.
 }
 
 type BugUpdateReply struct {
