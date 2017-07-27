@@ -180,7 +180,9 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		return nil, nil
 	}
 	defer func() {
-		res.Opts.Repro = false
+		if res != nil {
+			res.Opts.Repro = false
+		}
 	}()
 	res, err = ctx.minimizeProg(res)
 	if err != nil {
