@@ -363,6 +363,11 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 	if err != nil {
 		return fmt.Errorf("failed to read kernel.config: %v", err)
 	}
+	commits, err := mgr.pollCommits(info.KernelCommit)
+	if err != nil {
+		// This is not critical for operation.
+		Logf(0, "%v: failed to poll commits: %v", mgr.name, err)
+	}
 	build := &dashapi.Build{
 		Manager:         mgr.name,
 		ID:              info.Tag,
@@ -372,6 +377,32 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 		KernelBranch:    info.KernelBranch,
 		KernelCommit:    info.KernelCommit,
 		KernelConfig:    kernelConfig,
+		Commits:         commits,
 	}
 	return mgr.dash.UploadBuild(build)
+}
+
+// pollCommits asks dashboard what commits it is interested in (i.e. fixes for
+// open bugs) and returns subset of these commits that are present in a build
+// on commit buildCommit.
+func (mgr *Manager) pollCommits(buildCommit string) ([]string, error) {
+	resp, err := mgr.dash.BuilderPoll(mgr.name)
+	if err != nil || len(resp.PendingCommits) == 0 {
+		return nil, err
+	}
+	commits, err := git.ListRecentCommits(mgr.kernelDir, buildCommit)
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]bool, len(commits))
+	for _, com := range commits {
+		m[com] = true
+	}
+	var present []string
+	for _, com := range resp.PendingCommits {
+		if m[com] {
+			present = append(present, com)
+		}
+	}
+	return present, nil
 }
