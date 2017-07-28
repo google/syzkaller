@@ -1,4 +1,4 @@
-# Copyright 2015 syzkaller project authors. All rights reserved.
+# Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 NOSTATIC ?= 0
@@ -6,16 +6,25 @@ ifeq ($(NOSTATIC), 0)
 	STATIC_FLAG=-static
 endif
 
-.PHONY: all format tidy clean manager fuzzer executor execprog ci hub mutate prog2c stress extract generate repro db bin/syz-extract bin/syz-sysgen android
+.PHONY: all main tools \
+	manager fuzzer executor \
+	ci hub \
+	execprog mutate prog2c stress repro upgrade db \
+	extract generate \
+	android \
+	format tidy test arch presubmit clean
 
 all:
+	$(MAKE) main
+	$(MAKE) tools
+
+main:
 	go install ./syz-manager ./syz-fuzzer
 	$(MAKE) manager
 	$(MAKE) fuzzer
-	$(MAKE) execprog
 	$(MAKE) executor
 
-all-tools: execprog mutate prog2c stress repro upgrade db
+tools: execprog mutate prog2c stress repro upgrade db
 
 # executor uses stacks of limited size, so no jumbo frames.
 executor:
@@ -82,16 +91,25 @@ tidy:
 	# Just check for compiler warnings.
 	$(CC) executor/test_executor.cc -c -o /dev/null -Wparentheses -Wno-unused -Wall
 
-presubmit:
-	$(MAKE) generate
-	$(MAKE) format
-	$(MAKE) executor
+test:
+	go test -short ./...
+	go test -short -race ./...
+
+arch:
 	GOOS=linux GOARCH=amd64 go install ./...
 	GOOS=linux GOARCH=arm64 go install ./...
 	GOOS=linux GOARCH=ppc64le go install ./...
 	GOOS=darwin GOARCH=amd64 go build -o /dev/null ./syz-manager
-	go test -short ./...
+
+presubmit:
+	$(MAKE) generate
+	$(MAKE) all
+	$(MAKE) arch
+	$(MAKE) test
 	echo LGTM
+
+clean:
+	rm -rf ./bin/
 
 android: UNAME=$(shell uname | tr '[:upper:]' '[:lower:]')
 android: ANDROID_ARCH=arm64
@@ -104,6 +122,3 @@ android:
 	env CC="$(NDK)/toolchains/$(TOOLCHAIN)-4.9/prebuilt/$(UNAME)-x86_64/bin/$(TOOLCHAIN)-g++" \
 		CFLAGS="-I $(NDK)/sources/cxx-stl/llvm-libc++/include --sysroot=$(NDK)/platforms/android-$(ANDROID_API)/arch-$(ANDROID_ARCH) -O1 -g -Wall -static" \
 		$(MAKE) executor
-
-clean:
-	rm -rf ./bin/

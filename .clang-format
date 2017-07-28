@@ -7,9 +7,9 @@ DerivePointerAlignment: false
 PointerAlignment: Left
 AlignTrailingComments: true
 AllowShortBlocksOnASingleLine: false
-AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: false
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 ColumnLimit: 0
+AlignTrailingComments: false
 
