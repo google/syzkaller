@@ -68,18 +68,29 @@ func clone(dir, repo, branch string) error {
 
 // HeadCommit returns hash of the HEAD commit of the current branch of git repository in dir.
 func HeadCommit(dir string) (string, error) {
-	output, err := osutil.RunCmd(timeout, dir, "git", "log", "--pretty=format:'%H'", "-n", "1")
+	output, err := osutil.RunCmd(timeout, dir, "git", "log", "--pretty=format:%H", "-n", "1")
 	if err != nil {
 		return "", err
 	}
 	if len(output) != 0 && output[len(output)-1] == '\n' {
 		output = output[:len(output)-1]
 	}
-	if len(output) != 0 && output[0] == '\'' && output[len(output)-1] == '\'' {
-		output = output[1 : len(output)-1]
-	}
 	if len(output) != 40 {
 		return "", fmt.Errorf("unexpected git log output, want commit hash: %q", output)
 	}
 	return string(output), nil
+}
+
+// ListRecentCommits returns list of commit titles for the last year starting from baseCommit.
+func ListRecentCommits(dir, baseCommit string) ([]string, error) {
+	since := time.Now().Add(-time.Hour * 24 * 365).Format("01-02-2006")
+	// On upstream kernel this produces 3.5MB of output.
+	// Somewhat inefficient to collect whole output in a slice
+	// and then convert to string, but should be bearable.
+	output, err := osutil.RunCmd(timeout, dir, "git", "log",
+		"--pretty=format:%s", "--no-merges", "--since", since, baseCommit)
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(string(output), "\n"), nil
 }
