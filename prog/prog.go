@@ -266,6 +266,37 @@ func returnArg(t sys.Type) Arg {
 	return &ReturnArg{ArgCommon: ArgCommon{typ: t}}
 }
 
+func defaultArg(t sys.Type) Arg {
+	switch typ := t.(type) {
+	case *sys.IntType, *sys.ConstType, *sys.FlagsType, *sys.LenType, *sys.ProcType, *sys.CsumType:
+		return constArg(t, t.Default())
+	case *sys.ResourceType:
+		return resultArg(t, nil, typ.Desc.Type.Default())
+	case *sys.BufferType:
+		return dataArg(t, nil)
+	case *sys.ArrayType:
+		return groupArg(t, nil)
+	case *sys.StructType:
+		var inner []Arg
+		for _, field := range typ.Fields {
+			inner = append(inner, defaultArg(field))
+		}
+		return groupArg(t, nil)
+	case *sys.UnionType:
+		return unionArg(t, defaultArg(typ.Options[0]), typ.Options[0])
+	case *sys.VmaType:
+		return pointerArg(t, 0, 0, 0, nil)
+	case *sys.PtrType:
+		var res Arg
+		if !t.Optional() {
+			res = defaultArg(typ.Type)
+		}
+		return pointerArg(t, 0, 0, 1, res)
+	default:
+		panic("unknown arg type")
+	}
+}
+
 func (p *Prog) insertBefore(c *Call, calls []*Call) {
 	idx := 0
 	for ; idx < len(p.Calls); idx++ {
