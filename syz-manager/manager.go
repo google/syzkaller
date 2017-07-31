@@ -529,7 +529,6 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 			}
 		}
 		dc := &dashapi.Crash{
-			Manager:     mgr.cfg.Name,
 			BuildID:     mgr.cfg.Tag,
 			Title:       crash.desc,
 			Maintainers: maintainers,
@@ -608,6 +607,7 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 		}
 	}
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(desc)))
+	osutil.MkdirAll(dir)
 	for i := 0; i < maxReproAttempts; i++ {
 		name := filepath.Join(dir, fmt.Sprintf("repro%v", i))
 		if !osutil.IsExist(name) {
@@ -620,6 +620,7 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 func (mgr *Manager) saveRepro(res *repro.Result) {
 	res.Report = mgr.symbolizeReport(res.Report)
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(res.Desc)))
+	osutil.MkdirAll(dir)
 
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
 	prog := res.Prog.Serialize()
@@ -627,10 +628,13 @@ func (mgr *Manager) saveRepro(res *repro.Result) {
 	if len(mgr.cfg.Tag) > 0 {
 		osutil.WriteFile(filepath.Join(dir, "repro.tag"), []byte(mgr.cfg.Tag))
 	}
-	if len(res.Report) > 0 {
-		osutil.WriteFile(filepath.Join(dir, "repro.report"), []byte(res.Report))
+	if len(res.Log) > 0 {
+		osutil.WriteFile(filepath.Join(dir, "repro.log"), res.Log)
 	}
-	osutil.WriteFile(filepath.Join(dir, "repro.log"), res.Stats.Log)
+	if len(res.Report) > 0 {
+		osutil.WriteFile(filepath.Join(dir, "repro.report"), res.Report)
+	}
+	osutil.WriteFile(filepath.Join(dir, "repro.stats.log"), res.Stats.Log)
 	stats := fmt.Sprintf("Extracting prog: %s\nMinimizing prog: %s\nSimplifying prog options: %s\nExtracting C: %s\nSimplifying C: %s\n",
 		res.Stats.ExtractProgTime, res.Stats.MinimizeProgTime, res.Stats.SimplifyProgTime, res.Stats.ExtractCTime, res.Stats.SimplifyCTime)
 	osutil.WriteFile(filepath.Join(dir, "repro.stats"), []byte(stats))
@@ -660,11 +664,10 @@ func (mgr *Manager) saveRepro(res *repro.Result) {
 			}
 		}
 		dc := &dashapi.Crash{
-			Manager:     mgr.cfg.Name,
 			BuildID:     mgr.cfg.Tag,
 			Title:       res.Desc,
 			Maintainers: maintainers,
-			Log:         nil,
+			Log:         res.Log,
 			Report:      res.Report,
 			ReproOpts:   []byte(fmt.Sprintf("%+v", res.Opts)),
 			ReproSyz:    []byte(res.Prog.Serialize()),

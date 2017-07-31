@@ -114,6 +114,7 @@ func TestParse(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer outputr.Close()
+	done := make(chan bool)
 	go func() {
 		s := bufio.NewScanner(inputr)
 	loop:
@@ -134,6 +135,11 @@ func TestParse(t *testing.T) {
 		}
 		outputw.Write([]byte("DONE\n"))
 		outputw.Close()
+		close(done)
+	}()
+	defer func() {
+		inputw.Close()
+		<-done
 	}()
 
 	// First, symbolize all PCs one-by-one.

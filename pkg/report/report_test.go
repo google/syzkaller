@@ -227,7 +227,7 @@ which lock already depends on the new lock.
 -------------------------------
 net/core/filter.c:1917 suspicious rcu_dereference_protected() usage!
 other info that might help us debug this:
-`: `suspicious RCU usage at net/core/filter.c:1917`,
+`: `suspicious RCU usage at net/core/filter.c:LINE`,
 
 		`
 [   37.540474] ===============================
@@ -251,7 +251,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [   37.540610] [<ffffffff81055862>] vcpu_load+0x22/0x70
 [   37.540614] 
 [   37.540614] stack backtrace:
-`: `suspicious RCU usage at ./include/linux/kvm_host.h:536`,
+`: `suspicious RCU usage at ./include/linux/kvm_host.h:LINE`,
 
 		`
 [   80.586804] =====================================
@@ -332,7 +332,7 @@ syz-executor1/21439 is trying to release lock (sk_lock-AF_INET) at:
 [    4.557015]  [<ffffffff81bcc1c1>] __ubsan_handle_shift_out_of_bounds+0xf1/0x140
 [    4.557030]  [<ffffffff822247af>] ? proc_do_submiturb+0x9af/0x2c30
 [    4.557034]  [<ffffffff82226794>] proc_do_submiturb+0x2994/0x2c30
-`: `UBSAN: Undefined behaviour in drivers/usb/core/devio.c:1517:25`,
+`: `UBSAN: Undefined behaviour in drivers/usb/core/devio.c:LINE`,
 
 		`
 [    3.805449] ================================================================================
@@ -353,18 +353,18 @@ syz-executor1/21439 is trying to release lock (sk_lock-AF_INET) at:
 [    3.805496]  [<ffffffff81bcbc7e>] __ubsan_handle_add_overflow+0xe/0x10
 [    3.805500]  [<ffffffff82680a4a>] ip_idents_reserve+0x9a/0xd0
 [    3.805503]  [<ffffffff826835e9>] __ip_select_ident+0xc9/0x160
-`: `UBSAN: Undefined behaviour in ./arch/x86/include/asm/atomic.h:156:2`,
+`: `UBSAN: Undefined behaviour in ./arch/x86/include/asm/atomic.h:LINE`,
 
 		`
 [   50.583499] UBSAN: Undefined behaviour in kernel/time/hrtimer.c:310:16
 [   50.583499] signed integer overflow:
-`: `UBSAN: Undefined behaviour in kernel/time/hrtimer.c:310:16`,
+`: `UBSAN: Undefined behaviour in kernel/time/hrtimer.c:LINE`,
 
 		`
 ------------[ cut here ]------------
 kernel BUG at fs/buffer.c:1917!
 invalid opcode: 0000 [#1] SMP
-`: `kernel BUG at fs/buffer.c:1917!`,
+`: `kernel BUG at fs/buffer.c:LINE!`,
 
 		`
 [  167.347989] Disabling lock debugging due to kernel taint
@@ -517,7 +517,7 @@ unreferenced object 0xdb8040c0 (size 20):
 		`
 BUG: sleeping function called from invalid context at include/linux/wait.h:1095 
 in_atomic(): 1, irqs_disabled(): 0, pid: 3658, name: syz-fuzzer 
-`: `BUG: sleeping function called from invalid context at include/linux/wait.h:1095 `,
+`: `BUG: sleeping function called from invalid context at include/linux/wait.h:LINE `,
 
 		`
 [  277.780013] INFO: rcu_sched self-detected stall on CPU
@@ -697,7 +697,9 @@ WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 [   95.445015] perf: interrupt took too long (3985 > 3976), lowering kernel.perf_event_max_sample_rate to 50000
 `: ``,
 
-		`[   92.396607] general protection fault: 0000 [#1] [ 387.811073] audit: type=1326 audit(1486238739.637:135): auid=4294967295 uid=0 gid=0 ses=4294967295 pid=10020 comm="syz-executor1" exe="/root/syz-executor1" sig=31 arch=c000003e syscall=202 compat=0 ip=0x44fad9 code=0x0`: `general protection fault: 0000 [#1] [ 387.NUM] audit: type=1326 audit(ADDR.637:135): auid=ADDR uid=0 gid=0 ses=ADDR pid=NUM comm="syz-executor" exe="/root/syz-executor" sig=31 arch`,
+		`
+[   92.396607] general protection fault: 0000 [#1] [ 387.811073] audit: type=1326 audit(1486238739.637:135): auid=4294967295 uid=0 gid=0 ses=4294967295 pid=10020 comm="syz-executor1" exe="/root/syz-executor1" sig=31 arch=c000003e syscall=202 compat=0 ip=0x44fad9 code=0x0
+`: `general protection fault: 0000 [#1] [ 387.NUM] audit: type=1326 audit(ADDR.637:LINE): auid=ADDR uid=0 gid=0 ses=ADDR pid=NUM comm="syz-executor" exe="/root/syz-executor" sig=31 arc`,
 
 		`
 [   40.438790] BUG: Bad page map in process syz-executor6  pte:ffff8801a700ff00 pmd:1a700f067
@@ -749,6 +751,16 @@ CPU: 1 PID: 14836 Comm: syz-executor5 Not tainted 4.12.0-rc4+ #15
 Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
 Call Trace:
 `: `kernel panic: Couldn't open N_TTY ldisc`,
+
+		`
+===============================
+[ INFO: suspicious RCU usage. ]
+4.3.5+ #8 Not tainted
+-------------------------------
+net/ipv6/ip6_flowlabel.c:544 suspicious rcu_dereference_check() usage!
+
+other info that might help us debug this:
+`: `suspicious RCU usage at net/ipv6/ip6_flowlabel.c:LINE`,
 	}
 	for log, crash := range tests {
 		if strings.Index(log, "\r\n") != -1 {
@@ -957,6 +969,11 @@ func TestSymbolizeLine(t *testing.T) {
 		{
 			"    [<ffffffff84e5bea0>] do_ipv6_setsockopt.isra.7.part.3+0x101/0x2830 \n",
 			"    [<ffffffff84e5bea0>] do_ipv6_setsockopt.isra.7.part.3+0x101/0x2830 net.c:111 \n",
+		},
+		// Old KASAN frame format (with tab).
+		{
+			"[   50.419727] 	baz+0x101/0x200\n",
+			"[   50.419727] 	baz+0x101/0x200 baz.c:100\n",
 		},
 		// Inlined frames.
 		{

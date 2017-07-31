@@ -4,24 +4,41 @@
 package hash
 
 import (
+	"bytes"
 	"crypto/sha1"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 )
 
 type Sig [sha1.Size]byte
 
-func Hash(data []byte) Sig {
-	return Sig(sha1.Sum(data))
+func Hash(pieces ...[]byte) Sig {
+	h := sha1.New()
+	for _, data := range pieces {
+		h.Write(data)
+	}
+	var sig Sig
+	copy(sig[:], h.Sum(nil))
+	return sig
 }
 
-func String(data []byte) string {
-	sig := Hash(data)
+func String(pieces ...[]byte) string {
+	sig := Hash(pieces...)
 	return sig.String()
 }
 
 func (sig *Sig) String() string {
 	return hex.EncodeToString((*sig)[:])
+}
+
+// Truncate64 returns first 64 bits of the hash as int64.
+func (sig *Sig) Truncate64() int64 {
+	var v int64
+	if err := binary.Read(bytes.NewReader((*sig)[:]), binary.LittleEndian, &v); err != nil {
+		panic(fmt.Sprintf("failed convert hash to id: %v", err))
+	}
+	return v
 }
 
 func FromString(str string) (Sig, error) {

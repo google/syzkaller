@@ -330,3 +330,6 @@ Now start syzkaller:
 ``` bash
 ./bin/syz-manager -config=odroid.cfg
 ```
+
+If you get issues after `syz-manager` starts, consider running it with the `-debug` flag.
+Also see [this page](troubleshooting.md) for troubleshooting tips.

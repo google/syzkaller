@@ -33,4 +33,4 @@ Check [here](linux_kernel_reporting_bugs.md) for the instructions on how to repo
 
 ## Other
 
-[How to connect several managers via Hub](connecting_several_managers.md)
+[How to connect several managers via Hub](hub.md)

@@ -78,7 +78,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	}
 
 	mgr := &Manager{
-		name:       mgrcfg.Name,
+		name:       cfg.Name + "-" + mgrcfg.Name,
 		workDir:    filepath.Join(dir, "workdir"),
 		kernelDir:  filepath.Join(dir, "kernel"),
 		currentDir: filepath.Join(dir, "current"),
@@ -310,20 +310,21 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 		return "", err
 	}
 	current := mgr.currentDir
-	tag := info.Tag
-	if mgr.dash == nil {
+	if mgr.dash != nil {
+		mgrcfg.Tag = info.Tag
+
+		mgrcfg.Dashboard_Client = mgr.dash.Client
+		mgrcfg.Dashboard_Addr = mgr.dash.Addr
+		mgrcfg.Dashboard_Key = mgr.dash.Key
+	} else {
 		// Dashboard identifies builds by unique tags that are combined
 		// from kernel tag, compiler tag and config tag.
 		// This combined tag is meaningless without dashboard,
 		// so we use kenrel tag (commit tag) because it communicates
 		// at least some useful information.
-		tag = info.KernelCommit
-
-		mgrcfg.Dashboard_Client = mgr.dash.Client
-		mgrcfg.Dashboard_Addr = mgr.dash.Addr
-		mgrcfg.Dashboard_Key = mgr.dash.Key
+		mgrcfg.Tag = info.KernelCommit
 	}
-	mgrcfg.Name = mgr.cfg.Name + "-" + mgr.name
+	mgrcfg.Name = mgr.name
 	if mgr.cfg.Hub_Addr != "" {
 		mgrcfg.Hub_Client = mgr.cfg.Name
 		mgrcfg.Hub_Addr = mgr.cfg.Hub_Addr
@@ -335,7 +336,6 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.
 	mgrcfg.Kernel_Src = mgr.kernelDir
-	mgrcfg.Tag = tag
 	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 	mgrcfg.Image = filepath.Join(current, "image")
 	mgrcfg.Sshkey = filepath.Join(current, "key")
@@ -363,7 +363,13 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 	if err != nil {
 		return fmt.Errorf("failed to read kernel.config: %v", err)
 	}
+	commits, err := mgr.pollCommits(info.KernelCommit)
+	if err != nil {
+		// This is not critical for operation.
+		Logf(0, "%v: failed to poll commits: %v", mgr.name, err)
+	}
 	build := &dashapi.Build{
+		Manager:         mgr.name,
 		ID:              info.Tag,
 		SyzkallerCommit: syzkallerCommit,
 		CompilerID:      info.CompilerID,
@@ -371,6 +377,32 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 		KernelBranch:    info.KernelBranch,
 		KernelCommit:    info.KernelCommit,
 		KernelConfig:    kernelConfig,
+		Commits:         commits,
 	}
 	return mgr.dash.UploadBuild(build)
+}
+
+// pollCommits asks dashboard what commits it is interested in (i.e. fixes for
+// open bugs) and returns subset of these commits that are present in a build
+// on commit buildCommit.
+func (mgr *Manager) pollCommits(buildCommit string) ([]string, error) {
+	resp, err := mgr.dash.BuilderPoll(mgr.name)
+	if err != nil || len(resp.PendingCommits) == 0 {
+		return nil, err
+	}
+	commits, err := git.ListRecentCommits(mgr.kernelDir, buildCommit)
+	if err != nil {
+		return nil, err
+	}
+	m := make(map[string]bool, len(commits))
+	for _, com := range commits {
+		m[com] = true
+	}
+	var present []string
+	for _, com := range resp.PendingCommits {
+		if m[com] {
+			present = append(present, com)
+		}
+	}
+	return present, nil
 }

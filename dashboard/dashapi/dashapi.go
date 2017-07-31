@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 )
 
@@ -33,6 +34,7 @@ func New(client, addr, key string) *Dashboard {
 
 // Build describes all aspects of a kernel build.
 type Build struct {
+	Manager         string
 	ID              string
 	SyzkallerCommit string
 	CompilerID      string
@@ -40,15 +42,38 @@ type Build struct {
 	KernelBranch    string
 	KernelCommit    string
 	KernelConfig    []byte
+	Commits         []string // see BuilderPoll
 }
 
 func (dash *Dashboard) UploadBuild(build *Build) error {
 	return dash.query("upload_build", build, nil)
 }
 
+// BuilderPoll request is done by kernel builder before uploading a new build
+// with UploadBuild request. Response contains list of commits that dashboard
+// is interested in (i.e. commits that fix open bugs). When uploading a new
+// build builder should pass subset of the commits that are present in the build
+// in Build.Commits field.
+
+type BuilderPollReq struct {
+	Manager string
+}
+
+type BuilderPollResp struct {
+	PendingCommits []string
+}
+
+func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
+	req := &BuilderPollReq{
+		Manager: manager,
+	}
+	resp := new(BuilderPollResp)
+	err := dash.query("builder_poll", req, resp)
+	return resp, err
+}
+
 // Crash describes a single kernel crash (potentially with repro).
 type Crash struct {
-	Manager     string
 	BuildID     string // refers to Build.ID
 	Title       string
 	Maintainers []string
@@ -75,10 +100,102 @@ func (dash *Dashboard) ReportFailedRepro(repro *FailedRepro) error {
 	return dash.query("report_failed_repro", repro, nil)
 }
 
+type LogEntry struct {
+	Name string
+	Text string
+}
+
+// Centralized logging on dashboard.
+func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
+	req := &LogEntry{
+		Name: name,
+		Text: fmt.Sprintf(msg, args...),
+	}
+	dash.query("log_error", req, nil)
+}
+
+// BugReport describes a single bug.
+// Used by dashboard external reporting.
+type BugReport struct {
+	Config       []byte
+	ID           string
+	Title        string
+	Maintainers  []string
+	CompilerID   string
+	KernelRepo   string
+	KernelBranch string
+	KernelCommit string
+	KernelConfig []byte
+	Log          []byte
+	Report       []byte
+	ReproC       []byte
+	ReproSyz     []byte
+}
+
+type BugUpdate struct {
+	ID         string
+	Link       string
+	Status     BugStatus
+	ReproLevel ReproLevel
+	DupOf      string
+	FixCommits []string // Titles of commits that fix this bug.
+}
+
+type BugUpdateReply struct {
+	OK   bool
+	Text string
+}
+
+type PollRequest struct {
+	Type string
+}
+
+type PollResponse struct {
+	Reports []*BugReport
+}
+
+type (
+	BugStatus  int
+	ReproLevel int
+)
+
+const (
+	BugStatusOpen BugStatus = iota
+	BugStatusUpstream
+	BugStatusInvalid
+	BugStatusDup
+)
+
+const (
+	ReproLevelNone ReproLevel = iota
+	ReproLevelSyz
+	ReproLevelC
+)
+
 func (dash *Dashboard) query(method string, req, reply interface{}) error {
+	return Query(dash.Client, dash.Addr, dash.Key, method,
+		http.NewRequest, http.DefaultClient.Do, req, reply)
+}
+
+type (
+	RequestCtor func(method, url string, body io.Reader) (*http.Request, error)
+	RequestDoer func(req *http.Request) (*http.Response, error)
+)
+
+func Query(client, addr, key, method string, ctor RequestCtor, doer RequestDoer, req, reply interface{}) error {
+	if reply != nil {
+		// json decoding behavior is somewhat surprising
+		// (see // https://github.com/golang/go/issues/21092).
+		// To avoid any surprises, we zero the reply.
+		typ := reflect.TypeOf(reply)
+		if typ.Kind() != reflect.Ptr {
+			return fmt.Errorf("resp must be a pointer")
+		}
+		reflect.ValueOf(reply).Elem().Set(reflect.New(typ.Elem()).Elem())
+	}
 	values := make(url.Values)
-	values.Add("client", dash.Client)
-	values.Add("key", dash.Key)
+	values.Add("client", client)
+	values.Add("key", key)
 	values.Add("method", method)
 	var body io.Reader
 	gzipped := false
@@ -87,8 +204,9 @@ func (dash *Dashboard) query(method string, req, reply interface{}) error {
 		if err != nil {
 			return fmt.Errorf("failed to marshal request: %v", err)
 		}
-		if strings.HasPrefix(dash.Addr, "http://localhost:") {
-			// This is probably dev_appserver which does not support gzip.
+		if len(data) < 100 || addr == "" || strings.HasPrefix(addr, "http://localhost:") {
+			// Don't bother compressing tiny requests.
+			// Don't compress for dev_appserver which does not support gzip.
 			body = bytes.NewReader(data)
 		} else {
 			buf := new(bytes.Buffer)
@@ -103,8 +221,8 @@ func (dash *Dashboard) query(method string, req, reply interface{}) error {
 			gzipped = true
 		}
 	}
-	url := fmt.Sprintf("%v/api?%v", dash.Addr, values.Encode())
-	r, err := http.NewRequest("POST", url, body)
+	url := fmt.Sprintf("%v/api?%v", addr, values.Encode())
+	r, err := ctor("POST", url, body)
 	if err != nil {
 		return err
 	}
@@ -114,7 +232,7 @@ func (dash *Dashboard) query(method string, req, reply interface{}) error {
 			r.Header.Set("Content-Encoding", "gzip")
 		}
 	}
-	resp, err := http.DefaultClient.Do(r)
+	resp, err := doer(r)
 	if err != nil {
 		return fmt.Errorf("http request failed: %v", err)
 	}

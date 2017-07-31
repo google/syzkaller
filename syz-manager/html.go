@@ -253,14 +253,18 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	prog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.prog"))
 	cprog, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.cprog"))
 	rep, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.report"))
-	log, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.log"))
+	log, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.stats.log"))
 	stats, _ := ioutil.ReadFile(filepath.Join(mgr.crashdir, crashID, "repro.stats"))
 
-	fmt.Fprintf(w, "Syzkaller hit '%s' bug on commit %s.\n\n", trimNewLines(desc), trimNewLines(tag))
+	commitDesc := ""
+	if len(tag) != 0 {
+		commitDesc = fmt.Sprintf(" on commit %s.", trimNewLines(tag))
+	}
+	fmt.Fprintf(w, "Syzkaller hit '%s' bug%s.\n\n", trimNewLines(desc), commitDesc)
 	if len(rep) != 0 {
 		guiltyFile := report.ExtractGuiltyFile(rep)
 		if guiltyFile != "" {
-			fmt.Fprintf(w, "The guilty file is: %v.\n\n", guiltyFile)
+			fmt.Fprintf(w, "Guilty file: %v\n\n", guiltyFile)
 			maintainers, err := report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
 			if err == nil {
 				fmt.Fprintf(w, "Maintainers: %v\n\n", maintainers)

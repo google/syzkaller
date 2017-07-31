@@ -1,5 +1,7 @@
 # syzkaller - linux kernel fuzzer
 
+[![Build Status](https://travis-ci.org/google/syzkaller.svg?branch=master)](https://travis-ci.org/google/syzkaller)
+
 `syzkaller` is an unsupervised coverage-guided Linux kernel fuzzer.
 
 The project mailing list is [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller).
