@@ -171,6 +171,11 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 		if !p.EOF() {
 			return nil, fmt.Errorf("tailing data (line #%v)", p.l)
 		}
+		if len(c.Args) < len(meta.Args) {
+			for i := len(c.Args); i < len(meta.Args); i++ {
+				c.Args = append(c.Args, defaultArg(meta.Args[i]))
+			}
+		}
 		if len(c.Args) != len(meta.Args) {
 			return nil, fmt.Errorf("wrong call arg count: %v, want %v", len(c.Args), len(meta.Args))
 		}
