@@ -29,8 +29,8 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 			p0c := p0.Clone()
 			idx := r.Intn(len(p.Calls))
 			p.Calls = append(p.Calls[:idx], append(p0c.Calls, p.Calls[idx:]...)...)
-			if len(p.Calls) > ncalls {
-				p.Calls = p.Calls[:ncalls]
+			for i := len(p.Calls) - 1; i >= ncalls; i-- {
+				p.removeCall(i)
 			}
 		case r.nOutOf(20, 31):
 			// Insert a new call.
