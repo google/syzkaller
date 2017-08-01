@@ -253,11 +253,19 @@ func (w *execContext) writeArg(arg Arg, pid int, csumMap map[Arg]CsumInfo) {
 		w.write(a.Type().BitfieldOffset())
 		w.write(a.Type().BitfieldLength())
 	case *ResultArg:
-		w.write(ExecArgResult)
-		w.write(a.Size())
-		w.write(w.args[a.Res].Idx)
-		w.write(a.OpDiv)
-		w.write(a.OpAdd)
+		if a.Res == nil {
+			w.write(ExecArgConst)
+			w.write(a.Size())
+			w.write(a.Val)
+			w.write(0) // bit field offset
+			w.write(0) // bit field length
+		} else {
+			w.write(ExecArgResult)
+			w.write(a.Size())
+			w.write(w.args[a.Res].Idx)
+			w.write(a.OpDiv)
+			w.write(a.OpAdd)
+		}
 	case *PointerArg:
 		w.write(ExecArgConst)
 		w.write(a.Size())
