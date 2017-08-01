@@ -46,6 +46,19 @@ next:
 	}
 }
 
+func TestMutateCorpus(t *testing.T) {
+	rs, iters := initTest(t)
+	var corpus []*Prog
+	for i := 0; i < 100; i++ {
+		p := Generate(rs, 10, nil)
+		corpus = append(corpus, p)
+	}
+	for i := 0; i < iters; i++ {
+		p1 := Generate(rs, 10, nil)
+		p1.Mutate(rs, 10, nil, corpus)
+	}
+}
+
 func TestMutateTable(t *testing.T) {
 	tests := [][2]string{
 		// Insert calls.
@@ -276,8 +289,9 @@ func TestMinimize(t *testing.T) {
 
 func TestMinimizeRandom(t *testing.T) {
 	rs, iters := initTest(t)
+	iters /= 10 // Long test.
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := Generate(rs, 5, nil)
 		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
 			if err := p1.validate(); err != nil {
 				t.Fatalf("invalid program: %v", err)
@@ -292,7 +306,7 @@ func TestMinimizeRandom(t *testing.T) {
 		}, true)
 	}
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := Generate(rs, 5, nil)
 		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
 			if err := p1.validate(); err != nil {
 				t.Fatalf("invalid program: %v", err)
