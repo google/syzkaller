@@ -63,15 +63,16 @@ import (
 var flagConfig = flag.String("config", "", "config file")
 
 type Config struct {
-	Name             string
-	Http             string
-	Dashboard_Addr   string // Optional.
-	Hub_Addr         string // Optional.
-	Hub_Key          string // Optional.
-	Goroot           string // Go 1.8+ toolchain dir.
-	Syzkaller_Repo   string
-	Syzkaller_Branch string
-	Managers         []*ManagerConfig
+	Name                   string
+	Http                   string
+	Dashboard_Addr         string // Optional.
+	Hub_Addr               string // Optional.
+	Hub_Key                string // Optional.
+	Goroot                 string // Go 1.8+ toolchain dir.
+	Syzkaller_Repo         string
+	Syzkaller_Branch       string
+	Syzkaller_Descriptions string // Dir with additional syscall descriptions (.txt and .const files).
+	Managers               []*ManagerConfig
 }
 
 type ManagerConfig struct {

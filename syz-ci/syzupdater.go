@@ -41,6 +41,7 @@ type SyzUpdater struct {
 	exe          string
 	repo         string
 	branch       string
+	descriptions string
 	syzkallerDir string
 	latestDir    string
 	currentDir   string
@@ -73,6 +74,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		exe:          exe,
 		repo:         cfg.Syzkaller_Repo,
 		branch:       cfg.Syzkaller_Branch,
+		descriptions: cfg.Syzkaller_Descriptions,
 		syzkallerDir: syzkallerDir,
 		latestDir:    filepath.Join("syzkaller", "latest"),
 		currentDir:   filepath.Join("syzkaller", "current"),
@@ -184,6 +186,22 @@ func (upd *SyzUpdater) build() error {
 	commit, err := git.HeadCommit(upd.syzkallerDir)
 	if err != nil {
 		return fmt.Errorf("failed to get HEAD commit: %v", err)
+	}
+	if upd.descriptions != "" {
+		files, err := ioutil.ReadDir(upd.descriptions)
+		if err != nil {
+			return fmt.Errorf("failed to read descriptions dir: %v", err)
+		}
+		for _, f := range files {
+			src := filepath.Join(upd.descriptions, f.Name())
+			dst := filepath.Join(upd.syzkallerDir, "sys", f.Name())
+			if err := osutil.CopyFile(src, dst); err != nil {
+				return err
+			}
+		}
+	}
+	if _, err := osutil.RunCmd(time.Hour, upd.syzkallerDir, "make", "generate"); err != nil {
+		return fmt.Errorf("build failed: %v", err)
 	}
 	if _, err := osutil.RunCmd(time.Hour, upd.syzkallerDir, "make", "all", "ci"); err != nil {
 		return fmt.Errorf("build failed: %v", err)
