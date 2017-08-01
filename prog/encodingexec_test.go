@@ -250,6 +250,13 @@ func TestSerializeForExec(t *testing.T) {
 				instrEOF,
 			},
 		},
+		{
+			"syz_test$res1(0xffff)",
+			[]uint64{
+				callID("syz_test$res1"), 1, argConst, 4, 0xffff, 0, 0,
+				instrEOF,
+			},
+		},
 	}
 
 	buf := make([]byte, ExecBufferSize)
