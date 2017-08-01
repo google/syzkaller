@@ -507,3 +507,10 @@ syz_recur_2 {
 syz_test$recur0(a0 ptr[inout, syz_recur_0])
 syz_test$recur1(a0 ptr[inout, syz_recur_1])
 syz_test$recur2(a0 ptr[inout, syz_recur_2])
+
+# Resources.
+
+resource syz_res[int32]: 0xffff
+
+syz_test$res0() syz_res
+syz_test$res1(a0 syz_res)
