@@ -66,7 +66,7 @@ ioctl$KVM_SET_NR_MMU_PAGES(fd fd_kvmvm, cmd const[KVM_SET_NR_MMU_PAGES], arg int
 ioctl$KVM_GET_NR_MMU_PAGES(fd fd_kvmvm, cmd const[KVM_GET_NR_MMU_PAGES], arg intptr)
 ioctl$KVM_REINJECT_CONTROL(fd fd_kvmvm, cmd const[KVM_REINJECT_CONTROL], arg ptr[in, kvm_reinject_control])
 
-ioctl$KVM_RUN(fd fd_kvmcpu, cmd const[KVM_RUN])
+ioctl$KVM_RUN(fd fd_kvmcpu, cmd const[KVM_RUN], arg const[0])
 ioctl$KVM_GET_REGS(fd fd_kvmcpu, cmd const[KVM_GET_REGS], arg ptr[out, kvm_regs])
 ioctl$KVM_SET_REGS(fd fd_kvmcpu, cmd const[KVM_SET_REGS], arg ptr[in, kvm_regs])
 ioctl$KVM_GET_SREGS(fd fd_kvmcpu, cmd const[KVM_GET_SREGS], arg ptr[out, kvm_sregs])
