@@ -76,7 +76,7 @@ bin/syz-extract:
 
 generate: bin/syz-sysgen
 	bin/syz-sysgen
-	go generate ./pkg/csource ./executor ./syz-gce ./pkg/ifuzz ./pkg/kernel
+	go generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/kernel
 	$(MAKE) format
 bin/syz-sysgen:
 	go build $(GOFLAGS) -o $@ ./sys/syz-sysgen
