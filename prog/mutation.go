@@ -57,6 +57,11 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 				retry = true
 				continue
 			}
+			// Mutating mmap() arguments almost certainly doesn't give us new coverage.
+			if c.Meta.Name == "mmap" && r.nOutOf(99, 100) {
+				retry = true
+				continue
+			}
 			s := analyze(ct, p, c)
 			for stop := false; !stop; stop = r.oneOf(3) {
 				args, bases := mutationArgs(c)
