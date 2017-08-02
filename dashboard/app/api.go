@@ -424,6 +424,7 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 }
 
 func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
+	const batchSize = 10 // delete at most that many at once
 	if bug.NumCrashes <= maxCrashes {
 		return
 	}
@@ -434,7 +435,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 		Filter("ReproSyz=", 0).
 		Order("Report").
 		Order("Time").
-		Limit(maxCrashes+100).
+		Limit(maxCrashes+batchSize).
 		GetAll(c, &crashes)
 	if err != nil {
 		log.Errorf(c, "failed to fetch purge crashes: %v", err)
