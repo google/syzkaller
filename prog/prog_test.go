@@ -35,6 +35,15 @@ func TestGeneration(t *testing.T) {
 	}
 }
 
+func TestDefault(t *testing.T) {
+	initTest(t)
+	for _, meta := range sys.CallMap {
+		for _, t := range meta.Args {
+			defaultArg(t)
+		}
+	}
+}
+
 func TestSerialize(t *testing.T) {
 	rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {

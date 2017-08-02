@@ -243,6 +243,8 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			case out := <-merger.Output:
 				output = append(output, out...)
 				if bytes.Contains(output, []byte("serialport")) {
+					// Just to make sure (otherwise we still see trimmed reports).
+					time.Sleep(5 * time.Second)
 					break loop
 				}
 			case <-timeout.C:
