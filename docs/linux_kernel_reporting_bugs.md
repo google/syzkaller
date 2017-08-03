@@ -51,7 +51,7 @@ To report major security bugs (such as LPE, remote DOS, remote info leak or RCE)
     * Ask them to assign a CVE number.
     * Ask for 7 days of embargo.
 4. Wait 7 days for linux distros to apply the patch.
-5. Ask `linux-distros@vs.openwall.org` to make the CVE description public and roll out the update.
+5. Ask `linux-distros@vs.openwall.org` to make the CVE description public and roll out the updated kernels.
 6. Send the fix upstream:
     * Mention the CVE number in the commit message.
     * Mention syzkaller in the commit message.
