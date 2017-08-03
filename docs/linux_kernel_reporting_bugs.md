@@ -51,14 +51,13 @@ To report major security bugs (such as LPE, remote DOS, remote info leak or RCE)
     * Ask them to assign a CVE number.
     * Ask for 7 days of embargo.
 4. Wait 7 days for linux distros to apply the patch.
-5. Send the fix upstream:
+5. Ask `linux-distros@vs.openwall.org` to make the CVE description public and roll out the update.
+6. Send the fix upstream:
     * Mention the CVE number in the commit message.
     * Mention syzkaller in the commit message.
-6. Wait 3 days for the patch to be committed to mainline and backported to stable kernels.
-7. Ask `linux-distros@vs.openwall.org` to make the CVE description public.
-8. Notify `oss-security@lists.openwall.com`:
+7. Notify `oss-security@lists.openwall.com`:
     * Describe vulnerability details, include a link to the committed patch.
-9. Wait 1-3 days for people to update their kernels.
-10. Publish the exploit on `oss-security@lists.openwall.com`.
+8. Wait 1-3 days for people to update their kernels.
+9. Publish the exploit on `oss-security@lists.openwall.com`.
 
 A good example of an LPE announcement on `oss-security@lists.openwall.com` can be found [here](http://seclists.org/oss-sec/2016/q4/607).
