@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
@@ -70,10 +71,15 @@ type Manager struct {
 	maxSignal      map[uint32]struct{}
 	corpusCover    map[uint32]struct{}
 	prios          [][]float32
+	repros         [][]byte
 
 	fuzzers   map[string]*Fuzzer
 	hub       *RpcClient
 	hubCorpus map[hash.Sig]bool
+	hubRepros map[hash.Sig]bool
+
+	reproQueue    []*Crash
+	hubReproQueue chan *Crash
 }
 
 const (
@@ -100,6 +106,7 @@ type Crash struct {
 	desc    string
 	text    []byte
 	output  []byte
+	hub     bool // this crash was created based on a repro from hub
 }
 
 func main() {
@@ -190,6 +197,25 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
 	Logf(0, "loaded %v programs (%v total, %v deleted)", len(mgr.candidates), len(mgr.corpusDB.Records), deleted)
+
+	Logf(0, "loading legacy repros...")
+	dirs, err := osutil.ListDir(crashdir)
+	for _, dir := range dirs {
+		reproFile, err := os.Open(filepath.Join(crashdir, dir, "repro.prog"))
+		if err != nil {
+			continue
+		}
+		repro, err := ioutil.ReadAll(reproFile)
+		if err != nil || len(repro) == 0 {
+			continue
+		}
+		key := hash.String(repro)
+		if _, ok := mgr.corpusDB.Records[key]; ok {
+			continue
+		}
+		mgr.repros = append(mgr.repros, repro)
+	}
+	Logf(0, "loaded %v legacy repros", len(mgr.repros))
 
 	// Now this is ugly.
 	// We duplicate all inputs in the corpus and shuffle the second part.
@@ -308,6 +334,7 @@ type ReproResult struct {
 	desc0     string
 	res       *repro.Result
 	err       error
+	hub       bool // repro came from hub
 }
 
 func (mgr *Manager) vmLoop() {
@@ -322,11 +349,11 @@ func (mgr *Manager) vmLoop() {
 	for i := range instances {
 		instances[i] = vmCount - i - 1
 	}
+	mgr.hubReproQueue = make(chan *Crash, 1)
 	runDone := make(chan *RunResult, 1)
 	pendingRepro := make(map[*Crash]bool)
 	reproducing := make(map[string]bool)
 	reproInstances := 0
-	var reproQueue []*Crash
 	reproDone := make(chan *ReproResult, 1)
 	stopPending := false
 	shutdown := vm.Shutdown
@@ -345,16 +372,16 @@ func (mgr *Manager) vmLoop() {
 			}
 			Logf(1, "loop: add to repro queue '%v'", crash.desc)
 			reproducing[crash.desc] = true
-			reproQueue = append(reproQueue, crash)
+			mgr.reproQueue = append(mgr.reproQueue, crash)
 		}
 
-		Logf(1, "loop: phase=%v shutdown=%v instances=%v/%v %+v repro: pending=%v reproducing=%v queued=%v",
+		Logf(1, "loop: phase=%v shutdown=%v instances=%v/%v %+v repro: pending=%v reproducing=%v queued=%v hub=%v",
 			phase, shutdown == nil, len(instances), vmCount, instances,
-			len(pendingRepro), len(reproducing), len(reproQueue))
+			len(pendingRepro), len(reproducing), len(mgr.reproQueue), len(mgr.hubReproQueue))
 
 		canRepro := func() bool {
-			return phase >= phaseTriagedHub &&
-				len(reproQueue) != 0 && reproInstances+instancesPerRepro <= vmCount
+			return phase >= phaseTriagedCorpus && reproInstances+instancesPerRepro <= vmCount &&
+				(len(mgr.hubReproQueue) != 0 || len(mgr.reproQueue) != 0)
 		}
 
 		if shutdown == nil {
@@ -363,17 +390,22 @@ func (mgr *Manager) vmLoop() {
 			}
 		} else {
 			for canRepro() && len(instances) >= instancesPerRepro {
-				last := len(reproQueue) - 1
-				crash := reproQueue[last]
-				reproQueue[last] = nil
-				reproQueue = reproQueue[:last]
+				var crash *Crash
+				if len(mgr.hubReproQueue) != 0 {
+					crash = <-mgr.hubReproQueue
+				} else {
+					last := len(mgr.reproQueue) - 1
+					crash = mgr.reproQueue[last]
+					mgr.reproQueue[last] = nil
+					mgr.reproQueue = mgr.reproQueue[:last]
+				}
 				vmIndexes := append([]int{}, instances[len(instances)-instancesPerRepro:]...)
 				instances = instances[:len(instances)-instancesPerRepro]
 				reproInstances += instancesPerRepro
 				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.desc, vmIndexes)
 				go func() {
 					res, err := repro.Run(crash.output, mgr.cfg, mgr.vmPool, vmIndexes)
-					reproDone <- &ReproResult{vmIndexes, crash.desc, res, err}
+					reproDone <- &ReproResult{vmIndexes, crash.desc, res, err, crash.hub}
 				}()
 			}
 			for !canRepro() && len(instances) != 0 {
@@ -431,7 +463,7 @@ func (mgr *Manager) vmLoop() {
 			if res.res == nil {
 				mgr.saveFailedRepro(res.desc0)
 			} else {
-				mgr.saveRepro(res.res)
+				mgr.saveRepro(res.res, res.hub)
 			}
 		case <-shutdown:
 			Logf(1, "loop: shutting down...")
@@ -490,7 +522,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		// syz-fuzzer exited, but it should not.
 		desc = "lost connection to test machine"
 	}
-	return &Crash{index, desc, text, output}, nil
+	return &Crash{index, desc, text, output, false}, nil
 }
 
 func (mgr *Manager) isSuppressed(crash *Crash) bool {
@@ -617,11 +649,17 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 	}
 }
 
-func (mgr *Manager) saveRepro(res *repro.Result) {
+func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	res.Report = mgr.symbolizeReport(res.Report)
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(res.Desc)))
 	osutil.MkdirAll(dir)
 
+	descFile := filepath.Join(dir, "description")
+	if !osutil.IsExist(descFile) {
+		if err := osutil.WriteFile(descFile, []byte(res.Desc+"\n")); err != nil {
+			Logf(0, "failed to write crash: %v", err)
+		}
+	}
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
 	prog := res.Prog.Serialize()
 	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...))
@@ -651,6 +689,11 @@ func (mgr *Manager) saveRepro(res *repro.Result) {
 		} else {
 			Logf(0, "failed to write C source: %v", err)
 		}
+	}
+
+	// Apend this repro to repro list to send to hub if it didn't come from hub originally.
+	if !hub {
+		mgr.repros = append(mgr.repros, prog)
 	}
 
 	if mgr.dash != nil {
@@ -832,7 +875,7 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 		mgr.corpus[sig] = inp
 	} else {
 		mgr.corpus[sig] = a.RpcInput
-		mgr.corpusDB.Save(sig, a.RpcInput.Prog, 0)
+		mgr.corpusDB.Save(sig, a.RpcInput.Prog, 0, false)
 		if err := mgr.corpusDB.Flush(); err != nil {
 			Logf(0, "failed to save corpus database: %v", err)
 		}
@@ -937,6 +980,11 @@ func (mgr *Manager) hubSync() {
 			hubCorpus[hash.Hash(inp.Prog)] = true
 			a.Corpus = append(a.Corpus, inp.Prog)
 		}
+		hubRepros := make(map[hash.Sig]bool)
+		for _, repro := range mgr.repros {
+			hubRepros[hash.Hash(repro)] = true
+			a.Repros = append(a.Repros, repro)
+		}
 		mgr.mu.Unlock()
 		// Hub.Connect request can be very large, so do it on a transient connection
 		// (rpc connection buffers never shrink).
@@ -955,6 +1003,7 @@ func (mgr *Manager) hubSync() {
 		mgr.mu.Lock()
 		mgr.hub = conn
 		mgr.hubCorpus = hubCorpus
+		mgr.hubRepros = hubRepros
 		mgr.fresh = false
 		Logf(0, "connected to hub at %v, corpus %v", mgr.cfg.Hub_Addr, len(mgr.corpus))
 	}
@@ -981,6 +1030,14 @@ func (mgr *Manager) hubSync() {
 		delete(mgr.hubCorpus, sig)
 		a.Del = append(a.Del, sig.String())
 	}
+	for _, repro := range mgr.repros {
+		sig := hash.Hash(repro)
+		if mgr.hubRepros[sig] {
+			continue
+		}
+		mgr.hubRepros[sig] = true
+		a.Repros = append(a.Repros, repro)
+	}
 	for {
 		mgr.mu.Unlock()
 		r := new(HubSyncRes)
@@ -993,7 +1050,7 @@ func (mgr *Manager) hubSync() {
 		}
 		mgr.mu.Lock()
 		dropped := 0
-		for _, inp := range r.Inputs {
+		for _, inp := range r.Progs {
 			_, err := prog.Deserialize(inp)
 			if err != nil {
 				dropped++
@@ -1004,13 +1061,26 @@ func (mgr *Manager) hubSync() {
 				Minimized: false, // don't trust programs from hub
 			})
 		}
+		reproDropped := 0
+		for _, repro := range r.Repros {
+			_, err := prog.Deserialize(repro)
+			if err != nil {
+				reproDropped++
+				continue
+			}
+			crash := Crash{0, "external repro", nil, repro, true}
+			mgr.mu.Unlock()
+			mgr.hubReproQueue <- &crash
+			mgr.mu.Lock()
+		}
 		mgr.stats["hub add"] += uint64(len(a.Add))
 		mgr.stats["hub del"] += uint64(len(a.Del))
 		mgr.stats["hub drop"] += uint64(dropped)
-		mgr.stats["hub new"] += uint64(len(r.Inputs) - dropped)
-		Logf(0, "hub sync: add %v, del %v, drop %v, new %v, more %v",
-			len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped, r.More)
-		if len(r.Inputs)+r.More == 0 {
+		mgr.stats["hub new"] += uint64(len(r.Progs) - dropped)
+		mgr.stats["hub repros"] += uint64(len(r.Repros) - reproDropped)
+		Logf(0, "hub sync: send: add %v, del %v, repros: %v; recv: progs: drop %v, new %v, repros: drop: %v, new %v; more %v",
+			len(a.Add), len(a.Del), len(a.Repros), dropped, len(r.Progs)-dropped, reproDropped, len(r.Repros)-reproDropped, r.More)
+		if len(r.Progs)+r.More == 0 {
 			break
 		}
 		a.Add = nil

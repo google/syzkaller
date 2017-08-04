@@ -31,8 +31,9 @@ type DB struct {
 }
 
 type Record struct {
-	Val []byte
-	Seq uint64
+	Val   []byte
+	Seq   uint64
+	Repro bool
 }
 
 func Open(filename string) (*DB, error) {
@@ -51,15 +52,15 @@ func Open(filename string) (*DB, error) {
 	return db, nil
 }
 
-func (db *DB) Save(key string, val []byte, seq uint64) {
+func (db *DB) Save(key string, val []byte, seq uint64, repro bool) {
 	if seq == seqDeleted {
 		panic("reserved seq")
 	}
-	if rec, ok := db.Records[key]; ok && seq == rec.Seq && bytes.Equal(val, rec.Val) {
+	if rec, ok := db.Records[key]; ok && seq == rec.Seq && repro == rec.Repro && bytes.Equal(val, rec.Val) {
 		return
 	}
-	db.Records[key] = Record{val, seq}
-	db.serialize(key, val, seq)
+	db.Records[key] = Record{val, seq, repro}
+	db.serialize(key, val, seq, repro)
 	db.uncompacted++
 }
 
@@ -68,7 +69,7 @@ func (db *DB) Delete(key string) {
 		return
 	}
 	delete(db.Records, key)
-	db.serialize(key, nil, seqDeleted)
+	db.serialize(key, nil, seqDeleted, false)
 	db.uncompacted++
 }
 
@@ -96,7 +97,7 @@ func (db *DB) compact() error {
 	buf := new(bytes.Buffer)
 	serializeHeader(buf)
 	for key, rec := range db.Records {
-		serializeRecord(buf, key, rec.Val, rec.Seq)
+		serializeRecord(buf, key, rec.Val, rec.Seq, rec.Repro)
 	}
 	f, err := os.Create(db.filename + ".tmp")
 	if err != nil {
@@ -115,11 +116,11 @@ func (db *DB) compact() error {
 	return nil
 }
 
-func (db *DB) serialize(key string, val []byte, seq uint64) {
+func (db *DB) serialize(key string, val []byte, seq uint64, repro bool) {
 	if db.pending == nil {
 		db.pending = new(bytes.Buffer)
 	}
-	serializeRecord(db.pending, key, val, seq)
+	serializeRecord(db.pending, key, val, seq, repro)
 }
 
 const (
@@ -134,11 +135,11 @@ func serializeHeader(w *bytes.Buffer) {
 	binary.Write(w, binary.LittleEndian, curVersion)
 }
 
-func serializeRecord(w *bytes.Buffer, key string, val []byte, seq uint64) {
+func serializeRecord(w *bytes.Buffer, key string, val []byte, seq uint64, repro bool) {
 	binary.Write(w, binary.LittleEndian, recMagic)
 	binary.Write(w, binary.LittleEndian, uint32(len(key)))
 	w.WriteString(key)
-	binary.Write(w, binary.LittleEndian, seq)
+	binary.Write(w, binary.LittleEndian, packSeq(seq, repro))
 	if seq == seqDeleted {
 		if len(val) != 0 {
 			panic("deleting record with value")
@@ -173,7 +174,7 @@ func deserializeDB(r *bufio.Reader) (records map[string]Record, uncompacted int)
 	}
 	_ = ver
 	for {
-		key, val, seq, err := deserializeRecord(r)
+		key, val, seq, repro, err := deserializeRecord(r)
 		if err == io.EOF {
 			return
 		}
@@ -185,7 +186,7 @@ func deserializeDB(r *bufio.Reader) (records map[string]Record, uncompacted int)
 		if seq == seqDeleted {
 			delete(records, key)
 		} else {
-			records[key] = Record{val, seq}
+			records[key] = Record{val, seq, repro}
 		}
 	}
 }
@@ -210,7 +211,7 @@ func deserializeHeader(r *bufio.Reader) (uint32, error) {
 	return ver, nil
 }
 
-func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err error) {
+func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, repro bool, err error) {
 	var magic uint32
 	if err = binary.Read(r, binary.LittleEndian, &magic); err != nil {
 		return
@@ -231,6 +232,8 @@ func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err
 	if err = binary.Read(r, binary.LittleEndian, &seq); err != nil {
 		return
 	}
+	repro = isRepro(seq)
+	seq = getSeq(seq)
 	if seq == seqDeleted {
 		return
 	}
@@ -246,4 +249,19 @@ func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err
 		fr.Close()
 	}
 	return
+}
+
+func packSeq(seq uint64, repro bool) uint64 {
+	if repro {
+		seq |= (uint64(1) << 63)
+	}
+	return seq
+}
+
+func getSeq(seq uint64) uint64 {
+	return (seq & ^(uint64(1) << 63))
+}
+
+func isRepro(seq uint64) bool {
+	return (seq & (uint64(1) << 63)) != 0
 }
