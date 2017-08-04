@@ -499,7 +499,7 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request) (interf
 		}
 		return nil
 	}
-	if err := datastore.RunInTransaction(c, tx, nil); err != nil {
+	if err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true}); err != nil {
 		return nil, err
 	}
 	return nil, nil
