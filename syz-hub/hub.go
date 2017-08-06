@@ -90,15 +90,29 @@ func (hub *Hub) Sync(a *HubSyncArgs, r *HubSyncRes) error {
 	hub.mu.Lock()
 	defer hub.mu.Unlock()
 
-	inputs, more, err := hub.st.Sync(name, a.Add, a.Del)
+	progs, more, err := hub.st.Sync(name, a.Add, a.Del)
 	if err != nil {
 		Logf(0, "sync error: %v", err)
 		return err
 	}
-	r.Inputs = inputs
+	r.Progs = progs
 	r.More = more
-	Logf(0, "sync from %v: add=%v del=%v new=%v pending=%v",
-		name, len(a.Add), len(a.Del), len(inputs), more)
+	for _, repro := range a.Repros {
+		if err := hub.st.AddRepro(name, repro); err != nil {
+			Logf(0, "add repro error: %v", err)
+		}
+	}
+	if a.NeedRepros {
+		repro, err := hub.st.PendingRepro(name)
+		if err != nil {
+			Logf(0, "sync error: %v", err)
+		}
+		if repro != nil {
+			r.Repros = [][]byte{repro}
+		}
+	}
+	Logf(0, "sync from %v: recv: add=%v del=%v; send: progs=%v repros=%v pending=%v",
+		name, len(a.Add), len(a.Del), len(r.Progs), len(r.Repros), more)
 	return nil
 }
 

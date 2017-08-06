@@ -155,3 +155,13 @@ func WriteFile(filename string, data []byte) error {
 func WriteExecFile(filename string, data []byte) error {
 	return ioutil.WriteFile(filename, data, DefaultExecPerm)
 }
+
+// Return all files in a directory.
+func ListDir(dir string) ([]string, error) {
+	f, err := os.Open(dir)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return f.Readdirnames(-1)
+}
