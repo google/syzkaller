@@ -70,10 +70,13 @@ type Manager struct {
 	maxSignal      map[uint32]struct{}
 	corpusCover    map[uint32]struct{}
 	prios          [][]float32
+	newRepros      [][]byte
 
-	fuzzers   map[string]*Fuzzer
-	hub       *RpcClient
-	hubCorpus map[hash.Sig]bool
+	fuzzers        map[string]*Fuzzer
+	hub            *RpcClient
+	hubCorpus      map[hash.Sig]bool
+	needMoreRepros chan chan bool
+	hubReproQueue  chan *Crash
 }
 
 const (
@@ -100,6 +103,7 @@ type Crash struct {
 	desc    string
 	text    []byte
 	output  []byte
+	hub     bool // this crash was created based on a repro from hub
 }
 
 func main() {
@@ -149,6 +153,8 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 		fuzzers:         make(map[string]*Fuzzer),
 		fresh:           true,
 		vmStop:          make(chan bool),
+		hubReproQueue:   make(chan *Crash), //!!! make buffered
+		needMoreRepros:  make(chan chan bool),
 	}
 
 	Logf(0, "loading corpus...")
@@ -308,6 +314,7 @@ type ReproResult struct {
 	desc0     string
 	res       *repro.Result
 	err       error
+	hub       bool // repro came from hub
 }
 
 func (mgr *Manager) vmLoop() {
@@ -373,7 +380,7 @@ func (mgr *Manager) vmLoop() {
 				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.desc, vmIndexes)
 				go func() {
 					res, err := repro.Run(crash.output, mgr.cfg, mgr.vmPool, vmIndexes)
-					reproDone <- &ReproResult{vmIndexes, crash.desc, res, err}
+					reproDone <- &ReproResult{vmIndexes, crash.desc, res, err, crash.hub}
 				}()
 			}
 			for !canRepro() && len(instances) != 0 {
@@ -431,11 +438,17 @@ func (mgr *Manager) vmLoop() {
 			if res.res == nil {
 				mgr.saveFailedRepro(res.desc0)
 			} else {
-				mgr.saveRepro(res.res)
+				mgr.saveRepro(res.res, res.hub)
 			}
 		case <-shutdown:
 			Logf(1, "loop: shutting down...")
 			shutdown = nil
+		case crash := <-mgr.hubReproQueue:
+			Logf(1, "loop: get repro from hub")
+			reproQueue = append(reproQueue, crash)
+		case reply := <-mgr.needMoreRepros:
+			reply <- phase >= phaseTriagedHub &&
+				len(reproQueue)+len(pendingRepro)+len(reproducing) == 0
 		}
 	}
 }
@@ -490,7 +503,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		// syz-fuzzer exited, but it should not.
 		desc = "lost connection to test machine"
 	}
-	return &Crash{index, desc, text, output}, nil
+	return &Crash{index, desc, text, output, false}, nil
 }
 
 func (mgr *Manager) isSuppressed(crash *Crash) bool {
@@ -617,11 +630,14 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 	}
 }
 
-func (mgr *Manager) saveRepro(res *repro.Result) {
+func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	res.Report = mgr.symbolizeReport(res.Report)
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(res.Desc)))
 	osutil.MkdirAll(dir)
 
+	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(res.Desc+"\n")); err != nil {
+		Logf(0, "failed to write crash: %v", err)
+	}
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
 	prog := res.Prog.Serialize()
 	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...))
@@ -651,6 +667,13 @@ func (mgr *Manager) saveRepro(res *repro.Result) {
 		} else {
 			Logf(0, "failed to write C source: %v", err)
 		}
+	}
+
+	// Append this repro to repro list to send to hub if it didn't come from hub originally.
+	if !hub {
+		mgr.mu.Lock()
+		mgr.newRepros = append(mgr.newRepros, prog)
+		mgr.mu.Unlock()
 	}
 
 	if mgr.dash != nil {
@@ -982,7 +1005,14 @@ func (mgr *Manager) hubSync() {
 		a.Del = append(a.Del, sig.String())
 	}
 	for {
+		a.Repros = mgr.newRepros
+
 		mgr.mu.Unlock()
+
+		needReproReply := make(chan bool)
+		mgr.needMoreRepros <- needReproReply
+		a.NeedRepros = <-needReproReply
+
 		r := new(HubSyncRes)
 		if err := mgr.hub.Call("Hub.Sync", a, r); err != nil {
 			mgr.mu.Lock()
@@ -991,9 +1021,21 @@ func (mgr *Manager) hubSync() {
 			mgr.hub = nil
 			return
 		}
+
+		reproDropped := 0
+		for _, repro := range r.Repros {
+			_, err := prog.Deserialize(repro)
+			if err != nil {
+				reproDropped++
+				continue
+			}
+			mgr.hubReproQueue <- &Crash{-1, "external repro", nil, repro, true}
+		}
+
 		mgr.mu.Lock()
+		mgr.newRepros = nil
 		dropped := 0
-		for _, inp := range r.Inputs {
+		for _, inp := range r.Progs {
 			_, err := prog.Deserialize(inp)
 			if err != nil {
 				dropped++
@@ -1007,10 +1049,12 @@ func (mgr *Manager) hubSync() {
 		mgr.stats["hub add"] += uint64(len(a.Add))
 		mgr.stats["hub del"] += uint64(len(a.Del))
 		mgr.stats["hub drop"] += uint64(dropped)
-		mgr.stats["hub new"] += uint64(len(r.Inputs) - dropped)
-		Logf(0, "hub sync: add %v, del %v, drop %v, new %v, more %v",
-			len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped, r.More)
-		if len(r.Inputs)+r.More == 0 {
+		mgr.stats["hub new"] += uint64(len(r.Progs) - dropped)
+		mgr.stats["hub sent repros"] += uint64(len(a.Repros))
+		mgr.stats["hub recv repros"] += uint64(len(r.Repros) - reproDropped)
+		Logf(0, "hub sync: send: add %v, del %v, repros: %v; recv: progs: drop %v, new %v, repros: drop: %v, new %v; more %v",
+			len(a.Add), len(a.Del), len(a.Repros), dropped, len(r.Progs)-dropped, reproDropped, len(r.Repros)-reproDropped, r.More)
+		if len(r.Progs)+r.More == 0 {
 			break
 		}
 		a.Add = nil

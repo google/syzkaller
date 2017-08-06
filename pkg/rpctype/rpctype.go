@@ -74,18 +74,23 @@ type HubConnectArgs struct {
 
 type HubSyncArgs struct {
 	// see HubConnectArgs.
-	Client  string
-	Key     string
-	Manager string
+	Client     string
+	Key        string
+	Manager    string
+	NeedRepros bool
 	// Programs added to corpus since last sync or connect.
 	Add [][]byte
-	// Hashed of programs removed from corpus since last sync or connect.
+	// Hashes of programs removed from corpus since last sync or connect.
 	Del []string
+	// Repros found since last sync.
+	Repros [][]byte
 }
 
 type HubSyncRes struct {
 	// Set of programs from other managers.
-	Inputs [][]byte
+	Progs [][]byte
+	// Set of repros from other managers.
+	Repros [][]byte
 	// Number of remaining pending programs,
 	// if >0 manager should do sync again.
 	More int
