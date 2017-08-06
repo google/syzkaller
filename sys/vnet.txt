@@ -419,7 +419,7 @@ ipv4_header {
 	ecn		int8:2
 	dscp		int8:6
 	total_len	len[ipv4_packet, int16be]
-	id		int16be
+	id		proc[int16be, 100, 4]
 	frag_off	int16be
 # TODO: frag_off is actually 13 bits, 3 bits are flags
 	ttl		int8
@@ -446,7 +446,7 @@ include <uapi/linux/in6.h>
 include <uapi/linux/ipv6.h>
 include <net/ipv6.h>
 
-ipv6_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, IPPROTO_EGP, IPPROTO_PUP, IPPROTO_UDP, IPPROTO_IDP, IPPROTO_TP, IPPROTO_DCCP, IPPROTO_IPV6, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_ESP, IPPROTO_AH, IPPROTO_MTP, IPPROTO_BEETPH, IPPROTO_ENCAP, IPPROTO_PIM, IPPROTO_COMP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_MPLS, IPPROTO_RAW, IPPROTO_HOPOPTS, IPPROTO_ROUTING, IPPROTO_FRAGMENT, IPPROTO_ICMPV6, IPPROTO_NONE, IPPROTO_DSTOPTS, IPPROTO_MH, NEXTHDR_HOP, NEXTHDR_TCP, NEXTHDR_UDP, NEXTHDR_IPV6, NEXTHDR_ROUTING, NEXTHDR_FRAGMENT, NEXTHDR_GRE, NEXTHDR_ESP, NEXTHDR_AUTH, NEXTHDR_ICMP, NEXTHDR_NONE, NEXTHDR_DEST, NEXTHDR_SCTP, NEXTHDR_MOBILITY
+ipv6_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, IPPROTO_EGP, IPPROTO_PUP, IPPROTO_UDP, IPPROTO_IDP, IPPROTO_TP, IPPROTO_DCCP, IPPROTO_IPV6, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_ESP, IPPROTO_AH, IPPROTO_MTP, IPPROTO_BEETPH, IPPROTO_ENCAP, IPPROTO_PIM, IPPROTO_COMP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_MPLS, IPPROTO_RAW, IPPROTO_HOPOPTS, IPPROTO_ROUTING, IPPROTO_FRAGMENT, IPPROTO_ICMPV6, IPPROTO_NONE, IPPROTO_DSTOPTS, IPPROTO_MH, NEXTHDR_HOP, NEXTHDR_ROUTING, NEXTHDR_FRAGMENT, NEXTHDR_GRE, NEXTHDR_ESP, NEXTHDR_AUTH, NEXTHDR_ICMP, NEXTHDR_NONE, NEXTHDR_DEST, NEXTHDR_MOBILITY
 
 ipv6_addr_empty {
 	a0	array[const[0x00, int8], 16]
@@ -519,10 +519,11 @@ ipv6_routing_ext_header {
 ipv6_fragment_ext_header {
 	next_header	flags[ipv6_types, int8]
 	reserved1	int8
-	m_flag		int16:1
-	reserved2	int16:2
-	fragment_offset	int16be:13
-	identification	int32
+	fragment_off_hi	int8
+	m_flag		int8:1
+	reserved2	int8:2
+	fragment_off_lo	int8:5
+	identification	proc[int32, 100, 4]
 } [packed]
 
 ipv6_dstopts_ext_header {
@@ -732,7 +733,7 @@ icmp_ipv4_header {
 	ecn		int8:2
 	dscp		int8:6
 	total_len	int16be
-	id		int16be
+	id		proc[int16be, 100, 4]
 	frag_off	int16be
 	ttl		int8
 	protocol	flags[ipv4_types, int8]
