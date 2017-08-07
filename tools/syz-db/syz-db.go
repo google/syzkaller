@@ -65,7 +65,7 @@ func pack(dir, file string) {
 			fmt.Fprintf(os.Stderr, "fixing hash %v -> %v\n", key, sig)
 			key = sig
 		}
-		db.Save(key, data, seq)
+		db.Save(key, data, seq, false)
 	}
 	if err := db.Flush(); err != nil {
 		failf("failed to save database file: %v", err)

@@ -43,12 +43,14 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 		total.Added += mgr.Added
 		total.Deleted += mgr.Deleted
 		total.New += mgr.New
+		total.Repros += mgr.Repros
 		data.Managers = append(data.Managers, UIManager{
 			Name:    name,
 			Corpus:  len(mgr.Corpus.Records),
 			Added:   mgr.Added,
 			Deleted: mgr.Deleted,
 			New:     mgr.New,
+			Repros:  mgr.Repros,
 		})
 	}
 	sort.Sort(UIManagerArray(data.Managers))
@@ -75,6 +77,7 @@ type UIManager struct {
 	Added   int
 	Deleted int
 	New     int
+	Repros  int
 }
 
 type UIManagerArray []UIManager
@@ -102,6 +105,7 @@ var summaryTemplate = compileTemplate(`
 		<th>Added</th>
 		<th>Deleted</th>
 		<th>New</th>
+		<th>Repros</th>
 	</tr>
 	{{range $m := $.Managers}}
 	<tr>
@@ -110,6 +114,7 @@ var summaryTemplate = compileTemplate(`
 		<td>{{$m.Added}}</td>
 		<td>{{$m.Deleted}}</td>
 		<td>{{$m.New}}</td>
+		<td>{{$m.Repros}}</td>
 	</tr>
 	{{end}}
 </table>

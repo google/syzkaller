@@ -22,9 +22,9 @@ func TestBasic(t *testing.T) {
 	if len(db.Records) != 0 {
 		t.Fatalf("empty db contains records")
 	}
-	db.Save("", nil, 0)
-	db.Save("1", []byte("ab"), 1)
-	db.Save("23", []byte("abcd"), 2)
+	db.Save("", nil, 0, false)
+	db.Save("1", []byte("ab"), 1, true)
+	db.Save("23", []byte("abcd"), 2, false)
 	checkContents := func(where string) {
 		if len(db.Records) != 3 {
 			t.Fatalf("bad record count %v %v, want 3", where, len(db.Records))
@@ -32,15 +32,15 @@ func TestBasic(t *testing.T) {
 		for key, rec := range db.Records {
 			switch key {
 			case "":
-				if len(rec.Val) == 0 && rec.Seq == 0 {
+				if len(rec.Val) == 0 && rec.Seq == 0 && !rec.Repro {
 					return
 				}
 			case "1":
-				if bytes.Equal(rec.Val, []byte("ab")) && rec.Seq == 1 {
+				if bytes.Equal(rec.Val, []byte("ab")) && rec.Seq == 1 && rec.Repro {
 					return
 				}
 			case "23":
-				if bytes.Equal(rec.Val, []byte("abcd")) && rec.Seq == 2 {
+				if bytes.Equal(rec.Val, []byte("abcd")) && rec.Seq == 2 && !rec.Repro {
 					return
 				}
 			default:
@@ -68,16 +68,16 @@ func TestModify(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open db: %v", err)
 	}
-	db.Save("1", []byte("ab"), 0)
-	db.Save("23", nil, 1)
-	db.Save("456", []byte("abcd"), 1)
-	db.Save("7890", []byte("a"), 0)
+	db.Save("1", []byte("ab"), 0, false)
+	db.Save("23", nil, 1, false)
+	db.Save("456", []byte("abcd"), 1, false)
+	db.Save("7890", []byte("a"), 0, true)
 	db.Delete("23")
-	db.Save("1", nil, 5)
-	db.Save("456", []byte("ef"), 6)
+	db.Save("1", nil, 5, true)
+	db.Save("456", []byte("ef"), 6, true)
 	db.Delete("7890")
-	db.Save("456", []byte("efg"), 0)
-	db.Save("7890", []byte("bc"), 0)
+	db.Save("456", []byte("efg"), 0, false)
+	db.Save("7890", []byte("bc"), 0, true)
 	checkContents := func(where string) {
 		if len(db.Records) != 3 {
 			t.Fatalf("bad record count %v %v, want 3", where, len(db.Records))
@@ -85,15 +85,15 @@ func TestModify(t *testing.T) {
 		for key, rec := range db.Records {
 			switch key {
 			case "1":
-				if len(rec.Val) == 0 && rec.Seq == 5 {
+				if len(rec.Val) == 0 && rec.Seq == 5 && rec.Repro {
 					return
 				}
 			case "456":
-				if bytes.Equal(rec.Val, []byte("efg")) && rec.Seq == 0 {
+				if bytes.Equal(rec.Val, []byte("efg")) && rec.Seq == 0 && !rec.Repro {
 					return
 				}
 			case "7890":
-				if bytes.Equal(rec.Val, []byte("bc")) && rec.Seq == 0 {
+				if bytes.Equal(rec.Val, []byte("bc")) && rec.Seq == 0 && rec.Repro {
 					return
 				}
 			default:
@@ -127,7 +127,7 @@ func TestLarge(t *testing.T) {
 		val[i] = byte(rand.Intn(256))
 	}
 	for i := 0; i < nrec; i++ {
-		db.Save(fmt.Sprintf("%v", i), val, 0)
+		db.Save(fmt.Sprintf("%v", i), val, 0, false)
 	}
 	if err := db.Flush(); err != nil {
 		t.Fatalf("failed to flush db: %v", err)

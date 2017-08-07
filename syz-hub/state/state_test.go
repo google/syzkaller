@@ -20,7 +20,7 @@ func TestState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to make state: %v", err)
 	}
-	_, _, err = st.Sync("foo", nil, nil)
+	_, _, _, err = st.Sync("foo", nil, nil, nil)
 	if err == nil {
 		t.Fatalf("synced with unconnected manager")
 	}

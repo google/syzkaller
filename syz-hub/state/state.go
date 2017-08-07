@@ -37,6 +37,7 @@ type Manager struct {
 	Added     int
 	Deleted   int
 	New       int
+	Repros    int
 	Calls     map[string]struct{}
 	Corpus    *db.DB
 }
@@ -106,7 +107,7 @@ func Make(dir string) (*State, error) {
 	return st, err
 }
 
-func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byte) error {
+func (st *State) Connect(name string, fresh bool, calls []string, corpus, repros [][]byte) error {
 	mgr := st.Managers[name]
 	if mgr == nil {
 		mgr = new(Manager)
@@ -133,15 +134,16 @@ func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byt
 		Logf(0, "failed to open corpus database: %v", err)
 		return err
 	}
-	st.addInputs(mgr, corpus)
+	st.addInputs(mgr, corpus, false)
+	st.addInputs(mgr, repros, true)
 	st.purgeCorpus()
 	return nil
 }
 
-func (st *State) Sync(name string, add [][]byte, del []string) ([][]byte, int, error) {
+func (st *State) Sync(name string, add [][]byte, del []string, repros [][]byte) ([][]byte, [][]byte, int, error) {
 	mgr := st.Managers[name]
 	if mgr == nil || mgr.Connected.IsZero() {
-		return nil, 0, fmt.Errorf("unconnected manager %v", name)
+		return nil, nil, 0, fmt.Errorf("unconnected manager %v", name)
 	}
 	if len(del) != 0 {
 		for _, sig := range del {
@@ -152,17 +154,19 @@ func (st *State) Sync(name string, add [][]byte, del []string) ([][]byte, int, e
 		}
 		st.purgeCorpus()
 	}
-	st.addInputs(mgr, add)
-	inputs, more, err := st.pendingInputs(mgr)
+	st.addInputs(mgr, add, false)
+	st.addInputs(mgr, repros, true)
+	progs, repros, more, err := st.pendingInputs(mgr)
 	mgr.Added += len(add)
 	mgr.Deleted += len(del)
-	mgr.New += len(inputs)
-	return inputs, more, err
+	mgr.New += len(progs)
+	mgr.Repros += len(repros)
+	return progs, repros, more, err
 }
 
-func (st *State) pendingInputs(mgr *Manager) ([][]byte, int, error) {
+func (st *State) pendingInputs(mgr *Manager) ([][]byte, [][]byte, int, error) {
 	if mgr.seq == st.seq {
-		return nil, 0, nil
+		return nil, nil, 0, nil
 	}
 	var records []db.Record
 	for key, rec := range st.Corpus.Records {
@@ -174,7 +178,7 @@ func (st *State) pendingInputs(mgr *Manager) ([][]byte, int, error) {
 		}
 		calls, err := prog.CallSet(rec.Val)
 		if err != nil {
-			return nil, 0, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
+			return nil, nil, 0, fmt.Errorf("failed to extract call set: %v\nprogram: %s", err, rec.Val)
 		}
 		if !managerSupportsAllCalls(mgr.Calls, calls) {
 			continue
@@ -196,22 +200,27 @@ func (st *State) pendingInputs(mgr *Manager) ([][]byte, int, error) {
 		more = len(records) - pos
 		records = records[:pos]
 	}
-	inputs := make([][]byte, len(records))
-	for i, rec := range records {
-		inputs[i] = rec.Val
+	var progs [][]byte
+	var repros [][]byte
+	for _, rec := range records {
+		if rec.Repro {
+			repros = append(repros, rec.Val)
+		} else {
+			progs = append(progs, rec.Val)
+		}
 	}
 	mgr.seq = maxSeq
 	writeFile(filepath.Join(mgr.dir, "seq"), []byte(fmt.Sprint(mgr.seq)))
-	return inputs, more, nil
+	return progs, repros, more, nil
 }
 
-func (st *State) addInputs(mgr *Manager, inputs [][]byte) {
+func (st *State) addInputs(mgr *Manager, inputs [][]byte, repro bool) {
 	if len(inputs) == 0 {
 		return
 	}
 	st.seq++
 	for _, input := range inputs {
-		st.addInput(mgr, input)
+		st.addInput(mgr, input, repro)
 	}
 	if err := mgr.Corpus.Flush(); err != nil {
 		Logf(0, "failed to flush corpus database: %v", err)
@@ -221,15 +230,15 @@ func (st *State) addInputs(mgr *Manager, inputs [][]byte) {
 	}
 }
 
-func (st *State) addInput(mgr *Manager, input []byte) {
+func (st *State) addInput(mgr *Manager, input []byte, repro bool) {
 	if _, err := prog.CallSet(input); err != nil {
 		Logf(0, "manager %v: failed to extract call set: %v, program:\n%v", mgr.name, err, string(input))
 		return
 	}
 	sig := hash.String(input)
-	mgr.Corpus.Save(sig, nil, 0)
+	mgr.Corpus.Save(sig, nil, 0, false)
 	if _, ok := st.Corpus.Records[sig]; !ok {
-		st.Corpus.Save(sig, input, st.seq)
+		st.Corpus.Save(sig, input, st.seq, repro)
 	}
 }
 
