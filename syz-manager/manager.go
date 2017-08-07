@@ -100,10 +100,10 @@ type Fuzzer struct {
 
 type Crash struct {
 	vmIndex int
-	desc    string
-	text    []byte
-	output  []byte
 	hub     bool // this crash was created based on a repro from hub
+	desc    string
+	report  []byte
+	log     []byte
 }
 
 func main() {
@@ -379,7 +379,7 @@ func (mgr *Manager) vmLoop() {
 				reproInstances += instancesPerRepro
 				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.desc, vmIndexes)
 				go func() {
-					res, err := repro.Run(crash.output, mgr.cfg, mgr.vmPool, vmIndexes)
+					res, err := repro.Run(crash.log, mgr.cfg, mgr.vmPool, vmIndexes)
 					reproDone <- &ReproResult{vmIndexes, crash.desc, res, err, crash.hub}
 				}()
 			}
@@ -436,7 +436,9 @@ func (mgr *Manager) vmLoop() {
 			instances = append(instances, res.instances...)
 			reproInstances -= instancesPerRepro
 			if res.res == nil {
-				mgr.saveFailedRepro(res.desc0)
+				if !res.hub {
+					mgr.saveFailedRepro(res.desc0)
+				}
 			} else {
 				mgr.saveRepro(res.res, res.hub)
 			}
@@ -445,7 +447,7 @@ func (mgr *Manager) vmLoop() {
 			shutdown = nil
 		case crash := <-mgr.hubReproQueue:
 			Logf(1, "loop: get repro from hub")
-			reproQueue = append(reproQueue, crash)
+			pendingRepro[crash] = true
 		case reply := <-mgr.needMoreRepros:
 			reply <- phase >= phaseTriagedHub &&
 				len(reproQueue)+len(pendingRepro)+len(reproducing) == 0
@@ -503,12 +505,19 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		// syz-fuzzer exited, but it should not.
 		desc = "lost connection to test machine"
 	}
-	return &Crash{index, desc, text, output, false}, nil
+	cash := &Crash{
+		vmIndex: index,
+		hub:     false,
+		desc:    desc,
+		report:  text,
+		log:     output,
+	}
+	return cash, nil
 }
 
 func (mgr *Manager) isSuppressed(crash *Crash) bool {
 	for _, re := range mgr.cfg.ParsedSuppressions {
-		if !re.Match(crash.output) {
+		if !re.Match(crash.log) {
 			continue
 		}
 		Logf(1, "vm-%v: suppressing '%v' with '%v'", crash.vmIndex, crash.desc, re.String())
@@ -530,10 +539,10 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 	}
 	mgr.mu.Unlock()
 
-	crash.text = mgr.symbolizeReport(crash.text)
+	crash.report = mgr.symbolizeReport(crash.report)
 	if mgr.dash != nil {
 		var maintainers []string
-		guiltyFile := report.ExtractGuiltyFile(crash.text)
+		guiltyFile := report.ExtractGuiltyFile(crash.report)
 		if guiltyFile != "" {
 			var err error
 			maintainers, err = report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
@@ -545,8 +554,8 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 			BuildID:     mgr.cfg.Tag,
 			Title:       crash.desc,
 			Maintainers: maintainers,
-			Log:         crash.output,
-			Report:      crash.text,
+			Log:         crash.log,
+			Report:      crash.report,
 		}
 		if err := mgr.dash.ReportCrash(dc); err != nil {
 			Logf(0, "failed to report crash to dashboard: %v", err)
@@ -580,12 +589,12 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 			oldestTime = info.ModTime()
 		}
 	}
-	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.output)
+	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.log)
 	if len(mgr.cfg.Tag) > 0 {
 		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag))
 	}
-	if len(crash.text) > 0 {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.text)
+	if len(crash.report) > 0 {
+		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.report)
 	}
 }
 
@@ -1031,7 +1040,13 @@ func (mgr *Manager) hubSync() {
 				reproDropped++
 				continue
 			}
-			mgr.hubReproQueue <- &Crash{-1, "external repro", nil, repro, true}
+			mgr.hubReproQueue <- &Crash{
+				vmIndex: -1,
+				hub:     true,
+				desc:    "external repro",
+				report:  nil,
+				log:     repro,
+			}
 		}
 
 		mgr.mu.Lock()
@@ -1054,7 +1069,7 @@ func (mgr *Manager) hubSync() {
 		mgr.stats["hub new"] += uint64(len(r.Progs) - dropped)
 		mgr.stats["hub sent repros"] += uint64(len(a.Repros))
 		mgr.stats["hub recv repros"] += uint64(len(r.Repros) - reproDropped)
-		Logf(0, "hub sync: send: add %v, del %v, repros: %v; recv: progs: drop %v, new %v, repros: drop: %v, new %v; more %v",
+		Logf(0, "hub sync: send: add %v, del %v, repros %v; recv: progs: drop %v, new %v, repros: drop: %v, new %v; more %v",
 			len(a.Add), len(a.Del), len(a.Repros), dropped, len(r.Progs)-dropped, reproDropped, len(r.Repros)-reproDropped, r.More)
 		if len(r.Progs)+r.More == 0 {
 			break

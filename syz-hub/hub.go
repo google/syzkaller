@@ -111,8 +111,8 @@ func (hub *Hub) Sync(a *HubSyncArgs, r *HubSyncRes) error {
 			r.Repros = [][]byte{repro}
 		}
 	}
-	Logf(0, "sync from %v: recv: add=%v del=%v; send: progs=%v repros=%v pending=%v",
-		name, len(a.Add), len(a.Del), len(r.Progs), len(r.Repros), more)
+	Logf(0, "sync from %v: recv: add=%v del=%v repros=%v; send: progs=%v repros=%v pending=%v",
+		name, len(a.Add), len(a.Del), len(a.Repros), len(r.Progs), len(r.Repros), more)
 	return nil
 }
 
