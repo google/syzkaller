@@ -671,8 +671,10 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 
 	// Append this repro to repro list to send to hub if it didn't come from hub originally.
 	if !hub {
+		progForHub := []byte(fmt.Sprintf("# %+v\n# %v\n# %v\n%s",
+			res.Opts, res.Desc, mgr.cfg.Tag, prog))
 		mgr.mu.Lock()
-		mgr.newRepros = append(mgr.newRepros, prog)
+		mgr.newRepros = append(mgr.newRepros, progForHub)
 		mgr.mu.Unlock()
 	}
 
