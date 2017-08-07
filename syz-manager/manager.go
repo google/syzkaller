@@ -347,7 +347,7 @@ func (mgr *Manager) vmLoop() {
 				continue
 			}
 			delete(pendingRepro, crash)
-			if !mgr.needRepro(crash.desc) {
+			if !crash.hub && !mgr.needRepro(crash.desc) {
 				continue
 			}
 			Logf(1, "loop: add to repro queue '%v'", crash.desc)
@@ -1020,9 +1020,11 @@ func (mgr *Manager) hubSync() {
 
 		mgr.mu.Unlock()
 
-		needReproReply := make(chan bool)
-		mgr.needMoreRepros <- needReproReply
-		a.NeedRepros = <-needReproReply
+		if mgr.cfg.Reproduce {
+			needReproReply := make(chan bool)
+			mgr.needMoreRepros <- needReproReply
+			a.NeedRepros = <-needReproReply
+		}
 
 		r := new(HubSyncRes)
 		if err := mgr.hub.Call("Hub.Sync", a, r); err != nil {
