@@ -1,0 +1,44 @@
+{{define "bug_table"}}
+	<table class="list_table">
+		<caption>{{.Namespace}} ({{len $.Bugs}}):</caption>
+		<tr>
+			<th>Title</th>
+			<th>Count</th>
+			<th>Repro</th>
+			<th>Last</th>
+			<th>Status</th>
+		</tr>
+		{{range $b := $.Bugs}}
+			<tr>
+				<td class="title"><a href="/bug?id={{$b.ID}}">{{$b.Title}}</a></td>
+				<td class="count">{{$b.NumCrashes}}</td>
+				<td class="repro">{{formatReproLevel $b.ReproLevel}}</td>
+				<td class="time">{{formatTime $b.LastTime}}</td>
+				<td class="status">{{if $b.Link}}<a href="{{$b.Link}}">{{$b.Status}}</a>{{else}}{{$b.Status}}{{end}}</td>
+			</tr>
+		{{end}}
+	</table>
+{{end}}
+
+<!doctype html>
+<html>
+<head>
+	<title>Syzkaller Dashboard</title>
+	<link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+	{{template "header" .Header}}
+
+	<b>Error log:</b><br>
+	<textarea id="log_textarea" readonly rows="20" wrap=off>{{printf "%s" .Log}}</textarea>
+	<script>
+        	var textarea = document.getElementById("log_textarea");
+	        textarea.scrollTop = textarea.scrollHeight;
+	</script>
+	<br><br>
+
+	{{range $g := $.BugGroups}}
+		{{template "bug_table" $g}} <br>
+	{{end}}
+</body>
+</html>

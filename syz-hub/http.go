@@ -38,17 +38,22 @@ func (hub *Hub) httpSummary(w http.ResponseWriter, r *http.Request) {
 	total := UIManager{
 		Name:   "total",
 		Corpus: len(hub.st.Corpus.Records),
+		Repros: len(hub.st.Repros.Records),
 	}
 	for name, mgr := range hub.st.Managers {
 		total.Added += mgr.Added
 		total.Deleted += mgr.Deleted
 		total.New += mgr.New
+		total.SentRepros += mgr.SentRepros
+		total.RecvRepros += mgr.RecvRepros
 		data.Managers = append(data.Managers, UIManager{
-			Name:    name,
-			Corpus:  len(mgr.Corpus.Records),
-			Added:   mgr.Added,
-			Deleted: mgr.Deleted,
-			New:     mgr.New,
+			Name:       name,
+			Corpus:     len(mgr.Corpus.Records),
+			Added:      mgr.Added,
+			Deleted:    mgr.Deleted,
+			New:        mgr.New,
+			SentRepros: mgr.SentRepros,
+			RecvRepros: mgr.RecvRepros,
 		})
 	}
 	sort.Sort(UIManagerArray(data.Managers))
@@ -70,11 +75,14 @@ type UISummaryData struct {
 }
 
 type UIManager struct {
-	Name    string
-	Corpus  int
-	Added   int
-	Deleted int
-	New     int
+	Name       string
+	Corpus     int
+	Added      int
+	Deleted    int
+	New        int
+	Repros     int
+	SentRepros int
+	RecvRepros int
 }
 
 type UIManagerArray []UIManager
@@ -102,6 +110,9 @@ var summaryTemplate = compileTemplate(`
 		<th>Added</th>
 		<th>Deleted</th>
 		<th>New</th>
+		<th>Repros</th>
+		<th>Sent</th>
+		<th>Recv</th>
 	</tr>
 	{{range $m := $.Managers}}
 	<tr>
@@ -110,6 +121,9 @@ var summaryTemplate = compileTemplate(`
 		<td>{{$m.Added}}</td>
 		<td>{{$m.Deleted}}</td>
 		<td>{{$m.New}}</td>
+		<td>{{$m.Repros}}</td>
+		<td>{{$m.SentRepros}}</td>
+		<td>{{$m.RecvRepros}}</td>
 	</tr>
 	{{end}}
 </table>

@@ -292,7 +292,7 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 
 func collectCrashes(workdir string) ([]*UICrashType, error) {
 	crashdir := filepath.Join(workdir, "crashes")
-	dirs, err := readdirnames(crashdir)
+	dirs, err := osutil.ListDir(crashdir)
 	if err != nil {
 		return nil, err
 	}
@@ -329,7 +329,7 @@ func readCrash(workdir, dir string, full bool) *UICrashType {
 	modTime := stat.ModTime()
 	descFile.Close()
 
-	files, err := readdirnames(filepath.Join(crashdir, dir))
+	files, err := osutil.ListDir(filepath.Join(crashdir, dir))
 	if err != nil {
 		return nil
 	}
@@ -393,15 +393,6 @@ func readCrash(workdir, dir string, full bool) *UICrashType {
 		Triaged:     triaged,
 		Crashes:     crashes,
 	}
-}
-
-func readdirnames(dir string) ([]string, error) {
-	f, err := os.Open(dir)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	return f.Readdirnames(-1)
 }
 
 func trimNewLines(data []byte) []byte {

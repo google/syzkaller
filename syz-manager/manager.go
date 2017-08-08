@@ -70,10 +70,13 @@ type Manager struct {
 	maxSignal      map[uint32]struct{}
 	corpusCover    map[uint32]struct{}
 	prios          [][]float32
+	newRepros      [][]byte
 
-	fuzzers   map[string]*Fuzzer
-	hub       *RpcClient
-	hubCorpus map[hash.Sig]bool
+	fuzzers        map[string]*Fuzzer
+	hub            *RpcClient
+	hubCorpus      map[hash.Sig]bool
+	needMoreRepros chan chan bool
+	hubReproQueue  chan *Crash
 }
 
 const (
@@ -97,9 +100,10 @@ type Fuzzer struct {
 
 type Crash struct {
 	vmIndex int
+	hub     bool // this crash was created based on a repro from hub
 	desc    string
-	text    []byte
-	output  []byte
+	report  []byte
+	log     []byte
 }
 
 func main() {
@@ -149,6 +153,8 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 		fuzzers:         make(map[string]*Fuzzer),
 		fresh:           true,
 		vmStop:          make(chan bool),
+		hubReproQueue:   make(chan *Crash), //!!! make buffered
+		needMoreRepros:  make(chan chan bool),
 	}
 
 	Logf(0, "loading corpus...")
@@ -308,6 +314,7 @@ type ReproResult struct {
 	desc0     string
 	res       *repro.Result
 	err       error
+	hub       bool // repro came from hub
 }
 
 func (mgr *Manager) vmLoop() {
@@ -340,7 +347,7 @@ func (mgr *Manager) vmLoop() {
 				continue
 			}
 			delete(pendingRepro, crash)
-			if !mgr.needRepro(crash.desc) {
+			if !crash.hub && !mgr.needRepro(crash.desc) {
 				continue
 			}
 			Logf(1, "loop: add to repro queue '%v'", crash.desc)
@@ -372,8 +379,8 @@ func (mgr *Manager) vmLoop() {
 				reproInstances += instancesPerRepro
 				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.desc, vmIndexes)
 				go func() {
-					res, err := repro.Run(crash.output, mgr.cfg, mgr.vmPool, vmIndexes)
-					reproDone <- &ReproResult{vmIndexes, crash.desc, res, err}
+					res, err := repro.Run(crash.log, mgr.cfg, mgr.vmPool, vmIndexes)
+					reproDone <- &ReproResult{vmIndexes, crash.desc, res, err, crash.hub}
 				}()
 			}
 			for !canRepro() && len(instances) != 0 {
@@ -429,13 +436,21 @@ func (mgr *Manager) vmLoop() {
 			instances = append(instances, res.instances...)
 			reproInstances -= instancesPerRepro
 			if res.res == nil {
-				mgr.saveFailedRepro(res.desc0)
+				if !res.hub {
+					mgr.saveFailedRepro(res.desc0)
+				}
 			} else {
-				mgr.saveRepro(res.res)
+				mgr.saveRepro(res.res, res.hub)
 			}
 		case <-shutdown:
 			Logf(1, "loop: shutting down...")
 			shutdown = nil
+		case crash := <-mgr.hubReproQueue:
+			Logf(1, "loop: get repro from hub")
+			pendingRepro[crash] = true
+		case reply := <-mgr.needMoreRepros:
+			reply <- phase >= phaseTriagedHub &&
+				len(reproQueue)+len(pendingRepro)+len(reproducing) == 0
 		}
 	}
 }
@@ -490,12 +505,19 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		// syz-fuzzer exited, but it should not.
 		desc = "lost connection to test machine"
 	}
-	return &Crash{index, desc, text, output}, nil
+	cash := &Crash{
+		vmIndex: index,
+		hub:     false,
+		desc:    desc,
+		report:  text,
+		log:     output,
+	}
+	return cash, nil
 }
 
 func (mgr *Manager) isSuppressed(crash *Crash) bool {
 	for _, re := range mgr.cfg.ParsedSuppressions {
-		if !re.Match(crash.output) {
+		if !re.Match(crash.log) {
 			continue
 		}
 		Logf(1, "vm-%v: suppressing '%v' with '%v'", crash.vmIndex, crash.desc, re.String())
@@ -517,10 +539,10 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 	}
 	mgr.mu.Unlock()
 
-	crash.text = mgr.symbolizeReport(crash.text)
+	crash.report = mgr.symbolizeReport(crash.report)
 	if mgr.dash != nil {
 		var maintainers []string
-		guiltyFile := report.ExtractGuiltyFile(crash.text)
+		guiltyFile := report.ExtractGuiltyFile(crash.report)
 		if guiltyFile != "" {
 			var err error
 			maintainers, err = report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
@@ -532,8 +554,8 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 			BuildID:     mgr.cfg.Tag,
 			Title:       crash.desc,
 			Maintainers: maintainers,
-			Log:         crash.output,
-			Report:      crash.text,
+			Log:         crash.log,
+			Report:      crash.report,
 		}
 		if err := mgr.dash.ReportCrash(dc); err != nil {
 			Logf(0, "failed to report crash to dashboard: %v", err)
@@ -567,12 +589,12 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 			oldestTime = info.ModTime()
 		}
 	}
-	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.output)
+	osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("log%v", oldestI)), crash.log)
 	if len(mgr.cfg.Tag) > 0 {
 		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("tag%v", oldestI)), []byte(mgr.cfg.Tag))
 	}
-	if len(crash.text) > 0 {
-		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.text)
+	if len(crash.report) > 0 {
+		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.report)
 	}
 }
 
@@ -617,11 +639,14 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 	}
 }
 
-func (mgr *Manager) saveRepro(res *repro.Result) {
+func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	res.Report = mgr.symbolizeReport(res.Report)
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(res.Desc)))
 	osutil.MkdirAll(dir)
 
+	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(res.Desc+"\n")); err != nil {
+		Logf(0, "failed to write crash: %v", err)
+	}
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
 	prog := res.Prog.Serialize()
 	osutil.WriteFile(filepath.Join(dir, "repro.prog"), append([]byte(opts), prog...))
@@ -651,6 +676,15 @@ func (mgr *Manager) saveRepro(res *repro.Result) {
 		} else {
 			Logf(0, "failed to write C source: %v", err)
 		}
+	}
+
+	// Append this repro to repro list to send to hub if it didn't come from hub originally.
+	if !hub {
+		progForHub := []byte(fmt.Sprintf("# %+v\n# %v\n# %v\n%s",
+			res.Opts, res.Desc, mgr.cfg.Tag, prog))
+		mgr.mu.Lock()
+		mgr.newRepros = append(mgr.newRepros, progForHub)
+		mgr.mu.Unlock()
 	}
 
 	if mgr.dash != nil {
@@ -982,7 +1016,16 @@ func (mgr *Manager) hubSync() {
 		a.Del = append(a.Del, sig.String())
 	}
 	for {
+		a.Repros = mgr.newRepros
+
 		mgr.mu.Unlock()
+
+		if mgr.cfg.Reproduce {
+			needReproReply := make(chan bool)
+			mgr.needMoreRepros <- needReproReply
+			a.NeedRepros = <-needReproReply
+		}
+
 		r := new(HubSyncRes)
 		if err := mgr.hub.Call("Hub.Sync", a, r); err != nil {
 			mgr.mu.Lock()
@@ -991,9 +1034,27 @@ func (mgr *Manager) hubSync() {
 			mgr.hub = nil
 			return
 		}
+
+		reproDropped := 0
+		for _, repro := range r.Repros {
+			_, err := prog.Deserialize(repro)
+			if err != nil {
+				reproDropped++
+				continue
+			}
+			mgr.hubReproQueue <- &Crash{
+				vmIndex: -1,
+				hub:     true,
+				desc:    "external repro",
+				report:  nil,
+				log:     repro,
+			}
+		}
+
 		mgr.mu.Lock()
+		mgr.newRepros = nil
 		dropped := 0
-		for _, inp := range r.Inputs {
+		for _, inp := range r.Progs {
 			_, err := prog.Deserialize(inp)
 			if err != nil {
 				dropped++
@@ -1007,10 +1068,12 @@ func (mgr *Manager) hubSync() {
 		mgr.stats["hub add"] += uint64(len(a.Add))
 		mgr.stats["hub del"] += uint64(len(a.Del))
 		mgr.stats["hub drop"] += uint64(dropped)
-		mgr.stats["hub new"] += uint64(len(r.Inputs) - dropped)
-		Logf(0, "hub sync: add %v, del %v, drop %v, new %v, more %v",
-			len(a.Add), len(a.Del), dropped, len(r.Inputs)-dropped, r.More)
-		if len(r.Inputs)+r.More == 0 {
+		mgr.stats["hub new"] += uint64(len(r.Progs) - dropped)
+		mgr.stats["hub sent repros"] += uint64(len(a.Repros))
+		mgr.stats["hub recv repros"] += uint64(len(r.Repros) - reproDropped)
+		Logf(0, "hub sync: send: add %v, del %v, repros %v; recv: progs: drop %v, new %v, repros: drop: %v, new %v; more %v",
+			len(a.Add), len(a.Del), len(a.Repros), dropped, len(r.Progs)-dropped, reproDropped, len(r.Repros)-reproDropped, r.More)
+		if len(r.Progs)+r.More == 0 {
 			break
 		}
 		a.Add = nil
