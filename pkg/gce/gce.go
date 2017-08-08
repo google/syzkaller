@@ -84,6 +84,9 @@ func NewContext() (*Context, error) {
 
 func (ctx *Context) CreateInstance(name, machineType, image, sshkey string) (string, error) {
 	prefix := "https://www.googleapis.com/compute/v1/projects/" + ctx.ProjectID
+	sshkeyAttr := "syzkaller:" + sshkey
+	oneAttr := "1"
+	falseAttr := false
 	instance := &compute.Instance{
 		Name:        name,
 		Description: "syzkaller worker",
@@ -103,11 +106,11 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string) (str
 			Items: []*compute.MetadataItems{
 				{
 					Key:   "ssh-keys",
-					Value: "syzkaller:" + sshkey,
+					Value: &sshkeyAttr,
 				},
 				{
 					Key:   "serial-port-enable",
-					Value: "1",
+					Value: &oneAttr,
 				},
 			},
 		},
@@ -117,7 +120,7 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string) (str
 			},
 		},
 		Scheduling: &compute.Scheduling{
-			AutomaticRestart:  false,
+			AutomaticRestart:  &falseAttr,
 			Preemptible:       true,
 			OnHostMaintenance: "TERMINATE",
 		},
