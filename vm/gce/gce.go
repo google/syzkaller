@@ -237,25 +237,31 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	{
 		var output []byte
 		timeout := time.NewTimer(time.Minute)
+		connectedMsg := []byte("serialport: Connected")
+		permissionDeniedMsg := []byte("Permission denied (publickey)")
 	loop:
 		for {
 			select {
 			case out := <-merger.Output:
 				output = append(output, out...)
-				if bytes.Contains(output, []byte("serialport")) {
+				if bytes.Contains(output, connectedMsg) {
 					// Just to make sure (otherwise we still see trimmed reports).
 					time.Sleep(5 * time.Second)
 					break loop
+				}
+				if bytes.Contains(output, permissionDeniedMsg) {
+					// This is a GCE bug.
+					break
 				}
 			case <-timeout.C:
 				break loop
 			}
 		}
 		timeout.Stop()
-		if len(output) == 0 {
+		if len(output) == 0 || bytes.Contains(output, permissionDeniedMsg) {
 			con.Process.Kill()
 			merger.Wait()
-			return nil, nil, fmt.Errorf("no output from console")
+			return nil, nil, fmt.Errorf("no output from console or permission denied")
 		}
 	}
 
