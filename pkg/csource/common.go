@@ -1654,6 +1654,8 @@ static void sandbox_common()
 	struct rlimit rlim;
 	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
 	setrlimit(RLIMIT_AS, &rlim);
+	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
+	setrlimit(RLIMIT_MEMLOCK, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
 	setrlimit(RLIMIT_FSIZE, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
