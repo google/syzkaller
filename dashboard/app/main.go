@@ -58,13 +58,18 @@ type uiBug struct {
 }
 
 type uiCrash struct {
-	Manager      string
-	Time         time.Time
-	Maintainers  string
-	LogLink      string
-	ReportLink   string
-	ReproSyzLink string
-	ReproCLink   string
+	Manager          string
+	Time             time.Time
+	Maintainers      string
+	LogLink          string
+	ReportLink       string
+	ReproSyzLink     string
+	ReproCLink       string
+	SyzkallerCommit  string
+	KernelRepo       string
+	KernelBranch     string
+	KernelCommit     string
+	KernelConfigLink string
 }
 
 // handleMain serves main page.
@@ -192,16 +197,30 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 	if err != nil {
 		return nil, err
 	}
+	builds := make(map[string]*Build)
 	var results []*uiCrash
 	for _, crash := range crashes {
+		build := builds[crash.BuildID]
+		if build == nil {
+			build, err = loadBuild(c, bug.Namespace, crash.BuildID)
+			if err != nil {
+				return nil, err
+			}
+			builds[crash.BuildID] = build
+		}
 		ui := &uiCrash{
-			Manager:      crash.Manager,
-			Time:         crash.Time,
-			Maintainers:  fmt.Sprintf("%q", crash.Maintainers),
-			LogLink:      textLink("CrashLog", crash.Log),
-			ReportLink:   textLink("CrashReport", crash.Report),
-			ReproSyzLink: textLink("ReproSyz", crash.ReproSyz),
-			ReproCLink:   textLink("ReproC", crash.ReproC),
+			Manager:          crash.Manager,
+			Time:             crash.Time,
+			Maintainers:      fmt.Sprintf("%q", crash.Maintainers),
+			LogLink:          textLink("CrashLog", crash.Log),
+			ReportLink:       textLink("CrashReport", crash.Report),
+			ReproSyzLink:     textLink("ReproSyz", crash.ReproSyz),
+			ReproCLink:       textLink("ReproC", crash.ReproC),
+			SyzkallerCommit:  build.SyzkallerCommit,
+			KernelRepo:       build.KernelRepo,
+			KernelBranch:     build.KernelBranch,
+			KernelCommit:     build.KernelCommit,
+			KernelConfigLink: textLink("KernelConfig", build.KernelConfig),
 		}
 		results = append(results, ui)
 	}
