@@ -270,9 +270,13 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 	// Try to glue all mmap's together.
 	s := analyze(nil, p0, nil)
 	hi := -1
+	lo := -1
 	for i := 0; i < maxPages; i++ {
 		if s.pages[i] {
 			hi = i
+			if lo == -1 {
+				lo = i
+			}
 		}
 	}
 	if hi != -1 {
@@ -290,7 +294,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 			}
 		}
 		// Prepend uber-mmap.
-		mmap := createMmapCall(0, uintptr(hi)+1)
+		mmap := createMmapCall(uintptr(lo), uintptr(hi-lo)+1)
 		p.Calls = append([]*Call{mmap}, p.Calls...)
 		if callIndex != -1 {
 			callIndex++
