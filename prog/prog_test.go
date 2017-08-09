@@ -5,6 +5,7 @@ package prog
 
 import (
 	"bytes"
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -40,6 +41,21 @@ func TestDefault(t *testing.T) {
 	for _, meta := range sys.CallMap {
 		for _, t := range meta.Args {
 			defaultArg(t)
+		}
+	}
+}
+
+func TestDefaultCallArgs(t *testing.T) {
+	initTest(t)
+	for _, meta := range sys.CallMap {
+		// Ensure that we can restore all arguments of all calls.
+		prog := fmt.Sprintf("%v()", meta.Name)
+		p, err := Deserialize([]byte(prog))
+		if err != nil {
+			t.Fatalf("failed to restore default args in prog %q: %v", prog, err)
+		}
+		if len(p.Calls) != 1 || p.Calls[0].Meta.Name != meta.Name {
+			t.Fatalf("restored bad program from prog %q: %q", prog, p.Serialize())
 		}
 	}
 }
