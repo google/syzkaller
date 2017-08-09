@@ -7,6 +7,10 @@ import (
 	"testing"
 )
 
+func init() {
+	EnableLogCaching(4, 20)
+}
+
 func TestCaching(t *testing.T) {
 	tests := []struct{ str, want string }{
 		{"", ""},
@@ -20,7 +24,6 @@ func TestCaching(t *testing.T) {
 		{"hhhhhhhh", "ggggggg\nhhhhhhhh\n"},
 		{"jjjjjjjjjjjjjjjjjjjjjjjjj", "jjjjjjjjjjjjjjjjjjjjjjjjj\n"},
 	}
-	EnableLogCaching(4, 20)
 	prependTime = false
 	for _, test := range tests {
 		Logf(1, test.str)
