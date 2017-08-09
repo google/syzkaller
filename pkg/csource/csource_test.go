@@ -51,7 +51,13 @@ func enumerateField(opt Options, field int) []Options {
 	} else {
 		panic(fmt.Sprintf("field '%v' is not boolean", fldName))
 	}
-	return opts
+	var checked []Options
+	for _, opt := range opts {
+		if err := opt.Check(); err == nil {
+			checked = append(checked, opt)
+		}
+	}
+	return checked
 }
 
 func allOptionsSingle() []Options {
@@ -102,7 +108,7 @@ func TestOptions(t *testing.T) {
 			permutations = append(permutations, allPermutations[r.Intn(len(allPermutations))])
 		}
 	} else {
-		permutations = append(permutations, allPermutations...)
+		permutations = allPermutations
 	}
 	for i, opts := range permutations {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {

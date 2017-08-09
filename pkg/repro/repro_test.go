@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -60,6 +61,30 @@ func TestBisect(t *testing.T) {
 			if prog.Proc != 42 {
 				t.Fatalf("bisect test failed: wrong program is guilty: progs: %v", progs)
 			}
+		}
+	}
+}
+
+func TestSimplifies(t *testing.T) {
+	opts := csource.Options{
+		Threaded:   true,
+		Collide:    true,
+		Repeat:     true,
+		Procs:      10,
+		Sandbox:    "namespace",
+		EnableTun:  true,
+		UseTmpDir:  true,
+		HandleSegv: true,
+		WaitRepeat: true,
+		Repro:      true,
+	}
+	if err := opts.Check(); err != nil {
+		t.Fatalf("initial opts are invalid: %v", err)
+	}
+	for i, fn := range cSimplifies {
+		fn(&opts)
+		if err := opts.Check(); err != nil {
+			t.Fatalf("opts %v are invalid: %v", i, err)
 		}
 	}
 }

@@ -9,6 +9,7 @@ package csource
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -45,7 +46,23 @@ type Options struct {
 	Repro bool
 }
 
+// Check checks if the opts combination is valid or not.
+// For example, Collide without Threaded is not valid.
+// Invalid combinations must not be passed to Write.
+func (opts Options) Check() error {
+	if !opts.Threaded && opts.Collide {
+		return errors.New("Collide without Threaded")
+	}
+	if !opts.Repeat && opts.Procs > 1 {
+		return errors.New("Procs>1 without Repeat")
+	}
+	return nil
+}
+
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
+	if err := opts.Check(); err != nil {
+		return nil, fmt.Errorf("csource: invalid opts: %v", err)
+	}
 	exec := make([]byte, prog.ExecBufferSize)
 	if err := p.SerializeForExec(exec, 0); err != nil {
 		return nil, fmt.Errorf("failed to serialize program: %v", err)
