@@ -55,6 +55,7 @@ func main() {
 	logf(1, "Parse system call descriptions")
 	desc := Parse(r)
 
+	unsupportedFlags := make(map[string]int)
 	consts := make(map[string]map[string]uint64)
 	for _, arch := range archs {
 		logf(0, "generating %v...", arch.Name)
@@ -71,6 +72,7 @@ func main() {
 					} else {
 						if !unsupported[val] {
 							unsupported[val] = true
+							unsupportedFlags[val]++
 							logf(0, "unsupported flag: %v", val)
 						}
 					}
@@ -89,6 +91,12 @@ func main() {
 		generate(arch.Name, &archDesc, consts[arch.Name], out)
 		writeSource(sysFile, out.Bytes())
 		logf(0, "")
+	}
+
+	for flag, count := range unsupportedFlags {
+		if count == len(archs) {
+			failf("flag %v is unsupported on all arches (typo?)", flag)
+		}
 	}
 
 	generateExecutorSyscalls(desc.Syscalls, consts)

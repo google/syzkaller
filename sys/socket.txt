@@ -584,7 +584,7 @@ ethtool_ringparam {
 	tx_pending			int32
 }
 
-ethtool_channels_cmd_flags = ETHTOOLGCHANNELS, ETHTOOL_SCHANNELS
+ethtool_channels_cmd_flags = ETHTOOL_GCHANNELS, ETHTOOL_SCHANNELS
 ethtool_channels {
 	cmd			flags[ethtool_channels_cmd_flags, int32]
 	max_rx			int32
