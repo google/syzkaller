@@ -45,3 +45,9 @@ Several useful `syz-execprog` flags:
 ```
 
 If you pass `-threaded=0 -collide=0`, programs will be executed as a simple single-threaded sequence of syscalls. `-threaded=1` forces execution of each syscall in a separate thread, so that execution can proceed over blocking syscalls. `-collide=0` forces second round of execution of syscalls when pairs of syscalls are executed concurrently.
+
+If you are replaying a reproducer program that contains a header along the following lines:
+```
+#{Threaded:true Collide:true Repeat:true Procs:8 Sandbox:namespace Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}
+```
+then you need to adjust `syz-execprog` flags based on the values in the header. Namely, `Threaded`/`Collide`/`Procs`/`Sandbox` directly relate to `-threaded`/`-collide`/`-procs`/`-sandbox` flags. If `Repeat` is set to `true`, add `-repeat=0` flag to `syz-execprog`.
