@@ -78,13 +78,18 @@ func TestSimplifies(t *testing.T) {
 		WaitRepeat: true,
 		Repro:      true,
 	}
-	if err := opts.Check(); err != nil {
-		t.Fatalf("initial opts are invalid: %v", err)
-	}
-	for i, fn := range cSimplifies {
-		fn(&opts)
+	var check func(opts csource.Options, i int)
+	check = func(opts csource.Options, i int) {
 		if err := opts.Check(); err != nil {
-			t.Fatalf("opts %v are invalid: %v", i, err)
+			t.Fatalf("opts are invalid: %v", err)
+		}
+		if i == len(cSimplifies) {
+			return
+		}
+		check(opts, i+1)
+		if cSimplifies[i](&opts) {
+			check(opts, i+1)
 		}
 	}
+	check(opts, 0)
 }

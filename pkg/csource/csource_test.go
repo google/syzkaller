@@ -85,12 +85,13 @@ func allOptionsPermutations() []Options {
 func TestOne(t *testing.T) {
 	rs, _ := initTest(t)
 	opts := Options{
-		Threaded: true,
-		Collide:  true,
-		Repeat:   true,
-		Procs:    2,
-		Sandbox:  "namespace",
-		Repro:    true,
+		Threaded:  true,
+		Collide:   true,
+		Repeat:    true,
+		Procs:     2,
+		Sandbox:   "namespace",
+		Repro:     true,
+		UseTmpDir: true,
 	}
 	p := prog.GenerateAllSyzProg(rs)
 	testOne(t, p, opts)

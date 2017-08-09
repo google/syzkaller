@@ -51,10 +51,18 @@ type Options struct {
 // Invalid combinations must not be passed to Write.
 func (opts Options) Check() error {
 	if !opts.Threaded && opts.Collide {
+		// Collide requires threaded.
 		return errors.New("Collide without Threaded")
 	}
 	if !opts.Repeat && opts.Procs > 1 {
+		// This does not affect generated code.
 		return errors.New("Procs>1 without Repeat")
+	}
+	if opts.Sandbox == "namespace" && !opts.UseTmpDir {
+		// This is borken and never worked.
+		// This tries to create syz-tmp dir in cwd,
+		// which will fail if procs>1 and on second run of the program.
+		return errors.New("Sandbox=namespace without UseTmpDir")
 	}
 	return nil
 }
