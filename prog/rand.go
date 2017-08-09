@@ -608,26 +608,14 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg Arg, calls []*Call) {
 		// in subsequent calls. For the same reason we do generate pointer/array/struct
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
-		case *sys.IntType, *sys.FlagsType, *sys.ConstType, *sys.ProcType:
-			return constArg(typ, typ.Default()), nil
-		case *sys.VmaType:
-			return pointerArg(typ, 0, 0, 0, nil), nil
-		case *sys.ResourceType:
-			return resultArg(typ, nil, typ.Default()), nil
+		case *sys.IntType, *sys.FlagsType, *sys.ConstType, *sys.ProcType,
+			*sys.VmaType, *sys.ResourceType:
+			return defaultArg(typ), nil
 		}
 	}
 
 	if typ.Optional() && r.oneOf(5) {
-		switch typ.(type) {
-		case *sys.PtrType:
-			return pointerArg(typ, 0, 0, 0, nil), nil
-		case *sys.BufferType:
-			panic("impossible") // parent PtrType must be Optional instead
-		case *sys.VmaType:
-			return pointerArg(typ, 0, 0, 0, nil), nil
-		default:
-			return constArg(typ, typ.Default()), nil
-		}
+		return defaultArg(typ), nil
 	}
 
 	// Allow infinite recursion for optional pointers.
