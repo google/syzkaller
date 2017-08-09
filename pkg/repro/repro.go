@@ -757,6 +757,7 @@ var progSimplifies = []Simplify{
 			return false
 		}
 		opts.Repeat = false
+		opts.Procs = 1
 		return true
 	},
 	func(opts *csource.Options) bool {
