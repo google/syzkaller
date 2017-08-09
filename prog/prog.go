@@ -292,7 +292,7 @@ func defaultArg(t sys.Type) Arg {
 		return pointerArg(t, 0, 0, 1, nil)
 	case *sys.PtrType:
 		var res Arg
-		if !t.Optional() {
+		if !t.Optional() && t.Dir() != sys.DirOut {
 			res = defaultArg(typ.Type)
 		}
 		return pointerArg(t, 0, 0, 0, res)
