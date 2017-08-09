@@ -792,7 +792,7 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.UseTmpDir {
+		if !opts.UseTmpDir || opts.Sandbox == "namespace" {
 			return false
 		}
 		opts.UseTmpDir = false
