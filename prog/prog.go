@@ -273,7 +273,11 @@ func defaultArg(t sys.Type) Arg {
 	case *sys.ResourceType:
 		return resultArg(t, nil, typ.Desc.Type.Default())
 	case *sys.BufferType:
-		return dataArg(t, nil)
+		var data []byte
+		if typ.Kind == sys.BufferString && typ.Length != 0 {
+			data = make([]byte, typ.Length)
+		}
+		return dataArg(t, data)
 	case *sys.ArrayType:
 		return groupArg(t, nil)
 	case *sys.StructType:
@@ -281,17 +285,17 @@ func defaultArg(t sys.Type) Arg {
 		for _, field := range typ.Fields {
 			inner = append(inner, defaultArg(field))
 		}
-		return groupArg(t, nil)
+		return groupArg(t, inner)
 	case *sys.UnionType:
 		return unionArg(t, defaultArg(typ.Options[0]), typ.Options[0])
 	case *sys.VmaType:
-		return pointerArg(t, 0, 0, 0, nil)
+		return pointerArg(t, 0, 0, 1, nil)
 	case *sys.PtrType:
 		var res Arg
 		if !t.Optional() {
 			res = defaultArg(typ.Type)
 		}
-		return pointerArg(t, 0, 0, 1, res)
+		return pointerArg(t, 0, 0, 0, res)
 	default:
 		panic("unknown arg type")
 	}
