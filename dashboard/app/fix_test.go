@@ -49,6 +49,11 @@ func TestFixBasic(t *testing.T) {
 	c.expectOK(c.API(client1, key1, "builder_poll", builderPollReq, builderPollResp))
 	c.expectEQ(len(builderPollResp.PendingCommits), 0)
 
+	cid := testCrashID(crash1)
+	needReproResp := new(dashapi.NeedReproResp)
+	c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
+	c.expectEQ(needReproResp.NeedRepro, true)
+
 	reports := reportAllBugs(c, 1)
 	rep := reports[0]
 
@@ -61,6 +66,10 @@ func TestFixBasic(t *testing.T) {
 	reply := new(dashapi.BugUpdateReply)
 	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
 	c.expectEQ(reply.OK, true)
+
+	// Don't need repro once there are fixing commits.
+	c.expectOK(c.API(client1, key1, "need_repro", cid, needReproResp))
+	c.expectEQ(needReproResp.NeedRepro, false)
 
 	// Check that the commit is now passed to builders.
 	c.expectOK(c.API(client1, key1, "builder_poll", builderPollReq, builderPollResp))

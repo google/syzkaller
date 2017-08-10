@@ -347,8 +347,24 @@ func (mgr *Manager) vmLoop() {
 				continue
 			}
 			delete(pendingRepro, crash)
-			if !crash.hub && !mgr.needRepro(crash.desc) {
-				continue
+			if !crash.hub {
+				if mgr.dash == nil {
+					if !mgr.needRepro(crash.desc) {
+						continue
+					}
+				} else {
+					cid := &dashapi.CrashID{
+						BuildID: mgr.cfg.Tag,
+						Title:   crash.desc,
+					}
+					needRepro, err := mgr.dash.NeedRepro(cid)
+					if err != nil {
+						Logf(0, "dashboard.NeedRepro failed: %v", err)
+					}
+					if !needRepro {
+						continue
+					}
+				}
 			}
 			Logf(1, "loop: add to repro queue '%v'", crash.desc)
 			reproducing[crash.desc] = true
@@ -414,8 +430,8 @@ func (mgr *Manager) vmLoop() {
 			// On shutdown qemu crashes with "qemu: terminating on signal 2",
 			// which we detect as "lost connection". Don't save that as crash.
 			if shutdown != nil && res.crash != nil && !mgr.isSuppressed(res.crash) {
-				mgr.saveCrash(res.crash)
-				if mgr.needRepro(res.crash.desc) {
+				needRepro := mgr.saveCrash(res.crash)
+				if needRepro {
 					Logf(1, "loop: add pending repro for '%v'", res.crash.desc)
 					pendingRepro[res.crash] = true
 				}
@@ -529,7 +545,7 @@ func (mgr *Manager) isSuppressed(crash *Crash) bool {
 	return false
 }
 
-func (mgr *Manager) saveCrash(crash *Crash) {
+func (mgr *Manager) saveCrash(crash *Crash) bool {
 	Logf(0, "vm-%v: crash: %v", crash.vmIndex, crash.desc)
 	mgr.mu.Lock()
 	mgr.stats["crashes"]++
@@ -557,12 +573,13 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 			Log:         crash.log,
 			Report:      crash.report,
 		}
-		if err := mgr.dash.ReportCrash(dc); err != nil {
+		resp, err := mgr.dash.ReportCrash(dc)
+		if err != nil {
 			Logf(0, "failed to report crash to dashboard: %v", err)
 		} else {
 			// Don't store the crash locally, if we've successfully
 			// uploaded it to the dashboard. These will just eat disk space.
-			return
+			return resp.NeedRepro
 		}
 	}
 
@@ -596,6 +613,8 @@ func (mgr *Manager) saveCrash(crash *Crash) {
 	if len(crash.report) > 0 {
 		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.report)
 	}
+
+	return mgr.needRepro(crash.desc)
 }
 
 const maxReproAttempts = 3
@@ -619,12 +638,11 @@ func (mgr *Manager) needRepro(desc string) bool {
 
 func (mgr *Manager) saveFailedRepro(desc string) {
 	if mgr.dash != nil {
-		fr := &dashapi.FailedRepro{
-			Manager: mgr.cfg.Name,
+		cid := &dashapi.CrashID{
 			BuildID: mgr.cfg.Tag,
 			Title:   desc,
 		}
-		if err := mgr.dash.ReportFailedRepro(fr); err != nil {
+		if err := mgr.dash.ReportFailedRepro(cid); err != nil {
 			Logf(0, "failed to report failed repro to dashboard: %v", err)
 		}
 	}
@@ -707,7 +725,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 			ReproSyz:    []byte(res.Prog.Serialize()),
 			ReproC:      cprogText,
 		}
-		if err := mgr.dash.ReportCrash(dc); err != nil {
+		if _, err := mgr.dash.ReportCrash(dc); err != nil {
 			Logf(0, "failed to report repro to dashboard: %v", err)
 		}
 	}
