@@ -256,7 +256,11 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 				continue
 			}
 			text := strings.Replace(al.Message, "\n", " ", -1)
-			entry := fmt.Sprintf("%v: %v (%v)\n", formatTime(al.Time), text, rec.Resource)
+			res := ""
+			if !strings.Contains(rec.Resource, "method=log_error") {
+				res = fmt.Sprintf(" (%v)", rec.Resource)
+			}
+			entry := fmt.Sprintf("%v: %v%v\n", formatTime(al.Time), text, res)
 			lines = append(lines, entry)
 		}
 	}
