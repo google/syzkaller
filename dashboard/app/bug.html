@@ -22,6 +22,7 @@
 			<th>Time</th>
 			<th>Kernel</th>
 			<th>Commit</th>
+			<th>Syzkaller</th>
 			<th>Config</th>
 			<th>Log</th>
 			<th>Report</th>
@@ -35,6 +36,7 @@
 				<td class="time">{{formatTime $c.Time}}</td>
 				<td class="kernel" title="{{$c.KernelRepo}}/{{$c.KernelBranch}}">{{$c.KernelRepo}}/{{$c.KernelBranch}}</td>
 				<td class="tag">{{$c.KernelCommit}}</td>
+				<td class="tag">{{$c.SyzkallerCommit}}</td>
 				<td class="config"><a href="{{$c.KernelConfigLink}}">.config</a></td>
 				<td class="repro">{{if $c.LogLink}}<a href="{{$c.LogLink}}">log</a>{{end}}</td>
 				<td class="repro">{{if $c.ReportLink}}<a href="{{$c.ReportLink}}">report</a>{{end}}</td>
