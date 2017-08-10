@@ -192,12 +192,11 @@ func TestInvalidBug(t *testing.T) {
 	}
 	c.expectEQ(rep, want)
 
-	repro := &dashapi.FailedRepro{
-		Manager: build.Manager,
+	cid := &dashapi.CrashID{
 		BuildID: build.ID,
 		Title:   crash1.Title,
 	}
-	c.expectOK(c.API(client1, key1, "report_failed_repro", repro, nil))
+	c.expectOK(c.API(client1, key1, "report_failed_repro", cid, nil))
 }
 
 func TestReportingQuota(t *testing.T) {
