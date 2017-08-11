@@ -47,6 +47,7 @@ const (
 	FlagSandboxNamespace                     // use namespaces for sandboxing
 	FlagEnableTun                            // initialize and use tun in executor
 	FlagEnableFault                          // enable fault injection support
+	FlagEnableComps
 )
 
 // Per-exec flags for ExecOpts.Flags:
@@ -54,6 +55,7 @@ const (
 	FlagCollectCover = uint64(1) << iota // collect coverage
 	FlagDedupCover                       // deduplicate coverage in executor
 	FlagInjectFault                      // inject a fault in this execution (see ExecOpts)
+	FlagCollectComps                     //collect KCOV comparisons
 )
 
 const (
