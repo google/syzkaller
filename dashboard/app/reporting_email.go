@@ -30,6 +30,7 @@ const emailType = "email"
 
 type EmailConfig struct {
 	Email           string
+	Moderation      bool
 	MailMaintainers bool
 }
 
@@ -41,8 +42,8 @@ func (cfg *EmailConfig) Validate() error {
 	if _, err := mail.ParseAddress(cfg.Email); err != nil {
 		return fmt.Errorf("bad email address %q: %v", cfg.Email, err)
 	}
-	if cfg.MailMaintainers {
-		return fmt.Errorf("mailing maintainers is not supported yet")
+	if cfg.Moderation && cfg.MailMaintainers {
+		return fmt.Errorf("both Moderation and MailMaintainers set")
 	}
 	return nil
 }
@@ -75,7 +76,9 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 	}
 	to := []string{cfg.Email}
 	if cfg.MailMaintainers {
-		panic("are you nuts?")
+		if !appengine.IsDevAppServer() {
+			panic("are you nuts?")
+		}
 		to = append(to, rep.Maintainers...)
 	}
 	attachments := []aemail.Attachment{
@@ -85,13 +88,6 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 		},
 	}
 	repro := dashapi.ReproLevelNone
-	if len(rep.ReproC) != 0 {
-		repro = dashapi.ReproLevelC
-		attachments = append(attachments, aemail.Attachment{
-			Name: "repro.c",
-			Data: rep.ReproC,
-		})
-	}
 	if len(rep.ReproSyz) != 0 {
 		repro = dashapi.ReproLevelSyz
 		attachments = append(attachments, aemail.Attachment{
@@ -99,11 +95,43 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 			Data: rep.ReproSyz,
 		})
 	}
+	if len(rep.ReproC) != 0 {
+		repro = dashapi.ReproLevelC
+		attachments = append(attachments, aemail.Attachment{
+			Name: "repro.c",
+			Data: rep.ReproC,
+		})
+	}
 	from, err := email.AddAddrContext(fromAddr(c), rep.ID)
 	if err != nil {
 		return err
 	}
-	if err := sendMailTemplate(c, rep.Title, from, to, attachments, "mail_bug.txt", rep); err != nil {
+	// Data passed to the template.
+	type BugReportData struct {
+		First        bool
+		Moderation   bool
+		Maintainers  []string
+		CompilerID   string
+		KernelRepo   string
+		KernelBranch string
+		KernelCommit string
+		Report       []byte
+		ReproSyz     bool
+		ReproC       bool
+	}
+	data := &BugReportData{
+		First:        rep.First,
+		Moderation:   cfg.Moderation,
+		Maintainers:  rep.Maintainers,
+		CompilerID:   rep.CompilerID,
+		KernelRepo:   rep.KernelRepo,
+		KernelBranch: rep.KernelBranch,
+		KernelCommit: rep.KernelCommit,
+		Report:       rep.Report,
+		ReproSyz:     len(rep.ReproSyz) != 0,
+		ReproC:       len(rep.ReproC) != 0,
+	}
+	if err := sendMailTemplate(c, rep.Title, from, to, attachments, "mail_bug.txt", data); err != nil {
 		return err
 	}
 	cmd := &dashapi.BugUpdate{
@@ -165,10 +193,7 @@ func sendMailTemplate(c context.Context, subject, from string, to []string,
 		Body:        body.String(),
 		Attachments: attachments,
 	}
-	if err := aemail.Send(c, msg); err != nil {
-		return fmt.Errorf("failed to send email: %v", err)
-	}
-	return nil
+	return sendEmail(c, msg)
 }
 
 func replyTo(c context.Context, msg *email.Email, reply string, attachment *aemail.Attachment) error {
@@ -189,12 +214,17 @@ func replyTo(c context.Context, msg *email.Email, reply string, attachment *aema
 		Attachments: attachments,
 		Headers:     mail.Header{"In-Reply-To": []string{msg.MessageID}},
 	}
-	if err := aemail.Send(c, replyMsg); err != nil {
+	return sendEmail(c, replyMsg)
+}
+
+// Sends email, can be stubbed for testing.
+var sendEmail = func(c context.Context, msg *aemail.Message) error {
+	if err := aemail.Send(c, msg); err != nil {
 		return fmt.Errorf("failed to send email: %v", err)
 	}
 	return nil
 }
 
 func fromAddr(c context.Context) string {
-	return fmt.Sprintf("syzbot <bot@%v.appspotmail.com>", appengine.AppID(c))
+	return fmt.Sprintf("\"syzbot\" <bot@%v.appspotmail.com>", appengine.AppID(c))
 }

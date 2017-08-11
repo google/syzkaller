@@ -64,7 +64,7 @@ func handleReportBug(c context.Context, typ string, state *ReportingState, bug *
 	if err != nil || reporting == nil {
 		return nil, err
 	}
-	rep, err := createBugReport(c, bug, bugReporting.ID, reporting.Config)
+	rep, err := createBugReport(c, bug, bugReporting, reporting.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func reproStr(level dashapi.ReproLevel) string {
 	}
 }
 
-func createBugReport(c context.Context, bug *Bug, id string, config interface{}) (*dashapi.BugReport, error) {
+func createBugReport(c context.Context, bug *Bug, bugReporting *BugReporting, config interface{}) (*dashapi.BugReport, error) {
 	reportingConfig, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
@@ -211,7 +211,8 @@ func createBugReport(c context.Context, bug *Bug, id string, config interface{})
 
 	rep := &dashapi.BugReport{
 		Config:       reportingConfig,
-		ID:           id,
+		ID:           bugReporting.ID,
+		First:        bugReporting.Reported.IsZero(),
 		Title:        bug.displayTitle(),
 		Log:          crashLog,
 		Report:       report,

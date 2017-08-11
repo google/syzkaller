@@ -49,8 +49,19 @@ var config = GlobalConfig{
 			Reporting: []Reporting{
 				{
 					Name:       "reporting1",
+					DailyLimit: 5,
+					Config: &EmailConfig{
+						Email:      "test@syzkaller.com",
+						Moderation: true,
+					},
+				},
+				{
+					Name:       "reporting2",
 					DailyLimit: 3,
-					Config:     &TestConfig{},
+					Config: &EmailConfig{
+						Email:           "bugs@syzkaller.com",
+						MailMaintainers: true,
+					},
 				},
 			},
 		},
