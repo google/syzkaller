@@ -219,21 +219,13 @@ func (env *Env) Close() error {
 	}
 }
 
-type CallInfo struct {
-	Signal []uint32 // feedback signal, filled if FlagSignal is set
-	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
-	//if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
-	Errno         int // call errno (0 if the call was successful)
-	FaultInjected bool
-}
-
 // Exec starts executor binary to execute program p and returns information about the execution:
 // output: process output
 // info: per-call info
 // failed: true if executor has detected a kernel bug
 // hanged: program hanged and was killed
 // err0: failed to start process, or executor has detected a logical error
-func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallInfo, failed, hanged bool, err0 error) {
+func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []prog.CallInfo, failed, hanged bool, err0 error) {
 	if p != nil {
 		// Copy-in serialized program.
 		if err := p.SerializeForExec(env.In, env.pid); err != nil {
@@ -268,11 +260,11 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 	if env.config.Flags&FlagSignal == 0 || p == nil {
 		return
 	}
-	info, err0 = env.readOutCoverage(p)
+	info, err0 = env.readOutCoverage(p, opts)
 	return
 }
 
-func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
+func (env *Env) readOutCoverage(p *prog.Prog, opts *ExecOpts) (info []prog.CallInfo, err0 error) {
 	out := ((*[1 << 28]uint32)(unsafe.Pointer(&env.Out[0])))[:len(env.Out)/int(unsafe.Sizeof(uint32(0)))]
 	readOut := func(v *uint32) bool {
 		if len(out) == 0 {
@@ -288,7 +280,7 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 		return
 	}
-	info = make([]CallInfo, len(p.Calls))
+	info = make([]prog.CallInfo, len(p.Calls))
 	for i := range info {
 		info[i].Errno = -1 // not executed
 	}

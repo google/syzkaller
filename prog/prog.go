@@ -19,6 +19,97 @@ type Call struct {
 	Ret  Arg
 }
 
+type Hint struct {
+	CallIndex uint
+	// please look at the description of Indices at prog/hints.go
+	// in struct ArgVal
+	Indices  []uint
+	Value    uintptr
+	OldValue uintptr
+	Size     uint
+}
+
+// Compares two hints field-by-field
+func (this *Hint) equals(other *Hint) bool {
+	if this.CallIndex != other.CallIndex ||
+		this.Value != other.Value ||
+		this.OldValue != other.OldValue ||
+		this.Size != other.Size {
+		return false
+	}
+	if len(this.Indices) != len(other.Indices) {
+		return false
+	}
+	for i := range this.Indices {
+		if this.Indices[i] != other.Indices[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func (h Hint) String() string {
+	return fmt.Sprintf(
+		"Hint{Call: %v Indices:%v Value:0x%x OldValue:0x%x Size:%v}\n",
+		h.CallIndex, h.Indices, h.Value, h.OldValue, h.Size)
+}
+
+type KcovComparisonType int
+
+const (
+	KCOV_TYPE_PC KcovComparisonType = iota
+	KCOV_TYPE_CMP1
+	KCOV_TYPE_CMP2
+	KCOV_TYPE_CMP4
+	KCOV_TYPE_CMP8
+	KCOV_TYPE_SWITCH1
+	KCOV_TYPE_SWITCH2
+	KCOV_TYPE_SWITCH4
+	KCOV_TYPE_SWITCH8
+	KCOV_TYPE_CONST_CMP1
+	KCOV_TYPE_CONST_CMP2
+	KCOV_TYPE_CONST_CMP4
+	KCOV_TYPE_CONST_CMP8
+)
+
+func IsKcovCmp(t KcovComparisonType) bool {
+	return (t == KCOV_TYPE_CMP1 ||
+		t == KCOV_TYPE_CMP2 ||
+		t == KCOV_TYPE_CMP4 ||
+		t == KCOV_TYPE_CMP8)
+}
+
+func IsKcovSwitch(t KcovComparisonType) bool {
+	return (t == KCOV_TYPE_SWITCH1 ||
+		t == KCOV_TYPE_SWITCH2 ||
+		t == KCOV_TYPE_SWITCH4 ||
+		t == KCOV_TYPE_SWITCH8)
+}
+
+func IsKcovConstCmp(t KcovComparisonType) bool {
+	return (t == KCOV_TYPE_CONST_CMP1 ||
+		t == KCOV_TYPE_CONST_CMP2 ||
+		t == KCOV_TYPE_CONST_CMP4 ||
+		t == KCOV_TYPE_CONST_CMP8)
+}
+
+// describes the comparisons exported by KCOV to userspace
+type KcovComparison struct {
+	CompType KcovComparisonType
+	Arg1     uint64
+	Arg2     uint64
+}
+
+type CallInfo struct {
+	Signal []uint32 // feedback signal, filled if FlagSignal is set
+	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
+	//if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
+	Comps         []KcovComparison
+	Errno         int // call errno (0 if the call was successful)
+	FaultInjected bool
+	Num           int
+}
+
 type Arg interface {
 	Type() sys.Type
 	Size() uintptr

@@ -624,7 +624,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	}
 }
 
-func execute(pid int, env *ipc.Env, p *prog.Prog, needCover, minimized, candidate bool, stat *uint64) []ipc.CallInfo {
+func execute(pid int, env *ipc.Env, p *prog.Prog, needCover, minimized, candidate bool, stat *uint64) []prog.CallInfo {
 	opts := &ipc.ExecOpts{}
 	if needCover {
 		opts.Flags |= ipc.FlagCollectCover
@@ -665,7 +665,7 @@ func execute(pid int, env *ipc.Env, p *prog.Prog, needCover, minimized, candidat
 
 var logMu sync.Mutex
 
-func execute1(pid int, env *ipc.Env, opts *ipc.ExecOpts, p *prog.Prog, stat *uint64) []ipc.CallInfo {
+func execute1(pid int, env *ipc.Env, opts *ipc.ExecOpts, p *prog.Prog, stat *uint64) []prog.CallInfo {
 	if false {
 		// For debugging, this function must not be executed with locks held.
 		corpusMu.Lock()
