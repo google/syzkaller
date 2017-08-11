@@ -136,6 +136,7 @@ func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
 type BugReport struct {
 	Config       []byte
 	ID           string
+	First        bool // Set for first report for this bug.
 	Title        string
 	Maintainers  []string
 	CompilerID   string
