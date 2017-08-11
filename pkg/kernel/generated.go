@@ -78,7 +78,7 @@ menuentry 'linux' --class gnu-linux --class gnu --class os {
 	linux /vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 $CMDLINE
 }
 EOF
-sudo grub-install --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
+sudo grub-install --target=i386-pc --boot-directory=disk.mnt/boot --no-floppy /dev/nbd0
 sudo umount disk.mnt
 rm -rf disk.mnt
 sudo qemu-nbd -d /dev/nbd0
