@@ -33,6 +33,7 @@ var (
 	flagOutput    = flag.String("output", "none", "write programs to none/stdout")
 	flagFaultCall = flag.Int("fault_call", -1, "inject fault into this call (0-based)")
 	flagFaultNth  = flag.Int("fault_nth", 0, "inject fault on n-th operation (0-based)")
+	flagHints     = flag.Bool("hints", false, "do a hints-generation run")
 )
 
 func main() {
@@ -72,6 +73,12 @@ func main() {
 		config.Flags |= ipc.FlagSignal
 		execOpts.Flags |= ipc.FlagCollectCover
 		execOpts.Flags &^= ipc.FlagDedupCover
+	}
+	if *flagHints == true {
+		if execOpts.Flags&ipc.FlagCollectCover != 0 {
+			execOpts.Flags ^= ipc.FlagCollectCover
+		}
+		execOpts.Flags |= ipc.FlagCollectComps
 	}
 
 	if *flagFaultCall >= 0 {
@@ -162,6 +169,17 @@ func main() {
 							}
 						}
 					}
+					if *flagHints == true {
+						fmt.Printf("Total executed:%v \n", len(info))
+						hints := p.GenerateHints(info)
+						fmt.Printf("Got %v hints\n", len(hints))
+						for _, h := range hints {
+							fmt.Printf("Got a hint: call=%v indices=%v old=0x%x new=0x%x\n",
+								p.Calls[h.CallIndex].Meta.CallName, h.Indices, h.OldValue, h.Value)
+						}
+
+					}
+
 					return true
 				}() {
 					return
