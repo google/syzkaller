@@ -157,7 +157,6 @@ void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
 uint64_t read_kcov_size(thread_t* th);
-static uint32_t hash(uint32_t a);
 static bool dedup(uint32_t sig);
 
 int main(int argc, char** argv)
@@ -593,18 +592,14 @@ void handle_completion(thread_t* th)
 		uint32_t* cover_count_pos = write_output(0); // filled in later
 
 		// Write out feedback signals.
-		// Currently it is code edges computed as xor of two subsequent basic block PCs.
 		uint64_t* cover_data = th->cover_data + 1;
 		uint32_t cover_size = th->kcov_size;
-		uint32_t prev = 0;
 		uint32_t nsig = 0;
 		for (uint32_t i = 0; i < cover_size; i++) {
 			uint32_t pc = cover_data[i];
-			uint32_t sig = pc ^ prev;
-			prev = hash(pc);
-			if (dedup(sig))
+			if (dedup(pc))
 				continue;
-			write_output(sig);
+			write_output(pc);
 			nsig++;
 		}
 		*signal_count_pos = nsig;
@@ -775,16 +770,6 @@ uint64_t read_kcov_size(thread_t* th)
 	uint64_t n = __atomic_load_n(th->cover_size_ptr, __ATOMIC_RELAXED);
 	debug("#%d: read kcov size = %u\n", th->id, n);
 	return n;
-}
-
-static uint32_t hash(uint32_t a)
-{
-	a = (a ^ 61) ^ (a >> 16);
-	a = a + (a << 3);
-	a = a ^ (a >> 4);
-	a = a * 0x27d4eb2d;
-	a = a ^ (a >> 15);
-	return a;
 }
 
 const uint32_t dedup_table_size = 8 << 10;
