@@ -2,6 +2,7 @@ language: go
 dist: trusty
 
 go:
+  - 1.8
   - 1.9rc1
 
 before_install:
