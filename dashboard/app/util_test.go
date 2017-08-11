@@ -28,13 +28,16 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/aetest"
+	aemail "google.golang.org/appengine/mail"
 	"google.golang.org/appengine/user"
 )
 
 type Ctx struct {
 	t          *testing.T
 	inst       aetest.Instance
+	ctx        context.Context
 	mockedTime time.Time
+	emailSink  chan *aemail.Message
 }
 
 func NewCtx(t *testing.T) *Ctx {
@@ -47,11 +50,18 @@ func NewCtx(t *testing.T) *Ctx {
 	if err != nil {
 		t.Fatal(err)
 	}
+	r, err := inst.NewRequest("GET", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	c := &Ctx{
 		t:          t,
 		inst:       inst,
+		ctx:        appengine.NewContext(r),
 		mockedTime: time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		emailSink:  make(chan *aemail.Message, 100),
 	}
+	registerContext(r, c)
 	return c
 }
 
@@ -85,6 +95,7 @@ func (c *Ctx) Close() {
 	if !c.t.Failed() {
 		// Ensure that we can render bugs in the final test state.
 		c.expectOK(c.GET("/"))
+		c.expectEQ(len(c.emailSink), 0)
 	}
 	unregisterContext(c)
 	c.inst.Close()
@@ -146,10 +157,14 @@ func (c *Ctx) GET(url string) error {
 	return nil
 }
 
-// Mock time as some functionality relies on real time.
 func init() {
+	// Mock time as some functionality relies on real time.
 	timeNow = func(c context.Context) time.Time {
 		return getRequestContext(c).mockedTime
+	}
+	sendEmail = func(c context.Context, msg *aemail.Message) error {
+		getRequestContext(c).emailSink <- msg
+		return nil
 	}
 }
 

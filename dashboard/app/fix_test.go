@@ -21,9 +21,16 @@ func reportAllBugs(c *Ctx, expect int) []*dashapi.BugReport {
 		c.t.Fatalf("\n%v: want %v reports, got %v", caller(0), expect, len(resp.Reports))
 	}
 	for _, rep := range resp.Reports {
+		reproLevel := dashapi.ReproLevelNone
+		if len(rep.ReproC) != 0 {
+			reproLevel = dashapi.ReproLevelC
+		} else if len(rep.ReproSyz) != 0 {
+			reproLevel = dashapi.ReproLevelSyz
+		}
 		cmd := &dashapi.BugUpdate{
-			ID:     rep.ID,
-			Status: dashapi.BugStatusOpen,
+			ID:         rep.ID,
+			Status:     dashapi.BugStatusOpen,
+			ReproLevel: reproLevel,
 		}
 		reply := new(dashapi.BugUpdateReply)
 		c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
