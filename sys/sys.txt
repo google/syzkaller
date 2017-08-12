@@ -331,6 +331,10 @@ getdents(fd fd_dir, ent buffer[out], count len[ent])
 getdents64(fd fd_dir, ent buffer[out], count len[ent])
 name_to_handle_at(fd fd_dir, file ptr[in, filename], handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])
 open_by_handle_at(mountdirfd fd, handle ptr[in, file_handle], flags flags[open_flags])
+chroot(dir ptr[in, filename])
+getcwd(buf buffer[out], size len[buf])
+chdir(dir ptr[in, filename])
+fchdir(fd fd)
 
 mount(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in, opt])
 umount2(path ptr[in, filename], flags flags[umount_flags])
@@ -1050,14 +1054,10 @@ uffdio_features = UFFD_FEATURE_PAGEFAULT_FLAG_WP, UFFD_FEATURE_EVENT_FORK, UFFD_
 #define __NR_fork 57
 #define __NR_vfork 58
 #define __NR_execve 59
-#define __NR_getcwd 79
-#define __NR_chdir 80
-#define __NR_fchdir 81
 #define __NR_umask 95
 #define __NR_vhangup 153
 #define __NR__sysctl 156
 #define __NR_adjtimex 159
-#define __NR_chroot 161
 #define __NR_swapon 167
 #define __NR_swapoff 168
 #define __NR_quotactl 179
