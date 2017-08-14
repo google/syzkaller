@@ -69,5 +69,5 @@ nl_mmap_req {
 }
 
 # Removed (if __KERNEL__ defined) in next-20160229 (commit d1b4c689)
-define NETLINK_RX_RING 6
-define NETLINK_TX_RING 7
+define NETLINK_RX_RING	6
+define NETLINK_TX_RING	7

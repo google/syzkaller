@@ -4,17 +4,17 @@
 include <linux/xattr.h>
 
 setxattr(path ptr[in, filename], name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
-lsetxattr(path ptr[in, filename],  name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
-fsetxattr(fd fd,  name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
-getxattr(path ptr[in, filename],  name ptr[in, xattr_name], val buffer[out], size len[val])
-lgetxattr(path ptr[in, filename],  name ptr[in, xattr_name], val buffer[out], size len[val])
-fgetxattr(fd fd,  name ptr[in, xattr_name], val buffer[out], size len[val])
+lsetxattr(path ptr[in, filename], name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
+fsetxattr(fd fd, name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
+getxattr(path ptr[in, filename], name ptr[in, xattr_name], val buffer[out], size len[val])
+lgetxattr(path ptr[in, filename], name ptr[in, xattr_name], val buffer[out], size len[val])
+fgetxattr(fd fd, name ptr[in, xattr_name], val buffer[out], size len[val])
 listxattr(path ptr[in, filename], list buffer[out], size len[list])
 llistxattr(path ptr[in, filename], list buffer[out], size len[list])
 flistxattr(fd fd, list buffer[out], size len[list])
-removexattr(path ptr[in, filename],  name ptr[in, xattr_name])
-lremovexattr(path ptr[in, filename],  name ptr[in, xattr_name])
-fremovexattr(fd fd,  name ptr[in, xattr_name])
+removexattr(path ptr[in, filename], name ptr[in, xattr_name])
+lremovexattr(path ptr[in, filename], name ptr[in, xattr_name])
+fremovexattr(fd fd, name ptr[in, xattr_name])
 
 xattr_name [
 	known	string[xattr_names]

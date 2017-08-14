@@ -423,58 +423,58 @@ syz_csum_encode {
 } [packed]
 
 syz_csum_ipv4_header {
-	csum		csum[parent, inet, int16]
-	src_ip		int32be
-	dst_ip		int32be
+	csum	csum[parent, inet, int16]
+	src_ip	int32be
+	dst_ip	int32be
 } [packed]
 
 syz_csum_tcp_header {
-	csum		csum[syz_csum_tcp_packet, pseudo, IPPROTO_TCP, int16]
+	csum	csum[syz_csum_tcp_packet, pseudo, IPPROTO_TCP, int16]
 } [packed]
 
 syz_csum_tcp_packet {
-	header		syz_csum_tcp_header
-	payload		array[int8]
+	header	syz_csum_tcp_header
+	payload	array[int8]
 } [packed]
 
 syz_csum_ipv4_tcp_packet {
-	header		syz_csum_ipv4_header
-	payload		syz_csum_tcp_packet
+	header	syz_csum_ipv4_header
+	payload	syz_csum_tcp_packet
 } [packed]
 
 syz_csum_ipv6_header {
-	src_ip		array[int8, 16]
-	dst_ip		array[int8, 16]
+	src_ip	array[int8, 16]
+	dst_ip	array[int8, 16]
 } [packed]
 
 syz_csum_ipv6_tcp_packet {
-	header		syz_csum_ipv6_header
-	payload		syz_csum_tcp_packet
+	header	syz_csum_ipv6_header
+	payload	syz_csum_tcp_packet
 } [packed]
 
 syz_csum_udp_packet {
-	csum		csum[parent, pseudo, IPPROTO_UDP, int16]
-	payload		array[int8]
+	csum	csum[parent, pseudo, IPPROTO_UDP, int16]
+	payload	array[int8]
 } [packed]
 
 syz_csum_ipv4_udp_packet {
-	header		syz_csum_ipv4_header
-	payload		syz_csum_udp_packet
+	header	syz_csum_ipv4_header
+	payload	syz_csum_udp_packet
 } [packed]
 
 syz_csum_ipv6_udp_packet {
-	header		syz_csum_ipv6_header
-	payload		syz_csum_udp_packet
+	header	syz_csum_ipv6_header
+	payload	syz_csum_udp_packet
 } [packed]
 
 syz_csum_icmp_packet {
-	csum		csum[parent, pseudo, IPPROTO_ICMPV6, int16]
-	payload		array[int8]
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16]
+	payload	array[int8]
 } [packed]
 
 syz_csum_ipv6_icmp_packet {
-	header		syz_csum_ipv6_header
-	payload		syz_csum_icmp_packet
+	header	syz_csum_ipv6_header
+	payload	syz_csum_icmp_packet
 } [packed]
 
 # Recursion

@@ -61,9 +61,6 @@ include <uapi/linux/module.h>
 include <asm/prctl.h>
 include <linux/ioprio.h>
 
-
-
-
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
 resource fd_dir[fd]
 
@@ -499,9 +496,6 @@ openat$dsp(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp"]], flags flags[ope
 openat$audio(fd const[AT_FDCWD], file ptr[in, string["/dev/audio"]], flags flags[open_flags], mode const[0]) fd
 openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
 
-
-
-
 pipefd {
 	rfd	fd
 	wfd	fd
@@ -539,27 +533,27 @@ stat {
 }
 
 statx {
-	mask int32
-	blksize int32
-	attributes int64
-	nlink int32
-	uid int32
-	gid int32
-	mode int16
-	__spare0 int16
-	ino int64
-	size int64
-	blocks int64
-	__spare1 int64
-	atime statx_timestamp
-	btime statx_timestamp
-	ctime statx_timestamp
-	mtime statx_timestamp
-	rdev_major int32
-	rdev_minor int32
-	dev_major int32
-	dev_minor int32
-	__spare2 array[int64, 14]
+	mask		int32
+	blksize		int32
+	attributes	int64
+	nlink		int32
+	uid		int32
+	gid		int32
+	mode		int16
+	__spare0	int16
+	ino		int64
+	size		int64
+	blocks		int64
+	__spare1	int64
+	atime		statx_timestamp
+	btime		statx_timestamp
+	ctime		statx_timestamp
+	mtime		statx_timestamp
+	rdev_major	int32
+	rdev_minor	int32
+	dev_major	int32
+	dev_minor	int32
+	__spare2	array[int64, 14]
 }
 
 pollfd {
@@ -594,11 +588,10 @@ timeval {
 }
 
 statx_timestamp {
-	sec  int64
-	nsec int32
-	__reserved  int32
+	sec		int64
+	nsec		int32
+	__reserved	int32
 }
-
 
 itimerspec {
 	interv	timespec
@@ -911,9 +904,6 @@ uffdio_zeropage {
 	zeropg	const[0, int64]
 }
 
-
-
-
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC, __O_TMPFILE
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 madvise_flags = MADV_NORMAL, MADV_RANDOM, MADV_SEQUENTIAL, MADV_WILLNEED, MADV_DONTNEED, MADV_REMOVE, MADV_DONTFORK, MADV_DOFORK, MADV_HWPOISON, MADV_SOFT_OFFLINE, MADV_MERGEABLE, MADV_UNMERGEABLE, MADV_HUGEPAGE, MADV_NOHUGEPAGE, MADV_DONTDUMP, MADV_DODUMP
@@ -956,7 +946,7 @@ prctl_mm_option = PR_SET_MM_START_CODE, PR_SET_MM_END_CODE, PR_SET_MM_START_DATA
 arch_prctl_code = ARCH_SET_FS, ARCH_GET_FS, ARCH_SET_GS, ARCH_GET_GS
 epoll_flags = EPOLL_CLOEXEC
 epoll_op = EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
-epoll_ev =  POLLIN, POLLOUT, POLLRDHUP, POLLPRI, POLLERR, POLLHUP, EPOLLET, EPOLLONESHOT, EPOLLEXCLUSIVE, EPOLLWAKEUP
+epoll_ev = POLLIN, POLLOUT, POLLRDHUP, POLLPRI, POLLERR, POLLHUP, EPOLLET, EPOLLONESHOT, EPOLLEXCLUSIVE, EPOLLWAKEUP
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND, POLLMSG, POLLREMOVE, POLLRDHUP, POLLFREE, POLL_BUSY_LOOP
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 at_flags = AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_NO_AUTOMOUNT, AT_EMPTY_PATH
@@ -975,7 +965,7 @@ mount_flags = MS_BIND, MS_DIRSYNC, MS_MANDLOCK, MS_MOVE, MS_NOATIME, MS_NODEV, M
 umount_flags = MNT_FORCE, MNT_DETACH, MNT_EXPIRE, UMOUNT_NOFOLLOW
 finit_module_flags = MODULE_INIT_IGNORE_MODVERSIONS, MODULE_INIT_IGNORE_VERMAGIC
 delete_module_flags = O_NONBLOCK, O_TRUNC
-kexec_load_flags = KEXEC_ON_CRASH, KEXEC_PRESERVE_CONTEXT, KEXEC_ARCH_386, KEXEC_ARCH_X86_64, KEXEC_ARCH_PPC, KEXEC_ARCH_PPC64, KEXEC_ARCH_IA_64, KEXEC_ARCH_ARM, KEXEC_ARCH_S390,  KEXEC_ARCH_SH,  KEXEC_ARCH_MIPS, KEXEC_ARCH_MIPS_LE
+kexec_load_flags = KEXEC_ON_CRASH, KEXEC_PRESERVE_CONTEXT, KEXEC_ARCH_386, KEXEC_ARCH_X86_64, KEXEC_ARCH_PPC, KEXEC_ARCH_PPC64, KEXEC_ARCH_IA_64, KEXEC_ARCH_ARM, KEXEC_ARCH_S390, KEXEC_ARCH_SH, KEXEC_ARCH_MIPS, KEXEC_ARCH_MIPS_LE
 inotify_flags = IN_NONBLOCK, IN_CLOEXEC
 inotify_mask = IN_ACCESS, IN_ATTRIB, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE, IN_CREATE, IN_DELETE, IN_DELETE_SELF, IN_MODIFY, IN_MOVE_SELF, IN_MOVED_FROM, IN_MOVED_TO, IN_OPEN, IN_DONT_FOLLOW, IN_EXCL_UNLINK, IN_MASK_ADD, IN_ONESHOT, IN_ONLYDIR
 fanotify_flags = FAN_CLASS_PRE_CONTENT, FAN_CLASS_CONTENT, FAN_CLASS_NOTIF, FAN_CLOEXEC, FAN_NONBLOCK, FAN_UNLIMITED_QUEUE, FAN_UNLIMITED_MARKS
@@ -1000,7 +990,7 @@ sigprocmask_how = SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK
 getitimer_which = ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF
 wait_options = WNOHANG, WUNTRACED, WCONTINUED, WEXITED, WSTOPPED, WCONTINUED, WNOHANG, WNOWAIT, __WCLONE, __WALL, __WNOTHREAD
 waitid_which = P_PID, P_PGID, P_ALL
-sigaction_flags = SA_NOCLDSTOP,SA_NOCLDWAIT, SA_NODEFER, SA_ONSTACK, SA_RESETHAND, SA_RESTART, SA_SIGINFO
+sigaction_flags = SA_NOCLDSTOP, SA_NOCLDWAIT, SA_NODEFER, SA_ONSTACK, SA_RESETHAND, SA_RESTART, SA_SIGINFO
 timer_flags = 0, TIMER_ABSTIME
 utimensat_flags = 0, AT_SYMLINK_NOFOLLOW
 priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
@@ -1038,7 +1028,6 @@ clone_flags = CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLON
 
 
 
-
 # Not yet implemented syscalls
 #define __NR_umask 95
 #define __NR_vhangup 153
@@ -1049,9 +1038,6 @@ clone_flags = CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLON
 #define __NR_quotactl 179
 #define __NR_nfsservctl 180
 #define __NR_getcpu 309
-
-
-
 
 # Probably no sense in calling there.
 # Also affect system-wide state, so not reproducble anyway.

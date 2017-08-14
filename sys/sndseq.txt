@@ -189,7 +189,7 @@ snd_seq_query_subs {
 }
 
 snd_seq_event {
-	type	int8 
+	type	int8
 	flags	int8
 	tag	int8
 	queue	int8
@@ -275,4 +275,3 @@ snd_seq_addr {
 	client	int8
 	port	int8
 }
-

@@ -21,7 +21,7 @@ sockaddr_in {
 	family	const[AF_INET, int16]
 	port	proc[int16be, 20000, 4]
 	addr	ipv4_addr
-	pad     array[const[0, int8], 8]
+	pad	array[const[0, int8], 8]
 }
 
 sockaddr_storage_in {
@@ -93,8 +93,8 @@ getsockopt$inet_mtu(fd sock_in, level const[IPPROTO_IP], optname const[IP_MTU_DI
 setsockopt$inet_mtu(fd sock_in, level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
 
 xfrm_filter {
-	info		xfrm_userpolicy_info
-	tmpl		xfrm_user_tmpl
+	info	xfrm_userpolicy_info
+	tmpl	xfrm_user_tmpl
 }
 
 xfrm_userpolicy_info {
@@ -131,8 +131,8 @@ xfrm_selector {
 xfrm_prefixlens = 32, 128
 
 xfrm_address [
-	in		ipv4_addr
-	in6		ipv6_addr
+	in	ipv4_addr
+	in6	ipv6_addr
 ]
 
 xfrm_lifetime_cfg {
@@ -169,9 +169,9 @@ xfrm_user_tmpl {
 xfrm_modes = XFRM_MODE_TRANSPORT, XFRM_MODE_TUNNEL, XFRM_MODE_ROUTEOPTIMIZATION, XFRM_MODE_IN_TRIGGER, XFRM_MODE_BEET
 
 xfrm_id {
-	daddr		xfrm_address
-	spi		int32
-	proto		int8
+	daddr	xfrm_address
+	spi	int32
+	proto	int8
 }
 
 ip_mreq {

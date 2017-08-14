@@ -22,11 +22,10 @@ ioctl$TE_IOCTL_SS_CMD(fd fd_tlk, cmd const[TE_IOCTL_SS_CMD], arg flags[te_ss_cmd
 te_ss_cmd_flags = TE_IOCTL_SS_CMD_GET_NEW_REQ, TE_IOCTL_SS_CMD_REQ_COMPLETE
 te_oper_param_type_flags = TE_PARAM_TYPE_NONE, TE_PARAM_TYPE_INT_RO, TE_PARAM_TYPE_INT_RW, TE_PARAM_TYPE_MEM_RO, TE_PARAM_TYPE_MEM_RW, TE_PARAM_TYPE_PERSIST_MEM_RO, TE_PARAM_TYPE_PERSIST_MEM_RW, TE_PARAM_TYPE_FLAGS_PHYS_LIST
 
-
 # Values of time_low, time_mid, time_hi_and_version, clock_seq_and_node don't seem to mean anything.
 te_service_id {
-	unused_time_low	int32
-	unused_time_mid	int16
+	unused_time_low			int32
+	unused_time_mid			int16
 	unused_time_hi_and_version	int16
 	unused_clock_seq_and_node	array[int8, 8]
 }
@@ -64,8 +63,8 @@ te_operation {
 }
 
 te_int_mem_union [
-	int int32
-	Mem te_mem
+	int	int32
+	Mem	te_mem
 ]
 
 te_mem {
