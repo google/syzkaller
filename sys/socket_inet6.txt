@@ -113,8 +113,8 @@ mf6cctl {
 }
 
 ipv6_mreq {
-	multi		ipv6_addr
-	ifindex		ifindex
+	multi	ipv6_addr
+	ifindex	ifindex
 }
 
 in6_flowlabel_req {
