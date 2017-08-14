@@ -285,10 +285,10 @@ setsockopt$inet_sctp_SCTP_ADD_STREAMS(fd sock_sctp, level const[SOL_SCTP], opt c
 setsockopt$inet_sctp6_SCTP_ADD_STREAMS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_ADD_STREAMS], val ptr[in, int32], len len[val])
 
 sctp_rtoinfo {
-	srto_assoc_id		assoc_id
-	srto_initial		int32
-	srto_max		int32
-	srto_min		int32
+	srto_assoc_id	assoc_id
+	srto_initial	int32
+	srto_max	int32
+	srto_min	int32
 }
 
 sctp_assocparams {
@@ -308,13 +308,13 @@ sctp_initmsg {
 }
 
 sctp_prim {
-	ssp_assoc_id		assoc_id
-	ssp_addr		sockaddr_storage_sctp
+	ssp_assoc_id	assoc_id
+	ssp_addr	sockaddr_storage_sctp
 } [packed, align_4]
 
 sockaddr_storage_sctp [
-	in			sockaddr_storage_in
-	in6			sockaddr_storage_in6
+	in	sockaddr_storage_in
+	in6	sockaddr_storage_in6
 ]
 
 sctp_setadaptation {
@@ -322,13 +322,13 @@ sctp_setadaptation {
 }
 
 sctp_paddrparams {
-	spp_assoc_id		assoc_id
-	spp_address		sockaddr_storage_sctp
-	spp_hbinterval		int32
-	spp_pathmaxrxt		int16
-	spp_pathmtu		int32
-	spp_sackdelay		int32
-	spp_flags		flags[sctp_spp_flags, int32]
+	spp_assoc_id	assoc_id
+	spp_address	sockaddr_storage_sctp
+	spp_hbinterval	int32
+	spp_pathmaxrxt	int16
+	spp_pathmtu	int32
+	spp_sackdelay	int32
+	spp_flags	flags[sctp_spp_flags, int32]
 } [packed, align_4]
 
 sctp_spp_flags = SPP_HB_ENABLE, SPP_HB_DISABLE, SPP_HB_DEMAND, SPP_HB_TIME_IS_ZERO, SPP_PMTUD_ENABLE, SPP_PMTUD_DISABLE, SPP_SACKDELAY_ENABLE, SPP_SACKDELAY_DISABLE
@@ -355,20 +355,20 @@ sctp_event_subscribe {
 	sctp_peer_error_event	int8
 	sctp_shutdown_event	int8
 	sctp_partial_delivery_e	int8
-	sctp_adaptation_layer_e int8
+	sctp_adaptation_layer_e	int8
 	sctp_authentication_e	int8
 	sctp_sender_dry_event	int8
 	sctp_stream_reset_event	int8
 }
 
 sctp_maxseg [
-	assoc_id		assoc_id
-	assoc_value		sctp_assoc_value
+	assoc_id	assoc_id
+	assoc_value	sctp_assoc_value
 ] [varlen]
 
 sctp_assoc_value {
-	assoc_id		assoc_id
-	assoc_value		int32
+	assoc_id	assoc_id
+	assoc_value	int32
 }
 
 sctp_status {
@@ -384,33 +384,33 @@ sctp_status {
 }
 
 sctp_paddrinfo {
-	spinfo_assoc_id		assoc_id
-	spinfo_address		sockaddr_storage_sctp
-	spinfo_state		int32
-	spinfo_cwnd		int32
-	spinfo_srtt		int32
-	spinfo_rto		int32
-	spinfo_mtu		int32
+	spinfo_assoc_id	assoc_id
+	spinfo_address	sockaddr_storage_sctp
+	spinfo_state	int32
+	spinfo_cwnd	int32
+	spinfo_srtt	int32
+	spinfo_rto	int32
+	spinfo_mtu	int32
 } [packed, align_4]
 
 sctp_delayed_sack [
-	sack_info		sctp_sack_info
-	assoc_value		sctp_assoc_value
+	sack_info	sctp_sack_info
+	assoc_value	sctp_assoc_value
 ] [varlen]
 
 sctp_sack_info {
-	sack_assoc_id	 	assoc_id
-	sack_delay		int32
-	sack_freq		int32
+	sack_assoc_id	assoc_id
+	sack_delay	int32
+	sack_freq	int32
 }
 
 sctp_max_burst [
-	int			int32
-	assoc_value		sctp_assoc_value
+	int		int32
+	assoc_value	sctp_assoc_value
 ] [varlen]
 
 sctp_authchunk {
-	sauth_chunk		int8
+	sauth_chunk	int8
 }
 
 sctp_hmacalgo {
@@ -419,15 +419,15 @@ sctp_hmacalgo {
 }
 
 sctp_authkey {
-	sca_assoc_id		assoc_id
-	sca_keynumber		int16
-	sca_keylength		len[sca_key, int16]
-	sca_key			array[int8]
+	sca_assoc_id	assoc_id
+	sca_keynumber	int16
+	sca_keylength	len[sca_key, int16]
+	sca_key		array[int8]
 }
 
 sctp_authkeyid {
-	scact_assoc_id		assoc_id
-	scact_keynumber		int16
+	scact_assoc_id	assoc_id
+	scact_keynumber	int16
 }
 
 sctp_authchunks {
@@ -442,40 +442,40 @@ sctp_assoc_ids {
 }
 
 sctp_paddrthlds {
-	spt_assoc_id		assoc_id
-	spt_address		sockaddr_storage_sctp
-	spt_pathmaxrxt		int16
-	spt_pathpfthld		int16
+	spt_assoc_id	assoc_id
+	spt_address	sockaddr_storage_sctp
+	spt_pathmaxrxt	int16
+	spt_pathpfthld	int16
 }
 
 sctp_sndinfo {
-	snd_sid			int16
-	snd_flags		flags[sctp_sndrcv_flags, int16]
-	snd_ppid		int32
-	snd_context		int32
-	snd_assoc_id		assoc_id
+	snd_sid		int16
+	snd_flags	flags[sctp_sndrcv_flags, int16]
+	snd_ppid	int32
+	snd_context	int32
+	snd_assoc_id	assoc_id
 }
 
 sockaddr_sctp [
-	in			sockaddr_in
-	in6			sockaddr_in6
+	in	sockaddr_in
+	in6	sockaddr_in6
 ] [varlen]
 
 sctp_peeloff_arg_t {
-	assoc_id		assoc_id
-	sd			int32
+	assoc_id	assoc_id
+	sd		int32
 }
 
 sctp_getaddrs {
-	assoc_id		assoc_id
-	addr_num		len[addrs, int32]
-	addrs			array[int8]
+	assoc_id	assoc_id
+	addr_num	len[addrs, int32]
+	addrs		array[int8]
 }
 
 sctp_getaddrs_old {
-	assoc_id		assoc_id
-	addr_num		len[addrs, int32]
-	addrs			ptr[in, array[sockaddr_sctp]]
+	assoc_id	assoc_id
+	addr_num	len[addrs, int32]
+	addrs		ptr[in, array[sockaddr_sctp]]
 }
 
 sctp_assoc_stats {
@@ -485,9 +485,9 @@ sctp_assoc_stats {
 }
 
 sctp_default_prinfo {
-	pr_assoc_id		assoc_id
-	pr_value		int32
-	pr_policy		flags[sctp_pr_policies, int16]
+	pr_assoc_id	assoc_id
+	pr_value	int32
+	pr_policy	flags[sctp_pr_policies, int16]
 }
 
 sctp_pr_policies = SCTP_PR_SCTP_NONE, SCTP_PR_SCTP_TTL, SCTP_PR_SCTP_RTX, SCTP_PR_SCTP_PRIO
@@ -501,9 +501,9 @@ sctp_prstatus {
 }
 
 sctp_add_streams {
-	sas_assoc_id		assoc_id
-	sas_instrms		int16
-	sas_outstrms		int16
+	sas_assoc_id	assoc_id
+	sas_instrms	int16
+	sas_outstrms	int16
 }
 
 # SCTP ioctls
