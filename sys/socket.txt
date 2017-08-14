@@ -289,7 +289,7 @@ syzn_devname {
 	y	const[121, int8]
 	z	const[122, int8]
 	N	proc[int8, 48, 1]
-	0	const[0, int8]
+	z0	const[0, int8]
 }
 
 # We could add "eth0" to this list as well, but this will affect the connection between fuzzer and manager and produce lots of "no output" crashes.
