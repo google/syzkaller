@@ -139,4 +139,3 @@ fuse_notify_retrieve_out {
 	off	int64
 	size	int32
 }
-

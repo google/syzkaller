@@ -42,8 +42,8 @@ tun_pi {
 }
 
 virtio_net_hdr {
-	flags	flags[virtio_net_flags,	int8]
-	gsotype	flags[virtio_net_types,	int8]
+	flags	flags[virtio_net_flags, int8]
+	gsotype	flags[virtio_net_types, int8]
 	hdrlen	int16
 	gsosize	int16
 	start	int16
