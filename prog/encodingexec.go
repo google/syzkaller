@@ -124,7 +124,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 		// since checksum values can depend on values of the latter ones
 		if csumMap != nil {
 			var csumArgs []Arg
-			for arg, _ := range csumMap {
+			for arg := range csumMap {
 				csumArgs = append(csumArgs, arg)
 			}
 			sort.Sort(ByPhysicalAddr{Args: csumArgs, Context: w})
