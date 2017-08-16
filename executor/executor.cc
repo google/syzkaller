@@ -34,9 +34,12 @@
 #include "common.h"
 
 #define KCOV_INIT_TRACE _IOR('c', 1, unsigned long long)
-#define KCOV_INIT_TABLE _IOR('c', 2, unsigned long long)
+#define KCOV_INIT_CMP _IOR('c', 2, unsigned long long)
 #define KCOV_ENABLE _IO('c', 100)
 #define KCOV_DISABLE _IO('c', 101)
+
+const unsigned long KCOV_TRACE_PC = 0;
+const unsigned long KCOV_TRACE_CMP = 1;
 
 const int kInFd = 3;
 const int kOutFd = 4;
@@ -80,6 +83,10 @@ bool flag_enable_fault_injection;
 
 bool flag_collect_cover;
 bool flag_dedup_cover;
+
+// If true, then executor should write the comparisons data to fuzzer.
+bool flag_collect_comps;
+
 // Inject fault into flag_fault_nth-th operation in flag_fault_call-th syscall.
 bool flag_inject_fault;
 int flag_fault_call;
@@ -105,6 +112,9 @@ struct thread_t {
 	pthread_t th;
 	// TODO(dvyukov): this assumes 64-bit kernel. This must be "kernel long" somehow.
 	uint64_t* cover_data;
+	// Pointer to the size of coverage (stored as first word of memory).
+	uint64_t* cover_size_ptr;
+
 	uint64_t* copyout_pos;
 	int ready;
 	int done;
@@ -145,7 +155,7 @@ void* worker_thread(void* arg);
 void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
-uint64_t cover_read(thread_t* th);
+uint64_t read_cover_size(thread_t* th);
 static uint32_t hash(uint32_t a);
 static bool dedup(uint32_t sig);
 
@@ -264,9 +274,11 @@ void loop()
 		flag_collect_cover = in_cmd[0] & (1 << 0);
 		flag_dedup_cover = in_cmd[0] & (1 << 1);
 		flag_inject_fault = in_cmd[0] & (1 << 2);
+		flag_collect_comps = in_cmd[0] & (1 << 3);
 		flag_fault_call = in_cmd[1];
 		flag_fault_nth = in_cmd[2];
-		debug("exec opts: cover=%d dedup=%d fault=%d/%d/%d\n", flag_collect_cover, flag_dedup_cover,
+		debug("exec opts: cover=%d comps=%d dedup=%d fault=%d/%d/%d\n", flag_collect_cover,
+		      flag_collect_comps, flag_dedup_cover,
 		      flag_inject_fault, flag_fault_call, flag_fault_nth);
 
 		int pid = fork();
@@ -688,7 +700,7 @@ void execute_call(thread_t* th)
 				  th->args[2], th->args[3], th->args[4], th->args[5],
 				  th->args[6], th->args[7], th->args[8]);
 	th->reserrno = errno;
-	th->cover_size = cover_read(th);
+	th->cover_size = read_cover_size(th);
 	th->fault_injected = false;
 
 	if (flag_inject_fault && th->call_index == flag_fault_call) {
@@ -721,11 +733,19 @@ void cover_open()
 		th->cover_fd = open("/sys/kernel/debug/kcov", O_RDWR);
 		if (th->cover_fd == -1)
 			fail("open of /sys/kernel/debug/kcov failed");
+
 		if (ioctl(th->cover_fd, KCOV_INIT_TRACE, kCoverSize))
-			fail("cover init write failed");
-		th->cover_data = (uint64_t*)mmap(NULL, kCoverSize * sizeof(th->cover_data[0]), PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
-		if ((void*)th->cover_data == MAP_FAILED)
+			fail("cover init trace write failed");
+
+		size_t mmap_alloc_size = kCoverSize * sizeof(unsigned long);
+		uint64_t* mmap_ptr = (uint64_t*)mmap(NULL, mmap_alloc_size,
+						     PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
+
+		if (mmap_ptr == MAP_FAILED)
 			fail("cover mmap failed");
+
+		th->cover_size_ptr = mmap_ptr;
+		th->cover_data = &mmap_ptr[1];
 	}
 }
 
@@ -734,12 +754,12 @@ void cover_enable(thread_t* th)
 	if (!flag_cover)
 		return;
 	debug("#%d: enabling /sys/kernel/debug/kcov\n", th->id);
-	if (ioctl(th->cover_fd, KCOV_ENABLE, 0)) {
-		// This should be fatal,
-		// but in practice ioctl fails with assorted errors (9, 14, 25),
-		// so we use exitf.
-		exitf("cover enable write failed");
-	}
+	int kcov_mode = flag_collect_comps ? KCOV_TRACE_CMP : KCOV_TRACE_PC;
+	// This should be fatal,
+	// but in practice ioctl fails with assorted errors (9, 14, 25),
+	// so we use exitf.
+	if (ioctl(th->cover_fd, KCOV_ENABLE, kcov_mode))
+		exitf("cover enable write trace failed, mode=%d", kcov_mode);
 	debug("#%d: enabled /sys/kernel/debug/kcov\n", th->id);
 }
 
@@ -747,17 +767,17 @@ void cover_reset(thread_t* th)
 {
 	if (!flag_cover)
 		return;
-	__atomic_store_n(&th->cover_data[0], 0, __ATOMIC_RELAXED);
+	__atomic_store_n(th->cover_size_ptr, 0, __ATOMIC_RELAXED);
 }
 
-uint64_t cover_read(thread_t* th)
+uint64_t read_cover_size(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
-	uint64_t n = __atomic_load_n(&th->cover_data[0], __ATOMIC_RELAXED);
-	debug("#%d: read cover = %d\n", th->id, n);
+	uint64_t n = __atomic_load_n(th->cover_size_ptr, __ATOMIC_RELAXED);
+	debug("#%d: read cover size = %u\n", th->id, n);
 	if (n >= kCoverSize)
-		fail("#%d: too much cover %d", th->id, n);
+		fail("#%d: too much cover %u", th->id, n);
 	return n;
 }
 
