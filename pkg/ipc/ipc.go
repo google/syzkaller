@@ -223,7 +223,8 @@ type CallInfo struct {
 	Signal []uint32 // feedback signal, filled if FlagSignal is set
 	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
 	//if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
-	Errno         int // call errno (0 if the call was successful)
+	CompMap       prog.ComparisonMapOfSets // per-call comparison operands
+	Errno         int                      // call errno (0 if the call was successful)
 	FaultInjected bool
 }
 
@@ -265,14 +266,15 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 		return
 	}
 
-	if env.config.Flags&FlagSignal == 0 || p == nil {
+	if p == nil || env.config.Flags&FlagSignal == 0 &&
+		env.config.Flags&FlagCollectComps == 0 {
 		return
 	}
-	info, err0 = env.readOutCoverage(p)
+	info, err0 = env.readOutCoverage(p, opts)
 	return
 }
 
-func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
+func (env *Env) readOutCoverage(p *prog.Prog, opts *ExecOpts) (info []CallInfo, err0 error) {
 	out := ((*[1 << 28]uint32)(unsafe.Pointer(&env.Out[0])))[:len(env.Out)/int(unsafe.Sizeof(uint32(0)))]
 	readOut := func(v *uint32) bool {
 		if len(out) == 0 {
@@ -283,9 +285,27 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		return true
 	}
 
+	readOutAndSetErr := func(v *uint32, msg string, args ...interface{}) bool {
+		if !readOut(v) {
+			err0 = fmt.Errorf(msg, args)
+			return false
+		}
+		return true
+	}
+
+	// Reads out a 64 bits int in Little-endian as two blocks of 32 bits.
+	readOut64 := func(v *uintptr, msg string, args ...interface{}) bool {
+		var a, b uint32
+		if !(readOutAndSetErr(&a, msg, args) && readOutAndSetErr(&b, msg, args)) {
+			return false
+		}
+		*v = uintptr(a) + uintptr(b)<<32
+		return true
+	}
+
 	var ncmd uint32
-	if !readOut(&ncmd) {
-		err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
+	if !readOutAndSetErr(&ncmd,
+		"executor %v: failed to read output coverage", env.pid) {
 		return
 	}
 	info = make([]CallInfo, len(p.Calls))
@@ -304,8 +324,8 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		return buf.String()
 	}
 	for i := uint32(0); i < ncmd; i++ {
-		var callIndex, callNum, errno, faultInjected, signalSize, coverSize uint32
-		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) || !readOut(&faultInjected) || !readOut(&signalSize) || !readOut(&coverSize) {
+		var callIndex, callNum, errno, faultInjected, signalSize, coverSize, compsSize uint32
+		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) || !readOut(&faultInjected) || !readOut(&signalSize) || !readOut(&coverSize) || !readOut(&compsSize) {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 			return
 		}
@@ -332,8 +352,10 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 				env.pid, i, callIndex, signalSize, coverSize)
 			return
 		}
+		// Read out signals.
 		info[callIndex].Signal = out[:signalSize:signalSize]
 		out = out[signalSize:]
+		// Read out coverage.
 		if coverSize > uint32(len(out)) {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, signalsize=%v coversize=%v",
 				env.pid, i, callIndex, signalSize, coverSize)
@@ -341,6 +363,60 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		}
 		info[callIndex].Cover = out[:coverSize:coverSize]
 		out = out[coverSize:]
+		// Read out comparisons.
+		compMap := make(prog.ComparisonMapOfSets)
+		for j := uint32(0); j < compsSize; j++ {
+			var typ uint32
+			var op1, op2 uintptr
+			if !readOutAndSetErr(&typ,
+				"executor %v: failed while reading type of comparison %v", env.pid, j) {
+				return
+			}
+			if typ > 3 {
+				err0 = fmt.Errorf("executor %v: got wrong value (%v) while reading type of comparison %v",
+					env.pid, typ, j)
+				return
+			}
+
+			isSize8 := typ & (1 << 0)
+			isConst := typ & (1 << 1)
+			arg1ErrString := "executor %v: failed while reading op1 of comparison %v"
+			arg2ErrString := "executor %v: failed while reading op2 of comparison %v"
+			if isSize8 == 0 {
+				var tmp1, tmp2 uint32
+				if !readOutAndSetErr(&tmp1, arg1ErrString, env.pid, j) ||
+					!readOutAndSetErr(&tmp2, arg2ErrString, env.pid, j) {
+					return
+				}
+				op1 = uintptr(tmp1)
+				op2 = uintptr(tmp2)
+			} else {
+				if !readOut64(&op1, arg1ErrString, env.pid, j) ||
+					!readOut64(&op2, arg2ErrString, env.pid, j) {
+					return
+				}
+			}
+			if op1 == op2 {
+				// It's useless to store such comparisons.
+				continue
+			}
+			if _, ok := prog.SpecialIntsSet[op1]; !ok {
+				// We don't want to add op1 because it's in the set of
+				// "interesting" values, which the fuzzer will try anyways.
+				compMap.AddComp(op2, op1)
+			}
+			if isConst != 0 {
+				// If one of the operands was const, then this operand is always
+				// placed first in the instrumented callbacks. Such an operand
+				// could not be an argument of our syscalls (because otherwise
+				// it wouldn't be const), thus we simply ignore it.
+				continue
+			}
+			if _, ok := prog.SpecialIntsSet[op2]; !ok {
+				compMap.AddComp(op1, op2)
+			}
+		}
+		info[callIndex].CompMap = compMap
 	}
 	return
 }

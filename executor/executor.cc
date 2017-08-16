@@ -106,6 +106,77 @@ struct res_t {
 
 res_t results[kMaxCommands];
 
+enum cmp_type_t {
+	KCOV_TYPE_PC,
+	KCOV_TYPE_CMP1,
+	KCOV_TYPE_CMP2,
+	KCOV_TYPE_CMP4,
+	KCOV_TYPE_CMP8,
+	KCOV_TYPE_SWITCH1,
+	KCOV_TYPE_SWITCH2,
+	KCOV_TYPE_SWITCH4,
+	KCOV_TYPE_SWITCH8,
+	KCOV_TYPE_CONST_CMP1,
+	KCOV_TYPE_CONST_CMP2,
+	KCOV_TYPE_CONST_CMP4,
+	KCOV_TYPE_CONST_CMP8,
+};
+
+struct kcov_comparison_t {
+	// The field "type" is uint64_t, although it should be enum cmp_type_t.
+	// This is done to facilitate reading from KCOV. What we do is:
+	// kcov_comparison_t *comps = (kcov_comparison_t *) shared_memory;
+	uint64_t type;
+	uint64_t arg1;
+	uint64_t arg2;
+
+	bool operator==(const struct kcov_comparison_t& other) const
+	{
+		return ((type == other.type) &&
+			(arg1 == other.arg1) &&
+			(arg2 == other.arg2));
+	}
+
+	bool operator<(const struct kcov_comparison_t& other) const
+	{
+		if (type != other.type) {
+			return ((int)type < (int)other.type);
+		}
+		if (arg1 != other.arg1) {
+			return (arg1 < other.arg1);
+		}
+		return (arg2 < other.arg2);
+	}
+
+	// Writes the structure using the write_one function for each field.
+	// Inspired by write_output() function.
+	void write(uint32_t* (*write_one)(uint32_t))
+	{
+		// write order: type arg1 arg2
+		bool is_size_8 = (type == KCOV_TYPE_CMP8 ||
+				  type == KCOV_TYPE_SWITCH8 ||
+				  type == KCOV_TYPE_CONST_CMP8);
+		bool is_const = (type > KCOV_TYPE_CMP8);
+		// Transform the type the following way:
+		//      LSB - 1 if size is 8, 0 otherwise
+		//      second LSB - 1 if one of the args is const, 0 otherwise
+		uint32_t t = 0;
+		t |= (is_size_8 << 0);
+		t |= (is_const << 1);
+		write_one(t);
+		if (!is_size_8) {
+			write_one((uint32_t)arg1);
+			write_one((uint32_t)arg2);
+			return;
+		}
+		// If we have 64 bits arguments then write them in Little-endian.
+		write_one((uint32_t)(arg1 & 0xFFFFFFFF));
+		write_one((uint32_t)(arg1 >> 32));
+		write_one((uint32_t)(arg2 & 0xFFFFFFFF));
+		write_one((uint32_t)(arg2 >> 32));
+	}
+};
+
 struct thread_t {
 	bool created;
 	int id;
@@ -601,46 +672,57 @@ void handle_completion(thread_t* th)
 		write_output(th->fault_injected);
 		uint32_t* signal_count_pos = write_output(0); // filled in later
 		uint32_t* cover_count_pos = write_output(0); // filled in later
+		uint32_t* comps_count_pos = write_output(0); // filled in later
+		uint32_t nsig = 0, cover_size = 0, comps_size = 0;
 
-		// Write out feedback signals.
-		// Currently it is code edges computed as xor of two subsequent basic block PCs.
-		uint64_t* cover_data = th->cover_data + 1;
-		uint32_t cover_size = th->cover_size;
-		uint32_t prev = 0;
-		uint32_t nsig = 0;
-		for (uint32_t i = 0; i < cover_size; i++) {
-			uint32_t pc = cover_data[i];
-			uint32_t sig = pc ^ prev;
-			prev = hash(pc);
-			if (dedup(sig))
-				continue;
-			write_output(sig);
-			nsig++;
-		}
-		*signal_count_pos = nsig;
-		if (flag_collect_cover) {
-			// Write out real coverage (basic block PCs).
-			if (flag_dedup_cover) {
-				std::sort(cover_data, cover_data + cover_size);
-				uint64_t w = 0;
-				uint64_t last = 0;
-				for (uint32_t i = 0; i < cover_size; i++) {
-					uint64_t pc = cover_data[i];
-					if (pc == last)
-						continue;
-					cover_data[w++] = last = pc;
-				}
-				cover_size = w;
+		if (flag_collect_comps) {
+			// Collect only the comparisons
+			comps_size = th->cover_size;
+			kcov_comparison_t* start = (kcov_comparison_t*)th->cover_data;
+			kcov_comparison_t* end = start + comps_size;
+			std::sort(start, end);
+			comps_size = std::unique(start, end) - start;
+			for (uint32_t i = 0; i < comps_size; ++i) {
+				start[i].write(write_output);
 			}
-			// Truncate PCs to uint32_t assuming that they fit into 32-bits.
-			// True for x86_64 and arm64 without KASLR.
-			for (uint32_t i = 0; i < cover_size; i++)
-				write_output((uint32_t)cover_data[i]);
-			*cover_count_pos = cover_size;
+		} else {
+			// Write out feedback signals.
+			// Currently it is code edges computed as xor of
+			// two subsequent basic block PCs.
+			uint32_t prev = 0;
+			for (uint32_t i = 0; i < th->cover_size; i++) {
+				uint32_t pc = (uint32_t)th->cover_data[i];
+				uint32_t sig = pc ^ prev;
+				prev = hash(pc);
+				if (dedup(sig))
+					continue;
+				write_output(sig);
+				nsig++;
+			}
+			if (flag_collect_cover) {
+				// Write out real coverage (basic block PCs).
+				cover_size = th->cover_size;
+				if (flag_dedup_cover) {
+					uint64_t* start = (uint64_t*)th->cover_data;
+					uint64_t* end = start + cover_size;
+					std::sort(start, end);
+					cover_size = std::unique(start, end) - start;
+				}
+				// Truncate PCs to uint32_t assuming that they fit into 32-bits.
+				// True for x86_64 and arm64 without KASLR.
+				for (uint32_t i = 0; i < cover_size; i++)
+					write_output((uint32_t)th->cover_data[i]);
+			}
 		}
-		debug("out #%u: index=%u num=%u errno=%d sig=%u cover=%u\n",
-		      completed, th->call_index, th->call_num, reserrno, nsig, cover_size);
-
+		// Write out real coverage (basic block PCs).
+		*cover_count_pos = cover_size;
+		// Write out number of comparisons
+		*comps_count_pos = comps_size;
+		// Write out number of signals
+		*signal_count_pos = nsig;
+		debug("out #%u: index=%u num=%u errno=%d sig=%u cover=%u comps=%u\n",
+		      completed, th->call_index, th->call_num, reserrno, nsig,
+		      cover_size, comps_size);
 		completed++;
 		__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
 	}
