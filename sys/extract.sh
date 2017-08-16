@@ -28,7 +28,8 @@ UPSTREAM_FILES="sys/bpf.txt sys/dri.txt sys/fuse.txt sys/input.txt sys/ipc.txt
 		sys/socket_inet_sctp.txt sys/socket_inet_dccp.txt
 		sys/socket_kcm.txt sys/socket_key.txt sys/socket_netlink.txt
 		sys/socket_netrom.txt sys/socket_nfc.txt sys/socket_unix.txt
-		sys/socket_ipx.txt sys/socket_ax25.txt sys/socket_llc.txt"
+		sys/socket_ipx.txt sys/socket_ax25.txt sys/socket_llc.txt
+		sys/xattr.txt"
 
 ANDROID_FILES="sys/tlk_device.txt sys/ion.txt"
 
