@@ -37,6 +37,7 @@ type CheckArgs struct {
 	Leak           bool
 	Fault          bool
 	UserNamespaces bool
+	CompsEnabled   bool
 	Calls          []string
 }
 

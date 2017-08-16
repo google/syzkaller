@@ -89,6 +89,7 @@ var (
 	allTriaged            uint32
 	noCover               bool
 	faultInjectionEnabled bool
+	compsEnabled          bool
 )
 
 func main() {
@@ -161,6 +162,8 @@ func main() {
 		faultInjectionEnabled = true
 	}
 
+	compsEnabled = checkCompsEnabled()
+	Logf(1, "KCOV_CHECK: compsEnabled=%v", compsEnabled)
 	if r.NeedCheck {
 		a := &CheckArgs{
 			Name:           *flagName,
@@ -175,6 +178,7 @@ func main() {
 			a.Leak = true
 		}
 		a.Fault = faultInjectionEnabled
+		a.CompsEnabled = compsEnabled
 		for c := range calls {
 			a.Calls = append(a.Calls, c.Name)
 		}
@@ -789,4 +793,31 @@ func kmemleakScan(report bool) {
 	if _, err := syscall.Write(fd, []byte("clear")); err != nil {
 		panic(err)
 	}
+}
+
+// Checks if the KCOV device supports comparisons.
+func checkCompsEnabled() bool {
+	fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0)
+	if err != nil {
+		return false
+	}
+	coverSize := uintptr(64 << 10)
+	_, _, errno := syscall.Syscall(
+		syscall.SYS_IOCTL, uintptr(fd), sys.KCOV_INIT_TRACE, coverSize)
+	if errno != 0 {
+		Logf(1, "KCOV_CHECK: KCOV_INIT_TRACE = %v", errno)
+		return false
+	}
+	_, err = syscall.Mmap(fd, 0, int(coverSize*8),
+		syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
+	if err != nil {
+		Logf(1, "KCOV_CHECK: mmap = %v", err)
+		return false
+	}
+	KCOV_MODE_TRACE_CMP := uintptr(2)
+	_, _, errno = syscall.Syscall(syscall.SYS_IOCTL,
+		uintptr(fd), sys.KCOV_ENABLE, KCOV_MODE_TRACE_CMP)
+	Logf(1, "KCOV_CHECK: KCOV_ENABLE = %v", errno)
+	syscall.Close(fd)
+	return (errno == 0)
 }
