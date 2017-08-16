@@ -54,6 +54,7 @@ const (
 	FlagCollectCover = uint64(1) << iota // collect coverage
 	FlagDedupCover                       // deduplicate coverage in executor
 	FlagInjectFault                      // inject a fault in this execution (see ExecOpts)
+	FlagCollectComps                     // collect KCOV comparisons
 )
 
 const (
