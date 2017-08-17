@@ -50,7 +50,7 @@ func TestReportBug(t *testing.T) {
 		ID:           rep.ID,
 		First:        true,
 		Title:        "title1",
-		Maintainers:  []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`},
+		Maintainers:  []string{"bar@foo.com", "foo@bar.com"},
 		CompilerID:   "compiler1",
 		KernelRepo:   "repo1",
 		KernelBranch: "branch1",

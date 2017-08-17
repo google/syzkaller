@@ -136,8 +136,17 @@ func (c *Ctx) API(client, key, method string, req, reply interface{}) error {
 
 // GET sends authorized HTTP GET request to the app.
 func (c *Ctx) GET(url string) error {
-	c.t.Logf("GET: %v", url)
-	r, err := c.inst.NewRequest("GET", url, nil)
+	return c.httpRequest("GET", url, "")
+}
+
+// POST sends authorized HTTP POST request to the app.
+func (c *Ctx) POST(url, body string) error {
+	return c.httpRequest("POST", url, body)
+}
+
+func (c *Ctx) httpRequest(method, url, body string) error {
+	c.t.Logf("%v: %v", method, url)
+	r, err := c.inst.NewRequest(method, url, strings.NewReader(body))
 	if err != nil {
 		c.t.Fatal(err)
 	}

@@ -10,6 +10,7 @@ import (
 	"testing"
 )
 
+//!!! add tests with \r\n
 func TestExtractCommand(t *testing.T) {
 	for i, test := range extractCommandTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
@@ -77,58 +78,65 @@ func TestAddRemoveAddrContext(t *testing.T) {
 
 func TestParse(t *testing.T) {
 	for i, test := range parseTests {
-		t.Run(fmt.Sprint(i), func(t *testing.T) {
+		body := func(t *testing.T, test ParseTest) {
 			email, err := Parse(strings.NewReader(test.email), "bot <foo@bar.com>")
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !reflect.DeepEqual(email, test.res) {
-				t.Logf("expect:\n%#v", test.res)
+			if !reflect.DeepEqual(email, &test.res) {
+				t.Logf("expect:\n%#v", &test.res)
 				t.Logf("got:\n%#v", email)
 				t.Fail()
 			}
-		})
+		}
+		t.Run(fmt.Sprint(i), func(t *testing.T) { body(t, test) })
+
+		test.email = strings.Replace(test.email, "\n", "\r\n", -1)
+		test.res.Body = strings.Replace(test.res.Body, "\n", "\r\n", -1)
+		t.Run(fmt.Sprint(i)+"rn", func(t *testing.T) { body(t, test) })
 	}
 }
 
 var extractCommandTests = []struct {
 	body string
 	cmd  string
-	args []string
+	args string
 }{
 	{
 		body: `Hello,
 
 line1
-#syzbot foo bar baz`,
+#syz  foo  bar baz 	`,
 		cmd:  "foo",
-		args: []string{"bar", "baz"},
+		args: "bar baz",
 	},
 	{
 		body: `Hello,
 
 line1
-#syzbot foo bar  	 baz
+#syz foo bar  	 baz
 line 2
 `,
-		cmd:  "foo",
-		args: []string{"bar", "baz"},
+		cmd: "foo",
+		args: "bar  	 baz",
 	},
 	{
 		body: `
 line1
-> #syzbot foo bar   baz
+> #syz foo bar   baz
 line 2
 `,
 		cmd:  "",
-		args: nil,
+		args: "",
 	},
 }
 
-var parseTests = []struct {
+type ParseTest struct {
 	email string
-	res   *Email
-}{
+	res   Email
+}
+
+var parseTests = []ParseTest{
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
 Message-ID: <123>
 Subject: test subject
@@ -138,20 +146,54 @@ Content-Type: text/plain; charset="UTF-8"
 
 text body
 second line
-#syzbot command arg1 arg2 arg3
+#syz command 	 arg1 arg2 arg3 	
+last line
+-- 
+You received this message because you are subscribed to the Google Groups "syzkaller" group.
+To unsubscribe from this group and stop receiving emails from it, send an email to syzkaller+unsubscribe@googlegroups.com.
+To post to this group, send email to syzkaller@googlegroups.com.
+To view this discussion on the web visit https://groups.google.com/d/msgid/syzkaller/abcdef@google.com.
+For more options, visit https://groups.google.com/d/optout.`,
+		Email{
+			BugID:     "4564456",
+			MessageID: "<123>",
+			Link:      "https://groups.google.com/d/msgid/syzkaller/abcdef@google.com",
+			Subject:   "test subject",
+			From:      "\"Bob\" <bob@example.com>",
+			Cc:        []string{"bob@example.com"},
+			Body: `text body
+second line
+#syz command 	 arg1 arg2 arg3 	
+last line
+-- 
+You received this message because you are subscribed to the Google Groups "syzkaller" group.
+To unsubscribe from this group and stop receiving emails from it, send an email to syzkaller+unsubscribe@googlegroups.com.
+To post to this group, send email to syzkaller@googlegroups.com.
+To view this discussion on the web visit https://groups.google.com/d/msgid/syzkaller/abcdef@google.com.
+For more options, visit https://groups.google.com/d/optout.`,
+			Patch:       "",
+			Command:     "command",
+			CommandArgs: "arg1 arg2 arg3",
+		}},
+
+	{`Date: Sun, 7 May 2017 19:54:00 -0700
+Message-ID: <123>
+Subject: test subject
+From: syzbot <foo+4564456@bar.com>
+To: Bob <bob@example.com>
+Content-Type: text/plain; charset="UTF-8"
+
+text body
 last line`,
-		&Email{
+		Email{
 			BugID:     "4564456",
 			MessageID: "<123>",
 			Subject:   "test subject",
-			From:      "\"Bob\" <bob@example.com>",
+			From:      "\"syzbot\" <foo+4564456@bar.com>",
+			Cc:        []string{"bob@example.com"},
 			Body: `text body
-second line
-#syzbot command arg1 arg2 arg3
 last line`,
-			Patch:       "",
-			Command:     "command",
-			CommandArgs: []string{"arg1", "arg2", "arg3"},
+			Patch: "",
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -161,22 +203,22 @@ From: Bob <bob@example.com>
 To: syzbot <bot@example.com>, Alice <alice@example.com>
 Content-Type: text/plain
 
-#syzbot command
+#syz  command   	 
 text body
 second line
 last line`,
-		&Email{
+		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
 			From:      "\"Bob\" <bob@example.com>",
-			Cc:        []string{"\"syzbot\" <bot@example.com>", "\"Alice\" <alice@example.com>"},
-			Body: `#syzbot command
+			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
+			Body: `#syz  command   	 
 text body
 second line
 last line`,
 			Patch:       "",
 			Command:     "command",
-			CommandArgs: nil,
+			CommandArgs: "",
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -189,19 +231,19 @@ Content-Type: text/plain
 text body
 second line
 last line
-#syzbot command`,
-		&Email{
+#syz command`,
+		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
 			From:      "\"Bob\" <bob@example.com>",
-			Cc:        []string{"\"syzbot\" <bot@example.com>", "\"Alice\" <alice@example.com>"},
+			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
 			Body: `text body
 second line
 last line
-#syzbot command`,
+#syz command`,
 			Patch:       "",
 			Command:     "command",
-			CommandArgs: nil,
+			CommandArgs: "",
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -215,7 +257,7 @@ Content-Type: multipart/mixed; boundary="001a114ce0b01684a6054f0d8b81"
 Content-Type: text/plain; charset="UTF-8"
 
 body text
->#syzbot test
+>#syz test
 
 --001a114ce0b01684a6054f0d8b81
 Content-Type: text/x-patch; charset="US-ASCII"; name="patch.patch"
@@ -230,13 +272,13 @@ YXNrX3N0cnVjdCAqdCkKIAlrY292ID0gdC0+a2NvdjsKIAlpZiAoa2NvdiA9PSBOVUxMKQogCQly
 ZXR1cm47Ci0Jc3Bpbl9sb2NrKCZrY292LT5sb2NrKTsKIAlpZiAoV0FSTl9PTihrY292LT50ICE9
 IHQpKSB7CiAJCXNwaW5fdW5sb2NrKCZrY292LT5sb2NrKTsKIAkJcmV0dXJuOwo=
 --001a114ce0b01684a6054f0d8b81--`,
-		&Email{
+		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
 			From:      "\"Bob\" <bob@example.com>",
-			Cc:        []string{"\"syzbot\" <bot@example.com>"},
+			Cc:        []string{"bob@example.com", "bot@example.com"},
 			Body: `body text
->#syzbot test
+>#syz test
 `,
 			Patch: `--- a/kernel/kcov.c
 +++ b/kernel/kcov.c
@@ -250,7 +292,7 @@ IHQpKSB7CiAJCXNwaW5fdW5sb2NrKCZrY292LT5sb2NrKTsKIAkJcmV0dXJuOwo=
  		return;
 `,
 			Command:     "",
-			CommandArgs: nil,
+			CommandArgs: "",
 		}},
 
 	{`Date: Sun, 7 May 2017 19:54:00 -0700
@@ -266,7 +308,7 @@ Content-Type: text/plain; charset="UTF-8"
 On Mon, May 8, 2017 at 6:47 PM, Bob wrote:
 > body text
 
-#syzbot test
+#syz test
 
 commit 59372bbf3abd5b24a7f6f676a3968685c280f955
 Date:   Thu Apr 27 13:54:11 2017 +0200
@@ -295,7 +337,7 @@ Content-Transfer-Encoding: quoted-printable
 
 <div dir=3D"ltr">On Mon, May 8, 2017 at 6:47 PM, Dmitry Vyukov &lt;<a href=
 =3D"mailto:bob@example.com">bob@example.com</a>&gt; wrote:<br>&gt; bo=
-dy text<br><br>#syzbot test<br><br><div><div>commit 59372bbf3abd5b24a7f6f67=
+dy text<br><br>#syz test<br><br><div><div>commit 59372bbf3abd5b24a7f6f67=
 6a3968685c280f955</div><div>Date: =C2=A0 Thu Apr 27 13:54:11 2017 +0200</di=
 v><div><br></div><div>=C2=A0 =C2=A0 statx: correct error handling of NULL p=
 athname</div><div>=C2=A0 =C2=A0=C2=A0</div><div>=C2=A0 =C2=A0 test patch.</=
@@ -316,15 +358,15 @@ ce:pre">=09=09</span>return -EINVAL;</div><div>=C2=A0</div><div>=C2=A0<span=
 or)</div></div></div>
 
 --f403043eee70018593054f0d9f1f--`,
-		&Email{
+		Email{
 			MessageID: "<123>",
 			Subject:   "test subject",
 			From:      "\"Bob\" <bob@example.com>",
-			Cc:        []string{"\"syzbot\" <bot@example.com>"},
+			Cc:        []string{"bob@example.com", "bot@example.com"},
 			Body: `On Mon, May 8, 2017 at 6:47 PM, Bob wrote:
 > body text
 
-#syzbot test
+#syz test
 
 commit 59372bbf3abd5b24a7f6f676a3968685c280f955
 Date:   Thu Apr 27 13:54:11 2017 +0200
@@ -360,6 +402,6 @@ index 3d85747bd86e..a257b872a53d 100644
   if (error)
 `,
 			Command:     "test",
-			CommandArgs: nil,
+			CommandArgs: "",
 		}},
 }

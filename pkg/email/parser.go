@@ -12,22 +12,27 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/mail"
+	"regexp"
+	"sort"
 	"strings"
 )
 
 type Email struct {
 	BugID       string
 	MessageID   string
+	Link        string
 	Subject     string
 	From        string
 	Cc          []string
-	Body        string   // text/plain part
-	Patch       string   // attached patch, if any
-	Command     string   // command to bot (#syzbot is stripped)
-	CommandArgs []string // arguments for the command
+	Body        string // text/plain part
+	Patch       string // attached patch, if any
+	Command     string // command to bot (#syz is stripped)
+	CommandArgs string // arguments for the command
 }
 
-const commandPrefix = "#syzbot "
+const commandPrefix = "#syz "
+
+var groupsLinkRe = regexp.MustCompile("\nTo view this discussion on the web visit (https://groups\\.google\\.com/.*?)\\.(?:\r)?\n")
 
 func Parse(r io.Reader, ownEmail string) (*Email, error) {
 	msg, err := mail.ReadMessage(r)
@@ -52,7 +57,14 @@ func Parse(r io.Reader, ownEmail string) (*Email, error) {
 	if addr, err := mail.ParseAddress(ownEmail); err == nil {
 		ownEmail = addr.Address
 	}
-	for _, addr := range append(cc, to...) {
+	fromMe := false
+	for _, addr := range from {
+		cleaned, _, _ := RemoveAddrContext(addr.Address)
+		if addr, err := mail.ParseAddress(cleaned); err == nil && addr.Address == ownEmail {
+			fromMe = true
+		}
+	}
+	for _, addr := range append(append(cc, to...), from...) {
 		cleaned, context, _ := RemoveAddrContext(addr.Address)
 		if addr, err := mail.ParseAddress(cleaned); err == nil {
 			cleaned = addr.Address
@@ -62,27 +74,36 @@ func Parse(r io.Reader, ownEmail string) (*Email, error) {
 				bugID = context
 			}
 		} else {
-			ccList = append(ccList, addr.String())
+			ccList = append(ccList, cleaned)
 		}
 	}
+	ccList = MergeEmailLists(ccList)
 	body, attachments, err := parseBody(msg.Body, msg.Header)
 	if err != nil {
 		return nil, err
 	}
-	patch := ""
-	for _, a := range attachments {
-		_, patch, _ = ParsePatch(string(a))
-		if patch != "" {
-			break
+	bodyStr := string(body)
+	patch, cmd, cmdArgs := "", "", ""
+	if !fromMe {
+		for _, a := range attachments {
+			_, patch, _ = ParsePatch(string(a))
+			if patch != "" {
+				break
+			}
 		}
+		if patch == "" {
+			_, patch, _ = ParsePatch(bodyStr)
+		}
+		cmd, cmdArgs = extractCommand(body)
 	}
-	if patch == "" {
-		_, patch, _ = ParsePatch(string(body))
+	link := ""
+	if match := groupsLinkRe.FindStringSubmatchIndex(bodyStr); match != nil {
+		link = bodyStr[match[2]:match[3]]
 	}
-	cmd, cmdArgs := extractCommand(body)
 	email := &Email{
 		BugID:       bugID,
 		MessageID:   msg.Header.Get("Message-ID"),
+		Link:        link,
 		Subject:     msg.Header.Get("Subject"),
 		From:        from[0].String(),
 		Cc:          ccList,
@@ -131,13 +152,13 @@ func RemoveAddrContext(email string) (string, string, error) {
 
 // extractCommand extracts command to syzbot from email body.
 // Commands are of the following form:
-// ^#syzbot cmd args...
-func extractCommand(body []byte) (cmd string, args []string) {
+// ^#syz cmd args...
+func extractCommand(body []byte) (cmd, args string) {
 	cmdPos := bytes.Index(append([]byte{'\n'}, body...), []byte("\n"+commandPrefix))
 	if cmdPos == -1 {
 		return
 	}
-	cmdPos += 8
+	cmdPos += len(commandPrefix)
 	cmdEnd := bytes.IndexByte(body[cmdPos:], '\n')
 	if cmdEnd == -1 {
 		cmdEnd = len(body) - cmdPos
@@ -148,10 +169,8 @@ func extractCommand(body []byte) (cmd string, args []string) {
 	}
 	split := strings.Split(cmdLine, " ")
 	cmd = split[0]
-	for _, arg := range split[1:] {
-		if trimmed := strings.TrimSpace(arg); trimmed != "" {
-			args = append(args, trimmed)
-		}
+	if len(split) > 1 {
+		args = strings.TrimSpace(strings.Join(split[1:], " "))
 	}
 	return
 }
@@ -201,4 +220,31 @@ func parseBody(r io.Reader, headers mail.Header) (body []byte, attachments [][]b
 		}
 		attachments = append(attachments, attachments1...)
 	}
+}
+
+// MergeEmailLists merges several email lists removing duplicates and invalid entries.
+func MergeEmailLists(lists ...[]string) []string {
+	const (
+		maxEmailLen = 1000
+		maxEmails   = 50
+	)
+	merged := make(map[string]bool)
+	for _, list := range lists {
+		for _, email := range list {
+			addr, err := mail.ParseAddress(email)
+			if err != nil || len(addr.Address) > maxEmailLen {
+				continue
+			}
+			merged[addr.Address] = true
+		}
+	}
+	var result []string
+	for e := range merged {
+		result = append(result, e)
+	}
+	sort.Strings(result)
+	if len(result) > maxEmails {
+		result = result[:maxEmails]
+	}
+	return result
 }
