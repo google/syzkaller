@@ -29,13 +29,13 @@ var formReplyTests = []struct {
 	{
 		email: `line1
 line2
-#syzbot foo
+#syz foo
 line3
 `,
 		reply: "this is reply",
 		result: `> line1
 > line2
-> #syzbot foo
+> #syz foo
 
 this is reply
 
@@ -45,13 +45,13 @@ this is reply
 	{
 		email: `> line1
 > line2
-#syzbot foo
+#syz foo
 line3
 `,
 		reply: "this is reply\n",
 		result: `>> line1
 >> line2
-> #syzbot foo
+> #syz foo
 
 this is reply
 
@@ -61,11 +61,11 @@ this is reply
 	{
 		email: `line1
 line2
-#syzbot foo`,
+#syz foo`,
 		reply: "this is reply 1\nthis is reply 2",
 		result: `> line1
 > line2
-> #syzbot foo
+> #syz foo
 
 this is reply 1
 this is reply 2

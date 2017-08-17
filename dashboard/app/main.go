@@ -167,7 +167,7 @@ func fetchBugs(c context.Context) ([]*uiBugGroup, error) {
 }
 
 func createUIBug(c context.Context, bug *Bug, state *ReportingState) *uiBug {
-	_, _, reportingIdx, status, link, err := needReport(c, "", state, bug)
+	_, _, _, reportingIdx, status, link, err := needReport(c, "", state, bug)
 	if err != nil {
 		status = err.Error()
 	}
