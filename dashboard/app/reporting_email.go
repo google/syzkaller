@@ -38,6 +38,10 @@ func (cfg *EmailConfig) Type() string {
 	return emailType
 }
 
+func (cfg *EmailConfig) NeedMaintainers() bool {
+	return cfg.MailMaintainers
+}
+
 func (cfg *EmailConfig) Validate() error {
 	if _, err := mail.ParseAddress(cfg.Email); err != nil {
 		return fmt.Errorf("bad email address %q: %v", cfg.Email, err)
@@ -81,11 +85,18 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 		}
 		to = append(to, rep.Maintainers...)
 	}
+	to = email.MergeEmailLists(to, rep.CC)
 	attachments := []aemail.Attachment{
 		{
 			Name: "config.txt",
 			Data: rep.KernelConfig,
 		},
+	}
+	if len(rep.Log) != 0 {
+		attachments = append(attachments, aemail.Attachment{
+			Name: "raw.log",
+			Data: rep.Log,
+		})
 	}
 	repro := dashapi.ReproLevelNone
 	if len(rep.ReproSyz) != 0 {
@@ -116,6 +127,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 		KernelBranch string
 		KernelCommit string
 		Report       []byte
+		HasLog       bool
 		ReproSyz     bool
 		ReproC       bool
 	}
@@ -128,10 +140,12 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 		KernelBranch: rep.KernelBranch,
 		KernelCommit: rep.KernelCommit,
 		Report:       rep.Report,
+		HasLog:       len(rep.Log) != 0,
 		ReproSyz:     len(rep.ReproSyz) != 0,
 		ReproC:       len(rep.ReproC) != 0,
 	}
-	if err := sendMailTemplate(c, rep.Title, from, to, attachments, "mail_bug.txt", data); err != nil {
+	err = sendMailTemplate(c, rep.Title, from, to, rep.ExtID, attachments, "mail_bug.txt", data)
+	if err != nil {
 		return err
 	}
 	cmd := &dashapi.BugUpdate{
@@ -157,30 +171,49 @@ func incomingMail(c context.Context, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	log.Infof(c, "received email: subject '%v', from '%v', cc '%v', msg '%v', bug '%v', cmd '%v'",
-		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command)
-	var status dashapi.BugStatus
+	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q",
+		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link)
+	// Don't send replies yet.
+	// It is not tested and it is unclear how verbose we want to be.
+	sendReply := false
+	cmd := &dashapi.BugUpdate{
+		ID:    msg.BugID,
+		ExtID: msg.MessageID,
+		Link:  msg.Link,
+		CC:    msg.Cc,
+	}
 	switch msg.Command {
 	case "":
-		return nil
+		cmd.Status = dashapi.BugStatusUpdate
 	case "upstream":
-		status = dashapi.BugStatusUpstream
+		cmd.Status = dashapi.BugStatusUpstream
 	case "invalid":
-		status = dashapi.BugStatusInvalid
+		cmd.Status = dashapi.BugStatusInvalid
+	case "fix:":
+		if msg.CommandArgs == "" {
+			return replyTo(c, msg, fmt.Sprintf("no commit title"), nil)
+		}
+		cmd.Status = dashapi.BugStatusOpen
+		cmd.FixCommits = []string{msg.CommandArgs}
+	case "dup:":
+		if msg.CommandArgs == "" {
+			return replyTo(c, msg, fmt.Sprintf("no dup title"), nil)
+		}
+		cmd.Status = dashapi.BugStatusDup
+		cmd.DupOf = msg.CommandArgs
 	default:
 		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.Command), nil)
 	}
-	cmd := &dashapi.BugUpdate{
-		ID:     msg.BugID,
-		Status: status,
-	}
 	reply, _ := incomingCommand(c, cmd)
+	if !sendReply {
+		return nil
+	}
 	return replyTo(c, msg, reply, nil)
 }
 
 var mailTemplates = template.Must(template.New("").ParseGlob("mail_*.txt"))
 
-func sendMailTemplate(c context.Context, subject, from string, to []string,
+func sendMailTemplate(c context.Context, subject, from string, to []string, replyTo string,
 	attachments []aemail.Attachment, template string, data interface{}) error {
 	body := new(bytes.Buffer)
 	if err := mailTemplates.ExecuteTemplate(body, template, data); err != nil {
@@ -192,6 +225,9 @@ func sendMailTemplate(c context.Context, subject, from string, to []string,
 		Subject:     subject,
 		Body:        body.String(),
 		Attachments: attachments,
+	}
+	if replyTo != "" {
+		msg.Headers = mail.Header{"In-Reply-To": []string{replyTo}}
 	}
 	return sendEmail(c, msg)
 }

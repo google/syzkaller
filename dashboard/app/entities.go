@@ -5,6 +5,8 @@ package dash
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -16,9 +18,8 @@ import (
 // This file contains definitions of entities stored in datastore.
 
 const (
-	maxMaintainers = 50
-	maxTextLen     = 200
-	MaxStringLen   = 1024
+	maxTextLen   = 200
+	MaxStringLen = 1024
 
 	maxCrashes = 20
 )
@@ -56,7 +57,9 @@ type Bug struct {
 type BugReporting struct {
 	Name       string // refers to Reporting.Name
 	ID         string // unique ID per BUG/BugReporting used in commucation with external systems
+	ExtID      string // arbitrary reporting ID that is passed back in dashapi.BugReport
 	Link       string
+	CC         string // additional emails added to CC list (|-delimited list)
 	ReproLevel dashapi.ReproLevel
 	Reported   time.Time
 	Closed     time.Time
@@ -134,6 +137,25 @@ func (bug *Bug) displayTitle() string {
 		return bug.Title
 	}
 	return fmt.Sprintf("%v (%v)", bug.Title, bug.Seq+1)
+}
+
+var displayTitleRe = regexp.MustCompile("^(.*) \\(([0-9]+)\\)$")
+
+func splitDisplayTitle(display string) (string, int64, error) {
+	match := displayTitleRe.FindStringSubmatchIndex(display)
+	if match == nil {
+		return display, 0, nil
+	}
+	title := display[match[2]:match[3]]
+	seqStr := display[match[4]:match[5]]
+	seq, err := strconv.ParseInt(seqStr, 10, 64)
+	if err != nil {
+		return "", 0, fmt.Errorf("failed to parse bug title: %v", err)
+	}
+	if seq <= 0 || seq > 1e6 {
+		return "", 0, fmt.Errorf("failed to parse bug title: seq=%v", seq)
+	}
+	return title, seq - 1, nil
 }
 
 func canonicalBug(c context.Context, bug *Bug) (*Bug, error) {

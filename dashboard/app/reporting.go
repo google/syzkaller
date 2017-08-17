@@ -8,9 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/email"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
@@ -60,11 +62,11 @@ func reportingPoll(c context.Context, typ string) []*dashapi.BugReport {
 }
 
 func handleReportBug(c context.Context, typ string, state *ReportingState, bug *Bug) (*dashapi.BugReport, error) {
-	reporting, bugReporting, _, _, _, err := needReport(c, typ, state, bug)
+	reporting, bugReporting, crash, _, _, _, err := needReport(c, typ, state, bug)
 	if err != nil || reporting == nil {
 		return nil, err
 	}
-	rep, err := createBugReport(c, bug, bugReporting, reporting.Config)
+	rep, err := createBugReport(c, bug, crash, bugReporting, reporting.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -72,15 +74,14 @@ func handleReportBug(c context.Context, typ string, state *ReportingState, bug *
 	return rep, nil
 }
 
-func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) (reporting *Reporting, bugReporting *BugReporting, reportingIdx int, status, link string, err error) {
+func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) (reporting *Reporting, bugReporting *BugReporting, crash *Crash, reportingIdx int, status, link string, err error) {
 	reporting, bugReporting, reportingIdx, status, err = currentReporting(c, bug)
 	if err != nil || reporting == nil {
 		return
 	}
 	if typ != "" && typ != reporting.Config.Type() {
 		status = "on a different reporting"
-		reporting = nil
-		bugReporting = nil
+		reporting, bugReporting = nil, nil
 		return
 	}
 	link = bugReporting.Link
@@ -88,40 +89,49 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		status = fmt.Sprintf("%v: reported%v on %v",
 			reporting.Name, reproStr(bugReporting.ReproLevel),
 			formatTime(bugReporting.Reported))
-		reporting = nil
-		bugReporting = nil
+		reporting, bugReporting = nil, nil
 		return
 	}
 	ent := state.getEntry(timeNow(c), bug.Namespace, reporting.Name)
+	cfg := config.Namespaces[bug.Namespace]
+	if bug.ReproLevel < ReproLevelC && timeSince(c, bug.FirstTime) < cfg.WaitForRepro {
+		status = fmt.Sprintf("%v: waiting for C repro", reporting.Name)
+		reporting, bugReporting = nil, nil
+		return
+	}
+	if !cfg.MailWithoutReport && !bug.HasReport {
+		status = fmt.Sprintf("%v: no report", reporting.Name)
+		reporting, bugReporting = nil, nil
+		return
+	}
+
+	crash, err = findCrashForBug(c, bug)
+	if err != nil {
+		status = fmt.Sprintf("%v: no crashes!", reporting.Name)
+		reporting, bugReporting = nil, nil
+		return
+	}
+	if reporting.Config.NeedMaintainers() && len(crash.Maintainers) == 0 {
+		status = fmt.Sprintf("%v: no maintainers", reporting.Name)
+		reporting, bugReporting = nil, nil
+		return
+	}
+
 	// Limit number of reports sent per day,
 	// but don't limit sending repros to already reported bugs.
 	if bugReporting.Reported.IsZero() && reporting.DailyLimit != 0 &&
 		ent.Sent >= reporting.DailyLimit {
 		status = fmt.Sprintf("%v: out of quota for today", reporting.Name)
-		reporting = nil
-		bugReporting = nil
+		reporting, bugReporting = nil, nil
 		return
 	}
+
+	// Ready to be reported.
 	if bugReporting.Reported.IsZero() {
 		// This update won't be committed, but it will prevent us from
 		// reporting too many bugs in a single poll.
 		ent.Sent++
 	}
-	cfg := config.Namespaces[bug.Namespace]
-	if bug.ReproLevel < ReproLevelC && timeSince(c, bug.FirstTime) < cfg.WaitForRepro {
-		status = fmt.Sprintf("%v: waiting for C repro", reporting.Name)
-		reporting = nil
-		bugReporting = nil
-		return
-	}
-	if !cfg.MailWithoutReport && !bug.HasReport {
-		status = fmt.Sprintf("%v: no report", reporting.Name)
-		reporting = nil
-		bugReporting = nil
-		return
-	}
-
-	// Ready to be reported.
 	status = fmt.Sprintf("%v: ready to report", reporting.Name)
 	if !bugReporting.Reported.IsZero() {
 		status += fmt.Sprintf(" (reported%v on %v)",
@@ -162,13 +172,8 @@ func reproStr(level dashapi.ReproLevel) string {
 	}
 }
 
-func createBugReport(c context.Context, bug *Bug, bugReporting *BugReporting, config interface{}) (*dashapi.BugReport, error) {
+func createBugReport(c context.Context, bug *Bug, crash *Crash, bugReporting *BugReporting, config interface{}) (*dashapi.BugReport, error) {
 	reportingConfig, err := json.Marshal(config)
-	if err != nil {
-		return nil, err
-	}
-	bugKey := datastore.NewKey(c, "Bug", bugKeyHash(bug.Namespace, bug.Title, bug.Seq), 0, nil)
-	crash, err := findCrashForBug(c, bug, bugKey)
 	if err != nil {
 		return nil, err
 	}
@@ -212,6 +217,7 @@ func createBugReport(c context.Context, bug *Bug, bugReporting *BugReporting, co
 	rep := &dashapi.BugReport{
 		Config:       reportingConfig,
 		ID:           bugReporting.ID,
+		ExtID:        bugReporting.ExtID,
 		First:        bugReporting.Reported.IsZero(),
 		Title:        bug.displayTitle(),
 		Log:          crashLog,
@@ -225,12 +231,15 @@ func createBugReport(c context.Context, bug *Bug, bugReporting *BugReporting, co
 		ReproC:       reproC,
 		ReproSyz:     reproSyz,
 	}
+	if bugReporting.CC != "" {
+		rep.CC = strings.Split(bugReporting.CC, "|")
+	}
 	return rep, nil
 }
 
 // incomingCommand is entry point to bug status updates.
 func incomingCommand(c context.Context, cmd *dashapi.BugUpdate) (string, bool) {
-	log.Infof(c, "got command: %+v", cmd)
+	log.Infof(c, "got command: %+q", cmd)
 	reply, err := incomingCommandImpl(c, cmd)
 	if err != nil {
 		log.Errorf(c, "%v", err)
@@ -247,9 +256,25 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (string, err
 	now := timeNow(c)
 	dupHash := ""
 	if cmd.Status == dashapi.BugStatusDup {
+		bugReporting, _ := bugReportingByID(bug, cmd.ID, now)
 		dup, dupKey, err := findBugByReportingID(c, cmd.DupOf)
 		if err != nil {
-			return "can't find the dup bug", err
+			// Email reporting passes bug title in cmd.DupOf, try to find bug by title.
+			dup, dupKey, err = findDupByTitle(c, bug.Namespace, cmd.DupOf)
+			if err != nil {
+				return "can't find the dup bug", err
+			}
+			cmd.DupOf = ""
+			for i := range dup.Reporting {
+				if dup.Reporting[i].Name == bugReporting.Name {
+					cmd.DupOf = dup.Reporting[i].ID
+					break
+				}
+			}
+			if cmd.DupOf == "" {
+				return "can't find the dup bug",
+					fmt.Errorf("dup does not have reporting %q", bugReporting.Name)
+			}
 		}
 		if bugKey.StringID() == dupKey.StringID() {
 			return "can't dup bug to itself", fmt.Errorf("can't dup bug to itself")
@@ -258,7 +283,6 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (string, err
 			return "can't find the dup bug",
 				fmt.Errorf("inter-namespace dup: %v->%v", bug.Namespace, dup.Namespace)
 		}
-		bugReporting, _ := bugReportingByID(bug, cmd.ID, now)
 		dupReporting, _ := bugReportingByID(dup, cmd.DupOf, now)
 		if bugReporting == nil || dupReporting == nil {
 			return internalError, fmt.Errorf("can't find bug reporting")
@@ -348,6 +372,8 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		bug.Status = BugStatusDup
 		bug.Closed = now
 		bug.DupOf = dupHash
+	case dashapi.BugStatusUpdate:
+		// Just update Link, Commits, etc below.
 	default:
 		return "unknown bug status", fmt.Errorf("unknown bug status %v", cmd.Status)
 	}
@@ -380,8 +406,15 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 			bug.PatchedOn = nil
 		}
 	}
-	if cmd.Link != "" {
+	if bugReporting.ExtID == "" {
+		bugReporting.ExtID = cmd.ExtID
+	}
+	if bugReporting.Link == "" {
 		bugReporting.Link = cmd.Link
+	}
+	if len(cmd.CC) != 0 {
+		merged := email.MergeEmailLists(strings.Split(bugReporting.CC, "|"), cmd.CC)
+		bugReporting.CC = strings.Join(merged, "|")
 	}
 	if bugReporting.ReproLevel < cmd.ReproLevel {
 		bugReporting.ReproLevel = cmd.ReproLevel
@@ -416,6 +449,20 @@ func findBugByReportingID(c context.Context, id string) (*Bug, *datastore.Key, e
 	return bugs[0], keys[0], nil
 }
 
+func findDupByTitle(c context.Context, ns, title string) (*Bug, *datastore.Key, error) {
+	title, seq, err := splitDisplayTitle(title)
+	if err != nil {
+		return nil, nil, err
+	}
+	bugHash := bugKeyHash(ns, title, seq)
+	bugKey := datastore.NewKey(c, "Bug", bugHash, 0, nil)
+	bug := new(Bug)
+	if err := datastore.Get(c, bugKey, bug); err != nil {
+		return nil, nil, fmt.Errorf("failed to get dup: %v", err)
+	}
+	return bug, bugKey, nil
+}
+
 func bugReportingByID(bug *Bug, id string, now time.Time) (*BugReporting, bool) {
 	for i := range bug.Reporting {
 		if bug.Reporting[i].ID == id {
@@ -442,7 +489,8 @@ func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) ([]
 	return crashes, nil
 }
 
-func findCrashForBug(c context.Context, bug *Bug, bugKey *datastore.Key) (*Crash, error) {
+func findCrashForBug(c context.Context, bug *Bug) (*Crash, error) {
+	bugKey := datastore.NewKey(c, "Bug", bugKeyHash(bug.Namespace, bug.Title, bug.Seq), 0, nil)
 	crashes, err := queryCrashesForBug(c, bugKey, 1)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch crashes: %v", err)
