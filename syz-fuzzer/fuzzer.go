@@ -85,6 +85,8 @@ var (
 	statExecMinimize  uint64
 	statExecSmash     uint64
 	statNewInput      uint64
+	statExecHints     uint64
+	statExecHintSeeds uint64
 
 	allTriaged            uint32
 	noCover               bool
@@ -212,6 +214,9 @@ func main() {
 	if faultInjectionEnabled {
 		config.Flags |= ipc.FlagEnableFault
 	}
+	if compsEnabled {
+		config.Flags |= ipc.FlagEnableComps
+	}
 	noCover = config.Flags&ipc.FlagSignal == 0
 	leakCallback := func() {
 		if atomic.LoadUint32(&allTriaged) != 0 {
@@ -264,7 +269,7 @@ func main() {
 							}
 						}
 						Logf(1, "executing candidate: %s", candidate.p)
-						execute(pid, env, candidate.p, false, candidate.minimized, true, &statExecCandidate)
+						execute(pid, env, candidate.p, false, false, candidate.minimized, true, &statExecCandidate)
 						continue
 					} else if len(triage) != 0 {
 						last := len(triage) - 1
@@ -295,14 +300,14 @@ func main() {
 					corpusMu.RUnlock()
 					p := prog.Generate(rnd, programLength, ct)
 					Logf(1, "#%v: generated: %s", i, p)
-					execute(pid, env, p, false, false, false, &statExecGen)
+					execute(pid, env, p, false, false, false, false, &statExecGen)
 				} else {
 					// Mutate an existing prog.
 					p := corpus[rnd.Intn(len(corpus))].Clone()
 					corpusMu.RUnlock()
 					p.Mutate(rs, programLength, ct, corpus)
 					Logf(1, "#%v: mutated: %s", i, p)
-					execute(pid, env, p, false, false, false, &statExecFuzz)
+					execute(pid, env, p, false, false, false, false, &statExecFuzz)
 				}
 			}
 		}()
@@ -480,7 +485,10 @@ func smashInput(pid int, env *ipc.Env, ct *prog.ChoiceTable, rs rand.Source, inp
 		p := inp.p.Clone()
 		p.Mutate(rs, programLength, ct, corpus)
 		Logf(1, "#%v: mutated: %s", pid, p)
-		execute(pid, env, p, false, false, false, &statExecSmash)
+		execute(pid, env, p, false, false, false, false, &statExecSmash)
+	}
+	if compsEnabled {
+		executeHintSeed(pid, env, inp.p)
 	}
 }
 
@@ -557,7 +565,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 		}
 
 		inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
-			info := execute(pid, env, p1, false, false, false, &statExecMinimize)
+			info := execute(pid, env, p1, false, false, false, false, &statExecMinimize)
 			if len(info) == 0 || len(info[call1].Signal) == 0 {
 				return false // The call was not executed.
 			}
@@ -606,8 +614,39 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	}
 }
 
-func execute(pid int, env *ipc.Env, p *prog.Prog, needCover, minimized, candidate bool, stat *uint64) []ipc.CallInfo {
+func executeHintSeed(pid int, env *ipc.Env, p *prog.Prog) {
+	if !compsEnabled {
+		panic("compsEnabled==false and executeHintSeed() called")
+	}
+	// First execute the original program to dump comparisons from KCOV
+	// and to measure initial signals.
+	info := execute(pid, env, p, false, true, false, false, &statExecHintSeeds)
+
+	// Then extract the comparisons data.
+	compMaps := ipc.GetCompMaps(info)
+
+	// Then mutate the initial program for every match between
+	// a syscall argument and a comparison operand.
+	// Execute each of such mutants to check if it gives new coverage.
+	f := func(p *prog.Prog) {
+		execute(pid, env, p, false, false, false, false, &statExecHints)
+	}
+	p.MutateWithHints(compMaps, f)
+}
+
+func execute(pid int, env *ipc.Env, p *prog.Prog, needCover, needComps, minimized, candidate bool, stat *uint64) []ipc.CallInfo {
 	opts := &ipc.ExecOpts{}
+	if needComps {
+		if !compsEnabled {
+			panic("compsEnabled==false and execute() called with needComps")
+		}
+		if needCover {
+			// Currently KCOV is able to dump only the coverage data or only
+			// the comparisons data. We can't enable both modes at same time.
+			panic("only one of the needComps and needCover should be true")
+		}
+		opts.Flags |= ipc.FlagCollectComps
+	}
 	if needCover {
 		opts.Flags |= ipc.FlagCollectCover
 	}

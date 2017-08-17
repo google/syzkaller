@@ -223,9 +223,17 @@ type CallInfo struct {
 	Signal []uint32 // feedback signal, filled if FlagSignal is set
 	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
 	//if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
-	CompMap       prog.ComparisonMapOfSets // per-call comparison operands
-	Errno         int                      // call errno (0 if the call was successful)
+	Comps         prog.CompMap // per-call comparison operands
+	Errno         int          // call errno (0 if the call was successful)
 	FaultInjected bool
+}
+
+func GetCompMaps(info []CallInfo) []prog.CompMap {
+	compMaps := make([]prog.CompMap, len(info))
+	for i, inf := range info {
+		compMaps[i] = inf.Comps
+	}
+	return compMaps
 }
 
 // Exec starts executor binary to execute program p and returns information about the execution:
@@ -364,7 +372,7 @@ func (env *Env) readOutCoverage(p *prog.Prog, opts *ExecOpts) (info []CallInfo, 
 		info[callIndex].Cover = out[:coverSize:coverSize]
 		out = out[coverSize:]
 		// Read out comparisons.
-		compMap := make(prog.ComparisonMapOfSets)
+		compMap := make(prog.CompMap)
 		for j := uint32(0); j < compsSize; j++ {
 			var typ uint32
 			var op1, op2 uintptr
@@ -416,7 +424,7 @@ func (env *Env) readOutCoverage(p *prog.Prog, opts *ExecOpts) (info []CallInfo, 
 				compMap.AddComp(op1, op2)
 			}
 		}
-		info[callIndex].CompMap = compMap
+		info[callIndex].Comps = compMap
 	}
 	return
 }
