@@ -16,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
@@ -319,9 +320,7 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	req.Title = limitLength(req.Title, maxTextLen)
-	if len(req.Maintainers) > maxMaintainers {
-		req.Maintainers = req.Maintainers[:maxMaintainers]
-	}
+	req.Maintainers = email.MergeEmailLists(req.Maintainers)
 
 	build, err := loadBuild(c, ns, req.BuildID)
 	if err != nil {
