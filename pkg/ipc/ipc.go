@@ -47,6 +47,7 @@ const (
 	FlagSandboxNamespace                     // use namespaces for sandboxing
 	FlagEnableTun                            // initialize and use tun in executor
 	FlagEnableFault                          // enable fault injection support
+	FlagEnableComps
 )
 
 // Per-exec flags for ExecOpts.Flags:
@@ -54,6 +55,7 @@ const (
 	FlagCollectCover = uint64(1) << iota // collect coverage
 	FlagDedupCover                       // deduplicate coverage in executor
 	FlagInjectFault                      // inject a fault in this execution (see ExecOpts)
+	FlagCollectComps                     //collect KCOV comparisons
 )
 
 const (
@@ -217,21 +219,13 @@ func (env *Env) Close() error {
 	}
 }
 
-type CallInfo struct {
-	Signal []uint32 // feedback signal, filled if FlagSignal is set
-	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
-	//if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
-	Errno         int // call errno (0 if the call was successful)
-	FaultInjected bool
-}
-
 // Exec starts executor binary to execute program p and returns information about the execution:
 // output: process output
 // info: per-call info
 // failed: true if executor has detected a kernel bug
 // hanged: program hanged and was killed
 // err0: failed to start process, or executor has detected a logical error
-func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallInfo, failed, hanged bool, err0 error) {
+func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []prog.CallInfo, failed, hanged bool, err0 error) {
 	if p != nil {
 		// Copy-in serialized program.
 		if err := p.SerializeForExec(env.In, env.pid); err != nil {
@@ -263,14 +257,15 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 		return
 	}
 
-	if env.config.Flags&FlagSignal == 0 || p == nil {
+	if p == nil ||
+		(env.config.Flags&FlagSignal == 0 && env.config.Flags&FlagCollectComps == 0) {
 		return
 	}
-	info, err0 = env.readOutCoverage(p)
+	info, err0 = env.readOutCoverage(p, opts)
 	return
 }
 
-func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
+func (env *Env) readOutCoverage(p *prog.Prog, opts *ExecOpts) (info []prog.CallInfo, err0 error) {
 	out := ((*[1 << 28]uint32)(unsafe.Pointer(&env.Out[0])))[:len(env.Out)/int(unsafe.Sizeof(uint32(0)))]
 	readOut := func(v *uint32) bool {
 		if len(out) == 0 {
@@ -281,12 +276,22 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		return true
 	}
 
+	// reads out a 64 bits int in Little-endian as two blocks of 32 bits
+	readOut64 := func(v *uint64) bool {
+		var a, b uint32
+		if !(readOut(&a) && readOut(&b)) {
+			return false
+		}
+		*v = uint64(a) + (uint64(b) << 32)
+		return true
+	}
+
 	var ncmd uint32
 	if !readOut(&ncmd) {
 		err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 		return
 	}
-	info = make([]CallInfo, len(p.Calls))
+	info = make([]prog.CallInfo, len(p.Calls))
 	for i := range info {
 		info[i].Errno = -1 // not executed
 	}
@@ -302,11 +307,13 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		return buf.String()
 	}
 	for i := uint32(0); i < ncmd; i++ {
-		var callIndex, callNum, errno, faultInjected, signalSize, coverSize uint32
-		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) || !readOut(&faultInjected) || !readOut(&signalSize) || !readOut(&coverSize) {
+		var callIndex, callNum, errno, faultInjected, signalSize, coverSize, compsSize uint32
+		if !readOut(&callIndex) || !readOut(&callNum) || !readOut(&errno) || !readOut(&faultInjected) || !readOut(&signalSize) || !readOut(&coverSize) || !readOut(&compsSize) {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage", env.pid)
 			return
 		}
+		// fmt.Printf("IPC: got signalSize=%v coverSize=%v compsSize=%v\n",
+		// 	signalSize, coverSize, compsSize)
 		if int(callIndex) >= len(info) {
 			err0 = fmt.Errorf("executor %v: failed to read output coverage: record %v, call %v, total calls %v (cov: %v)",
 				env.pid, i, callIndex, len(info), dumpCov())
@@ -325,6 +332,7 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		}
 		info[callIndex].Errno = int(errno)
 		info[callIndex].FaultInjected = faultInjected != 0
+		info[callIndex].Num = int(callNum)
 		if signalSize > uint32(len(out)) {
 			err0 = fmt.Errorf("executor %v: failed to read output signal: record %v, call %v, signalsize=%v coversize=%v",
 				env.pid, i, callIndex, signalSize, coverSize)
@@ -337,8 +345,36 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 				env.pid, i, callIndex, signalSize, coverSize)
 			return
 		}
-		info[callIndex].Cover = out[:coverSize:coverSize]
-		out = out[coverSize:]
+		if opts.Flags&FlagCollectCover != 0 {
+			info[callIndex].Cover = out[:coverSize:coverSize]
+			out = out[coverSize:]
+		}
+		if opts.Flags&FlagCollectComps != 0 {
+			// read out comparisons
+			comps := make([]prog.KcovComparison, compsSize)
+			for j := uint32(0); j < compsSize; j++ {
+				var tmp uint32
+				var arg1, arg2 uint64
+				var t prog.KcovComparisonType
+				readOut(&tmp)
+				t = prog.KcovComparisonType(tmp)
+				if t != prog.KCOV_TYPE_CMP8 &&
+					t != prog.KCOV_TYPE_SWITCH8 &&
+					t != prog.KCOV_TYPE_CONST_CMP8 {
+					readOut(&tmp)
+					arg1 = uint64(tmp)
+					readOut(&tmp)
+					arg2 = uint64(tmp)
+				} else {
+					readOut64(&arg1)
+					readOut64(&arg2)
+				}
+				comps[j].CompType = t
+				comps[j].Arg1 = arg1
+				comps[j].Arg2 = arg2
+			}
+			info[callIndex].Comps = comps
+		}
 	}
 	return
 }
