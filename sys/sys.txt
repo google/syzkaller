@@ -345,12 +345,12 @@ filesystem = "sysfs", "rootfs", "ramfs", "tmpfs", "devtmpfs", "debugfs", "securi
 sysfs$1(option const[1], fsname ptr[in, string])
 sysfs$2(option const[2], fsindex intptr, fsname buffer[out])
 sysfs$3(option const[3])
-statfs(path ptr[in, filename], buf buffer[out])
+statfs(path ptr[in, filename],  buf buffer[out])
 fstatfs(fd fd, buf buffer[out])
 
 uselib(lib ptr[in, filename])
 init_module(mod ptr[in, string], len len[mod], args ptr[in, string])
-finit_module(fd fd, args ptr[in, string], flags flags[finit_module_flags])
+finit_module(fd fd,args ptr[in, string], flags flags[finit_module_flags])
 delete_module(name ptr[in, string], flags flags[delete_module_flags])
 kexec_load(entry intptr, nr_segments len[segments], segments ptr[in, array[kexec_segment]], flags flags[kexec_load_flags])
 get_kernel_syms(table buffer[out])
@@ -359,6 +359,7 @@ uname(buf buffer[out])
 sysinfo(info buffer[out])
 ustat(dev intptr, buf ptr[out, ustat])
 acct(filename ptr[in, filename, opt])
+
 
 getrusage(who flags[rusage_who], usage ptr[out, rusage])
 getrlimit(res flags[rlimit_type], rlim ptr[out, rlimit])
