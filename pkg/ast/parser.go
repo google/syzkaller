@@ -210,8 +210,9 @@ func (p *parser) parseResource() *Resource {
 
 func (p *parser) parseCall(name *Ident) *Call {
 	c := &Call{
-		Pos:  name.Pos,
-		Name: name,
+		Pos:      name.Pos,
+		Name:     name,
+		CallName: callName(name.Name),
 	}
 	p.consume(tokLParen)
 	for p.tok != tokRParen {
@@ -224,6 +225,14 @@ func (p *parser) parseCall(name *Ident) *Call {
 		c.Ret = p.parseType()
 	}
 	return c
+}
+
+func callName(s string) string {
+	pos := strings.IndexByte(s, '$')
+	if pos == -1 {
+		return s
+	}
+	return s[:pos]
 }
 
 func (p *parser) parseFlags(name *Ident) interface{} {
