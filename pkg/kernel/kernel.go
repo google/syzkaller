@@ -31,27 +31,6 @@ func Build(dir, compiler, config string) error {
 	return build(dir, compiler)
 }
 
-// TODO(dvyukov): this is only for syz-gce, remove when syz-gce is deleted.
-func BuildWithPartConfig(dir, compiler, config string) error {
-	const timeout = 10 * time.Minute // default timeout for command invocations
-	os.Remove(filepath.Join(dir, ".config"))
-	configFile := filepath.Join(dir, "syz.config")
-	if err := osutil.WriteFile(configFile, []byte(config)); err != nil {
-		return fmt.Errorf("failed to write config file: %v", err)
-	}
-	defer os.Remove(configFile)
-	if _, err := osutil.RunCmd(timeout, dir, "make", "defconfig"); err != nil {
-		return err
-	}
-	if _, err := osutil.RunCmd(timeout, dir, "make", "kvmconfig"); err != nil {
-		return err
-	}
-	if _, err := osutil.RunCmd(timeout, dir, "scripts/kconfig/merge_config.sh", "-n", ".config", configFile); err != nil {
-		return err
-	}
-	return build(dir, compiler)
-}
-
 func build(dir, compiler string) error {
 	const timeout = 10 * time.Minute // default timeout for command invocations
 	if _, err := osutil.RunCmd(timeout, dir, "make", "olddefconfig"); err != nil {
