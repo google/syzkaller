@@ -6,6 +6,8 @@ package ast
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -38,6 +40,35 @@ func Parse(data []byte, filename string, errorHandler func(pos Pos, msg string))
 		top = top[:len(top)-1]
 	}
 	ok = p.s.Ok()
+	return
+}
+
+func ParseGlob(glob string, errorHandler func(pos Pos, msg string)) (top []interface{}, ok bool) {
+	if errorHandler == nil {
+		errorHandler = loggingHandler
+	}
+	files, err := filepath.Glob(glob)
+	if err != nil {
+		errorHandler(Pos{}, fmt.Sprintf("failed to find input files: %v", err))
+		return nil, false
+	}
+	if len(files) == 0 {
+		errorHandler(Pos{}, fmt.Sprintf("no files matched by glob %q", glob))
+		return nil, false
+	}
+	ok = true
+	for _, f := range files {
+		data, err := ioutil.ReadFile(f)
+		if err != nil {
+			errorHandler(Pos{}, fmt.Sprintf("failed to read input file: %v", err))
+			return nil, false
+		}
+		top1, ok1 := Parse(data, filepath.Base(f), errorHandler)
+		if !ok1 {
+			ok = false
+		}
+		top = append(top, top1...)
+	}
 	return
 }
 
