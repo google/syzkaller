@@ -154,7 +154,7 @@ syz_kvm_setup_cpu$x86(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in
 syz_kvm_setup_cpu$arm64(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text_arm64, 1]], ntext len[text], flags const[0], opts ptr[in, array[kvm_setup_opt_arm64, 1]], nopt len[opts])
 
 kvm_text_x86 [
-	textreal	kvm_text_x86_real
+	textreal kvm_text_x86_real
 	text16		kvm_text_x86_16
 	text32		kvm_text_x86_32
 	text64		kvm_text_x86_64
@@ -162,7 +162,7 @@ kvm_text_x86 [
 
 kvm_text_x86_real {
 	typ	const[8, intptr]
-	text	ptr[in, text[x86_real]]
+	text		ptr[in,  text[x86_real]]
 	size	len[text, intptr]
 }
 
