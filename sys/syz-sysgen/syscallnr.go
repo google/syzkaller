@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"sort"
 	"text/template"
-
-	. "github.com/google/syzkaller/sys/sysparser"
 )
 
 type Arch struct {
