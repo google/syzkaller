@@ -42,12 +42,10 @@ func TestParseAll(t *testing.T) {
 		if len(top) != len(top2) {
 			t.Fatalf("formatting number of top level decls: %v/%v", len(top), len(top2))
 		}
-		if false {
-			// While sys files are not formatted, formatting in fact changes it.
-			for i := range top {
-				if !reflect.DeepEqual(top[i], top2[i]) {
-					t.Fatalf("formatting changed code:\n%#v\nvs:\n%#v", top[i], top2[i])
-				}
+		// While sys files are not formatted, formatting in fact changes it.
+		for i := range top {
+			if !reflect.DeepEqual(top[i], top2[i]) {
+				t.Fatalf("formatting changed code:\n%#v\nvs:\n%#v", top[i], top2[i])
 			}
 		}
 	}

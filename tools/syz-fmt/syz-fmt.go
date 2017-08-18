@@ -61,6 +61,7 @@ func processFile(file string, mode os.FileMode) {
 	if bytes.Equal(data, formatted) {
 		return
 	}
+	fmt.Printf("reformatting %v\n", file)
 	if err := os.Rename(file, file+"~"); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)

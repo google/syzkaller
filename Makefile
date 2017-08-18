@@ -10,6 +10,7 @@ endif
 	manager fuzzer executor \
 	ci hub \
 	execprog mutate prog2c stress repro upgrade db \
+	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
 	extract generate \
 	android \
 	format tidy test arch presubmit clean
@@ -81,9 +82,12 @@ generate: bin/syz-sysgen
 bin/syz-sysgen:
 	go build $(GOFLAGS) -o $@ ./sys/syz-sysgen
 
-format:
+format: bin/syz-fmt
 	go fmt ./...
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
+	bin/syz-fmt sys
+bin/syz-fmt:
+	go build $(GOFLAGS) -o $@ ./tools/syz-fmt
 
 tidy:
 	# A single check is enabled for now. But it's always fixable and proved to be useful.
