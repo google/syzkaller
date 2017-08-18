@@ -461,8 +461,6 @@ ethtool_cmd_u [
 	ethtool_link_settings	ethtool_link_settings
 ] [varlen]
 
-ethtool_cmd_flags = ETHTOOL_GSET, ETHTOOL_SSET
-
 ethtool_cmd {
 	cmd			flags[ethtool_cmd_flags, int32]
 	supported		int32

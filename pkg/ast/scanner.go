@@ -5,6 +5,7 @@ package ast
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 )
 
@@ -101,6 +102,11 @@ type scanner struct {
 }
 
 func newScanner(data []byte, filename string, errorHandler func(pos Pos, msg string)) *scanner {
+	if errorHandler == nil {
+		errorHandler = func(pos Pos, msg string) {
+			fmt.Fprintf(os.Stderr, "%v:%v:%v: %v\n", pos.File, pos.Line, pos.Col, msg)
+		}
+	}
 	s := &scanner{
 		data:         data,
 		filename:     filename,
