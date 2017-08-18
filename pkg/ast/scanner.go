@@ -103,9 +103,7 @@ type scanner struct {
 
 func newScanner(data []byte, filename string, errorHandler func(pos Pos, msg string)) *scanner {
 	if errorHandler == nil {
-		errorHandler = func(pos Pos, msg string) {
-			fmt.Fprintf(os.Stderr, "%v:%v:%v: %v\n", pos.File, pos.Line, pos.Col, msg)
-		}
+		errorHandler = loggingHandler
 	}
 	s := &scanner{
 		data:         data,
@@ -115,6 +113,10 @@ func newScanner(data []byte, filename string, errorHandler func(pos Pos, msg str
 	}
 	s.next()
 	return s
+}
+
+func loggingHandler(pos Pos, msg string) {
+	fmt.Fprintf(os.Stderr, "%v:%v:%v: %v\n", pos.File, pos.Line, pos.Col, msg)
 }
 
 func (s *scanner) Scan() (tok token, lit string, pos Pos) {
