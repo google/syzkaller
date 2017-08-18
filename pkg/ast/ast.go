@@ -47,10 +47,11 @@ type Resource struct {
 }
 
 type Call struct {
-	Pos  Pos
-	Name *Ident
-	Args []*Field
-	Ret  *Type
+	Pos      Pos
+	Name     *Ident
+	CallName string
+	Args     []*Field
+	Ret      *Type
 }
 
 type Struct struct {
