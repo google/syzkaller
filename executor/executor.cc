@@ -103,6 +103,7 @@ struct thread_t {
 	bool created;
 	int id;
 	pthread_t th;
+	// TODO(dvyukov): this assumes 64-bit kernel. This must be "kernel long" somehow.
 	uint64_t* cover_data;
 	uint64_t* copyout_pos;
 	int ready;
@@ -113,8 +114,8 @@ struct thread_t {
 	int call_num;
 	int num_args;
 	uintptr_t args[kMaxArgs];
-	uint64_t res;
-	uint64_t reserrno;
+	uintptr_t res;
+	uint32_t reserrno;
 	uint64_t cover_size;
 	bool fault_injected;
 	int cover_fd;
@@ -187,6 +188,15 @@ int main(int argc, char** argv)
 	cover_open();
 	install_segv_handler();
 	use_temporary_dir();
+
+#ifdef __i386__
+	// mmap syscall on i386 is translated to old_mmap and has different signature.
+	// As a workaround fix it up to mmap2, which has signature that we expect.
+	for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++) {
+		if (syscalls[i].sys_nr == __NR_mmap)
+			syscalls[i].sys_nr = __NR_mmap2;
+	}
+#endif
 
 	int pid = -1;
 	switch (flag_sandbox) {
@@ -543,7 +553,7 @@ void handle_completion(thread_t* th)
 	if (th->ready || !th->done || th->handled)
 		fail("bad thread state in completion: ready=%d done=%d handled=%d",
 		     th->ready, th->done, th->handled);
-	if (th->res != (uint64_t)-1) {
+	if (th->res != (uintptr_t)-1) {
 		if (th->call_n >= kMaxCommands)
 			fail("result idx %ld overflows kMaxCommands", th->call_n);
 		results[th->call_n].executed = true;
@@ -572,7 +582,7 @@ void handle_completion(thread_t* th)
 	if (!collide) {
 		write_output(th->call_index);
 		write_output(th->call_num);
-		uint32_t reserrno = th->res != (uint64_t)-1 ? 0 : th->reserrno;
+		uint32_t reserrno = th->res != (uint32_t)-1 ? 0 : th->reserrno;
 		write_output(reserrno);
 		write_output(th->fault_injected);
 		uint32_t* signal_count_pos = write_output(0); // filled in later
@@ -692,8 +702,8 @@ void execute_call(thread_t* th)
 		debug("fault injected: %d\n", th->fault_injected);
 	}
 
-	if (th->res == (uint64_t)-1)
-		debug("#%d: %s = errno(%ld)\n", th->id, call->name, th->reserrno);
+	if (th->res == (uint32_t)-1)
+		debug("#%d: %s = errno(%d)\n", th->id, call->name, th->reserrno);
 	else
 		debug("#%d: %s = 0x%lx\n", th->id, call->name, th->res);
 	__atomic_store_n(&th->done, 1, __ATOMIC_RELEASE);
