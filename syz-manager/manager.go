@@ -722,7 +722,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 			Log:         res.Log,
 			Report:      res.Report,
 			ReproOpts:   []byte(fmt.Sprintf("%+v", res.Opts)),
-			ReproSyz:    []byte(res.Prog.Serialize()),
+			ReproSyz:    res.Prog.Serialize(),
 			ReproC:      cprogText,
 		}
 		if _, err := mgr.dash.ReportCrash(dc); err != nil {
