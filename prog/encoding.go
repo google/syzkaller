@@ -213,9 +213,9 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		}
 		switch typ.(type) {
 		case *sys.ConstType, *sys.IntType, *sys.FlagsType, *sys.ProcType, *sys.LenType, *sys.CsumType:
-			arg = constArg(typ, uintptr(v))
+			arg = constArg(typ, v)
 		case *sys.ResourceType:
-			arg = resultArg(typ, nil, uintptr(v))
+			arg = resultArg(typ, nil, v)
 		case *sys.PtrType:
 			arg = pointerArg(typ, 0, 0, 0, nil)
 		case *sys.VmaType:
@@ -237,7 +237,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 			if err != nil {
 				return nil, fmt.Errorf("wrong result div op: '%v'", op)
 			}
-			arg.(*ResultArg).OpDiv = uintptr(v)
+			arg.(*ResultArg).OpDiv = v
 		}
 		if p.Char() == '+' {
 			p.Parse('+')
@@ -246,7 +246,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 			if err != nil {
 				return nil, fmt.Errorf("wrong result add op: '%v'", op)
 			}
-			arg.(*ResultArg).OpAdd = uintptr(v)
+			arg.(*ResultArg).OpAdd = v
 		}
 	case '&':
 		var typ1 sys.Type
@@ -383,9 +383,8 @@ const (
 )
 
 func serializeAddr(arg Arg) string {
-	var pageIndex uintptr
+	var pageIndex, pagesNum uint64
 	var pageOffset int
-	var pagesNum uintptr
 	switch a := arg.(type) {
 	case *PointerArg:
 		pageIndex = a.PageIndex
@@ -414,7 +413,7 @@ func serializeAddr(arg Arg) string {
 	return fmt.Sprintf("(0x%x%v%v)", page, soff, ssize)
 }
 
-func parseAddr(p *parser, base bool) (uintptr, int, uintptr, error) {
+func parseAddr(p *parser, base bool) (uint64, int, uint64, error) {
 	p.Parse('(')
 	pstr := p.Ident()
 	page, err := strconv.ParseUint(pstr, 0, 64)
@@ -461,7 +460,7 @@ func parseAddr(p *parser, base bool) (uintptr, int, uintptr, error) {
 	p.Parse(')')
 	page /= encodingPageSize
 	size /= encodingPageSize
-	return uintptr(page), int(off), uintptr(size), nil
+	return page, int(off), size, nil
 }
 
 type parser struct {

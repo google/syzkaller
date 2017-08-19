@@ -259,13 +259,13 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 }
 
 func generateCalls(exec []byte, opts Options) ([]string, int) {
-	read := func() uintptr {
+	read := func() uint64 {
 		if len(exec) < 8 {
 			panic("exec program overflow")
 		}
 		v := *(*uint64)(unsafe.Pointer(&exec[0]))
 		exec = exec[8:]
-		return uintptr(v)
+		return v
 	}
 	resultRef := func() string {
 		arg := read()
@@ -332,8 +332,8 @@ loop:
 				case prog.ExecArgCsumInet:
 					fmt.Fprintf(w, "\tstruct csum_inet csum_%d;\n", n)
 					fmt.Fprintf(w, "\tcsum_inet_init(&csum_%d);\n", n)
-					csum_chunks_num := read()
-					for i := uintptr(0); i < csum_chunks_num; i++ {
+					csumChunksNum := read()
+					for i := uint64(0); i < csumChunksNum; i++ {
 						chunk_kind := read()
 						chunk_value := read()
 						chunk_size := read()
@@ -383,7 +383,7 @@ loop:
 				}
 			}
 			nargs := read()
-			for i := uintptr(0); i < nargs; i++ {
+			for i := uint64(0); i < nargs; i++ {
 				typ := read()
 				size := read()
 				_ = size

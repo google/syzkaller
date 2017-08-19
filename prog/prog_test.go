@@ -96,7 +96,7 @@ func TestVmaType(t *testing.T) {
 		if len(c.Args) != 6 {
 			t.Fatalf("generated wrong number of args %v", len(c.Args))
 		}
-		check := func(v, l Arg, min, max uintptr) {
+		check := func(v, l Arg, min, max uint64) {
 			va, ok := v.(*PointerArg)
 			if !ok {
 				t.Fatalf("vma has bad type: %v", v)

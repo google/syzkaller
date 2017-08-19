@@ -463,7 +463,7 @@ func generateResources(desc *Description, consts map[string]uint64, out io.Write
 			}
 			fmt.Fprintf(out, "\"%v\"", k)
 		}
-		fmt.Fprintf(out, "}, Values: []uintptr{")
+		fmt.Fprintf(out, "}, Values: []uint64{")
 		if len(values) == 0 {
 			values = append(values, "0")
 		}
@@ -779,7 +779,7 @@ func generateArg(
 		if len(vals) == 0 {
 			fmt.Fprintf(out, "&IntType{%v}", intCommon(size, bigEndian, bitfieldLen))
 		} else {
-			fmt.Fprintf(out, "&FlagsType{%v, Vals: []uintptr{%v}}", intCommon(size, bigEndian, bitfieldLen), strings.Join(vals, ","))
+			fmt.Fprintf(out, "&FlagsType{%v, Vals: []uint64{%v}}", intCommon(size, bigEndian, bitfieldLen), strings.Join(vals, ","))
 		}
 	case "const":
 		canBeArg = true
@@ -805,7 +805,7 @@ func generateArg(
 			val = "0"
 			skipSyscall(fmt.Sprintf("missing const %v", a[0]))
 		}
-		fmt.Fprintf(out, "&ConstType{%v, Val: uintptr(%v)}", intCommon(size, bigEndian, bitfieldLen), val)
+		fmt.Fprintf(out, "&ConstType{%v, Val: uint64(%v)}", intCommon(size, bigEndian, bitfieldLen), val)
 	case "proc":
 		canBeArg = true
 		size := uint64(ptrSize)

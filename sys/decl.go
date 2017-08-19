@@ -32,12 +32,12 @@ type Type interface {
 	FieldName() string
 	Dir() Dir
 	Optional() bool
-	Default() uintptr
+	Default() uint64
 	Varlen() bool
-	Size() uintptr
-	Align() uintptr
-	BitfieldOffset() uintptr
-	BitfieldLength() uintptr
+	Size() uint64
+	Align() uint64
+	BitfieldOffset() uint64
+	BitfieldLength() uint64
 	BitfieldLast() bool
 }
 
@@ -67,7 +67,7 @@ func (t *TypeCommon) Optional() bool {
 	return t.IsOptional
 }
 
-func (t *TypeCommon) Default() uintptr {
+func (t *TypeCommon) Default() uint64 {
 	return 0
 }
 
@@ -75,11 +75,11 @@ func (t *TypeCommon) Varlen() bool {
 	return false
 }
 
-func (t *TypeCommon) BitfieldOffset() uintptr {
+func (t *TypeCommon) BitfieldOffset() uint64 {
 	return 0
 }
 
-func (t *TypeCommon) BitfieldLength() uintptr {
+func (t *TypeCommon) BitfieldLength() uint64 {
 	return 0
 }
 
@@ -92,14 +92,14 @@ func (t TypeCommon) Dir() Dir {
 }
 
 const (
-	InvalidFD = ^uintptr(0)
+	InvalidFD = ^uint64(0)
 )
 
 type ResourceDesc struct {
 	Name   string
 	Type   Type
 	Kind   []string
-	Values []uintptr
+	Values []uint64
 }
 
 type ResourceType struct {
@@ -107,44 +107,44 @@ type ResourceType struct {
 	Desc *ResourceDesc
 }
 
-func (t *ResourceType) Default() uintptr {
+func (t *ResourceType) Default() uint64 {
 	return t.Desc.Values[0]
 }
 
-func (t *ResourceType) SpecialValues() []uintptr {
+func (t *ResourceType) SpecialValues() []uint64 {
 	return t.Desc.Values
 }
 
-func (t *ResourceType) Size() uintptr {
+func (t *ResourceType) Size() uint64 {
 	return t.Desc.Type.Size()
 }
 
-func (t *ResourceType) Align() uintptr {
+func (t *ResourceType) Align() uint64 {
 	return t.Desc.Type.Align()
 }
 
 type IntTypeCommon struct {
 	TypeCommon
-	TypeSize    uintptr
+	TypeSize    uint64
 	BigEndian   bool
-	BitfieldOff uintptr
-	BitfieldLen uintptr
+	BitfieldOff uint64
+	BitfieldLen uint64
 	BitfieldLst bool
 }
 
-func (t *IntTypeCommon) Size() uintptr {
+func (t *IntTypeCommon) Size() uint64 {
 	return t.TypeSize
 }
 
-func (t *IntTypeCommon) Align() uintptr {
+func (t *IntTypeCommon) Align() uint64 {
 	return t.Size()
 }
 
-func (t *IntTypeCommon) BitfieldOffset() uintptr {
+func (t *IntTypeCommon) BitfieldOffset() uint64 {
 	return t.BitfieldOff
 }
 
-func (t *IntTypeCommon) BitfieldLength() uintptr {
+func (t *IntTypeCommon) BitfieldLength() uint64 {
 	return t.BitfieldLen
 }
 
@@ -154,7 +154,7 @@ func (t *IntTypeCommon) BitfieldLast() bool {
 
 type ConstType struct {
 	IntTypeCommon
-	Val   uintptr
+	Val   uint64
 	IsPad bool
 }
 
@@ -170,24 +170,24 @@ const (
 type IntType struct {
 	IntTypeCommon
 	Kind       IntKind
-	RangeBegin int64
-	RangeEnd   int64
+	RangeBegin uint64
+	RangeEnd   uint64
 }
 
 type FlagsType struct {
 	IntTypeCommon
-	Vals []uintptr
+	Vals []uint64
 }
 
 type LenType struct {
 	IntTypeCommon
-	ByteSize uintptr // want size in multiple of bytes instead of array size
+	ByteSize uint64 // want size in multiple of bytes instead of array size
 	Buf      string
 }
 
 type ProcType struct {
 	IntTypeCommon
-	ValuesStart   int64
+	ValuesStart   uint64
 	ValuesPerProc uint64
 }
 
@@ -207,15 +207,15 @@ type CsumType struct {
 
 type VmaType struct {
 	TypeCommon
-	RangeBegin int64 // in pages
-	RangeEnd   int64
+	RangeBegin uint64 // in pages
+	RangeEnd   uint64
 }
 
-func (t *VmaType) Size() uintptr {
+func (t *VmaType) Size() uint64 {
 	return ptrSize
 }
 
-func (t *VmaType) Align() uintptr {
+func (t *VmaType) Align() uint64 {
 	return t.Size()
 }
 
@@ -242,12 +242,12 @@ const (
 type BufferType struct {
 	TypeCommon
 	Kind       BufferKind
-	RangeBegin uintptr  // for BufferBlobRange kind
-	RangeEnd   uintptr  // for BufferBlobRange kind
+	RangeBegin uint64   // for BufferBlobRange kind
+	RangeEnd   uint64   // for BufferBlobRange kind
 	Text       TextKind // for BufferText
 	SubKind    string
 	Values     []string // possible values for BufferString kind
-	Length     uintptr  // max string length for BufferString kind
+	Length     uint64   // max string length for BufferString kind
 }
 
 func (t *BufferType) Varlen() bool {
@@ -267,7 +267,7 @@ func (t *BufferType) Varlen() bool {
 	}
 }
 
-func (t *BufferType) Size() uintptr {
+func (t *BufferType) Size() uint64 {
 	if t.Varlen() {
 		panic(fmt.Sprintf("buffer size is not statically known: %v", t.Name()))
 	}
@@ -281,7 +281,7 @@ func (t *BufferType) Size() uintptr {
 	}
 }
 
-func (t *BufferType) Align() uintptr {
+func (t *BufferType) Align() uint64 {
 	return 1
 }
 
@@ -296,8 +296,8 @@ type ArrayType struct {
 	TypeCommon
 	Type       Type
 	Kind       ArrayKind
-	RangeBegin uintptr
-	RangeEnd   uintptr
+	RangeBegin uint64
+	RangeEnd   uint64
 }
 
 func (t *ArrayType) Varlen() bool {
@@ -311,7 +311,7 @@ func (t *ArrayType) Varlen() bool {
 	}
 }
 
-func (t *ArrayType) Size() uintptr {
+func (t *ArrayType) Size() uint64 {
 	if t.Varlen() {
 		panic(fmt.Sprintf("array size is not statically known: %v", t.Name()))
 	}
@@ -323,7 +323,7 @@ func (t *ArrayType) Size() uintptr {
 	}
 }
 
-func (t *ArrayType) Align() uintptr {
+func (t *ArrayType) Align() uint64 {
 	return t.Type.Align()
 }
 
@@ -332,11 +332,11 @@ type PtrType struct {
 	Type Type
 }
 
-func (t *PtrType) Size() uintptr {
+func (t *PtrType) Size() uint64 {
 	return ptrSize
 }
 
-func (t *PtrType) Align() uintptr {
+func (t *PtrType) Align() uint64 {
 	return t.Size()
 }
 
@@ -345,7 +345,7 @@ type StructType struct {
 	Fields         []Type
 	padded         bool
 	packed         bool
-	align          uintptr
+	align          uint64
 	varlen         bool
 	varlenAssigned bool
 }
@@ -366,14 +366,14 @@ func (t *StructType) Varlen() bool {
 	return t.varlen
 }
 
-func (t *StructType) Size() uintptr {
+func (t *StructType) Size() uint64 {
 	if t.Varlen() {
 		panic(fmt.Sprintf("struct size is not statically known: %v", t.Name()))
 	}
 	if !t.padded {
 		panic("struct is not padded yet")
 	}
-	var size uintptr
+	var size uint64
 	for _, f := range t.Fields {
 		if f.BitfieldLength() == 0 || f.BitfieldLast() {
 			size += f.Size()
@@ -382,14 +382,14 @@ func (t *StructType) Size() uintptr {
 	return size
 }
 
-func (t *StructType) Align() uintptr {
+func (t *StructType) Align() uint64 {
 	if t.align != 0 {
 		return t.align // overrided by user attribute
 	}
 	if t.packed {
 		return 1
 	}
-	var align uintptr
+	var align uint64
 	for _, f := range t.Fields {
 		if a1 := f.Align(); align < a1 {
 			align = a1
@@ -408,7 +408,7 @@ func (t *UnionType) Varlen() bool {
 	return t.varlen
 }
 
-func (t *UnionType) Size() uintptr {
+func (t *UnionType) Size() uint64 {
 	if t.Varlen() {
 		panic(fmt.Sprintf("union size is not statically known: %v", t.Name()))
 	}
@@ -421,8 +421,8 @@ func (t *UnionType) Size() uintptr {
 	return size
 }
 
-func (t *UnionType) Align() uintptr {
-	var align uintptr
+func (t *UnionType) Align() uint64 {
+	var align uint64
 	for _, opt := range t.Options {
 		if a1 := opt.Align(); align < a1 {
 			align = a1
