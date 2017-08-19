@@ -14,24 +14,24 @@ import (
 )
 
 const (
-	ExecInstrEOF = ^uintptr(iota)
+	ExecInstrEOF = ^uint64(iota)
 	ExecInstrCopyin
 	ExecInstrCopyout
 )
 
 const (
-	ExecArgConst = uintptr(iota)
+	ExecArgConst = uint64(iota)
 	ExecArgResult
 	ExecArgData
 	ExecArgCsum
 )
 
 const (
-	ExecArgCsumInet = uintptr(iota)
+	ExecArgCsumInet = uint64(iota)
 )
 
 const (
-	ExecArgCsumChunkData = uintptr(iota)
+	ExecArgCsumChunkData = uint64(iota)
 	ExecArgCsumChunkConst
 )
 
@@ -70,7 +70,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 			panic(fmt.Errorf("serializing invalid program: %v", err))
 		}
 	}
-	var instrSeq uintptr
+	instrSeq := 0
 	w := &execContext{
 		buf:  buffer,
 		eof:  false,
@@ -97,7 +97,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 		// Generate copyin instructions that fill in data into pointer arguments.
 		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
 			if a, ok := arg.(*PointerArg); ok && a.Res != nil {
-				foreachSubargOffset(a.Res, func(arg1 Arg, offset uintptr) {
+				foreachSubargOffset(a.Res, func(arg1 Arg, offset uint64) {
 					used, ok := arg1.(ArgUsed)
 					if (ok && len(*used.Used()) != 0) || csumUses[arg1] {
 						w.args[arg1] = argInfo{Addr: physicalAddr(arg) + offset}
@@ -140,7 +140,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 				switch csumMap[arg].Kind {
 				case CsumInet:
 					w.write(ExecArgCsumInet)
-					w.write(uintptr(len(csumMap[arg].Chunks)))
+					w.write(uint64(len(csumMap[arg].Chunks)))
 					for _, chunk := range csumMap[arg].Chunks {
 						switch chunk.Kind {
 						case CsumChunkArg:
@@ -162,8 +162,8 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 			}
 		}
 		// Generate the call itself.
-		w.write(uintptr(c.Meta.ID))
-		w.write(uintptr(len(c.Args)))
+		w.write(uint64(c.Meta.ID))
+		w.write(uint64(len(c.Args)))
 		for _, arg := range c.Args {
 			w.writeArg(arg, pid, csumMap)
 		}
@@ -203,16 +203,16 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 	return nil
 }
 
-func physicalAddr(arg Arg) uintptr {
+func physicalAddr(arg Arg) uint64 {
 	a, ok := arg.(*PointerArg)
 	if !ok {
 		panic("physicalAddr: bad arg kind")
 	}
 	addr := a.PageIndex*pageSize + dataOffset
 	if a.PageOffset >= 0 {
-		addr += uintptr(a.PageOffset)
+		addr += uint64(a.PageOffset)
 	} else {
-		addr += pageSize - uintptr(-a.PageOffset)
+		addr += pageSize - uint64(-a.PageOffset)
 	}
 	return addr
 }
@@ -224,11 +224,11 @@ type execContext struct {
 }
 
 type argInfo struct {
-	Addr uintptr // physical addr
-	Idx  uintptr // instruction index
+	Addr uint64 // physical addr
+	Idx  int    // instruction index
 }
 
-func (w *execContext) write(v uintptr) {
+func (w *execContext) write(v uint64) {
 	if len(w.buf) < 8 {
 		w.eof = true
 		return
@@ -262,7 +262,7 @@ func (w *execContext) writeArg(arg Arg, pid int, csumMap map[Arg]CsumInfo) {
 		} else {
 			w.write(ExecArgResult)
 			w.write(a.Size())
-			w.write(w.args[a.Res].Idx)
+			w.write(uint64(w.args[a.Res].Idx))
 			w.write(a.OpDiv)
 			w.write(a.OpAdd)
 		}
@@ -274,7 +274,7 @@ func (w *execContext) writeArg(arg Arg, pid int, csumMap map[Arg]CsumInfo) {
 		w.write(0) // bit field length
 	case *DataArg:
 		w.write(ExecArgData)
-		w.write(uintptr(len(a.Data)))
+		w.write(uint64(len(a.Data)))
 		padded := len(a.Data)
 		if pad := 8 - len(a.Data)%8; pad != 8 {
 			padded += pad
