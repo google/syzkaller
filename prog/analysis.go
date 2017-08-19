@@ -99,11 +99,11 @@ func (s *state) analyze(c *Call) {
 
 func (s *state) addressable(addr *PointerArg, size *ConstArg, ok bool) {
 	sizePages := size.Val / pageSize
-	if addr.PageIndex+sizePages > uintptr(len(s.pages)) {
+	if addr.PageIndex+sizePages > uint64(len(s.pages)) {
 		panic(fmt.Sprintf("address is out of bounds: page=%v len=%v bound=%v\naddr: %+v\nsize: %+v",
 			addr.PageIndex, sizePages, len(s.pages), addr, size))
 	}
-	for i := uintptr(0); i < sizePages; i++ {
+	for i := uint64(0); i < sizePages; i++ {
 		s.pages[addr.PageIndex+i] = ok
 	}
 }
@@ -149,13 +149,13 @@ func foreachArg(c *Call, f func(arg, base Arg, parent *[]Arg)) {
 	foreachArgArray(&c.Args, nil, f)
 }
 
-func foreachSubargOffset(arg Arg, f func(arg Arg, offset uintptr)) {
-	var rec func(Arg, uintptr) uintptr
-	rec = func(arg1 Arg, offset uintptr) uintptr {
+func foreachSubargOffset(arg Arg, f func(arg Arg, offset uint64)) {
+	var rec func(Arg, uint64) uint64
+	rec = func(arg1 Arg, offset uint64) uint64 {
 		switch a := arg1.(type) {
 		case *GroupArg:
 			f(arg1, offset)
-			var totalSize uintptr
+			var totalSize uint64
 			for _, arg2 := range a.Inner {
 				size := rec(arg2, offset)
 				if arg2.Type().BitfieldLength() == 0 || arg2.Type().BitfieldLast() {
@@ -250,7 +250,7 @@ func sanitizeCall(c *Call) {
 		// PTRACE_TRACEME leads to unkillable processes, see:
 		// https://groups.google.com/forum/#!topic/syzkaller/uGzwvhlCXAw
 		if req.Val == sys.PTRACE_TRACEME {
-			req.Val = ^uintptr(0)
+			req.Val = ^uint64(0)
 		}
 	case "exit", "exit_group":
 		code := c.Args[0].(*ConstArg)

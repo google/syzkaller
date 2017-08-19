@@ -5,7 +5,6 @@ package prog
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"unsafe"
 
@@ -71,7 +70,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 				}
 				idx := r.Intn(len(args))
 				arg, base := args[idx], bases[idx]
-				var baseSize uintptr
+				var baseSize uint64
 				if base != nil {
 					b, ok := base.(*PointerArg)
 					if !ok || b.Res == nil {
@@ -88,11 +87,11 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					} else {
 						switch {
 						case r.nOutOf(1, 3):
-							a.Val += uintptr(r.Intn(4)) + 1
+							a.Val += uint64(r.Intn(4)) + 1
 						case r.nOutOf(1, 2):
-							a.Val -= uintptr(r.Intn(4)) + 1
+							a.Val -= uint64(r.Intn(4)) + 1
 						default:
-							a.Val ^= 1 << uintptr(r.Intn(64))
+							a.Val ^= 1 << uint64(r.Intn(64))
 						}
 					}
 				case *sys.ResourceType, *sys.VmaType, *sys.ProcType:
@@ -104,20 +103,20 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					case sys.BufferBlobRand, sys.BufferBlobRange:
 						var data []byte
 						data = append([]byte{}, a.Data...)
-						minLen := int(0)
-						maxLen := math.MaxInt32
+						var minLen uint64
+						maxLen := ^uint64(0)
 						if t.Kind == sys.BufferBlobRange {
-							minLen = int(t.RangeBegin)
-							maxLen = int(t.RangeEnd)
+							minLen = t.RangeBegin
+							maxLen = t.RangeEnd
 						}
 						a.Data = mutateData(r, data, minLen, maxLen)
 					case sys.BufferString:
 						if r.bin() {
-							minLen := int(0)
-							maxLen := math.MaxInt32
+							var minLen uint64
+							maxLen := ^uint64(0)
 							if t.Length != 0 {
-								minLen = int(t.Length)
-								maxLen = int(t.Length)
+								minLen = t.Length
+								maxLen = t.Length
 							}
 							a.Data = mutateData(r, append([]byte{}, a.Data...), minLen, maxLen)
 						} else {
@@ -132,23 +131,23 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					}
 				case *sys.ArrayType:
 					a := arg.(*GroupArg)
-					count := uintptr(0)
+					count := uint64(0)
 					switch t.Kind {
 					case sys.ArrayRandLen:
-						for count == uintptr(len(a.Inner)) {
+						for count == uint64(len(a.Inner)) {
 							count = r.randArrayLen()
 						}
 					case sys.ArrayRangeLen:
 						if t.RangeBegin == t.RangeEnd {
 							panic("trying to mutate fixed length array")
 						}
-						for count == uintptr(len(a.Inner)) {
-							count = r.randRange(int(t.RangeBegin), int(t.RangeEnd))
+						for count == uint64(len(a.Inner)) {
+							count = r.randRange(t.RangeBegin, t.RangeEnd)
 						}
 					}
-					if count > uintptr(len(a.Inner)) {
+					if count > uint64(len(a.Inner)) {
 						var calls []*Call
-						for count > uintptr(len(a.Inner)) {
+						for count > uint64(len(a.Inner)) {
 							arg1, calls1 := r.generateArg(s, t.Type)
 							a.Inner = append(a.Inner, arg1)
 							for _, c1 := range calls1 {
@@ -161,7 +160,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 						}
 						sanitizeCall(c)
 						p.insertBefore(c, calls)
-					} else if count < uintptr(len(a.Inner)) {
+					} else if count < uint64(len(a.Inner)) {
 						for _, arg := range a.Inner[count:] {
 							p.removeArg(c, arg)
 						}
@@ -174,7 +173,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 						break
 					}
 					// TODO: we don't know size for out args
-					size := uintptr(1)
+					size := uint64(1)
 					if a.Res != nil {
 						size = a.Res.Size()
 					}
@@ -294,7 +293,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 			}
 		}
 		// Prepend uber-mmap.
-		mmap := createMmapCall(uintptr(lo), uintptr(hi-lo)+1)
+		mmap := createMmapCall(uint64(lo), uint64(hi-lo)+1)
 		p.Calls = append([]*Call{mmap}, p.Calls...)
 		if callIndex != -1 {
 			callIndex++
@@ -581,7 +580,7 @@ func swap64(v uint64) uint64 {
 	return v
 }
 
-func mutateData(r *randGen, data []byte, minLen, maxLen int) []byte {
+func mutateData(r *randGen, data []byte, minLen, maxLen uint64) []byte {
 	const maxInc = 35
 	retry := false
 loop:
@@ -590,14 +589,14 @@ loop:
 		switch r.Intn(13) {
 		case 0:
 			// Append byte.
-			if len(data) >= maxLen {
+			if uint64(len(data)) >= maxLen {
 				retry = true
 				continue loop
 			}
 			data = append(data, byte(r.rand(256)))
 		case 1:
 			// Remove byte.
-			if len(data) == 0 || len(data) <= minLen {
+			if len(data) == 0 || uint64(len(data)) <= minLen {
 				retry = true
 				continue loop
 			}
@@ -683,7 +682,7 @@ loop:
 			}
 			i := r.Intn(len(data) - 7)
 			p := (*uint64)(unsafe.Pointer(&data[i]))
-			delta := uint64(r.rand(2*maxInc+1) - maxInc)
+			delta := r.rand(2*maxInc+1) - maxInc
 			if delta == 0 {
 				delta = 1
 			}
@@ -730,7 +729,7 @@ loop:
 				continue loop
 			}
 			i := r.Intn(len(data) - 7)
-			value := uint64(r.randInt())
+			value := r.randInt()
 			if r.bin() {
 				value = swap64(value)
 			}
