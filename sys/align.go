@@ -37,7 +37,7 @@ func initAlign() {
 	}
 }
 
-func setBitfieldOffset(t Type, offset uintptr, last bool) {
+func setBitfieldOffset(t Type, offset uint64, last bool) {
 	switch t1 := t.(type) {
 	case *IntType:
 		t1.BitfieldOff = offset
@@ -60,7 +60,7 @@ func setBitfieldOffset(t Type, offset uintptr, last bool) {
 }
 
 func markBitfields(t *StructType) {
-	var bfOffset uintptr
+	var bfOffset uint64
 	for i, f := range t.Fields {
 		if f.BitfieldLength() == 0 {
 			continue
@@ -87,7 +87,7 @@ func addAlignment(t *StructType) {
 		return
 	}
 	var fields []Type
-	var off uintptr
+	var off uint64
 	align := t.align
 	for i, f := range t.Fields {
 		a := f.Align()
@@ -120,7 +120,7 @@ func addAlignment(t *StructType) {
 	t.Fields = fields
 }
 
-func makePad(sz uintptr) Type {
+func makePad(sz uint64) Type {
 	return &ConstType{
 		IntTypeCommon: IntTypeCommon{
 			TypeCommon: TypeCommon{TypeName: "pad", IsOptional: false},

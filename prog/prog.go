@@ -21,7 +21,7 @@ type Call struct {
 
 type Arg interface {
 	Type() sys.Type
-	Size() uintptr
+	Size() uint64
 }
 
 type ArgCommon struct {
@@ -35,15 +35,15 @@ func (arg *ArgCommon) Type() sys.Type {
 // Used for ConstType, IntType, FlagsType, LenType, ProcType and CsumType.
 type ConstArg struct {
 	ArgCommon
-	Val uintptr
+	Val uint64
 }
 
-func (arg *ConstArg) Size() uintptr {
+func (arg *ConstArg) Size() uint64 {
 	return arg.typ.Size()
 }
 
 // Returns value taking endianness and executor pid into consideration.
-func (arg *ConstArg) Value(pid int) uintptr {
+func (arg *ConstArg) Value(pid int) uint64 {
 	switch typ := (*arg).Type().(type) {
 	case *sys.IntType:
 		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
@@ -63,7 +63,7 @@ func (arg *ConstArg) Value(pid int) uintptr {
 			panic(fmt.Sprintf("bad base type for a resource: %v", t))
 		}
 	case *sys.ProcType:
-		val := uintptr(typ.ValuesStart) + uintptr(typ.ValuesPerProc)*uintptr(pid) + arg.Val
+		val := typ.ValuesStart + typ.ValuesPerProc*uint64(pid) + arg.Val
 		return encodeValue(val, typ.Size(), typ.BigEndian)
 	}
 	return arg.Val
@@ -74,13 +74,13 @@ func (arg *ConstArg) Value(pid int) uintptr {
 // type because they are represented in an abstract (base+page+offset) form.
 type PointerArg struct {
 	ArgCommon
-	PageIndex  uintptr
-	PageOffset int     // offset within a page
-	PagesNum   uintptr // number of available pages
-	Res        Arg     // pointee
+	PageIndex  uint64
+	PageOffset int    // offset within a page
+	PagesNum   uint64 // number of available pages
+	Res        Arg    // pointee
 }
 
-func (arg *PointerArg) Size() uintptr {
+func (arg *PointerArg) Size() uint64 {
 	return arg.typ.Size()
 }
 
@@ -90,8 +90,8 @@ type DataArg struct {
 	Data []byte
 }
 
-func (arg *DataArg) Size() uintptr {
-	return uintptr(len(arg.Data))
+func (arg *DataArg) Size() uint64 {
+	return uint64(len(arg.Data))
 }
 
 // Used for StructType and ArrayType.
@@ -101,10 +101,10 @@ type GroupArg struct {
 	Inner []Arg
 }
 
-func (arg *GroupArg) Size() uintptr {
+func (arg *GroupArg) Size() uint64 {
 	switch typ := (*arg).Type().(type) {
 	case *sys.StructType:
-		var size uintptr
+		var size uint64
 		for _, fld := range arg.Inner {
 			if fld.Type().BitfieldLength() == 0 || fld.Type().BitfieldLast() {
 				size += fld.Size()
@@ -120,7 +120,7 @@ func (arg *GroupArg) Size() uintptr {
 		}
 		return size
 	case *sys.ArrayType:
-		var size uintptr
+		var size uint64
 		for _, in := range arg.Inner {
 			size += in.Size()
 		}
@@ -137,7 +137,7 @@ type UnionArg struct {
 	OptionType sys.Type
 }
 
-func (arg *UnionArg) Size() uintptr {
+func (arg *UnionArg) Size() uint64 {
 	if !arg.Type().Varlen() {
 		return arg.Type().Size()
 	} else {
@@ -150,13 +150,13 @@ func (arg *UnionArg) Size() uintptr {
 type ResultArg struct {
 	ArgCommon
 	Res   Arg          // reference to arg which we use
-	OpDiv uintptr      // divide result (executed before OpAdd)
-	OpAdd uintptr      // add to result
-	Val   uintptr      // value used if Res is nil
+	OpDiv uint64       // divide result (executed before OpAdd)
+	OpAdd uint64       // add to result
+	Val   uint64       // value used if Res is nil
 	uses  map[Arg]bool // ArgResult args that use this arg
 }
 
-func (arg *ResultArg) Size() uintptr {
+func (arg *ResultArg) Size() uint64 {
 	return arg.typ.Size()
 }
 
@@ -167,7 +167,7 @@ type ReturnArg struct {
 	uses map[Arg]bool // ArgResult args that use this arg
 }
 
-func (arg *ReturnArg) Size() uintptr {
+func (arg *ReturnArg) Size() uint64 {
 	panic("not called")
 }
 
@@ -209,27 +209,27 @@ func InnerArg(arg Arg) Arg {
 	return arg // Not a pointer.
 }
 
-func encodeValue(value, size uintptr, bigEndian bool) uintptr {
+func encodeValue(value uint64, size uint64, bigEndian bool) uint64 {
 	if !bigEndian {
 		return value
 	}
 	switch size {
 	case 2:
-		return uintptr(swap16(uint16(value)))
+		return uint64(swap16(uint16(value)))
 	case 4:
-		return uintptr(swap32(uint32(value)))
+		return uint64(swap32(uint32(value)))
 	case 8:
-		return uintptr(swap64(uint64(value)))
+		return swap64(value)
 	default:
 		panic(fmt.Sprintf("bad size %v for value %v", size, value))
 	}
 }
 
-func constArg(t sys.Type, v uintptr) Arg {
+func constArg(t sys.Type, v uint64) Arg {
 	return &ConstArg{ArgCommon: ArgCommon{typ: t}, Val: v}
 }
 
-func resultArg(t sys.Type, r Arg, v uintptr) Arg {
+func resultArg(t sys.Type, r Arg, v uint64) Arg {
 	arg := &ResultArg{ArgCommon: ArgCommon{typ: t}, Res: r, Val: v}
 	if r == nil {
 		return arg
@@ -250,7 +250,7 @@ func dataArg(t sys.Type, data []byte) Arg {
 	return &DataArg{ArgCommon: ArgCommon{typ: t}, Data: append([]byte{}, data...)}
 }
 
-func pointerArg(t sys.Type, page uintptr, off int, npages uintptr, obj Arg) Arg {
+func pointerArg(t sys.Type, page uint64, off int, npages uint64, obj Arg) Arg {
 	return &PointerArg{ArgCommon: ArgCommon{typ: t}, PageIndex: page, PageOffset: off, PagesNum: npages, Res: obj}
 }
 

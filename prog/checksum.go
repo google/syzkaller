@@ -29,9 +29,9 @@ type CsumInfo struct {
 
 type CsumChunk struct {
 	Kind  CsumChunkKind
-	Arg   Arg     // for CsumChunkArg
-	Value uintptr // for CsumChunkConst
-	Size  uintptr // for CsumChunkConst
+	Arg   Arg    // for CsumChunkArg
+	Value uint64 // for CsumChunkConst
+	Size  uint64 // for CsumChunkConst
 }
 
 func getFieldByName(arg Arg, name string) Arg {
@@ -71,8 +71,8 @@ func composePseudoCsumIPv4(tcpPacket, srcAddr, dstAddr Arg, protocol uint8, pid 
 	info := CsumInfo{Kind: CsumInet}
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, srcAddr, 0, 0})
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, dstAddr, 0, 0})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uintptr(swap16(uint16(protocol))), 2})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uintptr(swap16(uint16(tcpPacket.Size()))), 2})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap16(uint16(protocol))), 2})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap16(uint16(tcpPacket.Size()))), 2})
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, tcpPacket, 0, 0})
 	return info
 }
@@ -81,8 +81,8 @@ func composePseudoCsumIPv6(tcpPacket, srcAddr, dstAddr Arg, protocol uint8, pid 
 	info := CsumInfo{Kind: CsumInet}
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, srcAddr, 0, 0})
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, dstAddr, 0, 0})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uintptr(swap32(uint32(tcpPacket.Size()))), 4})
-	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uintptr(swap32(uint32(protocol))), 4})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap32(uint32(tcpPacket.Size()))), 4})
+	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkConst, nil, uint64(swap32(uint32(protocol))), 4})
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, tcpPacket, 0, 0})
 	return info
 }
