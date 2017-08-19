@@ -161,9 +161,9 @@ func astToDesc(top []interface{}) *Description {
 					vals = append(vals, v.Ident)
 				default:
 					if v.ValueHex {
-						vals = append(vals, fmt.Sprintf("0x%x", v.Value))
+						vals = append(vals, fmt.Sprintf("0x%x", uintptr(v.Value)))
 					} else {
-						vals = append(vals, fmt.Sprint(v.Value))
+						vals = append(vals, fmt.Sprint(uintptr(v.Value)))
 					}
 				}
 			}
@@ -244,9 +244,9 @@ func astToDesc(top []interface{}) *Description {
 					vals = append(vals, v.Ident)
 				default:
 					if v.ValueHex {
-						vals = append(vals, fmt.Sprintf("0x%x", v.Value))
+						vals = append(vals, fmt.Sprintf("0x%x", uintptr(v.Value)))
 					} else {
-						vals = append(vals, fmt.Sprint(v.Value))
+						vals = append(vals, fmt.Sprint(uintptr(v.Value)))
 					}
 				}
 			}
@@ -291,18 +291,18 @@ func astTypeToStr(n *ast.Type) string {
 		res = fmt.Sprintf("\"%v\"", n.String)
 	default:
 		if n.ValueHex {
-			res = fmt.Sprintf("0x%x", n.Value)
+			res = fmt.Sprintf("0x%x", uintptr(n.Value))
 		} else {
-			res = fmt.Sprint(n.Value)
+			res = fmt.Sprint(uintptr(n.Value))
 		}
 	}
 	if n.Ident2 != "" {
 		res += ":" + n.Ident2
 	} else if n.Value2 != 0 {
 		if n.Value2Hex {
-			res += fmt.Sprintf(":0x%x", n.Value2)
+			res += fmt.Sprintf(":0x%x", uintptr(n.Value2))
 		} else {
-			res += ":" + fmt.Sprint(n.Value2)
+			res += ":" + fmt.Sprint(uintptr(n.Value2))
 		}
 	}
 	return res

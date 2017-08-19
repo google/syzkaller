@@ -7,6 +7,19 @@ import (
 	"fmt"
 )
 
+/*
+type Platform struct {
+	PtrSize int
+	Calls []*Call
+	Resources map[string]*ResourceDesc
+}
+*/
+
+// var resourceArray = []*ResourceDesc{
+// var structArray = []Type{
+// var structFields = []struct {
+// var Calls = []*Call{
+
 const ptrSize = 8
 
 type Call struct {

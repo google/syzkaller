@@ -13,7 +13,7 @@ endif
 	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
 	extract generate \
 	android \
-	format tidy test arch presubmit clean
+	format tidy test arch cross-compile presubmit clean
 
 all:
 	$(MAKE) main
@@ -102,6 +102,7 @@ test:
 arch:
 	GOOS=linux GOARCH=amd64 go install ./...
 	GOOS=linux GOARCH=arm64 go install ./...
+	GOOS=linux GOARCH=arm go install ./...
 	GOOS=linux GOARCH=ppc64le go install ./...
 	GOOS=darwin GOARCH=amd64 go build -o /dev/null ./syz-manager
 
@@ -114,6 +115,11 @@ presubmit:
 
 clean:
 	rm -rf ./bin/
+
+cross-compile:
+	# We could use arm-linux-gnueabihf-gcc from  g++-arm-linux-gnueabihf package,
+	# but it is broken with "Error: alignment too large: 15 assumed"
+	env CC="clang" CFLAGS="--target=linux-armv6 -mfloat-abi=hard" $(MAKE) executor
 
 android: UNAME=$(shell uname | tr '[:upper:]' '[:lower:]')
 android: ANDROID_ARCH=arm64
