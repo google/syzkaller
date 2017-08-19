@@ -16,6 +16,8 @@ include <uapi/linux/if_ether.h>
 
 resource sock[fd]
 
+# TODO: describe socketcall syscall
+
 socket(domain flags[socket_domain], type flags[socket_type], proto int8) sock
 socketpair(domain flags[socket_domain], type flags[socket_type], proto int8, fds ptr[out, pipefd])
 bind(fd sock, addr ptr[in, sockaddr_storage], addrlen len[addr])
