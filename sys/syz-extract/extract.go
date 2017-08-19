@@ -35,6 +35,7 @@ type Arch struct {
 
 var archs = map[string]*Arch{
 	"amd64":   {[]string{"__x86_64__"}, "x86", "asm/unistd.h", []string{"-m64"}},
+	"386":     {[]string{"__i386__"}, "x86", "asm/unistd.h", []string{"-m32"}},
 	"arm64":   {[]string{"__aarch64__"}, "arm64", "asm/unistd.h", []string{}},
 	"arm":     {[]string{"__arm__"}, "arm", "asm/unistd.h", []string{"-D__LINUX_ARM_ARCH__=6", "-m32"}},
 	"ppc64le": {[]string{"__ppc64__", "__PPC64__", "__powerpc64__"}, "powerpc", "asm/unistd.h", []string{"-D__powerpc64__"}},
