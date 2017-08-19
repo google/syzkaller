@@ -3,7 +3,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # Assuming x86 host, you also need to install:
-# sudo apt-get install gcc-aarch64-linux-gnu gcc-powerpc64le-linux-gnu
+# sudo apt-get install gcc-aarch64-linux-gnu gcc-powerpc64le-linux-gnu gcc-arm-linux-gnueabihf
 
 if [ "$LINUX" == "" ]; then
 	if [ "$ANDROID" == "" ]; then
@@ -42,13 +42,16 @@ fi
 generate_arch() {
 	echo generating arch $1...
 	echo "cd $LINUX; make defconfig"
-	OUT=`(cd $LINUX; make ARCH=$2 CROSS_COMPILE=$3-linux-gnu- defconfig 2>&1)`
+	OUT=`(cd $LINUX; make ARCH=$2 CROSS_COMPILE=$3 CFLAGS=$4 defconfig 2>&1)`
 	if [ $? -ne 0 ]; then
 		echo "$OUT"
 		exit 1
 	fi
+	# Without CONFIG_NETFILTER kernel does not build.
+	(cd $LINUX; sed -i "s@# CONFIG_NETFILTER is not set@CONFIG_NETFILTER=y@g" .config)
+	(cd $LINUX; make ARCH=$2 CROSS_COMPILE=$3 CFLAGS=$4 olddefconfig)
 	echo "cd $LINUX; make"
-	OUT=`(cd $LINUX; make ARCH=$2 CROSS_COMPILE=$3-linux-gnu- init/main.o 2>&1)`
+	OUT=`(cd $LINUX; make ARCH=$2 CROSS_COMPILE=$3 CFLAGS=$4 init/main.o 2>&1)`
 	if [ $? -ne 0 ]; then
 		echo "$OUT"
 		exit 1
@@ -63,8 +66,9 @@ generate_arch() {
 	echo
 }
 
-generate_arch amd64 x86_64 x86_64
-generate_arch arm64 arm64 aarch64
+generate_arch amd64 x86_64 x86_64-linux-gnu- ""
+generate_arch arm64 arm64 aarch64-linux-gnu- ""
 if [ "$BUILD_FOR_ANDROID" == "no" ]; then
-	generate_arch ppc64le powerpc powerpc64le
+	generate_arch arm arm arm-linux-gnueabihf- "-march=armv6t2"
+	generate_arch ppc64le powerpc powerpc64le-linux-gnu- ""
 fi
