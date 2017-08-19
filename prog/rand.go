@@ -279,7 +279,7 @@ func (r *randGen) timespec(s *state, typ *sys.StructType, usec bool) (arg Arg, c
 			resultArg(argType.Fields[1], nil, 0),
 		})
 		var tpaddr Arg
-		tpaddr, calls = r.addr(s, ptrArgType, 2*ptrSize, tp)
+		tpaddr, calls = r.addr(s, ptrArgType, 16, tp)
 		gettime := &Call{
 			Meta: meta,
 			Args: []Arg{

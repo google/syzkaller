@@ -66,9 +66,14 @@ generate_arch() {
 	echo
 }
 
-generate_arch amd64 x86_64 x86_64-linux-gnu- ""
+# $1 Go arch
+# $2 kernel arch
+# $3 cross-compiler prefix
+# $4 CLAGS
+generate_arch amd64 x86_64 x86_64-linux-gnu- "-m64"
 generate_arch arm64 arm64 aarch64-linux-gnu- ""
 if [ "$BUILD_FOR_ANDROID" == "no" ]; then
+	generate_arch 386 i386 "" "-m32"
 	generate_arch arm arm arm-linux-gnueabihf- "-march=armv6t2"
 	generate_arch ppc64le powerpc powerpc64le-linux-gnu- ""
 fi
