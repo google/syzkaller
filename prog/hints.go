@@ -3,7 +3,7 @@
 
 // A hint is basically a tuple consisting of a pointer to an argument
 // in one of the syscalls of a program and a value, which should be
-// assigned to that argument.
+// assigned to that argument (we call it a replacer).
 
 // A simplified version of hints workflow looks like this:
 //		1. Fuzzer launches a program (we call it a hint seed) and collects all
@@ -14,11 +14,14 @@
 // replacing the pointed argument with the saved value.
 //		4. If a valid program is obtained, then fuzzer launches it and
 // checks if new coverage is obtained.
+// For more insights on particular mutations please see prog/hints_test.go.
 
 package prog
 
 import (
 	"encoding/binary"
+
+	"github.com/google/syzkaller/sys"
 )
 
 type uint64Set map[uint64]bool
@@ -52,6 +55,12 @@ var (
 		4: 0xffff,
 		8: 0xffffffff,
 	}
+	onesMask = map[int]uint64{
+		1: 0xff,
+		2: 0xffff,
+		4: 0xffffffff,
+		8: 0xffffffffffffffff,
+	}
 )
 
 func (m CompMap) AddComp(arg1, arg2 uint64) {
@@ -74,31 +83,123 @@ func (p *Prog) MutateWithHints(compMaps []CompMap, exec func(newP *Prog)) {
 	}
 }
 
-func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(newP *Prog)) {
-	candidate := func(arg, newArg Arg) {
-		newP, argMap := p.cloneImpl(true)
-		oldArg := argMap[arg]
-		newP.replaceArg(c, oldArg, newArg, nil)
+func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog)) {
+	validateExec := func(newP *Prog) {
 		if newP.validate() == nil {
 			exec(newP)
 		}
 	}
+	candidate := func(arg, newArg Arg) {
+		newP, argMap := p.cloneImpl(true)
+		oldArg := argMap[arg]
+		newP.replaceArg(c, oldArg, newArg, nil)
+		validateExec(newP)
+	}
 	switch a := arg.(type) {
 	case *ConstArg:
 		checkConstArg(a, compMap, candidate)
-		// case *DataArg:
-		// 	checkDataArg(a, compMap, candidate)
+	case *DataArg:
+		// checkDataArg does not need to clone the program,
+		// so we can save time and pass exec directly.
+		checkDataArg(a, compMap, p, validateExec)
 	}
 }
 
+// Creates hints for a ConstArg and calls cb() for each of the obtained
+// programs.
 func checkConstArg(arg *ConstArg, compMap CompMap, cb func(arg, newArg Arg)) {
-	replacersSet := make(uint64Set)
+	replacersSet := getReplacersForVal(arg.Val, compMap)
+	for newV, _ := range replacersSet {
+		newArg := constArg(arg.typ, newV)
+		cb(arg, newArg)
+	}
+}
 
+// Creates hints for a DataArg and calls validateExec() for each of the obtained
+// programs.
+// Works as following:
+//		1. Splits the data into blocks of size block_size (pads the last block,
+// if needed).
+//		2. Transforms each of the blocks into an int and does the same as
+// checkConstArg.
+// Because the getReplacersForVal() tries all different mutations of a const
+// value (shrinking, expanding, reversing) we will also try all the possible
+// smaller blocks.
+// For more insights please see prog/hints_test.go tests TestHintDataIn*.
+func checkDataArg(arg *DataArg, compMap CompMap, p *Prog,
+	validateExec func(p *Prog)) {
+	if arg.Type().Dir() != sys.DirIn && arg.Type().Dir() != sys.DirInOut {
+		// We only want to scan userspace->kernel data.
+		return
+	}
+	// This map is needed to check that the element at each index in the data
+	// array is replaced with each unique value only once.
+	// Key: index in array, Value: set of unique values to replace with.
+	replacersMap := make(map[int]uint64Set)
+	for i := range arg.Data {
+		replacersMap[i] = make(uint64Set)
+	}
+
+	for _, blockSize := range []int{1, 2, 4, 8} {
+		if blockSize > len(arg.Data) {
+			break
+		}
+		newBlock := make([]byte, 8)
+		for i := 0; i < len(arg.Data); i += blockSize {
+			block := pad(arg.Data[i:], 0x00, blockSize)
+			if blockSize < 8 {
+				// binary.LittleEndian.Uint64() requires an 8byte slice.
+				block = pad(block, 0x00, 8)
+			}
+			// Little Endian here does not matter. We will try both byte orders
+			// anyways when we generate the replacers set.
+			value := binary.LittleEndian.Uint64(block)
+			// As we are doing in place modifications of the data
+			// this "original" block will be needed to reconstruct data.
+			original := make([]byte, min(len(arg.Data[i:]), 8))
+			copy(original, arg.Data[i:])
+			for newV, _ := range getReplacersForVal(value, compMap) {
+				binary.LittleEndian.PutUint64(newBlock, newV)
+				// We do modify the original argument in place. This way we
+				// don't need to waste time on copying the program. Fuzzer will
+				// clone the program anyways (if it gives new coverage).
+				for _, size := range []int{1, 2, 4, 8} {
+					// We want to try replacing arg.Data[i:] with values of all
+					// possible int sizes. For example, suppose the data is
+					// 0x11111111111111ab and we see a comparison
+					// 0xab vs 0x123456789abcdef0
+					// then the following data variants will be generated:
+					// 0x11111111111111f0,
+					// 0x111111111111def0,
+					// 0x111111119abcdef0,
+					// 0x123456789abcdef0,
+					// However, if the arg.Data[i:] is not big enough to fit
+					// some sizes, then we stop.
+					if size > len(arg.Data[i:]) {
+						break
+					}
+					r := newV & onesMask[size] //same as uint64(newBlock[:size])
+					if addItemToSet(replacersMap[i], r) {
+						copy(arg.Data[i:], newBlock[:size])
+						validateExec(p)
+					}
+				}
+				// Return arg.Data to its original state.
+				copy(arg.Data[i:], original)
+			}
+		}
+	}
+}
+
+// Returns a set of replacers for a given value. A replacer is a value with
+// which an argument's value should be replaced.
+func getReplacersForVal(value uint64, compMap CompMap) uint64Set {
+	replacersSet := make(uint64Set)
 	f := func(transform func(uint64) uint64) {
-		value := transform(arg.Val)
+		transformedValue := transform(value)
 		originalsSet := make(uint64Set)
-		// Get all different mutations of value.
-		vals := getMutationsForConstVal(value)
+		// Get all different mutations of transformedValue: shrink, expand, ...
+		vals := getMutationsForConstVal(transformedValue)
 		diff := addArrayToSet(originalsSet, vals)
 		// Search for each unseen mutation.
 		for _, v := range diff {
@@ -113,20 +214,21 @@ func checkConstArg(arg *ConstArg, compMap CompMap, cb func(arg, newArg Arg)) {
 			}
 		}
 	}
-
+	// Each transform is related to a different way of encoding an int.
 	transforms := []func(uint64) uint64{
+		// Identity transform.
 		func(v uint64) uint64 { return v },
+		// Revert order of bytes (Big Endian <-> Little Endian) and leave
+		// trailing zero bytes.
 		func(v uint64) uint64 { return reverse(v, false) },
+		// Revert order of bytes (Big Endian <-> Little Endian) and don't leave
+		// trailing zero bytes.
 		func(v uint64) uint64 { return reverse(v, true) },
 	}
 	for _, t := range transforms {
 		f(t)
 	}
-
-	for newV, _ := range replacersSet {
-		newArg := constArg(arg.typ, newV)
-		cb(arg, newArg)
-	}
+	return replacersSet
 }
 
 // Returns an array of different mutations of an ConstArg value. Each of these
@@ -168,7 +270,10 @@ func shrinkMutation(v uint64) (values []uint64) {
 //		v64 = (int64) v32;
 //		if (v32 == -1) {...};
 //	}
-// Same logic as for mutation 1 applies.
+// Same logic as for shrink mutation applies.
+// An example: for 0xab we want to obtain the following values:
+// 0xffab, 0xffffffab, 0xffffffffffffffab (these are the values we get
+// if we cast an int8 c = 0xab to int16, int32, int64).
 func expandMutation(v uint64) (values []uint64) {
 	if v == 0 {
 		return
@@ -178,18 +283,13 @@ func expandMutation(v uint64) (values []uint64) {
 	if !valueIsNegative(msByteValue, msByteIndex) {
 		return
 	}
-	sizes := []int{2, 4, 8}
-	for _, size := range sizes {
+	for _, size := range []int{2, 4, 8} {
 		if size > msByteIndex+1 {
 			v = v | leftHalves[size]
 			values = append(values, v)
 		}
 	}
 	return
-}
-
-func checkDataArg(arg *DataArg, compMap CompMap, cb func(arg, newArg Arg)) {
-	cb(arg, arg)
 }
 
 // Reverses the byte order of v.
@@ -246,6 +346,37 @@ func addArrayToSet(set uint64Set, arr []uint64) (diff []uint64) {
 		}
 	}
 	return
+}
+
+// Adds an item to the set.
+// Returns false if the item was already in the set. Otherwise returns true.
+func addItemToSet(set uint64Set, x uint64) bool {
+	if _, ok := set[x]; ok {
+		return false
+	}
+	set[x] = true
+	return true
+}
+
+// If len(arr) >= size returns a subslice of arr.
+// Else creates a copy of arr padded with value to size.
+func pad(arr []byte, value byte, size int) []byte {
+	if len(arr) >= size {
+		return arr[0:size]
+	}
+	block := make([]byte, size)
+	copy(block, arr)
+	for j := len(arr); j < size; j++ {
+		block[j] = value
+	}
+	return block
+}
+
+func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
 }
 
 func init() {

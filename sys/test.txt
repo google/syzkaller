@@ -535,3 +535,4 @@ syz_hint_test_outter_struct {
 
 syz_test$struct_test_call(s ptr[in, syz_hint_test_outter_struct])
 syz_test$simple_test_call(a int64)
+syz_test$data_in_test_call(b buffer[in])
