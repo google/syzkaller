@@ -1,13 +1,27 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// A hint is basically a tuple consisting of a pointer to an argument
+// in one of the syscalls of a program and a value, which should be
+// assigned to that argument.
+
+// A simplified version of hints workflow looks like this:
+//		1. Fuzzer launches a program (we call it a hint seed) and collects all
+// the comparisons' data for every syscall in the program.
+//		2. Next it tries to match the obtained comparison operands' values
+// vs. the input arguments' values.
+//		3. For every such match the fuzzer mutates the program by
+// replacing the pointed argument with the saved value.
+//		4. If a valid program is obtained, then fuzzer launches it and
+// checks if new coverage is obtained.
+
 package prog
 
 import (
 	"encoding/binary"
 )
 
-type uintptrSet map[uintptr]bool
+type uint64Set map[uint64]bool
 
 // Example: for comparisons {(op1, op2), (op1, op3), (op1, op4), (op2, op1)}
 // this map will store the following:
@@ -15,10 +29,10 @@ type uintptrSet map[uintptr]bool
 //		op1: {map[op2]: true, map[op3]: true, map[op4]: true},
 //		op2: {map[op1]: true}
 // }.
-type CompMap map[uintptr]uintptrSet
+type CompMap map[uint64]uint64Set
 
 var (
-	SpecialIntsSet uintptrSet
+	SpecialIntsSet uint64Set
 
 	// A set of calls for which hints should not be generated.
 	hintNamesBlackList = map[string]bool{
@@ -28,21 +42,21 @@ var (
 	}
 
 	// These maps are used for mutations of ConstArg values.
-	leftHalves = map[int]uintptr{
+	leftHalves = map[int]uint64{
 		2: 0xff00,
 		4: 0xffff0000,
 		8: 0xffffffff00000000,
 	}
-	rightHalves = map[int]uintptr{
+	rightHalves = map[int]uint64{
 		2: 0xff,
 		4: 0xffff,
 		8: 0xffffffff,
 	}
 )
 
-func (m CompMap) AddComp(arg1, arg2 uintptr) {
+func (m CompMap) AddComp(arg1, arg2 uint64) {
 	if _, ok := m[arg1]; !ok {
-		m[arg1] = make(uintptrSet)
+		m[arg1] = make(uint64Set)
 	}
 	m[arg1][arg2] = true
 }
@@ -72,17 +86,17 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(newP *P
 	switch a := arg.(type) {
 	case *ConstArg:
 		checkConstArg(a, compMap, candidate)
-	case *DataArg:
-		checkDataArg(a, compMap, candidate)
+		// case *DataArg:
+		// 	checkDataArg(a, compMap, candidate)
 	}
 }
 
 func checkConstArg(arg *ConstArg, compMap CompMap, cb func(arg, newArg Arg)) {
-	replacersSet := make(uintptrSet)
+	replacersSet := make(uint64Set)
 
-	f := func(transform func(uintptr) uintptr) {
+	f := func(transform func(uint64) uint64) {
 		value := transform(arg.Val)
-		originalsSet := make(uintptrSet)
+		originalsSet := make(uint64Set)
 		// Get all different mutations of value.
 		vals := getMutationsForConstVal(value)
 		diff := addArrayToSet(originalsSet, vals)
@@ -100,10 +114,10 @@ func checkConstArg(arg *ConstArg, compMap CompMap, cb func(arg, newArg Arg)) {
 		}
 	}
 
-	transforms := []func(uintptr) uintptr{
-		func(v uintptr) uintptr { return v },
-		func(v uintptr) uintptr { return reverse(v, false) },
-		func(v uintptr) uintptr { return reverse(v, true) },
+	transforms := []func(uint64) uint64{
+		func(v uint64) uint64 { return v },
+		func(v uint64) uint64 { return reverse(v, false) },
+		func(v uint64) uint64 { return reverse(v, true) },
 	}
 	for _, t := range transforms {
 		f(t)
@@ -117,11 +131,11 @@ func checkConstArg(arg *ConstArg, compMap CompMap, cb func(arg, newArg Arg)) {
 
 // Returns an array of different mutations of an ConstArg value. Each of these
 // mutations should be matched against comparison operands.
-func getMutationsForConstVal(v uintptr) []uintptr {
-	values := []uintptr{v}
-	mutations := []func(uintptr) []uintptr{
-		valMutation1,
-		valMutation2,
+func getMutationsForConstVal(v uint64) []uint64 {
+	values := []uint64{v}
+	mutations := []func(uint64) []uint64{
+		shrinkMutation,
+		expandMutation,
 	}
 	for _, m := range mutations {
 		values = append(values, m(v)...)
@@ -135,17 +149,16 @@ func getMutationsForConstVal(v uintptr) []uintptr {
 //		if (v32 == -1) {...};
 //	}
 // If v64 < 0 and v64's value fits into 32 bits (e.g. v64 = -2), then:
-// uintptr(v64) = 0xfffffffffffffffe and uintptr(v32) = 0xfffffffe.
+// uint64(v64) = 0xfffffffffffffffe and uint64(v32) = 0xfffffffe.
 // Thus, the comparison will be (0xfffffffe vs 0xffffffff), and we'll be
 // unable to find the operand in the input stream.
 // This is why we need to check for the 0xff... prefix.
 // If v64 >= 0, we want to match comparisons of type int8(v64) == 0x42,
 // thus we need to drop 7 bytes of v64 (they might be filled with random trash).
 // A solution for both cases is to just drop the higher bytes.
-func valMutation1(v uintptr) (values []uintptr) {
-	sizes := []int{2, 4, 8}
-	for _, size := range sizes {
-		values = append(values, v&rightHalves[size])
+func shrinkMutation(v uint64) (values []uint64) {
+	for _, half := range rightHalves {
+		values = append(values, v&half)
 	}
 	return
 }
@@ -156,7 +169,7 @@ func valMutation1(v uintptr) (values []uintptr) {
 //		if (v32 == -1) {...};
 //	}
 // Same logic as for mutation 1 applies.
-func valMutation2(v uintptr) (values []uintptr) {
+func expandMutation(v uint64) (values []uint64) {
 	if v == 0 {
 		return
 	}
@@ -183,9 +196,9 @@ func checkDataArg(arg *DataArg, compMap CompMap, cb func(arg, newArg Arg)) {
 // If cutBytes == true, then cuts the trailing bytes, e.g.:
 // reverse(0xefbeadde, true) = 0xdeadbeef
 // reverse(0xefbeadde, false) = 0xdeadbeef00000000
-func reverse(v uintptr, cutBytes bool) uintptr {
+func reverse(v uint64, cutBytes bool) uint64 {
 	_, msByteIndex, bytes := getMostSignificantByte(v)
-	r := uintptr(binary.BigEndian.Uint64(bytes))
+	r := binary.BigEndian.Uint64(bytes)
 	if cutBytes {
 		shiftCount := uint(0)
 		if msByteIndex == 0 {
@@ -201,11 +214,11 @@ func reverse(v uintptr, cutBytes bool) uintptr {
 
 }
 
-func getMostSignificantByte(v uintptr) (value byte, index int, bytes []byte) {
+func getMostSignificantByte(v uint64) (value byte, index int, bytes []byte) {
 	bytes = make([]byte, 8)
 	// We will anyways try both Little Endian and Big Endian in checkConstArg,
 	// so it doesn't matter here. We use LE for convenience.
-	binary.LittleEndian.PutUint64(bytes, uint64(v))
+	binary.LittleEndian.PutUint64(bytes, v)
 	for i, b := range bytes {
 		if b != 0 {
 			value = b
@@ -225,7 +238,7 @@ func valueIsNegative(msByteValue byte, msByteIndex int) bool {
 
 // Adds all of the elements of an array to the set.
 // Returns an array of elements, which weren't in the set.
-func addArrayToSet(set uintptrSet, arr []uintptr) (diff []uintptr) {
+func addArrayToSet(set uint64Set, arr []uint64) (diff []uint64) {
 	for _, x := range arr {
 		if _, ok := set[x]; !ok {
 			set[x] = true
@@ -236,6 +249,8 @@ func addArrayToSet(set uintptrSet, arr []uintptr) (diff []uintptr) {
 }
 
 func init() {
-	SpecialIntsSet = make(uintptrSet)
-	addArrayToSet(SpecialIntsSet, specialInts)
+	SpecialIntsSet = make(uint64Set)
+	for _, x := range specialInts {
+		SpecialIntsSet[x] = true
+	}
 }

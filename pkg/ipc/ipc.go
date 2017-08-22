@@ -302,12 +302,12 @@ func (env *Env) readOutCoverage(p *prog.Prog, opts *ExecOpts) (info []CallInfo, 
 	}
 
 	// Reads out a 64 bits int in Little-endian as two blocks of 32 bits.
-	readOut64 := func(v *uintptr, msg string, args ...interface{}) bool {
+	readOut64 := func(v *uint64, msg string, args ...interface{}) bool {
 		var a, b uint32
 		if !(readOutAndSetErr(&a, msg, args) && readOutAndSetErr(&b, msg, args)) {
 			return false
 		}
-		*v = uintptr(a) + uintptr(b)<<32
+		*v = uint64(a) + uint64(b)<<32
 		return true
 	}
 
@@ -375,7 +375,7 @@ func (env *Env) readOutCoverage(p *prog.Prog, opts *ExecOpts) (info []CallInfo, 
 		compMap := make(prog.CompMap)
 		for j := uint32(0); j < compsSize; j++ {
 			var typ uint32
-			var op1, op2 uintptr
+			var op1, op2 uint64
 			if !readOutAndSetErr(&typ,
 				"executor %v: failed while reading type of comparison %v", env.pid, j) {
 				return
@@ -396,8 +396,8 @@ func (env *Env) readOutCoverage(p *prog.Prog, opts *ExecOpts) (info []CallInfo, 
 					!readOutAndSetErr(&tmp2, arg2ErrString, env.pid, j) {
 					return
 				}
-				op1 = uintptr(tmp1)
-				op2 = uintptr(tmp2)
+				op1 = uint64(tmp1)
+				op2 = uint64(tmp2)
 			} else {
 				if !readOut64(&op1, arg1ErrString, env.pid, j) ||
 					!readOut64(&op2, arg2ErrString, env.pid, j) {

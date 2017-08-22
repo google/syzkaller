@@ -14,7 +14,7 @@ var (
 // Dumb test.
 func TestHintsSimple(t *testing.T) {
 	m := CompMap{
-		0xdeadbeef: uintptrSet{0xcafebabe: true},
+		0xdeadbeef: uint64Set{0xcafebabe: true},
 	}
 	expected := []string{
 		getSimpleProgText(0xcafebabe),
@@ -26,7 +26,7 @@ func TestHintsSimple(t *testing.T) {
 // Checks that for every such operand a program is generated.
 func TestHintsMultipleOps(t *testing.T) {
 	m := CompMap{
-		0xabcd: uintptrSet{0x1: true, 0x2: true, 0x3: true},
+		0xabcd: uint64Set{0x1: true, 0x2: true, 0x3: true},
 	}
 	expected := []string{
 		getSimpleProgText(0x1),
@@ -39,7 +39,7 @@ func TestHintsMultipleOps(t *testing.T) {
 // Test for cases, described in shrinkMutation() function.
 func TestHintsConstArgShrinkSize(t *testing.T) {
 	m := CompMap{
-		0xab: uintptrSet{0x1: true},
+		0xab: uint64Set{0x1: true},
 	}
 	expected := []string{
 		getSimpleProgText(0x1),
@@ -59,7 +59,7 @@ func TestHintsConstArgShrinkSize(t *testing.T) {
 // Test for cases, described in expandMutation() function.
 func TestHintsConstArgExpandSize(t *testing.T) {
 	m := CompMap{
-		0xffffffffffffffab: uintptrSet{0x1: true},
+		0xffffffffffffffab: uint64Set{0x1: true},
 	}
 	expected := []string{
 		getSimpleProgText(0x1),
@@ -69,7 +69,7 @@ func TestHintsConstArgExpandSize(t *testing.T) {
 	runTest(m, expected, t, 0xffffffab)
 
 	m = CompMap{
-		0xffffffab: uintptrSet{0x1: true},
+		0xffffffab: uint64Set{0x1: true},
 	}
 	expected = []string{
 		getSimpleProgText(0x1),
@@ -78,7 +78,7 @@ func TestHintsConstArgExpandSize(t *testing.T) {
 	runTest(m, expected, t, 0xffab)
 
 	m = CompMap{
-		0xffab: uintptrSet{0x1: true},
+		0xffab: uint64Set{0x1: true},
 	}
 	expected = []string{
 		getSimpleProgText(0x1),
@@ -89,14 +89,14 @@ func TestHintsConstArgExpandSize(t *testing.T) {
 // Test for Little/Big Endian conversions.
 func TestHintsConstArgEndianness(t *testing.T) {
 	m := CompMap{
-		0xbeef:             uintptrSet{0x1234: true},
-		0xefbe:             uintptrSet{0xabcd: true},
-		0xefbe000000000000: uintptrSet{0xabcd: true},
-		0xdeadbeef:         uintptrSet{0x1234: true},
-		0xefbeadde:         uintptrSet{0xabcd: true},
-		0xefbeadde00000000: uintptrSet{0xabcd: true},
-		0x1234567890abcdef: uintptrSet{0x1234: true},
-		0xefcdab9078563412: uintptrSet{0xabcd: true},
+		0xbeef:             uint64Set{0x1234: true},
+		0xefbe:             uint64Set{0xabcd: true},
+		0xefbe000000000000: uint64Set{0xabcd: true},
+		0xdeadbeef:         uint64Set{0x1234: true},
+		0xefbeadde:         uint64Set{0xabcd: true},
+		0xefbeadde00000000: uint64Set{0xabcd: true},
+		0x1234567890abcdef: uint64Set{0x1234: true},
+		0xefcdab9078563412: uint64Set{0xabcd: true},
 	}
 	expected := []string{
 		getSimpleProgText(0x1234),
@@ -108,8 +108,8 @@ func TestHintsConstArgEndianness(t *testing.T) {
 	runTest(m, expected, t, 0x1234567890abcdef)
 
 	m = CompMap{
-		0xab:               uintptrSet{0x1234: true},
-		0xab00000000000000: uintptrSet{0x1234: true},
+		0xab:               uint64Set{0x1234: true},
+		0xab00000000000000: uint64Set{0x1234: true},
 	}
 	expected = []string{
 		getSimpleProgText(0x1234),
@@ -122,8 +122,8 @@ func TestHintsConstArgEndianness(t *testing.T) {
 // Test for reverse() function.
 func TestHintsReverse(t *testing.T) {
 	// Cut bytes = true.
-	vals := []uintptr{0xab, 0xcafe, 0xdeadbeef, 0x1234567890abcdef}
-	expected := []uintptr{0xab, 0xfeca, 0xefbeadde, 0xefcdab9078563412}
+	vals := []uint64{0xab, 0xcafe, 0xdeadbeef, 0x1234567890abcdef}
+	expected := []uint64{0xab, 0xfeca, 0xefbeadde, 0xefcdab9078563412}
 	for i, v := range vals {
 		r := reverse(v, true)
 		if r != expected[i] {
@@ -132,8 +132,8 @@ func TestHintsReverse(t *testing.T) {
 	}
 
 	// Cut bytes = false.
-	vals = []uintptr{0xab, 0xcafe, 0xdeadbeef, 0x1234567890abcdef}
-	expected = []uintptr{
+	vals = []uint64{0xab, 0xcafe, 0xdeadbeef, 0x1234567890abcdef}
+	expected = []uint64{
 		0xab00000000000000,
 		0xfeca000000000000,
 		0xefbeadde00000000,
@@ -149,7 +149,7 @@ func TestHintsReverse(t *testing.T) {
 
 // Test for getMostSignificantByte() function.
 func TestHintsMostSignificantByte(t *testing.T) {
-	vals := []uintptr{0x0, 0x01, 0xa2, 0xa3ab, 0xa4abab, 0xa5ababab,
+	vals := []uint64{0x0, 0x01, 0xa2, 0xa3ab, 0xa4abab, 0xa5ababab,
 		0xa6abababab, 0xa7ababababab, 0xa8abababababab, 0xa9ababababababab}
 	type R struct {
 		value byte
@@ -183,11 +183,11 @@ func TestHintsMostSignificantByte(t *testing.T) {
 	}
 }
 
-func getSimpleProgText(a uintptr) string {
+func getSimpleProgText(a uint64) string {
 	return fmt.Sprintf(simpleProgText, a)
 }
 
-func runTest(m CompMap, expected []string, t *testing.T, a uintptr) {
+func runTest(m CompMap, expected []string, t *testing.T, a uint64) {
 	progText := getSimpleProgText(a)
 	p, _ := Deserialize([]byte(progText))
 	got := make([]string, 0)
