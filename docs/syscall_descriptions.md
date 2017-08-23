@@ -64,3 +64,5 @@ Then, run `make generate` which will update generated code.
 Rebuild syzkaller (`make clean all`) to force use of the new system call definitions.
 
 Optionally, adjust the `enable_syscalls` configuration value for syzkaller to specifically target the new system calls.
+
+In order to partially auto-generate system call descriptions you can use [headerparser](headerparser_usage.md).
