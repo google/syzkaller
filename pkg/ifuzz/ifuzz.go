@@ -263,7 +263,7 @@ func generateInt(cfg *Config, r *rand.Rand, size int) uint64 {
 	case x < 25:
 		v = uint64(r.Int63()) % (1 << 32)
 	case x < 30:
-		v = uint64(r.Int63()) % (1 << 63)
+		v = uint64(r.Int63())
 	case x < 40:
 		v = specialNumbers[r.Intn(len(specialNumbers))]
 		if r.Intn(5) == 0 {

@@ -1,0 +1,33 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/xattr.h>
+
+setxattr(path ptr[in, filename], name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
+lsetxattr(path ptr[in, filename], name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
+fsetxattr(fd fd, name ptr[in, xattr_name], val ptr[in, string], size len[val], flags flags[setxattr_flags])
+getxattr(path ptr[in, filename], name ptr[in, xattr_name], val buffer[out], size len[val])
+lgetxattr(path ptr[in, filename], name ptr[in, xattr_name], val buffer[out], size len[val])
+fgetxattr(fd fd, name ptr[in, xattr_name], val buffer[out], size len[val])
+listxattr(path ptr[in, filename], list buffer[out], size len[list])
+llistxattr(path ptr[in, filename], list buffer[out], size len[list])
+flistxattr(fd fd, list buffer[out], size len[list])
+removexattr(path ptr[in, filename], name ptr[in, xattr_name])
+lremovexattr(path ptr[in, filename], name ptr[in, xattr_name])
+fremovexattr(fd fd, name ptr[in, xattr_name])
+
+xattr_name [
+	known	string[xattr_names]
+	random	xattr_name_random
+] [varlen]
+
+xattr_name_random {
+	prefix	string[xattr_prefix]
+	name	string
+} [packed]
+
+setxattr_flags = XATTR_CREATE, XATTR_REPLACE
+
+xattr_prefix = "system.", "trusted.", "security.", "user.", "btrfs.", "osx.", "os2."
+
+xattr_names = "system.posix_acl_access", "system.posix_acl_default", "system.advise", "system.sockprotoname", "com.apple.FinderInfo", "com.apple.system.Security"

@@ -167,7 +167,7 @@ func fetchBugs(c context.Context) ([]*uiBugGroup, error) {
 }
 
 func createUIBug(c context.Context, bug *Bug, state *ReportingState) *uiBug {
-	_, _, reportingIdx, status, link, err := needReport(c, "", state, bug)
+	_, _, _, reportingIdx, status, link, err := needReport(c, "", state, bug)
 	if err != nil {
 		status = err.Error()
 	}
@@ -256,7 +256,11 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 				continue
 			}
 			text := strings.Replace(al.Message, "\n", " ", -1)
-			entry := fmt.Sprintf("%v: %v (%v)\n", formatTime(al.Time), text, rec.Resource)
+			res := ""
+			if !strings.Contains(rec.Resource, "method=log_error") {
+				res = fmt.Sprintf(" (%v)", rec.Resource)
+			}
+			entry := fmt.Sprintf("%v: %v%v\n", formatTime(al.Time), text, res)
 			lines = append(lines, entry)
 		}
 	}

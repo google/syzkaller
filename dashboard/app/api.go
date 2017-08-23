@@ -16,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/email"
 	"github.com/google/syzkaller/pkg/hash"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
@@ -33,6 +34,7 @@ var apiHandlers = map[string]APIHandler{
 	"builder_poll":        apiBuilderPoll,
 	"report_crash":        apiReportCrash,
 	"report_failed_repro": apiReportFailedRepro,
+	"need_repro":          apiNeedRepro,
 	"reporting_poll":      apiReportingPoll,
 	"reporting_update":    apiReportingUpdate,
 }
@@ -318,9 +320,7 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	req.Title = limitLength(req.Title, maxTextLen)
-	if len(req.Maintainers) > maxMaintainers {
-		req.Maintainers = req.Maintainers[:maxMaintainers]
-	}
+	req.Maintainers = email.MergeEmailLists(req.Maintainers)
 
 	build, err := loadBuild(c, ns, req.BuildID)
 	if err != nil {
@@ -420,7 +420,10 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 		return nil, err
 	}
 	purgeOldCrashes(c, bug, bugKey)
-	return nil, nil
+	resp := &dashapi.ReportCrashResp{
+		NeedRepro: needRepro(bug),
+	}
+	return resp, nil
 }
 
 func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
@@ -473,7 +476,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 }
 
 func apiReportFailedRepro(c context.Context, ns string, r *http.Request) (interface{}, error) {
-	req := new(dashapi.FailedRepro)
+	req := new(dashapi.CrashID)
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
@@ -503,6 +506,37 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request) (interf
 		return nil, err
 	}
 	return nil, nil
+}
+
+func apiNeedRepro(c context.Context, ns string, r *http.Request) (interface{}, error) {
+	req := new(dashapi.CrashID)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	req.Title = limitLength(req.Title, maxTextLen)
+
+	bug := new(Bug)
+	for seq := int64(0); ; seq++ {
+		bugHash := bugKeyHash(ns, req.Title, seq)
+		bugKey := datastore.NewKey(c, "Bug", bugHash, 0, nil)
+		if err := datastore.Get(c, bugKey, bug); err != nil {
+			return nil, fmt.Errorf("failed to get bug: %v", err)
+		}
+		if bug.Status == BugStatusOpen || bug.Status == BugStatusDup {
+			break
+		}
+	}
+
+	resp := &dashapi.NeedReproResp{
+		NeedRepro: needRepro(bug),
+	}
+	return resp, nil
+}
+
+func needRepro(bug *Bug) bool {
+	return bug.ReproLevel < ReproLevelC &&
+		bug.NumRepro < 5 &&
+		len(bug.Commits) == 0
 }
 
 func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64, error) {

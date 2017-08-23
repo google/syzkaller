@@ -51,7 +51,13 @@ func enumerateField(opt Options, field int) []Options {
 	} else {
 		panic(fmt.Sprintf("field '%v' is not boolean", fldName))
 	}
-	return opts
+	var checked []Options
+	for _, opt := range opts {
+		if err := opt.Check(); err == nil {
+			checked = append(checked, opt)
+		}
+	}
+	return checked
 }
 
 func allOptionsSingle() []Options {
@@ -79,12 +85,13 @@ func allOptionsPermutations() []Options {
 func TestOne(t *testing.T) {
 	rs, _ := initTest(t)
 	opts := Options{
-		Threaded: true,
-		Collide:  true,
-		Repeat:   true,
-		Procs:    2,
-		Sandbox:  "namespace",
-		Repro:    true,
+		Threaded:  true,
+		Collide:   true,
+		Repeat:    true,
+		Procs:     2,
+		Sandbox:   "namespace",
+		Repro:     true,
+		UseTmpDir: true,
 	}
 	p := prog.GenerateAllSyzProg(rs)
 	testOne(t, p, opts)
@@ -102,7 +109,7 @@ func TestOptions(t *testing.T) {
 			permutations = append(permutations, allPermutations[r.Intn(len(allPermutations))])
 		}
 	} else {
-		permutations = append(permutations, allPermutations...)
+		permutations = allPermutations
 	}
 	for i, opts := range permutations {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {

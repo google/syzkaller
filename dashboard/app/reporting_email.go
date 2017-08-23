@@ -30,6 +30,7 @@ const emailType = "email"
 
 type EmailConfig struct {
 	Email           string
+	Moderation      bool
 	MailMaintainers bool
 }
 
@@ -37,12 +38,16 @@ func (cfg *EmailConfig) Type() string {
 	return emailType
 }
 
+func (cfg *EmailConfig) NeedMaintainers() bool {
+	return cfg.MailMaintainers
+}
+
 func (cfg *EmailConfig) Validate() error {
 	if _, err := mail.ParseAddress(cfg.Email); err != nil {
 		return fmt.Errorf("bad email address %q: %v", cfg.Email, err)
 	}
-	if cfg.MailMaintainers {
-		return fmt.Errorf("mailing maintainers is not supported yet")
+	if cfg.Moderation && cfg.MailMaintainers {
+		return fmt.Errorf("both Moderation and MailMaintainers set")
 	}
 	return nil
 }
@@ -75,23 +80,25 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 	}
 	to := []string{cfg.Email}
 	if cfg.MailMaintainers {
-		panic("are you nuts?")
+		if !appengine.IsDevAppServer() {
+			panic("are you nuts?")
+		}
 		to = append(to, rep.Maintainers...)
 	}
+	to = email.MergeEmailLists(to, rep.CC)
 	attachments := []aemail.Attachment{
 		{
 			Name: "config.txt",
 			Data: rep.KernelConfig,
 		},
 	}
-	repro := dashapi.ReproLevelNone
-	if len(rep.ReproC) != 0 {
-		repro = dashapi.ReproLevelC
+	if len(rep.Log) != 0 {
 		attachments = append(attachments, aemail.Attachment{
-			Name: "repro.c",
-			Data: rep.ReproC,
+			Name: "raw.log",
+			Data: rep.Log,
 		})
 	}
+	repro := dashapi.ReproLevelNone
 	if len(rep.ReproSyz) != 0 {
 		repro = dashapi.ReproLevelSyz
 		attachments = append(attachments, aemail.Attachment{
@@ -99,11 +106,46 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 			Data: rep.ReproSyz,
 		})
 	}
+	if len(rep.ReproC) != 0 {
+		repro = dashapi.ReproLevelC
+		attachments = append(attachments, aemail.Attachment{
+			Name: "repro.c",
+			Data: rep.ReproC,
+		})
+	}
 	from, err := email.AddAddrContext(fromAddr(c), rep.ID)
 	if err != nil {
 		return err
 	}
-	if err := sendMailTemplate(c, rep.Title, from, to, attachments, "mail_bug.txt", rep); err != nil {
+	// Data passed to the template.
+	type BugReportData struct {
+		First        bool
+		Moderation   bool
+		Maintainers  []string
+		CompilerID   string
+		KernelRepo   string
+		KernelBranch string
+		KernelCommit string
+		Report       []byte
+		HasLog       bool
+		ReproSyz     bool
+		ReproC       bool
+	}
+	data := &BugReportData{
+		First:        rep.First,
+		Moderation:   cfg.Moderation,
+		Maintainers:  rep.Maintainers,
+		CompilerID:   rep.CompilerID,
+		KernelRepo:   rep.KernelRepo,
+		KernelBranch: rep.KernelBranch,
+		KernelCommit: rep.KernelCommit,
+		Report:       rep.Report,
+		HasLog:       len(rep.Log) != 0,
+		ReproSyz:     len(rep.ReproSyz) != 0,
+		ReproC:       len(rep.ReproC) != 0,
+	}
+	err = sendMailTemplate(c, rep.Title, from, to, rep.ExtID, attachments, "mail_bug.txt", data)
+	if err != nil {
 		return err
 	}
 	cmd := &dashapi.BugUpdate{
@@ -129,30 +171,49 @@ func incomingMail(c context.Context, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	log.Infof(c, "received email: subject '%v', from '%v', cc '%v', msg '%v', bug '%v', cmd '%v'",
-		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command)
-	var status dashapi.BugStatus
+	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q",
+		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link)
+	// Don't send replies yet.
+	// It is not tested and it is unclear how verbose we want to be.
+	sendReply := false
+	cmd := &dashapi.BugUpdate{
+		ID:    msg.BugID,
+		ExtID: msg.MessageID,
+		Link:  msg.Link,
+		CC:    msg.Cc,
+	}
 	switch msg.Command {
 	case "":
-		return nil
+		cmd.Status = dashapi.BugStatusUpdate
 	case "upstream":
-		status = dashapi.BugStatusUpstream
+		cmd.Status = dashapi.BugStatusUpstream
 	case "invalid":
-		status = dashapi.BugStatusInvalid
+		cmd.Status = dashapi.BugStatusInvalid
+	case "fix:":
+		if msg.CommandArgs == "" {
+			return replyTo(c, msg, fmt.Sprintf("no commit title"), nil)
+		}
+		cmd.Status = dashapi.BugStatusOpen
+		cmd.FixCommits = []string{msg.CommandArgs}
+	case "dup:":
+		if msg.CommandArgs == "" {
+			return replyTo(c, msg, fmt.Sprintf("no dup title"), nil)
+		}
+		cmd.Status = dashapi.BugStatusDup
+		cmd.DupOf = msg.CommandArgs
 	default:
 		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.Command), nil)
 	}
-	cmd := &dashapi.BugUpdate{
-		ID:     msg.BugID,
-		Status: status,
-	}
 	reply, _ := incomingCommand(c, cmd)
+	if !sendReply {
+		return nil
+	}
 	return replyTo(c, msg, reply, nil)
 }
 
 var mailTemplates = template.Must(template.New("").ParseGlob("mail_*.txt"))
 
-func sendMailTemplate(c context.Context, subject, from string, to []string,
+func sendMailTemplate(c context.Context, subject, from string, to []string, replyTo string,
 	attachments []aemail.Attachment, template string, data interface{}) error {
 	body := new(bytes.Buffer)
 	if err := mailTemplates.ExecuteTemplate(body, template, data); err != nil {
@@ -165,10 +226,10 @@ func sendMailTemplate(c context.Context, subject, from string, to []string,
 		Body:        body.String(),
 		Attachments: attachments,
 	}
-	if err := aemail.Send(c, msg); err != nil {
-		return fmt.Errorf("failed to send email: %v", err)
+	if replyTo != "" {
+		msg.Headers = mail.Header{"In-Reply-To": []string{replyTo}}
 	}
-	return nil
+	return sendEmail(c, msg)
 }
 
 func replyTo(c context.Context, msg *email.Email, reply string, attachment *aemail.Attachment) error {
@@ -189,12 +250,17 @@ func replyTo(c context.Context, msg *email.Email, reply string, attachment *aema
 		Attachments: attachments,
 		Headers:     mail.Header{"In-Reply-To": []string{msg.MessageID}},
 	}
-	if err := aemail.Send(c, replyMsg); err != nil {
+	return sendEmail(c, replyMsg)
+}
+
+// Sends email, can be stubbed for testing.
+var sendEmail = func(c context.Context, msg *aemail.Message) error {
+	if err := aemail.Send(c, msg); err != nil {
 		return fmt.Errorf("failed to send email: %v", err)
 	}
 	return nil
 }
 
 func fromAddr(c context.Context) string {
-	return fmt.Sprintf("syzbot <bot@%v.appspotmail.com>", appengine.AppID(c))
+	return fmt.Sprintf("\"syzbot\" <bot@%v.appspotmail.com>", appengine.AppID(c))
 }

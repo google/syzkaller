@@ -9,6 +9,7 @@ package csource
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -45,7 +46,31 @@ type Options struct {
 	Repro bool
 }
 
+// Check checks if the opts combination is valid or not.
+// For example, Collide without Threaded is not valid.
+// Invalid combinations must not be passed to Write.
+func (opts Options) Check() error {
+	if !opts.Threaded && opts.Collide {
+		// Collide requires threaded.
+		return errors.New("Collide without Threaded")
+	}
+	if !opts.Repeat && opts.Procs > 1 {
+		// This does not affect generated code.
+		return errors.New("Procs>1 without Repeat")
+	}
+	if opts.Sandbox == "namespace" && !opts.UseTmpDir {
+		// This is borken and never worked.
+		// This tries to create syz-tmp dir in cwd,
+		// which will fail if procs>1 and on second run of the program.
+		return errors.New("Sandbox=namespace without UseTmpDir")
+	}
+	return nil
+}
+
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
+	if err := opts.Check(); err != nil {
+		return nil, fmt.Errorf("csource: invalid opts: %v", err)
+	}
 	exec := make([]byte, prog.ExecBufferSize)
 	if err := p.SerializeForExec(exec, 0); err != nil {
 		return nil, fmt.Errorf("failed to serialize program: %v", err)
@@ -234,13 +259,13 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 }
 
 func generateCalls(exec []byte, opts Options) ([]string, int) {
-	read := func() uintptr {
+	read := func() uint64 {
 		if len(exec) < 8 {
 			panic("exec program overflow")
 		}
 		v := *(*uint64)(unsafe.Pointer(&exec[0]))
 		exec = exec[8:]
-		return uintptr(v)
+		return v
 	}
 	resultRef := func() string {
 		arg := read()
@@ -307,8 +332,8 @@ loop:
 				case prog.ExecArgCsumInet:
 					fmt.Fprintf(w, "\tstruct csum_inet csum_%d;\n", n)
 					fmt.Fprintf(w, "\tcsum_inet_init(&csum_%d);\n", n)
-					csum_chunks_num := read()
-					for i := uintptr(0); i < csum_chunks_num; i++ {
+					csumChunksNum := read()
+					for i := uint64(0); i < csumChunksNum; i++ {
 						chunk_kind := read()
 						chunk_value := read()
 						chunk_size := read()
@@ -358,7 +383,7 @@ loop:
 				}
 			}
 			nargs := read()
-			for i := uintptr(0); i < nargs; i++ {
+			for i := uint64(0); i < nargs; i++ {
 				typ := read()
 				size := read()
 				_ = size

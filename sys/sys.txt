@@ -9,7 +9,6 @@ include <linux/fanotify.h>
 include <linux/inotify.h>
 include <linux/resource.h>
 include <linux/stat.h>
-include <linux/xattr.h>
 include <linux/mman.h>
 include <linux/time.h>
 include <linux/prctl.h>
@@ -61,9 +60,6 @@ include <linux/memfd.h>
 include <uapi/linux/module.h>
 include <asm/prctl.h>
 include <linux/ioprio.h>
-
-
-
 
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
 resource fd_dir[fd]
@@ -254,13 +250,17 @@ fchmodat(dirfd fd_dir, file ptr[in, filename], mode flags[open_mode])
 chown(file ptr[in, filename], uid uid, gid gid)
 lchown(file ptr[in, filename], uid uid, gid gid)
 fchown(fd fd, uid uid, gid gid)
-fchownat(dirfd fd_dir, file ptr[in, filename], uid uid, gid gid, flags flags[fchownat_flags])
+fchownat(dirfd fd_dir, file ptr[in, filename], uid uid, gid gid, flags flags[at_flags])
 fallocate(fd fd, mode flags[fallocate_mode], off intptr, len intptr)
 faccessat(dirfd fd_dir, pathname ptr[in, filename], mode flags[open_mode], flags flags[faccessat_flags])
 utime(filename ptr[in, filename], times ptr[in, utimbuf])
 utimes(filename ptr[in, filename], times ptr[in, itimerval])
 futimesat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd_dir, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
+
+clone(flags flags[clone_flags], sp buffer[in], parentid ptr[out, int32], childtid ptr[out, int32], tls buffer[in])
+execve(file ptr[in, filename], argv ptr[in, array[ptr[in, string]]], envp ptr[in, array[ptr[in, string]]])
+execveat(dirfd fd_dir, file ptr[in, filename], argv ptr[in, array[ptr[in, string]]], envp ptr[in, array[ptr[in, string]]], flags flags[at_flags])
 
 resource pid[int32]: 0, 0xffffffffffffffff
 resource uid[int32]: 0, 0xffffffffffffffff
@@ -331,6 +331,10 @@ getdents(fd fd_dir, ent buffer[out], count len[ent])
 getdents64(fd fd_dir, ent buffer[out], count len[ent])
 name_to_handle_at(fd fd_dir, file ptr[in, filename], handle ptr[in, file_handle], mnt ptr[out, int32], flags flags[name_to_handle_at_flags])
 open_by_handle_at(mountdirfd fd, handle ptr[in, file_handle], flags flags[open_flags])
+chroot(dir ptr[in, filename])
+getcwd(buf buffer[out], size len[buf])
+chdir(dir ptr[in, filename])
+fchdir(fd fd)
 
 mount(src ptr[in, filename], dst ptr[in, filename], type ptr[in, string[filesystem]], flags flags[mount_flags], data buffer[in, opt])
 umount2(path ptr[in, filename], flags flags[umount_flags])
@@ -368,19 +372,6 @@ ioprio_get$uid(which flags[ioprio_which_uid], who uid)
 ioprio_set$pid(which flags[ioprio_which_pid], who pid, prio intptr)
 ioprio_set$uid(which flags[ioprio_which_uid], who uid, prio intptr)
 setns(fd fd, type flags[ns_type])
-
-setxattr(path ptr[in, filename], name ptr[in, string], val ptr[in, string], size len[val], flags flags[setxattr_flags])
-lsetxattr(path ptr[in, filename],  name ptr[in, string], val ptr[in, string], size len[val], flags flags[setxattr_flags])
-fsetxattr(fd fd,  name ptr[in, string], val ptr[in, string], size len[val], flags flags[setxattr_flags])
-getxattr(path ptr[in, filename],  name ptr[in, string], val buffer[out], size len[val])
-lgetxattr(path ptr[in, filename],  name ptr[in, string], val buffer[out], size len[val])
-fgetxattr(fd fd,  name ptr[in, string], val buffer[out], size len[val])
-listxattr(path ptr[in, filename], list buffer[out], size len[list])
-llistxattr(path ptr[in, filename], list buffer[out], size len[list])
-flistxattr(fd fd, list buffer[out], size len[list])
-removexattr(path ptr[in, filename],  name ptr[in, string])
-lremovexattr(path ptr[in, filename],  name ptr[in, string])
-fremovexattr(fd fd,  name ptr[in, string])
 
 resource timerid[int32]
 timer_create(id flags[clock_id], ev ptr[in, sigevent], timerid ptr[out, timerid])
@@ -505,9 +496,6 @@ openat$dsp(fd const[AT_FDCWD], file ptr[in, string["/dev/dsp"]], flags flags[ope
 openat$audio(fd const[AT_FDCWD], file ptr[in, string["/dev/audio"]], flags flags[open_flags], mode const[0]) fd
 openat$xenevtchn(fd const[AT_FDCWD], file ptr[in, string["/dev/xen/evtchn"]], flags flags[open_flags], mode const[0]) fd
 
-
-
-
 pipefd {
 	rfd	fd
 	wfd	fd
@@ -545,27 +533,27 @@ stat {
 }
 
 statx {
-	mask int32
-	blksize int32
-	attributes int64
-	nlink int32
-	uid int32
-	gid int32
-	mode int16
-	__spare0 int16
-	ino int64
-	size int64
-	blocks int64
-	__spare1 int64
-	atime statx_timestamp
-	btime statx_timestamp
-	ctime statx_timestamp
-	mtime statx_timestamp
-	rdev_major int32
-	rdev_minor int32
-	dev_major int32
-	dev_minor int32
-	__spare2 array[int64, 14]
+	mask		int32
+	blksize		int32
+	attributes	int64
+	nlink		int32
+	uid		int32
+	gid		int32
+	mode		int16
+	__spare0	int16
+	ino		int64
+	size		int64
+	blocks		int64
+	__spare1	int64
+	atime		statx_timestamp
+	btime		statx_timestamp
+	ctime		statx_timestamp
+	mtime		statx_timestamp
+	rdev_major	int32
+	rdev_minor	int32
+	dev_major	int32
+	dev_minor	int32
+	__spare2	array[int64, 14]
 }
 
 pollfd {
@@ -600,11 +588,10 @@ timeval {
 }
 
 statx_timestamp {
-	sec  int64
-	nsec int32
-	__reserved  int32
+	sec		int64
+	nsec		int32
+	__reserved	int32
 }
-
 
 itimerspec {
 	interv	timespec
@@ -917,9 +904,6 @@ uffdio_zeropage {
 	zeropg	const[0, int64]
 }
 
-
-
-
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC, __O_TMPFILE
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 madvise_flags = MADV_NORMAL, MADV_RANDOM, MADV_SEQUENTIAL, MADV_WILLNEED, MADV_DONTNEED, MADV_REMOVE, MADV_DONTFORK, MADV_DOFORK, MADV_HWPOISON, MADV_SOFT_OFFLINE, MADV_MERGEABLE, MADV_UNMERGEABLE, MADV_HUGEPAGE, MADV_NOHUGEPAGE, MADV_DONTDUMP, MADV_DODUMP
@@ -962,10 +946,10 @@ prctl_mm_option = PR_SET_MM_START_CODE, PR_SET_MM_END_CODE, PR_SET_MM_START_DATA
 arch_prctl_code = ARCH_SET_FS, ARCH_GET_FS, ARCH_SET_GS, ARCH_GET_GS
 epoll_flags = EPOLL_CLOEXEC
 epoll_op = EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
-epoll_ev =  POLLIN, POLLOUT, POLLRDHUP, POLLPRI, POLLERR, POLLHUP, EPOLLET, EPOLLONESHOT, EPOLLEXCLUSIVE, EPOLLWAKEUP
+epoll_ev = POLLIN, POLLOUT, POLLRDHUP, POLLPRI, POLLERR, POLLHUP, EPOLLET, EPOLLONESHOT, EPOLLEXCLUSIVE, EPOLLWAKEUP
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND, POLLMSG, POLLREMOVE, POLLRDHUP, POLLFREE, POLL_BUSY_LOOP
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
-fchownat_flags = AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW
+at_flags = AT_EMPTY_PATH, AT_SYMLINK_NOFOLLOW, AT_SYMLINK_FOLLOW, AT_NO_AUTOMOUNT, AT_EMPTY_PATH
 fallocate_mode = 0, FALLOC_FL_KEEP_SIZE, FALLOC_FL_PUNCH_HOLE
 linkat_flags = AT_EMPTY_PATH, AT_SYMLINK_FOLLOW
 unlinkat_flags = 0, AT_REMOVEDIR
@@ -981,7 +965,7 @@ mount_flags = MS_BIND, MS_DIRSYNC, MS_MANDLOCK, MS_MOVE, MS_NOATIME, MS_NODEV, M
 umount_flags = MNT_FORCE, MNT_DETACH, MNT_EXPIRE, UMOUNT_NOFOLLOW
 finit_module_flags = MODULE_INIT_IGNORE_MODVERSIONS, MODULE_INIT_IGNORE_VERMAGIC
 delete_module_flags = O_NONBLOCK, O_TRUNC
-kexec_load_flags = KEXEC_ON_CRASH, KEXEC_PRESERVE_CONTEXT, KEXEC_ARCH_386, KEXEC_ARCH_X86_64, KEXEC_ARCH_PPC, KEXEC_ARCH_PPC64, KEXEC_ARCH_IA_64, KEXEC_ARCH_ARM, KEXEC_ARCH_S390,  KEXEC_ARCH_SH,  KEXEC_ARCH_MIPS, KEXEC_ARCH_MIPS_LE
+kexec_load_flags = KEXEC_ON_CRASH, KEXEC_PRESERVE_CONTEXT, KEXEC_ARCH_386, KEXEC_ARCH_X86_64, KEXEC_ARCH_PPC, KEXEC_ARCH_PPC64, KEXEC_ARCH_IA_64, KEXEC_ARCH_ARM, KEXEC_ARCH_S390, KEXEC_ARCH_SH, KEXEC_ARCH_MIPS, KEXEC_ARCH_MIPS_LE
 inotify_flags = IN_NONBLOCK, IN_CLOEXEC
 inotify_mask = IN_ACCESS, IN_ATTRIB, IN_CLOSE_WRITE, IN_CLOSE_NOWRITE, IN_CREATE, IN_DELETE, IN_DELETE_SELF, IN_MODIFY, IN_MOVE_SELF, IN_MOVED_FROM, IN_MOVED_TO, IN_OPEN, IN_DONT_FOLLOW, IN_EXCL_UNLINK, IN_MASK_ADD, IN_ONESHOT, IN_ONLYDIR
 fanotify_flags = FAN_CLASS_PRE_CONTENT, FAN_CLASS_CONTENT, FAN_CLASS_NOTIF, FAN_CLOEXEC, FAN_NONBLOCK, FAN_UNLIMITED_QUEUE, FAN_UNLIMITED_MARKS
@@ -999,7 +983,6 @@ rlimit_type = RLIMIT_AS, RLIMIT_CORE, RLIMIT_CPU, RLIMIT_DATA, RLIMIT_FSIZE, RLI
 syslog_cmd = SYSLOG_ACTION_CLOSE, SYSLOG_ACTION_OPEN, SYSLOG_ACTION_READ, SYSLOG_ACTION_READ_ALL, SYSLOG_ACTION_READ_CLEAR, SYSLOG_ACTION_CLEAR, SYSLOG_ACTION_CONSOLE_ON, SYSLOG_ACTION_CONSOLE_OFF, SYSLOG_ACTION_SIZE_UNREAD, SYSLOG_ACTION_SIZE_BUFFER
 ioprio_which_pid = IOPRIO_WHO_PROCESS, IOPRIO_WHO_PGRP
 ioprio_which_uid = IOPRIO_WHO_USER
-setxattr_flags = XATTR_CREATE, XATTR_REPLACE
 ns_type = 0, CLONE_NEWIPC, CLONE_NEWNET, CLONE_NEWUTS
 personality_flags = PER_LINUX, PER_SVR4, PER_SVR3, PER_OSR5, PER_WYSEV386, PER_ISCR4, PER_BSD, PER_XENIX, PER_LINUX32, PER_IRIX32, PER_IRIXN32, PER_IRIX64, PER_RISCOS, PER_SOLARIS, PER_UW7, PER_OSF4, PER_HPUX, ADDR_NO_RANDOMIZE, MMAP_PAGE_ZERO, ADDR_COMPAT_LAYOUT, READ_IMPLIES_EXEC, ADDR_LIMIT_32BIT, SHORT_INODE, WHOLE_SECONDS, STICKY_TIMEOUTS, ADDR_LIMIT_3GB
 clock_id = CLOCK_REALTIME, CLOCK_REALTIME_COARSE, CLOCK_MONOTONIC, CLOCK_MONOTONIC_COARSE, CLOCK_MONOTONIC_RAW, CLOCK_BOOTTIME, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
@@ -1007,7 +990,7 @@ sigprocmask_how = SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK
 getitimer_which = ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF
 wait_options = WNOHANG, WUNTRACED, WCONTINUED, WEXITED, WSTOPPED, WCONTINUED, WNOHANG, WNOWAIT, __WCLONE, __WALL, __WNOTHREAD
 waitid_which = P_PID, P_PGID, P_ALL
-sigaction_flags = SA_NOCLDSTOP,SA_NOCLDWAIT, SA_NODEFER, SA_ONSTACK, SA_RESETHAND, SA_RESTART, SA_SIGINFO
+sigaction_flags = SA_NOCLDSTOP, SA_NOCLDWAIT, SA_NODEFER, SA_ONSTACK, SA_RESETHAND, SA_RESTART, SA_SIGINFO
 timer_flags = 0, TIMER_ABSTIME
 utimensat_flags = 0, AT_SYMLINK_NOFOLLOW
 priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
@@ -1041,31 +1024,18 @@ fiemap_flags = FIEMAP_FLAG_SYNC, FIEMAP_FLAG_XATTR, FIEMAP_FLAG_CACHE
 fiemap_extent_flags = FIEMAP_EXTENT_LAST, FIEMAP_EXTENT_UNKNOWN, FIEMAP_EXTENT_DELALLOC, FIEMAP_EXTENT_ENCODED, FIEMAP_EXTENT_DATA_ENCRYPTED, FIEMAP_EXTENT_NOT_ALIGNED, FIEMAP_EXTENT_DATA_INLINE, FIEMAP_EXTENT_DATA_TAIL, FIEMAP_EXTENT_UNWRITTEN, FIEMAP_EXTENT_MERGED, FIEMAP_EXTENT_SHARED
 getrandom_flags = GRND_NONBLOCK, GRND_RANDOM
 uffdio_features = UFFD_FEATURE_PAGEFAULT_FLAG_WP, UFFD_FEATURE_EVENT_FORK, UFFD_FEATURE_EVENT_REMAP, UFFD_FEATURE_EVENT_REMOVE, UFFD_FEATURE_MISSING_HUGETLBFS, UFFD_FEATURE_MISSING_SHMEM, UFFD_FEATURE_EVENT_UNMAP
-
-
-
+clone_flags = CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLONE_VFORK, CLONE_PARENT, CLONE_THREAD, CLONE_NEWNS, CLONE_SYSVSEM, CLONE_SETTLS, CLONE_PARENT_SETTID, CLONE_CHILD_CLEARTID, CLONE_UNTRACED, CLONE_CHILD_SETTID, CLONE_NEWCGROUP, CLONE_NEWUTS, CLONE_NEWIPC, CLONE_NEWUSER, CLONE_NEWPID, CLONE_NEWNET, CLONE_IO
 
 # Not yet implemented syscalls
-#define __NR_clone 56
-#define __NR_fork 57
-#define __NR_vfork 58
-#define __NR_execve 59
-#define __NR_getcwd 79
-#define __NR_chdir 80
-#define __NR_fchdir 81
 #define __NR_umask 95
 #define __NR_vhangup 153
 #define __NR__sysctl 156
 #define __NR_adjtimex 159
-#define __NR_chroot 161
 #define __NR_swapon 167
 #define __NR_swapoff 168
 #define __NR_quotactl 179
 #define __NR_nfsservctl 180
 #define __NR_getcpu 309
-
-
-
 
 # Probably no sense in calling there.
 # Also affect system-wide state, so not reproducble anyway.

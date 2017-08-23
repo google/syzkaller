@@ -26,9 +26,6 @@ func TestReportBug(t *testing.T) {
 		Maintainers: []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`},
 		Log:         []byte("log1"),
 		Report:      []byte("report1"),
-		ReproOpts:   []byte("some opts"),
-		ReproSyz:    []byte("getpid()"),
-		ReproC:      []byte("int main() {}"),
 	}
 	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
 
@@ -51,8 +48,9 @@ func TestReportBug(t *testing.T) {
 	want := &dashapi.BugReport{
 		Config:       []byte(`{"Index":1}`),
 		ID:           rep.ID,
+		First:        true,
 		Title:        "title1",
-		Maintainers:  []string{`"Foo Bar" <foo@bar.com>`, `bar@foo.com`},
+		Maintainers:  []string{"bar@foo.com", "foo@bar.com"},
 		CompilerID:   "compiler1",
 		KernelRepo:   "repo1",
 		KernelBranch: "branch1",
@@ -60,20 +58,26 @@ func TestReportBug(t *testing.T) {
 		KernelConfig: []byte("config1"),
 		Log:          []byte("log1"),
 		Report:       []byte("report1"),
-		ReproC:       []byte("int main() {}"),
-		ReproSyz:     []byte("#some opts\ngetpid()"),
 	}
 	c.expectEQ(rep, want)
 
 	// Since we did not update bug status yet, should get the same report again.
-	c.expectOK(c.API(client1, key1, "reporting_poll", pr, resp))
-	c.expectEQ(len(resp.Reports), 1)
-	c.expectEQ(resp.Reports[0], want)
+	reports := reportAllBugs(c, 1)
+	c.expectEQ(reports[0], want)
+
+	// Now add syz repro and check that we get another bug report.
+	crash1.ReproOpts = []byte("some opts")
+	crash1.ReproSyz = []byte("getpid()")
+	want.First = false
+	want.ReproSyz = []byte("#some opts\ngetpid()")
+	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	reports = reportAllBugs(c, 1)
+	c.expectEQ(reports[0], want)
 
 	cmd := &dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
-		ReproLevel: dashapi.ReproLevelC,
+		ReproLevel: dashapi.ReproLevelSyz,
 	}
 	reply := new(dashapi.BugUpdateReply)
 	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
@@ -107,6 +111,7 @@ func TestReportBug(t *testing.T) {
 		t.Fatalf("bad report ID: %q", rep2.ID)
 	}
 	want.ID = rep2.ID
+	want.First = true
 	want.Config = []byte(`{"Index":2}`)
 	c.expectEQ(rep2, want)
 
@@ -180,6 +185,7 @@ func TestInvalidBug(t *testing.T) {
 	want := &dashapi.BugReport{
 		Config:       []byte(`{"Index":1}`),
 		ID:           rep.ID,
+		First:        true,
 		Title:        "title1 (2)",
 		CompilerID:   "compiler1",
 		KernelRepo:   "repo1",
@@ -192,12 +198,11 @@ func TestInvalidBug(t *testing.T) {
 	}
 	c.expectEQ(rep, want)
 
-	repro := &dashapi.FailedRepro{
-		Manager: build.Manager,
+	cid := &dashapi.CrashID{
 		BuildID: build.ID,
 		Title:   crash1.Title,
 	}
-	c.expectOK(c.API(client1, key1, "report_failed_repro", repro, nil))
+	c.expectOK(c.API(client1, key1, "report_failed_repro", cid, nil))
 }
 
 func TestReportingQuota(t *testing.T) {

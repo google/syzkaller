@@ -153,11 +153,11 @@ unsigned long __phys_addr(unsigned long addr) { return 0; }
 #endif
 int main() {
 	int i;
-	unsigned long vals[] = {[[VALS]]};
+	unsigned long long vals[] = {[[VALS]]};
 	for (i = 0; i < sizeof(vals)/sizeof(vals[0]); i++) {
 		if (i != 0)
 			printf(" ");
-		printf("%lu", vals[i]);
+		printf("%llu", vals[i]);
 	}
 	return 0;
 }

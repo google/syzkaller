@@ -85,19 +85,36 @@ type Crash struct {
 	ReproC    []byte
 }
 
-func (dash *Dashboard) ReportCrash(crash *Crash) error {
-	return dash.query("report_crash", crash, nil)
+type ReportCrashResp struct {
+	NeedRepro bool
 }
 
-// FailedRepro describes a failed repro attempt.
-type FailedRepro struct {
-	Manager string
+func (dash *Dashboard) ReportCrash(crash *Crash) (*ReportCrashResp, error) {
+	resp := new(ReportCrashResp)
+	err := dash.query("report_crash", crash, resp)
+	return resp, err
+}
+
+// CrashID is a short summary of a crash for repro queires.
+type CrashID struct {
 	BuildID string
 	Title   string
 }
 
-func (dash *Dashboard) ReportFailedRepro(repro *FailedRepro) error {
-	return dash.query("report_failed_repro", repro, nil)
+type NeedReproResp struct {
+	NeedRepro bool
+}
+
+// NeedRepro checks if dashboard needs a repro for this crash or not.
+func (dash *Dashboard) NeedRepro(crash *CrashID) (bool, error) {
+	resp := new(NeedReproResp)
+	err := dash.query("need_repro", crash, resp)
+	return resp.NeedRepro, err
+}
+
+// ReportFailedRepro notifies dashboard about a failed repro attempt for the crash.
+func (dash *Dashboard) ReportFailedRepro(crash *CrashID) error {
+	return dash.query("report_failed_repro", crash, nil)
 }
 
 type LogEntry struct {
@@ -119,8 +136,11 @@ func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
 type BugReport struct {
 	Config       []byte
 	ID           string
+	ExtID        string // arbitrary reporting ID forwarded from BugUpdate.ExtID
+	First        bool   // Set for first report for this bug.
 	Title        string
 	Maintainers  []string
+	CC           []string // additional CC emails
 	CompilerID   string
 	KernelRepo   string
 	KernelBranch string
@@ -134,11 +154,13 @@ type BugReport struct {
 
 type BugUpdate struct {
 	ID         string
+	ExtID      string
 	Link       string
 	Status     BugStatus
 	ReproLevel ReproLevel
 	DupOf      string
 	FixCommits []string // Titles of commits that fix this bug.
+	CC         []string // Additional emails to add to CC list in future emails.
 }
 
 type BugUpdateReply struct {
@@ -164,6 +186,7 @@ const (
 	BugStatusUpstream
 	BugStatusInvalid
 	BugStatusDup
+	BugStatusUpdate // aux info update (i.e. ExtID/Link/CC)
 )
 
 const (

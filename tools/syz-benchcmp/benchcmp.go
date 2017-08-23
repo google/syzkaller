@@ -51,6 +51,7 @@ func main() {
 	}
 	for i, fname := range flag.Args() {
 		data := readFile(fname)
+		addExecSpeed(data)
 		for _, g := range graphs {
 			g.Headers = append(g.Headers, filepath.Base(fname))
 			for _, v := range data {
@@ -90,6 +91,21 @@ func readFile(fname string) (data []map[string]uint64) {
 		data = append(data, v)
 	}
 	return
+}
+
+func addExecSpeed(data []map[string]uint64) {
+	// Speed between consecutive samples is very unstable.
+	const (
+		window = 100
+		step   = 10
+	)
+	for i := window; i < len(data); i += step {
+		cur := data[i]
+		prev := data[i-window]
+		dx := cur["exec total"] - prev["exec total"]
+		dt := cur["fuzzing"] - prev["fuzzing"]
+		cur["exec speed"] = dx * 1000 / dt
+	}
 }
 
 func skipStart(g *Graph) {

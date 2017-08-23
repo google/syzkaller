@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"sort"
 	"text/template"
-
-	. "github.com/google/syzkaller/sys/sysparser"
 )
 
 type Arch struct {
@@ -18,7 +16,9 @@ type Arch struct {
 
 var archs = []*Arch{
 	{"amd64", []string{"__x86_64__"}},
+	{"386", []string{"__i386__"}},
 	{"arm64", []string{"__aarch64__"}},
+	{"arm", []string{"__arm__"}},
 	{"ppc64le", []string{"__ppc64__", "__PPC64__", "__powerpc64__"}},
 }
 

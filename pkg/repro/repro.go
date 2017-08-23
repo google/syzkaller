@@ -490,7 +490,7 @@ func (ctx *context) simplifyC(res *Result) (*Result, error) {
 
 func (ctx *context) testProg(p *prog.Prog, duration time.Duration, opts csource.Options) (crashed bool, err error) {
 	entry := prog.LogEntry{P: p}
-	if opts.FaultCall != -1 {
+	if opts.Fault {
 		entry.Fault = true
 		entry.FaultCall = opts.FaultCall
 		entry.FaultNth = opts.FaultNth
@@ -739,6 +739,15 @@ type Simplify func(opts *csource.Options) bool
 
 var progSimplifies = []Simplify{
 	func(opts *csource.Options) bool {
+		if !opts.Fault {
+			return false
+		}
+		opts.Fault = false
+		opts.FaultCall = 0
+		opts.FaultNth = 0
+		return true
+	},
+	func(opts *csource.Options) bool {
 		if !opts.Collide {
 			return false
 		}
@@ -757,6 +766,7 @@ var progSimplifies = []Simplify{
 			return false
 		}
 		opts.Repeat = false
+		opts.Procs = 1
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -791,7 +801,7 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.UseTmpDir {
+		if !opts.UseTmpDir || opts.Sandbox == "namespace" {
 			return false
 		}
 		opts.UseTmpDir = false

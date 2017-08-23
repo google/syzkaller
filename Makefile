@@ -10,9 +10,10 @@ endif
 	manager fuzzer executor \
 	ci hub \
 	execprog mutate prog2c stress repro upgrade db \
+	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
 	extract generate \
 	android \
-	format tidy test arch presubmit clean
+	format tidy test arch cross-compile presubmit clean
 
 all:
 	$(MAKE) main
@@ -81,9 +82,12 @@ generate: bin/syz-sysgen
 bin/syz-sysgen:
 	go build $(GOFLAGS) -o $@ ./sys/syz-sysgen
 
-format:
+format: bin/syz-fmt
 	go fmt ./...
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
+	bin/syz-fmt sys
+bin/syz-fmt:
+	go build $(GOFLAGS) -o $@ ./tools/syz-fmt
 
 tidy:
 	# A single check is enabled for now. But it's always fixable and proved to be useful.
@@ -98,6 +102,8 @@ test:
 arch:
 	GOOS=linux GOARCH=amd64 go install ./...
 	GOOS=linux GOARCH=arm64 go install ./...
+	GOOS=linux GOARCH=386 go install ./...
+	GOOS=linux GOARCH=arm go install ./...
 	GOOS=linux GOARCH=ppc64le go install ./...
 	GOOS=darwin GOARCH=amd64 go build -o /dev/null ./syz-manager
 
@@ -110,6 +116,11 @@ presubmit:
 
 clean:
 	rm -rf ./bin/
+
+cross-compile:
+	# We could use arm-linux-gnueabihf-gcc from  g++-arm-linux-gnueabihf package,
+	# but it is broken with "Error: alignment too large: 15 assumed"
+	env CC="clang" CFLAGS="--target=linux-armv6 -mfloat-abi=hard" $(MAKE) executor
 
 android: UNAME=$(shell uname | tr '[:upper:]' '[:lower:]')
 android: ANDROID_ARCH=arm64

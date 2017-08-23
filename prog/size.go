@@ -24,7 +24,7 @@ func generateSize(arg Arg, lenType *sys.LenType) Arg {
 		if lenType.ByteSize != 0 {
 			return constArg(lenType, a.Size()/lenType.ByteSize)
 		} else {
-			return constArg(lenType, uintptr(len(a.Inner)))
+			return constArg(lenType, uint64(len(a.Inner)))
 		}
 	default:
 		if lenType.ByteSize != 0 {

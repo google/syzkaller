@@ -15,7 +15,7 @@ import (
 	"github.com/google/syzkaller/sys"
 )
 
-var pageStartPool = sync.Pool{New: func() interface{} { return new([]uintptr) }}
+var pageStartPool = sync.Pool{New: func() interface{} { return new([]uint64) }}
 
 type randGen struct {
 	*rand.Rand
@@ -27,12 +27,12 @@ func newRand(rs rand.Source) *randGen {
 	return &randGen{rand.New(rs), false, make(map[sys.Type]int)}
 }
 
-func (r *randGen) rand(n int) uintptr {
-	return uintptr(r.Intn(n))
+func (r *randGen) rand(n int) uint64 {
+	return uint64(r.Intn(n))
 }
 
-func (r *randGen) randRange(begin int, end int) uintptr {
-	return uintptr(begin + r.Intn(end-begin+1))
+func (r *randGen) randRange(begin, end uint64) uint64 {
+	return begin + uint64(r.Intn(int(end-begin+1)))
 }
 
 func (r *randGen) bin() bool {
@@ -43,8 +43,8 @@ func (r *randGen) oneOf(n int) bool {
 	return r.Intn(n) == 0
 }
 
-func (r *randGen) rand64() uintptr {
-	v := uintptr(r.Int63())
+func (r *randGen) rand64() uint64 {
+	v := uint64(r.Int63())
 	if r.bin() {
 		v |= 1 << 63
 	}
@@ -52,7 +52,7 @@ func (r *randGen) rand64() uintptr {
 }
 
 // Some potentially interesting integers.
-var specialInts = []uintptr{
+var specialInts = []uint64{
 	0, 1, 31, 32, 63, 64, 127, 128,
 	129, 255, 256, 257, 511, 512,
 	1023, 1024, 1025, 2047, 2048, 4095, 4096,
@@ -62,7 +62,7 @@ var specialInts = []uintptr{
 	(1 << 32) - 1, (1 << 32), (1 << 32) + 1,
 }
 
-func (r *randGen) randInt() uintptr {
+func (r *randGen) randInt() uint64 {
 	v := r.rand64()
 	switch {
 	case r.nOutOf(100, 182):
@@ -81,18 +81,18 @@ func (r *randGen) randInt() uintptr {
 	switch {
 	case r.nOutOf(100, 107):
 	case r.nOutOf(5, 7):
-		v = uintptr(-int(v))
+		v = uint64(-int64(v))
 	default:
 		v <<= uint(r.Intn(63))
 	}
 	return v
 }
 
-func (r *randGen) randRangeInt(begin int64, end int64) uintptr {
+func (r *randGen) randRangeInt(begin uint64, end uint64) uint64 {
 	if r.oneOf(100) {
 		return r.randInt()
 	}
-	return uintptr(begin + r.Int63n(end-begin+1))
+	return begin + uint64(r.Int63n(int64(end-begin+1)))
 }
 
 // biasedRand returns a random int in range [0..n),
@@ -104,14 +104,14 @@ func (r *randGen) biasedRand(n, k int) int {
 	return int(bf)
 }
 
-func (r *randGen) randArrayLen() uintptr {
+func (r *randGen) randArrayLen() uint64 {
 	const maxLen = 10
 	// biasedRand produces: 10, 9, ..., 1, 0,
 	// we want: 1, 2, ..., 9, 10, 0
-	return uintptr(maxLen-r.biasedRand(maxLen+1, 10)+1) % (maxLen + 1)
+	return uint64(maxLen-r.biasedRand(maxLen+1, 10)+1) % (maxLen + 1)
 }
 
-func (r *randGen) randBufLen() (n uintptr) {
+func (r *randGen) randBufLen() (n uint64) {
 	switch {
 	case r.nOutOf(50, 56):
 		n = r.rand(256)
@@ -121,7 +121,7 @@ func (r *randGen) randBufLen() (n uintptr) {
 	return
 }
 
-func (r *randGen) randPageCount() (n uintptr) {
+func (r *randGen) randPageCount() (n uint64) {
 	switch {
 	case r.nOutOf(100, 106):
 		n = r.rand(4) + 1
@@ -133,7 +133,7 @@ func (r *randGen) randPageCount() (n uintptr) {
 	return
 }
 
-func (r *randGen) flags(vv []uintptr) (v uintptr) {
+func (r *randGen) flags(vv []uint64) (v uint64) {
 	switch {
 	case r.nOutOf(90, 111):
 		for stop := false; !stop; stop = r.bin() {
@@ -255,7 +255,7 @@ func (r *randGen) timespec(s *state, typ *sys.StructType, usec bool) (arg Arg, c
 		})
 	case r.nOutOf(1, 3):
 		// few ms ahead for relative, past for absolute
-		nsec := uintptr(10 * 1e6)
+		nsec := uint64(10 * 1e6)
 		if usec {
 			nsec /= 1e3
 		}
@@ -279,7 +279,7 @@ func (r *randGen) timespec(s *state, typ *sys.StructType, usec bool) (arg Arg, c
 			resultArg(argType.Fields[1], nil, 0),
 		})
 		var tpaddr Arg
-		tpaddr, calls = r.addr(s, ptrArgType, 2*ptrSize, tp)
+		tpaddr, calls = r.addr(s, ptrArgType, 16, tp)
 		gettime := &Call{
 			Meta: meta,
 			Args: []Arg{
@@ -303,7 +303,7 @@ func (r *randGen) timespec(s *state, typ *sys.StructType, usec bool) (arg Arg, c
 }
 
 // createMmapCall creates a "normal" mmap call that maps [start, start+npages) page range.
-func createMmapCall(start, npages uintptr) *Call {
+func createMmapCall(start, npages uint64) *Call {
 	meta := sys.CallMap["mmap"]
 	mmap := &Call{
 		Meta: meta,
@@ -320,7 +320,7 @@ func createMmapCall(start, npages uintptr) *Call {
 	return mmap
 }
 
-func (r *randGen) addr1(s *state, typ sys.Type, size uintptr, data Arg) (Arg, []*Call) {
+func (r *randGen) addr1(s *state, typ sys.Type, size uint64, data Arg) (Arg, []*Call) {
 	npages := (size + pageSize - 1) / pageSize
 	if npages == 0 {
 		npages = 1
@@ -328,9 +328,9 @@ func (r *randGen) addr1(s *state, typ sys.Type, size uintptr, data Arg) (Arg, []
 	if r.bin() {
 		return r.randPageAddr(s, typ, npages, data, false), nil
 	}
-	for i := uintptr(0); i < maxPages-npages; i++ {
+	for i := uint64(0); i < maxPages-npages; i++ {
 		free := true
-		for j := uintptr(0); j < npages; j++ {
+		for j := uint64(0); j < npages; j++ {
 			if s.pages[i+j] {
 				free = false
 				break
@@ -345,7 +345,7 @@ func (r *randGen) addr1(s *state, typ sys.Type, size uintptr, data Arg) (Arg, []
 	return r.randPageAddr(s, typ, npages, data, false), nil
 }
 
-func (r *randGen) addr(s *state, typ sys.Type, size uintptr, data Arg) (Arg, []*Call) {
+func (r *randGen) addr(s *state, typ sys.Type, size uint64, data Arg) (Arg, []*Call) {
 	arg, calls := r.addr1(s, typ, size, data)
 	a, ok := arg.(*PointerArg)
 	if !ok {
@@ -366,12 +366,12 @@ func (r *randGen) addr(s *state, typ sys.Type, size uintptr, data Arg) (Arg, []*
 	return arg, calls
 }
 
-func (r *randGen) randPageAddr(s *state, typ sys.Type, npages uintptr, data Arg, vma bool) Arg {
-	poolPtr := pageStartPool.Get().(*[]uintptr)
+func (r *randGen) randPageAddr(s *state, typ sys.Type, npages uint64, data Arg, vma bool) Arg {
+	poolPtr := pageStartPool.Get().(*[]uint64)
 	starts := (*poolPtr)[:0]
-	for i := uintptr(0); i < maxPages-npages; i++ {
+	for i := uint64(0); i < maxPages-npages; i++ {
 		busy := true
-		for j := uintptr(0); j < npages; j++ {
+		for j := uint64(0); j < npages; j++ {
 			if !s.pages[i+j] {
 				busy = false
 				break
@@ -384,7 +384,7 @@ func (r *randGen) randPageAddr(s *state, typ sys.Type, npages uintptr, data Arg,
 		}
 		starts = append(starts, i)
 	}
-	var page uintptr
+	var page uint64
 	if len(starts) != 0 {
 		page = starts[r.rand(len(starts))]
 	} else {
@@ -608,26 +608,14 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg Arg, calls []*Call) {
 		// in subsequent calls. For the same reason we do generate pointer/array/struct
 		// output arguments (their elements can be referenced in subsequent calls).
 		switch typ.(type) {
-		case *sys.IntType, *sys.FlagsType, *sys.ConstType, *sys.ProcType:
-			return constArg(typ, typ.Default()), nil
-		case *sys.VmaType:
-			return pointerArg(typ, 0, 0, 0, nil), nil
-		case *sys.ResourceType:
-			return resultArg(typ, nil, typ.Default()), nil
+		case *sys.IntType, *sys.FlagsType, *sys.ConstType, *sys.ProcType,
+			*sys.VmaType, *sys.ResourceType:
+			return defaultArg(typ), nil
 		}
 	}
 
 	if typ.Optional() && r.oneOf(5) {
-		switch typ.(type) {
-		case *sys.PtrType:
-			return pointerArg(typ, 0, 0, 0, nil), nil
-		case *sys.BufferType:
-			panic("impossible") // parent PtrType must be Optional instead
-		case *sys.VmaType:
-			return pointerArg(typ, 0, 0, 0, nil), nil
-		default:
-			return constArg(typ, typ.Default()), nil
-		}
+		return defaultArg(typ), nil
 	}
 
 	// Allow infinite recursion for optional pointers.
@@ -676,7 +664,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg Arg, calls []*Call) {
 		case sys.BufferBlobRand, sys.BufferBlobRange:
 			sz := r.randBufLen()
 			if a.Kind == sys.BufferBlobRange {
-				sz = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
+				sz = r.randRange(a.RangeBegin, a.RangeEnd)
 			}
 			data := make([]byte, sz)
 			if a.Dir() != sys.DirOut {
@@ -711,7 +699,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg Arg, calls []*Call) {
 	case *sys.VmaType:
 		npages := r.randPageCount()
 		if a.RangeBegin != 0 || a.RangeEnd != 0 {
-			npages = uintptr(int(a.RangeBegin) + r.Intn(int(a.RangeEnd-a.RangeBegin+1)))
+			npages = a.RangeBegin + uint64(r.Intn(int(a.RangeEnd-a.RangeBegin+1)))
 		}
 		arg := r.randPageAddr(s, a, npages, nil, true)
 		return arg, nil
@@ -740,16 +728,16 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg Arg, calls []*Call) {
 	case *sys.ProcType:
 		return constArg(a, r.rand(int(a.ValuesPerProc))), nil
 	case *sys.ArrayType:
-		count := uintptr(0)
+		var count uint64
 		switch a.Kind {
 		case sys.ArrayRandLen:
 			count = r.randArrayLen()
 		case sys.ArrayRangeLen:
-			count = r.randRange(int(a.RangeBegin), int(a.RangeEnd))
+			count = r.randRange(a.RangeBegin, a.RangeEnd)
 		}
 		var inner []Arg
 		var calls []*Call
-		for i := uintptr(0); i < count; i++ {
+		for i := uint64(0); i < count; i++ {
 			arg1, calls1 := r.generateArg(s, a.Type)
 			inner = append(inner, arg1)
 			calls = append(calls, calls1...)

@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/google/syzkaller/sys/sysparser"
+	"github.com/google/syzkaller/pkg/ast"
 )
 
 var (
@@ -37,24 +37,13 @@ const (
 func main() {
 	flag.Parse()
 
-	inputFiles, err := filepath.Glob("sys/*\\.txt")
-	if err != nil {
-		failf("failed to find input files: %v", err)
+	top, ok := ast.ParseGlob("sys/*\\.txt", nil)
+	if !ok {
+		os.Exit(1)
 	}
-	var r io.Reader = bytes.NewReader(nil)
-	for _, f := range inputFiles {
-		inf, err := os.Open(f)
-		logf(1, "Load descriptions from file %v", f)
-		if err != nil {
-			failf("failed to open input file: %v", err)
-		}
-		defer inf.Close()
-		r = io.MultiReader(r, bufio.NewReader(inf))
-	}
+	desc := astToDesc(top)
 
-	logf(1, "Parse system call descriptions")
-	desc := Parse(r)
-
+	unsupportedFlags := make(map[string]int)
 	consts := make(map[string]map[string]uint64)
 	for _, arch := range archs {
 		logf(0, "generating %v...", arch.Name)
@@ -71,6 +60,7 @@ func main() {
 					} else {
 						if !unsupported[val] {
 							unsupported[val] = true
+							unsupportedFlags[val]++
 							logf(0, "unsupported flag: %v", val)
 						}
 					}
@@ -91,6 +81,12 @@ func main() {
 		logf(0, "")
 	}
 
+	for flag, count := range unsupportedFlags {
+		if count == len(archs) {
+			failf("flag %v is unsupported on all arches (typo?)", flag)
+		}
+	}
+
 	generateExecutorSyscalls(desc.Syscalls, consts)
 
 	if *flagMemProfile != "" {
@@ -104,6 +100,212 @@ func main() {
 		}
 		f.Close()
 	}
+}
+
+type Description struct {
+	Syscalls  []Syscall
+	Structs   map[string]*Struct
+	Unnamed   map[string][]string
+	Flags     map[string][]string
+	StrFlags  map[string][]string
+	Resources map[string]Resource
+}
+
+type Syscall struct {
+	Name     string
+	CallName string
+	Args     [][]string
+	Ret      []string
+}
+
+type Struct struct {
+	Name    string
+	Flds    [][]string
+	IsUnion bool
+	Packed  bool
+	Varlen  bool
+	Align   int
+}
+
+type Resource struct {
+	Name   string
+	Base   string
+	Values []string
+}
+
+type syscallArray []Syscall
+
+func (a syscallArray) Len() int           { return len(a) }
+func (a syscallArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
+func (a syscallArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
+func astToDesc(top []interface{}) *Description {
+	// As a temporal measure we just convert the new representation to the old one.
+	// TODO: check for duplicate defines, structs, resources.
+	// TODO: check for duplicate syscall argument names.
+	desc := &Description{
+		Structs:   make(map[string]*Struct),
+		Unnamed:   make(map[string][]string),
+		Flags:     make(map[string][]string),
+		StrFlags:  make(map[string][]string),
+		Resources: make(map[string]Resource),
+	}
+	unnamedSeq := 0
+	for _, decl := range top {
+		switch n := decl.(type) {
+		case *ast.Resource:
+			var vals []string
+			for _, v := range n.Values {
+				switch {
+				case v.Ident != "":
+					vals = append(vals, v.Ident)
+				default:
+					if v.ValueHex {
+						vals = append(vals, fmt.Sprintf("0x%x", uintptr(v.Value)))
+					} else {
+						vals = append(vals, fmt.Sprint(uintptr(v.Value)))
+					}
+				}
+			}
+			desc.Resources[n.Name.Name] = Resource{
+				Name:   n.Name.Name,
+				Base:   n.Base.Name,
+				Values: vals,
+			}
+		case *ast.Call:
+			call := Syscall{
+				Name:     n.Name.Name,
+				CallName: n.CallName,
+			}
+			for _, a := range n.Args {
+				call.Args = append(call.Args, astToDescField(a, desc.Unnamed, &unnamedSeq))
+			}
+			if n.Ret != nil {
+				call.Ret = astToDescType(n.Ret, desc.Unnamed, &unnamedSeq)
+			}
+			desc.Syscalls = append(desc.Syscalls, call)
+		case *ast.Struct:
+			str := &Struct{
+				Name:    n.Name.Name,
+				IsUnion: n.IsUnion,
+			}
+			for _, f := range n.Fields {
+				str.Flds = append(str.Flds, astToDescField(f, desc.Unnamed, &unnamedSeq))
+			}
+			if n.IsUnion {
+				for _, attr := range n.Attrs {
+					switch attr.Name {
+					case "varlen":
+						str.Varlen = true
+					default:
+						failf("unknown union %v attribute: %v", str.Name, attr.Name)
+					}
+				}
+			} else {
+				for _, attr := range n.Attrs {
+					switch {
+					case attr.Name == "packed":
+						str.Packed = true
+					case attr.Name == "align_ptr":
+						str.Align = 8 // TODO: this must be target pointer size
+					case strings.HasPrefix(attr.Name, "align_"):
+						a, err := strconv.ParseUint(attr.Name[6:], 10, 64)
+						if err != nil {
+							failf("bad struct %v alignment %v: %v", str.Name, attr.Name, err)
+						}
+						if a&(a-1) != 0 || a == 0 || a > 1<<30 {
+							failf("bad struct %v alignment %v: must be sane power of 2", str.Name, a)
+						}
+						str.Align = int(a)
+					default:
+						failf("unknown struct %v attribute: %v", str.Name, attr.Name)
+					}
+				}
+			}
+			if str.IsUnion && len(str.Flds) <= 1 {
+				failf("union %v has only %v fields, need at least 2", str.Name, len(str.Flds))
+			}
+			fields := make(map[string]bool)
+			for _, f := range str.Flds {
+				if f[0] == "parent" {
+					failf("struct/union %v contains reserved field 'parent'", str.Name)
+				}
+				if fields[f[0]] {
+					failf("duplicate field %v in struct/union %v", f[0], str.Name)
+				}
+				fields[f[0]] = true
+			}
+			desc.Structs[str.Name] = str
+		case *ast.IntFlags:
+			var vals []string
+			for _, v := range n.Values {
+				switch {
+				case v.Ident != "":
+					vals = append(vals, v.Ident)
+				default:
+					if v.ValueHex {
+						vals = append(vals, fmt.Sprintf("0x%x", uintptr(v.Value)))
+					} else {
+						vals = append(vals, fmt.Sprint(uintptr(v.Value)))
+					}
+				}
+			}
+			desc.Flags[n.Name.Name] = vals
+		case *ast.StrFlags:
+			var vals []string
+			for _, v := range n.Values {
+				vals = append(vals, v.Value)
+			}
+			desc.StrFlags[n.Name.Name] = vals
+		}
+	}
+	sort.Sort(syscallArray(desc.Syscalls))
+	return desc
+}
+
+func astToDescField(n *ast.Field, unnamed map[string][]string, unnamedSeq *int) []string {
+	return append([]string{n.Name.Name}, astToDescType(n.Type, unnamed, unnamedSeq)...)
+}
+
+func astToDescType(n *ast.Type, unnamed map[string][]string, unnamedSeq *int) []string {
+	res := []string{astTypeToStr(n)}
+	for _, t := range n.Args {
+		if len(t.Args) == 0 {
+			res = append(res, astTypeToStr(t))
+			continue
+		}
+		id := fmt.Sprintf("unnamed%v", *unnamedSeq)
+		(*unnamedSeq)++
+		unnamed[id] = astToDescType(t, unnamed, unnamedSeq)
+		res = append(res, id)
+	}
+	return res
+}
+
+func astTypeToStr(n *ast.Type) string {
+	res := ""
+	switch {
+	case n.Ident != "":
+		res = n.Ident
+	case n.String != "":
+		res = fmt.Sprintf("\"%v\"", n.String)
+	default:
+		if n.ValueHex {
+			res = fmt.Sprintf("0x%x", uintptr(n.Value))
+		} else {
+			res = fmt.Sprint(uintptr(n.Value))
+		}
+	}
+	if n.Ident2 != "" {
+		res += ":" + n.Ident2
+	} else if n.Value2 != 0 {
+		if n.Value2Hex {
+			res += fmt.Sprintf(":0x%x", uintptr(n.Value2))
+		} else {
+			res += ":" + fmt.Sprint(uintptr(n.Value2))
+		}
+	}
+	return res
 }
 
 func readConsts(arch string) map[string]uint64 {
@@ -261,7 +463,7 @@ func generateResources(desc *Description, consts map[string]uint64, out io.Write
 			}
 			fmt.Fprintf(out, "\"%v\"", k)
 		}
-		fmt.Fprintf(out, "}, Values: []uintptr{")
+		fmt.Fprintf(out, "}, Values: []uint64{")
 		if len(values) == 0 {
 			values = append(values, "0")
 		}
@@ -577,7 +779,7 @@ func generateArg(
 		if len(vals) == 0 {
 			fmt.Fprintf(out, "&IntType{%v}", intCommon(size, bigEndian, bitfieldLen))
 		} else {
-			fmt.Fprintf(out, "&FlagsType{%v, Vals: []uintptr{%v}}", intCommon(size, bigEndian, bitfieldLen), strings.Join(vals, ","))
+			fmt.Fprintf(out, "&FlagsType{%v, Vals: []uint64{%v}}", intCommon(size, bigEndian, bitfieldLen), strings.Join(vals, ","))
 		}
 	case "const":
 		canBeArg = true
@@ -603,7 +805,7 @@ func generateArg(
 			val = "0"
 			skipSyscall(fmt.Sprintf("missing const %v", a[0]))
 		}
-		fmt.Fprintf(out, "&ConstType{%v, Val: uintptr(%v)}", intCommon(size, bigEndian, bitfieldLen), val)
+		fmt.Fprintf(out, "&ConstType{%v, Val: uint64(%v)}", intCommon(size, bigEndian, bitfieldLen), val)
 	case "proc":
 		canBeArg = true
 		size := uint64(ptrSize)

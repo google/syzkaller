@@ -8,12 +8,15 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
-	. "github.com/google/syzkaller/sys/sysparser"
 )
 
 var (
@@ -32,7 +35,9 @@ type Arch struct {
 
 var archs = map[string]*Arch{
 	"amd64":   {[]string{"__x86_64__"}, "x86", "asm/unistd.h", []string{"-m64"}},
+	"386":     {[]string{"__i386__"}, "x86", "asm/unistd.h", []string{"-m32"}},
 	"arm64":   {[]string{"__aarch64__"}, "arm64", "asm/unistd.h", []string{}},
+	"arm":     {[]string{"__arm__"}, "arm", "asm/unistd.h", []string{"-D__LINUX_ARM_ARCH__=6", "-m32"}},
 	"ppc64le": {[]string{"__ppc64__", "__PPC64__", "__powerpc64__"}, "powerpc", "asm/unistd.h", []string{"-D__powerpc64__"}},
 }
 
@@ -58,14 +63,17 @@ func main() {
 	inname := flag.Args()[0]
 	outname := strings.TrimSuffix(inname, ".txt") + "_" + *flagArch + ".const"
 
-	inf, err := os.Open(inname)
+	indata, err := ioutil.ReadFile(inname)
 	if err != nil {
-		failf("failed to open input file: %v", err)
+		failf("failed to read input file: %v", err)
 	}
-	defer inf.Close()
 
-	desc := Parse(inf)
-	consts := compileConsts(archs[*flagArch], desc)
+	top, ok := ast.Parse(indata, filepath.Dir(inname), nil)
+	if !ok {
+		os.Exit(1)
+	}
+
+	consts := compileConsts(archs[*flagArch], top)
 
 	out := new(bytes.Buffer)
 	generateConsts(*flagArch, consts, out)
@@ -87,55 +95,16 @@ func generateConsts(arch string, consts map[string]uint64, out io.Writer) {
 	}
 }
 
-func compileConsts(arch *Arch, desc *Description) map[string]uint64 {
-	vals := make(map[string]bool)
-	for _, fvals := range desc.Flags {
-		for _, v := range fvals {
-			vals[v] = true
-		}
-	}
-	for v := range desc.Defines {
-		vals[v] = true
-	}
-	for _, sc := range desc.Syscalls {
-		if strings.HasPrefix(sc.CallName, "syz_") {
-			continue
-		}
-		name := "__NR_" + sc.CallName
-		vals[name] = true
-	}
-	for _, res := range desc.Resources {
-		for _, v := range res.Values {
-			vals[v] = true
-		}
-	}
-
-	valArr := make([]string, 0, len(vals))
-	for v := range vals {
-		if !isIdentifier(v) {
-			continue
-		}
-		valArr = append(valArr, v)
-	}
+func compileConsts(arch *Arch, top []interface{}) map[string]uint64 {
+	valArr, includes, incdirs, defines := compiler.ExtractConsts(top)
 	if len(valArr) == 0 {
 		return nil
 	}
-
-	consts, err := fetchValues(arch.KernelHeaderArch, valArr, append(desc.Includes, arch.KernelInclude), desc.Incdirs, desc.Defines, arch.CFlags)
+	consts, err := fetchValues(arch.KernelHeaderArch, valArr, append(includes, arch.KernelInclude), incdirs, defines, arch.CFlags)
 	if err != nil {
 		failf("%v", err)
 	}
 	return consts
-}
-
-func isIdentifier(s string) bool {
-	for i, c := range s {
-		if c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || i > 0 && (c >= '0' && c <= '9') {
-			continue
-		}
-		return false
-	}
-	return true
 }
 
 type NameValue struct {

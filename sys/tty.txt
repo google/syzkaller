@@ -238,4 +238,3 @@ tiocl_report_mouse {
 	subcode	const[7, int8]
 	shift	int8
 }
-
