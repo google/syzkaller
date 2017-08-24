@@ -684,7 +684,9 @@ void execute_call(thread_t* th)
 	}
 
 	cover_reset(th);
-	th->res = execute_syscall(call->sys_nr, th->args[0], th->args[1], th->args[2], th->args[3], th->args[4], th->args[5], th->args[6], th->args[7], th->args[8]);
+	th->res = execute_syscall(call->sys_nr, th->args[0], th->args[1],
+				  th->args[2], th->args[3], th->args[4], th->args[5],
+				  th->args[6], th->args[7], th->args[8]);
 	th->reserrno = errno;
 	th->cover_size = cover_read(th);
 	th->fault_injected = false;
