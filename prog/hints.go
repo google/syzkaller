@@ -28,7 +28,16 @@ type uint64Set map[uint64]bool
 // }.
 type CompMap map[uint64]uint64Set
 
-var specialIntsSet uint64Set
+var (
+	specialIntsSet uint64Set
+
+	// A set of calls for which hints should not be generated.
+	hintNamesBlackList = map[string]bool{
+		"mmap":  true,
+		"open":  true,
+		"close": true,
+	}
+)
 
 func (m CompMap) AddComp(arg1, arg2 uint64) {
 	if _, ok := specialIntsSet[arg2]; ok {
@@ -40,6 +49,44 @@ func (m CompMap) AddComp(arg1, arg2 uint64) {
 		m[arg1] = make(uint64Set)
 	}
 	m[arg1][arg2] = true
+}
+
+// Mutates the program using the comparison operands stored in compMaps.
+// For each of the mutants executes the exec callback.
+func (p *Prog) MutateWithHints(compMaps []CompMap, exec func(newP *Prog)) {
+	for i, c := range p.Calls {
+		if _, ok := hintNamesBlackList[c.Meta.CallName]; ok {
+			continue
+		}
+		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+			generateHints(p, compMaps[i], c, arg, exec)
+		})
+	}
+}
+
+func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(newP *Prog)) {
+	candidate := func(newArg Arg) {
+		newP, argMap := p.cloneImpl(true)
+		oldArg := argMap[arg]
+		newP.replaceArg(c, oldArg, newArg, nil)
+		if err := newP.validate(); err != nil {
+			panic("a program generated with hints did not pass validation: " +
+				err.Error())
+		}
+		exec(newP)
+	}
+	switch a := arg.(type) {
+	case *ConstArg:
+		checkConstArg(a, compMap, candidate)
+		// case *DataArg:
+		// 	checkDataArg(a, compMap, candidate)
+	}
+}
+
+func checkConstArg(arg *ConstArg, compMap CompMap, cb func(newArg Arg)) {
+	for v, _ := range compMap[arg.Val] {
+		cb(constArg(arg.typ, v))
+	}
 }
 
 func init() {
