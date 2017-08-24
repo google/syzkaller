@@ -35,6 +35,8 @@ package prog
 
 import (
 	"encoding/binary"
+
+	"github.com/google/syzkaller/sys"
 )
 
 type uint64Set map[uint64]bool
@@ -118,8 +120,10 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(newP *P
 	switch a := arg.(type) {
 	case *ConstArg:
 		checkConstArg(a, compMap, candidate)
-		// case *DataArg:
-		// 	checkDataArg(a, compMap, candidate)
+	case *DataArg:
+		// checkDataArg does not need to clone the program,
+		// so we can save time and pass exec directly.
+		checkDataArg(a, compMap, p, validateExec)
 	}
 }
 
@@ -130,6 +134,81 @@ func checkConstArg(arg *ConstArg, compMap CompMap, cb func(arg, newArg Arg)) {
 	for newV, _ := range replacersSet {
 		newArg := constArg(arg.typ, newV)
 		cb(arg, newArg)
+	}
+}
+
+// Creates hints for a DataArg and calls validateExec() for each of the obtained
+// programs.
+// Works as following:
+//		1. Splits the data into blocks of size block_size (pads the last block,
+// if needed).
+//		2. Transforms each of the blocks into an int and does the same as
+// checkConstArg.
+// Because the getReplacersForVal() tries all different mutations of a const
+// value (shrinking, expanding, reversing) we will also try all the possible
+// smaller blocks.
+// For more insights please see prog/hints_test.go tests TestHintDataIn*.
+func checkDataArg(arg *DataArg, compMap CompMap, p *Prog,
+	validateExec func(p *Prog)) {
+	if arg.Type().Dir() != sys.DirIn && arg.Type().Dir() != sys.DirInOut {
+		// We only want to scan userspace->kernel data.
+		return
+	}
+	// This map is needed to check that the element at each index in the data
+	// array is replaced with each unique value only once.
+	// Key: index in array, Value: set of unique values to replace with.
+	replacersMap := make(map[int]uint64Set)
+	for i := range arg.Data {
+		replacersMap[i] = make(uint64Set)
+	}
+	for _, blockSize := range []int{1, 2, 4, 8} {
+		if blockSize > len(arg.Data) {
+			break
+		}
+		newBlock := make([]byte, 8)
+		for i := 0; i < len(arg.Data); i += blockSize {
+			block := pad(arg.Data[i:], 0x00, blockSize)
+			if blockSize < 8 {
+				// binary.LittleEndian.Uint64() requires an 8byte slice.
+				block = pad(block, 0x00, 8)
+			}
+			// Little Endian here does not matter. We will try both byte orders
+			// anyways when we generate the replacers set.
+			value := binary.LittleEndian.Uint64(block)
+			// As we are doing in place modifications of the data
+			// this "original" block will be needed to reconstruct data.
+			original := make([]byte, min(len(arg.Data[i:]), 8))
+			copy(original, arg.Data[i:])
+			for newV, _ := range getReplacersForVal(value, compMap) {
+				binary.LittleEndian.PutUint64(newBlock, newV)
+				// We do modify the original argument in place. This way we
+				// don't need to waste time on copying the program. Fuzzer will
+				// clone the program anyways (if it gives new coverage).
+				for _, size := range []int{1, 2, 4, 8} {
+					// We want to try replacing arg.Data[i:] with values of all
+					// possible int sizes. For example, suppose the data is
+					// 0x11111111111111ab and we see a comparison
+					// 0xab vs 0x123456789abcdef0
+					// then the following data variants will be generated:
+					// 0x11111111111111f0,
+					// 0x111111111111def0,
+					// 0x111111119abcdef0,
+					// 0x123456789abcdef0,
+					// However, if the arg.Data[i:] is not big enough to fit
+					// some sizes, then we stop.
+					if size > len(arg.Data[i:]) {
+						break
+					}
+					r := newV & onesMask[size] //same as uint64(newBlock[:size])
+					if addItemToSet(replacersMap[i], r) {
+						copy(arg.Data[i:], newBlock[:size])
+						validateExec(p)
+					}
+				}
+				// Return arg.Data to its original state.
+				copy(arg.Data[i:], original)
+			}
+		}
 	}
 }
 
@@ -299,6 +378,27 @@ func addItemToSet(set uint64Set, x uint64) bool {
 	}
 	set[x] = true
 	return true
+}
+
+// If len(arr) >= size returns a subslice of arr.
+// Else creates a copy of arr padded with value to size.
+func pad(arr []byte, value byte, size int) []byte {
+	if len(arr) >= size {
+		return arr[0:size]
+	}
+	block := make([]byte, size)
+	copy(block, arr)
+	for j := len(arr); j < size; j++ {
+		block[j] = value
+	}
+	return block
+}
+
+func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
 }
 
 func init() {
