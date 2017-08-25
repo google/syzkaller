@@ -3,6 +3,8 @@ package sys
 
 var resourceArray = []*ResourceDesc{
 	{Name: "assoc_id", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"assoc_id"}, Values: []uint64{0}},
+	{Name: "bpf_map_id", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"bpf_map_id"}, Values: []uint64{0, 4294967295}},
+	{Name: "bpf_prog_id", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"bpf_prog_id"}, Values: []uint64{0, 4294967295}},
 	{Name: "drm_agp_handle", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr"}, TypeSize: 8}}, Kind: []string{"drm_agp_handle"}, Values: []uint64{0}},
 	{Name: "drm_gem_handle", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"drm_gem_handle"}, Values: []uint64{0}},
 	{Name: "drm_gem_name", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"drm_gem_name"}, Values: []uint64{0}},
@@ -218,12 +220,26 @@ var structFields = []*StructFields{
 	{Key: StructKey{Name: "bpf_attach_arg"}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "target"}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_prog", FldName: "prog"}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_attach_type", FldName: "type"}, TypeSize: 4}, Vals: []uint64{0, 1}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_attach_type", FldName: "type"}, TypeSize: 4}, Vals: []uint64{0, 1, 2, 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_attach_flags", FldName: "flags"}, TypeSize: 4}, Vals: []uint64{1}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_prog", FldName: "prog2"}},
 	}},
 	{Key: StructKey{Name: "bpf_detach_arg"}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "target"}, TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_prog", FldName: "prog"}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_attach_type", FldName: "type"}, TypeSize: 4}, Vals: []uint64{0, 1}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_attach_type", FldName: "type"}, TypeSize: 4}, Vals: []uint64{0, 1, 2, 3}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_attach_flags", FldName: "flags"}, TypeSize: 4}, Vals: []uint64{1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "prog2"}, TypeSize: 4}},
+	}},
+	{Key: StructKey{Name: "bpf_get_map_info_arg"}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "prog"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 4}, Buf: "info"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "info"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "bpf_map_info", ArgDir: 1}, AlignAttr: 8}},
+	}},
+	{Key: StructKey{Name: "bpf_get_prog_info_arg"}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_prog", FldName: "prog"}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 4}, Buf: "info"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "info"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "bpf_prog_info", ArgDir: 1}, AlignAttr: 8}},
 	}},
 	{Key: StructKey{Name: "bpf_insn"}, Fields: []Type{
 		&StructType{TypeCommon: TypeCommon{TypeName: "bpf_insn_generic", FldName: "generic"}},
@@ -242,11 +258,13 @@ var structFields = []*StructFields{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "imm"}},
 	}},
 	{Key: StructKey{Name: "bpf_map_create_arg"}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_map_type", FldName: "type"}, TypeSize: 4}, Vals: []uint64{1, 2, 3, 4, 7, 8, 5, 6, 9, 10}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_map_type", FldName: "type"}, TypeSize: 4}, Vals: []uint64{1, 2, 3, 4, 7, 8, 5, 6, 9, 10, 11, 12, 13}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ksize"}, TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "vsize"}, TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "max"}, TypeSize: 4}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "map_flags", FldName: "flags"}, TypeSize: 4}, Vals: []uint64{1, 2}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "map_flags", FldName: "flags"}, TypeSize: 4}, Vals: []uint64{1, 2, 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "inner", IsOptional: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "node"}, TypeSize: 4}},
 	}},
 	{Key: StructKey{Name: "bpf_map_delete_arg"}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "map"}},
@@ -256,6 +274,14 @@ var structFields = []*StructFields{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "map"}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "key"}, Type: &BufferType{}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "next"}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+	}},
+	{Key: StructKey{Name: "bpf_map_info", Dir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "type", ArgDir: 1}, TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "bpf_map_id", FldName: "id", ArgDir: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "key_size", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "value_size", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "max_entries", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "map_flags", ArgDir: 1}, TypeSize: 4}},
 	}},
 	{Key: StructKey{Name: "bpf_map_lookup_arg"}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "map"}},
@@ -281,7 +307,7 @@ var structFields = []*StructFields{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_prog", FldName: "fd"}},
 	}},
 	{Key: StructKey{Name: "bpf_prog"}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_prog_type", FldName: "type"}, TypeSize: 4}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7, 8}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_prog_type", FldName: "type"}, TypeSize: 4}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ninsn"}, TypeSize: 4}, Buf: "insns"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "insns"}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{TypeCommon: TypeCommon{TypeName: "bpf_insn"}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "license"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
@@ -289,6 +315,26 @@ var structFields = []*StructFields{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "logsize"}, TypeSize: 4}, Buf: "log"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "log"}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kver"}, TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_prog_load_flags", FldName: "flags"}, TypeSize: 4}, Vals: []uint64{1}},
+	}},
+	{Key: StructKey{Name: "bpf_prog_info", Dir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "type", ArgDir: 1}, TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "bpf_prog_id", FldName: "id", ArgDir: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "tag", ArgDir: 1}, TypeSize: 8}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "jited_prog_len", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "xlated_prog_len", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "jited_prog_insns", ArgDir: 1}, TypeSize: 8}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "xlated_prog_insns", ArgDir: 1}, TypeSize: 8}},
+	}},
+	{Key: StructKey{Name: "bpf_test_prog_arg"}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_prog", FldName: "prog"}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "retval"}, TypeSize: 4}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "insize"}, TypeSize: 4}, Buf: "indata"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "outsize"}, TypeSize: 4}, Buf: "outdata"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "indata"}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "outdata"}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "repeat"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dur"}, TypeSize: 4}},
 	}},
 	{Key: StructKey{Name: "brctl_arg", Dir: 2}, Fields: []Type{
 		&StructType{TypeCommon: TypeCommon{TypeName: "brctl_arg_get", FldName: "get", ArgDir: 2}},
@@ -5908,6 +5954,26 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr"}, Type: &UnionType{TypeCommon: TypeCommon{TypeName: "sockaddr_un"}, IsVarlen: true}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen"}, TypeSize: 8}, Buf: "addr"},
 	}},
+	{NR: 357, Name: "bpf$BPF_GET_MAP_INFO", CallName: "bpf", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 15},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "bpf_get_map_info_arg"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "arg"},
+	}},
+	{NR: 357, Name: "bpf$BPF_GET_PROG_INFO", CallName: "bpf", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 15},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "bpf_get_prog_info_arg"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "arg"},
+	}},
+	{NR: 357, Name: "bpf$BPF_MAP_GET_FD_BY_ID", CallName: "bpf", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 14},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "bpf_map_id"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "arg"},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "ret", ArgDir: 1}}},
+	{NR: 357, Name: "bpf$BPF_MAP_GET_NEXT_ID", CallName: "bpf", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 12},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "arg"},
+	}},
 	{NR: 357, Name: "bpf$BPF_PROG_ATTACH", CallName: "bpf", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 8},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "bpf_attach_arg"}}},
@@ -5916,6 +5982,21 @@ var Calls = []*Call{
 	{NR: 357, Name: "bpf$BPF_PROG_DETACH", CallName: "bpf", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 9},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "bpf_detach_arg"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "arg"},
+	}},
+	{NR: 357, Name: "bpf$BPF_PROG_GET_FD_BY_ID", CallName: "bpf", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 13},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "bpf_prog_id"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "arg"},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_prog", FldName: "ret", ArgDir: 1}}},
+	{NR: 357, Name: "bpf$BPF_PROG_GET_NEXT_ID", CallName: "bpf", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 11},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "arg"},
+	}},
+	{NR: 357, Name: "bpf$BPF_PROG_TEST_RUN", CallName: "bpf", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 10},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "bpf_test_prog_arg"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "arg"},
 	}},
 	{NR: 357, Name: "bpf$MAP_CREATE", CallName: "bpf", Args: []Type{
@@ -14126,16 +14207,26 @@ const (
 	BPF_ANY                                  = 0
 	BPF_CGROUP_INET_EGRESS                   = 1
 	BPF_CGROUP_INET_INGRESS                  = 0
+	BPF_CGROUP_INET_SOCK_CREATE              = 2
+	BPF_CGROUP_SOCK_OPS                      = 3
 	BPF_EXIST                                = 2
+	BPF_F_ALLOW_OVERRIDE                     = 1
 	BPF_F_NO_COMMON_LRU                      = 2
 	BPF_F_NO_PREALLOC                        = 1
+	BPF_F_NUMA_NODE                          = 4
+	BPF_F_STRICT_ALIGNMENT                   = 1
 	BPF_MAP_CREATE                           = 0
 	BPF_MAP_DELETE_ELEM                      = 3
+	BPF_MAP_GET_FD_BY_ID                     = 14
+	BPF_MAP_GET_NEXT_ID                      = 12
 	BPF_MAP_GET_NEXT_KEY                     = 4
 	BPF_MAP_LOOKUP_ELEM                      = 1
 	BPF_MAP_TYPE_ARRAY                       = 2
+	BPF_MAP_TYPE_ARRAY_OF_MAPS               = 12
 	BPF_MAP_TYPE_CGROUP_ARRAY                = 8
 	BPF_MAP_TYPE_HASH                        = 1
+	BPF_MAP_TYPE_HASH_OF_MAPS                = 13
+	BPF_MAP_TYPE_LPM_TRIE                    = 11
 	BPF_MAP_TYPE_LRU_HASH                    = 9
 	BPF_MAP_TYPE_LRU_PERCPU_HASH             = 10
 	BPF_MAP_TYPE_PERCPU_ARRAY                = 6
@@ -14146,16 +14237,25 @@ const (
 	BPF_MAP_UPDATE_ELEM                      = 2
 	BPF_NOEXIST                              = 1
 	BPF_OBJ_GET                              = 7
+	BPF_OBJ_GET_INFO_BY_FD                   = 15
 	BPF_OBJ_PIN                              = 6
 	BPF_PROG_ATTACH                          = 8
 	BPF_PROG_DETACH                          = 9
+	BPF_PROG_GET_FD_BY_ID                    = 13
+	BPF_PROG_GET_NEXT_ID                     = 11
 	BPF_PROG_LOAD                            = 5
+	BPF_PROG_TEST_RUN                        = 10
 	BPF_PROG_TYPE_CGROUP_SKB                 = 8
+	BPF_PROG_TYPE_CGROUP_SOCK                = 9
 	BPF_PROG_TYPE_KPROBE                     = 2
+	BPF_PROG_TYPE_LWT_IN                     = 10
+	BPF_PROG_TYPE_LWT_OUT                    = 11
+	BPF_PROG_TYPE_LWT_XMIT                   = 12
 	BPF_PROG_TYPE_PERF_EVENT                 = 7
 	BPF_PROG_TYPE_SCHED_ACT                  = 4
 	BPF_PROG_TYPE_SCHED_CLS                  = 3
 	BPF_PROG_TYPE_SOCKET_FILTER              = 1
+	BPF_PROG_TYPE_SOCK_OPS                   = 13
 	BPF_PROG_TYPE_TRACEPOINT                 = 5
 	BPF_PROG_TYPE_XDP                        = 6
 	BPF_PSEUDO_MAP_FD                        = 1
