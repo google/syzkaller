@@ -663,7 +663,7 @@ epoll_event {
 	data	const[0, int64]
 } [packed]
 
-# fd_set needs to be a separate type
+# TODO: fd_set needs to be a separate type
 fd_set {
 	mask0	int64
 	mask1	int64
