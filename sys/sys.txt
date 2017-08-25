@@ -689,7 +689,7 @@ sock_fprog {
 sock_filter {
 	code	int16
 	jt	int8
-	kf	int8
+	jf	int8
 	k	int32
 }
 
