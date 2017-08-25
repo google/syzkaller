@@ -15,30 +15,38 @@ ioctl$TUNSETIFF(fd fd_tun, cmd const[TUNSETIFF], arg ptr[in, ifreq])
 ioctl$TUNSETIFINDEX(fd fd_tun, cmd const[TUNSETIFINDEX], arg ptr[in, int32])
 ioctl$TUNGETIFF(fd fd_tun, cmd const[TUNGETIFF], arg ptr[in, int32])
 ioctl$TUNSETNOCSUM(fd fd_tun, cmd const[TUNSETNOCSUM], arg ptr[in, int32])
+# TODO: we need a bool type that has only 2 values.
+# Lots of ioctl args are effectively bool (0/not-0, for example, TUNSETPERSIST).
+# Using bool type will reduce search space.
+# We probably need bool/bool16/bool32/bool64.
 ioctl$TUNSETPERSIST(fd fd_tun, cmd const[TUNSETPERSIST], arg ptr[in, int32])
 ioctl$TUNSETOWNER(fd fd_tun, cmd const[TUNSETOWNER], arg ptr[in, uid])
 ioctl$TUNSETLINK(fd fd_tun, cmd const[TUNSETLINK], arg ptr[in, int32])
 ioctl$TUNSETOFFLOAD(fd fd_tun, cmd const[TUNSETOFFLOAD], arg ptr[in, int32])
 ioctl$TUNSETTXFILTER(fd fd_tun, cmd const[TUNSETTXFILTER], arg ptr[in, tun_filter])
-ioctl$SIOCGIFHWADDR(fd fd_tun, cmd const[SIOCGIFHWADDR], arg ptr[in, ifreq])
+ioctl$SIOCGIFHWADDR(fd fd_tun, cmd const[SIOCGIFHWADDR], arg ptr[out, ifreq])
 ioctl$SIOCSIFHWADDR(fd fd_tun, cmd const[SIOCSIFHWADDR], arg ptr[in, ifreq])
 ioctl$TUNGETSNDBUF(fd fd_tun, cmd const[TUNGETSNDBUF], arg ptr[out, int32])
 ioctl$TUNSETSNDBUF(fd fd_tun, cmd const[TUNSETSNDBUF], arg ptr[in, int32])
 ioctl$TUNGETVNETHDRSZ(fd fd_tun, cmd const[TUNGETVNETHDRSZ], arg ptr[out, int32])
 ioctl$TUNSETVNETHDRSZ(fd fd_tun, cmd const[TUNSETVNETHDRSZ], arg ptr[in, int32])
 ioctl$TUNATTACHFILTER(fd fd_tun, cmd const[TUNATTACHFILTER], arg ptr[in, sock_fprog])
-ioctl$TUNDETACHFILTER(fd fd_tun, cmd const[TUNDETACHFILTER], arg ptr[in, int32])
-ioctl$TTUNGETFILTER(fd fd_tun, cmd const[TUNGETFILTER], arg ptr[out, int32])
+ioctl$TUNDETACHFILTER(fd fd_tun, cmd const[TUNDETACHFILTER], arg const[0])
+ioctl$TTUNGETFILTER(fd fd_tun, cmd const[TUNGETFILTER], arg buffer[out])
 
+# TODO: we need to support opt for struct fields.
+# tun_buffer has optional tun_pi (if !IFF_NO_PI),
+# followed by optional virtio_net_hdr (if IFF_VNET_HDR).
+# This gives 4 combinations, it would be nice to mark both fields as opt.
 tun_buffer [
 	pi	tun_pi
 	hdr	virtio_net_hdr
 ] [varlen]
 
 tun_pi {
-	flags	flags[ifru_flags, int32]
-	proto	int16
-	data	array[int8]
+	flags	const[0, int16]
+	proto	flags[ether_types, int16be]
+	data	tun_payload
 }
 
 virtio_net_hdr {
@@ -48,14 +56,21 @@ virtio_net_hdr {
 	gsosize	int16
 	start	int16
 	offset	int16
-	data	array[int8]
+	data	tun_payload
 }
+
+tun_payload [
+	eth	eth_packet
+	ipv4	ipv4_packet
+	ipv6	ipv6_packet
+] [varlen]
 
 tun_filter {
-	flags	flags[ifru_flags, int32]
-	count	len[addr, int32]
-	addr	ptr[in, array[int8, 6]]
+	flags	flags[tun_filter_flags, int16]
+	count	len[addr, int16]
+	addr	array[mac_addr]
 }
 
+tun_filter_flags = TUN_FLT_ALLMULTI
 virtio_net_flags = VIRTIO_NET_HDR_F_NEEDS_CSUM, VIRTIO_NET_HDR_F_DATA_VALID
 virtio_net_types = VIRTIO_NET_HDR_GSO_NONE, VIRTIO_NET_HDR_GSO_TCPV4, VIRTIO_NET_HDR_GSO_UDP, VIRTIO_NET_HDR_GSO_TCPV6, VIRTIO_NET_HDR_GSO_ECN
