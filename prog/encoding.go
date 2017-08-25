@@ -314,8 +314,8 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 			}
 		}
 		p.Parse('}')
-		if last := t1.Fields[len(t1.Fields)-1]; sys.IsPad(last) {
-			inner = append(inner, constArg(last, 0))
+		for len(inner) < len(t1.Fields) {
+			inner = append(inner, defaultArg(t1.Fields[len(inner)]))
 		}
 		arg = groupArg(typ, inner)
 	case '[':
