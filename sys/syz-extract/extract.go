@@ -68,12 +68,12 @@ func main() {
 		failf("failed to read input file: %v", err)
 	}
 
-	top, ok := ast.Parse(indata, filepath.Dir(inname), nil)
-	if !ok {
+	desc := ast.Parse(indata, filepath.Dir(inname), nil)
+	if desc == nil {
 		os.Exit(1)
 	}
 
-	consts := compileConsts(archs[*flagArch], top)
+	consts := compileConsts(archs[*flagArch], desc)
 
 	out := new(bytes.Buffer)
 	generateConsts(*flagArch, consts, out)
@@ -95,8 +95,8 @@ func generateConsts(arch string, consts map[string]uint64, out io.Writer) {
 	}
 }
 
-func compileConsts(arch *Arch, top []interface{}) map[string]uint64 {
-	valArr, includes, incdirs, defines := compiler.ExtractConsts(top)
+func compileConsts(arch *Arch, desc *ast.Description) map[string]uint64 {
+	valArr, includes, incdirs, defines := compiler.ExtractConsts(desc)
 	if len(valArr) == 0 {
 		return nil
 	}

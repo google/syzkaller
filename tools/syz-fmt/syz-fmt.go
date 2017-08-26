@@ -53,11 +53,11 @@ func processFile(file string, mode os.FileMode) {
 	errorHandler := func(pos ast.Pos, msg string) {
 		fmt.Fprintf(os.Stderr, "%v:%v:%v: %v", pos.File, pos.Line, pos.Col, msg)
 	}
-	top, ok := ast.Parse(data, filepath.Base(file), errorHandler)
-	if !ok {
+	desc := ast.Parse(data, filepath.Base(file), errorHandler)
+	if desc == nil {
 		os.Exit(1)
 	}
-	formatted := ast.Format(top)
+	formatted := ast.Format(desc)
 	if bytes.Equal(data, formatted) {
 		return
 	}
