@@ -88,7 +88,7 @@ func (tok token) String() string {
 type scanner struct {
 	data         []byte
 	filename     string
-	errorHandler func(pos Pos, msg string)
+	errorHandler ErrorHandler
 
 	ch   byte
 	off  int
@@ -101,9 +101,9 @@ type scanner struct {
 	errors int
 }
 
-func newScanner(data []byte, filename string, errorHandler func(pos Pos, msg string)) *scanner {
+func newScanner(data []byte, filename string, errorHandler ErrorHandler) *scanner {
 	if errorHandler == nil {
-		errorHandler = loggingHandler
+		errorHandler = LoggingHandler
 	}
 	s := &scanner{
 		data:         data,
@@ -115,7 +115,9 @@ func newScanner(data []byte, filename string, errorHandler func(pos Pos, msg str
 	return s
 }
 
-func loggingHandler(pos Pos, msg string) {
+type ErrorHandler func(pos Pos, msg string)
+
+func LoggingHandler(pos Pos, msg string) {
 	fmt.Fprintf(os.Stderr, "%v:%v:%v: %v\n", pos.File, pos.Line, pos.Col, msg)
 }
 

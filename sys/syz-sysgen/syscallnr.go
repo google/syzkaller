@@ -33,21 +33,27 @@ var syzkalls = map[string]uint64{
 	"syz_extract_tcp_res": 1000008,
 }
 
-func generateExecutorSyscalls(syscalls []Syscall, consts map[string]map[string]uint64) {
-	var data SyscallsData
-	for _, arch := range archs {
-		var calls []SyscallData
-		for _, c := range syscalls {
-			syscallNR := -1
-			if nr, ok := consts[arch.Name]["__NR_"+c.CallName]; ok {
-				syscallNR = int(nr)
-			}
-			calls = append(calls, SyscallData{c.Name, syscallNR})
-		}
-		data.Archs = append(data.Archs, ArchData{arch.CARCH, calls})
+func generateExecutorSyscalls(arch *Arch, syscalls []Syscall) []byte {
+	data := ArchData{
+		CARCH: arch.CARCH,
+	}
+	for _, c := range syscalls {
+		data.Calls = append(data.Calls, SyscallData{c.Name, c.NR})
+	}
+	sort.Sort(SyscallArray(data.Calls))
+	buf := new(bytes.Buffer)
+	if err := archTempl.Execute(buf, data); err != nil {
+		failf("failed to execute arch template: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func writeExecutorSyscalls(archs [][]byte) {
+	data := SyscallsData{
+		Archs: archs,
 	}
 	for name, nr := range syzkalls {
-		data.FakeCalls = append(data.FakeCalls, SyscallData{name, int(nr)})
+		data.FakeCalls = append(data.FakeCalls, SyscallData{name, nr})
 	}
 	sort.Sort(SyscallArray(data.FakeCalls))
 
@@ -61,8 +67,8 @@ func generateExecutorSyscalls(syscalls []Syscall, consts map[string]map[string]u
 }
 
 type SyscallsData struct {
-	Archs     []ArchData
 	FakeCalls []SyscallData
+	Archs     [][]byte
 }
 
 type ArchData struct {
@@ -72,7 +78,7 @@ type ArchData struct {
 
 type SyscallData struct {
 	Name string
-	NR   int
+	NR   uint64
 }
 
 type SyscallArray []SyscallData
@@ -93,11 +99,14 @@ struct call_t {
 };
 
 {{range $arch := $.Archs}}
-#if {{range $cdef := $arch.CARCH}}defined({{$cdef}}) || {{end}}0
-static call_t syscalls[] = {
-{{range $c := $arch.Calls}}	{"{{$c.Name}}", {{$c.NR}}},
-{{end}}
-};
-#endif
+{{printf "%s" $arch}}
 {{end}}
 `))
+
+var archTempl = template.Must(template.New("").Parse(
+	`#if {{range $cdef := $.CARCH}}defined({{$cdef}}) || {{end}}0
+static call_t syscalls[] = {
+{{range $c := $.Calls}}	{"{{$c.Name}}", {{$c.NR}}},
+{{end}}
+};
+#endif`))

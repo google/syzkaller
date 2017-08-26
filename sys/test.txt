@@ -3,6 +3,10 @@
 
 # Syscalls used in syzkaller tests.
 
+# For IPPROTO_* consts.
+include <linux/in.h>
+include <linux/in6.h>
+
 syz_test()
 
 # Integer types.

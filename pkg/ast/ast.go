@@ -12,6 +12,14 @@ type Pos struct {
 	Col  int // column number, starting at 1 (byte count)
 }
 
+// Description contains top-level nodes of a parsed sys description.
+type Description struct {
+	Nodes []Node
+}
+
+// Node is AST node interface.
+type Node interface{}
+
 // Top-level AST nodes:
 
 type NewLine struct {
@@ -50,6 +58,7 @@ type Call struct {
 	Pos      Pos
 	Name     *Ident
 	CallName string
+	NR       uint64
 	Args     []*Field
 	Ret      *Type
 }
@@ -104,6 +113,8 @@ type Type struct {
 	Ident    string
 	String   string
 	// Part after COLON (for ranges and bitfields).
+	HasColon  bool
+	Pos2      Pos
 	Value2    uint64
 	Value2Hex bool
 	Ident2    string

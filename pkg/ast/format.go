@@ -9,47 +9,47 @@ import (
 	"io"
 )
 
-func Format(top []interface{}) []byte {
+func Format(desc *Description) []byte {
 	buf := new(bytes.Buffer)
-	FormatWriter(buf, top)
+	FormatWriter(buf, desc)
 	return buf.Bytes()
 }
 
-func FormatWriter(w io.Writer, top []interface{}) {
-	for _, decl := range top {
-		s, ok := decl.(serializer)
+func FormatWriter(w io.Writer, desc *Description) {
+	for _, n := range desc.Nodes {
+		s, ok := n.(serializer)
 		if !ok {
-			panic(fmt.Sprintf("unknown top level decl: %#v", decl))
+			panic(fmt.Sprintf("unknown top level decl: %#v", n))
 		}
-		s.Serialize(w)
+		s.serialize(w)
 	}
 }
 
 type serializer interface {
-	Serialize(w io.Writer)
+	serialize(w io.Writer)
 }
 
-func (incl *NewLine) Serialize(w io.Writer) {
+func (nl *NewLine) serialize(w io.Writer) {
 	fmt.Fprintf(w, "\n")
 }
 
-func (com *Comment) Serialize(w io.Writer) {
+func (com *Comment) serialize(w io.Writer) {
 	fmt.Fprintf(w, "#%v\n", com.Text)
 }
 
-func (incl *Include) Serialize(w io.Writer) {
+func (incl *Include) serialize(w io.Writer) {
 	fmt.Fprintf(w, "include <%v>\n", incl.File.Value)
 }
 
-func (inc *Incdir) Serialize(w io.Writer) {
+func (inc *Incdir) serialize(w io.Writer) {
 	fmt.Fprintf(w, "incdir <%v>\n", inc.Dir.Value)
 }
 
-func (def *Define) Serialize(w io.Writer) {
+func (def *Define) serialize(w io.Writer) {
 	fmt.Fprintf(w, "define %v\t%v\n", def.Name.Name, fmtInt(def.Value))
 }
 
-func (res *Resource) Serialize(w io.Writer) {
+func (res *Resource) serialize(w io.Writer) {
 	fmt.Fprintf(w, "resource %v[%v]", res.Name.Name, res.Base.Name)
 	for i, v := range res.Values {
 		if i == 0 {
@@ -62,7 +62,7 @@ func (res *Resource) Serialize(w io.Writer) {
 	fmt.Fprintf(w, "\n")
 }
 
-func (c *Call) Serialize(w io.Writer) {
+func (c *Call) serialize(w io.Writer) {
 	fmt.Fprintf(w, "%v(", c.Name.Name)
 	for i, a := range c.Args {
 		if i != 0 {
@@ -77,7 +77,7 @@ func (c *Call) Serialize(w io.Writer) {
 	fmt.Fprintf(w, "\n")
 }
 
-func (str *Struct) Serialize(w io.Writer) {
+func (str *Struct) serialize(w io.Writer) {
 	opening, closing := '{', '}'
 	if str.IsUnion {
 		opening, closing = '[', ']'
@@ -119,7 +119,7 @@ func (str *Struct) Serialize(w io.Writer) {
 	fmt.Fprintf(w, "\n")
 }
 
-func (flags *IntFlags) Serialize(w io.Writer) {
+func (flags *IntFlags) serialize(w io.Writer) {
 	fmt.Fprintf(w, "%v = ", flags.Name.Name)
 	for i, v := range flags.Values {
 		if i != 0 {
@@ -130,7 +130,7 @@ func (flags *IntFlags) Serialize(w io.Writer) {
 	fmt.Fprintf(w, "\n")
 }
 
-func (flags *StrFlags) Serialize(w io.Writer) {
+func (flags *StrFlags) serialize(w io.Writer) {
 	fmt.Fprintf(w, "%v = ", flags.Name.Name)
 	for i, v := range flags.Values {
 		if i != 0 {
@@ -155,11 +155,13 @@ func fmtType(t *Type) string {
 	default:
 		v = fmtIntValue(t.Value, t.ValueHex)
 	}
-	switch {
-	case t.Ident2 != "":
-		v += fmt.Sprintf(":%v", t.Ident2)
-	case t.Value2 != 0:
-		v += fmt.Sprintf(":%v", fmtIntValue(t.Value2, t.Value2Hex))
+	if t.HasColon {
+		switch {
+		case t.Ident2 != "":
+			v += fmt.Sprintf(":%v", t.Ident2)
+		default:
+			v += fmt.Sprintf(":%v", fmtIntValue(t.Value2, t.Value2Hex))
+		}
 	}
 	v += fmtTypeList(t.Args)
 	return v

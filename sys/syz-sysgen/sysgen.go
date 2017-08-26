@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/pkg/compiler"
 )
 
 var (
@@ -37,57 +38,44 @@ const (
 func main() {
 	flag.Parse()
 
-	top, ok := ast.ParseGlob("sys/*\\.txt", nil)
-	if !ok {
+	top := ast.ParseGlob("sys/*\\.txt", nil)
+	if top == nil {
 		os.Exit(1)
 	}
-	desc := astToDesc(top)
 
-	unsupportedFlags := make(map[string]int)
-	consts := make(map[string]map[string]uint64)
+	var syscallArchs [][]byte
+	unsupported := make(map[string]int)
 	for _, arch := range archs {
 		logf(0, "generating %v...", arch.Name)
-		consts[arch.Name] = readConsts(arch.Name)
+		consts := readConsts(arch.Name)
 
-		unsupported := make(map[string]bool)
-		archFlags := make(map[string][]string)
-		for f, vals := range desc.Flags {
-			var archVals []string
-			for _, val := range vals {
-				if isIdentifier(val) {
-					if v, ok := consts[arch.Name][val]; ok {
-						archVals = append(archVals, fmt.Sprint(v))
-					} else {
-						if !unsupported[val] {
-							unsupported[val] = true
-							unsupportedFlags[val]++
-							logf(0, "unsupported flag: %v", val)
-						}
-					}
-				} else {
-					archVals = append(archVals, val)
-				}
-			}
-			archFlags[f] = archVals
+		prog := compiler.Compile(top, consts, nil)
+		if prog == nil {
+			os.Exit(1)
 		}
+		for u := range prog.Unsupported {
+			unsupported[u]++
+		}
+		desc := astToDesc(prog.Desc)
 
 		sysFile := filepath.Join("sys", "sys_"+arch.Name+".go")
 		logf(1, "Generate code to init system call data in %v", sysFile)
 		out := new(bytes.Buffer)
-		archDesc := *desc
-		archDesc.Flags = archFlags
-		generate(arch.Name, &archDesc, consts[arch.Name], out)
+		generate(arch.Name, desc, consts, out)
 		writeSource(sysFile, out.Bytes())
 		logf(0, "")
+
+		archData := generateExecutorSyscalls(arch, desc.Syscalls)
+		syscallArchs = append(syscallArchs, archData)
 	}
 
-	for flag, count := range unsupportedFlags {
+	for what, count := range unsupported {
 		if count == len(archs) {
-			failf("flag %v is unsupported on all arches (typo?)", flag)
+			failf("%v is unsupported on all arches (typo?)", what)
 		}
 	}
 
-	generateExecutorSyscalls(desc.Syscalls, consts)
+	writeExecutorSyscalls(syscallArchs)
 
 	if *flagMemProfile != "" {
 		f, err := os.Create(*flagMemProfile)
@@ -114,6 +102,7 @@ type Description struct {
 type Syscall struct {
 	Name     string
 	CallName string
+	NR       uint64
 	Args     [][]string
 	Ret      []string
 }
@@ -139,7 +128,7 @@ func (a syscallArray) Len() int           { return len(a) }
 func (a syscallArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
 func (a syscallArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
-func astToDesc(top []interface{}) *Description {
+func astToDesc(top *ast.Description) *Description {
 	// As a temporal measure we just convert the new representation to the old one.
 	// TODO: check for duplicate defines, structs, resources.
 	// TODO: check for duplicate syscall argument names.
@@ -151,20 +140,15 @@ func astToDesc(top []interface{}) *Description {
 		Resources: make(map[string]Resource),
 	}
 	unnamedSeq := 0
-	for _, decl := range top {
+	for _, decl := range top.Nodes {
 		switch n := decl.(type) {
 		case *ast.Resource:
 			var vals []string
 			for _, v := range n.Values {
-				switch {
-				case v.Ident != "":
-					vals = append(vals, v.Ident)
-				default:
-					if v.ValueHex {
-						vals = append(vals, fmt.Sprintf("0x%x", uintptr(v.Value)))
-					} else {
-						vals = append(vals, fmt.Sprint(uintptr(v.Value)))
-					}
+				if v.ValueHex {
+					vals = append(vals, fmt.Sprintf("0x%x", uintptr(v.Value)))
+				} else {
+					vals = append(vals, fmt.Sprint(uintptr(v.Value)))
 				}
 			}
 			desc.Resources[n.Name.Name] = Resource{
@@ -176,6 +160,7 @@ func astToDesc(top []interface{}) *Description {
 			call := Syscall{
 				Name:     n.Name.Name,
 				CallName: n.CallName,
+				NR:       n.NR,
 			}
 			for _, a := range n.Args {
 				call.Args = append(call.Args, astToDescField(a, desc.Unnamed, &unnamedSeq))
@@ -239,15 +224,10 @@ func astToDesc(top []interface{}) *Description {
 		case *ast.IntFlags:
 			var vals []string
 			for _, v := range n.Values {
-				switch {
-				case v.Ident != "":
-					vals = append(vals, v.Ident)
-				default:
-					if v.ValueHex {
-						vals = append(vals, fmt.Sprintf("0x%x", uintptr(v.Value)))
-					} else {
-						vals = append(vals, fmt.Sprint(uintptr(v.Value)))
-					}
+				if v.ValueHex {
+					vals = append(vals, fmt.Sprintf("0x%x", uintptr(v.Value)))
+				} else {
+					vals = append(vals, fmt.Sprint(uintptr(v.Value)))
 				}
 			}
 			desc.Flags[n.Name.Name] = vals
@@ -350,36 +330,16 @@ func readConsts(arch string) map[string]uint64 {
 	return consts
 }
 
-var skipCurrentSyscall string
-
-func skipSyscall(why string) {
-	if skipCurrentSyscall != "" {
-		skipCurrentSyscall = why
-	}
-}
-
 func generate(arch string, desc *Description, consts map[string]uint64, out io.Writer) {
-	unsupported := make(map[string]bool)
-
 	fmt.Fprintf(out, "// AUTOGENERATED FILE\n")
 	fmt.Fprintf(out, "package sys\n\n")
 
-	generateResources(desc, consts, out)
-	generateStructs(desc, consts, out)
+	generateResources(desc, out)
+	generateStructs(desc, out)
 
 	fmt.Fprintf(out, "var Calls = []*Call{\n")
 	for _, s := range desc.Syscalls {
 		logf(4, "    generate population code for %v", s.Name)
-		skipCurrentSyscall = ""
-		syscallNR := -1
-		if nr, ok := consts["__NR_"+s.CallName]; ok {
-			syscallNR = int(nr)
-		} else {
-			if !unsupported[s.CallName] {
-				unsupported[s.CallName] = true
-				logf(0, "unsupported syscall: %v", s.CallName)
-			}
-		}
 		native := true
 		if _, ok := syzkalls[s.CallName]; ok {
 			native = false
@@ -387,7 +347,7 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 		fmt.Fprintf(out, "&Call{Name: \"%v\", CallName: \"%v\", Native: %v", s.Name, s.CallName, native)
 		if len(s.Ret) != 0 {
 			fmt.Fprintf(out, ", Ret: ")
-			generateArg("", "ret", s.Ret[0], "out", s.Ret[1:], desc, consts, true, false, out)
+			generateArg("", "ret", s.Ret[0], "out", s.Ret[1:], desc, true, false, out)
 		}
 		fmt.Fprintf(out, ", Args: []Type{")
 		for i, a := range s.Args {
@@ -395,13 +355,9 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 				fmt.Fprintf(out, ", ")
 			}
 			logf(5, "      generate description for arg %v", i)
-			generateArg("", a[0], a[1], "in", a[2:], desc, consts, true, false, out)
+			generateArg("", a[0], a[1], "in", a[2:], desc, true, false, out)
 		}
-		if skipCurrentSyscall != "" {
-			logf(0, "unsupported syscall: %v due to %v", s.Name, skipCurrentSyscall)
-			syscallNR = -1
-		}
-		fmt.Fprintf(out, "}, NR: %v},\n", syscallNR)
+		fmt.Fprintf(out, "}, NR: %v},\n", s.NR)
 	}
 	fmt.Fprintf(out, "}\n\n")
 
@@ -418,7 +374,7 @@ func generate(arch string, desc *Description, consts map[string]uint64, out io.W
 	fmt.Fprintf(out, ")\n")
 }
 
-func generateResources(desc *Description, consts map[string]uint64, out io.Writer) {
+func generateResources(desc *Description, out io.Writer) {
 	var resArray ResourceArray
 	for _, res := range desc.Resources {
 		resArray = append(resArray, res)
@@ -433,15 +389,7 @@ func generateResources(desc *Description, consts map[string]uint64, out io.Write
 		var values []string
 	loop:
 		for {
-			var values1 []string
-			for _, v := range res.Values {
-				if v1, ok := consts[v]; ok {
-					values1 = append(values1, fmt.Sprint(v1))
-				} else if !isIdentifier(v) {
-					values1 = append(values1, v)
-				}
-			}
-			values = append(values1, values...)
+			values = append(append([]string{}, res.Values...), values...)
 			switch res.Base {
 			case "int8", "int16", "int32", "int64", "intptr":
 				underlying = res.Base
@@ -455,7 +403,7 @@ func generateResources(desc *Description, consts map[string]uint64, out io.Write
 			}
 		}
 		fmt.Fprintf(out, "&ResourceDesc{Name: \"%v\", Type: ", name)
-		generateArg("", "resource-type", underlying, "inout", nil, desc, consts, true, true, out)
+		generateArg("", "resource-type", underlying, "inout", nil, desc, true, true, out)
 		fmt.Fprintf(out, ", Kind: []string{")
 		for i, k := range kind {
 			if i != 0 {
@@ -505,17 +453,17 @@ func generateStructEntry(str *Struct, out io.Writer) {
 		typ, str.Name, false, packed, align, varlen)
 }
 
-func generateStructFields(str *Struct, key structKey, desc *Description, consts map[string]uint64, out io.Writer) {
+func generateStructFields(str *Struct, key structKey, desc *Description, out io.Writer) {
 	fmt.Fprintf(out, "{structKey{\"%v\", \"%v\", %v}, []Type{\n", key.name, key.field, fmtDir(key.dir))
 	for _, a := range str.Flds {
-		generateArg(str.Name, a[0], a[1], key.dir, a[2:], desc, consts, false, true, out)
+		generateArg(str.Name, a[0], a[1], key.dir, a[2:], desc, false, true, out)
 		fmt.Fprintf(out, ",\n")
 	}
 	fmt.Fprintf(out, "}},\n")
 
 }
 
-func generateStructs(desc *Description, consts map[string]uint64, out io.Writer) {
+func generateStructs(desc *Description, out io.Writer) {
 	// Struct fields can refer to other structs. Go compiler won't like if
 	// we refer to Structs during Structs initialization. So we do
 	// it in 2 passes: on the first pass create struct types without fields,
@@ -557,26 +505,18 @@ func generateStructs(desc *Description, consts map[string]uint64, out io.Writer)
 	}
 	sort.Sort(structKeySorter(sortedKeys))
 	for _, key := range sortedKeys {
-		generateStructFields(structMap[key], key, desc, consts, out)
+		generateStructFields(structMap[key], key, desc, out)
 	}
 	fmt.Fprintf(out, "}\n")
 }
 
-func parseRange(buffer string, consts map[string]uint64) (string, string) {
-	lookupConst := func(name string) string {
-		if v, ok := consts[name]; ok {
-			return fmt.Sprint(v)
-		}
-		return name
-	}
-
+func parseRange(buffer string) (string, string) {
 	parts := strings.Split(buffer, ":")
 	switch len(parts) {
 	case 1:
-		v := lookupConst(buffer)
-		return v, v
+		return buffer, buffer
 	case 2:
-		return lookupConst(parts[0]), lookupConst(parts[1])
+		return parts[0], parts[1]
 	default:
 		failf("bad range: %v", buffer)
 		return "", ""
@@ -587,7 +527,6 @@ func generateArg(
 	parent, name, typ, dir string,
 	a []string,
 	desc *Description,
-	consts map[string]uint64,
 	isArg, isField bool,
 	out io.Writer) {
 	origName := name
@@ -659,15 +598,11 @@ func generateArg(
 		}
 		var size uint64
 		if len(a) >= 2 {
-			if v, ok := consts[a[1]]; ok {
-				size = v
-			} else {
-				v, err := strconv.ParseUint(a[1], 10, 64)
-				if err != nil {
-					failf("failed to parse string length for %v", name, a[1])
-				}
-				size = v
+			v, err := strconv.ParseUint(a[1], 10, 64)
+			if err != nil {
+				failf("failed to parse string length for %v", name, a[1])
 			}
+			size = v
 			for i, s := range vals {
 				if uint64(len(s)) > size {
 					failf("string value %q exceeds buffer length %v for arg %v", s, size, name)
@@ -703,7 +638,7 @@ func generateArg(
 		switch len(a) {
 		case 0:
 		case 1:
-			begin, end = parseRange(a[0], consts)
+			begin, end = parseRange(a[0])
 		default:
 			failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
 		}
@@ -744,15 +679,11 @@ func generateArg(
 		case "pseudo":
 			kind = "CsumPseudo"
 			size, bigEndian, bitfieldLen = decodeIntType(a[3])
-			if v, ok := consts[a[2]]; ok {
-				protocol = v
-			} else {
-				v, err := strconv.ParseUint(a[2], 10, 64)
-				if err != nil {
-					failf("failed to parse protocol %v", a[2])
-				}
-				protocol = v
+			v, err := strconv.ParseUint(a[2], 10, 64)
+			if err != nil {
+				failf("failed to parse protocol %v", a[2])
 			}
+			protocol = v
 		default:
 			failf("unknown checksum kind '%v'", a[0])
 		}
@@ -796,16 +727,7 @@ func generateArg(
 				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 			}
 		}
-		val := a[0]
-		if v, ok := consts[a[0]]; ok {
-			val = fmt.Sprint(v)
-		} else if isIdentifier(a[0]) {
-			// This is an identifier for which we don't have a value for this arch.
-			// Skip this syscall on this arch.
-			val = "0"
-			skipSyscall(fmt.Sprintf("missing const %v", a[0]))
-		}
-		fmt.Fprintf(out, "&ConstType{%v, Val: uint64(%v)}", intCommon(size, bigEndian, bitfieldLen), val)
+		fmt.Fprintf(out, "&ConstType{%v, Val: uint64(%v)}", intCommon(size, bigEndian, bitfieldLen), a[0])
 	case "proc":
 		canBeArg = true
 		size := uint64(ptrSize)
@@ -877,14 +799,14 @@ func generateArg(
 			if a[0] == "int8" {
 				fmt.Fprintf(out, "&BufferType{%v, Kind: BufferBlobRand}", common())
 			} else {
-				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], dir, desc, consts))
+				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], dir, desc))
 			}
 		} else {
-			begin, end := parseRange(a[1], consts)
+			begin, end := parseRange(a[1])
 			if a[0] == "int8" {
 				fmt.Fprintf(out, "&BufferType{%v, Kind: BufferBlobRange, RangeBegin: %v, RangeEnd: %v}", common(), begin, end)
 			} else {
-				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], dir, desc, consts), begin, end)
+				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], dir, desc), begin, end)
 			}
 		}
 	case "ptr":
@@ -893,7 +815,7 @@ func generateArg(
 			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
 		}
 		dir = "in"
-		fmt.Fprintf(out, "&PtrType{%v, Type: %v}", common(), generateType(a[1], a[0], desc, consts))
+		fmt.Fprintf(out, "&PtrType{%v, Type: %v}", common(), generateType(a[1], a[0], desc))
 	default:
 		if intRegExp.MatchString(typ) {
 			canBeArg = true
@@ -902,7 +824,7 @@ func generateArg(
 			case 0:
 				fmt.Fprintf(out, "&IntType{%v}", intCommon(size, bigEndian, bitfieldLen))
 			case 1:
-				begin, end := parseRange(a[0], consts)
+				begin, end := parseRange(a[0])
 				fmt.Fprintf(out, "&IntType{%v, Kind: IntRange, RangeBegin: %v, RangeEnd: %v}",
 					intCommon(size, bigEndian, bitfieldLen), begin, end)
 			default:
@@ -910,7 +832,7 @@ func generateArg(
 			}
 		} else if strings.HasPrefix(typ, "unnamed") {
 			if inner, ok := desc.Unnamed[typ]; ok {
-				generateArg("", "", inner[0], dir, inner[1:], desc, consts, false, isField, out)
+				generateArg("", "", inner[0], dir, inner[1:], desc, false, isField, out)
 			} else {
 				failf("unknown unnamed type '%v'", typ)
 			}
@@ -934,9 +856,9 @@ func generateArg(
 	}
 }
 
-func generateType(typ, dir string, desc *Description, consts map[string]uint64) string {
+func generateType(typ, dir string, desc *Description) string {
 	buf := new(bytes.Buffer)
-	generateArg("", "", typ, dir, nil, desc, consts, false, true, buf)
+	generateArg("", "", typ, dir, nil, desc, false, true, buf)
 	return buf.String()
 }
 
