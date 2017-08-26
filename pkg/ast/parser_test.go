@@ -30,23 +30,31 @@ func TestParseAll(t *testing.T) {
 		errorHandler := func(pos Pos, msg string) {
 			t.Fatalf("%v:%v:%v: %v", pos.File, pos.Line, pos.Col, msg)
 		}
-		top, ok := Parse(data, file.Name(), errorHandler)
-		if !ok {
+		desc := Parse(data, file.Name(), errorHandler)
+		if desc == nil {
 			t.Fatalf("parsing failed, but no error produced")
 		}
-		data2 := Format(top)
-		top2, ok2 := Parse(data2, file.Name(), errorHandler)
-		if !ok2 {
+		data2 := Format(desc)
+		desc2 := Parse(data2, file.Name(), errorHandler)
+		if desc2 == nil {
 			t.Fatalf("parsing failed, but no error produced")
 		}
-		if len(top) != len(top2) {
-			t.Fatalf("formatting number of top level decls: %v/%v", len(top), len(top2))
+		if len(desc.Nodes) != len(desc2.Nodes) {
+			t.Fatalf("formatting number of top level decls: %v/%v",
+				len(desc.Nodes), len(desc2.Nodes))
 		}
-		// While sys files are not formatted, formatting in fact changes it.
-		for i := range top {
-			if !reflect.DeepEqual(top[i], top2[i]) {
-				t.Fatalf("formatting changed code:\n%#v\nvs:\n%#v", top[i], top2[i])
+		for i := range desc.Nodes {
+			n1, n2 := desc.Nodes[i], desc2.Nodes[i]
+			if n1 == nil {
+				t.Fatalf("got nil node")
 			}
+			if !reflect.DeepEqual(n1, n2) {
+				t.Fatalf("formatting changed code:\n%#v\nvs:\n%#v", n1, n2)
+			}
+		}
+		data3 := Format(Clone(desc))
+		if !bytes.Equal(data, data3) {
+			t.Fatalf("Clone lost data")
 		}
 	}
 }
@@ -57,8 +65,7 @@ func TestParse(t *testing.T) {
 			errorHandler := func(pos Pos, msg string) {
 				t.Logf("%v:%v:%v: %v", pos.File, pos.Line, pos.Col, msg)
 			}
-			toplev, ok := Parse([]byte(test.input), "foo", errorHandler)
-			_, _ = toplev, ok
+			Parse([]byte(test.input), "foo", errorHandler)
 		})
 	}
 }
@@ -134,17 +141,17 @@ func TestErrors(t *testing.T) {
 				t.Fatalf("failed to scan input file: %v", err)
 			}
 			var got []*Error
-			top, ok := Parse(stripped, "test", func(pos Pos, msg string) {
+			desc := Parse(stripped, "test", func(pos Pos, msg string) {
 				got = append(got, &Error{
 					Line: pos.Line,
 					Col:  pos.Col,
 					Text: msg,
 				})
 			})
-			if ok && len(got) != 0 {
+			if desc != nil && len(got) != 0 {
 				t.Fatalf("parsing succeed, but got errors: %v", got)
 			}
-			if !ok && len(got) == 0 {
+			if desc == nil && len(got) == 0 {
 				t.Fatalf("parsing failed, but got no errors")
 			}
 		nextErr:
@@ -171,8 +178,6 @@ func TestErrors(t *testing.T) {
 				}
 				t.Errorf("not matched error: %v: %v", wantErr.Line, wantErr.Text)
 			}
-			// Just to get more code coverage:
-			Format(top)
 		})
 	}
 }

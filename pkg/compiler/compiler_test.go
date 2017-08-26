@@ -11,13 +11,15 @@ import (
 )
 
 func TestExtractConsts(t *testing.T) {
-	top, ok := ast.Parse([]byte(extractConstsInput), "test", nil)
-	if !ok {
+	desc := ast.Parse([]byte(extractConstsInput), "test", nil)
+	if desc == nil {
 		t.Fatalf("failed to parse input")
 	}
-	consts, includes, incdirs, defines := ExtractConsts(top)
-	wantConsts := []string{"CONST1", "CONST2", "CONST3", "CONST4", "CONST5",
-		"CONST6", "CONST7", "__NR_bar", "__NR_foo"}
+	consts, includes, incdirs, defines := ExtractConsts(desc)
+	wantConsts := []string{"CONST1", "CONST10", "CONST11", "CONST12", "CONST13",
+		"CONST14", "CONST15", "CONST16",
+		"CONST2", "CONST3", "CONST4", "CONST5",
+		"CONST6", "CONST7", "CONST8", "CONST9", "__NR_bar", "__NR_foo"}
 	if !reflect.DeepEqual(consts, wantConsts) {
 		t.Fatalf("got consts:\n%q\nwant:\n%q", consts, wantConsts)
 	}
@@ -56,4 +58,8 @@ str {
 	f1	const[CONST6, int32]
 	f2	array[array[int8, CONST7]]
 }
+
+bar$BAZ(x vma[opt], y vma[CONST8], z vma[CONST9:CONST10])
+bar$QUX(s ptr[in, string["foo", CONST11]], x csum[s, pseudo, CONST12])
+bar$FOO(x int8[8:CONST13], y int16be[CONST14:10], z intptr[CONST15:CONST16])
 `
