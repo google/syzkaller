@@ -118,7 +118,11 @@ func newScanner(data []byte, filename string, errorHandler ErrorHandler) *scanne
 type ErrorHandler func(pos Pos, msg string)
 
 func LoggingHandler(pos Pos, msg string) {
-	fmt.Fprintf(os.Stderr, "%v:%v:%v: %v\n", pos.File, pos.Line, pos.Col, msg)
+	fmt.Fprintf(os.Stderr, "%v: %v\n", pos, msg)
+}
+
+func (pos Pos) String() string {
+	return fmt.Sprintf("%v:%v:%v", pos.File, pos.Line, pos.Col)
 }
 
 func (s *scanner) Scan() (tok token, lit string, pos Pos) {

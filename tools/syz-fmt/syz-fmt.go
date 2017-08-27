@@ -50,10 +50,7 @@ func processFile(file string, mode os.FileMode) {
 		fmt.Fprintf(os.Stderr, "failed to read file %v: %v\n", file, err)
 		os.Exit(1)
 	}
-	errorHandler := func(pos ast.Pos, msg string) {
-		fmt.Fprintf(os.Stderr, "%v:%v:%v: %v", pos.File, pos.Line, pos.Col, msg)
-	}
-	desc := ast.Parse(data, filepath.Base(file), errorHandler)
+	desc := ast.Parse(data, filepath.Base(file), nil)
 	if desc == nil {
 		os.Exit(1)
 	}

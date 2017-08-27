@@ -132,8 +132,6 @@ func (a syscallArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 
 func astToDesc(top *ast.Description) *Description {
 	// As a temporal measure we just convert the new representation to the old one.
-	// TODO: check for duplicate defines, structs, resources.
-	// TODO: check for duplicate syscall argument names.
 	desc := &Description{
 		Structs:   make(map[string]*Struct),
 		Unnamed:   make(map[string][]string),
@@ -155,7 +153,7 @@ func astToDesc(top *ast.Description) *Description {
 			}
 			desc.Resources[n.Name.Name] = Resource{
 				Name:   n.Name.Name,
-				Base:   n.Base.Name,
+				Base:   n.Base.Ident,
 				Values: vals,
 			}
 		case *ast.Call:
@@ -208,19 +206,6 @@ func astToDesc(top *ast.Description) *Description {
 						failf("unknown struct %v attribute: %v", str.Name, attr.Name)
 					}
 				}
-			}
-			if str.IsUnion && len(str.Flds) <= 1 {
-				failf("union %v has only %v fields, need at least 2", str.Name, len(str.Flds))
-			}
-			fields := make(map[string]bool)
-			for _, f := range str.Flds {
-				if f[0] == "parent" {
-					failf("struct/union %v contains reserved field 'parent'", str.Name)
-				}
-				if fields[f[0]] {
-					failf("duplicate field %v in struct/union %v", f[0], str.Name)
-				}
-				fields[f[0]] = true
 			}
 			desc.Structs[str.Name] = str
 		case *ast.IntFlags:

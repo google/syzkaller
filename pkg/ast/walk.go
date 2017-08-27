@@ -8,71 +8,71 @@ import (
 )
 
 // Walk calls callback cb for every node in AST.
-func Walk(desc *Description, cb func(n, parent Node)) {
+func Walk(desc *Description, cb func(n Node)) {
 	for _, n := range desc.Nodes {
-		WalkNode(n, nil, cb)
+		WalkNode(n, cb)
 	}
 }
 
-func WalkNode(n0, parent Node, cb func(n, parent Node)) {
-	cb(n0, parent)
+func WalkNode(n0 Node, cb func(n Node)) {
+	cb(n0)
 	switch n := n0.(type) {
 	case *NewLine:
 	case *Comment:
 	case *Include:
-		WalkNode(n.File, n, cb)
+		WalkNode(n.File, cb)
 	case *Incdir:
-		WalkNode(n.Dir, n, cb)
+		WalkNode(n.Dir, cb)
 	case *Define:
-		WalkNode(n.Name, n, cb)
-		WalkNode(n.Value, n, cb)
+		WalkNode(n.Name, cb)
+		WalkNode(n.Value, cb)
 	case *Resource:
-		WalkNode(n.Name, n, cb)
-		WalkNode(n.Base, n, cb)
+		WalkNode(n.Name, cb)
+		WalkNode(n.Base, cb)
 		for _, v := range n.Values {
-			WalkNode(v, n, cb)
+			WalkNode(v, cb)
 		}
 	case *Call:
-		WalkNode(n.Name, n, cb)
+		WalkNode(n.Name, cb)
 		for _, f := range n.Args {
-			WalkNode(f, n, cb)
+			WalkNode(f, cb)
 		}
 		if n.Ret != nil {
-			WalkNode(n.Ret, n, cb)
+			WalkNode(n.Ret, cb)
 		}
 	case *Struct:
-		WalkNode(n.Name, n, cb)
+		WalkNode(n.Name, cb)
 		for _, f := range n.Fields {
-			WalkNode(f, n, cb)
+			WalkNode(f, cb)
 		}
 		for _, a := range n.Attrs {
-			WalkNode(a, n, cb)
+			WalkNode(a, cb)
 		}
 		for _, c := range n.Comments {
-			WalkNode(c, n, cb)
+			WalkNode(c, cb)
 		}
 	case *IntFlags:
-		WalkNode(n.Name, n, cb)
+		WalkNode(n.Name, cb)
 		for _, v := range n.Values {
-			WalkNode(v, n, cb)
+			WalkNode(v, cb)
 		}
 	case *StrFlags:
-		WalkNode(n.Name, n, cb)
+		WalkNode(n.Name, cb)
 		for _, v := range n.Values {
-			WalkNode(v, n, cb)
+			WalkNode(v, cb)
 		}
 	case *Ident:
 	case *String:
 	case *Int:
 	case *Type:
 		for _, t := range n.Args {
-			WalkNode(t, n, cb)
+			WalkNode(t, cb)
 		}
 	case *Field:
-		WalkNode(n.Name, n, cb)
-		WalkNode(n.Type, n, cb)
+		WalkNode(n.Name, cb)
+		WalkNode(n.Type, cb)
 		for _, c := range n.Comments {
-			WalkNode(c, n, cb)
+			WalkNode(c, cb)
 		}
 	default:
 		panic(fmt.Sprintf("unknown AST node: %#v", n))

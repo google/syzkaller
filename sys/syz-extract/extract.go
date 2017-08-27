@@ -65,7 +65,7 @@ func main() {
 		failf("failed to read input file: %v", err)
 	}
 
-	desc := ast.Parse(indata, filepath.Dir(inname), nil)
+	desc := ast.Parse(indata, filepath.Base(inname), nil)
 	if desc == nil {
 		os.Exit(1)
 	}
@@ -79,11 +79,15 @@ func main() {
 }
 
 func compileConsts(arch *Arch, desc *ast.Description) map[string]uint64 {
-	valArr, includes, incdirs, defines := compiler.ExtractConsts(desc)
-	if len(valArr) == 0 {
+	info := compiler.ExtractConsts(desc, nil)
+	if info == nil {
+		os.Exit(1)
+	}
+	if len(info.Consts) == 0 {
 		return nil
 	}
-	consts, err := fetchValues(arch.KernelHeaderArch, valArr, append(includes, arch.KernelInclude), incdirs, defines, arch.CFlags)
+	consts, err := fetchValues(arch.KernelHeaderArch, info.Consts,
+		append(info.Includes, arch.KernelInclude), info.Incdirs, info.Defines, arch.CFlags)
 	if err != nil {
 		failf("%v", err)
 	}
