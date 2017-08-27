@@ -16,6 +16,83 @@ import (
 	"github.com/google/syzkaller/pkg/ast"
 )
 
+type ConstInfo struct {
+	Consts   []string
+	Includes []string
+	Incdirs  []string
+	Defines  map[string]string
+}
+
+// ExtractConsts returns list of literal constants and other info required const value extraction.
+func ExtractConsts(desc *ast.Description, eh0 ast.ErrorHandler) *ConstInfo {
+	errors := 0
+	eh := func(pos ast.Pos, msg string, args ...interface{}) {
+		errors++
+		msg = fmt.Sprintf(msg, args...)
+		if eh0 != nil {
+			eh0(pos, msg)
+		} else {
+			ast.LoggingHandler(pos, msg)
+		}
+	}
+	info := &ConstInfo{
+		Defines: make(map[string]string),
+	}
+	includeMap := make(map[string]bool)
+	incdirMap := make(map[string]bool)
+	constMap := make(map[string]bool)
+
+	ast.Walk(desc, func(n1 ast.Node) {
+		switch n := n1.(type) {
+		case *ast.Include:
+			file := n.File.Value
+			if includeMap[file] {
+				eh(n.Pos, "duplicate include %q", file)
+			}
+			includeMap[file] = true
+			info.Includes = append(info.Includes, file)
+		case *ast.Incdir:
+			dir := n.Dir.Value
+			if incdirMap[dir] {
+				eh(n.Pos, "duplicate incdir %q", dir)
+			}
+			incdirMap[dir] = true
+			info.Incdirs = append(info.Incdirs, dir)
+		case *ast.Define:
+			v := fmt.Sprint(n.Value.Value)
+			switch {
+			case n.Value.CExpr != "":
+				v = n.Value.CExpr
+			case n.Value.Ident != "":
+				v = n.Value.Ident
+			}
+			name := n.Name.Name
+			if info.Defines[name] != "" {
+				eh(n.Pos, "duplicate define %v", name)
+			}
+			info.Defines[name] = v
+			constMap[name] = true
+		case *ast.Call:
+			if !strings.HasPrefix(n.CallName, "syz_") {
+				constMap["__NR_"+n.CallName] = true
+			}
+		case *ast.Type:
+			if c := typeConstIdentifier(n); c != nil {
+				constMap[c.Ident] = true
+				constMap[c.Ident2] = true
+			}
+		case *ast.Int:
+			constMap[n.Ident] = true
+		}
+	})
+
+	if errors != 0 {
+		return nil
+	}
+	info.Consts = toArray(constMap)
+	return info
+}
+
 func SerializeConsts(consts map[string]uint64) []byte {
 	var nv []nameValuePair
 	for k, v := range consts {

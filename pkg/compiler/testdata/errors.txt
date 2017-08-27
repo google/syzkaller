@@ -1,0 +1,63 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+foo$0(x fileoff, y int8, z buffer[in])
+foo$1(x "bar")				### unexpected string "bar", expecting type
+foo$2(x 123, y "bar")			### unexpected integer 123, expecting type	### unexpected string "bar", expecting type
+foo$3(x string)				### string can't be syscall argument/return
+
+resource r0[int32]: 0, 0x1
+resource r1[string["foo"]]		### string can't be resource base (int types can)
+resource r1[int32]			### type r1 redeclared, previously declared as resource at errors.txt:10:1
+resource int32[int32]			### resource name int32 conflicts with builtin type
+resource fileoff[intptr]		### resource name fileoff conflicts with builtin type
+
+s1 {
+	f1	int32
+}
+
+s1 {					### type s1 redeclared, previously declared as struct at errors.txt:15:1
+	f1	int32
+	f1	intptr			### duplicate field f1 in struct s1
+	parent	int8			### reserved field name parent in struct s1
+}
+
+s2 {					### struct s2 has no fields, need at least 1 field
+}
+
+int32 {					### struct name int32 conflicts with builtin type
+	f1	int32
+}
+
+r0 {					### type r0 redeclared, previously declared as resource at errors.txt:9:1
+	f1	int32
+}
+
+u0 [
+	f1	int32
+	f2	fileoff
+]
+
+u1 [					### union u1 has only 1 field, need at least 2 fields
+	f1	int32
+]
+
+u2 [
+	f1	int8
+	f1	int16			### duplicate field f1 in union u2
+	parent	int32			### reserved field name parent in union u2
+]
+
+foo$4(a int8, a int16)			### duplicate argument a in syscall foo$4
+foo$4()					### syscall foo$4 redeclared, previously declared at errors.txt:51:1
+foo()
+foo()					### syscall foo redeclared, previously declared at errors.txt:53:1
+foo$5(a0 int8, a1 int8, a2 int8, a3 int8, a4 int8, a5 int8, a6 int8, a7 int8, a8 int8, a9 int8)	### syscall foo$5 has 10 arguments, allowed maximum is 9
+foo$6(parent int8)			### reserved argument name parent in syscall foo$6
+
+#s1 {
+#	f1	int32:8
+#	f2	int32:12
+#}
+
+

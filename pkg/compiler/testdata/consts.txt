@@ -1,0 +1,24 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <foo/bar.h>
+incdir </foo>
+include <bar/foo.h>
+incdir </bar>
+
+flags = CONST3, CONST2, CONST1
+
+define CONST1 1
+define CONST2 FOOBAR + 1
+
+foo(x const[CONST4]) ptr[out, array[int32, CONST5]]
+bar$BAR()
+
+str {
+	f1	const[CONST6, int32]
+	f2	array[array[int8, CONST7]]
+}
+
+bar$BAZ(x vma[opt], y vma[CONST8], z vma[CONST9:CONST10])
+bar$QUX(s ptr[in, string["foo", CONST11]], x csum[s, pseudo, CONST12])
+bar$FOO(x int8[8:CONST13], y int16be[CONST14:10], z intptr[CONST15:CONST16])

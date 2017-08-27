@@ -50,7 +50,7 @@ func (def *Define) serialize(w io.Writer) {
 }
 
 func (res *Resource) serialize(w io.Writer) {
-	fmt.Fprintf(w, "resource %v[%v]", res.Name.Name, res.Base.Name)
+	fmt.Fprintf(w, "resource %v[%v]", res.Name.Name, fmtType(res.Base))
 	for i, v := range res.Values {
 		if i == 0 {
 			fmt.Fprintf(w, ": ")

@@ -228,7 +228,7 @@ func (p *parser) parseResource() *Resource {
 	p.consume(tokResource)
 	name := p.parseIdent()
 	p.consume(tokLBrack)
-	base := p.parseIdent()
+	base := p.parseType()
 	p.consume(tokRBrack)
 	var values []*Int
 	if p.tryConsume(tokColon) {

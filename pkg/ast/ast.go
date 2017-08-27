@@ -18,7 +18,9 @@ type Description struct {
 }
 
 // Node is AST node interface.
-type Node interface{}
+type Node interface {
+	Info() (pos Pos, typ string, name string)
+}
 
 // Top-level AST nodes:
 
@@ -26,9 +28,17 @@ type NewLine struct {
 	Pos Pos
 }
 
+func (n *NewLine) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokNewLine], ""
+}
+
 type Comment struct {
 	Pos  Pos
 	Text string
+}
+
+func (n *Comment) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokComment], ""
 }
 
 type Include struct {
@@ -36,9 +46,17 @@ type Include struct {
 	File *String
 }
 
+func (n *Include) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokInclude], ""
+}
+
 type Incdir struct {
 	Pos Pos
 	Dir *String
+}
+
+func (n *Incdir) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokInclude], ""
 }
 
 type Define struct {
@@ -47,11 +65,19 @@ type Define struct {
 	Value *Int
 }
 
+func (n *Define) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokDefine], n.Name.Name
+}
+
 type Resource struct {
 	Pos    Pos
 	Name   *Ident
-	Base   *Ident
+	Base   *Type
 	Values []*Int
+}
+
+func (n *Resource) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokResource], n.Name.Name
 }
 
 type Call struct {
@@ -63,6 +89,10 @@ type Call struct {
 	Ret      *Type
 }
 
+func (n *Call) Info() (Pos, string, string) {
+	return n.Pos, "syscall", n.Name.Name
+}
+
 type Struct struct {
 	Pos      Pos
 	Name     *Ident
@@ -72,16 +102,32 @@ type Struct struct {
 	IsUnion  bool
 }
 
+func (n *Struct) Info() (Pos, string, string) {
+	typ := "struct"
+	if n.IsUnion {
+		typ = "union"
+	}
+	return n.Pos, typ, n.Name.Name
+}
+
 type IntFlags struct {
 	Pos    Pos
 	Name   *Ident
 	Values []*Int
 }
 
+func (n *IntFlags) Info() (Pos, string, string) {
+	return n.Pos, "flags", n.Name.Name
+}
+
 type StrFlags struct {
 	Pos    Pos
 	Name   *Ident
 	Values []*String
+}
+
+func (n *StrFlags) Info() (Pos, string, string) {
+	return n.Pos, "string flags", n.Name.Name
 }
 
 // Not top-level AST nodes:
@@ -91,9 +137,17 @@ type Ident struct {
 	Name string
 }
 
+func (n *Ident) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokIdent], n.Name
+}
+
 type String struct {
 	Pos   Pos
 	Value string
+}
+
+func (n *String) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokString], ""
 }
 
 type Int struct {
@@ -103,6 +157,10 @@ type Int struct {
 	ValueHex bool // says if value was in hex (for formatting)
 	Ident    string
 	CExpr    string
+}
+
+func (n *Int) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokInt], ""
 }
 
 type Type struct {
@@ -121,10 +179,18 @@ type Type struct {
 	Args      []*Type
 }
 
+func (n *Type) Info() (Pos, string, string) {
+	return n.Pos, "type", n.Ident
+}
+
 type Field struct {
 	Pos      Pos
 	Name     *Ident
 	Type     *Type
 	NewBlock bool // separated from previous fields by a new line
 	Comments []*Comment
+}
+
+func (n *Field) Info() (Pos, string, string) {
+	return n.Pos, "arg/field", n.Name.Name
 }
