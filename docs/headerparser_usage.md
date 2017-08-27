@@ -19,7 +19,7 @@ $ pip install pycparser
 
 ## Using headerparser
 ```shell
-$ python headerparser.py --device th_b --filenames=./test_headers/th_b.h
+$ python headerparser.py --filenames=./test_headers/th_b.h
 B {
           B1     len|fileoff|flags|intN     #(unsigned long)
           B2     len|fileoff|flags|intN     #(unsigned long)
@@ -37,7 +37,7 @@ You can copy paste the content underneath the `Structure Metadata` over to your 
 Let us try parsing `test_headers/th_a.h` header file to generate argument structs.
 
 ```shell
-$ python headerparser.py --device th_a --filenames=./test_headers/th_a.h
+$ python headerparser.py --filenames=./test_headers/th_a.h
 ERROR:root:HeaderFilePreprocessorException: /tmp/tmpW8xzty/source.o:36:2: before: some_type
 
 $ python headerparser.py --filenames=./test_headers/th_a.h --debug
