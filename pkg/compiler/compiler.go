@@ -22,104 +22,92 @@ type Prog struct {
 }
 
 // Compile compiles sys description.
-func Compile(desc0 *ast.Description, consts map[string]uint64, eh ast.ErrorHandler) *Prog {
+func Compile(desc *ast.Description, consts map[string]uint64, eh ast.ErrorHandler) *Prog {
 	if eh == nil {
 		eh = ast.LoggingHandler
 	}
+	comp := &compiler{
+		desc:        ast.Clone(desc),
+		eh:          eh,
+		unsupported: make(map[string]bool),
+	}
 
-	desc := ast.Clone(desc0)
-	unsup, ok := patchConsts(desc, consts, eh)
-	if !ok {
+	comp.assignSyscallNumbers(consts)
+	comp.patchConsts(consts)
+	if comp.errors != 0 {
 		return nil
 	}
 
 	return &Prog{
-		Desc:        desc,
-		Unsupported: unsup,
+		Desc:        comp.desc,
+		Unsupported: comp.unsupported,
 	}
 }
 
-// patchConsts replaces all symbolic consts with their numeric values taken from consts map.
-// Updates desc and returns set of unsupported syscalls and flags.
-// After this pass consts are not needed for compilation.
-func patchConsts(desc *ast.Description, consts map[string]uint64, eh ast.ErrorHandler) (map[string]bool, bool) {
-	broken := false
-	unsup := make(map[string]bool)
+type compiler struct {
+	desc   *ast.Description
+	eh     ast.ErrorHandler
+	errors int
+
+	unsupported map[string]bool
+}
+
+func (comp *compiler) error(pos ast.Pos, msg string, args ...interface{}) {
+	comp.errors++
+	comp.warning(pos, msg, args...)
+}
+
+func (comp *compiler) warning(pos ast.Pos, msg string, args ...interface{}) {
+	comp.eh(pos, fmt.Sprintf(msg, args...))
+}
+
+// assignSyscallNumbers assigns syscall numbers, discards unsupported syscalls
+// and removes no longer irrelevant nodes from the tree (comments, new lines, etc).
+func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
+	// Pseudo syscalls starting from syz_ are assigned numbers starting from syzbase.
+	// Note: the numbers must be stable (not depend on file reading order, etc),
+	// so we have to do it in 2 passes.
+	const syzbase = 1000000
+	syzcalls := make(map[string]bool)
+	for _, decl := range comp.desc.Nodes {
+		c, ok := decl.(*ast.Call)
+		if !ok {
+			continue
+		}
+		if strings.HasPrefix(c.CallName, "syz_") {
+			syzcalls[c.CallName] = true
+		}
+	}
+	syznr := make(map[string]uint64)
+	for i, name := range toArray(syzcalls) {
+		syznr[name] = syzbase + uint64(i)
+	}
+
 	var top []ast.Node
-	for _, decl := range desc.Nodes {
+	for _, decl := range comp.desc.Nodes {
 		switch decl.(type) {
-		case *ast.IntFlags:
-			// Unsupported flag values are dropped.
-			n := decl.(*ast.IntFlags)
-			var values []*ast.Int
-			for _, v := range n.Values {
-				if patchIntConst(v.Pos, &v.Value, &v.Ident, consts, unsup, nil, eh) {
-					values = append(values, v)
-				}
-			}
-			n.Values = values
-			top = append(top, n)
-		case *ast.Resource, *ast.Struct, *ast.Call:
-			if c, ok := decl.(*ast.Call); ok {
-				// Extract syscall NR.
-				str := "__NR_" + c.CallName
-				nr, ok := consts[str]
-				if !ok {
-					if name := "syscall " + c.CallName; !unsup[name] {
-						unsup[name] = true
-						eh(c.Pos, fmt.Sprintf("unsupported syscall: %v due to missing const %v",
-							c.CallName, str))
-					}
-					continue
-				}
-				c.NR = nr
-			}
-			// Walk whole tree and replace consts in Int's and Type's.
-			missing := ""
-			ast.WalkNode(decl, func(n0 ast.Node) {
-				switch n := n0.(type) {
-				case *ast.Int:
-					patchIntConst(n.Pos, &n.Value, &n.Ident,
-						consts, unsup, &missing, eh)
-				case *ast.Type:
-					if c := typeConstIdentifier(n); c != nil {
-						patchIntConst(c.Pos, &c.Value, &c.Ident,
-							consts, unsup, &missing, eh)
-						if c.HasColon {
-							patchIntConst(c.Pos2, &c.Value2, &c.Ident2,
-								consts, unsup, &missing, eh)
-						}
-					}
-				}
-			})
-			if missing == "" {
+		case *ast.Call:
+			c := decl.(*ast.Call)
+			if strings.HasPrefix(c.CallName, "syz_") {
+				c.NR = syznr[c.CallName]
 				top = append(top, decl)
-			} else {
-				// Produce a warning about unsupported syscall/resource/struct.
-				// Unsupported syscalls are discarded.
-				// Unsupported resource/struct lead to compilation error.
-				// Fixing that would require removing all uses of the resource/struct.
-				typ, pos, name, fatal := "", ast.Pos{}, "", false
-				switch n := decl.(type) {
-				case *ast.Call:
-					typ, pos, name, fatal = "syscall", n.Pos, n.Name.Name, false
-				case *ast.Resource:
-					typ, pos, name, fatal = "resource", n.Pos, n.Name.Name, true
-				case *ast.Struct:
-					typ, pos, name, fatal = "struct", n.Pos, n.Name.Name, true
-				default:
-					panic(fmt.Sprintf("unknown type: %#v", decl))
-				}
-				if id := typ + " " + name; !unsup[id] {
-					unsup[id] = true
-					eh(pos, fmt.Sprintf("unsupported %v: %v due to missing const %v",
-						typ, name, missing))
-				}
-				if fatal {
-					broken = true
-				}
+				continue
 			}
-		case *ast.StrFlags:
+			// Lookup in consts.
+			str := "__NR_" + c.CallName
+			nr, ok := consts[str]
+			if ok {
+				c.NR = nr
+				top = append(top, decl)
+				continue
+			}
+			name := "syscall " + c.CallName
+			if !comp.unsupported[name] {
+				comp.unsupported[name] = true
+				comp.warning(c.Pos, "unsupported syscall: %v due to missing const %v",
+					c.CallName, str)
+			}
+		case *ast.IntFlags, *ast.Resource, *ast.Struct, *ast.StrFlags:
 			top = append(top, decl)
 		case *ast.NewLine, *ast.Comment, *ast.Include, *ast.Incdir, *ast.Define:
 			// These are not needed anymore.
@@ -127,8 +115,76 @@ func patchConsts(desc *ast.Description, consts map[string]uint64, eh ast.ErrorHa
 			panic(fmt.Sprintf("unknown node type: %#v", decl))
 		}
 	}
-	desc.Nodes = top
-	return unsup, !broken
+	comp.desc.Nodes = top
+}
+
+// patchConsts replaces all symbolic consts with their numeric values taken from consts map.
+// Updates desc and returns set of unsupported syscalls and flags.
+// After this pass consts are not needed for compilation.
+func (comp *compiler) patchConsts(consts map[string]uint64) {
+	var top []ast.Node
+	for _, decl := range comp.desc.Nodes {
+		switch decl.(type) {
+		case *ast.IntFlags:
+			// Unsupported flag values are dropped.
+			n := decl.(*ast.IntFlags)
+			var values []*ast.Int
+			for _, v := range n.Values {
+				if comp.patchIntConst(v.Pos, &v.Value, &v.Ident, consts, nil) {
+					values = append(values, v)
+				}
+			}
+			n.Values = values
+			top = append(top, n)
+		case *ast.StrFlags:
+			top = append(top, decl)
+		case *ast.Resource, *ast.Struct, *ast.Call:
+			// Walk whole tree and replace consts in Int's and Type's.
+			missing := ""
+			ast.WalkNode(decl, nil, func(n0, _ ast.Node) {
+				switch n := n0.(type) {
+				case *ast.Int:
+					comp.patchIntConst(n.Pos, &n.Value, &n.Ident, consts, &missing)
+				case *ast.Type:
+					if c := typeConstIdentifier(n); c != nil {
+						comp.patchIntConst(c.Pos, &c.Value, &c.Ident,
+							consts, &missing)
+						if c.HasColon {
+							comp.patchIntConst(c.Pos2, &c.Value2, &c.Ident2,
+								consts, &missing)
+						}
+					}
+				}
+			})
+			if missing == "" {
+				top = append(top, decl)
+				continue
+			}
+			// Produce a warning about unsupported syscall/resource/struct.
+			// Unsupported syscalls are discarded.
+			// Unsupported resource/struct lead to compilation error.
+			// Fixing that would require removing all uses of the resource/struct.
+			pos, typ, name := ast.Pos{}, "", ""
+			fn := comp.error
+			switch n := decl.(type) {
+			case *ast.Call:
+				pos, typ, name = n.Pos, "syscall", n.Name.Name
+				fn = comp.warning
+			case *ast.Resource:
+				pos, typ, name = n.Pos, "resource", n.Name.Name
+			case *ast.Struct:
+				pos, typ, name = n.Pos, "struct", n.Name.Name
+			default:
+				panic(fmt.Sprintf("unknown type: %#v", decl))
+			}
+			if id := typ + " " + name; !comp.unsupported[id] {
+				comp.unsupported[id] = true
+				fn(pos, "unsupported %v: %v due to missing const %v",
+					typ, name, missing)
+			}
+		}
+	}
+	comp.desc.Nodes = top
 }
 
 // ExtractConsts returns list of literal constants and other info required const value extraction.
@@ -136,7 +192,7 @@ func ExtractConsts(desc *ast.Description) (consts, includes, incdirs []string, d
 	constMap := make(map[string]bool)
 	defines = make(map[string]string)
 
-	ast.Walk(desc, func(n1 ast.Node) {
+	ast.Walk(desc, func(n1, _ ast.Node) {
 		switch n := n1.(type) {
 		case *ast.Include:
 			includes = append(includes, n.File.Value)
@@ -170,17 +226,17 @@ func ExtractConsts(desc *ast.Description) (consts, includes, incdirs []string, d
 	return
 }
 
-func patchIntConst(pos ast.Pos, val *uint64, id *string,
-	consts map[string]uint64, unsup map[string]bool, missing *string, eh ast.ErrorHandler) bool {
+func (comp *compiler) patchIntConst(pos ast.Pos, val *uint64, id *string,
+	consts map[string]uint64, missing *string) bool {
 	if *id == "" {
 		return true
 	}
 	v, ok := consts[*id]
 	if !ok {
 		name := "const " + *id
-		if !unsup[name] {
-			unsup[name] = true
-			eh(pos, fmt.Sprintf("unsupported const: %v", *id))
+		if !comp.unsupported[name] {
+			comp.unsupported[name] = true
+			comp.warning(pos, "unsupported const: %v", *id)
 		}
 		if missing != nil && *missing == "" {
 			*missing = *id
