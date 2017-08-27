@@ -4,11 +4,32 @@
 package compiler
 
 import (
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
 )
+
+func TestCompileAll(t *testing.T) {
+	eh := func(pos ast.Pos, msg string) {
+		t.Logf("%v:%v:%v: %v", pos.File, pos.Line, pos.Col, msg)
+	}
+	desc := ast.ParseGlob(filepath.Join("..", "..", "sys", "*.txt"), eh)
+	if desc == nil {
+		t.Fatalf("parsing failed")
+	}
+	glob := filepath.Join("..", "..", "sys", "*_"+runtime.GOARCH+".const")
+	consts := DeserializeConstsGlob(glob, eh)
+	if consts == nil {
+		t.Fatalf("reading consts failed")
+	}
+	prog := Compile(desc, consts, eh)
+	if prog == nil {
+		t.Fatalf("compilation failed")
+	}
+}
 
 func TestExtractConsts(t *testing.T) {
 	desc := ast.Parse([]byte(extractConstsInput), "test", nil)

@@ -27,35 +27,37 @@ func TestParseAll(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to read file: %v", err)
 		}
-		errorHandler := func(pos Pos, msg string) {
-			t.Fatalf("%v:%v:%v: %v", pos.File, pos.Line, pos.Col, msg)
-		}
-		desc := Parse(data, file.Name(), errorHandler)
-		if desc == nil {
-			t.Fatalf("parsing failed, but no error produced")
-		}
-		data2 := Format(desc)
-		desc2 := Parse(data2, file.Name(), errorHandler)
-		if desc2 == nil {
-			t.Fatalf("parsing failed, but no error produced")
-		}
-		if len(desc.Nodes) != len(desc2.Nodes) {
-			t.Fatalf("formatting number of top level decls: %v/%v",
-				len(desc.Nodes), len(desc2.Nodes))
-		}
-		for i := range desc.Nodes {
-			n1, n2 := desc.Nodes[i], desc2.Nodes[i]
-			if n1 == nil {
-				t.Fatalf("got nil node")
+		t.Run(file.Name(), func(t *testing.T) {
+			eh := func(pos Pos, msg string) {
+				t.Fatalf("%v:%v:%v: %v", pos.File, pos.Line, pos.Col, msg)
 			}
-			if !reflect.DeepEqual(n1, n2) {
-				t.Fatalf("formatting changed code:\n%#v\nvs:\n%#v", n1, n2)
+			desc := Parse(data, file.Name(), eh)
+			if desc == nil {
+				t.Fatalf("parsing failed, but no error produced")
 			}
-		}
-		data3 := Format(Clone(desc))
-		if !bytes.Equal(data, data3) {
-			t.Fatalf("Clone lost data")
-		}
+			data2 := Format(desc)
+			desc2 := Parse(data2, file.Name(), eh)
+			if desc2 == nil {
+				t.Fatalf("parsing failed, but no error produced")
+			}
+			if len(desc.Nodes) != len(desc2.Nodes) {
+				t.Fatalf("formatting number of top level decls: %v/%v",
+					len(desc.Nodes), len(desc2.Nodes))
+			}
+			for i := range desc.Nodes {
+				n1, n2 := desc.Nodes[i], desc2.Nodes[i]
+				if n1 == nil {
+					t.Fatalf("got nil node")
+				}
+				if !reflect.DeepEqual(n1, n2) {
+					t.Fatalf("formatting changed code:\n%#v\nvs:\n%#v", n1, n2)
+				}
+			}
+			data3 := Format(Clone(desc))
+			if !bytes.Equal(data, data3) {
+				t.Fatalf("Clone lost data")
+			}
+		})
 	}
 }
 

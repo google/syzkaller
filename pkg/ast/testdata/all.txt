@@ -22,6 +22,8 @@ call(foo int32:"bar")			### unexpected string, expecting int, identifier
 define FOO `bar`
 define FOO `bar				### C expression is not terminated
 
+foo(x int32[1:2:3, opt])		### unexpected ':', expecting ']'
+
 include <linux/foo.h>
 include "linux/foo.h"
 incdir </foo/bar>
