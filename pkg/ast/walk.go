@@ -8,85 +8,71 @@ import (
 )
 
 // Walk calls callback cb for every node in AST.
-func Walk(desc *Description, cb func(n Node)) {
+func Walk(desc *Description, cb func(n, parent Node)) {
 	for _, n := range desc.Nodes {
-		WalkNode(n, cb)
+		WalkNode(n, nil, cb)
 	}
 }
 
-func WalkNode(n0 Node, cb func(n Node)) {
+func WalkNode(n0, parent Node, cb func(n, parent Node)) {
+	cb(n0, parent)
 	switch n := n0.(type) {
 	case *NewLine:
-		cb(n)
 	case *Comment:
-		cb(n)
 	case *Include:
-		cb(n)
-		WalkNode(n.File, cb)
+		WalkNode(n.File, n, cb)
 	case *Incdir:
-		cb(n)
-		WalkNode(n.Dir, cb)
+		WalkNode(n.Dir, n, cb)
 	case *Define:
-		cb(n)
-		WalkNode(n.Name, cb)
-		WalkNode(n.Value, cb)
+		WalkNode(n.Name, n, cb)
+		WalkNode(n.Value, n, cb)
 	case *Resource:
-		cb(n)
-		WalkNode(n.Name, cb)
-		WalkNode(n.Base, cb)
+		WalkNode(n.Name, n, cb)
+		WalkNode(n.Base, n, cb)
 		for _, v := range n.Values {
-			WalkNode(v, cb)
+			WalkNode(v, n, cb)
 		}
 	case *Call:
-		cb(n)
-		WalkNode(n.Name, cb)
+		WalkNode(n.Name, n, cb)
 		for _, f := range n.Args {
-			WalkNode(f, cb)
+			WalkNode(f, n, cb)
 		}
 		if n.Ret != nil {
-			WalkNode(n.Ret, cb)
+			WalkNode(n.Ret, n, cb)
 		}
 	case *Struct:
-		cb(n)
-		WalkNode(n.Name, cb)
+		WalkNode(n.Name, n, cb)
 		for _, f := range n.Fields {
-			WalkNode(f, cb)
+			WalkNode(f, n, cb)
 		}
 		for _, a := range n.Attrs {
-			WalkNode(a, cb)
+			WalkNode(a, n, cb)
 		}
 		for _, c := range n.Comments {
-			WalkNode(c, cb)
+			WalkNode(c, n, cb)
 		}
 	case *IntFlags:
-		cb(n)
-		WalkNode(n.Name, cb)
+		WalkNode(n.Name, n, cb)
 		for _, v := range n.Values {
-			WalkNode(v, cb)
+			WalkNode(v, n, cb)
 		}
 	case *StrFlags:
-		cb(n)
-		WalkNode(n.Name, cb)
+		WalkNode(n.Name, n, cb)
 		for _, v := range n.Values {
-			WalkNode(v, cb)
+			WalkNode(v, n, cb)
 		}
 	case *Ident:
-		cb(n)
 	case *String:
-		cb(n)
 	case *Int:
-		cb(n)
 	case *Type:
-		cb(n)
 		for _, t := range n.Args {
-			WalkNode(t, cb)
+			WalkNode(t, n, cb)
 		}
 	case *Field:
-		cb(n)
-		WalkNode(n.Name, cb)
-		WalkNode(n.Type, cb)
+		WalkNode(n.Name, n, cb)
+		WalkNode(n.Type, n, cb)
 		for _, c := range n.Comments {
-			WalkNode(c, cb)
+			WalkNode(c, n, cb)
 		}
 	default:
 		panic(fmt.Sprintf("unknown AST node: %#v", n))
