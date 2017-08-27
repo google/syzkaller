@@ -622,16 +622,6 @@ func generateArg(
 			}
 		}
 		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferString, SubKind: %q, Values: %#v, Length: %v}", common(), subkind, vals, size)
-	case "salg_type":
-		if want := 0; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferAlgType}", common())
-	case "salg_name":
-		if want := 0; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferAlgName}", common())
 	case "vma":
 		canBeArg = true
 		begin, end := "0", "0"
@@ -923,16 +913,6 @@ func decodeByteSizeType(typ string) uint8 {
 		sz, _ = strconv.ParseInt(typ[8:], 10, 8)
 	}
 	return uint8(sz)
-}
-
-func isIdentifier(s string) bool {
-	for i, c := range s {
-		if c == '_' || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || i > 0 && (c >= '0' && c <= '9') {
-			continue
-		}
-		return false
-	}
-	return true
 }
 
 func writeSource(file string, data []byte) {
