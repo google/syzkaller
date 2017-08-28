@@ -20,11 +20,11 @@ var pageStartPool = sync.Pool{New: func() interface{} { return new([]uint64) }}
 type randGen struct {
 	*rand.Rand
 	inCreateResource bool
-	recDepth         map[sys.Type]int
+	recDepth         map[string]int
 }
 
 func newRand(rs rand.Source) *randGen {
-	return &randGen{rand.New(rs), false, make(map[sys.Type]int)}
+	return &randGen{rand.New(rs), false, make(map[string]int)}
 }
 
 func (r *randGen) rand(n int) uint64 {
@@ -620,15 +620,15 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg Arg, calls []*Call) {
 
 	// Allow infinite recursion for optional pointers.
 	if pt, ok := typ.(*sys.PtrType); ok && typ.Optional() {
-		if _, ok := pt.Type.(*sys.StructType); ok {
-			r.recDepth[pt.Type] += 1
+		if str, ok := pt.Type.(*sys.StructType); ok {
+			r.recDepth[str.Name()] += 1
 			defer func() {
-				r.recDepth[pt.Type] -= 1
-				if r.recDepth[pt.Type] == 0 {
-					delete(r.recDepth, pt.Type)
+				r.recDepth[str.Name()] -= 1
+				if r.recDepth[str.Name()] == 0 {
+					delete(r.recDepth, str.Name())
 				}
 			}()
-			if r.recDepth[pt.Type] >= 3 {
+			if r.recDepth[str.Name()] >= 3 {
 				return pointerArg(typ, 0, 0, 0, nil), nil
 			}
 		}

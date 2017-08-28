@@ -350,7 +350,6 @@ syz_end_int_struct {
 	f1	int16be
 	f2	int32be
 	f3	int64be
-	f4	intptrbe
 } [packed]
 
 syz_end_var_struct {

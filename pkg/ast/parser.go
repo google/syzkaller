@@ -96,10 +96,10 @@ func (p *parser) parseTopRecover() Node {
 		case nil:
 		case skipLine:
 			// Try to recover by consuming everything until next NEWLINE.
-			for p.tok != tokNewLine {
+			for p.tok != tokNewLine && p.tok != tokEOF {
 				p.next()
 			}
-			p.consume(tokNewLine)
+			p.tryConsume(tokNewLine)
 		default:
 			panic(err)
 		}

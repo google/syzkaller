@@ -134,19 +134,19 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 		s.next()
 	case s.ch == '`':
 		tok = tokCExpr
-		for s.next(); s.ch != '`'; s.next() {
-			if s.ch == 0 || s.ch == '\n' {
-				s.Error(pos, "C expression is not terminated")
-				break
-			}
+		for s.next(); s.ch != '`' && s.ch != '\n'; s.next() {
 		}
-		lit = string(s.data[pos.Off+1 : s.off])
-		s.next()
+		if s.ch == '\n' {
+			s.Error(pos, "C expression is not terminated")
+		} else {
+			lit = string(s.data[pos.Off+1 : s.off])
+			s.next()
+		}
 	case s.prev2 == tokDefine && s.prev1 == tokIdent:
 		// Note: the old form for C expressions, not really lexable.
 		// TODO(dvyukov): get rid of this eventually.
 		tok = tokCExpr
-		for s.next(); s.ch != '\n'; s.next() {
+		for ; s.ch != '\n'; s.next() {
 		}
 		lit = string(s.data[pos.Off:s.off])
 	case s.ch == '#':
