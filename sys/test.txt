@@ -527,3 +527,8 @@ resource syz_missing_const_res[int32]: KVM_ARM_VCPU_INIT
 syz_missing_const_struct {
 	a0	const[KVM_ARM_VCPU_INIT, int32]
 }
+
+syz_use_missing {
+	a0	syz_missing_const_res
+	a1	syz_missing_const_struct
+}

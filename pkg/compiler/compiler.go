@@ -394,6 +394,11 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 				comp.warning(pos, "unsupported %v: %v due to missing const %v",
 					typ, name, missing)
 			}
+			// We have to keep partially broken resources and structs,
+			// because otherwise their usages will error.
+			if _, ok := decl.(*ast.Call); !ok {
+				top = append(top, decl)
+			}
 		}
 	}
 	comp.desc.Nodes = top
