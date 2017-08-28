@@ -12,26 +12,19 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"runtime/pprof"
 	"sort"
-	"strconv"
-	"strings"
+	"sync"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/serializer"
 )
 
 var (
 	flagV          = flag.Int("v", 0, "verbosity")
 	flagMemProfile = flag.String("memprofile", "", "write a memory profile to the file")
-
-	intRegExp = regexp.MustCompile("^int([0-9]+|ptr)(be)?(:[0-9]+)?$")
-)
-
-const (
-	ptrSize = 8
 )
 
 func main() {
@@ -42,33 +35,61 @@ func main() {
 		os.Exit(1)
 	}
 
+	type Result struct {
+		OK          bool
+		Errors      []string
+		Unsupported map[string]bool
+		ArchData    []byte
+	}
+	results := make([]Result, len(archs))
+	var wg sync.WaitGroup
+	wg.Add(len(archs))
+
+	for i, arch := range archs {
+		arch := arch
+		res := &results[i]
+		go func() {
+			defer wg.Done()
+			eh := func(pos ast.Pos, msg string) {
+				res.Errors = append(res.Errors, fmt.Sprintf("%v: %v\n", pos, msg))
+			}
+			consts := compiler.DeserializeConstsGlob("sys/*_"+arch.Name+"\\.const", eh)
+			if consts == nil {
+				return
+			}
+			prog := compiler.Compile(top, consts, eh)
+			if prog == nil {
+				return
+			}
+			res.Unsupported = prog.Unsupported
+
+			sysFile := filepath.Join("sys", "sys_"+arch.Name+".go")
+			out := new(bytes.Buffer)
+			generate(arch.Name, prog, consts, out)
+			writeSource(sysFile, out.Bytes())
+
+			res.ArchData = generateExecutorSyscalls(arch, prog.Syscalls)
+			res.OK = true
+		}()
+	}
+	wg.Wait()
+
 	var syscallArchs [][]byte
 	unsupported := make(map[string]int)
-	for _, arch := range archs {
-		logf(0, "generating %v...", arch.Name)
-
-		consts := compiler.DeserializeConstsGlob("sys/*_"+arch.Name+"\\.const", nil)
-		if consts == nil {
+	for i, arch := range archs {
+		res := &results[i]
+		fmt.Printf("generating %v...\n", arch.Name)
+		for _, msg := range res.Errors {
+			fmt.Print(msg)
+		}
+		if !res.OK {
 			os.Exit(1)
 		}
-		prog := compiler.Compile(top, consts, nil)
-		if prog == nil {
-			os.Exit(1)
-		}
-		for u := range prog.Unsupported {
+		syscallArchs = append(syscallArchs, res.ArchData)
+		for u := range res.Unsupported {
 			unsupported[u]++
 		}
-		desc := astToDesc(prog.Desc)
-
-		sysFile := filepath.Join("sys", "sys_"+arch.Name+".go")
-		logf(1, "Generate code to init system call data in %v", sysFile)
-		out := new(bytes.Buffer)
-		generate(arch.Name, desc, consts, out)
-		writeSource(sysFile, out.Bytes())
-		logf(0, "")
-
-		archData := generateExecutorSyscalls(arch, desc.Syscalls)
-		syscallArchs = append(syscallArchs, archData)
+		fmt.Printf("\n")
 	}
 
 	for what, count := range unsupported {
@@ -92,320 +113,14 @@ func main() {
 	}
 }
 
-type Description struct {
-	Syscalls  []Syscall
-	Structs   map[string]*Struct
-	Unnamed   map[string][]string
-	Flags     map[string][]string
-	StrFlags  map[string][]string
-	Resources map[string]Resource
-}
-
-type Syscall struct {
-	Name     string
-	CallName string
-	NR       uint64
-	Args     [][]string
-	Ret      []string
-}
-
-type Struct struct {
-	Name    string
-	Flds    [][]string
-	IsUnion bool
-	Packed  bool
-	Varlen  bool
-	Align   int
-}
-
-type Resource struct {
-	Name   string
-	Base   string
-	Values []string
-}
-
-type syscallArray []Syscall
-
-func (a syscallArray) Len() int           { return len(a) }
-func (a syscallArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
-func (a syscallArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-func astToDesc(top *ast.Description) *Description {
-	// As a temporal measure we just convert the new representation to the old one.
-	desc := &Description{
-		Structs:   make(map[string]*Struct),
-		Unnamed:   make(map[string][]string),
-		Flags:     make(map[string][]string),
-		StrFlags:  make(map[string][]string),
-		Resources: make(map[string]Resource),
-	}
-	unnamedSeq := 0
-	for _, decl := range top.Nodes {
-		switch n := decl.(type) {
-		case *ast.Resource:
-			var vals []string
-			for _, v := range n.Values {
-				if v.ValueHex {
-					vals = append(vals, fmt.Sprintf("0x%x", uintptr(v.Value)))
-				} else {
-					vals = append(vals, fmt.Sprint(uintptr(v.Value)))
-				}
-			}
-			desc.Resources[n.Name.Name] = Resource{
-				Name:   n.Name.Name,
-				Base:   n.Base.Ident,
-				Values: vals,
-			}
-		case *ast.Call:
-			call := Syscall{
-				Name:     n.Name.Name,
-				CallName: n.CallName,
-				NR:       n.NR,
-			}
-			for _, a := range n.Args {
-				call.Args = append(call.Args, astToDescField(a, desc.Unnamed, &unnamedSeq))
-			}
-			if n.Ret != nil {
-				call.Ret = astToDescType(n.Ret, desc.Unnamed, &unnamedSeq)
-			}
-			desc.Syscalls = append(desc.Syscalls, call)
-		case *ast.Struct:
-			str := &Struct{
-				Name:    n.Name.Name,
-				IsUnion: n.IsUnion,
-			}
-			for _, f := range n.Fields {
-				str.Flds = append(str.Flds, astToDescField(f, desc.Unnamed, &unnamedSeq))
-			}
-			if n.IsUnion {
-				for _, attr := range n.Attrs {
-					switch attr.Name {
-					case "varlen":
-						str.Varlen = true
-					default:
-						failf("unknown union %v attribute: %v", str.Name, attr.Name)
-					}
-				}
-			} else {
-				for _, attr := range n.Attrs {
-					switch {
-					case attr.Name == "packed":
-						str.Packed = true
-					case attr.Name == "align_ptr":
-						str.Align = 8 // TODO: this must be target pointer size
-					case strings.HasPrefix(attr.Name, "align_"):
-						a, err := strconv.ParseUint(attr.Name[6:], 10, 64)
-						if err != nil {
-							failf("bad struct %v alignment %v: %v", str.Name, attr.Name, err)
-						}
-						if a&(a-1) != 0 || a == 0 || a > 1<<30 {
-							failf("bad struct %v alignment %v: must be sane power of 2", str.Name, a)
-						}
-						str.Align = int(a)
-					default:
-						failf("unknown struct %v attribute: %v", str.Name, attr.Name)
-					}
-				}
-			}
-			desc.Structs[str.Name] = str
-		case *ast.IntFlags:
-			var vals []string
-			for _, v := range n.Values {
-				if v.ValueHex {
-					vals = append(vals, fmt.Sprintf("0x%x", uintptr(v.Value)))
-				} else {
-					vals = append(vals, fmt.Sprint(uintptr(v.Value)))
-				}
-			}
-			desc.Flags[n.Name.Name] = vals
-		case *ast.StrFlags:
-			var vals []string
-			for _, v := range n.Values {
-				vals = append(vals, v.Value)
-			}
-			desc.StrFlags[n.Name.Name] = vals
-		}
-	}
-	sort.Sort(syscallArray(desc.Syscalls))
-	return desc
-}
-
-func astToDescField(n *ast.Field, unnamed map[string][]string, unnamedSeq *int) []string {
-	return append([]string{n.Name.Name}, astToDescType(n.Type, unnamed, unnamedSeq)...)
-}
-
-func astToDescType(n *ast.Type, unnamed map[string][]string, unnamedSeq *int) []string {
-	res := []string{astTypeToStr(n)}
-	for _, t := range n.Args {
-		if len(t.Args) == 0 {
-			res = append(res, astTypeToStr(t))
-			continue
-		}
-		id := fmt.Sprintf("unnamed%v", *unnamedSeq)
-		(*unnamedSeq)++
-		unnamed[id] = astToDescType(t, unnamed, unnamedSeq)
-		res = append(res, id)
-	}
-	return res
-}
-
-func astTypeToStr(n *ast.Type) string {
-	res := ""
-	switch {
-	case n.Ident != "":
-		res = n.Ident
-	case n.String != "":
-		res = fmt.Sprintf("\"%v\"", n.String)
-	default:
-		if n.ValueHex {
-			res = fmt.Sprintf("0x%x", uintptr(n.Value))
-		} else {
-			res = fmt.Sprint(uintptr(n.Value))
-		}
-	}
-	if n.Ident2 != "" {
-		res += ":" + n.Ident2
-	} else if n.Value2 != 0 {
-		if n.Value2Hex {
-			res += fmt.Sprintf(":0x%x", uintptr(n.Value2))
-		} else {
-			res += ":" + fmt.Sprint(uintptr(n.Value2))
-		}
-	}
-	return res
-}
-
-func generate(arch string, desc *Description, consts map[string]uint64, out io.Writer) {
+func generate(arch string, prog *compiler.Prog, consts map[string]uint64, out io.Writer) {
 	fmt.Fprintf(out, "// AUTOGENERATED FILE\n")
 	fmt.Fprintf(out, "package sys\n\n")
 
-	generateResources(desc, out)
-	generateStructs(desc, out)
+	fmt.Fprintf(out, "var resourceArray = ")
+	serializer.Write(out, prog.Resources)
+	fmt.Fprintf(out, "\n\n")
 
-	fmt.Fprintf(out, "var Calls = []*Call{\n")
-	for _, s := range desc.Syscalls {
-		logf(4, "    generate population code for %v", s.Name)
-		native := !strings.HasPrefix(s.CallName, "syz_")
-		fmt.Fprintf(out, "&Call{Name: \"%v\", CallName: \"%v\", Native: %v", s.Name, s.CallName, native)
-		if len(s.Ret) != 0 {
-			fmt.Fprintf(out, ", Ret: ")
-			generateArg("", "ret", s.Ret[0], "out", s.Ret[1:], desc, true, false, out)
-		}
-		fmt.Fprintf(out, ", Args: []Type{")
-		for i, a := range s.Args {
-			if i != 0 {
-				fmt.Fprintf(out, ", ")
-			}
-			logf(5, "      generate description for arg %v", i)
-			generateArg("", a[0], a[1], "in", a[2:], desc, true, false, out)
-		}
-		fmt.Fprintf(out, "}, NR: %v},\n", s.NR)
-	}
-	fmt.Fprintf(out, "}\n\n")
-
-	var constArr []NameValue
-	for name, val := range consts {
-		constArr = append(constArr, NameValue{name, val})
-	}
-	sort.Sort(NameValueArray(constArr))
-
-	fmt.Fprintf(out, "const (\n")
-	for _, nv := range constArr {
-		fmt.Fprintf(out, "%v = %v\n", nv.name, nv.val)
-	}
-	fmt.Fprintf(out, ")\n")
-}
-
-func generateResources(desc *Description, out io.Writer) {
-	var resArray ResourceArray
-	for _, res := range desc.Resources {
-		resArray = append(resArray, res)
-	}
-	sort.Sort(resArray)
-
-	fmt.Fprintf(out, "var resourceArray = []*ResourceDesc{\n")
-	for _, res := range resArray {
-		underlying := ""
-		name := res.Name
-		kind := []string{name}
-		var values []string
-	loop:
-		for {
-			values = append(append([]string{}, res.Values...), values...)
-			switch res.Base {
-			case "int8", "int16", "int32", "int64", "intptr":
-				underlying = res.Base
-				break loop
-			default:
-				if _, ok := desc.Resources[res.Base]; !ok {
-					failf("resource '%v' has unknown parent resource '%v'", name, res.Base)
-				}
-				kind = append([]string{res.Base}, kind...)
-				res = desc.Resources[res.Base]
-			}
-		}
-		fmt.Fprintf(out, "&ResourceDesc{Name: \"%v\", Type: ", name)
-		generateArg("", "resource-type", underlying, "inout", nil, desc, true, true, out)
-		fmt.Fprintf(out, ", Kind: []string{")
-		for i, k := range kind {
-			if i != 0 {
-				fmt.Fprintf(out, ", ")
-			}
-			fmt.Fprintf(out, "\"%v\"", k)
-		}
-		fmt.Fprintf(out, "}, Values: []uint64{")
-		if len(values) == 0 {
-			values = append(values, "0")
-		}
-		for i, v := range values {
-			if i != 0 {
-				fmt.Fprintf(out, ", ")
-			}
-			fmt.Fprintf(out, "%v", v)
-		}
-		fmt.Fprintf(out, "}},\n")
-	}
-	fmt.Fprintf(out, "}\n")
-}
-
-type structKey struct {
-	name  string
-	field string
-	dir   string
-}
-
-func generateStructEntry(str *Struct, out io.Writer) {
-	typ := "StructType"
-	if str.IsUnion {
-		typ = "UnionType"
-	}
-	packed := ""
-	if str.Packed {
-		packed = ", IsPacked: true"
-	}
-	varlen := ""
-	if str.Varlen {
-		varlen = ", IsVarlen: true"
-	}
-	align := ""
-	if str.Align != 0 {
-		align = fmt.Sprintf(", AlignAttr: %v", str.Align)
-	}
-	fmt.Fprintf(out, "&%v{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v} %v %v %v},\n",
-		typ, str.Name, false, packed, align, varlen)
-}
-
-func generateStructFields(str *Struct, key structKey, desc *Description, out io.Writer) {
-	fmt.Fprintf(out, "{structKey{\"%v\", \"%v\", %v}, []Type{\n", key.name, key.field, fmtDir(key.dir))
-	for _, a := range str.Flds {
-		generateArg(str.Name, a[0], a[1], key.dir, a[2:], desc, false, true, out)
-		fmt.Fprintf(out, ",\n")
-	}
-	fmt.Fprintf(out, "}},\n")
-
-}
-
-func generateStructs(desc *Description, out io.Writer) {
 	// Struct fields can refer to other structs. Go compiler won't like if
 	// we refer to Structs during Structs initialization. So we do
 	// it in 2 passes: on the first pass create struct types without fields,
@@ -414,441 +129,31 @@ func generateStructs(desc *Description, out io.Writer) {
 	// Since structs of the same type can be fields with different names
 	// of multiple other structs, we have an instance of those structs
 	// for each field indexed by the name of the parent struct, field name and dir.
+	fmt.Fprintf(out, "var structFields = ")
+	serializer.Write(out, prog.StructFields)
+	fmt.Fprintf(out, "\n\n")
 
-	structMap := make(map[structKey]*Struct)
-	for _, str := range desc.Structs {
-		for _, dir := range []string{"in", "out", "inout"} {
-			structMap[structKey{str.Name, "", dir}] = str
-		}
-		for _, a := range str.Flds {
-			if innerStr, ok := desc.Structs[a[1]]; ok {
-				for _, dir := range []string{"in", "out", "inout"} {
-					structMap[structKey{a[1], a[0], dir}] = innerStr
-				}
-			}
-		}
-	}
+	fmt.Fprintf(out, "var Calls = ")
+	serializer.Write(out, prog.Syscalls)
+	fmt.Fprintf(out, "\n\n")
 
-	fmt.Fprintf(out, "var structArray = []Type{\n")
-	sortedStructs := make([]*Struct, 0, len(desc.Structs))
-	for _, str := range desc.Structs {
-		sortedStructs = append(sortedStructs, str)
+	type NameValue struct {
+		name string
+		val  uint64
 	}
-	sort.Sort(structSorter(sortedStructs))
-	for _, str := range sortedStructs {
-		generateStructEntry(str, out)
+	constArr := make([]NameValue, 0, len(consts))
+	for name, val := range consts {
+		constArr = append(constArr, NameValue{name, val})
 	}
-	fmt.Fprintf(out, "}\n")
+	sort.Slice(constArr, func(i, j int) bool {
+		return constArr[i].name < constArr[j].name
+	})
 
-	fmt.Fprintf(out, "var structFields = []struct{key structKey; fields []Type}{")
-	sortedKeys := make([]structKey, 0, len(structMap))
-	for key := range structMap {
-		sortedKeys = append(sortedKeys, key)
+	fmt.Fprintf(out, "const (\n")
+	for _, nv := range constArr {
+		fmt.Fprintf(out, "%v = %v\n", nv.name, nv.val)
 	}
-	sort.Sort(structKeySorter(sortedKeys))
-	for _, key := range sortedKeys {
-		generateStructFields(structMap[key], key, desc, out)
-	}
-	fmt.Fprintf(out, "}\n")
-}
-
-func parseRange(buffer string) (string, string) {
-	parts := strings.Split(buffer, ":")
-	switch len(parts) {
-	case 1:
-		return buffer, buffer
-	case 2:
-		return parts[0], parts[1]
-	default:
-		failf("bad range: %v", buffer)
-		return "", ""
-	}
-}
-
-func generateArg(
-	parent, name, typ, dir string,
-	a []string,
-	desc *Description,
-	isArg, isField bool,
-	out io.Writer) {
-	origName := name
-	name = "\"" + name + "\""
-	opt := false
-	for i, v := range a {
-		if v == "opt" {
-			opt = true
-			copy(a[i:], a[i+1:])
-			a = a[:len(a)-1]
-			break
-		}
-	}
-	fmtDir(dir) // Make sure that dir is "in", "out" or "inout"
-	common := func() string {
-		return fmt.Sprintf("TypeCommon: TypeCommon{TypeName: \"%v\", FldName: %v, ArgDir: %v, IsOptional: %v}", typ, name, fmtDir(dir), opt)
-	}
-	intCommon := func(typeSize uint64, bigEndian bool, bitfieldLen uint64) string {
-		// BitfieldOff and BitfieldLst will be filled in in initAlign().
-		return fmt.Sprintf("IntTypeCommon: IntTypeCommon{%v, TypeSize: %v, BigEndian: %v, BitfieldLen: %v}", common(), typeSize, bigEndian, bitfieldLen)
-	}
-	canBeArg := false
-	switch typ {
-	case "fileoff":
-		canBeArg = true
-		size := uint64(ptrSize)
-		bigEndian := false
-		bitfieldLen := uint64(0)
-		if isField {
-			if want := 1; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-			size, bigEndian, bitfieldLen = decodeIntType(a[0])
-		} else {
-			if want := 0; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-		}
-		fmt.Fprintf(out, "&IntType{%v, Kind: IntFileoff}", intCommon(size, bigEndian, bitfieldLen))
-	case "buffer":
-		canBeArg = true
-		if want := 1; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		ptrCommonHdr := common()
-		dir = a[0]
-		opt = false
-		fmt.Fprintf(out, "&PtrType{%v, Type: &BufferType{%v, Kind: BufferBlobRand}}", ptrCommonHdr, common())
-	case "string":
-		if len(a) != 0 && len(a) != 1 && len(a) != 2 {
-			failf("wrong number of arguments for %v arg %v, want 0-2, got %v", typ, name, len(a))
-		}
-		var vals []string
-		subkind := ""
-		if len(a) >= 1 {
-			if a[0][0] == '"' {
-				vals = append(vals, a[0][1:len(a[0])-1])
-			} else {
-				vals1, ok := desc.StrFlags[a[0]]
-				if !ok {
-					failf("unknown string flags %v", a[0])
-				}
-				vals = append([]string{}, vals1...)
-				subkind = a[0]
-			}
-		}
-		for i, s := range vals {
-			vals[i] = s + "\x00"
-		}
-		var size uint64
-		if len(a) >= 2 {
-			v, err := strconv.ParseUint(a[1], 10, 64)
-			if err != nil {
-				failf("failed to parse string length for %v", name, a[1])
-			}
-			size = v
-			for i, s := range vals {
-				if uint64(len(s)) > size {
-					failf("string value %q exceeds buffer length %v for arg %v", s, size, name)
-				}
-				for uint64(len(s)) < size {
-					s += "\x00"
-				}
-				vals[i] = s
-			}
-		} else {
-			for _, s := range vals {
-				if size != 0 && size != uint64(len(s)) {
-					size = 0
-					break
-				}
-				size = uint64(len(s))
-			}
-		}
-		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferString, SubKind: %q, Values: %#v, Length: %v}", common(), subkind, vals, size)
-	case "vma":
-		canBeArg = true
-		begin, end := "0", "0"
-		switch len(a) {
-		case 0:
-		case 1:
-			begin, end = parseRange(a[0])
-		default:
-			failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
-		}
-		fmt.Fprintf(out, "&VmaType{%v, RangeBegin: %v, RangeEnd: %v}", common(), begin, end)
-	case "len", "bytesize", "bytesize2", "bytesize4", "bytesize8":
-		canBeArg = true
-		size := uint64(ptrSize)
-		bigEndian := false
-		bitfieldLen := uint64(0)
-		if isField {
-			if want := 2; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-			size, bigEndian, bitfieldLen = decodeIntType(a[1])
-		} else {
-			if want := 1; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-		}
-		byteSize := uint8(0)
-		if typ != "len" {
-			byteSize = decodeByteSizeType(typ)
-		}
-		fmt.Fprintf(out, "&LenType{%v, Buf: \"%v\", ByteSize: %v}", intCommon(size, bigEndian, bitfieldLen), a[0], byteSize)
-	case "csum":
-		if len(a) != 3 && len(a) != 4 {
-			failf("wrong number of arguments for %v arg %v, want 3-4, got %v", typ, name, len(a))
-		}
-		var size uint64
-		var bigEndian bool
-		var bitfieldLen uint64
-		var protocol uint64
-		var kind string
-		switch a[1] {
-		case "inet":
-			kind = "CsumInet"
-			size, bigEndian, bitfieldLen = decodeIntType(a[2])
-		case "pseudo":
-			kind = "CsumPseudo"
-			size, bigEndian, bitfieldLen = decodeIntType(a[3])
-			v, err := strconv.ParseUint(a[2], 10, 64)
-			if err != nil {
-				failf("failed to parse protocol %v", a[2])
-			}
-			protocol = v
-		default:
-			failf("unknown checksum kind '%v'", a[0])
-		}
-		fmt.Fprintf(out, "&CsumType{%v, Buf: \"%s\", Kind: %v, Protocol: %v}", intCommon(size, bigEndian, bitfieldLen), a[0], kind, protocol)
-	case "flags":
-		canBeArg = true
-		size := uint64(ptrSize)
-		bigEndian := false
-		bitfieldLen := uint64(0)
-		if isField {
-			if want := 2; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-			size, bigEndian, bitfieldLen = decodeIntType(a[1])
-		} else {
-			if want := 1; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-		}
-		vals, ok := desc.Flags[a[0]]
-		if !ok {
-			failf("unknown flag %v", a[0])
-		}
-		if len(vals) == 0 {
-			fmt.Fprintf(out, "&IntType{%v}", intCommon(size, bigEndian, bitfieldLen))
-		} else {
-			fmt.Fprintf(out, "&FlagsType{%v, Vals: []uint64{%v}}", intCommon(size, bigEndian, bitfieldLen), strings.Join(vals, ","))
-		}
-	case "const":
-		canBeArg = true
-		size := uint64(ptrSize)
-		bigEndian := false
-		bitfieldLen := uint64(0)
-		if isField {
-			if want := 2; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-			size, bigEndian, bitfieldLen = decodeIntType(a[1])
-		} else {
-			if want := 1; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-		}
-		fmt.Fprintf(out, "&ConstType{%v, Val: uint64(%v)}", intCommon(size, bigEndian, bitfieldLen), a[0])
-	case "proc":
-		canBeArg = true
-		want := 2
-		if isField {
-			want = 3
-		}
-		if len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		valuesStart := a[0]
-		valuesPerProc := a[1]
-		size, bitfieldLen, bigEndian := uint64(ptrSize), uint64(0), false
-		if isField {
-			size, bigEndian, bitfieldLen = decodeIntType(a[2])
-		}
-		valuesStartInt, err := strconv.ParseInt(valuesStart, 10, 64)
-		if err != nil {
-			failf("couldn't parse '%v' as int64", valuesStart)
-		}
-		valuesPerProcInt, err := strconv.ParseInt(valuesPerProc, 10, 64)
-		if err != nil {
-			failf("couldn't parse '%v' as int64", valuesPerProc)
-		}
-		if valuesPerProcInt < 1 {
-			failf("values per proc '%v' should be >= 1", valuesPerProcInt)
-		}
-		if size != 8 && valuesStartInt >= (1<<(size*8)) {
-			failf("values starting from '%v' overflow desired type of size '%v'", valuesStartInt, size)
-		}
-		const maxPids = 32 // executor knows about this constant (MAX_PIDS)
-		if size != 8 && valuesStartInt+maxPids*valuesPerProcInt >= (1<<(size*8)) {
-			failf("not enough values starting from '%v' with step '%v' and type size '%v' for 32 procs", valuesStartInt, valuesPerProcInt, size)
-		}
-		fmt.Fprintf(out, "&ProcType{%v, ValuesStart: %v, ValuesPerProc: %v}", intCommon(size, bigEndian, bitfieldLen), valuesStartInt, valuesPerProcInt)
-	case "signalno":
-		canBeArg = true
-		if want := 0; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		fmt.Fprintf(out, "&IntType{%v, Kind: IntSignalno}", intCommon(4, false, 0))
-	case "filename":
-		if want := 0; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferFilename}", common())
-	case "text":
-		if want := 1; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		kind := ""
-		switch a[0] {
-		case "x86_real", "x86_16", "x86_32", "x86_64", "arm64":
-			kind = "Text_" + a[0]
-		default:
-			failf("unknown text type %v for %v arg %v", a[0], typ, name)
-		}
-		fmt.Fprintf(out, "&BufferType{%v, Kind: BufferText, Text: %v}", common(), kind)
-	case "array":
-		if len(a) != 1 && len(a) != 2 {
-			failf("wrong number of arguments for %v arg %v, want 1 or 2, got %v", typ, name, len(a))
-		}
-		if len(a) == 1 {
-			if a[0] == "int8" {
-				fmt.Fprintf(out, "&BufferType{%v, Kind: BufferBlobRand}", common())
-			} else {
-				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRandLen}", common(), generateType(a[0], dir, desc))
-			}
-		} else {
-			begin, end := parseRange(a[1])
-			if a[0] == "int8" {
-				fmt.Fprintf(out, "&BufferType{%v, Kind: BufferBlobRange, RangeBegin: %v, RangeEnd: %v}", common(), begin, end)
-			} else {
-				fmt.Fprintf(out, "&ArrayType{%v, Type: %v, Kind: ArrayRangeLen, RangeBegin: %v, RangeEnd: %v}", common(), generateType(a[0], dir, desc), begin, end)
-			}
-		}
-	case "ptr":
-		canBeArg = true
-		if want := 2; len(a) != want {
-			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-		}
-		dir = "in"
-		fmt.Fprintf(out, "&PtrType{%v, Type: %v}", common(), generateType(a[1], a[0], desc))
-	default:
-		if intRegExp.MatchString(typ) {
-			canBeArg = true
-			size, bigEndian, bitfieldLen := decodeIntType(typ)
-			switch len(a) {
-			case 0:
-				fmt.Fprintf(out, "&IntType{%v}", intCommon(size, bigEndian, bitfieldLen))
-			case 1:
-				begin, end := parseRange(a[0])
-				fmt.Fprintf(out, "&IntType{%v, Kind: IntRange, RangeBegin: %v, RangeEnd: %v}",
-					intCommon(size, bigEndian, bitfieldLen), begin, end)
-			default:
-				failf("wrong number of arguments for %v arg %v, want 0 or 1, got %v", typ, name, len(a))
-			}
-		} else if strings.HasPrefix(typ, "unnamed") {
-			if inner, ok := desc.Unnamed[typ]; ok {
-				generateArg("", "", inner[0], dir, inner[1:], desc, false, isField, out)
-			} else {
-				failf("unknown unnamed type '%v'", typ)
-			}
-		} else if _, ok := desc.Structs[typ]; ok {
-			if len(a) != 0 {
-				failf("struct '%v' has args", typ)
-			}
-			fmt.Fprintf(out, "getStruct(structKey{\"%v\", \"%v\", %v})", typ, origName, fmtDir(dir))
-		} else if _, ok := desc.Resources[typ]; ok {
-			if len(a) != 0 {
-				failf("resource '%v' has args", typ)
-			}
-			fmt.Fprintf(out, "&ResourceType{%v, Desc: resource(\"%v\")}", common(), typ)
-			return
-		} else {
-			failf("unknown arg type \"%v\" for %v", typ, name)
-		}
-	}
-	if isArg && !canBeArg {
-		failf("%v %v can't be syscall argument/return", name, typ)
-	}
-}
-
-func generateType(typ, dir string, desc *Description) string {
-	buf := new(bytes.Buffer)
-	generateArg("", "", typ, dir, nil, desc, false, true, buf)
-	return buf.String()
-}
-
-func fmtDir(s string) string {
-	switch s {
-	case "in":
-		return "DirIn"
-	case "out":
-		return "DirOut"
-	case "inout":
-		return "DirInOut"
-	default:
-		failf("bad direction %v", s)
-		return ""
-	}
-}
-
-func decodeIntType(typ string) (uint64, bool, uint64) {
-	bigEndian := false
-	bitfieldLen := uint64(0)
-
-	parts := strings.Split(typ, ":")
-	if len(parts) == 2 {
-		var err error
-		bitfieldLen, err = strconv.ParseUint(parts[1], 10, 64)
-		if err != nil {
-			failf("failed to parse bitfield length '%v'", parts[1])
-		}
-		typ = parts[0]
-	}
-
-	if strings.HasSuffix(typ, "be") {
-		bigEndian = true
-		typ = typ[:len(typ)-2]
-	}
-
-	switch typ {
-	case "int8", "int16", "int32", "int64", "intptr":
-	default:
-		failf("unknown type %v", typ)
-	}
-	sz := int64(ptrSize * 8)
-	if typ != "intptr" {
-		sz, _ = strconv.ParseInt(typ[3:], 10, 64)
-	}
-
-	if bitfieldLen > uint64(sz) {
-		failf("bitfield of size %v is too large for base type of size %v", bitfieldLen, sz/8)
-	}
-
-	return uint64(sz / 8), bigEndian, bitfieldLen
-}
-
-func decodeByteSizeType(typ string) uint8 {
-	switch typ {
-	case "bytesize", "bytesize2", "bytesize4", "bytesize8":
-	default:
-		failf("unknown type %v", typ)
-	}
-	sz := int64(1)
-	if typ != "bytesize" {
-		sz, _ = strconv.ParseInt(typ[8:], 10, 8)
-	}
-	return uint8(sz)
+	fmt.Fprintf(out, ")\n")
 }
 
 func writeSource(file string, data []byte) {
@@ -871,49 +176,6 @@ func writeFile(file string, data []byte) {
 	defer outf.Close()
 	outf.Write(data)
 }
-
-type NameValue struct {
-	name string
-	val  uint64
-}
-
-type NameValueArray []NameValue
-
-func (a NameValueArray) Len() int           { return len(a) }
-func (a NameValueArray) Less(i, j int) bool { return a[i].name < a[j].name }
-func (a NameValueArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-type ResourceArray []Resource
-
-func (a ResourceArray) Len() int           { return len(a) }
-func (a ResourceArray) Less(i, j int) bool { return a[i].Name < a[j].Name }
-func (a ResourceArray) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-type structSorter []*Struct
-
-func (a structSorter) Len() int           { return len(a) }
-func (a structSorter) Less(i, j int) bool { return a[i].Name < a[j].Name }
-func (a structSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-type structKeySorter []structKey
-
-func (a structKeySorter) Len() int { return len(a) }
-func (a structKeySorter) Less(i, j int) bool {
-	if a[i].name < a[j].name {
-		return true
-	}
-	if a[i].name > a[j].name {
-		return false
-	}
-	if a[i].field < a[j].field {
-		return true
-	}
-	if a[i].field > a[j].field {
-		return false
-	}
-	return a[i].dir < a[j].dir
-}
-func (a structKeySorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
 func failf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)

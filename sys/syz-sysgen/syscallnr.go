@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"text/template"
+
+	"github.com/google/syzkaller/sys"
 )
 
 type Arch struct {
@@ -23,7 +25,7 @@ var archs = []*Arch{
 	{"ppc64le", []string{"__ppc64__", "__PPC64__", "__powerpc64__"}},
 }
 
-func generateExecutorSyscalls(arch *Arch, syscalls []Syscall) []byte {
+func generateExecutorSyscalls(arch *Arch, syscalls []*sys.Call) []byte {
 	data := ArchData{
 		CARCH: arch.CARCH,
 	}

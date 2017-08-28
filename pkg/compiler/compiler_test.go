@@ -12,7 +12,6 @@ import (
 )
 
 func TestCompileAll(t *testing.T) {
-	t.Skip()
 	eh := func(pos ast.Pos, msg string) {
 		t.Logf("%v: %v", pos, msg)
 	}
@@ -31,13 +30,12 @@ func TestCompileAll(t *testing.T) {
 	}
 }
 
-func init() {
-	typeCheck = true
-}
-
 func TestErrors(t *testing.T) {
 	consts := map[string]uint64{
 		"__NR_foo": 1,
+		"C0":       0,
+		"C1":       1,
+		"C2":       2,
 	}
 	name := "errors.txt"
 	em := ast.NewErrorMatcher(t, filepath.Join("testdata", name))
@@ -46,6 +44,26 @@ func TestErrors(t *testing.T) {
 		em.DumpErrors(t)
 		t.Fatalf("parsing failed")
 	}
+	ExtractConsts(desc, em.ErrorHandler)
 	Compile(desc, consts, em.ErrorHandler)
 	em.Check(t)
+}
+
+func TestFuzz(t *testing.T) {
+	inputs := []string{
+		"d~^gB̉`i\u007f?\xb0.",
+		"da[",
+		"define\x98define(define\x98define\x98define\x98define\x98define)define\tdefin",
+		"resource g[g]",
+	}
+	consts := map[string]uint64{"A": 1, "B": 2, "C": 3, "__NR_C": 4}
+	eh := func(pos ast.Pos, msg string) {
+		t.Logf("%v: %v", pos, msg)
+	}
+	for _, data := range inputs {
+		desc := ast.Parse([]byte(data), "", eh)
+		if desc != nil {
+			Compile(desc, consts, eh)
+		}
+	}
 }
