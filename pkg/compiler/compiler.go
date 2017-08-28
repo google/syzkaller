@@ -386,17 +386,12 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 				continue
 			}
 			// Produce a warning about unsupported syscall/resource/struct.
-			// Unsupported syscalls are discarded.
-			// Unsupported resource/struct lead to compilation error.
-			// Fixing that would require removing all uses of the resource/struct.
+			// TODO(dvyukov): we should transitively remove everything that
+			// depends on unsupported things.
 			pos, typ, name := decl.Info()
-			fn := comp.error
-			if _, ok := decl.(*ast.Call); ok {
-				fn = comp.warning
-			}
 			if id := typ + " " + name; !comp.unsupported[id] {
 				comp.unsupported[id] = true
-				fn(pos, "unsupported %v: %v due to missing const %v",
+				comp.warning(pos, "unsupported %v: %v due to missing const %v",
 					typ, name, missing)
 			}
 		}

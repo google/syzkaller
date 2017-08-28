@@ -518,3 +518,12 @@ resource syz_res[int32]: 0xffff
 
 syz_test$res0() syz_res
 syz_test$res1(a0 syz_res)
+
+# KVM_ARM_VCPU_INIT const is not present on all arches.
+# Ensure that it does not break build.
+
+resource syz_missing_const_res[int32]: KVM_ARM_VCPU_INIT
+
+syz_missing_const_struct {
+	a0	const[KVM_ARM_VCPU_INIT, int32]
+}
