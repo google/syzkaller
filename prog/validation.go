@@ -102,7 +102,8 @@ func (c *Call) validate(ctx *validCtx) error {
 			switch arg.(type) {
 			case *GroupArg:
 			default:
-				return fmt.Errorf("syscall %v: struct/array arg '%v' has bad kind %v", c.Meta.Name, arg.Type().Name(), arg)
+				return fmt.Errorf("syscall %v: struct/array arg '%v' has bad kind %#v",
+					c.Meta.Name, arg.Type().Name(), arg)
 			}
 		case *sys.UnionType:
 			switch arg.(type) {

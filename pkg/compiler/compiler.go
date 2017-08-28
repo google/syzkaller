@@ -1,22 +1,43 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+// Package compiler generates sys descriptions of syscalls, types and resources
+// from textual descriptions.
 package compiler
 
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/sys"
 )
 
+// Overview of compilation process:
+// 1. ast.Parse on text file does tokenization and builds AST.
+//    This step catches basic syntax errors. AST contains full debug info.
+// 2. ExtractConsts as AST returns set of constant identifiers.
+//    This step also does verification of include/incdir/define AST nodes.
+// 3. User translates constants to values.
+// 4. Compile on AST and const values does the rest of the work and returns Prog
+//    containing generated sys objects.
+// 4.1. assignSyscallNumbers: uses consts to assign syscall numbers.
+//      This step also detects unsupported syscalls and discards no longer
+//      needed AST nodes (inlcude, define, comments, etc).
+// 4.2. patchConsts: patches Int nodes refering to consts with corresponding values.
+//      Also detects unsupported syscalls, structs, resources due to missing consts.
+// 4.3. check: does extensive semantical checks of AST.
+// 4.4. gen: generates sys objects from AST.
+
 // Prog is description compilation result.
 type Prog struct {
 	// Processed AST (temporal measure, remove later).
-	Desc      *ast.Description
-	Resources []*sys.ResourceDesc
+	Desc         *ast.Description
+	Resources    []*sys.ResourceDesc
+	Syscalls     []*sys.Call
+	StructFields []*sys.StructFields
 	// Set of unsupported syscalls/flags.
 	Unsupported map[string]bool
 }
@@ -29,17 +50,17 @@ func Compile(desc *ast.Description, consts map[string]uint64, eh ast.ErrorHandle
 	comp := &compiler{
 		desc:        ast.Clone(desc),
 		eh:          eh,
+		ptrSize:     8, // TODO(dvyukov): must be provided by target
 		unsupported: make(map[string]bool),
+		resources:   make(map[string]*ast.Resource),
+		structs:     make(map[string]*ast.Struct),
+		intFlags:    make(map[string]*ast.IntFlags),
+		strFlags:    make(map[string]*ast.StrFlags),
+		structUses:  make(map[sys.StructKey]*ast.Struct),
 	}
-
 	comp.assignSyscallNumbers(consts)
 	comp.patchConsts(consts)
-	if comp.errors != 0 {
-		return nil
-	}
-
 	comp.check()
-
 	if comp.errors != 0 {
 		return nil
 	}
@@ -47,8 +68,11 @@ func Compile(desc *ast.Description, consts map[string]uint64, eh ast.ErrorHandle
 		eh(w.pos, w.msg)
 	}
 	return &Prog{
-		Desc:        comp.desc,
-		Unsupported: comp.unsupported,
+		Desc:         comp.desc,
+		Resources:    comp.genResources(),
+		Syscalls:     comp.genSyscalls(),
+		StructFields: comp.genStructFields(),
+		Unsupported:  comp.unsupported,
 	}
 }
 
@@ -57,11 +81,14 @@ type compiler struct {
 	eh       ast.ErrorHandler
 	errors   int
 	warnings []warn
+	ptrSize  uint64
 
 	unsupported map[string]bool
-
-	udt   map[string]ast.Node // structs, unions and resources
-	flags map[string]ast.Node // int and string flags
+	resources   map[string]*ast.Resource
+	structs     map[string]*ast.Struct
+	intFlags    map[string]*ast.IntFlags
+	strFlags    map[string]*ast.StrFlags
+	structUses  map[sys.StructKey]*ast.Struct
 }
 
 type warn struct {
@@ -78,119 +105,80 @@ func (comp *compiler) warning(pos ast.Pos, msg string, args ...interface{}) {
 	comp.warnings = append(comp.warnings, warn{pos, fmt.Sprintf(msg, args...)})
 }
 
-type typeDesc struct {
-	Names        []string
-	CanBeArg     bool
-	NeedBase     bool
-	AllowColon   bool
-	ResourceBase bool
-	Args         []*typeDesc
-}
-
-var (
-	typeDir = &typeDesc{
-		Names: []string{"in", "out", "inout"},
-	}
-
-	topTypes = []*typeDesc{
-		&typeDesc{
-			Names: []string{"int8", "int16", "int32", "int64",
-				"int16be", "int32be", "int64be", "intptr"},
-			CanBeArg:     true,
-			AllowColon:   true,
-			ResourceBase: true,
-		},
-		&typeDesc{
-			Names:    []string{"fileoff"},
-			CanBeArg: true,
-			NeedBase: true,
-		},
-		&typeDesc{
-			Names:    []string{"buffer"},
-			CanBeArg: true,
-			Args:     []*typeDesc{typeDir},
-		},
-		&typeDesc{
-			Names: []string{"string"},
-			//Args:     []*typeDesc{typeDir},
-		},
-	}
-
-	builtinTypes = make(map[string]bool)
-)
-
-func init() {
-	for _, desc := range topTypes {
-		for _, name := range desc.Names {
-			if builtinTypes[name] {
-				panic(fmt.Sprintf("duplicate builtin type %q", name))
-			}
-			builtinTypes[name] = true
-		}
-	}
-}
-
-var typeCheck bool
-
 func (comp *compiler) check() {
 	// TODO: check len in syscall arguments referring to parent.
 	// TODO: incorrect name is referenced in len type
 	// TODO: infinite recursion via struct pointers (e.g. a linked list)
 	// TODO: no constructor for a resource
-	// TODO: typo of intour instead of inout
 
 	comp.checkNames()
 	comp.checkFields()
 
-	if typeCheck {
-		for _, decl := range comp.desc.Nodes {
-			switch n := decl.(type) {
-			case *ast.Resource:
-				comp.checkType(n.Base, false, true)
-			case *ast.Struct:
-				for _, f := range n.Fields {
-					comp.checkType(f.Type, false, false)
-				}
-			case *ast.Call:
-				for _, a := range n.Args {
-					comp.checkType(a.Type, true, false)
-				}
-				if n.Ret != nil {
-					comp.checkType(n.Ret, true, false)
-				}
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Resource:
+			comp.checkType(n.Base, false, true)
+			comp.checkResource(n)
+		case *ast.Struct:
+			for _, f := range n.Fields {
+				comp.checkType(f.Type, false, false)
+			}
+			comp.checkStruct(n)
+		case *ast.Call:
+			for _, a := range n.Args {
+				comp.checkType(a.Type, true, false)
+			}
+			if n.Ret != nil {
+				comp.checkType(n.Ret, true, false)
 			}
 		}
 	}
 }
 
 func (comp *compiler) checkNames() {
-	comp.udt = make(map[string]ast.Node)
-	comp.flags = make(map[string]ast.Node)
 	calls := make(map[string]*ast.Call)
 	for _, decl := range comp.desc.Nodes {
 		switch decl.(type) {
 		case *ast.Resource, *ast.Struct:
 			pos, typ, name := decl.Info()
-			if builtinTypes[name] {
+			if builtinTypes[name] != nil {
 				comp.error(pos, "%v name %v conflicts with builtin type", typ, name)
 				continue
 			}
-			if prev := comp.udt[name]; prev != nil {
-				pos1, typ1, _ := prev.Info()
+			if prev := comp.resources[name]; prev != nil {
+				comp.error(pos, "type %v redeclared, previously declared as resource at %v",
+					name, prev.Pos)
+				continue
+			}
+			if prev := comp.structs[name]; prev != nil {
+				_, typ, _ := prev.Info()
 				comp.error(pos, "type %v redeclared, previously declared as %v at %v",
-					name, typ1, pos1)
+					name, typ, prev.Pos)
 				continue
 			}
-			comp.udt[name] = decl
-		case *ast.IntFlags, *ast.StrFlags:
-			pos, typ, name := decl.Info()
-			if prev := comp.flags[name]; prev != nil {
-				pos1, typ1, _ := prev.Info()
-				comp.error(pos, "%v %v redeclared, previously declared as %v at %v",
-					typ, name, typ1, pos1)
+			if res, ok := decl.(*ast.Resource); ok {
+				comp.resources[name] = res
+			} else if str, ok := decl.(*ast.Struct); ok {
+				comp.structs[name] = str
+			}
+		case *ast.IntFlags:
+			n := decl.(*ast.IntFlags)
+			name := n.Name.Name
+			if prev := comp.intFlags[name]; prev != nil {
+				comp.error(n.Pos, "flags %v redeclared, previously declared at %v",
+					name, prev.Pos)
 				continue
 			}
-			comp.flags[name] = decl
+			comp.intFlags[name] = n
+		case *ast.StrFlags:
+			n := decl.(*ast.StrFlags)
+			name := n.Name.Name
+			if prev := comp.strFlags[name]; prev != nil {
+				comp.error(n.Pos, "string flags %v redeclared, previously declared at %v",
+					name, prev.Pos)
+				continue
+			}
+			comp.strFlags[name] = n
 		case *ast.Call:
 			c := decl.(*ast.Call)
 			name := c.Name.Name
@@ -250,26 +238,92 @@ func (comp *compiler) checkFields() {
 	}
 }
 
-func (comp *compiler) checkType(t *ast.Type, isArg, isResourceBase bool) {
-	if t.String != "" {
-		comp.error(t.Pos, "unexpected string %q, expecting type", t.String)
-		return
-	}
-	if t.Ident == "" {
-		comp.error(t.Pos, "unexpected integer %v, expecting type", t.Value)
-		return
-	}
-	var desc *typeDesc
-	for _, desc1 := range topTypes {
-		for _, name := range desc1.Names {
-			if name == t.Ident {
-				desc = desc1
-				break
+func (comp *compiler) checkResource(n *ast.Resource) {
+	var seen []string
+	for n != nil {
+		if arrayContains(seen, n.Name.Name) {
+			chain := ""
+			for _, r := range seen {
+				chain += r + "->"
 			}
+			chain += n.Name.Name
+			comp.error(n.Pos, "recursive resource %v", chain)
+			return
+		}
+		seen = append(seen, n.Name.Name)
+		n = comp.resources[n.Base.Ident]
+	}
+}
+
+func (comp *compiler) checkStruct(n *ast.Struct) {
+	if n.IsUnion {
+		comp.parseUnionAttrs(n)
+	} else {
+		comp.parseStructAttrs(n)
+	}
+}
+
+func (comp *compiler) parseUnionAttrs(n *ast.Struct) (varlen bool) {
+	for _, attr := range n.Attrs {
+		switch attr.Name {
+		case "varlen":
+			varlen = true
+		default:
+			comp.error(attr.Pos, "unknown union %v attribute %v",
+				n.Name.Name, attr.Name)
 		}
 	}
+	return
+}
+
+func (comp *compiler) parseStructAttrs(n *ast.Struct) (packed bool, align uint64) {
+	for _, attr := range n.Attrs {
+		switch {
+		case attr.Name == "packed":
+			packed = true
+		case attr.Name == "align_ptr":
+			align = comp.ptrSize
+		case strings.HasPrefix(attr.Name, "align_"):
+			a, err := strconv.ParseUint(attr.Name[6:], 10, 64)
+			if err != nil {
+				comp.error(attr.Pos, "bad struct %v alignment %v",
+					n.Name.Name, attr.Name[6:])
+				continue
+			}
+			if a&(a-1) != 0 || a == 0 || a > 1<<30 {
+				comp.error(attr.Pos, "bad struct %v alignment %v (must be a sane power of 2)",
+					n.Name.Name, a)
+			}
+			align = a
+		default:
+			comp.error(attr.Pos, "unknown struct %v attribute %v",
+				n.Name.Name, attr.Name)
+		}
+	}
+	return
+}
+
+func (comp *compiler) getTypeDesc(t *ast.Type) *typeDesc {
+	if desc := builtinTypes[t.Ident]; desc != nil {
+		return desc
+	}
+	if comp.resources[t.Ident] != nil {
+		return typeResource
+	}
+	if comp.structs[t.Ident] != nil {
+		return typeStruct
+	}
+	return nil
+}
+
+func (comp *compiler) checkType(t *ast.Type, isArg, isResourceBase bool) {
+	if unexpected, _, ok := checkTypeKind(t, kindIdent); !ok {
+		comp.error(t.Pos, "unexpected %v, expect type", unexpected)
+		return
+	}
+	desc := comp.getTypeDesc(t)
 	if desc == nil {
-		comp.error(t.Pos, "unknown type %q", t.Ident)
+		comp.error(t.Pos, "unknown type %v", t.Ident)
 		return
 	}
 	if !desc.AllowColon && t.HasColon {
@@ -284,174 +338,176 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isResourceBase bool) {
 		comp.error(t.Pos, "%v can't be resource base (int types can)", t.Ident)
 		return
 	}
+	args, opt := removeOpt(t)
+	if opt && (desc.CantBeOpt || isResourceBase) {
+		what := "resource base"
+		if desc.CantBeOpt {
+			what = t.Ident
+		}
+		pos := t.Args[len(t.Args)-1].Pos
+		comp.error(pos, "%v can't be marked as opt", what)
+		return
+	}
+	addArgs := 0
+	needBase := !isArg && desc.NeedBase
+	if needBase {
+		addArgs++ // last arg must be base type, e.g. const[0, int32]
+	}
+	if len(args) > len(desc.Args)+addArgs || len(args) < len(desc.Args)-desc.OptArgs+addArgs {
+		comp.error(t.Pos, "wrong number of arguments for type %v, expect %v",
+			t.Ident, expectedTypeArgs(desc, needBase))
+		return
+	}
+	if needBase {
+		base := args[len(args)-1]
+		args = args[:len(args)-1]
+		comp.checkTypeArg(t, base, typeArgBase)
+	}
+	err0 := comp.errors
+	for i, arg := range args {
+		if desc.Args[i].Type == typeArgType {
+			comp.checkType(arg, false, false)
+		} else {
+			comp.checkTypeArg(t, arg, desc.Args[i])
+		}
+	}
+	if err0 != comp.errors {
+		return
+	}
+	if desc.Check != nil {
+		_, args, base := comp.getArgsBase(t, "", sys.DirIn, isArg)
+		desc.Check(comp, t, args, base)
+	}
 }
 
-// assignSyscallNumbers assigns syscall numbers, discards unsupported syscalls
-// and removes no longer irrelevant nodes from the tree (comments, new lines, etc).
-func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
-	// Pseudo syscalls starting from syz_ are assigned numbers starting from syzbase.
-	// Note: the numbers must be stable (not depend on file reading order, etc),
-	// so we have to do it in 2 passes.
-	const syzbase = 1000000
-	syzcalls := make(map[string]bool)
-	for _, decl := range comp.desc.Nodes {
-		c, ok := decl.(*ast.Call)
+func (comp *compiler) checkTypeArg(t, arg *ast.Type, argDesc namedArg) {
+	desc := argDesc.Type
+	if len(desc.Names) != 0 {
+		if unexpected, _, ok := checkTypeKind(arg, kindIdent); !ok {
+			comp.error(arg.Pos, "unexpected %v for %v argument of %v type, expect %+v",
+				unexpected, argDesc.Name, t.Ident, desc.Names)
+			return
+		}
+		if !arrayContains(desc.Names, arg.Ident) {
+			comp.error(arg.Pos, "unexpected value %v for %v argument of %v type, expect %+v",
+				arg.Ident, argDesc.Name, t.Ident, desc.Names)
+			return
+		}
+	} else {
+		if unexpected, expect, ok := checkTypeKind(arg, desc.Kind); !ok {
+			comp.error(arg.Pos, "unexpected %v for %v argument of %v type, expect %v",
+				unexpected, argDesc.Name, t.Ident, expect)
+			return
+		}
+	}
+	if !desc.AllowColon && arg.HasColon {
+		comp.error(arg.Pos2, "unexpected ':'")
+		return
+	}
+	if desc.Check != nil {
+		desc.Check(comp, arg)
+	}
+}
+
+func (comp *compiler) getArgsBase(t *ast.Type, field string, dir sys.Dir, isArg bool) (
+	*typeDesc, []*ast.Type, sys.IntTypeCommon) {
+	desc := comp.getTypeDesc(t)
+	args, opt := removeOpt(t)
+	com := genCommon(t.Ident, field, dir, opt)
+	base := genIntCommon(com, comp.ptrSize, 0, false)
+	if !isArg && desc.NeedBase {
+		baseType := args[len(args)-1]
+		args = args[:len(args)-1]
+		base = typeInt.Gen(comp, baseType, nil, base).(*sys.IntType).IntTypeCommon
+	}
+	return desc, args, base
+}
+
+func expectedTypeArgs(desc *typeDesc, needBase bool) string {
+	expect := ""
+	for i, arg := range desc.Args {
+		if expect != "" {
+			expect += ", "
+		}
+		opt := i >= len(desc.Args)-desc.OptArgs
+		if opt {
+			expect += "["
+		}
+		expect += arg.Name
+		if opt {
+			expect += "]"
+		}
+	}
+	if needBase {
+		if expect != "" {
+			expect += ", "
+		}
+		expect += typeArgBase.Name
+	}
+	if !desc.CantBeOpt {
+		if expect != "" {
+			expect += ", "
+		}
+		expect += "[opt]"
+	}
+	if expect == "" {
+		expect = "no arguments"
+	}
+	return expect
+}
+
+func checkTypeKind(t *ast.Type, kind int) (unexpected string, expect string, ok bool) {
+	switch {
+	case kind == kindAny:
+		ok = true
+	case t.String != "":
+		ok = kind == kindString
 		if !ok {
-			continue
+			unexpected = fmt.Sprintf("string %q", t.String)
 		}
-		if strings.HasPrefix(c.CallName, "syz_") {
-			syzcalls[c.CallName] = true
+	case t.Ident != "":
+		ok = kind == kindIdent
+		if !ok {
+			unexpected = fmt.Sprintf("identifier %v", t.Ident)
 		}
-	}
-	syznr := make(map[string]uint64)
-	for i, name := range toArray(syzcalls) {
-		syznr[name] = syzbase + uint64(i)
-	}
-
-	var top []ast.Node
-	for _, decl := range comp.desc.Nodes {
-		switch decl.(type) {
-		case *ast.Call:
-			c := decl.(*ast.Call)
-			if strings.HasPrefix(c.CallName, "syz_") {
-				c.NR = syznr[c.CallName]
-				top = append(top, decl)
-				continue
-			}
-			// Lookup in consts.
-			str := "__NR_" + c.CallName
-			nr, ok := consts[str]
-			if ok {
-				c.NR = nr
-				top = append(top, decl)
-				continue
-			}
-			name := "syscall " + c.CallName
-			if !comp.unsupported[name] {
-				comp.unsupported[name] = true
-				comp.warning(c.Pos, "unsupported syscall: %v due to missing const %v",
-					c.CallName, str)
-			}
-		case *ast.IntFlags, *ast.Resource, *ast.Struct, *ast.StrFlags:
-			top = append(top, decl)
-		case *ast.NewLine, *ast.Comment, *ast.Include, *ast.Incdir, *ast.Define:
-			// These are not needed anymore.
-		default:
-			panic(fmt.Sprintf("unknown node type: %#v", decl))
+	default:
+		ok = kind == kindInt
+		if !ok {
+			unexpected = fmt.Sprintf("int %v", t.Value)
 		}
 	}
-	comp.desc.Nodes = top
-}
-
-// patchConsts replaces all symbolic consts with their numeric values taken from consts map.
-// Updates desc and returns set of unsupported syscalls and flags.
-// After this pass consts are not needed for compilation.
-func (comp *compiler) patchConsts(consts map[string]uint64) {
-	var top []ast.Node
-	for _, decl := range comp.desc.Nodes {
-		switch decl.(type) {
-		case *ast.IntFlags:
-			// Unsupported flag values are dropped.
-			n := decl.(*ast.IntFlags)
-			var values []*ast.Int
-			for _, v := range n.Values {
-				if comp.patchIntConst(v.Pos, &v.Value, &v.Ident, consts, nil) {
-					values = append(values, v)
-				}
-			}
-			n.Values = values
-			top = append(top, n)
-		case *ast.StrFlags:
-			top = append(top, decl)
-		case *ast.Resource, *ast.Struct, *ast.Call:
-			// Walk whole tree and replace consts in Int's and Type's.
-			missing := ""
-			ast.WalkNode(decl, func(n0 ast.Node) {
-				switch n := n0.(type) {
-				case *ast.Int:
-					comp.patchIntConst(n.Pos, &n.Value, &n.Ident, consts, &missing)
-				case *ast.Type:
-					if c := typeConstIdentifier(n); c != nil {
-						comp.patchIntConst(c.Pos, &c.Value, &c.Ident,
-							consts, &missing)
-						if c.HasColon {
-							comp.patchIntConst(c.Pos2, &c.Value2, &c.Ident2,
-								consts, &missing)
-						}
-					}
-				}
-			})
-			if missing == "" {
-				top = append(top, decl)
-				continue
-			}
-			// Produce a warning about unsupported syscall/resource/struct.
-			// TODO(dvyukov): we should transitively remove everything that
-			// depends on unsupported things.
-			pos, typ, name := decl.Info()
-			if id := typ + " " + name; !comp.unsupported[id] {
-				comp.unsupported[id] = true
-				comp.warning(pos, "unsupported %v: %v due to missing const %v",
-					typ, name, missing)
-			}
-			// We have to keep partially broken resources and structs,
-			// because otherwise their usages will error.
-			if _, ok := decl.(*ast.Call); !ok {
-				top = append(top, decl)
-			}
-		}
-	}
-	comp.desc.Nodes = top
-}
-
-func (comp *compiler) patchIntConst(pos ast.Pos, val *uint64, id *string,
-	consts map[string]uint64, missing *string) bool {
-	if *id == "" {
-		return true
-	}
-	v, ok := consts[*id]
 	if !ok {
-		name := "const " + *id
-		if !comp.unsupported[name] {
-			comp.unsupported[name] = true
-			comp.warning(pos, "unsupported const: %v", *id)
-		}
-		if missing != nil && *missing == "" {
-			*missing = *id
+		switch kind {
+		case kindString:
+			expect = "string"
+		case kindIdent:
+			expect = "identifier"
+		case kindInt:
+			expect = "int"
 		}
 	}
-	*val = v
-	*id = ""
-	return ok
+	return
 }
 
-// typeConstIdentifier returns type arg that is an integer constant (subject for const patching), if any.
-func typeConstIdentifier(n *ast.Type) *ast.Type {
-	if n.Ident == "const" && len(n.Args) > 0 {
-		return n.Args[0]
+func removeOpt(t *ast.Type) ([]*ast.Type, bool) {
+	args := t.Args
+	if len(args) != 0 && args[len(args)-1].Ident == "opt" {
+		return args[:len(args)-1], true
 	}
-	if n.Ident == "array" && len(n.Args) > 1 && n.Args[1].Ident != "opt" {
-		return n.Args[1]
+	return args, false
+}
+
+func (comp *compiler) parseIntType(name string) (size uint64, bigEndian bool) {
+	be := strings.HasSuffix(name, "be")
+	if be {
+		name = name[:len(name)-len("be")]
 	}
-	if n.Ident == "vma" && len(n.Args) > 0 && n.Args[0].Ident != "opt" {
-		return n.Args[0]
+	size = comp.ptrSize
+	if name != "intptr" {
+		size, _ = strconv.ParseUint(name[3:], 10, 64)
+		size /= 8
 	}
-	if n.Ident == "vma" && len(n.Args) > 0 && n.Args[0].Ident != "opt" {
-		return n.Args[0]
-	}
-	if n.Ident == "string" && len(n.Args) > 1 && n.Args[1].Ident != "opt" {
-		return n.Args[1]
-	}
-	if n.Ident == "csum" && len(n.Args) > 2 && n.Args[1].Ident == "pseudo" {
-		return n.Args[2]
-	}
-	switch n.Ident {
-	case "int8", "int16", "int16be", "int32", "int32be", "int64", "int64be", "intptr":
-		if len(n.Args) > 0 && n.Args[0].Ident != "opt" {
-			return n.Args[0]
-		}
-	}
-	return nil
+	return size, be
 }
 
 func toArray(m map[string]bool) []string {
@@ -464,4 +520,13 @@ func toArray(m map[string]bool) []string {
 	}
 	sort.Strings(res)
 	return res
+}
+
+func arrayContains(a []string, v string) bool {
+	for _, s := range a {
+		if s == v {
+			return true
+		}
+	}
+	return false
 }

@@ -32,8 +32,13 @@ func initAlign() {
 		}
 	}
 
-	for _, s := range keyedStructs {
-		rec(s)
+	for _, c := range Calls {
+		for _, a := range c.Args {
+			rec(a)
+		}
+		if c.Ret != nil {
+			rec(c.Ret)
+		}
 	}
 }
 
