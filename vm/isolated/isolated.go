@@ -136,7 +136,7 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 	done := make(chan bool)
 	go func() {
 		select {
-		case <-time.After(time.Minute):
+		case <-time.After(time.Second * 30):
 			if inst.debug {
 				Logf(0, "ssh hanged")
 			}
@@ -163,20 +163,21 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 func (inst *instance) repair() error {
 	Logf(2, "isolated: trying to ssh")
 	if err := inst.waitForSsh(30 * 60); err == nil {
-		Logf(2, "isolated: ssh succeeded")
 		if inst.cfg.Target_Reboot == true {
-			if _, err = inst.ssh("reboot"); err != nil {
-				Logf(2, "isolated: failed to send reboot command")
-				return err
-			}
+			Logf(2, "isolated: trying to reboot")
+			inst.ssh("reboot") // reboot will return an error, ignore it
 			if err := inst.waitForReboot(5 * 60); err != nil {
 				Logf(2, "isolated: machine did not reboot")
 				return err
 			}
+			Logf(2, "isolated: rebooted wait for comeback")
 			if err := inst.waitForSsh(30 * 60); err != nil {
 				Logf(2, "isolated: machine did not comeback")
 				return err
 			}
+			Logf(2, "isolated: reboot succeeded")
+		} else {
+			Logf(2, "isolated: ssh succeeded")
 		}
 	} else {
 		Logf(2, "isolated: ssh failed")
