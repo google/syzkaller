@@ -532,3 +532,25 @@ syz_use_missing {
 	a0	syz_missing_const_res
 	a1	syz_missing_const_struct
 }
+
+# Hints test
+syz_hint_test_inner_struct {
+	x	int32
+}
+
+syz_hint_test_middle_struct {
+	arr	array[int32, 3]
+	s	syz_hint_test_inner_struct
+}
+
+syz_hint_test_outter_struct {
+	b	int8
+	w	int16
+	d	int32
+	q	int64
+	s	syz_hint_test_middle_struct
+}
+
+syz_test$struct_test_call(s ptr[in, syz_hint_test_outter_struct])
+syz_test$simple_test_call(a int64)
+syz_test$data_in_test_call(b buffer[in])
