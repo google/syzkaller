@@ -103,7 +103,10 @@ var oopses = []*oops{
 				"BUG: spinlock bad magic",
 			},
 		},
-		[]*regexp.Regexp{},
+		[]*regexp.Regexp{
+			// Android prints this sometimes during boot.
+			compile("Boot_DEBUG:"),
+		},
 	},
 	&oops{
 		[]byte("WARNING:"),
