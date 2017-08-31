@@ -43,7 +43,7 @@ sockaddr_un_file {
 sockaddr_un_abstract {
 	family	flags[unix_socket_family, int16]
 	ind	const[0, int8]
-	id	proc[int32, 20000, 4]
+	id	proc[20000, 4, int32]
 }
 
 msghdr_un {

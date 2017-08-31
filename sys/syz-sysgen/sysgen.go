@@ -662,24 +662,18 @@ func generateArg(
 		fmt.Fprintf(out, "&ConstType{%v, Val: uint64(%v)}", intCommon(size, bigEndian, bitfieldLen), a[0])
 	case "proc":
 		canBeArg = true
-		size := uint64(ptrSize)
-		bigEndian := false
-		bitfieldLen := uint64(0)
-		var valuesStart string
-		var valuesPerProc string
+		want := 2
 		if isField {
-			if want := 3; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-			size, bigEndian, bitfieldLen = decodeIntType(a[0])
-			valuesStart = a[1]
-			valuesPerProc = a[2]
-		} else {
-			if want := 2; len(a) != want {
-				failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
-			}
-			valuesStart = a[0]
-			valuesPerProc = a[1]
+			want = 3
+		}
+		if len(a) != want {
+			failf("wrong number of arguments for %v arg %v, want %v, got %v", typ, name, want, len(a))
+		}
+		valuesStart := a[0]
+		valuesPerProc := a[1]
+		size, bitfieldLen, bigEndian := uint64(ptrSize), uint64(0), false
+		if isField {
+			size, bigEndian, bitfieldLen = decodeIntType(a[2])
 		}
 		valuesStartInt, err := strconv.ParseInt(valuesStart, 10, 64)
 		if err != nil {
