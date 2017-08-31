@@ -19,7 +19,7 @@ sock_in_pair {
 
 sockaddr_in {
 	family	const[AF_INET, int16]
-	port	proc[int16be, 20000, 4]
+	port	proc[20000, 4, int16be]
 	addr	ipv4_addr
 	pad	array[const[0, int8], 8]
 }
@@ -116,9 +116,9 @@ xfrm_policy_shares = XFRM_SHARE_ANY, XFRM_SHARE_SESSION, XFRM_SHARE_USER, XFRM_S
 xfrm_selector {
 	daddr		xfrm_address
 	saddr		xfrm_address
-	dport		proc[int16be, 20000, 4]
+	dport		proc[20000, 4, int16be]
 	dport_mask	int16
-	sport		proc[int16be, 20000, 4]
+	sport		proc[20000, 4, int16be]
 	sport_mask	int16
 	family		flags[socket_domain, int16]
 	prefixlen_d	flags[xfrm_prefixlens, int8]
