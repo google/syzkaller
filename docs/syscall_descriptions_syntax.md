@@ -47,7 +47,7 @@ rest of the type-options are type-specific:
 "vma": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise), type-options:
 	optional number of pages (e.g. vma[7]), or a range of pages (e.g. vma[2-4])
 "proc": per process int (see description below), type-options:
-	underlying type, value range start, how many values per process
+	value range start, how many values per process, underlying type
 "text16", "text32", "text64": machine code of the specified bitness
 ```
 
@@ -171,7 +171,8 @@ The `proc` type can be used to denote per process integers.
 The idea is to have a separate range of values for each executor, so they don't interfere.
 
 The simplest example is a port number.
-The `proc[int16be, 20000, 4]` type means that we want to generate an `int16be` integer starting from `20000` and assign no more than `4` integers for each process.
+The `proc[20000, 4, int16be]` type means that we want to generate an `int16be`
+integer starting from `20000` and assign `4` values for each process.
 As a result the executor number `n` will get values in the `[20000 + n * 4, 20000 + (n + 1) * 4)` range.
 
 ## Misc

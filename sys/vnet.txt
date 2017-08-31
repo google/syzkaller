@@ -31,13 +31,13 @@ include <uapi/linux/if_ether.h>
 mac_addr_local {
 # This corresponds to LOCAL_MAC ("aa:aa:aa:aa:aa:%02hx" % pid) in executor/common.h
 	a0	array[const[0xaa, int8], 5]
-	a1	proc[int8, 0, 1]
+	a1	proc[0, 1, int8]
 } [packed]
 
 mac_addr_remote {
 # This corresponds to REMOTE_MAC ("bb:bb:bb:bb:bb:%02hx" % pid) in executor/common.h
 	a0	array[const[0xbb, int8], 5]
-	a1	proc[int8, 0, 1]
+	a1	proc[0, 1, int8]
 } [packed]
 
 mac_addr [
@@ -278,7 +278,7 @@ include <net/cipso_ipv4.h>
 ipv4_addr_local {
 	a0	const[0xac, int8]
 	a1	const[0x14, int8]
-	a2	proc[int8, 0, 1]
+	a2	proc[0, 1, int8]
 	a3	const[0xaa, int8]
 } [packed]
 
@@ -286,7 +286,7 @@ ipv4_addr_local {
 ipv4_addr_remote {
 	a0	const[0xac, int8]
 	a1	const[0x14, int8]
-	a2	proc[int8, 0, 1]
+	a2	proc[0, 1, int8]
 	a3	const[0xbb, int8]
 } [packed]
 
@@ -419,7 +419,7 @@ ipv4_header {
 	ecn		int8:2
 	dscp		int8:6
 	total_len	len[ipv4_packet, int16be]
-	id		proc[int16be, 100, 4]
+	id		proc[100, 4, int16be]
 	frag_off	int16be
 # TODO: frag_off is actually 13 bits, 3 bits are flags
 	ttl		int8
@@ -457,7 +457,7 @@ ipv6_addr_local {
 	a0	const[0xfe, int8]
 	a1	const[0x80, int8]
 	a2	array[const[0x0, int8], 12]
-	a3	proc[int8, 0, 1]
+	a3	proc[0, 1, int8]
 	a4	const[0xaa, int8]
 } [packed]
 
@@ -466,7 +466,7 @@ ipv6_addr_remote {
 	a0	const[0xfe, int8]
 	a1	const[0x80, int8]
 	a2	array[const[0x0, int8], 12]
-	a3	proc[int8, 0, 1]
+	a3	proc[0, 1, int8]
 	a4	const[0xbb, int8]
 } [packed]
 
@@ -523,7 +523,7 @@ ipv6_fragment_ext_header {
 	m_flag		int8:1
 	reserved2	int8:2
 	fragment_off_lo	int8:5
-	identification	proc[int32, 100, 4]
+	identification	proc[100, 4, int32]
 } [packed]
 
 ipv6_dstopts_ext_header {
@@ -678,8 +678,10 @@ tcp_options {
 tcp_flags = 0, TCPHDR_FIN, TCPHDR_SYN, TCPHDR_RST, TCPHDR_PSH, TCPHDR_ACK, TCPHDR_URG, TCPHDR_ECE, TCPHDR_CWR, TCPHDR_SYN_ECN
 
 tcp_header {
-	src_port	proc[int16be, 20000, 4]
-	dst_port	proc[int16be, 20000, 4]
+# TODO: proc[20000, 4, int16be] is a good candidate for typedef when/if we have them.
+# I.e. typedef proc[20000, 4, int16be] sock_port
+	src_port	proc[20000, 4, int16be]
+	dst_port	proc[20000, 4, int16be]
 	seq_num		tcp_seq_num
 	ack_num		tcp_seq_num
 	ns		int8:1
@@ -709,8 +711,8 @@ tcp_payload {
 # https://en.wikipedia.org/wiki/User_Datagram_Protocol#Packet_structure
 
 udp_packet {
-	src_port	proc[int16be, 20000, 4]
-	dst_port	proc[int16be, 20000, 4]
+	src_port	proc[20000, 4, int16be]
+	dst_port	proc[20000, 4, int16be]
 	length		len[parent, int16be]
 	csum		csum[parent, pseudo, IPPROTO_UDP, int16be]
 	data		array[int8]
@@ -733,7 +735,7 @@ icmp_ipv4_header {
 	ecn		int8:2
 	dscp		int8:6
 	total_len	int16be
-	id		proc[int16be, 100, 4]
+	id		proc[100, 4, int16be]
 	frag_off	int16be
 	ttl		int8
 	protocol	flags[ipv4_types, int8]
@@ -1017,8 +1019,8 @@ include <uapi/linux/dccp.h>
 dccp_types = DCCP_PKT_REQUEST, DCCP_PKT_RESPONSE, DCCP_PKT_DATA, DCCP_PKT_ACK, DCCP_PKT_DATAACK, DCCP_PKT_CLOSEREQ, DCCP_PKT_CLOSE, DCCP_PKT_RESET, DCCP_PKT_SYNC, DCCP_PKT_SYNCACK, DCCP_PKT_INVALID
 
 dccp_header {
-	src_port	proc[int16be, 20000, 4]
-	dst_port	proc[int16be, 20000, 4]
+	src_port	proc[20000, 4, int16be]
+	dst_port	proc[20000, 4, int16be]
 	offset		bytesize4[parent, int8]
 	cscov		const[1, int8:4]
 # TODO: cscov might have other values, affects checksummed data

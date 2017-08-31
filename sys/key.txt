@@ -45,6 +45,6 @@ key_desc {
 	name0	const[115, int8]
 	name1	const[121, int8]
 	name2	const[122, int8]
-	name3	proc[int8, 32, 4]
+	name3	proc[32, 4, int8]
 	name4	const[0, int8]
 }
