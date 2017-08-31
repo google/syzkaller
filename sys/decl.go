@@ -343,9 +343,9 @@ func (t *PtrType) Align() uint64 {
 type StructType struct {
 	TypeCommon
 	Fields         []Type
+	IsPacked       bool
+	AlignAttr      uint64
 	padded         bool
-	packed         bool
-	align          uint64
 	varlen         bool
 	varlenAssigned bool
 }
@@ -383,10 +383,10 @@ func (t *StructType) Size() uint64 {
 }
 
 func (t *StructType) Align() uint64 {
-	if t.align != 0 {
-		return t.align // overrided by user attribute
+	if t.AlignAttr != 0 {
+		return t.AlignAttr // overrided by user attribute
 	}
-	if t.packed {
+	if t.IsPacked {
 		return 1
 	}
 	var align uint64
@@ -400,12 +400,12 @@ func (t *StructType) Align() uint64 {
 
 type UnionType struct {
 	TypeCommon
-	Options []Type
-	varlen  bool // provided by user
+	Options  []Type
+	IsVarlen bool // provided by user
 }
 
 func (t *UnionType) Varlen() bool {
-	return t.varlen
+	return t.IsVarlen
 }
 
 func (t *UnionType) Size() uint64 {

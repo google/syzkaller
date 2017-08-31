@@ -78,17 +78,17 @@ func markBitfields(t *StructType) {
 }
 
 func addAlignment(t *StructType) {
-	if t.packed {
+	if t.IsPacked {
 		// If a struct is packed, statically sized and has explicitly set alignment, add a padding.
-		if !t.Varlen() && t.align != 0 && t.Size()%t.align != 0 {
-			pad := t.align - t.Size()%t.align
+		if !t.Varlen() && t.AlignAttr != 0 && t.Size()%t.AlignAttr != 0 {
+			pad := t.AlignAttr - t.Size()%t.AlignAttr
 			t.Fields = append(t.Fields, makePad(pad))
 		}
 		return
 	}
 	var fields []Type
 	var off uint64
-	align := t.align
+	align := t.AlignAttr
 	for i, f := range t.Fields {
 		a := f.Align()
 		if align < a {
