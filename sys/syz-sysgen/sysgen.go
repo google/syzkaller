@@ -381,15 +381,15 @@ func generateStructEntry(str *Struct, out io.Writer) {
 	}
 	packed := ""
 	if str.Packed {
-		packed = ", packed: true"
+		packed = ", IsPacked: true"
 	}
 	varlen := ""
 	if str.Varlen {
-		varlen = ", varlen: true"
+		varlen = ", IsVarlen: true"
 	}
 	align := ""
 	if str.Align != 0 {
-		align = fmt.Sprintf(", align: %v", str.Align)
+		align = fmt.Sprintf(", AlignAttr: %v", str.Align)
 	}
 	fmt.Fprintf(out, "&%v{TypeCommon: TypeCommon{TypeName: \"%v\", IsOptional: %v} %v %v %v},\n",
 		typ, str.Name, false, packed, align, varlen)
