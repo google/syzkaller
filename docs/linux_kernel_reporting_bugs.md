@@ -21,9 +21,18 @@ If you can't figure out the right fix, but have some understanding of the bug, p
 
 If you believe that a found bug poses potential security threat, consider following the instructions below.
 Note, that these instructions are a work-in-progress and based on my current undestanding of the disclosure proccess.
+This instruction is now being discussed [here](http://seclists.org/oss-sec/2017/q3/242).
+
+If you don't want to deal with this complex disclosure process you can either:
+
+1. Report the bug privately to `security@kernel.org`. In this case it should be fixed in the upstream kernel, but there are no guarantees that the fix will be propagated to stable or distro kernels. The maximum embargo on this list is 7 days.
+2. Report the bug privately to a vendor such as Red Hat (`secalert@redhat.com`) or SUSE (`security@suse.com`). They should fix the bug, assign a CVE, and notify other vendors. The maximum embargo on these lists is 5 weeks.
+3. Report the bug publicly to `oss-security@lists.openwall.com`.
+
+If you want to deal with the disclosure yourself, read below.
 
 The three main mailing lists for reporting and disclosing Linux kernel security issues are `security@kernel.org`, `linux-distros@vs.openwall.org` and `oss-security@lists.openwall.com`.
-The guidelines for these lists can be found here:
+The links for the guidelines for these lists are below, please read them carefully before sending anything to these lists.
 
 1. `security@kernel.org` - https://www.kernel.org/doc/html/latest/admin-guide/security-bugs.html
 2. `linux-distros@vs.openwall.org` - http://oss-security.openwall.org/wiki/mailing-lists/distros
@@ -44,7 +53,7 @@ To report major security bugs (such as LPE, remote DOS, remote info leak or RCE)
 1. Understand the bug and develop a patch with a fix if possible. Optionally develop a proof-of-concept exploit.
 2. Notify `security@kernel.org`:
     * Describe vulnerability details, include the proposed patch and the exploit.
-    * Ask for 7 days of embargo (actually 7 days + whatever time it takes to develop a proper patch).
+    * Ask for 7 days of embargo.
     * Work on the patch together with the `security@kernel.org` members.
 3. Notify `linux-distros@vs.openwall.org`:
     * Describe vulnerability details, include the proposed patch and the exploit.
@@ -60,4 +69,10 @@ To report major security bugs (such as LPE, remote DOS, remote info leak or RCE)
 8. Wait 1-3 days for people to update their kernels.
 9. Publish the exploit on `oss-security@lists.openwall.com`.
 
-A good example of an LPE announcement on `oss-security@lists.openwall.com` can be found [here](http://seclists.org/oss-sec/2016/q4/607).
+A few notes:
+
+* There should ideally be no delay between reports to `security@kernel.org` and `linux-distros@vs.openwall.org`.
+* There should ideally be no delay between CVE description publication, distros' updates, upstream commit and notification to `oss-security@lists.openwall.com`. All of these should be on the same day, at worst.
+* The moment the issue is made public (e.g. patch is submitted upstream, CVE description published, etc.) it must be reported to `oss-security@lists.openwall.com` right away.
+
+A good example of an LPE announcement structure on `oss-security@lists.openwall.com` can be found [here](http://seclists.org/oss-sec/2016/q4/607), however the timeline doesn't look right there: public announcement should have occured right after the patch was submitted to netdev.
