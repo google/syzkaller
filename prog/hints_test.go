@@ -26,6 +26,7 @@ type DataArgTest struct {
 }
 
 // Tests checkConstArg(). Is not intended to check correctness of any mutations.
+// Mutation are checked in their own tests.
 func TestHintsCheckConstArg(t *testing.T) {
 	var tests = []ConstArgTest{
 		{
@@ -65,6 +66,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 }
 
 // Tests checkDataArg(). Is not intended to check correctness of any mutations.
+// Mutation are checked in their own tests.
 func TestHintsCheckDataArg(t *testing.T) {
 	// All inputs are in Little-Endian.
 	var tests = []DataArgTest{
@@ -95,6 +97,61 @@ func TestHintsCheckDataArg(t *testing.T) {
 				"\x02\x00": true,
 			},
 		},
+		// Checks that ints of various sizes are extracted.
+		{
+			"Different sizes test",
+			"\xef\xcd\xab\x90\x78\x56\x34\x12",
+			CompMap{
+				0xef:               uint64Set{0x11: true},
+				0xcdef:             uint64Set{0x2222: true},
+				0x90abcdef:         uint64Set{0x33333333: true},
+				0x1234567890abcdef: uint64Set{0x4444444444444444: true},
+			},
+			map[string]bool{
+				"\x11\xcd\xab\x90\x78\x56\x34\x12": true,
+				"\x22\x22\xab\x90\x78\x56\x34\x12": true,
+				"\x33\x33\x33\x33\x78\x56\x34\x12": true,
+				"\x44\x44\x44\x44\x44\x44\x44\x44": true,
+			},
+		},
+		// Checks that values with different offsets are extracted.
+		{
+			"Different offsets test",
+			"\xab\xab\xab\xab\xab\xab\xab\xab\xab",
+			CompMap{
+				0xab:               uint64Set{0x11: true},
+				0xabab:             uint64Set{0x2222: true},
+				0xabababab:         uint64Set{0x33333333: true},
+				0xabababababababab: uint64Set{0x4444444444444444: true},
+			},
+			map[string]bool{
+				"\x11\xab\xab\xab\xab\xab\xab\xab\xab": true,
+				"\xab\x11\xab\xab\xab\xab\xab\xab\xab": true,
+				"\xab\xab\x11\xab\xab\xab\xab\xab\xab": true,
+				"\xab\xab\xab\x11\xab\xab\xab\xab\xab": true,
+				"\xab\xab\xab\xab\x11\xab\xab\xab\xab": true,
+				"\xab\xab\xab\xab\xab\x11\xab\xab\xab": true,
+				"\xab\xab\xab\xab\xab\xab\x11\xab\xab": true,
+				"\xab\xab\xab\xab\xab\xab\xab\x11\xab": true,
+				"\xab\xab\xab\xab\xab\xab\xab\xab\x11": true,
+				"\x22\x22\xab\xab\xab\xab\xab\xab\xab": true,
+				"\xab\x22\x22\xab\xab\xab\xab\xab\xab": true,
+				"\xab\xab\x22\x22\xab\xab\xab\xab\xab": true,
+				"\xab\xab\xab\x22\x22\xab\xab\xab\xab": true,
+				"\xab\xab\xab\xab\x22\x22\xab\xab\xab": true,
+				"\xab\xab\xab\xab\xab\x22\x22\xab\xab": true,
+				"\xab\xab\xab\xab\xab\xab\x22\x22\xab": true,
+				"\xab\xab\xab\xab\xab\xab\xab\x22\x22": true,
+				"\x33\x33\x33\x33\xab\xab\xab\xab\xab": true,
+				"\xab\x33\x33\x33\x33\xab\xab\xab\xab": true,
+				"\xab\xab\x33\x33\x33\x33\xab\xab\xab": true,
+				"\xab\xab\xab\x33\x33\x33\x33\xab\xab": true,
+				"\xab\xab\xab\xab\x33\x33\x33\x33\xab": true,
+				"\xab\xab\xab\xab\xab\x33\x33\x33\x33": true,
+				"\x44\x44\x44\x44\x44\x44\x44\x44\xab": true,
+				"\xab\x44\x44\x44\x44\x44\x44\x44\x44": true,
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
@@ -122,6 +179,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 		})
 	}
 }
+
 func TestHintsShrinkExpand(t *testing.T) {
 	// Naming conventions:
 	// b  - byte  variable (i8 or u8)
