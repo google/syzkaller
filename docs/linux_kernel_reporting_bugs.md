@@ -52,11 +52,11 @@ To report major security bugs (such as LPE, remote DOS, remote info leak or RCE)
 
 1. Understand the bug and develop a patch with a fix if possible. Optionally develop a proof-of-concept exploit.
 2. Notify `security@kernel.org`:
-    * Describe vulnerability details, include the proposed patch and the exploit.
+    * Describe vulnerability details, include the proposed patch and optionally the exploit.
     * Ask for 7 days of embargo.
     * Work on the patch together with the `security@kernel.org` members.
 3. Notify `linux-distros@vs.openwall.org`:
-    * Describe vulnerability details, include the proposed patch and the exploit.
+    * Describe vulnerability details, include the proposed patch and optionally the exploit.
     * Ask them to assign a CVE number.
     * Ask for 7 days of embargo.
 4. Wait 7 days for linux distros to apply the patch.
@@ -67,7 +67,7 @@ To report major security bugs (such as LPE, remote DOS, remote info leak or RCE)
 7. Notify `oss-security@lists.openwall.com`:
     * Describe vulnerability details, include a link to the committed patch.
 8. Wait 1-3 days for people to update their kernels.
-9. Publish the exploit on `oss-security@lists.openwall.com`.
+9. Optionally publish the exploit on `oss-security@lists.openwall.com`.
 
 A few notes:
 
