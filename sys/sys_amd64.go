@@ -2989,6 +2989,11 @@ var structFields = []*StructFields{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "smiinsi", ArgDir: 1}, TypeSize: 1}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "smilatc", ArgDir: 1}, TypeSize: 1}},
 	}},
+	{Key: StructKey{Name: "kvm_vcpu_init"}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_vcpu_target", FldName: "target"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_vcpu_features_arm64", FldName: "feature"}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 4}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
+	}},
 	{Key: StructKey{Name: "kvm_x86_mce"}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_mce_status", FldName: "status"}, TypeSize: 8}, Vals: []uint64{9223372036854775808, 4611686018427387904, 2305843009213693952, 1152921504606846976, 576460752303423488, 288230376151711744, 144115188075855872, 72057594037927936, 36028797018963968}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs", FldName: "addr"}, TypeSize: 8}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}},
@@ -8283,6 +8288,11 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1074835115},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_arm_device_addr"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_ARM_VCPU_INIT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_vcpu_init"}}},
 	}},
 	{NR: 16, Name: "ioctl$KVM_ASSIGN_DEV_IRQ", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},

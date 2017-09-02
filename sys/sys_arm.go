@@ -1873,6 +1873,24 @@ var structFields = []*StructFields{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "iocb_flags", FldName: "flags"}, TypeSize: 4}, Vals: []uint64{0, 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_event", FldName: "resfd"}},
 	}},
+	{Key: StructKey{Name: "ion_allocation_data", Dir: 2}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", ArgDir: 2}, TypeSize: 8}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "align", ArgDir: 2}, TypeSize: 8}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "heapid", ArgDir: 2}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", ArgDir: 2}, TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "ion_handle", FldName: "handle", ArgDir: 2}},
+	}},
+	{Key: StructKey{Name: "ion_custom_data", Dir: 2}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cmd", ArgDir: 2}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "arg", ArgDir: 2}, TypeSize: 8}},
+	}},
+	{Key: StructKey{Name: "ion_fd_data", Dir: 2}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "ion_handle", FldName: "handle", ArgDir: 2}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ion_generic", FldName: "fd", ArgDir: 2}},
+	}},
+	{Key: StructKey{Name: "ion_handle_data"}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "ion_handle", FldName: "handle"}},
+	}},
 	{Key: StructKey{Name: "iovec_in"}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr"}, Type: &BufferType{}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "addr"},
@@ -2366,10 +2384,67 @@ var structFields = []*StructFields{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addr_size", FldName: "size"}, TypeSize: 4}, Vals: []uint64{4096, 8192, 16384, 32768, 65536, 1048576}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad"}, TypeSize: 4}},
 	}},
+	{Key: StructKey{Name: "kvm_cpuid"}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "n"}, TypeSize: 4}, Buf: "entries"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad"}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "entries"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_cpuid_entry"}}},
+	}},
+	{Key: StructKey{Name: "kvm_cpuid2"}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "n"}, TypeSize: 4}, Buf: "entries"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad"}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "entries"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_cpuid_entry2"}}},
+	}},
+	{Key: StructKey{Name: "kvm_cpuid2", Dir: 1}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "n", ArgDir: 1}, TypeSize: 4}, Buf: "entries"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad", ArgDir: 1}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "entries", ArgDir: 1}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_cpuid_entry2", ArgDir: 1}}},
+	}},
+	{Key: StructKey{Name: "kvm_cpuid_entry"}, Fields: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpu_funciton", FldName: "func"}, TypeSize: 4}, Vals: []uint64{0, 1, 2, 4, 6, 7, 10, 11, 13, 2147483648, 2147483649, 2147483655, 2147483656, 2147483673, 3221225472, 3221225473}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "eax"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ebx"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ecx"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "edx"}, TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad"}, TypeSize: 4}},
+	}},
+	{Key: StructKey{Name: "kvm_cpuid_entry2"}, Fields: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpu_funciton", FldName: "func"}, TypeSize: 4}, Vals: []uint64{0, 1, 2, 4, 6, 7, 10, 11, 13, 2147483648, 2147483649, 2147483655, 2147483656, 2147483673, 3221225472, 3221225473}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "index"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpuid_flags", FldName: "flags"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "eax"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ebx"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ecx"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "edx"}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 4}}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
+	}},
+	{Key: StructKey{Name: "kvm_cpuid_entry2", Dir: 1}, Fields: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpu_funciton", FldName: "func", ArgDir: 1}, TypeSize: 4}, Vals: []uint64{0, 1, 2, 4, 6, 7, 10, 11, 13, 2147483648, 2147483649, 2147483655, 2147483656, 2147483673, 3221225472, 3221225473}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "index", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_cpuid_flags", FldName: "flags", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "eax", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ebx", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ecx", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "edx", ArgDir: 1}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", ArgDir: 1}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", ArgDir: 1}, TypeSize: 4}}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
+	}},
 	{Key: StructKey{Name: "kvm_create_device", Dir: 2}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_device_type", FldName: "type", ArgDir: 2}, TypeSize: 4}, Vals: []uint64{1, 2, 3, 4, 6}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", ArgDir: 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_device_flags", FldName: "flags", ArgDir: 2}, TypeSize: 4}, Vals: []uint64{0, 1}},
+	}},
+	{Key: StructKey{Name: "kvm_debugregs"}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "db"}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs"}, TypeSize: 8}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dr6"}, TypeSize: 8}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_x86_dr7", FldName: "dr7"}, TypeSize: 8}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "flags"}, TypeSize: 8}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserv"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 8}}, Kind: 1, RangeBegin: 9, RangeEnd: 9},
+	}},
+	{Key: StructKey{Name: "kvm_debugregs", Dir: 1}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "db", ArgDir: 1}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs", ArgDir: 1}, TypeSize: 8}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dr6", ArgDir: 1}, TypeSize: 8}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_x86_dr7", FldName: "dr7", ArgDir: 1}, TypeSize: 8}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "flags", ArgDir: 1}, TypeSize: 8}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserv", ArgDir: 1}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", ArgDir: 1}, TypeSize: 8}}, Kind: 1, RangeBegin: 9, RangeEnd: 9},
 	}},
 	{Key: StructKey{Name: "kvm_device_attr"}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags"}, TypeSize: 4}},
@@ -2533,6 +2608,9 @@ var structFields = []*StructFields{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_event", FldName: "rfd"}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 1}}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
 	}},
+	{Key: StructKey{Name: "kvm_lapic_state"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "regs"}, Kind: 1, RangeBegin: 1024, RangeEnd: 1024},
+	}},
 	{Key: StructKey{Name: "kvm_mce_cap"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "banks"}, TypeSize: 1}, Kind: 3, RangeEnd: 32},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_mce_flags", FldName: "flags"}, TypeSize: 1}, Vals: []uint64{1, 2, 4}},
@@ -2546,6 +2624,30 @@ var structFields = []*StructFields{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags"}, TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "devid"}, TypeSize: 4}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 1}}, Kind: 1, RangeBegin: 12, RangeEnd: 12},
+	}},
+	{Key: StructKey{Name: "kvm_msr_entry"}, Fields: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "msr_index", FldName: "index"}, TypeSize: 4}, Vals: []uint64{0, 1, 16, 17, 18, 19, 23, 27, 32, 33, 40, 41, 42, 44, 51, 52, 58, 59, 64, 96, 121, 136, 137, 138, 139, 155, 158, 193, 194, 205, 206, 226, 231, 232, 254, 278, 280, 281, 282, 283, 286, 372, 373, 374, 377, 378, 379, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 408, 409, 410, 411, 412, 413, 416, 418, 422, 423, 426, 429, 430, 431, 432, 433, 434, 456, 457, 473, 475, 476, 477, 478, 480, 508, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569, 570, 571, 572, 573, 574, 575, 576, 577, 578, 579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 590, 591, 592, 593, 594, 595, 596, 597, 598, 599, 600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631, 632, 633, 634, 635, 636, 637, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 651, 652, 653, 654, 655, 656, 657, 658, 659, 660, 661, 662, 663, 664, 665, 666, 667, 668, 669, 670, 671, 672, 673, 674, 675, 676, 677, 678, 679, 680, 681, 682, 683, 684, 685, 686, 687, 688, 689, 690, 691, 692, 693, 694, 695, 696, 697, 698, 699, 700, 701, 702, 703, 704, 705, 706, 707, 708, 709, 710, 711, 712, 713, 714, 715, 716, 717, 718, 719, 720, 721, 722, 723, 724, 725, 726, 727, 728, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 819, 820, 821, 822, 823, 824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899, 900, 901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915, 916, 917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 930, 931, 932, 933, 934, 935, 936, 937, 938, 939, 940, 941, 942, 943, 944, 945, 946, 947, 948, 949, 950, 951, 952, 953, 954, 955, 956, 957, 958, 959, 962, 963, 964, 965, 1009, 1010, 1014, 1015, 1016, 1017, 1018, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1034, 1035, 1036, 1037, 1038, 1039, 1040, 1041, 1042, 1043, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1161, 1162, 1163, 1164, 1165, 1166, 1167, 1168, 1169, 1217, 1232, 1376, 1377, 1392, 1393, 1394, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1536, 1542, 1546, 1547, 1548, 1549, 1552, 1553, 1555, 1556, 1560, 1561, 1563, 1564, 1584, 1585, 1586, 1587, 1588, 1589, 1592, 1593, 1594, 1595, 1600, 1601, 1602, 1608, 1609, 1610, 1611, 1612, 1613, 1614, 1615, 1624, 1625, 1626, 1627, 1632, 1640, 1641, 1664, 1680, 1712, 1713, 1728, 1760, 1904, 1905, 1906, 1907, 1908, 1911, 2048, 2049, 2050, 2051, 2052, 2053, 2054, 2055, 2056, 2057, 2058, 2059, 2060, 2061, 2062, 2063, 2064, 2065, 2066, 2067, 2068, 2069, 2070, 2071, 2072, 2073, 2074, 2075, 2076, 2077, 2078, 2079, 2080, 2081, 2082, 2083, 2084, 2085, 2086, 2087, 2088, 2089, 2090, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2099, 2100, 2101, 2102, 2103, 2104, 2105, 2106, 2107, 2108, 2109, 2110, 2111, 2112, 2113, 2114, 2115, 2116, 2117, 2118, 2119, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2127, 2128, 2129, 2130, 2131, 2132, 2133, 2134, 2135, 2136, 2137, 2138, 2139, 2140, 2141, 2142, 2143, 2144, 2145, 2146, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2154, 2155, 2156, 2157, 2158, 2159, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2170, 2171, 2172, 2173, 2174, 2175, 2176, 2177, 2178, 2179, 2180, 2181, 2182, 2183, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2191, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208, 2209, 2210, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2226, 2227, 2228, 2229, 2230, 2231, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2241, 2242, 2243, 2244, 2245, 2246, 2247, 2248, 2249, 2250, 2251, 2252, 2253, 2254, 2255, 2256, 2257, 2258, 2259, 2260, 2261, 2262, 2263, 2264, 2265, 2266, 2267, 2268, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2316, 2317, 2318, 2319, 2320, 2321, 2322, 2323, 2324, 2325, 2326, 2327, 2328, 2329, 2330, 2331, 2332, 2333, 2334, 2335, 2336, 2337, 2338, 2339, 2340, 2341, 2342, 2343, 2344, 2345, 2346, 2347, 2348, 2349, 2350, 2351, 2352, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2377, 2378, 2379, 2380, 2381, 2382, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2390, 2391, 2392, 2393, 2394, 2395, 2396, 2397, 2398, 2399, 2400, 2401, 2402, 2403, 2404, 2405, 2406, 2407, 2408, 2409, 2410, 2411, 2412, 2413, 2414, 2415, 2416, 2417, 2418, 2419, 2420, 2421, 2422, 2423, 2424, 2425, 2426, 2427, 2428, 2429, 2430, 2431, 2432, 2433, 2434, 2435, 2436, 2437, 2438, 2439, 2440, 2441, 2442, 2443, 2444, 2445, 2446, 2447, 2448, 2449, 2450, 2451, 2452, 2453, 2454, 2455, 2456, 2457, 2458, 2459, 2460, 2461, 2462, 2463, 2464, 2465, 2466, 2467, 2468, 2469, 2470, 2471, 2472, 2473, 2474, 2475, 2476, 2477, 2478, 2479, 2480, 2481, 2482, 2483, 2484, 2485, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501, 2502, 2503, 2504, 2505, 2506, 2507, 2508, 2509, 2510, 2511, 2512, 2513, 2514, 2515, 2516, 2517, 2518, 2519, 2520, 2521, 2522, 2523, 2524, 2525, 2526, 2527, 2528, 2529, 2530, 2531, 2532, 2533, 2534, 2535, 2536, 2537, 2538, 2539, 2540, 2541, 2542, 2543, 2544, 2545, 2546, 2547, 2548, 2549, 2550, 2551, 2552, 2553, 2554, 2555, 2556, 2557, 2558, 2559, 2560, 2561, 2562, 2563, 2564, 2565, 2566, 2567, 2568, 2569, 2570, 2571, 2572, 2573, 2574, 2575, 2576, 2577, 2578, 2579, 2580, 2581, 2582, 2583, 2584, 2585, 2586, 2587, 2588, 2589, 2590, 2591, 2592, 2593, 2594, 2595, 2596, 2597, 2598, 2599, 2600, 2601, 2602, 2603, 2604, 2605, 2606, 2607, 2608, 2609, 2610, 2611, 2612, 2613, 2614, 2615, 2616, 2617, 2618, 2619, 2620, 2621, 2622, 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2630, 2631, 2632, 2633, 2634, 2635, 2636, 2637, 2638, 2639, 2640, 2641, 2642, 2643, 2644, 2645, 2646, 2647, 2648, 2649, 2650, 2651, 2652, 2653, 2654, 2655, 2656, 2657, 2658, 2659, 2660, 2661, 2662, 2663, 2664, 2665, 2666, 2667, 2668, 2669, 2670, 2671, 2672, 2673, 2674, 2675, 2676, 2677, 2678, 2679, 2680, 2681, 2682, 2683, 2684, 2685, 2686, 2687, 2688, 2689, 2690, 2691, 2692, 2693, 2694, 2695, 2696, 2697, 2698, 2699, 2700, 2701, 2702, 2703, 2704, 2705, 2706, 2707, 2708, 2709, 2710, 2711, 2712, 2713, 2714, 2715, 2716, 2717, 2718, 2719, 2720, 2721, 2722, 2723, 2724, 2725, 2726, 2727, 2728, 2729, 2730, 2731, 2732, 2733, 2734, 2735, 2736, 2737, 2738, 2739, 2740, 2741, 2742, 2743, 2744, 2745, 2746, 2747, 2748, 2749, 2750, 2751, 2752, 2753, 2754, 2755, 2756, 2757, 2758, 2759, 2760, 2761, 2762, 2763, 2764, 2765, 2766, 2767, 2768, 2769, 2770, 2771, 2772, 2773, 2774, 2775, 2776, 2777, 2778, 2779, 2780, 2781, 2782, 2783, 2784, 2785, 2786, 2787, 2788, 2789, 2790, 2791, 2792, 2793, 2794, 2795, 2796, 2797, 2798, 2799, 2800, 2801, 2802, 2803, 2804, 2805, 2806, 2807, 2808, 2809, 2810, 2811, 2812, 2813, 2814, 2815, 2816, 2817, 2818, 2819, 2820, 2821, 2822, 2823, 2824, 2825, 2826, 2827, 2828, 2829, 2830, 2831, 2832, 2833, 2834, 2835, 2836, 2837, 2838, 2839, 2840, 2841, 2842, 2843, 2844, 2845, 2846, 2847, 2848, 2849, 2850, 2851, 2852, 2853, 2854, 2855, 2856, 2857, 2858, 2859, 2860, 2861, 2862, 2863, 2864, 2865, 2866, 2867, 2868, 2869, 2870, 2871, 2872, 2873, 2874, 2875, 2876, 2877, 2878, 2879, 2880, 2881, 2882, 2883, 2884, 2885, 2886, 2887, 2888, 2889, 2890, 2891, 2892, 2893, 2894, 2895, 2896, 2897, 2898, 2899, 2900, 2901, 2902, 2903, 2904, 2905, 2906, 2907, 2908, 2909, 2910, 2911, 2912, 2913, 2914, 2915, 2916, 2917, 2918, 2919, 2920, 2921, 2922, 2923, 2924, 2925, 2926, 2927, 2928, 2929, 2930, 2931, 2932, 2933, 2934, 2935, 2936, 2937, 2938, 2939, 2940, 2941, 2942, 2943, 2944, 2945, 2946, 2947, 2948, 2949, 2950, 2951, 2952, 2953, 2954, 2955, 2956, 2957, 2958, 2959, 2960, 2961, 2962, 2963, 2964, 2965, 2966, 2967, 2968, 2969, 2970, 2971, 2972, 2973, 2974, 2975, 2976, 2977, 2978, 2979, 2980, 2981, 2982, 2983, 2984, 2985, 2986, 2987, 2988, 2989, 2990, 2991, 2992, 2993, 2994, 2995, 2996, 2997, 2998, 2999, 3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010, 3011, 3012, 3013, 3014, 3015, 3016, 3017, 3018, 3019, 3020, 3021, 3022, 3023, 3024, 3025, 3026, 3027, 3028, 3029, 3030, 3031, 3032, 3033, 3034, 3035, 3036, 3037, 3038, 3039, 3040, 3041, 3042, 3043, 3044, 3045, 3046, 3047, 3048, 3049, 3050, 3051, 3052, 3053, 3054, 3055, 3056, 3057, 3058, 3059, 3060, 3061, 3062, 3063, 3064, 3065, 3066, 3067, 3068, 3069, 3070, 3071, 3472, 3488, 3520, 3521, 3522, 3523, 3524, 3525, 3526, 3527, 1073741824, 1073741825, 1073741826, 1073741827, 1073741840, 1073741856, 1073741858, 1073741859, 1073741936, 1073741937, 1073741938, 1073741939, 1073741952, 1073741953, 1073741954, 1073741955, 1073741956, 1073741968, 1073741969, 1073741970, 1073741971, 1073741972, 1073741973, 1073741974, 1073741975, 1073741976, 1073741977, 1073741978, 1073741979, 1073741980, 1073741981, 1073741982, 1073741983, 1073742000, 1073742001, 1073742002, 1073742003, 1073742004, 1073742005, 1073742006, 1073742007, 1073742080, 1073742081, 1073742082, 1073742083, 1073742084, 1073742085, 1263947008, 1263947009, 1263947010, 1263947011, 1263947012, 3221225600, 3221225601, 3221225602, 3221225603, 3221225604, 3221225728, 3221225729, 3221225730, 3221225731, 3221225732, 3221291039, 3221291040, 3221291076, 3221291106, 3221291107, 3221291108, 3221291284, 3221291285, 3221291287, 3221291328, 3221291329, 3221295136, 3221295138, 3221295146, 3221295152, 3221295153, 3221295154, 3221295155, 3221295156, 3221295157, 3221295158, 3221295159, 3221295160, 3221295161, 3221295162, 3221295163, 3221295165}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserv"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "data"}, TypeSize: 8}},
+	}},
+	{Key: StructKey{Name: "kvm_msr_entry", Dir: 1}, Fields: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "msr_index", FldName: "index", ArgDir: 1}, TypeSize: 4}, Vals: []uint64{0, 1, 16, 17, 18, 19, 23, 27, 32, 33, 40, 41, 42, 44, 51, 52, 58, 59, 64, 96, 121, 136, 137, 138, 139, 155, 158, 193, 194, 205, 206, 226, 231, 232, 254, 278, 280, 281, 282, 283, 286, 372, 373, 374, 377, 378, 379, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 408, 409, 410, 411, 412, 413, 416, 418, 422, 423, 426, 429, 430, 431, 432, 433, 434, 456, 457, 473, 475, 476, 477, 478, 480, 508, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569, 570, 571, 572, 573, 574, 575, 576, 577, 578, 579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 590, 591, 592, 593, 594, 595, 596, 597, 598, 599, 600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631, 632, 633, 634, 635, 636, 637, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 651, 652, 653, 654, 655, 656, 657, 658, 659, 660, 661, 662, 663, 664, 665, 666, 667, 668, 669, 670, 671, 672, 673, 674, 675, 676, 677, 678, 679, 680, 681, 682, 683, 684, 685, 686, 687, 688, 689, 690, 691, 692, 693, 694, 695, 696, 697, 698, 699, 700, 701, 702, 703, 704, 705, 706, 707, 708, 709, 710, 711, 712, 713, 714, 715, 716, 717, 718, 719, 720, 721, 722, 723, 724, 725, 726, 727, 728, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 819, 820, 821, 822, 823, 824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899, 900, 901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915, 916, 917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 930, 931, 932, 933, 934, 935, 936, 937, 938, 939, 940, 941, 942, 943, 944, 945, 946, 947, 948, 949, 950, 951, 952, 953, 954, 955, 956, 957, 958, 959, 962, 963, 964, 965, 1009, 1010, 1014, 1015, 1016, 1017, 1018, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1034, 1035, 1036, 1037, 1038, 1039, 1040, 1041, 1042, 1043, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1161, 1162, 1163, 1164, 1165, 1166, 1167, 1168, 1169, 1217, 1232, 1376, 1377, 1392, 1393, 1394, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1536, 1542, 1546, 1547, 1548, 1549, 1552, 1553, 1555, 1556, 1560, 1561, 1563, 1564, 1584, 1585, 1586, 1587, 1588, 1589, 1592, 1593, 1594, 1595, 1600, 1601, 1602, 1608, 1609, 1610, 1611, 1612, 1613, 1614, 1615, 1624, 1625, 1626, 1627, 1632, 1640, 1641, 1664, 1680, 1712, 1713, 1728, 1760, 1904, 1905, 1906, 1907, 1908, 1911, 2048, 2049, 2050, 2051, 2052, 2053, 2054, 2055, 2056, 2057, 2058, 2059, 2060, 2061, 2062, 2063, 2064, 2065, 2066, 2067, 2068, 2069, 2070, 2071, 2072, 2073, 2074, 2075, 2076, 2077, 2078, 2079, 2080, 2081, 2082, 2083, 2084, 2085, 2086, 2087, 2088, 2089, 2090, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2099, 2100, 2101, 2102, 2103, 2104, 2105, 2106, 2107, 2108, 2109, 2110, 2111, 2112, 2113, 2114, 2115, 2116, 2117, 2118, 2119, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2127, 2128, 2129, 2130, 2131, 2132, 2133, 2134, 2135, 2136, 2137, 2138, 2139, 2140, 2141, 2142, 2143, 2144, 2145, 2146, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2154, 2155, 2156, 2157, 2158, 2159, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2170, 2171, 2172, 2173, 2174, 2175, 2176, 2177, 2178, 2179, 2180, 2181, 2182, 2183, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2191, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208, 2209, 2210, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2226, 2227, 2228, 2229, 2230, 2231, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2241, 2242, 2243, 2244, 2245, 2246, 2247, 2248, 2249, 2250, 2251, 2252, 2253, 2254, 2255, 2256, 2257, 2258, 2259, 2260, 2261, 2262, 2263, 2264, 2265, 2266, 2267, 2268, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2316, 2317, 2318, 2319, 2320, 2321, 2322, 2323, 2324, 2325, 2326, 2327, 2328, 2329, 2330, 2331, 2332, 2333, 2334, 2335, 2336, 2337, 2338, 2339, 2340, 2341, 2342, 2343, 2344, 2345, 2346, 2347, 2348, 2349, 2350, 2351, 2352, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2377, 2378, 2379, 2380, 2381, 2382, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2390, 2391, 2392, 2393, 2394, 2395, 2396, 2397, 2398, 2399, 2400, 2401, 2402, 2403, 2404, 2405, 2406, 2407, 2408, 2409, 2410, 2411, 2412, 2413, 2414, 2415, 2416, 2417, 2418, 2419, 2420, 2421, 2422, 2423, 2424, 2425, 2426, 2427, 2428, 2429, 2430, 2431, 2432, 2433, 2434, 2435, 2436, 2437, 2438, 2439, 2440, 2441, 2442, 2443, 2444, 2445, 2446, 2447, 2448, 2449, 2450, 2451, 2452, 2453, 2454, 2455, 2456, 2457, 2458, 2459, 2460, 2461, 2462, 2463, 2464, 2465, 2466, 2467, 2468, 2469, 2470, 2471, 2472, 2473, 2474, 2475, 2476, 2477, 2478, 2479, 2480, 2481, 2482, 2483, 2484, 2485, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501, 2502, 2503, 2504, 2505, 2506, 2507, 2508, 2509, 2510, 2511, 2512, 2513, 2514, 2515, 2516, 2517, 2518, 2519, 2520, 2521, 2522, 2523, 2524, 2525, 2526, 2527, 2528, 2529, 2530, 2531, 2532, 2533, 2534, 2535, 2536, 2537, 2538, 2539, 2540, 2541, 2542, 2543, 2544, 2545, 2546, 2547, 2548, 2549, 2550, 2551, 2552, 2553, 2554, 2555, 2556, 2557, 2558, 2559, 2560, 2561, 2562, 2563, 2564, 2565, 2566, 2567, 2568, 2569, 2570, 2571, 2572, 2573, 2574, 2575, 2576, 2577, 2578, 2579, 2580, 2581, 2582, 2583, 2584, 2585, 2586, 2587, 2588, 2589, 2590, 2591, 2592, 2593, 2594, 2595, 2596, 2597, 2598, 2599, 2600, 2601, 2602, 2603, 2604, 2605, 2606, 2607, 2608, 2609, 2610, 2611, 2612, 2613, 2614, 2615, 2616, 2617, 2618, 2619, 2620, 2621, 2622, 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2630, 2631, 2632, 2633, 2634, 2635, 2636, 2637, 2638, 2639, 2640, 2641, 2642, 2643, 2644, 2645, 2646, 2647, 2648, 2649, 2650, 2651, 2652, 2653, 2654, 2655, 2656, 2657, 2658, 2659, 2660, 2661, 2662, 2663, 2664, 2665, 2666, 2667, 2668, 2669, 2670, 2671, 2672, 2673, 2674, 2675, 2676, 2677, 2678, 2679, 2680, 2681, 2682, 2683, 2684, 2685, 2686, 2687, 2688, 2689, 2690, 2691, 2692, 2693, 2694, 2695, 2696, 2697, 2698, 2699, 2700, 2701, 2702, 2703, 2704, 2705, 2706, 2707, 2708, 2709, 2710, 2711, 2712, 2713, 2714, 2715, 2716, 2717, 2718, 2719, 2720, 2721, 2722, 2723, 2724, 2725, 2726, 2727, 2728, 2729, 2730, 2731, 2732, 2733, 2734, 2735, 2736, 2737, 2738, 2739, 2740, 2741, 2742, 2743, 2744, 2745, 2746, 2747, 2748, 2749, 2750, 2751, 2752, 2753, 2754, 2755, 2756, 2757, 2758, 2759, 2760, 2761, 2762, 2763, 2764, 2765, 2766, 2767, 2768, 2769, 2770, 2771, 2772, 2773, 2774, 2775, 2776, 2777, 2778, 2779, 2780, 2781, 2782, 2783, 2784, 2785, 2786, 2787, 2788, 2789, 2790, 2791, 2792, 2793, 2794, 2795, 2796, 2797, 2798, 2799, 2800, 2801, 2802, 2803, 2804, 2805, 2806, 2807, 2808, 2809, 2810, 2811, 2812, 2813, 2814, 2815, 2816, 2817, 2818, 2819, 2820, 2821, 2822, 2823, 2824, 2825, 2826, 2827, 2828, 2829, 2830, 2831, 2832, 2833, 2834, 2835, 2836, 2837, 2838, 2839, 2840, 2841, 2842, 2843, 2844, 2845, 2846, 2847, 2848, 2849, 2850, 2851, 2852, 2853, 2854, 2855, 2856, 2857, 2858, 2859, 2860, 2861, 2862, 2863, 2864, 2865, 2866, 2867, 2868, 2869, 2870, 2871, 2872, 2873, 2874, 2875, 2876, 2877, 2878, 2879, 2880, 2881, 2882, 2883, 2884, 2885, 2886, 2887, 2888, 2889, 2890, 2891, 2892, 2893, 2894, 2895, 2896, 2897, 2898, 2899, 2900, 2901, 2902, 2903, 2904, 2905, 2906, 2907, 2908, 2909, 2910, 2911, 2912, 2913, 2914, 2915, 2916, 2917, 2918, 2919, 2920, 2921, 2922, 2923, 2924, 2925, 2926, 2927, 2928, 2929, 2930, 2931, 2932, 2933, 2934, 2935, 2936, 2937, 2938, 2939, 2940, 2941, 2942, 2943, 2944, 2945, 2946, 2947, 2948, 2949, 2950, 2951, 2952, 2953, 2954, 2955, 2956, 2957, 2958, 2959, 2960, 2961, 2962, 2963, 2964, 2965, 2966, 2967, 2968, 2969, 2970, 2971, 2972, 2973, 2974, 2975, 2976, 2977, 2978, 2979, 2980, 2981, 2982, 2983, 2984, 2985, 2986, 2987, 2988, 2989, 2990, 2991, 2992, 2993, 2994, 2995, 2996, 2997, 2998, 2999, 3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010, 3011, 3012, 3013, 3014, 3015, 3016, 3017, 3018, 3019, 3020, 3021, 3022, 3023, 3024, 3025, 3026, 3027, 3028, 3029, 3030, 3031, 3032, 3033, 3034, 3035, 3036, 3037, 3038, 3039, 3040, 3041, 3042, 3043, 3044, 3045, 3046, 3047, 3048, 3049, 3050, 3051, 3052, 3053, 3054, 3055, 3056, 3057, 3058, 3059, 3060, 3061, 3062, 3063, 3064, 3065, 3066, 3067, 3068, 3069, 3070, 3071, 3472, 3488, 3520, 3521, 3522, 3523, 3524, 3525, 3526, 3527, 1073741824, 1073741825, 1073741826, 1073741827, 1073741840, 1073741856, 1073741858, 1073741859, 1073741936, 1073741937, 1073741938, 1073741939, 1073741952, 1073741953, 1073741954, 1073741955, 1073741956, 1073741968, 1073741969, 1073741970, 1073741971, 1073741972, 1073741973, 1073741974, 1073741975, 1073741976, 1073741977, 1073741978, 1073741979, 1073741980, 1073741981, 1073741982, 1073741983, 1073742000, 1073742001, 1073742002, 1073742003, 1073742004, 1073742005, 1073742006, 1073742007, 1073742080, 1073742081, 1073742082, 1073742083, 1073742084, 1073742085, 1263947008, 1263947009, 1263947010, 1263947011, 1263947012, 3221225600, 3221225601, 3221225602, 3221225603, 3221225604, 3221225728, 3221225729, 3221225730, 3221225731, 3221225732, 3221291039, 3221291040, 3221291076, 3221291106, 3221291107, 3221291108, 3221291284, 3221291285, 3221291287, 3221291328, 3221291329, 3221295136, 3221295138, 3221295146, 3221295152, 3221295153, 3221295154, 3221295155, 3221295156, 3221295157, 3221295158, 3221295159, 3221295160, 3221295161, 3221295162, 3221295163, 3221295165}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserv", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "data", ArgDir: 1}, TypeSize: 8}},
+	}},
+	{Key: StructKey{Name: "kvm_msr_list"}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "n"}, TypeSize: 4}, Buf: "indices"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "indices"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 4}}},
+	}},
+	{Key: StructKey{Name: "kvm_msrs"}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nmsrs"}, TypeSize: 4}, Buf: "entries"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad"}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "entries"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_msr_entry"}}},
+	}},
+	{Key: StructKey{Name: "kvm_msrs", Dir: 1}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nmsrs", ArgDir: 1}, TypeSize: 4}, Buf: "entries"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad", ArgDir: 1}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "entries", ArgDir: 1}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_msr_entry", ArgDir: 1}}},
 	}},
 	{Key: StructKey{Name: "kvm_one_reg"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id"}, TypeSize: 8}},
@@ -2587,9 +2689,49 @@ var structFields = []*StructFields{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "elcr", ArgDir: 1}, TypeSize: 1}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "elcrmas", ArgDir: 1}, TypeSize: 1}},
 	}},
+	{Key: StructKey{Name: "kvm_pit_channel_state"}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "count"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "lcount"}, TypeSize: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "latched"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "lstatus"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "status"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "rstate"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "wstate"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "wlatch"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "rw"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "mode"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "bcd"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "gate"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ltime"}, TypeSize: 8}},
+	}},
+	{Key: StructKey{Name: "kvm_pit_channel_state", Dir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "count", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "lcount", ArgDir: 1}, TypeSize: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "latched", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "lstatus", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "status", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "rstate", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "wstate", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "wlatch", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "rw", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "mode", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "bcd", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "gate", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ltime", ArgDir: 1}, TypeSize: 8}},
+	}},
 	{Key: StructKey{Name: "kvm_pit_config"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags"}, TypeSize: 4}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 4}}, Kind: 1, RangeBegin: 15, RangeEnd: 15},
+	}},
+	{Key: StructKey{Name: "kvm_pit_state2"}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "chans"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_pit_channel_state"}}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags"}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 4}}, Kind: 1, RangeBegin: 9, RangeEnd: 9},
+	}},
+	{Key: StructKey{Name: "kvm_pit_state2", Dir: 1}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "chans", ArgDir: 1}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_pit_channel_state", ArgDir: 1}}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", ArgDir: 1}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", ArgDir: 1}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", ArgDir: 1}, TypeSize: 4}}, Kind: 1, RangeBegin: 9, RangeEnd: 9},
 	}},
 	{Key: StructKey{Name: "kvm_reg_list"}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "n"}, TypeSize: 8}, Buf: "reg"},
@@ -2805,10 +2947,86 @@ var structFields = []*StructFields{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "addr"},
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, RangeBegin: 1, RangeEnd: 2},
 	}},
+	{Key: StructKey{Name: "kvm_vcpu_events"}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "exinjec"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "exnr"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "exhec"}, TypeSize: 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad1"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "exec"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ininjec"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "innr"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "insoft"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "inshad"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "nmiinj"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "nmipend"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "nmimask"}, TypeSize: 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad2"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sipi"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "smismm"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "smipend"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "smiinsi"}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "smilatc"}, TypeSize: 1}},
+	}},
+	{Key: StructKey{Name: "kvm_vcpu_events", Dir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "exinjec", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "exnr", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "exhec", ArgDir: 1}, TypeSize: 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad1", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "exec", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ininjec", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "innr", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "insoft", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "inshad", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "nmiinj", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "nmipend", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "nmimask", ArgDir: 1}, TypeSize: 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad2", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sipi", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", ArgDir: 1}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "smismm", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "smipend", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "smiinsi", ArgDir: 1}, TypeSize: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "smilatc", ArgDir: 1}, TypeSize: 1}},
+	}},
 	{Key: StructKey{Name: "kvm_vcpu_init"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_vcpu_target", FldName: "target"}, TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_vcpu_features_arm64", FldName: "feature"}, TypeSize: 4}, Vals: []uint64{0, 1}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 4}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
+	}},
+	{Key: StructKey{Name: "kvm_x86_mce"}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_mce_status", FldName: "status"}, TypeSize: 8}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs", FldName: "addr"}, TypeSize: 8}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "misc"}, TypeSize: 8}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_mcg_status", FldName: "mcg"}, TypeSize: 8}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "bank"}, TypeSize: 1}, Kind: 3, RangeEnd: 32},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad1"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 1}}, Kind: 1, RangeBegin: 7, RangeEnd: 7},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad2"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 8}}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
+	}},
+	{Key: StructKey{Name: "kvm_xcr"}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "xcr"}, TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserv"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val"}, TypeSize: 8}},
+	}},
+	{Key: StructKey{Name: "kvm_xcrs"}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nr"}, TypeSize: 4}, Buf: "xcrs"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags"}, TypeSize: 4}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "xcrs"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_xcr"}}},
+	}},
+	{Key: StructKey{Name: "kvm_xen_hvm_config"}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags"}, TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "msr_index", FldName: "msr"}, TypeSize: 4}, Vals: []uint64{0, 1, 16, 17, 18, 19, 23, 27, 32, 33, 40, 41, 42, 44, 51, 52, 58, 59, 64, 96, 121, 136, 137, 138, 139, 155, 158, 193, 194, 205, 206, 226, 231, 232, 254, 278, 280, 281, 282, 283, 286, 372, 373, 374, 377, 378, 379, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 408, 409, 410, 411, 412, 413, 416, 418, 422, 423, 426, 429, 430, 431, 432, 433, 434, 456, 457, 473, 475, 476, 477, 478, 480, 508, 512, 513, 514, 515, 516, 517, 518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 540, 541, 542, 543, 544, 545, 546, 547, 548, 549, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569, 570, 571, 572, 573, 574, 575, 576, 577, 578, 579, 580, 581, 582, 583, 584, 585, 586, 587, 588, 589, 590, 591, 592, 593, 594, 595, 596, 597, 598, 599, 600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 616, 617, 618, 619, 620, 621, 622, 623, 624, 625, 626, 627, 628, 629, 630, 631, 632, 633, 634, 635, 636, 637, 638, 639, 640, 641, 642, 643, 644, 645, 646, 647, 648, 649, 650, 651, 652, 653, 654, 655, 656, 657, 658, 659, 660, 661, 662, 663, 664, 665, 666, 667, 668, 669, 670, 671, 672, 673, 674, 675, 676, 677, 678, 679, 680, 681, 682, 683, 684, 685, 686, 687, 688, 689, 690, 691, 692, 693, 694, 695, 696, 697, 698, 699, 700, 701, 702, 703, 704, 705, 706, 707, 708, 709, 710, 711, 712, 713, 714, 715, 716, 717, 718, 719, 720, 721, 722, 723, 724, 725, 726, 727, 728, 729, 730, 731, 732, 733, 734, 735, 736, 737, 738, 739, 740, 741, 742, 743, 744, 745, 746, 747, 748, 749, 750, 751, 752, 753, 754, 755, 756, 757, 758, 759, 760, 761, 762, 763, 764, 765, 766, 767, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 788, 789, 790, 791, 792, 793, 794, 795, 796, 797, 798, 799, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815, 816, 817, 818, 819, 820, 821, 822, 823, 824, 825, 826, 827, 828, 829, 830, 831, 832, 833, 834, 835, 836, 837, 838, 839, 840, 841, 842, 843, 844, 845, 846, 847, 848, 849, 850, 851, 852, 853, 854, 855, 856, 857, 858, 859, 860, 861, 862, 863, 864, 865, 866, 867, 868, 869, 870, 871, 872, 873, 874, 875, 876, 877, 878, 879, 880, 881, 882, 883, 884, 885, 886, 887, 888, 889, 890, 891, 892, 893, 894, 895, 896, 897, 898, 899, 900, 901, 902, 903, 904, 905, 906, 907, 908, 909, 910, 911, 912, 913, 914, 915, 916, 917, 918, 919, 920, 921, 922, 923, 924, 925, 926, 927, 928, 929, 930, 931, 932, 933, 934, 935, 936, 937, 938, 939, 940, 941, 942, 943, 944, 945, 946, 947, 948, 949, 950, 951, 952, 953, 954, 955, 956, 957, 958, 959, 962, 963, 964, 965, 1009, 1010, 1014, 1015, 1016, 1017, 1018, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031, 1032, 1033, 1034, 1035, 1036, 1037, 1038, 1039, 1040, 1041, 1042, 1043, 1152, 1153, 1154, 1155, 1156, 1157, 1158, 1159, 1160, 1161, 1162, 1163, 1164, 1165, 1166, 1167, 1168, 1169, 1217, 1232, 1376, 1377, 1392, 1393, 1394, 1408, 1409, 1410, 1411, 1412, 1413, 1414, 1415, 1536, 1542, 1546, 1547, 1548, 1549, 1552, 1553, 1555, 1556, 1560, 1561, 1563, 1564, 1584, 1585, 1586, 1587, 1588, 1589, 1592, 1593, 1594, 1595, 1600, 1601, 1602, 1608, 1609, 1610, 1611, 1612, 1613, 1614, 1615, 1624, 1625, 1626, 1627, 1632, 1640, 1641, 1664, 1680, 1712, 1713, 1728, 1760, 1904, 1905, 1906, 1907, 1908, 1911, 2048, 2049, 2050, 2051, 2052, 2053, 2054, 2055, 2056, 2057, 2058, 2059, 2060, 2061, 2062, 2063, 2064, 2065, 2066, 2067, 2068, 2069, 2070, 2071, 2072, 2073, 2074, 2075, 2076, 2077, 2078, 2079, 2080, 2081, 2082, 2083, 2084, 2085, 2086, 2087, 2088, 2089, 2090, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2099, 2100, 2101, 2102, 2103, 2104, 2105, 2106, 2107, 2108, 2109, 2110, 2111, 2112, 2113, 2114, 2115, 2116, 2117, 2118, 2119, 2120, 2121, 2122, 2123, 2124, 2125, 2126, 2127, 2128, 2129, 2130, 2131, 2132, 2133, 2134, 2135, 2136, 2137, 2138, 2139, 2140, 2141, 2142, 2143, 2144, 2145, 2146, 2147, 2148, 2149, 2150, 2151, 2152, 2153, 2154, 2155, 2156, 2157, 2158, 2159, 2160, 2161, 2162, 2163, 2164, 2165, 2166, 2167, 2168, 2169, 2170, 2171, 2172, 2173, 2174, 2175, 2176, 2177, 2178, 2179, 2180, 2181, 2182, 2183, 2184, 2185, 2186, 2187, 2188, 2189, 2190, 2191, 2192, 2193, 2194, 2195, 2196, 2197, 2198, 2199, 2200, 2201, 2202, 2203, 2204, 2205, 2206, 2207, 2208, 2209, 2210, 2211, 2212, 2213, 2214, 2215, 2216, 2217, 2218, 2219, 2220, 2221, 2222, 2223, 2224, 2225, 2226, 2227, 2228, 2229, 2230, 2231, 2232, 2233, 2234, 2235, 2236, 2237, 2238, 2239, 2240, 2241, 2242, 2243, 2244, 2245, 2246, 2247, 2248, 2249, 2250, 2251, 2252, 2253, 2254, 2255, 2256, 2257, 2258, 2259, 2260, 2261, 2262, 2263, 2264, 2265, 2266, 2267, 2268, 2269, 2270, 2271, 2272, 2273, 2274, 2275, 2276, 2277, 2278, 2279, 2280, 2281, 2282, 2283, 2284, 2285, 2286, 2287, 2288, 2289, 2290, 2291, 2292, 2293, 2294, 2295, 2296, 2297, 2298, 2299, 2300, 2301, 2302, 2303, 2304, 2305, 2306, 2307, 2308, 2309, 2310, 2311, 2312, 2313, 2314, 2315, 2316, 2317, 2318, 2319, 2320, 2321, 2322, 2323, 2324, 2325, 2326, 2327, 2328, 2329, 2330, 2331, 2332, 2333, 2334, 2335, 2336, 2337, 2338, 2339, 2340, 2341, 2342, 2343, 2344, 2345, 2346, 2347, 2348, 2349, 2350, 2351, 2352, 2353, 2354, 2355, 2356, 2357, 2358, 2359, 2360, 2361, 2362, 2363, 2364, 2365, 2366, 2367, 2368, 2369, 2370, 2371, 2372, 2373, 2374, 2375, 2376, 2377, 2378, 2379, 2380, 2381, 2382, 2383, 2384, 2385, 2386, 2387, 2388, 2389, 2390, 2391, 2392, 2393, 2394, 2395, 2396, 2397, 2398, 2399, 2400, 2401, 2402, 2403, 2404, 2405, 2406, 2407, 2408, 2409, 2410, 2411, 2412, 2413, 2414, 2415, 2416, 2417, 2418, 2419, 2420, 2421, 2422, 2423, 2424, 2425, 2426, 2427, 2428, 2429, 2430, 2431, 2432, 2433, 2434, 2435, 2436, 2437, 2438, 2439, 2440, 2441, 2442, 2443, 2444, 2445, 2446, 2447, 2448, 2449, 2450, 2451, 2452, 2453, 2454, 2455, 2456, 2457, 2458, 2459, 2460, 2461, 2462, 2463, 2464, 2465, 2466, 2467, 2468, 2469, 2470, 2471, 2472, 2473, 2474, 2475, 2476, 2477, 2478, 2479, 2480, 2481, 2482, 2483, 2484, 2485, 2486, 2487, 2488, 2489, 2490, 2491, 2492, 2493, 2494, 2495, 2496, 2497, 2498, 2499, 2500, 2501, 2502, 2503, 2504, 2505, 2506, 2507, 2508, 2509, 2510, 2511, 2512, 2513, 2514, 2515, 2516, 2517, 2518, 2519, 2520, 2521, 2522, 2523, 2524, 2525, 2526, 2527, 2528, 2529, 2530, 2531, 2532, 2533, 2534, 2535, 2536, 2537, 2538, 2539, 2540, 2541, 2542, 2543, 2544, 2545, 2546, 2547, 2548, 2549, 2550, 2551, 2552, 2553, 2554, 2555, 2556, 2557, 2558, 2559, 2560, 2561, 2562, 2563, 2564, 2565, 2566, 2567, 2568, 2569, 2570, 2571, 2572, 2573, 2574, 2575, 2576, 2577, 2578, 2579, 2580, 2581, 2582, 2583, 2584, 2585, 2586, 2587, 2588, 2589, 2590, 2591, 2592, 2593, 2594, 2595, 2596, 2597, 2598, 2599, 2600, 2601, 2602, 2603, 2604, 2605, 2606, 2607, 2608, 2609, 2610, 2611, 2612, 2613, 2614, 2615, 2616, 2617, 2618, 2619, 2620, 2621, 2622, 2623, 2624, 2625, 2626, 2627, 2628, 2629, 2630, 2631, 2632, 2633, 2634, 2635, 2636, 2637, 2638, 2639, 2640, 2641, 2642, 2643, 2644, 2645, 2646, 2647, 2648, 2649, 2650, 2651, 2652, 2653, 2654, 2655, 2656, 2657, 2658, 2659, 2660, 2661, 2662, 2663, 2664, 2665, 2666, 2667, 2668, 2669, 2670, 2671, 2672, 2673, 2674, 2675, 2676, 2677, 2678, 2679, 2680, 2681, 2682, 2683, 2684, 2685, 2686, 2687, 2688, 2689, 2690, 2691, 2692, 2693, 2694, 2695, 2696, 2697, 2698, 2699, 2700, 2701, 2702, 2703, 2704, 2705, 2706, 2707, 2708, 2709, 2710, 2711, 2712, 2713, 2714, 2715, 2716, 2717, 2718, 2719, 2720, 2721, 2722, 2723, 2724, 2725, 2726, 2727, 2728, 2729, 2730, 2731, 2732, 2733, 2734, 2735, 2736, 2737, 2738, 2739, 2740, 2741, 2742, 2743, 2744, 2745, 2746, 2747, 2748, 2749, 2750, 2751, 2752, 2753, 2754, 2755, 2756, 2757, 2758, 2759, 2760, 2761, 2762, 2763, 2764, 2765, 2766, 2767, 2768, 2769, 2770, 2771, 2772, 2773, 2774, 2775, 2776, 2777, 2778, 2779, 2780, 2781, 2782, 2783, 2784, 2785, 2786, 2787, 2788, 2789, 2790, 2791, 2792, 2793, 2794, 2795, 2796, 2797, 2798, 2799, 2800, 2801, 2802, 2803, 2804, 2805, 2806, 2807, 2808, 2809, 2810, 2811, 2812, 2813, 2814, 2815, 2816, 2817, 2818, 2819, 2820, 2821, 2822, 2823, 2824, 2825, 2826, 2827, 2828, 2829, 2830, 2831, 2832, 2833, 2834, 2835, 2836, 2837, 2838, 2839, 2840, 2841, 2842, 2843, 2844, 2845, 2846, 2847, 2848, 2849, 2850, 2851, 2852, 2853, 2854, 2855, 2856, 2857, 2858, 2859, 2860, 2861, 2862, 2863, 2864, 2865, 2866, 2867, 2868, 2869, 2870, 2871, 2872, 2873, 2874, 2875, 2876, 2877, 2878, 2879, 2880, 2881, 2882, 2883, 2884, 2885, 2886, 2887, 2888, 2889, 2890, 2891, 2892, 2893, 2894, 2895, 2896, 2897, 2898, 2899, 2900, 2901, 2902, 2903, 2904, 2905, 2906, 2907, 2908, 2909, 2910, 2911, 2912, 2913, 2914, 2915, 2916, 2917, 2918, 2919, 2920, 2921, 2922, 2923, 2924, 2925, 2926, 2927, 2928, 2929, 2930, 2931, 2932, 2933, 2934, 2935, 2936, 2937, 2938, 2939, 2940, 2941, 2942, 2943, 2944, 2945, 2946, 2947, 2948, 2949, 2950, 2951, 2952, 2953, 2954, 2955, 2956, 2957, 2958, 2959, 2960, 2961, 2962, 2963, 2964, 2965, 2966, 2967, 2968, 2969, 2970, 2971, 2972, 2973, 2974, 2975, 2976, 2977, 2978, 2979, 2980, 2981, 2982, 2983, 2984, 2985, 2986, 2987, 2988, 2989, 2990, 2991, 2992, 2993, 2994, 2995, 2996, 2997, 2998, 2999, 3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007, 3008, 3009, 3010, 3011, 3012, 3013, 3014, 3015, 3016, 3017, 3018, 3019, 3020, 3021, 3022, 3023, 3024, 3025, 3026, 3027, 3028, 3029, 3030, 3031, 3032, 3033, 3034, 3035, 3036, 3037, 3038, 3039, 3040, 3041, 3042, 3043, 3044, 3045, 3046, 3047, 3048, 3049, 3050, 3051, 3052, 3053, 3054, 3055, 3056, 3057, 3058, 3059, 3060, 3061, 3062, 3063, 3064, 3065, 3066, 3067, 3068, 3069, 3070, 3071, 3472, 3488, 3520, 3521, 3522, 3523, 3524, 3525, 3526, 3527, 1073741824, 1073741825, 1073741826, 1073741827, 1073741840, 1073741856, 1073741858, 1073741859, 1073741936, 1073741937, 1073741938, 1073741939, 1073741952, 1073741953, 1073741954, 1073741955, 1073741956, 1073741968, 1073741969, 1073741970, 1073741971, 1073741972, 1073741973, 1073741974, 1073741975, 1073741976, 1073741977, 1073741978, 1073741979, 1073741980, 1073741981, 1073741982, 1073741983, 1073742000, 1073742001, 1073742002, 1073742003, 1073742004, 1073742005, 1073742006, 1073742007, 1073742080, 1073742081, 1073742082, 1073742083, 1073742084, 1073742085, 1263947008, 1263947009, 1263947010, 1263947011, 1263947012, 3221225600, 3221225601, 3221225602, 3221225603, 3221225604, 3221225728, 3221225729, 3221225730, 3221225731, 3221225732, 3221291039, 3221291040, 3221291076, 3221291106, 3221291107, 3221291108, 3221291284, 3221291285, 3221291287, 3221291328, 3221291329, 3221295136, 3221295138, 3221295146, 3221295152, 3221295153, 3221295154, 3221295155, 3221295156, 3221295157, 3221295158, 3221295159, 3221295160, 3221295161, 3221295162, 3221295163, 3221295165}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr32"}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr64"}, Type: &BufferType{}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size32"}, TypeSize: 1}, Buf: "addr32"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size64"}, TypeSize: 1}, Buf: "addr64"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 1}}, Kind: 1, RangeBegin: 30, RangeEnd: 30},
+	}},
+	{Key: StructKey{Name: "kvm_xsave"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "region"}, Kind: 1, RangeBegin: 1024, RangeEnd: 1024},
+	}},
+	{Key: StructKey{Name: "kvm_xsave", Dir: 1}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "region", ArgDir: 1}, Kind: 1, RangeBegin: 1024, RangeEnd: 1024},
 	}},
 	{Key: StructKey{Name: "l2cap_conninfo"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "handle"}, TypeSize: 2}},
@@ -4980,6 +5198,53 @@ var structFields = []*StructFields{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "loop"}, TypeSize: 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "slot"}, TypeSize: 4}},
 	}},
+	{Key: StructKey{Name: "te_answer", Dir: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "result", ArgDir: 1}, TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "te_session_id", FldName: "session_id", ArgDir: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "result_origin", ArgDir: 1}, TypeSize: 4}},
+	}},
+	{Key: StructKey{Name: "te_closesession", Dir: 2}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "te_session_id", FldName: "session_id", ArgDir: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "answer"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "te_answer", ArgDir: 1}}},
+	}},
+	{Key: StructKey{Name: "te_int_mem_union"}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "int"}, TypeSize: 4}},
+		&StructType{TypeCommon: TypeCommon{TypeName: "te_mem", FldName: "Mem"}},
+	}},
+	{Key: StructKey{Name: "te_launchop", Dir: 2}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "te_session_id", FldName: "session_id", ArgDir: 2}},
+		&StructType{TypeCommon: TypeCommon{TypeName: "te_operation", FldName: "operation", ArgDir: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "answer", ArgDir: 2}, TypeSize: 8}},
+	}},
+	{Key: StructKey{Name: "te_mem"}, Fields: []Type{
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "base"}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "len"}, TypeSize: 4}},
+	}},
+	{Key: StructKey{Name: "te_opensession", Dir: 2}, Fields: []Type{
+		&StructType{TypeCommon: TypeCommon{TypeName: "te_service_id", FldName: "dest_uuid", ArgDir: 2}},
+		&StructType{TypeCommon: TypeCommon{TypeName: "te_operation", FldName: "operation", ArgDir: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "answer"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "te_answer", ArgDir: 1}}},
+	}},
+	{Key: StructKey{Name: "te_oper_param"}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "index"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "te_oper_param_type_flags", FldName: "type"}, TypeSize: 4}},
+		&UnionType{TypeCommon: TypeCommon{TypeName: "te_int_mem_union", FldName: "u"}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "next_ptr_user", IsOptional: true}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "te_oper_param"}}},
+	}},
+	{Key: StructKey{Name: "te_operation", Dir: 2}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "unused_command", ArgDir: 2}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "status", ArgDir: 2}, TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "list_head"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "te_oper_param"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "unused_list_tail"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "te_oper_param"}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "list_count", ArgDir: 2}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "unused_interface_side", ArgDir: 2}, TypeSize: 4}},
+	}},
+	{Key: StructKey{Name: "te_service_id", Dir: 2}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "unused_time_low", ArgDir: 2}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "unused_time_mid", ArgDir: 2}, TypeSize: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "unused_time_hi_and_version", ArgDir: 2}, TypeSize: 2}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "unused_clock_seq_and_node", ArgDir: 2}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
+	}},
 	{Key: StructKey{Name: "termio"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "iflag"}, TypeSize: 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "oflag"}, TypeSize: 2}},
@@ -5207,6 +5472,12 @@ var structFields = []*StructFields{
 	{Key: StructKey{Name: "unix_pair", Dir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd0", ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd1", ArgDir: 1}},
+	}},
+	{Key: StructKey{Name: "user_desc"}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "entry"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "base"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "limit"}, TypeSize: 4}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "flags"}, TypeSize: 1}},
 	}},
 	{Key: StructKey{Name: "ustat", Dir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "free", ArgDir: 1}, TypeSize: 4}},
@@ -5552,6 +5823,10 @@ var Calls = []*Call{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "ret", ArgDir: 1}}},
 	{NR: 9437211, Name: "alarm", CallName: "alarm", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "seconds"}, TypeSize: 8}},
+	}},
+	{NR: 18446744073709551615, Name: "arch_prctl", CallName: "arch_prctl", Args: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "arch_prctl_code", FldName: "code"}, TypeSize: 8}, Vals: []uint64{4098, 4099, 4097, 4100}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr"}, Type: &BufferType{}},
 	}},
 	{NR: 9437466, Name: "bind", CallName: "bind", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd"}},
@@ -5911,6 +6186,12 @@ var Calls = []*Call{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode"}, TypeSize: 8}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "faccessat_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{256, 512, 1024, 2048, 4096}},
 	}},
+	{NR: 18446744073709551615, Name: "fadvise64", CallName: "fadvise64", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd"}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset"}, TypeSize: 8}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len"}, TypeSize: 8}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fadvise_flags", FldName: "advice"}, TypeSize: 8}, Vals: []uint64{0, 2, 1, 5, 3, 4}},
+	}},
 	{NR: 9437536, Name: "fallocate", CallName: "fallocate", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd"}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fallocate_mode", FldName: "mode"}, TypeSize: 8}, Vals: []uint64{0, 1, 2}},
@@ -6082,6 +6363,9 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pathname"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "times"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "itimerval"}}},
 	}},
+	{NR: 18446744073709551615, Name: "get_kernel_syms", CallName: "get_kernel_syms", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "table"}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+	}},
 	{NR: 9437504, Name: "get_mempolicy", CallName: "get_mempolicy", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mode"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", ArgDir: 1}, TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "nodemask"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", ArgDir: 1}, TypeSize: 8}}},
@@ -6093,6 +6377,9 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid"}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "head"}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "robust_list", ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len"}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", ArgDir: 2}, TypeSize: 8}, Buf: "head"}},
+	}},
+	{NR: 18446744073709551615, Name: "get_thread_area", CallName: "get_thread_area", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "info"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "user_desc"}}},
 	}},
 	{NR: 9437367, Name: "getcwd", CallName: "getcwd", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf"}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
@@ -7844,6 +8131,41 @@ var Calls = []*Call{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 19305},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg"}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
 	}},
+	{NR: 18446744073709551615, Name: "ioctl$ION_IOC_ALLOC", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ion", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "ion_allocation_data", ArgDir: 2}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$ION_IOC_CUSTOM", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ion", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "ion_custom_data", ArgDir: 2}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$ION_IOC_FREE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ion", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "ion_handle_data"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$ION_IOC_IMPORT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ion", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "ion_fd_data", ArgDir: 2}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$ION_IOC_MAP", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ion", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "ion_fd_data", ArgDir: 2}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$ION_IOC_SHARE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ion", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "ion_fd_data", ArgDir: 2}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$ION_IOC_SYNC", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ion", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "ion_fd_data", ArgDir: 2}}},
+	}},
 	{NR: 9437238, Name: "ioctl$KDADDIO", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 19252},
@@ -8061,6 +8383,16 @@ var Calls = []*Call{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 2150674044},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_clock_data", ArgDir: 1}}},
 	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_CPUID2", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_cpuid2", ArgDir: 1}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_DEBUGREGS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_debugregs", ArgDir: 1}}},
+	}},
 	{NR: 9437238, Name: "ioctl$KVM_GET_DEVICE_ATTR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1075359458},
@@ -8070,6 +8402,11 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1074835010},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_dirty_log"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_EMULATED_CPUID", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg"}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
 	}},
 	{NR: 9437238, Name: "ioctl$KVM_GET_FPU", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
@@ -8081,10 +8418,25 @@ var Calls = []*Call{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 3255348834},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &UnionType{TypeCommon: TypeCommon{TypeName: "kvm_irq_chip", ArgDir: 1}}},
 	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_LAPIC", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_lapic_state"}}},
+	}},
 	{NR: 9437238, Name: "ioctl$KVM_GET_MP_STATE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 2147790488},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", ArgDir: 1}, TypeSize: 4}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_MSRS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_msrs", ArgDir: 1}, IsPacked: true}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_MSR_INDEX_LIST", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvm", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_msr_list"}}},
 	}},
 	{NR: 9437238, Name: "ioctl$KVM_GET_NR_MMU_PAGES", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
@@ -8095,6 +8447,16 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1074835115},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_one_reg"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_PIT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_pit_state2", ArgDir: 1}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_PIT2", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_pit_state2", ArgDir: 1}}},
 	}},
 	{NR: 9437238, Name: "ioctl$KVM_GET_REGS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
@@ -8111,13 +8473,33 @@ var Calls = []*Call{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 2147528323},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_sregs", ArgDir: 1}}},
 	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_SUPPORTED_CPUID", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvm", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg"}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+	}},
 	{NR: 9437238, Name: "ioctl$KVM_GET_TSC_KHZ", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 44707},
 	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_VCPU_EVENTS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_vcpu_events", ArgDir: 1}}},
+	}},
 	{NR: 9437238, Name: "ioctl$KVM_GET_VCPU_MMAP_SIZE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvm", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 44548},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_XCRS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_xcrs"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_GET_XSAVE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_xsave", ArgDir: 1}}},
 	}},
 	{NR: 9437238, Name: "ioctl$KVM_HAS_DEVICE_ATTR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
@@ -8222,6 +8604,21 @@ var Calls = []*Call{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1076932219},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_clock_data"}}},
 	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_SET_CPUID", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_cpuid"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_SET_CPUID2", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_cpuid2"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_SET_DEBUGREGS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_debugregs"}}},
+	}},
 	{NR: 9437238, Name: "ioctl$KVM_SET_DEVICE_ATTR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1075359457},
@@ -8252,10 +8649,20 @@ var Calls = []*Call{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 2181607011},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &UnionType{TypeCommon: TypeCommon{TypeName: "kvm_irq_chip"}}},
 	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_SET_LAPIC", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_lapic_state"}}},
+	}},
 	{NR: 9437238, Name: "ioctl$KVM_SET_MP_STATE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1074048665},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_mp_state"}, TypeSize: 4}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_SET_MSRS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_msrs"}, IsPacked: true}},
 	}},
 	{NR: 9437238, Name: "ioctl$KVM_SET_NR_MMU_PAGES", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
@@ -8266,6 +8673,16 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1074835116},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_one_reg"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_SET_PIT", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_pit_state2"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_SET_PIT2", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_pit_state2"}}},
 	}},
 	{NR: 9437238, Name: "ioctl$KVM_SET_REGS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
@@ -8302,6 +8719,21 @@ var Calls = []*Call{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1074310803},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs"}, TypeSize: 8}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}}},
 	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_SET_VCPU_EVENTS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_vcpu_events"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_SET_XCRS", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_xcrs"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_SET_XSAVE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_xsave"}}},
+	}},
 	{NR: 9437238, Name: "ioctl$KVM_SIGNAL_MSI", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1075883685},
@@ -8335,6 +8767,16 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 1074310812},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_mce_cap"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_X86_SET_MCE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_x86_mce"}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$KVM_XEN_HVM_CONFIG", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_xen_hvm_config"}}},
 	}},
 	{NR: 9437238, Name: "ioctl$LOOP_CHANGE_FD", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop", FldName: "fd"}},
@@ -8913,6 +9355,26 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 21514},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "arg"}, TypeSize: 8}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$TE_IOCTL_CLOSE_CLIENT_SESSION", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tlk", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "te_closesession", ArgDir: 2}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$TE_IOCTL_LAUNCH_OPERATION", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tlk", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "te_launchop", ArgDir: 2}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$TE_IOCTL_OPEN_CLIENT_SESSION", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tlk", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "te_opensession", ArgDir: 2}}},
+	}},
+	{NR: 18446744073709551615, Name: "ioctl$TE_IOCTL_SS_CMD", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tlk", FldName: "fd"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "te_ss_cmd_flags", FldName: "arg"}, TypeSize: 8}},
 	}},
 	{NR: 9437238, Name: "ioctl$TIOCCBRK", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd"}},
@@ -9674,6 +10136,14 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd"}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ioctl_void", FldName: "cmd"}, TypeSize: 8}, Vals: []uint64{21585, 21584, 3221510263, 3221510264}},
 	}},
+	{NR: 18446744073709551615, Name: "ioperm", CallName: "ioperm", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "from"}, TypeSize: 8}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "num"}, TypeSize: 8}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "on"}, TypeSize: 8}},
+	}},
+	{NR: 18446744073709551615, Name: "iopl", CallName: "iopl", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "level"}, TypeSize: 1}},
+	}},
 	{NR: 9437499, Name: "ioprio_get$pid", CallName: "ioprio_get", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ioprio_which_pid", FldName: "which"}, TypeSize: 8}, Vals: []uint64{1, 2}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "who"}},
@@ -9912,6 +10382,12 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "memfd_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{1, 2}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", ArgDir: 1}}},
+	{NR: 18446744073709551615, Name: "migrate_pages", CallName: "migrate_pages", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid"}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "maxnode"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64"}, TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64"}, TypeSize: 8}}},
+	}},
 	{NR: 9437403, Name: "mincore", CallName: "mincore", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "addr"},
@@ -9962,6 +10438,26 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd"}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset"}, TypeSize: 8}, Kind: 2},
 	}, Ret: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ret", ArgDir: 1}}},
+	{NR: 18446744073709551615, Name: "modify_ldt$read", CallName: "modify_ldt", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "func"}, TypeSize: 8}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf"}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "buf"},
+	}},
+	{NR: 18446744073709551615, Name: "modify_ldt$read_default", CallName: "modify_ldt", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "func"}, TypeSize: 8}, Val: 2},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf"}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "buf"},
+	}},
+	{NR: 18446744073709551615, Name: "modify_ldt$write", CallName: "modify_ldt", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "func"}, TypeSize: 8}, Val: 1},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "user_desc"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "buf"},
+	}},
+	{NR: 18446744073709551615, Name: "modify_ldt$write2", CallName: "modify_ldt", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "func"}, TypeSize: 8}, Val: 17},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "user_desc"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "buf"},
+	}},
 	{NR: 9437205, Name: "mount", CallName: "mount", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "src"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dst"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
@@ -11031,6 +11527,9 @@ var Calls = []*Call{
 	{NR: 9437522, Name: "set_robust_list", CallName: "set_robust_list", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "head"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "robust_list"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "head"},
+	}},
+	{NR: 18446744073709551615, Name: "set_thread_area", CallName: "set_thread_area", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "info"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "user_desc"}}},
 	}},
 	{NR: 9437440, Name: "set_tid_address", CallName: "set_tid_address", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "tidptr"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", ArgDir: 1}, TypeSize: 4}}},
@@ -12815,6 +13314,12 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new"}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
 	}},
 	{NR: 9437220, Name: "sync", CallName: "sync"},
+	{NR: 18446744073709551615, Name: "sync_file_range", CallName: "sync_file_range", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd"}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "off"}, TypeSize: 8}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "nbytes"}, TypeSize: 8}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sync_file_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{1, 2, 4}},
+	}},
 	{NR: 9437557, Name: "syncfs", CallName: "syncfs", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd"}},
 	}},
