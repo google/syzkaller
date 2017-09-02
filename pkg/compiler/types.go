@@ -79,12 +79,13 @@ var typePtr = &typeDesc{
 	Args:     []namedArg{{"direction", typeArgDir}, {"type", typeArgType}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
 		base.ArgDir = sys.DirIn // pointers are always in
-		base.TypeSize = comp.ptrSize
+		size := comp.ptrSize
 		if t.Ident == "ptr64" {
-			base.TypeSize = 8
+			size = 8
 		}
 		return &sys.PtrType{
 			TypeCommon: base.TypeCommon,
+			TypeSize:   size,
 			Type:       comp.genType(args[1], "", genDir(args[0]), false),
 		}
 	},
@@ -375,6 +376,7 @@ var typeBuffer = &typeDesc{
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
 		return &sys.PtrType{
 			TypeCommon: base.TypeCommon,
+			TypeSize:   comp.ptrSize,
 			Type: &sys.BufferType{
 				TypeCommon: genCommon("", "", genDir(args[0]), false),
 				Kind:       sys.BufferBlobRand,
