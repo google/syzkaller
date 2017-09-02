@@ -331,11 +331,12 @@ func (t *ArrayType) Align() uint64 {
 
 type PtrType struct {
 	TypeCommon
-	Type Type
+	TypeSize uint64
+	Type     Type
 }
 
 func (t *PtrType) Size() uint64 {
-	return ptrSize
+	return t.TypeSize
 }
 
 func (t *PtrType) Align() uint64 {
