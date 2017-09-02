@@ -30,8 +30,9 @@ rest of the type-options are type-specific:
 	reference to flags description (see below)
 "array": a variable/fixed-length array, type-options:
 	type of elements, optional size (fixed "5", or ranged "5:10", boundaries inclusive)
-"ptr": a pointer to an object, type-options:
+"ptr"/"ptr64": a pointer to an object, type-options:
 	type of the object; direction (in/out/inout)
+	ptr64 has size of 8 bytes regardless of target pointer size
 "buffer": a pointer to a memory buffer (like read/write buffer argument), type-options:
 	direction (in/out/inout)
 "string": a zero-terminated memory buffer (no pointer indirection implied), type-options:
