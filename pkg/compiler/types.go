@@ -74,11 +74,15 @@ var typeInt = &typeDesc{
 }
 
 var typePtr = &typeDesc{
-	Names:    []string{"ptr"},
+	Names:    []string{"ptr", "ptr64"},
 	CanBeArg: true,
 	Args:     []namedArg{{"direction", typeArgDir}, {"type", typeArgType}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
 		base.ArgDir = sys.DirIn // pointers are always in
+		base.TypeSize = comp.ptrSize
+		if t.Ident == "ptr64" {
+			base.TypeSize = 8
+		}
 		return &sys.PtrType{
 			TypeCommon: base.TypeCommon,
 			Type:       comp.genType(args[1], "", genDir(args[0]), false),

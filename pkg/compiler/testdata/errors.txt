@@ -133,6 +133,10 @@ s6 {
 	f1	int8
 } [align_foo]			### bad struct s6 alignment foo
 
+s7 {
+	f1	ptr64[in, int32]
+}
+
 u3 [
 	f1	int8
 	f2	int32
