@@ -139,6 +139,15 @@ func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
 				comp.warning(c.Pos, "unsupported syscall: %v due to missing const %v",
 					c.CallName, str)
 			}
+			// TODO: we still have to preserve the syscall.
+			// The problem is that manager and fuzzer use syscall indexes
+			// to communicate enabled syscalls. If manager is built for
+			// amd64 and fuzzer for arm64, then they would have different
+			// sets of syscalls and would not agree on syscall indexes.
+			// Remove this once we have proper cross-OS/arch support.
+			// The same happens in patchConsts.
+			c.NR = ^uint64(0)
+			top = append(top, decl)
 		case *ast.IntFlags, *ast.Resource, *ast.Struct, *ast.StrFlags:
 			top = append(top, decl)
 		case *ast.NewLine, *ast.Comment, *ast.Include, *ast.Incdir, *ast.Define:
@@ -205,7 +214,11 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 			}
 			// We have to keep partially broken resources and structs,
 			// because otherwise their usages will error.
-			if _, ok := decl.(*ast.Call); !ok {
+			if c, ok := decl.(*ast.Call); !ok {
+				top = append(top, decl)
+			} else {
+				// See comment in assignSyscallNumbers.
+				c.NR = ^uint64(0)
 				top = append(top, decl)
 			}
 		}

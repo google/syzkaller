@@ -31,13 +31,13 @@ func generateExecutorSyscalls(arch *Arch, syscalls []*sys.Call) []byte {
 	}
 	fake := make(map[string]uint64)
 	for _, c := range syscalls {
-		data.Calls = append(data.Calls, SyscallData{c.Name, c.NR})
+		data.Calls = append(data.Calls, SyscallData{c.Name, int32(c.NR)})
 		if strings.HasPrefix(c.CallName, "syz_") {
 			fake[c.CallName] = c.NR
 		}
 	}
 	for name, nr := range fake {
-		data.Fake = append(data.Fake, SyscallData{name, nr})
+		data.Fake = append(data.Fake, SyscallData{name, int32(nr)})
 	}
 	sort.Sort(SyscallArray(data.Calls))
 	sort.Sort(SyscallArray(data.Fake))
@@ -65,7 +65,7 @@ type ArchData struct {
 
 type SyscallData struct {
 	Name string
-	NR   uint64
+	NR   int32
 }
 
 type SyscallArray []SyscallData
