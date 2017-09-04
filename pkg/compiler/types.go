@@ -24,6 +24,8 @@ type typeDesc struct {
 	Args         []namedArg // type arguments
 	// Check does custom verification of the type (optional).
 	Check func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon)
+	// Varlen returns if the type is variable-length (false if not set).
+	Varlen func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) bool
 	// Gen generates corresponding sys.Type.
 	Gen func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type
 }
@@ -65,8 +67,9 @@ var typeInt = &typeDesc{
 		if len(args) > 0 {
 			kind, rangeBegin, rangeEnd = sys.IntRange, args[0].Value, args[0].Value2
 		}
+		base.TypeSize = size
 		return &sys.IntType{
-			IntTypeCommon: genIntCommon(base.TypeCommon, size, t.Value2, be),
+			IntTypeCommon: genIntCommon(base.TypeCommon, t.Value2, be),
 			Kind:          kind,
 			RangeBegin:    rangeBegin,
 			RangeEnd:      rangeEnd,
@@ -80,13 +83,12 @@ var typePtr = &typeDesc{
 	Args:     []namedArg{{"direction", typeArgDir}, {"type", typeArgType}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
 		base.ArgDir = sys.DirIn // pointers are always in
-		size := comp.ptrSize
+		base.TypeSize = comp.ptrSize
 		if t.Ident == "ptr64" {
-			size = 8
+			base.TypeSize = 8
 		}
 		return &sys.PtrType{
 			TypeCommon: base.TypeCommon,
-			TypeSize:   size,
 			Type:       comp.genType(args[1], "", genDir(args[0]), false),
 		}
 	},
@@ -103,17 +105,30 @@ var typeArray = &typeDesc{
 			comp.error(args[1].Pos, "arrays of size 0 are not supported")
 		}
 	},
+	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) bool {
+		if comp.isVarlen(args[0]) {
+			return true
+		}
+		if len(args) > 1 {
+			return args[1].Value != args[1].Value2
+		}
+		return true
+	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
 		elemType := comp.genType(args[0], "", base.ArgDir, false)
 		kind, begin, end := sys.ArrayRandLen, uint64(0), uint64(0)
 		if len(args) > 1 {
 			kind, begin, end = sys.ArrayRangeLen, args[1].Value, args[1].Value2
 		}
-		if it, ok := elemType.(*sys.IntType); ok && it.TypeSize == 1 {
+		if it, ok := elemType.(*sys.IntType); ok && it.Kind == sys.IntPlain && it.TypeSize == 1 {
 			// Special case: buffer is better mutated.
 			bufKind := sys.BufferBlobRand
+			base.TypeSize = 0
 			if kind == sys.ArrayRangeLen {
 				bufKind = sys.BufferBlobRange
+				if begin == end {
+					base.TypeSize = begin * elemType.Size()
+				}
 			}
 			return &sys.BufferType{
 				TypeCommon: base.TypeCommon,
@@ -122,6 +137,7 @@ var typeArray = &typeDesc{
 				RangeEnd:   end,
 			}
 		}
+		// TypeSize is assigned later in genStructDescs.
 		return &sys.ArrayType{
 			TypeCommon: base.TypeCommon,
 			Type:       elemType,
@@ -187,6 +203,7 @@ var typeFlags = &typeDesc{
 			// We can get this if all values are unsupported consts.
 			return &sys.IntType{
 				IntTypeCommon: base,
+				Kind:          sys.IntPlain,
 			}
 		}
 		return &sys.FlagsType{
@@ -209,7 +226,11 @@ var typeArgFlags = &typeArg{
 var typeFilename = &typeDesc{
 	Names:     []string{"filename"},
 	CantBeOpt: true,
+	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) bool {
+		return true
+	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
+		base.TypeSize = 0
 		return &sys.BufferType{
 			TypeCommon: base.TypeCommon,
 			Kind:       sys.BufferFilename,
@@ -240,9 +261,9 @@ var typeVMA = &typeDesc{
 		if len(args) > 0 {
 			begin, end = args[0].Value, args[0].Value2
 		}
+		base.TypeSize = comp.ptrSize
 		return &sys.VmaType{
 			TypeCommon: base.TypeCommon,
-			TypeSize:   comp.ptrSize,
 			RangeBegin: begin,
 			RangeEnd:   end,
 		}
@@ -344,7 +365,11 @@ var typeText = &typeDesc{
 	Names:     []string{"text"},
 	CantBeOpt: true,
 	Args:      []namedArg{{"kind", typeArgTextType}},
+	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) bool {
+		return true
+	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
+		base.TypeSize = 0
 		return &sys.BufferType{
 			TypeCommon: base.TypeCommon,
 			Kind:       sys.BufferText,
@@ -380,11 +405,12 @@ var typeBuffer = &typeDesc{
 	CanBeArg: true,
 	Args:     []namedArg{{"direction", typeArgDir}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
+		base.TypeSize = comp.ptrSize
 		return &sys.PtrType{
 			TypeCommon: base.TypeCommon,
-			TypeSize:   comp.ptrSize,
 			Type: &sys.BufferType{
-				TypeCommon: genCommon("", "", genDir(args[0]), false),
+				// BufferBlobRand is always varlen.
+				TypeCommon: genCommon("", "", 0, genDir(args[0]), false),
 				Kind:       sys.BufferBlobRand,
 			},
 		}
@@ -411,6 +437,9 @@ var typeString = &typeDesc{
 			}
 		}
 	},
+	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) bool {
+		return comp.stringSize(args) == 0
+	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
 		subkind := ""
 		var vals []string
@@ -433,21 +462,39 @@ var typeString = &typeDesc{
 			}
 			vals[i] = s
 		}
-		for _, s := range vals {
-			if size != 0 && size != uint64(len(s)) {
-				size = 0
-				break
-			}
-			size = uint64(len(s))
-		}
+		base.TypeSize = comp.stringSize(args)
 		return &sys.BufferType{
 			TypeCommon: base.TypeCommon,
 			Kind:       sys.BufferString,
 			SubKind:    subkind,
 			Values:     vals,
-			Length:     size,
 		}
 	},
+}
+
+// stringSize returns static string size, or 0 if it is variable length.
+func (comp *compiler) stringSize(args []*ast.Type) uint64 {
+	switch len(args) {
+	case 0:
+		return 0 // a random string
+	case 1:
+		if args[0].String != "" {
+			return uint64(len(args[0].String)) + 1 // string constant
+		}
+		var size uint64
+		for _, s := range comp.strFlags[args[0].Ident].Values {
+			s1 := uint64(len(s.Value)) + 1
+			if size != 0 && size != s1 {
+				return 0 // strings of different lengths
+			}
+			size = s1
+		}
+		return size // all strings have the same length
+	case 2:
+		return args[1].Value // have explicit length
+	default:
+		panic("too many string args")
+	}
 }
 
 var typeArgStringFlags = &typeArg{
@@ -474,33 +521,58 @@ var typeResource = &typeDesc{
 	// No Names, but compiler knows how to match it.
 	CanBeArg:     true,
 	ResourceBase: true,
-	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
+	// Gen is assigned below to avoid initialization loop.
+}
+
+func init() {
+	typeResource.Gen = func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
+		// Find and generate base type to get its size.
+		var baseType *ast.Type
+		for r := comp.resources[t.Ident]; r != nil; {
+			baseType = r.Base
+			r = comp.resources[r.Base.Ident]
+		}
+		base.TypeSize = comp.genType(baseType, "", sys.DirIn, false).Size()
 		return &sys.ResourceType{
 			TypeCommon: base.TypeCommon,
 		}
-	},
+	}
 }
 
 var typeStruct = &typeDesc{
 	// No Names, but compiler knows how to match it.
 	CantBeOpt: true,
-	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
-		s := comp.structs[base.TypeName]
-		comp.structUses[sys.StructKey{base.TypeName, base.ArgDir}] = s
+	// Varlen/Gen are assigned below due to initialization cycle.
+}
+
+func init() {
+	typeStruct.Varlen = func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) bool {
+		return comp.isStructVarlen(t.Ident)
+	}
+	typeStruct.Gen = func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
+		s := comp.structs[t.Ident]
+		key := sys.StructKey{t.Ident, base.ArgDir}
+		desc := comp.structDescs[key]
+		if desc == nil {
+			// Need to assign to structDescs before calling genStructDesc to break recursion.
+			desc = new(sys.StructDesc)
+			comp.structDescs[key] = desc
+			comp.genStructDesc(desc, s, base.ArgDir)
+		}
 		if s.IsUnion {
 			return &sys.UnionType{
-				TypeCommon: base.TypeCommon,
-				IsVarlen:   comp.parseUnionAttrs(s),
+				Key:        key,
+				FldName:    base.FldName,
+				StructDesc: desc,
 			}
 		} else {
-			packed, align := comp.parseStructAttrs(s)
 			return &sys.StructType{
-				TypeCommon: base.TypeCommon,
-				IsPacked:   packed,
-				AlignAttr:  align,
+				Key:        key,
+				FldName:    base.FldName,
+				StructDesc: desc,
 			}
 		}
-	},
+	}
 }
 
 var typeArgDir = &typeArg{

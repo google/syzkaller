@@ -33,11 +33,9 @@ import (
 
 // Prog is description compilation result.
 type Prog struct {
-	// Processed AST (temporal measure, remove later).
-	Desc         *ast.Description
-	Resources    []*sys.ResourceDesc
-	Syscalls     []*sys.Call
-	StructFields []*sys.StructFields
+	Resources   []*sys.ResourceDesc
+	Syscalls    []*sys.Call
+	StructDescs []*sys.KeyedStruct
 	// Set of unsupported syscalls/flags.
 	Unsupported map[string]bool
 }
@@ -48,15 +46,17 @@ func Compile(desc *ast.Description, consts map[string]uint64, ptrSize uint64, eh
 		eh = ast.LoggingHandler
 	}
 	comp := &compiler{
-		desc:        ast.Clone(desc),
-		eh:          eh,
-		ptrSize:     ptrSize,
-		unsupported: make(map[string]bool),
-		resources:   make(map[string]*ast.Resource),
-		structs:     make(map[string]*ast.Struct),
-		intFlags:    make(map[string]*ast.IntFlags),
-		strFlags:    make(map[string]*ast.StrFlags),
-		structUses:  make(map[sys.StructKey]*ast.Struct),
+		desc:         ast.Clone(desc),
+		eh:           eh,
+		ptrSize:      ptrSize,
+		unsupported:  make(map[string]bool),
+		resources:    make(map[string]*ast.Resource),
+		structs:      make(map[string]*ast.Struct),
+		intFlags:     make(map[string]*ast.IntFlags),
+		strFlags:     make(map[string]*ast.StrFlags),
+		structDescs:  make(map[sys.StructKey]*sys.StructDesc),
+		structNodes:  make(map[*sys.StructDesc]*ast.Struct),
+		structVarlen: make(map[string]bool),
 	}
 	comp.assignSyscallNumbers(consts)
 	comp.patchConsts(consts)
@@ -67,12 +67,12 @@ func Compile(desc *ast.Description, consts map[string]uint64, ptrSize uint64, eh
 	for _, w := range comp.warnings {
 		eh(w.pos, w.msg)
 	}
+	syscalls := comp.genSyscalls()
 	return &Prog{
-		Desc:         comp.desc,
-		Resources:    comp.genResources(),
-		Syscalls:     comp.genSyscalls(),
-		StructFields: comp.genStructFields(),
-		Unsupported:  comp.unsupported,
+		Resources:   comp.genResources(),
+		Syscalls:    syscalls,
+		StructDescs: comp.genStructDescs(syscalls),
+		Unsupported: comp.unsupported,
 	}
 }
 
@@ -88,7 +88,10 @@ type compiler struct {
 	structs     map[string]*ast.Struct
 	intFlags    map[string]*ast.IntFlags
 	strFlags    map[string]*ast.StrFlags
-	structUses  map[sys.StructKey]*ast.Struct
+
+	structDescs  map[sys.StructKey]*sys.StructDesc
+	structNodes  map[*sys.StructDesc]*ast.Struct
+	structVarlen map[string]bool
 }
 
 type warn struct {
@@ -162,12 +165,16 @@ func (comp *compiler) getArgsBase(t *ast.Type, field string, dir sys.Dir, isArg 
 	*typeDesc, []*ast.Type, sys.IntTypeCommon) {
 	desc := comp.getTypeDesc(t)
 	args, opt := removeOpt(t)
-	com := genCommon(t.Ident, field, dir, opt)
-	base := genIntCommon(com, comp.ptrSize, 0, false)
-	if !isArg && desc.NeedBase {
-		baseType := args[len(args)-1]
-		args = args[:len(args)-1]
-		base = typeInt.Gen(comp, baseType, nil, base).(*sys.IntType).IntTypeCommon
+	size := sizeUnassigned
+	com := genCommon(t.Ident, field, size, dir, opt)
+	base := genIntCommon(com, 0, false)
+	if desc.NeedBase {
+		base.TypeSize = comp.ptrSize
+		if !isArg {
+			baseType := args[len(args)-1]
+			args = args[:len(args)-1]
+			base = typeInt.Gen(comp, baseType, nil, base).(*sys.IntType).IntTypeCommon
+		}
 	}
 	return desc, args, base
 }

@@ -32,7 +32,6 @@ type Type interface {
 	Default() uint64
 	Varlen() bool
 	Size() uint64
-	Align() uint64
 	BitfieldOffset() uint64
 	BitfieldLength() uint64
 	BitfieldLast() bool
@@ -48,6 +47,7 @@ func IsPad(t Type) bool {
 type TypeCommon struct {
 	TypeName   string
 	FldName    string // for struct fields and named args
+	TypeSize   uint64 // static size of the type, or 0 for variable size types
 	ArgDir     Dir
 	IsOptional bool
 }
@@ -68,8 +68,15 @@ func (t *TypeCommon) Default() uint64 {
 	return 0
 }
 
+func (t *TypeCommon) Size() uint64 {
+	if t.Varlen() {
+		panic(fmt.Sprintf("static type size is not known: %#v", t))
+	}
+	return t.TypeSize
+}
+
 func (t *TypeCommon) Varlen() bool {
-	return false
+	return t.TypeSize == 0
 }
 
 func (t *TypeCommon) BitfieldOffset() uint64 {
@@ -112,17 +119,8 @@ func (t *ResourceType) SpecialValues() []uint64 {
 	return t.Desc.Values
 }
 
-func (t *ResourceType) Size() uint64 {
-	return t.Desc.Type.Size()
-}
-
-func (t *ResourceType) Align() uint64 {
-	return t.Desc.Type.Align()
-}
-
 type IntTypeCommon struct {
 	TypeCommon
-	TypeSize    uint64
 	BitfieldOff uint64
 	BitfieldLen uint64
 	BigEndian   bool
@@ -130,11 +128,11 @@ type IntTypeCommon struct {
 }
 
 func (t *IntTypeCommon) Size() uint64 {
-	return t.TypeSize
-}
-
-func (t *IntTypeCommon) Align() uint64 {
-	return t.Size()
+	// TODO(dvyukov): check that this is not a middle bitfield
+	// if t.BitfieldLen != 0 && !t.BitfieldLst {
+	//	panic(fmt.Sprintf("bitfields don't have size: %#v", t))
+	// }
+	return t.TypeCommon.Size()
 }
 
 func (t *IntTypeCommon) BitfieldOffset() uint64 {
@@ -204,17 +202,8 @@ type CsumType struct {
 
 type VmaType struct {
 	TypeCommon
-	TypeSize   uint64
 	RangeBegin uint64 // in pages
 	RangeEnd   uint64
-}
-
-func (t *VmaType) Size() uint64 {
-	return t.TypeSize
-}
-
-func (t *VmaType) Align() uint64 {
-	return t.Size()
 }
 
 type BufferKind int
@@ -245,42 +234,6 @@ type BufferType struct {
 	Text       TextKind // for BufferText
 	SubKind    string
 	Values     []string // possible values for BufferString kind
-	Length     uint64   // max string length for BufferString kind
-}
-
-func (t *BufferType) Varlen() bool {
-	switch t.Kind {
-	case BufferBlobRand:
-		return true
-	case BufferBlobRange:
-		return t.RangeBegin != t.RangeEnd
-	case BufferString:
-		return t.Length == 0
-	case BufferFilename:
-		return true
-	case BufferText:
-		return true
-	default:
-		panic("bad buffer kind")
-	}
-}
-
-func (t *BufferType) Size() uint64 {
-	if t.Varlen() {
-		panic(fmt.Sprintf("buffer size is not statically known: %v", t.Name()))
-	}
-	switch t.Kind {
-	case BufferString:
-		return t.Length
-	case BufferBlobRange:
-		return t.RangeBegin
-	default:
-		panic("bad buffer kind")
-	}
-}
-
-func (t *BufferType) Align() uint64 {
-	return 1
 }
 
 type ArrayKind int
@@ -298,180 +251,76 @@ type ArrayType struct {
 	RangeEnd   uint64
 }
 
-func (t *ArrayType) Varlen() bool {
-	if t.Type.Varlen() {
-		return true
-	}
-	switch t.Kind {
-	case ArrayRandLen:
-		return true
-	case ArrayRangeLen:
-		return t.RangeBegin != t.RangeEnd
-	default:
-		panic("bad array kind")
-	}
-}
-
-func (t *ArrayType) Size() uint64 {
-	if t.Varlen() {
-		panic(fmt.Sprintf("array size is not statically known: %v", t.Name()))
-	}
-	switch t.Kind {
-	case ArrayRangeLen:
-		return t.RangeBegin * t.Type.Size()
-	default:
-		panic("bad array type")
-	}
-}
-
-func (t *ArrayType) Align() uint64 {
-	return t.Type.Align()
-}
-
 type PtrType struct {
 	TypeCommon
-	TypeSize uint64
-	Type     Type
-}
-
-func (t *PtrType) Size() uint64 {
-	return t.TypeSize
-}
-
-func (t *PtrType) Align() uint64 {
-	return t.Size()
+	Type Type
 }
 
 type StructType struct {
-	TypeCommon
-	Fields         []Type
-	IsPacked       bool
-	AlignAttr      uint64
-	padded         bool
-	varlen         bool
-	varlenAssigned bool
+	Key     StructKey
+	FldName string
+	*StructDesc
 }
 
-func (t *StructType) Varlen() bool {
-	if t.varlenAssigned {
-		return t.varlen
-	}
-	for _, f := range t.Fields {
-		if f.Varlen() {
-			t.varlen = true
-			t.varlenAssigned = true
-			return t.varlen
-		}
-	}
-	t.varlen = false
-	t.varlenAssigned = true
-	return t.varlen
-}
-
-func (t *StructType) Size() uint64 {
-	if t.Varlen() {
-		panic(fmt.Sprintf("struct size is not statically known: %v", t.Name()))
-	}
-	if !t.padded {
-		panic("struct is not padded yet")
-	}
-	var size uint64
-	for _, f := range t.Fields {
-		if f.BitfieldLength() == 0 || f.BitfieldLast() {
-			size += f.Size()
-		}
-	}
-	return size
-}
-
-func (t *StructType) Align() uint64 {
-	if t.AlignAttr != 0 {
-		return t.AlignAttr // overrided by user attribute
-	}
-	if t.IsPacked {
-		return 1
-	}
-	var align uint64
-	for _, f := range t.Fields {
-		if a1 := f.Align(); align < a1 {
-			align = a1
-		}
-	}
-	return align
+func (t *StructType) FieldName() string {
+	return t.FldName
 }
 
 type UnionType struct {
-	TypeCommon
-	Options  []Type
-	IsVarlen bool // provided by user
+	Key     StructKey
+	FldName string
+	*StructDesc
 }
 
-func (t *UnionType) Varlen() bool {
-	return t.IsVarlen
-}
-
-func (t *UnionType) Size() uint64 {
-	if t.Varlen() {
-		panic(fmt.Sprintf("union size is not statically known: %v", t.Name()))
-	}
-	size := t.Options[0].Size()
-	for _, opt := range t.Options {
-		if size < opt.Size() {
-			size = opt.Size()
-		}
-	}
-	return size
-}
-
-func (t *UnionType) Align() uint64 {
-	var align uint64
-	for _, opt := range t.Options {
-		if a1 := opt.Align(); align < a1 {
-			align = a1
-		}
-	}
-	return align
+func (t *UnionType) FieldName() string {
+	return t.FldName
 }
 
 var (
-	CallMap      = make(map[string]*Call)
-	structs      map[string]Type
-	keyedStructs map[StructKey]Type
-	Resources    map[string]*ResourceDesc
-	ctors        = make(map[string][]*Call)
+	CallMap   = make(map[string]*Call)
+	Resources map[string]*ResourceDesc
+	ctors     = make(map[string][]*Call)
 )
+
+type StructDesc struct {
+	TypeCommon
+	Fields    []Type
+	AlignAttr uint64
+}
+
+func (t *StructDesc) FieldName() string {
+	panic("must not be called")
+}
 
 type StructKey struct {
 	Name string
 	Dir  Dir
 }
 
-type StructFields struct {
-	Key    StructKey
-	Fields []Type
+type KeyedStruct struct {
+	Key  StructKey
+	Desc *StructDesc
 }
 
 func initStructFields() {
-	keyedStructs := make(map[StructKey][]Type)
-	for _, f := range structFields {
-		keyedStructs[f.Key] = f.Fields
+	keyedStructs := make(map[StructKey]*StructDesc)
+	for _, desc := range structDescs {
+		keyedStructs[desc.Key] = desc.Desc
 	}
 
 	for _, c := range Calls {
 		ForeachType(c, func(t Type) {
 			switch s := t.(type) {
 			case *StructType:
-				key := StructKey{s.TypeName, s.ArgDir}
-				if keyedStructs[key] == nil {
-					panic("no fields")
+				s.StructDesc = keyedStructs[s.Key]
+				if s.StructDesc == nil {
+					panic("no struct desc")
 				}
-				s.Fields = keyedStructs[key]
 			case *UnionType:
-				key := StructKey{s.TypeName, s.ArgDir}
-				if keyedStructs[key] == nil {
-					panic("no fields")
+				s.StructDesc = keyedStructs[s.Key]
+				if s.StructDesc == nil {
+					panic("no union desc")
 				}
-				s.Options = keyedStructs[key]
 			}
 		})
 	}
@@ -628,7 +477,7 @@ func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
 }
 
 func ForeachType(meta *Call, f func(Type)) {
-	seen := make(map[Type]bool)
+	seen := make(map[*StructDesc]bool)
 	var rec func(t Type)
 	rec = func(t Type) {
 		f(t)
@@ -638,19 +487,19 @@ func ForeachType(meta *Call, f func(Type)) {
 		case *ArrayType:
 			rec(a.Type)
 		case *StructType:
-			if seen[a] {
+			if seen[a.StructDesc] {
 				return // prune recursion via pointers to structs/unions
 			}
-			seen[a] = true
+			seen[a.StructDesc] = true
 			for _, f := range a.Fields {
 				rec(f)
 			}
 		case *UnionType:
-			if seen[a] {
+			if seen[a.StructDesc] {
 				return // prune recursion via pointers to structs/unions
 			}
-			seen[a] = true
-			for _, opt := range a.Options {
+			seen[a.StructDesc] = true
+			for _, opt := range a.Fields {
 				rec(opt)
 			}
 		case *ResourceType, *BufferType, *VmaType, *LenType,
@@ -670,9 +519,7 @@ func ForeachType(meta *Call, f func(Type)) {
 func init() {
 	initStructFields()
 	initResources()
-	initAlign()
-	keyedStructs = nil
-	structs = nil
+	structDescs = nil
 
 	for i, c := range Calls {
 		c.ID = i

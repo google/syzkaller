@@ -755,7 +755,7 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg Arg, calls []*Call) {
 		group := groupArg(a, args)
 		return group, calls
 	case *sys.UnionType:
-		optType := a.Options[r.Intn(len(a.Options))]
+		optType := a.Fields[r.Intn(len(a.Fields))]
 		opt, calls := r.generateArg(s, optType)
 		return unionArg(a, opt, optType), calls
 	case *sys.PtrType:

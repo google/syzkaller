@@ -125,8 +125,9 @@ func (c *Call) validate(ctx *validCtx) error {
 			case *DataArg:
 				switch typ1.Kind {
 				case sys.BufferString:
-					if typ1.Length != 0 && len(a.Data) != int(typ1.Length) {
-						return fmt.Errorf("syscall %v: string arg '%v' has size %v, which should be %v", c.Meta.Name, a.Type().Name(), len(a.Data), typ1.Length)
+					if typ1.TypeSize != 0 && uint64(len(a.Data)) != typ1.TypeSize {
+						return fmt.Errorf("syscall %v: string arg '%v' has size %v, which should be %v",
+							c.Meta.Name, a.Type().Name(), len(a.Data), typ1.TypeSize)
 					}
 				}
 			default:
@@ -210,7 +211,7 @@ func (c *Call) validate(ctx *validCtx) error {
 				return fmt.Errorf("syscall %v: union arg '%v' has bad type", c.Meta.Name, a.Type().Name())
 			}
 			found := false
-			for _, typ2 := range typ1.Options {
+			for _, typ2 := range typ1.Fields {
 				if a.OptionType.Name() == typ2.Name() {
 					found = true
 					break

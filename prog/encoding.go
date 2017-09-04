@@ -346,7 +346,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		name := p.Ident()
 		p.Parse('=')
 		var optType sys.Type
-		for _, t2 := range t1.Options {
+		for _, t2 := range t1.Fields {
 			if name == t2.FieldName() {
 				optType = t2
 				break
