@@ -404,7 +404,7 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isResourceBase bool) 
 		comp.error(t.Pos, "unknown type %v", t.Ident)
 		return
 	}
-	if !desc.AllowColon && t.HasColon {
+	if t.HasColon && (!desc.AllowColon || isArg) {
 		comp.error(t.Pos2, "unexpected ':'")
 		return
 	}
