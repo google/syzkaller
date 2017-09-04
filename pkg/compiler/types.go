@@ -97,6 +97,12 @@ var typeArray = &typeDesc{
 	CantBeOpt: true,
 	OptArgs:   1,
 	Args:      []namedArg{{"type", typeArgType}, {"size", typeArgRange}},
+	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) {
+		if len(args) > 1 && args[1].Value == 0 && args[1].Value2 == 0 {
+			// This is the only case that can yield 0 static type size.
+			comp.error(args[1].Pos, "arrays of size 0 are not supported")
+		}
+	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
 		elemType := comp.genType(args[0], "", base.ArgDir, false)
 		kind, begin, end := sys.ArrayRandLen, uint64(0), uint64(0)
