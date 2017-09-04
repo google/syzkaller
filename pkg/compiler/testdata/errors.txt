@@ -107,6 +107,21 @@ foo$42(a proc[20, 0])		### proc per-process values must not be 0
 foo$43(a ptr[in, string[1]])	### unexpected int 1, string arg must be a string literal or string flags
 foo$44(a int32) len[a]		### len can't be syscall return
 foo$45(a int32) len[b]		### len can't be syscall return
+foo$46(a ptr[in, in])		### unknown type in
+
+opt {				### struct uses reserved name opt
+	f1	int32
+}
+
+in = 1, 2			### flags uses reserved name in
+out = "1", "2"			### string flags uses reserved name out
+
+out [				### union uses reserved name out
+	f1	int32
+	f2	int8
+]
+
+resource inout[int32]		### resource uses reserved name inout
 
 bar()
 

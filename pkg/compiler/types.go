@@ -548,7 +548,17 @@ var typeArgBase = namedArg{
 	},
 }
 
-var builtinTypes = make(map[string]*typeDesc)
+var (
+	builtinTypes = make(map[string]*typeDesc)
+
+	// To avoid weird cases like ptr[in, in] and ptr[out, opt].
+	reservedName = map[string]bool{
+		"opt":   true,
+		"in":    true,
+		"out":   true,
+		"inout": true,
+	}
+)
 
 func init() {
 	builtins := []*typeDesc{

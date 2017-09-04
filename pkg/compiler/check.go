@@ -33,6 +33,10 @@ func (comp *compiler) checkNames() {
 		switch decl.(type) {
 		case *ast.Resource, *ast.Struct:
 			pos, typ, name := decl.Info()
+			if reservedName[name] {
+				comp.error(pos, "%v uses reserved name %v", typ, name)
+				continue
+			}
 			if builtinTypes[name] != nil {
 				comp.error(pos, "%v name %v conflicts with builtin type", typ, name)
 				continue
@@ -56,6 +60,10 @@ func (comp *compiler) checkNames() {
 		case *ast.IntFlags:
 			n := decl.(*ast.IntFlags)
 			name := n.Name.Name
+			if reservedName[name] {
+				comp.error(n.Pos, "flags uses reserved name %v", name)
+				continue
+			}
 			if prev := comp.intFlags[name]; prev != nil {
 				comp.error(n.Pos, "flags %v redeclared, previously declared at %v",
 					name, prev.Pos)
@@ -65,6 +73,10 @@ func (comp *compiler) checkNames() {
 		case *ast.StrFlags:
 			n := decl.(*ast.StrFlags)
 			name := n.Name.Name
+			if reservedName[name] {
+				comp.error(n.Pos, "string flags uses reserved name %v", name)
+				continue
+			}
 			if prev := comp.strFlags[name]; prev != nil {
 				comp.error(n.Pos, "string flags %v redeclared, previously declared at %v",
 					name, prev.Pos)
