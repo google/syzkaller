@@ -512,8 +512,7 @@ func init() {
 	initResources()
 	structDescs = nil
 
-	for i, c := range Calls {
-		c.ID = i
+	for _, c := range Calls {
 		if CallMap[c.Name] != nil {
 			println(c.Name)
 			panic("duplicate syscall")
