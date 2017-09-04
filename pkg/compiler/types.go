@@ -18,7 +18,7 @@ type typeDesc struct {
 	CantBeOpt    bool       // can't be marked as opt?
 	CantBeRet    bool       // can't be syscall return (directly or indirectly)?
 	NeedBase     bool       // needs base type when used as field?
-	AllowColon   bool       // allow colon (int8:2)?
+	AllowColon   bool       // allow colon (int8:2) on fields?
 	ResourceBase bool       // can be resource base type?
 	OptArgs      int        // number of optional arguments in Args array
 	Args         []namedArg // type arguments

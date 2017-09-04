@@ -108,6 +108,7 @@ foo$43(a ptr[in, string[1]])	### unexpected int 1, string arg must be a string l
 foo$44(a int32) len[a]		### len can't be syscall return
 foo$45(a int32) len[b]		### len can't be syscall return
 foo$46(a ptr[in, in])		### unknown type in
+foo$47(a int32:2)		### unexpected ':'
 
 opt {				### struct uses reserved name opt
 	f1	int32
