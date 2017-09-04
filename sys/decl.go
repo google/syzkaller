@@ -156,9 +156,8 @@ type ConstType struct {
 type IntKind int
 
 const (
-	IntPlain IntKind = iota
-	IntSignalno
-	IntFileoff // offset within a file
+	IntPlain   IntKind = iota
+	IntFileoff         // offset within a file
 	IntRange
 )
 

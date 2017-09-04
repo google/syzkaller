@@ -713,8 +713,6 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg Arg, calls []*Call) {
 	case *sys.IntType:
 		v := r.randInt()
 		switch a.Kind {
-		case sys.IntSignalno:
-			v %= 130
 		case sys.IntFileoff:
 			switch {
 			case r.nOutOf(90, 101):
