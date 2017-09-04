@@ -615,11 +615,10 @@ iocb {
 	op	flags[lio_opcode, int16]
 	prio	int16
 	fd	fd
-# TODO: in 32-bit mode buf/reserv are still 64 bits
-	buf	buffer[inout]
+	buf	ptr64[inout, array[int8]]
 	nbytes	len[buf, int64]
 	offset	int64
-	reserv	ptr[in, sigevent]
+	reserv	const[0, int64]
 	flags	flags[iocb_flags, int32]
 	resfd	fd_event
 }

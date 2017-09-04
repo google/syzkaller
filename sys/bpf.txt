@@ -44,39 +44,36 @@ bpf_map_create_arg {
 
 bpf_map_lookup_arg {
 	map	fd_bpf_map
-# TODO: all these key/val are 64 bits even in 32-bit mode
-	key	buffer[in]
-	val	buffer[out]
+	key	ptr64[in, array[int8]]
+	val	ptr64[out, array[int8]]
 }
 
 bpf_map_update_arg {
 	map	fd_bpf_map
-	key	buffer[in]
-	val	buffer[in]
+	key	ptr64[in, array[int8]]
+	val	ptr64[in, array[int8]]
 	flags	flags[bpf_map_flags, int64]
 }
 
 bpf_map_delete_arg {
 	map	fd_bpf_map
-	key	buffer[in]
+	key	ptr64[in, array[int8]]
 }
 
 bpf_map_get_next_arg {
 	map	fd_bpf_map
-	key	buffer[in]
-	next	buffer[out]
+	key	ptr64[in, array[int8]]
+	next	ptr64[out, array[int8]]
 }
 
 bpf_prog {
 	type	flags[bpf_prog_type, int32]
 	ninsn	len[insns, int32]
-# TODO: 64 bits even in 32-bit mode
-	insns	ptr[in, array[bpf_insn]]
-	license	ptr[in, string]
+	insns	ptr64[in, array[bpf_insn]]
+	license	ptr64[in, string]
 	loglev	int32
 	logsize	len[log, int32]
-# TODO: 64 bits even in 32-bit mode
-	log	buffer[out]
+	log	ptr64[out, array[int8]]
 	kver	int32
 	flags	flags[bpf_prog_load_flags, int32]
 }
@@ -104,17 +101,17 @@ bpf_insn_map {
 
 # Note: these filenames must be on bpf filesystem
 bpf_obj_pin_map {
-	path	ptr[in, filename]
+	path	ptr64[in, filename]
 	fd	fd_bpf_map
 }
 
 bpf_obj_pin_prog {
-	path	ptr[in, filename]
+	path	ptr64[in, filename]
 	fd	fd_bpf_prog
 }
 
 bpf_obj_get {
-	path	ptr[in, filename]
+	path	ptr64[in, filename]
 	fd	const[0, int32]
 }
 
@@ -139,10 +136,8 @@ bpf_test_prog_arg {
 	retval	int32
 	insize	len[indata, int32]
 	outsize	len[outdata, int32]
-# TODO: 64 bits even in 32-bit mode
-	indata	buffer[in]
-# TODO: 64 bits even in 32-bit mode
-	outdata	buffer[out]
+	indata	ptr64[in, array[int8]]
+	outdata	ptr64[out, array[int8]]
 	repeat	int32
 	dur	int32
 }
@@ -150,8 +145,7 @@ bpf_test_prog_arg {
 bpf_get_prog_info_arg {
 	prog	fd_bpf_prog
 	len	len[info, int32]
-# TODO: 64 bits even in 32-bit mode
-	info	ptr[out, bpf_prog_info]
+	info	ptr64[out, bpf_prog_info]
 }
 
 bpf_prog_info {
@@ -167,8 +161,7 @@ bpf_prog_info {
 bpf_get_map_info_arg {
 	prog	fd_bpf_map
 	len	len[info, int32]
-# TODO: 64 bits even in 32-bit mode
-	info	ptr[out, bpf_map_info]
+	info	ptr64[out, bpf_map_info]
 }
 
 bpf_map_info {
