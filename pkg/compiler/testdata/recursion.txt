@@ -1,0 +1,37 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+resource r6[r6]			### recursive resource r6->r6
+resource r7[r8]			### recursive resource r7->r8->r7
+resource r8[r7]			### recursive resource r8->r7->r8
+
+sr1 {
+	f1	sr1		### recursive declaration: sr1.f1 -> sr1 (mark some pointers as opt)
+}
+
+sr2 {
+	f1	sr3
+	f2	sr4
+}
+
+sr3 {
+	f1	ptr[in, sr3]	### recursive declaration: sr3.f1 -> sr3 (mark some pointers as opt)
+}
+
+sr4 {
+	f1	ptr[in, sr3]
+	f2	array[ptr[in, sr5], 4]	### recursive declaration: sr4.f2 -> sr5.f2 -> sr6.f1 -> sr4 (mark some pointers as opt)
+}
+
+sr5 [
+	f1	int32
+	f2	sr6
+]
+
+sr6 {
+	f1	sr4
+}
+
+sr7 {
+	f1	ptr[in, sr7, opt]
+}
