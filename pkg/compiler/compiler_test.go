@@ -37,16 +37,20 @@ func TestErrors(t *testing.T) {
 		"C1":       1,
 		"C2":       2,
 	}
-	name := "errors.txt"
-	em := ast.NewErrorMatcher(t, filepath.Join("testdata", name))
-	desc := ast.Parse(em.Data, name, em.ErrorHandler)
-	if desc == nil {
-		em.DumpErrors(t)
-		t.Fatalf("parsing failed")
+	for _, name := range []string{"errors.txt", "recursion.txt", "len.txt"} {
+		name := name
+		t.Run(name, func(t *testing.T) {
+			em := ast.NewErrorMatcher(t, filepath.Join("testdata", name))
+			desc := ast.Parse(em.Data, name, em.ErrorHandler)
+			if desc == nil {
+				em.DumpErrors(t)
+				t.Fatalf("parsing failed")
+			}
+			ExtractConsts(desc, em.ErrorHandler)
+			Compile(desc, consts, em.ErrorHandler)
+			em.Check(t)
+		})
 	}
-	ExtractConsts(desc, em.ErrorHandler)
-	Compile(desc, consts, em.ErrorHandler)
-	em.Check(t)
 }
 
 func TestFuzz(t *testing.T) {

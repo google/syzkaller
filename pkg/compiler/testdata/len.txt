@@ -1,0 +1,23 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+foo$0(a int32, b len[a])
+foo$1(a len[a])			### len target a refer to itself
+foo$2(a ptr[in, len[a, int32]])	### len target a refer to itself
+foo$3(a int32, b len[c])	### len target c does not exist
+foo$4(a len[parent])		### len target parent does not exist
+foo$5(a ptr[in, int32], b ptr[in, array[len[a, int32]]])
+
+foo$100(a int32, b ptr[in, csum[a, inet, int32]])
+foo$101(a int32, b ptr[in, csum[c, inet, int32]])	### csum target c does not exist
+
+s1 {
+	f1	len[s2, int32]	### len target s2 does not exist
+}
+
+s2 {
+	f1	s1
+}
+
+foo$200(a ptr[in, s2])
+foo$201(a ptr[in, s1])

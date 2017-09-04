@@ -16,6 +16,7 @@ type typeDesc struct {
 	Names        []string
 	CanBeArg     bool       // can be argument of syscall?
 	CantBeOpt    bool       // can't be marked as opt?
+	CantBeRet    bool       // can't be syscall return (directly or indirectly)?
 	NeedBase     bool       // needs base type when used as field?
 	AllowColon   bool       // allow colon (int8:2)?
 	ResourceBase bool       // can be resource base type?
@@ -129,11 +130,9 @@ var typeLen = &typeDesc{
 	Names:     []string{"len", "bytesize", "bytesize2", "bytesize4", "bytesize8"},
 	CanBeArg:  true,
 	CantBeOpt: true,
+	CantBeRet: true,
 	NeedBase:  true,
 	Args:      []namedArg{{"len target", typeArgLenTarget}},
-	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) {
-		// TODO(dvyukov): check args[0].Ident as len target
-	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
 		var byteSize uint64
 		switch t.Ident {
@@ -263,13 +262,13 @@ var typeCsum = &typeDesc{
 	Names:     []string{"csum"},
 	NeedBase:  true,
 	CantBeOpt: true,
+	CantBeRet: true,
 	OptArgs:   1,
 	Args:      []namedArg{{"csum target", typeArgLenTarget}, {"kind", typeArgCsumType}, {"proto", typeArgInt}},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) {
 		if len(args) > 2 && genCsumKind(args[1]) != sys.CsumPseudo {
 			comp.error(args[2].Pos, "only pseudo csum can have proto")
 		}
-		// TODO(dvyukov): check args[0].Ident as len target
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base sys.IntTypeCommon) sys.Type {
 		var proto uint64

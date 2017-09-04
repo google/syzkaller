@@ -4,7 +4,7 @@
 foo$0(x fileoff, y int8, z buffer[in])
 foo$1(x "bar")			### unexpected string "bar", expect type
 foo$2(x 123, y "bar")		### unexpected int 123, expect type	### unexpected string "bar", expect type
-foo$3(x string)			### string can't be syscall argument/return
+foo$3(x string)			### string can't be syscall argument
 
 resource r0[int32]: 0, 0x1
 resource r1[string["foo"]]	### string can't be resource base (int types can)
@@ -66,9 +66,6 @@ resource r2[r0]: 2
 resource r3[int32:1]
 resource r4[int32[opt]]		### resource base can't be marked as opt
 resource r5[non_existent]	### unknown type non_existent
-resource r6[r6]			### recursive resource r6->r6
-resource r7[r8]			### recursive resource r7->r8->r7
-resource r8[r7]			### recursive resource r8->r7->r8
 resource r9["foo"]		### unexpected string "foo", expect type
 
 foo$7(a r0, a1 r2[opt])
@@ -108,6 +105,8 @@ foo$40(a len["a"])		### unexpected string "a" for len target argument of len typ
 foo$41(a vma[C1:C2])
 foo$42(a proc[20, 0])		### proc per-process values must not be 0
 foo$43(a ptr[in, string[1]])	### unexpected int 1, string arg must be a string literal or string flags
+foo$44(a int32) len[a]		### len can't be syscall return
+foo$45(a int32) len[b]		### len can't be syscall return
 
 bar()
 
@@ -152,34 +151,3 @@ define d1 `some C expression`
 define d2 some C expression
 define d2 SOMETHING		### duplicate define d2
 define d3 1
-
-sr1 {
-	f1	sr1		### recursive declaration: sr1.f1 -> sr1 (mark some pointers as opt)
-}
-
-sr2 {
-	f1	sr3
-	f2	sr4
-}
-
-sr3 {
-	f1	ptr[in, sr3]	### recursive declaration: sr3.f1 -> sr3 (mark some pointers as opt)
-}
-
-sr4 {
-	f1	ptr[in, sr3]
-	f2	array[ptr[in, sr5], 4]	### recursive declaration: sr4.f2 -> sr5.f2 -> sr6.f1 -> sr4 (mark some pointers as opt)
-}
-
-sr5 [
-	f1	int32
-	f2	sr6
-]
-
-sr6 {
-	f1	sr4
-}
-
-sr7 {
-	f1	ptr[in, sr7, opt]
-}
