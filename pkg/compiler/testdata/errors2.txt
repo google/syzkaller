@@ -85,3 +85,49 @@ s300 {
 s301 {
 	f2	r105
 }
+
+# Varlen field tests.
+
+s400 {
+	f1	int32
+	f2	array[int8]
+}
+
+s401 {
+	f1	array[int8]
+	f2	array[int8]
+} [packed]
+
+s402 {
+	f1	array[int8]	### variable size field f1 in the middle of non-packed struct s402
+	f2	int32
+}
+
+u400 [
+	f1	array[int8]
+	f2	array[int16]
+] [varlen]
+
+u401 [
+	f1	filename	### variable size field f1 in non-varlen union u401
+	f2	text[x86_64]	### variable size field f2 in non-varlen union u401
+	f3	string		### variable size field f3 in non-varlen union u401
+	f4	string["foo", 10]
+	f5	string[sf400]
+	f6	string[sf401]	### variable size field f6 in non-varlen union u401
+	f7	s401		### variable size field f7 in non-varlen union u401
+]
+
+u402 [
+	f1	int32
+	f2	int32
+] [varlen]
+
+s403 {
+	f1	u400		### variable size field f1 in the middle of non-packed struct s403
+	f2	u402		### variable size field f2 in the middle of non-packed struct s403
+	f3	int32
+}
+
+sf400 = "foo", "bar", "baz"
+sf401 = "a", "b", "cd"

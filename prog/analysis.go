@@ -52,13 +52,13 @@ func (s *state) analyze(c *Call) {
 	foreachArgArray(&c.Args, c.Ret, func(arg, base Arg, _ *[]Arg) {
 		switch typ := arg.Type().(type) {
 		case *sys.ResourceType:
-			if arg.Type().Dir() != sys.DirIn {
+			if typ.Dir() != sys.DirIn {
 				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], arg)
 				// TODO: negative PIDs and add them as well (that's process groups).
 			}
 		case *sys.BufferType:
 			a := arg.(*DataArg)
-			if a.Type().Dir() != sys.DirOut && len(a.Data) != 0 {
+			if typ.Dir() != sys.DirOut && len(a.Data) != 0 {
 				switch typ.Kind {
 				case sys.BufferString:
 					s.strings[string(a.Data)] = true

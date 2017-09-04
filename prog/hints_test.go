@@ -158,7 +158,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 			res := make(map[string]bool)
 			// Whatever type here. It's just needed to pass the
 			// dataArg.Type().Dir() == sys.DirIn check.
-			typ := sys.ArrayType{sys.TypeCommon{"", "", sys.DirIn, false}, nil, 0, 0, 0}
+			typ := sys.ArrayType{sys.TypeCommon{"", "", 0, sys.DirIn, false}, nil, 0, 0, 0}
 			argCommon := ArgCommon{&typ}
 			dataArg := &DataArg{argCommon, []byte(test.in)}
 			checkDataArg(dataArg, test.comps, func(arg Arg) {

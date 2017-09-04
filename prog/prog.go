@@ -102,7 +102,11 @@ type GroupArg struct {
 }
 
 func (arg *GroupArg) Size() uint64 {
-	switch typ := (*arg).Type().(type) {
+	typ0 := arg.Type()
+	if !typ0.Varlen() {
+		return typ0.Size()
+	}
+	switch typ := typ0.(type) {
 	case *sys.StructType:
 		var size uint64
 		for _, fld := range arg.Inner {
@@ -110,19 +114,14 @@ func (arg *GroupArg) Size() uint64 {
 				size += fld.Size()
 			}
 		}
-		align := typ.Align()
-		if size%align != 0 {
-			if typ.Varlen() {
-				size += align - size%align
-			} else {
-				panic(fmt.Sprintf("struct %+v with type %+v has static size %v, which isn't aligned to %v", arg, typ, size, align))
-			}
+		if typ.AlignAttr != 0 && size%typ.AlignAttr != 0 {
+			size += typ.AlignAttr - size%typ.AlignAttr
 		}
 		return size
 	case *sys.ArrayType:
 		var size uint64
-		for _, in := range arg.Inner {
-			size += in.Size()
+		for _, elem := range arg.Inner {
+			size += elem.Size()
 		}
 		return size
 	default:
@@ -274,8 +273,8 @@ func defaultArg(t sys.Type) Arg {
 		return resultArg(t, nil, typ.Desc.Type.Default())
 	case *sys.BufferType:
 		var data []byte
-		if typ.Kind == sys.BufferString && typ.Length != 0 {
-			data = make([]byte, typ.Length)
+		if typ.Kind == sys.BufferString && typ.TypeSize != 0 {
+			data = make([]byte, typ.TypeSize)
 		}
 		return dataArg(t, data)
 	case *sys.ArrayType:
@@ -287,7 +286,7 @@ func defaultArg(t sys.Type) Arg {
 		}
 		return groupArg(t, inner)
 	case *sys.UnionType:
-		return unionArg(t, defaultArg(typ.Options[0]), typ.Options[0])
+		return unionArg(t, defaultArg(typ.Fields[0]), typ.Fields[0])
 	case *sys.VmaType:
 		return pointerArg(t, 0, 0, 1, nil)
 	case *sys.PtrType:

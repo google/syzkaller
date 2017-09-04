@@ -25,6 +25,7 @@ func (comp *compiler) check() {
 	comp.checkRecursion()
 	comp.checkLenTargets()
 	comp.checkConstructors()
+	comp.checkVarlens()
 }
 
 func (comp *compiler) checkNames() {
@@ -561,4 +562,46 @@ func checkTypeKind(t *ast.Type, kind int) (unexpected string, expect string, ok 
 		}
 	}
 	return
+}
+
+func (comp *compiler) checkVarlens() {
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Struct:
+			comp.checkVarlen(n)
+		}
+	}
+}
+
+func (comp *compiler) isVarlen(t *ast.Type) bool {
+	desc, args, base := comp.getArgsBase(t, "", sys.DirIn, false)
+	return desc.Varlen != nil && desc.Varlen(comp, t, args, base)
+}
+
+func (comp *compiler) checkVarlen(n *ast.Struct) {
+	// Non-varlen unions can't have varlen fields.
+	// Non-packed structs can't have varlen fields in the middle.
+	if n.IsUnion {
+		if varlen := comp.parseUnionAttrs(n); varlen {
+			return
+		}
+	} else {
+		if packed, _ := comp.parseStructAttrs(n); packed {
+			return
+		}
+	}
+	for i, f := range n.Fields {
+		if !n.IsUnion && i == len(n.Fields)-1 {
+			break
+		}
+		if comp.isVarlen(f.Type) {
+			if n.IsUnion {
+				comp.error(f.Pos, "variable size field %v in non-varlen union %v",
+					f.Name.Name, n.Name.Name)
+			} else {
+				comp.error(f.Pos, "variable size field %v in the middle of non-packed struct %v",
+					f.Name.Name, n.Name.Name)
+			}
+		}
+	}
 }

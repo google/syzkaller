@@ -11,6 +11,8 @@ import (
 	"github.com/google/syzkaller/sys"
 )
 
+const sizeUnassigned = ^uint64(0)
+
 func (comp *compiler) genResources() []*sys.ResourceDesc {
 	var resources []*sys.ResourceDesc
 	for _, decl := range comp.desc.Nodes {
@@ -69,22 +71,119 @@ func (comp *compiler) genSyscall(n *ast.Call) *sys.Call {
 	}
 }
 
-func (comp *compiler) genStructFields() []*sys.StructFields {
-	var structs []*sys.StructFields
-	generated := make(map[sys.StructKey]bool)
-	// Generating structs can produce more struct uses, so we do this in the loop.
-	// Consider, a syscall references a struct only as in,
-	// but then another struct references it as out.
-	for n := -1; n != len(generated); {
-		n = len(generated)
-		for key, n := range comp.structUses {
-			if generated[key] {
-				continue
+func (comp *compiler) genStructDescs(syscalls []*sys.Call) []*sys.KeyedStruct {
+	// Calculate struct/union/array sizes, add padding to structs and detach
+	// StructDesc's from StructType's. StructType's can be recursive so it's
+	// not possible to write them out inline as other types. To break the
+	// recursion detach them, and write StructDesc's out as separate array
+	// of KeyedStruct's. sys package will reattach them during init.
+
+	padded := make(map[interface{}]bool)
+	detach := make(map[**sys.StructDesc]bool)
+	var structs []*sys.KeyedStruct
+	var rec func(t sys.Type)
+	checkStruct := func(key sys.StructKey, descp **sys.StructDesc) bool {
+		detach[descp] = true
+		desc := *descp
+		if padded[desc] {
+			return false
+		}
+		padded[desc] = true
+		for _, f := range desc.Fields {
+			rec(f)
+			if !f.Varlen() && f.Size() == sizeUnassigned {
+				// An inner struct is not padded yet.
+				// Leave this struct for next iteration.
+				delete(padded, desc)
+				return false
 			}
-			generated[key] = true
-			structs = append(structs, comp.genStructField(key, n))
+		}
+		structs = append(structs, &sys.KeyedStruct{
+			Key:  key,
+			Desc: desc,
+		})
+		return true
+	}
+	rec = func(t0 sys.Type) {
+		switch t := t0.(type) {
+		case *sys.PtrType:
+			rec(t.Type)
+		case *sys.ArrayType:
+			if padded[t] {
+				return
+			}
+			rec(t.Type)
+			if !t.Type.Varlen() && t.Type.Size() == sizeUnassigned {
+				// An inner struct is not padded yet.
+				// Leave this array for next iteration.
+				return
+			}
+			padded[t] = true
+			t.TypeSize = 0
+			if t.Kind == sys.ArrayRangeLen && t.RangeBegin == t.RangeEnd && !t.Type.Varlen() {
+				t.TypeSize = t.RangeBegin * t.Type.Size()
+			}
+		case *sys.StructType:
+			if !checkStruct(t.Key, &t.StructDesc) {
+				return
+			}
+			// Add paddings, calculate size, mark bitfields.
+			varlen := false
+			for _, f := range t.Fields {
+				if f.Varlen() {
+					varlen = true
+				}
+			}
+			comp.markBitfields(t.Fields)
+			packed, alignAttr := comp.parseStructAttrs(comp.structNodes[t.StructDesc])
+			t.Fields = comp.addAlignment(t.Fields, varlen, packed, alignAttr)
+			t.AlignAttr = alignAttr
+			t.TypeSize = 0
+			if !varlen {
+				for _, f := range t.Fields {
+					if f.BitfieldLength() == 0 || f.BitfieldLast() {
+						t.TypeSize += f.Size()
+					}
+				}
+			}
+		case *sys.UnionType:
+			if !checkStruct(t.Key, &t.StructDesc) {
+				return
+			}
+			t.TypeSize = 0
+			varlen := comp.parseUnionAttrs(comp.structNodes[t.StructDesc])
+			if !varlen {
+				for _, fld := range t.Fields {
+					if t.TypeSize < fld.Size() {
+						t.TypeSize = fld.Size()
+					}
+				}
+			}
 		}
 	}
+
+	// We have to do this in the loop until we pad nothing new
+	// due to recursive structs.
+	for {
+		start := len(padded)
+		for _, c := range syscalls {
+			for _, a := range c.Args {
+				rec(a)
+			}
+			if c.Ret != nil {
+				rec(c.Ret)
+			}
+		}
+		if start == len(padded) {
+			break
+		}
+	}
+
+	// Detach StructDesc's from StructType's. sys will reattach them again.
+	for descp := range detach {
+		*descp = nil
+	}
+
 	sort.Slice(structs, func(i, j int) bool {
 		si, sj := structs[i], structs[j]
 		if si.Key.Name != sj.Key.Name {
@@ -95,15 +194,34 @@ func (comp *compiler) genStructFields() []*sys.StructFields {
 	return structs
 }
 
-func (comp *compiler) genStructField(key sys.StructKey, n *ast.Struct) *sys.StructFields {
-	fields := comp.genFieldArray(n.Fields, key.Dir, false)
-	if !n.IsUnion {
-		comp.markBitfields(fields)
+func (comp *compiler) genStructDesc(res *sys.StructDesc, n *ast.Struct, dir sys.Dir) {
+	// Leave node for genStructDescs to calculate size/padding.
+	comp.structNodes[res] = n
+	*res = sys.StructDesc{
+		TypeCommon: genCommon(n.Name.Name, "", sizeUnassigned, dir, false),
+		Fields:     comp.genFieldArray(n.Fields, dir, false),
 	}
-	return &sys.StructFields{
-		Key:    key,
-		Fields: fields,
+}
+
+func (comp *compiler) isStructVarlen(name string) bool {
+	if varlen, ok := comp.structVarlen[name]; ok {
+		return varlen
 	}
+	s := comp.structs[name]
+	if s.IsUnion && comp.parseUnionAttrs(s) {
+		comp.structVarlen[name] = true
+		return true
+	}
+	comp.structVarlen[name] = false // to not hang on recursive types
+	varlen := false
+	for _, fld := range s.Fields {
+		if comp.isVarlen(fld.Type) {
+			varlen = true
+			break
+		}
+	}
+	comp.structVarlen[name] = varlen
+	return varlen
 }
 
 func (comp *compiler) markBitfields(fields []sys.Type) {
@@ -127,22 +245,113 @@ func (comp *compiler) markBitfields(fields []sys.Type) {
 func setBitfieldOffset(t0 sys.Type, offset uint64, last bool) {
 	switch t := t0.(type) {
 	case *sys.IntType:
-		t.BitfieldOff = offset
-		t.BitfieldLst = last
+		t.BitfieldOff, t.BitfieldLst = offset, last
 	case *sys.ConstType:
-		t.BitfieldOff = offset
-		t.BitfieldLst = last
+		t.BitfieldOff, t.BitfieldLst = offset, last
 	case *sys.LenType:
-		t.BitfieldOff = offset
-		t.BitfieldLst = last
+		t.BitfieldOff, t.BitfieldLst = offset, last
 	case *sys.FlagsType:
-		t.BitfieldOff = offset
-		t.BitfieldLst = last
+		t.BitfieldOff, t.BitfieldLst = offset, last
 	case *sys.ProcType:
-		t.BitfieldOff = offset
-		t.BitfieldLst = last
+		t.BitfieldOff, t.BitfieldLst = offset, last
 	default:
-		panic(fmt.Sprintf("type %+v can't be a bitfield", t))
+		panic(fmt.Sprintf("type %#v can't be a bitfield", t))
+	}
+}
+
+func (comp *compiler) addAlignment(fields []sys.Type, varlen, packed bool, alignAttr uint64) []sys.Type {
+	var newFields []sys.Type
+	if packed {
+		// If a struct is packed, statically sized and has explicitly set alignment,
+		// add a padding at the end.
+		newFields = fields
+		if !varlen && alignAttr != 0 {
+			size := uint64(0)
+			for _, f := range fields {
+				size += f.Size()
+			}
+			if tail := size % alignAttr; tail != 0 {
+				newFields = append(newFields, genPad(alignAttr-tail))
+			}
+		}
+		return newFields
+	}
+	var off uint64
+	// TODO(dvyukov): this is wrong: if alignAttr!=0, we must use it, not max
+	align := alignAttr
+	for i, f := range fields {
+		if i > 0 && (fields[i-1].BitfieldLength() == 0 || fields[i-1].BitfieldLast()) {
+			a := comp.typeAlign(f)
+			if align < a {
+				align = a
+			}
+			// Append padding if the last field is not a bitfield or it's the last bitfield in a set.
+			if off%a != 0 {
+				pad := a - off%a
+				off += pad
+				newFields = append(newFields, genPad(pad))
+			}
+		}
+		newFields = append(newFields, f)
+		if (f.BitfieldLength() == 0 || f.BitfieldLast()) && (i != len(fields)-1 || !f.Varlen()) {
+			// Increase offset if the current field is not a bitfield
+			// or it's the last bitfield in a set, except when it's
+			// the last field in a struct and has variable length.
+			off += f.Size()
+		}
+	}
+	if align != 0 && off%align != 0 && !varlen {
+		pad := align - off%align
+		off += pad
+		newFields = append(newFields, genPad(pad))
+	}
+	return newFields
+}
+
+func (comp *compiler) typeAlign(t0 sys.Type) uint64 {
+	switch t0.(type) {
+	case *sys.IntType, *sys.ConstType, *sys.LenType, *sys.FlagsType, *sys.ProcType,
+		*sys.CsumType, *sys.PtrType, *sys.VmaType, *sys.ResourceType:
+		return t0.Size()
+	case *sys.BufferType:
+		return 1
+	}
+
+	switch t := t0.(type) {
+	case *sys.ArrayType:
+		return comp.typeAlign(t.Type)
+	case *sys.StructType:
+		packed, alignAttr := comp.parseStructAttrs(comp.structNodes[t.StructDesc])
+		if alignAttr != 0 {
+			return alignAttr // overrided by user attribute
+		}
+		if packed {
+			return 1
+		}
+		align := uint64(0)
+		for _, f := range t.Fields {
+			if a := comp.typeAlign(f); align < a {
+				align = a
+			}
+		}
+		return align
+	case *sys.UnionType:
+		align := uint64(0)
+		for _, f := range t.Fields {
+			if a := comp.typeAlign(f); align < a {
+				align = a
+			}
+		}
+		return align
+	default:
+		panic(fmt.Sprintf("unknown type: %#v", t))
+	}
+}
+
+func genPad(size uint64) sys.Type {
+	return &sys.ConstType{
+		IntTypeCommon: genIntCommon(genCommon("pad", "", size, sys.DirIn, false), 0, false),
+		IsPad:         true,
 	}
 }
 
@@ -163,20 +372,20 @@ func (comp *compiler) genType(t *ast.Type, field string, dir sys.Dir, isArg bool
 	return desc.Gen(comp, t, args, base)
 }
 
-func genCommon(name, field string, dir sys.Dir, opt bool) sys.TypeCommon {
+func genCommon(name, field string, size uint64, dir sys.Dir, opt bool) sys.TypeCommon {
 	return sys.TypeCommon{
 		TypeName:   name,
+		TypeSize:   size,
 		FldName:    field,
 		ArgDir:     dir,
 		IsOptional: opt,
 	}
 }
 
-func genIntCommon(com sys.TypeCommon, size, bitLen uint64, bigEndian bool) sys.IntTypeCommon {
+func genIntCommon(com sys.TypeCommon, bitLen uint64, bigEndian bool) sys.IntTypeCommon {
 	return sys.IntTypeCommon{
 		TypeCommon:  com,
 		BigEndian:   bigEndian,
-		TypeSize:    size,
 		BitfieldLen: bitLen,
 	}
 }

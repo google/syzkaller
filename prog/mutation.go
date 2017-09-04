@@ -112,11 +112,9 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 						a.Data = mutateData(r, data, minLen, maxLen)
 					case sys.BufferString:
 						if r.bin() {
-							var minLen uint64
-							maxLen := ^uint64(0)
-							if t.Length != 0 {
-								minLen = t.Length
-								maxLen = t.Length
+							minLen, maxLen := uint64(0), ^uint64(0)
+							if t.TypeSize != 0 {
+								minLen, maxLen = t.TypeSize, t.TypeSize
 							}
 							a.Data = mutateData(r, append([]byte{}, a.Data...), minLen, maxLen)
 						} else {
@@ -191,10 +189,10 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					}
 				case *sys.UnionType:
 					a := arg.(*UnionArg)
-					optType := t.Options[r.Intn(len(t.Options))]
+					optType := t.Fields[r.Intn(len(t.Fields))]
 					maxIters := 1000
 					for i := 0; optType.FieldName() == a.OptionType.FieldName(); i++ {
-						optType = t.Options[r.Intn(len(t.Options))]
+						optType = t.Fields[r.Intn(len(t.Fields))]
 						if i >= maxIters {
 							panic(fmt.Sprintf("couldn't generate a different union option after %v iterations, type: %+v", maxIters, t))
 						}

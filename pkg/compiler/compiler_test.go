@@ -71,3 +71,33 @@ func TestFuzz(t *testing.T) {
 		}
 	}
 }
+
+func TestAlign(t *testing.T) {
+	const input = `
+foo$0(a ptr[in, s0])
+s0 {
+	f0	int8
+	f1	int16
+}
+
+foo$1(a ptr[in, s1])
+s1 {
+	f0	ptr[in, s2, opt]
+}
+s2 {
+	f1	s1
+	f2	array[s1, 2]
+	f3	array[array[s1, 2], 2]
+}
+	`
+	desc := ast.Parse([]byte(input), "input", nil)
+	if desc == nil {
+		t.Fatal("failed to parse")
+	}
+	p := Compile(desc, map[string]uint64{"__NR_foo": 1}, 8, nil)
+	if p == nil {
+		t.Fatal("failed to compile")
+	}
+	got := p.StructDescs[0].Desc
+	t.Logf("got: %#v", got)
+}

@@ -129,8 +129,8 @@ func generate(arch string, prog *compiler.Prog, consts map[string]uint64, out io
 	// Since structs of the same type can be fields with different names
 	// of multiple other structs, we have an instance of those structs
 	// for each field indexed by the name of the parent struct, field name and dir.
-	fmt.Fprintf(out, "var structFields = ")
-	serializer.Write(out, prog.StructFields)
+	fmt.Fprintf(out, "var structDescs = ")
+	serializer.Write(out, prog.StructDescs)
 	fmt.Fprintf(out, "\n\n")
 
 	fmt.Fprintf(out, "var Calls = ")

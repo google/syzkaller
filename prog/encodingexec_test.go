@@ -133,7 +133,7 @@ func TestSerializeForExec(t *testing.T) {
 				instrCopyin, dataOffset + 16, argConst, 2, 0x44, 0, 0,
 				instrCopyin, dataOffset + 18, argConst, 2, 0x45, 0, 0,
 				instrCopyin, dataOffset + 20, argConst, 2, 0x46, 0, 0,
-				instrCopyin, dataOffset + 24, argConst, 1, 0x47, 0, 0,
+				instrCopyin, dataOffset + 22, argConst, 1, 0x47, 0, 0,
 				callID("syz_test$align5"), 1, argConst, ptrSize, dataOffset, 0, 0,
 				instrEOF,
 			},
