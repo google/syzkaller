@@ -1,0 +1,154 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+foo$0(x fileoff, y int8, z buffer[in])
+foo$1(x "bar")			### unexpected string "bar", expect type
+foo$2(x 123, y "bar")		### unexpected int 123, expect type	### unexpected string "bar", expect type
+foo$3(x string)			### string can't be syscall argument/return
+
+resource r0[int32]: 0, 0x1
+resource r1[string["foo"]]	### string can't be resource base (int types can)
+resource r1[int32]		### type r1 redeclared, previously declared as resource at errors.txt:10:1
+resource int32[int32]		### resource name int32 conflicts with builtin type
+resource fileoff[intptr]	### resource name fileoff conflicts with builtin type
+
+s1 {
+	f1	int32
+}
+
+s1 {				### type s1 redeclared, previously declared as struct at errors.txt:15:1
+	f1	int32
+	f1	intptr		### duplicate field f1 in struct s1
+	parent	int8		### reserved field name parent in struct s1
+}
+
+s2 {				### struct s2 has no fields, need at least 1 field
+}
+
+int32 {				### struct name int32 conflicts with builtin type
+	f1	int32
+}
+
+r0 {				### type r0 redeclared, previously declared as resource at errors.txt:9:1
+	f1	int32
+}
+
+u0 [
+	f1	int32
+	f2	fileoff[int32]
+]
+
+u1 [				### union u1 has only 1 field, need at least 2 fields
+	f1	int32
+]
+
+u2 [
+	f1	int8
+	f1	int16		### duplicate field f1 in union u2
+	parent	int32		### reserved field name parent in union u2
+]
+
+foo$4(a int8, a int16)		### duplicate argument a in syscall foo$4
+foo$4()				### syscall foo$4 redeclared, previously declared at errors.txt:51:1
+foo()
+foo()				### syscall foo redeclared, previously declared at errors.txt:53:1
+foo$5(a0 int8, a1 int8, a2 int8, a3 int8, a4 int8, a5 int8, a6 int8, a7 int8, a8 int8, a9 int8)	### syscall foo$5 has 10 arguments, allowed maximum is 9
+foo$6(parent int8)		### reserved argument name parent in syscall foo$6
+
+f1 = 1
+f2 = 1, 2
+f2 = 1, 2			### flags f2 redeclared, previously declared at errors.txt:59:1
+sf1 = "a"
+sf2 = "a", "b"
+sf2 = "c"			### string flags sf2 redeclared, previously declared at errors.txt:62:1
+
+resource r2[r0]: 2
+resource r3[int32:1]
+resource r4[int32[opt]]		### resource base can't be marked as opt
+resource r5[non_existent]	### unknown type non_existent
+resource r6[r6]			### recursive resource r6->r6
+resource r7[r8]			### recursive resource r7->r8->r7
+resource r8[r7]			### recursive resource r8->r7->r8
+resource r9["foo"]		### unexpected string "foo", expect type
+
+foo$7(a r0, a1 r2[opt])
+foo$8(a fileoff[a, b, c])	### wrong number of arguments for type fileoff, expect no arguments
+foo$9(a buffer[inout])
+foo$10(a buffer[intout])	### unexpected value intout for direction argument of buffer type, expect [in out inout]
+foo$11(a buffer["in"])		### unexpected string "in" for direction argument of buffer type, expect [in out inout]
+foo$12(a buffer[10])		### unexpected int 10 for direction argument of buffer type, expect [in out inout]
+foo$13(a int32[2:3])
+foo$14(a int32[2:2])
+foo$15(a int32[3:2])		### bad int range [3:2]
+foo$16(a int32[3])
+foo$17(a ptr[in, int32])
+foo$18(a ptr[in, int32[2:3]])
+foo$19(a ptr[in, int32[opt]])
+foo$20(a ptr)			### wrong number of arguments for type ptr, expect direction, type, [opt]
+foo$21(a ptr["foo"])		### wrong number of arguments for type ptr, expect direction, type, [opt]
+foo$22(a ptr[in])		### wrong number of arguments for type ptr, expect direction, type, [opt]
+foo$23(a ptr[in, s3[in]])	### wrong number of arguments for type s3, expect no arguments
+foo$24(a ptr[in, int32[3:2]])	### bad int range [3:2]
+foo$25(a proc[0, "foo"])	### unexpected string "foo" for per-proc values argument of proc type, expect int
+foo$26(a flags[no])		### unknown flags no
+foo$27(a flags["foo"])		### unexpected string "foo" for flags argument of flags type, expect identifier
+foo$28(a ptr[in, string["foo"]], b ptr[in, string["foo", 4]])
+foo$29(a ptr[in, string["foo", 3]])	### string value "foo\x00" exceeds buffer length 3
+foo$30(a ptr[in, string[no]])	### unknown string flags no
+foo$31(a int8, b ptr[in, csum[a, inet]])		### wrong number of arguments for type csum, expect csum target, kind, [proto], base type
+foo$32(a int8, b ptr[in, csum[a, inet, 1, int32]])	### only pseudo csum can have proto
+foo$33(a int8, b ptr[in, csum[a, pseudo, 1, int32]])
+foo$34(a int32["foo"])		### unexpected string "foo" for range argument of int32 type, expect int
+foo$35(a ptr[in, s3[opt]])	### s3 can't be marked as opt
+foo$36(a const[1:2])		### unexpected ':'
+foo$37(a ptr[in, proc[1000, 1, int8]])	### values starting from 1000 overflow base type
+foo$38(a ptr[in, proc[20, 10, int8]])	### values starting from 20 with step 10 overflow base type for 32 procs
+foo$39(a fileoff:1)		### unexpected ':'
+foo$40(a len["a"])		### unexpected string "a" for len target argument of len type, expect identifier
+foo$41(a vma[C1:C2])
+foo$42(a proc[20, 0])		### proc per-process values must not be 0
+foo$43(a ptr[in, string[1]])	### unexpected int 1, string arg must be a string literal or string flags
+
+bar()
+
+s3 {
+	f1	int8:0
+	f2	int8:1
+	f3	int8:7
+	f4	int8:8
+	f5	int8:9		### bitfield of size 9 is too large for base type of size 8
+	f6	int32:32
+	f7	int32:33	### bitfield of size 33 is too large for base type of size 32
+} [packed, align_4]
+
+s4 {
+	f1	int8
+} [align_7]			###  bad struct s4 alignment 7 (must be a sane power of 2)
+
+s5 {
+	f1	int8
+} [varlen]			### unknown struct s5 attribute varlen
+
+s6 {
+	f1	int8
+} [align_foo]			### bad struct s6 alignment foo
+
+s7 {
+	f1	ptr64[in, int32]
+}
+
+u3 [
+	f1	int8
+	f2	int32
+] [varlen]
+
+u4 [
+	f1	int8
+	f2	int32
+] [packed]			### unknown union u4 attribute packed
+
+define d0 SOMETHING
+define d1 `some C expression`
+define d2 some C expression
+define d2 SOMETHING		### duplicate define d2
+define d3 1

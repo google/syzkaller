@@ -12,10 +12,24 @@ type Pos struct {
 	Col  int // column number, starting at 1 (byte count)
 }
 
+// Description contains top-level nodes of a parsed sys description.
+type Description struct {
+	Nodes []Node
+}
+
+// Node is AST node interface.
+type Node interface {
+	Info() (pos Pos, typ string, name string)
+}
+
 // Top-level AST nodes:
 
 type NewLine struct {
 	Pos Pos
+}
+
+func (n *NewLine) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokNewLine], ""
 }
 
 type Comment struct {
@@ -23,14 +37,26 @@ type Comment struct {
 	Text string
 }
 
+func (n *Comment) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokComment], ""
+}
+
 type Include struct {
 	Pos  Pos
 	File *String
 }
 
+func (n *Include) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokInclude], ""
+}
+
 type Incdir struct {
 	Pos Pos
 	Dir *String
+}
+
+func (n *Incdir) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokInclude], ""
 }
 
 type Define struct {
@@ -39,19 +65,32 @@ type Define struct {
 	Value *Int
 }
 
+func (n *Define) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokDefine], n.Name.Name
+}
+
 type Resource struct {
 	Pos    Pos
 	Name   *Ident
-	Base   *Ident
+	Base   *Type
 	Values []*Int
+}
+
+func (n *Resource) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokResource], n.Name.Name
 }
 
 type Call struct {
 	Pos      Pos
 	Name     *Ident
 	CallName string
+	NR       uint64
 	Args     []*Field
 	Ret      *Type
+}
+
+func (n *Call) Info() (Pos, string, string) {
+	return n.Pos, "syscall", n.Name.Name
 }
 
 type Struct struct {
@@ -63,16 +102,32 @@ type Struct struct {
 	IsUnion  bool
 }
 
+func (n *Struct) Info() (Pos, string, string) {
+	typ := "struct"
+	if n.IsUnion {
+		typ = "union"
+	}
+	return n.Pos, typ, n.Name.Name
+}
+
 type IntFlags struct {
 	Pos    Pos
 	Name   *Ident
 	Values []*Int
 }
 
+func (n *IntFlags) Info() (Pos, string, string) {
+	return n.Pos, "flags", n.Name.Name
+}
+
 type StrFlags struct {
 	Pos    Pos
 	Name   *Ident
 	Values []*String
+}
+
+func (n *StrFlags) Info() (Pos, string, string) {
+	return n.Pos, "string flags", n.Name.Name
 }
 
 // Not top-level AST nodes:
@@ -82,9 +137,17 @@ type Ident struct {
 	Name string
 }
 
+func (n *Ident) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokIdent], n.Name
+}
+
 type String struct {
 	Pos   Pos
 	Value string
+}
+
+func (n *String) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokString], ""
 }
 
 type Int struct {
@@ -96,6 +159,10 @@ type Int struct {
 	CExpr    string
 }
 
+func (n *Int) Info() (Pos, string, string) {
+	return n.Pos, tok2str[tokInt], ""
+}
+
 type Type struct {
 	Pos Pos
 	// Only one of Value, Ident, String is filled.
@@ -104,10 +171,16 @@ type Type struct {
 	Ident    string
 	String   string
 	// Part after COLON (for ranges and bitfields).
+	HasColon  bool
+	Pos2      Pos
 	Value2    uint64
 	Value2Hex bool
 	Ident2    string
 	Args      []*Type
+}
+
+func (n *Type) Info() (Pos, string, string) {
+	return n.Pos, "type", n.Ident
 }
 
 type Field struct {
@@ -116,4 +189,8 @@ type Field struct {
 	Type     *Type
 	NewBlock bool // separated from previous fields by a new line
 	Comments []*Comment
+}
+
+func (n *Field) Info() (Pos, string, string) {
+	return n.Pos, "arg/field", n.Name.Name
 }

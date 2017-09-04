@@ -4,56 +4,66 @@
 package compiler
 
 import (
-	"reflect"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
 )
 
-func TestExtractConsts(t *testing.T) {
-	top, ok := ast.Parse([]byte(extractConstsInput), "test", nil)
-	if !ok {
-		t.Fatalf("failed to parse input")
+func TestCompileAll(t *testing.T) {
+	eh := func(pos ast.Pos, msg string) {
+		t.Logf("%v: %v", pos, msg)
 	}
-	consts, includes, incdirs, defines := ExtractConsts(top)
-	wantConsts := []string{"CONST1", "CONST2", "CONST3", "CONST4", "CONST5",
-		"CONST6", "CONST7", "__NR_bar", "__NR_foo"}
-	if !reflect.DeepEqual(consts, wantConsts) {
-		t.Fatalf("got consts:\n%q\nwant:\n%q", consts, wantConsts)
+	desc := ast.ParseGlob(filepath.Join("..", "..", "sys", "*.txt"), eh)
+	if desc == nil {
+		t.Fatalf("parsing failed")
 	}
-	wantIncludes := []string{"foo/bar.h", "bar/foo.h"}
-	if !reflect.DeepEqual(includes, wantIncludes) {
-		t.Fatalf("got includes:\n%q\nwant:\n%q", includes, wantIncludes)
+	glob := filepath.Join("..", "..", "sys", "*_"+runtime.GOARCH+".const")
+	consts := DeserializeConstsGlob(glob, eh)
+	if consts == nil {
+		t.Fatalf("reading consts failed")
 	}
-	wantIncdirs := []string{"/foo", "/bar"}
-	if !reflect.DeepEqual(incdirs, wantIncdirs) {
-		t.Fatalf("got incdirs:\n%q\nwant:\n%q", incdirs, wantIncdirs)
-	}
-	wantDefines := map[string]string{
-		"CONST1": "1",
-		"CONST2": "FOOBAR + 1",
-	}
-	if !reflect.DeepEqual(defines, wantDefines) {
-		t.Fatalf("got defines:\n%q\nwant:\n%q", defines, wantDefines)
+	prog := Compile(desc, consts, eh)
+	if prog == nil {
+		t.Fatalf("compilation failed")
 	}
 }
 
-const extractConstsInput = `
-include <foo/bar.h>
-incdir </foo>
-include <bar/foo.h>
-incdir </bar>
-
-flags = CONST3, CONST2, CONST1
-
-define CONST1 1
-define CONST2 FOOBAR + 1
-
-foo(x const[CONST4]) ptr[out, array[int32, CONST5]]
-bar$BAR()
-
-str {
-	f1	const[CONST6, int32]
-	f2	array[array[int8, CONST7]]
+func TestErrors(t *testing.T) {
+	consts := map[string]uint64{
+		"__NR_foo": 1,
+		"C0":       0,
+		"C1":       1,
+		"C2":       2,
+	}
+	name := "errors.txt"
+	em := ast.NewErrorMatcher(t, filepath.Join("testdata", name))
+	desc := ast.Parse(em.Data, name, em.ErrorHandler)
+	if desc == nil {
+		em.DumpErrors(t)
+		t.Fatalf("parsing failed")
+	}
+	ExtractConsts(desc, em.ErrorHandler)
+	Compile(desc, consts, em.ErrorHandler)
+	em.Check(t)
 }
-`
+
+func TestFuzz(t *testing.T) {
+	inputs := []string{
+		"d~^gB̉`i\u007f?\xb0.",
+		"da[",
+		"define\x98define(define\x98define\x98define\x98define\x98define)define\tdefin",
+		"resource g[g]",
+	}
+	consts := map[string]uint64{"A": 1, "B": 2, "C": 3, "__NR_C": 4}
+	eh := func(pos ast.Pos, msg string) {
+		t.Logf("%v: %v", pos, msg)
+	}
+	for _, data := range inputs {
+		desc := ast.Parse([]byte(data), "", eh)
+		if desc != nil {
+			Compile(desc, consts, eh)
+		}
+	}
+}

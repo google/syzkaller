@@ -88,7 +88,7 @@ func (tok token) String() string {
 type scanner struct {
 	data         []byte
 	filename     string
-	errorHandler func(pos Pos, msg string)
+	errorHandler ErrorHandler
 
 	ch   byte
 	off  int
@@ -101,9 +101,9 @@ type scanner struct {
 	errors int
 }
 
-func newScanner(data []byte, filename string, errorHandler func(pos Pos, msg string)) *scanner {
+func newScanner(data []byte, filename string, errorHandler ErrorHandler) *scanner {
 	if errorHandler == nil {
-		errorHandler = loggingHandler
+		errorHandler = LoggingHandler
 	}
 	s := &scanner{
 		data:         data,
@@ -115,8 +115,14 @@ func newScanner(data []byte, filename string, errorHandler func(pos Pos, msg str
 	return s
 }
 
-func loggingHandler(pos Pos, msg string) {
-	fmt.Fprintf(os.Stderr, "%v:%v:%v: %v\n", pos.File, pos.Line, pos.Col, msg)
+type ErrorHandler func(pos Pos, msg string)
+
+func LoggingHandler(pos Pos, msg string) {
+	fmt.Fprintf(os.Stderr, "%v: %v\n", pos, msg)
+}
+
+func (pos Pos) String() string {
+	return fmt.Sprintf("%v:%v:%v", pos.File, pos.Line, pos.Col)
 }
 
 func (s *scanner) Scan() (tok token, lit string, pos Pos) {
@@ -128,19 +134,19 @@ func (s *scanner) Scan() (tok token, lit string, pos Pos) {
 		s.next()
 	case s.ch == '`':
 		tok = tokCExpr
-		for s.next(); s.ch != '`'; s.next() {
-			if s.ch == 0 || s.ch == '\n' {
-				s.Error(pos, "C expression is not terminated")
-				break
-			}
+		for s.next(); s.ch != '`' && s.ch != '\n'; s.next() {
 		}
-		lit = string(s.data[pos.Off+1 : s.off])
-		s.next()
+		if s.ch == '\n' {
+			s.Error(pos, "C expression is not terminated")
+		} else {
+			lit = string(s.data[pos.Off+1 : s.off])
+			s.next()
+		}
 	case s.prev2 == tokDefine && s.prev1 == tokIdent:
 		// Note: the old form for C expressions, not really lexable.
 		// TODO(dvyukov): get rid of this eventually.
 		tok = tokCExpr
-		for s.next(); s.ch != '\n'; s.next() {
+		for ; s.ch != '\n'; s.next() {
 		}
 		lit = string(s.data[pos.Off:s.off])
 	case s.ch == '#':

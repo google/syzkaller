@@ -13,9 +13,11 @@ import (
 )
 
 // Parse parses sys description into AST and returns top-level nodes.
-func Parse(data []byte, filename string, errorHandler func(pos Pos, msg string)) (top []interface{}, ok bool) {
+// If any errors are encountered, returns nil.
+func Parse(data []byte, filename string, errorHandler ErrorHandler) *Description {
 	p := &parser{s: newScanner(data, filename, errorHandler)}
 	prevNewLine, prevComment := false, false
+	var top []Node
 	for p.next(); p.tok != tokEOF; {
 		decl := p.parseTopRecover()
 		if decl == nil {
@@ -39,37 +41,41 @@ func Parse(data []byte, filename string, errorHandler func(pos Pos, msg string))
 	if prevNewLine {
 		top = top[:len(top)-1]
 	}
-	ok = p.s.Ok()
-	return
+	if !p.s.Ok() {
+		return nil
+	}
+	return &Description{top}
 }
 
-func ParseGlob(glob string, errorHandler func(pos Pos, msg string)) (top []interface{}, ok bool) {
+func ParseGlob(glob string, errorHandler ErrorHandler) *Description {
 	if errorHandler == nil {
-		errorHandler = loggingHandler
+		errorHandler = LoggingHandler
 	}
 	files, err := filepath.Glob(glob)
 	if err != nil {
 		errorHandler(Pos{}, fmt.Sprintf("failed to find input files: %v", err))
-		return nil, false
+		return nil
 	}
 	if len(files) == 0 {
 		errorHandler(Pos{}, fmt.Sprintf("no files matched by glob %q", glob))
-		return nil, false
+		return nil
 	}
-	ok = true
+	desc := &Description{}
 	for _, f := range files {
 		data, err := ioutil.ReadFile(f)
 		if err != nil {
 			errorHandler(Pos{}, fmt.Sprintf("failed to read input file: %v", err))
-			return nil, false
+			return nil
 		}
-		top1, ok1 := Parse(data, filepath.Base(f), errorHandler)
-		if !ok1 {
-			ok = false
+		desc1 := Parse(data, filepath.Base(f), errorHandler)
+		if desc1 == nil {
+			desc = nil
 		}
-		top = append(top, top1...)
+		if desc != nil {
+			desc.Nodes = append(desc.Nodes, desc1.Nodes...)
+		}
 	}
-	return
+	return desc
 }
 
 type parser struct {
@@ -84,16 +90,16 @@ type parser struct {
 // Skip parsing till the next NEWLINE, for error recovery.
 var skipLine = errors.New("")
 
-func (p *parser) parseTopRecover() interface{} {
+func (p *parser) parseTopRecover() Node {
 	defer func() {
 		switch err := recover(); err {
 		case nil:
 		case skipLine:
 			// Try to recover by consuming everything until next NEWLINE.
-			for p.tok != tokNewLine {
+			for p.tok != tokNewLine && p.tok != tokEOF {
 				p.next()
 			}
-			p.consume(tokNewLine)
+			p.tryConsume(tokNewLine)
 		default:
 			panic(err)
 		}
@@ -106,7 +112,7 @@ func (p *parser) parseTopRecover() interface{} {
 	return decl
 }
 
-func (p *parser) parseTop() interface{} {
+func (p *parser) parseTop() Node {
 	switch p.tok {
 	case tokNewLine:
 		return &NewLine{Pos: p.pos}
@@ -222,7 +228,7 @@ func (p *parser) parseResource() *Resource {
 	p.consume(tokResource)
 	name := p.parseIdent()
 	p.consume(tokLBrack)
-	base := p.parseIdent()
+	base := p.parseType()
 	p.consume(tokRBrack)
 	var values []*Int
 	if p.tryConsume(tokColon) {
@@ -266,7 +272,7 @@ func callName(s string) string {
 	return s[:pos]
 }
 
-func (p *parser) parseFlags(name *Ident) interface{} {
+func (p *parser) parseFlags(name *Ident) Node {
 	p.consume(tokEq)
 	switch p.tok {
 	case tokInt, tokIdent:
@@ -379,6 +385,8 @@ func (p *parser) parseType() *Type {
 	}
 	p.next()
 	if allowColon && p.tryConsume(tokColon) {
+		arg.HasColon = true
+		arg.Pos2 = p.pos
 		switch p.tok {
 		case tokInt:
 			arg.Value2, arg.Value2Hex = p.parseIntValue()

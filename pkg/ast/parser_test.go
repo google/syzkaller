@@ -4,7 +4,6 @@
 package ast
 
 import (
-	"bufio"
 	"bytes"
 	"io/ioutil"
 	"path/filepath"
@@ -27,27 +26,37 @@ func TestParseAll(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to read file: %v", err)
 		}
-		errorHandler := func(pos Pos, msg string) {
-			t.Fatalf("%v:%v:%v: %v", pos.File, pos.Line, pos.Col, msg)
-		}
-		top, ok := Parse(data, file.Name(), errorHandler)
-		if !ok {
-			t.Fatalf("parsing failed, but no error produced")
-		}
-		data2 := Format(top)
-		top2, ok2 := Parse(data2, file.Name(), errorHandler)
-		if !ok2 {
-			t.Fatalf("parsing failed, but no error produced")
-		}
-		if len(top) != len(top2) {
-			t.Fatalf("formatting number of top level decls: %v/%v", len(top), len(top2))
-		}
-		// While sys files are not formatted, formatting in fact changes it.
-		for i := range top {
-			if !reflect.DeepEqual(top[i], top2[i]) {
-				t.Fatalf("formatting changed code:\n%#v\nvs:\n%#v", top[i], top2[i])
+		t.Run(file.Name(), func(t *testing.T) {
+			eh := func(pos Pos, msg string) {
+				t.Fatalf("%v: %v", pos, msg)
 			}
-		}
+			desc := Parse(data, file.Name(), eh)
+			if desc == nil {
+				t.Fatalf("parsing failed, but no error produced")
+			}
+			data2 := Format(desc)
+			desc2 := Parse(data2, file.Name(), eh)
+			if desc2 == nil {
+				t.Fatalf("parsing failed, but no error produced")
+			}
+			if len(desc.Nodes) != len(desc2.Nodes) {
+				t.Fatalf("formatting number of top level decls: %v/%v",
+					len(desc.Nodes), len(desc2.Nodes))
+			}
+			for i := range desc.Nodes {
+				n1, n2 := desc.Nodes[i], desc2.Nodes[i]
+				if n1 == nil {
+					t.Fatalf("got nil node")
+				}
+				if !reflect.DeepEqual(n1, n2) {
+					t.Fatalf("formatting changed code:\n%#v\nvs:\n%#v", n1, n2)
+				}
+			}
+			data3 := Format(Clone(desc))
+			if !bytes.Equal(data, data3) {
+				t.Fatalf("Clone lost data")
+			}
+		})
 	}
 }
 
@@ -55,10 +64,9 @@ func TestParse(t *testing.T) {
 	for _, test := range parseTests {
 		t.Run(test.name, func(t *testing.T) {
 			errorHandler := func(pos Pos, msg string) {
-				t.Logf("%v:%v:%v: %v", pos.File, pos.Line, pos.Col, msg)
+				t.Logf("%v: %v", pos, msg)
 			}
-			toplev, ok := Parse([]byte(test.input), "foo", errorHandler)
-			_, _ = toplev, ok
+			Parse([]byte(test.input), "foo", errorHandler)
 		})
 	}
 }
@@ -87,13 +95,6 @@ var parseTests = []struct {
 	},
 }
 
-type Error struct {
-	Line    int
-	Col     int
-	Text    string
-	Matched bool
-}
-
 func TestErrors(t *testing.T) {
 	files, err := ioutil.ReadDir("testdata")
 	if err != nil {
@@ -106,73 +107,18 @@ func TestErrors(t *testing.T) {
 		if !strings.HasSuffix(f.Name(), ".txt") {
 			continue
 		}
-		t.Run(f.Name(), func(t *testing.T) {
-			data, err := ioutil.ReadFile(filepath.Join("testdata", f.Name()))
-			if err != nil {
-				t.Fatalf("failed to open input file: %v", err)
+		name := f.Name()
+		t.Run(name, func(t *testing.T) {
+			em := NewErrorMatcher(t, filepath.Join("testdata", name))
+			desc := Parse(em.Data, name, em.ErrorHandler)
+			if desc != nil && em.Count() != 0 {
+				em.DumpErrors(t)
+				t.Fatalf("parsing succeed, but got errors")
 			}
-			var stripped []byte
-			var errors []*Error
-			s := bufio.NewScanner(bytes.NewReader(data))
-			for i := 1; s.Scan(); i++ {
-				ln := s.Bytes()
-				for {
-					pos := bytes.LastIndex(ln, []byte("###"))
-					if pos == -1 {
-						break
-					}
-					errors = append(errors, &Error{
-						Line: i,
-						Text: strings.TrimSpace(string(ln[pos+3:])),
-					})
-					ln = ln[:pos]
-				}
-				stripped = append(stripped, ln...)
-				stripped = append(stripped, '\n')
-			}
-			if err := s.Err(); err != nil {
-				t.Fatalf("failed to scan input file: %v", err)
-			}
-			var got []*Error
-			top, ok := Parse(stripped, "test", func(pos Pos, msg string) {
-				got = append(got, &Error{
-					Line: pos.Line,
-					Col:  pos.Col,
-					Text: msg,
-				})
-			})
-			if ok && len(got) != 0 {
-				t.Fatalf("parsing succeed, but got errors: %v", got)
-			}
-			if !ok && len(got) == 0 {
+			if desc == nil && em.Count() == 0 {
 				t.Fatalf("parsing failed, but got no errors")
 			}
-		nextErr:
-			for _, gotErr := range got {
-				for _, wantErr := range errors {
-					if wantErr.Matched {
-						continue
-					}
-					if wantErr.Line != gotErr.Line {
-						continue
-					}
-					if wantErr.Text != gotErr.Text {
-						continue
-					}
-					wantErr.Matched = true
-					continue nextErr
-				}
-				t.Errorf("unexpected error: %v:%v: %v",
-					gotErr.Line, gotErr.Col, gotErr.Text)
-			}
-			for _, wantErr := range errors {
-				if wantErr.Matched {
-					continue
-				}
-				t.Errorf("not matched error: %v: %v", wantErr.Line, wantErr.Text)
-			}
-			// Just to get more code coverage:
-			Format(top)
+			em.Check(t)
 		})
 	}
 }

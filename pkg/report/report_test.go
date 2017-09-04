@@ -761,6 +761,11 @@ net/ipv6/ip6_flowlabel.c:544 suspicious rcu_dereference_check() usage!
 
 other info that might help us debug this:
 `: `suspicious RCU usage at net/ipv6/ip6_flowlabel.c:LINE`,
+
+		`[   37.991733]  [4:SdpManagerServi: 3874] KEK_PACK[3874] __add_kek :: item ffffffc822340400
+[   38.018742]  [4:  system_server: 3344] logger: !@Boot_DEBUG: start networkManagement
+[   38.039013]  [2:    kworker/2:1: 1608] Trustonic TEE: c01|TL_TZ_KEYSTORE: Starting
+`: ``,
 	}
 	for log, crash := range tests {
 		if strings.Index(log, "\r\n") != -1 {

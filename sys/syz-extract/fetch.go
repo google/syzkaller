@@ -58,8 +58,13 @@ func fetchValues(arch string, vals []string, includes []string, incdirs []string
 	}
 
 	flagVals := strings.Split(string(out), " ")
+	if len(out) == 0 {
+		flagVals = nil
+	}
 	if len(flagVals) != len(vals)-len(undeclared) {
-		failf("fetched wrong number of values %v != %v - %v", len(flagVals), len(vals), len(undeclared))
+		failf("fetched wrong number of values %v != %v - %v\nflagVals: %q\nvals: %q\nundeclared: %q",
+			len(flagVals), len(vals), len(undeclared),
+			flagVals, vals, undeclared)
 	}
 	res := make(map[string]uint64)
 	j := 0

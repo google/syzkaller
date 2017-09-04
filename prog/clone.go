@@ -4,14 +4,19 @@
 package prog
 
 func (p *Prog) Clone() *Prog {
+	p1, _ := p.cloneImpl(false)
+	return p1
+}
+
+func (p *Prog) cloneImpl(full bool) (*Prog, map[Arg]Arg) {
 	p1 := new(Prog)
 	newargs := make(map[Arg]Arg)
 	for _, c := range p.Calls {
 		c1 := new(Call)
 		c1.Meta = c.Meta
-		c1.Ret = clone(c.Ret, newargs)
+		c1.Ret = clone(c.Ret, newargs, full)
 		for _, arg := range c.Args {
-			c1.Args = append(c1.Args, clone(arg, newargs))
+			c1.Args = append(c1.Args, clone(arg, newargs, full))
 		}
 		p1.Calls = append(p1.Calls, c1)
 	}
@@ -20,10 +25,10 @@ func (p *Prog) Clone() *Prog {
 			panic(err)
 		}
 	}
-	return p1
+	return p1, newargs
 }
 
-func clone(arg Arg, newargs map[Arg]Arg) Arg {
+func clone(arg Arg, newargs map[Arg]Arg, full bool) Arg {
 	var arg1 Arg
 	switch a := arg.(type) {
 	case *ConstArg:
@@ -35,7 +40,7 @@ func clone(arg Arg, newargs map[Arg]Arg) Arg {
 		*a1 = *a
 		arg1 = a1
 		if a.Res != nil {
-			a1.Res = clone(a.Res, newargs)
+			a1.Res = clone(a.Res, newargs, full)
 		}
 	case *DataArg:
 		a1 := new(DataArg)
@@ -48,13 +53,13 @@ func clone(arg Arg, newargs map[Arg]Arg) Arg {
 		arg1 = a1
 		a1.Inner = nil
 		for _, arg2 := range a.Inner {
-			a1.Inner = append(a1.Inner, clone(arg2, newargs))
+			a1.Inner = append(a1.Inner, clone(arg2, newargs, full))
 		}
 	case *UnionArg:
 		a1 := new(UnionArg)
 		*a1 = *a
 		arg1 = a1
-		a1.Option = clone(a.Option, newargs)
+		a1.Option = clone(a.Option, newargs, full)
 	case *ResultArg:
 		a1 := new(ResultArg)
 		*a1 = *a
@@ -77,6 +82,8 @@ func clone(arg Arg, newargs map[Arg]Arg) Arg {
 	}
 	if used, ok := arg1.(ArgUsed); ok {
 		*used.Used() = nil // filled when we clone the referent
+		newargs[arg] = arg1
+	} else if full {
 		newargs[arg] = arg1
 	}
 	return arg1

@@ -106,7 +106,7 @@ sockaddr_storage [
 # TODO: AF_ROSE
 # TODO: AF_DECnet
 	nl		sockaddr_nl
-# TODO: AF_PACKET
+	ll		sockaddr_ll
 # TODO: AF_ATMSVC
 # TODO: AF_RDS
 # TODO: AF_IRDA
@@ -289,7 +289,7 @@ syzn_devname {
 	s	const[115, int8]
 	y	const[121, int8]
 	z	const[122, int8]
-	N	proc[int8, 48, 1]
+	N	proc[48, 1, int8]
 	z0	const[0, int8]
 }
 
@@ -696,8 +696,8 @@ ethtool_flow_ext {
 ethtool_tcpip4_spec {
 	ip4src	ipv4_addr
 	ip4dst	ipv4_addr
-	psrc	proc[int16be, 20000, 4]
-	pdst	proc[int16be, 20000, 4]
+	psrc	proc[20000, 4, int16be]
+	pdst	proc[20000, 4, int16be]
 	tos	int8
 }
 
@@ -720,8 +720,8 @@ ethtool_usrip4_spec {
 ethtool_tcpip6_spec {
 	ip6src	ipv6_addr
 	ip6dst	ipv6_addr
-	psrc	proc[int16be, 20000, 4]
-	pdst	proc[int16be, 20000, 4]
+	psrc	proc[20000, 4, int16be]
+	pdst	proc[20000, 4, int16be]
 	tclass	int8
 }
 
