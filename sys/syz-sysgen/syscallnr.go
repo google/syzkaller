@@ -13,16 +13,17 @@ import (
 )
 
 type Arch struct {
-	Name  string
-	CARCH []string
+	Name    string
+	PtrSize uint64
+	CARCH   []string
 }
 
 var archs = []*Arch{
-	{"amd64", []string{"__x86_64__"}},
-	{"386", []string{"__i386__"}},
-	{"arm64", []string{"__aarch64__"}},
-	{"arm", []string{"__arm__"}},
-	{"ppc64le", []string{"__ppc64__", "__PPC64__", "__powerpc64__"}},
+	{"amd64", 8, []string{"__x86_64__"}},
+	{"386", 4, []string{"__i386__"}},
+	{"arm64", 8, []string{"__aarch64__"}},
+	{"arm", 4, []string{"__arm__"}},
+	{"ppc64le", 8, []string{"__ppc64__", "__PPC64__", "__powerpc64__"}},
 }
 
 func generateExecutorSyscalls(arch *Arch, syscalls []*sys.Call) []byte {

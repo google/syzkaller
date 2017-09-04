@@ -24,7 +24,7 @@ func TestCompileAll(t *testing.T) {
 	if consts == nil {
 		t.Fatalf("reading consts failed")
 	}
-	prog := Compile(desc, consts, eh)
+	prog := Compile(desc, consts, 8, eh)
 	if prog == nil {
 		t.Fatalf("compilation failed")
 	}
@@ -47,7 +47,7 @@ func TestErrors(t *testing.T) {
 				t.Fatalf("parsing failed")
 			}
 			ExtractConsts(desc, em.ErrorHandler)
-			Compile(desc, consts, em.ErrorHandler)
+			Compile(desc, consts, 8, em.ErrorHandler)
 			em.Check(t)
 		})
 	}
@@ -67,7 +67,7 @@ func TestFuzz(t *testing.T) {
 	for _, data := range inputs {
 		desc := ast.Parse([]byte(data), "", eh)
 		if desc != nil {
-			Compile(desc, consts, eh)
+			Compile(desc, consts, 8, eh)
 		}
 	}
 }

@@ -43,14 +43,14 @@ type Prog struct {
 }
 
 // Compile compiles sys description.
-func Compile(desc *ast.Description, consts map[string]uint64, eh ast.ErrorHandler) *Prog {
+func Compile(desc *ast.Description, consts map[string]uint64, ptrSize uint64, eh ast.ErrorHandler) *Prog {
 	if eh == nil {
 		eh = ast.LoggingHandler
 	}
 	comp := &compiler{
 		desc:        ast.Clone(desc),
 		eh:          eh,
-		ptrSize:     8, // TODO(dvyukov): must be provided by target
+		ptrSize:     ptrSize,
 		unsupported: make(map[string]bool),
 		resources:   make(map[string]*ast.Resource),
 		structs:     make(map[string]*ast.Struct),

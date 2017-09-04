@@ -57,7 +57,7 @@ func main() {
 			if consts == nil {
 				return
 			}
-			prog := compiler.Compile(top, consts, eh)
+			prog := compiler.Compile(top, consts, arch.PtrSize, eh)
 			if prog == nil {
 				return
 			}
