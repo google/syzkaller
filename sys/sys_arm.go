@@ -44,7 +44,6 @@ var resourceArray = []*ResourceDesc{
 	{Name: "ifindex", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"ifindex"}, Values: []uint64{0}},
 	{Name: "inotifydesc", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"inotifydesc"}, Values: []uint64{0}},
 	{Name: "io_ctx", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr"}, TypeSize: 8}}, Kind: []string{"io_ctx"}, Values: []uint64{0}},
-	{Name: "iocbptr", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr"}, TypeSize: 8}}, Kind: []string{"iocbptr"}, Values: []uint64{0}},
 	{Name: "ion_handle", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"ion_handle"}, Values: []uint64{0}},
 	{Name: "ipc", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"ipc"}, Values: []uint64{0, 18446744073709551615}},
 	{Name: "ipc_msq", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"ipc", "ipc_msq"}, Values: []uint64{0, 18446744073709551615}},
@@ -74,7 +73,6 @@ var resourceArray = []*ResourceDesc{
 	{Name: "sock_in6", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"fd", "sock", "sock_in6"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_ipx", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"fd", "sock", "sock_ipx"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_kcm", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"fd", "sock", "sock_kcm"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
-	{Name: "sock_key", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"fd", "sock", "sock_key"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_llc", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"fd", "sock", "sock_llc"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_netlink", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"fd", "sock", "sock_netlink"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_netrom", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}, Kind: []string{"fd", "sock", "sock_netrom"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
@@ -13780,6 +13778,7 @@ var Calls = []*Call{
 	{NR: 1000007, Name: "syz_test$length9", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0"}, TypeSize: 8, Type: &StructType{TypeCommon: TypeCommon{TypeName: "syz_length_vma_struct"}}},
 	}},
+	{NR: 1000007, Name: "syz_test$missing_resource", CallName: "syz_test", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "syz_missing_const_res", FldName: "ret", ArgDir: 1}}},
 	{NR: 1000007, Name: "syz_test$opt0", CallName: "syz_test", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "a0", IsOptional: true}, TypeSize: 8}},
 	}},

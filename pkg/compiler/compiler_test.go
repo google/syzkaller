@@ -37,7 +37,7 @@ func TestErrors(t *testing.T) {
 		"C1":       1,
 		"C2":       2,
 	}
-	for _, name := range []string{"errors.txt", "recursion.txt", "len.txt"} {
+	for _, name := range []string{"errors.txt", "errors2.txt"} {
 		name := name
 		t.Run(name, func(t *testing.T) {
 			em := ast.NewErrorMatcher(t, filepath.Join("testdata", name))

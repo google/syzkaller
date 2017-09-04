@@ -13,8 +13,6 @@ import (
 )
 
 func (comp *compiler) check() {
-	// TODO: no constructor for a resource
-
 	comp.checkNames()
 	comp.checkFields()
 	comp.checkTypes()
@@ -26,6 +24,7 @@ func (comp *compiler) check() {
 	}
 	comp.checkRecursion()
 	comp.checkLenTargets()
+	comp.checkConstructors()
 }
 
 func (comp *compiler) checkNames() {
@@ -216,6 +215,79 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 		}
 	}
 	comp.error(t.Pos, "%v target %v does not exist", t.Ident, target)
+}
+
+type structDir struct {
+	Struct string
+	Dir    sys.Dir
+}
+
+func (comp *compiler) checkConstructors() {
+	ctors := make(map[string]bool) // resources for which we have ctors
+	checked := make(map[structDir]bool)
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Call:
+			for _, arg := range n.Args {
+				comp.checkTypeCtors(arg.Type, sys.DirIn, true, ctors, checked)
+			}
+			if n.Ret != nil {
+				comp.checkTypeCtors(n.Ret, sys.DirOut, true, ctors, checked)
+			}
+		}
+	}
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Resource:
+			if !ctors[n.Name.Name] {
+				comp.error(n.Pos, "resource %v can't be created"+
+					" (never mentioned as a syscall return value or output argument/field)",
+					n.Name.Name)
+			}
+		}
+	}
+}
+
+func (comp *compiler) checkTypeCtors(t *ast.Type, dir sys.Dir, isArg bool,
+	ctors map[string]bool, checked map[structDir]bool) {
+	desc := comp.getTypeDesc(t)
+	if desc == typeResource {
+		// TODO(dvyukov): consider changing this to "dir == sys.DirOut".
+		// We have few questionable cases where resources can be created
+		// only by inout struct fields. These structs should be split
+		// into two different structs: one is in and second is out.
+		// But that will require attaching dir to individual fields.
+		if dir != sys.DirIn {
+			r := comp.resources[t.Ident]
+			for r != nil && !ctors[r.Name.Name] {
+				ctors[r.Name.Name] = true
+				r = comp.resources[r.Base.Ident]
+			}
+		}
+		return
+	}
+	if desc == typeStruct {
+		s := comp.structs[t.Ident]
+		name := s.Name.Name
+		key := structDir{name, dir}
+		if checked[key] {
+			return
+		}
+		checked[key] = true
+		for _, fld := range s.Fields {
+			comp.checkTypeCtors(fld.Type, dir, false, ctors, checked)
+		}
+		return
+	}
+	if desc == typePtr {
+		dir = genDir(t.Args[0])
+	}
+	_, args, _ := comp.getArgsBase(t, "", dir, isArg)
+	for i, arg := range args {
+		if desc.Args[i].Type == typeArgType {
+			comp.checkTypeCtors(arg, dir, false, ctors, checked)
+		}
+	}
 }
 
 func (comp *compiler) checkRecursion() {

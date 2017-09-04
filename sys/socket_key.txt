@@ -3,11 +3,10 @@
 
 # AF_KEY support.
 
-include <linux/socket.h>
-include <linux/net.h>
-include <uapi/linux/pfkeyv2.h>
-
-resource sock_key[sock]
+# include <linux/socket.h>
+# include <linux/net.h>
+# include <uapi/linux/pfkeyv2.h>
 
 # See net/key/af_key.c, requires root.
+# resource sock_key[sock]
 # socket$key(domain const[AF_KEY], type const[SOCK_RAW], proto const[PF_KEY_V2]) sock_key
