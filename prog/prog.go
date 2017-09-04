@@ -110,7 +110,7 @@ func (arg *GroupArg) Size() uint64 {
 	case *sys.StructType:
 		var size uint64
 		for _, fld := range arg.Inner {
-			if fld.Type().BitfieldLength() == 0 || fld.Type().BitfieldLast() {
+			if !fld.Type().BitfieldMiddle() {
 				size += fld.Size()
 			}
 		}

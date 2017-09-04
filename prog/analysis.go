@@ -158,7 +158,7 @@ func foreachSubargOffset(arg Arg, f func(arg Arg, offset uint64)) {
 			var totalSize uint64
 			for _, arg2 := range a.Inner {
 				size := rec(arg2, offset)
-				if arg2.Type().BitfieldLength() == 0 || arg2.Type().BitfieldLast() {
+				if !arg2.Type().BitfieldMiddle() {
 					offset += size
 					totalSize += size
 				}
