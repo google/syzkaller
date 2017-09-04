@@ -3854,17 +3854,17 @@ var structFields = []*StructFields{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "restor", ArgDir: 1}, TypeSize: 4}},
 	}},
 	{Key: StructKey{Name: "sigevent"}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "val"}, TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "val"}, TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signo"}, TypeSize: 4}, Kind: 1},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sigev_notify", FldName: "notify"}, TypeSize: 4}, Vals: []uint64{1, 0, 2, 4}},
 		&UnionType{TypeCommon: TypeCommon{TypeName: "sigevent_u", FldName: "u"}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const"}, TypeSize: 8}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 	}},
 	{Key: StructKey{Name: "sigevent_thread"}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "func"}, TypeSize: 4, Type: &BufferType{}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "attr"}, TypeSize: 4, Type: &BufferType{}},
 	}},
 	{Key: StructKey{Name: "sigevent_u"}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64"}, TypeSize: 8}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "tid"}},
 		&StructType{TypeCommon: TypeCommon{TypeName: "sigevent_thread", FldName: "thr"}},
 	}},
@@ -13377,7 +13377,7 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf"}, TypeSize: 4, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
 	}},
 	{NR: 383, Name: "statx", CallName: "statx", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dfd"}, TypeSize: 8}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd"}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file"}, TypeSize: 4, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "statx_flags", FldName: "flags"}, TypeSize: 4}, Vals: []uint64{256, 1024, 2048, 4096, 24576, 0, 8192, 16384}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "statx_mask", FldName: "mask"}, TypeSize: 4}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2047, 2048, 4095}},
