@@ -28,3 +28,14 @@ include <linux/foo.h>
 include "linux/foo.h"
 incdir </foo/bar>
 incdir "/foo/bar"
+
+s2 {
+	f1	int8
+
+	# comment
+
+	f2	int8
+
+	# comment
+
+}
