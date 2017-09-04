@@ -12,6 +12,8 @@ import (
 	"github.com/google/syzkaller/sys"
 )
 
+const ptrSize = 8
+
 func TestSerializeForExecRandom(t *testing.T) {
 	rs, iters := initTest(t)
 	buf := make([]byte, ExecBufferSize)

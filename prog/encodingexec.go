@@ -38,7 +38,6 @@ const (
 const (
 	ExecBufferSize = 2 << 20
 
-	ptrSize    = 8
 	pageSize   = 4 << 10
 	dataOffset = 512 << 20
 )
