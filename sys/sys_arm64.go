@@ -749,7 +749,7 @@ var structDescs = []*KeyedStruct{
 	{Key: StructKey{Name: "drm_wait_vblank"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_wait_vblank", TypeSize: 12}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "drm_vblank_seq_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{0, 1, 62, 67108864, 134217728, 268435456, 536870912, 1073741824}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signal", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signal", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}}},
 	{Key: StructKey{Name: "epoll_event"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "epoll_event", TypeSize: 12}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "epoll_ev", FldName: "ev", TypeSize: 4}}, Vals: []uint64{1, 4, 8192, 2, 8, 16, 2147483648, 1073741824, 268435456, 536870912}},
@@ -1937,7 +1937,7 @@ var structDescs = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "input_keymap_entry"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "input_keymap_entry", TypeSize: 40}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "flags", TypeSize: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "len", TypeSize: 1}}, Kind: 3, RangeEnd: 32},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "len", TypeSize: 1}}, Kind: 2, RangeEnd: 32},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "index", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "keycode", TypeSize: 4}}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "scancod", TypeSize: 32}, Kind: 1, RangeBegin: 32, RangeEnd: 32},
@@ -2730,7 +2730,7 @@ var structDescs = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "regs", TypeSize: 1024}, Kind: 1, RangeBegin: 1024, RangeEnd: 1024},
 	}}},
 	{Key: StructKey{Name: "kvm_mce_cap"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_mce_cap", TypeSize: 4}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "banks", TypeSize: 1}}, Kind: 3, RangeEnd: 32},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "banks", TypeSize: 1}}, Kind: 2, RangeEnd: 32},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_mce_flags", FldName: "flags", TypeSize: 1}}, Vals: []uint64{1, 2, 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "count", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad", TypeSize: 1}}},
@@ -2923,19 +2923,19 @@ var structDescs = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "kvm_setup_opt_cstype0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_setup_opt_cstype0", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "typ", TypeSize: 8}}, Val: 4},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8}}, Kind: 3, RangeEnd: 15},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8}}, Kind: 2, RangeEnd: 15},
 	}}},
 	{Key: StructKey{Name: "kvm_setup_opt_cstype3"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_setup_opt_cstype3", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "typ", TypeSize: 8}}, Val: 5},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8}}, Kind: 3, RangeEnd: 15},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8}}, Kind: 2, RangeEnd: 15},
 	}}},
 	{Key: StructKey{Name: "kvm_setup_opt_dstype0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_setup_opt_dstype0", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "typ", TypeSize: 8}}, Val: 6},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8}}, Kind: 3, RangeEnd: 15},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8}}, Kind: 2, RangeEnd: 15},
 	}}},
 	{Key: StructKey{Name: "kvm_setup_opt_dstype3"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_setup_opt_dstype3", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "typ", TypeSize: 8}}, Val: 7},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8}}, Kind: 3, RangeEnd: 15},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "val", TypeSize: 8}}, Kind: 2, RangeEnd: 15},
 	}}},
 	{Key: StructKey{Name: "kvm_setup_opt_efer"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_setup_opt_efer", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "typ", TypeSize: 8}}, Val: 2},
@@ -2990,7 +2990,7 @@ var structDescs = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cr2", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs", FldName: "cr3", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_x86_cr4", FldName: "cr4", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 8192, 16384, 65536, 131072, 262144, 1048576, 2097152, 4194304}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "cr8", TypeSize: 8}}, Kind: 3, RangeEnd: 15},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "cr8", TypeSize: 8}}, Kind: 2, RangeEnd: 15},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_x86_efer", FldName: "efer", TypeSize: 8}}, Vals: []uint64{1, 256, 1024, 2048, 4096, 8192, 16384, 32768}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs", FldName: "apic", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "intr", TypeSize: 32}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
@@ -3010,7 +3010,7 @@ var structDescs = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cr2", TypeSize: 8, ArgDir: 1}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs", FldName: "cr3", TypeSize: 8, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_x86_cr4", FldName: "cr4", TypeSize: 8, ArgDir: 1}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 8192, 16384, 65536, 131072, 262144, 1048576, 2097152, 4194304}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "cr8", TypeSize: 8, ArgDir: 1}}, Kind: 3, RangeEnd: 15},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "cr8", TypeSize: 8, ArgDir: 1}}, Kind: 2, RangeEnd: 15},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_x86_efer", FldName: "efer", TypeSize: 8, ArgDir: 1}}, Vals: []uint64{1, 256, 1024, 2048, 4096, 8192, 16384, 32768}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs", FldName: "apic", TypeSize: 8, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "intr", TypeSize: 32, ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 1}}}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
@@ -3118,7 +3118,7 @@ var structDescs = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs", FldName: "addr", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "misc", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_mcg_status", FldName: "mcg", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "bank", TypeSize: 1}}, Kind: 3, RangeEnd: 32},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "bank", TypeSize: 1}}, Kind: 2, RangeEnd: 32},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad1", TypeSize: 7}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 7, RangeEnd: 7},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad2", TypeSize: 24}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 8}}}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
 	}}},
@@ -3228,7 +3228,7 @@ var structDescs = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "lo_rdevice", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lo_offset", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "lo_encrypt_type", FldName: "lo_enc_type", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 9, 10, 18}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lo_enc_key_size", TypeSize: 4}}, Kind: 3, RangeEnd: 32},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lo_enc_key_size", TypeSize: 4}}, Kind: 2, RangeEnd: 32},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "lo_flags", FldName: "lo_flags", TypeSize: 4}}, Vals: []uint64{1, 4, 8, 16}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "lo_name", TypeSize: 64}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "lo_enc_key", TypeSize: 32}, Kind: 1, RangeBegin: 32, RangeEnd: 32},
@@ -3243,7 +3243,7 @@ var structDescs = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "lo_rdevice", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lo_offset", TypeSize: 4, ArgDir: 1}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "lo_encrypt_type", FldName: "lo_enc_type", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 9, 10, 18}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lo_enc_key_size", TypeSize: 4, ArgDir: 1}}, Kind: 3, RangeEnd: 32},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lo_enc_key_size", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 32},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "lo_flags", FldName: "lo_flags", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{1, 4, 8, 16}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "lo_name", TypeSize: 64, ArgDir: 1}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "lo_enc_key", TypeSize: 32, ArgDir: 1}, Kind: 1, RangeBegin: 32, RangeEnd: 32},
@@ -3259,7 +3259,7 @@ var structDescs = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "lo_sizelimit", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "lo_number", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "lo_encrypt_type", FldName: "lo_enc_type", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 9, 10, 18}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lo_enc_key_size", TypeSize: 4}}, Kind: 3, RangeEnd: 32},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lo_enc_key_size", TypeSize: 4}}, Kind: 2, RangeEnd: 32},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "lo_flags", FldName: "lo_flags", TypeSize: 4}}, Vals: []uint64{1, 4, 8, 16}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "lo_file_name", TypeSize: 64}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "lo_crypt_name", TypeSize: 64}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
@@ -3274,7 +3274,7 @@ var structDescs = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "lo_sizelimit", TypeSize: 8, ArgDir: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "lo_number", TypeSize: 4, ArgDir: 1}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "lo_encrypt_type", FldName: "lo_enc_type", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 9, 10, 18}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lo_enc_key_size", TypeSize: 4, ArgDir: 1}}, Kind: 3, RangeEnd: 32},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lo_enc_key_size", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 32},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "lo_flags", FldName: "lo_flags", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{1, 4, 8, 16}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "lo_file_name", TypeSize: 64, ArgDir: 1}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "lo_crypt_name", TypeSize: 64, ArgDir: 1}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
@@ -3970,7 +3970,7 @@ var structDescs = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "sigevent"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sigevent", TypeSize: 96}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "val", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signo", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signo", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sigev_notify", FldName: "notify", TypeSize: 4}}, Vals: []uint64{1, 0, 2, 4}},
 		&UnionType{Key: StructKey{Name: "sigevent_u"}, FldName: "u"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 64}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 8}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
@@ -3984,13 +3984,13 @@ var structDescs = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "sigevent_thread"}, FldName: "thr"},
 	}}},
 	{Key: StructKey{Name: "siginfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "siginfo", TypeSize: 16}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signo", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signo", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "errno", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "code", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pad3", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "siginfo", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "siginfo", TypeSize: 16, ArgDir: 1}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signo", TypeSize: 4, ArgDir: 1}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signo", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 65},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "errno", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "code", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pad3", TypeSize: 4, ArgDir: 1}}},
@@ -6457,7 +6457,7 @@ var Calls = []*Call{
 	}},
 	{NR: 223, Name: "fadvise64", CallName: "fadvise64", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fadvise_flags", FldName: "advice", TypeSize: 8}}, Vals: []uint64{0, 2, 1, 5, 3, 4}},
 	}},
@@ -6563,7 +6563,7 @@ var Calls = []*Call{
 	{NR: 25, Name: "fcntl$setsig", CallName: "fcntl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 10},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}},
 	{NR: 25, Name: "fcntl$setstatus", CallName: "fcntl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -8526,7 +8526,7 @@ var Calls = []*Call{
 	{NR: 29, Name: "ioctl$KDSIGACCEPT", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19278},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "arg", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "arg", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}},
 	{NR: 29, Name: "ioctl$KDSKBLED", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
@@ -8615,7 +8615,7 @@ var Calls = []*Call{
 	{NR: 29, Name: "ioctl$KVM_CREATE_VCPU", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 44609},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}, Kind: 3, RangeEnd: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}, Kind: 2, RangeEnd: 2},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 29, Name: "ioctl$KVM_CREATE_VM", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvm", FldName: "fd", TypeSize: 4}},
@@ -8866,7 +8866,7 @@ var Calls = []*Call{
 	{NR: 29, Name: "ioctl$KVM_SET_BOOT_CPU_ID", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 44664},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}, Kind: 3, RangeEnd: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}, Kind: 2, RangeEnd: 2}},
 	}},
 	{NR: 29, Name: "ioctl$KVM_SET_CLOCK", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd", TypeSize: 4}},
@@ -9563,7 +9563,7 @@ var Calls = []*Call{
 	{NR: 29, Name: "ioctl$SNDRV_TIMER_IOCTL_TREAD", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndtimer", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074025474},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 3, RangeEnd: 1}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 2, RangeEnd: 1}},
 	}},
 	{NR: 29, Name: "ioctl$TCFLSH", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
@@ -10368,7 +10368,7 @@ var Calls = []*Call{
 	}},
 	{NR: 29, Name: "ioctl$sock_netdev_private", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "cmd", TypeSize: 2}}, Kind: 3, RangeBegin: 35312, RangeEnd: 35327},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "cmd", TypeSize: 2}}, Kind: 2, RangeBegin: 35312, RangeEnd: 35327},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_netrom_SIOCADDRT", CallName: "ioctl", Args: []Type{
@@ -10398,7 +10398,7 @@ var Calls = []*Call{
 	}},
 	{NR: 29, Name: "ioctl$sock_proto_private", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "cmd", TypeSize: 2}}, Kind: 3, RangeBegin: 35296, RangeEnd: 35311},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "cmd", TypeSize: 2}}, Kind: 2, RangeBegin: 35296, RangeEnd: 35311},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
 	}},
 	{NR: 29, Name: "ioctl$void", CallName: "ioctl", Args: []Type{
@@ -10616,7 +10616,7 @@ var Calls = []*Call{
 	}},
 	{NR: 62, Name: "lseek", CallName: "lseek", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "seek_whence", FldName: "whence", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 3, 4}},
 	}},
 	{NR: 6, Name: "lsetxattr", CallName: "lsetxattr", Args: []Type{
@@ -10705,7 +10705,7 @@ var Calls = []*Call{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{4, 1, 2, 8, 16777216, 33554432}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 32, 2048, 4096, 0, 16, 256, 262144, 8192, 65536, 16384, 32768, 131072, 0}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
 	}, Ret: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{NR: 18446744073709551615, Name: "modify_ldt$read", CallName: "modify_ldt", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "func", TypeSize: 8}}},
@@ -11172,13 +11172,13 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 8}}, Buf: "buf"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "pos", TypeSize: 8}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "pos", TypeSize: 8}}, Kind: 1},
 	}},
 	{NR: 69, Name: "preadv", CallName: "preadv", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 8}}, Buf: "vec"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "off", TypeSize: 8}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "off", TypeSize: 8}}, Kind: 1},
 	}},
 	{NR: 261, Name: "prlimit64", CallName: "prlimit64", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
@@ -11294,13 +11294,13 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8}, Type: &BufferType{}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 8}}, Buf: "buf"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "pos", TypeSize: 8}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "pos", TypeSize: 8}}, Kind: 1},
 	}},
 	{NR: 70, Name: "pwritev", CallName: "pwritev", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 8}}, Buf: "vec"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "off", TypeSize: 8}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "off", TypeSize: 8}}, Kind: 1},
 	}},
 	{NR: 63, Name: "read", CallName: "read", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -11458,7 +11458,7 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
 	}},
 	{NR: 134, Name: "rt_sigaction", CallName: "rt_sigaction", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "act", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sigaction"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "oact", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sigaction", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "sigsetsize", TypeSize: 8}}, Buf: "fake"},
@@ -11476,7 +11476,7 @@ var Calls = []*Call{
 	}},
 	{NR: 138, Name: "rt_sigqueueinfo", CallName: "rt_sigqueueinfo", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "info", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "siginfo"}}},
 	}},
 	{NR: 139, Name: "rt_sigreturn", CallName: "rt_sigreturn"},
@@ -11493,7 +11493,7 @@ var Calls = []*Call{
 	{NR: 240, Name: "rt_tgsigqueueinfo", CallName: "rt_tgsigqueueinfo", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "gid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "tid", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "info", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "siginfo"}}},
 	}},
 	{NR: 123, Name: "sched_getaffinity", CallName: "sched_getaffinity", Args: []Type{
@@ -11651,7 +11651,7 @@ var Calls = []*Call{
 	{NR: 71, Name: "sendfile", CallName: "sendfile", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdout", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdin", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "off", TypeSize: 8, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", TypeSize: 8, ArgDir: 2}}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "off", TypeSize: 8, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", TypeSize: 8, ArgDir: 2}}, Kind: 1}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "count", TypeSize: 8}}},
 	}},
 	{NR: 269, Name: "sendmmsg", CallName: "sendmmsg", Args: []Type{
@@ -13552,9 +13552,9 @@ var Calls = []*Call{
 	}},
 	{NR: 76, Name: "splice", CallName: "splice", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdin", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offin", TypeSize: 8}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offin", TypeSize: 8}}, Kind: 1},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdout", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offout", TypeSize: 8}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offout", TypeSize: 8}}, Kind: 1},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "len", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "splice_flags", FldName: "f", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8}},
 	}},
@@ -14039,7 +14039,7 @@ var Calls = []*Call{
 	{NR: 131, Name: "tgkill", CallName: "tgkill", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "gid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "tid", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}},
 	{NR: 18446744073709551615, Name: "time", CallName: "time", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "t", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 1}}}},
@@ -14084,7 +14084,7 @@ var Calls = []*Call{
 	}},
 	{NR: 130, Name: "tkill", CallName: "tkill", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "tid", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}},
 	{NR: 45, Name: "truncate", CallName: "truncate", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},

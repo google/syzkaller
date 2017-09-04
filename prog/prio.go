@@ -95,8 +95,6 @@ func calcStaticPriorities() [][]float32 {
 			case *sys.IntType:
 				switch a.Kind {
 				case sys.IntPlain, sys.IntFileoff, sys.IntRange:
-				case sys.IntSignalno:
-					noteUsage(1.0, "signalno")
 				default:
 					panic("unknown int kind")
 				}

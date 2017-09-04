@@ -270,9 +270,9 @@ var typeVMA = &typeDesc{
 	},
 }
 
-// TODO(dvyukov): replace with type with int flags.
-// Or, perhaps, we need something like typedefs:
-// typedef int32[0:32] signalno
+// TODO(dvyukov): perhaps, we need something like typedefs for such types.
+// So that users can introduce them as necessary without modifying compiler:
+// type signalno int32[0:64]
 var typeSignalno = &typeDesc{
 	Names:     []string{"signalno"},
 	CanBeArg:  true,
@@ -281,7 +281,9 @@ var typeSignalno = &typeDesc{
 		base.TypeSize = 4
 		return &sys.IntType{
 			IntTypeCommon: base,
-			Kind:          sys.IntSignalno,
+			Kind:          sys.IntRange,
+			RangeBegin:    0,
+			RangeEnd:      65,
 		}
 	},
 }
