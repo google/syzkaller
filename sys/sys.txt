@@ -87,7 +87,7 @@ vmsplice(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], f flags[splice_flag
 sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count int64)
 
 stat(file ptr[in, filename], statbuf ptr[out, stat])
-statx(dfd int64, file ptr[in, filename], flags flags[statx_flags], mask flags[statx_mask], statxbuf ptr[out, statx])
+statx(fd fd_dir, file ptr[in, filename], flags flags[statx_flags], mask flags[statx_mask], statxbuf ptr[out, statx])
 lstat(file ptr[in, filename], statbuf ptr[out, stat])
 fstat(fd fd, statbuf ptr[out, stat])
 
@@ -625,14 +625,14 @@ iocb {
 }
 
 sigevent {
-	val	intptr
+	val	const[0, intptr]
 	signo	signalno
 	notify	flags[sigev_notify, int32]
 	u	sigevent_u
+	pad	array[const[0, int64], 8]
 }
 
 sigevent_u [
-	pad	array[int64, 8]
 	tid	pid
 	thr	sigevent_thread
 ]
