@@ -110,6 +110,9 @@ foo$45(a int32) len[b]		### len can't be syscall return
 foo$46(a ptr[in, in])		### unknown type in
 foo$47(a int32:2)		### unexpected ':', only struct fields can be bitfields
 foo$48(a ptr[in, int32:7])	### unexpected ':', only struct fields can be bitfields
+foo$49(a ptr[in, array[int32, 0:1]])
+foo$50(a ptr[in, array[int32, 0]])	### arrays of size 0 are not supported
+foo$51(a ptr[in, array[int32, 0:0]])	### arrays of size 0 are not supported
 
 opt {				### struct uses reserved name opt
 	f1	int32
