@@ -276,9 +276,7 @@ func (comp *compiler) addAlignment(fields []sys.Type, varlen, packed bool, align
 		}
 		return newFields
 	}
-	var off uint64
-	// TODO(dvyukov): this is wrong: if alignAttr!=0, we must use it, not max
-	align := alignAttr
+	var align, off uint64
 	for i, f := range fields {
 		if i > 0 && !fields[i-1].BitfieldMiddle() {
 			a := comp.typeAlign(f)
@@ -299,6 +297,9 @@ func (comp *compiler) addAlignment(fields []sys.Type, varlen, packed bool, align
 			// the last field in a struct and has variable length.
 			off += f.Size()
 		}
+	}
+	if alignAttr != 0 {
+		align = alignAttr
 	}
 	if align != 0 && off%align != 0 && !varlen {
 		pad := align - off%align
