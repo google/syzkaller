@@ -102,6 +102,8 @@ func (w *writer) do(v reflect.Value, sliceElem bool) {
 		fmt.Fprintf(w.w, "%v", v.Uint())
 	case reflect.String:
 		fmt.Fprintf(w.w, "%q", v.String())
+	case reflect.Func:
+		// Skip, no way to serialize this.
 	default:
 		panic(fmt.Sprintf("unsupported type: %#v", v.Type().String()))
 	}
@@ -159,6 +161,8 @@ func isDefaultValue(v reflect.Value) bool {
 		return v.Uint() == 0
 	case reflect.String:
 		return v.String() == ""
+	case reflect.Func:
+		return true
 	default:
 		return false
 	}
