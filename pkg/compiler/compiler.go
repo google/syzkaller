@@ -108,31 +108,12 @@ func (comp *compiler) warning(pos ast.Pos, msg string, args ...interface{}) {
 func (comp *compiler) check() {
 	// TODO: check len in syscall arguments referring to parent.
 	// TODO: incorrect name is referenced in len type
-	// TODO: infinite recursion via struct pointers (e.g. a linked list)
 	// TODO: no constructor for a resource
 
 	comp.checkNames()
 	comp.checkFields()
-
-	for _, decl := range comp.desc.Nodes {
-		switch n := decl.(type) {
-		case *ast.Resource:
-			comp.checkType(n.Base, false, true)
-			comp.checkResource(n)
-		case *ast.Struct:
-			for _, f := range n.Fields {
-				comp.checkType(f.Type, false, false)
-			}
-			comp.checkStruct(n)
-		case *ast.Call:
-			for _, a := range n.Args {
-				comp.checkType(a.Type, true, false)
-			}
-			if n.Ret != nil {
-				comp.checkType(n.Ret, true, false)
-			}
-		}
-	}
+	comp.checkTypes()
+	comp.checkRecursion()
 }
 
 func (comp *compiler) checkNames() {
@@ -238,7 +219,40 @@ func (comp *compiler) checkFields() {
 	}
 }
 
-func (comp *compiler) checkResource(n *ast.Resource) {
+func (comp *compiler) checkTypes() {
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Resource:
+			comp.checkType(n.Base, false, true)
+		case *ast.Struct:
+			for _, f := range n.Fields {
+				comp.checkType(f.Type, false, false)
+			}
+			comp.checkStruct(n)
+		case *ast.Call:
+			for _, a := range n.Args {
+				comp.checkType(a.Type, true, false)
+			}
+			if n.Ret != nil {
+				comp.checkType(n.Ret, true, false)
+			}
+		}
+	}
+}
+
+func (comp *compiler) checkRecursion() {
+	checked := make(map[string]bool)
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Resource:
+			comp.checkResourceRecursion(n)
+		case *ast.Struct:
+			comp.checkStructRecursion(checked, n)
+		}
+	}
+}
+
+func (comp *compiler) checkResourceRecursion(n *ast.Resource) {
 	var seen []string
 	for n != nil {
 		if arrayContains(seen, n.Name.Name) {
@@ -252,6 +266,65 @@ func (comp *compiler) checkResource(n *ast.Resource) {
 		}
 		seen = append(seen, n.Name.Name)
 		n = comp.resources[n.Base.Ident]
+	}
+}
+
+type pathElem struct {
+	Pos    ast.Pos
+	Struct string
+	Field  string
+}
+
+func (comp *compiler) checkStructRecursion(checked map[string]bool, n *ast.Struct) {
+	var path []pathElem
+	comp.checkStructRecursion1(checked, n, path)
+}
+
+func (comp *compiler) checkStructRecursion1(checked map[string]bool, n *ast.Struct, path []pathElem) {
+	name := n.Name.Name
+	if checked[name] {
+		return
+	}
+	for i, elem := range path {
+		if elem.Struct != name {
+			continue
+		}
+		path = path[i:]
+		str := ""
+		for _, elem := range path {
+			str += fmt.Sprintf("%v.%v -> ", elem.Struct, elem.Field)
+		}
+		str += name
+		comp.error(path[0].Pos, "recursive declaration: %v (mark some pointers as opt)", str)
+		checked[name] = true
+		return
+	}
+	for _, f := range n.Fields {
+		path = append(path, pathElem{
+			Pos:    f.Pos,
+			Struct: name,
+			Field:  f.Name.Name,
+		})
+		comp.recurseField(checked, f.Type, path)
+		path = path[:len(path)-1]
+	}
+	checked[name] = true
+}
+
+func (comp *compiler) recurseField(checked map[string]bool, t *ast.Type, path []pathElem) {
+	desc := comp.getTypeDesc(t)
+	if desc == typeStruct {
+		comp.checkStructRecursion1(checked, comp.structs[t.Ident], path)
+		return
+	}
+	_, args, base := comp.getArgsBase(t, "", sys.DirIn, false)
+	if desc == typePtr && base.IsOptional {
+		return // optional pointers prune recursion
+	}
+	for i, arg := range args {
+		if desc.Args[i].Type == typeArgType {
+			comp.recurseField(checked, arg, path)
+		}
 	}
 }
 
