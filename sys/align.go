@@ -22,7 +22,6 @@ func initAlign() {
 					rec(f)
 				}
 				t1.Varlen() // dummy call to initialize t1.varlen
-				markBitfields(t1)
 				addAlignment(t1)
 			}
 		case *UnionType:
@@ -39,46 +38,6 @@ func initAlign() {
 		if c.Ret != nil {
 			rec(c.Ret)
 		}
-	}
-}
-
-func setBitfieldOffset(t Type, offset uint64, last bool) {
-	switch t1 := t.(type) {
-	case *IntType:
-		t1.BitfieldOff = offset
-		t1.BitfieldLst = last
-	case *ConstType:
-		t1.BitfieldOff = offset
-		t1.BitfieldLst = last
-	case *LenType:
-		t1.BitfieldOff = offset
-		t1.BitfieldLst = last
-	case *FlagsType:
-		t1.BitfieldOff = offset
-		t1.BitfieldLst = last
-	case *ProcType:
-		t1.BitfieldOff = offset
-		t1.BitfieldLst = last
-	default:
-		panic(fmt.Sprintf("type %+v can't be a bitfield", t1))
-	}
-}
-
-func markBitfields(t *StructType) {
-	var bfOffset uint64
-	for i, f := range t.Fields {
-		if f.BitfieldLength() == 0 {
-			continue
-		}
-		off, last := bfOffset, false
-		bfOffset += f.BitfieldLength()
-		if i == len(t.Fields)-1 || // Last bitfield in a group, if last field of the struct...
-			t.Fields[i+1].BitfieldLength() == 0 || // or next field is not a bitfield...
-			f.Size() != t.Fields[i+1].Size() || // or next field is of different size...
-			bfOffset+t.Fields[i+1].BitfieldLength() > f.Size()*8 { // or next field does not fit into the current group.
-			last, bfOffset = true, 0
-		}
-		setBitfieldOffset(f, off, last)
 	}
 }
 

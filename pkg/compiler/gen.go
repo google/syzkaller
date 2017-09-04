@@ -4,6 +4,7 @@
 package compiler
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -71,6 +72,9 @@ func (comp *compiler) genSyscall(n *ast.Call) *sys.Call {
 func (comp *compiler) genStructFields() []*sys.StructFields {
 	var structs []*sys.StructFields
 	generated := make(map[sys.StructKey]bool)
+	// Generating structs can produce more struct uses, so we do this in the loop.
+	// Consider, a syscall references a struct only as in,
+	// but then another struct references it as out.
 	for n := -1; n != len(generated); {
 		n = len(generated)
 		for key, n := range comp.structUses {
@@ -92,9 +96,53 @@ func (comp *compiler) genStructFields() []*sys.StructFields {
 }
 
 func (comp *compiler) genStructField(key sys.StructKey, n *ast.Struct) *sys.StructFields {
+	fields := comp.genFieldArray(n.Fields, key.Dir, false)
+	if !n.IsUnion {
+		comp.markBitfields(fields)
+	}
 	return &sys.StructFields{
 		Key:    key,
-		Fields: comp.genFieldArray(n.Fields, key.Dir, false),
+		Fields: fields,
+	}
+}
+
+func (comp *compiler) markBitfields(fields []sys.Type) {
+	var bfOffset uint64
+	for i, f := range fields {
+		if f.BitfieldLength() == 0 {
+			continue
+		}
+		off, last := bfOffset, false
+		bfOffset += f.BitfieldLength()
+		if i == len(fields)-1 || // Last bitfield in a group, if last field of the struct...
+			fields[i+1].BitfieldLength() == 0 || // or next field is not a bitfield...
+			f.Size() != fields[i+1].Size() || // or next field is of different size...
+			bfOffset+fields[i+1].BitfieldLength() > f.Size()*8 { // or next field does not fit into the current group.
+			last, bfOffset = true, 0
+		}
+		setBitfieldOffset(f, off, last)
+	}
+}
+
+func setBitfieldOffset(t0 sys.Type, offset uint64, last bool) {
+	switch t := t0.(type) {
+	case *sys.IntType:
+		t.BitfieldOff = offset
+		t.BitfieldLst = last
+	case *sys.ConstType:
+		t.BitfieldOff = offset
+		t.BitfieldLst = last
+	case *sys.LenType:
+		t.BitfieldOff = offset
+		t.BitfieldLst = last
+	case *sys.FlagsType:
+		t.BitfieldOff = offset
+		t.BitfieldLst = last
+	case *sys.ProcType:
+		t.BitfieldOff = offset
+		t.BitfieldLst = last
+	default:
+		panic(fmt.Sprintf("type %+v can't be a bitfield", t))
 	}
 }
 
