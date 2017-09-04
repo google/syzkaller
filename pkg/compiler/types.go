@@ -539,10 +539,19 @@ var typeArgBase = namedArg{
 		Names:      []string{"int8", "int16", "int32", "int64", "int16be", "int32be", "int64be", "intptr"},
 		AllowColon: true,
 		Check: func(comp *compiler, t *ast.Type) {
-			size, _ := comp.parseIntType(t.Ident)
-			if t.Value2 > size*8 {
-				comp.error(t.Pos2, "bitfield of size %v is too large for base type of size %v",
-					t.Value2, size*8)
+			if t.HasColon {
+				if t.Value2 == 0 {
+					// This was not supported historically
+					// and does not work the way C bitfields of size 0 work.
+					// We could allow this, but then we need to make
+					// this work the way C bitfields work.
+					comp.error(t.Pos2, "bitfields of size 0 are not supported")
+				}
+				size, _ := comp.parseIntType(t.Ident)
+				if t.Value2 > size*8 {
+					comp.error(t.Pos2, "bitfield of size %v is too large for base type of size %v",
+						t.Value2, size*8)
+				}
 			}
 		},
 	},
