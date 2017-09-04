@@ -123,9 +123,9 @@ func (t *ResourceType) Align() uint64 {
 type IntTypeCommon struct {
 	TypeCommon
 	TypeSize    uint64
-	BigEndian   bool
 	BitfieldOff uint64
 	BitfieldLen uint64
+	BigEndian   bool
 	BitfieldLst bool
 }
 
