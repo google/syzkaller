@@ -146,18 +146,18 @@ func (comp *compiler) checkTypes() {
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
 		case *ast.Resource:
-			comp.checkType(n.Base, false, false, true)
+			comp.checkType(n.Base, false, false, false, true)
 		case *ast.Struct:
 			for _, f := range n.Fields {
-				comp.checkType(f.Type, false, false, false)
+				comp.checkType(f.Type, false, false, !n.IsUnion, false)
 			}
 			comp.checkStruct(n)
 		case *ast.Call:
 			for _, a := range n.Args {
-				comp.checkType(a.Type, true, false, false)
+				comp.checkType(a.Type, true, false, false, false)
 			}
 			if n.Ret != nil {
-				comp.checkType(n.Ret, true, true, false)
+				comp.checkType(n.Ret, true, true, false, false)
 			}
 		}
 	}
@@ -394,7 +394,7 @@ func (comp *compiler) checkStruct(n *ast.Struct) {
 	}
 }
 
-func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isResourceBase bool) {
+func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceBase bool) {
 	if unexpected, _, ok := checkTypeKind(t, kindIdent); !ok {
 		comp.error(t.Pos, "unexpected %v, expect type", unexpected)
 		return
@@ -404,9 +404,15 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isResourceBase bool) 
 		comp.error(t.Pos, "unknown type %v", t.Ident)
 		return
 	}
-	if t.HasColon && (!desc.AllowColon || isArg) {
-		comp.error(t.Pos2, "unexpected ':'")
-		return
+	if t.HasColon {
+		if !desc.AllowColon {
+			comp.error(t.Pos2, "unexpected ':'")
+			return
+		}
+		if !isStruct {
+			comp.error(t.Pos2, "unexpected ':', only struct fields can be bitfields")
+			return
+		}
 	}
 	if isRet && (!desc.CanBeArg || desc.CantBeRet) {
 		comp.error(t.Pos, "%v can't be syscall return", t.Ident)
@@ -448,7 +454,7 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isResourceBase bool) 
 	err0 := comp.errors
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkType(arg, false, isRet, false)
+			comp.checkType(arg, false, isRet, false, false)
 		} else {
 			comp.checkTypeArg(t, arg, desc.Args[i])
 		}
