@@ -34,7 +34,7 @@ type Type interface {
 	Size() uint64
 	BitfieldOffset() uint64
 	BitfieldLength() uint64
-	BitfieldLast() bool
+	BitfieldMiddle() bool // returns true for all but last bitfield in a group
 }
 
 func IsPad(t Type) bool {
@@ -87,7 +87,7 @@ func (t *TypeCommon) BitfieldLength() uint64 {
 	return 0
 }
 
-func (t *TypeCommon) BitfieldLast() bool {
+func (t *TypeCommon) BitfieldMiddle() bool {
 	return false
 }
 
@@ -124,15 +124,7 @@ type IntTypeCommon struct {
 	BitfieldOff uint64
 	BitfieldLen uint64
 	BigEndian   bool
-	BitfieldLst bool
-}
-
-func (t *IntTypeCommon) Size() uint64 {
-	// TODO(dvyukov): check that this is not a middle bitfield
-	// if t.BitfieldLen != 0 && !t.BitfieldLst {
-	//	panic(fmt.Sprintf("bitfields don't have size: %#v", t))
-	// }
-	return t.TypeCommon.Size()
+	BitfieldMdl bool
 }
 
 func (t *IntTypeCommon) BitfieldOffset() uint64 {
@@ -143,8 +135,8 @@ func (t *IntTypeCommon) BitfieldLength() uint64 {
 	return t.BitfieldLen
 }
 
-func (t *IntTypeCommon) BitfieldLast() bool {
-	return t.BitfieldLst
+func (t *IntTypeCommon) BitfieldMiddle() bool {
+	return t.BitfieldMdl
 }
 
 type ConstType struct {

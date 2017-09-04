@@ -141,7 +141,7 @@ func (comp *compiler) genStructDescs(syscalls []*sys.Call) []*sys.KeyedStruct {
 			t.TypeSize = 0
 			if !varlen {
 				for _, f := range t.Fields {
-					if f.BitfieldLength() == 0 || f.BitfieldLast() {
+					if !f.BitfieldMiddle() {
 						t.TypeSize += f.Size()
 					}
 				}
@@ -230,30 +230,30 @@ func (comp *compiler) markBitfields(fields []sys.Type) {
 		if f.BitfieldLength() == 0 {
 			continue
 		}
-		off, last := bfOffset, false
+		off, middle := bfOffset, true
 		bfOffset += f.BitfieldLength()
 		if i == len(fields)-1 || // Last bitfield in a group, if last field of the struct...
 			fields[i+1].BitfieldLength() == 0 || // or next field is not a bitfield...
 			f.Size() != fields[i+1].Size() || // or next field is of different size...
 			bfOffset+fields[i+1].BitfieldLength() > f.Size()*8 { // or next field does not fit into the current group.
-			last, bfOffset = true, 0
+			middle, bfOffset = false, 0
 		}
-		setBitfieldOffset(f, off, last)
+		setBitfieldOffset(f, off, middle)
 	}
 }
 
-func setBitfieldOffset(t0 sys.Type, offset uint64, last bool) {
+func setBitfieldOffset(t0 sys.Type, offset uint64, middle bool) {
 	switch t := t0.(type) {
 	case *sys.IntType:
-		t.BitfieldOff, t.BitfieldLst = offset, last
+		t.BitfieldOff, t.BitfieldMdl = offset, middle
 	case *sys.ConstType:
-		t.BitfieldOff, t.BitfieldLst = offset, last
+		t.BitfieldOff, t.BitfieldMdl = offset, middle
 	case *sys.LenType:
-		t.BitfieldOff, t.BitfieldLst = offset, last
+		t.BitfieldOff, t.BitfieldMdl = offset, middle
 	case *sys.FlagsType:
-		t.BitfieldOff, t.BitfieldLst = offset, last
+		t.BitfieldOff, t.BitfieldMdl = offset, middle
 	case *sys.ProcType:
-		t.BitfieldOff, t.BitfieldLst = offset, last
+		t.BitfieldOff, t.BitfieldMdl = offset, middle
 	default:
 		panic(fmt.Sprintf("type %#v can't be a bitfield", t))
 	}
@@ -280,7 +280,7 @@ func (comp *compiler) addAlignment(fields []sys.Type, varlen, packed bool, align
 	// TODO(dvyukov): this is wrong: if alignAttr!=0, we must use it, not max
 	align := alignAttr
 	for i, f := range fields {
-		if i > 0 && (fields[i-1].BitfieldLength() == 0 || fields[i-1].BitfieldLast()) {
+		if i > 0 && !fields[i-1].BitfieldMiddle() {
 			a := comp.typeAlign(f)
 			if align < a {
 				align = a
@@ -293,7 +293,7 @@ func (comp *compiler) addAlignment(fields []sys.Type, varlen, packed bool, align
 			}
 		}
 		newFields = append(newFields, f)
-		if (f.BitfieldLength() == 0 || f.BitfieldLast()) && (i != len(fields)-1 || !f.Varlen()) {
+		if !f.BitfieldMiddle() && (i != len(fields)-1 || !f.Varlen()) {
 			// Increase offset if the current field is not a bitfield
 			// or it's the last bitfield in a set, except when it's
 			// the last field in a struct and has variable length.
