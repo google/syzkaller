@@ -236,6 +236,7 @@ var typeVMA = &typeDesc{
 		}
 		return &sys.VmaType{
 			TypeCommon: base.TypeCommon,
+			TypeSize:   comp.ptrSize,
 			RangeBegin: begin,
 			RangeEnd:   end,
 		}

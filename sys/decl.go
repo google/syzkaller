@@ -7,8 +7,6 @@ import (
 	"fmt"
 )
 
-const ptrSize = 8
-
 type Call struct {
 	ID       int
 	NR       uint64 // kernel syscall number
@@ -206,12 +204,13 @@ type CsumType struct {
 
 type VmaType struct {
 	TypeCommon
+	TypeSize   uint64
 	RangeBegin uint64 // in pages
 	RangeEnd   uint64
 }
 
 func (t *VmaType) Size() uint64 {
-	return ptrSize
+	return t.TypeSize
 }
 
 func (t *VmaType) Align() uint64 {

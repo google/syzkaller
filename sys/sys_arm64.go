@@ -631,11 +631,11 @@ var structFields = []*StructFields{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "drm_lock_flags", FldName: "flags"}, TypeSize: 4}, Vals: []uint64{1, 2, 4, 8, 16, 32}},
 	}},
 	{Key: StructKey{Name: "drm_map"}, Fields: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "off", IsOptional: true}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "off", IsOptional: true}, TypeSize: 8},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size"}, TypeSize: 8}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "drm_map_type", FldName: "type"}, TypeSize: 4}, Vals: []uint64{0, 1, 2, 3, 4, 5}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "drm_map_flags", FldName: "flags"}, TypeSize: 4}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "handle"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "handle"}, TypeSize: 8},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "mtrr"}, TypeSize: 4}},
 	}},
 	{Key: StructKey{Name: "drm_mode_card_res"}, Fields: []Type{
@@ -2499,7 +2499,7 @@ var structFields = []*StructFields{
 	{Key: StructKey{Name: "kvm_dirty_log"}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_mem_slots", FldName: "slot"}, TypeSize: 4}, Vals: []uint64{0, 1, 2, 3, 4, 5, 509, 510, 511, 10000, 65536, 65537, 65538, 65539, 65540, 66047, 66048, 66049}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad"}, TypeSize: 4}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "bitmap"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "bitmap"}, TypeSize: 8},
 	}},
 	{Key: StructKey{Name: "kvm_dirty_tlb"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "bitmap"}, TypeSize: 8}},
@@ -2989,7 +2989,7 @@ var structFields = []*StructFields{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_mem_region_flags", FldName: "flags"}, TypeSize: 4}, Vals: []uint64{1, 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_guest_addrs", FldName: "paddr"}, TypeSize: 8}, Vals: []uint64{0, 1, 2, 4, 4096, 8192, 12288, 16384, 20480, 24576, 53248, 61440, 1048576, 65536}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "addr"},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, RangeBegin: 1, RangeEnd: 2},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8, RangeBegin: 1, RangeEnd: 2},
 	}},
 	{Key: StructKey{Name: "kvm_vcpu_events"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "exinjec"}, TypeSize: 1}},
@@ -3450,14 +3450,14 @@ var structFields = []*StructFields{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pool"}},
 	}},
 	{Key: StructKey{Name: "robust_list"}, Fields: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "next"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "next"}, TypeSize: 8},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "off"}, TypeSize: 8}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "pend"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "pend"}, TypeSize: 8},
 	}},
 	{Key: StructKey{Name: "robust_list", Dir: 1}, Fields: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "next", ArgDir: 1}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "next", ArgDir: 1}, TypeSize: 8},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "off", ArgDir: 1}, TypeSize: 8}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "pend", ArgDir: 1}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "pend", ArgDir: 1}, TypeSize: 8},
 	}},
 	{Key: StructKey{Name: "rtentry_in"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "rt_pad1"}, TypeSize: 8}},
@@ -5022,7 +5022,7 @@ var structFields = []*StructFields{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f1"}, TypeSize: 2}, Buf: "parent"},
 	}},
 	{Key: StructKey{Name: "syz_length_vma_struct"}, Fields: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "f0"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "f0"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f1"}, TypeSize: 8}, Buf: "f0"},
 	}},
 	{Key: StructKey{Name: "syz_recur_0"}, Fields: []Type{
@@ -5261,7 +5261,7 @@ var structFields = []*StructFields{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "answer", ArgDir: 2}, TypeSize: 8}},
 	}},
 	{Key: StructKey{Name: "te_mem"}, Fields: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "base"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "base"}, TypeSize: 8},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "len"}, TypeSize: 4}},
 	}},
 	{Key: StructKey{Name: "te_opensession", Dir: 2}, Fields: []Type{
@@ -5484,7 +5484,7 @@ var structFields = []*StructFields{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ioctls"}, TypeSize: 8}},
 	}},
 	{Key: StructKey{Name: "uffdio_range"}, Fields: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "start"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "start"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "start"},
 	}},
 	{Key: StructKey{Name: "uffdio_register"}, Fields: []Type{
@@ -6449,7 +6449,7 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mode"}, TypeSize: 8, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", ArgDir: 1}, TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "nodemask"}, TypeSize: 8, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", ArgDir: 1}, TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "maxnode"}, TypeSize: 8}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mempolicy_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{0, 4, 2, 1}},
 	}},
 	{NR: 100, Name: "get_robust_list", CallName: "get_robust_list", Args: []Type{
@@ -10441,12 +10441,12 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "statbuf"}, TypeSize: 8, Type: &StructType{TypeCommon: TypeCommon{TypeName: "stat", ArgDir: 1}}},
 	}},
 	{NR: 233, Name: "madvise", CallName: "madvise", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "madvise_flags", FldName: "advice"}, TypeSize: 8}, Vals: []uint64{0, 1, 2, 3, 4, 9, 10, 11, 100, 101, 12, 13, 14, 15, 16, 17}},
 	}},
 	{NR: 235, Name: "mbind", CallName: "mbind", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mbind_mode", FldName: "mode"}, TypeSize: 8}, Vals: []uint64{0, 2, 3, 1, 32768, 16384}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "nodemask"}, TypeSize: 8, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64"}, TypeSize: 8}}},
@@ -10468,7 +10468,7 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new"}, TypeSize: 8, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64"}, TypeSize: 8}}},
 	}},
 	{NR: 232, Name: "mincore", CallName: "mincore", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "addr"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "vec"}, TypeSize: 8, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
 	}},
@@ -10498,11 +10498,11 @@ var Calls = []*Call{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dev"}, TypeSize: 4}},
 	}},
 	{NR: 228, Name: "mlock", CallName: "mlock", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "addr"},
 	}},
 	{NR: 284, Name: "mlock2", CallName: "mlock2", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mlock_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{1}},
 	}},
@@ -10510,13 +10510,13 @@ var Calls = []*Call{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mlockall_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{1, 2}},
 	}},
 	{NR: 222, Name: "mmap", CallName: "mmap", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot"}, TypeSize: 8}, Vals: []uint64{4, 1, 2, 8, 16777216, 33554432}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{1, 2, 32, 2048, 4096, 0, 16, 256, 262144, 8192, 65536, 16384, 32768, 131072, 0}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd"}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset"}, TypeSize: 8}, Kind: 2},
-	}, Ret: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ret", ArgDir: 1}}},
+	}, Ret: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ret", ArgDir: 1}, TypeSize: 8}},
 	{NR: 18446744073709551615, Name: "modify_ldt$read", CallName: "modify_ldt", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "func"}, TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf"}, TypeSize: 8, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
@@ -10547,13 +10547,13 @@ var Calls = []*Call{
 	{NR: 239, Name: "move_pages", CallName: "move_pages", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid"}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nr"}, TypeSize: 8}, Buf: "pages"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pages"}, TypeSize: 8, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &VmaType{TypeCommon: TypeCommon{TypeName: "vma"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pages"}, TypeSize: 8, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &VmaType{TypeCommon: TypeCommon{TypeName: "vma"}, TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "nodes", IsOptional: true}, TypeSize: 8, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32"}, TypeSize: 4}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "status"}, TypeSize: 8, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", ArgDir: 1}, TypeSize: 4}}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "move_pages_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{2, 4}},
 	}},
 	{NR: 226, Name: "mprotect", CallName: "mprotect", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot"}, TypeSize: 8}, Vals: []uint64{4, 1, 2, 8, 16777216, 33554432}},
 	}},
@@ -10590,12 +10590,12 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name"}, TypeSize: 8, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
 	}},
 	{NR: 216, Name: "mremap", CallName: "mremap", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "addr"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "newlen"}, TypeSize: 8}, Buf: "newaddr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mremap_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{1, 2}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "newaddr"}},
-	}, Ret: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ret", ArgDir: 1}}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "newaddr"}, TypeSize: 8},
+	}, Ret: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ret", ArgDir: 1}, TypeSize: 8}},
 	{NR: 187, Name: "msgctl$IPC_INFO", CallName: "msgctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_msq", FldName: "msqid"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd"}, TypeSize: 8}, Val: 3},
@@ -10647,17 +10647,17 @@ var Calls = []*Call{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "msgsnd_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{2048}},
 	}},
 	{NR: 227, Name: "msync", CallName: "msync", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "msync_flags", FldName: "f"}, TypeSize: 8}, Vals: []uint64{1, 4, 2}},
 	}},
 	{NR: 229, Name: "munlock", CallName: "munlock", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "addr"},
 	}},
 	{NR: 231, Name: "munlockall", CallName: "munlockall"},
 	{NR: 215, Name: "munmap", CallName: "munmap", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "addr"},
 	}},
 	{NR: 264, Name: "name_to_handle_at", CallName: "name_to_handle_at", Args: []Type{
@@ -10920,7 +10920,7 @@ var Calls = []*Call{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pkey", FldName: "key"}},
 	}},
 	{NR: 288, Name: "pkey_mprotect", CallName: "pkey_mprotect", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len"}, TypeSize: 8}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot"}, TypeSize: 8}, Vals: []uint64{4, 1, 2, 8, 16777216, 33554432}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pkey", FldName: "key"}},
@@ -10965,7 +10965,7 @@ var Calls = []*Call{
 	{NR: 167, Name: "prctl$setmm", CallName: "prctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "option1"}, TypeSize: 8}, Val: 35},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "prctl_mm_option", FldName: "option2"}, TypeSize: 8}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "val"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "val"}, TypeSize: 8},
 	}},
 	{NR: 167, Name: "prctl$setname", CallName: "prctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "option"}, TypeSize: 8}, Val: 15},
@@ -11230,7 +11230,7 @@ var Calls = []*Call{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "recv_flags", FldName: "f"}, TypeSize: 8}, Vals: []uint64{1073741824, 64, 8192, 1, 2, 32, 256, 65536}},
 	}},
 	{NR: 234, Name: "remap_file_pages", CallName: "remap_file_pages", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot"}, TypeSize: 8}, Vals: []uint64{4, 1, 2, 8, 16777216, 33554432}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "pgoff"}, TypeSize: 8}},
@@ -13001,7 +13001,7 @@ var Calls = []*Call{
 	}},
 	{NR: 196, Name: "shmat", CallName: "shmat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid"}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr"}, TypeSize: 8},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "shmat_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{8192, 4096, 16384}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "shmaddr", FldName: "ret", ArgDir: 1}}},
 	{NR: 195, Name: "shmctl$IPC_INFO", CallName: "shmctl", Args: []Type{
@@ -13048,20 +13048,20 @@ var Calls = []*Call{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "key"}, TypeSize: 8}, ValuesStart: 2039339027, ValuesPerProc: 4},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "unused"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "shmget_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{512, 1024, 2048, 1409286144, 2013265920, 4096, 256, 128, 64, 32, 16, 8, 4, 2, 1}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "unused"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "unused"}, TypeSize: 8},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "ret", ArgDir: 1}}},
 	{NR: 194, Name: "shmget$private", CallName: "shmget", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "key"}, TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size"}, TypeSize: 8}, Buf: "unused"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "shmget_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{512, 1024, 2048, 1409286144, 2013265920, 4096, 256, 128, 64, 32, 16, 8, 4, 2, 1}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "unused"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "unused"}, TypeSize: 8},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "ret", ArgDir: 1}}},
 	{NR: 210, Name: "shutdown", CallName: "shutdown", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd"}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "shutdown_flags", FldName: "how"}, TypeSize: 8}, Vals: []uint64{0, 1}},
 	}},
 	{NR: 132, Name: "sigaltstack", CallName: "sigaltstack", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ss"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ss"}, TypeSize: 8},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "oss", IsOptional: true}, TypeSize: 8, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", ArgDir: 1}, TypeSize: 8}}},
 	}},
 	{NR: 18446744073709551615, Name: "signalfd", CallName: "signalfd", Args: []Type{
@@ -13457,7 +13457,7 @@ var Calls = []*Call{
 	{NR: 1000004, Name: "syz_kvm_setup_cpu$arm64", CallName: "syz_kvm_setup_cpu", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "cpufd"}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "usermem"}, RangeBegin: 24, RangeEnd: 24},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "usermem"}, TypeSize: 8, RangeBegin: 24, RangeEnd: 24},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text"}, TypeSize: 8, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{TypeCommon: TypeCommon{TypeName: "kvm_text_arm64"}}, Kind: 1, RangeBegin: 1, RangeEnd: 1}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ntext"}, TypeSize: 8}, Buf: "text"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags"}, TypeSize: 8}},
@@ -13467,7 +13467,7 @@ var Calls = []*Call{
 	{NR: 1000004, Name: "syz_kvm_setup_cpu$x86", CallName: "syz_kvm_setup_cpu", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd"}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "cpufd"}},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "usermem"}, RangeBegin: 24, RangeEnd: 24},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "usermem"}, TypeSize: 8, RangeBegin: 24, RangeEnd: 24},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text"}, TypeSize: 8, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{TypeCommon: TypeCommon{TypeName: "kvm_text_x86"}, IsVarlen: true}, Kind: 1, RangeBegin: 1, RangeEnd: 1}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ntext"}, TypeSize: 8}, Buf: "text"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_setup_flags", FldName: "flags"}, TypeSize: 8}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64}},
@@ -13716,7 +13716,7 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0"}, TypeSize: 8, Type: &StructType{TypeCommon: TypeCommon{TypeName: "syz_length_const_struct"}}},
 	}},
 	{NR: 1000007, Name: "syz_test$length10", CallName: "syz_test", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "a0"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "a0"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "a1"}, TypeSize: 8}, Buf: "a0"},
 	}},
 	{NR: 1000007, Name: "syz_test$length11", CallName: "syz_test", Args: []Type{
@@ -13786,7 +13786,7 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", IsOptional: true}, TypeSize: 8, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr"}, TypeSize: 8}}},
 	}},
 	{NR: 1000007, Name: "syz_test$opt2", CallName: "syz_test", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "a0", IsOptional: true}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "a0", IsOptional: true}, TypeSize: 8},
 	}},
 	{NR: 1000007, Name: "syz_test$recur0", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0"}, TypeSize: 8, Type: &StructType{TypeCommon: TypeCommon{TypeName: "syz_recur_0", ArgDir: 2}}},
@@ -13833,11 +13833,11 @@ var Calls = []*Call{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0"}, TypeSize: 8, Type: &StructType{TypeCommon: TypeCommon{TypeName: "syz_union2_struct"}, IsPacked: true}},
 	}},
 	{NR: 1000007, Name: "syz_test$vma0", CallName: "syz_test", Args: []Type{
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "v0"}},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "v0"}, TypeSize: 8},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "l0"}, TypeSize: 8}, Buf: "v0"},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "v1"}, RangeBegin: 5, RangeEnd: 5},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "v1"}, TypeSize: 8, RangeBegin: 5, RangeEnd: 5},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "l1"}, TypeSize: 8}, Buf: "v1"},
-		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "v2"}, RangeBegin: 7, RangeEnd: 9},
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "v2"}, TypeSize: 8, RangeBegin: 7, RangeEnd: 9},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "l2"}, TypeSize: 8}, Buf: "v2"},
 	}},
 	{NR: 77, Name: "tee", CallName: "tee", Args: []Type{
