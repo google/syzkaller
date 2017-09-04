@@ -641,6 +641,9 @@ func (r *randGen) generateArg(s *state, typ sys.Type) (arg Arg, calls []*Call) {
 			// Get an existing resource.
 			var allres []Arg
 			for name1, res1 := range s.resources {
+				if name1 == "iocbptr" {
+					continue
+				}
 				if sys.IsCompatibleResource(a.Desc.Name, name1) ||
 					r.oneOf(20) && sys.IsCompatibleResource(a.Desc.Kind[0], name1) {
 					allres = append(allres, res1...)

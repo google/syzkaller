@@ -202,7 +202,6 @@ ptrace$getenv(req const[PTRACE_GETEVENTMSG], pid pid, ignored intptr, data ptr[o
 ptrace$cont(req flags[ptrace_req_cont], pid pid, ignored intptr, data intptr)
 
 resource io_ctx[intptr]
-resource iocbptr[intptr]
 io_setup(n int32, ctx ptr[out, io_ctx])
 io_destroy(ctx io_ctx)
 io_getevents(ctx io_ctx, min_nr intptr, nr len[events], events ptr[out, array[io_event]], timeout ptr[in, timespec])
