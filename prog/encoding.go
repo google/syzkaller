@@ -11,7 +11,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/google/syzkaller/sys"
+	. "github.com/google/syzkaller/sys"
 )
 
 // String generates a very compact program description (mostly for debug output).
@@ -43,7 +43,7 @@ func (p *Prog) Serialize() []byte {
 		}
 		fmt.Fprintf(buf, "%v(", c.Meta.Name)
 		for i, a := range c.Args {
-			if sys.IsPad(a.Type()) {
+			if IsPad(a.Type()) {
 				continue
 			}
 			if i != 0 {
@@ -81,16 +81,16 @@ func serialize(arg Arg, buf io.Writer, vars map[Arg]int, varSeq *int) {
 	case *GroupArg:
 		var delims []byte
 		switch arg.Type().(type) {
-		case *sys.StructType:
+		case *StructType:
 			delims = []byte{'{', '}'}
-		case *sys.ArrayType:
+		case *ArrayType:
 			delims = []byte{'[', ']'}
 		default:
 			panic("unknown group type")
 		}
 		buf.Write([]byte{delims[0]})
 		for i, arg1 := range a.Inner {
-			if arg1 != nil && sys.IsPad(arg1.Type()) {
+			if arg1 != nil && IsPad(arg1.Type()) {
 				continue
 			}
 			if i != 0 {
@@ -140,7 +140,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 			name = p.Ident()
 
 		}
-		meta := sys.SyscallMap[name]
+		meta := SyscallMap[name]
 		if meta == nil {
 			return nil, fmt.Errorf("unknown syscall %v", name)
 		}
@@ -155,7 +155,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 				return nil, fmt.Errorf("wrong call arg count: %v, want %v", i+1, len(meta.Args))
 			}
 			typ := meta.Args[i]
-			if sys.IsPad(typ) {
+			if IsPad(typ) {
 				return nil, fmt.Errorf("padding in syscall %v arguments", name)
 			}
 			arg, err := parseArg(typ, p, vars)
@@ -195,7 +195,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 	return
 }
 
-func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
+func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 	r := ""
 	if p.Char() == '<' {
 		p.Parse('<')
@@ -212,13 +212,13 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 			return nil, fmt.Errorf("wrong arg value '%v': %v", val, err)
 		}
 		switch typ.(type) {
-		case *sys.ConstType, *sys.IntType, *sys.FlagsType, *sys.ProcType, *sys.LenType, *sys.CsumType:
+		case *ConstType, *IntType, *FlagsType, *ProcType, *LenType, *CsumType:
 			arg = constArg(typ, v)
-		case *sys.ResourceType:
+		case *ResourceType:
 			arg = resultArg(typ, nil, v)
-		case *sys.PtrType:
+		case *PtrType:
 			arg = pointerArg(typ, 0, 0, 0, nil)
-		case *sys.VmaType:
+		case *VmaType:
 			arg = pointerArg(typ, 0, 0, 0, nil)
 		default:
 			return nil, fmt.Errorf("bad const type %+v", typ)
@@ -249,11 +249,11 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 			arg.(*ResultArg).OpAdd = v
 		}
 	case '&':
-		var typ1 sys.Type
+		var typ1 Type
 		switch t1 := typ.(type) {
-		case *sys.PtrType:
+		case *PtrType:
 			typ1 = t1.Type
-		case *sys.VmaType:
+		case *VmaType:
 		default:
 			return nil, fmt.Errorf("& arg is not a pointer: %#v", typ)
 		}
@@ -289,7 +289,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		}
 		arg = dataArg(typ, data)
 	case '{':
-		t1, ok := typ.(*sys.StructType)
+		t1, ok := typ.(*StructType)
 		if !ok {
 			return nil, fmt.Errorf("'{' arg is not a struct: %#v", typ)
 		}
@@ -300,7 +300,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 				return nil, fmt.Errorf("wrong struct arg count: %v, want %v", i+1, len(t1.Fields))
 			}
 			fld := t1.Fields[i]
-			if sys.IsPad(fld) {
+			if IsPad(fld) {
 				inner = append(inner, constArg(fld, 0))
 			} else {
 				arg, err := parseArg(fld, p, vars)
@@ -319,7 +319,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		}
 		arg = groupArg(typ, inner)
 	case '[':
-		t1, ok := typ.(*sys.ArrayType)
+		t1, ok := typ.(*ArrayType)
 		if !ok {
 			return nil, fmt.Errorf("'[' arg is not an array: %#v", typ)
 		}
@@ -338,14 +338,14 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		p.Parse(']')
 		arg = groupArg(typ, inner)
 	case '@':
-		t1, ok := typ.(*sys.UnionType)
+		t1, ok := typ.(*UnionType)
 		if !ok {
 			return nil, fmt.Errorf("'@' arg is not a union: %#v", typ)
 		}
 		p.Parse('@')
 		name := p.Ident()
 		p.Parse('=')
-		var optType sys.Type
+		var optType Type
 		for _, t2 := range t1.Fields {
 			if name == t2.FieldName() {
 				optType = t2

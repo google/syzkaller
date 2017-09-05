@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/google/syzkaller/sys"
+	. "github.com/google/syzkaller/sys"
 )
 
 const (
@@ -110,7 +110,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 					if a1, ok := arg1.(*DataArg); ok && len(a1.Data) == 0 {
 						return
 					}
-					if !sys.IsPad(arg1.Type()) && arg1.Type().Dir() != sys.DirOut {
+					if !IsPad(arg1.Type()) && arg1.Type().Dir() != DirOut {
 						w.write(ExecInstrCopyin)
 						w.write(physicalAddr(arg) + offset)
 						w.writeArg(arg1, pid, csumMap)
@@ -129,7 +129,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 			sort.Sort(ByPhysicalAddr{Args: csumArgs, Context: w})
 			for i := len(csumArgs) - 1; i >= 0; i-- {
 				arg := csumArgs[i]
-				if _, ok := arg.Type().(*sys.CsumType); !ok {
+				if _, ok := arg.Type().(*CsumType); !ok {
 					panic("csum arg is not csum type")
 				}
 				w.write(ExecInstrCopyin)

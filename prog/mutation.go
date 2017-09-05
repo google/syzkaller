@@ -8,7 +8,7 @@ import (
 	"math/rand"
 	"unsafe"
 
-	"github.com/google/syzkaller/sys"
+	. "github.com/google/syzkaller/sys"
 )
 
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Prog) {
@@ -79,7 +79,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					baseSize = b.Res.Size()
 				}
 				switch t := arg.Type().(type) {
-				case *sys.IntType, *sys.FlagsType:
+				case *IntType, *FlagsType:
 					a := arg.(*ConstArg)
 					if r.bin() {
 						arg1, calls1 := r.generateArg(s, arg.Type())
@@ -94,23 +94,23 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 							a.Val ^= 1 << uint64(r.Intn(64))
 						}
 					}
-				case *sys.ResourceType, *sys.VmaType, *sys.ProcType:
+				case *ResourceType, *VmaType, *ProcType:
 					arg1, calls1 := r.generateArg(s, arg.Type())
 					p.replaceArg(c, arg, arg1, calls1)
-				case *sys.BufferType:
+				case *BufferType:
 					a := arg.(*DataArg)
 					switch t.Kind {
-					case sys.BufferBlobRand, sys.BufferBlobRange:
+					case BufferBlobRand, BufferBlobRange:
 						var data []byte
 						data = append([]byte{}, a.Data...)
 						var minLen uint64
 						maxLen := ^uint64(0)
-						if t.Kind == sys.BufferBlobRange {
+						if t.Kind == BufferBlobRange {
 							minLen = t.RangeBegin
 							maxLen = t.RangeEnd
 						}
 						a.Data = mutateData(r, data, minLen, maxLen)
-					case sys.BufferString:
+					case BufferString:
 						if r.bin() {
 							minLen, maxLen := uint64(0), ^uint64(0)
 							if t.TypeSize != 0 {
@@ -120,22 +120,22 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 						} else {
 							a.Data = r.randString(s, t.Values, t.Dir())
 						}
-					case sys.BufferFilename:
+					case BufferFilename:
 						a.Data = []byte(r.filename(s))
-					case sys.BufferText:
+					case BufferText:
 						a.Data = r.mutateText(t.Text, a.Data)
 					default:
 						panic("unknown buffer kind")
 					}
-				case *sys.ArrayType:
+				case *ArrayType:
 					a := arg.(*GroupArg)
 					count := uint64(0)
 					switch t.Kind {
-					case sys.ArrayRandLen:
+					case ArrayRandLen:
 						for count == uint64(len(a.Inner)) {
 							count = r.randArrayLen()
 						}
-					case sys.ArrayRangeLen:
+					case ArrayRangeLen:
 						if t.RangeBegin == t.RangeEnd {
 							panic("trying to mutate fixed length array")
 						}
@@ -165,7 +165,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 						a.Inner = a.Inner[:count]
 					}
 					// TODO: swap elements of the array
-				case *sys.PtrType:
+				case *PtrType:
 					a, ok := arg.(*PointerArg)
 					if !ok {
 						break
@@ -177,7 +177,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					}
 					arg1, calls1 := r.addr(s, t, size, a.Res)
 					p.replaceArg(c, arg, arg1, calls1)
-				case *sys.StructType:
+				case *StructType:
 					ctor := isSpecialStruct(t)
 					if ctor == nil {
 						panic("bad arg returned by mutationArgs: StructType")
@@ -187,7 +187,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 						p.replaceArg(c, arg.(*GroupArg).Inner[i], f, calls1)
 						calls1 = nil
 					}
-				case *sys.UnionType:
+				case *UnionType:
 					a := arg.(*UnionArg)
 					optType := t.Fields[r.Intn(len(t.Fields))]
 					maxIters := 1000
@@ -201,11 +201,11 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					opt, calls := r.generateArg(s, optType)
 					arg1 := unionArg(t, opt, optType)
 					p.replaceArg(c, arg, arg1, calls)
-				case *sys.LenType:
+				case *LenType:
 					panic("bad arg returned by mutationArgs: LenType")
-				case *sys.CsumType:
+				case *CsumType:
 					panic("bad arg returned by mutationArgs: CsumType")
-				case *sys.ConstType:
+				case *ConstType:
 					panic("bad arg returned by mutationArgs: ConstType")
 				default:
 					panic(fmt.Sprintf("bad arg returned by mutationArgs: %#v, type=%#v", arg, arg.Type()))
@@ -326,19 +326,19 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 	rec = func(p *Prog, call *Call, arg Arg, path string) bool {
 		path += fmt.Sprintf("-%v", arg.Type().FieldName())
 		switch typ := arg.Type().(type) {
-		case *sys.StructType:
+		case *StructType:
 			a := arg.(*GroupArg)
 			for _, innerArg := range a.Inner {
 				if rec(p, call, innerArg, path) {
 					return true
 				}
 			}
-		case *sys.UnionType:
+		case *UnionType:
 			a := arg.(*UnionArg)
 			if rec(p, call, a.Option, path) {
 				return true
 			}
-		case *sys.PtrType:
+		case *PtrType:
 			// TODO: try to remove optional ptrs
 			a, ok := arg.(*PointerArg)
 			if !ok {
@@ -348,13 +348,13 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 			if a.Res != nil {
 				return rec(p, call, a.Res, path)
 			}
-		case *sys.ArrayType:
+		case *ArrayType:
 			a := arg.(*GroupArg)
 			for i, innerArg := range a.Inner {
 				innerPath := fmt.Sprintf("%v-%v", path, i)
 				if !triedPaths[innerPath] && !crash {
-					if (typ.Kind == sys.ArrayRangeLen && len(a.Inner) > int(typ.RangeBegin)) ||
-						(typ.Kind == sys.ArrayRandLen) {
+					if (typ.Kind == ArrayRangeLen && len(a.Inner) > int(typ.RangeBegin)) ||
+						(typ.Kind == ArrayRandLen) {
 						copy(a.Inner[i:], a.Inner[i+1:])
 						a.Inner = a.Inner[:len(a.Inner)-1]
 						p.removeArg(call, innerArg)
@@ -373,7 +373,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 					return true
 				}
 			}
-		case *sys.IntType, *sys.FlagsType, *sys.ProcType:
+		case *IntType, *FlagsType, *ProcType:
 			// TODO: try to reset bits in ints
 			// TODO: try to set separate flags
 			if crash {
@@ -395,7 +395,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 			} else {
 				a.Val = v0
 			}
-		case *sys.ResourceType:
+		case *ResourceType:
 			if crash {
 				return false
 			}
@@ -417,13 +417,13 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 				a.Res = r0
 				a.Val = 0
 			}
-		case *sys.BufferType:
+		case *BufferType:
 			// TODO: try to set individual bytes to 0
 			if triedPaths[path] {
 				return false
 			}
 			triedPaths[path] = true
-			if typ.Kind != sys.BufferBlobRand && typ.Kind != sys.BufferBlobRange {
+			if typ.Kind != BufferBlobRand && typ.Kind != BufferBlobRange {
 				return false
 			}
 			a := arg.(*DataArg)
@@ -444,7 +444,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 				}
 			}
 			p0 = p
-		case *sys.VmaType, *sys.LenType, *sys.CsumType, *sys.ConstType:
+		case *VmaType, *LenType, *CsumType, *ConstType:
 			// TODO: try to remove offset from vma
 			return false
 		default:
@@ -495,36 +495,36 @@ func (p *Prog) TrimAfter(idx int) {
 func mutationArgs(c *Call) (args, bases []Arg) {
 	foreachArg(c, func(arg, base Arg, _ *[]Arg) {
 		switch typ := arg.Type().(type) {
-		case *sys.StructType:
+		case *StructType:
 			if isSpecialStruct(typ) == nil {
 				// For structs only individual fields are updated.
 				return
 			}
 			// These special structs are mutated as a whole.
-		case *sys.ArrayType:
+		case *ArrayType:
 			// Don't mutate fixed-size arrays.
-			if typ.Kind == sys.ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
+			if typ.Kind == ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
 				return
 			}
-		case *sys.LenType:
+		case *LenType:
 			// Size is updated when the size-of arg change.
 			return
-		case *sys.CsumType:
+		case *CsumType:
 			// Checksum is updated when the checksummed data changes.
 			return
-		case *sys.ConstType:
+		case *ConstType:
 			// Well, this is const.
 			return
-		case *sys.BufferType:
-			if typ.Kind == sys.BufferString && len(typ.Values) == 1 {
+		case *BufferType:
+			if typ.Kind == BufferString && len(typ.Values) == 1 {
 				return // string const
 			}
 		}
-		if arg.Type().Dir() == sys.DirOut {
+		if arg.Type().Dir() == DirOut {
 			return
 		}
 		if base != nil {
-			if _, ok := base.Type().(*sys.StructType); ok && isSpecialStruct(base.Type()) != nil {
+			if _, ok := base.Type().(*StructType); ok && isSpecialStruct(base.Type()) != nil {
 				// These special structs are mutated as a whole.
 				return
 			}
