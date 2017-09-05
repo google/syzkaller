@@ -199,18 +199,15 @@ func (r *randGen) randStringImpl(s *state, vals []string) []byte {
 		}
 		return []byte(strings[r.Intn(len(strings))])
 	}
-	dict := []string{"user", "keyring", "trusted", "system", "security", "selinux",
-		"posix_acl_access", "mime_type", "md5sum", "nodev", "self",
-		"bdev", "proc", "cgroup", "cpuset",
-		"lo", "eth0", "eth1", "em0", "em1", "wlan0", "wlan1", "ppp0", "ppp1",
-		"vboxnet0", "vboxnet1", "vmnet0", "vmnet1", "GPL"}
 	punct := []byte{'!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '+', '\\',
 		'/', ':', '.', ',', '-', '\'', '[', ']', '{', '}'}
 	buf := new(bytes.Buffer)
 	for r.nOutOf(3, 4) {
 		switch {
 		case r.nOutOf(10, 21):
-			buf.WriteString(dict[r.Intn(len(dict))])
+			if len(stringDictionary) != 0 {
+				buf.WriteString(stringDictionary[r.Intn(len(stringDictionary))])
+			}
 		case r.nOutOf(10, 11):
 			buf.Write([]byte{punct[r.Intn(len(punct))]})
 		default:
