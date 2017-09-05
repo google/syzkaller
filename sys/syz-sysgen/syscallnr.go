@@ -26,7 +26,7 @@ var archs = []*Arch{
 	{"ppc64le", 8, []string{"__ppc64__", "__PPC64__", "__powerpc64__"}},
 }
 
-func generateExecutorSyscalls(arch *Arch, syscalls []*sys.Call) []byte {
+func generateExecutorSyscalls(arch *Arch, syscalls []*sys.Syscall) []byte {
 	data := ArchData{
 		CARCH: arch.CARCH,
 	}

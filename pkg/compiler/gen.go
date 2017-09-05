@@ -44,8 +44,8 @@ func (comp *compiler) genResource(n *ast.Resource) *sys.ResourceDesc {
 	return res
 }
 
-func (comp *compiler) genSyscalls() []*sys.Call {
-	var calls []*sys.Call
+func (comp *compiler) genSyscalls() []*sys.Syscall {
+	var calls []*sys.Syscall
 	for _, decl := range comp.desc.Nodes {
 		if n, ok := decl.(*ast.Call); ok {
 			calls = append(calls, comp.genSyscall(n))
@@ -60,12 +60,12 @@ func (comp *compiler) genSyscalls() []*sys.Call {
 	return calls
 }
 
-func (comp *compiler) genSyscall(n *ast.Call) *sys.Call {
+func (comp *compiler) genSyscall(n *ast.Call) *sys.Syscall {
 	var ret sys.Type
 	if n.Ret != nil {
 		ret = comp.genType(n.Ret, "ret", sys.DirOut, true)
 	}
-	return &sys.Call{
+	return &sys.Syscall{
 		Name:     n.Name.Name,
 		CallName: n.CallName,
 		NR:       n.NR,
@@ -74,7 +74,7 @@ func (comp *compiler) genSyscall(n *ast.Call) *sys.Call {
 	}
 }
 
-func (comp *compiler) genStructDescs(syscalls []*sys.Call) []*sys.KeyedStruct {
+func (comp *compiler) genStructDescs(syscalls []*sys.Syscall) []*sys.KeyedStruct {
 	// Calculate struct/union/array sizes, add padding to structs and detach
 	// StructDesc's from StructType's. StructType's can be recursive so it's
 	// not possible to write them out inline as other types. To break the

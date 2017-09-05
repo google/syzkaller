@@ -271,7 +271,7 @@ func (r *randGen) timespec(s *state, typ *sys.StructType, usec bool) (arg Arg, c
 		})
 	default:
 		// few ms ahead for absolute
-		meta := sys.CallMap["clock_gettime"]
+		meta := sys.SyscallMap["clock_gettime"]
 		ptrArgType := meta.Args[1].(*sys.PtrType)
 		argType := ptrArgType.Type.(*sys.StructType)
 		tp := groupArg(argType, []Arg{
@@ -304,7 +304,7 @@ func (r *randGen) timespec(s *state, typ *sys.StructType, usec bool) (arg Arg, c
 
 // createMmapCall creates a "normal" mmap call that maps [start, start+npages) page range.
 func createMmapCall(start, npages uint64) *Call {
-	meta := sys.CallMap["mmap"]
+	meta := sys.SyscallMap["mmap"]
 	mmap := &Call{
 		Meta: meta,
 		Args: []Arg{
@@ -420,7 +420,7 @@ func (r *randGen) createResource(s *state, res *sys.ResourceType) (arg Arg, call
 	// Find calls that produce the necessary resources.
 	metas0 := sys.ResourceConstructors(kind)
 	// TODO: reduce priority of less specialized ctors.
-	var metas []*sys.Call
+	var metas []*sys.Syscall
 	for _, meta := range metas0 {
 		if s.ct == nil || s.ct.run[meta.ID] == nil {
 			continue
@@ -543,11 +543,11 @@ func (r *randGen) generateCall(s *state, p *Prog) []*Call {
 			}
 		}
 	}
-	meta := sys.Calls[s.ct.Choose(r.Rand, call)]
+	meta := sys.Syscalls[s.ct.Choose(r.Rand, call)]
 	return r.generateParticularCall(s, meta)
 }
 
-func (r *randGen) generateParticularCall(s *state, meta *sys.Call) (calls []*Call) {
+func (r *randGen) generateParticularCall(s *state, meta *sys.Syscall) (calls []*Call) {
 	c := &Call{
 		Meta: meta,
 		Ret:  returnArg(meta.Ret),
@@ -567,7 +567,7 @@ func GenerateAllSyzProg(rs rand.Source) *Prog {
 	r := newRand(rs)
 	s := newState(nil)
 	handled := make(map[string]bool)
-	for _, meta := range sys.Calls {
+	for _, meta := range sys.Syscalls {
 		if !strings.HasPrefix(meta.CallName, "syz_") || handled[meta.CallName] {
 			continue
 		}

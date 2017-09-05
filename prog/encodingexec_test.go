@@ -47,7 +47,7 @@ func TestSerializeForExec(t *testing.T) {
 		argData      = uint64(ExecArgData)
 	)
 	callID := func(name string) uint64 {
-		c := sys.CallMap[name]
+		c := sys.SyscallMap[name]
 		if c == nil {
 			t.Fatalf("unknown syscall %v", name)
 		}

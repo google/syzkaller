@@ -14,7 +14,7 @@ type Prog struct {
 }
 
 type Call struct {
-	Meta *sys.Call
+	Meta *sys.Syscall
 	Args []Arg
 	Ret  Arg
 }

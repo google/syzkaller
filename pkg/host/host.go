@@ -16,7 +16,7 @@ import (
 )
 
 // DetectSupportedSyscalls returns list on supported syscalls on host.
-func DetectSupportedSyscalls() (map[*sys.Call]bool, error) {
+func DetectSupportedSyscalls() (map[*sys.Syscall]bool, error) {
 	// There are 3 possible strategies:
 	// 1. Executes all syscalls with presumably invalid arguments and check for ENOSYS.
 	//    But not all syscalls are safe to execute. For example, pause will hang,
@@ -28,8 +28,8 @@ func DetectSupportedSyscalls() (map[*sys.Call]bool, error) {
 	//    Requires CONFIG_KALLSYMS. Seems to be the most reliable. That's what we use here.
 
 	kallsyms, _ := ioutil.ReadFile("/proc/kallsyms")
-	supported := make(map[*sys.Call]bool)
-	for _, c := range sys.Calls {
+	supported := make(map[*sys.Syscall]bool)
+	for _, c := range sys.Syscalls {
 		if isSupported(kallsyms, c) {
 			supported[c] = true
 		}
@@ -37,7 +37,7 @@ func DetectSupportedSyscalls() (map[*sys.Call]bool, error) {
 	return supported, nil
 }
 
-func isSupported(kallsyms []byte, c *sys.Call) bool {
+func isSupported(kallsyms []byte, c *sys.Syscall) bool {
 	if c.NR == ^uint64(0) {
 		return false // don't even have a syscall number
 	}
@@ -59,7 +59,7 @@ func isSupported(kallsyms []byte, c *sys.Call) bool {
 	return bytes.Index(kallsyms, []byte(" T sys_"+c.CallName+"\n")) != -1
 }
 
-func isSupportedSyzkall(c *sys.Call) bool {
+func isSupportedSyzkall(c *sys.Syscall) bool {
 	switch c.CallName {
 	case "syz_test":
 		return false
@@ -112,7 +112,7 @@ func isSupportedSyzkall(c *sys.Call) bool {
 	panic("unknown syzkall: " + c.Name)
 }
 
-func isSupportedSocket(c *sys.Call) bool {
+func isSupportedSocket(c *sys.Syscall) bool {
 	af, ok := c.Args[0].(*sys.ConstType)
 	if !ok {
 		println(c.Name)
@@ -125,7 +125,7 @@ func isSupportedSocket(c *sys.Call) bool {
 	return err != syscall.ENOSYS && err != syscall.EAFNOSUPPORT
 }
 
-func isSupportedOpen(c *sys.Call) bool {
+func isSupportedOpen(c *sys.Syscall) bool {
 	fname, ok := extractStringConst(c.Args[0])
 	if !ok {
 		return true
@@ -137,7 +137,7 @@ func isSupportedOpen(c *sys.Call) bool {
 	return err == nil
 }
 
-func isSupportedOpenAt(c *sys.Call) bool {
+func isSupportedOpenAt(c *sys.Syscall) bool {
 	fname, ok := extractStringConst(c.Args[1])
 	if !ok {
 		return true

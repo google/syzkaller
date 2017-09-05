@@ -34,7 +34,7 @@ import (
 // Prog is description compilation result.
 type Prog struct {
 	Resources   []*sys.ResourceDesc
-	Syscalls    []*sys.Call
+	Syscalls    []*sys.Syscall
 	StructDescs []*sys.KeyedStruct
 	// Set of unsupported syscalls/flags.
 	Unsupported map[string]bool

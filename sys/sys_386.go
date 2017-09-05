@@ -5892,7 +5892,7 @@ var structDescs = []*KeyedStruct{
 	}}},
 }
 
-var Calls = []*Call{
+var Syscalls = []*Syscall{
 	{NR: 18446744073709551615, Name: "accept", CallName: "accept", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peer", TypeSize: 4, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_storage", Dir: 1}}},
