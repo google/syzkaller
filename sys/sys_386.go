@@ -14192,6 +14192,7 @@ var syscalls = []*Syscall{
 }
 
 const (
+	ptrSize                                  = 4
 	ADDR_COMPAT_LAYOUT                       = 2097152
 	ADDR_LIMIT_32BIT                         = 8388608
 	ADDR_LIMIT_3GB                           = 134217728
