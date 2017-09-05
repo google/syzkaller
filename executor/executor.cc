@@ -814,17 +814,13 @@ void cover_open()
 		th->cover_fd = open("/sys/kernel/debug/kcov", O_RDWR);
 		if (th->cover_fd == -1)
 			fail("open of /sys/kernel/debug/kcov failed");
-
 		if (ioctl(th->cover_fd, KCOV_INIT_TRACE, kCoverSize))
 			fail("cover init trace write failed");
-
-		size_t mmap_alloc_size = kCoverSize * sizeof(unsigned long);
+		size_t mmap_alloc_size = kCoverSize * sizeof(th->cover_data[0]);
 		uint64_t* mmap_ptr = (uint64_t*)mmap(NULL, mmap_alloc_size,
 						     PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
-
 		if (mmap_ptr == MAP_FAILED)
 			fail("cover mmap failed");
-
 		th->cover_size_ptr = mmap_ptr;
 		th->cover_data = &mmap_ptr[1];
 	}
