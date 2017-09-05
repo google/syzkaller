@@ -157,7 +157,9 @@ func generateTimespec(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (ar
 	// (1) definitely in the past, or
 	// (2) definitely in unreachable fututre, or
 	// (3) few ms ahead of now.
-	// Note timespec/timeval can be absolute or relative to now.
+	// Note: timespec/timeval can be absolute or relative to now.
+	// Note: executor has blocking syscall timeout of 20ms,
+	// so we generate both 10ms and 30ms.
 	usec := typ.Name() == "timeval"
 	switch {
 	case g.NOutOf(1, 4):
@@ -169,6 +171,9 @@ func generateTimespec(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (ar
 	case g.NOutOf(1, 3):
 		// Few ms ahead for relative, past for absolute
 		nsec := uint64(10 * 1e6)
+		if g.NOutOf(1, 2) {
+			nsec = 30 * 1e6
+		}
 		if usec {
 			nsec /= 1e3
 		}
@@ -204,11 +209,15 @@ func generateTimespec(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (ar
 		calls = append(calls, gettime)
 		sec := prog.MakeResultArg(typ.Fields[0], tp.(*prog.GroupArg).Inner[0], 0)
 		nsec := prog.MakeResultArg(typ.Fields[1], tp.(*prog.GroupArg).Inner[1], 0)
+		msec := uint64(10)
+		if g.NOutOf(1, 2) {
+			msec = 30
+		}
 		if usec {
 			nsec.(*prog.ResultArg).OpDiv = 1e3
-			nsec.(*prog.ResultArg).OpAdd = 10 * 1e3
+			nsec.(*prog.ResultArg).OpAdd = msec * 1e3
 		} else {
-			nsec.(*prog.ResultArg).OpAdd = 10 * 1e6
+			nsec.(*prog.ResultArg).OpAdd = msec * 1e6
 		}
 		arg = prog.MakeGroupArg(typ, []prog.Arg{sec, nsec})
 	}

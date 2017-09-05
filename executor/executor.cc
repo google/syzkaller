@@ -549,6 +549,8 @@ retry:
 			// Wait for call completion.
 			uint64_t start = current_time_ms();
 			uint64_t now = start;
+			// Note: sys knows about this 20ms timeout when it generates
+			// timespec/timeval values.
 			const uint64_t timeout_ms = flag_debug ? 500 : 20;
 			for (;;) {
 				timespec ts = {};
