@@ -1,7 +1,7 @@
 // Copyright 2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package prog
+package prog_test
 
 import (
 	"bytes"
@@ -9,13 +9,12 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/google/syzkaller/sys"
+	. "github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 )
 
-const ptrSize = 8
-
 func TestSerializeForExecRandom(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, iters := InitTest(t)
 	buf := make([]byte, ExecBufferSize)
 	for i := 0; i < iters; i++ {
 		p := Generate(rs, 10, nil)
@@ -45,6 +44,10 @@ func TestSerializeForExec(t *testing.T) {
 		argConst     = uint64(ExecArgConst)
 		argResult    = uint64(ExecArgResult)
 		argData      = uint64(ExecArgData)
+	)
+	var (
+		dataOffset = DataOffset()
+		ptrSize    = PtrSize()
 	)
 	callID := func(name string) uint64 {
 		c := SyscallMap[name]

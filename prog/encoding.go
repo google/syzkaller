@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-
-	. "github.com/google/syzkaller/sys"
 )
 
 // String generates a very compact program description (mostly for debug output).
@@ -146,7 +144,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 		}
 		c := &Call{
 			Meta: meta,
-			Ret:  returnArg(meta.Ret),
+			Ret:  MakeReturnArg(meta.Ret),
 		}
 		prog.Calls = append(prog.Calls, c)
 		p.Parse('(')
@@ -213,13 +211,13 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 		}
 		switch typ.(type) {
 		case *ConstType, *IntType, *FlagsType, *ProcType, *LenType, *CsumType:
-			arg = constArg(typ, v)
+			arg = MakeConstArg(typ, v)
 		case *ResourceType:
-			arg = resultArg(typ, nil, v)
+			arg = MakeResultArg(typ, nil, v)
 		case *PtrType:
-			arg = pointerArg(typ, 0, 0, 0, nil)
+			arg = MakePointerArg(typ, 0, 0, 0, nil)
 		case *VmaType:
-			arg = pointerArg(typ, 0, 0, 0, nil)
+			arg = MakePointerArg(typ, 0, 0, 0, nil)
 		default:
 			return nil, fmt.Errorf("bad const type %+v", typ)
 		}
@@ -229,7 +227,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 		if !ok || v == nil {
 			return nil, fmt.Errorf("result %v references unknown variable (vars=%+v)", id, vars)
 		}
-		arg = resultArg(typ, v, 0)
+		arg = MakeResultArg(typ, v, 0)
 		if p.Char() == '/' {
 			p.Parse('/')
 			op := p.Ident()
@@ -267,7 +265,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 		if err != nil {
 			return nil, err
 		}
-		arg = pointerArg(typ, page, off, size, inner)
+		arg = MakePointerArg(typ, page, off, size, inner)
 	case '(':
 		// This used to parse length of VmaType and return ArgPageSize, which is now removed.
 		// Leaving this for now for backwards compatibility.
@@ -275,7 +273,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 		if err != nil {
 			return nil, err
 		}
-		arg = constArg(typ, pages*pageSize)
+		arg = MakeConstArg(typ, pages*pageSize)
 	case '"':
 		p.Parse('"')
 		val := ""
@@ -301,7 +299,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 			}
 			fld := t1.Fields[i]
 			if IsPad(fld) {
-				inner = append(inner, constArg(fld, 0))
+				inner = append(inner, MakeConstArg(fld, 0))
 			} else {
 				arg, err := parseArg(fld, p, vars)
 				if err != nil {
@@ -317,7 +315,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 		for len(inner) < len(t1.Fields) {
 			inner = append(inner, defaultArg(t1.Fields[len(inner)]))
 		}
-		arg = groupArg(typ, inner)
+		arg = MakeGroupArg(typ, inner)
 	case '[':
 		t1, ok := typ.(*ArrayType)
 		if !ok {
@@ -336,7 +334,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 			}
 		}
 		p.Parse(']')
-		arg = groupArg(typ, inner)
+		arg = MakeGroupArg(typ, inner)
 	case '@':
 		t1, ok := typ.(*UnionType)
 		if !ok {

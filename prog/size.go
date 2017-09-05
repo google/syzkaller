@@ -5,32 +5,30 @@ package prog
 
 import (
 	"fmt"
-
-	. "github.com/google/syzkaller/sys"
 )
 
 func generateSize(arg Arg, lenType *LenType) Arg {
 	if arg == nil {
 		// Arg is an optional pointer, set size to 0.
-		return constArg(lenType, 0)
+		return MakeConstArg(lenType, 0)
 	}
 
 	switch arg.Type().(type) {
 	case *VmaType:
 		a := arg.(*PointerArg)
-		return constArg(lenType, a.PagesNum*pageSize)
+		return MakeConstArg(lenType, a.PagesNum*pageSize)
 	case *ArrayType:
 		a := arg.(*GroupArg)
 		if lenType.ByteSize != 0 {
-			return constArg(lenType, a.Size()/lenType.ByteSize)
+			return MakeConstArg(lenType, a.Size()/lenType.ByteSize)
 		} else {
-			return constArg(lenType, uint64(len(a.Inner)))
+			return MakeConstArg(lenType, uint64(len(a.Inner)))
 		}
 	default:
 		if lenType.ByteSize != 0 {
-			return constArg(lenType, arg.Size()/lenType.ByteSize)
+			return MakeConstArg(lenType, arg.Size()/lenType.ByteSize)
 		} else {
-			return constArg(lenType, arg.Size())
+			return MakeConstArg(lenType, arg.Size())
 		}
 	}
 }

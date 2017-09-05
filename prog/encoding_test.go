@@ -1,7 +1,7 @@
 // Copyright 2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package prog
+package prog_test
 
 import (
 	"fmt"
@@ -9,6 +9,9 @@ import (
 	"regexp"
 	"sort"
 	"testing"
+
+	. "github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 )
 
 func setToArray(s map[string]struct{}) []string {
@@ -76,7 +79,7 @@ func TestCallSet(t *testing.T) {
 }
 
 func TestCallSetRandom(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, iters := InitTest(t)
 	for i := 0; i < iters; i++ {
 		p := Generate(rs, 10, nil)
 		calls0 := make(map[string]struct{})

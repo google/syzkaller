@@ -1,7 +1,7 @@
 // Copyright 2015/2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package sys
+package prog
 
 import (
 	"fmt"
@@ -94,10 +94,6 @@ func (t *TypeCommon) BitfieldMiddle() bool {
 func (t TypeCommon) Dir() Dir {
 	return t.ArgDir
 }
-
-const (
-	InvalidFD = ^uint64(0)
-)
 
 type ResourceDesc struct {
 	Name   string
@@ -267,12 +263,6 @@ func (t *UnionType) FieldName() string {
 	return t.FldName
 }
 
-var (
-	SyscallMap = make(map[string]*Syscall)
-	Resources  map[string]*ResourceDesc
-	ctors      = make(map[string][]*Syscall)
-)
-
 type StructDesc struct {
 	TypeCommon
 	Fields    []Type
@@ -293,53 +283,12 @@ type KeyedStruct struct {
 	Desc *StructDesc
 }
 
-func initStructFields() {
-	keyedStructs := make(map[StructKey]*StructDesc)
-	for _, desc := range structDescs {
-		keyedStructs[desc.Key] = desc.Desc
-	}
-
-	for _, c := range Syscalls {
-		ForeachType(c, func(t Type) {
-			switch s := t.(type) {
-			case *StructType:
-				s.StructDesc = keyedStructs[s.Key]
-				if s.StructDesc == nil {
-					panic("no struct desc")
-				}
-			case *UnionType:
-				s.StructDesc = keyedStructs[s.Key]
-				if s.StructDesc == nil {
-					panic("no union desc")
-				}
-			}
-		})
-	}
-}
-
 // ResourceConstructors returns a list of calls that can create a resource of the given kind.
 func ResourceConstructors(name string) []*Syscall {
-	return ctors[name]
+	return resourceCtors[name]
 }
 
-func initResources() {
-	Resources = make(map[string]*ResourceDesc)
-	for _, res := range resourceArray {
-		Resources[res.Name] = res
-	}
-	for _, c := range Syscalls {
-		ForeachType(c, func(t Type) {
-			if r, ok := t.(*ResourceType); ok {
-				r.Desc = Resources[r.TypeName]
-			}
-		})
-	}
-	for _, res := range resourceArray {
-		ctors[res.Name] = resourceCtors(res.Kind, false)
-	}
-}
-
-func resourceCtors(kind []string, precise bool) []*Syscall {
+func calcResourceCtors(kind []string, precise bool) []*Syscall {
 	// Find calls that produce the necessary resources.
 	var metas []*Syscall
 	for _, meta := range Syscalls {
@@ -426,7 +375,7 @@ func TransitivelyEnabledCalls(enabled map[*Syscall]bool) map[*Syscall]bool {
 			if _, ok := ctors[res.Desc.Name]; ok {
 				continue
 			}
-			ctors[res.Desc.Name] = resourceCtors(res.Desc.Kind, true)
+			ctors[res.Desc.Name] = calcResourceCtors(res.Desc.Kind, true)
 		}
 	}
 	for {
@@ -504,19 +453,5 @@ func ForeachType(meta *Syscall, f func(Type)) {
 	}
 	if meta.Ret != nil {
 		rec(meta.Ret)
-	}
-}
-
-func init() {
-	initStructFields()
-	initResources()
-	structDescs = nil
-
-	for _, c := range Syscalls {
-		if SyscallMap[c.Name] != nil {
-			println(c.Name)
-			panic("duplicate syscall")
-		}
-		SyscallMap[c.Name] = c
 	}
 }

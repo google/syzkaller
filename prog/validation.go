@@ -5,8 +5,6 @@ package prog
 
 import (
 	"fmt"
-
-	. "github.com/google/syzkaller/sys"
 )
 
 var debug = false // enabled in tests

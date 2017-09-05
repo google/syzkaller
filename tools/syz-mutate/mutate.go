@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 )
 
 var (

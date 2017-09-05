@@ -5,8 +5,6 @@ package prog
 
 import (
 	"fmt"
-
-	. "github.com/google/syzkaller/sys"
 )
 
 type CsumChunkKind int

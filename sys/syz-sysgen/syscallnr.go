@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/prog"
 )
 
 type Arch struct {
@@ -26,7 +26,7 @@ var archs = []*Arch{
 	{"ppc64le", 8, []string{"__ppc64__", "__PPC64__", "__powerpc64__"}},
 }
 
-func generateExecutorSyscalls(arch *Arch, syscalls []*sys.Syscall) []byte {
+func generateExecutorSyscalls(arch *Arch, syscalls []*prog.Syscall) []byte {
 	data := ArchData{
 		CARCH: arch.CARCH,
 	}

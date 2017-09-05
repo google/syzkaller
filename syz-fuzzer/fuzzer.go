@@ -202,10 +202,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if _, ok := calls[sys.SyscallMap["syz_emit_ethernet"]]; ok {
+	if _, ok := calls[prog.SyscallMap["syz_emit_ethernet"]]; ok {
 		config.Flags |= ipc.FlagEnableTun
 	}
-	if _, ok := calls[sys.SyscallMap["syz_extract_tcp_res"]]; ok {
+	if _, ok := calls[prog.SyscallMap["syz_extract_tcp_res"]]; ok {
 		config.Flags |= ipc.FlagEnableTun
 	}
 	if faultInjectionEnabled {
@@ -407,18 +407,18 @@ func main() {
 	}
 }
 
-func buildCallList(enabledCalls string) map[*sys.Syscall]bool {
-	calls := make(map[*sys.Syscall]bool)
+func buildCallList(enabledCalls string) map[*prog.Syscall]bool {
+	calls := make(map[*prog.Syscall]bool)
 	if enabledCalls != "" {
 		for _, id := range strings.Split(enabledCalls, ",") {
 			n, err := strconv.ParseUint(id, 10, 64)
-			if err != nil || n >= uint64(len(sys.Syscalls)) {
+			if err != nil || n >= uint64(len(prog.Syscalls)) {
 				panic(fmt.Sprintf("invalid syscall in -calls flag: '%v", id))
 			}
-			calls[sys.Syscalls[n]] = true
+			calls[prog.Syscalls[n]] = true
 		}
 	} else {
-		for _, c := range sys.Syscalls {
+		for _, c := range prog.Syscalls {
 			calls[c] = true
 		}
 	}
@@ -434,7 +434,7 @@ func buildCallList(enabledCalls string) map[*sys.Syscall]bool {
 		}
 	}
 
-	trans := sys.TransitivelyEnabledCalls(calls)
+	trans := prog.TransitivelyEnabledCalls(calls)
 	for c := range calls {
 		if !trans[c] {
 			Logf(1, "disabling transitively unsupported syscall: %v", c.Name)

@@ -1,16 +1,19 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package prog
+package prog_test
 
 import (
 	"bytes"
 	"fmt"
 	"testing"
+
+	. "github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 )
 
 func TestClone(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, iters := InitTest(t)
 	for i := 0; i < iters; i++ {
 		p := Generate(rs, 10, nil)
 		p1 := p.Clone()
@@ -23,7 +26,7 @@ func TestClone(t *testing.T) {
 }
 
 func TestMutate(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, iters := InitTest(t)
 next:
 	for i := 0; i < iters; i++ {
 		p := Generate(rs, 10, nil)
@@ -47,7 +50,7 @@ next:
 }
 
 func TestMutateCorpus(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, iters := InitTest(t)
 	var corpus []*Prog
 	for i := 0; i < 100; i++ {
 		p := Generate(rs, 10, nil)
@@ -137,7 +140,7 @@ func TestMutateTable(t *testing.T) {
 				"readv(r0, &(0x7f0000000000)=[{&(0x7f0000001000)=\"00\", 0x1}, {&(0x7f0000002000)=\"00\", 0x2}, {&(0x7f0000000000)=\"00\", 0x3}], 0x3)\n",
 		},
 	}
-	rs, _ := initTest(t)
+	rs, _ := InitTest(t)
 nextTest:
 	for ti, test := range tests {
 		p, err := Deserialize([]byte(test[0]))
@@ -288,35 +291,23 @@ func TestMinimize(t *testing.T) {
 }
 
 func TestMinimizeRandom(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, iters := InitTest(t)
 	iters /= 10 // Long test.
 	for i := 0; i < iters; i++ {
 		p := Generate(rs, 5, nil)
 		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
-			if err := p1.validate(); err != nil {
-				t.Fatalf("invalid program: %v", err)
-			}
 			return false
 		}, true)
 		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
-			if err := p1.validate(); err != nil {
-				t.Fatalf("invalid program: %v", err)
-			}
 			return true
 		}, true)
 	}
 	for i := 0; i < iters; i++ {
 		p := Generate(rs, 5, nil)
 		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
-			if err := p1.validate(); err != nil {
-				t.Fatalf("invalid program: %v", err)
-			}
 			return false
 		}, false)
 		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
-			if err := p1.validate(); err != nil {
-				t.Fatalf("invalid program: %v", err)
-			}
 			return true
 		}, false)
 	}

@@ -1,7 +1,7 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package sys
+package prog
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 func TestResourceCtors(t *testing.T) {
 	for _, c := range Syscalls {
 		for _, res := range c.InputResources() {
-			if len(resourceCtors(res.Desc.Kind, true)) == 0 {
+			if len(calcResourceCtors(res.Desc.Kind, true)) == 0 {
 				t.Errorf("call %v requires input resource %v, but there are no calls that can create this resource", c.Name, res.Desc.Name)
 			}
 		}

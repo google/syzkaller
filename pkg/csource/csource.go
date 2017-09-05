@@ -20,7 +20,7 @@ import (
 	"unsafe"
 
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
+	_ "github.com/google/syzkaller/sys"
 )
 
 type Options struct {
@@ -367,7 +367,7 @@ loop:
 				fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_futex/ignore-private\", \"N\");\n")
 				fmt.Fprintf(w, "\tinject_fault(%v);\n", opts.FaultNth)
 			}
-			meta := sys.Syscalls[instr]
+			meta := prog.Syscalls[instr]
 			emitCall := true
 			if meta.CallName == "syz_test" {
 				emitCall = false

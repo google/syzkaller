@@ -1,0 +1,117 @@
+// Copyright 2017 syzkaller project authors. All rights reserved.
+// Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+package prog
+
+import (
+	"fmt"
+)
+
+// Target describes target OS/arch pair.
+type Target struct {
+	OS         string
+	Arch       string
+	PtrSize    uint64
+	PageSize   uint64
+	DataOffset uint64
+
+	Syscalls  []*Syscall
+	Resources []*ResourceDesc
+
+	// MakeMmap creates call that maps [start, start+npages) page range.
+	MakeMmap func(start, npages uint64) *Call
+
+	// AnalyzeMmap analyzes the call c regarding mapping/unmapping memory.
+	// If it maps/unmaps any memory returns [start, start+npages) range,
+	// otherwise returns npages = 0.
+	AnalyzeMmap func(c *Call) (start, npages uint64, mapped bool)
+
+	// SanitizeCall neutralizes harmful calls.
+	SanitizeCall func(c *Call)
+
+	// SpecialStructs allows target to do custom generation/mutation for some struct types.
+	// Map key is struct name for which custom generation/mutation is required.
+	// Map value is custom generation/mutation function that will be called
+	// for the corresponding structs. g is helper object that allows generate random numbers,
+	// allocate memory, etc. typ is the struct type. old is the old value of the struct
+	// for mutation, or nil for generation. The function returns a new value of the struct,
+	// and optionally any calls that need to be inserted before the arg reference.
+	SpecialStructs map[string]func(g *Gen, typ *StructType, old *GroupArg) (Arg, []*Call)
+
+	resourceMap   map[string]*ResourceDesc
+	syscallMap    map[string]*Syscall
+	resourceCtors map[string][]*Syscall
+}
+
+type StructGen func(g *Gen, typ *StructType, old *GroupArg) (Arg, []*Call)
+
+var targets = make(map[string]*Target)
+
+func RegisterTarget(target *Target) {
+	key := target.OS + "/" + target.Arch
+	if targets[key] != nil {
+		panic(fmt.Sprintf("duplicate target %v", key))
+	}
+	initTarget(target)
+	targets[key] = target
+
+	// For now we copy target to global vars
+	// because majority of the code is not prepared for multiple targets.
+	if len(targets) > 1 {
+		panic("only 1 target is supported")
+	}
+	Syscalls = target.Syscalls
+	SyscallMap = target.syscallMap
+	Resources = target.resourceMap
+	resourceCtors = target.resourceCtors
+	ptrSize = target.PtrSize
+	pageSize = target.PageSize
+	dataOffset = target.DataOffset
+
+	makeMmap = target.MakeMmap
+	analyzeMmap = target.AnalyzeMmap
+	sanitizeCall = target.SanitizeCall
+	specialStructs = target.SpecialStructs
+}
+
+func initTarget(target *Target) {
+	target.syscallMap = make(map[string]*Syscall)
+	for _, c := range target.Syscalls {
+		target.syscallMap[c.Name] = c
+	}
+	target.resourceMap = make(map[string]*ResourceDesc)
+	target.resourceCtors = make(map[string][]*Syscall)
+	for _, r := range target.Resources {
+		target.resourceMap[r.Name] = r
+		target.resourceCtors[r.Name] = calcResourceCtors(r.Kind, false)
+	}
+}
+
+type Gen struct {
+	r *randGen
+	s *state
+}
+
+func (g *Gen) NOutOf(n, outOf int) bool {
+	return g.r.nOutOf(n, outOf)
+}
+
+func (g *Gen) Alloc(ptrType Type, data Arg) (Arg, []*Call) {
+	return g.r.addr(g.s, ptrType, data.Size(), data)
+}
+
+var (
+	ptrSize    uint64
+	pageSize   uint64
+	dataOffset uint64
+
+	Syscalls      []*Syscall
+	SyscallMap    map[string]*Syscall
+	Resources     map[string]*ResourceDesc
+	resourceCtors map[string][]*Syscall
+
+	makeMmap       func(start, npages uint64) *Call
+	analyzeMmap    func(c *Call) (start, npages uint64, mapped bool)
+	sanitizeCall   func(c *Call)
+	specialStructs map[string]func(g *Gen, typ *StructType, old *GroupArg) (Arg, []*Call)
+)

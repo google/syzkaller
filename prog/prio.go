@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
-
-	. "github.com/google/syzkaller/sys"
 )
 
 // Calulation of call-to-call priorities.

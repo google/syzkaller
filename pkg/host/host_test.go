@@ -7,7 +7,8 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 )
 
 func TestLog(t *testing.T) {
@@ -18,7 +19,7 @@ func TestLog(t *testing.T) {
 		t.Skipf("skipping: %v", err)
 	}
 	t.Logf("unsupported:")
-	for _, c := range sys.Syscalls {
+	for _, c := range prog.Syscalls {
 		s, ok := supp[c]
 		if ok && !s {
 			t.Fatalf("map contains false value")
@@ -27,9 +28,9 @@ func TestLog(t *testing.T) {
 			t.Logf("\t%v", c.Name)
 		}
 	}
-	trans := sys.TransitivelyEnabledCalls(supp)
+	trans := prog.TransitivelyEnabledCalls(supp)
 	t.Logf("transitively unsupported:")
-	for _, c := range sys.Syscalls {
+	for _, c := range prog.Syscalls {
 		s, ok := trans[c]
 		if ok && !s {
 			t.Fatalf("map contains false value")
@@ -58,7 +59,7 @@ func TestSupportedSyscalls(t *testing.T) {
 		"stat",
 	}
 	for _, name := range safe {
-		c := sys.SyscallMap[name]
+		c := prog.SyscallMap[name]
 		if c == nil {
 			t.Fatalf("can't find syscall '%v'", name)
 		}
