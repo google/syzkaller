@@ -318,7 +318,7 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 		kind = all[r.Intn(len(all))]
 	}
 	// Find calls that produce the necessary resources.
-	metas0 := ResourceConstructors(kind)
+	metas0 := resourceCtors[kind]
 	// TODO: reduce priority of less specialized ctors.
 	var metas []*Syscall
 	for _, meta := range metas0 {
