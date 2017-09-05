@@ -42,8 +42,9 @@ type Target struct {
 	// Used as fallback when string type does not have own dictionary.
 	StringDictionary []string
 
-	resourceMap   map[string]*ResourceDesc
-	syscallMap    map[string]*Syscall
+	resourceMap map[string]*ResourceDesc
+	syscallMap  map[string]*Syscall
+	// Maps resource name to a list of calls that can create the resource.
 	resourceCtors map[string][]*Syscall
 }
 
