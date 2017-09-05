@@ -38,6 +38,10 @@ type Target struct {
 	// and optionally any calls that need to be inserted before the arg reference.
 	SpecialStructs map[string]func(g *Gen, typ *StructType, old *GroupArg) (Arg, []*Call)
 
+	// Special strings that can matter for the target.
+	// Used as fallback when string type does not have own dictionary.
+	StringDictionary []string
+
 	resourceMap   map[string]*ResourceDesc
 	syscallMap    map[string]*Syscall
 	resourceCtors map[string][]*Syscall
@@ -72,6 +76,7 @@ func RegisterTarget(target *Target) {
 	analyzeMmap = target.AnalyzeMmap
 	sanitizeCall = target.SanitizeCall
 	specialStructs = target.SpecialStructs
+	stringDictionary = target.StringDictionary
 }
 
 func initTarget(target *Target) {
@@ -110,8 +115,9 @@ var (
 	Resources     map[string]*ResourceDesc
 	resourceCtors map[string][]*Syscall
 
-	makeMmap       func(start, npages uint64) *Call
-	analyzeMmap    func(c *Call) (start, npages uint64, mapped bool)
-	sanitizeCall   func(c *Call)
-	specialStructs map[string]func(g *Gen, typ *StructType, old *GroupArg) (Arg, []*Call)
+	makeMmap         func(start, npages uint64) *Call
+	analyzeMmap      func(c *Call) (start, npages uint64, mapped bool)
+	sanitizeCall     func(c *Call)
+	specialStructs   map[string]func(g *Gen, typ *StructType, old *GroupArg) (Arg, []*Call)
+	stringDictionary []string
 )

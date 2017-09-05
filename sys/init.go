@@ -26,6 +26,7 @@ func init() {
 			"timespec": generateTimespec,
 			"timeval":  generateTimespec,
 		},
+		StringDictionary: stringDictionary,
 	}
 	prog.RegisterTarget(target)
 }
@@ -41,6 +42,12 @@ const (
 var (
 	mmapSyscall         *prog.Syscall
 	clockGettimeSyscall *prog.Syscall
+
+	stringDictionary = []string{"user", "keyring", "trusted", "system", "security", "selinux",
+		"posix_acl_access", "mime_type", "md5sum", "nodev", "self",
+		"bdev", "proc", "cgroup", "cpuset",
+		"lo", "eth0", "eth1", "em0", "em1", "wlan0", "wlan1", "ppp0", "ppp1",
+		"vboxnet0", "vboxnet1", "vmnet0", "vmnet1", "GPL"}
 )
 
 // createMmapCall creates a "normal" mmap call that maps [start, start+npages) page range.
