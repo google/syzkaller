@@ -20,8 +20,6 @@ package prog
 
 import (
 	"encoding/binary"
-
-	. "github.com/google/syzkaller/sys"
 )
 
 type uint64Set map[uint64]bool
@@ -95,7 +93,7 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog
 
 	switch a := arg.(type) {
 	case *ConstArg:
-		originalArg = constArg(a.Type(), a.Val)
+		originalArg = MakeConstArg(a.Type(), a.Val)
 		checkConstArg(a, compMap, constArgCandidate)
 	case *DataArg:
 		originalArg = dataArg(a.Type(), a.Data)
@@ -105,7 +103,7 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog
 
 func checkConstArg(arg *ConstArg, compMap CompMap, cb func(newArg Arg)) {
 	for replacer := range shrinkExpand(arg.Val, compMap) {
-		cb(constArg(arg.typ, replacer))
+		cb(MakeConstArg(arg.typ, replacer))
 	}
 }
 

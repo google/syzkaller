@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-
-	. "github.com/google/syzkaller/sys"
 )
 
 type ConstArgTest struct {

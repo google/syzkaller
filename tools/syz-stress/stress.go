@@ -18,7 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/ipc"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
+	_ "github.com/google/syzkaller/sys"
 )
 
 var (
@@ -129,21 +129,21 @@ func readCorpus() []*prog.Prog {
 	return progs
 }
 
-func buildCallList() map[*sys.Syscall]bool {
+func buildCallList() map[*prog.Syscall]bool {
 	calls, err := host.DetectSupportedSyscalls()
 	if err != nil {
 		Logf(0, "failed to detect host supported syscalls: %v", err)
-		calls = make(map[*sys.Syscall]bool)
-		for _, c := range sys.Syscalls {
+		calls = make(map[*prog.Syscall]bool)
+		for _, c := range prog.Syscalls {
 			calls[c] = true
 		}
 	}
-	for _, c := range sys.Syscalls {
+	for _, c := range prog.Syscalls {
 		if !calls[c] {
 			Logf(0, "disabling unsupported syscall: %v", c.Name)
 		}
 	}
-	trans := sys.TransitivelyEnabledCalls(calls)
+	trans := prog.TransitivelyEnabledCalls(calls)
 	for c := range calls {
 		if !trans[c] {
 			Logf(0, "disabling transitively unsupported syscall: %v", c.Name)

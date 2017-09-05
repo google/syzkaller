@@ -12,7 +12,8 @@ import (
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
 )
 
@@ -149,7 +150,7 @@ func load(data []byte, filename string) (*Config, map[int]bool, error) {
 }
 
 func parseSyscalls(cfg *Config) (map[int]bool, error) {
-	match := func(call *sys.Syscall, str string) bool {
+	match := func(call *prog.Syscall, str string) bool {
 		if str == call.CallName || str == call.Name {
 			return true
 		}
@@ -163,7 +164,7 @@ func parseSyscalls(cfg *Config) (map[int]bool, error) {
 	if len(cfg.Enable_Syscalls) != 0 {
 		for _, c := range cfg.Enable_Syscalls {
 			n := 0
-			for _, call := range sys.Syscalls {
+			for _, call := range prog.Syscalls {
 				if match(call, c) {
 					syscalls[call.ID] = true
 					n++
@@ -174,13 +175,13 @@ func parseSyscalls(cfg *Config) (map[int]bool, error) {
 			}
 		}
 	} else {
-		for _, call := range sys.Syscalls {
+		for _, call := range prog.Syscalls {
 			syscalls[call.ID] = true
 		}
 	}
 	for _, c := range cfg.Disable_Syscalls {
 		n := 0
-		for _, call := range sys.Syscalls {
+		for _, call := range prog.Syscalls {
 			if match(call, c) {
 				delete(syscalls, call.ID)
 				n++
@@ -191,7 +192,7 @@ func parseSyscalls(cfg *Config) (map[int]bool, error) {
 		}
 	}
 	// mmap is used to allocate memory.
-	syscalls[sys.SyscallMap["mmap"].ID] = true
+	syscalls[prog.SyscallMap["mmap"].ID] = true
 
 	return syscalls, nil
 }

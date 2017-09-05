@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"unsafe"
-
-	. "github.com/google/syzkaller/sys"
 )
 
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Prog) {
@@ -178,11 +176,11 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					arg1, calls1 := r.addr(s, t, size, a.Res)
 					p.replaceArg(c, arg, arg1, calls1)
 				case *StructType:
-					ctor := isSpecialStruct(t)
-					if ctor == nil {
+					gen := specialStructs[t.Name()]
+					if gen == nil {
 						panic("bad arg returned by mutationArgs: StructType")
 					}
-					arg1, calls1 := ctor(r, s)
+					arg1, calls1 := gen(&Gen{r, s}, t, arg.(*GroupArg))
 					for i, f := range arg1.(*GroupArg).Inner {
 						p.replaceArg(c, arg.(*GroupArg).Inner[i], f, calls1)
 						calls1 = nil
@@ -255,7 +253,16 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 // predicate pred.  It iteratively generates simpler programs and asks pred
 // whether it is equal to the orginal program or not. If it is equivalent then
 // the simplification attempt is committed and the process continues.
-func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) (*Prog, int) {
+func Minimize(p0 *Prog, callIndex0 int, pred0 func(*Prog, int) bool, crash bool) (*Prog, int) {
+	pred := pred0
+	if debug {
+		pred = func(p *Prog, callIndex int) bool {
+			if err := p.validate(); err != nil {
+				panic(err)
+			}
+			return pred0(p, callIndex)
+		}
+	}
 	name0 := ""
 	if callIndex0 != -1 {
 		if callIndex0 < 0 || callIndex0 >= len(p0.Calls) {
@@ -291,7 +298,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred func(*Prog, int) bool, crash bool) 
 			}
 		}
 		// Prepend uber-mmap.
-		mmap := createMmapCall(uint64(lo), uint64(hi-lo)+1)
+		mmap := makeMmap(uint64(lo), uint64(hi-lo)+1)
 		p.Calls = append([]*Call{mmap}, p.Calls...)
 		if callIndex != -1 {
 			callIndex++
@@ -496,7 +503,7 @@ func mutationArgs(c *Call) (args, bases []Arg) {
 	foreachArg(c, func(arg, base Arg, _ *[]Arg) {
 		switch typ := arg.Type().(type) {
 		case *StructType:
-			if isSpecialStruct(typ) == nil {
+			if specialStructs[typ.Name()] == nil {
 				// For structs only individual fields are updated.
 				return
 			}
@@ -524,7 +531,7 @@ func mutationArgs(c *Call) (args, bases []Arg) {
 			return
 		}
 		if base != nil {
-			if _, ok := base.Type().(*StructType); ok && isSpecialStruct(base.Type()) != nil {
+			if _, ok := base.Type().(*StructType); ok && specialStructs[base.Type().Name()] != nil {
 				// These special structs are mutated as a whole.
 				return
 			}

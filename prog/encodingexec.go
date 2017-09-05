@@ -9,8 +9,6 @@ package prog
 import (
 	"fmt"
 	"sort"
-
-	. "github.com/google/syzkaller/sys"
 )
 
 const (
@@ -37,9 +35,6 @@ const (
 
 const (
 	ExecBufferSize = 2 << 20
-
-	pageSize   = 4 << 10
-	dataOffset = 512 << 20
 )
 
 type Args []Arg

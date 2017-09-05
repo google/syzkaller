@@ -6,47 +6,29 @@ package prog
 import (
 	"bytes"
 	"fmt"
-	"math/rand"
 	"testing"
-	"time"
-
-	. "github.com/google/syzkaller/sys"
+	//. "github.com/google/syzkaller/prog"
+	//_ "github.com/google/syzkaller/sys"
 )
 
-func init() {
-	debug = true
-}
-
-func initTest(t *testing.T) (rand.Source, int) {
-	t.Parallel()
-	iters := 10000
-	if testing.Short() {
-		iters = 100
-	}
-	seed := int64(time.Now().UnixNano())
-	rs := rand.NewSource(seed)
-	t.Logf("seed=%v", seed)
-	return rs, iters
-}
-
 func TestGeneration(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, iters := InitTest(t)
 	for i := 0; i < iters; i++ {
 		Generate(rs, 20, nil)
 	}
 }
 
 func TestDefault(t *testing.T) {
-	initTest(t)
+	InitTest(t)
 	for _, meta := range SyscallMap {
 		for _, t := range meta.Args {
-			defaultArg(t)
+			DefaultArg(t)
 		}
 	}
 }
 
 func TestDefaultCallArgs(t *testing.T) {
-	initTest(t)
+	InitTest(t)
 	for _, meta := range SyscallMap {
 		// Ensure that we can restore all arguments of all calls.
 		prog := fmt.Sprintf("%v()", meta.Name)
@@ -61,7 +43,7 @@ func TestDefaultCallArgs(t *testing.T) {
 }
 
 func TestSerialize(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, iters := InitTest(t)
 	for i := 0; i < iters; i++ {
 		p := Generate(rs, 10, nil)
 		data := p.Serialize()
@@ -83,9 +65,10 @@ func TestSerialize(t *testing.T) {
 }
 
 func TestVmaType(t *testing.T) {
-	rs, iters := initTest(t)
+	rs, iters := InitTest(t)
 	meta := SyscallMap["syz_test$vma0"]
 	r := newRand(rs)
+	pageSize := PageSize()
 	for i := 0; i < iters; i++ {
 		s := newState(nil)
 		calls := r.generateParticularCall(s, meta)

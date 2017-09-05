@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/prog"
 )
 
 // Overview of compilation process:
@@ -22,20 +22,20 @@ import (
 //    This step also does verification of include/incdir/define AST nodes.
 // 3. User translates constants to values.
 // 4. Compile on AST and const values does the rest of the work and returns Prog
-//    containing generated sys objects.
+//    containing generated prog objects.
 // 4.1. assignSyscallNumbers: uses consts to assign syscall numbers.
 //      This step also detects unsupported syscalls and discards no longer
 //      needed AST nodes (inlcude, define, comments, etc).
 // 4.2. patchConsts: patches Int nodes refering to consts with corresponding values.
 //      Also detects unsupported syscalls, structs, resources due to missing consts.
 // 4.3. check: does extensive semantical checks of AST.
-// 4.4. gen: generates sys objects from AST.
+// 4.4. gen: generates prog objects from AST.
 
 // Prog is description compilation result.
 type Prog struct {
-	Resources   []*sys.ResourceDesc
-	Syscalls    []*sys.Syscall
-	StructDescs []*sys.KeyedStruct
+	Resources   []*prog.ResourceDesc
+	Syscalls    []*prog.Syscall
+	StructDescs []*prog.KeyedStruct
 	// Set of unsupported syscalls/flags.
 	Unsupported map[string]bool
 }
@@ -54,8 +54,8 @@ func Compile(desc *ast.Description, consts map[string]uint64, ptrSize uint64, eh
 		structs:      make(map[string]*ast.Struct),
 		intFlags:     make(map[string]*ast.IntFlags),
 		strFlags:     make(map[string]*ast.StrFlags),
-		structDescs:  make(map[sys.StructKey]*sys.StructDesc),
-		structNodes:  make(map[*sys.StructDesc]*ast.Struct),
+		structDescs:  make(map[prog.StructKey]*prog.StructDesc),
+		structNodes:  make(map[*prog.StructDesc]*ast.Struct),
 		structVarlen: make(map[string]bool),
 	}
 	comp.assignSyscallNumbers(consts)
@@ -89,8 +89,8 @@ type compiler struct {
 	intFlags    map[string]*ast.IntFlags
 	strFlags    map[string]*ast.StrFlags
 
-	structDescs  map[sys.StructKey]*sys.StructDesc
-	structNodes  map[*sys.StructDesc]*ast.Struct
+	structDescs  map[prog.StructKey]*prog.StructDesc
+	structNodes  map[*prog.StructDesc]*ast.Struct
 	structVarlen map[string]bool
 }
 
@@ -161,8 +161,8 @@ func (comp *compiler) getTypeDesc(t *ast.Type) *typeDesc {
 	return nil
 }
 
-func (comp *compiler) getArgsBase(t *ast.Type, field string, dir sys.Dir, isArg bool) (
-	*typeDesc, []*ast.Type, sys.IntTypeCommon) {
+func (comp *compiler) getArgsBase(t *ast.Type, field string, dir prog.Dir, isArg bool) (
+	*typeDesc, []*ast.Type, prog.IntTypeCommon) {
 	desc := comp.getTypeDesc(t)
 	args, opt := removeOpt(t)
 	size := sizeUnassigned
@@ -173,7 +173,7 @@ func (comp *compiler) getArgsBase(t *ast.Type, field string, dir sys.Dir, isArg 
 		if !isArg {
 			baseType := args[len(args)-1]
 			args = args[:len(args)-1]
-			base = typeInt.Gen(comp, baseType, nil, base).(*sys.IntType).IntTypeCommon
+			base = typeInt.Gen(comp, baseType, nil, base).(*prog.IntType).IntTypeCommon
 		}
 	}
 	return desc, args, base

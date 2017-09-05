@@ -13,6 +13,7 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 )
 
 const timeout = 10 * time.Second

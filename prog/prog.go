@@ -5,8 +5,6 @@ package prog
 
 import (
 	"fmt"
-
-	. "github.com/google/syzkaller/sys"
 )
 
 type Prog struct {
@@ -224,11 +222,11 @@ func encodeValue(value uint64, size uint64, bigEndian bool) uint64 {
 	}
 }
 
-func constArg(t Type, v uint64) Arg {
+func MakeConstArg(t Type, v uint64) Arg {
 	return &ConstArg{ArgCommon: ArgCommon{typ: t}, Val: v}
 }
 
-func resultArg(t Type, r Arg, v uint64) Arg {
+func MakeResultArg(t Type, r Arg, v uint64) Arg {
 	arg := &ResultArg{ArgCommon: ArgCommon{typ: t}, Res: r, Val: v}
 	if r == nil {
 		return arg
@@ -249,11 +247,11 @@ func dataArg(t Type, data []byte) Arg {
 	return &DataArg{ArgCommon: ArgCommon{typ: t}, Data: append([]byte{}, data...)}
 }
 
-func pointerArg(t Type, page uint64, off int, npages uint64, obj Arg) Arg {
+func MakePointerArg(t Type, page uint64, off int, npages uint64, obj Arg) Arg {
 	return &PointerArg{ArgCommon: ArgCommon{typ: t}, PageIndex: page, PageOffset: off, PagesNum: npages, Res: obj}
 }
 
-func groupArg(t Type, inner []Arg) Arg {
+func MakeGroupArg(t Type, inner []Arg) Arg {
 	return &GroupArg{ArgCommon: ArgCommon{typ: t}, Inner: inner}
 }
 
@@ -261,16 +259,16 @@ func unionArg(t Type, opt Arg, typ Type) Arg {
 	return &UnionArg{ArgCommon: ArgCommon{typ: t}, Option: opt, OptionType: typ}
 }
 
-func returnArg(t Type) Arg {
+func MakeReturnArg(t Type) Arg {
 	return &ReturnArg{ArgCommon: ArgCommon{typ: t}}
 }
 
 func defaultArg(t Type) Arg {
 	switch typ := t.(type) {
 	case *IntType, *ConstType, *FlagsType, *LenType, *ProcType, *CsumType:
-		return constArg(t, t.Default())
+		return MakeConstArg(t, t.Default())
 	case *ResourceType:
-		return resultArg(t, nil, typ.Desc.Type.Default())
+		return MakeResultArg(t, nil, typ.Desc.Type.Default())
 	case *BufferType:
 		var data []byte
 		if typ.Kind == BufferString && typ.TypeSize != 0 {
@@ -278,23 +276,23 @@ func defaultArg(t Type) Arg {
 		}
 		return dataArg(t, data)
 	case *ArrayType:
-		return groupArg(t, nil)
+		return MakeGroupArg(t, nil)
 	case *StructType:
 		var inner []Arg
 		for _, field := range typ.Fields {
 			inner = append(inner, defaultArg(field))
 		}
-		return groupArg(t, inner)
+		return MakeGroupArg(t, inner)
 	case *UnionType:
 		return unionArg(t, defaultArg(typ.Fields[0]), typ.Fields[0])
 	case *VmaType:
-		return pointerArg(t, 0, 0, 1, nil)
+		return MakePointerArg(t, 0, 0, 1, nil)
 	case *PtrType:
 		var res Arg
 		if !t.Optional() && t.Dir() != DirOut {
 			res = defaultArg(typ.Type)
 		}
-		return pointerArg(t, 0, 0, 0, res)
+		return MakePointerArg(t, 0, 0, 0, res)
 	default:
 		panic("unknown arg type")
 	}
@@ -364,7 +362,7 @@ func (p *Prog) removeArg(c *Call, arg0 Arg) {
 				if _, ok := arg1.(*ResultArg); !ok {
 					panic("use references not ArgResult")
 				}
-				arg2 := resultArg(arg1.Type(), nil, arg1.Type().Default())
+				arg2 := MakeResultArg(arg1.Type(), nil, arg1.Type().Default())
 				p.replaceArg(c, arg1, arg2, nil)
 			}
 		}

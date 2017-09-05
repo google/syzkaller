@@ -9,7 +9,7 @@ import (
 	"fmt"
 
 	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/prog"
 )
 
 func (comp *compiler) check() {
@@ -191,7 +191,7 @@ func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field
 		}
 		return
 	}
-	_, args, _ := comp.getArgsBase(t, "", sys.DirIn, isArg)
+	_, args, _ := comp.getArgsBase(t, "", prog.DirIn, isArg)
 	for i, arg := range args {
 		argDesc := desc.Args[i]
 		if argDesc.Type == typeArgLenTarget {
@@ -232,7 +232,7 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 
 type structDir struct {
 	Struct string
-	Dir    sys.Dir
+	Dir    prog.Dir
 }
 
 func (comp *compiler) checkConstructors() {
@@ -242,10 +242,10 @@ func (comp *compiler) checkConstructors() {
 		switch n := decl.(type) {
 		case *ast.Call:
 			for _, arg := range n.Args {
-				comp.checkTypeCtors(arg.Type, sys.DirIn, true, ctors, checked)
+				comp.checkTypeCtors(arg.Type, prog.DirIn, true, ctors, checked)
 			}
 			if n.Ret != nil {
-				comp.checkTypeCtors(n.Ret, sys.DirOut, true, ctors, checked)
+				comp.checkTypeCtors(n.Ret, prog.DirOut, true, ctors, checked)
 			}
 		}
 	}
@@ -261,16 +261,16 @@ func (comp *compiler) checkConstructors() {
 	}
 }
 
-func (comp *compiler) checkTypeCtors(t *ast.Type, dir sys.Dir, isArg bool,
+func (comp *compiler) checkTypeCtors(t *ast.Type, dir prog.Dir, isArg bool,
 	ctors map[string]bool, checked map[structDir]bool) {
 	desc := comp.getTypeDesc(t)
 	if desc == typeResource {
-		// TODO(dvyukov): consider changing this to "dir == sys.DirOut".
+		// TODO(dvyukov): consider changing this to "dir == prog.DirOut".
 		// We have few questionable cases where resources can be created
 		// only by inout struct fields. These structs should be split
 		// into two different structs: one is in and second is out.
 		// But that will require attaching dir to individual fields.
-		if dir != sys.DirIn {
+		if dir != prog.DirIn {
 			r := comp.resources[t.Ident]
 			for r != nil && !ctors[r.Name.Name] {
 				ctors[r.Name.Name] = true
@@ -376,7 +376,7 @@ func (comp *compiler) recurseField(checked map[string]bool, t *ast.Type, path []
 		comp.checkStructRecursion(checked, comp.structs[t.Ident], path)
 		return
 	}
-	_, args, base := comp.getArgsBase(t, "", sys.DirIn, false)
+	_, args, base := comp.getArgsBase(t, "", prog.DirIn, false)
 	if desc == typePtr && base.IsOptional {
 		return // optional pointers prune recursion
 	}
@@ -464,7 +464,7 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceB
 		return
 	}
 	if desc.Check != nil {
-		_, args, base := comp.getArgsBase(t, "", sys.DirIn, isArg)
+		_, args, base := comp.getArgsBase(t, "", prog.DirIn, isArg)
 		desc.Check(comp, t, args, base)
 	}
 }
@@ -574,7 +574,7 @@ func (comp *compiler) checkVarlens() {
 }
 
 func (comp *compiler) isVarlen(t *ast.Type) bool {
-	desc, args, base := comp.getArgsBase(t, "", sys.DirIn, false)
+	desc, args, base := comp.getArgsBase(t, "", prog.DirIn, false)
 	return desc.Varlen != nil && desc.Varlen(comp, t, args, base)
 }
 

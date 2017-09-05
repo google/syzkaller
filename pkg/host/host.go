@@ -12,13 +12,13 @@ import (
 	"syscall"
 
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/prog"
 )
 
 // DetectSupportedSyscalls returns list on supported syscalls on host.
-func DetectSupportedSyscalls() (map[*sys.Syscall]bool, error) {
+func DetectSupportedSyscalls() (map[*prog.Syscall]bool, error) {
 	// There are 3 possible strategies:
-	// 1. Executes all syscalls with presumably invalid arguments and check for ENOSYS.
+	// 1. Executes all syscalls with presumably invalid arguments and check for ENOprog.
 	//    But not all syscalls are safe to execute. For example, pause will hang,
 	//    while setpgrp will push the process into own process group.
 	// 2. Check presence of /sys/kernel/debug/tracing/events/syscalls/sys_enter_* files.
@@ -28,8 +28,8 @@ func DetectSupportedSyscalls() (map[*sys.Syscall]bool, error) {
 	//    Requires CONFIG_KALLSYMS. Seems to be the most reliable. That's what we use here.
 
 	kallsyms, _ := ioutil.ReadFile("/proc/kallsyms")
-	supported := make(map[*sys.Syscall]bool)
-	for _, c := range sys.Syscalls {
+	supported := make(map[*prog.Syscall]bool)
+	for _, c := range prog.Syscalls {
 		if isSupported(kallsyms, c) {
 			supported[c] = true
 		}
@@ -37,7 +37,7 @@ func DetectSupportedSyscalls() (map[*sys.Syscall]bool, error) {
 	return supported, nil
 }
 
-func isSupported(kallsyms []byte, c *sys.Syscall) bool {
+func isSupported(kallsyms []byte, c *prog.Syscall) bool {
 	if c.NR == ^uint64(0) {
 		return false // don't even have a syscall number
 	}
@@ -59,12 +59,12 @@ func isSupported(kallsyms []byte, c *sys.Syscall) bool {
 	return bytes.Index(kallsyms, []byte(" T sys_"+c.CallName+"\n")) != -1
 }
 
-func isSupportedSyzkall(c *sys.Syscall) bool {
+func isSupportedSyzkall(c *prog.Syscall) bool {
 	switch c.CallName {
 	case "syz_test":
 		return false
 	case "syz_open_dev":
-		if _, ok := c.Args[0].(*sys.ConstType); ok {
+		if _, ok := c.Args[0].(*prog.ConstType); ok {
 			// This is for syz_open_dev$char/block.
 			// They are currently commented out, but in case one enables them.
 			return true
@@ -112,8 +112,8 @@ func isSupportedSyzkall(c *sys.Syscall) bool {
 	panic("unknown syzkall: " + c.Name)
 }
 
-func isSupportedSocket(c *sys.Syscall) bool {
-	af, ok := c.Args[0].(*sys.ConstType)
+func isSupportedSocket(c *prog.Syscall) bool {
+	af, ok := c.Args[0].(*prog.ConstType)
 	if !ok {
 		println(c.Name)
 		panic("socket family is not const")
@@ -125,7 +125,7 @@ func isSupportedSocket(c *sys.Syscall) bool {
 	return err != syscall.ENOSYS && err != syscall.EAFNOSUPPORT
 }
 
-func isSupportedOpen(c *sys.Syscall) bool {
+func isSupportedOpen(c *prog.Syscall) bool {
 	fname, ok := extractStringConst(c.Args[0])
 	if !ok {
 		return true
@@ -137,7 +137,7 @@ func isSupportedOpen(c *sys.Syscall) bool {
 	return err == nil
 }
 
-func isSupportedOpenAt(c *sys.Syscall) bool {
+func isSupportedOpenAt(c *prog.Syscall) bool {
 	fname, ok := extractStringConst(c.Args[1])
 	if !ok {
 		return true
@@ -149,13 +149,13 @@ func isSupportedOpenAt(c *sys.Syscall) bool {
 	return err == nil
 }
 
-func extractStringConst(typ sys.Type) (string, bool) {
-	ptr, ok := typ.(*sys.PtrType)
+func extractStringConst(typ prog.Type) (string, bool) {
+	ptr, ok := typ.(*prog.PtrType)
 	if !ok {
 		panic("first open arg is not a pointer to string const")
 	}
-	str, ok := ptr.Type.(*sys.BufferType)
-	if !ok || str.Kind != sys.BufferString || len(str.Values) != 1 {
+	str, ok := ptr.Type.(*prog.BufferType)
+	if !ok || str.Kind != prog.BufferString || len(str.Values) != 1 {
 		return "", false
 	}
 	v := str.Values[0]

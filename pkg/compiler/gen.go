@@ -8,13 +8,13 @@ import (
 	"sort"
 
 	"github.com/google/syzkaller/pkg/ast"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/prog"
 )
 
 const sizeUnassigned = ^uint64(0)
 
-func (comp *compiler) genResources() []*sys.ResourceDesc {
-	var resources []*sys.ResourceDesc
+func (comp *compiler) genResources() []*prog.ResourceDesc {
+	var resources []*prog.ResourceDesc
 	for _, decl := range comp.desc.Nodes {
 		if n, ok := decl.(*ast.Resource); ok {
 			resources = append(resources, comp.genResource(n))
@@ -26,8 +26,8 @@ func (comp *compiler) genResources() []*sys.ResourceDesc {
 	return resources
 }
 
-func (comp *compiler) genResource(n *ast.Resource) *sys.ResourceDesc {
-	res := &sys.ResourceDesc{
+func (comp *compiler) genResource(n *ast.Resource) *prog.ResourceDesc {
+	res := &prog.ResourceDesc{
 		Name: n.Name.Name,
 	}
 	var base *ast.Type
@@ -40,12 +40,12 @@ func (comp *compiler) genResource(n *ast.Resource) *sys.ResourceDesc {
 	if len(res.Values) == 0 {
 		res.Values = []uint64{0}
 	}
-	res.Type = comp.genType(base, "", sys.DirIn, false)
+	res.Type = comp.genType(base, "", prog.DirIn, false)
 	return res
 }
 
-func (comp *compiler) genSyscalls() []*sys.Syscall {
-	var calls []*sys.Syscall
+func (comp *compiler) genSyscalls() []*prog.Syscall {
+	var calls []*prog.Syscall
 	for _, decl := range comp.desc.Nodes {
 		if n, ok := decl.(*ast.Call); ok {
 			calls = append(calls, comp.genSyscall(n))
@@ -60,32 +60,32 @@ func (comp *compiler) genSyscalls() []*sys.Syscall {
 	return calls
 }
 
-func (comp *compiler) genSyscall(n *ast.Call) *sys.Syscall {
-	var ret sys.Type
+func (comp *compiler) genSyscall(n *ast.Call) *prog.Syscall {
+	var ret prog.Type
 	if n.Ret != nil {
-		ret = comp.genType(n.Ret, "ret", sys.DirOut, true)
+		ret = comp.genType(n.Ret, "ret", prog.DirOut, true)
 	}
-	return &sys.Syscall{
+	return &prog.Syscall{
 		Name:     n.Name.Name,
 		CallName: n.CallName,
 		NR:       n.NR,
-		Args:     comp.genFieldArray(n.Args, sys.DirIn, true),
+		Args:     comp.genFieldArray(n.Args, prog.DirIn, true),
 		Ret:      ret,
 	}
 }
 
-func (comp *compiler) genStructDescs(syscalls []*sys.Syscall) []*sys.KeyedStruct {
+func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStruct {
 	// Calculate struct/union/array sizes, add padding to structs and detach
 	// StructDesc's from StructType's. StructType's can be recursive so it's
 	// not possible to write them out inline as other types. To break the
 	// recursion detach them, and write StructDesc's out as separate array
-	// of KeyedStruct's. sys package will reattach them during init.
+	// of KeyedStruct's. prog package will reattach them during init.
 
 	padded := make(map[interface{}]bool)
-	detach := make(map[**sys.StructDesc]bool)
-	var structs []*sys.KeyedStruct
-	var rec func(t sys.Type)
-	checkStruct := func(key sys.StructKey, descp **sys.StructDesc) bool {
+	detach := make(map[**prog.StructDesc]bool)
+	var structs []*prog.KeyedStruct
+	var rec func(t prog.Type)
+	checkStruct := func(key prog.StructKey, descp **prog.StructDesc) bool {
 		detach[descp] = true
 		desc := *descp
 		if padded[desc] {
@@ -101,17 +101,17 @@ func (comp *compiler) genStructDescs(syscalls []*sys.Syscall) []*sys.KeyedStruct
 				return false
 			}
 		}
-		structs = append(structs, &sys.KeyedStruct{
+		structs = append(structs, &prog.KeyedStruct{
 			Key:  key,
 			Desc: desc,
 		})
 		return true
 	}
-	rec = func(t0 sys.Type) {
+	rec = func(t0 prog.Type) {
 		switch t := t0.(type) {
-		case *sys.PtrType:
+		case *prog.PtrType:
 			rec(t.Type)
-		case *sys.ArrayType:
+		case *prog.ArrayType:
 			if padded[t] {
 				return
 			}
@@ -123,10 +123,10 @@ func (comp *compiler) genStructDescs(syscalls []*sys.Syscall) []*sys.KeyedStruct
 			}
 			padded[t] = true
 			t.TypeSize = 0
-			if t.Kind == sys.ArrayRangeLen && t.RangeBegin == t.RangeEnd && !t.Type.Varlen() {
+			if t.Kind == prog.ArrayRangeLen && t.RangeBegin == t.RangeEnd && !t.Type.Varlen() {
 				t.TypeSize = t.RangeBegin * t.Type.Size()
 			}
-		case *sys.StructType:
+		case *prog.StructType:
 			if !checkStruct(t.Key, &t.StructDesc) {
 				return
 			}
@@ -149,7 +149,7 @@ func (comp *compiler) genStructDescs(syscalls []*sys.Syscall) []*sys.KeyedStruct
 					}
 				}
 			}
-		case *sys.UnionType:
+		case *prog.UnionType:
 			if !checkStruct(t.Key, &t.StructDesc) {
 				return
 			}
@@ -182,7 +182,7 @@ func (comp *compiler) genStructDescs(syscalls []*sys.Syscall) []*sys.KeyedStruct
 		}
 	}
 
-	// Detach StructDesc's from StructType's. sys will reattach them again.
+	// Detach StructDesc's from StructType's. prog will reattach them again.
 	for descp := range detach {
 		*descp = nil
 	}
@@ -197,10 +197,10 @@ func (comp *compiler) genStructDescs(syscalls []*sys.Syscall) []*sys.KeyedStruct
 	return structs
 }
 
-func (comp *compiler) genStructDesc(res *sys.StructDesc, n *ast.Struct, dir sys.Dir) {
+func (comp *compiler) genStructDesc(res *prog.StructDesc, n *ast.Struct, dir prog.Dir) {
 	// Leave node for genStructDescs to calculate size/padding.
 	comp.structNodes[res] = n
-	*res = sys.StructDesc{
+	*res = prog.StructDesc{
 		TypeCommon: genCommon(n.Name.Name, "", sizeUnassigned, dir, false),
 		Fields:     comp.genFieldArray(n.Fields, dir, false),
 	}
@@ -227,7 +227,7 @@ func (comp *compiler) isStructVarlen(name string) bool {
 	return varlen
 }
 
-func (comp *compiler) markBitfields(fields []sys.Type) {
+func (comp *compiler) markBitfields(fields []prog.Type) {
 	var bfOffset uint64
 	for i, f := range fields {
 		if f.BitfieldLength() == 0 {
@@ -245,25 +245,25 @@ func (comp *compiler) markBitfields(fields []sys.Type) {
 	}
 }
 
-func setBitfieldOffset(t0 sys.Type, offset uint64, middle bool) {
+func setBitfieldOffset(t0 prog.Type, offset uint64, middle bool) {
 	switch t := t0.(type) {
-	case *sys.IntType:
+	case *prog.IntType:
 		t.BitfieldOff, t.BitfieldMdl = offset, middle
-	case *sys.ConstType:
+	case *prog.ConstType:
 		t.BitfieldOff, t.BitfieldMdl = offset, middle
-	case *sys.LenType:
+	case *prog.LenType:
 		t.BitfieldOff, t.BitfieldMdl = offset, middle
-	case *sys.FlagsType:
+	case *prog.FlagsType:
 		t.BitfieldOff, t.BitfieldMdl = offset, middle
-	case *sys.ProcType:
+	case *prog.ProcType:
 		t.BitfieldOff, t.BitfieldMdl = offset, middle
 	default:
 		panic(fmt.Sprintf("type %#v can't be a bitfield", t))
 	}
 }
 
-func (comp *compiler) addAlignment(fields []sys.Type, varlen, packed bool, alignAttr uint64) []sys.Type {
-	var newFields []sys.Type
+func (comp *compiler) addAlignment(fields []prog.Type, varlen, packed bool, alignAttr uint64) []prog.Type {
+	var newFields []prog.Type
 	if packed {
 		// If a struct is packed, statically sized and has explicitly set alignment,
 		// add a padding at the end.
@@ -312,19 +312,19 @@ func (comp *compiler) addAlignment(fields []sys.Type, varlen, packed bool, align
 	return newFields
 }
 
-func (comp *compiler) typeAlign(t0 sys.Type) uint64 {
+func (comp *compiler) typeAlign(t0 prog.Type) uint64 {
 	switch t0.(type) {
-	case *sys.IntType, *sys.ConstType, *sys.LenType, *sys.FlagsType, *sys.ProcType,
-		*sys.CsumType, *sys.PtrType, *sys.VmaType, *sys.ResourceType:
+	case *prog.IntType, *prog.ConstType, *prog.LenType, *prog.FlagsType, *prog.ProcType,
+		*prog.CsumType, *prog.PtrType, *prog.VmaType, *prog.ResourceType:
 		return t0.Size()
-	case *sys.BufferType:
+	case *prog.BufferType:
 		return 1
 	}
 
 	switch t := t0.(type) {
-	case *sys.ArrayType:
+	case *prog.ArrayType:
 		return comp.typeAlign(t.Type)
-	case *sys.StructType:
+	case *prog.StructType:
 		packed, alignAttr := comp.parseStructAttrs(comp.structNodes[t.StructDesc])
 		if alignAttr != 0 {
 			return alignAttr // overrided by user attribute
@@ -339,7 +339,7 @@ func (comp *compiler) typeAlign(t0 sys.Type) uint64 {
 			}
 		}
 		return align
-	case *sys.UnionType:
+	case *prog.UnionType:
 		align := uint64(0)
 		for _, f := range t.Fields {
 			if a := comp.typeAlign(f); align < a {
@@ -352,32 +352,32 @@ func (comp *compiler) typeAlign(t0 sys.Type) uint64 {
 	}
 }
 
-func genPad(size uint64) sys.Type {
-	return &sys.ConstType{
-		IntTypeCommon: genIntCommon(genCommon("pad", "", size, sys.DirIn, false), 0, false),
+func genPad(size uint64) prog.Type {
+	return &prog.ConstType{
+		IntTypeCommon: genIntCommon(genCommon("pad", "", size, prog.DirIn, false), 0, false),
 		IsPad:         true,
 	}
 }
 
-func (comp *compiler) genField(f *ast.Field, dir sys.Dir, isArg bool) sys.Type {
+func (comp *compiler) genField(f *ast.Field, dir prog.Dir, isArg bool) prog.Type {
 	return comp.genType(f.Type, f.Name.Name, dir, isArg)
 }
 
-func (comp *compiler) genFieldArray(fields []*ast.Field, dir sys.Dir, isArg bool) []sys.Type {
-	var res []sys.Type
+func (comp *compiler) genFieldArray(fields []*ast.Field, dir prog.Dir, isArg bool) []prog.Type {
+	var res []prog.Type
 	for _, f := range fields {
 		res = append(res, comp.genField(f, dir, isArg))
 	}
 	return res
 }
 
-func (comp *compiler) genType(t *ast.Type, field string, dir sys.Dir, isArg bool) sys.Type {
+func (comp *compiler) genType(t *ast.Type, field string, dir prog.Dir, isArg bool) prog.Type {
 	desc, args, base := comp.getArgsBase(t, field, dir, isArg)
 	return desc.Gen(comp, t, args, base)
 }
 
-func genCommon(name, field string, size uint64, dir sys.Dir, opt bool) sys.TypeCommon {
-	return sys.TypeCommon{
+func genCommon(name, field string, size uint64, dir prog.Dir, opt bool) prog.TypeCommon {
+	return prog.TypeCommon{
 		TypeName:   name,
 		TypeSize:   size,
 		FldName:    field,
@@ -386,8 +386,8 @@ func genCommon(name, field string, size uint64, dir sys.Dir, opt bool) sys.TypeC
 	}
 }
 
-func genIntCommon(com sys.TypeCommon, bitLen uint64, bigEndian bool) sys.IntTypeCommon {
-	return sys.IntTypeCommon{
+func genIntCommon(com prog.TypeCommon, bitLen uint64, bigEndian bool) prog.IntTypeCommon {
+	return prog.IntTypeCommon{
 		TypeCommon:  com,
 		BigEndian:   bigEndian,
 		BitfieldLen: bitLen,
