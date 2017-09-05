@@ -11,7 +11,7 @@ package prog
 import (
 	"fmt"
 
-	"github.com/google/syzkaller/sys"
+	. "github.com/google/syzkaller/sys"
 )
 
 const (
@@ -51,18 +51,18 @@ func newState(ct *ChoiceTable) *state {
 func (s *state) analyze(c *Call) {
 	foreachArgArray(&c.Args, c.Ret, func(arg, base Arg, _ *[]Arg) {
 		switch typ := arg.Type().(type) {
-		case *sys.ResourceType:
-			if typ.Dir() != sys.DirIn {
+		case *ResourceType:
+			if typ.Dir() != DirIn {
 				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], arg)
 				// TODO: negative PIDs and add them as well (that's process groups).
 			}
-		case *sys.BufferType:
+		case *BufferType:
 			a := arg.(*DataArg)
-			if typ.Dir() != sys.DirOut && len(a.Data) != 0 {
+			if typ.Dir() != DirOut && len(a.Data) != 0 {
 				switch typ.Kind {
-				case sys.BufferString:
+				case BufferString:
 					s.strings[string(a.Data)] = true
-				case sys.BufferFilename:
+				case BufferFilename:
 					s.files[string(a.Data)] = true
 				}
 			}
@@ -77,7 +77,7 @@ func (s *state) analyze(c *Call) {
 		}
 		flags := c.Args[3].(*ConstArg)
 		fd := c.Args[4].(*ResultArg)
-		if flags.Val&sys.MAP_ANONYMOUS == 0 && fd.Val == sys.InvalidFD {
+		if flags.Val&MAP_ANONYMOUS == 0 && fd.Val == InvalidFD {
 			break
 		}
 		s.addressable(c.Args[0].(*PointerArg), length, true)
@@ -116,7 +116,7 @@ func foreachSubargImpl(arg Arg, parent *[]Arg, f func(arg, base Arg, parent *[]A
 		case *GroupArg:
 			for _, arg1 := range a.Inner {
 				parent1 := parent
-				if _, ok := arg.Type().(*sys.StructType); ok {
+				if _, ok := arg.Type().(*StructType); ok {
 					parent1 = &a.Inner
 				}
 				rec(arg1, base, parent1)
@@ -197,15 +197,15 @@ func sanitizeCall(c *Call) {
 		if !ok {
 			panic("mmap flag arg is not const")
 		}
-		flags.Val |= sys.MAP_FIXED
+		flags.Val |= MAP_FIXED
 	case "mremap":
 		// Add MREMAP_FIXED flag, otherwise it produces non-deterministic results.
 		flags, ok := c.Args[3].(*ConstArg)
 		if !ok {
 			panic("mremap flag arg is not const")
 		}
-		if flags.Val&sys.MREMAP_MAYMOVE != 0 {
-			flags.Val |= sys.MREMAP_FIXED
+		if flags.Val&MREMAP_MAYMOVE != 0 {
+			flags.Val |= MREMAP_FIXED
 		}
 	case "mknod", "mknodat":
 		mode, ok1 := c.Args[1].(*ConstArg)
@@ -219,37 +219,37 @@ func sanitizeCall(c *Call) {
 		}
 		// Char and block devices read/write io ports, kernel memory and do other nasty things.
 		// TODO: not required if executor drops privileges.
-		switch mode.Val & (sys.S_IFREG | sys.S_IFCHR | sys.S_IFBLK | sys.S_IFIFO | sys.S_IFSOCK) {
-		case sys.S_IFREG, sys.S_IFIFO, sys.S_IFSOCK:
-		case sys.S_IFBLK:
+		switch mode.Val & (S_IFREG | S_IFCHR | S_IFBLK | S_IFIFO | S_IFSOCK) {
+		case S_IFREG, S_IFIFO, S_IFSOCK:
+		case S_IFBLK:
 			if dev.Val>>8 == 7 {
 				break // loop
 			}
-			mode.Val &^= sys.S_IFBLK
-			mode.Val |= sys.S_IFREG
-		case sys.S_IFCHR:
-			mode.Val &^= sys.S_IFCHR
-			mode.Val |= sys.S_IFREG
+			mode.Val &^= S_IFBLK
+			mode.Val |= S_IFREG
+		case S_IFCHR:
+			mode.Val &^= S_IFCHR
+			mode.Val |= S_IFREG
 		}
 	case "syslog":
 		cmd := c.Args[0].(*ConstArg)
 		// These disable console output, but we need it.
-		if cmd.Val == sys.SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == sys.SYSLOG_ACTION_CONSOLE_ON {
-			cmd.Val = sys.SYSLOG_ACTION_SIZE_UNREAD
+		if cmd.Val == SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == SYSLOG_ACTION_CONSOLE_ON {
+			cmd.Val = SYSLOG_ACTION_SIZE_UNREAD
 		}
 	case "ioctl":
 		cmd := c.Args[1].(*ConstArg)
 		// Freeze kills machine. Though, it is an interesting functions,
 		// so we need to test it somehow.
 		// TODO: not required if executor drops privileges.
-		if uint32(cmd.Val) == sys.FIFREEZE {
-			cmd.Val = sys.FITHAW
+		if uint32(cmd.Val) == FIFREEZE {
+			cmd.Val = FITHAW
 		}
 	case "ptrace":
 		req := c.Args[0].(*ConstArg)
 		// PTRACE_TRACEME leads to unkillable processes, see:
 		// https://groups.google.com/forum/#!topic/syzkaller/uGzwvhlCXAw
-		if req.Val == sys.PTRACE_TRACEME {
+		if req.Val == PTRACE_TRACEME {
 			req.Val = ^uint64(0)
 		}
 	case "exit", "exit_group":
@@ -279,7 +279,7 @@ func RequiresChecksums(p *Prog) bool {
 	result := false
 	for _, c := range p.Calls {
 		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
-			if _, ok := arg.Type().(*sys.CsumType); ok {
+			if _, ok := arg.Type().(*CsumType); ok {
 				result = true
 			}
 		})

@@ -21,7 +21,7 @@ package prog
 import (
 	"encoding/binary"
 
-	"github.com/google/syzkaller/sys"
+	. "github.com/google/syzkaller/sys"
 )
 
 type uint64Set map[uint64]bool
@@ -110,7 +110,7 @@ func checkConstArg(arg *ConstArg, compMap CompMap, cb func(newArg Arg)) {
 }
 
 func checkDataArg(arg *DataArg, compMap CompMap, cb func(newArg Arg)) {
-	if arg.Type().Dir() != sys.DirIn && arg.Type().Dir() != sys.DirInOut {
+	if arg.Type().Dir() != DirIn && arg.Type().Dir() != DirInOut {
 		// We only want to scan userspace->kernel data.
 		return
 	}

@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/syzkaller/sys"
+	. "github.com/google/syzkaller/sys"
 )
 
 const ptrSize = 8
@@ -47,7 +47,7 @@ func TestSerializeForExec(t *testing.T) {
 		argData      = uint64(ExecArgData)
 	)
 	callID := func(name string) uint64 {
-		c := sys.SyscallMap[name]
+		c := SyscallMap[name]
 		if c == nil {
 			t.Fatalf("unknown syscall %v", name)
 		}
