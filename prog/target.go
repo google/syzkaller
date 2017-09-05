@@ -48,8 +48,6 @@ type Target struct {
 	resourceCtors map[string][]*Syscall
 }
 
-type StructGen func(g *Gen, typ *StructType, old *GroupArg) (Arg, []*Call)
-
 var targets = make(map[string]*Target)
 
 func RegisterTarget(target *Target) {
