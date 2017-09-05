@@ -32,8 +32,6 @@ func init() {
 }
 
 const (
-	// TODO(dvyukov): dehardcode
-	ptrSize    = 8
 	pageSize   = 4 << 10
 	dataOffset = 512 << 20
 	invalidFD  = ^uint64(0)
