@@ -39,7 +39,7 @@ func CalculatePriorities(corpus []*Prog) [][]float32 {
 
 func calcStaticPriorities() [][]float32 {
 	uses := make(map[string]map[int]float32)
-	for _, c := range sys.Calls {
+	for _, c := range sys.Syscalls {
 		noteUsage := func(weight float32, str string, args ...interface{}) {
 			id := fmt.Sprintf(str, args...)
 			if uses[id] == nil {
@@ -101,9 +101,9 @@ func calcStaticPriorities() [][]float32 {
 			}
 		})
 	}
-	prios := make([][]float32, len(sys.Calls))
+	prios := make([][]float32, len(sys.Syscalls))
 	for i := range prios {
-		prios[i] = make([]float32, len(sys.Calls))
+		prios[i] = make([]float32, len(sys.Syscalls))
 	}
 	for _, calls := range uses {
 		for c0, w0 := range calls {
@@ -133,9 +133,9 @@ func calcStaticPriorities() [][]float32 {
 }
 
 func calcDynamicPrio(corpus []*Prog) [][]float32 {
-	prios := make([][]float32, len(sys.Calls))
+	prios := make([][]float32, len(sys.Syscalls))
 	for i := range prios {
-		prios[i] = make([]float32, len(sys.Calls))
+		prios[i] = make([]float32, len(sys.Syscalls))
 	}
 	for _, p := range corpus {
 		for _, c0 := range p.Calls {
@@ -196,30 +196,30 @@ func normalizePrio(prios [][]float32) {
 // based on call-to-call priorities and a set of enabled syscalls.
 type ChoiceTable struct {
 	run          [][]int
-	enabledCalls []*sys.Call
-	enabled      map[*sys.Call]bool
+	enabledCalls []*sys.Syscall
+	enabled      map[*sys.Syscall]bool
 }
 
-func BuildChoiceTable(prios [][]float32, enabled map[*sys.Call]bool) *ChoiceTable {
+func BuildChoiceTable(prios [][]float32, enabled map[*sys.Syscall]bool) *ChoiceTable {
 	if enabled == nil {
-		enabled = make(map[*sys.Call]bool)
-		for _, c := range sys.Calls {
+		enabled = make(map[*sys.Syscall]bool)
+		for _, c := range sys.Syscalls {
 			enabled[c] = true
 		}
 	}
-	var enabledCalls []*sys.Call
+	var enabledCalls []*sys.Syscall
 	for c := range enabled {
 		enabledCalls = append(enabledCalls, c)
 	}
-	run := make([][]int, len(sys.Calls))
+	run := make([][]int, len(sys.Syscalls))
 	for i := range run {
-		if !enabled[sys.Calls[i]] {
+		if !enabled[sys.Syscalls[i]] {
 			continue
 		}
-		run[i] = make([]int, len(sys.Calls))
+		run[i] = make([]int, len(sys.Syscalls))
 		sum := 0
 		for j := range run[i] {
-			if enabled[sys.Calls[j]] {
+			if enabled[sys.Syscalls[j]] {
 				sum += int(prios[i][j] * 1000)
 			}
 			run[i][j] = sum
@@ -230,7 +230,7 @@ func BuildChoiceTable(prios [][]float32, enabled map[*sys.Call]bool) *ChoiceTabl
 
 func (ct *ChoiceTable) Choose(r *rand.Rand, call int) int {
 	if ct == nil {
-		return r.Intn(len(sys.Calls))
+		return r.Intn(len(sys.Syscalls))
 	}
 	if call < 0 {
 		return ct.enabledCalls[r.Intn(len(ct.enabledCalls))].ID
@@ -242,7 +242,7 @@ func (ct *ChoiceTable) Choose(r *rand.Rand, call int) int {
 	for {
 		x := r.Intn(run[len(run)-1])
 		i := sort.SearchInts(run, x)
-		if !ct.enabled[sys.Calls[i]] {
+		if !ct.enabled[sys.Syscalls[i]] {
 			continue
 		}
 		return i

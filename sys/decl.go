@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-type Call struct {
+type Syscall struct {
 	ID       int
 	NR       uint64 // kernel syscall number
 	Name     string
@@ -268,9 +268,9 @@ func (t *UnionType) FieldName() string {
 }
 
 var (
-	CallMap   = make(map[string]*Call)
-	Resources map[string]*ResourceDesc
-	ctors     = make(map[string][]*Call)
+	SyscallMap = make(map[string]*Syscall)
+	Resources  map[string]*ResourceDesc
+	ctors      = make(map[string][]*Syscall)
 )
 
 type StructDesc struct {
@@ -299,7 +299,7 @@ func initStructFields() {
 		keyedStructs[desc.Key] = desc.Desc
 	}
 
-	for _, c := range Calls {
+	for _, c := range Syscalls {
 		ForeachType(c, func(t Type) {
 			switch s := t.(type) {
 			case *StructType:
@@ -318,7 +318,7 @@ func initStructFields() {
 }
 
 // ResourceConstructors returns a list of calls that can create a resource of the given kind.
-func ResourceConstructors(name string) []*Call {
+func ResourceConstructors(name string) []*Syscall {
 	return ctors[name]
 }
 
@@ -327,7 +327,7 @@ func initResources() {
 	for _, res := range resourceArray {
 		Resources[res.Name] = res
 	}
-	for _, c := range Calls {
+	for _, c := range Syscalls {
 		ForeachType(c, func(t Type) {
 			if r, ok := t.(*ResourceType); ok {
 				r.Desc = Resources[r.TypeName]
@@ -339,10 +339,10 @@ func initResources() {
 	}
 }
 
-func resourceCtors(kind []string, precise bool) []*Call {
+func resourceCtors(kind []string, precise bool) []*Syscall {
 	// Find calls that produce the necessary resources.
-	var metas []*Call
-	for _, meta := range Calls {
+	var metas []*Syscall
+	for _, meta := range Syscalls {
 		// Recurse into arguments to see if there is an out/inout arg of necessary type.
 		ok := false
 		ForeachType(meta, func(typ Type) {
@@ -399,7 +399,7 @@ func isCompatibleResource(dst, src []string, precise bool) bool {
 	return true
 }
 
-func (c *Call) InputResources() []*ResourceType {
+func (c *Syscall) InputResources() []*ResourceType {
 	var resources []*ResourceType
 	ForeachType(c, func(typ Type) {
 		switch typ1 := typ.(type) {
@@ -412,13 +412,13 @@ func (c *Call) InputResources() []*ResourceType {
 	return resources
 }
 
-func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
-	supported := make(map[*Call]bool)
+func TransitivelyEnabledCalls(enabled map[*Syscall]bool) map[*Syscall]bool {
+	supported := make(map[*Syscall]bool)
 	for c := range enabled {
 		supported[c] = true
 	}
-	inputResources := make(map[*Call][]*ResourceType)
-	ctors := make(map[string][]*Call)
+	inputResources := make(map[*Syscall][]*ResourceType)
+	ctors := make(map[string][]*Syscall)
 	for c := range supported {
 		inputs := c.InputResources()
 		inputResources[c] = inputs
@@ -431,7 +431,7 @@ func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
 	}
 	for {
 		n := len(supported)
-		haveGettime := supported[CallMap["clock_gettime"]]
+		haveGettime := supported[SyscallMap["clock_gettime"]]
 		for c := range supported {
 			canCreate := true
 			for _, res := range inputResources[c] {
@@ -467,7 +467,7 @@ func TransitivelyEnabledCalls(enabled map[*Call]bool) map[*Call]bool {
 	return supported
 }
 
-func ForeachType(meta *Call, f func(Type)) {
+func ForeachType(meta *Syscall, f func(Type)) {
 	seen := make(map[*StructDesc]bool)
 	var rec func(t Type)
 	rec = func(t Type) {
@@ -512,11 +512,11 @@ func init() {
 	initResources()
 	structDescs = nil
 
-	for _, c := range Calls {
-		if CallMap[c.Name] != nil {
+	for _, c := range Syscalls {
+		if SyscallMap[c.Name] != nil {
 			println(c.Name)
 			panic("duplicate syscall")
 		}
-		CallMap[c.Name] = c
+		SyscallMap[c.Name] = c
 	}
 }

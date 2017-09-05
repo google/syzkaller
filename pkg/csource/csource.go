@@ -367,7 +367,7 @@ loop:
 				fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_futex/ignore-private\", \"N\");\n")
 				fmt.Fprintf(w, "\tinject_fault(%v);\n", opts.FaultNth)
 			}
-			meta := sys.Calls[instr]
+			meta := sys.Syscalls[instr]
 			emitCall := true
 			if meta.CallName == "syz_test" {
 				emitCall = false

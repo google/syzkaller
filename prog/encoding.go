@@ -140,7 +140,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 			name = p.Ident()
 
 		}
-		meta := sys.CallMap[name]
+		meta := sys.SyscallMap[name]
 		if meta == nil {
 			return nil, fmt.Errorf("unknown syscall %v", name)
 		}

@@ -133,7 +133,7 @@ func generate(arch string, prog *compiler.Prog, consts map[string]uint64, out io
 	serializer.Write(out, prog.StructDescs)
 	fmt.Fprintf(out, "\n\n")
 
-	fmt.Fprintf(out, "var Calls = ")
+	fmt.Fprintf(out, "var Syscalls = ")
 	serializer.Write(out, prog.Syscalls)
 	fmt.Fprintf(out, "\n\n")
 

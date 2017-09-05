@@ -129,16 +129,16 @@ func readCorpus() []*prog.Prog {
 	return progs
 }
 
-func buildCallList() map[*sys.Call]bool {
+func buildCallList() map[*sys.Syscall]bool {
 	calls, err := host.DetectSupportedSyscalls()
 	if err != nil {
 		Logf(0, "failed to detect host supported syscalls: %v", err)
-		calls = make(map[*sys.Call]bool)
-		for _, c := range sys.Calls {
+		calls = make(map[*sys.Syscall]bool)
+		for _, c := range sys.Syscalls {
 			calls[c] = true
 		}
 	}
-	for _, c := range sys.Calls {
+	for _, c := range sys.Syscalls {
 		if !calls[c] {
 			Logf(0, "disabling unsupported syscall: %v", c.Name)
 		}

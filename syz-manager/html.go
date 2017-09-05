@@ -196,7 +196,7 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	mgr.minimizeCorpus()
 	call := r.FormValue("call")
 	idx := -1
-	for i, c := range sys.Calls {
+	for i, c := range sys.Syscalls {
 		if c.CallName == call {
 			idx = i
 			break
@@ -209,7 +209,7 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 
 	data := &UIPrioData{Call: call}
 	for i, p := range mgr.prios[idx] {
-		data.Prios = append(data.Prios, UIPrio{sys.Calls[i].Name, p})
+		data.Prios = append(data.Prios, UIPrio{sys.Syscalls[i].Name, p})
 	}
 	sort.Sort(UIPrioArray(data.Prios))
 

@@ -38,7 +38,7 @@ func TestGeneration(t *testing.T) {
 
 func TestDefault(t *testing.T) {
 	initTest(t)
-	for _, meta := range sys.CallMap {
+	for _, meta := range sys.SyscallMap {
 		for _, t := range meta.Args {
 			defaultArg(t)
 		}
@@ -47,7 +47,7 @@ func TestDefault(t *testing.T) {
 
 func TestDefaultCallArgs(t *testing.T) {
 	initTest(t)
-	for _, meta := range sys.CallMap {
+	for _, meta := range sys.SyscallMap {
 		// Ensure that we can restore all arguments of all calls.
 		prog := fmt.Sprintf("%v()", meta.Name)
 		p, err := Deserialize([]byte(prog))
@@ -84,7 +84,7 @@ func TestSerialize(t *testing.T) {
 
 func TestVmaType(t *testing.T) {
 	rs, iters := initTest(t)
-	meta := sys.CallMap["syz_test$vma0"]
+	meta := sys.SyscallMap["syz_test$vma0"]
 	r := newRand(rs)
 	for i := 0; i < iters; i++ {
 		s := newState(nil)
