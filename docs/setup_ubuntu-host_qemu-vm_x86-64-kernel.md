@@ -33,7 +33,7 @@ index 3bca90a..fdaa7af 100644
 
 Install GCC prerequisites:
 ```
-sudo apt-get install flex bison libc6-dev libc6-dev-i386 linux-libc-dev linux-libc-dev:i386 libgmp3-dev libmpfr-dev libmpc-dev make bc g++
+sudo apt-get install flex bison libc6-dev libc6-dev-i386 linux-libc-dev linux-libc-dev:i386 libgmp3-dev libmpfr-dev libmpc-dev build-essential bc
 ```
 
 Build GCC:
