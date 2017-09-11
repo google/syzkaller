@@ -2,6 +2,8 @@
 
 _newer first_
 
+* [usb: stalls in dummy_timer / usbtouch_probe](https://groups.google.com/forum/#!topic/syzkaller/9MKj0sRWn3Y)
+* [usb/joystick: warnings in xpad_start_input and xpad_try_sending_next_out_packet](https://groups.google.com/forum/#!topic/syzkaller/nMIkggZOUxA)
 * [usb/midi: use-after-free in snd_rawmidi_dev_seq_free](https://groups.google.com/forum/#!topic/syzkaller/kuZzDHGkQu8)
 * [fs: possible deadlock in do_iter_write/do_splice](https://groups.google.com/forum/#!topic/syzkaller/f72L3fPD8sY)
 * [net/ipv6: warning in __alloc_pages_slowpath/ipip6_tunnel_get_prl](https://groups.google.com/forum/#!topic/syzkaller/VtONA6oTiio)
