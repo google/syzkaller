@@ -2,6 +2,7 @@
 
 _newer first_
 
+* [usb/gadget: null-ptr-deref in dev_ioctl](https://groups.google.com/forum/#!topic/syzkaller/ShlQyQLCe60)
 * [usb: stalls in dummy_timer / usbtouch_probe](https://groups.google.com/forum/#!topic/syzkaller/9MKj0sRWn3Y)
 * [usb/joystick: warnings in xpad_start_input and xpad_try_sending_next_out_packet](https://groups.google.com/forum/#!topic/syzkaller/nMIkggZOUxA)
 * [usb/midi: use-after-free in snd_rawmidi_dev_seq_free](https://groups.google.com/forum/#!topic/syzkaller/kuZzDHGkQu8)
