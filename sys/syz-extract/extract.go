@@ -4,12 +4,15 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
@@ -20,7 +23,6 @@ var (
 	flagLinux    = flag.String("linux", "", "path to linux kernel source checkout")
 	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
 	flagArch     = flag.String("arch", "", "arch to generate")
-	flagV        = flag.Int("v", 0, "verbosity")
 )
 
 type Arch struct {
@@ -38,13 +40,23 @@ var archs = map[string]*Arch{
 	"ppc64le": {[]string{"__ppc64__", "__PPC64__", "__powerpc64__"}, "powerpc", "asm/unistd.h", []string{"-D__powerpc64__"}},
 }
 
+type File struct {
+	name       string
+	undeclared map[string]bool
+	err        error
+}
+
 func main() {
+	failf := func(msg string, args ...interface{}) {
+		fmt.Fprintf(os.Stderr, msg+"\n", args...)
+		os.Exit(1)
+	}
+
 	flag.Parse()
 	if *flagLinux == "" {
 		failf("provide path to linux kernel checkout via -linux flag (or make extract LINUX= flag)")
 	}
 	if *flagLinuxBld == "" {
-		logf(1, "No kernel build directory provided, assuming in-place build")
 		*flagLinuxBld = *flagLinux
 	}
 	if *flagArch == "" {
@@ -53,54 +65,73 @@ func main() {
 	if archs[*flagArch] == nil {
 		failf("unknown arch %v", *flagArch)
 	}
-	if len(flag.Args()) != 1 {
-		failf("usage: syz-extract -linux=/linux/checkout -arch=arch sys/input_file.txt")
+	n := len(flag.Args())
+	if n == 0 {
+		failf("usage: syz-extract -linux=/linux/checkout -arch=arch input_file.txt...")
 	}
 
-	inname := flag.Args()[0]
-	outname := strings.TrimSuffix(inname, ".txt") + "_" + *flagArch + ".const"
+	files := make([]File, n)
+	inc := make(chan *File, n)
+	for i, f := range flag.Args() {
+		files[i].name = f
+		inc <- &files[i]
+	}
+	close(inc)
 
+	procs := runtime.GOMAXPROCS(0)
+	var wg sync.WaitGroup
+	wg.Add(procs)
+	for p := 0; p < procs; p++ {
+		go func() {
+			defer wg.Done()
+			for f := range inc {
+				f.undeclared, f.err = processFile(f.name)
+			}
+		}()
+	}
+	wg.Wait()
+	for _, f := range files {
+		fmt.Printf("extracting from %v\n", f.name)
+		if f.err != nil {
+			failf("%v", f.err)
+		}
+		for c := range f.undeclared {
+			fmt.Printf("undefined const: %v\n", c)
+		}
+	}
+}
+
+func processFile(inname string) (map[string]bool, error) {
+	outname := strings.TrimSuffix(inname, ".txt") + "_" + *flagArch + ".const"
 	indata, err := ioutil.ReadFile(inname)
 	if err != nil {
-		failf("failed to read input file: %v", err)
+		return nil, fmt.Errorf("failed to read input file: %v", err)
 	}
-
-	desc := ast.Parse(indata, filepath.Base(inname), nil)
+	errBuf := new(bytes.Buffer)
+	eh := func(pos ast.Pos, msg string) {
+		fmt.Fprintf(errBuf, "%v: %v\n", pos, msg)
+	}
+	desc := ast.Parse(indata, filepath.Base(inname), eh)
 	if desc == nil {
-		os.Exit(1)
+		return nil, fmt.Errorf("%v", errBuf.String())
 	}
-
-	consts := compileConsts(archs[*flagArch], desc)
-
-	data := compiler.SerializeConsts(consts)
-	if err := osutil.WriteFile(outname, data); err != nil {
-		failf("failed to write output file: %v", err)
-	}
-}
-
-func compileConsts(arch *Arch, desc *ast.Description) map[string]uint64 {
-	info := compiler.ExtractConsts(desc, nil)
+	info := compiler.ExtractConsts(desc, eh)
 	if info == nil {
-		os.Exit(1)
+		return nil, fmt.Errorf("%v", errBuf.String())
 	}
 	if len(info.Consts) == 0 {
-		return nil
+		return nil, nil
 	}
-	consts, err := fetchValues(arch.KernelHeaderArch, info.Consts,
-		append(info.Includes, arch.KernelInclude), info.Incdirs, info.Defines, arch.CFlags)
+	arch := archs[*flagArch]
+	includes := append(info.Includes, arch.KernelInclude)
+	consts, undeclared, err := fetchValues(arch.KernelHeaderArch, info.Consts,
+		includes, info.Incdirs, arch.CFlags, info.Defines)
 	if err != nil {
-		failf("%v", err)
+		return nil, err
 	}
-	return consts
-}
-
-func failf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
-}
-
-func logf(v int, msg string, args ...interface{}) {
-	if *flagV >= v {
-		fmt.Fprintf(os.Stderr, msg+"\n", args...)
+	data := compiler.SerializeConsts(consts)
+	if err := osutil.WriteFile(outname, data); err != nil {
+		return nil, fmt.Errorf("failed to write output file: %v", err)
 	}
+	return undeclared, nil
 }
