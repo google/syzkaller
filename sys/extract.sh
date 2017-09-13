@@ -18,20 +18,20 @@ else
 	BUILD_FOR_ANDROID=no
 fi
 
-UPSTREAM_FILES="sys/bpf.txt sys/dri.txt sys/fuse.txt sys/input.txt sys/ipc.txt
-		sys/key.txt sys/kvm.txt sys/loop.txt sys/perf.txt sys/random.txt
-		sys/sndcontrol.txt sys/sndseq.txt sys/sndtimer.txt
-		sys/sys.txt sys/test.txt sys/tty.txt sys/tun.txt sys/vnet.txt
-		sys/socket.txt sys/socket_alg.txt sys/socket_bluetooth.txt
-		sys/socket_inet.txt sys/socket_inet6.txt sys/socket_inet_tcp.txt
-		sys/socket_inet_udp.txt sys/socket_inet_icmp.txt
-		sys/socket_inet_sctp.txt sys/socket_inet_dccp.txt
-		sys/socket_kcm.txt sys/socket_key.txt sys/socket_netlink.txt
-		sys/socket_netrom.txt sys/socket_nfc.txt sys/socket_unix.txt
-		sys/socket_ipx.txt sys/socket_ax25.txt sys/socket_llc.txt
-		sys/socket_packet.txt sys/xattr.txt"
+UPSTREAM_FILES="bpf.txt dri.txt fuse.txt input.txt ipc.txt
+		key.txt kvm.txt loop.txt perf.txt random.txt
+		sndcontrol.txt sndseq.txt sndtimer.txt
+		sys.txt test.txt tty.txt tun.txt vnet.txt
+		socket.txt socket_alg.txt socket_bluetooth.txt
+		socket_inet.txt socket_inet6.txt socket_inet_tcp.txt
+		socket_inet_udp.txt socket_inet_icmp.txt
+		socket_inet_sctp.txt socket_inet_dccp.txt
+		socket_kcm.txt socket_key.txt socket_netlink.txt
+		socket_netrom.txt socket_nfc.txt socket_unix.txt
+		socket_ipx.txt socket_ax25.txt socket_llc.txt
+		socket_packet.txt xattr.txt"
 
-ANDROID_FILES="sys/tlk_device.txt sys/ion.txt"
+ANDROID_FILES="tlk_device.txt ion.txt"
 
 if [ "$BUILD_FOR_ANDROID" == "no" ]; then
 	FILES="$UPSTREAM_FILES"
@@ -58,7 +58,7 @@ generate_arch() {
 	fi
 	for F in $FILES; do
 		echo "extracting from $F"
-		bin/syz-extract -arch $1 -linux "$LINUX" -linuxbld "$LINUXBLD" $F
+		bin/syz-extract -arch $1 -linux "$LINUX" -linuxbld "$LINUXBLD" "sys/linux/$F"
 		if [ $? -ne 0 ]; then
 			exit 1
 		fi
