@@ -9,27 +9,27 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-func init() {
-	lazyInit()
+func initArch(syscalls []*prog.Syscall, resources []*prog.ResourceDesc,
+	structDescs []*prog.KeyedStruct, consts []prog.ConstValue, archName string, ptrSize uint64) {
+	arch := makeArch(syscalls, resources, structDescs, consts, archName)
 	target := &prog.Target{
-		OS:           runtime.GOOS,
-		Arch:         runtime.GOARCH,
+		OS:           "linux",
+		Arch:         archName,
 		PtrSize:      ptrSize,
 		PageSize:     pageSize,
 		DataOffset:   dataOffset,
 		Syscalls:     syscalls,
 		Resources:    resources,
-		MakeMmap:     makeMmap,
-		AnalyzeMmap:  analyzeMmap,
-		SanitizeCall: sanitizeCall,
+		MakeMmap:     arch.makeMmap,
+		AnalyzeMmap:  arch.analyzeMmap,
+		SanitizeCall: arch.sanitizeCall,
 		SpecialStructs: map[string]func(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (prog.Arg, []*prog.Call){
-			"timespec": generateTimespec,
-			"timeval":  generateTimespec,
+			"timespec": arch.generateTimespec,
+			"timeval":  arch.generateTimespec,
 		},
 		StringDictionary: stringDictionary,
 	}
 	prog.RegisterTarget(target)
-	prog.SetDefaultTarget(runtime.GOOS, runtime.GOARCH)
 }
 
 const (
@@ -39,8 +39,10 @@ const (
 )
 
 var (
-	mmapSyscall         *prog.Syscall
-	clockGettimeSyscall *prog.Syscall
+	// This should not be here, but for now we expose this for syz-fuzzer.
+	KCOV_INIT_TRACE uintptr
+	KCOV_ENABLE     uintptr
+	KCOV_TRACE_CMP  uintptr
 
 	stringDictionary = []string{"user", "keyring", "trusted", "system", "security", "selinux",
 		"posix_acl_access", "mime_type", "md5sum", "nodev", "self",
@@ -49,23 +51,49 @@ var (
 		"vboxnet0", "vboxnet1", "vmnet0", "vmnet1", "GPL"}
 )
 
+type arch struct {
+	mmapSyscall         *prog.Syscall
+	clockGettimeSyscall *prog.Syscall
+
+	PROT_READ                 uint64
+	PROT_WRITE                uint64
+	MAP_ANONYMOUS             uint64
+	MAP_PRIVATE               uint64
+	MAP_FIXED                 uint64
+	MREMAP_MAYMOVE            uint64
+	MREMAP_FIXED              uint64
+	S_IFREG                   uint64
+	S_IFCHR                   uint64
+	S_IFBLK                   uint64
+	S_IFIFO                   uint64
+	S_IFSOCK                  uint64
+	SYSLOG_ACTION_CONSOLE_OFF uint64
+	SYSLOG_ACTION_CONSOLE_ON  uint64
+	SYSLOG_ACTION_SIZE_UNREAD uint64
+	FIFREEZE                  uint64
+	FITHAW                    uint64
+	PTRACE_TRACEME            uint64
+	CLOCK_REALTIME            uint64
+}
+
 // createMmapCall creates a "normal" mmap call that maps [start, start+npages) page range.
-func makeMmap(start, npages uint64) *prog.Call {
+func (arch *arch) makeMmap(start, npages uint64) *prog.Call {
+	meta := arch.mmapSyscall
 	return &prog.Call{
-		Meta: mmapSyscall,
+		Meta: meta,
 		Args: []prog.Arg{
-			prog.MakePointerArg(mmapSyscall.Args[0], start, 0, npages, nil),
-			prog.MakeConstArg(mmapSyscall.Args[1], npages*pageSize),
-			prog.MakeConstArg(mmapSyscall.Args[2], PROT_READ|PROT_WRITE),
-			prog.MakeConstArg(mmapSyscall.Args[3], MAP_ANONYMOUS|MAP_PRIVATE|MAP_FIXED),
-			prog.MakeResultArg(mmapSyscall.Args[4], nil, invalidFD),
-			prog.MakeConstArg(mmapSyscall.Args[5], 0),
+			prog.MakePointerArg(meta.Args[0], start, 0, npages, nil),
+			prog.MakeConstArg(meta.Args[1], npages*pageSize),
+			prog.MakeConstArg(meta.Args[2], arch.PROT_READ|arch.PROT_WRITE),
+			prog.MakeConstArg(meta.Args[3], arch.MAP_ANONYMOUS|arch.MAP_PRIVATE|arch.MAP_FIXED),
+			prog.MakeResultArg(meta.Args[4], nil, invalidFD),
+			prog.MakeConstArg(meta.Args[5], 0),
 		},
-		Ret: prog.MakeReturnArg(mmapSyscall.Ret),
+		Ret: prog.MakeReturnArg(meta.Ret),
 	}
 }
 
-func analyzeMmap(c *prog.Call) (start, npages uint64, mapped bool) {
+func (arch *arch) analyzeMmap(c *prog.Call) (start, npages uint64, mapped bool) {
 	switch c.Meta.Name {
 	case "mmap":
 		// Filter out only very wrong arguments.
@@ -75,7 +103,7 @@ func analyzeMmap(c *prog.Call) (start, npages uint64, mapped bool) {
 		}
 		flags := c.Args[3].(*prog.ConstArg).Val
 		fd := c.Args[4].(*prog.ResultArg).Val
-		if flags&MAP_ANONYMOUS == 0 && fd == invalidFD {
+		if flags&arch.MAP_ANONYMOUS == 0 && fd == invalidFD {
 			return
 		}
 		start = c.Args[0].(*prog.PointerArg).PageIndex
@@ -96,16 +124,16 @@ func analyzeMmap(c *prog.Call) (start, npages uint64, mapped bool) {
 	}
 }
 
-func sanitizeCall(c *prog.Call) {
+func (arch *arch) sanitizeCall(c *prog.Call) {
 	switch c.Meta.CallName {
 	case "mmap":
 		// Add MAP_FIXED flag, otherwise it produces non-deterministic results.
-		c.Args[3].(*prog.ConstArg).Val |= MAP_FIXED
+		c.Args[3].(*prog.ConstArg).Val |= arch.MAP_FIXED
 	case "mremap":
 		// Add MREMAP_FIXED flag, otherwise it produces non-deterministic results.
 		flags := c.Args[3].(*prog.ConstArg)
-		if flags.Val&MREMAP_MAYMOVE != 0 {
-			flags.Val |= MREMAP_FIXED
+		if flags.Val&arch.MREMAP_MAYMOVE != 0 {
+			flags.Val |= arch.MREMAP_FIXED
 		}
 	case "mknod", "mknodat":
 		pos := 1
@@ -116,37 +144,41 @@ func sanitizeCall(c *prog.Call) {
 		dev := c.Args[pos+1].(*prog.ConstArg)
 		// Char and block devices read/write io ports, kernel memory and do other nasty things.
 		// TODO: not required if executor drops privileges.
-		switch mode.Val & (S_IFREG | S_IFCHR | S_IFBLK | S_IFIFO | S_IFSOCK) {
-		case S_IFREG, S_IFIFO, S_IFSOCK:
-		case S_IFBLK:
+		switch mode.Val & (arch.S_IFREG | arch.S_IFCHR | arch.S_IFBLK | arch.S_IFIFO | arch.S_IFSOCK) {
+		case arch.S_IFREG, arch.S_IFIFO, arch.S_IFSOCK:
+		case arch.S_IFBLK:
+			// TODO(dvyukov): mknod dev argument is uint32,
+			// but prog arguments contain not-truncated uint64 values,
+			// so we can mistakenly assume that this is not loop, when it actually is.
+			// This is not very harmful, but need to verify other arguments in this function.
 			if dev.Val>>8 == 7 {
 				break // loop
 			}
-			mode.Val &^= S_IFBLK
-			mode.Val |= S_IFREG
-		case S_IFCHR:
-			mode.Val &^= S_IFCHR
-			mode.Val |= S_IFREG
+			mode.Val &^= arch.S_IFBLK
+			mode.Val |= arch.S_IFREG
+		case arch.S_IFCHR:
+			mode.Val &^= arch.S_IFCHR
+			mode.Val |= arch.S_IFREG
 		}
 	case "syslog":
 		cmd := c.Args[0].(*prog.ConstArg)
 		// These disable console output, but we need it.
-		if cmd.Val == SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == SYSLOG_ACTION_CONSOLE_ON {
-			cmd.Val = SYSLOG_ACTION_SIZE_UNREAD
+		if cmd.Val == arch.SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == arch.SYSLOG_ACTION_CONSOLE_ON {
+			cmd.Val = arch.SYSLOG_ACTION_SIZE_UNREAD
 		}
 	case "ioctl":
 		cmd := c.Args[1].(*prog.ConstArg)
 		// Freeze kills machine. Though, it is an interesting functions,
 		// so we need to test it somehow.
 		// TODO: not required if executor drops privileges.
-		if uint32(cmd.Val) == FIFREEZE {
-			cmd.Val = FITHAW
+		if uint64(uint32(cmd.Val)) == arch.FIFREEZE {
+			cmd.Val = arch.FITHAW
 		}
 	case "ptrace":
 		req := c.Args[0].(*prog.ConstArg)
 		// PTRACE_TRACEME leads to unkillable processes, see:
 		// https://groups.google.com/forum/#!topic/syzkaller/uGzwvhlCXAw
-		if req.Val == PTRACE_TRACEME {
+		if req.Val == arch.PTRACE_TRACEME {
 			req.Val = ^uint64(0)
 		}
 	case "exit", "exit_group":
@@ -158,7 +190,7 @@ func sanitizeCall(c *prog.Call) {
 	}
 }
 
-func generateTimespec(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (arg prog.Arg, calls []*prog.Call) {
+func (arch *arch) generateTimespec(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (arg prog.Arg, calls []*prog.Call) {
 	// We need to generate timespec/timeval that are either
 	// (1) definitely in the past, or
 	// (2) definitely in unreachable fututre, or
@@ -195,7 +227,7 @@ func generateTimespec(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (ar
 		})
 	default:
 		// Few ms ahead for absolute.
-		meta := clockGettimeSyscall
+		meta := arch.clockGettimeSyscall
 		ptrArgType := meta.Args[1].(*prog.PtrType)
 		argType := ptrArgType.Type.(*prog.StructType)
 		tp := prog.MakeGroupArg(argType, []prog.Arg{
@@ -207,7 +239,7 @@ func generateTimespec(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (ar
 		gettime := &prog.Call{
 			Meta: meta,
 			Args: []prog.Arg{
-				prog.MakeConstArg(meta.Args[0], CLOCK_REALTIME),
+				prog.MakeConstArg(meta.Args[0], arch.CLOCK_REALTIME),
 				tpaddr,
 			},
 			Ret: prog.MakeReturnArg(meta.Ret),
@@ -230,7 +262,8 @@ func generateTimespec(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (ar
 	return
 }
 
-func lazyInit() {
+func makeArch(syscalls []*prog.Syscall, resources []*prog.ResourceDesc,
+	structDescs []*prog.KeyedStruct, consts []prog.ConstValue, archName string) *arch {
 	resourceMap := make(map[string]*prog.ResourceDesc)
 	for _, res := range resources {
 		resourceMap[res.Name] = res
@@ -240,8 +273,8 @@ func lazyInit() {
 	for _, desc := range structDescs {
 		keyedStructs[desc.Key] = desc.Desc
 	}
-	structDescs = nil
 
+	arch := &arch{}
 	for _, c := range syscalls {
 		prog.ForeachType(c, func(t0 prog.Type) {
 			switch t := t0.(type) {
@@ -264,9 +297,65 @@ func lazyInit() {
 		})
 		switch c.Name {
 		case "mmap":
-			mmapSyscall = c
+			arch.mmapSyscall = c
 		case "clock_gettime":
-			clockGettimeSyscall = c
+			arch.clockGettimeSyscall = c
 		}
 	}
+
+	for _, c := range consts {
+		switch c.Name {
+		case "KCOV_INIT_TRACE":
+			if archName == runtime.GOARCH {
+				KCOV_INIT_TRACE = uintptr(c.Value)
+			}
+		case "KCOV_ENABLE":
+			if archName == runtime.GOARCH {
+				KCOV_ENABLE = uintptr(c.Value)
+			}
+		case "KCOV_TRACE_CMP":
+			if archName == runtime.GOARCH {
+				KCOV_TRACE_CMP = uintptr(c.Value)
+			}
+		case "PROT_READ":
+			arch.PROT_READ = c.Value
+		case "PROT_WRITE":
+			arch.PROT_WRITE = c.Value
+		case "MAP_ANONYMOUS":
+			arch.MAP_ANONYMOUS = c.Value
+		case "MAP_PRIVATE":
+			arch.MAP_PRIVATE = c.Value
+		case "MAP_FIXED":
+			arch.MAP_FIXED = c.Value
+		case "MREMAP_MAYMOVE":
+			arch.MREMAP_MAYMOVE = c.Value
+		case "MREMAP_FIXED":
+			arch.MREMAP_FIXED = c.Value
+		case "S_IFREG":
+			arch.S_IFREG = c.Value
+		case "S_IFCHR":
+			arch.S_IFCHR = c.Value
+		case "S_IFBLK":
+			arch.S_IFBLK = c.Value
+		case "S_IFIFO":
+			arch.S_IFIFO = c.Value
+		case "S_IFSOCK":
+			arch.S_IFSOCK = c.Value
+		case "SYSLOG_ACTION_CONSOLE_OFF":
+			arch.SYSLOG_ACTION_CONSOLE_OFF = c.Value
+		case "SYSLOG_ACTION_CONSOLE_ON":
+			arch.SYSLOG_ACTION_CONSOLE_ON = c.Value
+		case "SYSLOG_ACTION_SIZE_UNREAD":
+			arch.SYSLOG_ACTION_SIZE_UNREAD = c.Value
+		case "FIFREEZE":
+			arch.FIFREEZE = c.Value
+		case "FITHAW":
+			arch.FITHAW = c.Value
+		case "PTRACE_TRACEME":
+			arch.PTRACE_TRACEME = c.Value
+		case "CLOCK_REALTIME":
+			arch.CLOCK_REALTIME = c.Value
+		}
+	}
+	return arch
 }

@@ -3,7 +3,11 @@ package linux
 
 import . "github.com/google/syzkaller/prog"
 
-var resources = []*ResourceDesc{
+func init() {
+	initArch(syscalls_ppc64le, resources_ppc64le, structDescs_ppc64le, consts_ppc64le, "ppc64le", 8)
+}
+
+var resources_ppc64le = []*ResourceDesc{
 	{Name: "assoc_id", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"assoc_id"}, Values: []uint64{0}},
 	{Name: "bpf_map_id", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"bpf_map_id"}, Values: []uint64{0, 4294967295}},
 	{Name: "bpf_prog_id", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"bpf_prog_id"}, Values: []uint64{0, 4294967295}},
@@ -99,7 +103,7 @@ var resources = []*ResourceDesc{
 	{Name: "uid", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"uid"}, Values: []uint64{0, 18446744073709551615}},
 }
 
-var structDescs = []*KeyedStruct{
+var structDescs_ppc64le = []*KeyedStruct{
 	{Key: StructKey{Name: "arp_ether_ipv4_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "arp_ether_ipv4_packet", TypeSize: 28}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "htype", TypeSize: 2}, BigEndian: true}, Val: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ptype", TypeSize: 2}, BigEndian: true}, Val: 2048},
@@ -5943,7 +5947,7 @@ var structDescs = []*KeyedStruct{
 	}}},
 }
 
-var syscalls = []*Syscall{
+var syscalls_ppc64le = []*Syscall{
 	{NR: 330, Name: "accept", CallName: "accept", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peer", TypeSize: 8, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_storage", Dir: 1}}},
@@ -14240,2932 +14244,2931 @@ var syscalls = []*Syscall{
 	}},
 }
 
-const (
-	ptrSize                                  = 8
-	ADDR_COMPAT_LAYOUT                       = 2097152
-	ADDR_LIMIT_32BIT                         = 8388608
-	ADDR_LIMIT_3GB                           = 134217728
-	ADDR_NO_RANDOMIZE                        = 262144
-	AF_ALG                                   = 38
-	AF_APPLETALK                             = 5
-	AF_ATMPVC                                = 8
-	AF_AX25                                  = 3
-	AF_BLUETOOTH                             = 31
-	AF_INET                                  = 2
-	AF_INET6                                 = 10
-	AF_IPX                                   = 4
-	AF_KCM                                   = 41
-	AF_LLC                                   = 26
-	AF_NETLINK                               = 16
-	AF_NETROM                                = 6
-	AF_NFC                                   = 39
-	AF_PACKET                                = 17
-	AF_UNIX                                  = 1
-	AF_UNSPEC                                = 0
-	AF_X25                                   = 9
-	AGP_USER_CACHED_MEMORY                   = 65537
-	AGP_USER_MEMORY                          = 65536
-	AH_ESP_V4_FLOW                           = 4
-	AH_ESP_V6_FLOW                           = 8
-	AH_V4_FLOW                               = 9
-	AH_V6_FLOW                               = 11
-	ALG_SET_AEAD_ASSOCLEN                    = 4
-	ALG_SET_AEAD_AUTHSIZE                    = 5
-	ALG_SET_IV                               = 2
-	ALG_SET_KEY                              = 1
-	ALG_SET_OP                               = 3
-	ARCH_GET_FS                              = 4099
-	ARCH_GET_GS                              = 4100
-	ARCH_SET_FS                              = 4098
-	ARCH_SET_GS                              = 4097
-	ARPHRD_6LOWPAN                           = 825
-	ARPHRD_ADAPT                             = 264
-	ARPHRD_APPLETLK                          = 8
-	ARPHRD_ARCNET                            = 7
-	ARPHRD_ASH                               = 781
-	ARPHRD_ATM                               = 19
-	ARPHRD_AX25                              = 3
-	ARPHRD_BIF                               = 775
-	ARPHRD_CAIF                              = 822
-	ARPHRD_CAN                               = 280
-	ARPHRD_CHAOS                             = 5
-	ARPHRD_CISCO                             = 513
-	ARPHRD_CSLIP                             = 257
-	ARPHRD_CSLIP6                            = 259
-	ARPHRD_DDCMP                             = 517
-	ARPHRD_DLCI                              = 15
-	ARPHRD_ECONET                            = 782
-	ARPHRD_EETHER                            = 2
-	ARPHRD_ETHER                             = 1
-	ARPHRD_EUI64                             = 27
-	ARPHRD_FCAL                              = 785
-	ARPHRD_FCFABRIC                          = 787
-	ARPHRD_FCPL                              = 786
-	ARPHRD_FCPP                              = 784
-	ARPHRD_FDDI                              = 774
-	ARPHRD_FRAD                              = 770
-	ARPHRD_HDLC                              = 513
-	ARPHRD_HIPPI                             = 780
-	ARPHRD_HWX25                             = 272
-	ARPHRD_IEEE1394                          = 24
-	ARPHRD_IEEE802                           = 6
-	ARPHRD_IEEE80211                         = 801
-	ARPHRD_IEEE80211_PRISM                   = 802
-	ARPHRD_IEEE80211_RADIOTAP                = 803
-	ARPHRD_IEEE802154                        = 804
-	ARPHRD_IEEE802154_MONITOR                = 805
-	ARPHRD_IEEE802_TR                        = 800
-	ARPHRD_INFINIBAND                        = 32
-	ARPHRD_IP6GRE                            = 823
-	ARPHRD_IPDDP                             = 777
-	ARPHRD_IPGRE                             = 778
-	ARPHRD_IRDA                              = 783
-	ARPHRD_LAPB                              = 516
-	ARPHRD_LOCALTLK                          = 773
-	ARPHRD_LOOPBACK                          = 772
-	ARPHRD_METRICOM                          = 23
-	ARPHRD_NETLINK                           = 824
-	ARPHRD_NETROM                            = 0
-	ARPHRD_NONE                              = 65534
-	ARPHRD_PHONET                            = 820
-	ARPHRD_PHONET_PIPE                       = 821
-	ARPHRD_PIMREG                            = 779
-	ARPHRD_PPP                               = 512
-	ARPHRD_PRONET                            = 4
-	ARPHRD_RAWHDLC                           = 518
-	ARPHRD_ROSE                              = 270
-	ARPHRD_RSRVD                             = 260
-	ARPHRD_SIT                               = 776
-	ARPHRD_SKIP                              = 771
-	ARPHRD_SLIP                              = 256
-	ARPHRD_SLIP6                             = 258
-	ARPHRD_TUNNEL                            = 768
-	ARPHRD_TUNNEL6                           = 769
-	ARPHRD_VOID                              = 65535
-	ARPHRD_X25                               = 271
-	ARPOP_InREPLY                            = 9
-	ARPOP_InREQUEST                          = 8
-	ARPOP_NAK                                = 10
-	ARPOP_REPLY                              = 2
-	ARPOP_REQUEST                            = 1
-	ARPOP_RREPLY                             = 4
-	ARPOP_RREQUEST                           = 3
-	ATF_COM                                  = 2
-	ATF_DONTPUB                              = 64
-	ATF_NETMASK                              = 32
-	ATF_PERM                                 = 4
-	ATF_PUBL                                 = 8
-	ATF_USETRAILERS                          = 16
-	AT_EMPTY_PATH                            = 4096
-	AT_FDCWD                                 = 18446744073709551516
-	AT_NO_AUTOMOUNT                          = 2048
-	AT_REMOVEDIR                             = 512
-	AT_STATX_DONT_SYNC                       = 16384
-	AT_STATX_FORCE_SYNC                      = 8192
-	AT_STATX_SYNC_AS_STAT                    = 0
-	AT_STATX_SYNC_TYPE                       = 24576
-	AT_SYMLINK_FOLLOW                        = 1024
-	AT_SYMLINK_NOFOLLOW                      = 256
-	AX25_BACKOFF                             = 6
-	AX25_EXTSEQ                              = 7
-	AX25_IAMDIGI                             = 12
-	AX25_IDLE                                = 9
-	AX25_MAX_DIGIS                           = 8
-	AX25_N2                                  = 3
-	AX25_PACLEN                              = 10
-	AX25_PIDINCL                             = 8
-	AX25_P_ARP                               = 205
-	AX25_P_ATALK                             = 202
-	AX25_P_ATALK_ARP                         = 203
-	AX25_P_FLEXNET                           = 206
-	AX25_P_IP                                = 204
-	AX25_P_LQ                                = 196
-	AX25_P_NETROM                            = 207
-	AX25_P_ROSE                              = 1
-	AX25_P_SEGMENT                           = 8
-	AX25_P_TEXNET                            = 195
-	AX25_P_TEXT                              = 240
-	AX25_P_VJCOMP                            = 6
-	AX25_P_VJUNCOMP                          = 7
-	AX25_T1                                  = 2
-	AX25_T2                                  = 5
-	AX25_T3                                  = 4
-	AX25_WINDOW                              = 1
-	BNEPCONNADD                              = 2147762888
-	BNEPCONNDEL                              = 2147762889
-	BNEPGETCONNINFO                          = 1074021075
-	BNEPGETCONNLIST                          = 1074021074
-	BNEPGETSUPPFEAT                          = 1074021076
-	BPF_ANY                                  = 0
-	BPF_CGROUP_INET_EGRESS                   = 1
-	BPF_CGROUP_INET_INGRESS                  = 0
-	BPF_CGROUP_INET_SOCK_CREATE              = 2
-	BPF_CGROUP_SOCK_OPS                      = 3
-	BPF_EXIST                                = 2
-	BPF_F_ALLOW_OVERRIDE                     = 1
-	BPF_F_NO_COMMON_LRU                      = 2
-	BPF_F_NO_PREALLOC                        = 1
-	BPF_F_NUMA_NODE                          = 4
-	BPF_F_STRICT_ALIGNMENT                   = 1
-	BPF_MAP_CREATE                           = 0
-	BPF_MAP_DELETE_ELEM                      = 3
-	BPF_MAP_GET_FD_BY_ID                     = 14
-	BPF_MAP_GET_NEXT_ID                      = 12
-	BPF_MAP_GET_NEXT_KEY                     = 4
-	BPF_MAP_LOOKUP_ELEM                      = 1
-	BPF_MAP_TYPE_ARRAY                       = 2
-	BPF_MAP_TYPE_ARRAY_OF_MAPS               = 12
-	BPF_MAP_TYPE_CGROUP_ARRAY                = 8
-	BPF_MAP_TYPE_HASH                        = 1
-	BPF_MAP_TYPE_HASH_OF_MAPS                = 13
-	BPF_MAP_TYPE_LPM_TRIE                    = 11
-	BPF_MAP_TYPE_LRU_HASH                    = 9
-	BPF_MAP_TYPE_LRU_PERCPU_HASH             = 10
-	BPF_MAP_TYPE_PERCPU_ARRAY                = 6
-	BPF_MAP_TYPE_PERCPU_HASH                 = 5
-	BPF_MAP_TYPE_PERF_EVENT_ARRAY            = 4
-	BPF_MAP_TYPE_PROG_ARRAY                  = 3
-	BPF_MAP_TYPE_STACK_TRACE                 = 7
-	BPF_MAP_UPDATE_ELEM                      = 2
-	BPF_NOEXIST                              = 1
-	BPF_OBJ_GET                              = 7
-	BPF_OBJ_GET_INFO_BY_FD                   = 15
-	BPF_OBJ_PIN                              = 6
-	BPF_PROG_ATTACH                          = 8
-	BPF_PROG_DETACH                          = 9
-	BPF_PROG_GET_FD_BY_ID                    = 13
-	BPF_PROG_GET_NEXT_ID                     = 11
-	BPF_PROG_LOAD                            = 5
-	BPF_PROG_TEST_RUN                        = 10
-	BPF_PROG_TYPE_CGROUP_SKB                 = 8
-	BPF_PROG_TYPE_CGROUP_SOCK                = 9
-	BPF_PROG_TYPE_KPROBE                     = 2
-	BPF_PROG_TYPE_LWT_IN                     = 10
-	BPF_PROG_TYPE_LWT_OUT                    = 11
-	BPF_PROG_TYPE_LWT_XMIT                   = 12
-	BPF_PROG_TYPE_PERF_EVENT                 = 7
-	BPF_PROG_TYPE_SCHED_ACT                  = 4
-	BPF_PROG_TYPE_SCHED_CLS                  = 3
-	BPF_PROG_TYPE_SOCKET_FILTER              = 1
-	BPF_PROG_TYPE_SOCK_OPS                   = 13
-	BPF_PROG_TYPE_TRACEPOINT                 = 5
-	BPF_PROG_TYPE_XDP                        = 6
-	BPF_PSEUDO_MAP_FD                        = 1
-	BRCTL_ADD_BRIDGE                         = 2
-	BRCTL_DEL_BRIDGE                         = 3
-	BRCTL_GET_BRIDGES                        = 1
-	BRCTL_GET_VERSION                        = 0
-	BTPROTO_BNEP                             = 4
-	BTPROTO_CMTP                             = 5
-	BTPROTO_HCI                              = 1
-	BTPROTO_HIDP                             = 6
-	BTPROTO_L2CAP                            = 0
-	BTPROTO_RFCOMM                           = 3
-	BTPROTO_SCO                              = 2
-	BT_CHANNEL_POLICY                        = 10
-	BT_DEFER_SETUP                           = 7
-	BT_FLUSHABLE                             = 8
-	BT_POWER                                 = 9
-	BT_RCVMTU                                = 13
-	BT_SECURITY                              = 4
-	BT_SNDMTU                                = 12
-	BT_VOICE                                 = 11
-	CIPSO_V4_TAG_ENUM                        = 2
-	CIPSO_V4_TAG_FREEFORM                    = 7
-	CIPSO_V4_TAG_INVALID                     = 0
-	CIPSO_V4_TAG_PBITMAP                     = 6
-	CIPSO_V4_TAG_RANGE                       = 5
-	CIPSO_V4_TAG_RBITMAP                     = 1
-	CLOCK_BOOTTIME                           = 7
-	CLOCK_MONOTONIC                          = 1
-	CLOCK_MONOTONIC_COARSE                   = 6
-	CLOCK_MONOTONIC_RAW                      = 4
-	CLOCK_PROCESS_CPUTIME_ID                 = 2
-	CLOCK_REALTIME                           = 0
-	CLOCK_REALTIME_COARSE                    = 5
-	CLOCK_THREAD_CPUTIME_ID                  = 3
-	CLONE_CHILD_CLEARTID                     = 2097152
-	CLONE_CHILD_SETTID                       = 16777216
-	CLONE_FILES                              = 1024
-	CLONE_FS                                 = 512
-	CLONE_IO                                 = 2147483648
-	CLONE_NEWCGROUP                          = 33554432
-	CLONE_NEWIPC                             = 134217728
-	CLONE_NEWNET                             = 1073741824
-	CLONE_NEWNS                              = 131072
-	CLONE_NEWPID                             = 536870912
-	CLONE_NEWUSER                            = 268435456
-	CLONE_NEWUTS                             = 67108864
-	CLONE_PARENT                             = 32768
-	CLONE_PARENT_SETTID                      = 1048576
-	CLONE_PTRACE                             = 8192
-	CLONE_SETTLS                             = 524288
-	CLONE_SIGHAND                            = 2048
-	CLONE_SYSVSEM                            = 262144
-	CLONE_THREAD                             = 65536
-	CLONE_UNTRACED                           = 8388608
-	CLONE_VFORK                              = 16384
-	CLONE_VM                                 = 256
-	CMTPCONNADD                              = 2147763144
-	CMTPCONNDEL                              = 2147763145
-	CMTPGETCONNINFO                          = 1074021331
-	CMTPGETCONNLIST                          = 1074021330
-	CRYPTO_ALG_ASYNC                         = 128
-	CRYPTO_ALG_DEAD                          = 32
-	CRYPTO_ALG_DYING                         = 64
-	CRYPTO_ALG_GENIV                         = 512
-	CRYPTO_ALG_INSTANCE                      = 2048
-	CRYPTO_ALG_INTERNAL                      = 8192
-	CRYPTO_ALG_KERN_DRIVER_ONLY              = 4096
-	CRYPTO_ALG_LARVAL                        = 16
-	CRYPTO_ALG_NEED_FALLBACK                 = 256
-	CRYPTO_ALG_TESTED                        = 1024
-	CRYPTO_ALG_TYPE_ABLKCIPHER               = 5
-	CRYPTO_ALG_TYPE_AEAD                     = 3
-	CRYPTO_ALG_TYPE_AHASH                    = 15
-	CRYPTO_ALG_TYPE_AKCIPHER                 = 13
-	CRYPTO_ALG_TYPE_BLKCIPHER                = 4
-	CRYPTO_ALG_TYPE_CIPHER                   = 1
-	CRYPTO_ALG_TYPE_COMPRESS                 = 2
-	CRYPTO_ALG_TYPE_DIGEST                   = 14
-	CRYPTO_ALG_TYPE_GIVCIPHER                = 6
-	CRYPTO_ALG_TYPE_HASH                     = 14
-	CRYPTO_ALG_TYPE_MASK                     = 15
-	CRYPTO_ALG_TYPE_PCOMPRESS                = 15
-	CRYPTO_ALG_TYPE_RNG                      = 12
-	CRYPTO_ALG_TYPE_SHASH                    = 14
-	DCCP_PKT_ACK                             = 3
-	DCCP_PKT_CLOSE                           = 6
-	DCCP_PKT_CLOSEREQ                        = 5
-	DCCP_PKT_DATA                            = 2
-	DCCP_PKT_DATAACK                         = 4
-	DCCP_PKT_INVALID                         = 10
-	DCCP_PKT_REQUEST                         = 0
-	DCCP_PKT_RESET                           = 7
-	DCCP_PKT_RESPONSE                        = 1
-	DCCP_PKT_SYNC                            = 8
-	DCCP_PKT_SYNCACK                         = 9
-	DCCP_SOCKOPT_AVAILABLE_CCIDS             = 12
-	DCCP_SOCKOPT_CCID                        = 13
-	DCCP_SOCKOPT_CCID_RX_INFO                = 128
-	DCCP_SOCKOPT_CCID_TX_INFO                = 192
-	DCCP_SOCKOPT_CHANGE_L                    = 3
-	DCCP_SOCKOPT_CHANGE_R                    = 4
-	DCCP_SOCKOPT_GET_CUR_MPS                 = 5
-	DCCP_SOCKOPT_PACKET_SIZE                 = 1
-	DCCP_SOCKOPT_QPOLICY_ID                  = 16
-	DCCP_SOCKOPT_QPOLICY_TXQLEN              = 17
-	DCCP_SOCKOPT_RECV_CSCOV                  = 11
-	DCCP_SOCKOPT_RX_CCID                     = 15
-	DCCP_SOCKOPT_SEND_CSCOV                  = 10
-	DCCP_SOCKOPT_SERVER_TIMEWAIT             = 6
-	DCCP_SOCKOPT_SERVICE                     = 2
-	DCCP_SOCKOPT_TX_CCID                     = 14
-	DN_ACCESS                                = 1
-	DN_ATTRIB                                = 32
-	DN_CREATE                                = 4
-	DN_DELETE                                = 8
-	DN_MODIFY                                = 2
-	DN_MULTISHOT                             = 2147483648
-	DN_RENAME                                = 16
-	DRM_ADD_COMMAND                          = 0
-	DRM_DISPLAY_MODE_LEN                     = 32
-	DRM_INST_HANDLER                         = 2
-	DRM_IOCTL_ADD_BUFS                       = 3223348246
-	DRM_IOCTL_ADD_CTX                        = 3221775392
-	DRM_IOCTL_ADD_MAP                        = 3223872533
-	DRM_IOCTL_AGP_ACQUIRE                    = 536896560
-	DRM_IOCTL_AGP_ALLOC                      = 3223348276
-	DRM_IOCTL_AGP_BIND                       = 2148557878
-	DRM_IOCTL_AGP_ENABLE                     = 2148033586
-	DRM_IOCTL_AGP_FREE                       = 2149606453
-	DRM_IOCTL_AGP_INFO                       = 1077437491
-	DRM_IOCTL_AGP_RELEASE                    = 536896561
-	DRM_IOCTL_AGP_UNBIND                     = 2148557879
-	DRM_IOCTL_AUTH_MAGIC                     = 2147771409
-	DRM_IOCTL_CONTROL                        = 2148033556
-	DRM_IOCTL_DMA                            = 3225445417
-	DRM_IOCTL_DROP_MASTER                    = 536896543
-	DRM_IOCTL_FREE_BUFS                      = 2148557850
-	DRM_IOCTL_GEM_CLOSE                      = 2148033545
-	DRM_IOCTL_GEM_FLINK                      = 3221775370
-	DRM_IOCTL_GEM_OPEN                       = 3222299659
-	DRM_IOCTL_GET_CAP                        = 3222299660
-	DRM_IOCTL_GET_CLIENT                     = 3223872517
-	DRM_IOCTL_GET_CTX                        = 3221775395
-	DRM_IOCTL_GET_MAGIC                      = 1074029570
-	DRM_IOCTL_GET_MAP                        = 3223872516
-	DRM_IOCTL_GET_SAREA_CTX                  = 3222299677
-	DRM_IOCTL_GET_STATS                      = 1090020358
-	DRM_IOCTL_GET_UNIQUE                     = 3222299649
-	DRM_IOCTL_INFO_BUFS                      = 3222299672
-	DRM_IOCTL_IRQ_BUSID                      = 3222299651
-	DRM_IOCTL_LOCK                           = 2148033578
-	DRM_IOCTL_MAP_BUFS                       = 3222823961
-	DRM_IOCTL_MARK_BUFS                      = 2149606423
-	DRM_IOCTL_MODESET_CTL                    = 2148033544
-	DRM_IOCTL_MODE_GETCRTC                   = 3228066977
-	DRM_IOCTL_MODE_GETPLANERESOURCES         = 3222299829
-	DRM_IOCTL_MODE_GETRESOURCES              = 3225445536
-	DRM_IOCTL_MODE_SETCRTC                   = 3228066978
-	DRM_IOCTL_NEW_CTX                        = 2148033573
-	DRM_IOCTL_PRIME_FD_TO_HANDLE             = 3222037550
-	DRM_IOCTL_PRIME_HANDLE_TO_FD             = 3222037549
-	DRM_IOCTL_RES_CTX                        = 3222299686
-	DRM_IOCTL_RM_CTX                         = 3221775393
-	DRM_IOCTL_RM_MAP                         = 2150130715
-	DRM_IOCTL_SET_CLIENT_CAP                 = 2148557837
-	DRM_IOCTL_SET_MASTER                     = 536896542
-	DRM_IOCTL_SET_SAREA_CTX                  = 2148557852
-	DRM_IOCTL_SET_UNIQUE                     = 2148557840
-	DRM_IOCTL_SET_VERSION                    = 3222299655
-	DRM_IOCTL_SG_ALLOC                       = 3222299704
-	DRM_IOCTL_SG_FREE                        = 2148557881
-	DRM_IOCTL_SWITCH_CTX                     = 2148033572
-	DRM_IOCTL_UNLOCK                         = 2148033579
-	DRM_IOCTL_VERSION                        = 3225445376
-	DRM_IOCTL_WAIT_VBLANK                    = 3222823994
-	DRM_RM_COMMAND                           = 1
-	DRM_UNINST_HANDLER                       = 3
-	EFD_CLOEXEC                              = 524288
-	EFD_NONBLOCK                             = 2048
-	EFD_SEMAPHORE                            = 1
-	EPOLLET                                  = 2147483648
-	EPOLLEXCLUSIVE                           = 268435456
-	EPOLLONESHOT                             = 1073741824
-	EPOLLWAKEUP                              = 536870912
-	EPOLL_CLOEXEC                            = 524288
-	EPOLL_CTL_ADD                            = 1
-	EPOLL_CTL_DEL                            = 2
-	EPOLL_CTL_MOD                            = 3
-	ESP_V4_FLOW                              = 10
-	ESP_V6_FLOW                              = 12
-	ETHER_FLOW                               = 18
-	ETHTOOL_BUSINFO_LEN                      = 32
-	ETHTOOL_EROMVERS_LEN                     = 32
-	ETHTOOL_FLASHDEV                         = 51
-	ETHTOOL_FLASH_MAX_FILENAME               = 128
-	ETHTOOL_FWVERS_LEN                       = 32
-	ETHTOOL_GCHANNELS                        = 60
-	ETHTOOL_GCOALESCE                        = 14
-	ETHTOOL_GDRVINFO                         = 3
-	ETHTOOL_GEEE                             = 68
-	ETHTOOL_GEEPROM                          = 11
-	ETHTOOL_GET_DUMP_DATA                    = 64
-	ETHTOOL_GET_DUMP_FLAG                    = 63
-	ETHTOOL_GET_TS_INFO                      = 65
-	ETHTOOL_GFEATURES                        = 58
-	ETHTOOL_GFLAGS                           = 37
-	ETHTOOL_GGRO                             = 43
-	ETHTOOL_GGSO                             = 35
-	ETHTOOL_GLINK                            = 10
-	ETHTOOL_GLINKSETTINGS                    = 76
-	ETHTOOL_GMODULEEEPROM                    = 67
-	ETHTOOL_GMODULEINFO                      = 66
-	ETHTOOL_GMSGLVL                          = 7
-	ETHTOOL_GPAUSEPARAM                      = 18
-	ETHTOOL_GPERMADDR                        = 32
-	ETHTOOL_GPFLAGS                          = 39
-	ETHTOOL_GPHYSTATS                        = 74
-	ETHTOOL_GREGS                            = 4
-	ETHTOOL_GRINGPARAM                       = 16
-	ETHTOOL_GRSSH                            = 70
-	ETHTOOL_GRXCLSRLALL                      = 48
-	ETHTOOL_GRXCLSRLCNT                      = 46
-	ETHTOOL_GRXCLSRULE                       = 47
-	ETHTOOL_GRXCSUM                          = 20
-	ETHTOOL_GRXFH                            = 41
-	ETHTOOL_GRXFHINDIR                       = 56
-	ETHTOOL_GRXNTUPLE                        = 54
-	ETHTOOL_GRXRINGS                         = 45
-	ETHTOOL_GSET                             = 1
-	ETHTOOL_GSG                              = 24
-	ETHTOOL_GSSET_INFO                       = 55
-	ETHTOOL_GSTATS                           = 29
-	ETHTOOL_GSTRINGS                         = 27
-	ETHTOOL_GTSO                             = 30
-	ETHTOOL_GTUNABLE                         = 72
-	ETHTOOL_GTXCSUM                          = 22
-	ETHTOOL_GUFO                             = 33
-	ETHTOOL_GWOL                             = 5
-	ETHTOOL_NWAY_RST                         = 9
-	ETHTOOL_PERQUEUE                         = 75
-	ETHTOOL_PHYS_ID                          = 28
-	ETHTOOL_PHY_GTUNABLE                     = 78
-	ETHTOOL_PHY_STUNABLE                     = 79
-	ETHTOOL_RESET                            = 52
-	ETHTOOL_RXNTUPLE_ACTION_CLEAR            = 18446744073709551614
-	ETHTOOL_RXNTUPLE_ACTION_DROP             = 18446744073709551615
-	ETHTOOL_SCHANNELS                        = 61
-	ETHTOOL_SCOALESCE                        = 15
-	ETHTOOL_SEEE                             = 69
-	ETHTOOL_SEEPROM                          = 12
-	ETHTOOL_SET_DUMP                         = 62
-	ETHTOOL_SFEATURES                        = 59
-	ETHTOOL_SFLAGS                           = 38
-	ETHTOOL_SGRO                             = 44
-	ETHTOOL_SGSO                             = 36
-	ETHTOOL_SLINKSETTINGS                    = 77
-	ETHTOOL_SMSGLVL                          = 8
-	ETHTOOL_SPAUSEPARAM                      = 19
-	ETHTOOL_SPFLAGS                          = 40
-	ETHTOOL_SRINGPARAM                       = 17
-	ETHTOOL_SRSSH                            = 71
-	ETHTOOL_SRXCLSRLDEL                      = 49
-	ETHTOOL_SRXCLSRLINS                      = 50
-	ETHTOOL_SRXCSUM                          = 21
-	ETHTOOL_SRXFH                            = 42
-	ETHTOOL_SRXFHINDIR                       = 57
-	ETHTOOL_SRXNTUPLE                        = 53
-	ETHTOOL_SSET                             = 2
-	ETHTOOL_SSG                              = 25
-	ETHTOOL_STSO                             = 31
-	ETHTOOL_STUNABLE                         = 73
-	ETHTOOL_STXCSUM                          = 23
-	ETHTOOL_SUFO                             = 34
-	ETHTOOL_SWOL                             = 6
-	ETHTOOL_TEST                             = 26
-	ETH_P_1588                               = 35063
-	ETH_P_8021AD                             = 34984
-	ETH_P_8021AH                             = 35047
-	ETH_P_8021Q                              = 33024
-	ETH_P_80221                              = 35095
-	ETH_P_802_2                              = 4
-	ETH_P_802_3                              = 1
-	ETH_P_802_3_MIN                          = 1536
-	ETH_P_802_EX1                            = 34997
-	ETH_P_AARP                               = 33011
-	ETH_P_AF_IUCV                            = 64507
-	ETH_P_ALL                                = 3
-	ETH_P_ALL_BE                             = 3
-	ETH_P_AOE                                = 34978
-	ETH_P_ARCNET                             = 26
-	ETH_P_ARP                                = 2054
-	ETH_P_ATALK                              = 32923
-	ETH_P_ATMFATE                            = 34948
-	ETH_P_ATMMPOA                            = 34892
-	ETH_P_AX25                               = 2
-	ETH_P_BATMAN                             = 17157
-	ETH_P_CAIF                               = 247
-	ETH_P_CAN                                = 12
-	ETH_P_CANFD                              = 13
-	ETH_P_CONTROL                            = 22
-	ETH_P_CUST                               = 24582
-	ETH_P_DDCMP                              = 6
-	ETH_P_DEC                                = 24576
-	ETH_P_DIAG                               = 24581
-	ETH_P_DNA_DL                             = 24577
-	ETH_P_DNA_RC                             = 24578
-	ETH_P_DNA_RT                             = 24579
-	ETH_P_DSA                                = 27
-	ETH_P_ECONET                             = 24
-	ETH_P_EDSA                               = 56026
-	ETH_P_FCOE                               = 35078
-	ETH_P_FIP                                = 35092
-	ETH_P_HDLC                               = 25
-	ETH_P_HSR                                = 35119
-	ETH_P_IEEE802154                         = 246
-	ETH_P_IEEEPUP                            = 2560
-	ETH_P_IEEEPUPAT                          = 2561
-	ETH_P_IP                                 = 2048
-	ETH_P_IPV6                               = 34525
-	ETH_P_IPX                                = 33079
-	ETH_P_IRDA                               = 23
-	ETH_P_LAT                                = 24580
-	ETH_P_LINK_CTL                           = 34924
-	ETH_P_LOCALTALK                          = 9
-	ETH_P_LOOP                               = 96
-	ETH_P_LOOPBACK                           = 36864
-	ETH_P_MACSEC                             = 35045
-	ETH_P_MOBITEX                            = 21
-	ETH_P_MPLS_MC                            = 34888
-	ETH_P_MPLS_UC                            = 34887
-	ETH_P_MVRP                               = 35061
-	ETH_P_NCSI                               = 35064
-	ETH_P_PAE                                = 34958
-	ETH_P_PAUSE                              = 34824
-	ETH_P_PHONET                             = 245
-	ETH_P_PPPTALK                            = 16
-	ETH_P_PPP_DISC                           = 34915
-	ETH_P_PPP_MP                             = 8
-	ETH_P_PPP_SES                            = 34916
-	ETH_P_PRP                                = 35067
-	ETH_P_PUP                                = 512
-	ETH_P_PUPAT                              = 513
-	ETH_P_QINQ1                              = 37120
-	ETH_P_QINQ2                              = 37376
-	ETH_P_QINQ3                              = 37632
-	ETH_P_RARP                               = 32821
-	ETH_P_SCA                                = 24583
-	ETH_P_SLOW                               = 34825
-	ETH_P_SNAP                               = 5
-	ETH_P_TDLS                               = 35085
-	ETH_P_TEB                                = 25944
-	ETH_P_TIPC                               = 35018
-	ETH_P_TRAILER                            = 28
-	ETH_P_TR_802_2                           = 17
-	ETH_P_TSN                                = 8944
-	ETH_P_WAN_PPP                            = 7
-	ETH_P_WCCP                               = 34878
-	ETH_P_X25                                = 2053
-	ETH_P_XDSA                               = 248
-	ETH_RX_NFC_IP4                           = 1
-	EVIOCGABS0                               = 1075332416
-	EVIOCGABS20                              = 1075332448
-	EVIOCGABS2F                              = 1075332463
-	EVIOCGABS3F                              = 1075332479
-	EVIOCGBITKEY64                           = 1077953825
-	EVIOCGBITSND64                           = 1077953842
-	EVIOCGBITSW64                            = 1077953829
-	EVIOCGEFFECTS                            = 1074021764
-	EVIOCGID                                 = 1074283778
-	EVIOCGKEY64                              = 1077953816
-	EVIOCGKEYCODE                            = 1074283780
-	EVIOCGKEYCODE_V2                         = 1076380932
-	EVIOCGLED64                              = 1077953817
-	EVIOCGMASK                               = 1074808210
-	EVIOCGMTSLOTS64                          = 1077953802
-	EVIOCGNAME64                             = 1077953798
-	EVIOCGPHYS64                             = 1077953799
-	EVIOCGPROP64                             = 1077953801
-	EVIOCGRAB                                = 2147763600
-	EVIOCGREP                                = 1074283779
-	EVIOCGSND64                              = 1077953818
-	EVIOCGSW64                               = 1077953819
-	EVIOCGUNIQ64                             = 1077953800
-	EVIOCGVERSION                            = 1074021633
-	EVIOCREVOKE                              = 2147763601
-	EVIOCRMFF                                = 2147763585
-	EVIOCSABS0                               = 2149074368
-	EVIOCSABS20                              = 2149074400
-	EVIOCSABS2F                              = 2149074415
-	EVIOCSABS3F                              = 2149074431
-	EVIOCSCLOCKID                            = 2147763616
-	EVIOCSFF                                 = 2150647168
-	EVIOCSKEYCODE                            = 2148025604
-	EVIOCSKEYCODE_V2                         = 2150122756
-	EVIOCSMASK                               = 2148550035
-	EVIOCSREP                                = 2148025603
-	EV_ABS                                   = 3
-	EV_FF                                    = 21
-	EV_KEY                                   = 1
-	EV_LED                                   = 17
-	EV_MSC                                   = 4
-	EV_REL                                   = 2
-	EV_SND                                   = 18
-	EV_SW                                    = 5
-	EV_SYN                                   = 0
-	FALLOC_FL_KEEP_SIZE                      = 1
-	FALLOC_FL_PUNCH_HOLE                     = 2
-	FAN_ACCESS                               = 1
-	FAN_ACCESS_PERM                          = 131072
-	FAN_CLASS_CONTENT                        = 4
-	FAN_CLASS_NOTIF                          = 0
-	FAN_CLASS_PRE_CONTENT                    = 8
-	FAN_CLOEXEC                              = 1
-	FAN_CLOSE_NOWRITE                        = 16
-	FAN_CLOSE_WRITE                          = 8
-	FAN_EVENT_ON_CHILD                       = 134217728
-	FAN_MARK_ADD                             = 1
-	FAN_MARK_DONT_FOLLOW                     = 4
-	FAN_MARK_FLUSH                           = 128
-	FAN_MARK_IGNORED_MASK                    = 32
-	FAN_MARK_IGNORED_SURV_MODIFY             = 64
-	FAN_MARK_MOUNT                           = 16
-	FAN_MARK_ONLYDIR                         = 8
-	FAN_MARK_REMOVE                          = 2
-	FAN_MODIFY                               = 2
-	FAN_NONBLOCK                             = 2
-	FAN_ONDIR                                = 1073741824
-	FAN_OPEN                                 = 32
-	FAN_OPEN_PERM                            = 65536
-	FAN_UNLIMITED_MARKS                      = 32
-	FAN_UNLIMITED_QUEUE                      = 16
-	FASYNC                                   = 8192
-	FD_CLOEXEC                               = 1
-	FF_CONSTANT                              = 82
-	FF_CUSTOM                                = 93
-	FF_DAMPER                                = 85
-	FF_FRICTION                              = 84
-	FF_INERTIA                               = 86
-	FF_PERIODIC                              = 81
-	FF_RAMP                                  = 87
-	FF_SAW_DOWN                              = 92
-	FF_SAW_UP                                = 91
-	FF_SINE                                  = 90
-	FF_SPRING                                = 83
-	FF_SQUARE                                = 88
-	FF_TRIANGLE                              = 89
-	FIEMAP_EXTENT_DATA_ENCRYPTED             = 128
-	FIEMAP_EXTENT_DATA_INLINE                = 512
-	FIEMAP_EXTENT_DATA_TAIL                  = 1024
-	FIEMAP_EXTENT_DELALLOC                   = 4
-	FIEMAP_EXTENT_ENCODED                    = 8
-	FIEMAP_EXTENT_LAST                       = 1
-	FIEMAP_EXTENT_MERGED                     = 4096
-	FIEMAP_EXTENT_NOT_ALIGNED                = 256
-	FIEMAP_EXTENT_SHARED                     = 8192
-	FIEMAP_EXTENT_UNKNOWN                    = 2
-	FIEMAP_EXTENT_UNWRITTEN                  = 2048
-	FIEMAP_FLAG_CACHE                        = 4
-	FIEMAP_FLAG_SYNC                         = 1
-	FIEMAP_FLAG_XATTR                        = 2
-	FIFREEZE                                 = 3221510263
-	FIGETBSZ                                 = 536870914
-	FIOASYNC                                 = 2147772029
-	FIOCLEX                                  = 536897025
-	FIOGETOWN                                = 35075
-	FIONBIO                                  = 2147772030
-	FIONCLEX                                 = 536897026
-	FIONREAD                                 = 1074030207
-	FIOQSIZE                                 = 1074292352
-	FIOSETOWN                                = 35073
-	FITHAW                                   = 3221510264
-	FS_IOC_FIEMAP                            = 3223348747
-	FUSE_DEV_IOC_CLONE                       = 1074062592
-	FUTEX_CMP_REQUEUE                        = 4
-	FUTEX_REQUEUE                            = 3
-	FUTEX_WAIT                               = 0
-	FUTEX_WAIT_BITSET                        = 9
-	FUTEX_WAKE                               = 1
-	F_ADD_SEALS                              = 1033
-	F_DUPFD                                  = 0
-	F_DUPFD_CLOEXEC                          = 1030
-	F_GETFD                                  = 1
-	F_GETFL                                  = 3
-	F_GETLEASE                               = 1025
-	F_GETLK                                  = 5
-	F_GETOWN                                 = 9
-	F_GETOWN_EX                              = 16
-	F_GETPIPE_SZ                             = 1032
-	F_GETSIG                                 = 11
-	F_GET_SEALS                              = 1034
-	F_OWNER_PGRP                             = 2
-	F_OWNER_PID                              = 1
-	F_OWNER_TID                              = 0
-	F_RDLCK                                  = 0
-	F_SEAL_GROW                              = 4
-	F_SEAL_SEAL                              = 1
-	F_SEAL_SHRINK                            = 2
-	F_SEAL_WRITE                             = 8
-	F_SETFD                                  = 2
-	F_SETFL                                  = 4
-	F_SETLEASE                               = 1024
-	F_SETLK                                  = 6
-	F_SETLKW                                 = 7
-	F_SETOWN                                 = 8
-	F_SETOWN_EX                              = 15
-	F_SETPIPE_SZ                             = 1031
-	F_SETSIG                                 = 10
-	F_UNLCK                                  = 2
-	F_WRLCK                                  = 1
-	GETALL                                   = 13
-	GETNCNT                                  = 14
-	GETPID                                   = 11
-	GETVAL                                   = 12
-	GETZCNT                                  = 15
-	GIO_CMAP                                 = 19312
-	GIO_FONT                                 = 19296
-	GIO_FONTX                                = 19307
-	GIO_SCRNMAP                              = 19264
-	GIO_UNIMAP                               = 19302
-	GIO_UNISCRNMAP                           = 19305
-	GRND_NONBLOCK                            = 1
-	GRND_RANDOM                              = 2
-	HCIBLOCKADDR                             = 2147764454
-	HCIDEVDOWN                               = 2147764426
-	HCIDEVRESET                              = 2147764427
-	HCIDEVRESTAT                             = 2147764428
-	HCIDEVUP                                 = 2147764425
-	HCIGETAUTHINFO                           = 1074022615
-	HCIGETCONNINFO                           = 1074022613
-	HCIGETCONNLIST                           = 1074022612
-	HCIGETDEVINFO                            = 1074022611
-	HCIGETDEVLIST                            = 1074022610
-	HCIINQUIRY                               = 1074022640
-	HCISETACLMTU                             = 2147764451
-	HCISETAUTH                               = 2147764446
-	HCISETENCRYPT                            = 2147764447
-	HCISETLINKMODE                           = 2147764450
-	HCISETLINKPOL                            = 2147764449
-	HCISETPTYPE                              = 2147764448
-	HCISETRAW                                = 2147764444
-	HCISETSCAN                               = 2147764445
-	HCISETSCOMTU                             = 2147764452
-	HCIUNBLOCKADDR                           = 2147764455
-	HCI_CHANNEL_CONTROL                      = 3
-	HCI_CHANNEL_MONITOR                      = 2
-	HCI_CHANNEL_RAW                          = 0
-	HCI_CHANNEL_USER                         = 1
-	HCI_DATA_DIR                             = 1
-	HCI_FILTER                               = 2
-	HCI_TIME_STAMP                           = 3
-	HIDPCONNADD                              = 2147764424
-	HIDPCONNDEL                              = 2147764425
-	HIDPGETCONNINFO                          = 1074022611
-	HIDPGETCONNLIST                          = 1074022610
-	HW_BREAKPOINT_EMPTY                      = 0
-	HW_BREAKPOINT_R                          = 1
-	HW_BREAKPOINT_W                          = 2
-	HW_BREAKPOINT_X                          = 4
-	ICMPV6_ADDR_UNREACH                      = 3
-	ICMPV6_ADM_PROHIBITED                    = 1
-	ICMPV6_DEST_UNREACH                      = 1
-	ICMPV6_ECHO_REPLY                        = 129
-	ICMPV6_ECHO_REQUEST                      = 128
-	ICMPV6_EXC_FRAGTIME                      = 1
-	ICMPV6_EXC_HOPLIMIT                      = 0
-	ICMPV6_HDR_FIELD                         = 0
-	ICMPV6_MGM_QUERY                         = 130
-	ICMPV6_MGM_REDUCTION                     = 132
-	ICMPV6_MGM_REPORT                        = 131
-	ICMPV6_NI_QUERY                          = 139
-	ICMPV6_NI_REPLY                          = 140
-	ICMPV6_NOROUTE                           = 0
-	ICMPV6_NOT_NEIGHBOUR                     = 2
-	ICMPV6_PARAMPROB                         = 4
-	ICMPV6_PKT_TOOBIG                        = 2
-	ICMPV6_POLICY_FAIL                       = 5
-	ICMPV6_PORT_UNREACH                      = 4
-	ICMPV6_REJECT_ROUTE                      = 6
-	ICMPV6_TIME_EXCEED                       = 3
-	ICMPV6_UNK_NEXTHDR                       = 1
-	ICMPV6_UNK_OPTION                        = 2
-	ICMP_ADDRESS                             = 17
-	ICMP_ADDRESSREPLY                        = 18
-	ICMP_DEST_UNREACH                        = 3
-	ICMP_ECHO                                = 8
-	ICMP_ECHOREPLY                           = 0
-	ICMP_EXC_FRAGTIME                        = 1
-	ICMP_EXC_TTL                             = 0
-	ICMP_FILTER                              = 1
-	ICMP_FRAG_NEEDED                         = 4
-	ICMP_HOST_ANO                            = 10
-	ICMP_HOST_ISOLATED                       = 8
-	ICMP_HOST_UNKNOWN                        = 7
-	ICMP_HOST_UNREACH                        = 1
-	ICMP_HOST_UNR_TOS                        = 12
-	ICMP_INFO_REPLY                          = 16
-	ICMP_INFO_REQUEST                        = 15
-	ICMP_NET_ANO                             = 9
-	ICMP_NET_UNKNOWN                         = 6
-	ICMP_NET_UNREACH                         = 0
-	ICMP_NET_UNR_TOS                         = 11
-	ICMP_PARAMETERPROB                       = 12
-	ICMP_PKT_FILTERED                        = 13
-	ICMP_PORT_UNREACH                        = 3
-	ICMP_PREC_CUTOFF                         = 15
-	ICMP_PREC_VIOLATION                      = 14
-	ICMP_PROT_UNREACH                        = 2
-	ICMP_REDIRECT                            = 5
-	ICMP_REDIR_HOST                          = 1
-	ICMP_REDIR_HOSTTOS                       = 3
-	ICMP_REDIR_NET                           = 0
-	ICMP_REDIR_NETTOS                        = 2
-	ICMP_SOURCE_QUENCH                       = 4
-	ICMP_SR_FAILED                           = 5
-	ICMP_TIMESTAMP                           = 13
-	ICMP_TIMESTAMPREPLY                      = 14
-	ICMP_TIME_EXCEEDED                       = 11
-	IFF_ATTACH_QUEUE                         = 512
-	IFF_DETACH_QUEUE                         = 1024
-	IFF_MULTI_QUEUE                          = 256
-	IFF_NOFILTER                             = 4096
-	IFF_NO_PI                                = 4096
-	IFF_ONE_QUEUE                            = 8192
-	IFF_PERSIST                              = 2048
-	IFF_TAP                                  = 2
-	IFF_TUN                                  = 1
-	IFF_TUN_EXCL                             = 32768
-	IFF_VNET_HDR                             = 16384
-	IFNAMSIZ                                 = 16
-	IGMPV2_HOST_MEMBERSHIP_REPORT            = 22
-	IGMPV3_HOST_MEMBERSHIP_REPORT            = 34
-	IGMP_DVMRP                               = 19
-	IGMP_HOST_LEAVE_MESSAGE                  = 23
-	IGMP_HOST_MEMBERSHIP_QUERY               = 17
-	IGMP_HOST_MEMBERSHIP_REPORT              = 18
-	IGMP_MTRACE                              = 31
-	IGMP_MTRACE_RESP                         = 30
-	IGMP_PIM                                 = 20
-	IGMP_TRACE                               = 21
-	IN_ACCESS                                = 1
-	IN_ATTRIB                                = 4
-	IN_CLOEXEC                               = 524288
-	IN_CLOSE_NOWRITE                         = 16
-	IN_CLOSE_WRITE                           = 8
-	IN_CREATE                                = 256
-	IN_DELETE                                = 512
-	IN_DELETE_SELF                           = 1024
-	IN_DONT_FOLLOW                           = 33554432
-	IN_EXCL_UNLINK                           = 67108864
-	IN_MASK_ADD                              = 536870912
-	IN_MODIFY                                = 2
-	IN_MOVED_FROM                            = 64
-	IN_MOVED_TO                              = 128
-	IN_MOVE_SELF                             = 2048
-	IN_NONBLOCK                              = 2048
-	IN_ONESHOT                               = 2147483648
-	IN_ONLYDIR                               = 16777216
-	IN_OPEN                                  = 32
-	IOCB_CMD_FDSYNC                          = 3
-	IOCB_CMD_FSYNC                           = 2
-	IOCB_CMD_NOOP                            = 6
-	IOCB_CMD_PREAD                           = 0
-	IOCB_CMD_PREADV                          = 7
-	IOCB_CMD_PWRITE                          = 1
-	IOCB_CMD_PWRITEV                         = 8
-	IOCB_FLAG_RESFD                          = 1
-	IOPRIO_WHO_PGRP                          = 2
-	IOPRIO_WHO_PROCESS                       = 1
-	IOPRIO_WHO_USER                          = 3
-	IP6T_SO_GET_REVISION_MATCH               = 68
-	IP6T_SO_GET_REVISION_TARGET              = 69
-	IP6T_SO_ORIGINAL_DST                     = 80
-	IP6_RT_PRIO_ADDRCONF                     = 256
-	IP6_RT_PRIO_USER                         = 1024
-	IPC_CREAT                                = 512
-	IPC_EXCL                                 = 1024
-	IPC_INFO                                 = 3
-	IPC_NOWAIT                               = 2048
-	IPC_PRIVATE                              = 0
-	IPC_RMID                                 = 0
-	IPC_SET                                  = 1
-	IPC_STAT                                 = 2
-	IPOPT_CIPSO                              = 134
-	IPOPT_END                                = 0
-	IPOPT_LSRR                               = 131
-	IPOPT_NOOP                               = 1
-	IPOPT_RA                                 = 148
-	IPOPT_RR                                 = 7
-	IPOPT_SEC                                = 130
-	IPOPT_SID                                = 136
-	IPOPT_SSRR                               = 137
-	IPOPT_TIMESTAMP                          = 68
-	IPOPT_TS_PRESPEC                         = 3
-	IPOPT_TS_TSANDADDR                       = 1
-	IPOPT_TS_TSONLY                          = 0
-	IPPROTO_AH                               = 51
-	IPPROTO_BEETPH                           = 94
-	IPPROTO_COMP                             = 108
-	IPPROTO_DCCP                             = 33
-	IPPROTO_DSTOPTS                          = 60
-	IPPROTO_EGP                              = 8
-	IPPROTO_ENCAP                            = 98
-	IPPROTO_ESP                              = 50
-	IPPROTO_FRAGMENT                         = 44
-	IPPROTO_GRE                              = 47
-	IPPROTO_HOPOPTS                          = 0
-	IPPROTO_ICMP                             = 1
-	IPPROTO_ICMPV6                           = 58
-	IPPROTO_IDP                              = 22
-	IPPROTO_IGMP                             = 2
-	IPPROTO_IP                               = 0
-	IPPROTO_IPIP                             = 4
-	IPPROTO_IPV6                             = 41
-	IPPROTO_MH                               = 135
-	IPPROTO_MPLS                             = 137
-	IPPROTO_MTP                              = 92
-	IPPROTO_NONE                             = 59
-	IPPROTO_PIM                              = 103
-	IPPROTO_PUP                              = 12
-	IPPROTO_RAW                              = 255
-	IPPROTO_ROUTING                          = 43
-	IPPROTO_RSVP                             = 46
-	IPPROTO_SCTP                             = 132
-	IPPROTO_TCP                              = 6
-	IPPROTO_TP                               = 29
-	IPPROTO_UDP                              = 17
-	IPPROTO_UDPLITE                          = 136
-	IPV4_FLOW                                = 16
-	IPV4_USER_FLOW                           = 13
-	IPV6_2292DSTOPTS                         = 4
-	IPV6_2292HOPLIMIT                        = 8
-	IPV6_2292HOPOPTS                         = 3
-	IPV6_2292PKTINFO                         = 2
-	IPV6_2292PKTOPTIONS                      = 6
-	IPV6_2292RTHDR                           = 5
-	IPV6_ADDRFORM                            = 1
-	IPV6_ADDR_PREFERENCES                    = 72
-	IPV6_ADD_MEMBERSHIP                      = 20
-	IPV6_AUTHHDR                             = 10
-	IPV6_AUTOFLOWLABEL                       = 70
-	IPV6_CHECKSUM                            = 7
-	IPV6_DONTFRAG                            = 62
-	IPV6_DROP_MEMBERSHIP                     = 21
-	IPV6_DSTOPTS                             = 59
-	IPV6_FLOW                                = 17
-	IPV6_FLOWINFO                            = 11
-	IPV6_FLOWINFO_SEND                       = 33
-	IPV6_FLOWLABEL_MGR                       = 32
-	IPV6_FL_A_GET                            = 0
-	IPV6_FL_A_PUT                            = 1
-	IPV6_FL_A_RENEW                          = 2
-	IPV6_FL_F_CREATE                         = 1
-	IPV6_FL_F_EXCL                           = 2
-	IPV6_FL_F_REFLECT                        = 4
-	IPV6_FL_F_REMOTE                         = 8
-	IPV6_FL_S_ANY                            = 255
-	IPV6_FL_S_EXCL                           = 1
-	IPV6_FL_S_NONE                           = 0
-	IPV6_FL_S_PROCESS                        = 2
-	IPV6_FL_S_USER                           = 3
-	IPV6_HDRINCL                             = 36
-	IPV6_HOPLIMIT                            = 52
-	IPV6_HOPOPTS                             = 54
-	IPV6_IPSEC_POLICY                        = 34
-	IPV6_JOIN_ANYCAST                        = 27
-	IPV6_LEAVE_ANYCAST                       = 28
-	IPV6_MINHOPCOUNT                         = 73
-	IPV6_MTU                                 = 24
-	IPV6_MTU_DISCOVER                        = 23
-	IPV6_MULTICAST_HOPS                      = 18
-	IPV6_MULTICAST_IF                        = 17
-	IPV6_MULTICAST_LOOP                      = 19
-	IPV6_NEXTHOP                             = 9
-	IPV6_PATHMTU                             = 61
-	IPV6_PKTINFO                             = 50
-	IPV6_RECVDSTOPTS                         = 58
-	IPV6_RECVERR                             = 25
-	IPV6_RECVHOPLIMIT                        = 51
-	IPV6_RECVHOPOPTS                         = 53
-	IPV6_RECVORIGDSTADDR                     = 74
-	IPV6_RECVPATHMTU                         = 60
-	IPV6_RECVPKTINFO                         = 49
-	IPV6_RECVRTHDR                           = 56
-	IPV6_RECVTCLASS                          = 66
-	IPV6_ROUTER_ALERT                        = 22
-	IPV6_RTHDR                               = 57
-	IPV6_RTHDRDSTOPTS                        = 55
-	IPV6_SRCRT_STRICT                        = 1
-	IPV6_SRCRT_TYPE_0                        = 0
-	IPV6_SRCRT_TYPE_2                        = 2
-	IPV6_TCLASS                              = 67
-	IPV6_TLV_CALIPSO                         = 7
-	IPV6_TLV_HAO                             = 201
-	IPV6_TLV_JUMBO                           = 194
-	IPV6_TLV_PAD1                            = 0
-	IPV6_TLV_PADN                            = 1
-	IPV6_TLV_ROUTERALERT                     = 5
-	IPV6_TRANSPARENT                         = 75
-	IPV6_UNICAST_HOPS                        = 16
-	IPV6_UNICAST_IF                          = 76
-	IPV6_USER_FLOW                           = 14
-	IPV6_V6ONLY                              = 26
-	IPV6_XFRM_POLICY                         = 35
-	IPX_TYPE                                 = 1
-	IPX_TYPE_NCP                             = 17
-	IPX_TYPE_PPROP                           = 20
-	IPX_TYPE_RIP                             = 1
-	IPX_TYPE_SAP                             = 4
-	IPX_TYPE_SPX                             = 5
-	IPX_TYPE_UNKNOWN                         = 0
-	IP_ADD_MEMBERSHIP                        = 35
-	IP_ADD_SOURCE_MEMBERSHIP                 = 39
-	IP_BIND_ADDRESS_NO_PORT                  = 24
-	IP_BLOCK_SOURCE                          = 38
-	IP_CHECKSUM                              = 23
-	IP_DROP_MEMBERSHIP                       = 36
-	IP_DROP_SOURCE_MEMBERSHIP                = 40
-	IP_FREEBIND                              = 15
-	IP_HDRINCL                               = 3
-	IP_IPSEC_POLICY                          = 16
-	IP_MINTTL                                = 21
-	IP_MSFILTER                              = 41
-	IP_MTU                                   = 14
-	IP_MTU_DISCOVER                          = 10
-	IP_MULTICAST_ALL                         = 49
-	IP_MULTICAST_IF                          = 32
-	IP_MULTICAST_LOOP                        = 34
-	IP_MULTICAST_TTL                         = 33
-	IP_NODEFRAG                              = 22
-	IP_OPTIONS                               = 4
-	IP_PASSSEC                               = 18
-	IP_PKTINFO                               = 8
-	IP_PKTOPTIONS                            = 9
-	IP_PMTUDISC_DO                           = 2
-	IP_PMTUDISC_DONT                         = 0
-	IP_PMTUDISC_INTERFACE                    = 4
-	IP_PMTUDISC_OMIT                         = 5
-	IP_PMTUDISC_PROBE                        = 3
-	IP_PMTUDISC_WANT                         = 1
-	IP_RECVERR                               = 11
-	IP_RECVOPTS                              = 6
-	IP_RECVORIGDSTADDR                       = 20
-	IP_RECVTOS                               = 13
-	IP_RECVTTL                               = 12
-	IP_RETOPTS                               = 7
-	IP_ROUTER_ALERT                          = 5
-	IP_TOS                                   = 1
-	IP_TRANSPARENT                           = 19
-	IP_TTL                                   = 2
-	IP_UNBLOCK_SOURCE                        = 37
-	IP_UNICAST_IF                            = 50
-	IP_USER_FLOW                             = 13
-	IP_XFRM_POLICY                           = 17
-	ITIMER_PROF                              = 2
-	ITIMER_REAL                              = 0
-	ITIMER_VIRTUAL                           = 1
-	KCMPROTO_CONNECTED                       = 0
-	KCMP_FILE                                = 0
-	KCMP_FILES                               = 2
-	KCMP_FS                                  = 3
-	KCMP_IO                                  = 5
-	KCMP_SIGHAND                             = 4
-	KCMP_SYSVSEM                             = 6
-	KCMP_VM                                  = 1
-	KCM_RECV_DISABLE                         = 1
-	KCOV_ENABLE                              = 536896356
-	KCOV_INIT_TRACE                          = 1074291457
-	KCOV_TRACE_CMP                           = 1
-	KCOV_TRACE_PC                            = 0
-	KDADDIO                                  = 19252
-	KDDELIO                                  = 19253
-	KDDISABIO                                = 19255
-	KDENABIO                                 = 19254
-	KDGETKEYCODE                             = 19276
-	KDGETLED                                 = 19249
-	KDGETMODE                                = 19259
-	KDGKBDIACR                               = 19274
-	KDGKBENT                                 = 19270
-	KDGKBLED                                 = 19300
-	KDGKBMETA                                = 19298
-	KDGKBMODE                                = 19268
-	KDGKBSENT                                = 19272
-	KDGKBTYPE                                = 19251
-	KDSETKEYCODE                             = 19277
-	KDSETLED                                 = 19250
-	KDSETMODE                                = 19258
-	KDSIGACCEPT                              = 19278
-	KDSKBLED                                 = 19301
-	KDSKBMETA                                = 19299
-	KDSKBMODE                                = 19269
-	KDSKBSENT                                = 19273
-	KERNEL_CLIENT                            = 2
-	KEXEC_ARCH_386                           = 196608
-	KEXEC_ARCH_ARM                           = 2621440
-	KEXEC_ARCH_IA_64                         = 3276800
-	KEXEC_ARCH_MIPS                          = 524288
-	KEXEC_ARCH_MIPS_LE                       = 655360
-	KEXEC_ARCH_PPC                           = 1310720
-	KEXEC_ARCH_PPC64                         = 1376256
-	KEXEC_ARCH_S390                          = 1441792
-	KEXEC_ARCH_SH                            = 2752512
-	KEXEC_ARCH_X86_64                        = 4063232
-	KEXEC_ON_CRASH                           = 1
-	KEXEC_PRESERVE_CONTEXT                   = 2
-	KEYCTL_ASSUME_AUTHORITY                  = 16
-	KEYCTL_CHOWN                             = 4
-	KEYCTL_CLEAR                             = 7
-	KEYCTL_DESCRIBE                          = 6
-	KEYCTL_GET_KEYRING_ID                    = 0
-	KEYCTL_GET_PERSISTENT                    = 22
-	KEYCTL_GET_SECURITY                      = 17
-	KEYCTL_INSTANTIATE                       = 12
-	KEYCTL_INSTANTIATE_IOV                   = 20
-	KEYCTL_INVALIDATE                        = 21
-	KEYCTL_JOIN_SESSION_KEYRING              = 1
-	KEYCTL_LINK                              = 8
-	KEYCTL_NEGATE                            = 13
-	KEYCTL_READ                              = 11
-	KEYCTL_REJECT                            = 19
-	KEYCTL_REVOKE                            = 3
-	KEYCTL_SEARCH                            = 10
-	KEYCTL_SESSION_TO_PARENT                 = 18
-	KEYCTL_SETPERM                           = 5
-	KEYCTL_SET_REQKEY_KEYRING                = 14
-	KEYCTL_SET_TIMEOUT                       = 15
-	KEYCTL_UNLINK                            = 9
-	KEYCTL_UPDATE                            = 2
-	KEY_GRP_LINK                             = 4096
-	KEY_GRP_READ                             = 512
-	KEY_GRP_SEARCH                           = 2048
-	KEY_GRP_SETATTR                          = 8192
-	KEY_GRP_VIEW                             = 256
-	KEY_GRP_WRITE                            = 1024
-	KEY_OTH_LINK                             = 16
-	KEY_OTH_READ                             = 2
-	KEY_OTH_SEARCH                           = 8
-	KEY_OTH_SETATTR                          = 32
-	KEY_OTH_VIEW                             = 1
-	KEY_OTH_WRITE                            = 4
-	KEY_PERM_UNDEF                           = 4294967295
-	KEY_POS_LINK                             = 268435456
-	KEY_POS_READ                             = 33554432
-	KEY_POS_SEARCH                           = 134217728
-	KEY_POS_SETATTR                          = 536870912
-	KEY_POS_VIEW                             = 16777216
-	KEY_POS_WRITE                            = 67108864
-	KEY_REQKEY_DEFL_DEFAULT                  = 0
-	KEY_REQKEY_DEFL_GROUP_KEYRING            = 6
-	KEY_REQKEY_DEFL_NO_CHANGE                = 18446744073709551615
-	KEY_REQKEY_DEFL_PROCESS_KEYRING          = 2
-	KEY_REQKEY_DEFL_REQUESTOR_KEYRING        = 7
-	KEY_REQKEY_DEFL_SESSION_KEYRING          = 3
-	KEY_REQKEY_DEFL_THREAD_KEYRING           = 1
-	KEY_REQKEY_DEFL_USER_KEYRING             = 4
-	KEY_REQKEY_DEFL_USER_SESSION_KEYRING     = 5
-	KEY_SPEC_GROUP_KEYRING                   = 18446744073709551610
-	KEY_SPEC_PROCESS_KEYRING                 = 18446744073709551614
-	KEY_SPEC_REQKEY_AUTH_KEY                 = 18446744073709551609
-	KEY_SPEC_REQUESTOR_KEYRING               = 18446744073709551608
-	KEY_SPEC_SESSION_KEYRING                 = 18446744073709551613
-	KEY_SPEC_THREAD_KEYRING                  = 18446744073709551615
-	KEY_SPEC_USER_KEYRING                    = 18446744073709551612
-	KEY_SPEC_USER_SESSION_KEYRING            = 18446744073709551611
-	KEY_USR_LINK                             = 1048576
-	KEY_USR_READ                             = 131072
-	KEY_USR_SEARCH                           = 524288
-	KEY_USR_SETATTR                          = 2097152
-	KEY_USR_VIEW                             = 65536
-	KEY_USR_WRITE                            = 262144
-	KIOCSOUND                                = 19247
-	KVM_ARM_SET_DEVICE_ADDR                  = 2148576939
-	KVM_ASSIGN_DEV_IRQ                       = 2151722608
-	KVM_ASSIGN_PCI_DEVICE                    = 1077980777
-	KVM_ASSIGN_SET_INTX_MASK                 = 2151722660
-	KVM_ASSIGN_SET_MSIX_ENTRY                = 2148576884
-	KVM_ASSIGN_SET_MSIX_NR                   = 2148052595
-	KVM_CAP_DISABLE_QUIRKS                   = 116
-	KVM_CAP_HYPERV_SYNIC                     = 123
-	KVM_CAP_SPLIT_IRQCHIP                    = 121
-	KVM_CAP_X2APIC_API                       = 129
-	KVM_CHECK_EXTENSION                      = 536915459
-	KVM_CREATE_DEVICE                        = 3222056672
-	KVM_CREATE_DEVICE_TEST                   = 1
-	KVM_CREATE_IRQCHIP                       = 536915552
-	KVM_CREATE_PIT2                          = 2151722615
-	KVM_CREATE_VCPU                          = 536915521
-	KVM_CREATE_VM                            = 536915457
-	KVM_DEASSIGN_DEV_IRQ                     = 2151722613
-	KVM_DEASSIGN_PCI_DEVICE                  = 2151722610
-	KVM_DEV_ASSIGN_ENABLE_IOMMU              = 1
-	KVM_DEV_ASSIGN_MASK_INTX                 = 4
-	KVM_DEV_ASSIGN_PCI_2_3                   = 2
-	KVM_DEV_IRQ_GUEST_INTX                   = 256
-	KVM_DEV_IRQ_GUEST_MSI                    = 512
-	KVM_DEV_IRQ_GUEST_MSIX                   = 1024
-	KVM_DEV_IRQ_HOST_INTX                    = 1
-	KVM_DEV_IRQ_HOST_MSI                     = 2
-	KVM_DEV_IRQ_HOST_MSIX                    = 4
-	KVM_DEV_TYPE_FLIC                        = 6
-	KVM_DEV_TYPE_FSL_MPIC_20                 = 1
-	KVM_DEV_TYPE_FSL_MPIC_42                 = 2
-	KVM_DEV_TYPE_VFIO                        = 4
-	KVM_DEV_TYPE_XICS                        = 3
-	KVM_DIRTY_TLB                            = 2148576938
-	KVM_ENABLE_CAP                           = 2154344099
-	KVM_GET_CLOCK                            = 1076932220
-	KVM_GET_DEVICE_ATTR                      = 2149101282
-	KVM_GET_DIRTY_LOG                        = 2148576834
-	KVM_GET_FPU                              = 1090563724
-	KVM_GET_IRQCHIP                          = 3255348834
-	KVM_GET_MP_STATE                         = 1074048664
-	KVM_GET_NR_MMU_PAGES                     = 536915525
-	KVM_GET_ONE_REG                          = 2148576939
-	KVM_GET_REGS                             = 1099476609
-	KVM_GET_REG_LIST                         = 3221794480
-	KVM_GET_SREGS                            = 1154526851
-	KVM_GET_TSC_KHZ                          = 536915619
-	KVM_GET_VCPU_MMAP_SIZE                   = 536915460
-	KVM_GUESTDBG_ENABLE                      = 1
-	KVM_GUESTDBG_SINGLESTEP                  = 2
-	KVM_GUESTDBG_USE_HW_BP                   = 131072
-	KVM_GUESTDBG_USE_SW_BP                   = 65536
-	KVM_HAS_DEVICE_ATTR                      = 2149101283
-	KVM_INTERRUPT                            = 2147790470
-	KVM_IOEVENTFD                            = 2151722617
-	KVM_IOEVENTFD_FLAG_DATAMATCH             = 1
-	KVM_IOEVENTFD_FLAG_DEASSIGN              = 4
-	KVM_IOEVENTFD_FLAG_PIO                   = 2
-	KVM_IOEVENTFD_FLAG_VIRTIO_CCW_NOTIFY     = 8
-	KVM_IRQFD                                = 2149625462
-	KVM_IRQ_LINE                             = 2148052577
-	KVM_IRQ_LINE_STATUS                      = 3221794407
-	KVM_IRQ_ROUTING_HV_SINT                  = 4
-	KVM_IRQ_ROUTING_IRQCHIP                  = 1
-	KVM_IRQ_ROUTING_MSI                      = 2
-	KVM_IRQ_ROUTING_S390_ADAPTER             = 3
-	KVM_KVMCLOCK_CTRL                        = 536915629
-	KVM_MEM_LOG_DIRTY_PAGES                  = 1
-	KVM_MEM_READONLY                         = 2
-	KVM_MP_STATE_CHECK_STOP                  = 6
-	KVM_MP_STATE_HALTED                      = 3
-	KVM_MP_STATE_INIT_RECEIVED               = 2
-	KVM_MP_STATE_LOAD                        = 8
-	KVM_MP_STATE_OPERATING                   = 7
-	KVM_MP_STATE_RUNNABLE                    = 0
-	KVM_MP_STATE_SIPI_RECEIVED               = 4
-	KVM_MP_STATE_STOPPED                     = 5
-	KVM_MP_STATE_UNINITIALIZED               = 1
-	KVM_NMI                                  = 536915610
-	KVM_PPC_ALLOCATE_HTAB                    = 3221532327
-	KVM_PPC_GET_PVINFO                       = 2155916961
-	KVM_PPC_GET_SMMU_INFO                    = 1112583846
-	KVM_REGISTER_COALESCED_MMIO              = 2148576871
-	KVM_REINJECT_CONTROL                     = 536915569
-	KVM_RUN                                  = 536915584
-	KVM_S390_INTERRUPT                       = 2148576916
-	KVM_S390_UCAS_MAP                        = 2149101136
-	KVM_S390_UCAS_UNMAP                      = 2149101137
-	KVM_S390_VCPU_FAULT                      = 2148052562
-	KVM_SETUP_CPL3                           = 8
-	KVM_SETUP_PAE                            = 2
-	KVM_SETUP_PAGING                         = 1
-	KVM_SETUP_PROTECTED                      = 4
-	KVM_SETUP_SMM                            = 32
-	KVM_SETUP_VIRT86                         = 16
-	KVM_SETUP_VM                             = 64
-	KVM_SET_BOOT_CPU_ID                      = 536915576
-	KVM_SET_CLOCK                            = 2150674043
-	KVM_SET_DEVICE_ATTR                      = 2149101281
-	KVM_SET_FPU                              = 2164305549
-	KVM_SET_GSI_ROUTING                      = 2148052586
-	KVM_SET_GUEST_DEBUG                      = 2164829851
-	KVM_SET_IDENTITY_MAP_ADDR                = 2148052552
-	KVM_SET_IRQCHIP                          = 1107865187
-	KVM_SET_MP_STATE                         = 2147790489
-	KVM_SET_NR_MMU_PAGES                     = 536915524
-	KVM_SET_ONE_REG                          = 2148576940
-	KVM_SET_REGS                             = 2173218434
-	KVM_SET_SIGNAL_MASK                      = 2147790475
-	KVM_SET_SREGS                            = 2228268676
-	KVM_SET_TSC_KHZ                          = 536915618
-	KVM_SET_TSS_ADDR                         = 536915527
-	KVM_SET_USER_MEMORY_REGION               = 2149625414
-	KVM_SET_VAPIC_ADDR                       = 2148052627
-	KVM_SIGNAL_MSI                           = 2149625509
-	KVM_SMI                                  = 536915639
-	KVM_TPR_ACCESS_REPORTING                 = 3223891602
-	KVM_TRANSLATE                            = 3222843013
-	KVM_UNREGISTER_COALESCED_MMIO            = 2148576872
-	KVM_X86_GET_MCE_CAP_SUPPORTED            = 1074310813
-	KVM_X86_SETUP_MCE                        = 2148052636
-	L2CAP_CONNINFO                           = 2
-	L2CAP_LM                                 = 3
-	L2CAP_LM_AUTH                            = 2
-	L2CAP_LM_ENCRYPT                         = 4
-	L2CAP_LM_FIPS                            = 64
-	L2CAP_LM_MASTER                          = 1
-	L2CAP_LM_RELIABLE                        = 16
-	L2CAP_LM_SECURE                          = 32
-	L2CAP_LM_TRUSTED                         = 8
-	L2CAP_OPTIONS                            = 1
-	LLC_OPT_ACK_TMR_EXP                      = 3
-	LLC_OPT_BUSY_TMR_EXP                     = 6
-	LLC_OPT_PKTINFO                          = 9
-	LLC_OPT_P_TMR_EXP                        = 4
-	LLC_OPT_REJ_TMR_EXP                      = 5
-	LLC_OPT_RETRY                            = 1
-	LLC_OPT_RX_WIN                           = 8
-	LLC_OPT_SIZE                             = 2
-	LLC_OPT_TX_WIN                           = 7
-	LLC_SAP_3COM                             = 128
-	LLC_SAP_8208                             = 126
-	LLC_SAP_BANYAN                           = 188
-	LLC_SAP_BSPAN                            = 66
-	LLC_SAP_DISC                             = 252
-	LLC_SAP_GLOBAL                           = 255
-	LLC_SAP_IMPL                             = 248
-	LLC_SAP_IP                               = 6
-	LLC_SAP_IPX                              = 224
-	LLC_SAP_LANMGR                           = 244
-	LLC_SAP_LAR                              = 220
-	LLC_SAP_LLC                              = 2
-	LLC_SAP_MMS                              = 78
-	LLC_SAP_NETBEUI                          = 240
-	LLC_SAP_NULL                             = 0
-	LLC_SAP_OSI                              = 254
-	LLC_SAP_PNM                              = 14
-	LLC_SAP_PRO                              = 142
-	LLC_SAP_RM                               = 212
-	LLC_SAP_SNA                              = 4
-	LLC_SAP_SNAP                             = 170
-	LOCK_EX                                  = 2
-	LOCK_NB                                  = 4
-	LOCK_SH                                  = 1
-	LOCK_UN                                  = 8
-	LOOP_CLR_FD                              = 19457
-	LOOP_CTL_ADD                             = 19584
-	LOOP_CTL_GET_FREE                        = 19586
-	LOOP_GET_STATUS                          = 19459
-	LOOP_GET_STATUS64                        = 19461
-	LOOP_SET_CAPACITY                        = 19463
-	LOOP_SET_DIRECT_IO                       = 19464
-	LOOP_SET_FD                              = 19456
-	LOOP_SET_STATUS                          = 19458
-	LOOP_SET_STATUS64                        = 19460
-	LO_CRYPT_BLOW                            = 4
-	LO_CRYPT_CAST128                         = 5
-	LO_CRYPT_CRYPTOAPI                       = 18
-	LO_CRYPT_DES                             = 2
-	LO_CRYPT_DUMMY                           = 9
-	LO_CRYPT_FISH2                           = 3
-	LO_CRYPT_IDEA                            = 6
-	LO_CRYPT_NONE                            = 0
-	LO_CRYPT_SKIPJACK                        = 10
-	LO_CRYPT_XOR                             = 1
-	LO_FLAGS_AUTOCLEAR                       = 4
-	LO_FLAGS_DIRECT_IO                       = 16
-	LO_FLAGS_PARTSCAN                        = 8
-	LO_FLAGS_READ_ONLY                       = 1
-	LO_KEY_SIZE                              = 32
-	LO_NAME_SIZE                             = 64
-	MADV_DODUMP                              = 17
-	MADV_DOFORK                              = 11
-	MADV_DONTDUMP                            = 16
-	MADV_DONTFORK                            = 10
-	MADV_DONTNEED                            = 4
-	MADV_HUGEPAGE                            = 14
-	MADV_HWPOISON                            = 100
-	MADV_MERGEABLE                           = 12
-	MADV_NOHUGEPAGE                          = 15
-	MADV_NORMAL                              = 0
-	MADV_RANDOM                              = 1
-	MADV_REMOVE                              = 9
-	MADV_SEQUENTIAL                          = 2
-	MADV_SOFT_OFFLINE                        = 101
-	MADV_UNMERGEABLE                         = 13
-	MADV_WILLNEED                            = 3
-	MAP_ANONYMOUS                            = 32
-	MAP_DENYWRITE                            = 2048
-	MAP_EXECUTABLE                           = 4096
-	MAP_FILE                                 = 0
-	MAP_FIXED                                = 16
-	MAP_GROWSDOWN                            = 256
-	MAP_HUGETLB                              = 262144
-	MAP_LOCKED                               = 128
-	MAP_NONBLOCK                             = 65536
-	MAP_NORESERVE                            = 64
-	MAP_POPULATE                             = 32768
-	MAP_PRIVATE                              = 2
-	MAP_SHARED                               = 1
-	MAP_STACK                                = 131072
-	MAP_UNINITIALIZED                        = 0
-	MAX_NUM_QUEUE                            = 4096
-	MCAST_BLOCK_SOURCE                       = 43
-	MCAST_EXCLUDE                            = 0
-	MCAST_INCLUDE                            = 1
-	MCAST_JOIN_GROUP                         = 42
-	MCAST_JOIN_SOURCE_GROUP                  = 46
-	MCAST_LEAVE_GROUP                        = 45
-	MCAST_LEAVE_SOURCE_GROUP                 = 47
-	MCAST_MSFILTER                           = 48
-	MCAST_UNBLOCK_SOURCE                     = 44
-	MCL_CURRENT                              = 8192
-	MCL_FUTURE                               = 16384
-	MFD_ALLOW_SEALING                        = 2
-	MFD_CLOEXEC                              = 1
-	MIFF_REGISTER                            = 1
-	MLOCK_ONFAULT                            = 1
-	MMAP_PAGE_ZERO                           = 1048576
-	MNT_DETACH                               = 2
-	MNT_EXPIRE                               = 4
-	MNT_FORCE                                = 1
-	MODULE_INIT_IGNORE_MODVERSIONS           = 1
-	MODULE_INIT_IGNORE_VERMAGIC              = 2
-	MPOL_BIND                                = 2
-	MPOL_DEFAULT                             = 0
-	MPOL_F_ADDR                              = 2
-	MPOL_F_MEMS_ALLOWED                      = 4
-	MPOL_F_NODE                              = 1
-	MPOL_F_RELATIVE_NODES                    = 16384
-	MPOL_F_STATIC_NODES                      = 32768
-	MPOL_INTERLEAVE                          = 3
-	MPOL_MF_MOVE                             = 2
-	MPOL_MF_MOVE_ALL                         = 4
-	MPOL_MF_STRICT                           = 1
-	MPOL_PREFERRED                           = 1
-	MREMAP_FIXED                             = 2
-	MREMAP_MAYMOVE                           = 1
-	MRT6_ADD_MFC                             = 204
-	MRT6_ADD_MFC_PROXY                       = 210
-	MRT6_ADD_MIF                             = 202
-	MRT6_ASSERT                              = 207
-	MRT6_DEL_MFC                             = 205
-	MRT6_DEL_MFC_PROXY                       = 211
-	MRT6_DEL_MIF                             = 203
-	MRT6_DONE                                = 201
-	MRT6_INIT                                = 200
-	MRT6_PIM                                 = 208
-	MRT6_TABLE                               = 209
-	MRT6_VERSION                             = 206
-	MSG_BATCH                                = 262144
-	MSG_CMSG_CLOEXEC                         = 1073741824
-	MSG_CONFIRM                              = 2048
-	MSG_DONTROUTE                            = 4
-	MSG_DONTWAIT                             = 64
-	MSG_EOR                                  = 128
-	MSG_ERRQUEUE                             = 8192
-	MSG_EXCEPT                               = 8192
-	MSG_FASTOPEN                             = 536870912
-	MSG_INFO                                 = 12
-	MSG_MORE                                 = 32768
-	MSG_NOERROR                              = 4096
-	MSG_NOSIGNAL                             = 16384
-	MSG_OOB                                  = 1
-	MSG_PEEK                                 = 2
-	MSG_PROBE                                = 16
-	MSG_STAT                                 = 11
-	MSG_TRUNC                                = 32
-	MSG_WAITALL                              = 256
-	MSG_WAITFORONE                           = 65536
-	MS_ASYNC                                 = 1
-	MS_BIND                                  = 4096
-	MS_DIRSYNC                               = 128
-	MS_INVALIDATE                            = 2
-	MS_I_VERSION                             = 8388608
-	MS_LAZYTIME                              = 33554432
-	MS_MANDLOCK                              = 64
-	MS_MOVE                                  = 8192
-	MS_NOATIME                               = 1024
-	MS_NODEV                                 = 4
-	MS_NODIRATIME                            = 2048
-	MS_NOEXEC                                = 8
-	MS_NOSUID                                = 2
-	MS_POSIXACL                              = 65536
-	MS_PRIVATE                               = 262144
-	MS_RDONLY                                = 1
-	MS_REC                                   = 16384
-	MS_RELATIME                              = 2097152
-	MS_REMOUNT                               = 32
-	MS_SHARED                                = 1048576
-	MS_SILENT                                = 32768
-	MS_SLAVE                                 = 524288
-	MS_STRICTATIME                           = 16777216
-	MS_SYNC                                  = 4
-	MS_SYNCHRONOUS                           = 16
-	MS_UNBINDABLE                            = 131072
-	NETLINK_ADD_MEMBERSHIP                   = 1
-	NETLINK_AUDIT                            = 9
-	NETLINK_BROADCAST_ERROR                  = 4
-	NETLINK_CAP_ACK                          = 10
-	NETLINK_CONNECTOR                        = 11
-	NETLINK_CRYPTO                           = 21
-	NETLINK_DNRTMSG                          = 14
-	NETLINK_DROP_MEMBERSHIP                  = 2
-	NETLINK_ECRYPTFS                         = 19
-	NETLINK_FIB_LOOKUP                       = 10
-	NETLINK_FIREWALL                         = 3
-	NETLINK_GENERIC                          = 16
-	NETLINK_INET_DIAG                        = 4
-	NETLINK_IP6_FW                           = 13
-	NETLINK_ISCSI                            = 8
-	NETLINK_KOBJECT_UEVENT                   = 15
-	NETLINK_LISTEN_ALL_NSID                  = 8
-	NETLINK_LIST_MEMBERSHIPS                 = 9
-	NETLINK_NETFILTER                        = 12
-	NETLINK_NFLOG                            = 5
-	NETLINK_NO_ENOBUFS                       = 5
-	NETLINK_PKTINFO                          = 3
-	NETLINK_RDMA                             = 20
-	NETLINK_ROUTE                            = 0
-	NETLINK_RX_RING                          = 6
-	NETLINK_SCSITRANSPORT                    = 18
-	NETLINK_SELINUX                          = 7
-	NETLINK_SOCK_DIAG                        = 4
-	NETLINK_TX_RING                          = 7
-	NETLINK_UNUSED                           = 1
-	NETLINK_USERSOCK                         = 2
-	NETLINK_XFRM                             = 6
-	NETROM_IDLE                              = 7
-	NETROM_N2                                = 3
-	NETROM_T1                                = 1
-	NETROM_T2                                = 2
-	NETROM_T4                                = 6
-	NEXTHDR_AUTH                             = 51
-	NEXTHDR_DEST                             = 60
-	NEXTHDR_ESP                              = 50
-	NEXTHDR_FRAGMENT                         = 44
-	NEXTHDR_GRE                              = 47
-	NEXTHDR_HOP                              = 0
-	NEXTHDR_ICMP                             = 58
-	NEXTHDR_MOBILITY                         = 135
-	NEXTHDR_NONE                             = 59
-	NEXTHDR_ROUTING                          = 43
-	NFC_LLCP_MIUX                            = 1
-	NFC_LLCP_REMOTE_LTO                      = 3
-	NFC_LLCP_REMOTE_MIU                      = 2
-	NFC_LLCP_REMOTE_RW                       = 4
-	NFC_LLCP_RW                              = 0
-	NFC_PROTO_FELICA                         = 3
-	NFC_PROTO_ISO14443                       = 4
-	NFC_PROTO_ISO14443_B                     = 6
-	NFC_PROTO_ISO15693                       = 7
-	NFC_PROTO_JEWEL                          = 1
-	NFC_PROTO_MIFARE                         = 2
-	NFC_PROTO_NFC_DEP                        = 5
-	NFC_SOCKPROTO_LLCP                       = 1
-	NFC_SOCKPROTO_RAW                        = 0
-	NLM_F_ACK                                = 4
-	NLM_F_APPEND                             = 2048
-	NLM_F_ATOMIC                             = 1024
-	NLM_F_CREATE                             = 1024
-	NLM_F_DUMP                               = 768
-	NLM_F_DUMP_FILTERED                      = 32
-	NLM_F_DUMP_INTR                          = 16
-	NLM_F_ECHO                               = 8
-	NLM_F_EXCL                               = 512
-	NLM_F_MATCH                              = 512
-	NLM_F_MULTI                              = 2
-	NLM_F_REPLACE                            = 256
-	NLM_F_REQUEST                            = 1
-	NLM_F_ROOT                               = 256
-	NO_CLIENT                                = 0
-	NT_386_IOPERM                            = 513
-	NT_386_TLS                               = 512
-	NT_AUXV                                  = 6
-	NT_PRFPREG                               = 2
-	NT_PRPSINFO                              = 3
-	NT_PRSTATUS                              = 1
-	NT_TASKSTRUCT                            = 4
-	NT_X86_XSTATE                            = 514
-	O_APPEND                                 = 1024
-	O_CLOEXEC                                = 524288
-	O_CREAT                                  = 64
-	O_DIRECT                                 = 131072
-	O_DIRECTORY                              = 16384
-	O_DSYNC                                  = 4096
-	O_EXCL                                   = 128
-	O_LARGEFILE                              = 65536
-	O_NOATIME                                = 262144
-	O_NOCTTY                                 = 256
-	O_NOFOLLOW                               = 32768
-	O_NONBLOCK                               = 2048
-	O_PATH                                   = 2097152
-	O_RDONLY                                 = 0
-	O_RDWR                                   = 2
-	O_SYNC                                   = 1052672
-	O_TRUNC                                  = 512
-	O_WRONLY                                 = 1
-	PACKET_ADD_MEMBERSHIP                    = 1
-	PACKET_AUXDATA                           = 8
-	PACKET_COPY_THRESH                       = 7
-	PACKET_DROP_MEMBERSHIP                   = 2
-	PACKET_FANOUT                            = 18
-	PACKET_FANOUT_CBPF                       = 6
-	PACKET_FANOUT_CPU                        = 2
-	PACKET_FANOUT_DATA                       = 22
-	PACKET_FANOUT_EBPF                       = 7
-	PACKET_FANOUT_FLAG_DEFRAG                = 32768
-	PACKET_FANOUT_FLAG_ROLLOVER              = 4096
-	PACKET_FANOUT_HASH                       = 0
-	PACKET_FANOUT_LB                         = 1
-	PACKET_FANOUT_QM                         = 5
-	PACKET_FANOUT_RND                        = 4
-	PACKET_FANOUT_ROLLOVER                   = 3
-	PACKET_HDRLEN                            = 11
-	PACKET_LOSS                              = 14
-	PACKET_ORIGDEV                           = 9
-	PACKET_QDISC_BYPASS                      = 20
-	PACKET_RECV_OUTPUT                       = 3
-	PACKET_RESERVE                           = 12
-	PACKET_RX_RING                           = 5
-	PACKET_STATISTICS                        = 6
-	PACKET_TIMESTAMP                         = 17
-	PACKET_TX_HAS_OFF                        = 19
-	PACKET_TX_RING                           = 13
-	PACKET_TX_TIMESTAMP                      = 16
-	PACKET_VERSION                           = 10
-	PACKET_VNET_HDR                          = 15
-	PERF_EVENT_IOC_DISABLE                   = 536880129
-	PERF_EVENT_IOC_ENABLE                    = 536880128
-	PERF_EVENT_IOC_ID                        = 1074275335
-	PERF_EVENT_IOC_PERIOD                    = 2148017156
-	PERF_EVENT_IOC_REFRESH                   = 536880130
-	PERF_EVENT_IOC_RESET                     = 536880131
-	PERF_EVENT_IOC_SET_BPF                   = 2147755016
-	PERF_EVENT_IOC_SET_FILTER                = 2148017158
-	PERF_EVENT_IOC_SET_OUTPUT                = 536880133
-	PERF_FLAG_FD_CLOEXEC                     = 8
-	PERF_FLAG_FD_NO_GROUP                    = 1
-	PERF_FLAG_FD_OUTPUT                      = 2
-	PERF_FLAG_PID_CGROUP                     = 4
-	PERF_FORMAT_GROUP                        = 8
-	PERF_FORMAT_ID                           = 4
-	PERF_FORMAT_TOTAL_TIME_ENABLED           = 1
-	PERF_FORMAT_TOTAL_TIME_RUNNING           = 2
-	PERF_SAMPLE_ADDR                         = 8
-	PERF_SAMPLE_BRANCH_ABORT_TX              = 128
-	PERF_SAMPLE_BRANCH_ANY                   = 8
-	PERF_SAMPLE_BRANCH_ANY_CALL              = 16
-	PERF_SAMPLE_BRANCH_ANY_RETURN            = 32
-	PERF_SAMPLE_BRANCH_CALL                  = 8192
-	PERF_SAMPLE_BRANCH_CALL_STACK            = 2048
-	PERF_SAMPLE_BRANCH_COND                  = 1024
-	PERF_SAMPLE_BRANCH_HV                    = 4
-	PERF_SAMPLE_BRANCH_IND_CALL              = 64
-	PERF_SAMPLE_BRANCH_IND_JUMP              = 4096
-	PERF_SAMPLE_BRANCH_IN_TX                 = 256
-	PERF_SAMPLE_BRANCH_KERNEL                = 2
-	PERF_SAMPLE_BRANCH_MAX                   = 131072
-	PERF_SAMPLE_BRANCH_NO_CYCLES             = 32768
-	PERF_SAMPLE_BRANCH_NO_FLAGS              = 16384
-	PERF_SAMPLE_BRANCH_NO_TX                 = 512
-	PERF_SAMPLE_BRANCH_STACK                 = 2048
-	PERF_SAMPLE_BRANCH_USER                  = 1
-	PERF_SAMPLE_CALLCHAIN                    = 32
-	PERF_SAMPLE_CPU                          = 128
-	PERF_SAMPLE_DATA_SRC                     = 32768
-	PERF_SAMPLE_ID                           = 64
-	PERF_SAMPLE_IDENTIFIER                   = 65536
-	PERF_SAMPLE_IP                           = 1
-	PERF_SAMPLE_PERIOD                       = 256
-	PERF_SAMPLE_RAW                          = 1024
-	PERF_SAMPLE_READ                         = 16
-	PERF_SAMPLE_REGS_INTR                    = 262144
-	PERF_SAMPLE_REGS_USER                    = 4096
-	PERF_SAMPLE_STACK_USER                   = 8192
-	PERF_SAMPLE_STREAM_ID                    = 512
-	PERF_SAMPLE_TID                          = 2
-	PERF_SAMPLE_TIME                         = 4
-	PERF_SAMPLE_TRANSACTION                  = 131072
-	PERF_SAMPLE_WEIGHT                       = 16384
-	PERF_TYPE_BREAKPOINT                     = 5
-	PERF_TYPE_HARDWARE                       = 0
-	PERF_TYPE_HW_CACHE                       = 3
-	PERF_TYPE_RAW                            = 4
-	PERF_TYPE_SOFTWARE                       = 1
-	PERF_TYPE_TRACEPOINT                     = 2
-	PER_BSD                                  = 6
-	PER_HPUX                                 = 16
-	PER_IRIX32                               = 67108873
-	PER_IRIX64                               = 67108875
-	PER_IRIXN32                              = 67108874
-	PER_ISCR4                                = 67108869
-	PER_LINUX                                = 0
-	PER_LINUX32                              = 8
-	PER_OSF4                                 = 15
-	PER_OSR5                                 = 100663299
-	PER_RISCOS                               = 12
-	PER_SOLARIS                              = 67108877
-	PER_SVR3                                 = 83886082
-	PER_SVR4                                 = 68157441
-	PER_UW7                                  = 68157454
-	PER_WYSEV386                             = 83886084
-	PER_XENIX                                = 83886087
-	PIO_FONT                                 = 19297
-	PIO_FONTRESET                            = 19309
-	PIO_FONTX                                = 19308
-	PIO_SCRNMAP                              = 19265
-	PIO_UNIMAP                               = 19303
-	PIO_UNIMAPCLR                            = 19304
-	PIO_UNISCRNMAP                           = 19306
-	PKEY_DISABLE_ACCESS                      = 1
-	PKEY_DISABLE_WRITE                       = 2
-	POLLERR                                  = 8
-	POLLFREE                                 = 16384
-	POLLHUP                                  = 16
-	POLLIN                                   = 1
-	POLLMSG                                  = 1024
-	POLLNVAL                                 = 32
-	POLLOUT                                  = 4
-	POLLPRI                                  = 2
-	POLLRDBAND                               = 128
-	POLLRDHUP                                = 8192
-	POLLRDNORM                               = 64
-	POLLREMOVE                               = 4096
-	POLLWRBAND                               = 512
-	POLLWRNORM                               = 256
-	POLL_BUSY_LOOP                           = 32768
-	POSIX_FADV_DONTNEED                      = 4
-	POSIX_FADV_NOREUSE                       = 5
-	POSIX_FADV_NORMAL                        = 0
-	POSIX_FADV_RANDOM                        = 1
-	POSIX_FADV_SEQUENTIAL                    = 2
-	POSIX_FADV_WILLNEED                      = 3
-	PRIO_PGRP                                = 1
-	PRIO_PROCESS                             = 0
-	PRIO_USER                                = 2
-	PROT_EXEC                                = 4
-	PROT_GROWSDOWN                           = 16777216
-	PROT_GROWSUP                             = 33554432
-	PROT_READ                                = 1
-	PROT_SEM                                 = 8
-	PROT_WRITE                               = 2
-	PR_CAPBSET_DROP                          = 24
-	PR_CAPBSET_READ                          = 23
-	PR_ENDIAN_BIG                            = 0
-	PR_ENDIAN_LITTLE                         = 1
-	PR_ENDIAN_PPC_LITTLE                     = 2
-	PR_FP_EXC_ASYNC                          = 2
-	PR_FP_EXC_DISABLED                       = 0
-	PR_FP_EXC_DIV                            = 65536
-	PR_FP_EXC_INV                            = 1048576
-	PR_FP_EXC_NONRECOV                       = 1
-	PR_FP_EXC_OVF                            = 131072
-	PR_FP_EXC_PRECISE                        = 3
-	PR_FP_EXC_RES                            = 524288
-	PR_FP_EXC_SW_ENABLE                      = 128
-	PR_FP_EXC_UND                            = 262144
-	PR_GET_CHILD_SUBREAPER                   = 37
-	PR_GET_DUMPABLE                          = 3
-	PR_GET_ENDIAN                            = 19
-	PR_GET_FPEMU                             = 9
-	PR_GET_FPEXC                             = 11
-	PR_GET_KEEPCAPS                          = 7
-	PR_GET_NAME                              = 16
-	PR_GET_NO_NEW_PRIVS                      = 39
-	PR_GET_PDEATHSIG                         = 2
-	PR_GET_SECCOMP                           = 21
-	PR_GET_SECUREBITS                        = 27
-	PR_GET_TID_ADDRESS                       = 40
-	PR_GET_TIMERSLACK                        = 30
-	PR_GET_TIMING                            = 13
-	PR_GET_TSC                               = 25
-	PR_GET_UNALIGN                           = 5
-	PR_MCE_KILL                              = 33
-	PR_MCE_KILL_GET                          = 34
-	PR_SET_CHILD_SUBREAPER                   = 36
-	PR_SET_DUMPABLE                          = 4
-	PR_SET_ENDIAN                            = 20
-	PR_SET_FPEMU                             = 10
-	PR_SET_FPEXC                             = 12
-	PR_SET_KEEPCAPS                          = 8
-	PR_SET_MM                                = 35
-	PR_SET_MM_BRK                            = 7
-	PR_SET_MM_END_CODE                       = 2
-	PR_SET_MM_END_DATA                       = 4
-	PR_SET_MM_START_BRK                      = 6
-	PR_SET_MM_START_CODE                     = 1
-	PR_SET_MM_START_DATA                     = 3
-	PR_SET_MM_START_STACK                    = 5
-	PR_SET_NAME                              = 15
-	PR_SET_NO_NEW_PRIVS                      = 38
-	PR_SET_PDEATHSIG                         = 1
-	PR_SET_PTRACER                           = 1499557217
-	PR_SET_SECCOMP                           = 22
-	PR_SET_SECUREBITS                        = 28
-	PR_SET_TIMERSLACK                        = 29
-	PR_SET_TIMING                            = 14
-	PR_SET_TSC                               = 26
-	PR_SET_UNALIGN                           = 6
-	PR_TASK_PERF_EVENTS_DISABLE              = 31
-	PR_TASK_PERF_EVENTS_ENABLE               = 32
-	PTRACE_ATTACH                            = 16
-	PTRACE_CONT                              = 7
-	PTRACE_DETACH                            = 17
-	PTRACE_GETEVENTMSG                       = 16897
-	PTRACE_GETFPREGS                         = 14
-	PTRACE_GETREGS                           = 12
-	PTRACE_GETREGSET                         = 16900
-	PTRACE_GETSIGINFO                        = 16898
-	PTRACE_INTERRUPT                         = 16903
-	PTRACE_KILL                              = 8
-	PTRACE_LISTEN                            = 16904
-	PTRACE_O_EXITKILL                        = 1048576
-	PTRACE_O_TRACECLONE                      = 8
-	PTRACE_O_TRACEEXEC                       = 16
-	PTRACE_O_TRACEEXIT                       = 64
-	PTRACE_O_TRACEFORK                       = 2
-	PTRACE_O_TRACESYSGOOD                    = 1
-	PTRACE_O_TRACEVFORK                      = 4
-	PTRACE_O_TRACEVFORKDONE                  = 32
-	PTRACE_PEEKDATA                          = 2
-	PTRACE_PEEKTEXT                          = 1
-	PTRACE_PEEKUSR                           = 3
-	PTRACE_POKEDATA                          = 5
-	PTRACE_POKETEXT                          = 4
-	PTRACE_POKEUSR                           = 6
-	PTRACE_SEIZE                             = 16902
-	PTRACE_SETFPREGS                         = 15
-	PTRACE_SETOPTIONS                        = 16896
-	PTRACE_SETREGS                           = 13
-	PTRACE_SETREGSET                         = 16901
-	PTRACE_SETSIGINFO                        = 16899
-	PTRACE_SINGLESTEP                        = 9
-	PTRACE_SYSCALL                           = 24
-	PTRACE_TRACEME                           = 0
-	P_ALL                                    = 0
-	P_PGID                                   = 2
-	P_PID                                    = 1
-	READ_IMPLIES_EXEC                        = 4194304
-	RENAME_EXCHANGE                          = 2
-	RENAME_NOREPLACE                         = 1
-	RENAME_WHITEOUT                          = 4
-	RFCOMM_CONNINFO                          = 2
-	RFCOMM_LM                                = 3
-	RLIMIT_AS                                = 9
-	RLIMIT_CORE                              = 4
-	RLIMIT_CPU                               = 0
-	RLIMIT_DATA                              = 2
-	RLIMIT_FSIZE                             = 1
-	RLIMIT_LOCKS                             = 10
-	RLIMIT_MEMLOCK                           = 8
-	RLIMIT_MSGQUEUE                          = 12
-	RLIMIT_NICE                              = 13
-	RLIMIT_NOFILE                            = 7
-	RLIMIT_NPROC                             = 6
-	RLIMIT_RSS                               = 5
-	RLIMIT_RTPRIO                            = 14
-	RLIMIT_RTTIME                            = 15
-	RLIMIT_SIGPENDING                        = 11
-	RLIMIT_STACK                             = 3
-	RNDADDENTROPY                            = 2148028931
-	RNDADDTOENTCNT                           = 2147766785
-	RNDCLEARPOOL                             = 536891910
-	RNDGETENTCNT                             = 1074024960
-	RNDZAPENTCNT                             = 536891908
-	RTF_ADDRCONF                             = 262144
-	RTF_ALLONLINK                            = 131072
-	RTF_ANYCAST                              = 1048576
-	RTF_CACHE                                = 16777216
-	RTF_DEFAULT                              = 65536
-	RTF_DYNAMIC                              = 16
-	RTF_EXPIRES                              = 4194304
-	RTF_FLOW                                 = 33554432
-	RTF_GATEWAY                              = 2
-	RTF_HOST                                 = 4
-	RTF_IRTT                                 = 256
-	RTF_LOCAL                                = 2147483648
-	RTF_MODIFIED                             = 32
-	RTF_MTU                                  = 64
-	RTF_NONEXTHOP                            = 2097152
-	RTF_PCPU                                 = 1073741824
-	RTF_POLICY                               = 67108864
-	RTF_PREFIX_RT                            = 524288
-	RTF_REINSTATE                            = 8
-	RTF_REJECT                               = 512
-	RTF_ROUTEINFO                            = 8388608
-	RTF_UP                                   = 1
-	RTF_WINDOW                               = 128
-	RUSAGE_CHILDREN                          = 18446744073709551615
-	RUSAGE_SELF                              = 0
-	RUSAGE_THREAD                            = 1
-	SA_NOCLDSTOP                             = 1
-	SA_NOCLDWAIT                             = 2
-	SA_NODEFER                               = 1073741824
-	SA_ONSTACK                               = 134217728
-	SA_RESETHAND                             = 2147483648
-	SA_RESTART                               = 268435456
-	SA_SIGINFO                               = 4
-	SCHED_BATCH                              = 3
-	SCHED_DEADLINE                           = 6
-	SCHED_FIFO                               = 1
-	SCHED_FLAG_RESET_ON_FORK                 = 1
-	SCHED_IDLE                               = 5
-	SCHED_NORMAL                             = 0
-	SCHED_RR                                 = 2
-	SCM_CREDENTIALS                          = 2
-	SCM_RIGHTS                               = 1
-	SCO_CONNINFO                             = 2
-	SCO_OPTIONS                              = 1
-	SCTP_ABORT                               = 4
-	SCTP_ADAPTATION_LAYER                    = 7
-	SCTP_ADDR_OVER                           = 2
-	SCTP_ADD_STREAMS                         = 121
-	SCTP_ASSOCINFO                           = 1
-	SCTP_AUTH_ACTIVE_KEY                     = 24
-	SCTP_AUTH_CHUNK                          = 21
-	SCTP_AUTH_DELETE_KEY                     = 25
-	SCTP_AUTH_KEY                            = 23
-	SCTP_AUTOCLOSE                           = 4
-	SCTP_AUTO_ASCONF                         = 30
-	SCTP_CONTEXT                             = 17
-	SCTP_DEFAULT_PRINFO                      = 114
-	SCTP_DEFAULT_SEND_PARAM                  = 10
-	SCTP_DEFAULT_SNDINFO                     = 34
-	SCTP_DELAYED_SACK                        = 16
-	SCTP_DISABLE_FRAGMENTS                   = 8
-	SCTP_ENABLE_STREAM_RESET                 = 118
-	SCTP_EOF                                 = 512
-	SCTP_EVENTS                              = 11
-	SCTP_FRAGMENT_INTERLEAVE                 = 18
-	SCTP_GET_ASSOC_ID_LIST                   = 29
-	SCTP_GET_ASSOC_NUMBER                    = 28
-	SCTP_GET_ASSOC_STATS                     = 112
-	SCTP_GET_LOCAL_ADDRS                     = 109
-	SCTP_GET_PEER_ADDRS                      = 108
-	SCTP_GET_PEER_ADDR_INFO                  = 15
-	SCTP_HMAC_IDENT                          = 22
-	SCTP_INIT                                = 0
-	SCTP_INITMSG                             = 2
-	SCTP_I_WANT_MAPPED_V4_ADDR               = 12
-	SCTP_LOCAL_AUTH_CHUNKS                   = 27
-	SCTP_MAXSEG                              = 13
-	SCTP_MAX_BURST                           = 20
-	SCTP_NODELAY                             = 3
-	SCTP_NOTIFICATION                        = 32768
-	SCTP_PARTIAL_DELIVERY_POINT              = 19
-	SCTP_PEER_ADDR_PARAMS                    = 9
-	SCTP_PEER_ADDR_THLDS                     = 31
-	SCTP_PEER_AUTH_CHUNKS                    = 26
-	SCTP_PRIMARY_ADDR                        = 6
-	SCTP_PR_ASSOC_STATUS                     = 115
-	SCTP_PR_SCTP_NONE                        = 0
-	SCTP_PR_SCTP_PRIO                        = 48
-	SCTP_PR_SCTP_RTX                         = 32
-	SCTP_PR_SCTP_TTL                         = 16
-	SCTP_PR_SUPPORTED                        = 113
-	SCTP_RECVNXTINFO                         = 33
-	SCTP_RECVRCVINFO                         = 32
-	SCTP_RESET_ASSOC                         = 120
-	SCTP_RESET_STREAMS                       = 119
-	SCTP_RTOINFO                             = 0
-	SCTP_SACK_IMMEDIATELY                    = 8
-	SCTP_SET_PEER_PRIMARY_ADDR               = 5
-	SCTP_SNDINFO                             = 2
-	SCTP_SNDRCV                              = 1
-	SCTP_SOCKOPT_BINDX_ADD                   = 100
-	SCTP_SOCKOPT_BINDX_REM                   = 101
-	SCTP_SOCKOPT_CONNECTX                    = 110
-	SCTP_SOCKOPT_CONNECTX3                   = 111
-	SCTP_SOCKOPT_CONNECTX_OLD                = 107
-	SCTP_SOCKOPT_PEELOFF                     = 102
-	SCTP_STATUS                              = 14
-	SCTP_UNORDERED                           = 1
-	SCTP_V4_FLOW                             = 3
-	SCTP_V6_FLOW                             = 7
-	SECCOMP_FILTER_FLAG_TSYNC                = 1
-	SECCOMP_MODE_DISABLED                    = 0
-	SECCOMP_MODE_FILTER                      = 2
-	SECCOMP_MODE_STRICT                      = 1
-	SECCOMP_SET_MODE_FILTER                  = 1
-	SECCOMP_SET_MODE_STRICT                  = 0
-	SEEK_CUR                                 = 1
-	SEEK_DATA                                = 3
-	SEEK_END                                 = 2
-	SEEK_HOLE                                = 4
-	SEEK_SET                                 = 0
-	SEM_INFO                                 = 19
-	SEM_STAT                                 = 18
-	SEM_UNDO                                 = 4096
-	SETALL                                   = 17
-	SETVAL                                   = 16
-	SFD_CLOEXEC                              = 524288
-	SFD_NONBLOCK                             = 2048
-	SHM_HUGETLB                              = 2048
-	SHM_HUGE_1GB                             = 2013265920
-	SHM_HUGE_2MB                             = 1409286144
-	SHM_INFO                                 = 14
-	SHM_LOCK                                 = 11
-	SHM_NORESERVE                            = 4096
-	SHM_RDONLY                               = 4096
-	SHM_REMAP                                = 16384
-	SHM_RND                                  = 8192
-	SHM_STAT                                 = 13
-	SHM_UNLOCK                               = 12
-	SHORT_INODE                              = 16777216
-	SHUT_RD                                  = 0
-	SHUT_WR                                  = 1
-	SIGEV_NONE                               = 1
-	SIGEV_SIGNAL                             = 0
-	SIGEV_THREAD                             = 2
-	SIGEV_THREAD_ID                          = 4
-	SIG_BLOCK                                = 0
-	SIG_SETMASK                              = 2
-	SIG_UNBLOCK                              = 1
-	SIOCADDDLCI                              = 35200
-	SIOCADDMULTI                             = 35121
-	SIOCADDRT                                = 35083
-	SIOCAIPXITFCRT                           = 35296
-	SIOCAIPXPRISLT                           = 35297
-	SIOCATMARK                               = 35077
-	SIOCBONDCHANGEACTIVE                     = 35221
-	SIOCBONDENSLAVE                          = 35216
-	SIOCBONDINFOQUERY                        = 35220
-	SIOCBONDRELEASE                          = 35217
-	SIOCBONDSETHWADDR                        = 35218
-	SIOCBONDSLAVEINFOQUERY                   = 35219
-	SIOCBRADDBR                              = 35232
-	SIOCBRADDIF                              = 35234
-	SIOCBRDELBR                              = 35233
-	SIOCBRDELIF                              = 35235
-	SIOCDARP                                 = 35155
-	SIOCDELDLCI                              = 35201
-	SIOCDELMULTI                             = 35122
-	SIOCDELRT                                = 35084
-	SIOCDEVPRIVATE_BEG                       = 35312
-	SIOCDEVPRIVATE_END                       = 35327
-	SIOCDIFADDR                              = 35126
-	SIOCETHTOOL                              = 35142
-	SIOCGARP                                 = 35156
-	SIOCGHWTSTAMP                            = 35249
-	SIOCGIFADDR                              = 35093
-	SIOCGIFBR                                = 35136
-	SIOCGIFBRDADDR                           = 35097
-	SIOCGIFCOUNT                             = 35128
-	SIOCGIFDSTADDR                           = 35095
-	SIOCGIFENCAP                             = 35109
-	SIOCGIFFLAGS                             = 35091
-	SIOCGIFHWADDR                            = 35111
-	SIOCGIFINDEX                             = 35123
-	SIOCGIFMAP                               = 35184
-	SIOCGIFMEM                               = 35103
-	SIOCGIFMETRIC                            = 35101
-	SIOCGIFMTU                               = 35105
-	SIOCGIFNAME                              = 35088
-	SIOCGIFNETMASK                           = 35099
-	SIOCGIFPFLAGS                            = 35125
-	SIOCGIFSLAVE                             = 35113
-	SIOCGIFTXQLEN                            = 35138
-	SIOCGMIIPHY                              = 35143
-	SIOCGMIIREG                              = 35144
-	SIOCGPGRP                                = 35076
-	SIOCGSKNS                                = 35148
-	SIOCGSTAMP                               = 35078
-	SIOCGSTAMPNS                             = 35079
-	SIOCINQ                                  = 1074030207
-	SIOCIPXCFGDATA                           = 35298
-	SIOCIPXNCPCONN                           = 35299
-	SIOCKCMATTACH                            = 35296
-	SIOCKCMCLONE                             = 35298
-	SIOCKCMUNATTACH                          = 35297
-	SIOCOUTQ                                 = 1074033779
-	SIOCOUTQNSD                              = 35147
-	SIOCPROTOPRIVATE_BEG                     = 35296
-	SIOCPROTOPRIVATE_END                     = 35311
-	SIOCRTMSG                                = 35085
-	SIOCSARP                                 = 35157
-	SIOCSHWTSTAMP                            = 35248
-	SIOCSIFADDR                              = 35094
-	SIOCSIFBRDADDR                           = 35098
-	SIOCSIFDSTADDR                           = 35096
-	SIOCSIFENCAP                             = 35110
-	SIOCSIFFLAGS                             = 35092
-	SIOCSIFHWADDR                            = 35108
-	SIOCSIFHWBROADCAST                       = 35127
-	SIOCSIFLINK                              = 35089
-	SIOCSIFMAP                               = 35185
-	SIOCSIFMEM                               = 35104
-	SIOCSIFMETRIC                            = 35102
-	SIOCSIFMTU                               = 35106
-	SIOCSIFNAME                              = 35107
-	SIOCSIFNETMASK                           = 35100
-	SIOCSIFPFLAGS                            = 35124
-	SIOCSIFSLAVE                             = 35120
-	SIOCSIFTXQLEN                            = 35139
-	SIOCSMIIREG                              = 35145
-	SIOCSPGRP                                = 35074
-	SIOCWANDEV                               = 35146
-	SNDRV_CTL_ELEM_IFACE_CARD                = 0
-	SNDRV_CTL_ELEM_IFACE_HWDEP               = 1
-	SNDRV_CTL_ELEM_IFACE_MIXER               = 2
-	SNDRV_CTL_ELEM_IFACE_PCM                 = 3
-	SNDRV_CTL_ELEM_IFACE_RAWMIDI             = 4
-	SNDRV_CTL_ELEM_IFACE_SEQUENCER           = 6
-	SNDRV_CTL_ELEM_IFACE_TIMER               = 5
-	SNDRV_CTL_IOCTL_CARD_INFO                = 1098405121
-	SNDRV_CTL_IOCTL_ELEM_ADD                 = 3239073047
-	SNDRV_CTL_IOCTL_ELEM_INFO                = 3239073041
-	SNDRV_CTL_IOCTL_ELEM_LIST                = 3226490128
-	SNDRV_CTL_IOCTL_ELEM_LOCK                = 2151699732
-	SNDRV_CTL_IOCTL_ELEM_READ                = 3301463314
-	SNDRV_CTL_IOCTL_ELEM_REMOVE              = 3225441561
-	SNDRV_CTL_IOCTL_ELEM_REPLACE             = 3239073048
-	SNDRV_CTL_IOCTL_ELEM_UNLOCK              = 2151699733
-	SNDRV_CTL_IOCTL_ELEM_WRITE               = 3301463315
-	SNDRV_CTL_IOCTL_HWDEP_INFO               = 1088181537
-	SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE        = 3221509408
-	SNDRV_CTL_IOCTL_PCM_INFO                 = 3240121649
-	SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE          = 1074025776
-	SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE     = 2147767602
-	SNDRV_CTL_IOCTL_POWER_STATE              = 1074025937
-	SNDRV_CTL_IOCTL_PVERSION                 = 1074025728
-	SNDRV_CTL_IOCTL_RAWMIDI_INFO             = 3238810945
-	SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE      = 3221509440
-	SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE = 2147767618
-	SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS         = 3221509398
-	SNDRV_CTL_IOCTL_TLV_COMMAND              = 3221771548
-	SNDRV_CTL_IOCTL_TLV_READ                 = 3221771546
-	SNDRV_CTL_IOCTL_TLV_WRITE                = 3221771547
-	SNDRV_SEQ_FILTER_BOUNCE                  = 4
-	SNDRV_SEQ_FILTER_BROADCAST               = 1
-	SNDRV_SEQ_FILTER_MULTICAST               = 2
-	SNDRV_SEQ_FILTER_USE_EVENT               = 18446744071562067968
-	SNDRV_SEQ_IOCTL_CLIENT_ID                = 1074025217
-	SNDRV_SEQ_IOCTL_CREATE_PORT              = 3232256800
-	SNDRV_SEQ_IOCTL_CREATE_QUEUE             = 3230421810
-	SNDRV_SEQ_IOCTL_DELETE_PORT              = 2158514977
-	SNDRV_SEQ_IOCTL_DELETE_QUEUE             = 2156679987
-	SNDRV_SEQ_IOCTL_GET_CLIENT_INFO          = 3233567504
-	SNDRV_SEQ_IOCTL_GET_CLIENT_POOL          = 3227013963
-	SNDRV_SEQ_IOCTL_GET_NAMED_QUEUE          = 3230421814
-	SNDRV_SEQ_IOCTL_GET_PORT_INFO            = 3232256802
-	SNDRV_SEQ_IOCTL_GET_QUEUE_CLIENT         = 3226227529
-	SNDRV_SEQ_IOCTL_GET_QUEUE_INFO           = 3230421812
-	SNDRV_SEQ_IOCTL_GET_QUEUE_STATUS         = 3227276096
-	SNDRV_SEQ_IOCTL_GET_QUEUE_TEMPO          = 3224130369
-	SNDRV_SEQ_IOCTL_GET_QUEUE_TIMER          = 3227538245
-	SNDRV_SEQ_IOCTL_GET_SUBSCRIPTION         = 3226489680
-	SNDRV_SEQ_IOCTL_PVERSION                 = 1074025216
-	SNDRV_SEQ_IOCTL_QUERY_NEXT_CLIENT        = 3233567569
-	SNDRV_SEQ_IOCTL_QUERY_NEXT_PORT          = 3232256850
-	SNDRV_SEQ_IOCTL_QUERY_SUBS               = 3227013967
-	SNDRV_SEQ_IOCTL_REMOVE_EVENTS            = 2151699278
-	SNDRV_SEQ_IOCTL_RUNNING_MODE             = 3222295299
-	SNDRV_SEQ_IOCTL_SET_CLIENT_INFO          = 2159825681
-	SNDRV_SEQ_IOCTL_SET_CLIENT_POOL          = 2153272140
-	SNDRV_SEQ_IOCTL_SET_PORT_INFO            = 2158514979
-	SNDRV_SEQ_IOCTL_SET_QUEUE_CLIENT         = 2152485706
-	SNDRV_SEQ_IOCTL_SET_QUEUE_INFO           = 3230421813
-	SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO          = 2150388546
-	SNDRV_SEQ_IOCTL_SET_QUEUE_TIMER          = 2153796422
-	SNDRV_SEQ_IOCTL_SUBSCRIBE_PORT           = 2152747824
-	SNDRV_SEQ_IOCTL_SYSTEM_INFO              = 3224392450
-	SNDRV_SEQ_IOCTL_UNSUBSCRIBE_PORT         = 2152747825
-	SNDRV_SEQ_PORT_CAP_DUPLEX                = 16
-	SNDRV_SEQ_PORT_CAP_NO_EXPORT             = 128
-	SNDRV_SEQ_PORT_CAP_READ                  = 1
-	SNDRV_SEQ_PORT_CAP_SUBS_READ             = 32
-	SNDRV_SEQ_PORT_CAP_SUBS_WRITE            = 64
-	SNDRV_SEQ_PORT_CAP_SYNC_READ             = 4
-	SNDRV_SEQ_PORT_CAP_SYNC_WRITE            = 8
-	SNDRV_SEQ_PORT_CAP_WRITE                 = 2
-	SNDRV_SEQ_PORT_FLG_GIVEN_PORT            = 1
-	SNDRV_SEQ_PORT_FLG_TIMESTAMP             = 2
-	SNDRV_SEQ_PORT_FLG_TIME_REAL             = 4
-	SNDRV_SEQ_PORT_SUBS_EXCLUSIVE            = 1
-	SNDRV_SEQ_PORT_SUBS_TIMESTAMP            = 2
-	SNDRV_SEQ_PORT_SUBS_TIME_REAL            = 4
-	SNDRV_SEQ_PORT_TYPE_APPLICATION          = 1048576
-	SNDRV_SEQ_PORT_TYPE_DIRECT_SAMPLE        = 2048
-	SNDRV_SEQ_PORT_TYPE_HARDWARE             = 65536
-	SNDRV_SEQ_PORT_TYPE_MIDI_GENERIC         = 2
-	SNDRV_SEQ_PORT_TYPE_MIDI_GM              = 4
-	SNDRV_SEQ_PORT_TYPE_MIDI_GM2             = 64
-	SNDRV_SEQ_PORT_TYPE_MIDI_GS              = 8
-	SNDRV_SEQ_PORT_TYPE_MIDI_MT32            = 32
-	SNDRV_SEQ_PORT_TYPE_MIDI_XG              = 16
-	SNDRV_SEQ_PORT_TYPE_PORT                 = 524288
-	SNDRV_SEQ_PORT_TYPE_SAMPLE               = 4096
-	SNDRV_SEQ_PORT_TYPE_SOFTWARE             = 131072
-	SNDRV_SEQ_PORT_TYPE_SPECIFIC             = 1
-	SNDRV_SEQ_PORT_TYPE_SYNTH                = 1024
-	SNDRV_SEQ_PORT_TYPE_SYNTHESIZER          = 262144
-	SNDRV_SEQ_QUERY_SUBS_READ                = 0
-	SNDRV_SEQ_QUERY_SUBS_WRITE               = 1
-	SNDRV_SEQ_REMOVE_DEST                    = 4
-	SNDRV_SEQ_REMOVE_DEST_CHANNEL            = 8
-	SNDRV_SEQ_REMOVE_EVENT_TYPE              = 128
-	SNDRV_SEQ_REMOVE_IGNORE_OFF              = 256
-	SNDRV_SEQ_REMOVE_INPUT                   = 1
-	SNDRV_SEQ_REMOVE_OUTPUT                  = 2
-	SNDRV_SEQ_REMOVE_TAG_MATCH               = 512
-	SNDRV_SEQ_REMOVE_TIME_AFTER              = 32
-	SNDRV_SEQ_REMOVE_TIME_BEFORE             = 16
-	SNDRV_SEQ_REMOVE_TIME_TICK               = 64
-	SNDRV_SEQ_TIMER_ALSA                     = 0
-	SNDRV_SEQ_TIMER_MIDI_CLOCK               = 1
-	SNDRV_SEQ_TIMER_MIDI_TICK                = 2
-	SNDRV_TIMER_CLASS_CARD                   = 2
-	SNDRV_TIMER_CLASS_GLOBAL                 = 1
-	SNDRV_TIMER_CLASS_NONE                   = 18446744073709551615
-	SNDRV_TIMER_CLASS_PCM                    = 3
-	SNDRV_TIMER_CLASS_SLAVE                  = 0
-	SNDRV_TIMER_EVENT_CONTINUE               = 4
-	SNDRV_TIMER_EVENT_EARLY                  = 6
-	SNDRV_TIMER_EVENT_MCONTINUE              = 14
-	SNDRV_TIMER_EVENT_MPAUSE                 = 15
-	SNDRV_TIMER_EVENT_MRESUME                = 18
-	SNDRV_TIMER_EVENT_MSTART                 = 12
-	SNDRV_TIMER_EVENT_MSTOP                  = 13
-	SNDRV_TIMER_EVENT_MSUSPEND               = 17
-	SNDRV_TIMER_EVENT_PAUSE                  = 5
-	SNDRV_TIMER_EVENT_RESOLUTION             = 0
-	SNDRV_TIMER_EVENT_RESUME                 = 8
-	SNDRV_TIMER_EVENT_START                  = 2
-	SNDRV_TIMER_EVENT_STOP                   = 3
-	SNDRV_TIMER_EVENT_SUSPEND                = 7
-	SNDRV_TIMER_EVENT_TICK                   = 1
-	SNDRV_TIMER_GLOBAL_HPET                  = 2
-	SNDRV_TIMER_GLOBAL_HRTIMER               = 3
-	SNDRV_TIMER_GLOBAL_RTC                   = 1
-	SNDRV_TIMER_GLOBAL_SYSTEM                = 0
-	SNDRV_TIMER_IOCTL_CONTINUE               = 536892578
-	SNDRV_TIMER_IOCTL_GINFO                  = 3237499907
-	SNDRV_TIMER_IOCTL_GPARAMS                = 2152223748
-	SNDRV_TIMER_IOCTL_GSTATUS                = 3226489861
-	SNDRV_TIMER_IOCTL_INFO                   = 1088967697
-	SNDRV_TIMER_IOCTL_NEXT_DEVICE            = 3222557697
-	SNDRV_TIMER_IOCTL_PARAMS                 = 2152748050
-	SNDRV_TIMER_IOCTL_PAUSE                  = 536892579
-	SNDRV_TIMER_IOCTL_PVERSION               = 1074025472
-	SNDRV_TIMER_IOCTL_SELECT                 = 2150913040
-	SNDRV_TIMER_IOCTL_START                  = 536892576
-	SNDRV_TIMER_IOCTL_STATUS                 = 1080054804
-	SNDRV_TIMER_IOCTL_STOP                   = 536892577
-	SNDRV_TIMER_IOCTL_TREAD                  = 2147767298
-	SNDRV_TIMER_PSFLG_AUTO                   = 1
-	SNDRV_TIMER_PSFLG_EARLY_EVENT            = 4
-	SNDRV_TIMER_PSFLG_EXCLUSIVE              = 2
-	SNDRV_TIMER_SCLASS_APPLICATION           = 1
-	SNDRV_TIMER_SCLASS_NONE                  = 0
-	SNDRV_TIMER_SCLASS_OSS_SEQUENCER         = 3
-	SNDRV_TIMER_SCLASS_SEQUENCER             = 2
-	SOCK_CLOEXEC                             = 524288
-	SOCK_DCCP                                = 6
-	SOCK_DGRAM                               = 2
-	SOCK_NONBLOCK                            = 2048
-	SOCK_PACKET                              = 10
-	SOCK_RAW                                 = 3
-	SOCK_RDM                                 = 4
-	SOCK_SEQPACKET                           = 5
-	SOCK_STREAM                              = 1
-	SOF_TIMESTAMPING_OPT_CMSG                = 1024
-	SOF_TIMESTAMPING_OPT_ID                  = 128
-	SOF_TIMESTAMPING_OPT_TSONLY              = 2048
-	SOF_TIMESTAMPING_RAW_HARDWARE            = 64
-	SOF_TIMESTAMPING_RX_HARDWARE             = 4
-	SOF_TIMESTAMPING_RX_SOFTWARE             = 8
-	SOF_TIMESTAMPING_SOFTWARE                = 16
-	SOF_TIMESTAMPING_SYS_HARDWARE            = 32
-	SOF_TIMESTAMPING_TX_ACK                  = 512
-	SOF_TIMESTAMPING_TX_HARDWARE             = 1
-	SOF_TIMESTAMPING_TX_SCHED                = 256
-	SOF_TIMESTAMPING_TX_SOFTWARE             = 2
-	SOL_AAL                                  = 265
-	SOL_ALG                                  = 279
-	SOL_ATALK                                = 258
-	SOL_ATM                                  = 264
-	SOL_AX25                                 = 257
-	SOL_BLUETOOTH                            = 274
-	SOL_CAIF                                 = 278
-	SOL_DCCP                                 = 269
-	SOL_DECNET                               = 261
-	SOL_ICMPV6                               = 58
-	SOL_IP                                   = 0
-	SOL_IPV6                                 = 41
-	SOL_IPX                                  = 256
-	SOL_IRDA                                 = 266
-	SOL_IUCV                                 = 277
-	SOL_KCM                                  = 281
-	SOL_L2CAP                                = 6
-	SOL_LLC                                  = 268
-	SOL_NETBEUI                              = 267
-	SOL_NETLINK                              = 270
-	SOL_NETROM                               = 259
-	SOL_NFC                                  = 280
-	SOL_PACKET                               = 263
-	SOL_PNPIPE                               = 275
-	SOL_PPPOL2TP                             = 273
-	SOL_RAW                                  = 255
-	SOL_RDS                                  = 276
-	SOL_RFCOMM                               = 18
-	SOL_ROSE                                 = 260
-	SOL_RXRPC                                = 272
-	SOL_SCO                                  = 17
-	SOL_SCTP                                 = 132
-	SOL_SOCKET                               = 1
-	SOL_TCP                                  = 6
-	SOL_TIPC                                 = 271
-	SOL_UDP                                  = 17
-	SOL_UDPLITE                              = 136
-	SOPASS_MAX                               = 6
-	SO_ACCEPTCONN                            = 30
-	SO_ATTACH_BPF                            = 50
-	SO_ATTACH_FILTER                         = 26
-	SO_BINDTODEVICE                          = 25
-	SO_BROADCAST                             = 6
-	SO_BUSY_POLL                             = 46
-	SO_DEBUG                                 = 1
-	SO_DETACH_FILTER                         = 27
-	SO_DOMAIN                                = 39
-	SO_DONTROUTE                             = 5
-	SO_ERROR                                 = 4
-	SO_GET_FILTER                            = 26
-	SO_KEEPALIVE                             = 9
-	SO_LINGER                                = 13
-	SO_LOCK_FILTER                           = 44
-	SO_MARK                                  = 36
-	SO_MAX_PACING_RATE                       = 47
-	SO_NOFCS                                 = 43
-	SO_NO_CHECK                              = 11
-	SO_OOBINLINE                             = 10
-	SO_PASSCRED                              = 20
-	SO_PASSSEC                               = 34
-	SO_PEEK_OFF                              = 42
-	SO_PEERCRED                              = 21
-	SO_PEERNAME                              = 28
-	SO_PEERSEC                               = 31
-	SO_PRIORITY                              = 12
-	SO_PROTOCOL                              = 38
-	SO_RCVBUF                                = 8
-	SO_RCVBUFFORCE                           = 33
-	SO_RCVLOWAT                              = 16
-	SO_RCVTIMEO                              = 18
-	SO_REUSEADDR                             = 2
-	SO_REUSEPORT                             = 15
-	SO_RXQ_OVFL                              = 40
-	SO_SELECT_ERR_QUEUE                      = 45
-	SO_SNDBUF                                = 7
-	SO_SNDBUFFORCE                           = 32
-	SO_SNDLOWAT                              = 17
-	SO_SNDTIMEO                              = 19
-	SO_TIMESTAMP                             = 29
-	SO_TIMESTAMPING                          = 37
-	SO_TIMESTAMPNS                           = 35
-	SO_TYPE                                  = 3
-	SO_WIFI_STATUS                           = 41
-	SPLICE_F_GIFT                            = 8
-	SPLICE_F_MORE                            = 4
-	SPLICE_F_MOVE                            = 1
-	SPLICE_F_NONBLOCK                        = 2
-	SPP_HB_DEMAND                            = 4
-	SPP_HB_DISABLE                           = 2
-	SPP_HB_ENABLE                            = 1
-	SPP_HB_TIME_IS_ZERO                      = 128
-	SPP_PMTUD_DISABLE                        = 16
-	SPP_PMTUD_ENABLE                         = 8
-	SPP_SACKDELAY_DISABLE                    = 64
-	SPP_SACKDELAY_ENABLE                     = 32
-	STATX_ALL                                = 4095
-	STATX_ATIME                              = 32
-	STATX_BASIC_STATS                        = 2047
-	STATX_BLOCKS                             = 1024
-	STATX_BTIME                              = 2048
-	STATX_CTIME                              = 128
-	STATX_GID                                = 16
-	STATX_INO                                = 256
-	STATX_MODE                               = 2
-	STATX_MTIME                              = 64
-	STATX_NLINK                              = 4
-	STATX_SIZE                               = 512
-	STATX_TYPE                               = 1
-	STATX_UID                                = 8
-	STICKY_TIMEOUTS                          = 67108864
-	SYNC_FILE_RANGE_WAIT_AFTER               = 4
-	SYNC_FILE_RANGE_WAIT_BEFORE              = 1
-	SYNC_FILE_RANGE_WRITE                    = 2
-	SYSLOG_ACTION_CLEAR                      = 5
-	SYSLOG_ACTION_CLOSE                      = 0
-	SYSLOG_ACTION_CONSOLE_OFF                = 6
-	SYSLOG_ACTION_CONSOLE_ON                 = 7
-	SYSLOG_ACTION_OPEN                       = 1
-	SYSLOG_ACTION_READ                       = 2
-	SYSLOG_ACTION_READ_ALL                   = 3
-	SYSLOG_ACTION_READ_CLEAR                 = 4
-	SYSLOG_ACTION_SIZE_BUFFER                = 10
-	SYSLOG_ACTION_SIZE_UNREAD                = 9
-	S_IFBLK                                  = 24576
-	S_IFCHR                                  = 8192
-	S_IFDIR                                  = 16384
-	S_IFIFO                                  = 4096
-	S_IFLNK                                  = 40960
-	S_IFREG                                  = 32768
-	S_IFSOCK                                 = 49152
-	S_IRGRP                                  = 32
-	S_IROTH                                  = 4
-	S_IRUSR                                  = 256
-	S_IWGRP                                  = 16
-	S_IWOTH                                  = 2
-	S_IWUSR                                  = 128
-	S_IXGRP                                  = 8
-	S_IXOTH                                  = 1
-	S_IXUSR                                  = 64
-	TCFLSH                                   = 536900639
-	TCPHDR_ACK                               = 16
-	TCPHDR_CWR                               = 128
-	TCPHDR_ECE                               = 64
-	TCPHDR_FIN                               = 1
-	TCPHDR_PSH                               = 8
-	TCPHDR_RST                               = 4
-	TCPHDR_SYN                               = 2
-	TCPHDR_SYN_ECN                           = 194
-	TCPHDR_URG                               = 32
-	TCPOPT_EOL                               = 0
-	TCPOPT_EXP                               = 254
-	TCPOPT_FASTOPEN                          = 34
-	TCPOPT_MD5SIG                            = 19
-	TCPOPT_MSS                               = 2
-	TCPOPT_NOP                               = 1
-	TCPOPT_SACK                              = 5
-	TCPOPT_SACK_PERM                         = 4
-	TCPOPT_TIMESTAMP                         = 8
-	TCPOPT_WINDOW                            = 3
-	TCP_CC_INFO                              = 26
-	TCP_CONGESTION                           = 13
-	TCP_CORK                                 = 3
-	TCP_DEFER_ACCEPT                         = 9
-	TCP_FASTOPEN                             = 23
-	TCP_INFO                                 = 11
-	TCP_KEEPCNT                              = 6
-	TCP_KEEPIDLE                             = 4
-	TCP_KEEPINTVL                            = 5
-	TCP_LINGER2                              = 8
-	TCP_MAXSEG                               = 2
-	TCP_MD5SIG                               = 14
-	TCP_MD5SIG_MAXKEYLEN                     = 80
-	TCP_NODELAY                              = 1
-	TCP_NOTSENT_LOWAT                        = 25
-	TCP_QUEUE_SEQ                            = 21
-	TCP_QUICKACK                             = 12
-	TCP_REPAIR                               = 19
-	TCP_REPAIR_OPTIONS                       = 22
-	TCP_REPAIR_QUEUE                         = 20
-	TCP_REPAIR_WINDOW                        = 29
-	TCP_SAVED_SYN                            = 28
-	TCP_SAVE_SYN                             = 27
-	TCP_SYNCNT                               = 7
-	TCP_THIN_DUPACK                          = 17
-	TCP_THIN_LINEAR_TIMEOUTS                 = 16
-	TCP_TIMESTAMP                            = 24
-	TCP_USER_TIMEOUT                         = 18
-	TCP_V4_FLOW                              = 1
-	TCP_V6_FLOW                              = 5
-	TCP_WINDOW_CLAMP                         = 10
-	TCSBRK                                   = 536900637
-	TCSBRKP                                  = 21541
-	TCXONC                                   = 536900638
-	TFD_CLOEXEC                              = 524288
-	TFD_NONBLOCK                             = 2048
-	TFD_TIMER_ABSTIME                        = 1
-	TIMER_ABSTIME                            = 1
-	TIOCCBRK                                 = 21544
-	TIOCCONS                                 = 21533
-	TIOCEXCL                                 = 21516
-	TIOCGETD                                 = 21540
-	TIOCGLCKTRMIOS                           = 21590
-	TIOCGPGRP                                = 1074033783
-	TIOCGSOFTCAR                             = 21529
-	TIOCINQ                                  = 1074030207
-	TIOCLINUX                                = 21532
-	TIOCMBIC                                 = 21527
-	TIOCMGET                                 = 21525
-	TIOCMSET                                 = 21528
-	TIOCNOTTY                                = 21538
-	TIOCNXCL                                 = 21517
-	TIOCOUTQ                                 = 1074033779
-	TIOCPKT                                  = 21536
-	TIOCSBRK                                 = 21543
-	TIOCSCTTY                                = 21518
-	TIOCSETD                                 = 21539
-	TIOCSLCKTRMIOS                           = 21591
-	TIOCSSOFTCAR                             = 21530
-	TIOCSTI                                  = 21522
-	TUNATTACHFILTER                          = 2148553941
-	TUNDETACHFILTER                          = 2148553942
-	TUNGETFEATURES                           = 1074025679
-	TUNGETFILTER                             = 1074812123
-	TUNGETIFF                                = 1074025682
-	TUNGETSNDBUF                             = 1074025683
-	TUNGETVNETHDRSZ                          = 1074025687
-	TUNSETIFF                                = 2147767498
-	TUNSETIFINDEX                            = 2147767514
-	TUNSETLINK                               = 2147767501
-	TUNSETNOCSUM                             = 2147767496
-	TUNSETOFFLOAD                            = 2147767504
-	TUNSETOWNER                              = 2147767500
-	TUNSETPERSIST                            = 2147767499
-	TUNSETQUEUE                              = 2147767513
-	TUNSETSNDBUF                             = 2147767508
-	TUNSETTXFILTER                           = 2147767505
-	TUNSETVNETHDRSZ                          = 2147767512
-	TUN_FLT_ALLMULTI                         = 1
-	UDP_CORK                                 = 1
-	UDP_ENCAP                                = 100
-	UDP_ENCAP_ESPINUDP                       = 2
-	UDP_ENCAP_ESPINUDP_NON_IKE               = 1
-	UDP_ENCAP_GTP0                           = 4
-	UDP_ENCAP_GTP1U                          = 5
-	UDP_ENCAP_L2TPINUDP                      = 3
-	UDP_NO_CHECK6_RX                         = 102
-	UDP_NO_CHECK6_TX                         = 101
-	UDP_V4_FLOW                              = 2
-	UDP_V6_FLOW                              = 6
-	UFFDIO_API                               = 3222841919
-	UFFDIO_COPY_MODE_DONTWAKE                = 1
-	UFFDIO_REGISTER                          = 3223366144
-	UFFDIO_REGISTER_MODE_MISSING             = 1
-	UFFDIO_REGISTER_MODE_WP                  = 2
-	UFFDIO_UNREGISTER                        = 1074833921
-	UFFDIO_WAKE                              = 1074833922
-	UFFDIO_ZEROPAGE_MODE_DONTWAKE            = 1
-	UFFD_API                                 = 170
-	UFFD_FEATURE_EVENT_FORK                  = 2
-	UFFD_FEATURE_EVENT_REMAP                 = 4
-	UFFD_FEATURE_EVENT_REMOVE                = 8
-	UFFD_FEATURE_EVENT_UNMAP                 = 64
-	UFFD_FEATURE_MISSING_HUGETLBFS           = 16
-	UFFD_FEATURE_MISSING_SHMEM               = 32
-	UFFD_FEATURE_PAGEFAULT_FLAG_WP           = 1
-	UMOUNT_NOFOLLOW                          = 8
-	USER_CLIENT                              = 1
-	VIRTIO_NET_HDR_F_DATA_VALID              = 2
-	VIRTIO_NET_HDR_F_NEEDS_CSUM              = 1
-	VIRTIO_NET_HDR_GSO_ECN                   = 128
-	VIRTIO_NET_HDR_GSO_NONE                  = 0
-	VIRTIO_NET_HDR_GSO_TCPV4                 = 1
-	VIRTIO_NET_HDR_GSO_TCPV6                 = 4
-	VIRTIO_NET_HDR_GSO_UDP                   = 3
-	VT_ACTIVATE                              = 22022
-	VT_DISALLOCATE                           = 22024
-	VT_GETMODE                               = 22017
-	VT_GETSTATE                              = 22019
-	VT_OPENQRY                               = 22016
-	VT_RELDISP                               = 22021
-	VT_RESIZE                                = 22025
-	VT_RESIZEX                               = 22026
-	VT_SETMODE                               = 22018
-	VT_WAITACTIVE                            = 22023
-	WCONTINUED                               = 8
-	WEXITED                                  = 4
-	WHOLE_SECONDS                            = 33554432
-	WNOHANG                                  = 1
-	WNOWAIT                                  = 16777216
-	WSTOPPED                                 = 2
-	WUNTRACED                                = 2
-	X25_CALL_ACCEPTED                        = 15
-	X25_CALL_REQUEST                         = 11
-	X25_CLEAR_CONFIRMATION                   = 23
-	X25_CLEAR_REQUEST                        = 19
-	X25_DATA                                 = 0
-	X25_DIAGNOSTIC                           = 241
-	X25_IFACE_CONNECT                        = 1
-	X25_IFACE_DATA                           = 0
-	X25_IFACE_DISCONNECT                     = 2
-	X25_IFACE_PARAMS                         = 3
-	X25_ILLEGAL                              = 253
-	X25_INTERRUPT                            = 35
-	X25_INTERRUPT_CONFIRMATION               = 39
-	X25_REGISTRATION_CONFIRMATION            = 247
-	X25_REGISTRATION_REQUEST                 = 243
-	X25_REJ                                  = 9
-	X25_RESET_CONFIRMATION                   = 31
-	X25_RESET_REQUEST                        = 27
-	X25_RESTART_CONFIRMATION                 = 255
-	X25_RESTART_REQUEST                      = 251
-	X25_RNR                                  = 5
-	X25_RR                                   = 1
-	XATTR_CREATE                             = 1
-	XATTR_REPLACE                            = 2
-	XFRM_MODE_BEET                           = 4
-	XFRM_MODE_IN_TRIGGER                     = 3
-	XFRM_MODE_ROUTEOPTIMIZATION              = 2
-	XFRM_MODE_TRANSPORT                      = 0
-	XFRM_MODE_TUNNEL                         = 1
-	XFRM_POLICY_ALLOW                        = 0
-	XFRM_POLICY_BLOCK                        = 1
-	XFRM_SHARE_ANY                           = 0
-	XFRM_SHARE_SESSION                       = 1
-	XFRM_SHARE_UNIQUE                        = 3
-	XFRM_SHARE_USER                          = 2
-	XFRM_STATE_AF_UNSPEC                     = 32
-	XFRM_STATE_ALIGN4                        = 64
-	XFRM_STATE_DECAP_DSCP                    = 2
-	XFRM_STATE_ESN                           = 128
-	XFRM_STATE_ICMP                          = 16
-	XFRM_STATE_NOECN                         = 1
-	XFRM_STATE_NOPMTUDISC                    = 4
-	XFRM_STATE_WILDRECV                      = 8
-	_DRM_AGP                                 = 3
-	_DRM_AGP_BUFFER                          = 2
-	_DRM_CONSISTENT                          = 5
-	_DRM_CONTAINS_LOCK                       = 32
-	_DRM_CONTEXT_2DONLY                      = 2
-	_DRM_CONTEXT_PRESERVED                   = 1
-	_DRM_DMA_BLOCK                           = 1
-	_DRM_DMA_LARGER_OK                       = 64
-	_DRM_DMA_PRIORITY                        = 4
-	_DRM_DMA_SMALLER_OK                      = 32
-	_DRM_DMA_WAIT                            = 16
-	_DRM_DMA_WHILE_LOCKED                    = 2
-	_DRM_DRIVER                              = 128
-	_DRM_FB_BUFFER                           = 8
-	_DRM_FRAME_BUFFER                        = 0
-	_DRM_HALT_ALL_QUEUES                     = 16
-	_DRM_HALT_CUR_QUEUES                     = 32
-	_DRM_KERNEL                              = 8
-	_DRM_LOCKED                              = 4
-	_DRM_LOCK_FLUSH                          = 4
-	_DRM_LOCK_FLUSH_ALL                      = 8
-	_DRM_LOCK_QUIESCENT                      = 2
-	_DRM_LOCK_READY                          = 1
-	_DRM_PAGE_ALIGN                          = 1
-	_DRM_PCI_BUFFER_RO                       = 16
-	_DRM_READ_ONLY                           = 2
-	_DRM_REGISTERS                           = 1
-	_DRM_REMOVABLE                           = 64
-	_DRM_RESTRICTED                          = 1
-	_DRM_SCATTER_GATHER                      = 4
-	_DRM_SG_BUFFER                           = 4
-	_DRM_SHM                                 = 2
-	_DRM_VBLANK_ABSOLUTE                     = 0
-	_DRM_VBLANK_EVENT                        = 67108864
-	_DRM_VBLANK_FLIP                         = 134217728
-	_DRM_VBLANK_HIGH_CRTC_MASK               = 62
-	_DRM_VBLANK_NEXTONMISS                   = 268435456
-	_DRM_VBLANK_RELATIVE                     = 1
-	_DRM_VBLANK_SECONDARY                    = 536870912
-	_DRM_VBLANK_SIGNAL                       = 1073741824
-	_DRM_WRITE_COMBINING                     = 16
-	__NR_accept                              = 330
-	__NR_accept4                             = 344
-	__NR_acct                                = 51
-	__NR_add_key                             = 269
-	__NR_alarm                               = 27
-	__NR_bind                                = 327
-	__NR_bpf                                 = 361
-	__NR_capget                              = 183
-	__NR_capset                              = 184
-	__NR_chdir                               = 12
-	__NR_chmod                               = 15
-	__NR_chown                               = 181
-	__NR_chroot                              = 61
-	__NR_clock_adjtime                       = 347
-	__NR_clock_getres                        = 247
-	__NR_clock_gettime                       = 246
-	__NR_clock_nanosleep                     = 248
-	__NR_clock_settime                       = 245
-	__NR_clone                               = 120
-	__NR_close                               = 6
-	__NR_connect                             = 328
-	__NR_creat                               = 8
-	__NR_delete_module                       = 129
-	__NR_dup                                 = 41
-	__NR_dup2                                = 63
-	__NR_dup3                                = 316
-	__NR_epoll_create                        = 236
-	__NR_epoll_create1                       = 315
-	__NR_epoll_ctl                           = 237
-	__NR_epoll_pwait                         = 303
-	__NR_epoll_wait                          = 238
-	__NR_eventfd                             = 307
-	__NR_eventfd2                            = 314
-	__NR_execve                              = 11
-	__NR_execveat                            = 362
-	__NR_exit                                = 1
-	__NR_exit_group                          = 234
-	__NR_faccessat                           = 298
-	__NR_fadvise64                           = 233
-	__NR_fallocate                           = 309
-	__NR_fanotify_init                       = 323
-	__NR_fanotify_mark                       = 324
-	__NR_fchdir                              = 133
-	__NR_fchmod                              = 94
-	__NR_fchmodat                            = 297
-	__NR_fchown                              = 95
-	__NR_fchownat                            = 289
-	__NR_fcntl                               = 55
-	__NR_fdatasync                           = 148
-	__NR_fgetxattr                           = 214
-	__NR_finit_module                        = 353
-	__NR_flistxattr                          = 217
-	__NR_flock                               = 143
-	__NR_fremovexattr                        = 220
-	__NR_fsetxattr                           = 211
-	__NR_fstat                               = 108
-	__NR_fstatfs                             = 100
-	__NR_fsync                               = 118
-	__NR_ftruncate                           = 93
-	__NR_futex                               = 221
-	__NR_futimesat                           = 290
-	__NR_get_kernel_syms                     = 130
-	__NR_get_mempolicy                       = 260
-	__NR_get_robust_list                     = 299
-	__NR_getcwd                              = 182
-	__NR_getdents                            = 141
-	__NR_getdents64                          = 202
-	__NR_getegid                             = 50
-	__NR_geteuid                             = 49
-	__NR_getgid                              = 47
-	__NR_getgroups                           = 80
-	__NR_getitimer                           = 105
-	__NR_getpeername                         = 332
-	__NR_getpgid                             = 132
-	__NR_getpgrp                             = 65
-	__NR_getpid                              = 20
-	__NR_getpriority                         = 96
-	__NR_getrandom                           = 359
-	__NR_getresgid                           = 170
-	__NR_getresuid                           = 165
-	__NR_getrlimit                           = 76
-	__NR_getrusage                           = 77
-	__NR_getsockname                         = 331
-	__NR_getsockopt                          = 340
-	__NR_gettid                              = 207
-	__NR_getuid                              = 24
-	__NR_getxattr                            = 212
-	__NR_init_module                         = 128
-	__NR_inotify_add_watch                   = 276
-	__NR_inotify_init                        = 275
-	__NR_inotify_init1                       = 318
-	__NR_inotify_rm_watch                    = 277
-	__NR_io_cancel                           = 231
-	__NR_io_destroy                          = 228
-	__NR_io_getevents                        = 229
-	__NR_io_setup                            = 227
-	__NR_io_submit                           = 230
-	__NR_ioctl                               = 54
-	__NR_ioperm                              = 101
-	__NR_iopl                                = 110
-	__NR_ioprio_get                          = 274
-	__NR_ioprio_set                          = 273
-	__NR_kcmp                                = 354
-	__NR_kexec_load                          = 268
-	__NR_keyctl                              = 271
-	__NR_lchown                              = 16
-	__NR_lgetxattr                           = 213
-	__NR_link                                = 9
-	__NR_linkat                              = 294
-	__NR_listen                              = 329
-	__NR_listxattr                           = 215
-	__NR_llistxattr                          = 216
-	__NR_lookup_dcookie                      = 235
-	__NR_lremovexattr                        = 219
-	__NR_lseek                               = 19
-	__NR_lsetxattr                           = 210
-	__NR_lstat                               = 107
-	__NR_madvise                             = 205
-	__NR_mbind                               = 259
-	__NR_membarrier                          = 365
-	__NR_memfd_create                        = 360
-	__NR_migrate_pages                       = 258
-	__NR_mincore                             = 206
-	__NR_mkdir                               = 39
-	__NR_mkdirat                             = 287
-	__NR_mknod                               = 14
-	__NR_mknodat                             = 288
-	__NR_mlock                               = 150
-	__NR_mlock2                              = 378
-	__NR_mlockall                            = 152
-	__NR_mmap                                = 90
-	__NR_modify_ldt                          = 123
-	__NR_mount                               = 21
-	__NR_move_pages                          = 301
-	__NR_mprotect                            = 125
-	__NR_mq_getsetattr                       = 267
-	__NR_mq_notify                           = 266
-	__NR_mq_open                             = 262
-	__NR_mq_timedreceive                     = 265
-	__NR_mq_timedsend                        = 264
-	__NR_mq_unlink                           = 263
-	__NR_mremap                              = 163
-	__NR_msync                               = 144
-	__NR_munlock                             = 151
-	__NR_munlockall                          = 153
-	__NR_munmap                              = 91
-	__NR_name_to_handle_at                   = 345
-	__NR_nanosleep                           = 162
-	__NR_open                                = 5
-	__NR_open_by_handle_at                   = 346
-	__NR_openat                              = 286
-	__NR_pause                               = 29
-	__NR_perf_event_open                     = 319
-	__NR_personality                         = 136
-	__NR_pipe                                = 42
-	__NR_pipe2                               = 317
-	__NR_pivot_root                          = 203
-	__NR_poll                                = 167
-	__NR_ppoll                               = 281
-	__NR_prctl                               = 171
-	__NR_pread64                             = 179
-	__NR_preadv                              = 320
-	__NR_prlimit64                           = 325
-	__NR_process_vm_readv                    = 351
-	__NR_process_vm_writev                   = 352
-	__NR_pselect6                            = 280
-	__NR_ptrace                              = 26
-	__NR_pwrite64                            = 180
-	__NR_pwritev                             = 321
-	__NR_read                                = 3
-	__NR_readahead                           = 191
-	__NR_readlink                            = 85
-	__NR_readlinkat                          = 296
-	__NR_readv                               = 145
-	__NR_recvfrom                            = 337
-	__NR_recvmmsg                            = 343
-	__NR_recvmsg                             = 342
-	__NR_remap_file_pages                    = 239
-	__NR_removexattr                         = 218
-	__NR_rename                              = 38
-	__NR_renameat                            = 293
-	__NR_renameat2                           = 357
-	__NR_request_key                         = 270
-	__NR_restart_syscall                     = 0
-	__NR_rmdir                               = 40
-	__NR_rt_sigaction                        = 173
-	__NR_rt_sigpending                       = 175
-	__NR_rt_sigprocmask                      = 174
-	__NR_rt_sigqueueinfo                     = 177
-	__NR_rt_sigreturn                        = 172
-	__NR_rt_sigsuspend                       = 178
-	__NR_rt_sigtimedwait                     = 176
-	__NR_rt_tgsigqueueinfo                   = 322
-	__NR_sched_getaffinity                   = 223
-	__NR_sched_getattr                       = 356
-	__NR_sched_getparam                      = 155
-	__NR_sched_getscheduler                  = 157
-	__NR_sched_rr_get_interval               = 161
-	__NR_sched_setaffinity                   = 222
-	__NR_sched_setattr                       = 355
-	__NR_sched_setparam                      = 154
-	__NR_sched_setscheduler                  = 156
-	__NR_sched_yield                         = 158
-	__NR_seccomp                             = 358
-	__NR_select                              = 82
-	__NR_sendfile                            = 186
-	__NR_sendmmsg                            = 349
-	__NR_sendmsg                             = 341
-	__NR_sendto                              = 335
-	__NR_set_mempolicy                       = 261
-	__NR_set_robust_list                     = 300
-	__NR_set_tid_address                     = 232
-	__NR_setfsgid                            = 139
-	__NR_setfsuid                            = 138
-	__NR_setgid                              = 46
-	__NR_setgroups                           = 81
-	__NR_setitimer                           = 104
-	__NR_setns                               = 350
-	__NR_setpgid                             = 57
-	__NR_setpriority                         = 97
-	__NR_setregid                            = 71
-	__NR_setresgid                           = 169
-	__NR_setresuid                           = 164
-	__NR_setreuid                            = 70
-	__NR_setrlimit                           = 75
-	__NR_setsockopt                          = 339
-	__NR_setuid                              = 23
-	__NR_setxattr                            = 209
-	__NR_shutdown                            = 338
-	__NR_sigaltstack                         = 185
-	__NR_signalfd                            = 305
-	__NR_signalfd4                           = 313
-	__NR_socket                              = 326
-	__NR_socketpair                          = 333
-	__NR_splice                              = 283
-	__NR_stat                                = 106
-	__NR_statfs                              = 99
-	__NR_statx                               = 383
-	__NR_symlink                             = 83
-	__NR_symlinkat                           = 295
-	__NR_sync                                = 36
-	__NR_syncfs                              = 348
-	__NR_sysfs                               = 135
-	__NR_sysinfo                             = 116
-	__NR_syslog                              = 103
-	__NR_tee                                 = 284
-	__NR_tgkill                              = 250
-	__NR_time                                = 13
-	__NR_timer_create                        = 240
-	__NR_timer_delete                        = 244
-	__NR_timer_getoverrun                    = 243
-	__NR_timer_gettime                       = 242
-	__NR_timer_settime                       = 241
-	__NR_timerfd_create                      = 306
-	__NR_timerfd_gettime                     = 312
-	__NR_timerfd_settime                     = 311
-	__NR_times                               = 43
-	__NR_tkill                               = 208
-	__NR_truncate                            = 92
-	__NR_umount2                             = 52
-	__NR_uname                               = 122
-	__NR_unlink                              = 10
-	__NR_unlinkat                            = 292
-	__NR_unshare                             = 282
-	__NR_uselib                              = 86
-	__NR_userfaultfd                         = 364
-	__NR_ustat                               = 62
-	__NR_utime                               = 30
-	__NR_utimensat                           = 304
-	__NR_utimes                              = 251
-	__NR_vmsplice                            = 285
-	__NR_wait4                               = 114
-	__NR_waitid                              = 272
-	__NR_write                               = 4
-	__NR_writev                              = 146
-	__O_TMPFILE                              = 4194304
-	__WALL                                   = 1073741824
-	__WCLONE                                 = 2147483648
-	__WNOTHREAD                              = 536870912
-)
+var consts_ppc64le = []ConstValue{
+	{Name: "ADDR_COMPAT_LAYOUT", Value: 2097152},
+	{Name: "ADDR_LIMIT_32BIT", Value: 8388608},
+	{Name: "ADDR_LIMIT_3GB", Value: 134217728},
+	{Name: "ADDR_NO_RANDOMIZE", Value: 262144},
+	{Name: "AF_ALG", Value: 38},
+	{Name: "AF_APPLETALK", Value: 5},
+	{Name: "AF_ATMPVC", Value: 8},
+	{Name: "AF_AX25", Value: 3},
+	{Name: "AF_BLUETOOTH", Value: 31},
+	{Name: "AF_INET", Value: 2},
+	{Name: "AF_INET6", Value: 10},
+	{Name: "AF_IPX", Value: 4},
+	{Name: "AF_KCM", Value: 41},
+	{Name: "AF_LLC", Value: 26},
+	{Name: "AF_NETLINK", Value: 16},
+	{Name: "AF_NETROM", Value: 6},
+	{Name: "AF_NFC", Value: 39},
+	{Name: "AF_PACKET", Value: 17},
+	{Name: "AF_UNIX", Value: 1},
+	{Name: "AF_UNSPEC"},
+	{Name: "AF_X25", Value: 9},
+	{Name: "AGP_USER_CACHED_MEMORY", Value: 65537},
+	{Name: "AGP_USER_MEMORY", Value: 65536},
+	{Name: "AH_ESP_V4_FLOW", Value: 4},
+	{Name: "AH_ESP_V6_FLOW", Value: 8},
+	{Name: "AH_V4_FLOW", Value: 9},
+	{Name: "AH_V6_FLOW", Value: 11},
+	{Name: "ALG_SET_AEAD_ASSOCLEN", Value: 4},
+	{Name: "ALG_SET_AEAD_AUTHSIZE", Value: 5},
+	{Name: "ALG_SET_IV", Value: 2},
+	{Name: "ALG_SET_KEY", Value: 1},
+	{Name: "ALG_SET_OP", Value: 3},
+	{Name: "ARCH_GET_FS", Value: 4099},
+	{Name: "ARCH_GET_GS", Value: 4100},
+	{Name: "ARCH_SET_FS", Value: 4098},
+	{Name: "ARCH_SET_GS", Value: 4097},
+	{Name: "ARPHRD_6LOWPAN", Value: 825},
+	{Name: "ARPHRD_ADAPT", Value: 264},
+	{Name: "ARPHRD_APPLETLK", Value: 8},
+	{Name: "ARPHRD_ARCNET", Value: 7},
+	{Name: "ARPHRD_ASH", Value: 781},
+	{Name: "ARPHRD_ATM", Value: 19},
+	{Name: "ARPHRD_AX25", Value: 3},
+	{Name: "ARPHRD_BIF", Value: 775},
+	{Name: "ARPHRD_CAIF", Value: 822},
+	{Name: "ARPHRD_CAN", Value: 280},
+	{Name: "ARPHRD_CHAOS", Value: 5},
+	{Name: "ARPHRD_CISCO", Value: 513},
+	{Name: "ARPHRD_CSLIP", Value: 257},
+	{Name: "ARPHRD_CSLIP6", Value: 259},
+	{Name: "ARPHRD_DDCMP", Value: 517},
+	{Name: "ARPHRD_DLCI", Value: 15},
+	{Name: "ARPHRD_ECONET", Value: 782},
+	{Name: "ARPHRD_EETHER", Value: 2},
+	{Name: "ARPHRD_ETHER", Value: 1},
+	{Name: "ARPHRD_EUI64", Value: 27},
+	{Name: "ARPHRD_FCAL", Value: 785},
+	{Name: "ARPHRD_FCFABRIC", Value: 787},
+	{Name: "ARPHRD_FCPL", Value: 786},
+	{Name: "ARPHRD_FCPP", Value: 784},
+	{Name: "ARPHRD_FDDI", Value: 774},
+	{Name: "ARPHRD_FRAD", Value: 770},
+	{Name: "ARPHRD_HDLC", Value: 513},
+	{Name: "ARPHRD_HIPPI", Value: 780},
+	{Name: "ARPHRD_HWX25", Value: 272},
+	{Name: "ARPHRD_IEEE1394", Value: 24},
+	{Name: "ARPHRD_IEEE802", Value: 6},
+	{Name: "ARPHRD_IEEE80211", Value: 801},
+	{Name: "ARPHRD_IEEE80211_PRISM", Value: 802},
+	{Name: "ARPHRD_IEEE80211_RADIOTAP", Value: 803},
+	{Name: "ARPHRD_IEEE802154", Value: 804},
+	{Name: "ARPHRD_IEEE802154_MONITOR", Value: 805},
+	{Name: "ARPHRD_IEEE802_TR", Value: 800},
+	{Name: "ARPHRD_INFINIBAND", Value: 32},
+	{Name: "ARPHRD_IP6GRE", Value: 823},
+	{Name: "ARPHRD_IPDDP", Value: 777},
+	{Name: "ARPHRD_IPGRE", Value: 778},
+	{Name: "ARPHRD_IRDA", Value: 783},
+	{Name: "ARPHRD_LAPB", Value: 516},
+	{Name: "ARPHRD_LOCALTLK", Value: 773},
+	{Name: "ARPHRD_LOOPBACK", Value: 772},
+	{Name: "ARPHRD_METRICOM", Value: 23},
+	{Name: "ARPHRD_NETLINK", Value: 824},
+	{Name: "ARPHRD_NETROM"},
+	{Name: "ARPHRD_NONE", Value: 65534},
+	{Name: "ARPHRD_PHONET", Value: 820},
+	{Name: "ARPHRD_PHONET_PIPE", Value: 821},
+	{Name: "ARPHRD_PIMREG", Value: 779},
+	{Name: "ARPHRD_PPP", Value: 512},
+	{Name: "ARPHRD_PRONET", Value: 4},
+	{Name: "ARPHRD_RAWHDLC", Value: 518},
+	{Name: "ARPHRD_ROSE", Value: 270},
+	{Name: "ARPHRD_RSRVD", Value: 260},
+	{Name: "ARPHRD_SIT", Value: 776},
+	{Name: "ARPHRD_SKIP", Value: 771},
+	{Name: "ARPHRD_SLIP", Value: 256},
+	{Name: "ARPHRD_SLIP6", Value: 258},
+	{Name: "ARPHRD_TUNNEL", Value: 768},
+	{Name: "ARPHRD_TUNNEL6", Value: 769},
+	{Name: "ARPHRD_VOID", Value: 65535},
+	{Name: "ARPHRD_X25", Value: 271},
+	{Name: "ARPOP_InREPLY", Value: 9},
+	{Name: "ARPOP_InREQUEST", Value: 8},
+	{Name: "ARPOP_NAK", Value: 10},
+	{Name: "ARPOP_REPLY", Value: 2},
+	{Name: "ARPOP_REQUEST", Value: 1},
+	{Name: "ARPOP_RREPLY", Value: 4},
+	{Name: "ARPOP_RREQUEST", Value: 3},
+	{Name: "ATF_COM", Value: 2},
+	{Name: "ATF_DONTPUB", Value: 64},
+	{Name: "ATF_NETMASK", Value: 32},
+	{Name: "ATF_PERM", Value: 4},
+	{Name: "ATF_PUBL", Value: 8},
+	{Name: "ATF_USETRAILERS", Value: 16},
+	{Name: "AT_EMPTY_PATH", Value: 4096},
+	{Name: "AT_FDCWD", Value: 18446744073709551516},
+	{Name: "AT_NO_AUTOMOUNT", Value: 2048},
+	{Name: "AT_REMOVEDIR", Value: 512},
+	{Name: "AT_STATX_DONT_SYNC", Value: 16384},
+	{Name: "AT_STATX_FORCE_SYNC", Value: 8192},
+	{Name: "AT_STATX_SYNC_AS_STAT"},
+	{Name: "AT_STATX_SYNC_TYPE", Value: 24576},
+	{Name: "AT_SYMLINK_FOLLOW", Value: 1024},
+	{Name: "AT_SYMLINK_NOFOLLOW", Value: 256},
+	{Name: "AX25_BACKOFF", Value: 6},
+	{Name: "AX25_EXTSEQ", Value: 7},
+	{Name: "AX25_IAMDIGI", Value: 12},
+	{Name: "AX25_IDLE", Value: 9},
+	{Name: "AX25_MAX_DIGIS", Value: 8},
+	{Name: "AX25_N2", Value: 3},
+	{Name: "AX25_PACLEN", Value: 10},
+	{Name: "AX25_PIDINCL", Value: 8},
+	{Name: "AX25_P_ARP", Value: 205},
+	{Name: "AX25_P_ATALK", Value: 202},
+	{Name: "AX25_P_ATALK_ARP", Value: 203},
+	{Name: "AX25_P_FLEXNET", Value: 206},
+	{Name: "AX25_P_IP", Value: 204},
+	{Name: "AX25_P_LQ", Value: 196},
+	{Name: "AX25_P_NETROM", Value: 207},
+	{Name: "AX25_P_ROSE", Value: 1},
+	{Name: "AX25_P_SEGMENT", Value: 8},
+	{Name: "AX25_P_TEXNET", Value: 195},
+	{Name: "AX25_P_TEXT", Value: 240},
+	{Name: "AX25_P_VJCOMP", Value: 6},
+	{Name: "AX25_P_VJUNCOMP", Value: 7},
+	{Name: "AX25_T1", Value: 2},
+	{Name: "AX25_T2", Value: 5},
+	{Name: "AX25_T3", Value: 4},
+	{Name: "AX25_WINDOW", Value: 1},
+	{Name: "BNEPCONNADD", Value: 2147762888},
+	{Name: "BNEPCONNDEL", Value: 2147762889},
+	{Name: "BNEPGETCONNINFO", Value: 1074021075},
+	{Name: "BNEPGETCONNLIST", Value: 1074021074},
+	{Name: "BNEPGETSUPPFEAT", Value: 1074021076},
+	{Name: "BPF_ANY"},
+	{Name: "BPF_CGROUP_INET_EGRESS", Value: 1},
+	{Name: "BPF_CGROUP_INET_INGRESS"},
+	{Name: "BPF_CGROUP_INET_SOCK_CREATE", Value: 2},
+	{Name: "BPF_CGROUP_SOCK_OPS", Value: 3},
+	{Name: "BPF_EXIST", Value: 2},
+	{Name: "BPF_F_ALLOW_OVERRIDE", Value: 1},
+	{Name: "BPF_F_NO_COMMON_LRU", Value: 2},
+	{Name: "BPF_F_NO_PREALLOC", Value: 1},
+	{Name: "BPF_F_NUMA_NODE", Value: 4},
+	{Name: "BPF_F_STRICT_ALIGNMENT", Value: 1},
+	{Name: "BPF_MAP_CREATE"},
+	{Name: "BPF_MAP_DELETE_ELEM", Value: 3},
+	{Name: "BPF_MAP_GET_FD_BY_ID", Value: 14},
+	{Name: "BPF_MAP_GET_NEXT_ID", Value: 12},
+	{Name: "BPF_MAP_GET_NEXT_KEY", Value: 4},
+	{Name: "BPF_MAP_LOOKUP_ELEM", Value: 1},
+	{Name: "BPF_MAP_TYPE_ARRAY", Value: 2},
+	{Name: "BPF_MAP_TYPE_ARRAY_OF_MAPS", Value: 12},
+	{Name: "BPF_MAP_TYPE_CGROUP_ARRAY", Value: 8},
+	{Name: "BPF_MAP_TYPE_HASH", Value: 1},
+	{Name: "BPF_MAP_TYPE_HASH_OF_MAPS", Value: 13},
+	{Name: "BPF_MAP_TYPE_LPM_TRIE", Value: 11},
+	{Name: "BPF_MAP_TYPE_LRU_HASH", Value: 9},
+	{Name: "BPF_MAP_TYPE_LRU_PERCPU_HASH", Value: 10},
+	{Name: "BPF_MAP_TYPE_PERCPU_ARRAY", Value: 6},
+	{Name: "BPF_MAP_TYPE_PERCPU_HASH", Value: 5},
+	{Name: "BPF_MAP_TYPE_PERF_EVENT_ARRAY", Value: 4},
+	{Name: "BPF_MAP_TYPE_PROG_ARRAY", Value: 3},
+	{Name: "BPF_MAP_TYPE_STACK_TRACE", Value: 7},
+	{Name: "BPF_MAP_UPDATE_ELEM", Value: 2},
+	{Name: "BPF_NOEXIST", Value: 1},
+	{Name: "BPF_OBJ_GET", Value: 7},
+	{Name: "BPF_OBJ_GET_INFO_BY_FD", Value: 15},
+	{Name: "BPF_OBJ_PIN", Value: 6},
+	{Name: "BPF_PROG_ATTACH", Value: 8},
+	{Name: "BPF_PROG_DETACH", Value: 9},
+	{Name: "BPF_PROG_GET_FD_BY_ID", Value: 13},
+	{Name: "BPF_PROG_GET_NEXT_ID", Value: 11},
+	{Name: "BPF_PROG_LOAD", Value: 5},
+	{Name: "BPF_PROG_TEST_RUN", Value: 10},
+	{Name: "BPF_PROG_TYPE_CGROUP_SKB", Value: 8},
+	{Name: "BPF_PROG_TYPE_CGROUP_SOCK", Value: 9},
+	{Name: "BPF_PROG_TYPE_KPROBE", Value: 2},
+	{Name: "BPF_PROG_TYPE_LWT_IN", Value: 10},
+	{Name: "BPF_PROG_TYPE_LWT_OUT", Value: 11},
+	{Name: "BPF_PROG_TYPE_LWT_XMIT", Value: 12},
+	{Name: "BPF_PROG_TYPE_PERF_EVENT", Value: 7},
+	{Name: "BPF_PROG_TYPE_SCHED_ACT", Value: 4},
+	{Name: "BPF_PROG_TYPE_SCHED_CLS", Value: 3},
+	{Name: "BPF_PROG_TYPE_SOCKET_FILTER", Value: 1},
+	{Name: "BPF_PROG_TYPE_SOCK_OPS", Value: 13},
+	{Name: "BPF_PROG_TYPE_TRACEPOINT", Value: 5},
+	{Name: "BPF_PROG_TYPE_XDP", Value: 6},
+	{Name: "BPF_PSEUDO_MAP_FD", Value: 1},
+	{Name: "BRCTL_ADD_BRIDGE", Value: 2},
+	{Name: "BRCTL_DEL_BRIDGE", Value: 3},
+	{Name: "BRCTL_GET_BRIDGES", Value: 1},
+	{Name: "BRCTL_GET_VERSION"},
+	{Name: "BTPROTO_BNEP", Value: 4},
+	{Name: "BTPROTO_CMTP", Value: 5},
+	{Name: "BTPROTO_HCI", Value: 1},
+	{Name: "BTPROTO_HIDP", Value: 6},
+	{Name: "BTPROTO_L2CAP"},
+	{Name: "BTPROTO_RFCOMM", Value: 3},
+	{Name: "BTPROTO_SCO", Value: 2},
+	{Name: "BT_CHANNEL_POLICY", Value: 10},
+	{Name: "BT_DEFER_SETUP", Value: 7},
+	{Name: "BT_FLUSHABLE", Value: 8},
+	{Name: "BT_POWER", Value: 9},
+	{Name: "BT_RCVMTU", Value: 13},
+	{Name: "BT_SECURITY", Value: 4},
+	{Name: "BT_SNDMTU", Value: 12},
+	{Name: "BT_VOICE", Value: 11},
+	{Name: "CIPSO_V4_TAG_ENUM", Value: 2},
+	{Name: "CIPSO_V4_TAG_FREEFORM", Value: 7},
+	{Name: "CIPSO_V4_TAG_INVALID"},
+	{Name: "CIPSO_V4_TAG_PBITMAP", Value: 6},
+	{Name: "CIPSO_V4_TAG_RANGE", Value: 5},
+	{Name: "CIPSO_V4_TAG_RBITMAP", Value: 1},
+	{Name: "CLOCK_BOOTTIME", Value: 7},
+	{Name: "CLOCK_MONOTONIC", Value: 1},
+	{Name: "CLOCK_MONOTONIC_COARSE", Value: 6},
+	{Name: "CLOCK_MONOTONIC_RAW", Value: 4},
+	{Name: "CLOCK_PROCESS_CPUTIME_ID", Value: 2},
+	{Name: "CLOCK_REALTIME"},
+	{Name: "CLOCK_REALTIME_COARSE", Value: 5},
+	{Name: "CLOCK_THREAD_CPUTIME_ID", Value: 3},
+	{Name: "CLONE_CHILD_CLEARTID", Value: 2097152},
+	{Name: "CLONE_CHILD_SETTID", Value: 16777216},
+	{Name: "CLONE_FILES", Value: 1024},
+	{Name: "CLONE_FS", Value: 512},
+	{Name: "CLONE_IO", Value: 2147483648},
+	{Name: "CLONE_NEWCGROUP", Value: 33554432},
+	{Name: "CLONE_NEWIPC", Value: 134217728},
+	{Name: "CLONE_NEWNET", Value: 1073741824},
+	{Name: "CLONE_NEWNS", Value: 131072},
+	{Name: "CLONE_NEWPID", Value: 536870912},
+	{Name: "CLONE_NEWUSER", Value: 268435456},
+	{Name: "CLONE_NEWUTS", Value: 67108864},
+	{Name: "CLONE_PARENT", Value: 32768},
+	{Name: "CLONE_PARENT_SETTID", Value: 1048576},
+	{Name: "CLONE_PTRACE", Value: 8192},
+	{Name: "CLONE_SETTLS", Value: 524288},
+	{Name: "CLONE_SIGHAND", Value: 2048},
+	{Name: "CLONE_SYSVSEM", Value: 262144},
+	{Name: "CLONE_THREAD", Value: 65536},
+	{Name: "CLONE_UNTRACED", Value: 8388608},
+	{Name: "CLONE_VFORK", Value: 16384},
+	{Name: "CLONE_VM", Value: 256},
+	{Name: "CMTPCONNADD", Value: 2147763144},
+	{Name: "CMTPCONNDEL", Value: 2147763145},
+	{Name: "CMTPGETCONNINFO", Value: 1074021331},
+	{Name: "CMTPGETCONNLIST", Value: 1074021330},
+	{Name: "CRYPTO_ALG_ASYNC", Value: 128},
+	{Name: "CRYPTO_ALG_DEAD", Value: 32},
+	{Name: "CRYPTO_ALG_DYING", Value: 64},
+	{Name: "CRYPTO_ALG_GENIV", Value: 512},
+	{Name: "CRYPTO_ALG_INSTANCE", Value: 2048},
+	{Name: "CRYPTO_ALG_INTERNAL", Value: 8192},
+	{Name: "CRYPTO_ALG_KERN_DRIVER_ONLY", Value: 4096},
+	{Name: "CRYPTO_ALG_LARVAL", Value: 16},
+	{Name: "CRYPTO_ALG_NEED_FALLBACK", Value: 256},
+	{Name: "CRYPTO_ALG_TESTED", Value: 1024},
+	{Name: "CRYPTO_ALG_TYPE_ABLKCIPHER", Value: 5},
+	{Name: "CRYPTO_ALG_TYPE_AEAD", Value: 3},
+	{Name: "CRYPTO_ALG_TYPE_AHASH", Value: 15},
+	{Name: "CRYPTO_ALG_TYPE_AKCIPHER", Value: 13},
+	{Name: "CRYPTO_ALG_TYPE_BLKCIPHER", Value: 4},
+	{Name: "CRYPTO_ALG_TYPE_CIPHER", Value: 1},
+	{Name: "CRYPTO_ALG_TYPE_COMPRESS", Value: 2},
+	{Name: "CRYPTO_ALG_TYPE_DIGEST", Value: 14},
+	{Name: "CRYPTO_ALG_TYPE_GIVCIPHER", Value: 6},
+	{Name: "CRYPTO_ALG_TYPE_HASH", Value: 14},
+	{Name: "CRYPTO_ALG_TYPE_MASK", Value: 15},
+	{Name: "CRYPTO_ALG_TYPE_PCOMPRESS", Value: 15},
+	{Name: "CRYPTO_ALG_TYPE_RNG", Value: 12},
+	{Name: "CRYPTO_ALG_TYPE_SHASH", Value: 14},
+	{Name: "DCCP_PKT_ACK", Value: 3},
+	{Name: "DCCP_PKT_CLOSE", Value: 6},
+	{Name: "DCCP_PKT_CLOSEREQ", Value: 5},
+	{Name: "DCCP_PKT_DATA", Value: 2},
+	{Name: "DCCP_PKT_DATAACK", Value: 4},
+	{Name: "DCCP_PKT_INVALID", Value: 10},
+	{Name: "DCCP_PKT_REQUEST"},
+	{Name: "DCCP_PKT_RESET", Value: 7},
+	{Name: "DCCP_PKT_RESPONSE", Value: 1},
+	{Name: "DCCP_PKT_SYNC", Value: 8},
+	{Name: "DCCP_PKT_SYNCACK", Value: 9},
+	{Name: "DCCP_SOCKOPT_AVAILABLE_CCIDS", Value: 12},
+	{Name: "DCCP_SOCKOPT_CCID", Value: 13},
+	{Name: "DCCP_SOCKOPT_CCID_RX_INFO", Value: 128},
+	{Name: "DCCP_SOCKOPT_CCID_TX_INFO", Value: 192},
+	{Name: "DCCP_SOCKOPT_CHANGE_L", Value: 3},
+	{Name: "DCCP_SOCKOPT_CHANGE_R", Value: 4},
+	{Name: "DCCP_SOCKOPT_GET_CUR_MPS", Value: 5},
+	{Name: "DCCP_SOCKOPT_PACKET_SIZE", Value: 1},
+	{Name: "DCCP_SOCKOPT_QPOLICY_ID", Value: 16},
+	{Name: "DCCP_SOCKOPT_QPOLICY_TXQLEN", Value: 17},
+	{Name: "DCCP_SOCKOPT_RECV_CSCOV", Value: 11},
+	{Name: "DCCP_SOCKOPT_RX_CCID", Value: 15},
+	{Name: "DCCP_SOCKOPT_SEND_CSCOV", Value: 10},
+	{Name: "DCCP_SOCKOPT_SERVER_TIMEWAIT", Value: 6},
+	{Name: "DCCP_SOCKOPT_SERVICE", Value: 2},
+	{Name: "DCCP_SOCKOPT_TX_CCID", Value: 14},
+	{Name: "DN_ACCESS", Value: 1},
+	{Name: "DN_ATTRIB", Value: 32},
+	{Name: "DN_CREATE", Value: 4},
+	{Name: "DN_DELETE", Value: 8},
+	{Name: "DN_MODIFY", Value: 2},
+	{Name: "DN_MULTISHOT", Value: 2147483648},
+	{Name: "DN_RENAME", Value: 16},
+	{Name: "DRM_ADD_COMMAND"},
+	{Name: "DRM_DISPLAY_MODE_LEN", Value: 32},
+	{Name: "DRM_INST_HANDLER", Value: 2},
+	{Name: "DRM_IOCTL_ADD_BUFS", Value: 3223348246},
+	{Name: "DRM_IOCTL_ADD_CTX", Value: 3221775392},
+	{Name: "DRM_IOCTL_ADD_MAP", Value: 3223872533},
+	{Name: "DRM_IOCTL_AGP_ACQUIRE", Value: 536896560},
+	{Name: "DRM_IOCTL_AGP_ALLOC", Value: 3223348276},
+	{Name: "DRM_IOCTL_AGP_BIND", Value: 2148557878},
+	{Name: "DRM_IOCTL_AGP_ENABLE", Value: 2148033586},
+	{Name: "DRM_IOCTL_AGP_FREE", Value: 2149606453},
+	{Name: "DRM_IOCTL_AGP_INFO", Value: 1077437491},
+	{Name: "DRM_IOCTL_AGP_RELEASE", Value: 536896561},
+	{Name: "DRM_IOCTL_AGP_UNBIND", Value: 2148557879},
+	{Name: "DRM_IOCTL_AUTH_MAGIC", Value: 2147771409},
+	{Name: "DRM_IOCTL_CONTROL", Value: 2148033556},
+	{Name: "DRM_IOCTL_DMA", Value: 3225445417},
+	{Name: "DRM_IOCTL_DROP_MASTER", Value: 536896543},
+	{Name: "DRM_IOCTL_FREE_BUFS", Value: 2148557850},
+	{Name: "DRM_IOCTL_GEM_CLOSE", Value: 2148033545},
+	{Name: "DRM_IOCTL_GEM_FLINK", Value: 3221775370},
+	{Name: "DRM_IOCTL_GEM_OPEN", Value: 3222299659},
+	{Name: "DRM_IOCTL_GET_CAP", Value: 3222299660},
+	{Name: "DRM_IOCTL_GET_CLIENT", Value: 3223872517},
+	{Name: "DRM_IOCTL_GET_CTX", Value: 3221775395},
+	{Name: "DRM_IOCTL_GET_MAGIC", Value: 1074029570},
+	{Name: "DRM_IOCTL_GET_MAP", Value: 3223872516},
+	{Name: "DRM_IOCTL_GET_SAREA_CTX", Value: 3222299677},
+	{Name: "DRM_IOCTL_GET_STATS", Value: 1090020358},
+	{Name: "DRM_IOCTL_GET_UNIQUE", Value: 3222299649},
+	{Name: "DRM_IOCTL_INFO_BUFS", Value: 3222299672},
+	{Name: "DRM_IOCTL_IRQ_BUSID", Value: 3222299651},
+	{Name: "DRM_IOCTL_LOCK", Value: 2148033578},
+	{Name: "DRM_IOCTL_MAP_BUFS", Value: 3222823961},
+	{Name: "DRM_IOCTL_MARK_BUFS", Value: 2149606423},
+	{Name: "DRM_IOCTL_MODESET_CTL", Value: 2148033544},
+	{Name: "DRM_IOCTL_MODE_GETCRTC", Value: 3228066977},
+	{Name: "DRM_IOCTL_MODE_GETPLANERESOURCES", Value: 3222299829},
+	{Name: "DRM_IOCTL_MODE_GETRESOURCES", Value: 3225445536},
+	{Name: "DRM_IOCTL_MODE_SETCRTC", Value: 3228066978},
+	{Name: "DRM_IOCTL_NEW_CTX", Value: 2148033573},
+	{Name: "DRM_IOCTL_PRIME_FD_TO_HANDLE", Value: 3222037550},
+	{Name: "DRM_IOCTL_PRIME_HANDLE_TO_FD", Value: 3222037549},
+	{Name: "DRM_IOCTL_RES_CTX", Value: 3222299686},
+	{Name: "DRM_IOCTL_RM_CTX", Value: 3221775393},
+	{Name: "DRM_IOCTL_RM_MAP", Value: 2150130715},
+	{Name: "DRM_IOCTL_SET_CLIENT_CAP", Value: 2148557837},
+	{Name: "DRM_IOCTL_SET_MASTER", Value: 536896542},
+	{Name: "DRM_IOCTL_SET_SAREA_CTX", Value: 2148557852},
+	{Name: "DRM_IOCTL_SET_UNIQUE", Value: 2148557840},
+	{Name: "DRM_IOCTL_SET_VERSION", Value: 3222299655},
+	{Name: "DRM_IOCTL_SG_ALLOC", Value: 3222299704},
+	{Name: "DRM_IOCTL_SG_FREE", Value: 2148557881},
+	{Name: "DRM_IOCTL_SWITCH_CTX", Value: 2148033572},
+	{Name: "DRM_IOCTL_UNLOCK", Value: 2148033579},
+	{Name: "DRM_IOCTL_VERSION", Value: 3225445376},
+	{Name: "DRM_IOCTL_WAIT_VBLANK", Value: 3222823994},
+	{Name: "DRM_RM_COMMAND", Value: 1},
+	{Name: "DRM_UNINST_HANDLER", Value: 3},
+	{Name: "EFD_CLOEXEC", Value: 524288},
+	{Name: "EFD_NONBLOCK", Value: 2048},
+	{Name: "EFD_SEMAPHORE", Value: 1},
+	{Name: "EPOLLET", Value: 2147483648},
+	{Name: "EPOLLEXCLUSIVE", Value: 268435456},
+	{Name: "EPOLLONESHOT", Value: 1073741824},
+	{Name: "EPOLLWAKEUP", Value: 536870912},
+	{Name: "EPOLL_CLOEXEC", Value: 524288},
+	{Name: "EPOLL_CTL_ADD", Value: 1},
+	{Name: "EPOLL_CTL_DEL", Value: 2},
+	{Name: "EPOLL_CTL_MOD", Value: 3},
+	{Name: "ESP_V4_FLOW", Value: 10},
+	{Name: "ESP_V6_FLOW", Value: 12},
+	{Name: "ETHER_FLOW", Value: 18},
+	{Name: "ETHTOOL_BUSINFO_LEN", Value: 32},
+	{Name: "ETHTOOL_EROMVERS_LEN", Value: 32},
+	{Name: "ETHTOOL_FLASHDEV", Value: 51},
+	{Name: "ETHTOOL_FLASH_MAX_FILENAME", Value: 128},
+	{Name: "ETHTOOL_FWVERS_LEN", Value: 32},
+	{Name: "ETHTOOL_GCHANNELS", Value: 60},
+	{Name: "ETHTOOL_GCOALESCE", Value: 14},
+	{Name: "ETHTOOL_GDRVINFO", Value: 3},
+	{Name: "ETHTOOL_GEEE", Value: 68},
+	{Name: "ETHTOOL_GEEPROM", Value: 11},
+	{Name: "ETHTOOL_GET_DUMP_DATA", Value: 64},
+	{Name: "ETHTOOL_GET_DUMP_FLAG", Value: 63},
+	{Name: "ETHTOOL_GET_TS_INFO", Value: 65},
+	{Name: "ETHTOOL_GFEATURES", Value: 58},
+	{Name: "ETHTOOL_GFLAGS", Value: 37},
+	{Name: "ETHTOOL_GGRO", Value: 43},
+	{Name: "ETHTOOL_GGSO", Value: 35},
+	{Name: "ETHTOOL_GLINK", Value: 10},
+	{Name: "ETHTOOL_GLINKSETTINGS", Value: 76},
+	{Name: "ETHTOOL_GMODULEEEPROM", Value: 67},
+	{Name: "ETHTOOL_GMODULEINFO", Value: 66},
+	{Name: "ETHTOOL_GMSGLVL", Value: 7},
+	{Name: "ETHTOOL_GPAUSEPARAM", Value: 18},
+	{Name: "ETHTOOL_GPERMADDR", Value: 32},
+	{Name: "ETHTOOL_GPFLAGS", Value: 39},
+	{Name: "ETHTOOL_GPHYSTATS", Value: 74},
+	{Name: "ETHTOOL_GREGS", Value: 4},
+	{Name: "ETHTOOL_GRINGPARAM", Value: 16},
+	{Name: "ETHTOOL_GRSSH", Value: 70},
+	{Name: "ETHTOOL_GRXCLSRLALL", Value: 48},
+	{Name: "ETHTOOL_GRXCLSRLCNT", Value: 46},
+	{Name: "ETHTOOL_GRXCLSRULE", Value: 47},
+	{Name: "ETHTOOL_GRXCSUM", Value: 20},
+	{Name: "ETHTOOL_GRXFH", Value: 41},
+	{Name: "ETHTOOL_GRXFHINDIR", Value: 56},
+	{Name: "ETHTOOL_GRXNTUPLE", Value: 54},
+	{Name: "ETHTOOL_GRXRINGS", Value: 45},
+	{Name: "ETHTOOL_GSET", Value: 1},
+	{Name: "ETHTOOL_GSG", Value: 24},
+	{Name: "ETHTOOL_GSSET_INFO", Value: 55},
+	{Name: "ETHTOOL_GSTATS", Value: 29},
+	{Name: "ETHTOOL_GSTRINGS", Value: 27},
+	{Name: "ETHTOOL_GTSO", Value: 30},
+	{Name: "ETHTOOL_GTUNABLE", Value: 72},
+	{Name: "ETHTOOL_GTXCSUM", Value: 22},
+	{Name: "ETHTOOL_GUFO", Value: 33},
+	{Name: "ETHTOOL_GWOL", Value: 5},
+	{Name: "ETHTOOL_NWAY_RST", Value: 9},
+	{Name: "ETHTOOL_PERQUEUE", Value: 75},
+	{Name: "ETHTOOL_PHYS_ID", Value: 28},
+	{Name: "ETHTOOL_PHY_GTUNABLE", Value: 78},
+	{Name: "ETHTOOL_PHY_STUNABLE", Value: 79},
+	{Name: "ETHTOOL_RESET", Value: 52},
+	{Name: "ETHTOOL_RXNTUPLE_ACTION_CLEAR", Value: 18446744073709551614},
+	{Name: "ETHTOOL_RXNTUPLE_ACTION_DROP", Value: 18446744073709551615},
+	{Name: "ETHTOOL_SCHANNELS", Value: 61},
+	{Name: "ETHTOOL_SCOALESCE", Value: 15},
+	{Name: "ETHTOOL_SEEE", Value: 69},
+	{Name: "ETHTOOL_SEEPROM", Value: 12},
+	{Name: "ETHTOOL_SET_DUMP", Value: 62},
+	{Name: "ETHTOOL_SFEATURES", Value: 59},
+	{Name: "ETHTOOL_SFLAGS", Value: 38},
+	{Name: "ETHTOOL_SGRO", Value: 44},
+	{Name: "ETHTOOL_SGSO", Value: 36},
+	{Name: "ETHTOOL_SLINKSETTINGS", Value: 77},
+	{Name: "ETHTOOL_SMSGLVL", Value: 8},
+	{Name: "ETHTOOL_SPAUSEPARAM", Value: 19},
+	{Name: "ETHTOOL_SPFLAGS", Value: 40},
+	{Name: "ETHTOOL_SRINGPARAM", Value: 17},
+	{Name: "ETHTOOL_SRSSH", Value: 71},
+	{Name: "ETHTOOL_SRXCLSRLDEL", Value: 49},
+	{Name: "ETHTOOL_SRXCLSRLINS", Value: 50},
+	{Name: "ETHTOOL_SRXCSUM", Value: 21},
+	{Name: "ETHTOOL_SRXFH", Value: 42},
+	{Name: "ETHTOOL_SRXFHINDIR", Value: 57},
+	{Name: "ETHTOOL_SRXNTUPLE", Value: 53},
+	{Name: "ETHTOOL_SSET", Value: 2},
+	{Name: "ETHTOOL_SSG", Value: 25},
+	{Name: "ETHTOOL_STSO", Value: 31},
+	{Name: "ETHTOOL_STUNABLE", Value: 73},
+	{Name: "ETHTOOL_STXCSUM", Value: 23},
+	{Name: "ETHTOOL_SUFO", Value: 34},
+	{Name: "ETHTOOL_SWOL", Value: 6},
+	{Name: "ETHTOOL_TEST", Value: 26},
+	{Name: "ETH_P_1588", Value: 35063},
+	{Name: "ETH_P_8021AD", Value: 34984},
+	{Name: "ETH_P_8021AH", Value: 35047},
+	{Name: "ETH_P_8021Q", Value: 33024},
+	{Name: "ETH_P_80221", Value: 35095},
+	{Name: "ETH_P_802_2", Value: 4},
+	{Name: "ETH_P_802_3", Value: 1},
+	{Name: "ETH_P_802_3_MIN", Value: 1536},
+	{Name: "ETH_P_802_EX1", Value: 34997},
+	{Name: "ETH_P_AARP", Value: 33011},
+	{Name: "ETH_P_AF_IUCV", Value: 64507},
+	{Name: "ETH_P_ALL", Value: 3},
+	{Name: "ETH_P_ALL_BE", Value: 3},
+	{Name: "ETH_P_AOE", Value: 34978},
+	{Name: "ETH_P_ARCNET", Value: 26},
+	{Name: "ETH_P_ARP", Value: 2054},
+	{Name: "ETH_P_ATALK", Value: 32923},
+	{Name: "ETH_P_ATMFATE", Value: 34948},
+	{Name: "ETH_P_ATMMPOA", Value: 34892},
+	{Name: "ETH_P_AX25", Value: 2},
+	{Name: "ETH_P_BATMAN", Value: 17157},
+	{Name: "ETH_P_CAIF", Value: 247},
+	{Name: "ETH_P_CAN", Value: 12},
+	{Name: "ETH_P_CANFD", Value: 13},
+	{Name: "ETH_P_CONTROL", Value: 22},
+	{Name: "ETH_P_CUST", Value: 24582},
+	{Name: "ETH_P_DDCMP", Value: 6},
+	{Name: "ETH_P_DEC", Value: 24576},
+	{Name: "ETH_P_DIAG", Value: 24581},
+	{Name: "ETH_P_DNA_DL", Value: 24577},
+	{Name: "ETH_P_DNA_RC", Value: 24578},
+	{Name: "ETH_P_DNA_RT", Value: 24579},
+	{Name: "ETH_P_DSA", Value: 27},
+	{Name: "ETH_P_ECONET", Value: 24},
+	{Name: "ETH_P_EDSA", Value: 56026},
+	{Name: "ETH_P_FCOE", Value: 35078},
+	{Name: "ETH_P_FIP", Value: 35092},
+	{Name: "ETH_P_HDLC", Value: 25},
+	{Name: "ETH_P_HSR", Value: 35119},
+	{Name: "ETH_P_IEEE802154", Value: 246},
+	{Name: "ETH_P_IEEEPUP", Value: 2560},
+	{Name: "ETH_P_IEEEPUPAT", Value: 2561},
+	{Name: "ETH_P_IP", Value: 2048},
+	{Name: "ETH_P_IPV6", Value: 34525},
+	{Name: "ETH_P_IPX", Value: 33079},
+	{Name: "ETH_P_IRDA", Value: 23},
+	{Name: "ETH_P_LAT", Value: 24580},
+	{Name: "ETH_P_LINK_CTL", Value: 34924},
+	{Name: "ETH_P_LOCALTALK", Value: 9},
+	{Name: "ETH_P_LOOP", Value: 96},
+	{Name: "ETH_P_LOOPBACK", Value: 36864},
+	{Name: "ETH_P_MACSEC", Value: 35045},
+	{Name: "ETH_P_MOBITEX", Value: 21},
+	{Name: "ETH_P_MPLS_MC", Value: 34888},
+	{Name: "ETH_P_MPLS_UC", Value: 34887},
+	{Name: "ETH_P_MVRP", Value: 35061},
+	{Name: "ETH_P_NCSI", Value: 35064},
+	{Name: "ETH_P_PAE", Value: 34958},
+	{Name: "ETH_P_PAUSE", Value: 34824},
+	{Name: "ETH_P_PHONET", Value: 245},
+	{Name: "ETH_P_PPPTALK", Value: 16},
+	{Name: "ETH_P_PPP_DISC", Value: 34915},
+	{Name: "ETH_P_PPP_MP", Value: 8},
+	{Name: "ETH_P_PPP_SES", Value: 34916},
+	{Name: "ETH_P_PRP", Value: 35067},
+	{Name: "ETH_P_PUP", Value: 512},
+	{Name: "ETH_P_PUPAT", Value: 513},
+	{Name: "ETH_P_QINQ1", Value: 37120},
+	{Name: "ETH_P_QINQ2", Value: 37376},
+	{Name: "ETH_P_QINQ3", Value: 37632},
+	{Name: "ETH_P_RARP", Value: 32821},
+	{Name: "ETH_P_SCA", Value: 24583},
+	{Name: "ETH_P_SLOW", Value: 34825},
+	{Name: "ETH_P_SNAP", Value: 5},
+	{Name: "ETH_P_TDLS", Value: 35085},
+	{Name: "ETH_P_TEB", Value: 25944},
+	{Name: "ETH_P_TIPC", Value: 35018},
+	{Name: "ETH_P_TRAILER", Value: 28},
+	{Name: "ETH_P_TR_802_2", Value: 17},
+	{Name: "ETH_P_TSN", Value: 8944},
+	{Name: "ETH_P_WAN_PPP", Value: 7},
+	{Name: "ETH_P_WCCP", Value: 34878},
+	{Name: "ETH_P_X25", Value: 2053},
+	{Name: "ETH_P_XDSA", Value: 248},
+	{Name: "ETH_RX_NFC_IP4", Value: 1},
+	{Name: "EVIOCGABS0", Value: 1075332416},
+	{Name: "EVIOCGABS20", Value: 1075332448},
+	{Name: "EVIOCGABS2F", Value: 1075332463},
+	{Name: "EVIOCGABS3F", Value: 1075332479},
+	{Name: "EVIOCGBITKEY64", Value: 1077953825},
+	{Name: "EVIOCGBITSND64", Value: 1077953842},
+	{Name: "EVIOCGBITSW64", Value: 1077953829},
+	{Name: "EVIOCGEFFECTS", Value: 1074021764},
+	{Name: "EVIOCGID", Value: 1074283778},
+	{Name: "EVIOCGKEY64", Value: 1077953816},
+	{Name: "EVIOCGKEYCODE", Value: 1074283780},
+	{Name: "EVIOCGKEYCODE_V2", Value: 1076380932},
+	{Name: "EVIOCGLED64", Value: 1077953817},
+	{Name: "EVIOCGMASK", Value: 1074808210},
+	{Name: "EVIOCGMTSLOTS64", Value: 1077953802},
+	{Name: "EVIOCGNAME64", Value: 1077953798},
+	{Name: "EVIOCGPHYS64", Value: 1077953799},
+	{Name: "EVIOCGPROP64", Value: 1077953801},
+	{Name: "EVIOCGRAB", Value: 2147763600},
+	{Name: "EVIOCGREP", Value: 1074283779},
+	{Name: "EVIOCGSND64", Value: 1077953818},
+	{Name: "EVIOCGSW64", Value: 1077953819},
+	{Name: "EVIOCGUNIQ64", Value: 1077953800},
+	{Name: "EVIOCGVERSION", Value: 1074021633},
+	{Name: "EVIOCREVOKE", Value: 2147763601},
+	{Name: "EVIOCRMFF", Value: 2147763585},
+	{Name: "EVIOCSABS0", Value: 2149074368},
+	{Name: "EVIOCSABS20", Value: 2149074400},
+	{Name: "EVIOCSABS2F", Value: 2149074415},
+	{Name: "EVIOCSABS3F", Value: 2149074431},
+	{Name: "EVIOCSCLOCKID", Value: 2147763616},
+	{Name: "EVIOCSFF", Value: 2150647168},
+	{Name: "EVIOCSKEYCODE", Value: 2148025604},
+	{Name: "EVIOCSKEYCODE_V2", Value: 2150122756},
+	{Name: "EVIOCSMASK", Value: 2148550035},
+	{Name: "EVIOCSREP", Value: 2148025603},
+	{Name: "EV_ABS", Value: 3},
+	{Name: "EV_FF", Value: 21},
+	{Name: "EV_KEY", Value: 1},
+	{Name: "EV_LED", Value: 17},
+	{Name: "EV_MSC", Value: 4},
+	{Name: "EV_REL", Value: 2},
+	{Name: "EV_SND", Value: 18},
+	{Name: "EV_SW", Value: 5},
+	{Name: "EV_SYN"},
+	{Name: "FALLOC_FL_KEEP_SIZE", Value: 1},
+	{Name: "FALLOC_FL_PUNCH_HOLE", Value: 2},
+	{Name: "FAN_ACCESS", Value: 1},
+	{Name: "FAN_ACCESS_PERM", Value: 131072},
+	{Name: "FAN_CLASS_CONTENT", Value: 4},
+	{Name: "FAN_CLASS_NOTIF"},
+	{Name: "FAN_CLASS_PRE_CONTENT", Value: 8},
+	{Name: "FAN_CLOEXEC", Value: 1},
+	{Name: "FAN_CLOSE_NOWRITE", Value: 16},
+	{Name: "FAN_CLOSE_WRITE", Value: 8},
+	{Name: "FAN_EVENT_ON_CHILD", Value: 134217728},
+	{Name: "FAN_MARK_ADD", Value: 1},
+	{Name: "FAN_MARK_DONT_FOLLOW", Value: 4},
+	{Name: "FAN_MARK_FLUSH", Value: 128},
+	{Name: "FAN_MARK_IGNORED_MASK", Value: 32},
+	{Name: "FAN_MARK_IGNORED_SURV_MODIFY", Value: 64},
+	{Name: "FAN_MARK_MOUNT", Value: 16},
+	{Name: "FAN_MARK_ONLYDIR", Value: 8},
+	{Name: "FAN_MARK_REMOVE", Value: 2},
+	{Name: "FAN_MODIFY", Value: 2},
+	{Name: "FAN_NONBLOCK", Value: 2},
+	{Name: "FAN_ONDIR", Value: 1073741824},
+	{Name: "FAN_OPEN", Value: 32},
+	{Name: "FAN_OPEN_PERM", Value: 65536},
+	{Name: "FAN_UNLIMITED_MARKS", Value: 32},
+	{Name: "FAN_UNLIMITED_QUEUE", Value: 16},
+	{Name: "FASYNC", Value: 8192},
+	{Name: "FD_CLOEXEC", Value: 1},
+	{Name: "FF_CONSTANT", Value: 82},
+	{Name: "FF_CUSTOM", Value: 93},
+	{Name: "FF_DAMPER", Value: 85},
+	{Name: "FF_FRICTION", Value: 84},
+	{Name: "FF_INERTIA", Value: 86},
+	{Name: "FF_PERIODIC", Value: 81},
+	{Name: "FF_RAMP", Value: 87},
+	{Name: "FF_SAW_DOWN", Value: 92},
+	{Name: "FF_SAW_UP", Value: 91},
+	{Name: "FF_SINE", Value: 90},
+	{Name: "FF_SPRING", Value: 83},
+	{Name: "FF_SQUARE", Value: 88},
+	{Name: "FF_TRIANGLE", Value: 89},
+	{Name: "FIEMAP_EXTENT_DATA_ENCRYPTED", Value: 128},
+	{Name: "FIEMAP_EXTENT_DATA_INLINE", Value: 512},
+	{Name: "FIEMAP_EXTENT_DATA_TAIL", Value: 1024},
+	{Name: "FIEMAP_EXTENT_DELALLOC", Value: 4},
+	{Name: "FIEMAP_EXTENT_ENCODED", Value: 8},
+	{Name: "FIEMAP_EXTENT_LAST", Value: 1},
+	{Name: "FIEMAP_EXTENT_MERGED", Value: 4096},
+	{Name: "FIEMAP_EXTENT_NOT_ALIGNED", Value: 256},
+	{Name: "FIEMAP_EXTENT_SHARED", Value: 8192},
+	{Name: "FIEMAP_EXTENT_UNKNOWN", Value: 2},
+	{Name: "FIEMAP_EXTENT_UNWRITTEN", Value: 2048},
+	{Name: "FIEMAP_FLAG_CACHE", Value: 4},
+	{Name: "FIEMAP_FLAG_SYNC", Value: 1},
+	{Name: "FIEMAP_FLAG_XATTR", Value: 2},
+	{Name: "FIFREEZE", Value: 3221510263},
+	{Name: "FIGETBSZ", Value: 536870914},
+	{Name: "FIOASYNC", Value: 2147772029},
+	{Name: "FIOCLEX", Value: 536897025},
+	{Name: "FIOGETOWN", Value: 35075},
+	{Name: "FIONBIO", Value: 2147772030},
+	{Name: "FIONCLEX", Value: 536897026},
+	{Name: "FIONREAD", Value: 1074030207},
+	{Name: "FIOQSIZE", Value: 1074292352},
+	{Name: "FIOSETOWN", Value: 35073},
+	{Name: "FITHAW", Value: 3221510264},
+	{Name: "FS_IOC_FIEMAP", Value: 3223348747},
+	{Name: "FUSE_DEV_IOC_CLONE", Value: 1074062592},
+	{Name: "FUTEX_CMP_REQUEUE", Value: 4},
+	{Name: "FUTEX_REQUEUE", Value: 3},
+	{Name: "FUTEX_WAIT"},
+	{Name: "FUTEX_WAIT_BITSET", Value: 9},
+	{Name: "FUTEX_WAKE", Value: 1},
+	{Name: "F_ADD_SEALS", Value: 1033},
+	{Name: "F_DUPFD"},
+	{Name: "F_DUPFD_CLOEXEC", Value: 1030},
+	{Name: "F_GETFD", Value: 1},
+	{Name: "F_GETFL", Value: 3},
+	{Name: "F_GETLEASE", Value: 1025},
+	{Name: "F_GETLK", Value: 5},
+	{Name: "F_GETOWN", Value: 9},
+	{Name: "F_GETOWN_EX", Value: 16},
+	{Name: "F_GETPIPE_SZ", Value: 1032},
+	{Name: "F_GETSIG", Value: 11},
+	{Name: "F_GET_SEALS", Value: 1034},
+	{Name: "F_OWNER_PGRP", Value: 2},
+	{Name: "F_OWNER_PID", Value: 1},
+	{Name: "F_OWNER_TID"},
+	{Name: "F_RDLCK"},
+	{Name: "F_SEAL_GROW", Value: 4},
+	{Name: "F_SEAL_SEAL", Value: 1},
+	{Name: "F_SEAL_SHRINK", Value: 2},
+	{Name: "F_SEAL_WRITE", Value: 8},
+	{Name: "F_SETFD", Value: 2},
+	{Name: "F_SETFL", Value: 4},
+	{Name: "F_SETLEASE", Value: 1024},
+	{Name: "F_SETLK", Value: 6},
+	{Name: "F_SETLKW", Value: 7},
+	{Name: "F_SETOWN", Value: 8},
+	{Name: "F_SETOWN_EX", Value: 15},
+	{Name: "F_SETPIPE_SZ", Value: 1031},
+	{Name: "F_SETSIG", Value: 10},
+	{Name: "F_UNLCK", Value: 2},
+	{Name: "F_WRLCK", Value: 1},
+	{Name: "GETALL", Value: 13},
+	{Name: "GETNCNT", Value: 14},
+	{Name: "GETPID", Value: 11},
+	{Name: "GETVAL", Value: 12},
+	{Name: "GETZCNT", Value: 15},
+	{Name: "GIO_CMAP", Value: 19312},
+	{Name: "GIO_FONT", Value: 19296},
+	{Name: "GIO_FONTX", Value: 19307},
+	{Name: "GIO_SCRNMAP", Value: 19264},
+	{Name: "GIO_UNIMAP", Value: 19302},
+	{Name: "GIO_UNISCRNMAP", Value: 19305},
+	{Name: "GRND_NONBLOCK", Value: 1},
+	{Name: "GRND_RANDOM", Value: 2},
+	{Name: "HCIBLOCKADDR", Value: 2147764454},
+	{Name: "HCIDEVDOWN", Value: 2147764426},
+	{Name: "HCIDEVRESET", Value: 2147764427},
+	{Name: "HCIDEVRESTAT", Value: 2147764428},
+	{Name: "HCIDEVUP", Value: 2147764425},
+	{Name: "HCIGETAUTHINFO", Value: 1074022615},
+	{Name: "HCIGETCONNINFO", Value: 1074022613},
+	{Name: "HCIGETCONNLIST", Value: 1074022612},
+	{Name: "HCIGETDEVINFO", Value: 1074022611},
+	{Name: "HCIGETDEVLIST", Value: 1074022610},
+	{Name: "HCIINQUIRY", Value: 1074022640},
+	{Name: "HCISETACLMTU", Value: 2147764451},
+	{Name: "HCISETAUTH", Value: 2147764446},
+	{Name: "HCISETENCRYPT", Value: 2147764447},
+	{Name: "HCISETLINKMODE", Value: 2147764450},
+	{Name: "HCISETLINKPOL", Value: 2147764449},
+	{Name: "HCISETPTYPE", Value: 2147764448},
+	{Name: "HCISETRAW", Value: 2147764444},
+	{Name: "HCISETSCAN", Value: 2147764445},
+	{Name: "HCISETSCOMTU", Value: 2147764452},
+	{Name: "HCIUNBLOCKADDR", Value: 2147764455},
+	{Name: "HCI_CHANNEL_CONTROL", Value: 3},
+	{Name: "HCI_CHANNEL_MONITOR", Value: 2},
+	{Name: "HCI_CHANNEL_RAW"},
+	{Name: "HCI_CHANNEL_USER", Value: 1},
+	{Name: "HCI_DATA_DIR", Value: 1},
+	{Name: "HCI_FILTER", Value: 2},
+	{Name: "HCI_TIME_STAMP", Value: 3},
+	{Name: "HIDPCONNADD", Value: 2147764424},
+	{Name: "HIDPCONNDEL", Value: 2147764425},
+	{Name: "HIDPGETCONNINFO", Value: 1074022611},
+	{Name: "HIDPGETCONNLIST", Value: 1074022610},
+	{Name: "HW_BREAKPOINT_EMPTY"},
+	{Name: "HW_BREAKPOINT_R", Value: 1},
+	{Name: "HW_BREAKPOINT_W", Value: 2},
+	{Name: "HW_BREAKPOINT_X", Value: 4},
+	{Name: "ICMPV6_ADDR_UNREACH", Value: 3},
+	{Name: "ICMPV6_ADM_PROHIBITED", Value: 1},
+	{Name: "ICMPV6_DEST_UNREACH", Value: 1},
+	{Name: "ICMPV6_ECHO_REPLY", Value: 129},
+	{Name: "ICMPV6_ECHO_REQUEST", Value: 128},
+	{Name: "ICMPV6_EXC_FRAGTIME", Value: 1},
+	{Name: "ICMPV6_EXC_HOPLIMIT"},
+	{Name: "ICMPV6_HDR_FIELD"},
+	{Name: "ICMPV6_MGM_QUERY", Value: 130},
+	{Name: "ICMPV6_MGM_REDUCTION", Value: 132},
+	{Name: "ICMPV6_MGM_REPORT", Value: 131},
+	{Name: "ICMPV6_NI_QUERY", Value: 139},
+	{Name: "ICMPV6_NI_REPLY", Value: 140},
+	{Name: "ICMPV6_NOROUTE"},
+	{Name: "ICMPV6_NOT_NEIGHBOUR", Value: 2},
+	{Name: "ICMPV6_PARAMPROB", Value: 4},
+	{Name: "ICMPV6_PKT_TOOBIG", Value: 2},
+	{Name: "ICMPV6_POLICY_FAIL", Value: 5},
+	{Name: "ICMPV6_PORT_UNREACH", Value: 4},
+	{Name: "ICMPV6_REJECT_ROUTE", Value: 6},
+	{Name: "ICMPV6_TIME_EXCEED", Value: 3},
+	{Name: "ICMPV6_UNK_NEXTHDR", Value: 1},
+	{Name: "ICMPV6_UNK_OPTION", Value: 2},
+	{Name: "ICMP_ADDRESS", Value: 17},
+	{Name: "ICMP_ADDRESSREPLY", Value: 18},
+	{Name: "ICMP_DEST_UNREACH", Value: 3},
+	{Name: "ICMP_ECHO", Value: 8},
+	{Name: "ICMP_ECHOREPLY"},
+	{Name: "ICMP_EXC_FRAGTIME", Value: 1},
+	{Name: "ICMP_EXC_TTL"},
+	{Name: "ICMP_FILTER", Value: 1},
+	{Name: "ICMP_FRAG_NEEDED", Value: 4},
+	{Name: "ICMP_HOST_ANO", Value: 10},
+	{Name: "ICMP_HOST_ISOLATED", Value: 8},
+	{Name: "ICMP_HOST_UNKNOWN", Value: 7},
+	{Name: "ICMP_HOST_UNREACH", Value: 1},
+	{Name: "ICMP_HOST_UNR_TOS", Value: 12},
+	{Name: "ICMP_INFO_REPLY", Value: 16},
+	{Name: "ICMP_INFO_REQUEST", Value: 15},
+	{Name: "ICMP_NET_ANO", Value: 9},
+	{Name: "ICMP_NET_UNKNOWN", Value: 6},
+	{Name: "ICMP_NET_UNREACH"},
+	{Name: "ICMP_NET_UNR_TOS", Value: 11},
+	{Name: "ICMP_PARAMETERPROB", Value: 12},
+	{Name: "ICMP_PKT_FILTERED", Value: 13},
+	{Name: "ICMP_PORT_UNREACH", Value: 3},
+	{Name: "ICMP_PREC_CUTOFF", Value: 15},
+	{Name: "ICMP_PREC_VIOLATION", Value: 14},
+	{Name: "ICMP_PROT_UNREACH", Value: 2},
+	{Name: "ICMP_REDIRECT", Value: 5},
+	{Name: "ICMP_REDIR_HOST", Value: 1},
+	{Name: "ICMP_REDIR_HOSTTOS", Value: 3},
+	{Name: "ICMP_REDIR_NET"},
+	{Name: "ICMP_REDIR_NETTOS", Value: 2},
+	{Name: "ICMP_SOURCE_QUENCH", Value: 4},
+	{Name: "ICMP_SR_FAILED", Value: 5},
+	{Name: "ICMP_TIMESTAMP", Value: 13},
+	{Name: "ICMP_TIMESTAMPREPLY", Value: 14},
+	{Name: "ICMP_TIME_EXCEEDED", Value: 11},
+	{Name: "IFF_ATTACH_QUEUE", Value: 512},
+	{Name: "IFF_DETACH_QUEUE", Value: 1024},
+	{Name: "IFF_MULTI_QUEUE", Value: 256},
+	{Name: "IFF_NOFILTER", Value: 4096},
+	{Name: "IFF_NO_PI", Value: 4096},
+	{Name: "IFF_ONE_QUEUE", Value: 8192},
+	{Name: "IFF_PERSIST", Value: 2048},
+	{Name: "IFF_TAP", Value: 2},
+	{Name: "IFF_TUN", Value: 1},
+	{Name: "IFF_TUN_EXCL", Value: 32768},
+	{Name: "IFF_VNET_HDR", Value: 16384},
+	{Name: "IFNAMSIZ", Value: 16},
+	{Name: "IGMPV2_HOST_MEMBERSHIP_REPORT", Value: 22},
+	{Name: "IGMPV3_HOST_MEMBERSHIP_REPORT", Value: 34},
+	{Name: "IGMP_DVMRP", Value: 19},
+	{Name: "IGMP_HOST_LEAVE_MESSAGE", Value: 23},
+	{Name: "IGMP_HOST_MEMBERSHIP_QUERY", Value: 17},
+	{Name: "IGMP_HOST_MEMBERSHIP_REPORT", Value: 18},
+	{Name: "IGMP_MTRACE", Value: 31},
+	{Name: "IGMP_MTRACE_RESP", Value: 30},
+	{Name: "IGMP_PIM", Value: 20},
+	{Name: "IGMP_TRACE", Value: 21},
+	{Name: "IN_ACCESS", Value: 1},
+	{Name: "IN_ATTRIB", Value: 4},
+	{Name: "IN_CLOEXEC", Value: 524288},
+	{Name: "IN_CLOSE_NOWRITE", Value: 16},
+	{Name: "IN_CLOSE_WRITE", Value: 8},
+	{Name: "IN_CREATE", Value: 256},
+	{Name: "IN_DELETE", Value: 512},
+	{Name: "IN_DELETE_SELF", Value: 1024},
+	{Name: "IN_DONT_FOLLOW", Value: 33554432},
+	{Name: "IN_EXCL_UNLINK", Value: 67108864},
+	{Name: "IN_MASK_ADD", Value: 536870912},
+	{Name: "IN_MODIFY", Value: 2},
+	{Name: "IN_MOVED_FROM", Value: 64},
+	{Name: "IN_MOVED_TO", Value: 128},
+	{Name: "IN_MOVE_SELF", Value: 2048},
+	{Name: "IN_NONBLOCK", Value: 2048},
+	{Name: "IN_ONESHOT", Value: 2147483648},
+	{Name: "IN_ONLYDIR", Value: 16777216},
+	{Name: "IN_OPEN", Value: 32},
+	{Name: "IOCB_CMD_FDSYNC", Value: 3},
+	{Name: "IOCB_CMD_FSYNC", Value: 2},
+	{Name: "IOCB_CMD_NOOP", Value: 6},
+	{Name: "IOCB_CMD_PREAD"},
+	{Name: "IOCB_CMD_PREADV", Value: 7},
+	{Name: "IOCB_CMD_PWRITE", Value: 1},
+	{Name: "IOCB_CMD_PWRITEV", Value: 8},
+	{Name: "IOCB_FLAG_RESFD", Value: 1},
+	{Name: "IOPRIO_WHO_PGRP", Value: 2},
+	{Name: "IOPRIO_WHO_PROCESS", Value: 1},
+	{Name: "IOPRIO_WHO_USER", Value: 3},
+	{Name: "IP6T_SO_GET_REVISION_MATCH", Value: 68},
+	{Name: "IP6T_SO_GET_REVISION_TARGET", Value: 69},
+	{Name: "IP6T_SO_ORIGINAL_DST", Value: 80},
+	{Name: "IP6_RT_PRIO_ADDRCONF", Value: 256},
+	{Name: "IP6_RT_PRIO_USER", Value: 1024},
+	{Name: "IPC_CREAT", Value: 512},
+	{Name: "IPC_EXCL", Value: 1024},
+	{Name: "IPC_INFO", Value: 3},
+	{Name: "IPC_NOWAIT", Value: 2048},
+	{Name: "IPC_PRIVATE"},
+	{Name: "IPC_RMID"},
+	{Name: "IPC_SET", Value: 1},
+	{Name: "IPC_STAT", Value: 2},
+	{Name: "IPOPT_CIPSO", Value: 134},
+	{Name: "IPOPT_END"},
+	{Name: "IPOPT_LSRR", Value: 131},
+	{Name: "IPOPT_NOOP", Value: 1},
+	{Name: "IPOPT_RA", Value: 148},
+	{Name: "IPOPT_RR", Value: 7},
+	{Name: "IPOPT_SEC", Value: 130},
+	{Name: "IPOPT_SID", Value: 136},
+	{Name: "IPOPT_SSRR", Value: 137},
+	{Name: "IPOPT_TIMESTAMP", Value: 68},
+	{Name: "IPOPT_TS_PRESPEC", Value: 3},
+	{Name: "IPOPT_TS_TSANDADDR", Value: 1},
+	{Name: "IPOPT_TS_TSONLY"},
+	{Name: "IPPROTO_AH", Value: 51},
+	{Name: "IPPROTO_BEETPH", Value: 94},
+	{Name: "IPPROTO_COMP", Value: 108},
+	{Name: "IPPROTO_DCCP", Value: 33},
+	{Name: "IPPROTO_DSTOPTS", Value: 60},
+	{Name: "IPPROTO_EGP", Value: 8},
+	{Name: "IPPROTO_ENCAP", Value: 98},
+	{Name: "IPPROTO_ESP", Value: 50},
+	{Name: "IPPROTO_FRAGMENT", Value: 44},
+	{Name: "IPPROTO_GRE", Value: 47},
+	{Name: "IPPROTO_HOPOPTS"},
+	{Name: "IPPROTO_ICMP", Value: 1},
+	{Name: "IPPROTO_ICMPV6", Value: 58},
+	{Name: "IPPROTO_IDP", Value: 22},
+	{Name: "IPPROTO_IGMP", Value: 2},
+	{Name: "IPPROTO_IP"},
+	{Name: "IPPROTO_IPIP", Value: 4},
+	{Name: "IPPROTO_IPV6", Value: 41},
+	{Name: "IPPROTO_MH", Value: 135},
+	{Name: "IPPROTO_MPLS", Value: 137},
+	{Name: "IPPROTO_MTP", Value: 92},
+	{Name: "IPPROTO_NONE", Value: 59},
+	{Name: "IPPROTO_PIM", Value: 103},
+	{Name: "IPPROTO_PUP", Value: 12},
+	{Name: "IPPROTO_RAW", Value: 255},
+	{Name: "IPPROTO_ROUTING", Value: 43},
+	{Name: "IPPROTO_RSVP", Value: 46},
+	{Name: "IPPROTO_SCTP", Value: 132},
+	{Name: "IPPROTO_TCP", Value: 6},
+	{Name: "IPPROTO_TP", Value: 29},
+	{Name: "IPPROTO_UDP", Value: 17},
+	{Name: "IPPROTO_UDPLITE", Value: 136},
+	{Name: "IPV4_FLOW", Value: 16},
+	{Name: "IPV4_USER_FLOW", Value: 13},
+	{Name: "IPV6_2292DSTOPTS", Value: 4},
+	{Name: "IPV6_2292HOPLIMIT", Value: 8},
+	{Name: "IPV6_2292HOPOPTS", Value: 3},
+	{Name: "IPV6_2292PKTINFO", Value: 2},
+	{Name: "IPV6_2292PKTOPTIONS", Value: 6},
+	{Name: "IPV6_2292RTHDR", Value: 5},
+	{Name: "IPV6_ADDRFORM", Value: 1},
+	{Name: "IPV6_ADDR_PREFERENCES", Value: 72},
+	{Name: "IPV6_ADD_MEMBERSHIP", Value: 20},
+	{Name: "IPV6_AUTHHDR", Value: 10},
+	{Name: "IPV6_AUTOFLOWLABEL", Value: 70},
+	{Name: "IPV6_CHECKSUM", Value: 7},
+	{Name: "IPV6_DONTFRAG", Value: 62},
+	{Name: "IPV6_DROP_MEMBERSHIP", Value: 21},
+	{Name: "IPV6_DSTOPTS", Value: 59},
+	{Name: "IPV6_FLOW", Value: 17},
+	{Name: "IPV6_FLOWINFO", Value: 11},
+	{Name: "IPV6_FLOWINFO_SEND", Value: 33},
+	{Name: "IPV6_FLOWLABEL_MGR", Value: 32},
+	{Name: "IPV6_FL_A_GET"},
+	{Name: "IPV6_FL_A_PUT", Value: 1},
+	{Name: "IPV6_FL_A_RENEW", Value: 2},
+	{Name: "IPV6_FL_F_CREATE", Value: 1},
+	{Name: "IPV6_FL_F_EXCL", Value: 2},
+	{Name: "IPV6_FL_F_REFLECT", Value: 4},
+	{Name: "IPV6_FL_F_REMOTE", Value: 8},
+	{Name: "IPV6_FL_S_ANY", Value: 255},
+	{Name: "IPV6_FL_S_EXCL", Value: 1},
+	{Name: "IPV6_FL_S_NONE"},
+	{Name: "IPV6_FL_S_PROCESS", Value: 2},
+	{Name: "IPV6_FL_S_USER", Value: 3},
+	{Name: "IPV6_HDRINCL", Value: 36},
+	{Name: "IPV6_HOPLIMIT", Value: 52},
+	{Name: "IPV6_HOPOPTS", Value: 54},
+	{Name: "IPV6_IPSEC_POLICY", Value: 34},
+	{Name: "IPV6_JOIN_ANYCAST", Value: 27},
+	{Name: "IPV6_LEAVE_ANYCAST", Value: 28},
+	{Name: "IPV6_MINHOPCOUNT", Value: 73},
+	{Name: "IPV6_MTU", Value: 24},
+	{Name: "IPV6_MTU_DISCOVER", Value: 23},
+	{Name: "IPV6_MULTICAST_HOPS", Value: 18},
+	{Name: "IPV6_MULTICAST_IF", Value: 17},
+	{Name: "IPV6_MULTICAST_LOOP", Value: 19},
+	{Name: "IPV6_NEXTHOP", Value: 9},
+	{Name: "IPV6_PATHMTU", Value: 61},
+	{Name: "IPV6_PKTINFO", Value: 50},
+	{Name: "IPV6_RECVDSTOPTS", Value: 58},
+	{Name: "IPV6_RECVERR", Value: 25},
+	{Name: "IPV6_RECVHOPLIMIT", Value: 51},
+	{Name: "IPV6_RECVHOPOPTS", Value: 53},
+	{Name: "IPV6_RECVORIGDSTADDR", Value: 74},
+	{Name: "IPV6_RECVPATHMTU", Value: 60},
+	{Name: "IPV6_RECVPKTINFO", Value: 49},
+	{Name: "IPV6_RECVRTHDR", Value: 56},
+	{Name: "IPV6_RECVTCLASS", Value: 66},
+	{Name: "IPV6_ROUTER_ALERT", Value: 22},
+	{Name: "IPV6_RTHDR", Value: 57},
+	{Name: "IPV6_RTHDRDSTOPTS", Value: 55},
+	{Name: "IPV6_SRCRT_STRICT", Value: 1},
+	{Name: "IPV6_SRCRT_TYPE_0"},
+	{Name: "IPV6_SRCRT_TYPE_2", Value: 2},
+	{Name: "IPV6_TCLASS", Value: 67},
+	{Name: "IPV6_TLV_CALIPSO", Value: 7},
+	{Name: "IPV6_TLV_HAO", Value: 201},
+	{Name: "IPV6_TLV_JUMBO", Value: 194},
+	{Name: "IPV6_TLV_PAD1"},
+	{Name: "IPV6_TLV_PADN", Value: 1},
+	{Name: "IPV6_TLV_ROUTERALERT", Value: 5},
+	{Name: "IPV6_TRANSPARENT", Value: 75},
+	{Name: "IPV6_UNICAST_HOPS", Value: 16},
+	{Name: "IPV6_UNICAST_IF", Value: 76},
+	{Name: "IPV6_USER_FLOW", Value: 14},
+	{Name: "IPV6_V6ONLY", Value: 26},
+	{Name: "IPV6_XFRM_POLICY", Value: 35},
+	{Name: "IPX_TYPE", Value: 1},
+	{Name: "IPX_TYPE_NCP", Value: 17},
+	{Name: "IPX_TYPE_PPROP", Value: 20},
+	{Name: "IPX_TYPE_RIP", Value: 1},
+	{Name: "IPX_TYPE_SAP", Value: 4},
+	{Name: "IPX_TYPE_SPX", Value: 5},
+	{Name: "IPX_TYPE_UNKNOWN"},
+	{Name: "IP_ADD_MEMBERSHIP", Value: 35},
+	{Name: "IP_ADD_SOURCE_MEMBERSHIP", Value: 39},
+	{Name: "IP_BIND_ADDRESS_NO_PORT", Value: 24},
+	{Name: "IP_BLOCK_SOURCE", Value: 38},
+	{Name: "IP_CHECKSUM", Value: 23},
+	{Name: "IP_DROP_MEMBERSHIP", Value: 36},
+	{Name: "IP_DROP_SOURCE_MEMBERSHIP", Value: 40},
+	{Name: "IP_FREEBIND", Value: 15},
+	{Name: "IP_HDRINCL", Value: 3},
+	{Name: "IP_IPSEC_POLICY", Value: 16},
+	{Name: "IP_MINTTL", Value: 21},
+	{Name: "IP_MSFILTER", Value: 41},
+	{Name: "IP_MTU", Value: 14},
+	{Name: "IP_MTU_DISCOVER", Value: 10},
+	{Name: "IP_MULTICAST_ALL", Value: 49},
+	{Name: "IP_MULTICAST_IF", Value: 32},
+	{Name: "IP_MULTICAST_LOOP", Value: 34},
+	{Name: "IP_MULTICAST_TTL", Value: 33},
+	{Name: "IP_NODEFRAG", Value: 22},
+	{Name: "IP_OPTIONS", Value: 4},
+	{Name: "IP_PASSSEC", Value: 18},
+	{Name: "IP_PKTINFO", Value: 8},
+	{Name: "IP_PKTOPTIONS", Value: 9},
+	{Name: "IP_PMTUDISC_DO", Value: 2},
+	{Name: "IP_PMTUDISC_DONT"},
+	{Name: "IP_PMTUDISC_INTERFACE", Value: 4},
+	{Name: "IP_PMTUDISC_OMIT", Value: 5},
+	{Name: "IP_PMTUDISC_PROBE", Value: 3},
+	{Name: "IP_PMTUDISC_WANT", Value: 1},
+	{Name: "IP_RECVERR", Value: 11},
+	{Name: "IP_RECVOPTS", Value: 6},
+	{Name: "IP_RECVORIGDSTADDR", Value: 20},
+	{Name: "IP_RECVTOS", Value: 13},
+	{Name: "IP_RECVTTL", Value: 12},
+	{Name: "IP_RETOPTS", Value: 7},
+	{Name: "IP_ROUTER_ALERT", Value: 5},
+	{Name: "IP_TOS", Value: 1},
+	{Name: "IP_TRANSPARENT", Value: 19},
+	{Name: "IP_TTL", Value: 2},
+	{Name: "IP_UNBLOCK_SOURCE", Value: 37},
+	{Name: "IP_UNICAST_IF", Value: 50},
+	{Name: "IP_USER_FLOW", Value: 13},
+	{Name: "IP_XFRM_POLICY", Value: 17},
+	{Name: "ITIMER_PROF", Value: 2},
+	{Name: "ITIMER_REAL"},
+	{Name: "ITIMER_VIRTUAL", Value: 1},
+	{Name: "KCMPROTO_CONNECTED"},
+	{Name: "KCMP_FILE"},
+	{Name: "KCMP_FILES", Value: 2},
+	{Name: "KCMP_FS", Value: 3},
+	{Name: "KCMP_IO", Value: 5},
+	{Name: "KCMP_SIGHAND", Value: 4},
+	{Name: "KCMP_SYSVSEM", Value: 6},
+	{Name: "KCMP_VM", Value: 1},
+	{Name: "KCM_RECV_DISABLE", Value: 1},
+	{Name: "KCOV_ENABLE", Value: 536896356},
+	{Name: "KCOV_INIT_TRACE", Value: 1074291457},
+	{Name: "KCOV_TRACE_CMP", Value: 1},
+	{Name: "KCOV_TRACE_PC"},
+	{Name: "KDADDIO", Value: 19252},
+	{Name: "KDDELIO", Value: 19253},
+	{Name: "KDDISABIO", Value: 19255},
+	{Name: "KDENABIO", Value: 19254},
+	{Name: "KDGETKEYCODE", Value: 19276},
+	{Name: "KDGETLED", Value: 19249},
+	{Name: "KDGETMODE", Value: 19259},
+	{Name: "KDGKBDIACR", Value: 19274},
+	{Name: "KDGKBENT", Value: 19270},
+	{Name: "KDGKBLED", Value: 19300},
+	{Name: "KDGKBMETA", Value: 19298},
+	{Name: "KDGKBMODE", Value: 19268},
+	{Name: "KDGKBSENT", Value: 19272},
+	{Name: "KDGKBTYPE", Value: 19251},
+	{Name: "KDSETKEYCODE", Value: 19277},
+	{Name: "KDSETLED", Value: 19250},
+	{Name: "KDSETMODE", Value: 19258},
+	{Name: "KDSIGACCEPT", Value: 19278},
+	{Name: "KDSKBLED", Value: 19301},
+	{Name: "KDSKBMETA", Value: 19299},
+	{Name: "KDSKBMODE", Value: 19269},
+	{Name: "KDSKBSENT", Value: 19273},
+	{Name: "KERNEL_CLIENT", Value: 2},
+	{Name: "KEXEC_ARCH_386", Value: 196608},
+	{Name: "KEXEC_ARCH_ARM", Value: 2621440},
+	{Name: "KEXEC_ARCH_IA_64", Value: 3276800},
+	{Name: "KEXEC_ARCH_MIPS", Value: 524288},
+	{Name: "KEXEC_ARCH_MIPS_LE", Value: 655360},
+	{Name: "KEXEC_ARCH_PPC", Value: 1310720},
+	{Name: "KEXEC_ARCH_PPC64", Value: 1376256},
+	{Name: "KEXEC_ARCH_S390", Value: 1441792},
+	{Name: "KEXEC_ARCH_SH", Value: 2752512},
+	{Name: "KEXEC_ARCH_X86_64", Value: 4063232},
+	{Name: "KEXEC_ON_CRASH", Value: 1},
+	{Name: "KEXEC_PRESERVE_CONTEXT", Value: 2},
+	{Name: "KEYCTL_ASSUME_AUTHORITY", Value: 16},
+	{Name: "KEYCTL_CHOWN", Value: 4},
+	{Name: "KEYCTL_CLEAR", Value: 7},
+	{Name: "KEYCTL_DESCRIBE", Value: 6},
+	{Name: "KEYCTL_GET_KEYRING_ID"},
+	{Name: "KEYCTL_GET_PERSISTENT", Value: 22},
+	{Name: "KEYCTL_GET_SECURITY", Value: 17},
+	{Name: "KEYCTL_INSTANTIATE", Value: 12},
+	{Name: "KEYCTL_INSTANTIATE_IOV", Value: 20},
+	{Name: "KEYCTL_INVALIDATE", Value: 21},
+	{Name: "KEYCTL_JOIN_SESSION_KEYRING", Value: 1},
+	{Name: "KEYCTL_LINK", Value: 8},
+	{Name: "KEYCTL_NEGATE", Value: 13},
+	{Name: "KEYCTL_READ", Value: 11},
+	{Name: "KEYCTL_REJECT", Value: 19},
+	{Name: "KEYCTL_REVOKE", Value: 3},
+	{Name: "KEYCTL_SEARCH", Value: 10},
+	{Name: "KEYCTL_SESSION_TO_PARENT", Value: 18},
+	{Name: "KEYCTL_SETPERM", Value: 5},
+	{Name: "KEYCTL_SET_REQKEY_KEYRING", Value: 14},
+	{Name: "KEYCTL_SET_TIMEOUT", Value: 15},
+	{Name: "KEYCTL_UNLINK", Value: 9},
+	{Name: "KEYCTL_UPDATE", Value: 2},
+	{Name: "KEY_GRP_LINK", Value: 4096},
+	{Name: "KEY_GRP_READ", Value: 512},
+	{Name: "KEY_GRP_SEARCH", Value: 2048},
+	{Name: "KEY_GRP_SETATTR", Value: 8192},
+	{Name: "KEY_GRP_VIEW", Value: 256},
+	{Name: "KEY_GRP_WRITE", Value: 1024},
+	{Name: "KEY_OTH_LINK", Value: 16},
+	{Name: "KEY_OTH_READ", Value: 2},
+	{Name: "KEY_OTH_SEARCH", Value: 8},
+	{Name: "KEY_OTH_SETATTR", Value: 32},
+	{Name: "KEY_OTH_VIEW", Value: 1},
+	{Name: "KEY_OTH_WRITE", Value: 4},
+	{Name: "KEY_PERM_UNDEF", Value: 4294967295},
+	{Name: "KEY_POS_LINK", Value: 268435456},
+	{Name: "KEY_POS_READ", Value: 33554432},
+	{Name: "KEY_POS_SEARCH", Value: 134217728},
+	{Name: "KEY_POS_SETATTR", Value: 536870912},
+	{Name: "KEY_POS_VIEW", Value: 16777216},
+	{Name: "KEY_POS_WRITE", Value: 67108864},
+	{Name: "KEY_REQKEY_DEFL_DEFAULT"},
+	{Name: "KEY_REQKEY_DEFL_GROUP_KEYRING", Value: 6},
+	{Name: "KEY_REQKEY_DEFL_NO_CHANGE", Value: 18446744073709551615},
+	{Name: "KEY_REQKEY_DEFL_PROCESS_KEYRING", Value: 2},
+	{Name: "KEY_REQKEY_DEFL_REQUESTOR_KEYRING", Value: 7},
+	{Name: "KEY_REQKEY_DEFL_SESSION_KEYRING", Value: 3},
+	{Name: "KEY_REQKEY_DEFL_THREAD_KEYRING", Value: 1},
+	{Name: "KEY_REQKEY_DEFL_USER_KEYRING", Value: 4},
+	{Name: "KEY_REQKEY_DEFL_USER_SESSION_KEYRING", Value: 5},
+	{Name: "KEY_SPEC_GROUP_KEYRING", Value: 18446744073709551610},
+	{Name: "KEY_SPEC_PROCESS_KEYRING", Value: 18446744073709551614},
+	{Name: "KEY_SPEC_REQKEY_AUTH_KEY", Value: 18446744073709551609},
+	{Name: "KEY_SPEC_REQUESTOR_KEYRING", Value: 18446744073709551608},
+	{Name: "KEY_SPEC_SESSION_KEYRING", Value: 18446744073709551613},
+	{Name: "KEY_SPEC_THREAD_KEYRING", Value: 18446744073709551615},
+	{Name: "KEY_SPEC_USER_KEYRING", Value: 18446744073709551612},
+	{Name: "KEY_SPEC_USER_SESSION_KEYRING", Value: 18446744073709551611},
+	{Name: "KEY_USR_LINK", Value: 1048576},
+	{Name: "KEY_USR_READ", Value: 131072},
+	{Name: "KEY_USR_SEARCH", Value: 524288},
+	{Name: "KEY_USR_SETATTR", Value: 2097152},
+	{Name: "KEY_USR_VIEW", Value: 65536},
+	{Name: "KEY_USR_WRITE", Value: 262144},
+	{Name: "KIOCSOUND", Value: 19247},
+	{Name: "KVM_ARM_SET_DEVICE_ADDR", Value: 2148576939},
+	{Name: "KVM_ASSIGN_DEV_IRQ", Value: 2151722608},
+	{Name: "KVM_ASSIGN_PCI_DEVICE", Value: 1077980777},
+	{Name: "KVM_ASSIGN_SET_INTX_MASK", Value: 2151722660},
+	{Name: "KVM_ASSIGN_SET_MSIX_ENTRY", Value: 2148576884},
+	{Name: "KVM_ASSIGN_SET_MSIX_NR", Value: 2148052595},
+	{Name: "KVM_CAP_DISABLE_QUIRKS", Value: 116},
+	{Name: "KVM_CAP_HYPERV_SYNIC", Value: 123},
+	{Name: "KVM_CAP_SPLIT_IRQCHIP", Value: 121},
+	{Name: "KVM_CAP_X2APIC_API", Value: 129},
+	{Name: "KVM_CHECK_EXTENSION", Value: 536915459},
+	{Name: "KVM_CREATE_DEVICE", Value: 3222056672},
+	{Name: "KVM_CREATE_DEVICE_TEST", Value: 1},
+	{Name: "KVM_CREATE_IRQCHIP", Value: 536915552},
+	{Name: "KVM_CREATE_PIT2", Value: 2151722615},
+	{Name: "KVM_CREATE_VCPU", Value: 536915521},
+	{Name: "KVM_CREATE_VM", Value: 536915457},
+	{Name: "KVM_DEASSIGN_DEV_IRQ", Value: 2151722613},
+	{Name: "KVM_DEASSIGN_PCI_DEVICE", Value: 2151722610},
+	{Name: "KVM_DEV_ASSIGN_ENABLE_IOMMU", Value: 1},
+	{Name: "KVM_DEV_ASSIGN_MASK_INTX", Value: 4},
+	{Name: "KVM_DEV_ASSIGN_PCI_2_3", Value: 2},
+	{Name: "KVM_DEV_IRQ_GUEST_INTX", Value: 256},
+	{Name: "KVM_DEV_IRQ_GUEST_MSI", Value: 512},
+	{Name: "KVM_DEV_IRQ_GUEST_MSIX", Value: 1024},
+	{Name: "KVM_DEV_IRQ_HOST_INTX", Value: 1},
+	{Name: "KVM_DEV_IRQ_HOST_MSI", Value: 2},
+	{Name: "KVM_DEV_IRQ_HOST_MSIX", Value: 4},
+	{Name: "KVM_DEV_TYPE_FLIC", Value: 6},
+	{Name: "KVM_DEV_TYPE_FSL_MPIC_20", Value: 1},
+	{Name: "KVM_DEV_TYPE_FSL_MPIC_42", Value: 2},
+	{Name: "KVM_DEV_TYPE_VFIO", Value: 4},
+	{Name: "KVM_DEV_TYPE_XICS", Value: 3},
+	{Name: "KVM_DIRTY_TLB", Value: 2148576938},
+	{Name: "KVM_ENABLE_CAP", Value: 2154344099},
+	{Name: "KVM_GET_CLOCK", Value: 1076932220},
+	{Name: "KVM_GET_DEVICE_ATTR", Value: 2149101282},
+	{Name: "KVM_GET_DIRTY_LOG", Value: 2148576834},
+	{Name: "KVM_GET_FPU", Value: 1090563724},
+	{Name: "KVM_GET_IRQCHIP", Value: 3255348834},
+	{Name: "KVM_GET_MP_STATE", Value: 1074048664},
+	{Name: "KVM_GET_NR_MMU_PAGES", Value: 536915525},
+	{Name: "KVM_GET_ONE_REG", Value: 2148576939},
+	{Name: "KVM_GET_REGS", Value: 1099476609},
+	{Name: "KVM_GET_REG_LIST", Value: 3221794480},
+	{Name: "KVM_GET_SREGS", Value: 1154526851},
+	{Name: "KVM_GET_TSC_KHZ", Value: 536915619},
+	{Name: "KVM_GET_VCPU_MMAP_SIZE", Value: 536915460},
+	{Name: "KVM_GUESTDBG_ENABLE", Value: 1},
+	{Name: "KVM_GUESTDBG_SINGLESTEP", Value: 2},
+	{Name: "KVM_GUESTDBG_USE_HW_BP", Value: 131072},
+	{Name: "KVM_GUESTDBG_USE_SW_BP", Value: 65536},
+	{Name: "KVM_HAS_DEVICE_ATTR", Value: 2149101283},
+	{Name: "KVM_INTERRUPT", Value: 2147790470},
+	{Name: "KVM_IOEVENTFD", Value: 2151722617},
+	{Name: "KVM_IOEVENTFD_FLAG_DATAMATCH", Value: 1},
+	{Name: "KVM_IOEVENTFD_FLAG_DEASSIGN", Value: 4},
+	{Name: "KVM_IOEVENTFD_FLAG_PIO", Value: 2},
+	{Name: "KVM_IOEVENTFD_FLAG_VIRTIO_CCW_NOTIFY", Value: 8},
+	{Name: "KVM_IRQFD", Value: 2149625462},
+	{Name: "KVM_IRQ_LINE", Value: 2148052577},
+	{Name: "KVM_IRQ_LINE_STATUS", Value: 3221794407},
+	{Name: "KVM_IRQ_ROUTING_HV_SINT", Value: 4},
+	{Name: "KVM_IRQ_ROUTING_IRQCHIP", Value: 1},
+	{Name: "KVM_IRQ_ROUTING_MSI", Value: 2},
+	{Name: "KVM_IRQ_ROUTING_S390_ADAPTER", Value: 3},
+	{Name: "KVM_KVMCLOCK_CTRL", Value: 536915629},
+	{Name: "KVM_MEM_LOG_DIRTY_PAGES", Value: 1},
+	{Name: "KVM_MEM_READONLY", Value: 2},
+	{Name: "KVM_MP_STATE_CHECK_STOP", Value: 6},
+	{Name: "KVM_MP_STATE_HALTED", Value: 3},
+	{Name: "KVM_MP_STATE_INIT_RECEIVED", Value: 2},
+	{Name: "KVM_MP_STATE_LOAD", Value: 8},
+	{Name: "KVM_MP_STATE_OPERATING", Value: 7},
+	{Name: "KVM_MP_STATE_RUNNABLE"},
+	{Name: "KVM_MP_STATE_SIPI_RECEIVED", Value: 4},
+	{Name: "KVM_MP_STATE_STOPPED", Value: 5},
+	{Name: "KVM_MP_STATE_UNINITIALIZED", Value: 1},
+	{Name: "KVM_NMI", Value: 536915610},
+	{Name: "KVM_PPC_ALLOCATE_HTAB", Value: 3221532327},
+	{Name: "KVM_PPC_GET_PVINFO", Value: 2155916961},
+	{Name: "KVM_PPC_GET_SMMU_INFO", Value: 1112583846},
+	{Name: "KVM_REGISTER_COALESCED_MMIO", Value: 2148576871},
+	{Name: "KVM_REINJECT_CONTROL", Value: 536915569},
+	{Name: "KVM_RUN", Value: 536915584},
+	{Name: "KVM_S390_INTERRUPT", Value: 2148576916},
+	{Name: "KVM_S390_UCAS_MAP", Value: 2149101136},
+	{Name: "KVM_S390_UCAS_UNMAP", Value: 2149101137},
+	{Name: "KVM_S390_VCPU_FAULT", Value: 2148052562},
+	{Name: "KVM_SETUP_CPL3", Value: 8},
+	{Name: "KVM_SETUP_PAE", Value: 2},
+	{Name: "KVM_SETUP_PAGING", Value: 1},
+	{Name: "KVM_SETUP_PROTECTED", Value: 4},
+	{Name: "KVM_SETUP_SMM", Value: 32},
+	{Name: "KVM_SETUP_VIRT86", Value: 16},
+	{Name: "KVM_SETUP_VM", Value: 64},
+	{Name: "KVM_SET_BOOT_CPU_ID", Value: 536915576},
+	{Name: "KVM_SET_CLOCK", Value: 2150674043},
+	{Name: "KVM_SET_DEVICE_ATTR", Value: 2149101281},
+	{Name: "KVM_SET_FPU", Value: 2164305549},
+	{Name: "KVM_SET_GSI_ROUTING", Value: 2148052586},
+	{Name: "KVM_SET_GUEST_DEBUG", Value: 2164829851},
+	{Name: "KVM_SET_IDENTITY_MAP_ADDR", Value: 2148052552},
+	{Name: "KVM_SET_IRQCHIP", Value: 1107865187},
+	{Name: "KVM_SET_MP_STATE", Value: 2147790489},
+	{Name: "KVM_SET_NR_MMU_PAGES", Value: 536915524},
+	{Name: "KVM_SET_ONE_REG", Value: 2148576940},
+	{Name: "KVM_SET_REGS", Value: 2173218434},
+	{Name: "KVM_SET_SIGNAL_MASK", Value: 2147790475},
+	{Name: "KVM_SET_SREGS", Value: 2228268676},
+	{Name: "KVM_SET_TSC_KHZ", Value: 536915618},
+	{Name: "KVM_SET_TSS_ADDR", Value: 536915527},
+	{Name: "KVM_SET_USER_MEMORY_REGION", Value: 2149625414},
+	{Name: "KVM_SET_VAPIC_ADDR", Value: 2148052627},
+	{Name: "KVM_SIGNAL_MSI", Value: 2149625509},
+	{Name: "KVM_SMI", Value: 536915639},
+	{Name: "KVM_TPR_ACCESS_REPORTING", Value: 3223891602},
+	{Name: "KVM_TRANSLATE", Value: 3222843013},
+	{Name: "KVM_UNREGISTER_COALESCED_MMIO", Value: 2148576872},
+	{Name: "KVM_X86_GET_MCE_CAP_SUPPORTED", Value: 1074310813},
+	{Name: "KVM_X86_SETUP_MCE", Value: 2148052636},
+	{Name: "L2CAP_CONNINFO", Value: 2},
+	{Name: "L2CAP_LM", Value: 3},
+	{Name: "L2CAP_LM_AUTH", Value: 2},
+	{Name: "L2CAP_LM_ENCRYPT", Value: 4},
+	{Name: "L2CAP_LM_FIPS", Value: 64},
+	{Name: "L2CAP_LM_MASTER", Value: 1},
+	{Name: "L2CAP_LM_RELIABLE", Value: 16},
+	{Name: "L2CAP_LM_SECURE", Value: 32},
+	{Name: "L2CAP_LM_TRUSTED", Value: 8},
+	{Name: "L2CAP_OPTIONS", Value: 1},
+	{Name: "LLC_OPT_ACK_TMR_EXP", Value: 3},
+	{Name: "LLC_OPT_BUSY_TMR_EXP", Value: 6},
+	{Name: "LLC_OPT_PKTINFO", Value: 9},
+	{Name: "LLC_OPT_P_TMR_EXP", Value: 4},
+	{Name: "LLC_OPT_REJ_TMR_EXP", Value: 5},
+	{Name: "LLC_OPT_RETRY", Value: 1},
+	{Name: "LLC_OPT_RX_WIN", Value: 8},
+	{Name: "LLC_OPT_SIZE", Value: 2},
+	{Name: "LLC_OPT_TX_WIN", Value: 7},
+	{Name: "LLC_SAP_3COM", Value: 128},
+	{Name: "LLC_SAP_8208", Value: 126},
+	{Name: "LLC_SAP_BANYAN", Value: 188},
+	{Name: "LLC_SAP_BSPAN", Value: 66},
+	{Name: "LLC_SAP_DISC", Value: 252},
+	{Name: "LLC_SAP_GLOBAL", Value: 255},
+	{Name: "LLC_SAP_IMPL", Value: 248},
+	{Name: "LLC_SAP_IP", Value: 6},
+	{Name: "LLC_SAP_IPX", Value: 224},
+	{Name: "LLC_SAP_LANMGR", Value: 244},
+	{Name: "LLC_SAP_LAR", Value: 220},
+	{Name: "LLC_SAP_LLC", Value: 2},
+	{Name: "LLC_SAP_MMS", Value: 78},
+	{Name: "LLC_SAP_NETBEUI", Value: 240},
+	{Name: "LLC_SAP_NULL"},
+	{Name: "LLC_SAP_OSI", Value: 254},
+	{Name: "LLC_SAP_PNM", Value: 14},
+	{Name: "LLC_SAP_PRO", Value: 142},
+	{Name: "LLC_SAP_RM", Value: 212},
+	{Name: "LLC_SAP_SNA", Value: 4},
+	{Name: "LLC_SAP_SNAP", Value: 170},
+	{Name: "LOCK_EX", Value: 2},
+	{Name: "LOCK_NB", Value: 4},
+	{Name: "LOCK_SH", Value: 1},
+	{Name: "LOCK_UN", Value: 8},
+	{Name: "LOOP_CLR_FD", Value: 19457},
+	{Name: "LOOP_CTL_ADD", Value: 19584},
+	{Name: "LOOP_CTL_GET_FREE", Value: 19586},
+	{Name: "LOOP_GET_STATUS", Value: 19459},
+	{Name: "LOOP_GET_STATUS64", Value: 19461},
+	{Name: "LOOP_SET_CAPACITY", Value: 19463},
+	{Name: "LOOP_SET_DIRECT_IO", Value: 19464},
+	{Name: "LOOP_SET_FD", Value: 19456},
+	{Name: "LOOP_SET_STATUS", Value: 19458},
+	{Name: "LOOP_SET_STATUS64", Value: 19460},
+	{Name: "LO_CRYPT_BLOW", Value: 4},
+	{Name: "LO_CRYPT_CAST128", Value: 5},
+	{Name: "LO_CRYPT_CRYPTOAPI", Value: 18},
+	{Name: "LO_CRYPT_DES", Value: 2},
+	{Name: "LO_CRYPT_DUMMY", Value: 9},
+	{Name: "LO_CRYPT_FISH2", Value: 3},
+	{Name: "LO_CRYPT_IDEA", Value: 6},
+	{Name: "LO_CRYPT_NONE"},
+	{Name: "LO_CRYPT_SKIPJACK", Value: 10},
+	{Name: "LO_CRYPT_XOR", Value: 1},
+	{Name: "LO_FLAGS_AUTOCLEAR", Value: 4},
+	{Name: "LO_FLAGS_DIRECT_IO", Value: 16},
+	{Name: "LO_FLAGS_PARTSCAN", Value: 8},
+	{Name: "LO_FLAGS_READ_ONLY", Value: 1},
+	{Name: "LO_KEY_SIZE", Value: 32},
+	{Name: "LO_NAME_SIZE", Value: 64},
+	{Name: "MADV_DODUMP", Value: 17},
+	{Name: "MADV_DOFORK", Value: 11},
+	{Name: "MADV_DONTDUMP", Value: 16},
+	{Name: "MADV_DONTFORK", Value: 10},
+	{Name: "MADV_DONTNEED", Value: 4},
+	{Name: "MADV_HUGEPAGE", Value: 14},
+	{Name: "MADV_HWPOISON", Value: 100},
+	{Name: "MADV_MERGEABLE", Value: 12},
+	{Name: "MADV_NOHUGEPAGE", Value: 15},
+	{Name: "MADV_NORMAL"},
+	{Name: "MADV_RANDOM", Value: 1},
+	{Name: "MADV_REMOVE", Value: 9},
+	{Name: "MADV_SEQUENTIAL", Value: 2},
+	{Name: "MADV_SOFT_OFFLINE", Value: 101},
+	{Name: "MADV_UNMERGEABLE", Value: 13},
+	{Name: "MADV_WILLNEED", Value: 3},
+	{Name: "MAP_ANONYMOUS", Value: 32},
+	{Name: "MAP_DENYWRITE", Value: 2048},
+	{Name: "MAP_EXECUTABLE", Value: 4096},
+	{Name: "MAP_FILE"},
+	{Name: "MAP_FIXED", Value: 16},
+	{Name: "MAP_GROWSDOWN", Value: 256},
+	{Name: "MAP_HUGETLB", Value: 262144},
+	{Name: "MAP_LOCKED", Value: 128},
+	{Name: "MAP_NONBLOCK", Value: 65536},
+	{Name: "MAP_NORESERVE", Value: 64},
+	{Name: "MAP_POPULATE", Value: 32768},
+	{Name: "MAP_PRIVATE", Value: 2},
+	{Name: "MAP_SHARED", Value: 1},
+	{Name: "MAP_STACK", Value: 131072},
+	{Name: "MAP_UNINITIALIZED"},
+	{Name: "MAX_NUM_QUEUE", Value: 4096},
+	{Name: "MCAST_BLOCK_SOURCE", Value: 43},
+	{Name: "MCAST_EXCLUDE"},
+	{Name: "MCAST_INCLUDE", Value: 1},
+	{Name: "MCAST_JOIN_GROUP", Value: 42},
+	{Name: "MCAST_JOIN_SOURCE_GROUP", Value: 46},
+	{Name: "MCAST_LEAVE_GROUP", Value: 45},
+	{Name: "MCAST_LEAVE_SOURCE_GROUP", Value: 47},
+	{Name: "MCAST_MSFILTER", Value: 48},
+	{Name: "MCAST_UNBLOCK_SOURCE", Value: 44},
+	{Name: "MCL_CURRENT", Value: 8192},
+	{Name: "MCL_FUTURE", Value: 16384},
+	{Name: "MFD_ALLOW_SEALING", Value: 2},
+	{Name: "MFD_CLOEXEC", Value: 1},
+	{Name: "MIFF_REGISTER", Value: 1},
+	{Name: "MLOCK_ONFAULT", Value: 1},
+	{Name: "MMAP_PAGE_ZERO", Value: 1048576},
+	{Name: "MNT_DETACH", Value: 2},
+	{Name: "MNT_EXPIRE", Value: 4},
+	{Name: "MNT_FORCE", Value: 1},
+	{Name: "MODULE_INIT_IGNORE_MODVERSIONS", Value: 1},
+	{Name: "MODULE_INIT_IGNORE_VERMAGIC", Value: 2},
+	{Name: "MPOL_BIND", Value: 2},
+	{Name: "MPOL_DEFAULT"},
+	{Name: "MPOL_F_ADDR", Value: 2},
+	{Name: "MPOL_F_MEMS_ALLOWED", Value: 4},
+	{Name: "MPOL_F_NODE", Value: 1},
+	{Name: "MPOL_F_RELATIVE_NODES", Value: 16384},
+	{Name: "MPOL_F_STATIC_NODES", Value: 32768},
+	{Name: "MPOL_INTERLEAVE", Value: 3},
+	{Name: "MPOL_MF_MOVE", Value: 2},
+	{Name: "MPOL_MF_MOVE_ALL", Value: 4},
+	{Name: "MPOL_MF_STRICT", Value: 1},
+	{Name: "MPOL_PREFERRED", Value: 1},
+	{Name: "MREMAP_FIXED", Value: 2},
+	{Name: "MREMAP_MAYMOVE", Value: 1},
+	{Name: "MRT6_ADD_MFC", Value: 204},
+	{Name: "MRT6_ADD_MFC_PROXY", Value: 210},
+	{Name: "MRT6_ADD_MIF", Value: 202},
+	{Name: "MRT6_ASSERT", Value: 207},
+	{Name: "MRT6_DEL_MFC", Value: 205},
+	{Name: "MRT6_DEL_MFC_PROXY", Value: 211},
+	{Name: "MRT6_DEL_MIF", Value: 203},
+	{Name: "MRT6_DONE", Value: 201},
+	{Name: "MRT6_INIT", Value: 200},
+	{Name: "MRT6_PIM", Value: 208},
+	{Name: "MRT6_TABLE", Value: 209},
+	{Name: "MRT6_VERSION", Value: 206},
+	{Name: "MSG_BATCH", Value: 262144},
+	{Name: "MSG_CMSG_CLOEXEC", Value: 1073741824},
+	{Name: "MSG_CONFIRM", Value: 2048},
+	{Name: "MSG_DONTROUTE", Value: 4},
+	{Name: "MSG_DONTWAIT", Value: 64},
+	{Name: "MSG_EOR", Value: 128},
+	{Name: "MSG_ERRQUEUE", Value: 8192},
+	{Name: "MSG_EXCEPT", Value: 8192},
+	{Name: "MSG_FASTOPEN", Value: 536870912},
+	{Name: "MSG_INFO", Value: 12},
+	{Name: "MSG_MORE", Value: 32768},
+	{Name: "MSG_NOERROR", Value: 4096},
+	{Name: "MSG_NOSIGNAL", Value: 16384},
+	{Name: "MSG_OOB", Value: 1},
+	{Name: "MSG_PEEK", Value: 2},
+	{Name: "MSG_PROBE", Value: 16},
+	{Name: "MSG_STAT", Value: 11},
+	{Name: "MSG_TRUNC", Value: 32},
+	{Name: "MSG_WAITALL", Value: 256},
+	{Name: "MSG_WAITFORONE", Value: 65536},
+	{Name: "MS_ASYNC", Value: 1},
+	{Name: "MS_BIND", Value: 4096},
+	{Name: "MS_DIRSYNC", Value: 128},
+	{Name: "MS_INVALIDATE", Value: 2},
+	{Name: "MS_I_VERSION", Value: 8388608},
+	{Name: "MS_LAZYTIME", Value: 33554432},
+	{Name: "MS_MANDLOCK", Value: 64},
+	{Name: "MS_MOVE", Value: 8192},
+	{Name: "MS_NOATIME", Value: 1024},
+	{Name: "MS_NODEV", Value: 4},
+	{Name: "MS_NODIRATIME", Value: 2048},
+	{Name: "MS_NOEXEC", Value: 8},
+	{Name: "MS_NOSUID", Value: 2},
+	{Name: "MS_POSIXACL", Value: 65536},
+	{Name: "MS_PRIVATE", Value: 262144},
+	{Name: "MS_RDONLY", Value: 1},
+	{Name: "MS_REC", Value: 16384},
+	{Name: "MS_RELATIME", Value: 2097152},
+	{Name: "MS_REMOUNT", Value: 32},
+	{Name: "MS_SHARED", Value: 1048576},
+	{Name: "MS_SILENT", Value: 32768},
+	{Name: "MS_SLAVE", Value: 524288},
+	{Name: "MS_STRICTATIME", Value: 16777216},
+	{Name: "MS_SYNC", Value: 4},
+	{Name: "MS_SYNCHRONOUS", Value: 16},
+	{Name: "MS_UNBINDABLE", Value: 131072},
+	{Name: "NETLINK_ADD_MEMBERSHIP", Value: 1},
+	{Name: "NETLINK_AUDIT", Value: 9},
+	{Name: "NETLINK_BROADCAST_ERROR", Value: 4},
+	{Name: "NETLINK_CAP_ACK", Value: 10},
+	{Name: "NETLINK_CONNECTOR", Value: 11},
+	{Name: "NETLINK_CRYPTO", Value: 21},
+	{Name: "NETLINK_DNRTMSG", Value: 14},
+	{Name: "NETLINK_DROP_MEMBERSHIP", Value: 2},
+	{Name: "NETLINK_ECRYPTFS", Value: 19},
+	{Name: "NETLINK_FIB_LOOKUP", Value: 10},
+	{Name: "NETLINK_FIREWALL", Value: 3},
+	{Name: "NETLINK_GENERIC", Value: 16},
+	{Name: "NETLINK_INET_DIAG", Value: 4},
+	{Name: "NETLINK_IP6_FW", Value: 13},
+	{Name: "NETLINK_ISCSI", Value: 8},
+	{Name: "NETLINK_KOBJECT_UEVENT", Value: 15},
+	{Name: "NETLINK_LISTEN_ALL_NSID", Value: 8},
+	{Name: "NETLINK_LIST_MEMBERSHIPS", Value: 9},
+	{Name: "NETLINK_NETFILTER", Value: 12},
+	{Name: "NETLINK_NFLOG", Value: 5},
+	{Name: "NETLINK_NO_ENOBUFS", Value: 5},
+	{Name: "NETLINK_PKTINFO", Value: 3},
+	{Name: "NETLINK_RDMA", Value: 20},
+	{Name: "NETLINK_ROUTE"},
+	{Name: "NETLINK_RX_RING", Value: 6},
+	{Name: "NETLINK_SCSITRANSPORT", Value: 18},
+	{Name: "NETLINK_SELINUX", Value: 7},
+	{Name: "NETLINK_SOCK_DIAG", Value: 4},
+	{Name: "NETLINK_TX_RING", Value: 7},
+	{Name: "NETLINK_UNUSED", Value: 1},
+	{Name: "NETLINK_USERSOCK", Value: 2},
+	{Name: "NETLINK_XFRM", Value: 6},
+	{Name: "NETROM_IDLE", Value: 7},
+	{Name: "NETROM_N2", Value: 3},
+	{Name: "NETROM_T1", Value: 1},
+	{Name: "NETROM_T2", Value: 2},
+	{Name: "NETROM_T4", Value: 6},
+	{Name: "NEXTHDR_AUTH", Value: 51},
+	{Name: "NEXTHDR_DEST", Value: 60},
+	{Name: "NEXTHDR_ESP", Value: 50},
+	{Name: "NEXTHDR_FRAGMENT", Value: 44},
+	{Name: "NEXTHDR_GRE", Value: 47},
+	{Name: "NEXTHDR_HOP"},
+	{Name: "NEXTHDR_ICMP", Value: 58},
+	{Name: "NEXTHDR_MOBILITY", Value: 135},
+	{Name: "NEXTHDR_NONE", Value: 59},
+	{Name: "NEXTHDR_ROUTING", Value: 43},
+	{Name: "NFC_LLCP_MIUX", Value: 1},
+	{Name: "NFC_LLCP_REMOTE_LTO", Value: 3},
+	{Name: "NFC_LLCP_REMOTE_MIU", Value: 2},
+	{Name: "NFC_LLCP_REMOTE_RW", Value: 4},
+	{Name: "NFC_LLCP_RW"},
+	{Name: "NFC_PROTO_FELICA", Value: 3},
+	{Name: "NFC_PROTO_ISO14443", Value: 4},
+	{Name: "NFC_PROTO_ISO14443_B", Value: 6},
+	{Name: "NFC_PROTO_ISO15693", Value: 7},
+	{Name: "NFC_PROTO_JEWEL", Value: 1},
+	{Name: "NFC_PROTO_MIFARE", Value: 2},
+	{Name: "NFC_PROTO_NFC_DEP", Value: 5},
+	{Name: "NFC_SOCKPROTO_LLCP", Value: 1},
+	{Name: "NFC_SOCKPROTO_RAW"},
+	{Name: "NLM_F_ACK", Value: 4},
+	{Name: "NLM_F_APPEND", Value: 2048},
+	{Name: "NLM_F_ATOMIC", Value: 1024},
+	{Name: "NLM_F_CREATE", Value: 1024},
+	{Name: "NLM_F_DUMP", Value: 768},
+	{Name: "NLM_F_DUMP_FILTERED", Value: 32},
+	{Name: "NLM_F_DUMP_INTR", Value: 16},
+	{Name: "NLM_F_ECHO", Value: 8},
+	{Name: "NLM_F_EXCL", Value: 512},
+	{Name: "NLM_F_MATCH", Value: 512},
+	{Name: "NLM_F_MULTI", Value: 2},
+	{Name: "NLM_F_REPLACE", Value: 256},
+	{Name: "NLM_F_REQUEST", Value: 1},
+	{Name: "NLM_F_ROOT", Value: 256},
+	{Name: "NO_CLIENT"},
+	{Name: "NT_386_IOPERM", Value: 513},
+	{Name: "NT_386_TLS", Value: 512},
+	{Name: "NT_AUXV", Value: 6},
+	{Name: "NT_PRFPREG", Value: 2},
+	{Name: "NT_PRPSINFO", Value: 3},
+	{Name: "NT_PRSTATUS", Value: 1},
+	{Name: "NT_TASKSTRUCT", Value: 4},
+	{Name: "NT_X86_XSTATE", Value: 514},
+	{Name: "O_APPEND", Value: 1024},
+	{Name: "O_CLOEXEC", Value: 524288},
+	{Name: "O_CREAT", Value: 64},
+	{Name: "O_DIRECT", Value: 131072},
+	{Name: "O_DIRECTORY", Value: 16384},
+	{Name: "O_DSYNC", Value: 4096},
+	{Name: "O_EXCL", Value: 128},
+	{Name: "O_LARGEFILE", Value: 65536},
+	{Name: "O_NOATIME", Value: 262144},
+	{Name: "O_NOCTTY", Value: 256},
+	{Name: "O_NOFOLLOW", Value: 32768},
+	{Name: "O_NONBLOCK", Value: 2048},
+	{Name: "O_PATH", Value: 2097152},
+	{Name: "O_RDONLY"},
+	{Name: "O_RDWR", Value: 2},
+	{Name: "O_SYNC", Value: 1052672},
+	{Name: "O_TRUNC", Value: 512},
+	{Name: "O_WRONLY", Value: 1},
+	{Name: "PACKET_ADD_MEMBERSHIP", Value: 1},
+	{Name: "PACKET_AUXDATA", Value: 8},
+	{Name: "PACKET_COPY_THRESH", Value: 7},
+	{Name: "PACKET_DROP_MEMBERSHIP", Value: 2},
+	{Name: "PACKET_FANOUT", Value: 18},
+	{Name: "PACKET_FANOUT_CBPF", Value: 6},
+	{Name: "PACKET_FANOUT_CPU", Value: 2},
+	{Name: "PACKET_FANOUT_DATA", Value: 22},
+	{Name: "PACKET_FANOUT_EBPF", Value: 7},
+	{Name: "PACKET_FANOUT_FLAG_DEFRAG", Value: 32768},
+	{Name: "PACKET_FANOUT_FLAG_ROLLOVER", Value: 4096},
+	{Name: "PACKET_FANOUT_HASH"},
+	{Name: "PACKET_FANOUT_LB", Value: 1},
+	{Name: "PACKET_FANOUT_QM", Value: 5},
+	{Name: "PACKET_FANOUT_RND", Value: 4},
+	{Name: "PACKET_FANOUT_ROLLOVER", Value: 3},
+	{Name: "PACKET_HDRLEN", Value: 11},
+	{Name: "PACKET_LOSS", Value: 14},
+	{Name: "PACKET_ORIGDEV", Value: 9},
+	{Name: "PACKET_QDISC_BYPASS", Value: 20},
+	{Name: "PACKET_RECV_OUTPUT", Value: 3},
+	{Name: "PACKET_RESERVE", Value: 12},
+	{Name: "PACKET_RX_RING", Value: 5},
+	{Name: "PACKET_STATISTICS", Value: 6},
+	{Name: "PACKET_TIMESTAMP", Value: 17},
+	{Name: "PACKET_TX_HAS_OFF", Value: 19},
+	{Name: "PACKET_TX_RING", Value: 13},
+	{Name: "PACKET_TX_TIMESTAMP", Value: 16},
+	{Name: "PACKET_VERSION", Value: 10},
+	{Name: "PACKET_VNET_HDR", Value: 15},
+	{Name: "PERF_EVENT_IOC_DISABLE", Value: 536880129},
+	{Name: "PERF_EVENT_IOC_ENABLE", Value: 536880128},
+	{Name: "PERF_EVENT_IOC_ID", Value: 1074275335},
+	{Name: "PERF_EVENT_IOC_PERIOD", Value: 2148017156},
+	{Name: "PERF_EVENT_IOC_REFRESH", Value: 536880130},
+	{Name: "PERF_EVENT_IOC_RESET", Value: 536880131},
+	{Name: "PERF_EVENT_IOC_SET_BPF", Value: 2147755016},
+	{Name: "PERF_EVENT_IOC_SET_FILTER", Value: 2148017158},
+	{Name: "PERF_EVENT_IOC_SET_OUTPUT", Value: 536880133},
+	{Name: "PERF_FLAG_FD_CLOEXEC", Value: 8},
+	{Name: "PERF_FLAG_FD_NO_GROUP", Value: 1},
+	{Name: "PERF_FLAG_FD_OUTPUT", Value: 2},
+	{Name: "PERF_FLAG_PID_CGROUP", Value: 4},
+	{Name: "PERF_FORMAT_GROUP", Value: 8},
+	{Name: "PERF_FORMAT_ID", Value: 4},
+	{Name: "PERF_FORMAT_TOTAL_TIME_ENABLED", Value: 1},
+	{Name: "PERF_FORMAT_TOTAL_TIME_RUNNING", Value: 2},
+	{Name: "PERF_SAMPLE_ADDR", Value: 8},
+	{Name: "PERF_SAMPLE_BRANCH_ABORT_TX", Value: 128},
+	{Name: "PERF_SAMPLE_BRANCH_ANY", Value: 8},
+	{Name: "PERF_SAMPLE_BRANCH_ANY_CALL", Value: 16},
+	{Name: "PERF_SAMPLE_BRANCH_ANY_RETURN", Value: 32},
+	{Name: "PERF_SAMPLE_BRANCH_CALL", Value: 8192},
+	{Name: "PERF_SAMPLE_BRANCH_CALL_STACK", Value: 2048},
+	{Name: "PERF_SAMPLE_BRANCH_COND", Value: 1024},
+	{Name: "PERF_SAMPLE_BRANCH_HV", Value: 4},
+	{Name: "PERF_SAMPLE_BRANCH_IND_CALL", Value: 64},
+	{Name: "PERF_SAMPLE_BRANCH_IND_JUMP", Value: 4096},
+	{Name: "PERF_SAMPLE_BRANCH_IN_TX", Value: 256},
+	{Name: "PERF_SAMPLE_BRANCH_KERNEL", Value: 2},
+	{Name: "PERF_SAMPLE_BRANCH_MAX", Value: 131072},
+	{Name: "PERF_SAMPLE_BRANCH_NO_CYCLES", Value: 32768},
+	{Name: "PERF_SAMPLE_BRANCH_NO_FLAGS", Value: 16384},
+	{Name: "PERF_SAMPLE_BRANCH_NO_TX", Value: 512},
+	{Name: "PERF_SAMPLE_BRANCH_STACK", Value: 2048},
+	{Name: "PERF_SAMPLE_BRANCH_USER", Value: 1},
+	{Name: "PERF_SAMPLE_CALLCHAIN", Value: 32},
+	{Name: "PERF_SAMPLE_CPU", Value: 128},
+	{Name: "PERF_SAMPLE_DATA_SRC", Value: 32768},
+	{Name: "PERF_SAMPLE_ID", Value: 64},
+	{Name: "PERF_SAMPLE_IDENTIFIER", Value: 65536},
+	{Name: "PERF_SAMPLE_IP", Value: 1},
+	{Name: "PERF_SAMPLE_PERIOD", Value: 256},
+	{Name: "PERF_SAMPLE_RAW", Value: 1024},
+	{Name: "PERF_SAMPLE_READ", Value: 16},
+	{Name: "PERF_SAMPLE_REGS_INTR", Value: 262144},
+	{Name: "PERF_SAMPLE_REGS_USER", Value: 4096},
+	{Name: "PERF_SAMPLE_STACK_USER", Value: 8192},
+	{Name: "PERF_SAMPLE_STREAM_ID", Value: 512},
+	{Name: "PERF_SAMPLE_TID", Value: 2},
+	{Name: "PERF_SAMPLE_TIME", Value: 4},
+	{Name: "PERF_SAMPLE_TRANSACTION", Value: 131072},
+	{Name: "PERF_SAMPLE_WEIGHT", Value: 16384},
+	{Name: "PERF_TYPE_BREAKPOINT", Value: 5},
+	{Name: "PERF_TYPE_HARDWARE"},
+	{Name: "PERF_TYPE_HW_CACHE", Value: 3},
+	{Name: "PERF_TYPE_RAW", Value: 4},
+	{Name: "PERF_TYPE_SOFTWARE", Value: 1},
+	{Name: "PERF_TYPE_TRACEPOINT", Value: 2},
+	{Name: "PER_BSD", Value: 6},
+	{Name: "PER_HPUX", Value: 16},
+	{Name: "PER_IRIX32", Value: 67108873},
+	{Name: "PER_IRIX64", Value: 67108875},
+	{Name: "PER_IRIXN32", Value: 67108874},
+	{Name: "PER_ISCR4", Value: 67108869},
+	{Name: "PER_LINUX"},
+	{Name: "PER_LINUX32", Value: 8},
+	{Name: "PER_OSF4", Value: 15},
+	{Name: "PER_OSR5", Value: 100663299},
+	{Name: "PER_RISCOS", Value: 12},
+	{Name: "PER_SOLARIS", Value: 67108877},
+	{Name: "PER_SVR3", Value: 83886082},
+	{Name: "PER_SVR4", Value: 68157441},
+	{Name: "PER_UW7", Value: 68157454},
+	{Name: "PER_WYSEV386", Value: 83886084},
+	{Name: "PER_XENIX", Value: 83886087},
+	{Name: "PIO_FONT", Value: 19297},
+	{Name: "PIO_FONTRESET", Value: 19309},
+	{Name: "PIO_FONTX", Value: 19308},
+	{Name: "PIO_SCRNMAP", Value: 19265},
+	{Name: "PIO_UNIMAP", Value: 19303},
+	{Name: "PIO_UNIMAPCLR", Value: 19304},
+	{Name: "PIO_UNISCRNMAP", Value: 19306},
+	{Name: "PKEY_DISABLE_ACCESS", Value: 1},
+	{Name: "PKEY_DISABLE_WRITE", Value: 2},
+	{Name: "POLLERR", Value: 8},
+	{Name: "POLLFREE", Value: 16384},
+	{Name: "POLLHUP", Value: 16},
+	{Name: "POLLIN", Value: 1},
+	{Name: "POLLMSG", Value: 1024},
+	{Name: "POLLNVAL", Value: 32},
+	{Name: "POLLOUT", Value: 4},
+	{Name: "POLLPRI", Value: 2},
+	{Name: "POLLRDBAND", Value: 128},
+	{Name: "POLLRDHUP", Value: 8192},
+	{Name: "POLLRDNORM", Value: 64},
+	{Name: "POLLREMOVE", Value: 4096},
+	{Name: "POLLWRBAND", Value: 512},
+	{Name: "POLLWRNORM", Value: 256},
+	{Name: "POLL_BUSY_LOOP", Value: 32768},
+	{Name: "POSIX_FADV_DONTNEED", Value: 4},
+	{Name: "POSIX_FADV_NOREUSE", Value: 5},
+	{Name: "POSIX_FADV_NORMAL"},
+	{Name: "POSIX_FADV_RANDOM", Value: 1},
+	{Name: "POSIX_FADV_SEQUENTIAL", Value: 2},
+	{Name: "POSIX_FADV_WILLNEED", Value: 3},
+	{Name: "PRIO_PGRP", Value: 1},
+	{Name: "PRIO_PROCESS"},
+	{Name: "PRIO_USER", Value: 2},
+	{Name: "PROT_EXEC", Value: 4},
+	{Name: "PROT_GROWSDOWN", Value: 16777216},
+	{Name: "PROT_GROWSUP", Value: 33554432},
+	{Name: "PROT_READ", Value: 1},
+	{Name: "PROT_SEM", Value: 8},
+	{Name: "PROT_WRITE", Value: 2},
+	{Name: "PR_CAPBSET_DROP", Value: 24},
+	{Name: "PR_CAPBSET_READ", Value: 23},
+	{Name: "PR_ENDIAN_BIG"},
+	{Name: "PR_ENDIAN_LITTLE", Value: 1},
+	{Name: "PR_ENDIAN_PPC_LITTLE", Value: 2},
+	{Name: "PR_FP_EXC_ASYNC", Value: 2},
+	{Name: "PR_FP_EXC_DISABLED"},
+	{Name: "PR_FP_EXC_DIV", Value: 65536},
+	{Name: "PR_FP_EXC_INV", Value: 1048576},
+	{Name: "PR_FP_EXC_NONRECOV", Value: 1},
+	{Name: "PR_FP_EXC_OVF", Value: 131072},
+	{Name: "PR_FP_EXC_PRECISE", Value: 3},
+	{Name: "PR_FP_EXC_RES", Value: 524288},
+	{Name: "PR_FP_EXC_SW_ENABLE", Value: 128},
+	{Name: "PR_FP_EXC_UND", Value: 262144},
+	{Name: "PR_GET_CHILD_SUBREAPER", Value: 37},
+	{Name: "PR_GET_DUMPABLE", Value: 3},
+	{Name: "PR_GET_ENDIAN", Value: 19},
+	{Name: "PR_GET_FPEMU", Value: 9},
+	{Name: "PR_GET_FPEXC", Value: 11},
+	{Name: "PR_GET_KEEPCAPS", Value: 7},
+	{Name: "PR_GET_NAME", Value: 16},
+	{Name: "PR_GET_NO_NEW_PRIVS", Value: 39},
+	{Name: "PR_GET_PDEATHSIG", Value: 2},
+	{Name: "PR_GET_SECCOMP", Value: 21},
+	{Name: "PR_GET_SECUREBITS", Value: 27},
+	{Name: "PR_GET_TID_ADDRESS", Value: 40},
+	{Name: "PR_GET_TIMERSLACK", Value: 30},
+	{Name: "PR_GET_TIMING", Value: 13},
+	{Name: "PR_GET_TSC", Value: 25},
+	{Name: "PR_GET_UNALIGN", Value: 5},
+	{Name: "PR_MCE_KILL", Value: 33},
+	{Name: "PR_MCE_KILL_GET", Value: 34},
+	{Name: "PR_SET_CHILD_SUBREAPER", Value: 36},
+	{Name: "PR_SET_DUMPABLE", Value: 4},
+	{Name: "PR_SET_ENDIAN", Value: 20},
+	{Name: "PR_SET_FPEMU", Value: 10},
+	{Name: "PR_SET_FPEXC", Value: 12},
+	{Name: "PR_SET_KEEPCAPS", Value: 8},
+	{Name: "PR_SET_MM", Value: 35},
+	{Name: "PR_SET_MM_BRK", Value: 7},
+	{Name: "PR_SET_MM_END_CODE", Value: 2},
+	{Name: "PR_SET_MM_END_DATA", Value: 4},
+	{Name: "PR_SET_MM_START_BRK", Value: 6},
+	{Name: "PR_SET_MM_START_CODE", Value: 1},
+	{Name: "PR_SET_MM_START_DATA", Value: 3},
+	{Name: "PR_SET_MM_START_STACK", Value: 5},
+	{Name: "PR_SET_NAME", Value: 15},
+	{Name: "PR_SET_NO_NEW_PRIVS", Value: 38},
+	{Name: "PR_SET_PDEATHSIG", Value: 1},
+	{Name: "PR_SET_PTRACER", Value: 1499557217},
+	{Name: "PR_SET_SECCOMP", Value: 22},
+	{Name: "PR_SET_SECUREBITS", Value: 28},
+	{Name: "PR_SET_TIMERSLACK", Value: 29},
+	{Name: "PR_SET_TIMING", Value: 14},
+	{Name: "PR_SET_TSC", Value: 26},
+	{Name: "PR_SET_UNALIGN", Value: 6},
+	{Name: "PR_TASK_PERF_EVENTS_DISABLE", Value: 31},
+	{Name: "PR_TASK_PERF_EVENTS_ENABLE", Value: 32},
+	{Name: "PTRACE_ATTACH", Value: 16},
+	{Name: "PTRACE_CONT", Value: 7},
+	{Name: "PTRACE_DETACH", Value: 17},
+	{Name: "PTRACE_GETEVENTMSG", Value: 16897},
+	{Name: "PTRACE_GETFPREGS", Value: 14},
+	{Name: "PTRACE_GETREGS", Value: 12},
+	{Name: "PTRACE_GETREGSET", Value: 16900},
+	{Name: "PTRACE_GETSIGINFO", Value: 16898},
+	{Name: "PTRACE_INTERRUPT", Value: 16903},
+	{Name: "PTRACE_KILL", Value: 8},
+	{Name: "PTRACE_LISTEN", Value: 16904},
+	{Name: "PTRACE_O_EXITKILL", Value: 1048576},
+	{Name: "PTRACE_O_TRACECLONE", Value: 8},
+	{Name: "PTRACE_O_TRACEEXEC", Value: 16},
+	{Name: "PTRACE_O_TRACEEXIT", Value: 64},
+	{Name: "PTRACE_O_TRACEFORK", Value: 2},
+	{Name: "PTRACE_O_TRACESYSGOOD", Value: 1},
+	{Name: "PTRACE_O_TRACEVFORK", Value: 4},
+	{Name: "PTRACE_O_TRACEVFORKDONE", Value: 32},
+	{Name: "PTRACE_PEEKDATA", Value: 2},
+	{Name: "PTRACE_PEEKTEXT", Value: 1},
+	{Name: "PTRACE_PEEKUSR", Value: 3},
+	{Name: "PTRACE_POKEDATA", Value: 5},
+	{Name: "PTRACE_POKETEXT", Value: 4},
+	{Name: "PTRACE_POKEUSR", Value: 6},
+	{Name: "PTRACE_SEIZE", Value: 16902},
+	{Name: "PTRACE_SETFPREGS", Value: 15},
+	{Name: "PTRACE_SETOPTIONS", Value: 16896},
+	{Name: "PTRACE_SETREGS", Value: 13},
+	{Name: "PTRACE_SETREGSET", Value: 16901},
+	{Name: "PTRACE_SETSIGINFO", Value: 16899},
+	{Name: "PTRACE_SINGLESTEP", Value: 9},
+	{Name: "PTRACE_SYSCALL", Value: 24},
+	{Name: "PTRACE_TRACEME"},
+	{Name: "P_ALL"},
+	{Name: "P_PGID", Value: 2},
+	{Name: "P_PID", Value: 1},
+	{Name: "READ_IMPLIES_EXEC", Value: 4194304},
+	{Name: "RENAME_EXCHANGE", Value: 2},
+	{Name: "RENAME_NOREPLACE", Value: 1},
+	{Name: "RENAME_WHITEOUT", Value: 4},
+	{Name: "RFCOMM_CONNINFO", Value: 2},
+	{Name: "RFCOMM_LM", Value: 3},
+	{Name: "RLIMIT_AS", Value: 9},
+	{Name: "RLIMIT_CORE", Value: 4},
+	{Name: "RLIMIT_CPU"},
+	{Name: "RLIMIT_DATA", Value: 2},
+	{Name: "RLIMIT_FSIZE", Value: 1},
+	{Name: "RLIMIT_LOCKS", Value: 10},
+	{Name: "RLIMIT_MEMLOCK", Value: 8},
+	{Name: "RLIMIT_MSGQUEUE", Value: 12},
+	{Name: "RLIMIT_NICE", Value: 13},
+	{Name: "RLIMIT_NOFILE", Value: 7},
+	{Name: "RLIMIT_NPROC", Value: 6},
+	{Name: "RLIMIT_RSS", Value: 5},
+	{Name: "RLIMIT_RTPRIO", Value: 14},
+	{Name: "RLIMIT_RTTIME", Value: 15},
+	{Name: "RLIMIT_SIGPENDING", Value: 11},
+	{Name: "RLIMIT_STACK", Value: 3},
+	{Name: "RNDADDENTROPY", Value: 2148028931},
+	{Name: "RNDADDTOENTCNT", Value: 2147766785},
+	{Name: "RNDCLEARPOOL", Value: 536891910},
+	{Name: "RNDGETENTCNT", Value: 1074024960},
+	{Name: "RNDZAPENTCNT", Value: 536891908},
+	{Name: "RTF_ADDRCONF", Value: 262144},
+	{Name: "RTF_ALLONLINK", Value: 131072},
+	{Name: "RTF_ANYCAST", Value: 1048576},
+	{Name: "RTF_CACHE", Value: 16777216},
+	{Name: "RTF_DEFAULT", Value: 65536},
+	{Name: "RTF_DYNAMIC", Value: 16},
+	{Name: "RTF_EXPIRES", Value: 4194304},
+	{Name: "RTF_FLOW", Value: 33554432},
+	{Name: "RTF_GATEWAY", Value: 2},
+	{Name: "RTF_HOST", Value: 4},
+	{Name: "RTF_IRTT", Value: 256},
+	{Name: "RTF_LOCAL", Value: 2147483648},
+	{Name: "RTF_MODIFIED", Value: 32},
+	{Name: "RTF_MTU", Value: 64},
+	{Name: "RTF_NONEXTHOP", Value: 2097152},
+	{Name: "RTF_PCPU", Value: 1073741824},
+	{Name: "RTF_POLICY", Value: 67108864},
+	{Name: "RTF_PREFIX_RT", Value: 524288},
+	{Name: "RTF_REINSTATE", Value: 8},
+	{Name: "RTF_REJECT", Value: 512},
+	{Name: "RTF_ROUTEINFO", Value: 8388608},
+	{Name: "RTF_UP", Value: 1},
+	{Name: "RTF_WINDOW", Value: 128},
+	{Name: "RUSAGE_CHILDREN", Value: 18446744073709551615},
+	{Name: "RUSAGE_SELF"},
+	{Name: "RUSAGE_THREAD", Value: 1},
+	{Name: "SA_NOCLDSTOP", Value: 1},
+	{Name: "SA_NOCLDWAIT", Value: 2},
+	{Name: "SA_NODEFER", Value: 1073741824},
+	{Name: "SA_ONSTACK", Value: 134217728},
+	{Name: "SA_RESETHAND", Value: 2147483648},
+	{Name: "SA_RESTART", Value: 268435456},
+	{Name: "SA_SIGINFO", Value: 4},
+	{Name: "SCHED_BATCH", Value: 3},
+	{Name: "SCHED_DEADLINE", Value: 6},
+	{Name: "SCHED_FIFO", Value: 1},
+	{Name: "SCHED_FLAG_RESET_ON_FORK", Value: 1},
+	{Name: "SCHED_IDLE", Value: 5},
+	{Name: "SCHED_NORMAL"},
+	{Name: "SCHED_RR", Value: 2},
+	{Name: "SCM_CREDENTIALS", Value: 2},
+	{Name: "SCM_RIGHTS", Value: 1},
+	{Name: "SCO_CONNINFO", Value: 2},
+	{Name: "SCO_OPTIONS", Value: 1},
+	{Name: "SCTP_ABORT", Value: 4},
+	{Name: "SCTP_ADAPTATION_LAYER", Value: 7},
+	{Name: "SCTP_ADDR_OVER", Value: 2},
+	{Name: "SCTP_ADD_STREAMS", Value: 121},
+	{Name: "SCTP_ASSOCINFO", Value: 1},
+	{Name: "SCTP_AUTH_ACTIVE_KEY", Value: 24},
+	{Name: "SCTP_AUTH_CHUNK", Value: 21},
+	{Name: "SCTP_AUTH_DELETE_KEY", Value: 25},
+	{Name: "SCTP_AUTH_KEY", Value: 23},
+	{Name: "SCTP_AUTOCLOSE", Value: 4},
+	{Name: "SCTP_AUTO_ASCONF", Value: 30},
+	{Name: "SCTP_CONTEXT", Value: 17},
+	{Name: "SCTP_DEFAULT_PRINFO", Value: 114},
+	{Name: "SCTP_DEFAULT_SEND_PARAM", Value: 10},
+	{Name: "SCTP_DEFAULT_SNDINFO", Value: 34},
+	{Name: "SCTP_DELAYED_SACK", Value: 16},
+	{Name: "SCTP_DISABLE_FRAGMENTS", Value: 8},
+	{Name: "SCTP_ENABLE_STREAM_RESET", Value: 118},
+	{Name: "SCTP_EOF", Value: 512},
+	{Name: "SCTP_EVENTS", Value: 11},
+	{Name: "SCTP_FRAGMENT_INTERLEAVE", Value: 18},
+	{Name: "SCTP_GET_ASSOC_ID_LIST", Value: 29},
+	{Name: "SCTP_GET_ASSOC_NUMBER", Value: 28},
+	{Name: "SCTP_GET_ASSOC_STATS", Value: 112},
+	{Name: "SCTP_GET_LOCAL_ADDRS", Value: 109},
+	{Name: "SCTP_GET_PEER_ADDRS", Value: 108},
+	{Name: "SCTP_GET_PEER_ADDR_INFO", Value: 15},
+	{Name: "SCTP_HMAC_IDENT", Value: 22},
+	{Name: "SCTP_INIT"},
+	{Name: "SCTP_INITMSG", Value: 2},
+	{Name: "SCTP_I_WANT_MAPPED_V4_ADDR", Value: 12},
+	{Name: "SCTP_LOCAL_AUTH_CHUNKS", Value: 27},
+	{Name: "SCTP_MAXSEG", Value: 13},
+	{Name: "SCTP_MAX_BURST", Value: 20},
+	{Name: "SCTP_NODELAY", Value: 3},
+	{Name: "SCTP_NOTIFICATION", Value: 32768},
+	{Name: "SCTP_PARTIAL_DELIVERY_POINT", Value: 19},
+	{Name: "SCTP_PEER_ADDR_PARAMS", Value: 9},
+	{Name: "SCTP_PEER_ADDR_THLDS", Value: 31},
+	{Name: "SCTP_PEER_AUTH_CHUNKS", Value: 26},
+	{Name: "SCTP_PRIMARY_ADDR", Value: 6},
+	{Name: "SCTP_PR_ASSOC_STATUS", Value: 115},
+	{Name: "SCTP_PR_SCTP_NONE"},
+	{Name: "SCTP_PR_SCTP_PRIO", Value: 48},
+	{Name: "SCTP_PR_SCTP_RTX", Value: 32},
+	{Name: "SCTP_PR_SCTP_TTL", Value: 16},
+	{Name: "SCTP_PR_SUPPORTED", Value: 113},
+	{Name: "SCTP_RECVNXTINFO", Value: 33},
+	{Name: "SCTP_RECVRCVINFO", Value: 32},
+	{Name: "SCTP_RESET_ASSOC", Value: 120},
+	{Name: "SCTP_RESET_STREAMS", Value: 119},
+	{Name: "SCTP_RTOINFO"},
+	{Name: "SCTP_SACK_IMMEDIATELY", Value: 8},
+	{Name: "SCTP_SET_PEER_PRIMARY_ADDR", Value: 5},
+	{Name: "SCTP_SNDINFO", Value: 2},
+	{Name: "SCTP_SNDRCV", Value: 1},
+	{Name: "SCTP_SOCKOPT_BINDX_ADD", Value: 100},
+	{Name: "SCTP_SOCKOPT_BINDX_REM", Value: 101},
+	{Name: "SCTP_SOCKOPT_CONNECTX", Value: 110},
+	{Name: "SCTP_SOCKOPT_CONNECTX3", Value: 111},
+	{Name: "SCTP_SOCKOPT_CONNECTX_OLD", Value: 107},
+	{Name: "SCTP_SOCKOPT_PEELOFF", Value: 102},
+	{Name: "SCTP_STATUS", Value: 14},
+	{Name: "SCTP_UNORDERED", Value: 1},
+	{Name: "SCTP_V4_FLOW", Value: 3},
+	{Name: "SCTP_V6_FLOW", Value: 7},
+	{Name: "SECCOMP_FILTER_FLAG_TSYNC", Value: 1},
+	{Name: "SECCOMP_MODE_DISABLED"},
+	{Name: "SECCOMP_MODE_FILTER", Value: 2},
+	{Name: "SECCOMP_MODE_STRICT", Value: 1},
+	{Name: "SECCOMP_SET_MODE_FILTER", Value: 1},
+	{Name: "SECCOMP_SET_MODE_STRICT"},
+	{Name: "SEEK_CUR", Value: 1},
+	{Name: "SEEK_DATA", Value: 3},
+	{Name: "SEEK_END", Value: 2},
+	{Name: "SEEK_HOLE", Value: 4},
+	{Name: "SEEK_SET"},
+	{Name: "SEM_INFO", Value: 19},
+	{Name: "SEM_STAT", Value: 18},
+	{Name: "SEM_UNDO", Value: 4096},
+	{Name: "SETALL", Value: 17},
+	{Name: "SETVAL", Value: 16},
+	{Name: "SFD_CLOEXEC", Value: 524288},
+	{Name: "SFD_NONBLOCK", Value: 2048},
+	{Name: "SHM_HUGETLB", Value: 2048},
+	{Name: "SHM_HUGE_1GB", Value: 2013265920},
+	{Name: "SHM_HUGE_2MB", Value: 1409286144},
+	{Name: "SHM_INFO", Value: 14},
+	{Name: "SHM_LOCK", Value: 11},
+	{Name: "SHM_NORESERVE", Value: 4096},
+	{Name: "SHM_RDONLY", Value: 4096},
+	{Name: "SHM_REMAP", Value: 16384},
+	{Name: "SHM_RND", Value: 8192},
+	{Name: "SHM_STAT", Value: 13},
+	{Name: "SHM_UNLOCK", Value: 12},
+	{Name: "SHORT_INODE", Value: 16777216},
+	{Name: "SHUT_RD"},
+	{Name: "SHUT_WR", Value: 1},
+	{Name: "SIGEV_NONE", Value: 1},
+	{Name: "SIGEV_SIGNAL"},
+	{Name: "SIGEV_THREAD", Value: 2},
+	{Name: "SIGEV_THREAD_ID", Value: 4},
+	{Name: "SIG_BLOCK"},
+	{Name: "SIG_SETMASK", Value: 2},
+	{Name: "SIG_UNBLOCK", Value: 1},
+	{Name: "SIOCADDDLCI", Value: 35200},
+	{Name: "SIOCADDMULTI", Value: 35121},
+	{Name: "SIOCADDRT", Value: 35083},
+	{Name: "SIOCAIPXITFCRT", Value: 35296},
+	{Name: "SIOCAIPXPRISLT", Value: 35297},
+	{Name: "SIOCATMARK", Value: 35077},
+	{Name: "SIOCBONDCHANGEACTIVE", Value: 35221},
+	{Name: "SIOCBONDENSLAVE", Value: 35216},
+	{Name: "SIOCBONDINFOQUERY", Value: 35220},
+	{Name: "SIOCBONDRELEASE", Value: 35217},
+	{Name: "SIOCBONDSETHWADDR", Value: 35218},
+	{Name: "SIOCBONDSLAVEINFOQUERY", Value: 35219},
+	{Name: "SIOCBRADDBR", Value: 35232},
+	{Name: "SIOCBRADDIF", Value: 35234},
+	{Name: "SIOCBRDELBR", Value: 35233},
+	{Name: "SIOCBRDELIF", Value: 35235},
+	{Name: "SIOCDARP", Value: 35155},
+	{Name: "SIOCDELDLCI", Value: 35201},
+	{Name: "SIOCDELMULTI", Value: 35122},
+	{Name: "SIOCDELRT", Value: 35084},
+	{Name: "SIOCDEVPRIVATE_BEG", Value: 35312},
+	{Name: "SIOCDEVPRIVATE_END", Value: 35327},
+	{Name: "SIOCDIFADDR", Value: 35126},
+	{Name: "SIOCETHTOOL", Value: 35142},
+	{Name: "SIOCGARP", Value: 35156},
+	{Name: "SIOCGHWTSTAMP", Value: 35249},
+	{Name: "SIOCGIFADDR", Value: 35093},
+	{Name: "SIOCGIFBR", Value: 35136},
+	{Name: "SIOCGIFBRDADDR", Value: 35097},
+	{Name: "SIOCGIFCOUNT", Value: 35128},
+	{Name: "SIOCGIFDSTADDR", Value: 35095},
+	{Name: "SIOCGIFENCAP", Value: 35109},
+	{Name: "SIOCGIFFLAGS", Value: 35091},
+	{Name: "SIOCGIFHWADDR", Value: 35111},
+	{Name: "SIOCGIFINDEX", Value: 35123},
+	{Name: "SIOCGIFMAP", Value: 35184},
+	{Name: "SIOCGIFMEM", Value: 35103},
+	{Name: "SIOCGIFMETRIC", Value: 35101},
+	{Name: "SIOCGIFMTU", Value: 35105},
+	{Name: "SIOCGIFNAME", Value: 35088},
+	{Name: "SIOCGIFNETMASK", Value: 35099},
+	{Name: "SIOCGIFPFLAGS", Value: 35125},
+	{Name: "SIOCGIFSLAVE", Value: 35113},
+	{Name: "SIOCGIFTXQLEN", Value: 35138},
+	{Name: "SIOCGMIIPHY", Value: 35143},
+	{Name: "SIOCGMIIREG", Value: 35144},
+	{Name: "SIOCGPGRP", Value: 35076},
+	{Name: "SIOCGSKNS", Value: 35148},
+	{Name: "SIOCGSTAMP", Value: 35078},
+	{Name: "SIOCGSTAMPNS", Value: 35079},
+	{Name: "SIOCINQ", Value: 1074030207},
+	{Name: "SIOCIPXCFGDATA", Value: 35298},
+	{Name: "SIOCIPXNCPCONN", Value: 35299},
+	{Name: "SIOCKCMATTACH", Value: 35296},
+	{Name: "SIOCKCMCLONE", Value: 35298},
+	{Name: "SIOCKCMUNATTACH", Value: 35297},
+	{Name: "SIOCOUTQ", Value: 1074033779},
+	{Name: "SIOCOUTQNSD", Value: 35147},
+	{Name: "SIOCPROTOPRIVATE_BEG", Value: 35296},
+	{Name: "SIOCPROTOPRIVATE_END", Value: 35311},
+	{Name: "SIOCRTMSG", Value: 35085},
+	{Name: "SIOCSARP", Value: 35157},
+	{Name: "SIOCSHWTSTAMP", Value: 35248},
+	{Name: "SIOCSIFADDR", Value: 35094},
+	{Name: "SIOCSIFBRDADDR", Value: 35098},
+	{Name: "SIOCSIFDSTADDR", Value: 35096},
+	{Name: "SIOCSIFENCAP", Value: 35110},
+	{Name: "SIOCSIFFLAGS", Value: 35092},
+	{Name: "SIOCSIFHWADDR", Value: 35108},
+	{Name: "SIOCSIFHWBROADCAST", Value: 35127},
+	{Name: "SIOCSIFLINK", Value: 35089},
+	{Name: "SIOCSIFMAP", Value: 35185},
+	{Name: "SIOCSIFMEM", Value: 35104},
+	{Name: "SIOCSIFMETRIC", Value: 35102},
+	{Name: "SIOCSIFMTU", Value: 35106},
+	{Name: "SIOCSIFNAME", Value: 35107},
+	{Name: "SIOCSIFNETMASK", Value: 35100},
+	{Name: "SIOCSIFPFLAGS", Value: 35124},
+	{Name: "SIOCSIFSLAVE", Value: 35120},
+	{Name: "SIOCSIFTXQLEN", Value: 35139},
+	{Name: "SIOCSMIIREG", Value: 35145},
+	{Name: "SIOCSPGRP", Value: 35074},
+	{Name: "SIOCWANDEV", Value: 35146},
+	{Name: "SNDRV_CTL_ELEM_IFACE_CARD"},
+	{Name: "SNDRV_CTL_ELEM_IFACE_HWDEP", Value: 1},
+	{Name: "SNDRV_CTL_ELEM_IFACE_MIXER", Value: 2},
+	{Name: "SNDRV_CTL_ELEM_IFACE_PCM", Value: 3},
+	{Name: "SNDRV_CTL_ELEM_IFACE_RAWMIDI", Value: 4},
+	{Name: "SNDRV_CTL_ELEM_IFACE_SEQUENCER", Value: 6},
+	{Name: "SNDRV_CTL_ELEM_IFACE_TIMER", Value: 5},
+	{Name: "SNDRV_CTL_IOCTL_CARD_INFO", Value: 1098405121},
+	{Name: "SNDRV_CTL_IOCTL_ELEM_ADD", Value: 3239073047},
+	{Name: "SNDRV_CTL_IOCTL_ELEM_INFO", Value: 3239073041},
+	{Name: "SNDRV_CTL_IOCTL_ELEM_LIST", Value: 3226490128},
+	{Name: "SNDRV_CTL_IOCTL_ELEM_LOCK", Value: 2151699732},
+	{Name: "SNDRV_CTL_IOCTL_ELEM_READ", Value: 3301463314},
+	{Name: "SNDRV_CTL_IOCTL_ELEM_REMOVE", Value: 3225441561},
+	{Name: "SNDRV_CTL_IOCTL_ELEM_REPLACE", Value: 3239073048},
+	{Name: "SNDRV_CTL_IOCTL_ELEM_UNLOCK", Value: 2151699733},
+	{Name: "SNDRV_CTL_IOCTL_ELEM_WRITE", Value: 3301463315},
+	{Name: "SNDRV_CTL_IOCTL_HWDEP_INFO", Value: 1088181537},
+	{Name: "SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE", Value: 3221509408},
+	{Name: "SNDRV_CTL_IOCTL_PCM_INFO", Value: 3240121649},
+	{Name: "SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE", Value: 1074025776},
+	{Name: "SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE", Value: 2147767602},
+	{Name: "SNDRV_CTL_IOCTL_POWER_STATE", Value: 1074025937},
+	{Name: "SNDRV_CTL_IOCTL_PVERSION", Value: 1074025728},
+	{Name: "SNDRV_CTL_IOCTL_RAWMIDI_INFO", Value: 3238810945},
+	{Name: "SNDRV_CTL_IOCTL_RAWMIDI_NEXT_DEVICE", Value: 3221509440},
+	{Name: "SNDRV_CTL_IOCTL_RAWMIDI_PREFER_SUBDEVICE", Value: 2147767618},
+	{Name: "SNDRV_CTL_IOCTL_SUBSCRIBE_EVENTS", Value: 3221509398},
+	{Name: "SNDRV_CTL_IOCTL_TLV_COMMAND", Value: 3221771548},
+	{Name: "SNDRV_CTL_IOCTL_TLV_READ", Value: 3221771546},
+	{Name: "SNDRV_CTL_IOCTL_TLV_WRITE", Value: 3221771547},
+	{Name: "SNDRV_SEQ_FILTER_BOUNCE", Value: 4},
+	{Name: "SNDRV_SEQ_FILTER_BROADCAST", Value: 1},
+	{Name: "SNDRV_SEQ_FILTER_MULTICAST", Value: 2},
+	{Name: "SNDRV_SEQ_FILTER_USE_EVENT", Value: 18446744071562067968},
+	{Name: "SNDRV_SEQ_IOCTL_CLIENT_ID", Value: 1074025217},
+	{Name: "SNDRV_SEQ_IOCTL_CREATE_PORT", Value: 3232256800},
+	{Name: "SNDRV_SEQ_IOCTL_CREATE_QUEUE", Value: 3230421810},
+	{Name: "SNDRV_SEQ_IOCTL_DELETE_PORT", Value: 2158514977},
+	{Name: "SNDRV_SEQ_IOCTL_DELETE_QUEUE", Value: 2156679987},
+	{Name: "SNDRV_SEQ_IOCTL_GET_CLIENT_INFO", Value: 3233567504},
+	{Name: "SNDRV_SEQ_IOCTL_GET_CLIENT_POOL", Value: 3227013963},
+	{Name: "SNDRV_SEQ_IOCTL_GET_NAMED_QUEUE", Value: 3230421814},
+	{Name: "SNDRV_SEQ_IOCTL_GET_PORT_INFO", Value: 3232256802},
+	{Name: "SNDRV_SEQ_IOCTL_GET_QUEUE_CLIENT", Value: 3226227529},
+	{Name: "SNDRV_SEQ_IOCTL_GET_QUEUE_INFO", Value: 3230421812},
+	{Name: "SNDRV_SEQ_IOCTL_GET_QUEUE_STATUS", Value: 3227276096},
+	{Name: "SNDRV_SEQ_IOCTL_GET_QUEUE_TEMPO", Value: 3224130369},
+	{Name: "SNDRV_SEQ_IOCTL_GET_QUEUE_TIMER", Value: 3227538245},
+	{Name: "SNDRV_SEQ_IOCTL_GET_SUBSCRIPTION", Value: 3226489680},
+	{Name: "SNDRV_SEQ_IOCTL_PVERSION", Value: 1074025216},
+	{Name: "SNDRV_SEQ_IOCTL_QUERY_NEXT_CLIENT", Value: 3233567569},
+	{Name: "SNDRV_SEQ_IOCTL_QUERY_NEXT_PORT", Value: 3232256850},
+	{Name: "SNDRV_SEQ_IOCTL_QUERY_SUBS", Value: 3227013967},
+	{Name: "SNDRV_SEQ_IOCTL_REMOVE_EVENTS", Value: 2151699278},
+	{Name: "SNDRV_SEQ_IOCTL_RUNNING_MODE", Value: 3222295299},
+	{Name: "SNDRV_SEQ_IOCTL_SET_CLIENT_INFO", Value: 2159825681},
+	{Name: "SNDRV_SEQ_IOCTL_SET_CLIENT_POOL", Value: 2153272140},
+	{Name: "SNDRV_SEQ_IOCTL_SET_PORT_INFO", Value: 2158514979},
+	{Name: "SNDRV_SEQ_IOCTL_SET_QUEUE_CLIENT", Value: 2152485706},
+	{Name: "SNDRV_SEQ_IOCTL_SET_QUEUE_INFO", Value: 3230421813},
+	{Name: "SNDRV_SEQ_IOCTL_SET_QUEUE_TEMPO", Value: 2150388546},
+	{Name: "SNDRV_SEQ_IOCTL_SET_QUEUE_TIMER", Value: 2153796422},
+	{Name: "SNDRV_SEQ_IOCTL_SUBSCRIBE_PORT", Value: 2152747824},
+	{Name: "SNDRV_SEQ_IOCTL_SYSTEM_INFO", Value: 3224392450},
+	{Name: "SNDRV_SEQ_IOCTL_UNSUBSCRIBE_PORT", Value: 2152747825},
+	{Name: "SNDRV_SEQ_PORT_CAP_DUPLEX", Value: 16},
+	{Name: "SNDRV_SEQ_PORT_CAP_NO_EXPORT", Value: 128},
+	{Name: "SNDRV_SEQ_PORT_CAP_READ", Value: 1},
+	{Name: "SNDRV_SEQ_PORT_CAP_SUBS_READ", Value: 32},
+	{Name: "SNDRV_SEQ_PORT_CAP_SUBS_WRITE", Value: 64},
+	{Name: "SNDRV_SEQ_PORT_CAP_SYNC_READ", Value: 4},
+	{Name: "SNDRV_SEQ_PORT_CAP_SYNC_WRITE", Value: 8},
+	{Name: "SNDRV_SEQ_PORT_CAP_WRITE", Value: 2},
+	{Name: "SNDRV_SEQ_PORT_FLG_GIVEN_PORT", Value: 1},
+	{Name: "SNDRV_SEQ_PORT_FLG_TIMESTAMP", Value: 2},
+	{Name: "SNDRV_SEQ_PORT_FLG_TIME_REAL", Value: 4},
+	{Name: "SNDRV_SEQ_PORT_SUBS_EXCLUSIVE", Value: 1},
+	{Name: "SNDRV_SEQ_PORT_SUBS_TIMESTAMP", Value: 2},
+	{Name: "SNDRV_SEQ_PORT_SUBS_TIME_REAL", Value: 4},
+	{Name: "SNDRV_SEQ_PORT_TYPE_APPLICATION", Value: 1048576},
+	{Name: "SNDRV_SEQ_PORT_TYPE_DIRECT_SAMPLE", Value: 2048},
+	{Name: "SNDRV_SEQ_PORT_TYPE_HARDWARE", Value: 65536},
+	{Name: "SNDRV_SEQ_PORT_TYPE_MIDI_GENERIC", Value: 2},
+	{Name: "SNDRV_SEQ_PORT_TYPE_MIDI_GM", Value: 4},
+	{Name: "SNDRV_SEQ_PORT_TYPE_MIDI_GM2", Value: 64},
+	{Name: "SNDRV_SEQ_PORT_TYPE_MIDI_GS", Value: 8},
+	{Name: "SNDRV_SEQ_PORT_TYPE_MIDI_MT32", Value: 32},
+	{Name: "SNDRV_SEQ_PORT_TYPE_MIDI_XG", Value: 16},
+	{Name: "SNDRV_SEQ_PORT_TYPE_PORT", Value: 524288},
+	{Name: "SNDRV_SEQ_PORT_TYPE_SAMPLE", Value: 4096},
+	{Name: "SNDRV_SEQ_PORT_TYPE_SOFTWARE", Value: 131072},
+	{Name: "SNDRV_SEQ_PORT_TYPE_SPECIFIC", Value: 1},
+	{Name: "SNDRV_SEQ_PORT_TYPE_SYNTH", Value: 1024},
+	{Name: "SNDRV_SEQ_PORT_TYPE_SYNTHESIZER", Value: 262144},
+	{Name: "SNDRV_SEQ_QUERY_SUBS_READ"},
+	{Name: "SNDRV_SEQ_QUERY_SUBS_WRITE", Value: 1},
+	{Name: "SNDRV_SEQ_REMOVE_DEST", Value: 4},
+	{Name: "SNDRV_SEQ_REMOVE_DEST_CHANNEL", Value: 8},
+	{Name: "SNDRV_SEQ_REMOVE_EVENT_TYPE", Value: 128},
+	{Name: "SNDRV_SEQ_REMOVE_IGNORE_OFF", Value: 256},
+	{Name: "SNDRV_SEQ_REMOVE_INPUT", Value: 1},
+	{Name: "SNDRV_SEQ_REMOVE_OUTPUT", Value: 2},
+	{Name: "SNDRV_SEQ_REMOVE_TAG_MATCH", Value: 512},
+	{Name: "SNDRV_SEQ_REMOVE_TIME_AFTER", Value: 32},
+	{Name: "SNDRV_SEQ_REMOVE_TIME_BEFORE", Value: 16},
+	{Name: "SNDRV_SEQ_REMOVE_TIME_TICK", Value: 64},
+	{Name: "SNDRV_SEQ_TIMER_ALSA"},
+	{Name: "SNDRV_SEQ_TIMER_MIDI_CLOCK", Value: 1},
+	{Name: "SNDRV_SEQ_TIMER_MIDI_TICK", Value: 2},
+	{Name: "SNDRV_TIMER_CLASS_CARD", Value: 2},
+	{Name: "SNDRV_TIMER_CLASS_GLOBAL", Value: 1},
+	{Name: "SNDRV_TIMER_CLASS_NONE", Value: 18446744073709551615},
+	{Name: "SNDRV_TIMER_CLASS_PCM", Value: 3},
+	{Name: "SNDRV_TIMER_CLASS_SLAVE"},
+	{Name: "SNDRV_TIMER_EVENT_CONTINUE", Value: 4},
+	{Name: "SNDRV_TIMER_EVENT_EARLY", Value: 6},
+	{Name: "SNDRV_TIMER_EVENT_MCONTINUE", Value: 14},
+	{Name: "SNDRV_TIMER_EVENT_MPAUSE", Value: 15},
+	{Name: "SNDRV_TIMER_EVENT_MRESUME", Value: 18},
+	{Name: "SNDRV_TIMER_EVENT_MSTART", Value: 12},
+	{Name: "SNDRV_TIMER_EVENT_MSTOP", Value: 13},
+	{Name: "SNDRV_TIMER_EVENT_MSUSPEND", Value: 17},
+	{Name: "SNDRV_TIMER_EVENT_PAUSE", Value: 5},
+	{Name: "SNDRV_TIMER_EVENT_RESOLUTION"},
+	{Name: "SNDRV_TIMER_EVENT_RESUME", Value: 8},
+	{Name: "SNDRV_TIMER_EVENT_START", Value: 2},
+	{Name: "SNDRV_TIMER_EVENT_STOP", Value: 3},
+	{Name: "SNDRV_TIMER_EVENT_SUSPEND", Value: 7},
+	{Name: "SNDRV_TIMER_EVENT_TICK", Value: 1},
+	{Name: "SNDRV_TIMER_GLOBAL_HPET", Value: 2},
+	{Name: "SNDRV_TIMER_GLOBAL_HRTIMER", Value: 3},
+	{Name: "SNDRV_TIMER_GLOBAL_RTC", Value: 1},
+	{Name: "SNDRV_TIMER_GLOBAL_SYSTEM"},
+	{Name: "SNDRV_TIMER_IOCTL_CONTINUE", Value: 536892578},
+	{Name: "SNDRV_TIMER_IOCTL_GINFO", Value: 3237499907},
+	{Name: "SNDRV_TIMER_IOCTL_GPARAMS", Value: 2152223748},
+	{Name: "SNDRV_TIMER_IOCTL_GSTATUS", Value: 3226489861},
+	{Name: "SNDRV_TIMER_IOCTL_INFO", Value: 1088967697},
+	{Name: "SNDRV_TIMER_IOCTL_NEXT_DEVICE", Value: 3222557697},
+	{Name: "SNDRV_TIMER_IOCTL_PARAMS", Value: 2152748050},
+	{Name: "SNDRV_TIMER_IOCTL_PAUSE", Value: 536892579},
+	{Name: "SNDRV_TIMER_IOCTL_PVERSION", Value: 1074025472},
+	{Name: "SNDRV_TIMER_IOCTL_SELECT", Value: 2150913040},
+	{Name: "SNDRV_TIMER_IOCTL_START", Value: 536892576},
+	{Name: "SNDRV_TIMER_IOCTL_STATUS", Value: 1080054804},
+	{Name: "SNDRV_TIMER_IOCTL_STOP", Value: 536892577},
+	{Name: "SNDRV_TIMER_IOCTL_TREAD", Value: 2147767298},
+	{Name: "SNDRV_TIMER_PSFLG_AUTO", Value: 1},
+	{Name: "SNDRV_TIMER_PSFLG_EARLY_EVENT", Value: 4},
+	{Name: "SNDRV_TIMER_PSFLG_EXCLUSIVE", Value: 2},
+	{Name: "SNDRV_TIMER_SCLASS_APPLICATION", Value: 1},
+	{Name: "SNDRV_TIMER_SCLASS_NONE"},
+	{Name: "SNDRV_TIMER_SCLASS_OSS_SEQUENCER", Value: 3},
+	{Name: "SNDRV_TIMER_SCLASS_SEQUENCER", Value: 2},
+	{Name: "SOCK_CLOEXEC", Value: 524288},
+	{Name: "SOCK_DCCP", Value: 6},
+	{Name: "SOCK_DGRAM", Value: 2},
+	{Name: "SOCK_NONBLOCK", Value: 2048},
+	{Name: "SOCK_PACKET", Value: 10},
+	{Name: "SOCK_RAW", Value: 3},
+	{Name: "SOCK_RDM", Value: 4},
+	{Name: "SOCK_SEQPACKET", Value: 5},
+	{Name: "SOCK_STREAM", Value: 1},
+	{Name: "SOF_TIMESTAMPING_OPT_CMSG", Value: 1024},
+	{Name: "SOF_TIMESTAMPING_OPT_ID", Value: 128},
+	{Name: "SOF_TIMESTAMPING_OPT_TSONLY", Value: 2048},
+	{Name: "SOF_TIMESTAMPING_RAW_HARDWARE", Value: 64},
+	{Name: "SOF_TIMESTAMPING_RX_HARDWARE", Value: 4},
+	{Name: "SOF_TIMESTAMPING_RX_SOFTWARE", Value: 8},
+	{Name: "SOF_TIMESTAMPING_SOFTWARE", Value: 16},
+	{Name: "SOF_TIMESTAMPING_SYS_HARDWARE", Value: 32},
+	{Name: "SOF_TIMESTAMPING_TX_ACK", Value: 512},
+	{Name: "SOF_TIMESTAMPING_TX_HARDWARE", Value: 1},
+	{Name: "SOF_TIMESTAMPING_TX_SCHED", Value: 256},
+	{Name: "SOF_TIMESTAMPING_TX_SOFTWARE", Value: 2},
+	{Name: "SOL_AAL", Value: 265},
+	{Name: "SOL_ALG", Value: 279},
+	{Name: "SOL_ATALK", Value: 258},
+	{Name: "SOL_ATM", Value: 264},
+	{Name: "SOL_AX25", Value: 257},
+	{Name: "SOL_BLUETOOTH", Value: 274},
+	{Name: "SOL_CAIF", Value: 278},
+	{Name: "SOL_DCCP", Value: 269},
+	{Name: "SOL_DECNET", Value: 261},
+	{Name: "SOL_ICMPV6", Value: 58},
+	{Name: "SOL_IP"},
+	{Name: "SOL_IPV6", Value: 41},
+	{Name: "SOL_IPX", Value: 256},
+	{Name: "SOL_IRDA", Value: 266},
+	{Name: "SOL_IUCV", Value: 277},
+	{Name: "SOL_KCM", Value: 281},
+	{Name: "SOL_L2CAP", Value: 6},
+	{Name: "SOL_LLC", Value: 268},
+	{Name: "SOL_NETBEUI", Value: 267},
+	{Name: "SOL_NETLINK", Value: 270},
+	{Name: "SOL_NETROM", Value: 259},
+	{Name: "SOL_NFC", Value: 280},
+	{Name: "SOL_PACKET", Value: 263},
+	{Name: "SOL_PNPIPE", Value: 275},
+	{Name: "SOL_PPPOL2TP", Value: 273},
+	{Name: "SOL_RAW", Value: 255},
+	{Name: "SOL_RDS", Value: 276},
+	{Name: "SOL_RFCOMM", Value: 18},
+	{Name: "SOL_ROSE", Value: 260},
+	{Name: "SOL_RXRPC", Value: 272},
+	{Name: "SOL_SCO", Value: 17},
+	{Name: "SOL_SCTP", Value: 132},
+	{Name: "SOL_SOCKET", Value: 1},
+	{Name: "SOL_TCP", Value: 6},
+	{Name: "SOL_TIPC", Value: 271},
+	{Name: "SOL_UDP", Value: 17},
+	{Name: "SOL_UDPLITE", Value: 136},
+	{Name: "SOPASS_MAX", Value: 6},
+	{Name: "SO_ACCEPTCONN", Value: 30},
+	{Name: "SO_ATTACH_BPF", Value: 50},
+	{Name: "SO_ATTACH_FILTER", Value: 26},
+	{Name: "SO_BINDTODEVICE", Value: 25},
+	{Name: "SO_BROADCAST", Value: 6},
+	{Name: "SO_BUSY_POLL", Value: 46},
+	{Name: "SO_DEBUG", Value: 1},
+	{Name: "SO_DETACH_FILTER", Value: 27},
+	{Name: "SO_DOMAIN", Value: 39},
+	{Name: "SO_DONTROUTE", Value: 5},
+	{Name: "SO_ERROR", Value: 4},
+	{Name: "SO_GET_FILTER", Value: 26},
+	{Name: "SO_KEEPALIVE", Value: 9},
+	{Name: "SO_LINGER", Value: 13},
+	{Name: "SO_LOCK_FILTER", Value: 44},
+	{Name: "SO_MARK", Value: 36},
+	{Name: "SO_MAX_PACING_RATE", Value: 47},
+	{Name: "SO_NOFCS", Value: 43},
+	{Name: "SO_NO_CHECK", Value: 11},
+	{Name: "SO_OOBINLINE", Value: 10},
+	{Name: "SO_PASSCRED", Value: 20},
+	{Name: "SO_PASSSEC", Value: 34},
+	{Name: "SO_PEEK_OFF", Value: 42},
+	{Name: "SO_PEERCRED", Value: 21},
+	{Name: "SO_PEERNAME", Value: 28},
+	{Name: "SO_PEERSEC", Value: 31},
+	{Name: "SO_PRIORITY", Value: 12},
+	{Name: "SO_PROTOCOL", Value: 38},
+	{Name: "SO_RCVBUF", Value: 8},
+	{Name: "SO_RCVBUFFORCE", Value: 33},
+	{Name: "SO_RCVLOWAT", Value: 16},
+	{Name: "SO_RCVTIMEO", Value: 18},
+	{Name: "SO_REUSEADDR", Value: 2},
+	{Name: "SO_REUSEPORT", Value: 15},
+	{Name: "SO_RXQ_OVFL", Value: 40},
+	{Name: "SO_SELECT_ERR_QUEUE", Value: 45},
+	{Name: "SO_SNDBUF", Value: 7},
+	{Name: "SO_SNDBUFFORCE", Value: 32},
+	{Name: "SO_SNDLOWAT", Value: 17},
+	{Name: "SO_SNDTIMEO", Value: 19},
+	{Name: "SO_TIMESTAMP", Value: 29},
+	{Name: "SO_TIMESTAMPING", Value: 37},
+	{Name: "SO_TIMESTAMPNS", Value: 35},
+	{Name: "SO_TYPE", Value: 3},
+	{Name: "SO_WIFI_STATUS", Value: 41},
+	{Name: "SPLICE_F_GIFT", Value: 8},
+	{Name: "SPLICE_F_MORE", Value: 4},
+	{Name: "SPLICE_F_MOVE", Value: 1},
+	{Name: "SPLICE_F_NONBLOCK", Value: 2},
+	{Name: "SPP_HB_DEMAND", Value: 4},
+	{Name: "SPP_HB_DISABLE", Value: 2},
+	{Name: "SPP_HB_ENABLE", Value: 1},
+	{Name: "SPP_HB_TIME_IS_ZERO", Value: 128},
+	{Name: "SPP_PMTUD_DISABLE", Value: 16},
+	{Name: "SPP_PMTUD_ENABLE", Value: 8},
+	{Name: "SPP_SACKDELAY_DISABLE", Value: 64},
+	{Name: "SPP_SACKDELAY_ENABLE", Value: 32},
+	{Name: "STATX_ALL", Value: 4095},
+	{Name: "STATX_ATIME", Value: 32},
+	{Name: "STATX_BASIC_STATS", Value: 2047},
+	{Name: "STATX_BLOCKS", Value: 1024},
+	{Name: "STATX_BTIME", Value: 2048},
+	{Name: "STATX_CTIME", Value: 128},
+	{Name: "STATX_GID", Value: 16},
+	{Name: "STATX_INO", Value: 256},
+	{Name: "STATX_MODE", Value: 2},
+	{Name: "STATX_MTIME", Value: 64},
+	{Name: "STATX_NLINK", Value: 4},
+	{Name: "STATX_SIZE", Value: 512},
+	{Name: "STATX_TYPE", Value: 1},
+	{Name: "STATX_UID", Value: 8},
+	{Name: "STICKY_TIMEOUTS", Value: 67108864},
+	{Name: "SYNC_FILE_RANGE_WAIT_AFTER", Value: 4},
+	{Name: "SYNC_FILE_RANGE_WAIT_BEFORE", Value: 1},
+	{Name: "SYNC_FILE_RANGE_WRITE", Value: 2},
+	{Name: "SYSLOG_ACTION_CLEAR", Value: 5},
+	{Name: "SYSLOG_ACTION_CLOSE"},
+	{Name: "SYSLOG_ACTION_CONSOLE_OFF", Value: 6},
+	{Name: "SYSLOG_ACTION_CONSOLE_ON", Value: 7},
+	{Name: "SYSLOG_ACTION_OPEN", Value: 1},
+	{Name: "SYSLOG_ACTION_READ", Value: 2},
+	{Name: "SYSLOG_ACTION_READ_ALL", Value: 3},
+	{Name: "SYSLOG_ACTION_READ_CLEAR", Value: 4},
+	{Name: "SYSLOG_ACTION_SIZE_BUFFER", Value: 10},
+	{Name: "SYSLOG_ACTION_SIZE_UNREAD", Value: 9},
+	{Name: "S_IFBLK", Value: 24576},
+	{Name: "S_IFCHR", Value: 8192},
+	{Name: "S_IFDIR", Value: 16384},
+	{Name: "S_IFIFO", Value: 4096},
+	{Name: "S_IFLNK", Value: 40960},
+	{Name: "S_IFREG", Value: 32768},
+	{Name: "S_IFSOCK", Value: 49152},
+	{Name: "S_IRGRP", Value: 32},
+	{Name: "S_IROTH", Value: 4},
+	{Name: "S_IRUSR", Value: 256},
+	{Name: "S_IWGRP", Value: 16},
+	{Name: "S_IWOTH", Value: 2},
+	{Name: "S_IWUSR", Value: 128},
+	{Name: "S_IXGRP", Value: 8},
+	{Name: "S_IXOTH", Value: 1},
+	{Name: "S_IXUSR", Value: 64},
+	{Name: "TCFLSH", Value: 536900639},
+	{Name: "TCPHDR_ACK", Value: 16},
+	{Name: "TCPHDR_CWR", Value: 128},
+	{Name: "TCPHDR_ECE", Value: 64},
+	{Name: "TCPHDR_FIN", Value: 1},
+	{Name: "TCPHDR_PSH", Value: 8},
+	{Name: "TCPHDR_RST", Value: 4},
+	{Name: "TCPHDR_SYN", Value: 2},
+	{Name: "TCPHDR_SYN_ECN", Value: 194},
+	{Name: "TCPHDR_URG", Value: 32},
+	{Name: "TCPOPT_EOL"},
+	{Name: "TCPOPT_EXP", Value: 254},
+	{Name: "TCPOPT_FASTOPEN", Value: 34},
+	{Name: "TCPOPT_MD5SIG", Value: 19},
+	{Name: "TCPOPT_MSS", Value: 2},
+	{Name: "TCPOPT_NOP", Value: 1},
+	{Name: "TCPOPT_SACK", Value: 5},
+	{Name: "TCPOPT_SACK_PERM", Value: 4},
+	{Name: "TCPOPT_TIMESTAMP", Value: 8},
+	{Name: "TCPOPT_WINDOW", Value: 3},
+	{Name: "TCP_CC_INFO", Value: 26},
+	{Name: "TCP_CONGESTION", Value: 13},
+	{Name: "TCP_CORK", Value: 3},
+	{Name: "TCP_DEFER_ACCEPT", Value: 9},
+	{Name: "TCP_FASTOPEN", Value: 23},
+	{Name: "TCP_INFO", Value: 11},
+	{Name: "TCP_KEEPCNT", Value: 6},
+	{Name: "TCP_KEEPIDLE", Value: 4},
+	{Name: "TCP_KEEPINTVL", Value: 5},
+	{Name: "TCP_LINGER2", Value: 8},
+	{Name: "TCP_MAXSEG", Value: 2},
+	{Name: "TCP_MD5SIG", Value: 14},
+	{Name: "TCP_MD5SIG_MAXKEYLEN", Value: 80},
+	{Name: "TCP_NODELAY", Value: 1},
+	{Name: "TCP_NOTSENT_LOWAT", Value: 25},
+	{Name: "TCP_QUEUE_SEQ", Value: 21},
+	{Name: "TCP_QUICKACK", Value: 12},
+	{Name: "TCP_REPAIR", Value: 19},
+	{Name: "TCP_REPAIR_OPTIONS", Value: 22},
+	{Name: "TCP_REPAIR_QUEUE", Value: 20},
+	{Name: "TCP_REPAIR_WINDOW", Value: 29},
+	{Name: "TCP_SAVED_SYN", Value: 28},
+	{Name: "TCP_SAVE_SYN", Value: 27},
+	{Name: "TCP_SYNCNT", Value: 7},
+	{Name: "TCP_THIN_DUPACK", Value: 17},
+	{Name: "TCP_THIN_LINEAR_TIMEOUTS", Value: 16},
+	{Name: "TCP_TIMESTAMP", Value: 24},
+	{Name: "TCP_USER_TIMEOUT", Value: 18},
+	{Name: "TCP_V4_FLOW", Value: 1},
+	{Name: "TCP_V6_FLOW", Value: 5},
+	{Name: "TCP_WINDOW_CLAMP", Value: 10},
+	{Name: "TCSBRK", Value: 536900637},
+	{Name: "TCSBRKP", Value: 21541},
+	{Name: "TCXONC", Value: 536900638},
+	{Name: "TFD_CLOEXEC", Value: 524288},
+	{Name: "TFD_NONBLOCK", Value: 2048},
+	{Name: "TFD_TIMER_ABSTIME", Value: 1},
+	{Name: "TIMER_ABSTIME", Value: 1},
+	{Name: "TIOCCBRK", Value: 21544},
+	{Name: "TIOCCONS", Value: 21533},
+	{Name: "TIOCEXCL", Value: 21516},
+	{Name: "TIOCGETD", Value: 21540},
+	{Name: "TIOCGLCKTRMIOS", Value: 21590},
+	{Name: "TIOCGPGRP", Value: 1074033783},
+	{Name: "TIOCGSOFTCAR", Value: 21529},
+	{Name: "TIOCINQ", Value: 1074030207},
+	{Name: "TIOCLINUX", Value: 21532},
+	{Name: "TIOCMBIC", Value: 21527},
+	{Name: "TIOCMGET", Value: 21525},
+	{Name: "TIOCMSET", Value: 21528},
+	{Name: "TIOCNOTTY", Value: 21538},
+	{Name: "TIOCNXCL", Value: 21517},
+	{Name: "TIOCOUTQ", Value: 1074033779},
+	{Name: "TIOCPKT", Value: 21536},
+	{Name: "TIOCSBRK", Value: 21543},
+	{Name: "TIOCSCTTY", Value: 21518},
+	{Name: "TIOCSETD", Value: 21539},
+	{Name: "TIOCSLCKTRMIOS", Value: 21591},
+	{Name: "TIOCSSOFTCAR", Value: 21530},
+	{Name: "TIOCSTI", Value: 21522},
+	{Name: "TUNATTACHFILTER", Value: 2148553941},
+	{Name: "TUNDETACHFILTER", Value: 2148553942},
+	{Name: "TUNGETFEATURES", Value: 1074025679},
+	{Name: "TUNGETFILTER", Value: 1074812123},
+	{Name: "TUNGETIFF", Value: 1074025682},
+	{Name: "TUNGETSNDBUF", Value: 1074025683},
+	{Name: "TUNGETVNETHDRSZ", Value: 1074025687},
+	{Name: "TUNSETIFF", Value: 2147767498},
+	{Name: "TUNSETIFINDEX", Value: 2147767514},
+	{Name: "TUNSETLINK", Value: 2147767501},
+	{Name: "TUNSETNOCSUM", Value: 2147767496},
+	{Name: "TUNSETOFFLOAD", Value: 2147767504},
+	{Name: "TUNSETOWNER", Value: 2147767500},
+	{Name: "TUNSETPERSIST", Value: 2147767499},
+	{Name: "TUNSETQUEUE", Value: 2147767513},
+	{Name: "TUNSETSNDBUF", Value: 2147767508},
+	{Name: "TUNSETTXFILTER", Value: 2147767505},
+	{Name: "TUNSETVNETHDRSZ", Value: 2147767512},
+	{Name: "TUN_FLT_ALLMULTI", Value: 1},
+	{Name: "UDP_CORK", Value: 1},
+	{Name: "UDP_ENCAP", Value: 100},
+	{Name: "UDP_ENCAP_ESPINUDP", Value: 2},
+	{Name: "UDP_ENCAP_ESPINUDP_NON_IKE", Value: 1},
+	{Name: "UDP_ENCAP_GTP0", Value: 4},
+	{Name: "UDP_ENCAP_GTP1U", Value: 5},
+	{Name: "UDP_ENCAP_L2TPINUDP", Value: 3},
+	{Name: "UDP_NO_CHECK6_RX", Value: 102},
+	{Name: "UDP_NO_CHECK6_TX", Value: 101},
+	{Name: "UDP_V4_FLOW", Value: 2},
+	{Name: "UDP_V6_FLOW", Value: 6},
+	{Name: "UFFDIO_API", Value: 3222841919},
+	{Name: "UFFDIO_COPY_MODE_DONTWAKE", Value: 1},
+	{Name: "UFFDIO_REGISTER", Value: 3223366144},
+	{Name: "UFFDIO_REGISTER_MODE_MISSING", Value: 1},
+	{Name: "UFFDIO_REGISTER_MODE_WP", Value: 2},
+	{Name: "UFFDIO_UNREGISTER", Value: 1074833921},
+	{Name: "UFFDIO_WAKE", Value: 1074833922},
+	{Name: "UFFDIO_ZEROPAGE_MODE_DONTWAKE", Value: 1},
+	{Name: "UFFD_API", Value: 170},
+	{Name: "UFFD_FEATURE_EVENT_FORK", Value: 2},
+	{Name: "UFFD_FEATURE_EVENT_REMAP", Value: 4},
+	{Name: "UFFD_FEATURE_EVENT_REMOVE", Value: 8},
+	{Name: "UFFD_FEATURE_EVENT_UNMAP", Value: 64},
+	{Name: "UFFD_FEATURE_MISSING_HUGETLBFS", Value: 16},
+	{Name: "UFFD_FEATURE_MISSING_SHMEM", Value: 32},
+	{Name: "UFFD_FEATURE_PAGEFAULT_FLAG_WP", Value: 1},
+	{Name: "UMOUNT_NOFOLLOW", Value: 8},
+	{Name: "USER_CLIENT", Value: 1},
+	{Name: "VIRTIO_NET_HDR_F_DATA_VALID", Value: 2},
+	{Name: "VIRTIO_NET_HDR_F_NEEDS_CSUM", Value: 1},
+	{Name: "VIRTIO_NET_HDR_GSO_ECN", Value: 128},
+	{Name: "VIRTIO_NET_HDR_GSO_NONE"},
+	{Name: "VIRTIO_NET_HDR_GSO_TCPV4", Value: 1},
+	{Name: "VIRTIO_NET_HDR_GSO_TCPV6", Value: 4},
+	{Name: "VIRTIO_NET_HDR_GSO_UDP", Value: 3},
+	{Name: "VT_ACTIVATE", Value: 22022},
+	{Name: "VT_DISALLOCATE", Value: 22024},
+	{Name: "VT_GETMODE", Value: 22017},
+	{Name: "VT_GETSTATE", Value: 22019},
+	{Name: "VT_OPENQRY", Value: 22016},
+	{Name: "VT_RELDISP", Value: 22021},
+	{Name: "VT_RESIZE", Value: 22025},
+	{Name: "VT_RESIZEX", Value: 22026},
+	{Name: "VT_SETMODE", Value: 22018},
+	{Name: "VT_WAITACTIVE", Value: 22023},
+	{Name: "WCONTINUED", Value: 8},
+	{Name: "WEXITED", Value: 4},
+	{Name: "WHOLE_SECONDS", Value: 33554432},
+	{Name: "WNOHANG", Value: 1},
+	{Name: "WNOWAIT", Value: 16777216},
+	{Name: "WSTOPPED", Value: 2},
+	{Name: "WUNTRACED", Value: 2},
+	{Name: "X25_CALL_ACCEPTED", Value: 15},
+	{Name: "X25_CALL_REQUEST", Value: 11},
+	{Name: "X25_CLEAR_CONFIRMATION", Value: 23},
+	{Name: "X25_CLEAR_REQUEST", Value: 19},
+	{Name: "X25_DATA"},
+	{Name: "X25_DIAGNOSTIC", Value: 241},
+	{Name: "X25_IFACE_CONNECT", Value: 1},
+	{Name: "X25_IFACE_DATA"},
+	{Name: "X25_IFACE_DISCONNECT", Value: 2},
+	{Name: "X25_IFACE_PARAMS", Value: 3},
+	{Name: "X25_ILLEGAL", Value: 253},
+	{Name: "X25_INTERRUPT", Value: 35},
+	{Name: "X25_INTERRUPT_CONFIRMATION", Value: 39},
+	{Name: "X25_REGISTRATION_CONFIRMATION", Value: 247},
+	{Name: "X25_REGISTRATION_REQUEST", Value: 243},
+	{Name: "X25_REJ", Value: 9},
+	{Name: "X25_RESET_CONFIRMATION", Value: 31},
+	{Name: "X25_RESET_REQUEST", Value: 27},
+	{Name: "X25_RESTART_CONFIRMATION", Value: 255},
+	{Name: "X25_RESTART_REQUEST", Value: 251},
+	{Name: "X25_RNR", Value: 5},
+	{Name: "X25_RR", Value: 1},
+	{Name: "XATTR_CREATE", Value: 1},
+	{Name: "XATTR_REPLACE", Value: 2},
+	{Name: "XFRM_MODE_BEET", Value: 4},
+	{Name: "XFRM_MODE_IN_TRIGGER", Value: 3},
+	{Name: "XFRM_MODE_ROUTEOPTIMIZATION", Value: 2},
+	{Name: "XFRM_MODE_TRANSPORT"},
+	{Name: "XFRM_MODE_TUNNEL", Value: 1},
+	{Name: "XFRM_POLICY_ALLOW"},
+	{Name: "XFRM_POLICY_BLOCK", Value: 1},
+	{Name: "XFRM_SHARE_ANY"},
+	{Name: "XFRM_SHARE_SESSION", Value: 1},
+	{Name: "XFRM_SHARE_UNIQUE", Value: 3},
+	{Name: "XFRM_SHARE_USER", Value: 2},
+	{Name: "XFRM_STATE_AF_UNSPEC", Value: 32},
+	{Name: "XFRM_STATE_ALIGN4", Value: 64},
+	{Name: "XFRM_STATE_DECAP_DSCP", Value: 2},
+	{Name: "XFRM_STATE_ESN", Value: 128},
+	{Name: "XFRM_STATE_ICMP", Value: 16},
+	{Name: "XFRM_STATE_NOECN", Value: 1},
+	{Name: "XFRM_STATE_NOPMTUDISC", Value: 4},
+	{Name: "XFRM_STATE_WILDRECV", Value: 8},
+	{Name: "_DRM_AGP", Value: 3},
+	{Name: "_DRM_AGP_BUFFER", Value: 2},
+	{Name: "_DRM_CONSISTENT", Value: 5},
+	{Name: "_DRM_CONTAINS_LOCK", Value: 32},
+	{Name: "_DRM_CONTEXT_2DONLY", Value: 2},
+	{Name: "_DRM_CONTEXT_PRESERVED", Value: 1},
+	{Name: "_DRM_DMA_BLOCK", Value: 1},
+	{Name: "_DRM_DMA_LARGER_OK", Value: 64},
+	{Name: "_DRM_DMA_PRIORITY", Value: 4},
+	{Name: "_DRM_DMA_SMALLER_OK", Value: 32},
+	{Name: "_DRM_DMA_WAIT", Value: 16},
+	{Name: "_DRM_DMA_WHILE_LOCKED", Value: 2},
+	{Name: "_DRM_DRIVER", Value: 128},
+	{Name: "_DRM_FB_BUFFER", Value: 8},
+	{Name: "_DRM_FRAME_BUFFER"},
+	{Name: "_DRM_HALT_ALL_QUEUES", Value: 16},
+	{Name: "_DRM_HALT_CUR_QUEUES", Value: 32},
+	{Name: "_DRM_KERNEL", Value: 8},
+	{Name: "_DRM_LOCKED", Value: 4},
+	{Name: "_DRM_LOCK_FLUSH", Value: 4},
+	{Name: "_DRM_LOCK_FLUSH_ALL", Value: 8},
+	{Name: "_DRM_LOCK_QUIESCENT", Value: 2},
+	{Name: "_DRM_LOCK_READY", Value: 1},
+	{Name: "_DRM_PAGE_ALIGN", Value: 1},
+	{Name: "_DRM_PCI_BUFFER_RO", Value: 16},
+	{Name: "_DRM_READ_ONLY", Value: 2},
+	{Name: "_DRM_REGISTERS", Value: 1},
+	{Name: "_DRM_REMOVABLE", Value: 64},
+	{Name: "_DRM_RESTRICTED", Value: 1},
+	{Name: "_DRM_SCATTER_GATHER", Value: 4},
+	{Name: "_DRM_SG_BUFFER", Value: 4},
+	{Name: "_DRM_SHM", Value: 2},
+	{Name: "_DRM_VBLANK_ABSOLUTE"},
+	{Name: "_DRM_VBLANK_EVENT", Value: 67108864},
+	{Name: "_DRM_VBLANK_FLIP", Value: 134217728},
+	{Name: "_DRM_VBLANK_HIGH_CRTC_MASK", Value: 62},
+	{Name: "_DRM_VBLANK_NEXTONMISS", Value: 268435456},
+	{Name: "_DRM_VBLANK_RELATIVE", Value: 1},
+	{Name: "_DRM_VBLANK_SECONDARY", Value: 536870912},
+	{Name: "_DRM_VBLANK_SIGNAL", Value: 1073741824},
+	{Name: "_DRM_WRITE_COMBINING", Value: 16},
+	{Name: "__NR_accept", Value: 330},
+	{Name: "__NR_accept4", Value: 344},
+	{Name: "__NR_acct", Value: 51},
+	{Name: "__NR_add_key", Value: 269},
+	{Name: "__NR_alarm", Value: 27},
+	{Name: "__NR_bind", Value: 327},
+	{Name: "__NR_bpf", Value: 361},
+	{Name: "__NR_capget", Value: 183},
+	{Name: "__NR_capset", Value: 184},
+	{Name: "__NR_chdir", Value: 12},
+	{Name: "__NR_chmod", Value: 15},
+	{Name: "__NR_chown", Value: 181},
+	{Name: "__NR_chroot", Value: 61},
+	{Name: "__NR_clock_adjtime", Value: 347},
+	{Name: "__NR_clock_getres", Value: 247},
+	{Name: "__NR_clock_gettime", Value: 246},
+	{Name: "__NR_clock_nanosleep", Value: 248},
+	{Name: "__NR_clock_settime", Value: 245},
+	{Name: "__NR_clone", Value: 120},
+	{Name: "__NR_close", Value: 6},
+	{Name: "__NR_connect", Value: 328},
+	{Name: "__NR_creat", Value: 8},
+	{Name: "__NR_delete_module", Value: 129},
+	{Name: "__NR_dup", Value: 41},
+	{Name: "__NR_dup2", Value: 63},
+	{Name: "__NR_dup3", Value: 316},
+	{Name: "__NR_epoll_create", Value: 236},
+	{Name: "__NR_epoll_create1", Value: 315},
+	{Name: "__NR_epoll_ctl", Value: 237},
+	{Name: "__NR_epoll_pwait", Value: 303},
+	{Name: "__NR_epoll_wait", Value: 238},
+	{Name: "__NR_eventfd", Value: 307},
+	{Name: "__NR_eventfd2", Value: 314},
+	{Name: "__NR_execve", Value: 11},
+	{Name: "__NR_execveat", Value: 362},
+	{Name: "__NR_exit", Value: 1},
+	{Name: "__NR_exit_group", Value: 234},
+	{Name: "__NR_faccessat", Value: 298},
+	{Name: "__NR_fadvise64", Value: 233},
+	{Name: "__NR_fallocate", Value: 309},
+	{Name: "__NR_fanotify_init", Value: 323},
+	{Name: "__NR_fanotify_mark", Value: 324},
+	{Name: "__NR_fchdir", Value: 133},
+	{Name: "__NR_fchmod", Value: 94},
+	{Name: "__NR_fchmodat", Value: 297},
+	{Name: "__NR_fchown", Value: 95},
+	{Name: "__NR_fchownat", Value: 289},
+	{Name: "__NR_fcntl", Value: 55},
+	{Name: "__NR_fdatasync", Value: 148},
+	{Name: "__NR_fgetxattr", Value: 214},
+	{Name: "__NR_finit_module", Value: 353},
+	{Name: "__NR_flistxattr", Value: 217},
+	{Name: "__NR_flock", Value: 143},
+	{Name: "__NR_fremovexattr", Value: 220},
+	{Name: "__NR_fsetxattr", Value: 211},
+	{Name: "__NR_fstat", Value: 108},
+	{Name: "__NR_fstatfs", Value: 100},
+	{Name: "__NR_fsync", Value: 118},
+	{Name: "__NR_ftruncate", Value: 93},
+	{Name: "__NR_futex", Value: 221},
+	{Name: "__NR_futimesat", Value: 290},
+	{Name: "__NR_get_kernel_syms", Value: 130},
+	{Name: "__NR_get_mempolicy", Value: 260},
+	{Name: "__NR_get_robust_list", Value: 299},
+	{Name: "__NR_getcwd", Value: 182},
+	{Name: "__NR_getdents", Value: 141},
+	{Name: "__NR_getdents64", Value: 202},
+	{Name: "__NR_getegid", Value: 50},
+	{Name: "__NR_geteuid", Value: 49},
+	{Name: "__NR_getgid", Value: 47},
+	{Name: "__NR_getgroups", Value: 80},
+	{Name: "__NR_getitimer", Value: 105},
+	{Name: "__NR_getpeername", Value: 332},
+	{Name: "__NR_getpgid", Value: 132},
+	{Name: "__NR_getpgrp", Value: 65},
+	{Name: "__NR_getpid", Value: 20},
+	{Name: "__NR_getpriority", Value: 96},
+	{Name: "__NR_getrandom", Value: 359},
+	{Name: "__NR_getresgid", Value: 170},
+	{Name: "__NR_getresuid", Value: 165},
+	{Name: "__NR_getrlimit", Value: 76},
+	{Name: "__NR_getrusage", Value: 77},
+	{Name: "__NR_getsockname", Value: 331},
+	{Name: "__NR_getsockopt", Value: 340},
+	{Name: "__NR_gettid", Value: 207},
+	{Name: "__NR_getuid", Value: 24},
+	{Name: "__NR_getxattr", Value: 212},
+	{Name: "__NR_init_module", Value: 128},
+	{Name: "__NR_inotify_add_watch", Value: 276},
+	{Name: "__NR_inotify_init", Value: 275},
+	{Name: "__NR_inotify_init1", Value: 318},
+	{Name: "__NR_inotify_rm_watch", Value: 277},
+	{Name: "__NR_io_cancel", Value: 231},
+	{Name: "__NR_io_destroy", Value: 228},
+	{Name: "__NR_io_getevents", Value: 229},
+	{Name: "__NR_io_setup", Value: 227},
+	{Name: "__NR_io_submit", Value: 230},
+	{Name: "__NR_ioctl", Value: 54},
+	{Name: "__NR_ioperm", Value: 101},
+	{Name: "__NR_iopl", Value: 110},
+	{Name: "__NR_ioprio_get", Value: 274},
+	{Name: "__NR_ioprio_set", Value: 273},
+	{Name: "__NR_kcmp", Value: 354},
+	{Name: "__NR_kexec_load", Value: 268},
+	{Name: "__NR_keyctl", Value: 271},
+	{Name: "__NR_lchown", Value: 16},
+	{Name: "__NR_lgetxattr", Value: 213},
+	{Name: "__NR_link", Value: 9},
+	{Name: "__NR_linkat", Value: 294},
+	{Name: "__NR_listen", Value: 329},
+	{Name: "__NR_listxattr", Value: 215},
+	{Name: "__NR_llistxattr", Value: 216},
+	{Name: "__NR_lookup_dcookie", Value: 235},
+	{Name: "__NR_lremovexattr", Value: 219},
+	{Name: "__NR_lseek", Value: 19},
+	{Name: "__NR_lsetxattr", Value: 210},
+	{Name: "__NR_lstat", Value: 107},
+	{Name: "__NR_madvise", Value: 205},
+	{Name: "__NR_mbind", Value: 259},
+	{Name: "__NR_membarrier", Value: 365},
+	{Name: "__NR_memfd_create", Value: 360},
+	{Name: "__NR_migrate_pages", Value: 258},
+	{Name: "__NR_mincore", Value: 206},
+	{Name: "__NR_mkdir", Value: 39},
+	{Name: "__NR_mkdirat", Value: 287},
+	{Name: "__NR_mknod", Value: 14},
+	{Name: "__NR_mknodat", Value: 288},
+	{Name: "__NR_mlock", Value: 150},
+	{Name: "__NR_mlock2", Value: 378},
+	{Name: "__NR_mlockall", Value: 152},
+	{Name: "__NR_mmap", Value: 90},
+	{Name: "__NR_modify_ldt", Value: 123},
+	{Name: "__NR_mount", Value: 21},
+	{Name: "__NR_move_pages", Value: 301},
+	{Name: "__NR_mprotect", Value: 125},
+	{Name: "__NR_mq_getsetattr", Value: 267},
+	{Name: "__NR_mq_notify", Value: 266},
+	{Name: "__NR_mq_open", Value: 262},
+	{Name: "__NR_mq_timedreceive", Value: 265},
+	{Name: "__NR_mq_timedsend", Value: 264},
+	{Name: "__NR_mq_unlink", Value: 263},
+	{Name: "__NR_mremap", Value: 163},
+	{Name: "__NR_msync", Value: 144},
+	{Name: "__NR_munlock", Value: 151},
+	{Name: "__NR_munlockall", Value: 153},
+	{Name: "__NR_munmap", Value: 91},
+	{Name: "__NR_name_to_handle_at", Value: 345},
+	{Name: "__NR_nanosleep", Value: 162},
+	{Name: "__NR_open", Value: 5},
+	{Name: "__NR_open_by_handle_at", Value: 346},
+	{Name: "__NR_openat", Value: 286},
+	{Name: "__NR_pause", Value: 29},
+	{Name: "__NR_perf_event_open", Value: 319},
+	{Name: "__NR_personality", Value: 136},
+	{Name: "__NR_pipe", Value: 42},
+	{Name: "__NR_pipe2", Value: 317},
+	{Name: "__NR_pivot_root", Value: 203},
+	{Name: "__NR_poll", Value: 167},
+	{Name: "__NR_ppoll", Value: 281},
+	{Name: "__NR_prctl", Value: 171},
+	{Name: "__NR_pread64", Value: 179},
+	{Name: "__NR_preadv", Value: 320},
+	{Name: "__NR_prlimit64", Value: 325},
+	{Name: "__NR_process_vm_readv", Value: 351},
+	{Name: "__NR_process_vm_writev", Value: 352},
+	{Name: "__NR_pselect6", Value: 280},
+	{Name: "__NR_ptrace", Value: 26},
+	{Name: "__NR_pwrite64", Value: 180},
+	{Name: "__NR_pwritev", Value: 321},
+	{Name: "__NR_read", Value: 3},
+	{Name: "__NR_readahead", Value: 191},
+	{Name: "__NR_readlink", Value: 85},
+	{Name: "__NR_readlinkat", Value: 296},
+	{Name: "__NR_readv", Value: 145},
+	{Name: "__NR_recvfrom", Value: 337},
+	{Name: "__NR_recvmmsg", Value: 343},
+	{Name: "__NR_recvmsg", Value: 342},
+	{Name: "__NR_remap_file_pages", Value: 239},
+	{Name: "__NR_removexattr", Value: 218},
+	{Name: "__NR_rename", Value: 38},
+	{Name: "__NR_renameat", Value: 293},
+	{Name: "__NR_renameat2", Value: 357},
+	{Name: "__NR_request_key", Value: 270},
+	{Name: "__NR_restart_syscall"},
+	{Name: "__NR_rmdir", Value: 40},
+	{Name: "__NR_rt_sigaction", Value: 173},
+	{Name: "__NR_rt_sigpending", Value: 175},
+	{Name: "__NR_rt_sigprocmask", Value: 174},
+	{Name: "__NR_rt_sigqueueinfo", Value: 177},
+	{Name: "__NR_rt_sigreturn", Value: 172},
+	{Name: "__NR_rt_sigsuspend", Value: 178},
+	{Name: "__NR_rt_sigtimedwait", Value: 176},
+	{Name: "__NR_rt_tgsigqueueinfo", Value: 322},
+	{Name: "__NR_sched_getaffinity", Value: 223},
+	{Name: "__NR_sched_getattr", Value: 356},
+	{Name: "__NR_sched_getparam", Value: 155},
+	{Name: "__NR_sched_getscheduler", Value: 157},
+	{Name: "__NR_sched_rr_get_interval", Value: 161},
+	{Name: "__NR_sched_setaffinity", Value: 222},
+	{Name: "__NR_sched_setattr", Value: 355},
+	{Name: "__NR_sched_setparam", Value: 154},
+	{Name: "__NR_sched_setscheduler", Value: 156},
+	{Name: "__NR_sched_yield", Value: 158},
+	{Name: "__NR_seccomp", Value: 358},
+	{Name: "__NR_select", Value: 82},
+	{Name: "__NR_sendfile", Value: 186},
+	{Name: "__NR_sendmmsg", Value: 349},
+	{Name: "__NR_sendmsg", Value: 341},
+	{Name: "__NR_sendto", Value: 335},
+	{Name: "__NR_set_mempolicy", Value: 261},
+	{Name: "__NR_set_robust_list", Value: 300},
+	{Name: "__NR_set_tid_address", Value: 232},
+	{Name: "__NR_setfsgid", Value: 139},
+	{Name: "__NR_setfsuid", Value: 138},
+	{Name: "__NR_setgid", Value: 46},
+	{Name: "__NR_setgroups", Value: 81},
+	{Name: "__NR_setitimer", Value: 104},
+	{Name: "__NR_setns", Value: 350},
+	{Name: "__NR_setpgid", Value: 57},
+	{Name: "__NR_setpriority", Value: 97},
+	{Name: "__NR_setregid", Value: 71},
+	{Name: "__NR_setresgid", Value: 169},
+	{Name: "__NR_setresuid", Value: 164},
+	{Name: "__NR_setreuid", Value: 70},
+	{Name: "__NR_setrlimit", Value: 75},
+	{Name: "__NR_setsockopt", Value: 339},
+	{Name: "__NR_setuid", Value: 23},
+	{Name: "__NR_setxattr", Value: 209},
+	{Name: "__NR_shutdown", Value: 338},
+	{Name: "__NR_sigaltstack", Value: 185},
+	{Name: "__NR_signalfd", Value: 305},
+	{Name: "__NR_signalfd4", Value: 313},
+	{Name: "__NR_socket", Value: 326},
+	{Name: "__NR_socketpair", Value: 333},
+	{Name: "__NR_splice", Value: 283},
+	{Name: "__NR_stat", Value: 106},
+	{Name: "__NR_statfs", Value: 99},
+	{Name: "__NR_statx", Value: 383},
+	{Name: "__NR_symlink", Value: 83},
+	{Name: "__NR_symlinkat", Value: 295},
+	{Name: "__NR_sync", Value: 36},
+	{Name: "__NR_syncfs", Value: 348},
+	{Name: "__NR_sysfs", Value: 135},
+	{Name: "__NR_sysinfo", Value: 116},
+	{Name: "__NR_syslog", Value: 103},
+	{Name: "__NR_tee", Value: 284},
+	{Name: "__NR_tgkill", Value: 250},
+	{Name: "__NR_time", Value: 13},
+	{Name: "__NR_timer_create", Value: 240},
+	{Name: "__NR_timer_delete", Value: 244},
+	{Name: "__NR_timer_getoverrun", Value: 243},
+	{Name: "__NR_timer_gettime", Value: 242},
+	{Name: "__NR_timer_settime", Value: 241},
+	{Name: "__NR_timerfd_create", Value: 306},
+	{Name: "__NR_timerfd_gettime", Value: 312},
+	{Name: "__NR_timerfd_settime", Value: 311},
+	{Name: "__NR_times", Value: 43},
+	{Name: "__NR_tkill", Value: 208},
+	{Name: "__NR_truncate", Value: 92},
+	{Name: "__NR_umount2", Value: 52},
+	{Name: "__NR_uname", Value: 122},
+	{Name: "__NR_unlink", Value: 10},
+	{Name: "__NR_unlinkat", Value: 292},
+	{Name: "__NR_unshare", Value: 282},
+	{Name: "__NR_uselib", Value: 86},
+	{Name: "__NR_userfaultfd", Value: 364},
+	{Name: "__NR_ustat", Value: 62},
+	{Name: "__NR_utime", Value: 30},
+	{Name: "__NR_utimensat", Value: 304},
+	{Name: "__NR_utimes", Value: 251},
+	{Name: "__NR_vmsplice", Value: 285},
+	{Name: "__NR_wait4", Value: 114},
+	{Name: "__NR_waitid", Value: 272},
+	{Name: "__NR_write", Value: 4},
+	{Name: "__NR_writev", Value: 146},
+	{Name: "__O_TMPFILE", Value: 4194304},
+	{Name: "__WALL", Value: 1073741824},
+	{Name: "__WCLONE", Value: 2147483648},
+	{Name: "__WNOTHREAD", Value: 536870912},
+}
