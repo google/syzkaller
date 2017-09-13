@@ -283,6 +283,11 @@ type KeyedStruct struct {
 	Desc *StructDesc
 }
 
+type ConstValue struct {
+	Name  string
+	Value uint64
+}
+
 func ForeachType(meta *Syscall, f func(Type)) {
 	seen := make(map[*StructDesc]bool)
 	var rec func(t Type)

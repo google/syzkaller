@@ -50,7 +50,8 @@ func (w *writer) do(v reflect.Value, sliceElem bool) {
 			w.string("nil")
 		} else {
 			w.typ(v.Type())
-			if sub := v.Type().Elem().Kind(); sub == reflect.Ptr || sub == reflect.Interface {
+			sub := v.Type().Elem().Kind()
+			if sub == reflect.Ptr || sub == reflect.Interface || sub == reflect.Struct {
 				// Elem per-line.
 				w.string("{\n")
 				for i := 0; i < v.Len(); i++ {
