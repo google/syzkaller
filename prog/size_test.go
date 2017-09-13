@@ -5,12 +5,17 @@ package prog_test
 
 import (
 	"bytes"
+	"runtime"
 	"strings"
 	"testing"
 
 	. "github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
+
+func init() {
+	SetDefaultTarget("linux", runtime.GOARCH)
+}
 
 func TestAssignSizeRandom(t *testing.T) {
 	rs, iters := InitTest(t)

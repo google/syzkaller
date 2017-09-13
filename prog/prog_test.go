@@ -7,8 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"testing"
-	//. "github.com/google/syzkaller/prog"
-	//_ "github.com/google/syzkaller/sys"
 )
 
 func TestGeneration(t *testing.T) {

@@ -66,7 +66,11 @@ func SetDefaultTarget(OS, arch string) error {
 	key := OS + "/" + arch
 	target := targets[key]
 	if target == nil {
-		return fmt.Errorf("unknown target: %v", key)
+		var supported []string
+		for _, t := range targets {
+			supported = append(supported, fmt.Sprintf("%v/%v", t.OS, t.Arch))
+		}
+		return fmt.Errorf("unknown target: %v (supported: %v)", key, supported)
 	}
 	if len(Syscalls) != 0 {
 		return fmt.Errorf("default target is already set")

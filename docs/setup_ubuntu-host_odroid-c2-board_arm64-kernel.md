@@ -296,6 +296,7 @@ $PREFIX/bin/aarch64-linux-gcc executor/executor.cc -O1 -g -Wall -static -o bin/s
 Use the following config:
 ```
 {
+	"target": "linux/arm64",
 	"http": "127.0.0.1:56741",
 	"workdir": "/syzkaller/workdir",
 	"vmlinux": "/linux-next/vmlinux",
