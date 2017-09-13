@@ -245,6 +245,8 @@ func parseSuppressions(cfg *Config) error {
 func CreateVMEnv(cfg *Config, debug bool) *vm.Env {
 	return &vm.Env{
 		Name:    cfg.Name,
+		OS:      cfg.TargetOS,
+		Arch:    cfg.TargetVMArch,
 		Workdir: cfg.Workdir,
 		Image:   cfg.Image,
 		Sshkey:  cfg.Sshkey,
