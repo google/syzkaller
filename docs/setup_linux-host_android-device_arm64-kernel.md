@@ -25,6 +25,7 @@ bin/syz-manager:  Mach-O 64-bit executable x86_64
  - Create config with `"type": "adb"` and specify adb devices to use. For example:
 ```
 {
+	"target": "linux/arm64",
 	"http": "localhost:50000",
 	"workdir": "/gopath/src/github.com/google/syzkaller/workdir",
 	"syzkaller": "/gopath/src/github.com/google/syzkaller",

@@ -209,6 +209,7 @@ make
 Create manager config like this:
 ```
 {
+	"target": "linux/amd64",
 	"http": "127.0.0.1:56741",
 	"workdir": "/gopath/src/github.com/google/syzkaller/workdir",
 	"vmlinux": "/linux/upstream/vmlinux",

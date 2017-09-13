@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/google/syzkaller/prog"
@@ -24,6 +25,10 @@ func main() {
 	flag.Parse()
 	if flag.NArg() != 1 {
 		fmt.Fprintf(os.Stderr, "usage: mutate program\n")
+		os.Exit(1)
+	}
+	if err := prog.SetDefaultTarget(runtime.GOOS, runtime.GOARCH); err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
 	data, err := ioutil.ReadFile(flag.Arg(0))

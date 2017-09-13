@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -15,6 +16,10 @@ import (
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
+
+func init() {
+	prog.SetDefaultTarget("linux", runtime.GOARCH)
+}
 
 func initTest(t *testing.T) (rand.Source, int) {
 	t.Parallel()

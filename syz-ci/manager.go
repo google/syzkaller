@@ -309,6 +309,14 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if mgrcfg.Target == "" {
+		// TODO(dvyukov): temporal measure to handle upgrade.
+		// Remove this once ci configs have targets.
+		mgrcfg.Target = "linux/amd64"
+		mgrcfg.TargetOS = "linux"
+		mgrcfg.TargetVMArch = "amd64"
+		mgrcfg.TargetArch = "amd64"
+	}
 	current := mgr.currentDir
 	if mgr.dash != nil {
 		mgrcfg.Tag = info.Tag
@@ -344,7 +352,7 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 	if err := config.SaveFile(configFile, mgrcfg); err != nil {
 		return "", err
 	}
-	if _, _, err := mgrconfig.LoadFile(configFile); err != nil {
+	if _, err := mgrconfig.LoadFile(configFile); err != nil {
 		return "", err
 	}
 	return configFile, nil

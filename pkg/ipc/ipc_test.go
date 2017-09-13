@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -17,6 +18,10 @@ import (
 )
 
 const timeout = 10 * time.Second
+
+func init() {
+	prog.SetDefaultTarget("linux", runtime.GOARCH)
+}
 
 func buildExecutor(t *testing.T) string {
 	return buildProgram(t, filepath.FromSlash("../../executor/executor.cc"))
