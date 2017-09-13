@@ -3497,7 +3497,7 @@ var structDescs = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "perf_bp_type", FldName: "bptype", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "config5", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "config6", TypeSize: 8}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "perf_branch_sample_type", FldName: "bsample", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "perf_branch_sample_type", FldName: "bsample", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 131072}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "regs", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "stack", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clock_type", FldName: "clockid", TypeSize: 4}}, Vals: []uint64{0, 5, 1, 6, 4, 7, 2, 3}},
@@ -15898,7 +15898,7 @@ const (
 	PERF_SAMPLE_BRANCH_IND_JUMP              = 4096
 	PERF_SAMPLE_BRANCH_IN_TX                 = 256
 	PERF_SAMPLE_BRANCH_KERNEL                = 2
-	PERF_SAMPLE_BRANCH_MAX                   = 65536
+	PERF_SAMPLE_BRANCH_MAX                   = 131072
 	PERF_SAMPLE_BRANCH_NO_CYCLES             = 32768
 	PERF_SAMPLE_BRANCH_NO_FLAGS              = 16384
 	PERF_SAMPLE_BRANCH_NO_TX                 = 512
