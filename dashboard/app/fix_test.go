@@ -118,6 +118,15 @@ func TestFixBasic(t *testing.T) {
 	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
 	reports = reportAllBugs(c, 1)
 	c.expectEQ(reports[0].Title, "title1 (2)")
+
+	// Regression test: previously upstreamming failed because the new bug had fixing commits.
+	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+	cmd = &dashapi.BugUpdate{
+		ID:     reports[0].ID,
+		Status: dashapi.BugStatusUpstream,
+	}
+	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+	c.expectEQ(reply.OK, true)
 }
 
 // Test bug that is fixed by 2 commits.
