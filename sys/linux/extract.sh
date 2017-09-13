@@ -56,13 +56,10 @@ generate_arch() {
 		echo "$OUT"
 		exit 1
 	fi
-	for F in $FILES; do
-		echo "extracting from $F"
-		bin/syz-extract -arch $1 -linux "$LINUX" -linuxbld "$LINUXBLD" "sys/linux/$F"
-		if [ $? -ne 0 ]; then
-			exit 1
-		fi
-	done
+	(cd sys/linux; ../../bin/syz-extract -arch $1 -linux "$LINUX" -linuxbld "$LINUXBLD" $FILES)
+	if [ $? -ne 0 ]; then
+		exit 1
+	fi
 	echo
 }
 
