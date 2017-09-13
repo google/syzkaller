@@ -839,7 +839,7 @@ func checkCompsSupported() (kcov, comps bool) {
 	kcov = true
 	coverSize := uintptr(64 << 10)
 	_, _, errno := syscall.Syscall(
-		syscall.SYS_IOCTL, uintptr(fd), sys.KCOV_INIT_TRACE, coverSize)
+		syscall.SYS_IOCTL, uintptr(fd), linux.KCOV_INIT_TRACE, coverSize)
 	if errno != 0 {
 		Logf(1, "KCOV_CHECK: KCOV_INIT_TRACE = %v", errno)
 		return
@@ -851,7 +851,7 @@ func checkCompsSupported() (kcov, comps bool) {
 		return
 	}
 	_, _, errno = syscall.Syscall(syscall.SYS_IOCTL,
-		uintptr(fd), sys.KCOV_ENABLE, sys.KCOV_TRACE_CMP)
+		uintptr(fd), linux.KCOV_ENABLE, linux.KCOV_TRACE_CMP)
 	Logf(1, "KCOV_CHECK: KCOV_ENABLE = %v", errno)
 	comps = errno == 0
 	return
