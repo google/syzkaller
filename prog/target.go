@@ -57,12 +57,21 @@ func RegisterTarget(target *Target) {
 	}
 	initTarget(target)
 	targets[key] = target
+}
 
-	// For now we copy target to global vars
-	// because majority of the code is not prepared for multiple targets.
-	if len(targets) > 1 {
-		panic("only 1 target is supported")
+// SetDefaultTarget sets default target for prog package.
+// Majority of the code is not prepared for multiple targets,
+// so we use default target as a temporary measure.
+func SetDefaultTarget(OS, arch string) error {
+	key := OS + "/" + arch
+	target := targets[key]
+	if target == nil {
+		return fmt.Errorf("unknown target: %v", key)
 	}
+	if len(Syscalls) != 0 {
+		return fmt.Errorf("default target is already set")
+	}
+
 	Syscalls = target.Syscalls
 	SyscallMap = target.syscallMap
 	Resources = target.resourceMap
@@ -76,6 +85,8 @@ func RegisterTarget(target *Target) {
 	sanitizeCall = target.SanitizeCall
 	specialStructs = target.SpecialStructs
 	stringDictionary = target.StringDictionary
+
+	return nil
 }
 
 func initTarget(target *Target) {
