@@ -29,6 +29,7 @@ func init() {
 		StringDictionary: stringDictionary,
 	}
 	prog.RegisterTarget(target)
+	prog.SetDefaultTarget(runtime.GOOS, runtime.GOARCH)
 }
 
 const (
