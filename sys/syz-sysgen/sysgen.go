@@ -30,7 +30,7 @@ var (
 func main() {
 	flag.Parse()
 
-	top := ast.ParseGlob("sys/*\\.txt", nil)
+	top := ast.ParseGlob(filepath.Join("sys", "linux", "*\\.txt"), nil)
 	if top == nil {
 		os.Exit(1)
 	}
@@ -53,7 +53,7 @@ func main() {
 			eh := func(pos ast.Pos, msg string) {
 				res.Errors = append(res.Errors, fmt.Sprintf("%v: %v\n", pos, msg))
 			}
-			consts := compiler.DeserializeConstsGlob("sys/*_"+arch.Name+"\\.const", eh)
+			consts := compiler.DeserializeConstsGlob(filepath.Join("sys", "linux", "*_"+arch.Name+"\\.const"), eh)
 			if consts == nil {
 				return
 			}
@@ -63,7 +63,7 @@ func main() {
 			}
 			res.Unsupported = prog.Unsupported
 
-			sysFile := filepath.Join("sys", "sys_"+arch.Name+".go")
+			sysFile := filepath.Join("sys", "linux", "sys_"+arch.Name+".go")
 			out := new(bytes.Buffer)
 			generate(arch, prog, consts, out)
 			writeSource(sysFile, out.Bytes())
