@@ -105,6 +105,10 @@ func main() {
 	}
 	Logf(0, "fuzzer started")
 
+	if err := prog.SetDefaultTarget(runtime.GOOS, runtime.GOARCH); err != nil {
+		Fatalf("%v", err)
+	}
+
 	go func() {
 		// Handles graceful preemption on GCE.
 		c := make(chan os.Signal, 1)
@@ -413,7 +417,7 @@ func buildCallList(enabledCalls string) map[*prog.Syscall]bool {
 		for _, id := range strings.Split(enabledCalls, ",") {
 			n, err := strconv.ParseUint(id, 10, 64)
 			if err != nil || n >= uint64(len(prog.Syscalls)) {
-				panic(fmt.Sprintf("invalid syscall in -calls flag: '%v", id))
+				panic(fmt.Sprintf("invalid syscall in -calls flag: %v", id))
 			}
 			calls[prog.Syscalls[n]] = true
 		}

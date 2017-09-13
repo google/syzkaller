@@ -4,12 +4,17 @@
 package host
 
 import (
+	"runtime"
 	"syscall"
 	"testing"
 
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
+
+func init() {
+	prog.SetDefaultTarget("linux", runtime.GOARCH)
+}
 
 func TestLog(t *testing.T) {
 	t.Parallel()

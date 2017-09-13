@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -43,6 +44,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "usage: execprog [flags] file-with-programs+\n")
 		flag.PrintDefaults()
 		os.Exit(1)
+	}
+
+	if err := prog.SetDefaultTarget(runtime.GOOS, runtime.GOARCH); err != nil {
+		Fatalf("%v", err)
 	}
 
 	var progs []*prog.Prog

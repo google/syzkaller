@@ -37,6 +37,9 @@ const programLength = 30
 
 func main() {
 	flag.Parse()
+	if err := prog.SetDefaultTarget(runtime.GOOS, runtime.GOARCH); err != nil {
+		Fatalf("%v", err)
+	}
 	corpus := readCorpus()
 	Logf(0, "parsed %v programs", len(corpus))
 	if !*flagGenerate && len(corpus) == 0 {

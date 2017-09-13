@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/prog"
@@ -33,6 +34,10 @@ func main() {
 	flag.Parse()
 	if *flagProg == "" {
 		flag.PrintDefaults()
+		os.Exit(1)
+	}
+	if err := prog.SetDefaultTarget(runtime.GOOS, runtime.GOARCH); err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
 	data, err := ioutil.ReadFile(*flagProg)

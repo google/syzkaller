@@ -139,6 +139,7 @@ A sample config file that exercises the required options are shown below. Modify
 ```
 {
     "name": "QEMU-aarch64",
+    "target": "linux/arm64",
     "http": ":56700",
     "workdir": "/path/to/a/dir/to/store/syzkaller/corpus”,
     "vmlinux": “/path/to/vmlinux",

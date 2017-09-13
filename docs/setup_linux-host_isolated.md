@@ -78,6 +78,7 @@ make
 Use the following config:
 ```
 {
+	"target": "linux/amd64",
 	"http": "127.0.0.1:56741",
 	"rpc": "127.0.0.1:0",
 	"sshkey" : "/path/to/optional/sshkey",
@@ -95,6 +96,7 @@ Use the following config:
 ```
 
 Don't forget to update:
+ - `target` (target OS/arch)
  - `workdir` (path to the workdir)
  - `vmlinux` (path to the `vmlinux` binary)
  - `sshkey` You can setup an sshkey (optional)

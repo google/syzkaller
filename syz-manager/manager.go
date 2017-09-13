@@ -110,7 +110,14 @@ type Crash struct {
 func main() {
 	flag.Parse()
 	EnableLogCaching(1000, 1<<20)
-	cfg, syscalls, err := mgrconfig.LoadFile(*flagConfig)
+	cfg, err := mgrconfig.LoadFile(*flagConfig)
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	if err := prog.SetDefaultTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
+		Fatalf("%v", err)
+	}
+	syscalls, err := mgrconfig.ParseEnabledSyscalls(cfg)
 	if err != nil {
 		Fatalf("%v", err)
 	}
