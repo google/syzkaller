@@ -15,11 +15,11 @@ func TestCompileAll(t *testing.T) {
 	eh := func(pos ast.Pos, msg string) {
 		t.Logf("%v: %v", pos, msg)
 	}
-	desc := ast.ParseGlob(filepath.Join("..", "..", "sys", "*.txt"), eh)
+	desc := ast.ParseGlob(filepath.Join("..", "..", "sys", "linux", "*.txt"), eh)
 	if desc == nil {
 		t.Fatalf("parsing failed")
 	}
-	glob := filepath.Join("..", "..", "sys", "*_"+runtime.GOARCH+".const")
+	glob := filepath.Join("..", "..", "sys", "linux", "*_"+runtime.GOARCH+".const")
 	consts := DeserializeConstsGlob(glob, eh)
 	if consts == nil {
 		t.Fatalf("reading consts failed")

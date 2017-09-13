@@ -29,7 +29,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	. "github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/linux"
 )
 
 var (

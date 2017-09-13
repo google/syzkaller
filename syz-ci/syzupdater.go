@@ -194,7 +194,7 @@ func (upd *SyzUpdater) build() error {
 		}
 		for _, f := range files {
 			src := filepath.Join(upd.descriptions, f.Name())
-			dst := filepath.Join(upd.syzkallerDir, "sys", f.Name())
+			dst := filepath.Join(upd.syzkallerDir, "sys", "linux", f.Name())
 			if err := osutil.CopyFile(src, dst); err != nil {
 				return err
 			}
