@@ -70,6 +70,7 @@ func init() {
 		for arch, target := range archs {
 			target.OS = OS
 			target.Arch = arch
+			target.CrossCFlags = append(target.CrossCFlags, target.CFlags...)
 		}
 	}
 }

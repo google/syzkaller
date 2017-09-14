@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
@@ -24,6 +25,7 @@ var (
 	flagLinux    = flag.String("linux", "", "path to linux kernel source checkout")
 	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
 	flagArch     = flag.String("arch", "", "arch to generate")
+	flagBuild    = flag.Bool("build", false, "generate arch-specific files in the linux dir")
 )
 
 type File struct {
@@ -33,11 +35,6 @@ type File struct {
 }
 
 func main() {
-	failf := func(msg string, args ...interface{}) {
-		fmt.Fprintf(os.Stderr, msg+"\n", args...)
-		os.Exit(1)
-	}
-
 	flag.Parse()
 	if *flagLinux == "" {
 		failf("provide path to linux kernel checkout via -linux flag (or make extract LINUX= flag)")
@@ -55,6 +52,9 @@ func main() {
 	n := len(flag.Args())
 	if n == 0 {
 		failf("usage: syz-extract -linux=/linux/checkout -arch=arch input_file.txt...")
+	}
+	if *flagBuild {
+		buildKernel(target, *flagLinux)
 	}
 
 	files := make([]File, n)
@@ -119,4 +119,38 @@ func processFile(target *sys.Target, inname string) (map[string]bool, error) {
 		return nil, fmt.Errorf("failed to write output file: %v", err)
 	}
 	return undeclared, nil
+}
+
+func buildKernel(target *sys.Target, dir string) {
+	// TODO(dvyukov): use separate temp build dir.
+	// This will allow to do build for all archs in parallel and
+	// won't destroy user's build state.
+	makeArgs := []string{
+		"ARCH=" + target.KernelArch,
+		"CROSS_COMPILE=" + target.CCompilerPrefix,
+		"CFLAGS=" + strings.Join(target.CrossCFlags, " "),
+	}
+	out, err := osutil.RunCmd(time.Hour, dir, "make", append(makeArgs, "defconfig")...)
+	if err != nil {
+		failf("make defconfig failed: %v\n%s\n", err, out)
+	}
+	// Without CONFIG_NETFILTER kernel does not build.
+	out, err = osutil.RunCmd(time.Minute, dir, "sed", "-i",
+		"s@# CONFIG_NETFILTER is not set@CONFIG_NETFILTER=y@g", ".config")
+	if err != nil {
+		failf("sed .config failed: %v\n%s\n", err, out)
+	}
+	out, err = osutil.RunCmd(time.Hour, dir, "make", append(makeArgs, "olddefconfig")...)
+	if err != nil {
+		failf("make olddefconfig failed: %v\n%s\n", err, out)
+	}
+	out, err = osutil.RunCmd(time.Hour, dir, "make", append(makeArgs, "init/main.o")...)
+	if err != nil {
+		failf("make failed: %v\n%s\n", err, out)
+	}
+}
+
+func failf(msg string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, msg+"\n", args...)
+	os.Exit(1)
 }

@@ -41,36 +41,17 @@ fi
 
 generate_arch() {
 	echo generating arch $1...
-	echo "cd $LINUX; make defconfig"
-	OUT=`(cd $LINUX; make ARCH=$2 CROSS_COMPILE=$3 CFLAGS=$4 defconfig 2>&1)`
-	if [ $? -ne 0 ]; then
-		echo "$OUT"
-		exit 1
-	fi
-	# Without CONFIG_NETFILTER kernel does not build.
-	(cd $LINUX; sed -i "s@# CONFIG_NETFILTER is not set@CONFIG_NETFILTER=y@g" .config)
-	(cd $LINUX; make ARCH=$2 CROSS_COMPILE=$3 CFLAGS=$4 olddefconfig)
-	echo "cd $LINUX; make"
-	OUT=`(cd $LINUX; make ARCH=$2 CROSS_COMPILE=$3 CFLAGS=$4 init/main.o 2>&1)`
-	if [ $? -ne 0 ]; then
-		echo "$OUT"
-		exit 1
-	fi
-	(cd sys/linux; ../../bin/syz-extract -arch $1 -linux "$LINUX" -linuxbld "$LINUXBLD" $FILES)
+	(cd sys/linux; ../../bin/syz-extract -arch $1 -linux "$LINUX" -build $FILES)
 	if [ $? -ne 0 ]; then
 		exit 1
 	fi
 	echo
 }
 
-# $1 Go arch
-# $2 kernel arch
-# $3 cross-compiler prefix
-# $4 CLAGS
-generate_arch amd64 x86_64 x86_64-linux-gnu- "-m64"
-generate_arch arm64 arm64 aarch64-linux-gnu- ""
+generate_arch amd64
+generate_arch arm64
 if [ "$BUILD_FOR_ANDROID" == "no" ]; then
-	generate_arch 386 i386 "" "-m32"
-	generate_arch arm arm arm-linux-gnueabihf- "-march=armv6t2"
-	generate_arch ppc64le powerpc powerpc64le-linux-gnu- ""
+	generate_arch 386
+	generate_arch arm
+	generate_arch ppc64le
 fi
