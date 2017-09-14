@@ -121,6 +121,8 @@ func main() {
 	if err != nil {
 		Fatalf("%v", err)
 	}
+	// mmap is used to allocate memory.
+	syscalls[prog.GetTarget(cfg.TargetOS, cfg.TargetArch).MmapSyscall.ID] = true
 	initAllCover(cfg.Vmlinux)
 	RunManager(cfg, syscalls)
 }

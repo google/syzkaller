@@ -36,16 +36,7 @@ const (
 	maxDataLength = 100
 )
 
-var (
-	specialIntsSet uint64Set
-
-	// A set of calls for which hints should not be generated.
-	hintNamesBlackList = map[string]bool{
-		"mmap":  true,
-		"open":  true,
-		"close": true,
-	}
-)
+var specialIntsSet uint64Set
 
 func (m CompMap) AddComp(arg1, arg2 uint64) {
 	if _, ok := m[arg1]; !ok {
@@ -58,7 +49,7 @@ func (m CompMap) AddComp(arg1, arg2 uint64) {
 // For each of the mutants executes the exec callback.
 func (p *Prog) MutateWithHints(compMaps []CompMap, exec func(newP *Prog)) {
 	for i, c := range p.Calls {
-		if _, ok := hintNamesBlackList[c.Meta.CallName]; ok {
+		if c.Meta == defaultTarget.MmapSyscall {
 			continue
 		}
 		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {

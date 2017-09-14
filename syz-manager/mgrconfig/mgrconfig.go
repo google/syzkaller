@@ -206,9 +206,6 @@ func ParseEnabledSyscalls(cfg *Config) (map[int]bool, error) {
 			return nil, fmt.Errorf("unknown disabled syscall: %v", c)
 		}
 	}
-	// mmap is used to allocate memory.
-	syscalls[prog.SyscallMap["mmap"].ID] = true
-
 	return syscalls, nil
 }
 
