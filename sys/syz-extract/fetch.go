@@ -18,9 +18,10 @@ import (
 // fetchValues converts literal constants (e.g. O_APPEND) or any other C expressions
 // into their respective numeric values. It does so by builting and executing a C program
 // that prints values of the provided expressions.
-func fetchValues(target *sys.Target, vals, includes, incdirs []string,
-	defines map[string]string) (map[string]uint64, map[string]bool, error) {
-	bin, out, err := runCompiler(target, nil, includes, incdirs, nil, nil)
+func fetchValues(target *sys.Target, kernelDir, buildDir string,
+	vals, includes, incdirs []string, defines map[string]string) (
+	map[string]uint64, map[string]bool, error) {
+	bin, out, err := runCompiler(target, kernelDir, buildDir, nil, includes, incdirs, nil, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
 	}
@@ -32,7 +33,7 @@ func fetchValues(target *sys.Target, vals, includes, incdirs []string,
 	}
 
 	undeclared := make(map[string]bool)
-	bin, out, err = runCompiler(target, vals, includes, incdirs, defines, undeclared)
+	bin, out, err = runCompiler(target, kernelDir, buildDir, vals, includes, incdirs, defines, undeclared)
 	if err != nil {
 		for _, errMsg := range []string{
 			"error: ‘([a-zA-Z0-9_]+)’ undeclared",
@@ -47,7 +48,7 @@ func fetchValues(target *sys.Target, vals, includes, incdirs []string,
 				}
 			}
 		}
-		bin, out, err = runCompiler(target, vals, includes, incdirs, defines, undeclared)
+		bin, out, err = runCompiler(target, kernelDir, buildDir, vals, includes, incdirs, defines, undeclared)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
 		}
@@ -86,7 +87,7 @@ func fetchValues(target *sys.Target, vals, includes, incdirs []string,
 	return res, undeclared, nil
 }
 
-func runCompiler(target *sys.Target, vals, includes, incdirs []string, defines map[string]string, undeclared map[string]bool) (bin string, out []byte, err error) {
+func runCompiler(target *sys.Target, kernelDir, buildDir string, vals, includes, incdirs []string, defines map[string]string, undeclared map[string]bool) (bin string, out []byte, err error) {
 	includeText := ""
 	for _, inc := range includes {
 		includeText += fmt.Sprintf("#include <%v>\n", inc)
@@ -126,20 +127,20 @@ func runCompiler(target *sys.Target, vals, includes, incdirs []string, defines m
 		"-I.",
 		"-D__KERNEL__",
 		"-DKBUILD_MODNAME=\"-\"",
-		"-I" + *flagLinux + "/arch/" + arch + "/include",
-		"-I" + *flagLinuxBld + "/arch/" + arch + "/include/generated/uapi",
-		"-I" + *flagLinuxBld + "/arch/" + arch + "/include/generated",
-		"-I" + *flagLinuxBld + "/include",
-		"-I" + *flagLinux + "/include",
-		"-I" + *flagLinux + "/arch/" + arch + "/include/uapi",
-		"-I" + *flagLinuxBld + "/arch/" + arch + "/include/generated/uapi",
-		"-I" + *flagLinux + "/include/uapi",
-		"-I" + *flagLinuxBld + "/include/generated/uapi",
-		"-I" + *flagLinux,
-		"-include", *flagLinux + "/include/linux/kconfig.h",
+		"-I" + kernelDir + "/arch/" + arch + "/include",
+		"-I" + buildDir + "/arch/" + arch + "/include/generated/uapi",
+		"-I" + buildDir + "/arch/" + arch + "/include/generated",
+		"-I" + buildDir + "/include",
+		"-I" + kernelDir + "/include",
+		"-I" + kernelDir + "/arch/" + arch + "/include/uapi",
+		"-I" + buildDir + "/arch/" + arch + "/include/generated/uapi",
+		"-I" + kernelDir + "/include/uapi",
+		"-I" + buildDir + "/include/generated/uapi",
+		"-I" + kernelDir,
+		"-include", kernelDir + "/include/linux/kconfig.h",
 	}...)
 	for _, incdir := range incdirs {
-		args = append(args, "-I"+*flagLinux+"/"+incdir)
+		args = append(args, "-I"+kernelDir+"/"+incdir)
 	}
 	cmd := exec.Command("gcc", args...)
 	cmd.Stdin = strings.NewReader(src)
