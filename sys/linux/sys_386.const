@@ -714,6 +714,7 @@ __NR_mlock = 150
 __NR_mlock2 = 376
 __NR_mlockall = 152
 __NR_mmap = 90
+__NR_mmap2 = 192
 __NR_modify_ldt = 123
 __NR_mount = 21
 __NR_move_pages = 317

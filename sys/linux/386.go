@@ -17031,6 +17031,7 @@ var consts_386 = []ConstValue{
 	{Name: "__NR_mlock2", Value: 376},
 	{Name: "__NR_mlockall", Value: 152},
 	{Name: "__NR_mmap", Value: 90},
+	{Name: "__NR_mmap2", Value: 192},
 	{Name: "__NR_modify_ldt", Value: 123},
 	{Name: "__NR_mount", Value: 21},
 	{Name: "__NR_move_pages", Value: 317},

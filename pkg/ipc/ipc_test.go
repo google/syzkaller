@@ -19,21 +19,21 @@ import (
 
 const timeout = 10 * time.Second
 
-func buildExecutor(t *testing.T) string {
-	return buildProgram(t, filepath.FromSlash("../../executor/executor.cc"))
+func buildExecutor(t *testing.T, target *prog.Target) string {
+	return buildProgram(t, target, filepath.FromSlash("../../executor/executor.cc"))
 }
 
-func buildSource(t *testing.T, src []byte) string {
+func buildSource(t *testing.T, target *prog.Target, src []byte) string {
 	tmp, err := osutil.WriteTempFile(src)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
 	defer os.Remove(tmp)
-	return buildProgram(t, tmp)
+	return buildProgram(t, target, tmp)
 }
 
-func buildProgram(t *testing.T, src string) string {
-	bin, err := csource.Build("c++", src)
+func buildProgram(t *testing.T, target *prog.Target, src string) string {
+	bin, err := csource.Build(target, "c++", src)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -53,7 +53,12 @@ func initTest(t *testing.T) (rand.Source, int) {
 }
 
 func TestEmptyProg(t *testing.T) {
-	bin := buildExecutor(t)
+	target, err := prog.GetTarget("linux", runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bin := buildExecutor(t, target)
 	defer os.Remove(bin)
 
 	cfg := Config{
@@ -88,7 +93,7 @@ func TestExecute(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bin := buildExecutor(t)
+	bin := buildExecutor(t, target)
 	defer os.Remove(bin)
 
 	for _, flag := range flags {

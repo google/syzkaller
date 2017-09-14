@@ -20,7 +20,7 @@ import (
 	"unsafe"
 
 	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys"
 )
 
 type Options struct {
@@ -83,23 +83,33 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	for _, c := range p.Calls {
 		handled[c.Meta.CallName] = c.Meta.NR
 	}
-	for name, nr := range handled {
-		// Only generate defines for new syscalls (added after commit 8a1ab3155c2ac on 2012-10-04).
-		// TODO: the syscall number 313 implies that we're dealing with linux/amd64.
-		if nr >= 313 && !strings.HasPrefix(name, "syz_") {
-			fmt.Fprintf(w, "#ifndef __NR_%v\n", name)
-			fmt.Fprintf(w, "#define __NR_%v %v\n", name, nr)
-			fmt.Fprintf(w, "#endif\n")
-		}
-	}
-	fmt.Fprintf(w, "\n")
-
-	hdr, err := preprocessCommonHeader(opts, handled, prog.RequiresBitmasks(p), prog.RequiresChecksums(p))
+	hdr, err := preprocessCommonHeader(p.Target, opts, handled, prog.RequiresBitmasks(p), prog.RequiresChecksums(p))
 	if err != nil {
 		return nil, err
 	}
 	fmt.Fprint(w, hdr)
 	fmt.Fprint(w, "\n")
+
+	for name, nr := range handled {
+		if strings.HasPrefix(name, "syz_") {
+			continue
+		}
+		if p.Target.OS == "linux" && p.Target.Arch == "amd64" && nr < 313 {
+			// Only generate defines for new syscalls (added after commit 8a1ab3155c2ac on 2012-10-04).
+			continue
+		}
+		fmt.Fprintf(w, "#ifndef __NR_%v\n", name)
+		fmt.Fprintf(w, "#define __NR_%v %v\n", name, nr)
+		fmt.Fprintf(w, "#endif\n")
+	}
+	if p.Target.OS == "linux" && p.Target.PtrSize == 4 {
+		// This is a dirty hack.
+		// On 32-bit linux mmap translated to old_mmap syscall which has a different signature.
+		// mmap2 has the right signature. executor translates mmap to mmap2, do the same here.
+		fmt.Fprintf(w, "#undef __NR_mmap\n")
+		fmt.Fprintf(w, "#define __NR_mmap __NR_mmap2\n")
+	}
+	fmt.Fprintf(w, "\n")
 
 	calls, nvar := generateCalls(p.Target, exec, opts)
 	fmt.Fprintf(w, "long r[%v];\n", nvar)
@@ -420,7 +430,7 @@ loop:
 	return calls, n
 }
 
-func preprocessCommonHeader(opts Options, handled map[string]uint64, useBitmasks, useChecksums bool) (string, error) {
+func preprocessCommonHeader(target *prog.Target, opts Options, handled map[string]uint64, useBitmasks, useChecksums bool) (string, error) {
 	var defines []string
 	if useBitmasks {
 		defines = append(defines, "SYZ_USE_BITMASKS")
@@ -470,8 +480,9 @@ func preprocessCommonHeader(opts Options, handled map[string]uint64, useBitmasks
 	for name, _ := range handled {
 		defines = append(defines, "__NR_"+name)
 	}
-	// TODO: need to know target arch + do cross-compilation
-	defines = append(defines, "__x86_64__")
+
+	sysTarget := sys.Targets[target.OS][target.Arch]
+	defines = append(defines, sysTarget.CArch...)
 
 	cmd := exec.Command("cpp", "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
 	for _, def := range defines {
@@ -512,24 +523,41 @@ func preprocessCommonHeader(opts Options, handled map[string]uint64, useBitmasks
 
 // Build builds a C/C++ program from source src and returns name of the resulting binary.
 // lang can be "c" or "c++".
-func Build(lang, src string) (string, error) {
+func Build(target *prog.Target, lang, src string) (string, error) {
 	bin, err := ioutil.TempFile("", "syzkaller")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %v", err)
 	}
 	bin.Close()
-	out, err := exec.Command("gcc", "-x", lang, "-Wall", "-Werror", src, "-o", bin.Name(), "-pthread", "-static", "-O1", "-g").CombinedOutput()
+	sysTarget := sys.Targets[target.OS][target.Arch]
+	compiler := sysTarget.CCompilerPrefix + "gcc"
+	if _, err := exec.LookPath(compiler); err != nil {
+		return "", NoCompilerErr
+	}
+	flags := []string{
+		"-x", lang, "-Wall", "-Werror", "-O1", "-g", "-o", bin.Name(),
+		src, "-pthread",
+	}
+	flags = append(flags, sysTarget.CrossCFlags...)
+	if sysTarget.PtrSize == 4 {
+		// We do generate uint64's for syscall arguments that overflow longs on 32-bit archs.
+		flags = append(flags, "-Wno-overflow")
+	}
+	out, err := exec.Command(compiler, append(flags, "-static")...).CombinedOutput()
 	if err != nil {
 		// Some distributions don't have static libraries.
-		out, err = exec.Command("gcc", "-x", lang, "-Wall", "-Werror", src, "-o", bin.Name(), "-pthread", "-O1", "-g").CombinedOutput()
+		out, err = exec.Command(compiler, flags...).CombinedOutput()
 	}
 	if err != nil {
 		os.Remove(bin.Name())
 		data, _ := ioutil.ReadFile(src)
-		return "", fmt.Errorf("failed to build program:\n%s\n%s", data, out)
+		return "", fmt.Errorf("failed to build program:\n%s\n%s\ncompiler invocation: %v %v\n",
+			data, out, compiler, flags)
 	}
 	return bin.Name(), nil
 }
+
+var NoCompilerErr = errors.New("no target compiler")
 
 // Format reformats C source using clang-format.
 func Format(src []byte) ([]byte, error) {
