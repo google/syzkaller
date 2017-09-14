@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/sys"
 )
 
 var (
@@ -24,20 +25,6 @@ var (
 	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
 	flagArch     = flag.String("arch", "", "arch to generate")
 )
-
-type Arch struct {
-	CARCH            []string
-	KernelHeaderArch string
-	CFlags           []string
-}
-
-var archs = map[string]*Arch{
-	"amd64":   {[]string{"__x86_64__"}, "x86", []string{"-m64"}},
-	"386":     {[]string{"__i386__"}, "x86", []string{"-m32"}},
-	"arm64":   {[]string{"__aarch64__"}, "arm64", []string{}},
-	"arm":     {[]string{"__arm__"}, "arm", []string{"-D__LINUX_ARM_ARCH__=6", "-m32"}},
-	"ppc64le": {[]string{"__ppc64__", "__PPC64__", "__powerpc64__"}, "powerpc", []string{"-D__powerpc64__"}},
-}
 
 type File struct {
 	name       string
@@ -61,7 +48,8 @@ func main() {
 	if *flagArch == "" {
 		failf("-arch flag is required")
 	}
-	if archs[*flagArch] == nil {
+	target := sys.Targets["linux"][*flagArch]
+	if target == nil {
 		failf("unknown arch %v", *flagArch)
 	}
 	n := len(flag.Args())
@@ -84,7 +72,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 			for f := range inc {
-				f.undeclared, f.err = processFile(f.name)
+				f.undeclared, f.err = processFile(target, f.name)
 			}
 		}()
 	}
@@ -100,8 +88,8 @@ func main() {
 	}
 }
 
-func processFile(inname string) (map[string]bool, error) {
-	outname := strings.TrimSuffix(inname, ".txt") + "_" + *flagArch + ".const"
+func processFile(target *sys.Target, inname string) (map[string]bool, error) {
+	outname := strings.TrimSuffix(inname, ".txt") + "_" + target.Arch + ".const"
 	indata, err := ioutil.ReadFile(inname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read input file: %v", err)
@@ -121,10 +109,8 @@ func processFile(inname string) (map[string]bool, error) {
 	if len(info.Consts) == 0 {
 		return nil, nil
 	}
-	arch := archs[*flagArch]
 	includes := append(info.Includes, "asm/unistd.h")
-	consts, undeclared, err := fetchValues(arch.KernelHeaderArch, info.Consts,
-		includes, info.Incdirs, arch.CFlags, info.Defines)
+	consts, undeclared, err := fetchValues(target, info.Consts, includes, info.Incdirs, info.Defines)
 	if err != nil {
 		return nil, err
 	}

@@ -11,14 +11,16 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/google/syzkaller/sys"
 )
 
 // fetchValues converts literal constants (e.g. O_APPEND) or any other C expressions
 // into their respective numeric values. It does so by builting and executing a C program
 // that prints values of the provided expressions.
-func fetchValues(arch string, vals, includes, incdirs, cflags []string,
+func fetchValues(target *sys.Target, vals, includes, incdirs []string,
 	defines map[string]string) (map[string]uint64, map[string]bool, error) {
-	bin, out, err := runCompiler(arch, nil, includes, incdirs, cflags, nil, nil)
+	bin, out, err := runCompiler(target, nil, includes, incdirs, nil, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
 	}
@@ -30,7 +32,7 @@ func fetchValues(arch string, vals, includes, incdirs, cflags []string,
 	}
 
 	undeclared := make(map[string]bool)
-	bin, out, err = runCompiler(arch, vals, includes, incdirs, cflags, defines, undeclared)
+	bin, out, err = runCompiler(target, vals, includes, incdirs, defines, undeclared)
 	if err != nil {
 		for _, errMsg := range []string{
 			"error: ‘([a-zA-Z0-9_]+)’ undeclared",
@@ -45,7 +47,7 @@ func fetchValues(arch string, vals, includes, incdirs, cflags []string,
 				}
 			}
 		}
-		bin, out, err = runCompiler(arch, vals, includes, incdirs, cflags, defines, undeclared)
+		bin, out, err = runCompiler(target, vals, includes, incdirs, defines, undeclared)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
 		}
@@ -84,7 +86,7 @@ func fetchValues(arch string, vals, includes, incdirs, cflags []string,
 	return res, undeclared, nil
 }
 
-func runCompiler(arch string, vals, includes, incdirs, cflags []string, defines map[string]string, undeclared map[string]bool) (bin string, out []byte, err error) {
+func runCompiler(target *sys.Target, vals, includes, incdirs []string, defines map[string]string, undeclared map[string]bool) (bin string, out []byte, err error) {
 	includeText := ""
 	for _, inc := range includes {
 		includeText += fmt.Sprintf("#include <%v>\n", inc)
@@ -112,8 +114,9 @@ func runCompiler(arch string, vals, includes, incdirs, cflags []string, defines 
 	}
 	binFile.Close()
 
+	arch := target.KernelHeaderArch
 	args := []string{"-x", "c", "-", "-o", binFile.Name(), "-fmessage-length=0"}
-	args = append(args, cflags...)
+	args = append(args, target.CFlags...)
 	args = append(args, []string{
 		// This would be useful to ensure that we don't include any host headers,
 		// but kernel includes at least <stdarg.h>
