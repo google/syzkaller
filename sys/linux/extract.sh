@@ -5,6 +5,8 @@
 # Assuming x86 host, you also need to install:
 # sudo apt-get install gcc-aarch64-linux-gnu gcc-powerpc64le-linux-gnu gcc-arm-linux-gnueabihf
 
+set -eu
+
 if [ "$LINUX" == "" ]; then
 	if [ "$ANDROID" == "" ]; then
 		echo "usage: make extract LINUX=/linux/checkout]"
@@ -34,24 +36,11 @@ UPSTREAM_FILES="bpf.txt dri.txt fuse.txt input.txt ipc.txt
 ANDROID_FILES="tlk_device.txt ion.txt"
 
 if [ "$BUILD_FOR_ANDROID" == "no" ]; then
+	ARCHES=""
 	FILES="$UPSTREAM_FILES"
 else
+	ARCHES="amd64,arm64"
 	FILES="$ANDROID_FILES"
 fi
 
-generate_arch() {
-	echo generating arch $1...
-	(cd sys/linux; ../../bin/syz-extract -arch $1 -linux "$LINUX" -build $FILES)
-	if [ $? -ne 0 ]; then
-		exit 1
-	fi
-	echo
-}
-
-generate_arch amd64
-generate_arch arm64
-if [ "$BUILD_FOR_ANDROID" == "no" ]; then
-	generate_arch 386
-	generate_arch arm
-	generate_arch ppc64le
-fi
+(cd sys/linux; ../../bin/syz-extract -build -arch "$ARCHES" -linux "$LINUX" $FILES)
