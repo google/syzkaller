@@ -28,16 +28,15 @@ var (
 type Arch struct {
 	CARCH            []string
 	KernelHeaderArch string
-	KernelInclude    string
 	CFlags           []string
 }
 
 var archs = map[string]*Arch{
-	"amd64":   {[]string{"__x86_64__"}, "x86", "asm/unistd.h", []string{"-m64"}},
-	"386":     {[]string{"__i386__"}, "x86", "asm/unistd.h", []string{"-m32"}},
-	"arm64":   {[]string{"__aarch64__"}, "arm64", "asm/unistd.h", []string{}},
-	"arm":     {[]string{"__arm__"}, "arm", "asm/unistd.h", []string{"-D__LINUX_ARM_ARCH__=6", "-m32"}},
-	"ppc64le": {[]string{"__ppc64__", "__PPC64__", "__powerpc64__"}, "powerpc", "asm/unistd.h", []string{"-D__powerpc64__"}},
+	"amd64":   {[]string{"__x86_64__"}, "x86", []string{"-m64"}},
+	"386":     {[]string{"__i386__"}, "x86", []string{"-m32"}},
+	"arm64":   {[]string{"__aarch64__"}, "arm64", []string{}},
+	"arm":     {[]string{"__arm__"}, "arm", []string{"-D__LINUX_ARM_ARCH__=6", "-m32"}},
+	"ppc64le": {[]string{"__ppc64__", "__PPC64__", "__powerpc64__"}, "powerpc", []string{"-D__powerpc64__"}},
 }
 
 type File struct {
@@ -123,7 +122,7 @@ func processFile(inname string) (map[string]bool, error) {
 		return nil, nil
 	}
 	arch := archs[*flagArch]
-	includes := append(info.Includes, arch.KernelInclude)
+	includes := append(info.Includes, "asm/unistd.h")
 	consts, undeclared, err := fetchValues(arch.KernelHeaderArch, info.Consts,
 		includes, info.Incdirs, arch.CFlags, info.Defines)
 	if err != nil {
