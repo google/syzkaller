@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"sort"
 )
 
 // Target describes target OS/arch pair.
@@ -72,10 +73,24 @@ func GetTarget(OS, arch string) (*Target, error) {
 		for _, t := range targets {
 			supported = append(supported, fmt.Sprintf("%v/%v", t.OS, t.Arch))
 		}
+		sort.Strings(supported)
 		return nil, fmt.Errorf("unknown target: %v (supported: %v)", key, supported)
 	}
-
 	return target, nil
+}
+
+func AllTargets() []*Target {
+	var res []*Target
+	for _, t := range targets {
+		res = append(res, t)
+	}
+	sort.Slice(res, func(i, j int) bool {
+		if res[i].OS != res[j].OS {
+			return res[i].OS < res[j].OS
+		}
+		return res[i].Arch < res[j].Arch
+	})
+	return res
 }
 
 func initTarget(target *Target) {

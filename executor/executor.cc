@@ -268,9 +268,10 @@ int main(int argc, char** argv)
 	install_segv_handler();
 	use_temporary_dir();
 
-#ifdef __i386__
-	// mmap syscall on i386 is translated to old_mmap and has different signature.
+#if defined(__i386__) || defined(__arm__)
+	// mmap syscall on i386/arm is translated to old_mmap and has different signature.
 	// As a workaround fix it up to mmap2, which has signature that we expect.
+	// pkg/csource has the same hack.
 	for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++) {
 		if (syscalls[i].sys_nr == __NR_mmap)
 			syscalls[i].sys_nr = __NR_mmap2;

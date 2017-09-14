@@ -48,7 +48,7 @@ var Targets = map[string]map[string]*Target{
 		"arm": {
 			PtrSize:          4,
 			CArch:            []string{"__arm__"},
-			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-m32"},
+			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6"},
 			CrossCFlags:      []string{"-march=armv6t2"},
 			CCompilerPrefix:  "arm-linux-gnueabihf-",
 			KernelArch:       "arm",

@@ -16976,6 +16976,7 @@ var consts_arm = []ConstValue{
 	{Name: "__NR_mlock2", Value: 9437574},
 	{Name: "__NR_mlockall", Value: 9437336},
 	{Name: "__NR_mmap", Value: 9437274},
+	{Name: "__NR_mmap2", Value: 9437376},
 	{Name: "__NR_mount", Value: 9437205},
 	{Name: "__NR_move_pages", Value: 9437528},
 	{Name: "__NR_mprotect", Value: 9437309},
