@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -24,7 +25,7 @@ import (
 var (
 	flagLinux    = flag.String("linux", "", "path to linux kernel source checkout")
 	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
-	flagArch     = flag.String("arch", "", "arch to generate")
+	flagArch     = flag.String("arch", "", "comma-separated list of arches to generate (all by default)")
 	flagBuild    = flag.Bool("build", false, "generate arch-specific files in the linux dir")
 )
 
@@ -35,56 +36,70 @@ type File struct {
 }
 
 func main() {
+	const OS = "linux"
 	flag.Parse()
 	if *flagLinux == "" {
 		failf("provide path to linux kernel checkout via -linux flag (or make extract LINUX= flag)")
 	}
-	if *flagLinuxBld == "" {
-		*flagLinuxBld = *flagLinux
-	}
-	if *flagArch == "" {
-		failf("-arch flag is required")
-	}
-	target := sys.Targets["linux"][*flagArch]
-	if target == nil {
-		failf("unknown arch %v", *flagArch)
+	if *flagBuild && *flagLinuxBld != "" {
+		failf("-build and -linuxbld is an invalid combination")
 	}
 	n := len(flag.Args())
 	if n == 0 {
 		failf("usage: syz-extract -linux=/linux/checkout -arch=arch input_file.txt...")
 	}
-	if *flagBuild {
-		buildKernel(target, *flagLinux)
+	var arches []string
+	if *flagArch != "" {
+		arches = strings.Split(*flagArch, ",")
+	} else {
+		for arch := range sys.Targets[OS] {
+			arches = append(arches, arch)
+		}
+		sort.Strings(arches)
 	}
+	for _, arch := range arches {
+		fmt.Printf("generating %v/%v...\n", OS, arch)
+		target := sys.Targets[OS][arch]
+		if target == nil {
+			failf("unknown arch %v", arch)
+		}
+		if *flagBuild {
+			buildKernel(target, *flagLinux)
+			*flagLinuxBld = *flagLinux
+		} else if *flagLinuxBld == "" {
+			*flagLinuxBld = *flagLinux
+		}
 
-	files := make([]File, n)
-	inc := make(chan *File, n)
-	for i, f := range flag.Args() {
-		files[i].name = f
-		inc <- &files[i]
-	}
-	close(inc)
+		files := make([]File, n)
+		inc := make(chan *File, n)
+		for i, f := range flag.Args() {
+			files[i].name = f
+			inc <- &files[i]
+		}
+		close(inc)
 
-	procs := runtime.GOMAXPROCS(0)
-	var wg sync.WaitGroup
-	wg.Add(procs)
-	for p := 0; p < procs; p++ {
-		go func() {
-			defer wg.Done()
-			for f := range inc {
-				f.undeclared, f.err = processFile(target, f.name)
+		procs := runtime.GOMAXPROCS(0)
+		var wg sync.WaitGroup
+		wg.Add(procs)
+		for p := 0; p < procs; p++ {
+			go func() {
+				defer wg.Done()
+				for f := range inc {
+					f.undeclared, f.err = processFile(target, f.name)
+				}
+			}()
+		}
+		wg.Wait()
+		for _, f := range files {
+			fmt.Printf("extracting from %v\n", f.name)
+			if f.err != nil {
+				failf("%v", f.err)
 			}
-		}()
-	}
-	wg.Wait()
-	for _, f := range files {
-		fmt.Printf("extracting from %v\n", f.name)
-		if f.err != nil {
-			failf("%v", f.err)
+			for c := range f.undeclared {
+				fmt.Printf("undefined const: %v\n", c)
+			}
 		}
-		for c := range f.undeclared {
-			fmt.Printf("undefined const: %v\n", c)
-		}
+		fmt.Printf("\n")
 	}
 }
 
