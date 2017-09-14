@@ -9,10 +9,12 @@ import (
 
 // Generate generates a random program of length ~ncalls.
 // calls is a set of allowed syscalls, if nil all syscalls are used.
-func Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Prog {
-	p := new(Prog)
-	r := newRand(rs)
-	s := newState(ct)
+func (target *Target) Generate(rs rand.Source, ncalls int, ct *ChoiceTable) *Prog {
+	p := &Prog{
+		Target: target,
+	}
+	r := newRand(target, rs)
+	s := newState(target, ct)
 	for len(p.Calls) < ncalls {
 		calls := r.generateCall(s, p)
 		for _, c := range calls {

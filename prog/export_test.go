@@ -17,11 +17,12 @@ func init() {
 
 var (
 	CalcChecksumsCall = calcChecksumsCall
-	AssignSizesCall   = assignSizesCall
-	DefaultArg        = defaultArg
-	InitTest          = initTest
+	//AssignSizesCall   = assignSizesCall
+	//DefaultArg        = defaultArg
+	InitTest = initTest
 )
 
+/*
 func PtrSize() uint64 {
 	return ptrSize
 }
@@ -33,8 +34,9 @@ func DataOffset() uint64 {
 func PageSize() uint64 {
 	return pageSize
 }
+*/
 
-func initTest(t *testing.T) (rand.Source, int) {
+func initTest(t *testing.T) (*Target, rand.Source, int) {
 	t.Parallel()
 	iters := 10000
 	if testing.Short() {
@@ -43,5 +45,9 @@ func initTest(t *testing.T) (rand.Source, int) {
 	seed := int64(time.Now().UnixNano())
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
-	return rs, iters
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return target, rs, iters
 }

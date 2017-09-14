@@ -65,7 +65,11 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 	if len(vmIndexes) == 0 {
 		return nil, fmt.Errorf("no VMs provided")
 	}
-	entries := prog.ParseLog(crashLog)
+	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
+	if err != nil {
+		return nil, err
+	}
+	entries := target.ParseLog(crashLog)
 	if len(entries) == 0 {
 		return nil, fmt.Errorf("crash log does not contain any programs")
 	}

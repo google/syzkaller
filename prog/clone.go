@@ -9,7 +9,9 @@ func (p *Prog) Clone() *Prog {
 }
 
 func (p *Prog) cloneImpl(full bool) (*Prog, map[Arg]Arg) {
-	p1 := new(Prog)
+	p1 := &Prog{
+		Target: p.Target,
+	}
 	newargs := make(map[Arg]Arg)
 	for _, c := range p.Calls {
 		c1 := new(Call)

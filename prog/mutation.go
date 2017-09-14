@@ -10,7 +10,7 @@ import (
 )
 
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Prog) {
-	r := newRand(rs)
+	r := newRand(p.Target, rs)
 
 	retry := false
 	for stop := false; !stop || retry; stop = r.oneOf(3) {
@@ -55,13 +55,13 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 				continue
 			}
 			// Mutating mmap() arguments almost certainly doesn't give us new coverage.
-			if c.Meta == defaultTarget.MmapSyscall && r.nOutOf(99, 100) {
+			if c.Meta == p.Target.MmapSyscall && r.nOutOf(99, 100) {
 				retry = true
 				continue
 			}
 			s := analyze(ct, p, c)
 			for stop := false; !stop; stop = r.oneOf(3) {
-				args, bases := mutationArgs(c)
+				args, bases := p.Target.mutationArgs(c)
 				if len(args) == 0 {
 					retry = true
 					continue
@@ -152,9 +152,9 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 							}
 						}
 						for _, c1 := range calls {
-							sanitizeCall(c1)
+							p.Target.SanitizeCall(c1)
 						}
-						sanitizeCall(c)
+						p.Target.SanitizeCall(c)
 						p.insertBefore(c, calls)
 					} else if count < uint64(len(a.Inner)) {
 						for _, arg := range a.Inner[count:] {
@@ -176,7 +176,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					arg1, calls1 := r.addr(s, t, size, a.Res)
 					p.replaceArg(c, arg, arg1, calls1)
 				case *StructType:
-					gen := specialStructs[t.Name()]
+					gen := p.Target.SpecialStructs[t.Name()]
 					if gen == nil {
 						panic("bad arg returned by mutationArgs: StructType")
 					}
@@ -215,7 +215,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					if baseSize < b.Res.Size() {
 						arg1, calls1 := r.addr(s, b.Type(), b.Res.Size(), b.Res)
 						for _, c1 := range calls1 {
-							sanitizeCall(c1)
+							p.Target.SanitizeCall(c1)
 						}
 						p.insertBefore(c, calls1)
 						a1 := arg1.(*PointerArg)
@@ -226,7 +226,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 				}
 
 				// Update all len fields.
-				assignSizesCall(c)
+				p.Target.assignSizesCall(c)
 			}
 		default:
 			// Remove a random call.
@@ -240,7 +240,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 	}
 
 	for _, c := range p.Calls {
-		sanitizeCall(c)
+		p.Target.SanitizeCall(c)
 	}
 	if debug {
 		if err := p.validate(); err != nil {
@@ -289,7 +289,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred0 func(*Prog, int) bool, crash bool)
 		// Remove all mmaps.
 		for i := 0; i < len(p.Calls); i++ {
 			c := p.Calls[i]
-			if i != callIndex && c.Meta == defaultTarget.MmapSyscall {
+			if i != callIndex && c.Meta == p.Target.MmapSyscall {
 				p.removeCall(i)
 				if i < callIndex {
 					callIndex--
@@ -298,7 +298,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred0 func(*Prog, int) bool, crash bool)
 			}
 		}
 		// Prepend uber-mmap.
-		mmap := makeMmap(uint64(lo), uint64(hi-lo)+1)
+		mmap := p0.Target.MakeMmap(uint64(lo), uint64(hi-lo)+1)
 		p.Calls = append([]*Call{mmap}, p.Calls...)
 		if callIndex != -1 {
 			callIndex++
@@ -365,7 +365,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred0 func(*Prog, int) bool, crash bool)
 						copy(a.Inner[i:], a.Inner[i+1:])
 						a.Inner = a.Inner[:len(a.Inner)-1]
 						p.removeArg(call, innerArg)
-						assignSizesCall(call)
+						p.Target.assignSizesCall(call)
 
 						if pred(p, callIndex0) {
 							p0 = p
@@ -438,12 +438,12 @@ func Minimize(p0 *Prog, callIndex0 int, pred0 func(*Prog, int) bool, crash bool)
 			for step := len(a.Data) - minLen; len(a.Data) > minLen && step > 0; {
 				if len(a.Data)-step >= minLen {
 					a.Data = a.Data[:len(a.Data)-step]
-					assignSizesCall(call)
+					p.Target.assignSizesCall(call)
 					if pred(p, callIndex0) {
 						continue
 					}
 					a.Data = a.Data[:len(a.Data)+step]
-					assignSizesCall(call)
+					p.Target.assignSizesCall(call)
 				}
 				step /= 2
 				if crash {
@@ -499,11 +499,11 @@ func (p *Prog) TrimAfter(idx int) {
 	p.Calls = p.Calls[:idx+1]
 }
 
-func mutationArgs(c *Call) (args, bases []Arg) {
+func (target *Target) mutationArgs(c *Call) (args, bases []Arg) {
 	foreachArg(c, func(arg, base Arg, _ *[]Arg) {
 		switch typ := arg.Type().(type) {
 		case *StructType:
-			if specialStructs[typ.Name()] == nil {
+			if target.SpecialStructs[typ.Name()] == nil {
 				// For structs only individual fields are updated.
 				return
 			}
@@ -531,7 +531,8 @@ func mutationArgs(c *Call) (args, bases []Arg) {
 			return
 		}
 		if base != nil {
-			if _, ok := base.Type().(*StructType); ok && specialStructs[base.Type().Name()] != nil {
+			if _, ok := base.Type().(*StructType); ok &&
+				target.SpecialStructs[base.Type().Name()] != nil {
 				// These special structs are mutated as a whole.
 				return
 			}

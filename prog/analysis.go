@@ -17,6 +17,7 @@ const (
 )
 
 type state struct {
+	target    *Target
 	ct        *ChoiceTable
 	files     map[string]bool
 	resources map[string][]Arg
@@ -26,7 +27,7 @@ type state struct {
 
 // analyze analyzes the program p up to but not including call c.
 func analyze(ct *ChoiceTable, p *Prog, c *Call) *state {
-	s := newState(ct)
+	s := newState(p.Target, ct)
 	for _, c1 := range p.Calls {
 		if c1 == c {
 			break
@@ -36,8 +37,9 @@ func analyze(ct *ChoiceTable, p *Prog, c *Call) *state {
 	return s
 }
 
-func newState(ct *ChoiceTable) *state {
+func newState(target *Target, ct *ChoiceTable) *state {
 	s := &state{
+		target:    target,
 		ct:        ct,
 		files:     make(map[string]bool),
 		resources: make(map[string][]Arg),
@@ -66,7 +68,7 @@ func (s *state) analyze(c *Call) {
 			}
 		}
 	})
-	start, npages, mapped := analyzeMmap(c)
+	start, npages, mapped := s.target.AnalyzeMmap(c)
 	if npages != 0 {
 		if start+npages > uint64(len(s.pages)) {
 			panic(fmt.Sprintf("address is out of bounds: page=%v len=%v bound=%v",

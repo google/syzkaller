@@ -11,9 +11,9 @@ import (
 )
 
 func TestChecksumCalcRandom(t *testing.T) {
-	rs, iters := InitTest(t)
+	target, rs, iters := InitTest(t)
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		for _, call := range p.Calls {
 			CalcChecksumsCall(call, i%32)
 		}

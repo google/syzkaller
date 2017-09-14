@@ -12,19 +12,19 @@ import (
 	_ "github.com/google/syzkaller/sys"
 )
 
-func init() {
-	prog.SetDefaultTarget("linux", runtime.GOARCH)
-}
-
 func TestLog(t *testing.T) {
 	t.Parallel()
+	target, err := prog.GetTarget("linux", runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
 	// Dump for manual inspection.
-	supp, err := DetectSupportedSyscalls()
+	supp, err := DetectSupportedSyscalls(target)
 	if err != nil {
 		t.Skipf("skipping: %v", err)
 	}
 	t.Logf("unsupported:")
-	for _, c := range prog.Syscalls {
+	for _, c := range target.Syscalls {
 		s, ok := supp[c]
 		if ok && !s {
 			t.Fatalf("map contains false value")
@@ -33,9 +33,9 @@ func TestLog(t *testing.T) {
 			t.Logf("\t%v", c.Name)
 		}
 	}
-	trans := prog.TransitivelyEnabledCalls(supp)
+	trans := target.TransitivelyEnabledCalls(supp)
 	t.Logf("transitively unsupported:")
-	for _, c := range prog.Syscalls {
+	for _, c := range target.Syscalls {
 		s, ok := trans[c]
 		if ok && !s {
 			t.Fatalf("map contains false value")
@@ -48,7 +48,11 @@ func TestLog(t *testing.T) {
 
 func TestSupportedSyscalls(t *testing.T) {
 	t.Parallel()
-	supp, err := DetectSupportedSyscalls()
+	target, err := prog.GetTarget("linux", runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+	supp, err := DetectSupportedSyscalls(target)
 	if err != nil {
 		t.Skipf("skipping: %v", err)
 	}
@@ -64,7 +68,7 @@ func TestSupportedSyscalls(t *testing.T) {
 		"stat",
 	}
 	for _, name := range safe {
-		c := prog.SyscallMap[name]
+		c := target.SyscallMap[name]
 		if c == nil {
 			t.Fatalf("can't find syscall '%v'", name)
 		}

@@ -16,7 +16,7 @@ import (
 )
 
 // DetectSupportedSyscalls returns list on supported syscalls on host.
-func DetectSupportedSyscalls() (map[*prog.Syscall]bool, error) {
+func DetectSupportedSyscalls(target *prog.Target) (map[*prog.Syscall]bool, error) {
 	// There are 3 possible strategies:
 	// 1. Executes all syscalls with presumably invalid arguments and check for ENOprog.
 	//    But not all syscalls are safe to execute. For example, pause will hang,
@@ -29,7 +29,7 @@ func DetectSupportedSyscalls() (map[*prog.Syscall]bool, error) {
 
 	kallsyms, _ := ioutil.ReadFile("/proc/kallsyms")
 	supported := make(map[*prog.Syscall]bool)
-	for _, c := range prog.Syscalls {
+	for _, c := range target.Syscalls {
 		if isSupported(kallsyms, c) {
 			supported[c] = true
 		}

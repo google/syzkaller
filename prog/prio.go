@@ -24,9 +24,9 @@ import (
 // Note: the current implementation is very basic, there is no theory behind any
 // constants.
 
-func CalculatePriorities(corpus []*Prog) [][]float32 {
-	static := calcStaticPriorities()
-	dynamic := calcDynamicPrio(corpus)
+func (target *Target) CalculatePriorities(corpus []*Prog) [][]float32 {
+	static := target.calcStaticPriorities()
+	dynamic := target.calcDynamicPrio(corpus)
 	for i, prios := range static {
 		for j, p := range prios {
 			dynamic[i][j] *= p
@@ -35,9 +35,9 @@ func CalculatePriorities(corpus []*Prog) [][]float32 {
 	return dynamic
 }
 
-func calcStaticPriorities() [][]float32 {
+func (target *Target) calcStaticPriorities() [][]float32 {
 	uses := make(map[string]map[int]float32)
-	for _, c := range Syscalls {
+	for _, c := range target.Syscalls {
 		noteUsage := func(weight float32, str string, args ...interface{}) {
 			id := fmt.Sprintf(str, args...)
 			if uses[id] == nil {
@@ -99,9 +99,9 @@ func calcStaticPriorities() [][]float32 {
 			}
 		})
 	}
-	prios := make([][]float32, len(Syscalls))
+	prios := make([][]float32, len(target.Syscalls))
 	for i := range prios {
-		prios[i] = make([]float32, len(Syscalls))
+		prios[i] = make([]float32, len(target.Syscalls))
 	}
 	for _, calls := range uses {
 		for c0, w0 := range calls {
@@ -130,10 +130,10 @@ func calcStaticPriorities() [][]float32 {
 	return prios
 }
 
-func calcDynamicPrio(corpus []*Prog) [][]float32 {
-	prios := make([][]float32, len(Syscalls))
+func (target *Target) calcDynamicPrio(corpus []*Prog) [][]float32 {
+	prios := make([][]float32, len(target.Syscalls))
 	for i := range prios {
-		prios[i] = make([]float32, len(Syscalls))
+		prios[i] = make([]float32, len(target.Syscalls))
 	}
 	for _, p := range corpus {
 		for _, c0 := range p.Calls {
@@ -141,8 +141,8 @@ func calcDynamicPrio(corpus []*Prog) [][]float32 {
 				id0 := c0.Meta.ID
 				id1 := c1.Meta.ID
 				// There are too many mmap's anyway.
-				if id0 == id1 || c0.Meta == defaultTarget.MmapSyscall ||
-					c1.Meta == defaultTarget.MmapSyscall {
+				if id0 == id1 || c0.Meta == target.MmapSyscall ||
+					c1.Meta == target.MmapSyscall {
 					continue
 				}
 				prios[id0][id1] += 1.0
@@ -194,15 +194,16 @@ func normalizePrio(prios [][]float32) {
 // ChooseTable allows to do a weighted choice of a syscall for a given syscall
 // based on call-to-call priorities and a set of enabled syscalls.
 type ChoiceTable struct {
+	target       *Target
 	run          [][]int
 	enabledCalls []*Syscall
 	enabled      map[*Syscall]bool
 }
 
-func BuildChoiceTable(prios [][]float32, enabled map[*Syscall]bool) *ChoiceTable {
+func (target *Target) BuildChoiceTable(prios [][]float32, enabled map[*Syscall]bool) *ChoiceTable {
 	if enabled == nil {
 		enabled = make(map[*Syscall]bool)
-		for _, c := range Syscalls {
+		for _, c := range target.Syscalls {
 			enabled[c] = true
 		}
 	}
@@ -210,27 +211,24 @@ func BuildChoiceTable(prios [][]float32, enabled map[*Syscall]bool) *ChoiceTable
 	for c := range enabled {
 		enabledCalls = append(enabledCalls, c)
 	}
-	run := make([][]int, len(Syscalls))
+	run := make([][]int, len(target.Syscalls))
 	for i := range run {
-		if !enabled[Syscalls[i]] {
+		if !enabled[target.Syscalls[i]] {
 			continue
 		}
-		run[i] = make([]int, len(Syscalls))
+		run[i] = make([]int, len(target.Syscalls))
 		sum := 0
 		for j := range run[i] {
-			if enabled[Syscalls[j]] {
+			if enabled[target.Syscalls[j]] {
 				sum += int(prios[i][j] * 1000)
 			}
 			run[i][j] = sum
 		}
 	}
-	return &ChoiceTable{run, enabledCalls, enabled}
+	return &ChoiceTable{target, run, enabledCalls, enabled}
 }
 
 func (ct *ChoiceTable) Choose(r *rand.Rand, call int) int {
-	if ct == nil {
-		return r.Intn(len(Syscalls))
-	}
 	if call < 0 {
 		return ct.enabledCalls[r.Intn(len(ct.enabledCalls))].ID
 	}
@@ -241,7 +239,7 @@ func (ct *ChoiceTable) Choose(r *rand.Rand, call int) int {
 	for {
 		x := r.Intn(run[len(run)-1])
 		i := sort.SearchInts(run, x)
-		if !ct.enabled[Syscalls[i]] {
+		if !ct.enabled[ct.target.Syscalls[i]] {
 			continue
 		}
 		return i

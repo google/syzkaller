@@ -19,10 +19,6 @@ import (
 
 const timeout = 10 * time.Second
 
-func init() {
-	prog.SetDefaultTarget("linux", runtime.GOARCH)
-}
-
 func buildExecutor(t *testing.T) string {
 	return buildProgram(t, filepath.FromSlash("../../executor/executor.cc"))
 }
@@ -87,6 +83,11 @@ func TestExecute(t *testing.T) {
 	rs, iters := initTest(t)
 	flags := []uint64{0, FlagThreaded, FlagThreaded | FlagCollide}
 
+	target, err := prog.GetTarget("linux", runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	bin := buildExecutor(t)
 	defer os.Remove(bin)
 
@@ -103,7 +104,7 @@ func TestExecute(t *testing.T) {
 		defer env.Close()
 
 		for i := 0; i < iters/len(flags); i++ {
-			p := prog.Generate(rs, 10, nil)
+			p := target.Generate(rs, 10, nil)
 			opts := &ExecOpts{}
 			output, _, _, _, err := env.Exec(opts, p)
 			if err != nil {
