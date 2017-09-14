@@ -28,6 +28,7 @@ import (
 )
 
 var (
+	flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
 	flagExecutor  = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
 	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
@@ -46,7 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := prog.SetDefaultTarget(runtime.GOOS, runtime.GOARCH); err != nil {
+	if err := prog.SetDefaultTarget(runtime.GOOS, *flagArch); err != nil {
 		Fatalf("%v", err)
 	}
 
