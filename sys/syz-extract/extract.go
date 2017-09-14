@@ -26,16 +26,31 @@ var (
 	flagLinux    = flag.String("linux", "", "path to linux kernel source checkout")
 	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
 	flagArch     = flag.String("arch", "", "comma-separated list of arches to generate (all by default)")
-	flagBuild    = flag.Bool("build", false, "generate arch-specific files in the linux dir")
+	flagBuild    = flag.Bool("build", false, "regenerate arch-specific kernel headers")
 )
 
+type Arch struct {
+	target    *sys.Target
+	kernelDir string
+	buildDir  string
+	build     bool
+	files     []*File
+	err       error
+}
+
 type File struct {
+	arch       *Arch
 	name       string
 	undeclared map[string]bool
 	err        error
 }
 
 func main() {
+	failf := func(msg string, args ...interface{}) {
+		fmt.Fprintf(os.Stderr, msg+"\n", args...)
+		os.Exit(1)
+	}
+
 	const OS = "linux"
 	flag.Parse()
 	if *flagLinux == "" {
@@ -48,49 +63,105 @@ func main() {
 	if n == 0 {
 		failf("usage: syz-extract -linux=/linux/checkout -arch=arch input_file.txt...")
 	}
-	var arches []string
+
+	var archArray []string
 	if *flagArch != "" {
-		arches = strings.Split(*flagArch, ",")
+		archArray = strings.Split(*flagArch, ",")
 	} else {
 		for arch := range sys.Targets[OS] {
-			arches = append(arches, arch)
+			archArray = append(archArray, arch)
 		}
-		sort.Strings(arches)
+		sort.Strings(archArray)
 	}
-	for _, arch := range arches {
-		fmt.Printf("generating %v/%v...\n", OS, arch)
-		target := sys.Targets[OS][arch]
-		if target == nil {
-			failf("unknown arch %v", arch)
+
+	if *flagBuild {
+		// Otherwise out-of-tree build fails.
+		fmt.Printf("make mrproper\n")
+		out, err := osutil.RunCmd(time.Hour, *flagLinux, "make", "mrproper")
+		if err != nil {
+			failf("make mrproper failed: %v\n%s\n", err, out)
 		}
+	} else {
+		if len(archArray) > 1 {
+			failf("more than 1 arch is invalid without -build")
+		}
+	}
+
+	jobC := make(chan interface{}, len(archArray)*len(flag.Args()))
+	var wg sync.WaitGroup
+
+	var arches []*Arch
+	for _, archStr := range archArray {
+		buildDir := ""
 		if *flagBuild {
-			buildKernel(target, *flagLinux)
-			*flagLinuxBld = *flagLinux
-		} else if *flagLinuxBld == "" {
-			*flagLinuxBld = *flagLinux
+			dir, err := ioutil.TempDir("", "syzkaller-kernel-build")
+			if err != nil {
+				failf("failed to create temp dir: %v", err)
+			}
+			buildDir = dir
+		} else if *flagLinuxBld != "" {
+			buildDir = *flagLinuxBld
+		} else {
+			buildDir = *flagLinux
 		}
 
-		files := make([]File, n)
-		inc := make(chan *File, n)
-		for i, f := range flag.Args() {
-			files[i].name = f
-			inc <- &files[i]
+		target := sys.Targets[OS][archStr]
+		if target == nil {
+			failf("unknown arch: %v", archStr)
 		}
-		close(inc)
 
-		procs := runtime.GOMAXPROCS(0)
-		var wg sync.WaitGroup
-		wg.Add(procs)
-		for p := 0; p < procs; p++ {
-			go func() {
-				defer wg.Done()
-				for f := range inc {
-					f.undeclared, f.err = processFile(target, f.name)
+		arch := &Arch{
+			target:    target,
+			kernelDir: *flagLinux,
+			buildDir:  buildDir,
+			build:     *flagBuild,
+		}
+		for _, f := range flag.Args() {
+			arch.files = append(arch.files, &File{
+				arch: arch,
+				name: f,
+			})
+		}
+		arches = append(arches, arch)
+		jobC <- arch
+		wg.Add(1)
+	}
+
+	for p := 0; p < runtime.GOMAXPROCS(0); p++ {
+		go func() {
+			for job := range jobC {
+				switch j := job.(type) {
+				case *Arch:
+					if j.build {
+						j.err = buildKernel(j)
+					}
+					if j.err == nil {
+						for _, f := range j.files {
+							wg.Add(1)
+							jobC <- f
+						}
+					}
+				case *File:
+					j.undeclared, j.err = processFile(j.arch, j.name)
 				}
-			}()
+				wg.Done()
+			}
+		}()
+	}
+	wg.Wait()
+
+	for _, arch := range arches {
+		if arch.build {
+			os.RemoveAll(arch.buildDir)
 		}
-		wg.Wait()
-		for _, f := range files {
+	}
+
+	for _, arch := range arches {
+		fmt.Printf("generating %v/%v...\n", arch.target.OS, arch.target.Arch)
+		if arch.err != nil {
+			failf("%v", arch.err)
+		}
+		for _, f := range arch.files {
 			fmt.Printf("extracting from %v\n", f.name)
 			if f.err != nil {
 				failf("%v", f.err)
@@ -103,8 +174,8 @@ func main() {
 	}
 }
 
-func processFile(target *sys.Target, inname string) (map[string]bool, error) {
-	outname := strings.TrimSuffix(inname, ".txt") + "_" + target.Arch + ".const"
+func processFile(arch *Arch, inname string) (map[string]bool, error) {
+	outname := strings.TrimSuffix(inname, ".txt") + "_" + arch.target.Arch + ".const"
 	indata, err := ioutil.ReadFile(inname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read input file: %v", err)
@@ -125,7 +196,7 @@ func processFile(target *sys.Target, inname string) (map[string]bool, error) {
 		return nil, nil
 	}
 	includes := append(info.Includes, "asm/unistd.h")
-	consts, undeclared, err := fetchValues(target, info.Consts, includes, info.Incdirs, info.Defines)
+	consts, undeclared, err := fetchValues(arch.target, arch.kernelDir, arch.buildDir, info.Consts, includes, info.Incdirs, info.Defines)
 	if err != nil {
 		return nil, err
 	}
@@ -136,36 +207,33 @@ func processFile(target *sys.Target, inname string) (map[string]bool, error) {
 	return undeclared, nil
 }
 
-func buildKernel(target *sys.Target, dir string) {
-	// TODO(dvyukov): use separate temp build dir.
-	// This will allow to do build for all archs in parallel and
-	// won't destroy user's build state.
+func buildKernel(arch *Arch) error {
+	target := arch.target
+	kernelDir := arch.kernelDir
+	buildDir := arch.buildDir
 	makeArgs := []string{
 		"ARCH=" + target.KernelArch,
 		"CROSS_COMPILE=" + target.CCompilerPrefix,
 		"CFLAGS=" + strings.Join(target.CrossCFlags, " "),
+		"O=" + buildDir,
 	}
-	out, err := osutil.RunCmd(time.Hour, dir, "make", append(makeArgs, "defconfig")...)
+	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
 	if err != nil {
-		failf("make defconfig failed: %v\n%s\n", err, out)
+		return fmt.Errorf("make defconfig failed: %v\n%s\n", err, out)
 	}
 	// Without CONFIG_NETFILTER kernel does not build.
-	out, err = osutil.RunCmd(time.Minute, dir, "sed", "-i",
+	out, err = osutil.RunCmd(time.Minute, buildDir, "sed", "-i",
 		"s@# CONFIG_NETFILTER is not set@CONFIG_NETFILTER=y@g", ".config")
 	if err != nil {
-		failf("sed .config failed: %v\n%s\n", err, out)
+		return fmt.Errorf("sed .config failed: %v\n%s\n", err, out)
 	}
-	out, err = osutil.RunCmd(time.Hour, dir, "make", append(makeArgs, "olddefconfig")...)
+	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "olddefconfig")...)
 	if err != nil {
-		failf("make olddefconfig failed: %v\n%s\n", err, out)
+		return fmt.Errorf("make olddefconfig failed: %v\n%s\n", err, out)
 	}
-	out, err = osutil.RunCmd(time.Hour, dir, "make", append(makeArgs, "init/main.o")...)
+	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "init/main.o")...)
 	if err != nil {
-		failf("make failed: %v\n%s\n", err, out)
+		return fmt.Errorf("make failed: %v\n%s\n", err, out)
 	}
-}
-
-func failf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
+	return nil
 }
