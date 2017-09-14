@@ -141,7 +141,8 @@ func calcDynamicPrio(corpus []*Prog) [][]float32 {
 				id0 := c0.Meta.ID
 				id1 := c1.Meta.ID
 				// There are too many mmap's anyway.
-				if id0 == id1 || c0.Meta.Name == "mmap" || c1.Meta.Name == "mmap" {
+				if id0 == id1 || c0.Meta == defaultTarget.MmapSyscall ||
+					c1.Meta == defaultTarget.MmapSyscall {
 					continue
 				}
 				prios[id0][id1] += 1.0

@@ -55,7 +55,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 				continue
 			}
 			// Mutating mmap() arguments almost certainly doesn't give us new coverage.
-			if c.Meta.Name == "mmap" && r.nOutOf(99, 100) {
+			if c.Meta == defaultTarget.MmapSyscall && r.nOutOf(99, 100) {
 				retry = true
 				continue
 			}
@@ -289,7 +289,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred0 func(*Prog, int) bool, crash bool)
 		// Remove all mmaps.
 		for i := 0; i < len(p.Calls); i++ {
 			c := p.Calls[i]
-			if i != callIndex && c.Meta.Name == "mmap" {
+			if i != callIndex && c.Meta == defaultTarget.MmapSyscall {
 				p.removeCall(i)
 				if i < callIndex {
 					callIndex--

@@ -438,7 +438,7 @@ func (r *randGen) generateCall(s *state, p *Prog) []*Call {
 			c := p.Calls[r.Intn(len(p.Calls))].Meta
 			call = c.ID
 			// There is roughly half of mmap's so ignore them.
-			if c.Name != "mmap" {
+			if c != defaultTarget.MmapSyscall {
 				break
 			}
 		}
