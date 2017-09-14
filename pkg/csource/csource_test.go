@@ -89,7 +89,7 @@ func allOptionsPermutations() []Options {
 }
 
 func TestOne(t *testing.T) {
-	target, rs, _ := initTest(t)
+	t.Parallel()
 	opts := Options{
 		Threaded:  true,
 		Collide:   true,
@@ -99,8 +99,21 @@ func TestOne(t *testing.T) {
 		Repro:     true,
 		UseTmpDir: true,
 	}
-	p := target.GenerateAllSyzProg(rs)
-	testOne(t, p, opts)
+	for _, target := range prog.AllTargets() {
+		target := target
+		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
+			if target.OS == "linux" && target.Arch == "arm" {
+				// This currently fails (at least with my arm-linux-gnueabihf-gcc-4.8) with:
+				// Assembler messages:
+				// Error: alignment too large: 15 assumed
+				t.Skip("broken")
+			}
+			t.Parallel()
+			rs := rand.NewSource(0)
+			p := target.GenerateAllSyzProg(rs)
+			testOne(t, p, opts)
+		})
+	}
 }
 
 func TestOptions(t *testing.T) {
@@ -142,7 +155,10 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		t.Fatalf("%v", err)
 	}
 	defer os.Remove(srcf)
-	bin, err := Build("c", srcf)
+	bin, err := Build(p.Target, "c", srcf)
+	if err == NoCompilerErr {
+		t.Skip(err)
+	}
 	if err != nil {
 		t.Logf("program:\n%s\n", p.Serialize())
 		t.Fatalf("%v", err)

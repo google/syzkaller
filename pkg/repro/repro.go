@@ -558,7 +558,7 @@ func (ctx *context) testCProg(p *prog.Prog, duration time.Duration, opts csource
 	if err != nil {
 		return false, err
 	}
-	bin, err := csource.Build("c", srcf)
+	bin, err := csource.Build(p.Target, "c", srcf)
 	if err != nil {
 		return false, err
 	}

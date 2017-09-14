@@ -704,6 +704,7 @@ __NR_mlock = 9437334
 __NR_mlock2 = 9437574
 __NR_mlockall = 9437336
 __NR_mmap = 9437274
+__NR_mmap2 = 9437376
 __NR_mount = 9437205
 __NR_move_pages = 9437528
 __NR_mprotect = 9437309
