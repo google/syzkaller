@@ -37,7 +37,7 @@ func main() {
 	if len(flag.Args()) != 1 {
 		Fatalf("usage: syz-crush -config=config.file execution.log")
 	}
-	if err := prog.SetDefaultTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
+	if _, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
 		Fatalf("%v", err)
 	}
 	env := mgrconfig.CreateVMEnv(cfg, false)

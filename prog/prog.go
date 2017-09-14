@@ -8,7 +8,8 @@ import (
 )
 
 type Prog struct {
-	Calls []*Call
+	Target *Target
+	Calls  []*Call
 }
 
 type Call struct {
@@ -318,7 +319,7 @@ func (p *Prog) insertBefore(c *Call, calls []*Call) {
 // replaceArg replaces arg with arg1 in call c in program p, and inserts calls before arg call.
 func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
 	for _, c := range calls {
-		sanitizeCall(c)
+		p.Target.SanitizeCall(c)
 	}
 	p.insertBefore(c, calls)
 	switch a := arg.(type) {
@@ -345,7 +346,7 @@ func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
 	default:
 		panic(fmt.Sprintf("replaceArg: bad arg kind %v", arg))
 	}
-	sanitizeCall(c)
+	p.Target.SanitizeCall(c)
 }
 
 // removeArg removes all references to/from arg0 of call c from p.

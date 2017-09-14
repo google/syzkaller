@@ -15,6 +15,7 @@ import (
 )
 
 var (
+	flagArch       = flag.String("arch", runtime.GOARCH, "target arch")
 	flagThreaded   = flag.Bool("threaded", false, "create threaded program")
 	flagCollide    = flag.Bool("collide", false, "create collide program")
 	flagRepeat     = flag.Bool("repeat", false, "repeat program infinitely or not")
@@ -36,7 +37,8 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	if err := prog.SetDefaultTarget(runtime.GOOS, runtime.GOARCH); err != nil {
+	target, err := prog.GetTarget(runtime.GOOS, *flagArch)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
@@ -45,7 +47,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "failed to read prog file: %v\n", err)
 		os.Exit(1)
 	}
-	p, err := prog.Deserialize(data)
+	p, err := target.Deserialize(data)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
 		os.Exit(1)

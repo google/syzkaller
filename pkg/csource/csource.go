@@ -101,7 +101,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	fmt.Fprint(w, hdr)
 	fmt.Fprint(w, "\n")
 
-	calls, nvar := generateCalls(exec, opts)
+	calls, nvar := generateCalls(p.Target, exec, opts)
 	fmt.Fprintf(w, "long r[%v];\n", nvar)
 
 	if !opts.Repeat {
@@ -258,7 +258,7 @@ func generateTestFunc(w io.Writer, opts Options, calls []string, name string) {
 	}
 }
 
-func generateCalls(exec []byte, opts Options) ([]string, int) {
+func generateCalls(target *prog.Target, exec []byte, opts Options) ([]string, int) {
 	read := func() uint64 {
 		if len(exec) < 8 {
 			panic("exec program overflow")
@@ -367,7 +367,7 @@ loop:
 				fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_futex/ignore-private\", \"N\");\n")
 				fmt.Fprintf(w, "\tinject_fault(%v);\n", opts.FaultNth)
 			}
-			meta := prog.Syscalls[instr]
+			meta := target.Syscalls[instr]
 			emitCall := true
 			if meta.CallName == "syz_test" {
 				emitCall = false

@@ -7,10 +7,10 @@ import (
 	"fmt"
 )
 
-func calcResourceCtors(kind []string, precise bool) []*Syscall {
+func (target *Target) calcResourceCtors(kind []string, precise bool) []*Syscall {
 	// Find calls that produce the necessary resources.
 	var metas []*Syscall
-	for _, meta := range Syscalls {
+	for _, meta := range target.Syscalls {
 		// Recurse into arguments to see if there is an out/inout arg of necessary type.
 		ok := false
 		ForeachType(meta, func(typ Type) {
@@ -19,7 +19,7 @@ func calcResourceCtors(kind []string, precise bool) []*Syscall {
 			}
 			switch typ1 := typ.(type) {
 			case *ResourceType:
-				if typ1.Dir() != DirIn && isCompatibleResource(kind, typ1.Desc.Kind, precise) {
+				if typ1.Dir() != DirIn && isCompatibleResourceImpl(kind, typ1.Desc.Kind, precise) {
 					ok = true
 				}
 			}
@@ -31,23 +31,23 @@ func calcResourceCtors(kind []string, precise bool) []*Syscall {
 	return metas
 }
 
-// IsCompatibleResource returns true if resource of kind src can be passed as an argument of kind dst.
-func IsCompatibleResource(dst, src string) bool {
-	dstRes := Resources[dst]
+// isCompatibleResource returns true if resource of kind src can be passed as an argument of kind dst.
+func (target *Target) isCompatibleResource(dst, src string) bool {
+	dstRes := target.resourceMap[dst]
 	if dstRes == nil {
 		panic(fmt.Sprintf("unknown resource '%v'", dst))
 	}
-	srcRes := Resources[src]
+	srcRes := target.resourceMap[src]
 	if srcRes == nil {
 		panic(fmt.Sprintf("unknown resource '%v'", src))
 	}
-	return isCompatibleResource(dstRes.Kind, srcRes.Kind, false)
+	return isCompatibleResourceImpl(dstRes.Kind, srcRes.Kind, false)
 }
 
-// isCompatibleResource returns true if resource of kind src can be passed as an argument of kind dst.
+// isCompatibleResourceImpl returns true if resource of kind src can be passed as an argument of kind dst.
 // If precise is true, then it does not allow passing a less specialized resource (e.g. fd)
 // as a more specialized resource (e.g. socket). Otherwise it does.
-func isCompatibleResource(dst, src []string, precise bool) bool {
+func isCompatibleResourceImpl(dst, src []string, precise bool) bool {
 	if len(dst) > len(src) {
 		// dst is more specialized, e.g dst=socket, src=fd.
 		if precise {
@@ -67,7 +67,7 @@ func isCompatibleResource(dst, src []string, precise bool) bool {
 	return true
 }
 
-func (c *Syscall) InputResources() []*ResourceType {
+func (c *Syscall) inputResources() []*ResourceType {
 	var resources []*ResourceType
 	ForeachType(c, func(typ Type) {
 		switch typ1 := typ.(type) {
@@ -80,7 +80,7 @@ func (c *Syscall) InputResources() []*ResourceType {
 	return resources
 }
 
-func TransitivelyEnabledCalls(enabled map[*Syscall]bool) map[*Syscall]bool {
+func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) map[*Syscall]bool {
 	supported := make(map[*Syscall]bool)
 	for c := range enabled {
 		supported[c] = true
@@ -88,18 +88,18 @@ func TransitivelyEnabledCalls(enabled map[*Syscall]bool) map[*Syscall]bool {
 	inputResources := make(map[*Syscall][]*ResourceType)
 	ctors := make(map[string][]*Syscall)
 	for c := range supported {
-		inputs := c.InputResources()
+		inputs := c.inputResources()
 		inputResources[c] = inputs
 		for _, res := range inputs {
 			if _, ok := ctors[res.Desc.Name]; ok {
 				continue
 			}
-			ctors[res.Desc.Name] = calcResourceCtors(res.Desc.Kind, true)
+			ctors[res.Desc.Name] = target.calcResourceCtors(res.Desc.Kind, true)
 		}
 	}
 	for {
 		n := len(supported)
-		haveGettime := supported[SyscallMap["clock_gettime"]]
+		haveGettime := supported[target.SyscallMap["clock_gettime"]]
 		for c := range supported {
 			canCreate := true
 			for _, res := range inputResources[c] {

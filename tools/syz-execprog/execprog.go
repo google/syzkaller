@@ -47,7 +47,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := prog.SetDefaultTarget(runtime.GOOS, *flagArch); err != nil {
+	target, err := prog.GetTarget(runtime.GOOS, *flagArch)
+	if err != nil {
 		Fatalf("%v", err)
 	}
 
@@ -57,7 +58,7 @@ func main() {
 		if err != nil {
 			Fatalf("failed to read log file: %v", err)
 		}
-		entries := prog.ParseLog(data)
+		entries := target.ParseLog(data)
 		for _, ent := range entries {
 			progs = append(progs, ent.P)
 		}

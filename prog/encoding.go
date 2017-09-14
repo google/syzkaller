@@ -121,8 +121,10 @@ func serialize(arg Arg, buf io.Writer, vars map[Arg]int, varSeq *int) {
 	}
 }
 
-func Deserialize(data []byte) (prog *Prog, err error) {
-	prog = new(Prog)
+func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
+	prog = &Prog{
+		Target: target,
+	}
 	p := &parser{r: bufio.NewScanner(bytes.NewReader(data))}
 	p.r.Buffer(nil, maxLineLen)
 	vars := make(map[string]Arg)
@@ -138,7 +140,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 			name = p.Ident()
 
 		}
-		meta := SyscallMap[name]
+		meta := target.SyscallMap[name]
 		if meta == nil {
 			return nil, fmt.Errorf("unknown syscall %v", name)
 		}
@@ -156,7 +158,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 			if IsPad(typ) {
 				return nil, fmt.Errorf("padding in syscall %v arguments", name)
 			}
-			arg, err := parseArg(typ, p, vars)
+			arg, err := target.parseArg(typ, p, vars)
 			if err != nil {
 				return nil, err
 			}
@@ -193,7 +195,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 	return
 }
 
-func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 	r := ""
 	if p.Char() == '<' {
 		p.Parse('<')
@@ -261,7 +263,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 			return nil, err
 		}
 		p.Parse('=')
-		inner, err := parseArg(typ1, p, vars)
+		inner, err := target.parseArg(typ1, p, vars)
 		if err != nil {
 			return nil, err
 		}
@@ -273,7 +275,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 		if err != nil {
 			return nil, err
 		}
-		arg = MakeConstArg(typ, pages*pageSize)
+		arg = MakeConstArg(typ, pages*target.PageSize)
 	case '"':
 		p.Parse('"')
 		val := ""
@@ -301,7 +303,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 			if IsPad(fld) {
 				inner = append(inner, MakeConstArg(fld, 0))
 			} else {
-				arg, err := parseArg(fld, p, vars)
+				arg, err := target.parseArg(fld, p, vars)
 				if err != nil {
 					return nil, err
 				}
@@ -324,7 +326,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 		p.Parse('[')
 		var inner []Arg
 		for i := 0; p.Char() != ']'; i++ {
-			arg, err := parseArg(t1.Type, p, vars)
+			arg, err := target.parseArg(t1.Type, p, vars)
 			if err != nil {
 				return nil, err
 			}
@@ -353,7 +355,7 @@ func parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 		if optType == nil {
 			return nil, fmt.Errorf("union arg %v has unknown option: %v", typ.Name(), name)
 		}
-		opt, err := parseArg(optType, p, vars)
+		opt, err := target.parseArg(optType, p, vars)
 		if err != nil {
 			return nil, err
 		}

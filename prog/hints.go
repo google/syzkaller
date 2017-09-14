@@ -49,7 +49,7 @@ func (m CompMap) AddComp(arg1, arg2 uint64) {
 // For each of the mutants executes the exec callback.
 func (p *Prog) MutateWithHints(compMaps []CompMap, exec func(newP *Prog)) {
 	for i, c := range p.Calls {
-		if c.Meta == defaultTarget.MmapSyscall {
+		if c.Meta == p.Target.MmapSyscall {
 			continue
 		}
 		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
