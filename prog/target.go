@@ -18,6 +18,10 @@ type Target struct {
 	Syscalls  []*Syscall
 	Resources []*ResourceDesc
 
+	// Syscall used by MakeMmap.
+	// It has some special meaning because there are usually too many of them.
+	MmapSyscall *Syscall
+
 	// MakeMmap creates call that maps [start, start+npages) page range.
 	MakeMmap func(start, npages uint64) *Call
 
@@ -59,6 +63,10 @@ func RegisterTarget(target *Target) {
 	targets[key] = target
 }
 
+func GetTarget(OS, arch string) *Target {
+	return targets[OS+"/"+arch]
+}
+
 // SetDefaultTarget sets default target for prog package.
 // Majority of the code is not prepared for multiple targets,
 // so we use default target as a temporary measure.
@@ -72,9 +80,11 @@ func SetDefaultTarget(OS, arch string) error {
 		}
 		return fmt.Errorf("unknown target: %v (supported: %v)", key, supported)
 	}
-	if len(Syscalls) != 0 {
+	if defaultTarget != nil {
 		return fmt.Errorf("default target is already set")
 	}
+
+	defaultTarget = target
 
 	Syscalls = target.Syscalls
 	SyscallMap = target.syscallMap
@@ -123,6 +133,8 @@ var (
 	ptrSize    uint64
 	pageSize   uint64
 	dataOffset uint64
+
+	defaultTarget *Target
 
 	Syscalls      []*Syscall
 	SyscallMap    map[string]*Syscall
