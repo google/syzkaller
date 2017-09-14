@@ -537,8 +537,10 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 		}
 		program += "]"
 	}
-	command := fmt.Sprintf("%v -executor %v -cover=0 -procs=%v -repeat=%v -sandbox %v -threaded=%v -collide=%v %v",
-		inst.execprogBin, inst.executorBin, opts.Procs, repeat, opts.Sandbox, opts.Threaded, opts.Collide, vmProgFile)
+	command := fmt.Sprintf("%v -executor %v -arch=%v -cover=0 -procs=%v -repeat=%v"+
+		" -sandbox %v -threaded=%v -collide=%v %v",
+		inst.execprogBin, inst.executorBin, ctx.cfg.TargetArch, opts.Procs, repeat,
+		opts.Sandbox, opts.Threaded, opts.Collide, vmProgFile)
 	ctx.reproLog(2, "testing program (duration=%v, %+v): %s", duration, opts, program)
 	return ctx.testImpl(inst.Instance, command, duration)
 }
