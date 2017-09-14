@@ -34,6 +34,7 @@ import (
 
 var (
 	flagName     = flag.String("name", "", "unique name for manager")
+	flagArch     = flag.String("arch", "", "target arch")
 	flagExecutor = flag.String("executor", "", "path to executor binary")
 	flagManager  = flag.String("manager", "", "manager rpc address")
 	flagProcs    = flag.Int("procs", 1, "number of parallel test processes")
@@ -105,7 +106,7 @@ func main() {
 	}
 	Logf(0, "fuzzer started")
 
-	if err := prog.SetDefaultTarget(runtime.GOOS, runtime.GOARCH); err != nil {
+	if err := prog.SetDefaultTarget(runtime.GOOS, *flagArch); err != nil {
 		Fatalf("%v", err)
 	}
 
@@ -835,6 +836,9 @@ func kmemleakScan(report bool) {
 //		First  - is the kcov device present in the system.
 //		Second - is the kcov device supporting comparisons.
 func checkCompsSupported() (kcov, comps bool) {
+	// TODO(dvyukov): this should run under target arch.
+	// E.g. KCOV ioctls were initially not supported on 386 (missing compat_ioctl),
+	// and a 386 executor won't be able to use them, but an amd64 fuzzer will be.
 	fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0)
 	if err != nil {
 		return
