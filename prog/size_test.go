@@ -1,29 +1,21 @@
 // Copyright 2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package prog_test
+package prog
 
 import (
 	"bytes"
-	"runtime"
 	"strings"
 	"testing"
-
-	. "github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
 )
 
-func init() {
-	SetDefaultTarget("linux", runtime.GOARCH)
-}
-
 func TestAssignSizeRandom(t *testing.T) {
-	rs, iters := InitTest(t)
+	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		data0 := p.Serialize()
 		for _, call := range p.Calls {
-			AssignSizesCall(call)
+			target.assignSizesCall(call)
 		}
 		if data1 := p.Serialize(); !bytes.Equal(data0, data1) {
 			t.Fatalf("different lens assigned, initial: %v, new: %v", data0, data1)
@@ -31,7 +23,7 @@ func TestAssignSizeRandom(t *testing.T) {
 		p.Mutate(rs, 10, nil, nil)
 		data0 = p.Serialize()
 		for _, call := range p.Calls {
-			AssignSizesCall(call)
+			target.assignSizesCall(call)
 		}
 		if data1 := p.Serialize(); !bytes.Equal(data0, data1) {
 			t.Fatalf("different lens assigned, initial: %v, new: %v", data0, data1)
@@ -40,6 +32,7 @@ func TestAssignSizeRandom(t *testing.T) {
 }
 
 func TestAssignSize(t *testing.T) {
+	target, _, _ := initTest(t)
 	tests := []struct {
 		unsizedProg string
 		sizedProg   string
@@ -131,12 +124,12 @@ func TestAssignSize(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		p, err := Deserialize([]byte(test.unsizedProg))
+		p, err := target.Deserialize([]byte(test.unsizedProg))
 		if err != nil {
 			t.Fatalf("failed to deserialize prog %v: %v", i, err)
 		}
 		for _, call := range p.Calls {
-			AssignSizesCall(call)
+			target.assignSizesCall(call)
 		}
 		p1 := strings.TrimSpace(string(p.Serialize()))
 		if p1 != test.sizedProg {

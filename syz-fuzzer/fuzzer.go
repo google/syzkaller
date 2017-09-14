@@ -61,6 +61,7 @@ type Candidate struct {
 
 var (
 	manager *RpcClient
+	target  *prog.Target
 
 	signalMu     sync.RWMutex
 	corpusSignal map[uint32]struct{}
@@ -106,7 +107,9 @@ func main() {
 	}
 	Logf(0, "fuzzer started")
 
-	if err := prog.SetDefaultTarget(runtime.GOOS, *flagArch); err != nil {
+	var err error
+	target, err = prog.GetTarget(runtime.GOOS, *flagArch)
+	if err != nil {
 		Fatalf("%v", err)
 	}
 
@@ -139,8 +142,8 @@ func main() {
 	if err := RpcCall(*flagManager, "Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
-	calls := buildCallList(r.EnabledCalls)
-	ct := prog.BuildChoiceTable(r.Prios, calls)
+	calls := buildCallList(target, r.EnabledCalls)
+	ct := target.BuildChoiceTable(r.Prios, calls)
 	for _, inp := range r.Inputs {
 		addInput(inp)
 	}
@@ -148,7 +151,7 @@ func main() {
 		maxSignal[s] = struct{}{}
 	}
 	for _, candidate := range r.Candidates {
-		p, err := prog.Deserialize(candidate.Prog)
+		p, err := target.Deserialize(candidate.Prog)
 		if err != nil {
 			panic(err)
 		}
@@ -207,10 +210,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if _, ok := calls[prog.SyscallMap["syz_emit_ethernet"]]; ok {
+	if _, ok := calls[target.SyscallMap["syz_emit_ethernet"]]; ok {
 		config.Flags |= ipc.FlagEnableTun
 	}
-	if _, ok := calls[prog.SyscallMap["syz_extract_tcp_res"]]; ok {
+	if _, ok := calls[target.SyscallMap["syz_extract_tcp_res"]]; ok {
 		config.Flags |= ipc.FlagEnableTun
 	}
 	if faultInjectionEnabled {
@@ -297,7 +300,7 @@ func main() {
 				if len(corpus) == 0 || i%100 == 0 {
 					// Generate a new prog.
 					corpusMu.RUnlock()
-					p := prog.Generate(rnd, programLength, ct)
+					p := target.Generate(rnd, programLength, ct)
 					Logf(1, "#%v: generated: %s", i, p)
 					execute(pid, env, p, false, false, false, false, &statExecGen)
 				} else {
@@ -385,7 +388,7 @@ func main() {
 				addInput(inp)
 			}
 			for _, candidate := range r.Candidates {
-				p, err := prog.Deserialize(candidate.Prog)
+				p, err := target.Deserialize(candidate.Prog)
 				if err != nil {
 					panic(err)
 				}
@@ -412,23 +415,23 @@ func main() {
 	}
 }
 
-func buildCallList(enabledCalls string) map[*prog.Syscall]bool {
+func buildCallList(target *prog.Target, enabledCalls string) map[*prog.Syscall]bool {
 	calls := make(map[*prog.Syscall]bool)
 	if enabledCalls != "" {
 		for _, id := range strings.Split(enabledCalls, ",") {
 			n, err := strconv.ParseUint(id, 10, 64)
-			if err != nil || n >= uint64(len(prog.Syscalls)) {
+			if err != nil || n >= uint64(len(target.Syscalls)) {
 				panic(fmt.Sprintf("invalid syscall in -calls flag: %v", id))
 			}
-			calls[prog.Syscalls[n]] = true
+			calls[target.Syscalls[n]] = true
 		}
 	} else {
-		for _, c := range prog.Syscalls {
+		for _, c := range target.Syscalls {
 			calls[c] = true
 		}
 	}
 
-	if supp, err := host.DetectSupportedSyscalls(); err != nil {
+	if supp, err := host.DetectSupportedSyscalls(target); err != nil {
 		Logf(0, "failed to detect host supported syscalls: %v", err)
 	} else {
 		for c := range calls {
@@ -439,7 +442,7 @@ func buildCallList(enabledCalls string) map[*prog.Syscall]bool {
 		}
 	}
 
-	trans := prog.TransitivelyEnabledCalls(calls)
+	trans := target.TransitivelyEnabledCalls(calls)
 	for c := range calls {
 		if !trans[c] {
 			Logf(1, "disabling transitively unsupported syscall: %v", c.Name)
@@ -458,7 +461,7 @@ func addInput(inp RpcInput) {
 	if noCover {
 		panic("should not be called when coverage is disabled")
 	}
-	p, err := prog.Deserialize(inp.Prog)
+	p, err := target.Deserialize(inp.Prog)
 	if err != nil {
 		panic(err)
 	}

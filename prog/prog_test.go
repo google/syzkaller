@@ -10,27 +10,27 @@ import (
 )
 
 func TestGeneration(t *testing.T) {
-	rs, iters := InitTest(t)
+	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
-		Generate(rs, 20, nil)
+		target.Generate(rs, 20, nil)
 	}
 }
 
 func TestDefault(t *testing.T) {
-	InitTest(t)
-	for _, meta := range SyscallMap {
+	target, _, _ := initTest(t)
+	for _, meta := range target.SyscallMap {
 		for _, t := range meta.Args {
-			DefaultArg(t)
+			defaultArg(t)
 		}
 	}
 }
 
 func TestDefaultCallArgs(t *testing.T) {
-	InitTest(t)
-	for _, meta := range SyscallMap {
+	target, _, _ := initTest(t)
+	for _, meta := range target.SyscallMap {
 		// Ensure that we can restore all arguments of all calls.
 		prog := fmt.Sprintf("%v()", meta.Name)
-		p, err := Deserialize([]byte(prog))
+		p, err := target.Deserialize([]byte(prog))
 		if err != nil {
 			t.Fatalf("failed to restore default args in prog %q: %v", prog, err)
 		}
@@ -41,11 +41,11 @@ func TestDefaultCallArgs(t *testing.T) {
 }
 
 func TestSerialize(t *testing.T) {
-	rs, iters := InitTest(t)
+	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		data := p.Serialize()
-		p1, err := Deserialize(data)
+		p1, err := target.Deserialize(data)
 		if err != nil {
 			t.Fatalf("failed to deserialize program: %v\n%s", err, data)
 		}
@@ -63,12 +63,12 @@ func TestSerialize(t *testing.T) {
 }
 
 func TestVmaType(t *testing.T) {
-	rs, iters := InitTest(t)
-	meta := SyscallMap["syz_test$vma0"]
-	r := newRand(rs)
-	pageSize := PageSize()
+	target, rs, iters := initTest(t)
+	meta := target.SyscallMap["syz_test$vma0"]
+	r := newRand(target, rs)
+	pageSize := target.PageSize
 	for i := 0; i < iters; i++ {
-		s := newState(nil)
+		s := newState(target, nil)
 		calls := r.generateParticularCall(s, meta)
 		c := calls[len(calls)-1]
 		if c.Meta.Name != "syz_test$vma0" {

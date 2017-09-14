@@ -175,11 +175,16 @@ func ParseEnabledSyscalls(cfg *Config) (map[int]bool, error) {
 		return false
 	}
 
+	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
+	if err != nil {
+		return nil, err
+	}
+
 	syscalls := make(map[int]bool)
 	if len(cfg.Enable_Syscalls) != 0 {
 		for _, c := range cfg.Enable_Syscalls {
 			n := 0
-			for _, call := range prog.Syscalls {
+			for _, call := range target.Syscalls {
 				if match(call, c) {
 					syscalls[call.ID] = true
 					n++
@@ -190,13 +195,13 @@ func ParseEnabledSyscalls(cfg *Config) (map[int]bool, error) {
 			}
 		}
 	} else {
-		for _, call := range prog.Syscalls {
+		for _, call := range target.Syscalls {
 			syscalls[call.ID] = true
 		}
 	}
 	for _, c := range cfg.Disable_Syscalls {
 		n := 0
-		for _, call := range prog.Syscalls {
+		for _, call := range target.Syscalls {
 			if match(call, c) {
 				delete(syscalls, call.ID)
 				n++

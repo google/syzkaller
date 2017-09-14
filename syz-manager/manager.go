@@ -43,6 +43,7 @@ var (
 type Manager struct {
 	cfg          *mgrconfig.Config
 	vmPool       *vm.Pool
+	target       *prog.Target
 	crashdir     string
 	port         int
 	corpusDB     *db.DB
@@ -114,7 +115,8 @@ func main() {
 	if err != nil {
 		Fatalf("%v", err)
 	}
-	if err := prog.SetDefaultTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
+	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
+	if err != nil {
 		Fatalf("%v", err)
 	}
 	syscalls, err := mgrconfig.ParseEnabledSyscalls(cfg)
@@ -122,12 +124,12 @@ func main() {
 		Fatalf("%v", err)
 	}
 	// mmap is used to allocate memory.
-	syscalls[prog.GetTarget(cfg.TargetOS, cfg.TargetArch).MmapSyscall.ID] = true
+	syscalls[target.MmapSyscall.ID] = true
 	initAllCover(cfg.Vmlinux)
-	RunManager(cfg, syscalls)
+	RunManager(cfg, target, syscalls)
 }
 
-func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
+func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]bool) {
 	env := mgrconfig.CreateVMEnv(cfg, *flagDebug)
 	vmPool, err := vm.Create(cfg.Type, env)
 	if err != nil {
@@ -150,6 +152,7 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 	mgr := &Manager{
 		cfg:             cfg,
 		vmPool:          vmPool,
+		target:          target,
 		crashdir:        crashdir,
 		startTime:       time.Now(),
 		stats:           make(map[string]uint64),
@@ -174,7 +177,7 @@ func RunManager(cfg *mgrconfig.Config, syscalls map[int]bool) {
 	}
 	deleted := 0
 	for key, rec := range mgr.corpusDB.Records {
-		p, err := prog.Deserialize(rec.Val)
+		p, err := mgr.target.Deserialize(rec.Val)
 		if err != nil {
 			if deleted < 10 {
 				Logf(0, "deleting broken program: %v\n%s", err, rec.Val)
@@ -814,13 +817,13 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 
 		corpus := make([]*prog.Prog, 0, len(inputs))
 		for _, inp := range inputs {
-			p, err := prog.Deserialize(inp)
+			p, err := mgr.target.Deserialize(inp)
 			if err != nil {
 				panic(err)
 			}
 			corpus = append(corpus, p)
 		}
-		prios := prog.CalculatePriorities(corpus)
+		prios := mgr.target.CalculatePriorities(corpus)
 
 		mgr.mu.Lock()
 		mgr.prios = prios
@@ -1067,7 +1070,7 @@ func (mgr *Manager) hubSync() {
 
 		reproDropped := 0
 		for _, repro := range r.Repros {
-			_, err := prog.Deserialize(repro)
+			_, err := mgr.target.Deserialize(repro)
 			if err != nil {
 				reproDropped++
 				continue
@@ -1085,7 +1088,7 @@ func (mgr *Manager) hubSync() {
 		mgr.newRepros = nil
 		dropped := 0
 		for _, inp := range r.Progs {
-			_, err := prog.Deserialize(inp)
+			_, err := mgr.target.Deserialize(inp)
 			if err != nil {
 				dropped++
 				continue

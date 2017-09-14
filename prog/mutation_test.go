@@ -1,21 +1,18 @@
 // Copyright 2015 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package prog_test
+package prog
 
 import (
 	"bytes"
 	"fmt"
 	"testing"
-
-	. "github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
 )
 
 func TestClone(t *testing.T) {
-	rs, iters := InitTest(t)
+	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		p1 := p.Clone()
 		data := p.Serialize()
 		data1 := p1.Serialize()
@@ -26,10 +23,10 @@ func TestClone(t *testing.T) {
 }
 
 func TestMutate(t *testing.T) {
-	rs, iters := InitTest(t)
+	target, rs, iters := initTest(t)
 next:
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		data0 := p.Serialize()
 		p1 := p.Clone()
 		// There is a chance that mutation will produce the same program.
@@ -50,14 +47,14 @@ next:
 }
 
 func TestMutateCorpus(t *testing.T) {
-	rs, iters := InitTest(t)
+	target, rs, iters := initTest(t)
 	var corpus []*Prog
 	for i := 0; i < 100; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		corpus = append(corpus, p)
 	}
 	for i := 0; i < iters; i++ {
-		p1 := Generate(rs, 10, nil)
+		p1 := target.Generate(rs, 10, nil)
 		p1.Mutate(rs, 10, nil, corpus)
 	}
 }
@@ -140,10 +137,10 @@ func TestMutateTable(t *testing.T) {
 				"readv(r0, &(0x7f0000000000)=[{&(0x7f0000001000)=\"00\", 0x1}, {&(0x7f0000002000)=\"00\", 0x2}, {&(0x7f0000000000)=\"00\", 0x3}], 0x3)\n",
 		},
 	}
-	rs, _ := InitTest(t)
+	target, rs, _ := initTest(t)
 nextTest:
 	for ti, test := range tests {
-		p, err := Deserialize([]byte(test[0]))
+		p, err := target.Deserialize([]byte(test[0]))
 		if err != nil {
 			t.Fatalf("failed to deserialize original program %v: %v", ti, err)
 		}
@@ -272,8 +269,9 @@ func TestMinimize(t *testing.T) {
 			2,
 		},
 	}
+	target, _, _ := initTest(t)
 	for ti, test := range tests {
-		p, err := Deserialize([]byte(test.orig))
+		p, err := target.Deserialize([]byte(test.orig))
 		if err != nil {
 			t.Fatalf("failed to deserialize original program #%v: %v", ti, err)
 		}
@@ -291,10 +289,10 @@ func TestMinimize(t *testing.T) {
 }
 
 func TestMinimizeRandom(t *testing.T) {
-	rs, iters := InitTest(t)
+	target, rs, iters := initTest(t)
 	iters /= 10 // Long test.
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 5, nil)
+		p := target.Generate(rs, 5, nil)
 		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
 			return false
 		}, true)
@@ -303,7 +301,7 @@ func TestMinimizeRandom(t *testing.T) {
 		}, true)
 	}
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 5, nil)
+		p := target.Generate(rs, 5, nil)
 		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
 			return false
 		}, false)

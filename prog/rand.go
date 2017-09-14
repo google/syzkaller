@@ -18,12 +18,17 @@ var pageStartPool = sync.Pool{New: func() interface{} { return new([]uint64) }}
 
 type randGen struct {
 	*rand.Rand
+	target           *Target
 	inCreateResource bool
 	recDepth         map[string]int
 }
 
-func newRand(rs rand.Source) *randGen {
-	return &randGen{rand.New(rs), false, make(map[string]int)}
+func newRand(target *Target, rs rand.Source) *randGen {
+	return &randGen{
+		Rand:     rand.New(rs),
+		target:   target,
+		recDepth: make(map[string]int),
+	}
 }
 
 func (r *randGen) rand(n int) uint64 {
@@ -205,8 +210,9 @@ func (r *randGen) randStringImpl(s *state, vals []string) []byte {
 	for r.nOutOf(3, 4) {
 		switch {
 		case r.nOutOf(10, 21):
-			if len(stringDictionary) != 0 {
-				buf.WriteString(stringDictionary[r.Intn(len(stringDictionary))])
+			dict := r.target.StringDictionary
+			if len(dict) != 0 {
+				buf.WriteString(dict[r.Intn(len(dict))])
 			}
 		case r.nOutOf(10, 11):
 			buf.Write([]byte{punct[r.Intn(len(punct))]})
@@ -221,7 +227,7 @@ func (r *randGen) randStringImpl(s *state, vals []string) []byte {
 }
 
 func (r *randGen) addr1(s *state, typ Type, size uint64, data Arg) (Arg, []*Call) {
-	npages := (size + pageSize - 1) / pageSize
+	npages := (size + r.target.PageSize - 1) / r.target.PageSize
 	if npages == 0 {
 		npages = 1
 	}
@@ -239,7 +245,7 @@ func (r *randGen) addr1(s *state, typ Type, size uint64, data Arg) (Arg, []*Call
 		if !free {
 			continue
 		}
-		c := makeMmap(i, npages)
+		c := r.target.MakeMmap(i, npages)
 		return MakePointerArg(typ, i, 0, 0, data), []*Call{c}
 	}
 	return r.randPageAddr(s, typ, npages, data, false), nil
@@ -257,7 +263,7 @@ func (r *randGen) addr(s *state, typ Type, size uint64, data Arg) (Arg, []*Call)
 	case r.nOutOf(50, 52):
 		a.PageOffset = -int(size)
 	case r.nOutOf(1, 2):
-		a.PageOffset = r.Intn(int(pageSize))
+		a.PageOffset = r.Intn(int(r.target.PageSize))
 	default:
 		if size > 0 {
 			a.PageOffset = -r.Intn(int(size))
@@ -310,15 +316,15 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 	if r.oneOf(1000) {
 		// Spoof resource subkind.
 		var all []string
-		for kind1 := range Resources {
-			if IsCompatibleResource(res.Desc.Kind[0], kind1) {
+		for kind1 := range r.target.resourceMap {
+			if r.target.isCompatibleResource(res.Desc.Kind[0], kind1) {
 				all = append(all, kind1)
 			}
 		}
 		kind = all[r.Intn(len(all))]
 	}
 	// Find calls that produce the necessary resources.
-	metas0 := resourceCtors[kind]
+	metas0 := r.target.resourceCtors[kind]
 	// TODO: reduce priority of less specialized ctors.
 	var metas []*Syscall
 	for _, meta := range metas0 {
@@ -336,12 +342,12 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 		// Generate one of them.
 		meta := metas[r.Intn(len(metas))]
 		calls := r.generateParticularCall(s, meta)
-		s1 := newState(s.ct)
+		s1 := newState(r.target, s.ct)
 		s1.analyze(calls[len(calls)-1])
 		// Now see if we have what we want.
 		var allres []Arg
 		for kind1, res1 := range s1.resources {
-			if IsCompatibleResource(kind, kind1) {
+			if r.target.isCompatibleResource(kind, kind1) {
 				allres = append(allres, res1...)
 			}
 		}
@@ -438,12 +444,19 @@ func (r *randGen) generateCall(s *state, p *Prog) []*Call {
 			c := p.Calls[r.Intn(len(p.Calls))].Meta
 			call = c.ID
 			// There is roughly half of mmap's so ignore them.
-			if c != defaultTarget.MmapSyscall {
+			if c != r.target.MmapSyscall {
 				break
 			}
 		}
 	}
-	meta := Syscalls[s.ct.Choose(r.Rand, call)]
+
+	idx := 0
+	if s.ct == nil {
+		idx = r.Intn(len(r.target.Syscalls))
+	} else {
+		idx = s.ct.Choose(r.Rand, call)
+	}
+	meta := r.target.Syscalls[idx]
 	return r.generateParticularCall(s, meta)
 }
 
@@ -453,21 +466,23 @@ func (r *randGen) generateParticularCall(s *state, meta *Syscall) (calls []*Call
 		Ret:  MakeReturnArg(meta.Ret),
 	}
 	c.Args, calls = r.generateArgs(s, meta.Args)
-	assignSizesCall(c)
+	r.target.assignSizesCall(c)
 	calls = append(calls, c)
 	for _, c1 := range calls {
-		sanitizeCall(c1)
+		r.target.SanitizeCall(c1)
 	}
 	return calls
 }
 
 // GenerateAllSyzProg generates a program that contains all pseudo syz_ calls for testing.
-func GenerateAllSyzProg(rs rand.Source) *Prog {
-	p := new(Prog)
-	r := newRand(rs)
-	s := newState(nil)
+func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
+	p := &Prog{
+		Target: target,
+	}
+	r := newRand(target, rs)
+	s := newState(target, nil)
 	handled := make(map[string]bool)
-	for _, meta := range Syscalls {
+	for _, meta := range target.Syscalls {
 		if !strings.HasPrefix(meta.CallName, "syz_") || handled[meta.CallName] {
 			continue
 		}
@@ -544,8 +559,8 @@ func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
 				if name1 == "iocbptr" {
 					continue
 				}
-				if IsCompatibleResource(a.Desc.Name, name1) ||
-					r.oneOf(20) && IsCompatibleResource(a.Desc.Kind[0], name1) {
+				if r.target.isCompatibleResource(a.Desc.Name, name1) ||
+					r.oneOf(20) && r.target.isCompatibleResource(a.Desc.Kind[0], name1) {
 					allres = append(allres, res1...)
 				}
 			}
@@ -645,7 +660,7 @@ func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
 		}
 		return MakeGroupArg(a, inner), calls
 	case *StructType:
-		if gen := specialStructs[a.Name()]; gen != nil && a.Dir() != DirOut {
+		if gen := r.target.SpecialStructs[a.Name()]; gen != nil && a.Dir() != DirOut {
 			arg, calls = gen(&Gen{r, s}, a, nil)
 			return
 		}

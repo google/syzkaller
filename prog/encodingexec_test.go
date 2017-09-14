@@ -1,23 +1,20 @@
 // Copyright 2016 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-package prog_test
+package prog
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"testing"
-
-	. "github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
 )
 
 func TestSerializeForExecRandom(t *testing.T) {
-	rs, iters := InitTest(t)
+	target, rs, iters := initTest(t)
 	buf := make([]byte, ExecBufferSize)
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		if err := p.SerializeForExec(buf, i%16); err != nil {
 			t.Fatalf("failed to serialize: %v", err)
 		}
@@ -45,12 +42,13 @@ func TestSerializeForExec(t *testing.T) {
 		argResult    = uint64(ExecArgResult)
 		argData      = uint64(ExecArgData)
 	)
+	target, _, _ := initTest(t)
 	var (
-		dataOffset = DataOffset()
-		ptrSize    = PtrSize()
+		dataOffset = target.DataOffset
+		ptrSize    = target.PtrSize
 	)
 	callID := func(name string) uint64 {
-		c := SyscallMap[name]
+		c := target.SyscallMap[name]
 		if c == nil {
 			t.Fatalf("unknown syscall %v", name)
 		}
@@ -267,7 +265,7 @@ func TestSerializeForExec(t *testing.T) {
 	for i, test := range tests {
 		i, test := i, test
 		t.Run(fmt.Sprintf("%v:%v", i, test.prog), func(t *testing.T) {
-			p, err := Deserialize([]byte(test.prog))
+			p, err := target.Deserialize([]byte(test.prog))
 			if err != nil {
 				t.Fatalf("failed to deserialize prog %v: %v", i, err)
 			}

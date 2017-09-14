@@ -17,17 +17,17 @@ import (
 	_ "github.com/google/syzkaller/sys"
 )
 
-func init() {
-	prog.SetDefaultTarget("linux", runtime.GOARCH)
-}
-
-func initTest(t *testing.T) (rand.Source, int) {
+func initTest(t *testing.T) (*prog.Target, rand.Source, int) {
 	t.Parallel()
 	iters := 1
 	seed := int64(time.Now().UnixNano())
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
-	return rs, iters
+	target, err := prog.GetTarget("linux", runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return target, rs, iters
 }
 
 func enumerateField(opt Options, field int) []Options {
@@ -89,7 +89,7 @@ func allOptionsPermutations() []Options {
 }
 
 func TestOne(t *testing.T) {
-	rs, _ := initTest(t)
+	target, rs, _ := initTest(t)
 	opts := Options{
 		Threaded:  true,
 		Collide:   true,
@@ -99,13 +99,13 @@ func TestOne(t *testing.T) {
 		Repro:     true,
 		UseTmpDir: true,
 	}
-	p := prog.GenerateAllSyzProg(rs)
+	p := target.GenerateAllSyzProg(rs)
 	testOne(t, p, opts)
 }
 
 func TestOptions(t *testing.T) {
-	rs, _ := initTest(t)
-	syzProg := prog.GenerateAllSyzProg(rs)
+	target, rs, _ := initTest(t)
+	syzProg := target.GenerateAllSyzProg(rs)
 	t.Logf("syz program:\n%s\n", syzProg.Serialize())
 	permutations := allOptionsSingle()
 	allPermutations := allOptionsPermutations()
@@ -119,10 +119,10 @@ func TestOptions(t *testing.T) {
 	}
 	for i, opts := range permutations {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
-			rs, iters := initTest(t)
+			target, rs, iters := initTest(t)
 			t.Logf("opts: %+v", opts)
 			for i := 0; i < iters; i++ {
-				p := prog.Generate(rs, 10, nil)
+				p := target.Generate(rs, 10, nil)
 				testOne(t, p, opts)
 			}
 			testOne(t, syzProg, opts)

@@ -66,9 +66,10 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 	}
 	instrSeq := 0
 	w := &execContext{
-		buf:  buffer,
-		eof:  false,
-		args: make(map[Arg]argInfo),
+		target: p.Target,
+		buf:    buffer,
+		eof:    false,
+		args:   make(map[Arg]argInfo),
 	}
 	for _, c := range p.Calls {
 		// Calculate checksums.
@@ -94,7 +95,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 				foreachSubargOffset(a.Res, func(arg1 Arg, offset uint64) {
 					used, ok := arg1.(ArgUsed)
 					if (ok && len(*used.Used()) != 0) || csumUses[arg1] {
-						w.args[arg1] = argInfo{Addr: physicalAddr(arg) + offset}
+						w.args[arg1] = argInfo{Addr: p.Target.physicalAddr(arg) + offset}
 					}
 					if _, ok := arg1.(*GroupArg); ok {
 						return
@@ -107,7 +108,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 					}
 					if !IsPad(arg1.Type()) && arg1.Type().Dir() != DirOut {
 						w.write(ExecInstrCopyin)
-						w.write(physicalAddr(arg) + offset)
+						w.write(p.Target.physicalAddr(arg) + offset)
 						w.writeArg(arg1, pid, csumMap)
 						instrSeq++
 					}
@@ -197,24 +198,25 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 	return nil
 }
 
-func physicalAddr(arg Arg) uint64 {
+func (target *Target) physicalAddr(arg Arg) uint64 {
 	a, ok := arg.(*PointerArg)
 	if !ok {
 		panic("physicalAddr: bad arg kind")
 	}
-	addr := a.PageIndex*pageSize + dataOffset
+	addr := a.PageIndex*target.PageSize + target.DataOffset
 	if a.PageOffset >= 0 {
 		addr += uint64(a.PageOffset)
 	} else {
-		addr += pageSize - uint64(-a.PageOffset)
+		addr += target.PageSize - uint64(-a.PageOffset)
 	}
 	return addr
 }
 
 type execContext struct {
-	buf  []byte
-	eof  bool
-	args map[Arg]argInfo
+	target *Target
+	buf    []byte
+	eof    bool
+	args   map[Arg]argInfo
 }
 
 type argInfo struct {
@@ -263,7 +265,7 @@ func (w *execContext) writeArg(arg Arg, pid int, csumMap map[Arg]CsumInfo) {
 	case *PointerArg:
 		w.write(ExecArgConst)
 		w.write(a.Size())
-		w.write(physicalAddr(arg))
+		w.write(w.target.physicalAddr(arg))
 		w.write(0) // bit field offset
 		w.write(0) // bit field length
 	case *DataArg:

@@ -38,7 +38,7 @@ func main() {
 	if err != nil {
 		Fatalf("failed to open log file: %v", err)
 	}
-	if err := prog.SetDefaultTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
+	if _, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
 		Fatalf("%v", err)
 	}
 	env := mgrconfig.CreateVMEnv(cfg, false)
