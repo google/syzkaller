@@ -19,7 +19,7 @@ import (
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 var (
@@ -30,7 +30,7 @@ var (
 )
 
 type Arch struct {
-	target    *sys.Target
+	target    *targets.Target
 	kernelDir string
 	buildDir  string
 	build     bool
@@ -68,7 +68,7 @@ func main() {
 	if *flagArch != "" {
 		archArray = strings.Split(*flagArch, ",")
 	} else {
-		for arch := range sys.Targets[OS] {
+		for arch := range targets.List[OS] {
 			archArray = append(archArray, arch)
 		}
 		sort.Strings(archArray)
@@ -105,7 +105,7 @@ func main() {
 			buildDir = *flagLinux
 		}
 
-		target := sys.Targets[OS][archStr]
+		target := targets.List[OS][archStr]
 		if target == nil {
 			failf("unknown arch: %v", archStr)
 		}

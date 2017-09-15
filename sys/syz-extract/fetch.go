@@ -12,13 +12,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // fetchValues converts literal constants (e.g. O_APPEND) or any other C expressions
 // into their respective numeric values. It does so by builting and executing a C program
 // that prints values of the provided expressions.
-func fetchValues(target *sys.Target, kernelDir, buildDir string,
+func fetchValues(target *targets.Target, kernelDir, buildDir string,
 	vals, includes, incdirs []string, defines map[string]string) (
 	map[string]uint64, map[string]bool, error) {
 	bin, out, err := runCompiler(target, kernelDir, buildDir, nil, includes, incdirs, nil, nil)
@@ -87,7 +87,7 @@ func fetchValues(target *sys.Target, kernelDir, buildDir string,
 	return res, undeclared, nil
 }
 
-func runCompiler(target *sys.Target, kernelDir, buildDir string, vals, includes, incdirs []string, defines map[string]string, undeclared map[string]bool) (bin string, out []byte, err error) {
+func runCompiler(target *targets.Target, kernelDir, buildDir string, vals, includes, incdirs []string, defines map[string]string, undeclared map[string]bool) (bin string, out []byte, err error) {
 	includeText := ""
 	for _, inc := range includes {
 		includeText += fmt.Sprintf("#include <%v>\n", inc)
