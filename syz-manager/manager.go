@@ -79,6 +79,10 @@ type Manager struct {
 	hubCorpus      map[hash.Sig]bool
 	needMoreRepros chan chan bool
 	hubReproQueue  chan *Crash
+
+	// For checking that files that we are using are not changing under us.
+	// Maps file name to modification time.
+	usedFiles map[string]time.Time
 }
 
 const (
@@ -166,8 +170,9 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		fuzzers:         make(map[string]*Fuzzer),
 		fresh:           true,
 		vmStop:          make(chan bool),
-		hubReproQueue:   make(chan *Crash), //!!! make buffered
+		hubReproQueue:   make(chan *Crash, 10),
 		needMoreRepros:  make(chan chan bool),
+		usedFiles:       make(map[string]time.Time),
 	}
 
 	Logf(0, "loading corpus...")
@@ -225,6 +230,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 
 	// Create HTTP server.
 	mgr.initHttp()
+	mgr.collectUsedFiles()
 
 	// Create RPC server for fuzzers.
 	s, err := NewRpcServer(cfg.Rpc, mgr)
@@ -485,6 +491,7 @@ func (mgr *Manager) vmLoop() {
 }
 
 func (mgr *Manager) runInstance(index int) (*Crash, error) {
+	mgr.checkUsedFiles()
 	inst, err := mgr.vmPool.Create(index)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create instance: %v", err)
@@ -495,11 +502,11 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to setup port forwarding: %v", err)
 	}
-	fuzzerBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin", "syz-fuzzer"))
+	fuzzerBin, err := inst.Copy(mgr.cfg.SyzFuzzerBin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
-	executorBin, err := inst.Copy(filepath.Join(mgr.cfg.Syzkaller, "bin", "syz-executor"))
+	executorBin, err := inst.Copy(mgr.cfg.SyzExecutorBin)
 	if err != nil {
 		return nil, fmt.Errorf("failed to copy binary: %v", err)
 	}
@@ -1123,5 +1130,41 @@ func (mgr *Manager) hubSync() {
 		}
 		a.Add = nil
 		a.Del = nil
+	}
+}
+
+func (mgr *Manager) collectUsedFiles() {
+	addUsedFile := func(f string) {
+		if f == "" {
+			return
+		}
+		stat, err := os.Stat(f)
+		if err != nil {
+			Fatalf("failed to stat %v: %v", f, err)
+		}
+		mgr.usedFiles[f] = stat.ModTime()
+	}
+	cfg := mgr.cfg
+	addUsedFile(cfg.SyzFuzzerBin)
+	addUsedFile(cfg.SyzExecprogBin)
+	addUsedFile(cfg.SyzExecutorBin)
+	addUsedFile(cfg.Sshkey)
+	if cfg.Image != "9p" {
+		addUsedFile(cfg.Image)
+	}
+	if cfg.Vmlinux != "-" {
+		addUsedFile(cfg.Vmlinux)
+	}
+}
+
+func (mgr *Manager) checkUsedFiles() {
+	for f, mod := range mgr.usedFiles {
+		stat, err := os.Stat(f)
+		if err != nil {
+			Fatalf("failed to stat %v: %v", f, err)
+		}
+		if mod != stat.ModTime() {
+			Fatalf("modification time of %v has changed: %v -> %v", f, mod, stat.ModTime())
+		}
 	}
 }
