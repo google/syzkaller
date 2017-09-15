@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"sync"
 	"time"
@@ -109,14 +108,14 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 						continue
 
 					}
-					execprogBin, err := vmInst.Copy(filepath.Join(cfg.Syzkaller, "bin/syz-execprog"))
+					execprogBin, err := vmInst.Copy(cfg.SyzExecprogBin)
 					if err != nil {
 						ctx.reproLog(0, "failed to copy to VM: %v", err)
 						vmInst.Close()
 						time.Sleep(10 * time.Second)
 						continue
 					}
-					executorBin, err := vmInst.Copy(filepath.Join(cfg.Syzkaller, "bin/syz-executor"))
+					executorBin, err := vmInst.Copy(cfg.SyzExecutorBin)
 					if err != nil {
 						ctx.reproLog(0, "failed to copy to VM: %v", err)
 						vmInst.Close()

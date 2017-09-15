@@ -65,6 +65,10 @@ type Config struct {
 	TargetOS     string `json:"-"`
 	TargetArch   string `json:"-"`
 	TargetVMArch string `json:"-"`
+	// Syzkaller binaries that we are going to use:
+	SyzFuzzerBin   string `json:"-"`
+	SyzExecprogBin string `json:"-"`
+	SyzExecutorBin string `json:"-"`
 }
 
 func LoadData(data []byte) (*Config, error) {
@@ -111,14 +115,17 @@ func load(data []byte, filename string) (*Config, error) {
 		cfg.TargetArch = targetParts[2]
 	}
 
-	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-fuzzer")) {
-		return nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-fuzzer")
+	cfg.SyzFuzzerBin = filepath.Join(cfg.Syzkaller, "bin", "syz-fuzzer")
+	cfg.SyzExecprogBin = filepath.Join(cfg.Syzkaller, "bin", "syz-execprog")
+	cfg.SyzExecutorBin = filepath.Join(cfg.Syzkaller, "bin", "syz-executor")
+	if !osutil.IsExist(cfg.SyzFuzzerBin) {
+		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
 	}
-	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-executor")) {
-		return nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-executor")
+	if !osutil.IsExist(cfg.SyzExecprogBin) {
+		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecprogBin)
 	}
-	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-execprog")) {
-		return nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-execprog")
+	if !osutil.IsExist(cfg.SyzExecutorBin) {
+		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecutorBin)
 	}
 	if cfg.Http == "" {
 		return nil, fmt.Errorf("config param http is empty")
