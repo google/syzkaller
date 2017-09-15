@@ -74,3 +74,6 @@ func init() {
 		}
 	}
 }
+
+// Emitted by Makefile.
+var GitRevision string

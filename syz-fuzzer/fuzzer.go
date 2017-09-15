@@ -29,6 +29,7 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 	. "github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/sys/linux"
 )
 
@@ -175,9 +176,22 @@ func main() {
 	kcov, compsSupported := checkCompsSupported()
 	Logf(1, "KCOV_CHECK: compsSupported=%v", compsSupported)
 	if r.NeedCheck {
+		out, err := osutil.RunCmd(time.Minute, "", *flagExecutor, "version")
+		if err != nil {
+			panic(err)
+		}
+		vers := strings.Split(strings.TrimSpace(string(out)), " ")
+		if len(vers) != 4 {
+			panic(fmt.Sprintf("bad executor version: %q", string(out)))
+		}
 		a := &CheckArgs{
 			Name:           *flagName,
 			UserNamespaces: osutil.IsExist("/proc/self/ns/user"),
+			FuzzerGitRev:   sys.GitRevision,
+			FuzzerSyzRev:   target.Revision,
+			ExecutorGitRev: vers[3],
+			ExecutorSyzRev: vers[2],
+			ExecutorArch:   vers[1],
 		}
 		a.Kcov = kcov
 		if fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0); err == nil {
