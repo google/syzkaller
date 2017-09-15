@@ -75,7 +75,8 @@ resource r105[int8]
 resource r106[int8]		### resource r106 can't be created (never mentioned as a syscall return value or output argument/field)
 resource r107[int8]		### resource r107 can't be created (never mentioned as a syscall return value or output argument/field)
 
-foo$300(a ptr[out, array[r103]], b ptr[in, s300], c r107) r104
+foo$300(a r100)
+foo$301(a ptr[out, array[r103]], b ptr[in, s300], c r107) r104
 
 s300 {
 	f1	ptr[inout, s301]
