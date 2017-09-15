@@ -20,7 +20,7 @@ import (
 	"unsafe"
 
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type Options struct {
@@ -481,7 +481,7 @@ func preprocessCommonHeader(target *prog.Target, opts Options, handled map[strin
 		defines = append(defines, "__NR_"+name)
 	}
 
-	sysTarget := sys.Targets[target.OS][target.Arch]
+	sysTarget := targets.List[target.OS][target.Arch]
 	defines = append(defines, sysTarget.CArch...)
 
 	cmd := exec.Command("cpp", "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
@@ -529,7 +529,7 @@ func Build(target *prog.Target, lang, src string) (string, error) {
 		return "", fmt.Errorf("failed to create temp file: %v", err)
 	}
 	bin.Close()
-	sysTarget := sys.Targets[target.OS][target.Arch]
+	sysTarget := targets.List[target.OS][target.Arch]
 	compiler := sysTarget.CCompilerPrefix + "gcc"
 	if _, err := exec.LookPath(compiler); err != nil {
 		return "", NoCompilerErr
