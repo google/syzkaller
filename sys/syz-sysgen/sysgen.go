@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/serializer"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys"
@@ -79,9 +80,11 @@ func main() {
 				sysFile := filepath.Join("sys", OS, job.Target.Arch+".go")
 				out := new(bytes.Buffer)
 				generate(job.Target, prog, consts, out)
+				rev := hash.String(out.Bytes())
+				fmt.Fprintf(out, "const revision_%v = %q\n", job.Target.Arch, rev)
 				writeSource(sysFile, out.Bytes())
 
-				job.ArchData = generateExecutorSyscalls(job.Target, prog.Syscalls)
+				job.ArchData = generateExecutorSyscalls(job.Target, prog.Syscalls, rev)
 				job.OK = true
 			}()
 		}
@@ -132,8 +135,8 @@ func generate(target *sys.Target, prg *compiler.Prog, consts map[string]uint64, 
 	fmt.Fprintf(out, "import . \"github.com/google/syzkaller/prog\"\n\n")
 
 	fmt.Fprintf(out, "func init() {\n")
-	fmt.Fprintf(out, "\tinitArch(syscalls_%v, resources_%v, structDescs_%v, consts_%v, %q, %v)\n",
-		target.Arch, target.Arch, target.Arch, target.Arch, target.Arch, target.PtrSize)
+	fmt.Fprintf(out, "\tinitArch(revision_%v, syscalls_%v, resources_%v, structDescs_%v, consts_%v, %q, %v)\n",
+		target.Arch, target.Arch, target.Arch, target.Arch, target.Arch, target.Arch, target.PtrSize)
 	fmt.Fprintf(out, "}\n\n")
 
 	fmt.Fprintf(out, "var resources_%v = ", target.Arch)
@@ -157,21 +160,25 @@ func generate(target *sys.Target, prg *compiler.Prog, consts map[string]uint64, 
 	})
 	fmt.Fprintf(out, "var consts_%v = ", target.Arch)
 	serializer.Write(out, constArr)
-	fmt.Fprintf(out, "\n")
+	fmt.Fprintf(out, "\n\n")
 }
 
-func generateExecutorSyscalls(target *sys.Target, syscalls []*prog.Syscall) []byte {
+func generateExecutorSyscalls(target *sys.Target, syscalls []*prog.Syscall, rev string) []byte {
 	type SyscallData struct {
 		Name string
 		NR   int32
 	}
 	type ArchData struct {
-		CARCH []string
-		Calls []SyscallData
-		Fake  []SyscallData
+		Revision string
+		GOARCH   string
+		CARCH    []string
+		Calls    []SyscallData
+		Fake     []SyscallData
 	}
 	data := ArchData{
-		CARCH: target.CArch,
+		Revision: rev,
+		GOARCH:   target.Arch,
+		CARCH:    target.CArch,
 	}
 	fake := make(map[string]uint64)
 	for _, c := range syscalls {
@@ -247,6 +254,8 @@ struct call_t {
 
 var archTempl = template.Must(template.New("").Parse(`
 #if {{range $cdef := $.CARCH}}defined({{$cdef}}) || {{end}}0
+#define GOARCH "{{.GOARCH}}"
+#define SYZ_REVISION "{{.Revision}}"
 {{range $c := $.Fake}}#define __NR_{{$c.Name}} {{$c.NR}}
 {{end}}
 static call_t syscalls[] = {

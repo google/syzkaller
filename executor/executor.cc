@@ -228,8 +228,17 @@ uint64_t read_cover_size(thread_t* th);
 static uint32_t hash(uint32_t a);
 static bool dedup(uint32_t sig);
 
+#ifndef GIT_REVISION
+#define GIT_REVISION "unknown"
+#endif
+
 int main(int argc, char** argv)
 {
+	if (argc == 2 && strcmp(argv[1], "version") == 0) {
+		puts("linux " GOARCH " " SYZ_REVISION " " GIT_REVISION);
+		return 0;
+	}
+
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	if (mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
 		fail("mmap of input file failed");

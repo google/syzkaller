@@ -4,7 +4,7 @@ package linux
 import . "github.com/google/syzkaller/prog"
 
 func init() {
-	initArch(syscalls_386, resources_386, structDescs_386, consts_386, "386", 4)
+	initArch(revision_386, syscalls_386, resources_386, structDescs_386, consts_386, "386", 4)
 }
 
 var resources_386 = []*ResourceDesc{
@@ -17186,3 +17186,5 @@ var consts_386 = []ConstValue{
 	{Name: "__WCLONE", Value: 2147483648},
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
+
+const revision_386 = "fb26afa29ccd7317f2c0796cf1386b493eeb955f"
