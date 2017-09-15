@@ -29,7 +29,7 @@ import (
 	"github.com/google/syzkaller/pkg/repro"
 	. "github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
 )
@@ -869,6 +869,18 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 	}
 	if mgr.cfg.Sandbox == "namespace" && !a.UserNamespaces {
 		Fatalf("/proc/self/ns/user is missing or permission is denied. Requested namespace sandbox but user namespaces are not enabled. Enable CONFIG_USER_NS")
+	}
+	if mgr.target.Arch != a.ExecutorArch {
+		Fatalf("mismatching target/executor arch: target=%v executor=%v",
+			mgr.target.Arch, a.ExecutorArch)
+	}
+	if sys.GitRevision != a.FuzzerGitRev || sys.GitRevision != a.ExecutorGitRev {
+		Fatalf("mismatching git revisions:\nmanager= %v\nfuzzer=  %v\nexecutor=%v",
+			sys.GitRevision, a.FuzzerGitRev, a.ExecutorGitRev)
+	}
+	if mgr.target.Revision != a.FuzzerSyzRev || mgr.target.Revision != a.ExecutorSyzRev {
+		Fatalf("mismatching syscall descriptions:\nmanager= %v\nfuzzer=  %v\nexecutor=%v",
+			mgr.target.Revision, a.FuzzerSyzRev, a.ExecutorSyzRev)
 	}
 	mgr.vmChecked = true
 	mgr.enabledCalls = a.Calls

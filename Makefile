@@ -15,6 +15,13 @@ endif
 	android \
 	format tidy test arch cross-compile presubmit clean
 
+GITREV=$(shell git rev-parse HEAD)
+ifeq ($(`git diff --shortstat`), "")
+	REV=$(GITREV)
+else
+	REV=$(GITREV)+
+endif
+
 all:
 	$(MAKE) main
 	$(MAKE) tools
@@ -29,13 +36,14 @@ tools: execprog mutate prog2c stress repro upgrade db
 
 # executor uses stacks of limited size, so no jumbo frames.
 executor:
-	$(CC) -o ./bin/syz-executor executor/executor.cc -pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 -g $(STATIC_FLAG) $(CFLAGS)
+	$(CC) -o ./bin/syz-executor executor/executor.cc -pthread -Wall -Wframe-larger-than=8192 \
+		-Wparentheses -Werror -O1 -g $(STATIC_FLAG) $(CFLAGS) -DGIT_REVISION=\"$(REV)\"
 
 # Don't generate symbol table and DWARF debug info.
 # Reduces build time and binary sizes considerably.
 # That's only needed if you use gdb or nm.
 # If you need that, build manually without these flags.
-GOFLAGS="-ldflags=-s -w"
+GOFLAGS="-ldflags=-s -w -X github.com/google/syzkaller/sys.GitRevision=$(REV)"
 
 manager:
 	go build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager

@@ -9,12 +9,13 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-func initArch(syscalls []*prog.Syscall, resources []*prog.ResourceDesc,
+func initArch(rev string, syscalls []*prog.Syscall, resources []*prog.ResourceDesc,
 	structDescs []*prog.KeyedStruct, consts []prog.ConstValue, archName string, ptrSize uint64) {
 	arch := makeArch(syscalls, resources, structDescs, consts, archName)
 	target := &prog.Target{
 		OS:           "linux",
 		Arch:         archName,
+		Revision:     rev,
 		PtrSize:      ptrSize,
 		PageSize:     pageSize,
 		DataOffset:   dataOffset,

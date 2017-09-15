@@ -6,6 +6,8 @@ struct call_t {
 };
 
 #if defined(__i386__) || 0
+#define GOARCH "386"
+#define SYZ_REVISION "fb26afa29ccd7317f2c0796cf1386b493eeb955f"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1564,6 +1566,8 @@ static call_t syscalls[] = {
 #endif
 
 #if defined(__x86_64__) || 0
+#define GOARCH "amd64"
+#define SYZ_REVISION "c14ec0f07c2984481a0bf1453ea928549382eb25"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3122,6 +3126,8 @@ static call_t syscalls[] = {
 #endif
 
 #if defined(__arm__) || 0
+#define GOARCH "arm"
+#define SYZ_REVISION "f73cb445fdead3417b165eec037a0d892cc3253e"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4680,6 +4686,8 @@ static call_t syscalls[] = {
 #endif
 
 #if defined(__aarch64__) || 0
+#define GOARCH "arm64"
+#define SYZ_REVISION "72353a7ede1fe6cb903fcb02eb5eb11407bea5d8"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6238,6 +6246,8 @@ static call_t syscalls[] = {
 #endif
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
+#define GOARCH "ppc64le"
+#define SYZ_REVISION "cec4f3697757a69ac044be83bac5ba45df7f2fbf"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
