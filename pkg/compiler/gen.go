@@ -15,10 +15,11 @@ const sizeUnassigned = ^uint64(0)
 
 func (comp *compiler) genResources() []*prog.ResourceDesc {
 	var resources []*prog.ResourceDesc
-	for _, decl := range comp.desc.Nodes {
-		if n, ok := decl.(*ast.Resource); ok {
-			resources = append(resources, comp.genResource(n))
+	for name, n := range comp.resources {
+		if !comp.used[name] {
+			continue
 		}
+		resources = append(resources, comp.genResource(n))
 	}
 	sort.Slice(resources, func(i, j int) bool {
 		return resources[i].Name < resources[j].Name
@@ -47,7 +48,7 @@ func (comp *compiler) genResource(n *ast.Resource) *prog.ResourceDesc {
 func (comp *compiler) genSyscalls() []*prog.Syscall {
 	var calls []*prog.Syscall
 	for _, decl := range comp.desc.Nodes {
-		if n, ok := decl.(*ast.Call); ok {
+		if n, ok := decl.(*ast.Call); ok && n.NR != ^uint64(0) {
 			calls = append(calls, comp.genSyscall(n))
 		}
 	}
@@ -101,10 +102,12 @@ func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStru
 				return false
 			}
 		}
-		structs = append(structs, &prog.KeyedStruct{
-			Key:  key,
-			Desc: desc,
-		})
+		if comp.used[key.Name] {
+			structs = append(structs, &prog.KeyedStruct{
+				Key:  key,
+				Desc: desc,
+			})
+		}
 		return true
 	}
 	rec = func(t0 prog.Type) {

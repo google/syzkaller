@@ -26,6 +26,7 @@ var Targets = map[string]map[string]*Target{
 			PtrSize:          8,
 			CArch:            []string{"__x86_64__"},
 			CFlags:           []string{"-m64"},
+			CrossCFlags:      []string{"-m64"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "x86_64",
 			KernelHeaderArch: "x86",
@@ -34,6 +35,7 @@ var Targets = map[string]map[string]*Target{
 			PtrSize:          4,
 			CArch:            []string{"__i386__"},
 			CFlags:           []string{"-m32"},
+			CrossCFlags:      []string{"-m32"},
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "i386",
 			KernelHeaderArch: "x86",
@@ -48,8 +50,8 @@ var Targets = map[string]map[string]*Target{
 		"arm": {
 			PtrSize:          4,
 			CArch:            []string{"__arm__"},
-			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6"},
-			CrossCFlags:      []string{"-march=armv6t2"},
+			CFlags:           []string{"-D__LINUX_ARM_ARCH__=6", "-m32"},
+			CrossCFlags:      []string{"-D__LINUX_ARM_ARCH__=6", "-march=armv6t2"},
 			CCompilerPrefix:  "arm-linux-gnueabihf-",
 			KernelArch:       "arm",
 			KernelHeaderArch: "arm",
@@ -58,6 +60,7 @@ var Targets = map[string]map[string]*Target{
 			PtrSize:          8,
 			CArch:            []string{"__ppc64__", "__PPC64__", "__powerpc64__"},
 			CFlags:           []string{"-D__powerpc64__"},
+			CrossCFlags:      []string{"-D__powerpc64__"},
 			CCompilerPrefix:  "powerpc64le-linux-gnu-",
 			KernelArch:       "powerpc",
 			KernelHeaderArch: "powerpc",
@@ -70,7 +73,6 @@ func init() {
 		for arch, target := range archs {
 			target.OS = OS
 			target.Arch = arch
-			target.CrossCFlags = append(target.CrossCFlags, target.CFlags...)
 		}
 	}
 }

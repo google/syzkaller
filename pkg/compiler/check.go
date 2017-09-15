@@ -22,6 +22,7 @@ func (comp *compiler) check() {
 	if comp.errors != 0 {
 		return
 	}
+	comp.checkUsed()
 	comp.checkRecursion()
 	comp.checkLenTargets()
 	comp.checkConstructors()
@@ -230,6 +231,52 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 	comp.error(t.Pos, "%v target %v does not exist", t.Ident, target)
 }
 
+func (comp *compiler) checkUsed() {
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Call:
+			if n.NR == ^uint64(0) {
+				break
+			}
+			for _, arg := range n.Args {
+				comp.checkUsedType(arg.Type, true)
+			}
+			if n.Ret != nil {
+				comp.checkUsedType(n.Ret, true)
+			}
+		}
+	}
+}
+
+func (comp *compiler) checkUsedType(t *ast.Type, isArg bool) {
+	if comp.used[t.Ident] {
+		return
+	}
+	desc := comp.getTypeDesc(t)
+	if desc == typeResource {
+		r := comp.resources[t.Ident]
+		for r != nil && !comp.used[r.Name.Name] {
+			comp.used[r.Name.Name] = true
+			r = comp.resources[r.Base.Ident]
+		}
+		return
+	}
+	if desc == typeStruct {
+		comp.used[t.Ident] = true
+		s := comp.structs[t.Ident]
+		for _, fld := range s.Fields {
+			comp.checkUsedType(fld.Type, false)
+		}
+		return
+	}
+	_, args, _ := comp.getArgsBase(t, "", prog.DirIn, isArg)
+	for i, arg := range args {
+		if desc.Args[i].Type == typeArgType {
+			comp.checkUsedType(arg, false)
+		}
+	}
+}
+
 type structDir struct {
 	Struct string
 	Dir    prog.Dir
@@ -252,10 +299,11 @@ func (comp *compiler) checkConstructors() {
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
 		case *ast.Resource:
-			if !ctors[n.Name.Name] {
+			name := n.Name.Name
+			if !ctors[name] && comp.used[name] {
 				comp.error(n.Pos, "resource %v can't be created"+
 					" (never mentioned as a syscall return value or output argument/field)",
-					n.Name.Name)
+					name)
 			}
 		}
 	}
