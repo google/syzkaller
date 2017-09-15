@@ -54,6 +54,7 @@ func Compile(desc *ast.Description, consts map[string]uint64, ptrSize uint64, eh
 		structs:      make(map[string]*ast.Struct),
 		intFlags:     make(map[string]*ast.IntFlags),
 		strFlags:     make(map[string]*ast.StrFlags),
+		used:         make(map[string]bool),
 		structDescs:  make(map[prog.StructKey]*prog.StructDesc),
 		structNodes:  make(map[*prog.StructDesc]*ast.Struct),
 		structVarlen: make(map[string]bool),
@@ -88,6 +89,7 @@ type compiler struct {
 	structs     map[string]*ast.Struct
 	intFlags    map[string]*ast.IntFlags
 	strFlags    map[string]*ast.StrFlags
+	used        map[string]bool // contains used structs/resources
 
 	structDescs  map[prog.StructKey]*prog.StructDesc
 	structNodes  map[*prog.StructDesc]*ast.Struct
