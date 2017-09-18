@@ -2,6 +2,8 @@
 
 _newer first_
 
+* [usb/hid: slab-out-of-bounds read in usbhid_parse](https://groups.google.com/forum/#!topic/syzkaller/CxkJ9QZgwlM)
+* [usb/core: slab-out-of-bounds in usb_set_configuration](https://groups.google.com/forum/#!topic/syzkaller/hP6L-m59m_8)
 * [usb/uwb: WARNING in hwarc_neep_init/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/kxql4awIiR4)
 * [usb/uwb: GPF in uwbd_start](https://groups.google.com/forum/#!topic/syzkaller/zROBxKXzHDk)
 * [usb/gadget: null-ptr-deref in dev_ioctl](https://groups.google.com/forum/#!topic/syzkaller/ShlQyQLCe60)
