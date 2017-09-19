@@ -101,23 +101,15 @@ func load(data []byte, filename string) (*Config, error) {
 		}
 	}
 
-	if cfg.Target == "" {
-		return nil, fmt.Errorf("config param target is empty")
-	}
-	targetParts := strings.Split(cfg.Target, "/")
-	if len(targetParts) != 2 && len(targetParts) != 3 {
-		return nil, fmt.Errorf("bad config param target")
-	}
-	cfg.TargetOS = targetParts[0]
-	cfg.TargetVMArch = targetParts[1]
-	cfg.TargetArch = targetParts[1]
-	if len(targetParts) == 3 {
-		cfg.TargetArch = targetParts[2]
+	var err error
+	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, err = SplitTarget(cfg.Target)
+	if err != nil {
+		return nil, err
 	}
 
-	cfg.SyzFuzzerBin = filepath.Join(cfg.Syzkaller, "bin", "syz-fuzzer")
-	cfg.SyzExecprogBin = filepath.Join(cfg.Syzkaller, "bin", "syz-execprog")
-	cfg.SyzExecutorBin = filepath.Join(cfg.Syzkaller, "bin", "syz-executor")
+	cfg.SyzFuzzerBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetVMArch, "syz-fuzzer")
+	cfg.SyzExecprogBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetVMArch, "syz-execprog")
+	cfg.SyzExecutorBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetArch, "syz-executor")
 	if !osutil.IsExist(cfg.SyzFuzzerBin) {
 		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
 	}
@@ -169,6 +161,23 @@ func load(data []byte, filename string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func SplitTarget(target string) (string, string, string, error) {
+	if target == "" {
+		return "", "", "", fmt.Errorf("target is empty")
+	}
+	targetParts := strings.Split(target, "/")
+	if len(targetParts) != 2 && len(targetParts) != 3 {
+		return "", "", "", fmt.Errorf("bad config param target")
+	}
+	os := targetParts[0]
+	vmarch := targetParts[1]
+	arch := targetParts[1]
+	if len(targetParts) == 3 {
+		arch = targetParts[2]
+	}
+	return os, vmarch, arch, nil
 }
 
 func ParseEnabledSyscalls(cfg *Config) (map[int]bool, error) {
