@@ -36,6 +36,9 @@ func New(client, addr, key string) *Dashboard {
 type Build struct {
 	Manager         string
 	ID              string
+	OS              string
+	Arch            string
+	VMArch          string
 	SyzkallerCommit string
 	CompilerID      string
 	KernelRepo      string
@@ -141,6 +144,9 @@ type BugReport struct {
 	Title        string
 	Maintainers  []string
 	CC           []string // additional CC emails
+	OS           string
+	Arch         string
+	VMArch       string
 	CompilerID   string
 	KernelRepo   string
 	KernelBranch string

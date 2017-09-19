@@ -371,6 +371,14 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 	if err != nil {
 		return fmt.Errorf("failed to read kernel.config: %v", err)
 	}
+	mgrcfg := new(mgrconfig.Config)
+	if err := config.LoadData(mgr.mgrcfg.Manager_Config, mgrcfg); err != nil {
+		return fmt.Errorf("failed to load manager %v config: %v", mgr.name, err)
+	}
+	os, vmarch, arch, err := mgrconfig.SplitTarget(mgrcfg.Target)
+	if err != nil {
+		return fmt.Errorf("failed to load manager %v config: %v", mgr.name, err)
+	}
 	commits, err := mgr.pollCommits(info.KernelCommit)
 	if err != nil {
 		// This is not critical for operation.
@@ -379,6 +387,9 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 	build := &dashapi.Build{
 		Manager:         mgr.name,
 		ID:              info.Tag,
+		OS:              os,
+		Arch:            arch,
+		VMArch:          vmarch,
 		SyzkallerCommit: syzkallerCommit,
 		CompilerID:      info.CompilerID,
 		KernelRepo:      info.KernelRepo,
