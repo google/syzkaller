@@ -17,7 +17,7 @@ before_install:
   - sudo cp clang+llvm-4.0.1-x86_64-linux-gnu-debian8/bin/clang-format /usr/local/bin/
   - which clang-format
   - clang-format --version
-  - sudo apt-get install -y -q libc6-dev-i386 gcc-aarch64-linux-gnu gcc-powerpc64le-linux-gnu gcc-arm-linux-gnueabihf
+  - sudo apt-get install -y -q libc6-dev-i386 linux-libc-dev g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf
 
 install: true
 
