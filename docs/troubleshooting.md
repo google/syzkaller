@@ -36,14 +36,13 @@ Here are some things to check if there are problems running syzkaller.
 
  - If logging indicates problems with the executor program (e.g. `executor failure`),
    try manually running a short sequence of system calls:
-     - Build additional tools with `make all-tools`
      - Copy `syz-executor` and `syz-execprog` into a running VM.
      - In the VM run `./syz-execprog -executor ./syz-executor -debug sampleprog` where
        sampleprog is a simple system call script (e.g. just containing `getpid()`).
      - For example, if this reports that `clone` has failed, this probably indicates
        that the test kernel does not include support for all of the required namespaces.
-       In this case, running the `syz-execprog` test with the `-nobody=0` option fixes the problem,
-       so the main configuration needs to be updated to set `dropprivs` to `false`.
+       In this case, running the `syz-execprog` test with the `-sandbox=setuid` option fixes the problem,
+       so the main configuration needs to be updated to set `sandbox` to `setuid`.
 
 If none of the above helps, file a bug on [the bug tracker](https://github.com/google/syzkaller/issues)
 or ask us directly on the syzkaller@googlegroups.com mailing list.
