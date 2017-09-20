@@ -218,9 +218,6 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) httpFile(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
 	file := filepath.Clean(r.FormValue("name"))
 	if !strings.HasPrefix(file, "crashes/") && !strings.HasPrefix(file, "corpus/") {
 		http.Error(w, "oh, oh, oh!", http.StatusInternalServerError)
