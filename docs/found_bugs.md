@@ -2,6 +2,7 @@
 
 _newer first_
 
+* [usb/net/p54: trying to register non-static key in p54_unregister_leds](https://groups.google.com/forum/#!topic/syzkaller/H6mX3aQPvvQ)
 * [usb/core: slab-out-of-bounds read in cdc_parse_cdc_header](https://groups.google.com/forum/#!topic/syzkaller/nXnjqI73uPo)
 * [usb/hid: slab-out-of-bounds read in usbhid_parse](https://groups.google.com/forum/#!topic/syzkaller/CxkJ9QZgwlM)
 * [usb/core: slab-out-of-bounds in usb_set_configuration](https://groups.google.com/forum/#!topic/syzkaller/hP6L-m59m_8)
