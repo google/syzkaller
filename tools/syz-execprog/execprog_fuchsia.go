@@ -1,12 +1,9 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// +build
+// +build fuchsia
 
-#include "syscalls_fuchsia.h"
+package main
 
-int main()
-{
-	(void)syscalls;
-	return 0;
+func handleInterrupt(shutdown *uint32) {
 }

@@ -12,11 +12,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/signal"
 	"runtime"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
@@ -192,15 +190,6 @@ func main() {
 		}()
 	}
 
-	go func() {
-		c := make(chan os.Signal, 2)
-		signal.Notify(c, syscall.SIGINT)
-		<-c
-		Logf(0, "shutting down...")
-		atomic.StoreUint32(&shutdown, 1)
-		<-c
-		Fatalf("terminating")
-	}()
-
+	go handleInterrupt(&shutdown)
 	wg.Wait()
 }

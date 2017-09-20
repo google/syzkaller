@@ -15,9 +15,15 @@ import (
 // does not write package names before types, omits struct fields with default values,
 // omits type names where possible, etc. On the other hand, it currently does not
 // support all types (e.g. channels and maps).
-func Write(w io.Writer, v interface{}) {
-	ww := writer{w}
-	ww.do(reflect.ValueOf(v), false)
+func Write(ww io.Writer, i interface{}) {
+	w := writer{ww}
+	v := reflect.ValueOf(i)
+	if v.Kind() == reflect.Slice && (v.IsNil() || v.Len() == 0) {
+		w.typ(v.Type())
+		w.string("(nil)")
+		return
+	}
+	w.do(v, false)
 }
 
 type writer struct {

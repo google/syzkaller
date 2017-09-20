@@ -4,7 +4,7 @@ package linux
 import . "github.com/google/syzkaller/prog"
 
 func init() {
-	initArch(revision_arm, syscalls_arm, resources_arm, structDescs_arm, consts_arm, "arm", 4)
+	RegisterTarget(&Target{OS: "linux", Arch: "arm", Revision: revision_arm, PtrSize: 4, Syscalls: syscalls_arm, Resources: resources_arm, Structs: structDescs_arm, Consts: consts_arm}, initTarget)
 }
 
 var resources_arm = []*ResourceDesc{
@@ -16631,4 +16631,4 @@ var consts_arm = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_arm = "41372f11d60aad90c991926434f714d736320cb1"
+const revision_arm = "02567c0623e18214f0be8d059aad68c263064645"

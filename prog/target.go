@@ -19,6 +19,8 @@ type Target struct {
 
 	Syscalls  []*Syscall
 	Resources []*ResourceDesc
+	Structs   []*KeyedStruct
+	Consts    []ConstValue
 
 	// Syscall used by MakeMmap.
 	// It has some special meaning because there are usually too many of them.
@@ -50,6 +52,7 @@ type Target struct {
 
 	// Filled by prog package:
 	SyscallMap  map[string]*Syscall
+	ConstMap    map[string]uint64
 	resourceMap map[string]*ResourceDesc
 	// Maps resource name to a list of calls that can create the resource.
 	resourceCtors map[string][]*Syscall
@@ -57,12 +60,15 @@ type Target struct {
 
 var targets = make(map[string]*Target)
 
-func RegisterTarget(target *Target) {
+func RegisterTarget(target *Target, initArch func(target *Target)) {
 	key := target.OS + "/" + target.Arch
 	if targets[key] != nil {
 		panic(fmt.Sprintf("duplicate target %v", key))
 	}
+	target.SanitizeCall = func(c *Call) {}
 	initTarget(target)
+	initArch(target)
+	target.ConstMap = nil // currently used only by initArch
 	targets[key] = target
 }
 
@@ -95,15 +101,49 @@ func AllTargets() []*Target {
 }
 
 func initTarget(target *Target) {
+	target.ConstMap = make(map[string]uint64)
+	for _, c := range target.Consts {
+		target.ConstMap[c.Name] = c.Value
+	}
+
+	target.resourceMap = make(map[string]*ResourceDesc)
+	for _, res := range target.Resources {
+		target.resourceMap[res.Name] = res
+	}
+
+	keyedStructs := make(map[StructKey]*StructDesc)
+	for _, desc := range target.Structs {
+		keyedStructs[desc.Key] = desc.Desc
+	}
+	target.Structs = nil
+
 	target.SyscallMap = make(map[string]*Syscall)
 	for _, c := range target.Syscalls {
 		target.SyscallMap[c.Name] = c
+		ForeachType(c, func(t0 Type) {
+			switch t := t0.(type) {
+			case *ResourceType:
+				t.Desc = target.resourceMap[t.TypeName]
+				if t.Desc == nil {
+					panic("no resource desc")
+				}
+			case *StructType:
+				t.StructDesc = keyedStructs[t.Key]
+				if t.StructDesc == nil {
+					panic("no struct desc")
+				}
+			case *UnionType:
+				t.StructDesc = keyedStructs[t.Key]
+				if t.StructDesc == nil {
+					panic("no union desc")
+				}
+			}
+		})
 	}
-	target.resourceMap = make(map[string]*ResourceDesc)
+
 	target.resourceCtors = make(map[string][]*Syscall)
-	for _, r := range target.Resources {
-		target.resourceMap[r.Name] = r
-		target.resourceCtors[r.Name] = target.calcResourceCtors(r.Kind, false)
+	for _, res := range target.Resources {
+		target.resourceCtors[res.Name] = target.calcResourceCtors(res.Kind, false)
 	}
 }
 

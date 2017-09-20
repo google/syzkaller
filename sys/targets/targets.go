@@ -62,6 +62,16 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "powerpc",
 		},
 	},
+	"fuchsia": map[string]*Target{
+		"amd64": {
+			PtrSize: 8,
+			CArch:   []string{"__x86_64__"},
+		},
+		"arm64": {
+			PtrSize: 8,
+			CArch:   []string{"__aarch64__"},
+		},
+	},
 }
 
 func init() {
