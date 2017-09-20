@@ -802,13 +802,22 @@ ustat {
 }
 
 user_desc {
-	entry	int32
+	entry_number	int32
 # Base should be vma and limit should be len[base]
 # But these fields are int32, so we can't use vma.
-	base	int32
-	limit	int32
-	flags	int8
+	base_addr	flags[user_desc_bases, int32]
+	limit		flags[user_desc_limits, int32]
+	seg_32bit	int32:1
+	contents	int32:2
+	read_exec_only	int32:1
+	limit_in_pages	int32:1
+	seg_not_present	int32:1
+	useable		int32:1
+	lm		int32:1
 }
+
+user_desc_bases = 0, 4096, 1048576, 536870912, 536872960, 536875008, 0xffffffff
+user_desc_limits = 0, 1024, 4096, 8192, 16384, 0xffffffff
 
 sched_attr {
 	size	flags[sched_attr_size, int32]
