@@ -2,6 +2,7 @@
 
 _newer first_
 
+* [usb/media/pvrusb2: warning in pvr2_send_request_ex/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/M2GeMYS0f6E)
 * [usb/media/smsusb: null-ptr-deref in smsusb_init_device](https://groups.google.com/forum/#!topic/syzkaller/yvhFawNoqxE)
 * [usb/media/cx231xx: null-ptr-deref in cx231xx_usb_probe](https://groups.google.com/forum/#!topic/syzkaller/WlUAVfDvpRk)
 * [usb/net/p54: trying to register non-static key in p54_unregister_leds](https://groups.google.com/forum/#!topic/syzkaller/H6mX3aQPvvQ)
