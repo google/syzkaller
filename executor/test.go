@@ -3,6 +3,8 @@
 
 //go:generate bash -c "gcc kvm_gen.cc kvm.S -o kvm_gen && ./kvm_gen > kvm.S.h && rm ./kvm_gen"
 
+// +build linux
+
 package executor
 
 // int test_copyin();

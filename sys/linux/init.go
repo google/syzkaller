@@ -9,29 +9,48 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-func initArch(rev string, syscalls []*prog.Syscall, resources []*prog.ResourceDesc,
-	structDescs []*prog.KeyedStruct, consts []prog.ConstValue, archName string, ptrSize uint64) {
-	arch := makeArch(syscalls, resources, structDescs, consts, archName)
-	target := &prog.Target{
-		OS:           "linux",
-		Arch:         archName,
-		Revision:     rev,
-		PtrSize:      ptrSize,
-		PageSize:     pageSize,
-		DataOffset:   dataOffset,
-		Syscalls:     syscalls,
-		Resources:    resources,
-		MmapSyscall:  arch.mmapSyscall,
-		MakeMmap:     arch.makeMmap,
-		AnalyzeMmap:  arch.analyzeMmap,
-		SanitizeCall: arch.sanitizeCall,
-		SpecialStructs: map[string]func(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (prog.Arg, []*prog.Call){
-			"timespec": arch.generateTimespec,
-			"timeval":  arch.generateTimespec,
-		},
-		StringDictionary: stringDictionary,
+func initTarget(target *prog.Target) {
+	arch := &arch{
+		mmapSyscall:               target.SyscallMap["mmap"],
+		clockGettimeSyscall:       target.SyscallMap["clock_gettime"],
+		PROT_READ:                 target.ConstMap["PROT_READ"],
+		PROT_WRITE:                target.ConstMap["PROT_WRITE"],
+		MAP_ANONYMOUS:             target.ConstMap["MAP_ANONYMOUS"],
+		MAP_PRIVATE:               target.ConstMap["MAP_PRIVATE"],
+		MAP_FIXED:                 target.ConstMap["MAP_FIXED"],
+		MREMAP_MAYMOVE:            target.ConstMap["MREMAP_MAYMOVE"],
+		MREMAP_FIXED:              target.ConstMap["MREMAP_FIXED"],
+		S_IFREG:                   target.ConstMap["S_IFREG"],
+		S_IFCHR:                   target.ConstMap["S_IFCHR"],
+		S_IFBLK:                   target.ConstMap["S_IFBLK"],
+		S_IFIFO:                   target.ConstMap["S_IFIFO"],
+		S_IFSOCK:                  target.ConstMap["S_IFSOCK"],
+		SYSLOG_ACTION_CONSOLE_OFF: target.ConstMap["SYSLOG_ACTION_CONSOLE_OFF"],
+		SYSLOG_ACTION_CONSOLE_ON:  target.ConstMap["SYSLOG_ACTION_CONSOLE_ON"],
+		SYSLOG_ACTION_SIZE_UNREAD: target.ConstMap["SYSLOG_ACTION_SIZE_UNREAD"],
+		FIFREEZE:                  target.ConstMap["FIFREEZE"],
+		FITHAW:                    target.ConstMap["FITHAW"],
+		PTRACE_TRACEME:            target.ConstMap["PTRACE_TRACEME"],
+		CLOCK_REALTIME:            target.ConstMap["CLOCK_REALTIME"],
 	}
-	prog.RegisterTarget(target)
+
+	target.PageSize = pageSize
+	target.DataOffset = dataOffset
+	target.MmapSyscall = arch.mmapSyscall
+	target.MakeMmap = arch.makeMmap
+	target.AnalyzeMmap = arch.analyzeMmap
+	target.SanitizeCall = arch.sanitizeCall
+	target.SpecialStructs = map[string]func(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (prog.Arg, []*prog.Call){
+		"timespec": arch.generateTimespec,
+		"timeval":  arch.generateTimespec,
+	}
+	target.StringDictionary = stringDictionary
+
+	if target.Arch == runtime.GOARCH {
+		KCOV_INIT_TRACE = uintptr(target.ConstMap["KCOV_INIT_TRACE"])
+		KCOV_ENABLE = uintptr(target.ConstMap["KCOV_ENABLE"])
+		KCOV_TRACE_CMP = uintptr(target.ConstMap["KCOV_TRACE_CMP"])
+	}
 }
 
 const (
@@ -262,102 +281,4 @@ func (arch *arch) generateTimespec(g *prog.Gen, typ *prog.StructType, old *prog.
 		arg = prog.MakeGroupArg(typ, []prog.Arg{sec, nsec})
 	}
 	return
-}
-
-func makeArch(syscalls []*prog.Syscall, resources []*prog.ResourceDesc,
-	structDescs []*prog.KeyedStruct, consts []prog.ConstValue, archName string) *arch {
-	resourceMap := make(map[string]*prog.ResourceDesc)
-	for _, res := range resources {
-		resourceMap[res.Name] = res
-	}
-
-	keyedStructs := make(map[prog.StructKey]*prog.StructDesc)
-	for _, desc := range structDescs {
-		keyedStructs[desc.Key] = desc.Desc
-	}
-
-	arch := &arch{}
-	for _, c := range syscalls {
-		prog.ForeachType(c, func(t0 prog.Type) {
-			switch t := t0.(type) {
-			case *prog.ResourceType:
-				t.Desc = resourceMap[t.TypeName]
-				if t.Desc == nil {
-					panic("no resource desc")
-				}
-			case *prog.StructType:
-				t.StructDesc = keyedStructs[t.Key]
-				if t.StructDesc == nil {
-					panic("no struct desc")
-				}
-			case *prog.UnionType:
-				t.StructDesc = keyedStructs[t.Key]
-				if t.StructDesc == nil {
-					panic("no union desc")
-				}
-			}
-		})
-		switch c.Name {
-		case "mmap":
-			arch.mmapSyscall = c
-		case "clock_gettime":
-			arch.clockGettimeSyscall = c
-		}
-	}
-
-	for _, c := range consts {
-		switch c.Name {
-		case "KCOV_INIT_TRACE":
-			if archName == runtime.GOARCH {
-				KCOV_INIT_TRACE = uintptr(c.Value)
-			}
-		case "KCOV_ENABLE":
-			if archName == runtime.GOARCH {
-				KCOV_ENABLE = uintptr(c.Value)
-			}
-		case "KCOV_TRACE_CMP":
-			if archName == runtime.GOARCH {
-				KCOV_TRACE_CMP = uintptr(c.Value)
-			}
-		case "PROT_READ":
-			arch.PROT_READ = c.Value
-		case "PROT_WRITE":
-			arch.PROT_WRITE = c.Value
-		case "MAP_ANONYMOUS":
-			arch.MAP_ANONYMOUS = c.Value
-		case "MAP_PRIVATE":
-			arch.MAP_PRIVATE = c.Value
-		case "MAP_FIXED":
-			arch.MAP_FIXED = c.Value
-		case "MREMAP_MAYMOVE":
-			arch.MREMAP_MAYMOVE = c.Value
-		case "MREMAP_FIXED":
-			arch.MREMAP_FIXED = c.Value
-		case "S_IFREG":
-			arch.S_IFREG = c.Value
-		case "S_IFCHR":
-			arch.S_IFCHR = c.Value
-		case "S_IFBLK":
-			arch.S_IFBLK = c.Value
-		case "S_IFIFO":
-			arch.S_IFIFO = c.Value
-		case "S_IFSOCK":
-			arch.S_IFSOCK = c.Value
-		case "SYSLOG_ACTION_CONSOLE_OFF":
-			arch.SYSLOG_ACTION_CONSOLE_OFF = c.Value
-		case "SYSLOG_ACTION_CONSOLE_ON":
-			arch.SYSLOG_ACTION_CONSOLE_ON = c.Value
-		case "SYSLOG_ACTION_SIZE_UNREAD":
-			arch.SYSLOG_ACTION_SIZE_UNREAD = c.Value
-		case "FIFREEZE":
-			arch.FIFREEZE = c.Value
-		case "FITHAW":
-			arch.FITHAW = c.Value
-		case "PTRACE_TRACEME":
-			arch.PTRACE_TRACEME = c.Value
-		case "CLOCK_REALTIME":
-			arch.CLOCK_REALTIME = c.Value
-		}
-	}
-	return arch
 }

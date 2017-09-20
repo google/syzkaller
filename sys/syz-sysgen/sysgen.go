@@ -113,7 +113,7 @@ func main() {
 			}
 		}
 
-		writeExecutorSyscalls(syscallArchs)
+		writeExecutorSyscalls(OS, syscallArchs)
 	}
 
 	if *flagMemProfile != "" {
@@ -135,8 +135,11 @@ func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint
 	fmt.Fprintf(out, "import . \"github.com/google/syzkaller/prog\"\n\n")
 
 	fmt.Fprintf(out, "func init() {\n")
-	fmt.Fprintf(out, "\tinitArch(revision_%v, syscalls_%v, resources_%v, structDescs_%v, consts_%v, %q, %v)\n",
-		target.Arch, target.Arch, target.Arch, target.Arch, target.Arch, target.Arch, target.PtrSize)
+	fmt.Fprintf(out, "\tRegisterTarget(&Target{OS: %q, Arch: %q, Revision: revision_%v, PtrSize: %v,"+
+		"Syscalls: syscalls_%v, Resources: resources_%v, Structs: structDescs_%v, Consts: consts_%v}, "+
+		"initTarget)\n",
+		target.OS, target.Arch, target.Arch, target.PtrSize,
+		target.Arch, target.Arch, target.Arch, target.Arch)
 	fmt.Fprintf(out, "}\n\n")
 
 	fmt.Fprintf(out, "var resources_%v = ", target.Arch)
@@ -203,13 +206,13 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 	return buf.Bytes()
 }
 
-func writeExecutorSyscalls(archs [][]byte) {
+func writeExecutorSyscalls(OS string, archs [][]byte) {
 	buf := new(bytes.Buffer)
 	buf.WriteString(syscallsTempl)
 	for _, arch := range archs {
 		buf.Write(arch)
 	}
-	writeFile("executor/syscalls.h", buf.Bytes())
+	writeFile(filepath.Join("executor", fmt.Sprintf("syscalls_%v.h", OS)), buf.Bytes())
 }
 
 func writeSource(file string, data []byte) {

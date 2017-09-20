@@ -26,7 +26,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "syscalls.h"
+#include "syscalls_linux.h"
 
 #define SYZ_EXECUTOR
 #include "common.h"

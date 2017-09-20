@@ -4,7 +4,7 @@ package linux
 import . "github.com/google/syzkaller/prog"
 
 func init() {
-	initArch(revision_ppc64le, syscalls_ppc64le, resources_ppc64le, structDescs_ppc64le, consts_ppc64le, "ppc64le", 8)
+	RegisterTarget(&Target{OS: "linux", Arch: "ppc64le", Revision: revision_ppc64le, PtrSize: 8, Syscalls: syscalls_ppc64le, Resources: resources_ppc64le, Structs: structDescs_ppc64le, Consts: consts_ppc64le}, initTarget)
 }
 
 var resources_ppc64le = []*ResourceDesc{
@@ -16330,4 +16330,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_ppc64le = "0af6f5872777fdaf20c06a1f982df39659c46b6a"
+const revision_ppc64le = "8bfb8686625fa3398eb8d1a5d66834dec0d3fa06"
