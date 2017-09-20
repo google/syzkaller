@@ -8,7 +8,6 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <linux/futex.h>
-#include <linux/reboot.h>
 #include <pthread.h>
 #include <setjmp.h>
 #include <signal.h>
@@ -19,7 +18,6 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
-#include <sys/reboot.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/time.h>
