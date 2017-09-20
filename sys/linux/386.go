@@ -5516,11 +5516,16 @@ var structDescs_386 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd1", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "user_desc"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "user_desc", TypeSize: 16}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "entry", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "base", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "limit", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "flags", TypeSize: 1}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "entry_number", TypeSize: 4}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "user_desc_bases", FldName: "base_addr", TypeSize: 4}}, Vals: []uint64{0, 4096, 1048576, 536870912, 536872960, 536875008, 4294967295}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "user_desc_limits", FldName: "limit", TypeSize: 4}}, Vals: []uint64{0, 1024, 4096, 8192, 16384, 4294967295}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seg_32bit", TypeSize: 4}, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "contents", TypeSize: 4}, BitfieldOff: 1, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "read_exec_only", TypeSize: 4}, BitfieldOff: 3, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "limit_in_pages", TypeSize: 4}, BitfieldOff: 4, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seg_not_present", TypeSize: 4}, BitfieldOff: 5, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "useable", TypeSize: 4}, BitfieldOff: 6, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lm", TypeSize: 4}, BitfieldOff: 7, BitfieldLen: 1}},
 	}}},
 	{Key: StructKey{Name: "ustat", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ustat", TypeSize: 20, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "free", TypeSize: 4, ArgDir: 1}}},
@@ -16729,4 +16734,4 @@ var consts_386 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_386 = "817d5dcfa9dec456b49c7cc6ca36ba9b9d5c1446"
+const revision_386 = "86d577076d75af98e3c800a3c65bf8e4869e3ea4"
