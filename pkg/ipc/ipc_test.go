@@ -4,6 +4,7 @@
 package ipc
 
 import (
+	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -20,7 +21,8 @@ import (
 const timeout = 10 * time.Second
 
 func buildExecutor(t *testing.T, target *prog.Target) string {
-	return buildProgram(t, target, filepath.FromSlash("../../executor/executor.cc"))
+	src := fmt.Sprintf("../../executor/executor_%v.cc", target.OS)
+	return buildProgram(t, target, filepath.FromSlash(src))
 }
 
 func buildSource(t *testing.T, target *prog.Target, src []byte) string {
