@@ -118,7 +118,7 @@ target:
 # executor uses stacks of limited size, so no jumbo frames.
 executor:
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
-	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor executor/executor.cc \
+	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor executor/executor_$(TARGETOS).cc \
 		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 -g \
 		$(ADDCFLAGS) $(CFLAGS) -DGIT_REVISION=\"$(REV)\"
 
