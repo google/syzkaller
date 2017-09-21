@@ -2,6 +2,7 @@
 
 _newer first_
 
+* [usb/gadget: copy_to_user called with spinlock held](https://groups.google.com/forum/#!topic/syzkaller/xmFE5DTHkME)
 * [usb/media/hdpvr: trying to register non-static key in hdpvr_probe](https://groups.google.com/forum/#!topic/syzkaller/ngC5SLvxPm4)
 * [usb/net/hso: warning in hso_free_net_device](https://groups.google.com/forum/#!topic/syzkaller/J4Ua_T43Tjw)
 * [usb/net/hso: global-out-of-bounds in hso_probe](https://groups.google.com/forum/#!topic/syzkaller/TDPcSXI2nBA)
