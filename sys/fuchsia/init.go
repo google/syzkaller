@@ -23,6 +23,7 @@ const (
 )
 
 type arch struct {
+	mmapSyscall *prog.Syscall
 }
 
 // createMmapCall creates a "normal" mmap call that maps [start, start+npages) page range.
