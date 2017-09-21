@@ -188,12 +188,16 @@ arch:
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
 	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
 	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
-	env TARGETOS=linux TARGETARCH=386 $(MAKE) target
 	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
 	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
 	# executor build on arm fails with:
 	# Error: alignment too large: 15 assumed
 	env TARGETOS=linux TARGETARCH=arm64 TARGETVMARCH=arm $(MAKE) target
+	# executor build on 386 on travis fails with:
+	# fatal error: asm/errno.h: No such file or directory
+	# We install a bunch of additional packages in .travis.yml,
+	# but I can't guess the right one.
+	env TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=386 $(MAKE) target
 
 presubmit:
 	$(MAKE) generate
