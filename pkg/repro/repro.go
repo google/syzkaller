@@ -334,7 +334,7 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 	if err != nil {
 		return nil, err
 	}
-	if entries == nil {
+	if len(entries) == 0 {
 		return nil, nil
 	}
 
@@ -345,20 +345,22 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 	ctx.reproLog(3, "bisect: trying to concatenate")
 
 	// Concatenate all programs into one.
-	var prog prog.Prog
+	prog := &prog.Prog{
+		Target: entries[0].P.Target,
+	}
 	for _, entry := range entries {
 		prog.Calls = append(prog.Calls, entry.P.Calls...)
 	}
 
 	// Execute the program without fault injection.
 	dur := duration(len(entries)) * 3 / 2
-	crashed, err := ctx.testProg(&prog, dur, opts)
+	crashed, err := ctx.testProg(prog, dur, opts)
 	if err != nil {
 		return nil, err
 	}
 	if crashed {
 		res := &Result{
-			Prog:     &prog,
+			Prog:     prog,
 			Duration: dur,
 			Opts:     opts,
 		}
@@ -375,13 +377,13 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 			if entry.FaultCall < 0 || entry.FaultCall >= len(entry.P.Calls) {
 				opts.FaultCall = calls + len(entry.P.Calls) - 1
 			}
-			crashed, err := ctx.testProg(&prog, dur, opts)
+			crashed, err := ctx.testProg(prog, dur, opts)
 			if err != nil {
 				return nil, err
 			}
 			if crashed {
 				res := &Result{
-					Prog:     &prog,
+					Prog:     prog,
 					Duration: dur,
 					Opts:     opts,
 				}
