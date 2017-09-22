@@ -2,6 +2,7 @@
 
 _newer first_
 
+* [usb/wireless/rsi_91x: use-after-free write in __run_timers](https://groups.google.com/forum/#!topic/syzkaller/9IV2cQldrx0)
 * [usb/media/zr364xx: GPF in zr364xx_vidioc_querycap/strlcpy](https://groups.google.com/forum/#!topic/syzkaller/-EuMlzvOHGo)
 * [usb/media/stkwebcam: use-after-free in v4l2_ctrl_handler_free](https://groups.google.com/forum/#!topic/syzkaller/5kLo7aPtx1w)
 * [usb/media/dib0700: BUG in stk7070p_frontend_attach/symbol_put_addr](https://groups.google.com/forum/#!topic/syzkaller/-d6ilzbVu_g)
