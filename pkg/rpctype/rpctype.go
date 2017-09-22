@@ -39,6 +39,11 @@ type CheckArgs struct {
 	UserNamespaces bool
 	CompsSupported bool
 	Calls          []string
+	FuzzerGitRev   string
+	FuzzerSyzRev   string
+	ExecutorGitRev string
+	ExecutorSyzRev string
+	ExecutorArch   string
 }
 
 type NewInputArgs struct {

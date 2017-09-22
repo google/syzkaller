@@ -24,7 +24,24 @@ define FOO `bar				### C expression is not terminated
 
 foo(x int32[1:2:3, opt])		### unexpected ':', expecting ']'
 
+s0 {
+	f0	string[""]		### empty string literals are not supported
+}
+
+sf0 = "", "1"				### empty string literals are not supported
+
 include <linux/foo.h>
 include "linux/foo.h"
 incdir </foo/bar>
 incdir "/foo/bar"
+
+s2 {
+	f1	int8
+
+	# comment
+
+	f2	int8
+
+	# comment
+
+}

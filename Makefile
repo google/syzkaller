@@ -1,77 +1,162 @@
 # Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-NOSTATIC ?= 0
-ifeq ($(NOSTATIC), 0)
-	STATIC_FLAG=-static
+# There are 4 OS/arch pairs:
+#  - BUILDOS/BUILDARCH: the current machine's pair used for build.
+#  - HOSTOS/HOSTARCH: pair where syz-manager will run.
+#  - TARGETOS/TARGETVMARCH: pair of the target OS under test.
+#  - TARGETOS/TARGETARCH: pair of the target test process.
+#
+# The last 2 differ for e.g. amd64 OS and 386 test processes (compat syscall testing).
+# All pairs default to the current machine. All but BUILD can be overriden.
+#
+# For example, to test linux/amd64 on linux/amd64, you just run:
+#    make
+# To test linux/arm64 from darwin/amd64 host, run:
+#    make HOSTOS=darwin HOSTARCH=amd64 TARGETOS=linux TARGETARCH=arm64
+# To test x86 compat syscalls, run:
+#    make TARGETVMARCH=amd64 TARGETARCH=386
+#
+# There is a special case for Android builds:
+#    NDK=/path/to/android/ndk make TARGETOS=android TARGETARCH=arm64
+# But you still need to specify "target": "linux/arm64" in syz-manager config.
+
+BUILDOS := $(shell go env GOOS)
+BUILDARCH := $(shell go env GOARCH)
+HOSTOS ?= $(BUILDOS)
+HOSTARCH ?= $(BUILDARCH)
+TARGETOS ?= $(HOSTOS)
+TARGETARCH ?= $(HOSTARCH)
+TARGETVMARCH ?= $(TARGETARCH)
+
+ifeq ("$(TARGETARCH)", "amd64")
+	CC = "x86_64-linux-gnu-gcc"
+else ifeq ("$(TARGETARCH)", "386")
+	CC = "x86_64-linux-gnu-gcc"
+	ADDCFLAGS = "-m32"
+else ifeq ("$(TARGETARCH)", "arm64")
+	CC = "aarch64-linux-gnu-gcc"
+else ifeq ("$(TARGETARCH)", "arm")
+	CC = "arm-linux-gnueabihf-gcc"
+	ADDCFLAGS = "-march=armv6t2"
+else ifeq ("$(TARGETARCH)", "ppc64le")
+	CC = "powerpc64le-linux-gnu-gcc"
 endif
 
-.PHONY: all main tools \
-	manager fuzzer executor \
-	ci hub \
-	execprog mutate prog2c stress repro upgrade db \
-	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
-	extract generate \
-	android \
-	format tidy test arch cross-compile presubmit clean
+ifeq ("$(TARGETOS)", "android")
+	override TARGETOS = "linux"
+	ANDROID_API = 24
+	BUILDGCCARCH = ""
+	ANDROIDARCH = ""
+	TOOLCHAIN = ""
+	GCCBIN = ""
+	ifeq ("$(TARGETARCH)", "amd64")
+		ANDROIDARCH = "x86_64"
+		TOOLCHAIN = "x86_64-4.9"
+		GCCBIN = "x86_64-linux-android-g++"
+	else ifeq ("$(TARGETARCH)", "386")
+		ANDROIDARCH = "x86"
+		TOOLCHAIN = "x86-4.9"
+		GCCBIN = "i686-linux-android-g++"
+	else ifeq ("$(TARGETARCH)", "arm64")
+		ANDROIDARCH = "arm64"
+		TOOLCHAIN = "aarch64-linux-android-4.9"
+		GCCBIN = "aarch64-linux-android-g++"
+	else ifeq ("$(TARGETARCH)", "arm")
+		ANDROIDARCH = "arm"
+		TOOLCHAIN = "arm-linux-androideabi-4.9"
+		GCCBIN = "arm-linux-androideabi-g++"
+	endif
+	ifeq ("$(BUILDARCH)", "amd64")
+		BUILDGCCARCH = "x86_64"
+	else ifeq ("$(BUILDARCH)", "arm64")
+		BUILDGCCARCH = "aarch64"
+	endif
+	CC = $(NDK)/toolchains/$(TOOLCHAIN)/prebuilt/$(BUILDOS)-$(BUILDGCCARCH)/bin/$(GCCBIN)
+	CFLAGS = -I $(NDK)/sources/cxx-stl/llvm-libc++/include --sysroot=$(NDK)/platforms/android-$(ANDROID_API)/arch-$(ANDROIDARCH) -O1 -g -Wall -static
+endif
 
-all:
-	$(MAKE) main
-	$(MAKE) tools
+GITREV=$(shell git rev-parse HEAD)
+ifeq ($(`git diff --shortstat`), "")
+	REV=$(GITREV)
+else
+	REV=$(GITREV)+
+endif
 
-main:
-	go install ./syz-manager ./syz-fuzzer
-	$(MAKE) manager
-	$(MAKE) fuzzer
-	$(MAKE) executor
-
-tools: execprog mutate prog2c stress repro upgrade db
-
-# executor uses stacks of limited size, so no jumbo frames.
-executor:
-	$(CC) -o ./bin/syz-executor executor/executor.cc -pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 -g $(STATIC_FLAG) $(CFLAGS)
+NOSTATIC ?= 0
+ifeq ($(NOSTATIC), 0)
+	ADDCFLAGS += -static
+endif
 
 # Don't generate symbol table and DWARF debug info.
 # Reduces build time and binary sizes considerably.
 # That's only needed if you use gdb or nm.
 # If you need that, build manually without these flags.
-GOFLAGS="-ldflags=-s -w"
+GOFLAGS := "-ldflags=-s -w -X github.com/google/syzkaller/sys.GitRevision=$(REV)"
+ifneq ("$(GOTAGS)", "")
+	GOFLAGS += "-tags=$(GOTAGS)"
+endif
+
+.PHONY: all host target \
+	manager fuzzer executor \
+	ci hub \
+	execprog mutate prog2c stress repro upgrade db \
+	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
+	extract generate \
+	format tidy test arch presubmit clean
+
+all: host target
+
+host:
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go install ./syz-manager
+	$(MAKE) manager repro mutate prog2c db upgrade
+
+target:
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) go install ./syz-fuzzer
+	$(MAKE) fuzzer execprog stress executor
+
+# executor uses stacks of limited size, so no jumbo frames.
+executor:
+	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
+	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor executor/executor_$(TARGETOS).cc \
+		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 -g \
+		$(ADDCFLAGS) $(CFLAGS) -DGIT_REVISION=\"$(REV)\"
 
 manager:
-	go build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
 
 fuzzer:
-	go build $(GOFLAGS) -o ./bin/syz-fuzzer github.com/google/syzkaller/syz-fuzzer
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) go build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer github.com/google/syzkaller/syz-fuzzer
 
 execprog:
-	go build $(GOFLAGS) -o ./bin/syz-execprog github.com/google/syzkaller/tools/syz-execprog
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) go build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-execprog github.com/google/syzkaller/tools/syz-execprog
 
 ci:
-	go build $(GOFLAGS) -o ./bin/syz-ci github.com/google/syzkaller/syz-ci
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-ci github.com/google/syzkaller/syz-ci
 
 hub:
-	go build $(GOFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
 
 repro:
-	go build $(GOFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
 
 mutate:
-	go build $(GOFLAGS) -o ./bin/syz-mutate github.com/google/syzkaller/tools/syz-mutate
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-mutate github.com/google/syzkaller/tools/syz-mutate
 
 prog2c:
-	go build $(GOFLAGS) -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
 
 stress:
-	go build $(GOFLAGS) -o ./bin/syz-stress github.com/google/syzkaller/tools/syz-stress
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) go build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-stress github.com/google/syzkaller/tools/syz-stress
 
 db:
-	go build $(GOFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db
 
 upgrade:
-	go build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 extract: bin/syz-extract
-	LINUX=$(LINUX) LINUXBLD=$(LINUXBLD) ./sys/extract.sh
+	LINUX=$(LINUX) ./sys/linux/extract.sh
 bin/syz-extract:
 	go build $(GOFLAGS) -o $@ ./sys/syz-extract
 
@@ -85,7 +170,7 @@ bin/syz-sysgen:
 format: bin/syz-fmt
 	go fmt ./...
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
-	bin/syz-fmt sys
+	bin/syz-fmt sys/linux
 bin/syz-fmt:
 	go build $(GOFLAGS) -o $@ ./tools/syz-fmt
 
@@ -100,12 +185,19 @@ test:
 	go test -short -race ./...
 
 arch:
-	GOOS=linux GOARCH=amd64 go install ./...
-	GOOS=linux GOARCH=arm64 go install ./...
-	GOOS=linux GOARCH=386 go install ./...
-	GOOS=linux GOARCH=arm go install ./...
-	GOOS=linux GOARCH=ppc64le go install ./...
-	GOOS=darwin GOARCH=amd64 go build -o /dev/null ./syz-manager
+	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
+	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
+	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
+	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
+	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
+	# executor build on arm fails with:
+	# Error: alignment too large: 15 assumed
+	env TARGETOS=linux TARGETARCH=arm64 TARGETVMARCH=arm $(MAKE) target
+	# executor build on 386 on travis fails with:
+	# fatal error: asm/errno.h: No such file or directory
+	# We install a bunch of additional packages in .travis.yml,
+	# but I can't guess the right one.
+	env TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=386 $(MAKE) target
 
 presubmit:
 	$(MAKE) generate
@@ -116,20 +208,3 @@ presubmit:
 
 clean:
 	rm -rf ./bin/
-
-cross-compile:
-	# We could use arm-linux-gnueabihf-gcc from  g++-arm-linux-gnueabihf package,
-	# but it is broken with "Error: alignment too large: 15 assumed"
-	env CC="clang" CFLAGS="--target=linux-armv6 -mfloat-abi=hard" $(MAKE) executor
-
-android: UNAME=$(shell uname | tr '[:upper:]' '[:lower:]')
-android: ANDROID_ARCH=arm64
-android: ANDROID_API=24
-android: TOOLCHAIN=aarch64-linux-android
-android:
-	test -d $(NDK)
-	$(MAKE) manager
-	env GOOS=linux GOARCH=arm64 $(MAKE) execprog fuzzer
-	env CC="$(NDK)/toolchains/$(TOOLCHAIN)-4.9/prebuilt/$(UNAME)-x86_64/bin/$(TOOLCHAIN)-g++" \
-		CFLAGS="-I $(NDK)/sources/cxx-stl/llvm-libc++/include --sysroot=$(NDK)/platforms/android-$(ANDROID_API)/arch-$(ANDROID_ARCH) -O1 -g -Wall -static" \
-		$(MAKE) executor

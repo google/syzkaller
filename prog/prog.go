@@ -5,30 +5,29 @@ package prog
 
 import (
 	"fmt"
-
-	"github.com/google/syzkaller/sys"
 )
 
 type Prog struct {
-	Calls []*Call
+	Target *Target
+	Calls  []*Call
 }
 
 type Call struct {
-	Meta *sys.Call
+	Meta *Syscall
 	Args []Arg
 	Ret  Arg
 }
 
 type Arg interface {
-	Type() sys.Type
+	Type() Type
 	Size() uint64
 }
 
 type ArgCommon struct {
-	typ sys.Type
+	typ Type
 }
 
-func (arg *ArgCommon) Type() sys.Type {
+func (arg *ArgCommon) Type() Type {
 	return arg.typ
 }
 
@@ -45,24 +44,24 @@ func (arg *ConstArg) Size() uint64 {
 // Returns value taking endianness and executor pid into consideration.
 func (arg *ConstArg) Value(pid int) uint64 {
 	switch typ := (*arg).Type().(type) {
-	case *sys.IntType:
+	case *IntType:
 		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
-	case *sys.ConstType:
+	case *ConstType:
 		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
-	case *sys.FlagsType:
+	case *FlagsType:
 		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
-	case *sys.LenType:
+	case *LenType:
 		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
-	case *sys.CsumType:
+	case *CsumType:
 		// Checksums are computed dynamically in executor.
 		return 0
-	case *sys.ResourceType:
-		if t, ok := typ.Desc.Type.(*sys.IntType); ok {
+	case *ResourceType:
+		if t, ok := typ.Desc.Type.(*IntType); ok {
 			return encodeValue(arg.Val, t.Size(), t.BigEndian)
 		} else {
 			panic(fmt.Sprintf("bad base type for a resource: %v", t))
 		}
-	case *sys.ProcType:
+	case *ProcType:
 		val := typ.ValuesStart + typ.ValuesPerProc*uint64(pid) + arg.Val
 		return encodeValue(val, typ.Size(), typ.BigEndian)
 	}
@@ -102,27 +101,26 @@ type GroupArg struct {
 }
 
 func (arg *GroupArg) Size() uint64 {
-	switch typ := (*arg).Type().(type) {
-	case *sys.StructType:
+	typ0 := arg.Type()
+	if !typ0.Varlen() {
+		return typ0.Size()
+	}
+	switch typ := typ0.(type) {
+	case *StructType:
 		var size uint64
 		for _, fld := range arg.Inner {
-			if fld.Type().BitfieldLength() == 0 || fld.Type().BitfieldLast() {
+			if !fld.Type().BitfieldMiddle() {
 				size += fld.Size()
 			}
 		}
-		align := typ.Align()
-		if size%align != 0 {
-			if typ.Varlen() {
-				size += align - size%align
-			} else {
-				panic(fmt.Sprintf("struct %+v with type %+v has static size %v, which isn't aligned to %v", arg, typ, size, align))
-			}
+		if typ.AlignAttr != 0 && size%typ.AlignAttr != 0 {
+			size += typ.AlignAttr - size%typ.AlignAttr
 		}
 		return size
-	case *sys.ArrayType:
+	case *ArrayType:
 		var size uint64
-		for _, in := range arg.Inner {
-			size += in.Size()
+		for _, elem := range arg.Inner {
+			size += elem.Size()
 		}
 		return size
 	default:
@@ -134,7 +132,7 @@ func (arg *GroupArg) Size() uint64 {
 type UnionArg struct {
 	ArgCommon
 	Option     Arg
-	OptionType sys.Type
+	OptionType Type
 }
 
 func (arg *UnionArg) Size() uint64 {
@@ -193,7 +191,7 @@ func (arg *ResultArg) Uses() *Arg {
 
 // Returns inner arg for pointer args.
 func InnerArg(arg Arg) Arg {
-	if t, ok := arg.Type().(*sys.PtrType); ok {
+	if t, ok := arg.Type().(*PtrType); ok {
 		if a, ok := arg.(*PointerArg); ok {
 			if a.Res == nil {
 				if !t.Optional() {
@@ -225,11 +223,11 @@ func encodeValue(value uint64, size uint64, bigEndian bool) uint64 {
 	}
 }
 
-func constArg(t sys.Type, v uint64) Arg {
+func MakeConstArg(t Type, v uint64) Arg {
 	return &ConstArg{ArgCommon: ArgCommon{typ: t}, Val: v}
 }
 
-func resultArg(t sys.Type, r Arg, v uint64) Arg {
+func MakeResultArg(t Type, r Arg, v uint64) Arg {
 	arg := &ResultArg{ArgCommon: ArgCommon{typ: t}, Res: r, Val: v}
 	if r == nil {
 		return arg
@@ -246,56 +244,56 @@ func resultArg(t sys.Type, r Arg, v uint64) Arg {
 	return arg
 }
 
-func dataArg(t sys.Type, data []byte) Arg {
+func dataArg(t Type, data []byte) Arg {
 	return &DataArg{ArgCommon: ArgCommon{typ: t}, Data: append([]byte{}, data...)}
 }
 
-func pointerArg(t sys.Type, page uint64, off int, npages uint64, obj Arg) Arg {
+func MakePointerArg(t Type, page uint64, off int, npages uint64, obj Arg) Arg {
 	return &PointerArg{ArgCommon: ArgCommon{typ: t}, PageIndex: page, PageOffset: off, PagesNum: npages, Res: obj}
 }
 
-func groupArg(t sys.Type, inner []Arg) Arg {
+func MakeGroupArg(t Type, inner []Arg) Arg {
 	return &GroupArg{ArgCommon: ArgCommon{typ: t}, Inner: inner}
 }
 
-func unionArg(t sys.Type, opt Arg, typ sys.Type) Arg {
+func unionArg(t Type, opt Arg, typ Type) Arg {
 	return &UnionArg{ArgCommon: ArgCommon{typ: t}, Option: opt, OptionType: typ}
 }
 
-func returnArg(t sys.Type) Arg {
+func MakeReturnArg(t Type) Arg {
 	return &ReturnArg{ArgCommon: ArgCommon{typ: t}}
 }
 
-func defaultArg(t sys.Type) Arg {
+func defaultArg(t Type) Arg {
 	switch typ := t.(type) {
-	case *sys.IntType, *sys.ConstType, *sys.FlagsType, *sys.LenType, *sys.ProcType, *sys.CsumType:
-		return constArg(t, t.Default())
-	case *sys.ResourceType:
-		return resultArg(t, nil, typ.Desc.Type.Default())
-	case *sys.BufferType:
+	case *IntType, *ConstType, *FlagsType, *LenType, *ProcType, *CsumType:
+		return MakeConstArg(t, t.Default())
+	case *ResourceType:
+		return MakeResultArg(t, nil, typ.Desc.Type.Default())
+	case *BufferType:
 		var data []byte
-		if typ.Kind == sys.BufferString && typ.Length != 0 {
-			data = make([]byte, typ.Length)
+		if typ.Kind == BufferString && typ.TypeSize != 0 {
+			data = make([]byte, typ.TypeSize)
 		}
 		return dataArg(t, data)
-	case *sys.ArrayType:
-		return groupArg(t, nil)
-	case *sys.StructType:
+	case *ArrayType:
+		return MakeGroupArg(t, nil)
+	case *StructType:
 		var inner []Arg
 		for _, field := range typ.Fields {
 			inner = append(inner, defaultArg(field))
 		}
-		return groupArg(t, inner)
-	case *sys.UnionType:
-		return unionArg(t, defaultArg(typ.Options[0]), typ.Options[0])
-	case *sys.VmaType:
-		return pointerArg(t, 0, 0, 1, nil)
-	case *sys.PtrType:
+		return MakeGroupArg(t, inner)
+	case *UnionType:
+		return unionArg(t, defaultArg(typ.Fields[0]), typ.Fields[0])
+	case *VmaType:
+		return MakePointerArg(t, 0, 0, 1, nil)
+	case *PtrType:
 		var res Arg
-		if !t.Optional() && t.Dir() != sys.DirOut {
+		if !t.Optional() && t.Dir() != DirOut {
 			res = defaultArg(typ.Type)
 		}
-		return pointerArg(t, 0, 0, 0, res)
+		return MakePointerArg(t, 0, 0, 0, res)
 	default:
 		panic("unknown arg type")
 	}
@@ -321,7 +319,7 @@ func (p *Prog) insertBefore(c *Call, calls []*Call) {
 // replaceArg replaces arg with arg1 in call c in program p, and inserts calls before arg call.
 func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
 	for _, c := range calls {
-		sanitizeCall(c)
+		p.Target.SanitizeCall(c)
 	}
 	p.insertBefore(c, calls)
 	switch a := arg.(type) {
@@ -348,7 +346,7 @@ func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
 	default:
 		panic(fmt.Sprintf("replaceArg: bad arg kind %v", arg))
 	}
-	sanitizeCall(c)
+	p.Target.SanitizeCall(c)
 }
 
 // removeArg removes all references to/from arg0 of call c from p.
@@ -365,7 +363,7 @@ func (p *Prog) removeArg(c *Call, arg0 Arg) {
 				if _, ok := arg1.(*ResultArg); !ok {
 					panic("use references not ArgResult")
 				}
-				arg2 := resultArg(arg1.Type(), nil, arg1.Type().Default())
+				arg2 := MakeResultArg(arg1.Type(), nil, arg1.Type().Default())
 				p.replaceArg(c, arg1, arg2, nil)
 			}
 		}

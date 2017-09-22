@@ -21,8 +21,8 @@ Choose the following options.
     Target packages
 	    [*]   Show packages that are also provided by busybox
 	    Networking applications
-	    [*] dhcpcd
-	    [*] openssh
+	        [*] dhcpcd
+	        [*] openssh
     Filesystem images
 	    [*] ext2/3/4 root filesystem
 	        ext2/3/4 variant - ext3
@@ -139,6 +139,7 @@ A sample config file that exercises the required options are shown below. Modify
 ```
 {
     "name": "QEMU-aarch64",
+    "target": "linux/arm64",
     "http": ":56700",
     "workdir": "/path/to/a/dir/to/store/syzkaller/corpus”,
     "vmlinux": “/path/to/vmlinux",
@@ -150,7 +151,6 @@ A sample config file that exercises the required options are shown below. Modify
     "vm": {
         "count": 1,
         "qemu": "/path/to/qemu-system-aarch64",
-        "qemu_args": "-machine virt -cpu cortex-a57",
         "cmdline": "console=ttyAMA0 root=/dev/vda",
         "kernel": “/path/to/Image",
         "cpu": 2,

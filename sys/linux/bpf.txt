@@ -1,0 +1,182 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Note these sysctls have radical effect on code paths inside of kernel:
+# net.core.bpf_jit_enable  = { 0, 1, 2 }
+# net.core.bpf_jit_harden  = { 0, 1, 2 }
+
+include <linux/bpf.h>
+
+resource fd_bpf_map[fd]: BPF_PSEUDO_MAP_FD
+resource fd_bpf_prog[fd]
+resource bpf_prog_id[int32]: 0, 0xffffffff
+resource bpf_map_id[int32]: 0, 0xffffffff
+
+bpf$MAP_CREATE(cmd const[BPF_MAP_CREATE], arg ptr[in, bpf_map_create_arg], size len[arg]) fd_bpf_map
+bpf$MAP_LOOKUP_ELEM(cmd const[BPF_MAP_LOOKUP_ELEM], arg ptr[in, bpf_map_lookup_arg], size len[arg])
+bpf$MAP_UPDATE_ELEM(cmd const[BPF_MAP_UPDATE_ELEM], arg ptr[in, bpf_map_update_arg], size len[arg])
+bpf$MAP_DELETE_ELEM(cmd const[BPF_MAP_DELETE_ELEM], arg ptr[in, bpf_map_delete_arg], size len[arg])
+bpf$MAP_GET_NEXT_KEY(cmd const[BPF_MAP_GET_NEXT_KEY], arg ptr[in, bpf_map_get_next_arg], size len[arg])
+bpf$PROG_LOAD(cmd const[BPF_PROG_LOAD], arg ptr[in, bpf_prog], size len[arg]) fd_bpf_prog
+bpf$OBJ_PIN_MAP(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_map], size len[arg])
+bpf$OBJ_PIN_PROG(cmd const[BPF_OBJ_PIN], arg ptr[in, bpf_obj_pin_prog], size len[arg])
+bpf$OBJ_GET_MAP(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd_bpf_map
+bpf$OBJ_GET_PROG(cmd const[BPF_OBJ_GET], arg ptr[in, bpf_obj_get], size len[arg]) fd_bpf_prog
+bpf$BPF_PROG_ATTACH(cmd const[BPF_PROG_ATTACH], arg ptr[in, bpf_attach_arg], size len[arg])
+bpf$BPF_PROG_DETACH(cmd const[BPF_PROG_DETACH], arg ptr[in, bpf_detach_arg], size len[arg])
+bpf$BPF_PROG_TEST_RUN(cmd const[BPF_PROG_TEST_RUN], arg ptr[in, bpf_test_prog_arg], size len[arg])
+bpf$BPF_PROG_GET_NEXT_ID(cmd const[BPF_PROG_GET_NEXT_ID], arg ptr[in, int32], size len[arg])
+bpf$BPF_MAP_GET_NEXT_ID(cmd const[BPF_MAP_GET_NEXT_ID], arg ptr[in, int32], size len[arg])
+bpf$BPF_PROG_GET_FD_BY_ID(cmd const[BPF_PROG_GET_FD_BY_ID], arg ptr[in, bpf_prog_id], size len[arg]) fd_bpf_prog
+bpf$BPF_MAP_GET_FD_BY_ID(cmd const[BPF_MAP_GET_FD_BY_ID], arg ptr[in, bpf_map_id], size len[arg]) fd_bpf_map
+bpf$BPF_GET_PROG_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_prog_info_arg], size len[arg])
+bpf$BPF_GET_MAP_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_map_info_arg], size len[arg])
+
+bpf_map_create_arg {
+	type	flags[bpf_map_type, int32]
+	ksize	int32
+	vsize	int32
+	max	int32
+	flags	flags[map_flags, int32]
+	inner	fd_bpf_map[opt]
+	node	int32
+}
+
+bpf_map_lookup_arg {
+	map	fd_bpf_map
+	key	ptr64[in, array[int8]]
+	val	ptr64[out, array[int8]]
+}
+
+bpf_map_update_arg {
+	map	fd_bpf_map
+	key	ptr64[in, array[int8]]
+	val	ptr64[in, array[int8]]
+	flags	flags[bpf_map_flags, int64]
+}
+
+bpf_map_delete_arg {
+	map	fd_bpf_map
+	key	ptr64[in, array[int8]]
+}
+
+bpf_map_get_next_arg {
+	map	fd_bpf_map
+	key	ptr64[in, array[int8]]
+	next	ptr64[out, array[int8]]
+}
+
+bpf_prog {
+	type	flags[bpf_prog_type, int32]
+	ninsn	len[insns, int32]
+	insns	ptr64[in, array[bpf_insn]]
+	license	ptr64[in, string]
+	loglev	int32
+	logsize	len[log, int32]
+	log	ptr64[out, array[int8]]
+	kver	int32
+	flags	flags[bpf_prog_load_flags, int32]
+}
+
+bpf_insn [
+	generic	bpf_insn_generic
+	map	bpf_insn_map
+]
+
+#TODO: consider providing specialized structs for all opcodes (or opcode groups)
+# For example, for lots of opcodes some fields must be 0, otherwise verifier will bark
+bpf_insn_generic {
+	code	int8
+	regs	int8
+	off	int16
+	imm	int32
+}
+
+bpf_insn_map {
+	code	int8
+	regs	int8
+	off	int16
+	imm	fd_bpf_map
+}
+
+# Note: these filenames must be on bpf filesystem
+bpf_obj_pin_map {
+	path	ptr64[in, filename]
+	fd	fd_bpf_map
+}
+
+bpf_obj_pin_prog {
+	path	ptr64[in, filename]
+	fd	fd_bpf_prog
+}
+
+bpf_obj_get {
+	path	ptr64[in, filename]
+	fd	const[0, int32]
+}
+
+bpf_attach_arg {
+	target	fd
+	prog	fd_bpf_prog
+	type	flags[bpf_attach_type, int32]
+	flags	flags[bpf_attach_flags, int32]
+	prog2	fd_bpf_prog
+}
+
+bpf_detach_arg {
+	target	const[0, int32]
+	prog	fd_bpf_prog
+	type	flags[bpf_attach_type, int32]
+	flags	flags[bpf_attach_flags, int32]
+	prog2	const[0, int32]
+}
+
+bpf_test_prog_arg {
+	prog	fd_bpf_prog
+	retval	int32
+	insize	len[indata, int32]
+	outsize	len[outdata, int32]
+	indata	ptr64[in, array[int8]]
+	outdata	ptr64[out, array[int8]]
+	repeat	int32
+	dur	int32
+}
+
+bpf_get_prog_info_arg {
+	prog	fd_bpf_prog
+	len	len[info, int32]
+	info	ptr64[out, bpf_prog_info]
+}
+
+bpf_prog_info {
+	type			int32
+	id			bpf_prog_id
+	tag			int64
+	jited_prog_len		int32
+	xlated_prog_len		int32
+	jited_prog_insns	int64
+	xlated_prog_insns	int64
+} [align_8]
+
+bpf_get_map_info_arg {
+	prog	fd_bpf_map
+	len	len[info, int32]
+	info	ptr64[out, bpf_map_info]
+}
+
+bpf_map_info {
+	type		int32
+	id		bpf_map_id
+	key_size	int32
+	value_size	int32
+	max_entries	int32
+	map_flags	int32
+} [align_8]
+
+bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY, BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_CGROUP_ARRAY, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_PERCPU_ARRAY, BPF_MAP_TYPE_LRU_HASH, BPF_MAP_TYPE_LRU_PERCPU_HASH, BPF_MAP_TYPE_LPM_TRIE, BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH_OF_MAPS
+bpf_map_flags = BPF_ANY, BPF_NOEXIST, BPF_EXIST
+bpf_prog_type = BPF_PROG_TYPE_SOCKET_FILTER, BPF_PROG_TYPE_KPROBE, BPF_PROG_TYPE_SCHED_CLS, BPF_PROG_TYPE_SCHED_ACT, BPF_PROG_TYPE_TRACEPOINT, BPF_PROG_TYPE_XDP, BPF_PROG_TYPE_PERF_EVENT, BPF_PROG_TYPE_CGROUP_SKB, BPF_PROG_TYPE_CGROUP_SOCK, BPF_PROG_TYPE_LWT_IN, BPF_PROG_TYPE_LWT_OUT, BPF_PROG_TYPE_LWT_XMIT, BPF_PROG_TYPE_SOCK_OPS
+map_flags = BPF_F_NO_PREALLOC, BPF_F_NO_COMMON_LRU, BPF_F_NUMA_NODE
+bpf_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS
+bpf_prog_load_flags = BPF_F_STRICT_ALIGNMENT
+bpf_attach_flags = BPF_F_ALLOW_OVERRIDE

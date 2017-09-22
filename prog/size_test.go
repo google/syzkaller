@@ -10,12 +10,12 @@ import (
 )
 
 func TestAssignSizeRandom(t *testing.T) {
-	rs, iters := initTest(t)
+	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		data0 := p.Serialize()
 		for _, call := range p.Calls {
-			assignSizesCall(call)
+			target.assignSizesCall(call)
 		}
 		if data1 := p.Serialize(); !bytes.Equal(data0, data1) {
 			t.Fatalf("different lens assigned, initial: %v, new: %v", data0, data1)
@@ -23,7 +23,7 @@ func TestAssignSizeRandom(t *testing.T) {
 		p.Mutate(rs, 10, nil, nil)
 		data0 = p.Serialize()
 		for _, call := range p.Calls {
-			assignSizesCall(call)
+			target.assignSizesCall(call)
 		}
 		if data1 := p.Serialize(); !bytes.Equal(data0, data1) {
 			t.Fatalf("different lens assigned, initial: %v, new: %v", data0, data1)
@@ -32,6 +32,7 @@ func TestAssignSizeRandom(t *testing.T) {
 }
 
 func TestAssignSize(t *testing.T) {
+	target, _, _ := initTest(t)
 	tests := []struct {
 		unsizedProg string
 		sizedProg   string
@@ -70,7 +71,7 @@ func TestAssignSize(t *testing.T) {
 		},
 		{
 			"syz_test$length8(&(0x7f000001f000)={0x00, {0xff, 0x0, 0x00, [0xff, 0xff, 0xff]}, [{0xff, 0x0, 0x00, [0xff, 0xff, 0xff]}], 0x00, 0x0, [0xff, 0xff]})",
-			"syz_test$length8(&(0x7f000001f000)={0x38, {0xff, 0x1, 0x10, [0xff, 0xff, 0xff]}, [{0xff, 0x1, 0x10, [0xff, 0xff, 0xff]}], 0x10, 0x1, [0xff, 0xff]})",
+			"syz_test$length8(&(0x7f000001f000)={0x32, {0xff, 0x1, 0x10, [0xff, 0xff, 0xff]}, [{0xff, 0x1, 0x10, [0xff, 0xff, 0xff]}], 0x10, 0x1, [0xff, 0xff]})",
 		},
 		{
 			"syz_test$length9(&(0x7f000001f000)={&(0x7f0000000000/0x5000)=nil, 0x0000})",
@@ -123,12 +124,12 @@ func TestAssignSize(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		p, err := Deserialize([]byte(test.unsizedProg))
+		p, err := target.Deserialize([]byte(test.unsizedProg))
 		if err != nil {
 			t.Fatalf("failed to deserialize prog %v: %v", i, err)
 		}
 		for _, call := range p.Calls {
-			assignSizesCall(call)
+			target.assignSizesCall(call)
 		}
 		p1 := strings.TrimSpace(string(p.Serialize()))
 		if p1 != test.sizedProg {

@@ -6,39 +6,19 @@ package prog
 import (
 	"bytes"
 	"fmt"
-	"math/rand"
 	"testing"
-	"time"
-
-	"github.com/google/syzkaller/sys"
 )
 
-func init() {
-	debug = true
-}
-
-func initTest(t *testing.T) (rand.Source, int) {
-	t.Parallel()
-	iters := 10000
-	if testing.Short() {
-		iters = 100
-	}
-	seed := int64(time.Now().UnixNano())
-	rs := rand.NewSource(seed)
-	t.Logf("seed=%v", seed)
-	return rs, iters
-}
-
 func TestGeneration(t *testing.T) {
-	rs, iters := initTest(t)
+	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
-		Generate(rs, 20, nil)
+		target.Generate(rs, 20, nil)
 	}
 }
 
 func TestDefault(t *testing.T) {
-	initTest(t)
-	for _, meta := range sys.CallMap {
+	target, _, _ := initTest(t)
+	for _, meta := range target.SyscallMap {
 		for _, t := range meta.Args {
 			defaultArg(t)
 		}
@@ -46,11 +26,11 @@ func TestDefault(t *testing.T) {
 }
 
 func TestDefaultCallArgs(t *testing.T) {
-	initTest(t)
-	for _, meta := range sys.CallMap {
+	target, _, _ := initTest(t)
+	for _, meta := range target.SyscallMap {
 		// Ensure that we can restore all arguments of all calls.
 		prog := fmt.Sprintf("%v()", meta.Name)
-		p, err := Deserialize([]byte(prog))
+		p, err := target.Deserialize([]byte(prog))
 		if err != nil {
 			t.Fatalf("failed to restore default args in prog %q: %v", prog, err)
 		}
@@ -61,11 +41,11 @@ func TestDefaultCallArgs(t *testing.T) {
 }
 
 func TestSerialize(t *testing.T) {
-	rs, iters := initTest(t)
+	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		data := p.Serialize()
-		p1, err := Deserialize(data)
+		p1, err := target.Deserialize(data)
 		if err != nil {
 			t.Fatalf("failed to deserialize program: %v\n%s", err, data)
 		}
@@ -83,11 +63,12 @@ func TestSerialize(t *testing.T) {
 }
 
 func TestVmaType(t *testing.T) {
-	rs, iters := initTest(t)
-	meta := sys.CallMap["syz_test$vma0"]
-	r := newRand(rs)
+	target, rs, iters := initTest(t)
+	meta := target.SyscallMap["syz_test$vma0"]
+	r := newRand(target, rs)
+	pageSize := target.PageSize
 	for i := 0; i < iters; i++ {
-		s := newState(nil)
+		s := newState(target, nil)
 		calls := r.generateParticularCall(s, meta)
 		c := calls[len(calls)-1]
 		if c.Meta.Name != "syz_test$vma0" {

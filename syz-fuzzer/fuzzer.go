@@ -11,7 +11,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/debug"
 	"strconv"
@@ -34,6 +33,7 @@ import (
 
 var (
 	flagName     = flag.String("name", "", "unique name for manager")
+	flagArch     = flag.String("arch", "", "target arch")
 	flagExecutor = flag.String("executor", "", "path to executor binary")
 	flagManager  = flag.String("manager", "", "manager rpc address")
 	flagProcs    = flag.Int("procs", 1, "number of parallel test processes")
@@ -60,6 +60,7 @@ type Candidate struct {
 
 var (
 	manager *RpcClient
+	target  *prog.Target
 
 	signalMu     sync.RWMutex
 	corpusSignal map[uint32]struct{}
@@ -105,14 +106,13 @@ func main() {
 	}
 	Logf(0, "fuzzer started")
 
-	go func() {
-		// Handles graceful preemption on GCE.
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		<-c
-		Logf(0, "SYZ-FUZZER: PREEMPTED")
-		os.Exit(1)
-	}()
+	var err error
+	target, err = prog.GetTarget(runtime.GOOS, *flagArch)
+	if err != nil {
+		Fatalf("%v", err)
+	}
+
+	osInit()
 
 	if *flagPprof != "" {
 		go func() {
@@ -134,8 +134,8 @@ func main() {
 	if err := RpcCall(*flagManager, "Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
-	calls := buildCallList(r.EnabledCalls)
-	ct := prog.BuildChoiceTable(r.Prios, calls)
+	calls := buildCallList(target, r.EnabledCalls)
+	ct := target.BuildChoiceTable(r.Prios, calls)
 	for _, inp := range r.Inputs {
 		addInput(inp)
 	}
@@ -143,7 +143,7 @@ func main() {
 		maxSignal[s] = struct{}{}
 	}
 	for _, candidate := range r.Candidates {
-		p, err := prog.Deserialize(candidate.Prog)
+		p, err := target.Deserialize(candidate.Prog)
 		if err != nil {
 			panic(err)
 		}
@@ -167,9 +167,22 @@ func main() {
 	kcov, compsSupported := checkCompsSupported()
 	Logf(1, "KCOV_CHECK: compsSupported=%v", compsSupported)
 	if r.NeedCheck {
+		out, err := osutil.RunCmd(time.Minute, "", *flagExecutor, "version")
+		if err != nil {
+			panic(err)
+		}
+		vers := strings.Split(strings.TrimSpace(string(out)), " ")
+		if len(vers) != 4 {
+			panic(fmt.Sprintf("bad executor version: %q", string(out)))
+		}
 		a := &CheckArgs{
 			Name:           *flagName,
 			UserNamespaces: osutil.IsExist("/proc/self/ns/user"),
+			FuzzerGitRev:   sys.GitRevision,
+			FuzzerSyzRev:   target.Revision,
+			ExecutorGitRev: vers[3],
+			ExecutorSyzRev: vers[2],
+			ExecutorArch:   vers[1],
 		}
 		a.Kcov = kcov
 		if fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0); err == nil {
@@ -202,10 +215,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if _, ok := calls[sys.CallMap["syz_emit_ethernet"]]; ok {
+	if _, ok := calls[target.SyscallMap["syz_emit_ethernet"]]; ok {
 		config.Flags |= ipc.FlagEnableTun
 	}
-	if _, ok := calls[sys.CallMap["syz_extract_tcp_res"]]; ok {
+	if _, ok := calls[target.SyscallMap["syz_extract_tcp_res"]]; ok {
 		config.Flags |= ipc.FlagEnableTun
 	}
 	if faultInjectionEnabled {
@@ -292,7 +305,7 @@ func main() {
 				if len(corpus) == 0 || i%100 == 0 {
 					// Generate a new prog.
 					corpusMu.RUnlock()
-					p := prog.Generate(rnd, programLength, ct)
+					p := target.Generate(rnd, programLength, ct)
 					Logf(1, "#%v: generated: %s", i, p)
 					execute(pid, env, p, false, false, false, false, &statExecGen)
 				} else {
@@ -380,7 +393,7 @@ func main() {
 				addInput(inp)
 			}
 			for _, candidate := range r.Candidates {
-				p, err := prog.Deserialize(candidate.Prog)
+				p, err := target.Deserialize(candidate.Prog)
 				if err != nil {
 					panic(err)
 				}
@@ -407,23 +420,23 @@ func main() {
 	}
 }
 
-func buildCallList(enabledCalls string) map[*sys.Call]bool {
-	calls := make(map[*sys.Call]bool)
+func buildCallList(target *prog.Target, enabledCalls string) map[*prog.Syscall]bool {
+	calls := make(map[*prog.Syscall]bool)
 	if enabledCalls != "" {
 		for _, id := range strings.Split(enabledCalls, ",") {
 			n, err := strconv.ParseUint(id, 10, 64)
-			if err != nil || n >= uint64(len(sys.Calls)) {
-				panic(fmt.Sprintf("invalid syscall in -calls flag: '%v", id))
+			if err != nil || n >= uint64(len(target.Syscalls)) {
+				panic(fmt.Sprintf("invalid syscall in -calls flag: %v", id))
 			}
-			calls[sys.Calls[n]] = true
+			calls[target.Syscalls[n]] = true
 		}
 	} else {
-		for _, c := range sys.Calls {
+		for _, c := range target.Syscalls {
 			calls[c] = true
 		}
 	}
 
-	if supp, err := host.DetectSupportedSyscalls(); err != nil {
+	if supp, err := host.DetectSupportedSyscalls(target); err != nil {
 		Logf(0, "failed to detect host supported syscalls: %v", err)
 	} else {
 		for c := range calls {
@@ -434,7 +447,7 @@ func buildCallList(enabledCalls string) map[*sys.Call]bool {
 		}
 	}
 
-	trans := sys.TransitivelyEnabledCalls(calls)
+	trans := target.TransitivelyEnabledCalls(calls)
 	for c := range calls {
 		if !trans[c] {
 			Logf(1, "disabling transitively unsupported syscall: %v", c.Name)
@@ -453,7 +466,7 @@ func addInput(inp RpcInput) {
 	if noCover {
 		panic("should not be called when coverage is disabled")
 	}
-	p, err := prog.Deserialize(inp.Prog)
+	p, err := target.Deserialize(inp.Prog)
 	if err != nil {
 		panic(err)
 	}
@@ -751,108 +764,4 @@ retry:
 	}
 	Logf(2, "result failed=%v hanged=%v: %v\n", failed, hanged, string(output))
 	return info
-}
-
-func kmemleakInit() {
-	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
-	if err != nil {
-		if *flagLeak {
-			Fatalf("BUG: /sys/kernel/debug/kmemleak is missing (%v). Enable CONFIG_KMEMLEAK and mount debugfs.", err)
-		} else {
-			return
-		}
-	}
-	defer syscall.Close(fd)
-	what := "scan=off"
-	if !*flagLeak {
-		what = "off"
-	}
-	if _, err := syscall.Write(fd, []byte(what)); err != nil {
-		// kmemleak returns EBUSY when kmemleak is already turned off.
-		if err != syscall.EBUSY {
-			panic(err)
-		}
-	}
-}
-
-var kmemleakBuf []byte
-
-func kmemleakScan(report bool) {
-	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
-	if err != nil {
-		panic(err)
-	}
-	defer syscall.Close(fd)
-	// Kmemleak has false positives. To mitigate most of them, it checksums
-	// potentially leaked objects, and reports them only on the next scan
-	// iff the checksum does not change. Because of that we do the following
-	// intricate dance:
-	// Scan, sleep, scan again. At this point we can get some leaks.
-	// If there are leaks, we sleep and scan again, this can remove
-	// false leaks. Then, read kmemleak again. If we get leaks now, then
-	// hopefully these are true positives during the previous testing cycle.
-	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
-		panic(err)
-	}
-	time.Sleep(time.Second)
-	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
-		panic(err)
-	}
-	if report {
-		if kmemleakBuf == nil {
-			kmemleakBuf = make([]byte, 128<<10)
-		}
-		n, err := syscall.Read(fd, kmemleakBuf)
-		if err != nil {
-			panic(err)
-		}
-		if n != 0 {
-			time.Sleep(time.Second)
-			if _, err := syscall.Write(fd, []byte("scan")); err != nil {
-				panic(err)
-			}
-			n, err := syscall.Read(fd, kmemleakBuf)
-			if err != nil {
-				panic(err)
-			}
-			if n != 0 {
-				// BUG in output should be recognized by manager.
-				Logf(0, "BUG: memory leak:\n%s\n", kmemleakBuf[:n])
-			}
-		}
-	}
-	if _, err := syscall.Write(fd, []byte("clear")); err != nil {
-		panic(err)
-	}
-}
-
-// Checks if the KCOV device supports comparisons.
-// Returns a pair of bools:
-//		First  - is the kcov device present in the system.
-//		Second - is the kcov device supporting comparisons.
-func checkCompsSupported() (kcov, comps bool) {
-	fd, err := syscall.Open("/sys/kernel/debug/kcov", syscall.O_RDWR, 0)
-	if err != nil {
-		return
-	}
-	defer syscall.Close(fd)
-	kcov = true
-	coverSize := uintptr(64 << 10)
-	_, _, errno := syscall.Syscall(
-		syscall.SYS_IOCTL, uintptr(fd), sys.KCOV_INIT_TRACE, coverSize)
-	if errno != 0 {
-		Logf(1, "KCOV_CHECK: KCOV_INIT_TRACE = %v", errno)
-		return
-	}
-	_, err = syscall.Mmap(fd, 0, int(coverSize*8),
-		syscall.PROT_READ|syscall.PROT_WRITE, syscall.MAP_SHARED)
-	if err != nil {
-		Logf(1, "KCOV_CHECK: mmap = %v", err)
-		return
-	}
-	_, _, errno = syscall.Syscall(syscall.SYS_IOCTL,
-		uintptr(fd), sys.KCOV_ENABLE, sys.KCOV_TRACE_CMP)
-	Logf(1, "KCOV_CHECK: KCOV_ENABLE = %v", errno)
-	comps = errno == 0
-	return
 }

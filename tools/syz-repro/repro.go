@@ -14,6 +14,7 @@ import (
 	"github.com/google/syzkaller/pkg/csource"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/repro"
+	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 	"github.com/google/syzkaller/vm"
 )
@@ -26,7 +27,7 @@ var (
 func main() {
 	os.Args = append(append([]string{}, os.Args[0], "-v=10"), os.Args[1:]...)
 	flag.Parse()
-	cfg, _, err := mgrconfig.LoadFile(*flagConfig)
+	cfg, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -36,6 +37,9 @@ func main() {
 	data, err := ioutil.ReadFile(flag.Args()[0])
 	if err != nil {
 		Fatalf("failed to open log file: %v", err)
+	}
+	if _, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
+		Fatalf("%v", err)
 	}
 	env := mgrconfig.CreateVMEnv(cfg, false)
 	vmPool, err := vm.Create(cfg.Type, env)

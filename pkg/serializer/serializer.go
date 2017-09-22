@@ -15,9 +15,15 @@ import (
 // does not write package names before types, omits struct fields with default values,
 // omits type names where possible, etc. On the other hand, it currently does not
 // support all types (e.g. channels and maps).
-func Write(w io.Writer, v interface{}) {
-	ww := writer{w}
-	ww.do(reflect.ValueOf(v), false)
+func Write(ww io.Writer, i interface{}) {
+	w := writer{ww}
+	v := reflect.ValueOf(i)
+	if v.Kind() == reflect.Slice && (v.IsNil() || v.Len() == 0) {
+		w.typ(v.Type())
+		w.string("(nil)")
+		return
+	}
+	w.do(v, false)
 }
 
 type writer struct {
@@ -50,7 +56,8 @@ func (w *writer) do(v reflect.Value, sliceElem bool) {
 			w.string("nil")
 		} else {
 			w.typ(v.Type())
-			if sub := v.Type().Elem().Kind(); sub == reflect.Ptr || sub == reflect.Interface {
+			sub := v.Type().Elem().Kind()
+			if sub == reflect.Ptr || sub == reflect.Interface || sub == reflect.Struct {
 				// Elem per-line.
 				w.string("{\n")
 				for i := 0; i < v.Len(); i++ {
@@ -102,6 +109,8 @@ func (w *writer) do(v reflect.Value, sliceElem bool) {
 		fmt.Fprintf(w.w, "%v", v.Uint())
 	case reflect.String:
 		fmt.Fprintf(w.w, "%q", v.String())
+	case reflect.Func:
+		// Skip, no way to serialize this.
 	default:
 		panic(fmt.Sprintf("unsupported type: %#v", v.Type().String()))
 	}
@@ -159,6 +168,8 @@ func isDefaultValue(v reflect.Value) bool {
 		return v.Uint() == 0
 	case reflect.String:
 		return v.String() == ""
+	case reflect.Func:
+		return true
 	default:
 		return false
 	}

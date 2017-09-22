@@ -76,9 +76,9 @@ func TestCallSet(t *testing.T) {
 }
 
 func TestCallSetRandom(t *testing.T) {
-	rs, iters := initTest(t)
+	target, rs, iters := initTest(t)
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		calls0 := make(map[string]struct{})
 		for _, c := range p.Calls {
 			calls0[c.Meta.Name] = struct{}{}
@@ -96,6 +96,7 @@ func TestCallSetRandom(t *testing.T) {
 }
 
 func TestDeserialize(t *testing.T) {
+	target, _, _ := initTest(t)
 	tests := []struct {
 		data string
 		err  *regexp.Regexp
@@ -110,7 +111,7 @@ func TestDeserialize(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		_, err := Deserialize([]byte(test.data))
+		_, err := target.Deserialize([]byte(test.data))
 		if err != nil {
 			if test.err == nil {
 				t.Fatalf("deserialization failed with\n%s\ndata:\n%s\n", err, test.data)

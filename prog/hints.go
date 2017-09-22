@@ -20,8 +20,6 @@ package prog
 
 import (
 	"encoding/binary"
-
-	"github.com/google/syzkaller/sys"
 )
 
 type uint64Set map[uint64]bool
@@ -38,16 +36,7 @@ const (
 	maxDataLength = 100
 )
 
-var (
-	specialIntsSet uint64Set
-
-	// A set of calls for which hints should not be generated.
-	hintNamesBlackList = map[string]bool{
-		"mmap":  true,
-		"open":  true,
-		"close": true,
-	}
-)
+var specialIntsSet uint64Set
 
 func (m CompMap) AddComp(arg1, arg2 uint64) {
 	if _, ok := m[arg1]; !ok {
@@ -60,7 +49,7 @@ func (m CompMap) AddComp(arg1, arg2 uint64) {
 // For each of the mutants executes the exec callback.
 func (p *Prog) MutateWithHints(compMaps []CompMap, exec func(newP *Prog)) {
 	for i, c := range p.Calls {
-		if _, ok := hintNamesBlackList[c.Meta.CallName]; ok {
+		if c.Meta == p.Target.MmapSyscall {
 			continue
 		}
 		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
@@ -95,7 +84,7 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog
 
 	switch a := arg.(type) {
 	case *ConstArg:
-		originalArg = constArg(a.Type(), a.Val)
+		originalArg = MakeConstArg(a.Type(), a.Val)
 		checkConstArg(a, compMap, constArgCandidate)
 	case *DataArg:
 		originalArg = dataArg(a.Type(), a.Data)
@@ -105,12 +94,12 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog
 
 func checkConstArg(arg *ConstArg, compMap CompMap, cb func(newArg Arg)) {
 	for replacer := range shrinkExpand(arg.Val, compMap) {
-		cb(constArg(arg.typ, replacer))
+		cb(MakeConstArg(arg.typ, replacer))
 	}
 }
 
 func checkDataArg(arg *DataArg, compMap CompMap, cb func(newArg Arg)) {
-	if arg.Type().Dir() != sys.DirIn && arg.Type().Dir() != sys.DirInOut {
+	if arg.Type().Dir() != DirIn && arg.Type().Dir() != DirInOut {
 		// We only want to scan userspace->kernel data.
 		return
 	}

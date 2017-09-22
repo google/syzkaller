@@ -200,6 +200,9 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{},
 		Namespace:       ns,
 		Manager:         req.Manager,
 		ID:              req.ID,
+		OS:              req.OS,
+		Arch:            req.Arch,
+		VMArch:          req.VMArch,
 		SyzkallerCommit: req.SyzkallerCommit,
 		CompilerID:      req.CompilerID,
 		KernelRepo:      req.KernelRepo,
@@ -349,11 +352,12 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 		return nil, err
 	}
 
-	bug := new(Bug)
+	var bug *Bug
 	var bugKey *datastore.Key
 
 	tx := func(c context.Context) error {
 		for seq := int64(0); ; seq++ {
+			bug = new(Bug)
 			bugHash := bugKeyHash(ns, req.Title, seq)
 			bugKey = datastore.NewKey(c, "Bug", bugHash, 0, nil)
 			if err := datastore.Get(c, bugKey, bug); err != nil {

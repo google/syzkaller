@@ -23,8 +23,6 @@ import (
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/report"
-	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
 )
 
 const dateFormat = "Jan 02 2006 15:04:05 MST"
@@ -146,7 +144,7 @@ func (mgr *Manager) httpCorpus(w http.ResponseWriter, r *http.Request) {
 		if call != inp.Call {
 			continue
 		}
-		p, err := prog.Deserialize(inp.Prog)
+		p, err := mgr.target.Deserialize(inp.Prog)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("failed to deserialize program: %v", err), http.StatusInternalServerError)
 			return
@@ -196,7 +194,7 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 	mgr.minimizeCorpus()
 	call := r.FormValue("call")
 	idx := -1
-	for i, c := range sys.Calls {
+	for i, c := range mgr.target.Syscalls {
 		if c.CallName == call {
 			idx = i
 			break
@@ -209,7 +207,7 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 
 	data := &UIPrioData{Call: call}
 	for i, p := range mgr.prios[idx] {
-		data.Prios = append(data.Prios, UIPrio{sys.Calls[i].Name, p})
+		data.Prios = append(data.Prios, UIPrio{mgr.target.Syscalls[i].Name, p})
 	}
 	sort.Sort(UIPrioArray(data.Prios))
 
@@ -220,9 +218,6 @@ func (mgr *Manager) httpPrio(w http.ResponseWriter, r *http.Request) {
 }
 
 func (mgr *Manager) httpFile(w http.ResponseWriter, r *http.Request) {
-	mgr.mu.Lock()
-	defer mgr.mu.Unlock()
-
 	file := filepath.Clean(r.FormValue("name"))
 	if !strings.HasPrefix(file, "crashes/") && !strings.HasPrefix(file, "corpus/") {
 		http.Error(w, "oh, oh, oh!", http.StatusInternalServerError)

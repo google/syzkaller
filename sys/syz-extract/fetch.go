@@ -11,15 +11,19 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // fetchValues converts literal constants (e.g. O_APPEND) or any other C expressions
 // into their respective numeric values. It does so by builting and executing a C program
 // that prints values of the provided expressions.
-func fetchValues(arch string, vals []string, includes []string, incdirs []string, defines map[string]string, cflags []string) (map[string]uint64, error) {
-	bin, out, err := runCompiler(arch, nil, includes, incdirs, nil, cflags, nil)
+func fetchValues(target *targets.Target, kernelDir, buildDir string,
+	vals, includes, incdirs []string, defines map[string]string) (
+	map[string]uint64, map[string]bool, error) {
+	bin, out, err := runCompiler(target, kernelDir, buildDir, nil, includes, incdirs, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
+		return nil, nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
 	}
 	os.Remove(bin)
 
@@ -29,7 +33,7 @@ func fetchValues(arch string, vals []string, includes []string, incdirs []string
 	}
 
 	undeclared := make(map[string]bool)
-	bin, out, err = runCompiler(arch, vals, includes, incdirs, defines, cflags, undeclared)
+	bin, out, err = runCompiler(target, kernelDir, buildDir, vals, includes, incdirs, defines, undeclared)
 	if err != nil {
 		for _, errMsg := range []string{
 			"error: ‘([a-zA-Z0-9_]+)’ undeclared",
@@ -40,21 +44,20 @@ func fetchValues(arch string, vals []string, includes []string, incdirs []string
 			for _, match := range matches {
 				val := string(match[1])
 				if !undeclared[val] && valMap[val] {
-					logf(0, "undefined const: %v", val)
 					undeclared[val] = true
 				}
 			}
 		}
-		bin, out, err = runCompiler(arch, vals, includes, incdirs, defines, cflags, undeclared)
+		bin, out, err = runCompiler(target, kernelDir, buildDir, vals, includes, incdirs, defines, undeclared)
 		if err != nil {
-			return nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
+			return nil, nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
 		}
 	}
 	defer os.Remove(bin)
 
 	out, err = exec.Command(bin).CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("failed to run flags binary: %v\n%v", err, string(out))
+		return nil, nil, fmt.Errorf("failed to run flags binary: %v\n%v", err, string(out))
 	}
 
 	flagVals := strings.Split(string(out), " ")
@@ -62,7 +65,7 @@ func fetchValues(arch string, vals []string, includes []string, incdirs []string
 		flagVals = nil
 	}
 	if len(flagVals) != len(vals)-len(undeclared) {
-		failf("fetched wrong number of values %v != %v - %v\nflagVals: %q\nvals: %q\nundeclared: %q",
+		return nil, nil, fmt.Errorf("fetched wrong number of values %v != %v - %v\nflagVals: %q\nvals: %q\nundeclared: %q",
 			len(flagVals), len(vals), len(undeclared),
 			flagVals, vals, undeclared)
 	}
@@ -77,14 +80,14 @@ func fetchValues(arch string, vals []string, includes []string, incdirs []string
 		}
 		n, err := strconv.ParseUint(v, 10, 64)
 		if err != nil {
-			failf("failed to parse value: %v (%v)", err, v)
+			return nil, nil, fmt.Errorf("failed to parse value: %v (%v)", err, v)
 		}
 		res[name] = n
 	}
-	return res, nil
+	return res, undeclared, nil
 }
 
-func runCompiler(arch string, vals []string, includes []string, incdirs []string, defines map[string]string, cflags []string, undeclared map[string]bool) (bin string, out []byte, err error) {
+func runCompiler(target *targets.Target, kernelDir, buildDir string, vals, includes, incdirs []string, defines map[string]string, undeclared map[string]bool) (bin string, out []byte, err error) {
 	includeText := ""
 	for _, inc := range includes {
 		includeText += fmt.Sprintf("#include <%v>\n", inc)
@@ -112,8 +115,9 @@ func runCompiler(arch string, vals []string, includes []string, incdirs []string
 	}
 	binFile.Close()
 
+	arch := target.KernelHeaderArch
 	args := []string{"-x", "c", "-", "-o", binFile.Name(), "-fmessage-length=0"}
-	args = append(args, cflags...)
+	args = append(args, target.CFlags...)
 	args = append(args, []string{
 		// This would be useful to ensure that we don't include any host headers,
 		// but kernel includes at least <stdarg.h>
@@ -123,20 +127,20 @@ func runCompiler(arch string, vals []string, includes []string, incdirs []string
 		"-I.",
 		"-D__KERNEL__",
 		"-DKBUILD_MODNAME=\"-\"",
-		"-I" + *flagLinux + "/arch/" + arch + "/include",
-		"-I" + *flagLinuxBld + "/arch/" + arch + "/include/generated/uapi",
-		"-I" + *flagLinuxBld + "/arch/" + arch + "/include/generated",
-		"-I" + *flagLinuxBld + "/include",
-		"-I" + *flagLinux + "/include",
-		"-I" + *flagLinux + "/arch/" + arch + "/include/uapi",
-		"-I" + *flagLinuxBld + "/arch/" + arch + "/include/generated/uapi",
-		"-I" + *flagLinux + "/include/uapi",
-		"-I" + *flagLinuxBld + "/include/generated/uapi",
-		"-I" + *flagLinux,
-		"-include", *flagLinux + "/include/linux/kconfig.h",
+		"-I" + kernelDir + "/arch/" + arch + "/include",
+		"-I" + buildDir + "/arch/" + arch + "/include/generated/uapi",
+		"-I" + buildDir + "/arch/" + arch + "/include/generated",
+		"-I" + buildDir + "/include",
+		"-I" + kernelDir + "/include",
+		"-I" + kernelDir + "/arch/" + arch + "/include/uapi",
+		"-I" + buildDir + "/arch/" + arch + "/include/generated/uapi",
+		"-I" + kernelDir + "/include/uapi",
+		"-I" + buildDir + "/include/generated/uapi",
+		"-I" + kernelDir,
+		"-include", kernelDir + "/include/linux/kconfig.h",
 	}...)
 	for _, incdir := range incdirs {
-		args = append(args, "-I"+*flagLinux+"/"+incdir)
+		args = append(args, "-I"+kernelDir+"/"+incdir)
 	}
 	cmd := exec.Command("gcc", args...)
 	cmd.Stdin = strings.NewReader(src)

@@ -12,12 +12,14 @@ import (
 
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/sys"
+	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/vm"
 )
 
 type Config struct {
 	Name       string // Instance name (used for identification and as GCE instance prefix)
+	Target     string // Target OS/arch, e.g. "linux/arm64" or "linux/amd64/386" (amd64 OS with 386 test process)
 	Http       string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
 	Rpc        string // TCP address to serve RPC for fuzzer processes (optional)
 	Workdir    string
@@ -59,13 +61,21 @@ type Config struct {
 	// Implementation details beyond this point.
 	ParsedSuppressions []*regexp.Regexp `json:"-"`
 	ParsedIgnores      []*regexp.Regexp `json:"-"`
+	// Parsed Target:
+	TargetOS     string `json:"-"`
+	TargetArch   string `json:"-"`
+	TargetVMArch string `json:"-"`
+	// Syzkaller binaries that we are going to use:
+	SyzFuzzerBin   string `json:"-"`
+	SyzExecprogBin string `json:"-"`
+	SyzExecutorBin string `json:"-"`
 }
 
-func LoadData(data []byte) (*Config, map[int]bool, error) {
+func LoadData(data []byte) (*Config, error) {
 	return load(data, "")
 }
 
-func LoadFile(filename string) (*Config, map[int]bool, error) {
+func LoadFile(filename string) (*Config, error) {
 	return load(nil, filename)
 }
 
@@ -79,45 +89,55 @@ func DefaultValues() *Config {
 	}
 }
 
-func load(data []byte, filename string) (*Config, map[int]bool, error) {
+func load(data []byte, filename string) (*Config, error) {
 	cfg := DefaultValues()
 	if data != nil {
 		if err := config.LoadData(data, cfg); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	} else {
 		if err := config.LoadFile(filename, cfg); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
-	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-fuzzer")) {
-		return nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-fuzzer")
+
+	var err error
+	cfg.TargetOS, cfg.TargetVMArch, cfg.TargetArch, err = SplitTarget(cfg.Target)
+	if err != nil {
+		return nil, err
 	}
-	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-executor")) {
-		return nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-executor")
+
+	cfg.SyzFuzzerBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetVMArch, "syz-fuzzer")
+	cfg.SyzExecprogBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetVMArch, "syz-execprog")
+	cfg.SyzExecutorBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetArch, "syz-executor")
+	if !osutil.IsExist(cfg.SyzFuzzerBin) {
+		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
 	}
-	if !osutil.IsExist(filepath.Join(cfg.Syzkaller, "bin/syz-execprog")) {
-		return nil, nil, fmt.Errorf("bad config syzkaller param: can't find bin/syz-execprog")
+	if !osutil.IsExist(cfg.SyzExecprogBin) {
+		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecprogBin)
+	}
+	if !osutil.IsExist(cfg.SyzExecutorBin) {
+		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecutorBin)
 	}
 	if cfg.Http == "" {
-		return nil, nil, fmt.Errorf("config param http is empty")
+		return nil, fmt.Errorf("config param http is empty")
 	}
 	if cfg.Workdir == "" {
-		return nil, nil, fmt.Errorf("config param workdir is empty")
+		return nil, fmt.Errorf("config param workdir is empty")
 	}
 	if cfg.Vmlinux == "" {
-		return nil, nil, fmt.Errorf("config param vmlinux is empty")
+		return nil, fmt.Errorf("config param vmlinux is empty")
 	}
 	if cfg.Type == "" {
-		return nil, nil, fmt.Errorf("config param type is empty")
+		return nil, fmt.Errorf("config param type is empty")
 	}
 	if cfg.Procs < 1 || cfg.Procs > 32 {
-		return nil, nil, fmt.Errorf("bad config param procs: '%v', want [1, 32]", cfg.Procs)
+		return nil, fmt.Errorf("bad config param procs: '%v', want [1, 32]", cfg.Procs)
 	}
 	switch cfg.Sandbox {
 	case "none", "setuid", "namespace":
 	default:
-		return nil, nil, fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
+		return nil, fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
 	}
 
 	cfg.Workdir = osutil.Abs(cfg.Workdir)
@@ -127,29 +147,41 @@ func load(data []byte, filename string) (*Config, map[int]bool, error) {
 		cfg.Kernel_Src = filepath.Dir(cfg.Vmlinux) // assume in-tree build by default
 	}
 
-	syscalls, err := parseSyscalls(cfg)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	if err := parseSuppressions(cfg); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if cfg.Hub_Client != "" && (cfg.Name == "" || cfg.Hub_Addr == "" || cfg.Hub_Key == "") {
-		return nil, nil, fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
+		return nil, fmt.Errorf("hub_client is set, but name/hub_addr/hub_key is empty")
 	}
 	if cfg.Dashboard_Client != "" && (cfg.Name == "" ||
 		cfg.Dashboard_Addr == "" ||
 		cfg.Dashboard_Key == "") {
-		return nil, nil, fmt.Errorf("dashboard_client is set, but name/dashboard_addr/dashboard_key is empty")
+		return nil, fmt.Errorf("dashboard_client is set, but name/dashboard_addr/dashboard_key is empty")
 	}
 
-	return cfg, syscalls, nil
+	return cfg, nil
 }
 
-func parseSyscalls(cfg *Config) (map[int]bool, error) {
-	match := func(call *sys.Call, str string) bool {
+func SplitTarget(target string) (string, string, string, error) {
+	if target == "" {
+		return "", "", "", fmt.Errorf("target is empty")
+	}
+	targetParts := strings.Split(target, "/")
+	if len(targetParts) != 2 && len(targetParts) != 3 {
+		return "", "", "", fmt.Errorf("bad config param target")
+	}
+	os := targetParts[0]
+	vmarch := targetParts[1]
+	arch := targetParts[1]
+	if len(targetParts) == 3 {
+		arch = targetParts[2]
+	}
+	return os, vmarch, arch, nil
+}
+
+func ParseEnabledSyscalls(cfg *Config) (map[int]bool, error) {
+	match := func(call *prog.Syscall, str string) bool {
 		if str == call.CallName || str == call.Name {
 			return true
 		}
@@ -159,11 +191,16 @@ func parseSyscalls(cfg *Config) (map[int]bool, error) {
 		return false
 	}
 
+	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
+	if err != nil {
+		return nil, err
+	}
+
 	syscalls := make(map[int]bool)
 	if len(cfg.Enable_Syscalls) != 0 {
 		for _, c := range cfg.Enable_Syscalls {
 			n := 0
-			for _, call := range sys.Calls {
+			for _, call := range target.Syscalls {
 				if match(call, c) {
 					syscalls[call.ID] = true
 					n++
@@ -174,13 +211,13 @@ func parseSyscalls(cfg *Config) (map[int]bool, error) {
 			}
 		}
 	} else {
-		for _, call := range sys.Calls {
+		for _, call := range target.Syscalls {
 			syscalls[call.ID] = true
 		}
 	}
 	for _, c := range cfg.Disable_Syscalls {
 		n := 0
-		for _, call := range sys.Calls {
+		for _, call := range target.Syscalls {
 			if match(call, c) {
 				delete(syscalls, call.ID)
 				n++
@@ -190,9 +227,6 @@ func parseSyscalls(cfg *Config) (map[int]bool, error) {
 			return nil, fmt.Errorf("unknown disabled syscall: %v", c)
 		}
 	}
-	// mmap is used to allocate memory.
-	syscalls[sys.CallMap["mmap"].ID] = true
-
 	return syscalls, nil
 }
 
@@ -229,6 +263,8 @@ func parseSuppressions(cfg *Config) error {
 func CreateVMEnv(cfg *Config, debug bool) *vm.Env {
 	return &vm.Env{
 		Name:    cfg.Name,
+		OS:      cfg.TargetOS,
+		Arch:    cfg.TargetVMArch,
 		Workdir: cfg.Workdir,
 		Image:   cfg.Image,
 		Sshkey:  cfg.Sshkey,

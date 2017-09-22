@@ -12,10 +12,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/signal"
+	"runtime"
 	"sync"
-	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
@@ -23,9 +21,11 @@ import (
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 )
 
 var (
+	flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
 	flagExecutor  = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
 	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
@@ -44,13 +44,18 @@ func main() {
 		os.Exit(1)
 	}
 
+	target, err := prog.GetTarget(runtime.GOOS, *flagArch)
+	if err != nil {
+		Fatalf("%v", err)
+	}
+
 	var progs []*prog.Prog
 	for _, fn := range flag.Args() {
 		data, err := ioutil.ReadFile(fn)
 		if err != nil {
 			Fatalf("failed to read log file: %v", err)
 		}
-		entries := prog.ParseLog(data)
+		entries := target.ParseLog(data)
 		for _, ent := range entries {
 			progs = append(progs, ent.P)
 		}
@@ -104,7 +109,7 @@ func main() {
 	gate := ipc.NewGate(2**flagProcs, nil)
 	var pos int
 	var lastPrint time.Time
-	var shutdown uint32
+	shutdown := make(chan struct{})
 	for p := 0; p < *flagProcs; p++ {
 		pid := p
 		go func() {
@@ -140,8 +145,10 @@ func main() {
 						logMu.Unlock()
 					}
 					output, info, failed, hanged, err := env.Exec(execOpts, p)
-					if atomic.LoadUint32(&shutdown) != 0 {
+					select {
+					case <-shutdown:
 						return false
+					default:
 					}
 					if failed {
 						fmt.Printf("BUG: executor-detected bug:\n%s", output)
@@ -184,15 +191,6 @@ func main() {
 		}()
 	}
 
-	go func() {
-		c := make(chan os.Signal, 2)
-		signal.Notify(c, syscall.SIGINT)
-		<-c
-		Logf(0, "shutting down...")
-		atomic.StoreUint32(&shutdown, 1)
-		<-c
-		Fatalf("terminating")
-	}()
-
+	osutil.HandleInterrupts(shutdown)
 	wg.Wait()
 }

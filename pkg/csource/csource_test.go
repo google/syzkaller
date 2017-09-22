@@ -8,20 +8,26 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 )
 
-func initTest(t *testing.T) (rand.Source, int) {
+func initTest(t *testing.T) (*prog.Target, rand.Source, int) {
 	t.Parallel()
 	iters := 1
 	seed := int64(time.Now().UnixNano())
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
-	return rs, iters
+	target, err := prog.GetTarget("linux", runtime.GOARCH)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return target, rs, iters
 }
 
 func enumerateField(opt Options, field int) []Options {
@@ -83,7 +89,7 @@ func allOptionsPermutations() []Options {
 }
 
 func TestOne(t *testing.T) {
-	rs, _ := initTest(t)
+	t.Parallel()
 	opts := Options{
 		Threaded:  true,
 		Collide:   true,
@@ -93,13 +99,35 @@ func TestOne(t *testing.T) {
 		Repro:     true,
 		UseTmpDir: true,
 	}
-	p := prog.GenerateAllSyzProg(rs)
-	testOne(t, p, opts)
+	for _, target := range prog.AllTargets() {
+		if target.OS == "fuchsia" {
+			// TODO(dvyukov): support fuchsia
+			continue
+		}
+		target := target
+		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
+			if target.OS == "linux" && target.Arch == "arm" {
+				// This currently fails (at least with my arm-linux-gnueabihf-gcc-4.8) with:
+				// Assembler messages:
+				// Error: alignment too large: 15 assumed
+				t.Skip("broken")
+			}
+			if target.OS == "linux" && target.Arch == "386" {
+				// Currently fails on travis with:
+				// fatal error: asm/unistd.h: No such file or directory
+				t.Skip("broken")
+			}
+			t.Parallel()
+			rs := rand.NewSource(0)
+			p := target.GenerateAllSyzProg(rs)
+			testOne(t, p, opts)
+		})
+	}
 }
 
 func TestOptions(t *testing.T) {
-	rs, _ := initTest(t)
-	syzProg := prog.GenerateAllSyzProg(rs)
+	target, rs, _ := initTest(t)
+	syzProg := target.GenerateAllSyzProg(rs)
 	t.Logf("syz program:\n%s\n", syzProg.Serialize())
 	permutations := allOptionsSingle()
 	allPermutations := allOptionsPermutations()
@@ -113,10 +141,10 @@ func TestOptions(t *testing.T) {
 	}
 	for i, opts := range permutations {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
-			rs, iters := initTest(t)
+			target, rs, iters := initTest(t)
 			t.Logf("opts: %+v", opts)
 			for i := 0; i < iters; i++ {
-				p := prog.Generate(rs, 10, nil)
+				p := target.Generate(rs, 10, nil)
 				testOne(t, p, opts)
 			}
 			testOne(t, syzProg, opts)
@@ -136,7 +164,10 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 		t.Fatalf("%v", err)
 	}
 	defer os.Remove(srcf)
-	bin, err := Build("c", srcf)
+	bin, err := Build(p.Target, "c", srcf)
+	if err == NoCompilerErr {
+		t.Skip(err)
+	}
 	if err != nil {
 		t.Logf("program:\n%s\n", p.Serialize())
 		t.Fatalf("%v", err)

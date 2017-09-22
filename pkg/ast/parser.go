@@ -353,6 +353,8 @@ func (p *parser) parseCommentBlock() []*Comment {
 	for p.tok == tokComment {
 		comments = append(comments, p.parseComment())
 		p.consume(tokNewLine)
+		for p.tryConsume(tokNewLine) {
+		}
 	}
 	return comments
 }

@@ -8,10 +8,14 @@ import (
 )
 
 func TestParseSingle(t *testing.T) {
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
 	const execLog = `getpid()
 gettid()	
 `
-	entries := ParseLog([]byte(execLog))
+	entries := target.ParseLog([]byte(execLog))
 	if len(entries) != 1 {
 		t.Fatalf("got %v programs, want 1", len(entries))
 	}
@@ -36,7 +40,11 @@ gettid()
 }
 
 func TestParseMulti(t *testing.T) {
-	entries := ParseLog([]byte(execLog))
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	entries := target.ParseLog([]byte(execLog))
 	if len(entries) != 5 {
 		for i, ent := range entries {
 			t.Logf("program #%v: %s\n", i, ent.P)
@@ -99,11 +107,15 @@ munlockall()
 `
 
 func TestParseFault(t *testing.T) {
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
 	const execLog = `2015/12/21 12:18:05 executing program 1 (fault-call:1 fault-nth:55):
 gettid()
 getpid()
 `
-	entries := ParseLog([]byte(execLog))
+	entries := target.ParseLog([]byte(execLog))
 	if len(entries) != 1 {
 		t.Fatalf("got %v programs, want 1", len(entries))
 	}

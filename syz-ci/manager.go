@@ -309,6 +309,14 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if mgrcfg.Target == "" {
+		// TODO(dvyukov): temporal measure to handle upgrade.
+		// Remove this once ci configs have targets.
+		mgrcfg.Target = "linux/amd64"
+		mgrcfg.TargetOS = "linux"
+		mgrcfg.TargetVMArch = "amd64"
+		mgrcfg.TargetArch = "amd64"
+	}
 	current := mgr.currentDir
 	if mgr.dash != nil {
 		mgrcfg.Tag = info.Tag
@@ -344,7 +352,7 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 	if err := config.SaveFile(configFile, mgrcfg); err != nil {
 		return "", err
 	}
-	if _, _, err := mgrconfig.LoadFile(configFile); err != nil {
+	if _, err := mgrconfig.LoadFile(configFile); err != nil {
 		return "", err
 	}
 	return configFile, nil
@@ -363,6 +371,14 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 	if err != nil {
 		return fmt.Errorf("failed to read kernel.config: %v", err)
 	}
+	mgrcfg := new(mgrconfig.Config)
+	if err := config.LoadData(mgr.mgrcfg.Manager_Config, mgrcfg); err != nil {
+		return fmt.Errorf("failed to load manager %v config: %v", mgr.name, err)
+	}
+	os, vmarch, arch, err := mgrconfig.SplitTarget(mgrcfg.Target)
+	if err != nil {
+		return fmt.Errorf("failed to load manager %v config: %v", mgr.name, err)
+	}
 	commits, err := mgr.pollCommits(info.KernelCommit)
 	if err != nil {
 		// This is not critical for operation.
@@ -371,6 +387,9 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 	build := &dashapi.Build{
 		Manager:         mgr.name,
 		ID:              info.Tag,
+		OS:              os,
+		Arch:            arch,
+		VMArch:          vmarch,
 		SyzkallerCommit: syzkallerCommit,
 		CompilerID:      info.CompilerID,
 		KernelRepo:      info.KernelRepo,

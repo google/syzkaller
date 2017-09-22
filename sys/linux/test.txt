@@ -1,0 +1,535 @@
+# Copyright 2015 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Syscalls used in syzkaller tests.
+
+# For IPPROTO_* consts.
+include <linux/in.h>
+include <linux/in6.h>
+
+syz_test()
+
+# Integer types.
+
+syz_test$int(a0 intptr, a1 int8, a2 int16, a3 int32, a4 int64)
+
+# Opt arguments
+
+syz_test$opt0(a0 intptr[opt])
+syz_test$opt1(a0 ptr[in, intptr, opt])
+syz_test$opt2(a0 vma[opt])
+
+# Alignment and padding
+
+syz_test$align0(a0 ptr[in, syz_align0])
+syz_test$align1(a0 ptr[in, syz_align1])
+syz_test$align2(a0 ptr[in, syz_align2])
+syz_test$align3(a0 ptr[in, syz_align3])
+syz_test$align4(a0 ptr[in, syz_align4])
+syz_test$align5(a0 ptr[in, syz_align5])
+syz_test$align6(a0 ptr[in, syz_align6])
+
+syz_align0 {
+	f0	int16
+	f1	int32
+	f2	int8
+	f3	int16
+	f4	int64
+}
+
+syz_align1 {
+	f0	int16
+	f1	int32
+	f2	int8
+	f3	int16
+	f4	int64
+} [packed]
+
+syz_align2_packed {
+	f0	array[int16, 1]
+} [packed]
+
+syz_align2_not_packed {
+	f0	array[int16, 1]
+}
+
+syz_align2 {
+	f0	int8
+	f1	syz_align2_packed
+	f2	syz_align2_not_packed
+}
+
+syz_align3_noalign {
+	f0	int8
+}
+
+syz_align3_align4 {
+	f0	int8
+} [align_4]
+
+syz_align3 {
+	f0	int8
+	f1	syz_align3_noalign
+	f2	syz_align3_align4
+}
+
+syz_align4_internal {
+	f0	int8
+	f1	int16
+} [packed, align_4]
+
+syz_align4 {
+	f0	syz_align4_internal
+	f1	int8
+}
+
+syz_align5_internal {
+	f0	int64
+	f1	array[int16, 0:3]
+}
+
+syz_align5 {
+	f0	syz_align5_internal
+	f1	syz_align5_internal
+	f2	int8
+} [packed]
+
+syz_align6 {
+	f0	int8
+	f1	array[int32]
+}
+
+# Structs
+
+syz_test$struct(a0 ptr[in, syz_struct0])
+
+syz_struct0 {
+	f0	int64
+	f1	syz_struct1
+}
+
+syz_struct1 {
+	f0	int8
+}
+
+# Unions
+
+syz_test$union0(a0 ptr[in, syz_union0_struct])
+syz_test$union1(a0 ptr[in, syz_union1_struct])
+syz_test$union2(a0 ptr[in, syz_union2_struct])
+
+syz_union0 [
+	f0	int64
+	f1	array[int64, 10]
+	f2	int8
+]
+
+syz_union0_struct {
+	f	int64
+	u	syz_union0
+}
+
+syz_union1 [
+	f0	int64
+	f1	int32
+]
+
+syz_union1_struct {
+	f0	syz_union1
+	f1	int8
+} [packed]
+
+syz_union2 [
+	f0	int64
+	f1	int32
+] [varlen]
+
+syz_union2_struct {
+	f0	syz_union2
+	f1	int8
+} [packed]
+
+# Arrays
+
+syz_test$array0(a0 ptr[in, syz_array_struct])
+syz_test$array1(a0 ptr[in, syz_array_trailing])
+syz_test$array2(a0 ptr[in, syz_array_blob])
+
+# Struct with a variable-length array or variable-length unions.
+syz_array_struct {
+	f0	int8
+	f1	array[syz_array_union, 1:2]
+	f2	int64
+} [packed]
+
+syz_array_union [
+	f0	int16
+	f1	int64
+] [varlen]
+
+syz_array_trailing {
+	f0	int8
+	f1	array[int8, 4:8]
+}
+
+syz_array_blob {
+	f0	int16
+	f1	array[int8, 16]
+	f2	int16
+}
+
+# Length
+
+syz_test$length0(a0 ptr[in, syz_length_int_struct])
+syz_test$length1(a0 ptr[in, syz_length_const_struct])
+syz_test$length2(a0 ptr[in, syz_length_flags_struct])
+syz_test$length3(a0 ptr[in, syz_length_len_struct])
+syz_test$length4(a0 ptr[in, syz_length_len2_struct])
+syz_test$length5(a0 ptr[in, syz_length_parent_struct])
+syz_test$length6(a0 ptr[in, syz_length_array_struct])
+syz_test$length7(a0 ptr[in, syz_length_array2_struct])
+syz_test$length8(a0 ptr[in, syz_length_complex_struct])
+syz_test$length9(a0 ptr[in, syz_length_vma_struct])
+
+syz_test$length10(a0 vma, a1 len[a0])
+syz_test$length11(a0 ptr[in, syz_length_large_struct], a1 len[a0])
+syz_test$length12(a0 ptr[in, syz_length_large_struct, opt], a1 len[a0])
+syz_test$length13(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64]])
+syz_test$length14(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64], opt])
+syz_test$length15(a0 int16, a1 len[a0])
+
+syz_test$length16(a0 ptr[in, syz_length_bytesize_struct])
+syz_test$length17(a0 ptr[in, syz_length_bytesize2_struct])
+syz_test$length18(a0 ptr[in, syz_length_bytesize3_struct])
+syz_test$length19(a0 ptr[in, syz_length_bf_struct])
+
+syz_test$length20(a0 ptr[in, syz_length_parent2_struct])
+
+syz_length_flags = 0, 1
+
+syz_length_int_struct {
+	f0	int16
+	f1	len[f0, int16]
+}
+
+syz_length_const_struct {
+	f0	const[0, int32]
+	f1	len[f0, int32]
+}
+
+syz_length_flags_struct {
+	f0	flags[syz_length_flags, int64]
+	f1	len[f0, int64]
+}
+
+syz_length_len_struct {
+	f0	int32
+	f1	len[f0, int16]
+	f2	len[f1, int16]
+}
+
+syz_length_len2_struct {
+	f0	len[f1, int16]
+	f1	len[f0, int16]
+}
+
+syz_length_parent_struct {
+	f0	int16
+	f1	len[parent, int16]
+}
+
+syz_length_array_struct {
+	f0	array[int16, 4]
+	f1	len[f0, int16]
+}
+
+syz_length_array2_struct {
+	f0	array[int16, 4]
+	f1	bytesize[f0, int16]
+}
+
+syz_length_complex_inner_struct {
+	f0	int8
+	f1	len[f0, int8]
+	f2	len[parent, int16]
+	f3	array[int32, 3]
+}
+
+syz_length_complex_struct {
+	f0	len[parent, int64]
+	f1	syz_length_complex_inner_struct
+	f2	array[syz_length_complex_inner_struct, 1]
+	f3	len[f1, int32]
+	f4	len[f2, int16]
+	f5	array[int16]
+}
+
+syz_length_vma_struct {
+	f0	vma
+	f1	len[f0, int64]
+}
+
+syz_length_large_struct {
+	f0	int64
+	f1	int64
+	f2	array[int32, 8]
+}
+
+syz_length_bytesize_struct {
+	f0	array[int64, 2]
+	f1	len[f0, int8]
+	f2	bytesize[f0, int8]
+	f3	bytesize2[f0, int8]
+	f4	bytesize4[f0, int8]
+	f5	bytesize8[f0, int8]
+}
+
+syz_length_bytesize2_struct {
+	f0	int64
+	f1	bytesize[f0, int8]
+	f2	bytesize2[f0, int8]
+	f3	bytesize4[f0, int8]
+	f4	bytesize8[f0, int8]
+}
+
+syz_length_bytesize3_struct {
+	f0	int32
+	f1	bytesize[parent, int8]
+	f2	bytesize2[parent, int8]
+	f3	bytesize4[parent, int8]
+	f4	bytesize8[parent, int8]
+}
+
+syz_length_bf_struct_inner {
+	f0	int32:10
+	f1	int32:10
+	f2	int32:10
+	f3	int32:32
+	f4	int32:16
+	f5	int32:16
+	f6	int32:10
+	f7	len[parent, int32]
+}
+
+syz_length_bf_struct {
+	f0	syz_length_bf_struct_inner
+	f1	len[f0, int8]
+	f2	bytesize[f0, int8]
+	f3	bytesize4[f0, int8]
+}
+
+syz_length_parent2_struct_inner_inner {
+	f1	len[parent, int8]
+	f2	len[syz_length_parent2_struct_inner_inner, int8]
+	f3	len[syz_length_parent2_struct_inner, int8]
+	f4	len[syz_length_parent2_struct, int8]
+}
+
+syz_length_parent2_struct_inner {
+	f0	syz_length_parent2_struct_inner_inner
+	f1	len[parent, int8]
+	f2	len[syz_length_parent2_struct_inner, int8]
+	f3	len[syz_length_parent2_struct, int8]
+}
+
+syz_length_parent2_struct {
+	f0	syz_length_parent2_struct_inner
+	f1	len[parent, int8]
+	f2	len[syz_length_parent2_struct, int8]
+}
+
+# Big endian
+
+syz_test$end0(a0 ptr[in, syz_end_int_struct])
+syz_test$end1(a0 ptr[in, syz_end_var_struct])
+
+syz_end_flags = 0, 1
+
+syz_end_int_struct {
+	f0	int8
+	f1	int16be
+	f2	int32be
+	f3	int64be
+} [packed]
+
+syz_end_var_struct {
+	f0	len[parent, int16be]
+	f1	const[0x42, int32be]
+	f2	flags[syz_end_flags, int64be]
+} [packed]
+
+# Vma type
+
+syz_test$vma0(v0 vma, l0 len[v0], v1 vma[5], l1 len[v1], v2 vma[7:9], l2 len[v2])
+
+# Text type
+
+syz_test$text_x86_real(a0 ptr[in, text[x86_real]], a1 len[a0])
+syz_test$text_x86_16(a0 ptr[in, text[x86_16]], a1 len[a0])
+syz_test$text_x86_32(a0 ptr[in, text[x86_32]], a1 len[a0])
+syz_test$text_x86_64(a0 ptr[in, text[x86_64]], a1 len[a0])
+
+# Regression tests
+
+syz_test$regression0(a0 ptr[inout, syz_regression0_struct])
+
+syz_regression0_struct {
+	f0	buffer[out]
+}
+
+# Bitfields
+
+syz_bf_flags = 0, 1, 2
+
+syz_bf_struct0 {
+	f0	flags[syz_bf_flags, int16:10]
+	f1	int64
+	f2	const[0x42, int16:5]
+	f3	int16:6
+	f4	const[0x42, int32:15]
+	f5	len[parent, int16:11]
+	f6	len[parent, int16be:11]
+	f7	int8
+}
+
+syz_bf_struct1_internal {
+	f0	int32:10
+	f1	int32:10
+	f2	int32:10
+}
+
+syz_bf_struct1 {
+	f0	syz_bf_struct1_internal
+	f1	int8
+}
+
+syz_test$bf0(a0 ptr[in, syz_bf_struct0])
+syz_test$bf1(a0 ptr[in, syz_bf_struct1])
+
+# Checksums
+
+syz_test$csum_encode(a0 ptr[in, syz_csum_encode])
+syz_test$csum_ipv4(a0 ptr[in, syz_csum_ipv4_header])
+syz_test$csum_ipv4_tcp(a0 ptr[in, syz_csum_ipv4_tcp_packet])
+syz_test$csum_ipv6_tcp(a0 ptr[in, syz_csum_ipv6_tcp_packet])
+syz_test$csum_ipv4_udp(a0 ptr[in, syz_csum_ipv4_udp_packet])
+syz_test$csum_ipv6_udp(a0 ptr[in, syz_csum_ipv6_udp_packet])
+syz_test$csum_ipv6_icmp(a0 ptr[in, syz_csum_ipv6_icmp_packet])
+
+syz_csum_encode {
+	f0	int16
+	f1	int16be
+	f2	array[int32, 0:4]
+	f3	int8:4
+	f4	int8:4
+	f5	array[int8, 4]
+} [packed]
+
+syz_csum_ipv4_header {
+	csum	csum[parent, inet, int16]
+	src_ip	int32be
+	dst_ip	int32be
+} [packed]
+
+syz_csum_tcp_header {
+	csum	csum[syz_csum_tcp_packet, pseudo, IPPROTO_TCP, int16]
+} [packed]
+
+syz_csum_tcp_packet {
+	header	syz_csum_tcp_header
+	payload	array[int8]
+} [packed]
+
+syz_csum_ipv4_tcp_packet {
+	header	syz_csum_ipv4_header
+	payload	syz_csum_tcp_packet
+} [packed]
+
+syz_csum_ipv6_header {
+	src_ip	array[int8, 16]
+	dst_ip	array[int8, 16]
+} [packed]
+
+syz_csum_ipv6_tcp_packet {
+	header	syz_csum_ipv6_header
+	payload	syz_csum_tcp_packet
+} [packed]
+
+syz_csum_udp_packet {
+	csum	csum[parent, pseudo, IPPROTO_UDP, int16]
+	payload	array[int8]
+} [packed]
+
+syz_csum_ipv4_udp_packet {
+	header	syz_csum_ipv4_header
+	payload	syz_csum_udp_packet
+} [packed]
+
+syz_csum_ipv6_udp_packet {
+	header	syz_csum_ipv6_header
+	payload	syz_csum_udp_packet
+} [packed]
+
+syz_csum_icmp_packet {
+	csum	csum[parent, pseudo, IPPROTO_ICMPV6, int16]
+	payload	array[int8]
+} [packed]
+
+syz_csum_ipv6_icmp_packet {
+	header	syz_csum_ipv6_header
+	payload	syz_csum_icmp_packet
+} [packed]
+
+# Recursion
+
+syz_recur_0 {
+	a0	ptr[in, syz_recur_0, opt]
+}
+
+syz_recur_1 {
+	a0	ptr[in, syz_recur_1, opt]
+	a1	ptr[in, syz_recur_2, opt]
+}
+
+syz_recur_2_0 {
+	a0	ptr[in, syz_recur_2_0, opt]
+	a1	ptr[in, syz_recur_2_0, opt]
+	a2	ptr[in, syz_recur_2_0, opt]
+	a3	ptr[in, syz_recur_2_0, opt]
+}
+
+syz_recur_2 {
+	a0	ptr[in, syz_recur_0, opt]
+	a1	ptr[in, syz_recur_1, opt]
+	a2	ptr[in, syz_recur_2_0, opt]
+	a3	ptr[in, syz_recur_2_0, opt]
+	a4	ptr[in, syz_recur_2, opt]
+	a5	ptr[in, syz_recur_2, opt]
+}
+
+syz_test$recur0(a0 ptr[inout, syz_recur_0])
+syz_test$recur1(a0 ptr[inout, syz_recur_1])
+syz_test$recur2(a0 ptr[inout, syz_recur_2])
+
+# Resources.
+
+resource syz_res[int32]: 0xffff
+
+syz_test$res0() syz_res
+syz_test$res1(a0 syz_res)
+
+# KVM_ARM_VCPU_INIT const is not present on all arches.
+# Ensure that it does not break build.
+
+resource syz_missing_const_res[int32]: KVM_ARM_VCPU_INIT
+
+syz_test$missing_resource() syz_missing_const_res
+
+syz_missing_const_struct {
+	a0	const[KVM_ARM_VCPU_INIT, int32]
+}
+
+syz_use_missing {
+	a0	syz_missing_const_res
+	a1	syz_missing_const_struct
+}

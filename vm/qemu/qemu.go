@@ -31,7 +31,7 @@ func init() {
 
 type Config struct {
 	Count     int    // number of VMs to use
-	Qemu      string // qemu binary name (qemu-system-x86_64 by default)
+	Qemu      string // qemu binary name (qemu-system-arch by default)
 	Qemu_Args string // additional command line arguments for qemu binary
 	Kernel    string // kernel for injected boot (e.g. arch/x86/boot/bzImage)
 	Cmdline   string // kernel command line (can only be specified with kernel)
@@ -59,10 +59,37 @@ type instance struct {
 	merger  *vmimpl.OutputMerger
 }
 
+type archConfig struct {
+	Qemu     string
+	QemuArgs string
+}
+
+var archConfigs = map[string]archConfig{
+	"amd64": {
+		Qemu:     "qemu-system-x86_64",
+		QemuArgs: "-enable-kvm -usb -usbdevice mouse -usbdevice tablet -soundhw all",
+	},
+	"386": {
+		Qemu: "qemu-system-i386",
+	},
+	"arm64": {
+		Qemu:     "qemu-system-aarch64",
+		QemuArgs: "-machine virt -cpu cortex-a57",
+	},
+	"arm": {
+		Qemu: "qemu-system-arm",
+	},
+	"ppc64le": {
+		Qemu: "qemu-system-ppc64",
+	},
+}
+
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
+	archConfig := archConfigs[env.Arch]
 	cfg := &Config{
-		Count: 1,
-		Qemu:  "qemu-system-x86_64",
+		Count:     1,
+		Qemu:      archConfig.Qemu,
+		Qemu_Args: archConfig.QemuArgs,
 	}
 	if err := config.LoadData(env.Config, cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse qemu vm config: %v", err)
@@ -200,16 +227,7 @@ func (inst *instance) Boot() error {
 		"-numa", "node,nodeid=0,cpus=0-1", "-numa", "node,nodeid=1,cpus=2-3",
 		"-smp", "sockets=2,cores=2,threads=1",
 	}
-	if inst.cfg.Qemu_Args == "" {
-		// This is reasonable defaults for x86 kvm-enabled host.
-		args = append(args,
-			"-enable-kvm",
-			"-usb", "-usbdevice", "mouse", "-usbdevice", "tablet",
-			"-soundhw", "all",
-		)
-	} else {
-		args = append(args, strings.Split(inst.cfg.Qemu_Args, " ")...)
-	}
+	args = append(args, strings.Split(inst.cfg.Qemu_Args, " ")...)
 	if inst.image == "9p" {
 		args = append(args,
 			"-fsdev", "local,id=fsdev0,path=/,security_model=none,readonly",

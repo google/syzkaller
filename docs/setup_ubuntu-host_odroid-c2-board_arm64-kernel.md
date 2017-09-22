@@ -278,24 +278,15 @@ Now make sure you can ssh with the key:
 ssh -i ./ssh/id_rsa root@172.16.0.31
 ```
 
-Build syzkaller on you host machine as you do usually.
-
-Build `syz-manager` and `syz-repro` with `odroid` build tag:
+Build syzkaller with `odroid` build tag:
 ``` bash
-go build -tags odroid -o ./bin/syz-manager ./syz-manager
-go build -tags odroid -o ./bin/syz-repro ./tools/syz-repro
-```
-
-Cross compile `syz-fuzzer`, `syz-execprog` and `syz-executor` binaries for arm64:
-``` bash
-GOARCH=arm64 go build -o bin/syz-fuzzer ./syz-fuzzer
-GOARCH=arm64 go build -o bin/syz-execprog ./tools/syz-execprog
-$PREFIX/bin/aarch64-linux-gcc executor/executor.cc -O1 -g -Wall -static -o bin/syz-executor -lpthread
+make GOTAGS=odroid TARGETARCH=arm64
 ```
 
 Use the following config:
 ```
 {
+	"target": "linux/arm64",
 	"http": "127.0.0.1:56741",
 	"workdir": "/syzkaller/workdir",
 	"vmlinux": "/linux-next/vmlinux",

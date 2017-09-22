@@ -5,14 +5,6 @@ package prog
 
 import (
 	"fmt"
-
-	"github.com/google/syzkaller/sys"
-)
-
-type CsumKind int
-
-const (
-	CsumInet CsumKind = iota
 )
 
 type CsumChunkKind int
@@ -87,7 +79,7 @@ func composePseudoCsumIPv6(tcpPacket, srcAddr, dstAddr Arg, protocol uint8, pid 
 	return info
 }
 
-func findCsummedArg(arg Arg, typ *sys.CsumType, parentsMap map[Arg]Arg) Arg {
+func findCsummedArg(arg Arg, typ *CsumType, parentsMap map[Arg]Arg) Arg {
 	if typ.Buf == "parent" {
 		if csummedArg, ok := parentsMap[arg]; ok {
 			return csummedArg
@@ -109,11 +101,11 @@ func calcChecksumsCall(c *Call, pid int) map[Arg]CsumInfo {
 
 	// Find all csum fields.
 	foreachArgArray(&c.Args, nil, func(arg, base Arg, _ *[]Arg) {
-		if typ, ok := arg.Type().(*sys.CsumType); ok {
+		if typ, ok := arg.Type().(*CsumType); ok {
 			switch typ.Kind {
-			case sys.CsumInet:
+			case CsumInet:
 				inetCsumFields = append(inetCsumFields, arg)
-			case sys.CsumPseudo:
+			case CsumPseudo:
 				pseudoCsumFields = append(pseudoCsumFields, arg)
 			default:
 				panic(fmt.Sprintf("unknown csum kind %v\n", typ.Kind))
@@ -129,7 +121,7 @@ func calcChecksumsCall(c *Call, pid int) map[Arg]CsumInfo {
 	// Build map of each field to its parent struct.
 	parentsMap := make(map[Arg]Arg)
 	foreachArgArray(&c.Args, nil, func(arg, base Arg, _ *[]Arg) {
-		if _, ok := arg.Type().(*sys.StructType); ok {
+		if _, ok := arg.Type().(*StructType); ok {
 			for _, field := range arg.(*GroupArg).Inner {
 				parentsMap[InnerArg(field)] = arg
 			}
@@ -140,7 +132,7 @@ func calcChecksumsCall(c *Call, pid int) map[Arg]CsumInfo {
 
 	// Calculate generic inet checksums.
 	for _, arg := range inetCsumFields {
-		typ, _ := arg.Type().(*sys.CsumType)
+		typ, _ := arg.Type().(*CsumType)
 		csummedArg := findCsummedArg(arg, typ, parentsMap)
 		chunk := CsumChunk{CsumChunkArg, csummedArg, 0, 0}
 		info := CsumInfo{Kind: CsumInet, Chunks: make([]CsumChunk, 0)}
@@ -175,7 +167,7 @@ func calcChecksumsCall(c *Call, pid int) map[Arg]CsumInfo {
 
 	// Calculate pseudo checksums.
 	for _, arg := range pseudoCsumFields {
-		typ, _ := arg.Type().(*sys.CsumType)
+		typ, _ := arg.Type().(*CsumType)
 		csummedArg := findCsummedArg(arg, typ, parentsMap)
 		protocol := uint8(typ.Protocol)
 		var info CsumInfo

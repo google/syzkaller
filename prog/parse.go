@@ -19,7 +19,7 @@ type LogEntry struct {
 	FaultNth  int
 }
 
-func ParseLog(data []byte) []*LogEntry {
+func (target *Target) ParseLog(data []byte) []*LogEntry {
 	var entries []*LogEntry
 	ent := &LogEntry{}
 	var cur []byte
@@ -55,7 +55,7 @@ func ParseLog(data []byte) []*LogEntry {
 			continue
 		}
 		tmp := append(cur, line...)
-		p, err := Deserialize(tmp)
+		p, err := target.Deserialize(tmp)
 		if err != nil {
 			continue
 		}

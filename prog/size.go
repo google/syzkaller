@@ -5,41 +5,39 @@ package prog
 
 import (
 	"fmt"
-
-	"github.com/google/syzkaller/sys"
 )
 
-func generateSize(arg Arg, lenType *sys.LenType) Arg {
+func (target *Target) generateSize(arg Arg, lenType *LenType) Arg {
 	if arg == nil {
 		// Arg is an optional pointer, set size to 0.
-		return constArg(lenType, 0)
+		return MakeConstArg(lenType, 0)
 	}
 
 	switch arg.Type().(type) {
-	case *sys.VmaType:
+	case *VmaType:
 		a := arg.(*PointerArg)
-		return constArg(lenType, a.PagesNum*pageSize)
-	case *sys.ArrayType:
+		return MakeConstArg(lenType, a.PagesNum*target.PageSize)
+	case *ArrayType:
 		a := arg.(*GroupArg)
 		if lenType.ByteSize != 0 {
-			return constArg(lenType, a.Size()/lenType.ByteSize)
+			return MakeConstArg(lenType, a.Size()/lenType.ByteSize)
 		} else {
-			return constArg(lenType, uint64(len(a.Inner)))
+			return MakeConstArg(lenType, uint64(len(a.Inner)))
 		}
 	default:
 		if lenType.ByteSize != 0 {
-			return constArg(lenType, arg.Size()/lenType.ByteSize)
+			return MakeConstArg(lenType, arg.Size()/lenType.ByteSize)
 		} else {
-			return constArg(lenType, arg.Size())
+			return MakeConstArg(lenType, arg.Size())
 		}
 	}
 }
 
-func assignSizes(args []Arg, parentsMap map[Arg]Arg) {
+func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg) {
 	// Create a map from field names to args.
 	argsMap := make(map[string]Arg)
 	for _, arg := range args {
-		if sys.IsPad(arg.Type()) {
+		if IsPad(arg.Type()) {
 			continue
 		}
 		argsMap[arg.Type().FieldName()] = arg
@@ -50,12 +48,12 @@ func assignSizes(args []Arg, parentsMap map[Arg]Arg) {
 		if arg = InnerArg(arg); arg == nil {
 			continue // Pointer to optional len field, no need to fill in value.
 		}
-		if typ, ok := arg.Type().(*sys.LenType); ok {
+		if typ, ok := arg.Type().(*LenType); ok {
 			a := arg.(*ConstArg)
 
 			buf, ok := argsMap[typ.Buf]
 			if ok {
-				*a = *generateSize(InnerArg(buf), typ).(*ConstArg)
+				*a = *target.generateSize(InnerArg(buf), typ).(*ConstArg)
 				continue
 			}
 
@@ -88,23 +86,23 @@ func assignSizes(args []Arg, parentsMap map[Arg]Arg) {
 	}
 }
 
-func assignSizesArray(args []Arg) {
+func (target *Target) assignSizesArray(args []Arg) {
 	parentsMap := make(map[Arg]Arg)
 	foreachArgArray(&args, nil, func(arg, base Arg, _ *[]Arg) {
-		if _, ok := arg.Type().(*sys.StructType); ok {
+		if _, ok := arg.Type().(*StructType); ok {
 			for _, field := range arg.(*GroupArg).Inner {
 				parentsMap[InnerArg(field)] = arg
 			}
 		}
 	})
-	assignSizes(args, parentsMap)
+	target.assignSizes(args, parentsMap)
 	foreachArgArray(&args, nil, func(arg, base Arg, _ *[]Arg) {
-		if _, ok := arg.Type().(*sys.StructType); ok {
-			assignSizes(arg.(*GroupArg).Inner, parentsMap)
+		if _, ok := arg.Type().(*StructType); ok {
+			target.assignSizes(arg.(*GroupArg).Inner, parentsMap)
 		}
 	})
 }
 
-func assignSizesCall(c *Call) {
-	assignSizesArray(c.Args)
+func (target *Target) assignSizesCall(c *Call) {
+	target.assignSizesArray(c.Args)
 }

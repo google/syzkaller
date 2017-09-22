@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-
-	"github.com/google/syzkaller/sys"
 )
 
 type ConstArgTest struct {
@@ -157,8 +155,8 @@ func TestHintsCheckDataArg(t *testing.T) {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
 			res := make(map[string]bool)
 			// Whatever type here. It's just needed to pass the
-			// dataArg.Type().Dir() == sys.DirIn check.
-			typ := sys.ArrayType{sys.TypeCommon{"", "", sys.DirIn, false}, nil, 0, 0, 0}
+			// dataArg.Type().Dir() == DirIn check.
+			typ := ArrayType{TypeCommon{"", "", 0, DirIn, false}, nil, 0, 0, 0}
 			argCommon := ArgCommon{&typ}
 			dataArg := &DataArg{argCommon, []byte(test.in)}
 			checkDataArg(dataArg, test.comps, func(arg Arg) {

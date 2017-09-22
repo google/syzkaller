@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"sync"
 	"time"
@@ -65,7 +64,11 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 	if len(vmIndexes) == 0 {
 		return nil, fmt.Errorf("no VMs provided")
 	}
-	entries := prog.ParseLog(crashLog)
+	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
+	if err != nil {
+		return nil, err
+	}
+	entries := target.ParseLog(crashLog)
 	if len(entries) == 0 {
 		return nil, fmt.Errorf("crash log does not contain any programs")
 	}
@@ -105,14 +108,14 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 						continue
 
 					}
-					execprogBin, err := vmInst.Copy(filepath.Join(cfg.Syzkaller, "bin/syz-execprog"))
+					execprogBin, err := vmInst.Copy(cfg.SyzExecprogBin)
 					if err != nil {
 						ctx.reproLog(0, "failed to copy to VM: %v", err)
 						vmInst.Close()
 						time.Sleep(10 * time.Second)
 						continue
 					}
-					executorBin, err := vmInst.Copy(filepath.Join(cfg.Syzkaller, "bin/syz-executor"))
+					executorBin, err := vmInst.Copy(cfg.SyzExecutorBin)
 					if err != nil {
 						ctx.reproLog(0, "failed to copy to VM: %v", err)
 						vmInst.Close()
@@ -331,7 +334,7 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 	if err != nil {
 		return nil, err
 	}
-	if entries == nil {
+	if len(entries) == 0 {
 		return nil, nil
 	}
 
@@ -342,20 +345,22 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 	ctx.reproLog(3, "bisect: trying to concatenate")
 
 	// Concatenate all programs into one.
-	var prog prog.Prog
+	prog := &prog.Prog{
+		Target: entries[0].P.Target,
+	}
 	for _, entry := range entries {
 		prog.Calls = append(prog.Calls, entry.P.Calls...)
 	}
 
 	// Execute the program without fault injection.
 	dur := duration(len(entries)) * 3 / 2
-	crashed, err := ctx.testProg(&prog, dur, opts)
+	crashed, err := ctx.testProg(prog, dur, opts)
 	if err != nil {
 		return nil, err
 	}
 	if crashed {
 		res := &Result{
-			Prog:     &prog,
+			Prog:     prog,
 			Duration: dur,
 			Opts:     opts,
 		}
@@ -372,13 +377,13 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 			if entry.FaultCall < 0 || entry.FaultCall >= len(entry.P.Calls) {
 				opts.FaultCall = calls + len(entry.P.Calls) - 1
 			}
-			crashed, err := ctx.testProg(&prog, dur, opts)
+			crashed, err := ctx.testProg(prog, dur, opts)
 			if err != nil {
 				return nil, err
 			}
 			if crashed {
 				res := &Result{
-					Prog:     &prog,
+					Prog:     prog,
 					Duration: dur,
 					Opts:     opts,
 				}
@@ -537,8 +542,10 @@ func (ctx *context) testProgs(entries []*prog.LogEntry, duration time.Duration, 
 		}
 		program += "]"
 	}
-	command := fmt.Sprintf("%v -executor %v -cover=0 -procs=%v -repeat=%v -sandbox %v -threaded=%v -collide=%v %v",
-		inst.execprogBin, inst.executorBin, opts.Procs, repeat, opts.Sandbox, opts.Threaded, opts.Collide, vmProgFile)
+	command := fmt.Sprintf("%v -executor %v -arch=%v -cover=0 -procs=%v -repeat=%v"+
+		" -sandbox %v -threaded=%v -collide=%v %v",
+		inst.execprogBin, inst.executorBin, ctx.cfg.TargetArch, opts.Procs, repeat,
+		opts.Sandbox, opts.Threaded, opts.Collide, vmProgFile)
 	ctx.reproLog(2, "testing program (duration=%v, %+v): %s", duration, opts, program)
 	return ctx.testImpl(inst.Instance, command, duration)
 }
@@ -552,7 +559,7 @@ func (ctx *context) testCProg(p *prog.Prog, duration time.Duration, opts csource
 	if err != nil {
 		return false, err
 	}
-	bin, err := csource.Build("c", srcf)
+	bin, err := csource.Build(p.Target, "c", srcf)
 	if err != nil {
 		return false, err
 	}

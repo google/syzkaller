@@ -8,15 +8,13 @@ import (
 	"encoding/binary"
 	"fmt"
 	"testing"
-
-	"github.com/google/syzkaller/sys"
 )
 
 func TestSerializeForExecRandom(t *testing.T) {
-	rs, iters := initTest(t)
+	target, rs, iters := initTest(t)
 	buf := make([]byte, ExecBufferSize)
 	for i := 0; i < iters; i++ {
-		p := Generate(rs, 10, nil)
+		p := target.Generate(rs, 10, nil)
 		if err := p.SerializeForExec(buf, i%16); err != nil {
 			t.Fatalf("failed to serialize: %v", err)
 		}
@@ -44,8 +42,13 @@ func TestSerializeForExec(t *testing.T) {
 		argResult    = uint64(ExecArgResult)
 		argData      = uint64(ExecArgData)
 	)
+	target, _, _ := initTest(t)
+	var (
+		dataOffset = target.DataOffset
+		ptrSize    = target.PtrSize
+	)
 	callID := func(name string) uint64 {
-		c := sys.CallMap[name]
+		c := target.SyscallMap[name]
 		if c == nil {
 			t.Fatalf("unknown syscall %v", name)
 		}
@@ -131,7 +134,7 @@ func TestSerializeForExec(t *testing.T) {
 				instrCopyin, dataOffset + 16, argConst, 2, 0x44, 0, 0,
 				instrCopyin, dataOffset + 18, argConst, 2, 0x45, 0, 0,
 				instrCopyin, dataOffset + 20, argConst, 2, 0x46, 0, 0,
-				instrCopyin, dataOffset + 24, argConst, 1, 0x47, 0, 0,
+				instrCopyin, dataOffset + 22, argConst, 1, 0x47, 0, 0,
 				callID("syz_test$align5"), 1, argConst, ptrSize, dataOffset, 0, 0,
 				instrEOF,
 			},
@@ -262,7 +265,7 @@ func TestSerializeForExec(t *testing.T) {
 	for i, test := range tests {
 		i, test := i, test
 		t.Run(fmt.Sprintf("%v:%v", i, test.prog), func(t *testing.T) {
-			p, err := Deserialize([]byte(test.prog))
+			p, err := target.Deserialize([]byte(test.prog))
 			if err != nil {
 				t.Fatalf("failed to deserialize prog %v: %v", i, err)
 			}

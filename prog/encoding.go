@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-
-	"github.com/google/syzkaller/sys"
 )
 
 // String generates a very compact program description (mostly for debug output).
@@ -43,7 +41,7 @@ func (p *Prog) Serialize() []byte {
 		}
 		fmt.Fprintf(buf, "%v(", c.Meta.Name)
 		for i, a := range c.Args {
-			if sys.IsPad(a.Type()) {
+			if IsPad(a.Type()) {
 				continue
 			}
 			if i != 0 {
@@ -81,16 +79,16 @@ func serialize(arg Arg, buf io.Writer, vars map[Arg]int, varSeq *int) {
 	case *GroupArg:
 		var delims []byte
 		switch arg.Type().(type) {
-		case *sys.StructType:
+		case *StructType:
 			delims = []byte{'{', '}'}
-		case *sys.ArrayType:
+		case *ArrayType:
 			delims = []byte{'[', ']'}
 		default:
 			panic("unknown group type")
 		}
 		buf.Write([]byte{delims[0]})
 		for i, arg1 := range a.Inner {
-			if arg1 != nil && sys.IsPad(arg1.Type()) {
+			if arg1 != nil && IsPad(arg1.Type()) {
 				continue
 			}
 			if i != 0 {
@@ -123,8 +121,10 @@ func serialize(arg Arg, buf io.Writer, vars map[Arg]int, varSeq *int) {
 	}
 }
 
-func Deserialize(data []byte) (prog *Prog, err error) {
-	prog = new(Prog)
+func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
+	prog = &Prog{
+		Target: target,
+	}
 	p := &parser{r: bufio.NewScanner(bytes.NewReader(data))}
 	p.r.Buffer(nil, maxLineLen)
 	vars := make(map[string]Arg)
@@ -140,13 +140,13 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 			name = p.Ident()
 
 		}
-		meta := sys.CallMap[name]
+		meta := target.SyscallMap[name]
 		if meta == nil {
 			return nil, fmt.Errorf("unknown syscall %v", name)
 		}
 		c := &Call{
 			Meta: meta,
-			Ret:  returnArg(meta.Ret),
+			Ret:  MakeReturnArg(meta.Ret),
 		}
 		prog.Calls = append(prog.Calls, c)
 		p.Parse('(')
@@ -155,10 +155,10 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 				return nil, fmt.Errorf("wrong call arg count: %v, want %v", i+1, len(meta.Args))
 			}
 			typ := meta.Args[i]
-			if sys.IsPad(typ) {
+			if IsPad(typ) {
 				return nil, fmt.Errorf("padding in syscall %v arguments", name)
 			}
-			arg, err := parseArg(typ, p, vars)
+			arg, err := target.parseArg(typ, p, vars)
 			if err != nil {
 				return nil, err
 			}
@@ -195,7 +195,7 @@ func Deserialize(data []byte) (prog *Prog, err error) {
 	return
 }
 
-func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
+func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
 	r := ""
 	if p.Char() == '<' {
 		p.Parse('<')
@@ -212,14 +212,14 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 			return nil, fmt.Errorf("wrong arg value '%v': %v", val, err)
 		}
 		switch typ.(type) {
-		case *sys.ConstType, *sys.IntType, *sys.FlagsType, *sys.ProcType, *sys.LenType, *sys.CsumType:
-			arg = constArg(typ, v)
-		case *sys.ResourceType:
-			arg = resultArg(typ, nil, v)
-		case *sys.PtrType:
-			arg = pointerArg(typ, 0, 0, 0, nil)
-		case *sys.VmaType:
-			arg = pointerArg(typ, 0, 0, 0, nil)
+		case *ConstType, *IntType, *FlagsType, *ProcType, *LenType, *CsumType:
+			arg = MakeConstArg(typ, v)
+		case *ResourceType:
+			arg = MakeResultArg(typ, nil, v)
+		case *PtrType:
+			arg = MakePointerArg(typ, 0, 0, 0, nil)
+		case *VmaType:
+			arg = MakePointerArg(typ, 0, 0, 0, nil)
 		default:
 			return nil, fmt.Errorf("bad const type %+v", typ)
 		}
@@ -229,7 +229,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		if !ok || v == nil {
 			return nil, fmt.Errorf("result %v references unknown variable (vars=%+v)", id, vars)
 		}
-		arg = resultArg(typ, v, 0)
+		arg = MakeResultArg(typ, v, 0)
 		if p.Char() == '/' {
 			p.Parse('/')
 			op := p.Ident()
@@ -249,11 +249,11 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 			arg.(*ResultArg).OpAdd = v
 		}
 	case '&':
-		var typ1 sys.Type
+		var typ1 Type
 		switch t1 := typ.(type) {
-		case *sys.PtrType:
+		case *PtrType:
 			typ1 = t1.Type
-		case *sys.VmaType:
+		case *VmaType:
 		default:
 			return nil, fmt.Errorf("& arg is not a pointer: %#v", typ)
 		}
@@ -263,11 +263,11 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 			return nil, err
 		}
 		p.Parse('=')
-		inner, err := parseArg(typ1, p, vars)
+		inner, err := target.parseArg(typ1, p, vars)
 		if err != nil {
 			return nil, err
 		}
-		arg = pointerArg(typ, page, off, size, inner)
+		arg = MakePointerArg(typ, page, off, size, inner)
 	case '(':
 		// This used to parse length of VmaType and return ArgPageSize, which is now removed.
 		// Leaving this for now for backwards compatibility.
@@ -275,7 +275,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		if err != nil {
 			return nil, err
 		}
-		arg = constArg(typ, pages*pageSize)
+		arg = MakeConstArg(typ, pages*target.PageSize)
 	case '"':
 		p.Parse('"')
 		val := ""
@@ -289,7 +289,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		}
 		arg = dataArg(typ, data)
 	case '{':
-		t1, ok := typ.(*sys.StructType)
+		t1, ok := typ.(*StructType)
 		if !ok {
 			return nil, fmt.Errorf("'{' arg is not a struct: %#v", typ)
 		}
@@ -300,10 +300,10 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 				return nil, fmt.Errorf("wrong struct arg count: %v, want %v", i+1, len(t1.Fields))
 			}
 			fld := t1.Fields[i]
-			if sys.IsPad(fld) {
-				inner = append(inner, constArg(fld, 0))
+			if IsPad(fld) {
+				inner = append(inner, MakeConstArg(fld, 0))
 			} else {
-				arg, err := parseArg(fld, p, vars)
+				arg, err := target.parseArg(fld, p, vars)
 				if err != nil {
 					return nil, err
 				}
@@ -317,16 +317,16 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		for len(inner) < len(t1.Fields) {
 			inner = append(inner, defaultArg(t1.Fields[len(inner)]))
 		}
-		arg = groupArg(typ, inner)
+		arg = MakeGroupArg(typ, inner)
 	case '[':
-		t1, ok := typ.(*sys.ArrayType)
+		t1, ok := typ.(*ArrayType)
 		if !ok {
 			return nil, fmt.Errorf("'[' arg is not an array: %#v", typ)
 		}
 		p.Parse('[')
 		var inner []Arg
 		for i := 0; p.Char() != ']'; i++ {
-			arg, err := parseArg(t1.Type, p, vars)
+			arg, err := target.parseArg(t1.Type, p, vars)
 			if err != nil {
 				return nil, err
 			}
@@ -336,17 +336,17 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 			}
 		}
 		p.Parse(']')
-		arg = groupArg(typ, inner)
+		arg = MakeGroupArg(typ, inner)
 	case '@':
-		t1, ok := typ.(*sys.UnionType)
+		t1, ok := typ.(*UnionType)
 		if !ok {
 			return nil, fmt.Errorf("'@' arg is not a union: %#v", typ)
 		}
 		p.Parse('@')
 		name := p.Ident()
 		p.Parse('=')
-		var optType sys.Type
-		for _, t2 := range t1.Options {
+		var optType Type
+		for _, t2 := range t1.Fields {
 			if name == t2.FieldName() {
 				optType = t2
 				break
@@ -355,7 +355,7 @@ func parseArg(typ sys.Type, p *parser, vars map[string]Arg) (Arg, error) {
 		if optType == nil {
 			return nil, fmt.Errorf("union arg %v has unknown option: %v", typ.Name(), name)
 		}
-		opt, err := parseArg(optType, p, vars)
+		opt, err := target.parseArg(optType, p, vars)
 		if err != nil {
 			return nil, err
 		}

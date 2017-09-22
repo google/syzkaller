@@ -10,9 +10,11 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/google/syzkaller/prog"
+	_ "github.com/google/syzkaller/sys"
 )
 
 var (
@@ -25,19 +27,24 @@ func main() {
 		fmt.Fprintf(os.Stderr, "usage: mutate program\n")
 		os.Exit(1)
 	}
+	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v", err)
+		os.Exit(1)
+	}
 	data, err := ioutil.ReadFile(flag.Arg(0))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to read prog file: %v\n", err)
 		os.Exit(1)
 	}
-	p, err := prog.Deserialize(data)
+	p, err := target.Deserialize(data)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to deserialize the program: %v\n", err)
 		os.Exit(1)
 	}
 
-	prios := prog.CalculatePriorities(nil)
-	ct := prog.BuildChoiceTable(prios, nil)
+	prios := target.CalculatePriorities(nil)
+	ct := target.BuildChoiceTable(prios, nil)
 
 	seed := time.Now().UnixNano()
 	if *flagSeed != -1 {

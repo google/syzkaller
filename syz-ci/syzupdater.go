@@ -8,28 +8,21 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/git"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
 const (
 	syzkallerRebuildPeriod = 12 * time.Hour
 	buildRetryPeriod       = 15 * time.Minute // used for both syzkaller and kernel
 )
-
-// List of required files in syzkaller build (contents of latest/current dirs).
-var syzFiles = []string{
-	"tag",        // contains syzkaller repo git hash
-	"bin/syz-ci", // these are just copied from syzkaller dir
-	"bin/syz-manager",
-	"bin/syz-fuzzer",
-	"bin/syz-executor",
-	"bin/syz-execprog",
-}
 
 // SyzUpdater handles everything related to syzkaller updates.
 // As kernel builder, it maintains 2 builds:
@@ -45,6 +38,8 @@ type SyzUpdater struct {
 	syzkallerDir string
 	latestDir    string
 	currentDir   string
+	syzFiles     []string
+	targets      map[string]bool
 }
 
 func NewSyzUpdater(cfg *Config) *SyzUpdater {
@@ -70,6 +65,32 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	syzkallerDir := filepath.Join(gopath, "src", "github.com", "google", "syzkaller")
 	osutil.MkdirAll(syzkallerDir)
 
+	// List of required files in syzkaller build (contents of latest/current dirs).
+	files := map[string]bool{
+		"tag":             true, // contains syzkaller repo git hash
+		"bin/syz-ci":      true, // these are just copied from syzkaller dir
+		"bin/syz-manager": true,
+	}
+	targets := make(map[string]bool)
+	for _, mgr := range cfg.Managers {
+		mgrcfg := new(mgrconfig.Config)
+		if err := config.LoadData(mgr.Manager_Config, mgrcfg); err != nil {
+			Fatalf("failed to load manager %v config: %v", mgr.Name, err)
+		}
+		os, vmarch, arch, err := mgrconfig.SplitTarget(mgrcfg.Target)
+		if err != nil {
+			Fatalf("failed to load manager %v config: %v", mgr.Name, err)
+		}
+		targets[os+"/"+vmarch+"/"+arch] = true
+		files[fmt.Sprintf("bin/%v_%v/syz-fuzzer", os, vmarch)] = true
+		files[fmt.Sprintf("bin/%v_%v/syz-execprog", os, vmarch)] = true
+		files[fmt.Sprintf("bin/%v_%v/syz-executor", os, arch)] = true
+	}
+	var syzFiles []string
+	for f := range files {
+		syzFiles = append(syzFiles, f)
+	}
+
 	return &SyzUpdater{
 		exe:          exe,
 		repo:         cfg.Syzkaller_Repo,
@@ -78,6 +99,8 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		syzkallerDir: syzkallerDir,
 		latestDir:    filepath.Join("syzkaller", "latest"),
 		currentDir:   filepath.Join("syzkaller", "current"),
+		syzFiles:     syzFiles,
+		targets:      targets,
 	}
 }
 
@@ -91,7 +114,7 @@ func (upd *SyzUpdater) UpdateOnStart(shutdown chan struct{}) {
 	if exeTag == latestTag && time.Since(exeMod) < syzkallerRebuildPeriod/2 {
 		// Have a freash up-to-date build, probably just restarted.
 		Logf(0, "current executable is up-to-date (%v)", exeTag)
-		if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, syzFiles); err != nil {
+		if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, upd.syzFiles); err != nil {
 			Fatal(err)
 		}
 		return
@@ -112,7 +135,7 @@ func (upd *SyzUpdater) UpdateOnStart(shutdown chan struct{}) {
 			// The build was successful or we had the latest build from previous runs.
 			// Either way, use the latest build.
 			Logf(0, "using syzkaller built on %v", latestTag)
-			if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, syzFiles); err != nil {
+			if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, upd.syzFiles); err != nil {
 				Fatal(err)
 			}
 			if exeTag != latestTag {
@@ -194,7 +217,7 @@ func (upd *SyzUpdater) build() error {
 		}
 		for _, f := range files {
 			src := filepath.Join(upd.descriptions, f.Name())
-			dst := filepath.Join(upd.syzkallerDir, "sys", f.Name())
+			dst := filepath.Join(upd.syzkallerDir, "sys", "linux", f.Name())
 			if err := osutil.CopyFile(src, dst); err != nil {
 				return err
 			}
@@ -203,8 +226,19 @@ func (upd *SyzUpdater) build() error {
 	if _, err := osutil.RunCmd(time.Hour, upd.syzkallerDir, "make", "generate"); err != nil {
 		return fmt.Errorf("build failed: %v", err)
 	}
-	if _, err := osutil.RunCmd(time.Hour, upd.syzkallerDir, "make", "all", "ci"); err != nil {
+	if _, err := osutil.RunCmd(time.Hour, upd.syzkallerDir, "make", "host", "ci"); err != nil {
 		return fmt.Errorf("build failed: %v", err)
+	}
+	for target := range upd.targets {
+		parts := strings.Split(target, "/")
+		env := []string{
+			"TARGETOS=" + parts[0],
+			"TARGETVMARCH=" + parts[1],
+			"TARGETARCH=" + parts[2],
+		}
+		if _, err := osutil.RunCmdEnv(time.Hour, env, upd.syzkallerDir, "make", "target"); err != nil {
+			return fmt.Errorf("build failed: %v", err)
+		}
 	}
 	if _, err := osutil.RunCmd(time.Hour, upd.syzkallerDir, "go", "test", "-short", "./..."); err != nil {
 		return fmt.Errorf("tests failed: %v", err)
@@ -213,7 +247,7 @@ func (upd *SyzUpdater) build() error {
 	if err := osutil.WriteFile(tagFile, []byte(commit)); err != nil {
 		return fmt.Errorf("filed to write tag file: %v", err)
 	}
-	if err := osutil.CopyFiles(upd.syzkallerDir, upd.latestDir, syzFiles); err != nil {
+	if err := osutil.CopyFiles(upd.syzkallerDir, upd.latestDir, upd.syzFiles); err != nil {
 		return fmt.Errorf("filed to copy syzkaller: %v", err)
 	}
 	return nil
@@ -222,7 +256,7 @@ func (upd *SyzUpdater) build() error {
 // checkLatest returns tag of the latest build,
 // or an empty string if latest build is missing/broken.
 func (upd *SyzUpdater) checkLatest() string {
-	if !osutil.FilesExist(upd.latestDir, syzFiles) {
+	if !osutil.FilesExist(upd.latestDir, upd.syzFiles) {
 		return ""
 	}
 	tag, _ := readTag(filepath.Join(upd.latestDir, "tag"))

@@ -18,7 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/ipc"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/prog"
-	"github.com/google/syzkaller/sys"
+	_ "github.com/google/syzkaller/sys"
 )
 
 var (
@@ -37,15 +37,19 @@ const programLength = 30
 
 func main() {
 	flag.Parse()
-	corpus := readCorpus()
+	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
+	if err != nil {
+		Fatalf("%v", err)
+	}
+	corpus := readCorpus(target)
 	Logf(0, "parsed %v programs", len(corpus))
 	if !*flagGenerate && len(corpus) == 0 {
 		Fatalf("nothing to mutate (-generate=false and no corpus)")
 	}
 
-	calls := buildCallList()
-	prios := prog.CalculatePriorities(corpus)
-	ct := prog.BuildChoiceTable(prios, calls)
+	calls := buildCallList(target)
+	prios := target.CalculatePriorities(corpus)
+	ct := target.BuildChoiceTable(prios, calls)
 
 	config, err := ipc.DefaultConfig()
 	if err != nil {
@@ -64,7 +68,7 @@ func main() {
 			for i := 0; ; i++ {
 				var p *prog.Prog
 				if *flagGenerate && len(corpus) == 0 || i%4 != 0 {
-					p = prog.Generate(rs, programLength, ct)
+					p = target.Generate(rs, programLength, ct)
 					execute(pid, env, p)
 					p.Mutate(rs, programLength, ct, corpus)
 					execute(pid, env, p)
@@ -110,7 +114,7 @@ func execute(pid int, env *ipc.Env, p *prog.Prog) {
 	}
 }
 
-func readCorpus() []*prog.Prog {
+func readCorpus(target *prog.Target) []*prog.Prog {
 	if *flagCorpus == "" {
 		return nil
 	}
@@ -120,7 +124,7 @@ func readCorpus() []*prog.Prog {
 	}
 	var progs []*prog.Prog
 	for _, rec := range db.Records {
-		p, err := prog.Deserialize(rec.Val)
+		p, err := target.Deserialize(rec.Val)
 		if err != nil {
 			Fatalf("failed to deserialize corpus program: %v", err)
 		}
@@ -129,21 +133,21 @@ func readCorpus() []*prog.Prog {
 	return progs
 }
 
-func buildCallList() map[*sys.Call]bool {
-	calls, err := host.DetectSupportedSyscalls()
+func buildCallList(target *prog.Target) map[*prog.Syscall]bool {
+	calls, err := host.DetectSupportedSyscalls(target)
 	if err != nil {
 		Logf(0, "failed to detect host supported syscalls: %v", err)
-		calls = make(map[*sys.Call]bool)
-		for _, c := range sys.Calls {
+		calls = make(map[*prog.Syscall]bool)
+		for _, c := range target.Syscalls {
 			calls[c] = true
 		}
 	}
-	for _, c := range sys.Calls {
+	for _, c := range target.Syscalls {
 		if !calls[c] {
 			Logf(0, "disabling unsupported syscall: %v", c.Name)
 		}
 	}
-	trans := sys.TransitivelyEnabledCalls(calls)
+	trans := target.TransitivelyEnabledCalls(calls)
 	for c := range calls {
 		if !trans[c] {
 			Logf(0, "disabling transitively unsupported syscall: %v", c.Name)
