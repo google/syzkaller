@@ -112,6 +112,11 @@ func TestOne(t *testing.T) {
 				// Error: alignment too large: 15 assumed
 				t.Skip("broken")
 			}
+			if target.OS == "linux" && target.Arch == "386" {
+				// Currently fails on travis with:
+				// fatal error: asm/unistd.h: No such file or directory
+				t.Skip("broken")
+			}
 			t.Parallel()
 			rs := rand.NewSource(0)
 			p := target.GenerateAllSyzProg(rs)
