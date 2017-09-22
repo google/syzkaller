@@ -1,5 +1,3 @@
-__NR_mx_time_get = 0
-
 MX_CLOCK_MONOTONIC = 0
 MX_CLOCK_UTC = 1
 MX_CLOCK_THREAD = 2

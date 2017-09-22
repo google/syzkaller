@@ -55,26 +55,6 @@ func runCmd(timeout time.Duration, env []string, dir, bin string, args ...string
 	return output.Bytes(), nil
 }
 
-var wd string
-
-func init() {
-	var err error
-	wd, err = os.Getwd()
-	if err != nil {
-		panic(fmt.Sprintf("failed to get wd: %v", err))
-	}
-}
-
-func Abs(path string) string {
-	if wd1, err := os.Getwd(); err == nil && wd1 != wd {
-		panic("don't mess with wd in a concurrent program")
-	}
-	if path == "" || filepath.IsAbs(path) {
-		return path
-	}
-	return filepath.Join(wd, path)
-}
-
 // IsExist returns true if the file name exists.
 func IsExist(name string) bool {
 	_, err := os.Stat(name)

@@ -22,7 +22,7 @@ import (
 )
 
 type Env struct {
-	In  []byte
+	in  []byte
 	out []byte
 
 	cmd     *command
@@ -37,12 +37,6 @@ type Env struct {
 }
 
 const (
-	outputSize = 16 << 20
-
-	statusFail  = 67
-	statusError = 68
-	statusRetry = 69
-
 	// Comparison types masks taken from KCOV headers.
 	compSizeMask  = 6
 	compSize8     = 6
@@ -77,7 +71,7 @@ func MakeEnv(bin string, pid int, config Config) (*Env, error) {
 	serializeUint64(inmem[8:], uint64(pid))
 	inmem = inmem[16:]
 	env := &Env{
-		In:      inmem,
+		in:      inmem,
 		out:     outmem,
 		inFile:  inf,
 		outFile: outf,
@@ -88,10 +82,7 @@ func MakeEnv(bin string, pid int, config Config) (*Env, error) {
 	if len(env.bin) == 0 {
 		return nil, fmt.Errorf("binary is empty string")
 	}
-	env.bin[0], err = filepath.Abs(env.bin[0]) // we are going to chdir
-	if err != nil {
-		return nil, fmt.Errorf("filepath.Abs failed: %v", err)
-	}
+	env.bin[0] = osutil.Abs(env.bin[0]) // we are going to chdir
 	// Append pid to binary name.
 	// E.g. if binary is 'syz-executor' and pid=15,
 	// we create a link from 'syz-executor15' to 'syz-executor' and use 'syz-executor15' as binary.
@@ -116,7 +107,7 @@ func (env *Env) Close() error {
 	if env.cmd != nil {
 		env.cmd.close()
 	}
-	err1 := closeMapping(env.inFile, env.In)
+	err1 := closeMapping(env.inFile, env.in)
 	err2 := closeMapping(env.outFile, env.out)
 	switch {
 	case err1 != nil:
@@ -137,7 +128,7 @@ func (env *Env) Close() error {
 func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallInfo, failed, hanged bool, err0 error) {
 	if p != nil {
 		// Copy-in serialized program.
-		if err := p.SerializeForExec(env.In, env.pid); err != nil {
+		if err := p.SerializeForExec(env.in, env.pid); err != nil {
 			err0 = fmt.Errorf("executor %v: failed to serialize: %v", env.pid, err)
 			return
 		}

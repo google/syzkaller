@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestCompileAll(t *testing.T) {
@@ -24,7 +25,7 @@ func TestCompileAll(t *testing.T) {
 	if consts == nil {
 		t.Fatalf("reading consts failed")
 	}
-	prog := Compile(desc, consts, 8, eh)
+	prog := Compile(desc, consts, targets.List["linux"]["amd64"], eh)
 	if prog == nil {
 		t.Fatalf("compilation failed")
 	}
@@ -47,7 +48,7 @@ func TestErrors(t *testing.T) {
 				t.Fatalf("parsing failed")
 			}
 			ExtractConsts(desc, em.ErrorHandler)
-			Compile(desc, consts, 8, em.ErrorHandler)
+			Compile(desc, consts, targets.List["linux"]["amd64"], em.ErrorHandler)
 			em.Check(t)
 		})
 	}
@@ -67,7 +68,7 @@ func TestFuzz(t *testing.T) {
 	for _, data := range inputs {
 		desc := ast.Parse([]byte(data), "", eh)
 		if desc != nil {
-			Compile(desc, consts, 8, eh)
+			Compile(desc, consts, targets.List["linux"]["amd64"], eh)
 		}
 	}
 }
@@ -94,7 +95,7 @@ s2 {
 	if desc == nil {
 		t.Fatal("failed to parse")
 	}
-	p := Compile(desc, map[string]uint64{"__NR_foo": 1}, 8, nil)
+	p := Compile(desc, map[string]uint64{"__NR_foo": 1}, targets.List["linux"]["amd64"], nil)
 	if p == nil {
 		t.Fatal("failed to compile")
 	}

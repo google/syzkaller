@@ -74,6 +74,20 @@ var List = map[string]map[string]*Target{
 	},
 }
 
+type OS struct {
+	// Does the OS use syscall numbers (e.g. Linux) or has interface based on functions (e.g. fuchsia).
+	SyscallNumbers bool
+}
+
+var OSList = map[string]*OS{
+	"linux": {
+		SyscallNumbers: true,
+	},
+	"fuchsia": {
+		SyscallNumbers: false,
+	},
+}
+
 func init() {
 	for OS, archs := range List {
 		for arch, target := range archs {

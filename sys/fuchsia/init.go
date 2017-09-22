@@ -8,7 +8,9 @@ import (
 )
 
 func initTarget(target *prog.Target) {
-	arch := &arch{}
+	arch := &arch{
+		mmapSyscall: target.SyscallMap["syz_mmap"],
+	}
 
 	target.PageSize = pageSize
 	target.DataOffset = dataOffset
@@ -26,11 +28,24 @@ type arch struct {
 	mmapSyscall *prog.Syscall
 }
 
-// createMmapCall creates a "normal" mmap call that maps [start, start+npages) page range.
 func (arch *arch) makeMmap(start, npages uint64) *prog.Call {
-	return nil
+	meta := arch.mmapSyscall
+	return &prog.Call{
+		Meta: meta,
+		Args: []prog.Arg{
+			prog.MakePointerArg(meta.Args[0], start, 0, npages, nil),
+			prog.MakeConstArg(meta.Args[1], npages*pageSize),
+		},
+		Ret: prog.MakeReturnArg(meta.Ret),
+	}
 }
 
 func (arch *arch) analyzeMmap(c *prog.Call) (start, npages uint64, mapped bool) {
+	switch c.Meta.Name {
+	case "syz_mmap":
+		npages = c.Args[1].(*prog.ConstArg).Val / pageSize
+		start = c.Args[0].(*prog.PointerArg).PageIndex
+		mapped = true
+	}
 	return
 }

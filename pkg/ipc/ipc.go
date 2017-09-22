@@ -31,6 +31,14 @@ const (
 	FlagCollectComps                     // collect KCOV comparisons
 )
 
+const (
+	outputSize = 16 << 20
+
+	statusFail  = 67
+	statusError = 68
+	statusRetry = 69
+)
+
 var (
 	flagThreaded = flag.Bool("threaded", true, "use threaded mode in executor")
 	flagCollide  = flag.Bool("collide", true, "collide syscalls to provoke data races")

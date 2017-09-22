@@ -7,12 +7,31 @@ func init() {
 	RegisterTarget(&Target{OS: "fuchsia", Arch: "amd64", Revision: revision_amd64, PtrSize: 8, Syscalls: syscalls_amd64, Resources: resources_amd64, Structs: structDescs_amd64, Consts: consts_amd64}, initTarget)
 }
 
-var resources_amd64 = []*ResourceDesc(nil)
+var resources_amd64 = []*ResourceDesc{
+	{Name: "zx_handle", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"zx_handle"}, Values: []uint64{0}},
+}
 
 var structDescs_amd64 = []*KeyedStruct(nil)
 
 var syscalls_amd64 = []*Syscall{
-	{Name: "mx_time_get", CallName: "mx_time_get", Args: []Type{
+	{NR: 1000000, Name: "syz_mmap", CallName: "syz_mmap", Args: []Type{
+		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
+	}},
+	{ID: 1, Name: "zx_handle_close", CallName: "zx_handle_close", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
+	}},
+	{ID: 2, Name: "zx_handle_duplicate", CallName: "zx_handle_duplicate", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "zx_rights", FldName: "rights", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 2147483648}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4, ArgDir: 1}}},
+	}},
+	{ID: 3, Name: "zx_handle_replace", CallName: "zx_handle_replace", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "zx_rights", FldName: "rights", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 2147483648}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4, ArgDir: 1}}},
+	}},
+	{ID: 4, Name: "zx_time_get", CallName: "zx_time_get", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clock_id", FldName: "clock_id", TypeSize: 8}}, Vals: []uint64{0, 1, 2}},
 	}},
 }
@@ -21,7 +40,22 @@ var consts_amd64 = []ConstValue{
 	{Name: "MX_CLOCK_MONOTONIC"},
 	{Name: "MX_CLOCK_THREAD", Value: 2},
 	{Name: "MX_CLOCK_UTC", Value: 1},
-	{Name: "__NR_mx_time_get"},
+	{Name: "ZX_RIGHT_DESTROY", Value: 512},
+	{Name: "ZX_RIGHT_DUPLICATE", Value: 1},
+	{Name: "ZX_RIGHT_ENUMERATE", Value: 256},
+	{Name: "ZX_RIGHT_EXECUTE", Value: 16},
+	{Name: "ZX_RIGHT_GET_POLICY", Value: 2048},
+	{Name: "ZX_RIGHT_GET_PROPERTY", Value: 64},
+	{Name: "ZX_RIGHT_MAP", Value: 32},
+	{Name: "ZX_RIGHT_NONE"},
+	{Name: "ZX_RIGHT_READ", Value: 4},
+	{Name: "ZX_RIGHT_SAME_RIGHTS", Value: 2147483648},
+	{Name: "ZX_RIGHT_SET_POLICY", Value: 1024},
+	{Name: "ZX_RIGHT_SET_PROPERTY", Value: 128},
+	{Name: "ZX_RIGHT_SIGNAL", Value: 4096},
+	{Name: "ZX_RIGHT_SIGNAL_PEER", Value: 8192},
+	{Name: "ZX_RIGHT_TRANSFER", Value: 2},
+	{Name: "ZX_RIGHT_WRITE", Value: 8},
 }
 
-const revision_amd64 = "d65b9adb4853817be6f471df44fc8347ebf6dfc6"
+const revision_amd64 = "640bc9ab193d2488d41793c10c5a44bab3ad33f9"

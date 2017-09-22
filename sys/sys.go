@@ -4,6 +4,7 @@
 package sys
 
 import (
+	_ "github.com/google/syzkaller/sys/fuchsia"
 	_ "github.com/google/syzkaller/sys/linux"
 )
 

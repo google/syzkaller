@@ -14,7 +14,6 @@ import (
 	"os"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
@@ -110,7 +109,7 @@ func main() {
 	gate := ipc.NewGate(2**flagProcs, nil)
 	var pos int
 	var lastPrint time.Time
-	var shutdown uint32
+	shutdown := make(chan struct{})
 	for p := 0; p < *flagProcs; p++ {
 		pid := p
 		go func() {
@@ -146,8 +145,10 @@ func main() {
 						logMu.Unlock()
 					}
 					output, info, failed, hanged, err := env.Exec(execOpts, p)
-					if atomic.LoadUint32(&shutdown) != 0 {
+					select {
+					case <-shutdown:
 						return false
+					default:
 					}
 					if failed {
 						fmt.Printf("BUG: executor-detected bug:\n%s", output)
@@ -190,6 +191,6 @@ func main() {
 		}()
 	}
 
-	go handleInterrupt(&shutdown)
+	osutil.HandleInterrupts(shutdown)
 	wg.Wait()
 }
