@@ -2,6 +2,10 @@
 
 _newer first_
 
+* [usb/media/zr364xx: GPF in zr364xx_vidioc_querycap/strlcpy](https://groups.google.com/forum/#!topic/syzkaller/-EuMlzvOHGo)
+* [usb/media/stkwebcam: use-after-free in v4l2_ctrl_handler_free](https://groups.google.com/forum/#!topic/syzkaller/5kLo7aPtx1w)
+* [usb/media/dib0700: BUG in stk7070p_frontend_attach/symbol_put_addr](https://groups.google.com/forum/#!topic/syzkaller/-d6ilzbVu_g)
+* [usb/sounds: slab-out-of-bounds read in snd_usb_create_streams](https://groups.google.com/forum/#!topic/syzkaller/rDzv5RP_f2M)
 * [usb/gadget: copy_to_user called with spinlock held](https://groups.google.com/forum/#!topic/syzkaller/xmFE5DTHkME)
 * [usb/media/hdpvr: trying to register non-static key in hdpvr_probe](https://groups.google.com/forum/#!topic/syzkaller/ngC5SLvxPm4)
 * [usb/net/hso: warning in hso_free_net_device](https://groups.google.com/forum/#!topic/syzkaller/J4Ua_T43Tjw)
