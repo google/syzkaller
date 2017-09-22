@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/prog"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 // Overview of compilation process:
@@ -41,14 +42,15 @@ type Prog struct {
 }
 
 // Compile compiles sys description.
-func Compile(desc *ast.Description, consts map[string]uint64, ptrSize uint64, eh ast.ErrorHandler) *Prog {
+func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Target, eh ast.ErrorHandler) *Prog {
 	if eh == nil {
 		eh = ast.LoggingHandler
 	}
 	comp := &compiler{
 		desc:         ast.Clone(desc),
+		target:       target,
 		eh:           eh,
-		ptrSize:      ptrSize,
+		ptrSize:      target.PtrSize,
 		unsupported:  make(map[string]bool),
 		resources:    make(map[string]*ast.Resource),
 		structs:      make(map[string]*ast.Struct),
@@ -79,6 +81,7 @@ func Compile(desc *ast.Description, consts map[string]uint64, ptrSize uint64, eh
 
 type compiler struct {
 	desc     *ast.Description
+	target   *targets.Target
 	eh       ast.ErrorHandler
 	errors   int
 	warnings []warn

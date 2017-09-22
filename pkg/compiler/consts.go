@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 type ConstInfo struct {
@@ -122,6 +123,10 @@ func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
 			c := decl.(*ast.Call)
 			if strings.HasPrefix(c.CallName, "syz_") {
 				c.NR = syznr[c.CallName]
+				top = append(top, decl)
+				continue
+			}
+			if !targets.OSList[comp.target.OS].SyscallNumbers {
 				top = append(top, decl)
 				continue
 			}

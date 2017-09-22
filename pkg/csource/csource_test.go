@@ -100,6 +100,10 @@ func TestOne(t *testing.T) {
 		UseTmpDir: true,
 	}
 	for _, target := range prog.AllTargets() {
+		if target.OS == "fuchsia" {
+			// TODO(dvyukov): support fuchsia
+			continue
+		}
 		target := target
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
 			if target.OS == "linux" && target.Arch == "arm" {
