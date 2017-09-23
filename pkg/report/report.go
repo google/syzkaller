@@ -224,6 +224,7 @@ var oopses = []*oops{
 			compile("INFO: lockdep is turned off"),
 			compile("INFO: Stall ended before state dump start"),
 			compile("INFO: NMI handler .* took too long to run"),
+			compile("_INFO::"), // Android can print this during boot.
 		},
 	},
 	&oops{

@@ -766,6 +766,11 @@ other info that might help us debug this:
 [   38.018742]  [4:  system_server: 3344] logger: !@Boot_DEBUG: start networkManagement
 [   38.039013]  [2:    kworker/2:1: 1608] Trustonic TEE: c01|TL_TZ_KEYSTORE: Starting
 `: ``,
+
+		`[   16.761978] [syscamera][msm_companion_pll_init::526][BIN_INFO::0x0008]
+[   16.762666] [syscamera][msm_companion_pll_init::544][WAFER_INFO::0xcf80]
+[   16.763144] [syscamera][msm_companion_pll_init::594][BIN_INFO::0x0008][WAFER_INFO::0xcf80][voltage 0.775]
+`: ``,
 	}
 	for log, crash := range tests {
 		if strings.Index(log, "\r\n") != -1 {
