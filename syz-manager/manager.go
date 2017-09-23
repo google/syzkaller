@@ -754,8 +754,8 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 }
 
 func (mgr *Manager) symbolizeReport(text []byte) []byte {
-	if len(text) == 0 {
-		return nil
+	if len(text) == 0 || mgr.cfg.Vmlinux == "" {
+		return text
 	}
 	<-allSymbolsReady
 	symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text, allSymbols)
@@ -1149,11 +1149,9 @@ func (mgr *Manager) collectUsedFiles() {
 	addUsedFile(cfg.SyzExecprogBin)
 	addUsedFile(cfg.SyzExecutorBin)
 	addUsedFile(cfg.Sshkey)
+	addUsedFile(cfg.Vmlinux)
 	if cfg.Image != "9p" {
 		addUsedFile(cfg.Image)
-	}
-	if cfg.Vmlinux != "-" {
-		addUsedFile(cfg.Vmlinux)
 	}
 }
 

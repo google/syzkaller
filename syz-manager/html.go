@@ -168,6 +168,10 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
+	if mgr.cfg.Vmlinux == "" {
+		http.Error(w, fmt.Sprintf("no vmlinux in config file"), http.StatusInternalServerError)
+		return
+	}
 	var cov cover.Cover
 	if sig := r.FormValue("input"); sig != "" {
 		cov = mgr.corpus[sig].Cover
