@@ -19,7 +19,6 @@ $ NDK=/path/to/android/ndk make TARGETOS=android TARGETARCH=arm64
 	"http": "localhost:50000",
 	"workdir": "/gopath/src/github.com/google/syzkaller/workdir",
 	"syzkaller": "/gopath/src/github.com/google/syzkaller",
-	"vmlinux": "-",
 	"sandbox": "none",
 	"procs": 8,
 	"type": "adb",

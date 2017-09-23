@@ -66,6 +66,13 @@ func initAllCover(vmlinux string) {
 	// Running nm on vmlinux may takes 200 microsecond and being called during symbolization of every crash,
 	// so also do it asynchronously on start and reuse the value during each crash.
 	go func() {
+		defer func() {
+			close(allCoverReady)
+			close(allSymbolsReady)
+		}()
+		if vmlinux == "" {
+			return
+		}
 		pcs, err := coveredPCs(vmlinux)
 		if err == nil {
 			sort.Sort(uint64Array(pcs))
@@ -78,8 +85,6 @@ func initAllCover(vmlinux string) {
 		if err != nil {
 			Logf(0, "failed to run nm on %v: %v", vmlinux, err)
 		}
-		close(allCoverReady)
-		close(allSymbolsReady)
 	}()
 }
 

@@ -125,9 +125,6 @@ func load(data []byte, filename string) (*Config, error) {
 	if cfg.Workdir == "" {
 		return nil, fmt.Errorf("config param workdir is empty")
 	}
-	if cfg.Vmlinux == "" {
-		return nil, fmt.Errorf("config param vmlinux is empty")
-	}
 	if cfg.Type == "" {
 		return nil, fmt.Errorf("config param type is empty")
 	}
