@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
@@ -144,4 +145,31 @@ func ListDir(dir string) ([]string, error) {
 	}
 	defer f.Close()
 	return f.Readdirnames(-1)
+}
+
+var wd string
+
+func init() {
+	if runtime.GOOS == "fuchsia" {
+		return
+	}
+	var err error
+	wd, err = os.Getwd()
+	if err != nil {
+		panic(fmt.Sprintf("failed to get wd: %v", err))
+	}
+}
+
+func Abs(path string) string {
+	if runtime.GOOS == "fuchsia" {
+		// Getwd/Abs are not supported on fuchsia. Let's hope for best.
+		return path
+	}
+	if wd1, err := os.Getwd(); err == nil && wd1 != wd {
+		panic("don't mess with wd in a concurrent program")
+	}
+	if path == "" || filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(wd, path)
 }
