@@ -90,23 +90,3 @@ func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
 	prolongPipe(r, w)
 	return r, w, err
 }
-
-var wd string
-
-func init() {
-	var err error
-	wd, err = os.Getwd()
-	if err != nil {
-		panic(fmt.Sprintf("failed to get wd: %v", err))
-	}
-}
-
-func Abs(path string) string {
-	if wd1, err := os.Getwd(); err == nil && wd1 != wd {
-		panic("don't mess with wd in a concurrent program")
-	}
-	if path == "" || filepath.IsAbs(path) {
-		return path
-	}
-	return filepath.Join(wd, path)
-}
