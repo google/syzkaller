@@ -6,6 +6,7 @@ package sys
 import (
 	_ "github.com/google/syzkaller/sys/fuchsia"
 	_ "github.com/google/syzkaller/sys/linux"
+	_ "github.com/google/syzkaller/sys/windows"
 )
 
 // Emitted by Makefile.

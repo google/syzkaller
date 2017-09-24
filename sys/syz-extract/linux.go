@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +20,9 @@ import (
 type linux struct{}
 
 func (*linux) prepare(sourcedir string, build bool, arches []string) error {
+	if sourcedir == "" {
+		return fmt.Errorf("provide path to kernel checkout via -sourcedir flag (or make extract SOURCEDIR)")
+	}
 	if build {
 		// Otherwise out-of-tree build fails.
 		fmt.Printf("make mrproper\n")
@@ -110,34 +112,9 @@ func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint
 	}
 	defer os.Remove(bin)
 
-	out, err = exec.Command(bin).CombinedOutput()
+	res, err := runBinaryAndParse(bin, vals, undeclared)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to run flags binary: %v\n%v", err, string(out))
-	}
-
-	flagVals := strings.Split(string(out), " ")
-	if len(out) == 0 {
-		flagVals = nil
-	}
-	if len(flagVals) != len(vals)-len(undeclared) {
-		return nil, nil, fmt.Errorf("fetched wrong number of values %v != %v - %v\nflagVals: %q\nvals: %q\nundeclared: %q",
-			len(flagVals), len(vals), len(undeclared),
-			flagVals, vals, undeclared)
-	}
-	res := make(map[string]uint64)
-	j := 0
-	for _, v := range flagVals {
-		name := vals[j]
-		j++
-		for undeclared[name] {
-			name = vals[j]
-			j++
-		}
-		n, err := strconv.ParseUint(v, 10, 64)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to parse value: %v (%v)", err, v)
-		}
-		res[name] = n
+		return nil, nil, err
 	}
 	return res, undeclared, nil
 }
