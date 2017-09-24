@@ -8,27 +8,23 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/google/syzkaller/pkg/compiler"
 )
 
-type fuchsia struct{}
+type windows struct{}
 
-func (*fuchsia) prepare(sourcedir string, build bool, arches []string) error {
-	if sourcedir == "" {
-		return fmt.Errorf("provide path to kernel checkout via -sourcedir flag (or make extract SOURCEDIR)")
-	}
+func (*windows) prepare(sourcedir string, build bool, arches []string) error {
 	return nil
 }
 
-func (*fuchsia) prepareArch(arch *Arch) error {
+func (*windows) prepareArch(arch *Arch) error {
 	return nil
 }
 
-func (*fuchsia) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
-	bin, out, err := fuchsiaCompile(arch.sourceDir, info.Consts, info.Includes, info.Incdirs, info.Defines)
+func (*windows) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
+	bin, out, err := windowsCompile(arch.sourceDir, info.Consts, info.Includes, info.Incdirs, info.Defines)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run compiler: %v\n%v", err, string(out))
 	}
@@ -40,7 +36,7 @@ func (*fuchsia) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 	return res, nil, nil
 }
 
-func fuchsiaCompile(sourceDir string, vals, includes, incdirs []string, defines map[string]string) (bin string, out []byte, err error) {
+func windowsCompile(sourceDir string, vals, includes, incdirs []string, defines map[string]string) (bin string, out []byte, err error) {
 	includeText := ""
 	for _, inc := range includes {
 		includeText += fmt.Sprintf("#include <%v>\n", inc)
@@ -49,8 +45,8 @@ func fuchsiaCompile(sourceDir string, vals, includes, incdirs []string, defines 
 	for k, v := range defines {
 		definesText += fmt.Sprintf("#ifndef %v\n#define %v %v\n#endif\n", k, k, v)
 	}
-	valsText := strings.Join(vals, ",")
-	src := fuchsiaSrc
+	valsText := "(unsigned long long)" + strings.Join(vals, ", (unsigned long long)")
+	src := windowsSrc
 	src = strings.Replace(src, "[[INCLUDES]]", includeText, 1)
 	src = strings.Replace(src, "[[DEFAULTS]]", definesText, 1)
 	src = strings.Replace(src, "[[VALS]]", valsText, 1)
@@ -59,14 +55,20 @@ func fuchsiaCompile(sourceDir string, vals, includes, incdirs []string, defines 
 		return "", nil, fmt.Errorf("failed to create temp file: %v", err)
 	}
 	binFile.Close()
-	compiler := filepath.Join(sourceDir, "buildtools", "linux-x64", "clang", "bin", "clang")
-	includeDir := filepath.Join(sourceDir, "out", "build-zircon", "build-zircon-pc-x86-64", "sysroot", "include")
-	args := []string{"-x", "c", "-", "-o", binFile.Name(), "-fmessage-length=0", "-w", "-I", includeDir}
-	for _, incdir := range incdirs {
-		args = append(args, "-I"+sourceDir+"/"+incdir)
+
+	srcFile, err := ioutil.TempFile("", "")
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to create temp file: %v", err)
 	}
-	cmd := exec.Command(compiler, args...)
-	cmd.Stdin = strings.NewReader(src)
+	srcFile.Close()
+	os.Remove(srcFile.Name())
+	srcName := srcFile.Name() + ".cc"
+	if err := ioutil.WriteFile(srcName, []byte(src), 0600); err != nil {
+		return "", nil, fmt.Errorf("failed to write source file: %v", err)
+	}
+	defer os.Remove(srcName)
+	args := []string{"-o", binFile.Name(), srcName}
+	cmd := exec.Command("cl", args...)
 	out, err = cmd.CombinedOutput()
 	if err != nil {
 		os.Remove(binFile.Name())
@@ -75,10 +77,10 @@ func fuchsiaCompile(sourceDir string, vals, includes, incdirs []string, defines 
 	return binFile.Name(), nil, nil
 }
 
-var fuchsiaSrc = `
+var windowsSrc = `
+#include <stdio.h>
 [[INCLUDES]]
 [[DEFAULTS]]
-int printf(const char *format, ...);
 int main() {
 	int i;
 	unsigned long long vals[] = {[[VALS]]};

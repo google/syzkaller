@@ -3,14 +3,16 @@
 
 // +build
 
-#define SYZ_EXECUTOR
-#include "common_fuchsia.h"
+#include <io.h>
 
-#include "executor_posix.h"
+#define SYZ_EXECUTOR
+#include "common_windows.h"
+
+#include "executor_windows.h"
 
 #include "executor.h"
 
-#include "syscalls_fuchsia.h"
+#include "syscalls_windows.h"
 
 char input_data[kMaxInput];
 uint32_t output;
@@ -24,7 +26,7 @@ int main(int argc, char** argv)
 
 	int pos = 0;
 	for (;;) {
-		int rv = read(0, input_data + pos, sizeof(input_data) - pos);
+		int rv = _read(0, input_data + pos, sizeof(input_data) - pos);
 		if (rv < 0)
 			fail("read failed");
 		if (rv == 0)

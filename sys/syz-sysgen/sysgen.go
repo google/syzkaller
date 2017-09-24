@@ -36,7 +36,7 @@ func main() {
 	flag.Parse()
 
 	for OS, archs := range targets.List {
-		top := ast.ParseGlob(filepath.Join("sys", OS, "*\\.txt"), nil)
+		top := ast.ParseGlob(filepath.Join("sys", OS, "*.txt"), nil)
 		if top == nil {
 			os.Exit(1)
 		}
@@ -67,7 +67,7 @@ func main() {
 				eh := func(pos ast.Pos, msg string) {
 					job.Errors = append(job.Errors, fmt.Sprintf("%v: %v\n", pos, msg))
 				}
-				consts := compiler.DeserializeConstsGlob(filepath.Join("sys", OS, "*_"+job.Target.Arch+"\\.const"), eh)
+				consts := compiler.DeserializeConstsGlob(filepath.Join("sys", OS, "*_"+job.Target.Arch+".const"), eh)
 				if consts == nil {
 					return
 				}
