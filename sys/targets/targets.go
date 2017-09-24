@@ -72,6 +72,12 @@ var List = map[string]map[string]*Target{
 			CArch:   []string{"__aarch64__"},
 		},
 	},
+	"windows": map[string]*Target{
+		"amd64": {
+			PtrSize: 8,
+			CArch:   []string{"_M_X64"},
+		},
+	},
 }
 
 type OS struct {
@@ -84,6 +90,9 @@ var OSList = map[string]*OS{
 		SyscallNumbers: true,
 	},
 	"fuchsia": {
+		SyscallNumbers: false,
+	},
+	"windows": {
 		SyscallNumbers: false,
 	},
 }

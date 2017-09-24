@@ -241,6 +241,9 @@ func (s *scanner) Ok() bool {
 
 func (s *scanner) next() {
 	s.off++
+	for s.off < len(s.data) && s.data[s.off] == '\r' {
+		s.off++
+	}
 	if s.off == len(s.data) {
 		// Always emit NEWLINE before EOF.
 		// Makes lots of things simpler as we always
