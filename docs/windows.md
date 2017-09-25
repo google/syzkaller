@@ -1,4 +1,4 @@
-# Windows
+# Windows support
 
 To update descriptions run (assumes `cl` cross-compiler is in PATH):
 ```

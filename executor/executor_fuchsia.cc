@@ -22,6 +22,7 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
+	install_segv_handler();
 	int pos = 0;
 	for (;;) {
 		int rv = read(0, input_data + pos, sizeof(input_data) - pos);
