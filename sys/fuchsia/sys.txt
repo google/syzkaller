@@ -1,6 +1,8 @@
 # Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <zircon/syscalls.h>
+
 syz_mmap(addr vma, len len[addr])
 
 resource zx_handle[int32]: 0
@@ -11,6 +13,6 @@ zx_handle_replace(handle zx_handle, rights flags[zx_rights], out ptr[out, zx_han
 
 zx_time_get(clock_id flags[clock_id])
 
-clock_id = MX_CLOCK_MONOTONIC, MX_CLOCK_UTC, MX_CLOCK_THREAD
+clock_id = ZX_CLOCK_MONOTONIC, ZX_CLOCK_UTC, ZX_CLOCK_THREAD
 
 zx_rights = ZX_RIGHT_NONE, ZX_RIGHT_DUPLICATE, ZX_RIGHT_TRANSFER, ZX_RIGHT_READ, ZX_RIGHT_WRITE, ZX_RIGHT_EXECUTE, ZX_RIGHT_MAP, ZX_RIGHT_GET_PROPERTY, ZX_RIGHT_SET_PROPERTY, ZX_RIGHT_ENUMERATE, ZX_RIGHT_DESTROY, ZX_RIGHT_SET_POLICY, ZX_RIGHT_GET_POLICY, ZX_RIGHT_SIGNAL, ZX_RIGHT_SIGNAL_PEER, ZX_RIGHT_SAME_RIGHTS

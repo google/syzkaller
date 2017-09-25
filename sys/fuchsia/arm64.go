@@ -23,12 +23,12 @@ var syscalls_arm64 = []*Syscall{
 	}},
 	{ID: 2, Name: "zx_handle_duplicate", CallName: "zx_handle_duplicate", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "zx_rights", FldName: "rights", TypeSize: 8}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "zx_rights", FldName: "rights", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 2147483648}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4, ArgDir: 1}}},
 	}},
 	{ID: 3, Name: "zx_handle_replace", CallName: "zx_handle_replace", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", FldName: "handle", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "zx_rights", FldName: "rights", TypeSize: 8}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "zx_rights", FldName: "rights", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 2147483648}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "out", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_handle", TypeSize: 4, ArgDir: 1}}},
 	}},
 	{ID: 4, Name: "zx_time_get", CallName: "zx_time_get", Args: []Type{
@@ -37,9 +37,25 @@ var syscalls_arm64 = []*Syscall{
 }
 
 var consts_arm64 = []ConstValue{
-	{Name: "MX_CLOCK_MONOTONIC"},
-	{Name: "MX_CLOCK_THREAD", Value: 2},
-	{Name: "MX_CLOCK_UTC", Value: 1},
+	{Name: "ZX_CLOCK_MONOTONIC"},
+	{Name: "ZX_CLOCK_THREAD", Value: 2},
+	{Name: "ZX_CLOCK_UTC", Value: 1},
+	{Name: "ZX_RIGHT_DESTROY", Value: 512},
+	{Name: "ZX_RIGHT_DUPLICATE", Value: 1},
+	{Name: "ZX_RIGHT_ENUMERATE", Value: 256},
+	{Name: "ZX_RIGHT_EXECUTE", Value: 16},
+	{Name: "ZX_RIGHT_GET_POLICY", Value: 2048},
+	{Name: "ZX_RIGHT_GET_PROPERTY", Value: 64},
+	{Name: "ZX_RIGHT_MAP", Value: 32},
+	{Name: "ZX_RIGHT_NONE"},
+	{Name: "ZX_RIGHT_READ", Value: 4},
+	{Name: "ZX_RIGHT_SAME_RIGHTS", Value: 2147483648},
+	{Name: "ZX_RIGHT_SET_POLICY", Value: 1024},
+	{Name: "ZX_RIGHT_SET_PROPERTY", Value: 128},
+	{Name: "ZX_RIGHT_SIGNAL", Value: 4096},
+	{Name: "ZX_RIGHT_SIGNAL_PEER", Value: 8192},
+	{Name: "ZX_RIGHT_TRANSFER", Value: 2},
+	{Name: "ZX_RIGHT_WRITE", Value: 8},
 }
 
-const revision_arm64 = "8c364809f3ccf951f9c9ac974a817dfaf8d1713c"
+const revision_arm64 = "9e985d79861e2754a6fead2a7c97ca4854e3df44"

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/sys/targets"
 )
 
 func TestExtractConsts(t *testing.T) {
@@ -21,7 +22,8 @@ func TestExtractConsts(t *testing.T) {
 	if desc == nil {
 		t.Fatalf("failed to parse input")
 	}
-	info := ExtractConsts(desc, func(pos ast.Pos, msg string) {
+	target := targets.List["linux"]["amd64"]
+	info := ExtractConsts(desc, target, func(pos ast.Pos, msg string) {
 		t.Fatalf("%v: %v", pos, msg)
 	})
 	wantConsts := []string{"CONST1", "CONST10", "CONST11", "CONST12", "CONST13",
@@ -56,6 +58,7 @@ func TestConstErrors(t *testing.T) {
 		em.DumpErrors(t)
 		t.Fatalf("parsing failed")
 	}
-	ExtractConsts(desc, em.ErrorHandler)
+	target := targets.List["linux"]["amd64"]
+	ExtractConsts(desc, target, em.ErrorHandler)
 	em.Check(t)
 }
