@@ -89,7 +89,7 @@ var archConfigs = map[string]archConfig{
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
-	archConfig := archConfigs[env.Arch+"/"+env.Arch]
+	archConfig := archConfigs[env.OS+"/"+env.Arch]
 	cfg := &Config{
 		Count:     1,
 		Qemu:      archConfig.Qemu,
