@@ -1,4 +1,4 @@
-// Copyright 2015 syzkaller project authors. All rights reserved.
+// Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 package main
@@ -11,17 +11,70 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/sys/targets"
 )
 
-// fetchValues converts literal constants (e.g. O_APPEND) or any other C expressions
-// into their respective numeric values. It does so by builting and executing a C program
-// that prints values of the provided expressions.
-func fetchValues(target *targets.Target, kernelDir, buildDir string,
-	vals, includes, incdirs []string, defines map[string]string) (
-	map[string]uint64, map[string]bool, error) {
-	bin, out, err := runCompiler(target, kernelDir, buildDir, nil, includes, incdirs, nil, nil)
+type linux struct{}
+
+func (*linux) prepare(sourcedir string, build bool, arches []string) error {
+	if build {
+		// Otherwise out-of-tree build fails.
+		fmt.Printf("make mrproper\n")
+		out, err := osutil.RunCmd(time.Hour, sourcedir, "make", "mrproper")
+		if err != nil {
+			return fmt.Errorf("make mrproper failed: %v\n%s\n", err, out)
+		}
+	} else {
+		if len(arches) > 1 {
+			return fmt.Errorf("more than 1 arch is invalid without -build")
+		}
+	}
+	return nil
+}
+
+func (*linux) prepareArch(arch *Arch) error {
+	if !arch.build {
+		return nil
+	}
+	target := arch.target
+	kernelDir := arch.sourceDir
+	buildDir := arch.buildDir
+	makeArgs := []string{
+		"ARCH=" + target.KernelArch,
+		"CROSS_COMPILE=" + target.CCompilerPrefix,
+		"CFLAGS=" + strings.Join(target.CrossCFlags, " "),
+		"O=" + buildDir,
+	}
+	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
+	if err != nil {
+		return fmt.Errorf("make defconfig failed: %v\n%s\n", err, out)
+	}
+	// Without CONFIG_NETFILTER kernel does not build.
+	out, err = osutil.RunCmd(time.Minute, buildDir, "sed", "-i",
+		"s@# CONFIG_NETFILTER is not set@CONFIG_NETFILTER=y@g", ".config")
+	if err != nil {
+		return fmt.Errorf("sed .config failed: %v\n%s\n", err, out)
+	}
+	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "olddefconfig")...)
+	if err != nil {
+		return fmt.Errorf("make olddefconfig failed: %v\n%s\n", err, out)
+	}
+	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "init/main.o")...)
+	if err != nil {
+		return fmt.Errorf("make failed: %v\n%s\n", err, out)
+	}
+	return nil
+}
+
+func (*linux) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
+	vals := info.Consts
+	includes := append(info.Includes, "asm/unistd.h")
+	bin, out, err := linuxCompile(arch.target, arch.sourceDir, arch.buildDir, nil,
+		includes, info.Incdirs, nil, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
 	}
@@ -33,7 +86,8 @@ func fetchValues(target *targets.Target, kernelDir, buildDir string,
 	}
 
 	undeclared := make(map[string]bool)
-	bin, out, err = runCompiler(target, kernelDir, buildDir, vals, includes, incdirs, defines, undeclared)
+	bin, out, err = linuxCompile(arch.target, arch.sourceDir, arch.buildDir, vals,
+		includes, info.Incdirs, info.Defines, undeclared)
 	if err != nil {
 		for _, errMsg := range []string{
 			"error: ‘([a-zA-Z0-9_]+)’ undeclared",
@@ -48,7 +102,8 @@ func fetchValues(target *targets.Target, kernelDir, buildDir string,
 				}
 			}
 		}
-		bin, out, err = runCompiler(target, kernelDir, buildDir, vals, includes, incdirs, defines, undeclared)
+		bin, out, err = linuxCompile(arch.target, arch.sourceDir, arch.buildDir, vals,
+			includes, info.Incdirs, info.Defines, undeclared)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to run gcc: %v\n%v", err, string(out))
 		}
@@ -87,7 +142,7 @@ func fetchValues(target *targets.Target, kernelDir, buildDir string,
 	return res, undeclared, nil
 }
 
-func runCompiler(target *targets.Target, kernelDir, buildDir string, vals, includes, incdirs []string, defines map[string]string, undeclared map[string]bool) (bin string, out []byte, err error) {
+func linuxCompile(target *targets.Target, kernelDir, buildDir string, vals, includes, incdirs []string, defines map[string]string, undeclared map[string]bool) (bin string, out []byte, err error) {
 	includeText := ""
 	for _, inc := range includes {
 		includeText += fmt.Sprintf("#include <%v>\n", inc)
@@ -106,7 +161,7 @@ func runCompiler(target *targets.Target, kernelDir, buildDir string, vals, inclu
 		}
 		valsText += v
 	}
-	src := strings.Replace(fetchSrc, "[[INCLUDES]]", includeText, 1)
+	src := strings.Replace(linuxSrc, "[[INCLUDES]]", includeText, 1)
 	src = strings.Replace(src, "[[DEFAULTS]]", definesText, 1)
 	src = strings.Replace(src, "[[VALS]]", valsText, 1)
 	binFile, err := ioutil.TempFile("", "")
@@ -152,7 +207,7 @@ func runCompiler(target *targets.Target, kernelDir, buildDir string, vals, inclu
 	return binFile.Name(), nil, nil
 }
 
-var fetchSrc = `
+var linuxSrc = `
 [[INCLUDES]]
 [[DEFAULTS]]
 int printf(const char *format, ...);

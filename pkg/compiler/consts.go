@@ -25,7 +25,7 @@ type ConstInfo struct {
 }
 
 // ExtractConsts returns list of literal constants and other info required const value extraction.
-func ExtractConsts(desc *ast.Description, eh0 ast.ErrorHandler) *ConstInfo {
+func ExtractConsts(desc *ast.Description, target *targets.Target, eh0 ast.ErrorHandler) *ConstInfo {
 	errors := 0
 	eh := func(pos ast.Pos, msg string, args ...interface{}) {
 		errors++
@@ -42,6 +42,7 @@ func ExtractConsts(desc *ast.Description, eh0 ast.ErrorHandler) *ConstInfo {
 	includeMap := make(map[string]bool)
 	incdirMap := make(map[string]bool)
 	constMap := make(map[string]bool)
+	syscallNumbers := targets.OSList[target.OS].SyscallNumbers
 
 	ast.Walk(desc, func(n1 ast.Node) {
 		switch n := n1.(type) {
@@ -74,7 +75,7 @@ func ExtractConsts(desc *ast.Description, eh0 ast.ErrorHandler) *ConstInfo {
 			info.Defines[name] = v
 			constMap[name] = true
 		case *ast.Call:
-			if !strings.HasPrefix(n.CallName, "syz_") {
+			if syscallNumbers && !strings.HasPrefix(n.CallName, "syz_") {
 				constMap["__NR_"+n.CallName] = true
 			}
 		case *ast.Type:

@@ -37,9 +37,9 @@ var syscalls_amd64 = []*Syscall{
 }
 
 var consts_amd64 = []ConstValue{
-	{Name: "MX_CLOCK_MONOTONIC"},
-	{Name: "MX_CLOCK_THREAD", Value: 2},
-	{Name: "MX_CLOCK_UTC", Value: 1},
+	{Name: "ZX_CLOCK_MONOTONIC"},
+	{Name: "ZX_CLOCK_THREAD", Value: 2},
+	{Name: "ZX_CLOCK_UTC", Value: 1},
 	{Name: "ZX_RIGHT_DESTROY", Value: 512},
 	{Name: "ZX_RIGHT_DUPLICATE", Value: 1},
 	{Name: "ZX_RIGHT_ENUMERATE", Value: 256},
@@ -58,4 +58,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_RIGHT_WRITE", Value: 8},
 }
 
-const revision_amd64 = "640bc9ab193d2488d41793c10c5a44bab3ad33f9"
+const revision_amd64 = "9b1c1a07ba105b616c1fb926256ea6a00b57b664"

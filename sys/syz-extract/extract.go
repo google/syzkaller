@@ -14,7 +14,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
@@ -23,15 +22,16 @@ import (
 )
 
 var (
-	flagLinux    = flag.String("linux", "", "path to linux kernel source checkout")
-	flagLinuxBld = flag.String("linuxbld", "", "path to linux kernel build directory")
-	flagArch     = flag.String("arch", "", "comma-separated list of arches to generate (all by default)")
-	flagBuild    = flag.Bool("build", false, "regenerate arch-specific kernel headers")
+	flagOS        = flag.String("os", "", "target OS")
+	flagBuild     = flag.Bool("build", false, "regenerate arch-specific kernel headers")
+	flagSourceDir = flag.String("sourcedir", "", "path to kernel source checkout dir")
+	flagBuildDir  = flag.String("builddir", "", "path to kernel build dir")
+	flagArch      = flag.String("arch", "", "comma-separated list of arches to generate (all by default)")
 )
 
 type Arch struct {
 	target    *targets.Target
-	kernelDir string
+	sourceDir string
 	buildDir  string
 	build     bool
 	files     []*File
@@ -45,49 +45,75 @@ type File struct {
 	err        error
 }
 
+type OS interface {
+	prepare(sourcedir string, build bool, arches []string) error
+	prepareArch(arch *Arch) error
+	processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error)
+}
+
+var oses = map[string]OS{
+	"linux":   new(linux),
+	"android": new(linux),
+	"fuchsia": new(fuchsia),
+}
+
 func main() {
 	failf := func(msg string, args ...interface{}) {
 		fmt.Fprintf(os.Stderr, msg+"\n", args...)
 		os.Exit(1)
 	}
-
-	const OS = "linux"
 	flag.Parse()
-	if *flagLinux == "" {
-		failf("provide path to linux kernel checkout via -linux flag (or make extract LINUX= flag)")
-	}
-	if *flagBuild && *flagLinuxBld != "" {
-		failf("-build and -linuxbld is an invalid combination")
-	}
-	n := len(flag.Args())
-	if n == 0 {
-		failf("usage: syz-extract -linux=/linux/checkout -arch=arch input_file.txt...")
-	}
 
+	OS := oses[*flagOS]
+	if OS == nil {
+		failf("unknown os: %v", *flagOS)
+	}
+	if *flagSourceDir == "" {
+		failf("provide path to kernel checkout via -sourcedir flag (or make extract SOURCEDIR)")
+	}
+	if *flagBuild && *flagBuildDir != "" {
+		failf("-build and -builddir is an invalid combination")
+	}
 	var archArray []string
 	if *flagArch != "" {
 		archArray = strings.Split(*flagArch, ",")
 	} else {
-		for arch := range targets.List[OS] {
+		for arch := range targets.List[*flagOS] {
 			archArray = append(archArray, arch)
+		}
+		if *flagOS == "android" {
+			archArray = []string{"amd64", "arm64"}
 		}
 		sort.Strings(archArray)
 	}
-
-	if *flagBuild {
-		// Otherwise out-of-tree build fails.
-		fmt.Printf("make mrproper\n")
-		out, err := osutil.RunCmd(time.Hour, *flagLinux, "make", "mrproper")
-		if err != nil {
-			failf("make mrproper failed: %v\n%s\n", err, out)
+	files := flag.Args()
+	if len(files) == 0 {
+		matches, err := filepath.Glob(filepath.Join("sys", *flagOS, "*.txt"))
+		if err != nil || len(matches) == 0 {
+			failf("failed to find sys files: %v", err)
 		}
-	} else {
-		if len(archArray) > 1 {
-			failf("more than 1 arch is invalid without -build")
+		androidFiles := map[string]bool{
+			"ion.txt":        true,
+			"tlk_device.txt": true,
 		}
+		for _, f := range matches {
+			f = filepath.Base(f)
+			if *flagOS == "linux" && androidFiles[f] {
+				continue
+			}
+			if *flagOS == "android" && !androidFiles[f] {
+				continue
+			}
+			files = append(files, filepath.Base(f))
+		}
+		sort.Strings(files)
 	}
 
-	jobC := make(chan interface{}, len(archArray)*len(flag.Args()))
+	if err := OS.prepare(*flagSourceDir, *flagBuild, archArray); err != nil {
+		failf("%v", err)
+	}
+
+	jobC := make(chan interface{}, len(archArray)*len(files))
 	var wg sync.WaitGroup
 
 	var arches []*Arch
@@ -99,24 +125,24 @@ func main() {
 				failf("failed to create temp dir: %v", err)
 			}
 			buildDir = dir
-		} else if *flagLinuxBld != "" {
-			buildDir = *flagLinuxBld
+		} else if *flagBuildDir != "" {
+			buildDir = *flagBuildDir
 		} else {
-			buildDir = *flagLinux
+			buildDir = *flagSourceDir
 		}
 
-		target := targets.List[OS][archStr]
+		target := targets.List[*flagOS][archStr]
 		if target == nil {
 			failf("unknown arch: %v", archStr)
 		}
 
 		arch := &Arch{
 			target:    target,
-			kernelDir: *flagLinux,
+			sourceDir: *flagSourceDir,
 			buildDir:  buildDir,
 			build:     *flagBuild,
 		}
-		for _, f := range flag.Args() {
+		for _, f := range files {
 			arch.files = append(arch.files, &File{
 				arch: arch,
 				name: f,
@@ -132,9 +158,7 @@ func main() {
 			for job := range jobC {
 				switch j := job.(type) {
 				case *Arch:
-					if j.build {
-						j.err = buildKernel(j)
-					}
+					j.err = OS.prepareArch(j)
 					if j.err == nil {
 						for _, f := range j.files {
 							wg.Add(1)
@@ -142,7 +166,7 @@ func main() {
 						}
 					}
 				case *File:
-					j.undeclared, j.err = processFile(j.arch, j.name)
+					j.undeclared, j.err = processFile(OS, j.arch, j.name)
 				}
 				wg.Done()
 			}
@@ -174,7 +198,8 @@ func main() {
 	}
 }
 
-func processFile(arch *Arch, inname string) (map[string]bool, error) {
+func processFile(OS OS, arch *Arch, inname string) (map[string]bool, error) {
+	inname = filepath.Join("sys", arch.target.OS, inname)
 	outname := strings.TrimSuffix(inname, ".txt") + "_" + arch.target.Arch + ".const"
 	indata, err := ioutil.ReadFile(inname)
 	if err != nil {
@@ -188,15 +213,14 @@ func processFile(arch *Arch, inname string) (map[string]bool, error) {
 	if desc == nil {
 		return nil, fmt.Errorf("%v", errBuf.String())
 	}
-	info := compiler.ExtractConsts(desc, eh)
+	info := compiler.ExtractConsts(desc, arch.target, eh)
 	if info == nil {
 		return nil, fmt.Errorf("%v", errBuf.String())
 	}
 	if len(info.Consts) == 0 {
 		return nil, nil
 	}
-	includes := append(info.Includes, "asm/unistd.h")
-	consts, undeclared, err := fetchValues(arch.target, arch.kernelDir, arch.buildDir, info.Consts, includes, info.Incdirs, info.Defines)
+	consts, undeclared, err := OS.processFile(arch, info)
 	if err != nil {
 		return nil, err
 	}
@@ -205,35 +229,4 @@ func processFile(arch *Arch, inname string) (map[string]bool, error) {
 		return nil, fmt.Errorf("failed to write output file: %v", err)
 	}
 	return undeclared, nil
-}
-
-func buildKernel(arch *Arch) error {
-	target := arch.target
-	kernelDir := arch.kernelDir
-	buildDir := arch.buildDir
-	makeArgs := []string{
-		"ARCH=" + target.KernelArch,
-		"CROSS_COMPILE=" + target.CCompilerPrefix,
-		"CFLAGS=" + strings.Join(target.CrossCFlags, " "),
-		"O=" + buildDir,
-	}
-	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
-	if err != nil {
-		return fmt.Errorf("make defconfig failed: %v\n%s\n", err, out)
-	}
-	// Without CONFIG_NETFILTER kernel does not build.
-	out, err = osutil.RunCmd(time.Minute, buildDir, "sed", "-i",
-		"s@# CONFIG_NETFILTER is not set@CONFIG_NETFILTER=y@g", ".config")
-	if err != nil {
-		return fmt.Errorf("sed .config failed: %v\n%s\n", err, out)
-	}
-	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "olddefconfig")...)
-	if err != nil {
-		return fmt.Errorf("make olddefconfig failed: %v\n%s\n", err, out)
-	}
-	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "init/main.o")...)
-	if err != nil {
-		return fmt.Errorf("make failed: %v\n%s\n", err, out)
-	}
-	return nil
 }

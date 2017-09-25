@@ -156,7 +156,7 @@ upgrade:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 extract: bin/syz-extract
-	LINUX=$(LINUX) ./sys/linux/extract.sh
+	bin/syz-extract -build -os=$(TARGETOS) -sourcedir=$(SOURCEDIR)
 bin/syz-extract:
 	go build $(GOFLAGS) -o $@ ./sys/syz-extract
 
@@ -208,3 +208,7 @@ presubmit:
 
 clean:
 	rm -rf ./bin/
+
+# For a tupical Ubuntu/Debian distribution, requires sudo.
+install_prerequisites:
+	apt-get install libc6-dev-i386 lib32stdc++-4.8-dev linux-libc-dev g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf
