@@ -1,0 +1,9 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_event[zx_handle]
+
+zx_event_create(options const[0], out ptr[out, zx_event])
+zx_eventpair_create(options const[0], out0 ptr[out, zx_event], out1 ptr[out, zx_event])

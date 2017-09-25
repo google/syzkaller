@@ -171,6 +171,7 @@ format: bin/syz-fmt
 	go fmt ./...
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
 	bin/syz-fmt sys/linux
+	bin/syz-fmt sys/fuchsia
 bin/syz-fmt:
 	go build $(GOFLAGS) -o $@ ./tools/syz-fmt
 

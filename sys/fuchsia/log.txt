@@ -1,0 +1,14 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+include <zircon/syscalls/log.h>
+
+resource zx_log[zx_handle]
+
+# TODO: do we need root resource for this? kernel actually has debuglog_create syscall that accepts resource...
+zx_log_create(options flags[log_create_options], out ptr[out, zx_log])
+zx_log_write(handle zx_log, len len[ptr], ptr ptr[in, array[int8]], options int32)
+zx_log_read(handle zx_log, len len[ptr], ptr ptr[out, array[int8]], options int32)
+
+log_create_options = ZX_LOG_FLAG_READABLE

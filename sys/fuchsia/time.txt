@@ -1,0 +1,17 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+# TODO: generate time a bit in future
+resource zx_time[int64]: 0, ZX_TIME_INFINITE
+
+zx_nanosleep(deadline zx_time)
+zx_time_get(clock_id flags[clock_id]) zx_time
+zx_ticks_get()
+zx_ticks_per_second()
+
+# TODO: undocumented
+# zx_clock_adjust?
+
+clock_id = ZX_CLOCK_MONOTONIC, ZX_CLOCK_UTC, ZX_CLOCK_THREAD

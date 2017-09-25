@@ -1,0 +1,15 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_vmo[zx_handle]
+
+# TODO:
+#vmo_create - create a new vmo
+#vmo_read - read from a vmo
+#vmo_write - write to a vmo
+#vmo_clone - clone a vmo
+#vmo_get_size - obtain the size of a vmo
+#vmo_set_size - adjust the size of a vmo
+#vmo_op_range - perform an operation on a range of a vmo
