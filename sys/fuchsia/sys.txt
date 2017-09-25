@@ -1,18 +1,25 @@
 # Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+# See https://fuchsia.googlesource.com/zircon/+/master/docs/syscalls.md
+
 include <zircon/syscalls.h>
 
+# Used by syzkaller to allocate memory for syscall arguments.
 syz_mmap(addr vma, len len[addr])
 
-resource zx_handle[int32]: 0
+# Provided by process runtime (zircon/process.h).
+syz_process_self() zx_process
+syz_thread_self() zx_thread
+syz_vmar_root_self() zx_vmar
+syz_job_default() zx_job
 
-zx_handle_close(handle zx_handle)
-zx_handle_duplicate(handle zx_handle, rights flags[zx_rights], out ptr[out, zx_handle])
-zx_handle_replace(handle zx_handle, rights flags[zx_rights], out ptr[out, zx_handle])
+zx_system_get_num_cpus()
+zx_system_get_physmem()
+zx_system_get_version(version ptr[out, array[int8]], version_len len[version])
 
-zx_time_get(clock_id flags[clock_id])
+zx_cprng_draw(buffer ptr[out, array[int8]], len len[buffer], actual ptr[out, intptr])
+zx_cprng_add_entropy(buffer ptr[in, array[int8]], len len[buffer])
 
-clock_id = ZX_CLOCK_MONOTONIC, ZX_CLOCK_UTC, ZX_CLOCK_THREAD
-
-zx_rights = ZX_RIGHT_NONE, ZX_RIGHT_DUPLICATE, ZX_RIGHT_TRANSFER, ZX_RIGHT_READ, ZX_RIGHT_WRITE, ZX_RIGHT_EXECUTE, ZX_RIGHT_MAP, ZX_RIGHT_GET_PROPERTY, ZX_RIGHT_SET_PROPERTY, ZX_RIGHT_ENUMERATE, ZX_RIGHT_DESTROY, ZX_RIGHT_SET_POLICY, ZX_RIGHT_GET_POLICY, ZX_RIGHT_SIGNAL, ZX_RIGHT_SIGNAL_PEER, ZX_RIGHT_SAME_RIGHTS
+zx_vmar_unmap_handle_close_thread_exit(vmar_handle zx_vmar, addr vma, len len[addr], close_handle zx_handle)
+zx_futex_wake_handle_close_thread_exit(value_ptr ptr[out, int32], wake_count int32, new_value int32, close_handle zx_handle)

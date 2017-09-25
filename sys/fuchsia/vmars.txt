@@ -1,0 +1,13 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_vmar[zx_handle]
+
+# TODO:
+#vmar_allocate - create a new child VMAR
+#vmar_map - map a VMO into a process
+#vmar_unmap - unmap a memory region from a process
+#vmar_protect - adjust memory access permissions
+#vmar_destroy - destroy a VMAR and all of its children

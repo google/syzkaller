@@ -49,3 +49,31 @@ long syz_mmap(size_t addr, size_t size)
 	return status;
 }
 #endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_process_self)
+long syz_process_self()
+{
+	return zx_process_self();
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_thread_self)
+long syz_thread_self()
+{
+	return zx_thread_self();
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_vmar_root_self)
+long syz_vmar_root_self()
+{
+	return zx_vmar_root_self();
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_job_default)
+long syz_job_default()
+{
+	return zx_job_default();
+}
+#endif
