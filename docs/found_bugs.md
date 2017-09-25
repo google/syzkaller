@@ -2,6 +2,11 @@
 
 _newer first_
 
+* [usb/media/uvc: warning in uvc_scan_chain_forward/__list_add](https://groups.google.com/forum/#!topic/syzkaller/cEn3pmrYye4)
+* [usb/sound/line6: trying to register non-static key in podhd_disconnect](https://groups.google.com/forum/#!topic/syzkaller/wEY6yXp-zC8)
+* [usb/sound/line6: warning in line6_start_listen/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/33v4K1orrPk)
+* [usb/media/lmedm04: GPF in lme2510_int_read/usb_pipe_endpoint](https://groups.google.com/forum/#!topic/syzkaller/XwNidsl4X04)
+* [usb/sound/bcd2000: warning in bcd2000_init_device](https://groups.google.com/forum/#!topic/syzkaller/uU0anmKkD1w)
 * [usb/wireless/rsi_91x: use-after-free write in __run_timers](https://groups.google.com/forum/#!topic/syzkaller/9IV2cQldrx0)
 * [usb/media/zr364xx: GPF in zr364xx_vidioc_querycap/strlcpy](https://groups.google.com/forum/#!topic/syzkaller/-EuMlzvOHGo)
 * [usb/media/stkwebcam: use-after-free in v4l2_ctrl_handler_free](https://groups.google.com/forum/#!topic/syzkaller/5kLo7aPtx1w)
