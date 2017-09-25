@@ -65,27 +65,31 @@ type archConfig struct {
 }
 
 var archConfigs = map[string]archConfig{
-	"amd64": {
+	"linux/amd64": {
 		Qemu:     "qemu-system-x86_64",
 		QemuArgs: "-enable-kvm -usb -usbdevice mouse -usbdevice tablet -soundhw all",
 	},
-	"386": {
+	"linux/386": {
 		Qemu: "qemu-system-i386",
 	},
-	"arm64": {
+	"linux/arm64": {
 		Qemu:     "qemu-system-aarch64",
 		QemuArgs: "-machine virt -cpu cortex-a57",
 	},
-	"arm": {
+	"linux/arm": {
 		Qemu: "qemu-system-arm",
 	},
-	"ppc64le": {
+	"linux/ppc64le": {
 		Qemu: "qemu-system-ppc64",
+	},
+	"fuchsia/amd64": {
+		Qemu:     "qemu-system-x86_64",
+		QemuArgs: "-enable-kvm",
 	},
 }
 
 func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
-	archConfig := archConfigs[env.Arch]
+	archConfig := archConfigs[env.Arch+"/"+env.Arch]
 	cfg := &Config{
 		Count:     1,
 		Qemu:      archConfig.Qemu,
@@ -104,6 +108,9 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, err
 	}
 	if env.Image == "9p" {
+		if env.OS != "linux" {
+			return nil, fmt.Errorf("9p image is supported for linux only")
+		}
 		if cfg.Kernel == "" {
 			return nil, fmt.Errorf("9p image requires kernel")
 		}
