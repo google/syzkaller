@@ -2,6 +2,7 @@
 
 _newer first_
 
+* [usb/media/b2c2: GPF in flexcop_usb_transfer_init](https://groups.google.com/forum/#!topic/syzkaller/ToOkJ0Ox-HA)
 * [usb/media/uvc: warning in uvc_scan_chain_forward/__list_add](https://groups.google.com/forum/#!topic/syzkaller/cEn3pmrYye4)
 * [usb/sound/line6: trying to register non-static key in podhd_disconnect](https://groups.google.com/forum/#!topic/syzkaller/wEY6yXp-zC8)
 * [usb/sound/line6: warning in line6_start_listen/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/33v4K1orrPk)
