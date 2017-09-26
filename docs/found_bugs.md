@@ -2,6 +2,7 @@
 
 _newer first_
 
+* [usb/net/lan78xx: use-after-free in lan78xx_write_reg](https://groups.google.com/forum/#!topic/syzkaller/5dEtqOKkv54)
 * [usb/media/b2c2: GPF in flexcop_usb_transfer_init](https://groups.google.com/forum/#!topic/syzkaller/ToOkJ0Ox-HA)
 * [usb/media/uvc: warning in uvc_scan_chain_forward/__list_add](https://groups.google.com/forum/#!topic/syzkaller/cEn3pmrYye4)
 * [usb/sound/line6: trying to register non-static key in podhd_disconnect](https://groups.google.com/forum/#!topic/syzkaller/wEY6yXp-zC8)
