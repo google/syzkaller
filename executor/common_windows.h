@@ -7,6 +7,7 @@
 
 #define doexit exit
 #define NORETURN
+#define SYSCALLAPI WINAPI
 
 #include "common.h"
 

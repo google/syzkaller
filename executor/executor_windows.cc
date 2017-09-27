@@ -52,10 +52,11 @@ int main(int argc, char** argv)
 
 long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
 {
-	debug("%s = %p\n", c->name, c->call);
-	long res = c->call(a0, a1, a2, a3, a4, a5, a6, a7, a8);
-	debug("%s = %ld\n", c->name, res);
-	return res;
+	__try {
+		return c->call(a0, a1, a2, a3, a4, a5, a6, a7, a8);
+	} __except (EXCEPTION_EXECUTE_HANDLER) {
+		return -1;
+	}
 }
 
 void cover_open()
