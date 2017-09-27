@@ -27,7 +27,8 @@ type Config struct {
 	Kernel_Src string // kernel source directory
 	Tag        string // arbitrary optional tag that is saved along with crash reports (e.g. branch/commit)
 	Image      string // linux image for VMs
-	Sshkey     string // root ssh key for the image (may be empty for some VM types)
+	Sshkey     string // ssh key for the image (may be empty for some VM types)
+	Ssh_User   string // ssh user ("root" by default)
 
 	Hub_Client string
 	Hub_Addr   string
@@ -81,6 +82,7 @@ func LoadFile(filename string) (*Config, error) {
 
 func DefaultValues() *Config {
 	return &Config{
+		Ssh_User:  "root",
 		Cover:     true,
 		Reproduce: true,
 		Sandbox:   "setuid",
@@ -271,7 +273,8 @@ func CreateVMEnv(cfg *Config, debug bool) *vm.Env {
 		Arch:    cfg.TargetVMArch,
 		Workdir: cfg.Workdir,
 		Image:   cfg.Image,
-		Sshkey:  cfg.Sshkey,
+		SshKey:  cfg.Sshkey,
+		SshUser: cfg.Ssh_User,
 		Debug:   debug,
 		Config:  cfg.VM,
 	}
