@@ -146,7 +146,11 @@ __attribute__((noreturn)) static void doexit(int status)
 #endif
 
 #if defined(SYZ_EXECUTOR)
-typedef long (*syscall_t)(long, long, long, long, long, long, long, long, long);
+#ifndef SYSCALLAPI
+#define SYSCALLAPI
+#endif
+
+typedef long(SYSCALLAPI* syscall_t)(long, long, long, long, long, long, long, long, long);
 
 struct call_t {
 	const char* name;
@@ -274,6 +278,7 @@ static uint16_t csum_inet_digest(struct csum_inet* csum)
 	return ~csum->acc;
 }
 #endif
+
 #if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;

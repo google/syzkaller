@@ -23,7 +23,11 @@
 #endif
 
 #if defined(SYZ_EXECUTOR)
-typedef long (*syscall_t)(long, long, long, long, long, long, long, long, long);
+#ifndef SYSCALLAPI
+#define SYSCALLAPI
+#endif
+
+typedef long(SYSCALLAPI* syscall_t)(long, long, long, long, long, long, long, long, long);
 
 struct call_t {
 	const char* name;
