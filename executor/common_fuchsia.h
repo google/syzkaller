@@ -104,13 +104,17 @@ static int fault_injected(int fail_fd)
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_mmap)
 long syz_mmap(size_t addr, size_t size)
 {
-	zx_handle_t mapping = 0;
+	zx_handle_t root = zx_vmar_root_self();
+	zx_info_vmar_t info;
+	zx_status_t status = zx_object_get_info(root, ZX_INFO_VMAR, &info, sizeof(info), 0, 0);
+	if (status != ZX_OK)
+		error("zx_object_get_info(ZX_INFO_VMAR) failed: %d", status);
 	uintptr_t res = 0;
-	uintptr_t offset = 16 << 20;
-	zx_status_t status = zx_vmar_allocate(zx_vmar_root_self(), addr - offset, size,
-					      ZX_VM_FLAG_SPECIFIC | ZX_VM_FLAG_CAN_MAP_READ | ZX_VM_FLAG_CAN_MAP_WRITE,
-					      &mapping, &res);
-	if (addr != res)
+	zx_handle_t mapping = 0;
+	status = zx_vmar_allocate(root, addr - info.base, size,
+				  ZX_VM_FLAG_SPECIFIC | ZX_VM_FLAG_CAN_MAP_READ | ZX_VM_FLAG_CAN_MAP_WRITE,
+				  &mapping, &res);
+	if (status == ZX_OK && addr != res)
 		error("zx_vmar_allocate allocated wrong address: %p, want %p", (void*)res, (void*)addr);
 	return status;
 }
