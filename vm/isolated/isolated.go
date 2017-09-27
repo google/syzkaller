@@ -54,8 +54,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, fmt.Errorf("config param target_dir is empty")
 	}
 	// sshkey is optional
-	if env.Sshkey != "" && !osutil.IsExist(env.Sshkey) {
-		return nil, fmt.Errorf("ssh key '%v' does not exist", env.Sshkey)
+	if env.SshKey != "" && !osutil.IsExist(env.SshKey) {
+		return nil, fmt.Errorf("ssh key '%v' does not exist", env.SshKey)
 	}
 	if env.Debug {
 		cfg.Targets = cfg.Targets[:1]
@@ -74,10 +74,10 @@ func (pool *Pool) Count() int {
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
 		cfg:    pool.cfg,
-		target: pool.cfg.Targets[index],
+		target: pool.env.SshUser + "@" + pool.cfg.Targets[index],
 		closed: make(chan bool),
 		debug:  pool.env.Debug,
-		sshkey: pool.env.Sshkey,
+		sshkey: pool.env.SshKey,
 	}
 	closeInst := inst
 	defer func() {
@@ -120,7 +120,7 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 		return nil, err
 	}
 
-	args := append(inst.sshArgs("-p"), "root@"+inst.target, command)
+	args := append(inst.sshArgs("-p"), inst.target, command)
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
@@ -230,7 +230,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	baseName := filepath.Base(hostSrc)
 	vmDst := filepath.Join(inst.cfg.Target_Dir, baseName)
 	inst.ssh("pkill -9 '" + baseName + "'; rm -f '" + vmDst + "'")
-	args := append(inst.sshArgs("-P"), hostSrc, "root@"+inst.target+":"+vmDst)
+	args := append(inst.sshArgs("-P"), hostSrc, inst.target+":"+vmDst)
 	cmd := exec.Command("scp", args...)
 	if inst.debug {
 		Logf(0, "running command: scp %#v", args)
@@ -257,7 +257,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 }
 
 func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command string) (<-chan []byte, <-chan error, error) {
-	args := append(inst.sshArgs("-p"), "root@"+inst.target)
+	args := append(inst.sshArgs("-p"), inst.target)
 	dmesg, err := vmimpl.OpenRemoteConsole("ssh", args...)
 	if err != nil {
 		return nil, nil, err
@@ -275,7 +275,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		proxy := fmt.Sprintf("%v:127.0.0.1:%v", inst.port, inst.port)
 		args = append(args, "-R", proxy)
 	}
-	args = append(args, "root@"+inst.target, "cd "+inst.cfg.Target_Dir+" && exec "+command)
+	args = append(args, inst.target, "cd "+inst.cfg.Target_Dir+" && exec "+command)
 	Logf(0, "running command: ssh %#v", args)
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)

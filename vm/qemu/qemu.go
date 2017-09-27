@@ -51,6 +51,7 @@ type instance struct {
 	debug   bool
 	workdir string
 	sshkey  string
+	sshuser string
 	port    int
 	rpipe   io.ReadCloser
 	wpipe   io.WriteCloser
@@ -118,8 +119,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		if !osutil.IsExist(env.Image) {
 			return nil, fmt.Errorf("image file '%v' does not exist", env.Image)
 		}
-		if !osutil.IsExist(env.Sshkey) {
-			return nil, fmt.Errorf("ssh key '%v' does not exist", env.Sshkey)
+		if !osutil.IsExist(env.SshKey) {
+			return nil, fmt.Errorf("ssh key '%v' does not exist", env.SshKey)
 		}
 	}
 	if cfg.Cpu <= 0 || cfg.Cpu > 1024 {
@@ -142,9 +143,11 @@ func (pool *Pool) Count() int {
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	sshkey := pool.env.Sshkey
+	sshkey := pool.env.SshKey
+	sshuser := pool.env.SshUser
 	if pool.env.Image == "9p" {
 		sshkey = filepath.Join(workdir, "key")
+		sshuser = "root"
 		keygen := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "", "-f", sshkey)
 		if out, err := keygen.CombinedOutput(); err != nil {
 			return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
@@ -156,7 +159,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 
 	for i := 0; ; i++ {
-		inst, err := pool.ctor(workdir, sshkey, index)
+		inst, err := pool.ctor(workdir, sshkey, sshuser, index)
 		if err == nil {
 			return inst, nil
 		}
@@ -167,13 +170,14 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 }
 
-func (pool *Pool) ctor(workdir, sshkey string, index int) (vmimpl.Instance, error) {
+func (pool *Pool) ctor(workdir, sshkey, sshuser string, index int) (vmimpl.Instance, error) {
 	inst := &instance{
 		cfg:     pool.cfg,
 		image:   pool.env.Image,
 		debug:   pool.env.Debug,
 		workdir: workdir,
 		sshkey:  sshkey,
+		sshuser: sshuser,
 	}
 	closeInst := inst
 	defer func() {
@@ -383,7 +387,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 		basePath = "/tmp"
 	}
 	vmDst := filepath.Join(basePath, filepath.Base(hostSrc))
-	args := append(inst.sshArgs("-P"), hostSrc, "root@localhost:"+vmDst)
+	args := append(inst.sshArgs("-P"), hostSrc, inst.sshuser+"@localhost:"+vmDst)
 	cmd := exec.Command("scp", args...)
 	if inst.debug {
 		Logf(0, "running command: scp %#v", args)
@@ -416,7 +420,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	}
 	inst.merger.Add("ssh", rpipe)
 
-	args := append(inst.sshArgs("-p"), "root@localhost", command)
+	args := append(inst.sshArgs("-p"), inst.sshuser+"@localhost", command)
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
