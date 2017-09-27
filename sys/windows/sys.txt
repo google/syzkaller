@@ -11,15 +11,15 @@ CreateFileA(lpFileName ptr[in, filename], dwDesiredAccess flags[file_access_righ
 VirtualAlloc(lpAddress vma, dwSize len[lpAddress], flAllocationType flags[allocation_type], flProtect flags[protect_flags])
 
 SECURITY_ATTRIBUTES {
-	nLength len[parent, int32]
-	lpSecurityDescriptor ptr[in, SECURITY_DESCRIPTOR, opt]
+	nLength			len[parent, int32]
+	lpSecurityDescriptor	ptr[in, SECURITY_DESCRIPTOR, opt]
 # TODO: at this point we probably do need the BOOL type.
-	bInheritHandle int32[0:1]
+	bInheritHandle		int32[0:1]
 }
 
 # TODO: describe
 SECURITY_DESCRIPTOR {
-	stub int32
+	stub	int32
 }
 
 access_rights = DELETE, READ_CONTROL, SYNCHRONIZE, WRITE_DAC, WRITE_OWNER

@@ -193,6 +193,7 @@ format: bin/syz-fmt
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
 	bin/syz-fmt sys/linux
 	bin/syz-fmt sys/fuchsia
+	bin/syz-fmt sys/windows
 bin/syz-fmt:
 	$(GO) build $(GOFLAGS) -o $@ ./tools/syz-fmt
 
