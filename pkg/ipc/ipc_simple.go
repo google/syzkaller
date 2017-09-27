@@ -13,7 +13,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -41,7 +43,7 @@ func MakeEnv(bin string, pid int, config Config) (*Env, error) {
 	if len(env.bin) == 0 {
 		return nil, fmt.Errorf("binary is empty string")
 	}
-	if false {
+	if runtime.GOOS != "fuchsia" {
 		env.bin[0] = osutil.Abs(env.bin[0])
 		base := filepath.Base(env.bin[0])
 		pidStr := fmt.Sprint(pid)
@@ -62,6 +64,7 @@ func (env *Env) Close() error {
 }
 
 func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallInfo, failed, hanged bool, err0 error) {
+	atomic.AddUint64(&env.StatExecs, 1)
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		err0 = fmt.Errorf("failed to create temp dir: %v", err)
