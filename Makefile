@@ -30,6 +30,7 @@ TARGETARCH ?= $(HOSTARCH)
 TARGETVMARCH ?= $(TARGETARCH)
 EXTRACTOS := $(TARGETOS)
 GO := go
+EXE :=
 
 ifeq ("$(TARGETARCH)", "amd64")
 	CC = "x86_64-linux-gnu-gcc"
@@ -92,6 +93,10 @@ ifeq ("$(TARGETOS)", "fuchsia")
 	endif
 endif
 
+ifeq ("$(TARGETOS)", "windows")
+	EXE = .exe
+endif
+
 GITREV=$(shell git rev-parse HEAD)
 ifeq ($(`git diff --shortstat`), "")
 	REV=$(GITREV)
@@ -134,7 +139,7 @@ target:
 # executor uses stacks of limited size, so no jumbo frames.
 executor:
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
-	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor executor/executor_$(TARGETOS).cc \
+	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor_$(TARGETOS).cc \
 		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 -g \
 		$(ADDCFLAGS) $(CFLAGS) -DGIT_REVISION=\"$(REV)\"
 
@@ -142,10 +147,10 @@ manager:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
 
 fuzzer:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer github.com/google/syzkaller/syz-fuzzer
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer$(EXE) github.com/google/syzkaller/syz-fuzzer
 
 execprog:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-execprog github.com/google/syzkaller/tools/syz-execprog
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-execprog$(EXE) github.com/google/syzkaller/tools/syz-execprog
 
 ci:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-ci github.com/google/syzkaller/syz-ci
@@ -163,7 +168,7 @@ prog2c:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
 
 stress:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-stress github.com/google/syzkaller/tools/syz-stress
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-stress$(EXE) github.com/google/syzkaller/tools/syz-stress
 
 db:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db
@@ -215,6 +220,7 @@ arch:
 	# We install a bunch of additional packages in .travis.yml,
 	# but I can't guess the right one.
 	env TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=386 $(MAKE) target
+	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
 
 presubmit:
 	$(MAKE) generate

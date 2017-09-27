@@ -107,9 +107,16 @@ func load(data []byte, filename string) (*Config, error) {
 		return nil, err
 	}
 
-	cfg.SyzFuzzerBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetVMArch, "syz-fuzzer")
-	cfg.SyzExecprogBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetVMArch, "syz-execprog")
-	cfg.SyzExecutorBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetArch, "syz-executor")
+	targetBin := func(name string) string {
+		exe := ""
+		if cfg.TargetOS == "windows" {
+			exe = ".exe"
+		}
+		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetVMArch, name+exe)
+	}
+	cfg.SyzFuzzerBin = targetBin("syz-fuzzer")
+	cfg.SyzExecprogBin = targetBin("syz-execprog")
+	cfg.SyzExecutorBin = targetBin("syz-executor")
 	if !osutil.IsExist(cfg.SyzFuzzerBin) {
 		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
 	}
