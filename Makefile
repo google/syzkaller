@@ -28,6 +28,7 @@ HOSTARCH ?= $(BUILDARCH)
 TARGETOS ?= $(HOSTOS)
 TARGETARCH ?= $(HOSTARCH)
 TARGETVMARCH ?= $(TARGETARCH)
+EXTRACTOS := $(TARGETOS)
 GO := go
 
 ifeq ("$(TARGETARCH)", "amd64")
@@ -45,7 +46,8 @@ else ifeq ("$(TARGETARCH)", "ppc64le")
 endif
 
 ifeq ("$(TARGETOS)", "android")
-	override TARGETOS = "linux"
+	EXTRACTOS = android
+	override TARGETOS = linux
 	ANDROID_API = 24
 	BUILDGCCARCH = ""
 	ANDROIDARCH = ""
@@ -170,7 +172,7 @@ upgrade:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 extract: bin/syz-extract
-	bin/syz-extract -build -os=$(TARGETOS) -sourcedir=$(SOURCEDIR)
+	bin/syz-extract -build -os=$(EXTRACTOS) -sourcedir=$(SOURCEDIR)
 bin/syz-extract:
 	$(GO) build $(GOFLAGS) -o $@ ./sys/syz-extract
 

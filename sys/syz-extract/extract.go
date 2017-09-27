@@ -74,6 +74,11 @@ func main() {
 	if *flagBuild && *flagBuildDir != "" {
 		failf("-build and -builddir is an invalid combination")
 	}
+	android := false
+	if *flagOS == "android" {
+		android = true
+		*flagOS = "linux"
+	}
 	var archArray []string
 	if *flagArch != "" {
 		archArray = strings.Split(*flagArch, ",")
@@ -81,7 +86,7 @@ func main() {
 		for arch := range targets.List[*flagOS] {
 			archArray = append(archArray, arch)
 		}
-		if *flagOS == "android" {
+		if android {
 			archArray = []string{"amd64", "arm64"}
 		}
 		sort.Strings(archArray)
@@ -98,10 +103,7 @@ func main() {
 		}
 		for _, f := range matches {
 			f = filepath.Base(f)
-			if *flagOS == "linux" && androidFiles[f] {
-				continue
-			}
-			if *flagOS == "android" && !androidFiles[f] {
+			if *flagOS == "linux" && android != androidFiles[f] {
 				continue
 			}
 			files = append(files, filepath.Base(f))
