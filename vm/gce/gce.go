@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/gcs"
+	"github.com/google/syzkaller/pkg/kd"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/vm/vmimpl"
@@ -231,7 +232,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("console", conRpipe)
+	var decoder func(data []byte) (int, int, []byte)
+	if inst.env.OS == "windows" {
+		decoder = kd.Decode
+	}
+	merger.AddDecoder("console", conRpipe, decoder)
 
 	// We've started the console reading ssh command, but it has not necessary connected yet.
 	// If we proceed to running the target command right away, we can miss part
