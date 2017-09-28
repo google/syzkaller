@@ -67,9 +67,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if env.Name == "" {
 		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
-	if env.Image == "" {
-		return nil, fmt.Errorf("config param image is empty (required for GCE)")
-	}
 	cfg := &Config{
 		Count: 1,
 	}
@@ -87,6 +84,9 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	}
 	if cfg.GCE_Image == "" && cfg.GCS_Path == "" {
 		return nil, fmt.Errorf("gcs_path parameter is empty")
+	}
+	if cfg.GCE_Image == "" && env.Image == "" {
+		return nil, fmt.Errorf("config param image is empty (required for GCE)")
 	}
 	if cfg.GCE_Image != "" && env.Image != "" {
 		return nil, fmt.Errorf("both image and gce_image are specified")
