@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/gcs"
+	"github.com/google/syzkaller/pkg/kd"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/vm/vmimpl"
@@ -67,9 +68,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if env.Name == "" {
 		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
-	if env.Image == "" {
-		return nil, fmt.Errorf("config param image is empty (required for GCE)")
-	}
 	cfg := &Config{
 		Count: 1,
 	}
@@ -87,6 +85,9 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	}
 	if cfg.GCE_Image == "" && cfg.GCS_Path == "" {
 		return nil, fmt.Errorf("gcs_path parameter is empty")
+	}
+	if cfg.GCE_Image == "" && env.Image == "" {
+		return nil, fmt.Errorf("config param image is empty (required for GCE)")
 	}
 	if cfg.GCE_Image != "" && env.Image != "" {
 		return nil, fmt.Errorf("both image and gce_image are specified")
@@ -231,7 +232,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("console", conRpipe)
+	var decoder func(data []byte) (int, int, []byte)
+	if inst.env.OS == "windows" {
+		decoder = kd.Decode
+	}
+	merger.AddDecoder("console", conRpipe, decoder)
 
 	// We've started the console reading ssh command, but it has not necessary connected yet.
 	// If we proceed to running the target command right away, we can miss part
