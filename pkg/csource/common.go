@@ -396,6 +396,7 @@ static void execute_command(const char* format, ...)
 }
 
 static int tunfd = -1;
+static int tun_frags_enabled;
 
 #define SYZ_TUN_MAX_PACKET_SIZE 1000
 
@@ -410,6 +411,13 @@ static int tunfd = -1;
 
 #define LOCAL_IPV6 "fe80::%02hxaa"
 #define REMOTE_IPV6 "fe80::%02hxbb"
+
+#ifndef IFF_NAPI
+#define IFF_NAPI 0x0010
+#endif
+#ifndef IFF_NAPI_FRAGS
+#define IFF_NAPI_FRAGS 0x0020
+#endif
 
 static void initialize_tun(uint64_t pid)
 {
@@ -427,9 +435,16 @@ static void initialize_tun(uint64_t pid)
 	struct ifreq ifr;
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, iface, IFNAMSIZ);
-	ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-	if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0)
-		fail("tun: ioctl(TUNSETIFF) failed");
+	ifr.ifr_flags = IFF_TAP | IFF_NO_PI | IFF_NAPI | IFF_NAPI_FRAGS;
+	if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0) {
+		ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+		if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0)
+			fail("tun: ioctl(TUNSETIFF) failed");
+	}
+	if (ioctl(tunfd, TUNGETIFF, (void*)&ifr) < 0)
+		fail("tun: ioctl(TUNGETIFF) failed");
+	tun_frags_enabled = (ifr.ifr_flags & IFF_NAPI_FRAGS) != 0;
+	debug("tun_frags_enabled=%d\n", tun_frags_enabled);
 
 	char local_mac[ADDR_MAX_LEN];
 	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC, id);
@@ -472,7 +487,9 @@ static int read_tun(char* data, int size)
 	if (rv < 0) {
 		if (errno == EAGAIN)
 			return -1;
-		fail("tun: read failed with %d, errno: %d", rv, errno);
+		if (errno == EBADFD)
+			return -1;
+		fail("tun: read failed with %d", rv);
 	}
 	return rv;
 }
@@ -493,16 +510,54 @@ static void debug_dump_data(const char* data, int length)
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE))
-static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
-{
+#define MAX_FRAGS 4
+struct vnet_fragmentation {
+	uint32_t full;
+	uint32_t count;
+	uint32_t frags[MAX_FRAGS];
+};
 
+static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1, uintptr_t a2)
+{
 	if (tunfd < 0)
 		return (uintptr_t)-1;
 
-	int64_t length = a0;
+	uint32_t length = a0;
 	char* data = (char*)a1;
 	debug_dump_data(data, length);
-	return write(tunfd, data, length);
+
+	struct vnet_fragmentation* frags = (struct vnet_fragmentation*)a2;
+	struct iovec vecs[MAX_FRAGS + 1];
+	uint32_t nfrags = 0;
+	if (!tun_frags_enabled || frags == NULL) {
+		vecs[nfrags].iov_base = data;
+		vecs[nfrags].iov_len = length;
+		nfrags++;
+	} else {
+		bool full = true;
+		uint32_t i, count = 0;
+		NONFAILING(full = frags->full);
+		NONFAILING(count = frags->count);
+		if (count > MAX_FRAGS)
+			count = MAX_FRAGS;
+		for (i = 0; i < count && length != 0; i++) {
+			uint32_t size = 0;
+			NONFAILING(size = frags->frags[i]);
+			if (size > length)
+				size = length;
+			vecs[nfrags].iov_base = data;
+			vecs[nfrags].iov_len = size;
+			nfrags++;
+			data += size;
+			length -= size;
+		}
+		if (length != 0 && (full || nfrags == 0)) {
+			vecs[nfrags].iov_base = data;
+			vecs[nfrags].iov_len = length;
+			nfrags++;
+		}
+	}
+	return writev(tunfd, vecs, nfrags);
 }
 #endif
 
@@ -1745,8 +1800,6 @@ static bool write_file(const char* file, const char* what, ...)
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
 static int real_uid;
 static int real_gid;
-static int epid;
-static bool etun;
 __attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
 
 static int namespace_sandbox_proc(void* arg)
@@ -1758,10 +1811,6 @@ static int namespace_sandbox_proc(void* arg)
 		fail("write of /proc/self/uid_map failed");
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
-	setup_tun(epid, etun);
-#endif
 
 	if (mkdir("./syz-tmp", 0777))
 		fail("mkdir(syz-tmp) failed");
@@ -1812,10 +1861,12 @@ static int namespace_sandbox_proc(void* arg)
 
 static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 {
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
+	setup_tun(executor_pid, enable_tun);
+#endif
+
 	real_uid = getuid();
 	real_gid = getgid();
-	epid = executor_pid;
-	etun = enable_tun;
 	mprotect(sandbox_stack, 4096, PROT_NONE);
 	return clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
 		     CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
