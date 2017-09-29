@@ -4,7 +4,15 @@
 include <linux/types.h>
 include <linux/byteorder/generic.h>
 
-syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
+syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet], frags ptr[in, vnet_fragmentation, opt])
+
+vnet_fragmentation {
+# If set and we have remaining data after fragmentation, it is written in an additional fragment.
+# If not set, data remaining after fragmentation is discarded.
+	full	int32[0:1]
+	count	len[frags, int32]
+	frags	array[int32[0:4096], 1:4]
+}
 
 resource tcp_seq_num[int32]: 0x42424242
 

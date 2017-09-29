@@ -5563,6 +5563,11 @@ var structDescs_386 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "dei", TypeSize: 2}, BitfieldOff: 3, BitfieldLen: 1, BitfieldMdl: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "vid", TypeSize: 2}, BitfieldOff: 4, BitfieldLen: 12}},
 	}}},
+	{Key: StructKey{Name: "vnet_fragmentation"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vnet_fragmentation"}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "full", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "frags"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "frags"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 2, RangeEnd: 4096}, Kind: 1, RangeBegin: 1, RangeEnd: 4},
+	}}},
 	{Key: StructKey{Name: "vt_consize"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vt_consize", TypeSize: 12}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "rows", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "cols", TypeSize: 2}}},
@@ -13119,6 +13124,7 @@ var syscalls_386 = []*Syscall{
 	{ID: 1333, NR: 1000000, Name: "syz_emit_ethernet", CallName: "syz_emit_ethernet", Args: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "packet"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "packet", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "eth_packet"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "frags", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "vnet_fragmentation"}}},
 	}},
 	{ID: 1334, NR: 1000001, Name: "syz_extract_tcp_res", CallName: "syz_extract_tcp_res", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "res", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "tcp_resources", Dir: 1}}},
@@ -16734,4 +16740,4 @@ var consts_386 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_386 = "7b2f1949d48094cf3369932d0743db166049457b"
+const revision_386 = "20782fd14495c17a4a404316929c89e9d66373d6"
