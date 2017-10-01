@@ -1,6 +1,7 @@
 # Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
+include <zircon/syscalls.h>
 include <zircon/syscalls/object.h>
 include <zircon/syscalls/exception.h>
 
@@ -8,9 +9,6 @@ include <zircon/syscalls/exception.h>
 resource koid[int64]: 0
 
 # TODO:
-#object_get_property - read an object property
-#object_set_cookie - write an object cookie
-#object_set_property - modify an object property
 #object_signal - set or clear the user signals on an object
 #object_signal_peer - set or clear the user signals in the opposite end
 #object_wait_many - wait for signals on multiple objects
@@ -19,7 +17,7 @@ resource koid[int64]: 0
 
 zx_object_get_child(handle zx_handle, koid koid, rights flags[zx_rights], out ptr[out, zx_handle])
 zx_object_get_cookie(handle zx_handle, scope zx_handle, cookie ptr[out, int64])
-
+zx_object_set_cookie(handle zx_handle, scope zx_handle, cookie int64)
 zx_object_get_info$ZX_INFO_HANDLE_VALID(handle zx_handle, topic const[ZX_INFO_HANDLE_VALID], buffer const[0], buffer_size const[0], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_HANDLE_BASIC(handle zx_handle, topic const[ZX_INFO_HANDLE_BASIC], buffer ptr[out, zx_info_handle_basic], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 zx_object_get_info$ZX_INFO_PROCESS(handle zx_process, topic const[ZX_INFO_PROCESS], buffer ptr[out, zx_info_process], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
@@ -38,6 +36,16 @@ zx_object_get_info$ZX_INFO_CPU_STATS(handle zx_handle, topic const[ZX_INFO_CPU_S
 zx_object_get_info$ZX_INFO_KMEM_STATS(handle zx_handle, topic const[ZX_INFO_KMEM_STATS], buffer ptr[out, zx_info_kmem_stats], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
 # TODO: what is handle type here?
 zx_object_get_info$ZX_INFO_RESOURCE(handle zx_handle, topic const[ZX_INFO_RESOURCE], buffer ptr[out, zx_info_resource], buffer_size bytesize[buffer], actual ptr[out, intptr], avail ptr[out, intptr])
+# TODO: detail properties
+zx_object_get_property(handle zx_handle, property int32, value ptr[out, array[int8]], size len[value])
+zx_object_set_property(handle zx_handle, property int32, value ptr[in, array[int8]], size len[value])
+zx_object_signal(handle zx_handle, clear_mask int32, set_mask int32)
+zx_object_signal_peer(handle zx_handle, clear_mask int32, set_mask int32)
+zx_object_wait_one(handle zx_handle, signals int32, deadline zx_time, observed ptr[out, int32])
+zx_object_wait_async(handle zx_handle, port zx_port, key int64, signals int32, options flags[wait_async_options])
+zx_object_wait_many(items ptr[in, array[zx_wait_item]], count len[items], deadline zx_time)
+
+wait_async_options = ZX_WAIT_ASYNC_ONCE, ZX_WAIT_ASYNC_REPEATING
 
 zx_info_handle_basic {
 	koid		koid
@@ -164,4 +172,10 @@ x86_64_exc_data {
 arm64_exc_data {
 	esr	int32
 	far	int64
+}
+
+zx_wait_item {
+	handle	zx_handle
+	waitfor	int32
+	pending	int32
 }
