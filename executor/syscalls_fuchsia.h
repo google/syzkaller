@@ -2,14 +2,14 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "3b490e61c63ea05eb2c4569ba31e8335f65af325"
+#define SYZ_REVISION "c3bd3ab69ea8ecd0c05971c0ced1dd363867b861"
 #define __NR_syz_job_default 1000000
 #define __NR_syz_mmap 1000001
 #define __NR_syz_process_self 1000002
 #define __NR_syz_thread_self 1000003
 #define __NR_syz_vmar_root_self 1000004
 
-unsigned syscall_count = 77;
+unsigned syscall_count = 103;
 call_t syscalls[] = {
     {"syz_job_default", 1000000, (syscall_t)syz_job_default},
     {"syz_mmap", 1000001, (syscall_t)syz_mmap},
@@ -58,6 +58,14 @@ call_t syscalls[] = {
     {"zx_object_get_info$ZX_INFO_THREAD_EXCEPTION_REPORT", 0, (syscall_t)zx_object_get_info},
     {"zx_object_get_info$ZX_INFO_THREAD_STATS", 0, (syscall_t)zx_object_get_info},
     {"zx_object_get_info$ZX_INFO_VMAR", 0, (syscall_t)zx_object_get_info},
+    {"zx_object_get_property", 0, (syscall_t)zx_object_get_property},
+    {"zx_object_set_cookie", 0, (syscall_t)zx_object_set_cookie},
+    {"zx_object_set_property", 0, (syscall_t)zx_object_set_property},
+    {"zx_object_signal", 0, (syscall_t)zx_object_signal},
+    {"zx_object_signal_peer", 0, (syscall_t)zx_object_signal_peer},
+    {"zx_object_wait_async", 0, (syscall_t)zx_object_wait_async},
+    {"zx_object_wait_many", 0, (syscall_t)zx_object_wait_many},
+    {"zx_object_wait_one", 0, (syscall_t)zx_object_wait_one},
     {"zx_port_cancel", 0, (syscall_t)zx_port_cancel},
     {"zx_port_create", 0, (syscall_t)zx_port_create},
     {"zx_port_queue", 0, (syscall_t)zx_port_queue},
@@ -87,21 +95,39 @@ call_t syscalls[] = {
     {"zx_timer_cancel", 0, (syscall_t)zx_timer_cancel},
     {"zx_timer_create", 0, (syscall_t)zx_timer_create},
     {"zx_timer_set", 0, (syscall_t)zx_timer_set},
+    {"zx_vmar_allocate", 0, (syscall_t)zx_vmar_allocate},
+    {"zx_vmar_destroy", 0, (syscall_t)zx_vmar_destroy},
+    {"zx_vmar_map", 0, (syscall_t)zx_vmar_map},
+    {"zx_vmar_protect", 0, (syscall_t)zx_vmar_protect},
+    {"zx_vmar_unmap", 0, (syscall_t)zx_vmar_unmap},
     {"zx_vmar_unmap_handle_close_thread_exit", 0, (syscall_t)zx_vmar_unmap_handle_close_thread_exit},
+    {"zx_vmo_clone", 0, (syscall_t)zx_vmo_clone},
+    {"zx_vmo_create", 0, (syscall_t)zx_vmo_create},
+    {"zx_vmo_get_size", 0, (syscall_t)zx_vmo_get_size},
+    {"zx_vmo_op_range$ZX_VMO_OP_CACHE_CLEAN", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_CACHE_CLEAN_INVALIDATE", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_CACHE_INVALIDATE", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_CACHE_SYNC", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_COMMIT", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_DECOMMIT", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_LOOKUP", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_read", 0, (syscall_t)zx_vmo_read},
+    {"zx_vmo_set_size", 0, (syscall_t)zx_vmo_set_size},
+    {"zx_vmo_write", 0, (syscall_t)zx_vmo_write},
 
 };
 #endif
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "7aa3efd28c51db95f99f7b3c8feb4f66ad25f0d8"
+#define SYZ_REVISION "74ac3e7eb1255a4c53421a5f38ae8b75e7bada88"
 #define __NR_syz_job_default 1000000
 #define __NR_syz_mmap 1000001
 #define __NR_syz_process_self 1000002
 #define __NR_syz_thread_self 1000003
 #define __NR_syz_vmar_root_self 1000004
 
-unsigned syscall_count = 77;
+unsigned syscall_count = 103;
 call_t syscalls[] = {
     {"syz_job_default", 1000000, (syscall_t)syz_job_default},
     {"syz_mmap", 1000001, (syscall_t)syz_mmap},
@@ -150,6 +176,14 @@ call_t syscalls[] = {
     {"zx_object_get_info$ZX_INFO_THREAD_EXCEPTION_REPORT", 0, (syscall_t)zx_object_get_info},
     {"zx_object_get_info$ZX_INFO_THREAD_STATS", 0, (syscall_t)zx_object_get_info},
     {"zx_object_get_info$ZX_INFO_VMAR", 0, (syscall_t)zx_object_get_info},
+    {"zx_object_get_property", 0, (syscall_t)zx_object_get_property},
+    {"zx_object_set_cookie", 0, (syscall_t)zx_object_set_cookie},
+    {"zx_object_set_property", 0, (syscall_t)zx_object_set_property},
+    {"zx_object_signal", 0, (syscall_t)zx_object_signal},
+    {"zx_object_signal_peer", 0, (syscall_t)zx_object_signal_peer},
+    {"zx_object_wait_async", 0, (syscall_t)zx_object_wait_async},
+    {"zx_object_wait_many", 0, (syscall_t)zx_object_wait_many},
+    {"zx_object_wait_one", 0, (syscall_t)zx_object_wait_one},
     {"zx_port_cancel", 0, (syscall_t)zx_port_cancel},
     {"zx_port_create", 0, (syscall_t)zx_port_create},
     {"zx_port_queue", 0, (syscall_t)zx_port_queue},
@@ -179,7 +213,25 @@ call_t syscalls[] = {
     {"zx_timer_cancel", 0, (syscall_t)zx_timer_cancel},
     {"zx_timer_create", 0, (syscall_t)zx_timer_create},
     {"zx_timer_set", 0, (syscall_t)zx_timer_set},
+    {"zx_vmar_allocate", 0, (syscall_t)zx_vmar_allocate},
+    {"zx_vmar_destroy", 0, (syscall_t)zx_vmar_destroy},
+    {"zx_vmar_map", 0, (syscall_t)zx_vmar_map},
+    {"zx_vmar_protect", 0, (syscall_t)zx_vmar_protect},
+    {"zx_vmar_unmap", 0, (syscall_t)zx_vmar_unmap},
     {"zx_vmar_unmap_handle_close_thread_exit", 0, (syscall_t)zx_vmar_unmap_handle_close_thread_exit},
+    {"zx_vmo_clone", 0, (syscall_t)zx_vmo_clone},
+    {"zx_vmo_create", 0, (syscall_t)zx_vmo_create},
+    {"zx_vmo_get_size", 0, (syscall_t)zx_vmo_get_size},
+    {"zx_vmo_op_range$ZX_VMO_OP_CACHE_CLEAN", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_CACHE_CLEAN_INVALIDATE", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_CACHE_INVALIDATE", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_CACHE_SYNC", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_COMMIT", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_DECOMMIT", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_op_range$ZX_VMO_OP_LOOKUP", 0, (syscall_t)zx_vmo_op_range},
+    {"zx_vmo_read", 0, (syscall_t)zx_vmo_read},
+    {"zx_vmo_set_size", 0, (syscall_t)zx_vmo_set_size},
+    {"zx_vmo_write", 0, (syscall_t)zx_vmo_write},
 
 };
 #endif
