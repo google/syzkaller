@@ -62,6 +62,13 @@ var List = map[string]map[string]*Target{
 			KernelHeaderArch: "powerpc",
 		},
 	},
+	"freebsd": map[string]*Target{
+		"amd64": {
+			PtrSize: 8,
+			CArch:   []string{"__x86_64__"},
+			CFlags:  []string{"-m64"},
+		},
+	},
 	"fuchsia": map[string]*Target{
 		"amd64": {
 			PtrSize: 8,
@@ -83,11 +90,17 @@ var List = map[string]map[string]*Target{
 type OS struct {
 	// Does the OS use syscall numbers (e.g. Linux) or has interface based on functions (e.g. fuchsia).
 	SyscallNumbers bool
+	SyscallPrefix  string
 }
 
 var OSList = map[string]*OS{
 	"linux": {
 		SyscallNumbers: true,
+		SyscallPrefix:  "__NR_",
+	},
+	"freebsd": {
+		SyscallNumbers: true,
+		SyscallPrefix:  "SYS_",
 	},
 	"fuchsia": {
 		SyscallNumbers: false,

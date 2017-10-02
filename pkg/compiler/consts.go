@@ -43,6 +43,7 @@ func ExtractConsts(desc *ast.Description, target *targets.Target, eh0 ast.ErrorH
 	incdirMap := make(map[string]bool)
 	constMap := make(map[string]bool)
 	syscallNumbers := targets.OSList[target.OS].SyscallNumbers
+	syscallPrefix := targets.OSList[target.OS].SyscallPrefix
 
 	ast.Walk(desc, func(n1 ast.Node) {
 		switch n := n1.(type) {
@@ -76,7 +77,7 @@ func ExtractConsts(desc *ast.Description, target *targets.Target, eh0 ast.ErrorH
 			constMap[name] = true
 		case *ast.Call:
 			if syscallNumbers && !strings.HasPrefix(n.CallName, "syz_") {
-				constMap["__NR_"+n.CallName] = true
+				constMap[syscallPrefix+n.CallName] = true
 			}
 		case *ast.Type:
 			if c := typeConstIdentifier(n); c != nil {
@@ -118,6 +119,7 @@ func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
 	}
 
 	var top []ast.Node
+	syscallPrefix := targets.OSList[comp.target.OS].SyscallPrefix
 	for _, decl := range comp.desc.Nodes {
 		switch decl.(type) {
 		case *ast.Call:
@@ -132,7 +134,7 @@ func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
 				continue
 			}
 			// Lookup in consts.
-			str := "__NR_" + c.CallName
+			str := syscallPrefix + c.CallName
 			nr, ok := consts[str]
 			top = append(top, decl)
 			if ok {
