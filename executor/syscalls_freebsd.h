@@ -2,11 +2,12 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "8e89c92ba6210bfbb714647598abe10b8cbb4edf"
+#define SYZ_REVISION "7c737d486a33a6a0817ce924247b4b67428f7a07"
 
-unsigned syscall_count = 1;
+unsigned syscall_count = 2;
 call_t syscalls[] = {
-    {"mmap", 1},
+    {"mmap", 477},
+    {"pipe", 42},
 
 };
 #endif

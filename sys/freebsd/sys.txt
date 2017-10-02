@@ -3,7 +3,15 @@
 
 include <sys/mman.h>
 
+resource fd[int32]: 0xffffffffffffffff
+
 mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd const[0xffffffffffffffff], offset const[0]) vma
+pipe(pipefd ptr[out, pipefd])
 
 mmap_prot = PROT_READ, PROT_WRITE
 mmap_flags = MAP_PRIVATE, MAP_ANONYMOUS, MAP_FIXED
+
+pipefd {
+	rfd	fd
+	wfd	fd
+}
