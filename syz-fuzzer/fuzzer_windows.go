@@ -7,9 +7,6 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 )
 
-func osInit() {
-}
-
 func kmemleakInit() {
 	if *flagLeak {
 		log.Fatalf("leak checking is not supported on windows")

@@ -70,7 +70,7 @@ func ProcessTempDir(where string) (string, error) {
 func HandleInterrupts(shutdown chan struct{}) {
 	go func() {
 		c := make(chan os.Signal, 3)
-		signal.Notify(c, syscall.SIGINT)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 		<-c
 		close(shutdown)
 		fmt.Fprint(os.Stderr, "SIGINT: shutting down...\n")
