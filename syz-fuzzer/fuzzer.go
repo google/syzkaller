@@ -112,7 +112,14 @@ func main() {
 		Fatalf("%v", err)
 	}
 
-	osInit()
+	shutdown := make(chan struct{})
+	osutil.HandleInterrupts(shutdown)
+	go func() {
+		// Handles graceful preemption on GCE.
+		<-shutdown
+		Logf(0, "SYZ-FUZZER: PREEMPTED")
+		os.Exit(1)
+	}()
 
 	if *flagPprof != "" {
 		go func() {
