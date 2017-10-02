@@ -122,6 +122,9 @@ func TestOne(t *testing.T) {
 			t.Parallel()
 			rs := rand.NewSource(0)
 			p := target.GenerateAllSyzProg(rs)
+			if len(p.Calls) == 0 {
+				t.Skip("no syz syscalls")
+			}
 			testOne(t, p, opts)
 		})
 	}

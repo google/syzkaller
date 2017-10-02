@@ -191,6 +191,7 @@ bin/syz-sysgen:
 format: bin/syz-fmt
 	$(GO) fmt ./...
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
+	bin/syz-fmt sys/freebsd
 	bin/syz-fmt sys/linux
 	bin/syz-fmt sys/fuchsia
 	bin/syz-fmt sys/windows
@@ -230,6 +231,8 @@ arch:
 	env TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=386 $(MAKE) target
 	env GOOG=windows go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
+	env GOOG=freebsd go install github.com/google/syzkaller/syz-fuzzer
+	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
 
 presubmit:
 	$(MAKE) generate
