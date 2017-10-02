@@ -9,11 +9,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -231,36 +229,4 @@ func processFile(OS OS, arch *Arch, inname string) (map[string]bool, error) {
 		return nil, fmt.Errorf("failed to write output file: %v", err)
 	}
 	return undeclared, nil
-}
-
-func runBinaryAndParse(bin string, vals []string, undeclared map[string]bool) (map[string]uint64, error) {
-	out, err := exec.Command(bin).CombinedOutput()
-	if err != nil {
-		return nil, fmt.Errorf("failed to run flags binary: %v\n%v", err, string(out))
-	}
-	flagVals := strings.Split(string(out), " ")
-	if len(out) == 0 {
-		flagVals = nil
-	}
-	if len(flagVals) != len(vals)-len(undeclared) {
-		return nil, fmt.Errorf("fetched wrong number of values %v != %v - %v\nflagVals: %q\nvals: %q\nundeclared: %q",
-			len(flagVals), len(vals), len(undeclared),
-			flagVals, vals, undeclared)
-	}
-	res := make(map[string]uint64)
-	j := 0
-	for _, v := range flagVals {
-		name := vals[j]
-		j++
-		for undeclared[name] {
-			name = vals[j]
-			j++
-		}
-		n, err := strconv.ParseUint(v, 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse value: %v (%v)", err, v)
-		}
-		res[name] = n
-	}
-	return res, nil
 }
