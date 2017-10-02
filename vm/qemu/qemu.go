@@ -83,6 +83,10 @@ var archConfigs = map[string]archConfig{
 	"linux/ppc64le": {
 		Qemu: "qemu-system-ppc64",
 	},
+	"freebsd/amd64": {
+		Qemu:     "qemu-system-x86_64",
+		QemuArgs: "-enable-kvm -usb -usbdevice mouse -usbdevice tablet -soundhw all",
+	},
 	"fuchsia/amd64": {
 		Qemu:     "qemu-system-x86_64",
 		QemuArgs: "-enable-kvm",
