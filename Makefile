@@ -208,19 +208,27 @@ test:
 	$(GO) test -short -race ./...
 
 arch:
+	env GOOG=darwin GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
+	env GOOG=linux GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
 	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
+	env GOOG=linux GOARCH=amd64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
+	env GOOG=linux GOARCH=arm64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
+	env GOOG=linux GOARCH=ppc64le go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
 	# executor build on arm fails with:
 	# Error: alignment too large: 15 assumed
+	env GOOG=linux GOARCH=arm64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=arm64 TARGETVMARCH=arm $(MAKE) target
 	# executor build on 386 on travis fails with:
 	# fatal error: asm/errno.h: No such file or directory
 	# We install a bunch of additional packages in .travis.yml,
 	# but I can't guess the right one.
+	env GOOG=linux GOARCH=386 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=386 $(MAKE) target
+	env GOOG=windows go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
 
 presubmit:
