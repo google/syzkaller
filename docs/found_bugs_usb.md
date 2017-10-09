@@ -1,5 +1,7 @@
 # Found Linux kernel USB bugs
 
+## USB drivers
+
 * [usb/media/uvc: BUG in uvc_mc_create_links/media_create_pad_link](https://groups.google.com/forum/#!topic/syzkaller/BOv81nh75TM)
 * [usb/media/v4l2: use-after-free in video_unregister_device/device_del](https://groups.google.com/forum/#!topic/syzkaller/C2RyOxjhxh4)
 * [usb/serial/visor: slab-out-of-bounds in palm_os_3_probe](https://groups.google.com/forum/#!topic/syzkaller/G5hNiJG2RXo)
@@ -21,13 +23,12 @@
 * [usb/media/stkwebcam: use-after-free in v4l2_ctrl_handler_free](https://groups.google.com/forum/#!topic/syzkaller/5kLo7aPtx1w)
 * [usb/media/dib0700: BUG in stk7070p_frontend_attach/symbol_put_addr](https://groups.google.com/forum/#!topic/syzkaller/-d6ilzbVu_g)
 * [usb/sounds: slab-out-of-bounds read in snd_usb_create_streams](https://groups.google.com/forum/#!topic/syzkaller/rDzv5RP_f2M)
-* [usb/gadget: copy_to_user called with spinlock held](https://groups.google.com/forum/#!topic/syzkaller/xmFE5DTHkME)
 * [usb/media/hdpvr: trying to register non-static key in hdpvr_probe](https://groups.google.com/forum/#!topic/syzkaller/ngC5SLvxPm4)
 * [usb/net/hso: warning in hso_free_net_device](https://groups.google.com/forum/#!topic/syzkaller/J4Ua_T43Tjw)
 * [usb/net/hso: global-out-of-bounds in hso_probe](https://groups.google.com/forum/#!topic/syzkaller/TDPcSXI2nBA)
 * [usb/media/smsusb: use-after-free in worker_thread](https://groups.google.com/forum/#!topic/syzkaller/RS7QUTKo23s)
 * [usb/storage/uas: slab-out-of-bounds in uas_probe](https://groups.google.com/forum/#!topic/syzkaller/pCswO77gRlM)
-* [usb/sound/usx2y: warning in usb_stream_new/__alloc_pages_slowpath](https://groups.google.com/forum/#!topic/syzkaller/vGwGJW_H-0I)
+* [usb/sound/usx2y: warning in usb_stream_new/__alloc_pages_slowpath](https://groups.google.com/forum/#!topic/syzkaller/vGwGJW_H-0I) [[fix](https://github.com/torvalds/linux/commit/7682e399485fe19622b6fd82510b1f4551e48a25)]
 * [usb/media/pvrusb2: warning in pvr2_send_request_ex/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/M2GeMYS0f6E)
 * [usb/media/smsusb: null-ptr-deref in smsusb_init_device](https://groups.google.com/forum/#!topic/syzkaller/yvhFawNoqxE)
 * [usb/media/cx231xx: null-ptr-deref in cx231xx_usb_probe](https://groups.google.com/forum/#!topic/syzkaller/WlUAVfDvpRk)
@@ -37,16 +38,21 @@
 * [usb/core: slab-out-of-bounds in usb_set_configuration](https://groups.google.com/forum/#!topic/syzkaller/hP6L-m59m_8)
 * [usb/uwb: WARNING in hwarc_neep_init/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/kxql4awIiR4)
 * [usb/uwb: GPF in uwbd_start](https://groups.google.com/forum/#!topic/syzkaller/zROBxKXzHDk)
-* [usb/gadget: null-ptr-deref in dev_ioctl](https://groups.google.com/forum/#!topic/syzkaller/ShlQyQLCe60)
-* [usb: stalls in dummy_timer / usbtouch_probe](https://groups.google.com/forum/#!topic/syzkaller/9MKj0sRWn3Y)
 * [usb/joystick: warnings in xpad_start_input and xpad_try_sending_next_out_packet](https://groups.google.com/forum/#!topic/syzkaller/nMIkggZOUxA)
 * [usb/midi: use-after-free in snd_rawmidi_dev_seq_free](https://groups.google.com/forum/#!topic/syzkaller/kuZzDHGkQu8)
-* [usb/gadget: potential deadlock in gadgetfs_suspend](https://groups.google.com/forum/#!topic/syzkaller/J_It9ipKXhk)
-* [usb/gadget: another GPF in usb_gadget_unregister_driver](https://groups.google.com/forum/#!topic/syzkaller/I6t-ToS5cxE)
-* [usb/core: warning in usb_create_ep_devs/sysfs_create_dir_ns](https://groups.google.com/forum/#!topic/syzkaller/wvB_W78nTh0)
-* [usb/gadget: warning in ep_write_iter/__alloc_pages_nodemask](https://groups.google.com/forum/#!topic/syzkaller/d2FD55alPqY)
-* [usb/gadget: slab-out-of-bounds write in dev_config](https://groups.google.com/forum/#!topic/syzkaller/Y4hEomcJgjY)
-* [usb/gadget: warning in dummy_free_request](https://groups.google.com/forum/#!topic/syzkaller/nNVKOT0fdaY)
-* [usb/gadget: use-after-free in gadgetfs_setup](https://groups.google.com/forum/#!topic/syzkaller/PBWoEbmzrto)
+* [usb/core: warning in usb_create_ep_devs/sysfs_create_dir_ns](https://groups.google.com/forum/#!topic/syzkaller/wvB_W78nTh0) [[fix](https://github.com/torvalds/linux/commit/0a8fd1346254974c3a852338508e4a4cddbb35f1)]
+
+## GadgetFS
+
+* [usb/gadget: stalls in dummy_timer / usbtouch_probe](https://groups.google.com/forum/#!topic/syzkaller/9MKj0sRWn3Y) [[fix](https://github.com/torvalds/linux/commit/0173a68bfb0ad1c72a6ee39cc485aa2c97540b98)]
+* [usb/gadget: copy_to_user called with spinlock held](https://groups.google.com/forum/#!topic/syzkaller/xmFE5DTHkME) [[fix](https://github.com/torvalds/linux/commit/6e76c01e71551cb221c1f3deacb9dcd9a7346784)]
+* [usb/gadget: null-ptr-deref in dev_ioctl](https://groups.google.com/forum/#!topic/syzkaller/ShlQyQLCe60) [[fix](520b72fc64debf8a86c3853b8e486aa5982188f0)]
+* [usb/gadget: potential deadlock in gadgetfs_suspend](https://groups.google.com/forum/#!topic/syzkaller/J_It9ipKXhk) [[fix](https://github.com/torvalds/linux/commit/f16443a034c7aa359ddf6f0f9bc40d01ca31faea)]
+* [usb/gadget: another GPF in usb_gadget_unregister_driver](https://groups.google.com/forum/#!topic/syzkaller/I6t-ToS5cxE) [[fix](https://github.com/torvalds/linux/commit/f50b878fed33e360d01dcdc31a8eeb1815d033d5)]
+* [usb/gadget: warning in ep_write_iter/__alloc_pages_nodemask](https://groups.google.com/forum/#!topic/syzkaller/d2FD55alPqY) [[fix](https://github.com/torvalds/linux/commit/bb1107f7c6052c863692a41f78c000db792334bf)]
+* [usb/gadget: slab-out-of-bounds write in dev_config](https://groups.google.com/forum/#!topic/syzkaller/Y4hEomcJgjY) [[fix](https://github.com/torvalds/linux/commit/faab50984fe6636e616c7cc3d30308ba391d36fd)]
+* [usb/gadget: warning in dummy_free_request](https://groups.google.com/forum/#!topic/syzkaller/nNVKOT0fdaY) [[fix](https://github.com/torvalds/linux/commit/bcdbeb844773333d2d1c08004f3b3e25921040e5)]
+* [usb/gadget: poor checks of wTotalLength in config descriptors](https://groups.google.com/forum/#!topic/syzkaller/PBWoEbmzrto) [[fix](https://github.com/torvalds/linux/commit/1c069b057dcf64fada952eaa868d35f02bb0cfc2)]
+* [usb/gadget: use-after-free in gadgetfs_setup](https://groups.google.com/forum/#!topic/syzkaller/PBWoEbmzrto) [[fix](https://github.com/torvalds/linux/commit/add333a81a16abbd4f106266a2553677a165725f)]
 * [usb/gadget: GPF in usb_gadget_unregister_driver](https://groups.google.com/forum/#!topic/syzkaller/HDawLBeeORI)
-* [usb/gadget: warning in dev_config/memdup_user](https://groups.google.com/forum/#!topic/syzkaller/bt6m57DyKLk)
+* [usb/gadget: warning in dev_config/memdup_user](https://groups.google.com/forum/#!topic/syzkaller/bt6m57DyKLk) [[fix](https://github.com/torvalds/linux/commit/0994b0a257557e18ee8f0b7c5f0f73fe2b54eec1)]
