@@ -22,6 +22,7 @@ Choose the following options.
 	    [*]   Show packages that are also provided by busybox
 	    Networking applications
 	        [*] dhcpcd
+	        [*] iproute2
 	        [*] openssh
     Filesystem images
 	    [*] ext2/3/4 root filesystem
