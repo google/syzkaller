@@ -5,9 +5,9 @@
 * [usb/media/uvc: BUG in uvc_mc_create_links/media_create_pad_link](https://groups.google.com/forum/#!topic/syzkaller/BOv81nh75TM)
 * [usb/media/v4l2: use-after-free in video_unregister_device/device_del](https://groups.google.com/forum/#!topic/syzkaller/C2RyOxjhxh4)
 * [usb/serial/visor: slab-out-of-bounds in palm_os_3_probe](https://groups.google.com/forum/#!topic/syzkaller/G5hNiJG2RXo)
-* [usb/misc/usbtest: null-ptr-deref in usbtest_probe/get_endpoints](https://groups.google.com/forum/#!topic/syzkaller/l3870gs3LhA)
+* [usb/misc/usbtest: null-ptr-deref in usbtest_probe/get_endpoints](https://groups.google.com/forum/#!topic/syzkaller/l3870gs3LhA) [[fix](https://www.spinics.net/lists/linux-usb/msg161144.html)]
 * [usb/misc/ims-pcu: slab-out-of-bounds in ims_pcu_parse_cdc_data](https://groups.google.com/forum/#!topic/syzkaller/q6jjr1OhqO8)
-* [usb/serial: use-after-free in usb_serial_disconnect/__lock_acquire](https://groups.google.com/forum/#!topic/syzkaller/cMACrmo1x0k)
+* [usb/serial: use-after-free in usb_serial_disconnect/__lock_acquire](https://groups.google.com/forum/#!topic/syzkaller/cMACrmo1x0k) [[fix1](https://www.spinics.net/lists/linux-usb/msg161255.html), [fix2](https://www.spinics.net/lists/linux-usb/msg161253.html)]
 * [usb/misc/rio500: double-free or invalid-free in disconnect_rio](https://groups.google.com/forum/#!topic/syzkaller/7JmbWaXqaIQ)
 * [usb/sound/caiaq: warning in init_card/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/juLOtVudBkQ)
 * [usb/input/aiptek: warning in aiptek_open/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/F7dVa-5YFlQ)
@@ -16,14 +16,14 @@
 * [usb/media/uvc: warning in uvc_scan_chain_forward/__list_add](https://groups.google.com/forum/#!topic/syzkaller/cEn3pmrYye4)
 * [usb/sound/line6: trying to register non-static key in podhd_disconnect](https://groups.google.com/forum/#!topic/syzkaller/wEY6yXp-zC8)
 * [usb/sound/line6: warning in line6_start_listen/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/33v4K1orrPk)
-* [usb/media/lmedm04: GPF in lme2510_int_read/usb_pipe_endpoint](https://groups.google.com/forum/#!topic/syzkaller/XwNidsl4X04)
+* [usb/media/lmedm04: GPF in lme2510_int_read/usb_pipe_endpoint](https://groups.google.com/forum/#!topic/syzkaller/XwNidsl4X04) [[fix1](https://patchwork.linuxtv.org/patch/44566/), [fix2](https://patchwork.linuxtv.org/patch/44567/)]
 * [usb/sound/bcd2000: warning in bcd2000_idrivers/usb/serial/usb-serial.cnit_device](https://groups.google.com/forum/#!topic/syzkaller/uU0anmKkD1w)
 * [usb/wireless/rsi_91x: use-after-free write in __run_timers](https://groups.google.com/forum/#!topic/syzkaller/9IV2cQldrx0)
 * [usb/media/zr364xx: GPF in zr364xx_vidioc_querycap/strlcpy](https://groups.google.com/forum/#!topic/syzkaller/-EuMlzvOHGo)
 * [usb/media/stkwebcam: use-after-free in v4l2_ctrl_handler_free](https://groups.google.com/forum/#!topic/syzkaller/5kLo7aPtx1w)
 * [usb/media/dib0700: BUG in stk7070p_frontend_attach/symbol_put_addr](https://groups.google.com/forum/#!topic/syzkaller/-d6ilzbVu_g)
 * [usb/sounds: slab-out-of-bounds read in snd_usb_create_streams](https://groups.google.com/forum/#!topic/syzkaller/rDzv5RP_f2M) [[fix](https://github.com/torvalds/linux/commit/bfc81a8bc18e3c4ba0cbaa7666ff76be2f998991)]
-* [usb/media/hdpvr: trying to register non-static key in hdpvr_probe](https://groups.google.com/forum/#!topic/syzkaller/ngC5SLvxPm4)
+* [usb/media/hdpvr: trying to register non-static key in hdpvr_probe](https://groups.google.com/forum/#!topic/syzkaller/ngC5SLvxPm4) [[fix](https://patchwork.kernel.org/patch/9966135/)]
 * [usb/net/hso: warning in hso_free_net_device](https://groups.google.com/forum/#!topic/syzkaller/J4Ua_T43Tjw)
 * [usb/net/hso: global-out-of-bounds in hso_probe](https://groups.google.com/forum/#!topic/syzkaller/TDPcSXI2nBA)
 * [usb/media/smsusb: use-after-free in worker_thread](https://groups.google.com/forum/#!topic/syzkaller/RS7QUTKo23s)
@@ -31,7 +31,7 @@
 * [usb/sound/usx2y: warning in usb_stream_new/__alloc_pages_slowpath](https://groups.google.com/forum/#!topic/syzkaller/vGwGJW_H-0I) [[fix](https://github.com/torvalds/linux/commit/7682e399485fe19622b6fd82510b1f4551e48a25)]
 * [usb/media/pvrusb2: warning in pvr2_send_request_ex/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/M2GeMYS0f6E)
 * [usb/media/smsusb: null-ptr-deref in smsusb_init_device](https://groups.google.com/forum/#!topic/syzkaller/yvhFawNoqxE)
-* [usb/media/cx231xx: null-ptr-deref in cx231xx_usb_probe](https://groups.google.com/forum/#!topic/syzkaller/WlUAVfDvpRk)
+* [usb/media/cx231xx: null-ptr-deref in cx231xx_usb_probe](https://groups.google.com/forum/#!topic/syzkaller/WlUAVfDvpRk) [[fix](https://patchwork.kernel.org/patch/9963527/)]
 * [usb/net/p54: trying to register non-static key in p54_unregister_leds](https://groups.google.com/forum/#!topic/syzkaller/H6mX3aQPvvQ) [[fix](https://patchwork.kernel.org/patch/9972281/)]
 * [usb/core: slab-out-of-bounds read in cdc_parse_cdc_header](https://groups.google.com/forum/#!topic/syzkaller/nXnjqI73uPo) [[fix](https://github.com/torvalds/linux/commit/2e1c42391ff2556387b3cb6308b24f6f65619feb)]
 * [usb/hid: slab-out-of-bounds read in usbhid_parse](https://groups.google.com/forum/#!topic/syzkaller/CxkJ9QZgwlM) [[fix](https://patchwork.kernel.org/patch/9975711/)]
