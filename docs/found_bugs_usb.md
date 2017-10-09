@@ -56,8 +56,8 @@
 ## GadgetFS
 
 * [usb/gadget: stalls in dummy_timer / usbtouch_probe](https://groups.google.com/forum/#!topic/syzkaller/9MKj0sRWn3Y) [[fix](https://github.com/torvalds/linux/commit/0173a68bfb0ad1c72a6ee39cc485aa2c97540b98)]
-* [usb/gadget: copy_to_user called with spinlock held](https://groups.google.com/forum/#!topic/syzkaller/xmFE5DTHkME) [[fix](https://github.com/torvalds/linux/commit/6e76c01e71551cb221c1f3deacb9dcd9a7346784)]
 * [usb/gadget: null-ptr-deref in dev_ioctl](https://groups.google.com/forum/#!topic/syzkaller/ShlQyQLCe60) [[fix](https://github.com/torvalds/linux/commit/520b72fc64debf8a86c3853b8e486aa5982188f0)]
+* [usb/gadget: copy_to_user called with spinlock held](https://groups.google.com/forum/#!topic/syzkaller/xmFE5DTHkME) [[fix](https://github.com/torvalds/linux/commit/6e76c01e71551cb221c1f3deacb9dcd9a7346784)]
 * [usb/gadget: potential deadlock in gadgetfs_suspend](https://groups.google.com/forum/#!topic/syzkaller/J_It9ipKXhk) [[fix](https://github.com/torvalds/linux/commit/f16443a034c7aa359ddf6f0f9bc40d01ca31faea)]
 * [usb/gadget: another GPF in usb_gadget_unregister_driver](https://groups.google.com/forum/#!topic/syzkaller/I6t-ToS5cxE) [[fix](https://github.com/torvalds/linux/commit/f50b878fed33e360d01dcdc31a8eeb1815d033d5)]
 * [usb/gadget: warning in ep_write_iter/__alloc_pages_nodemask](https://groups.google.com/forum/#!topic/syzkaller/d2FD55alPqY) [[fix](https://github.com/torvalds/linux/commit/bb1107f7c6052c863692a41f78c000db792334bf)]
