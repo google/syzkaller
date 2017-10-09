@@ -22,24 +22,24 @@
 * [usb/media/zr364xx: GPF in zr364xx_vidioc_querycap/strlcpy](https://groups.google.com/forum/#!topic/syzkaller/-EuMlzvOHGo)
 * [usb/media/stkwebcam: use-after-free in v4l2_ctrl_handler_free](https://groups.google.com/forum/#!topic/syzkaller/5kLo7aPtx1w)
 * [usb/media/dib0700: BUG in stk7070p_frontend_attach/symbol_put_addr](https://groups.google.com/forum/#!topic/syzkaller/-d6ilzbVu_g)
-* [usb/sounds: slab-out-of-bounds read in snd_usb_create_streams](https://groups.google.com/forum/#!topic/syzkaller/rDzv5RP_f2M)
+* [usb/sounds: slab-out-of-bounds read in snd_usb_create_streams](https://groups.google.com/forum/#!topic/syzkaller/rDzv5RP_f2M) [[fix](https://github.com/torvalds/linux/commit/bfc81a8bc18e3c4ba0cbaa7666ff76be2f998991)]
 * [usb/media/hdpvr: trying to register non-static key in hdpvr_probe](https://groups.google.com/forum/#!topic/syzkaller/ngC5SLvxPm4)
 * [usb/net/hso: warning in hso_free_net_device](https://groups.google.com/forum/#!topic/syzkaller/J4Ua_T43Tjw)
 * [usb/net/hso: global-out-of-bounds in hso_probe](https://groups.google.com/forum/#!topic/syzkaller/TDPcSXI2nBA)
 * [usb/media/smsusb: use-after-free in worker_thread](https://groups.google.com/forum/#!topic/syzkaller/RS7QUTKo23s)
-* [usb/storage/uas: slab-out-of-bounds in uas_probe](https://groups.google.com/forum/#!topic/syzkaller/pCswO77gRlM)
+* [usb/storage/uas: slab-out-of-bounds in uas_probe](https://groups.google.com/forum/#!topic/syzkaller/pCswO77gRlM) [[fix](786de92b3cb26012d3d0f00ee37adf14527f35c4)]
 * [usb/sound/usx2y: warning in usb_stream_new/__alloc_pages_slowpath](https://groups.google.com/forum/#!topic/syzkaller/vGwGJW_H-0I) [[fix](https://github.com/torvalds/linux/commit/7682e399485fe19622b6fd82510b1f4551e48a25)]
 * [usb/media/pvrusb2: warning in pvr2_send_request_ex/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/M2GeMYS0f6E)
 * [usb/media/smsusb: null-ptr-deref in smsusb_init_device](https://groups.google.com/forum/#!topic/syzkaller/yvhFawNoqxE)
 * [usb/media/cx231xx: null-ptr-deref in cx231xx_usb_probe](https://groups.google.com/forum/#!topic/syzkaller/WlUAVfDvpRk)
-* [usb/net/p54: trying to register non-static key in p54_unregister_leds](https://groups.google.com/forum/#!topic/syzkaller/H6mX3aQPvvQ)
-* [usb/core: slab-out-of-bounds read in cdc_parse_cdc_header](https://groups.google.com/forum/#!topic/syzkaller/nXnjqI73uPo)
-* [usb/hid: slab-out-of-bounds read in usbhid_parse](https://groups.google.com/forum/#!topic/syzkaller/CxkJ9QZgwlM)
-* [usb/core: slab-out-of-bounds in usb_set_configuration](https://groups.google.com/forum/#!topic/syzkaller/hP6L-m59m_8)
-* [usb/uwb: WARNING in hwarc_neep_init/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/kxql4awIiR4)
-* [usb/uwb: GPF in uwbd_start](https://groups.google.com/forum/#!topic/syzkaller/zROBxKXzHDk)
-* [usb/joystick: warnings in xpad_start_input and xpad_try_sending_next_out_packet](https://groups.google.com/forum/#!topic/syzkaller/nMIkggZOUxA)
-* [usb/midi: use-after-free in snd_rawmidi_dev_seq_free](https://groups.google.com/forum/#!topic/syzkaller/kuZzDHGkQu8)
+* [usb/net/p54: trying to register non-static key in p54_unregister_leds](https://groups.google.com/forum/#!topic/syzkaller/H6mX3aQPvvQ) [[fix](https://patchwork.kernel.org/patch/9972281/)]
+* [usb/core: slab-out-of-bounds read in cdc_parse_cdc_header](https://groups.google.com/forum/#!topic/syzkaller/nXnjqI73uPo) [[fix](https://github.com/torvalds/linux/commit/2e1c42391ff2556387b3cb6308b24f6f65619feb)]
+* [usb/hid: slab-out-of-bounds read in usbhid_parse](https://groups.google.com/forum/#!topic/syzkaller/CxkJ9QZgwlM) [[fix](https://patchwork.kernel.org/patch/9975711/)]
+* [usb/core: slab-out-of-bounds in usb_set_configuration](https://groups.google.com/forum/#!topic/syzkaller/hP6L-m59m_8) [[fix](https://github.com/torvalds/linux/commit/bd7a3fe770ebd8391d1c7d072ff88e9e76d063eb)]
+* [usb/uwb: WARNING in hwarc_neep_init/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/kxql4awIiR4) [[fix](https://github.com/torvalds/linux/commit/70e743e4cec3733dc13559f6184b35d358b9ef3f)]
+* [usb/uwb: GPF in uwbd_start](https://groups.google.com/forum/#!topic/syzkaller/zROBxKXzHDk) [[fix](https://github.com/torvalds/linux/commit/bbf26183b7a6236ba602f4d6a2f7cade35bba043)]
+* [usb/joystick: warnings in xpad_start_input and xpad_try_sending_next_out_packet](https://groups.google.com/forum/#!topic/syzkaller/nMIkggZOUxA) [[fix](https://github.com/torvalds/linux/commit/122d6a347329818419b032c5a1776e6b3866d9b9)]
+* [usb/midi: use-after-free in snd_rawmidi_dev_seq_free](https://groups.google.com/forum/#!topic/syzkaller/kuZzDHGkQu8) [[fix](https://github.com/torvalds/linux/commit/fc27fe7e8deef2f37cba3f2be2d52b6ca5eb9d57)]
 * [usb/core: warning in usb_create_ep_devs/sysfs_create_dir_ns](https://groups.google.com/forum/#!topic/syzkaller/wvB_W78nTh0) [[fix](https://github.com/torvalds/linux/commit/0a8fd1346254974c3a852338508e4a4cddbb35f1)]
 
 ## GadgetFS
@@ -54,5 +54,5 @@
 * [usb/gadget: warning in dummy_free_request](https://groups.google.com/forum/#!topic/syzkaller/nNVKOT0fdaY) [[fix](https://github.com/torvalds/linux/commit/bcdbeb844773333d2d1c08004f3b3e25921040e5)]
 * [usb/gadget: poor checks of wTotalLength in config descriptors](https://groups.google.com/forum/#!topic/syzkaller/PBWoEbmzrto) [[fix](https://github.com/torvalds/linux/commit/1c069b057dcf64fada952eaa868d35f02bb0cfc2)]
 * [usb/gadget: use-after-free in gadgetfs_setup](https://groups.google.com/forum/#!topic/syzkaller/PBWoEbmzrto) [[fix](https://github.com/torvalds/linux/commit/add333a81a16abbd4f106266a2553677a165725f)]
-* [usb/gadget: GPF in usb_gadget_unregister_driver](https://groups.google.com/forum/#!topic/syzkaller/HDawLBeeORI)
+* [usb/gadget: GPF in usb_gadget_unregister_driver](https://groups.google.com/forum/#!topic/syzkaller/HDawLBeeORI) [[fix](https://github.com/torvalds/linux/commit/7b01738112608ce47083178ae2b9ebadf02d32cc)]
 * [usb/gadget: warning in dev_config/memdup_user](https://groups.google.com/forum/#!topic/syzkaller/bt6m57DyKLk) [[fix](https://github.com/torvalds/linux/commit/0994b0a257557e18ee8f0b7c5f0f73fe2b54eec1)]
