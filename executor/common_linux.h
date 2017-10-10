@@ -245,16 +245,21 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 }
 
 #define COMMAND_MAX_LEN 128
+#define PATH_PREFIX "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin "
+#define PATH_PREFIX_LEN (sizeof(PATH_PREFIX) - 1)
 
 static void execute_command(const char* format, ...)
 {
 	va_list args;
-	char command[COMMAND_MAX_LEN];
+	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
 	int rv;
 
 	va_start(args, format);
-
-	vsnprintf_check(command, sizeof(command), format, args);
+	// Executor process does not have any env, including PATH.
+	// On some distributions, system/shell adds a minimal PATH, on some it does not.
+	// Set own standard PATH to make it work across distributions.
+	memcpy(command, PATH_PREFIX, PATH_PREFIX_LEN);
+	vsnprintf_check(command + PATH_PREFIX_LEN, COMMAND_MAX_LEN, format, args);
 	rv = system(command);
 	if (rv != 0)
 		fail("tun: command \"%s\" failed with code %d", &command[0], rv);
