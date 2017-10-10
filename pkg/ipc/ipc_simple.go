@@ -92,7 +92,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 		cmd.Stderr = os.Stdout
 	}
 	if err := cmd.Start(); err != nil {
-		err0 = err
+		err0 = fmt.Errorf("failed to start %d/%+v: %v", dir, env.bin, err)
 		return
 	}
 	done := make(chan error)
