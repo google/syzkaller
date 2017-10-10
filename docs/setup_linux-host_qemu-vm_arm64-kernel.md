@@ -119,18 +119,7 @@ Reboot the machine, and ensure that you can ssh from host to guest as.
 
 ## Build syzkaller
 
-Native-compile the syz-manager:
-
-    $GOROOT/bin/go build -o bin/syz-manager ./syz-manager
-
-Cross-compile the syz-fuzzer, syz-execprog:
-
-    GOARCH=arm64 $GOROOT/bin/go build -o bin/syz-fuzzer ./syz-fuzzer
-    GOARCH=arm64 $GOROOT/bin/go build -o bin/syz-execprog ./syz-execprog
-
-Cross-compile the syz-executor (Note that the cross compiler should be the same as the one used to compile the Linux kernel):
-
-    /gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-g++ executor/executor.cc -O1 -g -Wall -static -o bin/syz-executor -lpthread
+    make TARGETARCH=arm64 [CC=/gcc-linaro-6.3.1-2017.05-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-g++]
 
 ## Modify your config file and start off syzkaller
 
