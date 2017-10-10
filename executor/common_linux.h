@@ -67,6 +67,7 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
 #include <errno.h>

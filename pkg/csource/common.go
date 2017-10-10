@@ -68,6 +68,7 @@ var commonHeader = `
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
 #include <errno.h>
@@ -378,16 +379,18 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 }
 
 #define COMMAND_MAX_LEN 128
+#define PATH_PREFIX "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin "
+#define PATH_PREFIX_LEN (sizeof(PATH_PREFIX) - 1)
 
 static void execute_command(const char* format, ...)
 {
 	va_list args;
-	char command[COMMAND_MAX_LEN];
+	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
 	int rv;
 
 	va_start(args, format);
-
-	vsnprintf_check(command, sizeof(command), format, args);
+	memcpy(command, PATH_PREFIX, PATH_PREFIX_LEN);
+	vsnprintf_check(command + PATH_PREFIX_LEN, COMMAND_MAX_LEN, format, args);
 	rv = system(command);
 	if (rv != 0)
 		fail("tun: command \"%s\" failed with code %d", &command[0], rv);
