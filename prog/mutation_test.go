@@ -6,6 +6,7 @@ package prog
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"testing"
 )
 
@@ -308,5 +309,20 @@ func TestMinimizeRandom(t *testing.T) {
 		Minimize(p, len(p.Calls)-1, func(p1 *Prog, callIndex int) bool {
 			return true
 		}, false)
+	}
+}
+
+func TestMinimizeCallIndex(t *testing.T) {
+	target, rs, iters := initTest(t)
+	r := rand.New(rs)
+	for i := 0; i < iters; i++ {
+		p := target.Generate(rs, 5, nil)
+		ci := r.Intn(len(p.Calls))
+		p1, ci1 := Minimize(p, ci, func(p1 *Prog, callIndex int) bool {
+			return r.Intn(2) == 0
+		}, r.Intn(2) == 0)
+		if ci1 < 0 || ci1 >= len(p1.Calls) || p.Calls[ci].Meta.Name != p1.Calls[ci1].Meta.Name {
+			t.Fatalf("bad call index after minimization")
+		}
 	}
 }

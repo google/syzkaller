@@ -6,11 +6,10 @@
 package rpctype
 
 type RpcInput struct {
-	Call      string
-	Prog      []byte
-	CallIndex int
-	Signal    []uint32
-	Cover     []uint32
+	Call   string
+	Prog   []byte
+	Signal []uint32
+	Cover  []uint32
 }
 
 type RpcCandidate struct {
