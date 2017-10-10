@@ -5,19 +5,19 @@
 * [usb/net/rt2x00: warning in rt2800_eeprom_word_index](https://groups.google.com/forum/#!topic/syzkaller/8vWPJ_maXQY)
 * [usb/irda: global-out-of-bounds in irda_qos_bits_to_value](https://groups.google.com/forum/#!topic/syzkaller/PzxkGCumhwA)
 * [usb/media/imon: global-out-of-bounds in imon_probe/imon_init_intf0](https://groups.google.com/forum/#!topic/syzkaller/o0LHaEe8Alg)
-* [usb/sound: use-after-free in snd_usb_mixer_interrupt](https://groups.google.com/forum/#!topic/syzkaller/jf7GTr_g2CU)
+* [usb/sound: use-after-free in snd_usb_mixer_interrupt](https://groups.google.com/forum/#!topic/syzkaller/jf7GTr_g2CU) [[fix](https://groups.google.com/d/msg/syzkaller/jf7GTr_g2CU/WixfevMwCQAJ)]
 * [usb/net/rtlwifi: trying to register non-static key in rtl_c2hcmd_launcher](https://groups.google.com/forum/#!topic/syzkaller/vCTFZwPpmps)
 * [usb/net/prism2usb: warning in hfa384x_usbctlxq_run/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/Bm5IO2dlcxA)
 * [usb/nfs/pn533: use-after-free in pn533_send_complete](https://groups.google.com/forum/#!topic/syzkaller/-EkDbzlSuOY)
-* [usb/media/imon: null-ptr-deref in imon_probe](https://groups.google.com/forum/#!topic/syzkaller/bBFN8imrjjo)
+* [usb/media/imon: null-ptr-deref in imon_probe](https://groups.google.com/forum/#!topic/syzkaller/bBFN8imrjjo) [[fix](https://patchwork.kernel.org/patch/9994017/)]
 * [usb/net/prism2usb: warning in hfa384x_drvr_start/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/rPui1tYcrR0)
 * [usb/net/ath6kl: GPF in ath6kl_usb_alloc_urb_from_pipe](https://groups.google.com/forum/#!topic/syzkaller/_ZE7_2A82Go)
 * [usb/net/ar5523: warning in ar5523_submit_rx_cmd/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/5V7rYXYCuI4)
 * [usb/media/uvc: BUG in uvc_mc_create_links/media_create_pad_link](https://groups.google.com/forum/#!topic/syzkaller/BOv81nh75TM)
 * [usb/media/v4l2: use-after-free in video_unregister_device/device_del](https://groups.google.com/forum/#!topic/syzkaller/C2RyOxjhxh4)
-* [usb/serial/visor: slab-out-of-bounds in palm_os_3_probe](https://groups.google.com/forum/#!topic/syzkaller/G5hNiJG2RXo)
+* [usb/serial/visor: slab-out-of-bounds in palm_os_3_probe](https://groups.google.com/forum/#!topic/syzkaller/G5hNiJG2RXo) [fix on the way]
 * [usb/misc/usbtest: null-ptr-deref in usbtest_probe/get_endpoints](https://groups.google.com/forum/#!topic/syzkaller/l3870gs3LhA) [[fix](https://www.spinics.net/lists/linux-usb/msg161144.html)]
-* [usb/misc/ims-pcu: slab-out-of-bounds in ims_pcu_parse_cdc_data](https://groups.google.com/forum/#!topic/syzkaller/q6jjr1OhqO8)
+* [usb/misc/ims-pcu: slab-out-of-bounds in ims_pcu_parse_cdc_data](https://groups.google.com/forum/#!topic/syzkaller/q6jjr1OhqO8) [[fix](https://groups.google.com/d/msg/syzkaller/q6jjr1OhqO8/eN75-uyGCAAJ)]
 * [usb/serial: use-after-free in usb_serial_disconnect/__lock_acquire](https://groups.google.com/forum/#!topic/syzkaller/cMACrmo1x0k) [[fix1](https://www.spinics.net/lists/linux-usb/msg161255.html), [fix2](https://www.spinics.net/lists/linux-usb/msg161253.html)]
 * [usb/misc/rio500: double-free or invalid-free in disconnect_rio](https://groups.google.com/forum/#!topic/syzkaller/7JmbWaXqaIQ)
 * [usb/sound/caiaq: warning in init_card/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/juLOtVudBkQ)
