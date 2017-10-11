@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"html/template"
 	"io"
@@ -35,6 +36,7 @@ func (mgr *Manager) initHttp() {
 	http.HandleFunc("/prio", mgr.httpPrio)
 	http.HandleFunc("/file", mgr.httpFile)
 	http.HandleFunc("/report", mgr.httpReport)
+	http.HandleFunc("/rawcover", mgr.httpRawCover)
 
 	ln, err := net.Listen("tcp4", mgr.cfg.Http)
 	if err != nil {
@@ -287,6 +289,30 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	if len(log) > 0 {
 		fmt.Fprintf(w, "Reproducing log:\n%s\n\n", log)
 	}
+}
+
+func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
+
+	base, err := getVmOffset(mgr.cfg.Vmlinux)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get vmlinux base: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	var cov cover.Cover
+	for _, inp := range mgr.corpus {
+		cov = cover.Union(cov, cover.Cover(inp.Cover))
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	buf := bufio.NewWriter(w)
+	for _, pc := range cov {
+		restored := cover.RestorePC(pc, base) - callLen
+		fmt.Fprintf(buf, "0x%x\n", restored)
+	}
+	buf.Flush()
 }
 
 func collectCrashes(workdir string) ([]*UICrashType, error) {
