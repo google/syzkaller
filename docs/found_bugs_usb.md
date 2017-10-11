@@ -21,15 +21,15 @@
 * [usb/misc/ims-pcu: slab-out-of-bounds in ims_pcu_parse_cdc_data](https://groups.google.com/forum/#!topic/syzkaller/q6jjr1OhqO8) [[fix](https://groups.google.com/d/msg/syzkaller/q6jjr1OhqO8/eN75-uyGCAAJ)]
 * [usb/serial: use-after-free in usb_serial_disconnect/__lock_acquire](https://groups.google.com/forum/#!topic/syzkaller/cMACrmo1x0k) [[fix1](https://www.spinics.net/lists/linux-usb/msg161255.html), [fix2](https://www.spinics.net/lists/linux-usb/msg161253.html)]
 * [usb/misc/rio500: double-free or invalid-free in disconnect_rio](https://groups.google.com/forum/#!topic/syzkaller/7JmbWaXqaIQ)
-* [usb/sound/caiaq: warning in init_card/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/juLOtVudBkQ)
+* [usb/sound/caiaq: warning in init_card/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/juLOtVudBkQ) [[fix](https://www.spinics.net/lists/linux-usb/msg161460.html)]
 * [usb/input/aiptek: warning in aiptek_open/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/F7dVa-5YFlQ)
 * [usb/net/lan78xx: use-after-free in lan78xx_write_reg](https://groups.google.com/forum/#!topic/syzkaller/5dEtqOKkv54)
 * [usb/media/b2c2: GPF in flexcop_usb_transfer_init](https://groups.google.com/forum/#!topic/syzkaller/ToOkJ0Ox-HA)
 * [usb/media/uvc: warning in uvc_scan_chain_forward/__list_add](https://groups.google.com/forum/#!topic/syzkaller/cEn3pmrYye4)
 * [usb/sound/line6: trying to register non-static key in podhd_disconnect](https://groups.google.com/forum/#!topic/syzkaller/wEY6yXp-zC8)
-* [usb/sound/line6: warning in line6_start_listen/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/33v4K1orrPk)
+* [usb/sound/line6: warning in line6_start_listen/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/33v4K1orrPk) [[fix](https://www.spinics.net/lists/linux-usb/msg161459.html)]
 * [usb/media/lmedm04: GPF in lme2510_int_read/usb_pipe_endpoint](https://groups.google.com/forum/#!topic/syzkaller/XwNidsl4X04) [[fix1](https://patchwork.linuxtv.org/patch/44566/), [fix2](https://patchwork.linuxtv.org/patch/44567/)]
-* [usb/sound/bcd2000: warning in bcd2000_idrivers/usb/serial/usb-serial.cnit_device](https://groups.google.com/forum/#!topic/syzkaller/uU0anmKkD1w)
+* [usb/sound/bcd2000: warning in bcd2000_idrivers/usb/serial/usb-serial.cnit_device](https://groups.google.com/forum/#!topic/syzkaller/uU0anmKkD1w) [[fix](https://www.spinics.net/lists/linux-usb/msg161457.html)]
 * [usb/wireless/rsi_91x: use-after-free write in __run_timers](https://groups.google.com/forum/#!topic/syzkaller/9IV2cQldrx0)
 * [usb/media/zr364xx: GPF in zr364xx_vidioc_querycap/strlcpy](https://groups.google.com/forum/#!topic/syzkaller/-EuMlzvOHGo)
 * [usb/media/stkwebcam: use-after-free in v4l2_ctrl_handler_free](https://groups.google.com/forum/#!topic/syzkaller/5kLo7aPtx1w)
