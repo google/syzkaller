@@ -15,7 +15,7 @@ func TestSerializeForExecRandom(t *testing.T) {
 	buf := make([]byte, ExecBufferSize)
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 10, nil)
-		if err := p.SerializeForExec(buf, i%16); err != nil {
+		if _, err := p.SerializeForExec(buf, i%16); err != nil {
 			t.Fatalf("failed to serialize: %v", err)
 		}
 	}
@@ -269,7 +269,7 @@ func TestSerializeForExec(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to deserialize prog %v: %v", i, err)
 			}
-			if err := p.SerializeForExec(buf, i%16); err != nil {
+			if _, err := p.SerializeForExec(buf, i%16); err != nil {
 				t.Fatalf("failed to serialize: %v", err)
 			}
 			w := new(bytes.Buffer)
