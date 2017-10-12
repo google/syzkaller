@@ -128,7 +128,7 @@ func (env *Env) Close() error {
 func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallInfo, failed, hanged bool, err0 error) {
 	if p != nil {
 		// Copy-in serialized program.
-		if err := p.SerializeForExec(env.in, env.pid); err != nil {
+		if _, err := p.SerializeForExec(env.in, env.pid); err != nil {
 			err0 = fmt.Errorf("executor %v: failed to serialize: %v", env.pid, err)
 			return
 		}

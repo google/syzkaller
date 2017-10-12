@@ -57,8 +57,9 @@ func (s ByPhysicalAddr) Less(i, j int) bool {
 }
 
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
+// Returns number of bytes written to the buffer.
 // If the provided buffer is too small for the program an error is returned.
-func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
+func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 	if debug {
 		if err := p.validate(); err != nil {
 			panic(fmt.Errorf("serializing invalid program: %v", err))
@@ -193,9 +194,9 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) error {
 	}
 	w.write(ExecInstrEOF)
 	if w.eof {
-		return fmt.Errorf("provided buffer is too small")
+		return 0, fmt.Errorf("provided buffer is too small")
 	}
-	return nil
+	return len(buffer) - len(w.buf), nil
 }
 
 func (target *Target) physicalAddr(arg Arg) uint64 {

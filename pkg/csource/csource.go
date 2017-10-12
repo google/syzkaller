@@ -72,7 +72,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		return nil, fmt.Errorf("csource: invalid opts: %v", err)
 	}
 	exec := make([]byte, prog.ExecBufferSize)
-	if err := p.SerializeForExec(exec, 0); err != nil {
+	if _, err := p.SerializeForExec(exec, 0); err != nil {
 		return nil, fmt.Errorf("failed to serialize program: %v", err)
 	}
 	w := new(bytes.Buffer)

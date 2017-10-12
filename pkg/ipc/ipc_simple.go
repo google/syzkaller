@@ -70,7 +70,8 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 	defer os.RemoveAll(dir)
 
 	data := make([]byte, prog.ExecBufferSize)
-	if err := p.SerializeForExec(data, env.pid); err != nil {
+	n, err := p.SerializeForExec(data, env.pid)
+	if err != nil {
 		err0 = err
 		return
 	}
@@ -78,7 +79,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 	binary.Write(inbuf, binary.LittleEndian, uint64(env.config.Flags))
 	binary.Write(inbuf, binary.LittleEndian, uint64(opts.Flags))
 	binary.Write(inbuf, binary.LittleEndian, uint64(env.pid))
-	inbuf.Write(data)
+	inbuf.Write(data[:n])
 
 	cmd := exec.Command(env.bin[0], env.bin[1:]...)
 	cmd.Env = []string{}
