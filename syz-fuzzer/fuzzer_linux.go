@@ -4,25 +4,12 @@
 package main
 
 import (
-	"os"
-	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/sys/linux"
 )
-
-func osInit() {
-	go func() {
-		// Handles graceful preemption on GCE.
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
-		<-c
-		log.Logf(0, "SYZ-FUZZER: PREEMPTED")
-		os.Exit(1)
-	}()
-}
 
 func kmemleakInit() {
 	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)

@@ -6,6 +6,7 @@
 # TODO: ION_IOC_HEAP_QUERY is detected for 4.10 upstream, but not covered in this description.
 
 include <asm/ioctl.h>
+include <linux/fcntl.h>
 include <../drivers/staging/android/uapi/ion.h>
 
 resource fd_ion[fd]

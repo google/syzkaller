@@ -26,6 +26,7 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/gcs"
+	"github.com/google/syzkaller/pkg/kd"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/vm/vmimpl"
@@ -39,16 +40,17 @@ type Config struct {
 	Count        int    // number of VMs to use
 	Machine_Type string // GCE machine type (e.g. "n1-highcpu-2")
 	GCS_Path     string // GCS path to upload image
+	GCE_Image    string // Pre-created GCE image to use
 }
 
 type Pool struct {
-	env      *vmimpl.Env
-	cfg      *Config
-	GCE      *gce.Context
-	gceImage string
+	env *vmimpl.Env
+	cfg *Config
+	GCE *gce.Context
 }
 
 type instance struct {
+	env     *vmimpl.Env
 	cfg     *Config
 	GCE     *gce.Context
 	debug   bool
@@ -66,9 +68,6 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if env.Name == "" {
 		return nil, fmt.Errorf("config param name is empty (required for GCE)")
 	}
-	if env.Image == "" {
-		return nil, fmt.Errorf("config param image is empty (required for GCE)")
-	}
 	cfg := &Config{
 		Count: 1,
 	}
@@ -84,8 +83,14 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if cfg.Machine_Type == "" {
 		return nil, fmt.Errorf("machine_type parameter is empty")
 	}
-	if cfg.GCS_Path == "" {
+	if cfg.GCE_Image == "" && cfg.GCS_Path == "" {
 		return nil, fmt.Errorf("gcs_path parameter is empty")
+	}
+	if cfg.GCE_Image == "" && env.Image == "" {
+		return nil, fmt.Errorf("config param image is empty (required for GCE)")
+	}
+	if cfg.GCE_Image != "" && env.Image != "" {
+		return nil, fmt.Errorf("both image and gce_image are specified")
 	}
 
 	GCE, err := gce.NewContext()
@@ -95,24 +100,25 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v",
 		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
 
-	gcsImage := filepath.Join(cfg.GCS_Path, env.Name+"-image.tar.gz")
-	Logf(0, "uploading image to %v...", gcsImage)
-	if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
-		return nil, err
-	}
-	gceImage := env.Name
-	Logf(0, "creating GCE image %v...", gceImage)
-	if err := GCE.DeleteImage(gceImage); err != nil {
-		return nil, fmt.Errorf("failed to delete GCE image: %v", err)
-	}
-	if err := GCE.CreateImage(gceImage, gcsImage); err != nil {
-		return nil, fmt.Errorf("failed to create GCE image: %v", err)
+	if cfg.GCE_Image == "" {
+		cfg.GCE_Image = env.Name
+		gcsImage := filepath.Join(cfg.GCS_Path, env.Name+"-image.tar.gz")
+		Logf(0, "uploading image to %v...", gcsImage)
+		if err := uploadImageToGCS(env.Image, gcsImage); err != nil {
+			return nil, err
+		}
+		Logf(0, "creating GCE image %v...", cfg.GCE_Image)
+		if err := GCE.DeleteImage(cfg.GCE_Image); err != nil {
+			return nil, fmt.Errorf("failed to delete GCE image: %v", err)
+		}
+		if err := GCE.CreateImage(cfg.GCE_Image, gcsImage); err != nil {
+			return nil, fmt.Errorf("failed to create GCE image: %v", err)
+		}
 	}
 	pool := &Pool{
-		cfg:      cfg,
-		env:      env,
-		GCE:      GCE,
-		gceImage: gceImage,
+		cfg: cfg,
+		env: env,
+		GCE: GCE,
 	}
 	return pool, nil
 }
@@ -139,7 +145,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, err
 	}
 	Logf(0, "creating instance: %v", name)
-	ip, err := pool.GCE.CreateInstance(name, pool.cfg.Machine_Type, pool.gceImage, string(gceKeyPub))
+	ip, err := pool.GCE.CreateInstance(name, pool.cfg.Machine_Type, pool.cfg.GCE_Image, string(gceKeyPub))
 	if err != nil {
 		return nil, err
 	}
@@ -150,19 +156,20 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 			pool.GCE.DeleteInstance(name, true)
 		}
 	}()
-	sshKey := pool.env.Sshkey
-	sshUser := "root"
+	sshKey := pool.env.SshKey
+	sshUser := pool.env.SshUser
 	if sshKey == "" {
 		// Assuming image supports GCE ssh fanciness.
 		sshKey = gceKey
 		sshUser = "syzkaller"
 	}
 	Logf(0, "wait instance to boot: %v (%v)", name, ip)
-	if err := waitInstanceBoot(pool.env.Debug, ip, sshKey, sshUser); err != nil {
+	if err := pool.waitInstanceBoot(ip, sshKey, sshUser); err != nil {
 		return nil, err
 	}
 	ok = true
 	inst := &instance{
+		env:     pool.env,
 		cfg:     pool.cfg,
 		debug:   pool.env.Debug,
 		GCE:     pool.GCE,
@@ -225,7 +232,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		tee = os.Stdout
 	}
 	merger := vmimpl.NewOutputMerger(tee)
-	merger.Add("console", conRpipe)
+	var decoder func(data []byte) (int, int, []byte)
+	if inst.env.OS == "windows" {
+		decoder = kd.Decode
+	}
+	merger.AddDecoder("console", conRpipe, decoder)
 
 	// We've started the console reading ssh command, but it has not necessary connected yet.
 	// If we proceed to running the target command right away, we can miss part
@@ -272,8 +283,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		sshRpipe.Close()
 		return nil, nil, err
 	}
-	if inst.sshUser != "root" {
-		command = fmt.Sprintf("sudo bash -c '%v'", command)
+	if inst.env.OS == "linux" {
+		if inst.sshUser != "root" {
+			command = fmt.Sprintf("sudo bash -c '%v'", command)
+		}
 	}
 	args := append(sshArgs(inst.debug, inst.sshKey, "-p", 22), inst.sshUser+"@"+inst.name, command)
 	ssh := exec.Command("ssh", args...)
@@ -334,13 +347,17 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return merger.Output, errc, nil
 }
 
-func waitInstanceBoot(debug bool, ip, sshKey, sshUser string) error {
+func (pool *Pool) waitInstanceBoot(ip, sshKey, sshUser string) error {
+	pwd := "pwd"
+	if pool.env.OS == "windows" {
+		pwd = "dir"
+	}
 	for i := 0; i < 100; i++ {
 		if !vmimpl.SleepInterruptible(5 * time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
-		args := append(sshArgs(debug, sshKey, "-p", 22), sshUser+"@"+ip, "pwd")
-		if _, err := runCmd(debug, "ssh", args...); err == nil {
+		args := append(sshArgs(pool.env.Debug, sshKey, "-p", 22), sshUser+"@"+ip, pwd)
+		if _, err := runCmd(pool.env.Debug, "ssh", args...); err == nil {
 			return nil
 		}
 	}
@@ -425,7 +442,7 @@ func sshArgs(debug bool, sshKey, portArg string, port int) []string {
 		"-o", "BatchMode=yes",
 		"-o", "IdentitiesOnly=yes",
 		"-o", "StrictHostKeyChecking=no",
-		"-o", "ConnectTimeout=5",
+		"-o", "ConnectTimeout=10",
 	}
 	if debug {
 		args = append(args, "-v")

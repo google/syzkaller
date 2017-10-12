@@ -28,6 +28,9 @@ HOSTARCH ?= $(BUILDARCH)
 TARGETOS ?= $(HOSTOS)
 TARGETARCH ?= $(HOSTARCH)
 TARGETVMARCH ?= $(TARGETARCH)
+EXTRACTOS := $(TARGETOS)
+GO := go
+EXE :=
 
 ifeq ("$(TARGETARCH)", "amd64")
 	CC = "x86_64-linux-gnu-gcc"
@@ -44,7 +47,8 @@ else ifeq ("$(TARGETARCH)", "ppc64le")
 endif
 
 ifeq ("$(TARGETOS)", "android")
-	override TARGETOS = "linux"
+	EXTRACTOS = android
+	override TARGETOS = linux
 	ANDROID_API = 24
 	BUILDGCCARCH = ""
 	ANDROIDARCH = ""
@@ -74,6 +78,23 @@ ifeq ("$(TARGETOS)", "android")
 	endif
 	CC = $(NDK)/toolchains/$(TOOLCHAIN)/prebuilt/$(BUILDOS)-$(BUILDGCCARCH)/bin/$(GCCBIN)
 	CFLAGS = -I $(NDK)/sources/cxx-stl/llvm-libc++/include --sysroot=$(NDK)/platforms/android-$(ANDROID_API)/arch-$(ANDROIDARCH) -O1 -g -Wall -static
+endif
+
+ifeq ("$(TARGETOS)", "fuchsia")
+	# SOURCEDIR should point to fuchsia checkout.
+	GO = $(SOURCEDIR)/buildtools/go
+	CC = $(SOURCEDIR)/buildtools/linux-x64/clang/bin/clang++
+	export CGO_ENABLED=1
+	NOSTATIC = 1
+	ifeq ("$(TARGETARCH)", "amd64")
+		ADDCFLAGS = --target=x86_64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-zircon-pc-x86-64/sysroot
+	else ifeq ("$(TARGETARCH)", "arm64")
+		ADDCFLAGS = --target=aarch64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-zircon-pc-x86-64/sysroot
+	endif
+endif
+
+ifeq ("$(TARGETOS)", "windows")
+	EXE = .exe
 endif
 
 GITREV=$(shell git rev-parse HEAD)
@@ -108,71 +129,74 @@ endif
 all: host target
 
 host:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go install ./syz-manager
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) install ./syz-manager
 	$(MAKE) manager repro mutate prog2c db upgrade
 
 target:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) go install ./syz-fuzzer
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) install ./syz-fuzzer
 	$(MAKE) fuzzer execprog stress executor
 
 # executor uses stacks of limited size, so no jumbo frames.
 executor:
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
-	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor executor/executor_$(TARGETOS).cc \
+	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor_$(TARGETOS).cc \
 		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 -g \
 		$(ADDCFLAGS) $(CFLAGS) -DGIT_REVISION=\"$(REV)\"
 
 manager:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
 
 fuzzer:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) go build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer github.com/google/syzkaller/syz-fuzzer
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-fuzzer$(EXE) github.com/google/syzkaller/syz-fuzzer
 
 execprog:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) go build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-execprog github.com/google/syzkaller/tools/syz-execprog
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-execprog$(EXE) github.com/google/syzkaller/tools/syz-execprog
 
 ci:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-ci github.com/google/syzkaller/syz-ci
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-ci github.com/google/syzkaller/syz-ci
 
 hub:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-hub github.com/google/syzkaller/syz-hub
 
 repro:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-repro github.com/google/syzkaller/tools/syz-repro
 
 mutate:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-mutate github.com/google/syzkaller/tools/syz-mutate
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-mutate github.com/google/syzkaller/tools/syz-mutate
 
 prog2c:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-prog2c github.com/google/syzkaller/tools/syz-prog2c
 
 stress:
-	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) go build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-stress github.com/google/syzkaller/tools/syz-stress
+	GOOS=$(TARGETOS) GOARCH=$(TARGETVMARCH) $(GO) build $(GOFLAGS) -o ./bin/$(TARGETOS)_$(TARGETVMARCH)/syz-stress$(EXE) github.com/google/syzkaller/tools/syz-stress
 
 db:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-db github.com/google/syzkaller/tools/syz-db
 
 upgrade:
-	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) go build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
+	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 extract: bin/syz-extract
-	LINUX=$(LINUX) ./sys/linux/extract.sh
+	bin/syz-extract -build -os=$(EXTRACTOS) -sourcedir=$(SOURCEDIR)
 bin/syz-extract:
-	go build $(GOFLAGS) -o $@ ./sys/syz-extract
+	$(GO) build $(GOFLAGS) -o $@ ./sys/syz-extract
 
 generate: bin/syz-sysgen
 	bin/syz-sysgen
-	go generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/kernel
+	$(GO) generate ./pkg/csource ./executor ./pkg/ifuzz ./pkg/kernel
 	$(MAKE) format
 bin/syz-sysgen:
-	go build $(GOFLAGS) -o $@ ./sys/syz-sysgen
+	$(GO) build $(GOFLAGS) -o $@ ./sys/syz-sysgen
 
 format: bin/syz-fmt
-	go fmt ./...
+	$(GO) fmt ./...
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
+	bin/syz-fmt sys/freebsd
 	bin/syz-fmt sys/linux
+	bin/syz-fmt sys/fuchsia
+	bin/syz-fmt sys/windows
 bin/syz-fmt:
-	go build $(GOFLAGS) -o $@ ./tools/syz-fmt
+	$(GO) build $(GOFLAGS) -o $@ ./tools/syz-fmt
 
 tidy:
 	# A single check is enabled for now. But it's always fixable and proved to be useful.
@@ -181,23 +205,34 @@ tidy:
 	$(CC) executor/test_executor.cc -c -o /dev/null -Wparentheses -Wno-unused -Wall
 
 test:
-	go test -short ./...
-	go test -short -race ./...
+	$(GO) test -short ./...
+	$(GO) test -short -race ./...
 
 arch:
+	env GOOG=darwin GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
+	env GOOG=linux GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
 	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
+	env GOOG=linux GOARCH=amd64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
+	env GOOG=linux GOARCH=arm64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
+	env GOOG=linux GOARCH=ppc64le go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
 	# executor build on arm fails with:
 	# Error: alignment too large: 15 assumed
+	env GOOG=linux GOARCH=arm64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=arm64 TARGETVMARCH=arm $(MAKE) target
 	# executor build on 386 on travis fails with:
 	# fatal error: asm/errno.h: No such file or directory
 	# We install a bunch of additional packages in .travis.yml,
 	# but I can't guess the right one.
+	env GOOG=linux GOARCH=386 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=386 $(MAKE) target
+	env GOOG=windows go install github.com/google/syzkaller/syz-fuzzer
+	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
+	env GOOG=freebsd go install github.com/google/syzkaller/syz-fuzzer
+	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
 
 presubmit:
 	$(MAKE) generate
@@ -208,3 +243,7 @@ presubmit:
 
 clean:
 	rm -rf ./bin/
+
+# For a tupical Ubuntu/Debian distribution, requires sudo.
+install_prerequisites:
+	apt-get install libc6-dev-i386 lib32stdc++-4.8-dev linux-libc-dev g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf

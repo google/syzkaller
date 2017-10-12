@@ -27,7 +27,8 @@ type Config struct {
 	Kernel_Src string // kernel source directory
 	Tag        string // arbitrary optional tag that is saved along with crash reports (e.g. branch/commit)
 	Image      string // linux image for VMs
-	Sshkey     string // root ssh key for the image (may be empty for some VM types)
+	Sshkey     string // ssh key for the image (may be empty for some VM types)
+	Ssh_User   string // ssh user ("root" by default)
 
 	Hub_Client string
 	Hub_Addr   string
@@ -81,6 +82,7 @@ func LoadFile(filename string) (*Config, error) {
 
 func DefaultValues() *Config {
 	return &Config{
+		Ssh_User:  "root",
 		Cover:     true,
 		Reproduce: true,
 		Sandbox:   "setuid",
@@ -107,9 +109,16 @@ func load(data []byte, filename string) (*Config, error) {
 		return nil, err
 	}
 
-	cfg.SyzFuzzerBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetVMArch, "syz-fuzzer")
-	cfg.SyzExecprogBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetVMArch, "syz-execprog")
-	cfg.SyzExecutorBin = filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetArch, "syz-executor")
+	targetBin := func(name string) string {
+		exe := ""
+		if cfg.TargetOS == "windows" {
+			exe = ".exe"
+		}
+		return filepath.Join(cfg.Syzkaller, "bin", cfg.TargetOS+"_"+cfg.TargetVMArch, name+exe)
+	}
+	cfg.SyzFuzzerBin = targetBin("syz-fuzzer")
+	cfg.SyzExecprogBin = targetBin("syz-execprog")
+	cfg.SyzExecutorBin = targetBin("syz-executor")
 	if !osutil.IsExist(cfg.SyzFuzzerBin) {
 		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzFuzzerBin)
 	}
@@ -124,9 +133,6 @@ func load(data []byte, filename string) (*Config, error) {
 	}
 	if cfg.Workdir == "" {
 		return nil, fmt.Errorf("config param workdir is empty")
-	}
-	if cfg.Vmlinux == "" {
-		return nil, fmt.Errorf("config param vmlinux is empty")
 	}
 	if cfg.Type == "" {
 		return nil, fmt.Errorf("config param type is empty")
@@ -267,7 +273,8 @@ func CreateVMEnv(cfg *Config, debug bool) *vm.Env {
 		Arch:    cfg.TargetVMArch,
 		Workdir: cfg.Workdir,
 		Image:   cfg.Image,
-		Sshkey:  cfg.Sshkey,
+		SshKey:  cfg.Sshkey,
+		SshUser: cfg.Ssh_User,
 		Debug:   debug,
 		Config:  cfg.VM,
 	}

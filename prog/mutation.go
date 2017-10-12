@@ -475,7 +475,7 @@ func Minimize(p0 *Prog, callIndex0 int, pred0 func(*Prog, int) bool, crash bool)
 
 	if callIndex0 != -1 {
 		if callIndex0 < 0 || callIndex0 >= len(p0.Calls) || name0 != p0.Calls[callIndex0].Meta.Name {
-			panic(fmt.Sprintf("bad call index after minimizatoin: ncalls=%v index=%v call=%v/%v",
+			panic(fmt.Sprintf("bad call index after minimization: ncalls=%v index=%v call=%v/%v",
 				len(p0.Calls), callIndex0, name0, p0.Calls[callIndex0].Meta.Name))
 		}
 	}

@@ -6,11 +6,7 @@
 #define SYZ_EXECUTOR
 #include "common_fuchsia.h"
 
-struct event_t {
-	pthread_mutex_t mu;
-	pthread_cond_t cv;
-	bool state;
-};
+#include "executor_posix.h"
 
 #include "executor.h"
 
@@ -26,6 +22,7 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
+	install_segv_handler();
 	int pos = 0;
 	for (;;) {
 		int rv = read(0, input_data + pos, sizeof(input_data) - pos);
@@ -84,64 +81,4 @@ uint32_t* write_output(uint32_t v)
 
 void write_completed(uint32_t completed)
 {
-}
-
-void event_init(event_t* ev)
-{
-	if (pthread_mutex_init(&ev->mu, 0))
-		fail("pthread_mutex_init failed");
-	if (pthread_cond_init(&ev->cv, 0))
-		fail("pthread_cond_init failed");
-	ev->state = false;
-}
-
-void event_reset(event_t* ev)
-{
-	ev->state = false;
-}
-
-void event_set(event_t* ev)
-{
-	pthread_mutex_lock(&ev->mu);
-	if (ev->state)
-		fail("event already set");
-	ev->state = true;
-	pthread_mutex_unlock(&ev->mu);
-	pthread_cond_broadcast(&ev->cv);
-}
-
-void event_wait(event_t* ev)
-{
-	pthread_mutex_lock(&ev->mu);
-	while (!ev->state)
-		pthread_cond_wait(&ev->cv, &ev->mu);
-	pthread_mutex_unlock(&ev->mu);
-}
-
-bool event_isset(event_t* ev)
-{
-	pthread_mutex_lock(&ev->mu);
-	bool res = ev->state;
-	pthread_mutex_unlock(&ev->mu);
-	return res;
-}
-
-bool event_timedwait(event_t* ev, uint64_t timeout_ms)
-{
-	pthread_mutex_lock(&ev->mu);
-	uint64_t start = current_time_ms();
-	for (;;) {
-		if (ev->state)
-			break;
-		uint64_t now = current_time_ms();
-		if (now - start > timeout_ms)
-			break;
-		timespec ts;
-		ts.tv_sec = 0;
-		ts.tv_nsec = (timeout_ms - (now - start)) * 1000 * 1000;
-		pthread_cond_timedwait(&ev->cv, &ev->mu, &ts);
-	}
-	bool res = ev->state;
-	pthread_mutex_unlock(&ev->mu);
-	return res;
 }

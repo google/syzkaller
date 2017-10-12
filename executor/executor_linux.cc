@@ -15,12 +15,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-struct event_t {
-	int state;
-};
-
 #define SYZ_EXECUTOR
 #include "common_linux.h"
+
+#include "executor_linux.h"
+
 #include "executor.h"
 
 #include "syscalls_linux.h"
@@ -326,50 +325,4 @@ uint32_t* write_output(uint32_t v)
 void write_completed(uint32_t completed)
 {
 	__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
-}
-
-void event_init(event_t* ev)
-{
-	ev->state = 0;
-}
-
-void event_reset(event_t* ev)
-{
-	ev->state = 0;
-}
-
-void event_set(event_t* ev)
-{
-	if (ev->state)
-		fail("event already set");
-	__atomic_store_n(&ev->state, 1, __ATOMIC_RELEASE);
-	syscall(SYS_futex, &ev->state, FUTEX_WAKE);
-}
-
-void event_wait(event_t* ev)
-{
-	while (!__atomic_load_n(&ev->state, __ATOMIC_ACQUIRE))
-		syscall(SYS_futex, &ev->state, FUTEX_WAIT, 0, 0);
-}
-
-bool event_isset(event_t* ev)
-{
-	return __atomic_load_n(&ev->state, __ATOMIC_ACQUIRE);
-}
-
-bool event_timedwait(event_t* ev, uint64_t timeout_ms)
-{
-	uint64_t start = current_time_ms();
-	uint64_t now = start;
-	for (;;) {
-		timespec ts = {};
-		ts.tv_sec = 0;
-		ts.tv_nsec = (timeout_ms - (now - start)) * 1000 * 1000;
-		syscall(SYS_futex, &ev->state, FUTEX_WAIT, 0, &ts);
-		if (__atomic_load_n(&ev->state, __ATOMIC_RELAXED))
-			return true;
-		now = current_time_ms();
-		if (now - start > timeout_ms)
-			return false;
-	}
 }

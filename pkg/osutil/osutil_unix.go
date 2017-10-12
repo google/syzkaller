@@ -1,7 +1,7 @@
 // Copyright 2017 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// +build linux,!appengine darwin,!appengine
+// +build freebsd,!appengine linux,!appengine darwin,!appengine
 
 package osutil
 
@@ -70,7 +70,7 @@ func ProcessTempDir(where string) (string, error) {
 func HandleInterrupts(shutdown chan struct{}) {
 	go func() {
 		c := make(chan os.Signal, 3)
-		signal.Notify(c, syscall.SIGINT)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 		<-c
 		close(shutdown)
 		fmt.Fprint(os.Stderr, "SIGINT: shutting down...\n")
@@ -89,24 +89,4 @@ func LongPipe() (io.ReadCloser, io.WriteCloser, error) {
 	}
 	prolongPipe(r, w)
 	return r, w, err
-}
-
-var wd string
-
-func init() {
-	var err error
-	wd, err = os.Getwd()
-	if err != nil {
-		panic(fmt.Sprintf("failed to get wd: %v", err))
-	}
-}
-
-func Abs(path string) string {
-	if wd1, err := os.Getwd(); err == nil && wd1 != wd {
-		panic("don't mess with wd in a concurrent program")
-	}
-	if path == "" || filepath.IsAbs(path) {
-		return path
-	}
-	return filepath.Join(wd, path)
 }

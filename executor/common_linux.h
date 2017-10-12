@@ -9,6 +9,19 @@
 
 #include <sys/syscall.h>
 #include <unistd.h>
+#if defined(SYZ_EXECUTOR) || defined(SYZ_THREADED) || defined(SYZ_COLLIDE)
+#include <pthread.h>
+#include <stdlib.h>
+#endif
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
+#include <errno.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <sys/time.h>
+#include <sys/wait.h>
+#include <time.h>
+#endif
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
 #include <sys/prctl.h>
 #endif
@@ -54,6 +67,7 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <sys/uio.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
 #include <errno.h>
@@ -113,6 +127,7 @@ __attribute__((noreturn)) static void doexit(int status)
 	for (i = 0;; i++) {
 	}
 }
+#define NORETURN __attribute__((noreturn))
 #endif
 
 #if defined(SYZ_EXECUTOR)
@@ -124,6 +139,30 @@ __attribute__((noreturn)) static void doexit(int status)
 #include "common.h"
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
+static __thread int skip_segv;
+static __thread jmp_buf segv_env;
+
+static void segv_handler(int sig, siginfo_t* info, void* uctx)
+{
+	// Generated programs can contain bad (unmapped/protected) addresses,
+	// which cause SIGSEGVs during copyin/copyout.
+	// This handler ignores such crashes to allow the program to proceed.
+	// We additionally opportunistically check that the faulty address
+	// is not within executable data region, because such accesses can corrupt
+	// output region and then fuzzer will fail on corrupted data.
+	uintptr_t addr = (uintptr_t)info->si_addr;
+	const uintptr_t prog_start = 1 << 20;
+	const uintptr_t prog_end = 100 << 20;
+	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
+		debug("SIGSEGV on %p, skipping\n", addr);
+		_longjmp(segv_env, 1);
+	}
+	debug("SIGSEGV on %p, exiting\n", addr);
+	doexit(sig);
+	for (;;) {
+	}
+}
+
 static void install_segv_handler()
 {
 	struct sigaction sa;
@@ -141,6 +180,33 @@ static void install_segv_handler()
 	sa.sa_flags = SA_NODEFER | SA_SIGINFO;
 	sigaction(SIGSEGV, &sa, NULL);
 	sigaction(SIGBUS, &sa, NULL);
+}
+
+#define NONFAILING(...)                                              \
+	{                                                            \
+		__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST); \
+		if (_setjmp(segv_env) == 0) {                        \
+			__VA_ARGS__;                                 \
+		}                                                    \
+		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
+	}
+#endif
+
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
+static uint64_t current_time_ms()
+{
+	struct timespec ts;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &ts))
+		fail("clock_gettime failed");
+	return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+}
+#endif
+
+#if defined(SYZ_EXECUTOR)
+static void sleep_ms(uint64_t ms)
+{
+	usleep(ms * 1000);
 }
 #endif
 
@@ -180,16 +246,21 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 }
 
 #define COMMAND_MAX_LEN 128
+#define PATH_PREFIX "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin "
+#define PATH_PREFIX_LEN (sizeof(PATH_PREFIX) - 1)
 
 static void execute_command(const char* format, ...)
 {
 	va_list args;
-	char command[COMMAND_MAX_LEN];
+	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
 	int rv;
 
 	va_start(args, format);
-
-	vsnprintf_check(command, sizeof(command), format, args);
+	// Executor process does not have any env, including PATH.
+	// On some distributions, system/shell adds a minimal PATH, on some it does not.
+	// Set own standard PATH to make it work across distributions.
+	memcpy(command, PATH_PREFIX, PATH_PREFIX_LEN);
+	vsnprintf_check(command + PATH_PREFIX_LEN, COMMAND_MAX_LEN, format, args);
 	rv = system(command);
 	if (rv != 0)
 		fail("tun: command \"%s\" failed with code %d", &command[0], rv);
@@ -198,6 +269,7 @@ static void execute_command(const char* format, ...)
 }
 
 static int tunfd = -1;
+static int tun_frags_enabled;
 
 // We just need this to be large enough to hold headers that we parse (ethernet/ip/tcp).
 // Rest of the packet (if any) will be silently truncated which is fine.
@@ -216,6 +288,13 @@ static int tunfd = -1;
 #define LOCAL_IPV6 "fe80::%02hxaa"
 #define REMOTE_IPV6 "fe80::%02hxbb"
 
+#ifndef IFF_NAPI
+#define IFF_NAPI 0x0010
+#endif
+#ifndef IFF_NAPI_FRAGS
+#define IFF_NAPI_FRAGS 0x0020
+#endif
+
 static void initialize_tun(uint64_t pid)
 {
 	if (pid >= MAX_PIDS)
@@ -232,9 +311,19 @@ static void initialize_tun(uint64_t pid)
 	struct ifreq ifr;
 	memset(&ifr, 0, sizeof(ifr));
 	strncpy(ifr.ifr_name, iface, IFNAMSIZ);
-	ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-	if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0)
-		fail("tun: ioctl(TUNSETIFF) failed");
+	ifr.ifr_flags = IFF_TAP | IFF_NO_PI | IFF_NAPI | IFF_NAPI_FRAGS;
+	if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0) {
+		// IFF_NAPI_FRAGS requires root, so try without it.
+		ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+		if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0)
+			fail("tun: ioctl(TUNSETIFF) failed");
+	}
+	// If IFF_NAPI_FRAGS is not supported it will be silently dropped,
+	// so query the effective flags.
+	if (ioctl(tunfd, TUNGETIFF, (void*)&ifr) < 0)
+		fail("tun: ioctl(TUNGETIFF) failed");
+	tun_frags_enabled = (ifr.ifr_flags & IFF_NAPI_FRAGS) != 0;
+	debug("tun_frags_enabled=%d\n", tun_frags_enabled);
 
 	char local_mac[ADDR_MAX_LEN];
 	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC, id);
@@ -280,7 +369,10 @@ static int read_tun(char* data, int size)
 	if (rv < 0) {
 		if (errno == EAGAIN)
 			return -1;
-		fail("tun: read failed with %d, errno: %d", rv, errno);
+		// Tun sometimes returns this, unclear if it's a kernel bug or not.
+		if (errno == EBADFD)
+			return -1;
+		fail("tun: read failed with %d", rv);
 	}
 	return rv;
 }
@@ -301,17 +393,60 @@ static void debug_dump_data(const char* data, int length)
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE))
-static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1)
-{
-	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet])
+#define MAX_FRAGS 4
+struct vnet_fragmentation {
+	uint32_t full;
+	uint32_t count;
+	uint32_t frags[MAX_FRAGS];
+};
 
+static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1, uintptr_t a2)
+{
+	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet], frags ptr[in, vnet_fragmentation, opt])
+	// vnet_fragmentation {
+	// 	full	int32[0:1]
+	// 	count	len[frags, int32]
+	// 	frags	array[int32[0:4096], 1:4]
+	// }
 	if (tunfd < 0)
 		return (uintptr_t)-1;
 
-	int64_t length = a0;
+	uint32_t length = a0;
 	char* data = (char*)a1;
 	debug_dump_data(data, length);
-	return write(tunfd, data, length);
+
+	struct vnet_fragmentation* frags = (struct vnet_fragmentation*)a2;
+	struct iovec vecs[MAX_FRAGS + 1];
+	uint32_t nfrags = 0;
+	if (!tun_frags_enabled || frags == NULL) {
+		vecs[nfrags].iov_base = data;
+		vecs[nfrags].iov_len = length;
+		nfrags++;
+	} else {
+		bool full = true;
+		uint32_t i, count = 0;
+		NONFAILING(full = frags->full);
+		NONFAILING(count = frags->count);
+		if (count > MAX_FRAGS)
+			count = MAX_FRAGS;
+		for (i = 0; i < count && length != 0; i++) {
+			uint32_t size = 0;
+			NONFAILING(size = frags->frags[i]);
+			if (size > length)
+				size = length;
+			vecs[nfrags].iov_base = data;
+			vecs[nfrags].iov_len = size;
+			nfrags++;
+			data += size;
+			length -= size;
+		}
+		if (length != 0 && (full || nfrags == 0)) {
+			vecs[nfrags].iov_base = data;
+			vecs[nfrags].iov_len = length;
+			nfrags++;
+		}
+	}
+	return writev(tunfd, vecs, nfrags);
 }
 #endif
 
@@ -620,8 +755,6 @@ static bool write_file(const char* file, const char* what, ...)
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NAMESPACE)
 static int real_uid;
 static int real_gid;
-static int epid;
-static bool etun;
 __attribute__((aligned(64 << 10))) static char sandbox_stack[1 << 20];
 
 static int namespace_sandbox_proc(void* arg)
@@ -634,12 +767,6 @@ static int namespace_sandbox_proc(void* arg)
 		fail("write of /proc/self/uid_map failed");
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
-
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
-	// For sandbox namespace we setup tun after initializing uid mapping,
-	// otherwise ip commands fail.
-	setup_tun(epid, etun);
-#endif
 
 	if (mkdir("./syz-tmp", 0777))
 		fail("mkdir(syz-tmp) failed");
@@ -694,10 +821,14 @@ static int namespace_sandbox_proc(void* arg)
 
 static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 {
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
+	// For sandbox namespace we setup tun before dropping privs,
+	// because IFF_NAPI_FRAGS requires root.
+	setup_tun(executor_pid, enable_tun);
+#endif
+
 	real_uid = getuid();
 	real_gid = getgid();
-	epid = executor_pid;
-	etun = enable_tun;
 	mprotect(sandbox_stack, 4096, PROT_NONE); // to catch stack underflows
 	return clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
 		     CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);

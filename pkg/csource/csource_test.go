@@ -101,8 +101,10 @@ func TestOne(t *testing.T) {
 	}
 	for _, target := range prog.AllTargets() {
 		if target.OS == "fuchsia" {
-			// TODO(dvyukov): support fuchsia
-			continue
+			continue // TODO(dvyukov): support fuchsia
+		}
+		if target.OS == "windows" {
+			continue // TODO(dvyukov): support windows
 		}
 		target := target
 		t.Run(target.OS+"/"+target.Arch, func(t *testing.T) {
@@ -120,6 +122,9 @@ func TestOne(t *testing.T) {
 			t.Parallel()
 			rs := rand.NewSource(0)
 			p := target.GenerateAllSyzProg(rs)
+			if len(p.Calls) == 0 {
+				t.Skip("no syz syscalls")
+			}
 			testOne(t, p, opts)
 		})
 	}

@@ -1,0 +1,9 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/mman.h>
+
+mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd const[0xffffffffffffffff], offset const[0]) vma
+
+mmap_prot = PROT_READ, PROT_WRITE
+mmap_flags = MAP_PRIVATE, MAP_ANONYMOUS, MAP_FIXED

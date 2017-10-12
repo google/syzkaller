@@ -11,7 +11,8 @@ following keys in its top-level object:
      - `<workdir>/corpus.db`: corpus with interesting programs
      - `<workdir>/instance-x`: per VM instance temporary files
  - `syzkaller`: Location of the `syzkaller` checkout.
- - `vmlinux`: Location of the `vmlinux` file that corresponds to the kernel being tested.
+ - `vmlinux`: Location of the `vmlinux` file that corresponds to the kernel being tested
+   (used for report symbolization and coverage reports, optional).
  - `procs`: Number of parallel test processes in each VM (4 or 8 would be a reasonable number).
  - `leak`: Detect memory leaks with kmemleak.
  - `image`: Location of the disk image file for the QEMU instance; a copy of this file is passed as the

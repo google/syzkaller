@@ -38,6 +38,7 @@ func TestErrors(t *testing.T) {
 		"C1":       1,
 		"C2":       2,
 	}
+	target := targets.List["linux"]["amd64"]
 	for _, name := range []string{"errors.txt", "errors2.txt"} {
 		name := name
 		t.Run(name, func(t *testing.T) {
@@ -47,8 +48,8 @@ func TestErrors(t *testing.T) {
 				em.DumpErrors(t)
 				t.Fatalf("parsing failed")
 			}
-			ExtractConsts(desc, em.ErrorHandler)
-			Compile(desc, consts, targets.List["linux"]["amd64"], em.ErrorHandler)
+			ExtractConsts(desc, target, em.ErrorHandler)
+			Compile(desc, consts, target, em.ErrorHandler)
 			em.Check(t)
 		})
 	}

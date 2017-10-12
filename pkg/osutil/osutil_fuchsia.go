@@ -7,11 +7,3 @@ package osutil
 
 func HandleInterrupts(shutdown chan struct{}) {
 }
-
-func Abs(path string) string {
-	// Getwd is not implemented. Let's hope for best.
-	if path == "" {
-		return ""
-	}
-	return "./" + path
-}

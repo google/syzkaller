@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <errno.h>
-#include <pthread.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stddef.h>
@@ -12,7 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 
 #ifndef GIT_REVISION
 #define GIT_REVISION "unknown"
@@ -77,7 +75,7 @@ const uint64_t arg_csum_chunk_const = 1;
 struct thread_t {
 	bool created;
 	int id;
-	pthread_t th;
+	osthread_t th;
 	// TODO(dvyukov): this assumes 64-bit kernel. This must be "kernel long" somehow.
 	uint64_t* cover_data;
 	// Pointer to the size of coverage (stored as first word of memory).
@@ -135,12 +133,6 @@ void handle_completion(thread_t* th);
 void execute_call(thread_t* th);
 void thread_create(thread_t* th, int id);
 void* worker_thread(void* arg);
-void event_init(event_t* ev);
-void event_set(event_t* ev);
-void event_reset(event_t* ev);
-void event_wait(event_t* ev);
-bool event_isset(event_t* ev);
-bool event_timedwait(event_t* ev, uint64_t timeout_ms);
 uint32_t* write_output(uint32_t v);
 void write_completed(uint32_t completed);
 uint64_t read_input(uint64_t** input_posp, bool peek = false);
@@ -282,7 +274,7 @@ retry:
 				fail("running = %d", running);
 			if (running > 0) {
 				bool last = read_input(&input_pos, true) == instr_eof;
-				usleep(last ? 1000 : 100);
+				sleep_ms(last ? 10 : 1);
 				for (int i = 0; i < kMaxThreads; i++) {
 					th = &threads[i];
 					if (!th->handled && event_isset(&th->done))
@@ -445,14 +437,8 @@ void thread_create(thread_t* th, int id)
 	event_init(&th->ready);
 	event_init(&th->done);
 	event_set(&th->done);
-	if (flag_threaded) {
-		pthread_attr_t attr;
-		pthread_attr_init(&attr);
-		pthread_attr_setstacksize(&attr, 128 << 10);
-		if (pthread_create(&th->th, &attr, worker_thread, th))
-			exitf("pthread_create failed");
-		pthread_attr_destroy(&attr);
-	}
+	if (flag_threaded)
+		thread_start(&th->th, worker_thread, th);
 }
 
 void* worker_thread(void* arg)

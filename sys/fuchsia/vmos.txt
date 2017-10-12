@@ -1,0 +1,22 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <zircon/syscalls.h>
+
+resource zx_vmo[zx_handle]
+
+zx_vmo_create(size int64, options const[0], out ptr[out, zx_vmo])
+zx_vmo_read(handle zx_vmo, data ptr[out, array[int8]], offset int64, len intptr, actual ptr[out, intptr])
+zx_vmo_write(handle zx_vmo, data ptr[in, array[int8]], offset int64, len intptr, actual ptr[out, intptr])
+zx_vmo_clone(handle zx_vmo, options flags[vmo_clone_options], offset int64, size int64, out ptr[out, zx_vmo])
+zx_vmo_get_size(handle zx_vmo, size ptr[out, int64])
+zx_vmo_set_size(handle zx_vmo, size int64)
+zx_vmo_op_range$ZX_VMO_OP_COMMIT(handle zx_vmo, op const[ZX_VMO_OP_COMMIT], offset int64, size int64, data const[0], buffer_size const[0])
+zx_vmo_op_range$ZX_VMO_OP_DECOMMIT(handle zx_vmo, op const[ZX_VMO_OP_DECOMMIT], offset int64, size int64, data const[0], buffer_size const[0])
+zx_vmo_op_range$ZX_VMO_OP_CACHE_SYNC(handle zx_vmo, op const[ZX_VMO_OP_CACHE_SYNC], offset int64, size int64, data const[0], buffer_size const[0])
+zx_vmo_op_range$ZX_VMO_OP_CACHE_INVALIDATE(handle zx_vmo, op const[ZX_VMO_OP_CACHE_INVALIDATE], offset int64, size int64, data const[0], buffer_size const[0])
+zx_vmo_op_range$ZX_VMO_OP_CACHE_CLEAN(handle zx_vmo, op const[ZX_VMO_OP_CACHE_CLEAN], offset int64, size int64, data const[0], buffer_size const[0])
+zx_vmo_op_range$ZX_VMO_OP_CACHE_CLEAN_INVALIDATE(handle zx_vmo, op const[ZX_VMO_OP_CACHE_CLEAN_INVALIDATE], offset int64, size int64, data const[0], buffer_size const[0])
+zx_vmo_op_range$ZX_VMO_OP_LOOKUP(handle zx_vmo, op const[ZX_VMO_OP_LOOKUP], offset int64, size int64, data ptr[out, array[int8]], buffer_size len[data])
+
+vmo_clone_options = ZX_VMO_CLONE_COPY_ON_WRITE

@@ -112,7 +112,14 @@ func main() {
 		Fatalf("%v", err)
 	}
 
-	osInit()
+	shutdown := make(chan struct{})
+	osutil.HandleInterrupts(shutdown)
+	go func() {
+		// Handles graceful preemption on GCE.
+		<-shutdown
+		Logf(0, "SYZ-FUZZER: PREEMPTED")
+		os.Exit(1)
+	}()
 
 	if *flagPprof != "" {
 		go func() {
@@ -470,9 +477,6 @@ func addInput(inp RpcInput) {
 	if err != nil {
 		panic(err)
 	}
-	if inp.CallIndex < 0 || inp.CallIndex >= len(p.Calls) {
-		Fatalf("bad call index %v, calls %v, program:\n%s", inp.CallIndex, len(p.Calls), inp.Prog)
-	}
 	sig := hash.Hash(inp.Prog)
 	if _, ok := corpusHashes[sig]; !ok {
 		corpus = append(corpus, p)
@@ -592,11 +596,10 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	a := &NewInputArgs{
 		Name: *flagName,
 		RpcInput: RpcInput{
-			Call:      call.CallName,
-			Prog:      data,
-			CallIndex: inp.call,
-			Signal:    []uint32(cover.Canonicalize(inp.signal)),
-			Cover:     []uint32(inputCover),
+			Call:   call.CallName,
+			Prog:   data,
+			Signal: []uint32(cover.Canonicalize(inp.signal)),
+			Cover:  []uint32(inputCover),
 		},
 	}
 	if err := manager.Call("Manager.NewInput", a, nil); err != nil {
