@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -43,18 +42,16 @@ func MakeEnv(bin string, pid int, config Config) (*Env, error) {
 	if len(env.bin) == 0 {
 		return nil, fmt.Errorf("binary is empty string")
 	}
-	if runtime.GOOS != "fuchsia" {
-		env.bin[0] = osutil.Abs(env.bin[0])
-		base := filepath.Base(env.bin[0])
-		pidStr := fmt.Sprint(pid)
-		if len(base)+len(pidStr) >= 16 {
-			// TASK_COMM_LEN is currently set to 16
-			base = base[:15-len(pidStr)]
-		}
-		binCopy := filepath.Join(filepath.Dir(env.bin[0]), base+pidStr)
-		if err := os.Link(env.bin[0], binCopy); err == nil {
-			env.bin[0] = binCopy
-		}
+	env.bin[0] = osutil.Abs(env.bin[0])
+	base := filepath.Base(env.bin[0])
+	pidStr := fmt.Sprint(pid)
+	if len(base)+len(pidStr) >= 16 {
+		// TASK_COMM_LEN is currently set to 16
+		base = base[:15-len(pidStr)]
+	}
+	binCopy := filepath.Join(filepath.Dir(env.bin[0]), base+pidStr)
+	if err := os.Link(env.bin[0], binCopy); err == nil {
+		env.bin[0] = binCopy
 	}
 	return env, nil
 }
