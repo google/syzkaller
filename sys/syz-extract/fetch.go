@@ -36,6 +36,7 @@ func extract(info *compiler.ConstInfo, cc string, args []string, addSource strin
 		}
 		for _, errMsg := range []string{
 			"error: ‘([a-zA-Z0-9_]+)’ undeclared",
+			"error: '([a-zA-Z0-9_]+)' undeclared",
 			"note: in expansion of macro ‘([a-zA-Z0-9_]+)’",
 		} {
 			re := regexp.MustCompile(errMsg)

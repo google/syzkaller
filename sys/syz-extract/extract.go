@@ -52,6 +52,7 @@ type OS interface {
 }
 
 var oses = map[string]OS{
+	"akaros":  new(akaros),
 	"linux":   new(linux),
 	"freebsd": new(freebsd),
 	"android": new(linux),
