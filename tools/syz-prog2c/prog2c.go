@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	flagOS         = flag.String("os", runtime.GOOS, "target os")
 	flagArch       = flag.String("arch", runtime.GOARCH, "target arch")
 	flagThreaded   = flag.Bool("threaded", false, "create threaded program")
 	flagCollide    = flag.Bool("collide", false, "create collide program")
@@ -38,7 +39,7 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	target, err := prog.GetTarget(runtime.GOOS, *flagArch)
+	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
