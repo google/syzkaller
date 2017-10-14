@@ -108,9 +108,9 @@ static void debug(const char* msg, ...)
 		return;
 	va_list args;
 	va_start(args, msg);
-	vfprintf(stdout, msg, args);
+	vfprintf(stderr, msg, args);
 	va_end(args);
-	fflush(stdout);
+	fflush(stderr);
 }
 #endif
 
