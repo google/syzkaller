@@ -183,7 +183,7 @@ fcntl$getownex(fd fd, cmd const[F_GETOWN_EX], arg ptr[out, f_owner_ex])
 fcntl$setownex(fd fd, cmd const[F_SETOWN_EX], arg ptr[in, f_owner_ex])
 fcntl$setsig(fd fd, cmd const[F_SETSIG], sig signalno)
 fcntl$setlease(fd fd, cmd const[F_SETLEASE], typ flags[flock_type])
-fcntl$notify(fd fd, cmd flags[fcntl_notify], typ flags[fcntl_notify])
+fcntl$notify(fd fd, cmd const[F_NOTIFY], typ flags[fcntl_notify])
 fcntl$setpipe(fd fd, cmd const[F_SETPIPE_SZ], sz intptr)
 fcntl$addseals(fd fd, cmd const[F_ADD_SEALS], seals flags[seal_types])
 

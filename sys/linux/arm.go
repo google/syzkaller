@@ -6208,7 +6208,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 118, NR: 9437239, Name: "fcntl$notify", CallName: "fcntl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_notify", FldName: "cmd", TypeSize: 4}}, Vals: []uint64{2147483648, 1, 2, 4, 8, 16, 32}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 1026},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_notify", FldName: "typ", TypeSize: 4}}, Vals: []uint64{2147483648, 1, 2, 4, 8, 16, 32}},
 	}},
 	{ID: 119, NR: 9437239, Name: "fcntl$setflags", CallName: "fcntl", Args: []Type{
@@ -14390,6 +14390,7 @@ var consts_arm = []ConstValue{
 	{Name: "F_GETPIPE_SZ", Value: 1032},
 	{Name: "F_GETSIG", Value: 11},
 	{Name: "F_GET_SEALS", Value: 1034},
+	{Name: "F_NOTIFY", Value: 1026},
 	{Name: "F_OWNER_PGRP", Value: 2},
 	{Name: "F_OWNER_PID", Value: 1},
 	{Name: "F_OWNER_TID"},
@@ -16637,4 +16638,4 @@ var consts_arm = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_arm = "48d11406b51cb3dad2399863375cfc24d4892473"
+const revision_arm = "17664064d159eafa86cd7b4f87ab64810ff1531c"
