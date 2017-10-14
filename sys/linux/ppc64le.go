@@ -6160,7 +6160,7 @@ var syscalls_ppc64le = []*Syscall{
 	}},
 	{ID: 119, NR: 55, Name: "fcntl$notify", CallName: "fcntl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_notify", FldName: "cmd", TypeSize: 8}}, Vals: []uint64{2147483648, 1, 2, 4, 8, 16, 32}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1026},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fcntl_notify", FldName: "typ", TypeSize: 8}}, Vals: []uint64{2147483648, 1, 2, 4, 8, 16, 32}},
 	}},
 	{ID: 120, NR: 55, Name: "fcntl$setflags", CallName: "fcntl", Args: []Type{
@@ -14106,6 +14106,7 @@ var consts_ppc64le = []ConstValue{
 	{Name: "F_GETPIPE_SZ", Value: 1032},
 	{Name: "F_GETSIG", Value: 11},
 	{Name: "F_GET_SEALS", Value: 1034},
+	{Name: "F_NOTIFY", Value: 1026},
 	{Name: "F_OWNER_PGRP", Value: 2},
 	{Name: "F_OWNER_PID", Value: 1},
 	{Name: "F_OWNER_TID"},
@@ -16336,4 +16337,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_ppc64le = "5e9d29319478130f5d8b9238e869d979870e5cb3"
+const revision_ppc64le = "474129cd7e27c1ae9481711795b06bddabf96809"
