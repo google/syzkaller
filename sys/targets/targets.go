@@ -85,6 +85,12 @@ var List = map[string]map[string]*Target{
 			CArch:   []string{"_M_X64"},
 		},
 	},
+	"akaros": map[string]*Target{
+		"amd64": {
+			PtrSize: 8,
+			CArch:   []string{"__x86_64__"},
+		},
+	},
 }
 
 type OS struct {
@@ -107,6 +113,10 @@ var OSList = map[string]*OS{
 	},
 	"windows": {
 		SyscallNumbers: false,
+	},
+	"akaros": {
+		SyscallNumbers: true,
+		SyscallPrefix:  "SYS_",
 	},
 }
 
