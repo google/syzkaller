@@ -22,6 +22,8 @@ import (
 )
 
 var (
+	flagOS       = flag.String("os", runtime.GOOS, "target os")
+	flagArch     = flag.String("arch", runtime.GOARCH, "target arch")
 	flagCorpus   = flag.String("corpus", "", "corpus database")
 	flagExecutor = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagOutput   = flag.Bool("output", false, "print executor output to console")
@@ -37,7 +39,7 @@ const programLength = 30
 
 func main() {
 	flag.Parse()
-	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
+	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -106,7 +108,7 @@ func execute(pid int, env *ipc.Env, p *prog.Prog) {
 	if err != nil {
 		fmt.Printf("failed to execute executor: %v\n", err)
 	}
-	if failed || hanged || err != nil {
+	if failed || hanged || err != nil || *flagOutput {
 		fmt.Printf("PROGRAM:\n%s\n", p.Serialize())
 	}
 	if failed || hanged || err != nil || *flagOutput {
@@ -134,6 +136,14 @@ func readCorpus(target *prog.Target) []*prog.Prog {
 }
 
 func buildCallList(target *prog.Target) map[*prog.Syscall]bool {
+	if *flagOS != runtime.GOOS {
+		// This is currently used on akaros, where syz-stress runs on host.
+		calls := make(map[*prog.Syscall]bool)
+		for _, c := range target.Syscalls {
+			calls[c] = true
+		}
+		return calls
+	}
 	calls, err := host.DetectSupportedSyscalls(target)
 	if err != nil {
 		Logf(0, "failed to detect host supported syscalls: %v", err)
