@@ -93,6 +93,14 @@ ifeq ("$(TARGETOS)", "fuchsia")
 	endif
 endif
 
+ifeq ("$(TARGETOS)", "akaros")
+	# SOURCEDIR should point to bootstrapped akaros checkout.
+	# There is no up-to-date Go for akaros, so building Go will fail.
+	CC = $(SOURCEDIR)/install/x86_64-ucb-akaros-gcc/bin/x86_64-ucb-akaros-g++
+	# Most likely this is incorrect (why doesn't it know own sysroot?), but worked for me.
+	ADDCFLAGS = -I $(SOURCEDIR)/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/include/x86_64-ucb-akaros -I $(SOURCEDIR)/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/include -I $(SOURCEDIR)/tools/compilers/gcc-glibc/gcc-4.9.2/libstdc++-v3/libsupc++ -L $(SOURCEDIR)/tools/compilers/gcc-glibc/x86_64-ucb-akaros-gcc-stage3-builddir/x86_64-ucb-akaros/libstdc++-v3/src/.libs
+endif
+
 ifeq ("$(TARGETOS)", "windows")
 	EXE = .exe
 endif
