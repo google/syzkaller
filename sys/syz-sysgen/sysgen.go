@@ -186,7 +186,6 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 		CARCH:    target.CArch,
 	}
 	fake := make(map[string]uint64)
-	syscallNumbers := targets.OSList[target.OS].SyscallNumbers
 	for _, c := range syscalls {
 		syz := strings.HasPrefix(c.CallName, "syz_")
 		if syz {
@@ -196,7 +195,7 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 			Name:     c.Name,
 			CallName: c.CallName,
 			NR:       int32(c.NR),
-			NeedCall: syz || !syscallNumbers,
+			NeedCall: syz || !target.SyscallNumbers,
 		})
 	}
 	for name, nr := range fake {
