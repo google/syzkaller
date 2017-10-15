@@ -4,6 +4,7 @@
 package targets
 
 type Target struct {
+	os
 	OS                 string
 	Arch               string
 	PtrSize            uint64
@@ -14,6 +15,15 @@ type Target struct {
 	KernelArch         string
 	KernelHeaderArch   string
 	KernelCrossCompile string
+	// NeedSyscallDefine is used by csource package to decide when to emit __NR_* defines.
+	NeedSyscallDefine func(nr uint64) bool
+}
+
+type os struct {
+	// Does the OS use syscall numbers (e.g. Linux) or has interface based on functions (e.g. fuchsia).
+	SyscallNumbers bool
+	// E.g. "__NR_" or "SYS_".
+	SyscallPrefix string
 }
 
 var List = map[string]map[string]*Target{
@@ -26,6 +36,11 @@ var List = map[string]map[string]*Target{
 			CCompilerPrefix:  "x86_64-linux-gnu-",
 			KernelArch:       "x86_64",
 			KernelHeaderArch: "x86",
+			NeedSyscallDefine: func(nr uint64) bool {
+				// Only generate defines for new syscalls
+				// (added after commit 8a1ab3155c2ac on 2012-10-04).
+				return nr >= 313
+			},
 		},
 		"386": {
 			PtrSize:          4,
@@ -87,19 +102,14 @@ var List = map[string]map[string]*Target{
 	},
 	"akaros": map[string]*Target{
 		"amd64": {
-			PtrSize: 8,
-			CArch:   []string{"__x86_64__"},
+			PtrSize:           8,
+			CArch:             []string{"__x86_64__"},
+			NeedSyscallDefine: dontNeedSyscallDefine,
 		},
 	},
 }
 
-type OS struct {
-	// Does the OS use syscall numbers (e.g. Linux) or has interface based on functions (e.g. fuchsia).
-	SyscallNumbers bool
-	SyscallPrefix  string
-}
-
-var OSList = map[string]*OS{
+var oses = map[string]os{
 	"linux": {
 		SyscallNumbers: true,
 		SyscallPrefix:  "__NR_",
@@ -123,8 +133,19 @@ var OSList = map[string]*OS{
 func init() {
 	for OS, archs := range List {
 		for arch, target := range archs {
+			target.os = oses[OS]
 			target.OS = OS
 			target.Arch = arch
+			if target.NeedSyscallDefine == nil {
+				target.NeedSyscallDefine = needSyscallDefine
+			}
 		}
 	}
+}
+
+func needSyscallDefine(nr uint64) bool {
+	return true
+}
+func dontNeedSyscallDefine(nr uint64) bool {
+	return false
 }
