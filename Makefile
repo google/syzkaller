@@ -150,7 +150,6 @@ executor:
 	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor_$(TARGETOS).cc \
 		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 \
 		$(ADDCFLAGS) $(CFLAGS) -DGOOS=\"$(TARGETOS)\" -DGIT_REVISION=\"$(REV)\"
-	strip --strip-debug ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE)
 
 manager:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
