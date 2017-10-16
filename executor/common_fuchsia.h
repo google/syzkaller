@@ -3,7 +3,14 @@
 
 // This file is shared between executor and csource package.
 
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/file.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/uio.h>
 #include <unistd.h>
+#include <utime.h>
 #include <zircon/process.h>
 #include <zircon/syscalls.h>
 #if defined(SYZ_EXECUTOR) || defined(SYZ_THREADED) || defined(SYZ_COLLIDE)
@@ -189,5 +196,41 @@ long syz_vmar_root_self()
 long syz_job_default()
 {
 	return zx_job_default();
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_future_time)
+long syz_future_time(long when)
+{
+	zx_time_t delta_ms;
+	switch (when) {
+	case 0:
+		delta_ms = 5;
+	case 1:
+		delta_ms = 30;
+	default:
+		delta_ms = 10000;
+	}
+	zx_time_t now = zx_time_get(ZX_CLOCK_MONOTONIC);
+	return now + delta_ms * 1000 * 1000;
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_zx_channel_call_finish) || defined(zx_channel_call_noretry)
+#include "kernel/lib/vdso/vdso-code.h"
+#define UNEXPORTED(name) ((syscall_t)((long)&zx_handle_close - VDSO_SYSCALL_zx_handle_close + VDSO_SYSCALL_##name))
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_zx_channel_call_finish)
+zx_status_t zx_channel_call_finish(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
+{
+	return UNEXPORTED(zx_channel_call_finish)(a0, a1, a2, a3, a4, a5, a6, a7, a8);
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_zx_channel_call_noretry)
+zx_status_t zx_channel_call_noretry(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
+{
+	return UNEXPORTED(zx_channel_call_noretry)(a0, a1, a2, a3, a4, a5, a6, a7, a8);
 }
 #endif

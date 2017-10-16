@@ -3,7 +3,6 @@
 
 include <zircon/syscalls.h>
 
-# TODO: generate time a bit in future
 resource zx_time[int64]: 0, ZX_TIME_INFINITE
 
 zx_nanosleep(deadline zx_time)
@@ -13,5 +12,7 @@ zx_ticks_per_second()
 
 # TODO: undocumented
 # zx_clock_adjust?
+
+syz_future_time(when intptr[0:1]) zx_time
 
 clock_id = ZX_CLOCK_MONOTONIC, ZX_CLOCK_UTC, ZX_CLOCK_THREAD

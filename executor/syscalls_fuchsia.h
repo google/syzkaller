@@ -2,21 +2,82 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "c4bd217e1073de2f960be149f5f3763258a9f8ea"
-#define __NR_syz_job_default 1000000
-#define __NR_syz_mmap 1000001
-#define __NR_syz_process_self 1000002
-#define __NR_syz_thread_self 1000003
-#define __NR_syz_vmar_root_self 1000004
+#define SYZ_REVISION "5a8e70818b54cb32826aacef1b4b176d34b5c768"
+#define __NR_syz_future_time 1000000
+#define __NR_syz_job_default 1000001
+#define __NR_syz_mmap 1000002
+#define __NR_syz_process_self 1000003
+#define __NR_syz_thread_self 1000004
+#define __NR_syz_vmar_root_self 1000005
 
-unsigned syscall_count = 103;
+unsigned syscall_count = 164;
 call_t syscalls[] = {
-    {"syz_job_default", 1000000, (syscall_t)syz_job_default},
-    {"syz_mmap", 1000001, (syscall_t)syz_mmap},
-    {"syz_process_self", 1000002, (syscall_t)syz_process_self},
-    {"syz_thread_self", 1000003, (syscall_t)syz_thread_self},
-    {"syz_vmar_root_self", 1000004, (syscall_t)syz_vmar_root_self},
+    {"chdir", 0, (syscall_t)chdir},
+    {"chmod", 0, (syscall_t)chmod},
+    {"chown", 0, (syscall_t)chown},
+    {"close", 0, (syscall_t)close},
+    {"creat", 0, (syscall_t)creat},
+    {"dup", 0, (syscall_t)dup},
+    {"dup2", 0, (syscall_t)dup2},
+    {"dup3", 0, (syscall_t)dup3},
+    {"faccessat", 0, (syscall_t)faccessat},
+    {"fchdir", 0, (syscall_t)fchdir},
+    {"fchmod", 0, (syscall_t)fchmod},
+    {"fchmodat", 0, (syscall_t)fchmodat},
+    {"fchown", 0, (syscall_t)fchown},
+    {"fchownat", 0, (syscall_t)fchownat},
+    {"fdatasync", 0, (syscall_t)fdatasync},
+    {"flock", 0, (syscall_t)flock},
+    {"fstat", 0, (syscall_t)fstat},
+    {"fsync", 0, (syscall_t)fsync},
+    {"ftruncate", 0, (syscall_t)ftruncate},
+    {"futimesat", 0, (syscall_t)futimesat},
+    {"getcwd", 0, (syscall_t)getcwd},
+    {"getgid", 0, (syscall_t)getgid},
+    {"getpid", 0, (syscall_t)getpid},
+    {"getuid", 0, (syscall_t)getuid},
+    {"lchown", 0, (syscall_t)lchown},
+    {"link", 0, (syscall_t)link},
+    {"linkat", 0, (syscall_t)linkat},
+    {"lseek", 0, (syscall_t)lseek},
+    {"lstat", 0, (syscall_t)lstat},
+    {"mkdir", 0, (syscall_t)mkdir},
+    {"mkdirat", 0, (syscall_t)mkdirat},
+    {"open", 0, (syscall_t)open},
+    {"openat", 0, (syscall_t)openat},
+    {"poll", 0, (syscall_t)poll},
+    {"ppoll", 0, (syscall_t)ppoll},
+    {"preadv", 0, (syscall_t)preadv},
+    {"pwritev", 0, (syscall_t)pwritev},
+    {"read", 0, (syscall_t)read},
+    {"readlink", 0, (syscall_t)readlink},
+    {"readlinkat", 0, (syscall_t)readlinkat},
+    {"readv", 0, (syscall_t)readv},
+    {"rename", 0, (syscall_t)rename},
+    {"renameat", 0, (syscall_t)renameat},
+    {"rmdir", 0, (syscall_t)rmdir},
+    {"select", 0, (syscall_t)select},
+    {"stat", 0, (syscall_t)stat},
+    {"symlink", 0, (syscall_t)symlink},
+    {"symlinkat", 0, (syscall_t)symlinkat},
+    {"sync", 0, (syscall_t)sync},
+    {"syz_future_time", 1000000, (syscall_t)syz_future_time},
+    {"syz_job_default", 1000001, (syscall_t)syz_job_default},
+    {"syz_mmap", 1000002, (syscall_t)syz_mmap},
+    {"syz_process_self", 1000003, (syscall_t)syz_process_self},
+    {"syz_thread_self", 1000004, (syscall_t)syz_thread_self},
+    {"syz_vmar_root_self", 1000005, (syscall_t)syz_vmar_root_self},
+    {"truncate", 0, (syscall_t)truncate},
+    {"unlink", 0, (syscall_t)unlink},
+    {"unlinkat", 0, (syscall_t)unlinkat},
+    {"utime", 0, (syscall_t)utime},
+    {"utimensat", 0, (syscall_t)utimensat},
+    {"utimes", 0, (syscall_t)utimes},
+    {"write", 0, (syscall_t)write},
+    {"writev", 0, (syscall_t)writev},
     {"zx_channel_call", 0, (syscall_t)zx_channel_call},
+    {"zx_channel_call_finish", 0, (syscall_t)zx_channel_call_finish},
+    {"zx_channel_call_noretry", 0, (syscall_t)zx_channel_call_noretry},
     {"zx_channel_create", 0, (syscall_t)zx_channel_create},
     {"zx_channel_read", 0, (syscall_t)zx_channel_read},
     {"zx_channel_write", 0, (syscall_t)zx_channel_write},
@@ -112,6 +173,7 @@ call_t syscalls[] = {
     {"zx_vmo_op_range$ZX_VMO_OP_DECOMMIT", 0, (syscall_t)zx_vmo_op_range},
     {"zx_vmo_op_range$ZX_VMO_OP_LOOKUP", 0, (syscall_t)zx_vmo_op_range},
     {"zx_vmo_read", 0, (syscall_t)zx_vmo_read},
+    {"zx_vmo_set_cache_policy", 0, (syscall_t)zx_vmo_set_cache_policy},
     {"zx_vmo_set_size", 0, (syscall_t)zx_vmo_set_size},
     {"zx_vmo_write", 0, (syscall_t)zx_vmo_write},
 
@@ -120,21 +182,82 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "74d9a48364f654cbf79562ea1efc049b48db9a72"
-#define __NR_syz_job_default 1000000
-#define __NR_syz_mmap 1000001
-#define __NR_syz_process_self 1000002
-#define __NR_syz_thread_self 1000003
-#define __NR_syz_vmar_root_self 1000004
+#define SYZ_REVISION "181d2b70232bd5b7de2d6d08ad038157ec35803f"
+#define __NR_syz_future_time 1000000
+#define __NR_syz_job_default 1000001
+#define __NR_syz_mmap 1000002
+#define __NR_syz_process_self 1000003
+#define __NR_syz_thread_self 1000004
+#define __NR_syz_vmar_root_self 1000005
 
-unsigned syscall_count = 103;
+unsigned syscall_count = 164;
 call_t syscalls[] = {
-    {"syz_job_default", 1000000, (syscall_t)syz_job_default},
-    {"syz_mmap", 1000001, (syscall_t)syz_mmap},
-    {"syz_process_self", 1000002, (syscall_t)syz_process_self},
-    {"syz_thread_self", 1000003, (syscall_t)syz_thread_self},
-    {"syz_vmar_root_self", 1000004, (syscall_t)syz_vmar_root_self},
+    {"chdir", 0, (syscall_t)chdir},
+    {"chmod", 0, (syscall_t)chmod},
+    {"chown", 0, (syscall_t)chown},
+    {"close", 0, (syscall_t)close},
+    {"creat", 0, (syscall_t)creat},
+    {"dup", 0, (syscall_t)dup},
+    {"dup2", 0, (syscall_t)dup2},
+    {"dup3", 0, (syscall_t)dup3},
+    {"faccessat", 0, (syscall_t)faccessat},
+    {"fchdir", 0, (syscall_t)fchdir},
+    {"fchmod", 0, (syscall_t)fchmod},
+    {"fchmodat", 0, (syscall_t)fchmodat},
+    {"fchown", 0, (syscall_t)fchown},
+    {"fchownat", 0, (syscall_t)fchownat},
+    {"fdatasync", 0, (syscall_t)fdatasync},
+    {"flock", 0, (syscall_t)flock},
+    {"fstat", 0, (syscall_t)fstat},
+    {"fsync", 0, (syscall_t)fsync},
+    {"ftruncate", 0, (syscall_t)ftruncate},
+    {"futimesat", 0, (syscall_t)futimesat},
+    {"getcwd", 0, (syscall_t)getcwd},
+    {"getgid", 0, (syscall_t)getgid},
+    {"getpid", 0, (syscall_t)getpid},
+    {"getuid", 0, (syscall_t)getuid},
+    {"lchown", 0, (syscall_t)lchown},
+    {"link", 0, (syscall_t)link},
+    {"linkat", 0, (syscall_t)linkat},
+    {"lseek", 0, (syscall_t)lseek},
+    {"lstat", 0, (syscall_t)lstat},
+    {"mkdir", 0, (syscall_t)mkdir},
+    {"mkdirat", 0, (syscall_t)mkdirat},
+    {"open", 0, (syscall_t)open},
+    {"openat", 0, (syscall_t)openat},
+    {"poll", 0, (syscall_t)poll},
+    {"ppoll", 0, (syscall_t)ppoll},
+    {"preadv", 0, (syscall_t)preadv},
+    {"pwritev", 0, (syscall_t)pwritev},
+    {"read", 0, (syscall_t)read},
+    {"readlink", 0, (syscall_t)readlink},
+    {"readlinkat", 0, (syscall_t)readlinkat},
+    {"readv", 0, (syscall_t)readv},
+    {"rename", 0, (syscall_t)rename},
+    {"renameat", 0, (syscall_t)renameat},
+    {"rmdir", 0, (syscall_t)rmdir},
+    {"select", 0, (syscall_t)select},
+    {"stat", 0, (syscall_t)stat},
+    {"symlink", 0, (syscall_t)symlink},
+    {"symlinkat", 0, (syscall_t)symlinkat},
+    {"sync", 0, (syscall_t)sync},
+    {"syz_future_time", 1000000, (syscall_t)syz_future_time},
+    {"syz_job_default", 1000001, (syscall_t)syz_job_default},
+    {"syz_mmap", 1000002, (syscall_t)syz_mmap},
+    {"syz_process_self", 1000003, (syscall_t)syz_process_self},
+    {"syz_thread_self", 1000004, (syscall_t)syz_thread_self},
+    {"syz_vmar_root_self", 1000005, (syscall_t)syz_vmar_root_self},
+    {"truncate", 0, (syscall_t)truncate},
+    {"unlink", 0, (syscall_t)unlink},
+    {"unlinkat", 0, (syscall_t)unlinkat},
+    {"utime", 0, (syscall_t)utime},
+    {"utimensat", 0, (syscall_t)utimensat},
+    {"utimes", 0, (syscall_t)utimes},
+    {"write", 0, (syscall_t)write},
+    {"writev", 0, (syscall_t)writev},
     {"zx_channel_call", 0, (syscall_t)zx_channel_call},
+    {"zx_channel_call_finish", 0, (syscall_t)zx_channel_call_finish},
+    {"zx_channel_call_noretry", 0, (syscall_t)zx_channel_call_noretry},
     {"zx_channel_create", 0, (syscall_t)zx_channel_create},
     {"zx_channel_read", 0, (syscall_t)zx_channel_read},
     {"zx_channel_write", 0, (syscall_t)zx_channel_write},
@@ -230,6 +353,7 @@ call_t syscalls[] = {
     {"zx_vmo_op_range$ZX_VMO_OP_DECOMMIT", 0, (syscall_t)zx_vmo_op_range},
     {"zx_vmo_op_range$ZX_VMO_OP_LOOKUP", 0, (syscall_t)zx_vmo_op_range},
     {"zx_vmo_read", 0, (syscall_t)zx_vmo_read},
+    {"zx_vmo_set_cache_policy", 0, (syscall_t)zx_vmo_set_cache_policy},
     {"zx_vmo_set_size", 0, (syscall_t)zx_vmo_set_size},
     {"zx_vmo_write", 0, (syscall_t)zx_vmo_write},
 
