@@ -19,6 +19,7 @@ var commonHeaderAkaros = `
 #include <time.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
+#include <parlib/parlib.h>
 #include <setjmp.h>
 #include <signal.h>
 #endif
@@ -194,6 +195,11 @@ static uint16_t csum_inet_digest(struct csum_inet* csum)
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
+static void recover()
+{
+	_longjmp(segv_env, 1);
+}
+
 static void segv_handler(int sig, siginfo_t* info, void* ctx)
 {
 	uintptr_t addr = (uintptr_t)info->si_addr;
@@ -201,7 +207,9 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	const uintptr_t prog_end = 100 << 20;
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
 		debug("SIGSEGV on %p, skipping\n", addr);
-		siglongjmp(segv_env, 1);
+		struct user_context* uctx = (struct user_context*)ctx;
+		uctx->tf.hw_tf.tf_rip = (long)(void*)recover;
+		return;
 	}
 	debug("SIGSEGV on %p, exiting\n", addr);
 	doexit(sig);
