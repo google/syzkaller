@@ -151,13 +151,15 @@ long syz_mmap(size_t addr, size_t size)
 	zx_status_t status = zx_object_get_info(root, ZX_INFO_VMAR, &info, sizeof(info), 0, 0);
 	if (status != ZX_OK)
 		error("zx_object_get_info(ZX_INFO_VMAR) failed: %d", status);
-	uintptr_t res = 0;
-	zx_handle_t mapping = 0;
-	status = zx_vmar_allocate(root, addr - info.base, size,
-				  ZX_VM_FLAG_SPECIFIC | ZX_VM_FLAG_CAN_MAP_READ | ZX_VM_FLAG_CAN_MAP_WRITE,
-				  &mapping, &res);
-	if (status == ZX_OK && addr != res)
-		error("zx_vmar_allocate allocated wrong address: %p, want %p", (void*)res, (void*)addr);
+	zx_handle_t vmo;
+	status = zx_vmo_create(size, 0, &vmo);
+	if (status != ZX_OK)
+		return status;
+	uintptr_t mapped_addr;
+	status = zx_vmar_map(root, addr - info.base, vmo, 0, size,
+			     ZX_VM_FLAG_SPECIFIC_OVERWRITE | ZX_VM_FLAG_PERM_READ |
+				 ZX_VM_FLAG_PERM_WRITE | ZX_VM_FLAG_PERM_EXECUTE,
+			     &mapped_addr);
 	return status;
 }
 #endif
