@@ -113,6 +113,9 @@ type Crash struct {
 }
 
 func main() {
+	if sys.GitRevision == "" {
+		Fatalf("Bad syz-manager build. Build with make, run bin/syz-manager.")
+	}
 	flag.Parse()
 	EnableLogCaching(1000, 1<<20)
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
