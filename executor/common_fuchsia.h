@@ -19,8 +19,19 @@
 #include <sys/wait.h>
 #include <time.h>
 #endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
+#include <zircon/syscalls/debug.h>
+#include <zircon/syscalls/exception.h>
+#include <zircon/syscalls/object.h>
+#include <zircon/syscalls/port.h>
+#endif
 
-#define doexit exit
+__attribute__((noreturn)) static void doexit(int status)
+{
+	_exit(status);
+	for (;;) {
+	}
+}
 
 #include "common.h"
 
@@ -28,36 +39,68 @@
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
-static void segv_handler(int sig, siginfo_t* info, void* uctx)
+static void segv_handler()
 {
-	// Generated programs can contain bad (unmapped/protected) addresses,
-	// which cause SIGSEGVs during copyin/copyout.
-	// This handler ignores such crashes to allow the program to proceed.
-	// We additionally opportunistically check that the faulty address
-	// is not within executable data region, because such accesses can corrupt
-	// output region and then fuzzer will fail on corrupted data.
-	uintptr_t addr = (uintptr_t)info->si_addr;
-	const uintptr_t prog_start = 1 << 20;
-	const uintptr_t prog_end = 100 << 20;
-	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
-		debug("SIGSEGV on %p, skipping\n", addr);
+	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED)) {
+		debug("recover: skipping\n");
 		_longjmp(segv_env, 1);
 	}
-	debug("SIGSEGV on %p, exiting\n", addr);
-	doexit(sig);
-	for (;;) {
+	debug("recover: exiting\n");
+	doexit(1);
+}
+
+static void* ex_handler(void* arg)
+{
+	zx_handle_t port = (zx_handle_t)(long)arg;
+	for (int i = 0; i < 10000; i++) {
+		zx_port_packet_t packet = {};
+		zx_status_t status = zx_port_wait(port, ZX_TIME_INFINITE, &packet, 0);
+		if (status != ZX_OK) {
+			debug("zx_port_wait failed: %d\n", status);
+			continue;
+		}
+		debug("got exception packet: type=%d status=%d tid=%llu\n",
+		      packet.type, packet.status, packet.exception.tid);
+		zx_handle_t thread;
+		status = zx_object_get_child(zx_process_self(), packet.exception.tid,
+					     ZX_RIGHT_SAME_RIGHTS, &thread);
+		if (status != ZX_OK) {
+			debug("zx_object_get_child failed: %d\n", status);
+			continue;
+		}
+		uint32_t bytes_read;
+		zx_x86_64_general_regs_t regs;
+		status = zx_thread_read_state(thread, ZX_THREAD_STATE_REGSET0,
+					      &regs, sizeof(regs), &bytes_read);
+		if (status != ZX_OK || bytes_read != sizeof(regs)) {
+			debug("zx_thread_read_state failed: %d/%d (%d)\n",
+			      bytes_read, (int)sizeof(regs), status);
+		} else {
+			regs.rip = (uint64_t)(void*)&segv_handler;
+			status = zx_thread_write_state(thread, ZX_THREAD_STATE_REGSET0, &regs, sizeof(regs));
+			if (status != ZX_OK)
+				debug("zx_thread_write_state failed: %d\n", status);
+		}
+		status = zx_task_resume(thread, ZX_RESUME_EXCEPTION);
+		if (status != ZX_OK)
+			debug("zx_task_resume failed: %d\n", status);
+		zx_handle_close(thread);
 	}
+	doexit(1);
+	return 0;
 }
 
 static void install_segv_handler()
 {
-	struct sigaction sa;
-
-	memset(&sa, 0, sizeof(sa));
-	sa.sa_sigaction = segv_handler;
-	sa.sa_flags = SA_NODEFER | SA_SIGINFO;
-	sigaction(SIGSEGV, &sa, NULL);
-	sigaction(SIGBUS, &sa, NULL);
+	zx_status_t status;
+	zx_handle_t port;
+	if ((status = zx_port_create(0, &port)) != ZX_OK)
+		fail("zx_port_create failed: %d", status);
+	if ((status = zx_task_bind_exception_port(zx_process_self(), port, 0, 0)) != ZX_OK)
+		fail("zx_task_bind_exception_port failed: %d", status);
+	pthread_t th;
+	if (pthread_create(&th, 0, ex_handler, (void*)(long)port))
+		fail("pthread_create failed");
 }
 
 #define NONFAILING(...)                                              \
