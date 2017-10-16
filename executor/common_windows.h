@@ -6,8 +6,6 @@
 #include <windows.h>
 
 #define doexit exit
-#define NORETURN
-#define SYSCALLAPI WINAPI
 
 #include "common.h"
 

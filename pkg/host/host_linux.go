@@ -5,6 +5,7 @@ package host
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"runtime"
 	"strconv"
@@ -158,4 +159,14 @@ func extractStringConst(typ prog.Type) (string, bool) {
 	v := str.Values[0]
 	v = v[:len(v)-1] // string terminating \x00
 	return v, true
+}
+
+func EnableFaultInjection() error {
+	if err := osutil.WriteFile("/sys/kernel/debug/failslab/ignore-gfp-wait", []byte("N")); err != nil {
+		return fmt.Errorf("failed to write /sys/kernel/debug/failslab/ignore-gfp-wait: %v", err)
+	}
+	if err := osutil.WriteFile("/sys/kernel/debug/fail_futex/ignore-private", []byte("N")); err != nil {
+		return fmt.Errorf("failed to write /sys/kernel/debug/fail_futex/ignore-private: %v", err)
+	}
+	return nil
 }

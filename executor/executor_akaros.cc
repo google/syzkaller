@@ -3,6 +3,9 @@
 
 // +build
 
+// https://github.com/brho/akaros/issues/41
+#define DUP2_BROKEN
+
 #define SYZ_EXECUTOR
 #include "common_akaros.h"
 
@@ -12,83 +15,42 @@
 
 #include "syscalls_akaros.h"
 
-char input_buffer[kMaxInput];
 uint32_t output;
-
-struct in_header {
-	uint64_t magic;
-	uint64_t flags;
-	uint64_t pid;
-	uint64_t progSize;
-	uint64_t execFlags;
-	uint64_t prog[0];
-};
-
-struct out_header {
-	uint64_t magic;
-	uint64_t status;
-};
-
-const uint64_t kInMagic = 0xbadc0ffee;
-const uint64_t kOutMagic = 0xbadf00d;
 
 int main(int argc, char** argv)
 {
 	if (argc == 2 && strcmp(argv[1], "version") == 0) {
-		puts("akaros " GOARCH " " SYZ_REVISION " " GIT_REVISION);
+		puts(GOOS " " GOARCH " " SYZ_REVISION " " GIT_REVISION);
 		return 0;
 	}
 
 	use_temporary_dir();
 	install_segv_handler();
+	setup_control_pipes();
+	receive_handshake();
+	reply_handshake();
+
 	for (;;) {
-		size_t pos = 0;
-		in_header* hdr = (in_header*)input_buffer;
-		for (;;) {
-			int rv = read(0, input_buffer + pos, sizeof(input_buffer) - pos);
-			if (rv < 0)
-				fail("read failed");
-			if (rv == 0)
-				fail("stdin closed, read %d", (int)pos);
-			pos += rv;
-			if (pos > sizeof(in_header)) {
-				if (hdr->magic != kInMagic)
-					fail("bad header magic 0x%llx", hdr->magic);
-				if (pos > sizeof(in_header) + hdr->progSize)
-					fail("excessive input data");
-				if (pos == sizeof(in_header) + hdr->progSize)
-					break;
-			}
-		}
-		flag_debug = hdr->flags & (1 << 0);
-		flag_threaded = hdr->flags & (1 << 2);
-		flag_collide = hdr->flags & (1 << 3);
-		if (!flag_threaded)
-			flag_collide = false;
-		debug("input %d, threaded=%d collide=%d pid=%llu\n",
-		      pos, flag_threaded, flag_collide, hdr->pid);
+		receive_execute();
 		char cwdbuf[128] = "/syz-tmpXXXXXX";
 		mkdtemp(cwdbuf);
 		int pid = fork();
 		if (pid < 0)
 			fail("fork failed");
 		if (pid == 0) {
-			close(0);
-			dup2(2, 1);
+			close(kInPipeFd);
+			close(kOutPipeFd);
 			if (chdir(cwdbuf))
 				fail("chdir failed");
-			execute_one(hdr->prog);
+			execute_one();
 			doexit(0);
 		}
+		// TODO: timeout.
 		int status = 0;
 		while (waitpid(pid, &status, 0) != pid) {
 		}
 		remove_dir(cwdbuf);
-		out_header out;
-		out.magic = kOutMagic;
-		out.status = 0;
-		if (write(1, &out, sizeof(out)) != sizeof(out))
-			fail("stdout write failed");
+		reply_execute(0);
 	}
 	return 0;
 }

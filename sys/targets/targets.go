@@ -24,6 +24,11 @@ type os struct {
 	SyscallNumbers bool
 	// E.g. "__NR_" or "SYS_".
 	SyscallPrefix string
+	// ipc<->executor communication tuning.
+	// If ExecutorUsesShmem, programs and coverage are passed through shmem, otherwise via pipes.
+	ExecutorUsesShmem bool
+	// If ExecutorUsesForkServer, executor uses extended protocol with handshake.
+	ExecutorUsesForkServer bool
 }
 
 var List = map[string]map[string]*Target{
@@ -111,22 +116,32 @@ var List = map[string]map[string]*Target{
 
 var oses = map[string]os{
 	"linux": {
-		SyscallNumbers: true,
-		SyscallPrefix:  "__NR_",
+		SyscallNumbers:         true,
+		SyscallPrefix:          "__NR_",
+		ExecutorUsesShmem:      true,
+		ExecutorUsesForkServer: true,
 	},
 	"freebsd": {
-		SyscallNumbers: true,
-		SyscallPrefix:  "SYS_",
+		SyscallNumbers:         true,
+		SyscallPrefix:          "SYS_",
+		ExecutorUsesShmem:      false,
+		ExecutorUsesForkServer: false,
 	},
 	"fuchsia": {
-		SyscallNumbers: false,
+		SyscallNumbers:         false,
+		ExecutorUsesShmem:      false,
+		ExecutorUsesForkServer: false,
 	},
 	"windows": {
-		SyscallNumbers: false,
+		SyscallNumbers:         false,
+		ExecutorUsesShmem:      false,
+		ExecutorUsesForkServer: false,
 	},
 	"akaros": {
-		SyscallNumbers: true,
-		SyscallPrefix:  "SYS_",
+		SyscallNumbers:         true,
+		SyscallPrefix:          "SYS_",
+		ExecutorUsesShmem:      false,
+		ExecutorUsesForkServer: false,
 	},
 }
 
