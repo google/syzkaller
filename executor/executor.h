@@ -119,6 +119,7 @@ struct kcov_comparison_t {
 	uint64_t type;
 	uint64_t arg1;
 	uint64_t arg2;
+	uint64_t pc;
 
 	// Writes the structure using the write_one function for each field.
 	// Inspired by write_output() function.
@@ -619,7 +620,7 @@ uint64_t read_input(uint64_t** input_posp, bool peek)
 
 void kcov_comparison_t::write(uint32_t* (*write_one)(uint32_t))
 {
-	// Write order: type arg1 arg2.
+	// Write order: type arg1 arg2 pc.
 	write_one((uint32_t)type);
 
 	// KCOV converts all arguments of size x first to uintx_t and then to
@@ -657,6 +658,7 @@ void kcov_comparison_t::write(uint32_t* (*write_one)(uint32_t))
 
 bool kcov_comparison_t::operator==(const struct kcov_comparison_t& other) const
 {
+	// We don't check for PC equality now, because it is not used.
 	return type == other.type && arg1 == other.arg1 && arg2 == other.arg2;
 }
 
@@ -666,5 +668,6 @@ bool kcov_comparison_t::operator<(const struct kcov_comparison_t& other) const
 		return type < other.type;
 	if (arg1 != other.arg1)
 		return arg1 < other.arg1;
+	// We don't check for PC equality now, because it is not used.
 	return arg2 < other.arg2;
 }
