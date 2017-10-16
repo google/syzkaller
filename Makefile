@@ -77,7 +77,7 @@ ifeq ("$(TARGETOS)", "android")
 		BUILDGCCARCH = "aarch64"
 	endif
 	CC = $(NDK)/toolchains/$(TOOLCHAIN)/prebuilt/$(BUILDOS)-$(BUILDGCCARCH)/bin/$(GCCBIN)
-	CFLAGS = -I $(NDK)/sources/cxx-stl/llvm-libc++/include --sysroot=$(NDK)/platforms/android-$(ANDROID_API)/arch-$(ANDROIDARCH) -O1 -g -Wall -static
+	CFLAGS = -I $(NDK)/sources/cxx-stl/llvm-libc++/include --sysroot=$(NDK)/platforms/android-$(ANDROID_API)/arch-$(ANDROIDARCH) -static
 endif
 
 ifeq ("$(TARGETOS)", "fuchsia")
@@ -148,8 +148,9 @@ target:
 executor:
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
 	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor_$(TARGETOS).cc \
-		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 -g \
+		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 \
 		$(ADDCFLAGS) $(CFLAGS) -DGOOS=\"$(TARGETOS)\" -DGIT_REVISION=\"$(REV)\"
+	strip --strip-debug ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE)
 
 manager:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager
