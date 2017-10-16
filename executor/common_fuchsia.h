@@ -21,7 +21,6 @@
 #endif
 
 #define doexit exit
-#define NORETURN __attribute__((noreturn))
 
 #include "common.h"
 

@@ -42,7 +42,7 @@ func buildProgram(t *testing.T, target *prog.Target, src string) string {
 	return bin
 }
 
-func initTest(t *testing.T) (rand.Source, int) {
+func initTest(t *testing.T) (*prog.Target, rand.Source, int, uint64) {
 	t.Parallel()
 	iters := 100
 	if testing.Short() {
@@ -51,19 +51,26 @@ func initTest(t *testing.T) (rand.Source, int) {
 	seed := int64(time.Now().UnixNano())
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
-	return rs, iters
-}
-
-func TestEmptyProg(t *testing.T) {
-	target, err := prog.GetTarget("linux", runtime.GOARCH)
+	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		t.Fatal(err)
 	}
+	cfg, err := DefaultConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	flags := cfg.Flags & (FlagUseShmem | FlagUseForkServer)
+	return target, rs, iters, flags
+}
+
+func TestEmptyProg(t *testing.T) {
+	target, _, _, flags0 := initTest(t)
 
 	bin := buildExecutor(t, target)
 	defer os.Remove(bin)
 
 	cfg := Config{
+		Flags:   flags0,
 		Timeout: timeout,
 	}
 	env, err := MakeEnv(bin, 0, cfg)
@@ -87,21 +94,16 @@ func TestEmptyProg(t *testing.T) {
 }
 
 func TestExecute(t *testing.T) {
-	rs, iters := initTest(t)
-	flags := []uint64{0, FlagThreaded, FlagThreaded | FlagCollide}
-
-	target, err := prog.GetTarget("linux", runtime.GOARCH)
-	if err != nil {
-		t.Fatal(err)
-	}
+	target, rs, iters, flags0 := initTest(t)
 
 	bin := buildExecutor(t, target)
 	defer os.Remove(bin)
 
+	flags := []uint64{0, FlagThreaded, FlagThreaded | FlagCollide}
 	for _, flag := range flags {
 		t.Logf("testing flags 0x%x\n", flag)
 		cfg := Config{
-			Flags:   flag,
+			Flags:   flag | flags0,
 			Timeout: timeout,
 		}
 		env, err := MakeEnv(bin, 0, cfg)

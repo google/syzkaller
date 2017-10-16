@@ -34,19 +34,16 @@ const unsigned long KCOV_TRACE_CMP = 1;
 
 const int kInFd = 3;
 const int kOutFd = 4;
-const int kInPipeFd = 5;
-const int kOutPipeFd = 6;
 const int kCoverSize = 64 << 10;
 const int kPageSize = 4 << 10;
 
-__attribute__((aligned(64 << 10))) char input_data[kMaxInput];
 uint32_t* output_data;
 uint32_t* output_pos;
 
 int main(int argc, char** argv)
 {
 	if (argc == 2 && strcmp(argv[1], "version") == 0) {
-		puts("linux " GOARCH " " SYZ_REVISION " " GIT_REVISION);
+		puts(GOOS " " GOARCH " " SYZ_REVISION " " GIT_REVISION);
 		return 0;
 	}
 
@@ -67,23 +64,9 @@ int main(int argc, char** argv)
 	// That's also the reason why we close kInPipeFd/kOutPipeFd below.
 	close(kInFd);
 	close(kOutFd);
+	setup_control_pipes();
+	receive_handshake();
 
-	uint64_t flags = *(uint64_t*)input_data;
-	flag_debug = flags & (1 << 0);
-	flag_cover = flags & (1 << 1);
-	flag_threaded = flags & (1 << 2);
-	flag_collide = flags & (1 << 3);
-	flag_sandbox = sandbox_none;
-	if (flags & (1 << 4))
-		flag_sandbox = sandbox_setuid;
-	else if (flags & (1 << 5))
-		flag_sandbox = sandbox_namespace;
-	if (!flag_threaded)
-		flag_collide = false;
-	flag_enable_tun = flags & (1 << 6);
-	flag_enable_fault_injection = flags & (1 << 7);
-
-	uint64_t executor_pid = *((uint64_t*)input_data + 1);
 	cover_open();
 	install_segv_handler();
 	use_temporary_dir();
@@ -101,13 +84,13 @@ int main(int argc, char** argv)
 	int pid = -1;
 	switch (flag_sandbox) {
 	case sandbox_none:
-		pid = do_sandbox_none(executor_pid, flag_enable_tun);
+		pid = do_sandbox_none(flag_pid, flag_enable_tun);
 		break;
 	case sandbox_setuid:
-		pid = do_sandbox_setuid(executor_pid, flag_enable_tun);
+		pid = do_sandbox_setuid(flag_pid, flag_enable_tun);
 		break;
 	case sandbox_namespace:
-		pid = do_sandbox_namespace(executor_pid, flag_enable_tun);
+		pid = do_sandbox_namespace(flag_pid, flag_enable_tun);
 		break;
 	default:
 		fail("unknown sandbox type");
@@ -119,15 +102,14 @@ int main(int argc, char** argv)
 	while (waitpid(-1, &status, __WALL) != pid) {
 	}
 	status = WEXITSTATUS(status);
+	if (status == 0)
+		status = kRetryStatus;
 	// If an external sandbox process wraps executor, the out pipe will be closed
 	// before the sandbox process exits this will make ipc package kill the sandbox.
 	// As the result sandbox process will exit with exit status 9 instead of the executor
 	// exit status (notably kRetryStatus). Consequently, ipc will treat it as hard
 	// failure rather than a temporal failure. So we duplicate the exit status on the pipe.
-	char tmp = status;
-	if (write(kOutPipeFd, &tmp, 1)) {
-		// Not much we can do, but gcc wants us to check the return value.
-	}
+	reply_execute(status);
 	errno = 0;
 	if (status == kFailStatus)
 		fail("loop failed");
@@ -144,9 +126,7 @@ int main(int argc, char** argv)
 void loop()
 {
 	// Tell parent that we are ready to serve.
-	char tmp = 0;
-	if (write(kOutPipeFd, &tmp, 1) != 1)
-		fail("control pipe write failed");
+	reply_handshake();
 
 	for (int iter = 0;; iter++) {
 		// Create a new private work dir for this test (removed at the end of the loop).
@@ -158,19 +138,7 @@ void loop()
 		// TODO: consider moving the read into the child.
 		// Potentially it can speed up things a bit -- when the read finishes
 		// we already have a forked worker process.
-		uint64_t in_cmd[3] = {};
-		if (read(kInPipeFd, &in_cmd[0], sizeof(in_cmd)) != (ssize_t)sizeof(in_cmd))
-			fail("control pipe read failed");
-		flag_collect_cover = in_cmd[0] & (1 << 0);
-		flag_dedup_cover = in_cmd[0] & (1 << 1);
-		flag_inject_fault = in_cmd[0] & (1 << 2);
-		flag_collect_comps = in_cmd[0] & (1 << 3);
-		flag_fault_call = in_cmd[1];
-		flag_fault_nth = in_cmd[2];
-		debug("exec opts: cover=%d comps=%d dedup=%d fault=%d/%d/%d\n", flag_collect_cover,
-		      flag_collect_comps, flag_dedup_cover,
-		      flag_inject_fault, flag_fault_call, flag_fault_nth);
-
+		receive_execute();
 		int pid = fork();
 		if (pid < 0)
 			fail("clone failed");
@@ -186,9 +154,8 @@ void loop()
 				// isolate consequently executing programs.
 				flush_tun();
 			}
-			uint64_t* input_pos = ((uint64_t*)&input_data[0]) + 2; // skip flags and pid
 			output_pos = output_data;
-			execute_one(input_pos);
+			execute_one();
 			debug("worker exiting\n");
 			doexit(0);
 		}
@@ -247,8 +214,7 @@ void loop()
 		if (status == kErrorStatus)
 			error("child errored");
 		remove_dir(cwdbuf);
-		if (write(kOutPipeFd, &tmp, 1) != 1)
-			fail("control pipe write failed");
+		reply_execute(0);
 	}
 }
 

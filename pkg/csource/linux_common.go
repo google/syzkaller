@@ -117,7 +117,6 @@ __attribute__((noreturn)) static void doexit(int status)
 	for (i = 0;; i++) {
 	}
 }
-#define NORETURN __attribute__((noreturn))
 #endif
 
 #if defined(SYZ_EXECUTOR)
@@ -147,8 +146,14 @@ __attribute__((noreturn)) static void doexit(int status)
 #endif
 
 #if defined(SYZ_EXECUTOR)
-#ifndef SYSCALLAPI
+#if defined(__GNUC__)
 #define SYSCALLAPI
+#define NORETURN __attribute__((noreturn))
+#define ALIGNED(N) __attribute__((aligned(N)))
+#else
+#define SYSCALLAPI WINAPI
+#define NORETURN __declspec(noreturn)
+#define ALIGNED(N) __declspec(align(N))
 #endif
 
 typedef long(SYSCALLAPI* syscall_t)(long, long, long, long, long, long, long, long, long);
@@ -180,7 +185,6 @@ const int kErrorStatus = 68;
 NORETURN static void fail(const char* msg, ...)
 {
 	int e = errno;
-	fflush(stdout);
 	va_list args;
 	va_start(args, msg);
 	vfprintf(stderr, msg, args);
@@ -193,7 +197,6 @@ NORETURN static void fail(const char* msg, ...)
 #if defined(SYZ_EXECUTOR)
 NORETURN static void error(const char* msg, ...)
 {
-	fflush(stdout);
 	va_list args;
 	va_start(args, msg);
 	vfprintf(stderr, msg, args);
@@ -203,11 +206,10 @@ NORETURN static void error(const char* msg, ...)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
 NORETURN static void exitf(const char* msg, ...)
 {
 	int e = errno;
-	fflush(stdout);
 	va_list args;
 	va_start(args, msg);
 	vfprintf(stderr, msg, args);

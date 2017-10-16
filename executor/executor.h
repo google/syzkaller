@@ -16,6 +16,19 @@
 #define GIT_REVISION "unknown"
 #endif
 
+#ifndef GOOS
+#define GOOS "unknown"
+#endif
+
+// Note: zircon max fd is 256.
+#ifndef DUP2_BROKEN
+const int kInPipeFd = 250; // remapped from stdin
+const int kOutPipeFd = 251; // remapped from stdout
+#else
+const int kInPipeFd = 0;
+const int kOutPipeFd = 1;
+#endif
+
 const int kMaxInput = 2 << 20;
 const int kMaxOutput = 16 << 20;
 const int kMaxArgs = 9;
@@ -56,9 +69,14 @@ bool flag_inject_fault;
 int flag_fault_call;
 int flag_fault_nth;
 
+int flag_pid;
+
 int running;
 uint32_t completed;
 bool collide;
+
+ALIGNED(64 << 10)
+char input_data[kMaxInput];
 
 // We use the default value instead of results of failed syscalls.
 // -1 is an invalid fd and an invalid address and deterministic,
@@ -106,6 +124,35 @@ struct res_t {
 
 res_t results[kMaxCommands];
 
+const uint64_t kInMagic = 0xbadc0ffeebadface;
+const uint32_t kOutMagic = 0xbadf00d;
+
+struct handshake_req {
+	uint64_t magic;
+	uint64_t flags; // env flags
+	uint64_t pid;
+};
+
+struct handshake_reply {
+	uint32_t magic;
+};
+
+struct execute_req {
+	uint64_t magic;
+	uint64_t env_flags;
+	uint64_t exec_flags;
+	uint64_t pid;
+	uint64_t fault_call;
+	uint64_t fault_nth;
+	uint64_t prog_size;
+};
+
+struct execute_reply {
+	uint32_t magic;
+	uint32_t done;
+	uint32_t status;
+};
+
 enum {
 	KCOV_CMP_CONST = 1,
 	KCOV_CMP_SIZE1 = 0,
@@ -148,10 +195,107 @@ uint64_t read_cover_size(thread_t* th);
 static uint32_t hash(uint32_t a);
 static bool dedup(uint32_t sig);
 
-void execute_one(uint64_t* input_data)
+void setup_control_pipes()
+{
+#ifndef DUP2_BROKEN
+	if (dup2(0, kInPipeFd) < 0)
+		fail("dup2(0, kInPipeFd) failed");
+	if (dup2(1, kOutPipeFd) < 0)
+		fail("dup2(1, kOutPipeFd) failed");
+	if (dup2(2, 1) < 0)
+		fail("dup2(2, 1) failed");
+	if (close(0))
+		fail("close(0) failed");
+#endif
+}
+
+void parse_env_flags(uint64_t flags)
+{
+	flag_debug = flags & (1 << 0);
+	flag_cover = flags & (1 << 1);
+	flag_threaded = flags & (1 << 2);
+	flag_collide = flags & (1 << 3);
+	flag_sandbox = sandbox_none;
+	if (flags & (1 << 4))
+		flag_sandbox = sandbox_setuid;
+	else if (flags & (1 << 5))
+		flag_sandbox = sandbox_namespace;
+	if (!flag_threaded)
+		flag_collide = false;
+	flag_enable_tun = flags & (1 << 6);
+	flag_enable_fault_injection = flags & (1 << 7);
+}
+
+void receive_handshake()
+{
+	handshake_req req = {};
+	int n = read(kInPipeFd, &req, sizeof(req));
+	if (n != sizeof(req))
+		fail("handshake read failed: %d", n);
+	if (req.magic != kInMagic)
+		fail("bad handshake magic 0x%llx", req.magic);
+	parse_env_flags(req.flags);
+	flag_pid = req.pid;
+}
+
+void reply_handshake()
+{
+	handshake_reply reply = {};
+	reply.magic = kOutMagic;
+	if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
+		fail("control pipe write failed");
+}
+
+void receive_execute()
+{
+	execute_req req;
+	if (read(kInPipeFd, &req, sizeof(req)) != (ssize_t)sizeof(req))
+		fail("control pipe read failed");
+	if (req.magic != kInMagic)
+		fail("bad execute request magic 0x%llx", req.magic);
+	if (req.prog_size > kMaxInput)
+		fail("bad execute prog size 0x%llx", req.prog_size);
+	parse_env_flags(req.env_flags);
+	flag_pid = req.pid;
+	flag_collect_cover = req.exec_flags & (1 << 0);
+	flag_dedup_cover = req.exec_flags & (1 << 1);
+	flag_inject_fault = req.exec_flags & (1 << 2);
+	flag_collect_comps = req.exec_flags & (1 << 3);
+	flag_fault_call = req.fault_call;
+	flag_fault_nth = req.fault_nth;
+	debug("exec opts: cover=%d comps=%d dedup=%d fault=%d/%d/%d\n",
+	      flag_collect_cover, flag_collect_comps, flag_dedup_cover,
+	      flag_inject_fault, flag_fault_call, flag_fault_nth);
+	if (req.prog_size == 0)
+		return;
+	uint64_t pos = 0;
+	for (;;) {
+		ssize_t rv = read(kInPipeFd, input_data + pos, sizeof(input_data) - pos);
+		if (rv < 0)
+			fail("read failed");
+		pos += rv;
+		if (rv == 0 || pos >= req.prog_size)
+			break;
+	}
+	if (pos != req.prog_size)
+		fail("bad input size %d, want %d", pos, req.prog_size);
+}
+
+void reply_execute(int status)
+{
+	execute_reply reply = {};
+	reply.magic = kOutMagic;
+	reply.done = true;
+	reply.status = status;
+	if (write(kOutPipeFd, &reply, sizeof(reply)) != sizeof(reply))
+		fail("control pipe write failed");
+}
+
+// execute_one executes program stored in input_data.
+void execute_one()
 {
 retry:
-	uint64_t* input_pos = input_data;
+	uint64_t* input_pos = (uint64_t*)input_data;
 	write_output(0); // Number of executed syscalls (updated later).
 
 	if (!collide && !flag_threaded)
@@ -611,8 +755,8 @@ uint64_t read_result(uint64_t** input_posp)
 uint64_t read_input(uint64_t** input_posp, bool peek)
 {
 	uint64_t* input_pos = *input_posp;
-	//if ((char*)input_pos >= input_data + kMaxInput)
-	//	fail("input command overflows input");
+	if ((char*)input_pos >= input_data + kMaxInput)
+		fail("input command overflows input");
 	if (!peek)
 		*input_posp = input_pos + 1;
 	return *input_pos;

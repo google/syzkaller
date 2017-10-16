@@ -17,3 +17,7 @@ func DetectSupportedSyscalls(target *prog.Target) (map[*prog.Syscall]bool, error
 	}
 	return supported, nil
 }
+
+func EnableFaultInjection() error {
+	return nil
+}

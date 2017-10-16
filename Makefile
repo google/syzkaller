@@ -149,7 +149,7 @@ executor:
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
 	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor_$(TARGETOS).cc \
 		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 -g \
-		$(ADDCFLAGS) $(CFLAGS) -DGIT_REVISION=\"$(REV)\"
+		$(ADDCFLAGS) $(CFLAGS) -DGOOS=\"$(TARGETOS)\" -DGIT_REVISION=\"$(REV)\"
 
 manager:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-manager github.com/google/syzkaller/syz-manager

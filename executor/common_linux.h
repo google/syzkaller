@@ -127,7 +127,6 @@ __attribute__((noreturn)) static void doexit(int status)
 	for (i = 0;; i++) {
 	}
 }
-#define NORETURN __attribute__((noreturn))
 #endif
 
 #if defined(SYZ_EXECUTOR)
