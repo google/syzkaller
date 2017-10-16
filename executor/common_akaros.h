@@ -18,6 +18,7 @@
 #include <time.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
+#include <parlib/parlib.h>
 #include <setjmp.h>
 #include <signal.h>
 #endif
@@ -37,6 +38,11 @@
 static __thread int skip_segv;
 static __thread jmp_buf segv_env;
 
+static void recover()
+{
+	_longjmp(segv_env, 1);
+}
+
 static void segv_handler(int sig, siginfo_t* info, void* ctx)
 {
 	// Generated programs can contain bad (unmapped/protected) addresses,
@@ -49,10 +55,10 @@ static void segv_handler(int sig, siginfo_t* info, void* ctx)
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
-		// Note: this does not work fully. This skips only over the first SIGSEGV in a thread.
-		// See: https://groups.google.com/forum/#!msg/akaros/d8_uwjAfPic/KAF0WwisBAAJ
 		debug("SIGSEGV on %p, skipping\n", addr);
-		siglongjmp(segv_env, 1);
+		struct user_context* uctx = (struct user_context*)ctx;
+		uctx->tf.hw_tf.tf_rip = (long)(void*)recover;
+		return;
 	}
 	debug("SIGSEGV on %p, exiting\n", addr);
 	doexit(sig);
