@@ -38,6 +38,7 @@ func extract(info *compiler.ConstInfo, cc string, args []string, addSource strin
 			"error: ‘([a-zA-Z0-9_]+)’ undeclared",
 			"error: '([a-zA-Z0-9_]+)' undeclared",
 			"note: in expansion of macro ‘([a-zA-Z0-9_]+)’",
+			"error: use of undeclared identifier '([a-zA-Z0-9_]+)'",
 		} {
 			re := regexp.MustCompile(errMsg)
 			matches := re.FindAllSubmatch(out, -1)

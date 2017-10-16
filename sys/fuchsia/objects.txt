@@ -5,7 +5,6 @@ include <zircon/syscalls.h>
 include <zircon/syscalls/object.h>
 include <zircon/syscalls/exception.h>
 
-# TODO: special values?
 resource koid[int64]: 0
 
 # TODO: temporary disabled as it crashes kernel left and right.
