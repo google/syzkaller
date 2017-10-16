@@ -87,7 +87,7 @@ make oldconfig
 
 Build the kernel with previously built GCC:
 ```
-make CC='$GCC/install/bin/gcc' -j64
+make CC="$GCC/install/bin/gcc" -j64
 ```
 
 Now you should have `vmlinux` (kernel binary) and `bzImage` (packed kernel image):
@@ -178,6 +178,9 @@ After that you should be able to ssh to QEMU instance in another terminal:
 ssh -i $IMAGE/ssh/id_rsa -p 10021 -o "StrictHostKeyChecking no" root@localhost
 ```
 
+If this fails with "too many tries", ssh may be passing default keys before
+the one explicitly passed with `-i`. Append option `-o "IdentitiesOnly yes"`.
+
 To kill the running QEMU instance:
 ``` bash
 kill $(cat vm.pid)
@@ -191,7 +194,7 @@ wget https://storage.googleapis.com/golang/go1.8.1.linux-amd64.tar.gz
 tar -xf go1.8.1.linux-amd64.tar.gz
 mv go goroot
 export GOROOT=`pwd`/goroot
-export PATH=$PATH:$GOROOT/bin
+export PATH=$GOROOT/bin:$PATH
 mkdir gopath
 export GOPATH=`pwd`/gopath
 ```
@@ -206,21 +209,22 @@ mkdir workdir
 make
 ```
 
-Create manager config like this:
+Create a manager config like the following, replacing the environment
+variables `$GOPATH`, `$KERNEL` and `$IMAGE` with their actual values.
 ```
 {
 	"target": "linux/amd64",
 	"http": "127.0.0.1:56741",
-	"workdir": "/gopath/src/github.com/google/syzkaller/workdir",
-	"vmlinux": "/linux/upstream/vmlinux",
-	"image": "/image/wheezy.img",
-	"sshkey": "/image/ssh/id_rsa",
-	"syzkaller": "/gopath/src/github.com/google/syzkaller",
+	"workdir": "$GOPATH/src/github.com/google/syzkaller/workdir",
+	"vmlinux": "$KERNEL/vmlinux",
+	"image": "$IMAGE/wheezy.img",
+	"sshkey": "$IMAGE/ssh/id_rsa",
+	"syzkaller": "$GOPATH/src/github.com/google/syzkaller",
 	"procs": 8,
 	"type": "qemu",
 	"vm": {
 		"count": 4,
-		"kernel": "/linux/arch/x86/boot/bzImage",
+		"kernel": "$KERNEL/arch/x86/boot/bzImage",
 		"cpu": 2,
 		"mem": 2048
 	}
