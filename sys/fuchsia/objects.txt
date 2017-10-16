@@ -8,14 +8,8 @@ include <zircon/syscalls/exception.h>
 # TODO: special values?
 resource koid[int64]: 0
 
-# TODO:
-#object_signal - set or clear the user signals on an object
-#object_signal_peer - set or clear the user signals in the opposite end
-#object_wait_many - wait for signals on multiple objects
-#object_wait_one - wait for signals on one object
-#object_wait_async - asynchronous notifications on signal change
-
-zx_object_get_child(handle zx_handle, koid koid, rights flags[zx_rights], out ptr[out, zx_handle])
+# TODO: temporary disabled as it crashes kernel left and right.
+# zx_object_get_child(handle zx_handle, koid koid, rights flags[zx_rights], out ptr[out, zx_handle])
 zx_object_get_cookie(handle zx_handle, scope zx_handle, cookie ptr[out, int64])
 zx_object_set_cookie(handle zx_handle, scope zx_handle, cookie int64)
 zx_object_get_info$ZX_INFO_HANDLE_VALID(handle zx_handle, topic const[ZX_INFO_HANDLE_VALID], buffer const[0], buffer_size const[0], actual ptr[out, intptr], avail ptr[out, intptr])
@@ -42,7 +36,7 @@ zx_object_set_property(handle zx_handle, property int32, value ptr[in, array[int
 zx_object_signal(handle zx_handle, clear_mask int32, set_mask int32)
 zx_object_signal_peer(handle zx_handle, clear_mask int32, set_mask int32)
 zx_object_wait_one(handle zx_handle, signals int32, deadline zx_time, observed ptr[out, int32])
-zx_object_wait_async(handle zx_handle, port zx_port, key int64, signals int32, options flags[wait_async_options])
+zx_object_wait_async(handle zx_handle, port zx_port, key proc[1000, 4], signals int32, options flags[wait_async_options])
 zx_object_wait_many(items ptr[in, array[zx_wait_item]], count len[items], deadline zx_time)
 
 wait_async_options = ZX_WAIT_ASYNC_ONCE, ZX_WAIT_ASYNC_REPEATING

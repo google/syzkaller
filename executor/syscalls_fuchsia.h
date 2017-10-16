@@ -2,7 +2,7 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "c3bd3ab69ea8ecd0c05971c0ced1dd363867b861"
+#define SYZ_REVISION "c4bd217e1073de2f960be149f5f3763258a9f8ea"
 #define __NR_syz_job_default 1000000
 #define __NR_syz_mmap 1000001
 #define __NR_syz_process_self 1000002
@@ -41,7 +41,6 @@ call_t syscalls[] = {
     {"zx_log_read", 0, (syscall_t)zx_log_read},
     {"zx_log_write", 0, (syscall_t)zx_log_write},
     {"zx_nanosleep", 0, (syscall_t)zx_nanosleep},
-    {"zx_object_get_child", 0, (syscall_t)zx_object_get_child},
     {"zx_object_get_cookie", 0, (syscall_t)zx_object_get_cookie},
     {"zx_object_get_info$ZX_INFO_CPU_STATS", 0, (syscall_t)zx_object_get_info},
     {"zx_object_get_info$ZX_INFO_HANDLE_BASIC", 0, (syscall_t)zx_object_get_info},
@@ -74,7 +73,6 @@ call_t syscalls[] = {
     {"zx_process_exit", 0, (syscall_t)zx_process_exit},
     {"zx_process_read_memory", 0, (syscall_t)zx_process_read_memory},
     {"zx_process_start", 0, (syscall_t)zx_process_start},
-    {"zx_process_write_memory", 0, (syscall_t)zx_process_write_memory},
     {"zx_socket_create", 0, (syscall_t)zx_socket_create},
     {"zx_socket_read", 0, (syscall_t)zx_socket_read},
     {"zx_socket_write", 0, (syscall_t)zx_socket_write},
@@ -87,8 +85,10 @@ call_t syscalls[] = {
     {"zx_thread_create", 0, (syscall_t)zx_thread_create},
     {"zx_thread_exit", 0, (syscall_t)zx_thread_exit},
     {"zx_thread_read_state", 0, (syscall_t)zx_thread_read_state},
+    {"zx_thread_read_state$0", 0, (syscall_t)zx_thread_read_state},
     {"zx_thread_start", 0, (syscall_t)zx_thread_start},
     {"zx_thread_write_state", 0, (syscall_t)zx_thread_write_state},
+    {"zx_thread_write_state$0", 0, (syscall_t)zx_thread_write_state},
     {"zx_ticks_get", 0, (syscall_t)zx_ticks_get},
     {"zx_ticks_per_second", 0, (syscall_t)zx_ticks_per_second},
     {"zx_time_get", 0, (syscall_t)zx_time_get},
@@ -120,7 +120,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "74ac3e7eb1255a4c53421a5f38ae8b75e7bada88"
+#define SYZ_REVISION "74d9a48364f654cbf79562ea1efc049b48db9a72"
 #define __NR_syz_job_default 1000000
 #define __NR_syz_mmap 1000001
 #define __NR_syz_process_self 1000002
@@ -159,7 +159,6 @@ call_t syscalls[] = {
     {"zx_log_read", 0, (syscall_t)zx_log_read},
     {"zx_log_write", 0, (syscall_t)zx_log_write},
     {"zx_nanosleep", 0, (syscall_t)zx_nanosleep},
-    {"zx_object_get_child", 0, (syscall_t)zx_object_get_child},
     {"zx_object_get_cookie", 0, (syscall_t)zx_object_get_cookie},
     {"zx_object_get_info$ZX_INFO_CPU_STATS", 0, (syscall_t)zx_object_get_info},
     {"zx_object_get_info$ZX_INFO_HANDLE_BASIC", 0, (syscall_t)zx_object_get_info},
@@ -192,7 +191,6 @@ call_t syscalls[] = {
     {"zx_process_exit", 0, (syscall_t)zx_process_exit},
     {"zx_process_read_memory", 0, (syscall_t)zx_process_read_memory},
     {"zx_process_start", 0, (syscall_t)zx_process_start},
-    {"zx_process_write_memory", 0, (syscall_t)zx_process_write_memory},
     {"zx_socket_create", 0, (syscall_t)zx_socket_create},
     {"zx_socket_read", 0, (syscall_t)zx_socket_read},
     {"zx_socket_write", 0, (syscall_t)zx_socket_write},
@@ -205,8 +203,10 @@ call_t syscalls[] = {
     {"zx_thread_create", 0, (syscall_t)zx_thread_create},
     {"zx_thread_exit", 0, (syscall_t)zx_thread_exit},
     {"zx_thread_read_state", 0, (syscall_t)zx_thread_read_state},
+    {"zx_thread_read_state$0", 0, (syscall_t)zx_thread_read_state},
     {"zx_thread_start", 0, (syscall_t)zx_thread_start},
     {"zx_thread_write_state", 0, (syscall_t)zx_thread_write_state},
+    {"zx_thread_write_state$0", 0, (syscall_t)zx_thread_write_state},
     {"zx_ticks_get", 0, (syscall_t)zx_ticks_get},
     {"zx_ticks_per_second", 0, (syscall_t)zx_ticks_per_second},
     {"zx_time_get", 0, (syscall_t)zx_time_get},
