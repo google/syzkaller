@@ -44,6 +44,7 @@ type Result struct {
 
 type context struct {
 	cfg          *mgrconfig.Config
+	reporter     report.Reporter
 	crashDesc    string
 	instances    chan *instance
 	bootRequests chan int
@@ -60,7 +61,8 @@ type instance struct {
 	executorBin string
 }
 
-func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []int) (*Result, error) {
+func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Pool,
+	vmIndexes []int) (*Result, error) {
 	if len(vmIndexes) == 0 {
 		return nil, fmt.Errorf("no VMs provided")
 	}
@@ -72,7 +74,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 	if len(entries) == 0 {
 		return nil, fmt.Errorf("crash log does not contain any programs")
 	}
-	crashDesc, _, crashStart, _ := report.Parse(crashLog, cfg.ParsedIgnores)
+	crashDesc, _, crashStart, _ := reporter.Parse(crashLog)
 	if crashDesc == "" {
 		crashStart = len(crashLog) // assuming VM hanged
 		crashDesc = "hang"
@@ -80,6 +82,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, vmPool *vm.Pool, vmIndexes []in
 
 	ctx := &context{
 		cfg:          cfg,
+		reporter:     reporter,
 		crashDesc:    crashDesc,
 		instances:    make(chan *instance, len(vmIndexes)),
 		bootRequests: make(chan int, len(vmIndexes)),
@@ -591,7 +594,7 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 	if err != nil {
 		return false, fmt.Errorf("failed to run command in VM: %v", err)
 	}
-	desc, report, output, crashed, _ := vm.MonitorExecution(outc, errc, false, ctx.cfg.ParsedIgnores)
+	desc, report, output, crashed, _ := vm.MonitorExecution(outc, errc, false, ctx.reporter)
 	if !crashed {
 		ctx.reproLog(2, "program did not crash")
 		return false, nil

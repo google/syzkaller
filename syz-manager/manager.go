@@ -44,6 +44,7 @@ type Manager struct {
 	cfg            *mgrconfig.Config
 	vmPool         *vm.Pool
 	target         *prog.Target
+	reporter       report.Reporter
 	crashdir       string
 	port           int
 	corpusDB       *db.DB
@@ -423,7 +424,7 @@ func (mgr *Manager) vmLoop() {
 				atomic.AddUint32(&mgr.numReproducing, 1)
 				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.desc, vmIndexes)
 				go func() {
-					res, err := repro.Run(crash.log, mgr.cfg, mgr.vmPool, vmIndexes)
+					res, err := repro.Run(crash.log, mgr.cfg, mgr.getReporter(), mgr.vmPool, vmIndexes)
 					reproDone <- &ReproResult{vmIndexes, crash.desc, res, err, crash.hub}
 				}()
 			}
@@ -543,7 +544,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
 
-	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, true, mgr.cfg.ParsedIgnores)
+	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, true, mgr.getReporter())
 	if timedout {
 		// This is the only "OK" outcome.
 		Logf(0, "vm-%v: running for %v, restarting (%v)", index, time.Since(start), desc)
@@ -590,10 +591,10 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	crash.report = mgr.symbolizeReport(crash.report)
 	if mgr.dash != nil {
 		var maintainers []string
-		guiltyFile := report.ExtractGuiltyFile(crash.report)
+		guiltyFile := mgr.getReporter().ExtractGuiltyFile(crash.report)
 		if guiltyFile != "" {
 			var err error
-			maintainers, err = report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
+			maintainers, err = mgr.getReporter().GetMaintainers(guiltyFile)
 			if err != nil {
 				Logf(0, "failed to get maintainers: %v", err)
 			}
@@ -739,10 +740,10 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 
 	if mgr.dash != nil {
 		var maintainers []string
-		guiltyFile := report.ExtractGuiltyFile(res.Report)
+		guiltyFile := mgr.getReporter().ExtractGuiltyFile(res.Report)
 		if guiltyFile != "" {
 			var err error
-			maintainers, err = report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
+			maintainers, err = mgr.getReporter().GetMaintainers(guiltyFile)
 			if err != nil {
 				Logf(0, "failed to get maintainers: %v", err)
 			}
@@ -767,13 +768,24 @@ func (mgr *Manager) symbolizeReport(text []byte) []byte {
 	if len(text) == 0 || mgr.cfg.Vmlinux == "" {
 		return text
 	}
-	<-allSymbolsReady
-	symbolized, err := report.Symbolize(mgr.cfg.Vmlinux, text, allSymbols)
+	symbolized, err := mgr.getReporter().Symbolize(text)
 	if err != nil {
 		Logf(0, "failed to symbolize report: %v", err)
 		return text
 	}
 	return symbolized
+}
+
+func (mgr *Manager) getReporter() report.Reporter {
+	if mgr.reporter == nil {
+		<-allSymbolsReady
+		var err error
+		mgr.reporter, err = report.NewReporter(mgr.cfg.TargetOS, mgr.cfg.Kernel_Src, "", allSymbols, mgr.cfg.ParsedIgnores)
+		if err != nil {
+			Fatalf("%v", err)
+		}
+	}
+	return mgr.reporter
 }
 
 func (mgr *Manager) minimizeCorpus() {

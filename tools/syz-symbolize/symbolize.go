@@ -8,14 +8,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
+	"runtime"
 
 	"github.com/google/syzkaller/pkg/report"
 )
 
 var (
+	flagOS        = flag.String("os", runtime.GOOS, "target os")
 	flagKernelSrc = flag.String("kernel_src", "", "path to kernel sources")
-	flagKernelObj = flag.String("kernel_obj", "", "path to kernel build dir")
+	flagKernelObj = flag.String("kernel_obj", "", "path to kernel build/obj dir")
 	flagReport    = flag.Bool("report", false, "extract report from the log")
 )
 
@@ -26,8 +27,10 @@ func main() {
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
-	if *flagKernelSrc == "" {
-		*flagKernelSrc = *flagKernelObj
+	reporter, err := report.NewReporter(*flagOS, *flagKernelSrc, *flagKernelObj, nil, nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create reporter: %v\n", err)
+		os.Exit(1)
 	}
 	text, err := ioutil.ReadFile(flag.Args()[0])
 	if err != nil {
@@ -35,19 +38,19 @@ func main() {
 		os.Exit(1)
 	}
 	if *flagReport {
-		desc, text, _, _ := report.Parse(text, nil)
-		text, err = report.Symbolize(filepath.Join(*flagKernelObj, "vmlinux"), text, nil)
+		desc, text, _, _ := reporter.Parse(text)
+		text, err = reporter.Symbolize(text)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to symbolize: %v\n", err)
 			os.Exit(1)
 		}
-		guiltyFile := report.ExtractGuiltyFile(text)
+		guiltyFile := reporter.ExtractGuiltyFile(text)
 		fmt.Printf("%v\n\n", desc)
 		os.Stdout.Write(text)
 		fmt.Printf("\n")
 		fmt.Printf("guilty file: %v\n", guiltyFile)
 		if guiltyFile != "" {
-			maintainers, err := report.GetMaintainers(*flagKernelSrc, guiltyFile)
+			maintainers, err := reporter.GetMaintainers(guiltyFile)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "failed to get maintainers: %v\n", err)
 				os.Exit(1)
@@ -55,10 +58,10 @@ func main() {
 			fmt.Printf("maintainers: %v\n", maintainers)
 		}
 	} else {
-		if console := report.ExtractConsoleOutput(text); len(console) != 0 {
+		if console := reporter.ExtractConsoleOutput(text); len(console) != 0 {
 			text = console
 		}
-		text, err = report.Symbolize(filepath.Join(*flagKernelObj, "vmlinux"), text, nil)
+		text, err = reporter.Symbolize(text)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to symbolize: %v\n", err)
 			os.Exit(1)
