@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 
 	install_segv_handler();
 	setup_control_pipes();
-	receive_execute();
+	receive_execute(true);
 	execute_one();
 	return 0;
 }

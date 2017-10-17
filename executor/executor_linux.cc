@@ -138,7 +138,7 @@ void loop()
 		// TODO: consider moving the read into the child.
 		// Potentially it can speed up things a bit -- when the read finishes
 		// we already have a forked worker process.
-		receive_execute();
+		receive_execute(false);
 		int pid = fork();
 		if (pid < 0)
 			fail("clone failed");

@@ -47,7 +47,8 @@ mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd
 munmap(addr vma, len len[addr])
 mprotect(addr vma, len len[addr], prot flags[mmap_prot])
 
-fork()
+# TODO: disabled because crashes kernel frequently.
+# fork()
 waitpid(pid pid, status ptr[out, int32], options flags[wait_options])
 nanosleep(req ptr[in, timespec], rem ptr[out, timespec, opt])
 

@@ -3,9 +3,6 @@
 
 // +build
 
-// https://github.com/brho/akaros/issues/41
-#define DUP2_BROKEN
-
 #define SYZ_EXECUTOR
 #include "common_akaros.h"
 
@@ -31,7 +28,7 @@ int main(int argc, char** argv)
 	reply_handshake();
 
 	for (;;) {
-		receive_execute();
+		receive_execute(true);
 		char cwdbuf[128] = "/syz-tmpXXXXXX";
 		mkdtemp(cwdbuf);
 		int pid = fork();
@@ -45,10 +42,26 @@ int main(int argc, char** argv)
 			execute_one();
 			doexit(0);
 		}
-		// TODO: timeout.
 		int status = 0;
-		while (waitpid(pid, &status, 0) != pid) {
+		uint64_t start = current_time_ms();
+		for (;;) {
+			int res = waitpid(pid, &status, WNOHANG);
+			if (res == pid)
+				break;
+			sleep_ms(10);
+			uint64_t now = current_time_ms();
+			if (now - start < 3 * 1000)
+				continue;
+			kill(pid, SIGKILL);
+			while (waitpid(pid, &status, 0) != pid) {
+			}
+			break;
 		}
+		status = WEXITSTATUS(status);
+		if (status == kFailStatus)
+			fail("child failed");
+		if (status == kErrorStatus)
+			error("child errored");
 		remove_dir(cwdbuf);
 		reply_execute(0);
 	}
