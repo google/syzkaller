@@ -121,7 +121,13 @@ Write of size 4 by task a.out/6260
 [23818.438140] Read of size 4 by task syz-executor/22534
 
 [23818.443211] CPU: 3 PID: 22534 Comm: syz-executor Tainted: G     U         3.18.0 #78
-`: `KASAN: null-ptr-deref Read of size 4`,
+`: `KASAN: null-ptr-deref Read`,
+
+		`
+==================================================================
+BUG: KASAN: wild-memory-access on address ffe7087450a17000
+Read of size 205 by task syz-executor1/9018
+`: `KASAN: wild-memory-access Read`,
 
 		`
 [  149.188010] BUG: unable to handle kernel NULL pointer dereference at 000000000000058c

@@ -36,7 +36,7 @@ var oopses = []*oops{
 			},
 			{
 				compile("BUG: KASAN: ([a-z\\-]+) on address(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
-				"KASAN: %[1]v %[2]v of size %[3]v",
+				"KASAN: %[1]v %[2]v",
 			},
 			{
 				compile("BUG: KASAN: (.*)"),
