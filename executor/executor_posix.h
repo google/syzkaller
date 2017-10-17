@@ -23,17 +23,10 @@ struct event_t {
 
 void event_init(event_t* ev)
 {
-	// Akaros crashes on NULL attr.
-	pthread_mutexattr_t attr;
-	pthread_mutexattr_init(&attr);
-	if (pthread_mutex_init(&ev->mu, &attr))
+	if (pthread_mutex_init(&ev->mu, 0))
 		fail("pthread_mutex_init failed");
-	pthread_mutexattr_destroy(&attr);
-	pthread_condattr_t cvattr;
-	pthread_condattr_init(&cvattr);
-	if (pthread_cond_init(&ev->cv, &cvattr))
+	if (pthread_cond_init(&ev->cv, 0))
 		fail("pthread_cond_init failed");
-	pthread_condattr_destroy(&cvattr);
 	ev->state = false;
 }
 

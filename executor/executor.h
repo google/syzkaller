@@ -21,13 +21,8 @@
 #endif
 
 // Note: zircon max fd is 256.
-#ifndef DUP2_BROKEN
 const int kInPipeFd = 250; // remapped from stdin
 const int kOutPipeFd = 251; // remapped from stdout
-#else
-const int kInPipeFd = 0;
-const int kOutPipeFd = 1;
-#endif
 
 const int kMaxInput = 2 << 20;
 const int kMaxOutput = 16 << 20;
@@ -197,7 +192,6 @@ static bool dedup(uint32_t sig);
 
 void setup_control_pipes()
 {
-#ifndef DUP2_BROKEN
 	if (dup2(0, kInPipeFd) < 0)
 		fail("dup2(0, kInPipeFd) failed");
 	if (dup2(1, kOutPipeFd) < 0)
@@ -206,7 +200,6 @@ void setup_control_pipes()
 		fail("dup2(2, 1) failed");
 	if (close(0))
 		fail("close(0) failed");
-#endif
 }
 
 void parse_env_flags(uint64_t flags)
@@ -246,7 +239,7 @@ void reply_handshake()
 		fail("control pipe write failed");
 }
 
-void receive_execute()
+void receive_execute(bool need_prog)
 {
 	execute_req req;
 	if (read(kInPipeFd, &req, sizeof(req)) != (ssize_t)sizeof(req))
@@ -263,11 +256,15 @@ void receive_execute()
 	flag_collect_comps = req.exec_flags & (1 << 3);
 	flag_fault_call = req.fault_call;
 	flag_fault_nth = req.fault_nth;
-	debug("exec opts: cover=%d comps=%d dedup=%d fault=%d/%d/%d\n",
-	      flag_collect_cover, flag_collect_comps, flag_dedup_cover,
-	      flag_inject_fault, flag_fault_call, flag_fault_nth);
-	if (req.prog_size == 0)
+	debug("exec opts: pid=%d threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d prog=%llu\n",
+	      flag_pid, flag_threaded, flag_collide, flag_collect_cover, flag_collect_comps,
+	      flag_dedup_cover, flag_inject_fault, flag_fault_call, flag_fault_nth,
+	      req.prog_size);
+	if (req.prog_size == 0) {
+		if (need_prog)
+			fail("need_prog: no program");
 		return;
+	}
 	uint64_t pos = 0;
 	for (;;) {
 		ssize_t rv = read(kInPipeFd, input_data + pos, sizeof(input_data) - pos);
@@ -512,7 +509,7 @@ void handle_completion(thread_t* th)
 	if (!collide) {
 		write_output(th->call_index);
 		write_output(th->call_num);
-		uint32_t reserrno = th->res != (uint32_t)-1 ? 0 : th->reserrno;
+		uint32_t reserrno = th->res != -1 ? 0 : th->reserrno;
 		write_output(reserrno);
 		write_output(th->fault_injected);
 		uint32_t* signal_count_pos = write_output(0); // filled in later
@@ -631,7 +628,7 @@ void execute_call(thread_t* th)
 		debug("fault injected: %d\n", th->fault_injected);
 	}
 
-	if (th->res == (uint32_t)-1)
+	if (th->res == -1)
 		debug("#%d: %s = errno(%d)\n", th->id, call->name, th->reserrno);
 	else
 		debug("#%d: %s = 0x%lx\n", th->id, call->name, th->res);

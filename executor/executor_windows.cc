@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 	}
 
 	setup_control_pipes();
-	receive_execute();
+	receive_execute(true);
 	execute_one();
 	return 0;
 }

@@ -2,9 +2,9 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "77727415c41fde64d42084c526dfb8bf1f1abf05"
+#define SYZ_REVISION "1caab53009bda97952c0c670cb9fc3e335e1d49d"
 
-unsigned syscall_count = 36;
+unsigned syscall_count = 35;
 call_t syscalls[] = {
     {"abort_sysc_fd", 33},
     {"chdir", 116},
@@ -21,7 +21,6 @@ call_t syscalls[] = {
     {"fcntl$F_SETLK", 107},
     {"fcntl$F_SETLKW", 107},
     {"fcntl$F_SETOWN", 107},
-    {"fork", 15},
     {"fstat", 104},
     {"getcwd", 117},
     {"link", 112},
