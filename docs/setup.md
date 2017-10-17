@@ -20,10 +20,10 @@ $ ./bin/syz-manager -config=my.cfg
 2017/06/14 16:39:05 booting test machines...
 2017/06/14 16:39:05 wait for the connection from test machine...
 2017/06/14 16:39:59 received first connection from test machine vm-9
-2017/06/14 16:40:05 executed programs: 9, crashes: 0
-2017/06/14 16:40:15 executed programs: 13, crashes: 0
-2017/06/14 16:40:25 executed programs: 15042, crashes: 0
-2017/06/14 16:40:35 executed programs: 24391, crashes: 0
+2017/06/14 16:40:05 executed 293, cover 43260, crashes 0, repro 0
+2017/06/14 16:40:15 executed 5992, cover 88463, crashes 0, repro 0
+2017/06/14 16:40:25 executed 10959, cover 116991, crashes 0, repro 0
+2017/06/14 16:40:35 executed 15504, cover 132403, crashes 0, repro 0
 ```
 
 More information on the configuration file format is available [here](configuration.md).
