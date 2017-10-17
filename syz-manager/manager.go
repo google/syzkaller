@@ -41,22 +41,23 @@ var (
 )
 
 type Manager struct {
-	cfg          *mgrconfig.Config
-	vmPool       *vm.Pool
-	target       *prog.Target
-	crashdir     string
-	port         int
-	corpusDB     *db.DB
-	startTime    time.Time
-	firstConnect time.Time
-	lastPrioCalc time.Time
-	fuzzingTime  time.Duration
-	stats        map[string]uint64
-	crashTypes   map[string]bool
-	vmStop       chan bool
-	vmChecked    bool
-	fresh        bool
-	numFuzzing   uint32
+	cfg            *mgrconfig.Config
+	vmPool         *vm.Pool
+	target         *prog.Target
+	crashdir       string
+	port           int
+	corpusDB       *db.DB
+	startTime      time.Time
+	firstConnect   time.Time
+	lastPrioCalc   time.Time
+	fuzzingTime    time.Duration
+	stats          map[string]uint64
+	crashTypes     map[string]bool
+	vmStop         chan bool
+	vmChecked      bool
+	fresh          bool
+	numFuzzing     uint32
+	numReproducing uint32
 
 	dash *dashapi.Dashboard
 
@@ -262,8 +263,12 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 			mgr.fuzzingTime += diff * time.Duration(atomic.LoadUint32(&mgr.numFuzzing))
 			executed := mgr.stats["exec total"]
 			crashes := mgr.stats["crashes"]
+			signal := len(mgr.corpusSignal)
 			mgr.mu.Unlock()
-			Logf(0, "executed programs: %v, crashes: %v", executed, crashes)
+			numReproducing := atomic.LoadUint32(&mgr.numReproducing)
+
+			Logf(0, "executed %v, cover %v, crashes %v, repro %v",
+				executed, signal, crashes, numReproducing)
 		}
 	}()
 
@@ -415,6 +420,7 @@ func (mgr *Manager) vmLoop() {
 				vmIndexes := append([]int{}, instances[len(instances)-instancesPerRepro:]...)
 				instances = instances[:len(instances)-instancesPerRepro]
 				reproInstances += instancesPerRepro
+				atomic.AddUint32(&mgr.numReproducing, 1)
 				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.desc, vmIndexes)
 				go func() {
 					res, err := repro.Run(crash.log, mgr.cfg, mgr.vmPool, vmIndexes)
@@ -459,6 +465,7 @@ func (mgr *Manager) vmLoop() {
 				}
 			}
 		case res := <-reproDone:
+			atomic.AddUint32(&mgr.numReproducing, ^uint32(0))
 			crepro := false
 			desc := ""
 			if res.res != nil {
@@ -869,8 +876,8 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 	if mgr.vmChecked {
 		return nil
 	}
-	Logf(1, "fuzzer %v vm check: %v calls enabled, kcov=%v, kleakcheck=%v, faultinjection=%v, compsenabled=%v",
-		a.Name, len(a.Calls), a.Kcov, a.Leak, a.Fault, a.CompsSupported)
+	Logf(0, "machine check: %v calls enabled, kcov=%v, kleakcheck=%v, faultinjection=%v, comps=%v",
+		len(a.Calls), a.Kcov, a.Leak, a.Fault, a.CompsSupported)
 	if len(a.Calls) == 0 {
 		Fatalf("no system calls enabled")
 	}
