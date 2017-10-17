@@ -5,6 +5,7 @@ package report
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -36,5 +37,38 @@ func TestReplace(t *testing.T) {
 				t.Errorf("want '%v', got '%v'", test.result, string(result))
 			}
 		})
+	}
+}
+
+func testParse(t *testing.T, os string, tests map[string]string) {
+	reporter, err := NewReporter(os, "", "", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for log, crash := range tests {
+		if strings.Index(log, "\r\n") != -1 {
+			continue
+		}
+		tests[strings.Replace(log, "\n", "\r\n", -1)] = crash
+	}
+	for log, crash := range tests {
+		containsCrash := reporter.ContainsCrash([]byte(log))
+		expectCrash := (crash != "")
+		if expectCrash && !containsCrash {
+			t.Fatalf("ContainsCrash did not find crash")
+		}
+		if !expectCrash && containsCrash {
+			t.Fatalf("ContainsCrash found unexpected crash")
+		}
+		desc, _, _, _ := reporter.Parse([]byte(log))
+		if desc == "" && crash != "" {
+			t.Fatalf("did not find crash message '%v' in:\n%v", crash, log)
+		}
+		if desc != "" && crash == "" {
+			t.Fatalf("found bogus crash message '%v' in:\n%v", desc, log)
+		}
+		if desc != crash {
+			t.Fatalf("extracted bad crash message:\n%+q\nwant:\n%+q", desc, crash)
+		}
 	}
 }

@@ -6,7 +6,6 @@ package report
 import (
 	"fmt"
 	"regexp"
-	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/symbolizer"
@@ -705,7 +704,7 @@ WARNING: /etc/ssh/moduli does not exist, using fixed modulus
 
 		`
 [   92.396607] general protection fault: 0000 [#1] [ 387.811073] audit: type=1326 audit(1486238739.637:135): auid=4294967295 uid=0 gid=0 ses=4294967295 pid=10020 comm="syz-executor1" exe="/root/syz-executor1" sig=31 arch=c000003e syscall=202 compat=0 ip=0x44fad9 code=0x0
-`: `general protection fault: 0000 [#1] [ 387.NUM] audit: type=1326 audit(ADDR.637:LINE): auid=ADDR uid=0 gid=0 ses=ADDR pid=NUM comm="syz-executor" exe="/root/syz-executor" sig=31 arc`,
+`: `general protection fault: 0000 [#1] [ 387.NUM] audit: type=1326 audit(ADDR.637:LINE): auid=ADDR uid=0 gid=0 ses=ADDR pid=NUM comm="syz-executor" exe="/root/s`,
 
 		`
 [   40.438790] BUG: Bad page map in process syz-executor6  pte:ffff8801a700ff00 pmd:1a700f067
@@ -778,36 +777,7 @@ other info that might help us debug this:
 [   16.763144] [syscamera][msm_companion_pll_init::594][BIN_INFO::0x0008][WAFER_INFO::0xcf80][voltage 0.775]
 `: ``,
 	}
-	reporter, err := NewReporter("linux", "", "", nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for log, crash := range tests {
-		if strings.Index(log, "\r\n") != -1 {
-			continue
-		}
-		tests[strings.Replace(log, "\n", "\r\n", -1)] = crash
-	}
-	for log, crash := range tests {
-		containsCrash := reporter.ContainsCrash([]byte(log))
-		expectCrash := (crash != "")
-		if expectCrash && !containsCrash {
-			t.Fatalf("ContainsCrash did not find crash")
-		}
-		if !expectCrash && containsCrash {
-			t.Fatalf("ContainsCrash found unexpected crash")
-		}
-		desc, _, _, _ := reporter.Parse([]byte(log))
-		if desc == "" && crash != "" {
-			t.Fatalf("did not find crash message '%v' in:\n%v", crash, log)
-		}
-		if desc != "" && crash == "" {
-			t.Fatalf("found bogus crash message '%v' in:\n%v", desc, log)
-		}
-		if desc != crash {
-			t.Fatalf("extracted bad crash message:\n%+q\nwant:\n%+q", desc, crash)
-		}
-	}
+	testParse(t, "linux", tests)
 }
 
 func TestLinuxIgnores(t *testing.T) {

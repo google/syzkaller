@@ -150,9 +150,6 @@ func (ctx *linux) Parse(output []byte) (desc string, text []byte, start int, end
 		return
 	}
 	desc = extractDescription(output[start:], oops)
-	if len(desc) > 0 && desc[len(desc)-1] == '\r' {
-		desc = desc[:len(desc)-1]
-	}
 	// Executor PIDs are not interesting.
 	desc = executorRe.ReplaceAllLiteralString(desc, "syz-executor")
 	// Replace that everything looks like an address with "ADDR",
@@ -167,46 +164,7 @@ func (ctx *linux) Parse(output []byte) (desc string, text []byte, start int, end
 	desc = funcRe.ReplaceAllString(desc, "$1")
 	// CPU numbers are not interesting.
 	desc = cpuRe.ReplaceAllLiteralString(desc, "CPU")
-	// Corrupted/intermixed lines can be very long.
-	const maxDescLen = 180
-	if len(desc) > maxDescLen {
-		desc = desc[:maxDescLen]
-	}
 	return
-}
-
-func extractDescription(output []byte, oops *oops) string {
-	result := ""
-	startPos := -1
-	for _, format := range oops.formats {
-		match := format.re.FindSubmatchIndex(output)
-		if match == nil {
-			continue
-		}
-		if startPos != -1 && startPos <= match[0] {
-			continue
-		}
-		startPos = match[0]
-		var args []interface{}
-		for i := 2; i < len(match); i += 2 {
-			args = append(args, string(output[match[i]:match[i+1]]))
-		}
-		result = fmt.Sprintf(format.fmt, args...)
-	}
-	if result != "" {
-		return result
-	}
-	pos := bytes.Index(output, oops.header)
-	if pos == -1 {
-		panic("non matching oops")
-	}
-	end := bytes.IndexByte(output[pos:], '\n')
-	if end == -1 {
-		end = len(output)
-	} else {
-		end += pos
-	}
-	return string(output[pos:end])
 }
 
 func (ctx *linux) Symbolize(text []byte) ([]byte, error) {
