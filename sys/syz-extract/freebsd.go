@@ -25,8 +25,12 @@ func (*freebsd) prepare(sourcedir string, build bool, arches []string) error {
 }
 
 func (*freebsd) prepareArch(arch *Arch) error {
-	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", "x86", "include"),
+	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", "amd64", "include"),
 		filepath.Join(arch.buildDir, "machine")); err != nil {
+		return fmt.Errorf("failed to create link: %v", err)
+	}
+	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", "x86", "include"),
+		filepath.Join(arch.buildDir, "x86")); err != nil {
 		return fmt.Errorf("failed to create link: %v", err)
 	}
 	return nil
@@ -36,8 +40,11 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 	args := []string{
 		"-fmessage-length=0",
 		"-nostdinc",
+		"-D_KERNEL",
+		"-D__BSD_VISIBLE=1",
 		"-I", filepath.Join(arch.sourceDir, "sys"),
 		"-I", filepath.Join(arch.sourceDir, "sys", "sys"),
+		"-I", filepath.Join(arch.sourceDir, "sys", "amd64"),
 		"-I", arch.buildDir,
 	}
 	for _, incdir := range info.Incdirs {
@@ -54,6 +61,10 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 				compatNames[val] = append(compatNames[val], compat)
 				info.Consts = append(info.Consts, compat)
 			}
+		} else {
+			compat := "LINUX_" + val
+			compatNames[val] = append(compatNames[val], compat)
+			info.Consts = append(info.Consts, compat)
 		}
 	}
 	res, undeclared, err := extract(info, "gcc", args, "#include <sys/syscall.h>")

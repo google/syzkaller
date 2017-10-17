@@ -192,7 +192,12 @@ func main() {
 			if f.err != nil {
 				failf("%v", f.err)
 			}
+			var undeclared []string
 			for c := range f.undeclared {
+				undeclared = append(undeclared, c)
+			}
+			sort.Strings(undeclared)
+			for _, c := range undeclared {
 				fmt.Printf("undefined const: %v\n", c)
 			}
 		}
