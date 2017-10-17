@@ -1,0 +1,75 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/socket.h>
+include <netinet/in.h>
+
+# This corresponds to LOCAL_IPV4 ("172.20.%d.170" % pid) in executor/common.h
+ipv4_addr_local {
+	a0	const[0xac, int8]
+	a1	const[0x14, int8]
+	a2	proc[0, 1, int8]
+	a3	const[0xaa, int8]
+} [packed]
+
+# This corresponds to LOCAL_IPV4 ("172.20.%d.187" % pid) in executor/common.h
+ipv4_addr_remote {
+	a0	const[0xac, int8]
+	a1	const[0x14, int8]
+	a2	proc[0, 1, int8]
+	a3	const[0xbb, int8]
+} [packed]
+
+ipv4_addr [
+# 0.0.0.0
+	empty		const[0x0, int32be]
+# 172.20.%d.170
+	local		ipv4_addr_local
+# 172.20.%d.187
+	remote		ipv4_addr_remote
+# 127.0.0.1
+	loopback	const[0x7f000001, int32be]
+# 224.0.0.1
+	multicast1	const[0xe0000001, int32be]
+# 224.0.0.2
+	multicast2	const[0xe0000002, int32be]
+# 255.255.255.255
+	broadcast	const[0xffffffff, int32be]
+# random
+	rand_addr	int32be
+]
+
+ipv6_addr_empty {
+	a0	array[const[0x0, int8], 16]
+}
+
+# This corresponds to LOCAL_IPV6 ("fe80::%02hxaa" % pid) in executor/common.h
+ipv6_addr_local {
+	a0	const[0xfe, int8]
+	a1	const[0x80, int8]
+	a2	array[const[0x0, int8], 12]
+	a3	proc[0, 1, int8]
+	a4	const[0xaa, int8]
+} [packed]
+
+# This corresponds to REMOTE_IPV6 ("fe80::%02hxbb" % pid) in executor/common.h
+ipv6_addr_remote {
+	a0	const[0xfe, int8]
+	a1	const[0x80, int8]
+	a2	array[const[0x0, int8], 12]
+	a3	proc[0, 1, int8]
+	a4	const[0xbb, int8]
+} [packed]
+
+ipv6_addr_loopback {
+	a0	const[0, int64be]
+	a1	const[1, int64be]
+} [packed]
+
+ipv6_addr [
+	empty		ipv6_addr_empty
+	local		ipv6_addr_local
+	remote		ipv6_addr_remote
+	loopback	ipv6_addr_loopback
+]

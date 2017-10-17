@@ -1,0 +1,72 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <sys/types.h>
+include <sys/stat.h>
+include <fcntl.h>
+include <unistd.h>
+
+resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
+resource fd_dir[fd]
+
+resource pid[int32]: 0, 0xffffffffffffffff
+resource uid[int32]: 0, 0xffffffffffffffff
+resource gid[int32]: 0, 0xffffffffffffffff
+
+open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+# Just so that we have something that creates fd_dir resources.
+open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
+openat(fd fd_dir, file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
+close(fd fd)
+read(fd fd, buf buffer[out], count len[buf])
+readv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec])
+preadv(fd fd, vec ptr[in, array[iovec_out]], vlen len[vec], off fileoff)
+write(fd fd, buf buffer[in], count len[buf])
+writev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec])
+pwritev(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], off fileoff)
+lseek(fd fd, offset fileoff, whence flags[seek_whence])
+dup(oldfd fd) fd
+dup2(oldfd fd, newfd fd) fd
+pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
+fstat(fd fd, statbuf ptr[out, stat])
+
+pipefd {
+	rfd	fd
+	wfd	fd
+}
+
+iovec_in {
+	addr	buffer[in]
+	len	len[addr, intptr]
+}
+
+iovec_out {
+	addr	buffer[out]
+	len	len[addr, intptr]
+}
+
+stat {
+	dev	int16
+	ino	int32
+	mode	int16
+	nlink	int16
+	uid	uid
+	gid	gid
+	rdev	int16
+	size	int32
+	blksize	int32
+	blocks	int32
+	atime	int32
+	ansec	int32
+	mtime	int32
+	mnsec	int32
+	ctime	int32
+	cnsec	int32
+	pad1	int32
+	pad2	int32
+}
+
+open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_SYNC, O_TRUNC
+open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
+seek_whence = SEEK_SET, SEEK_CUR, SEEK_END, SEEK_DATA, SEEK_HOLE
+pipe_flags = O_NONBLOCK, O_CLOEXEC

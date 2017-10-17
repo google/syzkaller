@@ -1,0 +1,30 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_INET and AF_INET6: UDP support
+
+include <sys/types.h>
+include <sys/socket.h>
+include <netinet/in.h>
+include <linux/linux.h>
+include <compat/linux/linux_socket.h>
+
+resource sock_udp[sock_in]
+
+udp_pair {
+	f0	sock_udp
+	f1	sock_udp
+}
+
+socket$inet_udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0]) sock_udp
+socketpair$inet_udp(domain const[AF_INET], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp_pair])
+
+resource sock_udp6[sock_in6]
+
+udp6_pair {
+	f0	sock_udp6
+	f1	sock_udp6
+}
+
+socket$inet6_udp(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0]) sock_udp6
+socketpair$inet6_udp(domain const[AF_INET6], type const[SOCK_DGRAM], proto const[0], fds ptr[out, udp6_pair])
