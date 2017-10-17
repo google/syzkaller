@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/google/syzkaller/pkg/csource"
-	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/repro"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
@@ -29,22 +29,22 @@ func main() {
 	flag.Parse()
 	cfg, err := mgrconfig.LoadFile(*flagConfig)
 	if err != nil {
-		Fatalf("%v", err)
+		log.Fatalf("%v", err)
 	}
 	if len(flag.Args()) != 1 {
-		Fatalf("usage: syz-repro -config=config.file execution.log")
+		log.Fatalf("usage: syz-repro -config=config.file execution.log")
 	}
 	data, err := ioutil.ReadFile(flag.Args()[0])
 	if err != nil {
-		Fatalf("failed to open log file: %v", err)
+		log.Fatalf("failed to open log file: %v", err)
 	}
 	if _, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch); err != nil {
-		Fatalf("%v", err)
+		log.Fatalf("%v", err)
 	}
 	env := mgrconfig.CreateVMEnv(cfg, false)
 	vmPool, err := vm.Create(cfg.Type, env)
 	if err != nil {
-		Fatalf("%v", err)
+		log.Fatalf("%v", err)
 	}
 	vmCount := vmPool.Count()
 	if *flagCount > 0 && *flagCount < vmCount {
@@ -57,20 +57,15 @@ func main() {
 	for i := range vmIndexes {
 		vmIndexes[i] = i
 	}
-
-	go func() {
-		c := make(chan os.Signal, 2)
-		signal.Notify(c, syscall.SIGINT)
-		<-c
-		close(vm.Shutdown)
-		Logf(-1, "shutting down...")
-		<-c
-		Fatalf("terminating")
-	}()
-
-	res, err := repro.Run(data, cfg, vmPool, vmIndexes)
+	reporter, err := report.NewReporter(cfg.TargetOS, cfg.Kernel_Src, "", nil, cfg.ParsedIgnores)
 	if err != nil {
-		Logf(0, "reproduction failed: %v", err)
+		log.Fatalf("%v", err)
+	}
+	osutil.HandleInterrupts(vm.Shutdown)
+
+	res, err := repro.Run(data, cfg, reporter, vmPool, vmIndexes)
+	if err != nil {
+		log.Logf(0, "reproduction failed: %v", err)
 	}
 	if res == nil {
 		return
@@ -81,7 +76,7 @@ func main() {
 	if res.CRepro {
 		src, err := csource.Write(res.Prog, res.Opts)
 		if err != nil {
-			Fatalf("failed to generate C repro: %v", err)
+			log.Fatalf("failed to generate C repro: %v", err)
 		}
 		if formatted, err := csource.Format(src); err == nil {
 			src = formatted

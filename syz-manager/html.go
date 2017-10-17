@@ -23,7 +23,6 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
-	"github.com/google/syzkaller/pkg/report"
 )
 
 const dateFormat = "Jan 02 2006 15:04:05 MST"
@@ -263,10 +262,10 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintf(w, "Syzkaller hit '%s' bug%s.\n\n", trimNewLines(desc), commitDesc)
 	if len(rep) != 0 {
-		guiltyFile := report.ExtractGuiltyFile(rep)
+		guiltyFile := mgr.getReporter().ExtractGuiltyFile(rep)
 		if guiltyFile != "" {
 			fmt.Fprintf(w, "Guilty file: %v\n\n", guiltyFile)
-			maintainers, err := report.GetMaintainers(mgr.cfg.Kernel_Src, guiltyFile)
+			maintainers, err := mgr.getReporter().GetMaintainers(guiltyFile)
 			if err == nil {
 				fmt.Fprintf(w, "Maintainers: %v\n\n", maintainers)
 			} else {

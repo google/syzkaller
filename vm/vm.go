@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"regexp"
 	"time"
 
 	"github.com/google/syzkaller/pkg/osutil"
@@ -97,7 +96,8 @@ func (inst *Instance) Close() {
 	os.RemoveAll(inst.workdir)
 }
 
-func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool, ignores []*regexp.Regexp) (desc string, text, output []byte, crashed, timedout bool) {
+func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool,
+	reporter report.Reporter) (desc string, text, output []byte, crashed, timedout bool) {
 	waitForOutput := func() {
 		dur := time.Second
 		if needOutput {
@@ -128,10 +128,10 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool, ig
 		if bytes.Contains(output, []byte("SYZ-FUZZER: PREEMPTED")) {
 			return "preempted", nil, nil, false, true
 		}
-		if !report.ContainsCrash(output[matchPos:], ignores) {
+		if !reporter.ContainsCrash(output[matchPos:]) {
 			return defaultError, nil, output, defaultError != "", false
 		}
-		desc, text, start, end := report.Parse(output[matchPos:], ignores)
+		desc, text, start, end := reporter.Parse(output[matchPos:])
 		start = start + matchPos - beforeContext
 		if start < 0 {
 			start = 0
@@ -174,7 +174,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool, ig
 			if bytes.Index(output[matchPos:], []byte("executed programs:")) != -1 { // syz-execprog output
 				lastExecuteTime = time.Now()
 			}
-			if report.ContainsCrash(output[matchPos:], ignores) {
+			if reporter.ContainsCrash(output[matchPos:]) {
 				return extractError("unknown error")
 			}
 			if len(output) > 2*beforeContext {
