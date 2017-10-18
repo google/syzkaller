@@ -12,11 +12,17 @@
 
 #include "syscalls_freebsd.h"
 
+#include <signal.h>
+#include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <sys/types.h>
 
-uint32_t output;
+const int kInFd = 3;
+const int kOutFd = 4;
+
+uint32_t* output_data;
+uint32_t* output_pos;
 
 int main(int argc, char** argv)
 {
@@ -24,6 +30,23 @@ int main(int argc, char** argv)
 		puts(GOOS " " GOARCH " " SYZ_REVISION " " GIT_REVISION);
 		return 0;
 	}
+
+	if (mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
+		fail("mmap of input file failed");
+	// The output region is the only thing in executor process for which consistency matters.
+	// If it is corrupted ipc package will fail to parse its contents and panic.
+	// But fuzzer constantly invents new ways of how to currupt the region,
+	// so we map the region at a (hopefully) hard to guess address surrounded by unmapped pages.
+	void* const kOutputDataAddr = (void*)0x1ddbc20000;
+	output_data = (uint32_t*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
+	if (output_data != kOutputDataAddr)
+		fail("mmap of output file failed");
+	// Prevent random programs to mess with these fds.
+	// Due to races in collider mode, a program can e.g. ftruncate one of these fds,
+	// which will cause fuzzer to crash.
+	// That's also the reason why we close kInPipeFd/kOutPipeFd below.
+	close(kInFd);
+	close(kOutFd);
 
 	// Some minimal sandboxing.
 	struct rlimit rlim;
@@ -40,8 +63,55 @@ int main(int argc, char** argv)
 
 	install_segv_handler();
 	setup_control_pipes();
-	receive_execute(true);
-	execute_one();
+	receive_handshake();
+	reply_handshake();
+
+	for (;;) {
+		receive_execute(false);
+		char cwdbuf[128] = "/syz-tmpXXXXXX";
+		mkdtemp(cwdbuf);
+		int pid = fork();
+		if (pid < 0)
+			fail("fork failed");
+		if (pid == 0) {
+			close(kInPipeFd);
+			close(kOutPipeFd);
+			if (chdir(cwdbuf))
+				fail("chdir failed");
+			output_pos = output_data;
+			execute_one();
+			doexit(0);
+		}
+		int status = 0;
+		uint64_t start = current_time_ms();
+		uint64_t last_executed = start;
+		uint32_t executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
+		for (;;) {
+			int res = waitpid(pid, &status, WNOHANG);
+			if (res == pid)
+				break;
+			sleep_ms(1);
+			uint64_t now = current_time_ms();
+			uint32_t now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
+			if (executed_calls != now_executed) {
+				executed_calls = now_executed;
+				last_executed = now;
+			}
+			if ((now - start < 3 * 1000) && (now - last_executed < 500))
+				continue;
+			kill(pid, SIGKILL);
+			while (waitpid(pid, &status, 0) != pid) {
+			}
+			break;
+		}
+		status = WEXITSTATUS(status);
+		if (status == kFailStatus)
+			fail("child failed");
+		if (status == kErrorStatus)
+			error("child errored");
+		remove_dir(cwdbuf);
+		reply_execute(0);
+	}
 	return 0;
 }
 
@@ -71,9 +141,15 @@ uint64_t read_cover_size(thread_t* th)
 
 uint32_t* write_output(uint32_t v)
 {
-	return &output;
+	if (collide)
+		return 0;
+	if (output_pos < output_data || (char*)output_pos >= (char*)output_data + kMaxOutput)
+		fail("output overflow");
+	*output_pos = v;
+	return output_pos++;
 }
 
 void write_completed(uint32_t completed)
 {
+	__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
 }

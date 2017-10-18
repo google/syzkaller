@@ -477,6 +477,20 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		}
 		info[callIndex].Comps = compMap
 	}
+	if env.config.Flags&FlagSignal != 0 {
+		// This is fallback coverage used when no real coverage available.
+		// We use syscall number or-ed with returned errno value as signal.
+		// At least this gives us all combinations of syscall+errno.
+		for i := range info {
+			ci := &info[i]
+			if len(ci.Signal) != 0 {
+				continue
+			}
+			num := p.Calls[i].Meta.ID
+			sig := uint32(num<<16) | uint32(ci.Errno)&0x3ff
+			ci.Signal = []uint32{sig}
+		}
+	}
 	return
 }
 
