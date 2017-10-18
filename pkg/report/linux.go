@@ -413,12 +413,16 @@ var linuxOopses = []*oops{
 				"BUG: Dentry still in use [unmount of %[1]v]",
 			},
 			{
-				compile("BUG: Bad page state .*"),
+				compile("BUG: Bad page state.*"),
 				"BUG: Bad page state",
 			},
 			{
-				compile("BUG: spinlock bad magic .*"),
+				compile("BUG: spinlock bad magic.*"),
 				"BUG: spinlock bad magic",
+			},
+			{
+				compile("BUG: workqueue lockup.*"),
+				"BUG: workqueue lockup",
 			},
 		},
 		[]*regexp.Regexp{
