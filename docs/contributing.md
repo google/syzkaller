@@ -9,7 +9,16 @@ and add yourself to [AUTHORS](/AUTHORS)/[CONTRIBUTORS](/CONTRIBUTORS) files (in 
 
 Some guildelines to follow:
 
-- Prepend each commit with a `package:` prefix, where `package` is the package/tool this commit changes (look at examples in the [commit history](https://github.com/google/syzkaller/commits/master))
+- Commit messages should follow the following template:
+```
+package: one-line description
+<empty line>
+Extended multi-line description that includes
+the problem you are solving and how it is solved.
+```
+`package` is the package/tool this commit changes
+(look at examples in the [commit history](https://github.com/google/syzkaller/commits/master))
+- The pull request text is mostly irrelevant
 - Run `make presubmit` and ensure that it passes before sending a PR. It may require some additional packages to be installed (try `sudo make install_prerequisites`)
 - Rebase your pull request onto the master branch before submitting
 - If you're asked to add some fixes to your pull requested, please squash the new commits with the old ones
