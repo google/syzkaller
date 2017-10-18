@@ -93,6 +93,7 @@ struct thread_t {
 	uint64_t* cover_data;
 	// Pointer to the size of coverage (stored as first word of memory).
 	uint64_t* cover_size_ptr;
+	uint64_t cover_buffer[1]; // fallback coverage buffer
 
 	event_t ready;
 	event_t done;
