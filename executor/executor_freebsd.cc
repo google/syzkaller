@@ -65,6 +65,7 @@ int main(int argc, char** argv)
 	setup_control_pipes();
 	receive_handshake();
 	reply_handshake();
+	cover_open();
 
 	for (;;) {
 		receive_execute(false);
@@ -124,6 +125,12 @@ long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, lon
 
 void cover_open()
 {
+	if (!flag_cover)
+		return;
+	for (int i = 0; i < kMaxThreads; i++) {
+		thread_t* th = &threads[i];
+		th->cover_data = &th->cover_buffer[0];
+	}
 }
 
 void cover_enable(thread_t* th)
@@ -136,7 +143,13 @@ void cover_reset(thread_t* th)
 
 uint64_t read_cover_size(thread_t* th)
 {
-	return 0;
+	if (!flag_cover)
+		return 0;
+	// Fallback coverage since we have no real coverage available.
+	// We use syscall number or-ed with returned errno value as signal.
+	// At least this gives us all combinations of syscall+errno.
+	th->cover_data[0] = (th->call_num << 16) | ((th->res == -1 ? th->reserrno : 0) & 0x3ff);
+	return 1;
 }
 
 uint32_t* write_output(uint32_t v)
