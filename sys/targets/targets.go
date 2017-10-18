@@ -124,8 +124,8 @@ var oses = map[string]os{
 	"freebsd": {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
-		ExecutorUsesShmem:      false,
-		ExecutorUsesForkServer: false,
+		ExecutorUsesShmem:      true,
+		ExecutorUsesForkServer: true,
 	},
 	"fuchsia": {
 		SyscallNumbers:         false,

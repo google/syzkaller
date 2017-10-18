@@ -17,6 +17,9 @@
 #include <sys/wait.h>
 #include <time.h>
 #endif
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
+#include <dirent.h>
+#endif
 
 #define doexit exit
 
@@ -83,6 +86,58 @@ static uint64_t current_time_ms()
 static void sleep_ms(uint64_t ms)
 {
 	usleep(ms * 1000);
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
+static void remove_dir(const char* dir)
+{
+	DIR* dp;
+	struct dirent* ep;
+	int iter = 0;
+retry:
+	dp = opendir(dir);
+	if (dp == NULL)
+		return;
+	while ((ep = readdir(dp))) {
+		if (strcmp(ep->d_name, ".") == 0 || strcmp(ep->d_name, "..") == 0)
+			continue;
+		char filename[FILENAME_MAX];
+		snprintf(filename, sizeof(filename), "%s/%s", dir, ep->d_name);
+		struct stat st;
+		if (lstat(filename, &st))
+			return;
+		if (S_ISDIR(st.st_mode)) {
+			remove_dir(filename);
+			continue;
+		}
+		int i;
+		for (i = 0;; i++) {
+			if (unlink(filename) == 0)
+				break;
+			if (errno == EROFS)
+				break;
+			if (errno != EBUSY || i > 100)
+				return;
+		}
+	}
+	closedir(dp);
+	int i;
+	for (i = 0;; i++) {
+		if (rmdir(dir) == 0)
+			break;
+		if (i < 100) {
+			if (errno == EROFS)
+				break;
+			if (errno == ENOTEMPTY) {
+				if (iter < 100) {
+					iter++;
+					goto retry;
+				}
+			}
+		}
+		return;
+	}
 }
 #endif
 

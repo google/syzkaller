@@ -616,6 +616,7 @@ void execute_call(thread_t* th)
 	}
 
 	cover_reset(th);
+	errno = 0;
 	th->res = execute_syscall(call, th->args[0], th->args[1], th->args[2],
 				  th->args[3], th->args[4], th->args[5],
 				  th->args[6], th->args[7], th->args[8]);

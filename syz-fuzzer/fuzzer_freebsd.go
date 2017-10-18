@@ -17,5 +17,5 @@ func kmemleakScan(report bool) {
 }
 
 func checkCompsSupported() (kcov, comps bool) {
-	return false, false
+	return true, false
 }
