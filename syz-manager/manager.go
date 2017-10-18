@@ -780,7 +780,10 @@ func (mgr *Manager) getReporter() report.Reporter {
 	if mgr.reporter == nil {
 		<-allSymbolsReady
 		var err error
-		mgr.reporter, err = report.NewReporter(mgr.cfg.TargetOS, mgr.cfg.Kernel_Src, "", allSymbols, mgr.cfg.ParsedIgnores)
+		// TODO(dvyukov): we should introduce cfg.Kernel_Obj dir instead of Vmlinux.
+		// This will be more general taking into account modules and other OSes.
+		mgr.reporter, err = report.NewReporter(mgr.cfg.TargetOS, mgr.cfg.Kernel_Src,
+			filepath.Dir(mgr.cfg.Vmlinux), allSymbols, mgr.cfg.ParsedIgnores)
 		if err != nil {
 			Fatalf("%v", err)
 		}
