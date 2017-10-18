@@ -776,6 +776,10 @@ other info that might help us debug this:
 [   16.762666] [syscamera][msm_companion_pll_init::544][WAFER_INFO::0xcf80]
 [   16.763144] [syscamera][msm_companion_pll_init::594][BIN_INFO::0x0008][WAFER_INFO::0xcf80][voltage 0.775]
 `: ``,
+
+		`
+BUG: workqueue lockup - pool cpus=0 node=0 flags=0x0 nice=0 stuck for 32s!
+`: `BUG: workqueue lockup`,
 	}
 	testParse(t, "linux", tests)
 }
