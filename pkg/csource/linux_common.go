@@ -119,11 +119,6 @@ __attribute__((noreturn)) static void doexit(int status)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR)
-#define exit use_doexit_instead
-#define _exit use_doexit_instead
-#endif
-
 
 
 #include <stdint.h>
@@ -143,6 +138,11 @@ __attribute__((noreturn)) static void doexit(int status)
 #if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 #include <stdarg.h>
 #include <stdio.h>
+#endif
+
+#if defined(SYZ_EXECUTOR)
+#define exit vsnprintf
+#define _exit vsnprintf
 #endif
 
 #if defined(SYZ_EXECUTOR)

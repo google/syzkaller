@@ -129,12 +129,6 @@ __attribute__((noreturn)) static void doexit(int status)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR)
-// exit/_exit do not necessary work.
-#define exit use_doexit_instead
-#define _exit use_doexit_instead
-#endif
-
 #include "common.h"
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
