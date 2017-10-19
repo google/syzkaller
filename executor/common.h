@@ -23,6 +23,14 @@
 #endif
 
 #if defined(SYZ_EXECUTOR)
+// exit/_exit do not necessary work (e.g. if fuzzer sets seccomp filter that prohibits exit_group).
+// Use doexit instead.  We must redefine exit to something that exists in stdlib,
+// because some standard libraries contain "using ::exit;", but has different signature.
+#define exit vsnprintf
+#define _exit vsnprintf
+#endif
+
+#if defined(SYZ_EXECUTOR)
 #if defined(__GNUC__)
 #define SYSCALLAPI
 #define NORETURN __attribute__((noreturn))

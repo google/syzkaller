@@ -31,7 +31,17 @@ var commonHeaderAkaros = `
 #include <dirent.h>
 #endif
 
-#define doexit exit
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||      \
+    defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || \
+    defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||                   \
+    defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
+__attribute__((noreturn)) static void doexit(int status)
+{
+	_exit(status);
+	for (;;) {
+	}
+}
+#endif
 
 
 
@@ -52,6 +62,11 @@ var commonHeaderAkaros = `
 #if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 #include <stdarg.h>
 #include <stdio.h>
+#endif
+
+#if defined(SYZ_EXECUTOR)
+#define exit vsnprintf
+#define _exit vsnprintf
 #endif
 
 #if defined(SYZ_EXECUTOR)
