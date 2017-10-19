@@ -13,29 +13,25 @@ import (
 )
 
 func TestParseAll(t *testing.T) {
-	dir := filepath.Join("..", "..", "sys")
-	files, err := ioutil.ReadDir(dir)
-	if err != nil {
+	files, err := filepath.Glob(filepath.Join("..", "..", "sys", "linux", "*.txt"))
+	if err != nil || len(files) == 0 {
 		t.Fatalf("failed to read sys dir: %v", err)
 	}
 	for _, file := range files {
-		if file.IsDir() || !strings.HasSuffix(file.Name(), ".txt") {
-			continue
-		}
-		data, err := ioutil.ReadFile(filepath.Join(dir, file.Name()))
+		data, err := ioutil.ReadFile(file)
 		if err != nil {
 			t.Fatalf("failed to read file: %v", err)
 		}
-		t.Run(file.Name(), func(t *testing.T) {
+		t.Run(file, func(t *testing.T) {
 			eh := func(pos Pos, msg string) {
 				t.Fatalf("%v: %v", pos, msg)
 			}
-			desc := Parse(data, file.Name(), eh)
+			desc := Parse(data, file, eh)
 			if desc == nil {
 				t.Fatalf("parsing failed, but no error produced")
 			}
 			data2 := Format(desc)
-			desc2 := Parse(data2, file.Name(), eh)
+			desc2 := Parse(data2, file, eh)
 			if desc2 == nil {
 				t.Fatalf("parsing failed, but no error produced")
 			}
