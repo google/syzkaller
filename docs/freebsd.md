@@ -6,7 +6,7 @@ So far the process is tested only on linux/amd64 host. To build Go binaries do:
 ```
 make manager fuzzer execprog TARGETOS=freebsd
 ```
-To build C `syz-executor` binary, copy `executor/*` files to a FreeBSD machines and build there with:
+To build C `syz-executor` binary, copy `executor/*` files to a FreeBSD machine and build there with:
 ```
 gcc executor/executor_freebsd.cc -o syz-executor -O1 -lpthread -DGOOS=\"freebsd\" -DGIT_REVISION=\"CURRENT_GIT_REVISION\"
 ```
@@ -14,11 +14,7 @@ Then, copy out the binary back to host into `bin/freebsd_amd64` dir.
 
 Building/running on a FreeBSD host should work as well, but currently our `Makefile` does not work there, so you will need to do its work manually.
 
-Then, you need a FreeBSD image with root ssh access with a key. General instructions can be found here [qemu instructions](https://wiki.qemu.org/Hosts/BSD). I used `FreeBSD-11.0-RELEASE-amd64.qcow2` image, and it required a freashly built `qemu-system-x86_64` (networking did not work in the system-provided one). Check that you can run the VM with:
-```
-qemu-system-x86_64 -m 2048 -hda FreeBSD-11.0-RELEASE-amd64.qcow2 -enable-kvm -netdev user,id=mynet0,host=10.0.2.10,hostfwd=tcp::10022-:22 -device e1000,netdev=mynet0 -nographic
-```
-and ssh into it with a key. After booting add the following to `/boot/loader.conf`:
+Then, you need a FreeBSD image with root ssh access with a key. General instructions can be found here [qemu instructions](https://wiki.qemu.org/Hosts/BSD). I used `FreeBSD-11.0-RELEASE-amd64.qcow2` image, and it required a freashly built `qemu-system-x86_64` (networking did not work in the system-provided one). After booting add the following to `/boot/loader.conf`:
 ```
 autoboot_delay="-1"
 console="comconsole"
@@ -46,6 +42,12 @@ PasswordAuthentication yes
 PermitEmptyPasswords yes
 Subsystem sftp /usr/libexec/sftp-server
 ```
+
+Check that you can run the VM with:
+```
+qemu-system-x86_64 -m 2048 -hda FreeBSD-11.0-RELEASE-amd64.qcow2 -enable-kvm -netdev user,id=mynet0,host=10.0.2.10,hostfwd=tcp::10022-:22 -device e1000,netdev=mynet0 -nographic
+```
+and ssh into it with a key.
 
 If all of the above worked, create `freebsd.cfg` config file with the following contents (alter paths as necessary):
 ```
@@ -88,7 +90,7 @@ If something does not work, add `-debug` flag to `syz-manager`.
 ## Missing things
 
 - Coverage. `executor/executor_freebsd.cc` uses a very primitive fallback for coverage. We need KCOV for FreeBSD.
-- System call descriptions. `sys/freebsd/*.txt` is a dirty copy from `sys/linux` with everything that does not compile dropped. We need to go through syscalls and verify/fix/extend them, including devices/ioctls/etc.
+- System call descriptions. `sys/freebsd/*.txt` is a dirty copy from `sys/linux/*.txt` with everything that does not compile dropped. We need to go through syscalls and verify/fix/extend them, including devices/ioctls/etc.
 - Currently only `amd64` arch is supported. Supporting `386` would be useful, because it should cover compat paths. Also, we could do testing of the linux-compatibility subsystem.
 - `pkg/csource` needs to be taught how to generate/build C reproducers.
 - `pkg/host` needs to be taught how to detect supported syscalls/devices.
