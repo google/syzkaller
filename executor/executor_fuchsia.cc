@@ -61,3 +61,8 @@ uint32_t* write_output(uint32_t v)
 void write_completed(uint32_t completed)
 {
 }
+
+bool kcov_comparison_t::ignore() const
+{
+	return false;
+}

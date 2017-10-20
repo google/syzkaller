@@ -166,3 +166,8 @@ void write_completed(uint32_t completed)
 {
 	__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
 }
+
+bool kcov_comparison_t::ignore() const
+{
+	return false;
+}
