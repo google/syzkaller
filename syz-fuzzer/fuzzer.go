@@ -33,7 +33,7 @@ import (
 
 var (
 	flagName     = flag.String("name", "", "unique name for manager")
-	flagArch     = flag.String("arch", "", "target arch")
+	flagArch     = flag.String("arch", runtime.GOARCH, "target arch")
 	flagExecutor = flag.String("executor", "", "path to executor binary")
 	flagManager  = flag.String("manager", "", "manager rpc address")
 	flagProcs    = flag.Int("procs", 1, "number of parallel test processes")
@@ -171,7 +171,8 @@ func main() {
 		faultInjectionEnabled = true
 	}
 
-	kcov, compsSupported := checkCompsSupported()
+	kcov := false
+	kcov, compsSupported = checkCompsSupported()
 	Logf(1, "KCOV_CHECK: compsSupported=%v", compsSupported)
 	if r.NeedCheck {
 		out, err := osutil.RunCmd(time.Minute, "", *flagExecutor, "version")
