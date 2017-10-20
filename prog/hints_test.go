@@ -343,18 +343,17 @@ func TestHintsRandom(t *testing.T) {
 	r := newRand(target, rs)
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 5, nil)
-		comps := make([]CompMap, len(p.Calls))
 		for i, c := range p.Calls {
 			vals := extractValues(c)
 			for j := 0; j < 5; j++ {
 				vals[r.randInt()] = true
 			}
-			comps[i] = make(CompMap)
+			comps := make(CompMap)
 			for v := range vals {
-				comps[i].AddComp(v, r.randInt())
+				comps.AddComp(v, r.randInt())
 			}
+			p.MutateWithHints(i, comps, func(p1 *Prog) {})
 		}
-		p.MutateWithHints(comps, func(p1 *Prog) {})
 	}
 }
 
