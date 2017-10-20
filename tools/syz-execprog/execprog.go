@@ -178,11 +178,27 @@ func main() {
 					}
 					if *flagHints {
 						compMaps := ipc.GetCompMaps(info)
+						ncomps, ncandidates := 0, 0
+						for _, comps := range compMaps {
+							for v, args := range comps {
+								ncomps += len(args)
+								if *flagOutput == "stdout" {
+									fmt.Printf("comp 0x%x:", v)
+									for arg := range args {
+										fmt.Printf(" 0x%x", arg)
+									}
+									fmt.Printf("\n")
+								}
+							}
+						}
 						p.MutateWithHints(compMaps, func(p *prog.Prog) {
-							fmt.Printf("%v\n", string(p.Serialize()))
+							ncandidates++
+							if *flagOutput == "stdout" {
+								fmt.Printf("PROGRAM:\n%s\n", p.Serialize())
+							}
 						})
+						fmt.Printf("ncomps=%v ncandidates=%v\n", ncomps, ncandidates)
 					}
-
 					return true
 				}() {
 					return
