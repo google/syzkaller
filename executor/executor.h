@@ -26,6 +26,7 @@ const int kOutPipeFd = 251; // remapped from stdout
 
 const int kMaxInput = 2 << 20;
 const int kMaxOutput = 16 << 20;
+const int kCoverSize = 64 << 10;
 const int kMaxArgs = 9;
 const int kMaxThreads = 16;
 const int kMaxCommands = 16 << 10;
@@ -164,9 +165,8 @@ struct kcov_comparison_t {
 	uint64_t arg2;
 	uint64_t pc;
 
-	// Writes the structure using the write_one function for each field.
-	// Inspired by write_output() function.
-	void write(uint32_t* (*write_one)(uint32_t));
+	bool ignore() const;
+	void write();
 	bool operator==(const struct kcov_comparison_t& other) const;
 	bool operator<(const struct kcov_comparison_t& other) const;
 };
@@ -520,13 +520,19 @@ void handle_completion(thread_t* th)
 
 		if (flag_collect_comps) {
 			// Collect only the comparisons
-			comps_size = th->cover_size;
+			uint32_t ncomps = th->cover_size;
 			kcov_comparison_t* start = (kcov_comparison_t*)th->cover_data;
-			kcov_comparison_t* end = start + comps_size;
+			kcov_comparison_t* end = start + ncomps;
+			if ((uint64_t*)end >= th->cover_data + kCoverSize)
+				fail("too many comparisons %u", ncomps);
 			std::sort(start, end);
-			comps_size = std::unique(start, end) - start;
-			for (uint32_t i = 0; i < comps_size; ++i)
-				start[i].write(write_output);
+			ncomps = std::unique(start, end) - start;
+			for (uint32_t i = 0; i < ncomps; ++i) {
+				if (start[i].ignore())
+					continue;
+				comps_size++;
+				start[i].write();
+			}
 		} else {
 			// Write out feedback signals.
 			// Currently it is code edges computed as xor of
@@ -761,10 +767,10 @@ uint64_t read_input(uint64_t** input_posp, bool peek)
 	return *input_pos;
 }
 
-void kcov_comparison_t::write(uint32_t* (*write_one)(uint32_t))
+void kcov_comparison_t::write()
 {
 	// Write order: type arg1 arg2 pc.
-	write_one((uint32_t)type);
+	write_output((uint32_t)type);
 
 	// KCOV converts all arguments of size x first to uintx_t and then to
 	// uint64_t. We want to properly extend signed values, e.g we want
@@ -788,15 +794,15 @@ void kcov_comparison_t::write(uint32_t* (*write_one)(uint32_t))
 	}
 	bool is_size_8 = (type & KCOV_CMP_SIZE_MASK) == KCOV_CMP_SIZE8;
 	if (!is_size_8) {
-		write_one((uint32_t)arg1);
-		write_one((uint32_t)arg2);
+		write_output((uint32_t)arg1);
+		write_output((uint32_t)arg2);
 		return;
 	}
 	// If we have 64 bits arguments then write them in Little-endian.
-	write_one((uint32_t)(arg1 & 0xFFFFFFFF));
-	write_one((uint32_t)(arg1 >> 32));
-	write_one((uint32_t)(arg2 & 0xFFFFFFFF));
-	write_one((uint32_t)(arg2 >> 32));
+	write_output((uint32_t)(arg1 & 0xFFFFFFFF));
+	write_output((uint32_t)(arg1 >> 32));
+	write_output((uint32_t)(arg2 & 0xFFFFFFFF));
+	write_output((uint32_t)(arg2 >> 32));
 }
 
 bool kcov_comparison_t::operator==(const struct kcov_comparison_t& other) const

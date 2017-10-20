@@ -34,8 +34,8 @@ const unsigned long KCOV_TRACE_CMP = 1;
 
 const int kInFd = 3;
 const int kOutFd = 4;
-const int kCoverSize = 64 << 10;
-const int kPageSize = 4 << 10;
+
+void* const kOutputDataAddr = (void*)0x1bdbc20000ull;
 
 uint32_t* output_data;
 uint32_t* output_pos;
@@ -54,7 +54,6 @@ int main(int argc, char** argv)
 	// If it is corrupted ipc package will fail to parse its contents and panic.
 	// But fuzzer constantly invents new ways of how to currupt the region,
 	// so we map the region at a (hopefully) hard to guess address surrounded by unmapped pages.
-	void* const kOutputDataAddr = (void*)0x1ddbc20000;
 	output_data = (uint32_t*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
 	if (output_data != kOutputDataAddr)
 		fail("mmap of output file failed");
@@ -291,4 +290,38 @@ uint32_t* write_output(uint32_t v)
 void write_completed(uint32_t completed)
 {
 	__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
+}
+
+bool kcov_comparison_t::ignore() const
+{
+	// Comparisons with 0 are not interesting, fuzzer should be able to guess 0's without help.
+	if (arg1 == 0 && (arg2 == 0 || (type & KCOV_CMP_CONST)))
+		return true;
+	if ((type & KCOV_CMP_SIZE_MASK) == KCOV_CMP_SIZE8) {
+		// This can be a pointer (assuming 64-bit kernel).
+		// First of all, we want avert fuzzer from our output region.
+		// Without this fuzzer manages to discover and corrupt it.
+		uint64_t out_start = (uint64_t)kOutputDataAddr;
+		uint64_t out_end = out_start + kMaxOutput;
+		if (arg1 >= out_start && arg1 <= out_end)
+			return true;
+		if (arg2 >= out_start && arg2 <= out_end)
+			return true;
+#if defined(__i386__) || defined(__x86_64__)
+		// Filter out kernel physical memory addresses.
+		// These are internal kernel comparisons and should not be interesting.
+		// The range covers first 1TB of physical mapping.
+		uint64_t kmem_start = (uint64_t)0xffff880000000000ull;
+		uint64_t kmem_end = (uint64_t)0xffff890000000000ull;
+		bool kptr1 = arg1 >= kmem_start && arg1 <= kmem_end;
+		bool kptr2 = arg2 >= kmem_start && arg2 <= kmem_end;
+		if (kptr1 && kptr2)
+			return true;
+		if (kptr1 && arg2 == 0)
+			return true;
+		if (kptr2 && arg1 == 0)
+			return true;
+#endif
+	}
+	return false;
 }
