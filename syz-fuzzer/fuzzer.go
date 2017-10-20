@@ -346,15 +346,16 @@ func main() {
 		}
 		if poll || time.Since(lastPoll) > 10*time.Second {
 			triageMu.RLock()
-			if len(candidates) > *flagProcs {
-				triageMu.RUnlock()
+			needCandidates := len(candidates) < *flagProcs
+			triageMu.RUnlock()
+			if !needCandidates && poll {
 				continue
 			}
-			triageMu.RUnlock()
 
 			a := &PollArgs{
-				Name:  *flagName,
-				Stats: make(map[string]uint64),
+				Name:           *flagName,
+				NeedCandidates: needCandidates,
+				Stats:          make(map[string]uint64),
 			}
 			signalMu.Lock()
 			a.MaxSignal = make([]uint32, 0, len(newSignal))
@@ -390,6 +391,8 @@ func main() {
 			if err := manager.Call("Manager.Poll", a, r); err != nil {
 				panic(err)
 			}
+			Logf(1, "poll: candidates=%v inputs=%v signal=%v",
+				len(r.Candidates), len(r.NewInputs), len(r.MaxSignal))
 			if len(r.MaxSignal) != 0 {
 				signalMu.Lock()
 				for _, s := range r.MaxSignal {

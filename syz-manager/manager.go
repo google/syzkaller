@@ -996,10 +996,12 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 		f.inputs = nil
 	}
 
-	for i := 0; i < mgr.cfg.Procs && len(mgr.candidates) > 0; i++ {
-		last := len(mgr.candidates) - 1
-		r.Candidates = append(r.Candidates, mgr.candidates[last])
-		mgr.candidates = mgr.candidates[:last]
+	if a.NeedCandidates {
+		for i := 0; i < mgr.cfg.Procs && len(mgr.candidates) > 0; i++ {
+			last := len(mgr.candidates) - 1
+			r.Candidates = append(r.Candidates, mgr.candidates[last])
+			mgr.candidates = mgr.candidates[:last]
+		}
 	}
 	if len(mgr.candidates) == 0 {
 		mgr.candidates = nil
