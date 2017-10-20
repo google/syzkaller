@@ -432,22 +432,26 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 		compMap := make(prog.CompMap)
 		for j := uint32(0); j < compsSize; j++ {
 			var typ uint32
-			var op1, op2 uint64
 			if !readOutAndSetErr(&typ,
-				"executor %v: failed while reading type of comparison %v", env.pid, j) {
+				"executor %v: failed while reading type of comparison %v/%v",
+				env.pid, callIndex, j) {
 				return
 			}
 			if typ > compConstMask|compSizeMask {
-				err0 = fmt.Errorf("executor %v: got wrong value (%v) while reading type of comparison %v",
-					env.pid, typ, j)
+				err0 = fmt.Errorf("executor %v: got wrong value (%v) while reading type of comparison %v/%v",
+					env.pid, typ, callIndex, j)
 				return
 			}
 
-			isSize8 := (typ & compSizeMask) == compSize8
-			isConst := (typ & compConstMask) != 0
 			arg1ErrString := "executor %v: failed while reading op1 of comparison %v"
 			arg2ErrString := "executor %v: failed while reading op2 of comparison %v"
-			if isSize8 {
+			var op1, op2 uint64
+			if (typ & compSizeMask) == compSize8 {
+				if !readOut64(&op1, arg1ErrString, env.pid, j) ||
+					!readOut64(&op2, arg2ErrString, env.pid, j) {
+					return
+				}
+			} else {
 				var tmp1, tmp2 uint32
 				if !readOutAndSetErr(&tmp1, arg1ErrString, env.pid, j) ||
 					!readOutAndSetErr(&tmp2, arg2ErrString, env.pid, j) {
@@ -455,18 +459,12 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 				}
 				op1 = uint64(tmp1)
 				op2 = uint64(tmp2)
-			} else {
-				if !readOut64(&op1, arg1ErrString, env.pid, j) ||
-					!readOut64(&op2, arg2ErrString, env.pid, j) {
-					return
-				}
 			}
 			if op1 == op2 {
-				// It's useless to store such comparisons.
-				continue
+				continue // it's useless to store such comparisons
 			}
 			compMap.AddComp(op2, op1)
-			if isConst {
+			if (typ & compConstMask) != 0 {
 				// If one of the operands was const, then this operand is always
 				// placed first in the instrumented callbacks. Such an operand
 				// could not be an argument of our syscalls (because otherwise
