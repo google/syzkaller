@@ -51,9 +51,10 @@ type NewInputArgs struct {
 }
 
 type PollArgs struct {
-	Name      string
-	MaxSignal []uint32
-	Stats     map[string]uint64
+	Name           string
+	NeedCandidates bool
+	MaxSignal      []uint32
+	Stats          map[string]uint64
 }
 
 type PollRes struct {
