@@ -173,7 +173,7 @@ func main() {
 
 	kcov := false
 	kcov, compsSupported = checkCompsSupported()
-	Logf(1, "KCOV_CHECK: compsSupported=%v", compsSupported)
+	Logf(0, "kcov=%v, comps=%v", kcov, compsSupported)
 	if r.NeedCheck {
 		out, err := osutil.RunCmd(time.Minute, "", *flagExecutor, "version")
 		if err != nil {
@@ -260,6 +260,9 @@ func main() {
 
 			for i := 0; ; i++ {
 				triageMu.RLock()
+				Logf(1, "#%v: triageCandidate=%v candidates=%v triage=%v smashQueue=%v",
+					pid, len(triageCandidate), len(candidates), len(triage),
+					len(smashQueue))
 				if len(triageCandidate) != 0 || len(candidates) != 0 || len(triage) != 0 || len(smashQueue) != 0 {
 					triageMu.RUnlock()
 					triageMu.Lock()
@@ -268,7 +271,7 @@ func main() {
 						inp := triageCandidate[last]
 						triageCandidate = triageCandidate[:last]
 						triageMu.Unlock()
-						Logf(1, "triaging candidate: %s", inp.p)
+						Logf(1, "#%v: triaging candidate", pid)
 						triageInput(pid, env, inp)
 						continue
 					} else if len(candidates) != 0 {
@@ -283,7 +286,7 @@ func main() {
 							default:
 							}
 						}
-						Logf(1, "executing candidate: %s", candidate.p)
+						Logf(1, "#%v: executing candidate", pid)
 						execute(pid, env, candidate.p, false, false, candidate.minimized, true, &statExecCandidate)
 						continue
 					} else if len(triage) != 0 {
@@ -291,7 +294,7 @@ func main() {
 						inp := triage[last]
 						triage = triage[:last]
 						triageMu.Unlock()
-						Logf(1, "triaging : %s", inp.p)
+						Logf(1, "#%v: triaging", pid)
 						triageInput(pid, env, inp)
 						continue
 					} else if len(smashQueue) != 0 {
@@ -299,7 +302,7 @@ func main() {
 						inp := smashQueue[last]
 						smashQueue = smashQueue[:last]
 						triageMu.Unlock()
-						Logf(1, "%v: smashing call %v in program: %v", pid, inp.call, inp.p.String())
+						Logf(1, "#%v: smashing", pid)
 						smashInput(pid, env, ct, rs, inp)
 						continue
 					} else {
@@ -314,14 +317,14 @@ func main() {
 					// Generate a new prog.
 					corpusMu.RUnlock()
 					p := target.Generate(rnd, programLength, ct)
-					Logf(1, "#%v: generated: %s", i, p)
+					Logf(1, "#%v: generated", pid)
 					execute(pid, env, p, false, false, false, false, &statExecGen)
 				} else {
 					// Mutate an existing prog.
 					p := corpus[rnd.Intn(len(corpus))].Clone()
 					corpusMu.RUnlock()
 					p.Mutate(rs, programLength, ct, corpus)
-					Logf(1, "#%v: mutated: %s", i, p)
+					Logf(1, "#%v: mutated", pid)
 					execute(pid, env, p, false, false, false, false, &statExecFuzz)
 				}
 			}
@@ -495,7 +498,7 @@ func smashInput(pid int, env *ipc.Env, ct *prog.ChoiceTable, rs rand.Source, inp
 	for i := 0; i < 100; i++ {
 		p := inp.p.Clone()
 		p.Mutate(rs, programLength, ct, corpus)
-		Logf(1, "#%v: mutated: %s", pid, p)
+		Logf(1, "#%v: smash mutated", pid)
 		execute(pid, env, p, false, false, false, false, &statExecSmash)
 	}
 	if compsSupported {
@@ -505,7 +508,7 @@ func smashInput(pid int, env *ipc.Env, ct *prog.ChoiceTable, rs rand.Source, inp
 
 func failCall(pid int, env *ipc.Env, p *prog.Prog, call int) {
 	for nth := 0; nth < 100; nth++ {
-		Logf(1, "%v: injecting fault into call %v/%v in program: %v", pid, call, nth, p.String())
+		Logf(1, "#%v: injecting fault into call %v/%v", pid, call, nth)
 		opts := &ipc.ExecOpts{
 			Flags:     ipc.FlagInjectFault,
 			FaultCall: call,
@@ -625,9 +628,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 }
 
 func executeHintSeed(pid int, env *ipc.Env, p *prog.Prog) {
-	if !compsSupported {
-		panic("compsSupported==false and executeHintSeed() called")
-	}
+	Logf(1, "#%v: collecting comparisons", pid)
 	// First execute the original program to dump comparisons from KCOV.
 	info := execute(pid, env, p, false, true, false, false, &statExecHintSeeds)
 
@@ -638,6 +639,7 @@ func executeHintSeed(pid int, env *ipc.Env, p *prog.Prog) {
 	// a syscall argument and a comparison operand.
 	// Execute each of such mutants to check if it gives new coverage.
 	p.MutateWithHints(compMaps, func(p *prog.Prog) {
+		Logf(1, "#%v: executing comparison hint", pid)
 		execute(pid, env, p, false, false, false, false, &statExecHints)
 	})
 }
