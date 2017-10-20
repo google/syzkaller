@@ -47,15 +47,14 @@ func (m CompMap) AddComp(arg1, arg2 uint64) {
 
 // Mutates the program using the comparison operands stored in compMaps.
 // For each of the mutants executes the exec callback.
-func (p *Prog) MutateWithHints(compMaps []CompMap, exec func(newP *Prog)) {
-	for i, c := range p.Calls {
-		if c.Meta == p.Target.MmapSyscall {
-			continue
-		}
-		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
-			generateHints(p, compMaps[i], c, arg, exec)
-		})
+func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(newP *Prog)) {
+	c := p.Calls[callIndex]
+	if c.Meta == p.Target.MmapSyscall {
+		return
 	}
+	foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+		generateHints(p, comps, c, arg, exec)
+	})
 }
 
 func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog)) {

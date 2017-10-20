@@ -502,7 +502,7 @@ func smashInput(pid int, env *ipc.Env, ct *prog.ChoiceTable, rs rand.Source, inp
 		execute(pid, env, p, false, false, false, false, &statExecSmash)
 	}
 	if compsSupported {
-		executeHintSeed(pid, env, inp.p)
+		executeHintSeed(pid, env, inp.p, inp.call)
 	}
 }
 
@@ -627,7 +627,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	}
 }
 
-func executeHintSeed(pid int, env *ipc.Env, p *prog.Prog) {
+func executeHintSeed(pid int, env *ipc.Env, p *prog.Prog, call int) {
 	Logf(1, "#%v: collecting comparisons", pid)
 	// First execute the original program to dump comparisons from KCOV.
 	info := execute(pid, env, p, false, true, false, false, &statExecHintSeeds)
@@ -641,7 +641,7 @@ func executeHintSeed(pid int, env *ipc.Env, p *prog.Prog) {
 	// Then mutate the initial program for every match between
 	// a syscall argument and a comparison operand.
 	// Execute each of such mutants to check if it gives new coverage.
-	p.MutateWithHints(compMaps, func(p *prog.Prog) {
+	p.MutateWithHints(call, compMaps[call], func(p *prog.Prog) {
 		Logf(1, "#%v: executing comparison hint", pid)
 		execute(pid, env, p, false, false, false, false, &statExecHints)
 	})
