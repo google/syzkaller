@@ -631,6 +631,9 @@ func executeHintSeed(pid int, env *ipc.Env, p *prog.Prog) {
 	Logf(1, "#%v: collecting comparisons", pid)
 	// First execute the original program to dump comparisons from KCOV.
 	info := execute(pid, env, p, false, true, false, false, &statExecHintSeeds)
+	if info == nil {
+		return
+	}
 
 	// Then extract the comparisons data.
 	compMaps := ipc.GetCompMaps(info)
