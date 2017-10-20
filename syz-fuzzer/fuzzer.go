@@ -368,24 +368,20 @@ func main() {
 				a.Stats["exec total"] += atomic.SwapUint64(&env.StatExecs, 0)
 				a.Stats["executor restarts"] += atomic.SwapUint64(&env.StatRestarts, 0)
 			}
-			execGen := atomic.SwapUint64(&statExecGen, 0)
-			a.Stats["exec gen"] = execGen
-			execTotal += execGen
-			execFuzz := atomic.SwapUint64(&statExecFuzz, 0)
-			a.Stats["exec fuzz"] = execFuzz
-			execTotal += execFuzz
-			execCandidate := atomic.SwapUint64(&statExecCandidate, 0)
-			a.Stats["exec candidate"] = execCandidate
-			execTotal += execCandidate
-			execTriage := atomic.SwapUint64(&statExecTriage, 0)
-			a.Stats["exec triage"] = execTriage
-			execTotal += execTriage
-			execMinimize := atomic.SwapUint64(&statExecMinimize, 0)
-			a.Stats["exec minimize"] = execMinimize
-			execTotal += execMinimize
-			execSmash := atomic.SwapUint64(&statExecSmash, 0)
-			a.Stats["exec smash"] = execSmash
-			execTotal += execSmash
+			stat := func(p *uint64, name string) {
+				v := atomic.SwapUint64(p, 0)
+				a.Stats[name] = v
+				execTotal += v
+			}
+			stat(&statExecGen, "exec gen")
+			stat(&statExecFuzz, "exec fuzz")
+			stat(&statExecCandidate, "exec candidate")
+			stat(&statExecTriage, "exec triage")
+			stat(&statExecMinimize, "exec minimize")
+			stat(&statExecSmash, "exec smash")
+			stat(&statExecHints, "exec hints")
+			stat(&statExecHintSeeds, "exec seeds")
+
 			a.Stats["fuzzer new inputs"] = atomic.SwapUint64(&statNewInput, 0)
 			r := &PollRes{}
 			if err := manager.Call("Manager.Poll", a, r); err != nil {
