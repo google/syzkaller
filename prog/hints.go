@@ -59,6 +59,24 @@ func (p *Prog) MutateWithHints(compMaps []CompMap, exec func(newP *Prog)) {
 }
 
 func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog)) {
+	if arg.Type().Dir() == DirOut {
+		return
+	}
+	switch arg.Type().(type) {
+	case *ProcType:
+		// Random proc will not pass validation.
+		// We can mutate it, but only if the resulting value is within the legal range.
+		return
+	case *CsumType:
+		// Csum will not pass validation and is always computed.
+		return
+	case *LenType:
+		// Mutating len type causes panics during mmap/mremap analysis:
+		// panic: address is out of bounds: page=7 len=34359738367 bound=4096
+		// We can mutate len theoretically, but we need to be careful.
+		return
+	}
+
 	newP, argMap := p.cloneImpl(true)
 	var originalArg Arg
 	validateExec := func() {
@@ -99,10 +117,6 @@ func checkConstArg(arg *ConstArg, compMap CompMap, cb func(newArg Arg)) {
 }
 
 func checkDataArg(arg *DataArg, compMap CompMap, cb func(newArg Arg)) {
-	if arg.Type().Dir() != DirIn && arg.Type().Dir() != DirInOut {
-		// We only want to scan userspace->kernel data.
-		return
-	}
 	bytes := make([]byte, 8)
 	original := make([]byte, 8)
 	for i := 0; i < min(len(arg.Data), maxDataLength); i++ {

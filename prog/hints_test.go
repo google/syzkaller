@@ -336,3 +336,55 @@ func TestHintsShrinkExpand(t *testing.T) {
 		})
 	}
 }
+
+func TestHintsRandom(t *testing.T) {
+	target, rs, iters := initTest(t)
+	iters /= 10 // the test takes long
+	r := newRand(target, rs)
+	for i := 0; i < iters; i++ {
+		p := target.Generate(rs, 5, nil)
+		comps := make([]CompMap, len(p.Calls))
+		for i, c := range p.Calls {
+			vals := extractValues(c)
+			for j := 0; j < 5; j++ {
+				vals[r.randInt()] = true
+			}
+			comps[i] = make(CompMap)
+			for v := range vals {
+				comps[i].AddComp(v, r.randInt())
+			}
+		}
+		p.MutateWithHints(comps, func(p1 *Prog) {})
+	}
+}
+
+func extractValues(c *Call) map[uint64]bool {
+	vals := make(map[uint64]bool)
+	foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+		switch a := arg.(type) {
+		case *ConstArg:
+			vals[a.Val] = true
+		case *DataArg:
+			for i := range a.Data {
+				vals[uint64(a.Data[i])] = true
+				if i < len(a.Data)-1 {
+					v := uint64(a.Data[i]) | uint64(a.Data[i+1])<<8
+					vals[v] = true
+				}
+				if i < len(a.Data)-3 {
+					v := uint64(a.Data[i]) | uint64(a.Data[i+1])<<8 |
+						uint64(a.Data[i+2])<<16 | uint64(a.Data[i+3])<<24
+					vals[v] = true
+				}
+				if i < len(a.Data)-7 {
+					v := uint64(a.Data[i]) | uint64(a.Data[i+1])<<8 |
+						uint64(a.Data[i+2])<<16 | uint64(a.Data[i+3])<<24 |
+						uint64(a.Data[i+4])<<32 | uint64(a.Data[i+5])<<40 |
+						uint64(a.Data[i+6])<<48 | uint64(a.Data[i+7])<<56
+					vals[v] = true
+				}
+			}
+		}
+	})
+	return vals
+}
