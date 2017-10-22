@@ -373,12 +373,8 @@ var linuxOopses = []*oops{
 				"BUG: unable to handle kernel NULL pointer dereference in %[1]v",
 			},
 			{
-				compile("BUG: spinlock lockup suspected"),
-				"BUG: spinlock lockup suspected",
-			},
-			{
-				compile("BUG: spinlock recursion"),
-				"BUG: spinlock recursion",
+				compile("BUG: spinlock (lockup suspected|already unlocked|recursion|bad magic|wrong owner|wrong CPU)"),
+				"BUG: spinlock %[1]v",
 			},
 			{
 				compile("BUG: soft lockup"),
