@@ -780,6 +780,32 @@ other info that might help us debug this:
 		`
 BUG: workqueue lockup - pool cpus=0 node=0 flags=0x0 nice=0 stuck for 32s!
 `: `BUG: workqueue lockup`,
+
+		`
+BUG: spinlock already unlocked on CPU#1, migration/1/12
+ lock: rcu_sched_state+0xb40/0xc20, .magic: dead4ead, .owner: <none>/-1, .owner_cpu: -1
+CPU: 1 PID: 12 Comm: migration/1 Not tainted 4.3.5+ #6
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+ 0000000000000001 ffff8801d8f6fb30 ffffffff81d0010d ffffffff837b69c0
+ ffff8801d8f68340 0000000000000003 0000000000000001 0000000000000000
+ ffff8801d8f6fb70 ffffffff813fba22 0000000000000046 ffff8801d8f68b80
+Call Trace:
+ [<ffffffff81d0010d>] __dump_stack lib/dump_stack.c:15 [inline]
+ [<ffffffff81d0010d>] dump_stack+0xc1/0x124 lib/dump_stack.c:51
+ [<ffffffff813fba22>] spin_dump+0x152/0x280 kernel/locking/spinlock_debug.c:67
+ [<ffffffff813fc152>] spin_bug kernel/locking/spinlock_debug.c:75 [inline]
+ [<ffffffff813fc152>] debug_spin_unlock kernel/locking/spinlock_debug.c:98 [inline]
+ [<ffffffff813fc152>] do_raw_spin_unlock+0x1e2/0x240 kernel/locking/spinlock_debug.c:158
+ [<ffffffff810108ec>] __raw_spin_unlock_irqrestore include/linux/spinlock_api_smp.h:161 [inline]
+ [<ffffffff810108ec>] _raw_spin_unlock_irqrestore+0x2c/0x60 kernel/locking/spinlock.c:191
+ [<ffffffff813cd204>] spin_unlock_irqrestore include/linux/spinlock.h:362 [inline]
+ [<ffffffff813cd204>] __wake_up+0x44/0x50 kernel/sched/wait.c:96
+ [<ffffffff8142958a>] synchronize_sched_expedited_cpu_stop+0x8a/0xa0 kernel/rcu/tree.c:3498
+ [<ffffffff814dbfe8>] cpu_stopper_thread+0x1f8/0x400 kernel/stop_machine.c:442
+ [<ffffffff8134237c>] smpboot_thread_fn+0x47c/0x880 kernel/smpboot.c:163
+ [<ffffffff81338531>] kthread+0x231/0x2c0 kernel/kthread.c:217
+ [<ffffffff82d2fbac>] ret_from_fork+0x5c/0x90 arch/x86/entry/entry_64.S:538
+ `: `BUG: spinlock already unlocked`,
 	}
 	testParse(t, "linux", tests)
 }
