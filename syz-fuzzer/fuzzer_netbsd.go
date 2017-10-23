@@ -9,7 +9,7 @@ import (
 
 func kmemleakInit() {
 	if *flagLeak {
-		log.Fatalf("leak checking is not supported on freebsd")
+		log.Fatalf("leak checking is not supported on netbsd")
 	}
 }
 
