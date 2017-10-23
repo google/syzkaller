@@ -241,7 +241,9 @@ arch:
 	env GOOG=windows go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
 	env GOOG=freebsd go install github.com/google/syzkaller/syz-fuzzer
-	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
+	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) target
+	env GOOG=netbsd go install github.com/google/syzkaller/syz-fuzzer
+	env TARGETOS=netbsd TARGETARCH=amd64 $(MAKE) target
 
 presubmit:
 	$(MAKE) generate
