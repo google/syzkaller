@@ -87,6 +87,10 @@ var archConfigs = map[string]archConfig{
 		Qemu:     "qemu-system-x86_64",
 		QemuArgs: "-enable-kvm -usb -usbdevice mouse -usbdevice tablet -soundhw all",
 	},
+	"netbsd/amd64": {
+		Qemu:     "qemu-system-x86_64",
+		QemuArgs: "-enable-kvm -usb -usbdevice mouse -usbdevice tablet -soundhw all",
+	},
 	"fuchsia/amd64": {
 		Qemu:     "qemu-system-x86_64",
 		QemuArgs: "-enable-kvm",
