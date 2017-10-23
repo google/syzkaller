@@ -2,6 +2,7 @@
 
 ## USB drivers
 
+* [usb/input/gtco: slab-out-of-bounds in parse_hid_report_descriptor](https://groups.google.com/forum/#!topic/syzkaller/McWFcOsA47Y)
 * [usb/core: slab-out-of-bounds in usb_get_bos_descriptor](https://groups.google.com/forum/#!topic/syzkaller/tzdz2fTB1K0) [[fix](https://www.spinics.net/lists/linux-usb/msg161786.html)]
 * [usb/net/asix: null-ptr-deref in asix_suspend](https://groups.google.com/forum/#!topic/syzkaller/_9a6pd-p_0E)
 * [usb/net/rt2x00: warning in rt2800_eeprom_word_index](https://groups.google.com/forum/#!topic/syzkaller/8vWPJ_maXQY)
