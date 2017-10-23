@@ -5,7 +5,6 @@ package dash
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -241,20 +240,25 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, bugReporting *Bu
 }
 
 // incomingCommand is entry point to bug status updates.
-func incomingCommand(c context.Context, cmd *dashapi.BugUpdate) (string, bool) {
+func incomingCommand(c context.Context, cmd *dashapi.BugUpdate) (bool, string, error) {
 	log.Infof(c, "got command: %+q", cmd)
-	reply, err := incomingCommandImpl(c, cmd)
+	ok, reason, err := incomingCommandImpl(c, cmd)
+	if !ok {
+		log.Errorf(c, "%v", reason)
+	}
 	if err != nil {
 		log.Errorf(c, "%v", err)
-		return reply, false
 	}
-	return reply, true
+	if !ok {
+		log.Warningf(c, "invalid update: %v", reason)
+	}
+	return ok, reason, err
 }
 
-func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (string, error) {
+func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, string, error) {
 	bug, bugKey, err := findBugByReportingID(c, cmd.ID)
 	if err != nil {
-		return "can't find the corresponding bug", err
+		return false, internalError, err
 	}
 	now := timeNow(c)
 	dupHash := ""
@@ -265,7 +269,7 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (string, err
 			// Email reporting passes bug title in cmd.DupOf, try to find bug by title.
 			dup, dupKey, err = findDupByTitle(c, bug.Namespace, cmd.DupOf)
 			if err != nil {
-				return "can't find the dup bug", err
+				return false, "can't find the dup bug", err
 			}
 			cmd.DupOf = ""
 			for i := range dup.Reporting {
@@ -275,70 +279,86 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (string, err
 				}
 			}
 			if cmd.DupOf == "" {
-				return "can't find the dup bug",
+				return false, "can't find the dup bug",
 					fmt.Errorf("dup does not have reporting %q", bugReporting.Name)
 			}
 		}
-		if bugKey.StringID() == dupKey.StringID() {
-			return "can't dup bug to itself", fmt.Errorf("can't dup bug to itself")
-		}
-		if bug.Namespace != dup.Namespace {
-			return "can't find the dup bug",
-				fmt.Errorf("inter-namespace dup: %v->%v", bug.Namespace, dup.Namespace)
-		}
 		dupReporting, _ := bugReportingByID(dup, cmd.DupOf, now)
 		if bugReporting == nil || dupReporting == nil {
-			return internalError, fmt.Errorf("can't find bug reporting")
+			return false, internalError, fmt.Errorf("can't find bug reporting")
 		}
-		if !dupReporting.Closed.IsZero() {
-			return "dup bug is already closed", fmt.Errorf("dup bug is already closed")
+		if bugKey.StringID() == dupKey.StringID() {
+			if bugReporting.Name == dupReporting.Name {
+				return false, "Can't dup bug to itself.", nil
+			}
+			return false, fmt.Sprintf("Can't dup bug to itself in different reporting (%v->%v).\n"+
+				"Please dup syzbot bugs only onto syzbot bugs for the same kernel/reporting.",
+				bugReporting.Name, dupReporting.Name), nil
+		}
+		if bug.Namespace != dup.Namespace {
+			return false, fmt.Sprintf("Duplicate bug corresponds to a different kernel (%v->%v).\n"+
+				"Please dup syzbot bugs only onto syzbot bugs for the same kernel.",
+				bug.Namespace, dup.Namespace), nil
 		}
 		if bugReporting.Name != dupReporting.Name {
-			return "can't find the dup bug",
-				fmt.Errorf("inter-reporting dup: %v -> %v",
-					bugReporting.Name, dupReporting.Name)
+			return false, fmt.Sprintf("Can't dup bug to a bug in different reporting (%v->%v)."+
+				"Please dup syzbot bugs only onto syzbot bugs for the same kernel/reporting.",
+				bugReporting.Name, dupReporting.Name), nil
+		}
+		dupCanon, err := canonicalBug(c, dup)
+		if err != nil {
+			return false, internalError, fmt.Errorf("failed to get canonical bug for dup: %v", err)
+		}
+		if !dupReporting.Closed.IsZero() && dupCanon.Status == BugStatusOpen {
+			return false, "Dup bug is already upstreamed.", nil
 		}
 		dupHash = bugKeyHash(dup.Namespace, dup.Title, dup.Seq)
 	}
 
-	reply := ""
+	ok, reply := false, ""
 	tx := func(c context.Context) error {
 		var err error
-		reply, err = incomingCommandTx(c, now, cmd, bugKey, dupHash)
+		ok, reply, err = incomingCommandTx(c, now, cmd, bugKey, dupHash)
 		return err
 	}
 	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true})
-	if err != nil && reply == "" {
-		reply = internalError
+	if err != nil {
+		return false, internalError, err
 	}
-	return reply, err
+	return ok, reply, nil
 }
 
-func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate, bugKey *datastore.Key, dupHash string) (string, error) {
+func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate, bugKey *datastore.Key, dupHash string) (bool, string, error) {
 	bug := new(Bug)
 	if err := datastore.Get(c, bugKey, bug); err != nil {
-		return "can't find the corresponding bug", err
+		return false, internalError, fmt.Errorf("can't find the corresponding bug: %v", err)
 	}
 	switch bug.Status {
-	case BugStatusOpen, BugStatusDup:
+	case BugStatusOpen:
+	case BugStatusDup:
+		canon, err := canonicalBug(c, bug)
+		if err != nil {
+			return false, internalError, err
+		}
+		if canon.Status != BugStatusOpen {
+			return false, "This bug is already closed (dup was closed).\n" +
+				"Don't change closed syzbot bugs.", nil
+		}
 	case BugStatusFixed, BugStatusInvalid:
-		return "this bug is already closed",
-			fmt.Errorf("got a command for a closed bug")
+		return false, "This bug is already closed.", nil
 	default:
-		return internalError,
-			fmt.Errorf("unknown bug status %v", bug.Status)
+		return false, internalError, fmt.Errorf("unknown bug status %v", bug.Status)
 	}
 	bugReporting, final := bugReportingByID(bug, cmd.ID, now)
 	if bugReporting == nil {
-		return internalError, fmt.Errorf("can't find bug reporting")
+		return false, internalError, fmt.Errorf("can't find bug reporting")
 	}
 	if !bugReporting.Closed.IsZero() {
-		return "this bug is already closed", fmt.Errorf("got a command for a closed reporting")
+		return false, "This bug is already closed.", nil
 	}
-
 	state, err := loadReportingState(c)
 	if err != nil {
-		return internalError, err
+		return false, internalError, err
 	}
 	stateEnt := state.getEntry(now, bug.Namespace, bugReporting.Name)
 	switch cmd.Status {
@@ -350,22 +370,21 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 			stateEnt.Sent++ // sending repro does not count against the quota
 		}
 		if bug.ReproLevel < cmd.ReproLevel {
-			return internalError, fmt.Errorf("bug update with invalid repro level: %v/%v",
-				bug.ReproLevel, cmd.ReproLevel)
+			return false, internalError,
+				fmt.Errorf("bug update with invalid repro level: %v/%v",
+					bug.ReproLevel, cmd.ReproLevel)
 		}
 	case dashapi.BugStatusUpstream:
 		if final {
-			reply := "can't close, this is final destination"
-			return reply, errors.New(reply)
+			return false, "Can't upstream, this is final destination.", nil
 		}
 		if len(bug.Commits) != 0 {
 			// We could handle this case, but how/when it will occur
 			// in real life is unclear now.
-			reply := "can't upstream, the bug has fixing commits"
-			return reply, errors.New(reply)
+			return false, "Can't upstream this bug, the bug has fixing commits.", nil
 		}
 		bug.Status = BugStatusOpen
-		bug.Closed = now
+		bug.Closed = time.Time{}
 		bugReporting.Closed = now
 	case dashapi.BugStatusInvalid:
 		bugReporting.Closed = now
@@ -378,7 +397,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	case dashapi.BugStatusUpdate:
 		// Just update Link, Commits, etc below.
 	default:
-		return "unknown bug status", fmt.Errorf("unknown bug status %v", cmd.Status)
+		return false, internalError, fmt.Errorf("unknown bug status %v", cmd.Status)
 	}
 	if len(cmd.FixCommits) != 0 && (bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
 		m := make(map[string]bool)
@@ -399,8 +418,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 			commits := make([]string, 0, len(m))
 			for com := range m {
 				if len(com) < 3 {
-					err := fmt.Errorf("bad commit title: %q", com)
-					return err.Error(), err
+					return false, fmt.Sprintf("bad commit title: %q", com), nil
 				}
 				commits = append(commits, com)
 			}
@@ -426,12 +444,12 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		bug.DupOf = ""
 	}
 	if _, err := datastore.Put(c, bugKey, bug); err != nil {
-		return internalError, fmt.Errorf("failed to put bug: %v", err)
+		return false, internalError, fmt.Errorf("failed to put bug: %v", err)
 	}
 	if err := saveReportingState(c, state); err != nil {
-		return internalError, err
+		return false, internalError, err
 	}
-	return "", nil
+	return true, "", nil
 }
 
 func findBugByReportingID(c context.Context, id string) (*Bug, *datastore.Key, error) {

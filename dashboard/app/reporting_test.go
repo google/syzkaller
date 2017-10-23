@@ -326,6 +326,53 @@ func TestReportingDup(t *testing.T) {
 	c.expectOK(c.API(client1, key1, "reporting_poll", pr, resp))
 	c.expectEQ(len(resp.Reports), 1)
 	c.expectEQ(resp.Reports[0].Title, crash2.Title+" (2)")
+
+	// Unduping after the canonical bugs was closed must not work
+	// (we already created new bug for this report).
+	cmd = &dashapi.BugUpdate{
+		ID:     rep2.ID,
+		Status: dashapi.BugStatusOpen,
+	}
+	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+	c.expectEQ(reply.OK, false)
+}
+
+// Dup bug onto a closed bug.
+// A new crash report must create a new bug.
+func TestReportingDupToClosed(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+
+	crash1 := testCrash(build, 1)
+	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+
+	crash2 := testCrash(build, 2)
+	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
+
+	reports := reportAllBugs(c, 2)
+
+	cmd := &dashapi.BugUpdate{
+		ID:     reports[0].ID,
+		Status: dashapi.BugStatusInvalid,
+	}
+	reply := new(dashapi.BugUpdateReply)
+	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+	c.expectEQ(reply.OK, true)
+
+	cmd = &dashapi.BugUpdate{
+		ID:     reports[1].ID,
+		Status: dashapi.BugStatusDup,
+		DupOf:  reports[0].ID,
+	}
+	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+	c.expectEQ(reply.OK, true)
+
+	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
+	reports2 := reportAllBugs(c, 1)
+	c.expectEQ(reports2[0].Title, crash2.Title+" (2)")
 }
 
 // Test that marking dups across reporting levels is not permitted.
@@ -342,40 +389,21 @@ func TestReportingDupCrossReporting(t *testing.T) {
 	crash2 := testCrash(build, 2)
 	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
 
-	pr := &dashapi.PollRequest{
-		Type: "test",
-	}
-	resp := new(dashapi.PollResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll", pr, resp))
-	c.expectEQ(len(resp.Reports), 2)
+	reports := reportAllBugs(c, 2)
+	rep1 := reports[0]
+	rep2 := reports[1]
 
-	rep1 := resp.Reports[0]
+	// Upstream second bug.
 	cmd := &dashapi.BugUpdate{
-		ID:     rep1.ID,
-		Status: dashapi.BugStatusOpen,
+		ID:     rep2.ID,
+		Status: dashapi.BugStatusUpstream,
 	}
 	reply := new(dashapi.BugUpdateReply)
 	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
 	c.expectEQ(reply.OK, true)
 
-	rep2 := resp.Reports[1]
-	cmd = &dashapi.BugUpdate{
-		ID:     rep2.ID,
-		Status: dashapi.BugStatusOpen,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
-
-	// Upstream second bug.
-	cmd = &dashapi.BugUpdate{
-		ID:     rep2.ID,
-		Status: dashapi.BugStatusUpstream,
-	}
-	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-	c.expectEQ(reply.OK, true)
-	c.expectOK(c.API(client1, key1, "reporting_poll", pr, resp))
-	c.expectEQ(len(resp.Reports), 1)
-	rep3 := resp.Reports[0]
+	reports = reportAllBugs(c, 1)
+	rep3 := reports[0]
 
 	// Duping must fail all ways.
 	cmds := []*dashapi.BugUpdate{

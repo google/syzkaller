@@ -41,9 +41,10 @@ func apiReportingUpdate(c context.Context, ns string, r *http.Request) (interfac
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	reply, ok := incomingCommand(c, req)
+	ok, reason, err := incomingCommand(c, req)
 	return &dashapi.BugUpdateReply{
-		OK:   ok,
-		Text: reply,
+		OK:    ok,
+		Error: err != nil,
+		Text:  reason,
 	}, nil
 }

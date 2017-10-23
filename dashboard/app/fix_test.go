@@ -34,6 +34,7 @@ func reportAllBugs(c *Ctx, expect int) []*dashapi.BugReport {
 		}
 		reply := new(dashapi.BugUpdateReply)
 		c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+		c.expectEQ(reply.Error, false)
 		c.expectEQ(reply.OK, true)
 	}
 	return resp.Reports
