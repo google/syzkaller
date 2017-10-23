@@ -170,8 +170,12 @@ type BugUpdate struct {
 }
 
 type BugUpdateReply struct {
-	OK   bool
-	Text string
+	// Bug update can fail for 2 reason:
+	//  - update does not pass logical validataion, in this case OK=false
+	//  - internal/datastore error, in this case Error=true
+	OK    bool
+	Error bool
+	Text  string
 }
 
 type PollRequest struct {

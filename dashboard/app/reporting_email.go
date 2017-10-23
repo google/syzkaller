@@ -153,7 +153,8 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 		Status:     dashapi.BugStatusOpen,
 		ReproLevel: repro,
 	}
-	incomingCommand(c, cmd)
+	ok, reason, err := incomingCommand(c, cmd)
+	_, _, _ = ok, reason, err
 	return nil
 }
 
@@ -204,7 +205,8 @@ func incomingMail(c context.Context, r *http.Request) error {
 	default:
 		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.Command), nil)
 	}
-	reply, _ := incomingCommand(c, cmd)
+	ok, reply, err := incomingCommand(c, cmd)
+	_, _ = ok, err
 	if !sendReply {
 		return nil
 	}
