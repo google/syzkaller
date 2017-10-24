@@ -25,3 +25,14 @@ machine, so the reproducer worked for it somehow.
 
 If the reproducer exits quickly, try to run it several times, or in a loop.
 There can be some races involved.
+
+## No reproducer at all?
+
+Reproducers are best-effort. `syzbot` always tries to create reproducers, and
+once it has one it adds it to the bug. If there is no reproducer referenced in a
+bug, a reproducer does not exist. There are multiple reasons why `syzbot` can
+fail to create a reproducer: some crashes are caused by subtle races and are
+very hard to reproduce in general; some crashes are caused by global accumulated
+state in kernel (e.g. lockdep reports); some crashes are caused by
+non-reproducible coincidences (e.g. an integer `0x12345` happened to reference an
+existing IPC object) and there is long tail of other reasons.
