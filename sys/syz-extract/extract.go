@@ -55,6 +55,7 @@ var oses = map[string]OS{
 	"akaros":  new(akaros),
 	"linux":   new(linux),
 	"freebsd": new(freebsd),
+	"netbsd":  new(netbsd),
 	"android": new(linux),
 	"fuchsia": new(fuchsia),
 	"windows": new(windows),
