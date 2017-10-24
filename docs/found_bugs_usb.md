@@ -2,6 +2,7 @@
 
 ## USB drivers
 
+* [usb/net/asix: kernel hang in asix_phy_reset](https://groups.google.com/forum/#!topic/syzkaller/3yQVZuxIO-w)
 * [usb/media/dtt200u: use-after-free in __dvb_frontend_free](https://groups.google.com/forum/#!topic/syzkaller/0HJQqTm0G_g) [[fix](https://groups.google.com/d/msg/syzkaller/0HJQqTm0G_g/czfDT9gyBAAJ)]
 * [usb/media/mxl111sf: trying to register non-static key in mxl111sf_ctrl_msg](https://groups.google.com/forum/#!topic/syzkaller/Xlvm_cnulFA)
 * [usb/media/au0828: use-after-free in au0828_rc_unregister](https://groups.google.com/forum/#!topic/syzkaller/3yL32uggAT0)
