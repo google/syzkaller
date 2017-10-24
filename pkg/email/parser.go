@@ -150,6 +150,21 @@ func RemoveAddrContext(email string) (string, string, error) {
 	return addr.String(), context, nil
 }
 
+func CanonicalEmail(email string) string {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
+		return email
+	}
+	at := strings.IndexByte(addr.Address, '@')
+	if at == -1 {
+		return email
+	}
+	if plus := strings.IndexByte(addr.Address[:at], '+'); plus != -1 {
+		addr.Address = addr.Address[:plus] + addr.Address[at:]
+	}
+	return strings.ToLower(addr.Address)
+}
+
 // extractCommand extracts command to syzbot from email body.
 // Commands are of the following form:
 // ^#syz cmd args...

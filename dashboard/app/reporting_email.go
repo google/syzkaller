@@ -24,9 +24,20 @@ import (
 func init() {
 	http.HandleFunc("/email_poll", handleEmailPoll)
 	http.HandleFunc("/_ah/mail/", handleIncomingMail)
+
+	mailingLists = make(map[string]bool)
+	for _, cfg := range config.Namespaces {
+		for _, reporting := range cfg.Reporting {
+			if cfg, ok := reporting.Config.(*EmailConfig); ok {
+				mailingLists[email.CanonicalEmail(cfg.Email)] = true
+			}
+		}
+	}
 }
 
 const emailType = "email"
+
+var mailingLists map[string]bool
 
 type EmailConfig struct {
 	Email           string
@@ -80,9 +91,6 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 	}
 	to := []string{cfg.Email}
 	if cfg.MailMaintainers {
-		if !appengine.IsDevAppServer() {
-			panic("are you nuts?")
-		}
 		to = append(to, rep.Maintainers...)
 	}
 	to = email.MergeEmailLists(to, rep.CC)
@@ -144,6 +152,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 		ReproSyz:     len(rep.ReproSyz) != 0,
 		ReproC:       len(rep.ReproC) != 0,
 	}
+	log.Infof(c, "sending email %q to %q", rep.Title, to)
 	err = sendMailTemplate(c, rep.Title, from, to, rep.ExtID, attachments, "mail_bug.txt", data)
 	if err != nil {
 		return err
@@ -174,9 +183,13 @@ func incomingMail(c context.Context, r *http.Request) error {
 	}
 	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q",
 		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link)
-	// Don't send replies yet.
-	// It is not tested and it is unclear how verbose we want to be.
-	sendReply := false
+	// A mailing list can send us a duplicate email, to not process/reply to such duplicate emails,
+	// we ignore emails coming from our mailing lists. We could ignore only the mailing list
+	// associated with the bug, but we don't know the bug reporting yet (we only have bug ID).
+	if msg.Command != "" && mailingLists[email.CanonicalEmail(msg.From)] {
+		log.Infof(c, "duplicate email from mailing list, ignoring")
+		return nil
+	}
 	cmd := &dashapi.BugUpdate{
 		ID:    msg.BugID,
 		ExtID: msg.MessageID,
@@ -206,11 +219,13 @@ func incomingMail(c context.Context, r *http.Request) error {
 		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.Command), nil)
 	}
 	ok, reply, err := incomingCommand(c, cmd)
-	_, _ = ok, err
-	if !sendReply {
-		return nil
+	if err != nil {
+		return nil // the error was already logged
 	}
-	return replyTo(c, msg, reply, nil)
+	if !ok {
+		return replyTo(c, msg, reply, nil)
+	}
+	return nil
 }
 
 var mailTemplates = template.Must(template.New("").ParseGlob("mail_*.txt"))
@@ -243,6 +258,8 @@ func replyTo(c context.Context, msg *email.Email, reply string, attachment *aema
 	if err != nil {
 		return err
 	}
+	log.Infof(c, "sending reply: to=%q cc=%q subject=%q reply=%q",
+		msg.From, msg.Cc, msg.Subject, reply)
 	replyMsg := &aemail.Message{
 		Sender:      from,
 		To:          []string{msg.From},
