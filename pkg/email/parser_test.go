@@ -76,6 +76,19 @@ func TestAddRemoveAddrContext(t *testing.T) {
 	}
 }
 
+func TestCanonicalEmail(t *testing.T) {
+	canonical := "foo@bar.com"
+	emails := []string{
+		"\"Foo Bar\" <foo+123+456@Bar.com>",
+		"<Foo@bar.com>",
+	}
+	for _, email := range emails {
+		if got := CanonicalEmail(email); got != canonical {
+			t.Errorf("got %q, want %q", got, canonical)
+		}
+	}
+}
+
 func TestParse(t *testing.T) {
 	for i, test := range parseTests {
 		body := func(t *testing.T, test ParseTest) {

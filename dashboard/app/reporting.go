@@ -153,7 +153,7 @@ func currentReporting(c context.Context, bug *Bug) (*Reporting, *BugReporting, i
 			continue
 		}
 		if reporting.Status == ReportingSuspended {
-			return nil, nil, 0, fmt.Sprintf("%v: reporting suspended"), nil
+			return nil, nil, 0, fmt.Sprintf("%v: reporting suspended", bugReporting.Name), nil
 		}
 		return reporting, bugReporting, i, "", nil
 	}
@@ -321,7 +321,13 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 		ok, reply, err = incomingCommandTx(c, now, cmd, bugKey, dupHash)
 		return err
 	}
-	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true})
+	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{
+		XG: true,
+		// Default is 3 which fails sometimes.
+		// We don't want incoming bug updates to fail,
+		// because for e.g. email we won't have an external retry.
+		Attempts: 30,
+	})
 	if err != nil {
 		return false, internalError, err
 	}
