@@ -3,6 +3,38 @@
 `syzbot` system continuously fuzzes main Linux kernel branches and automatically
 reports all found bugs. Direct all questions to syzkaller@googlegroups.com.
 
+## Bug status tracking
+
+`syzbot` needs to know when a bug is fixed in order to (1) verify that it is
+in fact fixed and (2) be able to report other similarly-looking crashes
+(while a bug is considered open all similarly-looking crashes are merged into
+the existing bug). To understand when a bug is fixed `syzbot` needs to know
+what commit fixes the bug; once `syzbot` knows the commit it will track when
+the commit reaches all kernel builds on all tracked branches. Only when the
+commit reaches all builds, the bug is considered closed (new similarly-looking
+crashes create a new bug).
+
+## Communication with syzbot
+
+You can communicate with `syzbot` by replying to its emails.
+The commands are:
+
+- to attach a fixing commit to the bug:
+```
+#syz fix: exact-commit-title
+````
+- to mark the bug as a duplicate of another `syzbot` bug:
+```
+#syz dup: exact-subject-of-another-report
+```
+- to mark the bug as a one-off invalid report (e.g. induced by a previous memory corruption):
+```
+#syz invalid
+```
+Note: if the crash happens again, it will cause creation of a new bug report.
+
+Note: all commands must start from beginning of the line.
+
 ## syzkaller reproducers
 
 `syzbot` aims at providing stand-alone C reproducers for all reported bugs.
@@ -36,3 +68,7 @@ very hard to reproduce in general; some crashes are caused by global accumulated
 state in kernel (e.g. lockdep reports); some crashes are caused by
 non-reproducible coincidences (e.g. an integer `0x12345` happened to reference an
 existing IPC object) and there is long tail of other reasons.
+
+## Is syzbot code available?
+
+Yes, it is [here](https://github.com/google/syzkaller/tree/master/dashboard/app).
