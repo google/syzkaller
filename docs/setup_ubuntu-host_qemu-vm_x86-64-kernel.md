@@ -12,7 +12,7 @@ svn ls -v ^/tags | grep gcc_7_1_0_release
 svn up -r 247494
 ```
 
-Unfortunately there's a typo in `gcc_7_1_0_release`. Apply [this fix](https://patchwork.ozlabs.org/patch/757421/):
+Unfortunately there's a typo in the source of `gcc_7_1_0_release`. Apply [this fix](https://patchwork.ozlabs.org/patch/757421/):
 ``` c
 diff --git a/gcc/tree.h b/gcc/tree.h
 index 3bca90a..fdaa7af 100644
