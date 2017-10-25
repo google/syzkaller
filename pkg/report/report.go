@@ -43,6 +43,7 @@ func NewReporter(os, kernelSrc, kernelObj string, symbols map[string][]symbolize
 		"akaros":  ctorAkaros,
 		"linux":   ctorLinux,
 		"freebsd": ctorFreebsd,
+		"netbsd":  ctorNetbsd,
 		"fuchsia": ctorFuchsia,
 		"windows": ctorWindows,
 	}
