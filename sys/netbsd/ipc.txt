@@ -20,9 +20,6 @@ msgget(key proc[2039379027, 4], flags flags[msgget_flags]) ipc_msq
 msgget$private(key const[IPC_PRIVATE], flags flags[msgget_flags]) ipc_msq
 msgsnd(msqid ipc_msq, msgp ptr[in, msgbuf], sz len[msgp], flags flags[msgsnd_flags])
 msgrcv(msqid ipc_msq, msgp ptr[out, msgbuf], sz len[msgp], typ flags[msgbuf_type], flags flags[msgrcv_flags])
-msgctl$IPC_STAT(msqid ipc_msq, cmd const[IPC_STAT], buf buffer[out])
-msgctl$IPC_SET(msqid ipc_msq, cmd const[IPC_SET], buf ptr[in, msqid_ds])
-msgctl$IPC_RMID(msqid ipc_msq, cmd const[IPC_RMID])
 
 resource ipc_sem[ipc]
 semget(key proc[2039359027, 4], nsems flags[sem_sem_id], flags flags[semget_flags]) ipc_sem
@@ -46,11 +43,6 @@ resource shmaddr[intptr]: 0
 shmget(key proc[2039339027, 4], size len[unused], flags flags[shmget_flags], unused vma) ipc_shm
 shmget$private(key const[IPC_PRIVATE], size len[unused], flags flags[shmget_flags], unused vma) ipc_shm
 shmat(shmid ipc_shm, addr vma, flags flags[shmat_flags]) shmaddr
-shmctl$IPC_STAT(shmid ipc_shm, cmd const[IPC_STAT], buf buffer[out])
-shmctl$IPC_SET(shmid ipc_shm, cmd const[IPC_SET], buf ptr[in, shmid_ds])
-shmctl$IPC_RMID(shmid ipc_shm, cmd const[IPC_RMID])
-shmctl$SHM_LOCK(shmid ipc_shm, cmd const[SHM_LOCK])
-shmctl$SHM_UNLOCK(shmid ipc_shm, cmd const[SHM_UNLOCK])
 shmdt(addr shmaddr)
 
 msgget_flags = IPC_CREAT, IPC_EXCL, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
@@ -65,10 +57,6 @@ shmat_flags = SHM_RND, SHM_RDONLY
 
 ipc_perm {
 	key	int32
-	uid	uid
-	gid	gid
-	cuid	uid
-	cgid	gid
 	mode	flags[open_mode, int32]
 	seq	int16
 	pad0	const[0, int16]

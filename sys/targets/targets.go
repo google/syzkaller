@@ -89,6 +89,13 @@ var List = map[string]map[string]*Target{
 			CFlags:  []string{"-m64"},
 		},
 	},
+	"netbsd": map[string]*Target{
+		"amd64": {
+			PtrSize: 8,
+			CArch:   []string{"__x86_64__"},
+			CFlags:  []string{"-m64"},
+		},
+	},
 	"fuchsia": map[string]*Target{
 		"amd64": {
 			PtrSize: 8,
@@ -122,6 +129,12 @@ var oses = map[string]os{
 		ExecutorUsesForkServer: true,
 	},
 	"freebsd": {
+		SyscallNumbers:         true,
+		SyscallPrefix:          "SYS_",
+		ExecutorUsesShmem:      true,
+		ExecutorUsesForkServer: true,
+	},
+	"netbsd": {
 		SyscallNumbers:         true,
 		SyscallPrefix:          "SYS_",
 		ExecutorUsesShmem:      true,

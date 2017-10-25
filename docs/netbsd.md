@@ -21,6 +21,9 @@ To prepare the image, use `anita`. (You need the python module `pexpect` install
 git clone https://github.com/utkarsh009/anita
 python anita/anita --workdir anitatemp install http://nycdn.netbsd.org/pub/NetBSD-daily/netbsd-8/201710221410Z/amd64/
 ```
+NOTE: You can choose your own release tree from here: http://ftp.netbsd.org/pub/NetBSD/
+URL for a daily build might not exist in future and new release trees keep coming out.
+
 Then spin up an instance from the image generated inside `./anitatemp` directory
 ```
 qemu-system-x86_64 -m 1024 -drive file=anitatemp/wd0.img,format=raw,media=disk -netdev user,id=mynet0,host=10.0.2.10,hostfwd=tcp:127.0.0.1:10022-:22 -device e1000,netdev=mynet0 -nographic
@@ -43,7 +46,7 @@ ListenAddress 10.0.2.15
 Then add your pubkey to `/root/.ssh/authorized_keys` and `reboot` the VM.
 When you see the login prompt, open up another terminal on host and issue the following command
 ```
-ssh -i netbsd -p 10022 root@127.0.0.1
+ssh -i netbsdkey -p 10022 root@127.0.0.1
 ```
 
 If all of the above worked, `poweroff` the VM and create `netbsd.cfg` config file with the following contents (alter paths as necessary):
