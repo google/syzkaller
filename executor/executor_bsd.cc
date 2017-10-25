@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 	for (;;) {
 		receive_execute(false);
 		char cwdbuf[128] = "/syz-tmpXXXXXX";
-		if (mkdtemp(cwdbuf))
+		if (!mkdtemp(cwdbuf))
 			fail("mkdtemp failed");
 		int pid = fork();
 		if (pid < 0)
