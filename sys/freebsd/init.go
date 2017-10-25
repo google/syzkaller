@@ -9,17 +9,17 @@ import (
 
 func initTarget(target *prog.Target) {
 	arch := &arch{
-		mmapSyscall:   target.SyscallMap["mmap"],
-		PROT_READ:     target.ConstMap["PROT_READ"],
-		PROT_WRITE:    target.ConstMap["PROT_WRITE"],
-		MAP_ANONYMOUS: target.ConstMap["MAP_ANONYMOUS"],
-		MAP_PRIVATE:   target.ConstMap["MAP_PRIVATE"],
-		MAP_FIXED:     target.ConstMap["MAP_FIXED"],
-		S_IFREG:       target.ConstMap["S_IFREG"],
-		S_IFCHR:       target.ConstMap["S_IFCHR"],
-		S_IFBLK:       target.ConstMap["S_IFBLK"],
-		S_IFIFO:       target.ConstMap["S_IFIFO"],
-		S_IFSOCK:      target.ConstMap["S_IFSOCK"],
+		mmapSyscall: target.SyscallMap["mmap"],
+		PROT_READ:   target.ConstMap["PROT_READ"],
+		PROT_WRITE:  target.ConstMap["PROT_WRITE"],
+		MAP_ANON:    target.ConstMap["MAP_ANON"],
+		MAP_PRIVATE: target.ConstMap["MAP_PRIVATE"],
+		MAP_FIXED:   target.ConstMap["MAP_FIXED"],
+		S_IFREG:     target.ConstMap["S_IFREG"],
+		S_IFCHR:     target.ConstMap["S_IFCHR"],
+		S_IFBLK:     target.ConstMap["S_IFBLK"],
+		S_IFIFO:     target.ConstMap["S_IFIFO"],
+		S_IFSOCK:    target.ConstMap["S_IFSOCK"],
 	}
 
 	target.PageSize = pageSize
@@ -40,16 +40,16 @@ type arch struct {
 	mmapSyscall         *prog.Syscall
 	clockGettimeSyscall *prog.Syscall
 
-	PROT_READ     uint64
-	PROT_WRITE    uint64
-	MAP_ANONYMOUS uint64
-	MAP_PRIVATE   uint64
-	MAP_FIXED     uint64
-	S_IFREG       uint64
-	S_IFCHR       uint64
-	S_IFBLK       uint64
-	S_IFIFO       uint64
-	S_IFSOCK      uint64
+	PROT_READ   uint64
+	PROT_WRITE  uint64
+	MAP_ANON    uint64
+	MAP_PRIVATE uint64
+	MAP_FIXED   uint64
+	S_IFREG     uint64
+	S_IFCHR     uint64
+	S_IFBLK     uint64
+	S_IFIFO     uint64
+	S_IFSOCK    uint64
 }
 
 // createMmapCall creates a "normal" mmap call that maps [start, start+npages) page range.
@@ -61,7 +61,7 @@ func (arch *arch) makeMmap(start, npages uint64) *prog.Call {
 			prog.MakePointerArg(meta.Args[0], start, 0, npages, nil),
 			prog.MakeConstArg(meta.Args[1], npages*pageSize),
 			prog.MakeConstArg(meta.Args[2], arch.PROT_READ|arch.PROT_WRITE),
-			prog.MakeConstArg(meta.Args[3], arch.MAP_ANONYMOUS|arch.MAP_PRIVATE|arch.MAP_FIXED),
+			prog.MakeConstArg(meta.Args[3], arch.MAP_ANON|arch.MAP_PRIVATE|arch.MAP_FIXED),
 			prog.MakeResultArg(meta.Args[4], nil, invalidFD),
 			prog.MakeConstArg(meta.Args[5], 0),
 		},
@@ -79,7 +79,7 @@ func (arch *arch) analyzeMmap(c *prog.Call) (start, npages uint64, mapped bool) 
 		}
 		flags := c.Args[3].(*prog.ConstArg).Val
 		fd := c.Args[4].(*prog.ResultArg).Val
-		if flags&arch.MAP_ANONYMOUS == 0 && fd == invalidFD {
+		if flags&arch.MAP_ANON == 0 && fd == invalidFD {
 			return
 		}
 		start = c.Args[0].(*prog.PointerArg).PageIndex
