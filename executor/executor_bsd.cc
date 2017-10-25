@@ -4,13 +4,21 @@
 // +build
 
 #define SYZ_EXECUTOR
-#include "common_freebsd.h"
+#include "common_bsd.h"
 
 #include "executor_posix.h"
 
 #include "executor.h"
 
+// This file is used by both freebsd and netbsd (as a link to executor_bsd.cc).
+#if defined(__FreeBSD__)
 #include "syscalls_freebsd.h"
+#elif defined(__NetBSD__)
+#include "syscalls_netbsd.h"
+#else
+// This is just so that "make executor TARGETOS=freebsd" works on linux.
+#include "syscalls_freebsd.h"
+#endif
 
 #include <signal.h>
 #include <sys/mman.h>
