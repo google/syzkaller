@@ -18,6 +18,7 @@
 #else
 // This is just so that "make executor TARGETOS=freebsd" works on linux.
 #include "syscalls_freebsd.h"
+#define __syscall syscall
 #endif
 
 #include <signal.h>
@@ -58,8 +59,11 @@ int main(int argc, char** argv)
 
 	// Some minimal sandboxing.
 	struct rlimit rlim;
+#ifndef __NetBSD__
+	// This causes frequent random aborts on netbsd. Reason unknown.
 	rlim.rlim_cur = rlim.rlim_max = 128 << 20;
 	setrlimit(RLIMIT_AS, &rlim);
+#endif
 	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
 	setrlimit(RLIMIT_MEMLOCK, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
@@ -129,7 +133,7 @@ long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, lon
 {
 	if (c->call)
 		return c->call(a0, a1, a2, a3, a4, a5, a6, a7, a8);
-	return syscall(c->sys_nr, a0, a1, a2, a3, a4, a5);
+	return __syscall(c->sys_nr, a0, a1, a2, a3, a4, a5, a6, a7, a8);
 }
 
 void cover_open()
