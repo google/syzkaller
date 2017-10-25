@@ -54,6 +54,7 @@ func (arch *arch) makeMmap(start, npages uint64) *prog.Call {
 			prog.MakeConstArg(meta.Args[3], arch.MAP_ANONYMOUS|arch.MAP_PRIVATE|arch.MAP_FIXED),
 			prog.MakeResultArg(meta.Args[4], nil, invalidFD),
 			prog.MakeConstArg(meta.Args[5], 0),
+			prog.MakeConstArg(meta.Args[6], 0),
 		},
 		Ret: prog.MakeReturnArg(meta.Ret),
 	}

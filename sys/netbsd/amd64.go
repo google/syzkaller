@@ -96,6 +96,7 @@ var syscalls_amd64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{4, 1, 2, 0}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{4096, 0, 16, 512, 128, 1024, 2048, 2, 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
 	}, Ret: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 8, NR: 74, Name: "mprotect", CallName: "mprotect", Args: []Type{
@@ -387,4 +388,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "S_IXUSR", Value: 64},
 }
 
-const revision_amd64 = "afbcea24bf5398f333788540f821f68b9e6fbe66"
+const revision_amd64 = "2720f43fa507fee4cdf71db3cc7418897f7b14fb"
