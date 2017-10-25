@@ -1,8 +1,8 @@
-# syzkaller - linux kernel fuzzer
+# syzkaller - kernel fuzzer
 
 [![Build Status](https://travis-ci.org/google/syzkaller.svg?branch=master)](https://travis-ci.org/google/syzkaller)
 
-`syzkaller` is an unsupervised coverage-guided Linux kernel fuzzer.
+`syzkaller` is an unsupervised coverage-guided kernel fuzzer. `Linux` kernel fuzzing has the most support, `akaros`, `freebsd`, `fuchsia`, `netbsd` and `windows` are supported to varying degrees.
 
 The project mailing list is [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller).
 You can subscribe to it with a google account or by sending an email to syzkaller+subscribe@googlegroups.com.
