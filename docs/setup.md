@@ -1,13 +1,13 @@
 # How to install syzkaller
 
-Generic setup instructions are outlined [here](setup_generic.md).
+Generic setup instructions for fuzzing Linux kernel are outlined [here](linux/setup.md).
 Instructions for a particular VM or kernel arch can be found on these pages:
 
-- [Setup: Ubuntu host, QEMU vm, x86-64 kernel](setup_ubuntu-host_qemu-vm_x86-64-kernel.md)
-- [Setup: Ubuntu host, Odroid C2 board, arm64 kernel](setup_ubuntu-host_odroid-c2-board_arm64-kernel.md)
-- [Setup: Linux host, QEMU vm, arm64 kernel](setup_linux-host_qemu-vm_arm64-kernel.md)
-- [Setup: Linux host, Android device, arm64 kernel](setup_linux-host_android-device_arm64-kernel.md)
-- [Setup: Linux isolated host](setup_linux-host_isolated.md)
+- [Setup: Ubuntu host, QEMU vm, x86-64 kernel](linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md)
+- [Setup: Ubuntu host, Odroid C2 board, arm64 kernel](linux/setup_ubuntu-host_odroid-c2-board_arm64-kernel.md)
+- [Setup: Linux host, QEMU vm, arm64 kernel](linux/setup_linux-host_qemu-vm_arm64-kernel.md)
+- [Setup: Linux host, Android device, arm64 kernel](linux/setup_linux-host_android-device_arm64-kernel.md)
+- [Setup: Linux isolated host](linux/setup_linux-host_isolated.md)
 
 After following these instructions you should be able to run `syz-manager`, see it executing programs and be able to access statistics exposed at `http://127.0.0.1:56741`:
 

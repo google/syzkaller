@@ -184,7 +184,7 @@ index 9576775a86f6..8bc4eb36fc1b 100644
  ifeq ($(call cc-option, $(CFLAGS_KASAN_MINIMAL) -Werror),)
 ```
 
-Configure the kernel (you might wan't to enable more configs as listed [here](linux_kernel_configs.md)):
+Configure the kernel (you might wan't to enable more configs as listed [here](kernel_configs.md)):
 ``` bash
 make defconfig
 # Edit .config to enable the following configs:
@@ -323,4 +323,4 @@ Now start syzkaller:
 ```
 
 If you get issues after `syz-manager` starts, consider running it with the `-debug` flag.
-Also see [this page](troubleshooting.md) for troubleshooting tips.
+Also see [this page](/docs/troubleshooting.md) for troubleshooting tips.
