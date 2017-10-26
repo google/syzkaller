@@ -45,7 +45,7 @@ and up to 100 `logN` and `reportN` files, one pair per test machine crash:
      ...
 ```
 
-Descriptions are extracted using a set of [regular expressions](/report/report.go#L33).
+Descriptions are extracted using a set of [regular expressions](/pkg/report/report.go#L33).
 This set may need to be extended if you are using a different kernel architecture, or are just seeing a previously unseen kernel error messages.
 
 `logN` files contain raw `syzkaller` logs and include kernel console output as well as programs executed before the crash.

@@ -45,7 +45,7 @@
 * [usb/net/hso: warning in hso_free_net_device](https://groups.google.com/forum/#!topic/syzkaller/J4Ua_T43Tjw)
 * [usb/net/hso: global-out-of-bounds in hso_probe](https://groups.google.com/forum/#!topic/syzkaller/TDPcSXI2nBA)
 * [usb/media/smsusb: use-after-free in worker_thread](https://groups.google.com/forum/#!topic/syzkaller/RS7QUTKo23s)
-* [usb/storage/uas: slab-out-of-bounds in uas_probe](https://groups.google.com/forum/#!topic/syzkaller/pCswO77gRlM) [[fix](786de92b3cb26012d3d0f00ee37adf14527f35c4)]
+* [usb/storage/uas: slab-out-of-bounds in uas_probe](https://groups.google.com/forum/#!topic/syzkaller/pCswO77gRlM) [[fix](https://github.com/torvalds/linux/commit/786de92b3cb26012d3d0f00ee37adf14527f35c4)]
 * [usb/sound/usx2y: warning in usb_stream_new/__alloc_pages_slowpath](https://groups.google.com/forum/#!topic/syzkaller/vGwGJW_H-0I) [[fix](https://github.com/torvalds/linux/commit/7682e399485fe19622b6fd82510b1f4551e48a25)]
 * [usb/media/pvrusb2: warning in pvr2_send_request_ex/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/M2GeMYS0f6E)
 * [usb/media/smsusb: null-ptr-deref in smsusb_init_device](https://groups.google.com/forum/#!topic/syzkaller/yvhFawNoqxE)
