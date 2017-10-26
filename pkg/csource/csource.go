@@ -73,6 +73,10 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		commonHeader = commonHeaderLinux
 	case "akaros":
 		commonHeader = commonHeaderAkaros
+	case "freebsd":
+		commonHeader = commonHeaderFreebsd
+	case "netbsd":
+		commonHeader = commonHeaderNetbsd
 	default:
 		return nil, fmt.Errorf("unsupported OS: %v", p.Target.OS)
 	}
