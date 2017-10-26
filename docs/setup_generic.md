@@ -48,7 +48,7 @@ These are the generic requirements for a syzkaller VM:
    the debugfs filesystem at `/sys/kernel/debug`.
 
 To use QEMU syzkaller VMs you have to install QEMU on your host system, see [QEMU docs](http://wiki.qemu.org/Manual) for details.
-The [create-image.sh](tools/create-image.sh) script can be used to create a suitable Linux image.
+The [create-image.sh](/tools/create-image.sh) script can be used to create a suitable Linux image.
 Detailed steps for setting up syzkaller with QEMU on a Linux host are avaialble for [x86-64](setup_ubuntu-host_qemu-vm_x86-64-kernel.md) and [arm64](setup_linux-host_qemu-vm_arm64-kernel.md) kernels.
 
 For some details on fuzzing the kernel on an Android device check out [this page](setup_linux-host_android-device_arm64-kernel.md) and the explicit instructions for an Odroid C2 board are available [here](setup_ubuntu-host_odroid-c2-board_arm64-kernel.md).
