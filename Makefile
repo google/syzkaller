@@ -132,7 +132,7 @@ endif
 	execprog mutate prog2c stress repro upgrade db \
 	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
 	extract generate \
-	format tidy test arch presubmit clean
+	format tidy test check_links arch presubmit clean
 
 all: host target
 
@@ -247,6 +247,7 @@ arch:
 	env TARGETOS=netbsd TARGETARCH=amd64 $(MAKE) target
 
 presubmit:
+	$(MAKE) check_links
 	$(MAKE) generate
 	$(MAKE) all
 	$(MAKE) arch
@@ -259,3 +260,6 @@ clean:
 # For a tupical Ubuntu/Debian distribution, requires sudo.
 install_prerequisites:
 	apt-get install libc6-dev-i386 lib32stdc++-4.8-dev linux-libc-dev g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf
+
+check_links:
+	python ./tools/check_links.py $$(pwd) $$(ls ./*.md; find ./docs/ -name '*.md')

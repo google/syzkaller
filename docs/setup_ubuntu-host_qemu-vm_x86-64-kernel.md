@@ -78,7 +78,7 @@ CONFIG_KASAN=y
 CONFIG_KASAN_INLINE=y
 ```
 
-You might also want to enable some other kernel configs as described [here](linux-kernel-configs.md).
+You might also want to enable some other kernel configs as described [here](linux_kernel_configs.md).
 
 Since enabling these options results in more sub options being available, we need to regenerate config. Run this and press enter each time when prompted for some config value to leave it as default:
 ``` bash
