@@ -58,7 +58,9 @@ machine, so the reproducer worked for it somehow.
 If the reproducer exits quickly, try to run it several times, or in a loop.
 There can be some races involved.
 
-Exact compiler used by `syzbot` can be found [here](https://storage.googleapis.com/syzkaller/gcc-7.tar.gz).
+Exact compiler used by `syzbot` can be found [here](https://storage.googleapis.com/syzkaller/gcc-7.tar.gz) (245MB).
+
+A qemu-suitable Debian/wheezy image can be found [here](https://storage.googleapis.com/syzkaller/wheezy.img) (1GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/wheezy.img.key).
 
 ## No reproducer at all?
 
