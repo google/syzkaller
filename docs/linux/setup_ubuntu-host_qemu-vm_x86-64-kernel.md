@@ -78,7 +78,7 @@ CONFIG_KASAN=y
 CONFIG_KASAN_INLINE=y
 ```
 
-You might also want to enable some other kernel configs as described [here](linux_kernel_configs.md).
+You might also want to enable some other kernel configs as described [here](kernel_configs.md).
 
 Since enabling these options results in more sub options being available, we need to regenerate config. Run this and press enter each time when prompted for some config value to leave it as default:
 ``` bash
@@ -239,4 +239,4 @@ Run syzkaller manager:
 Now syzkaller should be running, you can check manager status with your web browser at `127.0.0.1:56741`.
 
 If you get issues after `syz-manager` starts, consider running it with the `-debug` flag.
-Also see [this page](troubleshooting.md) for troubleshooting tips.
+Also see [this page](/docs/troubleshooting.md) for troubleshooting tips.

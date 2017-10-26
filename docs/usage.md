@@ -29,7 +29,7 @@ In case syzkaller only generated a syzkaller program, there's [a way to execute 
 
 ## Reporting bugs
 
-Check [here](linux_kernel_reporting_bugs.md) for the instructions on how to report Linux kernel bugs.
+Check [here](linux/reporting_kernel_bugs.md) for the instructions on how to report Linux kernel bugs.
 
 ## Other
 

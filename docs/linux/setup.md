@@ -11,7 +11,7 @@ The following components are needed to use syzkaller:
 
 Generic steps to set up syzkaller are described below.
 
-If you encounter any troubles, check the [troubleshooting](troubleshooting.md) page.
+If you encounter any troubles, check the [troubleshooting](/docs/troubleshooting.md) page.
 
 ### C Compiler
 
@@ -25,7 +25,7 @@ KCOV was committed upstream in Linux kernel version 4.6 and can be enabled by co
 For older kernels you need to backport commit [kernel: add kcov code coverage](https://github.com/torvalds/linux/commit/5c9a8750a6409c63a0f01d51a9024861022f6593).
 
 To enable more syzkaller features and improve bug detection abilities, it's recommended to use additional config options.
-See [this page](linux_kernel_configs.md) for details.
+See [this page](kernel_configs.md) for details.
 
 ### VM Setup
 
@@ -67,4 +67,4 @@ Then, run `go get -u -d github.com/google/syzkaller/...` to checkout syzkaller s
 Then, `cd $GOPATH/src/github.com/google/syzkaller` and
 build with `make`, which generates compiled binaries in the `bin/` folder.
 Note: if you want to do cross-OS/arch testing, you need to specify `TARGETOS`,
-`TARGETVMARCH` and `TARGETARCH` arguments to `make`. See the [Makefile](../Makefile) for details.
+`TARGETVMARCH` and `TARGETARCH` arguments to `make`. See the [Makefile](/Makefile) for details.

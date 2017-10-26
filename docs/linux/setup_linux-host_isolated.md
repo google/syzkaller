@@ -38,7 +38,7 @@ Code coverage works better when KASLR Is disabled too:
 
 In most scenarios, you should use an ssh key to connect to the target machine.
 The isolated configuration supports ssh keys as described in the generic
-[setup](setup_generic.md).
+[setup](setup.md).
 
 If you cannot use an ssh key, you should configure your manager machine to reuse
 existing ssh connections.
@@ -110,4 +110,4 @@ Run syzkaller manager:
 ```
 
 If you get issues after `syz-manager` starts, consider running it with the `-debug` flag.
-Also see [this page](troubleshooting.md) for troubleshooting tips.
+Also see [this page](/docs/troubleshooting.md) for troubleshooting tips.

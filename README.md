@@ -15,7 +15,7 @@ You can subscribe to it with a google account or by sending an email to syzkalle
 - [How to use syzkaller](docs/usage.md)
 - [How syzkaller works](docs/internals.md)
 - [How to contribute to syzkaller](docs/contributing.md)
-- [How to report Linux kernel bugs](docs/linux_kernel_reporting_bugs.md)
+- [How to report Linux kernel bugs](docs/linux/reporting_kernel_bugs.md)
 
 ## External Articles
 
