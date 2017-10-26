@@ -11,6 +11,10 @@ You can subscribe to it with a google account or by sending an email to syzkalle
 
 ## Documentation
 
+Initially syzkaller was developed with Linux kernel fuzzing in mind, but now it's being extended to support other OS kernels as well.
+Most of the documentation at this moment is related to the Linux kernel.
+For other OS kernels check: [Akaros](docs/akaros.md), [FreeBSD](docs/freebsd.md), [Fuchsia](docs/fuchsia.md), [NetBSD](docs/netbsd.md), [Windows](docs/windows.md).
+
 - [How to install syzkaller](docs/setup.md)
 - [How to use syzkaller](docs/usage.md)
 - [How syzkaller works](docs/internals.md)
