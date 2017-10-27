@@ -1,4 +1,13 @@
-# Generic setup instructions
+# How to set up syzkaller
+
+Below are the generic instructions for how to set up syzkaller to fuzz the Linux kernel.
+Instructions for a particular VM type or kernel arch can be found on these pages:
+
+- [Setup: Ubuntu host, QEMU vm, x86-64 kernel](setup_ubuntu-host_qemu-vm_x86-64-kernel.md)
+- [Setup: Ubuntu host, Odroid C2 board, arm64 kernel](setup_ubuntu-host_odroid-c2-board_arm64-kernel.md)
+- [Setup: Linux host, QEMU vm, arm64 kernel](setup_linux-host_qemu-vm_arm64-kernel.md)
+- [Setup: Linux host, Android device, arm64 kernel](setup_linux-host_android-device_arm64-kernel.md)
+- [Setup: Linux isolated host](setup_linux-host_isolated.md)
 
 ## Install
 

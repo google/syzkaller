@@ -1,5 +1,8 @@
 # How syzkaller works
 
+Below is the generic descriptions of how syzkaller works.
+Check [this](linux/internals.md) for Linux kernel specific things.
+
 ## Overview
 
 The process structure for the syzkaller system is shown in the following diagram;

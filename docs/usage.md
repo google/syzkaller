@@ -11,9 +11,6 @@ The `syz-manager` process will wind up VMs and start fuzzing in them.
 The `-config` command line option gives the location of the configuration file, which is [described here](configuration.md).
 Found crashes, statistics and other information is exposed on the HTTP address specified in the manager config.
 
-At this point it's important to ensure that syzkaller is able to collect code coverage of the executed programs (unless you specified `"cover": false` in the config).
-The `cover` counter on the web page should be non zero.
-
 ## Crashes
 
 Once syzkaller detected a kernel crash in one of the VMs, it will automatically start the process of reproducing this crash (unless you specified `"reproduce": false` in the config).
