@@ -67,7 +67,7 @@ func (*freebsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]ui
 			info.Consts = append(info.Consts, compat)
 		}
 	}
-	res, undeclared, err := extract(info, "gcc", args, "#include <sys/syscall.h>")
+	res, undeclared, err := extract(info, "gcc", args, "#include <sys/syscall.h>", true)
 	for orig, compats := range compatNames {
 		for _, compat := range compats {
 			if undeclared[orig] && !undeclared[compat] {
