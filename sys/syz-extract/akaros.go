@@ -30,5 +30,5 @@ func (*akaros) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uin
 	for _, incdir := range info.Incdirs {
 		args = append(args, "-I"+filepath.Join(dir, incdir))
 	}
-	return extract(info, "gcc", args, "")
+	return extract(info, "gcc", args, "", true)
 }

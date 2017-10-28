@@ -17,12 +17,13 @@ import (
 	"github.com/google/syzkaller/pkg/compiler"
 )
 
-func extract(info *compiler.ConstInfo, cc string, args []string, addSource string) (map[string]uint64, map[string]bool, error) {
+func extract(info *compiler.ConstInfo, cc string, args []string, addSource string, declarePrintf bool) (map[string]uint64, map[string]bool, error) {
 	data := &CompileData{
-		AddSource: addSource,
-		Defines:   info.Defines,
-		Includes:  info.Includes,
-		Values:    info.Consts,
+		AddSource:     addSource,
+		Defines:       info.Defines,
+		Includes:      info.Includes,
+		Values:        info.Consts,
+		DeclarePrintf: declarePrintf,
 	}
 	undeclared := make(map[string]bool)
 	bin, out, err := compile(cc, args, data)
@@ -88,10 +89,11 @@ func extract(info *compiler.ConstInfo, cc string, args []string, addSource strin
 }
 
 type CompileData struct {
-	AddSource string
-	Defines   map[string]string
-	Includes  []string
-	Values    []string
+	AddSource     string
+	Defines       map[string]string
+	Includes      []string
+	Values        []string
+	DeclarePrintf bool
 }
 
 func compile(cc string, args []string, data *CompileData) (bin string, out []byte, err error) {
@@ -144,7 +146,9 @@ var srcTemplate = template.Must(template.New("").Parse(`
 
 {{.AddSource}}
 
+{{.DeclarePrintf}}
 int printf(const char *format, ...);
+{{end}}
 
 int main() {
 	int i;

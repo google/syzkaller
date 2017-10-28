@@ -103,5 +103,5 @@ unsigned long phys_base;
 unsigned long __phys_addr(unsigned long addr) { return 0; }
 #endif
 `
-	return extract(info, "gcc", args, addSource)
+	return extract(info, "gcc", args, addSource, true)
 }
