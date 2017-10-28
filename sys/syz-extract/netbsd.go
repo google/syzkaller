@@ -25,15 +25,29 @@ func (*netbsd) prepare(sourcedir string, build bool, arches []string) error {
 }
 
 func (*netbsd) prepareArch(arch *Arch) error {
-	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", "arch", "amd64", "include"),
-		filepath.Join(arch.buildDir, "machine")); err != nil {
-		return fmt.Errorf("failed to create link: %v", err)
+	links := [][2]string{
+		{"amd64", "machine"},
+		{"amd64", "amd64"},
+		{"x86", "x86"},
 	}
-	if err := os.Symlink(filepath.Join(arch.sourceDir, "sys", "arch", "x86", "include"),
-		filepath.Join(arch.buildDir, "x86")); err != nil {
+	for _, v := range links {
+		if err := machineLink(arch, v[0], v[1]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func machineLink(arch *Arch, machine string, dest string) error {
+	if err := os.Symlink(machineInclude(arch, machine),
+		filepath.Join(arch.buildDir, dest)); err != nil {
 		return fmt.Errorf("failed to create link: %v", err)
 	}
 	return nil
+}
+
+func machineInclude(arch *Arch, machine string) string {
+	return filepath.Join(arch.sourceDir, "sys", "arch", machine, "include")
 }
 
 func (*netbsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
