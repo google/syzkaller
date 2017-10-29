@@ -59,9 +59,11 @@ func (*netbsd) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uin
 		const SYS = "SYS_"
 		if strings.HasPrefix(val, SYS) {
 			for _, prefix := range []string{"_", "__", "___"} {
-				compat := SYS + prefix + val[len(SYS):] + "50"
-				compatNames[val] = append(compatNames[val], compat)
-				info.Consts = append(info.Consts, compat)
+				for _, suffix := range []string{"30", "50"} {
+					compat := SYS + prefix + val[len(SYS):] + suffix
+					compatNames[val] = append(compatNames[val], compat)
+					info.Consts = append(info.Consts, compat)
+				}
 			}
 		} else {
 			compat := "LINUX_" + val
