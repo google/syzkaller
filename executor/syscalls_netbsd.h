@@ -2,7 +2,7 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "2720f43fa507fee4cdf71db3cc7418897f7b14fb"
+#define SYZ_REVISION "f0879cb987cc388011c59303da115795c3f00f98"
 
 unsigned syscall_count = 43;
 call_t syscalls[] = {
@@ -30,16 +30,16 @@ call_t syscalls[] = {
     {"pwritev", 290},
     {"read", 3},
     {"readv", 120},
-    {"semctl$GETALL", 510},
-    {"semctl$GETNCNT", 510},
-    {"semctl$GETPID", 510},
-    {"semctl$GETVAL", 510},
-    {"semctl$GETZCNT", 510},
-    {"semctl$IPC_RMID", 510},
-    {"semctl$IPC_SET", 510},
-    {"semctl$IPC_STAT", 510},
-    {"semctl$SETALL", 510},
-    {"semctl$SETVAL", 510},
+    {"semctl$GETALL", 442},
+    {"semctl$GETNCNT", 442},
+    {"semctl$GETPID", 442},
+    {"semctl$GETVAL", 442},
+    {"semctl$GETZCNT", 442},
+    {"semctl$IPC_RMID", 442},
+    {"semctl$IPC_SET", 442},
+    {"semctl$IPC_STAT", 442},
+    {"semctl$SETALL", 442},
+    {"semctl$SETVAL", 442},
     {"semget", 221},
     {"semget$private", 221},
     {"semop", 222},
