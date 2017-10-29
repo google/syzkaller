@@ -2,9 +2,9 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "f0879cb987cc388011c59303da115795c3f00f98"
+#define SYZ_REVISION "604a77c538a0eb3ca09ec1ccdbcd056632216f56"
 
-unsigned syscall_count = 43;
+unsigned syscall_count = 51;
 call_t syscalls[] = {
     {"close", 6},
     {"dup", 41},
@@ -15,6 +15,9 @@ call_t syscalls[] = {
     {"mlockall", 242},
     {"mmap", 197},
     {"mprotect", 74},
+    {"msgctl$IPC_RMID", 444},
+    {"msgctl$IPC_SET", 444},
+    {"msgctl$IPC_STAT", 444},
     {"msgget", 225},
     {"msgget$private", 225},
     {"msgrcv", 227},
@@ -44,6 +47,11 @@ call_t syscalls[] = {
     {"semget$private", 221},
     {"semop", 222},
     {"shmat", 228},
+    {"shmctl$IPC_RMID", 443},
+    {"shmctl$IPC_SET", 443},
+    {"shmctl$IPC_STAT", 443},
+    {"shmctl$SHM_LOCK", 443},
+    {"shmctl$SHM_UNLOCK", 443},
     {"shmdt", 230},
     {"shmget", 231},
     {"shmget$private", 231},
