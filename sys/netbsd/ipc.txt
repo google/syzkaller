@@ -65,6 +65,10 @@ shmat_flags = SHM_RND, SHM_RDONLY
 
 ipc_perm {
 	key	int32
+	uid	uid
+	gid	gid
+	cuid	uid
+	cgid	gid
 	mode	flags[open_mode, int32]
 	seq	int16
 	pad0	const[0, int16]
@@ -76,6 +80,8 @@ msqid_ds {
 	perm	ipc_perm
 	qnum	intptr
 	qbytes	intptr
+	lspid	pid
+	lrpid	pid
 	stime	intptr
 	rtime	intptr
 	ctime	intptr
@@ -88,6 +94,8 @@ shmid_ds {
 	perm	ipc_perm
 	segsz	int32
 	nattch	int16
+	cpid	pid
+	lpid	pid
 	atime	intptr
 	dtime	intptr
 	ctime	intptr
