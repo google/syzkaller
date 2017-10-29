@@ -45,20 +45,20 @@ iovec_out {
 }
 
 stat {
-	dev	int16
-	ino	int32
-	mode	int16
-	nlink	int16
-	rdev	int16
-	size	int32
+	dev	int64
+	ino	int64
+	mode	int32
+	nlink	int32
+	rdev	int64
+	size	int64
 	blksize	int32
-	blocks	int32
-	atime	int32
-	ansec	int32
-	mtime	int32
-	mnsec	int32
-	ctime	int32
-	cnsec	int32
+	blocks	int64
+	atime	int64
+	ansec	int64
+	mtime	int64
+	mnsec	int64
+	ctime	int64
+	cnsec	int64
 	pad1	int32
 	pad2	int32
 }
