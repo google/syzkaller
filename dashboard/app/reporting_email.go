@@ -222,7 +222,7 @@ func incomingMail(c context.Context, r *http.Request) error {
 	if err != nil {
 		return nil // the error was already logged
 	}
-	if !ok {
+	if !ok && reply != "" {
 		return replyTo(c, msg, reply, nil)
 	}
 	return nil
