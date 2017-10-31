@@ -347,11 +347,16 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 			return false, internalError, err
 		}
 		if canon.Status != BugStatusOpen {
-			return false, "This bug is already closed (dup was closed).\n" +
-				"Don't change closed syzbot bugs.", nil
+			// We used to reject updates to closed bugs,
+			// but this is confusing and non-actionable for users.
+			// So now we fail the update, but give empty reason,
+			// which means "don't notify user".
+			log.Warningf(c, "Dup bug is already closed")
+			return false, "", nil
 		}
 	case BugStatusFixed, BugStatusInvalid:
-		return false, "This bug is already closed.", nil
+		log.Warningf(c, "This bug is already closed")
+		return false, "", nil
 	default:
 		return false, internalError, fmt.Errorf("unknown bug status %v", bug.Status)
 	}
@@ -360,7 +365,8 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		return false, internalError, fmt.Errorf("can't find bug reporting")
 	}
 	if !bugReporting.Closed.IsZero() {
-		return false, "This bug is already closed.", nil
+		log.Warningf(c, "This bug reporting is already closed")
+		return false, "", nil
 	}
 	state, err := loadReportingState(c)
 	if err != nil {
