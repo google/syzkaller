@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "7cadec171015d48d8de628bd66466c00f9b81a2a"
+#define SYZ_REVISION "929f038a7b49c952e855a46c496a952557fe602c"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1481;
+unsigned syscall_count = 1483;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -24,6 +24,8 @@ call_t syscalls[] = {
     {"accept4$unix", 364},
     {"acct", 51},
     {"add_key", 286},
+    {"add_key$keyring", 286},
+    {"add_key$user", 286},
     {"alarm", 27},
     {"arch_prctl", 384},
     {"bind", 361},
@@ -1501,7 +1503,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "6fb27ef7f4a7a7f3833d9e66ae29229350e30dcb"
+#define SYZ_REVISION "dd7ee4584fd05fd08e1841fcbe6e9586231ad331"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1511,7 +1513,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1542;
+unsigned syscall_count = 1544;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1534,6 +1536,8 @@ call_t syscalls[] = {
     {"accept4$unix", 288},
     {"acct", 163},
     {"add_key", 248},
+    {"add_key$keyring", 248},
+    {"add_key$user", 248},
     {"alarm", 37},
     {"arch_prctl", 158},
     {"bind", 49},
@@ -3061,7 +3065,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "a7583d2640d7965c5869cdcc037632e19e6b51c3"
+#define SYZ_REVISION "616fc2964fcd7a395b07c0f23a9b6adce8d6fc4f"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3071,7 +3075,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1495;
+unsigned syscall_count = 1497;
 call_t syscalls[] = {
     {"accept", 9437469},
     {"accept$alg", 9437469},
@@ -3094,6 +3098,8 @@ call_t syscalls[] = {
     {"accept4$unix", 9437550},
     {"acct", 9437235},
     {"add_key", 9437493},
+    {"add_key$keyring", 9437493},
+    {"add_key$user", 9437493},
     {"alarm", 9437211},
     {"bind", 9437466},
     {"bind$alg", 9437466},
@@ -4574,7 +4580,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "5d61cff374cfeee3bdd5463ae831ebd9244c82f4"
+#define SYZ_REVISION "f3a5a23bdc39eb4e08663ce5b457eb2e9e4eb10e"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4584,7 +4590,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1470;
+unsigned syscall_count = 1472;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -4607,6 +4613,8 @@ call_t syscalls[] = {
     {"accept4$unix", 242},
     {"acct", 89},
     {"add_key", 217},
+    {"add_key$keyring", 217},
+    {"add_key$user", 217},
     {"bind", 200},
     {"bind$alg", 200},
     {"bind$ax25", 200},
@@ -6062,7 +6070,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "41717a88a13b27efed21aa1a7ad5f237b4250874"
+#define SYZ_REVISION "d2b3422a5da0a4480965887f7c2d7aefb46edaed"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6072,7 +6080,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1451;
+unsigned syscall_count = 1453;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6095,6 +6103,8 @@ call_t syscalls[] = {
     {"accept4$unix", 344},
     {"acct", 51},
     {"add_key", 269},
+    {"add_key$keyring", 269},
+    {"add_key$user", 269},
     {"alarm", 27},
     {"bind", 327},
     {"bind$alg", 327},
