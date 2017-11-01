@@ -5,36 +5,45 @@ include <linux/key.h>
 include <linux/keyctl.h>
 include <uapi/linux/keyctl.h>
 
-resource key[int32]: 0, KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING, KEY_SPEC_GROUP_KEYRING, KEY_SPEC_REQKEY_AUTH_KEY, KEY_SPEC_REQUESTOR_KEYRING
+# key serial number (key_serial_t)
+resource key[int32]: 0
 
-add_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], payload buffer[in, opt], paylen len[payload], keyring flags[keyring_type]) key
-request_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], callout ptr[in, string], keyring flags[keyring_type]) key
+# key of type "keyring".  Note: for now we include KEY_SPEC_REQKEY_AUTH_KEY here
+# since it should be listed somewhere, though it's not actually a keyring.
+resource keyring[key]: KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING, KEY_SPEC_GROUP_KEYRING, KEY_SPEC_REQKEY_AUTH_KEY, KEY_SPEC_REQUESTOR_KEYRING
+
+# key of type "user"
+resource user_key[key]
+
+add_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], payload buffer[in, opt], paylen len[payload], keyring keyring) key
+add_key$keyring(type ptr[in, string["keyring"]], desc ptr[in, key_desc], payload const[0], paylen const[0], keyring keyring) keyring
+add_key$user(type ptr[in, string["user"]], desc ptr[in, key_desc], payload buffer[in], paylen len[payload], keyring keyring) user_key
+request_key(type ptr[in, string[key_type]], desc ptr[in, key_desc], callout ptr[in, string], keyring keyring) key
 keyctl$get_keyring_id(code const[KEYCTL_GET_KEYRING_ID], key key, create intptr)
 keyctl$join(code const[KEYCTL_JOIN_SESSION_KEYRING], session ptr[in, key_desc, opt])
 keyctl$update(code const[KEYCTL_UPDATE], key key, payload buffer[in, opt], paylen len[payload])
 keyctl$revoke(code const[KEYCTL_REVOKE], key key)
 keyctl$describe(code const[KEYCTL_DESCRIBE], key key, desc buffer[out], len len[desc])
-keyctl$clear(code const[KEYCTL_CLEAR], key key)
-keyctl$link(code const[KEYCTL_LINK], key1 key, key2 key)
-keyctl$unlink(code const[KEYCTL_UNLINK], key1 key, key2 key)
-keyctl$search(code const[KEYCTL_SEARCH], key key, type ptr[in, string[key_type]], desc ptr[in, key_desc], ring key)
+keyctl$clear(code const[KEYCTL_CLEAR], keyring keyring)
+keyctl$link(code const[KEYCTL_LINK], key key, keyring keyring)
+keyctl$unlink(code const[KEYCTL_UNLINK], key key, keyring keyring)
+keyctl$search(code const[KEYCTL_SEARCH], key key, type ptr[in, string[key_type]], desc ptr[in, key_desc], destination keyring)
 keyctl$read(code const[KEYCTL_READ], key key, payload buffer[out], len len[payload])
 keyctl$chown(code const[KEYCTL_CHOWN], key key, uid uid, gid gid)
 # perm is a mask of KEY_POS_VIEW, etc consants, but they cover almost whole int32.
 keyctl$setperm(code const[KEYCTL_SETPERM], key key, perm flags[key_perm])
-keyctl$instantiate(code const[KEYCTL_INSTANTIATE], key key, payload buffer[in, opt], paylen len[payload], ring key)
-keyctl$negate(code const[KEYCTL_NEGATE], key key, timeout intptr, ring key)
+keyctl$instantiate(code const[KEYCTL_INSTANTIATE], key key, payload buffer[in, opt], paylen len[payload], keyring keyring)
+keyctl$negate(code const[KEYCTL_NEGATE], key key, timeout intptr, keyring keyring)
 keyctl$set_reqkey_keyring(code const[KEYCTL_SET_REQKEY_KEYRING], reqkey flags[reqkey_keyring])
 keyctl$set_timeout(code const[KEYCTL_SET_TIMEOUT], key key, timeout int32)
 keyctl$assume_authority(code const[KEYCTL_ASSUME_AUTHORITY], key key)
 keyctl$get_security(code const[KEYCTL_GET_SECURITY], key key, label buffer[out], len len[label])
 keyctl$session_to_parent(code const[KEYCTL_SESSION_TO_PARENT])
-keyctl$reject(code const[KEYCTL_REJECT], key key, timeout intptr, error intptr, ring key)
+keyctl$reject(code const[KEYCTL_REJECT], key key, timeout intptr, error intptr, keyring keyring)
 keyctl$instantiate_iov(code const[KEYCTL_INSTANTIATE_IOV], key key, payload ptr[in, array[iovec_in]], len len[payload], ring key)
 keyctl$invalidate(code const[KEYCTL_INVALIDATE], key key)
-keyctl$get_persistent(code const[KEYCTL_GET_PERSISTENT], uid uid, key key)
+keyctl$get_persistent(code const[KEYCTL_GET_PERSISTENT], uid uid, keyring keyring)
 
-keyring_type = KEY_SPEC_THREAD_KEYRING, KEY_SPEC_PROCESS_KEYRING, KEY_SPEC_SESSION_KEYRING, KEY_SPEC_USER_KEYRING, KEY_SPEC_USER_SESSION_KEYRING, KEY_SPEC_GROUP_KEYRING, KEY_SPEC_REQKEY_AUTH_KEY, KEY_SPEC_REQUESTOR_KEYRING
 reqkey_keyring = KEY_REQKEY_DEFL_NO_CHANGE, KEY_REQKEY_DEFL_DEFAULT, KEY_REQKEY_DEFL_THREAD_KEYRING, KEY_REQKEY_DEFL_PROCESS_KEYRING, KEY_REQKEY_DEFL_SESSION_KEYRING, KEY_REQKEY_DEFL_USER_KEYRING, KEY_REQKEY_DEFL_USER_SESSION_KEYRING, KEY_REQKEY_DEFL_GROUP_KEYRING, KEY_REQKEY_DEFL_REQUESTOR_KEYRING
 key_perm = KEY_POS_VIEW, KEY_POS_READ, KEY_POS_WRITE, KEY_POS_SEARCH, KEY_POS_LINK, KEY_POS_SETATTR, KEY_USR_VIEW, KEY_USR_READ, KEY_USR_WRITE, KEY_USR_SEARCH, KEY_USR_LINK, KEY_USR_SETATTR, KEY_GRP_VIEW, KEY_GRP_READ, KEY_GRP_WRITE, KEY_GRP_SEARCH, KEY_GRP_LINK, KEY_GRP_SETATTR, KEY_OTH_VIEW, KEY_OTH_READ, KEY_OTH_WRITE, KEY_OTH_SEARCH, KEY_OTH_LINK, KEY_OTH_SETATTR, KEY_PERM_UNDEF
 
