@@ -10,9 +10,9 @@ Akaros does not support Go at the moment (except for a broken
 for Akaros. Until that happens running on Akaros is challening. However,
 `syz-stress` can be run as follows:
 
-```
+```shell
 make TARGETOS=linux syz-stress
 make TARGETOS=akaros SOURCEDIR=/akaros/checkout executor
 scp -P 5555 -i akaros_id_rsa -o IdentitiesOnly=yes bin/akaros_amd64/syz-executor  root@localhost:/
-bin/linux_amd64/syz-stress -os=akaros -ipc=pipe -executor "/usr/bin/ssh -p 5555 -i akaros_id_rsa -o IdentitiesOnly=yes root@localhost /syz-executor"
+bin/linux_amd64/syz-stress -os=akaros -ipc=pipe -procs=8 -executor "/usr/bin/ssh -p 5555 -i akaros_id_rsa -o IdentitiesOnly=yes root@localhost /syz-executor"
 ```
