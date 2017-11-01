@@ -7,13 +7,17 @@ Here are some things to check if there are problems running syzkaller.
    and `KERNEL` is set to the test kernel (as per the `kernel` config value)
    then something like the following command should start the VM successfully:
 
-       ```qemu-system-x86_64 -hda $IMAGE -m 256 -net nic -net user,host=10.0.2.10,hostfwd=tcp::23505-:22 -enable-kvm -kernel $KERNEL -append root=/dev/sda```
+     ```shell   
+     qemu-system-x86_64 -hda $IMAGE -m 256 -net nic -net user,host=10.0.2.10,hostfwd=tcp::23505-:22 -enable-kvm -kernel $KERNEL -append root=/dev/sda
+     ```
 
  - Check that inbound SSH to the running virtual machine works.  For example, with
    a VM running and with `SSHKEY` set to the SSH identity (as per the `sshkey` config value) the
    following command should connect:
 
-       ```ssh -i $SSHKEY -p 23505 root@localhost```
+     ```shell    
+     ssh -i $SSHKEY -p 23505 root@localhost
+     ```
 
  - Check that the `CONFIG_KCOV` option is available inside the VM:
     - `ls /sys/kernel/debug       # Check debugfs mounted`
