@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "929f038a7b49c952e855a46c496a952557fe602c"
+#define SYZ_REVISION "a97089b8bcc3449f7441b464556bae1f4cb66946"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1483;
+unsigned syscall_count = 1484;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -855,6 +855,7 @@ call_t syscalls[] = {
     {"keyctl$chown", 288},
     {"keyctl$clear", 288},
     {"keyctl$describe", 288},
+    {"keyctl$dh_compute", 288},
     {"keyctl$get_keyring_id", 288},
     {"keyctl$get_persistent", 288},
     {"keyctl$get_security", 288},
@@ -1503,7 +1504,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "dd7ee4584fd05fd08e1841fcbe6e9586231ad331"
+#define SYZ_REVISION "6ff66b88e2f1f4ee8419d2f3f9813910b57ad0b0"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1513,7 +1514,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1544;
+unsigned syscall_count = 1545;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2378,6 +2379,7 @@ call_t syscalls[] = {
     {"keyctl$chown", 250},
     {"keyctl$clear", 250},
     {"keyctl$describe", 250},
+    {"keyctl$dh_compute", 250},
     {"keyctl$get_keyring_id", 250},
     {"keyctl$get_persistent", 250},
     {"keyctl$get_security", 250},
@@ -3065,7 +3067,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "616fc2964fcd7a395b07c0f23a9b6adce8d6fc4f"
+#define SYZ_REVISION "457e23f18e324ca56813150178883ec10876986f"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3075,7 +3077,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1497;
+unsigned syscall_count = 1498;
 call_t syscalls[] = {
     {"accept", 9437469},
     {"accept$alg", 9437469},
@@ -3900,6 +3902,7 @@ call_t syscalls[] = {
     {"keyctl$chown", 9437495},
     {"keyctl$clear", 9437495},
     {"keyctl$describe", 9437495},
+    {"keyctl$dh_compute", 9437495},
     {"keyctl$get_keyring_id", 9437495},
     {"keyctl$get_persistent", 9437495},
     {"keyctl$get_security", 9437495},
@@ -4580,7 +4583,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "f3a5a23bdc39eb4e08663ce5b457eb2e9e4eb10e"
+#define SYZ_REVISION "fba4a198c962ce507bf2f0708b46fcf7b69d732c"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4590,7 +4593,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1472;
+unsigned syscall_count = 1473;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5415,6 +5418,7 @@ call_t syscalls[] = {
     {"keyctl$chown", 219},
     {"keyctl$clear", 219},
     {"keyctl$describe", 219},
+    {"keyctl$dh_compute", 219},
     {"keyctl$get_keyring_id", 219},
     {"keyctl$get_persistent", 219},
     {"keyctl$get_security", 219},
@@ -6070,7 +6074,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "d2b3422a5da0a4480965887f7c2d7aefb46edaed"
+#define SYZ_REVISION "8b97e462bb374e8c879765ff8d6d8f563c468373"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6080,7 +6084,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1453;
+unsigned syscall_count = 1454;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6898,6 +6902,7 @@ call_t syscalls[] = {
     {"keyctl$chown", 271},
     {"keyctl$clear", 271},
     {"keyctl$describe", 271},
+    {"keyctl$dh_compute", 271},
     {"keyctl$get_keyring_id", 271},
     {"keyctl$get_persistent", 271},
     {"keyctl$get_security", 271},
