@@ -6060,7 +6060,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 8, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
 	}},
 	{ID: 20, NR: 248, Name: "add_key", CallName: "add_key", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "key_type", Values: []string{"user\x00", "keyring\x00", "logon\x00", "trusted\x00", "big_key\x00", "dead\x00", ".request_key_auth\x00", "syzkaller\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "desc", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "key_desc"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 8, IsOptional: true}, Type: &BufferType{}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "paylen", TypeSize: 8}}, Buf: "payload"},
@@ -10539,7 +10539,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 873, NR: 250, Name: "keyctl$search", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 8}}, Val: 10},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "key", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "key_type", Values: []string{"user\x00", "keyring\x00", "logon\x00", "trusted\x00", "big_key\x00", "dead\x00", ".request_key_auth\x00", "syzkaller\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "desc", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "key_desc"}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "ring", TypeSize: 4}},
 	}},
@@ -11454,7 +11454,7 @@ var syscalls_amd64 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "renameat2_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{2, 1, 4}},
 	}},
 	{ID: 1041, NR: 249, Name: "request_key", CallName: "request_key", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "key_type", Values: []string{"user\x00", "keyring\x00", "logon\x00", "trusted\x00", "big_key\x00", "dead\x00", ".request_key_auth\x00", "syzkaller\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "desc", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "key_desc"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "callout", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "keyring_type", FldName: "keyring", TypeSize: 8}}, Vals: []uint64{18446744073709551615, 18446744073709551614, 18446744073709551613, 18446744073709551612, 18446744073709551611, 18446744073709551610, 18446744073709551609, 18446744073709551608}},
@@ -17273,4 +17273,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_amd64 = "c3f6d5fad0e7c9a78ec0ee093aee06f4c84f9548"
+const revision_amd64 = "6fb27ef7f4a7a7f3833d9e66ae29229350e30dcb"
