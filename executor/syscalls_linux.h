@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "a97089b8bcc3449f7441b464556bae1f4cb66946"
+#define SYZ_REVISION "d9161341e01611afac064dda39de96c30b364636"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1484;
+unsigned syscall_count = 1485;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -867,6 +867,7 @@ call_t syscalls[] = {
     {"keyctl$negate", 288},
     {"keyctl$read", 288},
     {"keyctl$reject", 288},
+    {"keyctl$restrict_keyring", 288},
     {"keyctl$revoke", 288},
     {"keyctl$search", 288},
     {"keyctl$session_to_parent", 288},
@@ -1504,7 +1505,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "6ff66b88e2f1f4ee8419d2f3f9813910b57ad0b0"
+#define SYZ_REVISION "1447e1368f72229d64bace71f732cef1dfdeb5b5"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1514,7 +1515,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1545;
+unsigned syscall_count = 1546;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2391,6 +2392,7 @@ call_t syscalls[] = {
     {"keyctl$negate", 250},
     {"keyctl$read", 250},
     {"keyctl$reject", 250},
+    {"keyctl$restrict_keyring", 250},
     {"keyctl$revoke", 250},
     {"keyctl$search", 250},
     {"keyctl$session_to_parent", 250},
@@ -3067,7 +3069,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "457e23f18e324ca56813150178883ec10876986f"
+#define SYZ_REVISION "d0269f37947ea814944fa163bb69969ad1675368"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3077,7 +3079,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1498;
+unsigned syscall_count = 1499;
 call_t syscalls[] = {
     {"accept", 9437469},
     {"accept$alg", 9437469},
@@ -3914,6 +3916,7 @@ call_t syscalls[] = {
     {"keyctl$negate", 9437495},
     {"keyctl$read", 9437495},
     {"keyctl$reject", 9437495},
+    {"keyctl$restrict_keyring", 9437495},
     {"keyctl$revoke", 9437495},
     {"keyctl$search", 9437495},
     {"keyctl$session_to_parent", 9437495},
@@ -4583,7 +4586,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "fba4a198c962ce507bf2f0708b46fcf7b69d732c"
+#define SYZ_REVISION "0f161b65b9b47df42b011b2f117aa942cd7a0ba4"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4593,7 +4596,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1473;
+unsigned syscall_count = 1474;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5430,6 +5433,7 @@ call_t syscalls[] = {
     {"keyctl$negate", 219},
     {"keyctl$read", 219},
     {"keyctl$reject", 219},
+    {"keyctl$restrict_keyring", 219},
     {"keyctl$revoke", 219},
     {"keyctl$search", 219},
     {"keyctl$session_to_parent", 219},
@@ -6074,7 +6078,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "8b97e462bb374e8c879765ff8d6d8f563c468373"
+#define SYZ_REVISION "84a549c6f2de93e3cbb530dceca676a907351f90"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6084,7 +6088,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1454;
+unsigned syscall_count = 1455;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6914,6 +6918,7 @@ call_t syscalls[] = {
     {"keyctl$negate", 271},
     {"keyctl$read", 271},
     {"keyctl$reject", 271},
+    {"keyctl$restrict_keyring", 271},
     {"keyctl$revoke", 271},
     {"keyctl$search", 271},
     {"keyctl$session_to_parent", 271},
