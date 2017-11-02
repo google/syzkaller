@@ -52,7 +52,7 @@
 * [usb/media/cx231xx: null-ptr-deref in cx231xx_usb_probe](https://groups.google.com/forum/#!topic/syzkaller/WlUAVfDvpRk) [[fix](https://patchwork.kernel.org/patch/9963527/)]
 * [usb/net/p54: trying to register non-static key in p54_unregister_leds](https://groups.google.com/forum/#!topic/syzkaller/H6mX3aQPvvQ) [[fix](https://patchwork.kernel.org/patch/9972281/)]
 * [usb/core: slab-out-of-bounds read in cdc_parse_cdc_header](https://groups.google.com/forum/#!topic/syzkaller/nXnjqI73uPo) [[fix](https://github.com/torvalds/linux/commit/2e1c42391ff2556387b3cb6308b24f6f65619feb)]
-* [usb/hid: slab-out-of-bounds read in usbhid_parse](https://groups.google.com/forum/#!topic/syzkaller/CxkJ9QZgwlM) [[fix](https://patchwork.kernel.org/patch/9975711/)]
+* [usb/hid: slab-out-of-bounds read in usbhid_parse](https://groups.google.com/forum/#!topic/syzkaller/CxkJ9QZgwlM) [[fix](https://github.com/torvalds/linux/commit/f043bfc98c193c284e2cd768fefabe18ac2fed9b)]
 * [usb/core: slab-out-of-bounds in usb_set_configuration](https://groups.google.com/forum/#!topic/syzkaller/hP6L-m59m_8) [[fix](https://github.com/torvalds/linux/commit/bd7a3fe770ebd8391d1c7d072ff88e9e76d063eb)]
 * [usb/uwb: WARNING in hwarc_neep_init/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/kxql4awIiR4) [[fix](https://github.com/torvalds/linux/commit/70e743e4cec3733dc13559f6184b35d358b9ef3f)]
 * [usb/uwb: GPF in uwbd_start](https://groups.google.com/forum/#!topic/syzkaller/zROBxKXzHDk) [[fix](https://github.com/torvalds/linux/commit/bbf26183b7a6236ba602f4d6a2f7cade35bba043)]
