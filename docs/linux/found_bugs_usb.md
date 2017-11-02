@@ -7,7 +7,7 @@
 * [usb/media/mxl111sf: trying to register non-static key in mxl111sf_ctrl_msg](https://groups.google.com/forum/#!topic/syzkaller/Xlvm_cnulFA)
 * [usb/media/au0828: use-after-free in au0828_rc_unregister](https://groups.google.com/forum/#!topic/syzkaller/3yL32uggAT0)
 * [usb/input/gtco: slab-out-of-bounds in parse_hid_report_descriptor](https://groups.google.com/forum/#!topic/syzkaller/McWFcOsA47Y)
-* [usb/core: slab-out-of-bounds in usb_get_bos_descriptor](https://groups.google.com/forum/#!topic/syzkaller/tzdz2fTB1K0) [[fix](https://www.spinics.net/lists/linux-usb/msg161786.html)]
+* [usb/core: slab-out-of-bounds in usb_get_bos_descriptor](https://groups.google.com/forum/#!topic/syzkaller/tzdz2fTB1K0) [[fix](https://github.com/torvalds/linux/commit/1c0edc3633b56000e18d82fc241e3995ca18a69e)]
 * [usb/net/asix: null-ptr-deref in asix_suspend](https://groups.google.com/forum/#!topic/syzkaller/_9a6pd-p_0E)
 * [usb/net/rt2x00: warning in rt2800_eeprom_word_index](https://groups.google.com/forum/#!topic/syzkaller/8vWPJ_maXQY)
 * [usb/irda: global-out-of-bounds in irda_qos_bits_to_value](https://groups.google.com/forum/#!topic/syzkaller/PzxkGCumhwA)
