@@ -31,3 +31,24 @@ Unassigned issues from the [bug tracker](https://github.com/google/syzkaller/iss
 
 If you want to work on something non-trivial, please briefly describe it on the [syzkaller@googlegroups.com](https://groups.google.com/forum/#!forum/syzkaller) mailing list first,
 so that there is agreement on high level approach and no duplication of work between contributors.
+
+## How to create a pull request
+
+- First, you need an own git fork of syzkaller repository. Nagivate to [github.com/google/syzkaller](https://github.com/google/syzkaller) and press `Fork` button in the top-right corner of the page. This will create `https://github.com/YOUR_GITHUB_USERNAME/syzkaller` repository.
+- Checkout main syzkaller repository if you have not already. To work with `go` command the checkout must be under `$GOPATH`. The simplest way to do it is to run `go get github.com/google/syzkaller`, this will checkout the repository in `$GOPATH/src/github.com/google/syzkaller`.
+- Then add your repository as an additional origin:
+
+```shell
+cd $GOPATH/src/github.com/google/syzkaller
+git remote add my https://github.com/YOUR_GITHUB_USERNAME/syzkaller.git
+git fetch my
+git checkout -b my-changes master
+```
+
+This adds git origin `my` with your repository and checks out new branch `my-changes` based on `master` branch.
+
+- Change/add files as necessary.
+- Commit changes locally. For this you need to run `git add` for all changed files, e.g. `git add sys/linux/sys.txt`. You can run `git status` to see what files were changed/created. When all files are added (`git status` shows no files in `Changes not staged for commit` section and no relevant files in `Untracked files` section), run `git commit` and enter commit description in your editor.
+- Push the commit to your fork on github with `git push --set-upstream my my-changes`.
+- Nagivate to [github.com/google/syzkaller](https://github.com/google/syzkaller) and you should see green `Compare & pull request` button, press it. Then press `Create pull request`. Now your pull request should show up on [pull requests page](https://github.com/google/syzkaller/pulls).
+- If you don't see `Create pull request` button for any reason, you can create pull request manually. For that nagivate to [pull requests page](https://github.com/google/syzkaller/pulls), press `New pull request`, then `compare across forks` and choose `google/syzkaller`/`master` as base and `YOUR_GITHUB_USERNAME/syzkaller`/`my-changes` as compare and press `Create pull request`.
