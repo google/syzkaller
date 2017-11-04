@@ -3,7 +3,7 @@
 ## USB drivers
 
 * [usb/media/em28xx: use-after-free in em28xx_dvb_fini](https://groups.google.com/forum/#!topic/syzkaller/GcS_S4zY2ZQ)
-* [net/media/em28xx: use-after-free in v4l2_fh_init](https://groups.google.com/forum/#!topic/syzkaller/FnJq_QkwCLQ)
+* [usb/media/em28xx: use-after-free in v4l2_fh_init](https://groups.google.com/forum/#!topic/syzkaller/FnJq_QkwCLQ)
 * [usb/media/pvrusb2: WARNING in pvr2_i2c_core_done/sysfs_remove_group](https://groups.google.com/forum/#!topic/syzkaller/0rKk1nKucQA)
 * [usb/sound/usx2y: WARNING in usb_stream_start](https://groups.google.com/forum/#!topic/syzkaller/Gspr1ddXgHA)
 * [usb/net/hfa384x: WARNING in submit_rx_urb/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/hO1s_STq2II)
