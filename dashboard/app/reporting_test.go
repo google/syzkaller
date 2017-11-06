@@ -46,6 +46,7 @@ func TestReportBug(t *testing.T) {
 		t.Fatalf("empty report ID")
 	}
 	want := &dashapi.BugReport{
+		Namespace:    "test1",
 		Config:       []byte(`{"Index":1}`),
 		ID:           rep.ID,
 		First:        true,
@@ -183,6 +184,7 @@ func TestInvalidBug(t *testing.T) {
 		t.Fatalf("empty report ID")
 	}
 	want := &dashapi.BugReport{
+		Namespace:    "test1",
 		Config:       []byte(`{"Index":1}`),
 		ID:           rep.ID,
 		First:        true,
