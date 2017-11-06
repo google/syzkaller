@@ -55,6 +55,8 @@ type uiBug struct {
 	Status         string
 	Link           string
 	Commits        string
+	PatchedOn      []string
+	MissingOn      []string
 }
 
 type uiCrash struct {
@@ -109,7 +111,11 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	uiBug := createUIBug(c, bug, state)
+	managers, err := managerList(c, bug.Namespace)
+	if err != nil {
+		return err
+	}
+	uiBug := createUIBug(c, bug, state, managers)
 	crashes, err := loadCrashesForBug(c, bug)
 	if err != nil {
 		return err
@@ -149,9 +155,17 @@ func fetchBugs(c context.Context) ([]*uiBugGroup, error) {
 	if err != nil {
 		return nil, err
 	}
+	managers := make(map[string][]string)
+	for ns := range config.Namespaces {
+		mgrs, err := managerList(c, ns)
+		if err != nil {
+			return nil, err
+		}
+		managers[ns] = mgrs
+	}
 	groups := make(map[string][]*uiBug)
 	for _, bug := range bugs {
-		uiBug := createUIBug(c, bug, state)
+		uiBug := createUIBug(c, bug, state, managers[bug.Namespace])
 		groups[bug.Namespace] = append(groups[bug.Namespace], uiBug)
 	}
 	var res []*uiBugGroup
@@ -166,7 +180,7 @@ func fetchBugs(c context.Context) ([]*uiBugGroup, error) {
 	return res, nil
 }
 
-func createUIBug(c context.Context, bug *Bug, state *ReportingState) *uiBug {
+func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []string) *uiBug {
 	_, _, _, reportingIdx, status, link, err := needReport(c, "", state, bug)
 	if err != nil {
 		status = err.Error()
@@ -185,7 +199,23 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState) *uiBug {
 		ReportingIndex: reportingIdx,
 		Status:         status,
 		Link:           link,
-		Commits:        fmt.Sprintf("%q", bug.Commits),
+		PatchedOn:      bug.PatchedOn,
+	}
+	if len(bug.Commits) != 0 {
+		uiBug.Commits = fmt.Sprintf("%q", bug.Commits)
+		for _, mgr := range managers {
+			found := false
+			for _, mgr1 := range bug.PatchedOn {
+				if mgr == mgr1 {
+					found = true
+					break
+				}
+			}
+			if !found {
+				uiBug.MissingOn = append(uiBug.MissingOn, mgr)
+			}
+		}
+		sort.Strings(uiBug.MissingOn)
 	}
 	return uiBug
 }

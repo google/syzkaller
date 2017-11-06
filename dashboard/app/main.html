@@ -7,6 +7,7 @@
 			<th>Repro</th>
 			<th>Last</th>
 			<th>Status</th>
+			<th>Patched</th>
 		</tr>
 		{{range $b := $.Bugs}}
 			<tr>
@@ -15,6 +16,7 @@
 				<td class="repro">{{formatReproLevel $b.ReproLevel}}</td>
 				<td class="time">{{formatTime $b.LastTime}}</td>
 				<td class="status">{{if $b.Link}}<a href="{{$b.Link}}">{{$b.Status}}</a>{{else}}{{$b.Status}}{{end}}</td>
+				<td class="patched">{{if $b.Commits}}{{len $b.PatchedOn}}/{{len $b.MissingOn}}{{end}}</td>
 			</tr>
 		{{end}}
 	</table>

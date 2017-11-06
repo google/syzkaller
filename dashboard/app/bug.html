@@ -14,6 +14,8 @@
 	Last: {{formatTime .Bug.LastTime}}<br>
 	Reporting: {{if .Bug.Link}}<a href="{{.Bug.Link}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
 	Commits: {{.Bug.Commits}}<br>
+	Patched on: {{.Bug.PatchedOn}}<br>
+	Missing on: {{.Bug.MissingOn}}<br>
 
 	<table class="list_table">
 		<caption>Crashes:</caption>
