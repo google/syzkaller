@@ -25,6 +25,7 @@ import (
 )
 
 var (
+	flagOS        = flag.String("os", runtime.GOOS, "target os")
 	flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
 	flagExecutor  = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
@@ -44,7 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	target, err := prog.GetTarget(runtime.GOOS, *flagArch)
+	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
 		Fatalf("%v", err)
 	}
