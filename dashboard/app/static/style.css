@@ -98,6 +98,10 @@ table td, table th {
 	max-width: 300pt;
 }
 
+.list_table .patched {
+	text-align: center;
+}
+
 .list_table .kernel {
 	width: 200pt;
 	max-width: 200pt;
