@@ -214,6 +214,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, bugReporting *Bu
 	}
 
 	rep := &dashapi.BugReport{
+		Namespace:    bug.Namespace,
 		Config:       reportingConfig,
 		ID:           bugReporting.ID,
 		ExtID:        bugReporting.ExtID,

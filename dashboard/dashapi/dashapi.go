@@ -137,6 +137,7 @@ func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
 // BugReport describes a single bug.
 // Used by dashboard external reporting.
 type BugReport struct {
+	Namespace    string
 	Config       []byte
 	ID           string
 	ExtID        string // arbitrary reporting ID forwarded from BugUpdate.ExtID
