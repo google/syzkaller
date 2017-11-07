@@ -415,11 +415,11 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, error) {
 	}
 	m := make(map[string]bool, len(commits))
 	for _, com := range commits {
-		m[com] = true
+		m[git.CanonicalizeCommit(com)] = true
 	}
 	var present []string
 	for _, com := range resp.PendingCommits {
-		if m[com] {
+		if m[git.CanonicalizeCommit(com)] {
 			present = append(present, com)
 		}
 	}
