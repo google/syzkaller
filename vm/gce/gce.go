@@ -373,12 +373,12 @@ func uploadImageToGCS(localImage, gcsImage string) error {
 
 	localReader, err := os.Open(localImage)
 	if err != nil {
-		return fmt.Errorf("failed to open image file: %v")
+		return fmt.Errorf("failed to open image file: %v", err)
 	}
 	defer localReader.Close()
 	localStat, err := localReader.Stat()
 	if err != nil {
-		return fmt.Errorf("failed to stat image file: %v")
+		return fmt.Errorf("failed to stat image file: %v", err)
 	}
 
 	gcsWriter, err := GCS.FileWriter(gcsImage)
