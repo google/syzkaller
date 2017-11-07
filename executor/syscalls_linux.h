@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "abbefc7d8a5a29677b49db8e615454e266f052a5"
+#define SYZ_REVISION "c2ad412fa9428e52c81923f215215bc6da6d5783"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1485;
+unsigned syscall_count = 1486;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -579,6 +579,7 @@ call_t syscalls[] = {
     {"ioctl$LOOP_CTL_REMOVE", 54},
     {"ioctl$LOOP_GET_STATUS", 54},
     {"ioctl$LOOP_GET_STATUS64", 54},
+    {"ioctl$LOOP_SET_BLOCK_SIZE", 54},
     {"ioctl$LOOP_SET_CAPACITY", 54},
     {"ioctl$LOOP_SET_DIRECT_IO", 54},
     {"ioctl$LOOP_SET_FD", 54},
@@ -1505,7 +1506,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "cc80efbf27f36c6628b0a7ccea950e31ed9bb831"
+#define SYZ_REVISION "ca7616dae83a010ec8e24b13fc2443c8a37593d6"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1515,7 +1516,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1546;
+unsigned syscall_count = 1547;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2100,6 +2101,7 @@ call_t syscalls[] = {
     {"ioctl$LOOP_CTL_REMOVE", 16},
     {"ioctl$LOOP_GET_STATUS", 16},
     {"ioctl$LOOP_GET_STATUS64", 16},
+    {"ioctl$LOOP_SET_BLOCK_SIZE", 16},
     {"ioctl$LOOP_SET_CAPACITY", 16},
     {"ioctl$LOOP_SET_DIRECT_IO", 16},
     {"ioctl$LOOP_SET_FD", 16},
@@ -3069,7 +3071,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "b78e373f34929c33b5c7f8f0c8d9fc37ce199e29"
+#define SYZ_REVISION "47bc2db581ec9f3bb9eacaad5ff9eddf6cfc7aee"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3079,7 +3081,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1499;
+unsigned syscall_count = 1500;
 call_t syscalls[] = {
     {"accept", 9437469},
     {"accept$alg", 9437469},
@@ -3630,6 +3632,7 @@ call_t syscalls[] = {
     {"ioctl$LOOP_CTL_REMOVE", 9437238},
     {"ioctl$LOOP_GET_STATUS", 9437238},
     {"ioctl$LOOP_GET_STATUS64", 9437238},
+    {"ioctl$LOOP_SET_BLOCK_SIZE", 9437238},
     {"ioctl$LOOP_SET_CAPACITY", 9437238},
     {"ioctl$LOOP_SET_DIRECT_IO", 9437238},
     {"ioctl$LOOP_SET_FD", 9437238},
@@ -4586,7 +4589,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "31be48f9b510243ba452bf201ca2109861ba8ebd"
+#define SYZ_REVISION "c82ad046c604ce72a470b53ec40a7d7c878df2b3"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4596,7 +4599,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1474;
+unsigned syscall_count = 1475;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5143,6 +5146,7 @@ call_t syscalls[] = {
     {"ioctl$LOOP_CTL_REMOVE", 29},
     {"ioctl$LOOP_GET_STATUS", 29},
     {"ioctl$LOOP_GET_STATUS64", 29},
+    {"ioctl$LOOP_SET_BLOCK_SIZE", 29},
     {"ioctl$LOOP_SET_CAPACITY", 29},
     {"ioctl$LOOP_SET_DIRECT_IO", 29},
     {"ioctl$LOOP_SET_FD", 29},
@@ -6078,7 +6082,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "72d813fc5083a52cc1a48b5ea685a79614a2cae7"
+#define SYZ_REVISION "ae136950701316bb49b0ea1ddaa4434b486da7d0"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6088,7 +6092,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1455;
+unsigned syscall_count = 1456;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6640,6 +6644,7 @@ call_t syscalls[] = {
     {"ioctl$LOOP_CTL_REMOVE", 54},
     {"ioctl$LOOP_GET_STATUS", 54},
     {"ioctl$LOOP_GET_STATUS64", 54},
+    {"ioctl$LOOP_SET_BLOCK_SIZE", 54},
     {"ioctl$LOOP_SET_CAPACITY", 54},
     {"ioctl$LOOP_SET_DIRECT_IO", 54},
     {"ioctl$LOOP_SET_FD", 54},
