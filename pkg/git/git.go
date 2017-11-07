@@ -81,16 +81,37 @@ func HeadCommit(dir string) (string, error) {
 	return string(output), nil
 }
 
-// ListRecentCommits returns list of commit titles for the last year starting from baseCommit.
+// ListRecentCommits returns list of recent commit titles starting from baseCommit.
 func ListRecentCommits(dir, baseCommit string) ([]string, error) {
-	since := time.Now().Add(-time.Hour * 24 * 365).Format("01-02-2006")
-	// On upstream kernel this produces 3.5MB of output.
+	// On upstream kernel this produces ~11MB of output.
 	// Somewhat inefficient to collect whole output in a slice
 	// and then convert to string, but should be bearable.
 	output, err := osutil.RunCmd(timeout, dir, "git", "log",
-		"--pretty=format:%s", "--no-merges", "--since", since, baseCommit)
+		"--pretty=format:%s", "--no-merges", "-n", "200000", baseCommit)
 	if err != nil {
 		return nil, err
 	}
 	return strings.Split(string(output), "\n"), nil
+}
+
+// CanonicalizeCommit returns commit title that can be used when checking
+// if a particular commit is present in a git tree.
+// Some trees add prefixes to commit titles during backporting,
+// so we want e.g. commit "foo bar" match "BACKPORT: foo bar".
+func CanonicalizeCommit(title string) string {
+	for _, prefix := range commitPrefixes {
+		if strings.HasPrefix(title, prefix) {
+			title = title[len(prefix):]
+			break
+		}
+	}
+	return strings.TrimSpace(title)
+}
+
+var commitPrefixes = []string{
+	"UPSTREAM:",
+	"CHROMIUM:",
+	"FROMLIST:",
+	"BACKPORT:",
+	"net-backports:",
 }
