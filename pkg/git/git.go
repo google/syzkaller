@@ -113,5 +113,6 @@ var commitPrefixes = []string{
 	"CHROMIUM:",
 	"FROMLIST:",
 	"BACKPORT:",
+	"FROMGIT:",
 	"net-backports:",
 }
