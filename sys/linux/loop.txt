@@ -16,6 +16,7 @@ ioctl$LOOP_GET_STATUS(fd fd_loop, cmd const[LOOP_GET_STATUS], arg ptr[out, loop_
 ioctl$LOOP_GET_STATUS64(fd fd_loop, cmd const[LOOP_GET_STATUS64], arg ptr[out, loop_info64])
 ioctl$LOOP_SET_CAPACITY(fd fd_loop, cmd const[LOOP_SET_CAPACITY])
 ioctl$LOOP_SET_DIRECT_IO(fd fd_loop, cmd const[LOOP_SET_DIRECT_IO], arg intptr)
+ioctl$LOOP_SET_BLOCK_SIZE(fd fd_loop, cmd const[LOOP_SET_BLOCK_SIZE], arg intptr)
 
 resource fd_loop_ctrl[fd]
 resource fd_loop_num[intptr]: 0, 1, 2, 10, 11, 12
