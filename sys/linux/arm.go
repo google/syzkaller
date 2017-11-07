@@ -8591,7 +8591,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 542, NR: 9437238, Name: "ioctl$LOOP_CHANGE_FD", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop", FldName: "fd", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19456},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19462},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "arg", TypeSize: 4}},
 	}},
 	{ID: 543, NR: 9437238, Name: "ioctl$LOOP_CLR_FD", CallName: "ioctl", Args: []Type{
@@ -8609,7 +8609,7 @@ var syscalls_arm = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_num", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 546, NR: 9437238, Name: "ioctl$LOOP_CTL_REMOVE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_ctrl", FldName: "fd", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19584},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19585},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_num", FldName: "num", TypeSize: 4}},
 	}},
 	{ID: 547, NR: 9437238, Name: "ioctl$LOOP_GET_STATUS", CallName: "ioctl", Args: []Type{
@@ -15079,9 +15079,11 @@ var consts_arm = []ConstValue{
 	{Name: "LOCK_NB", Value: 4},
 	{Name: "LOCK_SH", Value: 1},
 	{Name: "LOCK_UN", Value: 8},
+	{Name: "LOOP_CHANGE_FD", Value: 19462},
 	{Name: "LOOP_CLR_FD", Value: 19457},
 	{Name: "LOOP_CTL_ADD", Value: 19584},
 	{Name: "LOOP_CTL_GET_FREE", Value: 19586},
+	{Name: "LOOP_CTL_REMOVE", Value: 19585},
 	{Name: "LOOP_GET_STATUS", Value: 19459},
 	{Name: "LOOP_GET_STATUS64", Value: 19461},
 	{Name: "LOOP_SET_CAPACITY", Value: 19463},
@@ -16682,4 +16684,4 @@ var consts_arm = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_arm = "d0269f37947ea814944fa163bb69969ad1675368"
+const revision_arm = "b78e373f34929c33b5c7f8f0c8d9fc37ce199e29"
