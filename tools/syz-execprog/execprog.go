@@ -50,19 +50,16 @@ func main() {
 		Fatalf("%v", err)
 	}
 
-	var progs []*prog.Prog
+	var entries []*prog.LogEntry
 	for _, fn := range flag.Args() {
 		data, err := ioutil.ReadFile(fn)
 		if err != nil {
 			Fatalf("failed to read log file: %v", err)
 		}
-		entries := target.ParseLog(data)
-		for _, ent := range entries {
-			progs = append(progs, ent.P)
-		}
+		entries = target.ParseLog(data)
 	}
-	Logf(0, "parsed %v programs", len(progs))
-	if len(progs) == 0 {
+	Logf(0, "parsed %v programs", len(entries))
+	if len(entries) == 0 {
 		return
 	}
 
@@ -95,8 +92,8 @@ func main() {
 	}
 
 	handled := make(map[string]bool)
-	for _, prog := range progs {
-		for _, call := range prog.Calls {
+	for _, entry := range entries {
+		for _, call := range entry.P.Calls {
 			handled[call.Meta.CallName] = true
 		}
 	}
@@ -129,23 +126,35 @@ func main() {
 					posMu.Lock()
 					idx := pos
 					pos++
-					if idx%len(progs) == 0 && time.Since(lastPrint) > 5*time.Second {
+					if idx%len(entries) == 0 && time.Since(lastPrint) > 5*time.Second {
 						Logf(0, "executed programs: %v", idx)
 						lastPrint = time.Now()
 					}
 					posMu.Unlock()
-					if *flagRepeat > 0 && idx >= len(progs)**flagRepeat {
+					if *flagRepeat > 0 && idx >= len(entries)**flagRepeat {
 						return false
 					}
-					p := progs[idx%len(progs)]
+					entry := entries[idx%len(entries)]
+					callOpts := execOpts
+					if *flagFaultCall == -1 && entry.Fault {
+						newOpts := *execOpts
+						newOpts.Flags |= ipc.FlagInjectFault
+						newOpts.FaultCall = entry.FaultCall
+						newOpts.FaultNth = entry.FaultNth
+						callOpts = &newOpts
+					}
 					switch *flagOutput {
 					case "stdout":
-						data := p.Serialize()
+						strOpts := ""
+						if callOpts.Flags&ipc.FlagInjectFault != 0 {
+							strOpts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)", callOpts.FaultCall, callOpts.FaultNth)
+						}
+						data := entry.P.Serialize()
 						logMu.Lock()
-						Logf(0, "executing program %v:\n%s", pid, data)
+						Logf(0, "executing program %v%v:\n%s", pid, strOpts, data)
 						logMu.Unlock()
 					}
-					output, info, failed, hanged, err := env.Exec(execOpts, p)
+					output, info, failed, hanged, err := env.Exec(callOpts, entry.P)
 					select {
 					case <-shutdown:
 						return false
@@ -180,7 +189,7 @@ func main() {
 					if *flagHints {
 						compMaps := ipc.GetCompMaps(info)
 						ncomps, ncandidates := 0, 0
-						for i := range p.Calls {
+						for i := range entry.P.Calls {
 							comps := compMaps[i]
 							for v, args := range comps {
 								ncomps += len(args)
@@ -192,7 +201,7 @@ func main() {
 									fmt.Printf("\n")
 								}
 							}
-							p.MutateWithHints(i, comps, func(p *prog.Prog) {
+							entry.P.MutateWithHints(i, comps, func(p *prog.Prog) {
 								ncandidates++
 								if *flagOutput == "stdout" {
 									fmt.Printf("PROGRAM:\n%s\n", p.Serialize())

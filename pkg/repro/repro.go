@@ -354,9 +354,9 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 	for _, entry := range entries {
 		prog.Calls = append(prog.Calls, entry.P.Calls...)
 	}
+	dur := duration(len(entries)) * 3 / 2
 
 	// Execute the program without fault injection.
-	dur := duration(len(entries)) * 3 / 2
 	crashed, err := ctx.testProg(prog, dur, opts)
 	if err != nil {
 		return nil, err
