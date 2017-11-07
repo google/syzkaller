@@ -1,11 +1,13 @@
 # Executing syzkaller programs
 
-This page describes how to execute existing syzkaller programs for the purpose of bug reproduction. This way you can replay a single program or a whole execution log with several programs.
+This page describes how to execute existing syzkaller programs for the purpose
+of bug reproduction. This way you can replay a single program or a whole
+execution log with several programs.
 
-1. Setup Go toolchain (if you don't yet have it, you need version 1.8 or higher):
-Download latest Go distribution from (https://golang.org/dl/). Unpack it to `$HOME/go1.8`.
+1. Setup Go toolchain (if you don't yet have it, you need version 1.9 or higher):
+Download latest Go distribution from (https://golang.org/dl/). Unpack it to `$HOME/go1.9`.
 ``` bash
-$ export GOROOT=$HOME/go1.8
+$ export GOROOT=$HOME/go1.9
 $ export GOPATH=$HOME/gopath
 ```
 
@@ -20,14 +22,15 @@ $ cd $GOPATH/src/github.com/google/syzkaller
 $ make
 ```
 
-4. Copy binaries and the program to test machine:
+4. Copy binaries and the program to test machine (substitue target `linux_amd64`
+as necessary):
 ``` bash
-$ scp bin/syz-execprog bin/syz-executor program test@machine
+$ scp bin/linux_amd64/syz-execprog bin/linux_amd64/syz-executor program test@machine
 ```
 
 5. Run the program on the test machine:
 ``` bash
-$ ./syz-execprog -executor ./syz-executor -cover=0 -repeat=0 -procs=16 program
+$ ./syz-execprog -cover=0 -repeat=0 -procs=16 program
 ```
 
 Several useful `syz-execprog` flags:
