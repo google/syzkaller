@@ -431,8 +431,15 @@ static void initialize_tun(uint64_t pid)
 	int id = pid;
 
 	tunfd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
-	if (tunfd == -1)
-		fail("tun: can't open /dev/net/tun");
+	if (tunfd == -1) {
+#ifdef SYZ_EXECUTOR
+		fail("tun: can't open /dev/net/tun\n");
+#else
+		printf("tun: can't open /dev/net/tun: please enable CONFIG_TUN=y\n");
+		printf("otherwise fuzzing or reproducing might not work as intended\n");
+		return;
+#endif
+	}
 
 	char iface[IFNAMSIZ];
 	snprintf_check(iface, sizeof(iface), "syz%d", id);
@@ -488,6 +495,9 @@ static void setup_tun(uint64_t pid, bool enable_tun)
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_TUN_ENABLE) && (defined(__NR_syz_extract_tcp_res) || defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)))
 static int read_tun(char* data, int size)
 {
+	if (tunfd < 0)
+		return -1;
+
 	int rv = read(tunfd, data, size);
 	if (rv < 0) {
 		if (errno == EAGAIN)
