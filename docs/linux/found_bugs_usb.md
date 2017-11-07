@@ -4,7 +4,7 @@
 
 * [usb/media/technisat: slab-out-of-bounds in technisat_usb2_rc_query](https://groups.google.com/forum/#!topic/syzkaller/V-GvHOmJXO0)
 * [usb/media/tm6000: use-after-free in tm6000_read_write_usb](https://groups.google.com/forum/#!topic/syzkaller/XLNeGPycipA)
-* [usb/net/qmi_wwan: divide error in qmi_wwan_probe/usbnet_probe](https://groups.google.com/forum/#!topic/syzkaller/0e0gmaX9R0g) [[fix1](https://groups.google.com/d/msg/syzkaller/EIP0TR0wVzY/ajlP31U6BQAJ), [fix2](https://groups.google.com/forum/#!topic/syzkaller/rplzEMaDp_Y)]
+* [usb/net/qmi_wwan: divide error in qmi_wwan_probe/usbnet_probe](https://groups.google.com/forum/#!topic/syzkaller/0e0gmaX9R0g) [[fix1](https://patchwork.ozlabs.org/patch/834771/), [fix2](https://patchwork.ozlabs.org/patch/834770/)]
 * [usb/media/uvc: slab-out-of-bounds in uvc_probe](https://groups.google.com/forum/#!topic/syzkaller/Ot1fOE6v1d8)
 * [usb/media/em28xx: use-after-free in em28xx_dvb_fini](https://groups.google.com/forum/#!topic/syzkaller/GcS_S4zY2ZQ)
 * [usb/media/em28xx: use-after-free in v4l2_fh_init](https://groups.google.com/forum/#!topic/syzkaller/FnJq_QkwCLQ)
