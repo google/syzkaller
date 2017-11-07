@@ -8810,7 +8810,7 @@ var syscalls_386 = []*Syscall{
 	}},
 	{ID: 558, NR: 54, Name: "ioctl$LOOP_CHANGE_FD", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop", FldName: "fd", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19456},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19462},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "arg", TypeSize: 4}},
 	}},
 	{ID: 559, NR: 54, Name: "ioctl$LOOP_CLR_FD", CallName: "ioctl", Args: []Type{
@@ -8828,7 +8828,7 @@ var syscalls_386 = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_num", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 562, NR: 54, Name: "ioctl$LOOP_CTL_REMOVE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_ctrl", FldName: "fd", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19584},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19585},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_num", FldName: "num", TypeSize: 4}},
 	}},
 	{ID: 563, NR: 54, Name: "ioctl$LOOP_GET_STATUS", CallName: "ioctl", Args: []Type{
@@ -15169,9 +15169,11 @@ var consts_386 = []ConstValue{
 	{Name: "LOCK_NB", Value: 4},
 	{Name: "LOCK_SH", Value: 1},
 	{Name: "LOCK_UN", Value: 8},
+	{Name: "LOOP_CHANGE_FD", Value: 19462},
 	{Name: "LOOP_CLR_FD", Value: 19457},
 	{Name: "LOOP_CTL_ADD", Value: 19584},
 	{Name: "LOOP_CTL_GET_FREE", Value: 19586},
+	{Name: "LOOP_CTL_REMOVE", Value: 19585},
 	{Name: "LOOP_GET_STATUS", Value: 19459},
 	{Name: "LOOP_GET_STATUS64", Value: 19461},
 	{Name: "LOOP_SET_CAPACITY", Value: 19463},
@@ -16785,4 +16787,4 @@ var consts_386 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_386 = "d9161341e01611afac064dda39de96c30b364636"
+const revision_386 = "abbefc7d8a5a29677b49db8e615454e266f052a5"

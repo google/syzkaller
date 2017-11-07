@@ -8688,7 +8688,7 @@ var syscalls_arm64 = []*Syscall{
 	}},
 	{ID: 538, NR: 29, Name: "ioctl$LOOP_CHANGE_FD", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop", FldName: "fd", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19456},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19462},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "arg", TypeSize: 4}},
 	}},
 	{ID: 539, NR: 29, Name: "ioctl$LOOP_CLR_FD", CallName: "ioctl", Args: []Type{
@@ -8706,7 +8706,7 @@ var syscalls_arm64 = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_num", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 542, NR: 29, Name: "ioctl$LOOP_CTL_REMOVE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_ctrl", FldName: "fd", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19584},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19585},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_num", FldName: "num", TypeSize: 8}},
 	}},
 	{ID: 543, NR: 29, Name: "ioctl$LOOP_GET_STATUS", CallName: "ioctl", Args: []Type{
@@ -15113,9 +15113,11 @@ var consts_arm64 = []ConstValue{
 	{Name: "LOCK_NB", Value: 4},
 	{Name: "LOCK_SH", Value: 1},
 	{Name: "LOCK_UN", Value: 8},
+	{Name: "LOOP_CHANGE_FD", Value: 19462},
 	{Name: "LOOP_CLR_FD", Value: 19457},
 	{Name: "LOOP_CTL_ADD", Value: 19584},
 	{Name: "LOOP_CTL_GET_FREE", Value: 19586},
+	{Name: "LOOP_CTL_REMOVE", Value: 19585},
 	{Name: "LOOP_GET_STATUS", Value: 19459},
 	{Name: "LOOP_GET_STATUS64", Value: 19461},
 	{Name: "LOOP_SET_CAPACITY", Value: 19463},
@@ -16693,4 +16695,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_arm64 = "0f161b65b9b47df42b011b2f117aa942cd7a0ba4"
+const revision_arm64 = "31be48f9b510243ba452bf201ca2109861ba8ebd"

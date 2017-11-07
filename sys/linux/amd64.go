@@ -9083,7 +9083,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 576, NR: 16, Name: "ioctl$LOOP_CHANGE_FD", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop", FldName: "fd", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19456},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19462},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "arg", TypeSize: 4}},
 	}},
 	{ID: 577, NR: 16, Name: "ioctl$LOOP_CLR_FD", CallName: "ioctl", Args: []Type{
@@ -9101,7 +9101,7 @@ var syscalls_amd64 = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_num", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 580, NR: 16, Name: "ioctl$LOOP_CTL_REMOVE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_ctrl", FldName: "fd", TypeSize: 4}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19584},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19585},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop_num", FldName: "num", TypeSize: 8}},
 	}},
 	{ID: 581, NR: 16, Name: "ioctl$LOOP_GET_STATUS", CallName: "ioctl", Args: []Type{
@@ -15674,9 +15674,11 @@ var consts_amd64 = []ConstValue{
 	{Name: "LOCK_NB", Value: 4},
 	{Name: "LOCK_SH", Value: 1},
 	{Name: "LOCK_UN", Value: 8},
+	{Name: "LOOP_CHANGE_FD", Value: 19462},
 	{Name: "LOOP_CLR_FD", Value: 19457},
 	{Name: "LOOP_CTL_ADD", Value: 19584},
 	{Name: "LOOP_CTL_GET_FREE", Value: 19586},
+	{Name: "LOOP_CTL_REMOVE", Value: 19585},
 	{Name: "LOOP_GET_STATUS", Value: 19459},
 	{Name: "LOOP_GET_STATUS64", Value: 19461},
 	{Name: "LOOP_SET_CAPACITY", Value: 19463},
@@ -17316,4 +17318,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_amd64 = "1447e1368f72229d64bace71f732cef1dfdeb5b5"
+const revision_amd64 = "cc80efbf27f36c6628b0a7ccea950e31ed9bb831"
