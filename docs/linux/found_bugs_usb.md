@@ -13,7 +13,7 @@
 * [usb/net/hfa384x: WARNING in submit_rx_urb/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/hO1s_STq2II)
 * [usb/media/dw2102: null-ptr-deref in dvb_usb_adapter_frontend_init/tt_s2_4600_frontend_attach](https://groups.google.com/forum/#!topic/syzkaller/kmNvrHHgVg4)
 * [usb/net/asix: kernel hang in asix_phy_reset](https://groups.google.com/forum/#!topic/syzkaller/3yQVZuxIO-w)
-* [usb/media/dtt200u: use-after-free in __dvb_frontend_free](https://groups.google.com/forum/#!topic/syzkaller/0HJQqTm0G_g) [[fix](https://groups.google.com/d/msg/syzkaller/0HJQqTm0G_g/WjtTvL17BQAJ)]
+* [usb/media/dtt200u: use-after-free in __dvb_frontend_free](https://groups.google.com/forum/#!topic/syzkaller/0HJQqTm0G_g) [[fix](https://patchwork.kernel.org/patch/10046189/)]
 * [usb/media/mxl111sf: trying to register non-static key in mxl111sf_ctrl_msg](https://groups.google.com/forum/#!topic/syzkaller/Xlvm_cnulFA)
 * [usb/media/au0828: use-after-free in au0828_rc_unregister](https://groups.google.com/forum/#!topic/syzkaller/3yL32uggAT0)
 * [usb/input/gtco: slab-out-of-bounds in parse_hid_report_descriptor](https://groups.google.com/forum/#!topic/syzkaller/McWFcOsA47Y) [[fix](https://github.com/torvalds/linux/commit/a50829479f58416a013a4ccca791336af3c584c7)]
@@ -32,7 +32,7 @@
 * [usb/net/ar5523: warning in ar5523_submit_rx_cmd/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/5V7rYXYCuI4)
 * [usb/media/uvc: BUG in uvc_mc_create_links/media_create_pad_link](https://groups.google.com/forum/#!topic/syzkaller/BOv81nh75TM)
 * [usb/media/v4l2: use-after-free in video_unregister_device/device_del](https://groups.google.com/forum/#!topic/syzkaller/C2RyOxjhxh4)
-* [usb/serial/visor: slab-out-of-bounds in palm_os_3_probe](https://groups.google.com/forum/#!topic/syzkaller/G5hNiJG2RXo) [fix on the way]
+* [usb/serial/visor: slab-out-of-bounds in palm_os_3_probe](https://groups.google.com/forum/#!topic/syzkaller/G5hNiJG2RXo) [[fix](https://groups.google.com/d/msg/syzkaller/G5hNiJG2RXo/Vu6_fuWJBAAJ) on the way]
 * [usb/misc/usbtest: null-ptr-deref in usbtest_probe/get_endpoints](https://groups.google.com/forum/#!topic/syzkaller/l3870gs3LhA) [[fix](https://github.com/torvalds/linux/commit/7c80f9e4a588f1925b07134bb2e3689335f6c6d8)] [CVE-2017-16532]
 * [usb/misc/ims-pcu: slab-out-of-bounds in ims_pcu_parse_cdc_data](https://groups.google.com/forum/#!topic/syzkaller/q6jjr1OhqO8) [[fix](https://github.com/torvalds/linux/commit/ea04efee7635c9120d015dcdeeeb6988130cb67a)]
 * [usb/serial: use-after-free in usb_serial_disconnect/__lock_acquire](https://groups.google.com/forum/#!topic/syzkaller/cMACrmo1x0k) [[fix1](https://github.com/torvalds/linux/commit/bd998c2e0df0469707503023d50d46cf0b10c787), [fix2](https://github.com/torvalds/linux/commit/299d7572e46f98534033a9e65973f13ad1ce9047)] [CVE-2017-16525]
