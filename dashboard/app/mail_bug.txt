@@ -9,7 +9,7 @@ compiler: {{.CompilerID}}
 {{if .HasLog}}Raw console output is attached.{{end}}
 {{if .ReproC}}C reproducer is attached{{end}}
 {{if .ReproSyz}}syzkaller reproducer is attached. See https://goo.gl/kgGztJ
-for information about syzkaller reproducers{{end}}
+for information about syzkaller reproducers{{end}}{{if and (not .ReproC) (not .ReproSyz)}}Unfortunately, I don't have any reproducer for this bug yet.{{end}}
 {{if .Moderation}}CC: {{.Maintainers}}{{end}}
 
 {{printf "%s" .Report}}
