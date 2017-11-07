@@ -49,7 +49,7 @@
 * [usb/wireless/rsi_91x: use-after-free write in __run_timers](https://groups.google.com/forum/#!topic/syzkaller/9IV2cQldrx0)
 * [usb/media/zr364xx: GPF in zr364xx_vidioc_querycap/strlcpy](https://groups.google.com/forum/#!topic/syzkaller/-EuMlzvOHGo)
 * [usb/media/stkwebcam: use-after-free in v4l2_ctrl_handler_free](https://groups.google.com/forum/#!topic/syzkaller/5kLo7aPtx1w)
-* [usb/media/dib0700: BUG in stk7070p_frontend_attach/symbol_put_addr](https://groups.google.com/forum/#!topic/syzkaller/-d6ilzbVu_g) [[fix](https://www.spinics.net/lists/kernel/msg2639205.html)]
+* [usb/media/dib0700: BUG in stk7070p_frontend_attach/symbol_put_addr](https://groups.google.com/forum/#!topic/syzkaller/-d6ilzbVu_g) [[fix](https://patchwork.linuxtv.org/patch/45291/)]
 * [usb/sounds: slab-out-of-bounds read in snd_usb_create_streams](https://groups.google.com/forum/#!topic/syzkaller/rDzv5RP_f2M) [[fix](https://github.com/torvalds/linux/commit/bfc81a8bc18e3c4ba0cbaa7666ff76be2f998991)] [CVE-2017-16529]
 * [usb/media/hdpvr: trying to register non-static key in hdpvr_probe](https://groups.google.com/forum/#!topic/syzkaller/ngC5SLvxPm4) [[fix](https://patchwork.kernel.org/patch/9966135/)]
 * [usb/net/hso: warning in hso_free_net_device](https://groups.google.com/forum/#!topic/syzkaller/J4Ua_T43Tjw)
