@@ -146,7 +146,7 @@ var srcTemplate = template.Must(template.New("").Parse(`
 
 {{.AddSource}}
 
-{{.DeclarePrintf}}
+{{if .DeclarePrintf}}
 int printf(const char *format, ...);
 {{end}}
 
