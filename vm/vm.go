@@ -185,10 +185,12 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool,
 			if matchPos < 0 {
 				matchPos = 0
 			}
-			// In some cases kernel constantly prints something to console,
+			// In some cases kernel episodically prints something to console,
 			// but fuzzer is not actually executing programs.
+			// We intentionally produce the same title as no output at all,
+			// because frequently it's the same condition.
 			if time.Since(lastExecuteTime) > 3*time.Minute {
-				return "test machine is not executing programs", nil, output, true, false
+				return "no output from test machine", nil, output, true, false
 			}
 		case <-ticker.C:
 			tickerFired = true
