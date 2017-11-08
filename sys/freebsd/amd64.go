@@ -333,7 +333,7 @@ var structDescs_amd64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "pollfd"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "pollfd", TypeSize: 8}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pollfd_events", FldName: "events", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 4, 256}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pollfd_events", FldName: "events", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 4, 256, 8192}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "revents", TypeSize: 2}}},
 	}}},
 	{Key: StructKey{Name: "recv_msghdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "recv_msghdr", TypeSize: 56}, Fields: []Type{
@@ -2174,6 +2174,7 @@ var consts_amd64 = []ConstValue{
 	{Name: "POLLERR", Value: 8},
 	{Name: "POLLHUP", Value: 16},
 	{Name: "POLLIN", Value: 1},
+	{Name: "POLLINIGNEOF", Value: 8192},
 	{Name: "POLLNVAL", Value: 32},
 	{Name: "POLLOUT", Value: 4},
 	{Name: "POLLPRI", Value: 2},
@@ -2439,4 +2440,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "88b9a5d5b712ffec9339d0e1e5cddf5834f7d598"
+const revision_amd64 = "3daf5c34426e30649a123866a30a5aad1ace2db2"
