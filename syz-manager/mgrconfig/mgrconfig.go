@@ -247,7 +247,9 @@ func parseSuppressions(cfg *Config) error {
 		"fatal error: unexpected signal during runtime execution", // presubmably OOM turned into SIGBUS
 		"signal SIGBUS: bus error",                                // presubmably OOM turned into SIGBUS
 		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
+		"Out of memory: Kill process .* \\(sshd\\)",
 		"lowmemorykiller: Killing 'syz-fuzzer'",
+		"lowmemorykiller: Killing 'sshd'",
 	}...)
 	for _, s := range supp {
 		re, err := regexp.Compile(s)
