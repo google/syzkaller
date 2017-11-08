@@ -72,7 +72,7 @@ To mark this as a duplicate of another syzbot report, please reply with:
 If it's a one-off invalid bug report, please reply with:
 #syz invalid
 Note: if the crash happens again, it will cause creation of a new bug report.
-Note: all commands must start from beginning of the line.
+Note: all commands must start from beginning of the line in the email body.
 To upstream this report, please reply with:
 #syz upstream`
 		c.expectEQ(msg.Body, body)
@@ -218,7 +218,7 @@ To mark this as a duplicate of another syzbot report, please reply with:
 If it's a one-off invalid bug report, please reply with:
 #syz invalid
 Note: if the crash happens again, it will cause creation of a new bug report.
-Note: all commands must start from beginning of the line.
+Note: all commands must start from beginning of the line in the email body.
 `
 		c.expectEQ(msg.Body, body)
 	}
