@@ -110,7 +110,7 @@ int main(int argc, char** argv)
 	// The problem is that syscall numbers are being generated from the dynamically generated
 	// C code by sysgen without using a cross-compiler.
 	// The ARM32 cross-compiler appears to add different
-	// flags than the normal gcc compiler.  Ideally, the code to generate
+	// flags than the normal gcc compiler.	Ideally, the code to generate
 	// syscall numbers should be executed on the target processor.
 	// That was tried by making changes to sys/syz-extract/linux.go andding in a -D__ARM_EABI__
 	// flag. That generated correct numbers, but led to another issue. Some calls such as mmap()
@@ -118,10 +118,10 @@ int main(int argc, char** argv)
 	// caused further issues with syz-manager. For now, the following appears to provide
 	// a workaround.
 	for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++) {
-                // Also map mmap to mmap2()'s number, just as for i386.
-                if (strcmp(syscalls[i].name, "mmap") == 0) {
-                        syscalls[i].sys_nr = __NR_mmap2;
-                }
+		// Also map mmap to mmap2()'s number, just as for i386.
+		if (strcmp(syscalls[i].name, "mmap") == 0) {
+			syscalls[i].sys_nr = __NR_mmap2;
+		}
 		if (syscalls[i].sys_nr >= 0x900000) {
 			syscalls[i].sys_nr -= 0x900000;
 		}
