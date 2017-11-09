@@ -12,8 +12,9 @@ import (
 )
 
 func TestLinuxParse(t *testing.T) {
-	tests := map[string]string{
-		`
+	tests := []ParseTest{
+		{
+			`
 [  772.918915] BUG: unable to handle kernel paging request at ffff88002bde1e40
 unrelateed line
 [  772.919010] IP: [<ffffffff82d4e304>] __memset+0x24/0x30
@@ -27,24 +28,24 @@ unrelateed line
 [  772.919010] task: ffff880066be2280 task.stack: ffff880066be8000
 [  772.919010] RIP: 0010:[<ffffffff82d4e304>]  [<ffffffff82d4e304>] __memset+0x24/0x30
 [  772.919010] RSP: 0018:ffff880066befc88  EFLAGS: 00010006
-`: `BUG: unable to handle kernel paging request in __memset`,
-
-		`
+`, `BUG: unable to handle kernel paging request in __memset`, true,
+		}, {
+			`
 [ 1019.110825] BUG: unable to handle kernel paging request at 000000010000001a
 [ 1019.112065] IP: skb_release_data+0x258/0x470
-`: `BUG: unable to handle kernel paging request in skb_release_data`,
-
-		`
-BUG: unable to handle kernel paging request at 00000000ffffff8a
-IP: [<ffffffff810a376f>] __call_rcu.constprop.76+0x1f/0x280 kernel/rcu/tree.c:3046
-`: `BUG: unable to handle kernel paging request in __call_rcu`,
-
-		`
+`, `BUG: unable to handle kernel paging request in skb_release_data`, true,
+		}, {
+			`
+[ 1019.110825] BUG: unable to handle kernel paging request at 00000000ffffff8a
+[ 1019.110825] IP: [<ffffffff810a376f>] __call_rcu.constprop.76+0x1f/0x280 kernel/rcu/tree.c:3046
+`, `BUG: unable to handle kernel paging request in __call_rcu`, true,
+		}, {
+			`
 [ 1581.999813] BUG: unable to handle kernel paging request at ffffea0000f0e440
 [ 1581.999824] IP: [<ffffea0000f0e440>] 0xffffea0000f0e440
-`: `BUG: unable to handle kernel paging request`,
-
-		`
+`, `BUG: unable to handle kernel paging request`, true,
+		}, {
+			`
 [ 1021.362826] kasan: CONFIG_KASAN_INLINE enabled
 [ 1021.363613] kasan: GPF could be caused by NULL-ptr deref or user memory access
 [ 1021.364461] general protection fault: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN
@@ -61,9 +62,9 @@ IP: [<ffffffff810a376f>] __call_rcu.constprop.76+0x1f/0x280 kernel/rcu/tree.c:30
 [ 1021.374099] RBP: ffff8800634c7c70 R08: 0000000000000000 R09: 0000000000000000
 [ 1021.374099] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
 [ 1021.375281] R13: ffff880067aa6000 R14: 0000000000000000 R15: 0000000000000000
-`: `general protection fault in drm_legacy_newctx`,
-
-		`
+`, `general protection fault in drm_legacy_newctx`, true,
+		}, {
+			`
 [ 1722.509639] kasan: GPF could be caused by NULL-ptr deref or user memory access
 [ 1722.510515] general protection fault: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN
 [ 1722.511227] Dumping ftrace buffer:
@@ -74,139 +75,249 @@ IP: [<ffffffff810a376f>] __call_rcu.constprop.76+0x1f/0x280 kernel/rcu/tree.c:30
 [ 1722.511384] task: ffff88005ea761c0 task.stack: ffff880050628000
 [ 1722.511384] RIP: 0010:[<ffffffff8213c531>]  [<ffffffff8213c531>] logfs_init_inode.isra.6+0x111/0x470
 [ 1722.511384] RSP: 0018:ffff88005062fb48  EFLAGS: 00010206
-`: `general protection fault in logfs_init_inode`,
-
-		`
-general protection fault: 0000 [#1] SMP KASAN
-Dumping ftrace buffer:
-   (ftrace buffer empty)
-Modules linked in:
-CPU: 0 PID: 27388 Comm: syz-executor5 Not tainted 4.10.0-rc6+ #117
-Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
-task: ffff88006252db40 task.stack: ffff880062090000
-RIP: 0010:__ip_options_echo+0x120a/0x1770
-RSP: 0018:ffff880062097530 EFLAGS: 00010206
-RAX: dffffc0000000000 RBX: ffff880062097910 RCX: 0000000000000000
-RDX: 0000000000000003 RSI: ffffffff83988dca RDI: 0000000000000018
-RBP: ffff8800620976a0 R08: ffff88006209791c R09: ffffed000c412f26
-R10: 0000000000000004 R11: ffffed000c412f25 R12: ffff880062097900
-R13: ffff88003a8c0a6c R14: 1ffff1000c412eb3 R15: 000000000000000d
-FS:  00007fd61b443700(0000) GS:ffff88003ec00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 000000002095f000 CR3: 0000000062876000 CR4: 00000000000006f0
-`: `general protection fault in __ip_options_echo`,
-
-		`
-==================================================================
-BUG: KASAN: slab-out-of-bounds in memcpy+0x1d/0x40 at addr ffff88003a6bd110
-Read of size 8 by task a.out/6260
-BUG: KASAN: slab-out-of-bounds in memcpy+0x1d/0x40 at addr ffff88003a6bd110
-Write of size 4 by task a.out/6260
-`: `KASAN: slab-out-of-bounds Read in memcpy`,
-
-		`
+`, `general protection fault in logfs_init_inode`, true,
+		}, {
+			`
+[ 1722.511384] general protection fault: 0000 [#1] SMP KASAN
+[ 1722.511384] Dumping ftrace buffer:
+[ 1722.511384]    (ftrace buffer empty)
+[ 1722.511384] Modules linked in:
+[ 1722.511384] CPU: 0 PID: 27388 Comm: syz-executor5 Not tainted 4.10.0-rc6+ #117
+[ 1722.511384] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[ 1722.511384] task: ffff88006252db40 task.stack: ffff880062090000
+[ 1722.511384] RIP: 0010:__ip_options_echo+0x120a/0x1770
+[ 1722.511384] RSP: 0018:ffff880062097530 EFLAGS: 00010206
+[ 1722.511384] RAX: dffffc0000000000 RBX: ffff880062097910 RCX: 0000000000000000
+[ 1722.511384] RDX: 0000000000000003 RSI: ffffffff83988dca RDI: 0000000000000018
+[ 1722.511384] RBP: ffff8800620976a0 R08: ffff88006209791c R09: ffffed000c412f26
+[ 1722.511384] R10: 0000000000000004 R11: ffffed000c412f25 R12: ffff880062097900
+[ 1722.511384] R13: ffff88003a8c0a6c R14: 1ffff1000c412eb3 R15: 000000000000000d
+[ 1722.511384] FS:  00007fd61b443700(0000) GS:ffff88003ec00000(0000) knlGS:0000000000000000
+[ 1722.511384] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1722.511384] CR2: 000000002095f000 CR3: 0000000062876000 CR4: 00000000000006f0
+`, `general protection fault in __ip_options_echo`, true,
+		}, {
+			`
+[ 1722.511384] ==================================================================
+[ 1722.511384] BUG: KASAN: slab-out-of-bounds in memcpy+0x1d/0x40 at addr ffff88003a6bd110
+[ 1722.511384] Read of size 8 by task a.out/6260
+[ 1722.511384] BUG: KASAN: slab-out-of-bounds in memcpy+0x1d/0x40 at addr ffff88003a6bd110
+[ 1722.511384] Write of size 4 by task a.out/6260
+`, `KASAN: slab-out-of-bounds Read in memcpy`, true,
+		}, {
+			`
 [   50.583499] BUG: KASAN: use-after-free in remove_wait_queue+0xfb/0x120 at addr ffff88002db3cf50
 [   50.583499] Write of size 8 by task syzkaller_execu/10568 
-`: `KASAN: use-after-free Write in remove_wait_queue`,
-
-		`
+`, `KASAN: use-after-free Write in remove_wait_queue`, true,
+		}, {
+			`
 [  380.688570] BUG: KASAN: use-after-free in copy_from_iter+0xf30/0x15e0 at addr ffff880033f4b02a
 [  380.688570] Read of size 4059 by task syz-executor/29957
-`: `KASAN: use-after-free Read in copy_from_iter`,
-
-		`
+`, `KASAN: use-after-free Read in copy_from_iter`, true,
+		}, {
+			`
 [23818.431954] BUG: KASAN: null-ptr-deref on address           (null)
 
 [23818.438140] Read of size 4 by task syz-executor/22534
 
 [23818.443211] CPU: 3 PID: 22534 Comm: syz-executor Tainted: G     U         3.18.0 #78
-`: `KASAN: null-ptr-deref Read`,
-
-		`
-==================================================================
-BUG: KASAN: wild-memory-access on address ffe7087450a17000
-Read of size 205 by task syz-executor1/9018
-`: `KASAN: wild-memory-access Read`,
-
-		`
+`, `KASAN: null-ptr-deref Read`, true,
+		}, {
+			`
+[ 1722.511384] ==================================================================
+[ 1722.511384] BUG: KASAN: wild-memory-access on address ffe7087450a17000
+[ 1722.511384] Read of size 205 by task syz-executor1/9018
+`, `KASAN: wild-memory-access Read`, true,
+		}, {
+			`
 [  149.188010] BUG: unable to handle kernel NULL pointer dereference at 000000000000058c
 unrelateed line
 [  149.188010] IP: [<ffffffff8148e81d>] __lock_acquire+0x2bd/0x3410
-`: `BUG: unable to handle kernel NULL pointer dereference in __lock_acquire`,
-
-		`
+`, `BUG: unable to handle kernel NULL pointer dereference in __lock_acquire`, true,
+		}, {
+			`
 [   55.112844] BUG: unable to handle kernel NULL pointer dereference at 000000000000001a
 [   55.113569] IP: skb_release_data+0x258/0x470
-`: `BUG: unable to handle kernel NULL pointer dereference in skb_release_data`,
-
-		`
+`, `BUG: unable to handle kernel NULL pointer dereference in skb_release_data`, true,
+		}, {
+			`
 [   50.583499] WARNING: CPU: 2 PID: 2636 at ipc/shm.c:162 shm_open.isra.5.part.6+0x74/0x80
 [   50.583499] Modules linked in: 
-`: `WARNING in shm_open`,
-
-		`
+`, `WARNING in shm_open`, true,
+		}, {
+			`
 [  753.120788] WARNING: CPU: 0 PID: 0 at net/sched/sch_generic.c:316 dev_watchdog+0x648/0x770
 [  753.122260] NETDEV WATCHDOG: eth0 (e1000): transmit queue 0 timed out
-`: `WARNING in dev_watchdog`,
-
-		`
-------------[ cut here ]------------
-WARNING: CPU: 3 PID: 1975 at fs/locks.c:241 locks_free_lock_context+0x118/0x180()
-`: `WARNING in locks_free_lock_context`,
-
-		`
-WARNING: CPU: 3 PID: 23810 at /linux-src-3.18/net/netlink/genetlink.c:1037 genl_unbind+0x110/0x130()
-`: `WARNING in genl_unbind`,
-
-		`
-=======================================================
-[ INFO: possible circular locking dependency detected ]
-2.6.32-rc6-00035-g8b17a4f #1
--------------------------------------------------------
-kacpi_hotplug/246 is trying to acquire lock:
- (kacpid){+.+.+.}, at: [<ffffffff8105bbd0>] flush_workqueue+0x0/0xb0
-`: `possible deadlock in flush_workqueue`,
-
-		`WARNING: possible circular locking dependency detected
-4.12.0-rc2-next-20170525+ #1 Not tainted
-------------------------------------------------------
-kworker/u4:2/54 is trying to acquire lock:
- (&buf->lock){+.+...}, at: [<ffffffff9edb41bb>] tty_buffer_flush+0xbb/0x3a0 drivers/tty/tty_buffer.c:221
-
-but task is already holding lock:
- (&o_tty->termios_rwsem/1){++++..}, at: [<ffffffff9eda4961>] isig+0xa1/0x4d0 drivers/tty/n_tty.c:1100
-
-which lock already depends on the new lock.
-`: `possible deadlock in tty_buffer_flush`,
-
-		`
+`, `WARNING in dev_watchdog`, true,
+		}, {
+			`
+[ 1722.511384] ------------[ cut here ]------------
+[ 1722.511384] WARNING: CPU: 3 PID: 1975 at fs/locks.c:241 locks_free_lock_context+0x118/0x180()
+`, `WARNING in locks_free_lock_context`, true,
+		}, {
+			`
+[ 1722.511384] WARNING: CPU: 3 PID: 23810 at /linux-src-3.18/net/netlink/genetlink.c:1037 genl_unbind+0x110/0x130()
+`, `WARNING in genl_unbind`, true,
+		}, {
+			`
+[ 1722.511384] ======================================================
+[ 1722.511384] WARNING: possible circular locking dependency detected
+[ 1722.511384] 4.14.0-rc1+ #1 Not tainted
+[ 1722.511384] ------------------------------------------------------
+[ 1722.511384] syz-executor0/22269 is trying to acquire lock:
+[ 1722.511384]  (&bdev->bd_mutex){+.+.}, at: [<ffffffff8232bf0e>] blkdev_reread_part+0x1e/0x40 block/ioctl.c:192
+[ 1722.511384] 
+[ 1722.511384] but task is already holding lock:
+[ 1722.511384]  (&lo->lo_ctl_mutex#2){+.+.}, at: [<ffffffff83542c29>] lo_compat_ioctl+0x109/0x140 drivers/block/loop.c:1533
+[ 1722.511384] 
+[ 1722.511384] which lock already depends on the new lock.
+[ 1722.511384] 
+[ 1722.511384] 
+[ 1722.511384] the existing dependency chain (in reverse order) is:
+[ 1722.511384] 
+[ 1722.511384] -> #1 (&lo->lo_ctl_mutex#2){+.+.}:
+[ 1722.511384]        check_prevs_add kernel/locking/lockdep.c:2020 [inline]
+[ 1722.511384]        validate_chain kernel/locking/lockdep.c:2469 [inline]
+[ 1722.511384]        __lock_acquire+0x328f/0x4620 kernel/locking/lockdep.c:3498
+[ 1722.511384]        lock_acquire+0x1d5/0x580 kernel/locking/lockdep.c:4002
+[ 1722.511384]        __mutex_lock_common kernel/locking/mutex.c:756 [inline]
+[ 1722.511384]        __mutex_lock+0x16f/0x1870 kernel/locking/mutex.c:893
+[ 1722.511384]        mutex_lock_nested+0x16/0x20 kernel/locking/mutex.c:908
+[ 1722.511384]        lo_release+0x6b/0x180 drivers/block/loop.c:1587
+[ 1722.511384]        __blkdev_put+0x602/0x7c0 fs/block_dev.c:1780
+[ 1722.511384]        blkdev_put+0x85/0x4f0 fs/block_dev.c:1845
+[ 1722.511384]        blkdev_close+0x91/0xc0 fs/block_dev.c:1852
+[ 1722.511384]        __fput+0x333/0x7f0 fs/file_table.c:210
+[ 1722.511384]        ____fput+0x15/0x20 fs/file_table.c:244
+[ 1722.511384]        task_work_run+0x199/0x270 kernel/task_work.c:112
+[ 1722.511384]        tracehook_notify_resume include/linux/tracehook.h:191 [inline]
+[ 1722.511384]        exit_to_usermode_loop+0x2a6/0x300 arch/x86/entry/common.c:162
+[ 1722.511384]        prepare_exit_to_usermode arch/x86/entry/common.c:197 [inline]
+[ 1722.511384]        syscall_return_slowpath+0x42f/0x500 arch/x86/entry/common.c:266
+[ 1722.511384]        entry_SYSCALL_64_fastpath+0xbc/0xbe
+[ 1722.511384] 
+[ 1722.511384] -> #0 (&bdev->bd_mutex){+.+.}:
+[ 1722.511384]        check_prev_add+0x865/0x1520 kernel/locking/lockdep.c:1894
+[ 1722.511384]        check_prevs_add kernel/locking/lockdep.c:2020 [inline]
+[ 1722.511384]        validate_chain kernel/locking/lockdep.c:2469 [inline]
+[ 1722.511384]        __lock_acquire+0x328f/0x4620 kernel/locking/lockdep.c:3498
+[ 1722.511384]        lock_acquire+0x1d5/0x580 kernel/locking/lockdep.c:4002
+[ 1722.511384]        __mutex_lock_common kernel/locking/mutex.c:756 [inline]
+[ 1722.511384]        __mutex_lock+0x16f/0x1870 kernel/locking/mutex.c:893
+[ 1722.511384]        mutex_lock_nested+0x16/0x20 kernel/locking/mutex.c:908
+[ 1722.511384]        blkdev_reread_part+0x1e/0x40 block/ioctl.c:192
+[ 1722.511384]        loop_reread_partitions+0x12f/0x1a0 drivers/block/loop.c:614
+[ 1722.511384]        loop_set_status+0x9ba/0xf60 drivers/block/loop.c:1156
+[ 1722.511384]        loop_set_status_compat+0x92/0xf0 drivers/block/loop.c:1506
+[ 1722.511384]        lo_compat_ioctl+0x114/0x140 drivers/block/loop.c:1534
+[ 1722.511384]        compat_blkdev_ioctl+0x3ba/0x1850 block/compat_ioctl.c:405
+[ 1722.511384]        C_SYSC_ioctl fs/compat_ioctl.c:1593 [inline]
+[ 1722.511384]        compat_SyS_ioctl+0x1da/0x3300 fs/compat_ioctl.c:1540
+[ 1722.511384]        do_syscall_32_irqs_on arch/x86/entry/common.c:329 [inline]
+[ 1722.511384]        do_fast_syscall_32+0x3f2/0xeed arch/x86/entry/common.c:391
+[ 1722.511384]        entry_SYSENTER_compat+0x51/0x60 arch/x86/entry/entry_64_compat.S:124
+[ 1722.511384] 
+[ 1722.511384] other info that might help us debug this:
+[ 1722.511384] 
+[ 1722.511384]  Possible unsafe locking scenario:
+[ 1722.511384] 
+[ 1722.511384]        CPU0                    CPU1
+[ 1722.511384]        ----                    ----
+[ 1722.511384]   lock(&lo->lo_ctl_mutex#2);
+[ 1722.511384]                                lock(&bdev->bd_mutex);
+[ 1722.511384]                                lock(&lo->lo_ctl_mutex#2);
+[ 1722.511384]   lock(&bdev->bd_mutex);
+[ 1722.511384] 
+[ 1722.511384]  *** DEADLOCK ***
+[ 1722.511384] 
+[ 1722.511384] 1 lock held by syz-executor0/22269:
+[ 1722.511384]  #0:  (&lo->lo_ctl_mutex#2){+.+.}, at: [<ffffffff83542c29>] lo_compat_ioctl+0x109/0x140 drivers/block/loop.c:1533
+[ 1722.511384] 
+[ 1722.511384] stack backtrace:
+[ 1722.511384] CPU: 0 PID: 22269 Comm: syz-executor0 Not tainted 4.14.0-rc1+ #1
+[ 1722.511384] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1722.511384] Call Trace:
+[ 1722.511384]  __dump_stack lib/dump_stack.c:16 [inline]
+[ 1722.511384]  dump_stack+0x194/0x257 lib/dump_stack.c:52
+[ 1722.511384]  print_circular_bug+0x503/0x710 kernel/locking/lockdep.c:1259
+[ 1722.511384]  check_prev_add+0x865/0x1520 kernel/locking/lockdep.c:1894
+[ 1722.511384]  check_prevs_add kernel/locking/lockdep.c:2020 [inline]
+[ 1722.511384]  validate_chain kernel/locking/lockdep.c:2469 [inline]
+[ 1722.511384]  __lock_acquire+0x328f/0x4620 kernel/locking/lockdep.c:3498
+[ 1722.511384]  lock_acquire+0x1d5/0x580 kernel/locking/lockdep.c:4002
+[ 1722.511384]  __mutex_lock_common kernel/locking/mutex.c:756 [inline]
+[ 1722.511384]  __mutex_lock+0x16f/0x1870 kernel/locking/mutex.c:893
+[ 1722.511384]  mutex_lock_nested+0x16/0x20 kernel/locking/mutex.c:908
+[ 1722.511384]  blkdev_reread_part+0x1e/0x40 block/ioctl.c:192
+[ 1722.511384]  loop_reread_partitions+0x12f/0x1a0 drivers/block/loop.c:614
+[ 1722.511384]  loop_set_status+0x9ba/0xf60 drivers/block/loop.c:1156
+[ 1722.511384]  loop_set_status_compat+0x92/0xf0 drivers/block/loop.c:1506
+[ 1722.511384]  lo_compat_ioctl+0x114/0x140 drivers/block/loop.c:1534
+[ 1722.511384]  compat_blkdev_ioctl+0x3ba/0x1850 block/compat_ioctl.c:405
+[ 1722.511384]  C_SYSC_ioctl fs/compat_ioctl.c:1593 [inline]
+[ 1722.511384]  compat_SyS_ioctl+0x1da/0x3300 fs/compat_ioctl.c:1540
+[ 1722.511384]  do_syscall_32_irqs_on arch/x86/entry/common.c:329 [inline]
+[ 1722.511384]  do_fast_syscall_32+0x3f2/0xeed arch/x86/entry/common.c:391
+[ 1722.511384]  entry_SYSENTER_compat+0x51/0x60 arch/x86/entry/entry_64_compat.S:124
+[ 1722.511384] RIP: 0023:0xf7fd5c79
+[ 1722.511384] RSP: 002b:00000000f77d105c EFLAGS: 00000296 ORIG_RAX: 0000000000000036
+[ 1722.511384] RAX: ffffffffffffffda RBX: 0000000000000016 RCX: 0000000000004c02
+[ 1722.511384] RDX: 00000000202e3000 RSI: 0000000000000000 RDI: 0000000000000000
+[ 1722.511384] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[ 1722.511384] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[ 1722.511384] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+`, `possible deadlock in blkdev_reread_part`, false,
+		}, {
+			`
+[ 1722.511384] =======================================================
+[ 1722.511384] [ INFO: possible circular locking dependency detected ]
+[ 1722.511384] 2.6.32-rc6-00035-g8b17a4f #1
+[ 1722.511384] -------------------------------------------------------
+[ 1722.511384] kacpi_hotplug/246 is trying to acquire lock:
+[ 1722.511384]  (kacpid){+.+.+.}, at: [<ffffffff8105bbd0>] flush_workqueue+0x0/0xb0
+`, `possible deadlock in flush_workqueue`, true,
+		}, {
+			`
+[ 1722.511384] WARNING: possible circular locking dependency detected
+[ 1722.511384] 4.12.0-rc2-next-20170525+ #1 Not tainted
+[ 1722.511384] ------------------------------------------------------
+[ 1722.511384] kworker/u4:2/54 is trying to acquire lock:
+[ 1722.511384]  (&buf->lock){+.+...}, at: [<ffffffff9edb41bb>] tty_buffer_flush+0xbb/0x3a0 drivers/tty/tty_buffer.c:221
+[ 1722.511384] 
+[ 1722.511384] but task is already holding lock:
+[ 1722.511384]  (&o_tty->termios_rwsem/1){++++..}, at: [<ffffffff9eda4961>] isig+0xa1/0x4d0 drivers/tty/n_tty.c:1100
+[ 1722.511384] 
+[ 1722.511384] which lock already depends on the new lock.
+`, `possible deadlock in tty_buffer_flush`, true,
+		}, {
+			`
 [   44.025025] =========================================================
 [   44.025025] [ INFO: possible irq lock inversion dependency detected ]
 [   44.025025] 4.10.0-rc8+ #228 Not tainted
 [   44.025025] ---------------------------------------------------------
 [   44.025025] syz-executor6/1577 just changed the state of lock:
 [   44.025025]  (&(&r->consumer_lock)->rlock){+.+...}, at: [<ffffffff82de6c86>] tun_queue_purge+0xe6/0x210
-`: `possible deadlock in tun_queue_purge`,
-
-		`
+`, `possible deadlock in tun_queue_purge`, true,
+		}, {
+			`
 [  121.451623] ======================================================
 [  121.452013] [ INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected ]
 [  121.452013] 4.10.0-rc8+ #228 Not tainted
 [  121.453507] ------------------------------------------------------
 [  121.453507] syz-executor1/19557 [HC0[0]:SC0[0]:HE0:SE1] is trying to acquire:
 [  121.453507]  (&(&r->consumer_lock)->rlock){+.+...}, at: [<ffffffff82df4347>] tun_device_event+0x897/0xc70
-`: `possible deadlock in tun_device_event`,
-
-		`
+`, `possible deadlock in tun_device_event`, true,
+		}, {
+			`
 [   48.981019] =============================================
 [   48.981019] [ INFO: possible recursive locking detected ]
 [   48.981019] 4.11.0-rc4+ #198 Not tainted
 [   48.981019] ---------------------------------------------
 [   48.981019] kauditd/901 is trying to acquire lock:
 [   48.981019]  (audit_cmd_mutex){+.+.+.}, at: [<ffffffff81585f59>] audit_receive+0x79/0x360
-`: `possible deadlock in audit_receive`,
-
-		`
+`, `possible deadlock in audit_receive`, true,
+		}, {
+			`
 [  131.449768] ======================================================
 [  131.449777] [ INFO: possible circular locking dependency detected ]
 [  131.449789] 3.10.37+ #1 Not tainted
@@ -214,9 +325,9 @@ which lock already depends on the new lock.
 [  131.449807] swapper/2/0 is trying to acquire lock:
 [  131.449859]  (&port_lock_key){-.-...}, at: [<c036a6dc>]     serial8250_console_write+0x108/0x134
 [  131.449866] 
-`: `possible deadlock in serial8250_console_write`,
-
-		`
+`, `possible deadlock in serial8250_console_write`, true,
+		}, {
+			`
 [   52.261501] =================================
 [   52.261501] [ INFO: inconsistent lock state ]
 [   52.261501] 4.10.0+ #60 Not tainted
@@ -224,17 +335,17 @@ which lock already depends on the new lock.
 [   52.261501] inconsistent {IN-SOFTIRQ-W} -> {SOFTIRQ-ON-W} usage.
 [   52.261501] syz-executor3/5076 [HC0[0]:SC0[0]:HE1:SE1] takes:
 [   52.261501]  (&(&hashinfo->ehash_locks[i])->rlock){+.?...}, at: [<ffffffff83a6a370>] inet_ehash_insert+0x240/0xad0
-`: `inconsistent lock state in inet_ehash_insert`,
-
-		`
-[ INFO: suspicious RCU usage. ]
-4.3.5-smp-DEV #101 Not tainted
--------------------------------
-net/core/filter.c:1917 suspicious rcu_dereference_protected() usage!
-other info that might help us debug this:
-`: `suspicious RCU usage at net/core/filter.c:LINE`,
-
-		`
+`, `inconsistent lock state in inet_ehash_insert`, true,
+		}, {
+			`
+[ 1722.511384] [ INFO: suspicious RCU usage. ]
+[ 1722.511384] 4.3.5-smp-DEV #101 Not tainted
+[ 1722.511384] -------------------------------
+[ 1722.511384] net/core/filter.c:1917 suspicious rcu_dereference_protected() usage!
+[ 1722.511384] other info that might help us debug this:
+`, `suspicious RCU usage at net/core/filter.c:LINE`, true,
+		}, {
+			`
 [   37.540474] ===============================
 [   37.540478] [ INFO: suspicious RCU usage. ]
 [   37.540495] 4.9.0-rc4+ #47 Not tainted
@@ -254,11 +365,9 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [   37.540580] ){+.+.+.}
 [   37.540609] , at: 
 [   37.540610] [<ffffffff81055862>] vcpu_load+0x22/0x70
-[   37.540614] 
-[   37.540614] stack backtrace:
-`: `suspicious RCU usage at ./include/linux/kvm_host.h:LINE`,
-
-		`
+`, `suspicious RCU usage at ./include/linux/kvm_host.h:LINE`, true,
+		}, {
+			`
 [   80.586804] =====================================
 [  734.270366] [ BUG: syz-executor/31761 still has locks held! ]
 [  734.307462] 4.8.0+ #30 Not tainted
@@ -298,31 +407,31 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  734.704230]  [<ffffffff8100501a>] ? trace_hardirqs_on_thunk+0x1a/0x1c
 [  734.710821]  [<ffffffff86da6d05>] entry_SYSCALL_64_fastpath+0x23/0xc6
 [  734.717436]  [<ffffffff816939e7>] ? perf_event_mmap+0x77/0xb20
-`: `BUG: still has locks held in pipe_lock`,
-
-		`
-=====================================
-[ BUG: bad unlock balance detected! ]
-4.10.0+ #179 Not tainted
--------------------------------------
-syz-executor1/21439 is trying to release lock (sk_lock-AF_INET) at:
-[<ffffffff83f7ac8b>] sctp_sendmsg+0x2a3b/0x38a0 net/sctp/socket.c:2007
-`: `BUG: bad unlock balance in sctp_sendmsg`,
-
-		`
+`, `BUG: still has locks held in pipe_lock`, false,
+		}, {
+			`
+[ 1722.511384] =====================================
+[ 1722.511384] [ BUG: bad unlock balance detected! ]
+[ 1722.511384] 4.10.0+ #179 Not tainted
+[ 1722.511384] -------------------------------------
+[ 1722.511384] syz-executor1/21439 is trying to release lock (sk_lock-AF_INET) at:
+[ 1722.511384] [<ffffffff83f7ac8b>] sctp_sendmsg+0x2a3b/0x38a0 net/sctp/socket.c:2007
+`, `BUG: bad unlock balance in sctp_sendmsg`, true,
+		}, {
+			`
 [  633.049984] =========================
 [  633.049987] [ BUG: held lock freed! ]
 [  633.049993] 4.10.0+ #260 Not tainted
 [  633.049996] -------------------------
 [  633.050005] syz-executor7/27251 is freeing memory ffff8800178f8180-ffff8800178f8a77, with a lock still held there!
 [  633.050009]  (slock-AF_INET6){+.-...}, at: [<ffffffff835f22c9>] sk_clone_lock+0x3d9/0x12c0
-`: `BUG: held lock freed in sk_clone_lock`,
-
-		`
+`, `BUG: held lock freed in sk_clone_lock`, true,
+		}, {
+			`
 [ 2569.618120] BUG: Bad rss-counter state mm:ffff88005fac4300 idx:0 val:15
-`: `BUG: Bad rss-counter state`,
-
-		`
+`, `BUG: Bad rss-counter state`, true,
+		}, {
+			`
 [    4.556968] ================================================================================
 [    4.556972] UBSAN: Undefined behaviour in drivers/usb/core/devio.c:1517:25
 [    4.556975] shift exponent -1 is negative
@@ -337,9 +446,9 @@ syz-executor1/21439 is trying to release lock (sk_lock-AF_INET) at:
 [    4.557015]  [<ffffffff81bcc1c1>] __ubsan_handle_shift_out_of_bounds+0xf1/0x140
 [    4.557030]  [<ffffffff822247af>] ? proc_do_submiturb+0x9af/0x2c30
 [    4.557034]  [<ffffffff82226794>] proc_do_submiturb+0x2994/0x2c30
-`: `UBSAN: Undefined behaviour in drivers/usb/core/devio.c:LINE`,
-
-		`
+`, `UBSAN: Undefined behaviour in drivers/usb/core/devio.c:LINE`, false,
+		}, {
+			`
 [    3.805449] ================================================================================
 [    3.805453] UBSAN: Undefined behaviour in ./arch/x86/include/asm/atomic.h:156:2
 [    3.805455] signed integer overflow:
@@ -358,20 +467,47 @@ syz-executor1/21439 is trying to release lock (sk_lock-AF_INET) at:
 [    3.805496]  [<ffffffff81bcbc7e>] __ubsan_handle_add_overflow+0xe/0x10
 [    3.805500]  [<ffffffff82680a4a>] ip_idents_reserve+0x9a/0xd0
 [    3.805503]  [<ffffffff826835e9>] __ip_select_ident+0xc9/0x160
-`: `UBSAN: Undefined behaviour in ./arch/x86/include/asm/atomic.h:LINE`,
-
-		`
+`, `UBSAN: Undefined behaviour in ./arch/x86/include/asm/atomic.h:LINE`, false,
+		}, {
+			`
 [   50.583499] UBSAN: Undefined behaviour in kernel/time/hrtimer.c:310:16
 [   50.583499] signed integer overflow:
-`: `UBSAN: Undefined behaviour in kernel/time/hrtimer.c:LINE`,
-
-		`
-------------[ cut here ]------------
-kernel BUG at fs/buffer.c:1917!
-invalid opcode: 0000 [#1] SMP
-`: `kernel BUG at fs/buffer.c:LINE!`,
-
-		`
+`, `UBSAN: Undefined behaviour in kernel/time/hrtimer.c:LINE`, true,
+		}, {
+			`
+[ 1722.511384] ------------[ cut here ]------------
+[ 1722.511384] kernel BUG at fs/buffer.c:1917!
+[ 1722.511384] invalid opcode: 0000 [#1] SMP
+[ 1722.511384] `, `kernel BUG at fs/buffer.c:LINE!`, true,
+		}, {
+			`
+[   34.517718] ------------[ cut here ]------------
+[   34.522456] kernel BUG at arch/x86/kvm/mmu.c:1284!
+[   34.527367] invalid opcode: 0000 [#1] SMP KASAN
+[   34.532361] Modules linked in:
+[   34.535649] CPU: 0 PID: 3918 Comm: syz-executor5 Not tainted 4.3.5+ #6
+[   34.542290] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   34.551627] task: ffff8800b3d1c580 ti: ffff8800b2c44000 task.ti: ffff8800b2c44000
+[   34.559224] RIP: 0010:[<ffffffff810d9c93>]  [<ffffffff810d9c93>] pte_list_remove+0x3b3/0x3d0
+[   34.567915] RSP: 0018:ffff8800b2c476c0  EFLAGS: 00010286
+[   34.573342] RAX: 0000000000000028 RBX: ffff8800bce83080 RCX: 0000000000000000
+[   34.580594] RDX: 0000000000000028 RSI: ffff8801db415fe8 RDI: ffffed0016588ecc
+[   34.587876] RBP: ffff8800b2c47700 R08: 0000000000000001 R09: 0000000000000000
+[   34.595125] R10: 0000000000000003 R11: 0000000000000001 R12: ffff8800b3efd028
+[   34.602380] R13: 0000000000000000 R14: ffff8800b3c165b0 R15: ffff8800b3c165d8
+[   34.609634] FS:  0000000000000000(0000) GS:ffff8801db400000(0000) knlGS:0000000000000000
+[   34.617841] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   34.623698] CR2: 00000000004c4b90 CR3: 00000001ce6eb000 CR4: 00000000001426f0
+[   34.630951] Stack:
+[   34.633064]  ffff8800bce83080 ffffffff00000012 ffff8800b3efd028 0000000000000005
+[   34.641057]  ffff8800b3efd028 ffff8801d7ca0240 ffff8800b3c165b0 ffff8800b3c165d8
+[   34.649045]  ffff8800b2c47740 ffffffff810ec8b2 0000000000000246 00000001c8d4cc77
+[   34.657038] Call Trace:
+[   34.659617]  [<ffffffff810ec8b2>] drop_spte+0x162/0x260
+[   34.664960]  [<ffffffff810f46e2>] mmu_page_zap_pte+0x1d2/0x310
+`, `kernel BUG at arch/x86/kvm/mmu.c:LINE!`, false,
+		}, {
+			`
 [  167.347989] Disabling lock debugging due to kernel taint
 [  167.353311] Unable to handle kernel paging request at virtual address dead000000000108
 [  167.361225] pgd = ffffffc0a39a0000
@@ -384,23 +520,23 @@ invalid opcode: 0000 [#1] SMP
 [  167.403931] LR is at _snd_timer_stop.constprop.9+0x184/0x2b0
 [  167.409593] pc : [<ffffffc000d394c4>] lr : [<ffffffc000d394c4>] pstate: 200001c5
 [  167.416985] sp : ffffffc016113990
-`: `unable to handle kernel paging request in _snd_timer_stop`,
-
-		`
-Unable to handle kernel paging request at virtual address 0c0c9ca0
-pgd = c0004000
-[0c0c9ca0] *pgd=00000000
-Internal error: Oops: 5 [#1] PREEMPT
-last sysfs file: /sys/devices/virtual/irqk/irqk/dev
-Modules linked in: cmemk dm365mmap edmak irqk
-CPU: 0    Not tainted  (2.6.32-17-ridgerun #22)
-PC is at blk_rq_map_sg+0x70/0x2c0
-LR is at mmc_queue_map_sg+0x2c/0xa4
-pc : [<c01751ac>]    lr : [<c025a42c>]    psr: 80000013
-sp : c23e1db0  ip : c3cf8848  fp : c23e1df4
-`: `unable to handle kernel paging request in blk_rq_map_sg`,
-
-		`
+`, `unable to handle kernel paging request in _snd_timer_stop`, true,
+		}, {
+			`
+[ 1722.511384] Unable to handle kernel paging request at virtual address 0c0c9ca0
+[ 1722.511384] pgd = c0004000
+[ 1722.511384] [0c0c9ca0] *pgd=00000000
+[ 1722.511384] Internal error: Oops: 5 [#1] PREEMPT
+[ 1722.511384] last sysfs file: /sys/devices/virtual/irqk/irqk/dev
+[ 1722.511384] Modules linked in: cmemk dm365mmap edmak irqk
+[ 1722.511384] CPU: 0    Not tainted  (2.6.32-17-ridgerun #22)
+[ 1722.511384] PC is at blk_rq_map_sg+0x70/0x2c0
+[ 1722.511384] LR is at mmc_queue_map_sg+0x2c/0xa4
+[ 1722.511384] pc : [<c01751ac>]    lr : [<c025a42c>]    psr: 80000013
+[ 1722.511384] sp : c23e1db0  ip : c3cf8848  fp : c23e1df4
+`, `unable to handle kernel paging request in blk_rq_map_sg`, true,
+		}, {
+			`
 [ 2713.133889] Kernel panic - not syncing: Attempted to kill init! exitcode=0x00000013
 [ 2713.133889] 
 [ 2713.136293] CPU: 2 PID: 1 Comm: init.sh Not tainted 4.8.0-rc3+ #35
@@ -416,13 +552,13 @@ sp : c23e1db0  ip : c3cf8848  fp : c23e1df4
 [ 2713.153531]  [<ffffffff86c24cc7>] ? _raw_write_unlock_irq+0x27/0x70
 [ 2713.153531]  [<ffffffff8139012f>] do_exit+0x24df/0x2c10
 [ 2713.153531]  [<ffffffff8138dc50>] ? mm_update_next_owner+0x640/0x640
-`: `kernel panic: Attempted to kill init!`,
-
-		`
+`, `kernel panic: Attempted to kill init!`, false,
+		}, {
+			`
 [  616.344091] Kernel panic - not syncing: Fatal exception in interrupt
-`: `kernel panic: Fatal exception in interrupt`,
-
-		`
+`, `kernel panic: Fatal exception in interrupt`, true,
+		}, {
+			`
 [  616.309156] divide error: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN
 [  616.310026] Dumping ftrace buffer:
 [  616.310085]    (ftrace buffer empty)
@@ -432,99 +568,99 @@ sp : c23e1db0  ip : c3cf8848  fp : c23e1df4
 [  616.312546] task: ffff88002fe9e580 task.stack: ffff8800316a8000
 [  616.312546] RIP: 0010:[<ffffffff8575b41c>]  [<ffffffff8575b41c>] snd_hrtimer_callback+0x1bc/0x3c0
 [  616.312546] RSP: 0018:ffff88003ed07d98  EFLAGS: 00010006
-`: `divide error in snd_hrtimer_callback`,
-
-		`
-divide error: 0000 [#1] SMP KASAN
-Dumping ftrace buffer:
-   (ftrace buffer empty)
-Modules linked in:
-CPU: 2 PID: 5664 Comm: syz-executor5 Not tainted 4.10.0-rc6+ #122
-Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
-task: ffff88003a46adc0 task.stack: ffff880036a00000
-RIP: 0010:__tcp_select_window+0x6db/0x920
-RSP: 0018:ffff880036a07638 EFLAGS: 00010212
-RAX: 0000000000000480 RBX: ffff880036a077d0 RCX: ffffc900030db000
-RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffff88003809c3b5
-RBP: ffff880036a077f8 R08: ffff880039de5dc0 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000480
-R13: 0000000000000000 R14: ffff88003809bb00 R15: 0000000000000000
-FS:  00007f35ecf32700(0000) GS:ffff88006de00000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00000000205fb000 CR3: 0000000032467000 CR4: 00000000000006e0
-`: `divide error in __tcp_select_window`,
-
-		`
-unreferenced object 0xffff880039a55260 (size 64): 
-  comm "executor", pid 11746, jiffies 4298984475 (age 16.078s) 
-  hex dump (first 32 bytes): 
-    2f 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  /............... 
-    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................ 
-  backtrace: 
-    [<ffffffff848a2f5f>] sock_kmalloc+0x7f/0xc0 net/core/sock.c:1774 
-    [<ffffffff84e5bea0>] do_ipv6_setsockopt.isra.7+0x15d0/0x2830 net/ipv6/ipv6_sockglue.c:483 
-    [<ffffffff84e5d19b>] ipv6_setsockopt+0x9b/0x140 net/ipv6/ipv6_sockglue.c:885 
-    [<ffffffff8544616c>] sctp_setsockopt+0x15c/0x36c0 net/sctp/socket.c:3702 
-    [<ffffffff848a2035>] sock_common_setsockopt+0x95/0xd0 net/core/sock.c:2645 
-    [<ffffffff8489f1d8>] SyS_setsockopt+0x158/0x240 net/socket.c:1736 
-`: `memory leak in ipv6_setsockopt (size 64)`,
-
-		`
-unreferenced object 0xffff8800342540c0 (size 1864): 
-  comm "a.out", pid 24109, jiffies 4299060398 (age 27.984s) 
-  hex dump (first 32 bytes): 
-    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................ 
-    0a 00 07 40 00 00 00 00 00 00 00 00 00 00 00 00  ...@............ 
-  backtrace: 
-    [<ffffffff85c73a22>] kmemleak_alloc+0x72/0xc0 mm/kmemleak.c:915 
-    [<ffffffff816cc14d>] kmem_cache_alloc+0x12d/0x2c0 mm/slub.c:2607 
-    [<ffffffff84b642c9>] sk_prot_alloc+0x69/0x340 net/core/sock.c:1344 
-    [<ffffffff84b6d36a>] sk_alloc+0x3a/0x6b0 net/core/sock.c:1419 
-    [<ffffffff850c6d57>] inet6_create+0x2d7/0x1000 net/ipv6/af_inet6.c:173 
-    [<ffffffff84b5f47c>] __sock_create+0x37c/0x640 net/socket.c:1162 
-`: `memory leak in sk_prot_alloc (size 1864)`,
-
-		`
-unreferenced object 0xffff880133c63800 (size 1024):
-  comm "exe", pid 1521, jiffies 4294894652
-  backtrace:
-    [<ffffffff810f8f36>] create_object+0x126/0x2b0
-    [<ffffffff810f91d5>] kmemleak_alloc+0x25/0x60
-    [<ffffffff810f32a3>] __kmalloc+0x113/0x200
-    [<ffffffff811aa061>] ext4_mb_init+0x1b1/0x570
-    [<ffffffff8119b3d2>] ext4_fill_super+0x1de2/0x26d0
-`: `memory leak in __kmalloc (size 1024)`,
-
-		`
-unreferenced object 0xc625e000 (size 2048):
-  comm "swapper", pid 1, jiffies 4294937521
-  backtrace:
-    [<c00c89f0>] create_object+0x11c/0x200
-    [<c00c6764>] __kmalloc_track_caller+0x138/0x178
-    [<c01d78c0>] __alloc_skb+0x4c/0x100
-    [<c01d8490>] dev_alloc_skb+0x18/0x3c
-    [<c0198b48>] eth_rx_fill+0xd8/0x3fc
-    [<c019ac74>] mv_eth_start_internals+0x30/0xf8
-`: `memory leak in __alloc_skb (size 2048)`,
-
-		`
-unreferenced object 0xdb8040c0 (size 20):
-  comm "swapper", pid 0, jiffies 4294667296
-  backtrace:
-    [<c04fd8b3>] kmemleak_alloc+0x193/0x2b8
-    [<c04f5e73>] kmem_cache_alloc+0x11e/0x174
-    [<c0aae5a7>] debug_objects_mem_init+0x63/0x1d9
-    [<c0a86a62>] start_kernel+0x2da/0x38d
-    [<c0a86090>] i386_start_kernel+0x7f/0x98
-    [<ffffffff>] 0xffffffff
-`: `memory leak in debug_objects_mem_init (size 20)`,
-
-		`
-BUG: sleeping function called from invalid context at include/linux/wait.h:1095 
-in_atomic(): 1, irqs_disabled(): 0, pid: 3658, name: syz-fuzzer 
-`: `BUG: sleeping function called from invalid context at include/linux/wait.h:LINE `,
-
-		`
+`, `divide error in snd_hrtimer_callback`, true,
+		}, {
+			`
+[ 1722.511384] divide error: 0000 [#1] SMP KASAN
+[ 1722.511384] Dumping ftrace buffer:
+[ 1722.511384]    (ftrace buffer empty)
+[ 1722.511384] Modules linked in:
+[ 1722.511384] CPU: 2 PID: 5664 Comm: syz-executor5 Not tainted 4.10.0-rc6+ #122
+[ 1722.511384] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[ 1722.511384] task: ffff88003a46adc0 task.stack: ffff880036a00000
+[ 1722.511384] RIP: 0010:__tcp_select_window+0x6db/0x920
+[ 1722.511384] RSP: 0018:ffff880036a07638 EFLAGS: 00010212
+[ 1722.511384] RAX: 0000000000000480 RBX: ffff880036a077d0 RCX: ffffc900030db000
+[ 1722.511384] RDX: 0000000000000000 RSI: 0000000000000000 RDI: ffff88003809c3b5
+[ 1722.511384] RBP: ffff880036a077f8 R08: ffff880039de5dc0 R09: 0000000000000000
+[ 1722.511384] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000480
+[ 1722.511384] R13: 0000000000000000 R14: ffff88003809bb00 R15: 0000000000000000
+[ 1722.511384] FS:  00007f35ecf32700(0000) GS:ffff88006de00000(0000) knlGS:0000000000000000
+[ 1722.511384] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[ 1722.511384] CR2: 00000000205fb000 CR3: 0000000032467000 CR4: 00000000000006e0
+`, `divide error in __tcp_select_window`, true,
+		}, {
+			`
+[ 1722.511384] unreferenced object 0xffff880039a55260 (size 64): 
+[ 1722.511384]   comm "executor", pid 11746, jiffies 4298984475 (age 16.078s) 
+[ 1722.511384]   hex dump (first 32 bytes): 
+[ 1722.511384]     2f 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  /............... 
+[ 1722.511384]     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................ 
+[ 1722.511384]   backtrace: 
+[ 1722.511384]     [<ffffffff848a2f5f>] sock_kmalloc+0x7f/0xc0 net/core/sock.c:1774 
+[ 1722.511384]     [<ffffffff84e5bea0>] do_ipv6_setsockopt.isra.7+0x15d0/0x2830 net/ipv6/ipv6_sockglue.c:483 
+[ 1722.511384]     [<ffffffff84e5d19b>] ipv6_setsockopt+0x9b/0x140 net/ipv6/ipv6_sockglue.c:885 
+[ 1722.511384]     [<ffffffff8544616c>] sctp_setsockopt+0x15c/0x36c0 net/sctp/socket.c:3702 
+[ 1722.511384]     [<ffffffff848a2035>] sock_common_setsockopt+0x95/0xd0 net/core/sock.c:2645 
+[ 1722.511384]     [<ffffffff8489f1d8>] SyS_setsockopt+0x158/0x240 net/socket.c:1736 
+`, `memory leak in ipv6_setsockopt (size 64)`, false,
+		}, {
+			`
+[ 1722.511384] unreferenced object 0xffff8800342540c0 (size 1864): 
+[ 1722.511384]   comm "a.out", pid 24109, jiffies 4299060398 (age 27.984s) 
+[ 1722.511384]   hex dump (first 32 bytes): 
+[ 1722.511384]     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................ 
+[ 1722.511384]     0a 00 07 40 00 00 00 00 00 00 00 00 00 00 00 00  ...@............ 
+[ 1722.511384]   backtrace: 
+[ 1722.511384]     [<ffffffff85c73a22>] kmemleak_alloc+0x72/0xc0 mm/kmemleak.c:915 
+[ 1722.511384]     [<ffffffff816cc14d>] kmem_cache_alloc+0x12d/0x2c0 mm/slub.c:2607 
+[ 1722.511384]     [<ffffffff84b642c9>] sk_prot_alloc+0x69/0x340 net/core/sock.c:1344 
+[ 1722.511384]     [<ffffffff84b6d36a>] sk_alloc+0x3a/0x6b0 net/core/sock.c:1419 
+[ 1722.511384]     [<ffffffff850c6d57>] inet6_create+0x2d7/0x1000 net/ipv6/af_inet6.c:173 
+[ 1722.511384]     [<ffffffff84b5f47c>] __sock_create+0x37c/0x640 net/socket.c:1162 
+`, `memory leak in sk_prot_alloc (size 1864)`, false,
+		}, {
+			`
+[ 1722.511384] unreferenced object 0xffff880133c63800 (size 1024):
+[ 1722.511384]   comm "exe", pid 1521, jiffies 4294894652
+[ 1722.511384]   backtrace:
+[ 1722.511384]     [<ffffffff810f8f36>] create_object+0x126/0x2b0
+[ 1722.511384]     [<ffffffff810f91d5>] kmemleak_alloc+0x25/0x60
+[ 1722.511384]     [<ffffffff810f32a3>] __kmalloc+0x113/0x200
+[ 1722.511384]     [<ffffffff811aa061>] ext4_mb_init+0x1b1/0x570
+[ 1722.511384]     [<ffffffff8119b3d2>] ext4_fill_super+0x1de2/0x26d0
+`, `memory leak in __kmalloc (size 1024)`, false,
+		}, {
+			`
+[ 1722.511384] unreferenced object 0xc625e000 (size 2048):
+[ 1722.511384]   comm "swapper", pid 1, jiffies 4294937521
+[ 1722.511384]   backtrace:
+[ 1722.511384]     [<c00c89f0>] create_object+0x11c/0x200
+[ 1722.511384]     [<c00c6764>] __kmalloc_track_caller+0x138/0x178
+[ 1722.511384]     [<c01d78c0>] __alloc_skb+0x4c/0x100
+[ 1722.511384]     [<c01d8490>] dev_alloc_skb+0x18/0x3c
+[ 1722.511384]     [<c0198b48>] eth_rx_fill+0xd8/0x3fc
+[ 1722.511384]     [<c019ac74>] mv_eth_start_internals+0x30/0xf8
+`, `memory leak in __alloc_skb (size 2048)`, false,
+		}, {
+			`
+[ 1722.511384] unreferenced object 0xdb8040c0 (size 20):
+[ 1722.511384]   comm "swapper", pid 0, jiffies 4294667296
+[ 1722.511384]   backtrace:
+[ 1722.511384]     [<c04fd8b3>] kmemleak_alloc+0x193/0x2b8
+[ 1722.511384]     [<c04f5e73>] kmem_cache_alloc+0x11e/0x174
+[ 1722.511384]     [<c0aae5a7>] debug_objects_mem_init+0x63/0x1d9
+[ 1722.511384]     [<c0a86a62>] start_kernel+0x2da/0x38d
+[ 1722.511384]     [<c0a86090>] i386_start_kernel+0x7f/0x98
+[ 1722.511384]     [<ffffffff>] 0xffffffff
+`, `memory leak in debug_objects_mem_init (size 20)`, false,
+		}, {
+			`
+[ 1722.511384] BUG: sleeping function called from invalid context at include/linux/wait.h:1095 
+[ 1722.511384] in_atomic(): 1, irqs_disabled(): 0, pid: 3658, name: syz-fuzzer 
+`, `BUG: sleeping function called from invalid context at include/linux/wait.h:LINE `, true,
+		}, {
+			`
 [  277.780013] INFO: rcu_sched self-detected stall on CPU
 [  277.781045] INFO: rcu_sched detected stalls on CPUs/tasks:
 [  277.781153] 	1-...: (65000 ticks this GP) idle=395/140000000000001/0 softirq=122875/122875 fqs=16248 
@@ -570,53 +706,53 @@ in_atomic(): 1, irqs_disabled(): 0, pid: 3658, name: syz-fuzzer
 [  277.782014]  ? __sctp_write_space+0x3f7/0x920
 [  277.782014]  ? sctp_transport_lookup_process+0x190/0x190
 [  277.782014]  ? trace_hardirqs_on_thunk+0x1a/0x1c
-`: `INFO: rcu detected stall in __sctp_write_space`,
-
-		`
-INFO: rcu_preempt detected stalls on CPUs/tasks: { 2} (detected by 0, t=65008 jiffies, g=48068, c=48067, q=7339)
-`: `INFO: rcu detected stall`,
-
-		`
+`, `INFO: rcu detected stall in __sctp_write_space`, false,
+		}, {
+			`
+[ 1722.511384] INFO: rcu_preempt detected stalls on CPUs/tasks: { 2} (detected by 0, t=65008 jiffies, g=48068, c=48067, q=7339)
+`, `INFO: rcu detected stall`, true,
+		}, {
+			`
 [  317.168127] INFO: rcu_sched detected stalls on CPUs/tasks: { 0} (detected by 1, t=2179 jiffies, g=740, c=739, q=1)
-`: `INFO: rcu detected stall`,
-
-		`
+`, `INFO: rcu detected stall`, true,
+		}, {
+			`
 [   50.583499] something
 [   50.583499] INFO: rcu_preempt self-detected stall on CPU
 [   50.583499]         0: (20822 ticks this GP) idle=94b/140000000000001/0
-`: `INFO: rcu detected stall`,
-
-		`
+`, `INFO: rcu detected stall`, true,
+		}, {
+			`
 [   50.583499] INFO: rcu_sched self-detected stall on CPU
-`: `INFO: rcu detected stall`,
-
-		`
+`, `INFO: rcu detected stall`, true,
+		}, {
+			`
 [  152.002376] INFO: rcu_bh detected stalls on CPUs/tasks:
-`: `INFO: rcu detected stall`,
-
-		`
+`, `INFO: rcu detected stall`, true,
+		}, {
+			`
 [   72.159680] INFO: rcu_sched detected expedited stalls on CPUs/tasks: {
-`: `INFO: rcu detected stall`,
-
-		`
-BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
-`: `BUG: spinlock lockup suspected`,
-
-		`
-BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]
-`: `BUG: soft lockup`,
-
-		`
-BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
-BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]
-`: `BUG: spinlock lockup suspected`,
-
-		`
-BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]
-BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
-`: `BUG: soft lockup`,
-
-		`
+`, `INFO: rcu detected stall`, true,
+		}, {
+			`
+[   72.159680] BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
+`, `BUG: spinlock lockup suspected`, true,
+		}, {
+			`
+[   72.159680] BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]
+`, `BUG: soft lockup`, true,
+		}, {
+			`
+[   72.159680] BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
+[   72.159680] BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]
+`, `BUG: spinlock lockup suspected`, true,
+		}, {
+			`
+[   72.159680] BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]
+[   72.159680] BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
+`, `BUG: soft lockup`, true,
+		}, {
+			`
 [  213.269287] BUG: spinlock recursion on CPU#0, syz-executor7/5032
 [  213.281506]  lock: 0xffff88006c122d00, .magic: dead4ead, .owner: syz-executor7/5032, .owner_cpu: -1
 [  213.285112] CPU: 0 PID: 5032 Comm: syz-executor7 Not tainted 4.9.0-rc7+ #58
@@ -633,9 +769,9 @@ BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
 [  213.618060]  [<ffffffff814b7615>] ? __task_rq_lock+0xf5/0x330
 [  213.618060]  [<ffffffff814b7615>] __task_rq_lock+0xf5/0x330
 [  213.618060]  [<ffffffff814c89b2>] wake_up_new_task+0x592/0x1000
-`: `BUG: spinlock recursion`,
-
-		`
+`, `BUG: spinlock recursion`, false,
+		}, {
+			`
 [  843.240752] INFO: task getty:2986 blocked for more than 120 seconds.
 [  843.247365]       Not tainted 3.18.0-13280-g93f6785-dirty #12
 [  843.253777] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
@@ -654,158 +790,428 @@ BUG: spinlock lockup suspected on CPU#2, syz-executor/12636
 [  843.340437]  [<ffffffff835bec62>] ? preempt_schedule+0x62/0xa0
 [  843.346418]  [<ffffffff835cbdd2>] tty_ldisc_lock_pair_timeout+0xb2/0x160
 [  843.353363]  [<ffffffff81f8b03f>] tty_ldisc_hangup+0x21f/0x720
-`: `INFO: task hung`,
-
-		`
-BUG UNIX (Not tainted): kasan: bad access detected
-`: ``,
-
-		`
+`, `INFO: task hung`, false,
+		}, {
+			`
+[   72.159680] BUG UNIX (Not tainted): kasan: bad access detected
+`, ``, true,
+		}, {
+			`
 [901320.960000] INFO: lockdep is turned off.
-`: ``,
-
-		`
-INFO: Stall ended before state dump start
-`: ``,
-
-		`
-WARNING: /etc/ssh/moduli does not exist, using fixed modulus
-`: ``,
-
-		`
+`, ``, true,
+		}, {
+			`
+[   72.159680] INFO: Stall ended before state dump start
+`, ``, true,
+		}, {
+			`
+[   72.159680] WARNING: /etc/ssh/moduli does not exist, using fixed modulus
+`, ``, true,
+		}, {
+			`
 [ 1579.244514] BUG: KASAN: slab-out-of-bounds in ip6_fragment+0x1052/0x2d80 at addr ffff88004ec29b58
-`: `KASAN: slab-out-of-bounds in ip6_fragment at addr ADDR`,
-
-		`
+`, `KASAN: slab-out-of-bounds in ip6_fragment at addr ADDR`, true,
+		}, {
+			`
 [  982.271203] BUG: spinlock bad magic on CPU#0, syz-executor12/24932
-`: `BUG: spinlock bad magic`,
-
-		`
+`, `BUG: spinlock bad magic`, true,
+		}, {
+			`
 [  374.860710] BUG: KASAN: use-after-free in do_con_write.part.23+0x1c50/0x1cb0 at addr ffff88000012c43a
-`: `KASAN: use-after-free in do_con_write.part.23 at addr ADDR`,
-
-		`
+`, `KASAN: use-after-free in do_con_write.part.23 at addr ADDR`, true,
+		}, {
+			`
 [  163.314570] WARNING: kernel stack regs at ffff8801d100fea8 in syz-executor1:16059 has bad 'bp' value ffff8801d100ff28
-`: `WARNING: kernel stack regs has bad 'bp' value`,
-
-		`
+`, `WARNING: kernel stack regs has bad 'bp' value`, true,
+		}, {
+			`
 [   76.825838] BUG: using __this_cpu_add() in preemptible [00000000] code: syz-executor0/10076
-`: `BUG: using __this_cpu_add() in preemptible [ADDR] code: syz-executor`,
-
-		`
+`, `BUG: using __this_cpu_add() in preemptible [ADDR] code: syz-executor`, true,
+		}, {
+			`
 [  367.131148] BUG kmalloc-8 (Tainted: G    B         ): Object already free
-`: `BUG: Object already free`,
-
-		`
+`, `BUG: Object already free`, true,
+		}, {
+			`
 [   92.396607] APIC base relocation is unsupported by KVM
 [   95.445015] INFO: NMI handler (perf_event_nmi_handler) took too long to run: 1.356 msecs
 [   95.445015] perf: interrupt took too long (3985 > 3976), lowering kernel.perf_event_max_sample_rate to 50000
-`: ``,
-
-		`
+`, ``, true,
+		}, {
+			`
 [   92.396607] general protection fault: 0000 [#1] [ 387.811073] audit: type=1326 audit(1486238739.637:135): auid=4294967295 uid=0 gid=0 ses=4294967295 pid=10020 comm="syz-executor1" exe="/root/syz-executor1" sig=31 arch=c000003e syscall=202 compat=0 ip=0x44fad9 code=0x0
-`: `general protection fault: 0000 [#1] [ 387.NUM] audit: type=1326 audit(ADDR.637:LINE): auid=ADDR uid=0 gid=0 ses=ADDR pid=NUM comm="syz-executor" exe="/root/s`,
-
-		`
+`, `general protection fault`, true,
+		}, {
+			`
 [   40.438790] BUG: Bad page map in process syz-executor6  pte:ffff8801a700ff00 pmd:1a700f067
 [   40.447217] addr:00000000009ca000 vm_flags:00100073 anon_vma:ffff8801d16f20e0 mapping:          (null) index:9ca
 [   40.457560] file:          (null) fault:          (null) mmap:          (null) readpage:          (null)
-`: `BUG: Bad page map in process syz-executor  pte:ADDR pmd:ADDR`,
+`, `BUG: Bad page map in process syz-executor  pte:ADDR pmd:ADDR`, true,
+		}, {
+			`
+[ 1722.511384] ======================================================
+[ 1722.511384] WARNING: possible circular locking dependency detected
+[ 1722.511384] 4.12.0-rc2-next-20170529+ #1 Not tainted
+[ 1722.511384] ------------------------------------------------------
+[ 1722.511384] kworker/u4:2/58 is trying to acquire lock:
+[ 1722.511384]  (&buf->lock){+.+...}, at: [<ffffffffa41b4e5b>] tty_buffer_flush+0xbb/0x3a0 drivers/tty/tty_buffer.c:221
+[ 1722.511384] 
+[ 1722.511384] but task is already holding lock:
+[ 1722.511384]  (&o_tty->termios_rwsem/1){++++..}, at: [<ffffffffa41a5601>] isig+0xa1/0x4d0 drivers/tty/n_tty.c:1100
+[ 1722.511384] 
+[ 1722.511384] which lock already depends on the new lock.
+`, `possible deadlock in tty_buffer_flush`, true,
+		}, {
 
-		`
-======================================================
-WARNING: possible circular locking dependency detected
-4.12.0-rc2-next-20170529+ #1 Not tainted
-------------------------------------------------------
-kworker/u4:2/58 is trying to acquire lock:
- (&buf->lock){+.+...}, at: [<ffffffffa41b4e5b>] tty_buffer_flush+0xbb/0x3a0 drivers/tty/tty_buffer.c:221
-
-but task is already holding lock:
- (&o_tty->termios_rwsem/1){++++..}, at: [<ffffffffa41a5601>] isig+0xa1/0x4d0 drivers/tty/n_tty.c:1100
-
-which lock already depends on the new lock.
-`: `possible deadlock in tty_buffer_flush`,
-
-		`
-Buffer I/O error on dev loop0, logical block 6, async page read
-BUG: Dentry ffff880175978600{i=8bb9,n=lo}  still in use (1) [unmount of proc proc]
-------------[ cut here ]------------
-WARNING: CPU: 1 PID: 8922 at fs/dcache.c:1445 umount_check+0x246/0x2c0 fs/dcache.c:1436
-Kernel panic - not syncing: panic_on_warn set ...
-`: `BUG: Dentry still in use [unmount of proc proc]`,
-
-		`
-WARNING: kernel stack frame pointer at ffff88003e1f7f40 in migration/1:14 has bad value ffffffff85632fb0
-unwind stack type:0 next_sp:          (null) mask:0x6 graph_idx:0
-ffff88003ed06ef0: ffff88003ed06f78 (0xffff88003ed06f78)
-`: `WARNING: kernel stack frame pointer has bad value`,
-
-		`
-BUG: Bad page state in process syz-executor9  pfn:199e00
-page:ffffea00059a9000 count:0 mapcount:0 mapping:          (null) index:0x20a00
-TCP: request_sock_TCPv6: Possible SYN flooding on port 20032. Sending cookies.  Check SNMP counters.
-flags: 0x200000000040019(locked|uptodate|dirty|swapbacked)
-raw: 0200000000040019 0000000000000000 0000000000020a00 00000000ffffffff
-raw: dead000000000100 dead000000000200 0000000000000000
-page dumped because: PAGE_FLAGS_CHECK_AT_FREE flag(s)
-`: `BUG: Bad page state`,
-
-		`
-Kernel panic - not syncing: Couldn't open N_TTY ldisc for ptm1 --- error -12.
-CPU: 1 PID: 14836 Comm: syz-executor5 Not tainted 4.12.0-rc4+ #15
-Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
-Call Trace:
-`: `kernel panic: Couldn't open N_TTY ldisc`,
-
-		`
-===============================
-[ INFO: suspicious RCU usage. ]
-4.3.5+ #8 Not tainted
--------------------------------
-net/ipv6/ip6_flowlabel.c:544 suspicious rcu_dereference_check() usage!
-
-other info that might help us debug this:
-`: `suspicious RCU usage at net/ipv6/ip6_flowlabel.c:LINE`,
-
-		`[   37.991733]  [4:SdpManagerServi: 3874] KEK_PACK[3874] __add_kek :: item ffffffc822340400
+			`
+[ 1722.511384] Buffer I/O error on dev loop0, logical block 6, async page read
+[ 1722.511384] BUG: Dentry ffff880175978600{i=8bb9,n=lo}  still in use (1) [unmount of proc proc]
+[ 1722.511384] ------------[ cut here ]------------
+[ 1722.511384] WARNING: CPU: 1 PID: 8922 at fs/dcache.c:1445 umount_check+0x246/0x2c0 fs/dcache.c:1436
+[ 1722.511384] Kernel panic - not syncing: panic_on_warn set ...
+`, `BUG: Dentry still in use [unmount of proc proc]`, true,
+		}, {
+			`
+[   72.159680] WARNING: kernel stack frame pointer at ffff88003e1f7f40 in migration/1:14 has bad value ffffffff85632fb0
+[   72.159680] unwind stack type:0 next_sp:          (null) mask:0x6 graph_idx:0
+[   72.159680] ffff88003ed06ef0: ffff88003ed06f78 (0xffff88003ed06f78)
+`, `WARNING: kernel stack frame pointer has bad value`, true,
+		}, {
+			`
+[ 1722.511384] BUG: Bad page state in process syz-executor9  pfn:199e00
+[ 1722.511384] page:ffffea00059a9000 count:0 mapcount:0 mapping:          (null) index:0x20a00
+[ 1722.511384] TCP: request_sock_TCPv6: Possible SYN flooding on port 20032. Sending cookies.  Check SNMP counters.
+[ 1722.511384] flags: 0x200000000040019(locked|uptodate|dirty|swapbacked)
+[ 1722.511384] raw: 0200000000040019 0000000000000000 0000000000020a00 00000000ffffffff
+[ 1722.511384] raw: dead000000000100 dead000000000200 0000000000000000
+[ 1722.511384] page dumped because: PAGE_FLAGS_CHECK_AT_FREE flag(s)
+`, `BUG: Bad page state`, true,
+		}, {
+			`
+[ 1722.511384] Kernel panic - not syncing: Couldn't open N_TTY ldisc for ptm1 --- error -12.
+[ 1722.511384] CPU: 1 PID: 14836 Comm: syz-executor5 Not tainted 4.12.0-rc4+ #15
+[ 1722.511384] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[ 1722.511384] Call Trace:
+`, `kernel panic: Couldn't open N_TTY ldisc`, true,
+		}, {
+			`
+[ 1722.511384] ===============================
+[ 1722.511384] [ INFO: suspicious RCU usage. ]
+[ 1722.511384] 4.3.5+ #8 Not tainted
+[ 1722.511384] -------------------------------
+[ 1722.511384] net/ipv6/ip6_flowlabel.c:544 suspicious rcu_dereference_check() usage!
+[ 1722.511384] 
+[ 1722.511384] other info that might help us debug this:
+`, `suspicious RCU usage at net/ipv6/ip6_flowlabel.c:LINE`, true,
+		}, {
+			`
+[   37.991733]  [4:SdpManagerServi: 3874] KEK_PACK[3874] __add_kek :: item ffffffc822340400
 [   38.018742]  [4:  system_server: 3344] logger: !@Boot_DEBUG: start networkManagement
 [   38.039013]  [2:    kworker/2:1: 1608] Trustonic TEE: c01|TL_TZ_KEYSTORE: Starting
-`: ``,
-
-		`[   16.761978] [syscamera][msm_companion_pll_init::526][BIN_INFO::0x0008]
+`, ``, true,
+		}, {
+			`
+[   16.761978] [syscamera][msm_companion_pll_init::526][BIN_INFO::0x0008]
 [   16.762666] [syscamera][msm_companion_pll_init::544][WAFER_INFO::0xcf80]
 [   16.763144] [syscamera][msm_companion_pll_init::594][BIN_INFO::0x0008][WAFER_INFO::0xcf80][voltage 0.775]
-`: ``,
+`, ``, true,
+		}, {
+			`
+[   72.159680] BUG: workqueue lockup - pool cpus=0 node=0 flags=0x0 nice=0 stuck for 32s!
+`, `BUG: workqueue lockup`, true,
+		}, {
+			`
+[ 1722.511384] BUG: spinlock already unlocked on CPU#1, migration/1/12
+[ 1722.511384]  lock: rcu_sched_state+0xb40/0xc20, .magic: dead4ead, .owner: <none>/-1, .owner_cpu: -1
+[ 1722.511384] CPU: 1 PID: 12 Comm: migration/1 Not tainted 4.3.5+ #6
+[ 1722.511384] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[ 1722.511384]  0000000000000001 ffff8801d8f6fb30 ffffffff81d0010d ffffffff837b69c0
+[ 1722.511384]  ffff8801d8f68340 0000000000000003 0000000000000001 0000000000000000
+[ 1722.511384]  ffff8801d8f6fb70 ffffffff813fba22 0000000000000046 ffff8801d8f68b80
+[ 1722.511384] Call Trace:
+[ 1722.511384]  [<ffffffff81d0010d>] __dump_stack lib/dump_stack.c:15 [inline]
+[ 1722.511384]  [<ffffffff81d0010d>] dump_stack+0xc1/0x124 lib/dump_stack.c:51
+[ 1722.511384]  [<ffffffff813fba22>] spin_dump+0x152/0x280 kernel/locking/spinlock_debug.c:67
+[ 1722.511384]  [<ffffffff813fc152>] spin_bug kernel/locking/spinlock_debug.c:75 [inline]
+[ 1722.511384]  [<ffffffff813fc152>] debug_spin_unlock kernel/locking/spinlock_debug.c:98 [inline]
+[ 1722.511384]  [<ffffffff813fc152>] do_raw_spin_unlock+0x1e2/0x240 kernel/locking/spinlock_debug.c:158
+[ 1722.511384]  [<ffffffff810108ec>] __raw_spin_unlock_irqrestore include/linux/spinlock_api_smp.h:161 [inline]
+[ 1722.511384]  [<ffffffff810108ec>] _raw_spin_unlock_irqrestore+0x2c/0x60 kernel/locking/spinlock.c:191
+[ 1722.511384]  [<ffffffff813cd204>] spin_unlock_irqrestore include/linux/spinlock.h:362 [inline]
+[ 1722.511384]  [<ffffffff813cd204>] __wake_up+0x44/0x50 kernel/sched/wait.c:96
+[ 1722.511384]  [<ffffffff8142958a>] synchronize_sched_expedited_cpu_stop+0x8a/0xa0 kernel/rcu/tree.c:3498
+[ 1722.511384]  [<ffffffff814dbfe8>] cpu_stopper_thread+0x1f8/0x400 kernel/stop_machine.c:442
+[ 1722.511384]  [<ffffffff8134237c>] smpboot_thread_fn+0x47c/0x880 kernel/smpboot.c:163
+[ 1722.511384]  [<ffffffff81338531>] kthread+0x231/0x2c0 kernel/kthread.c:217
+[ 1722.511384]  [<ffffffff82d2fbac>] ret_from_fork+0x5c/0x90 arch/x86/entry/entry_64.S:538
+ `, `BUG: spinlock already unlocked`, false,
+		}, {
+			`
+[  128.792466] R10: 00000000000f4244 R11: 0000000000000217 R12: 00000000004bbb5d
+[  128.792471] R13: 00000000ffffffff R14: 000000000000001a R15: 000000000000001b
+[  128.792489] Code: 48 0f 44 da e8 c0 5b c4 ff 48 8b 85 28 ff ff ff 4d 89 f1 4c 89 e9 4c 89 e2 48 89 de 48 c7 c7 20 a3 f1 84 49 89 c0 e8 13 68 ae ff <0f> 0b 48 c7 c0 e0 a0 f1 84 eb 96 48 c7 c0 20 a1 f1 84 eb 8d 48 
+[  128.792644] RIP: __check_object_size+0x3a2/0x4f0 RSP: ffff8801c15d7148
+[  128.792706] ---[ end trace 794afb02691fabdc ]---
+[  128.792710] Kernel panic - not syncing: Fatal exception
+[  128.793235] Dumping ftrace buffer:
+[  128.793239]    (ftrace buffer empty)
+[  128.793242] Kernel Offset: disabled
+[  129.380444] Rebooting in 86400 seconds..
+`, ``, true,
+		}, {
+			`
+[  238.092073] page:ffffea000712e200 count:1 mapcount:0 mapping:ffff8801c4b88c00 index:0x0 compound_mapcount: 0
+[  238.102211] flags: 0x200000000008100(slab|head)
+[  238.106859] raw: 0200000000008100 ffff8801c4b88c00 0000000000000000 0000000100000001
+[  238.114718] raw: ffffea00072d2a20 ffffea0007110820 ffff8801dac02200 0000000000000000
+[  238.122567] page dumped because: kasan: bad access detected
+[  238.128296] Kernel panic - not syncing: panic_on_warn set ...
+[  238.128296] 
+[  238.135637] CPU: 1 PID: 577 Comm: syz-executor4 Tainted: G    B           4.14.0-rc5+ #141
+[  238.144011] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  238.153335] Call Trace:
+[  238.155900]  dump_stack+0x194/0x257
+[  238.159499]  ? arch_local_irq_restore+0x53/0x53
+[  238.164137]  ? kasan_end_report+0x32/0x50
+[  238.168257]  ? lock_downgrade+0x990/0x990
+[  238.172377]  ? __internal_add_timer+0x1f0/0x2d0
+[  238.177023]  panic+0x1e4/0x417
+[  238.180186]  ? __warn+0x1d9/0x1d9
+[  238.183612]  ? add_taint+0x40/0x50
+[  238.187128]  ? __internal_add_timer+0x275/0x2d0
+[  238.191766]  kasan_end_report+0x50/0x50
+[  238.195711]  kasan_report+0x144/0x340
+`, ``, true,
+		}, {
+			`
+[  308.130685] ======================================================
+[  308.136979] WARNING: possible circular locking dependency detected
+[  308.143266] 4.14.0-rc3+ #22 Not tainted
+[  308.147204] ------------------------serialport: VM disconnected.
+`, `possible deadlock`, true,
+		}, {
+			`
+[ 1722.511384] BUG: unable to handle kernel 
+[ 1722.511384] 
+[ 1722.511384] paging request at ffffffff761cd3a8
+[ 1722.511384] IP: node_state include/linux/nodemask.h:405 [inline]
+[ 1722.511384] IP: map_create kernel/bpf/syscall.c:326 [inline]
+[ 1722.511384] IP: SYSC_bpf kernel/bpf/syscall.c:1462 [inline]
+[ 1722.511384] IP: SyS_bpf+0x3c9/0x4c40 kernel/bpf/syscall.c:1443
+[ 1722.511384] PGD 5a25067 
+[ 1722.511384] P4D 5a25067 
+[ 1722.511384] PUD 0
+`, ``, true,
+		}, {
+			`
+[ 1722.511384] kasan: CONFIG_KASAN_INLINE enabled
+[ 1722.511384] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[ 1722.511384] general protection fault: 0000 [#1] SMP KASAN
+[ 1722.511384] Modules linked in:
+[ 1722.511384] CPU: 1 PID: 18769 Comm: syz-executor2 Not tainted 4.3.5+ #10
+`, `general protection fault`, true,
+		}, {
+			`
+[  153.518371] device lo entered promiscuous mode
+[  153.606199] kernel tried to execute NX-protected page - exploit attempt? (uid: 0)
+[  153.613861] BUG: unable to handle kernel [  153.615435] deprecated getsockopt IP_VLAN used by syz-executor4!
 
-		`
-BUG: workqueue lockup - pool cpus=0 node=0 flags=0x0 nice=0 stuck for 32s!
-`: `BUG: workqueue lockup`,
-
-		`
-BUG: spinlock already unlocked on CPU#1, migration/1/12
- lock: rcu_sched_state+0xb40/0xc20, .magic: dead4ead, .owner: <none>/-1, .owner_cpu: -1
-CPU: 1 PID: 12 Comm: migration/1 Not tainted 4.3.5+ #6
-Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
- 0000000000000001 ffff8801d8f6fb30 ffffffff81d0010d ffffffff837b69c0
- ffff8801d8f68340 0000000000000003 0000000000000001 0000000000000000
- ffff8801d8f6fb70 ffffffff813fba22 0000000000000046 ffff8801d8f68b80
-Call Trace:
- [<ffffffff81d0010d>] __dump_stack lib/dump_stack.c:15 [inline]
- [<ffffffff81d0010d>] dump_stack+0xc1/0x124 lib/dump_stack.c:51
- [<ffffffff813fba22>] spin_dump+0x152/0x280 kernel/locking/spinlock_debug.c:67
- [<ffffffff813fc152>] spin_bug kernel/locking/spinlock_debug.c:75 [inline]
- [<ffffffff813fc152>] debug_spin_unlock kernel/locking/spinlock_debug.c:98 [inline]
- [<ffffffff813fc152>] do_raw_spin_unlock+0x1e2/0x240 kernel/locking/spinlock_debug.c:158
- [<ffffffff810108ec>] __raw_spin_unlock_irqrestore include/linux/spinlock_api_smp.h:161 [inline]
- [<ffffffff810108ec>] _raw_spin_unlock_irqrestore+0x2c/0x60 kernel/locking/spinlock.c:191
- [<ffffffff813cd204>] spin_unlock_irqrestore include/linux/spinlock.h:362 [inline]
- [<ffffffff813cd204>] __wake_up+0x44/0x50 kernel/sched/wait.c:96
- [<ffffffff8142958a>] synchronize_sched_expedited_cpu_stop+0x8a/0xa0 kernel/rcu/tree.c:3498
- [<ffffffff814dbfe8>] cpu_stopper_thread+0x1f8/0x400 kernel/stop_machine.c:442
- [<ffffffff8134237c>] smpboot_thread_fn+0x47c/0x880 kernel/smpboot.c:163
- [<ffffffff81338531>] kthread+0x231/0x2c0 kernel/kthread.c:217
- [<ffffffff82d2fbac>] ret_from_fork+0x5c/0x90 arch/x86/entry/entry_64.S:538
- `: `BUG: spinlock already unlocked`,
+[  153.623948] paging request at ffff8800b3d5ed58
+[  153.628940] IP: [<ffff8800b3d5ed58>] 0xffff8800b3d5ed58
+[  153.634416] PGD a0ab067 PUD 21ffff067 PMD 80000000b3c001e3 
+[  153.640483] Oops: 0011 [#1] SMP KASAN
+[  153.644615] Modules linked in:
+`, ``, true,
+		}, {
+			`
+[   46.415093] syz2: link speed 10 Mbps
+[   46.572486] syz7: link speed 10 Mbps
+[   46.573324] 
+[   46.573325] =====================================
+[   46.573327] [ BUG: bad unlock balance detected! ]
+`, `BUG: bad unlock balance`, true,
+		}, {
+			`
+[   89.659427] netlink: 13 bytes leftover after parsing attributes in process syz-executor5'.
+[   89.668217] divide error: 0000 [#1] SMP KASAN
+`, `divide error`, true,
+		}, {
+			`
+[   59.534220] ==================================================================
+[   59.541645] BUG: KASAN: slab-out-of-bounds in gup_huge_pmd+0x739/0x770 at addr ffff8800b46111c0
+`, ``, true,
+		}, {
+			`
+[   42.361487] ==================================================================
+[   42.364412] BUG: KASAN: slab-out-of-bounds in ip6_fragment+0x11c8/0x3730
+[   42.365471] Read of size 840 at addr ffff88000969e798 by task ip6_fragment-oo/3789
+[   42.366469]
+[   42.366696] CPU: 1 PID: 3789 Comm: ip6_fragment-oo Not tainted 4.11.0+ #41
+[   42.367628] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.1-1ubuntu1 04/01/2014
+[   42.368824] Call Trace:
+[   42.369183]  dump_stack+0xb3/0x10b
+[   42.369664]  print_address_description+0x73/0x290
+[   42.370325]  kasan_report+0x252/0x370
+[   42.370839]  ? ip6_fragment+0x11c8/0x3730
+[   42.371396]  check_memory_region+0x13c/0x1a0
+[   42.371978]  memcpy+0x23/0x50
+[   42.372395]  ip6_fragment+0x11c8/0x3730
+[   42.372920]  ? nf_ct_expect_unregister_notifier+0x110/0x110
+[   42.373681]  ? ip6_copy_metadata+0x7f0/0x7f0
+[   42.374263]  ? ip6_forward+0x2e30/0x2e30
+[   42.374803]  ip6_finish_output+0x584/0x990
+[   42.375350]  ip6_output+0x1b7/0x690
+[   42.375836]  ? ip6_finish_output+0x990/0x990
+[   42.376411]  ? ip6_fragment+0x3730/0x3730
+[   42.376968]  ip6_local_out+0x95/0x160
+[   42.377471]  ip6_send_skb+0xa1/0x330
+[   42.377969]  ip6_push_pending_frames+0xb3/0xe0
+[   42.378589]  rawv6_sendmsg+0x2051/0x2db0
+[   42.379129]  ? rawv6_bind+0x8b0/0x8b0
+[   42.379633]  ? _copy_from_user+0x84/0xe0
+[   42.380193]  ? debug_check_no_locks_freed+0x290/0x290
+[   42.380878]  ? ___sys_sendmsg+0x162/0x930
+[   42.381427]  ? rcu_read_lock_sched_held+0xa3/0x120
+[   42.382074]  ? sock_has_perm+0x1f6/0x290
+[   42.382614]  ? ___sys_sendmsg+0x167/0x930
+[   42.383173]  ? lock_downgrade+0x660/0x660
+[   42.383727]  inet_sendmsg+0x123/0x500
+[   42.384226]  ? inet_sendmsg+0x123/0x500
+[   42.384748]  ? inet_recvmsg+0x540/0x540
+[   42.385263]  sock_sendmsg+0xca/0x110
+[   42.385758]  SYSC_sendto+0x217/0x380
+[   42.386249]  ? SYSC_connect+0x310/0x310
+[   42.386783]  ? __might_fault+0x110/0x1d0
+[   42.387324]  ? lock_downgrade+0x660/0x660
+[   42.387880]  ? __fget_light+0xa1/0x1f0
+[   42.388403]  ? __fdget+0x18/0x20
+[   42.388851]  ? sock_common_setsockopt+0x95/0xd0
+[   42.389472]  ? SyS_setsockopt+0x17f/0x260
+[   42.390021]  ? entry_SYSCALL_64_fastpath+0x5/0xbe
+[   42.390650]  SyS_sendto+0x40/0x50
+[   42.391103]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   42.391731] RIP: 0033:0x7fbbb711e383
+[   42.392217] RSP: 002b:00007ffff4d34f28 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+[   42.393235] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007fbbb711e383
+[   42.394195] RDX: 0000000000001000 RSI: 00007ffff4d34f60 RDI: 0000000000000003
+[   42.395145] RBP: 0000000000000046 R08: 00007ffff4d34f40 R09: 0000000000000018
+[   42.396056] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000400aad
+[   42.396598] R13: 0000000000000066 R14: 00007ffff4d34ee0 R15: 00007fbbb717af00
+[   42.397257]
+[   42.397411] Allocated by task 3789:
+[   42.397702]  save_stack_trace+0x16/0x20
+[   42.398005]  save_stack+0x46/0xd0
+[   42.398267]  kasan_kmalloc+0xad/0xe0
+[   42.398548]  kasan_slab_alloc+0x12/0x20
+[   42.398848]  __kmalloc_node_track_caller+0xcb/0x380
+[   42.399224]  __kmalloc_reserve.isra.32+0x41/0xe0
+[   42.399654]  __alloc_skb+0xf8/0x580
+[   42.400003]  sock_wmalloc+0xab/0xf0
+[   42.400346]  __ip6_append_data.isra.41+0x2472/0x33d0
+[   42.400813]  ip6_append_data+0x1a8/0x2f0
+[   42.401122]  rawv6_sendmsg+0x11ee/0x2db0
+[   42.401505]  inet_sendmsg+0x123/0x500
+[   42.401860]  sock_sendmsg+0xca/0x110
+[   42.402209]  ___sys_sendmsg+0x7cb/0x930
+[   42.402582]  __sys_sendmsg+0xd9/0x190
+[   42.402941]  SyS_sendmsg+0x2d/0x50
+[   42.403273]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   42.403718]
+[   42.403871] Freed by task 1794:
+[   42.404146]  save_stack_trace+0x16/0x20
+[   42.404515]  save_stack+0x46/0xd0
+[   42.404827]  kasan_slab_free+0x72/0xc0
+[   42.405167]  kfree+0xe8/0x2b0
+[   42.405462]  skb_free_head+0x74/0xb0
+[   42.405806]  skb_release_data+0x30e/0x3a0
+[   42.406198]  skb_release_all+0x4a/0x60
+[   42.406563]  consume_skb+0x113/0x2e0
+[   42.406910]  skb_free_datagram+0x1a/0xe0
+[   42.407288]  netlink_recvmsg+0x60d/0xe40
+[   42.407667]  sock_recvmsg+0xd7/0x110
+[   42.408022]  ___sys_recvmsg+0x25c/0x580
+[   42.408395]  __sys_recvmsg+0xd6/0x190
+[   42.408753]  SyS_recvmsg+0x2d/0x50
+[   42.409086]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   42.409513]
+[   42.409665] The buggy address belongs to the object at ffff88000969e780
+[   42.409665]  which belongs to the cache kmalloc-512 of size 512
+[   42.410846] The buggy address is located 24 bytes inside of
+[   42.410846]  512-byte region [ffff88000969e780, ffff88000969e980)
+[   42.411941] The buggy address belongs to the page:
+[   42.412405] page:ffffea000025a780 count:1 mapcount:0 mapping:          (null) index:0x0 compound_mapcount: 0
+[   42.413298] flags: 0x100000000008100(slab|head)
+[   42.413729] raw: 0100000000008100 0000000000000000 0000000000000000 00000001800c000c
+[   42.414387] raw: ffffea00002a9500 0000000900000007 ffff88000c401280 0000000000000000
+[   42.415074] page dumped because: kasan: bad access detected
+[   42.415604]
+[   42.415757] Memory state around the buggy address:
+[   42.416222]  ffff88000969e880: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   42.416904]  ffff88000969e900: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   42.417591] >ffff88000969e980: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   42.418273]                    ^
+[   42.418588]  ffff88000969ea00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   42.419273]  ffff88000969ea80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   42.419882] ==================================================================
+`, `KASAN: slab-out-of-bounds Read in ip6_fragment`, false,
+		}, {
+			`
+[   55.468844] ==================================================================
+[   55.476243] BUG: KASAN: use-after-free in consume_skb+0x39f/0x530 at addr ffff8801cbeda574
+[   55.484627] Read of size 4 by task syz-executor2/4676
+[   55.490296] Object at ffff8801cbeda480, in cache skbuff_head_cache size: 248
+[   55.497470] Allocated:
+[   55.499957] PID = 4655
+[   55.502578] Freed:
+[   55.504709] PID = 4655
+[   55.507369] Memory state around the buggy address:
+`, ``, true,
+		}, {
+			`
+[  322.909624] FAULT_FLAG_ALLOW_RETRY missing 30
+[  322.914808] FAULT_FLAG_ALLOW_RETRY missing 30
+[  322.914819] CPU: 0 PID: 23312 Comm: syz-executor7 Not tainted 4.9.60-gdfe0a9b #81
+[  322.914824] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  322.914839]  ffff8801d58ff750 ffffffff81d91389 ffff8801d58ffa30 0000000000000000
+[  322.914853]  ffff8801c456c710 ffff8801d58ff920 ffff8801c456c600 ffff8801d58ff948
+[  322.914865]  ffffffff8165fc37 0000000000006476 ffff8801ca16b8f0 ffff8801ca16b8a0
+[  322.914868] Call Trace:
+[  322.914882]  [<ffffffff81d91389>] dump_stack+0xc1/0x128
+** 93 printk messages dropped ** [  322.962139] BUG: KASAN: slab-out-of-bounds in do_raw_write_lock+0x1a3/0x1d0 at addr ffff8801c464b568
+** 1987 printk messages dropped ** [  322.975979]  ffff8801c464b400: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+`, ``, true,
+		}, {
+			`
+[  208.131930] ==================================================================
+[  208.139343] BUG: KMSAN: use of uninitialized memory in packet_set_ring+0x11b8/0x2ff0
+[  208.147224] CPU: 0 PID: 12442 Comm: syz-executor0 Tainted: G    B           4.13.0+ #12
+[  208.155359] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  208.164705] Call Trace:
+[  208.167295]  dump_stack+0x172/0x1c0
+[  208.170931]  ? packet_set_ring+0x11b8/0x2ff0
+[  208.175334]  kmsan_report+0x145/0x3d0
+[  208.179143]  __msan_warning_32+0x65/0xb0
+[  208.183202]  packet_set_ring+0x11b8/0x2ff0
+[  208.187429]  ? memcmp+0xbc/0x1a0
+[  208.190799]  packet_setsockopt+0x1619/0x4e40
+[  208.195205]  ? selinux_socket_setsockopt+0x2f1/0x330
+[  208.200305]  ? __msan_load_shadow_origin_8+0x5d/0xe0
+[  208.205390]  ? packet_ioctl+0x400/0x400
+[  208.209340]  SYSC_setsockopt+0x36d/0x4b0
+[  208.213383]  SyS_setsockopt+0x76/0xa0
+[  208.217163]  entry_SYSCALL_64_fastpath+0x13/0x94
+[  208.221889] RIP: 0033:0x4520a9
+[  208.225056] RSP: 002b:00007f37efa32c08 EFLAGS: 00000216 ORIG_RAX: 0000000000000036
+[  208.232740] RAX: ffffffffffffffda RBX: 00007f37efa33700 RCX: 00000000004520a9
+[  208.239987] RDX: 0000000000000005 RSI: 0000000000000107 RDI: 000000000000001e
+[  208.247230] RBP: 0000000000a6f870 R08: 000000000000047e R09: 0000000000000000
+[  208.254485] R10: 0000000020001000 R11: 0000000000000216 R12: 0000000000000000
+[  208.261729] R13: 0000000000a6f7ef R14: 00007f37efa339c0 R15: 000000000000000c
+[  208.268977] origin description: ----req_u@packet_setsockopt
+[  208.274656] local variable created at:
+[  208.278520]  packet_setsockopt+0x133/0x4e40
+`, `BUG: KMSAN: use of uninitialized memory in packet_set_ring`, false,
+		},
 	}
 	testParse(t, "linux", tests)
 }
@@ -847,28 +1253,28 @@ func TestLinuxIgnores(t *testing.T) {
 	if !reporter.ContainsCrash([]byte(log)) {
 		t.Fatalf("no crash")
 	}
-	if desc, _, _, _ := reporter.Parse([]byte(log)); desc != "BUG: bug1" {
+	if desc, _, _, _, _ := reporter.Parse([]byte(log)); desc != "BUG: bug1" {
 		t.Fatalf("want `BUG: bug1`, found `%v`", desc)
 	}
 
 	if !reporter1.ContainsCrash([]byte(log)) {
 		t.Fatalf("no crash")
 	}
-	if desc, _, _, _ := reporter1.Parse([]byte(log)); desc != "BUG: bug1" {
+	if desc, _, _, _, _ := reporter1.Parse([]byte(log)); desc != "BUG: bug1" {
 		t.Fatalf("want `BUG: bug1`, found `%v`", desc)
 	}
 
 	if !reporter2.ContainsCrash([]byte(log)) {
 		t.Fatalf("no crash")
 	}
-	if desc, _, _, _ := reporter2.Parse([]byte(log)); desc != "BUG: bug2" {
+	if desc, _, _, _, _ := reporter2.Parse([]byte(log)); desc != "BUG: bug2" {
 		t.Fatalf("want `BUG: bug2`, found `%v`", desc)
 	}
 
 	if reporter3.ContainsCrash([]byte(log)) {
 		t.Fatalf("found crash, should be ignored")
 	}
-	if desc, _, _, _ := reporter3.Parse([]byte(log)); desc != "" {
+	if desc, _, _, _, _ := reporter3.Parse([]byte(log)); desc != "" {
 		t.Fatalf("found `%v`, should be ignored", desc)
 	}
 }
@@ -922,7 +1328,7 @@ Read of size 4 by task syz-executor2/5764
 		t.Fatal(err)
 	}
 	for log, text0 := range tests {
-		if desc, text, _, _ := reporter.Parse([]byte(log)); string(text) != text0 {
+		if desc, text, _, _, _ := reporter.Parse([]byte(log)); string(text) != text0 {
 			t.Logf("log:\n%s", log)
 			t.Logf("want text:\n%s", text0)
 			t.Logf("got text:\n%s", text)
@@ -1090,7 +1496,7 @@ func TestLinuxParseReport(t *testing.T) {
 	}
 	for i, test := range parseReportTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			_, text, _, _ := reporter.Parse([]byte(test.in))
+			_, text, _, _, _ := reporter.Parse([]byte(test.in))
 			if test.out != string(text) {
 				t.Logf("expect:\n%v", test.out)
 				t.Logf("got:\n%v", string(text))

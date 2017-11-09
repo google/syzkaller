@@ -131,7 +131,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool,
 		if !reporter.ContainsCrash(output[matchPos:]) {
 			return defaultError, nil, output, defaultError != "", false
 		}
-		desc, text, start, end := reporter.Parse(output[matchPos:])
+		desc, text, start, end, _ := reporter.Parse(output[matchPos:])
 		start = start + matchPos - beforeContext
 		if start < 0 {
 			start = 0

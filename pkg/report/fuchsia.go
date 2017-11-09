@@ -31,7 +31,7 @@ func (ctx *fuchsia) ContainsCrash(output []byte) bool {
 	panic("not implemented")
 }
 
-func (ctx *fuchsia) Parse(output []byte) (desc string, text []byte, start int, end int) {
+func (ctx *fuchsia) Parse(output []byte) (desc string, text []byte, start int, end int, corrupted bool) {
 	panic("not implemented")
 }
 

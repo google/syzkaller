@@ -31,7 +31,7 @@ func (ctx *windows) ContainsCrash(output []byte) bool {
 	panic("not implemented")
 }
 
-func (ctx *windows) Parse(output []byte) (desc string, text []byte, start int, end int) {
+func (ctx *windows) Parse(output []byte) (desc string, text []byte, start int, end int, corrupted bool) {
 	panic("not implemented")
 }
 

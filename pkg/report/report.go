@@ -21,8 +21,9 @@ type Reporter interface {
 	// Parse extracts information about oops from console output.
 	// Desc contains a representative description of the first oops (empty if no oops found),
 	// text contains whole oops text,
-	// start and end denote region of output with oops message(s).
-	Parse(output []byte) (desc string, text []byte, start int, end int)
+	// start and end denote region of output with oops message(s),
+	// corrupted indicates whether the report is truncated of corrupted in some other way.
+	Parse(output []byte) (desc string, text []byte, start int, end int, corrupted bool)
 
 	Symbolize(text []byte) ([]byte, error)
 
