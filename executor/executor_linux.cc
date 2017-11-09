@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <linux/futex.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -35,7 +36,17 @@ const unsigned long KCOV_TRACE_CMP = 1;
 const int kInFd = 3;
 const int kOutFd = 4;
 
+// The non-null address that is used in syzkaller for other architectures
+// does not work on 32-bit ARM -- address is too high. Using NULL for now
+// to let the OS choose the address.
+// Calls to mmap() shows that ARM first allocates in the range 0x10000000 to
+// 0xa611b000 (starting from top), and then going lower in the range till
+// it runs out of available memory.
+#if defined(__arm__)
+void* kOutputDataAddr = NULL;
+#else
 void* const kOutputDataAddr = (void*)0x1bdbc20000ull;
+#endif
 
 uint32_t* output_data;
 uint32_t* output_pos;
@@ -50,13 +61,26 @@ int main(int argc, char** argv)
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	if (mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
 		fail("mmap of input file failed");
-	// The output region is the only thing in executor process for which consistency matters.
-	// If it is corrupted ipc package will fail to parse its contents and panic.
-	// But fuzzer constantly invents new ways of how to currupt the region,
-	// so we map the region at a (hopefully) hard to guess address surrounded by unmapped pages.
+		// The output region is the only thing in executor process for which consistency matters.
+		// If it is corrupted ipc package will fail to parse its contents and panic.
+		// But fuzzer constantly invents new ways of how to currupt the region,
+		// so we map the region at a (hopefully) hard to guess address surrounded by unmapped pages.
+
+#if defined(__arm__)
+	// Not using MAP_FIXED as kOutputDataAddr is NULL for ARM
+	output_data = (uint32_t*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED, kOutFd, 0);
+#else
 	output_data = (uint32_t*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
-	if (output_data != kOutputDataAddr)
+#endif
+
+	// The following should be more reliable, irrespective of
+	// whether kOutputDataAddr is NULL or not.
+	if (output_data == MAP_FAILED) {
+		fail("mmap of output file failed. Returned MAP_FAILED. errno");
+	}
+	if ((kOutputDataAddr != NULL) && (output_data != kOutputDataAddr))
 		fail("mmap of output file failed");
+
 	// Prevent random programs to mess with these fds.
 	// Due to races in collider mode, a program can e.g. ftruncate one of these fds,
 	// which will cause fuzzer to crash.
@@ -70,13 +94,37 @@ int main(int argc, char** argv)
 	install_segv_handler();
 	use_temporary_dir();
 
-#if defined(__i386__) || defined(__arm__)
+#if defined(__i386__)
 	// mmap syscall on i386/arm is translated to old_mmap and has different signature.
 	// As a workaround fix it up to mmap2, which has signature that we expect.
 	// pkg/csource has the same hack.
 	for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++) {
 		if (syscalls[i].sys_nr == __NR_mmap)
 			syscalls[i].sys_nr = __NR_mmap2;
+	}
+
+#endif
+
+#if defined(__arm__)
+	// syscalls_linux.h, which is auto-generated, appears to be off by 0x900000 (or 9437184).
+	// The problem is that syscall numbers are being generated from the dynamically generated
+	// C code by sysgen without using a cross-compiler.
+	// The ARM32 cross-compiler appears to add different
+	// flags than the normal gcc compiler.	Ideally, the code to generate
+	// syscall numbers should be executed on the target processor.
+	// That was tried by making changes to sys/syz-extract/linux.go andding in a -D__ARM_EABI__
+	// flag. That generated correct numbers, but led to another issue. Some calls such as mmap()
+	// are no longer system calls on ARM-based Linux and are also marked obsolete. That
+	// caused further issues with syz-manager. For now, the following appears to provide
+	// a workaround.
+	for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++) {
+		// Also map mmap to mmap2()'s number, just as for i386.
+		if (strcmp(syscalls[i].name, "mmap") == 0) {
+			syscalls[i].sys_nr = __NR_mmap2;
+		}
+		if (syscalls[i].sys_nr >= 0x900000) {
+			syscalls[i].sys_nr -= 0x900000;
+		}
 	}
 #endif
 
