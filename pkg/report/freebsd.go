@@ -33,7 +33,7 @@ func (ctx *freebsd) ContainsCrash(output []byte) bool {
 	return containsCrash(output, freebsdOopses, ctx.ignores)
 }
 
-func (ctx *freebsd) Parse(output []byte) (desc string, text []byte, start int, end int) {
+func (ctx *freebsd) Parse(output []byte) (desc string, text []byte, start int, end int, corrupted bool) {
 	var oops *oops
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
@@ -70,6 +70,7 @@ func (ctx *freebsd) Parse(output []byte) (desc string, text []byte, start int, e
 		return
 	}
 	desc = extractDescription(output[start:], oops)
+	corrupted = false
 	return
 }
 

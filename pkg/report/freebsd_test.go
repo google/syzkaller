@@ -11,8 +11,9 @@ func TestFreebsdParse(t *testing.T) {
 	testParse(t, "freebsd", freebsdTests)
 }
 
-var freebsdTests = map[string]string{
-	`
+var freebsdTests = []ParseTest{
+	{
+		`
 Fatal trap 12: page fault while in kernel mode
 cpuid = 0; apic id = 00
 fault virtual address	= 0xffffffff12852143
@@ -41,9 +42,9 @@ KDB: stack backtrace:
 #10 0xffffffff80a7fae5 at sys_clock_settime+0x85
 #11 0xffffffff80ee0394 at amd64_syscall+0x6c4
 #12 0xffffffff80ec392b at Xfast_syscall+0xfb
-`: `Fatal trap 12: page fault while in kernel mode in atrtc_settime`,
-
-	`
+`, `Fatal trap 12: page fault while in kernel mode in atrtc_settime`, false,
+	}, {
+		`
 Fatal trap 12: page fault while in kernel mode
 cpuid = 3; apic id = 03
 fault virtual address	= 0xfffff7ffb48e19a8
@@ -73,9 +74,9 @@ KDB: stack backtrace:
 #11 0xffffffff80afa831 at sys_sendmsg+0x61
 #12 0xffffffff80ee0394 at amd64_syscall+0x6c4
 #13 0xffffffff80ec392b at Xfast_syscall+0xfb
-`: `Fatal trap 12: page fault while in kernel mode in sctp_sosend`,
-
-	`
+`, `Fatal trap 12: page fault while in kernel mode in sctp_sosend`, false,
+	}, {
+		`
 Fatal trap 9: general protection fault while in kernel mode
 cpuid = 0; apic id = 00
 instruction pointer	= 0x20:0xffffffff80ac2563
@@ -105,9 +106,9 @@ KDB: stack backtrace:
 #13 0xffffffff80a28e3d at sys_sys_exit+0xd
 #14 0xffffffff80ee0394 at amd64_syscall+0x6c4
 #15 0xffffffff80ec392b at Xfast_syscall+0xfb
-`: `Fatal trap 9: general protection fault while in kernel mode in udp_close`,
-
-	`
+`, `Fatal trap 9: general protection fault while in kernel mode in udp_close`, false,
+	}, {
+		`
 panic: ffs_write: type 0xfffff80036275ce8 8 (0,230)
 cpuid = 0
 KDB: stack backtrace:
@@ -122,5 +123,7 @@ KDB: stack backtrace:
 #8 0xffffffff80ac87fb at sys_write+0xdb
 #9 0xffffffff80ee0394 at amd64_syscall+0x6c4
 #10 0xffffffff80ec392b at Xfast_syscall+0xfb
-`: `panic: ffs_write: type ADDR X (Y,Z)`,
+`, `panic: ffs_write: type ADDR X (Y,Z)`,
+		false,
+	},
 }
