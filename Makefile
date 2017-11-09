@@ -40,8 +40,11 @@ else ifeq ("$(TARGETARCH)", "386")
 else ifeq ("$(TARGETARCH)", "arm64")
 	CC = "aarch64-linux-gnu-gcc"
 else ifeq ("$(TARGETARCH)", "arm")
-	CC = "arm-linux-gnueabihf-gcc"
-	ADDCFLAGS = "-march=armv6t2"
+	# For ARM32, gcc cross-compiler in Android toolchain gives an error.
+	# Using clang cross-compiler in android NDK toolchain works.
+	CC = $(NDKARM)/bin/clang++
+	NOSTATIC=1
+	CFLAGS = -I$(NDKARM)/include/c++/4.9x --sysroot=$(NDKARM)/sysroot -O1 -g -Wall -pie -static-libstdc++
 else ifeq ("$(TARGETARCH)", "ppc64le")
 	CC = "powerpc64le-linux-gnu-gcc"
 endif
@@ -68,16 +71,22 @@ ifeq ("$(TARGETOS)", "android")
 		GCCBIN = "aarch64-linux-android-g++"
 	else ifeq ("$(TARGETARCH)", "arm")
 		ANDROIDARCH = "arm"
-		TOOLCHAIN = "arm-linux-androideabi-4.9"
-		GCCBIN = "arm-linux-androideabi-g++"
+		#TOOLCHAIN = "arm-linux-androideabi-4.9"
+		#GCCBIN = "arm-linux-androideabi-g++"
 	endif
 	ifeq ("$(BUILDARCH)", "amd64")
 		BUILDGCCARCH = "x86_64"
 	else ifeq ("$(BUILDARCH)", "arm64")
 		BUILDGCCARCH = "aarch64"
 	endif
-	CC = $(NDK)/toolchains/$(TOOLCHAIN)/prebuilt/$(BUILDOS)-$(BUILDGCCARCH)/bin/$(GCCBIN)
-	CFLAGS = -I $(NDK)/sources/cxx-stl/llvm-libc++/include --sysroot=$(NDK)/platforms/android-$(ANDROID_API)/arch-$(ANDROIDARCH) -static
+
+	# Use clang for arm. Different flags
+	ifeq ("$(TARGETARCH)", "arm")
+		# CC and CFLAGS already set
+	else
+		CC = $(NDK)/toolchains/$(TOOLCHAIN)/prebuilt/$(BUILDOS)-$(BUILDGCCARCH)/bin/$(GCCBIN)
+		CFLAGS = -I $(NDK)/sources/cxx-stl/llvm-libc++/include --sysroot=$(NDK)/platforms/android-$(ANDROID_API)/arch-$(ANDROIDARCH) -static
+	endif
 endif
 
 ifeq ("$(TARGETOS)", "fuchsia")
