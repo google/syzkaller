@@ -40,35 +40,53 @@ func TestReplace(t *testing.T) {
 	}
 }
 
-func testParse(t *testing.T, os string, tests map[string]string) {
+type ParseTest struct {
+	Log       string
+	Desc      string
+	Corrupted bool
+}
+
+func testParse(t *testing.T, os string, tests []ParseTest) {
 	reporter, err := NewReporter(os, "", "", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for log, crash := range tests {
-		if strings.Index(log, "\r\n") != -1 {
+	initialTests := tests[:]
+	for _, test := range initialTests {
+		if strings.Index(test.Log, "\r\n") != -1 {
 			continue
 		}
-		tests[strings.Replace(log, "\n", "\r\n", -1)] = crash
+		test.Log = strings.Replace(test.Log, "\n", "\r\n", -1)
+		tests = append(tests, test)
 	}
-	for log, crash := range tests {
-		containsCrash := reporter.ContainsCrash([]byte(log))
-		expectCrash := (crash != "")
+	for _, test := range tests {
+		desc, _, _, _, corrupted := reporter.Parse([]byte(test.Log))
+		if corrupted && !test.Corrupted {
+			t.Fatalf("incorrectly marked report as corrupted: '%v'\n%v", desc, test.Log)
+		}
+		if !corrupted && test.Corrupted {
+			t.Fatalf("failed to mark report as corrupted: '%v'\n%v", desc, test.Log)
+		}
+		if corrupted && test.Desc == "" {
+			// Allow ignoring crash description for corrupted reports
+			continue
+		}
+		containsCrash := reporter.ContainsCrash([]byte(test.Log))
+		expectCrash := (test.Desc != "")
 		if expectCrash && !containsCrash {
-			t.Fatalf("ContainsCrash did not find crash")
+			t.Fatalf("ContainsCrash did not find crash:\n%v", test.Log)
 		}
 		if !expectCrash && containsCrash {
-			t.Fatalf("ContainsCrash found unexpected crash")
+			t.Fatalf("ContainsCrash found unexpected crash:\n%v", test.Log)
 		}
-		desc, _, _, _ := reporter.Parse([]byte(log))
-		if desc == "" && crash != "" {
-			t.Fatalf("did not find crash message '%v' in:\n%v", crash, log)
+		if desc == "" && test.Desc != "" {
+			t.Fatalf("did not find crash message '%v' in:\n%v", test.Desc, test.Log)
 		}
-		if desc != "" && crash == "" {
-			t.Fatalf("found bogus crash message '%v' in:\n%v", desc, log)
+		if desc != "" && test.Desc == "" {
+			t.Fatalf("found bogus crash message '%v' in:\n%v", desc, test.Log)
 		}
-		if desc != crash {
-			t.Fatalf("extracted bad crash message:\n%+q\nwant:\n%+q", desc, crash)
+		if desc != test.Desc {
+			t.Fatalf("extracted bad crash message:\n%+q\nwant:\n%+q", desc, test.Desc)
 		}
 	}
 }

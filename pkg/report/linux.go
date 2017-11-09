@@ -47,7 +47,7 @@ func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symb
 		symbols:   symbols,
 		ignores:   ignores,
 	}
-	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\] `)
+	ctx.consoleOutputRe = regexp.MustCompile(`^(?:\*\* [0-9]+ printk messages dropped \*\* )?(?:\<[0-9]+\>)?\[ *[0-9]+\.[0-9]+\] `)
 	ctx.questionableRe = regexp.MustCompile(`(?:\[\<[0-9a-f]+\>\])? \? +[a-zA-Z0-9_.]+\+0x[0-9a-f]+/[0-9a-f]+`)
 	ctx.eoi = []byte("<EOI>")
 	ctx.guiltyFileBlacklist = []*regexp.Regexp{
@@ -75,7 +75,7 @@ func (ctx *linux) ContainsCrash(output []byte) bool {
 	return containsCrash(output, linuxOopses, ctx.ignores)
 }
 
-func (ctx *linux) Parse(output []byte) (desc string, text []byte, start int, end int) {
+func (ctx *linux) Parse(output []byte) (desc string, text []byte, start int, end int, corrupted bool) {
 	var oops *oops
 	var textPrefix [][]byte
 	textLines := 0
@@ -147,6 +147,7 @@ func (ctx *linux) Parse(output []byte) (desc string, text []byte, start int, end
 		pos = next + 1
 	}
 	if oops == nil {
+		corrupted = isCorrupted("", string(text))
 		return
 	}
 	desc = extractDescription(output[start:], oops)
@@ -164,6 +165,7 @@ func (ctx *linux) Parse(output []byte) (desc string, text []byte, start int, end
 	desc = funcRe.ReplaceAllString(desc, "$1")
 	// CPU numbers are not interesting.
 	desc = cpuRe.ReplaceAllLiteralString(desc, "CPU")
+	corrupted = isCorrupted(desc, string(text))
 	return
 }
 
@@ -389,6 +391,10 @@ var linuxOopses = []*oops{
 				"BUG: bad unlock balance in %[1]v",
 			},
 			{
+				compile("BUG: bad unlock balance detected!"),
+				"BUG: bad unlock balance",
+			},
+			{
 				compile("BUG: held lock freed!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
 				"BUG: held lock freed in %[1]v",
 			},
@@ -438,16 +444,32 @@ var linuxOopses = []*oops{
 				"possible deadlock in %[1]v",
 			},
 			{
+				compile("WARNING: possible circular locking dependency detected"),
+				"possible deadlock",
+			},
+			{
 				compile("WARNING: possible irq lock inversion dependency detected(?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+			},
+			{
+				compile("WARNING: possible irq lock inversion dependency detected"),
+				"possible deadlock",
 			},
 			{
 				compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected(?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
 			},
 			{
+				compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected"),
+				"possible deadlock",
+			},
+			{
 				compile("WARNING: possible recursive locking detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+			},
+			{
+				compile("WARNING: possible recursive locking detected"),
+				"possible deadlock",
 			},
 			{
 				compile("WARNING: inconsistent lock state(?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
@@ -478,16 +500,32 @@ var linuxOopses = []*oops{
 				"possible deadlock in %[1]v",
 			},
 			{
+				compile("INFO: possible circular locking dependency detected"),
+				"possible deadlock",
+			},
+			{
 				compile("INFO: possible irq lock inversion dependency detected \\](?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+			},
+			{
+				compile("INFO: possible irq lock inversion dependency detected"),
+				"possible deadlock",
 			},
 			{
 				compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected \\](?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
 			},
 			{
+				compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected"),
+				"possible deadlock",
+			},
+			{
 				compile("INFO: possible recursive locking detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+			},
+			{
+				compile("INFO: possible recursive locking detected"),
+				"possible deadlock",
 			},
 			{
 				compile("INFO: inconsistent lock state \\](?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
@@ -566,6 +604,10 @@ var linuxOopses = []*oops{
 				compile("general protection fault:(?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
 				"general protection fault in %[1]v",
 			},
+			{
+				compile("general protection fault"),
+				"general protection fault",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
@@ -628,6 +670,10 @@ var linuxOopses = []*oops{
 				compile("divide error: (?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
 				"divide error in %[1]v",
 			},
+			{
+				compile("divide error"),
+				"divide error",
+			},
 		},
 		[]*regexp.Regexp{},
 	},
@@ -641,6 +687,10 @@ var linuxOopses = []*oops{
 			{
 				compile("invalid opcode: (?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
 				"invalid opcode in %[1]v",
+			},
+			{
+				compile("invalid opcode"),
+				"invalid opcode",
 			},
 		},
 		[]*regexp.Regexp{},
@@ -660,4 +710,94 @@ var linuxOopses = []*oops{
 		[]oopsFormat{},
 		[]*regexp.Regexp{},
 	},
+}
+
+func isCorrupted(desc string, text string) bool {
+	if !strings.Contains(text, "Call Trace") && !strings.Contains(text, "backtrace") {
+		// Text must contain 'Call Trace' or 'backtrace'.
+		return true
+	}
+	corruptedDescRegExps := []*regexp.Regexp{
+		// 'kernel panic: Fatal exception' is usually printed after BUG,
+		// so if we captured it as a report description, that means the
+		// report got truncated and we missed the actual BUG header.
+		regexp.MustCompile(`kernel panic: Fatal exception`),
+		// Same, but for WARNINGs and KASAN reports.
+		regexp.MustCompile(`kernel panic: panic_on_warn set`),
+		// Sometimes timestamps get merged into the middle of report description.
+		regexp.MustCompile(`\[ *[0-9]+\.[0-9]+\]`),
+		regexp.MustCompile(`\[ *[0-9]+\.NUM\]`),
+		regexp.MustCompile(`\[ *NUM\.NUM\]`),
+		regexp.MustCompile(`\[ *NUM\.[0-9]+\]`),
+	}
+	for _, re := range corruptedDescRegExps {
+		if re.MatchString(desc) {
+			return true
+		}
+	}
+	corruptedDescStrings := []string{
+		// Sometimes with such BUG failures, the second part of the header doesn't get printed
+		// or gets corrupted, because kernel prints it as two separate printk() calls.
+		"BUG: unable to handle kernel",
+		// If we failed to extract function name where the fault happened,
+		// the report is most likely truncated.
+		"general protection fault",
+		"BUG: bad unlock balance",
+		"divide error",
+		"invalid opcode",
+	}
+	for _, s := range corruptedDescStrings {
+		if strings.TrimSpace(desc) == s {
+			return true
+		}
+	}
+	corruptedTextRegExps := []*regexp.Regexp{
+		// If report text contains 'printk messages dropped' it is most likely corrupted.
+		regexp.MustCompile(`printk messages dropped`),
+	}
+	for _, re := range corruptedTextRegExps {
+		if re.MatchString(text) {
+			return true
+		}
+	}
+	crashTypes := []string{"BUG", "WARNING", "INFO", "KASAN", "KMSAN", "UBSAN"}
+	for _, crash := range crashTypes {
+		// If description contains 'BUG', 'WARNING', etc,
+		// text must also contain it.
+		if strings.Contains(desc, crash) && !strings.Contains(text, crash) {
+			return true
+		}
+	}
+	if strings.HasPrefix(desc, "possible deadlock") {
+		// For 'possible deadlock' reports lets use 'unsafe locking scenario'
+		// string in text as a signal whether the report got truncated.
+		if !strings.Contains(text, "unsafe locking scenario") {
+			return true
+		}
+	}
+	if strings.HasPrefix(desc, "KASAN") {
+		// For KASAN reports lets use 'Allocated' and 'Freed' as signals.
+		if !strings.Contains(text, "Allocated") {
+			return true
+		}
+		if !strings.Contains(text, "Freed") {
+			return true
+		}
+	}
+	// When a report contains 'Call trace', 'backtrace', 'Allocated' or 'Freed' keywords,
+	// it must also contain at least a single stack frame after the first of them.
+	stackKeywords := []string{"Call Trace", "backtrace", "Allocated", "Freed"}
+	stackLocation := -1
+	for _, key := range stackKeywords {
+		match := strings.Index(text, key)
+		if match != -1 && (stackLocation == -1 || match < stackLocation) {
+			stackLocation = match
+		}
+	}
+	if stackLocation != -1 {
+		if !linuxSymbolizeRe.MatchString(text[stackLocation:]) {
+			return true
+		}
+	}
+	return false
 }

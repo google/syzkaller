@@ -38,7 +38,7 @@ func main() {
 		os.Exit(1)
 	}
 	if *flagReport {
-		desc, text, _, _ := reporter.Parse(text)
+		desc, text, _, _, _ := reporter.Parse(text)
 		text, err = reporter.Symbolize(text)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to symbolize: %v\n", err)
