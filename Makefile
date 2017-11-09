@@ -40,11 +40,8 @@ else ifeq ("$(TARGETARCH)", "386")
 else ifeq ("$(TARGETARCH)", "arm64")
 	CC = "aarch64-linux-gnu-gcc"
 else ifeq ("$(TARGETARCH)", "arm")
-	# For ARM32, gcc cross-compiler in Android toolchain gives an error.
-	# Using clang cross-compiler in android NDK toolchain works.
-	CC = $(NDKARM)/bin/clang++
-	NOSTATIC=1
-	CFLAGS = -I$(NDKARM)/include/c++/4.9x --sysroot=$(NDKARM)/sysroot -O1 -g -Wall -pie -static-libstdc++
+	CC = "arm-linux-gnueabihf-gcc"
+	ADDCFLGS = "-march=armv6t2"
 else ifeq ("$(TARGETARCH)", "ppc64le")
 	CC = "powerpc64le-linux-gnu-gcc"
 endif
@@ -70,6 +67,12 @@ ifeq ("$(TARGETOS)", "android")
 		TOOLCHAIN = "aarch64-linux-android-4.9"
 		GCCBIN = "aarch64-linux-android-g++"
 	else ifeq ("$(TARGETARCH)", "arm")
+		# For ARM32, gcc cross-compiler in Android toolchain
+		# gives an error.
+		# Using clang cross-compiler in android NDK toolchain works.
+		CC = $(NDKARM)/bin/clang++
+		NOSTATIC=1
+		CFLAGS = -I$(NDKARM)/include/c++/4.9x --sysroot=$(NDKARM)/sysroot -O1 -g -Wall -pie -static-libstdc++
 		ANDROIDARCH = "arm"
 		#TOOLCHAIN = "arm-linux-androideabi-4.9"
 		#GCCBIN = "arm-linux-androideabi-g++"
