@@ -23,7 +23,7 @@ https://developer.android.com/things/hardware/developer-kits.html.
 If feasible, recompile and reinstall the Linux kernel with any debugging options available on your board.
 
 
-## Setup the NDK cross-compiler toolchain
+## Optional: Setup the NDK cross-compiler toolchain
 
 
 You can find the NDK packages here:
@@ -59,7 +59,7 @@ export GOPATH=`pwd`/gopath
 ## Build syzkaller code
 
 ### Initialize a working directory and set up environment variables
-Create a working directory. Also make sure GOROOT, GOPATH, and NDKARM are defined and exported as instructed earlier. 
+Create a working directory. Also make sure GOROOT, GOPATH, and optionally NDKARM are defined and exported as instructed earlier. 
 
 ``` bash
 go get -u -d github.com/atulprak/syzkaller/...
@@ -73,10 +73,16 @@ mkdir workdir
 
 Run make. The output should go to ./bin and ./bin/linux_arm directories.
 
+To use the Android cross-compile toolchain, NDKARM must be defined. Use the following:
 ```
 TARGETOS=android TARGETARCH=arm make
 ```
 
+Alternatively, to use the gcc cross-compiler, use the following:
+
+```
+TARGETOS=linux TARGETARCH=arm make
+```
 
 ### Create a manager configuration file
 
