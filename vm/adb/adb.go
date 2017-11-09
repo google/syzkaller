@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -343,19 +344,26 @@ func (inst *instance) checkBatteryLevel() error {
 }
 
 func (inst *instance) getBatteryLevel(numRetry int) (int, error) {
-	out, err := inst.adb("shell", "dumpsys battery | grep level:")
+	var out, err = inst.doOneBatteryCheck()
 
 	// allow for retrying for devices that does not boot up so fast
-	for ; numRetry >= 0 && err != nil; numRetry-- {
+	for ; numRetry >= 0 && !(err == nil || strings.Compare(err.Error(), "non-battery device") == 0); numRetry-- {
 		if numRetry > 0 {
 			// sleep for 5 seconds before retrying
 			time.Sleep(5 * time.Second)
-			out, err = inst.adb("shell", "dumpsys battery | grep level:")
+			out, err = inst.doOneBatteryCheck()
+			// out, err = inst.adb("shell", "dumpsys battery | grep level:")
 		} else {
 			if err != nil {
 				return 0, err
 			}
 		}
+	}
+	// Allow non-battery devices to be fuzzed.
+	if strings.Compare(err.Error(), "non-battery device") == 0 {
+		// Non-battery device. Assume the device is powered and allow
+		// fuzzing.
+		return 100, nil
 	}
 	val := 0
 	for _, c := range out {
@@ -371,6 +379,32 @@ func (inst *instance) getBatteryLevel(numRetry int) (int, error) {
 		return 0, fmt.Errorf("failed to parse 'dumpsys battery' output: %s", out)
 	}
 	return val, nil
+}
+
+// This function was added to handled scenarios where the device being fuzzed
+// does not have a battery and is not running the battery service.
+// It first checks if the device is running a battery service.
+// If not, then the device is assumed to be battery-less (powered) and OK
+// to fuzz. The function returns without an error in that case. If the
+// device has a battery service, or a lack of service is not confirmed, then
+// the battery status is checked and the result returned.
+
+func (inst *instance) doOneBatteryCheck() ([]byte, error) {
+	out1, err1 := inst.adb("shell", "dumpsys battery | grep level:")
+	if err1 != nil {
+		// There is a possibility that the device does not have
+		// a battery. Check for that to allow such devices to be fuzzed.
+		out2, err2 := inst.adb("shell", "service check battery | grep \"not found\"")
+		if err2 == nil {
+			// the device executed the shell command but is reporting
+			// that the service was not found. Assume it is powered and
+			// OK to fuzz, as may be the case for an embedded device.
+			// Returning "non-battery device" in error string to indicate
+			// that.
+			return out2, fmt.Errorf("non-battery device")
+		}
+	}
+	return out1, err1
 }
 
 func (inst *instance) Close() {
