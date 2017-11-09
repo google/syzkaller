@@ -59,16 +59,15 @@ int main(int argc, char** argv)
 	}
 
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
-        if (mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
+	if (mmap(&input_data[0], kMaxInput, PROT_READ, MAP_PRIVATE | MAP_FIXED, kInFd, 0) != &input_data[0])
 		fail("mmap of input file failed");
-	// The output region is the only thing in executor process for which consistency matters.
-	// If it is corrupted ipc package will fail to parse its contents and panic.
-	// But fuzzer constantly invents new ways of how to currupt the region,
-	// so we map the region at a (hopefully) hard to guess address surrounded by unmapped pages.
-
+		// The output region is the only thing in executor process for which consistency matters.
+		// If it is corrupted ipc package will fail to parse its contents and panic.
+		// But fuzzer constantly invents new ways of how to currupt the region,
+		// so we map the region at a (hopefully) hard to guess address surrounded by unmapped pages.
 
 #if defined(__arm__)
-        // Not using MAP_FIXED as kOutputDataAddr is NULL for ARM
+	// Not using MAP_FIXED as kOutputDataAddr is NULL for ARM
 	output_data = (uint32_t*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED, kOutFd, 0);
 #else
 	output_data = (uint32_t*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
@@ -96,13 +95,14 @@ int main(int argc, char** argv)
 	use_temporary_dir();
 
 #if defined(__i386__)
-        // mmap syscall on i386/arm is translated to old_mmap and has different signature.
+	// mmap syscall on i386/arm is translated to old_mmap and has different signature.
 	// As a workaround fix it up to mmap2, which has signature that we expect.
 	// pkg/csource has the same hack.
 	for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++) {
 		if (syscalls[i].sys_nr == __NR_mmap)
 			syscalls[i].sys_nr = __NR_mmap2;
 	}
+
 #endif
 
 #if defined(__arm__)
@@ -115,19 +115,15 @@ int main(int argc, char** argv)
 	// That was tried by making changes to sys/syz-extract/linux.go andding in a -D__ARM_EABI__
 	// flag. That generated correct numbers, but led to another issue. Some calls such as mmap()
 	// are no longer system calls on ARM-based Linux and are also marked obsolete. That
-	// caused further issues with syz-manager. For now, the following hack appears to provide
+	// caused further issues with syz-manager. For now, the following appears to provide
 	// a workaround.
 	for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++) {
-		// For some reason, syz-sysgen is generating incorrect sys_nr values
-		// for ARM-32. For example, sys_nr for "pipe" is 9437226, but __NR_pipe is 42.
-		// Trying out a hack of reducing all the values by 9437226-42.
-		if (syscalls[i].sys_nr >= 9437184) {
-			syscalls[i].sys_nr -= 9437184;
-		}
-		if (strcmp(syscalls[i].name, "mmap") == 0) {
-			debug("syscall[%d].sys_nr for mmap changed from %d to %d. Difference is %d\n",
-			      syscalls[i].sys_nr, __NR_mmap2, syscalls[i].sys_nr - __NR_mmap2);
-			syscalls[i].sys_nr = __NR_mmap2;
+                // Also map mmap to mmap2()'s number, just as for i386.
+                if (strcmp(syscalls[i].name, "mmap") == 0) {
+                        syscalls[i].sys_nr = __NR_mmap2;
+                }
+		if (syscalls[i].sys_nr >= 0x900000) {
+			syscalls[i].sys_nr -= 0x900000;
 		}
 	}
 #endif
