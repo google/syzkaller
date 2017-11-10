@@ -39,3 +39,14 @@ indexes:
     direction: desc
   - name: Time
     direction: desc
+
+- kind: Job
+  properties:
+  - name: Finished
+  - name: Attempts
+  - name: Created
+
+- kind: Job
+  properties:
+  - name: Reported
+  - name: Finished

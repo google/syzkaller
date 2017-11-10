@@ -1,0 +1,32 @@
+Hello,
+{{if .CrashTitle}}
+syzbot has tested the proposed patch but the reproducer still triggered crash:
+{{.CrashTitle}}
+
+{{printf "%s" .Report}}
+{{else if .Error}}
+syzbot tried to test the proposed patch but build failed:
+
+{{printf "%s" .Error}}
+{{else}}
+syzbot has tested the proposed patch and the reproducer did not trigger crash:
+
+Tested-by: syzbot <syzkaller@googlegroups.com>
+
+Once the fix is committed, please reply to this email with:
+#syz fix: exact-commit-title
+{{end}}
+Tested on commit {{.KernelCommit}}
+{{.KernelRepo}}/{{.KernelBranch}}
+compiler: {{.CompilerID}}
+Patch and kernel config are attached.
+{{if .HasLog}}Raw console output is attached.{{end}}
+{{if and (not .CrashTitle) (not .Error)}}
+---
+There is no WARRANTY for the result, to the extent permitted by applicable law.
+Except when otherwise stated in writing syzbot provides the result "AS IS"
+without warranty of any kind, either expressed or implied, but not limited to,
+the implied warranties of merchantability and fittness for a particular purpose.
+The entire risk as to the quality of the result is with you. Should the result
+prove defective, you assume the cost of all necessary servicing, repair or
+correction.{{end}}

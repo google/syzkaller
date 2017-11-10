@@ -75,6 +75,52 @@ func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {
 	return resp, err
 }
 
+// Jobs workflow:
+//   - syz-ci sends JobPollReq periodically to check for new jobs,
+//     request contains list of managers that this syz-ci runs.
+//   - dashboard replies with JobPollResp that contains job details,
+//     if no new jobs available ID is set to empty string.
+//   - when syz-ci finishes the job, it sends JobDoneReq which contains
+//     job execution result (Build, Crash or Error details),
+//     ID must match JobPollResp.ID.
+
+type JobPollReq struct {
+	Managers []string
+}
+
+type JobPollResp struct {
+	ID              string
+	Manager         string
+	KernelRepo      string
+	KernelBranch    string
+	KernelConfig    []byte
+	SyzkallerCommit string
+	Patch           []byte
+	ReproOpts       []byte
+	ReproSyz        []byte
+	ReproC          []byte
+}
+
+type JobDoneReq struct {
+	ID          string
+	Build       Build
+	Error       []byte
+	CrashTitle  string
+	CrashLog    []byte
+	CrashReport []byte
+}
+
+func (dash *Dashboard) JobPoll(managers []string) (*JobPollResp, error) {
+	req := &JobPollReq{Managers: managers}
+	resp := new(JobPollResp)
+	err := dash.query("job_poll", req, resp)
+	return resp, err
+}
+
+func (dash *Dashboard) JobDone(req *JobDoneReq) error {
+	return dash.query("job_done", req, nil)
+}
+
 // Crash describes a single kernel crash (potentially with repro).
 type Crash struct {
 	BuildID     string // refers to Build.ID
@@ -140,6 +186,7 @@ type BugReport struct {
 	Namespace    string
 	Config       []byte
 	ID           string
+	JobID        string
 	ExtID        string // arbitrary reporting ID forwarded from BugUpdate.ExtID
 	First        bool   // Set for first report for this bug.
 	Title        string
@@ -157,6 +204,10 @@ type BugReport struct {
 	Report       []byte
 	ReproC       []byte
 	ReproSyz     []byte
+
+	CrashTitle string // job execution crash title
+	Error      []byte // job execution error
+	Patch      []byte // testing job patch
 }
 
 type BugUpdate struct {

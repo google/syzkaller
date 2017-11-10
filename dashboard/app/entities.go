@@ -94,6 +94,42 @@ type ReportingStateEntry struct {
 	Date int
 }
 
+// Job represent a single patch testing job for syz-ci.
+// Later we may want to extend this to other types of jobs (hense the generic name):
+//   - test of a committed fix
+//   - reproduce crash
+//   - test that crash still happens on HEAD
+//   - crash bisect
+// Job has Bug as parent entity.
+type Job struct {
+	Created   time.Time
+	User      string
+	Reporting string
+	ExtID     string // email Message-ID
+	Namespace string
+	Manager   string
+	BugTitle  string
+	CrashID   int64
+
+	// Provided by user:
+	KernelRepo   string
+	KernelBranch string
+	Patch        int64 // reference to Patch text entity
+
+	Attempts int // number of times we tried to execute this job
+	Started  time.Time
+	Finished time.Time // if set, job is finished
+
+	// Result of execution:
+	CrashTitle  string // if empty, we did not hit crash during testing
+	CrashLog    int64  // reference to CrashLog text entity
+	CrashReport int64  // reference to CrashReport text entity
+	BuildID     string
+	Error       int64 // reference to Error text entity, if set job failed
+
+	Reported bool // have we reported result back to user?
+}
+
 // Text holds text blobs (crash logs, reports, reproducers, etc).
 type Text struct {
 	Namespace string

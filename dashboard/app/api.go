@@ -32,6 +32,8 @@ var apiHandlers = map[string]APIHandler{
 	"log_error":           apiLogError,
 	"upload_build":        apiUploadBuild,
 	"builder_poll":        apiBuilderPoll,
+	"job_poll":            apiJobPoll,
+	"job_done":            apiJobDone,
 	"report_crash":        apiReportCrash,
 	"report_failed_repro": apiReportFailedRepro,
 	"need_repro":          apiNeedRepro,
@@ -155,6 +157,26 @@ loop:
 		PendingCommits: commits,
 	}
 	return resp, nil
+}
+
+func apiJobPoll(c context.Context, ns string, r *http.Request) (interface{}, error) {
+	req := new(dashapi.JobPollReq)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	if len(req.Managers) == 0 {
+		return nil, fmt.Errorf("no managers")
+	}
+	return pollPendingJobs(c, req.Managers)
+}
+
+func apiJobDone(c context.Context, ns string, r *http.Request) (interface{}, error) {
+	req := new(dashapi.JobDoneReq)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	err := doneJob(c, req)
+	return nil, err
 }
 
 func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{}, error) {
