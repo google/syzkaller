@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/mail"
+	"strings"
 	"text/template"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -71,6 +72,11 @@ func handleEmailPoll(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if err := emailPollJobs(c); err != nil {
+		log.Errorf(c, "job poll failed: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Write([]byte("OK"))
 }
 
@@ -99,6 +105,24 @@ func emailPollBugs(c context.Context) error {
 	return nil
 }
 
+func emailPollJobs(c context.Context) error {
+	jobs, err := pollCompletedJobs(c, emailType)
+	if err != nil {
+		return err
+	}
+	for _, job := range jobs {
+		if err := emailReport(c, job, "mail_test_result.txt"); err != nil {
+			log.Errorf(c, "failed to report job: %v", err)
+			continue
+		}
+		if err := jobReported(c, job.JobID); err != nil {
+			log.Errorf(c, "failed to mark job reported: %v", err)
+			continue
+		}
+	}
+	return nil
+}
+
 func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error {
 	cfg := new(EmailConfig)
 	if err := json.Unmarshal(rep.Config, cfg); err != nil {
@@ -114,6 +138,12 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 			Name: "config.txt",
 			Data: rep.KernelConfig,
 		},
+	}
+	if len(rep.Patch) != 0 {
+		attachments = append(attachments, aemail.Attachment{
+			Name: "patch.txt",
+			Data: rep.Patch,
+		})
 	}
 	if len(rep.Log) != 0 {
 		attachments = append(attachments, aemail.Attachment{
@@ -146,7 +176,9 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		KernelRepo   string
 		KernelBranch string
 		KernelCommit string
+		CrashTitle   string
 		Report       []byte
+		Error        []byte
 		HasLog       bool
 		ReproSyz     bool
 		ReproC       bool
@@ -159,7 +191,9 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		KernelRepo:   rep.KernelRepo,
 		KernelBranch: rep.KernelBranch,
 		KernelCommit: rep.KernelCommit,
+		CrashTitle:   rep.CrashTitle,
 		Report:       rep.Report,
+		Error:        rep.Error,
 		HasLog:       len(rep.Log) != 0,
 		ReproSyz:     len(rep.ReproSyz) != 0,
 		ReproC:       len(rep.ReproC) != 0,
@@ -194,6 +228,8 @@ func incomingMail(c context.Context, r *http.Request) error {
 		log.Infof(c, "duplicate email from mailing list, ignoring")
 		return nil
 	}
+	// TODO(dvyukov): check that our mailing list is in CC
+	// (otherwise there will be no history of what hsppened with a bug).
 	cmd := &dashapi.BugUpdate{
 		ID:    msg.BugID,
 		ExtID: msg.MessageID,
@@ -219,6 +255,21 @@ func incomingMail(c context.Context, r *http.Request) error {
 		}
 		cmd.Status = dashapi.BugStatusDup
 		cmd.DupOf = msg.CommandArgs
+	case "test:":
+		// TODO(dvyukov): remember email link for jobs.
+		if !appengine.IsDevAppServer() {
+			return replyTo(c, msg, "testing is experimental", nil)
+		}
+		args := strings.Split(msg.CommandArgs, " ")
+		if len(args) != 2 {
+			return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)), nil)
+		}
+		reply := handleTestRequest(c, msg.BugID, email.CanonicalEmail(msg.From),
+			msg.MessageID, msg.Patch, args[0], args[1])
+		if reply != "" {
+			return replyTo(c, msg, reply, nil)
+		}
+		return nil
 	default:
 		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.Command), nil)
 	}
