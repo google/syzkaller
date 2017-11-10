@@ -29,6 +29,7 @@ func init() {
 type uiMain struct {
 	Header    *uiHeader
 	Log       []byte
+	Jobs      []*uiJob
 	BugGroups []*uiBugGroup
 }
 
@@ -74,6 +75,28 @@ type uiCrash struct {
 	KernelConfigLink string
 }
 
+type uiJob struct {
+	Created         time.Time
+	User            string
+	Reporting       string
+	Namespace       string
+	Manager         string
+	BugTitle        string
+	BugID           string
+	KernelRepo      string
+	KernelBranch    string
+	KernelCommit    string
+	PatchLink       string
+	Attempts        int
+	Started         time.Time
+	Finished        time.Time
+	CrashTitle      string
+	CrashLogLink    string
+	CrashReportLink string
+	ErrorLink       string
+	Reported        bool
+}
+
 // handleMain serves main page.
 func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	h, err := commonHeader(c)
@@ -84,6 +107,10 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
+	jobs, err := loadRecentJobs(c)
+	if err != nil {
+		return err
+	}
 	groups, err := fetchBugs(c)
 	if err != nil {
 		return err
@@ -91,6 +118,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	data := &uiMain{
 		Header:    h,
 		Log:       errorLog,
+		Jobs:      jobs,
 		BugGroups: groups,
 	}
 	return templates.ExecuteTemplate(w, "main.html", data)
@@ -251,6 +279,41 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 			KernelBranch:     build.KernelBranch,
 			KernelCommit:     build.KernelCommit,
 			KernelConfigLink: textLink("KernelConfig", build.KernelConfig),
+		}
+		results = append(results, ui)
+	}
+	return results, nil
+}
+
+func loadRecentJobs(c context.Context) ([]*uiJob, error) {
+	var jobs []*Job
+	keys, err := datastore.NewQuery("Job").
+		Order("-Created").
+		Limit(20).
+		GetAll(c, &jobs)
+	if err != nil {
+		return nil, err
+	}
+	var results []*uiJob
+	for i, job := range jobs {
+		ui := &uiJob{
+			Created:         job.Created,
+			User:            job.User,
+			Reporting:       job.Reporting,
+			Namespace:       job.Namespace,
+			Manager:         job.Manager,
+			BugTitle:        job.BugTitle,
+			BugID:           keys[i].Parent().StringID(),
+			KernelRepo:      job.KernelRepo,
+			KernelBranch:    job.KernelBranch,
+			PatchLink:       textLink("Patch", job.Patch),
+			Attempts:        job.Attempts,
+			Started:         job.Started,
+			Finished:        job.Finished,
+			CrashTitle:      job.CrashTitle,
+			CrashLogLink:    textLink("CrashLog", job.CrashLog),
+			CrashReportLink: textLink("CrashReport", job.CrashReport),
+			ErrorLink:       textLink("Error", job.Error),
 		}
 		results = append(results, ui)
 	}

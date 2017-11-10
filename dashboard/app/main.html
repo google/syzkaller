@@ -39,6 +39,56 @@
 	</script>
 	<br><br>
 
+	<table class="list_table">
+		<caption>Recent jobs:</caption>
+		<tr>
+			<th>Created</th>
+			<th>Started</th>
+			<th>Finished</th>
+			<th>User</th>
+			<th>Bug</th>
+			<th>Patch</th>
+			<th>Reporting</th>
+			<th>Manager</th>
+			<th>Repo</th>
+			<th>Result</th>
+		</tr>
+		{{range $job := $.Jobs}}
+			<tr>
+				<td class="time">{{formatTime $job.Created}}</td>
+				<td class="time">{{formatTime $job.Started}}{{if gt $job.Attempts 1}} ({{$job.Attempts}}){{end}}</td>
+				<td class="time">{{formatTime $job.Finished}}</td>
+				<td>{{$job.User}}</td>
+				<td class="title"><a href="/bug?id={{$job.BugID}}">{{$job.BugTitle}}</a></td>
+				<td><a href="{{$job.PatchLink}}">patch</a></td>
+				<td>{{$job.Namespace}}/{{$job.Reporting}}</td>
+				<td>{{$job.Manager}}</td>
+				<td>{{$job.KernelRepo}}/{{$job.KernelBranch}}</td>
+				<td>
+					{{if $job.ErrorLink}}
+						<a href="{{$job.ErrorLink}}">error</a>
+					{{else if $job.CrashTitle}}
+						{{if $job.CrashReportLink}}
+							<a href="{{$job.CrashReportLink}}">{{$job.CrashTitle}}</a>
+						{{else}}
+							{{$job.CrashTitle}}
+						{{end}}
+						{{if $job.CrashLogLink}}
+							 (<a href="{{$job.CrashLogLink}}">log</a>)
+						{{end}}
+					{{else if formatTime $job.Finished}}
+						OK
+					{{else if formatTime $job.Started}}
+						running
+					{{else}}
+						pending
+					{{end}}
+				</td>
+			</tr>
+		{{end}}
+	</table>
+	<br><br>
+
 	{{range $g := $.BugGroups}}
 		{{template "bug_table" $g}} <br>
 	{{end}}

@@ -169,6 +169,20 @@ func (c *Ctx) httpRequest(method, url, body string) error {
 	return nil
 }
 
+func (c *Ctx) incomingEmail(to, body string) {
+	email := fmt.Sprintf(`Sender: foo@bar.com
+Date: Tue, 15 Aug 2017 14:59:00 -0700
+Message-ID: <1234>
+Subject: crash1
+From: default@sender.com
+To: %v
+Content-Type: text/plain
+
+%v
+`, to, body)
+	c.expectOK(c.POST("/_ah/mail/", email))
+}
+
 func init() {
 	// Mock time as some functionality relies on real time.
 	timeNow = func(c context.Context) time.Time {
