@@ -165,7 +165,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 	rep.Title = funcRe.ReplaceAllString(rep.Title, "$1")
 	// CPU numbers are not interesting.
 	rep.Title = cpuRe.ReplaceAllLiteralString(rep.Title, "CPU")
-	rep.Corrupted = ctx.isCorrupted(rep.Title, string(rep.Report))
+	rep.Corrupted = ctx.isCorrupted(rep.Title, rep.Report)
 	return rep
 }
 
@@ -712,9 +712,9 @@ var linuxOopses = []*oops{
 	},
 }
 
-func (ctx *linux) isCorrupted(desc string, text string) bool {
-	if !strings.Contains(text, "Call Trace") && !strings.Contains(text, "backtrace") {
-		// Text must contain 'Call Trace' or 'backtrace'.
+func (ctx *linux) isCorrupted(title string, report []byte) bool {
+	if !bytes.Contains(report, []byte("Call Trace")) && !bytes.Contains(report, []byte("backtrace")) {
+		// Report must contain 'Call Trace' or 'backtrace'.
 		return true
 	}
 	corruptedDescRegExps := []*regexp.Regexp{
@@ -731,7 +731,7 @@ func (ctx *linux) isCorrupted(desc string, text string) bool {
 		regexp.MustCompile(`\[ *NUM\.[0-9]+\]`),
 	}
 	for _, re := range corruptedDescRegExps {
-		if re.MatchString(desc) {
+		if re.MatchString(title) {
 			return true
 		}
 	}
@@ -747,40 +747,38 @@ func (ctx *linux) isCorrupted(desc string, text string) bool {
 		"invalid opcode",
 	}
 	for _, s := range corruptedDescStrings {
-		if strings.TrimSpace(desc) == s {
+		if strings.TrimSpace(title) == s {
 			return true
 		}
 	}
 	corruptedTextRegExps := []*regexp.Regexp{
-		// If report text contains 'printk messages dropped' it is most likely corrupted.
+		// If report contains 'printk messages dropped' it is most likely corrupted.
 		regexp.MustCompile(`printk messages dropped`),
 	}
 	for _, re := range corruptedTextRegExps {
-		if re.MatchString(text) {
+		if re.Match(report) {
 			return true
 		}
 	}
-	crashTypes := []string{"BUG", "WARNING", "INFO", "KASAN", "KMSAN", "UBSAN"}
-	for _, crash := range crashTypes {
-		// If description contains 'BUG', 'WARNING', etc,
-		// text must also contain it.
-		if strings.Contains(desc, crash) && !strings.Contains(text, crash) {
+	for _, crash := range []string{"BUG", "WARNING", "INFO", "KASAN", "KMSAN", "UBSAN"} {
+		// If description contains 'BUG', 'WARNING', etc, report must also contain it.
+		if strings.Contains(title, crash) && !bytes.Contains(report, []byte(crash)) {
 			return true
 		}
 	}
-	if strings.HasPrefix(desc, "possible deadlock") {
+	if strings.HasPrefix(title, "possible deadlock") {
 		// For 'possible deadlock' reports lets use 'unsafe locking scenario'
-		// string in text as a signal whether the report got truncated.
-		if !strings.Contains(text, "unsafe locking scenario") {
+		// string in report as a signal whether the report got truncated.
+		if !bytes.Contains(report, []byte("unsafe locking scenario")) {
 			return true
 		}
 	}
-	if strings.HasPrefix(desc, "KASAN") {
+	if strings.HasPrefix(title, "KASAN") {
 		// For KASAN reports lets use 'Allocated' and 'Freed' as signals.
-		if !strings.Contains(text, "Allocated") {
+		if !bytes.Contains(report, []byte("Allocated")) {
 			return true
 		}
-		if !strings.Contains(text, "Freed") {
+		if !bytes.Contains(report, []byte("Freed")) {
 			return true
 		}
 	}
@@ -789,13 +787,13 @@ func (ctx *linux) isCorrupted(desc string, text string) bool {
 	stackKeywords := []string{"Call Trace", "backtrace", "Allocated", "Freed"}
 	stackLocation := -1
 	for _, key := range stackKeywords {
-		match := strings.Index(text, key)
+		match := bytes.Index(report, []byte(key))
 		if match != -1 && (stackLocation == -1 || match < stackLocation) {
 			stackLocation = match
 		}
 	}
 	if stackLocation != -1 {
-		if !linuxSymbolizeRe.MatchString(text[stackLocation:]) {
+		if !linuxSymbolizeRe.Match(report[stackLocation:]) {
 			return true
 		}
 	}
