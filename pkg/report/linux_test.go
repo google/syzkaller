@@ -794,19 +794,19 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 		}, {
 			`
 [   72.159680] BUG UNIX (Not tainted): kasan: bad access detected
-`, ``, true,
+`, ``, false,
 		}, {
 			`
 [901320.960000] INFO: lockdep is turned off.
-`, ``, true,
+`, ``, false,
 		}, {
 			`
 [   72.159680] INFO: Stall ended before state dump start
-`, ``, true,
+`, ``, false,
 		}, {
 			`
 [   72.159680] WARNING: /etc/ssh/moduli does not exist, using fixed modulus
-`, ``, true,
+`, ``, false,
 		}, {
 			`
 [ 1579.244514] BUG: KASAN: slab-out-of-bounds in ip6_fragment+0x1052/0x2d80 at addr ffff88004ec29b58
@@ -836,7 +836,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [   92.396607] APIC base relocation is unsupported by KVM
 [   95.445015] INFO: NMI handler (perf_event_nmi_handler) took too long to run: 1.356 msecs
 [   95.445015] perf: interrupt took too long (3985 > 3976), lowering kernel.perf_event_max_sample_rate to 50000
-`, ``, true,
+`, ``, false,
 		}, {
 			`
 [   92.396607] general protection fault: 0000 [#1] [ 387.811073] audit: type=1326 audit(1486238739.637:135): auid=4294967295 uid=0 gid=0 ses=4294967295 pid=10020 comm="syz-executor1" exe="/root/syz-executor1" sig=31 arch=c000003e syscall=202 compat=0 ip=0x44fad9 code=0x0
@@ -908,13 +908,13 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [   37.991733]  [4:SdpManagerServi: 3874] KEK_PACK[3874] __add_kek :: item ffffffc822340400
 [   38.018742]  [4:  system_server: 3344] logger: !@Boot_DEBUG: start networkManagement
 [   38.039013]  [2:    kworker/2:1: 1608] Trustonic TEE: c01|TL_TZ_KEYSTORE: Starting
-`, ``, true,
+`, ``, false,
 		}, {
 			`
 [   16.761978] [syscamera][msm_companion_pll_init::526][BIN_INFO::0x0008]
 [   16.762666] [syscamera][msm_companion_pll_init::544][WAFER_INFO::0xcf80]
 [   16.763144] [syscamera][msm_companion_pll_init::594][BIN_INFO::0x0008][WAFER_INFO::0xcf80][voltage 0.775]
-`, ``, true,
+`, ``, false,
 		}, {
 			`
 [   72.159680] BUG: workqueue lockup - pool cpus=0 node=0 flags=0x0 nice=0 stuck for 32s!
@@ -957,7 +957,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  128.793239]    (ftrace buffer empty)
 [  128.793242] Kernel Offset: disabled
 [  129.380444] Rebooting in 86400 seconds..
-`, ``, true,
+`, `kernel panic: Fatal exception`, true,
 		}, {
 			`
 [  238.092073] page:ffffea000712e200 count:1 mapcount:0 mapping:ffff8801c4b88c00 index:0x0 compound_mapcount: 0
@@ -981,7 +981,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  238.187128]  ? __internal_add_timer+0x275/0x2d0
 [  238.191766]  kasan_end_report+0x50/0x50
 [  238.195711]  kasan_report+0x144/0x340
-`, ``, true,
+`, `kernel panic: panic_on_warn set ...`, true,
 		}, {
 			`
 [  308.130685] ======================================================
@@ -1001,7 +1001,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [ 1722.511384] PGD 5a25067 
 [ 1722.511384] P4D 5a25067 
 [ 1722.511384] PUD 0
-`, ``, true,
+`, `BUG: unable to handle kernel `, true,
 		}, {
 			`
 [ 1722.511384] kasan: CONFIG_KASAN_INLINE enabled
@@ -1021,7 +1021,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  153.634416] PGD a0ab067 PUD 21ffff067 PMD 80000000b3c001e3 
 [  153.640483] Oops: 0011 [#1] SMP KASAN
 [  153.644615] Modules linked in:
-`, ``, true,
+`, `BUG: unable to handle kernel [  153.NUM] deprecated getsockopt IP_VLAN used by syz-executor!`, true,
 		}, {
 			`
 [   46.415093] syz2: link speed 10 Mbps
@@ -1039,7 +1039,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 			`
 [   59.534220] ==================================================================
 [   59.541645] BUG: KASAN: slab-out-of-bounds in gup_huge_pmd+0x739/0x770 at addr ffff8800b46111c0
-`, ``, true,
+`, `KASAN: slab-out-of-bounds in gup_huge_pmd at addr ADDR`, true,
 		}, {
 			`
 [   42.361487] ==================================================================
@@ -1165,7 +1165,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [   55.502578] Freed:
 [   55.504709] PID = 4655
 [   55.507369] Memory state around the buggy address:
-`, ``, true,
+`, `KASAN: use-after-free Read in consume_skb`, true,
 		}, {
 			`
 [  322.909624] FAULT_FLAG_ALLOW_RETRY missing 30
@@ -1179,7 +1179,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  322.914882]  [<ffffffff81d91389>] dump_stack+0xc1/0x128
 ** 93 printk messages dropped ** [  322.962139] BUG: KASAN: slab-out-of-bounds in do_raw_write_lock+0x1a3/0x1d0 at addr ffff8801c464b568
 ** 1987 printk messages dropped ** [  322.975979]  ffff8801c464b400: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
-`, ``, true,
+`, `KASAN: slab-out-of-bounds in do_raw_write_lock at addr ADDR`, true,
 		}, {
 			`
 [  208.131930] ==================================================================
@@ -1253,29 +1253,29 @@ func TestLinuxIgnores(t *testing.T) {
 	if !reporter.ContainsCrash([]byte(log)) {
 		t.Fatalf("no crash")
 	}
-	if desc, _, _, _, _ := reporter.Parse([]byte(log)); desc != "BUG: bug1" {
-		t.Fatalf("want `BUG: bug1`, found `%v`", desc)
+	if rep := reporter.Parse([]byte(log)); rep.Desc != "BUG: bug1" {
+		t.Fatalf("want `BUG: bug1`, found `%v`", rep.Desc)
 	}
 
 	if !reporter1.ContainsCrash([]byte(log)) {
 		t.Fatalf("no crash")
 	}
-	if desc, _, _, _, _ := reporter1.Parse([]byte(log)); desc != "BUG: bug1" {
-		t.Fatalf("want `BUG: bug1`, found `%v`", desc)
+	if rep := reporter1.Parse([]byte(log)); rep.Desc != "BUG: bug1" {
+		t.Fatalf("want `BUG: bug1`, found `%v`", rep.Desc)
 	}
 
 	if !reporter2.ContainsCrash([]byte(log)) {
 		t.Fatalf("no crash")
 	}
-	if desc, _, _, _, _ := reporter2.Parse([]byte(log)); desc != "BUG: bug2" {
-		t.Fatalf("want `BUG: bug2`, found `%v`", desc)
+	if rep := reporter2.Parse([]byte(log)); rep.Desc != "BUG: bug2" {
+		t.Fatalf("want `BUG: bug2`, found `%v`", rep.Desc)
 	}
 
 	if reporter3.ContainsCrash([]byte(log)) {
 		t.Fatalf("found crash, should be ignored")
 	}
-	if desc, _, _, _, _ := reporter3.Parse([]byte(log)); desc != "" {
-		t.Fatalf("found `%v`, should be ignored", desc)
+	if rep := reporter3.Parse([]byte(log)); rep != nil {
+		t.Fatalf("found `%v`, should be ignored", rep.Desc)
 	}
 }
 
@@ -1328,11 +1328,11 @@ Read of size 4 by task syz-executor2/5764
 		t.Fatal(err)
 	}
 	for log, text0 := range tests {
-		if desc, text, _, _, _ := reporter.Parse([]byte(log)); string(text) != text0 {
+		if rep := reporter.Parse([]byte(log)); string(rep.Text) != text0 {
 			t.Logf("log:\n%s", log)
 			t.Logf("want text:\n%s", text0)
-			t.Logf("got text:\n%s", text)
-			t.Fatalf("bad text, desc: '%v'", desc)
+			t.Logf("got text:\n%s", rep.Text)
+			t.Fatalf("bad text, desc: '%v'", rep.Desc)
 		}
 	}
 }
@@ -1496,10 +1496,10 @@ func TestLinuxParseReport(t *testing.T) {
 	}
 	for i, test := range parseReportTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
-			_, text, _, _, _ := reporter.Parse([]byte(test.in))
-			if test.out != string(text) {
+			rep := reporter.Parse([]byte(test.in))
+			if test.out != string(rep.Text) {
 				t.Logf("expect:\n%v", test.out)
-				t.Logf("got:\n%v", string(text))
+				t.Logf("got:\n%v", string(rep.Text))
 				t.Fail()
 			}
 		})

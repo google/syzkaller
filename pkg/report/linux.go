@@ -75,7 +75,8 @@ func (ctx *linux) ContainsCrash(output []byte) bool {
 	return containsCrash(output, linuxOopses, ctx.ignores)
 }
 
-func (ctx *linux) Parse(output []byte) (desc string, text []byte, start int, end int, corrupted bool) {
+func (ctx *linux) Parse(output []byte) *Report {
+	rep := new(Report)
 	var oops *oops
 	var textPrefix [][]byte
 	textLines := 0
@@ -94,10 +95,10 @@ func (ctx *linux) Parse(output []byte) (desc string, text []byte, start int, end
 			}
 			if oops == nil {
 				oops = oops1
-				start = pos
-				desc = string(output[pos+match : next])
+				rep.Start = pos
+				rep.Desc = string(output[pos+match : next])
 			}
-			end = next
+			rep.End = next
 		}
 		if ctx.consoleOutputRe.Match(output[pos:next]) &&
 			(!ctx.questionableRe.Match(output[pos:next]) ||
@@ -116,8 +117,8 @@ func (ctx *linux) Parse(output []byte) (desc string, text []byte, start int, end
 				// Prepend 5 lines preceding start of the report,
 				// they can contain additional info related to the report.
 				for _, prefix := range textPrefix {
-					text = append(text, prefix...)
-					text = append(text, '\n')
+					rep.Text = append(rep.Text, prefix...)
+					rep.Text = append(rep.Text, '\n')
 				}
 				textPrefix = nil
 				textLines++
@@ -139,34 +140,33 @@ func (ctx *linux) Parse(output []byte) (desc string, text []byte, start int, end
 					skipLine = true
 				}
 				if !skipLine {
-					text = append(text, ln...)
-					text = append(text, '\n')
+					rep.Text = append(rep.Text, ln...)
+					rep.Text = append(rep.Text, '\n')
 				}
 			}
 		}
 		pos = next + 1
 	}
 	if oops == nil {
-		corrupted = isCorrupted("", string(text))
-		return
+		return nil
 	}
-	desc = extractDescription(output[start:], oops)
+	rep.Desc = extractDescription(output[rep.Start:], oops)
 	// Executor PIDs are not interesting.
-	desc = executorRe.ReplaceAllLiteralString(desc, "syz-executor")
+	rep.Desc = executorRe.ReplaceAllLiteralString(rep.Desc, "syz-executor")
 	// Replace that everything looks like an address with "ADDR",
 	// addresses in descriptions can't be good regardless of the oops regexps.
-	desc = addrRe.ReplaceAllLiteralString(desc, "ADDR")
+	rep.Desc = addrRe.ReplaceAllLiteralString(rep.Desc, "ADDR")
 	// Replace that everything looks like a decimal number with "NUM".
-	desc = decNumRe.ReplaceAllLiteralString(desc, "NUM")
+	rep.Desc = decNumRe.ReplaceAllLiteralString(rep.Desc, "NUM")
 	// Replace that everything looks like a file line number with "LINE".
-	desc = lineNumRe.ReplaceAllLiteralString(desc, ":LINE")
+	rep.Desc = lineNumRe.ReplaceAllLiteralString(rep.Desc, ":LINE")
 	// Replace all raw references to runctions (e.g. "ip6_fragment+0x1052/0x2d80")
 	// with just function name ("ip6_fragment"). Offsets and sizes are not stable.
-	desc = funcRe.ReplaceAllString(desc, "$1")
+	rep.Desc = funcRe.ReplaceAllString(rep.Desc, "$1")
 	// CPU numbers are not interesting.
-	desc = cpuRe.ReplaceAllLiteralString(desc, "CPU")
-	corrupted = isCorrupted(desc, string(text))
-	return
+	rep.Desc = cpuRe.ReplaceAllLiteralString(rep.Desc, "CPU")
+	rep.Corrupted = isCorrupted(rep.Desc, string(rep.Text))
+	return rep
 }
 
 func (ctx *linux) Symbolize(text []byte) ([]byte, error) {

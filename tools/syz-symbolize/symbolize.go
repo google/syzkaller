@@ -38,14 +38,19 @@ func main() {
 		os.Exit(1)
 	}
 	if *flagReport {
-		desc, text, _, _, _ := reporter.Parse(text)
+		rep := reporter.Parse(text)
+		if rep == nil {
+			fmt.Fprintf(os.Stderr, "no crash found\n")
+			os.Exit(1)
+		}
+		text = rep.Text
 		text, err = reporter.Symbolize(text)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to symbolize: %v\n", err)
 			os.Exit(1)
 		}
 		guiltyFile := reporter.ExtractGuiltyFile(text)
-		fmt.Printf("%v\n\n", desc)
+		fmt.Printf("%v\n\n", rep.Desc)
 		os.Stdout.Write(text)
 		fmt.Printf("\n")
 		fmt.Printf("guilty file: %v\n", guiltyFile)

@@ -33,7 +33,8 @@ func (ctx *freebsd) ContainsCrash(output []byte) bool {
 	return containsCrash(output, freebsdOopses, ctx.ignores)
 }
 
-func (ctx *freebsd) Parse(output []byte) (desc string, text []byte, start int, end int, corrupted bool) {
+func (ctx *freebsd) Parse(output []byte) *Report {
+	rep := new(Report)
 	var oops *oops
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
@@ -49,10 +50,10 @@ func (ctx *freebsd) Parse(output []byte) (desc string, text []byte, start int, e
 			}
 			if oops == nil {
 				oops = oops1
-				start = pos
-				desc = string(output[pos+match : next])
+				rep.Start = pos
+				rep.Desc = string(output[pos+match : next])
 			}
-			end = next
+			rep.End = next
 		}
 		// Console output is indistinguishable from fuzzer output,
 		// so we just collect everything after the oops.
@@ -61,17 +62,16 @@ func (ctx *freebsd) Parse(output []byte) (desc string, text []byte, start int, e
 			if lineEnd != 0 && output[lineEnd-1] == '\r' {
 				lineEnd--
 			}
-			text = append(text, output[pos:lineEnd]...)
-			text = append(text, '\n')
+			rep.Text = append(rep.Text, output[pos:lineEnd]...)
+			rep.Text = append(rep.Text, '\n')
 		}
 		pos = next + 1
 	}
 	if oops == nil {
-		return
+		return nil
 	}
-	desc = extractDescription(output[start:], oops)
-	corrupted = false
-	return
+	rep.Desc = extractDescription(output[rep.Start:], oops)
+	return rep
 }
 
 func (ctx *freebsd) Symbolize(text []byte) ([]byte, error) {

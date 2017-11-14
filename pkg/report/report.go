@@ -19,17 +19,26 @@ type Reporter interface {
 	ContainsCrash(output []byte) bool
 
 	// Parse extracts information about oops from console output.
-	// Desc contains a representative description of the first oops (empty if no oops found),
-	// text contains whole oops text,
-	// start and end denote region of output with oops message(s),
-	// corrupted indicates whether the report is truncated of corrupted in some other way.
-	Parse(output []byte) (desc string, text []byte, start int, end int, corrupted bool)
+	// Returns nil if no oops found.
+	Parse(output []byte) *Report
 
 	Symbolize(text []byte) ([]byte, error)
 
 	ExtractConsoleOutput(output []byte) (result []byte)
 	ExtractGuiltyFile(report []byte) string
 	GetMaintainers(file string) ([]string, error)
+}
+
+type Report struct {
+	// Desc contains a representative description of the first oops.
+	Desc string
+	// Text contains whole oops text.
+	Text []byte
+	// Start and End denote region of output with oops message(s).
+	Start int
+	End   int
+	// Corrupted indicates whether the report is truncated of corrupted in some other way.
+	Corrupted bool
 }
 
 // NewReporter creates reporter for the specified OS:
