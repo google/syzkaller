@@ -109,7 +109,7 @@ func runInstance(cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Poo
 	}
 
 	log.Logf(0, "vm-%v: crushing...", index)
-	desc, _, output, crashed, timedout := vm.MonitorExecution(outc, errc, true, reporter)
+	desc, _, output, crashed, timedout := vm.MonitorExecution(outc, errc, reporter)
 	if timedout {
 		// This is the only "OK" outcome.
 		log.Logf(0, "vm-%v: running long enough, restarting", index)

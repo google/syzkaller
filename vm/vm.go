@@ -96,14 +96,10 @@ func (inst *Instance) Close() {
 	os.RemoveAll(inst.workdir)
 }
 
-func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool,
-	reporter report.Reporter) (desc string, text, output []byte, crashed, timedout bool) {
+func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Reporter) (
+	desc string, text, output []byte, crashed, timedout bool) {
 	waitForOutput := func() {
-		dur := time.Second
-		if needOutput {
-			dur = 10 * time.Second
-		}
-		timer := time.NewTimer(dur).C
+		timer := time.NewTimer(10 * time.Second).C
 		for {
 			select {
 			case out, ok := <-outc:
