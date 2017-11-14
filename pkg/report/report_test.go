@@ -60,17 +60,7 @@ func testParse(t *testing.T, os string, tests []ParseTest) {
 		tests = append(tests, test)
 	}
 	for _, test := range tests {
-		desc, _, _, _, corrupted := reporter.Parse([]byte(test.Log))
-		if corrupted && !test.Corrupted {
-			t.Fatalf("incorrectly marked report as corrupted: '%v'\n%v", desc, test.Log)
-		}
-		if !corrupted && test.Corrupted {
-			t.Fatalf("failed to mark report as corrupted: '%v'\n%v", desc, test.Log)
-		}
-		if corrupted && test.Desc == "" {
-			// Allow ignoring crash description for corrupted reports
-			continue
-		}
+		rep := reporter.Parse([]byte(test.Log))
 		containsCrash := reporter.ContainsCrash([]byte(test.Log))
 		expectCrash := (test.Desc != "")
 		if expectCrash && !containsCrash {
@@ -78,6 +68,14 @@ func testParse(t *testing.T, os string, tests []ParseTest) {
 		}
 		if !expectCrash && containsCrash {
 			t.Fatalf("ContainsCrash found unexpected crash:\n%v", test.Log)
+		}
+		if rep != nil && rep.Desc == "" {
+			t.Fatalf("found crash, but title is empty '%v' in:\n%v", test.Desc, test.Log)
+		}
+		desc, corrupted := "", false
+		if rep != nil {
+			desc = rep.Desc
+			corrupted = rep.Corrupted
 		}
 		if desc == "" && test.Desc != "" {
 			t.Fatalf("did not find crash message '%v' in:\n%v", test.Desc, test.Log)
@@ -87,6 +85,12 @@ func testParse(t *testing.T, os string, tests []ParseTest) {
 		}
 		if desc != test.Desc {
 			t.Fatalf("extracted bad crash message:\n%+q\nwant:\n%+q", desc, test.Desc)
+		}
+		if corrupted && !test.Corrupted {
+			t.Fatalf("incorrectly marked report as corrupted: '%v'\n%v", desc, test.Log)
+		}
+		if !corrupted && test.Corrupted {
+			t.Fatalf("failed to mark report as corrupted: '%v'\n%v", desc, test.Log)
 		}
 	}
 }

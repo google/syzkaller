@@ -131,16 +131,19 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, needOutput bool,
 		if !reporter.ContainsCrash(output[matchPos:]) {
 			return defaultError, nil, output, defaultError != "", false
 		}
-		desc, text, start, end, _ := reporter.Parse(output[matchPos:])
-		start = start + matchPos - beforeContext
+		rep := reporter.Parse(output[matchPos:])
+		if rep == nil {
+			panic(fmt.Sprintf("reporter.ContainsCrash/Parse disagree:\n%s", output[matchPos:]))
+		}
+		start := rep.Start + matchPos - beforeContext
 		if start < 0 {
 			start = 0
 		}
-		end = end + matchPos + afterContext
+		end := rep.End + matchPos + afterContext
 		if end > len(output) {
 			end = len(output)
 		}
-		return desc, text, output[start:end], true, false
+		return rep.Desc, rep.Text, output[start:end], true, false
 	}
 
 	lastExecuteTime := time.Now()

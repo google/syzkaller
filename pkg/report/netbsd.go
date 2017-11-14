@@ -32,8 +32,8 @@ func (ctx *netbsd) ContainsCrash(output []byte) bool {
 	return false
 }
 
-func (ctx *netbsd) Parse(output []byte) (desc string, text []byte, start int, end int, corrupted bool) {
-	return "", nil, 0, 0, false
+func (ctx *netbsd) Parse(output []byte) *Report {
+	return nil
 }
 
 func (ctx *netbsd) Symbolize(text []byte) ([]byte, error) {

@@ -74,10 +74,11 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 	if len(entries) == 0 {
 		return nil, fmt.Errorf("crash log does not contain any programs")
 	}
-	crashDesc, _, crashStart, _, _ := reporter.Parse(crashLog)
-	if crashDesc == "" {
-		crashStart = len(crashLog) // assuming VM hanged
-		crashDesc = "hang"
+	crashStart := len(crashLog) // assuming VM hanged
+	crashDesc := "hang"
+	if rep := reporter.Parse(crashLog); rep != nil {
+		crashStart = rep.Start
+		crashDesc = rep.Desc
 	}
 
 	ctx := &context{

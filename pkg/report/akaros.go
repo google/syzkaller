@@ -31,7 +31,7 @@ func (ctx *akaros) ContainsCrash(output []byte) bool {
 	panic("not implemented")
 }
 
-func (ctx *akaros) Parse(output []byte) (desc string, text []byte, start int, end int, corrupted bool) {
+func (ctx *akaros) Parse(output []byte) *Report {
 	panic("not implemented")
 }
 
