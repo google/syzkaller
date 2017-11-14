@@ -165,7 +165,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 	rep.Desc = funcRe.ReplaceAllString(rep.Desc, "$1")
 	// CPU numbers are not interesting.
 	rep.Desc = cpuRe.ReplaceAllLiteralString(rep.Desc, "CPU")
-	rep.Corrupted = isCorrupted(rep.Desc, string(rep.Text))
+	rep.Corrupted = ctx.isCorrupted(rep.Desc, string(rep.Text))
 	return rep
 }
 
@@ -712,7 +712,7 @@ var linuxOopses = []*oops{
 	},
 }
 
-func isCorrupted(desc string, text string) bool {
+func (ctx *linux) isCorrupted(desc string, text string) bool {
 	if !strings.Contains(text, "Call Trace") && !strings.Contains(text, "backtrace") {
 		// Text must contain 'Call Trace' or 'backtrace'.
 		return true
