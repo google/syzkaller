@@ -97,7 +97,7 @@ func (inst *Instance) Close() {
 }
 
 func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Reporter) (
-	desc string, text, output []byte, crashed, timedout bool) {
+	title string, report, output []byte, crashed, timedout bool) {
 	waitForOutput := func() {
 		timer := time.NewTimer(10 * time.Second).C
 		for {
@@ -131,15 +131,15 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Rep
 		if rep == nil {
 			panic(fmt.Sprintf("reporter.ContainsCrash/Parse disagree:\n%s", output[matchPos:]))
 		}
-		start := rep.Start + matchPos - beforeContext
+		start := rep.StartPos + matchPos - beforeContext
 		if start < 0 {
 			start = 0
 		}
-		end := rep.End + matchPos + afterContext
+		end := rep.EndPos + matchPos + afterContext
 		if end > len(output) {
 			end = len(output)
 		}
-		return rep.Desc, rep.Text, output[start:end], true, false
+		return rep.Title, rep.Report, output[start:end], true, false
 	}
 
 	lastExecuteTime := time.Now()

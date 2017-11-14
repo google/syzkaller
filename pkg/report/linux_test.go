@@ -1253,29 +1253,29 @@ func TestLinuxIgnores(t *testing.T) {
 	if !reporter.ContainsCrash([]byte(log)) {
 		t.Fatalf("no crash")
 	}
-	if rep := reporter.Parse([]byte(log)); rep.Desc != "BUG: bug1" {
-		t.Fatalf("want `BUG: bug1`, found `%v`", rep.Desc)
+	if rep := reporter.Parse([]byte(log)); rep.Title != "BUG: bug1" {
+		t.Fatalf("want `BUG: bug1`, found `%v`", rep.Title)
 	}
 
 	if !reporter1.ContainsCrash([]byte(log)) {
 		t.Fatalf("no crash")
 	}
-	if rep := reporter1.Parse([]byte(log)); rep.Desc != "BUG: bug1" {
-		t.Fatalf("want `BUG: bug1`, found `%v`", rep.Desc)
+	if rep := reporter1.Parse([]byte(log)); rep.Title != "BUG: bug1" {
+		t.Fatalf("want `BUG: bug1`, found `%v`", rep.Title)
 	}
 
 	if !reporter2.ContainsCrash([]byte(log)) {
 		t.Fatalf("no crash")
 	}
-	if rep := reporter2.Parse([]byte(log)); rep.Desc != "BUG: bug2" {
-		t.Fatalf("want `BUG: bug2`, found `%v`", rep.Desc)
+	if rep := reporter2.Parse([]byte(log)); rep.Title != "BUG: bug2" {
+		t.Fatalf("want `BUG: bug2`, found `%v`", rep.Title)
 	}
 
 	if reporter3.ContainsCrash([]byte(log)) {
 		t.Fatalf("found crash, should be ignored")
 	}
 	if rep := reporter3.Parse([]byte(log)); rep != nil {
-		t.Fatalf("found `%v`, should be ignored", rep.Desc)
+		t.Fatalf("found `%v`, should be ignored", rep.Title)
 	}
 }
 
@@ -1328,11 +1328,11 @@ Read of size 4 by task syz-executor2/5764
 		t.Fatal(err)
 	}
 	for log, text0 := range tests {
-		if rep := reporter.Parse([]byte(log)); string(rep.Text) != text0 {
+		if rep := reporter.Parse([]byte(log)); string(rep.Report) != text0 {
 			t.Logf("log:\n%s", log)
 			t.Logf("want text:\n%s", text0)
-			t.Logf("got text:\n%s", rep.Text)
-			t.Fatalf("bad text, desc: '%v'", rep.Desc)
+			t.Logf("got text:\n%s", rep.Report)
+			t.Fatalf("bad text, desc: '%v'", rep.Title)
 		}
 	}
 }
@@ -1497,9 +1497,9 @@ func TestLinuxParseReport(t *testing.T) {
 	for i, test := range parseReportTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
 			rep := reporter.Parse([]byte(test.in))
-			if test.out != string(rep.Text) {
+			if test.out != string(rep.Report) {
 				t.Logf("expect:\n%v", test.out)
-				t.Logf("got:\n%v", string(rep.Text))
+				t.Logf("got:\n%v", string(rep.Report))
 				t.Fail()
 			}
 		})
