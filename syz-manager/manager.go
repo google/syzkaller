@@ -544,7 +544,7 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
 
-	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, true, mgr.getReporter())
+	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.getReporter())
 	if timedout {
 		// This is the only "OK" outcome.
 		Logf(0, "vm-%v: running for %v, restarting (%v)", index, time.Since(start), desc)
