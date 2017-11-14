@@ -335,6 +335,81 @@ func (ctx *linux) extractFiles(report []byte) []string {
 	return files
 }
 
+func (ctx *linux) isCorrupted(title string, report []byte) bool {
+	if !bytes.Contains(report, []byte("Call Trace")) && !bytes.Contains(report, []byte("backtrace")) {
+		// Report must contain 'Call Trace' or 'backtrace'.
+		return true
+	}
+	for _, re := range linuxCorruptedTitles {
+		if re.MatchString(title) {
+			return true
+		}
+	}
+	corruptedDescStrings := []string{
+		// Sometimes with such BUG failures, the second part of the header doesn't get printed
+		// or gets corrupted, because kernel prints it as two separate printk() calls.
+		"BUG: unable to handle kernel",
+		// If we failed to extract function name where the fault happened,
+		// the report is most likely truncated.
+		"general protection fault",
+		"BUG: bad unlock balance",
+		"divide error",
+		"invalid opcode",
+	}
+	for _, s := range corruptedDescStrings {
+		if strings.TrimSpace(title) == s {
+			return true
+		}
+	}
+	corruptedTextRegExps := []*regexp.Regexp{
+		// If report contains 'printk messages dropped' it is most likely corrupted.
+		regexp.MustCompile(`printk messages dropped`),
+	}
+	for _, re := range corruptedTextRegExps {
+		if re.Match(report) {
+			return true
+		}
+	}
+	for _, crash := range []string{"BUG", "WARNING", "INFO", "KASAN", "KMSAN", "UBSAN"} {
+		// If description contains 'BUG', 'WARNING', etc, report must also contain it.
+		if strings.Contains(title, crash) && !bytes.Contains(report, []byte(crash)) {
+			return true
+		}
+	}
+	if strings.HasPrefix(title, "possible deadlock") {
+		// For 'possible deadlock' reports lets use 'unsafe locking scenario'
+		// string in report as a signal whether the report got truncated.
+		if !bytes.Contains(report, []byte("unsafe locking scenario")) {
+			return true
+		}
+	}
+	if strings.HasPrefix(title, "KASAN") {
+		// For KASAN reports lets use 'Allocated' and 'Freed' as signals.
+		if !bytes.Contains(report, []byte("Allocated")) {
+			return true
+		}
+		if !bytes.Contains(report, []byte("Freed")) {
+			return true
+		}
+	}
+	// When a report contains 'Call trace', 'backtrace', 'Allocated' or 'Freed' keywords,
+	// it must also contain at least a single stack frame after the first of them.
+	stackKeywords := []string{"Call Trace", "backtrace", "Allocated", "Freed"}
+	stackLocation := -1
+	for _, key := range stackKeywords {
+		match := bytes.Index(report, []byte(key))
+		if match != -1 && (stackLocation == -1 || match < stackLocation) {
+			stackLocation = match
+		}
+	}
+	if stackLocation != -1 {
+		if !linuxSymbolizeRe.Match(report[stackLocation:]) {
+			return true
+		}
+	}
+	return false
+}
+
 var (
 	filenameRe       = regexp.MustCompile(`[a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h):[0-9]+`)
 	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
@@ -345,6 +420,20 @@ var (
 	cpuRe            = regexp.MustCompile(`CPU#[0-9]+`)
 	executorRe       = regexp.MustCompile(`syz-executor[0-9]+((/|:)[0-9]+)?`)
 )
+
+var linuxCorruptedTitles = []*regexp.Regexp{
+	// 'kernel panic: Fatal exception' is usually printed after BUG,
+	// so if we captured it as a report description, that means the
+	// report got truncated and we missed the actual BUG header.
+	regexp.MustCompile(`kernel panic: Fatal exception`),
+	// Same, but for WARNINGs and KASAN reports.
+	regexp.MustCompile(`kernel panic: panic_on_warn set`),
+	// Sometimes timestamps get merged into the middle of report description.
+	regexp.MustCompile(`\[ *[0-9]+\.[0-9]+\]`),
+	regexp.MustCompile(`\[ *[0-9]+\.NUM\]`),
+	regexp.MustCompile(`\[ *NUM\.NUM\]`),
+	regexp.MustCompile(`\[ *NUM\.[0-9]+\]`),
+}
 
 var linuxOopses = []*oops{
 	&oops{
@@ -710,92 +799,4 @@ var linuxOopses = []*oops{
 		[]oopsFormat{},
 		[]*regexp.Regexp{},
 	},
-}
-
-func (ctx *linux) isCorrupted(title string, report []byte) bool {
-	if !bytes.Contains(report, []byte("Call Trace")) && !bytes.Contains(report, []byte("backtrace")) {
-		// Report must contain 'Call Trace' or 'backtrace'.
-		return true
-	}
-	corruptedDescRegExps := []*regexp.Regexp{
-		// 'kernel panic: Fatal exception' is usually printed after BUG,
-		// so if we captured it as a report description, that means the
-		// report got truncated and we missed the actual BUG header.
-		regexp.MustCompile(`kernel panic: Fatal exception`),
-		// Same, but for WARNINGs and KASAN reports.
-		regexp.MustCompile(`kernel panic: panic_on_warn set`),
-		// Sometimes timestamps get merged into the middle of report description.
-		regexp.MustCompile(`\[ *[0-9]+\.[0-9]+\]`),
-		regexp.MustCompile(`\[ *[0-9]+\.NUM\]`),
-		regexp.MustCompile(`\[ *NUM\.NUM\]`),
-		regexp.MustCompile(`\[ *NUM\.[0-9]+\]`),
-	}
-	for _, re := range corruptedDescRegExps {
-		if re.MatchString(title) {
-			return true
-		}
-	}
-	corruptedDescStrings := []string{
-		// Sometimes with such BUG failures, the second part of the header doesn't get printed
-		// or gets corrupted, because kernel prints it as two separate printk() calls.
-		"BUG: unable to handle kernel",
-		// If we failed to extract function name where the fault happened,
-		// the report is most likely truncated.
-		"general protection fault",
-		"BUG: bad unlock balance",
-		"divide error",
-		"invalid opcode",
-	}
-	for _, s := range corruptedDescStrings {
-		if strings.TrimSpace(title) == s {
-			return true
-		}
-	}
-	corruptedTextRegExps := []*regexp.Regexp{
-		// If report contains 'printk messages dropped' it is most likely corrupted.
-		regexp.MustCompile(`printk messages dropped`),
-	}
-	for _, re := range corruptedTextRegExps {
-		if re.Match(report) {
-			return true
-		}
-	}
-	for _, crash := range []string{"BUG", "WARNING", "INFO", "KASAN", "KMSAN", "UBSAN"} {
-		// If description contains 'BUG', 'WARNING', etc, report must also contain it.
-		if strings.Contains(title, crash) && !bytes.Contains(report, []byte(crash)) {
-			return true
-		}
-	}
-	if strings.HasPrefix(title, "possible deadlock") {
-		// For 'possible deadlock' reports lets use 'unsafe locking scenario'
-		// string in report as a signal whether the report got truncated.
-		if !bytes.Contains(report, []byte("unsafe locking scenario")) {
-			return true
-		}
-	}
-	if strings.HasPrefix(title, "KASAN") {
-		// For KASAN reports lets use 'Allocated' and 'Freed' as signals.
-		if !bytes.Contains(report, []byte("Allocated")) {
-			return true
-		}
-		if !bytes.Contains(report, []byte("Freed")) {
-			return true
-		}
-	}
-	// When a report contains 'Call trace', 'backtrace', 'Allocated' or 'Freed' keywords,
-	// it must also contain at least a single stack frame after the first of them.
-	stackKeywords := []string{"Call Trace", "backtrace", "Allocated", "Freed"}
-	stackLocation := -1
-	for _, key := range stackKeywords {
-		match := bytes.Index(report, []byte(key))
-		if match != -1 && (stackLocation == -1 || match < stackLocation) {
-			stackLocation = match
-		}
-	}
-	if stackLocation != -1 {
-		if !linuxSymbolizeRe.Match(report[stackLocation:]) {
-			return true
-		}
-	}
-	return false
 }
