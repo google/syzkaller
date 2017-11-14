@@ -35,9 +35,9 @@ type Result struct {
 	Opts     csource.Options
 	CRepro   bool
 	Stats    Stats
-	// Description, log and report of the final crash that we reproduced.
+	// Title, Log and Report of the final crash that we reproduced.
 	// Can be different from what we started reproducing.
-	Desc   string
+	Title  string
 	Log    []byte
 	Report []byte
 }
@@ -45,11 +45,11 @@ type Result struct {
 type context struct {
 	cfg          *mgrconfig.Config
 	reporter     report.Reporter
-	crashDesc    string
+	crashTitle   string
 	instances    chan *instance
 	bootRequests chan int
 	stats        Stats
-	desc         string
+	title        string
 	log          []byte
 	report       []byte
 }
@@ -75,16 +75,16 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 		return nil, fmt.Errorf("crash log does not contain any programs")
 	}
 	crashStart := len(crashLog) // assuming VM hanged
-	crashDesc := "hang"
+	crashTitle := "hang"
 	if rep := reporter.Parse(crashLog); rep != nil {
-		crashStart = rep.Start
-		crashDesc = rep.Desc
+		crashStart = rep.StartPos
+		crashTitle = rep.Title
 	}
 
 	ctx := &context{
 		cfg:          cfg,
 		reporter:     reporter,
-		crashDesc:    crashDesc,
+		crashTitle:   crashTitle,
 		instances:    make(chan *instance, len(vmIndexes)),
 		bootRequests: make(chan int, len(vmIndexes)),
 	}
@@ -153,7 +153,7 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 	if res != nil {
 		ctx.reproLog(3, "repro crashed as:\n%s", string(ctx.report))
 		res.Stats = ctx.stats
-		res.Desc = ctx.desc
+		res.Title = ctx.title
 		res.Log = ctx.log
 		res.Report = ctx.report
 	}
@@ -595,15 +595,15 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 	if err != nil {
 		return false, fmt.Errorf("failed to run command in VM: %v", err)
 	}
-	desc, report, output, crashed, _ := vm.MonitorExecution(outc, errc, ctx.reporter)
+	title, report, output, crashed, _ := vm.MonitorExecution(outc, errc, ctx.reporter)
 	if !crashed {
 		ctx.reproLog(2, "program did not crash")
 		return false, nil
 	}
-	ctx.desc = desc
+	ctx.title = title
 	ctx.log = output
 	ctx.report = report
-	ctx.reproLog(2, "program crashed: %v", desc)
+	ctx.reproLog(2, "program crashed: %v", title)
 	return true, nil
 }
 
@@ -613,7 +613,7 @@ func (ctx *context) returnInstance(inst *instance) {
 }
 
 func (ctx *context) reproLog(level int, format string, args ...interface{}) {
-	prefix := fmt.Sprintf("reproducing crash '%v': ", ctx.crashDesc)
+	prefix := fmt.Sprintf("reproducing crash '%v': ", ctx.crashTitle)
 	Logf(level, prefix+format, args...)
 	ctx.stats.Log = append(ctx.stats.Log, []byte(fmt.Sprintf(format, args...)+"\n")...)
 }

@@ -43,14 +43,14 @@ func main() {
 			fmt.Fprintf(os.Stderr, "no crash found\n")
 			os.Exit(1)
 		}
-		text = rep.Text
+		text = rep.Report
 		text, err = reporter.Symbolize(text)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to symbolize: %v\n", err)
 			os.Exit(1)
 		}
 		guiltyFile := reporter.ExtractGuiltyFile(text)
-		fmt.Printf("%v\n\n", rep.Desc)
+		fmt.Printf("%v\n\n", rep.Title)
 		os.Stdout.Write(text)
 		fmt.Printf("\n")
 		fmt.Printf("guilty file: %v\n", guiltyFile)

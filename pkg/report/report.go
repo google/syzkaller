@@ -30,13 +30,13 @@ type Reporter interface {
 }
 
 type Report struct {
-	// Desc contains a representative description of the first oops.
-	Desc string
-	// Text contains whole oops text.
-	Text []byte
-	// Start and End denote region of output with oops message(s).
-	Start int
-	End   int
+	// Title contains a representative description of the first oops.
+	Title string
+	// Report contains whole oops text.
+	Report []byte
+	// StartPos/EndPos denote region of output with oops message(s).
+	StartPos int
+	EndPos   int
 	// Corrupted indicates whether the report is truncated of corrupted in some other way.
 	Corrupted bool
 }

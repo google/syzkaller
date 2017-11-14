@@ -95,10 +95,10 @@ func (ctx *linux) Parse(output []byte) *Report {
 			}
 			if oops == nil {
 				oops = oops1
-				rep.Start = pos
-				rep.Desc = string(output[pos+match : next])
+				rep.StartPos = pos
+				rep.Title = string(output[pos+match : next])
 			}
-			rep.End = next
+			rep.EndPos = next
 		}
 		if ctx.consoleOutputRe.Match(output[pos:next]) &&
 			(!ctx.questionableRe.Match(output[pos:next]) ||
@@ -117,8 +117,8 @@ func (ctx *linux) Parse(output []byte) *Report {
 				// Prepend 5 lines preceding start of the report,
 				// they can contain additional info related to the report.
 				for _, prefix := range textPrefix {
-					rep.Text = append(rep.Text, prefix...)
-					rep.Text = append(rep.Text, '\n')
+					rep.Report = append(rep.Report, prefix...)
+					rep.Report = append(rep.Report, '\n')
 				}
 				textPrefix = nil
 				textLines++
@@ -140,8 +140,8 @@ func (ctx *linux) Parse(output []byte) *Report {
 					skipLine = true
 				}
 				if !skipLine {
-					rep.Text = append(rep.Text, ln...)
-					rep.Text = append(rep.Text, '\n')
+					rep.Report = append(rep.Report, ln...)
+					rep.Report = append(rep.Report, '\n')
 				}
 			}
 		}
@@ -150,22 +150,22 @@ func (ctx *linux) Parse(output []byte) *Report {
 	if oops == nil {
 		return nil
 	}
-	rep.Desc = extractDescription(output[rep.Start:], oops)
+	rep.Title = extractDescription(output[rep.StartPos:], oops)
 	// Executor PIDs are not interesting.
-	rep.Desc = executorRe.ReplaceAllLiteralString(rep.Desc, "syz-executor")
+	rep.Title = executorRe.ReplaceAllLiteralString(rep.Title, "syz-executor")
 	// Replace that everything looks like an address with "ADDR",
 	// addresses in descriptions can't be good regardless of the oops regexps.
-	rep.Desc = addrRe.ReplaceAllLiteralString(rep.Desc, "ADDR")
+	rep.Title = addrRe.ReplaceAllLiteralString(rep.Title, "ADDR")
 	// Replace that everything looks like a decimal number with "NUM".
-	rep.Desc = decNumRe.ReplaceAllLiteralString(rep.Desc, "NUM")
+	rep.Title = decNumRe.ReplaceAllLiteralString(rep.Title, "NUM")
 	// Replace that everything looks like a file line number with "LINE".
-	rep.Desc = lineNumRe.ReplaceAllLiteralString(rep.Desc, ":LINE")
+	rep.Title = lineNumRe.ReplaceAllLiteralString(rep.Title, ":LINE")
 	// Replace all raw references to runctions (e.g. "ip6_fragment+0x1052/0x2d80")
 	// with just function name ("ip6_fragment"). Offsets and sizes are not stable.
-	rep.Desc = funcRe.ReplaceAllString(rep.Desc, "$1")
+	rep.Title = funcRe.ReplaceAllString(rep.Title, "$1")
 	// CPU numbers are not interesting.
-	rep.Desc = cpuRe.ReplaceAllLiteralString(rep.Desc, "CPU")
-	rep.Corrupted = ctx.isCorrupted(rep.Desc, string(rep.Text))
+	rep.Title = cpuRe.ReplaceAllLiteralString(rep.Title, "CPU")
+	rep.Corrupted = ctx.isCorrupted(rep.Title, string(rep.Report))
 	return rep
 }
 

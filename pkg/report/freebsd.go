@@ -50,10 +50,10 @@ func (ctx *freebsd) Parse(output []byte) *Report {
 			}
 			if oops == nil {
 				oops = oops1
-				rep.Start = pos
-				rep.Desc = string(output[pos+match : next])
+				rep.StartPos = pos
+				rep.Title = string(output[pos+match : next])
 			}
-			rep.End = next
+			rep.EndPos = next
 		}
 		// Console output is indistinguishable from fuzzer output,
 		// so we just collect everything after the oops.
@@ -62,15 +62,15 @@ func (ctx *freebsd) Parse(output []byte) *Report {
 			if lineEnd != 0 && output[lineEnd-1] == '\r' {
 				lineEnd--
 			}
-			rep.Text = append(rep.Text, output[pos:lineEnd]...)
-			rep.Text = append(rep.Text, '\n')
+			rep.Report = append(rep.Report, output[pos:lineEnd]...)
+			rep.Report = append(rep.Report, '\n')
 		}
 		pos = next + 1
 	}
 	if oops == nil {
 		return nil
 	}
-	rep.Desc = extractDescription(output[rep.Start:], oops)
+	rep.Title = extractDescription(output[rep.StartPos:], oops)
 	return rep
 }
 

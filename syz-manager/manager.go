@@ -109,7 +109,7 @@ type Fuzzer struct {
 type Crash struct {
 	vmIndex int
 	hub     bool // this crash was created based on a repro from hub
-	desc    string
+	title   string
 	report  []byte
 	log     []byte
 }
@@ -339,7 +339,7 @@ type RunResult struct {
 
 type ReproResult struct {
 	instances []int
-	desc0     string
+	title0    string
 	res       *repro.Result
 	err       error
 	hub       bool // repro came from hub
@@ -371,19 +371,19 @@ func (mgr *Manager) vmLoop() {
 		mgr.mu.Unlock()
 
 		for crash := range pendingRepro {
-			if reproducing[crash.desc] {
+			if reproducing[crash.title] {
 				continue
 			}
 			delete(pendingRepro, crash)
 			if !crash.hub {
 				if mgr.dash == nil {
-					if !mgr.needRepro(crash.desc) {
+					if !mgr.needRepro(crash.title) {
 						continue
 					}
 				} else {
 					cid := &dashapi.CrashID{
 						BuildID: mgr.cfg.Tag,
-						Title:   crash.desc,
+						Title:   crash.title,
 					}
 					needRepro, err := mgr.dash.NeedRepro(cid)
 					if err != nil {
@@ -394,8 +394,8 @@ func (mgr *Manager) vmLoop() {
 					}
 				}
 			}
-			Logf(1, "loop: add to repro queue '%v'", crash.desc)
-			reproducing[crash.desc] = true
+			Logf(1, "loop: add to repro queue '%v'", crash.title)
+			reproducing[crash.title] = true
 			reproQueue = append(reproQueue, crash)
 		}
 
@@ -422,10 +422,10 @@ func (mgr *Manager) vmLoop() {
 				instances = instances[:len(instances)-instancesPerRepro]
 				reproInstances += instancesPerRepro
 				atomic.AddUint32(&mgr.numReproducing, 1)
-				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.desc, vmIndexes)
+				Logf(1, "loop: starting repro of '%v' on instances %+v", crash.title, vmIndexes)
 				go func() {
 					res, err := repro.Run(crash.log, mgr.cfg, mgr.getReporter(), mgr.vmPool, vmIndexes)
-					reproDone <- &ReproResult{vmIndexes, crash.desc, res, err, crash.hub}
+					reproDone <- &ReproResult{vmIndexes, crash.title, res, err, crash.hub}
 				}()
 			}
 			for !canRepro() && len(instances) != 0 {
@@ -461,29 +461,29 @@ func (mgr *Manager) vmLoop() {
 			if shutdown != nil && res.crash != nil && !mgr.isSuppressed(res.crash) {
 				needRepro := mgr.saveCrash(res.crash)
 				if needRepro {
-					Logf(1, "loop: add pending repro for '%v'", res.crash.desc)
+					Logf(1, "loop: add pending repro for '%v'", res.crash.title)
 					pendingRepro[res.crash] = true
 				}
 			}
 		case res := <-reproDone:
 			atomic.AddUint32(&mgr.numReproducing, ^uint32(0))
 			crepro := false
-			desc := ""
+			title := ""
 			if res.res != nil {
 				crepro = res.res.CRepro
-				desc = res.res.Desc
+				title = res.res.Title
 			}
 			Logf(1, "loop: repro on %+v finished '%v', repro=%v crepro=%v desc='%v'",
-				res.instances, res.desc0, res.res != nil, crepro, desc)
+				res.instances, res.title0, res.res != nil, crepro, title)
 			if res.err != nil {
 				Logf(0, "repro failed: %v", res.err)
 			}
-			delete(reproducing, res.desc0)
+			delete(reproducing, res.title0)
 			instances = append(instances, res.instances...)
 			reproInstances -= instancesPerRepro
 			if res.res == nil {
 				if !res.hub {
-					mgr.saveFailedRepro(res.desc0)
+					mgr.saveFailedRepro(res.title0)
 				}
 			} else {
 				mgr.saveRepro(res.res, res.hub)
@@ -544,21 +544,21 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
 
-	desc, text, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.getReporter())
+	title, report, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.getReporter())
 	if timedout {
 		// This is the only "OK" outcome.
-		Logf(0, "vm-%v: running for %v, restarting (%v)", index, time.Since(start), desc)
+		Logf(0, "vm-%v: running for %v, restarting (%v)", index, time.Since(start), title)
 		return nil, nil
 	}
 	if !crashed {
 		// syz-fuzzer exited, but it should not.
-		desc = "lost connection to test machine"
+		title = "lost connection to test machine"
 	}
 	cash := &Crash{
 		vmIndex: index,
 		hub:     false,
-		desc:    desc,
-		report:  text,
+		title:   title,
+		report:  report,
 		log:     output,
 	}
 	return cash, nil
@@ -569,7 +569,7 @@ func (mgr *Manager) isSuppressed(crash *Crash) bool {
 		if !re.Match(crash.log) {
 			continue
 		}
-		Logf(1, "vm-%v: suppressing '%v' with '%v'", crash.vmIndex, crash.desc, re.String())
+		Logf(1, "vm-%v: suppressing '%v' with '%v'", crash.vmIndex, crash.title, re.String())
 		mgr.mu.Lock()
 		mgr.stats["suppressed"]++
 		mgr.mu.Unlock()
@@ -579,11 +579,11 @@ func (mgr *Manager) isSuppressed(crash *Crash) bool {
 }
 
 func (mgr *Manager) saveCrash(crash *Crash) bool {
-	Logf(0, "vm-%v: crash: %v", crash.vmIndex, crash.desc)
+	Logf(0, "vm-%v: crash: %v", crash.vmIndex, crash.title)
 	mgr.mu.Lock()
 	mgr.stats["crashes"]++
-	if !mgr.crashTypes[crash.desc] {
-		mgr.crashTypes[crash.desc] = true
+	if !mgr.crashTypes[crash.title] {
+		mgr.crashTypes[crash.title] = true
 		mgr.stats["crash types"]++
 	}
 	mgr.mu.Unlock()
@@ -601,7 +601,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		}
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
-			Title:       crash.desc,
+			Title:       crash.title,
 			Maintainers: maintainers,
 			Log:         crash.log,
 			Report:      crash.report,
@@ -616,11 +616,11 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		}
 	}
 
-	sig := hash.Hash([]byte(crash.desc))
+	sig := hash.Hash([]byte(crash.title))
 	id := sig.String()
 	dir := filepath.Join(mgr.crashdir, id)
 	osutil.MkdirAll(dir)
-	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.desc+"\n")); err != nil {
+	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(crash.title+"\n")); err != nil {
 		Logf(0, "failed to write crash: %v", err)
 	}
 	// Save up to 100 reports. If we already have 100, overwrite the oldest one.
@@ -647,7 +647,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.report)
 	}
 
-	return mgr.needRepro(crash.desc)
+	return mgr.needRepro(crash.title)
 }
 
 const maxReproAttempts = 3
@@ -692,10 +692,10 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 
 func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	res.Report = mgr.symbolizeReport(res.Report)
-	dir := filepath.Join(mgr.crashdir, hash.String([]byte(res.Desc)))
+	dir := filepath.Join(mgr.crashdir, hash.String([]byte(res.Title)))
 	osutil.MkdirAll(dir)
 
-	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(res.Desc+"\n")); err != nil {
+	if err := osutil.WriteFile(filepath.Join(dir, "description"), []byte(res.Title+"\n")); err != nil {
 		Logf(0, "failed to write crash: %v", err)
 	}
 	opts := fmt.Sprintf("# %+v\n", res.Opts)
@@ -732,7 +732,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	// Append this repro to repro list to send to hub if it didn't come from hub originally.
 	if !hub {
 		progForHub := []byte(fmt.Sprintf("# %+v\n# %v\n# %v\n%s",
-			res.Opts, res.Desc, mgr.cfg.Tag, prog))
+			res.Opts, res.Title, mgr.cfg.Tag, prog))
 		mgr.mu.Lock()
 		mgr.newRepros = append(mgr.newRepros, progForHub)
 		mgr.mu.Unlock()
@@ -750,7 +750,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 		}
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
-			Title:       res.Desc,
+			Title:       res.Title,
 			Maintainers: maintainers,
 			Log:         res.Log,
 			Report:      res.Report,
@@ -1124,7 +1124,7 @@ func (mgr *Manager) hubSync() {
 			mgr.hubReproQueue <- &Crash{
 				vmIndex: -1,
 				hub:     true,
-				desc:    "external repro",
+				title:   "external repro",
 				report:  nil,
 				log:     repro,
 			}
