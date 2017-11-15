@@ -66,6 +66,8 @@ type Config struct {
 	Name                   string
 	Http                   string
 	Dashboard_Addr         string // Optional.
+	Dashboard_Client       string // Optional.
+	Dashboard_Key          string // Optional.
 	Hub_Addr               string // Optional.
 	Hub_Key                string // Optional.
 	Goroot                 string // Go 1.8+ toolchain dir.
