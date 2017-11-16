@@ -62,6 +62,9 @@ func commonHeader(c context.Context) (*uiHeader, error) {
 }
 
 func formatTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
 	return t.Format("Jan 02 15:04")
 }
 
