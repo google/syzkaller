@@ -16,5 +16,13 @@ func UmountAll(dir string) {
 func prolongPipe(r, w *os.File) {
 }
 
+func Sandbox(cmd *exec.Cmd, user, net bool) error {
+	return nil
+}
+
+func SandboxChown(file string) error {
+	return nil
+}
+
 func setPdeathsig(cmd *exec.Cmd) {
 }
