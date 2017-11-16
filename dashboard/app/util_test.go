@@ -95,7 +95,10 @@ func (c *Ctx) Close() {
 	if !c.t.Failed() {
 		// Ensure that we can render bugs in the final test state.
 		c.expectOK(c.GET("/"))
-		c.expectEQ(len(c.emailSink), 0)
+		c.expectOK(c.GET("/email_poll"))
+		for len(c.emailSink) != 0 {
+			c.t.Errorf("ERROR: leftover email: %v", (<-c.emailSink).Body)
+		}
 	}
 	unregisterContext(c)
 	c.inst.Close()
