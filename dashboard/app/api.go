@@ -162,6 +162,11 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{},
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
+	err := uploadBuild(c, ns, req)
+	return nil, err
+}
+
+func uploadBuild(c context.Context, ns string, req *dashapi.Build) error {
 	checkStrLen := func(str, name string, maxLen int) error {
 		if str == "" {
 			return fmt.Errorf("%v is empty", name)
@@ -172,29 +177,29 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{},
 		return nil
 	}
 	if err := checkStrLen(req.Manager, "Build.Manager", MaxStringLen); err != nil {
-		return nil, err
+		return err
 	}
 	if err := checkStrLen(req.ID, "Build.ID", MaxStringLen); err != nil {
-		return nil, err
+		return err
 	}
 	if err := checkStrLen(req.KernelRepo, "Build.KernelRepo", MaxStringLen); err != nil {
-		return nil, err
+		return err
 	}
 	if err := checkStrLen(req.KernelBranch, "Build.KernelBranch", MaxStringLen); err != nil {
-		return nil, err
+		return err
 	}
 	if err := checkStrLen(req.SyzkallerCommit, "Build.SyzkallerCommit", MaxStringLen); err != nil {
-		return nil, err
+		return err
 	}
 	if err := checkStrLen(req.CompilerID, "Build.CompilerID", MaxStringLen); err != nil {
-		return nil, err
+		return err
 	}
 	if err := checkStrLen(req.KernelCommit, "Build.KernelCommit", MaxStringLen); err != nil {
-		return nil, err
+		return err
 	}
 	configID, err := putText(c, ns, "KernelConfig", req.KernelConfig, true)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	build := &Build{
 		Namespace:       ns,
@@ -211,16 +216,16 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{},
 		KernelConfig:    configID,
 	}
 	if _, err := datastore.Put(c, buildKey(c, ns, req.ID), build); err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(req.Commits) != 0 {
 		if err := addCommitsToBugs(c, ns, req.Manager, req.Commits); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
-	return nil, nil
+	return nil
 }
 
 func addCommitsToBugs(c context.Context, ns, manager string, commits []string) error {
