@@ -138,7 +138,7 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
-	cmd := exec.Command("ssh", args...)
+	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
@@ -297,7 +297,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	basePath := "/data/"
 	vmDst := filepath.Join(basePath, filepath.Base(hostSrc))
 	args := append(inst.sshArgs("-P"), hostSrc, "root@"+inst.cfg.Slave_Addr+":"+vmDst)
-	cmd := exec.Command("scp", args...)
+	cmd := osutil.Command("scp", args...)
 	if inst.debug {
 		Logf(0, "running command: scp %#v", args)
 		cmd.Stdout = os.Stdout
@@ -338,7 +338,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
-	cmd := exec.Command("ssh", args...)
+	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {

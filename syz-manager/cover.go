@@ -10,13 +10,14 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
-	"os/exec"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
 )
 
@@ -220,9 +221,9 @@ func getVmOffset(vmlinux string) (uint32, error) {
 	if v, ok := vmOffsets[vmlinux]; ok {
 		return v, nil
 	}
-	out, err := exec.Command("readelf", "-SW", vmlinux).CombinedOutput()
+	out, err := osutil.RunCmd(time.Hour, "readelf", "-SW", vmlinux)
 	if err != nil {
-		return 0, fmt.Errorf("readelf failed: %v\n%s", err, out)
+		return 0, err
 	}
 	s := bufio.NewScanner(bytes.NewReader(out))
 	var addr uint32
@@ -308,7 +309,7 @@ func uncoveredPcsInFuncs(vmlinux string, pcs []uint64) ([]uint64, error) {
 
 // coveredPCs returns list of PCs of __sanitizer_cov_trace_pc calls in binary bin.
 func coveredPCs(bin string) ([]uint64, error) {
-	cmd := exec.Command("objdump", "-d", "--no-show-raw-insn", bin)
+	cmd := osutil.Command("objdump", "-d", "--no-show-raw-insn", bin)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err

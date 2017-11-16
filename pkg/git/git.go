@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -154,13 +153,13 @@ var commitPrefixes = []string{
 
 func Patch(dir string, patch []byte) error {
 	// Do --dry-run first to not mess with partially consistent state.
-	cmd := exec.Command("patch", "-p1", "--force", "--ignore-whitespace", "--dry-run")
+	cmd := osutil.Command("patch", "-p1", "--force", "--ignore-whitespace", "--dry-run")
 	cmd.Stdin = bytes.NewReader(patch)
 	cmd.Dir = dir
 	if output, err := cmd.CombinedOutput(); err != nil {
 		// If it reverses clean, then it's already applied
 		// (seems to be the easiest way to detect it).
-		cmd = exec.Command("patch", "-p1", "--force", "--ignore-whitespace", "--reverse", "--dry-run")
+		cmd = osutil.Command("patch", "-p1", "--force", "--ignore-whitespace", "--reverse", "--dry-run")
 		cmd.Stdin = bytes.NewReader(patch)
 		cmd.Dir = dir
 		if _, err := cmd.CombinedOutput(); err == nil {
@@ -169,7 +168,7 @@ func Patch(dir string, patch []byte) error {
 		return fmt.Errorf("failed to apply patch:\n%s", output)
 	}
 	// Now apply for real.
-	cmd = exec.Command("patch", "-p1", "--force", "--ignore-whitespace")
+	cmd = osutil.Command("patch", "-p1", "--force", "--ignore-whitespace")
 	cmd.Stdin = bytes.NewReader(patch)
 	cmd.Dir = dir
 	if output, err := cmd.CombinedOutput(); err != nil {

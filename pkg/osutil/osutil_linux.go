@@ -8,6 +8,7 @@ package osutil
 import (
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"syscall"
 	"unsafe"
@@ -23,6 +24,12 @@ func UmountAll(dir string) {
 		}
 		fn := []byte(name + "\x00")
 		syscall.Syscall(syscall.SYS_UMOUNT2, uintptr(unsafe.Pointer(&fn[0])), syscall.MNT_FORCE, 0)
+	}
+}
+
+func setPdeathsig(cmd *exec.Cmd) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Pdeathsig: syscall.SIGKILL,
 	}
 }
 

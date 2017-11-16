@@ -19,7 +19,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -131,7 +130,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	name := fmt.Sprintf("%v-%v", pool.env.Name, index)
 	// Create SSH key for the instance.
 	gceKey := filepath.Join(workdir, "key")
-	keygen := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "syzkaller", "-f", gceKey)
+	keygen := osutil.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "syzkaller", "-f", gceKey)
 	if out, err := keygen.CombinedOutput(); err != nil {
 		return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
 	}
@@ -210,7 +209,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1@ssh-serialport.googleapis.com",
 		inst.GCE.ProjectID, inst.GCE.ZoneID, inst.name)
 	conArgs := append(sshArgs(inst.debug, inst.gceKey, "-p", 9600), conAddr)
-	con := exec.Command("ssh", conArgs...)
+	con := osutil.Command("ssh", conArgs...)
 	con.Env = []string{}
 	con.Stdout = conWpipe
 	con.Stderr = conWpipe
@@ -289,7 +288,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		}
 	}
 	args := append(sshArgs(inst.debug, inst.sshKey, "-p", 22), inst.sshUser+"@"+inst.name, command)
-	ssh := exec.Command("ssh", args...)
+	ssh := osutil.Command("ssh", args...)
 	ssh.Stdout = sshWpipe
 	ssh.Stderr = sshWpipe
 	if err := ssh.Start(); err != nil {

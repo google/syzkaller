@@ -6,8 +6,9 @@ package symbolizer
 import (
 	"bufio"
 	"bytes"
-	"os/exec"
 	"strconv"
+
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 type Symbol struct {
@@ -17,7 +18,7 @@ type Symbol struct {
 
 // ReadSymbols returns list of text symbols in the binary bin.
 func ReadSymbols(bin string) (map[string][]Symbol, error) {
-	cmd := exec.Command("nm", "-nS", bin)
+	cmd := osutil.Command("nm", "-nS", bin)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err

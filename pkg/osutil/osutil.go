@@ -21,38 +21,43 @@ const (
 
 // RunCmd runs "bin args..." in dir with timeout and returns its output.
 func RunCmd(timeout time.Duration, dir, bin string, args ...string) ([]byte, error) {
-	return runCmd(timeout, nil, dir, bin, args...)
-}
-
-// RunCmdEnv is the same as RunCmd but also appends env.
-func RunCmdEnv(timeout time.Duration, env []string, dir, bin string, args ...string) ([]byte, error) {
-	return runCmd(timeout, env, dir, bin, args...)
-}
-
-func runCmd(timeout time.Duration, env []string, dir, bin string, args ...string) ([]byte, error) {
-	output := new(bytes.Buffer)
-	cmd := exec.Command(bin, args...)
+	cmd := Command(bin, args...)
 	cmd.Dir = dir
+	return Run(timeout, cmd)
+}
+
+// Run runs cmd with the specified timeout.
+// Returns combined output. If the command fails, err includes output.
+func Run(timeout time.Duration, cmd *exec.Cmd) ([]byte, error) {
+	output := new(bytes.Buffer)
 	cmd.Stdout = output
 	cmd.Stderr = output
-	cmd.Env = append([]string{}, os.Environ()...)
-	cmd.Env = append(cmd.Env, env...)
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed to start %v %+v: %v", bin, args, err)
+		return nil, fmt.Errorf("failed to start %v %+v: %v", cmd.Path, cmd.Args, err)
 	}
 	done := make(chan bool)
+	timer := time.NewTimer(timeout)
 	go func() {
 		select {
-		case <-time.After(time.Hour):
+		case <-timer.C:
 			cmd.Process.Kill()
 		case <-done:
+			timer.Stop()
 		}
 	}()
 	defer close(done)
 	if err := cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("failed to run %v %+v: %v\n%v", bin, args, err, output.String())
+		return nil, fmt.Errorf("failed to run %v %+v: %v\n%v",
+			cmd.Path, cmd.Args, err, output.String())
 	}
 	return output.Bytes(), nil
+}
+
+// Command is similar to os/exec.Command, but also sets PDEATHSIG on linux.
+func Command(bin string, args ...string) *exec.Cmd {
+	cmd := exec.Command(bin, args...)
+	setPdeathsig(cmd)
+	return cmd
 }
 
 // IsExist returns true if the file name exists.

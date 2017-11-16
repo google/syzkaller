@@ -15,6 +15,7 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -521,7 +522,7 @@ func (ctx *context) preprocessCommonHeader(commonHeader string) (string, error) 
 	}
 	defines = append(defines, ctx.sysTarget.CArch...)
 
-	cmd := exec.Command("cpp", "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
+	cmd := osutil.Command("cpp", "-nostdinc", "-undef", "-fdirectives-only", "-dDI", "-E", "-P", "-")
 	for _, def := range defines {
 		cmd.Args = append(cmd.Args, "-D"+def)
 	}
@@ -580,10 +581,10 @@ func Build(target *prog.Target, lang, src string) (string, error) {
 		// We do generate uint64's for syscall arguments that overflow longs on 32-bit archs.
 		flags = append(flags, "-Wno-overflow")
 	}
-	out, err := exec.Command(compiler, append(flags, "-static")...).CombinedOutput()
+	out, err := osutil.Command(compiler, append(flags, "-static")...).CombinedOutput()
 	if err != nil {
 		// Some distributions don't have static libraries.
-		out, err = exec.Command(compiler, flags...).CombinedOutput()
+		out, err = osutil.Command(compiler, flags...).CombinedOutput()
 	}
 	if err != nil {
 		os.Remove(bin.Name())
@@ -599,7 +600,7 @@ var NoCompilerErr = errors.New("no target compiler")
 // Format reformats C source using clang-format.
 func Format(src []byte) ([]byte, error) {
 	stdout, stderr := new(bytes.Buffer), new(bytes.Buffer)
-	cmd := exec.Command("clang-format", "-assume-filename=/src.c", "-style", style)
+	cmd := osutil.Command("clang-format", "-assume-filename=/src.c", "-style", style)
 	cmd.Stdin = bytes.NewReader(src)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
