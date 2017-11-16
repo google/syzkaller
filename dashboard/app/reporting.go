@@ -272,17 +272,12 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 			if err != nil {
 				return false, "can't find the dup bug", err
 			}
-			cmd.DupOf = ""
-			for i := range dup.Reporting {
-				if dup.Reporting[i].Name == bugReporting.Name {
-					cmd.DupOf = dup.Reporting[i].ID
-					break
-				}
-			}
-			if cmd.DupOf == "" {
+			dupReporting := bugReportingByName(dup, bugReporting.Name)
+			if dupReporting == nil {
 				return false, "can't find the dup bug",
 					fmt.Errorf("dup does not have reporting %q", bugReporting.Name)
 			}
+			cmd.DupOf = dupReporting.ID
 		}
 		dupReporting, _ := bugReportingByID(dup, cmd.DupOf, now)
 		if bugReporting == nil || dupReporting == nil {
@@ -505,6 +500,15 @@ func bugReportingByID(bug *Bug, id string, now time.Time) (*BugReporting, bool) 
 		bug.Reporting[i].Closed = now
 	}
 	return nil, false
+}
+
+func bugReportingByName(bug *Bug, name string) *BugReporting {
+	for i := range bug.Reporting {
+		if bug.Reporting[i].Name == name {
+			return &bug.Reporting[i]
+		}
+	}
+	return nil
 }
 
 func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) ([]*Crash, error) {
