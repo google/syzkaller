@@ -5,8 +5,11 @@
 package git
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 
@@ -48,6 +51,24 @@ func Poll(dir, repo, branch string) (string, error) {
 	return HeadCommit(dir)
 }
 
+// Checkout checkouts the specified repository/branch in dir.
+// It does not fetch history and efficiently supports checkouts of different repos in the same dir.
+func Checkout(dir, repo, branch string) (string, error) {
+	if _, err := osutil.RunCmd(timeout, dir, "git", "reset", "--hard"); err != nil {
+		if err := initRepo(dir); err != nil {
+			return "", err
+		}
+	}
+	output, err := osutil.RunCmd(timeout, dir, "git", "fetch", "--no-tags", "--depth=1", repo, branch)
+	if err != nil {
+		return "", fmt.Errorf("git fetch %v %v failed: %v\n%s", repo, branch, err, output)
+	}
+	if output, err := osutil.RunCmd(timeout, dir, "git", "checkout", "FETCH_HEAD"); err != nil {
+		return "", fmt.Errorf("git checkout FETCH_HEAD failed: %v\n%s", err, output)
+	}
+	return HeadCommit(dir)
+}
+
 func clone(dir, repo, branch string) error {
 	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("failed to remove repo dir: %v", err)
@@ -64,6 +85,20 @@ func clone(dir, repo, branch string) error {
 	}
 	_, err := osutil.RunCmd(timeout, "", "git", args...)
 	return err
+}
+
+func initRepo(dir string) error {
+	if err := os.RemoveAll(dir); err != nil {
+		return fmt.Errorf("failed to remove repo dir: %v", err)
+	}
+	if err := osutil.MkdirAll(dir); err != nil {
+		return fmt.Errorf("failed to create repo dir: %v", err)
+	}
+	output, err := osutil.RunCmd(timeout, dir, "git", "init")
+	if err != nil {
+		return fmt.Errorf("failed to init git repo: %v\n%s", err, output)
+	}
+	return nil
 }
 
 // HeadCommit returns hash of the HEAD commit of the current branch of git repository in dir.
@@ -116,3 +151,43 @@ var commitPrefixes = []string{
 	"FROMGIT:",
 	"net-backports:",
 }
+
+func Patch(dir string, patch []byte) error {
+	// Do --dry-run first to not mess with partially consistent state.
+	cmd := exec.Command("patch", "-p1", "--force", "--ignore-whitespace", "--dry-run")
+	cmd.Stdin = bytes.NewReader(patch)
+	cmd.Dir = dir
+	if output, err := cmd.CombinedOutput(); err != nil {
+		// If it reverses clean, then it's already applied
+		// (seems to be the easiest way to detect it).
+		cmd = exec.Command("patch", "-p1", "--force", "--ignore-whitespace", "--reverse", "--dry-run")
+		cmd.Stdin = bytes.NewReader(patch)
+		cmd.Dir = dir
+		if _, err := cmd.CombinedOutput(); err == nil {
+			return fmt.Errorf("patch is already applied")
+		}
+		return fmt.Errorf("failed to apply patch:\n%s", output)
+	}
+	// Now apply for real.
+	cmd = exec.Command("patch", "-p1", "--force", "--ignore-whitespace")
+	cmd.Stdin = bytes.NewReader(patch)
+	cmd.Dir = dir
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to apply patch after dry run:\n%s", output)
+	}
+	return nil
+}
+
+// CheckRepoAddress does a best-effort approximate check of a git repo address.
+func CheckRepoAddress(repo string) bool {
+	return gitRepoRe.MatchString(repo)
+}
+
+var gitRepoRe = regexp.MustCompile("^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\\.[a-zA-Z0-9-_]+)+(:[0-9]+)?/[a-zA-Z0-9-_./]+\\.git(/)?$")
+
+// CheckBranch does a best-effort approximate check of a git branch name.
+func CheckBranch(branch string) bool {
+	return gitBranchRe.MatchString(branch)
+}
+
+var gitBranchRe = regexp.MustCompile("^[a-zA-Z0-9-_/.]{2,200}$")
