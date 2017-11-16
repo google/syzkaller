@@ -8,13 +8,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/google/syzkaller/pkg/compiler"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 func extract(info *compiler.ConstInfo, cc string, args []string, addSource string, declarePrintf bool) (map[string]uint64, map[string]bool, error) {
@@ -64,7 +65,7 @@ func extract(info *compiler.ConstInfo, cc string, args []string, addSource strin
 	}
 	defer os.Remove(bin)
 
-	out, err = exec.Command(bin).CombinedOutput()
+	out, err = osutil.Command(bin).CombinedOutput()
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run flags binary: %v\n%v", err, string(out))
 	}
@@ -124,8 +125,7 @@ func compile(cc string, args []string, data *CompileData) (bin string, out []byt
 		"-o", binFile.Name(),
 		"-w",
 	}...)
-	cmd := exec.Command(cc, args...)
-	out, err = cmd.CombinedOutput()
+	out, err = osutil.RunCmd(time.Minute, "", cc, args...)
 	if err != nil {
 		os.Remove(binFile.Name())
 		return "", out, err

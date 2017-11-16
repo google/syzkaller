@@ -114,7 +114,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 
 	os.RemoveAll(inst.sandboxPath)
 	os.Remove(inst.sandboxPath + ".sock")
-	out, err := exec.Command(inst.cfg.Lkvm, "setup", sandbox).CombinedOutput()
+	out, err := osutil.Command(inst.cfg.Lkvm, "setup", sandbox).CombinedOutput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to lkvm setup: %v\n%s", err, out)
 	}
@@ -128,7 +128,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		return nil, fmt.Errorf("failed to create pipe: %v", err)
 	}
 
-	inst.lkvm = exec.Command("taskset", "-c", strconv.Itoa(index%runtime.NumCPU()),
+	inst.lkvm = osutil.Command("taskset", "-c", strconv.Itoa(index%runtime.NumCPU()),
 		inst.cfg.Lkvm, "sandbox",
 		"--disk", inst.sandbox,
 		"--kernel", inst.cfg.Kernel,

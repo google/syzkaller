@@ -231,12 +231,15 @@ func (upd *SyzUpdater) build() error {
 	}
 	for target := range upd.targets {
 		parts := strings.Split(target, "/")
-		env := []string{
-			"TARGETOS=" + parts[0],
-			"TARGETVMARCH=" + parts[1],
-			"TARGETARCH=" + parts[2],
-		}
-		if _, err := osutil.RunCmdEnv(time.Hour, env, upd.syzkallerDir, "make", "target"); err != nil {
+		cmd := osutil.Command("make", "target")
+		cmd.Dir = upd.syzkallerDir
+		cmd.Env = append([]string{}, os.Environ()...)
+		cmd.Env = append(cmd.Env,
+			"TARGETOS="+parts[0],
+			"TARGETVMARCH="+parts[1],
+			"TARGETARCH="+parts[2],
+		)
+		if _, err := osutil.Run(time.Hour, cmd); err != nil {
 			return fmt.Errorf("build failed: %v", err)
 		}
 	}

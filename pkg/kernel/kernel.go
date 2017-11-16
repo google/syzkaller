@@ -61,12 +61,14 @@ func CreateImage(kernelDir, userspaceDir, cmdlineFile, sysctlFile, image, sshkey
 		return fmt.Errorf("failed to write script file: %v", err)
 	}
 	bzImage := filepath.Join(kernelDir, filepath.FromSlash("arch/x86/boot/bzImage"))
-	env := []string{
-		"SYZ_CMDLINE_FILE=" + osutil.Abs(cmdlineFile),
-		"SYZ_SYSCTL_FILE=" + osutil.Abs(sysctlFile),
-	}
-	_, err = osutil.RunCmdEnv(time.Hour, env, tempDir, scriptFile, userspaceDir, bzImage)
-	if err != nil {
+	cmd := osutil.Command(scriptFile, userspaceDir, bzImage)
+	cmd.Dir = tempDir
+	cmd.Env = append([]string{}, os.Environ()...)
+	cmd.Env = append(cmd.Env,
+		"SYZ_CMDLINE_FILE="+osutil.Abs(cmdlineFile),
+		"SYZ_SYSCTL_FILE="+osutil.Abs(sysctlFile),
+	)
+	if _, err = osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
 	if err := osutil.CopyFile(filepath.Join(tempDir, "disk.raw"), image); err != nil {

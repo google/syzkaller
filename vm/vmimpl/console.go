@@ -83,7 +83,7 @@ func OpenRemoteConsole(bin string, args ...string) (rc io.ReadCloser, err error)
 		return nil, err
 	}
 	args = append(args, "dmesg -w")
-	cmd := exec.Command(bin, args...)
+	cmd := osutil.Command(bin, args...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {

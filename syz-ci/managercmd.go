@@ -10,6 +10,7 @@ import (
 	"time"
 
 	. "github.com/google/syzkaller/pkg/log"
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 // ManagerCmd encapsulates a single instance of syz-manager process.
@@ -74,7 +75,7 @@ func (mc *ManagerCmd) loop() {
 				if err != nil {
 					Logf(0, "%v: failed to create manager log: %v", mc.name, err)
 				} else {
-					cmd = exec.Command(mc.bin, mc.args...)
+					cmd = osutil.Command(mc.bin, mc.args...)
 					cmd.Stdout = logfile
 					cmd.Stderr = logfile
 					err := cmd.Start()

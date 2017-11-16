@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -124,7 +123,7 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
-	cmd := exec.Command("ssh", args...)
+	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
@@ -231,7 +230,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := filepath.Join(inst.cfg.Target_Dir, baseName)
 	inst.ssh("pkill -9 '" + baseName + "'; rm -f '" + vmDst + "'")
 	args := append(inst.sshArgs("-P"), hostSrc, inst.target+":"+vmDst)
-	cmd := exec.Command("scp", args...)
+	cmd := osutil.Command("scp", args...)
 	if inst.debug {
 		Logf(0, "running command: scp %#v", args)
 		cmd.Stdout = os.Stdout
@@ -280,7 +279,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
-	cmd := exec.Command("ssh", args...)
+	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {

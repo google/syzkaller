@@ -185,7 +185,7 @@ func findConsoleImpl(adb, dev string) (string, error) {
 	}
 	time.Sleep(500 * time.Millisecond)
 	unique := fmt.Sprintf(">>>%v<<<", dev)
-	cmd := exec.Command(adb, "-s", dev, "shell", "echo", "\"", unique, "\"", ">", "/dev/kmsg")
+	cmd := osutil.Command(adb, "-s", dev, "shell", "echo", "\"", unique, "\"", ">", "/dev/kmsg")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		return "", fmt.Errorf("failed to run adb shell: %v\n%s", err, out)
 	}
@@ -239,7 +239,7 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 	}
 	defer wpipe.Close()
 	defer rpipe.Close()
-	cmd := exec.Command(inst.adbBin, append([]string{"-s", inst.device}, args...)...)
+	cmd := osutil.Command(inst.adbBin, append([]string{"-s", inst.device}, args...)...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {
@@ -405,7 +405,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	if inst.debug {
 		Logf(0, "starting: adb shell %v", command)
 	}
-	adb := exec.Command(inst.adbBin, "-s", inst.device, "shell", "cd /data; "+command)
+	adb := osutil.Command(inst.adbBin, "-s", inst.device, "shell", "cd /data; "+command)
 	adb.Stdout = adbWpipe
 	adb.Stderr = adbWpipe
 	if err := adb.Start(); err != nil {

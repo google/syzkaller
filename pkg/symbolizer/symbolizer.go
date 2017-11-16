@@ -12,6 +12,8 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/google/syzkaller/pkg/osutil"
 )
 
 type Symbolizer struct {
@@ -63,7 +65,7 @@ func (s *Symbolizer) getSubprocess(bin string) (*subprocess, error) {
 	if sub := s.subprocs[bin]; sub != nil {
 		return sub, nil
 	}
-	cmd := exec.Command("addr2line", "-afi", "-e", bin)
+	cmd := osutil.Command("addr2line", "-afi", "-e", bin)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err

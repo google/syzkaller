@@ -156,9 +156,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if pool.env.Image == "9p" {
 		sshkey = filepath.Join(workdir, "key")
 		sshuser = "root"
-		keygen := exec.Command("ssh-keygen", "-t", "rsa", "-b", "2048", "-N", "", "-C", "", "-f", sshkey)
-		if out, err := keygen.CombinedOutput(); err != nil {
-			return nil, fmt.Errorf("failed to execute ssh-keygen: %v\n%s", err, out)
+		if _, err := osutil.RunCmd(10*time.Minute, "ssh-keygen", "-t", "rsa", "-b", "2048",
+			"-N", "", "-C", "", "-f", sshkey); err != nil {
+			return nil, err
 		}
 		initFile := filepath.Join(workdir, "init.sh")
 		if err := osutil.WriteExecFile(initFile, []byte(strings.Replace(initScript, "{{KEY}}", sshkey, -1))); err != nil {
@@ -311,7 +311,7 @@ func (inst *instance) Boot() error {
 	if inst.debug {
 		Logf(0, "running command: %v %#v", inst.cfg.Qemu, args)
 	}
-	qemu := exec.Command(inst.cfg.Qemu, args...)
+	qemu := osutil.Command(inst.cfg.Qemu, args...)
 	qemu.Stdout = inst.wpipe
 	qemu.Stderr = inst.wpipe
 	if err := qemu.Start(); err != nil {
@@ -397,7 +397,7 @@ func (inst *instance) Copy(hostSrc string) (string, error) {
 	}
 	vmDst := filepath.Join(basePath, filepath.Base(hostSrc))
 	args := append(inst.sshArgs("-P"), hostSrc, inst.sshuser+"@localhost:"+vmDst)
-	cmd := exec.Command("scp", args...)
+	cmd := osutil.Command("scp", args...)
 	if inst.debug {
 		Logf(0, "running command: scp %#v", args)
 		cmd.Stdout = os.Stdout
@@ -433,7 +433,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	if inst.debug {
 		Logf(0, "running command: ssh %#v", args)
 	}
-	cmd := exec.Command("ssh", args...)
+	cmd := osutil.Command("ssh", args...)
 	cmd.Stdout = wpipe
 	cmd.Stderr = wpipe
 	if err := cmd.Start(); err != nil {

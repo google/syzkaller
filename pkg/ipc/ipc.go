@@ -584,7 +584,7 @@ func makeCommand(pid int, bin []string, config Config, inFile *os.File, outFile 
 	c.readDone = make(chan []byte, 1)
 	c.exited = make(chan struct{})
 
-	cmd := exec.Command(bin[0], bin[1:]...)
+	cmd := osutil.Command(bin[0], bin[1:]...)
 	if inFile != nil && outFile != nil {
 		cmd.ExtraFiles = []*os.File{inFile, outFile}
 	}
