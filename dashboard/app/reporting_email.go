@@ -66,25 +66,40 @@ func (cfg *EmailConfig) Validate() error {
 // handleEmailPoll is called by cron and sends emails for new bugs, if any.
 func handleEmailPoll(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	if err := emailPoll(c); err != nil {
-		log.Errorf(c, "%v", err)
+	if err := emailPollBugs(c); err != nil {
+		log.Errorf(c, "bug poll failed: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Write([]byte("OK"))
 }
 
-func emailPoll(c context.Context) error {
+func emailPollBugs(c context.Context) error {
 	reports := reportingPoll(c, emailType)
 	for _, rep := range reports {
-		if err := emailReport(c, rep); err != nil {
-			log.Errorf(c, "failed to report: %v", err)
+		if err := emailReport(c, rep, "mail_bug.txt"); err != nil {
+			log.Errorf(c, "failed to report bug: %v", err)
+			continue
+		}
+		cmd := &dashapi.BugUpdate{
+			ID:         rep.ID,
+			Status:     dashapi.BugStatusOpen,
+			ReproLevel: dashapi.ReproLevelNone,
+		}
+		if len(rep.ReproC) != 0 {
+			cmd.ReproLevel = dashapi.ReproLevelC
+		} else if len(rep.ReproSyz) != 0 {
+			cmd.ReproLevel = dashapi.ReproLevelSyz
+		}
+		ok, reason, err := incomingCommand(c, cmd)
+		if !ok || err != nil {
+			log.Errorf(c, "failed to update reported bug: ok=%v reason=%v err=%v", ok, reason, err)
 		}
 	}
 	return nil
 }
 
-func emailReport(c context.Context, rep *dashapi.BugReport) error {
+func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error {
 	cfg := new(EmailConfig)
 	if err := json.Unmarshal(rep.Config, cfg); err != nil {
 		return fmt.Errorf("failed to unmarshal email config: %v", err)
@@ -106,16 +121,13 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 			Data: rep.Log,
 		})
 	}
-	repro := dashapi.ReproLevelNone
 	if len(rep.ReproSyz) != 0 {
-		repro = dashapi.ReproLevelSyz
 		attachments = append(attachments, aemail.Attachment{
 			Name: "repro.txt",
 			Data: rep.ReproSyz,
 		})
 	}
 	if len(rep.ReproC) != 0 {
-		repro = dashapi.ReproLevelC
 		attachments = append(attachments, aemail.Attachment{
 			Name: "repro.c",
 			Data: rep.ReproC,
@@ -153,22 +165,14 @@ func emailReport(c context.Context, rep *dashapi.BugReport) error {
 		ReproC:       len(rep.ReproC) != 0,
 	}
 	log.Infof(c, "sending email %q to %q", rep.Title, to)
-	err = sendMailTemplate(c, rep.Title, from, to, rep.ExtID, attachments, "mail_bug.txt", data)
+	err = sendMailTemplate(c, rep.Title, from, to, rep.ExtID, attachments, templ, data)
 	if err != nil {
 		return err
 	}
-	cmd := &dashapi.BugUpdate{
-		ID:         rep.ID,
-		Status:     dashapi.BugStatusOpen,
-		ReproLevel: repro,
-	}
-	ok, reason, err := incomingCommand(c, cmd)
-	_, _, _ = ok, reason, err
 	return nil
 }
 
 // handleIncomingMail is the entry point for incoming emails.
-// TODO: this part is unfinished.
 func handleIncomingMail(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
 	if err := incomingMail(c, r); err != nil {
