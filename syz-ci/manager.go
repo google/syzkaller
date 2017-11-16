@@ -51,6 +51,7 @@ type Manager struct {
 	configTag  string
 	cfg        *Config
 	mgrcfg     *ManagerConfig
+	managercfg *mgrconfig.Config
 	cmd        *ManagerCmd
 	dash       *dashapi.Dashboard
 	stop       chan struct{}
@@ -77,8 +78,19 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 		Fatal(err)
 	}
 
+	// Prepare manager config skeleton (other fields are filled in writeConfig).
+	managercfg := mgrconfig.DefaultValues()
+	if err := config.LoadData(mgrcfg.Manager_Config, managercfg); err != nil {
+		Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
+	}
+	managercfg.TargetOS, managercfg.TargetVMArch, managercfg.TargetArch, err = mgrconfig.SplitTarget(managercfg.Target)
+	if err != nil {
+		Fatalf("failed to load manager %v config: %v", mgrcfg.Name, err)
+	}
+	managercfg.Name = cfg.Name + "-" + mgrcfg.Name
+
 	mgr := &Manager{
-		name:       cfg.Name + "-" + mgrcfg.Name,
+		name:       managercfg.Name,
 		workDir:    filepath.Join(dir, "workdir"),
 		kernelDir:  filepath.Join(dir, "kernel"),
 		currentDir: filepath.Join(dir, "current"),
@@ -87,6 +99,7 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 		configTag:  hash.String(configData),
 		cfg:        cfg,
 		mgrcfg:     mgrcfg,
+		managercfg: managercfg,
 		dash:       dash,
 		stop:       stop,
 	}
@@ -304,19 +317,9 @@ func (mgr *Manager) restartManager() {
 }
 
 func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
-	mgrcfg := mgrconfig.DefaultValues()
-	err := config.LoadData(mgr.mgrcfg.Manager_Config, mgrcfg)
-	if err != nil {
-		return "", err
-	}
-	if mgrcfg.Target == "" {
-		// TODO(dvyukov): temporal measure to handle upgrade.
-		// Remove this once ci configs have targets.
-		mgrcfg.Target = "linux/amd64"
-		mgrcfg.TargetOS = "linux"
-		mgrcfg.TargetVMArch = "amd64"
-		mgrcfg.TargetArch = "amd64"
-	}
+	mgrcfg := new(mgrconfig.Config)
+	*mgrcfg = *mgr.managercfg
+
 	current := mgr.currentDir
 	if mgr.dash != nil {
 		mgrcfg.Tag = info.Tag
@@ -332,7 +335,6 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 		// at least some useful information.
 		mgrcfg.Tag = info.KernelCommit
 	}
-	mgrcfg.Name = mgr.name
 	if mgr.cfg.Hub_Addr != "" {
 		mgrcfg.Hub_Client = mgr.cfg.Name
 		mgrcfg.Hub_Addr = mgr.cfg.Hub_Addr
@@ -371,14 +373,6 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 	if err != nil {
 		return fmt.Errorf("failed to read kernel.config: %v", err)
 	}
-	mgrcfg := new(mgrconfig.Config)
-	if err := config.LoadData(mgr.mgrcfg.Manager_Config, mgrcfg); err != nil {
-		return fmt.Errorf("failed to load manager %v config: %v", mgr.name, err)
-	}
-	os, vmarch, arch, err := mgrconfig.SplitTarget(mgrcfg.Target)
-	if err != nil {
-		return fmt.Errorf("failed to load manager %v config: %v", mgr.name, err)
-	}
 	commits, err := mgr.pollCommits(info.KernelCommit)
 	if err != nil {
 		// This is not critical for operation.
@@ -387,9 +381,9 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 	build := &dashapi.Build{
 		Manager:         mgr.name,
 		ID:              info.Tag,
-		OS:              os,
-		Arch:            arch,
-		VMArch:          vmarch,
+		OS:              mgr.managercfg.TargetOS,
+		Arch:            mgr.managercfg.TargetArch,
+		VMArch:          mgr.managercfg.TargetVMArch,
 		SyzkallerCommit: syzkallerCommit,
 		CompilerID:      info.CompilerID,
 		KernelRepo:      info.KernelRepo,
