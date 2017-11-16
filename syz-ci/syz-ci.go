@@ -41,6 +41,11 @@ package main
 //		workdir/	: manager workdir (never deleted)
 //		latest/		: latest good kernel image build
 //		current/	: kernel image currently in use
+// jobs/
+//	linux/			: one dir per target OS
+//		kernel/		: kernel checkout
+//		image/		: currently used image
+//		workdir/	: some temp files
 //
 // Current executable, syzkaller and kernel builds are marked with tag files.
 // Tag files uniquely identify the build (git hash, compiler identity, kernel config, etc).
@@ -110,6 +115,8 @@ func main() {
 		close(updatePending)
 	}()
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	stop := make(chan struct{})
 	go func() {
 		select {
@@ -117,23 +124,28 @@ func main() {
 		case <-updatePending:
 		}
 		close(stop)
+		wg.Done()
 	}()
 
-	var wg sync.WaitGroup
-	wg.Add(len(cfg.Managers))
 	managers := make([]*Manager, len(cfg.Managers))
 	for i, mgrcfg := range cfg.Managers {
 		managers[i] = createManager(cfg, mgrcfg, stop)
 	}
+	jp := newJobProcessor(cfg, managers)
 	for _, mgr := range managers {
 		mgr := mgr
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			mgr.loop()
 		}()
 	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		jp.loop(stop)
+	}()
 
-	<-stop
 	wg.Wait()
 
 	select {
