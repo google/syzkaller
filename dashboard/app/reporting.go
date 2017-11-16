@@ -104,7 +104,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		return
 	}
 
-	crash, err = findCrashForBug(c, bug)
+	crash, _, err = findCrashForBug(c, bug)
 	if err != nil {
 		status = fmt.Sprintf("%v: no crashes!", reporting.Name)
 		reporting, bugReporting = nil, nil
@@ -511,9 +511,10 @@ func bugReportingByName(bug *Bug, name string) *BugReporting {
 	return nil
 }
 
-func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) ([]*Crash, error) {
+func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) (
+	[]*Crash, []*datastore.Key, error) {
 	var crashes []*Crash
-	_, err := datastore.NewQuery("Crash").
+	keys, err := datastore.NewQuery("Crash").
 		Ancestor(bugKey).
 		Order("-ReproC").
 		Order("-ReproSyz").
@@ -522,21 +523,21 @@ func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) ([]
 		Limit(limit).
 		GetAll(c, &crashes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch crashes: %v", err)
+		return nil, nil, fmt.Errorf("failed to fetch crashes: %v", err)
 	}
-	return crashes, nil
+	return crashes, keys, nil
 }
 
-func findCrashForBug(c context.Context, bug *Bug) (*Crash, error) {
+func findCrashForBug(c context.Context, bug *Bug) (*Crash, *datastore.Key, error) {
 	bugKey := datastore.NewKey(c, "Bug", bugKeyHash(bug.Namespace, bug.Title, bug.Seq), 0, nil)
-	crashes, err := queryCrashesForBug(c, bugKey, 1)
+	crashes, keys, err := queryCrashesForBug(c, bugKey, 1)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch crashes: %v", err)
+		return nil, nil, err
 	}
 	if len(crashes) < 1 {
-		return nil, fmt.Errorf("no crashes")
+		return nil, nil, fmt.Errorf("no crashes")
 	}
-	crash := crashes[0]
+	crash, key := crashes[0], keys[0]
 	if bug.ReproLevel == ReproLevelC {
 		if crash.ReproC == 0 {
 			log.Errorf(c, "bug '%v': has C repro, but crash without C repro", bug.Title)
@@ -550,7 +551,7 @@ func findCrashForBug(c context.Context, bug *Bug) (*Crash, error) {
 			log.Errorf(c, "bug '%v': has report, but crash without report", bug.Title)
 		}
 	}
-	return crash, nil
+	return crash, key, nil
 }
 
 func loadReportingState(c context.Context) (*ReportingState, error) {
