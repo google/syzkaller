@@ -104,14 +104,16 @@ type Job struct {
 func (job *Job) process() *dashapi.JobDoneReq {
 	req, mgr := job.req, job.mgr
 	build := dashapi.Build{
-		Manager:      mgr.name,
-		ID:           req.ID,
-		OS:           mgr.managercfg.TargetOS,
-		Arch:         mgr.managercfg.TargetArch,
-		VMArch:       mgr.managercfg.TargetVMArch,
-		CompilerID:   mgr.compilerID,
-		KernelRepo:   req.KernelRepo,
-		KernelBranch: req.KernelBranch,
+		Manager:         mgr.name,
+		ID:              req.ID,
+		OS:              mgr.managercfg.TargetOS,
+		Arch:            mgr.managercfg.TargetArch,
+		VMArch:          mgr.managercfg.TargetVMArch,
+		CompilerID:      mgr.compilerID,
+		KernelRepo:      req.KernelRepo,
+		KernelBranch:    req.KernelBranch,
+		KernelCommit:    "[unknown]",
+		SyzkallerCommit: "[unknown]",
 	}
 	job.resp = &dashapi.JobDoneReq{
 		ID:    req.ID,
