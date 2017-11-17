@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
-	"reflect"
 	"runtime"
 	"testing"
 	"time"
@@ -30,65 +29,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int) {
 	return target, rs, iters
 }
 
-func enumerateField(opt Options, field int) []Options {
-	var opts []Options
-	s := reflect.ValueOf(&opt).Elem()
-	fldName := s.Type().Field(field).Name
-	fld := s.Field(field)
-	if fldName == "Sandbox" {
-		for _, sandbox := range []string{"", "none", "setuid", "namespace"} {
-			fld.SetString(sandbox)
-			opts = append(opts, opt)
-		}
-	} else if fldName == "Procs" {
-		for _, procs := range []int64{1, 4} {
-			fld.SetInt(procs)
-			opts = append(opts, opt)
-		}
-	} else if fldName == "FaultCall" {
-		opts = append(opts, opt)
-	} else if fldName == "FaultNth" {
-		opts = append(opts, opt)
-	} else if fld.Kind() == reflect.Bool {
-		for _, v := range []bool{false, true} {
-			fld.SetBool(v)
-			opts = append(opts, opt)
-		}
-	} else {
-		panic(fmt.Sprintf("field '%v' is not boolean", fldName))
-	}
-	var checked []Options
-	for _, opt := range opts {
-		if err := opt.Check(); err == nil {
-			checked = append(checked, opt)
-		}
-	}
-	return checked
-}
-
-func allOptionsSingle() []Options {
-	var opts []Options
-	fields := reflect.TypeOf(Options{}).NumField()
-	for i := 0; i < fields; i++ {
-		opts = append(opts, enumerateField(Options{}, i)...)
-	}
-	return opts
-}
-
-func allOptionsPermutations() []Options {
-	opts := []Options{Options{}}
-	fields := reflect.TypeOf(Options{}).NumField()
-	for i := 0; i < fields; i++ {
-		var newOpts []Options
-		for _, opt := range opts {
-			newOpts = append(newOpts, enumerateField(opt, i)...)
-		}
-		opts = newOpts
-	}
-	return opts
-}
-
-func TestOne(t *testing.T) {
+func TestGenerateOne(t *testing.T) {
 	t.Parallel()
 	opts := Options{
 		Threaded:  true,
@@ -130,7 +71,7 @@ func TestOne(t *testing.T) {
 	}
 }
 
-func TestOptions(t *testing.T) {
+func TestGenerateOptions(t *testing.T) {
 	target, rs, _ := initTest(t)
 	syzProg := target.GenerateAllSyzProg(rs)
 	t.Logf("syz program:\n%s\n", syzProg.Serialize())
