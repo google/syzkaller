@@ -37,13 +37,13 @@ func Sandbox(cmd *exec.Cmd, user, net bool) error {
 		cmd.SysProcAttr = new(syscall.SysProcAttr)
 	}
 	if user {
-		uid, err := initSandbox()
+		uid, gid, err := initSandbox()
 		if err != nil {
 			return err
 		}
 		cmd.SysProcAttr.Credential = &syscall.Credential{
 			Uid: uid,
-			Gid: uid,
+			Gid: gid,
 		}
 	}
 	if net {
@@ -54,7 +54,7 @@ func Sandbox(cmd *exec.Cmd, user, net bool) error {
 }
 
 func SandboxChown(file string) error {
-	uid, err := initSandbox()
+	uid, _, err := initSandbox()
 	if err != nil {
 		return err
 	}
@@ -65,25 +65,39 @@ var (
 	sandboxOnce     sync.Once
 	sandboxUsername = "syzkaller"
 	sandboxUID      = ^uint32(0)
+	sandboxGID      = ^uint32(0)
 )
 
-func initSandbox() (uint32, error) {
+func initSandbox() (uint32, uint32, error) {
 	sandboxOnce.Do(func() {
-		out, err := RunCmd(time.Minute, "", "id", "-u", sandboxUsername)
-		if err != nil || len(out) == 0 {
-			return
-		}
-		str := strings.Trim(string(out), " \t\n")
-		uid, err := strconv.ParseUint(str, 10, 32)
+		uid, err := usernameToID("-u")
 		if err != nil {
 			return
 		}
-		sandboxUID = uint32(uid)
+		gid, err := usernameToID("-g")
+		if err != nil {
+			return
+		}
+		sandboxUID = uid
+		sandboxGID = gid
 	})
 	if sandboxUID == ^uint32(0) {
-		return 0, fmt.Errorf("user %q is not found, can't sandbox command", sandboxUsername)
+		return 0, 0, fmt.Errorf("user %q is not found, can't sandbox command", sandboxUsername)
 	}
-	return sandboxUID, nil
+	return sandboxUID, sandboxGID, nil
+}
+
+func usernameToID(what string) (uint32, error) {
+	out, err := RunCmd(time.Minute, "", "id", what, sandboxUsername)
+	if err != nil {
+		return 0, err
+	}
+	str := strings.Trim(string(out), " \t\n")
+	id, err := strconv.ParseUint(str, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+	return uint32(id), nil
 }
 
 func setPdeathsig(cmd *exec.Cmd) {
