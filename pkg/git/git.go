@@ -75,7 +75,7 @@ func clone(dir, repo, branch string) error {
 	if _, err := runSandboxed(dir, "git", "remote", "add", "origin", repo); err != nil {
 		return err
 	}
-	if _, err := runSandboxed(dir, "git", "fetch", "origin", "master"); err != nil {
+	if _, err := runSandboxed(dir, "git", "fetch", "origin", branch); err != nil {
 		return err
 	}
 	return nil
