@@ -245,6 +245,8 @@ Subject: [Patch net] kcm: fix a null pointer dereference in kcm_sendmsg()
 +	spinlock_t cancel_lock;
  	bool might_cancel;
  };
+
+On Fri, Nov 17, 2017 at 3:46 PM, syzbot wrote:
 `,
 		title: "kcm: fix a null pointer dereference in kcm_sendmsg()",
 		diff: `--- a/fs/timerfd.c
@@ -272,6 +274,7 @@ Subject: Re: [PATCH v3] net/irda: fix lockdep annotation
 +	spinlock_t cancel_lock;
  	bool might_cancel;
  };
+> Does this help?
 `,
 		title: "net/irda: fix lockdep annotation",
 		diff: `--- a/fs/timerfd.c
@@ -301,6 +304,65 @@ index 0000000..a1a0499
 +++ b/syz-dash/api.go
 @@ -0,0 +1,444 @@
 +package dash
+`,
+	},
+	{
+		text: `Subject: multi-file patch
+
+diff --git a/init/main.c b/init/main.c
+index 0ee9c6866ada..ed01296f7b23 100644
+--- a/init/main.c
++++ b/init/main.c
+@@ -706,6 +706,8 @@ asmlinkage __visible void __init start_kernel(void)
+                efi_free_boot_services();
+        }
+ 
++       BUG();
++
+        /* Do the rest non-__init'ed, we're now alive */
+        rest_init();
+ }
+diff --git a/mm/kasan/kasan.c b/mm/kasan/kasan.c
+index 6f319fb81718..76a8d5aeed4b 100644
+--- a/mm/kasan/kasan.c
++++ b/mm/kasan/kasan.c
+@@ -42,7 +42,7 @@
+ 
+ void kasan_enable_current(void)
+ {
+-       current->kasan_depth++;
++       current->kasan_depth--;
+ }
+ 
+ void kasan_disable_current(void)
+
+> Does this help?
+`,
+		title: "multi-file patch",
+		diff: `--- a/init/main.c
++++ b/init/main.c
+@@ -706,6 +706,8 @@ asmlinkage __visible void __init start_kernel(void)
+                efi_free_boot_services();
+        }
+ 
++       BUG();
++
+        /* Do the rest non-__init'ed, we're now alive */
+        rest_init();
+ }
+diff --git a/mm/kasan/kasan.c b/mm/kasan/kasan.c
+index 6f319fb81718..76a8d5aeed4b 100644
+--- a/mm/kasan/kasan.c
++++ b/mm/kasan/kasan.c
+@@ -42,7 +42,7 @@
+ 
+ void kasan_enable_current(void)
+ {
+-       current->kasan_depth++;
++       current->kasan_depth--;
+ }
+ 
+ void kasan_disable_current(void)
 `,
 	},
 }

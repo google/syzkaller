@@ -340,7 +340,7 @@ index 3d85747bd86e..a257b872a53d 100644
   return -EINVAL;
 - if (!filename)
 - return -EINVAL;
-
+ 
   error = vfs_statx(dfd, filename, flags, &stat, mask);
   if (error)
 
@@ -398,7 +398,7 @@ index 3d85747bd86e..a257b872a53d 100644
   return -EINVAL;
 - if (!filename)
 - return -EINVAL;
-
+ 
   error = vfs_statx(dfd, filename, flags, &stat, mask);
   if (error)
 `,
@@ -410,7 +410,7 @@ index 3d85747bd86e..a257b872a53d 100644
   return -EINVAL;
 - if (!filename)
 - return -EINVAL;
-
+ 
   error = vfs_statx(dfd, filename, flags, &stat, mask);
   if (error)
 `,
