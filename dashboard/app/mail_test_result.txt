@@ -19,7 +19,8 @@ Once the fix is committed, please reply to this email with:
 Tested on commit {{.KernelCommit}}
 {{.KernelRepo}}/{{.KernelBranch}}
 compiler: {{.CompilerID}}
-Patch and kernel config are attached.
+Patch is attached.
+{{if .HasKernelConfig}}Kernel config is attached.{{end}}
 {{if .HasLog}}Raw console output is attached.{{end}}
 {{if and (not .CrashTitle) (not .Error)}}
 ---

@@ -73,13 +73,20 @@ func addTestJob(c context.Context, bugID, user, extID, patch, repo, branch strin
 		return "", err
 	}
 
+	manager := crash.Manager
+	for _, ns := range config.Namespaces {
+		if delegated, ok := ns.DecommissionedManagers[manager]; ok {
+			manager = delegated
+		}
+	}
+
 	job := &Job{
 		Created:      now,
 		User:         user,
 		Reporting:    bugReporting.Name,
 		ExtID:        extID,
 		Namespace:    bug.Namespace,
-		Manager:      crash.Manager,
+		Manager:      manager,
 		BugTitle:     bug.displayTitle(),
 		CrashID:      crashKey.IntID(),
 		KernelRepo:   repo,

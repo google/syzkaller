@@ -133,11 +133,12 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		to = append(to, rep.Maintainers...)
 	}
 	to = email.MergeEmailLists(to, rep.CC)
-	attachments := []aemail.Attachment{
-		{
+	var attachments []aemail.Attachment
+	if len(rep.KernelConfig) != 0 {
+		attachments = append(attachments, aemail.Attachment{
 			Name: "config.txt",
 			Data: rep.KernelConfig,
-		},
+		})
 	}
 	if len(rep.Patch) != 0 {
 		attachments = append(attachments, aemail.Attachment{
@@ -169,34 +170,36 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	}
 	// Data passed to the template.
 	type BugReportData struct {
-		First        bool
-		Moderation   bool
-		Maintainers  []string
-		CompilerID   string
-		KernelRepo   string
-		KernelBranch string
-		KernelCommit string
-		CrashTitle   string
-		Report       []byte
-		Error        []byte
-		HasLog       bool
-		ReproSyz     bool
-		ReproC       bool
+		First           bool
+		Moderation      bool
+		Maintainers     []string
+		CompilerID      string
+		KernelRepo      string
+		KernelBranch    string
+		KernelCommit    string
+		CrashTitle      string
+		Report          []byte
+		Error           []byte
+		HasLog          bool
+		HasKernelConfig bool
+		ReproSyz        bool
+		ReproC          bool
 	}
 	data := &BugReportData{
-		First:        rep.First,
-		Moderation:   cfg.Moderation,
-		Maintainers:  rep.Maintainers,
-		CompilerID:   rep.CompilerID,
-		KernelRepo:   rep.KernelRepo,
-		KernelBranch: rep.KernelBranch,
-		KernelCommit: rep.KernelCommit,
-		CrashTitle:   rep.CrashTitle,
-		Report:       rep.Report,
-		Error:        rep.Error,
-		HasLog:       len(rep.Log) != 0,
-		ReproSyz:     len(rep.ReproSyz) != 0,
-		ReproC:       len(rep.ReproC) != 0,
+		First:           rep.First,
+		Moderation:      cfg.Moderation,
+		Maintainers:     rep.Maintainers,
+		CompilerID:      rep.CompilerID,
+		KernelRepo:      rep.KernelRepo,
+		KernelBranch:    rep.KernelBranch,
+		KernelCommit:    rep.KernelCommit,
+		CrashTitle:      rep.CrashTitle,
+		Report:          rep.Report,
+		Error:           rep.Error,
+		HasLog:          len(rep.Log) != 0,
+		HasKernelConfig: len(rep.KernelConfig) != 0,
+		ReproSyz:        len(rep.ReproSyz) != 0,
+		ReproC:          len(rep.ReproC) != 0,
 	}
 	log.Infof(c, "sending email %q to %q", rep.Title, to)
 	err = sendMailTemplate(c, rep.Title, from, to, rep.ExtID, attachments, templ, data)
@@ -257,12 +260,10 @@ func incomingMail(c context.Context, r *http.Request) error {
 		cmd.DupOf = msg.CommandArgs
 	case "test:":
 		// TODO(dvyukov): remember email link for jobs.
-		if !appengine.IsDevAppServer() {
-			return replyTo(c, msg, "testing is experimental", nil)
-		}
 		args := strings.Split(msg.CommandArgs, " ")
 		if len(args) != 2 {
-			return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v", len(args)), nil)
+			return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v",
+				len(args)), nil)
 		}
 		reply := handleTestRequest(c, msg.BugID, email.CanonicalEmail(msg.From),
 			msg.MessageID, msg.Patch, args[0], args[1])
