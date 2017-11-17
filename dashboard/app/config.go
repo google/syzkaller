@@ -36,6 +36,9 @@ type Config struct {
 	MailWithoutReport bool
 	// How long should we wait for a C repro before reporting a bug.
 	WaitForRepro time.Duration
+	// Managers that were turned down and will not hold bug fixing due to missed commits.
+	// The value is delegated manager that will handle patch testing instead of the decommissioned one.
+	DecommissionedManagers map[string]string
 	// Reporting config.
 	Reporting []Reporting
 }

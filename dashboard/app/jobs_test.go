@@ -78,7 +78,7 @@ func TestJob(t *testing.T) {
 	c.expectEQ(pollResp.KernelBranch, "kernel-branch")
 	c.expectEQ(pollResp.KernelConfig, build.KernelConfig)
 	c.expectEQ(pollResp.SyzkallerCommit, build.SyzkallerCommit)
-	c.expectEQ(pollResp.Patch, []byte(patch+"\n"))
+	c.expectEQ(pollResp.Patch, []byte(patch))
 	c.expectEQ(pollResp.ReproOpts, []byte("repro opts"))
 	c.expectEQ(pollResp.ReproSyz, []byte("repro syz"))
 	c.expectEQ(pollResp.ReproC, []byte("repro C"))
@@ -107,7 +107,7 @@ func TestJob(t *testing.T) {
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
 		c.expectEQ(msg.Attachments[1].Name, "patch.txt")
-		c.expectEQ(msg.Attachments[1].Data, []byte(patch+"\n"))
+		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
 		c.expectEQ(msg.Attachments[2].Name, "raw.log")
 		c.expectEQ(msg.Attachments[2].Data, jobDoneReq.CrashLog)
 		c.expectEQ(msg.Body, `Hello,
@@ -120,7 +120,8 @@ test crash report
 Tested on commit kernel_commit1
 repo1/branch1
 compiler: compiler1
-Patch and kernel config are attached.
+Patch is attached.
+Kernel config is attached.
 Raw console output is attached.
 
 `)
@@ -141,7 +142,7 @@ Raw console output is attached.
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
 		c.expectEQ(msg.Attachments[1].Name, "patch.txt")
-		c.expectEQ(msg.Attachments[1].Data, []byte(patch+"\n"))
+		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
 		c.expectEQ(msg.Body, `Hello,
 
 syzbot tried to test the proposed patch but build failed:
@@ -151,7 +152,8 @@ failed to apply patch
 Tested on commit kernel_commit1
 repo1/branch1
 compiler: compiler1
-Patch and kernel config are attached.
+Patch is attached.
+Kernel config is attached.
 
 
 `)
@@ -172,7 +174,7 @@ Patch and kernel config are attached.
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
 		c.expectEQ(msg.Attachments[1].Name, "patch.txt")
-		c.expectEQ(msg.Attachments[1].Data, []byte(patch+"\n"))
+		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
 		c.expectEQ(msg.Body, `Hello,
 
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
@@ -185,7 +187,8 @@ Once the fix is committed, please reply to this email with:
 Tested on commit kernel_commit1
 repo1/branch1
 compiler: compiler1
-Patch and kernel config are attached.
+Patch is attached.
+Kernel config is attached.
 
 
 ---

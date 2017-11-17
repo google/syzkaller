@@ -23,6 +23,13 @@ The commands are:
 ```
 #syz fix: exact-commit-title
 ````
+- to test a patch for a bug *with reproducer*:
+```
+#syz test: git://repo/address.git branch
+```
+and provide the patch inline or as a text attachment. Attachments are more
+reliable because of email clients splitting lines and messing with whitespaces.
+`syzbot` will test the patch on `HEAD` of the specified git repo/branch.
 - to mark the bug as a duplicate of another `syzbot` bug:
 ```
 #syz dup: exact-subject-of-another-report

@@ -75,7 +75,9 @@ Note: if the crash happens again, it will cause creation of a new bug report.
 Note: all commands must start from beginning of the line in the email body.
 To upstream this report, please reply with:
 #syz upstream`
-		c.expectEQ(msg.Body, body)
+		if msg.Body != body {
+			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
+		}
 	}
 
 	// Emulate receive of the report from a mailing list.
@@ -213,6 +215,9 @@ Please credit me with: Reported-by: syzbot <syzkaller@googlegroups.com>
 syzbot will keep track of this bug report.
 Once a fix for this bug is committed, please reply to this email with:
 #syz fix: exact-commit-title
+If you want to test a patch for this bug, please reply with:
+#syz test: git://repo/address.git branch
+and provide the patch inline or as an attachment.
 To mark this as a duplicate of another syzbot report, please reply with:
 #syz dup: exact-subject-of-another-report
 If it's a one-off invalid bug report, please reply with:
@@ -220,7 +225,9 @@ If it's a one-off invalid bug report, please reply with:
 Note: if the crash happens again, it will cause creation of a new bug report.
 Note: all commands must start from beginning of the line in the email body.
 `
-		c.expectEQ(msg.Body, body)
+		if msg.Body != body {
+			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
+		}
 	}
 
 	// Model that somebody adds more emails to CC list.
@@ -276,7 +283,9 @@ for information about syzkaller reproducers
 
 report1
 `
-		c.expectEQ(msg.Body, body)
+		if msg.Body != body {
+			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
+		}
 	}
 
 	// Send an invalid command.
