@@ -286,10 +286,24 @@ func (job *Job) test() error {
 	if len(req.ReproC) != 0 {
 		testTime /= 2
 	}
-	// TODO(dvyukov): we currently ignore ReproOpts in req.
-	// Proably we should test with both default opts and req.ReproOpts.
-	cmdSyz := fmt.Sprintf("%v -executor %v -arch=%v -procs=%v -sandbox=%v -repeat=0 -cover=0 %v",
-		execprogBin, executorBin, mgrcfg.TargetArch, mgrcfg.Procs, mgrcfg.Sandbox, vmProgFile)
+	opts, err := csource.DeserializeOptions(req.ReproOpts)
+	if err != nil {
+		return err
+	}
+	// Combine repro options and default options in a way that increases chances to reproduce the crash.
+	// First, we always enable threaded/collide as it should be [almost] strictly better.
+	// Executor does not support empty sandbox, so we use none instead.
+	// Finally, always use repeat and multiple procs.
+	if opts.Sandbox == "" {
+		opts.Sandbox = "none"
+	}
+	if !opts.Fault {
+		opts.FaultCall = -1
+	}
+	cmdSyz := fmt.Sprintf("%v -executor %v -arch=%v -procs=%v -sandbox=%v"+
+		" -fault_call=%v -fault_nth=%v -repeat=0 -cover=0 %v",
+		execprogBin, executorBin, mgrcfg.TargetArch, mgrcfg.Procs, opts.Sandbox,
+		opts.FaultCall, opts.FaultNth, vmProgFile)
 	if crashed, err := job.testProgram(inst, cmdSyz, reporter, testTime); crashed || err != nil {
 		return err
 	}
