@@ -754,7 +754,7 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 			Maintainers: maintainers,
 			Log:         res.Log,
 			Report:      res.Report,
-			ReproOpts:   []byte(fmt.Sprintf("%+v", res.Opts)),
+			ReproOpts:   res.Opts.Serialize(),
 			ReproSyz:    res.Prog.Serialize(),
 			ReproC:      cprogText,
 		}

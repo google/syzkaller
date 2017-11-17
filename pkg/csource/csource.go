@@ -20,50 +20,6 @@ import (
 	"github.com/google/syzkaller/sys/targets"
 )
 
-type Options struct {
-	Threaded bool
-	Collide  bool
-	Repeat   bool
-	Procs    int
-	Sandbox  string
-
-	Fault     bool // inject fault into FaultCall/FaultNth
-	FaultCall int
-	FaultNth  int
-
-	// These options allow for a more fine-tuned control over the generated C code.
-	EnableTun  bool
-	UseTmpDir  bool
-	HandleSegv bool
-	WaitRepeat bool
-	Debug      bool
-
-	// Generate code for use with repro package to prints log messages,
-	// which allows to distinguish between a hang and an absent crash.
-	Repro bool
-}
-
-// Check checks if the opts combination is valid or not.
-// For example, Collide without Threaded is not valid.
-// Invalid combinations must not be passed to Write.
-func (opts Options) Check() error {
-	if !opts.Threaded && opts.Collide {
-		// Collide requires threaded.
-		return errors.New("Collide without Threaded")
-	}
-	if !opts.Repeat && opts.Procs > 1 {
-		// This does not affect generated code.
-		return errors.New("Procs>1 without Repeat")
-	}
-	if opts.Sandbox == "namespace" && !opts.UseTmpDir {
-		// This is borken and never worked.
-		// This tries to create syz-tmp dir in cwd,
-		// which will fail if procs>1 and on second run of the program.
-		return errors.New("Sandbox=namespace without UseTmpDir")
-	}
-	return nil
-}
-
 func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	if err := opts.Check(); err != nil {
 		return nil, fmt.Errorf("csource: invalid opts: %v", err)
