@@ -23,7 +23,8 @@ func ParsePatch(text string) (title string, diff string, err error) {
 			}
 		}
 		if parsingDiff {
-			if ln == "--" || ln == "-- " {
+			if ln == "" || ln == "--" || ln == "-- " || ln[0] == '>' ||
+				ln[0] >= 'A' && ln[0] <= 'Z' {
 				break
 			}
 			diff += ln + "\n"
