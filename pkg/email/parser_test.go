@@ -10,7 +10,6 @@ import (
 	"testing"
 )
 
-//!!! add tests with \r\n
 func TestExtractCommand(t *testing.T) {
 	for i, test := range extractCommandTests {
 		t.Run(fmt.Sprint(i), func(t *testing.T) {
@@ -141,6 +140,71 @@ line 2
 `,
 		cmd:  "",
 		args: "",
+	},
+	// This is unfortunate case when a command is split by email client
+	// due to 80-column limitation.
+	{
+		body: `
+#syz test: git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
+locking/core
+`,
+		cmd:  "test:",
+		args: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+	},
+	{
+		body: `
+#syz test:
+git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core
+`,
+		cmd:  "test:",
+		args: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+	},
+	{
+		body: `
+#syz test:
+git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git
+locking/core
+locking/core
+`,
+		cmd:  "test:",
+		args: "git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git locking/core",
+	},
+	{
+		body: `
+#syz test_5_arg_cmd arg1
+
+ arg2 arg3
+ 
+arg4
+arg5
+`,
+		cmd:  "test_5_arg_cmd",
+		args: "arg1 arg2 arg3 arg4 arg5",
+	},
+	{
+		body: `
+#syz test_5_arg_cmd arg1
+arg2`,
+		cmd:  "test_5_arg_cmd",
+		args: "arg1 arg2",
+	},
+	{
+		body: `
+#syz test_5_arg_cmd arg1
+arg2
+`,
+		cmd:  "test_5_arg_cmd",
+		args: "arg1 arg2",
+	},
+	{
+		body: `
+#syz test_5_arg_cmd arg1
+arg2
+
+ 
+`,
+		cmd:  "test_5_arg_cmd",
+		args: "arg1 arg2",
 	},
 }
 
