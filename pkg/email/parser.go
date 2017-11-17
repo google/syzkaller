@@ -184,9 +184,31 @@ func extractCommand(body []byte) (cmd, args string) {
 	}
 	split := strings.Split(cmdLine, " ")
 	cmd = split[0]
+	var aargs []string
 	if len(split) > 1 {
-		args = strings.TrimSpace(strings.Join(split[1:], " "))
+		aargs = split[1:]
 	}
+	// Text emails are split at 80 columns are the transformation is irrevesible.
+	// Try to restore args for some commands that don't have spaces in args.
+	want := 0
+	switch cmd {
+	case "test:":
+		want = 2
+	case "test_5_arg_cmd":
+		want = 5
+	}
+	for pos := cmdPos + cmdEnd + 1; len(aargs) < want && pos < len(body); {
+		lineEnd := bytes.IndexByte(body[pos:], '\n')
+		if lineEnd == -1 {
+			lineEnd = len(body) - pos
+		}
+		line := strings.TrimSpace(string(body[pos : pos+lineEnd]))
+		if line != "" {
+			aargs = append(aargs, strings.Split(line, " ")...)
+		}
+		pos += lineEnd + 1
+	}
+	args = strings.TrimSpace(strings.Join(aargs, " "))
 	return
 }
 
