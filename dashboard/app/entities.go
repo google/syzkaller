@@ -106,6 +106,7 @@ type Job struct {
 	User      string
 	Reporting string
 	ExtID     string // email Message-ID
+	Link      string // web link for the job (e.g. email in the group)
 	Namespace string
 	Manager   string
 	BugTitle  string

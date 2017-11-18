@@ -155,19 +155,7 @@ report1
 	}
 
 	// Now upstream the bug and check that it reaches the next reporting.
-	incoming2 := fmt.Sprintf(`Sender: syzkaller@googlegroups.com
-Date: Tue, 15 Aug 2017 14:59:00 -0700
-Message-ID: <1234>
-Subject: crash1
-From: foo@bar.com
-To: foo@bar.com
-Cc: %v
-Content-Type: text/plain
-
-#syz upstream
-`, sender0)
-
-	c.expectOK(c.POST("/_ah/mail/", incoming2))
+	c.incomingEmail(sender0, "#syz upstream")
 
 	sender1 := ""
 	{
@@ -317,18 +305,8 @@ unknown command "bad-command"
 		}
 	}
 
-	// Now mark the bug as invalid.
-	incoming5 := fmt.Sprintf(`Sender: syzkaller@googlegroups.com
-Date: Tue, 15 Aug 2017 14:59:00 -0700
-Message-ID: <abcdef>
-Subject: title1
-From: foo@bar.com
-To: %v
-Content-Type: text/plain
-
-#syz fix: some: commit title
-`, sender1)
-	c.expectOK(c.POST("/_ah/mail/", incoming5))
+	// Now mark the bug as fixed.
+	c.incomingEmail(sender1, "#syz fix: some: commit title")
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
 
@@ -410,17 +388,7 @@ func TestEmailDup(t *testing.T) {
 	msg2 := <-c.emailSink
 
 	// Dup crash2 to crash1.
-	incoming1 := fmt.Sprintf(`Sender: syzkaller@googlegroups.com
-Date: Tue, 15 Aug 2017 14:59:00 -0700
-Message-ID: <12345>
-Subject: title1
-From: foo@bar.com
-To: %v
-Content-Type: text/plain
-
-#syz dup: BUG: slightly more elaborate title
-`, msg2.Sender)
-	c.expectOK(c.POST("/_ah/mail/", incoming1))
+	c.incomingEmail(msg2.Sender, "#syz dup: BUG: slightly more elaborate title")
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
 
@@ -431,17 +399,7 @@ Content-Type: text/plain
 	c.expectEQ(len(c.emailSink), 0)
 
 	// Now close the original bug, and check that new bugs for dup are now created.
-	incoming2 := fmt.Sprintf(`Sender: syzkaller@googlegroups.com
-Date: Tue, 15 Aug 2017 14:59:00 -0700
-Message-ID: <12345>
-Subject: title1
-From: foo@bar.com
-To: %v
-Content-Type: text/plain
-
-#syz invalid
-`, msg1.Sender)
-	c.expectOK(c.POST("/_ah/mail/", incoming2))
+	c.incomingEmail(msg1.Sender, "#syz invalid")
 
 	// New crash must produce new bug in the first reporting.
 	c.expectOK(c.API(client2, key2, "report_crash", crash2, nil))

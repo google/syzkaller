@@ -55,7 +55,7 @@
 		</tr>
 		{{range $job := $.Jobs}}
 			<tr>
-				<td class="time">{{formatTime $job.Created}}</td>
+				<td class="time">{{if $job.Link}}<a href="{{$job.Link}}">{{formatTime $job.Created}}</a>{{else}}{{formatTime $job.Created}}{{end}}</td>
 				<td class="time">{{formatTime $job.Started}}{{if gt $job.Attempts 1}} ({{$job.Attempts}}){{end}}</td>
 				<td class="time">{{formatTime $job.Finished}}</td>
 				<td>{{$job.User}}</td>

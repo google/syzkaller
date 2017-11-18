@@ -41,6 +41,8 @@ reliable because of email clients splitting lines and messing with whitespaces.
 Note: if the crash happens again, it will cause creation of a new bug report.
 
 Note: all commands must start from beginning of the line.
+Note: please keep `syzkaller-bugs@googlegroups.com` mailing list in CC.
+It serves as a history of what happened with each bug report.
 
 ## syzkaller reproducers
 

@@ -38,8 +38,7 @@ func addTestJob(c context.Context, bugID, user, extID, patch, repo, branch strin
 	if err != nil {
 		return "can't find associated bug", err
 	}
-	now := timeNow(c)
-	bugReporting, _ := bugReportingByID(bug, bugID, now)
+	bugReporting, _ := bugReportingByID(bug, bugID)
 
 	// TODO(dvyukov): find the exact crash that we reported.
 	crash, crashKey, err := findCrashForBug(c, bug)
@@ -81,7 +80,7 @@ func addTestJob(c context.Context, bugID, user, extID, patch, repo, branch strin
 	}
 
 	job := &Job{
-		Created:      now,
+		Created:      timeNow(c),
 		User:         user,
 		Reporting:    bugReporting.Name,
 		ExtID:        extID,
@@ -122,6 +121,32 @@ func addTestJob(c context.Context, bugID, user, extID, patch, repo, branch strin
 		log.Errorf(c, "job %v: failed to update bug: %v", jobID, err)
 	}
 	return "", nil
+}
+
+func updateTestJob(c context.Context, extID, link string) error {
+	var jobs []*Job
+	keys, err := datastore.NewQuery("Job").
+		Filter("ExtID=", extID).
+		GetAll(c, &jobs)
+	if len(jobs) != 1 || err != nil {
+		return fmt.Errorf("failed to query jobs: jobs=%v err=%v", len(jobs), err)
+	}
+	job, jobKey := jobs[0], keys[0]
+	if job.Link != "" {
+		return nil
+	}
+	tx := func(c context.Context) error {
+		job := new(Job)
+		if err := datastore.Get(c, jobKey, job); err != nil {
+			return err
+		}
+		job.Link = link
+		if _, err := datastore.Put(c, jobKey, job); err != nil {
+			return err
+		}
+		return nil
+	}
+	return datastore.RunInTransaction(c, tx, nil)
 }
 
 // pollPendingJobs returns the next job to execute for the provided list of managers.
@@ -318,7 +343,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 		Config:       reportingConfig,
 		ID:           bugReporting.ID,
 		JobID:        extJobID(jobKey),
-		ExtID:        bugReporting.ExtID,
+		ExtID:        job.ExtID,
 		Title:        bug.displayTitle(),
 		Log:          crashLog,
 		Report:       report,
