@@ -224,15 +224,45 @@ func incomingMail(c context.Context, r *http.Request) error {
 	}
 	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q",
 		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link)
-	// A mailing list can send us a duplicate email, to not process/reply to such duplicate emails,
-	// we ignore emails coming from our mailing lists. We could ignore only the mailing list
-	// associated with the bug, but we don't know the bug reporting yet (we only have bug ID).
-	if msg.Command != "" && mailingLists[email.CanonicalEmail(msg.From)] {
+	bug, bugReporting, reporting := loadBugInfo(c, msg)
+	if bug == nil {
+		return nil // error was already logged
+	}
+	_ = bugReporting
+	emailConfig := reporting.Config.(*EmailConfig)
+	mailingList := email.CanonicalEmail(emailConfig.Email)
+	fromMailingList := email.CanonicalEmail(msg.From) == mailingList
+	mailingListInCC := checkMailingListInCC(c, msg, mailingList)
+	// A mailing list can send us a duplicate email, to not process/reply
+	// to such duplicate emails, we ignore emails coming from our mailing lists.
+	if msg.Command == "test:" {
+		if fromMailingList {
+			if msg.Link != "" {
+				if err := updateTestJob(c, msg.MessageID, msg.Link); err != nil {
+					log.Errorf(c, "failed to update job: %v", err)
+				}
+			}
+			return nil
+		}
+		args := strings.Split(msg.CommandArgs, " ")
+		if len(args) != 2 {
+			return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v",
+				len(args)), nil)
+		}
+		reply := handleTestRequest(c, msg.BugID, email.CanonicalEmail(msg.From),
+			msg.MessageID, msg.Patch, args[0], args[1])
+		if reply != "" {
+			return replyTo(c, msg, reply, nil)
+		}
+		if !mailingListInCC {
+			warnMailingListInCC(c, msg, mailingList)
+		}
+		return nil
+	}
+	if fromMailingList && msg.Command != "" {
 		log.Infof(c, "duplicate email from mailing list, ignoring")
 		return nil
 	}
-	// TODO(dvyukov): check that our mailing list is in CC
-	// (otherwise there will be no history of what hsppened with a bug).
 	cmd := &dashapi.BugUpdate{
 		ID:    msg.BugID,
 		ExtID: msg.MessageID,
@@ -258,19 +288,6 @@ func incomingMail(c context.Context, r *http.Request) error {
 		}
 		cmd.Status = dashapi.BugStatusDup
 		cmd.DupOf = msg.CommandArgs
-	case "test:":
-		// TODO(dvyukov): remember email link for jobs.
-		args := strings.Split(msg.CommandArgs, " ")
-		if len(args) != 2 {
-			return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v",
-				len(args)), nil)
-		}
-		reply := handleTestRequest(c, msg.BugID, email.CanonicalEmail(msg.From),
-			msg.MessageID, msg.Patch, args[0], args[1])
-		if reply != "" {
-			return replyTo(c, msg, reply, nil)
-		}
-		return nil
 	default:
 		return replyTo(c, msg, fmt.Sprintf("unknown command %q", msg.Command), nil)
 	}
@@ -281,7 +298,64 @@ func incomingMail(c context.Context, r *http.Request) error {
 	if !ok && reply != "" {
 		return replyTo(c, msg, reply, nil)
 	}
+	if !mailingListInCC && msg.Command != "" {
+		warnMailingListInCC(c, msg, mailingList)
+	}
 	return nil
+}
+
+func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *BugReporting, reporting *Reporting) {
+	if msg.BugID == "" {
+		log.Warningf(c, "no bug ID")
+		return nil, nil, nil
+	}
+	bug, _, err := findBugByReportingID(c, msg.BugID)
+	if err != nil {
+		log.Errorf(c, "can't find bug: %v", err)
+		replyTo(c, msg, "Can't find the corresponding bug.", nil)
+		return nil, nil, nil
+	}
+	bugReporting, _ = bugReportingByID(bug, msg.BugID)
+	if bugReporting == nil {
+		log.Errorf(c, "can't find bug reporting: %v", err)
+		replyTo(c, msg, "Can't find the corresponding bug.", nil)
+		return nil, nil, nil
+	}
+	reporting = config.Namespaces[bug.Namespace].ReportingByName(bugReporting.Name)
+	if reporting == nil {
+		log.Errorf(c, "can't find reporting for this bug: namespace=%q reporting=%q",
+			bug.Namespace, bugReporting.Name)
+		return nil, nil, nil
+	}
+	if reporting.Config.Type() != emailType {
+		log.Errorf(c, "reporting is not email: namespace=%q reporting=%q config=%q",
+			bug.Namespace, bugReporting.Name, reporting.Config.Type())
+		return nil, nil, nil
+	}
+	return bug, bugReporting, reporting
+}
+
+func checkMailingListInCC(c context.Context, msg *email.Email, mailingList string) bool {
+	if email.CanonicalEmail(msg.From) == mailingList {
+		return true
+	}
+	for _, cc := range msg.Cc {
+		if email.CanonicalEmail(cc) == mailingList {
+			return true
+		}
+	}
+	msg.Cc = append(msg.Cc, mailingList)
+	return false
+}
+
+func warnMailingListInCC(c context.Context, msg *email.Email, mailingList string) {
+	reply := fmt.Sprintf("Your '%v' command is accepted, but please keep %v mailing list"+
+		" in CC next time. It serves as a history of what happened with each bug report."+
+		" Thank you.",
+		msg.Command, mailingList)
+	if err := replyTo(c, msg, reply, nil); err != nil {
+		log.Errorf(c, "failed to send email reply: %v", err)
+	}
 }
 
 var mailTemplates = template.Must(template.New("").ParseGlob("mail_*.txt"))

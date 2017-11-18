@@ -77,6 +77,7 @@ type uiCrash struct {
 
 type uiJob struct {
 	Created         time.Time
+	Link            string
 	User            string
 	Reporting       string
 	Namespace       string
@@ -298,6 +299,7 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 	for i, job := range jobs {
 		ui := &uiJob{
 			Created:         job.Created,
+			Link:            job.Link,
 			User:            job.User,
 			Reporting:       job.Reporting,
 			Namespace:       job.Namespace,

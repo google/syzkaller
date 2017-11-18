@@ -244,13 +244,9 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, bugReporting *Bu
 func incomingCommand(c context.Context, cmd *dashapi.BugUpdate) (bool, string, error) {
 	log.Infof(c, "got command: %+q", cmd)
 	ok, reason, err := incomingCommandImpl(c, cmd)
-	if !ok {
-		log.Errorf(c, "%v", reason)
-	}
 	if err != nil {
-		log.Errorf(c, "%v", err)
-	}
-	if !ok {
+		log.Errorf(c, "%v (%v)", reason, err)
+	} else if !ok {
 		log.Warningf(c, "invalid update: %v", reason)
 	}
 	return ok, reason, err
@@ -264,7 +260,7 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 	now := timeNow(c)
 	dupHash := ""
 	if cmd.Status == dashapi.BugStatusDup {
-		bugReporting, _ := bugReportingByID(bug, cmd.ID, now)
+		bugReporting, _ := bugReportingByID(bug, cmd.ID)
 		dup, dupKey, err := findBugByReportingID(c, cmd.DupOf)
 		if err != nil {
 			// Email reporting passes bug title in cmd.DupOf, try to find bug by title.
@@ -279,7 +275,7 @@ func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, strin
 			}
 			cmd.DupOf = dupReporting.ID
 		}
-		dupReporting, _ := bugReportingByID(dup, cmd.DupOf, now)
+		dupReporting, _ := bugReportingByID(dup, cmd.DupOf)
 		if bugReporting == nil || dupReporting == nil {
 			return false, internalError, fmt.Errorf("can't find bug reporting")
 		}
@@ -356,7 +352,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	default:
 		return false, internalError, fmt.Errorf("unknown bug status %v", bug.Status)
 	}
-	bugReporting, final := bugReportingByID(bug, cmd.ID, now)
+	bugReporting, final := bugReportingByID(bug, cmd.ID)
 	if bugReporting == nil {
 		return false, internalError, fmt.Errorf("can't find bug reporting")
 	}
@@ -492,12 +488,11 @@ func findDupByTitle(c context.Context, ns, title string) (*Bug, *datastore.Key, 
 	return bug, bugKey, nil
 }
 
-func bugReportingByID(bug *Bug, id string, now time.Time) (*BugReporting, bool) {
+func bugReportingByID(bug *Bug, id string) (*BugReporting, bool) {
 	for i := range bug.Reporting {
 		if bug.Reporting[i].ID == id {
 			return &bug.Reporting[i], i == len(bug.Reporting)-1
 		}
-		bug.Reporting[i].Closed = now
 	}
 	return nil, false
 }

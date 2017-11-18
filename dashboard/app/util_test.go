@@ -175,6 +175,7 @@ Date: Tue, 15 Aug 2017 14:59:00 -0700
 Message-ID: <1234>
 Subject: crash1
 From: default@sender.com
+Cc: test@syzkaller.com, bugs@syzkaller.com
 To: %v
 Content-Type: text/plain
 
