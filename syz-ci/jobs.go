@@ -282,10 +282,6 @@ func (job *Job) test() error {
 	}
 
 	Logf(0, "job: testing syzkaller program...")
-	testTime := 10 * time.Minute
-	if len(req.ReproC) != 0 {
-		testTime /= 2
-	}
 	opts, err := csource.DeserializeOptions(req.ReproOpts)
 	if err != nil {
 		return err
@@ -304,7 +300,8 @@ func (job *Job) test() error {
 		" -fault_call=%v -fault_nth=%v -repeat=0 -cover=0 %v",
 		execprogBin, executorBin, mgrcfg.TargetArch, mgrcfg.Procs, opts.Sandbox,
 		opts.FaultCall, opts.FaultNth, vmProgFile)
-	if crashed, err := job.testProgram(inst, cmdSyz, reporter, testTime); crashed || err != nil {
+	crashed, err := job.testProgram(inst, cmdSyz, reporter, 7*time.Minute)
+	if crashed || err != nil {
 		return err
 	}
 
@@ -326,7 +323,10 @@ func (job *Job) test() error {
 		if err != nil {
 			return fmt.Errorf("failed to copy test binary to VM: %v", err)
 		}
-		if crashed, err := job.testProgram(inst, vmBin, reporter, testTime); crashed || err != nil {
+		// We should test for longer (e.g. 5 mins), but the problem is that
+		// reproducer does not print anything, so after 3 mins we detect "no output".
+		crashed, err := job.testProgram(inst, vmBin, reporter, time.Minute)
+		if crashed || err != nil {
 			return err
 		}
 	}
