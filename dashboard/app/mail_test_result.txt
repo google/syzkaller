@@ -8,6 +8,9 @@ syzbot has tested the proposed patch but the reproducer still triggered crash:
 syzbot tried to test the proposed patch but build failed:
 
 {{printf "%s" .Error}}
+{{if .ErrorTruncated}}
+Error text is too large and was truncated, full error text is attached.
+{{end}}
 {{else}}
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
 

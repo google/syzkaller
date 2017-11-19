@@ -164,6 +164,17 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 			Data: rep.ReproC,
 		})
 	}
+	// Build error output and failing VM boot log can be way too long to inline.
+	const maxInlineError = 16 << 10
+	errorText, errorTruncated := rep.Error, false
+	if len(errorText) > maxInlineError {
+		errorTruncated = true
+		attachments = append(attachments, aemail.Attachment{
+			Name: "error.txt",
+			Data: errorText,
+		})
+		errorText = errorText[:len(errorText)-maxInlineError]
+	}
 	from, err := email.AddAddrContext(fromAddr(c), rep.ID)
 	if err != nil {
 		return err
@@ -180,6 +191,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		CrashTitle      string
 		Report          []byte
 		Error           []byte
+		ErrorTruncated  bool
 		HasLog          bool
 		HasKernelConfig bool
 		ReproSyz        bool
@@ -195,7 +207,8 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		KernelCommit:    rep.KernelCommit,
 		CrashTitle:      rep.CrashTitle,
 		Report:          rep.Report,
-		Error:           rep.Error,
+		Error:           errorText,
+		ErrorTruncated:  errorTruncated,
 		HasLog:          len(rep.Log) != 0,
 		HasKernelConfig: len(rep.KernelConfig) != 0,
 		ReproSyz:        len(rep.ReproSyz) != 0,
