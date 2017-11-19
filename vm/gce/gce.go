@@ -15,6 +15,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -164,6 +165,9 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 	Logf(0, "wait instance to boot: %v (%v)", name, ip)
 	if err := pool.waitInstanceBoot(ip, sshKey, sshUser); err != nil {
+		if output, err := pool.GCE.GetSerialPortOutput(name); err == nil {
+			err = errors.New(err.Error() + "\n\n" + output)
+		}
 		return nil, err
 	}
 	ok = true

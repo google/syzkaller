@@ -228,6 +228,16 @@ func (ctx *Context) DeleteImage(imageName string) error {
 	return nil
 }
 
+func (ctx *Context) GetSerialPortOutput(instance string) (string, error) {
+	<-ctx.apiRateGate
+	output, err := ctx.computeService.Instances.GetSerialPortOutput(
+		ctx.ProjectID, ctx.ZoneID, instance).Port(1).Do()
+	if err != nil {
+		return "", fmt.Errorf("failed to get serial port output: %v", err)
+	}
+	return output.Contents, nil
+}
+
 type resourcePoolExhaustedError string
 
 func (err resourcePoolExhaustedError) Error() string {
