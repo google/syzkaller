@@ -23,7 +23,6 @@ install: true
 
 script:
   - make presubmit
-  - test -z $(git diff --name-only) # check that the diff is empty after formatting the code
 
 # If the build fails because some code in not formatted, it's nice to see the diffs after formatting.
 after_failure:
