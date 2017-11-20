@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
-	"time"
 
 	"github.com/google/syzkaller/pkg/compiler"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -125,7 +124,7 @@ func compile(cc string, args []string, data *CompileData) (bin string, out []byt
 		"-o", binFile.Name(),
 		"-w",
 	}...)
-	out, err = osutil.RunCmd(time.Minute, "", cc, args...)
+	out, err = osutil.Command(cc, args...).CombinedOutput()
 	if err != nil {
 		os.Remove(binFile.Name())
 		return "", out, err
