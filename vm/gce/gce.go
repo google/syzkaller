@@ -165,7 +165,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	}
 	Logf(0, "wait instance to boot: %v (%v)", name, ip)
 	if err := pool.waitInstanceBoot(ip, sshKey, sshUser); err != nil {
-		if output, err := pool.GCE.GetSerialPortOutput(name); err == nil {
+		if output, _ := pool.GCE.GetSerialPortOutput(name); len(output) != 0 {
 			err = errors.New(err.Error() + "\n\n" + output)
 		}
 		return nil, err
@@ -355,7 +355,7 @@ func (pool *Pool) waitInstanceBoot(ip, sshKey, sshUser string) error {
 	if pool.env.OS == "windows" {
 		pwd = "dir"
 	}
-	for i := 0; i < 100; i++ {
+	for startTime := time.Now(); time.Since(startTime) < 5*time.Minute; {
 		if !vmimpl.SleepInterruptible(5 * time.Second) {
 			return fmt.Errorf("shutdown in progress")
 		}
