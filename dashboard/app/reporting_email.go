@@ -173,7 +173,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 			Name: "error.txt",
 			Data: errorText,
 		})
-		errorText = errorText[:len(errorText)-maxInlineError]
+		errorText = errorText[len(errorText)-maxInlineError:]
 	}
 	from, err := email.AddAddrContext(fromAddr(c), rep.ID)
 	if err != nil {
