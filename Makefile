@@ -132,7 +132,7 @@ endif
 	execprog mutate prog2c stress repro upgrade db \
 	bin/syz-sysgen bin/syz-extract bin/syz-fmt \
 	extract generate \
-	format tidy test check_links arch presubmit clean
+	format tidy test check_links check_diff arch presubmit clean
 
 all: host target
 
@@ -251,6 +251,7 @@ presubmit:
 	$(MAKE) generate
 	$(MAKE) all
 	$(MAKE) arch
+	$(MAKE) check_diff
 	$(MAKE) test
 	echo LGTM
 
@@ -263,3 +264,8 @@ install_prerequisites:
 
 check_links:
 	python ./tools/check_links.py $$(pwd) $$(ls ./*.md; find ./docs/ -name '*.md')
+
+# Check that the diff is empty. This is meant to be executed after generating
+# and formatting the code to make sure that everything is committed.
+check_diff:
+	DIFF="$(shell git diff --name-only)"; test -z "$$DIFF"
