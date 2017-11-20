@@ -54,7 +54,19 @@ func isSupported(kallsyms []byte, c *prog.Syscall) bool {
 	if len(kallsyms) == 0 {
 		return true
 	}
-	return bytes.Index(kallsyms, []byte(" T sys_"+c.CallName+"\n")) != -1
+	name := c.CallName
+	if newname := kallsymsMap[name]; newname != "" {
+		name = newname
+	}
+	return bytes.Index(kallsyms, []byte(" T sys_"+name+"\n")) != -1
+}
+
+// Some syscall names diverge in __NR_* consts and kallsyms.
+// umount2 is renamed to umount in arch/x86/entry/syscalls/syscall_64.tbl.
+// Where umount is renamed to oldumount is unclear.
+var kallsymsMap = map[string]string{
+	"umount":  "oldumount",
+	"umount2": "umount",
 }
 
 func isSupportedSyzkall(c *prog.Syscall) bool {

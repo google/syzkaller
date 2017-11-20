@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "c2ad412fa9428e52c81923f215215bc6da6d5783"
+#define SYZ_REVISION "4fe4a655475beb6e3a3ba300d55a7a7a050a5015"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -146,7 +146,6 @@ call_t syscalls[] = {
     {"ftruncate", 93},
     {"futex", 240},
     {"futimesat", 299},
-    {"get_kernel_syms", 130},
     {"get_mempolicy", 275},
     {"get_robust_list", 312},
     {"get_thread_area", 244},
@@ -1005,6 +1004,7 @@ call_t syscalls[] = {
     {"ptrace$setsig", 26},
     {"pwrite64", 181},
     {"pwritev", 334},
+    {"quotactl", 131},
     {"read", 3},
     {"read$eventfd", 3},
     {"readahead", 225},
@@ -1506,7 +1506,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "ca7616dae83a010ec8e24b13fc2443c8a37593d6"
+#define SYZ_REVISION "7a950be35f2798eefd0ac374561c8e547930bab1"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1661,7 +1661,6 @@ call_t syscalls[] = {
     {"ftruncate", 77},
     {"futex", 202},
     {"futimesat", 261},
-    {"get_kernel_syms", 177},
     {"get_mempolicy", 239},
     {"get_robust_list", 274},
     {"get_thread_area", 211},
@@ -2541,6 +2540,7 @@ call_t syscalls[] = {
     {"ptrace$setsig", 101},
     {"pwrite64", 18},
     {"pwritev", 296},
+    {"quotactl", 179},
     {"read", 0},
     {"read$eventfd", 0},
     {"readahead", 187},
@@ -3071,7 +3071,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "47bc2db581ec9f3bb9eacaad5ff9eddf6cfc7aee"
+#define SYZ_REVISION "3e82bd4cd1086a2a09bd9b24c142921199bd5821"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3081,7 +3081,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1500;
+unsigned syscall_count = 1501;
 call_t syscalls[] = {
     {"accept", 9437469},
     {"accept$alg", 9437469},
@@ -4061,6 +4061,7 @@ call_t syscalls[] = {
     {"ptrace$setsig", 9437210},
     {"pwrite64", 9437365},
     {"pwritev", 9437546},
+    {"quotactl", 9437315},
     {"read", 9437187},
     {"read$eventfd", 9437187},
     {"readahead", 9437409},
@@ -4589,7 +4590,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "c82ad046c604ce72a470b53ec40a7d7c878df2b3"
+#define SYZ_REVISION "043368a9e3f6b8146d46fa8d192bc033b66c707b"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4599,7 +4600,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1475;
+unsigned syscall_count = 1476;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5569,6 +5570,7 @@ call_t syscalls[] = {
     {"ptrace$setsig", 117},
     {"pwrite64", 68},
     {"pwritev", 70},
+    {"quotactl", 60},
     {"read", 63},
     {"read$eventfd", 63},
     {"readahead", 213},
@@ -6082,7 +6084,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "ae136950701316bb49b0ea1ddaa4434b486da7d0"
+#define SYZ_REVISION "c893d2cc4874589a0e71bd3f9dad5facd0f5f502"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6236,7 +6238,6 @@ call_t syscalls[] = {
     {"ftruncate", 93},
     {"futex", 221},
     {"futimesat", 290},
-    {"get_kernel_syms", 130},
     {"get_mempolicy", 260},
     {"get_robust_list", 299},
     {"getcwd", 182},
@@ -7057,6 +7058,7 @@ call_t syscalls[] = {
     {"ptrace$setsig", 26},
     {"pwrite64", 180},
     {"pwritev", 321},
+    {"quotactl", 131},
     {"read", 3},
     {"read$eventfd", 3},
     {"readahead", 191},
