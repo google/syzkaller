@@ -125,6 +125,7 @@ func (dash *Dashboard) JobDone(req *JobDoneReq) error {
 type Crash struct {
 	BuildID     string // refers to Build.ID
 	Title       string
+	Corrupted   bool // report is corrupted (corrupted title, no stacks, etc)
 	Maintainers []string
 	Log         []byte
 	Report      []byte
