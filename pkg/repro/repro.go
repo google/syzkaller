@@ -595,15 +595,15 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 	if err != nil {
 		return false, fmt.Errorf("failed to run command in VM: %v", err)
 	}
-	title, report, output, crashed, _ := vm.MonitorExecution(outc, errc, ctx.reporter)
-	if !crashed {
+	rep, output := vm.MonitorExecution(outc, errc, ctx.reporter, true)
+	if rep == nil {
 		ctx.reproLog(2, "program did not crash")
 		return false, nil
 	}
-	ctx.title = title
+	ctx.title = rep.Title
 	ctx.log = output
-	ctx.report = report
-	ctx.reproLog(2, "program crashed: %v", title)
+	ctx.report = rep.Report
+	ctx.reproLog(2, "program crashed: %v", rep.Title)
 	return true, nil
 }
 

@@ -339,11 +339,12 @@ func (job *Job) testProgram(inst *vm.Instance, command string, reporter report.R
 	if err != nil {
 		return false, fmt.Errorf("failed to run binary in VM: %v", err)
 	}
-	title, report, output, crashed, _ := vm.MonitorExecution(outc, errc, reporter)
-	if crashed {
-		job.resp.CrashTitle = title
-		job.resp.CrashReport = report
-		job.resp.CrashLog = output
+	rep, output := vm.MonitorExecution(outc, errc, reporter, true)
+	if rep == nil {
+		return false, nil
 	}
-	return crashed, nil
+	job.resp.CrashTitle = rep.Title
+	job.resp.CrashReport = rep.Report
+	job.resp.CrashLog = output
+	return true, nil
 }

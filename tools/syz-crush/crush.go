@@ -109,22 +109,18 @@ func runInstance(cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Poo
 	}
 
 	log.Logf(0, "vm-%v: crushing...", index)
-	title, _, output, crashed, timedout := vm.MonitorExecution(outc, errc, reporter)
-	if timedout {
+	rep, output := vm.MonitorExecution(outc, errc, reporter, false)
+	if rep == nil {
 		// This is the only "OK" outcome.
 		log.Logf(0, "vm-%v: running long enough, restarting", index)
 	} else {
-		if !crashed {
-			// syz-execprog exited, but it should not.
-			title = "lost connection to test machine"
-		}
 		f, err := ioutil.TempFile(".", "syz-crush")
 		if err != nil {
 			log.Logf(0, "failed to create temp file: %v", err)
 			return
 		}
 		defer f.Close()
-		log.Logf(0, "vm-%v: crashed: %v, saving to %v", index, title, f.Name())
+		log.Logf(0, "vm-%v: crashed: %v, saving to %v", index, rep.Title, f.Name())
 		f.Write(output)
 	}
 	return
