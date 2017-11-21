@@ -556,7 +556,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 		}, {
 			`
 [  616.344091] Kernel panic - not syncing: Fatal exception in interrupt
-`, `kernel panic: Fatal exception in interrupt`, true,
+`, `kernel panic: Fatal exception`, true,
 		}, {
 			`
 [  616.309156] divide error: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN
@@ -981,7 +981,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  238.187128]  ? __internal_add_timer+0x275/0x2d0
 [  238.191766]  kasan_end_report+0x50/0x50
 [  238.195711]  kasan_report+0x144/0x340
-`, `kernel panic: panic_on_warn set ...`, true,
+`, `kernel panic: panic_on_warn set`, true,
 		}, {
 			`
 [  308.130685] ======================================================
@@ -1001,7 +1001,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [ 1722.511384] PGD 5a25067 
 [ 1722.511384] P4D 5a25067 
 [ 1722.511384] PUD 0
-`, `BUG: unable to handle kernel `, true,
+`, `BUG: unable to handle kernel`, true,
 		}, {
 			`
 [ 1722.511384] kasan: CONFIG_KASAN_INLINE enabled
@@ -1021,7 +1021,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  153.634416] PGD a0ab067 PUD 21ffff067 PMD 80000000b3c001e3 
 [  153.640483] Oops: 0011 [#1] SMP KASAN
 [  153.644615] Modules linked in:
-`, `BUG: unable to handle kernel [  153.NUM] deprecated getsockopt IP_VLAN used by syz-executor!`, true,
+`, `BUG: unable to handle kernel`, true,
 		}, {
 			`
 [   46.415093] syz2: link speed 10 Mbps
