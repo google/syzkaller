@@ -8,16 +8,16 @@
 * [usb/media/em28xx: use-after-free in dvb_unregister_frontend](https://groups.google.com/forum/#!topic/syzkaller/wYG12peh1G4)
 * [usb/media/technisat: slab-out-of-bounds in technisat_usb2_rc_query](https://groups.google.com/forum/#!topic/syzkaller/V-GvHOmJXO0)
 * [usb/media/tm6000: use-after-free in tm6000_read_write_usb](https://groups.google.com/forum/#!topic/syzkaller/XLNeGPycipA)
-* [usb/net/qmi_wwan: divide error in qmi_wwan_probe/usbnet_probe](https://groups.google.com/forum/#!topic/syzkaller/0e0gmaX9R0g) [[fix1](https://patchwork.ozlabs.org/patch/834771/), [fix2](https://patchwork.ozlabs.org/patch/834770/)] [CVE-2017-16649, CVE-2017-16650]
+* [usb/net/qmi_wwan: divide error in qmi_wwan_probe/usbnet_probe](https://groups.google.com/forum/#!topic/syzkaller/0e0gmaX9R0g) [[fix1](https://github.com/torvalds/linux/commit/2cb80187ba065d7decad7c6614e35e07aec8a974), [fix2](https://github.com/torvalds/linux/commit/7fd078337201cf7468f53c3d9ef81ff78cb6df3b)] [CVE-2017-16649, CVE-2017-16650]
 * [usb/media/uvc: slab-out-of-bounds in uvc_probe](https://groups.google.com/forum/#!topic/syzkaller/Ot1fOE6v1d8)
 * [usb/media/em28xx: use-after-free in em28xx_dvb_fini](https://groups.google.com/forum/#!topic/syzkaller/GcS_S4zY2ZQ)
 * [usb/media/em28xx: use-after-free in v4l2_fh_init](https://groups.google.com/forum/#!topic/syzkaller/FnJq_QkwCLQ)
 * [usb/media/pvrusb2: WARNING in pvr2_i2c_core_done/sysfs_remove_group](https://groups.google.com/forum/#!topic/syzkaller/0rKk1nKucQA)
-* [usb/sound/usx2y: WARNING in usb_stream_start](https://groups.google.com/forum/#!topic/syzkaller/Gspr1ddXgHA) [[fix](https://groups.google.com/d/msg/syzkaller/Gspr1ddXgHA/aM12d0grBQAJ)]
+* [usb/sound/usx2y: WARNING in usb_stream_start](https://groups.google.com/forum/#!topic/syzkaller/Gspr1ddXgHA) [[fix](https://github.com/torvalds/linux/commit/f9a1c372299fed53d4b72bb601f7f3bfe6f9999c)]
 * [usb/net/hfa384x: WARNING in submit_rx_urb/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/hO1s_STq2II)
 * [usb/media/dw2102: null-ptr-deref in dvb_usb_adapter_frontend_init/tt_s2_4600_frontend_attach](https://groups.google.com/forum/#!topic/syzkaller/kmNvrHHgVg4)
 * [usb/net/asix: kernel hang in asix_phy_reset](https://groups.google.com/forum/#!topic/syzkaller/3yQVZuxIO-w)
-* [usb/media/dtt200u: use-after-free in __dvb_frontend_free](https://groups.google.com/forum/#!topic/syzkaller/0HJQqTm0G_g) [[fix](https://patchwork.kernel.org/patch/10046189/)] [CVE-2017-16648]
+* [usb/media/dtt200u: use-after-free in __dvb_frontend_free](https://groups.google.com/forum/#!topic/syzkaller/0HJQqTm0G_g) [[fix](https://github.com/torvalds/linux/commit/b1cb7372fa822af6c06c8045963571d13ad6348b)] [CVE-2017-16648]
 * [usb/media/mxl111sf: trying to register non-static key in mxl111sf_ctrl_msg](https://groups.google.com/forum/#!topic/syzkaller/Xlvm_cnulFA)
 * [usb/media/au0828: use-after-free in au0828_rc_unregister](https://groups.google.com/forum/#!topic/syzkaller/3yL32uggAT0)
 * [usb/input/gtco: slab-out-of-bounds in parse_hid_report_descriptor](https://groups.google.com/forum/#!topic/syzkaller/McWFcOsA47Y) [[fix](https://github.com/torvalds/linux/commit/a50829479f58416a013a4ccca791336af3c584c7)] [CVE-2017-16643]
@@ -30,7 +30,7 @@
 * [usb/net/rtlwifi: trying to register non-static key in rtl_c2hcmd_launcher](https://groups.google.com/forum/#!topic/syzkaller/vCTFZwPpmps)
 * [usb/net/prism2usb: warning in hfa384x_usbctlxq_run/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/Bm5IO2dlcxA)
 * [usb/nfs/pn533: use-after-free in pn533_send_complete](https://groups.google.com/forum/#!topic/syzkaller/-EkDbzlSuOY)
-* [usb/media/imon: null-ptr-deref in imon_probe](https://groups.google.com/forum/#!topic/syzkaller/bBFN8imrjjo) [[fix](https://patchwork.kernel.org/patch/9994017/)] [CVE-2017-16537]
+* [usb/media/imon: null-ptr-deref in imon_probe](https://groups.google.com/forum/#!topic/syzkaller/bBFN8imrjjo) [[fix](https://github.com/torvalds/linux/commit/58fd55e838276a0c13d1dc7c387f90f25063cbf3)] [CVE-2017-16537]
 * [usb/net/prism2usb: warning in hfa384x_drvr_start/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/rPui1tYcrR0)
 * [usb/net/ath6kl: GPF in ath6kl_usb_alloc_urb_from_pipe](https://groups.google.com/forum/#!topic/syzkaller/_ZE7_2A82Go)
 * [usb/net/ar5523: warning in ar5523_submit_rx_cmd/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/5V7rYXYCuI4)
@@ -41,15 +41,15 @@
 * [usb/misc/ims-pcu: slab-out-of-bounds in ims_pcu_parse_cdc_data](https://groups.google.com/forum/#!topic/syzkaller/q6jjr1OhqO8) [[fix](https://github.com/torvalds/linux/commit/ea04efee7635c9120d015dcdeeeb6988130cb67a)] [CVE-2017-16645]
 * [usb/serial: use-after-free in usb_serial_disconnect/__lock_acquire](https://groups.google.com/forum/#!topic/syzkaller/cMACrmo1x0k) [[fix1](https://github.com/torvalds/linux/commit/bd998c2e0df0469707503023d50d46cf0b10c787), [fix2](https://github.com/torvalds/linux/commit/299d7572e46f98534033a9e65973f13ad1ce9047)] [CVE-2017-16525]
 * [usb/misc/rio500: double-free or invalid-free in disconnect_rio](https://groups.google.com/forum/#!topic/syzkaller/7JmbWaXqaIQ)
-* [usb/sound/caiaq: warning in init_card/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/juLOtVudBkQ) [[fix](https://www.spinics.net/lists/linux-usb/msg161460.html)]
+* [usb/sound/caiaq: warning in init_card/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/juLOtVudBkQ) [[fix](https://github.com/torvalds/linux/commit/58fc7f73a85d45a47057dad2af53502fdf6cf778)]
 * [usb/input/aiptek: warning in aiptek_open/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/F7dVa-5YFlQ)
 * [usb/net/lan78xx: use-after-free in lan78xx_write_reg](https://groups.google.com/forum/#!topic/syzkaller/5dEtqOKkv54)
 * [usb/media/b2c2: GPF in flexcop_usb_transfer_init](https://groups.google.com/forum/#!topic/syzkaller/ToOkJ0Ox-HA)
 * [usb/media/uvc: warning in uvc_scan_chain_forward/__list_add](https://groups.google.com/forum/#!topic/syzkaller/cEn3pmrYye4)
 * [usb/sound/line6: trying to register non-static key in podhd_disconnect](https://groups.google.com/forum/#!topic/syzkaller/wEY6yXp-zC8)
-* [usb/sound/line6: warning in line6_start_listen/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/33v4K1orrPk) [[fix](https://www.spinics.net/lists/linux-usb/msg161459.html)]
+* [usb/sound/line6: warning in line6_start_listen/usb_submit_urb](https://groups.google.com/forum/#!topic/syzkaller/33v4K1orrPk) [[fix](https://github.com/torvalds/linux/commit/2a4340c57717162c6bf07a0860d05711d4de994b)]
 * [usb/media/lmedm04: GPF in lme2510_int_read/usb_pipe_endpoint](https://groups.google.com/forum/#!topic/syzkaller/XwNidsl4X04) [[fix1](https://patchwork.linuxtv.org/patch/44566/), [fix2](https://patchwork.linuxtv.org/patch/44567/)] [CVE-2017-16538]
-* [usb/sound/bcd2000: warning in bcd2000_idrivers/usb/serial/usb-serial.cnit_device](https://groups.google.com/forum/#!topic/syzkaller/uU0anmKkD1w) [[fix](https://www.spinics.net/lists/linux-usb/msg161457.html)]
+* [usb/sound/bcd2000: warning in bcd2000_idrivers/usb/serial/usb-serial.cnit_device](https://groups.google.com/forum/#!topic/syzkaller/uU0anmKkD1w) [[fix](https://github.com/torvalds/linux/commit/6815a0b444572527256f0d0efd8efe3ddede6018)]
 * [usb/wireless/rsi_91x: use-after-free write in __run_timers](https://groups.google.com/forum/#!topic/syzkaller/9IV2cQldrx0)
 * [usb/media/zr364xx: GPF in zr364xx_vidioc_querycap/strlcpy](https://groups.google.com/forum/#!topic/syzkaller/-EuMlzvOHGo)
 * [usb/media/stkwebcam: use-after-free in v4l2_ctrl_handler_free](https://groups.google.com/forum/#!topic/syzkaller/5kLo7aPtx1w)
