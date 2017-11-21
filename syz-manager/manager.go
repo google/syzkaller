@@ -544,21 +544,17 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		return nil, fmt.Errorf("failed to run fuzzer: %v", err)
 	}
 
-	title, report, output, crashed, timedout := vm.MonitorExecution(outc, errc, mgr.getReporter())
-	if timedout {
+	rep, output := vm.MonitorExecution(outc, errc, mgr.getReporter(), false)
+	if rep == nil {
 		// This is the only "OK" outcome.
-		Logf(0, "vm-%v: running for %v, restarting (%v)", index, time.Since(start), title)
+		Logf(0, "vm-%v: running for %v, restarting", index, time.Since(start))
 		return nil, nil
-	}
-	if !crashed {
-		// syz-fuzzer exited, but it should not.
-		title = "lost connection to test machine"
 	}
 	cash := &Crash{
 		vmIndex: index,
 		hub:     false,
-		title:   title,
-		report:  report,
+		title:   rep.Title,
+		report:  rep.Report,
 		log:     output,
 	}
 	return cash, nil
