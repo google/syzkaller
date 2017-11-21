@@ -107,11 +107,12 @@ type Fuzzer struct {
 }
 
 type Crash struct {
-	vmIndex int
-	hub     bool // this crash was created based on a repro from hub
-	title   string
-	report  []byte
-	log     []byte
+	vmIndex   int
+	hub       bool // this crash was created based on a repro from hub
+	title     string
+	report    []byte
+	log       []byte
+	corrupted bool
 }
 
 func main() {
@@ -551,11 +552,12 @@ func (mgr *Manager) runInstance(index int) (*Crash, error) {
 		return nil, nil
 	}
 	cash := &Crash{
-		vmIndex: index,
-		hub:     false,
-		title:   rep.Title,
-		report:  rep.Report,
-		log:     output,
+		vmIndex:   index,
+		hub:       false,
+		title:     rep.Title,
+		report:    rep.Report,
+		corrupted: rep.Corrupted,
+		log:       output,
 	}
 	return cash, nil
 }
@@ -598,6 +600,7 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
 			Title:       crash.title,
+			Corrupted:   crash.corrupted,
 			Maintainers: maintainers,
 			Log:         crash.log,
 			Report:      crash.report,
