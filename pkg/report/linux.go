@@ -150,7 +150,10 @@ func (ctx *linux) Parse(output []byte) *Report {
 	if oops == nil {
 		return nil
 	}
-	rep.Title = extractDescription(output[rep.StartPos:], oops)
+	rep.Title, rep.Corrupted = extractDescription(output[rep.StartPos:], oops)
+	if !rep.Corrupted {
+		rep.Corrupted = ctx.isCorrupted(rep.Title, rep.Report)
+	}
 	// Executor PIDs are not interesting.
 	rep.Title = executorRe.ReplaceAllLiteralString(rep.Title, "syz-executor")
 	// Replace that everything looks like an address with "ADDR",
@@ -165,7 +168,6 @@ func (ctx *linux) Parse(output []byte) *Report {
 	rep.Title = funcRe.ReplaceAllString(rep.Title, "$1")
 	// CPU numbers are not interesting.
 	rep.Title = cpuRe.ReplaceAllLiteralString(rep.Title, "CPU")
-	rep.Corrupted = ctx.isCorrupted(rep.Title, rep.Report)
 	return rep
 }
 
@@ -345,44 +347,6 @@ func (ctx *linux) isCorrupted(title string, report []byte) bool {
 			return true
 		}
 	}
-	corruptedDescStrings := []string{
-		// Sometimes with such BUG failures, the second part of the header doesn't get printed
-		// or gets corrupted, because kernel prints it as two separate printk() calls.
-		"BUG: unable to handle kernel",
-		// If we failed to extract function name where the fault happened,
-		// the report is most likely truncated.
-		"general protection fault",
-		"BUG: bad unlock balance",
-		"divide error",
-		"invalid opcode",
-	}
-	for _, s := range corruptedDescStrings {
-		if strings.TrimSpace(title) == s {
-			return true
-		}
-	}
-	corruptedTextRegExps := []*regexp.Regexp{
-		// If report contains 'printk messages dropped' it is most likely corrupted.
-		regexp.MustCompile(`printk messages dropped`),
-	}
-	for _, re := range corruptedTextRegExps {
-		if re.Match(report) {
-			return true
-		}
-	}
-	for _, crash := range []string{"BUG", "WARNING", "INFO", "KASAN", "KMSAN", "UBSAN"} {
-		// If description contains 'BUG', 'WARNING', etc, report must also contain it.
-		if strings.Contains(title, crash) && !bytes.Contains(report, []byte(crash)) {
-			return true
-		}
-	}
-	if strings.HasPrefix(title, "possible deadlock") {
-		// For 'possible deadlock' reports lets use 'unsafe locking scenario'
-		// string in report as a signal whether the report got truncated.
-		if !bytes.Contains(report, []byte("unsafe locking scenario")) {
-			return true
-		}
-	}
 	if strings.HasPrefix(title, "KASAN") {
 		// For KASAN reports lets use 'Allocated' and 'Freed' as signals.
 		if !bytes.Contains(report, []byte("Allocated")) {
@@ -422,17 +386,8 @@ var (
 )
 
 var linuxCorruptedTitles = []*regexp.Regexp{
-	// 'kernel panic: Fatal exception' is usually printed after BUG,
-	// so if we captured it as a report description, that means the
-	// report got truncated and we missed the actual BUG header.
-	regexp.MustCompile(`kernel panic: Fatal exception`),
-	// Same, but for WARNINGs and KASAN reports.
-	regexp.MustCompile(`kernel panic: panic_on_warn set`),
 	// Sometimes timestamps get merged into the middle of report description.
 	regexp.MustCompile(`\[ *[0-9]+\.[0-9]+\]`),
-	regexp.MustCompile(`\[ *[0-9]+\.NUM\]`),
-	regexp.MustCompile(`\[ *NUM\.NUM\]`),
-	regexp.MustCompile(`\[ *NUM\.[0-9]+\]`),
 }
 
 var linuxOopses = []*oops{
@@ -442,78 +397,106 @@ var linuxOopses = []*oops{
 			{
 				compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
 				"KASAN: %[1]v %[3]v in %[2]v",
+				false,
 			},
 			{
 				compile("BUG: KASAN: ([a-z\\-]+) on address(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
 				"KASAN: %[1]v %[2]v",
+				false,
 			},
 			{
 				compile("BUG: KASAN: (.*)"),
 				"KASAN: %[1]v",
+				false,
 			},
 			{
 				compile("BUG: unable to handle kernel paging request(?:.*\\n)+?.*IP: (?:{{PC}} +)?{{FUNC}}"),
 				"BUG: unable to handle kernel paging request in %[1]v",
+				false,
 			},
 			{
 				compile("BUG: unable to handle kernel paging request"),
 				"BUG: unable to handle kernel paging request",
+				false,
 			},
 			{
 				compile("BUG: unable to handle kernel NULL pointer dereference(?:.*\\n)+?.*IP: (?:{{PC}} +)?{{FUNC}}"),
 				"BUG: unable to handle kernel NULL pointer dereference in %[1]v",
+				false,
+			},
+			{
+				// Sometimes with such BUG failures, the second part of the header doesn't get printed
+				// or gets corrupted, because kernel prints it as two separate printk() calls.
+				compile("BUG: unable to handle kernel"),
+				"BUG: unable to handle kernel",
+				true,
 			},
 			{
 				compile("BUG: spinlock (lockup suspected|already unlocked|recursion|bad magic|wrong owner|wrong CPU)"),
 				"BUG: spinlock %[1]v",
+				false,
 			},
 			{
 				compile("BUG: soft lockup"),
 				"BUG: soft lockup",
+				false,
 			},
 			{
 				compile("BUG: .*still has locks held!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
 				"BUG: still has locks held in %[1]v",
+				false,
 			},
 			{
 				compile("BUG: bad unlock balance detected!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
 				"BUG: bad unlock balance in %[1]v",
+				false,
 			},
 			{
+				// If we failed to extract function name where the fault happened,
+				// the report is most likely truncated.
 				compile("BUG: bad unlock balance detected!"),
 				"BUG: bad unlock balance",
+				true,
 			},
 			{
 				compile("BUG: held lock freed!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
 				"BUG: held lock freed in %[1]v",
+				false,
 			},
 			{
 				compile("BUG: Bad rss-counter state"),
 				"BUG: Bad rss-counter state",
+				false,
 			},
 			{
 				compile("BUG: non-zero nr_ptes on freeing mm"),
 				"BUG: non-zero nr_ptes on freeing mm",
+				false,
 			},
 			{
 				compile("BUG: non-zero nr_pmds on freeing mm"),
 				"BUG: non-zero nr_pmds on freeing mm",
+				false,
 			},
 			{
 				compile("BUG: Dentry .* still in use \\([0-9]+\\) \\[unmount of ([^\\]]+)\\]"),
 				"BUG: Dentry still in use [unmount of %[1]v]",
+				false,
 			},
 			{
 				compile("BUG: Bad page state.*"),
 				"BUG: Bad page state",
+				false,
 			},
 			{
 				compile("BUG: spinlock bad magic.*"),
 				"BUG: spinlock bad magic",
+				false,
 			},
 			{
 				compile("BUG: workqueue lockup.*"),
 				"BUG: workqueue lockup",
+				false,
 			},
 		},
 		[]*regexp.Regexp{
@@ -527,54 +510,67 @@ var linuxOopses = []*oops{
 			{
 				compile("WARNING: .* at {{SRC}} {{FUNC}}"),
 				"WARNING in %[2]v",
+				false,
 			},
 			{
 				compile("WARNING: possible circular locking dependency detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+				false,
 			},
 			{
 				compile("WARNING: possible circular locking dependency detected"),
 				"possible deadlock",
+				false,
 			},
 			{
 				compile("WARNING: possible irq lock inversion dependency detected(?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+				false,
 			},
 			{
 				compile("WARNING: possible irq lock inversion dependency detected"),
 				"possible deadlock",
+				false,
 			},
 			{
 				compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected(?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+				false,
 			},
 			{
 				compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected"),
 				"possible deadlock",
+				false,
 			},
 			{
 				compile("WARNING: possible recursive locking detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+				false,
 			},
 			{
 				compile("WARNING: possible recursive locking detected"),
 				"possible deadlock",
+				false,
 			},
 			{
 				compile("WARNING: inconsistent lock state(?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"inconsistent lock state in %[1]v",
+				false,
 			},
 			{
 				compile("WARNING: suspicious RCU usage(?:.*\n)+?.*?{{SRC}}"),
 				"suspicious RCU usage at %[1]v",
+				false,
 			},
 			{
 				compile("WARNING: kernel stack regs at [0-9a-f]+ in [^ ]* has bad '([^']+)' value"),
 				"WARNING: kernel stack regs has bad '%[1]v' value",
+				false,
 			},
 			{
 				compile("WARNING: kernel stack frame pointer at [0-9a-f]+ in [^ ]* has bad value"),
 				"WARNING: kernel stack frame pointer has bad value",
+				false,
 			},
 		},
 		[]*regexp.Regexp{
@@ -587,82 +583,102 @@ var linuxOopses = []*oops{
 			{
 				compile("INFO: possible circular locking dependency detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+				false,
 			},
 			{
 				compile("INFO: possible circular locking dependency detected"),
 				"possible deadlock",
+				false,
 			},
 			{
 				compile("INFO: possible irq lock inversion dependency detected \\](?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+				false,
 			},
 			{
 				compile("INFO: possible irq lock inversion dependency detected"),
 				"possible deadlock",
+				false,
 			},
 			{
 				compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected \\](?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+				false,
 			},
 			{
 				compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected"),
 				"possible deadlock",
+				false,
 			},
 			{
 				compile("INFO: possible recursive locking detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"possible deadlock in %[1]v",
+				false,
 			},
 			{
 				compile("INFO: possible recursive locking detected"),
 				"possible deadlock",
+				false,
 			},
 			{
 				compile("INFO: inconsistent lock state \\](?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				"inconsistent lock state in %[1]v",
+				false,
 			},
 			{
 				compile("INFO: rcu_preempt detected stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
 				"INFO: rcu detected stall in %[1]v",
+				false,
 			},
 			{
 				compile("INFO: rcu_preempt detected stalls"),
 				"INFO: rcu detected stall",
+				false,
 			},
 			{
 				compile("INFO: rcu_sched detected(?: expedited)? stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
 				"INFO: rcu detected stall in %[1]v",
+				false,
 			},
 			{
 				compile("INFO: rcu_sched detected(?: expedited)? stalls"),
 				"INFO: rcu detected stall",
+				false,
 			},
 			{
 				compile("INFO: rcu_preempt self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
 				"INFO: rcu detected stall in %[1]v",
+				false,
 			},
 			{
 				compile("INFO: rcu_preempt self-detected stall on CPU"),
 				"INFO: rcu detected stall",
+				false,
 			},
 			{
 				compile("INFO: rcu_sched self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
 				"INFO: rcu detected stall in %[1]v",
+				false,
 			},
 			{
 				compile("INFO: rcu_sched self-detected stall on CPU"),
 				"INFO: rcu detected stall",
+				false,
 			},
 			{
 				compile("INFO: rcu_bh detected stalls on CPU"),
 				"INFO: rcu detected stall",
+				false,
 			},
 			{
 				compile("INFO: suspicious RCU usage(?:.*\n)+?.*?{{SRC}}"),
 				"suspicious RCU usage at %[1]v",
+				false,
 			},
 			{
 				compile("INFO: task .* blocked for more than [0-9]+ seconds"),
 				"INFO: task hung",
+				false,
 			},
 		},
 		[]*regexp.Regexp{
@@ -678,6 +694,7 @@ var linuxOopses = []*oops{
 			{
 				compile("Unable to handle kernel paging request(?:.*\\n)+?.*PC is at {{FUNC}}"),
 				"unable to handle kernel paging request in %[1]v",
+				false,
 			},
 		},
 		[]*regexp.Regexp{},
@@ -688,14 +705,19 @@ var linuxOopses = []*oops{
 			{
 				compile("general protection fault:(?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
 				"general protection fault in %[1]v",
+				false,
 			},
 			{
 				compile("general protection fault:(?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
 				"general protection fault in %[1]v",
+				false,
 			},
 			{
+				// If we failed to extract function name where the fault happened,
+				// the report is most likely truncated.
 				compile("general protection fault"),
 				"general protection fault",
+				true,
 			},
 		},
 		[]*regexp.Regexp{},
@@ -706,14 +728,31 @@ var linuxOopses = []*oops{
 			{
 				compile("Kernel panic - not syncing: Attempted to kill init!"),
 				"kernel panic: Attempted to kill init!",
+				false,
 			},
 			{
 				compile("Kernel panic - not syncing: Couldn't open N_TTY ldisc for [^ ]+ --- error -[0-9]+"),
 				"kernel panic: Couldn't open N_TTY ldisc",
+				false,
+			},
+			{
+				// 'kernel panic: Fatal exception' is usually printed after BUG,
+				// so if we captured it as a report description, that means the
+				// report got truncated and we missed the actual BUG header.
+				compile("Kernel panic - not syncing: Fatal exception"),
+				"kernel panic: Fatal exception",
+				true,
+			},
+			{
+				// Same, but for WARNINGs and KASAN reports.
+				compile("Kernel panic - not syncing: panic_on_warn set"),
+				"kernel panic: panic_on_warn set",
+				true,
 			},
 			{
 				compile("Kernel panic - not syncing: (.*)"),
 				"kernel panic: %[1]v",
+				false,
 			},
 		},
 		[]*regexp.Regexp{},
@@ -724,6 +763,7 @@ var linuxOopses = []*oops{
 			{
 				compile("kernel BUG (.*)"),
 				"kernel BUG %[1]v",
+				false,
 			},
 		},
 		[]*regexp.Regexp{},
@@ -734,6 +774,7 @@ var linuxOopses = []*oops{
 			{
 				compile("Kernel BUG (.*)"),
 				"kernel BUG %[1]v",
+				false,
 			},
 		},
 		[]*regexp.Regexp{},
@@ -744,6 +785,7 @@ var linuxOopses = []*oops{
 			{
 				compile("BUG kmalloc-.*: Object already free"),
 				"BUG: Object already free",
+				false,
 			},
 		},
 		[]*regexp.Regexp{},
@@ -754,14 +796,19 @@ var linuxOopses = []*oops{
 			{
 				compile("divide error: (?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
 				"divide error in %[1]v",
+				false,
 			},
 			{
 				compile("divide error: (?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
 				"divide error in %[1]v",
+				false,
 			},
 			{
+				// If we failed to extract function name where the fault happened,
+				// the report is most likely truncated.
 				compile("divide error"),
 				"divide error",
+				true,
 			},
 		},
 		[]*regexp.Regexp{},
@@ -772,14 +819,19 @@ var linuxOopses = []*oops{
 			{
 				compile("invalid opcode: (?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
 				"invalid opcode in %[1]v",
+				false,
 			},
 			{
 				compile("invalid opcode: (?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
 				"invalid opcode in %[1]v",
+				false,
 			},
 			{
+				// If we failed to extract function name where the fault happened,
+				// the report is most likely truncated.
 				compile("invalid opcode"),
 				"invalid opcode",
+				true,
 			},
 		},
 		[]*regexp.Regexp{},
@@ -790,6 +842,7 @@ var linuxOopses = []*oops{
 			{
 				compile("unreferenced object {{ADDR}} \\(size ([0-9]+)\\):(?:.*\n.*)+backtrace:.*\n.*{{PC}}.*\n.*{{PC}}.*\n.*{{PC}} {{FUNC}}"),
 				"memory leak in %[2]v (size %[1]v)",
+				false,
 			},
 		},
 		[]*regexp.Regexp{},

@@ -70,7 +70,7 @@ func (ctx *freebsd) Parse(output []byte) *Report {
 	if oops == nil {
 		return nil
 	}
-	rep.Title = extractDescription(output[rep.StartPos:], oops)
+	rep.Title, rep.Corrupted = extractDescription(output[rep.StartPos:], oops)
 	return rep
 }
 
@@ -101,6 +101,7 @@ var freebsdOopses = []*oops{
 					"trap_pfault|trap|calltrap|m_copydata|__rw_wlock_hard)" +
 					"\\+{{ADDR}}\\r?\\n)*#[0-9]+ {{ADDR}} at {{FUNC}}{{ADDR}}"),
 				"Fatal trap %[1]v in %[2]v",
+				false,
 			},
 		},
 		[]*regexp.Regexp{},
@@ -111,6 +112,7 @@ var freebsdOopses = []*oops{
 			{
 				compile("panic: ffs_write: type {{ADDR}} [0-9]+ \\([0-9]+,[0-9]+\\)"),
 				"panic: ffs_write: type ADDR X (Y,Z)",
+				false,
 			},
 		},
 		[]*regexp.Regexp{},
