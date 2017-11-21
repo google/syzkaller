@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <linux/futex.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
 #include <sys/stat.h>
@@ -35,7 +36,8 @@ const unsigned long KCOV_TRACE_CMP = 1;
 const int kInFd = 3;
 const int kOutFd = 4;
 
-void* const kOutputDataAddr = (void*)0x1bdbc20000ull;
+// The address chosen must also work on 32-bit kernels with 2GB user address space.
+void* const kOutputDataAddr = (void*)0x1b9bc20000ull;
 
 uint32_t* output_data;
 uint32_t* output_pos;
@@ -70,13 +72,34 @@ int main(int argc, char** argv)
 	install_segv_handler();
 	use_temporary_dir();
 
-#if defined(__i386__) || defined(__arm__)
+#if defined(__i386__)
 	// mmap syscall on i386/arm is translated to old_mmap and has different signature.
 	// As a workaround fix it up to mmap2, which has signature that we expect.
 	// pkg/csource has the same hack.
 	for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++) {
 		if (syscalls[i].sys_nr == __NR_mmap)
 			syscalls[i].sys_nr = __NR_mmap2;
+	}
+#elif defined(__arm__)
+	// syscalls_linux.h, which is auto-generated, appears to be off by 0x900000 (or 9437184).
+	// The problem is that syscall numbers are being generated from the dynamically generated
+	// C code by sysgen without using a cross-compiler.
+	// The ARM32 cross-compiler appears to add different
+	// flags than the normal gcc compiler.	Ideally, the code to generate
+	// syscall numbers should be executed on the target processor.
+	// That was tried by making changes to sys/syz-extract/linux.go andding in a -D__ARM_EABI__
+	// flag. That generated correct numbers, but led to another issue. Some calls such as mmap()
+	// are no longer system calls on ARM-based Linux and are also marked obsolete. That
+	// caused further issues with syz-manager. For now, the following appears to provide
+	// a simpler workaround.
+	for (size_t i = 0; i < sizeof(syscalls) / sizeof(syscalls[0]); i++) {
+		// Also map mmap to mmap2()'s number, just as for i386.
+		if (strcmp(syscalls[i].name, "mmap") == 0) {
+			syscalls[i].sys_nr = __NR_mmap2;
+		}
+		if (syscalls[i].sys_nr >= 0x900000) {
+			syscalls[i].sys_nr -= 0x900000;
+		}
 	}
 #endif
 

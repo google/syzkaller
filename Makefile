@@ -229,8 +229,8 @@ arch:
 	env TARGETOS=linux TARGETARCH=arm64 $(MAKE) target
 	env GOOG=linux GOARCH=ppc64le go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=ppc64le $(MAKE) target
-	# executor build on arm fails with:
-	# Error: alignment too large: 15 assumed
+	env GOOG=linux GOARCH=arm go install github.com/google/syzkaller/syz-fuzzer
+	env TARGETOS=linux TARGETARCH=arm $(MAKE) target
 	env GOOG=linux GOARCH=arm64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=arm64 TARGETVMARCH=arm $(MAKE) target
 	# executor build on 386 on travis fails with:
