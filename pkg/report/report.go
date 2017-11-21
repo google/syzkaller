@@ -74,8 +74,9 @@ type oops struct {
 }
 
 type oopsFormat struct {
-	re  *regexp.Regexp
-	fmt string
+	re        *regexp.Regexp
+	fmt       string
+	corrupted bool
 }
 
 func compile(re string) *regexp.Regexp {
@@ -124,8 +125,7 @@ func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) int {
 	return match
 }
 
-func extractDescription(output []byte, oops *oops) string {
-	desc := ""
+func extractDescription(output []byte, oops *oops) (desc string, corrupted bool) {
 	startPos := -1
 	for _, format := range oops.formats {
 		match := format.re.FindSubmatchIndex(output)
@@ -141,8 +141,9 @@ func extractDescription(output []byte, oops *oops) string {
 			args = append(args, string(output[match[i]:match[i+1]]))
 		}
 		desc = fmt.Sprintf(format.fmt, args...)
+		corrupted = format.corrupted
 	}
-	if desc == "" {
+	if len(desc) == 0 {
 		pos := bytes.Index(output, oops.header)
 		if pos == -1 {
 			panic("non matching oops")
@@ -163,7 +164,7 @@ func extractDescription(output []byte, oops *oops) string {
 	if len(desc) > maxDescLen {
 		desc = desc[:maxDescLen]
 	}
-	return desc
+	return
 }
 
 // replace replaces [start:end] in where with what, inplace.
