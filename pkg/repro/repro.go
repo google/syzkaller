@@ -260,6 +260,11 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 			return res, nil
 		}
 
+		// Don't try bisecting if there's only one entry.
+		if len(entries) == 1 {
+			continue
+		}
+
 		// Execute all programs and bisect the log to find multiple guilty programs.
 		res, err = ctx.extractProgBisect(reverseEntries(entries), timeout)
 		if err != nil {
