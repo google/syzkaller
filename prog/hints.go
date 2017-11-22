@@ -104,7 +104,7 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog
 		originalArg = MakeConstArg(a.Type(), a.Val)
 		checkConstArg(a, compMap, constArgCandidate)
 	case *DataArg:
-		originalArg = dataArg(a.Type(), a.Data)
+		originalArg = MakeDataArg(a.Type(), a.Data)
 		checkDataArg(a, compMap, dataArgCandidate)
 	}
 }

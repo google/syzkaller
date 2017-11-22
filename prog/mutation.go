@@ -197,7 +197,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					}
 					p.removeArg(c, a.Option)
 					opt, calls := r.generateArg(s, optType)
-					arg1 := unionArg(t, opt, optType)
+					arg1 := MakeUnionArg(t, opt, optType)
 					p.replaceArg(c, arg, arg1, calls)
 				case *LenType:
 					panic("bad arg returned by mutationArgs: LenType")
