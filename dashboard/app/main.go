@@ -262,7 +262,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 	bugHash := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
 	bugKey := datastore.NewKey(c, "Bug", bugHash, 0, nil)
-	crashes, _, err := queryCrashesForBug(c, bugKey, 100)
+	crashes, _, err := queryCrashesForBug(c, bugKey, maxCrashes)
 	if err != nil {
 		return nil, err
 	}
