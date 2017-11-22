@@ -40,9 +40,11 @@ func initTarget(target *prog.Target) {
 	target.MakeMmap = arch.makeMmap
 	target.AnalyzeMmap = arch.analyzeMmap
 	target.SanitizeCall = arch.sanitizeCall
-	target.SpecialStructs = map[string]func(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (prog.Arg, []*prog.Call){
-		"timespec": arch.generateTimespec,
-		"timeval":  arch.generateTimespec,
+	target.SpecialStructs = map[string]func(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (
+		prog.Arg, []*prog.Call){
+		"timespec":     arch.generateTimespec,
+		"timeval":      arch.generateTimespec,
+		"sockaddr_alg": arch.generateSockaddrAlg,
 	}
 	target.StringDictionary = stringDictionary
 

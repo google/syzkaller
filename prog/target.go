@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"math/rand"
 	"sort"
 )
 
@@ -152,10 +153,20 @@ type Gen struct {
 	s *state
 }
 
+func (g *Gen) Rand() *rand.Rand {
+	return g.r.Rand
+}
+
 func (g *Gen) NOutOf(n, outOf int) bool {
 	return g.r.nOutOf(n, outOf)
 }
 
 func (g *Gen) Alloc(ptrType Type, data Arg) (Arg, []*Call) {
 	return g.r.addr(g.s, ptrType, data.Size(), data)
+}
+
+func (g *Gen) GenerateArg(typ Type, pcalls *[]*Call) Arg {
+	arg, calls := g.r.generateArg(g.s, typ)
+	*pcalls = append(*pcalls, calls...)
+	return arg
 }

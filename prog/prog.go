@@ -343,8 +343,10 @@ func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
 		*a = *arg1.(*PointerArg)
 	case *UnionArg:
 		*a = *arg1.(*UnionArg)
+	case *DataArg:
+		*a = *arg1.(*DataArg)
 	default:
-		panic(fmt.Sprintf("replaceArg: bad arg kind %v", arg))
+		panic(fmt.Sprintf("replaceArg: bad arg kind %#v", arg))
 	}
 	p.Target.SanitizeCall(c)
 }
