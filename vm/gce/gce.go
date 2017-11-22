@@ -15,7 +15,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -164,10 +163,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		sshUser = "syzkaller"
 	}
 	Logf(0, "wait instance to boot: %v (%v)", name, ip)
-	if err := pool.waitInstanceBoot(ip, sshKey, sshUser); err != nil {
-		if output, _ := pool.GCE.GetSerialPortOutput(name); len(output) != 0 {
-			err = errors.New(err.Error() + "\n\n" + output)
-		}
+	if err := pool.waitInstanceBoot(name, ip, sshKey, sshUser, gceKey); err != nil {
 		return nil, err
 	}
 	ok = true
@@ -350,7 +346,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	return merger.Output, errc, nil
 }
 
-func (pool *Pool) waitInstanceBoot(ip, sshKey, sshUser string) error {
+func (pool *Pool) waitInstanceBoot(name, ip, sshKey, sshUser, gceKey string) error {
 	pwd := "pwd"
 	if pool.env.OS == "windows" {
 		pwd = "dir"
@@ -364,7 +360,56 @@ func (pool *Pool) waitInstanceBoot(ip, sshKey, sshUser string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("can't ssh into the instance")
+	output, err := pool.getSerialPortOutput(name, gceKey)
+	if err != nil {
+		output = []byte(fmt.Sprintf("failed to get boot output: %v", err))
+	}
+	return fmt.Errorf("can't ssh into the instance\n\n%s", output)
+}
+
+func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {
+	conRpipe, conWpipe, err := osutil.LongPipe()
+	if err != nil {
+		return nil, err
+	}
+	defer conRpipe.Close()
+	defer conWpipe.Close()
+	conAddr := fmt.Sprintf("%v.%v.%v.syzkaller.port=1.replay-lines=10000@ssh-serialport.googleapis.com",
+		pool.GCE.ProjectID, pool.GCE.ZoneID, name)
+	conArgs := append(sshArgs(pool.env.Debug, gceKey, "-p", 9600), conAddr)
+	con := osutil.Command("ssh", conArgs...)
+	con.Env = []string{}
+	con.Stdout = conWpipe
+	con.Stderr = conWpipe
+	if _, err := con.StdinPipe(); err != nil { // SSH would close connection on stdin EOF
+		return nil, err
+	}
+	if err := con.Start(); err != nil {
+		return nil, fmt.Errorf("failed to connect to console server: %v", err)
+	}
+	conWpipe.Close()
+	done := make(chan bool)
+	go func() {
+		timeout := time.NewTimer(time.Minute)
+		defer timeout.Stop()
+		select {
+		case <-done:
+		case <-timeout.C:
+		}
+		con.Process.Kill()
+	}()
+	var output []byte
+	buf := make([]byte, 64<<10)
+	for {
+		n, err := conRpipe.Read(buf)
+		if err != nil || n == 0 {
+			break
+		}
+		output = append(output, buf[:n]...)
+	}
+	close(done)
+	con.Wait()
+	return output, nil
 }
 
 func uploadImageToGCS(localImage, gcsImage string) error {
