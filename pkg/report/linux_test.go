@@ -402,7 +402,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 		}, {
 			`
 [ 2569.618120] BUG: Bad rss-counter state mm:ffff88005fac4300 idx:0 val:15
-`, `BUG: Bad rss-counter state`, true,
+`, `BUG: Bad rss-counter state`, false,
 		}, {
 			`
 [    4.556968] ================================================================================
@@ -795,7 +795,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 		}, {
 			`
 [  163.314570] WARNING: kernel stack regs at ffff8801d100fea8 in syz-executor1:16059 has bad 'bp' value ffff8801d100ff28
-`, `WARNING: kernel stack regs has bad 'bp' value`, true,
+`, `WARNING: kernel stack regs has bad 'bp' value`, false,
 		}, {
 			`
 [   76.825838] BUG: using __this_cpu_add() in preemptible [00000000] code: syz-executor0/10076
@@ -819,7 +819,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [   40.438790] BUG: Bad page map in process syz-executor6  pte:ffff8801a700ff00 pmd:1a700f067
 [   40.447217] addr:00000000009ca000 vm_flags:00100073 anon_vma:ffff8801d16f20e0 mapping:          (null) index:9ca
 [   40.457560] file:          (null) fault:          (null) mmap:          (null) readpage:          (null)
-`, `BUG: Bad page map in process syz-executor  pte:ADDR pmd:ADDR`, true,
+`, `BUG: Bad page map`, true,
 		}, {
 			`
 [ 1722.511384] ======================================================
@@ -848,7 +848,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [   72.159680] WARNING: kernel stack frame pointer at ffff88003e1f7f40 in migration/1:14 has bad value ffffffff85632fb0
 [   72.159680] unwind stack type:0 next_sp:          (null) mask:0x6 graph_idx:0
 [   72.159680] ffff88003ed06ef0: ffff88003ed06f78 (0xffff88003ed06f78)
-`, `WARNING: kernel stack frame pointer has bad value`, true,
+`, `WARNING: kernel stack frame pointer has bad value`, false,
 		}, {
 			`
 [ 1722.511384] BUG: Bad page state in process syz-executor9  pfn:199e00
@@ -891,7 +891,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 		}, {
 			`
 [   72.159680] BUG: workqueue lockup - pool cpus=0 node=0 flags=0x0 nice=0 stuck for 32s!
-`, `BUG: workqueue lockup`, true,
+`, `BUG: workqueue lockup`, false,
 		}, {
 			`
 [  108.620932] BUG: spinlock already unlocked on CPU#1, migration/1/12
@@ -1201,6 +1201,162 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  190.147475]  ffff8801ca7c7a00: f3 00 00 00 00 00 00 00 00 00 00 f1 f1 f1 f1 00
 [  190.154802] ==================================================================
 `, `KASAN: stack-out-of-bounds Read in xfrm_state_find`, false,
+		}, {
+			`
+[  190.154802] ==================================================================
+[  190.154802] BUG: KASAN: slab-out-of-bounds in __lock_acquire+0x2eff/0x3640 at addr ffff8801a751e6f8
+[  190.154802] Read of size 8 by task syz-executor7/18786
+[  190.154802] CPU: 1 PID: 18786 Comm: syz-executor7 Not tainted 4.9.60-g4ca16e6 #83
+[  190.154802] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  190.154802]  ffff8801cd20f810 ffffffff81d91389 ffff8801d74358c0 ffff8801a751e680
+[  190.154802]  ffff8801a751e6e0 ffffed0034ea3cdf ffff8801a751e6f8 ffff8801cd20f838
+[  190.154802]  ffffffff8153c1bc ffffed0034ea3cdf ffff8801d74358c0 0000000000000000
+[  190.154802] Call Trace:
+[  190.154802]  [<ffffffff81d91389>] dump_stack+0xc1/0x128
+[  190.154802]  [<ffffffff8153c1bc>] kasan_object_err+0x1c/0x70
+[  190.154802]  [<ffffffff8153c47c>] kasan_report.part.1+0x21c/0x500
+[  190.154802]  [<ffffffff8153c819>] __asan_report_load8_noabort+0x29/0x30
+[  190.154802]  [<ffffffff8123e9cf>] __lock_acquire+0x2eff/0x3640
+[  190.154802]  [<ffffffff8123fb4e>] lock_acquire+0x12e/0x410
+[  190.154802]  [<ffffffff838aa25e>] _raw_write_lock_irqsave+0x4e/0x62
+[  190.154802]  [<ffffffff8265f840>] sg_remove_request+0x70/0x120
+[  190.154802]  [<ffffffff8265fe55>] sg_finish_rem_req+0x295/0x340
+[  190.154802]  [<ffffffff82661b8c>] sg_read+0x91c/0x1400
+[  190.154802]  [<ffffffff8156c793>] __vfs_read+0x103/0x670
+[  190.154802]  [<ffffffff8156dd27>] vfs_read+0x107/0x330
+[  190.154802]  [<ffffffff815719c9>] SyS_read+0xd9/0x1b0
+[  190.154802]  [<ffffffff838aa305>] entry_SYSCALL_64_fastpath+0x23/0xc6
+[  190.154802] Object at ffff8801a751e680, in cache fasync_cache size: 96
+[  190.154802] Allocated:
+[  190.154802] PID = 18786
+[  190.154802]  save_stack_trace+0x16/0x20
+[  190.154802]  save_stack+0x43/0xd0
+[  190.154802]  kasan_kmalloc+0xad/0xe0
+[  190.154802]  kasan_slab_alloc+0x12/0x20
+[  190.154802]  kmem_cache_alloc+0xba/0x290
+[  190.154802]  fasync_helper+0x37/0xb0
+[  190.154802]  sg_fasync+0x86/0xb0
+[  190.154802]  do_vfs_ioctl+0x2d8/0x10c0
+[  190.154802]  SyS_ioctl+0x8f/0xc0
+[  190.154802]  entry_SYSCALL_64_fastpath+0x23/0xc6
+[  190.154802] Freed:
+[  190.154802] PID = 16494
+[  190.154802]  save_stack_trace+0x16/0x20
+[  190.154802]  save_stack+0x43/0xd0
+[  190.154802]  kasan_slab_free+0x73/0xc0
+[  190.154802]  kmem_cache_free+0xb2/0x2e0
+[  190.154802]  fasync_free_rcu+0x1d/0x20
+[  190.154802]  rcu_process_callbacks+0x871/0x12c0
+[  190.154802]  __do_softirq+0x206/0x951
+[  190.154802] Memory state around the buggy address:
+[  190.154802]  ffff8801a751e580: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[  190.154802]  ffff8801a751e600: fb fb fb fb fb fb fb fb fb fb fb fb fc fc fc fc
+[  190.154802] >ffff8801a751e680: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[  190.154802]                                                                 ^
+[  190.154802]  ffff8801a751e700: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[  190.154802]  ffff8801a751e780: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[  190.154802] ==================================================================
+`, `KASAN: slab-out-of-bounds Read in __lock_acquire`, false,
+		}, {
+			`
+[  190.154802] md: Autodetecting RAID arrays.
+[  190.154802] md: autorun ...
+[  190.154802] md: ... autorun DONE.
+[  190.154802] EXT4-fs (sda1): couldn't mount as ext3 due to feature incompatibilities
+[  190.154802] EXT4-fs (sda1): couldn't mount as ext2 due to feature incompatibilities
+[  190.154802] EXT4-fs (sda1): INFO: recovery required on readonly filesystem
+[  190.154802] EXT4-fs (sda1): write access will be enabled during recovery
+[  190.154802] clocksource: Switched to clocksource tsc
+[  190.154802] EXT4-fs (sda1): recovery complete
+[  190.154802] EXT4-fs (sda1): mounted filesystem with ordered data mode. Opts: (null)
+[  190.154802] VFS: Mounted root (ext4 filesystem) readonly on device 8:1.
+[  190.154802] devtmpfs: mounted
+[  190.154802] Freeing unused kernel memory: 3496K
+[  190.154802] Kernel memory protection disabled.
+[  190.154802] random: crng init done
+[  190.154802] stty (1471) used greatest stack depth: 25080 bytes left
+[  190.154802] EXT4-fs (sda1): re-mounted. Opts: (null)
+`, `INFO: recovery required on readonly filesystem`, false,
+		}, {
+			`
+[  190.154802] ==================================================================
+[  190.154802] BUG: KASAN: slab-out-of-bounds in sg_remove_request+0x103/0x120 at addr ffff8801a85de8c0
+[  190.154802] Read of size 8 by task syz-executor0/6860
+[  190.154802] CPU: 0 PID: 6860 Comm: syz-executor0 Not tainted 4.9.58-g27155df #71
+[  190.154802] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  190.154802]  ffff8801a2bf7a80 ffffffff81d91149 ffff8801d77fd3c0 ffff8801a85de880
+[  190.154802]  ffff8801a85de8e0 ffffed00350bbd18 ffff8801a85de8c0 ffff8801a2bf7aa8
+[  190.154802]  ffffffff8153c01c ffffed00350bbd18 ffff8801d77fd3c0 0000000000000000
+[  190.154802] Call Trace:
+[  190.154802]  [<ffffffff81d91149>] dump_stack+0xc1/0x128
+[  190.154802]  [<ffffffff8153c01c>] kasan_object_err+0x1c/0x70
+[  190.154802]  [<ffffffff8153c2dc>] kasan_report.part.1+0x21c/0x500
+[  190.154802]  [<ffffffff8153c679>] __asan_report_load8_noabort+0x29/0x30
+[  190.154802]  [<ffffffff8265fad3>] sg_remove_request+0x103/0x120
+[  190.154802]  [<ffffffff82660055>] sg_finish_rem_req+0x295/0x340
+[  190.154802]  [<ffffffff82661d8c>] sg_read+0x91c/0x1400
+[  190.154802]  [<ffffffff8156c5f3>] __vfs_read+0x103/0x670
+[  190.154802]  [<ffffffff8156db87>] vfs_read+0x107/0x330
+[  190.154802]  [<ffffffff81571829>] SyS_read+0xd9/0x1b0
+[  190.154802]  [<ffffffff838aa0c5>] entry_SYSCALL_64_fastpath+0x23/0xc6
+[  190.154802] Object at ffff8801a85de880, in cache fasync_cache size: 96
+[  190.154802] Allocated:
+[  190.154802] PID = 0
+[  190.154802] (stack is not available)
+[  190.154802] Freed:
+[  190.154802] PID = 0
+[  190.154802] (stack is not available)
+[  190.154802] Memory state around the buggy address:
+[  190.154802]  ffff8801a85de780: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[  190.154802]  ffff8801a85de800: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  190.154802] >ffff8801a85de880: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  190.154802]                                            ^
+[  190.154802]  ffff8801a85de900: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  190.154802]  ffff8801a85de980: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  190.154802] ==================================================================
+`, `KASAN: slab-out-of-bounds Read in sg_remove_request`, false,
+		}, {
+			`
+[  190.154802] BUG: unable to handle kernel NULL pointer dereference at 0000000000000286
+[  190.154802] IP: 0x286
+[  190.154802] PGD 1d8d6a067 
+[  190.154802] P4D 1d8d6a067 
+[  190.154802] PUD 1d925e067 
+[  190.154802] PMD 0 
+[  190.154802] 
+[  190.154802] Oops: 0010 [#1] SMP KASAN
+[  190.154802] Dumping ftrace buffer:
+[  190.154802]    (ftrace buffer empty)
+[  190.154802] Modules linked in:
+[  190.154802] CPU: 1 PID: 3289 Comm: kworker/u4:7 Not tainted 4.13.0-rc5-next-20170817+ #5
+[  190.154802] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  190.154802] Workqueue: kstrp strp_work
+[  190.154802] task: ffff8801c9d16540 task.stack: ffff8801ca570000
+[  190.154802] RIP: 0010:0x286
+[  190.154802] RSP: 0018:ffff8801ca577540 EFLAGS: 00010246
+[  190.154802] RAX: dffffc0000000000 RBX: ffff8801cbbfad60 RCX: 0000000000000000
+[  190.154802] RDX: 1ffff1003977f5bd RSI: ffffffff85b34380 RDI: ffff8801cbbfac48
+[  190.154802] RBP: ffff8801ca577558 R08: 0000000000000000 R09: 0000000000000000
+[  190.154802] R10: ffff8801ca577438 R11: dffffc0000000000 R12: ffff8801cbbfac48
+[  190.154802] R13: ffff8801cb7ede18 R14: ffff8801ca577980 R15: ffff8801cb7ede00
+[  190.154802] FS:  0000000000000000(0000) GS:ffff8801db300000(0000) knlGS:0000000000000000
+[  190.154802] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  190.154802] CR2: 0000000000000286 CR3: 00000001d91cf000 CR4: 00000000001426e0
+[  190.154802] Call Trace:
+[  190.154802]  process_one_work+0xbf3/0x1bc0
+[  190.154802]  worker_thread+0x223/0x1860
+[  190.154802]  kthread+0x35e/0x430
+[  190.154802]  ret_from_fork+0x2a/0x40
+[  190.154802] Code:  Bad RIP value.
+[  190.154802] RIP: 0x286 RSP: ffff8801ca577540
+[  190.154802] CR2: 0000000000000286
+[  190.154802] ---[ end trace 05ef833e13705a0a ]---
+[  190.154802] Kernel panic - not syncing: Fatal exception
+[  190.154802] Dumping ftrace buffer:
+[  190.154802]    (ftrace buffer empty)
+[  190.154802] Kernel Offset: disabled
+[  190.154802] Rebooting in 86400 seconds..
+`, `BUG: unable to handle kernel NULL pointer dereference`, false,
 		},
 	}
 	testParse(t, "linux", tests)
@@ -1237,8 +1393,8 @@ func TestLinuxIgnores(t *testing.T) {
 	}
 
 	const log = `
-		BUG: bug1
-		BUG: bug2
+[    0.000000] BUG: bug1
+[    0.000000] BUG: bug2
 	`
 	if !reporter.ContainsCrash([]byte(log)) {
 		t.Fatalf("no crash")
