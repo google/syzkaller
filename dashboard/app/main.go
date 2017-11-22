@@ -128,9 +128,19 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 // handleBug serves page about a single bug (which is passed in id argument).
 func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	bug := new(Bug)
-	bugKey := datastore.NewKey(c, "Bug", r.FormValue("id"), 0, nil)
-	if err := datastore.Get(c, bugKey, bug); err != nil {
-		return err
+	if id := r.FormValue("id"); id != "" {
+		bugKey := datastore.NewKey(c, "Bug", id, 0, nil)
+		if err := datastore.Get(c, bugKey, bug); err != nil {
+			return err
+		}
+	} else if extID := r.FormValue("extid"); extID != "" {
+		var err error
+		bug, _, err = findBugByReportingID(c, extID)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("mandatory parameter id/extid is missing")
 	}
 	h, err := commonHeader(c)
 	if err != nil {
