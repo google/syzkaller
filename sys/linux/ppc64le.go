@@ -411,7 +411,7 @@ var structDescs_ppc64le = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 279},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 3},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "op", TypeSize: 4}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "alg_op_op", FldName: "op", TypeSize: 4}}, Vals: []uint64{0, 1}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}, AlignAttr: 8}},
 	{Key: StructKey{Name: "cmsghdr_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp", TypeSize: 48}, Fields: []Type{
@@ -5595,8 +5595,8 @@ var syscalls_ppc64le = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 1, NR: 330, Name: "accept$alg", CallName: "accept", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_alg", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peer", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_alg", Dir: 1}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peerlen", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "peer"}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "peer", TypeSize: 8}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "peerlen", TypeSize: 8}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_algconn", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 2, NR: 330, Name: "accept$ax25", CallName: "accept", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ax25", FldName: "fd", TypeSize: 4}},
@@ -13484,6 +13484,8 @@ var consts_ppc64le = []ConstValue{
 	{Name: "AH_ESP_V6_FLOW", Value: 8},
 	{Name: "AH_V4_FLOW", Value: 9},
 	{Name: "AH_V6_FLOW", Value: 11},
+	{Name: "ALG_OP_DECRYPT"},
+	{Name: "ALG_OP_ENCRYPT", Value: 1},
 	{Name: "ALG_SET_AEAD_ASSOCLEN", Value: 4},
 	{Name: "ALG_SET_AEAD_AUTHSIZE", Value: 5},
 	{Name: "ALG_SET_IV", Value: 2},
@@ -16394,4 +16396,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_ppc64le = "c893d2cc4874589a0e71bd3f9dad5facd0f5f502"
+const revision_ppc64le = "5491142031cb62ebd424be9ddfdc17427d1d64f4"

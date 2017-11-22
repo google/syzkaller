@@ -412,7 +412,7 @@ var structDescs_386 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 279},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 3},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "op", TypeSize: 4}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "alg_op_op", FldName: "op", TypeSize: 4}}, Vals: []uint64{0, 1}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "cmsghdr_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_sctp", TypeSize: 44}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "cmsghdr_sctp_init"}, FldName: "init"},
@@ -13824,6 +13824,8 @@ var consts_386 = []ConstValue{
 	{Name: "AH_ESP_V6_FLOW", Value: 8},
 	{Name: "AH_V4_FLOW", Value: 9},
 	{Name: "AH_V6_FLOW", Value: 11},
+	{Name: "ALG_OP_DECRYPT"},
+	{Name: "ALG_OP_ENCRYPT", Value: 1},
 	{Name: "ALG_SET_AEAD_ASSOCLEN", Value: 4},
 	{Name: "ALG_SET_AEAD_AUTHSIZE", Value: 5},
 	{Name: "ALG_SET_IV", Value: 2},
@@ -16796,4 +16798,4 @@ var consts_386 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_386 = "bcbb2cfb0201255ca22ecc77ebc8e22d4880e9a5"
+const revision_386 = "a3916a0db735129455fbd809eed379b8568f7c35"

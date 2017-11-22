@@ -17,24 +17,8 @@ func init() {
 
 var (
 	CalcChecksumsCall = calcChecksumsCall
-	//AssignSizesCall   = assignSizesCall
-	//DefaultArg        = defaultArg
-	InitTest = initTest
+	InitTest          = initTest
 )
-
-/*
-func PtrSize() uint64 {
-	return ptrSize
-}
-
-func DataOffset() uint64 {
-	return dataOffset
-}
-
-func PageSize() uint64 {
-	return pageSize
-}
-*/
 
 func initTest(t *testing.T) (*Target, rand.Source, int) {
 	t.Parallel()
