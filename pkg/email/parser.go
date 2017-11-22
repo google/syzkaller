@@ -46,10 +46,8 @@ func Parse(r io.Reader, ownEmail string) (*Email, error) {
 	if len(from) == 0 {
 		return nil, fmt.Errorf("failed to parse email header 'To': no senders")
 	}
-	to, err := msg.Header.AddressList("To")
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse email header 'To': %v", err)
-	}
+	// Ignore errors since To: header may not be present (we've seen such case).
+	to, _ := msg.Header.AddressList("To")
 	// AddressList fails if the header is not present.
 	cc, _ := msg.Header.AddressList("Cc")
 	bugID := ""
