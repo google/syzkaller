@@ -21,7 +21,7 @@ const (
 	maxTextLen   = 200
 	MaxStringLen = 1024
 
-	maxCrashes = 20
+	maxCrashes = 40
 )
 
 type Build struct {

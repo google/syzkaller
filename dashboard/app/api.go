@@ -348,6 +348,8 @@ func stringInList(list []string, str string) bool {
 	return false
 }
 
+const corruptedReportTitle = "corrupted report"
+
 func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{}, error) {
 	req := new(dashapi.Crash)
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
@@ -355,6 +357,12 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 	}
 	req.Title = limitLength(req.Title, maxTextLen)
 	req.Maintainers = email.MergeEmailLists(req.Maintainers)
+	if req.Corrupted {
+		// The report is corrupted and the title is most likely invalid.
+		// Such reports are usually unactionable and are discarded.
+		// Collect them into a single bin.
+		req.Title = corruptedReportTitle
+	}
 
 	build, err := loadBuild(c, ns, req.BuildID)
 	if err != nil {
@@ -367,7 +375,11 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 		Time:        timeNow(c),
 		Maintainers: req.Maintainers,
 		ReproOpts:   req.ReproOpts,
-		ReportLen:   len(req.Report),
+		// We used to report crash with the longest report len to work around corrupted reports.
+		// Now that we explicitly detect corrupted reports, disable this sorting.
+		// When all old bugs are closed, we need to remove sorting by ReportLen
+		// from queryCrashesForBug.
+		ReportLen: 1e9,
 	}
 
 	if crash.Log, err = putText(c, ns, "CrashLog", req.Log, false); err != nil {
@@ -547,6 +559,12 @@ func apiNeedRepro(c context.Context, ns string, r *http.Request) (interface{}, e
 	req := new(dashapi.CrashID)
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	if req.Corrupted {
+		resp := &dashapi.NeedReproResp{
+			NeedRepro: false,
+		}
+		return resp, nil
 	}
 	req.Title = limitLength(req.Title, maxTextLen)
 
