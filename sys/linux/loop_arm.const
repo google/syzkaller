@@ -29,5 +29,5 @@ LO_FLAGS_PARTSCAN = 8
 LO_FLAGS_READ_ONLY = 1
 LO_KEY_SIZE = 32
 LO_NAME_SIZE = 64
-__NR_ioctl = 9437238
-__NR_openat = 9437506
+__NR_ioctl = 54
+__NR_openat = 322

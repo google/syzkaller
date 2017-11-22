@@ -7,5 +7,5 @@ S_IFIFO = 4096
 S_IFLNK = 40960
 S_IFREG = 32768
 S_IFSOCK = 49152
-__NR_ioctl = 9437238
-__NR_write = 9437188
+__NR_ioctl = 54
+__NR_write = 4

@@ -57,5 +57,5 @@ FF_SINE = 90
 FF_SPRING = 83
 FF_SQUARE = 88
 FF_TRIANGLE = 89
-__NR_ioctl = 9437238
-__NR_write = 9437188
+__NR_ioctl = 54
+__NR_write = 4

@@ -62,5 +62,5 @@ PERF_TYPE_HW_CACHE = 3
 PERF_TYPE_RAW = 4
 PERF_TYPE_SOFTWARE = 1
 PERF_TYPE_TRACEPOINT = 2
-__NR_ioctl = 9437238
-__NR_perf_event_open = 9437548
+__NR_ioctl = 54
+__NR_perf_event_open = 364
