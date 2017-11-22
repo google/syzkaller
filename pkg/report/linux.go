@@ -348,15 +348,16 @@ func (ctx *linux) isCorrupted(title string, report []byte) bool {
 		}
 	}
 	if strings.HasPrefix(title, "KASAN") {
-		// For KASAN reports lets use 'Allocated' and 'Freed' as signals.
-		if !bytes.Contains(report, []byte("Allocated")) {
+		// KASAN reports must contain 'Call Trace' after 'KASAN:' header.
+		match := bytes.Index(report, []byte("KASAN:"))
+		if match == -1 {
 			return true
 		}
-		if !bytes.Contains(report, []byte("Freed")) {
+		if !bytes.Contains(report[match:], []byte("Call Trace")) {
 			return true
 		}
 	}
-	// When a report contains 'Call trace', 'backtrace', 'Allocated' or 'Freed' keywords,
+	// When a report contains 'Call Trace', 'backtrace', 'Allocated' or 'Freed' keywords,
 	// it must also contain at least a single stack frame after the first of them.
 	stackKeywords := []string{"Call Trace", "backtrace", "Allocated", "Freed"}
 	stackLocation := -1
