@@ -378,7 +378,7 @@ func (mgr *Manager) vmLoop() {
 			delete(pendingRepro, crash)
 			if !crash.hub {
 				if mgr.dash == nil {
-					if !mgr.needRepro(crash.title) {
+					if !mgr.needRepro(crash) {
 						continue
 					}
 				} else {
@@ -646,16 +646,16 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		osutil.WriteFile(filepath.Join(dir, fmt.Sprintf("report%v", oldestI)), crash.report)
 	}
 
-	return mgr.needRepro(crash.title)
+	return mgr.needRepro(crash)
 }
 
 const maxReproAttempts = 3
 
-func (mgr *Manager) needRepro(desc string) bool {
-	if !mgr.cfg.Reproduce {
+func (mgr *Manager) needRepro(crash *Crash) bool {
+	if !mgr.cfg.Reproduce || crash.corrupted {
 		return false
 	}
-	sig := hash.Hash([]byte(desc))
+	sig := hash.Hash([]byte(crash.title))
 	dir := filepath.Join(mgr.crashdir, sig.String())
 	if osutil.IsExist(filepath.Join(dir, "repro.prog")) {
 		return false
