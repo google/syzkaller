@@ -160,112 +160,85 @@ unrelateed line
 `, `WARNING in genl_unbind`, true,
 		}, {
 			`
-[ 1722.511384] ======================================================
-[ 1722.511384] WARNING: possible circular locking dependency detected
-[ 1722.511384] 4.14.0-rc1+ #1 Not tainted
-[ 1722.511384] ------------------------------------------------------
-[ 1722.511384] syz-executor0/22269 is trying to acquire lock:
-[ 1722.511384]  (&bdev->bd_mutex){+.+.}, at: [<ffffffff8232bf0e>] blkdev_reread_part+0x1e/0x40 block/ioctl.c:192
-[ 1722.511384] 
-[ 1722.511384] but task is already holding lock:
-[ 1722.511384]  (&lo->lo_ctl_mutex#2){+.+.}, at: [<ffffffff83542c29>] lo_compat_ioctl+0x109/0x140 drivers/block/loop.c:1533
-[ 1722.511384] 
-[ 1722.511384] which lock already depends on the new lock.
-[ 1722.511384] 
-[ 1722.511384] 
-[ 1722.511384] the existing dependency chain (in reverse order) is:
-[ 1722.511384] 
-[ 1722.511384] -> #1 (&lo->lo_ctl_mutex#2){+.+.}:
-[ 1722.511384]        check_prevs_add kernel/locking/lockdep.c:2020 [inline]
-[ 1722.511384]        validate_chain kernel/locking/lockdep.c:2469 [inline]
-[ 1722.511384]        __lock_acquire+0x328f/0x4620 kernel/locking/lockdep.c:3498
-[ 1722.511384]        lock_acquire+0x1d5/0x580 kernel/locking/lockdep.c:4002
-[ 1722.511384]        __mutex_lock_common kernel/locking/mutex.c:756 [inline]
-[ 1722.511384]        __mutex_lock+0x16f/0x1870 kernel/locking/mutex.c:893
-[ 1722.511384]        mutex_lock_nested+0x16/0x20 kernel/locking/mutex.c:908
-[ 1722.511384]        lo_release+0x6b/0x180 drivers/block/loop.c:1587
-[ 1722.511384]        __blkdev_put+0x602/0x7c0 fs/block_dev.c:1780
-[ 1722.511384]        blkdev_put+0x85/0x4f0 fs/block_dev.c:1845
-[ 1722.511384]        blkdev_close+0x91/0xc0 fs/block_dev.c:1852
-[ 1722.511384]        __fput+0x333/0x7f0 fs/file_table.c:210
-[ 1722.511384]        ____fput+0x15/0x20 fs/file_table.c:244
-[ 1722.511384]        task_work_run+0x199/0x270 kernel/task_work.c:112
-[ 1722.511384]        tracehook_notify_resume include/linux/tracehook.h:191 [inline]
-[ 1722.511384]        exit_to_usermode_loop+0x2a6/0x300 arch/x86/entry/common.c:162
-[ 1722.511384]        prepare_exit_to_usermode arch/x86/entry/common.c:197 [inline]
-[ 1722.511384]        syscall_return_slowpath+0x42f/0x500 arch/x86/entry/common.c:266
-[ 1722.511384]        entry_SYSCALL_64_fastpath+0xbc/0xbe
-[ 1722.511384] 
-[ 1722.511384] -> #0 (&bdev->bd_mutex){+.+.}:
-[ 1722.511384]        check_prev_add+0x865/0x1520 kernel/locking/lockdep.c:1894
-[ 1722.511384]        check_prevs_add kernel/locking/lockdep.c:2020 [inline]
-[ 1722.511384]        validate_chain kernel/locking/lockdep.c:2469 [inline]
-[ 1722.511384]        __lock_acquire+0x328f/0x4620 kernel/locking/lockdep.c:3498
-[ 1722.511384]        lock_acquire+0x1d5/0x580 kernel/locking/lockdep.c:4002
-[ 1722.511384]        __mutex_lock_common kernel/locking/mutex.c:756 [inline]
-[ 1722.511384]        __mutex_lock+0x16f/0x1870 kernel/locking/mutex.c:893
-[ 1722.511384]        mutex_lock_nested+0x16/0x20 kernel/locking/mutex.c:908
-[ 1722.511384]        blkdev_reread_part+0x1e/0x40 block/ioctl.c:192
-[ 1722.511384]        loop_reread_partitions+0x12f/0x1a0 drivers/block/loop.c:614
-[ 1722.511384]        loop_set_status+0x9ba/0xf60 drivers/block/loop.c:1156
-[ 1722.511384]        loop_set_status_compat+0x92/0xf0 drivers/block/loop.c:1506
-[ 1722.511384]        lo_compat_ioctl+0x114/0x140 drivers/block/loop.c:1534
-[ 1722.511384]        compat_blkdev_ioctl+0x3ba/0x1850 block/compat_ioctl.c:405
-[ 1722.511384]        C_SYSC_ioctl fs/compat_ioctl.c:1593 [inline]
-[ 1722.511384]        compat_SyS_ioctl+0x1da/0x3300 fs/compat_ioctl.c:1540
-[ 1722.511384]        do_syscall_32_irqs_on arch/x86/entry/common.c:329 [inline]
-[ 1722.511384]        do_fast_syscall_32+0x3f2/0xeed arch/x86/entry/common.c:391
-[ 1722.511384]        entry_SYSENTER_compat+0x51/0x60 arch/x86/entry/entry_64_compat.S:124
-[ 1722.511384] 
-[ 1722.511384] other info that might help us debug this:
-[ 1722.511384] 
-[ 1722.511384]  Possible unsafe locking scenario:
-[ 1722.511384] 
-[ 1722.511384]        CPU0                    CPU1
-[ 1722.511384]        ----                    ----
-[ 1722.511384]   lock(&lo->lo_ctl_mutex#2);
-[ 1722.511384]                                lock(&bdev->bd_mutex);
-[ 1722.511384]                                lock(&lo->lo_ctl_mutex#2);
-[ 1722.511384]   lock(&bdev->bd_mutex);
-[ 1722.511384] 
-[ 1722.511384]  *** DEADLOCK ***
-[ 1722.511384] 
-[ 1722.511384] 1 lock held by syz-executor0/22269:
-[ 1722.511384]  #0:  (&lo->lo_ctl_mutex#2){+.+.}, at: [<ffffffff83542c29>] lo_compat_ioctl+0x109/0x140 drivers/block/loop.c:1533
-[ 1722.511384] 
-[ 1722.511384] stack backtrace:
-[ 1722.511384] CPU: 0 PID: 22269 Comm: syz-executor0 Not tainted 4.14.0-rc1+ #1
-[ 1722.511384] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
-[ 1722.511384] Call Trace:
-[ 1722.511384]  __dump_stack lib/dump_stack.c:16 [inline]
-[ 1722.511384]  dump_stack+0x194/0x257 lib/dump_stack.c:52
-[ 1722.511384]  print_circular_bug+0x503/0x710 kernel/locking/lockdep.c:1259
-[ 1722.511384]  check_prev_add+0x865/0x1520 kernel/locking/lockdep.c:1894
-[ 1722.511384]  check_prevs_add kernel/locking/lockdep.c:2020 [inline]
-[ 1722.511384]  validate_chain kernel/locking/lockdep.c:2469 [inline]
-[ 1722.511384]  __lock_acquire+0x328f/0x4620 kernel/locking/lockdep.c:3498
-[ 1722.511384]  lock_acquire+0x1d5/0x580 kernel/locking/lockdep.c:4002
-[ 1722.511384]  __mutex_lock_common kernel/locking/mutex.c:756 [inline]
-[ 1722.511384]  __mutex_lock+0x16f/0x1870 kernel/locking/mutex.c:893
-[ 1722.511384]  mutex_lock_nested+0x16/0x20 kernel/locking/mutex.c:908
-[ 1722.511384]  blkdev_reread_part+0x1e/0x40 block/ioctl.c:192
-[ 1722.511384]  loop_reread_partitions+0x12f/0x1a0 drivers/block/loop.c:614
-[ 1722.511384]  loop_set_status+0x9ba/0xf60 drivers/block/loop.c:1156
-[ 1722.511384]  loop_set_status_compat+0x92/0xf0 drivers/block/loop.c:1506
-[ 1722.511384]  lo_compat_ioctl+0x114/0x140 drivers/block/loop.c:1534
-[ 1722.511384]  compat_blkdev_ioctl+0x3ba/0x1850 block/compat_ioctl.c:405
-[ 1722.511384]  C_SYSC_ioctl fs/compat_ioctl.c:1593 [inline]
-[ 1722.511384]  compat_SyS_ioctl+0x1da/0x3300 fs/compat_ioctl.c:1540
-[ 1722.511384]  do_syscall_32_irqs_on arch/x86/entry/common.c:329 [inline]
-[ 1722.511384]  do_fast_syscall_32+0x3f2/0xeed arch/x86/entry/common.c:391
-[ 1722.511384]  entry_SYSENTER_compat+0x51/0x60 arch/x86/entry/entry_64_compat.S:124
-[ 1722.511384] RIP: 0023:0xf7fd5c79
-[ 1722.511384] RSP: 002b:00000000f77d105c EFLAGS: 00000296 ORIG_RAX: 0000000000000036
-[ 1722.511384] RAX: ffffffffffffffda RBX: 0000000000000016 RCX: 0000000000004c02
-[ 1722.511384] RDX: 00000000202e3000 RSI: 0000000000000000 RDI: 0000000000000000
-[ 1722.511384] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
-[ 1722.511384] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
-[ 1722.511384] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[  127.525803] ======================================================
+[  127.532093] WARNING: possible circular locking dependency detected
+[  127.538376] 4.14.0-rc1+ #1 Not tainted
+[  127.542228] ------------------------------------------------------
+[  127.548509] syz-executor0/22269 is trying to acquire lock:
+[  127.554094]  (&bdev->bd_mutex){+.+.}, at: [<ffffffff8232bf0e>] blkdev_reread_part+0x1e/0x40
+[  127.562560] 
+[  127.562560] but task is already holding lock:
+[  127.568495]  (&lo->lo_ctl_mutex#2){+.+.}, at: [<ffffffff83542c29>] lo_compat_ioctl+0x109/0x140
+[  127.577221] 
+[  127.577221] which lock already depends on the new lock.
+[  127.577221] 
+[  127.585502] 
+[  127.585502] the existing dependency chain (in reverse order) is:
+[  127.593087] 
+[  127.593087] -> #1 (&lo->lo_ctl_mutex#2){+.+.}:
+[  127.599124]        __lock_acquire+0x328f/0x4620
+[  127.603759]        lock_acquire+0x1d5/0x580
+[  127.608048]        __mutex_lock+0x16f/0x1870
+[  127.612421]        mutex_lock_nested+0x16/0x20
+[  127.616972]        lo_release+0x6b/0x180
+[  127.621000]        __blkdev_put+0x602/0x7c0
+[  127.625288]        blkdev_put+0x85/0x4f0
+[  127.629314]        blkdev_close+0x91/0xc0
+[  127.633425]        __fput+0x333/0x7f0
+[  127.637192]        ____fput+0x15/0x20
+[  127.640960]        task_work_run+0x199/0x270
+[  127.645333]        exit_to_usermode_loop+0x2a6/0x300
+[  127.650404]        syscall_return_slowpath+0x42f/0x500
+[  127.655651]        entry_SYSCALL_64_fastpath+0xbc/0xbe
+[  127.660888] 
+[  127.660888] -> #0 (&bdev->bd_mutex){+.+.}:
+[  127.666578]        check_prev_add+0x865/0x1520
+[  127.671134]        __lock_acquire+0x328f/0x4620
+[  127.675778]        lock_acquire+0x1d5/0x580
+[  127.680067]        __mutex_lock+0x16f/0x1870
+[  127.684441]        mutex_lock_nested+0x16/0x20
+[  127.688991]        blkdev_reread_part+0x1e/0x40
+[  127.693629]        loop_reread_partitions+0x12f/0x1a0
+[  127.698783]        loop_set_status+0x9ba/0xf60
+[  127.703333]        loop_set_status_compat+0x92/0xf0
+[  127.708315]        lo_compat_ioctl+0x114/0x140
+[  127.712863]        compat_blkdev_ioctl+0x3ba/0x1850
+[  127.717848]        compat_SyS_ioctl+0x1da/0x3300
+[  127.722570]        do_fast_syscall_32+0x3f2/0xeed
+[  127.727378]        entry_SYSENTER_compat+0x51/0x60
+[  127.732268] 
+[  127.732268] other info that might help us debug this:
+[  127.732268] 
+[  127.740375]  Possible unsafe locking scenario:
+[  127.740375] 
+[  127.746396]        CPU0                    CPU1
+[  127.751028]        ----                    ----
+[  127.755664]   lock(&lo->lo_ctl_mutex#2);
+[  127.759694]                                lock(&bdev->bd_mutex);
+[  127.765892]                                lock(&lo->lo_ctl_mutex#2);
+[  127.772438]   lock(&bdev->bd_mutex);
+[  127.776120] 
+[  127.776120]  *** DEADLOCK ***
+[  127.776120] 
+[  127.782144] 1 lock held by syz-executor0/22269:
+[  127.786775]  #0:  (&lo->lo_ctl_mutex#2){+.+.}, at: [<ffffffff83542c29>] lo_compat_ioctl+0x109/0x140
+[  127.795934] 
+[  127.795934] stack backtrace:
+[  127.800405] CPU: 0 PID: 22269 Comm: syz-executor0 Not tainted 4.14.0-rc1+ #1
+[  127.807556] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  127.816876] Call Trace:
+[  127.819433]  dump_stack+0x194/0x257
+[  127.831436]  print_circular_bug+0x503/0x710
+[  127.844570]  check_prev_add+0x865/0x1520
+[  127.961665]  lock_acquire+0x1d5/0x580
+...
+[  128.182847]  entry_SYSENTER_compat+0x51/0x60
+[  128.187221] RIP: 0023:0xf7fd5c79
+[  128.190551] RSP: 002b:00000000f77d105c EFLAGS: 00000296 ORIG_RAX: 0000000000000036
+[  128.198227] RAX: ffffffffffffffda RBX: 0000000000000016 RCX: 0000000000004c02
+[  128.205464] RDX: 00000000202e3000 RSI: 0000000000000000 RDI: 0000000000000000
+[  128.212700] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[  128.219935] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
 `, `possible deadlock in blkdev_reread_part`, false,
 		}, {
 			`
@@ -921,29 +894,38 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 `, `BUG: workqueue lockup`, true,
 		}, {
 			`
-[ 1722.511384] BUG: spinlock already unlocked on CPU#1, migration/1/12
-[ 1722.511384]  lock: rcu_sched_state+0xb40/0xc20, .magic: dead4ead, .owner: <none>/-1, .owner_cpu: -1
-[ 1722.511384] CPU: 1 PID: 12 Comm: migration/1 Not tainted 4.3.5+ #6
-[ 1722.511384] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
-[ 1722.511384]  0000000000000001 ffff8801d8f6fb30 ffffffff81d0010d ffffffff837b69c0
-[ 1722.511384]  ffff8801d8f68340 0000000000000003 0000000000000001 0000000000000000
-[ 1722.511384]  ffff8801d8f6fb70 ffffffff813fba22 0000000000000046 ffff8801d8f68b80
-[ 1722.511384] Call Trace:
-[ 1722.511384]  [<ffffffff81d0010d>] __dump_stack lib/dump_stack.c:15 [inline]
-[ 1722.511384]  [<ffffffff81d0010d>] dump_stack+0xc1/0x124 lib/dump_stack.c:51
-[ 1722.511384]  [<ffffffff813fba22>] spin_dump+0x152/0x280 kernel/locking/spinlock_debug.c:67
-[ 1722.511384]  [<ffffffff813fc152>] spin_bug kernel/locking/spinlock_debug.c:75 [inline]
-[ 1722.511384]  [<ffffffff813fc152>] debug_spin_unlock kernel/locking/spinlock_debug.c:98 [inline]
-[ 1722.511384]  [<ffffffff813fc152>] do_raw_spin_unlock+0x1e2/0x240 kernel/locking/spinlock_debug.c:158
-[ 1722.511384]  [<ffffffff810108ec>] __raw_spin_unlock_irqrestore include/linux/spinlock_api_smp.h:161 [inline]
-[ 1722.511384]  [<ffffffff810108ec>] _raw_spin_unlock_irqrestore+0x2c/0x60 kernel/locking/spinlock.c:191
-[ 1722.511384]  [<ffffffff813cd204>] spin_unlock_irqrestore include/linux/spinlock.h:362 [inline]
-[ 1722.511384]  [<ffffffff813cd204>] __wake_up+0x44/0x50 kernel/sched/wait.c:96
-[ 1722.511384]  [<ffffffff8142958a>] synchronize_sched_expedited_cpu_stop+0x8a/0xa0 kernel/rcu/tree.c:3498
-[ 1722.511384]  [<ffffffff814dbfe8>] cpu_stopper_thread+0x1f8/0x400 kernel/stop_machine.c:442
-[ 1722.511384]  [<ffffffff8134237c>] smpboot_thread_fn+0x47c/0x880 kernel/smpboot.c:163
-[ 1722.511384]  [<ffffffff81338531>] kthread+0x231/0x2c0 kernel/kthread.c:217
-[ 1722.511384]  [<ffffffff82d2fbac>] ret_from_fork+0x5c/0x90 arch/x86/entry/entry_64.S:538
+[  108.620932] BUG: spinlock already unlocked on CPU#1, migration/1/12
+[  108.627365]  lock: rcu_sched_state+0xb40/0xc20, .magic: dead4ead, .owner: <none>/-1, .owner_cpu: -1
+[  108.636523] CPU: 1 PID: 12 Comm: migration/1 Not tainted 4.3.5+ #6
+[  108.642815] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  108.652143]  0000000000000001 ffff8801d8f6fb30 ffffffff81d0010d ffffffff837b69c0
+[  108.660142]  ffff8801d8f68340 0000000000000003 0000000000000001 0000000000000000
+[  108.668095]  ffff8801d8f6fb70 ffffffff813fba22 0000000000000046 ffff8801d8f68b80
+[  108.676053] Call Trace:
+[  108.678614]  [<ffffffff81d0010d>] dump_stack+0xc1/0x124
+[  108.683946]  [<ffffffff813fba22>] spin_dump+0x152/0x280
+[  108.689274]  [<ffffffff813fc152>] do_raw_spin_unlock+0x1e2/0x240
+[  108.695386]  [<ffffffff810108ec>] _raw_spin_unlock_irqrestore+0x2c/0x60
+[  108.702102]  [<ffffffff813cd204>] __wake_up+0x44/0x50
+[  108.707255]  [<ffffffff81429500>] ? rcu_barrier_func+0x90/0x90
+[  108.713189]  [<ffffffff8142958a>] synchronize_sched_expedited_cpu_stop+0x8a/0xa0
+[  108.720688]  [<ffffffff814dbfe8>] cpu_stopper_thread+0x1f8/0x400
+[  108.726796]  [<ffffffff814dbdf0>] ? cpu_stop_create+0x90/0x90
+[  108.732646]  [<ffffffff814db078>] ? cpu_stop_should_run+0x58/0xb0
+[  108.738844]  [<ffffffff810108f6>] ? _raw_spin_unlock_irqrestore+0x36/0x60
+[  108.745734]  [<ffffffff813ed79b>] ? trace_hardirqs_on_caller+0x38b/0x590
+[  108.752541]  [<ffffffff813ed9ad>] ? trace_hardirqs_on+0xd/0x10
+[  108.758476]  [<ffffffff814dbdf0>] ? cpu_stop_create+0x90/0x90
+[  108.764326]  [<ffffffff8134237c>] smpboot_thread_fn+0x47c/0x880
+[  108.770347]  [<ffffffff81341f00>] ? sort_range+0x40/0x40
+[  108.775761]  [<ffffffff81001aea>] ? schedule+0x9a/0x1b0
+[  108.781090]  [<ffffffff81337c9f>] ? __kthread_parkme+0x17f/0x250
+[  108.787198]  [<ffffffff81338531>] kthread+0x231/0x2c0
+[  108.792352]  [<ffffffff81341f00>] ? sort_range+0x40/0x40
+[  108.797767]  [<ffffffff81338300>] ? kthread_create_on_node+0x460/0x460
+[  108.804399]  [<ffffffff81338300>] ? kthread_create_on_node+0x460/0x460
+[  108.811031]  [<ffffffff82d2fbac>] ret_from_fork+0x5c/0x90
+[  108.816532]  [<ffffffff81338300>] ? kthread_create_on_node+0x460/0x460
  `, `BUG: spinlock already unlocked`, false,
 		}, {
 			`
@@ -1052,42 +1034,10 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [   42.369183]  dump_stack+0xb3/0x10b
 [   42.369664]  print_address_description+0x73/0x290
 [   42.370325]  kasan_report+0x252/0x370
-[   42.370839]  ? ip6_fragment+0x11c8/0x3730
 [   42.371396]  check_memory_region+0x13c/0x1a0
 [   42.371978]  memcpy+0x23/0x50
 [   42.372395]  ip6_fragment+0x11c8/0x3730
-[   42.372920]  ? nf_ct_expect_unregister_notifier+0x110/0x110
-[   42.373681]  ? ip6_copy_metadata+0x7f0/0x7f0
-[   42.374263]  ? ip6_forward+0x2e30/0x2e30
-[   42.374803]  ip6_finish_output+0x584/0x990
-[   42.375350]  ip6_output+0x1b7/0x690
-[   42.375836]  ? ip6_finish_output+0x990/0x990
-[   42.376411]  ? ip6_fragment+0x3730/0x3730
-[   42.376968]  ip6_local_out+0x95/0x160
-[   42.377471]  ip6_send_skb+0xa1/0x330
-[   42.377969]  ip6_push_pending_frames+0xb3/0xe0
-[   42.378589]  rawv6_sendmsg+0x2051/0x2db0
-[   42.379129]  ? rawv6_bind+0x8b0/0x8b0
-[   42.379633]  ? _copy_from_user+0x84/0xe0
-[   42.380193]  ? debug_check_no_locks_freed+0x290/0x290
-[   42.380878]  ? ___sys_sendmsg+0x162/0x930
-[   42.381427]  ? rcu_read_lock_sched_held+0xa3/0x120
-[   42.382074]  ? sock_has_perm+0x1f6/0x290
-[   42.382614]  ? ___sys_sendmsg+0x167/0x930
-[   42.383173]  ? lock_downgrade+0x660/0x660
-[   42.383727]  inet_sendmsg+0x123/0x500
-[   42.384226]  ? inet_sendmsg+0x123/0x500
-[   42.384748]  ? inet_recvmsg+0x540/0x540
-[   42.385263]  sock_sendmsg+0xca/0x110
-[   42.385758]  SYSC_sendto+0x217/0x380
-[   42.386249]  ? SYSC_connect+0x310/0x310
-[   42.386783]  ? __might_fault+0x110/0x1d0
-[   42.387324]  ? lock_downgrade+0x660/0x660
-[   42.387880]  ? __fget_light+0xa1/0x1f0
-[   42.388403]  ? __fdget+0x18/0x20
-[   42.388851]  ? sock_common_setsockopt+0x95/0xd0
-[   42.389472]  ? SyS_setsockopt+0x17f/0x260
-[   42.390021]  ? entry_SYSCALL_64_fastpath+0x5/0xbe
+...
 [   42.390650]  SyS_sendto+0x40/0x50
 [   42.391103]  entry_SYSCALL_64_fastpath+0x1f/0xbe
 [   42.391731] RIP: 0033:0x7fbbb711e383

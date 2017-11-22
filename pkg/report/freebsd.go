@@ -100,6 +100,7 @@ var freebsdOopses = []*oops{
 					"(?:#[0-9]+ {{ADDR}} at (?:kdb_backtrace|vpanic|panic|trap_fatal|" +
 					"trap_pfault|trap|calltrap|m_copydata|__rw_wlock_hard)" +
 					"\\+{{ADDR}}\\r?\\n)*#[0-9]+ {{ADDR}} at {{FUNC}}{{ADDR}}"),
+				nil,
 				"Fatal trap %[1]v in %[2]v",
 				false,
 			},
@@ -111,6 +112,7 @@ var freebsdOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("panic: ffs_write: type {{ADDR}} [0-9]+ \\([0-9]+,[0-9]+\\)"),
+				nil,
 				"panic: ffs_write: type ADDR X (Y,Z)",
 				false,
 			},
