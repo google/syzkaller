@@ -244,7 +244,7 @@ func MakeResultArg(t Type, r Arg, v uint64) Arg {
 	return arg
 }
 
-func dataArg(t Type, data []byte) Arg {
+func MakeDataArg(t Type, data []byte) Arg {
 	return &DataArg{ArgCommon: ArgCommon{typ: t}, Data: append([]byte{}, data...)}
 }
 
@@ -256,7 +256,7 @@ func MakeGroupArg(t Type, inner []Arg) Arg {
 	return &GroupArg{ArgCommon: ArgCommon{typ: t}, Inner: inner}
 }
 
-func unionArg(t Type, opt Arg, typ Type) Arg {
+func MakeUnionArg(t Type, opt Arg, typ Type) Arg {
 	return &UnionArg{ArgCommon: ArgCommon{typ: t}, Option: opt, OptionType: typ}
 }
 
@@ -275,7 +275,7 @@ func defaultArg(t Type) Arg {
 		if typ.Kind == BufferString && typ.TypeSize != 0 {
 			data = make([]byte, typ.TypeSize)
 		}
-		return dataArg(t, data)
+		return MakeDataArg(t, data)
 	case *ArrayType:
 		return MakeGroupArg(t, nil)
 	case *StructType:
@@ -285,7 +285,7 @@ func defaultArg(t Type) Arg {
 		}
 		return MakeGroupArg(t, inner)
 	case *UnionType:
-		return unionArg(t, defaultArg(typ.Fields[0]), typ.Fields[0])
+		return MakeUnionArg(t, defaultArg(typ.Fields[0]), typ.Fields[0])
 	case *VmaType:
 		return MakePointerArg(t, 0, 0, 1, nil)
 	case *PtrType:

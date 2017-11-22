@@ -287,7 +287,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		if err != nil {
 			return nil, fmt.Errorf("data arg has bad value '%v'", val)
 		}
-		arg = dataArg(typ, data)
+		arg = MakeDataArg(typ, data)
 	case '{':
 		t1, ok := typ.(*StructType)
 		if !ok {
@@ -359,7 +359,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		if err != nil {
 			return nil, err
 		}
-		arg = unionArg(typ, opt, optType)
+		arg = MakeUnionArg(typ, opt, optType)
 	case 'n':
 		p.Parse('n')
 		p.Parse('i')

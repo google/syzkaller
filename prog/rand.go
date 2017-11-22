@@ -590,10 +590,10 @@ func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
 					data[i] = byte(r.Intn(256))
 				}
 			}
-			return dataArg(a, data), nil
+			return MakeDataArg(a, data), nil
 		case BufferString:
 			data := r.randString(s, a.Values, a.Dir())
-			return dataArg(a, data), nil
+			return MakeDataArg(a, data), nil
 		case BufferFilename:
 			var data []byte
 			if a.Dir() == DirOut {
@@ -608,9 +608,9 @@ func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
 			} else {
 				data = []byte(r.filename(s))
 			}
-			return dataArg(a, data), nil
+			return MakeDataArg(a, data), nil
 		case BufferText:
-			return dataArg(a, r.generateText(a.Text)), nil
+			return MakeDataArg(a, r.generateText(a.Text)), nil
 		default:
 			panic("unknown buffer kind")
 		}
@@ -670,7 +670,7 @@ func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
 	case *UnionType:
 		optType := a.Fields[r.Intn(len(a.Fields))]
 		opt, calls := r.generateArg(s, optType)
-		return unionArg(a, opt, optType), calls
+		return MakeUnionArg(a, opt, optType), calls
 	case *PtrType:
 		inner, calls := r.generateArg(s, a.Type)
 		if a.Type.Name() == "iocb" && len(s.resources["iocbptr"]) != 0 {
