@@ -364,109 +364,94 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 		req.Title = corruptedReportTitle
 	}
 
-	build, err := loadBuild(c, ns, req.BuildID)
+	bug, bugKey, err := findBugForCrash(c, ns, req.Title)
 	if err != nil {
 		return nil, err
 	}
-
-	crash := &Crash{
-		Manager:     build.Manager,
-		BuildID:     req.BuildID,
-		Time:        timeNow(c),
-		Maintainers: req.Maintainers,
-		ReproOpts:   req.ReproOpts,
-		// We used to report crash with the longest report len to work around corrupted reports.
-		// Now that we explicitly detect corrupted reports, disable this sorting.
-		// When all old bugs are closed, we need to remove sorting by ReportLen
-		// from queryCrashesForBug.
-		ReportLen: 1e9,
-	}
-
-	if crash.Log, err = putText(c, ns, "CrashLog", req.Log, false); err != nil {
+	if active, err := isActiveBug(c, bug); err != nil {
 		return nil, err
-	}
-	if crash.Report, err = putText(c, ns, "CrashReport", req.Report, false); err != nil {
-		return nil, err
-	}
-	if crash.ReproSyz, err = putText(c, ns, "ReproSyz", req.ReproSyz, false); err != nil {
-		return nil, err
-	}
-	if crash.ReproC, err = putText(c, ns, "ReproC", req.ReproC, false); err != nil {
-		return nil, err
+	} else if !active {
+		bug, bugKey, err = createBugForCrash(c, ns, req)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	var bug *Bug
-	var bugKey *datastore.Key
-
-	tx := func(c context.Context) error {
-		for seq := int64(0); ; seq++ {
-			bug = new(Bug)
-			bugHash := bugKeyHash(ns, req.Title, seq)
-			bugKey = datastore.NewKey(c, "Bug", bugHash, 0, nil)
-			if err := datastore.Get(c, bugKey, bug); err != nil {
-				if err != datastore.ErrNoSuchEntity {
-					return fmt.Errorf("failed to get bug: %v", err)
-				}
-				bug = &Bug{
-					Namespace:  ns,
-					Seq:        seq,
-					Title:      req.Title,
-					Status:     BugStatusOpen,
-					NumCrashes: 0,
-					NumRepro:   0,
-					ReproLevel: ReproLevelNone,
-					HasReport:  false,
-					FirstTime:  crash.Time,
-					LastTime:   crash.Time,
-				}
-				for _, rep := range config.Namespaces[ns].Reporting {
-					bug.Reporting = append(bug.Reporting, BugReporting{
-						Name: rep.Name,
-						ID:   bugReportingHash(bugHash, rep.Name),
-					})
-				}
-				break
-			}
-			canon, err := canonicalBug(c, bug)
-			if err != nil {
-				return err
-			}
-			if canon.Status == BugStatusOpen {
-				break
-			}
+	now := timeNow(c)
+	reproLevel := ReproLevelNone
+	if len(req.ReproC) != 0 {
+		reproLevel = ReproLevelC
+	} else if len(req.ReproSyz) != 0 {
+		reproLevel = ReproLevelSyz
+	}
+	saveCrash := bug.NumCrashes < 1000 ||
+		now.Sub(bug.LastTime) > time.Hour ||
+		reproLevel != ReproLevelNone
+	if saveCrash {
+		build, err := loadBuild(c, ns, req.BuildID)
+		if err != nil {
+			return nil, err
 		}
 
-		bug.NumCrashes++
-		bug.LastTime = crash.Time
-		repro := ReproLevelNone
-		if crash.ReproC != 0 {
-			repro = ReproLevelC
-		} else if crash.ReproSyz != 0 {
-			repro = ReproLevelSyz
+		crash := &Crash{
+			Manager:     build.Manager,
+			BuildID:     req.BuildID,
+			Time:        now,
+			Maintainers: req.Maintainers,
+			ReproOpts:   req.ReproOpts,
+			// We used to report crash with the longest report len to work around
+			// corrupted reports. Now that we explicitly detect corrupted reports,
+			// disable this sorting. When all old bugs are closed, we need to remove
+			// sorting by ReportLen from queryCrashesForBug.
+			ReportLen: 1e9,
 		}
-		if repro != ReproLevelNone {
-			bug.NumRepro++
+
+		if crash.Log, err = putText(c, ns, "CrashLog", req.Log, false); err != nil {
+			return nil, err
 		}
-		if bug.ReproLevel < repro {
-			bug.ReproLevel = repro
+		if crash.Report, err = putText(c, ns, "CrashReport", req.Report, false); err != nil {
+			return nil, err
 		}
-		if crash.Report != 0 {
-			bug.HasReport = true
+		if crash.ReproSyz, err = putText(c, ns, "ReproSyz", req.ReproSyz, false); err != nil {
+			return nil, err
 		}
-		if bugKey, err = datastore.Put(c, bugKey, bug); err != nil {
-			return fmt.Errorf("failed to put bug: %v", err)
+		if crash.ReproC, err = putText(c, ns, "ReproC", req.ReproC, false); err != nil {
+			return nil, err
 		}
 
 		crashKey := datastore.NewIncompleteKey(c, "Crash", bugKey)
 		if _, err = datastore.Put(c, crashKey, crash); err != nil {
-			return fmt.Errorf("failed to put crash: %v", err)
+			return nil, fmt.Errorf("failed to put crash: %v", err)
+		}
+	}
+
+	tx := func(c context.Context) error {
+		bug = new(Bug)
+		if err := datastore.Get(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to get bug: %v", err)
+		}
+		bug.NumCrashes++
+		bug.LastTime = now
+		if reproLevel != ReproLevelNone {
+			bug.NumRepro++
+		}
+		if bug.ReproLevel < reproLevel {
+			bug.ReproLevel = reproLevel
+		}
+		if len(req.Report) != 0 {
+			bug.HasReport = true
+		}
+		if _, err = datastore.Put(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to put bug: %v", err)
 		}
 		return nil
 	}
 	if err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true}); err != nil {
 		return nil, err
 	}
-	purgeOldCrashes(c, bug, bugKey)
+	if saveCrash {
+		purgeOldCrashes(c, bug, bugKey)
+	}
 	resp := &dashapi.ReportCrashResp{
 		NeedRepro: needRepro(bug),
 	}
@@ -529,27 +514,28 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request) (interf
 	}
 	req.Title = limitLength(req.Title, maxTextLen)
 
+	bug, bugKey, err := findBugForCrash(c, ns, req.Title)
+	if err != nil {
+		return nil, err
+	}
+	if bug == nil {
+		return nil, fmt.Errorf("can't find bug for this crash")
+	}
 	tx := func(c context.Context) error {
-		var bugKey *datastore.Key
 		bug := new(Bug)
-		for seq := int64(0); ; seq++ {
-			bugHash := bugKeyHash(ns, req.Title, seq)
-			bugKey = datastore.NewKey(c, "Bug", bugHash, 0, nil)
-			if err := datastore.Get(c, bugKey, bug); err != nil {
-				return fmt.Errorf("failed to get bug: %v", err)
-			}
-			if bug.Status == BugStatusOpen || bug.Status == BugStatusDup {
-				break
-			}
+		if err := datastore.Get(c, bugKey, bug); err != nil {
+			return fmt.Errorf("failed to get bug: %v", err)
 		}
-
 		bug.NumRepro++
 		if _, err := datastore.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %v", err)
 		}
 		return nil
 	}
-	if err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true}); err != nil {
+	if err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{
+		XG:       true,
+		Attempts: 30,
+	}); err != nil {
 		return nil, err
 	}
 	return nil, nil
@@ -568,22 +554,100 @@ func apiNeedRepro(c context.Context, ns string, r *http.Request) (interface{}, e
 	}
 	req.Title = limitLength(req.Title, maxTextLen)
 
-	bug := new(Bug)
-	for seq := int64(0); ; seq++ {
-		bugHash := bugKeyHash(ns, req.Title, seq)
-		bugKey := datastore.NewKey(c, "Bug", bugHash, 0, nil)
-		if err := datastore.Get(c, bugKey, bug); err != nil {
-			return nil, fmt.Errorf("failed to get bug: %v", err)
-		}
-		if bug.Status == BugStatusOpen || bug.Status == BugStatusDup {
-			break
-		}
+	bug, _, err := findBugForCrash(c, ns, req.Title)
+	if err != nil {
+		return nil, err
 	}
-
+	if bug == nil {
+		return nil, fmt.Errorf("can't find bug for this crash")
+	}
 	resp := &dashapi.NeedReproResp{
 		NeedRepro: needRepro(bug),
 	}
 	return resp, nil
+}
+
+func findBugForCrash(c context.Context, ns, title string) (*Bug, *datastore.Key, error) {
+	var bugs []*Bug
+	keys, err := datastore.NewQuery("Bug").
+		Filter("Namespace=", ns).
+		Filter("Title=", title).
+		Order("-Seq").
+		Limit(1).
+		GetAll(c, &bugs)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to query bugs: %v", err)
+	}
+	if len(bugs) == 0 {
+		return nil, nil, nil
+	}
+	return bugs[0], keys[0], nil
+}
+
+func createBugForCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, *datastore.Key, error) {
+	var bug *Bug
+	var bugKey *datastore.Key
+	now := timeNow(c)
+	tx := func(c context.Context) error {
+		for seq := int64(0); ; seq++ {
+			bug = new(Bug)
+			bugHash := bugKeyHash(ns, req.Title, seq)
+			bugKey = datastore.NewKey(c, "Bug", bugHash, 0, nil)
+			if err := datastore.Get(c, bugKey, bug); err != nil {
+				if err != datastore.ErrNoSuchEntity {
+					return fmt.Errorf("failed to get bug: %v", err)
+				}
+				bug = &Bug{
+					Namespace:  ns,
+					Seq:        seq,
+					Title:      req.Title,
+					Status:     BugStatusOpen,
+					NumCrashes: 0,
+					NumRepro:   0,
+					ReproLevel: ReproLevelNone,
+					HasReport:  false,
+					FirstTime:  now,
+					LastTime:   now,
+				}
+				for _, rep := range config.Namespaces[ns].Reporting {
+					bug.Reporting = append(bug.Reporting, BugReporting{
+						Name: rep.Name,
+						ID:   bugReportingHash(bugHash, rep.Name),
+					})
+				}
+				if bugKey, err = datastore.Put(c, bugKey, bug); err != nil {
+					return fmt.Errorf("failed to put new bug: %v", err)
+				}
+				return nil
+			}
+			canon, err := canonicalBug(c, bug)
+			if err != nil {
+				return err
+			}
+			if canon.Status != BugStatusOpen {
+				continue
+			}
+			return nil
+		}
+	}
+	if err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{
+		XG:       true,
+		Attempts: 30,
+	}); err != nil {
+		return nil, nil, err
+	}
+	return bug, bugKey, nil
+}
+
+func isActiveBug(c context.Context, bug *Bug) (bool, error) {
+	if bug == nil {
+		return false, nil
+	}
+	canon, err := canonicalBug(c, bug)
+	if err != nil {
+		return false, err
+	}
+	return canon.Status == BugStatusOpen, nil
 }
 
 func needRepro(bug *Bug) bool {
