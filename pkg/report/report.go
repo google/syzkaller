@@ -74,10 +74,11 @@ type oops struct {
 }
 
 type oopsFormat struct {
-	titleRe   *regexp.Regexp
-	reportRe  *regexp.Regexp
-	fmt       string
-	corrupted bool
+	title        *regexp.Regexp
+	report       *regexp.Regexp
+	fmt          string
+	noStackTrace bool
+	corrupted    bool
 }
 
 func compile(re string) *regexp.Regexp {
@@ -126,10 +127,10 @@ func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) int {
 	return match
 }
 
-func extractDescription(output []byte, oops *oops) (desc string, corrupted bool) {
+func extractDescription(output []byte, oops *oops) (desc string, report []byte, format oopsFormat) {
 	startPos := -1
-	for _, format := range oops.formats {
-		match := format.titleRe.FindSubmatchIndex(output)
+	for _, f := range oops.formats {
+		match := f.title.FindSubmatchIndex(output)
 		if match == nil {
 			continue
 		}
@@ -141,11 +142,9 @@ func extractDescription(output []byte, oops *oops) (desc string, corrupted bool)
 		for i := 2; i < len(match); i += 2 {
 			args = append(args, string(output[match[i]:match[i+1]]))
 		}
-		desc = fmt.Sprintf(format.fmt, args...)
-		corrupted = format.corrupted
-		if !corrupted && format.reportRe != nil {
-			corrupted = !format.reportRe.Match(output[startPos:])
-		}
+		desc = fmt.Sprintf(f.fmt, args...)
+		report = output[startPos:]
+		format = f
 	}
 	if len(desc) == 0 {
 		pos := bytes.Index(output, oops.header)
@@ -159,6 +158,7 @@ func extractDescription(output []byte, oops *oops) (desc string, corrupted bool)
 			end += pos
 		}
 		desc = string(output[pos:end])
+		report = output[pos:]
 	}
 	if len(desc) > 0 && desc[len(desc)-1] == '\r' {
 		desc = desc[:len(desc)-1]

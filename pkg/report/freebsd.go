@@ -70,7 +70,7 @@ func (ctx *freebsd) Parse(output []byte) *Report {
 	if oops == nil {
 		return nil
 	}
-	rep.Title, rep.Corrupted = extractDescription(output[rep.StartPos:], oops)
+	rep.Title, _, _ = extractDescription(output[rep.StartPos:], oops)
 	return rep
 }
 
@@ -95,14 +95,12 @@ var freebsdOopses = []*oops{
 		[]byte("Fatal trap"),
 		[]oopsFormat{
 			{
-				compile("Fatal trap (.+?)\\r?\\n(?:.*\\n)+?" +
+				title: compile("Fatal trap (.+?)\\r?\\n(?:.*\\n)+?" +
 					"KDB: stack backtrace:\\r?\\n" +
 					"(?:#[0-9]+ {{ADDR}} at (?:kdb_backtrace|vpanic|panic|trap_fatal|" +
 					"trap_pfault|trap|calltrap|m_copydata|__rw_wlock_hard)" +
 					"\\+{{ADDR}}\\r?\\n)*#[0-9]+ {{ADDR}} at {{FUNC}}{{ADDR}}"),
-				nil,
-				"Fatal trap %[1]v in %[2]v",
-				false,
+				fmt: "Fatal trap %[1]v in %[2]v",
 			},
 		},
 		[]*regexp.Regexp{},
@@ -111,10 +109,8 @@ var freebsdOopses = []*oops{
 		[]byte("panic:"),
 		[]oopsFormat{
 			{
-				compile("panic: ffs_write: type {{ADDR}} [0-9]+ \\([0-9]+,[0-9]+\\)"),
-				nil,
-				"panic: ffs_write: type ADDR X (Y,Z)",
-				false,
+				title: compile("panic: ffs_write: type {{ADDR}} [0-9]+ \\([0-9]+,[0-9]+\\)"),
+				fmt:   "panic: ffs_write: type ADDR X (Y,Z)",
 			},
 		},
 		[]*regexp.Regexp{},
