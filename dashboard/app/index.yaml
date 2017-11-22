@@ -15,6 +15,13 @@ indexes:
   - name: Namespace
   - name: Status
 
+- kind: Bug
+  properties:
+  - name: Namespace
+  - name: Title
+  - name: Seq
+    direction: desc
+
 - kind: Build
   properties:
   - name: Namespace
