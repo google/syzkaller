@@ -253,6 +253,15 @@ func incomingCommand(c context.Context, cmd *dashapi.BugUpdate) (bool, string, e
 }
 
 func incomingCommandImpl(c context.Context, cmd *dashapi.BugUpdate) (bool, string, error) {
+	for i, com := range cmd.FixCommits {
+		if len(com) >= 2 && com[0] == '"' && com[len(com)-1] == '"' {
+			com = com[1 : len(com)-1]
+			cmd.FixCommits[i] = com
+		}
+		if len(com) < 3 {
+			return false, fmt.Sprintf("bad commit title: %q", com), nil
+		}
+	}
 	bug, bugKey, err := findBugByReportingID(c, cmd.ID)
 	if err != nil {
 		return false, internalError, err
@@ -421,9 +430,6 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		if !same {
 			commits := make([]string, 0, len(m))
 			for com := range m {
-				if len(com) < 3 {
-					return false, fmt.Sprintf("bad commit title: %q", com), nil
-				}
 				commits = append(commits, com)
 			}
 			sort.Strings(commits)

@@ -153,7 +153,7 @@ func TestFixedByTwoCommits(t *testing.T) {
 	cmd := &dashapi.BugUpdate{
 		ID:         rep.ID,
 		Status:     dashapi.BugStatusOpen,
-		FixCommits: []string{"bar: prepare for fixing", "foo: fix the crash"},
+		FixCommits: []string{"bar: prepare for fixing", "\"foo: fix the crash\""},
 	}
 	reply := new(dashapi.BugUpdateReply)
 	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
