@@ -338,37 +338,35 @@ func (ctx *linux) extractFiles(report []byte) []string {
 }
 
 func (ctx *linux) isCorrupted(title string, report []byte) bool {
+	// Report must contain 'Call Trace' or 'backtrace'.
 	if !bytes.Contains(report, []byte("Call Trace")) && !bytes.Contains(report, []byte("backtrace")) {
-		// Report must contain 'Call Trace' or 'backtrace'.
 		return true
 	}
+	// Check for common title corruptions.
 	for _, re := range linuxCorruptedTitles {
 		if re.MatchString(title) {
 			return true
 		}
 	}
-	if strings.HasPrefix(title, "KASAN") {
-		// KASAN reports must contain 'Call Trace' after 'KASAN:' header.
-		match := bytes.Index(report, []byte("KASAN:"))
-		if match == -1 {
-			return true
-		}
-		if !bytes.Contains(report[match:], []byte("Call Trace")) {
-			return true
-		}
-	}
 	// When a report contains 'Call Trace', 'backtrace', 'Allocated' or 'Freed' keywords,
-	// it must also contain at least a single stack frame after the first of them.
-	stackKeywords := []string{"Call Trace", "backtrace", "Allocated", "Freed"}
-	stackLocation := -1
-	for _, key := range stackKeywords {
-		match := bytes.Index(report, []byte(key))
-		if match != -1 && (stackLocation == -1 || match < stackLocation) {
-			stackLocation = match
+	// it must also contain at least a single stack frame after each them.
+	for _, key := range linuxStackKeywords {
+		match := key.FindSubmatchIndex(report)
+		if match == nil {
+			continue
 		}
-	}
-	if stackLocation != -1 {
-		if !linuxSymbolizeRe.Match(report[stackLocation:]) {
+		parts := bytes.Split(report[match[0]:], []byte{'\n'})
+		if len(parts) < 2 {
+			return true
+		}
+		frame := parts[1]
+		if bytes.Equal(bytes.TrimSpace(frame), []byte("<IRQ>")) {
+			if len(parts) < 3 {
+				return true
+			}
+			frame = parts[2]
+		}
+		if !linuxSymbolizeRe.Match(frame) {
 			return true
 		}
 	}
@@ -391,37 +389,51 @@ var linuxCorruptedTitles = []*regexp.Regexp{
 	regexp.MustCompile(`\[ *[0-9]+\.[0-9]+\]`),
 }
 
+var linuxStackKeywords = []*regexp.Regexp{
+	regexp.MustCompile(`Call Trace`),
+	regexp.MustCompile(`Allocated`),
+	regexp.MustCompile(`Freed`),
+	// Match 'backtrace:', but exclude 'stack backtrace:'
+	regexp.MustCompile(`[^k] backtrace:`),
+}
+
 var linuxOopses = []*oops{
 	&oops{
 		[]byte("BUG:"),
 		[]oopsFormat{
 			{
 				compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
+				compile("BUG: KASAN: (?:.*\\n)+?.*Call Trace:"),
 				"KASAN: %[1]v %[3]v in %[2]v",
 				false,
 			},
 			{
 				compile("BUG: KASAN: ([a-z\\-]+) on address(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
+				compile("BUG: KASAN: (?:.*\\n)+?.*Call Trace:"),
 				"KASAN: %[1]v %[2]v",
 				false,
 			},
 			{
 				compile("BUG: KASAN: (.*)"),
+				compile("BUG: KASAN: (?:.*\\n)+?.*Call Trace:"),
 				"KASAN: %[1]v",
 				false,
 			},
 			{
 				compile("BUG: unable to handle kernel paging request(?:.*\\n)+?.*IP: (?:{{PC}} +)?{{FUNC}}"),
+				nil,
 				"BUG: unable to handle kernel paging request in %[1]v",
 				false,
 			},
 			{
 				compile("BUG: unable to handle kernel paging request"),
+				nil,
 				"BUG: unable to handle kernel paging request",
 				false,
 			},
 			{
 				compile("BUG: unable to handle kernel NULL pointer dereference(?:.*\\n)+?.*IP: (?:{{PC}} +)?{{FUNC}}"),
+				nil,
 				"BUG: unable to handle kernel NULL pointer dereference in %[1]v",
 				false,
 			},
@@ -429,26 +441,31 @@ var linuxOopses = []*oops{
 				// Sometimes with such BUG failures, the second part of the header doesn't get printed
 				// or gets corrupted, because kernel prints it as two separate printk() calls.
 				compile("BUG: unable to handle kernel"),
+				nil,
 				"BUG: unable to handle kernel",
 				true,
 			},
 			{
 				compile("BUG: spinlock (lockup suspected|already unlocked|recursion|bad magic|wrong owner|wrong CPU)"),
+				nil,
 				"BUG: spinlock %[1]v",
 				false,
 			},
 			{
 				compile("BUG: soft lockup"),
+				nil,
 				"BUG: soft lockup",
 				false,
 			},
 			{
 				compile("BUG: .*still has locks held!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
+				nil,
 				"BUG: still has locks held in %[1]v",
 				false,
 			},
 			{
 				compile("BUG: bad unlock balance detected!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
+				nil,
 				"BUG: bad unlock balance in %[1]v",
 				false,
 			},
@@ -456,46 +473,55 @@ var linuxOopses = []*oops{
 				// If we failed to extract function name where the fault happened,
 				// the report is most likely truncated.
 				compile("BUG: bad unlock balance detected!"),
+				nil,
 				"BUG: bad unlock balance",
 				true,
 			},
 			{
 				compile("BUG: held lock freed!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
+				nil,
 				"BUG: held lock freed in %[1]v",
 				false,
 			},
 			{
 				compile("BUG: Bad rss-counter state"),
+				nil,
 				"BUG: Bad rss-counter state",
 				false,
 			},
 			{
 				compile("BUG: non-zero nr_ptes on freeing mm"),
+				nil,
 				"BUG: non-zero nr_ptes on freeing mm",
 				false,
 			},
 			{
 				compile("BUG: non-zero nr_pmds on freeing mm"),
+				nil,
 				"BUG: non-zero nr_pmds on freeing mm",
 				false,
 			},
 			{
 				compile("BUG: Dentry .* still in use \\([0-9]+\\) \\[unmount of ([^\\]]+)\\]"),
+				nil,
 				"BUG: Dentry still in use [unmount of %[1]v]",
 				false,
 			},
 			{
 				compile("BUG: Bad page state.*"),
+				nil,
 				"BUG: Bad page state",
 				false,
 			},
 			{
 				compile("BUG: spinlock bad magic.*"),
+				nil,
 				"BUG: spinlock bad magic",
 				false,
 			},
 			{
 				compile("BUG: workqueue lockup.*"),
+				nil,
 				"BUG: workqueue lockup",
 				false,
 			},
@@ -510,66 +536,79 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("WARNING: .* at {{SRC}} {{FUNC}}"),
+				nil,
 				"WARNING in %[2]v",
 				false,
 			},
 			{
 				compile("WARNING: possible circular locking dependency detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				nil,
 				"possible deadlock in %[1]v",
 				false,
 			},
 			{
 				compile("WARNING: possible circular locking dependency detected"),
+				nil,
 				"possible deadlock",
 				false,
 			},
 			{
 				compile("WARNING: possible irq lock inversion dependency detected(?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				nil,
 				"possible deadlock in %[1]v",
 				false,
 			},
 			{
 				compile("WARNING: possible irq lock inversion dependency detected"),
+				nil,
 				"possible deadlock",
 				false,
 			},
 			{
 				compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected(?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				nil,
 				"possible deadlock in %[1]v",
 				false,
 			},
 			{
 				compile("WARNING: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected"),
+				nil,
 				"possible deadlock",
 				false,
 			},
 			{
 				compile("WARNING: possible recursive locking detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				nil,
 				"possible deadlock in %[1]v",
 				false,
 			},
 			{
 				compile("WARNING: possible recursive locking detected"),
+				nil,
 				"possible deadlock",
 				false,
 			},
 			{
 				compile("WARNING: inconsistent lock state(?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				nil,
 				"inconsistent lock state in %[1]v",
 				false,
 			},
 			{
 				compile("WARNING: suspicious RCU usage(?:.*\n)+?.*?{{SRC}}"),
+				nil,
 				"suspicious RCU usage at %[1]v",
 				false,
 			},
 			{
 				compile("WARNING: kernel stack regs at [0-9a-f]+ in [^ ]* has bad '([^']+)' value"),
+				nil,
 				"WARNING: kernel stack regs has bad '%[1]v' value",
 				false,
 			},
 			{
 				compile("WARNING: kernel stack frame pointer at [0-9a-f]+ in [^ ]* has bad value"),
+				nil,
 				"WARNING: kernel stack frame pointer has bad value",
 				false,
 			},
@@ -583,101 +622,121 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("INFO: possible circular locking dependency detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				nil,
 				"possible deadlock in %[1]v",
 				false,
 			},
 			{
 				compile("INFO: possible circular locking dependency detected"),
+				nil,
 				"possible deadlock",
 				false,
 			},
 			{
 				compile("INFO: possible irq lock inversion dependency detected \\](?:.*\\n)+?.*just changed the state of lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				nil,
 				"possible deadlock in %[1]v",
 				false,
 			},
 			{
 				compile("INFO: possible irq lock inversion dependency detected"),
+				nil,
 				"possible deadlock",
 				false,
 			},
 			{
 				compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected \\](?:.*\\n)+?.*is trying to acquire(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				nil,
 				"possible deadlock in %[1]v",
 				false,
 			},
 			{
 				compile("INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected"),
+				nil,
 				"possible deadlock",
 				false,
 			},
 			{
 				compile("INFO: possible recursive locking detected \\](?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				nil,
 				"possible deadlock in %[1]v",
 				false,
 			},
 			{
 				compile("INFO: possible recursive locking detected"),
+				nil,
 				"possible deadlock",
 				false,
 			},
 			{
 				compile("INFO: inconsistent lock state \\](?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				nil,
 				"inconsistent lock state in %[1]v",
 				false,
 			},
 			{
 				compile("INFO: rcu_preempt detected stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				nil,
 				"INFO: rcu detected stall in %[1]v",
 				false,
 			},
 			{
 				compile("INFO: rcu_preempt detected stalls"),
+				nil,
 				"INFO: rcu detected stall",
 				false,
 			},
 			{
 				compile("INFO: rcu_sched detected(?: expedited)? stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				nil,
 				"INFO: rcu detected stall in %[1]v",
 				false,
 			},
 			{
 				compile("INFO: rcu_sched detected(?: expedited)? stalls"),
+				nil,
 				"INFO: rcu detected stall",
 				false,
 			},
 			{
 				compile("INFO: rcu_preempt self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				nil,
 				"INFO: rcu detected stall in %[1]v",
 				false,
 			},
 			{
 				compile("INFO: rcu_preempt self-detected stall on CPU"),
+				nil,
 				"INFO: rcu detected stall",
 				false,
 			},
 			{
 				compile("INFO: rcu_sched self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.* \\? .*\\n)+?(?:.*rcu.*\\n)+?.*\\]  {{FUNC}}"),
+				nil,
 				"INFO: rcu detected stall in %[1]v",
 				false,
 			},
 			{
 				compile("INFO: rcu_sched self-detected stall on CPU"),
+				nil,
 				"INFO: rcu detected stall",
 				false,
 			},
 			{
 				compile("INFO: rcu_bh detected stalls on CPU"),
+				nil,
 				"INFO: rcu detected stall",
 				false,
 			},
 			{
 				compile("INFO: suspicious RCU usage(?:.*\n)+?.*?{{SRC}}"),
+				nil,
 				"suspicious RCU usage at %[1]v",
 				false,
 			},
 			{
 				compile("INFO: task .* blocked for more than [0-9]+ seconds"),
+				nil,
 				"INFO: task hung",
 				false,
 			},
@@ -694,6 +753,7 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("Unable to handle kernel paging request(?:.*\\n)+?.*PC is at {{FUNC}}"),
+				nil,
 				"unable to handle kernel paging request in %[1]v",
 				false,
 			},
@@ -705,11 +765,13 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("general protection fault:(?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
+				nil,
 				"general protection fault in %[1]v",
 				false,
 			},
 			{
 				compile("general protection fault:(?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
+				nil,
 				"general protection fault in %[1]v",
 				false,
 			},
@@ -717,6 +779,7 @@ var linuxOopses = []*oops{
 				// If we failed to extract function name where the fault happened,
 				// the report is most likely truncated.
 				compile("general protection fault"),
+				nil,
 				"general protection fault",
 				true,
 			},
@@ -728,11 +791,13 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("Kernel panic - not syncing: Attempted to kill init!"),
+				nil,
 				"kernel panic: Attempted to kill init!",
 				false,
 			},
 			{
 				compile("Kernel panic - not syncing: Couldn't open N_TTY ldisc for [^ ]+ --- error -[0-9]+"),
+				nil,
 				"kernel panic: Couldn't open N_TTY ldisc",
 				false,
 			},
@@ -741,17 +806,20 @@ var linuxOopses = []*oops{
 				// so if we captured it as a report description, that means the
 				// report got truncated and we missed the actual BUG header.
 				compile("Kernel panic - not syncing: Fatal exception"),
+				nil,
 				"kernel panic: Fatal exception",
 				true,
 			},
 			{
 				// Same, but for WARNINGs and KASAN reports.
 				compile("Kernel panic - not syncing: panic_on_warn set"),
+				nil,
 				"kernel panic: panic_on_warn set",
 				true,
 			},
 			{
 				compile("Kernel panic - not syncing: (.*)"),
+				nil,
 				"kernel panic: %[1]v",
 				false,
 			},
@@ -763,6 +831,7 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("kernel BUG (.*)"),
+				nil,
 				"kernel BUG %[1]v",
 				false,
 			},
@@ -774,6 +843,7 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("Kernel BUG (.*)"),
+				nil,
 				"kernel BUG %[1]v",
 				false,
 			},
@@ -785,6 +855,7 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("BUG kmalloc-.*: Object already free"),
+				nil,
 				"BUG: Object already free",
 				false,
 			},
@@ -796,11 +867,13 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("divide error: (?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
+				nil,
 				"divide error in %[1]v",
 				false,
 			},
 			{
 				compile("divide error: (?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
+				nil,
 				"divide error in %[1]v",
 				false,
 			},
@@ -808,6 +881,7 @@ var linuxOopses = []*oops{
 				// If we failed to extract function name where the fault happened,
 				// the report is most likely truncated.
 				compile("divide error"),
+				nil,
 				"divide error",
 				true,
 			},
@@ -819,11 +893,13 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("invalid opcode: (?:.*\\n)+?.*RIP: [0-9]+:{{PC}} +{{PC}} +{{FUNC}}"),
+				nil,
 				"invalid opcode in %[1]v",
 				false,
 			},
 			{
 				compile("invalid opcode: (?:.*\\n)+?.*RIP: [0-9]+:{{FUNC}}"),
+				nil,
 				"invalid opcode in %[1]v",
 				false,
 			},
@@ -831,6 +907,7 @@ var linuxOopses = []*oops{
 				// If we failed to extract function name where the fault happened,
 				// the report is most likely truncated.
 				compile("invalid opcode"),
+				nil,
 				"invalid opcode",
 				true,
 			},
@@ -842,6 +919,7 @@ var linuxOopses = []*oops{
 		[]oopsFormat{
 			{
 				compile("unreferenced object {{ADDR}} \\(size ([0-9]+)\\):(?:.*\n.*)+backtrace:.*\n.*{{PC}}.*\n.*{{PC}}.*\n.*{{PC}} {{FUNC}}"),
+				nil,
 				"memory leak in %[2]v (size %[1]v)",
 				false,
 			},
