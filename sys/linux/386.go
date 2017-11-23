@@ -10455,7 +10455,7 @@ var syscalls_386 = []*Syscall{
 	{ID: 888, NR: 152, Name: "mlockall", CallName: "mlockall", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mlockall_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}},
 	}},
-	{ID: 889, NR: 90, Name: "mmap", CallName: "mmap", Args: []Type{
+	{ID: 889, NR: 192, Name: "mmap", CallName: "mmap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "addr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 4}}, Vals: []uint64{4, 1, 2, 8, 16777216, 33554432}},
@@ -16638,7 +16638,7 @@ var consts_386 = []ConstValue{
 	{Name: "__NR_mlock", Value: 150},
 	{Name: "__NR_mlock2", Value: 376},
 	{Name: "__NR_mlockall", Value: 152},
-	{Name: "__NR_mmap", Value: 90},
+	{Name: "__NR_mmap", Value: 192},
 	{Name: "__NR_mmap2", Value: 192},
 	{Name: "__NR_modify_ldt", Value: 123},
 	{Name: "__NR_mount", Value: 21},
@@ -16796,4 +16796,4 @@ var consts_386 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_386 = "4fe4a655475beb6e3a3ba300d55a7a7a050a5015"
+const revision_386 = "bcbb2cfb0201255ca22ecc77ebc8e22d4880e9a5"

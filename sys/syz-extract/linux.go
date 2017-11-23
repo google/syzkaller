@@ -103,5 +103,23 @@ unsigned long phys_base;
 unsigned long __phys_addr(unsigned long addr) { return 0; }
 #endif
 `
-	return extract(info, "gcc", args, addSource, true)
+	res, undeclared, err := extract(info, "gcc", args, addSource, true)
+	if err != nil {
+		return nil, nil, err
+	}
+	if arch.target.PtrSize == 4 {
+		// mmap syscall on i386/arm is translated to old_mmap and has different signature.
+		// As a workaround fix it up to mmap2, which has signature that we expect.
+		// pkg/csource has the same hack.
+		const mmap = "__NR_mmap"
+		const mmap2 = "__NR_mmap2"
+		if res[mmap] != 0 || undeclared[mmap] {
+			if res[mmap2] == 0 {
+				return nil, nil, fmt.Errorf("%v is missing", mmap2)
+			}
+			res[mmap] = res[mmap2]
+			delete(undeclared, mmap)
+		}
+	}
+	return res, undeclared, nil
 }
