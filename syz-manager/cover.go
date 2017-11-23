@@ -221,7 +221,7 @@ func getVmOffset(vmlinux string) (uint32, error) {
 	if v, ok := vmOffsets[vmlinux]; ok {
 		return v, nil
 	}
-	out, err := osutil.RunCmd(time.Hour, "readelf", "-SW", vmlinux)
+	out, err := osutil.RunCmd(time.Hour, "", "readelf", "-SW", vmlinux)
 	if err != nil {
 		return 0, err
 	}
