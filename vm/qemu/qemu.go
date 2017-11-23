@@ -156,7 +156,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	if pool.env.Image == "9p" {
 		sshkey = filepath.Join(workdir, "key")
 		sshuser = "root"
-		if _, err := osutil.RunCmd(10*time.Minute, "ssh-keygen", "-t", "rsa", "-b", "2048",
+		if _, err := osutil.RunCmd(10*time.Minute, "", "ssh-keygen", "-t", "rsa", "-b", "2048",
 			"-N", "", "-C", "", "-f", sshkey); err != nil {
 			return nil, err
 		}
