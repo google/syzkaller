@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "4fe4a655475beb6e3a3ba300d55a7a7a050a5015"
+#define SYZ_REVISION "bcbb2cfb0201255ca22ecc77ebc8e22d4880e9a5"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -903,7 +903,7 @@ call_t syscalls[] = {
     {"mlock", 150},
     {"mlock2", 376},
     {"mlockall", 152},
-    {"mmap", 90},
+    {"mmap", 192},
     {"modify_ldt$read", 123},
     {"modify_ldt$read_default", 123},
     {"modify_ldt$write", 123},
@@ -3071,7 +3071,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "3e7d2170660743d0c6a2fd6e85bb1f47c07c1de9"
+#define SYZ_REVISION "535d8ff089248a1f2cb7f41725f543f14767dd1e"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3081,7 +3081,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1495;
+unsigned syscall_count = 1496;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3952,6 +3952,7 @@ call_t syscalls[] = {
     {"mlock", 150},
     {"mlock2", 390},
     {"mlockall", 152},
+    {"mmap", 192},
     {"mount", 21},
     {"move_pages", 344},
     {"mprotect", 125},

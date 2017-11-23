@@ -254,7 +254,7 @@ func (ctx *context) generateSyscallDefines() {
 	if ctx.target.OS == "linux" && ctx.target.PtrSize == 4 {
 		// This is a dirty hack.
 		// On 32-bit linux mmap translated to old_mmap syscall which has a different signature.
-		// mmap2 has the right signature. executor translates mmap to mmap2, do the same here.
+		// mmap2 has the right signature. syz-extract translates mmap to mmap2, do the same here.
 		ctx.printf("#undef __NR_mmap\n")
 		ctx.printf("#define __NR_mmap __NR_mmap2\n")
 	}
