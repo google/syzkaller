@@ -3,8 +3,8 @@
 ## USB drivers
 
 * [usb/net/zd1211rw: possible deadlock in zd_chip_disable_rxtx](https://groups.google.com/forum/#!topic/syzkaller/w_qXxIJfwmE)
-* [usb/sound: use-after-free in __uac_clock_find_source](https://groups.google.com/forum/#!topic/syzkaller/FwYGmsC6c6E)
-* [usb/sound: slab-out-of-bounds in parse_audio_unit](https://groups.google.com/forum/#!topic/syzkaller/RJtoiisdruo)
+* [usb/sound: use-after-free in __uac_clock_find_source](https://groups.google.com/forum/#!topic/syzkaller/FwYGmsC6c6E) [[fix](https://www.spinics.net/lists/alsa-devel/msg69833.html)]
+* [usb/sound: slab-out-of-bounds in parse_audio_unit](https://groups.google.com/forum/#!topic/syzkaller/RJtoiisdruo) [[fix](https://www.spinics.net/lists/alsa-devel/msg69836.html)]
 * [usb/media/em28xx: use-after-free in dvb_unregister_frontend](https://groups.google.com/forum/#!topic/syzkaller/wYG12peh1G4)
 * [usb/media/technisat: slab-out-of-bounds in technisat_usb2_rc_query](https://groups.google.com/forum/#!topic/syzkaller/V-GvHOmJXO0)
 * [usb/media/tm6000: use-after-free in tm6000_read_write_usb](https://groups.google.com/forum/#!topic/syzkaller/XLNeGPycipA)
