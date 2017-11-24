@@ -37,9 +37,10 @@ type Result struct {
 	Stats    Stats
 	// Title, Log and Report of the final crash that we reproduced.
 	// Can be different from what we started reproducing.
-	Title  string
-	Log    []byte
-	Report []byte
+	Title     string
+	Log       []byte
+	Report    []byte
+	Corrupted bool
 }
 
 type context struct {
@@ -52,6 +53,7 @@ type context struct {
 	title        string
 	log          []byte
 	report       []byte
+	corrupted    bool
 }
 
 type instance struct {
@@ -151,11 +153,25 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 		return nil, err
 	}
 	if res != nil {
-		ctx.reproLog(3, "repro crashed as:\n%s", string(ctx.report))
-		res.Stats = ctx.stats
+		ctx.reproLog(3, "repro crashed as (corrupted=%v):\n%s", ctx.corrupted, ctx.report)
+		// Try to rerun the repro if the report is corrupted.
+		for attempts := 0; ctx.corrupted && attempts < 3; attempts++ {
+			ctx.reproLog(3, "report is corrupted, running repro again\n")
+			if res.CRepro {
+				_, err = ctx.testCProg(res.Prog, res.Duration, res.Opts)
+			} else {
+				_, err = ctx.testProg(res.Prog, res.Duration, res.Opts)
+			}
+			if err != nil {
+				return nil, err
+			}
+		}
+		ctx.reproLog(3, "final repro crashed as (corrupted=%v):\n%s", ctx.corrupted, ctx.report)
 		res.Title = ctx.title
 		res.Log = ctx.log
 		res.Report = ctx.report
+		res.Corrupted = ctx.corrupted
+		res.Stats = ctx.stats
 	}
 
 	close(ctx.bootRequests)
@@ -608,6 +624,7 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 	ctx.title = rep.Title
 	ctx.log = output
 	ctx.report = rep.Report
+	ctx.corrupted = rep.Corrupted
 	ctx.reproLog(2, "program crashed: %v", rep.Title)
 	return true, nil
 }
