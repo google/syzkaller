@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "25b1723400f9ceaa1ab11c9072cfa5ed3af20e86"
+#define SYZ_REVISION "7b73237cb232e01d49ea4c08e81af6e75a46e73b"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -13,7 +13,7 @@
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1477;
+unsigned syscall_count = 1484;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -120,6 +120,10 @@ call_t syscalls[] = {
     {"fchmodat", 306},
     {"fchown", 95},
     {"fchownat", 298},
+    {"fcntl$F_GET_FILE_RW_HINT", 55},
+    {"fcntl$F_GET_RW_HINT", 55},
+    {"fcntl$F_SET_FILE_RW_HINT", 55},
+    {"fcntl$F_SET_RW_HINT", 55},
     {"fcntl$addseals", 55},
     {"fcntl$dupfd", 55},
     {"fcntl$getflags", 55},
@@ -189,6 +193,7 @@ call_t syscalls[] = {
     {"getsockname$unix", 367},
     {"getsockopt", 365},
     {"getsockopt$SO_BINDTODEVICE", 365},
+    {"getsockopt$SO_COOKIE", 365},
     {"getsockopt$SO_PEERCRED", 365},
     {"getsockopt$SO_TIMESTAMPING", 365},
     {"getsockopt$ax25_buf", 365},
@@ -696,6 +701,7 @@ call_t syscalls[] = {
     {"ioctl$TIOCGETD", 54},
     {"ioctl$TIOCGLCKTRMIOS", 54},
     {"ioctl$TIOCGPGRP", 54},
+    {"ioctl$TIOCGPTPEER", 54},
     {"ioctl$TIOCGSID", 54},
     {"ioctl$TIOCGSOFTCAR", 54},
     {"ioctl$TIOCGWINSZ", 54},
@@ -851,6 +857,7 @@ call_t syscalls[] = {
     {"ioprio_set$pid", 289},
     {"ioprio_set$uid", 289},
     {"kcmp", 349},
+    {"kcmp$KCMP_EPOLL_TFD", 349},
     {"kexec_load", 283},
     {"keyctl$assume_authority", 288},
     {"keyctl$chown", 288},
@@ -1498,7 +1505,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "468deb463fe761fcdd2d8b5993e58e8289256e72"
+#define SYZ_REVISION "792dfe8f3933b557194005fe4859b202f6f2349d"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1509,7 +1516,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1538;
+unsigned syscall_count = 1545;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1627,6 +1634,10 @@ call_t syscalls[] = {
     {"fchmodat", 268},
     {"fchown", 93},
     {"fchownat", 260},
+    {"fcntl$F_GET_FILE_RW_HINT", 72},
+    {"fcntl$F_GET_RW_HINT", 72},
+    {"fcntl$F_SET_FILE_RW_HINT", 72},
+    {"fcntl$F_SET_RW_HINT", 72},
     {"fcntl$addseals", 72},
     {"fcntl$dupfd", 72},
     {"fcntl$getflags", 72},
@@ -1696,6 +1707,7 @@ call_t syscalls[] = {
     {"getsockname$unix", 51},
     {"getsockopt", 55},
     {"getsockopt$SO_BINDTODEVICE", 55},
+    {"getsockopt$SO_COOKIE", 55},
     {"getsockopt$SO_PEERCRED", 55},
     {"getsockopt$SO_TIMESTAMPING", 55},
     {"getsockopt$ax25_buf", 55},
@@ -2214,6 +2226,7 @@ call_t syscalls[] = {
     {"ioctl$TIOCGETD", 16},
     {"ioctl$TIOCGLCKTRMIOS", 16},
     {"ioctl$TIOCGPGRP", 16},
+    {"ioctl$TIOCGPTPEER", 16},
     {"ioctl$TIOCGSID", 16},
     {"ioctl$TIOCGSOFTCAR", 16},
     {"ioctl$TIOCGWINSZ", 16},
@@ -2369,6 +2382,7 @@ call_t syscalls[] = {
     {"ioprio_set$pid", 251},
     {"ioprio_set$uid", 251},
     {"kcmp", 312},
+    {"kcmp$KCMP_EPOLL_TFD", 312},
     {"kexec_load", 246},
     {"keyctl$assume_authority", 250},
     {"keyctl$chown", 250},
@@ -3055,7 +3069,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "bf7f38c25bbaa0e0269502e6c8dfefac67f5ba01"
+#define SYZ_REVISION "deea6ad319804166d910ed7154162b899667be87"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3066,7 +3080,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1487;
+unsigned syscall_count = 1494;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3181,6 +3195,10 @@ call_t syscalls[] = {
     {"fchmodat", 333},
     {"fchown", 95},
     {"fchownat", 325},
+    {"fcntl$F_GET_FILE_RW_HINT", 55},
+    {"fcntl$F_GET_RW_HINT", 55},
+    {"fcntl$F_SET_FILE_RW_HINT", 55},
+    {"fcntl$F_SET_RW_HINT", 55},
     {"fcntl$addseals", 55},
     {"fcntl$dupfd", 55},
     {"fcntl$getflags", 55},
@@ -3248,6 +3266,7 @@ call_t syscalls[] = {
     {"getsockname$unix", 286},
     {"getsockopt", 295},
     {"getsockopt$SO_BINDTODEVICE", 295},
+    {"getsockopt$SO_COOKIE", 295},
     {"getsockopt$SO_PEERCRED", 295},
     {"getsockopt$SO_TIMESTAMPING", 295},
     {"getsockopt$ax25_buf", 295},
@@ -3732,6 +3751,7 @@ call_t syscalls[] = {
     {"ioctl$TIOCGETD", 54},
     {"ioctl$TIOCGLCKTRMIOS", 54},
     {"ioctl$TIOCGPGRP", 54},
+    {"ioctl$TIOCGPTPEER", 54},
     {"ioctl$TIOCGSID", 54},
     {"ioctl$TIOCGSOFTCAR", 54},
     {"ioctl$TIOCGWINSZ", 54},
@@ -3885,6 +3905,7 @@ call_t syscalls[] = {
     {"ioprio_set$pid", 314},
     {"ioprio_set$uid", 314},
     {"kcmp", 378},
+    {"kcmp$KCMP_EPOLL_TFD", 378},
     {"kexec_load", 347},
     {"keyctl$assume_authority", 311},
     {"keyctl$chown", 311},
@@ -4561,7 +4582,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "e428b64edf45806c669912b66f93ef87a30b9e11"
+#define SYZ_REVISION "be5522c0679cce2f51bb79928a58c2e472a6a27c"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4572,7 +4593,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1467;
+unsigned syscall_count = 1474;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -4681,6 +4702,10 @@ call_t syscalls[] = {
     {"fchmodat", 53},
     {"fchown", 55},
     {"fchownat", 54},
+    {"fcntl$F_GET_FILE_RW_HINT", 25},
+    {"fcntl$F_GET_RW_HINT", 25},
+    {"fcntl$F_SET_FILE_RW_HINT", 25},
+    {"fcntl$F_SET_RW_HINT", 25},
     {"fcntl$addseals", 25},
     {"fcntl$dupfd", 25},
     {"fcntl$getflags", 25},
@@ -4746,6 +4771,7 @@ call_t syscalls[] = {
     {"getsockname$unix", 204},
     {"getsockopt", 209},
     {"getsockopt$SO_BINDTODEVICE", 209},
+    {"getsockopt$SO_COOKIE", 209},
     {"getsockopt$SO_PEERCRED", 209},
     {"getsockopt$SO_TIMESTAMPING", 209},
     {"getsockopt$ax25_buf", 209},
@@ -5240,6 +5266,7 @@ call_t syscalls[] = {
     {"ioctl$TIOCGETD", 29},
     {"ioctl$TIOCGLCKTRMIOS", 29},
     {"ioctl$TIOCGPGRP", 29},
+    {"ioctl$TIOCGPTPEER", 29},
     {"ioctl$TIOCGSID", 29},
     {"ioctl$TIOCGSOFTCAR", 29},
     {"ioctl$TIOCGWINSZ", 29},
@@ -5393,6 +5420,7 @@ call_t syscalls[] = {
     {"ioprio_set$pid", 30},
     {"ioprio_set$uid", 30},
     {"kcmp", 272},
+    {"kcmp$KCMP_EPOLL_TFD", 272},
     {"kexec_load", 104},
     {"keyctl$assume_authority", 219},
     {"keyctl$chown", 219},
@@ -6047,7 +6075,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "41ba745084b43ceafd439f72746ac6068977a8ba"
+#define SYZ_REVISION "8580724acc23030aa1a3828f7e9f90f5ec452f13"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6058,7 +6086,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1447;
+unsigned syscall_count = 1454;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6175,6 +6203,10 @@ call_t syscalls[] = {
     {"fchmodat", 297},
     {"fchown", 95},
     {"fchownat", 289},
+    {"fcntl$F_GET_FILE_RW_HINT", 55},
+    {"fcntl$F_GET_RW_HINT", 55},
+    {"fcntl$F_SET_FILE_RW_HINT", 55},
+    {"fcntl$F_SET_RW_HINT", 55},
     {"fcntl$addseals", 55},
     {"fcntl$dupfd", 55},
     {"fcntl$getflags", 55},
@@ -6243,6 +6275,7 @@ call_t syscalls[] = {
     {"getsockname$unix", 331},
     {"getsockopt", 340},
     {"getsockopt$SO_BINDTODEVICE", 340},
+    {"getsockopt$SO_COOKIE", 340},
     {"getsockopt$SO_PEERCRED", 340},
     {"getsockopt$SO_TIMESTAMPING", 340},
     {"getsockopt$ax25_buf", 340},
@@ -6718,6 +6751,7 @@ call_t syscalls[] = {
     {"ioctl$TIOCGETD", 54},
     {"ioctl$TIOCGLCKTRMIOS", 54},
     {"ioctl$TIOCGPGRP", 54},
+    {"ioctl$TIOCGPTPEER", 54},
     {"ioctl$TIOCGSID", 54},
     {"ioctl$TIOCGSOFTCAR", 54},
     {"ioctl$TIOCLINUX2", 54},
@@ -6871,6 +6905,7 @@ call_t syscalls[] = {
     {"ioprio_set$pid", 273},
     {"ioprio_set$uid", 273},
     {"kcmp", 354},
+    {"kcmp$KCMP_EPOLL_TFD", 354},
     {"kexec_load", 268},
     {"keyctl$assume_authority", 271},
     {"keyctl$chown", 271},
