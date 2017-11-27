@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "7b73237cb232e01d49ea4c08e81af6e75a46e73b"
+#define SYZ_REVISION "b47da9932d66ae2a9b70a3e4b05351547128a86a"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -13,7 +13,7 @@
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1484;
+unsigned syscall_count = 1490;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -356,6 +356,11 @@ call_t syscalls[] = {
     {"io_setup", 245},
     {"io_submit", 248},
     {"ioctl", 54},
+    {"ioctl$BINDER_GET_NODE_DEBUG_INFO", 54},
+    {"ioctl$BINDER_SET_CONTEXT_MGR", 54},
+    {"ioctl$BINDER_SET_MAX_THREADS", 54},
+    {"ioctl$BINDER_THREAD_EXIT", 54},
+    {"ioctl$BINDER_WRITE_READ", 54},
     {"ioctl$DRM_IOCTL_ADD_BUFS", 54},
     {"ioctl$DRM_IOCTL_ADD_CTX", 54},
     {"ioctl$DRM_IOCTL_ADD_MAP", 54},
@@ -912,6 +917,7 @@ call_t syscalls[] = {
     {"mlock2", 376},
     {"mlockall", 152},
     {"mmap", 192},
+    {"mmap$binder", 192},
     {"modify_ldt$read", 123},
     {"modify_ldt$read_default", 123},
     {"modify_ldt$write", 123},
@@ -938,7 +944,6 @@ call_t syscalls[] = {
     {"openat", 295},
     {"openat$audio", 295},
     {"openat$autofs", 295},
-    {"openat$binder", 295},
     {"openat$capi20", 295},
     {"openat$cuse", 295},
     {"openat$dsp", 295},
@@ -1371,6 +1376,7 @@ call_t syscalls[] = {
     {"syz_open_dev$adsp", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$audion", 1000005, (syscall_t)syz_open_dev},
+    {"syz_open_dev$binder", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dmmidi", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dri", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dricontrol", 1000005, (syscall_t)syz_open_dev},
@@ -1505,7 +1511,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "792dfe8f3933b557194005fe4859b202f6f2349d"
+#define SYZ_REVISION "d326eae46892a5fa16a8984a340fbdfbd08bbd4e"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1516,7 +1522,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1545;
+unsigned syscall_count = 1551;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1870,6 +1876,11 @@ call_t syscalls[] = {
     {"io_setup", 206},
     {"io_submit", 209},
     {"ioctl", 16},
+    {"ioctl$BINDER_GET_NODE_DEBUG_INFO", 16},
+    {"ioctl$BINDER_SET_CONTEXT_MGR", 16},
+    {"ioctl$BINDER_SET_MAX_THREADS", 16},
+    {"ioctl$BINDER_THREAD_EXIT", 16},
+    {"ioctl$BINDER_WRITE_READ", 16},
     {"ioctl$DRM_IOCTL_ADD_BUFS", 16},
     {"ioctl$DRM_IOCTL_ADD_CTX", 16},
     {"ioctl$DRM_IOCTL_ADD_MAP", 16},
@@ -2437,6 +2448,7 @@ call_t syscalls[] = {
     {"mlock2", 325},
     {"mlockall", 151},
     {"mmap", 9},
+    {"mmap$binder", 9},
     {"modify_ldt$read", 154},
     {"modify_ldt$read_default", 154},
     {"modify_ldt$write", 154},
@@ -2473,7 +2485,6 @@ call_t syscalls[] = {
     {"openat", 257},
     {"openat$audio", 257},
     {"openat$autofs", 257},
-    {"openat$binder", 257},
     {"openat$capi20", 257},
     {"openat$cuse", 257},
     {"openat$dsp", 257},
@@ -2935,6 +2946,7 @@ call_t syscalls[] = {
     {"syz_open_dev$adsp", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$audion", 1000005, (syscall_t)syz_open_dev},
+    {"syz_open_dev$binder", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dmmidi", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dri", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dricontrol", 1000005, (syscall_t)syz_open_dev},
@@ -3069,7 +3081,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "deea6ad319804166d910ed7154162b899667be87"
+#define SYZ_REVISION "512a5cb323de201b25caa745088d9fa121bc24bc"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3080,7 +3092,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1494;
+unsigned syscall_count = 1500;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3429,6 +3441,11 @@ call_t syscalls[] = {
     {"io_setup", 243},
     {"io_submit", 246},
     {"ioctl", 54},
+    {"ioctl$BINDER_GET_NODE_DEBUG_INFO", 54},
+    {"ioctl$BINDER_SET_CONTEXT_MGR", 54},
+    {"ioctl$BINDER_SET_MAX_THREADS", 54},
+    {"ioctl$BINDER_THREAD_EXIT", 54},
+    {"ioctl$BINDER_WRITE_READ", 54},
     {"ioctl$DRM_IOCTL_ADD_BUFS", 54},
     {"ioctl$DRM_IOCTL_ADD_CTX", 54},
     {"ioctl$DRM_IOCTL_ADD_MAP", 54},
@@ -3959,6 +3976,7 @@ call_t syscalls[] = {
     {"mlock2", 390},
     {"mlockall", 152},
     {"mmap", 192},
+    {"mmap$binder", 192},
     {"mount", 21},
     {"move_pages", 344},
     {"mprotect", 125},
@@ -3991,7 +4009,6 @@ call_t syscalls[] = {
     {"openat", 322},
     {"openat$audio", 322},
     {"openat$autofs", 322},
-    {"openat$binder", 322},
     {"openat$capi20", 322},
     {"openat$cuse", 322},
     {"openat$dsp", 322},
@@ -4450,6 +4467,7 @@ call_t syscalls[] = {
     {"syz_open_dev$adsp", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$audion", 1000005, (syscall_t)syz_open_dev},
+    {"syz_open_dev$binder", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dmmidi", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dri", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dricontrol", 1000005, (syscall_t)syz_open_dev},
@@ -4582,7 +4600,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "be5522c0679cce2f51bb79928a58c2e472a6a27c"
+#define SYZ_REVISION "62bcc9345113622ae003695850017489cadfe5aa"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4593,7 +4611,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1474;
+unsigned syscall_count = 1480;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -4933,6 +4951,11 @@ call_t syscalls[] = {
     {"io_setup", 0},
     {"io_submit", 2},
     {"ioctl", 29},
+    {"ioctl$BINDER_GET_NODE_DEBUG_INFO", 29},
+    {"ioctl$BINDER_SET_CONTEXT_MGR", 29},
+    {"ioctl$BINDER_SET_MAX_THREADS", 29},
+    {"ioctl$BINDER_THREAD_EXIT", 29},
+    {"ioctl$BINDER_WRITE_READ", 29},
     {"ioctl$DRM_IOCTL_ADD_BUFS", 29},
     {"ioctl$DRM_IOCTL_ADD_CTX", 29},
     {"ioctl$DRM_IOCTL_ADD_MAP", 29},
@@ -5469,6 +5492,7 @@ call_t syscalls[] = {
     {"mlock2", 284},
     {"mlockall", 230},
     {"mmap", 222},
+    {"mmap$binder", 222},
     {"mount", 40},
     {"move_pages", 239},
     {"mprotect", 226},
@@ -5499,7 +5523,6 @@ call_t syscalls[] = {
     {"openat", 56},
     {"openat$audio", 56},
     {"openat$autofs", 56},
-    {"openat$binder", 56},
     {"openat$capi20", 56},
     {"openat$cuse", 56},
     {"openat$dsp", 56},
@@ -5947,6 +5970,7 @@ call_t syscalls[] = {
     {"syz_open_dev$adsp", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$audion", 1000005, (syscall_t)syz_open_dev},
+    {"syz_open_dev$binder", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dmmidi", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dri", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dricontrol", 1000005, (syscall_t)syz_open_dev},
@@ -6075,7 +6099,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "8580724acc23030aa1a3828f7e9f90f5ec452f13"
+#define SYZ_REVISION "f13f7d406031c03cb669592f12d0978ca59b06ec"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6086,7 +6110,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1454;
+unsigned syscall_count = 1460;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6438,6 +6462,11 @@ call_t syscalls[] = {
     {"io_setup", 227},
     {"io_submit", 230},
     {"ioctl", 54},
+    {"ioctl$BINDER_GET_NODE_DEBUG_INFO", 54},
+    {"ioctl$BINDER_SET_CONTEXT_MGR", 54},
+    {"ioctl$BINDER_SET_MAX_THREADS", 54},
+    {"ioctl$BINDER_THREAD_EXIT", 54},
+    {"ioctl$BINDER_WRITE_READ", 54},
     {"ioctl$DRM_IOCTL_ADD_BUFS", 54},
     {"ioctl$DRM_IOCTL_ADD_CTX", 54},
     {"ioctl$DRM_IOCTL_ADD_MAP", 54},
@@ -6960,6 +6989,7 @@ call_t syscalls[] = {
     {"mlock2", 378},
     {"mlockall", 152},
     {"mmap", 90},
+    {"mmap$binder", 90},
     {"modify_ldt$read", 123},
     {"modify_ldt$read_default", 123},
     {"modify_ldt$write", 123},
@@ -6986,7 +7016,6 @@ call_t syscalls[] = {
     {"openat", 286},
     {"openat$audio", 286},
     {"openat$autofs", 286},
-    {"openat$binder", 286},
     {"openat$capi20", 286},
     {"openat$cuse", 286},
     {"openat$dsp", 286},
@@ -7414,6 +7443,7 @@ call_t syscalls[] = {
     {"syz_open_dev$adsp", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$audion", 1000005, (syscall_t)syz_open_dev},
+    {"syz_open_dev$binder", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dmmidi", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dri", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_dev$dricontrol", 1000005, (syscall_t)syz_open_dev},
