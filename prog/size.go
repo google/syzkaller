@@ -106,3 +106,58 @@ func (target *Target) assignSizesArray(args []Arg) {
 func (target *Target) assignSizesCall(c *Call) {
 	target.assignSizesArray(c.Args)
 }
+
+func (r *randGen) mutateSize(arg *ConstArg, parent []Arg) bool {
+	typ := arg.Type().(*LenType)
+	elemSize := typ.ByteSize
+	if elemSize == 0 {
+		elemSize = 1
+		for _, field := range parent {
+			if typ.Buf != field.Type().FieldName() {
+				continue
+			}
+			if inner := InnerArg(field); inner != nil {
+				switch targetType := inner.Type().(type) {
+				case *VmaType:
+					return false
+				case *ArrayType:
+					elemSize = targetType.Type.Size()
+				}
+			}
+			break
+		}
+	}
+	if r.oneOf(100) {
+		arg.Val = r.rand64()
+		return true
+	}
+	if r.bin() {
+		// Small adjustment to trigger missed size checks.
+		if arg.Val != 0 && r.bin() {
+			arg.Val = r.randRangeInt(0, arg.Val-1)
+		} else {
+			arg.Val = r.randRangeInt(arg.Val+1, arg.Val+1000)
+		}
+		return true
+	}
+	// Try to provoke int overflows.
+	max := ^uint64(0)
+	if r.oneOf(3) {
+		max = 1<<32 - 1
+		if r.oneOf(2) {
+			max = 1<<16 - 1
+			if r.oneOf(2) {
+				max = 1<<8 - 1
+			}
+		}
+	}
+	n := max / elemSize
+	delta := uint64(1000 - r.biasedRand(1000, 10))
+	if elemSize == 1 || r.oneOf(10) {
+		n -= delta
+	} else {
+		n += delta
+	}
+	arg.Val = n
+	return true
+}

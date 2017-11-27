@@ -25,9 +25,6 @@ func TestAssignSizeRandom(t *testing.T) {
 		for _, call := range p.Calls {
 			target.assignSizesCall(call)
 		}
-		if data1 := p.Serialize(); !bytes.Equal(data0, data1) {
-			t.Fatalf("different lens assigned, initial:\n%s\nnew:\n%s", data0, data1)
-		}
 	}
 }
 
