@@ -3302,7 +3302,7 @@ var structDescs_386 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_nl"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_un"}}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ctrllen", TypeSize: 4}}, Buf: "ctrl"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, ByteSize: 1, Buf: "ctrl"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
 	{Key: StructKey{Name: "msghdr_netrom"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_netrom", TypeSize: 28}, Fields: []Type{
@@ -3311,7 +3311,7 @@ var structDescs_386 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ctrllen", TypeSize: 4}}, Buf: "ctrl"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, ByteSize: 1, Buf: "ctrl"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
 	{Key: StructKey{Name: "msghdr_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_sctp", TypeSize: 28}, Fields: []Type{
@@ -3320,7 +3320,7 @@ var structDescs_386 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_sctp"}}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ctrllen", TypeSize: 4}}, Buf: "ctrl"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, ByteSize: 1, Buf: "ctrl"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
 	{Key: StructKey{Name: "msghdr_un"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_un", TypeSize: 28}, Fields: []Type{
@@ -3329,7 +3329,7 @@ var structDescs_386 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_un"}}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ctrllen", TypeSize: 4}}, Buf: "ctrl"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, ByteSize: 1, Buf: "ctrl"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
 	{Key: StructKey{Name: "netlink_msg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg"}, Fields: []Type{
@@ -3345,8 +3345,8 @@ var structDescs_386 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ctrllen", TypeSize: 4}}, Buf: "ctrl"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, ByteSize: 1, Buf: "ctrl"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
 	{Key: StructKey{Name: "nl_mmap_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_mmap_req", TypeSize: 16}, Fields: []Type{
@@ -3423,8 +3423,8 @@ var structDescs_386 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_namelen", TypeSize: 4}}, Buf: "msg_name"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_iov", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_iovlen", TypeSize: 4}}, Buf: "msg_iov"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "msg_control", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_controllen", TypeSize: 4}}, Buf: "msg_control"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_control", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "msg_controllen", TypeSize: 4}}, ByteSize: 1, Buf: "msg_control"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "msg_flags", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "rlimit"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rlimit", TypeSize: 8}, Fields: []Type{
@@ -3817,8 +3817,8 @@ var structDescs_386 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_namelen", TypeSize: 4}}, Buf: "msg_name"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_iov", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_iovlen", TypeSize: 4}}, Buf: "msg_iov"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_control", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_controllen", TypeSize: 4}}, Buf: "msg_control"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_control", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "msg_controllen", TypeSize: 4}}, ByteSize: 1, Buf: "msg_control"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "msg_flags", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
 	{Key: StructKey{Name: "sigaction"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sigaction", TypeSize: 24}, Fields: []Type{
@@ -16730,4 +16730,4 @@ var consts_386 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_386 = "f9bbdaa02263a26fd7f9b2762eb8b25491b76e0b"
+const revision_386 = "aae34d0fe6a419443c4a5301a17ebcf68fcd06a1"

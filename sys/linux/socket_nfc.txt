@@ -52,7 +52,7 @@ nfc_llcp_send_msghdr {
 	addrlen	len[addr, int32]
 	vec	ptr[in, array[iovec_in]]
 	vlen	len[vec, intptr]
-	ctrl	ptr[in, cmsghdr]
-	ctrllen	len[ctrl, intptr]
+	ctrl	ptr[in, cmsghdr, opt]
+	ctrllen	bytesize[ctrl, intptr]
 	f	flags[send_flags, int32]
 }
