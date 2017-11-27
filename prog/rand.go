@@ -96,7 +96,7 @@ func (r *randGen) randRangeInt(begin uint64, end uint64) uint64 {
 	if r.oneOf(100) {
 		return r.randInt()
 	}
-	return begin + uint64(r.Int63n(int64(end-begin+1)))
+	return begin + (r.Uint64() % (end - begin + 1))
 }
 
 // biasedRand returns a random int in range [0..n),
