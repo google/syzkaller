@@ -54,6 +54,7 @@ include <linux/memfd.h>
 include <uapi/linux/module.h>
 include <asm/prctl.h>
 include <linux/ioprio.h>
+include <linux/membarrier.h>
 include <uapi/linux/kcov.h>
 
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
@@ -126,8 +127,8 @@ ioctl$UFFDIO_API(fd fd_uffd, cmd const[UFFDIO_API], arg ptr[in, uffdio_api])
 ioctl$UFFDIO_REGISTER(fd fd_uffd, cmd const[UFFDIO_REGISTER], arg ptr[in, uffdio_register])
 ioctl$UFFDIO_UNREGISTER(fd fd_uffd, cmd const[UFFDIO_UNREGISTER], arg ptr[in, uffdio_range])
 ioctl$UFFDIO_WAKE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
-ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
-ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_COPY], arg ptr[in, uffdio_range])
+ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_ZEROPAGE], arg ptr[in, uffdio_range])
 
 mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff) vma
 munmap(addr vma, len len[addr])
@@ -152,6 +153,7 @@ munlockall()
 memfd_create(name ptr[in, string], flags flags[memfd_flags]) fd
 unshare(flags flags[clone_flags])
 kcmp(pid1 pid, pid2 pid, type flags[kcmp_flags], fd1 fd, fd2 fd)
+kcmp$KCMP_EPOLL_TFD(pid1 pid, pid2 pid, type const[KCMP_EPOLL_TFD], fd1 fd, idx2 ptr[in, kcmp_epoll_slot])
 
 resource pkey[int32]: 0xffffffffffffffff
 pkey_alloc(flags const[0], val flags[pkey_flags]) pkey
@@ -186,6 +188,10 @@ fcntl$setlease(fd fd, cmd const[F_SETLEASE], typ flags[flock_type])
 fcntl$notify(fd fd, cmd const[F_NOTIFY], typ flags[fcntl_notify])
 fcntl$setpipe(fd fd, cmd const[F_SETPIPE_SZ], sz intptr)
 fcntl$addseals(fd fd, cmd const[F_ADD_SEALS], seals flags[seal_types])
+fcntl$F_GET_RW_HINT(fd fd, cmd const[F_GET_FILE_RW_HINT], hint ptr[out, int64])
+fcntl$F_GET_FILE_RW_HINT(fd fd, cmd const[F_GET_FILE_RW_HINT], hint ptr[out, int64])
+fcntl$F_SET_RW_HINT(fd fd, cmd const[F_GET_FILE_RW_HINT], hint ptr[in, flags[fcntl_rw_hint, int64]])
+fcntl$F_SET_FILE_RW_HINT(fd fd, cmd const[F_GET_FILE_RW_HINT], hint ptr[in, flags[fcntl_rw_hint, int64]])
 
 ptrace(req flags[ptrace_req], pid pid)
 ptrace$peek(req flags[ptrace_req_peek], pid pid, addr ptr[out, intptr])
@@ -426,8 +432,7 @@ sched_getattr(pid pid, attr ptr[out, sched_attr], size len[attr], flags flags[sc
 sched_setattr(pid pid, attr ptr[in, sched_attr], flags flags[sched_attr_flags])
 sched_yield()
 getrandom(buf buffer[out], len len[buf], flags flags[getrandom_flags])
-# Do only MEMBARRIER_CMD_SHARED
-membarrier(cmd const[1], flags const[0])
+membarrier(cmd flags[membarrier_cmd], flags const[0])
 
 syz_open_procfs(pid pid, file ptr[in, string[procfs_file]]) fd
 
@@ -910,9 +915,15 @@ uffdio_zeropage {
 	zeropg	const[0, int64]
 }
 
+kcmp_epoll_slot {
+	efd	fd_epoll
+	tfd	fd
+	toff	int32
+}
+
 open_flags = O_RDONLY, O_WRONLY, O_RDWR, O_APPEND, FASYNC, O_CLOEXEC, O_CREAT, O_DIRECT, O_DIRECTORY, O_EXCL, O_LARGEFILE, O_NOATIME, O_NOCTTY, O_NOFOLLOW, O_NONBLOCK, O_PATH, O_SYNC, O_TRUNC, __O_TMPFILE
 open_mode = S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
-madvise_flags = MADV_NORMAL, MADV_RANDOM, MADV_SEQUENTIAL, MADV_WILLNEED, MADV_DONTNEED, MADV_REMOVE, MADV_DONTFORK, MADV_DOFORK, MADV_HWPOISON, MADV_SOFT_OFFLINE, MADV_MERGEABLE, MADV_UNMERGEABLE, MADV_HUGEPAGE, MADV_NOHUGEPAGE, MADV_DONTDUMP, MADV_DODUMP
+madvise_flags = MADV_NORMAL, MADV_RANDOM, MADV_SEQUENTIAL, MADV_WILLNEED, MADV_DONTNEED, MADV_REMOVE, MADV_DONTFORK, MADV_DOFORK, MADV_HWPOISON, MADV_SOFT_OFFLINE, MADV_MERGEABLE, MADV_UNMERGEABLE, MADV_HUGEPAGE, MADV_NOHUGEPAGE, MADV_DONTDUMP, MADV_DODUMP, MADV_WIPEONFORK, MADV_KEEPONFORK
 fadvise_flags = POSIX_FADV_NORMAL, POSIX_FADV_SEQUENTIAL, POSIX_FADV_RANDOM, POSIX_FADV_NOREUSE, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED
 move_pages_flags = MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
 msync_flags = MS_ASYNC, MS_SYNC, MS_INVALIDATE
@@ -1025,11 +1036,13 @@ seal_types = F_SEAL_SEAL, F_SEAL_SHRINK, F_SEAL_GROW, F_SEAL_WRITE
 ioctl_void = FIOCLEX, FIONCLEX, FIFREEZE, FITHAW
 ioctl_int_in = FIONBIO, FIOASYNC
 ioctl_int_out = FIOQSIZE, FIGETBSZ
+fcntl_rw_hint = RWF_WRITE_LIFE_NOT_SET, RWH_WRITE_LIFE_NONE, RWH_WRITE_LIFE_SHORT, RWH_WRITE_LIFE_MEDIUM, RWH_WRITE_LIFE_LONG, RWH_WRITE_LIFE_EXTREME
 fiemap_flags = FIEMAP_FLAG_SYNC, FIEMAP_FLAG_XATTR, FIEMAP_FLAG_CACHE
 fiemap_extent_flags = FIEMAP_EXTENT_LAST, FIEMAP_EXTENT_UNKNOWN, FIEMAP_EXTENT_DELALLOC, FIEMAP_EXTENT_ENCODED, FIEMAP_EXTENT_DATA_ENCRYPTED, FIEMAP_EXTENT_NOT_ALIGNED, FIEMAP_EXTENT_DATA_INLINE, FIEMAP_EXTENT_DATA_TAIL, FIEMAP_EXTENT_UNWRITTEN, FIEMAP_EXTENT_MERGED, FIEMAP_EXTENT_SHARED
 getrandom_flags = GRND_NONBLOCK, GRND_RANDOM
 uffdio_features = UFFD_FEATURE_PAGEFAULT_FLAG_WP, UFFD_FEATURE_EVENT_FORK, UFFD_FEATURE_EVENT_REMAP, UFFD_FEATURE_EVENT_REMOVE, UFFD_FEATURE_MISSING_HUGETLBFS, UFFD_FEATURE_MISSING_SHMEM, UFFD_FEATURE_EVENT_UNMAP
 clone_flags = CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLONE_VFORK, CLONE_PARENT, CLONE_THREAD, CLONE_NEWNS, CLONE_SYSVSEM, CLONE_SETTLS, CLONE_PARENT_SETTID, CLONE_CHILD_CLEARTID, CLONE_UNTRACED, CLONE_CHILD_SETTID, CLONE_NEWCGROUP, CLONE_NEWUTS, CLONE_NEWIPC, CLONE_NEWUSER, CLONE_NEWPID, CLONE_NEWNET, CLONE_IO
+membarrier_cmd = MEMBARRIER_CMD_SHARED, MEMBARRIER_CMD_PRIVATE_EXPEDITED, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED
 
 kcov_ioctls = KCOV_INIT_TRACE, KCOV_ENABLE
 kcov_modes = KCOV_TRACE_PC, KCOV_TRACE_CMP

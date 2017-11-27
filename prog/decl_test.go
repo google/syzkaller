@@ -46,12 +46,13 @@ func TestTransitivelyEnabledCalls(t *testing.T) {
 	}
 	delete(calls, target.SyscallMap["epoll_create1"])
 	trans := target.TransitivelyEnabledCalls(calls)
-	if len(calls)-5 != len(trans) ||
+	if len(calls)-6 != len(trans) ||
 		trans[target.SyscallMap["epoll_ctl$EPOLL_CTL_ADD"]] ||
 		trans[target.SyscallMap["epoll_ctl$EPOLL_CTL_MOD"]] ||
 		trans[target.SyscallMap["epoll_ctl$EPOLL_CTL_DEL"]] ||
 		trans[target.SyscallMap["epoll_wait"]] ||
-		trans[target.SyscallMap["epoll_pwait"]] {
+		trans[target.SyscallMap["epoll_pwait"]] ||
+		trans[target.SyscallMap["kcmp$KCMP_EPOLL_TFD"]] {
 		t.Fatalf("epoll fd is not disabled")
 	}
 }
