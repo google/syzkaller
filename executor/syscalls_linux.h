@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "a3916a0db735129455fbd809eed379b8568f7c35"
+#define SYZ_REVISION "cedcb7d5803d3b709eeefabb29a2795f2aa6f8e5"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1486;
+unsigned syscall_count = 1476;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -1486,17 +1486,7 @@ call_t syscalls[] = {
     {"write", 4},
     {"write$evdev", 4},
     {"write$eventfd", 4},
-    {"write$fuse_bmap", 4},
-    {"write$fuse_init", 4},
-    {"write$fuse_interrupt", 4},
-    {"write$fuse_ioctl", 4},
-    {"write$fuse_notify_delete", 4},
-    {"write$fuse_notify_inval_entry", 4},
-    {"write$fuse_notify_inval_inode", 4},
-    {"write$fuse_notify_poll_wakeup", 4},
-    {"write$fuse_notify_retrieve", 4},
-    {"write$fuse_notify_store", 4},
-    {"write$fuse_poll", 4},
+    {"write$fuse", 4},
     {"write$sndseq", 4},
     {"write$tun", 4},
     {"writev", 146},
@@ -1506,7 +1496,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "6db640031dfbd383d097fd924b9852fbd9e33616"
+#define SYZ_REVISION "0fd6697d84022b4bdf6ec5814d50135d6d341731"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1516,7 +1506,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1547;
+unsigned syscall_count = 1537;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3051,17 +3041,7 @@ call_t syscalls[] = {
     {"write", 1},
     {"write$evdev", 1},
     {"write$eventfd", 1},
-    {"write$fuse_bmap", 1},
-    {"write$fuse_init", 1},
-    {"write$fuse_interrupt", 1},
-    {"write$fuse_ioctl", 1},
-    {"write$fuse_notify_delete", 1},
-    {"write$fuse_notify_inval_entry", 1},
-    {"write$fuse_notify_inval_inode", 1},
-    {"write$fuse_notify_poll_wakeup", 1},
-    {"write$fuse_notify_retrieve", 1},
-    {"write$fuse_notify_store", 1},
-    {"write$fuse_poll", 1},
+    {"write$fuse", 1},
     {"write$sndseq", 1},
     {"write$tun", 1},
     {"writev", 20},
@@ -3071,7 +3051,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "266440e04c2aa2386a0083e579bfd6a68ad75c2f"
+#define SYZ_REVISION "b5f9d917211ef6f9a9e9c1347e6d5ae700a877e6"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3081,7 +3061,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1496;
+unsigned syscall_count = 1486;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4565,17 +4545,7 @@ call_t syscalls[] = {
     {"write", 4},
     {"write$evdev", 4},
     {"write$eventfd", 4},
-    {"write$fuse_bmap", 4},
-    {"write$fuse_init", 4},
-    {"write$fuse_interrupt", 4},
-    {"write$fuse_ioctl", 4},
-    {"write$fuse_notify_delete", 4},
-    {"write$fuse_notify_inval_entry", 4},
-    {"write$fuse_notify_inval_inode", 4},
-    {"write$fuse_notify_poll_wakeup", 4},
-    {"write$fuse_notify_retrieve", 4},
-    {"write$fuse_notify_store", 4},
-    {"write$fuse_poll", 4},
+    {"write$fuse", 4},
     {"write$sndseq", 4},
     {"write$tun", 4},
     {"writev", 146},
@@ -4585,7 +4555,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "491bd0b7116800f63d75074b802c7c58820b119f"
+#define SYZ_REVISION "d7f825dcdf460f679a386a491279ca339ee9dabd"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4595,7 +4565,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1476;
+unsigned syscall_count = 1466;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6059,17 +6029,7 @@ call_t syscalls[] = {
     {"write", 64},
     {"write$evdev", 64},
     {"write$eventfd", 64},
-    {"write$fuse_bmap", 64},
-    {"write$fuse_init", 64},
-    {"write$fuse_interrupt", 64},
-    {"write$fuse_ioctl", 64},
-    {"write$fuse_notify_delete", 64},
-    {"write$fuse_notify_inval_entry", 64},
-    {"write$fuse_notify_inval_inode", 64},
-    {"write$fuse_notify_poll_wakeup", 64},
-    {"write$fuse_notify_retrieve", 64},
-    {"write$fuse_notify_store", 64},
-    {"write$fuse_poll", 64},
+    {"write$fuse", 64},
     {"write$sndseq", 64},
     {"write$tun", 64},
     {"writev", 66},
@@ -6079,7 +6039,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "5491142031cb62ebd424be9ddfdc17427d1d64f4"
+#define SYZ_REVISION "1d555d19aef52cb208601b7f5e8b39a249f540fa"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6089,7 +6049,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000006
 #define __NR_syz_test 1000007
 
-unsigned syscall_count = 1456;
+unsigned syscall_count = 1446;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7533,17 +7493,7 @@ call_t syscalls[] = {
     {"write", 4},
     {"write$evdev", 4},
     {"write$eventfd", 4},
-    {"write$fuse_bmap", 4},
-    {"write$fuse_init", 4},
-    {"write$fuse_interrupt", 4},
-    {"write$fuse_ioctl", 4},
-    {"write$fuse_notify_delete", 4},
-    {"write$fuse_notify_inval_entry", 4},
-    {"write$fuse_notify_inval_inode", 4},
-    {"write$fuse_notify_poll_wakeup", 4},
-    {"write$fuse_notify_retrieve", 4},
-    {"write$fuse_notify_store", 4},
-    {"write$fuse_poll", 4},
+    {"write$fuse", 4},
     {"write$sndseq", 4},
     {"write$tun", 4},
     {"writev", 146},
