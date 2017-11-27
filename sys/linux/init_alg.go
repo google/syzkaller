@@ -36,6 +36,15 @@ func (arch *arch) generateSockaddrAlg(g *prog.Gen, typ *prog.StructType, old *pr
 	return
 }
 
+func (arch *arch) generateAlgHashName(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (
+	arg prog.Arg, calls []*prog.Call) {
+	algName := generateAlg(g.Rand(), ALG_HASH)
+	arg = prog.MakeGroupArg(typ, []prog.Arg{
+		prog.MakeDataArg(typ.Fields[0], []byte(algName)),
+	})
+	return
+}
+
 func generateAlgName(rnd *rand.Rand) (string, string) {
 	typ := allTypes[rnd.Intn(len(allTypes))]
 	name := generateAlg(rnd, typ.typ)
