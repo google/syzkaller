@@ -99,6 +99,8 @@ func isSupportedSyzkall(c *prog.Syscall) bool {
 			return false
 		}
 		return check(fname)
+	case "syz_open_procfs":
+		return true
 	case "syz_open_pts":
 		return true
 	case "syz_fuse_mount":
