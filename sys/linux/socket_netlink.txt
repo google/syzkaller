@@ -43,7 +43,7 @@ msghdr_netlink {
 	vec	ptr[in, array[iovec_nl]]
 	vlen	len[vec, intptr]
 	ctrl	ptr[in, array[cmsghdr_un], opt]
-	ctrllen	len[ctrl, intptr]
+	ctrllen	bytesize[ctrl, intptr]
 	f	flags[send_flags, int32]
 }
 
