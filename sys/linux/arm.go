@@ -1285,106 +1285,79 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "sockaddr_ax25", Dir: 1}, FldName: "fsa_ax25"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "fsa_digipeater", TypeSize: 56, ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "ax25_address", Dir: 1}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 	}}},
-	{Key: StructKey{Name: "fuse_bmap_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_bmap_out", TypeSize: 24}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "unique", TypeSize: 8}}},
+	{Key: StructKey{Name: "fuse_bmap_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_bmap_out", TypeSize: 8}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "block", TypeSize: 8}}},
 	}}},
-	{Key: StructKey{Name: "fuse_init_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_init_out", TypeSize: 80}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "unique", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "maj", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "min", TypeSize: 4}}},
+	{Key: StructKey{Name: "fuse_init_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_init_out", TypeSize: 64}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "maj", TypeSize: 4}}, Val: 7},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "min", TypeSize: 4}}, Val: 26},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "readah", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "backg", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "congest", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "maxwr", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timegr", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused0", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused1", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused2", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused3", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused4", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused5", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused6", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused7", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused8", TypeSize: 4}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "unused0", TypeSize: 36}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 4}}}, Kind: 1, RangeBegin: 9, RangeEnd: 9},
 	}}},
-	{Key: StructKey{Name: "fuse_interrupt_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_interrupt_out", TypeSize: 16}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "unique", TypeSize: 8}}},
-	}}},
-	{Key: StructKey{Name: "fuse_ioctl_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_ioctl_out", TypeSize: 32}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "unique", TypeSize: 8}}},
+	{Key: StructKey{Name: "fuse_ioctl_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_ioctl_out", TypeSize: 16}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "res", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "iniovs", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "outiovs", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "fuse_notify_delete_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_delete_out", TypeSize: 40}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unique", TypeSize: 8}}},
+	{Key: StructKey{Name: "fuse_notify_delete_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_delete_out", TypeSize: 24}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "par", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "child", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "namelen", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "fuse_notify_inval_entry_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_inval_entry_out", TypeSize: 32}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unique", TypeSize: 8}}},
+	{Key: StructKey{Name: "fuse_notify_inval_entry_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_inval_entry_out", TypeSize: 12}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "par", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "namelen", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "fuse_notify_inval_inode_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_inval_inode_out", TypeSize: 40}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len1", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unique", TypeSize: 8}}},
+	{Key: StructKey{Name: "fuse_notify_inval_inode_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_inval_inode_out", TypeSize: 24}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ino", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "off", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "len2", TypeSize: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "fuse_notify_poll_wakeup_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_poll_wakeup_out", TypeSize: 24}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unique", TypeSize: 8}}},
+	{Key: StructKey{Name: "fuse_notify_poll_wakeup_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_poll_wakeup_out", TypeSize: 2}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "kh", TypeSize: 2}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "fuse_notify_retrieve_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_retrieve_out", TypeSize: 48}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unique1", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "unique2", TypeSize: 8}}},
+	{Key: StructKey{Name: "fuse_notify_retrieve_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_retrieve_out", TypeSize: 32}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "unique2", TypeSize: 8}}, Kind: 2, RangeEnd: 10},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "nodeid", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "off", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "fuse_notify_store_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_store_out", TypeSize: 40}, Fields: []Type{
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unique", TypeSize: 8}}},
+	{Key: StructKey{Name: "fuse_notify_store_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_notify_store_out", TypeSize: 24}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "nodeid", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "off", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "fuse_poll_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_poll_out", TypeSize: 24}, Fields: []Type{
+	{Key: StructKey{Name: "fuse_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_out"}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "unique", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "unique", TypeSize: 8}}, Kind: 2, RangeEnd: 10},
+		&UnionType{Key: StructKey{Name: "fuse_reply"}, FldName: "data"},
+	}}},
+	{Key: StructKey{Name: "fuse_poll_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_poll_out", TypeSize: 4}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "revents", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "fuse_reply"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_reply"}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "random"}},
+		&StructType{Key: StructKey{Name: "fuse_init_out"}, FldName: "fuse_init_out"},
+		&StructType{Key: StructKey{Name: "fuse_bmap_out"}, FldName: "fuse_bmap_out"},
+		&StructType{Key: StructKey{Name: "fuse_ioctl_out"}, FldName: "fuse_ioctl_out"},
+		&StructType{Key: StructKey{Name: "fuse_poll_out"}, FldName: "fuse_poll_out"},
+		&StructType{Key: StructKey{Name: "fuse_notify_poll_wakeup_out"}, FldName: "fuse_notify_poll_wakeup_out"},
+		&StructType{Key: StructKey{Name: "fuse_notify_inval_inode_out"}, FldName: "fuse_notify_inval_inode_out"},
+		&StructType{Key: StructKey{Name: "fuse_notify_inval_entry_out"}, FldName: "fuse_notify_inval_entry_out"},
+		&StructType{Key: StructKey{Name: "fuse_notify_delete_out"}, FldName: "fuse_notify_delete_out"},
+		&StructType{Key: StructKey{Name: "fuse_notify_store_out"}, FldName: "fuse_notify_store_out"},
+		&StructType{Key: StructKey{Name: "fuse_notify_retrieve_out"}, FldName: "fuse_notify_retrieve_out"},
 	}}},
 	{Key: StructKey{Name: "group_filter_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_filter_in"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "gf_interface", TypeSize: 4}}},
@@ -13641,72 +13614,22 @@ var syscalls_arm = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "val"},
 	}},
-	{ID: 1482, NR: 4, Name: "write$fuse_bmap", CallName: "write", Args: []Type{
+	{ID: 1482, NR: 4, Name: "write$fuse", CallName: "write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_bmap_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_out"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, ByteSize: 1, Buf: "arg"},
 	}},
-	{ID: 1483, NR: 4, Name: "write$fuse_init", CallName: "write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_init_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
-	}},
-	{ID: 1484, NR: 4, Name: "write$fuse_interrupt", CallName: "write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_interrupt_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
-	}},
-	{ID: 1485, NR: 4, Name: "write$fuse_ioctl", CallName: "write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_ioctl_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
-	}},
-	{ID: 1486, NR: 4, Name: "write$fuse_notify_delete", CallName: "write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_notify_delete_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
-	}},
-	{ID: 1487, NR: 4, Name: "write$fuse_notify_inval_entry", CallName: "write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_notify_inval_entry_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
-	}},
-	{ID: 1488, NR: 4, Name: "write$fuse_notify_inval_inode", CallName: "write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_notify_inval_inode_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
-	}},
-	{ID: 1489, NR: 4, Name: "write$fuse_notify_poll_wakeup", CallName: "write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_notify_poll_wakeup_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
-	}},
-	{ID: 1490, NR: 4, Name: "write$fuse_notify_retrieve", CallName: "write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_notify_retrieve_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
-	}},
-	{ID: 1491, NR: 4, Name: "write$fuse_notify_store", CallName: "write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_notify_store_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
-	}},
-	{ID: 1492, NR: 4, Name: "write$fuse_poll", CallName: "write", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "fuse_poll_out"}}},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "arg"},
-	}},
-	{ID: 1493, NR: 4, Name: "write$sndseq", CallName: "write", Args: []Type{
+	{ID: 1483, NR: 4, Name: "write$sndseq", CallName: "write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndseq", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "snd_seq_event"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, ByteSize: 1, Buf: "data"},
 	}},
-	{ID: 1494, NR: 4, Name: "write$tun", CallName: "write", Args: []Type{
+	{ID: 1484, NR: 4, Name: "write$tun", CallName: "write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "tun_buffer"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "buf"},
 	}},
-	{ID: 1495, NR: 146, Name: "writev", CallName: "writev", Args: []Type{
+	{ID: 1485, NR: 146, Name: "writev", CallName: "writev", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
@@ -14397,6 +14320,8 @@ var consts_arm = []ConstValue{
 	{Name: "FITHAW", Value: 3221510264},
 	{Name: "FS_IOC_FIEMAP", Value: 3223348747},
 	{Name: "FUSE_DEV_IOC_CLONE", Value: 2147804416},
+	{Name: "FUSE_KERNEL_MINOR_VERSION", Value: 26},
+	{Name: "FUSE_KERNEL_VERSION", Value: 7},
 	{Name: "FUTEX_CMP_REQUEUE", Value: 4},
 	{Name: "FUTEX_REQUEUE", Value: 3},
 	{Name: "FUTEX_WAIT"},
@@ -16666,4 +16591,4 @@ var consts_arm = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_arm = "266440e04c2aa2386a0083e579bfd6a68ad75c2f"
+const revision_arm = "b5f9d917211ef6f9a9e9c1347e6d5ae700a877e6"
