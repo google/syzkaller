@@ -1,0 +1,214 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Description uses binder device per test process, they are expected to be configured with
+# CONFIG_ANDROID_BINDER_DEVICES="binder0,...,binder31".
+# Description assumes CONFIG_ANDROID_BINDER_IPC_32BIT is not set.
+
+include <linux/android/binder.h>
+include <linux/fcntl.h>
+
+resource fd_binder[fd]
+resource binder_ptr[int64]: 0
+
+syz_open_dev$binder(dev ptr[in, string["/dev/binder#"]], id proc[0, 1], flags flags[binder_open_flags]) fd_binder
+
+mmap$binder(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd_binder, offset fileoff) binder_ptr
+
+ioctl$BINDER_SET_MAX_THREADS(fd fd_binder, cmd const[BINDER_SET_MAX_THREADS], nthreads int32)
+ioctl$BINDER_SET_CONTEXT_MGR(fd fd_binder, cmd const[BINDER_SET_CONTEXT_MGR], arg const[0])
+ioctl$BINDER_THREAD_EXIT(fd fd_binder, cmd const[BINDER_THREAD_EXIT], arg const[0])
+ioctl$BINDER_GET_NODE_DEBUG_INFO(fd fd_binder, cmd const[BINDER_GET_NODE_DEBUG_INFO], arg ptr[inout, binder_node_debug_info])
+ioctl$BINDER_WRITE_READ(fd fd_binder, cmd const[BINDER_WRITE_READ], arg ptr[in, binder_write_read])
+
+binder_open_flags = O_RDWR, O_NONBLOCK
+legacy_mmap_number_binder = __NR_mmap2
+
+binder_node_debug_info {
+	ptr		binder_ptr
+	cookie		const[0, int64]
+	has_strong_ref	const[0, int32]
+	has_weak_ref	const[0, int32]
+}
+
+binder_write_read {
+	write_size	bytesize[write_buffer, int64]
+	write_consumed	const[0, int64]
+	write_buffer	ptr64[in, array[binder_write_cmd]]
+	read_size	bytesize[read_buffer, int64]
+	read_consumed	const[0, int64]
+	read_buffer	ptr64[in, array[int8]]
+}
+
+binder_write_cmd [
+	transaction		binder_cmd_transaction
+	reply			binder_cmd_reply
+	transaction_sg		binder_cmd_transaction_sg
+	reply_sg		binder_cmd_reply_sg
+	free_buffer		binder_cmd_free_buffer
+	increfs			binder_cmd_increfs
+	acquire			binder_cmd_acquire
+	release			binder_cmd_release
+	decrefs			binder_cmd_decrefs
+	increfs_done		binder_cmd_increfs_done
+	acquire_done		binder_cmd_acquire_done
+	register_looper		binder_cmd_register_looper
+	enter_looper		binder_cmd_enter_looper
+	exit_looper		binder_cmd_exit_looper
+	request_death		binder_cmd_request_death
+	clear_death		binder_cmd_clear_death
+	dead_binder_done	binder_cmd_dead_binder_done
+] [varlen]
+
+binder_cmd_transaction {
+	cmd	const[BC_TRANSACTION, int32]
+	data	binder_transaction_data
+} [packed]
+
+binder_cmd_reply {
+	cmd	const[BC_REPLY, int32]
+	data	binder_transaction_data
+} [packed]
+
+binder_cmd_transaction_sg {
+	cmd	const[BC_TRANSACTION_SG, int32]
+	data	binder_transaction_data_sg
+} [packed]
+
+binder_cmd_reply_sg {
+	cmd	const[BC_REPLY_SG, int32]
+	data	binder_transaction_data_sg
+} [packed]
+
+binder_transaction_data {
+	handle		int32[0:4]
+# there is a union of handle with binder_uintptr_t
+	pad		const[0, int32]
+	cookie		int64[0:4]
+	code		const[0, int32]
+	flags		flags[binder_transaction_flags, int32]
+	sender_pid	const[0, int32]
+	sender_euid	const[0, int32]
+	data_size	bytesize[buffer, int64]
+	offsets_size	bytesize[offsets, int64]
+	buffer		ptr64[in, array[binder_object, 0:3]]
+	offsets		ptr64[in, array[flags[binder_buffer_offsets, int64]]]
+}
+
+binder_transaction_data_sg {
+	trx		binder_transaction_data
+	buffers_size	int64
+} [packed]
+
+# These are sizes of flat_binder_object, binder_fd_object, binder_fd_array_object and
+# binder_buffer_object, and also sums of all pairs of these sizes.
+# This allows guessing offsets for up to 3 objects.
+binder_buffer_offsets = 0, 24, 32, 40, 48, 56, 64, 72
+binder_transaction_flags = TF_ONE_WAY, TF_ACCEPT_FDS
+
+binder_object [
+	flat	flat_binder_object
+	fd	binder_fd_object
+	fda	binder_fd_array_object
+	ptr	binder_buffer_object
+] [varlen]
+
+flat_binder_object {
+	type	flags[binder_flat_types, int32]
+	flags	flags[binder_flat_flags, int32]
+	binder	binder_ptr
+	cookie	int64[0:4]
+}
+
+binder_flat_types = BINDER_TYPE_BINDER, BINDER_TYPE_WEAK_BINDER, BINDER_TYPE_HANDLE, BINDER_TYPE_WEAK_HANDLE
+binder_flat_flags = 1, 10, FLAT_BINDER_FLAG_ACCEPTS_FDS
+
+binder_fd_object {
+	type	const[BINDER_TYPE_FD, int32]
+	pad	const[0, int32]
+	fd	fd
+	pad2	const[0, int32]
+	cookie	int64[0:4]
+}
+
+binder_fd_array_object {
+	type		const[BINDER_TYPE_FDA, int32]
+	num_fds		int64[0:10]
+	parnt		int64[0:4]
+	parent_offset	int64[0:64]
+}
+
+binder_buffer_object {
+	type		const[BINDER_TYPE_PTR, int32]
+	flags		int32[0:1]
+	buffer		ptr64[in, const[0, int8]]
+	length		bytesize[buffer, int64]
+	parnt		int64[0:4]
+	parent_offset	int64[0:64]
+}
+
+binder_cmd_free_buffer {
+	cmd	const[BC_FREE_BUFFER, int32]
+	ptr	binder_ptr
+} [packed]
+
+binder_cmd_increfs {
+	cmd	const[BC_INCREFS, int32]
+	ref	int32[0:4]
+} [packed]
+
+binder_cmd_acquire {
+	cmd	const[BC_ACQUIRE, int32]
+	ref	int32[0:4]
+} [packed]
+
+binder_cmd_release {
+	cmd	const[BC_RELEASE, int32]
+	ref	int32[0:4]
+} [packed]
+
+binder_cmd_decrefs {
+	cmd	const[BC_DECREFS, int32]
+	ref	int32[0:4]
+} [packed]
+
+binder_cmd_increfs_done {
+	cmd	const[BC_INCREFS_DONE, int32]
+	ptr	binder_ptr
+	cookie	int64[0:4]
+} [packed]
+
+binder_cmd_acquire_done {
+	cmd	const[BC_ACQUIRE_DONE, int32]
+	ptr	binder_ptr
+	cookie	int64[0:4]
+} [packed]
+
+binder_cmd_register_looper {
+	cmd	const[BC_REGISTER_LOOPER, int32]
+} [packed]
+
+binder_cmd_enter_looper {
+	cmd	const[BC_ENTER_LOOPER, int32]
+} [packed]
+
+binder_cmd_exit_looper {
+	cmd	const[BC_EXIT_LOOPER, int32]
+} [packed]
+
+binder_cmd_request_death {
+	cmd	const[BC_REQUEST_DEATH_NOTIFICATION, int32]
+	handle	int32[0:4]
+	cookie	int64[0:4]
+} [packed]
+
+binder_cmd_clear_death {
+	cmd	const[BC_CLEAR_DEATH_NOTIFICATION, int32]
+	handle	int32[0:4]
+	cookie	int64[0:4]
+} [packed]
+
+binder_cmd_dead_binder_done {
+	cmd	const[BC_DEAD_BINDER_DONE, int32]
+	cookie	int64[0:4]
+} [packed]
