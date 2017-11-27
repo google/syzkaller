@@ -60,14 +60,15 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 				continue
 			}
 			s := analyze(ct, p, c)
+			updateSizes := true
 			for stop := false; !stop; stop = r.oneOf(3) {
-				args, bases := p.Target.mutationArgs(c)
+				args, bases, parents := p.Target.mutationArgs(c)
 				if len(args) == 0 {
 					retry = true
 					continue
 				}
 				idx := r.Intn(len(args))
-				arg, base := args[idx], bases[idx]
+				arg, base, parent := args[idx], bases[idx], parents[idx]
 				var baseSize uint64
 				if base != nil {
 					b, ok := base.(*PointerArg)
@@ -92,6 +93,12 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 							a.Val ^= 1 << uint64(r.Intn(64))
 						}
 					}
+				case *LenType:
+					if !r.mutateSize(arg.(*ConstArg), *parent) {
+						retry = true
+						continue
+					}
+					updateSizes = false
 				case *ResourceType, *VmaType, *ProcType:
 					arg1, calls1 := r.generateArg(s, arg.Type())
 					p.replaceArg(c, arg, arg1, calls1)
@@ -199,8 +206,6 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					opt, calls := r.generateArg(s, optType)
 					arg1 := MakeUnionArg(t, opt, optType)
 					p.replaceArg(c, arg, arg1, calls)
-				case *LenType:
-					panic("bad arg returned by mutationArgs: LenType")
 				case *CsumType:
 					panic("bad arg returned by mutationArgs: CsumType")
 				case *ConstType:
@@ -226,7 +231,9 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 				}
 
 				// Update all len fields.
-				p.Target.assignSizesCall(c)
+				if updateSizes {
+					p.Target.assignSizesCall(c)
+				}
 			}
 		default:
 			// Remove a random call.
@@ -499,8 +506,8 @@ func (p *Prog) TrimAfter(idx int) {
 	p.Calls = p.Calls[:idx+1]
 }
 
-func (target *Target) mutationArgs(c *Call) (args, bases []Arg) {
-	foreachArg(c, func(arg, base Arg, _ *[]Arg) {
+func (target *Target) mutationArgs(c *Call) (args, bases []Arg, parents []*[]Arg) {
+	foreachArg(c, func(arg, base Arg, parent *[]Arg) {
 		switch typ := arg.Type().(type) {
 		case *StructType:
 			if target.SpecialStructs[typ.Name()] == nil {
@@ -513,9 +520,6 @@ func (target *Target) mutationArgs(c *Call) (args, bases []Arg) {
 			if typ.Kind == ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
 				return
 			}
-		case *LenType:
-			// Size is updated when the size-of arg change.
-			return
 		case *CsumType:
 			// Checksum is updated when the checksummed data changes.
 			return
@@ -539,6 +543,7 @@ func (target *Target) mutationArgs(c *Call) (args, bases []Arg) {
 		}
 		args = append(args, arg)
 		bases = append(bases, base)
+		parents = append(parents, parent)
 	})
 	return
 }

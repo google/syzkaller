@@ -7,29 +7,29 @@ import (
 	"fmt"
 )
 
-func (target *Target) generateSize(arg Arg, lenType *LenType) Arg {
+func (target *Target) generateSize(arg Arg, lenType *LenType) uint64 {
 	if arg == nil {
 		// Arg is an optional pointer, set size to 0.
-		return MakeConstArg(lenType, 0)
+		return 0
 	}
 
+	byteSize := lenType.ByteSize
+	if byteSize == 0 {
+		byteSize = 1
+	}
 	switch arg.Type().(type) {
 	case *VmaType:
 		a := arg.(*PointerArg)
-		return MakeConstArg(lenType, a.PagesNum*target.PageSize)
+		return a.PagesNum * target.PageSize / byteSize
 	case *ArrayType:
 		a := arg.(*GroupArg)
 		if lenType.ByteSize != 0 {
-			return MakeConstArg(lenType, a.Size()/lenType.ByteSize)
+			return a.Size() / byteSize
 		} else {
-			return MakeConstArg(lenType, uint64(len(a.Inner)))
+			return uint64(len(a.Inner))
 		}
 	default:
-		if lenType.ByteSize != 0 {
-			return MakeConstArg(lenType, arg.Size()/lenType.ByteSize)
-		} else {
-			return MakeConstArg(lenType, arg.Size())
-		}
+		return arg.Size() / byteSize
 	}
 }
 
@@ -53,7 +53,7 @@ func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg) {
 
 			buf, ok := argsMap[typ.Buf]
 			if ok {
-				*a = *target.generateSize(InnerArg(buf), typ).(*ConstArg)
+				a.Val = target.generateSize(InnerArg(buf), typ)
 				continue
 			}
 
@@ -105,4 +105,51 @@ func (target *Target) assignSizesArray(args []Arg) {
 
 func (target *Target) assignSizesCall(c *Call) {
 	target.assignSizesArray(c.Args)
+}
+
+func (r *randGen) mutateSize(arg *ConstArg, parent []Arg) bool {
+	// Small sizes are generated when we mutate size target and update sizes,
+	// so here we mostly do large sizes that potentially cause overflows.
+	typ := arg.Type().(*LenType)
+	elemSize := typ.ByteSize
+	if elemSize == 0 {
+		elemSize = 1
+		for _, field := range parent {
+			if typ.Buf != field.Type().FieldName() {
+				continue
+			}
+			if inner := InnerArg(field); inner != nil {
+				switch targetType := inner.Type().(type) {
+				case *VmaType:
+					return false
+				case *ArrayType:
+					elemSize = targetType.Type.Size()
+				}
+			}
+			break
+		}
+	}
+	if r.oneOf(100) {
+		arg.Val = r.rand64()
+		return true
+	}
+	max := ^uint64(0)
+	if r.oneOf(3) {
+		max = 1 << 32 - 1
+		if r.oneOf(2) {
+			max = 1 << 16 - 1
+			if r.oneOf(2) {
+				max = 1 << 8 - 1
+			}
+		}
+	}
+	n := max / elemSize
+	delta := uint64(1000 - r.biasedRand(1000, 10))
+	if elemSize == 1 || r.oneOf(10) {
+		n -= delta
+	} else {
+		n += delta
+	}
+	arg.Val = n
+	return true
 }
