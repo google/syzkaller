@@ -77,9 +77,10 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_dev)
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_dev) || defined(__NR_syz_open_procfs)
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_fuse_mount) || defined(__NR_syz_fuseblk_mount)
@@ -558,6 +559,27 @@ static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 		}
 		return open(buf, a2, 0);
 	}
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_procfs)
+static uintptr_t syz_open_procfs(uintptr_t a0, uintptr_t a1)
+{
+	// syz_open_procfs(pid pid, file ptr[in, string[procfs_file]]) fd
+
+	char buf[128];
+	memset(buf, 0, sizeof(buf));
+	if (a0 == 0) {
+		NONFAILING(snprintf(buf, sizeof(buf), "/proc/self/%s", (char*)a1));
+	} else if (a0 == (uintptr_t)-1) {
+		NONFAILING(snprintf(buf, sizeof(buf), "/proc/thread-self/%s", (char*)a1));
+	} else {
+		NONFAILING(snprintf(buf, sizeof(buf), "/proc/self/task/%d/%s", (int)a0, (char*)a1));
+	}
+	int fd = open(buf, O_RDWR);
+	if (fd == -1)
+		fd = open(buf, O_RDONLY);
+	return fd;
 }
 #endif
 

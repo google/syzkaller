@@ -78,9 +78,10 @@ var commonHeaderLinux = `
 #include <stdio.h>
 #include <sys/stat.h>
 #endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_dev)
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_dev) || defined(__NR_syz_open_procfs)
 #include <fcntl.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #endif
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_fuse_mount) || defined(__NR_syz_fuseblk_mount)
@@ -674,6 +675,26 @@ static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 		}
 		return open(buf, a2, 0);
 	}
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_procfs)
+static uintptr_t syz_open_procfs(uintptr_t a0, uintptr_t a1)
+{
+
+	char buf[128];
+	memset(buf, 0, sizeof(buf));
+	if (a0 == 0) {
+		NONFAILING(snprintf(buf, sizeof(buf), "/proc/self/%s", (char*)a1));
+	} else if (a0 == (uintptr_t)-1) {
+		NONFAILING(snprintf(buf, sizeof(buf), "/proc/thread-self/%s", (char*)a1));
+	} else {
+		NONFAILING(snprintf(buf, sizeof(buf), "/proc/self/task/%d/%s", (int)a0, (char*)a1));
+	}
+	int fd = open(buf, O_RDWR);
+	if (fd == -1)
+		fd = open(buf, O_RDONLY);
+	return fd;
 }
 #endif
 
@@ -1963,15 +1984,14 @@ retry:
 static int inject_fault(int nth)
 {
 	int fd;
-	char buf[128];
+	char buf[16];
 
-	sprintf(buf, "/proc/self/task/%d/fail-nth", (int)syscall(SYS_gettid));
-	fd = open(buf, O_RDWR);
+	fd = open("/proc/thread-self/fail-nth", O_RDWR);
 	if (fd == -1)
-		fail("failed to open /proc/self/task/tid/fail-nth");
+		fail("failed to open /proc/thread-self/fail-nth");
 	sprintf(buf, "%d", nth + 1);
 	if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf))
-		fail("failed to write /proc/self/task/tid/fail-nth");
+		fail("failed to write /proc/thread-self/fail-nth");
 	return fd;
 }
 #endif
@@ -1982,11 +2002,11 @@ static int fault_injected(int fail_fd)
 	char buf[16];
 	int n = read(fail_fd, buf, sizeof(buf) - 1);
 	if (n <= 0)
-		fail("failed to read /proc/self/task/tid/fail-nth");
+		fail("failed to read /proc/thread-self/fail-nth");
 	int res = n == 2 && buf[0] == '0' && buf[1] == '\n';
 	buf[0] = '0';
 	if (write(fail_fd, buf, 1) != 1)
-		fail("failed to write /proc/self/task/tid/fail-nth");
+		fail("failed to write /proc/thread-self/fail-nth");
 	close(fail_fd);
 	return res;
 }
