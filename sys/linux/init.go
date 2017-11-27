@@ -165,15 +165,12 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		}
 		mode := c.Args[pos].(*prog.ConstArg)
 		dev := c.Args[pos+1].(*prog.ConstArg)
+		dev.Val = uint64(uint32(dev.Val))
 		// Char and block devices read/write io ports, kernel memory and do other nasty things.
 		// TODO: not required if executor drops privileges.
 		switch mode.Val & (arch.S_IFREG | arch.S_IFCHR | arch.S_IFBLK | arch.S_IFIFO | arch.S_IFSOCK) {
 		case arch.S_IFREG, arch.S_IFIFO, arch.S_IFSOCK:
 		case arch.S_IFBLK:
-			// TODO(dvyukov): mknod dev argument is uint32,
-			// but prog arguments contain not-truncated uint64 values,
-			// so we can mistakenly assume that this is not loop, when it actually is.
-			// This is not very harmful, but need to verify other arguments in this function.
 			if dev.Val>>8 == 7 {
 				break // loop
 			}
@@ -185,6 +182,7 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		}
 	case "syslog":
 		cmd := c.Args[0].(*prog.ConstArg)
+		cmd.Val = uint64(uint32(cmd.Val))
 		// These disable console output, but we need it.
 		if cmd.Val == arch.SYSLOG_ACTION_CONSOLE_OFF || cmd.Val == arch.SYSLOG_ACTION_CONSOLE_ON {
 			cmd.Val = arch.SYSLOG_ACTION_SIZE_UNREAD
