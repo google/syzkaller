@@ -177,10 +177,17 @@ func (c *Call) validate(ctx *validCtx) error {
 				return fmt.Errorf("syscall %v: pointer arg '%v' has bad meta type %+v", c.Meta.Name, arg.Type().Name(), arg.Type())
 			}
 		case *DataArg:
+			typ1 := a.Type()
+			if !typ1.Varlen() && typ1.Size() != uint64(len(a.Data)) {
+				return fmt.Errorf("syscall %v: data arg %v has wrong size %v, want %v",
+					c.Meta.Name, arg.Type().Name(),
+					len(a.Data), typ1.Size())
+			}
 			switch typ1 := a.Type().(type) {
 			case *ArrayType:
 				if typ2, ok := typ1.Type.(*IntType); !ok || typ2.Size() != 1 {
-					return fmt.Errorf("syscall %v: data arg '%v' should be an array", c.Meta.Name, a.Type().Name())
+					return fmt.Errorf("syscall %v: data arg '%v' should be an array",
+						c.Meta.Name, a.Type().Name())
 				}
 			}
 		case *GroupArg:
@@ -195,6 +202,13 @@ func (c *Call) validate(ctx *validCtx) error {
 					}
 				}
 			case *ArrayType:
+				if typ1.Kind == ArrayRangeLen && typ1.RangeBegin == typ1.RangeEnd &&
+					uint64(len(a.Inner)) != typ1.RangeBegin {
+					return fmt.Errorf("syscall %v: array %v has wrong number"+
+						" of elements %v, want %v",
+						c.Meta.Name, arg.Type().Name(),
+						len(a.Inner), typ1.RangeBegin)
+				}
 				for _, arg1 := range a.Inner {
 					if err := checkArg(arg1); err != nil {
 						return err

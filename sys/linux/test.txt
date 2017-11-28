@@ -377,6 +377,14 @@ syz_regression0_struct {
 	f0	buffer[out]
 }
 
+syz_test$regression1(a1 ptr[in, array[syz_regression1_struct]])
+
+syz_regression1_struct {
+	f0	array[int8, 4]
+}
+
+syz_test$regression2(a1 ptr[in, array[int32, 4]])
+
 # Bitfields
 
 syz_bf_flags = 0, 1, 2
