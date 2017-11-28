@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "debeaf341a9caa43626df805b08a71d0535d162e"
+#define SYZ_REVISION "8dc5f192fbf31c44b7149a447dbc4ab3c52ce8dc"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -13,7 +13,7 @@
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1490;
+unsigned syscall_count = 1492;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -1459,6 +1459,8 @@ call_t syscalls[] = {
     {"syz_test$recur1", 1000008, (syscall_t)syz_test},
     {"syz_test$recur2", 1000008, (syscall_t)syz_test},
     {"syz_test$regression0", 1000008, (syscall_t)syz_test},
+    {"syz_test$regression1", 1000008, (syscall_t)syz_test},
+    {"syz_test$regression2", 1000008, (syscall_t)syz_test},
     {"syz_test$res0", 1000008, (syscall_t)syz_test},
     {"syz_test$res1", 1000008, (syscall_t)syz_test},
     {"syz_test$struct", 1000008, (syscall_t)syz_test},
@@ -1511,7 +1513,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "44a617dd53e5c99fdec4cae657e0b3cf03cd022b"
+#define SYZ_REVISION "3c393f727fed32893cfa9465a4c114d2845d98f8"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1522,7 +1524,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1551;
+unsigned syscall_count = 1553;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3029,6 +3031,8 @@ call_t syscalls[] = {
     {"syz_test$recur1", 1000008, (syscall_t)syz_test},
     {"syz_test$recur2", 1000008, (syscall_t)syz_test},
     {"syz_test$regression0", 1000008, (syscall_t)syz_test},
+    {"syz_test$regression1", 1000008, (syscall_t)syz_test},
+    {"syz_test$regression2", 1000008, (syscall_t)syz_test},
     {"syz_test$res0", 1000008, (syscall_t)syz_test},
     {"syz_test$res1", 1000008, (syscall_t)syz_test},
     {"syz_test$struct", 1000008, (syscall_t)syz_test},
@@ -3081,7 +3085,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "a25f2f53cf3daee43c2a9865fcf90bd99ca4c53f"
+#define SYZ_REVISION "1371837664b1cb11a212e1f3748c10ec134ac955"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3092,7 +3096,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1500;
+unsigned syscall_count = 1502;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4550,6 +4554,8 @@ call_t syscalls[] = {
     {"syz_test$recur1", 1000008, (syscall_t)syz_test},
     {"syz_test$recur2", 1000008, (syscall_t)syz_test},
     {"syz_test$regression0", 1000008, (syscall_t)syz_test},
+    {"syz_test$regression1", 1000008, (syscall_t)syz_test},
+    {"syz_test$regression2", 1000008, (syscall_t)syz_test},
     {"syz_test$res0", 1000008, (syscall_t)syz_test},
     {"syz_test$res1", 1000008, (syscall_t)syz_test},
     {"syz_test$struct", 1000008, (syscall_t)syz_test},
@@ -4600,7 +4606,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "ad6bd5cc229608bd47859c93c2290f6294c1f859"
+#define SYZ_REVISION "bda6cbc1306d682ce492d85f185d1ecbc8cd14d1"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4611,7 +4617,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1480;
+unsigned syscall_count = 1482;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6053,6 +6059,8 @@ call_t syscalls[] = {
     {"syz_test$recur1", 1000008, (syscall_t)syz_test},
     {"syz_test$recur2", 1000008, (syscall_t)syz_test},
     {"syz_test$regression0", 1000008, (syscall_t)syz_test},
+    {"syz_test$regression1", 1000008, (syscall_t)syz_test},
+    {"syz_test$regression2", 1000008, (syscall_t)syz_test},
     {"syz_test$res0", 1000008, (syscall_t)syz_test},
     {"syz_test$res1", 1000008, (syscall_t)syz_test},
     {"syz_test$struct", 1000008, (syscall_t)syz_test},
@@ -6099,7 +6107,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "de9302d13dece6a300ef300704791e80176610eb"
+#define SYZ_REVISION "7181d499c27790d50391729214f690d6c6339313"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6110,7 +6118,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1460;
+unsigned syscall_count = 1462;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7526,6 +7534,8 @@ call_t syscalls[] = {
     {"syz_test$recur1", 1000008, (syscall_t)syz_test},
     {"syz_test$recur2", 1000008, (syscall_t)syz_test},
     {"syz_test$regression0", 1000008, (syscall_t)syz_test},
+    {"syz_test$regression1", 1000008, (syscall_t)syz_test},
+    {"syz_test$regression2", 1000008, (syscall_t)syz_test},
     {"syz_test$res0", 1000008, (syscall_t)syz_test},
     {"syz_test$res1", 1000008, (syscall_t)syz_test},
     {"syz_test$struct", 1000008, (syscall_t)syz_test},

@@ -287,6 +287,12 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		if err != nil {
 			return nil, fmt.Errorf("data arg has bad value '%v'", val)
 		}
+		if !typ.Varlen() {
+			if diff := int(typ.Size()) - len(data); diff > 0 {
+				data = append(data, make([]byte, diff)...)
+			}
+			data = data[:typ.Size()]
+		}
 		arg = MakeDataArg(typ, data)
 	case '{':
 		t1, ok := typ.(*StructType)
@@ -336,6 +342,12 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			}
 		}
 		p.Parse(']')
+		if t1.Kind == ArrayRangeLen && t1.RangeBegin == t1.RangeEnd {
+			for uint64(len(inner)) < t1.RangeBegin {
+				inner = append(inner, defaultArg(t1.Type))
+			}
+			inner = inner[:t1.RangeBegin]
+		}
 		arg = MakeGroupArg(typ, inner)
 	case '@':
 		t1, ok := typ.(*UnionType)
