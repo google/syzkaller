@@ -109,9 +109,18 @@ func TestDeserialize(t *testing.T) {
 			"syz_test$struct(&(0x7f0000000000)=0x0)",
 			regexp.MustCompile(`bad const type.*`),
 		},
+		{
+			`syz_test$regression1(&(0x7f0000000000)=[{"000000"}, {"0000000000"}])`,
+			nil,
+		},
+		{
+			`syz_test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4, 0x5, 0x6])`,
+			nil,
+		},
 	}
+	buf := make([]byte, ExecBufferSize)
 	for _, test := range tests {
-		_, err := target.Deserialize([]byte(test.data))
+		p, err := target.Deserialize([]byte(test.data))
 		if err != nil {
 			if test.err == nil {
 				t.Fatalf("deserialization failed with\n%s\ndata:\n%s\n", err, test.data)
@@ -119,8 +128,12 @@ func TestDeserialize(t *testing.T) {
 			if !test.err.MatchString(err.Error()) {
 				t.Fatalf("deserialization failed with\n%s\nwhich doesn't match\n%s\ndata:\n%s\n", err, test.err, test.data)
 			}
-		} else if test.err != nil {
-			t.Fatalf("deserialization should have failed with:\n%s\ndata:\n%s\n", test.err, test.data)
+		} else {
+			if test.err != nil {
+				t.Fatalf("deserialization should have failed with:\n%s\ndata:\n%s\n",
+					test.err, test.data)
+			}
+			p.SerializeForExec(buf, 0)
 		}
 	}
 }

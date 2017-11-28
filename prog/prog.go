@@ -272,12 +272,18 @@ func defaultArg(t Type) Arg {
 		return MakeResultArg(t, nil, typ.Desc.Type.Default())
 	case *BufferType:
 		var data []byte
-		if typ.Kind == BufferString && typ.TypeSize != 0 {
-			data = make([]byte, typ.TypeSize)
+		if !typ.Varlen() {
+			data = make([]byte, typ.Size())
 		}
 		return MakeDataArg(t, data)
 	case *ArrayType:
-		return MakeGroupArg(t, nil)
+		var elems []Arg
+		if typ.Kind == ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
+			for i := uint64(0); i < typ.RangeBegin; i++ {
+				elems = append(elems, defaultArg(typ.Type))
+			}
+		}
+		return MakeGroupArg(t, elems)
 	case *StructType:
 		var inner []Arg
 		for _, field := range typ.Fields {
