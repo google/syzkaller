@@ -231,14 +231,14 @@ getsockopt$inet_sctp6_SCTP_DEFAULT_SNDINFO(fd sock_sctp6, level const[SOL_SCTP],
 setsockopt$inet_sctp_SCTP_SOCKOPT_BINDX_ADD(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_ADD], val ptr[in, array[sockaddr_sctp]], len bytesize[val])
 setsockopt$inet_sctp6_SCTP_SOCKOPT_BINDX_ADD(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_ADD], val ptr[in, array[sockaddr_sctp]], len bytesize[val])
 
-setsockopt$inet_sctp_SCTP_SOCKOPT_BINDX_REM(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_REM], val ptr[in, array[sockaddr_sctp]], len len[val])
-setsockopt$inet_sctp6_SCTP_SOCKOPT_BINDX_REM(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_REM], val ptr[in, array[sockaddr_sctp]], len len[val])
+setsockopt$inet_sctp_SCTP_SOCKOPT_BINDX_REM(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_REM], val ptr[in, array[sockaddr_sctp]], len bytesize[val])
+setsockopt$inet_sctp6_SCTP_SOCKOPT_BINDX_REM(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_BINDX_REM], val ptr[in, array[sockaddr_sctp]], len bytesize[val])
 
 getsockopt$inet_sctp_SCTP_SOCKOPT_PEELOFF(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_PEELOFF], val ptr[inout, sctp_peeloff_arg_t], len ptr[inout, len[val, int32]])
 getsockopt$inet_sctp6_SCTP_SOCKOPT_PEELOFF(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_PEELOFF], val ptr[inout, sctp_peeloff_arg_t], len ptr[inout, len[val, int32]])
 
-setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX_OLD(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX_OLD], val ptr[in, array[sockaddr_sctp]], len len[val])
-setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX_OLD(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX_OLD], val ptr[in, array[sockaddr_sctp]], len len[val])
+setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX_OLD(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX_OLD], val ptr[in, array[sockaddr_sctp]], len bytesize[val])
+setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX_OLD(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX_OLD], val ptr[in, array[sockaddr_sctp]], len bytesize[val])
 
 getsockopt$inet_sctp_SCTP_GET_PEER_ADDRS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_GET_PEER_ADDRS], val ptr[inout, sctp_getaddrs], len ptr[inout, len[val, int32]])
 getsockopt$inet_sctp6_SCTP_GET_PEER_ADDRS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_GET_PEER_ADDRS], val ptr[inout, sctp_getaddrs], len ptr[inout, len[val, int32]])
@@ -246,8 +246,8 @@ getsockopt$inet_sctp6_SCTP_GET_PEER_ADDRS(fd sock_sctp6, level const[SOL_SCTP], 
 getsockopt$inet_sctp_SCTP_GET_LOCAL_ADDRS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_GET_LOCAL_ADDRS], val ptr[inout, sctp_getaddrs], len ptr[inout, len[val, int32]])
 getsockopt$inet_sctp6_SCTP_GET_LOCAL_ADDRS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_GET_LOCAL_ADDRS], val ptr[inout, sctp_getaddrs], len ptr[inout, len[val, int32]])
 
-setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX], val ptr[in, array[sockaddr_sctp]], len len[val])
-setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX], val ptr[in, array[sockaddr_sctp]], len len[val])
+setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX], val ptr[in, array[sockaddr_sctp]], len bytesize[val])
+setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX], val ptr[in, array[sockaddr_sctp]], len bytesize[val])
 
 getsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX3(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX3], val ptr[inout, sctp_getaddrs_old], len ptr[inout, len[val, int32]])
 getsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX3(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_SOCKOPT_CONNECTX3], val ptr[inout, sctp_getaddrs_old], len ptr[inout, len[val, int32]])
@@ -474,7 +474,7 @@ sctp_getaddrs {
 
 sctp_getaddrs_old {
 	assoc_id	assoc_id
-	addr_num	len[addrs, int32]
+	addr_num	bytesize[addrs, int32]
 	addrs		ptr[in, array[sockaddr_sctp]]
 }
 

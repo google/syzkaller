@@ -221,6 +221,21 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 		if fld.Type == t {
 			comp.error(t.Pos, "%v target %v refer to itself", t.Ident, target)
 		}
+		if t.Ident == "len" {
+			inner := fld.Type
+			desc, args, _ := comp.getArgsBase(inner, "", prog.DirIn, false)
+			for desc == typePtr {
+				if desc != typePtr {
+					break
+				}
+				inner = args[1]
+				desc, args, _ = comp.getArgsBase(inner, "", prog.DirIn, false)
+			}
+			if desc == typeArray && comp.isVarlen(args[0]) {
+				comp.error(t.Pos, "len target %v refer to an array with"+
+					" variable-size elements (do you mean bytesize?)", target)
+			}
+		}
 		return
 	}
 	for _, parent := range parents {
