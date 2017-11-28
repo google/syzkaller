@@ -158,7 +158,7 @@ kvm_text_x86 [
 	text16		kvm_text_x86_16
 	text32		kvm_text_x86_32
 	text64		kvm_text_x86_64
-] [varlen]
+]
 
 kvm_text_x86_real {
 	typ	const[8, intptr]
@@ -200,7 +200,7 @@ kvm_setup_opt_x86 [
 	dstype0	kvm_setup_opt_dstype0
 	dstype3	kvm_setup_opt_dstype3
 	vmwrite	kvm_setup_opt_vmwrite
-] [varlen]
+]
 
 kvm_setup_opt_cr0 {
 	typ	const[0, int64]
@@ -259,7 +259,7 @@ kvm_setup_opt_arm64 [
 # unions need at least 2 fields, but we have only 1 now, but we want to have it as union for future extention
 	featur1	kvm_setup_opt_feature
 	featur2	kvm_setup_opt_feature
-] [varlen]
+]
 
 kvm_setup_opt_feature {
 	typ	const[1, int64]

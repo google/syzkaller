@@ -200,7 +200,7 @@ hidp_conninfo {
 	vendor	int16
 	product	int16
 	ver	int16
-	name	array[int8]
+	name	array[int8, 128]
 }
 
 hidp_connlist_req {

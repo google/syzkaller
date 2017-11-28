@@ -70,7 +70,7 @@ send_msghdr {
 	msg_iov		ptr[in, array[iovec_in]]
 	msg_iovlen	len[msg_iov, intptr]
 	msg_control	ptr[in, array[cmsghdr]]
-	msg_controllen	len[msg_control, intptr]
+	msg_controllen	bytesize[msg_control, intptr]
 	msg_flags	flags[send_flags, int32]
 }
 
