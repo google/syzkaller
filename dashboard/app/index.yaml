@@ -32,7 +32,7 @@ indexes:
   properties:
   - name: ReproC
   - name: ReproSyz
-  - name: Report
+  - name: ReportLen
   - name: Time
 
 - kind: Crash
