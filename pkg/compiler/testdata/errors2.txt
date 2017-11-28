@@ -52,6 +52,8 @@ foo$104(a len[parent])		### len target parent does not exist
 foo$105(a ptr[in, int32], b ptr[in, array[len[a, int32]]])
 foo$106(a int32, b ptr[in, csum[a, inet, int32]])
 foo$107(a int32, b ptr[in, csum[c, inet, int32]])	### csum target c does not exist
+foo$108(a ptr[in, array[string]], b len[a])		### len target a refer to an array with variable-size elements (do you mean bytesize?)
+foo$109(a ptr[in, array[string]], b ptr[in, len[a, int32]])	###  len target a refer to an array with variable-size elements (do you mean bytesize?)
 
 s1 {
 	f1	len[s2, int32]	### len target s2 does not exist
