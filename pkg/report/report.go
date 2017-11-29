@@ -34,6 +34,8 @@ type Report struct {
 	Title string
 	// Report contains whole oops text.
 	Report []byte
+	// Output contains whole raw kernel output.
+	Output []byte
 	// StartPos/EndPos denote region of output with oops message(s).
 	StartPos int
 	EndPos   int

@@ -109,7 +109,7 @@ func runInstance(cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Poo
 	}
 
 	log.Logf(0, "vm-%v: crushing...", index)
-	rep, output := vm.MonitorExecution(outc, errc, reporter, false)
+	rep := vm.MonitorExecution(outc, errc, reporter, false)
 	if rep == nil {
 		// This is the only "OK" outcome.
 		log.Logf(0, "vm-%v: running long enough, restarting", index)
@@ -121,7 +121,7 @@ func runInstance(cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Poo
 		}
 		defer f.Close()
 		log.Logf(0, "vm-%v: crashed: %v, saving to %v", index, rep.Title, f.Name())
-		f.Write(output)
+		f.Write(rep.Output)
 	}
 	return
 }

@@ -34,7 +34,9 @@ func (ctx *freebsd) ContainsCrash(output []byte) bool {
 }
 
 func (ctx *freebsd) Parse(output []byte) *Report {
-	rep := new(Report)
+	rep := &Report{
+		Output: output,
+	}
 	var oops *oops
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
