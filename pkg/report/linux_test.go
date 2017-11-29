@@ -2910,8 +2910,9 @@ Call Trace:
 	if err != nil {
 		t.Fatal(err)
 	}
+	linux := reporter.(*linux)
 	for report, guilty0 := range tests {
-		if guilty := reporter.ExtractGuiltyFile([]byte(report)); guilty != guilty0 {
+		if guilty := linux.extractGuiltyFile([]byte(report)); guilty != guilty0 {
 			t.Logf("log:\n%s", report)
 			t.Logf("want guilty:\n%s", guilty0)
 			t.Logf("got guilty:\n%s", guilty)

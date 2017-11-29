@@ -22,11 +22,8 @@ type Reporter interface {
 	// Returns nil if no oops found.
 	Parse(output []byte) *Report
 
-	Symbolize(text []byte) ([]byte, error)
-
-	ExtractConsoleOutput(output []byte) (result []byte)
-	ExtractGuiltyFile(report []byte) string
-	GetMaintainers(file string) ([]string, error)
+	// Symbolize symbolizes rep.Report and fills in Maintainers.
+	Symbolize(rep *Report) error
 }
 
 type Report struct {
@@ -41,6 +38,8 @@ type Report struct {
 	EndPos   int
 	// Corrupted indicates whether the report is truncated of corrupted in some other way.
 	Corrupted bool
+	// Maintainers is list of maintainer emails.
+	Maintainers []string
 }
 
 // NewReporter creates reporter for the specified OS:

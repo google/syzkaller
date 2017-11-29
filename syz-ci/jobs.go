@@ -343,6 +343,10 @@ func (job *Job) testProgram(inst *vm.Instance, command string, reporter report.R
 	if rep == nil {
 		return false, nil
 	}
+	if err := reporter.Symbolize(rep); err != nil {
+		// TODO(dvyukov): send such errors to dashboard.
+		Logf(0, "job: failed to symbolize report: %v", err)
+	}
 	job.resp.CrashTitle = rep.Title
 	job.resp.CrashReport = rep.Report
 	job.resp.CrashLog = rep.Output
