@@ -568,6 +568,11 @@ var linuxOopses = []*oops{
 				fmt:   "suspicious RCU usage at %[1]v",
 			},
 			{
+				title:     compile("WARNING: suspicious RCU usage"),
+				fmt:       "suspicious RCU usage",
+				corrupted: true,
+			},
+			{
 				title:        compile("WARNING: kernel stack regs at [0-9a-f]+ in [^ ]* has bad '([^']+)' value"),
 				fmt:          "WARNING: kernel stack regs has bad '%[1]v' value",
 				noStackTrace: true,
@@ -660,6 +665,11 @@ var linuxOopses = []*oops{
 			{
 				title: compile("INFO: suspicious RCU usage(?:.*\n)+?.*?{{SRC}}"),
 				fmt:   "suspicious RCU usage at %[1]v",
+			},
+			{
+				title:     compile("INFO: suspicious RCU usage"),
+				fmt:       "suspicious RCU usage",
+				corrupted: true,
 			},
 			{
 				title: compile("INFO: task .* blocked for more than [0-9]+ seconds"),
