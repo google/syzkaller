@@ -1525,6 +1525,54 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 ...
 [  264.592630]  [<ffffffff838a9745>] entry_SYSCALL_64_fastpath+0x23/0xc6
 `, `BUG: bad unlock balance in ipmr_mfc_seq_stop`, false,
+		}, {
+			`
+syzkaller login: [   16.305150] INFO: trying to register non-static key.
+[   16.305671] the code is fine but needs lockdep annotation.
+[   16.306408] turning off the locking correctness validator.
+[   16.306956] CPU: 0 PID: 2990 Comm: syzkaller460037 Not tainted 4.14.0-rc7-next-20171103+ #10
+[   16.307782] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[   16.308571] Call Trace:
+[   16.308831]  dump_stack+0x194/0x257
+[   16.309192]  ? arch_local_irq_restore+0x53/0x53
+[   16.309657]  register_lock_class+0x55e/0x2c70
+[   16.310347]  ? __lock_acquire+0x739/0x4770
+[   16.315564]  ? find_held_lock+0x39/0x1d0
+[   16.315964]  __lock_acquire+0x203/0x4770
+[   16.316366]  ? find_held_lock+0x39/0x1d0
+[   16.328281]  ? rcu_pm_notify+0xc0/0xc0
+[   16.328665]  lock_acquire+0x1d5/0x580
+[   16.330805]  ? tcp_fastopen_reset_cipher+0x194/0x580
+[   16.331306]  _raw_spin_lock_bh+0x31/0x40
+[   16.331707]  ? tcp_fastopen_reset_cipher+0x194/0x580
+[   16.332206]  tcp_fastopen_reset_cipher+0x194/0x580
+[   16.332690]  ? tcp_fastopen_ctx_destroy+0x220/0x220
+[   16.342778]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   16.343239] RIP: 0033:0x434e69
+[   16.343553] RSP: 002b:00007ffebc51ad98 EFLAGS: 00000203 ORIG_RAX: 0000000000000036
+[   16.344298] RAX: ffffffffffffffda RBX: 00000000004002b0 RCX: 0000000000434e69
+[   16.345003] RDX: 0000000000000021 RSI: 0000000000000006 RDI: 0000000000000003
+[   16.345704] RBP: 0000000000000086 R08: 0000000000000010 R09: 0000000000000000
+[   16.346826] R10: 0000000020f2b000 R11: 0000000000000203 R12: 0000000000000000
+[   16.347531] R13: 00000000004017e0 R14: 0000000000401870 R15: 0000000000000000
+`, `INFO: trying to register non-static key in tcp_fastopen_reset_cipher`, false,
+		}, {
+			`
+[   47.711290] ==================================================================
+[   47.712178] INFO: trying to register non-static key.
+[   47.712195] the code is fine but needs lockdep annotation.
+[   47.712204] turning off the locking correctness validator.
+[   47.712264] CPU: 1 PID: 0 Comm: swapper/1 Not tainted 4.13.0-rc6-next-20170825+ #9
+[   47.712270] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[   47.712271] Call Trace:
+[   47.712273]  <IRQ>
+[   47.712281]  dump_stack+0x194/0x257
+[   47.712441]  register_lock_class+0x55e/0x2c70
+[   47.712696]  __lock_acquire+0x203/0x4620
+[   47.713005]  lock_acquire+0x1d5/0x580
+[   47.713035]  _raw_spin_lock_bh+0x31/0x40
+[   47.713045]  tun_flow_cleanup+0xf4/0x300
+`, `INFO: trying to register non-static key in tun_flow_cleanup`, false,
 		},
 	}
 	testParse(t, "linux", tests)
