@@ -688,6 +688,14 @@ var linuxOopses = []*oops{
 				fmt:   "INFO: rcu detected stall",
 			},
 			{
+				title: compile("INFO: trying to register non-static key(?:.*\\n){0,10}Call Trace:\\n(?:(?:.*stack.*\\n)|(?:.*lock.*\\n)|(?:.*IRQ.*\\n))+ {{FUNC}}"),
+				fmt:   "INFO: trying to register non-static key in %[1]v",
+			},
+			{
+				title: compile("INFO: trying to register non-static key"),
+				fmt:   "INFO: trying to register non-static key",
+			},
+			{
 				title: compile("INFO: suspicious RCU usage(?:.*\n)+?.*?{{SRC}}"),
 				fmt:   "suspicious RCU usage at %[1]v",
 			},
