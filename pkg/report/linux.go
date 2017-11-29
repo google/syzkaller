@@ -78,7 +78,9 @@ func (ctx *linux) ContainsCrash(output []byte) bool {
 
 func (ctx *linux) Parse(output []byte) *Report {
 	output = ctx.ExtractConsoleOutput(output)
-	rep := new(Report)
+	rep := &Report{
+		Output: output,
+	}
 	var oops *oops
 	var textPrefix [][]byte
 	textLines := 0
