@@ -23,7 +23,7 @@ func TestClone(t *testing.T) {
 	}
 }
 
-func TestMutate(t *testing.T) {
+func TestMutateRandom(t *testing.T) {
 	target, rs, iters := initTest(t)
 next:
 	for i := 0; i < iters; i++ {
@@ -36,12 +36,17 @@ next:
 			p1.Mutate(rs, 10, nil, nil)
 			data := p.Serialize()
 			if !bytes.Equal(data0, data) {
-				t.Fatalf("program changed after clone/mutate\noriginal:\n%s\n\nnew:\n%s\n", data0, data)
+				t.Fatalf("program changed after clone/mutate\noriginal:\n%s\n\nnew:\n%s\n",
+					data0, data)
 			}
 			data1 := p1.Serialize()
-			if !bytes.Equal(data, data1) {
-				continue next
+			if bytes.Equal(data, data1) {
+				continue
 			}
+			if _, err := target.Deserialize(data1); err != nil {
+				t.Fatalf("Deserialize failed after Mutate: %v\n%s", err, data1)
+			}
+			continue next
 		}
 		t.Fatalf("mutation does not change program:\n%s", data0)
 	}

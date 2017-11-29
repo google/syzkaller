@@ -7,29 +7,29 @@ import (
 	"fmt"
 )
 
-func (target *Target) generateSize(arg Arg, lenType *LenType) Arg {
+func (target *Target) generateSize(arg Arg, lenType *LenType) uint64 {
 	if arg == nil {
 		// Arg is an optional pointer, set size to 0.
-		return MakeConstArg(lenType, 0)
+		return 0
 	}
 
+	byteSize := lenType.ByteSize
+	if byteSize == 0 {
+		byteSize = 1
+	}
 	switch arg.Type().(type) {
 	case *VmaType:
 		a := arg.(*PointerArg)
-		return MakeConstArg(lenType, a.PagesNum*target.PageSize)
+		return a.PagesNum * target.PageSize / byteSize
 	case *ArrayType:
 		a := arg.(*GroupArg)
 		if lenType.ByteSize != 0 {
-			return MakeConstArg(lenType, a.Size()/lenType.ByteSize)
+			return a.Size() / byteSize
 		} else {
-			return MakeConstArg(lenType, uint64(len(a.Inner)))
+			return uint64(len(a.Inner))
 		}
 	default:
-		if lenType.ByteSize != 0 {
-			return MakeConstArg(lenType, arg.Size()/lenType.ByteSize)
-		} else {
-			return MakeConstArg(lenType, arg.Size())
-		}
+		return arg.Size() / byteSize
 	}
 }
 
@@ -53,7 +53,7 @@ func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg) {
 
 			buf, ok := argsMap[typ.Buf]
 			if ok {
-				*a = *target.generateSize(InnerArg(buf), typ).(*ConstArg)
+				a.Val = target.generateSize(InnerArg(buf), typ)
 				continue
 			}
 
