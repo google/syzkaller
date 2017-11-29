@@ -191,7 +191,7 @@ syz_test$length7(a0 ptr[in, syz_length_array2_struct])
 syz_test$length8(a0 ptr[in, syz_length_complex_struct])
 syz_test$length9(a0 ptr[in, syz_length_vma_struct])
 
-syz_test$length10(a0 vma, a1 len[a0])
+syz_test$length10(a0 vma, a1 len[a0], a2 bytesize[a0], a3 bytesize2[a0], a4 bytesize4[a0])
 syz_test$length11(a0 ptr[in, syz_length_large_struct], a1 len[a0])
 syz_test$length12(a0 ptr[in, syz_length_large_struct, opt], a1 len[a0])
 syz_test$length13(a0 ptr[inout, syz_length_large_struct], a1 ptr[inout, len[a0, int64]])

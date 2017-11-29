@@ -13665,6 +13665,9 @@ var syscalls_arm64 = []*Syscall{
 	{ID: 1413, NR: 1000008, Name: "syz_test$length10", CallName: "syz_test", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "a0", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "a1", TypeSize: 8}}, Buf: "a0"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "a2", TypeSize: 8}}, ByteSize: 1, Buf: "a0"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize2", FldName: "a3", TypeSize: 8}}, ByteSize: 2, Buf: "a0"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "a4", TypeSize: 8}}, ByteSize: 4, Buf: "a0"},
 	}},
 	{ID: 1414, NR: 1000008, Name: "syz_test$length11", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_length_large_struct"}}},
@@ -16942,4 +16945,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_arm64 = "bda6cbc1306d682ce492d85f185d1ecbc8cd14d1"
+const revision_arm64 = "e7138e8c5e93e0a6430b9e3f97dcef689a8843c2"

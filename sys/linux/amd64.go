@@ -14178,6 +14178,9 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1478, NR: 1000008, Name: "syz_test$length10", CallName: "syz_test", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "a0", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "a1", TypeSize: 8}}, Buf: "a0"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "a2", TypeSize: 8}}, ByteSize: 1, Buf: "a0"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize2", FldName: "a3", TypeSize: 8}}, ByteSize: 2, Buf: "a0"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "a4", TypeSize: 8}}, ByteSize: 4, Buf: "a0"},
 	}},
 	{ID: 1479, NR: 1000008, Name: "syz_test$length11", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_length_large_struct"}}},
@@ -17560,4 +17563,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_amd64 = "3c393f727fed32893cfa9465a4c114d2845d98f8"
+const revision_amd64 = "008ee2d3dbbfb6e31a49cedbeb0ab9943855c1c8"

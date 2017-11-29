@@ -26,7 +26,7 @@ func TestAssignSizeRandom(t *testing.T) {
 			target.assignSizesCall(call)
 		}
 		if data1 := p.Serialize(); !bytes.Equal(data0, data1) {
-			t.Fatalf("different lens assigned, initial: %v, new: %v", data0, data1)
+			t.Fatalf("different lens assigned, initial:\n%s\nnew:\n%s", data0, data1)
 		}
 	}
 }
@@ -78,8 +78,8 @@ func TestAssignSize(t *testing.T) {
 			"syz_test$length9(&(0x7f000001f000)={&(0x7f0000000000/0x5000)=nil, 0x5000})",
 		},
 		{
-			"syz_test$length10(&(0x7f0000000000/0x5000)=nil, 0x0000)",
-			"syz_test$length10(&(0x7f0000000000/0x5000)=nil, 0x5000)",
+			"syz_test$length10(&(0x7f0000000000/0x5000)=nil, 0x0000, 0x0000, 0x0000, 0x0000)",
+			"syz_test$length10(&(0x7f0000000000/0x5000)=nil, 0x5000, 0x5000, 0x2800, 0x1400)",
 		},
 		{
 			"syz_test$length11(&(0x7f0000000000)={0xff, 0xff, [0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff]}, 0x00)",
