@@ -87,6 +87,7 @@ type ManagerConfig struct {
 	Dashboard_Client string
 	Dashboard_Key    string
 	Repo             string
+	Repo_Alias       string // Short name of the repo (e.g. "linux-next"), used only for reporting.
 	Branch           string
 	Compiler         string
 	Userspace        string

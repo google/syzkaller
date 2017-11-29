@@ -145,7 +145,7 @@ Raw console output is attached.
 		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
 		c.expectEQ(msg.Body, `Hello,
 
-syzbot tried to test the proposed patch but build failed:
+syzbot tried to test the proposed patch but build/boot failed:
 
 failed to apply patch
 

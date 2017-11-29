@@ -220,7 +220,6 @@ func (job *Job) buildImage() error {
 	if err != nil {
 		return fmt.Errorf("image build failed: %v", err)
 	}
-	// TODO(dvyukov): test that the image is good (boots and we can ssh into it).
 
 	mgrcfg := new(mgrconfig.Config)
 	*mgrcfg = *mgr.managercfg
@@ -247,16 +246,27 @@ func (job *Job) test() error {
 	req, mgrcfg := job.req, job.mgrcfg
 
 	Logf(0, "job: booting VM...")
-	vmEnv := mgrconfig.CreateVMEnv(mgrcfg, false)
-	vmPool, err := vm.Create(mgrcfg.Type, vmEnv)
+	inst, reporter, rep, err := bootInstance(mgrcfg)
 	if err != nil {
-		return fmt.Errorf("failed to create VM pool: %v", err)
+		return err
 	}
-	inst, err := vmPool.Create(0)
-	if err != nil {
-		return fmt.Errorf("failed to create VM: %v", err)
+	if rep != nil {
+		// We should not put rep into resp.CrashTitle/CrashReport,
+		// because that will be treated as patch not fixing the bug.
+		return fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
 	}
 	defer inst.Close()
+
+	Logf(0, "job: testing instance...")
+	rep, err = testInstance(inst, reporter, mgrcfg)
+	if err != nil {
+		return err
+	}
+	if rep != nil {
+		// We should not put rep into resp.CrashTitle/CrashReport,
+		// because that will be treated as patch not fixing the bug.
+		return fmt.Errorf("%v\n\n%s\n\n%s", rep.Title, rep.Report, rep.Output)
+	}
 
 	Logf(0, "job: copying binaries...")
 	execprogBin, err := inst.Copy(mgrcfg.SyzExecprogBin)
@@ -274,11 +284,6 @@ func (job *Job) test() error {
 	vmProgFile, err := inst.Copy(progFile)
 	if err != nil {
 		return fmt.Errorf("failed to copy to VM: %v", err)
-	}
-	reporter, err := report.NewReporter(mgrcfg.TargetOS, mgrcfg.Kernel_Src,
-		filepath.Dir(mgrcfg.Vmlinux), nil, mgrcfg.ParsedIgnores)
-	if err != nil {
-		return err
 	}
 
 	Logf(0, "job: testing syzkaller program...")

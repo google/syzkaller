@@ -244,7 +244,7 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 			return fmt.Errorf("job %v: already finished", jobID)
 		}
 		ns := job.Namespace
-		if err := uploadBuild(c, ns, &req.Build); err != nil {
+		if err := uploadBuild(c, ns, &req.Build, BuildJob); err != nil {
 			return err
 		}
 		if job.Error, err = putText(c, ns, "Error", req.Error, false); err != nil {

@@ -56,6 +56,16 @@ type Env struct {
 	Config  []byte // json-serialized VM-type-specific config
 }
 
+// BootError is returned by Pool.Create when VM does not boot.
+type BootError struct {
+	Title  string
+	Output []byte
+}
+
+func (err BootError) Error() string {
+	return fmt.Sprintf("%v\n%s", err.Title, err.Output)
+}
+
 // Create creates a VM type that can be used to create individual VMs.
 func Create(typ string, env *Env) (Pool, error) {
 	ctor := ctors[typ]

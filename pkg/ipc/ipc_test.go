@@ -114,6 +114,9 @@ func TestExecute(t *testing.T) {
 
 		for i := 0; i < iters/len(flags); i++ {
 			p := target.Generate(rs, 10, nil)
+			if i == 0 {
+				p = target.GenerateSimpleProg()
+			}
 			opts := &ExecOpts{}
 			output, _, _, _, err := env.Exec(opts, p)
 			if err != nil {

@@ -17,6 +17,7 @@ import (
 	"github.com/google/syzkaller/pkg/kernel"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
+	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
 )
 
@@ -42,25 +43,29 @@ var imageFiles = []string{
 //  - latest: latest known good kernel build
 //  - current: currently used kernel build
 type Manager struct {
-	name       string
-	workDir    string
-	kernelDir  string
-	currentDir string
-	latestDir  string
-	compilerID string
-	configTag  string
-	cfg        *Config
-	mgrcfg     *ManagerConfig
-	managercfg *mgrconfig.Config
-	cmd        *ManagerCmd
-	dash       *dashapi.Dashboard
-	stop       chan struct{}
+	name            string
+	workDir         string
+	kernelDir       string
+	currentDir      string
+	latestDir       string
+	compilerID      string
+	syzkallerCommit string
+	configTag       string
+	cfg             *Config
+	mgrcfg          *ManagerConfig
+	managercfg      *mgrconfig.Config
+	cmd             *ManagerCmd
+	dash            *dashapi.Dashboard
+	stop            chan struct{}
 }
 
 func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Manager {
 	dir := osutil.Abs(filepath.Join("managers", mgrcfg.Name))
 	if err := osutil.MkdirAll(dir); err != nil {
 		Fatal(err)
+	}
+	if mgrcfg.Repo_Alias == "" {
+		mgrcfg.Repo_Alias = mgrcfg.Repo
 	}
 
 	var dash *dashapi.Dashboard
@@ -77,6 +82,10 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	if err != nil {
 		Fatal(err)
 	}
+	syzkallerCommit, _ := readTag(filepath.FromSlash("syzkaller/current/tag"))
+	if syzkallerCommit == "" {
+		Fatalf("no tag in syzkaller/current/tag")
+	}
 
 	// Prepare manager config skeleton (other fields are filled in writeConfig).
 	managercfg := mgrconfig.DefaultValues()
@@ -90,18 +99,19 @@ func createManager(cfg *Config, mgrcfg *ManagerConfig, stop chan struct{}) *Mana
 	managercfg.Name = cfg.Name + "-" + mgrcfg.Name
 
 	mgr := &Manager{
-		name:       managercfg.Name,
-		workDir:    filepath.Join(dir, "workdir"),
-		kernelDir:  filepath.Join(dir, "kernel"),
-		currentDir: filepath.Join(dir, "current"),
-		latestDir:  filepath.Join(dir, "latest"),
-		compilerID: compilerID,
-		configTag:  hash.String(configData),
-		cfg:        cfg,
-		mgrcfg:     mgrcfg,
-		managercfg: managercfg,
-		dash:       dash,
-		stop:       stop,
+		name:            managercfg.Name,
+		workDir:         filepath.Join(dir, "workdir"),
+		kernelDir:       filepath.Join(dir, "kernel"),
+		currentDir:      filepath.Join(dir, "current"),
+		latestDir:       filepath.Join(dir, "latest"),
+		compilerID:      compilerID,
+		syzkallerCommit: syzkallerCommit,
+		configTag:       hash.String(configData),
+		cfg:             cfg,
+		mgrcfg:          mgrcfg,
+		managercfg:      managercfg,
+		dash:            dash,
+		stop:            stop,
 	}
 	os.RemoveAll(mgr.currentDir)
 	return mgr
@@ -227,38 +237,6 @@ func (mgr *Manager) build() error {
 	if err != nil {
 		return fmt.Errorf("failed to get git HEAD commit: %v", err)
 	}
-	if err := kernel.Build(mgr.kernelDir, mgr.mgrcfg.Compiler, mgr.mgrcfg.Kernel_Config); err != nil {
-		return fmt.Errorf("kernel build failed: %v", err)
-	}
-
-	// We first form the whole image in tmp dir and then rename it to latest.
-	tmpDir := mgr.latestDir + ".tmp"
-	if err := os.RemoveAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to remove tmp dir: %v", err)
-	}
-	if err := osutil.MkdirAll(tmpDir); err != nil {
-		return fmt.Errorf("failed to create tmp dir: %v", err)
-	}
-
-	image := filepath.Join(tmpDir, "image")
-	key := filepath.Join(tmpDir, "key")
-	err = kernel.CreateImage(mgr.kernelDir, mgr.mgrcfg.Userspace,
-		mgr.mgrcfg.Kernel_Cmdline, mgr.mgrcfg.Kernel_Sysctl, image, key)
-	if err != nil {
-		return fmt.Errorf("image build failed: %v", err)
-	}
-	// TODO(dvyukov): test that the image is good (boots and we can ssh into it).
-
-	vmlinux := filepath.Join(mgr.kernelDir, "vmlinux")
-	objDir := filepath.Join(tmpDir, "obj")
-	osutil.MkdirAll(objDir)
-	if err := os.Rename(vmlinux, filepath.Join(objDir, "vmlinux")); err != nil {
-		return fmt.Errorf("failed to rename vmlinux file: %v", err)
-	}
-	kernelConfig := filepath.Join(tmpDir, "kernel.config")
-	if err := osutil.CopyFile(mgr.mgrcfg.Kernel_Config, kernelConfig); err != nil {
-		return err
-	}
 
 	var tagData []byte
 	tagData = append(tagData, kernelCommit...)
@@ -273,8 +251,51 @@ func (mgr *Manager) build() error {
 		KernelCommit:    kernelCommit,
 		KernelConfigTag: mgr.configTag,
 	}
+
+	// We first form the whole image in tmp dir and then rename it to latest.
+	tmpDir := mgr.latestDir + ".tmp"
+	if err := os.RemoveAll(tmpDir); err != nil {
+		return fmt.Errorf("failed to remove tmp dir: %v", err)
+	}
+	if err := osutil.MkdirAll(tmpDir); err != nil {
+		return fmt.Errorf("failed to create tmp dir: %v", err)
+	}
+	kernelConfig := filepath.Join(tmpDir, "kernel.config")
+	if err := osutil.CopyFile(mgr.mgrcfg.Kernel_Config, kernelConfig); err != nil {
+		return err
+	}
 	if err := config.SaveFile(filepath.Join(tmpDir, "tag"), info); err != nil {
 		return fmt.Errorf("failed to write tag file: %v", err)
+	}
+
+	if err := kernel.Build(mgr.kernelDir, mgr.mgrcfg.Compiler, kernelConfig); err != nil {
+		rep := &report.Report{
+			Title:  fmt.Sprintf("%v build error", mgr.mgrcfg.Repo_Alias),
+			Output: []byte(err.Error()),
+		}
+		if err := mgr.reportBuildError(rep, info, tmpDir); err != nil {
+			Logf(0, "%v: failed to report image error: %v", mgr.name, err)
+		}
+		return fmt.Errorf("kernel build failed: %v", err)
+	}
+
+	image := filepath.Join(tmpDir, "image")
+	key := filepath.Join(tmpDir, "key")
+	err = kernel.CreateImage(mgr.kernelDir, mgr.mgrcfg.Userspace,
+		mgr.mgrcfg.Kernel_Cmdline, mgr.mgrcfg.Kernel_Sysctl, image, key)
+	if err != nil {
+		return fmt.Errorf("image build failed: %v", err)
+	}
+
+	vmlinux := filepath.Join(mgr.kernelDir, "vmlinux")
+	objDir := filepath.Join(tmpDir, "obj")
+	osutil.MkdirAll(objDir)
+	if err := os.Rename(vmlinux, filepath.Join(objDir, "vmlinux")); err != nil {
+		return fmt.Errorf("failed to rename vmlinux file: %v", err)
+	}
+
+	if err := mgr.testImage(tmpDir, info); err != nil {
+		return err
 	}
 
 	// Now try to replace latest with our tmp dir as atomically as we can get on Linux.
@@ -307,13 +328,102 @@ func (mgr *Manager) restartManager() {
 		Logf(0, "%v: failed to create manager config: %v", mgr.name, err)
 		return
 	}
-	if err := mgr.uploadBuild(info); err != nil {
+	if err := mgr.uploadBuild(info, mgr.currentDir); err != nil {
 		Logf(0, "%v: failed to upload build: %v", mgr.name, err)
 		return
 	}
 	bin := filepath.FromSlash("syzkaller/current/bin/syz-manager")
 	logFile := filepath.Join(mgr.currentDir, "manager.log")
 	mgr.cmd = NewManagerCmd(mgr.name, logFile, bin, "-config", cfgFile)
+}
+
+func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
+	Logf(0, "%v: testing image...", mgr.name)
+	mgrcfg, err := mgr.createTestConfig(imageDir, info)
+	if err != nil {
+		return fmt.Errorf("failed to create manager config: %v", err)
+	}
+	switch typ := mgrcfg.Type; typ {
+	case "gce", "qemu":
+	default:
+		// Other types don't support creating machines out of thin air.
+		return nil
+	}
+	if err := osutil.MkdirAll(mgrcfg.Workdir); err != nil {
+		return fmt.Errorf("failed to create tmp dir: %v", err)
+	}
+	defer os.RemoveAll(mgrcfg.Workdir)
+
+	inst, reporter, rep, err := bootInstance(mgrcfg)
+	if err != nil {
+		return err
+	}
+	if rep != nil {
+		rep.Title = fmt.Sprintf("%v boot error: %v", mgr.mgrcfg.Repo_Alias, rep.Title)
+		if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
+			Logf(0, "%v: failed to report image error: %v", mgr.name, err)
+		}
+		return fmt.Errorf("VM boot failed with: %v", rep.Title)
+	}
+	defer inst.Close()
+	rep, err = testInstance(inst, reporter, mgrcfg)
+	if err != nil {
+		return err
+	}
+	if rep != nil {
+		rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.Repo_Alias, rep.Title)
+		if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
+			Logf(0, "%v: failed to report image error: %v", mgr.name, err)
+		}
+		return fmt.Errorf("VM testing failed with: %v", rep.Title)
+	}
+	return nil
+}
+
+func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageDir string) error {
+	if mgr.dash == nil {
+		Logf(0, "%v: image testing failed: %v\n\n%s\n\n%s\n",
+			mgr.name, rep.Title, rep.Report, rep.Output)
+		return nil
+	}
+	build, err := mgr.createDashboardBuild(info, imageDir)
+	if err != nil {
+		return err
+	}
+	build.ID += "-error" // must not match normal build ID
+	req := &dashapi.BuildErrorReq{
+		Build: *build,
+		Crash: dashapi.Crash{
+			Title:       rep.Title,
+			Corrupted:   rep.Corrupted,
+			Maintainers: rep.Maintainers,
+			Log:         rep.Output,
+			Report:      rep.Report,
+		},
+	}
+	return mgr.dash.ReportBuildError(req)
+}
+
+func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconfig.Config, error) {
+	mgrcfg := new(mgrconfig.Config)
+	*mgrcfg = *mgr.managercfg
+	mgrcfg.Name += "-test"
+	mgrcfg.Tag = info.KernelCommit
+	mgrcfg.Workdir = filepath.Join(imageDir, "workdir")
+	mgrcfg.Vmlinux = filepath.Join(imageDir, "obj", "vmlinux")
+	mgrcfg.Image = filepath.Join(imageDir, "image")
+	mgrcfg.Sshkey = filepath.Join(imageDir, "key")
+	mgrcfg.Kernel_Src = mgr.kernelDir
+	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
+	cfgdata, err := config.SaveData(mgrcfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save manager config: %v", err)
+	}
+	mgrcfg, err = mgrconfig.LoadData(cfgdata)
+	if err != nil {
+		return nil, fmt.Errorf("failed to reload manager config: %v", err)
+	}
+	return mgrcfg, nil
 }
 
 func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
@@ -360,23 +470,28 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 	return configFile, nil
 }
 
-func (mgr *Manager) uploadBuild(info *BuildInfo) error {
+func (mgr *Manager) uploadBuild(info *BuildInfo, imageDir string) error {
 	if mgr.dash == nil {
 		return nil
 	}
 
-	syzkallerCommit, _ := readTag(filepath.FromSlash("syzkaller/current/tag"))
-	if syzkallerCommit == "" {
-		return fmt.Errorf("no tag in syzkaller/current/tag")
-	}
-	kernelConfig, err := ioutil.ReadFile(filepath.Join(mgr.currentDir, "kernel.config"))
+	build, err := mgr.createDashboardBuild(info, imageDir)
 	if err != nil {
-		return fmt.Errorf("failed to read kernel.config: %v", err)
+		return err
 	}
 	commits, err := mgr.pollCommits(info.KernelCommit)
 	if err != nil {
 		// This is not critical for operation.
 		Logf(0, "%v: failed to poll commits: %v", mgr.name, err)
+	}
+	build.Commits = commits
+	return mgr.dash.UploadBuild(build)
+}
+
+func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir string) (*dashapi.Build, error) {
+	kernelConfig, err := ioutil.ReadFile(filepath.Join(imageDir, "kernel.config"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read kernel.config: %v", err)
 	}
 	build := &dashapi.Build{
 		Manager:         mgr.name,
@@ -384,15 +499,14 @@ func (mgr *Manager) uploadBuild(info *BuildInfo) error {
 		OS:              mgr.managercfg.TargetOS,
 		Arch:            mgr.managercfg.TargetArch,
 		VMArch:          mgr.managercfg.TargetVMArch,
-		SyzkallerCommit: syzkallerCommit,
+		SyzkallerCommit: mgr.syzkallerCommit,
 		CompilerID:      info.CompilerID,
 		KernelRepo:      info.KernelRepo,
 		KernelBranch:    info.KernelBranch,
 		KernelCommit:    info.KernelCommit,
 		KernelConfig:    kernelConfig,
-		Commits:         commits,
 	}
-	return mgr.dash.UploadBuild(build)
+	return build, nil
 }
 
 // pollCommits asks dashboard what commits it is interested in (i.e. fixes for
