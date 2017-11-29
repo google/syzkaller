@@ -459,8 +459,9 @@ var linuxOopses = []*oops{
 				fmt:   "BUG: still has locks held in %[1]v",
 			},
 			{
-				title: compile("BUG: bad unlock balance detected!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
-				fmt:   "BUG: bad unlock balance in %[1]v",
+				title:  compile("BUG: bad unlock balance detected!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
+				report: compile("BUG: bad unlock balance detected!(?:.*\\n){0,5}?.*is trying to release lock"),
+				fmt:    "BUG: bad unlock balance in %[1]v",
 			},
 			{
 				// If we failed to extract function name where the fault happened, the report is most likely truncated.
