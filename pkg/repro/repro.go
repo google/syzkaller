@@ -35,12 +35,9 @@ type Result struct {
 	Opts     csource.Options
 	CRepro   bool
 	Stats    Stats
-	// Title, Log and Report of the final crash that we reproduced.
+	// Information about the final crash that we reproduced.
 	// Can be different from what we started reproducing.
-	Title     string
-	Log       []byte
-	Report    []byte
-	Corrupted bool
+	Report *report.Report
 }
 
 type context struct {
@@ -50,10 +47,7 @@ type context struct {
 	instances    chan *instance
 	bootRequests chan int
 	stats        Stats
-	title        string
-	log          []byte
-	report       []byte
-	corrupted    bool
+	report       *report.Report
 }
 
 type instance struct {
@@ -153,10 +147,11 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 		return nil, err
 	}
 	if res != nil {
-		ctx.reproLog(3, "repro crashed as (corrupted=%v):\n%s", ctx.corrupted, ctx.report)
+		ctx.reproLog(3, "repro crashed as (corrupted=%v):\n%s",
+			ctx.report.Corrupted, ctx.report.Report)
 		// Try to rerun the repro if the report is corrupted.
-		for attempts := 0; ctx.corrupted && attempts < 3; attempts++ {
-			ctx.reproLog(3, "report is corrupted, running repro again\n")
+		for attempts := 0; ctx.report.Corrupted && attempts < 3; attempts++ {
+			ctx.reproLog(3, "report is corrupted, running repro again")
 			if res.CRepro {
 				_, err = ctx.testCProg(res.Prog, res.Duration, res.Opts)
 			} else {
@@ -166,11 +161,9 @@ func Run(crashLog []byte, cfg *mgrconfig.Config, reporter report.Reporter, vmPoo
 				return nil, err
 			}
 		}
-		ctx.reproLog(3, "final repro crashed as (corrupted=%v):\n%s", ctx.corrupted, ctx.report)
-		res.Title = ctx.title
-		res.Log = ctx.log
+		ctx.reproLog(3, "final repro crashed as (corrupted=%v):\n%s",
+			ctx.report.Corrupted, ctx.report.Report)
 		res.Report = ctx.report
-		res.Corrupted = ctx.corrupted
 		res.Stats = ctx.stats
 	}
 
@@ -616,15 +609,12 @@ func (ctx *context) testImpl(inst *vm.Instance, command string, duration time.Du
 	if err != nil {
 		return false, fmt.Errorf("failed to run command in VM: %v", err)
 	}
-	rep, output := vm.MonitorExecution(outc, errc, ctx.reporter, true)
+	rep := vm.MonitorExecution(outc, errc, ctx.reporter, true)
 	if rep == nil {
 		ctx.reproLog(2, "program did not crash")
 		return false, nil
 	}
-	ctx.title = rep.Title
-	ctx.log = output
-	ctx.report = rep.Report
-	ctx.corrupted = rep.Corrupted
+	ctx.report = rep
 	ctx.reproLog(2, "program crashed: %v", rep.Title)
 	return true, nil
 }

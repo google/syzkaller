@@ -100,10 +100,10 @@ func (inst *Instance) Close() {
 // It detects kernel oopses in output, lost connections, hangs, etc.
 // outc/errc is what vm.Instance.Run returns, reporter parses kernel output for oopses.
 // If canExit is false and the program exits, it is treated as an error.
-// Returns crash report and raw output around the crash, or nil if no error happens.
+// Returns crash report, or nil if no error happens.
 func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Reporter, canExit bool) (
-	rep *report.Report, output []byte) {
-	//title string, report, output []byte, crashed, timedout bool) {
+	rep *report.Report) {
+	var output []byte
 	waitForOutput := func() {
 		timer := time.NewTimer(10 * time.Second).C
 		for {
@@ -124,23 +124,24 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Rep
 		beforeContext = 1024 << 10
 		afterContext  = 128 << 10
 	)
-	extractError := func(defaultError string) (*report.Report, []byte) {
+	extractError := func(defaultError string) *report.Report {
 		// Give it some time to finish writing the error message.
 		waitForOutput()
 		if bytes.Contains(output, []byte("SYZ-FUZZER: PREEMPTED")) {
-			return nil, nil
+			return nil
 		}
 		if !reporter.ContainsCrash(output[matchPos:]) {
 			if defaultError == "" {
 				if canExit {
-					return nil, nil
+					return nil
 				}
 				defaultError = "lost connection to test machine"
 			}
 			rep := &report.Report{
-				Title: defaultError,
+				Title:  defaultError,
+				Output: output,
 			}
-			return rep, output
+			return rep
 		}
 		rep := reporter.Parse(output[matchPos:])
 		if rep == nil {
@@ -154,7 +155,8 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Rep
 		if end > len(output) {
 			end = len(output)
 		}
-		return rep, output[start:end]
+		rep.Output = output[start:end]
+		return rep
 	}
 
 	lastExecuteTime := time.Now()
@@ -174,7 +176,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Rep
 				// but wait for kernel output in case there is some delayed oops.
 				return extractError("")
 			case TimeoutErr:
-				return nil, nil
+				return nil
 			default:
 				// Note: connection lost can race with a kernel oops message.
 				// In such case we want to return the kernel oops.
@@ -207,18 +209,20 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Rep
 			// because frequently it's the same condition.
 			if time.Since(lastExecuteTime) > 3*time.Minute {
 				rep := &report.Report{
-					Title: "no output from test machine",
+					Title:  "no output from test machine",
+					Output: output,
 				}
-				return rep, output
+				return rep
 			}
 		case <-ticker.C:
 			tickerFired = true
 			rep := &report.Report{
-				Title: "no output from test machine",
+				Title:  "no output from test machine",
+				Output: output,
 			}
-			return rep, output
+			return rep
 		case <-Shutdown:
-			return nil, nil
+			return nil
 		}
 	}
 }
