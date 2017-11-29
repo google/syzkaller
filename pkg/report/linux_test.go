@@ -1462,6 +1462,69 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  161.632233] CR2: 0000000000000074
 [  161.632243] ---[ end trace e3c719a9c9d01886 ]---
 `, `suspicious RCU usage`, true,
+		}, {
+			`
+[   76.640408] binder: undelivered TRANSACTION_ERROR: 29189
+[   76.649866] [ BUG: bad unlock balance detected! ]
+[   76.654695] 4.9.65-g8ae26d1 #98 Not tainted
+[   76.658991] -------------------------------------
+[   76.661695] FAULT_FLAG_ALLOW_RETRY missing 30
+[   76.661705] CPU: 0 PID: 14413 Comm: syz-executor0 Not tainted 4.9.65-g8ae26d1 #98
+[   76.661710] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   76.661725]  ffff8801ce46f9a0 ffffffff81d90469 ffff8801ce46fc80 0000000000000000
+[   76.661737]  ffff8801ccd7ad10 ffff8801ce46fb70 ffff8801ccd7ac00 ffff8801ce46fb98
+[   76.661749]  ffffffff8165e417 0000000000000282 ffff8801ce46faf0 00000001c52a4067
+[   76.661751] Call Trace:
+[   76.661765]  [<ffffffff81d90469>] dump_stack+0xc1/0x128
+...
+[   76.661991]  [<ffffffff838a9745>] entry_SYSCALL_64_fastpath+0x23/0xc6
+[   76.693507] binder: 14407:14442 BC_DEAD_BINDER_DONE 0000000000000000 not found
+[   76.694637] binder: 14407:14426 transaction failed 29189/-22, size 0-0 line 3007
+[   76.882228] syz-executor2/14420 is trying to release lock (mrt_lock) at:
+[   76.889259] [<ffffffff834dea24>] ipmr_mfc_seq_stop+0xe4/0x140
+[   76.895105] but there are no more locks to release!
+[   76.900080] 
+[   76.900080] other info that might help us debug this:
+[   76.906710] 2 locks held by syz-executor2/14420:
+[   76.911425]  #0:  (&f->f_pos_lock){+.+.+.}, at: [<ffffffff815cf9ef>] __fdget_pos+0x9f/0xc0
+[   76.920249]  #1:  (&p->lock){+.+.+.}, at: [<ffffffff815e4ded>] seq_read+0xdd/0x1290
+[   76.928457] 
+[   76.928457] stack backtrace:
+[   76.932918] CPU: 1 PID: 14420 Comm: syz-executor2 Not tainted 4.9.65-g8ae26d1 #98
+[   76.940499] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   76.949817]  ffff8801cef3f8e8 ffffffff81d90469 ffffffff849ae8b8 ffff8801c8344800
+[   76.957769]  ffffffff834dea24 ffffffff849ae8b8 ffff8801c8345088 ffff8801cef3f918
+[   76.965718]  ffffffff81235524 dffffc0000000000 ffffffff849ae8b8 00000000ffffffff
+[   76.973663] Call Trace:
+[   76.976220]  [<ffffffff81d90469>] dump_stack+0xc1/0x128
+...
+[   77.180814]  [<ffffffff838a9745>] entry_SYSCALL_64_fastpath+0x23/0xc6
+`, `BUG: bad unlock balance in dump_stack`, true,
+		}, {
+			`
+[  264.305036] =====================================
+[  264.309846] [ BUG: bad unlock balance detected! ]
+[  264.314656] 4.9.65-gea83e4a #95 Not tainted
+[  264.318945] -------------------------------------
+[  264.323751] syz-executor1/1081 is trying to release lock (mrt_lock) at:
+[  264.330694] [<ffffffff834dea24>] ipmr_mfc_seq_stop+0xe4/0x140
+[  264.336540] but there are no more locks to release!
+[  264.341515] 
+[  264.341515] other info that might help us debug this:
+[  264.348145] 1 lock held by syz-executor1/1081:
+[  264.352688]  #0:  (&p->lock){+.+.+.}, at: [<ffffffff815e4ded>] seq_read+0xdd/0x1290
+[  264.360901] 
+[  264.360901] stack backtrace:
+[  264.365364] CPU: 1 PID: 1081 Comm: syz-executor1 Not tainted 4.9.65-gea83e4a #95
+[  264.372860] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  264.382178]  ffff8801bd87f948 ffffffff81d90469 ffffffff849ae8b8 ffff8801be6c1800
+[  264.390127]  ffffffff834dea24 ffffffff849ae8b8 ffff8801be6c2088 ffff8801bd87f978
+[  264.398073]  ffffffff81235524 dffffc0000000000 ffffffff849ae8b8 00000000ffffffff
+[  264.406014] Call Trace:
+[  264.408566]  [<ffffffff81d90469>] dump_stack+0xc1/0x128
+...
+[  264.592630]  [<ffffffff838a9745>] entry_SYSCALL_64_fastpath+0x23/0xc6
+`, `BUG: bad unlock balance in ipmr_mfc_seq_stop`, false,
 		},
 	}
 	testParse(t, "linux", tests)
