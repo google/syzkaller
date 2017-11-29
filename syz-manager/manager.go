@@ -580,22 +580,15 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	}
 	mgr.mu.Unlock()
 
-	crash.Report.Report = mgr.symbolizeReport(crash.Report.Report)
+	if err := mgr.getReporter().Symbolize(crash.Report); err != nil {
+		Logf(0, "failed to symbolize report: %v", err)
+	}
 	if mgr.dash != nil {
-		var maintainers []string
-		guiltyFile := mgr.getReporter().ExtractGuiltyFile(crash.Report.Report)
-		if guiltyFile != "" {
-			var err error
-			maintainers, err = mgr.getReporter().GetMaintainers(guiltyFile)
-			if err != nil {
-				Logf(0, "failed to get maintainers: %v", err)
-			}
-		}
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
 			Title:       crash.Title,
 			Corrupted:   crash.Corrupted,
-			Maintainers: maintainers,
+			Maintainers: crash.Maintainers,
 			Log:         crash.Output,
 			Report:      crash.Report.Report,
 		}
@@ -685,7 +678,9 @@ func (mgr *Manager) saveFailedRepro(desc string) {
 
 func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	rep := res.Report
-	rep.Report = mgr.symbolizeReport(rep.Report)
+	if err := mgr.getReporter().Symbolize(rep); err != nil {
+		Logf(0, "failed to symbolize repro: %v", err)
+	}
 	dir := filepath.Join(mgr.crashdir, hash.String([]byte(rep.Title)))
 	osutil.MkdirAll(dir)
 
@@ -733,19 +728,10 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	}
 
 	if mgr.dash != nil {
-		var maintainers []string
-		guiltyFile := mgr.getReporter().ExtractGuiltyFile(res.Report.Report)
-		if guiltyFile != "" {
-			var err error
-			maintainers, err = mgr.getReporter().GetMaintainers(guiltyFile)
-			if err != nil {
-				Logf(0, "failed to get maintainers: %v", err)
-			}
-		}
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
 			Title:       res.Report.Title,
-			Maintainers: maintainers,
+			Maintainers: res.Report.Maintainers,
 			Log:         res.Report.Output,
 			Report:      res.Report.Report,
 			ReproOpts:   res.Opts.Serialize(),
@@ -758,26 +744,19 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	}
 }
 
-func (mgr *Manager) symbolizeReport(text []byte) []byte {
-	if len(text) == 0 || mgr.cfg.Vmlinux == "" {
-		return text
-	}
-	symbolized, err := mgr.getReporter().Symbolize(text)
-	if err != nil {
-		Logf(0, "failed to symbolize report: %v", err)
-		return text
-	}
-	return symbolized
-}
-
 func (mgr *Manager) getReporter() report.Reporter {
 	if mgr.reporter == nil {
 		<-allSymbolsReady
 		var err error
 		// TODO(dvyukov): we should introduce cfg.Kernel_Obj dir instead of Vmlinux.
 		// This will be more general taking into account modules and other OSes.
-		mgr.reporter, err = report.NewReporter(mgr.cfg.TargetOS, mgr.cfg.Kernel_Src,
-			filepath.Dir(mgr.cfg.Vmlinux), allSymbols, mgr.cfg.ParsedIgnores)
+		kernelSrc, kernelObj := "", ""
+		if mgr.cfg.Vmlinux != "" {
+			kernelSrc = mgr.cfg.Kernel_Src
+			kernelObj = filepath.Dir(mgr.cfg.Vmlinux)
+		}
+		mgr.reporter, err = report.NewReporter(mgr.cfg.TargetOS, kernelSrc, kernelObj,
+			allSymbols, mgr.cfg.ParsedIgnores)
 		if err != nil {
 			Fatalf("%v", err)
 		}

@@ -32,12 +32,15 @@ type linux struct {
 
 func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
 	ignores []*regexp.Regexp) (Reporter, error) {
-	vmlinux := filepath.Join(kernelObj, "vmlinux")
-	if symbols == nil {
-		var err error
-		symbols, err = symbolizer.ReadSymbols(vmlinux)
-		if err != nil {
-			return nil, err
+	vmlinux := ""
+	if kernelObj != "" {
+		vmlinux = filepath.Join(kernelObj, "vmlinux")
+		if symbols == nil {
+			var err error
+			symbols, err = symbolizer.ReadSymbols(vmlinux)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	ctx := &linux{
@@ -77,7 +80,7 @@ func (ctx *linux) ContainsCrash(output []byte) bool {
 }
 
 func (ctx *linux) Parse(output []byte) *Report {
-	output = ctx.ExtractConsoleOutput(output)
+	output = ctx.extractConsoleOutput(output)
 	rep := &Report{
 		Output: output,
 	}
@@ -170,7 +173,26 @@ func (ctx *linux) Parse(output []byte) *Report {
 	return rep
 }
 
-func (ctx *linux) Symbolize(text []byte) ([]byte, error) {
+func (ctx *linux) Symbolize(rep *Report) error {
+	if ctx.vmlinux == "" {
+		return nil
+	}
+	symbolized, err := ctx.symbolize(rep.Report)
+	if err != nil {
+		return err
+	}
+	rep.Report = symbolized
+	guiltyFile := ctx.extractGuiltyFile(rep.Report)
+	if guiltyFile != "" {
+		rep.Maintainers, err = ctx.getMaintainers(guiltyFile)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (ctx *linux) symbolize(text []byte) ([]byte, error) {
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
 	// Strip vmlinux location from all paths.
@@ -253,7 +275,7 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 	return symbolized
 }
 
-func (ctx *linux) ExtractConsoleOutput(output []byte) (result []byte) {
+func (ctx *linux) extractConsoleOutput(output []byte) (result []byte) {
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
 		if next != -1 {
@@ -277,7 +299,7 @@ func (ctx *linux) ExtractConsoleOutput(output []byte) (result []byte) {
 	return
 }
 
-func (ctx *linux) ExtractGuiltyFile(report []byte) string {
+func (ctx *linux) extractGuiltyFile(report []byte) string {
 	files := ctx.extractFiles(report)
 nextFile:
 	for _, file := range files {
@@ -291,13 +313,13 @@ nextFile:
 	return ""
 }
 
-func (ctx *linux) GetMaintainers(file string) ([]string, error) {
-	mtrs, err := ctx.getMaintainers(file, false)
+func (ctx *linux) getMaintainers(file string) ([]string, error) {
+	mtrs, err := ctx.getMaintainersImpl(file, false)
 	if err != nil {
 		return nil, err
 	}
 	if len(mtrs) <= 1 {
-		mtrs, err = ctx.getMaintainers(file, true)
+		mtrs, err = ctx.getMaintainersImpl(file, true)
 		if err != nil {
 			return nil, err
 		}
@@ -305,7 +327,7 @@ func (ctx *linux) GetMaintainers(file string) ([]string, error) {
 	return mtrs, nil
 }
 
-func (ctx *linux) getMaintainers(file string, blame bool) ([]string, error) {
+func (ctx *linux) getMaintainersImpl(file string, blame bool) ([]string, error) {
 	args := []string{"--no-n", "--no-rolestats"}
 	if blame {
 		args = append(args, "--git-blame")

@@ -35,18 +35,6 @@ func (ctx *fuchsia) Parse(output []byte) *Report {
 	panic("not implemented")
 }
 
-func (ctx *fuchsia) Symbolize(text []byte) ([]byte, error) {
-	panic("not implemented")
-}
-
-func (ctx *fuchsia) ExtractConsoleOutput(output []byte) (result []byte) {
-	panic("not implemented")
-}
-
-func (ctx *fuchsia) ExtractGuiltyFile(report []byte) string {
-	panic("not implemented")
-}
-
-func (ctx *fuchsia) GetMaintainers(file string) ([]string, error) {
+func (ctx *fuchsia) Symbolize(rep *Report) error {
 	panic("not implemented")
 }

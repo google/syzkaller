@@ -262,16 +262,6 @@ func (mgr *Manager) httpReport(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintf(w, "Syzkaller hit '%s' bug%s.\n\n", trimNewLines(desc), commitDesc)
 	if len(rep) != 0 {
-		guiltyFile := mgr.getReporter().ExtractGuiltyFile(rep)
-		if guiltyFile != "" {
-			fmt.Fprintf(w, "Guilty file: %v\n\n", guiltyFile)
-			maintainers, err := mgr.getReporter().GetMaintainers(guiltyFile)
-			if err == nil {
-				fmt.Fprintf(w, "Maintainers: %v\n\n", maintainers)
-			} else {
-				fmt.Fprintf(w, "Failed to extract maintainers: %v\n\n", err)
-			}
-		}
 		fmt.Fprintf(w, "%s\n\n", rep)
 	}
 	if len(prog) == 0 && len(cprog) == 0 {

@@ -35,18 +35,6 @@ func (ctx *windows) Parse(output []byte) *Report {
 	panic("not implemented")
 }
 
-func (ctx *windows) Symbolize(text []byte) ([]byte, error) {
-	panic("not implemented")
-}
-
-func (ctx *windows) ExtractConsoleOutput(output []byte) (result []byte) {
-	panic("not implemented")
-}
-
-func (ctx *windows) ExtractGuiltyFile(report []byte) string {
-	panic("not implemented")
-}
-
-func (ctx *windows) GetMaintainers(file string) ([]string, error) {
+func (ctx *windows) Symbolize(rep *Report) error {
 	panic("not implemented")
 }

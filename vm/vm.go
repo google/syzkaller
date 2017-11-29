@@ -100,7 +100,7 @@ func (inst *Instance) Close() {
 // It detects kernel oopses in output, lost connections, hangs, etc.
 // outc/errc is what vm.Instance.Run returns, reporter parses kernel output for oopses.
 // If canExit is false and the program exits, it is treated as an error.
-// Returns crash report, or nil if no error happens.
+// Returns a non-symbolized crash report, or nil if no error happens.
 func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Reporter, canExit bool) (
 	rep *report.Report) {
 	var output []byte
