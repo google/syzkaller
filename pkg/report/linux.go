@@ -56,6 +56,7 @@ func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symb
 		regexp.MustCompile(`^virt/lib/.*`),
 		regexp.MustCompile(`^mm/kasan/.*`),
 		regexp.MustCompile(`^mm/kmsan/.*`),
+		regexp.MustCompile(`^mm/sl.b.c`),
 		regexp.MustCompile(`^mm/percpu.*`),
 		regexp.MustCompile(`^mm/vmalloc.c`),
 		regexp.MustCompile(`^mm/page_alloc.c`),
