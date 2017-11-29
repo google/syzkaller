@@ -364,7 +364,7 @@ func (pool *Pool) waitInstanceBoot(name, ip, sshKey, sshUser, gceKey string) err
 	if err != nil {
 		output = []byte(fmt.Sprintf("failed to get boot output: %v", err))
 	}
-	return fmt.Errorf("can't ssh into the instance\n\n%s", output)
+	return vmimpl.BootError{"can't ssh into the instance", output}
 }
 
 func (pool *Pool) getSerialPortOutput(name, gceKey string) ([]byte, error) {

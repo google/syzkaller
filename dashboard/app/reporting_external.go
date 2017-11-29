@@ -24,7 +24,7 @@ func (cfg *ExternalConfig) Type() string {
 	return cfg.ID
 }
 
-func apiReportingPoll(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiReportingPoll(c context.Context, r *http.Request) (interface{}, error) {
 	req := new(dashapi.PollRequest)
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
@@ -36,7 +36,7 @@ func apiReportingPoll(c context.Context, ns string, r *http.Request) (interface{
 	return resp, nil
 }
 
-func apiReportingUpdate(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiReportingUpdate(c context.Context, r *http.Request) (interface{}, error) {
 	req := new(dashapi.BugUpdate)
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)

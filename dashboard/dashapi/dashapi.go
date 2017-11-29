@@ -121,6 +121,15 @@ func (dash *Dashboard) JobDone(req *JobDoneReq) error {
 	return dash.query("job_done", req, nil)
 }
 
+type BuildErrorReq struct {
+	Build Build
+	Crash Crash
+}
+
+func (dash *Dashboard) ReportBuildError(req *BuildErrorReq) error {
+	return dash.query("report_build_error", req, nil)
+}
+
 // Crash describes a single kernel crash (potentially with repro).
 type Crash struct {
 	BuildID     string // refers to Build.ID

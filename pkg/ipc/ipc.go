@@ -308,8 +308,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 	if env.config.Flags&FlagUseShmem == 0 {
 		progData = env.in[:progSize]
 	}
-	needOutput := env.config.Flags&FlagSignal != 0 || opts.Flags&FlagCollectComps != 0
-	if needOutput && env.out != nil {
+	if env.out != nil {
 		// Zero out the first two words (ncmd and nsig), so that we don't have garbage there
 		// if executor crashes before writing non-garbage there.
 		for i := 0; i < 4; i++ {
@@ -333,7 +332,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 		return
 	}
 
-	if needOutput && env.out != nil {
+	if env.out != nil {
 		info, err0 = env.readOutCoverage(p)
 	}
 	return
