@@ -35,7 +35,7 @@ type Result struct {
 	Opts     csource.Options
 	CRepro   bool
 	Stats    Stats
-	// Information about the final crash that we reproduced.
+	// Information about the final (non-symbolized) crash that we reproduced.
 	// Can be different from what we started reproducing.
 	Report *report.Report
 }

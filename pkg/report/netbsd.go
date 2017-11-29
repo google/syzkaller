@@ -4,7 +4,6 @@
 package report
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/google/syzkaller/pkg/symbolizer"
@@ -36,18 +35,6 @@ func (ctx *netbsd) Parse(output []byte) *Report {
 	return nil
 }
 
-func (ctx *netbsd) Symbolize(text []byte) ([]byte, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (ctx *netbsd) ExtractConsoleOutput(output []byte) (result []byte) {
-	return output
-}
-
-func (ctx *netbsd) ExtractGuiltyFile(report []byte) string {
-	return ""
-}
-
-func (ctx *netbsd) GetMaintainers(file string) ([]string, error) {
-	return nil, fmt.Errorf("not implemented")
+func (ctx *netbsd) Symbolize(rep *Report) error {
+	return nil
 }

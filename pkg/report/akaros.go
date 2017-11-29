@@ -35,18 +35,6 @@ func (ctx *akaros) Parse(output []byte) *Report {
 	panic("not implemented")
 }
 
-func (ctx *akaros) Symbolize(text []byte) ([]byte, error) {
-	panic("not implemented")
-}
-
-func (ctx *akaros) ExtractConsoleOutput(output []byte) (result []byte) {
-	panic("not implemented")
-}
-
-func (ctx *akaros) ExtractGuiltyFile(report []byte) string {
-	panic("not implemented")
-}
-
-func (ctx *akaros) GetMaintainers(file string) ([]string, error) {
+func (ctx *akaros) Symbolize(rep *Report) error {
 	panic("not implemented")
 }

@@ -5,7 +5,6 @@ package report
 
 import (
 	"bytes"
-	"fmt"
 	"regexp"
 
 	"github.com/google/syzkaller/pkg/symbolizer"
@@ -76,20 +75,8 @@ func (ctx *freebsd) Parse(output []byte) *Report {
 	return rep
 }
 
-func (ctx *freebsd) Symbolize(text []byte) ([]byte, error) {
-	return nil, fmt.Errorf("not implemented")
-}
-
-func (ctx *freebsd) ExtractConsoleOutput(output []byte) (result []byte) {
-	return output
-}
-
-func (ctx *freebsd) ExtractGuiltyFile(report []byte) string {
-	return ""
-}
-
-func (ctx *freebsd) GetMaintainers(file string) ([]string, error) {
-	return nil, fmt.Errorf("not implemented")
+func (ctx *freebsd) Symbolize(rep *Report) error {
+	return nil
 }
 
 var freebsdOopses = []*oops{
