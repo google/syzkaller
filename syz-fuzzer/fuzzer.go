@@ -40,6 +40,7 @@ var (
 	flagLeak     = flag.Bool("leak", false, "detect memory leaks")
 	flagOutput   = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
 	flagPprof    = flag.String("pprof", "", "address to serve pprof profiles")
+	flagTest     = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
 )
 
 const (
@@ -120,6 +121,11 @@ func main() {
 		Logf(0, "SYZ-FUZZER: PREEMPTED")
 		os.Exit(1)
 	}()
+
+	if *flagTest {
+		testImage(*flagManager, target)
+		return
+	}
 
 	if *flagPprof != "" {
 		go func() {
@@ -223,10 +229,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	if _, ok := calls[target.SyscallMap["syz_emit_ethernet"]]; ok {
-		config.Flags |= ipc.FlagEnableTun
-	}
-	if _, ok := calls[target.SyscallMap["syz_extract_tcp_res"]]; ok {
+	if calls[target.SyscallMap["syz_emit_ethernet"]] ||
+		calls[target.SyscallMap["syz_extract_tcp_res"]] {
 		config.Flags |= ipc.FlagEnableTun
 	}
 	if faultInjectionEnabled {

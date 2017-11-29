@@ -499,6 +499,15 @@ func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
 	return p
 }
 
+// GenerateSimpleProg generates the simplest non-empty program for testing
+// (e.g. containing a single mmap).
+func (target *Target) GenerateSimpleProg() *Prog {
+	return &Prog{
+		Target: target,
+		Calls:  []*Call{target.MakeMmap(0, 1)},
+	}
+}
+
 func (r *randGen) generateArgs(s *state, types []Type) ([]Arg, []*Call) {
 	var calls []*Call
 	args := make([]Arg, len(types))

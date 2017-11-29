@@ -373,13 +373,13 @@ func (inst *instance) Boot() error {
 			time.Sleep(time.Second) // wait for any pending output
 			bootOutputStop <- true
 			<-bootOutputStop
-			return fmt.Errorf("qemu stopped:\n%v\n", string(bootOutput))
+			return vmimpl.BootError{"qemu stopped", bootOutput}
 		default:
 		}
 		if time.Since(start) > 10*time.Minute {
 			bootOutputStop <- true
 			<-bootOutputStop
-			return fmt.Errorf("ssh server did not start:\n%v\n", string(bootOutput))
+			return vmimpl.BootError{"ssh server did not start", bootOutput}
 		}
 	}
 	bootOutputStop <- true

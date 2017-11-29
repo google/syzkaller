@@ -29,20 +29,25 @@ func init() {
 }
 
 var apiHandlers = map[string]APIHandler{
-	"log_error":           apiLogError,
+	"log_error":        apiLogError,
+	"job_poll":         apiJobPoll,
+	"job_done":         apiJobDone,
+	"reporting_poll":   apiReportingPoll,
+	"reporting_update": apiReportingUpdate,
+}
+
+var apiNamespaceHandlers = map[string]APINamespaceHandler{
 	"upload_build":        apiUploadBuild,
 	"builder_poll":        apiBuilderPoll,
-	"job_poll":            apiJobPoll,
-	"job_done":            apiJobDone,
+	"report_build_error":  apiReportBuildError,
 	"report_crash":        apiReportCrash,
 	"report_failed_repro": apiReportFailedRepro,
 	"need_repro":          apiNeedRepro,
-	"reporting_poll":      apiReportingPoll,
-	"reporting_update":    apiReportingUpdate,
 }
 
 type JSONHandler func(c context.Context, r *http.Request) (interface{}, error)
-type APIHandler func(c context.Context, ns string, r *http.Request) (interface{}, error)
+type APIHandler func(c context.Context, r *http.Request) (interface{}, error)
+type APINamespaceHandler func(c context.Context, ns string, r *http.Request) (interface{}, error)
 
 // Overridable for testing.
 var timeNow = func(c context.Context) time.Time {
@@ -82,10 +87,17 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	}
 	method := r.FormValue("method")
 	handler := apiHandlers[method]
-	if handler == nil {
+	if handler != nil {
+		return handler(c, r)
+	}
+	nsHandler := apiNamespaceHandlers[method]
+	if nsHandler == nil {
 		return nil, fmt.Errorf("unknown api method %q", method)
 	}
-	return handler(c, ns, r)
+	if ns == "" {
+		return nil, fmt.Errorf("method %q must be called within a namespace", method)
+	}
+	return nsHandler(c, ns, r)
 }
 
 func checkClient(c context.Context, name0, key0 string) (string, error) {
@@ -110,7 +122,7 @@ func checkClient(c context.Context, name0, key0 string) (string, error) {
 	return "", fmt.Errorf("unauthorized api request from %q", name0)
 }
 
-func apiLogError(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiLogError(c context.Context, r *http.Request) (interface{}, error) {
 	req := new(dashapi.LogEntry)
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
@@ -159,7 +171,7 @@ loop:
 	return resp, nil
 }
 
-func apiJobPoll(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiJobPoll(c context.Context, r *http.Request) (interface{}, error) {
 	req := new(dashapi.JobPollReq)
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
@@ -170,7 +182,7 @@ func apiJobPoll(c context.Context, ns string, r *http.Request) (interface{}, err
 	return pollPendingJobs(c, req.Managers)
 }
 
-func apiJobDone(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiJobDone(c context.Context, r *http.Request) (interface{}, error) {
 	req := new(dashapi.JobDoneReq)
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
@@ -184,11 +196,22 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{},
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	err := uploadBuild(c, ns, req)
-	return nil, err
+	if err := uploadBuild(c, ns, req, BuildNormal); err != nil {
+		return nil, err
+	}
+	if len(req.Commits) != 0 {
+		if err := addCommitsToBugs(c, ns, req.Manager, req.Commits); err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
 }
 
-func uploadBuild(c context.Context, ns string, req *dashapi.Build) error {
+func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType) error {
+	if _, err := loadBuild(c, ns, req.ID); err == nil {
+		return nil
+	}
+
 	checkStrLen := func(str, name string, maxLen int) error {
 		if str == "" {
 			return fmt.Errorf("%v is empty", name)
@@ -227,6 +250,8 @@ func uploadBuild(c context.Context, ns string, req *dashapi.Build) error {
 		Namespace:       ns,
 		Manager:         req.Manager,
 		ID:              req.ID,
+		Type:            typ,
+		Time:            timeNow(c),
 		OS:              req.OS,
 		Arch:            req.Arch,
 		VMArch:          req.VMArch,
@@ -240,13 +265,6 @@ func uploadBuild(c context.Context, ns string, req *dashapi.Build) error {
 	if _, err := datastore.Put(c, buildKey(c, ns, req.ID), build); err != nil {
 		return err
 	}
-
-	if len(req.Commits) != 0 {
-		if err := addCommitsToBugs(c, ns, req.Manager, req.Commits); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -348,6 +366,20 @@ func stringInList(list []string, str string) bool {
 	return false
 }
 
+func apiReportBuildError(c context.Context, ns string, r *http.Request) (interface{}, error) {
+	req := new(dashapi.BuildErrorReq)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	if err := uploadBuild(c, ns, &req.Build, BuildFailed); err != nil {
+		return nil, err
+	}
+	if _, err := reportCrash(c, ns, &req.Crash); err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
 const corruptedReportTitle = "corrupted report"
 
 func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{}, error) {
@@ -355,6 +387,10 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
+	return reportCrash(c, ns, req)
+}
+
+func reportCrash(c context.Context, ns string, req *dashapi.Crash) (interface{}, error) {
 	req.Title = limitLength(req.Title, maxTextLen)
 	req.Maintainers = email.MergeEmailLists(req.Maintainers)
 	if req.Corrupted {
