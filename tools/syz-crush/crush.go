@@ -44,7 +44,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	reporter, err := report.NewReporter(cfg.TargetOS, cfg.Kernel_Src, "", nil, cfg.ParsedIgnores)
+	reporter, err := report.NewReporter(cfg.TargetOS, cfg.Kernel_Src,
+		filepath.Dir(cfg.Vmlinux), nil, cfg.ParsedIgnores)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -84,12 +85,12 @@ func runInstance(cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Poo
 	}
 	defer inst.Close()
 
-	execprogBin, err := inst.Copy(filepath.Join(cfg.Syzkaller, "bin", "syz-execprog"))
+	execprogBin, err := inst.Copy(cfg.SyzExecprogBin)
 	if err != nil {
 		log.Logf(0, "failed to copy execprog: %v", err)
 		return
 	}
-	executorBin, err := inst.Copy(filepath.Join(cfg.Syzkaller, "bin", "syz-executor"))
+	executorBin, err := inst.Copy(cfg.SyzExecutorBin)
 	if err != nil {
 		log.Logf(0, "failed to copy executor: %v", err)
 		return
