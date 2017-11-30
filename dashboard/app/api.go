@@ -43,6 +43,7 @@ var apiNamespaceHandlers = map[string]APINamespaceHandler{
 	"report_crash":        apiReportCrash,
 	"report_failed_repro": apiReportFailedRepro,
 	"need_repro":          apiNeedRepro,
+	"manager_stats":       apiManagerStats,
 }
 
 type JSONHandler func(c context.Context, r *http.Request) (interface{}, error)
@@ -203,6 +204,12 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{},
 		if err := addCommitsToBugs(c, ns, req.Manager, req.Commits); err != nil {
 			return nil, err
 		}
+	}
+	if err := updateManager(c, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) {
+		mgr.CurrentBuild = req.ID
+		mgr.FailedBuildBug = ""
+	}); err != nil {
+		return nil, err
 	}
 	return nil, nil
 }
@@ -374,7 +381,14 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request) (interfa
 	if err := uploadBuild(c, ns, &req.Build, BuildFailed); err != nil {
 		return nil, err
 	}
-	if _, err := reportCrash(c, ns, &req.Crash); err != nil {
+	req.Crash.BuildID = req.Build.ID
+	bug, err := reportCrash(c, ns, &req.Crash)
+	if err != nil {
+		return nil, err
+	}
+	if err := updateManager(c, ns, req.Build.Manager, func(mgr *Manager, stats *ManagerStats) {
+		mgr.FailedBuildBug = bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
+	}); err != nil {
 		return nil, err
 	}
 	return nil, nil
@@ -387,10 +401,17 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	return reportCrash(c, ns, req)
+	bug, err := reportCrash(c, ns, req)
+	if err != nil {
+		return nil, err
+	}
+	resp := &dashapi.ReportCrashResp{
+		NeedRepro: needRepro(bug),
+	}
+	return resp, nil
 }
 
-func reportCrash(c context.Context, ns string, req *dashapi.Crash) (interface{}, error) {
+func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error) {
 	req.Title = limitLength(req.Title, maxTextLen)
 	req.Maintainers = email.MergeEmailLists(req.Maintainers)
 	if req.Corrupted {
@@ -488,10 +509,7 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (interface{},
 	if saveCrash {
 		purgeOldCrashes(c, bug, bugKey)
 	}
-	resp := &dashapi.ReportCrashResp{
-		NeedRepro: needRepro(bug),
-	}
-	return resp, nil
+	return bug, nil
 }
 
 func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
@@ -601,6 +619,30 @@ func apiNeedRepro(c context.Context, ns string, r *http.Request) (interface{}, e
 		NeedRepro: needRepro(bug),
 	}
 	return resp, nil
+}
+
+func apiManagerStats(c context.Context, ns string, r *http.Request) (interface{}, error) {
+	req := new(dashapi.ManagerStatsReq)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	now := timeNow(c)
+	if err := updateManager(c, ns, req.Name, func(mgr *Manager, stats *ManagerStats) {
+		mgr.LastAlive = now
+		mgr.CurrentUpTime = req.UpTime
+		if cur := int64(req.Corpus); cur > stats.MaxCorpus {
+			stats.MaxCorpus = cur
+		}
+		if cur := int64(req.Cover); cur > stats.MaxCover {
+			stats.MaxCover = cur
+		}
+		stats.TotalFuzzingTime += req.FuzzingTime
+		stats.TotalCrashes += int64(req.Crashes)
+		stats.TotalExecs += int64(req.Execs)
+	}); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 func findBugForCrash(c context.Context, ns, title string) (*Bug, *datastore.Key, error) {

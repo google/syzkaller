@@ -19,19 +19,23 @@ import (
 type ManagerCmd struct {
 	name    string
 	log     string
+	errorf  Errorf
 	bin     string
 	args    []string
 	closing chan bool
 }
 
+type Errorf func(msg string, args ...interface{})
+
 // NewManagerCmd starts new syz-manager process.
 // name - name for logging.
 // log - manager log file with stdout/stderr.
 // bin/args - process binary/args.
-func NewManagerCmd(name, log, bin string, args ...string) *ManagerCmd {
+func NewManagerCmd(name, log string, errorf Errorf, bin string, args ...string) *ManagerCmd {
 	mc := &ManagerCmd{
 		name:    name,
 		log:     log,
+		errorf:  errorf,
 		bin:     bin,
 		args:    args,
 		closing: make(chan bool),
@@ -48,8 +52,8 @@ func (mc *ManagerCmd) Close() {
 
 func (mc *ManagerCmd) loop() {
 	const (
-		restartPeriod    = time.Minute // don't restart crashing manager more frequently than that
-		interruptTimeout = time.Minute // give manager that much time to react to SIGINT
+		restartPeriod    = 10 * time.Minute // don't restart crashing manager more frequently than that
+		interruptTimeout = time.Minute      // give manager that much time to react to SIGINT
 	)
 	var (
 		cmd         *exec.Cmd
@@ -73,7 +77,7 @@ func (mc *ManagerCmd) loop() {
 				os.Rename(mc.log, mc.log+".old")
 				logfile, err := os.Create(mc.log)
 				if err != nil {
-					Logf(0, "%v: failed to create manager log: %v", mc.name, err)
+					mc.errorf("failed to create manager log: %v", err)
 				} else {
 					cmd = osutil.Command(mc.bin, mc.args...)
 					cmd.Stdout = logfile
@@ -81,7 +85,7 @@ func (mc *ManagerCmd) loop() {
 					err := cmd.Start()
 					logfile.Close()
 					if err != nil {
-						Logf(0, "%v: failed to start manager: %v", mc.name, err)
+						mc.errorf("failed to start manager: %v", err)
 						cmd = nil
 					} else {
 						Logf(1, "%v: started manager", mc.name)
@@ -110,7 +114,10 @@ func (mc *ManagerCmd) loop() {
 			}
 		case err := <-stopped:
 			if cmd == nil {
-				panic("spurious stop signal")
+				mc.errorf("spurious stop signal: %v", err)
+			}
+			if closing != nil {
+				mc.errorf("manager exited unexpectedly: %v", err)
 			}
 			cmd = nil
 			Logf(1, "%v: manager exited with %v", mc.name, err)

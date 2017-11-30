@@ -37,18 +37,15 @@ type Instance struct {
 	index   int
 }
 
-type (
-	Env       vmimpl.Env
-	BootError vmimpl.BootError
-)
+type Env vmimpl.Env
 
 var (
 	Shutdown   = vmimpl.Shutdown
 	TimeoutErr = vmimpl.TimeoutErr
 )
 
-func (err BootError) Error() string {
-	return fmt.Sprintf("%v\n%s", err.Title, err.Output)
+type BootErrorer interface {
+	BootError() (string, []byte)
 }
 
 func Create(typ string, env *Env) (*Pool, error) {

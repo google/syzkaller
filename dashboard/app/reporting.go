@@ -577,8 +577,7 @@ func (state *ReportingState) getEntry(now time.Time, namespace, name string) *Re
 		panic(fmt.Sprintf("requesting reporting state for %v/%v", namespace, name))
 	}
 	// Convert time to date of the form 20170125.
-	year, month, day := now.Date()
-	date := year*10000 + int(month)*100 + day
+	date := timeDate(now)
 	for i := range state.Entries {
 		ent := &state.Entries[i]
 		if ent.Namespace == namespace && ent.Name == name {

@@ -24,12 +24,14 @@ import (
 )
 
 type JobProcessor struct {
+	name     string
 	managers []*Manager
 	dash     *dashapi.Dashboard
 }
 
 func newJobProcessor(cfg *Config, managers []*Manager) *JobProcessor {
 	jp := &JobProcessor{
+		name:     fmt.Sprintf("%v-job", cfg.Name),
 		managers: managers,
 	}
 	if cfg.Dashboard_Addr != "" && cfg.Dashboard_Client != "" {
@@ -62,7 +64,7 @@ func (jp *JobProcessor) poll() {
 	}
 	req, err := jp.dash.JobPoll(names)
 	if err != nil {
-		Logf(0, "failed to poll jobs: %v", err)
+		jp.Errorf("failed to poll jobs: %v", err)
 		return
 	}
 	if req.ID == "" {
@@ -76,7 +78,7 @@ func (jp *JobProcessor) poll() {
 		}
 	}
 	if mgr == nil {
-		Logf(0, "got job for unknown manager: %v", req.Manager)
+		jp.Errorf("got job for unknown manager: %v", req.Manager)
 		return
 	}
 	job := &Job{
@@ -85,11 +87,11 @@ func (jp *JobProcessor) poll() {
 	}
 	Logf(0, "starting job %v for manager %v on %v/%v",
 		req.ID, req.Manager, req.KernelRepo, req.KernelBranch)
-	resp := job.process()
+	resp := jp.process(job)
 	Logf(0, "done job %v: commit %v, crash %q, error: %s",
 		resp.ID, resp.Build.KernelCommit, resp.CrashTitle, resp.Error)
 	if err := jp.dash.JobDone(resp); err != nil {
-		Logf(0, "failed to mark job as done: %v", err)
+		jp.Errorf("failed to mark job as done: %v", err)
 		return
 	}
 }
@@ -101,7 +103,7 @@ type Job struct {
 	mgrcfg *mgrconfig.Config
 }
 
-func (job *Job) process() *dashapi.JobDoneReq {
+func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 	req, mgr := job.req, job.mgr
 	build := dashapi.Build{
 		Manager:         mgr.name,
@@ -134,6 +136,7 @@ func (job *Job) process() *dashapi.JobDoneReq {
 	for _, req := range required {
 		if !req.ok {
 			job.resp.Error = []byte(req.name + " is empty")
+			jp.Errorf("%s", job.resp.Error)
 			return job.resp
 		}
 	}
@@ -145,20 +148,21 @@ func (job *Job) process() *dashapi.JobDoneReq {
 	case "gce", "qemu":
 	default:
 		job.resp.Error = []byte(fmt.Sprintf("testing is not yet supported for %v machine type.", typ))
+		jp.Errorf("%s", job.resp.Error)
 		return job.resp
 	}
-	if err := job.buildImage(); err != nil {
+	if err := jp.buildImage(job); err != nil {
 		job.resp.Error = []byte(err.Error())
 		return job.resp
 	}
-	if err := job.test(); err != nil {
+	if err := jp.test(job); err != nil {
 		job.resp.Error = []byte(err.Error())
 		return job.resp
 	}
 	return job.resp
 }
 
-func (job *Job) buildImage() error {
+func (jp *JobProcessor) buildImage(job *Job) error {
 	kernelBuildSem <- struct{}{}
 	defer func() { <-kernelBuildSem }()
 	req, resp, mgr := job.req, job.resp, job.mgr
@@ -242,7 +246,7 @@ func (job *Job) buildImage() error {
 	return nil
 }
 
-func (job *Job) test() error {
+func (jp *JobProcessor) test(job *Job) error {
 	req, mgrcfg := job.req, job.mgrcfg
 
 	Logf(0, "job: booting VM...")
@@ -305,7 +309,7 @@ func (job *Job) test() error {
 		" -fault_call=%v -fault_nth=%v -repeat=0 -cover=0 %v",
 		execprogBin, executorBin, mgrcfg.TargetArch, mgrcfg.Procs, opts.Sandbox,
 		opts.FaultCall, opts.FaultNth, vmProgFile)
-	crashed, err := job.testProgram(inst, cmdSyz, reporter, 7*time.Minute)
+	crashed, err := jp.testProgram(job, inst, cmdSyz, reporter, 7*time.Minute)
 	if crashed || err != nil {
 		return err
 	}
@@ -330,7 +334,7 @@ func (job *Job) test() error {
 		}
 		// We should test for longer (e.g. 5 mins), but the problem is that
 		// reproducer does not print anything, so after 3 mins we detect "no output".
-		crashed, err := job.testProgram(inst, vmBin, reporter, time.Minute)
+		crashed, err := jp.testProgram(job, inst, vmBin, reporter, time.Minute)
 		if crashed || err != nil {
 			return err
 		}
@@ -338,8 +342,8 @@ func (job *Job) test() error {
 	return nil
 }
 
-func (job *Job) testProgram(inst *vm.Instance, command string, reporter report.Reporter,
-	testTime time.Duration) (bool, error) {
+func (jp *JobProcessor) testProgram(job *Job, inst *vm.Instance, command string,
+	reporter report.Reporter, testTime time.Duration) (bool, error) {
 	outc, errc, err := inst.Run(testTime, nil, command)
 	if err != nil {
 		return false, fmt.Errorf("failed to run binary in VM: %v", err)
@@ -349,11 +353,18 @@ func (job *Job) testProgram(inst *vm.Instance, command string, reporter report.R
 		return false, nil
 	}
 	if err := reporter.Symbolize(rep); err != nil {
-		// TODO(dvyukov): send such errors to dashboard.
-		Logf(0, "job: failed to symbolize report: %v", err)
+		jp.Errorf("failed to symbolize report: %v", err)
 	}
 	job.resp.CrashTitle = rep.Title
 	job.resp.CrashReport = rep.Report
 	job.resp.CrashLog = rep.Output
 	return true, nil
+}
+
+// Errorf logs non-fatal error and sends it to dashboard.
+func (jp *JobProcessor) Errorf(msg string, args ...interface{}) {
+	Logf(0, "job: "+msg, args...)
+	if jp.dash != nil {
+		jp.dash.LogError(jp.name, msg, args...)
+	}
 }

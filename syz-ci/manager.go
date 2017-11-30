@@ -147,7 +147,7 @@ loop:
 			rebuildAfter := buildRetryPeriod
 			commit, err := git.Poll(mgr.kernelDir, mgr.mgrcfg.Repo, mgr.mgrcfg.Branch)
 			if err != nil {
-				Logf(0, "%v: failed to poll: %v", mgr.name, err)
+				mgr.Errorf("failed to poll: %v", err)
 			} else {
 				Logf(0, "%v: poll: %v", mgr.name, commit)
 				if commit != lastCommit &&
@@ -166,7 +166,7 @@ loop:
 							rebuildAfter = kernelRebuildPeriod
 							latestInfo = mgr.checkLatest()
 							if latestInfo == nil {
-								Logf(0, "%v: failed to read build info after build", mgr.name)
+								mgr.Errorf("failed to read build info after build")
 							}
 						}
 						<-kernelBuildSem
@@ -239,6 +239,7 @@ func (mgr *Manager) build() error {
 	}
 
 	var tagData []byte
+	tagData = append(tagData, mgr.name...)
 	tagData = append(tagData, kernelCommit...)
 	tagData = append(tagData, mgr.compilerID...)
 	tagData = append(tagData, mgr.configTag...)
@@ -274,7 +275,7 @@ func (mgr *Manager) build() error {
 			Output: []byte(err.Error()),
 		}
 		if err := mgr.reportBuildError(rep, info, tmpDir); err != nil {
-			Logf(0, "%v: failed to report image error: %v", mgr.name, err)
+			mgr.Errorf("failed to report image error: %v", err)
 		}
 		return fmt.Errorf("kernel build failed: %v", err)
 	}
@@ -307,7 +308,7 @@ func (mgr *Manager) build() error {
 
 func (mgr *Manager) restartManager() {
 	if !osutil.FilesExist(mgr.latestDir, imageFiles) {
-		Logf(0, "%v: can't start manager, image files missing", mgr.name)
+		mgr.Errorf("can't start manager, image files missing")
 		return
 	}
 	if mgr.cmd != nil {
@@ -315,26 +316,26 @@ func (mgr *Manager) restartManager() {
 		mgr.cmd = nil
 	}
 	if err := osutil.LinkFiles(mgr.latestDir, mgr.currentDir, imageFiles); err != nil {
-		Logf(0, "%v: failed to create current image dir: %v", mgr.name, err)
+		mgr.Errorf("failed to create current image dir: %v", err)
 		return
 	}
 	info, err := loadBuildInfo(mgr.currentDir)
 	if err != nil {
-		Logf(0, "%v: failed to load build info: %v", mgr.name, err)
+		mgr.Errorf("failed to load build info: %v", err)
 		return
 	}
 	cfgFile, err := mgr.writeConfig(info)
 	if err != nil {
-		Logf(0, "%v: failed to create manager config: %v", mgr.name, err)
+		mgr.Errorf("failed to create manager config: %v", err)
 		return
 	}
 	if err := mgr.uploadBuild(info, mgr.currentDir); err != nil {
-		Logf(0, "%v: failed to upload build: %v", mgr.name, err)
+		mgr.Errorf("failed to upload build: %v", err)
 		return
 	}
 	bin := filepath.FromSlash("syzkaller/current/bin/syz-manager")
 	logFile := filepath.Join(mgr.currentDir, "manager.log")
-	mgr.cmd = NewManagerCmd(mgr.name, logFile, bin, "-config", cfgFile)
+	mgr.cmd = NewManagerCmd(mgr.name, logFile, mgr.Errorf, bin, "-config", cfgFile)
 }
 
 func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
@@ -361,7 +362,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 	if rep != nil {
 		rep.Title = fmt.Sprintf("%v boot error: %v", mgr.mgrcfg.Repo_Alias, rep.Title)
 		if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
-			Logf(0, "%v: failed to report image error: %v", mgr.name, err)
+			mgr.Errorf("failed to report image error: %v", err)
 		}
 		return fmt.Errorf("VM boot failed with: %v", rep.Title)
 	}
@@ -373,7 +374,7 @@ func (mgr *Manager) testImage(imageDir string, info *BuildInfo) error {
 	if rep != nil {
 		rep.Title = fmt.Sprintf("%v test error: %v", mgr.mgrcfg.Repo_Alias, rep.Title)
 		if err := mgr.reportBuildError(rep, info, imageDir); err != nil {
-			Logf(0, "%v: failed to report image error: %v", mgr.name, err)
+			mgr.Errorf("failed to report image error: %v", err)
 		}
 		return fmt.Errorf("VM testing failed with: %v", rep.Title)
 	}
@@ -482,7 +483,7 @@ func (mgr *Manager) uploadBuild(info *BuildInfo, imageDir string) error {
 	commits, err := mgr.pollCommits(info.KernelCommit)
 	if err != nil {
 		// This is not critical for operation.
-		Logf(0, "%v: failed to poll commits: %v", mgr.name, err)
+		mgr.Errorf("failed to poll commits: %v", err)
 	}
 	build.Commits = commits
 	return mgr.dash.UploadBuild(build)
@@ -532,4 +533,12 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, error) {
 		}
 	}
 	return present, nil
+}
+
+// Errorf logs non-fatal error and sends it to dashboard.
+func (mgr *Manager) Errorf(msg string, args ...interface{}) {
+	Logf(0, mgr.name+": "+msg, args...)
+	if mgr.dash != nil {
+		mgr.dash.LogError(mgr.name, msg, args...)
+	}
 }

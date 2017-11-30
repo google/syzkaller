@@ -29,8 +29,33 @@ func init() {
 type uiMain struct {
 	Header    *uiHeader
 	Log       []byte
+	Managers  []*uiManager
 	Jobs      []*uiJob
 	BugGroups []*uiBugGroup
+}
+
+type uiManager struct {
+	Namespace          string
+	Name               string
+	CurrentBuild       *uiBuild
+	FailedBuildBugLink string
+	LastActive         time.Time
+	LastActiveBad      bool
+	CurrentUpTime      time.Duration
+	MaxCorpus          int64
+	MaxCover           int64
+	TotalFuzzingTime   time.Duration
+	TotalCrashes       int64
+	TotalExecs         int64
+}
+
+type uiBuild struct {
+	Time             time.Time
+	SyzkallerCommit  string
+	KernelRepo       string
+	KernelBranch     string
+	KernelCommit     string
+	KernelConfigLink string
 }
 
 type uiBugPage struct {
@@ -46,7 +71,6 @@ type uiBugGroup struct {
 
 type uiBug struct {
 	Namespace      string
-	ID             string
 	Title          string
 	NumCrashes     int64
 	FirstTime      time.Time
@@ -55,29 +79,27 @@ type uiBug struct {
 	ReportingIndex int
 	Status         string
 	Link           string
+	ExternalLink   string
 	Commits        string
 	PatchedOn      []string
 	MissingOn      []string
 }
 
 type uiCrash struct {
-	Manager          string
-	Time             time.Time
-	Maintainers      string
-	LogLink          string
-	ReportLink       string
-	ReproSyzLink     string
-	ReproCLink       string
-	SyzkallerCommit  string
-	KernelRepo       string
-	KernelBranch     string
-	KernelCommit     string
-	KernelConfigLink string
+	Manager      string
+	Time         time.Time
+	Maintainers  string
+	LogLink      string
+	ReportLink   string
+	ReproSyzLink string
+	ReproCLink   string
+	*uiBuild
 }
 
 type uiJob struct {
 	Created         time.Time
-	Link            string
+	BugLink         string
+	ExternalLink    string
 	User            string
 	Reporting       string
 	Namespace       string
@@ -108,6 +130,10 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
+	managers, err := loadManagers(c)
+	if err != nil {
+		return err
+	}
 	jobs, err := loadRecentJobs(c)
 	if err != nil {
 		return err
@@ -119,6 +145,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	data := &uiMain{
 		Header:    h,
 		Log:       errorLog,
+		Managers:  managers,
 		Jobs:      jobs,
 		BugGroups: groups,
 	}
@@ -227,9 +254,9 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	if status == "" {
 		status = "???"
 	}
+	id := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
 	uiBug := &uiBug{
 		Namespace:      bug.Namespace,
-		ID:             bugKeyHash(bug.Namespace, bug.Title, bug.Seq),
 		Title:          bug.displayTitle(),
 		NumCrashes:     bug.NumCrashes,
 		FirstTime:      bug.FirstTime,
@@ -237,7 +264,8 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		ReproLevel:     bug.ReproLevel,
 		ReportingIndex: reportingIdx,
 		Status:         status,
-		Link:           link,
+		Link:           bugLink(id),
+		ExternalLink:   link,
 		PatchedOn:      bug.PatchedOn,
 	}
 	if len(bug.Commits) != 0 {
@@ -278,21 +306,89 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 			builds[crash.BuildID] = build
 		}
 		ui := &uiCrash{
-			Manager:          crash.Manager,
-			Time:             crash.Time,
-			Maintainers:      fmt.Sprintf("%q", crash.Maintainers),
-			LogLink:          textLink("CrashLog", crash.Log),
-			ReportLink:       textLink("CrashReport", crash.Report),
-			ReproSyzLink:     textLink("ReproSyz", crash.ReproSyz),
-			ReproCLink:       textLink("ReproC", crash.ReproC),
-			SyzkallerCommit:  build.SyzkallerCommit,
-			KernelRepo:       build.KernelRepo,
-			KernelBranch:     build.KernelBranch,
-			KernelCommit:     build.KernelCommit,
-			KernelConfigLink: textLink("KernelConfig", build.KernelConfig),
+			Manager:      crash.Manager,
+			Time:         crash.Time,
+			Maintainers:  fmt.Sprintf("%q", crash.Maintainers),
+			LogLink:      textLink("CrashLog", crash.Log),
+			ReportLink:   textLink("CrashReport", crash.Report),
+			ReproSyzLink: textLink("ReproSyz", crash.ReproSyz),
+			ReproCLink:   textLink("ReproC", crash.ReproC),
+			uiBuild:      makeUIBuild(build),
 		}
 		results = append(results, ui)
 	}
+	return results, nil
+}
+
+func makeUIBuild(build *Build) *uiBuild {
+	return &uiBuild{
+		Time:             build.Time,
+		SyzkallerCommit:  build.SyzkallerCommit,
+		KernelRepo:       build.KernelRepo,
+		KernelBranch:     build.KernelBranch,
+		KernelCommit:     build.KernelCommit,
+		KernelConfigLink: textLink("KernelConfig", build.KernelConfig),
+	}
+}
+
+func loadManagers(c context.Context) ([]*uiManager, error) {
+	now := timeNow(c)
+	date := timeDate(now)
+	managers, managerKeys, err := loadAllManagers(c)
+	if err != nil {
+		return nil, err
+	}
+	var buildKeys []*datastore.Key
+	var statsKeys []*datastore.Key
+	for i, mgr := range managers {
+		if mgr.CurrentBuild != "" {
+			buildKeys = append(buildKeys, buildKey(c, mgr.Namespace, mgr.CurrentBuild))
+		}
+		if timeDate(mgr.LastAlive) == date {
+			statsKeys = append(statsKeys,
+				datastore.NewKey(c, "ManagerStats", "", int64(date), managerKeys[i]))
+		}
+	}
+	builds := make([]*Build, len(buildKeys))
+	if err := datastore.GetMulti(c, buildKeys, builds); err != nil {
+		return nil, err
+	}
+	uiBuilds := make(map[string]*uiBuild)
+	for _, build := range builds {
+		uiBuilds[build.Namespace+"|"+build.ID] = makeUIBuild(build)
+	}
+	stats := make([]*ManagerStats, len(statsKeys))
+	if err := datastore.GetMulti(c, statsKeys, stats); err != nil {
+		return nil, err
+	}
+	var fullStats []*ManagerStats
+	for _, mgr := range managers {
+		if timeDate(mgr.LastAlive) != date {
+			fullStats = append(fullStats, &ManagerStats{})
+			continue
+		}
+		fullStats = append(fullStats, stats[0])
+		stats = stats[1:]
+	}
+	var results []*uiManager
+	for i, mgr := range managers {
+		stats := fullStats[i]
+		results = append(results, &uiManager{
+			Namespace:          mgr.Namespace,
+			Name:               mgr.Name,
+			CurrentBuild:       uiBuilds[mgr.Namespace+"|"+mgr.CurrentBuild],
+			FailedBuildBugLink: bugLink(mgr.FailedBuildBug),
+			LastActive:         mgr.LastAlive,
+			LastActiveBad:      now.Sub(mgr.LastAlive) > 12*time.Hour,
+			CurrentUpTime:      mgr.CurrentUpTime,
+			MaxCorpus:          stats.MaxCorpus,
+			MaxCover:           stats.MaxCover,
+			TotalFuzzingTime:   stats.TotalFuzzingTime,
+			TotalCrashes:       stats.TotalCrashes,
+			TotalExecs:         stats.TotalExecs,
+		})
+	}
+	sort.Sort(uiManagerSorter(results))
 	return results, nil
 }
 
@@ -309,13 +405,13 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 	for i, job := range jobs {
 		ui := &uiJob{
 			Created:         job.Created,
-			Link:            job.Link,
+			BugLink:         bugLink(keys[i].Parent().StringID()),
+			ExternalLink:    job.Link,
 			User:            job.User,
 			Reporting:       job.Reporting,
 			Namespace:       job.Namespace,
 			Manager:         job.Manager,
 			BugTitle:        job.BugTitle,
-			BugID:           keys[i].Parent().StringID(),
 			KernelRepo:      job.KernelRepo,
 			KernelBranch:    job.KernelBranch,
 			PatchLink:       textLink("Patch", job.Patch),
@@ -374,6 +470,24 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 		buf.WriteString(lines[i])
 	}
 	return buf.Bytes(), nil
+}
+
+func bugLink(id string) string {
+	if id == "" {
+		return ""
+	}
+	return "/bug?id=" + id
+}
+
+type uiManagerSorter []*uiManager
+
+func (a uiManagerSorter) Len() int      { return len(a) }
+func (a uiManagerSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a uiManagerSorter) Less(i, j int) bool {
+	if a[i].Namespace != a[j].Namespace {
+		return a[i].Namespace < a[j].Namespace
+	}
+	return a[i].Name < a[j].Name
 }
 
 type uiBugSorter []*uiBug
