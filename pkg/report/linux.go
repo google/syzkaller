@@ -80,9 +80,8 @@ func (ctx *linux) ContainsCrash(output []byte) bool {
 }
 
 func (ctx *linux) Parse(output []byte) *Report {
-	output = ctx.extractConsoleOutput(output)
 	rep := &Report{
-		Output: output,
+		Output: ctx.extractConsoleOutput(output),
 	}
 	var oops *oops
 	var textPrefix [][]byte
@@ -107,45 +106,49 @@ func (ctx *linux) Parse(output []byte) *Report {
 			}
 			rep.EndPos = next
 		}
-		lineStart := pos
-		lineEnd := next
-		if lineEnd != 0 && output[lineEnd-1] == '\r' {
-			lineEnd--
-		}
-		if oops == nil {
-			textPrefix = append(textPrefix, append([]byte{}, output[lineStart:lineEnd]...))
-			if len(textPrefix) > 5 {
-				textPrefix = textPrefix[1:]
+		if ctx.consoleOutputRe.Match(output[pos:next]) &&
+			(!ctx.questionableRe.Match(output[pos:next]) ||
+				bytes.Index(output[pos:next], ctx.eoi) != -1) {
+			lineStart := bytes.Index(output[pos:next], []byte("] ")) + pos + 2
+			lineEnd := next
+			if lineEnd != 0 && output[lineEnd-1] == '\r' {
+				lineEnd--
 			}
-		} else {
-			// Prepend 5 lines preceding start of the report,
-			// they can contain additional info related to the report.
-			for _, prefix := range textPrefix {
-				rep.Report = append(rep.Report, prefix...)
-				rep.Report = append(rep.Report, '\n')
-			}
-			textPrefix = nil
-			textLines++
-			ln := output[lineStart:lineEnd]
-			skipLine := skipText
-			if bytes.Contains(ln, []byte("Disabling lock debugging due to kernel taint")) {
-				skipLine = true
-			} else if textLines > 40 && bytes.Contains(ln, []byte("Kernel panic - not syncing")) {
-				// If panic_on_warn set, then we frequently have 2 stacks:
-				// one for the actual report (or maybe even more than one),
-				// and then one for panic caused by panic_on_warn. This makes
-				// reports unnecessary long and the panic (current) stack
-				// is always present in the actual report. So we strip the
-				// panic message. However, we check that we have enough lines
-				// before the panic, because sometimes we have, for example,
-				// a single WARNING line without a stack and then the panic
-				// with the stack.
-				skipText = true
-				skipLine = true
-			}
-			if !skipLine {
-				rep.Report = append(rep.Report, ln...)
-				rep.Report = append(rep.Report, '\n')
+			if oops == nil {
+				textPrefix = append(textPrefix, append([]byte{}, output[lineStart:lineEnd]...))
+				if len(textPrefix) > 5 {
+					textPrefix = textPrefix[1:]
+				}
+			} else {
+				// Prepend 5 lines preceding start of the report,
+				// they can contain additional info related to the report.
+				for _, prefix := range textPrefix {
+					rep.Report = append(rep.Report, prefix...)
+					rep.Report = append(rep.Report, '\n')
+				}
+				textPrefix = nil
+				textLines++
+				ln := output[lineStart:lineEnd]
+				skipLine := skipText
+				if bytes.Contains(ln, []byte("Disabling lock debugging due to kernel taint")) {
+					skipLine = true
+				} else if textLines > 40 && bytes.Contains(ln, []byte("Kernel panic - not syncing")) {
+					// If panic_on_warn set, then we frequently have 2 stacks:
+					// one for the actual report (or maybe even more than one),
+					// and then one for panic caused by panic_on_warn. This makes
+					// reports unnecessary long and the panic (current) stack
+					// is always present in the actual report. So we strip the
+					// panic message. However, we check that we have enough lines
+					// before the panic, because sometimes we have, for example,
+					// a single WARNING line without a stack and then the panic
+					// with the stack.
+					skipText = true
+					skipLine = true
+				}
+				if !skipLine {
+					rep.Report = append(rep.Report, ln...)
+					rep.Report = append(rep.Report, '\n')
+				}
 			}
 		}
 		pos = next + 1
@@ -153,7 +156,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 	if oops == nil {
 		return nil
 	}
-	title, report, format := extractDescription(output[rep.StartPos:], oops)
+	title, report, format := extractDescription(ctx.extractConsoleOutput(output[rep.StartPos:]), oops)
 	rep.Title = title
 	rep.Corrupted = ctx.isCorrupted(title, report, format)
 	// Executor PIDs are not interesting.
