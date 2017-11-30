@@ -66,6 +66,10 @@ func (err BootError) Error() string {
 	return fmt.Sprintf("%v\n%s", err.Title, err.Output)
 }
 
+func (err BootError) BootError() (string, []byte) {
+	return err.Title, err.Output
+}
+
 // Create creates a VM type that can be used to create individual VMs.
 func Create(typ string, env *Env) (Pool, error) {
 	ctor := ctors[typ]

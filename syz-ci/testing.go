@@ -31,12 +31,13 @@ func bootInstance(mgrcfg *mgrconfig.Config) (*vm.Instance, report.Reporter, *rep
 	}
 	inst, err := vmPool.Create(0)
 	if err != nil {
-		if bootErr, ok := err.(vm.BootError); ok {
-			rep := reporter.Parse(bootErr.Output)
+		if bootErr, ok := err.(vm.BootErrorer); ok {
+			title, output := bootErr.BootError()
+			rep := reporter.Parse(output)
 			if rep == nil {
 				rep = &report.Report{
-					Title:  bootErr.Title,
-					Output: bootErr.Output,
+					Title:  title,
+					Output: output,
 				}
 			}
 			if err := reporter.Symbolize(rep); err != nil {

@@ -307,6 +307,10 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		}()
 	}
 
+	if mgr.dash != nil {
+		go mgr.dashboardReporter()
+	}
+
 	if mgr.cfg.Hub_Client != "" {
 		go func() {
 			for {
@@ -1165,5 +1169,40 @@ func (mgr *Manager) checkUsedFiles() {
 		if mod != stat.ModTime() {
 			Fatalf("modification time of %v has changed: %v -> %v", f, mod, stat.ModTime())
 		}
+	}
+}
+
+func (mgr *Manager) dashboardReporter() {
+	var lastFuzzingTime time.Duration
+	var lastCrashes, lastExecs uint64
+	for {
+		time.Sleep(time.Minute)
+		mgr.mu.Lock()
+		if mgr.firstConnect.IsZero() {
+			mgr.mu.Unlock()
+			continue
+		}
+		crashes := mgr.stats["crashes"]
+		execs := mgr.stats["exec total"]
+		req := &dashapi.ManagerStatsReq{
+			Name:        mgr.cfg.Name,
+			UpTime:      time.Since(mgr.firstConnect),
+			Corpus:      uint64(len(mgr.corpus)),
+			Cover:       uint64(len(mgr.corpusSignal)),
+			FuzzingTime: mgr.fuzzingTime - lastFuzzingTime,
+			Crashes:     crashes - lastCrashes,
+			Execs:       execs - lastExecs,
+		}
+		mgr.mu.Unlock()
+
+		if err := mgr.dash.UploadManagerStats(req); err != nil {
+			Logf(0, "faield to upload dashboard stats: %v", err)
+			continue
+		}
+		mgr.mu.Lock()
+		lastFuzzingTime += req.FuzzingTime
+		lastCrashes += req.Crashes
+		lastExecs += req.Execs
+		mgr.mu.Unlock()
 	}
 }
