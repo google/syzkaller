@@ -68,6 +68,26 @@ func formatTime(t time.Time) string {
 	return t.Format("Jan 02 15:04")
 }
 
+func formatClock(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format("15:04")
+}
+
+func formatDuration(d time.Duration) string {
+	if d == 0 {
+		return ""
+	}
+	days := int(d / (24 * time.Hour))
+	hours := int(d / time.Hour % 24)
+	mins := int(d / time.Minute % 60)
+	if days != 0 {
+		return fmt.Sprintf("%vd%vh", days, hours)
+	}
+	return fmt.Sprintf("%vh%vm", hours, mins)
+}
+
 func formatReproLevel(l dashapi.ReproLevel) string {
 	switch l {
 	case ReproLevelSyz:
@@ -84,6 +104,8 @@ var (
 
 	templateFuncs = template.FuncMap{
 		"formatTime":       formatTime,
+		"formatClock":      formatClock,
+		"formatDuration":   formatDuration,
 		"formatReproLevel": formatReproLevel,
 	}
 )

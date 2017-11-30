@@ -11,11 +11,11 @@
 		</tr>
 		{{range $b := $.Bugs}}
 			<tr>
-				<td class="title"><a href="/bug?id={{$b.ID}}">{{$b.Title}}</a></td>
+				<td class="title"><a href="{{$b.Link}}">{{$b.Title}}</a></td>
 				<td class="count">{{$b.NumCrashes}}</td>
 				<td class="repro">{{formatReproLevel $b.ReproLevel}}</td>
 				<td class="time">{{formatTime $b.LastTime}}</td>
-				<td class="status">{{if $b.Link}}<a href="{{$b.Link}}">{{$b.Status}}</a>{{else}}{{$b.Status}}{{end}}</td>
+				<td class="status">{{if $b.Link}}<a href="{{$b.ExternalLink}}">{{$b.Status}}</a>{{else}}{{$b.Status}}{{end}}</td>
 				<td class="patched" title="{{$b.Commits}}">{{if $b.Commits}}{{len $b.PatchedOn}}/{{len $b.MissingOn}}{{end}}</td>
 			</tr>
 		{{end}}
@@ -40,6 +40,49 @@
 	<br><br>
 
 	<table class="list_table">
+		<caption>Managers:</caption>
+		<tr>
+			<th>Name</th>
+			<th>Last Active</th>
+			<th>Current Build</th>
+			<th>Failed Build</th>
+			<th>Today: Uptime</th>
+			<th>Fuzzing Time</th>
+			<th>Corpus</th>
+			<th>Coverage</th>
+			<th>Crashes</th>
+			<th>Execs</th>
+		</tr>
+		{{range $mgr := $.Managers}}
+			<tr>
+				<td>{{$mgr.Namespace}}/{{$mgr.Name}}</td>
+				{{if $mgr.LastActiveBad}}
+					<td style="color:#f00">{{formatTime $mgr.LastActive}}</td>
+				{{else}}
+					<td>{{formatClock $mgr.LastActive}}</td>
+				{{end}}
+				{{if $mgr.CurrentBuild}}
+					<td title="{{$mgr.CurrentBuild.KernelRepo}}/{{$mgr.CurrentBuild.KernelBranch}}/{{$mgr.CurrentBuild.KernelCommit}} (syzkaller {{$mgr.CurrentBuild.SyzkallerCommit}})">{{formatTime $mgr.CurrentBuild.Time}}</td>
+				{{else}}
+					<td></td>
+				{{end}}
+				{{if $mgr.FailedBuildBugLink}}
+					<td><a href="{{$mgr.FailedBuildBugLink}}" style="color:#f00">failed</a></td>
+				{{else}}
+					<td></td>
+				{{end}}
+				<td>{{formatDuration $mgr.CurrentUpTime}}</td>
+				<td>{{formatDuration $mgr.TotalFuzzingTime}}</td>
+				<td>{{$mgr.MaxCorpus}}</td>
+				<td>{{$mgr.MaxCover}}</td>
+				<td>{{$mgr.TotalCrashes}}</td>
+				<td>{{$mgr.TotalExecs}}</td>
+			</tr>
+		{{end}}
+	</table>
+	<br><br>
+
+	<table class="list_table">
 		<caption>Recent jobs:</caption>
 		<tr>
 			<th>Created</th>
@@ -59,7 +102,7 @@
 				<td class="time">{{formatTime $job.Started}}{{if gt $job.Attempts 1}} ({{$job.Attempts}}){{end}}</td>
 				<td class="time">{{formatTime $job.Finished}}</td>
 				<td>{{$job.User}}</td>
-				<td class="title"><a href="/bug?id={{$job.BugID}}">{{$job.BugTitle}}</a></td>
+				<td class="title"><a href="{{$job.BugLink}}">{{$job.BugTitle}}</a></td>
 				<td><a href="{{$job.PatchLink}}">patch</a></td>
 				<td>{{$job.Namespace}}/{{$job.Reporting}}</td>
 				<td>{{$job.Manager}}</td>

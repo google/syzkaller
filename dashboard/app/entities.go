@@ -24,6 +24,26 @@ const (
 	maxCrashes = 40
 )
 
+type Manager struct {
+	Namespace      string
+	Name           string
+	CurrentBuild   string
+	FailedBuildBug string
+	LastAlive      time.Time
+	CurrentUpTime  time.Duration
+}
+
+// ManagerStats holds per-day manager runtime stats.
+// Has Manager as parent entity. Keyed by Date.
+type ManagerStats struct {
+	Date             int // YYYYMMDD
+	MaxCorpus        int64
+	MaxCover         int64
+	TotalFuzzingTime time.Duration
+	TotalCrashes     int64
+	TotalExecs       int64
+}
+
 type Build struct {
 	Namespace       string
 	Manager         string
@@ -93,7 +113,7 @@ type ReportingStateEntry struct {
 	Name      string
 	// Current reporting quota consumption.
 	Sent int
-	Date int
+	Date int // YYYYMMDD
 }
 
 // Job represent a single patch testing job for syz-ci.
@@ -162,6 +182,65 @@ const (
 	BuildFailed
 	BuildJob
 )
+
+// updateManager does transactional compare-and-swap on the manager and its current stats.
+func updateManager(c context.Context, ns, name string, fn func(mgr *Manager, stats *ManagerStats)) error {
+	date := timeDate(timeNow(c))
+	tx := func(c context.Context) error {
+		mgr := new(Manager)
+		mgrKey := datastore.NewKey(c, "Manager", fmt.Sprintf("%v-%v", ns, name), 0, nil)
+		if err := datastore.Get(c, mgrKey, mgr); err != nil {
+			if err != datastore.ErrNoSuchEntity {
+				return fmt.Errorf("failed to get manager %v/%v: %v", ns, name, err)
+			}
+			mgr = &Manager{
+				Namespace: ns,
+				Name:      name,
+			}
+		}
+		stats := new(ManagerStats)
+		statsKey := datastore.NewKey(c, "ManagerStats", "", int64(date), mgrKey)
+		if err := datastore.Get(c, statsKey, stats); err != nil {
+			if err != datastore.ErrNoSuchEntity {
+				return fmt.Errorf("failed to get stats %v/%v/%v: %v", ns, name, date, err)
+			}
+			stats = &ManagerStats{
+				Date: date,
+			}
+		}
+
+		fn(mgr, stats)
+
+		if _, err := datastore.Put(c, mgrKey, mgr); err != nil {
+			return fmt.Errorf("failed to put manager: %v", err)
+		}
+		if _, err := datastore.Put(c, statsKey, stats); err != nil {
+			return fmt.Errorf("failed to put manager stats: %v", err)
+		}
+		return nil
+	}
+	return datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{Attempts: 10})
+}
+
+func loadAllManagers(c context.Context) ([]*Manager, []*datastore.Key, error) {
+	var managers []*Manager
+	keys, err := datastore.NewQuery("Manager").
+		GetAll(c, &managers)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to query managers: %v", err)
+	}
+	var result []*Manager
+	var resultKeys []*datastore.Key
+
+	for i, mgr := range managers {
+		if _, ok := config.Namespaces[mgr.Namespace].DecommissionedManagers[mgr.Name]; ok {
+			continue
+		}
+		result = append(result, mgr)
+		resultKeys = append(resultKeys, keys[i])
+	}
+	return result, resultKeys, nil
+}
 
 func buildKey(c context.Context, ns, id string) *datastore.Key {
 	if ns == "" {
@@ -236,4 +315,10 @@ func textLink(tag string, id int64) string {
 		return ""
 	}
 	return fmt.Sprintf("/text?tag=%v&id=%v", tag, id)
+}
+
+// timeDate returns t's date as a single int YYYYMMDD.
+func timeDate(t time.Time) int {
+	year, month, day := t.Date()
+	return year*10000 + int(month)*100 + day
 }

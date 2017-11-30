@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type Dashboard struct {
@@ -247,6 +248,23 @@ type PollRequest struct {
 
 type PollResponse struct {
 	Reports []*BugReport
+}
+
+type ManagerStatsReq struct {
+	Name string
+	// Current level:
+	UpTime time.Duration
+	Corpus uint64
+	Cover  uint64
+
+	// Delta since last sync:
+	FuzzingTime time.Duration
+	Crashes     uint64
+	Execs       uint64
+}
+
+func (dash *Dashboard) UploadManagerStats(req *ManagerStatsReq) error {
+	return dash.query("manager_stats", req, nil)
 }
 
 type (
