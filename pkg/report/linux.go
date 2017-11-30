@@ -160,9 +160,9 @@ func (ctx *linux) Parse(output []byte) *Report {
 	rep.Title = executorRe.ReplaceAllLiteralString(rep.Title, "syz-executor")
 	// Replace that everything looks like an address with "ADDR",
 	// addresses in descriptions can't be good regardless of the oops regexps.
-	rep.Title = addrRe.ReplaceAllLiteralString(rep.Title, "ADDR")
+	rep.Title = addrRe.ReplaceAllString(rep.Title, "${1}ADDR")
 	// Replace that everything looks like a decimal number with "NUM".
-	rep.Title = decNumRe.ReplaceAllLiteralString(rep.Title, "NUM")
+	rep.Title = decNumRe.ReplaceAllString(rep.Title, "${1}NUM")
 	// Replace that everything looks like a file line number with "LINE".
 	rep.Title = lineNumRe.ReplaceAllLiteralString(rep.Title, ":LINE")
 	// Replace all raw references to runctions (e.g. "ip6_fragment+0x1052/0x2d80")
@@ -407,9 +407,9 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) bo
 var (
 	filenameRe       = regexp.MustCompile(`[a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h):[0-9]+`)
 	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
-	decNumRe         = regexp.MustCompile(`[0-9]{5,}`)
 	lineNumRe        = regexp.MustCompile(`(:[0-9]+)+`)
-	addrRe           = regexp.MustCompile(`[0-9a-f]{8,}`)
+	addrRe           = regexp.MustCompile(`([^a-zA-Z])(?:0x)?[0-9a-f]{8,}`)
+	decNumRe         = regexp.MustCompile(`([^a-zA-Z])[0-9]{5,}`)
 	funcRe           = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9_.]+)\+0x[0-9a-z]+/0x[0-9a-z]+`)
 	cpuRe            = regexp.MustCompile(`CPU#[0-9]+`)
 	executorRe       = regexp.MustCompile(`syz-executor[0-9]+((/|:)[0-9]+)?`)
@@ -703,6 +703,10 @@ var linuxOopses = []*oops{
 				title:     compile("INFO: suspicious RCU usage"),
 				fmt:       "suspicious RCU usage",
 				corrupted: true,
+			},
+			{
+				title: compile("INFO: task .* blocked for more than [0-9]+ seconds(?:.*\\n){0,10}Call Trace:\\n(?:.*(?:sched|_lock|completion|kthread).*\\n)* (?:{{PC}} )?{{FUNC}}"),
+				fmt:   "INFO: task hung in %[1]v",
 			},
 			{
 				title: compile("INFO: task .* blocked for more than [0-9]+ seconds"),
