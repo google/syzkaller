@@ -763,7 +763,139 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  843.340437]  [<ffffffff835bec62>] ? preempt_schedule+0x62/0xa0
 [  843.346418]  [<ffffffff835cbdd2>] tty_ldisc_lock_pair_timeout+0xb2/0x160
 [  843.353363]  [<ffffffff81f8b03f>] tty_ldisc_hangup+0x21f/0x720
-`, `INFO: task hung`, false,
+`, `INFO: task hung in ldsem_down_write`, false,
+		}, {
+			`
+[  615.391254] INFO: task syz-executor5:10045 blocked for more than 120 seconds.
+[  615.398657]       Not tainted 4.13.0-rc1+ #4
+[  615.403147] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  615.411181] syz-executor5   D23584 10045   3045 0x00000004
+[  615.416901] Call Trace:
+[  615.419521]  __schedule+0x8e8/0x2070
+[  615.423294]  ? find_held_lock+0x35/0x1d0
+[  615.452695]  schedule+0x108/0x440
+[  615.456212]  ? wait_on_page_bit_common+0x4a9/0x7f0
+[  615.482851]  io_schedule+0x1c/0x70
+[  615.486414]  wait_on_page_bit_common+0x4c7/0x7f0
+[  615.495766]  ? jbd2_log_wait_commit+0x345/0x420
+[  615.530975]  ? pagevec_lookup_tag+0x3a/0x80
+[  615.535375]  __filemap_fdatawait_range+0x23f/0x390
+[  615.567092]  ? down_read+0x96/0x150
+[  615.570758]  filemap_fdatawait_keep_errors+0x80/0x110
+[  615.575974]  fdatawait_one_bdev+0x50/0x70
+[  615.580151]  iterate_bdevs+0x109/0x260
+[  615.584054]  ? sync_inodes_one_sb+0x50/0x50
+[  615.588430]  sys_sync+0x122/0x1c0
+[  615.591894]  ? sync_filesystem+0x2e0/0x2e0
+[  615.601208]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  615.606028]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[  615.610818] RIP: 0033:0x4512c9
+[  615.614042] RSP: 002b:00007f4d6c47fc08 EFLAGS: 00000216 ORIG_RAX: 00000000000000a2
+[  615.621807] RAX: ffffffffffffffda RBX: 0000000000718000 RCX: 00000000004512c9
+[  615.629146] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+[  615.636484] RBP: 0000000000000086 R08: 0000000000000000 R09: 0000000000000000
+[  615.643830] R10: 0000000000000000 R11: 0000000000000216 R12: 00000000004b6f8f
+[  615.651186] R13: 00000000ffffffff R14: 0000000000000000 R15: 0000000000000000
+`, `INFO: task hung in wait_on_page_bit_common`, false,
+		}, {
+			`
+[  244.447743] INFO: task syz-executor2:14507 blocked for more than 120 seconds.
+[  244.455167]       Not tainted 4.9.40-ged32335 #11
+[  244.460033] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  244.468151] syz-executor2   D27168 14507   3322 0x00000002
+[  244.473864]  ffff8801a51c4680 ffff88019c120fc0 ffff88019c1224c0 ffff88019f74c680
+[  244.481834]  ffff8801db321498 ffff8801c844f778 ffffffff8388f2bb 0000000000000000
+[  244.489886]  0000000000000007 00ff8801a51c4680 ffff8801db321db0 ffff8801db321dd8
+[  244.497869] Call Trace:
+[  244.500425]  [<ffffffff8388f2bb>] ? __schedule+0x67b/0x1ba0
+[  244.506100]  [<ffffffff83890872>] schedule+0x92/0x1b0
+[  244.511304]  [<ffffffff838911e3>] schedule_preempt_disabled+0x13/0x20
+[  244.517906]  [<ffffffff838967f2>] mutex_lock_nested+0x312/0x870
+[  244.523933]  [<ffffffff8162804a>] ? blkdev_put+0x2a/0x550
+[  244.529459]  [<ffffffff838964e0>] ? mutex_lock_killable_nested+0x960/0x960
+[  244.536445]  [<ffffffff8166e69b>] ? locks_remove_file+0x32b/0x420
+[  244.542690]  [<ffffffff8163cab6>] ? fsnotify+0x86/0xf30
+[  244.548048]  [<ffffffff81628570>] ? blkdev_put+0x550/0x550
+[  244.553641]  [<ffffffff8162804a>] blkdev_put+0x2a/0x550
+[  244.559031]  [<ffffffff81628570>] ? blkdev_put+0x550/0x550
+[  244.564630]  [<ffffffff816285fb>] blkdev_close+0x8b/0xb0
+[  244.570099]  [<ffffffff8156ee2c>] __fput+0x28c/0x6e0
+[  244.575170]  [<ffffffff8156f305>] ____fput+0x15/0x20
+[  244.580276]  [<ffffffff81195e25>] task_work_run+0x115/0x190
+[  244.585960]  [<ffffffff8113cf76>] do_exit+0x826/0x2a40
+[  244.622863]  [<ffffffff81143658>] do_group_exit+0x108/0x320
+[  244.628582]  [<ffffffff8116628c>] get_signal+0x55c/0x1600
+[  244.634086]  [<ffffffff81052b97>] do_signal+0x87/0x1960
+[  244.674628]  [<ffffffff81003a35>] exit_to_usermode_loop+0xe5/0x130
+[  244.680946]  [<ffffffff81006350>] syscall_return_slowpath+0x1a0/0x1e0
+[  244.687490]  [<ffffffff838a0766>] entry_SYSCALL_64_fastpath+0xc4/0xc6
+`, `INFO: task hung in blkdev_put`, false,
+		}, {
+			`
+[  981.809015] INFO: task kworker/0:1:764 blocked for more than 120 seconds.
+[  981.815945]       Not tainted 4.9.39-g72a0c9f #6
+[  981.820716] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  981.828649] kworker/0:1     D27296   764      2 0x00000000
+[  981.834477] Workqueue: events destroy_radio
+[  981.838868]  ffff8801d7128000 0000000000000000 ffff88015c60b180 ffff8801d9e1af00
+[  981.846841]  ffff8801db221498 ffff8801d71379e8 ffffffff83954b2b 0000000000000002
+[  981.854812]  0000000000000007 00ff8801d7128000 ffff8801db221db0 ffff8801db221dd8
+[  981.862773] Call Trace:
+[  981.871021]  [<ffffffff839560e2>] schedule+0x92/0x1b0
+[  981.876175]  [<ffffffff83956a53>] schedule_preempt_disabled+0x13/0x20
+[  981.882795]  [<ffffffff8395bdaf>] mutex_lock_nested+0x2ff/0x830
+[  981.914791]  [<ffffffff82f99187>] rtnl_lock+0x17/0x20
+[  981.919959]  [<ffffffff8378b7e4>] ieee80211_unregister_hw+0x44/0x270
+[  982.003971]  [<ffffffff83965c1a>] ret_from_fork+0x2a/0x40
+`, `INFO: task hung in ieee80211_unregister_hw`, false,
+		}, {
+			`
+[  863.200911] INFO: task syz-executor0:5676 blocked for more than 120 seconds.
+[  863.203658]       Not tainted 4.14.0-rc8-44455-ge2105594a876 #110
+[  863.205780] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  863.208544] syz-executor0   D27584  5676      1 0x00000004
+[  863.210626] Call Trace:
+[  863.211704]  __schedule+0x57e/0x1940
+[  863.213000]  schedule+0x84/0x1c0
+[  863.214031]  schedule_timeout+0xa8b/0xe80
+[  863.215535]  ? mark_held_locks+0xc8/0x140
+[  863.216878]  ? _raw_spin_unlock_irq+0x2c/0x60
+[  863.218277]  ? trace_hardirqs_on_caller+0x2c8/0x390
+[  863.219875]  wait_for_completion+0x192/0x340
+[  863.221345]  ? wake_up_q+0xe0/0xe0
+[  863.222517]  kthread_stop+0x105/0x650
+[  863.223783]  set_current_rng+0x2b2/0x3b0
+[  863.225073]  hwrng_unregister+0x1db/0x230
+[  863.226341]  chaoskey_disconnect+0x1c8/0x210
+[  863.227675]  usb_unbind_interface+0x1b6/0x950
+[  863.250249]  SyS_ioctl+0xbb/0xe0
+[  863.250857]  entry_SYSCALL_64_fastpath+0x23/0xc2
+`, `INFO: task hung in set_current_rng`, false,
+		}, {
+			`
+[  185.479466] BUG: scheduling while atomic: syz-executor0/19425/0x00000000
+[  185.486365] INFO: lockdep is turned off.
+[  185.490423] Modules linked in:
+[  185.494289] CPU: 1 PID: 19425 Comm: syz-executor0 Tainted: G        W       4.3.5+ #11
+[  185.502324] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  185.511657]  0000000000000001 ffff8801d614bd58 ffffffff81ca45ed ffff8801d12ce040
+[  185.519687]  0000000000000000 000000000001f140 ffff8801d12ce040 0000000000000001
+[  185.527710]  ffff8801d614bd78 ffffffff8133a690 ffff8801db51f140 ffff8801d12ce040
+[  185.535769] Call Trace:
+[  185.538344]  [<ffffffff81ca45ed>] dump_stack+0xc1/0x124
+[  185.543718]  [<ffffffff8133a690>] __schedule_bug+0xc0/0xf0
+[  185.549324]  [<ffffffff81000f22>] __schedule+0x8c2/0x13f0
+[  185.554860]  [<ffffffff8135c9c7>] ? SyS_gsys_swg_wait+0x3c7/0xbd0
+[  185.561075]  [<ffffffff8135ca3d>] ? SyS_gsys_swg_wait+0x43d/0xbd0
+[  185.567281]  [<ffffffff81001aea>] schedule+0x9a/0x1b0
+[  185.572445]  [<ffffffff8135ca47>] SyS_gsys_swg_wait+0x447/0xbd0
+[  185.578480]  [<ffffffff8135c600>] ? SyS_gsys_swg_become_designate+0x290/0x290
+[  185.585729]  [<ffffffff81017200>] ? trace_event_raw_event_sys_enter_tiny+0x2e0/0x2e0
+[  185.593586]  [<ffffffff81018464>] ? prepare_exit_to_usermode+0x294/0x350
+[  185.600416]  [<ffffffff81015198>] ? do_audit_syscall_entry+0xd8/0x240
+[  185.606975]  [<ffffffff81017956>] ? syscall_trace_enter_phase2+0x216/0x9a0
+[  185.613965]  [<ffffffff82c7b5f9>] tracesys_phase2+0x84/0x89
+`, `BUG: scheduling while atomic: syz-executor/ADDR`, false,
 		}, {
 			`
 [   72.159680] BUG UNIX (Not tainted): kasan: bad access detected
