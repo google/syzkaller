@@ -149,7 +149,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		Jobs:      jobs,
 		BugGroups: groups,
 	}
-	return templates.ExecuteTemplate(w, "main.html", data)
+	return serveTemplate(w, "main.html", data)
 }
 
 // handleBug serves page about a single bug (which is passed in id argument).
@@ -191,7 +191,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		Bug:     uiBug,
 		Crashes: crashes,
 	}
-	return templates.ExecuteTemplate(w, "bug.html", data)
+	return serveTemplate(w, "bug.html", data)
 }
 
 // handleText serves plain text blobs (crash logs, reports, reproducers, etc).
