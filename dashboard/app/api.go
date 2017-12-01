@@ -573,7 +573,7 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request) (interf
 		return nil, err
 	}
 	if bug == nil {
-		return nil, fmt.Errorf("can't find bug for this crash")
+		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
 	tx := func(c context.Context) error {
 		bug := new(Bug)
@@ -613,7 +613,7 @@ func apiNeedRepro(c context.Context, ns string, r *http.Request) (interface{}, e
 		return nil, err
 	}
 	if bug == nil {
-		return nil, fmt.Errorf("can't find bug for this crash")
+		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
 	resp := &dashapi.NeedReproResp{
 		NeedRepro: needRepro(bug),

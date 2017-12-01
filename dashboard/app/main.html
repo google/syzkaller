@@ -1,27 +1,3 @@
-{{define "bug_table"}}
-	<table class="list_table">
-		<caption>{{.Namespace}} ({{len $.Bugs}}):</caption>
-		<tr>
-			<th>Title</th>
-			<th>Count</th>
-			<th>Repro</th>
-			<th>Last</th>
-			<th>Status</th>
-			<th>Patched</th>
-		</tr>
-		{{range $b := $.Bugs}}
-			<tr>
-				<td class="title"><a href="{{$b.Link}}">{{$b.Title}}</a></td>
-				<td class="count">{{$b.NumCrashes}}</td>
-				<td class="repro">{{formatReproLevel $b.ReproLevel}}</td>
-				<td class="time">{{formatTime $b.LastTime}}</td>
-				<td class="status">{{if $b.Link}}<a href="{{$b.ExternalLink}}">{{$b.Status}}</a>{{else}}{{$b.Status}}{{end}}</td>
-				<td class="patched" title="{{$b.Commits}}">{{if $b.Commits}}{{len $b.PatchedOn}}/{{len $b.MissingOn}}{{end}}</td>
-			</tr>
-		{{end}}
-	</table>
-{{end}}
-
 <!doctype html>
 <html>
 <head>
@@ -45,38 +21,30 @@
 			<th>Name</th>
 			<th>Last Active</th>
 			<th>Current Build</th>
-			<th>Failed Build</th>
-			<th>Today: Uptime</th>
-			<th>Fuzzing Time</th>
+			<th>Current Uptime</th>
+			<th>Today: Fuzzing Time</th>
 			<th>Corpus</th>
 			<th>Coverage</th>
 			<th>Crashes</th>
 			<th>Execs</th>
+			<th>Failed Build</th>
 		</tr>
 		{{range $mgr := $.Managers}}
 			<tr>
 				<td>{{$mgr.Namespace}}/{{$mgr.Name}}</td>
-				{{if $mgr.LastActiveBad}}
-					<td style="color:#f00">{{formatTime $mgr.LastActive}}</td>
-				{{else}}
-					<td>{{formatClock $mgr.LastActive}}</td>
-				{{end}}
+				<td class="stat {{if $mgr.LastActiveBad}}bad{{end}}">{{formatLateness $.Now $mgr.LastActive}}</td>
 				{{if $mgr.CurrentBuild}}
-					<td title="{{$mgr.CurrentBuild.KernelRepo}}/{{$mgr.CurrentBuild.KernelBranch}}/{{$mgr.CurrentBuild.KernelCommit}} (syzkaller {{$mgr.CurrentBuild.SyzkallerCommit}})">{{formatTime $mgr.CurrentBuild.Time}}</td>
+					<td class="stat" title="{{$mgr.CurrentBuild.KernelRepo}}/{{$mgr.CurrentBuild.KernelBranch}}/{{$mgr.CurrentBuild.KernelCommit}} (syzkaller {{$mgr.CurrentBuild.SyzkallerCommit}})">{{formatLateness $.Now $mgr.CurrentBuild.Time}}</td>
 				{{else}}
 					<td></td>
 				{{end}}
-				{{if $mgr.FailedBuildBugLink}}
-					<td><a href="{{$mgr.FailedBuildBugLink}}" style="color:#f00">failed</a></td>
-				{{else}}
-					<td></td>
-				{{end}}
-				<td>{{formatDuration $mgr.CurrentUpTime}}</td>
-				<td>{{formatDuration $mgr.TotalFuzzingTime}}</td>
-				<td>{{$mgr.MaxCorpus}}</td>
-				<td>{{$mgr.MaxCover}}</td>
-				<td>{{$mgr.TotalCrashes}}</td>
-				<td>{{$mgr.TotalExecs}}</td>
+				<td class="stat">{{formatDuration $mgr.CurrentUpTime}}</td>
+				<td class="stat">{{formatDuration $mgr.TotalFuzzingTime}}</td>
+				<td class="stat">{{formatStat $mgr.MaxCorpus}}</td>
+				<td class="stat">{{formatStat $mgr.MaxCover}}</td>
+				<td class="stat">{{formatStat $mgr.TotalCrashes}}</td>
+				<td class="stat">{{formatStat $mgr.TotalExecs}}</td>
+				<td class="stat">{{if $mgr.FailedBuildBugLink}}<a href="{{$mgr.FailedBuildBugLink}}" class="bad">bug</a>{{end}}</td>
 			</tr>
 		{{end}}
 	</table>
@@ -132,8 +100,29 @@
 	</table>
 	<br><br>
 
-	{{range $g := $.BugGroups}}
-		{{template "bug_table" $g}} <br>
+	{{range $group := $.BugGroups}}
+		<table class="list_table">
+			<caption>{{.Namespace}} ({{len $group.Bugs}}):</caption>
+			<tr>
+				<th>Title</th>
+				<th>Count</th>
+				<th>Repro</th>
+				<th>Last</th>
+				<th>Status</th>
+				<th>Patched</th>
+			</tr>
+			{{range $b := $group.Bugs}}
+				<tr>
+					<td class="title"><a href="{{$b.Link}}">{{$b.Title}}</a></td>
+					<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>
+					<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
+					<td class="stat">{{formatLateness $.Now $b.LastTime}}</td>
+					<td class="status">{{if $b.Link}}<a href="{{$b.ExternalLink}}">{{$b.Status}}</a>{{else}}{{$b.Status}}{{end}}</td>
+					<td class="patched" title="{{$b.Commits}}">{{if $b.Commits}}{{len $b.PatchedOn}}/{{len $b.MissingOn}}{{end}}</td>
+				</tr>
+			{{end}}
+		</table>
+		<br><br>
 	{{end}}
 </body>
 </html>

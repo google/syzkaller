@@ -28,6 +28,7 @@ func init() {
 
 type uiMain struct {
 	Header    *uiHeader
+	Now       time.Time
 	Log       []byte
 	Managers  []*uiManager
 	Jobs      []*uiJob
@@ -73,6 +74,7 @@ type uiBug struct {
 	Namespace      string
 	Title          string
 	NumCrashes     int64
+	NumCrashesBad  bool
 	FirstTime      time.Time
 	LastTime       time.Time
 	ReproLevel     dashapi.ReproLevel
@@ -144,6 +146,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	}
 	data := &uiMain{
 		Header:    h,
+		Now:       timeNow(c),
 		Log:       errorLog,
 		Managers:  managers,
 		Jobs:      jobs,
@@ -259,6 +262,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		Namespace:      bug.Namespace,
 		Title:          bug.displayTitle(),
 		NumCrashes:     bug.NumCrashes,
+		NumCrashesBad:  bug.NumCrashes >= 10000 && timeNow(c).Sub(bug.LastTime) < 24*time.Hour,
 		FirstTime:      bug.FirstTime,
 		LastTime:       bug.LastTime,
 		ReproLevel:     bug.ReproLevel,

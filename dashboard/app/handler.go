@@ -92,10 +92,25 @@ func formatDuration(d time.Duration) string {
 	days := int(d / (24 * time.Hour))
 	hours := int(d / time.Hour % 24)
 	mins := int(d / time.Minute % 60)
-	if days != 0 {
-		return fmt.Sprintf("%vd%vh", days, hours)
+	if days >= 10 {
+		return fmt.Sprintf("%vd", days)
+	} else if days != 0 {
+		return fmt.Sprintf("%vd%02vh", days, hours)
+	} else if hours != 0 {
+		return fmt.Sprintf("%vh%02vm", hours, mins)
 	}
-	return fmt.Sprintf("%vh%vm", hours, mins)
+	return fmt.Sprintf("%vm", mins)
+}
+
+func formatLateness(now, t time.Time) string {
+	if t.IsZero() {
+		return "never"
+	}
+	d := now.Sub(t)
+	if d < 5*time.Minute {
+		return "now"
+	}
+	return formatDuration(d)
 }
 
 func formatReproLevel(l dashapi.ReproLevel) string {
@@ -109,6 +124,13 @@ func formatReproLevel(l dashapi.ReproLevel) string {
 	}
 }
 
+func formatStat(v int64) string {
+	if v == 0 {
+		return ""
+	}
+	return fmt.Sprint(v)
+}
+
 var (
 	templates = template.Must(template.New("").Funcs(templateFuncs).ParseGlob("*.html"))
 
@@ -116,6 +138,8 @@ var (
 		"formatTime":       formatTime,
 		"formatClock":      formatClock,
 		"formatDuration":   formatDuration,
+		"formatLateness":   formatLateness,
 		"formatReproLevel": formatReproLevel,
+		"formatStat":       formatStat,
 	}
 )

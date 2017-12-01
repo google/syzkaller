@@ -77,10 +77,6 @@ table td, table th {
 	max-width: 400pt;
 }
 
-.list_table .count {
-	text-align: right;
-}
-
 .list_table .tag {
 	font-family: monospace;
 	font-size: 8pt;
@@ -112,13 +108,14 @@ table td, table th {
 	max-width: 300pt;
 }
 
-.button {
-	color: #222;
-	border: 1px solid #375EAB;
-	background: #E0EBF5;
-	border-radius: 3px;
-	cursor: pointer;
-	margin-left: 10px;
+.list_table .stat {
+	font-family: monospace;
+	text-align: right;
+}
+
+.bad {
+	color: #f00;
+	font-weight: bold;
 }
 
 textarea {
