@@ -4,6 +4,7 @@
 package dash
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -51,6 +52,15 @@ func handleAuth(fn contextHandler) contextHandler {
 		}
 		return fn(c, w, r)
 	}
+}
+
+func serveTemplate(w http.ResponseWriter, name string, data interface{}) error {
+	buf := new(bytes.Buffer)
+	if err := templates.ExecuteTemplate(buf, name, data); err != nil {
+		return err
+	}
+	w.Write(buf.Bytes())
+	return nil
 }
 
 type uiHeader struct {
