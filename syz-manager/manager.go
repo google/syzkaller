@@ -384,8 +384,9 @@ func (mgr *Manager) vmLoop() {
 					}
 				} else {
 					cid := &dashapi.CrashID{
-						BuildID: mgr.cfg.Tag,
-						Title:   crash.Title,
+						BuildID:   mgr.cfg.Tag,
+						Title:     crash.Title,
+						Corrupted: crash.Corrupted,
 					}
 					needRepro, err := mgr.dash.NeedRepro(cid)
 					if err != nil {
