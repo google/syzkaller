@@ -406,7 +406,7 @@ func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{},
 		return nil, err
 	}
 	resp := &dashapi.ReportCrashResp{
-		NeedRepro: needRepro(bug),
+		NeedRepro: needRepro(c, bug),
 	}
 	return resp, nil
 }
@@ -616,7 +616,7 @@ func apiNeedRepro(c context.Context, ns string, r *http.Request) (interface{}, e
 		return nil, fmt.Errorf("%v: can't find bug for crash %q", ns, req.Title)
 	}
 	resp := &dashapi.NeedReproResp{
-		NeedRepro: needRepro(bug),
+		NeedRepro: needRepro(c, bug),
 	}
 	return resp, nil
 }
@@ -728,10 +728,23 @@ func isActiveBug(c context.Context, bug *Bug) (bool, error) {
 	return canon.Status == BugStatusOpen, nil
 }
 
-func needRepro(bug *Bug) bool {
+func needRepro(c context.Context, bug *Bug) bool {
+	if !needReproForBug(bug) {
+		return false
+	}
+	canon, err := canonicalBug(c, bug)
+	if err != nil {
+		log.Errorf(c, "failed to get canonical bug: %v", err)
+		return false
+	}
+	return needReproForBug(canon)
+}
+
+func needReproForBug(bug *Bug) bool {
 	return bug.ReproLevel < ReproLevelC &&
 		bug.NumRepro < 5 &&
-		len(bug.Commits) == 0
+		len(bug.Commits) == 0 &&
+		bug.Title != corruptedReportTitle
 }
 
 func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64, error) {
