@@ -150,7 +150,9 @@ func extractDescription(output []byte, oops *oops) (desc string, report []byte, 
 	if len(desc) == 0 {
 		pos := bytes.Index(output, oops.header)
 		if pos == -1 {
-			panic("non matching oops")
+			// TODO: broken: https://github.com/google/syzkaller/issues/457
+			// panic(fmt.Sprintf("non matching oops for %q in:\n%s", oops.header, output))
+			return
 		}
 		end := bytes.IndexByte(output[pos:], '\n')
 		if end == -1 {
