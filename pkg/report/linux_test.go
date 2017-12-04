@@ -1710,6 +1710,13 @@ syzkaller login: [   16.305150] INFO: trying to register non-static key.
 [   47.713045]  tun_flow_cleanup+0xf4/0x300
 `, `INFO: trying to register non-static key in tun_flow_cleanup`, false,
 		},
+		{
+			`
+[0.0] unreferenced object
+[0.0]  backtrace:
+[0.0] 
+`, `unreferenced object`, true,
+		},
 		// TODO: broken: https://github.com/google/syzkaller/issues/457
 		//{`BUG: executor-detected bug`, `BUG: executor-detected bug`, false},
 		{`INFO:`, `INFO:`, true},
