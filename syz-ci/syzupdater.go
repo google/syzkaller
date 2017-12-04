@@ -111,7 +111,7 @@ func (upd *SyzUpdater) UpdateOnStart(shutdown chan struct{}) {
 	os.RemoveAll(upd.currentDir)
 	exeTag, exeMod := readTag(upd.exe + ".tag")
 	latestTag := upd.checkLatest()
-	if exeTag == latestTag && time.Since(exeMod) < syzkallerRebuildPeriod/2 {
+	if exeTag == latestTag && time.Since(exeMod) < time.Minute {
 		// Have a freash up-to-date build, probably just restarted.
 		Logf(0, "current executable is up-to-date (%v)", exeTag)
 		if err := osutil.LinkFiles(upd.latestDir, upd.currentDir, upd.syzFiles); err != nil {
