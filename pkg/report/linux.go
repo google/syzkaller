@@ -176,6 +176,10 @@ func (ctx *linux) Parse(output []byte) *Report {
 	rep.Title = funcRe.ReplaceAllString(rep.Title, "$1")
 	// CPU numbers are not interesting.
 	rep.Title = cpuRe.ReplaceAllLiteralString(rep.Title, "CPU")
+	// TODO: broken: https://github.com/google/syzkaller/issues/457
+	if len(rep.Report) == 0 {
+		rep.Report = []byte("NO REPORT")
+	}
 	return rep
 }
 

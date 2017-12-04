@@ -83,6 +83,9 @@ func testParse(t *testing.T, os string, tests []ParseTest) {
 		if title != "" && test.Desc == "" {
 			t.Fatalf("found bogus crash message '%v' in:\n%v", title, test.Log)
 		}
+		if title != "" && len(rep.Report) == 0 {
+			t.Fatalf("found crash message %q but report is empty:\n%v", title, test.Log)
+		}
 		if title != test.Desc {
 			t.Fatalf("extracted bad crash message:\n%+q\nwant:\n%+q", title, test.Desc)
 		}
