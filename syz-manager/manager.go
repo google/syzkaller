@@ -22,6 +22,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/csource"
 	"github.com/google/syzkaller/pkg/db"
+	"github.com/google/syzkaller/pkg/gce"
 	"github.com/google/syzkaller/pkg/hash"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
@@ -1174,6 +1175,7 @@ func (mgr *Manager) checkUsedFiles() {
 }
 
 func (mgr *Manager) dashboardReporter() {
+	webAddr := publicWebAddr(mgr.cfg.Http)
 	var lastFuzzingTime time.Duration
 	var lastCrashes, lastExecs uint64
 	for {
@@ -1187,6 +1189,7 @@ func (mgr *Manager) dashboardReporter() {
 		execs := mgr.stats["exec total"]
 		req := &dashapi.ManagerStatsReq{
 			Name:        mgr.cfg.Name,
+			Addr:        webAddr,
 			UpTime:      time.Since(mgr.firstConnect),
 			Corpus:      uint64(len(mgr.corpus)),
 			Cover:       uint64(len(mgr.corpusSignal)),
@@ -1206,4 +1209,17 @@ func (mgr *Manager) dashboardReporter() {
 		lastExecs += req.Execs
 		mgr.mu.Unlock()
 	}
+}
+
+func publicWebAddr(addr string) string {
+	_, port, err := net.SplitHostPort(addr)
+	if err == nil && port != "" {
+		if host, err := os.Hostname(); err == nil {
+			addr = net.JoinHostPort(host, port)
+		}
+		if GCE, err := gce.NewContext(); err == nil {
+			addr = net.JoinHostPort(GCE.ExternalIP, port)
+		}
+	}
+	return "http://" + addr
 }

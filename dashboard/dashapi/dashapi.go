@@ -252,6 +252,8 @@ type PollResponse struct {
 
 type ManagerStatsReq struct {
 	Name string
+	Addr string
+
 	// Current level:
 	UpTime time.Duration
 	Corpus uint64

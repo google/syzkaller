@@ -30,6 +30,7 @@ type Context struct {
 	ZoneID     string
 	Instance   string
 	InternalIP string
+	ExternalIP string
 
 	computeService *compute.Service
 
@@ -73,7 +74,11 @@ func NewContext() (*Context, error) {
 	for _, iface := range inst.NetworkInterfaces {
 		if strings.HasPrefix(iface.NetworkIP, "10.") {
 			ctx.InternalIP = iface.NetworkIP
-			break
+		}
+		for _, ac := range iface.AccessConfigs {
+			if ac.NatIP != "" {
+				ctx.ExternalIP = ac.NatIP
+			}
 		}
 	}
 	if ctx.InternalIP == "" {
