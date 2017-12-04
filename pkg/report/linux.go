@@ -157,6 +157,9 @@ func (ctx *linux) Parse(output []byte) *Report {
 		return nil
 	}
 	title, report, format := extractDescription(ctx.extractConsoleOutput(output[rep.StartPos:]), oops)
+	if title == "" {
+		title, report, format = extractDescription(output[rep.StartPos:], oops)
+	}
 	rep.Title = title
 	rep.Corrupted = ctx.isCorrupted(title, report, format)
 	// Executor PIDs are not interesting.
