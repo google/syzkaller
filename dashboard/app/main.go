@@ -61,13 +61,19 @@ type uiBuild struct {
 
 type uiBugPage struct {
 	Header  *uiHeader
+	Now     time.Time
 	Bug     *uiBug
+	DupOf   *uiBugGroup
+	Dups    *uiBugGroup
+	Similar *uiBugGroup
 	Crashes []*uiCrash
 }
 
 type uiBugGroup struct {
-	Namespace string
-	Bugs      []*uiBug
+	Now           time.Time
+	Caption       string
+	ShowNamespace bool
+	Bugs          []*uiBug
 }
 
 type uiBug struct {
@@ -184,14 +190,38 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
+	var dupOf *uiBugGroup
+	if bug.DupOf != "" {
+		dup := new(Bug)
+		if err := datastore.Get(c, datastore.NewKey(c, "Bug", bug.DupOf, 0, nil), dup); err != nil {
+			return err
+		}
+		dupOf = &uiBugGroup{
+			Now:     timeNow(c),
+			Caption: "Duplicate of",
+			Bugs:    []*uiBug{createUIBug(c, dup, state, managers)},
+		}
+	}
 	uiBug := createUIBug(c, bug, state, managers)
 	crashes, err := loadCrashesForBug(c, bug)
 	if err != nil {
 		return err
 	}
+	dups, err := loadDupsForBug(c, bug, state, managers)
+	if err != nil {
+		return err
+	}
+	similar, err := loadSimilarBugs(c, bug, state)
+	if err != nil {
+		return err
+	}
 	data := &uiBugPage{
 		Header:  h,
+		Now:     timeNow(c),
 		Bug:     uiBug,
+		DupOf:   dupOf,
+		Dups:    dups,
+		Similar: similar,
 		Crashes: crashes,
 	}
 	return serveTemplate(w, "bug.html", data)
@@ -237,25 +267,111 @@ func fetchBugs(c context.Context) ([]*uiBugGroup, error) {
 		uiBug := createUIBug(c, bug, state, managers[bug.Namespace])
 		groups[bug.Namespace] = append(groups[bug.Namespace], uiBug)
 	}
+	now := timeNow(c)
 	var res []*uiBugGroup
 	for ns, bugs := range groups {
 		sort.Sort(uiBugSorter(bugs))
 		res = append(res, &uiBugGroup{
-			Namespace: ns,
-			Bugs:      bugs,
+			Now:     now,
+			Caption: fmt.Sprintf("%v (%v)", ns, len(bugs)),
+			Bugs:    bugs,
 		})
 	}
 	sort.Sort(uiBugGroupSorter(res))
 	return res, nil
 }
 
-func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []string) *uiBug {
-	_, _, _, reportingIdx, status, link, err := needReport(c, "", state, bug)
+func loadDupsForBug(c context.Context, bug *Bug, state *ReportingState, managers []string) (
+	*uiBugGroup, error) {
+	bugHash := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
+	var dups []*Bug
+	_, err := datastore.NewQuery("Bug").
+		Filter("Status=", BugStatusDup).
+		Filter("DupOf=", bugHash).
+		GetAll(c, &dups)
 	if err != nil {
-		status = err.Error()
+		return nil, err
 	}
-	if status == "" {
-		status = "???"
+	var results []*uiBug
+	for _, dup := range dups {
+		results = append(results, createUIBug(c, dup, state, managers))
+	}
+	group := &uiBugGroup{
+		Now:     timeNow(c),
+		Caption: "Duplicates",
+		Bugs:    results,
+	}
+	return group, nil
+}
+
+func loadSimilarBugs(c context.Context, bug *Bug, state *ReportingState) (*uiBugGroup, error) {
+	var similar []*Bug
+	_, err := datastore.NewQuery("Bug").
+		Filter("Title=", bug.Title).
+		GetAll(c, &similar)
+	if err != nil {
+		return nil, err
+	}
+	managers := make(map[string][]string)
+	var results []*uiBug
+	for _, similar := range similar {
+		if similar.Namespace == bug.Namespace && similar.Seq == bug.Seq {
+			continue
+		}
+		if managers[similar.Namespace] == nil {
+			mgrs, err := managerList(c, similar.Namespace)
+			if err != nil {
+				return nil, err
+			}
+			managers[similar.Namespace] = mgrs
+		}
+		results = append(results, createUIBug(c, similar, state, managers[similar.Namespace]))
+	}
+	group := &uiBugGroup{
+		Now:           timeNow(c),
+		Caption:       "Similar Bugs",
+		ShowNamespace: true,
+		Bugs:          results,
+	}
+	return group, nil
+}
+
+func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []string) *uiBug {
+	reportingIdx, status, link := 0, "", ""
+	var err error
+	if bug.Status == BugStatusOpen {
+		_, _, _, reportingIdx, status, link, err = needReport(c, "", state, bug)
+		if err != nil {
+			status = err.Error()
+		}
+		if status == "" {
+			status = "???"
+		}
+	} else {
+		for i := range bug.Reporting {
+			bugReporting := &bug.Reporting[i]
+			if i == len(bug.Reporting)-1 ||
+				bug.Status == BugStatusInvalid && !bug.Reporting[i].Closed.IsZero() &&
+					bug.Reporting[i+1].Closed.IsZero() ||
+				(bug.Status == BugStatusFixed || bug.Status == BugStatusDup) &&
+					bug.Reporting[i].Closed.IsZero() {
+				reportingIdx = i
+				link = bugReporting.Link
+				switch bug.Status {
+				case BugStatusInvalid:
+					status = "invalid"
+				case BugStatusFixed:
+					status = "fixed"
+				case BugStatusDup:
+					status = "dup"
+				default:
+					status = fmt.Sprintf("unknown (%v)", bug.Status)
+				}
+				status = fmt.Sprintf("%v: closed as %v on %v",
+					bugReporting.Name, status, formatTime(bug.Closed))
+				break
+			}
+		}
 	}
 	id := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
 	uiBug := &uiBug{
@@ -499,6 +615,9 @@ type uiBugSorter []*uiBug
 func (a uiBugSorter) Len() int      { return len(a) }
 func (a uiBugSorter) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func (a uiBugSorter) Less(i, j int) bool {
+	if a[i].Namespace != a[j].Namespace {
+		return a[i].Namespace < a[j].Namespace
+	}
 	if a[i].ReportingIndex != a[j].ReportingIndex {
 		return a[i].ReportingIndex > a[j].ReportingIndex
 	}
@@ -515,4 +634,4 @@ type uiBugGroupSorter []*uiBugGroup
 
 func (a uiBugGroupSorter) Len() int           { return len(a) }
 func (a uiBugGroupSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a uiBugGroupSorter) Less(i, j int) bool { return a[i].Namespace < a[j].Namespace }
+func (a uiBugGroupSorter) Less(i, j int) bool { return a[i].Caption < a[j].Caption }

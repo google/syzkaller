@@ -28,6 +28,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/aetest"
+	"google.golang.org/appengine/datastore"
 	aemail "google.golang.org/appengine/mail"
 	"google.golang.org/appengine/user"
 )
@@ -93,8 +94,16 @@ func caller(skip int) string {
 
 func (c *Ctx) Close() {
 	if !c.t.Failed() {
-		// Ensure that we can render bugs in the final test state.
+		// Ensure that we can render main page and all bugs in the final test state.
 		c.expectOK(c.GET("/"))
+		var bugs []*Bug
+		keys, err := datastore.NewQuery("Bug").GetAll(c.ctx, &bugs)
+		if err != nil {
+			c.t.Errorf("ERROR: failed to query bugs: %v", err)
+		}
+		for _, key := range keys {
+			c.expectOK(c.GET(fmt.Sprintf("/bug?id=%v", key.StringID())))
+		}
 		c.expectOK(c.GET("/email_poll"))
 		for len(c.emailSink) != 0 {
 			c.t.Errorf("ERROR: leftover email: %v", (<-c.emailSink).Body)

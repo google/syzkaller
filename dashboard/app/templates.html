@@ -1,0 +1,36 @@
+{{/*
+Copyright 2017 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+*/}}
+
+{{/* List of bugs, invoked with *uiBugGroup */}}
+{{define "bug_list"}}
+{{if .}}
+{{if .Bugs}}
+<table class="list_table">
+	<caption>{{$.Caption}}:</caption>
+	<tr>
+		{{if $.ShowNamespace}}<th>Kernel</th>{{end}}
+		<th>Title</th>
+		<th>Count</th>
+		<th>Repro</th>
+		<th>Last</th>
+		<th>Patched</th>
+		<th>Status</th>
+	</tr>
+	{{range $b := .Bugs}}
+		<tr>
+			{{if $.ShowNamespace}}<td>{{$b.Namespace}}</td>{{end}}
+			<td class="title"><a href="{{$b.Link}}">{{$b.Title}}</a></td>
+			<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>
+			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
+			<td class="stat">{{formatLateness $.Now $b.LastTime}}</td>
+			<td class="patched" title="{{$b.Commits}}">{{if $b.Commits}}{{len $b.PatchedOn}}/{{len $b.MissingOn}}{{end}}</td>
+			<td class="status">{{if $b.Link}}<a href="{{$b.ExternalLink}}">{{$b.Status}}</a>{{else}}{{$b.Status}}{{end}}</td>
+		</tr>
+	{{end}}
+</table>
+<br>
+{{end}}
+{{end}}
+{{end}}
