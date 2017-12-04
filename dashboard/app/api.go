@@ -628,6 +628,7 @@ func apiManagerStats(c context.Context, ns string, r *http.Request) (interface{}
 	}
 	now := timeNow(c)
 	if err := updateManager(c, ns, req.Name, func(mgr *Manager, stats *ManagerStats) {
+		mgr.Link = req.Addr
 		mgr.LastAlive = now
 		mgr.CurrentUpTime = req.UpTime
 		if cur := int64(req.Corpus); cur > stats.MaxCorpus {
