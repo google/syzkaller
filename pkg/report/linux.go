@@ -401,7 +401,7 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) bo
 		frames = frames[1:]
 		corrupted := true
 		// Check that at least one of the next 10 lines contains a frame.
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 10 && i < len(frames); i++ {
 			if bytes.Contains(frames[i], []byte("(stack is not available)")) || linuxSymbolizeRe.Match(frames[i]) {
 				corrupted = false
 				break
