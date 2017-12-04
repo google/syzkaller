@@ -1,3 +1,10 @@
+{{/*
+Copyright 2017 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Main page.
+*/}}
+
 <!doctype html>
 <html>
 <head>
@@ -101,28 +108,7 @@
 	<br><br>
 
 	{{range $group := $.BugGroups}}
-		<table class="list_table">
-			<caption>{{.Namespace}} ({{len $group.Bugs}}):</caption>
-			<tr>
-				<th>Title</th>
-				<th>Count</th>
-				<th>Repro</th>
-				<th>Last</th>
-				<th>Status</th>
-				<th>Patched</th>
-			</tr>
-			{{range $b := $group.Bugs}}
-				<tr>
-					<td class="title"><a href="{{$b.Link}}">{{$b.Title}}</a></td>
-					<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>
-					<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
-					<td class="stat">{{formatLateness $.Now $b.LastTime}}</td>
-					<td class="status">{{if $b.Link}}<a href="{{$b.ExternalLink}}">{{$b.Status}}</a>{{else}}{{$b.Status}}{{end}}</td>
-					<td class="patched" title="{{$b.Commits}}">{{if $b.Commits}}{{len $b.PatchedOn}}/{{len $b.MissingOn}}{{end}}</td>
-				</tr>
-			{{end}}
-		</table>
-		<br><br>
+		{{template "bug_list" $group}}
 	{{end}}
 </body>
 </html>

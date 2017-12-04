@@ -1,3 +1,10 @@
+{{/*
+Copyright 2017 syzkaller project authors. All rights reserved.
+Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+Page with details about a single bug.
+*/}}
+
 <!doctype html>
 <html>
 <head>
@@ -7,18 +14,21 @@
 <body>
 	{{template "header" .Header}}
 
-	Title: {{.Bug.Title}}<br>
-	Namespace: {{.Bug.Namespace}}<br>
-	Crashes: {{.Bug.NumCrashes}}<br>
-	First: {{formatTime .Bug.FirstTime}}<br>
-	Last: {{formatTime .Bug.LastTime}}<br>
-	Reporting: {{if .Bug.Link}}<a href="{{.Bug.Link}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
-	Commits: {{.Bug.Commits}}<br>
-	Patched on: {{.Bug.PatchedOn}}<br>
-	Missing on: {{.Bug.MissingOn}}<br>
+	<b>[{{.Bug.Namespace}}] {{.Bug.Title}}</b><br>
+	Status: {{if .Bug.ExternalLink}}<a href="{{.Bug.ExternalLink}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
+	{{if .Bug.Commits}}
+		Commits: {{.Bug.Commits}}<br>
+		Patched on: {{.Bug.PatchedOn}}, missing on: {{.Bug.MissingOn}}<br>
+	{{end}}
+	First: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
+	<br>
+
+	{{template "bug_list" .DupOf}}
+	{{template "bug_list" .Dups}}
+	{{template "bug_list" .Similar}}
 
 	<table class="list_table">
-		<caption>Crashes:</caption>
+		<caption>Crashes ({{.Bug.NumCrashes}}):</caption>
 		<tr>
 			<th>Manager</th>
 			<th>Time</th>
