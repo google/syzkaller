@@ -38,6 +38,7 @@ type uiMain struct {
 type uiManager struct {
 	Namespace          string
 	Name               string
+	Link               string
 	CurrentBuild       *uiBuild
 	FailedBuildBugLink string
 	LastActive         time.Time
@@ -496,6 +497,7 @@ func loadManagers(c context.Context) ([]*uiManager, error) {
 		results = append(results, &uiManager{
 			Namespace:          mgr.Namespace,
 			Name:               mgr.Name,
+			Link:               mgr.Link,
 			CurrentBuild:       uiBuilds[mgr.Namespace+"|"+mgr.CurrentBuild],
 			FailedBuildBugLink: bugLink(mgr.FailedBuildBug),
 			LastActive:         mgr.LastAlive,

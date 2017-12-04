@@ -38,7 +38,7 @@ Main page.
 		</tr>
 		{{range $mgr := $.Managers}}
 			<tr>
-				<td>{{$mgr.Namespace}}/{{$mgr.Name}}</td>
+				<td><a href="{{$mgr.Link}}">{{$mgr.Namespace}}/{{$mgr.Name}}</a></td>
 				<td class="stat {{if $mgr.LastActiveBad}}bad{{end}}">{{formatLateness $.Now $mgr.LastActive}}</td>
 				{{if $mgr.CurrentBuild}}
 					<td class="stat" title="{{$mgr.CurrentBuild.KernelRepo}}/{{$mgr.CurrentBuild.KernelBranch}}/{{$mgr.CurrentBuild.KernelCommit}} (syzkaller {{$mgr.CurrentBuild.SyzkallerCommit}})">{{formatLateness $.Now $mgr.CurrentBuild.Time}}</td>

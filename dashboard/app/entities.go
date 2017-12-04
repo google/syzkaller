@@ -27,6 +27,7 @@ const (
 type Manager struct {
 	Namespace      string
 	Name           string
+	Link           string
 	CurrentBuild   string
 	FailedBuildBug string
 	LastAlive      time.Time
