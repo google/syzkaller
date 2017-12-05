@@ -700,17 +700,30 @@ static void sandbox_common()
 	rlim.rlim_cur = rlim.rlim_max = 0;
 	setrlimit(RLIMIT_CORE, &rlim);
 
-	// CLONE_NEWIPC/CLONE_IO cause EINVAL on some systems, so we do them separately of clone.
+#ifndef CLONE_NEWCGROUP
+#define CLONE_NEWCGROUP 0x02000000
+#endif
+
+	// CLONE_NEWNS/NEWCGROUP cause EINVAL on some systems,
+	// so we do them separately of clone in do_sandbox_namespace.
 	unshare(CLONE_NEWNS);
 	unshare(CLONE_NEWIPC);
-	unshare(CLONE_IO);
+	unshare(CLONE_NEWCGROUP);
+	unshare(CLONE_NEWNET);
+	unshare(CLONE_NEWUTS);
+	unshare(CLONE_SYSVSEM);
 }
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE)
 static int do_sandbox_none(int executor_pid, bool enable_tun)
 {
+	// CLONE_NEWPID takes effect for the first child of the current process,
+	// so we do it before fork to make the loop "init" process of the namespace.
+	unshare(CLONE_NEWPID);
 	int pid = fork();
+	if (pid < 0)
+		exitf("sandbox fork failed");
 	if (pid)
 		return pid;
 
@@ -727,7 +740,10 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_SETUID)
 static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 {
+	unshare(CLONE_NEWPID);
 	int pid = fork();
+	if (pid < 0)
+		exitf("sandbox fork failed");
 	if (pid)
 		return pid;
 
@@ -846,6 +862,8 @@ static int namespace_sandbox_proc(void* arg)
 
 static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 {
+	int pid;
+
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	// For sandbox namespace we setup tun before dropping privs,
 	// because IFF_NAPI_FRAGS requires root.
@@ -855,8 +873,11 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 	real_uid = getuid();
 	real_gid = getgid();
 	mprotect(sandbox_stack, 4096, PROT_NONE); // to catch stack underflows
-	return clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
-		     CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
+	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
+		    CLONE_NEWUSER | CLONE_NEWPID, NULL);
+	if (pid < 0)
+		exitf("sandbox clone failed");
+	return pid;
 }
 #endif
 
@@ -990,7 +1011,7 @@ void loop()
 #endif
 		int pid = fork();
 		if (pid < 0)
-			fail("clone failed");
+			exitf("loop fork failed");
 		if (pid == 0) {
 			prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 			setpgrp();
