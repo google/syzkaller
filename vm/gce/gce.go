@@ -326,6 +326,11 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 				// If the command exited successfully, we got EOF error from merger.
 				// But in this case no error has happened and the EOF is expected.
 				err = nil
+			} else if merr, ok := err.(vmimpl.MergerError); ok && merr.R == conRpipe {
+				// Console connection must never fail. If it does, it's either
+				// instance preemption or a GCE bug. In either case, not a kernel bug.
+				Logf(1, "%v: gce console connection failed with %v", inst.name, merr.Err)
+				err = vmimpl.TimeoutErr
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.
 				time.Sleep(5 * time.Second) // just to avoid any GCE races

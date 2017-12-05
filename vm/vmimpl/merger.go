@@ -18,6 +18,16 @@ type OutputMerger struct {
 	wg     sync.WaitGroup
 }
 
+type MergerError struct {
+	Name string
+	R    io.ReadCloser
+	Err  error
+}
+
+func (err MergerError) Error() string {
+	return fmt.Sprintf("failed to read from %v: %v", err.Name, err.Err)
+}
+
 func NewOutputMerger(tee io.Writer) *OutputMerger {
 	return &OutputMerger{
 		Output: make(chan []byte, 1000),
@@ -84,7 +94,7 @@ func (merger *OutputMerger) AddDecoder(name string, r io.ReadCloser,
 				}
 				r.Close()
 				select {
-				case merger.Err <- fmt.Errorf("failed to read from %v: %v", name, err):
+				case merger.Err <- MergerError{name, r, err}:
 				default:
 				}
 				merger.wg.Done()
