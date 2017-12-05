@@ -248,6 +248,8 @@ func parseSuppressions(cfg *Config) error {
 		"signal SIGBUS: bus error",                                // presubmably OOM turned into SIGBUS
 		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
 		"Out of memory: Kill process .* \\(sshd\\)",
+		"Killed process .* \\(syz-fuzzer\\)",
+		"Killed process .* \\(sshd\\)",
 		"lowmemorykiller: Killing 'syz-fuzzer'",
 		"lowmemorykiller: Killing 'sshd'",
 	}...)
