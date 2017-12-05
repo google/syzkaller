@@ -722,11 +722,6 @@ var linuxOopses = []*oops{
 				title: compile("INFO: task .* blocked for more than [0-9]+ seconds"),
 				fmt:   "INFO: task hung",
 			},
-			{
-				title:        compile("INFO: recovery required on readonly filesystem"),
-				fmt:          "INFO: recovery required on readonly filesystem",
-				noStackTrace: true,
-			},
 		},
 		[]*regexp.Regexp{
 			compile("INFO: lockdep is turned off"),
@@ -883,6 +878,17 @@ var linuxOopses = []*oops{
 			{
 				title: compile("UBSAN: (.*)"),
 				fmt:   "UBSAN: %[1]v",
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	&oops{
+		[]byte("Booting the kernel."),
+		[]oopsFormat{
+			{
+				title:        compile("Booting the kernel."),
+				fmt:          "unexpected kernel reboot",
+				noStackTrace: true,
 			},
 		},
 		[]*regexp.Regexp{},

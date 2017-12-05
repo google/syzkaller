@@ -1396,26 +1396,6 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 `, `KASAN: slab-out-of-bounds Read in __lock_acquire`, false,
 		}, {
 			`
-[  190.154802] md: Autodetecting RAID arrays.
-[  190.154802] md: autorun ...
-[  190.154802] md: ... autorun DONE.
-[  190.154802] EXT4-fs (sda1): couldn't mount as ext3 due to feature incompatibilities
-[  190.154802] EXT4-fs (sda1): couldn't mount as ext2 due to feature incompatibilities
-[  190.154802] EXT4-fs (sda1): INFO: recovery required on readonly filesystem
-[  190.154802] EXT4-fs (sda1): write access will be enabled during recovery
-[  190.154802] clocksource: Switched to clocksource tsc
-[  190.154802] EXT4-fs (sda1): recovery complete
-[  190.154802] EXT4-fs (sda1): mounted filesystem with ordered data mode. Opts: (null)
-[  190.154802] VFS: Mounted root (ext4 filesystem) readonly on device 8:1.
-[  190.154802] devtmpfs: mounted
-[  190.154802] Freeing unused kernel memory: 3496K
-[  190.154802] Kernel memory protection disabled.
-[  190.154802] random: crng init done
-[  190.154802] stty (1471) used greatest stack depth: 25080 bytes left
-[  190.154802] EXT4-fs (sda1): re-mounted. Opts: (null)
-`, `INFO: recovery required on readonly filesystem`, false,
-		}, {
-			`
 [  190.154802] ==================================================================
 [  190.154802] BUG: KASAN: slab-out-of-bounds in sg_remove_request+0x103/0x120 at addr ffff8801a85de8c0
 [  190.154802] Read of size 8 by task syz-executor0/6860
@@ -1710,13 +1690,49 @@ syzkaller login: [   16.305150] INFO: trying to register non-static key.
 [   47.713035]  _raw_spin_lock_bh+0x31/0x40
 [   47.713045]  tun_flow_cleanup+0xf4/0x300
 `, `INFO: trying to register non-static key in tun_flow_cleanup`, false,
-		},
-		{
+		}, {
 			`
 [0.0] unreferenced object
 [0.0]  backtrace:
 [0.0] 
 `, `unreferenced object`, true,
+		}, {
+			`
+tkill(r8, 0x13)
+mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+SeaBIOS (version 1.8.2-20171012_061934-google)
+Total RAM Size = 0x00000001e0000000 = 7680 MiB
+Failed to get pci whitelist data
+CPUs found: 2     Max CPUs supported: 2
+found virtio-scsi at 0:3
+virtio-scsi vendor='Google' product='PersistentDisk' rev='1' type=0 removable=0
+virtio-scsi blksize=512 sectors=4194304 = 2048 MiB
+drive 0x000f3030: PCHS=0/0/0 translation=lba LCHS=520/128/63 s=4194304
+Booting from Hard Disk 0...
+early console in extract_kernel
+input_data: 0x0000000005f13276
+input_len: 0x0000000001e7f701
+output: 0x0000000001000000
+output_len: 0x0000000005c85958
+kernel_total_size: 0x0000000006db2000
+
+Decompressing Linux... Parsing ELF... done.
+Booting the kernel.
+[    0.000000] Linux version 4.15.0-rc1-next-20171128+ (syzkaller@ci) (gcc version 7.1.1 20170620 (GCC)) #54 SMP Tue Nov 28 04:02:11 UTC 2017
+[    0.000000] Command line: BOOT_IMAGE=/vmlinuz root=/dev/sda1 console=ttyS0 earlyprintk=serial vsyscall=native rodata=n ftrace_dump_on_oops=orig_cpu oops=panic panic_on_warn=1 nmi_watchdog=panic panic=86400 kvm-intel.nested=1
+[    0.000000] x86/fpu: Supporting XSAVE feature 0x001: 'x87 floating point registers'
+[    0.000000] x86/fpu: xstate_offset[2]:  576, xstate_sizes[2]:  256
+[    0.000000] x86/fpu: Enabled xstate features 0x7, context size is 832 bytes, using 'standard' format.
+[    0.000000] e820: BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable
+[    1.824260] tsc: Refined TSC clocksource calibration: 2299.821 MHz
+[    1.873620] input: ImPS/2 Generic Wheel Mouse as /devices/platform/i8042/serio1/input/input4
+[    1.962277] VFS: Mounted root (ext4 filesystem) readonly on device 8:1.
+[    1.964194] devtmpfs: mounted
+[    1.971300] Freeing unused kernel memory: 2344K
+[    1.887427] EXT4-fs (sda1): INFO: recovery required on readonly filesystem
+[    1.971945] Kernel memory protection disabled.
+`, `unexpected kernel reboot`, false,
 		},
 		// TODO: broken: https://github.com/google/syzkaller/issues/457
 		//{`BUG: executor-detected bug`, `BUG: executor-detected bug`, false},
