@@ -946,11 +946,14 @@ static int inject_fault(int nth)
 	char buf[16];
 
 	fd = open("/proc/thread-self/fail-nth", O_RDWR);
+	// We treat errors here as temporal/non-critical because we see
+	// occasional ENOENT/EACCES errors returned. It seems that fuzzer
+	// somehow gets its hands to it.
 	if (fd == -1)
-		fail("failed to open /proc/thread-self/fail-nth");
+		exitf("failed to open /proc/thread-self/fail-nth");
 	sprintf(buf, "%d", nth + 1);
 	if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf))
-		fail("failed to write /proc/thread-self/fail-nth");
+		exitf("failed to write /proc/thread-self/fail-nth");
 	return fd;
 }
 #endif
@@ -961,11 +964,11 @@ static int fault_injected(int fail_fd)
 	char buf[16];
 	int n = read(fail_fd, buf, sizeof(buf) - 1);
 	if (n <= 0)
-		fail("failed to read /proc/thread-self/fail-nth");
+		exitf("failed to read /proc/thread-self/fail-nth");
 	int res = n == 2 && buf[0] == '0' && buf[1] == '\n';
 	buf[0] = '0';
 	if (write(fail_fd, buf, 1) != 1)
-		fail("failed to write /proc/thread-self/fail-nth");
+		exitf("failed to write /proc/thread-self/fail-nth");
 	close(fail_fd);
 	return res;
 }
