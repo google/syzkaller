@@ -96,7 +96,7 @@ const int kErrorStatus = 68;
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||            \
     defined(SYZ_USE_TMP_DIR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || \
-    defined(SYZ_SANDBOX_SETUID) || defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
+    defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
 NORETURN static void fail(const char* msg, ...)
 {
 	int e = errno;
@@ -121,7 +121,7 @@ NORETURN static void error(const char* msg, ...)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR)) || defined(SYZ_FAULT_INJECTION)
 NORETURN static void exitf(const char* msg, ...)
 {
 	int e = errno;

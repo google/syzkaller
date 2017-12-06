@@ -182,7 +182,7 @@ const int kErrorStatus = 68;
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||            \
     defined(SYZ_USE_TMP_DIR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || \
-    defined(SYZ_SANDBOX_SETUID) || defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
+    defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
 NORETURN static void fail(const char* msg, ...)
 {
 	int e = errno;
@@ -207,7 +207,7 @@ NORETURN static void error(const char* msg, ...)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR)) || defined(SYZ_FAULT_INJECTION)
 NORETURN static void exitf(const char* msg, ...)
 {
 	int e = errno;
@@ -1760,16 +1760,26 @@ static void sandbox_common()
 	rlim.rlim_cur = rlim.rlim_max = 0;
 	setrlimit(RLIMIT_CORE, &rlim);
 
+#ifndef CLONE_NEWCGROUP
+#define CLONE_NEWCGROUP 0x02000000
+#endif
+
 	unshare(CLONE_NEWNS);
 	unshare(CLONE_NEWIPC);
-	unshare(CLONE_IO);
+	unshare(CLONE_NEWCGROUP);
+	unshare(CLONE_NEWNET);
+	unshare(CLONE_NEWUTS);
+	unshare(CLONE_SYSVSEM);
 }
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE)
 static int do_sandbox_none(int executor_pid, bool enable_tun)
 {
+	unshare(CLONE_NEWPID);
 	int pid = fork();
+	if (pid < 0)
+		fail("sandbox fork failed");
 	if (pid)
 		return pid;
 
@@ -1786,7 +1796,10 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_SETUID)
 static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 {
+	unshare(CLONE_NEWPID);
 	int pid = fork();
+	if (pid < 0)
+		fail("sandbox fork failed");
 	if (pid)
 		return pid;
 
@@ -1897,6 +1910,8 @@ static int namespace_sandbox_proc(void* arg)
 
 static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 {
+	int pid;
+
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	setup_tun(executor_pid, enable_tun);
 #endif
@@ -1904,8 +1919,11 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 	real_uid = getuid();
 	real_gid = getgid();
 	mprotect(sandbox_stack, 4096, PROT_NONE);
-	return clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
-		     CLONE_NEWUSER | CLONE_NEWPID | CLONE_NEWUTS | CLONE_NEWNET, NULL);
+	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
+		    CLONE_NEWUSER | CLONE_NEWPID, NULL);
+	if (pid < 0)
+		fail("sandbox clone failed");
+	return pid;
 }
 #endif
 
@@ -1988,10 +2006,10 @@ static int inject_fault(int nth)
 
 	fd = open("/proc/thread-self/fail-nth", O_RDWR);
 	if (fd == -1)
-		fail("failed to open /proc/thread-self/fail-nth");
+		exitf("failed to open /proc/thread-self/fail-nth");
 	sprintf(buf, "%d", nth + 1);
 	if (write(fd, buf, strlen(buf)) != (ssize_t)strlen(buf))
-		fail("failed to write /proc/thread-self/fail-nth");
+		exitf("failed to write /proc/thread-self/fail-nth");
 	return fd;
 }
 #endif
@@ -2002,11 +2020,11 @@ static int fault_injected(int fail_fd)
 	char buf[16];
 	int n = read(fail_fd, buf, sizeof(buf) - 1);
 	if (n <= 0)
-		fail("failed to read /proc/thread-self/fail-nth");
+		exitf("failed to read /proc/thread-self/fail-nth");
 	int res = n == 2 && buf[0] == '0' && buf[1] == '\n';
 	buf[0] = '0';
 	if (write(fail_fd, buf, 1) != 1)
-		fail("failed to write /proc/thread-self/fail-nth");
+		exitf("failed to write /proc/thread-self/fail-nth");
 	close(fail_fd);
 	return res;
 }
@@ -2028,7 +2046,7 @@ void loop()
 #endif
 		int pid = fork();
 		if (pid < 0)
-			fail("clone failed");
+			fail("loop fork failed");
 		if (pid == 0) {
 			prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 			setpgrp();
