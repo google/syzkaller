@@ -723,7 +723,7 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 	unshare(CLONE_NEWPID);
 	int pid = fork();
 	if (pid < 0)
-		exitf("sandbox fork failed");
+		fail("sandbox fork failed");
 	if (pid)
 		return pid;
 
@@ -743,7 +743,7 @@ static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 	unshare(CLONE_NEWPID);
 	int pid = fork();
 	if (pid < 0)
-		exitf("sandbox fork failed");
+		fail("sandbox fork failed");
 	if (pid)
 		return pid;
 
@@ -876,7 +876,7 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
 		    CLONE_NEWUSER | CLONE_NEWPID, NULL);
 	if (pid < 0)
-		exitf("sandbox clone failed");
+		fail("sandbox clone failed");
 	return pid;
 }
 #endif
@@ -1011,7 +1011,7 @@ void loop()
 #endif
 		int pid = fork();
 		if (pid < 0)
-			exitf("loop fork failed");
+			fail("loop fork failed");
 		if (pid == 0) {
 			prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 			setpgrp();
