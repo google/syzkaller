@@ -78,8 +78,11 @@ const (
 	ReportingActive ReportingStatus = iota
 	// Don't send anything to this reporting, but don't skip it as well.
 	ReportingSuspended
-	// Skip this reporting.
+	// Skip this reporting entirely.
 	ReportingDisabled
+	// Skip this reporting except for special bugs
+	// (no report, corrupted report, build error, etc).
+	ReportingPassThrough
 )
 
 func (cfg *Config) ReportingByName(name string) *Reporting {
