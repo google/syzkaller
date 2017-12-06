@@ -149,15 +149,30 @@ func currentReporting(c context.Context, bug *Bug) (*Reporting, *BugReporting, i
 		if reporting == nil {
 			return nil, nil, 0, "", fmt.Errorf("%v: missing in config", bugReporting.Name)
 		}
-		if reporting.Status == ReportingDisabled {
-			continue
-		}
-		if reporting.Status == ReportingSuspended {
+		switch reporting.Status {
+		case ReportingActive:
+			break
+		case ReportingSuspended:
 			return nil, nil, 0, fmt.Sprintf("%v: reporting suspended", bugReporting.Name), nil
+		case ReportingDisabled:
+			continue
+		case ReportingPassThrough:
+			if !isSpecialBug(bug) {
+				continue
+			}
 		}
 		return reporting, bugReporting, i, "", nil
 	}
 	return nil, nil, 0, "", fmt.Errorf("no reporting left")
+}
+
+func isSpecialBug(bug *Bug) bool {
+	// We may consider introducing a bug type, but for now we just look at some fields.
+	return !bug.HasReport ||
+		bug.Title == corruptedReportTitle ||
+		strings.Contains(bug.Title, "build error") ||
+		strings.Contains(bug.Title, "boot error:") ||
+		strings.Contains(bug.Title, "test error:")
 }
 
 func reproStr(level dashapi.ReproLevel) string {
@@ -381,6 +396,16 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		if bugReporting.Reported.IsZero() {
 			bugReporting.Reported = now
 			stateEnt.Sent++ // sending repro does not count against the quota
+		}
+		// Close all previous reporting if they are not closed yet
+		// (can happen due to Status == ReportingDisabled).
+		for i := range bug.Reporting {
+			if bugReporting == &bug.Reporting[i] {
+				break
+			}
+			if bug.Reporting[i].Closed.IsZero() {
+				bug.Reporting[i].Closed = now
+			}
 		}
 		if bug.ReproLevel < cmd.ReproLevel {
 			return false, internalError,
