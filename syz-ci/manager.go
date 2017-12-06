@@ -324,13 +324,14 @@ func (mgr *Manager) restartManager() {
 		mgr.Errorf("failed to load build info: %v", err)
 		return
 	}
-	cfgFile, err := mgr.writeConfig(info)
+	buildTag, err := mgr.uploadBuild(info, mgr.currentDir)
 	if err != nil {
-		mgr.Errorf("failed to create manager config: %v", err)
+		mgr.Errorf("failed to upload build: %v", err)
 		return
 	}
-	if err := mgr.uploadBuild(info, mgr.currentDir); err != nil {
-		mgr.Errorf("failed to upload build: %v", err)
+	cfgFile, err := mgr.writeConfig(buildTag)
+	if err != nil {
+		mgr.Errorf("failed to create manager config: %v", err)
 		return
 	}
 	bin := filepath.FromSlash("syzkaller/current/bin/syz-manager")
@@ -387,11 +388,10 @@ func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageD
 			mgr.name, rep.Title, rep.Report, rep.Output)
 		return nil
 	}
-	build, err := mgr.createDashboardBuild(info, imageDir)
+	build, err := mgr.createDashboardBuild(info, imageDir, "error")
 	if err != nil {
 		return err
 	}
-	build.ID += "-error" // must not match normal build ID
 	req := &dashapi.BuildErrorReq{
 		Build: *build,
 		Crash: dashapi.Crash{
@@ -427,41 +427,32 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	return mgrcfg, nil
 }
 
-func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
+func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	mgrcfg := new(mgrconfig.Config)
 	*mgrcfg = *mgr.managercfg
 
-	current := mgr.currentDir
 	if mgr.dash != nil {
-		mgrcfg.Tag = info.Tag
-
 		mgrcfg.Dashboard_Client = mgr.dash.Client
 		mgrcfg.Dashboard_Addr = mgr.dash.Addr
 		mgrcfg.Dashboard_Key = mgr.dash.Key
-	} else {
-		// Dashboard identifies builds by unique tags that are combined
-		// from kernel tag, compiler tag and config tag.
-		// This combined tag is meaningless without dashboard,
-		// so we use kenrel tag (commit tag) because it communicates
-		// at least some useful information.
-		mgrcfg.Tag = info.KernelCommit
 	}
 	if mgr.cfg.Hub_Addr != "" {
 		mgrcfg.Hub_Client = mgr.cfg.Name
 		mgrcfg.Hub_Addr = mgr.cfg.Hub_Addr
 		mgrcfg.Hub_Key = mgr.cfg.Hub_Key
 	}
+	mgrcfg.Tag = buildTag
 	mgrcfg.Workdir = mgr.workDir
-	mgrcfg.Vmlinux = filepath.Join(current, "obj", "vmlinux")
+	mgrcfg.Vmlinux = filepath.Join(mgr.currentDir, "obj", "vmlinux")
 	// Strictly saying this is somewhat racy as builder can concurrently
 	// update the source, or even delete and re-clone. If this causes
 	// problems, we need to make a copy of sources after build.
 	mgrcfg.Kernel_Src = mgr.kernelDir
 	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
-	mgrcfg.Image = filepath.Join(current, "image")
-	mgrcfg.Sshkey = filepath.Join(current, "key")
+	mgrcfg.Image = filepath.Join(mgr.currentDir, "image")
+	mgrcfg.Sshkey = filepath.Join(mgr.currentDir, "key")
 
-	configFile := filepath.Join(current, "manager.cfg")
+	configFile := filepath.Join(mgr.currentDir, "manager.cfg")
 	if err := config.SaveFile(configFile, mgrcfg); err != nil {
 		return "", err
 	}
@@ -471,14 +462,19 @@ func (mgr *Manager) writeConfig(info *BuildInfo) (string, error) {
 	return configFile, nil
 }
 
-func (mgr *Manager) uploadBuild(info *BuildInfo, imageDir string) error {
+func (mgr *Manager) uploadBuild(info *BuildInfo, imageDir string) (string, error) {
 	if mgr.dash == nil {
-		return nil
+		// Dashboard identifies builds by unique tags that are combined
+		// from kernel tag, compiler tag and config tag.
+		// This combined tag is meaningless without dashboard,
+		// so we use kenrel tag (commit tag) because it communicates
+		// at least some useful information.
+		return info.KernelCommit, nil
 	}
 
-	build, err := mgr.createDashboardBuild(info, imageDir)
+	build, err := mgr.createDashboardBuild(info, imageDir, "normal")
 	if err != nil {
-		return err
+		return "", err
 	}
 	commits, err := mgr.pollCommits(info.KernelCommit)
 	if err != nil {
@@ -486,17 +482,26 @@ func (mgr *Manager) uploadBuild(info *BuildInfo, imageDir string) error {
 		mgr.Errorf("failed to poll commits: %v", err)
 	}
 	build.Commits = commits
-	return mgr.dash.UploadBuild(build)
+	if err := mgr.dash.UploadBuild(build); err != nil {
+		return "", err
+	}
+	return build.ID, nil
 }
 
-func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir string) (*dashapi.Build, error) {
+func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) (*dashapi.Build, error) {
 	kernelConfig, err := ioutil.ReadFile(filepath.Join(imageDir, "kernel.config"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read kernel.config: %v", err)
 	}
+	// Resulting build depends on both kernel build tag and syzkaller commmit.
+	// Also mix in build type, so that image error builds are not merged into normal builds.
+	var tagData []byte
+	tagData = append(tagData, info.Tag...)
+	tagData = append(tagData, mgr.syzkallerCommit...)
+	tagData = append(tagData, typ...)
 	build := &dashapi.Build{
 		Manager:         mgr.name,
-		ID:              info.Tag,
+		ID:              hash.String(tagData),
 		OS:              mgr.managercfg.TargetOS,
 		Arch:            mgr.managercfg.TargetArch,
 		VMArch:          mgr.managercfg.TargetVMArch,
