@@ -319,7 +319,7 @@ func incomingMail(c context.Context, r *http.Request) error {
 
 func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *BugReporting, reporting *Reporting) {
 	if msg.BugID == "" {
-		log.Warningf(c, "no bug ID")
+		log.Warningf(c, "no bug ID (%q)", msg.Subject)
 		return nil, nil, nil
 	}
 	bug, _, err := findBugByReportingID(c, msg.BugID)
