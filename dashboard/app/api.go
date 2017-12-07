@@ -197,7 +197,8 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{},
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	if err := uploadBuild(c, ns, req, BuildNormal); err != nil {
+	isNewBuild, err := uploadBuild(c, ns, req, BuildNormal)
+	if err != nil {
 		return nil, err
 	}
 	if len(req.Commits) != 0 {
@@ -205,18 +206,20 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{},
 			return nil, err
 		}
 	}
-	if err := updateManager(c, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) {
-		mgr.CurrentBuild = req.ID
-		mgr.FailedBuildBug = ""
-	}); err != nil {
-		return nil, err
+	if isNewBuild {
+		if err := updateManager(c, ns, req.Manager, func(mgr *Manager, stats *ManagerStats) {
+			mgr.CurrentBuild = req.ID
+			mgr.FailedBuildBug = ""
+		}); err != nil {
+			return nil, err
+		}
 	}
 	return nil, nil
 }
 
-func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType) error {
+func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType) (bool, error) {
 	if _, err := loadBuild(c, ns, req.ID); err == nil {
-		return nil
+		return false, nil
 	}
 
 	checkStrLen := func(str, name string, maxLen int) error {
@@ -229,29 +232,29 @@ func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType
 		return nil
 	}
 	if err := checkStrLen(req.Manager, "Build.Manager", MaxStringLen); err != nil {
-		return err
+		return false, err
 	}
 	if err := checkStrLen(req.ID, "Build.ID", MaxStringLen); err != nil {
-		return err
+		return false, err
 	}
 	if err := checkStrLen(req.KernelRepo, "Build.KernelRepo", MaxStringLen); err != nil {
-		return err
+		return false, err
 	}
 	if err := checkStrLen(req.KernelBranch, "Build.KernelBranch", MaxStringLen); err != nil {
-		return err
+		return false, err
 	}
 	if err := checkStrLen(req.SyzkallerCommit, "Build.SyzkallerCommit", MaxStringLen); err != nil {
-		return err
+		return false, err
 	}
 	if err := checkStrLen(req.CompilerID, "Build.CompilerID", MaxStringLen); err != nil {
-		return err
+		return false, err
 	}
 	if err := checkStrLen(req.KernelCommit, "Build.KernelCommit", MaxStringLen); err != nil {
-		return err
+		return false, err
 	}
 	configID, err := putText(c, ns, "KernelConfig", req.KernelConfig, true)
 	if err != nil {
-		return err
+		return false, err
 	}
 	build := &Build{
 		Namespace:       ns,
@@ -270,9 +273,9 @@ func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType
 		KernelConfig:    configID,
 	}
 	if _, err := datastore.Put(c, buildKey(c, ns, req.ID), build); err != nil {
-		return err
+		return false, err
 	}
-	return nil
+	return true, nil
 }
 
 func addCommitsToBugs(c context.Context, ns, manager string, commits []string) error {
@@ -378,7 +381,7 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request) (interfa
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	if err := uploadBuild(c, ns, &req.Build, BuildFailed); err != nil {
+	if _, err := uploadBuild(c, ns, &req.Build, BuildFailed); err != nil {
 		return nil, err
 	}
 	req.Crash.BuildID = req.Build.ID
