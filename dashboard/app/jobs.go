@@ -244,8 +244,10 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 			return fmt.Errorf("job %v: already finished", jobID)
 		}
 		ns := job.Namespace
-		if err := uploadBuild(c, ns, &req.Build, BuildJob); err != nil {
+		if isNewBuild, err := uploadBuild(c, ns, &req.Build, BuildJob); err != nil {
 			return err
+		} else if !isNewBuild {
+			log.Warningf(c, "job %v: duplicate build %v", jobID, req.Build.ID)
 		}
 		if job.Error, err = putText(c, ns, "Error", req.Error, false); err != nil {
 			return err
