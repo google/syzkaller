@@ -128,7 +128,7 @@ func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) int {
 	return match
 }
 
-func extractDescription(output []byte, oops *oops) (desc string, report []byte, format oopsFormat) {
+func extractDescription(output []byte, oops *oops) (desc string, format oopsFormat) {
 	startPos := -1
 	for _, f := range oops.formats {
 		match := f.title.FindSubmatchIndex(output)
@@ -144,14 +144,11 @@ func extractDescription(output []byte, oops *oops) (desc string, report []byte, 
 			args = append(args, string(output[match[i]:match[i+1]]))
 		}
 		desc = fmt.Sprintf(f.fmt, args...)
-		report = output[startPos:]
 		format = f
 	}
 	if len(desc) == 0 {
 		pos := bytes.Index(output, oops.header)
 		if pos == -1 {
-			// TODO: broken: https://github.com/google/syzkaller/issues/457
-			// panic(fmt.Sprintf("non matching oops for %q in:\n%s", oops.header, output))
 			return
 		}
 		end := bytes.IndexByte(output[pos:], '\n')
@@ -161,7 +158,6 @@ func extractDescription(output []byte, oops *oops) (desc string, report []byte, 
 			end += pos
 		}
 		desc = string(output[pos:end])
-		report = output[pos:]
 	}
 	if len(desc) > 0 && desc[len(desc)-1] == '\r' {
 		desc = desc[:len(desc)-1]

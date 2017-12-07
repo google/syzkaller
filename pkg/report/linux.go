@@ -84,7 +84,9 @@ func (ctx *linux) Parse(output []byte) *Report {
 		Output: output,
 	}
 	var oops *oops
-	var textPrefix [][]byte
+	var logReportPrefix [][]byte
+	var consoleReportPrefix [][]byte
+	var consoleReport []byte
 	textLines := 0
 	skipText := false
 	for pos := 0; pos < len(output); {
@@ -106,6 +108,12 @@ func (ctx *linux) Parse(output []byte) *Report {
 			}
 			rep.EndPos = next
 		}
+		if oops == nil {
+			logReportPrefix = append(logReportPrefix, append([]byte{}, output[pos:next]...))
+			if len(logReportPrefix) > 5 {
+				logReportPrefix = logReportPrefix[1:]
+			}
+		}
 		if ctx.consoleOutputRe.Match(output[pos:next]) &&
 			(!ctx.questionableRe.Match(output[pos:next]) ||
 				bytes.Index(output[pos:next], ctx.eoi) != -1) {
@@ -115,18 +123,11 @@ func (ctx *linux) Parse(output []byte) *Report {
 				lineEnd--
 			}
 			if oops == nil {
-				textPrefix = append(textPrefix, append([]byte{}, output[lineStart:lineEnd]...))
-				if len(textPrefix) > 5 {
-					textPrefix = textPrefix[1:]
+				consoleReportPrefix = append(consoleReportPrefix, append([]byte{}, output[lineStart:lineEnd]...))
+				if len(consoleReportPrefix) > 5 {
+					consoleReportPrefix = consoleReportPrefix[1:]
 				}
 			} else {
-				// Prepend 5 lines preceding start of the report,
-				// they can contain additional info related to the report.
-				for _, prefix := range textPrefix {
-					rep.Report = append(rep.Report, prefix...)
-					rep.Report = append(rep.Report, '\n')
-				}
-				textPrefix = nil
 				textLines++
 				ln := output[lineStart:lineEnd]
 				skipLine := skipText
@@ -146,8 +147,8 @@ func (ctx *linux) Parse(output []byte) *Report {
 					skipLine = true
 				}
 				if !skipLine {
-					rep.Report = append(rep.Report, ln...)
-					rep.Report = append(rep.Report, '\n')
+					consoleReport = append(consoleReport, ln...)
+					consoleReport = append(consoleReport, '\n')
 				}
 			}
 		}
@@ -156,11 +157,31 @@ func (ctx *linux) Parse(output []byte) *Report {
 	if oops == nil {
 		return nil
 	}
-	title, report, format := extractDescription(ctx.extractConsoleOutput(output[rep.StartPos:]), oops)
-	if title == "" {
-		title, report, format = extractDescription(output[rep.StartPos:], oops)
+	var report []byte
+	var reportPrefix [][]byte
+	// Try extracting report from console output only.
+	title, format := extractDescription(consoleReport, oops)
+	if len(title) != 0 {
+		// Success.
+		report = consoleReport
+		reportPrefix = consoleReportPrefix
+	} else {
+		// Failure. Try extracting report from the whole log.
+		report = output[rep.StartPos:]
+		reportPrefix = logReportPrefix
+		title, format = extractDescription(report, oops)
+		if len(title) == 0 {
+			panic(fmt.Sprintf("non matching oops for %q in:\n%s", oops.header, report))
+		}
 	}
 	rep.Title = title
+	// Prepend 5 lines preceding start of the report,
+	// they can contain additional info related to the report.
+	for _, prefix := range reportPrefix {
+		rep.Report = append(rep.Report, prefix...)
+		rep.Report = append(rep.Report, '\n')
+	}
+	rep.Report = append(rep.Report, report...)
 	rep.Corrupted = ctx.isCorrupted(title, report, format)
 	// Executor PIDs are not interesting.
 	rep.Title = executorRe.ReplaceAllLiteralString(rep.Title, "syz-executor")
@@ -176,10 +197,6 @@ func (ctx *linux) Parse(output []byte) *Report {
 	rep.Title = funcRe.ReplaceAllString(rep.Title, "$1")
 	// CPU numbers are not interesting.
 	rep.Title = cpuRe.ReplaceAllLiteralString(rep.Title, "CPU")
-	// TODO: broken: https://github.com/google/syzkaller/issues/457
-	if len(rep.Report) == 0 {
-		rep.Report = []byte("NO REPORT")
-	}
 	return rep
 }
 
@@ -283,30 +300,6 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 		symbolized = append(symbolized, modified...)
 	}
 	return symbolized
-}
-
-func (ctx *linux) extractConsoleOutput(output []byte) (result []byte) {
-	for pos := 0; pos < len(output); {
-		next := bytes.IndexByte(output[pos:], '\n')
-		if next != -1 {
-			next += pos
-		} else {
-			next = len(output)
-		}
-		if ctx.consoleOutputRe.Match(output[pos:next]) &&
-			(!ctx.questionableRe.Match(output[pos:next]) ||
-				bytes.Index(output[pos:next], ctx.eoi) != -1) {
-			lineStart := bytes.Index(output[pos:next], []byte("] ")) + pos + 2
-			lineEnd := next
-			if lineEnd != 0 && output[lineEnd-1] == '\r' {
-				lineEnd--
-			}
-			result = append(result, output[lineStart:lineEnd]...)
-			result = append(result, '\n')
-		}
-		pos = next + 1
-	}
-	return
 }
 
 func (ctx *linux) extractGuiltyFile(report []byte) string {
@@ -549,6 +542,11 @@ var linuxOopses = []*oops{
 				title: compile("BUG: using __this_cpu_add\\(\\) in preemptible (.*)"),
 				fmt:   "BUG: using __this_cpu_add() in preemptible %[1]v",
 			},
+			{
+				title:        compile("BUG: executor-detected bug"),
+				fmt:          "BUG: executor-detected bug",
+				noStackTrace: true,
+			},
 		},
 		[]*regexp.Regexp{
 			// Android prints this sometimes during boot.
@@ -662,39 +660,19 @@ var linuxOopses = []*oops{
 				fmt:   "inconsistent lock state in %[1]v",
 			},
 			{
-				title: compile("INFO: rcu_preempt detected stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.*rcu.*\\n)+? {{FUNC}}"),
+				title: compile("INFO: rcu_(?:preempt|sched|bh) detected(?: expedited)? stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.*rcu.*\\n)+? {{FUNC}}"),
 				fmt:   "INFO: rcu detected stall in %[1]v",
 			},
 			{
-				title: compile("INFO: rcu_preempt detected stalls"),
+				title: compile("INFO: rcu_(?:preempt|sched|bh) detected(?: expedited)? stalls"),
 				fmt:   "INFO: rcu detected stall",
 			},
 			{
-				title: compile("INFO: rcu_sched detected(?: expedited)? stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.*rcu.*\\n)+? {{FUNC}}"),
+				title: compile("INFO: rcu_(?:preempt|sched|bh) self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.*rcu.*\\n)+? {{FUNC}}"),
 				fmt:   "INFO: rcu detected stall in %[1]v",
 			},
 			{
-				title: compile("INFO: rcu_sched detected(?: expedited)? stalls"),
-				fmt:   "INFO: rcu detected stall",
-			},
-			{
-				title: compile("INFO: rcu_preempt self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.*rcu.*\\n)+? {{FUNC}}"),
-				fmt:   "INFO: rcu detected stall in %[1]v",
-			},
-			{
-				title: compile("INFO: rcu_preempt self-detected stall on CPU"),
-				fmt:   "INFO: rcu detected stall",
-			},
-			{
-				title: compile("INFO: rcu_sched self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.*rcu.*\\n)+? {{FUNC}}"),
-				fmt:   "INFO: rcu detected stall in %[1]v",
-			},
-			{
-				title: compile("INFO: rcu_sched self-detected stall on CPU"),
-				fmt:   "INFO: rcu detected stall",
-			},
-			{
-				title: compile("INFO: rcu_bh detected stalls on CPU"),
+				title: compile("INFO: rcu_(?:preempt|sched|bh) self-detected stall on CPU"),
 				fmt:   "INFO: rcu detected stall",
 			},
 			{
