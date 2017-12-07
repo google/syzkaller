@@ -151,15 +151,17 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Rep
 		if rep == nil {
 			panic(fmt.Sprintf("reporter.ContainsCrash/Parse disagree:\n%s", output[matchPos:]))
 		}
-		start := rep.StartPos + matchPos - beforeContext
+		start := matchPos + rep.StartPos - beforeContext
 		if start < 0 {
 			start = 0
 		}
-		end := rep.EndPos + matchPos + afterContext
+		end := matchPos + rep.EndPos + afterContext
 		if end > len(output) {
 			end = len(output)
 		}
 		rep.Output = output[start:end]
+		rep.StartPos += matchPos - start
+		rep.EndPos += matchPos - start
 		return rep
 	}
 
