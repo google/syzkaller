@@ -71,7 +71,7 @@ func (ctx *freebsd) Parse(output []byte) *Report {
 	if oops == nil {
 		return nil
 	}
-	rep.Title, _, _ = extractDescription(output[rep.StartPos:], oops)
+	rep.Title, _ = extractDescription(output[rep.StartPos:], oops)
 	return rep
 }
 
