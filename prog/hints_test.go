@@ -4,8 +4,10 @@
 package prog
 
 import (
+	"encoding/hex"
 	"fmt"
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -26,6 +28,7 @@ type DataArgTest struct {
 // Tests checkConstArg(). Is not intended to check correctness of any mutations.
 // Mutation are checked in their own tests.
 func TestHintsCheckConstArg(t *testing.T) {
+	t.Parallel()
 	var tests = []ConstArgTest{
 		{
 			"One replacer test",
@@ -66,6 +69,7 @@ func TestHintsCheckConstArg(t *testing.T) {
 // Tests checkDataArg(). Is not intended to check correctness of any mutations.
 // Mutation are checked in their own tests.
 func TestHintsCheckDataArg(t *testing.T) {
+	t.Parallel()
 	// All inputs are in Little-Endian.
 	var tests = []DataArgTest{
 		{
@@ -157,10 +161,9 @@ func TestHintsCheckDataArg(t *testing.T) {
 			// Whatever type here. It's just needed to pass the
 			// dataArg.Type().Dir() == DirIn check.
 			typ := ArrayType{TypeCommon{"", "", 0, DirIn, false}, nil, 0, 0, 0}
-			argCommon := ArgCommon{&typ}
-			dataArg := &DataArg{argCommon, []byte(test.in)}
-			checkDataArg(dataArg, test.comps, func(arg Arg) {
-				res[string(arg.(*DataArg).Data)] = true
+			dataArg := &DataArg{ArgCommon{&typ}, []byte(test.in)}
+			checkDataArg(dataArg, test.comps, func() {
+				res[string(dataArg.Data)] = true
 			})
 			if !reflect.DeepEqual(res, test.res) {
 				s := "\ngot: ["
@@ -179,6 +182,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 }
 
 func TestHintsShrinkExpand(t *testing.T) {
+	t.Parallel()
 	// Naming conventions:
 	// b  - byte  variable (i8 or u8)
 	// w  - word  variable (i16 or u16)
@@ -386,4 +390,63 @@ func extractValues(c *Call) map[uint64]bool {
 		}
 	})
 	return vals
+}
+
+func TestHintsData(t *testing.T) {
+	t.Parallel()
+	type Test struct {
+		in    string
+		comps CompMap
+		out   []string
+	}
+	tests := []Test{
+		{
+			in:    "0809101112131415",
+			comps: CompMap{0x12111009: uint64Set{0x10: true}},
+			out:   []string{"0810000000131415"},
+		},
+	}
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var call *Syscall
+	for _, c := range target.Syscalls {
+		if c.Name == "syz_test$hint_data" {
+			call = c
+			break
+		}
+	}
+	if call == nil {
+		t.Fatalf("can't find syz_test$hint_data")
+	}
+	for _, test := range tests {
+		input, err := hex.DecodeString(test.in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p := &Prog{
+			Target: target,
+			Calls: []*Call{{
+				Meta: call,
+				Args: []Arg{MakePointerArg(call.Args[0], 0, 0, 0,
+					MakeDataArg(call.Args[0].(*PtrType).Type, input))},
+				Ret: MakeReturnArg(call.Ret),
+			}},
+		}
+		if err := p.validate(); err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		p.MutateWithHints(0, test.comps, func(newP *Prog) {
+			got = append(got, hex.EncodeToString(
+				newP.Calls[0].Args[0].(*PointerArg).Res.(*DataArg).Data))
+		})
+		sort.Strings(test.out)
+		sort.Strings(got)
+		if !reflect.DeepEqual(got, test.out) {
+			t.Fatalf("comps: %s\ninput: %v\ngot : %+v\nwant: %+v",
+				test.comps, test.in, got, test.out)
+		}
+	}
 }
