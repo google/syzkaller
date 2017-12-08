@@ -9,6 +9,8 @@ import (
 	"unsafe"
 )
 
+const maxBlobLen = uint64(100 << 10)
+
 func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Prog) {
 	r := newRand(p.Target, rs)
 
@@ -101,16 +103,14 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					case BufferBlobRand, BufferBlobRange:
 						var data []byte
 						data = append([]byte{}, a.Data...)
-						var minLen uint64
-						maxLen := ^uint64(0)
+						minLen, maxLen := uint64(0), maxBlobLen
 						if t.Kind == BufferBlobRange {
-							minLen = t.RangeBegin
-							maxLen = t.RangeEnd
+							minLen, maxLen = t.RangeBegin, t.RangeEnd
 						}
 						a.Data = mutateData(r, data, minLen, maxLen)
 					case BufferString:
 						if r.bin() {
-							minLen, maxLen := uint64(0), ^uint64(0)
+							minLen, maxLen := uint64(0), maxBlobLen
 							if t.TypeSize != 0 {
 								minLen, maxLen = t.TypeSize, t.TypeSize
 							}
@@ -592,7 +592,7 @@ func mutateData(r *randGen, data []byte, minLen, maxLen uint64) []byte {
 loop:
 	for stop := false; !stop || retry; stop = r.oneOf(3) {
 		retry = false
-		switch r.Intn(13) {
+		switch r.Intn(14) {
 		case 0:
 			// Append byte.
 			if uint64(len(data)) >= maxLen {
@@ -740,6 +740,20 @@ loop:
 				value = swap64(value)
 			}
 			*(*uint64)(unsafe.Pointer(&data[i])) = value
+		case 13:
+			// Append a bunch of bytes.
+			if uint64(len(data)) >= maxLen {
+				retry = true
+				continue loop
+			}
+			const max = 256
+			n := max - r.biasedRand(max, 10)
+			if r := int(maxLen) - len(data); n > r {
+				n = r
+			}
+			for i := 0; i < n; i++ {
+				data = append(data, byte(r.rand(256)))
+			}
 		default:
 			panic("bad")
 		}
