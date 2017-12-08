@@ -676,60 +676,12 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  277.782014]  </IRQ>
 [  277.782014]  ? __write_space+0x5b1/0x920
 [  277.782014]  debug_lockdep_rcu_enabled+0x77/0x90
-[  277.782014]  __sctp_write_space+0x5b6/0x920
-[  277.782014]  ? __sctp_write_space+0x3f7/0x920
-[  277.782014]  ? sctp_transport_lookup_process+0x190/0x190
-[  277.782014]  ? trace_hardirqs_on_thunk+0x1a/0x1c
-`, `INFO: rcu detected stall in __sctp_write_space`, false,
-		}, {
-			`
-[  277.780013] INFO: rcu_sched self-detected stall on CPU
-[  277.781045] INFO: rcu_sched detected stalls on CPUs/tasks:
-[  277.781153] 	1-...: (65000 ticks this GP) idle=395/140000000000001/0 softirq=122875/122875 fqs=16248
-[  277.781197] 	(detected by 0, t=65002 jiffies, g=72940, c=72939, q=1777)
-[  277.781212] Sending NMI from CPU 0 to CPUs 1:
-[  277.782014] NMI backtrace for cpu 1
-[  277.782014] CPU: 1 PID: 12579 Comm: syz-executor0 Not tainted 4.11.0-rc3+ #71
-[  277.782014] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
-[  277.782014] task: ffff8801d379e140 task.stack: ffff8801cd590000
-[  277.782014] RIP: 0010:io_serial_in+0x6b/0x90
-[  277.782014] RSP: 0018:ffff8801dbf066a0 EFLAGS: 00000002
-[  277.782014] RAX: dffffc0000000000 RBX: 00000000000003fd RCX: 0000000000000000
-[  277.782014] RDX: 00000000000003fd RSI: 0000000000000005 RDI: ffffffff87020018
-[  277.782014] RBP: ffff8801dbf066b0 R08: 0000000000000003 R09: 0000000000000001
-[  277.782014] R10: dffffc0000000000 R11: ffffffff867ba200 R12: ffffffff8701ffe0
-[  277.782014] R13: 0000000000000020 R14: fffffbfff0e04041 R15: fffffbfff0e04005
-[  277.782014] FS:  00007fce6fc10700(0000) GS:ffff8801dbf00000(0000) knlGS:0000000000000000
-[  277.782014] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-[  277.782014] CR2: 000000002084fffc CR3: 00000001c4500000 CR4: 00000000001406e0
-[  277.782014] Call Trace:
-[  277.782014]  <IRQ>
-[  277.782014]  wait_for_xmitr+0x89/0x1c0
-[  277.782014]  ? wait_for_xmitr+0x1c0/0x1c0
-[  277.782014]  serial8250_console_putchar+0x1f/0x60
-[  277.782014]  uart_console_write+0x57/0xe0
-[  277.782014]  serial8250_console_write+0x423/0x840
-[  277.782014]  ? check_noncircular+0x20/0x20
-[  277.782014]  hrtimer_interrupt+0x1c2/0x5e0
-[  277.782014]  local_apic_timer_interrupt+0x6f/0xe0
-[  277.782014]  smp_apic_timer_interrupt+0x71/0xa0
-[  277.782014]  apic_timer_interrupt+0x93/0xa0
-[  277.782014] RIP: 0010:debug_lockdep_rcu_enabled.part.19+0xf/0x60
-[  277.782014] RSP: 0018:ffff8801cd596778 EFLAGS: 00000202 ORIG_RAX: ffffffffffffff10
-[  277.782014] RAX: dffffc0000000000 RBX: 1ffff10039ab2cf7 RCX: ffffc90001758000
-[  277.782014] RDX: 0000000000000004 RSI: ffffffff840561f1 RDI: ffffffff852a75c0
-[  277.782014] RBP: ffff8801cd596780 R08: 0000000000000001 R09: 0000000000000000
-[  277.782014] R10: dffffc0000000000 R11: ffffffff867ba200 R12: 1ffff10039ab2d1b
-[  277.782014] R13: ffff8801c44d1880 R14: ffff8801cd596918 R15: ffff8801d9b47840
-[  277.782014]  </IRQ>
-[  277.782014]  ? __write_space+0x5b1/0x920
-[  277.782014]  debug_lockdep_rcu_enabled+0x77/0x90
 [  292.742848] sctp: [Deprecated]: syz-executor0 (pid 22154) Use of int in max_burst socket option deprecated.
 [  277.782014]  __sctp_write_space+0x5b6/0x920
 [  277.782014]  ? __sctp_write_space+0x3f7/0x920
 [  277.782014]  ? sctp_transport_lookup_process+0x190/0x190
 [  277.782014]  ? trace_hardirqs_on_thunk+0x1a/0x1c
-`, `INFO: rcu detected stall`, false,
+`, `INFO: rcu detected stall in __sctp_write_space`, false,
 		}, {
 			`
 [ 1722.511384] INFO: rcu_preempt detected stalls on CPUs/tasks: { 2} (detected by 0, t=65008 jiffies, g=48068, c=48067, q=7339)
@@ -921,6 +873,30 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [  863.250249]  SyS_ioctl+0xbb/0xe0
 [  863.250857]  entry_SYSCALL_64_fastpath+0x23/0xc2
 `, `INFO: task hung in set_current_rng`, false,
+		}, {
+			`
+[  361.246294] INFO: task syz-executor0:6102 blocked for more than 120 seconds.
+[  361.253503]       Not tainted 4.4.96+ #180
+[  361.257716] "echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+[  361.265660] syz-executor0   D ffff8800b901f990     0  6102   1942 0x00000004
+[  361.273110]  ffff8800b901f990 ffffffff835a8e78 ffff8800ac111780 0000000000000000
+[  361.281099]  0000000000000000 ffff8801db61f5b8 ffff8801db61f5e0 ffff8801db61ec58
+[  361.289101]  ffff8801db61ec40 ffffffff83218200 ffff8800ac111780 ffff8800b9018000
+[  361.297131] Call Trace:
+[  361.299714]  [<ffffffff829f5a8c>] schedule+0x9c/0x1b0
+[  361.300009] unregister_netdevice: waiting for lo to become free. Usage count = 6
+[  361.312401]  [<ffffffff829f6315>] schedule_preempt_disabled+0x15/0x20
+[  361.318972]  [<ffffffff829fb0c0>] mutex_lock_nested+0x3b0/0x1130
+[  361.325100]  [<ffffffff8223552c>] ? copy_net_ns+0xcc/0x220
+[  361.330709]  [<ffffffff814cc088>] ? ___slab_alloc+0x458/0x550
+[  361.336566]  [<ffffffff829fad10>] ? mutex_lock_killable_nested+0x1260/0x1260
+[  361.343732]  [<ffffffff814cc1de>] ? __slab_alloc+0x5e/0x90
+[  361.349328]  [<ffffffff822354cc>] ? copy_net_ns+0x6c/0x220
+[  361.354932]  [<ffffffff81229c28>] ? rcu_read_lock_sched_held+0x108/0x120
+[  361.361746]  [<ffffffff814cc4b8>] ? kmem_cache_alloc+0x2a8/0x320
+[  361.367875]  [<ffffffff822354cc>] ? copy_net_ns+0x6c/0x220
+[  361.373472]  [<ffffffff8223552c>] copy_net_ns+0xcc/0x220
+`, `INFO: task hung in copy_net_ns`, false,
 		}, {
 			`
 [  185.479466] BUG: scheduling while atomic: syz-executor0/19425/0x00000000
@@ -1785,6 +1761,112 @@ syzkaller login: [   16.305150] INFO: trying to register non-static key.
 [   80.272321]  ? kmem_cache_free+0x77/0x280
 [   80.272331]  ? mempool_kmalloc+0x30/0x30
 `, `KASAN: slab-out-of-bounds Write in __unwind_start`, true,
+		}, {
+			`
+[   40.633732] usercopy: kernel memory overwrite attempt detected to ffff8801d21c9bd4 (kvm_vcpu) (1320 bytes)
+[   40.635122] ------------[ cut here ]------------
+[   40.635789] kernel BUG at mm/usercopy.c:84!
+[   40.636410] invalid opcode: 0000 [#1] SMP KASAN
+[   40.637064] Dumping ftrace buffer:
+[   40.637536]    (ftrace buffer empty)
+[   40.638031] Modules linked in:
+[   40.638464] CPU: 1 PID: 2988 Comm: syzkaller562838 Not tainted 4.14.0-rc5-next-20171018+ #36
+[   40.639581] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   40.640797] task: ffff8801d1da0100 task.stack: ffff8801d1c30000
+[   40.641600] RIP: 0010:__check_object_size+0x3a2/0x4f0
+[   40.642282] RSP: 0018:ffff8801d1c37148 EFLAGS: 00010286
+[   40.643018] RAX: 000000000000005e RBX: ffffffff8511a0e0 RCX: 0000000000000000
+[   40.643992] RDX: 000000000000005e RSI: 1ffff1003a386de9 RDI: ffffed003a386e1d
+[   40.644993] RBP: ffff8801d1c37238 R08: 0000000000000001 R09: 0000000000000000
+[   40.646013] R10: 0000000000000001 R11: 0000000000000000 R12: ffffffff8511a0a0
+[   40.646964] R13: ffff8801d21c9bd4 R14: 0000000000000528 R15: ffffea0007487200
+[   40.647943] FS:  0000000000964880(0000) GS:ffff8801db300000(0000) knlGS:0000000000000000
+[   40.649044] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   40.649817] CR2: 0000000020ae6fe8 CR3: 00000001d2184000 CR4: 00000000001426e0
+[   40.650833] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   40.654765] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   40.661999] Call Trace:
+[   40.664553]  ? lock_release+0xa40/0xa40
+[   40.668494]  ? check_stack_object+0x140/0x140
+[   40.672954]  ? check_noncircular+0x20/0x20
+[   40.677155]  ? __might_sleep+0x95/0x190
+[   40.681102]  kvm_vcpu_ioctl_set_cpuid2+0x75/0x1a0
+[   40.685916]  kvm_arch_vcpu_ioctl+0x1718/0x4710
+[   40.690463]  ? find_held_lock+0x35/0x1d0
+[   40.876264]  kvm_vcpu_ioctl+0x240/0x1010
+[   40.880293]  ? __kvm_gfn_to_hva_cache_init+0xbb0/0xbb0
+[   40.954292]  do_vfs_ioctl+0x1b1/0x1520
+[   40.958160]  ? _cond_resched+0x14/0x30
+[   40.982110]  SyS_ioctl+0x8f/0xc0
+[   40.985452]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   40.990171] RIP: 0033:0x442f27
+[   40.993328] RSP: 002b:00007ffc7f9721b8 EFLAGS: 00000217 ORIG_RAX: 0000000000000010
+[   41.000999] RAX: ffffffffffffffda RBX: 00007ffc7f972890 RCX: 0000000000442f27
+[   41.008232] RDX: 00007ffc7f972890 RSI: 000000004008ae90 RDI: 0000000000000005
+[   41.015466] RBP: 0000000000000082 R08: 0000000000000001 R09: ffffffffffffffff
+[   41.022698] R10: 0000000000000000 R11: 0000000000000217 R12: 0000000000404040
+[   41.029931] R13: 00000000004040d0 R14: 0000000000000000 R15: 0000000000000000
+[   41.037177] Code: 48 0f 44 da e8 70 f0 c3 ff 48 8b 85 28 ff ff ff 4d 89 f1 4c 89 e9 4c 89 e2 48 89 de 48 c7 c7 a0 a1 11 85 49 89 c0 e8 c3 fb ad ff <0f> 0b 48 c7 c0 60 9f 11 85 eb 96 48 c7 c0 a0 9f 11 85 eb 8d 48 
+[   41.056240] RIP: __check_object_size+0x3a2/0x4f0 RSP: ffff8801d1c37148
+[   41.062933] ---[ end trace d80029d430f95081 ]---
+[   41.067840] Kernel panic - not syncing: Fatal exception
+[   41.073527] Dumping ftrace buffer:
+[   41.077036]    (ftrace buffer empty)
+[   41.080716] Kernel Offset: disabled
+[   41.084310] Rebooting in 86400 seconds..
+`, `BUG: bad usercopy in kvm_vcpu_ioctl_set_cpuid2`, false,
+		}, {
+			`
+syzkaller login: [   55.288565] usercopy: kernel memory exposure attempt detected from ffff8801d4310630 (SCTPv6) (11 bytes)
+[   55.290089] ------------[ cut here ]------------
+[   55.290728] kernel BUG at mm/usercopy.c:84!
+[   55.291539] invalid opcode: 0000 [#1] SMP KASAN
+[   55.292183] Dumping ftrace buffer:
+[   55.292677]    (ftrace buffer empty)
+[   55.293174] Modules linked in:
+[   55.293614] CPU: 1 PID: 2993 Comm: syzkaller447333 Not tainted 4.14.0-rc5-mm1+ #20
+[   55.294640] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   55.295862] task: ffff8801d1cb8740 task.stack: ffff8801d2210000
+[   55.296668] RIP: 0010:__check_object_size+0x3a2/0x4f0
+[   55.297366] RSP: 0018:ffff8801d22170f0 EFLAGS: 00010286
+[   55.298076] RAX: 000000000000005b RBX: ffffffff8511a180 RCX: 0000000000000000
+[   55.299057] RDX: 000000000000005b RSI: 1ffff1003a442dde RDI: ffffed003a442e12
+[   55.300010] RBP: ffff8801d22171e0 R08: 0000000000000001 R09: 0000000000000000
+[   55.300975] R10: ffff8801d2217098 R11: 0000000000000000 R12: ffffffff8511a140
+[   55.301926] R13: ffff8801d4310630 R14: 000000000000000b R15: ffffea000750c400
+[   55.302941] FS:  0000000002000880(0000) GS:ffff8801db300000(0000) knlGS:0000000000000000
+[   55.304015] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   55.304830] CR2: 0000000020673000 CR3: 00000001d223e000 CR4: 00000000001406e0
+[   55.305805] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   55.306773] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   55.307725] Call Trace:
+[   55.308085]  ? lock_release+0xa40/0xa40
+[   55.308636]  ? check_stack_object+0x140/0x140
+[   55.309236]  ? __local_bh_enable_ip+0x9d/0x160
+[   55.313787]  ? __might_sleep+0x95/0x190
+[   55.317730]  sctp_getsockopt+0x2b90/0x70b0
+[   55.321930]  ? do_raw_spin_trylock+0x190/0x190
+[   55.644961]  sock_common_getsockopt+0x95/0xd0
+[   55.649423]  ? sock_common_getsockopt+0x95/0xd0
+[   55.654064]  SyS_getsockopt+0x178/0x340
+[   55.658011]  ? SyS_setsockopt+0x360/0x360
+[   55.677058]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   55.681780] RIP: 0033:0x43fc99
+[   55.684936] RSP: 002b:00007ffd542b5808 EFLAGS: 00000203 ORIG_RAX: 0000000000000037
+[   55.692609] RAX: ffffffffffffffda RBX: 00000000004002c8 RCX: 000000000043fc99
+[   55.699845] RDX: 000000000000000b RSI: 0000000000000084 RDI: 0000000000000003
+[   55.707079] RBP: 0000000000000082 R08: 0000000020673000 R09: 0000000000000000
+[   55.714313] R10: 0000000020cd1000 R11: 0000000000000203 R12: 0000000000401600
+[   55.721547] R13: 0000000000401690 R14: 0000000000000000 R15: 0000000000000000
+[   55.728790] Code: 48 0f 44 da e8 e0 d7 c3 ff 48 8b 85 28 ff ff ff 4d 89 f1 4c 89 e9 4c 89 e2 48 89 de 48 c7 c7 c0 a1 11 85 49 89 c0 e8 33 e3 ad ff <0f> 0b 48 c7 c0 80 9f 11 85 eb 96 48 c7 c0 c0 9f 11 85 eb 8d 48 
+[   55.747858] RIP: __check_object_size+0x3a2/0x4f0 RSP: ffff8801d22170f0
+[   55.754590] ---[ end trace 569becb7b442ce27 ]---
+[   55.759474] Kernel panic - not syncing: Fatal exception
+[   55.764842] Dumping ftrace buffer:
+[   55.768350]    (ftrace buffer empty)
+[   55.772032] Kernel Offset: disabled
+[   55.775627] Rebooting in 86400 seconds.
+`, `BUG: bad usercopy in sctp_getsockopt`, false,
 		}, {
 			`
 [0.0] unreferenced object
@@ -3246,6 +3328,87 @@ R13: 0000000000000000 R14: ffff8801cc82f948 R15: ffff8801cc82f8b0
  blkcipher_walk_done+0x72b/0xde0 crypto/blkcipher.c:139
  encrypt+0x50a/0xaf0 crypto/salsa20_generic.c:208
 `: `crypto/af_alg.c`,
+		`
+INFO: task syz-executor6:9207 blocked for more than 120 seconds.
+      Not tainted 4.15.0-rc2-next-20171208+ #63
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+syz-executor6   D21264  9207   3394 0x80000002
+Call Trace:
+ context_switch kernel/sched/core.c:2800 [inline]
+ __schedule+0x8eb/0x2060 kernel/sched/core.c:3376
+ schedule+0xf5/0x430 kernel/sched/core.c:3435
+ io_schedule+0x1c/0x70 kernel/sched/core.c:5043
+ wait_on_page_bit_common mm/filemap.c:1099 [inline]
+ __lock_page+0x585/0x740 mm/filemap.c:1272
+ lock_page include/linux/pagemap.h:483 [inline]
+ truncate_inode_pages_range+0x1945/0x1f90 mm/truncate.c:452
+ truncate_inode_pages+0x24/0x30 mm/truncate.c:482
+ kill_bdev+0xbc/0xf0 fs/block_dev.c:86
+ __blkdev_put+0x183/0x7c0 fs/block_dev.c:1764
+ blkdev_put+0x85/0x4f0 fs/block_dev.c:1835
+ blkdev_close+0x91/0xc0 fs/block_dev.c:1842
+ __fput+0x333/0x7f0 fs/file_table.c:210
+ ____fput+0x15/0x20 fs/file_table.c:244
+ task_work_run+0x199/0x270 kernel/task_work.c:113
+ exit_task_work include/linux/task_work.h:22 [inline]
+ do_exit+0x9bb/0x1ae0 kernel/exit.c:869
+ do_group_exit+0x149/0x400 kernel/exit.c:972
+ get_signal+0x73f/0x16c0 kernel/signal.c:2337
+ do_signal+0x94/0x1ee0 arch/x86/kernel/signal.c:809
+ exit_to_usermode_loop+0x258/0x2f0 arch/x86/entry/common.c:161
+ prepare_exit_to_usermode arch/x86/entry/common.c:195 [inline]
+ syscall_return_slowpath+0x490/0x550 arch/x86/entry/common.c:264
+ entry_SYSCALL_64_fastpath+0x94/0x96
+`: `mm/filemap.c`,
+		`
+INFO: task blkid:16495 blocked for more than 120 seconds.
+      Not tainted 4.15.0-rc2-next-20171208+ #63
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+blkid           D21344 16495   3125 0x80000006
+Call Trace:
+ context_switch kernel/sched/core.c:2800 [inline]
+ __schedule+0x8eb/0x2060 kernel/sched/core.c:3376
+ schedule+0xf5/0x430 kernel/sched/core.c:3435
+ schedule_preempt_disabled+0x10/0x20 kernel/sched/core.c:3493
+ __mutex_lock_common kernel/locking/mutex.c:833 [inline]
+ __mutex_lock+0xaad/0x1a80 kernel/locking/mutex.c:893
+ mutex_lock_nested+0x16/0x20 kernel/locking/mutex.c:908
+ blkdev_put+0x2a/0x4f0 fs/block_dev.c:1793
+ blkdev_close+0x91/0xc0 fs/block_dev.c:1842
+`: `fs/block_dev.c`,
+		`
+INFO: task syz-executor2:19495 blocked for more than 120 seconds.
+      Not tainted 4.15.0-rc2+ #148
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+syz-executor2   D25200 19495   3406 0x00000004
+Call Trace:
+ context_switch kernel/sched/core.c:2799 [inline]
+ __schedule+0x8eb/0x2060 kernel/sched/core.c:3375
+ schedule+0xf5/0x430 kernel/sched/core.c:3434
+ __lock_sock+0x1dc/0x2f0 net/core/sock.c:2240
+ lock_sock_nested+0xf3/0x110 net/core/sock.c:2764
+ lock_sock include/net/sock.h:1461 [inline]
+ af_alg_sendmsg+0x349/0x1080 crypto/af_alg.c:858
+ aead_sendmsg+0x103/0x150 crypto/algif_aead.c:76
+ sock_sendmsg_nosec net/socket.c:636 [inline]
+`: `crypto/af_alg.c`,
+		`
+INFO: task syz-executor6:7377 blocked for more than 120 seconds.
+      Not tainted 4.15.0-rc2-next-20171208+ #63
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+syz-executor6   D24416  7377   3393 0x00000004
+Call Trace:
+ context_switch kernel/sched/core.c:2800 [inline]
+ __schedule+0x8eb/0x2060 kernel/sched/core.c:3376
+ schedule+0xf5/0x430 kernel/sched/core.c:3435
+ schedule_timeout+0x43a/0x560 kernel/time/timer.c:1776
+ do_wait_for_common kernel/sched/completion.c:91 [inline]
+ __wait_for_common kernel/sched/completion.c:112 [inline]
+ wait_for_common kernel/sched/completion.c:123 [inline]
+ wait_for_completion+0x44b/0x7b0 kernel/sched/completion.c:144
+ crypto_wait_req include/linux/crypto.h:496 [inline]
+ _aead_recvmsg crypto/algif_aead.c:308 [inline]
+`: `crypto/algif_aead.c`,
 	}
 	reporter, err := NewReporter("linux", "", "", nil, nil)
 	if err != nil {
