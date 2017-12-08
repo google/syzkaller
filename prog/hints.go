@@ -63,17 +63,26 @@ func (m CompMap) String() string {
 
 // Mutates the program using the comparison operands stored in compMaps.
 // For each of the mutants executes the exec callback.
-func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(newP *Prog)) {
-	c := p.Calls[callIndex]
-	if c.Meta == p.Target.MmapSyscall {
+func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog)) {
+	if p.Calls[callIndex].Meta == p.Target.MmapSyscall {
 		return
 	}
+	p = p.Clone()
+	c := p.Calls[callIndex]
+	execValidate := func() {
+		if debug {
+			if err := p.validate(); err != nil {
+				panic(fmt.Sprintf("invalid hints candidate: %v", err))
+			}
+		}
+		exec(p)
+	}
 	foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
-		generateHints(p, comps, callIndex, arg, exec)
+		generateHints(p, comps, c, arg, execValidate)
 	})
 }
 
-func generateHints(p *Prog, compMap CompMap, callIndex int, arg Arg, exec func(p *Prog)) {
+func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func()) {
 	if arg.Type().Dir() == DirOut {
 		return
 	}
@@ -92,56 +101,35 @@ func generateHints(p *Prog, compMap CompMap, callIndex int, arg Arg, exec func(p
 		return
 	}
 
-	newP, argMap := p.cloneImpl(true)
-	newCall := newP.Calls[callIndex]
-	validateExec := func() {
-		if err := newP.validate(); err != nil {
-			panic(fmt.Sprintf("invalid hints candidate: %v", err))
-		}
-		exec(newP)
-	}
-	var originalArg Arg
-	constArgCandidate := func(newArg Arg) {
-		oldArg := argMap[arg]
-		newP.replaceArg(newCall, oldArg, newArg, nil)
-		validateExec()
-		newP.replaceArg(newCall, oldArg, originalArg, nil)
-	}
-
-	dataArgCandidate := func() {
-		// Data arg mutations are done in-place. No need to restore the original
-		// value - it gets restored in checkDataArg().
-		// dataArgCandidate is only needed for unit tests.
-		validateExec()
-	}
-
 	switch a := arg.(type) {
 	case *ConstArg:
-		originalArg = MakeConstArg(a.Type(), a.Val)
-		checkConstArg(a, compMap, constArgCandidate)
+		checkConstArg(a, compMap, exec)
 	case *DataArg:
-		checkDataArg(argMap[arg].(*DataArg), compMap, dataArgCandidate)
+		checkDataArg(a, compMap, exec)
 	}
 }
 
-func checkConstArg(arg *ConstArg, compMap CompMap, cb func(newArg Arg)) {
-	for replacer := range shrinkExpand(arg.Val, compMap) {
-		cb(MakeConstArg(arg.typ, replacer))
+func checkConstArg(arg *ConstArg, compMap CompMap, exec func()) {
+	original := arg.Val
+	for replacer := range shrinkExpand(original, compMap) {
+		arg.Val = replacer
+		exec()
 	}
+	arg.Val = original
 }
 
-func checkDataArg(arg *DataArg, compMap CompMap, cb func()) {
+func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 	bytes := make([]byte, 8)
-	original := make([]byte, 8)
 	for i := 0; i < min(len(arg.Data), maxDataLength); i++ {
+		original := make([]byte, 8)
 		copy(original, arg.Data[i:])
-		val := sliceToUint64(arg.Data[i:])
+		val := binary.LittleEndian.Uint64(original)
 		for replacer := range shrinkExpand(val, compMap) {
 			binary.LittleEndian.PutUint64(bytes, replacer)
 			copy(arg.Data[i:], bytes)
-			cb()
-			copy(arg.Data[i:], original)
+			exec()
 		}
+		copy(arg.Data[i:], original)
 	}
 }
 
@@ -175,20 +163,22 @@ func checkDataArg(arg *DataArg, compMap CompMap, cb func()) {
 // As with shrink we ignore cases when the other operand is wider.
 // Note that executor sign extends all the comparison operands to int64.
 // ======================================================================
-func shrinkExpand(v uint64, compMap CompMap) uint64Set {
-	replacers := make(uint64Set)
-	// Map: key is shrank/extended value, value is the maximal number of bits
-	// that can be replaced.
-	res := make(map[uint64]uint)
-	for _, size := range []uint{8, 16, 32} {
-		res[v&((1<<size)-1)] = size
-		if v&(1<<(size-1)) != 0 {
-			res[v|^((1<<size)-1)] = size
+func shrinkExpand(v uint64, compMap CompMap) (replacers uint64Set) {
+	var prev uint64
+	for _, isize := range []int{64, 32, 16, 8, -32, -16, -8} {
+		var mutant uint64
+		var size uint
+		if isize > 0 {
+			size = uint(isize)
+			mutant = v & ((1 << size) - 1)
+		} else {
+			size = uint(-isize)
+			mutant = v | ^((1 << size) - 1)
 		}
-	}
-	res[v] = 64
-
-	for mutant, size := range res {
+		if size != 64 && prev == mutant {
+			continue
+		}
+		prev = mutant
 		for newV := range compMap[mutant] {
 			mask := uint64(1<<size - 1)
 			if newHi := newV & ^mask; newHi == 0 || newHi^^mask == 0 {
@@ -198,12 +188,15 @@ func shrinkExpand(v uint64, compMap CompMap) uint64Set {
 					replacer := (v &^ mask) | (newV & mask)
 					// TODO(dvyukov): should we try replacing with arg+/-1?
 					// This could trigger some off-by-ones.
+					if replacers == nil {
+						replacers = make(uint64Set)
+					}
 					replacers[replacer] = true
 				}
 			}
 		}
 	}
-	return replacers
+	return
 }
 
 func init() {
@@ -211,27 +204,6 @@ func init() {
 	for _, v := range specialInts {
 		specialIntsSet[v] = true
 	}
-}
-
-// Transforms a slice of bytes into uint64 using Little Endian.
-// Works fine if len(s) != 8.
-func sliceToUint64(s []byte) uint64 {
-	padded := pad(s, 0x0, 8)
-	return binary.LittleEndian.Uint64(padded)
-}
-
-// If len(arr) >= size returns a subslice of arr.
-// Else creates a copy of arr padded with value to size.
-func pad(arr []byte, value byte, size int) []byte {
-	if len(arr) >= size {
-		return arr[0:size]
-	}
-	block := make([]byte, size)
-	copy(block, arr)
-	for j := len(arr); j < size; j++ {
-		block[j] = value
-	}
-	return block
 }
 
 func min(a, b int) int {

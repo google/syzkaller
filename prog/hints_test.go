@@ -57,8 +57,8 @@ func TestHintsCheckConstArg(t *testing.T) {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
 			res := uint64Set{}
 			constArg := &ConstArg{ArgCommon{nil}, test.in}
-			checkConstArg(constArg, test.comps, func(arg Arg) {
-				res[arg.(*ConstArg).Val] = true
+			checkConstArg(constArg, test.comps, func() {
+				res[constArg.Val] = true
 			})
 			if !reflect.DeepEqual(res, test.res) {
 				t.Fatalf("\ngot : %v\nwant: %v", res, test.res)
@@ -263,7 +263,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			"Shrink with a wider replacer test1",
 			0x1234,
 			CompMap{0x34: uint64Set{0x1bab: true}},
-			uint64Set{},
+			nil,
 		},
 		{
 			// Models the following code:
@@ -329,7 +329,7 @@ func TestHintsShrinkExpand(t *testing.T) {
 			"Extend with a wider replacer test",
 			0xff,
 			CompMap{0xffffffffffffffff: uint64Set{0xfffffffffffffeff: true}},
-			uint64Set{},
+			nil,
 		},
 	}
 	for _, test := range tests {
@@ -453,6 +453,9 @@ func TestHintsData(t *testing.T) {
 }
 
 func BenchmarkHints(b *testing.B) {
+	olddebug := debug
+	debug = false
+	defer func() { debug = olddebug }()
 	target, err := GetTarget("linux", "amd64")
 	if err != nil {
 		b.Fatal(err)
