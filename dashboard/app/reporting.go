@@ -29,7 +29,7 @@ const (
 )
 
 // reportingPoll is called by backends to get list of bugs that need to be reported.
-func reportingPoll(c context.Context, typ string) []*dashapi.BugReport {
+func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 	state, err := loadReportingState(c)
 	if err != nil {
 		log.Errorf(c, "%v", err)
@@ -56,6 +56,9 @@ func reportingPoll(c context.Context, typ string) []*dashapi.BugReport {
 			continue
 		}
 		reports = append(reports, rep)
+		if len(reports) > 50 {
+			break // temp measure during the jam
+		}
 	}
 	return reports
 }
@@ -253,6 +256,43 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, bugReporting *Bu
 		rep.CC = strings.Split(bugReporting.CC, "|")
 	}
 	return rep, nil
+}
+
+// reportingPollClosed is called by backends to get list of closed bugs.
+func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
+	var bugs []*Bug
+	_, err := datastore.NewQuery("Bug").
+		//Filter("Status>=", BugStatusFixed).
+		GetAll(c, &bugs)
+	if err != nil {
+		log.Errorf(c, "%v", err)
+		return nil, nil
+	}
+	bugMap := make(map[string]*Bug)
+	for _, bug := range bugs {
+		for i := range bug.Reporting {
+			bugMap[bug.Reporting[i].ID] = bug
+		}
+	}
+	var closed []string
+	for _, id := range ids {
+		bug := bugMap[id]
+		//log.Errorf(c, "CHECKING: %v: bug=%v", id, bug)
+		if bug == nil {
+			continue
+		}
+		bugReporting, _ := bugReportingByID(bug, id)
+		bug, err = canonicalBug(c, bug)
+		if err != nil {
+			log.Errorf(c, "%v", err)
+			continue
+		}
+		//log.Errorf(c, "CHECKING: %v: bug=%+v, reporting=%+v", id, bug, bugReporting)
+		if bug.Status >= BugStatusFixed || !bugReporting.Closed.IsZero() {
+			closed = append(closed, id)
+		}
+	}
+	return closed, nil
 }
 
 // incomingCommand is entry point to bug status updates.

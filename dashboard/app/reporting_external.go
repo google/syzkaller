@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"golang.org/x/net/context"
+	"google.golang.org/appengine/log"
 )
 
 // Interface with external reporting systems.
@@ -24,14 +25,30 @@ func (cfg *ExternalConfig) Type() string {
 	return cfg.ID
 }
 
-func apiReportingPoll(c context.Context, r *http.Request) (interface{}, error) {
-	req := new(dashapi.PollRequest)
+func apiReportingPollBugs(c context.Context, r *http.Request) (interface{}, error) {
+	req := new(dashapi.PollBugsRequest)
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
-	reports := reportingPoll(c, req.Type)
-	resp := &dashapi.PollResponse{
+	reports := reportingPollBugs(c, req.Type)
+	resp := &dashapi.PollBugsResponse{
 		Reports: reports,
+	}
+	return resp, nil
+}
+
+func apiReportingPollClosed(c context.Context, r *http.Request) (interface{}, error) {
+	req := new(dashapi.PollClosedRequest)
+	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
+	}
+	ids, err := reportingPollClosed(c, req.IDs)
+	if err != nil {
+		log.Errorf(c, "failed to poll closed bugs: %v", err)
+		return nil, err
+	}
+	resp := &dashapi.PollClosedResponse{
+		IDs: ids,
 	}
 	return resp, nil
 }
