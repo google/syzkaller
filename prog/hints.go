@@ -19,7 +19,9 @@ package prog
 // For more insights on particular mutations please see prog/hints_test.go.
 
 import (
+	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 type uint64Set map[uint64]bool
@@ -43,6 +45,20 @@ func (m CompMap) AddComp(arg1, arg2 uint64) {
 		m[arg1] = make(uint64Set)
 	}
 	m[arg1][arg2] = true
+}
+
+func (m CompMap) String() string {
+	buf := new(bytes.Buffer)
+	for v, comps := range m {
+		if len(buf.Bytes()) != 0 {
+			fmt.Fprintf(buf, ", ")
+		}
+		fmt.Fprintf(buf, "0x%x:", v)
+		for c := range comps {
+			fmt.Fprintf(buf, " 0x%x", c)
+		}
+	}
+	return buf.String()
 }
 
 // Mutates the program using the comparison operands stored in compMaps.
@@ -77,14 +93,13 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog
 	}
 
 	newP, argMap := p.cloneImpl(true)
-	var originalArg Arg
 	validateExec := func() {
 		if err := newP.validate(); err != nil {
-			panic("a program generated with hints did not pass validation: " +
-				err.Error())
+			panic(fmt.Sprintf("invalid hints candidate: %v", err))
 		}
 		exec(newP)
 	}
+	var originalArg Arg
 	constArgCandidate := func(newArg Arg) {
 		oldArg := argMap[arg]
 		newP.replaceArg(c, oldArg, newArg, nil)
@@ -92,7 +107,7 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog
 		newP.replaceArg(c, oldArg, originalArg, nil)
 	}
 
-	dataArgCandidate := func(newArg Arg) {
+	dataArgCandidate := func() {
 		// Data arg mutations are done in-place. No need to restore the original
 		// value - it gets restored in checkDataArg().
 		// dataArgCandidate is only needed for unit tests.
@@ -104,8 +119,7 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog
 		originalArg = MakeConstArg(a.Type(), a.Val)
 		checkConstArg(a, compMap, constArgCandidate)
 	case *DataArg:
-		originalArg = MakeDataArg(a.Type(), a.Data)
-		checkDataArg(a, compMap, dataArgCandidate)
+		checkDataArg(argMap[arg].(*DataArg), compMap, dataArgCandidate)
 	}
 }
 
@@ -115,7 +129,7 @@ func checkConstArg(arg *ConstArg, compMap CompMap, cb func(newArg Arg)) {
 	}
 }
 
-func checkDataArg(arg *DataArg, compMap CompMap, cb func(newArg Arg)) {
+func checkDataArg(arg *DataArg, compMap CompMap, cb func()) {
 	bytes := make([]byte, 8)
 	original := make([]byte, 8)
 	for i := 0; i < min(len(arg.Data), maxDataLength); i++ {
@@ -124,7 +138,7 @@ func checkDataArg(arg *DataArg, compMap CompMap, cb func(newArg Arg)) {
 		for replacer := range shrinkExpand(val, compMap) {
 			binary.LittleEndian.PutUint64(bytes, replacer)
 			copy(arg.Data[i:], bytes)
-			cb(arg)
+			cb()
 			copy(arg.Data[i:], original)
 		}
 	}

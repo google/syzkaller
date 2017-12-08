@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "44b97a6e1c2e8948e359ab2f5eec7514849b4c99"
+#define SYZ_REVISION "0afa791d4346dca960d00dfff0f765ae4dc5c09a"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -13,7 +13,7 @@
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1509;
+unsigned syscall_count = 1510;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -1446,6 +1446,7 @@ call_t syscalls[] = {
     {"syz_test$csum_ipv6_udp", 1000008, (syscall_t)syz_test},
     {"syz_test$end0", 1000008, (syscall_t)syz_test},
     {"syz_test$end1", 1000008, (syscall_t)syz_test},
+    {"syz_test$hint_data", 1000008, (syscall_t)syz_test},
     {"syz_test$int", 1000008, (syscall_t)syz_test},
     {"syz_test$length0", 1000008, (syscall_t)syz_test},
     {"syz_test$length1", 1000008, (syscall_t)syz_test},
@@ -1530,7 +1531,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "fec091eb73097ff11ef029d59184c93a548d3a83"
+#define SYZ_REVISION "02e87402786921772352b499b42c47d0773ea972"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1541,7 +1542,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1570;
+unsigned syscall_count = 1571;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3035,6 +3036,7 @@ call_t syscalls[] = {
     {"syz_test$csum_ipv6_udp", 1000008, (syscall_t)syz_test},
     {"syz_test$end0", 1000008, (syscall_t)syz_test},
     {"syz_test$end1", 1000008, (syscall_t)syz_test},
+    {"syz_test$hint_data", 1000008, (syscall_t)syz_test},
     {"syz_test$int", 1000008, (syscall_t)syz_test},
     {"syz_test$length0", 1000008, (syscall_t)syz_test},
     {"syz_test$length1", 1000008, (syscall_t)syz_test},
@@ -3119,7 +3121,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "beaa6a2c4d5923d523ea08870c4987abe4e0daaa"
+#define SYZ_REVISION "5f96261cbf88d36d804e7e4204af39a4db88dabf"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3130,7 +3132,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1519;
+unsigned syscall_count = 1520;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4575,6 +4577,7 @@ call_t syscalls[] = {
     {"syz_test$csum_ipv6_udp", 1000008, (syscall_t)syz_test},
     {"syz_test$end0", 1000008, (syscall_t)syz_test},
     {"syz_test$end1", 1000008, (syscall_t)syz_test},
+    {"syz_test$hint_data", 1000008, (syscall_t)syz_test},
     {"syz_test$int", 1000008, (syscall_t)syz_test},
     {"syz_test$length0", 1000008, (syscall_t)syz_test},
     {"syz_test$length1", 1000008, (syscall_t)syz_test},
@@ -4657,7 +4660,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "30d2c6e2276fee089a5084e1950eae5f116072fb"
+#define SYZ_REVISION "6dddd0440dd9ef383faffa8df6ef2854afbd91bb"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4668,7 +4671,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1499;
+unsigned syscall_count = 1500;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6097,6 +6100,7 @@ call_t syscalls[] = {
     {"syz_test$csum_ipv6_udp", 1000008, (syscall_t)syz_test},
     {"syz_test$end0", 1000008, (syscall_t)syz_test},
     {"syz_test$end1", 1000008, (syscall_t)syz_test},
+    {"syz_test$hint_data", 1000008, (syscall_t)syz_test},
     {"syz_test$int", 1000008, (syscall_t)syz_test},
     {"syz_test$length0", 1000008, (syscall_t)syz_test},
     {"syz_test$length1", 1000008, (syscall_t)syz_test},
@@ -6175,7 +6179,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "22dc9c35ab97ab1484d66ec4a3a02153ac0db106"
+#define SYZ_REVISION "e20b0f74a3bfb492282cab0757f652e1e096c071"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6186,7 +6190,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1479;
+unsigned syscall_count = 1480;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7589,6 +7593,7 @@ call_t syscalls[] = {
     {"syz_test$csum_ipv6_udp", 1000008, (syscall_t)syz_test},
     {"syz_test$end0", 1000008, (syscall_t)syz_test},
     {"syz_test$end1", 1000008, (syscall_t)syz_test},
+    {"syz_test$hint_data", 1000008, (syscall_t)syz_test},
     {"syz_test$int", 1000008, (syscall_t)syz_test},
     {"syz_test$length0", 1000008, (syscall_t)syz_test},
     {"syz_test$length1", 1000008, (syscall_t)syz_test},
