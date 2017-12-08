@@ -1,0 +1,27 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# Vary basic description. We only let fuzzer open files.
+# TODO: describe file formats.
+# TODO: figure out if we can use policies that will meaningfully interact with fuzzing,
+# i.e. access to some local files will be prohibited.
+
+include <linux/fcntl.h>
+
+openat$selinux_load(fd const[AT_FDCWD], file ptr[in, string["/selinux/load"]], flags const[O_RDWR], mode const[0]) fd
+openat$selinux_enforce(fd const[AT_FDCWD], file ptr[in, string["/selinux/enforce"]], flags flags[open_flags], mode const[0]) fd
+openat$selinux_context(fd const[AT_FDCWD], file ptr[in, string["/selinux/context"]], flags const[O_RDWR], mode const[0]) fd
+openat$selinux_access(fd const[AT_FDCWD], file ptr[in, string["/selinux/access"]], flags const[O_RDWR], mode const[0]) fd
+openat$selinux_create(fd const[AT_FDCWD], file ptr[in, string["/selinux/create"]], flags const[O_RDWR], mode const[0]) fd
+openat$selinux_relabel(fd const[AT_FDCWD], file ptr[in, string["/selinux/relabel"]], flags const[O_RDWR], mode const[0]) fd
+openat$selinux_user(fd const[AT_FDCWD], file ptr[in, string["/selinux/user"]], flags const[O_RDWR], mode const[0]) fd
+openat$selinux_commit_pending_bools(fd const[AT_FDCWD], file ptr[in, string["/selinux/commit_pending_bools"]], flags const[O_WRONLY], mode const[0]) fd
+openat$selinux_mls(fd const[AT_FDCWD], file ptr[in, string["/selinux/mls"]], flags const[O_RDONLY], mode const[0]) fd
+openat$selinux_member(fd const[AT_FDCWD], file ptr[in, string["/selinux/member"]], flags const[O_RDWR], mode const[0]) fd
+openat$selinux_checkreqprot(fd const[AT_FDCWD], file ptr[in, string["/selinux/checkreqprot"]], flags flags[open_flags], mode const[0]) fd
+openat$selinux_status(fd const[AT_FDCWD], file ptr[in, string["/selinux/status"]], flags const[O_RDONLY], mode const[0]) fd
+openat$selinux_policy(fd const[AT_FDCWD], file ptr[in, string["/selinux/policy"]], flags const[O_RDONLY], mode const[0]) fd
+openat$selinux_validatetrans(fd const[AT_FDCWD], file ptr[in, string["/selinux/validatetrans"]], flags const[O_WRONLY], mode const[0]) fd
+openat$selinux_avc_cache_stats(fd const[AT_FDCWD], file ptr[in, string["/selinux/avc/cache_stats"]], flags const[O_RDONLY], mode const[0]) fd
+openat$selinux_avc_cache_threshold(fd const[AT_FDCWD], file ptr[in, string["/selinux/avc/cache_threshold"]], flags const[O_RDWR], mode const[0]) fd
+openat$selinux_avc_hash_stats(fd const[AT_FDCWD], file ptr[in, string["/selinux/avc/hash_stats"]], flags const[O_RDONLY], mode const[0]) fd
