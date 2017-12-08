@@ -65,6 +65,7 @@ func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symb
 		regexp.MustCompile(`^mm/page_alloc.c`),
 		regexp.MustCompile(`^kernel/rcu/.*`),
 		regexp.MustCompile(`^arch/.*/kernel/traps.c`),
+		regexp.MustCompile(`^arch/.*/mm/fault.c`),
 		regexp.MustCompile(`^kernel/locking/*`),
 		regexp.MustCompile(`^kernel/panic.c`),
 		regexp.MustCompile(`^kernel/softirq.c`),
