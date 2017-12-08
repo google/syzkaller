@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "43937fcc0d2e1383553adc7881a7d3a395a3513f"
+#define SYZ_REVISION "44b97a6e1c2e8948e359ab2f5eec7514849b4c99"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -13,7 +13,7 @@
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1492;
+unsigned syscall_count = 1509;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -964,6 +964,23 @@ call_t syscalls[] = {
     {"openat$qat_adf_ctl", 295},
     {"openat$rfkill", 295},
     {"openat$rtc", 295},
+    {"openat$selinux_access", 295},
+    {"openat$selinux_avc_cache_stats", 295},
+    {"openat$selinux_avc_cache_threshold", 295},
+    {"openat$selinux_avc_hash_stats", 295},
+    {"openat$selinux_checkreqprot", 295},
+    {"openat$selinux_commit_pending_bools", 295},
+    {"openat$selinux_context", 295},
+    {"openat$selinux_create", 295},
+    {"openat$selinux_enforce", 295},
+    {"openat$selinux_load", 295},
+    {"openat$selinux_member", 295},
+    {"openat$selinux_mls", 295},
+    {"openat$selinux_policy", 295},
+    {"openat$selinux_relabel", 295},
+    {"openat$selinux_status", 295},
+    {"openat$selinux_user", 295},
+    {"openat$selinux_validatetrans", 295},
     {"openat$sequencer", 295},
     {"openat$sequencer2", 295},
     {"openat$sr", 295},
@@ -1513,7 +1530,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "008ee2d3dbbfb6e31a49cedbeb0ab9943855c1c8"
+#define SYZ_REVISION "fec091eb73097ff11ef029d59184c93a548d3a83"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1524,7 +1541,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1553;
+unsigned syscall_count = 1570;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2507,6 +2524,23 @@ call_t syscalls[] = {
     {"openat$qat_adf_ctl", 257},
     {"openat$rfkill", 257},
     {"openat$rtc", 257},
+    {"openat$selinux_access", 257},
+    {"openat$selinux_avc_cache_stats", 257},
+    {"openat$selinux_avc_cache_threshold", 257},
+    {"openat$selinux_avc_hash_stats", 257},
+    {"openat$selinux_checkreqprot", 257},
+    {"openat$selinux_commit_pending_bools", 257},
+    {"openat$selinux_context", 257},
+    {"openat$selinux_create", 257},
+    {"openat$selinux_enforce", 257},
+    {"openat$selinux_load", 257},
+    {"openat$selinux_member", 257},
+    {"openat$selinux_mls", 257},
+    {"openat$selinux_policy", 257},
+    {"openat$selinux_relabel", 257},
+    {"openat$selinux_status", 257},
+    {"openat$selinux_user", 257},
+    {"openat$selinux_validatetrans", 257},
     {"openat$sequencer", 257},
     {"openat$sequencer2", 257},
     {"openat$sr", 257},
@@ -3085,7 +3119,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "12aefb8014c1fd1a13e7ee577e359879d150f795"
+#define SYZ_REVISION "beaa6a2c4d5923d523ea08870c4987abe4e0daaa"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3096,7 +3130,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1502;
+unsigned syscall_count = 1519;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4033,6 +4067,23 @@ call_t syscalls[] = {
     {"openat$qat_adf_ctl", 322},
     {"openat$rfkill", 322},
     {"openat$rtc", 322},
+    {"openat$selinux_access", 322},
+    {"openat$selinux_avc_cache_stats", 322},
+    {"openat$selinux_avc_cache_threshold", 322},
+    {"openat$selinux_avc_hash_stats", 322},
+    {"openat$selinux_checkreqprot", 322},
+    {"openat$selinux_commit_pending_bools", 322},
+    {"openat$selinux_context", 322},
+    {"openat$selinux_create", 322},
+    {"openat$selinux_enforce", 322},
+    {"openat$selinux_load", 322},
+    {"openat$selinux_member", 322},
+    {"openat$selinux_mls", 322},
+    {"openat$selinux_policy", 322},
+    {"openat$selinux_relabel", 322},
+    {"openat$selinux_status", 322},
+    {"openat$selinux_user", 322},
+    {"openat$selinux_validatetrans", 322},
     {"openat$sequencer", 322},
     {"openat$sequencer2", 322},
     {"openat$sr", 322},
@@ -4606,7 +4657,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "e7138e8c5e93e0a6430b9e3f97dcef689a8843c2"
+#define SYZ_REVISION "30d2c6e2276fee089a5084e1950eae5f116072fb"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4617,7 +4668,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1482;
+unsigned syscall_count = 1499;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5549,6 +5600,23 @@ call_t syscalls[] = {
     {"openat$qat_adf_ctl", 56},
     {"openat$rfkill", 56},
     {"openat$rtc", 56},
+    {"openat$selinux_access", 56},
+    {"openat$selinux_avc_cache_stats", 56},
+    {"openat$selinux_avc_cache_threshold", 56},
+    {"openat$selinux_avc_hash_stats", 56},
+    {"openat$selinux_checkreqprot", 56},
+    {"openat$selinux_commit_pending_bools", 56},
+    {"openat$selinux_context", 56},
+    {"openat$selinux_create", 56},
+    {"openat$selinux_enforce", 56},
+    {"openat$selinux_load", 56},
+    {"openat$selinux_member", 56},
+    {"openat$selinux_mls", 56},
+    {"openat$selinux_policy", 56},
+    {"openat$selinux_relabel", 56},
+    {"openat$selinux_status", 56},
+    {"openat$selinux_user", 56},
+    {"openat$selinux_validatetrans", 56},
     {"openat$sequencer", 56},
     {"openat$sequencer2", 56},
     {"openat$sr", 56},
@@ -6107,7 +6175,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "a2e427aec88bd889613c169210a83bd19d58d43f"
+#define SYZ_REVISION "22dc9c35ab97ab1484d66ec4a3a02153ac0db106"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6118,7 +6186,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1462;
+unsigned syscall_count = 1479;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7044,6 +7112,23 @@ call_t syscalls[] = {
     {"openat$qat_adf_ctl", 286},
     {"openat$rfkill", 286},
     {"openat$rtc", 286},
+    {"openat$selinux_access", 286},
+    {"openat$selinux_avc_cache_stats", 286},
+    {"openat$selinux_avc_cache_threshold", 286},
+    {"openat$selinux_avc_hash_stats", 286},
+    {"openat$selinux_checkreqprot", 286},
+    {"openat$selinux_commit_pending_bools", 286},
+    {"openat$selinux_context", 286},
+    {"openat$selinux_create", 286},
+    {"openat$selinux_enforce", 286},
+    {"openat$selinux_load", 286},
+    {"openat$selinux_member", 286},
+    {"openat$selinux_mls", 286},
+    {"openat$selinux_policy", 286},
+    {"openat$selinux_relabel", 286},
+    {"openat$selinux_status", 286},
+    {"openat$selinux_user", 286},
+    {"openat$selinux_validatetrans", 286},
     {"openat$sequencer", 286},
     {"openat$sequencer2", 286},
     {"openat$sr", 286},
