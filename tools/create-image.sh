@@ -7,9 +7,9 @@
 set -eux
 
 # Create a minimal Debian-wheezy distributive as a directory.
-#sudo rm -rf wheezy
-#mkdir -p wheezy
-#sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default wheezy wheezy
+sudo rm -rf wheezy
+mkdir -p wheezy
+sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default wheezy wheezy
 
 # Set some defaults and enable promtless ssh to the machine for root.
 sudo sed -i '/^root/ { s/:x:/::/ }' wheezy/etc/passwd
