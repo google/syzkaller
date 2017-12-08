@@ -23,6 +23,11 @@ The commands are:
 ```
 #syz fix: exact-commit-title
 ````
+It's enough that the commit is merged into any tree, in particular,
+you don't need to wait for the commit to be merged into upstream tree.
+`syzbot` only needs to know the title by which it will appear in tested trees.
+In case of an error or a title change, you can override the commit simply
+by sending another `#syz fix` command.
 - to test a patch for a bug *with reproducer*:
 ```
 #syz test: git://repo/address.git branch
@@ -38,10 +43,11 @@ reliable because of email clients splitting lines and messing with whitespaces.
 ```
 #syz invalid
 ```
-Note: if the crash happens again, it will cause creation of a new bug report.
+**Note**: if the crash happens again, it will cause creation of a new bug report.
 
-Note: all commands must start from beginning of the line.
-Note: please keep `syzkaller-bugs@googlegroups.com` mailing list in CC.
+**Note**: all commands must start from beginning of the line.
+
+**Note**: please keep `syzkaller-bugs@googlegroups.com` mailing list in CC.
 It serves as a history of what happened with each bug report.
 
 ## syzkaller reproducers
