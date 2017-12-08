@@ -10,7 +10,9 @@ following keys in its top-level object:
      - `<workdir>/crashes/*`: crash output files (see [Crash Reports](#crash-reports))
      - `<workdir>/corpus.db`: corpus with interesting programs
      - `<workdir>/instance-x`: per VM instance temporary files
- - `syzkaller`: Location of the `syzkaller` checkout.
+ - `syzkaller`: Location of the `syzkaller` checkout, `syz-manager` will look
+   for binaries in `bin` subdir (does not have to be `syzkaller` checkout as
+   long as it preserves `bin` dir structure)
  - `vmlinux`: Location of the `vmlinux` file that corresponds to the kernel being tested
    (used for report symbolization and coverage reports, optional).
  - `procs`: Number of parallel test processes in each VM (4 or 8 would be a reasonable number).
