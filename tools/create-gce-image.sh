@@ -7,7 +7,7 @@
 #
 # Prerequisites:
 # - you need a user-space system, a basic Debian system can be created with:
-#   sudo debootstrap --include=openssh-server,curl,tar,time,strace stable debian
+#   sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default stable debian
 # - you need qemu-nbd, grub and maybe something else:
 #   sudo apt-get install qemu-utils grub-efi
 # - you need nbd support in kernel
