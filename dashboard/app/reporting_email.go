@@ -81,7 +81,7 @@ func handleEmailPoll(w http.ResponseWriter, r *http.Request) {
 }
 
 func emailPollBugs(c context.Context) error {
-	reports := reportingPoll(c, emailType)
+	reports := reportingPollBugs(c, emailType)
 	for _, rep := range reports {
 		if err := emailReport(c, rep, "mail_bug.txt"); err != nil {
 			log.Errorf(c, "failed to report bug: %v", err)

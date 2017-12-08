@@ -12,11 +12,11 @@ import (
 )
 
 func reportAllBugs(c *Ctx, expect int) []*dashapi.BugReport {
-	pr := &dashapi.PollRequest{
+	pr := &dashapi.PollBugsRequest{
 		Type: "test",
 	}
-	resp := new(dashapi.PollResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll", pr, resp))
+	resp := new(dashapi.PollBugsResponse)
+	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
 	if len(resp.Reports) != expect {
 		c.t.Fatalf("\n%v: want %v reports, got %v", caller(0), expect, len(resp.Reports))
 	}

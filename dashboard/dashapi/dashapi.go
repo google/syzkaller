@@ -242,12 +242,20 @@ type BugUpdateReply struct {
 	Text  string
 }
 
-type PollRequest struct {
+type PollBugsRequest struct {
 	Type string
 }
 
-type PollResponse struct {
+type PollBugsResponse struct {
 	Reports []*BugReport
+}
+
+type PollClosedRequest struct {
+	IDs []string
+}
+
+type PollClosedResponse struct {
+	IDs []string
 }
 
 type ManagerStatsReq struct {

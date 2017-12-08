@@ -186,11 +186,11 @@ func TestApp(t *testing.T) {
 	}
 	c.expectOK(c.API(client1, key1, "report_failed_repro", cid, nil))
 
-	pr := &dashapi.PollRequest{
+	pr := &dashapi.PollBugsRequest{
 		Type: "test",
 	}
-	resp := new(dashapi.PollResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll", pr, resp))
+	resp := new(dashapi.PollBugsResponse)
+	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
 
 	cmd := &dashapi.BugUpdate{
 		ID:         "id",
@@ -384,11 +384,11 @@ func dupCrash(c *Ctx) *dashapi.Crash {
 	crash2 := testCrash(build, 2)
 	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
 
-	pr := &dashapi.PollRequest{
+	pr := &dashapi.PollBugsRequest{
 		Type: "test",
 	}
-	resp := new(dashapi.PollResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll", pr, resp))
+	resp := new(dashapi.PollBugsResponse)
+	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
 	c.expectEQ(len(resp.Reports), 2)
 	rep1 := resp.Reports[0]
 	rep2 := resp.Reports[1]
@@ -424,11 +424,11 @@ func closedCrashImpl(c *Ctx, withRepro bool) *dashapi.Crash {
 	c.expectOK(c.API(client1, key1, "report_crash", crash, resp))
 	c.expectEQ(resp.NeedRepro, !withRepro)
 
-	pr := &dashapi.PollRequest{
+	pr := &dashapi.PollBugsRequest{
 		Type: "test",
 	}
-	pollResp := new(dashapi.PollResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll", pr, pollResp))
+	pollResp := new(dashapi.PollBugsResponse)
+	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, pollResp))
 	c.expectEQ(len(pollResp.Reports), 1)
 	rep := pollResp.Reports[0]
 	cmd := &dashapi.BugUpdate{
