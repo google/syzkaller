@@ -65,7 +65,7 @@ Direct all questions to syzkaller@googlegroups.com.
 Please credit me with: Reported-by: syzbot <syzkaller@googlegroups.com>
 
 syzbot will keep track of this bug report.
-Once a fix for this bug is committed, please reply to this email with:
+Once a fix for this bug is merged into any tree, reply to this email with:
 #syz fix: exact-commit-title
 To mark this as a duplicate of another syzbot report, please reply with:
 #syz dup: exact-subject-of-another-report
@@ -93,7 +93,7 @@ Content-Type: text/plain
 Hello
 
 syzbot will keep track of this bug report.
-Once a fix for this bug is committed, please reply to this email with:
+Once a fix for this bug is merged into any tree, reply to this email with:
 #syz fix: exact-commit-title
 To mark this as a duplicate of another syzbot report, please reply with:
 #syz dup: exact-subject-of-another-report
@@ -201,7 +201,7 @@ Direct all questions to syzkaller@googlegroups.com.
 Please credit me with: Reported-by: syzbot <syzkaller@googlegroups.com>
 
 syzbot will keep track of this bug report.
-Once a fix for this bug is committed, please reply to this email with:
+Once a fix for this bug is merged into any tree, reply to this email with:
 #syz fix: exact-commit-title
 If you want to test a patch for this bug, please reply with:
 #syz test: git://repo/address.git branch
