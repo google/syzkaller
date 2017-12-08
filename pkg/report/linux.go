@@ -396,7 +396,7 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) bo
 		corrupted := true
 		// Check that at least one of the next 10 lines contains a frame.
 		for i := 0; i < 10 && i < len(frames); i++ {
-			if bytes.Contains(frames[i], []byte("(stack is not available)")) || linuxSymbolizeRe.Match(frames[i]) {
+			if bytes.Contains(frames[i], []byte("(stack is not available)")) || stackFrameRe.Match(frames[i]) {
 				corrupted = false
 				break
 			}
@@ -411,6 +411,7 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) bo
 var (
 	filenameRe       = regexp.MustCompile(`[a-zA-Z0-9_\-\./]*[a-zA-Z0-9_\-]+\.(c|h):[0-9]+`)
 	linuxSymbolizeRe = regexp.MustCompile(`(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
+	stackFrameRe     = regexp.MustCompile(`^ *(?:\[\<(?:[0-9a-f]+)\>\])?[ \t]+(?:[0-9]+:)?([a-zA-Z0-9_.]+)\+0x([0-9a-f]+)/0x([0-9a-f]+)`)
 	lineNumRe        = regexp.MustCompile(`(:[0-9]+)+`)
 	addrRe           = regexp.MustCompile(`([^a-zA-Z])(?:0x)?[0-9a-f]{8,}`)
 	decNumRe         = regexp.MustCompile(`([^a-zA-Z])[0-9]{5,}`)
