@@ -6,6 +6,7 @@ package prog
 import (
 	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"sort"
 	"testing"
@@ -449,4 +450,32 @@ func TestHintsData(t *testing.T) {
 				test.comps, test.in, got, test.out)
 		}
 	}
+}
+
+func BenchmarkHints(b *testing.B) {
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		b.Fatal(err)
+	}
+	rs := rand.NewSource(0)
+	r := newRand(target, rs)
+	p := target.Generate(rs, 30, nil)
+	comps := make([]CompMap, len(p.Calls))
+	for i, c := range p.Calls {
+		vals := extractValues(c)
+		for j := 0; j < 5; j++ {
+			vals[r.randInt()] = true
+		}
+		comps[i] = make(CompMap)
+		for v := range vals {
+			comps[i].AddComp(v, r.randInt())
+		}
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			for i := range p.Calls {
+				p.MutateWithHints(i, comps[i], func(p1 *Prog) {})
+			}
+		}
+	})
 }

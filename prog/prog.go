@@ -324,6 +324,9 @@ func (p *Prog) insertBefore(c *Call, calls []*Call) {
 
 // replaceArg replaces arg with arg1 in call c in program p, and inserts calls before arg call.
 func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
+	if debug {
+		p.replaceArgCheck(c, arg, arg1, calls)
+	}
 	for _, c := range calls {
 		p.Target.SanitizeCall(c)
 	}
@@ -332,19 +335,7 @@ func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
 	case *ConstArg:
 		*a = *arg1.(*ConstArg)
 	case *ResultArg:
-		// Remove link from `a.Res` to `arg`.
-		if a.Res != nil {
-			delete(*a.Res.(ArgUsed).Used(), arg)
-		}
-		// Copy all fields from `arg1` to `arg` except for the list of args that use `arg`.
-		used := *arg.(ArgUsed).Used()
-		*a = *arg1.(*ResultArg)
-		*arg.(ArgUsed).Used() = used
-		// Make the link in `a.Res` (which is now `Res` of `arg1`) to point to `arg` instead of `arg1`.
-		if a.Res != nil {
-			delete(*a.Res.(ArgUsed).Used(), arg1)
-			(*a.Res.(ArgUsed).Used())[arg] = true
-		}
+		replaceResultArg(a, arg1.(*ResultArg))
 	case *PointerArg:
 		*a = *arg1.(*PointerArg)
 	case *UnionArg:
@@ -355,6 +346,60 @@ func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
 		panic(fmt.Sprintf("replaceArg: bad arg kind %#v", arg))
 	}
 	p.Target.SanitizeCall(c)
+}
+
+func replaceResultArg(arg, arg1 *ResultArg) {
+	// Remove link from `a.Res` to `arg`.
+	if arg.Res != nil {
+		delete(*arg.Res.(ArgUsed).Used(), arg)
+	}
+	// Copy all fields from `arg1` to `arg` except for the list of args that use `arg`.
+	used := *arg.Used()
+	*arg = *arg1
+	*arg.Used() = used
+	// Make the link in `arg.Res` (which is now `Res` of `arg1`) to point to `arg` instead of `arg1`.
+	if arg.Res != nil {
+		delete(*arg.Res.(ArgUsed).Used(), arg1)
+		(*arg.Res.(ArgUsed).Used())[arg] = true
+	}
+}
+
+// replaceArgCheck checks that c and arg belog to p.
+func (p *Prog) replaceArgCheck(c *Call, arg, arg1 Arg, calls []*Call) {
+	foundCall, foundArg := false, false
+	for _, c0 := range p.Calls {
+		if c0 == c {
+			if foundCall {
+				panic("duplicate call")
+			}
+			foundCall = true
+		}
+		for _, newC := range calls {
+			if c0 == newC {
+				panic("call is already in prog")
+			}
+		}
+		foreachArg(c0, func(arg0, _ Arg, _ *[]Arg) {
+			if arg0 == arg {
+				if c0 != c {
+					panic("wrong call")
+				}
+				if foundArg {
+					panic("duplicate arg")
+				}
+				foundArg = true
+			}
+			if arg0 == arg1 {
+				panic("arg is already in prog")
+			}
+		})
+	}
+	if !foundCall {
+		panic("call is not in prog")
+	}
+	if !foundArg {
+		panic("arg is not in prog")
+	}
 }
 
 // removeArg removes all references to/from arg0 of call c from p.
@@ -368,11 +413,12 @@ func (p *Prog) removeArg(c *Call, arg0 Arg) {
 		}
 		if used, ok := arg.(ArgUsed); ok {
 			for arg1 := range *used.Used() {
-				if _, ok := arg1.(*ResultArg); !ok {
+				a1, ok := arg1.(*ResultArg)
+				if !ok {
 					panic("use references not ArgResult")
 				}
 				arg2 := MakeResultArg(arg1.Type(), nil, arg1.Type().Default())
-				p.replaceArg(c, arg1, arg2, nil)
+				replaceResultArg(a1, arg2.(*ResultArg))
 			}
 		}
 	})
@@ -381,10 +427,10 @@ func (p *Prog) removeArg(c *Call, arg0 Arg) {
 // removeCall removes call idx from p.
 func (p *Prog) removeCall(idx int) {
 	c := p.Calls[idx]
-	copy(p.Calls[idx:], p.Calls[idx+1:])
-	p.Calls = p.Calls[:len(p.Calls)-1]
 	for _, arg := range c.Args {
 		p.removeArg(c, arg)
 	}
 	p.removeArg(c, c.Ret)
+	copy(p.Calls[idx:], p.Calls[idx+1:])
+	p.Calls = p.Calls[:len(p.Calls)-1]
 }
