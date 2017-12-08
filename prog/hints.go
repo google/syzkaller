@@ -69,11 +69,11 @@ func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(newP *Pro
 		return
 	}
 	foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
-		generateHints(p, comps, c, arg, exec)
+		generateHints(p, comps, callIndex, arg, exec)
 	})
 }
 
-func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog)) {
+func generateHints(p *Prog, compMap CompMap, callIndex int, arg Arg, exec func(p *Prog)) {
 	if arg.Type().Dir() == DirOut {
 		return
 	}
@@ -93,6 +93,7 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog
 	}
 
 	newP, argMap := p.cloneImpl(true)
+	newCall := newP.Calls[callIndex]
 	validateExec := func() {
 		if err := newP.validate(); err != nil {
 			panic(fmt.Sprintf("invalid hints candidate: %v", err))
@@ -102,9 +103,9 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func(p *Prog
 	var originalArg Arg
 	constArgCandidate := func(newArg Arg) {
 		oldArg := argMap[arg]
-		newP.replaceArg(c, oldArg, newArg, nil)
+		newP.replaceArg(newCall, oldArg, newArg, nil)
 		validateExec()
-		newP.replaceArg(c, oldArg, originalArg, nil)
+		newP.replaceArg(newCall, oldArg, originalArg, nil)
 	}
 
 	dataArgCandidate := func() {
