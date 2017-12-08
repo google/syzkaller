@@ -69,6 +69,9 @@ func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symb
 		regexp.MustCompile(`^kernel/locking/*`),
 		regexp.MustCompile(`^kernel/panic.c`),
 		regexp.MustCompile(`^kernel/softirq.c`),
+		regexp.MustCompile(`^kernel/kthread.c`),
+		regexp.MustCompile(`^kernel/sched/*.c`),
+		regexp.MustCompile(`^kernel/time/timer.c`),
 		regexp.MustCompile(`^net/core/dev.c`),
 		regexp.MustCompile(`^net/core/sock.c`),
 		regexp.MustCompile(`^net/core/skbuff.c`),
@@ -433,6 +436,16 @@ var linuxStackKeywords = []*regexp.Regexp{
 	regexp.MustCompile(`[^k] backtrace:`),
 }
 
+func stacktraceRe(frameBlacklist ...string) string {
+	consumeRe := "(?:[^ ].*\\n)*"
+	if len(frameBlacklist) > 0 {
+		blacklistRe := "(?:" + strings.Join(frameBlacklist, "|") + ")"
+		blacklistFrameRe := "(?:.*" + blacklistRe + ".*\\n)"
+		consumeRe = "(?:" + blacklistFrameRe + "|" + "(?:[^ ].*\\n)" + ")*"
+	}
+	return consumeRe + " (?:{{PC}} )?{{FUNC}}"
+}
+
 var linuxOopses = []*oops{
 	&oops{
 		[]byte("BUG:"),
@@ -662,7 +675,7 @@ var linuxOopses = []*oops{
 				fmt:   "inconsistent lock state in %[1]v",
 			},
 			{
-				title: compile("INFO: rcu_(?:preempt|sched|bh) detected(?: expedited)? stalls(?:.*\\n)+?.*</IRQ>.*\n(?:.*rcu.*\\n)+? {{FUNC}}"),
+				title: compile("INFO: rcu_(?:preempt|sched|bh) detected(?: expedited)? stalls(?:.*\\n)+?.*</IRQ>.*\\n" + stacktraceRe("rcu")),
 				fmt:   "INFO: rcu detected stall in %[1]v",
 			},
 			{
@@ -670,7 +683,7 @@ var linuxOopses = []*oops{
 				fmt:   "INFO: rcu detected stall",
 			},
 			{
-				title: compile("INFO: rcu_(?:preempt|sched|bh) self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\n(?:.*rcu.*\\n)+? {{FUNC}}"),
+				title: compile("INFO: rcu_(?:preempt|sched|bh) self-detected stall on CPU(?:.*\\n)+?.*</IRQ>.*\\n" + stacktraceRe("rcu")),
 				fmt:   "INFO: rcu detected stall in %[1]v",
 			},
 			{
@@ -678,7 +691,7 @@ var linuxOopses = []*oops{
 				fmt:   "INFO: rcu detected stall",
 			},
 			{
-				title: compile("INFO: trying to register non-static key(?:.*\\n){0,10}Call Trace:\\n(?:(?:.*stack.*\\n)|(?:.*lock.*\\n)|(?:.*IRQ.*\\n))+ {{FUNC}}"),
+				title: compile("INFO: trying to register non-static key(?:.*\\n){0,10}Call Trace:\\n" + stacktraceRe("stack", "lock", "IRQ")),
 				fmt:   "INFO: trying to register non-static key in %[1]v",
 			},
 			{
@@ -695,7 +708,7 @@ var linuxOopses = []*oops{
 				corrupted: true,
 			},
 			{
-				title: compile("INFO: task .* blocked for more than [0-9]+ seconds(?:.*\\n){0,10}Call Trace:\\n(?:.*(?:sched|_lock|completion|kthread).*\\n)* (?:{{PC}} )?{{FUNC}}"),
+				title: compile("INFO: task .* blocked for more than [0-9]+ seconds(?:.*\\n){0,10}Call Trace:\\n" + stacktraceRe("sched", "_lock", "completion", "kthread")),
 				fmt:   "INFO: task hung in %[1]v",
 			},
 			{
@@ -775,6 +788,10 @@ var linuxOopses = []*oops{
 	&oops{
 		[]byte("kernel BUG"),
 		[]oopsFormat{
+			{
+				title: compile("kernel BUG at mm/usercopy.c(?:.*\\n)+?Call Trace:\\n" + stacktraceRe()),
+				fmt:   "BUG: bad usercopy in %[1]v",
+			},
 			{
 				title: compile("kernel BUG (.*)"),
 				fmt:   "kernel BUG %[1]v",
