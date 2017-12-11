@@ -142,13 +142,13 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	// Remove NONFAILING and debug calls.
 	out0 := ctx.w.String()
 	if !opts.HandleSegv {
-		re := regexp.MustCompile(`\t*NONFAILING\((.*)\);\n`)
+		re := regexp.MustCompile(`(?sU)\t*NONFAILING\((.*)\);\n`)
 		out0 = re.ReplaceAllString(out0, "$1;\n")
 	}
 	if !opts.Debug {
-		re := regexp.MustCompile(`\t*debug\(.*\);\n`)
+		re := regexp.MustCompile(`(?sU)\t*debug\(.*\);\n`)
 		out0 = re.ReplaceAllString(out0, "")
-		re = regexp.MustCompile(`\t*debug_dump_data\(.*\);\n`)
+		re = regexp.MustCompile(`(?sU)\t*debug_dump_data\(.*\);\n`)
 		out0 = re.ReplaceAllString(out0, "")
 	}
 	out0 = strings.Replace(out0, "NORETURN", "", -1)
@@ -461,6 +461,7 @@ func (ctx *context) preprocessCommonHeader(commonHeader string) (string, error) 
 	if opts.EnableTun {
 		defines = append(defines, "SYZ_TUN_ENABLE")
 	}
+	defines = append(defines, "SYZ_USB_ENABLE") // TODO
 	if opts.UseTmpDir {
 		defines = append(defines, "SYZ_USE_TMP_DIR")
 	}

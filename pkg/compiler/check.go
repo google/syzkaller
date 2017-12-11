@@ -231,10 +231,12 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 				inner = args[1]
 				desc, args, _ = comp.getArgsBase(inner, "", prog.DirIn, false)
 			}
-			if desc == typeArray && comp.isVarlen(args[0]) {
-				comp.error(t.Pos, "len target %v refer to an array with"+
-					" variable-size elements (do you mean bytesize?)", target)
-			}
+			/*
+				if desc == typeArray && comp.isVarlen(args[0]) {
+					comp.error(t.Pos, "len target %v refer to an array with"+
+						" variable-size elements (do you mean bytesize?)", target)
+				}
+			*/
 		}
 		return
 	}

@@ -126,6 +126,11 @@ void loop()
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
 
+		gfs_hub_fd = gfs_hub_open();
+		gfs_hub_highjack(gfs_hub_fd);
+		gfs_hub_process(gfs_hub_fd, 1); // FIXME: disconnect event
+		gfs_switch = 0;
+
 		// TODO: consider moving the read into the child.
 		// Potentially it can speed up things a bit -- when the read finishes
 		// we already have a forked worker process.
@@ -185,7 +190,7 @@ void loop()
 				executed_calls = now_executed;
 				last_executed = now;
 			}
-			if ((now - start < 3 * 1000) && (now - last_executed < 500))
+			if ((now - start < 4 * 1000) && (now - last_executed < 4000))
 				continue;
 			debug("waitpid(%d)=%d (%d)\n", pid, res, errno0);
 			debug("killing\n");
@@ -206,6 +211,8 @@ void loop()
 			error("child errored");
 		remove_dir(cwdbuf);
 		reply_execute(0);
+
+		gfs_hub_release(gfs_hub_fd);
 	}
 }
 

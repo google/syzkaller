@@ -44,7 +44,7 @@ var (
 )
 
 const (
-	programLength = 30
+	programLength = 6
 )
 
 type Input struct {

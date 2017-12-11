@@ -26,7 +26,7 @@ const int kOutPipeFd = 251; // remapped from stdout
 
 const int kMaxInput = 2 << 20;
 const int kMaxOutput = 16 << 20;
-const int kCoverSize = 64 << 10;
+const int kCoverSize = 64 << 13; // TODO: check
 const int kMaxArgs = 9;
 const int kMaxThreads = 16;
 const int kMaxCommands = 16 << 10;
@@ -209,6 +209,10 @@ void parse_env_flags(uint64_t flags)
 	flag_cover = flags & (1 << 1);
 	flag_threaded = flags & (1 << 2);
 	flag_collide = flags & (1 << 3);
+
+	flag_threaded = 0;
+	flag_collide = 0;
+
 	flag_sandbox = sandbox_none;
 	if (flags & (1 << 4))
 		flag_sandbox = sandbox_setuid;
@@ -568,6 +572,9 @@ void handle_completion(thread_t* th)
 		*comps_count_pos = comps_size;
 		// Write out number of signals
 		*signal_count_pos = nsig;
+
+		debug("th->cover_size: %d, cover_size: %d\n", (int)th->cover_size, (int)cover_size);
+
 		debug("out #%u: index=%u num=%u errno=%d sig=%u cover=%u comps=%u\n",
 		      completed, th->call_index, th->call_num, reserrno, nsig,
 		      cover_size, comps_size);
@@ -630,6 +637,8 @@ void execute_call(thread_t* th)
 	th->reserrno = errno;
 	th->cover_size = read_cover_size(th);
 	th->fault_injected = false;
+
+	debug("collected cover size for %s: %d\n", call->name, (int)th->cover_size);
 
 	if (flag_inject_fault && th->call_index == flag_fault_call) {
 		th->fault_injected = fault_injected(fail_fd);

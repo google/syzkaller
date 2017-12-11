@@ -598,6 +598,10 @@ var linuxOopses = []*oops{
 		[]byte("WARNING:"),
 		[]oopsFormat{
 			{
+				title: compile("WARNING: .*usb_submit_urb.*\\n(?:.*\\n)+?.*RIP.*usb_submit_urb.*\\n(?:.*\\n)+? {{FUNC}}"),
+				fmt:   "WARNING in %[1]v/usb_submit_urb",
+			},
+			{
 				title: compile("WARNING: .* at {{SRC}} {{FUNC}}"),
 				fmt:   "WARNING in %[2]v",
 			},

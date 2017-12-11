@@ -1,0 +1,47 @@
+From bfe2bc917c7f76424ed71f325d639c36ef1a56df Mon Sep 17 00:00:00 2001
+Message-Id: <bfe2bc917c7f76424ed71f325d639c36ef1a56df.1513087625.git.andreyknvl@google.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Wed, 27 Sep 2017 17:06:15 +0200
+Subject: [PATCH] usb-fuzzer: dump usb device ids on enumeration
+
+---
+ drivers/usb/core/driver.c | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/drivers/usb/core/driver.c b/drivers/usb/core/driver.c
+index 64262a9a8829..0ca806195db3 100644
+--- a/drivers/usb/core/driver.c
++++ b/drivers/usb/core/driver.c
+@@ -798,6 +798,19 @@ const struct usb_device_id *usb_match_id(struct usb_interface *interface,
+ }
+ EXPORT_SYMBOL_GPL(usb_match_id);
+ 
++void usb_device_id_dump(const struct usb_device_id *id)
++{
++	for (; id->idVendor || id->idProduct || id->bDeviceClass ||
++	       id->bInterfaceClass || id->driver_info; id++) {
++		char buffer[128];
++		int size = (char *)&id->driver_info - (char *)id;
++		bin2hex((char *)&buffer[0], (const char *)id, size);
++		buffer[size * 2] = 0;
++		pr_err("%s\n", &buffer[0]);
++	}
++}
++
++
+ static int usb_device_match(struct device *dev, struct device_driver *drv)
+ {
+ 	/* devices and interfaces are handled separately */
+@@ -822,6 +835,9 @@ static int usb_device_match(struct device *dev, struct device_driver *drv)
+ 		intf = to_usb_interface(dev);
+ 		usb_drv = to_usb_driver(drv);
+ 
++		if (usb_drv->id_table != NULL)
++			usb_device_id_dump(usb_drv->id_table);
++
+ 		id = usb_match_id(intf, usb_drv->id_table);
+ 		if (id)
+ 			return 1;
+-- 
+2.15.1.424.g9478a66081-goog
+

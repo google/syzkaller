@@ -205,6 +205,8 @@ func (ctx *context) repro(entries []*prog.LogEntry, crashStart int) (*Result, er
 		return nil, err
 	}
 
+	return res, nil // TODO
+
 	// Try extracting C repro without simplifying options first.
 	res, err = ctx.extractC(res)
 	if err != nil {
@@ -255,7 +257,7 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 	// The shortest duration is 10 seconds to detect simple crashes (i.e. no races and no hangs).
 	// The longest duration is 5 minutes to catch races and hangs. Note that this value must be larger
 	// than hang/no output detection duration in vm.MonitorExecution, which is currently set to 3 mins.
-	timeouts := []time.Duration{10 * time.Second, 1 * time.Minute, 5 * time.Minute}
+	timeouts := []time.Duration{10 * time.Second, 1 * time.Minute}
 
 	for _, timeout := range timeouts {
 		// Execute each program separately to detect simple crashes caused by a single program.
@@ -268,6 +270,8 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 			ctx.reproLog(3, "found reproducer with %d syscalls", len(res.Prog.Calls))
 			return res, nil
 		}
+
+		continue
 
 		// Don't try bisecting if there's only one entry.
 		if len(entries) == 1 {

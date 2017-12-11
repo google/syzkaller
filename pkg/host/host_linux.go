@@ -113,6 +113,12 @@ func isSupportedSyzkall(c *prog.Syscall) bool {
 			syscall.Close(fd)
 		}
 		return err == nil && syscall.Getuid() == 0
+	case "syz_usb_connect", "syz_usb_disconnect":
+		fd, err := syscall.Open("/sys/kernel/debug/usb-fuzzer", syscall.O_RDWR, 0)
+		if err == nil {
+			syscall.Close(fd)
+		}
+		return err == nil
 	case "syz_kvm_setup_cpu":
 		switch c.Name {
 		case "syz_kvm_setup_cpu$x86":

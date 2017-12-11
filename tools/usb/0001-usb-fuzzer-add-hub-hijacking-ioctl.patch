@@ -1,0 +1,171 @@
+From b1222b90b3aa77cf9574200a12f27e3e76696741 Mon Sep 17 00:00:00 2001
+Message-Id: <b1222b90b3aa77cf9574200a12f27e3e76696741.1513090390.git.andreyknvl@google.com>
+From: Andrey Konovalov <andreyknvl@google.com>
+Date: Wed, 27 Sep 2017 17:07:47 +0200
+Subject: [PATCH 1/2] usb-fuzzer: add hub hijacking ioctl
+
+---
+ drivers/usb/core/hub.c            | 112 +++++++++++++++++++++++++++++++++++++-
+ include/uapi/linux/usbdevice_fs.h |   3 +
+ 2 files changed, 114 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/usb/core/hub.c b/drivers/usb/core/hub.c
+index cf7bbcb9a63c..2dfdd74b1b76 100644
+--- a/drivers/usb/core/hub.c
++++ b/drivers/usb/core/hub.c
+@@ -28,6 +28,7 @@
+ #include <linux/mutex.h>
+ #include <linux/random.h>
+ #include <linux/pm_qos.h>
++#include <linux/delay.h>
+ 
+ #include <linux/uaccess.h>
+ #include <asm/byteorder.h>
+@@ -1795,6 +1796,65 @@ static int hub_probe(struct usb_interface *intf, const struct usb_device_id *id)
+ 	return -ENODEV;
+ }
+ 
++DECLARE_WAIT_QUEUE_HEAD(uf_hub_wq);
++DEFINE_SPINLOCK(uf_hub_lock);
++LIST_HEAD(uf_hub_list);
++int uf_hub_switch = 0;
++
++struct uf_hub_entry {
++	struct list_head list;
++	struct work_struct *work;
++	struct completion done;
++};
++
++void hub_event_impl(struct work_struct *work);
++
++void uf_hub_events_handle(int wait)
++{
++	unsigned long flags;
++	struct list_head *curr, *next;
++	struct list_head local;
++	unsigned long rv;
++
++	INIT_LIST_HEAD(&local);
++
++	pr_err("! uf: handling queued events: start\n");
++
++	if (!wait && list_empty(&uf_hub_list))
++		goto exit;
++
++retry:
++	rv = wait_event_interruptible(uf_hub_wq, !list_empty(&uf_hub_list));
++	if (rv != 0)
++		goto exit;
++	spin_lock_irqsave(&uf_hub_lock, flags);
++	if (list_empty(&uf_hub_list)) {
++		spin_unlock_irqrestore(&uf_hub_lock, flags);
++		if (!wait)
++			goto exit;
++		goto retry;
++	}
++	list_for_each_safe(curr, next, &uf_hub_list) {
++		list_del(curr);
++		list_add(curr, &local);
++	}
++	spin_unlock_irqrestore(&uf_hub_lock, flags);
++
++	pr_err("! uf: handling queued events: got events\n");
++
++	list_for_each_safe(curr, next, &local) {
++		struct uf_hub_entry *entry =
++			list_entry(curr, struct uf_hub_entry, list);
++
++		list_del(curr);
++		hub_event_impl(entry->work);
++		complete(&entry->done);
++	}
++
++exit:
++	pr_err("! uf: handling queued events: done\n");
++}
++
+ static int
+ hub_ioctl(struct usb_interface *intf, unsigned int code, void *user_data)
+ {
+@@ -1824,6 +1884,24 @@ hub_ioctl(struct usb_interface *intf, unsigned int code, void *user_data)
+ 
+ 		return info->nports + 1;
+ 		}
++	case USBDEVFS_HUB_HIGHJACK:
++		WRITE_ONCE(uf_hub_switch, 1);
++		pr_err("! uf: hub highjacked\n");
++		return 0;
++	case USBDEVFS_HUB_RELEASE:
++		spin_lock(&uf_hub_lock);
++		WRITE_ONCE(uf_hub_switch, 0);
++		spin_unlock(&uf_hub_lock);
++		pr_err("! uf: hub released\n");
++		return 0;
++	case USBDEVFS_HUB_PROCESS: {
++		u32 *value = user_data;
++		usb_unlock_device(hdev);
++		uf_hub_events_handle(!*value);
++		usb_lock_device(hdev);
++		pr_err("! uf: hub processed\n");
++		return 0;
++		}
+ 
+ 	default:
+ 		return -ENOSYS;
+@@ -5140,7 +5218,39 @@ static void port_event(struct usb_hub *hub, int port1)
+ 		hub_port_connect_change(hub, port1, portstatus, portchange);
+ }
+ 
+-static void hub_event(struct work_struct *work)
++static void hub_event(struct work_struct *work) {
++	struct usb_device *hdev;
++	struct usb_hub *hub;
++
++	struct uf_hub_entry entry;
++
++	if (READ_ONCE(uf_hub_switch) == 0) {
++		hub_event_impl(work);
++		return;
++	}
++
++	hub = container_of(work, struct usb_hub, events);
++	hdev = hub->hdev;
++
++	pr_err("! hub event: queueing %p (device: %p)\n", work, hdev);
++
++	entry.work = work;
++	init_completion(&entry.done);
++
++	spin_lock(&uf_hub_lock);
++	if (READ_ONCE(uf_hub_switch) == 0) {
++		spin_unlock(&uf_hub_lock);
++		hub_event_impl(work);
++		return;
++	}
++	list_add_tail(&entry.list, &uf_hub_list);
++	spin_unlock(&uf_hub_lock);
++	wake_up_interruptible(&uf_hub_wq);
++
++	wait_for_completion_interruptible(&entry.done);
++}
++
++void hub_event_impl(struct work_struct *work)
+ {
+ 	struct usb_device *hdev;
+ 	struct usb_interface *intf;
+diff --git a/include/uapi/linux/usbdevice_fs.h b/include/uapi/linux/usbdevice_fs.h
+index 70ed5338d447..9e6db931fd7b 100644
+--- a/include/uapi/linux/usbdevice_fs.h
++++ b/include/uapi/linux/usbdevice_fs.h
+@@ -197,5 +197,8 @@ struct usbdevfs_streams {
+ #define USBDEVFS_FREE_STREAMS      _IOR('U', 29, struct usbdevfs_streams)
+ #define USBDEVFS_DROP_PRIVILEGES   _IOW('U', 30, __u32)
+ #define USBDEVFS_GET_SPEED         _IO('U', 31)
++#define USBDEVFS_HUB_HIGHJACK      _IO('U', 32)
++#define USBDEVFS_HUB_RELEASE       _IO('U', 33)
++#define USBDEVFS_HUB_PROCESS       _IOW('U', 34, __u32)
+ 
+ #endif /* _UAPI_LINUX_USBDEVICE_FS_H */
+-- 
+2.15.1.424.g9478a66081-goog
+
