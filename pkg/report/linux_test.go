@@ -1857,6 +1857,82 @@ syzkaller login: [   16.305150] INFO: trying to register non-static key.
 `, `BUG: bad usercopy in kvm_vcpu_ioctl_set_cpuid2`, false,
 		}, {
 			`
+[   60.089581] ==================================================================
+** 2499 printk messages dropped ** [   60.095515] CPU: 1 PID: 7148 Comm: syz-executor5 Tainted: G    B           4.4.104-ged884eb #2
+** 5042 printk messages dropped ** [   60.107433]  [<ffffffff82564f65>] sg_finish_rem_req+0x255/0x2f0
+** 3861 printk messages dropped ** [   60.116522] 	entry_SYSCALL_64_fastpath+0x16/0x76
+** 3313 printk messages dropped ** [   60.124312] Object ffff8800b903e960: 00 00 00 00 ad 4e ad de ff ff ff ff 00 00 00 00  .....N..........
+** 5311 printk messages dropped ** [   60.136772] INFO: Freed in fasync_free_rcu+0x14/0x20 age=624 cpu=0 pid=3
+** 4200 printk messages dropped ** [   60.146612] 	__slab_free+0x18c/0x2b0
+** 2864 printk messages dropped ** [   60.153322] Object ffff8800b903e990: 00 50 8b 83 ff ff ff ff 01 46 00 00 07 00 00 00  .P.......F......
+** 5323 printk messages dropped ** [   60.165806] Object ffff8800b903e980: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+** 5308 printk messages dropped ** [   60.178233] 	entry_SYSCALL_64_fastpath+0x16/0x76
+** 3313 printk messages dropped ** [   60.186014] Object ffff8800b903e960: 00 00 00 00 ad 4e ad de ff ff ff ff 00 00 00 00  .....N..........
+** 5306 printk messages dropped ** [   60.198451] 	kmem_cache_alloc+0x155/0x290
+** 3050 printk messages dropped ** [   60.205623]  [<ffffffff81b0ce6d>] ? security_file_permission+0x13d/0x190
+** 4199 printk messages dropped ** [   60.215469]  [<ffffffff81b0ce6d>] ? security_file_permission+0x13d/0x190
+** 4199 printk messages dropped ** [   60.225317]  [<ffffffff81b0ce6d>] ? security_file_permission+0x13d/0x190
+** 4205 printk messages dropped ** [   60.235181]  [<ffffffff8374b236>] entry_SYSCALL_64_fastpath+0x16/0x76
+** 4090 printk messages dropped ** [   60.244751] Object ffff8800b903e9b0: 00 3c 13 d6 01 88 ff ff f0 f4 52 81 ff ff ff ff  .<........R.....
+** 5314 printk messages dropped ** [   60.257197] 	kthread+0x245/0x310
+** 2715 printk messages dropped ** [   60.263572] Call Trace:
+** 2392 printk messages dropped ** [   60.269183] Object ffff8800b903e9a0: 00 00 00 00 00 00 00 00 00 a7 1f b9 00 88 ff ff  ................
+** 5302 printk messages dropped ** [   60.281605] 	kmem_cache_alloc+0x155/0x290
+** 3043 printk messages dropped ** [   60.288766]  [<ffffffff812cca9f>] ? do_futex+0xb2f/0x18a0
+** 3646 printk messages dropped ** [   60.297337] INFO: Object 0xffff8800b903e960 @offset=2400 fp=0xdead4ead00000000
+[   60.297337] 
+** 5035 printk messages dropped ** [   60.309139]  ffff8800b903e010 ffff8800b903e960 ffff8801d45df9e0 ffffffff814d3af4
+** 4490 printk messages dropped ** [   60.319695] Object ffff8800b903e960: 00 00 00 00 ad 4e ad de ff ff ff ff 00 00 00 00  .....N..........
+** 5299 printk messages dropped ** [   60.332158] Read of size 4 by task syz-executor5/7148
+** 3252 printk messages dropped ** [   60.339809] Object ffff8800b903e990: 00 50 8b 83 ff ff ff ff 01 46 00 00 07 00 00 00  .P.......F......
+** 5302 printk messages dropped ** [   60.352817] 	__slab_alloc.isra.74.constprop.77+0x50/0xa0
+** 3615 printk messages dropped ** [   60.361312] INFO: Slab 0xffffea0002e40f80 objects=20 used=2 fp=0xffff8800b903eaf0 flags=0x4000000000004080
+** 5434 printk messages dropped ** [   60.374053]  [<ffffffff81223871>] ? __lock_is_held+0xa1/0xf0
+** 3757 printk messages dropped ** [   60.382902] Memory state around the buggy address:
+** 3391 printk messages dropped ** [   60.390847] 	kmem_cache_alloc+0x155/0x290
+** 3041 printk messages dropped ** [   60.397963]  [<ffffffff82564f65>] sg_finish_rem_req+0x255/0x2f0
+** 3867 printk messages dropped ** [   60.407050] 	__do_softirq+0x24d/0xa60
+** 2890 printk messages dropped ** [   60.413833]  [<ffffffff81b0ce6d>] ? security_file_permission+0x13d/0x190
+** 4208 printk messages dropped ** [   60.423731]  ffff8800b903e900: fc fc fc fc fc fc fc fc fc fc fc fc 00 00 00 00
+** 4428 printk messages dropped ** [   60.434100]  ffff8800b903ea80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fb fb
+** 4426 printk messages dropped ** [   60.444470] ==================================================================
+`, `INFO: Freed in fasync_free_rcu age=624 cpu=0 pid=3`, true,
+		}, {
+			`
+** 4491 printk messages dropped ** [   50.750742] INFO: Allocated in fasync_helper+0x29/0x90 age=1 cpu=1 pid=6024
+** 4370 printk messages dropped ** [   50.761001]  [<ffffffff8123648d>] native_queued_spin_lock_slowpath+0x5ad/0x660
+** 4510 printk messages dropped ** [   50.771609]                          ^
+** 2979 printk messages dropped ** [   50.778606] 	SyS_fcntl+0x5be/0xc70
+** 2785 printk messages dropped ** [   50.785208]  [<ffffffff814f86fb>] ? rw_verify_area+0xbb/0x2c0
+** 3833 printk messages dropped ** [   50.794205] 	run_ksoftirqd+0x20/0x60
+** 2941 printk messages dropped ** [   50.801153]  ffff8801d3701280: fc fc fc fc fc fc fc fc fb fb fb fb fb fb fb fb
+** 4449 printk messages dropped ** [   50.811647]  [<ffffffff814d3af4>] print_trailer+0x114/0x1a0
+** 3718 printk messages dropped ** [   50.820379]  0000000000000000 3fe20028167234bc ffff8800b43179b0 ffffffff81cc9b0f
+** 4495 printk messages dropped ** [   50.830930]  [<ffffffff8123ab47>] do_raw_write_lock+0xc7/0x1d0
+** 3816 printk messages dropped ** [   50.839887]  [<ffffffff814fb353>] SyS_read+0xd3/0x1c0
+** 3497 printk messages dropped ** [   50.848107]  [<ffffffff81003044>] ? lockdep_sys_exit_thunk+0x12/0x14
+** 4057 printk messages dropped ** [   50.857615] 	run_ksoftirqd+0x20/0x60
+** 2855 printk messages dropped ** [   50.864318]  [<ffffffff814fb353>] SyS_read+0xd3/0x1c0
+** 3490 printk messages dropped ** [   50.872518]  [<ffffffff815bee10>] ? fsnotify+0xe40/0xe40
+** 3600 printk messages dropped ** [   50.880974] 	SyS_fcntl+0x5be/0xc70
+** 2788 printk messages dropped ** [   50.887536]  [<ffffffff814fb280>] ? do_sendfile+0xf40/0xf40
+** 3713 printk messages dropped ** [   50.896250]  [<ffffffff8122ab40>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+** 4253 printk messages dropped ** [   50.906245]  [<ffffffff812cca9f>] ? do_futex+0xb2f/0x18a0
+** 3636 printk messages dropped ** [   50.914820]  [<ffffffff814db1b7>] kasan_report.part.2+0x227/0x530
+** 3921 printk messages dropped ** [   50.924057] 	SyS_fcntl+0x5be/0xc70
+** 2782 printk messages dropped ** [   50.930621]  [<ffffffff815bee10>] ? fsnotify+0xe40/0xe40
+** 3601 printk messages dropped ** [   50.939092] 	entry_SYSCALL_64_fastpath+0x16/0x76
+** 3340 printk messages dropped ** [   50.946939] 	fasync_helper+0x29/0x90
+** 2885 printk messages dropped ** [   50.953668] 	__slab_alloc.isra.74.constprop.77+0x50/0xa0
+** 3601 printk messages dropped ** [   50.962045] Call Trace:
+** 2379 printk messages dropped ** [   50.967648]  [<ffffffff814f86fb>] ? rw_verify_area+0xbb/0x2c0
+** 3792 printk messages dropped ** [   50.976556]  [<ffffffff8122ab40>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+** 4256 printk messages dropped ** [   50.986544]  [<ffffffff81475701>] ? __might_fault+0xf1/0x1b0
+** 3734 printk messages dropped ** [   50.995348]  [<ffffffff8374b236>] entry_SYSCALL_64_fastpath+0x16/0x76
+** 4077 printk messages dropped ** [   51.004950]  [<ffffffff814d945f>] object_err+0x2f/0x40
+`, `INFO: Allocated in fasync_helper age=1 cpu=1 pid=6024`, true,
+		}, {
+			`
 syzkaller login: [   55.288565] usercopy: kernel memory exposure attempt detected from ffff8801d4310630 (SCTPv6) (11 bytes)
 [   55.290089] ------------[ cut here ]------------
 [   55.290728] kernel BUG at mm/usercopy.c:84!

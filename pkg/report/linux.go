@@ -722,6 +722,18 @@ var linuxOopses = []*oops{
 				title: compile("INFO: task .* blocked for more than [0-9]+ seconds"),
 				fmt:   "INFO: task hung",
 			},
+			{
+				// This gets captured for corrupted old-style KASAN reports.
+				title:     compile("INFO: Freed in (.*)"),
+				fmt:       "INFO: Freed in %[1]v",
+				corrupted: true,
+			},
+			{
+				// This gets captured for corrupted old-style KASAN reports.
+				title:     compile("INFO: Allocated in (.*)"),
+				fmt:       "INFO: Allocated in %[1]v",
+				corrupted: true,
+			},
 		},
 		[]*regexp.Regexp{
 			compile("INFO: lockdep is turned off"),
