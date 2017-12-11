@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "0afa791d4346dca960d00dfff0f765ae4dc5c09a"
+#define SYZ_REVISION "5ab424b1857f4d521bc5a906c7c5f76893d01489"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -13,7 +13,7 @@
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1510;
+unsigned syscall_count = 1513;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -958,6 +958,7 @@ call_t syscalls[] = {
     {"openat$lightnvm", 295},
     {"openat$loop_ctrl", 295},
     {"openat$mixer", 295},
+    {"openat$pfkey", 295},
     {"openat$pktcdvd", 295},
     {"openat$ppp", 295},
     {"openat$ptmx", 295},
@@ -1091,6 +1092,7 @@ call_t syscalls[] = {
     {"sendmsg$alg", 370},
     {"sendmsg$inet_sctp", 370},
     {"sendmsg$kcm", 370},
+    {"sendmsg$key", 370},
     {"sendmsg$netlink", 370},
     {"sendmsg$netrom", 370},
     {"sendmsg$nfc_llcp", 370},
@@ -1341,6 +1343,7 @@ call_t syscalls[] = {
     {"socket$inet_udp", 359},
     {"socket$ipx", 359},
     {"socket$kcm", 359},
+    {"socket$key", 359},
     {"socket$llc", 359},
     {"socket$netlink", 359},
     {"socket$netrom", 359},
@@ -1531,7 +1534,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "02e87402786921772352b499b42c47d0773ea972"
+#define SYZ_REVISION "2c170ed020211b48b95eb8956a2abed0a21b5e9b"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1542,7 +1545,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1571;
+unsigned syscall_count = 1574;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2519,6 +2522,7 @@ call_t syscalls[] = {
     {"openat$lightnvm", 257},
     {"openat$loop_ctrl", 257},
     {"openat$mixer", 257},
+    {"openat$pfkey", 257},
     {"openat$pktcdvd", 257},
     {"openat$ppp", 257},
     {"openat$ptmx", 257},
@@ -2669,6 +2673,7 @@ call_t syscalls[] = {
     {"sendmsg$alg", 46},
     {"sendmsg$inet_sctp", 46},
     {"sendmsg$kcm", 46},
+    {"sendmsg$key", 46},
     {"sendmsg$netlink", 46},
     {"sendmsg$netrom", 46},
     {"sendmsg$nfc_llcp", 46},
@@ -2931,6 +2936,7 @@ call_t syscalls[] = {
     {"socket$inet_udp", 41},
     {"socket$ipx", 41},
     {"socket$kcm", 41},
+    {"socket$key", 41},
     {"socket$llc", 41},
     {"socket$netlink", 41},
     {"socket$netrom", 41},
@@ -3121,7 +3127,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "5f96261cbf88d36d804e7e4204af39a4db88dabf"
+#define SYZ_REVISION "2c8b016d589446c96ce54cdd167fb7053d0b3925"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3132,7 +3138,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1520;
+unsigned syscall_count = 1523;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4063,6 +4069,7 @@ call_t syscalls[] = {
     {"openat$lightnvm", 322},
     {"openat$loop_ctrl", 322},
     {"openat$mixer", 322},
+    {"openat$pfkey", 322},
     {"openat$pktcdvd", 322},
     {"openat$ppp", 322},
     {"openat$ptmx", 322},
@@ -4212,6 +4219,7 @@ call_t syscalls[] = {
     {"sendmsg$alg", 296},
     {"sendmsg$inet_sctp", 296},
     {"sendmsg$kcm", 296},
+    {"sendmsg$key", 296},
     {"sendmsg$netlink", 296},
     {"sendmsg$netrom", 296},
     {"sendmsg$nfc_llcp", 296},
@@ -4473,6 +4481,7 @@ call_t syscalls[] = {
     {"socket$inet_udp", 281},
     {"socket$ipx", 281},
     {"socket$kcm", 281},
+    {"socket$key", 281},
     {"socket$llc", 281},
     {"socket$netlink", 281},
     {"socket$netrom", 281},
@@ -4660,7 +4669,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "6dddd0440dd9ef383faffa8df6ef2854afbd91bb"
+#define SYZ_REVISION "37a68567293b5ca35c86d4d843d8f489d831020c"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4671,7 +4680,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1500;
+unsigned syscall_count = 1503;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5597,6 +5606,7 @@ call_t syscalls[] = {
     {"openat$lightnvm", 56},
     {"openat$loop_ctrl", 56},
     {"openat$mixer", 56},
+    {"openat$pfkey", 56},
     {"openat$pktcdvd", 56},
     {"openat$ppp", 56},
     {"openat$ptmx", 56},
@@ -5740,6 +5750,7 @@ call_t syscalls[] = {
     {"sendmsg$alg", 211},
     {"sendmsg$inet_sctp", 211},
     {"sendmsg$kcm", 211},
+    {"sendmsg$key", 211},
     {"sendmsg$netlink", 211},
     {"sendmsg$netrom", 211},
     {"sendmsg$nfc_llcp", 211},
@@ -6000,6 +6011,7 @@ call_t syscalls[] = {
     {"socket$inet_udp", 198},
     {"socket$ipx", 198},
     {"socket$kcm", 198},
+    {"socket$key", 198},
     {"socket$llc", 198},
     {"socket$netlink", 198},
     {"socket$netrom", 198},
@@ -6179,7 +6191,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "e20b0f74a3bfb492282cab0757f652e1e096c071"
+#define SYZ_REVISION "06d84dc490b3b239e55e2b35b56a56cd10211e18"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6190,7 +6202,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
 
-unsigned syscall_count = 1480;
+unsigned syscall_count = 1483;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7110,6 +7122,7 @@ call_t syscalls[] = {
     {"openat$lightnvm", 286},
     {"openat$loop_ctrl", 286},
     {"openat$mixer", 286},
+    {"openat$pfkey", 286},
     {"openat$pktcdvd", 286},
     {"openat$ppp", 286},
     {"openat$ptmx", 286},
@@ -7240,6 +7253,7 @@ call_t syscalls[] = {
     {"sendmsg$alg", 341},
     {"sendmsg$inet_sctp", 341},
     {"sendmsg$kcm", 341},
+    {"sendmsg$key", 341},
     {"sendmsg$netlink", 341},
     {"sendmsg$netrom", 341},
     {"sendmsg$nfc_llcp", 341},
@@ -7489,6 +7503,7 @@ call_t syscalls[] = {
     {"socket$inet_udp", 326},
     {"socket$ipx", 326},
     {"socket$kcm", 326},
+    {"socket$key", 326},
     {"socket$llc", 326},
     {"socket$netlink", 326},
     {"socket$netrom", 326},
