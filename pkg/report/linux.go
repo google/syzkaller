@@ -637,6 +637,17 @@ var linuxOopses = []*oops{
 				fmt:          "WARNING: kernel stack frame pointer has bad value",
 				noStackTrace: true,
 			},
+			{
+				title:  compile("WARNING: bad unlock balance detected!(?:.*\\n)+?.*{{PC}} +{{FUNC}}"),
+				report: compile("WARNING: bad unlock balance detected!(?:.*\\n){0,5}?.*is trying to release lock"),
+				fmt:    "WARNING: bad unlock balance in %[1]v",
+			},
+			{
+				// If we failed to extract function name where the fault happened, the report is most likely truncated.
+				title:     compile("WARNING: bad unlock balance detected!"),
+				fmt:       "WARNING: bad unlock balance",
+				corrupted: true,
+			},
 		},
 		[]*regexp.Regexp{
 			compile("WARNING: /etc/ssh/moduli does not exist, using fixed modulus"), // printed by sshd
