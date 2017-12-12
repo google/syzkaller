@@ -1,0 +1,4 @@
+TITLE: kernel panic: Fatal exception
+CORRUPTED: Y
+
+[  616.344091] Kernel panic - not syncing: Fatal exception in interrupt

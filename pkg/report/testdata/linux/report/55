@@ -1,0 +1,11 @@
+TITLE: memory leak in debug_objects_mem_init (size 20)
+
+[ 1722.511384] unreferenced object 0xdb8040c0 (size 20):
+[ 1722.511384]   comm "swapper", pid 0, jiffies 4294667296
+[ 1722.511384]   backtrace:
+[ 1722.511384]     [<c04fd8b3>] kmemleak_alloc+0x193/0x2b8
+[ 1722.511384]     [<c04f5e73>] kmem_cache_alloc+0x11e/0x174
+[ 1722.511384]     [<c0aae5a7>] debug_objects_mem_init+0x63/0x1d9
+[ 1722.511384]     [<c0a86a62>] start_kernel+0x2da/0x38d
+[ 1722.511384]     [<c0a86090>] i386_start_kernel+0x7f/0x98
+[ 1722.511384]     [<ffffffff>] 0xffffffff

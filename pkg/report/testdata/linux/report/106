@@ -1,0 +1,12 @@
+TITLE: KASAN: use-after-free Read in consume_skb
+CORRUPTED: Y
+
+[   55.468844] ==================================================================
+[   55.476243] BUG: KASAN: use-after-free in consume_skb+0x39f/0x530 at addr ffff8801cbeda574
+[   55.484627] Read of size 4 by task syz-executor2/4676
+[   55.490296] Object at ffff8801cbeda480, in cache skbuff_head_cache size: 248
+[   55.497470] Allocated:
+[   55.499957] PID = 4655
+[   55.502578] Freed:
+[   55.504709] PID = 4655
+[   55.507369] Memory state around the buggy address:

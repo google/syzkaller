@@ -1,0 +1,14 @@
+TITLE: unable to handle kernel paging request in blk_rq_map_sg
+CORRUPTED: Y
+
+[ 1722.511384] Unable to handle kernel paging request at virtual address 0c0c9ca0
+[ 1722.511384] pgd = c0004000
+[ 1722.511384] [0c0c9ca0] *pgd=00000000
+[ 1722.511384] Internal error: Oops: 5 [#1] PREEMPT
+[ 1722.511384] last sysfs file: /sys/devices/virtual/irqk/irqk/dev
+[ 1722.511384] Modules linked in: cmemk dm365mmap edmak irqk
+[ 1722.511384] CPU: 0    Not tainted  (2.6.32-17-ridgerun #22)
+[ 1722.511384] PC is at blk_rq_map_sg+0x70/0x2c0
+[ 1722.511384] LR is at mmc_queue_map_sg+0x2c/0xa4
+[ 1722.511384] pc : [<c01751ac>]    lr : [<c025a42c>]    psr: 80000013
+[ 1722.511384] sp : c23e1db0  ip : c3cf8848  fp : c23e1df4

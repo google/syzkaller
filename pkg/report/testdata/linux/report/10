@@ -1,0 +1,5 @@
+TITLE: BUG: unable to handle kernel paging request in __call_rcu
+CORRUPTED: Y
+
+[ 1019.110825] BUG: unable to handle kernel paging request at 00000000ffffff8a
+[ 1019.110825] IP: [<ffffffff810a376f>] __call_rcu.constprop.76+0x1f/0x280 kernel/rcu/tree.c:3046

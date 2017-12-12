@@ -1,0 +1,12 @@
+TITLE: BUG: unable to handle kernel
+CORRUPTED: Y
+
+[  153.518371] device lo entered promiscuous mode
+[  153.606199] kernel tried to execute NX-protected page - exploit attempt? (uid: 0)
+[  153.613861] BUG: unable to handle kernel [  153.615435] deprecated getsockopt IP_VLAN used by syz-executor4!
+
+[  153.623948] paging request at ffff8800b3d5ed58
+[  153.628940] IP: [<ffff8800b3d5ed58>] 0xffff8800b3d5ed58
+[  153.634416] PGD a0ab067 PUD 21ffff067 PMD 80000000b3c001e3 
+[  153.640483] Oops: 0011 [#1] SMP KASAN
+[  153.644615] Modules linked in:

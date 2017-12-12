@@ -1,0 +1,4 @@
+
+[   92.396607] APIC base relocation is unsupported by KVM
+[   95.445015] INFO: NMI handler (perf_event_nmi_handler) took too long to run: 1.356 msecs
+[   95.445015] perf: interrupt took too long (3985 > 3976), lowering kernel.perf_event_max_sample_rate to 50000

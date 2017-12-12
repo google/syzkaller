@@ -1,0 +1,10 @@
+TITLE: BUG: Bad page state
+CORRUPTED: Y
+
+[ 1722.511384] BUG: Bad page state in process syz-executor9  pfn:199e00
+[ 1722.511384] page:ffffea00059a9000 count:0 mapcount:0 mapping:          (null) index:0x20a00
+[ 1722.511384] TCP: request_sock_TCPv6: Possible SYN flooding on port 20032. Sending cookies.  Check SNMP counters.
+[ 1722.511384] flags: 0x200000000040019(locked|uptodate|dirty|swapbacked)
+[ 1722.511384] raw: 0200000000040019 0000000000000000 0000000000020a00 00000000ffffffff
+[ 1722.511384] raw: dead000000000100 dead000000000200 0000000000000000
+[ 1722.511384] page dumped because: PAGE_FLAGS_CHECK_AT_FREE flag(s)

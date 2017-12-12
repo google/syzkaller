@@ -1,0 +1,14 @@
+TITLE: possible deadlock in tty_buffer_flush
+CORRUPTED: Y
+
+[ 1722.511384] ======================================================
+[ 1722.511384] WARNING: possible circular locking dependency detected
+[ 1722.511384] 4.12.0-rc2-next-20170529+ #1 Not tainted
+[ 1722.511384] ------------------------------------------------------
+[ 1722.511384] kworker/u4:2/58 is trying to acquire lock:
+[ 1722.511384]  (&buf->lock){+.+...}, at: [<ffffffffa41b4e5b>] tty_buffer_flush+0xbb/0x3a0 drivers/tty/tty_buffer.c:221
+[ 1722.511384] 
+[ 1722.511384] but task is already holding lock:
+[ 1722.511384]  (&o_tty->termios_rwsem/1){++++..}, at: [<ffffffffa41a5601>] isig+0xa1/0x4d0 drivers/tty/n_tty.c:1100
+[ 1722.511384] 
+[ 1722.511384] which lock already depends on the new lock.

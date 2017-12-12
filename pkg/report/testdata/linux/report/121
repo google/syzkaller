@@ -1,0 +1,40 @@
+TITLE: KASAN: use-after-free Write in __unwind_start
+CORRUPTED: Y
+
+[  244.844737] ==================================================================
+[  244.852147] BUG: KASAN: use-after-free in __unwind_start+0x2d/0x330
+[  244.858531] Write of size 88 at addr ffff8801cd04fe98 by task loop0/26991
+[  244.865424] 
+[  244.867028] CPU: 1 PID: 26991 Comm: loop0 Not tainted 4.15.0-rc2-next-20171208+ #63
+[  244.874789] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  244.884113] Call Trace:
+[  247.901862]  ? kthread+0x37a/0x440
+[  247.905374]  ? loop_get_status64+0x110/0x110
+[  247.909750]  ? kthread_stop+0x7b0/0x7b0
+[  247.913703]  ? ret_from_fork+0x24/0x30
+[  247.917578] 
+[  247.919178] Allocated by task 0:
+[  247.922513] (stack is not available)
+[  247.926195] 
+[  247.927802] Freed by task 0:
+[  247.930800] (stack is not available)
+[  247.934480] 
+[  247.936083] The buggy address belongs to the object at ffff8801cd04fe80
+[  247.936083]  which belongs to the cache kmalloc-96 of size 96
+[  247.948537] The buggy address is located 24 bytes inside of
+[  247.948537]  96-byte region [ffff8801cd04fe80, ffff8801cd04fee0)
+[  247.960206] The buggy address belongs to the page:
+[  247.965107] page:0000000038bb6d4b count:1 mapcount:0 mapping:000000000e839e90 index:0x0
+[  247.973221] flags: 0x2fffc0000000100(slab)
+[  247.977431] raw: 02fffc0000000100 ffff8801cd04f000 0000000000000000 0000000100000020
+[  247.985281] raw: ffffea00073bfba0 ffffea00076330e0 ffff8801dac004c0 0000000000000000
+[  247.993131] page dumped because: kasan: bad access detected
+[  247.998807] 
+[  248.000404] Memory state around the buggy address:
+[  248.005304]  ffff8801cd04fd80: fb fb fb fb 00 00 00 00 00 00 00 00 00 00 00 00
+[  248.012634]  ffff8801cd04fe00: 00 00 00 00 00 00 00 00 fb fb fb fb fc fc fc fc
+[  248.019964] >ffff8801cd04fe80: fb fb fb fb fb fb fb fb 00 00 00 00 00 00 00 00
+[  248.027294]                             ^
+[  248.031414]  ffff8801cd04ff00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  248.038753]  ffff8801cd04ff80: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[  248.046081] ==================================================================

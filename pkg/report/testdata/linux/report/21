@@ -1,0 +1,5 @@
+TITLE: BUG: unable to handle kernel NULL pointer dereference in skb_release_data
+CORRUPTED: Y
+
+[   55.112844] BUG: unable to handle kernel NULL pointer dereference at 000000000000001a
+[   55.113569] IP: skb_release_data+0x258/0x470

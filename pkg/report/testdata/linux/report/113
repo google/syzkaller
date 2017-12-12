@@ -1,0 +1,60 @@
+TITLE: kernel BUG at ./include/linux/skbuff.h:LINE!
+
+[  292.653596] ------------[ cut here ]------------
+[  292.658378] kernel BUG at ./include/linux/skbuff.h:2069!
+[  292.664014] invalid opcode: 0000 [#1] SMP KASAN
+[  292.668674] Dumping ftrace buffer:
+[  292.672199]    (ftrace buffer empty)
+[  292.675889] Modules linked in:
+[  292.679059] CPU: 1 PID: 22157 Comm: syz-executor5 Not tainted 4.14.0+ #129
+[  292.686052] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  292.695387] task: ffff8801d2fa8500 task.stack: ffff8801d9fd8000
+[  292.701436] RIP: 0010:skb_pull+0xd5/0xf0
+[  292.705473] RSP: 0018:ffff8801d9fdf270 EFLAGS: 00010216
+[  292.710817] RAX: 0000000000010000 RBX: ffff8801d53b96c0 RCX: ffffffff84179df5
+[  292.718070] RDX: 00000000000001d8 RSI: ffffc90001fce000 RDI: ffff8801d53b973c
+[  292.725322] RBP: ffff8801d9fdf288 R08: 0000000000000002 R09: 0000000000000002
+[  292.732568] R10: 0000000000000000 R11: ffffffff8747dd60 R12: 0000000000000028
+[  292.739812] R13: 0000000000000064 R14: dffffc0000000000 R15: ffff8801d9e9588a
+[  292.742848] sctp: [Deprecated]: syz-executor0 (pid 22154) Use of int in max_burst socket option deprecated.
+[  292.742848] Use struct sctp_assoc_value instead
+[  292.760875] sctp: [Deprecated]: syz-executor0 (pid 22154) Use of int in max_burst socket option deprecated.
+[  292.760875] Use struct sctp_assoc_value instead
+[  292.763163] ICMPv6: NA: bb:bb:bb:bb:bb:01 advertised our address fe80::1aa on syz1!
+[  292.783582] FS:  00007ff4a3f4e700(0000) GS:ffff8801db500000(0000) knlGS:0000000000000000
+[  292.791797] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  292.797665] CR2: 0000000020000000 CR3: 00000001ca0fe000 CR4: 00000000001406e0
+[  292.804920] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  292.812170] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  292.816510] ICMPv6: NA: bb:bb:bb:bb:bb:01 advertised our address fe80::1aa on syz1!
+[  292.817577] sctp: [Deprecated]: syz-executor0 (pid 22198) Use of int in max_burst socket option deprecated.
+[  292.817577] Use struct sctp_assoc_value instead
+[  292.837972] sctp: [Deprecated]: syz-executor2 (pid 22199) Use of int in max_burst socket option deprecated.
+[  292.837972] Use struct sctp_assoc_value instead
+[  292.844964] sctp: [Deprecated]: syz-executor0 (pid 22198) Use of int in max_burst socket option deprecated.
+[  292.844964] Use struct sctp_assoc_value instead
+[  292.850158] sctp: [Deprecated]: syz-executor2 (pid 22199) Use of int in max_burst socket option deprecated.
+[  292.850158] Use struct sctp_assoc_value instead
+[  292.878797] sctp: [Deprecated]: syz-executor0 (pid 22205) Use of int in max_burst socket option deprecated.
+[  292.878797] Use struct sctp_assoc_value instead
+[  292.889594] sctp: [Deprecated]: syz-executor0 (pid 22205) Use of int in max_burst socket option deprecated.
+[  292.889594] Use struct sctp_assoc_value instead
+[  292.913387] Call Trace:
+[  292.914495] sctp: [Deprecated]: syz-executor0 (pid 22212) Use of int in max_burst socket option deprecated.
+[  292.914495] Use struct sctp_assoc_value instead
+[  292.927906] sctp: [Deprecated]: syz-executor0 (pid 22212) Use of int in max_burst socket option deprecated.
+[  292.927906] Use struct sctp_assoc_value instead
+[  292.944692]  esp6_gro_receive+0xb4/0xbe0
+...
+[  293.162223]  SyS_writev+0x27/0x30
+[  293.165649]  entry_SYSCALL_64_fastpath+0x1f/0x96
+[  293.170388] RIP: 0033:0x452751
+[  293.173544] RSP: 002b:00007ff4a3f4db10 EFLAGS: 00000293 ORIG_RAX: 0000000000000014
+[  293.181220] RAX: ffffffffffffffda RBX: 0000000020000000 RCX: 0000000000452751
+[  293.188464] RDX: 0000000000000002 RSI: 00007ff4a3f4db60 RDI: 0000000000000012
+[  293.195706] RBP: 0000000000000086 R08: 0000000000000000 R09: 0000000000000000
+[  293.202944] R10: 000000000000009a R11: 0000000000000293 R12: 00000000006f2608
+[  293.210183] R13: 00000000ffffffff R14: 00007ff4a3f4e6d4 R15: 0000000000000000
+[  293.217426] Code: a3 d0 00 00 00 e8 0c 55 58 fd 4c 89 e0 5b 41 5c 41 5d 5d c3 45 31 e4 e8 fa 54 58 fd 4c 89 e0 5b 41 5c 41 5d 5d c3 e8 eb 54 58 fd <0f> 0b e8 f4 d0 8e fd eb 9a e8 ed d0 8e fd e9 51 ff ff ff e8 03 
+[  293.236495] RIP: skb_pull+0xd5/0xf0 RSP: ffff8801d9fdf270
+[  293.242035] ---[ end trace d2d6da9d918cb453 ]---

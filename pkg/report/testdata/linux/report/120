@@ -1,0 +1,50 @@
+TITLE: KASAN: slab-out-of-bounds Write in __unwind_start
+CORRUPTED: Y
+
+[   80.262156] ==================================================================
+[   80.262174] BUG: KASAN: slab-out-of-bounds in __unwind_start+0x2d/0x330
+[   80.262181] Write of size 88 at addr ffff8801d818fe98 by task loop0/4078
+[   80.262183] 
+[   80.262192] CPU: 1 PID: 4078 Comm: loop0 Not tainted 4.15.0-rc2-next-20171204+ #58
+[   80.262197] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   80.262200] Call Trace:
+[   80.262215]  ? print_usage_bug+0x3f0/0x3f0
+[   80.262222]  ? __lock_acquire+0x6e9/0x47f0
+[   80.272043]  ? kthread+0x37a/0x440
+[   80.272050]  ? loop_get_status64+0x110/0x110
+[   80.272056]  ? kthread_stop+0x7b0/0x7b0
+[   80.272070]  ? ret_from_fork+0x24/0x30
+[   80.272101] 
+[   80.272106] Allocated by task 3625515936:
+[   80.272118] BUG: unable to handle kernel paging request at 000000007c8b2954
+[   80.272130] IP: depot_fetch_stack+0x11/0x40
+[   80.272133] PGD 5e28067 P4D 5e28067 PUD 5e29063 PMD 0 
+[   80.272143] Thread overran stack, or stack corrupted
+[   80.272149] Oops: 0000 [#1] SMP KASAN
+[   80.272156] Dumping ftrace buffer:
+[   80.272160]    (ftrace buffer empty)
+[   80.272162] Modules linked in:
+[   80.272171] CPU: 1 PID: 4078 Comm: loop0 Not tainted 4.15.0-rc2-next-20171204+ #58
+[   80.272175] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   80.272179] task: 00000000ad16368f task.stack: 00000000e9d18cac
+[   80.272186] RIP: 0010:depot_fetch_stack+0x11/0x40
+[   80.272190] RSP: 0000:ffff8801d818fd48 EFLAGS: 00010006
+[   80.272196] RAX: 00000000001fffff RBX: ffff8801d818fb80 RCX: 0000000000000000
+[   80.272199] RDX: 000000000000001d RSI: ffff8801d818fd58 RDI: 0000000000003ff0
+[   80.272202] RBP: ffff8801d818fd78 R08: 0000000000000001 R09: 1ffff1003b031f45
+[   80.272206] R10: ffff8801cd246180 R11: 0000000000000001 R12: ffff8801d818fe98
+[   80.272210] R13: ffff8801db21a780 R14: ffff8801d818eb80 R15: ffff8801d818fb80
+[   80.272215] FS:  0000000000000000(0000) GS:ffff8801db500000(0000) knlGS:0000000000000000
+[   80.272219] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   80.272223] CR2: ffffffff88cd0078 CR3: 00000001c154f000 CR4: 00000000001406e0
+[   80.272231] DR0: 0000000020001000 DR1: 0000000020001000 DR2: 0000000020000000
+[   80.272235] DR3: 0000000000000008 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[   80.272236] Call Trace:
+[   80.272245]  ? print_usage_bug+0x3f0/0x3f0
+[   80.272251]  ? __lock_acquire+0x6e9/0x47f0
+[   80.272263]  ? __lock_acquire+0x6e9/0x47f0
+[   80.272277]  ? debug_check_no_locks_freed+0x3d0/0x3d0
+[   80.272299]  ? debug_check_no_locks_freed+0x268/0x3d0
+[   80.272310]  ? kasan_slab_free+0x71/0xc0
+[   80.272321]  ? kmem_cache_free+0x77/0x280
+[   80.272331]  ? mempool_kmalloc+0x30/0x30

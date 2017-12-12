@@ -1,0 +1,7 @@
+TITLE: kernel BUG at fs/buffer.c:LINE!
+CORRUPTED: Y
+
+[ 1722.511384] ------------[ cut here ]------------
+[ 1722.511384] kernel BUG at fs/buffer.c:1917!
+[ 1722.511384] invalid opcode: 0000 [#1] SMP
+[ 1722.511384] 

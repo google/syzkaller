@@ -1,0 +1,9 @@
+TITLE: possible deadlock in audit_receive
+CORRUPTED: Y
+
+[   48.981019] =============================================
+[   48.981019] [ INFO: possible recursive locking detected ]
+[   48.981019] 4.11.0-rc4+ #198 Not tainted
+[   48.981019] ---------------------------------------------
+[   48.981019] kauditd/901 is trying to acquire lock:
+[   48.981019]  (audit_cmd_mutex){+.+.+.}, at: [<ffffffff81585f59>] audit_receive+0x79/0x360

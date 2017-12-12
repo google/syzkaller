@@ -1,0 +1,5 @@
+TITLE: UBSAN: Undefined behaviour in kernel/time/hrtimer.c:LINE
+CORRUPTED: Y
+
+[   50.583499] UBSAN: Undefined behaviour in kernel/time/hrtimer.c:310:16
+[   50.583499] signed integer overflow:

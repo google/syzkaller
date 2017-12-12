@@ -1,0 +1,6 @@
+TITLE: INFO: rcu detected stall
+CORRUPTED: Y
+
+[   50.583499] something
+[   50.583499] INFO: rcu_preempt self-detected stall on CPU
+[   50.583499]         0: (20822 ticks this GP) idle=94b/140000000000001/0

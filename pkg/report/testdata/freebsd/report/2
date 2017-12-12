@@ -1,0 +1,31 @@
+TITLE: Fatal trap 9: general protection fault while in kernel mode in udp_close
+
+Fatal trap 9: general protection fault while in kernel mode
+cpuid = 0; apic id = 00
+instruction pointer	= 0x20:0xffffffff80ac2563
+stack pointer	        = 0x28:0xfffffe00003bd6e0
+frame pointer	        = 0x28:0xfffffe00003bd720
+code segment		= base 0x0, limit 0xfffff, type 0x1b
+			= DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags	= resume, IOPL = 0
+current process		= 51304 (syz-executor5)
+trap number		= 9
+panic: general protection fault
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff80aada97 at kdb_backtrace+0x67
+#1 0xffffffff80a6bb76 at vpanic+0x186
+#2 0xffffffff80a6b9e3 at panic+0x43
+#3 0xffffffff80edf832 at trap_fatal+0x322
+#4 0xffffffff80edee9e at trap+0x5e
+#5 0xffffffff80ec3641 at calltrap+0x8
+#6 0xffffffff80a6780b at __rw_wlock_hard+0x32b
+#7 0xffffffff80c65e72 at udp_close+0x142
+#8 0xffffffff80af2b41 at soclose+0xe1
+#9 0xffffffff80a1ace9 at closef+0x269
+#10 0xffffffff80a1a7bd at fdescfree_fds+0x7d
+#11 0xffffffff80a1a397 at fdescfree+0x517
+#12 0xffffffff80a29348 at exit1+0x508
+#13 0xffffffff80a28e3d at sys_sys_exit+0xd
+#14 0xffffffff80ee0394 at amd64_syscall+0x6c4
+#15 0xffffffff80ec392b at Xfast_syscall+0xfb

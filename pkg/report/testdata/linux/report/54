@@ -1,0 +1,11 @@
+TITLE: memory leak in __alloc_skb (size 2048)
+
+[ 1722.511384] unreferenced object 0xc625e000 (size 2048):
+[ 1722.511384]   comm "swapper", pid 1, jiffies 4294937521
+[ 1722.511384]   backtrace:
+[ 1722.511384]     [<c00c89f0>] create_object+0x11c/0x200
+[ 1722.511384]     [<c00c6764>] __kmalloc_track_caller+0x138/0x178
+[ 1722.511384]     [<c01d78c0>] __alloc_skb+0x4c/0x100
+[ 1722.511384]     [<c01d8490>] dev_alloc_skb+0x18/0x3c
+[ 1722.511384]     [<c0198b48>] eth_rx_fill+0xd8/0x3fc
+[ 1722.511384]     [<c019ac74>] mv_eth_start_internals+0x30/0xf8

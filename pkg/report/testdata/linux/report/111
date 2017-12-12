@@ -1,0 +1,37 @@
+TITLE: KASAN: slab-out-of-bounds Read in sg_remove_request
+
+[  190.154802] ==================================================================
+[  190.154802] BUG: KASAN: slab-out-of-bounds in sg_remove_request+0x103/0x120 at addr ffff8801a85de8c0
+[  190.154802] Read of size 8 by task syz-executor0/6860
+[  190.154802] CPU: 0 PID: 6860 Comm: syz-executor0 Not tainted 4.9.58-g27155df #71
+[  190.154802] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  190.154802]  ffff8801a2bf7a80 ffffffff81d91149 ffff8801d77fd3c0 ffff8801a85de880
+[  190.154802]  ffff8801a85de8e0 ffffed00350bbd18 ffff8801a85de8c0 ffff8801a2bf7aa8
+[  190.154802]  ffffffff8153c01c ffffed00350bbd18 ffff8801d77fd3c0 0000000000000000
+[  190.154802] Call Trace:
+[  190.154802]  [<ffffffff81d91149>] dump_stack+0xc1/0x128
+[  190.154802]  [<ffffffff8153c01c>] kasan_object_err+0x1c/0x70
+[  190.154802]  [<ffffffff8153c2dc>] kasan_report.part.1+0x21c/0x500
+[  190.154802]  [<ffffffff8153c679>] __asan_report_load8_noabort+0x29/0x30
+[  190.154802]  [<ffffffff8265fad3>] sg_remove_request+0x103/0x120
+[  190.154802]  [<ffffffff82660055>] sg_finish_rem_req+0x295/0x340
+[  190.154802]  [<ffffffff82661d8c>] sg_read+0x91c/0x1400
+[  190.154802]  [<ffffffff8156c5f3>] __vfs_read+0x103/0x670
+[  190.154802]  [<ffffffff8156db87>] vfs_read+0x107/0x330
+[  190.154802]  [<ffffffff81571829>] SyS_read+0xd9/0x1b0
+[  190.154802]  [<ffffffff838aa0c5>] entry_SYSCALL_64_fastpath+0x23/0xc6
+[  190.154802] Object at ffff8801a85de880, in cache fasync_cache size: 96
+[  190.154802] Allocated:
+[  190.154802] PID = 0
+[  190.154802] (stack is not available)
+[  190.154802] Freed:
+[  190.154802] PID = 0
+[  190.154802] (stack is not available)
+[  190.154802] Memory state around the buggy address:
+[  190.154802]  ffff8801a85de780: 00 00 00 00 00 00 00 00 00 00 00 00 fc fc fc fc
+[  190.154802]  ffff8801a85de800: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  190.154802] >ffff8801a85de880: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  190.154802]                                            ^
+[  190.154802]  ffff8801a85de900: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  190.154802]  ffff8801a85de980: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  190.154802] ==================================================================

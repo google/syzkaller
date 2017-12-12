@@ -1,0 +1,9 @@
+TITLE: possible deadlock in tun_device_event
+CORRUPTED: Y
+
+[  121.451623] ======================================================
+[  121.452013] [ INFO: SOFTIRQ-safe -> SOFTIRQ-unsafe lock order detected ]
+[  121.452013] 4.10.0-rc8+ #228 Not tainted
+[  121.453507] ------------------------------------------------------
+[  121.453507] syz-executor1/19557 [HC0[0]:SC0[0]:HE0:SE1] is trying to acquire:
+[  121.453507]  (&(&r->consumer_lock)->rlock){+.+...}, at: [<ffffffff82df4347>] tun_device_event+0x897/0xc70

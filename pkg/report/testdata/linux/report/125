@@ -1,0 +1,51 @@
+TITLE: BUG: bad usercopy in sctp_getsockopt
+
+syzkaller login: [   55.288565] usercopy: kernel memory exposure attempt detected from ffff8801d4310630 (SCTPv6) (11 bytes)
+[   55.290089] ------------[ cut here ]------------
+[   55.290728] kernel BUG at mm/usercopy.c:84!
+[   55.291539] invalid opcode: 0000 [#1] SMP KASAN
+[   55.292183] Dumping ftrace buffer:
+[   55.292677]    (ftrace buffer empty)
+[   55.293174] Modules linked in:
+[   55.293614] CPU: 1 PID: 2993 Comm: syzkaller447333 Not tainted 4.14.0-rc5-mm1+ #20
+[   55.294640] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   55.295862] task: ffff8801d1cb8740 task.stack: ffff8801d2210000
+[   55.296668] RIP: 0010:__check_object_size+0x3a2/0x4f0
+[   55.297366] RSP: 0018:ffff8801d22170f0 EFLAGS: 00010286
+[   55.298076] RAX: 000000000000005b RBX: ffffffff8511a180 RCX: 0000000000000000
+[   55.299057] RDX: 000000000000005b RSI: 1ffff1003a442dde RDI: ffffed003a442e12
+[   55.300010] RBP: ffff8801d22171e0 R08: 0000000000000001 R09: 0000000000000000
+[   55.300975] R10: ffff8801d2217098 R11: 0000000000000000 R12: ffffffff8511a140
+[   55.301926] R13: ffff8801d4310630 R14: 000000000000000b R15: ffffea000750c400
+[   55.302941] FS:  0000000002000880(0000) GS:ffff8801db300000(0000) knlGS:0000000000000000
+[   55.304015] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   55.304830] CR2: 0000000020673000 CR3: 00000001d223e000 CR4: 00000000001406e0
+[   55.305805] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   55.306773] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   55.307725] Call Trace:
+[   55.308085]  ? lock_release+0xa40/0xa40
+[   55.308636]  ? check_stack_object+0x140/0x140
+[   55.309236]  ? __local_bh_enable_ip+0x9d/0x160
+[   55.313787]  ? __might_sleep+0x95/0x190
+[   55.317730]  sctp_getsockopt+0x2b90/0x70b0
+[   55.321930]  ? do_raw_spin_trylock+0x190/0x190
+[   55.644961]  sock_common_getsockopt+0x95/0xd0
+[   55.649423]  ? sock_common_getsockopt+0x95/0xd0
+[   55.654064]  SyS_getsockopt+0x178/0x340
+[   55.658011]  ? SyS_setsockopt+0x360/0x360
+[   55.677058]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   55.681780] RIP: 0033:0x43fc99
+[   55.684936] RSP: 002b:00007ffd542b5808 EFLAGS: 00000203 ORIG_RAX: 0000000000000037
+[   55.692609] RAX: ffffffffffffffda RBX: 00000000004002c8 RCX: 000000000043fc99
+[   55.699845] RDX: 000000000000000b RSI: 0000000000000084 RDI: 0000000000000003
+[   55.707079] RBP: 0000000000000082 R08: 0000000020673000 R09: 0000000000000000
+[   55.714313] R10: 0000000020cd1000 R11: 0000000000000203 R12: 0000000000401600
+[   55.721547] R13: 0000000000401690 R14: 0000000000000000 R15: 0000000000000000
+[   55.728790] Code: 48 0f 44 da e8 e0 d7 c3 ff 48 8b 85 28 ff ff ff 4d 89 f1 4c 89 e9 4c 89 e2 48 89 de 48 c7 c7 c0 a1 11 85 49 89 c0 e8 33 e3 ad ff <0f> 0b 48 c7 c0 80 9f 11 85 eb 96 48 c7 c0 c0 9f 11 85 eb 8d 48 
+[   55.747858] RIP: __check_object_size+0x3a2/0x4f0 RSP: ffff8801d22170f0
+[   55.754590] ---[ end trace 569becb7b442ce27 ]---
+[   55.759474] Kernel panic - not syncing: Fatal exception
+[   55.764842] Dumping ftrace buffer:
+[   55.768350]    (ftrace buffer empty)
+[   55.772032] Kernel Offset: disabled
+[   55.775627] Rebooting in 86400 seconds.

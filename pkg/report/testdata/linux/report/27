@@ -1,0 +1,9 @@
+TITLE: possible deadlock in flush_workqueue
+CORRUPTED: Y
+
+[ 1722.511384] =======================================================
+[ 1722.511384] [ INFO: possible circular locking dependency detected ]
+[ 1722.511384] 2.6.32-rc6-00035-g8b17a4f #1
+[ 1722.511384] -------------------------------------------------------
+[ 1722.511384] kacpi_hotplug/246 is trying to acquire lock:
+[ 1722.511384]  (kacpid){+.+.+.}, at: [<ffffffff8105bbd0>] flush_workqueue+0x0/0xb0

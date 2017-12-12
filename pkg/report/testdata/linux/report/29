@@ -1,0 +1,9 @@
+TITLE: possible deadlock in tun_queue_purge
+CORRUPTED: Y
+
+[   44.025025] =========================================================
+[   44.025025] [ INFO: possible irq lock inversion dependency detected ]
+[   44.025025] 4.10.0-rc8+ #228 Not tainted
+[   44.025025] ---------------------------------------------------------
+[   44.025025] syz-executor6/1577 just changed the state of lock:
+[   44.025025]  (&(&r->consumer_lock)->rlock){+.+...}, at: [<ffffffff82de6c86>] tun_queue_purge+0xe6/0x210

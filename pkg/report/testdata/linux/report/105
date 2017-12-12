@@ -1,0 +1,81 @@
+TITLE: KASAN: slab-out-of-bounds Read in ip6_fragment
+
+[   42.361487] ==================================================================
+[   42.364412] BUG: KASAN: slab-out-of-bounds in ip6_fragment+0x11c8/0x3730
+[   42.365471] Read of size 840 at addr ffff88000969e798 by task ip6_fragment-oo/3789
+[   42.366469]
+[   42.366696] CPU: 1 PID: 3789 Comm: ip6_fragment-oo Not tainted 4.11.0+ #41
+[   42.367628] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.1-1ubuntu1 04/01/2014
+[   42.368824] Call Trace:
+[   42.369183]  dump_stack+0xb3/0x10b
+[   42.369664]  print_address_description+0x73/0x290
+[   42.370325]  kasan_report+0x252/0x370
+[   42.371396]  check_memory_region+0x13c/0x1a0
+[   42.371978]  memcpy+0x23/0x50
+[   42.372395]  ip6_fragment+0x11c8/0x3730
+...
+[   42.390650]  SyS_sendto+0x40/0x50
+[   42.391103]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   42.391731] RIP: 0033:0x7fbbb711e383
+[   42.392217] RSP: 002b:00007ffff4d34f28 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+[   42.393235] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007fbbb711e383
+[   42.394195] RDX: 0000000000001000 RSI: 00007ffff4d34f60 RDI: 0000000000000003
+[   42.395145] RBP: 0000000000000046 R08: 00007ffff4d34f40 R09: 0000000000000018
+[   42.396056] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000400aad
+[   42.396598] R13: 0000000000000066 R14: 00007ffff4d34ee0 R15: 00007fbbb717af00
+[   42.397257]
+[   42.397411] Allocated by task 3789:
+[   42.397702]  save_stack_trace+0x16/0x20
+[   42.398005]  save_stack+0x46/0xd0
+[   42.398267]  kasan_kmalloc+0xad/0xe0
+[   42.398548]  kasan_slab_alloc+0x12/0x20
+[   42.398848]  __kmalloc_node_track_caller+0xcb/0x380
+[   42.399224]  __kmalloc_reserve.isra.32+0x41/0xe0
+[   42.399654]  __alloc_skb+0xf8/0x580
+[   42.400003]  sock_wmalloc+0xab/0xf0
+[   42.400346]  __ip6_append_data.isra.41+0x2472/0x33d0
+[   42.400813]  ip6_append_data+0x1a8/0x2f0
+[   42.401122]  rawv6_sendmsg+0x11ee/0x2db0
+[   42.401505]  inet_sendmsg+0x123/0x500
+[   42.401860]  sock_sendmsg+0xca/0x110
+[   42.402209]  ___sys_sendmsg+0x7cb/0x930
+[   42.402582]  __sys_sendmsg+0xd9/0x190
+[   42.402941]  SyS_sendmsg+0x2d/0x50
+[   42.403273]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   42.403718]
+[   42.403871] Freed by task 1794:
+[   42.404146]  save_stack_trace+0x16/0x20
+[   42.404515]  save_stack+0x46/0xd0
+[   42.404827]  kasan_slab_free+0x72/0xc0
+[   42.405167]  kfree+0xe8/0x2b0
+[   42.405462]  skb_free_head+0x74/0xb0
+[   42.405806]  skb_release_data+0x30e/0x3a0
+[   42.406198]  skb_release_all+0x4a/0x60
+[   42.406563]  consume_skb+0x113/0x2e0
+[   42.406910]  skb_free_datagram+0x1a/0xe0
+[   42.407288]  netlink_recvmsg+0x60d/0xe40
+[   42.407667]  sock_recvmsg+0xd7/0x110
+[   42.408022]  ___sys_recvmsg+0x25c/0x580
+[   42.408395]  __sys_recvmsg+0xd6/0x190
+[   42.408753]  SyS_recvmsg+0x2d/0x50
+[   42.409086]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   42.409513]
+[   42.409665] The buggy address belongs to the object at ffff88000969e780
+[   42.409665]  which belongs to the cache kmalloc-512 of size 512
+[   42.410846] The buggy address is located 24 bytes inside of
+[   42.410846]  512-byte region [ffff88000969e780, ffff88000969e980)
+[   42.411941] The buggy address belongs to the page:
+[   42.412405] page:ffffea000025a780 count:1 mapcount:0 mapping:          (null) index:0x0 compound_mapcount: 0
+[   42.413298] flags: 0x100000000008100(slab|head)
+[   42.413729] raw: 0100000000008100 0000000000000000 0000000000000000 00000001800c000c
+[   42.414387] raw: ffffea00002a9500 0000000900000007 ffff88000c401280 0000000000000000
+[   42.415074] page dumped because: kasan: bad access detected
+[   42.415604]
+[   42.415757] Memory state around the buggy address:
+[   42.416222]  ffff88000969e880: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   42.416904]  ffff88000969e900: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   42.417591] >ffff88000969e980: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[   42.418273]                    ^
+[   42.418588]  ffff88000969ea00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   42.419273]  ffff88000969ea80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   42.419882] ==================================================================
