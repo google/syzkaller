@@ -7,7 +7,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{define "bug_list"}}
 {{if .}}
 {{if .Bugs}}
-<table class="list_table">
+<table class="list_table" id="{{$.Namespace}}">
 	<caption>{{$.Caption}}:</caption>
 	<tr>
 		{{if $.ShowNamespace}}<th>Kernel</th>{{end}}

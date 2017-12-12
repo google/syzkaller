@@ -73,6 +73,7 @@ type uiBugPage struct {
 type uiBugGroup struct {
 	Now           time.Time
 	Caption       string
+	Namespace     string
 	ShowNamespace bool
 	Bugs          []*uiBug
 }
@@ -273,9 +274,10 @@ func fetchBugs(c context.Context) ([]*uiBugGroup, error) {
 	for ns, bugs := range groups {
 		sort.Sort(uiBugSorter(bugs))
 		res = append(res, &uiBugGroup{
-			Now:     now,
-			Caption: fmt.Sprintf("%v (%v)", ns, len(bugs)),
-			Bugs:    bugs,
+			Now:       now,
+			Caption:   fmt.Sprintf("%v (%v)", ns, len(bugs)),
+			Namespace: ns,
+			Bugs:      bugs,
 		})
 	}
 	sort.Sort(uiBugGroupSorter(res))
