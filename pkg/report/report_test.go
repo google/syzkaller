@@ -24,6 +24,8 @@ func TestParse(t *testing.T) {
 type ParseTest struct {
 	Log       []byte
 	Title     string
+	StartLine string
+	EndLine   string
 	Corrupted bool
 	HasReport bool
 	Report    []byte
@@ -49,12 +51,18 @@ func testParseFile(t *testing.T, reporter Reporter, fn string) {
 		case phaseHeaders:
 			const (
 				titlePrefix     = "TITLE: "
+				startPrefix     = "START: "
+				endPrefix       = "END: "
 				corruptedPrefix = "CORRUPTED: "
 			)
 			switch ln := s.Text(); {
 			case strings.HasPrefix(ln, "#"):
 			case strings.HasPrefix(ln, titlePrefix):
 				test.Title = ln[len(titlePrefix):]
+			case strings.HasPrefix(ln, startPrefix):
+				test.StartLine = ln[len(startPrefix):]
+			case strings.HasPrefix(ln, endPrefix):
+				test.EndLine = ln[len(endPrefix):]
 			case strings.HasPrefix(ln, corruptedPrefix):
 				switch v := ln[len(corruptedPrefix):]; v {
 				case "Y":
@@ -110,11 +118,9 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 		t.Fatalf("found crash, but title is empty")
 	}
 	title, corrupted := "", false
-	var report []byte
 	if rep != nil {
 		title = rep.Title
 		corrupted = rep.Corrupted
-		report = rep.Report
 	}
 	if title == "" && test.Title != "" {
 		t.Fatalf("did not find crash message")
@@ -134,8 +140,25 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 	if !corrupted && test.Corrupted {
 		t.Fatalf("failed to mark report as corrupted")
 	}
-	if test.HasReport && !bytes.Equal(report, test.Report) {
-		t.Fatalf("extracted wrong report:\n%s\nwant:\n%s", report, test.Report)
+	if rep != nil {
+		if test.HasReport && !bytes.Equal(rep.Report, test.Report) {
+			t.Fatalf("extracted wrong report:\n%s\nwant:\n%s", rep.Report, test.Report)
+		}
+		if !bytes.Equal(rep.Output, test.Log) {
+			t.Fatalf("bad Output:\n%s", rep.Output)
+		}
+		if test.StartLine != "" {
+			if test.EndLine == "" {
+				test.EndLine = test.StartLine
+			}
+			startPos := bytes.Index(test.Log, []byte(test.StartLine))
+			endPos := bytes.Index(test.Log, []byte(test.EndLine)) + len(test.EndLine)
+			if rep.StartPos != startPos || rep.EndPos != endPos {
+				t.Fatalf("bad start/end pos %v-%v, want %v-%v, line %q",
+					rep.StartPos, rep.EndPos, startPos, endPos,
+					string(test.Log[rep.StartPos:rep.EndPos]))
+			}
+		}
 	}
 }
 
