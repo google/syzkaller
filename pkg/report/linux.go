@@ -565,8 +565,8 @@ var linuxOopses = []*oops{
 				fmt:   "BUG: sleeping function called from invalid context %[1]v",
 			},
 			{
-				title: compile("BUG: using __this_cpu_add\\(\\) in preemptible (.*)"),
-				fmt:   "BUG: using __this_cpu_add() in preemptible %[1]v",
+				title: compile("BUG: using __this_cpu_([a-z_]+)\\(\\) in preemptible .*(?:.*\\n){0,30}Call Trace:\\n" + stacktraceRe("dump_stack", "preemption", "preempt")),
+				fmt:   "BUG: using __this_cpu_%[1]v() in preemptible code in %[2]v",
 			},
 			{
 				title:        compile("BUG: executor-detected bug"),
