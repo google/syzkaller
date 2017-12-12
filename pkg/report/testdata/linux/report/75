@@ -1,0 +1,24 @@
+TITLE: BUG: scheduling while atomic: syz-executor/ADDR
+
+[  185.479466] BUG: scheduling while atomic: syz-executor0/19425/0x00000000
+[  185.486365] INFO: lockdep is turned off.
+[  185.490423] Modules linked in:
+[  185.494289] CPU: 1 PID: 19425 Comm: syz-executor0 Tainted: G        W       4.3.5+ #11
+[  185.502324] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  185.511657]  0000000000000001 ffff8801d614bd58 ffffffff81ca45ed ffff8801d12ce040
+[  185.519687]  0000000000000000 000000000001f140 ffff8801d12ce040 0000000000000001
+[  185.527710]  ffff8801d614bd78 ffffffff8133a690 ffff8801db51f140 ffff8801d12ce040
+[  185.535769] Call Trace:
+[  185.538344]  [<ffffffff81ca45ed>] dump_stack+0xc1/0x124
+[  185.543718]  [<ffffffff8133a690>] __schedule_bug+0xc0/0xf0
+[  185.549324]  [<ffffffff81000f22>] __schedule+0x8c2/0x13f0
+[  185.554860]  [<ffffffff8135c9c7>] ? SyS_gsys_swg_wait+0x3c7/0xbd0
+[  185.561075]  [<ffffffff8135ca3d>] ? SyS_gsys_swg_wait+0x43d/0xbd0
+[  185.567281]  [<ffffffff81001aea>] schedule+0x9a/0x1b0
+[  185.572445]  [<ffffffff8135ca47>] SyS_gsys_swg_wait+0x447/0xbd0
+[  185.578480]  [<ffffffff8135c600>] ? SyS_gsys_swg_become_designate+0x290/0x290
+[  185.585729]  [<ffffffff81017200>] ? trace_event_raw_event_sys_enter_tiny+0x2e0/0x2e0
+[  185.593586]  [<ffffffff81018464>] ? prepare_exit_to_usermode+0x294/0x350
+[  185.600416]  [<ffffffff81015198>] ? do_audit_syscall_entry+0xd8/0x240
+[  185.606975]  [<ffffffff81017956>] ? syscall_trace_enter_phase2+0x216/0x9a0
+[  185.613965]  [<ffffffff82c7b5f9>] tracesys_phase2+0x84/0x89

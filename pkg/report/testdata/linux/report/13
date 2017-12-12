@@ -1,0 +1,13 @@
+TITLE: general protection fault in logfs_init_inode
+CORRUPTED: Y
+
+[ 1722.509639] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[ 1722.510515] general protection fault: 0000 [#1] SMP DEBUG_PAGEALLOC KASAN
+[ 1722.511227] Dumping ftrace buffer:
+[ 1722.511384]    (ftrace buffer empty)
+[ 1722.511384] Modules linked in:
+[ 1722.511384] CPU: 3 PID: 6856 Comm: syz-executor Not tainted 4.8.0-rc3-next-20160825+ #8
+[ 1722.511384] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+[ 1722.511384] task: ffff88005ea761c0 task.stack: ffff880050628000
+[ 1722.511384] RIP: 0010:[<ffffffff8213c531>]  [<ffffffff8213c531>] logfs_init_inode.isra.6+0x111/0x470
+[ 1722.511384] RSP: 0018:ffff88005062fb48  EFLAGS: 00010206

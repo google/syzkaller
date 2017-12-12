@@ -49,15 +49,6 @@ type Report struct {
 // ignores: optional list of regexps to ignore (must match first line of crash message)
 func NewReporter(os, kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
 	ignores []*regexp.Regexp) (Reporter, error) {
-	type fn func(string, string, map[string][]symbolizer.Symbol, []*regexp.Regexp) (Reporter, error)
-	ctors := map[string]fn{
-		"akaros":  ctorAkaros,
-		"linux":   ctorLinux,
-		"freebsd": ctorFreebsd,
-		"netbsd":  ctorNetbsd,
-		"fuchsia": ctorFuchsia,
-		"windows": ctorWindows,
-	}
 	ctor := ctors[os]
 	if ctor == nil {
 		return nil, fmt.Errorf("unknown os: %v", os)
@@ -67,6 +58,17 @@ func NewReporter(os, kernelSrc, kernelObj string, symbols map[string][]symbolize
 	}
 	return ctor(kernelSrc, kernelObj, symbols, ignores)
 }
+
+var ctors = map[string]fn{
+	"akaros":  ctorAkaros,
+	"linux":   ctorLinux,
+	"freebsd": ctorFreebsd,
+	"netbsd":  ctorNetbsd,
+	"fuchsia": ctorFuchsia,
+	"windows": ctorWindows,
+}
+
+type fn func(string, string, map[string][]symbolizer.Symbol, []*regexp.Regexp) (Reporter, error)
 
 type oops struct {
 	header       []byte

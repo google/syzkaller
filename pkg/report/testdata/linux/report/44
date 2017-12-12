@@ -1,0 +1,26 @@
+TITLE: kernel BUG at arch/x86/kvm/mmu.c:LINE!
+
+[   34.517718] ------------[ cut here ]------------
+[   34.522456] kernel BUG at arch/x86/kvm/mmu.c:1284!
+[   34.527367] invalid opcode: 0000 [#1] SMP KASAN
+[   34.532361] Modules linked in:
+[   34.535649] CPU: 0 PID: 3918 Comm: syz-executor5 Not tainted 4.3.5+ #6
+[   34.542290] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   34.551627] task: ffff8800b3d1c580 ti: ffff8800b2c44000 task.ti: ffff8800b2c44000
+[   34.559224] RIP: 0010:[<ffffffff810d9c93>]  [<ffffffff810d9c93>] pte_list_remove+0x3b3/0x3d0
+[   34.567915] RSP: 0018:ffff8800b2c476c0  EFLAGS: 00010286
+[   34.573342] RAX: 0000000000000028 RBX: ffff8800bce83080 RCX: 0000000000000000
+[   34.580594] RDX: 0000000000000028 RSI: ffff8801db415fe8 RDI: ffffed0016588ecc
+[   34.587876] RBP: ffff8800b2c47700 R08: 0000000000000001 R09: 0000000000000000
+[   34.595125] R10: 0000000000000003 R11: 0000000000000001 R12: ffff8800b3efd028
+[   34.602380] R13: 0000000000000000 R14: ffff8800b3c165b0 R15: ffff8800b3c165d8
+[   34.609634] FS:  0000000000000000(0000) GS:ffff8801db400000(0000) knlGS:0000000000000000
+[   34.617841] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   34.623698] CR2: 00000000004c4b90 CR3: 00000001ce6eb000 CR4: 00000000001426f0
+[   34.630951] Stack:
+[   34.633064]  ffff8800bce83080 ffffffff00000012 ffff8800b3efd028 0000000000000005
+[   34.641057]  ffff8800b3efd028 ffff8801d7ca0240 ffff8800b3c165b0 ffff8800b3c165d8
+[   34.649045]  ffff8800b2c47740 ffffffff810ec8b2 0000000000000246 00000001c8d4cc77
+[   34.657038] Call Trace:
+[   34.659617]  [<ffffffff810ec8b2>] drop_spte+0x162/0x260
+[   34.664960]  [<ffffffff810f46e2>] mmu_page_zap_pte+0x1d2/0x310

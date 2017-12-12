@@ -1,0 +1,4 @@
+TITLE: BUG: soft lockup
+CORRUPTED: Y
+
+[   72.159680] BUG: soft lockup - CPU#3 stuck for 11s! [syz-executor:643]

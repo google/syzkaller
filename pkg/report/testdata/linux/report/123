@@ -1,0 +1,42 @@
+TITLE: INFO: Freed in fasync_free_rcu age=624 cpu=0 pid=3
+CORRUPTED: Y
+
+[   60.089581] ==================================================================
+** 2499 printk messages dropped ** [   60.095515] CPU: 1 PID: 7148 Comm: syz-executor5 Tainted: G    B           4.4.104-ged884eb #2
+** 5042 printk messages dropped ** [   60.107433]  [<ffffffff82564f65>] sg_finish_rem_req+0x255/0x2f0
+** 3861 printk messages dropped ** [   60.116522] 	entry_SYSCALL_64_fastpath+0x16/0x76
+** 3313 printk messages dropped ** [   60.124312] Object ffff8800b903e960: 00 00 00 00 ad 4e ad de ff ff ff ff 00 00 00 00  .....N..........
+** 5311 printk messages dropped ** [   60.136772] INFO: Freed in fasync_free_rcu+0x14/0x20 age=624 cpu=0 pid=3
+** 4200 printk messages dropped ** [   60.146612] 	__slab_free+0x18c/0x2b0
+** 2864 printk messages dropped ** [   60.153322] Object ffff8800b903e990: 00 50 8b 83 ff ff ff ff 01 46 00 00 07 00 00 00  .P.......F......
+** 5323 printk messages dropped ** [   60.165806] Object ffff8800b903e980: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+** 5308 printk messages dropped ** [   60.178233] 	entry_SYSCALL_64_fastpath+0x16/0x76
+** 3313 printk messages dropped ** [   60.186014] Object ffff8800b903e960: 00 00 00 00 ad 4e ad de ff ff ff ff 00 00 00 00  .....N..........
+** 5306 printk messages dropped ** [   60.198451] 	kmem_cache_alloc+0x155/0x290
+** 3050 printk messages dropped ** [   60.205623]  [<ffffffff81b0ce6d>] ? security_file_permission+0x13d/0x190
+** 4199 printk messages dropped ** [   60.215469]  [<ffffffff81b0ce6d>] ? security_file_permission+0x13d/0x190
+** 4199 printk messages dropped ** [   60.225317]  [<ffffffff81b0ce6d>] ? security_file_permission+0x13d/0x190
+** 4205 printk messages dropped ** [   60.235181]  [<ffffffff8374b236>] entry_SYSCALL_64_fastpath+0x16/0x76
+** 4090 printk messages dropped ** [   60.244751] Object ffff8800b903e9b0: 00 3c 13 d6 01 88 ff ff f0 f4 52 81 ff ff ff ff  .<........R.....
+** 5314 printk messages dropped ** [   60.257197] 	kthread+0x245/0x310
+** 2715 printk messages dropped ** [   60.263572] Call Trace:
+** 2392 printk messages dropped ** [   60.269183] Object ffff8800b903e9a0: 00 00 00 00 00 00 00 00 00 a7 1f b9 00 88 ff ff  ................
+** 5302 printk messages dropped ** [   60.281605] 	kmem_cache_alloc+0x155/0x290
+** 3043 printk messages dropped ** [   60.288766]  [<ffffffff812cca9f>] ? do_futex+0xb2f/0x18a0
+** 3646 printk messages dropped ** [   60.297337] INFO: Object 0xffff8800b903e960 @offset=2400 fp=0xdead4ead00000000
+[   60.297337] 
+** 5035 printk messages dropped ** [   60.309139]  ffff8800b903e010 ffff8800b903e960 ffff8801d45df9e0 ffffffff814d3af4
+** 4490 printk messages dropped ** [   60.319695] Object ffff8800b903e960: 00 00 00 00 ad 4e ad de ff ff ff ff 00 00 00 00  .....N..........
+** 5299 printk messages dropped ** [   60.332158] Read of size 4 by task syz-executor5/7148
+** 3252 printk messages dropped ** [   60.339809] Object ffff8800b903e990: 00 50 8b 83 ff ff ff ff 01 46 00 00 07 00 00 00  .P.......F......
+** 5302 printk messages dropped ** [   60.352817] 	__slab_alloc.isra.74.constprop.77+0x50/0xa0
+** 3615 printk messages dropped ** [   60.361312] INFO: Slab 0xffffea0002e40f80 objects=20 used=2 fp=0xffff8800b903eaf0 flags=0x4000000000004080
+** 5434 printk messages dropped ** [   60.374053]  [<ffffffff81223871>] ? __lock_is_held+0xa1/0xf0
+** 3757 printk messages dropped ** [   60.382902] Memory state around the buggy address:
+** 3391 printk messages dropped ** [   60.390847] 	kmem_cache_alloc+0x155/0x290
+** 3041 printk messages dropped ** [   60.397963]  [<ffffffff82564f65>] sg_finish_rem_req+0x255/0x2f0
+** 3867 printk messages dropped ** [   60.407050] 	__do_softirq+0x24d/0xa60
+** 2890 printk messages dropped ** [   60.413833]  [<ffffffff81b0ce6d>] ? security_file_permission+0x13d/0x190
+** 4208 printk messages dropped ** [   60.423731]  ffff8800b903e900: fc fc fc fc fc fc fc fc fc fc fc fc 00 00 00 00
+** 4428 printk messages dropped ** [   60.434100]  ffff8800b903ea80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fb fb
+** 4426 printk messages dropped ** [   60.444470] ==================================================================

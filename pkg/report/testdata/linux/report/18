@@ -1,0 +1,8 @@
+TITLE: KASAN: null-ptr-deref Read
+CORRUPTED: Y
+
+[23818.431954] BUG: KASAN: null-ptr-deref on address           (null)
+
+[23818.438140] Read of size 4 by task syz-executor/22534
+
+[23818.443211] CPU: 3 PID: 22534 Comm: syz-executor Tainted: G     U         3.18.0 #78

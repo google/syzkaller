@@ -1,0 +1,9 @@
+TITLE: BUG: held lock freed in sk_clone_lock
+CORRUPTED: Y
+
+[  633.049984] =========================
+[  633.049987] [ BUG: held lock freed! ]
+[  633.049993] 4.10.0+ #260 Not tainted
+[  633.049996] -------------------------
+[  633.050005] syz-executor7/27251 is freeing memory ffff8800178f8180-ffff8800178f8a77, with a lock still held there!
+[  633.050009]  (slock-AF_INET6){+.-...}, at: [<ffffffff835f22c9>] sk_clone_lock+0x3d9/0x12c0

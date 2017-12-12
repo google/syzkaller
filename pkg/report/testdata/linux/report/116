@@ -1,0 +1,24 @@
+TITLE: BUG: bad unlock balance in ipmr_mfc_seq_stop
+
+[  264.305036] =====================================
+[  264.309846] [ BUG: bad unlock balance detected! ]
+[  264.314656] 4.9.65-gea83e4a #95 Not tainted
+[  264.318945] -------------------------------------
+[  264.323751] syz-executor1/1081 is trying to release lock (mrt_lock) at:
+[  264.330694] [<ffffffff834dea24>] ipmr_mfc_seq_stop+0xe4/0x140
+[  264.336540] but there are no more locks to release!
+[  264.341515] 
+[  264.341515] other info that might help us debug this:
+[  264.348145] 1 lock held by syz-executor1/1081:
+[  264.352688]  #0:  (&p->lock){+.+.+.}, at: [<ffffffff815e4ded>] seq_read+0xdd/0x1290
+[  264.360901] 
+[  264.360901] stack backtrace:
+[  264.365364] CPU: 1 PID: 1081 Comm: syz-executor1 Not tainted 4.9.65-gea83e4a #95
+[  264.372860] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  264.382178]  ffff8801bd87f948 ffffffff81d90469 ffffffff849ae8b8 ffff8801be6c1800
+[  264.390127]  ffffffff834dea24 ffffffff849ae8b8 ffff8801be6c2088 ffff8801bd87f978
+[  264.398073]  ffffffff81235524 dffffc0000000000 ffffffff849ae8b8 00000000ffffffff
+[  264.406014] Call Trace:
+[  264.408566]  [<ffffffff81d90469>] dump_stack+0xc1/0x128
+...
+[  264.592630]  [<ffffffff838a9745>] entry_SYSCALL_64_fastpath+0x23/0xc6

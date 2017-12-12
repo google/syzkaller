@@ -1,0 +1,21 @@
+TITLE: KASAN: use-after-free Read in snd_seq_queue_alloc
+CORRUPTED: Y
+
+[   94.864848] line 0
+[   94.864848] line 1
+[   94.864848] line 2
+[   94.864848] line 3
+[   94.864848] line 4
+[   94.864848] line 5
+[   95.145581] ==================================================================
+[   95.152992] BUG: KASAN: use-after-free in snd_seq_queue_alloc+0x670/0x690 at addr ffff8801d0c6b080
+[   95.162080] Read of size 4 by task syz-executor2/5764
+
+REPORT:
+line 2
+line 3
+line 4
+line 5
+==================================================================
+BUG: KASAN: use-after-free in snd_seq_queue_alloc+0x670/0x690 at addr ffff8801d0c6b080
+Read of size 4 by task syz-executor2/5764

@@ -1,0 +1,39 @@
+TITLE: KASAN: stack-out-of-bounds Read in xfrm_state_find
+
+[  189.525626] ==================================================================
+[  189.533112] BUG: KASAN: stack-out-of-bounds in xfrm_state_find+0x30fc/0x3230
+[  189.540278] Read of size 4 at addr ffff8801ca7c7960 by task syz-executor3/12380
+[  189.547691] 
+[  189.549293] CPU: 0 PID: 12380 Comm: syz-executor3 Not tainted 4.14.0+ #100
+[  189.556273] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  189.565597] Call Trace:
+[  189.568167]  dump_stack+0x194/0x257
+[  189.589216]  print_address_description+0x73/0x250
+[  189.598424]  kasan_report+0x25b/0x340
+[  189.602201]  __asan_report_load4_noabort+0x14/0x20
+[  189.607099]  xfrm_state_find+0x30fc/0x3230
+...
+[  190.013732]  entry_SYSENTER_compat+0x51/0x60
+[  190.018112] RIP: 0023:0xf7f8ec79
+[  190.021458] RSP: 002b:00000000f778a01c EFLAGS: 00000296 ORIG_RAX: 0000000000000171
+[  190.029137] RAX: ffffffffffffffda RBX: 0000000000000014 RCX: 0000000020cd8000
+[  190.036385] RDX: 00000000000000f6 RSI: 0000000000004080 RDI: 000000002022d53c
+[  190.043623] RBP: 0000000000000010 R08: 0000000000000000 R09: 0000000000000000
+[  190.050863] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  190.058106] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[  190.065368] 
+[  190.066964] The buggy address belongs to the page:
+[  190.071865] page:ffffea000729f1c0 count:0 mapcount:0 mapping:          (null) index:0x0
+[  190.079977] flags: 0x2fffc0000000000()
+[  190.083840] raw: 02fffc0000000000 0000000000000000 0000000000000000 00000000ffffffff
+[  190.091689] raw: 0000000000000000 0000000100000001 0000000000000000 0000000000000000
+[  190.099536] page dumped because: kasan: bad access detected
+[  190.105211] 
+[  190.106806] Memory state around the buggy address:
+[  190.111702]  ffff8801ca7c7800: f2 00 f2 f2 f2 f2 f2 f2 f2 00 00 00 f2 f2 f2 f2
+[  190.119033]  ffff8801ca7c7880: f2 00 00 00 00 f2 f2 f2 f2 00 00 00 00 00 00 f2
+[  190.126361] >ffff8801ca7c7900: f2 f2 f2 f2 f2 00 00 00 00 00 00 00 f2 f2 f2 f2
+[  190.133687]                                                        ^
+[  190.140148]  ffff8801ca7c7980: f2 00 00 00 00 00 00 00 00 00 f2 f2 f2 f3 f3 f3
+[  190.147475]  ffff8801ca7c7a00: f3 00 00 00 00 00 00 00 00 00 00 f1 f1 f1 f1 00
+[  190.154802] ==================================================================

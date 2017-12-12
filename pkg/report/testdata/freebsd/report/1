@@ -1,0 +1,31 @@
+TITLE: Fatal trap 12: page fault while in kernel mode in sctp_sosend
+
+Fatal trap 12: page fault while in kernel mode
+cpuid = 3; apic id = 03
+fault virtual address	= 0xfffff7ffb48e19a8
+fault code		= supervisor read data, page not present
+instruction pointer	= 0x20:0xffffffff80edd52a
+stack pointer	        = 0x28:0xfffffe009524a7a0
+frame pointer	        = 0x28:0xfffffe009524a7a0
+code segment		= base 0x0, limit 0xfffff, type 0x1b
+			= DPL 0, pres 1, long 1, def32 0, gran 1
+processor eflags	= interrupt enabled, resume, IOPL = 0
+current process		= 40394 (syz-executor1)
+trap number		= 12
+panic: page fault
+cpuid = 3
+KDB: stack backtrace:
+#0 0xffffffff80aada97 at kdb_backtrace+0x67
+#1 0xffffffff80a6bb76 at vpanic+0x186
+#2 0xffffffff80a6b9e3 at panic+0x43
+#3 0xffffffff80edf832 at trap_fatal+0x322
+#4 0xffffffff80edf889 at trap_pfault+0x49
+#5 0xffffffff80edf0c6 at trap+0x286
+#6 0xffffffff80ec3641 at calltrap+0x8
+#7 0xffffffff80ae96e1 at m_copydata+0x61
+#8 0xffffffff80c05ba7 at sctp_sosend+0x157
+#9 0xffffffff80afa411 at kern_sendit+0x291
+#10 0xffffffff80afa773 at sendit+0x1a3
+#11 0xffffffff80afa831 at sys_sendmsg+0x61
+#12 0xffffffff80ee0394 at amd64_syscall+0x6c4
+#13 0xffffffff80ec392b at Xfast_syscall+0xfb

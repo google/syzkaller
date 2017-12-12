@@ -1,0 +1,10 @@
+TITLE: possible deadlock in serial8250_console_write
+CORRUPTED: Y
+
+[  131.449768] ======================================================
+[  131.449777] [ INFO: possible circular locking dependency detected ]
+[  131.449789] 3.10.37+ #1 Not tainted
+[  131.449797] -------------------------------------------------------
+[  131.449807] swapper/2/0 is trying to acquire lock:
+[  131.449859]  (&port_lock_key){-.-...}, at: [<c036a6dc>]     serial8250_console_write+0x108/0x134
+[  131.449866] 

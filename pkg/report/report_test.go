@@ -4,10 +4,162 @@
 package report
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
+
+	"github.com/google/syzkaller/pkg/osutil"
 )
+
+type ParseTest struct {
+	Log       []byte
+	Title     string
+	Corrupted bool
+	HasReport bool
+	Report    []byte
+}
+
+func TestParse(t *testing.T) {
+	testFilenameRe := regexp.MustCompile("^[0-9]+$")
+	for os := range ctors {
+		path := filepath.Join("testdata", os, "report")
+		if !osutil.IsExist(path) {
+			continue
+		}
+		files, err := ioutil.ReadDir(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reporter, err := NewReporter(os, "", "", nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, file := range files {
+			if !testFilenameRe.MatchString(file.Name()) {
+				continue
+			}
+			t.Run(fmt.Sprintf("%v/%v", os, file.Name()), func(t *testing.T) {
+				testParseFile(t, reporter, filepath.Join(path, file.Name()))
+			})
+		}
+	}
+}
+
+func testParseFile(t *testing.T, reporter Reporter, fn string) {
+	input, err := os.Open(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer input.Close()
+	const (
+		phaseHeaders = iota
+		phaseLog
+		phaseReport
+	)
+	phase := phaseHeaders
+	test := &ParseTest{}
+	prevEmptyLine := false
+	s := bufio.NewScanner(input)
+	for s.Scan() {
+		switch phase {
+		case phaseHeaders:
+			const (
+				titlePrefix     = "TITLE: "
+				corruptedPrefix = "CORRUPTED: "
+			)
+			switch ln := s.Text(); {
+			case strings.HasPrefix(ln, "#"):
+			case strings.HasPrefix(ln, titlePrefix):
+				test.Title = ln[len(titlePrefix):]
+			case strings.HasPrefix(ln, corruptedPrefix):
+				switch v := ln[len(corruptedPrefix):]; v {
+				case "Y":
+					test.Corrupted = true
+				case "N":
+					test.Corrupted = false
+				default:
+					t.Fatalf("unknown corrupted value %q", v)
+				}
+			case ln == "":
+				phase = phaseLog
+			default:
+				t.Fatalf("unknown header field %q", ln)
+			}
+		case phaseLog:
+			if prevEmptyLine && string(s.Bytes()) == "REPORT:" {
+				test.HasReport = true
+				phase = phaseReport
+			} else {
+				test.Log = append(test.Log, s.Bytes()...)
+				test.Log = append(test.Log, '\n')
+			}
+		case phaseReport:
+			test.Report = append(test.Report, s.Bytes()...)
+			test.Report = append(test.Report, '\n')
+		}
+		prevEmptyLine = len(s.Bytes()) == 0
+	}
+	if s.Err() != nil {
+		t.Fatalf("file scanning error: %v", s.Err())
+	}
+	if len(test.Log) == 0 {
+		t.Fatalf("can't find log in input file")
+	}
+	testParseImpl(t, reporter, test)
+	// In some cases we get output with \r\n for line endings,
+	// ensure that regexps are not confused by this.
+	bytes.Replace(test.Log, []byte{'\n'}, []byte{'\r', '\n'}, -1)
+	testParseImpl(t, reporter, test)
+}
+
+func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
+	rep := reporter.Parse(test.Log)
+	containsCrash := reporter.ContainsCrash(test.Log)
+	expectCrash := (test.Title != "")
+	if expectCrash && !containsCrash {
+		t.Fatalf("ContainsCrash did not find crash")
+	}
+	if !expectCrash && containsCrash {
+		t.Fatalf("ContainsCrash found unexpected crash")
+	}
+	if rep != nil && rep.Title == "" {
+		t.Fatalf("found crash, but title is empty")
+	}
+	title, corrupted := "", false
+	var report []byte
+	if rep != nil {
+		title = rep.Title
+		corrupted = rep.Corrupted
+		report = rep.Report
+	}
+	if title == "" && test.Title != "" {
+		t.Fatalf("did not find crash message")
+	}
+	if title != "" && test.Title == "" {
+		t.Fatalf("found bogus crash title %q", title)
+	}
+	if title != test.Title {
+		t.Fatalf("extracted bad crash title %+q", title)
+	}
+	if title != "" && len(rep.Report) == 0 {
+		t.Fatalf("found crash message but report is empty")
+	}
+	if corrupted && !test.Corrupted {
+		t.Fatalf("report is incorrectly marked as corrupted")
+	}
+	if !corrupted && test.Corrupted {
+		t.Fatalf("failed to mark report as corrupted")
+	}
+	if test.HasReport && !bytes.Equal(report, test.Report) {
+		t.Fatalf("extracted wrong report:\n%s\nwant:\n%s", report, test.Report)
+	}
+}
 
 func TestReplace(t *testing.T) {
 	tests := []struct {
@@ -37,63 +189,5 @@ func TestReplace(t *testing.T) {
 				t.Errorf("want '%v', got '%v'", test.result, string(result))
 			}
 		})
-	}
-}
-
-type ParseTest struct {
-	Log       string
-	Desc      string
-	Corrupted bool
-}
-
-func testParse(t *testing.T, os string, tests []ParseTest) {
-	reporter, err := NewReporter(os, "", "", nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	initialTests := tests[:]
-	for _, test := range initialTests {
-		if strings.Index(test.Log, "\r\n") != -1 {
-			continue
-		}
-		test.Log = strings.Replace(test.Log, "\n", "\r\n", -1)
-		tests = append(tests, test)
-	}
-	for _, test := range tests {
-		rep := reporter.Parse([]byte(test.Log))
-		containsCrash := reporter.ContainsCrash([]byte(test.Log))
-		expectCrash := (test.Desc != "")
-		if expectCrash && !containsCrash {
-			t.Fatalf("ContainsCrash did not find crash:\n%v", test.Log)
-		}
-		if !expectCrash && containsCrash {
-			t.Fatalf("ContainsCrash found unexpected crash:\n%v", test.Log)
-		}
-		if rep != nil && rep.Title == "" {
-			t.Fatalf("found crash, but title is empty '%v' in:\n%v", test.Desc, test.Log)
-		}
-		title, corrupted := "", false
-		if rep != nil {
-			title = rep.Title
-			corrupted = rep.Corrupted
-		}
-		if title == "" && test.Desc != "" {
-			t.Fatalf("did not find crash message '%v' in:\n%v", test.Desc, test.Log)
-		}
-		if title != "" && test.Desc == "" {
-			t.Fatalf("found bogus crash message '%v' in:\n%v", title, test.Log)
-		}
-		if title != "" && len(rep.Report) == 0 {
-			t.Fatalf("found crash message %q but report is empty:\n%v", title, test.Log)
-		}
-		if title != test.Desc {
-			t.Fatalf("extracted bad crash message:\n%+q\nwant:\n%+q", title, test.Desc)
-		}
-		if corrupted && !test.Corrupted {
-			t.Fatalf("incorrectly marked report as corrupted: '%v'\n%v", title, test.Log)
-		}
-		if !corrupted && test.Corrupted {
-			t.Fatalf("failed to mark report as corrupted: '%v'\n%v", title, test.Log)
-		}
 	}
 }

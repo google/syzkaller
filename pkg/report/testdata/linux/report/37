@@ -1,0 +1,9 @@
+TITLE: BUG: bad unlock balance in sctp_sendmsg
+CORRUPTED: Y
+
+[ 1722.511384] =====================================
+[ 1722.511384] [ BUG: bad unlock balance detected! ]
+[ 1722.511384] 4.10.0+ #179 Not tainted
+[ 1722.511384] -------------------------------------
+[ 1722.511384] syz-executor1/21439 is trying to release lock (sk_lock-AF_INET) at:
+[ 1722.511384] [<ffffffff83f7ac8b>] sctp_sendmsg+0x2a3b/0x38a0 net/sctp/socket.c:2007

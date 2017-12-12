@@ -1,0 +1,3 @@
+TITLE: BUG: workqueue lockup
+
+[   72.159680] BUG: workqueue lockup - pool cpus=0 node=0 flags=0x0 nice=0 stuck for 32s!

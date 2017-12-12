@@ -1,0 +1,53 @@
+TITLE: BUG: bad usercopy in kvm_vcpu_ioctl_set_cpuid2
+
+[   40.633732] usercopy: kernel memory overwrite attempt detected to ffff8801d21c9bd4 (kvm_vcpu) (1320 bytes)
+[   40.635122] ------------[ cut here ]------------
+[   40.635789] kernel BUG at mm/usercopy.c:84!
+[   40.636410] invalid opcode: 0000 [#1] SMP KASAN
+[   40.637064] Dumping ftrace buffer:
+[   40.637536]    (ftrace buffer empty)
+[   40.638031] Modules linked in:
+[   40.638464] CPU: 1 PID: 2988 Comm: syzkaller562838 Not tainted 4.14.0-rc5-next-20171018+ #36
+[   40.639581] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   40.640797] task: ffff8801d1da0100 task.stack: ffff8801d1c30000
+[   40.641600] RIP: 0010:__check_object_size+0x3a2/0x4f0
+[   40.642282] RSP: 0018:ffff8801d1c37148 EFLAGS: 00010286
+[   40.643018] RAX: 000000000000005e RBX: ffffffff8511a0e0 RCX: 0000000000000000
+[   40.643992] RDX: 000000000000005e RSI: 1ffff1003a386de9 RDI: ffffed003a386e1d
+[   40.644993] RBP: ffff8801d1c37238 R08: 0000000000000001 R09: 0000000000000000
+[   40.646013] R10: 0000000000000001 R11: 0000000000000000 R12: ffffffff8511a0a0
+[   40.646964] R13: ffff8801d21c9bd4 R14: 0000000000000528 R15: ffffea0007487200
+[   40.647943] FS:  0000000000964880(0000) GS:ffff8801db300000(0000) knlGS:0000000000000000
+[   40.649044] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   40.649817] CR2: 0000000020ae6fe8 CR3: 00000001d2184000 CR4: 00000000001426e0
+[   40.650833] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   40.654765] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   40.661999] Call Trace:
+[   40.664553]  ? lock_release+0xa40/0xa40
+[   40.668494]  ? check_stack_object+0x140/0x140
+[   40.672954]  ? check_noncircular+0x20/0x20
+[   40.677155]  ? __might_sleep+0x95/0x190
+[   40.681102]  kvm_vcpu_ioctl_set_cpuid2+0x75/0x1a0
+[   40.685916]  kvm_arch_vcpu_ioctl+0x1718/0x4710
+[   40.690463]  ? find_held_lock+0x35/0x1d0
+[   40.876264]  kvm_vcpu_ioctl+0x240/0x1010
+[   40.880293]  ? __kvm_gfn_to_hva_cache_init+0xbb0/0xbb0
+[   40.954292]  do_vfs_ioctl+0x1b1/0x1520
+[   40.958160]  ? _cond_resched+0x14/0x30
+[   40.982110]  SyS_ioctl+0x8f/0xc0
+[   40.985452]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   40.990171] RIP: 0033:0x442f27
+[   40.993328] RSP: 002b:00007ffc7f9721b8 EFLAGS: 00000217 ORIG_RAX: 0000000000000010
+[   41.000999] RAX: ffffffffffffffda RBX: 00007ffc7f972890 RCX: 0000000000442f27
+[   41.008232] RDX: 00007ffc7f972890 RSI: 000000004008ae90 RDI: 0000000000000005
+[   41.015466] RBP: 0000000000000082 R08: 0000000000000001 R09: ffffffffffffffff
+[   41.022698] R10: 0000000000000000 R11: 0000000000000217 R12: 0000000000404040
+[   41.029931] R13: 00000000004040d0 R14: 0000000000000000 R15: 0000000000000000
+[   41.037177] Code: 48 0f 44 da e8 70 f0 c3 ff 48 8b 85 28 ff ff ff 4d 89 f1 4c 89 e9 4c 89 e2 48 89 de 48 c7 c7 a0 a1 11 85 49 89 c0 e8 c3 fb ad ff <0f> 0b 48 c7 c0 60 9f 11 85 eb 96 48 c7 c0 a0 9f 11 85 eb 8d 48 
+[   41.056240] RIP: __check_object_size+0x3a2/0x4f0 RSP: ffff8801d1c37148
+[   41.062933] ---[ end trace d80029d430f95081 ]---
+[   41.067840] Kernel panic - not syncing: Fatal exception
+[   41.073527] Dumping ftrace buffer:
+[   41.077036]    (ftrace buffer empty)
+[   41.080716] Kernel Offset: disabled
+[   41.084310] Rebooting in 86400 seconds..

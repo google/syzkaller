@@ -1,0 +1,15 @@
+TITLE: unable to handle kernel paging request in _snd_timer_stop
+CORRUPTED: Y
+
+[  167.347989] Disabling lock debugging due to kernel taint
+[  167.353311] Unable to handle kernel paging request at virtual address dead000000000108
+[  167.361225] pgd = ffffffc0a39a0000
+[  167.364630] [dead000000000108] *pgd=0000000000000000, *pud=0000000000000000
+[  167.371618] Internal error: Oops: 96000044 [#1] PREEMPT SMP
+[  167.377205] CPU: 2 PID: 12170 Comm: syz-executor Tainted: G    BU         3.18.0 #78
+[  167.384944] Hardware name: Google Tegra210 Smaug Rev 1,3+ (DT)
+[  167.390780] task: ffffffc016e04e80 ti: ffffffc016110000 task.ti: ffffffc016110000
+[  167.398267] PC is at _snd_timer_stop.constprop.9+0x184/0x2b0
+[  167.403931] LR is at _snd_timer_stop.constprop.9+0x184/0x2b0
+[  167.409593] pc : [<ffffffc000d394c4>] lr : [<ffffffc000d394c4>] pstate: 200001c5
+[  167.416985] sp : ffffffc016113990

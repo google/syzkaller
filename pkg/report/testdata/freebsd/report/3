@@ -1,0 +1,16 @@
+TITLE: panic: ffs_write: type ADDR X (Y,Z)
+
+panic: ffs_write: type 0xfffff80036275ce8 8 (0,230)
+cpuid = 0
+KDB: stack backtrace:
+#0 0xffffffff80aada97 at kdb_backtrace+0x67
+#1 0xffffffff80a6bb76 at vpanic+0x186
+#2 0xffffffff80a6b9e3 at panic+0x43
+#3 0xffffffff80d3611c at ffs_write+0x57c
+#4 0xffffffff8104c6b1 at VOP_WRITE_APV+0x111
+#5 0xffffffff80b3ade0 at vn_write+0x240
+#6 0xffffffff80b36902 at vn_io_fault+0x112
+#7 0xffffffff80ac8d08 at dofilewrite+0xc8
+#8 0xffffffff80ac87fb at sys_write+0xdb
+#9 0xffffffff80ee0394 at amd64_syscall+0x6c4
+#10 0xffffffff80ec392b at Xfast_syscall+0xfb

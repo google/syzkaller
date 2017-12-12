@@ -1,0 +1,4 @@
+TITLE: BUG: spinlock bad magic
+CORRUPTED: Y
+
+[  982.271203] BUG: spinlock bad magic on CPU#0, syz-executor12/24932

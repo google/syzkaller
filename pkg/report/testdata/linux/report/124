@@ -1,0 +1,34 @@
+TITLE: INFO: Allocated in fasync_helper age=1 cpu=1 pid=6024
+CORRUPTED: Y
+
+** 4491 printk messages dropped ** [   50.750742] INFO: Allocated in fasync_helper+0x29/0x90 age=1 cpu=1 pid=6024
+** 4370 printk messages dropped ** [   50.761001]  [<ffffffff8123648d>] native_queued_spin_lock_slowpath+0x5ad/0x660
+** 4510 printk messages dropped ** [   50.771609]                          ^
+** 2979 printk messages dropped ** [   50.778606] 	SyS_fcntl+0x5be/0xc70
+** 2785 printk messages dropped ** [   50.785208]  [<ffffffff814f86fb>] ? rw_verify_area+0xbb/0x2c0
+** 3833 printk messages dropped ** [   50.794205] 	run_ksoftirqd+0x20/0x60
+** 2941 printk messages dropped ** [   50.801153]  ffff8801d3701280: fc fc fc fc fc fc fc fc fb fb fb fb fb fb fb fb
+** 4449 printk messages dropped ** [   50.811647]  [<ffffffff814d3af4>] print_trailer+0x114/0x1a0
+** 3718 printk messages dropped ** [   50.820379]  0000000000000000 3fe20028167234bc ffff8800b43179b0 ffffffff81cc9b0f
+** 4495 printk messages dropped ** [   50.830930]  [<ffffffff8123ab47>] do_raw_write_lock+0xc7/0x1d0
+** 3816 printk messages dropped ** [   50.839887]  [<ffffffff814fb353>] SyS_read+0xd3/0x1c0
+** 3497 printk messages dropped ** [   50.848107]  [<ffffffff81003044>] ? lockdep_sys_exit_thunk+0x12/0x14
+** 4057 printk messages dropped ** [   50.857615] 	run_ksoftirqd+0x20/0x60
+** 2855 printk messages dropped ** [   50.864318]  [<ffffffff814fb353>] SyS_read+0xd3/0x1c0
+** 3490 printk messages dropped ** [   50.872518]  [<ffffffff815bee10>] ? fsnotify+0xe40/0xe40
+** 3600 printk messages dropped ** [   50.880974] 	SyS_fcntl+0x5be/0xc70
+** 2788 printk messages dropped ** [   50.887536]  [<ffffffff814fb280>] ? do_sendfile+0xf40/0xf40
+** 3713 printk messages dropped ** [   50.896250]  [<ffffffff8122ab40>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+** 4253 printk messages dropped ** [   50.906245]  [<ffffffff812cca9f>] ? do_futex+0xb2f/0x18a0
+** 3636 printk messages dropped ** [   50.914820]  [<ffffffff814db1b7>] kasan_report.part.2+0x227/0x530
+** 3921 printk messages dropped ** [   50.924057] 	SyS_fcntl+0x5be/0xc70
+** 2782 printk messages dropped ** [   50.930621]  [<ffffffff815bee10>] ? fsnotify+0xe40/0xe40
+** 3601 printk messages dropped ** [   50.939092] 	entry_SYSCALL_64_fastpath+0x16/0x76
+** 3340 printk messages dropped ** [   50.946939] 	fasync_helper+0x29/0x90
+** 2885 printk messages dropped ** [   50.953668] 	__slab_alloc.isra.74.constprop.77+0x50/0xa0
+** 3601 printk messages dropped ** [   50.962045] Call Trace:
+** 2379 printk messages dropped ** [   50.967648]  [<ffffffff814f86fb>] ? rw_verify_area+0xbb/0x2c0
+** 3792 printk messages dropped ** [   50.976556]  [<ffffffff8122ab40>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+** 4256 printk messages dropped ** [   50.986544]  [<ffffffff81475701>] ? __might_fault+0xf1/0x1b0
+** 3734 printk messages dropped ** [   50.995348]  [<ffffffff8374b236>] entry_SYSCALL_64_fastpath+0x16/0x76
+** 4077 printk messages dropped ** [   51.004950]  [<ffffffff814d945f>] object_err+0x2f/0x40
