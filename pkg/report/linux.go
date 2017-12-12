@@ -360,7 +360,8 @@ func (ctx *linux) extractFiles(report []byte) []string {
 	matches := filenameRe.FindAll(report, -1)
 	var files []string
 	for _, match := range matches {
-		files = append(files, string(bytes.Split(match, []byte{':'})[0]))
+		f := string(bytes.Split(match, []byte{':'})[0])
+		files = append(files, filepath.Clean(f))
 	}
 	return files
 }
