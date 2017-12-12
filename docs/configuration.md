@@ -6,6 +6,8 @@ invocation time with the `-config` option.  This configuration can be based on t
 following keys in its top-level object:
 
  - `http`: URL that will display information about the running `syz-manager` process.
+ - `email_addr`: Optional email address to receive notifications when bugs are encountered for the first time.
+   Mailx is the only supported mailer. Please set it up prior to using this function.
  - `workdir`: Location of a working directory for the `syz-manager` process. Outputs here include:
      - `<workdir>/crashes/*`: crash output files (see [Crash Reports](#crash-reports))
      - `<workdir>/corpus.db`: corpus with interesting programs
