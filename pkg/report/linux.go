@@ -228,24 +228,7 @@ func (ctx *linux) Symbolize(rep *Report) error {
 func (ctx *linux) symbolize(text []byte) ([]byte, error) {
 	symb := symbolizer.NewSymbolizer()
 	defer symb.Close()
-	// Strip vmlinux location from all paths.
-	strip, _ := filepath.Abs(ctx.vmlinux)
-	strip = filepath.Dir(strip) + string(filepath.Separator)
-	// Vmlinux may have been moved, so check if we can find debug info
-	// for __sanitizer_cov_trace_pc. We know where it is located,
-	// so we can infer correct strip prefix from it.
-	if covSymbols := ctx.symbols["__sanitizer_cov_trace_pc"]; len(covSymbols) != 0 {
-		for _, covSymb := range covSymbols {
-			frames, _ := symb.Symbolize(ctx.vmlinux, covSymb.Addr)
-			if len(frames) > 0 {
-				file := frames[len(frames)-1].File
-				if idx := strings.Index(file, "kernel/kcov.c"); idx != -1 {
-					strip = file[:idx]
-					break
-				}
-			}
-		}
-	}
+	strip := ctx.stripPrefix(symb)
 	var symbolized []byte
 	s := bufio.NewScanner(bytes.NewReader(text))
 	for s.Scan() {
@@ -255,6 +238,33 @@ func (ctx *linux) symbolize(text []byte) ([]byte, error) {
 		symbolized = append(symbolized, line...)
 	}
 	return symbolized, nil
+}
+
+func (ctx *linux) stripPrefix(symb *symbolizer.Symbolizer) string {
+	// Vmlinux may have been moved, so check if we can find debug info
+	// for some known functions and infer correct strip prefix from it.
+	knownSymbols := []struct {
+		symbol string
+		file   string
+	}{
+		{"__sanitizer_cov_trace_pc", "kernel/kcov.c"},
+		{"__asan_load1", "mm/kasan/kasan.c"},
+		{"start_kernel", "init/main.c"},
+	}
+	for _, s := range knownSymbols {
+		for _, covSymb := range ctx.symbols[s.symbol] {
+			frames, _ := symb.Symbolize(ctx.vmlinux, covSymb.Addr)
+			if len(frames) > 0 {
+				file := frames[len(frames)-1].File
+				if idx := strings.Index(file, s.file); idx != -1 {
+					return file[:idx]
+				}
+			}
+		}
+	}
+	// Strip vmlinux location from all paths.
+	strip, _ := filepath.Abs(ctx.vmlinux)
+	return filepath.Dir(strip) + string(filepath.Separator)
 }
 
 func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, error),
