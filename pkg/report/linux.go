@@ -579,6 +579,11 @@ var linuxOopses = []*oops{
 				fmt:   "BUG: using __this_cpu_%[1]v() in preemptible code in %[2]v",
 			},
 			{
+				title:     compile("BUG: using __this_cpu_([a-z_]+)\\(\\) in preemptible"),
+				fmt:       "BUG: using __this_cpu_%[1]v() in preemptible code",
+				corrupted: true,
+			},
+			{
 				title:        compile("BUG: executor-detected bug"),
 				fmt:          "BUG: executor-detected bug",
 				noStackTrace: true,
