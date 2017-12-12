@@ -957,7 +957,7 @@ r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 		}, {
 			`
 [   76.825838] BUG: using __this_cpu_add() in preemptible [00000000] code: syz-executor0/10076
-`, `BUG: using __this_cpu_add() in preemptible [ADDR] code: syz-executor`, true,
+`, `BUG: using __this_cpu_add() in preemptible code`, true,
 		}, {
 			`
 [  367.131148] BUG kmalloc-8 (Tainted: G    B         ): Object already free
@@ -2026,6 +2026,26 @@ syzkaller login: [   55.288565] usercopy: kernel memory exposure attempt detecte
 [   55.772032] Kernel Offset: disabled
 [   55.775627] Rebooting in 86400 seconds.
 `, `BUG: bad usercopy in sctp_getsockopt`, false,
+		}, {
+			`
+syzkaller login: [   29.870006] BUG: using __this_cpu_read() in preemptible [00000000] code: syzkaller099840/3340
+[   29.871209] caller is __this_cpu_preempt_check+0x1c/0x20
+[   29.871946] CPU: 0 PID: 3340 Comm: syzkaller099840 Not tainted 4.9.68-gfb66dc2 #3
+[   29.872941] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   29.874180]  ffff8801c9067668 ffffffff81d90889 0000000000000000 ffffffff83c17800
+[   29.875305]  ffffffff83f42ec0 ffff8801ce530000 0000000000000003 ffff8801c90676a8
+[   29.876439]  ffffffff81df7854 ffff8801c90676c0 ffffffff83f42ec0 dffffc0000000000
+[   29.877564] Call Trace:
+[   29.877919]  [<ffffffff81d90889>] dump_stack+0xc1/0x128
+[   29.878644]  [<ffffffff81df7854>] check_preemption_disabled+0x1d4/0x200
+[   29.879528]  [<ffffffff81df78bc>] __this_cpu_preempt_check+0x1c/0x20
+[   29.880379]  [<ffffffff833f3f78>] ipcomp_init_state+0x188/0x930
+[   29.881176]  [<ffffffff81232141>] ? __lock_is_held+0xa1/0xf0
+[   29.881939]  [<ffffffff83360470>] ipcomp4_init_state+0xb0/0x7d0
+[   29.882735]  [<ffffffff833d2677>] __xfrm_init_state+0x3e7/0xb30
+[   29.883533]  [<ffffffff833d2dda>] xfrm_init_state+0x1a/0x20
+[   29.884285]  [<ffffffff8356cb49>] pfkey_add+0x1fb9/0x3470
+`, `BUG: using __this_cpu_read() in preemptible code`, false,
 		}, {
 			`
 [0.0] unreferenced object
