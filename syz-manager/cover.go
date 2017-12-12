@@ -10,12 +10,14 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/hash"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/symbolizer"
@@ -149,7 +151,9 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 		if len(f) > len(prefix) {
 			f = f[len(prefix):]
 		}
+		f = filepath.Clean(f)
 		d.Files = append(d.Files, &templateFile{
+			ID:       hash.String([]byte(f)),
 			Name:     f,
 			Body:     template.HTML(buf.String()),
 			Coverage: coverage,
@@ -381,6 +385,7 @@ type templateData struct {
 }
 
 type templateFile struct {
+	ID       string
 	Name     string
 	Body     template.HTML
 	Coverage int
@@ -405,8 +410,7 @@ func (a templateFileArray) Less(i, j int) bool {
 }
 func (a templateFileArray) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 
-var coverTemplate = template.Must(template.New("").Parse(
-	`
+var coverTemplate = template.Must(template.New("").Parse(`
 <!DOCTYPE html>
 <html>
 	<head>
@@ -446,28 +450,37 @@ var coverTemplate = template.Must(template.New("").Parse(
 		<div id="topbar">
 			<div id="nav">
 				<select id="files">
-				{{range $i, $f := .Files}}
-				<option value="file{{$i}}">{{$f.Name}} ({{$f.Coverage}})</option>
+				{{range $f := .Files}}
+				<option value="{{$f.ID}}">{{$f.Name}} ({{$f.Coverage}})</option>
 				{{end}}
 				</select>
 			</div>
 		</div>
 		<div id="content">
 		{{range $i, $f := .Files}}
-		<pre class="file" id="file{{$i}}" {{if $i}}style="display: none"{{end}}>{{$f.Body}}</pre>
-		{{end}}
+		<pre class="file" id="{{$f.ID}}" {{if $i}}style="display: none;"{{end}}>{{$f.Body}}</pre>{{end}}
 		</div>
 	</body>
 	<script>
 	(function() {
 		var files = document.getElementById('files');
-		var visible = document.getElementById('file0');
+		var visible = document.getElementById(files.value);
+		if (window.location.hash) {
+			var hash = window.location.hash.substring(1);
+			for (var i = 0; i < files.options.length; i++) {
+			      if (files.options[i].value === hash) {
+				      files.selectedIndex = i;
+				      break;
+			      }
+			}
+		}
 		files.addEventListener('change', onChange, false);
 		function onChange() {
 			visible.style.display = 'none';
 			visible = document.getElementById(files.value);
 			visible.style.display = 'block';
 			window.scrollTo(0, 0);
+			window.location.hash = files.value;
 		}
 	})();
 	</script>
