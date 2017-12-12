@@ -34,6 +34,8 @@ type Config struct {
 	Hub_Addr   string
 	Hub_Key    string
 
+	Email_Addr string // syz-manager will send crash emails to this address using mailx (optional)
+
 	Dashboard_Client string
 	Dashboard_Addr   string
 	Dashboard_Key    string
