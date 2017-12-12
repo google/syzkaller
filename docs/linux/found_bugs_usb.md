@@ -2,7 +2,7 @@
 
 ## USB drivers
 
-* [usb/core: memory corruption due to an out-of-bounds access in usb_destroy_configuration] [[fix](https://www.spinics.net/lists/linux-usb/msg163644.html)] [CVE-2017-17558]
+* usb/core: memory corruption due to an out-of-bounds access in usb_destroy_configuration [[fix](https://www.spinics.net/lists/linux-usb/msg163644.html)] [CVE-2017-17558]
 * [usb/net/zd1211rw: possible deadlock in zd_chip_disable_rxtx](https://groups.google.com/forum/#!topic/syzkaller/w_qXxIJfwmE)
 * [usb/sound: use-after-free in __uac_clock_find_source](https://groups.google.com/forum/#!topic/syzkaller/FwYGmsC6c6E) [[fix](https://www.spinics.net/lists/alsa-devel/msg69833.html)]
 * [usb/sound: slab-out-of-bounds in parse_audio_unit](https://groups.google.com/forum/#!topic/syzkaller/RJtoiisdruo) [[fix](https://www.spinics.net/lists/alsa-devel/msg69836.html)]
