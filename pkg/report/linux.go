@@ -188,7 +188,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 	rep.Report = append(rep.Report, report...)
 	rep.Corrupted = ctx.isCorrupted(title, report, format)
 	// Executor PIDs are not interesting.
-	rep.Title = executorRe.ReplaceAllLiteralString(rep.Title, "syz-executor")
+	rep.Title = executorRe.ReplaceAllString(rep.Title, "$1")
 	// Replace that everything looks like an address with "ADDR",
 	// addresses in descriptions can't be good regardless of the oops regexps.
 	rep.Title = addrRe.ReplaceAllString(rep.Title, "${1}ADDR")
@@ -428,7 +428,7 @@ var (
 	decNumRe         = regexp.MustCompile(`([^a-zA-Z])[0-9]{5,}`)
 	funcRe           = regexp.MustCompile(`([a-zA-Z][a-zA-Z0-9_.]+)\+0x[0-9a-z]+/0x[0-9a-z]+`)
 	cpuRe            = regexp.MustCompile(`CPU#[0-9]+`)
-	executorRe       = regexp.MustCompile(`syz-executor[0-9]+((/|:)[0-9]+)?`)
+	executorRe       = regexp.MustCompile(`(syz.*?)[0-9]+((/|:)[0-9]+)?`)
 )
 
 var linuxCorruptedTitles = []*regexp.Regexp{
@@ -562,8 +562,8 @@ var linuxOopses = []*oops{
 				fmt:   "BUG: sleeping function called from invalid context %[1]v",
 			},
 			{
-				title: compile("BUG: using __this_cpu_add\\(\\) in preemptible (.*)"),
-				fmt:   "BUG: using __this_cpu_add() in preemptible %[1]v",
+				title: compile("BUG: using __this_cpu_(.*)\\(\\) in preemptible"),
+				fmt:   "BUG: using __this_cpu_%[1]v() in preemptible code",
 			},
 			{
 				title:        compile("BUG: executor-detected bug"),
