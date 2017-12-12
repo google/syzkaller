@@ -1,0 +1,52 @@
+FILE: fs/dcache.c
+
+kasan: GPF could be caused by NULL-ptr deref or user memory access
+general protection fault: 0000 [#1] SMP KASAN
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 1 PID: 14551 Comm: syz-executor0 Not tainted 4.12.0-rc1+ #366
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+task: ffff880028ceadc0 task.stack: ffff880038460000
+RIP: 0010:__read_once_size include/linux/compiler.h:254 [inline]
+RIP: 0010:raw_seqcount_begin include/linux/seqlock.h:183 [inline]
+RIP: 0010:__d_lookup_rcu+0x27b/0xa10 fs/dcache.c:2144
+RSP: 0018:ffff880038466d18 EFLAGS: 00010a03
+RAX: 1fff6a12b169980b RBX: 1ffff1000708cdc2 RCX: ffffc90000abd000
+RDX: 00000000000001b4 RSI: ffffffff819034c6 RDI: 0000000000000a06
+RBP: ffff880038466ef8 R08: ffffffff8590ba60 R09: ffff880038466b20
+R10: 0000000000000000 R11: 0000000000000000 R12: 000000004cfffffb
+R13: fffb50958b4cc05d R14: dffffc0000000000 R15: fffb50958b4cc085
+FS:  00007f63f0717700(0000) GS:ffff88003ed00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000000002000fff8 CR3: 0000000027bd5000 CR4: 00000000000006e0
+Call Trace:
+ lookup_fast+0x12c/0xf80 fs/namei.c:1554
+ walk_component+0x129/0x13e0 fs/namei.c:1780
+ lookup_last fs/namei.c:2252 [inline]
+ path_lookupat+0x1d7/0xbc0 fs/namei.c:2302
+ filename_lookup+0x29e/0x5b0 fs/namei.c:2336
+ kern_path+0x33/0x40 fs/namei.c:2425
+ bpf_obj_do_get kernel/bpf/inode.c:305 [inline]
+ bpf_obj_get_user+0x11f/0xdd0 kernel/bpf/inode.c:340
+ bpf_obj_get kernel/bpf/syscall.c:888 [inline]
+ SYSC_bpf kernel/bpf/syscall.c:1061 [inline]
+ SyS_bpf+0xdc2/0x3a80 kernel/bpf/syscall.c:997
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+RIP: 0033:0x445e89
+RSP: 002b:00007f63f0716b58 EFLAGS: 00000296 ORIG_RAX: 0000000000000141
+RAX: ffffffffffffffda RBX: 0000000000000007 RCX: 0000000000445e89
+RDX: 0000000000000010 RSI: 0000000020005ff0 RDI: 0000000000000007
+RBP: 00000000006e0370 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000296 R12: 0000000000708000
+R13: 4000000000080000 R14: 0000000000000000 R15: 0000000000000000
+Code: 89 bd 18 ff ff ff 42 c6 04 33 f8 0f 84 33 04 00 00 e8 da fc ca ff 48 8b 85 b0 fe ff ff 4d 8d 6f d8 c6 00 04 4c 89 e8 48 c1 e8 03 <42> 0f b6 0c 30 4c 89 e8 83 e0 07 83 c0 03 38 c8 7c 08 84 c9 0f 
+RIP: __read_once_size include/linux/compiler.h:254 [inline] RSP: ffff880038466d18
+RIP: raw_seqcount_begin include/linux/seqlock.h:183 [inline] RSP: ffff880038466d18
+RIP: __d_lookup_rcu+0x27b/0xa10 fs/dcache.c:2144 RSP: ffff880038466d18
+---[ end trace cc5c09f1eb5b005a ]---
+Kernel panic - not syncing: Fatal exception
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..

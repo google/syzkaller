@@ -1,0 +1,45 @@
+FILE: security/keys/key.c
+
+------------[ cut here ]------------
+WARNING: CPU: 1 PID: 4961 at lib/refcount.c:150 refcount_inc+0x47/0x50 lib/refcount.c:150
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 1 PID: 4961 Comm: syz-executor1 Not tainted 4.12.0-rc2+ #77
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:16 [inline]
+ dump_stack+0x2ee/0x3ea lib/dump_stack.c:52
+ panic+0x1fb/0x412 kernel/panic.c:180
+ __warn+0x1c4/0x1e0 kernel/panic.c:541
+ report_bug+0x211/0x2d0 lib/bug.c:183
+ fixup_bug arch/x86/kernel/traps.c:190 [inline]
+ do_trap_no_signal arch/x86/kernel/traps.c:224 [inline]
+ do_trap+0x32c/0x410 arch/x86/kernel/traps.c:273
+ do_error_trap+0x15a/0x3b0 arch/x86/kernel/traps.c:310
+ do_invalid_op+0x1b/0x20 arch/x86/kernel/traps.c:323
+ invalid_op+0x1e/0x30 arch/x86/entry/entry_64.S:847
+RIP: 0010:refcount_inc+0x47/0x50 lib/refcount.c:150
+RSP: 0018:ffff8801d3d4fcc0 EFLAGS: 00010282
+RAX: 000000000000002b RBX: ffff8801c2514240 RCX: 0000000000000000
+RDX: 000000000000002b RSI: ffffc90002fb8000 RDI: ffffed003a7a9f8a
+RBP: ffff8801d3d4fcc8 R08: 1ffff1003a7a9e71 R09: 0000000000000000
+R10: dffffc0000000000 R11: 0000000000000000 R12: 1ffff1003a7a9fa0
+R13: 000000001fd29e67 R14: 000000001fd29e67 R15: ffff8801c2514240
+ __key_get include/linux/key.h:254 [inline]
+ key_lookup+0x1ec/0x230 security/keys/key.c:670
+ lookup_user_key+0x8ba/0x11e0 security/keys/process_keys.c:680
+ keyctl_keyring_link+0x24/0xc0 security/keys/keyctl.c:507
+ SYSC_keyctl security/keys/keyctl.c:1661 [inline]
+ SyS_keyctl+0x1af/0x290 security/keys/keyctl.c:1633
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+RIP: 0033:0x44fe99
+RSP: 002b:00007f93b93c9b58 EFLAGS: 00000212 ORIG_RAX: 00000000000000fa
+RAX: ffffffffffffffda RBX: ffffffffffffffff RCX: 000000000044fe99
+RDX: 000000001fd29e67 RSI: ffffffffffffffff RDI: 0000000000000008
+RBP: 0000000000000008 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000212 R12: 00000000007180a8
+R13: 0000000000001000 R14: 0000000000000003 R15: 0000000000000000
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: 0x6000000 from 0xffffffff81000000 (relocation range: 0xffffffff80000000-0xffffffffbfffffff)
+Rebooting in 86400 seconds..

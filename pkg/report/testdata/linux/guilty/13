@@ -1,0 +1,63 @@
+FILE: net/dccp/ipv6.c
+
+==================================================================
+BUG: KASAN: use-after-free in skb_pfmemalloc include/linux/skbuff.h:829 [inline] at addr ffff88003b910d8c
+BUG: KASAN: use-after-free in skb_clone+0x3a2/0x420 net/core/skbuff.c:1029 at addr ffff88003b910d8c
+Read of size 4 by task syz-executor0/5591
+CPU: 1 PID: 5591 Comm: syz-executor0 Not tainted 4.10.0-rc8+ #201
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+Call Trace:
+ <IRQ>
+ __dump_stack lib/dump_stack.c:15 [inline]
+ dump_stack+0x292/0x398 lib/dump_stack.c:51
+ kasan_object_err+0x1c/0x70 mm/kasan/report.c:162
+ print_address_description mm/kasan/report.c:200 [inline]
+ kasan_report_error mm/kasan/report.c:289 [inline]
+ kasan_report.part.1+0x20e/0x4e0 mm/kasan/report.c:311
+ kasan_report mm/kasan/report.c:331 [inline]
+ __asan_report_load4_noabort+0x29/0x30 mm/kasan/report.c:331
+ skb_pfmemalloc include/linux/skbuff.h:829 [inline]
+ skb_clone+0x3a2/0x420 net/core/skbuff.c:1029
+ dccp_v6_request_recv_sock+0xb5e/0x1960 net/dccp/ipv6.c:527
+ dccp_check_req+0x335/0x5a0 net/dccp/minisocks.c:186
+ dccp_v6_rcv+0x69e/0x1d00 net/dccp/ipv6.c:711
+ ip6_input_finish+0x46d/0x17a0 net/ipv6/ip6_input.c:279
+ NF_HOOK include/linux/netfilter.h:257 [inline]
+ ip6_input+0xdb/0x590 net/ipv6/ip6_input.c:322
+ dst_input include/net/dst.h:507 [inline]
+ ip6_rcv_finish+0x289/0x890 net/ipv6/ip6_input.c:69
+ NF_HOOK include/linux/netfilter.h:257 [inline]
+ ipv6_rcv+0x12ec/0x23d0 net/ipv6/ip6_input.c:203
+ __netif_receive_skb_core+0x1ae5/0x3400 net/core/dev.c:4190
+ __netif_receive_skb+0x2a/0x170 net/core/dev.c:4228
+ process_backlog+0xe5/0x6c0 net/core/dev.c:4839
+ napi_poll net/core/dev.c:5202 [inline]
+ net_rx_action+0xe70/0x1900 net/core/dev.c:5267
+ __do_softirq+0x2fb/0xb7d kernel/softirq.c:284
+ do_softirq_own_stack+0x1c/0x30 arch/x86/entry/entry_64.S:902
+ </IRQ>
+ do_softirq.part.17+0x1e8/0x230 kernel/softirq.c:328
+ do_softirq kernel/softirq.c:176 [inline]
+ __local_bh_enable_ip+0x1f2/0x200 kernel/softirq.c:181
+ local_bh_enable include/linux/bottom_half.h:31 [inline]
+ rcu_read_unlock_bh include/linux/rcupdate.h:971 [inline]
+ ip6_finish_output2+0xbb0/0x23d0 net/ipv6/ip6_output.c:123
+ ip6_finish_output+0x302/0x960 net/ipv6/ip6_output.c:148
+ NF_HOOK_COND include/linux/netfilter.h:246 [inline]
+ ip6_output+0x1cb/0x8d0 net/ipv6/ip6_output.c:162
+ ip6_xmit+0xce6/0x20d0 include/net/dst.h:501
+ inet6_csk_xmit+0x320/0x5f0 net/ipv6/inet6_connection_sock.c:179
+ dccp_transmit_skb+0xb09/0x1120 net/dccp/output.c:141
+ dccp_send_ack+0x1bf/0x350 net/dccp/output.c:594
+ dccp_rcv_request_sent_state_process net/dccp/input.c:501 [inline]
+ dccp_rcv_state_process+0x102f/0x1650 net/dccp/input.c:670
+ dccp_v6_do_rcv+0x213/0x350 net/dccp/ipv6.c:632
+ sk_backlog_rcv include/net/sock.h:893 [inline]
+ __release_sock+0x127/0x3a0 net/core/sock.c:2053
+ release_sock+0xa5/0x2b0 net/core/sock.c:2540
+ inet_wait_for_connect net/ipv4/af_inet.c:557 [inline]
+ __inet_stream_connect+0x5f7/0xeb0 net/ipv4/af_inet.c:626
+ inet_stream_connect+0x55/0xa0 net/ipv4/af_inet.c:665
+ SYSC_connect+0x251/0x590 net/socket.c:1579
+ SyS_connect+0x24/0x30 net/socket.c:1560
+ entry_SYSCALL_64_fastpath+0x1f/0xc2

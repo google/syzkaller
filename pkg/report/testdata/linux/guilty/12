@@ -1,0 +1,54 @@
+FILE: net/llc/llc_sap.c
+
+------------[ cut here ]------------
+kernel BUG at ./include/linux/skbuff.h:2389!
+invalid opcode: 0000 [#1] SMP KASAN
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 2 PID: 10793 Comm: syz-executor0 Not tainted 4.10.0-rc8+ #201
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+task: ffff88006aeb1700 task.stack: ffff880069b08000
+RIP: 0010:skb_set_owner_r include/linux/skbuff.h:2389 [inline]
+RIP: 0010:__sock_queue_rcv_skb+0x8c0/0xda0 net/core/sock.c:425
+RSP: 0018:ffff88006de06b58 EFLAGS: 00010206
+RAX: ffff88006aeb1700 RBX: ffff8800581dc170 RCX: 0000000000000000
+RDX: 0000000000000100 RSI: 1ffff1000d5fcb7b RDI: ffff88006afe5be0
+RBP: ffff88006de06dc0 R08: 0000000000000002 R09: 0000000000000001
+R10: 0000000000000000 R11: dffffc0000000000 R12: ffff88006afe5bc0
+R13: ffff88006de06d98 R14: ffff8800581dc198 R15: ffff88006afe5c20
+FS:  00007f06a3bd9700(0000) GS:ffff88006de00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000020007000 CR3: 000000006a280000 CR4: 00000000000006e0
+Call Trace:
+ <IRQ>
+ sock_queue_rcv_skb+0x3a/0x50 net/core/sock.c:451
+PF_BRIDGE: RTM_DELNEIGH with invalid address
+ llc_sap_state_process+0x3e3/0x4e0 net/llc/llc_sap.c:220
+ llc_sap_rcv net/llc/llc_sap.c:294 [inline]
+ llc_sap_handler+0x695/0x1320 net/llc/llc_sap.c:434
+ llc_rcv+0x6da/0xed0 net/llc/llc_input.c:208
+ __netif_receive_skb_core+0x1ae5/0x3400 net/core/dev.c:4190
+ __netif_receive_skb+0x2a/0x170 net/core/dev.c:4228
+ process_backlog+0xe5/0x6c0 net/core/dev.c:4839
+ napi_poll net/core/dev.c:5202 [inline]
+ net_rx_action+0xe70/0x1900 net/core/dev.c:5267
+ __do_softirq+0x2fb/0xb7d kernel/softirq.c:284
+ do_softirq_own_stack+0x1c/0x30 arch/x86/entry/entry_64.S:902
+ </IRQ>
+ do_softirq.part.17+0x1e8/0x230 kernel/softirq.c:328
+ do_softirq kernel/softirq.c:176 [inline]
+ __local_bh_enable_ip+0x1f2/0x200 kernel/softirq.c:181
+ local_bh_enable include/linux/bottom_half.h:31 [inline]
+ rcu_read_unlock_bh include/linux/rcupdate.h:971 [inline]
+ __dev_queue_xmit+0xd87/0x2860 net/core/dev.c:3399
+ dev_queue_xmit+0x17/0x20 net/core/dev.c:3405
+ llc_build_and_send_ui_pkt+0x240/0x330 net/llc/llc_output.c:74
+ llc_ui_sendmsg+0x98d/0x1430 net/llc/af_llc.c:928
+ sock_sendmsg_nosec net/socket.c:635 [inline]
+ sock_sendmsg+0xca/0x110 net/socket.c:645
+ ___sys_sendmsg+0x9d2/0xae0 net/socket.c:1985
+ __sys_sendmsg+0x138/0x320 net/socket.c:2019
+ SYSC_sendmsg net/socket.c:2030 [inline]
+ SyS_sendmsg+0x2d/0x50 net/socket.c:2026
+ entry_SYSCALL_64_fastpath+0x1f/0xc2

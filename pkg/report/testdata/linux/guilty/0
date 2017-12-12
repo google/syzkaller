@@ -1,0 +1,32 @@
+FILE: net/ipv6/ip6_output.c
+
+==================================================================
+BUG: KASAN: use-after-free in ip6_send_skb+0x2f5/0x330 net/ipv6/ip6_output.c:1748
+Read of size 8 at addr ffff88004fab1858 by task syz-executor0/30168
+
+CPU: 0 PID: 30168 Comm: syz-executor0 Not tainted 4.12.0-rc3+ #3
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:16 [inline]
+ dump_stack+0x292/0x395 lib/dump_stack.c:52
+ print_address_description+0x78/0x280 mm/kasan/report.c:252
+ kasan_report_error mm/kasan/report.c:351 [inline]
+ kasan_report+0x230/0x340 mm/kasan/report.c:408
+ __asan_report_load8_noabort+0x19/0x20 mm/kasan/report.c:429
+ ip6_send_skb+0x2f5/0x330 net/ipv6/ip6_output.c:1748
+ ip6_push_pending_frames+0xb8/0xe0 net/ipv6/ip6_output.c:1763
+ rawv6_push_pending_frames net/ipv6/raw.c:613 [inline]
+ rawv6_sendmsg+0x2ede/0x4400 net/ipv6/raw.c:932
+ inet_sendmsg+0x169/0x5c0 net/ipv4/af_inet.c:762
+ sock_sendmsg_nosec net/socket.c:633 [inline]
+ sock_sendmsg+0xcf/0x110 net/socket.c:643
+ SYSC_sendto+0x660/0x810 net/socket.c:1696
+ SyS_sendto+0x45/0x60 net/socket.c:1664
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+RIP: 0033:0x446179
+RSP: 002b:00007f1f48124c08 EFLAGS: 00000286 ORIG_RAX: 000000000000002c
+RAX: ffffffffffffffda RBX: 0000000000004350 RCX: 0000000000446179
+RDX: 0000000000000873 RSI: 0000000020fd878d RDI: 0000000000000016
+RBP: 00000000ffffffff R08: 00000000204e8fe4 R09: 000000000000001c
+R10: 0000000000000840 R11: 0000000000000286 R12: 0000000000000016
+R13: 0000000000000000 R14: 00007f1f481259c0 R15: 00007f1f48125700

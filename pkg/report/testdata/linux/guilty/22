@@ -1,0 +1,16 @@
+FILE: fs/block_dev.c
+
+INFO: task blkid:16495 blocked for more than 120 seconds.
+      Not tainted 4.15.0-rc2-next-20171208+ #63
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+blkid           D21344 16495   3125 0x80000006
+Call Trace:
+ context_switch kernel/sched/core.c:2800 [inline]
+ __schedule+0x8eb/0x2060 kernel/sched/core.c:3376
+ schedule+0xf5/0x430 kernel/sched/core.c:3435
+ schedule_preempt_disabled+0x10/0x20 kernel/sched/core.c:3493
+ __mutex_lock_common kernel/locking/mutex.c:833 [inline]
+ __mutex_lock+0xaad/0x1a80 kernel/locking/mutex.c:893
+ mutex_lock_nested+0x16/0x20 kernel/locking/mutex.c:908
+ blkdev_put+0x2a/0x4f0 fs/block_dev.c:1793
+ blkdev_close+0x91/0xc0 fs/block_dev.c:1842

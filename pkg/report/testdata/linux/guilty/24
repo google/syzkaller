@@ -1,0 +1,17 @@
+FILE: crypto/algif_aead.c
+
+INFO: task syz-executor6:7377 blocked for more than 120 seconds.
+      Not tainted 4.15.0-rc2-next-20171208+ #63
+"echo 0 > /proc/sys/kernel/hung_task_timeout_secs" disables this message.
+syz-executor6   D24416  7377   3393 0x00000004
+Call Trace:
+ context_switch kernel/sched/core.c:2800 [inline]
+ __schedule+0x8eb/0x2060 kernel/sched/core.c:3376
+ schedule+0xf5/0x430 kernel/sched/core.c:3435
+ schedule_timeout+0x43a/0x560 kernel/time/timer.c:1776
+ do_wait_for_common kernel/sched/completion.c:91 [inline]
+ __wait_for_common kernel/sched/completion.c:112 [inline]
+ wait_for_common kernel/sched/completion.c:123 [inline]
+ wait_for_completion+0x44b/0x7b0 kernel/sched/completion.c:144
+ crypto_wait_req include/linux/crypto.h:496 [inline]
+ _aead_recvmsg crypto/algif_aead.c:308 [inline]
