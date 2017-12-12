@@ -1,0 +1,30 @@
+TITLE: BUG: using __this_cpu_read() in preemptible code in ipcomp_init_state
+
+[  177.880417] BUG: using __this_cpu_read() in preemptible [00000000] code: syz-executor6/27031
+[  177.889042] caller is __this_cpu_preempt_check+0x13/0x20
+[  177.894472] CPU: 0 PID: 27031 Comm: syz-executor6 Not tainted 4.4.105-ge303a83 #5
+[  177.902067] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  177.911395]  0000000000000000 b8d1e2d1adfb9027 ffff8800b8bd76b8 ffffffff81cc9b4f
+[  177.919376]  0000000000000000 ffffffff839fd4a0 ffff8800b8bd76f8 ffffffff81d28d58
+[  177.927362]  ffffffff83d093a0 ffff8800b54fe980 dffffc0000000000 ffffffff83cff4e0
+[  177.935373] Call Trace:
+[  177.937937]  [<ffffffff81cc9b4f>] dump_stack+0x8e/0xcf
+[  177.943193]  [<ffffffff81d28d58>] check_preemption_disabled+0x1b8/0x1f0
+[  177.949927]  [<ffffffff81d28dc3>] __this_cpu_preempt_check+0x13/0x20
+[  177.956394]  [<ffffffff832a4598>] ipcomp_init_state+0x168/0x8e0
+[  177.962431]  [<ffffffff83206e7e>] ipcomp4_init_state+0x9e/0x840
+...
+[  178.145972]  [<ffffffff82d9790d>] SyS_sendmsg+0xd/0x20
+[  178.151212]  [<ffffffff8374ab36>] entry_SYSCALL_64_fastpath+0x16/0x76
+[  179.050698] FAULT_FLAG_ALLOW_RETRY missing 30
+[  179.055286] FAULT_FLAG_ALLOW_RETRY missing 30
+[  179.068541] CPU: 0 PID: 27437 Comm: syz-executor2 Not tainted 4.4.105-ge303a83 #5
+[  179.076171] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  179.085503]  0000000000000000 eea7e857f9d96285 ffff8801d6267980 ffffffff81cc9b4f
+[  179.093510]  1ffff1003ac4cf3b 0000000000000030 ffff8801d6267b20 ffffffff815db71b
+[  179.101505]  ffff8800b901a320 ffff8800b901a320 ffff8800b901a320 ffff8801d6267af8
+[  179.109501] Call Trace:
+[  179.112067]  [<ffffffff81cc9b4f>] dump_stack+0x8e/0xcf
+[  179.117323]  [<ffffffff815db71b>] handle_userfault+0x75b/0x1570
+...
+[  179.219186]  [<ffffffff8374ab36>] entry_SYSCALL_64_fastpath+0x16/0x76
