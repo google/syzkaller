@@ -138,7 +138,7 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 		t.Fatalf("report is incorrectly marked as corrupted")
 	}
 	if !corrupted && test.Corrupted {
-		t.Fatalf("failed to mark report as corrupted")
+		t.Fatalf("failed to mark report '%s' as corrupted", title)
 	}
 	if rep != nil {
 		if test.HasReport && !bytes.Equal(rep.Report, test.Report) {

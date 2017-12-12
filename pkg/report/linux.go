@@ -575,7 +575,7 @@ var linuxOopses = []*oops{
 				fmt:   "BUG: sleeping function called from invalid context %[1]v",
 			},
 			{
-				title: compile("BUG: using __this_cpu_([a-z_]+)\\(\\) in preemptible .*(?:.*\\n){0,30}Call Trace:\\n" + stacktraceRe("dump_stack", "preemption", "preempt")),
+				title: compile("BUG: using __this_cpu_([a-z_]+)\\(\\) in preemptible .*(?:.*\\n){0,20}?Call Trace:\\n" + stacktraceRe("dump_stack", "preemption", "preempt")),
 				fmt:   "BUG: using __this_cpu_%[1]v() in preemptible code in %[2]v",
 			},
 			{
@@ -728,7 +728,7 @@ var linuxOopses = []*oops{
 				fmt:   "INFO: rcu detected stall",
 			},
 			{
-				title: compile("INFO: trying to register non-static key(?:.*\\n){0,10}Call Trace:\\n" + stacktraceRe("stack", "lock", "IRQ")),
+				title: compile("INFO: trying to register non-static key(?:.*\\n){0,20}?Call Trace:\\n" + stacktraceRe("stack", "lock", "IRQ")),
 				fmt:   "INFO: trying to register non-static key in %[1]v",
 			},
 			{
@@ -745,7 +745,7 @@ var linuxOopses = []*oops{
 				corrupted: true,
 			},
 			{
-				title: compile("INFO: task .* blocked for more than [0-9]+ seconds(?:.*\\n){0,10}Call Trace:\\n" + stacktraceRe("sched", "_lock", "completion", "kthread")),
+				title: compile("INFO: task .* blocked for more than [0-9]+ seconds(?:.*\\n){0,20}?Call Trace:\\n" + stacktraceRe("sched", "_lock", "completion", "kthread")),
 				fmt:   "INFO: task hung in %[1]v",
 			},
 			{
