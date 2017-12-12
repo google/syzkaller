@@ -34,6 +34,8 @@ type Config struct {
 	Hub_Addr   string
 	Hub_Key    string
 
+	Email_addr string
+
 	Dashboard_Client string
 	Dashboard_Addr   string
 	Dashboard_Key    string
