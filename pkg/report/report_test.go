@@ -17,38 +17,16 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
+func TestParse(t *testing.T) {
+	forEachFile(t, "report", testParseFile)
+}
+
 type ParseTest struct {
 	Log       []byte
 	Title     string
 	Corrupted bool
 	HasReport bool
 	Report    []byte
-}
-
-func TestParse(t *testing.T) {
-	testFilenameRe := regexp.MustCompile("^[0-9]+$")
-	for os := range ctors {
-		path := filepath.Join("testdata", os, "report")
-		if !osutil.IsExist(path) {
-			continue
-		}
-		files, err := ioutil.ReadDir(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		reporter, err := NewReporter(os, "", "", nil, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, file := range files {
-			if !testFilenameRe.MatchString(file.Name()) {
-				continue
-			}
-			t.Run(fmt.Sprintf("%v/%v", os, file.Name()), func(t *testing.T) {
-				testParseFile(t, reporter, filepath.Join(path, file.Name()))
-			})
-		}
-	}
 }
 
 func testParseFile(t *testing.T, reporter Reporter, fn string) {
@@ -158,6 +136,63 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 	}
 	if test.HasReport && !bytes.Equal(report, test.Report) {
 		t.Fatalf("extracted wrong report:\n%s\nwant:\n%s", report, test.Report)
+	}
+}
+
+func TestGuiltyFile(t *testing.T) {
+	forEachFile(t, "guilty", testGuiltyFile)
+}
+
+func testGuiltyFile(t *testing.T, reporter Reporter, fn string) {
+	data, err := ioutil.ReadFile(fn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const prefix = "FILE: "
+	if !bytes.HasPrefix(data, []byte(prefix)) {
+		t.Fatalf("no %v prefix in file", prefix)
+	}
+	nlnl := bytes.Index(data[len(prefix):], []byte{'\n', '\n'})
+	if nlnl == -1 {
+		t.Fatalf("no \\n\\n in file")
+	}
+	file := string(data[len(prefix) : len(prefix)+nlnl])
+	report := data[len(prefix)+nlnl:]
+	type guilter interface {
+		extractGuiltyFile([]byte) string
+	}
+	g, ok := reporter.(guilter)
+	if !ok {
+		t.Fatalf("os does not support extraction of guilty files")
+	}
+	if guilty := g.extractGuiltyFile(report); guilty != file {
+		t.Fatalf("got guilty %q, want %q", guilty, file)
+	}
+}
+
+func forEachFile(t *testing.T, dir string, fn func(t *testing.T, reporter Reporter, fn string)) {
+	testFilenameRe := regexp.MustCompile("^[0-9]+$")
+	for os := range ctors {
+		path := filepath.Join("testdata", os, dir)
+		if !osutil.IsExist(path) {
+			continue
+		}
+		files, err := ioutil.ReadDir(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		reporter, err := NewReporter(os, "", "", nil, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, file := range files {
+			if !testFilenameRe.MatchString(file.Name()) {
+				continue
+			}
+			t.Run(fmt.Sprintf("%v/%v", os, file.Name()), func(t *testing.T) {
+				fn(t, reporter, filepath.Join(path, file.Name()))
+			})
+		}
 	}
 }
 

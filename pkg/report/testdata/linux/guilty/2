@@ -1,0 +1,43 @@
+FILE: kernel/bpf/hashtab.c
+
+kasan: CONFIG_KASAN_INLINE enabled
+kasan: GPF could be caused by NULL-ptr deref or user memory access
+general protection fault: 0000 [#1] SMP KASAN
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 2 PID: 10785 Comm: kworker/2:4 Not tainted 4.12.0-rc3+ #370
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS Bochs 01/01/2011
+Workqueue: events bpf_map_free_deferred
+task: ffff880061ce9700 task.stack: ffff880060b40000
+RIP: 0010:pcpu_addr_to_page mm/percpu-vm.c:358 [inline]
+RIP: 0010:pcpu_chunk_addr_search mm/percpu.c:852 [inline]
+RIP: 0010:free_percpu+0x189/0x4a0 mm/percpu.c:1264
+RSP: 0018:ffff880060b47188 EFLAGS: 00010002
+RAX: 0000000000000000 RBX: 1ffff1000c168e34 RCX: 0000000000000002
+RDX: dffffc0000000000 RSI: 000000000ca9ca67 RDI: 0000000000000010
+RBP: ffff880060b47328 R08: 0000000000000002 R09: 8a21721700000000
+R10: ffff880061ce9f38 R11: dffffc0000000000 R12: ffff88007ffee210
+R13: ffff880060b47300 R14: ffff88003ec00000 R15: ffffe8fcd0a1c608
+FS:  0000000000000000(0000) GS:ffff88006de00000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00000000006e7680 CR3: 000000002e973000 CR4: 00000000000006e0
+Call Trace:
+ htab_free_elems+0x191/0x250 kernel/bpf/hashtab.c:112
+ prealloc_destroy+0x17/0x90 kernel/bpf/hashtab.c:191
+ htab_map_free+0xe6/0x650 kernel/bpf/hashtab.c:1093
+ bpf_map_free_deferred+0xac/0xd0 kernel/bpf/syscall.c:124
+ process_one_work+0xc03/0x1bd0 kernel/workqueue.c:2097
+ worker_thread+0x223/0x1860 kernel/workqueue.c:2231
+ kthread+0x35e/0x430 kernel/kthread.c:231
+ ret_from_fork+0x2a/0x40 arch/x86/entry/entry_64.S:424
+Code: 80 3c 02 00 0f 85 e0 02 00 00 49 8b 3c 24 4c 01 ff e8 ec be 06 00 48 8d 78 10 48 ba 00 00 00 00 00 fc ff df 48 89 f9 48 c1 e9 03 <80> 3c 11 00 0f 85 c2 02 00 00 4c 8b 60 10 48 b8 00 00 00 00 00 
+RIP: pcpu_addr_to_page mm/percpu-vm.c:358 [inline] RSP: ffff880060b47188
+RIP: pcpu_chunk_addr_search mm/percpu.c:852 [inline] RSP: ffff880060b47188
+RIP: free_percpu+0x189/0x4a0 mm/percpu.c:1264 RSP: ffff880060b47188
+---[ end trace 2faa26575ba6ca1f ]---
+Kernel panic - not syncing: Fatal exception
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Kernel Offset: disabled
+Rebooting in 86400 seconds..
