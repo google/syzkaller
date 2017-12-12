@@ -1,7 +1,10 @@
 TITLE: suspicious RCU usage at ./include/linux/kvm_host.h:LINE
+START: [   37.540478] [ INFO: suspicious RCU usage. ]
 CORRUPTED: Y
 
 [   37.540474] ===============================
+2016/11/12 06:52:29 executing program 1:
+r0 = ioctl$KVM_CREATE_VM(0xffffffffffffffff, 0xae01, 0x0)
 [   37.540478] [ INFO: suspicious RCU usage. ]
 [   37.540495] 4.9.0-rc4+ #47 Not tainted
 2016/11/12 06:52:29 executing program 1:
