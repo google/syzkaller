@@ -70,6 +70,20 @@ var commonHeaderLinux = `
 #include <sys/stat.h>
 #include <sys/uio.h>
 #endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USB_ENABLE)
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/usb/ch9.h>
+#include <linux/usb/gadgetfs.h>
+#include <linux/usbdevice_fs.h>
+#include <poll.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <sys/inotify.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
 #if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
 #include <errno.h>
 #include <fcntl.h>
@@ -109,8 +123,9 @@ var commonHeaderLinux = `
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||      \
     defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || \
-    defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||                   \
-    defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
+    defined(SYZ_USB_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) ||                       \
+    defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NONE) ||                        \
+    defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
 __attribute__((noreturn)) static void doexit(int status)
 {
 	volatile unsigned i;
@@ -121,6 +136,8 @@ __attribute__((noreturn)) static void doexit(int status)
 #endif
 
 
+
+#define SYZ_USB_ENABLE
 
 #include <stdint.h>
 #include <string.h>
@@ -169,9 +186,10 @@ extern call_t syscalls[];
 extern unsigned syscall_count;
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||            \
-    defined(SYZ_USE_TMP_DIR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || \
-    defined(SYZ_SANDBOX_SETUID) || defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||     \
+    defined(SYZ_USE_TMP_DIR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_USB_ENABLE) || \
+    defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||                  \
+    defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
 const int kFailStatus = 67;
 const int kRetryStatus = 69;
 #endif
@@ -180,9 +198,10 @@ const int kRetryStatus = 69;
 const int kErrorStatus = 68;
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||            \
-    defined(SYZ_USE_TMP_DIR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || \
-    defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||     \
+    defined(SYZ_USE_TMP_DIR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_USB_ENABLE) || \
+    defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_NONE) ||                    \
+    defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
 NORETURN static void fail(const char* msg, ...)
 {
 	int e = errno;
@@ -655,6 +674,168 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 
 	return 0;
 }
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(SYZ_USB_ENABLE)
+
+#define USBDEVFS_HUB_HIGHJACK 21792
+#define USBDEVFS_HUB_RELEASE 21793
+#define USBDEVFS_HUB_PROCESS 1074025762
+
+static int gfs_hub_open()
+{
+	debug("gfs: opening hub\n");
+	int fd = open("/dev/bus/usb/001/001", O_RDWR);
+	if (fd < 0)
+		fail("can't open hub");
+	debug("gfs: opening hub: done\n");
+	return fd;
+}
+
+static void gfs_hub_highjack(int fd)
+{
+	debug("gfs: hijacking hub events\n");
+	struct usbdevfs_ioctl cmd;
+	cmd.ifno = 0;
+	cmd.ioctl_code = USBDEVFS_HUB_HIGHJACK;
+	cmd.data = NULL;
+	int rv = ioctl(fd, USBDEVFS_IOCTL, &cmd);
+	if (rv != 0)
+		fail("can't highjack hub");
+	debug("gfs: hijacking hub events: done\n");
+}
+
+static void gfs_hub_release(int fd)
+{
+	debug("gfs: releasing hub events\n");
+	struct usbdevfs_ioctl cmd;
+	cmd.ifno = 0;
+	cmd.ioctl_code = USBDEVFS_HUB_RELEASE;
+	cmd.data = NULL;
+	int rv = ioctl(fd, USBDEVFS_IOCTL, &cmd);
+	if (rv != 0)
+		fail("can't release hub");
+	debug("gfs: releasing hub events: done\n");
+}
+
+static void gfs_hub_process(int fd, int attempts)
+{
+	debug("gfs: processing hub events\n");
+	struct usbdevfs_ioctl cmd;
+	cmd.ifno = 0;
+	cmd.ioctl_code = USBDEVFS_HUB_PROCESS;
+	cmd.data = &attempts;
+	int rv = ioctl(fd, USBDEVFS_IOCTL, &cmd);
+	if (rv != 0)
+		fail("can't process hub");
+	debug("gfs: processing hub events: done\n");
+}
+
+int gfs_hub_fd = -1;
+
+struct usb_device_id {
+	uint16_t idVendor;
+	uint16_t idProduct;
+	uint16_t bcdDevice;
+	uint8_t bDeviceClass;
+	uint8_t bDeviceSubClass;
+	uint8_t bDeviceProtocol;
+	uint8_t bIntClass;
+	uint8_t bIntSubClass;
+	uint8_t bIntProtocol;
+	uint8_t bIntNumber;
+};
+
+static void gfs_patch_usb_descriptor(char* device, char* device_id)
+{
+	struct usb_device_descriptor* dev =
+	    (struct usb_device_descriptor*)(device);
+	struct usb_config_descriptor* config =
+	    (struct usb_config_descriptor*)(dev + sizeof(*dev));
+	struct usb_interface_descriptor* iface =
+	    (struct usb_interface_descriptor*)(config + sizeof(*config));
+	struct usb_device_id* id = (struct usb_device_id*)device_id;
+
+	dev->idVendor = id->idVendor;
+	dev->idProduct = id->idProduct;
+	dev->bcdDevice = id->bcdDevice;
+	dev->bDeviceClass = id->bDeviceClass;
+	dev->bDeviceSubClass = id->bDeviceSubClass;
+	dev->bDeviceProtocol = id->bDeviceProtocol;
+	iface->bInterfaceClass = id->bIntClass;
+	iface->bInterfaceSubClass = id->bIntSubClass;
+	iface->bInterfaceProtocol = id->bIntProtocol;
+	iface->bInterfaceNumber = id->bIntNumber;
+}
+
+static int gfs_switch = 0;
+
+#define USBFUZZ_SETUP 100
+#define USBFUZZ_RUN 101
+
+struct usbfuzz_setup_cmd {
+	int64_t speed;
+	int64_t length;
+	char* device;
+	char* desc_responses;
+	char* req_responses;
+	char* gen_responses;
+};
+
+static uintptr_t syz_usb_connect(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6)
+{
+	int64_t speed = a0;
+	int64_t length = a1;
+	char* device = (char*)a2;
+	char* device_id = (char*)a3;
+	char* desc_responses = (char*)a4;
+	char* req_responses = (char*)a4;
+	char* gen_responses = (char*)a6;
+
+	if (gfs_switch)
+		return -0xff;
+	gfs_switch = 1;
+
+	int fd = open("/sys/kernel/debug/usb-fuzzer", O_RDWR);
+	if (fd < 0)
+		return -1;
+	debug("! syz_usb_connect: usbfuzz opened\n");
+
+	debug_dump_data(device, length);
+	gfs_patch_usb_descriptor(device, device_id);
+	debug_dump_data(device, length);
+	debug("! syz_usb_connect: descriptor patched\n");
+
+	struct usbfuzz_setup_cmd cmd;
+	cmd.speed = speed;
+	cmd.length = length;
+	cmd.device = device;
+	cmd.desc_responses = desc_responses;
+	cmd.req_responses = req_responses;
+	cmd.gen_responses = gen_responses;
+	ioctl(fd, USBFUZZ_SETUP, &cmd);
+	debug("! syz_usb_connect: device saved\n");
+
+	ioctl(fd, USBFUZZ_RUN, 0);
+	debug("! syz_usb_connect: device started\n");
+
+	gfs_hub_process(gfs_hub_fd, 0);
+	debug("! syz_usb_connect: events processed\n");
+
+	return fd;
+}
+
+static uintptr_t syz_usb_disconnect(uintptr_t a0)
+{
+	int fd = a0;
+
+	close(fd);
+	debug("! syz_usb_connect: device closed\n");
+	gfs_hub_process(gfs_hub_fd, 1);
+	debug("! syz_usb_connect: events processed\n");
+	return 0;
+}
+
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_open_dev)

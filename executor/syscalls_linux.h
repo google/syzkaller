@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "5ab424b1857f4d521bc5a906c7c5f76893d01489"
+#define SYZ_REVISION "6acec045b57952842ed384442fa44b067eefbb88"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,8 +12,10 @@
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
+#define __NR_syz_usb_connect 1000009
+#define __NR_syz_usb_disconnect 1000010
 
-unsigned syscall_count = 1513;
+unsigned syscall_count = 1515;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -1493,6 +1495,8 @@ call_t syscalls[] = {
     {"syz_test$union1", 1000008, (syscall_t)syz_test},
     {"syz_test$union2", 1000008, (syscall_t)syz_test},
     {"syz_test$vma0", 1000008, (syscall_t)syz_test},
+    {"syz_usb_connect", 1000009, (syscall_t)syz_usb_connect},
+    {"syz_usb_disconnect", 1000010, (syscall_t)syz_usb_disconnect},
     {"tee", 315},
     {"tgkill", 270},
     {"time", 13},
@@ -1534,7 +1538,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "2c170ed020211b48b95eb8956a2abed0a21b5e9b"
+#define SYZ_REVISION "6ce8f9021c01967051f4ac016be36632ca4b3bb3"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1544,8 +1548,10 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
+#define __NR_syz_usb_connect 1000009
+#define __NR_syz_usb_disconnect 1000010
 
-unsigned syscall_count = 1574;
+unsigned syscall_count = 1576;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3086,6 +3092,8 @@ call_t syscalls[] = {
     {"syz_test$union1", 1000008, (syscall_t)syz_test},
     {"syz_test$union2", 1000008, (syscall_t)syz_test},
     {"syz_test$vma0", 1000008, (syscall_t)syz_test},
+    {"syz_usb_connect", 1000009, (syscall_t)syz_usb_connect},
+    {"syz_usb_disconnect", 1000010, (syscall_t)syz_usb_disconnect},
     {"tee", 276},
     {"tgkill", 234},
     {"time", 201},
@@ -3127,7 +3135,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "2c8b016d589446c96ce54cdd167fb7053d0b3925"
+#define SYZ_REVISION "a61bee3b701676b1ecf82d788cd6897ad14c7a1f"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3137,8 +3145,10 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
+#define __NR_syz_usb_connect 1000009
+#define __NR_syz_usb_disconnect 1000010
 
-unsigned syscall_count = 1523;
+unsigned syscall_count = 1525;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4630,6 +4640,8 @@ call_t syscalls[] = {
     {"syz_test$union1", 1000008, (syscall_t)syz_test},
     {"syz_test$union2", 1000008, (syscall_t)syz_test},
     {"syz_test$vma0", 1000008, (syscall_t)syz_test},
+    {"syz_usb_connect", 1000009, (syscall_t)syz_usb_connect},
+    {"syz_usb_disconnect", 1000010, (syscall_t)syz_usb_disconnect},
     {"tee", 342},
     {"tgkill", 268},
     {"timer_create", 257},
@@ -4669,7 +4681,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "37a68567293b5ca35c86d4d843d8f489d831020c"
+#define SYZ_REVISION "e2596dd32926bd75f33dfa1ba78fa8b24cf2b962"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4679,8 +4691,10 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
+#define __NR_syz_usb_connect 1000009
+#define __NR_syz_usb_disconnect 1000010
 
-unsigned syscall_count = 1503;
+unsigned syscall_count = 1505;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6156,6 +6170,8 @@ call_t syscalls[] = {
     {"syz_test$union1", 1000008, (syscall_t)syz_test},
     {"syz_test$union2", 1000008, (syscall_t)syz_test},
     {"syz_test$vma0", 1000008, (syscall_t)syz_test},
+    {"syz_usb_connect", 1000009, (syscall_t)syz_usb_connect},
+    {"syz_usb_disconnect", 1000010, (syscall_t)syz_usb_disconnect},
     {"tee", 77},
     {"tgkill", 131},
     {"timer_create", 107},
@@ -6191,7 +6207,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "06d84dc490b3b239e55e2b35b56a56cd10211e18"
+#define SYZ_REVISION "07934de99a52fb258bf5497e1d1a1f80fac8b1ea"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6201,8 +6217,10 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 #define __NR_syz_test 1000008
+#define __NR_syz_usb_connect 1000009
+#define __NR_syz_usb_disconnect 1000010
 
-unsigned syscall_count = 1483;
+unsigned syscall_count = 1485;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7652,6 +7670,8 @@ call_t syscalls[] = {
     {"syz_test$union1", 1000008, (syscall_t)syz_test},
     {"syz_test$union2", 1000008, (syscall_t)syz_test},
     {"syz_test$vma0", 1000008, (syscall_t)syz_test},
+    {"syz_usb_connect", 1000009, (syscall_t)syz_usb_connect},
+    {"syz_usb_disconnect", 1000010, (syscall_t)syz_usb_disconnect},
     {"tee", 284},
     {"tgkill", 250},
     {"time", 13},
