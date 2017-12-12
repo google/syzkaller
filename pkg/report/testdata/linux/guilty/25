@@ -1,0 +1,30 @@
+FILE: net/xfrm/xfrm_ipcomp.c
+
+BUG: using __this_cpu_read() in preemptible [00000000] code: syzkaller157688/3312
+caller is __this_cpu_preempt_check+0x1c/0x20 lib/smp_processor_id.c:62
+CPU: 0 PID: 3312 Comm: syzkaller157688 Not tainted 4.9.68-gfb66dc2 #107
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+ ffff8801c56e76d8 ffffffff81d90889 0000000000000000 ffffffff83c17800
+ ffffffff83f42ec0 ffff8801d96e3000 0000000000000003 ffff8801c56e7718
+ ffffffff81df7854 ffff8801c56e7730 ffffffff83f42ec0 dffffc0000000000
+Call Trace:
+ [<ffffffff81d90889>] __dump_stack lib/dump_stack.c:15 [inline]
+ [<ffffffff81d90889>] dump_stack+0xc1/0x128 lib/dump_stack.c:51
+ [<ffffffff81df7854>] check_preemption_disabled+0x1d4/0x200 lib/smp_processor_id.c:46
+ [<ffffffff81df78bc>] __this_cpu_preempt_check+0x1c/0x20 lib/smp_processor_id.c:62
+ [<ffffffff833f3f78>] ipcomp_alloc_tfms net/xfrm/xfrm_ipcomp.c:286 [inline]
+ [<ffffffff833f3f78>] ipcomp_init_state+0x188/0x930 net/xfrm/xfrm_ipcomp.c:363
+ [<ffffffff83360470>] ipcomp4_init_state+0xb0/0x7d0 net/ipv4/ipcomp.c:137
+ [<ffffffff833d2677>] __xfrm_init_state+0x3e7/0xb30 net/xfrm/xfrm_state.c:2096
+ [<ffffffff833d2dda>] xfrm_init_state+0x1a/0x20 net/xfrm/xfrm_state.c:2122
+ [<ffffffff8356cb49>] pfkey_msg2xfrm_state net/key/af_key.c:1281 [inline]
+ [<ffffffff8356cb49>] pfkey_add+0x1fb9/0x3470 net/key/af_key.c:1498
+ [<ffffffff835645ee>] pfkey_process+0x61e/0x730 net/key/af_key.c:2826
+ [<ffffffff83565e99>] pfkey_sendmsg+0x3a9/0x760 net/key/af_key.c:3670
+ [<ffffffff82ecfb9a>] sock_sendmsg_nosec net/socket.c:635 [inline]
+ [<ffffffff82ecfb9a>] sock_sendmsg+0xca/0x110 net/socket.c:645
+ [<ffffffff82ed1791>] ___sys_sendmsg+0x6d1/0x7e0 net/socket.c:1968
+ [<ffffffff82ed37c6>] __sys_sendmsg+0xd6/0x190 net/socket.c:2002
+ [<ffffffff82ed38ad>] SYSC_sendmsg net/socket.c:2013 [inline]
+ [<ffffffff82ed38ad>] SyS_sendmsg+0x2d/0x50 net/socket.c:2009
+ [<ffffffff838aa9c5>] entry_SYSCALL_64_fastpath+0x23/0xc6
