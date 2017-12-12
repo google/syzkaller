@@ -11,6 +11,7 @@ import (
 	"math/rand"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"sync"
@@ -576,19 +577,33 @@ func (mgr *Manager) isSuppressed(crash *Crash) bool {
 	return false
 }
 
+func (mgr *Manager) emailCrash(crash *Crash) {
+	if mgr.cfg.Email_Addr == "" {
+		return
+	}
+	Logf(0, "sending email to %v", mgr.cfg.Email_Addr)
+	cmd := exec.Command("mailx", "-s", "syzkaller: "+crash.Title, mgr.cfg.Email_Addr)
+	cmd.Stdin = bytes.NewReader(crash.Report.Report)
+	if _, err := osutil.Run(10*time.Minute, cmd); err != nil {
+		Logf(0, "failed to send email: %v", err)
+	}
+}
+
 func (mgr *Manager) saveCrash(crash *Crash) bool {
 	Logf(0, "vm-%v: crash: %v", crash.vmIndex, crash.Title)
+	if err := mgr.getReporter().Symbolize(crash.Report); err != nil {
+		Logf(0, "failed to symbolize report: %v", err)
+	}
+
 	mgr.mu.Lock()
 	mgr.stats["crashes"]++
 	if !mgr.crashTypes[crash.Title] {
 		mgr.crashTypes[crash.Title] = true
 		mgr.stats["crash types"]++
+		go mgr.emailCrash(crash)
 	}
 	mgr.mu.Unlock()
 
-	if err := mgr.getReporter().Symbolize(crash.Report); err != nil {
-		Logf(0, "failed to symbolize report: %v", err)
-	}
 	if mgr.dash != nil {
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
