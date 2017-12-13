@@ -237,11 +237,10 @@ func (ct *ChoiceTable) Choose(r *rand.Rand, call int) int {
 		return ct.enabledCalls[r.Intn(len(ct.enabledCalls))].ID
 	}
 	for {
-		x := r.Intn(run[len(run)-1])
+		x := r.Intn(run[len(run)-1]) + 1
 		i := sort.SearchInts(run, x)
-		if !ct.enabled[ct.target.Syscalls[i]] {
-			continue
+		if ct.enabled[ct.target.Syscalls[i]] {
+			return i
 		}
-		return i
 	}
 }
