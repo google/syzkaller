@@ -331,3 +331,23 @@ func TestMinimizeCallIndex(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkMutate(b *testing.B) {
+	olddebug := debug
+	debug = false
+	defer func() { debug = olddebug }()
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		b.Fatal(err)
+	}
+	prios := target.CalculatePriorities(nil)
+	ct := target.BuildChoiceTable(prios, nil)
+	const progLen = 30
+	p := target.Generate(rand.NewSource(0), progLen, nil)
+	b.RunParallel(func(pb *testing.PB) {
+		rs := rand.NewSource(0)
+		for pb.Next() {
+			p.Clone().Mutate(rs, progLen, ct, nil)
+		}
+	})
+}
