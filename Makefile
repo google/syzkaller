@@ -202,6 +202,7 @@ bin/syz-sysgen:
 format: bin/syz-fmt
 	$(GO) fmt ./...
 	clang-format --style=file -i executor/*.cc executor/*.h tools/kcovtrace/*.c
+	bin/syz-fmt sys/test
 	bin/syz-fmt sys/akaros
 	bin/syz-fmt sys/freebsd
 	bin/syz-fmt sys/netbsd

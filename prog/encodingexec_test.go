@@ -42,7 +42,7 @@ func TestSerializeForExec(t *testing.T) {
 		argResult    = uint64(ExecArgResult)
 		argData      = uint64(ExecArgData)
 	)
-	target, _, _ := initTest(t)
+	target := initTargetTest(t, "test", "64")
 	var (
 		dataOffset = target.DataOffset
 		ptrSize    = target.PtrSize

@@ -63,7 +63,7 @@ func TestSerialize(t *testing.T) {
 }
 
 func TestVmaType(t *testing.T) {
-	target, rs, iters := initTest(t)
+	target, rs, iters := initRandomTargetTest(t, "test", "64")
 	meta := target.SyscallMap["syz_test$vma0"]
 	r := newRand(target, rs)
 	pageSize := target.PageSize

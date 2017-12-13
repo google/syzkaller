@@ -32,6 +32,14 @@ type os struct {
 }
 
 var List = map[string]map[string]*Target{
+	"test": map[string]*Target{
+		"32": {
+			PtrSize: 4,
+		},
+		"64": {
+			PtrSize: 8,
+		},
+	},
 	"linux": map[string]*Target{
 		"amd64": {
 			PtrSize:          8,

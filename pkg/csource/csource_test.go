@@ -41,6 +41,9 @@ func TestGenerateOne(t *testing.T) {
 		UseTmpDir: true,
 	}
 	for _, target := range prog.AllTargets() {
+		if target.OS == "test" {
+			continue
+		}
 		if target.OS == "fuchsia" {
 			continue // TODO(dvyukov): support fuchsia
 		}
