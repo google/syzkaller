@@ -103,7 +103,7 @@ func (r *randGen) randRangeInt(begin uint64, end uint64) uint64 {
 // probability of n-1 is k times higher than probability of 0.
 func (r *randGen) biasedRand(n, k int) int {
 	nf, kf := float64(n), float64(k)
-	rf := nf * (kf/2 + 1) * rand.Float64()
+	rf := nf * (kf/2 + 1) * r.Float64()
 	bf := (-1 + math.Sqrt(1+2*kf*rf/nf)) * nf / kf
 	return int(bf)
 }
