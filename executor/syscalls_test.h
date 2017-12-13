@@ -2,10 +2,10 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "d250d71b6658517f5cde664a9f26c969ddb5c4d1"
+#define SYZ_REVISION "ab5b2b746192f26c994482e664534cbf487e3dbe"
 #define __NR_syz_test 1000000
 
-unsigned syscall_count = 74;
+unsigned syscall_count = 75;
 call_t syscalls[] = {
 	{"mmap", 0, (syscall_t)mmap},
 	{"mutate0", 0, (syscall_t)mutate0},
@@ -15,6 +15,7 @@ call_t syscalls[] = {
 	{"mutate4", 0, (syscall_t)mutate4},
 	{"mutate5", 0, (syscall_t)mutate5},
 	{"mutate6", 0, (syscall_t)mutate6},
+	{"serialize", 0, (syscall_t)serialize},
 	{"syz_test", 1000000, (syscall_t)syz_test},
 	{"syz_test$align0", 1000000, (syscall_t)syz_test},
 	{"syz_test$align1", 1000000, (syscall_t)syz_test},
@@ -87,10 +88,10 @@ call_t syscalls[] = {
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "42c3155912d115b719bd9a905c83c2419b5935f2"
+#define SYZ_REVISION "1dd179fe95626e284e24e4e636195924bced24ef"
 #define __NR_syz_test 1000000
 
-unsigned syscall_count = 74;
+unsigned syscall_count = 75;
 call_t syscalls[] = {
 	{"mmap", 0, (syscall_t)mmap},
 	{"mutate0", 0, (syscall_t)mutate0},
@@ -100,6 +101,7 @@ call_t syscalls[] = {
 	{"mutate4", 0, (syscall_t)mutate4},
 	{"mutate5", 0, (syscall_t)mutate5},
 	{"mutate6", 0, (syscall_t)mutate6},
+	{"serialize", 0, (syscall_t)serialize},
 	{"syz_test", 1000000, (syscall_t)syz_test},
 	{"syz_test$align0", 1000000, (syscall_t)syz_test},
 	{"syz_test$align1", 1000000, (syscall_t)syz_test},

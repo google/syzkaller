@@ -4,7 +4,9 @@
 package prog
 
 import (
+	"bytes"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"regexp"
 	"sort"
@@ -18,6 +20,30 @@ func setToArray(s map[string]struct{}) []string {
 	}
 	sort.Strings(a)
 	return a
+}
+
+func TestSerializeData(t *testing.T) {
+	t.Parallel()
+	r := rand.New(rand.NewSource(0))
+	for i := 0; i < 1e4; i++ {
+		data := make([]byte, r.Intn(4))
+		for i := range data {
+			data[i] = byte(r.Intn(256))
+		}
+		buf := new(bytes.Buffer)
+		serializeData(buf, data)
+		p := newParser(buf.Bytes())
+		if !p.Scan() {
+			t.Fatalf("parser does not scan")
+		}
+		data1, err := deserializeData(p)
+		if err != nil {
+			t.Fatalf("failed to deserialize %q -> %s: %v", data, buf.Bytes(), err)
+		}
+		if !bytes.Equal(data, data1) {
+			t.Fatalf("corrupted data %q -> %s -> %q", data, buf.Bytes(), data1)
+		}
+	}
 }
 
 func TestCallSet(t *testing.T) {
@@ -134,6 +160,27 @@ func TestDeserialize(t *testing.T) {
 					test.err, test.data)
 			}
 			p.SerializeForExec(buf, 0)
+		}
+	}
+}
+
+func TestSerializeDeserialize(t *testing.T) {
+	target := initTargetTest(t, "test", "64")
+	tests := [][2]string{
+		{
+			`serialize(&(0x7f0000408000)={"6861736800000000000000000000", "4849000000"})`,
+			`serialize(&(0x7f0000408000)={'hash\x00', 'HI\x00'})`,
+		},
+	}
+	for _, test := range tests {
+		p, err := target.Deserialize([]byte(test[0]))
+		if err != nil {
+			t.Fatal(err)
+		}
+		data := p.Serialize()
+		test[1] += "\n"
+		if string(data) != test[1] {
+			t.Fatalf("\ngot : %s\nwant: %s", data, test[1])
 		}
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"strconv"
 )
 
@@ -54,7 +53,7 @@ func (p *Prog) Serialize() []byte {
 	return buf.Bytes()
 }
 
-func serialize(arg Arg, buf io.Writer, vars map[Arg]int, varSeq *int) {
+func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 	if arg == nil {
 		fmt.Fprintf(buf, "nil")
 		return
@@ -75,7 +74,15 @@ func serialize(arg Arg, buf io.Writer, vars map[Arg]int, varSeq *int) {
 		fmt.Fprintf(buf, "&%v=", serializeAddr(arg))
 		serialize(a.Res, buf, vars, varSeq)
 	case *DataArg:
-		fmt.Fprintf(buf, "\"%v\"", hex.EncodeToString(a.Data))
+		data := a.Data
+		if !arg.Type().Varlen() {
+			// Statically typed data will be padded with 0s during
+			// deserialization, so we can strip them here for readability.
+			for len(data) >= 2 && data[len(data)-1] == 0 && data[len(data)-2] == 0 {
+				data = data[:len(data)-1]
+			}
+		}
+		serializeData(buf, data)
 	case *GroupArg:
 		var delims []byte
 		switch arg.Type().(type) {
@@ -125,8 +132,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 	prog = &Prog{
 		Target: target,
 	}
-	p := &parser{r: bufio.NewScanner(bytes.NewReader(data))}
-	p.r.Buffer(nil, maxLineLen)
+	p := newParser(data)
 	vars := make(map[string]Arg)
 	for p.Scan() {
 		if p.EOF() || p.Char() == '#' {
@@ -276,16 +282,10 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			return nil, err
 		}
 		arg = MakeConstArg(typ, pages*target.PageSize)
-	case '"':
-		p.Parse('"')
-		val := ""
-		if p.Char() != '"' {
-			val = p.Ident()
-		}
-		p.Parse('"')
-		data, err := hex.DecodeString(val)
+	case '"', '\'':
+		data, err := deserializeData(p)
 		if err != nil {
-			return nil, fmt.Errorf("data arg has bad value '%v'", val)
+			return nil, err
 		}
 		if !typ.Varlen() {
 			if diff := int(typ.Size()) - len(data); diff > 0 {
@@ -475,12 +475,126 @@ func parseAddr(p *parser, base bool) (uint64, int, uint64, error) {
 	return page, int(off), size, nil
 }
 
+func serializeData(buf *bytes.Buffer, data []byte) {
+	readable := true
+	for _, v := range data {
+		if v >= 0x20 && v < 0x7f {
+			continue
+		}
+		switch v {
+		case 0, '\a', '\b', '\f', '\n', '\r', '\t', '\v':
+			continue
+		}
+		readable = false
+		break
+	}
+	if !readable || len(data) == 0 {
+		fmt.Fprintf(buf, "\"%v\"", hex.EncodeToString(data))
+		return
+	}
+	buf.WriteByte('\'')
+	for _, v := range data {
+		switch v {
+		case 0:
+			buf.Write([]byte{'\\', 'x', '0', '0'})
+		case '\a':
+			buf.Write([]byte{'\\', 'a'})
+		case '\b':
+			buf.Write([]byte{'\\', 'b'})
+		case '\f':
+			buf.Write([]byte{'\\', 'f'})
+		case '\n':
+			buf.Write([]byte{'\\', 'n'})
+		case '\r':
+			buf.Write([]byte{'\\', 'r'})
+		case '\t':
+			buf.Write([]byte{'\\', 't'})
+		case '\v':
+			buf.Write([]byte{'\\', 'v'})
+		case '\'':
+			buf.Write([]byte{'\\', '\''})
+		case '\\':
+			buf.Write([]byte{'\\', '\\'})
+		default:
+			buf.WriteByte(v)
+		}
+	}
+	buf.WriteByte('\'')
+}
+
+func deserializeData(p *parser) ([]byte, error) {
+	var data []byte
+	if p.Char() == '"' {
+		p.Parse('"')
+		val := ""
+		if p.Char() != '"' {
+			val = p.Ident()
+		}
+		p.Parse('"')
+		var err error
+		data, err = hex.DecodeString(val)
+		if err != nil {
+			return nil, fmt.Errorf("data arg has bad value %q", val)
+		}
+	} else {
+		if p.consume() != '\'' {
+			return nil, fmt.Errorf("data arg does not start with \" nor with '")
+		}
+		for p.Char() != '\'' && p.Char() != 0 {
+			v := p.consume()
+			if v != '\\' {
+				data = append(data, v)
+				continue
+			}
+			v = p.consume()
+			switch v {
+			case 'x':
+				hi := p.consume()
+				lo := p.consume()
+				if lo != '0' || hi != '0' {
+					return nil, fmt.Errorf(
+						"invalid \\x%c%c escape sequence in data arg", hi, lo)
+				}
+				data = append(data, 0)
+			case 'a':
+				data = append(data, '\a')
+			case 'b':
+				data = append(data, '\b')
+			case 'f':
+				data = append(data, '\f')
+			case 'n':
+				data = append(data, '\n')
+			case 'r':
+				data = append(data, '\r')
+			case 't':
+				data = append(data, '\t')
+			case 'v':
+				data = append(data, '\v')
+			case '\'':
+				data = append(data, '\'')
+			case '\\':
+				data = append(data, '\\')
+			default:
+				return nil, fmt.Errorf("invalid \\%c escape sequence in data arg", v)
+			}
+		}
+		p.Parse('\'')
+	}
+	return data, nil
+}
+
 type parser struct {
 	r *bufio.Scanner
 	s string
 	i int
 	l int
 	e error
+}
+
+func newParser(data []byte) *parser {
+	p := &parser{r: bufio.NewScanner(bytes.NewReader(data))}
+	p.r.Buffer(nil, maxLineLen)
+	return p
 }
 
 func (p *parser) Scan() bool {
@@ -534,6 +648,19 @@ func (p *parser) Parse(ch byte) {
 	}
 	p.i++
 	p.SkipWs()
+}
+
+func (p *parser) consume() byte {
+	if p.e != nil {
+		return 0
+	}
+	if p.EOF() {
+		p.failf("unexpected eof")
+		return 0
+	}
+	v := p.s[p.i]
+	p.i++
+	return v
 }
 
 func (p *parser) SkipWs() {
