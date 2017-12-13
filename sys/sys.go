@@ -9,6 +9,7 @@ import (
 	_ "github.com/google/syzkaller/sys/fuchsia"
 	_ "github.com/google/syzkaller/sys/linux"
 	_ "github.com/google/syzkaller/sys/netbsd"
+	_ "github.com/google/syzkaller/sys/test"
 	_ "github.com/google/syzkaller/sys/windows"
 )
 

@@ -671,14 +671,6 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 #endif
 #endif // #ifdef __NR_syz_kvm_setup_cpu
 
-#if defined(SYZ_EXECUTOR)
-// TODO(dvyukov): syz_test call should be moved to a "test" target.
-static uintptr_t syz_test()
-{
-	return 0;
-}
-#endif
-
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)
 static void loop();
 

@@ -20,8 +20,17 @@ var (
 	InitTest          = initTest
 )
 
-func initTest(t *testing.T) (*Target, rand.Source, int) {
+func initTargetTest(t *testing.T, os, arch string) *Target {
 	t.Parallel()
+	target, err := GetTarget(os, arch)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return target
+}
+
+func initRandomTargetTest(t *testing.T, os, arch string) (*Target, rand.Source, int) {
+	target := initTargetTest(t, os, arch)
 	iters := 10000
 	if testing.Short() {
 		iters = 100
@@ -29,9 +38,9 @@ func initTest(t *testing.T) (*Target, rand.Source, int) {
 	seed := int64(time.Now().UnixNano())
 	rs := rand.NewSource(seed)
 	t.Logf("seed=%v", seed)
-	target, err := GetTarget("linux", "amd64")
-	if err != nil {
-		t.Fatal(err)
-	}
 	return target, rs, iters
+}
+
+func initTest(t *testing.T) (*Target, rand.Source, int) {
+	return initRandomTargetTest(t, "linux", "amd64")
 }

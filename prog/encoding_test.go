@@ -96,7 +96,7 @@ func TestCallSetRandom(t *testing.T) {
 }
 
 func TestDeserialize(t *testing.T) {
-	target, _, _ := initTest(t)
+	target := initTargetTest(t, "test", "64")
 	tests := []struct {
 		data string
 		err  *regexp.Regexp
