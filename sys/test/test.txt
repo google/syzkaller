@@ -555,3 +555,14 @@ mutate5(filename ptr[in, filename], flags flags[open_flags]) fd
 mutate6(fd fd, data ptr[in, array[int8]], size bytesize[data])
 
 open_flags = 0xabababababababab, 0xcdcdcdcdcdcdcdcd
+
+# Serialization tests.
+
+serialize(a ptr[in, serialize_struct])
+
+serialize_struct {
+	a	string[serialize_strings, 10]
+	b	string[serialize_strings, 5]
+}
+
+serialize_strings = "aaa", "bbb"
