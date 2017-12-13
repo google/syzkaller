@@ -232,15 +232,11 @@ func MakeResultArg(t Type, r Arg, v uint64) Arg {
 	if r == nil {
 		return arg
 	}
-	if used, ok := r.(ArgUsed); ok {
-		if *used.Used() == nil {
-			*used.Used() = make(map[Arg]bool)
-		}
-		if (*used.Used())[arg] {
-			panic("already used")
-		}
-		(*used.Used())[arg] = true
+	used := r.(ArgUsed)
+	if *used.Used() == nil {
+		*used.Used() = make(map[Arg]bool)
 	}
+	(*used.Used())[arg] = true
 	return arg
 }
 
