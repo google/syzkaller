@@ -593,32 +593,38 @@ func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
 			if a.Kind == BufferBlobRange {
 				sz = r.randRange(a.RangeBegin, a.RangeEnd)
 			}
+			if a.Dir() == DirOut {
+				return MakeOutDataArg(a, sz), nil
+			}
 			data := make([]byte, sz)
-			if a.Dir() != DirOut {
-				for i := range data {
-					data[i] = byte(r.Intn(256))
-				}
+			for i := range data {
+				data[i] = byte(r.Intn(256))
 			}
 			return MakeDataArg(a, data), nil
 		case BufferString:
 			data := r.randString(s, a.Values, a.Dir())
-			return MakeDataArg(a, data), nil
-		case BufferFilename:
-			var data []byte
 			if a.Dir() == DirOut {
-				switch {
-				case r.nOutOf(1, 3):
-					data = make([]byte, r.Intn(100))
-				case r.nOutOf(1, 2):
-					data = make([]byte, 108) // UNIX_PATH_MAX
-				default:
-					data = make([]byte, 4096) // PATH_MAX
-				}
-			} else {
-				data = []byte(r.filename(s))
+				return MakeOutDataArg(a, uint64(len(data))), nil
 			}
 			return MakeDataArg(a, data), nil
+		case BufferFilename:
+			if a.Dir() == DirOut {
+				sz := 0
+				switch {
+				case r.nOutOf(1, 3):
+					sz = r.Intn(100)
+				case r.nOutOf(1, 2):
+					sz = 108 // UNIX_PATH_MAX
+				default:
+					sz = 4096 // PATH_MAX
+				}
+				return MakeOutDataArg(a, uint64(sz)), nil
+			}
+			return MakeDataArg(a, []byte(r.filename(s))), nil
 		case BufferText:
+			if a.Dir() == DirOut {
+				return MakeOutDataArg(a, uint64(r.Intn(100))), nil
+			}
 			return MakeDataArg(a, r.generateText(a.Text)), nil
 		default:
 			panic("unknown buffer kind")

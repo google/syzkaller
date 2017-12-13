@@ -168,8 +168,12 @@ func TestSerializeDeserialize(t *testing.T) {
 	target := initTargetTest(t, "test", "64")
 	tests := [][2]string{
 		{
-			`serialize(&(0x7f0000408000)={"6861736800000000000000000000", "4849000000"})`,
-			`serialize(&(0x7f0000408000)={'hash\x00', 'HI\x00'})`,
+			`serialize0(&(0x7f0000408000)={"6861736800000000000000000000", "4849000000"})`,
+			`serialize0(&(0x7f0000408000)={'hash\x00', 'HI\x00'})`,
+		},
+		{
+			`serialize1(&(0x7f0000000000)="0000000000000000", 0x8)`,
+			`serialize1(&(0x7f0000000000)=""/8, 0x8)`,
 		},
 	}
 	for _, test := range tests {

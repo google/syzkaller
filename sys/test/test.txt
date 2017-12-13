@@ -558,9 +558,10 @@ open_flags = 0xabababababababab, 0xcdcdcdcdcdcdcdcd
 
 # Serialization tests.
 
-serialize(a ptr[in, serialize_struct])
+serialize0(a ptr[in, serialize0_struct])
+serialize1(a ptr[out, array[int8]], b len[a])
 
-serialize_struct {
+serialize0_struct {
 	a	string[serialize_strings, 10]
 	b	string[serialize_strings, 5]
 }

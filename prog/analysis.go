@@ -58,12 +58,12 @@ func (s *state) analyze(c *Call) {
 			}
 		case *BufferType:
 			a := arg.(*DataArg)
-			if typ.Dir() != DirOut && len(a.Data) != 0 {
+			if typ.Dir() != DirOut && len(a.Data()) != 0 {
 				switch typ.Kind {
 				case BufferString:
-					s.strings[string(a.Data)] = true
+					s.strings[string(a.Data())] = true
 				case BufferFilename:
-					s.files[string(a.Data)] = true
+					s.files[string(a.Data())] = true
 				}
 			}
 		}

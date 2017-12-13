@@ -44,7 +44,7 @@ func clone(arg Arg, newargs map[Arg]Arg) Arg {
 	case *DataArg:
 		a1 := new(DataArg)
 		*a1 = *a
-		a1.Data = append([]byte{}, a.Data...)
+		a1.data = append([]byte{}, a.data...)
 		arg1 = a1
 	case *GroupArg:
 		a1 := new(GroupArg)
