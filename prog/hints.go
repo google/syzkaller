@@ -120,16 +120,21 @@ func checkConstArg(arg *ConstArg, compMap CompMap, exec func()) {
 
 func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 	bytes := make([]byte, 8)
-	for i := 0; i < min(len(arg.Data), maxDataLength); i++ {
+	data := arg.Data()
+	size := len(data)
+	if size > maxDataLength {
+		size = maxDataLength
+	}
+	for i := 0; i < size; i++ {
 		original := make([]byte, 8)
-		copy(original, arg.Data[i:])
+		copy(original, data[i:])
 		val := binary.LittleEndian.Uint64(original)
 		for replacer := range shrinkExpand(val, compMap) {
 			binary.LittleEndian.PutUint64(bytes, replacer)
-			copy(arg.Data[i:], bytes)
+			copy(data[i:], bytes)
 			exec()
 		}
-		copy(arg.Data[i:], original)
+		copy(data[i:], original)
 	}
 }
 
@@ -204,11 +209,4 @@ func init() {
 	for _, v := range specialInts {
 		specialIntsSet[v] = true
 	}
-}
-
-func min(a, b int) int {
-	if a <= b {
-		return a
-	}
-	return b
 }

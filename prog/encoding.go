@@ -74,15 +74,19 @@ func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 		fmt.Fprintf(buf, "&%v=", serializeAddr(arg))
 		serialize(a.Res, buf, vars, varSeq)
 	case *DataArg:
-		data := a.Data
-		if !arg.Type().Varlen() {
-			// Statically typed data will be padded with 0s during
-			// deserialization, so we can strip them here for readability.
-			for len(data) >= 2 && data[len(data)-1] == 0 && data[len(data)-2] == 0 {
-				data = data[:len(data)-1]
+		if a.Type().Dir() == DirOut {
+			fmt.Fprintf(buf, "\"\"/%v", a.Size())
+		} else {
+			data := a.Data()
+			if !arg.Type().Varlen() {
+				// Statically typed data will be padded with 0s during
+				// deserialization, so we can strip them here for readability.
+				for len(data) >= 2 && data[len(data)-1] == 0 && data[len(data)-2] == 0 {
+					data = data[:len(data)-1]
+				}
 			}
+			serializeData(buf, data)
 		}
-		serializeData(buf, data)
 	case *GroupArg:
 		var delims []byte
 		switch arg.Type().(type) {
@@ -287,13 +291,29 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		if err != nil {
 			return nil, err
 		}
+		size := ^uint64(0)
+		if p.Char() == '/' {
+			p.Parse('/')
+			sizeStr := p.Ident()
+			size, err = strconv.ParseUint(sizeStr, 0, 64)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse buffer size: %q", sizeStr)
+			}
+		}
 		if !typ.Varlen() {
-			if diff := int(typ.Size()) - len(data); diff > 0 {
+			size = typ.Size()
+		} else if size == ^uint64(0) {
+			size = uint64(len(data))
+		}
+		if typ.Dir() == DirOut {
+			arg = MakeOutDataArg(typ, size)
+		} else {
+			if diff := int(size) - len(data); diff > 0 {
 				data = append(data, make([]byte, diff)...)
 			}
-			data = data[:typ.Size()]
+			data = data[:size]
+			arg = MakeDataArg(typ, data)
 		}
-		arg = MakeDataArg(typ, data)
 	case '{':
 		t1, ok := typ.(*StructType)
 		if !ok {

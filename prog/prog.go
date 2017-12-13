@@ -86,11 +86,36 @@ func (arg *PointerArg) Size() uint64 {
 // Used for BufferType.
 type DataArg struct {
 	ArgCommon
-	Data []byte
+	data []byte // for in/inout args
+	size uint64 // for out Args
+}
+
+func MakeDataArg(t Type, data []byte) Arg {
+	if t.Dir() == DirOut {
+		panic("non-empty output data arg")
+	}
+	return &DataArg{ArgCommon: ArgCommon{typ: t}, data: append([]byte{}, data...)}
+}
+
+func MakeOutDataArg(t Type, size uint64) Arg {
+	if t.Dir() != DirOut {
+		panic("empty input data arg")
+	}
+	return &DataArg{ArgCommon: ArgCommon{typ: t}, size: size}
 }
 
 func (arg *DataArg) Size() uint64 {
-	return uint64(len(arg.Data))
+	if len(arg.data) != 0 {
+		return uint64(len(arg.data))
+	}
+	return arg.size
+}
+
+func (arg *DataArg) Data() []byte {
+	if arg.Type().Dir() == DirOut {
+		panic("getting data of output data arg")
+	}
+	return arg.data
 }
 
 // Used for StructType and ArrayType.
@@ -240,10 +265,6 @@ func MakeResultArg(t Type, r Arg, v uint64) Arg {
 	return arg
 }
 
-func MakeDataArg(t Type, data []byte) Arg {
-	return &DataArg{ArgCommon: ArgCommon{typ: t}, Data: append([]byte{}, data...)}
-}
-
 func MakePointerArg(t Type, page uint64, off int, npages uint64, obj Arg) Arg {
 	return &PointerArg{ArgCommon: ArgCommon{typ: t}, PageIndex: page, PageOffset: off, PagesNum: npages, Res: obj}
 }
@@ -267,6 +288,13 @@ func defaultArg(t Type) Arg {
 	case *ResourceType:
 		return MakeResultArg(t, nil, typ.Desc.Type.Default())
 	case *BufferType:
+		if t.Dir() == DirOut {
+			var sz uint64
+			if !typ.Varlen() {
+				sz = typ.Size()
+			}
+			return MakeOutDataArg(t, sz)
+		}
 		var data []byte
 		if !typ.Varlen() {
 			data = make([]byte, typ.Size())

@@ -104,7 +104,8 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 					if _, ok := arg1.(*UnionArg); ok {
 						return
 					}
-					if a1, ok := arg1.(*DataArg); ok && len(a1.Data) == 0 {
+					if a1, ok := arg1.(*DataArg); ok &&
+						(a1.Type().Dir() == DirOut || len(a1.Data()) == 0) {
 						return
 					}
 					if !IsPad(arg1.Type()) && arg1.Type().Dir() != DirOut {
@@ -270,16 +271,17 @@ func (w *execContext) writeArg(arg Arg, pid int, csumMap map[Arg]CsumInfo) {
 		w.write(0) // bit field offset
 		w.write(0) // bit field length
 	case *DataArg:
+		data := a.Data()
 		w.write(ExecArgData)
-		w.write(uint64(len(a.Data)))
-		padded := len(a.Data)
-		if pad := 8 - len(a.Data)%8; pad != 8 {
+		w.write(uint64(len(data)))
+		padded := len(data)
+		if pad := 8 - len(data)%8; pad != 8 {
 			padded += pad
 		}
 		if len(w.buf) < padded {
 			w.eof = true
 		} else {
-			copy(w.buf, a.Data)
+			copy(w.buf, data)
 			w.buf = w.buf[padded:]
 		}
 	default:
