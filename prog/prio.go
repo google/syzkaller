@@ -220,7 +220,11 @@ func (target *Target) BuildChoiceTable(prios [][]float32, enabled map[*Syscall]b
 		sum := 0
 		for j := range run[i] {
 			if enabled[target.Syscalls[j]] {
-				sum += int(prios[i][j] * 1000)
+				w := 1
+				if prios != nil {
+					w = int(prios[i][j] * 1000)
+				}
+				sum += w
 			}
 			run[i][j] = sum
 		}
