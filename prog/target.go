@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"sync"
 )
 
 // Target describes target OS/arch pair.
@@ -52,6 +53,8 @@ type Target struct {
 	StringDictionary []string
 
 	// Filled by prog package:
+	init        sync.Once
+	initArch    func(target *Target)
 	SyscallMap  map[string]*Syscall
 	ConstMap    map[string]uint64
 	resourceMap map[string]*ResourceDesc
@@ -66,10 +69,7 @@ func RegisterTarget(target *Target, initArch func(target *Target)) {
 	if targets[key] != nil {
 		panic(fmt.Sprintf("duplicate target %v", key))
 	}
-	target.SanitizeCall = func(c *Call) {}
-	initTarget(target)
-	initArch(target)
-	target.ConstMap = nil // currently used only by initArch
+	target.initArch = initArch
 	targets[key] = target
 }
 
@@ -84,13 +84,15 @@ func GetTarget(OS, arch string) (*Target, error) {
 		sort.Strings(supported)
 		return nil, fmt.Errorf("unknown target: %v (supported: %v)", key, supported)
 	}
+	target.init.Do(target.lazyInit)
 	return target, nil
 }
 
 func AllTargets() []*Target {
 	var res []*Target
-	for _, t := range targets {
-		res = append(res, t)
+	for _, target := range targets {
+		target.init.Do(target.lazyInit)
+		res = append(res, target)
 	}
 	sort.Slice(res, func(i, j int) bool {
 		if res[i].OS != res[j].OS {
@@ -101,7 +103,14 @@ func AllTargets() []*Target {
 	return res
 }
 
-func initTarget(target *Target) {
+func (target *Target) lazyInit() {
+	target.SanitizeCall = func(c *Call) {}
+	target.initTarget()
+	target.initArch(target)
+	target.ConstMap = nil // currently used only by initArch
+}
+
+func (target *Target) initTarget() {
 	target.ConstMap = make(map[string]uint64)
 	for _, c := range target.Consts {
 		target.ConstMap[c.Name] = c.Value
