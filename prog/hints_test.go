@@ -161,10 +161,10 @@ func TestHintsCheckDataArg(t *testing.T) {
 			res := make(map[string]bool)
 			// Whatever type here. It's just needed to pass the
 			// dataArg.Type().Dir() == DirIn check.
-			typ := ArrayType{TypeCommon{"", "", 0, DirIn, false}, nil, 0, 0, 0}
-			dataArg := &DataArg{ArgCommon{&typ}, []byte(test.in)}
+			typ := &ArrayType{TypeCommon{"", "", 0, DirIn, false}, nil, 0, 0, 0}
+			dataArg := MakeDataArg(typ, []byte(test.in)).(*DataArg)
 			checkDataArg(dataArg, test.comps, func() {
-				res[string(dataArg.Data)] = true
+				res[string(dataArg.Data())] = true
 			})
 			if !reflect.DeepEqual(res, test.res) {
 				s := "\ngot: ["
@@ -365,26 +365,30 @@ func TestHintsRandom(t *testing.T) {
 func extractValues(c *Call) map[uint64]bool {
 	vals := make(map[uint64]bool)
 	foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+		if arg.Type().Dir() == DirOut {
+			return
+		}
 		switch a := arg.(type) {
 		case *ConstArg:
 			vals[a.Val] = true
 		case *DataArg:
-			for i := range a.Data {
-				vals[uint64(a.Data[i])] = true
-				if i < len(a.Data)-1 {
-					v := uint64(a.Data[i]) | uint64(a.Data[i+1])<<8
+			data := a.Data()
+			for i := range data {
+				vals[uint64(data[i])] = true
+				if i < len(data)-1 {
+					v := uint64(data[i]) | uint64(data[i+1])<<8
 					vals[v] = true
 				}
-				if i < len(a.Data)-3 {
-					v := uint64(a.Data[i]) | uint64(a.Data[i+1])<<8 |
-						uint64(a.Data[i+2])<<16 | uint64(a.Data[i+3])<<24
+				if i < len(data)-3 {
+					v := uint64(data[i]) | uint64(data[i+1])<<8 |
+						uint64(data[i+2])<<16 | uint64(data[i+3])<<24
 					vals[v] = true
 				}
-				if i < len(a.Data)-7 {
-					v := uint64(a.Data[i]) | uint64(a.Data[i+1])<<8 |
-						uint64(a.Data[i+2])<<16 | uint64(a.Data[i+3])<<24 |
-						uint64(a.Data[i+4])<<32 | uint64(a.Data[i+5])<<40 |
-						uint64(a.Data[i+6])<<48 | uint64(a.Data[i+7])<<56
+				if i < len(data)-7 {
+					v := uint64(data[i]) | uint64(data[i+1])<<8 |
+						uint64(data[i+2])<<16 | uint64(data[i+3])<<24 |
+						uint64(data[i+4])<<32 | uint64(data[i+5])<<40 |
+						uint64(data[i+6])<<48 | uint64(data[i+7])<<56
 					vals[v] = true
 				}
 			}
@@ -428,7 +432,7 @@ func TestHintsData(t *testing.T) {
 		var got []string
 		p.MutateWithHints(0, test.comps, func(newP *Prog) {
 			got = append(got, hex.EncodeToString(
-				newP.Calls[0].Args[0].(*PointerArg).Res.(*DataArg).Data))
+				newP.Calls[0].Args[0].(*PointerArg).Res.(*DataArg).Data()))
 		})
 		sort.Strings(test.out)
 		sort.Strings(got)

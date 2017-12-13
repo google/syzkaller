@@ -101,27 +101,28 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					a := arg.(*DataArg)
 					switch t.Kind {
 					case BufferBlobRand, BufferBlobRange:
-						var data []byte
-						data = append([]byte{}, a.Data...)
+						data := append([]byte{}, a.Data()...)
 						minLen, maxLen := uint64(0), maxBlobLen
 						if t.Kind == BufferBlobRange {
 							minLen, maxLen = t.RangeBegin, t.RangeEnd
 						}
-						a.Data = mutateData(r, data, minLen, maxLen)
+						a.data = mutateData(r, data, minLen, maxLen)
 					case BufferString:
+						data := append([]byte{}, a.Data()...)
 						if r.bin() {
 							minLen, maxLen := uint64(0), maxBlobLen
 							if t.TypeSize != 0 {
 								minLen, maxLen = t.TypeSize, t.TypeSize
 							}
-							a.Data = mutateData(r, append([]byte{}, a.Data...), minLen, maxLen)
+							a.data = mutateData(r, data, minLen, maxLen)
 						} else {
-							a.Data = r.randString(s, t.Values, t.Dir())
+							a.data = r.randString(s, t.Values, t.Dir())
 						}
 					case BufferFilename:
-						a.Data = []byte(r.filename(s))
+						a.data = []byte(r.filename(s))
 					case BufferText:
-						a.Data = r.mutateText(t.Text, a.Data)
+						data := append([]byte{}, a.Data()...)
+						a.data = r.mutateText(t.Text, data)
 					default:
 						panic("unknown buffer kind")
 					}
@@ -430,19 +431,20 @@ func Minimize(p0 *Prog, callIndex0 int, pred0 func(*Prog, int) bool, crash bool)
 				return false
 			}
 			triedPaths[path] = true
-			if typ.Kind != BufferBlobRand && typ.Kind != BufferBlobRange {
+			if typ.Kind != BufferBlobRand && typ.Kind != BufferBlobRange ||
+				typ.Dir() == DirOut {
 				return false
 			}
 			a := arg.(*DataArg)
 			minLen := int(typ.RangeBegin)
-			for step := len(a.Data) - minLen; len(a.Data) > minLen && step > 0; {
-				if len(a.Data)-step >= minLen {
-					a.Data = a.Data[:len(a.Data)-step]
+			for step := len(a.Data()) - minLen; len(a.Data()) > minLen && step > 0; {
+				if len(a.Data())-step >= minLen {
+					a.data = a.Data()[:len(a.Data())-step]
 					p.Target.assignSizesCall(call)
 					if pred(p, callIndex0) {
 						continue
 					}
-					a.Data = a.Data[:len(a.Data)+step]
+					a.data = a.Data()[:len(a.Data())+step]
 					p.Target.assignSizesCall(call)
 				}
 				step /= 2

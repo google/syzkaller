@@ -68,10 +68,9 @@ func (c *Call) validate(ctx *validCtx) error {
 					return fmt.Errorf("syscall %v: output arg '%v'/'%v' has non default value '%+v'", c.Meta.Name, a.Type().FieldName(), a.Type().Name(), a)
 				}
 			case *DataArg:
-				for _, v := range a.Data {
-					if v != 0 {
-						return fmt.Errorf("syscall %v: output arg '%v' has data", c.Meta.Name, a.Type().Name())
-					}
+				if len(a.data) != 0 {
+					return fmt.Errorf("syscall %v: output arg '%v' has data",
+						c.Meta.Name, a.Type().Name())
 				}
 			}
 		}
@@ -123,9 +122,9 @@ func (c *Call) validate(ctx *validCtx) error {
 			case *DataArg:
 				switch typ1.Kind {
 				case BufferString:
-					if typ1.TypeSize != 0 && uint64(len(a.Data)) != typ1.TypeSize {
+					if typ1.TypeSize != 0 && a.Size() != typ1.TypeSize {
 						return fmt.Errorf("syscall %v: string arg '%v' has size %v, which should be %v",
-							c.Meta.Name, a.Type().Name(), len(a.Data), typ1.TypeSize)
+							c.Meta.Name, a.Type().Name(), a.Size(), typ1.TypeSize)
 					}
 				}
 			default:
@@ -178,10 +177,9 @@ func (c *Call) validate(ctx *validCtx) error {
 			}
 		case *DataArg:
 			typ1 := a.Type()
-			if !typ1.Varlen() && typ1.Size() != uint64(len(a.Data)) {
+			if !typ1.Varlen() && typ1.Size() != a.Size() {
 				return fmt.Errorf("syscall %v: data arg %v has wrong size %v, want %v",
-					c.Meta.Name, arg.Type().Name(),
-					len(a.Data), typ1.Size())
+					c.Meta.Name, arg.Type().Name(), a.Size(), typ1.Size())
 			}
 			switch typ1 := a.Type().(type) {
 			case *ArrayType:
