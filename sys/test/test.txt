@@ -3,10 +3,7 @@
 
 # Syscalls used in syzkaller tests.
 
-# For IPPROTO_* consts.
-include <linux/in.h>
-include <linux/in6.h>
-
+mmap(addr vma, len len[addr])
 syz_test()
 
 # Integer types.
@@ -526,15 +523,15 @@ resource syz_res[int32]: 0xffff
 syz_test$res0() syz_res
 syz_test$res1(a0 syz_res)
 
-# KVM_ARM_VCPU_INIT const is not present on all arches.
+# ONLY_32BITS_CONST const is not present on all arches.
 # Ensure that it does not break build.
 
-resource syz_missing_const_res[int32]: KVM_ARM_VCPU_INIT
+resource syz_missing_const_res[int32]: ONLY_32BITS_CONST
 
 syz_test$missing_resource() syz_missing_const_res
 
 syz_missing_const_struct {
-	a0	const[KVM_ARM_VCPU_INIT, int32]
+	a0	const[ONLY_32BITS_CONST, int32]
 }
 
 syz_use_missing {

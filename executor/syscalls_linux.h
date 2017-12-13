@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "5ab424b1857f4d521bc5a906c7c5f76893d01489"
+#define SYZ_REVISION "fd39559cec7e0bf3b73161acf9105976b4e778d6"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -11,9 +11,8 @@
 #define __NR_syz_open_dev 1000005
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
-#define __NR_syz_test 1000008
 
-unsigned syscall_count = 1513;
+unsigned syscall_count = 1447;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -1427,72 +1426,6 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsn", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 1000006, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 1000007, (syscall_t)syz_open_pts},
-    {"syz_test", 1000008, (syscall_t)syz_test},
-    {"syz_test$align0", 1000008, (syscall_t)syz_test},
-    {"syz_test$align1", 1000008, (syscall_t)syz_test},
-    {"syz_test$align2", 1000008, (syscall_t)syz_test},
-    {"syz_test$align3", 1000008, (syscall_t)syz_test},
-    {"syz_test$align4", 1000008, (syscall_t)syz_test},
-    {"syz_test$align5", 1000008, (syscall_t)syz_test},
-    {"syz_test$align6", 1000008, (syscall_t)syz_test},
-    {"syz_test$array0", 1000008, (syscall_t)syz_test},
-    {"syz_test$array1", 1000008, (syscall_t)syz_test},
-    {"syz_test$array2", 1000008, (syscall_t)syz_test},
-    {"syz_test$bf0", 1000008, (syscall_t)syz_test},
-    {"syz_test$bf1", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_encode", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4_tcp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4_udp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_icmp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_tcp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_udp", 1000008, (syscall_t)syz_test},
-    {"syz_test$end0", 1000008, (syscall_t)syz_test},
-    {"syz_test$end1", 1000008, (syscall_t)syz_test},
-    {"syz_test$hint_data", 1000008, (syscall_t)syz_test},
-    {"syz_test$int", 1000008, (syscall_t)syz_test},
-    {"syz_test$length0", 1000008, (syscall_t)syz_test},
-    {"syz_test$length1", 1000008, (syscall_t)syz_test},
-    {"syz_test$length10", 1000008, (syscall_t)syz_test},
-    {"syz_test$length11", 1000008, (syscall_t)syz_test},
-    {"syz_test$length12", 1000008, (syscall_t)syz_test},
-    {"syz_test$length13", 1000008, (syscall_t)syz_test},
-    {"syz_test$length14", 1000008, (syscall_t)syz_test},
-    {"syz_test$length15", 1000008, (syscall_t)syz_test},
-    {"syz_test$length16", 1000008, (syscall_t)syz_test},
-    {"syz_test$length17", 1000008, (syscall_t)syz_test},
-    {"syz_test$length18", 1000008, (syscall_t)syz_test},
-    {"syz_test$length19", 1000008, (syscall_t)syz_test},
-    {"syz_test$length2", 1000008, (syscall_t)syz_test},
-    {"syz_test$length20", 1000008, (syscall_t)syz_test},
-    {"syz_test$length3", 1000008, (syscall_t)syz_test},
-    {"syz_test$length4", 1000008, (syscall_t)syz_test},
-    {"syz_test$length5", 1000008, (syscall_t)syz_test},
-    {"syz_test$length6", 1000008, (syscall_t)syz_test},
-    {"syz_test$length7", 1000008, (syscall_t)syz_test},
-    {"syz_test$length8", 1000008, (syscall_t)syz_test},
-    {"syz_test$length9", 1000008, (syscall_t)syz_test},
-    {"syz_test$missing_resource", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt0", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt1", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt2", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur0", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur1", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur2", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression0", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression1", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression2", 1000008, (syscall_t)syz_test},
-    {"syz_test$res0", 1000008, (syscall_t)syz_test},
-    {"syz_test$res1", 1000008, (syscall_t)syz_test},
-    {"syz_test$struct", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_16", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_32", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_64", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_real", 1000008, (syscall_t)syz_test},
-    {"syz_test$union0", 1000008, (syscall_t)syz_test},
-    {"syz_test$union1", 1000008, (syscall_t)syz_test},
-    {"syz_test$union2", 1000008, (syscall_t)syz_test},
-    {"syz_test$vma0", 1000008, (syscall_t)syz_test},
     {"tee", 315},
     {"tgkill", 270},
     {"time", 13},
@@ -1534,7 +1467,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "2c170ed020211b48b95eb8956a2abed0a21b5e9b"
+#define SYZ_REVISION "20b754ebbf859e5765e0f3d5f2e5c9cd0468304c"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1543,9 +1476,8 @@ call_t syscalls[] = {
 #define __NR_syz_open_dev 1000005
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
-#define __NR_syz_test 1000008
 
-unsigned syscall_count = 1574;
+unsigned syscall_count = 1508;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3020,72 +2952,6 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsn", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 1000006, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 1000007, (syscall_t)syz_open_pts},
-    {"syz_test", 1000008, (syscall_t)syz_test},
-    {"syz_test$align0", 1000008, (syscall_t)syz_test},
-    {"syz_test$align1", 1000008, (syscall_t)syz_test},
-    {"syz_test$align2", 1000008, (syscall_t)syz_test},
-    {"syz_test$align3", 1000008, (syscall_t)syz_test},
-    {"syz_test$align4", 1000008, (syscall_t)syz_test},
-    {"syz_test$align5", 1000008, (syscall_t)syz_test},
-    {"syz_test$align6", 1000008, (syscall_t)syz_test},
-    {"syz_test$array0", 1000008, (syscall_t)syz_test},
-    {"syz_test$array1", 1000008, (syscall_t)syz_test},
-    {"syz_test$array2", 1000008, (syscall_t)syz_test},
-    {"syz_test$bf0", 1000008, (syscall_t)syz_test},
-    {"syz_test$bf1", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_encode", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4_tcp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4_udp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_icmp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_tcp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_udp", 1000008, (syscall_t)syz_test},
-    {"syz_test$end0", 1000008, (syscall_t)syz_test},
-    {"syz_test$end1", 1000008, (syscall_t)syz_test},
-    {"syz_test$hint_data", 1000008, (syscall_t)syz_test},
-    {"syz_test$int", 1000008, (syscall_t)syz_test},
-    {"syz_test$length0", 1000008, (syscall_t)syz_test},
-    {"syz_test$length1", 1000008, (syscall_t)syz_test},
-    {"syz_test$length10", 1000008, (syscall_t)syz_test},
-    {"syz_test$length11", 1000008, (syscall_t)syz_test},
-    {"syz_test$length12", 1000008, (syscall_t)syz_test},
-    {"syz_test$length13", 1000008, (syscall_t)syz_test},
-    {"syz_test$length14", 1000008, (syscall_t)syz_test},
-    {"syz_test$length15", 1000008, (syscall_t)syz_test},
-    {"syz_test$length16", 1000008, (syscall_t)syz_test},
-    {"syz_test$length17", 1000008, (syscall_t)syz_test},
-    {"syz_test$length18", 1000008, (syscall_t)syz_test},
-    {"syz_test$length19", 1000008, (syscall_t)syz_test},
-    {"syz_test$length2", 1000008, (syscall_t)syz_test},
-    {"syz_test$length20", 1000008, (syscall_t)syz_test},
-    {"syz_test$length3", 1000008, (syscall_t)syz_test},
-    {"syz_test$length4", 1000008, (syscall_t)syz_test},
-    {"syz_test$length5", 1000008, (syscall_t)syz_test},
-    {"syz_test$length6", 1000008, (syscall_t)syz_test},
-    {"syz_test$length7", 1000008, (syscall_t)syz_test},
-    {"syz_test$length8", 1000008, (syscall_t)syz_test},
-    {"syz_test$length9", 1000008, (syscall_t)syz_test},
-    {"syz_test$missing_resource", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt0", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt1", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt2", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur0", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur1", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur2", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression0", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression1", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression2", 1000008, (syscall_t)syz_test},
-    {"syz_test$res0", 1000008, (syscall_t)syz_test},
-    {"syz_test$res1", 1000008, (syscall_t)syz_test},
-    {"syz_test$struct", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_16", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_32", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_64", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_real", 1000008, (syscall_t)syz_test},
-    {"syz_test$union0", 1000008, (syscall_t)syz_test},
-    {"syz_test$union1", 1000008, (syscall_t)syz_test},
-    {"syz_test$union2", 1000008, (syscall_t)syz_test},
-    {"syz_test$vma0", 1000008, (syscall_t)syz_test},
     {"tee", 276},
     {"tgkill", 234},
     {"time", 201},
@@ -3127,7 +2993,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "2c8b016d589446c96ce54cdd167fb7053d0b3925"
+#define SYZ_REVISION "22274c8a0815d6ce80b34c051e8074163b988754"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3136,9 +3002,8 @@ call_t syscalls[] = {
 #define __NR_syz_open_dev 1000005
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
-#define __NR_syz_test 1000008
 
-unsigned syscall_count = 1523;
+unsigned syscall_count = 1457;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4564,72 +4429,6 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsn", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 1000006, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 1000007, (syscall_t)syz_open_pts},
-    {"syz_test", 1000008, (syscall_t)syz_test},
-    {"syz_test$align0", 1000008, (syscall_t)syz_test},
-    {"syz_test$align1", 1000008, (syscall_t)syz_test},
-    {"syz_test$align2", 1000008, (syscall_t)syz_test},
-    {"syz_test$align3", 1000008, (syscall_t)syz_test},
-    {"syz_test$align4", 1000008, (syscall_t)syz_test},
-    {"syz_test$align5", 1000008, (syscall_t)syz_test},
-    {"syz_test$align6", 1000008, (syscall_t)syz_test},
-    {"syz_test$array0", 1000008, (syscall_t)syz_test},
-    {"syz_test$array1", 1000008, (syscall_t)syz_test},
-    {"syz_test$array2", 1000008, (syscall_t)syz_test},
-    {"syz_test$bf0", 1000008, (syscall_t)syz_test},
-    {"syz_test$bf1", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_encode", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4_tcp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4_udp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_icmp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_tcp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_udp", 1000008, (syscall_t)syz_test},
-    {"syz_test$end0", 1000008, (syscall_t)syz_test},
-    {"syz_test$end1", 1000008, (syscall_t)syz_test},
-    {"syz_test$hint_data", 1000008, (syscall_t)syz_test},
-    {"syz_test$int", 1000008, (syscall_t)syz_test},
-    {"syz_test$length0", 1000008, (syscall_t)syz_test},
-    {"syz_test$length1", 1000008, (syscall_t)syz_test},
-    {"syz_test$length10", 1000008, (syscall_t)syz_test},
-    {"syz_test$length11", 1000008, (syscall_t)syz_test},
-    {"syz_test$length12", 1000008, (syscall_t)syz_test},
-    {"syz_test$length13", 1000008, (syscall_t)syz_test},
-    {"syz_test$length14", 1000008, (syscall_t)syz_test},
-    {"syz_test$length15", 1000008, (syscall_t)syz_test},
-    {"syz_test$length16", 1000008, (syscall_t)syz_test},
-    {"syz_test$length17", 1000008, (syscall_t)syz_test},
-    {"syz_test$length18", 1000008, (syscall_t)syz_test},
-    {"syz_test$length19", 1000008, (syscall_t)syz_test},
-    {"syz_test$length2", 1000008, (syscall_t)syz_test},
-    {"syz_test$length20", 1000008, (syscall_t)syz_test},
-    {"syz_test$length3", 1000008, (syscall_t)syz_test},
-    {"syz_test$length4", 1000008, (syscall_t)syz_test},
-    {"syz_test$length5", 1000008, (syscall_t)syz_test},
-    {"syz_test$length6", 1000008, (syscall_t)syz_test},
-    {"syz_test$length7", 1000008, (syscall_t)syz_test},
-    {"syz_test$length8", 1000008, (syscall_t)syz_test},
-    {"syz_test$length9", 1000008, (syscall_t)syz_test},
-    {"syz_test$missing_resource", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt0", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt1", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt2", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur0", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur1", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur2", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression0", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression1", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression2", 1000008, (syscall_t)syz_test},
-    {"syz_test$res0", 1000008, (syscall_t)syz_test},
-    {"syz_test$res1", 1000008, (syscall_t)syz_test},
-    {"syz_test$struct", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_16", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_32", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_64", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_real", 1000008, (syscall_t)syz_test},
-    {"syz_test$union0", 1000008, (syscall_t)syz_test},
-    {"syz_test$union1", 1000008, (syscall_t)syz_test},
-    {"syz_test$union2", 1000008, (syscall_t)syz_test},
-    {"syz_test$vma0", 1000008, (syscall_t)syz_test},
     {"tee", 342},
     {"tgkill", 268},
     {"timer_create", 257},
@@ -4669,7 +4468,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "37a68567293b5ca35c86d4d843d8f489d831020c"
+#define SYZ_REVISION "f5bf5c05890ab70b1ea1b1029f18449ac7b4b6a2"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4678,9 +4477,8 @@ call_t syscalls[] = {
 #define __NR_syz_open_dev 1000005
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
-#define __NR_syz_test 1000008
 
-unsigned syscall_count = 1503;
+unsigned syscall_count = 1437;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6090,72 +5888,6 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsn", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 1000006, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 1000007, (syscall_t)syz_open_pts},
-    {"syz_test", 1000008, (syscall_t)syz_test},
-    {"syz_test$align0", 1000008, (syscall_t)syz_test},
-    {"syz_test$align1", 1000008, (syscall_t)syz_test},
-    {"syz_test$align2", 1000008, (syscall_t)syz_test},
-    {"syz_test$align3", 1000008, (syscall_t)syz_test},
-    {"syz_test$align4", 1000008, (syscall_t)syz_test},
-    {"syz_test$align5", 1000008, (syscall_t)syz_test},
-    {"syz_test$align6", 1000008, (syscall_t)syz_test},
-    {"syz_test$array0", 1000008, (syscall_t)syz_test},
-    {"syz_test$array1", 1000008, (syscall_t)syz_test},
-    {"syz_test$array2", 1000008, (syscall_t)syz_test},
-    {"syz_test$bf0", 1000008, (syscall_t)syz_test},
-    {"syz_test$bf1", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_encode", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4_tcp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4_udp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_icmp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_tcp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_udp", 1000008, (syscall_t)syz_test},
-    {"syz_test$end0", 1000008, (syscall_t)syz_test},
-    {"syz_test$end1", 1000008, (syscall_t)syz_test},
-    {"syz_test$hint_data", 1000008, (syscall_t)syz_test},
-    {"syz_test$int", 1000008, (syscall_t)syz_test},
-    {"syz_test$length0", 1000008, (syscall_t)syz_test},
-    {"syz_test$length1", 1000008, (syscall_t)syz_test},
-    {"syz_test$length10", 1000008, (syscall_t)syz_test},
-    {"syz_test$length11", 1000008, (syscall_t)syz_test},
-    {"syz_test$length12", 1000008, (syscall_t)syz_test},
-    {"syz_test$length13", 1000008, (syscall_t)syz_test},
-    {"syz_test$length14", 1000008, (syscall_t)syz_test},
-    {"syz_test$length15", 1000008, (syscall_t)syz_test},
-    {"syz_test$length16", 1000008, (syscall_t)syz_test},
-    {"syz_test$length17", 1000008, (syscall_t)syz_test},
-    {"syz_test$length18", 1000008, (syscall_t)syz_test},
-    {"syz_test$length19", 1000008, (syscall_t)syz_test},
-    {"syz_test$length2", 1000008, (syscall_t)syz_test},
-    {"syz_test$length20", 1000008, (syscall_t)syz_test},
-    {"syz_test$length3", 1000008, (syscall_t)syz_test},
-    {"syz_test$length4", 1000008, (syscall_t)syz_test},
-    {"syz_test$length5", 1000008, (syscall_t)syz_test},
-    {"syz_test$length6", 1000008, (syscall_t)syz_test},
-    {"syz_test$length7", 1000008, (syscall_t)syz_test},
-    {"syz_test$length8", 1000008, (syscall_t)syz_test},
-    {"syz_test$length9", 1000008, (syscall_t)syz_test},
-    {"syz_test$missing_resource", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt0", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt1", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt2", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur0", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur1", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur2", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression0", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression1", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression2", 1000008, (syscall_t)syz_test},
-    {"syz_test$res0", 1000008, (syscall_t)syz_test},
-    {"syz_test$res1", 1000008, (syscall_t)syz_test},
-    {"syz_test$struct", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_16", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_32", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_64", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_real", 1000008, (syscall_t)syz_test},
-    {"syz_test$union0", 1000008, (syscall_t)syz_test},
-    {"syz_test$union1", 1000008, (syscall_t)syz_test},
-    {"syz_test$union2", 1000008, (syscall_t)syz_test},
-    {"syz_test$vma0", 1000008, (syscall_t)syz_test},
     {"tee", 77},
     {"tgkill", 131},
     {"timer_create", 107},
@@ -6191,7 +5923,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "06d84dc490b3b239e55e2b35b56a56cd10211e18"
+#define SYZ_REVISION "afc4844915d998b5b3b4659b741b83b54e797d06"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6200,9 +5932,8 @@ call_t syscalls[] = {
 #define __NR_syz_open_dev 1000005
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
-#define __NR_syz_test 1000008
 
-unsigned syscall_count = 1483;
+unsigned syscall_count = 1417;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7586,72 +7317,6 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsn", 1000005, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 1000006, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 1000007, (syscall_t)syz_open_pts},
-    {"syz_test", 1000008, (syscall_t)syz_test},
-    {"syz_test$align0", 1000008, (syscall_t)syz_test},
-    {"syz_test$align1", 1000008, (syscall_t)syz_test},
-    {"syz_test$align2", 1000008, (syscall_t)syz_test},
-    {"syz_test$align3", 1000008, (syscall_t)syz_test},
-    {"syz_test$align4", 1000008, (syscall_t)syz_test},
-    {"syz_test$align5", 1000008, (syscall_t)syz_test},
-    {"syz_test$align6", 1000008, (syscall_t)syz_test},
-    {"syz_test$array0", 1000008, (syscall_t)syz_test},
-    {"syz_test$array1", 1000008, (syscall_t)syz_test},
-    {"syz_test$array2", 1000008, (syscall_t)syz_test},
-    {"syz_test$bf0", 1000008, (syscall_t)syz_test},
-    {"syz_test$bf1", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_encode", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4_tcp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv4_udp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_icmp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_tcp", 1000008, (syscall_t)syz_test},
-    {"syz_test$csum_ipv6_udp", 1000008, (syscall_t)syz_test},
-    {"syz_test$end0", 1000008, (syscall_t)syz_test},
-    {"syz_test$end1", 1000008, (syscall_t)syz_test},
-    {"syz_test$hint_data", 1000008, (syscall_t)syz_test},
-    {"syz_test$int", 1000008, (syscall_t)syz_test},
-    {"syz_test$length0", 1000008, (syscall_t)syz_test},
-    {"syz_test$length1", 1000008, (syscall_t)syz_test},
-    {"syz_test$length10", 1000008, (syscall_t)syz_test},
-    {"syz_test$length11", 1000008, (syscall_t)syz_test},
-    {"syz_test$length12", 1000008, (syscall_t)syz_test},
-    {"syz_test$length13", 1000008, (syscall_t)syz_test},
-    {"syz_test$length14", 1000008, (syscall_t)syz_test},
-    {"syz_test$length15", 1000008, (syscall_t)syz_test},
-    {"syz_test$length16", 1000008, (syscall_t)syz_test},
-    {"syz_test$length17", 1000008, (syscall_t)syz_test},
-    {"syz_test$length18", 1000008, (syscall_t)syz_test},
-    {"syz_test$length19", 1000008, (syscall_t)syz_test},
-    {"syz_test$length2", 1000008, (syscall_t)syz_test},
-    {"syz_test$length20", 1000008, (syscall_t)syz_test},
-    {"syz_test$length3", 1000008, (syscall_t)syz_test},
-    {"syz_test$length4", 1000008, (syscall_t)syz_test},
-    {"syz_test$length5", 1000008, (syscall_t)syz_test},
-    {"syz_test$length6", 1000008, (syscall_t)syz_test},
-    {"syz_test$length7", 1000008, (syscall_t)syz_test},
-    {"syz_test$length8", 1000008, (syscall_t)syz_test},
-    {"syz_test$length9", 1000008, (syscall_t)syz_test},
-    {"syz_test$missing_resource", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt0", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt1", 1000008, (syscall_t)syz_test},
-    {"syz_test$opt2", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur0", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur1", 1000008, (syscall_t)syz_test},
-    {"syz_test$recur2", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression0", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression1", 1000008, (syscall_t)syz_test},
-    {"syz_test$regression2", 1000008, (syscall_t)syz_test},
-    {"syz_test$res0", 1000008, (syscall_t)syz_test},
-    {"syz_test$res1", 1000008, (syscall_t)syz_test},
-    {"syz_test$struct", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_16", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_32", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_64", 1000008, (syscall_t)syz_test},
-    {"syz_test$text_x86_real", 1000008, (syscall_t)syz_test},
-    {"syz_test$union0", 1000008, (syscall_t)syz_test},
-    {"syz_test$union1", 1000008, (syscall_t)syz_test},
-    {"syz_test$union2", 1000008, (syscall_t)syz_test},
-    {"syz_test$vma0", 1000008, (syscall_t)syz_test},
     {"tee", 284},
     {"tgkill", 250},
     {"time", 13},

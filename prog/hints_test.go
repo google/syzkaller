@@ -394,7 +394,7 @@ func extractValues(c *Call) map[uint64]bool {
 }
 
 func TestHintsData(t *testing.T) {
-	t.Parallel()
+	target := initTargetTest(t, "test", "64")
 	type Test struct {
 		in    string
 		comps CompMap
@@ -407,20 +407,7 @@ func TestHintsData(t *testing.T) {
 			out:   []string{"0810000000131415"},
 		},
 	}
-	target, err := GetTarget("linux", "amd64")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var call *Syscall
-	for _, c := range target.Syscalls {
-		if c.Name == "syz_test$hint_data" {
-			call = c
-			break
-		}
-	}
-	if call == nil {
-		t.Fatalf("can't find syz_test$hint_data")
-	}
+	call := target.SyscallMap["syz_test$hint_data"]
 	for _, test := range tests {
 		input, err := hex.DecodeString(test.in)
 		if err != nil {

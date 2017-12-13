@@ -71,8 +71,6 @@ var kallsymsMap = map[string]string{
 
 func isSupportedSyzkall(c *prog.Syscall) bool {
 	switch c.CallName {
-	case "syz_test":
-		return false
 	case "syz_open_dev":
 		if _, ok := c.Args[0].(*prog.ConstType); ok {
 			// This is for syz_open_dev$char/block.
