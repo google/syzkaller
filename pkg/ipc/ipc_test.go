@@ -42,7 +42,7 @@ func buildProgram(t *testing.T, target *prog.Target, src string) string {
 	return bin
 }
 
-func initTest(t *testing.T) (*prog.Target, rand.Source, int, uint64) {
+func initTest(t *testing.T) (*prog.Target, rand.Source, int, EnvFlags) {
 	t.Parallel()
 	iters := 100
 	if testing.Short() {
@@ -55,7 +55,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, uint64) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := DefaultConfig()
+	cfg, _, err := DefaultConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,11 +69,12 @@ func TestEmptyProg(t *testing.T) {
 	bin := buildExecutor(t, target)
 	defer os.Remove(bin)
 
-	cfg := Config{
-		Flags:   flags0,
-		Timeout: timeout,
+	cfg := &Config{
+		Executor: bin,
+		Flags:    flags0,
+		Timeout:  timeout,
 	}
-	env, err := MakeEnv(bin, 0, cfg)
+	env, err := MakeEnv(cfg, 0)
 	if err != nil {
 		t.Fatalf("failed to create env: %v", err)
 	}
@@ -94,19 +95,20 @@ func TestEmptyProg(t *testing.T) {
 }
 
 func TestExecute(t *testing.T) {
-	target, rs, iters, flags0 := initTest(t)
+	target, rs, iters, configFlags := initTest(t)
 
 	bin := buildExecutor(t, target)
 	defer os.Remove(bin)
 
-	flags := []uint64{0, FlagThreaded, FlagThreaded | FlagCollide}
+	flags := []ExecFlags{0, FlagThreaded, FlagThreaded | FlagCollide}
 	for _, flag := range flags {
 		t.Logf("testing flags 0x%x\n", flag)
-		cfg := Config{
-			Flags:   flag | flags0,
-			Timeout: timeout,
+		cfg := &Config{
+			Executor: bin,
+			Flags:    configFlags,
+			Timeout:  timeout,
 		}
-		env, err := MakeEnv(bin, 0, cfg)
+		env, err := MakeEnv(cfg, 0)
 		if err != nil {
 			t.Fatalf("failed to create env: %v", err)
 		}
@@ -117,7 +119,9 @@ func TestExecute(t *testing.T) {
 			if i == 0 {
 				p = target.GenerateSimpleProg()
 			}
-			opts := &ExecOpts{}
+			opts := &ExecOpts{
+				Flags: flag,
+			}
 			output, _, _, _, err := env.Exec(opts, p)
 			if err != nil {
 				t.Logf("program:\n%s\n", p.Serialize())

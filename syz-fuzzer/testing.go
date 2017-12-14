@@ -22,7 +22,7 @@ func testImage(hostAddr string, target *prog.Target) {
 	conn.Close()
 
 	Logf(0, "checking config...")
-	config, err := ipc.DefaultConfig()
+	config, execOpts, err := ipc.DefaultConfig()
 	if err != nil {
 		Fatalf("failed to create ipc config: %v", err)
 	}
@@ -44,13 +44,12 @@ func testImage(hostAddr string, target *prog.Target) {
 	}
 
 	Logf(0, "testing simple program...")
-	env, err := ipc.MakeEnv(*flagExecutor, 0, config)
+	env, err := ipc.MakeEnv(config, 0)
 	if err != nil {
 		Fatalf("failed to create ipc env: %v", err)
 	}
 	p := target.GenerateSimpleProg()
-	opts := &ipc.ExecOpts{}
-	output, info, failed, hanged, err := env.Exec(opts, p)
+	output, info, failed, hanged, err := env.Exec(execOpts, p)
 	if err != nil {
 		Fatalf("execution failed: %v\n%s", err, output)
 	}

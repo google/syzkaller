@@ -27,7 +27,6 @@ import (
 var (
 	flagOS        = flag.String("os", runtime.GOOS, "target os")
 	flagArch      = flag.String("arch", runtime.GOARCH, "target arch")
-	flagExecutor  = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagCoverFile = flag.String("coverfile", "", "write coverage to the file")
 	flagRepeat    = flag.Int("repeat", 1, "repeat execution that many times (0 for infinite loop)")
 	flagProcs     = flag.Int("procs", 1, "number of parallel processes to execute programs")
@@ -63,15 +62,13 @@ func main() {
 		return
 	}
 
-	execOpts := &ipc.ExecOpts{}
-	config, err := ipc.DefaultConfig()
+	config, execOpts, err := ipc.DefaultConfig()
 	if err != nil {
 		Fatalf("%v", err)
 	}
 	if config.Flags&ipc.FlagSignal != 0 {
 		execOpts.Flags |= ipc.FlagCollectCover
 	}
-	execOpts.Flags |= ipc.FlagDedupCover
 	if *flagCoverFile != "" {
 		config.Flags |= ipc.FlagSignal
 		execOpts.Flags |= ipc.FlagCollectCover
@@ -112,7 +109,7 @@ func main() {
 		pid := p
 		go func() {
 			defer wg.Done()
-			env, err := ipc.MakeEnv(*flagExecutor, pid, config)
+			env, err := ipc.MakeEnv(config, pid)
 			if err != nil {
 				Fatalf("failed to create ipc env: %v", err)
 			}
