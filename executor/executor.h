@@ -367,7 +367,7 @@ retry:
 					}
 					int16_t csum_value = csum_inet_digest(&csum);
 					debug("writing inet checksum %hx to %llx\n", csum_value, csum_addr);
-					NONFAILING(copyin(csum_addr, csum_value, 2, 0, 0));
+					copyin(csum_addr, csum_value, 2, 0, 0);
 					break;
 				}
 				default:
