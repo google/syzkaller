@@ -546,6 +546,7 @@ func triageInput(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, inp Input) {
 	var inputCover cover.Cover
 	opts := *execOpts
 	opts.Flags |= ipc.FlagCollectCover
+	opts.Flags &= ^ipc.FlagCollide
 	if inp.minimized {
 		// We just need to get input coverage.
 		for i := 0; i < 3; i++ {
@@ -582,7 +583,7 @@ func triageInput(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, inp Input) {
 		}
 
 		inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
-			info := execute(pid, env, execOpts, p1, false, false, false, false, &statExecMinimize)
+			info := execute(pid, env, execOpts, p1, false, false, false, true, &statExecMinimize)
 			if len(info) == 0 || len(info[call1].Signal) == 0 {
 				return false // The call was not executed.
 			}
@@ -633,7 +634,7 @@ func triageInput(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, inp Input) {
 func executeHintSeed(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, p *prog.Prog, call int) {
 	Logf(1, "#%v: collecting comparisons", pid)
 	// First execute the original program to dump comparisons from KCOV.
-	info := execute(pid, env, execOpts, p, true, false, false, false, &statExecHintSeeds)
+	info := execute(pid, env, execOpts, p, true, false, false, true, &statExecHintSeeds)
 	if info == nil {
 		return
 	}
