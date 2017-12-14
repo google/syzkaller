@@ -47,8 +47,6 @@ enum sandbox_type {
 };
 
 bool flag_cover;
-bool flag_threaded;
-bool flag_collide;
 bool flag_sandbox_privs;
 sandbox_type flag_sandbox;
 bool flag_enable_tun;
@@ -56,6 +54,8 @@ bool flag_enable_fault_injection;
 
 bool flag_collect_cover;
 bool flag_dedup_cover;
+bool flag_threaded;
+bool flag_collide;
 
 // If true, then executor should write the comparisons data to fuzzer.
 bool flag_collect_comps;
@@ -207,17 +207,13 @@ void parse_env_flags(uint64_t flags)
 {
 	flag_debug = flags & (1 << 0);
 	flag_cover = flags & (1 << 1);
-	flag_threaded = flags & (1 << 2);
-	flag_collide = flags & (1 << 3);
 	flag_sandbox = sandbox_none;
-	if (flags & (1 << 4))
+	if (flags & (1 << 2))
 		flag_sandbox = sandbox_setuid;
-	else if (flags & (1 << 5))
+	else if (flags & (1 << 3))
 		flag_sandbox = sandbox_namespace;
-	if (!flag_threaded)
-		flag_collide = false;
-	flag_enable_tun = flags & (1 << 6);
-	flag_enable_fault_injection = flags & (1 << 7);
+	flag_enable_tun = flags & (1 << 4);
+	flag_enable_fault_injection = flags & (1 << 5);
 }
 
 void receive_handshake()
@@ -255,8 +251,12 @@ void receive_execute(bool need_prog)
 	flag_dedup_cover = req.exec_flags & (1 << 1);
 	flag_inject_fault = req.exec_flags & (1 << 2);
 	flag_collect_comps = req.exec_flags & (1 << 3);
+	flag_threaded = req.exec_flags & (1 << 4);
+	flag_collide = req.exec_flags & (1 << 5);
 	flag_fault_call = req.fault_call;
 	flag_fault_nth = req.fault_nth;
+	if (!flag_threaded)
+		flag_collide = false;
 	debug("exec opts: pid=%d threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d prog=%llu\n",
 	      flag_pid, flag_threaded, flag_collide, flag_collect_cover, flag_collect_comps,
 	      flag_dedup_cover, flag_inject_fault, flag_fault_call, flag_fault_nth,
