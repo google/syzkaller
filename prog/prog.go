@@ -23,6 +23,24 @@ type Arg interface {
 	Size() uint64
 }
 
+// ArgUser is interface of an argument that uses value of another output argument.
+type ArgUser interface {
+	Uses() *Arg
+}
+
+// ArgUsed is interface of an argument that can be used by other arguments.
+type ArgUsed interface {
+	Used() *map[Arg]bool
+}
+
+func isUsed(arg Arg) bool {
+	used, ok := arg.(ArgUsed)
+	if !ok {
+		return false
+	}
+	return len(*used.Used()) != 0
+}
+
 type ArgCommon struct {
 	typ Type
 }
@@ -35,6 +53,10 @@ func (arg *ArgCommon) Type() Type {
 type ConstArg struct {
 	ArgCommon
 	Val uint64
+}
+
+func MakeConstArg(t Type, v uint64) Arg {
+	return &ConstArg{ArgCommon: ArgCommon{typ: t}, Val: v}
 }
 
 func (arg *ConstArg) Size() uint64 {
@@ -77,6 +99,16 @@ type PointerArg struct {
 	PageOffset int    // offset within a page
 	PagesNum   uint64 // number of available pages
 	Res        Arg    // pointee
+}
+
+func MakePointerArg(t Type, page uint64, off int, npages uint64, obj Arg) Arg {
+	return &PointerArg{
+		ArgCommon:  ArgCommon{typ: t},
+		PageIndex:  page,
+		PageOffset: off,
+		PagesNum:   npages,
+		Res:        obj,
+	}
 }
 
 func (arg *PointerArg) Size() uint64 {
@@ -125,6 +157,10 @@ type GroupArg struct {
 	Inner []Arg
 }
 
+func MakeGroupArg(t Type, inner []Arg) Arg {
+	return &GroupArg{ArgCommon: ArgCommon{typ: t}, Inner: inner}
+}
+
 func (arg *GroupArg) Size() uint64 {
 	typ0 := arg.Type()
 	if !typ0.Varlen() {
@@ -160,6 +196,10 @@ type UnionArg struct {
 	OptionType Type
 }
 
+func MakeUnionArg(t Type, opt Arg, typ Type) Arg {
+	return &UnionArg{ArgCommon: ArgCommon{typ: t}, Option: opt, OptionType: typ}
+}
+
 func (arg *UnionArg) Size() uint64 {
 	if !arg.Type().Varlen() {
 		return arg.Type().Size()
@@ -179,8 +219,29 @@ type ResultArg struct {
 	uses  map[Arg]bool // ArgResult args that use this arg
 }
 
+func MakeResultArg(t Type, r Arg, v uint64) Arg {
+	arg := &ResultArg{ArgCommon: ArgCommon{typ: t}, Res: r, Val: v}
+	if r == nil {
+		return arg
+	}
+	used := r.(ArgUsed)
+	if *used.Used() == nil {
+		*used.Used() = make(map[Arg]bool)
+	}
+	(*used.Used())[arg] = true
+	return arg
+}
+
 func (arg *ResultArg) Size() uint64 {
 	return arg.typ.Size()
+}
+
+func (arg *ResultArg) Used() *map[Arg]bool {
+	return &arg.uses
+}
+
+func (arg *ResultArg) Uses() *Arg {
+	return &arg.Res
 }
 
 // Used for ResourceType and VmaType.
@@ -190,28 +251,16 @@ type ReturnArg struct {
 	uses map[Arg]bool // ArgResult args that use this arg
 }
 
+func MakeReturnArg(t Type) Arg {
+	return &ReturnArg{ArgCommon: ArgCommon{typ: t}}
+}
+
 func (arg *ReturnArg) Size() uint64 {
 	panic("not called")
 }
 
-type ArgUsed interface {
-	Used() *map[Arg]bool
-}
-
-func (arg *ResultArg) Used() *map[Arg]bool {
-	return &arg.uses
-}
-
 func (arg *ReturnArg) Used() *map[Arg]bool {
 	return &arg.uses
-}
-
-type ArgUser interface {
-	Uses() *Arg
-}
-
-func (arg *ResultArg) Uses() *Arg {
-	return &arg.Res
 }
 
 // Returns inner arg for pointer args.
@@ -246,39 +295,6 @@ func encodeValue(value uint64, size uint64, bigEndian bool) uint64 {
 	default:
 		panic(fmt.Sprintf("bad size %v for value %v", size, value))
 	}
-}
-
-func MakeConstArg(t Type, v uint64) Arg {
-	return &ConstArg{ArgCommon: ArgCommon{typ: t}, Val: v}
-}
-
-func MakeResultArg(t Type, r Arg, v uint64) Arg {
-	arg := &ResultArg{ArgCommon: ArgCommon{typ: t}, Res: r, Val: v}
-	if r == nil {
-		return arg
-	}
-	used := r.(ArgUsed)
-	if *used.Used() == nil {
-		*used.Used() = make(map[Arg]bool)
-	}
-	(*used.Used())[arg] = true
-	return arg
-}
-
-func MakePointerArg(t Type, page uint64, off int, npages uint64, obj Arg) Arg {
-	return &PointerArg{ArgCommon: ArgCommon{typ: t}, PageIndex: page, PageOffset: off, PagesNum: npages, Res: obj}
-}
-
-func MakeGroupArg(t Type, inner []Arg) Arg {
-	return &GroupArg{ArgCommon: ArgCommon{typ: t}, Inner: inner}
-}
-
-func MakeUnionArg(t Type, opt Arg, typ Type) Arg {
-	return &UnionArg{ArgCommon: ArgCommon{typ: t}, Option: opt, OptionType: typ}
-}
-
-func MakeReturnArg(t Type) Arg {
-	return &ReturnArg{ArgCommon: ArgCommon{typ: t}}
 }
 
 func defaultArg(t Type) Arg {
@@ -430,7 +446,7 @@ func (p *Prog) replaceArgCheck(c *Call, arg, arg1 Arg, calls []*Call) {
 func (p *Prog) removeArg(c *Call, arg0 Arg) {
 	foreachSubarg(arg0, func(arg, _ Arg, _ *[]Arg) {
 		if a, ok := arg.(*ResultArg); ok && a.Res != nil {
-			if _, ok := (*a.Res.(ArgUsed).Used())[arg]; !ok {
+			if !(*a.Res.(ArgUsed).Used())[arg] {
 				panic("broken tree")
 			}
 			delete(*a.Res.(ArgUsed).Used(), arg)

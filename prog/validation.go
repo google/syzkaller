@@ -48,7 +48,8 @@ func (c *Call) validate(ctx *validCtx) error {
 		if used, ok := arg.(ArgUsed); ok {
 			for u := range *used.Used() {
 				if u == nil {
-					return fmt.Errorf("syscall %v: nil reference in uses for arg %+v", c.Meta.Name, arg)
+					return fmt.Errorf("syscall %v: nil reference in uses for arg %+v",
+						c.Meta.Name, arg)
 				}
 				ctx.uses[u] = arg
 			}
@@ -246,8 +247,9 @@ func (c *Call) validate(ctx *validCtx) error {
 				return fmt.Errorf("syscall %v: result arg '%v' references out-of-tree result: %p%+v -> %p%+v",
 					c.Meta.Name, a.Type().Name(), arg, arg, a.Res, a.Res)
 			}
-			if _, ok := (*a.Res.(ArgUsed).Used())[arg]; !ok {
-				return fmt.Errorf("syscall %v: result arg '%v' has broken link (%+v)", c.Meta.Name, a.Type().Name(), *a.Res.(ArgUsed).Used())
+			if !(*a.Res.(ArgUsed).Used())[arg] {
+				return fmt.Errorf("syscall %v: result arg '%v' has broken link (%+v)",
+					c.Meta.Name, a.Type().Name(), *a.Res.(ArgUsed).Used())
 			}
 		case *ReturnArg:
 			switch a.Type().(type) {

@@ -33,7 +33,7 @@ func (p *Prog) Serialize() []byte {
 	vars := make(map[Arg]int)
 	varSeq := 0
 	for _, c := range p.Calls {
-		if len(*c.Ret.(ArgUsed).Used()) != 0 {
+		if isUsed(c.Ret) {
 			fmt.Fprintf(buf, "r%v = ", varSeq)
 			vars[c.Ret] = varSeq
 			varSeq++
@@ -58,7 +58,7 @@ func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 		fmt.Fprintf(buf, "nil")
 		return
 	}
-	if used, ok := arg.(ArgUsed); ok && len(*used.Used()) != 0 {
+	if isUsed(arg) {
 		fmt.Fprintf(buf, "<r%v=>", *varSeq)
 		vars[arg] = *varSeq
 		*varSeq++
