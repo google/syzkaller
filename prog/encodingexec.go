@@ -94,8 +94,9 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
 			if a, ok := arg.(*PointerArg); ok && a.Res != nil {
 				foreachSubargOffset(a.Res, func(arg1 Arg, offset uint64) {
+					addr := p.Target.physicalAddr(arg) + offset
 					if isUsed(arg1) || csumUses[arg1] {
-						w.args[arg1] = argInfo{Addr: p.Target.physicalAddr(arg) + offset}
+						w.args[arg1] = argInfo{Addr: addr}
 					}
 					if _, ok := arg1.(*GroupArg); ok {
 						return
@@ -109,8 +110,8 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 					}
 					if !IsPad(arg1.Type()) && arg1.Type().Dir() != DirOut {
 						w.write(ExecInstrCopyin)
-						w.write(p.Target.physicalAddr(arg) + offset)
-						w.writeArg(arg1, pid, csumMap)
+						w.write(addr)
+						w.writeArg(arg1, pid)
 						instrSeq++
 					}
 				})
@@ -161,7 +162,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 		w.write(uint64(c.Meta.ID))
 		w.write(uint64(len(c.Args)))
 		for _, arg := range c.Args {
-			w.writeArg(arg, pid, csumMap)
+			w.writeArg(arg, pid)
 		}
 		if isUsed(c.Ret) {
 			w.args[c.Ret] = argInfo{Idx: instrSeq}
@@ -241,7 +242,7 @@ func (w *execContext) write(v uint64) {
 	w.buf = w.buf[8:]
 }
 
-func (w *execContext) writeArg(arg Arg, pid int, csumMap map[Arg]CsumInfo) {
+func (w *execContext) writeArg(arg Arg, pid int) {
 	switch a := arg.(type) {
 	case *ConstArg:
 		w.write(ExecArgConst)
