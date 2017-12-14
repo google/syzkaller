@@ -94,8 +94,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
 			if a, ok := arg.(*PointerArg); ok && a.Res != nil {
 				foreachSubargOffset(a.Res, func(arg1 Arg, offset uint64) {
-					used, ok := arg1.(ArgUsed)
-					if (ok && len(*used.Used()) != 0) || csumUses[arg1] {
+					if isUsed(arg1) || csumUses[arg1] {
 						w.args[arg1] = argInfo{Addr: p.Target.physicalAddr(arg) + offset}
 					}
 					if _, ok := arg1.(*GroupArg); ok {
@@ -164,13 +163,13 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 		for _, arg := range c.Args {
 			w.writeArg(arg, pid, csumMap)
 		}
-		if len(*c.Ret.(ArgUsed).Used()) != 0 {
+		if isUsed(c.Ret) {
 			w.args[c.Ret] = argInfo{Idx: instrSeq}
 		}
 		instrSeq++
 		// Generate copyout instructions that persist interesting return values.
 		foreachArg(c, func(arg, base Arg, _ *[]Arg) {
-			if used, ok := arg.(ArgUsed); !ok || len(*used.Used()) == 0 {
+			if !isUsed(arg) {
 				return
 			}
 			switch arg.(type) {
