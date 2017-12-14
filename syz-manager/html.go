@@ -36,6 +36,8 @@ func (mgr *Manager) initHttp() {
 	http.HandleFunc("/file", mgr.httpFile)
 	http.HandleFunc("/report", mgr.httpReport)
 	http.HandleFunc("/rawcover", mgr.httpRawCover)
+	// Browsers like to request this, without special handler this goes to / handler.
+	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
 	ln, err := net.Listen("tcp4", mgr.cfg.Http)
 	if err != nil {
