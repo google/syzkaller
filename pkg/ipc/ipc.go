@@ -26,25 +26,29 @@ import (
 )
 
 // Configuration flags for Config.Flags.
+type EnvFlags uint64
+
 const (
-	FlagDebug            = uint64(1) << iota // debug output from executor
-	FlagSignal                               // collect feedback signals (coverage)
-	FlagThreaded                             // use multiple threads to mitigate blocked syscalls
-	FlagCollide                              // collide syscalls to provoke data races
-	FlagSandboxSetuid                        // impersonate nobody user
-	FlagSandboxNamespace                     // use namespaces for sandboxing
-	FlagEnableTun                            // initialize and use tun in executor
-	FlagEnableFault                          // enable fault injection support
-	FlagUseShmem                             // use shared memory instead of pipes for communication
-	FlagUseForkServer                        // use extended protocol with handshake
+	FlagDebug            EnvFlags = 1 << iota // debug output from executor
+	FlagSignal                                // collect feedback signals (coverage)
+	FlagSandboxSetuid                         // impersonate nobody user
+	FlagSandboxNamespace                      // use namespaces for sandboxing
+	FlagEnableTun                             // initialize and use tun in executor
+	FlagEnableFault                           // enable fault injection support
+	FlagUseShmem                              // use shared memory instead of pipes for communication
+	FlagUseForkServer                         // use extended protocol with handshake
 )
 
 // Per-exec flags for ExecOpts.Flags:
+type ExecFlags uint64
+
 const (
-	FlagCollectCover = uint64(1) << iota // collect coverage
-	FlagDedupCover                       // deduplicate coverage in executor
-	FlagInjectFault                      // inject a fault in this execution (see ExecOpts)
-	FlagCollectComps                     // collect KCOV comparisons
+	FlagCollectCover ExecFlags = 1 << iota // collect coverage
+	FlagDedupCover                         // deduplicate coverage in executor
+	FlagInjectFault                        // inject a fault in this execution (see ExecOpts)
+	FlagCollectComps                       // collect KCOV comparisons
+	FlagThreaded                           // use multiple threads to mitigate blocked syscalls
+	FlagCollide                            // collide syscalls to provoke data races
 )
 
 const (
@@ -56,6 +60,7 @@ const (
 )
 
 var (
+	flagExecutor    = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagThreaded    = flag.Bool("threaded", true, "use threaded mode in executor")
 	flagCollide     = flag.Bool("collide", true, "collide syscalls to provoke data races")
 	flagSignal      = flag.Bool("cover", true, "collect feedback signals (coverage)")
@@ -68,7 +73,7 @@ var (
 )
 
 type ExecOpts struct {
-	Flags     uint64
+	Flags     ExecFlags
 	FaultCall int // call index for fault injection (0-based)
 	FaultNth  int // fault n-th operation in the call (0-based)
 }
@@ -83,8 +88,11 @@ func (err ExecutorFailure) Error() string {
 
 // Config is the configuration for Env.
 type Config struct {
+	// Path to executor binary.
+	Executor string
+
 	// Flags are configuation flags, defined above.
-	Flags uint64
+	Flags EnvFlags
 
 	// Timeout is the execution timeout for a single program.
 	Timeout time.Duration
@@ -96,16 +104,18 @@ type Config struct {
 	BufferSize uint64
 }
 
-func DefaultConfig() (Config, error) {
-	var c Config
-	if *flagThreaded {
-		c.Flags |= FlagThreaded
-	}
-	if *flagCollide {
-		c.Flags |= FlagCollide
+func DefaultConfig() (*Config, *ExecOpts, error) {
+	c := &Config{
+		Executor:    *flagExecutor,
+		Timeout:     *flagTimeout,
+		AbortSignal: *flagAbortSignal,
+		BufferSize:  *flagBufferSize,
 	}
 	if *flagSignal {
 		c.Flags |= FlagSignal
+	}
+	if *flagDebug {
+		c.Flags |= FlagDebug
 	}
 	switch *flagSandbox {
 	case "none":
@@ -114,14 +124,8 @@ func DefaultConfig() (Config, error) {
 	case "namespace":
 		c.Flags |= FlagSandboxNamespace
 	default:
-		return Config{}, fmt.Errorf("flag sandbox must contain one of none/setuid/namespace")
+		return nil, nil, fmt.Errorf("flag sandbox must contain one of none/setuid/namespace")
 	}
-	if *flagDebug {
-		c.Flags |= FlagDebug
-	}
-	c.Timeout = *flagTimeout
-	c.AbortSignal = *flagAbortSignal
-	c.BufferSize = *flagBufferSize
 
 	sysTarget := targets.List[runtime.GOOS][runtime.GOARCH]
 	if sysTarget.ExecutorUsesShmem {
@@ -137,10 +141,20 @@ func DefaultConfig() (Config, error) {
 	case "shmem":
 		c.Flags |= FlagUseShmem
 	default:
-		return Config{}, fmt.Errorf("unknown ipc scheme: %v", *flagIPC)
+		return nil, nil, fmt.Errorf("unknown ipc scheme: %v", *flagIPC)
 	}
 
-	return c, nil
+	opts := &ExecOpts{
+		Flags: FlagDedupCover,
+	}
+	if *flagThreaded {
+		opts.Flags |= FlagThreaded
+	}
+	if *flagCollide {
+		opts.Flags |= FlagCollide
+	}
+
+	return c, opts, nil
 }
 
 type CallInfo struct {
@@ -169,7 +183,7 @@ type Env struct {
 	outFile *os.File
 	bin     []string
 	pid     int
-	config  Config
+	config  *Config
 
 	StatExecs    uint64
 	StatRestarts uint64
@@ -182,7 +196,7 @@ const (
 	compConstMask = 1
 )
 
-func MakeEnv(bin string, pid int, config Config) (*Env, error) {
+func MakeEnv(config *Config, pid int) (*Env, error) {
 	const (
 		executorTimeout = 5 * time.Second
 		minTimeout      = executorTimeout + 2*time.Second
@@ -233,7 +247,7 @@ func MakeEnv(bin string, pid int, config Config) (*Env, error) {
 		out:     outmem,
 		inFile:  inf,
 		outFile: outf,
-		bin:     strings.Split(bin, " "),
+		bin:     strings.Split(config.Executor, " "),
 		pid:     pid,
 		config:  config,
 	}
@@ -479,7 +493,7 @@ func (env *Env) readOutCoverage(p *prog.Prog) (info []CallInfo, err0 error) {
 
 type command struct {
 	pid      int
-	config   Config
+	config   *Config
 	cmd      *exec.Cmd
 	dir      string
 	readDone chan []byte
@@ -534,7 +548,7 @@ type callReply struct {
 	// signal/cover/comps follow
 }
 
-func makeCommand(pid int, bin []string, config Config, inFile *os.File, outFile *os.File) (*command, error) {
+func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile *os.File) (*command, error) {
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp dir: %v", err)
@@ -661,7 +675,7 @@ func (c *command) close() {
 func (c *command) handshake() error {
 	req := &handshakeReq{
 		magic: inMagic,
-		flags: c.config.Flags,
+		flags: uint64(c.config.Flags),
 		pid:   uint64(c.pid),
 	}
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
@@ -743,8 +757,8 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 	restart bool, err0 error) {
 	req := &executeReq{
 		magic:     inMagic,
-		envFlags:  c.config.Flags,
-		execFlags: opts.Flags,
+		envFlags:  uint64(c.config.Flags),
+		execFlags: uint64(opts.Flags),
 		pid:       uint64(c.pid),
 		faultCall: uint64(opts.FaultCall),
 		faultNth:  uint64(opts.FaultNth),

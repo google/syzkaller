@@ -32,15 +32,14 @@ import (
 )
 
 var (
-	flagName     = flag.String("name", "", "unique name for manager")
-	flagArch     = flag.String("arch", runtime.GOARCH, "target arch")
-	flagExecutor = flag.String("executor", "", "path to executor binary")
-	flagManager  = flag.String("manager", "", "manager rpc address")
-	flagProcs    = flag.Int("procs", 1, "number of parallel test processes")
-	flagLeak     = flag.Bool("leak", false, "detect memory leaks")
-	flagOutput   = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
-	flagPprof    = flag.String("pprof", "", "address to serve pprof profiles")
-	flagTest     = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
+	flagName    = flag.String("name", "", "unique name for manager")
+	flagArch    = flag.String("arch", runtime.GOARCH, "target arch")
+	flagManager = flag.String("manager", "", "manager rpc address")
+	flagProcs   = flag.Int("procs", 1, "number of parallel test processes")
+	flagLeak    = flag.Bool("leak", false, "detect memory leaks")
+	flagOutput  = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
+	flagPprof   = flag.String("pprof", "", "address to serve pprof profiles")
+	flagTest    = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
 )
 
 const (
@@ -160,6 +159,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
+		// TODO: noCover is not yet initialized at this point.
 		if noCover {
 			corpusMu.Lock()
 			corpus = append(corpus, p)
@@ -177,11 +177,24 @@ func main() {
 		faultInjectionEnabled = true
 	}
 
+	config, execOpts, err := ipc.DefaultConfig()
+	if err != nil {
+		panic(err)
+	}
+	if calls[target.SyscallMap["syz_emit_ethernet"]] ||
+		calls[target.SyscallMap["syz_extract_tcp_res"]] {
+		config.Flags |= ipc.FlagEnableTun
+	}
+	if faultInjectionEnabled {
+		config.Flags |= ipc.FlagEnableFault
+	}
+	noCover = config.Flags&ipc.FlagSignal == 0
+
 	kcov := false
 	kcov, compsSupported = checkCompsSupported()
 	Logf(0, "kcov=%v, comps=%v", kcov, compsSupported)
 	if r.NeedCheck {
-		out, err := osutil.RunCmd(time.Minute, "", *flagExecutor, "version")
+		out, err := osutil.RunCmd(time.Minute, "", config.Executor, "version")
 		if err != nil {
 			panic(err)
 		}
@@ -225,18 +238,6 @@ func main() {
 
 	kmemleakInit()
 
-	config, err := ipc.DefaultConfig()
-	if err != nil {
-		panic(err)
-	}
-	if calls[target.SyscallMap["syz_emit_ethernet"]] ||
-		calls[target.SyscallMap["syz_extract_tcp_res"]] {
-		config.Flags |= ipc.FlagEnableTun
-	}
-	if faultInjectionEnabled {
-		config.Flags |= ipc.FlagEnableFault
-	}
-	noCover = config.Flags&ipc.FlagSignal == 0
 	leakCallback := func() {
 		if atomic.LoadUint32(&allTriaged) != 0 {
 			// Scan for leaks once in a while (it is damn slow).
@@ -251,7 +252,7 @@ func main() {
 	needPoll <- struct{}{}
 	envs := make([]*ipc.Env, *flagProcs)
 	for pid := 0; pid < *flagProcs; pid++ {
-		env, err := ipc.MakeEnv(*flagExecutor, pid, config)
+		env, err := ipc.MakeEnv(config, pid)
 		if err != nil {
 			panic(err)
 		}
@@ -276,7 +277,7 @@ func main() {
 						triageCandidate = triageCandidate[:last]
 						triageMu.Unlock()
 						Logf(1, "#%v: triaging candidate", pid)
-						triageInput(pid, env, inp)
+						triageInput(pid, env, execOpts, inp)
 						continue
 					} else if len(candidates) != 0 {
 						last := len(candidates) - 1
@@ -291,7 +292,7 @@ func main() {
 							}
 						}
 						Logf(1, "#%v: executing candidate", pid)
-						execute(pid, env, candidate.p, false, false, candidate.minimized, true, &statExecCandidate)
+						execute(pid, env, execOpts, candidate.p, false, false, candidate.minimized, true, false, &statExecCandidate)
 						continue
 					} else if len(triage) != 0 {
 						last := len(triage) - 1
@@ -299,7 +300,7 @@ func main() {
 						triage = triage[:last]
 						triageMu.Unlock()
 						Logf(1, "#%v: triaging", pid)
-						triageInput(pid, env, inp)
+						triageInput(pid, env, execOpts, inp)
 						continue
 					} else if len(smashQueue) != 0 {
 						last := len(smashQueue) - 1
@@ -307,7 +308,7 @@ func main() {
 						smashQueue = smashQueue[:last]
 						triageMu.Unlock()
 						Logf(1, "#%v: smashing", pid)
-						smashInput(pid, env, ct, rs, inp)
+						smashInput(pid, env, execOpts, ct, rs, inp)
 						continue
 					} else {
 						triageMu.Unlock()
@@ -322,14 +323,14 @@ func main() {
 					corpusMu.RUnlock()
 					p := target.Generate(rnd, programLength, ct)
 					Logf(1, "#%v: generated", pid)
-					execute(pid, env, p, false, false, false, false, &statExecGen)
+					execute(pid, env, execOpts, p, false, false, false, false, false, &statExecGen)
 				} else {
 					// Mutate an existing prog.
 					p := corpus[rnd.Intn(len(corpus))].Clone()
 					corpusMu.RUnlock()
 					p.Mutate(rs, programLength, ct, corpus)
 					Logf(1, "#%v: mutated", pid)
-					execute(pid, env, p, false, false, false, false, &statExecFuzz)
+					execute(pid, env, execOpts, p, false, false, false, false, false, &statExecFuzz)
 				}
 			}
 		}()
@@ -495,37 +496,36 @@ func addInput(inp RpcInput) {
 	}
 }
 
-func smashInput(pid int, env *ipc.Env, ct *prog.ChoiceTable, rs rand.Source, inp Input) {
+func smashInput(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, ct *prog.ChoiceTable, rs rand.Source, inp Input) {
 	if faultInjectionEnabled {
-		failCall(pid, env, inp.p, inp.call)
+		failCall(pid, env, execOpts, inp.p, inp.call)
 	}
 	for i := 0; i < 100; i++ {
 		p := inp.p.Clone()
 		p.Mutate(rs, programLength, ct, corpus)
 		Logf(1, "#%v: smash mutated", pid)
-		execute(pid, env, p, false, false, false, false, &statExecSmash)
+		execute(pid, env, execOpts, p, false, false, false, false, false, &statExecSmash)
 	}
 	if compsSupported {
-		executeHintSeed(pid, env, inp.p, inp.call)
+		executeHintSeed(pid, env, execOpts, inp.p, inp.call)
 	}
 }
 
-func failCall(pid int, env *ipc.Env, p *prog.Prog, call int) {
+func failCall(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, p *prog.Prog, call int) {
 	for nth := 0; nth < 100; nth++ {
 		Logf(1, "#%v: injecting fault into call %v/%v", pid, call, nth)
-		opts := &ipc.ExecOpts{
-			Flags:     ipc.FlagInjectFault,
-			FaultCall: call,
-			FaultNth:  nth,
-		}
-		info := execute1(pid, env, opts, p, &statExecSmash)
+		opts := *execOpts
+		opts.Flags |= ipc.FlagInjectFault
+		opts.FaultCall = call
+		opts.FaultNth = nth
+		info := execute1(pid, env, &opts, p, &statExecSmash)
 		if info != nil && len(info) > call && !info[call].FaultInjected {
 			break
 		}
 	}
 }
 
-func triageInput(pid int, env *ipc.Env, inp Input) {
+func triageInput(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, inp Input) {
 	if noCover {
 		panic("should not be called when coverage is disabled")
 	}
@@ -544,13 +544,12 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 
 	Logf(3, "triaging input for %v (new signal=%v):\n%s", call.CallName, len(newSignal), data)
 	var inputCover cover.Cover
-	opts := &ipc.ExecOpts{
-		Flags: ipc.FlagCollectCover,
-	}
+	opts := *execOpts
+	opts.Flags |= ipc.FlagCollectCover
 	if inp.minimized {
 		// We just need to get input coverage.
 		for i := 0; i < 3; i++ {
-			info := execute1(pid, env, opts, inp.p, &statExecTriage)
+			info := execute1(pid, env, &opts, inp.p, &statExecTriage)
 			if len(info) == 0 || len(info[inp.call].Cover) == 0 {
 				continue // The call was not executed. Happens sometimes.
 			}
@@ -561,7 +560,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 		// We need to compute input coverage and non-flaky signal for minimization.
 		notexecuted := false
 		for i := 0; i < 3; i++ {
-			info := execute1(pid, env, opts, inp.p, &statExecTriage)
+			info := execute1(pid, env, &opts, inp.p, &statExecTriage)
 			if len(info) == 0 || len(info[inp.call].Signal) == 0 {
 				// The call was not executed. Happens sometimes.
 				if notexecuted {
@@ -583,7 +582,7 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 		}
 
 		inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
-			info := execute(pid, env, p1, false, false, false, false, &statExecMinimize)
+			info := execute(pid, env, execOpts, p1, false, false, false, false, false, &statExecMinimize)
 			if len(info) == 0 || len(info[call1].Signal) == 0 {
 				return false // The call was not executed.
 			}
@@ -631,10 +630,10 @@ func triageInput(pid int, env *ipc.Env, inp Input) {
 	}
 }
 
-func executeHintSeed(pid int, env *ipc.Env, p *prog.Prog, call int) {
+func executeHintSeed(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, p *prog.Prog, call int) {
 	Logf(1, "#%v: collecting comparisons", pid)
 	// First execute the original program to dump comparisons from KCOV.
-	info := execute(pid, env, p, false, true, false, false, &statExecHintSeeds)
+	info := execute(pid, env, execOpts, p, false, true, false, false, false, &statExecHintSeeds)
 	if info == nil {
 		return
 	}
@@ -647,12 +646,13 @@ func executeHintSeed(pid int, env *ipc.Env, p *prog.Prog, call int) {
 	// Execute each of such mutants to check if it gives new coverage.
 	p.MutateWithHints(call, compMaps[call], func(p *prog.Prog) {
 		Logf(1, "#%v: executing comparison hint", pid)
-		execute(pid, env, p, false, false, false, false, &statExecHints)
+		execute(pid, env, execOpts, p, false, false, false, false, false, &statExecHints)
 	})
 }
 
-func execute(pid int, env *ipc.Env, p *prog.Prog, needCover, needComps, minimized, candidate bool, stat *uint64) []ipc.CallInfo {
-	opts := &ipc.ExecOpts{}
+func execute(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, p *prog.Prog,
+	needCover, needComps, minimized, candidate, noCollide bool, stat *uint64) []ipc.CallInfo {
+	opts := *execOpts
 	if needComps {
 		if !compsSupported {
 			panic("compsSupported==false and execute() called with needComps")
@@ -667,7 +667,10 @@ func execute(pid int, env *ipc.Env, p *prog.Prog, needCover, needComps, minimize
 	if needCover {
 		opts.Flags |= ipc.FlagCollectCover
 	}
-	info := execute1(pid, env, opts, p, stat)
+	if noCollide {
+		opts.Flags &= ^ipc.FlagCollide
+	}
+	info := execute1(pid, env, &opts, p, stat)
 	signalMu.RLock()
 	defer signalMu.RUnlock()
 
@@ -713,8 +716,9 @@ func execute1(pid int, env *ipc.Env, opts *ipc.ExecOpts, p *prog.Prog, stat *uin
 		triageMu.Lock()
 		triageMu.Unlock()
 	}
-
-	opts.Flags |= ipc.FlagDedupCover
+	if opts.Flags&ipc.FlagDedupCover == 0 {
+		panic("dedup cover is not enabled")
+	}
 
 	// Limit concurrency window and do leak checking once in a while.
 	idx := gate.Enter()

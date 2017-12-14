@@ -25,7 +25,6 @@ var (
 	flagOS       = flag.String("os", runtime.GOOS, "target os")
 	flagArch     = flag.String("arch", runtime.GOARCH, "target arch")
 	flagCorpus   = flag.String("corpus", "", "corpus database")
-	flagExecutor = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagOutput   = flag.Bool("output", false, "print executor output to console")
 	flagProcs    = flag.Int("procs", 2*runtime.NumCPU(), "number of parallel processes")
 	flagLogProg  = flag.Bool("logprog", false, "print programs before execution")
@@ -53,7 +52,7 @@ func main() {
 	prios := target.CalculatePriorities(corpus)
 	ct := target.BuildChoiceTable(prios, calls)
 
-	config, err := ipc.DefaultConfig()
+	config, execOpts, err := ipc.DefaultConfig()
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -61,7 +60,7 @@ func main() {
 	for pid := 0; pid < *flagProcs; pid++ {
 		pid := pid
 		go func() {
-			env, err := ipc.MakeEnv(*flagExecutor, pid, config)
+			env, err := ipc.MakeEnv(config, pid)
 			if err != nil {
 				Fatalf("failed to create execution environment: %v", err)
 			}
@@ -71,15 +70,15 @@ func main() {
 				var p *prog.Prog
 				if *flagGenerate && len(corpus) == 0 || i%4 != 0 {
 					p = target.Generate(rs, programLength, ct)
-					execute(pid, env, p)
+					execute(pid, env, execOpts, p)
 					p.Mutate(rs, programLength, ct, corpus)
-					execute(pid, env, p)
+					execute(pid, env, execOpts, p)
 				} else {
 					p = corpus[rnd.Intn(len(corpus))].Clone()
 					p.Mutate(rs, programLength, ct, corpus)
-					execute(pid, env, p)
+					execute(pid, env, execOpts, p)
 					p.Mutate(rs, programLength, ct, corpus)
-					execute(pid, env, p)
+					execute(pid, env, execOpts, p)
 				}
 			}
 		}()
@@ -91,10 +90,7 @@ func main() {
 
 var outMu sync.Mutex
 
-func execute(pid int, env *ipc.Env, p *prog.Prog) {
-	if *flagExecutor == "" {
-		return
-	}
+func execute(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, p *prog.Prog) {
 	atomic.AddUint64(&statExec, 1)
 	if *flagLogProg {
 		ticket := gate.Enter()
@@ -103,8 +99,7 @@ func execute(pid int, env *ipc.Env, p *prog.Prog) {
 		fmt.Printf("executing program %v\n%s\n", pid, p.Serialize())
 		outMu.Unlock()
 	}
-	opts := &ipc.ExecOpts{}
-	output, _, failed, hanged, err := env.Exec(opts, p)
+	output, _, failed, hanged, err := env.Exec(execOpts, p)
 	if err != nil {
 		fmt.Printf("failed to execute executor: %v\n", err)
 	}
