@@ -53,6 +53,7 @@ func (mgr *Manager) initHttp() {
 func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
 		Name: mgr.cfg.Name,
+		Log:  CachedLogOutput(),
 	}
 
 	var err error
@@ -61,6 +62,34 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	calls, err := mgr.collectSummary(data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for c, cc := range calls {
+		data.Calls = append(data.Calls, UICallType{
+			Name:   c,
+			Inputs: cc.count,
+			Cover:  len(cc.cov),
+		})
+	}
+	sort.Sort(UICallTypeArray(data.Calls))
+
+	if err := summaryTemplate.Execute(w, data); err != nil {
+		http.Error(w, fmt.Sprintf("failed to execute template: %v", err),
+			http.StatusInternalServerError)
+		return
+	}
+}
+
+type CallCov struct {
+	count int
+	cov   cover.Cover
+}
+
+func (mgr *Manager) collectSummary(data *UISummaryData) (map[string]*CallCov, error) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -71,35 +100,10 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	data.Stats = append(data.Stats, UIStat{Name: "cover", Value: fmt.Sprint(len(mgr.corpusCover)), Link: "/cover"})
 	data.Stats = append(data.Stats, UIStat{Name: "signal", Value: fmt.Sprint(len(mgr.corpusSignal))})
 
-	type CallCov struct {
-		count int
-		cov   cover.Cover
-	}
-	calls := make(map[string]*CallCov)
-	for _, inp := range mgr.corpus {
-		if calls[inp.Call] == nil {
-			calls[inp.Call] = new(CallCov)
-		}
-		cc := calls[inp.Call]
-		cc.count++
-		cc.cov = cover.Union(cc.cov, cover.Cover(inp.Cover))
-	}
-
 	secs := uint64(1)
 	if !mgr.firstConnect.IsZero() {
 		secs = uint64(time.Since(mgr.firstConnect))/1e9 + 1
 	}
-
-	var cov cover.Cover
-	for c, cc := range calls {
-		cov = cover.Union(cov, cc.cov)
-		data.Calls = append(data.Calls, UICallType{
-			Name:   c,
-			Inputs: cc.count,
-			Cover:  len(cc.cov),
-		})
-	}
-	sort.Sort(UICallTypeArray(data.Calls))
 
 	var intStats []UIStat
 	for k, v := range mgr.stats {
@@ -114,14 +118,21 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 		}
 		intStats = append(intStats, UIStat{Name: k, Value: val})
 	}
+
 	sort.Sort(UIStatArray(intStats))
 	data.Stats = append(data.Stats, intStats...)
-	data.Log = CachedLogOutput()
 
-	if err := summaryTemplate.Execute(w, data); err != nil {
-		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
-		return
+	calls := make(map[string]*CallCov)
+	for _, inp := range mgr.corpus {
+		if calls[inp.Call] == nil {
+			calls[inp.Call] = new(CallCov)
+		}
+		cc := calls[inp.Call]
+		cc.count++
+		cc.cov = cover.Union(cc.cov, cover.Cover(inp.Cover))
 	}
+
+	return calls, nil
 }
 
 func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
