@@ -4,6 +4,19 @@
 // This file does serialization of programs for executor binary.
 // The format aims at simple parsing: binary and irreversible.
 
+// Exec format is an sequence of uint64's which encodes a sequence of calls.
+// The sequence is terminated by a speciall call execInstrEOF.
+// Each call is (call ID, number of arguments, arguments...).
+// Each argument is (type, size, value).
+// There are 4 types of arguments:
+//  - execArgConst: value is const value
+//  - execArgResult: value is index of a call whose result we want to reference
+//  - execArgData: value is a binary blob (represented as ]size/8[ uint64's)
+//  - execArgCsum: runtime checksum calculation
+// There are 2 other special calls:
+//  - execInstrCopyin: copies its second argument into address specified by first argument
+//  - execInstrCopyout: reads value at address specified by first argument (result can be referenced by execArgResult)
+
 package prog
 
 import (
@@ -12,16 +25,16 @@ import (
 )
 
 const (
-	ExecInstrEOF = ^uint64(iota)
-	ExecInstrCopyin
-	ExecInstrCopyout
+	execInstrEOF = ^uint64(iota)
+	execInstrCopyin
+	execInstrCopyout
 )
 
 const (
-	ExecArgConst = uint64(iota)
-	ExecArgResult
-	ExecArgData
-	ExecArgCsum
+	execArgConst = uint64(iota)
+	execArgResult
+	execArgData
+	execArgCsum
 )
 
 const (
@@ -109,7 +122,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 						return
 					}
 					if !IsPad(arg1.Type()) && arg1.Type().Dir() != DirOut {
-						w.write(ExecInstrCopyin)
+						w.write(execInstrCopyin)
 						w.write(addr)
 						w.writeArg(arg1, pid)
 						instrSeq++
@@ -130,9 +143,9 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 				if _, ok := arg.Type().(*CsumType); !ok {
 					panic("csum arg is not csum type")
 				}
-				w.write(ExecInstrCopyin)
+				w.write(execInstrCopyin)
 				w.write(w.args[arg].Addr)
-				w.write(ExecArgCsum)
+				w.write(execArgCsum)
 				w.write(arg.Size())
 				switch csumMap[arg].Kind {
 				case CsumInet:
@@ -185,7 +198,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 				info.Idx = instrSeq
 				instrSeq++
 				w.args[arg] = info
-				w.write(ExecInstrCopyout)
+				w.write(execInstrCopyout)
 				w.write(info.Addr)
 				w.write(arg.Size())
 			default:
@@ -193,7 +206,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 			}
 		})
 	}
-	w.write(ExecInstrEOF)
+	w.write(execInstrEOF)
 	if w.eof {
 		return 0, fmt.Errorf("provided buffer is too small")
 	}
@@ -245,34 +258,34 @@ func (w *execContext) write(v uint64) {
 func (w *execContext) writeArg(arg Arg, pid int) {
 	switch a := arg.(type) {
 	case *ConstArg:
-		w.write(ExecArgConst)
+		w.write(execArgConst)
 		w.write(a.Size())
 		w.write(a.Value(pid))
 		w.write(a.Type().BitfieldOffset())
 		w.write(a.Type().BitfieldLength())
 	case *ResultArg:
 		if a.Res == nil {
-			w.write(ExecArgConst)
+			w.write(execArgConst)
 			w.write(a.Size())
 			w.write(a.Val)
 			w.write(0) // bit field offset
 			w.write(0) // bit field length
 		} else {
-			w.write(ExecArgResult)
+			w.write(execArgResult)
 			w.write(a.Size())
 			w.write(uint64(w.args[a.Res].Idx))
 			w.write(a.OpDiv)
 			w.write(a.OpAdd)
 		}
 	case *PointerArg:
-		w.write(ExecArgConst)
+		w.write(execArgConst)
 		w.write(a.Size())
 		w.write(w.target.physicalAddr(arg))
 		w.write(0) // bit field offset
 		w.write(0) // bit field length
 	case *DataArg:
 		data := a.Data()
-		w.write(ExecArgData)
+		w.write(execArgData)
 		w.write(uint64(len(data)))
 		padded := len(data)
 		if pad := 8 - len(data)%8; pad != 8 {
