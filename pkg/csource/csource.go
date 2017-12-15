@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"unsafe"
 
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
@@ -47,7 +46,11 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize program: %v", err)
 	}
-	calls, nvar := ctx.generateCalls(exec[:progSize])
+	decoded, err := ctx.target.DeserializeExec(exec[:progSize])
+	if err != nil {
+		return nil, err
+	}
+	calls, nvar := ctx.generateCalls(decoded)
 	ctx.printf("long r[%v];\n", nvar)
 
 	if !opts.Repeat {
@@ -243,65 +246,38 @@ func (ctx *context) generateSyscallDefines() {
 	ctx.printf("\n")
 }
 
-func (ctx *context) generateCalls(exec []byte) ([]string, int) {
-	read := func() uint64 {
-		if len(exec) < 8 {
-			panic("exec program overflow")
+func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
+	resultRef := func(arg prog.ExecArgResult) string {
+		res := fmt.Sprintf("r[%v]", arg.Index)
+		if arg.DivOp != 0 {
+			res = fmt.Sprintf("%v/%v", res, arg.DivOp)
 		}
-		v := *(*uint64)(unsafe.Pointer(&exec[0]))
-		exec = exec[8:]
-		return v
-	}
-	resultRef := func() string {
-		arg := read()
-		res := fmt.Sprintf("r[%v]", arg)
-		if opDiv := read(); opDiv != 0 {
-			res = fmt.Sprintf("%v/%v", res, opDiv)
-		}
-		if opAdd := read(); opAdd != 0 {
-			res = fmt.Sprintf("%v+%v", res, opAdd)
+		if arg.AddOp != 0 {
+			res = fmt.Sprintf("%v+%v", res, arg.AddOp)
 		}
 		return res
 	}
-	lastCall := 0
-	seenCall := false
 	var calls []string
-	w := new(bytes.Buffer)
-	newCall := func() {
-		if seenCall {
-			seenCall = false
-			calls = append(calls, w.String())
-			w = new(bytes.Buffer)
-		}
-	}
-	n := 0
-loop:
-	for ; ; n++ {
-		switch instr := read(); instr {
-		case prog.ExecInstrEOF:
-			break loop
-		case prog.ExecInstrCopyin:
-			newCall()
-			addr := read()
-			typ := read()
-			size := read()
-			switch typ {
+	csumSeq := 0
+	for ci, call := range p.Calls {
+		w := new(bytes.Buffer)
+		// Copyin.
+		for _, copyin := range call.Copyin {
+			switch arg := copyin.Arg.(type) {
 			case prog.ExecArgConst:
-				arg := read()
-				bfOff := read()
-				bfLen := read()
-				if bfOff == 0 && bfLen == 0 {
-					fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = (uint%v_t)0x%x);\n", size*8, addr, size*8, arg)
+				if arg.BitfieldOffset == 0 && arg.BitfieldLength == 0 {
+					fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = (uint%v_t)0x%x);\n",
+						arg.Size*8, copyin.Addr, arg.Size*8, arg.Value)
 				} else {
-					fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, 0x%x, 0x%x, %v, %v));\n", size*8, addr, arg, bfOff, bfLen)
+					fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, 0x%x, 0x%x, %v, %v));\n",
+						arg.Size*8, copyin.Addr, arg.Value, arg.BitfieldOffset, arg.BitfieldLength)
 				}
 			case prog.ExecArgResult:
-				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n", size*8, addr, resultRef())
+				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n",
+					arg.Size*8, copyin.Addr, resultRef(arg))
 			case prog.ExecArgData:
-				data := exec[:size]
-				exec = exec[(size+7)/8*8:]
 				var esc []byte
-				for _, v := range data {
+				for _, v := range arg.Data {
 					hex := func(v byte) byte {
 						if v < 10 {
 							return '0' + v
@@ -310,99 +286,76 @@ loop:
 					}
 					esc = append(esc, '\\', 'x', hex(v>>4), hex(v<<4>>4))
 				}
-				fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n", addr, esc, size)
+				fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n",
+					copyin.Addr, esc, len(arg.Data))
 			case prog.ExecArgCsum:
-				csum_kind := read()
-				switch csum_kind {
+				switch arg.Kind {
 				case prog.ExecArgCsumInet:
-					fmt.Fprintf(w, "\tstruct csum_inet csum_%d;\n", n)
-					fmt.Fprintf(w, "\tcsum_inet_init(&csum_%d);\n", n)
-					csumChunksNum := read()
-					for i := uint64(0); i < csumChunksNum; i++ {
-						chunk_kind := read()
-						chunk_value := read()
-						chunk_size := read()
-						switch chunk_kind {
+					csumSeq++
+					fmt.Fprintf(w, "\tstruct csum_inet csum_%d;\n", csumSeq)
+					fmt.Fprintf(w, "\tcsum_inet_init(&csum_%d);\n", csumSeq)
+					for i, chunk := range arg.Chunks {
+						switch chunk.Kind {
 						case prog.ExecArgCsumChunkData:
-							fmt.Fprintf(w, "\tNONFAILING(csum_inet_update(&csum_%d, (const uint8_t*)0x%x, %d));\n", n, chunk_value, chunk_size)
+							fmt.Fprintf(w, "\tNONFAILING(csum_inet_update(&csum_%d, (const uint8_t*)0x%x, %d));\n", csumSeq, chunk.Value, chunk.Size)
 						case prog.ExecArgCsumChunkConst:
-							fmt.Fprintf(w, "\tuint%d_t csum_%d_chunk_%d = 0x%x;\n", chunk_size*8, n, i, chunk_value)
-							fmt.Fprintf(w, "\tcsum_inet_update(&csum_%d, (const uint8_t*)&csum_%d_chunk_%d, %d);\n", n, n, i, chunk_size)
+							fmt.Fprintf(w, "\tuint%d_t csum_%d_chunk_%d = 0x%x;\n", chunk.Size*8, csumSeq, i, chunk.Value)
+							fmt.Fprintf(w, "\tcsum_inet_update(&csum_%d, (const uint8_t*)&csum_%d_chunk_%d, %d);\n", csumSeq, csumSeq, i, chunk.Size)
 						default:
-							panic(fmt.Sprintf("unknown checksum chunk kind %v", chunk_kind))
+							panic(fmt.Sprintf("unknown checksum chunk kind %v", chunk.Kind))
 						}
 					}
-					fmt.Fprintf(w, "\tNONFAILING(*(uint16_t*)0x%x = csum_inet_digest(&csum_%d));\n", addr, n)
+					fmt.Fprintf(w, "\tNONFAILING(*(uint16_t*)0x%x = csum_inet_digest(&csum_%d));\n", copyin.Addr, csumSeq)
 				default:
-					panic(fmt.Sprintf("unknown csum kind %v", csum_kind))
+					panic(fmt.Sprintf("unknown csum kind %v", arg.Kind))
 				}
 			default:
-				panic(fmt.Sprintf("bad argument type %v", instr))
+				panic(fmt.Sprintf("bad argument type: %+v", arg))
 			}
-		case prog.ExecInstrCopyout:
-			addr := read()
-			size := read()
-			fmt.Fprintf(w, "\tif (r[%v] != -1)\n", lastCall)
-			fmt.Fprintf(w, "\t\tNONFAILING(r[%v] = *(uint%v_t*)0x%x);\n", n, size*8, addr)
-		default:
-			// Normal syscall.
-			newCall()
-			if ctx.opts.Fault && ctx.opts.FaultCall == len(calls) {
-				fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/failslab/ignore-gfp-wait\", \"N\");\n")
-				fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_futex/ignore-private\", \"N\");\n")
-				fmt.Fprintf(w, "\tinject_fault(%v);\n", ctx.opts.FaultNth)
+		}
+
+		// Call itself.
+		if ctx.opts.Fault && ctx.opts.FaultCall == ci {
+			fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/failslab/ignore-gfp-wait\", \"N\");\n")
+			fmt.Fprintf(w, "\twrite_file(\"/sys/kernel/debug/fail_futex/ignore-private\", \"N\");\n")
+			fmt.Fprintf(w, "\tinject_fault(%v);\n", ctx.opts.FaultNth)
+		}
+		callName := call.Meta.CallName
+		// TODO: if we don't emit the call we must also not emit copyin, copyout and fault injection.
+		// However, simply skipping whole iteration breaks tests due to unused static functions.
+		if ctx.opts.EnableTun || callName != "syz_emit_ethernet" &&
+			callName != "syz_extract_tcp_res" {
+			native := !strings.HasPrefix(callName, "syz_")
+			if native {
+				fmt.Fprintf(w, "\tr[%v] = syscall(%v%v",
+					call.Index, ctx.sysTarget.SyscallPrefix, callName)
+			} else {
+				fmt.Fprintf(w, "\tr[%v] = %v(", call.Index, callName)
 			}
-			meta := ctx.target.Syscalls[instr]
-			emitCall := true
-			if meta.CallName == "syz_test" {
-				emitCall = false
-			}
-			if !ctx.opts.EnableTun && (meta.CallName == "syz_emit_ethernet" ||
-				meta.CallName == "syz_extract_tcp_res") {
-				emitCall = false
-			}
-			native := !strings.HasPrefix(meta.CallName, "syz_")
-			if emitCall {
-				if native {
-					fmt.Fprintf(w, "\tr[%v] = syscall(%v%v",
-						n, ctx.sysTarget.SyscallPrefix, meta.CallName)
-				} else {
-					fmt.Fprintf(w, "\tr[%v] = %v(", n, meta.CallName)
-				}
-			}
-			nargs := read()
-			for i := uint64(0); i < nargs; i++ {
-				typ := read()
-				size := read()
-				_ = size
-				if emitCall && (native || i > 0) {
+			for ai, arg := range call.Args {
+				if native || ai > 0 {
 					fmt.Fprintf(w, ", ")
 				}
-				switch typ {
+				switch arg := arg.(type) {
 				case prog.ExecArgConst:
-					value := read()
-					if emitCall {
-						fmt.Fprintf(w, "0x%xul", value)
-					}
-					// Bitfields can't be args of a normal syscall, so just ignore them.
-					read() // bit field offset
-					read() // bit field length
+					fmt.Fprintf(w, "0x%xul", arg.Value)
 				case prog.ExecArgResult:
-					ref := resultRef()
-					if emitCall {
-						fmt.Fprintf(w, "%v", ref)
-					}
+					fmt.Fprintf(w, "%v", resultRef(arg))
 				default:
-					panic(fmt.Sprintf("unknown arg type %v", typ))
+					panic(fmt.Sprintf("unknown arg type: %+v", arg))
 				}
 			}
-			if emitCall {
-				fmt.Fprintf(w, ");\n")
-			}
-			lastCall = n
-			seenCall = true
+			fmt.Fprintf(w, ");\n")
 		}
+
+		// Copyout.
+		for _, copyout := range call.Copyout {
+			fmt.Fprintf(w, "\tif (r[%v] != -1)\n", call.Index)
+			fmt.Fprintf(w, "\t\tNONFAILING(r[%v] = *(uint%v_t*)0x%x);\n",
+				copyout.Index, copyout.Size*8, copyout.Addr)
+		}
+
+		calls = append(calls, w.String())
 	}
-	newCall()
-	return calls, n
+	return calls, p.NumVars
 }
