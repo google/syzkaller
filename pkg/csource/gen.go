@@ -16,3 +16,22 @@
 //go:generate go fmt netbsd_common.go
 
 package csource
+
+import (
+	"fmt"
+)
+
+func getCommonHeader(os string) (string, error) {
+	switch os {
+	case "linux":
+		return commonHeaderLinux, nil
+	case "akaros":
+		return commonHeaderAkaros, nil
+	case "freebsd":
+		return commonHeaderFreebsd, nil
+	case "netbsd":
+		return commonHeaderNetbsd, nil
+	default:
+		return "", fmt.Errorf("unsupported OS: %v", os)
+	}
+}
