@@ -71,22 +71,22 @@ func (target *Target) DeserializeExec(exec []byte) (ExecProg, error) {
 	}
 	p := ExecProg{
 		Calls:   dec.calls,
-		NumVars: dec.numInstr,
+		NumVars: dec.numVars,
 	}
 	return p, nil
 }
 
 type execDecoder struct {
-	target   *Target
-	data     []byte
-	err      error
-	numInstr uint64
-	call     ExecCall
-	calls    []ExecCall
+	target  *Target
+	data    []byte
+	err     error
+	numVars uint64
+	call    ExecCall
+	calls   []ExecCall
 }
 
 func (dec *execDecoder) parse() {
-	for ; dec.err == nil; dec.numInstr++ {
+	for dec.err == nil {
 		switch instr := dec.read(); instr {
 		case execInstrCopyin:
 			dec.commitCall()
@@ -96,7 +96,7 @@ func (dec *execDecoder) parse() {
 			})
 		case execInstrCopyout:
 			dec.call.Copyout = append(dec.call.Copyout, ExecCopyout{
-				Index: dec.numInstr,
+				Index: dec.read(),
 				Addr:  dec.read(),
 				Size:  dec.read(),
 			})
@@ -107,7 +107,7 @@ func (dec *execDecoder) parse() {
 				return
 			}
 			dec.call.Meta = dec.target.Syscalls[instr]
-			dec.call.Index = dec.numInstr
+			dec.call.Index = dec.read()
 			for i := dec.read(); i > 0; i-- {
 				switch arg := dec.readArg(); arg.(type) {
 				case ExecArgConst, ExecArgResult:
@@ -206,8 +206,17 @@ func (dec *execDecoder) setErr(err error) {
 }
 
 func (dec *execDecoder) commitCall() {
-	if dec.call.Meta != nil {
-		dec.calls = append(dec.calls, dec.call)
-		dec.call = ExecCall{}
+	if dec.call.Meta == nil {
+		return
 	}
+	if dec.call.Index != ExecNoCopyout && dec.numVars < dec.call.Index+1 {
+		dec.numVars = dec.call.Index + 1
+	}
+	for _, copyout := range dec.call.Copyout {
+		if dec.numVars < copyout.Index+1 {
+			dec.numVars = copyout.Index + 1
+		}
+	}
+	dec.calls = append(dec.calls, dec.call)
+	dec.call = ExecCall{}
 }

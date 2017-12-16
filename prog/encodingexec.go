@@ -6,11 +6,11 @@
 
 // Exec format is an sequence of uint64's which encodes a sequence of calls.
 // The sequence is terminated by a speciall call execInstrEOF.
-// Each call is (call ID, number of arguments, arguments...).
+// Each call is (call ID, copyout index, number of arguments, arguments...).
 // Each argument is (type, size, value).
 // There are 4 types of arguments:
 //  - execArgConst: value is const value
-//  - execArgResult: value is index of a call whose result we want to reference
+//  - execArgResult: value is copyout index we want to reference
 //  - execArgData: value is a binary blob (represented as ]size/8[ uint64's)
 //  - execArgCsum: runtime checksum calculation
 // There are 2 other special calls:
@@ -48,6 +48,7 @@ const (
 
 const (
 	ExecBufferSize = 2 << 20
+	ExecNoCopyout  = ^uint64(0)
 )
 
 type Args []Arg
@@ -78,7 +79,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 			panic(fmt.Errorf("serializing invalid program: %v", err))
 		}
 	}
-	instrSeq := 0
+	var copyoutSeq uint64
 	w := &execContext{
 		target: p.Target,
 		buf:    buffer,
@@ -125,7 +126,6 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 						w.write(execInstrCopyin)
 						w.write(addr)
 						w.writeArg(arg1, pid)
-						instrSeq++
 					}
 				})
 			}
@@ -168,19 +168,21 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 				default:
 					panic(fmt.Sprintf("csum arg has unknown kind %v", csumMap[arg].Kind))
 				}
-				instrSeq++
 			}
 		}
 		// Generate the call itself.
 		w.write(uint64(c.Meta.ID))
+		if isUsed(c.Ret) {
+			w.args[c.Ret] = argInfo{Idx: copyoutSeq}
+			w.write(copyoutSeq)
+			copyoutSeq++
+		} else {
+			w.write(ExecNoCopyout)
+		}
 		w.write(uint64(len(c.Args)))
 		for _, arg := range c.Args {
 			w.writeArg(arg, pid)
 		}
-		if isUsed(c.Ret) {
-			w.args[c.Ret] = argInfo{Idx: instrSeq}
-		}
-		instrSeq++
 		// Generate copyout instructions that persist interesting return values.
 		foreachArg(c, func(arg, base Arg, _ *[]Arg) {
 			if !isUsed(arg) {
@@ -195,10 +197,11 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 					panic("arg base is not a pointer")
 				}
 				info := w.args[arg]
-				info.Idx = instrSeq
-				instrSeq++
+				info.Idx = copyoutSeq
+				copyoutSeq++
 				w.args[arg] = info
 				w.write(execInstrCopyout)
+				w.write(info.Idx)
 				w.write(info.Addr)
 				w.write(arg.Size())
 			default:
@@ -236,7 +239,7 @@ type execContext struct {
 
 type argInfo struct {
 	Addr uint64 // physical addr
-	Idx  int    // instruction index
+	Idx  uint64 // copyout instruction index
 }
 
 func (w *execContext) write(v uint64) {
@@ -271,9 +274,13 @@ func (w *execContext) writeArg(arg Arg, pid int) {
 			w.write(0) // bit field offset
 			w.write(0) // bit field length
 		} else {
+			info, ok := w.args[a.Res]
+			if !ok {
+				panic("no copyout index")
+			}
 			w.write(execArgResult)
 			w.write(a.Size())
-			w.write(uint64(w.args[a.Res].Idx))
+			w.write(info.Idx)
 			w.write(a.OpDiv)
 			w.write(a.OpAdd)
 		}
