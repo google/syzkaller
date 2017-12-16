@@ -1,5 +1,7 @@
 # Found bugs
 
+Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs).
+
 _newer first_
 
 * [fs: possible deadlock in do_iter_write/do_splice](https://groups.google.com/forum/#!topic/syzkaller/f72L3fPD8sY)
