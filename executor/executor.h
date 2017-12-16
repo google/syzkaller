@@ -29,7 +29,7 @@ const int kMaxOutput = 16 << 20;
 const int kCoverSize = 64 << 10;
 const int kMaxArgs = 9;
 const int kMaxThreads = 16;
-const int kMaxCommands = 16 << 10;
+const int kMaxCommands = 1000;
 
 const uint64_t instr_eof = -1;
 const uint64_t instr_copyin = -2;
@@ -39,6 +39,8 @@ const uint64_t arg_const = 0;
 const uint64_t arg_result = 1;
 const uint64_t arg_data = 2;
 const uint64_t arg_csum = 3;
+
+const uint64_t no_copyout = -1;
 
 enum sandbox_type {
 	sandbox_none,
@@ -99,8 +101,8 @@ struct thread_t {
 	event_t ready;
 	event_t done;
 	uint64_t* copyout_pos;
+	uint64_t copyout_index;
 	bool handled;
-	int call_n;
 	int call_index;
 	int call_num;
 	int num_args;
@@ -172,7 +174,7 @@ struct kcov_comparison_t {
 };
 
 long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8);
-thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, uint64_t* args, uint64_t* pos);
+thread_t* schedule_call(int call_index, int call_num, uint64_t copyout_index, uint64_t num_args, uint64_t* args, uint64_t* pos);
 void handle_completion(thread_t* th);
 void execute_call(thread_t* th);
 void thread_create(thread_t* th, int id);
@@ -300,7 +302,7 @@ retry:
 		cover_enable(&threads[0]);
 
 	int call_index = 0;
-	for (int n = 0;; n++) {
+	for (;;) {
 		uint64_t call_num = read_input(&input_pos);
 		if (call_num == instr_eof)
 			break;
@@ -381,6 +383,7 @@ retry:
 			continue;
 		}
 		if (call_num == instr_copyout) {
+			read_input(&input_pos); // index
 			read_input(&input_pos); // addr
 			read_input(&input_pos); // size
 			// The copyout will happen when/if the call completes.
@@ -390,6 +393,7 @@ retry:
 		// Normal syscall.
 		if (call_num >= syscall_count)
 			fail("invalid command number %lu", call_num);
+		uint64_t copyout_index = read_input(&input_pos);
 		uint64_t num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)
 			fail("command has bad number of arguments %lu", num_args);
@@ -398,7 +402,7 @@ retry:
 			args[i] = read_arg(&input_pos);
 		for (uint64_t i = num_args; i < 6; i++)
 			args[i] = 0;
-		thread_t* th = schedule_call(n, call_index++, call_num, num_args, args, input_pos);
+		thread_t* th = schedule_call(call_index++, call_num, copyout_index, num_args, args, input_pos);
 
 		if (collide && (call_index % 2) == 0) {
 			// Don't wait for every other call.
@@ -440,7 +444,7 @@ retry:
 	}
 }
 
-thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, uint64_t* args, uint64_t* pos)
+thread_t* schedule_call(int call_index, int call_num, uint64_t copyout_index, uint64_t num_args, uint64_t* args, uint64_t* pos)
 {
 	// Find a spare thread to execute the call.
 	int i;
@@ -462,9 +466,9 @@ thread_t* schedule_call(int n, int call_index, int call_num, uint64_t num_args, 
 		fail("bad thread state in schedule: ready=%d done=%d handled=%d",
 		     event_isset(&th->ready), event_isset(&th->done), th->handled);
 	th->copyout_pos = pos;
+	th->copyout_index = copyout_index;
 	event_reset(&th->done);
 	th->handled = false;
-	th->call_n = n;
 	th->call_index = call_index;
 	th->call_num = call_num;
 	th->num_args = num_args;
@@ -482,22 +486,24 @@ void handle_completion(thread_t* th)
 		fail("bad thread state in completion: ready=%d done=%d handled=%d",
 		     event_isset(&th->ready), event_isset(&th->done), th->handled);
 	if (th->res != (long)-1) {
-		if (th->call_n >= kMaxCommands)
-			fail("result idx %ld overflows kMaxCommands", th->call_n);
-		results[th->call_n].executed = true;
-		results[th->call_n].val = th->res;
+		if (th->copyout_index != no_copyout) {
+			if (th->copyout_index >= kMaxCommands)
+				fail("result idx %ld overflows kMaxCommands", th->copyout_index);
+			results[th->copyout_index].executed = true;
+			results[th->copyout_index].val = th->res;
+		}
 		for (bool done = false; !done;) {
-			th->call_n++;
-			uint64_t call_num = read_input(&th->copyout_pos);
-			switch (call_num) {
+			uint64_t instr = read_input(&th->copyout_pos);
+			switch (instr) {
 			case instr_copyout: {
+				uint64_t index = read_input(&th->copyout_pos);
 				char* addr = (char*)read_input(&th->copyout_pos);
 				uint64_t size = read_input(&th->copyout_pos);
 				uint64_t val = copyout(addr, size);
-				if (th->call_n >= kMaxCommands)
-					fail("result idx %ld overflows kMaxCommands", th->call_n);
-				results[th->call_n].executed = true;
-				results[th->call_n].val = val;
+				if (index >= kMaxCommands)
+					fail("result idx %ld overflows kMaxCommands", index);
+				results[index].executed = true;
+				results[index].val = val;
 				debug("copyout from %p\n", addr);
 				break;
 			}

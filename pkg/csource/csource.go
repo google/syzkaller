@@ -51,10 +51,12 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		return nil, err
 	}
 	calls, nvar := ctx.generateCalls(decoded)
-	ctx.printf("long r[%v];\n", nvar)
+	if nvar != 0 {
+		ctx.printf("long r[%v];\n", nvar)
+	}
 
 	if !opts.Repeat {
-		ctx.generateTestFunc(calls, "loop")
+		ctx.generateTestFunc(calls, nvar, "loop")
 
 		ctx.print("int main()\n{\n")
 		if opts.HandleSegv {
@@ -75,7 +77,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		}
 		ctx.print("\treturn 0;\n}\n")
 	} else {
-		ctx.generateTestFunc(calls, "test")
+		ctx.generateTestFunc(calls, nvar, "test")
 		if opts.Procs <= 1 {
 			ctx.print("int main()\n{\n")
 			if opts.HandleSegv {
@@ -168,7 +170,7 @@ func (ctx *context) printf(str string, args ...interface{}) {
 	ctx.print(fmt.Sprintf(str, args...))
 }
 
-func (ctx *context) generateTestFunc(calls []string, name string) {
+func (ctx *context) generateTestFunc(calls []string, nvar uint64, name string) {
 	opts := ctx.opts
 	if !opts.Threaded && !opts.Collide {
 		ctx.printf("void %v()\n{\n", name)
@@ -179,7 +181,9 @@ func (ctx *context) generateTestFunc(calls []string, name string) {
 		if opts.Repro {
 			ctx.printf("\tsyscall(SYS_write, 1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
 		}
-		ctx.printf("\tmemset(r, -1, sizeof(r));\n")
+		if nvar != 0 {
+			ctx.printf("\tmemset(r, -1, sizeof(r));\n")
+		}
 		for _, c := range calls {
 			ctx.printf("%s", c)
 		}
@@ -206,7 +210,9 @@ func (ctx *context) generateTestFunc(calls []string, name string) {
 		if opts.Repro {
 			ctx.printf("\tsyscall(SYS_write, 1, \"executing program\\n\", strlen(\"executing program\\n\"));\n")
 		}
-		ctx.printf("\tmemset(r, -1, sizeof(r));\n")
+		if nvar != 0 {
+			ctx.printf("\tmemset(r, -1, sizeof(r));\n")
+		}
 		if opts.Collide {
 			ctx.printf("\tsrand(getpid());\n")
 		}
@@ -321,16 +327,28 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 			fmt.Fprintf(w, "\tinject_fault(%v);\n", ctx.opts.FaultNth)
 		}
 		callName := call.Meta.CallName
+		resCopyout := call.Index != prog.ExecNoCopyout
+		argCopyout := len(call.Copyout) != 0
+		emitCall := ctx.opts.EnableTun || callName != "syz_emit_ethernet" &&
+			callName != "syz_extract_tcp_res"
 		// TODO: if we don't emit the call we must also not emit copyin, copyout and fault injection.
 		// However, simply skipping whole iteration breaks tests due to unused static functions.
-		if ctx.opts.EnableTun || callName != "syz_emit_ethernet" &&
-			callName != "syz_extract_tcp_res" {
+		if emitCall {
 			native := !strings.HasPrefix(callName, "syz_")
+			fmt.Fprintf(w, "\t")
+			if argCopyout {
+				fmt.Fprintf(w, "if (")
+				if resCopyout {
+					fmt.Fprintf(w, "(")
+				}
+			}
+			if resCopyout {
+				fmt.Fprintf(w, "r[%v] = ", call.Index)
+			}
 			if native {
-				fmt.Fprintf(w, "\tr[%v] = syscall(%v%v",
-					call.Index, ctx.sysTarget.SyscallPrefix, callName)
+				fmt.Fprintf(w, "syscall(%v%v", ctx.sysTarget.SyscallPrefix, callName)
 			} else {
-				fmt.Fprintf(w, "\tr[%v] = %v(", call.Index, callName)
+				fmt.Fprintf(w, "%v(", callName)
 			}
 			for ai, arg := range call.Args {
 				if native || ai > 0 {
@@ -345,14 +363,25 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 					panic(fmt.Sprintf("unknown arg type: %+v", arg))
 				}
 			}
-			fmt.Fprintf(w, ");\n")
+			fmt.Fprintf(w, ")")
+			if argCopyout {
+				if resCopyout {
+					fmt.Fprintf(w, ")")
+				}
+				fmt.Fprintf(w, " != -1) {")
+			} else {
+				fmt.Fprintf(w, ";")
+			}
+			fmt.Fprintf(w, "\n")
 		}
 
 		// Copyout.
 		for _, copyout := range call.Copyout {
-			fmt.Fprintf(w, "\tif (r[%v] != -1)\n", call.Index)
 			fmt.Fprintf(w, "\t\tNONFAILING(r[%v] = *(uint%v_t*)0x%x);\n",
 				copyout.Index, copyout.Size*8, copyout.Addr)
+		}
+		if emitCall && argCopyout {
+			fmt.Fprintf(w, "\t}\n")
 		}
 
 		calls = append(calls, w.String())
