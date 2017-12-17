@@ -4,10 +4,8 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -42,22 +40,6 @@ var (
 	flagTest    = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
 )
 
-const (
-	programLength = 30
-)
-
-type Input struct {
-	p         *prog.Prog
-	call      int
-	signal    []uint32
-	minimized bool
-}
-
-type Candidate struct {
-	p         *prog.Prog
-	minimized bool
-}
-
 var (
 	manager *RpcClient
 	target  *prog.Target
@@ -71,28 +53,34 @@ var (
 	corpus       []*prog.Prog
 	corpusHashes map[hash.Sig]struct{}
 
-	triageMu        sync.RWMutex
-	triage          []Input
-	triageCandidate []Input
-	candidates      []Candidate
-	smashQueue      []Input
-
-	gate *ipc.Gate
-
-	statExecGen       uint64
-	statExecFuzz      uint64
-	statExecCandidate uint64
-	statExecTriage    uint64
-	statExecMinimize  uint64
-	statExecSmash     uint64
-	statNewInput      uint64
-	statExecHints     uint64
-	statExecHintSeeds uint64
-
 	allTriaged            uint32
 	noCover               bool
 	faultInjectionEnabled bool
 	compsSupported        bool
+)
+
+type Fuzzer struct {
+	config      *ipc.Config
+	execOpts    *ipc.ExecOpts
+	procs       []*Proc
+	gate        *ipc.Gate
+	workQueue   *WorkQueue
+	choiceTable *prog.ChoiceTable
+	stats       [StatCount]uint64
+}
+
+type Stat int
+
+const (
+	StatGenerate Stat = iota
+	StatFuzz
+	StatCandidate
+	StatTriage
+	StatMinimize
+	StatSmash
+	StatHint
+	StatSeed
+	StatCount
 )
 
 func main() {
@@ -153,22 +141,6 @@ func main() {
 	}
 	for _, s := range r.MaxSignal {
 		maxSignal[s] = struct{}{}
-	}
-	for _, candidate := range r.Candidates {
-		p, err := target.Deserialize(candidate.Prog)
-		if err != nil {
-			panic(err)
-		}
-		// TODO: noCover is not yet initialized at this point.
-		if noCover {
-			corpusMu.Lock()
-			corpus = append(corpus, p)
-			corpusMu.Unlock()
-		} else {
-			triageMu.Lock()
-			candidates = append(candidates, Candidate{p, candidate.Minimized})
-			triageMu.Unlock()
-		}
 	}
 
 	// This requires "fault-inject: support systematic fault injection" kernel commit.
@@ -247,93 +219,37 @@ func main() {
 	if !*flagLeak {
 		leakCallback = nil
 	}
-	gate = ipc.NewGate(2**flagProcs, leakCallback)
 	needPoll := make(chan struct{}, 1)
 	needPoll <- struct{}{}
-	envs := make([]*ipc.Env, *flagProcs)
-	for pid := 0; pid < *flagProcs; pid++ {
-		env, err := ipc.MakeEnv(config, pid)
+	fuzzer := &Fuzzer{
+		config:      config,
+		execOpts:    execOpts,
+		gate:        ipc.NewGate(2**flagProcs, leakCallback),
+		workQueue:   newWorkQueue(*flagProcs, needPoll),
+		choiceTable: ct,
+	}
+
+	for _, candidate := range r.Candidates {
+		p, err := target.Deserialize(candidate.Prog)
 		if err != nil {
 			panic(err)
 		}
-		envs[pid] = env
+		if noCover {
+			corpusMu.Lock()
+			corpus = append(corpus, p)
+			corpusMu.Unlock()
+		} else {
+			fuzzer.workQueue.enqueue(&WorkCandidate{p, candidate.Minimized})
+		}
+	}
 
-		pid := pid
-		go func() {
-			rs := rand.NewSource(time.Now().UnixNano() + int64(pid)*1e12)
-			rnd := rand.New(rs)
-
-			for i := 0; ; i++ {
-				triageMu.RLock()
-				Logf(1, "#%v: triageCandidate=%v candidates=%v triage=%v smashQueue=%v",
-					pid, len(triageCandidate), len(candidates), len(triage),
-					len(smashQueue))
-				if len(triageCandidate) != 0 || len(candidates) != 0 || len(triage) != 0 || len(smashQueue) != 0 {
-					triageMu.RUnlock()
-					triageMu.Lock()
-					if len(triageCandidate) != 0 {
-						last := len(triageCandidate) - 1
-						inp := triageCandidate[last]
-						triageCandidate = triageCandidate[:last]
-						triageMu.Unlock()
-						Logf(1, "#%v: triaging candidate", pid)
-						triageInput(pid, env, execOpts, inp)
-						continue
-					} else if len(candidates) != 0 {
-						last := len(candidates) - 1
-						candidate := candidates[last]
-						candidates = candidates[:last]
-						wakePoll := len(candidates) < *flagProcs
-						triageMu.Unlock()
-						if wakePoll {
-							select {
-							case needPoll <- struct{}{}:
-							default:
-							}
-						}
-						Logf(1, "#%v: executing candidate", pid)
-						execute(pid, env, execOpts, candidate.p, false, candidate.minimized, true, false, &statExecCandidate)
-						continue
-					} else if len(triage) != 0 {
-						last := len(triage) - 1
-						inp := triage[last]
-						triage = triage[:last]
-						triageMu.Unlock()
-						Logf(1, "#%v: triaging", pid)
-						triageInput(pid, env, execOpts, inp)
-						continue
-					} else if len(smashQueue) != 0 {
-						last := len(smashQueue) - 1
-						inp := smashQueue[last]
-						smashQueue = smashQueue[:last]
-						triageMu.Unlock()
-						Logf(1, "#%v: smashing", pid)
-						smashInput(pid, env, execOpts, ct, rs, inp)
-						continue
-					} else {
-						triageMu.Unlock()
-					}
-				} else {
-					triageMu.RUnlock()
-				}
-
-				corpusMu.RLock()
-				if len(corpus) == 0 || i%100 == 0 {
-					// Generate a new prog.
-					corpusMu.RUnlock()
-					p := target.Generate(rnd, programLength, ct)
-					Logf(1, "#%v: generated", pid)
-					execute(pid, env, execOpts, p, false, false, false, false, &statExecGen)
-				} else {
-					// Mutate an existing prog.
-					p := corpus[rnd.Intn(len(corpus))].Clone()
-					corpusMu.RUnlock()
-					p.Mutate(rs, programLength, ct, corpus)
-					Logf(1, "#%v: mutated", pid)
-					execute(pid, env, execOpts, p, false, false, false, false, &statExecFuzz)
-				}
-			}
-		}()
+	for pid := 0; pid < *flagProcs; pid++ {
+		proc, err := newProc(fuzzer, pid)
+		if err != nil {
+			Fatalf("failed to create proc: %v", err)
+		}
+		fuzzer.procs = append(fuzzer.procs, proc)
+		go proc.loop()
 	}
 
 	var execTotal uint64
@@ -353,10 +269,8 @@ func main() {
 			lastPrint = time.Now()
 		}
 		if poll || time.Since(lastPoll) > 10*time.Second {
-			triageMu.RLock()
-			needCandidates := len(candidates) < *flagProcs
-			triageMu.RUnlock()
-			if !needCandidates && poll {
+			needCandidates := fuzzer.workQueue.wantCandidates()
+			if poll && !needCandidates {
 				continue
 			}
 
@@ -372,25 +286,24 @@ func main() {
 			}
 			newSignal = make(map[uint32]struct{})
 			signalMu.Unlock()
-			for _, env := range envs {
-				a.Stats["exec total"] += atomic.SwapUint64(&env.StatExecs, 0)
-				a.Stats["executor restarts"] += atomic.SwapUint64(&env.StatRestarts, 0)
+			for _, proc := range fuzzer.procs {
+				a.Stats["exec total"] += atomic.SwapUint64(&proc.env.StatExecs, 0)
+				a.Stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
 			}
-			stat := func(p *uint64, name string) {
-				v := atomic.SwapUint64(p, 0)
+			stat := func(stat Stat, name string) {
+				v := atomic.SwapUint64(&fuzzer.stats[stat], 0)
 				a.Stats[name] = v
 				execTotal += v
 			}
-			stat(&statExecGen, "exec gen")
-			stat(&statExecFuzz, "exec fuzz")
-			stat(&statExecCandidate, "exec candidate")
-			stat(&statExecTriage, "exec triage")
-			stat(&statExecMinimize, "exec minimize")
-			stat(&statExecSmash, "exec smash")
-			stat(&statExecHints, "exec hints")
-			stat(&statExecHintSeeds, "exec seeds")
+			stat(StatGenerate, "exec gen")
+			stat(StatFuzz, "exec fuzz")
+			stat(StatCandidate, "exec candidate")
+			stat(StatTriage, "exec triage")
+			stat(StatMinimize, "exec minimize")
+			stat(StatSmash, "exec smash")
+			stat(StatHint, "exec hints")
+			stat(StatSeed, "exec seeds")
 
-			a.Stats["fuzzer new inputs"] = atomic.SwapUint64(&statNewInput, 0)
 			r := &PollRes{}
 			if err := manager.Call("Manager.Poll", a, r); err != nil {
 				panic(err)
@@ -417,9 +330,7 @@ func main() {
 					corpus = append(corpus, p)
 					corpusMu.Unlock()
 				} else {
-					triageMu.Lock()
-					candidates = append(candidates, Candidate{p, candidate.Minimized})
-					triageMu.Unlock()
+					fuzzer.workQueue.enqueue(&WorkCandidate{p, candidate.Minimized})
 				}
 			}
 			if len(r.Candidates) == 0 && atomic.LoadUint32(&allTriaged) == 0 {
@@ -494,283 +405,4 @@ func addInput(inp RpcInput) {
 		cover.SignalAdd(corpusSignal, diff)
 		cover.SignalAdd(maxSignal, diff)
 	}
-}
-
-func smashInput(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, ct *prog.ChoiceTable, rs rand.Source, inp Input) {
-	if faultInjectionEnabled {
-		failCall(pid, env, execOpts, inp.p, inp.call)
-	}
-	for i := 0; i < 100; i++ {
-		p := inp.p.Clone()
-		p.Mutate(rs, programLength, ct, corpus)
-		Logf(1, "#%v: smash mutated", pid)
-		execute(pid, env, execOpts, p, false, false, false, false, &statExecSmash)
-	}
-	if compsSupported {
-		executeHintSeed(pid, env, execOpts, inp.p, inp.call)
-	}
-}
-
-func failCall(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, p *prog.Prog, call int) {
-	for nth := 0; nth < 100; nth++ {
-		Logf(1, "#%v: injecting fault into call %v/%v", pid, call, nth)
-		opts := *execOpts
-		opts.Flags |= ipc.FlagInjectFault
-		opts.FaultCall = call
-		opts.FaultNth = nth
-		info := execute1(pid, env, &opts, p, &statExecSmash)
-		if info != nil && len(info) > call && !info[call].FaultInjected {
-			break
-		}
-	}
-}
-
-func triageInput(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, inp Input) {
-	if noCover {
-		panic("should not be called when coverage is disabled")
-	}
-
-	signalMu.RLock()
-	newSignal := cover.SignalDiff(corpusSignal, inp.signal)
-	signalMu.RUnlock()
-	if len(newSignal) == 0 {
-		return
-	}
-	newSignal = cover.Canonicalize(newSignal)
-
-	call := inp.p.Calls[inp.call].Meta
-	data := inp.p.Serialize()
-	sig := hash.Hash(data)
-
-	Logf(3, "triaging input for %v (new signal=%v):\n%s", call.CallName, len(newSignal), data)
-	var inputCover cover.Cover
-	opts := *execOpts
-	opts.Flags |= ipc.FlagCollectCover
-	opts.Flags &= ^ipc.FlagCollide
-	if inp.minimized {
-		// We just need to get input coverage.
-		for i := 0; i < 3; i++ {
-			info := execute1(pid, env, &opts, inp.p, &statExecTriage)
-			if len(info) == 0 || len(info[inp.call].Cover) == 0 {
-				continue // The call was not executed. Happens sometimes.
-			}
-			inputCover = append([]uint32{}, info[inp.call].Cover...)
-			break
-		}
-	} else {
-		// We need to compute input coverage and non-flaky signal for minimization.
-		notexecuted := false
-		for i := 0; i < 3; i++ {
-			info := execute1(pid, env, &opts, inp.p, &statExecTriage)
-			if len(info) == 0 || len(info[inp.call].Signal) == 0 {
-				// The call was not executed. Happens sometimes.
-				if notexecuted {
-					return // if it happened twice, give up
-				}
-				notexecuted = true
-				continue
-			}
-			inf := info[inp.call]
-			newSignal = cover.Intersection(newSignal, cover.Canonicalize(inf.Signal))
-			if len(newSignal) == 0 {
-				return
-			}
-			if len(inputCover) == 0 {
-				inputCover = append([]uint32{}, inf.Cover...)
-			} else {
-				inputCover = cover.Union(inputCover, inf.Cover)
-			}
-		}
-
-		inp.p, inp.call = prog.Minimize(inp.p, inp.call, func(p1 *prog.Prog, call1 int) bool {
-			info := execute(pid, env, execOpts, p1, false, false, false, true, &statExecMinimize)
-			if len(info) == 0 || len(info[call1].Signal) == 0 {
-				return false // The call was not executed.
-			}
-			inf := info[call1]
-			signal := cover.Canonicalize(inf.Signal)
-			signalMu.RLock()
-			defer signalMu.RUnlock()
-			if len(cover.Intersection(newSignal, signal)) != len(newSignal) {
-				return false
-			}
-			return true
-		}, false)
-	}
-
-	atomic.AddUint64(&statNewInput, 1)
-	Logf(2, "added new input for %v to corpus:\n%s", call.CallName, data)
-	a := &NewInputArgs{
-		Name: *flagName,
-		RpcInput: RpcInput{
-			Call:   call.CallName,
-			Prog:   data,
-			Signal: []uint32(cover.Canonicalize(inp.signal)),
-			Cover:  []uint32(inputCover),
-		},
-	}
-	if err := manager.Call("Manager.NewInput", a, nil); err != nil {
-		panic(err)
-	}
-
-	signalMu.Lock()
-	cover.SignalAdd(corpusSignal, inp.signal)
-	signalMu.Unlock()
-
-	corpusMu.Lock()
-	if _, ok := corpusHashes[sig]; !ok {
-		corpus = append(corpus, inp.p)
-		corpusHashes[sig] = struct{}{}
-	}
-	corpusMu.Unlock()
-
-	if !inp.minimized {
-		triageMu.Lock()
-		smashQueue = append(smashQueue, inp)
-		triageMu.Unlock()
-	}
-}
-
-func executeHintSeed(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, p *prog.Prog, call int) {
-	Logf(1, "#%v: collecting comparisons", pid)
-	// First execute the original program to dump comparisons from KCOV.
-	info := execute(pid, env, execOpts, p, true, false, false, true, &statExecHintSeeds)
-	if info == nil {
-		return
-	}
-
-	// Then extract the comparisons data.
-	compMaps := ipc.GetCompMaps(info)
-
-	// Then mutate the initial program for every match between
-	// a syscall argument and a comparison operand.
-	// Execute each of such mutants to check if it gives new coverage.
-	p.MutateWithHints(call, compMaps[call], func(p *prog.Prog) {
-		Logf(1, "#%v: executing comparison hint", pid)
-		execute(pid, env, execOpts, p, false, false, false, false, &statExecHints)
-	})
-}
-
-func execute(pid int, env *ipc.Env, execOpts *ipc.ExecOpts, p *prog.Prog,
-	needComps, minimized, candidate, noCollide bool, stat *uint64) []ipc.CallInfo {
-	opts := *execOpts
-	if needComps {
-		if !compsSupported {
-			panic("compsSupported==false and execute() called with needComps")
-		}
-		opts.Flags |= ipc.FlagCollectComps
-	}
-	if noCollide {
-		opts.Flags &= ^ipc.FlagCollide
-	}
-	info := execute1(pid, env, &opts, p, stat)
-	signalMu.RLock()
-	defer signalMu.RUnlock()
-
-	for i, inf := range info {
-		if !cover.SignalNew(maxSignal, inf.Signal) {
-			continue
-		}
-		diff := cover.SignalDiff(maxSignal, inf.Signal)
-
-		signalMu.RUnlock()
-		signalMu.Lock()
-		cover.SignalAdd(maxSignal, diff)
-		cover.SignalAdd(newSignal, diff)
-		signalMu.Unlock()
-		signalMu.RLock()
-
-		inp := Input{
-			p:         p.Clone(),
-			call:      i,
-			signal:    append([]uint32{}, inf.Signal...),
-			minimized: minimized,
-		}
-		triageMu.Lock()
-		if candidate {
-			triageCandidate = append(triageCandidate, inp)
-		} else {
-			triage = append(triage, inp)
-		}
-		triageMu.Unlock()
-	}
-	return info
-}
-
-var logMu sync.Mutex
-
-func execute1(pid int, env *ipc.Env, opts *ipc.ExecOpts, p *prog.Prog, stat *uint64) []ipc.CallInfo {
-	if false {
-		// For debugging, this function must not be executed with locks held.
-		corpusMu.Lock()
-		corpusMu.Unlock()
-		signalMu.Lock()
-		signalMu.Unlock()
-		triageMu.Lock()
-		triageMu.Unlock()
-	}
-	if opts.Flags&ipc.FlagDedupCover == 0 {
-		panic("dedup cover is not enabled")
-	}
-
-	// Limit concurrency window and do leak checking once in a while.
-	idx := gate.Enter()
-	defer gate.Leave(idx)
-
-	strOpts := ""
-	if opts.Flags&ipc.FlagInjectFault != 0 {
-		strOpts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)", opts.FaultCall, opts.FaultNth)
-	}
-
-	// The following output helps to understand what program crashed kernel.
-	// It must not be intermixed.
-	switch *flagOutput {
-	case "none":
-		// This case intentionally left blank.
-	case "stdout":
-		data := p.Serialize()
-		logMu.Lock()
-		Logf(0, "executing program %v%v:\n%s", pid, strOpts, data)
-		logMu.Unlock()
-	case "dmesg":
-		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)
-		if err == nil {
-			buf := new(bytes.Buffer)
-			fmt.Fprintf(buf, "syzkaller: executing program %v%v:\n%s", pid, strOpts, p.Serialize())
-			syscall.Write(fd, buf.Bytes())
-			syscall.Close(fd)
-		}
-	case "file":
-		f, err := os.Create(fmt.Sprintf("%v-%v.prog", *flagName, pid))
-		if err == nil {
-			if strOpts != "" {
-				fmt.Fprintf(f, "#%v\n", strOpts)
-			}
-			f.Write(p.Serialize())
-			f.Close()
-		}
-	}
-
-	try := 0
-retry:
-	atomic.AddUint64(stat, 1)
-	output, info, failed, hanged, err := env.Exec(opts, p)
-	if failed {
-		// BUG in output should be recognized by manager.
-		Logf(0, "BUG: executor-detected bug:\n%s", output)
-		// Don't return any cover so that the input is not added to corpus.
-		return nil
-	}
-	if err != nil {
-		if _, ok := err.(ipc.ExecutorFailure); ok || try > 10 {
-			panic(err)
-		}
-		try++
-		Logf(4, "fuzzer detected executor failure='%v', retrying #%d\n", err, (try + 1))
-		debug.FreeOSMemory()
-		time.Sleep(time.Second)
-		goto retry
-	}
-	Logf(2, "result failed=%v hanged=%v: %v\n", failed, hanged, string(output))
-	return info
 }
