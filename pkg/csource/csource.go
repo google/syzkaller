@@ -282,18 +282,8 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n",
 					arg.Size*8, copyin.Addr, resultRef(arg))
 			case prog.ExecArgData:
-				var esc []byte
-				for _, v := range arg.Data {
-					hex := func(v byte) byte {
-						if v < 10 {
-							return '0' + v
-						}
-						return 'a' + v - 10
-					}
-					esc = append(esc, '\\', 'x', hex(v>>4), hex(v<<4>>4))
-				}
 				fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n",
-					copyin.Addr, esc, len(arg.Data))
+					copyin.Addr, toCString(arg.Data), len(arg.Data))
 			case prog.ExecArgCsum:
 				switch arg.Kind {
 				case prog.ExecArgCsumInet:
@@ -387,4 +377,59 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 		calls = append(calls, w.String())
 	}
 	return calls, p.NumVars
+}
+
+func toCString(data []byte) []byte {
+	if len(data) == 0 {
+		return nil
+	}
+	readable := true
+	for i, v := range data {
+		// Allow 0 only as last byte.
+		if !isReadable(v) && (i != len(data)-1 || v != 0) {
+			readable = false
+			break
+		}
+	}
+	if !readable {
+		buf := new(bytes.Buffer)
+		for _, v := range data {
+			buf.Write([]byte{'\\', 'x', toHex(v >> 4), toHex(v << 4 >> 4)})
+		}
+		return buf.Bytes()
+	}
+	if data[len(data)-1] == 0 {
+		// Don't serialize last 0, C strings are 0-terminated anyway.
+		data = data[:len(data)-1]
+	}
+	buf := new(bytes.Buffer)
+	for _, v := range data {
+		switch v {
+		case '\t':
+			buf.Write([]byte{'\\', 't'})
+		case '\r':
+			buf.Write([]byte{'\\', 'r'})
+		case '\n':
+			buf.Write([]byte{'\\', 'n'})
+		case '\\':
+			buf.Write([]byte{'\\', '\\'})
+		default:
+			if v < 0x20 || v >= 0x7f {
+				panic("unexpected char during data serialization")
+			}
+			buf.WriteByte(v)
+		}
+	}
+	return buf.Bytes()
+}
+
+func isReadable(v byte) bool {
+	return v >= 0x20 && v < 0x7f || v == '\t' || v == '\r' || v == '\n'
+}
+
+func toHex(v byte) byte {
+	if v < 10 {
+		return '0' + v
+	}
+	return 'a' + v - 10
 }
