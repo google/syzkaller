@@ -166,14 +166,6 @@ type CallInfo struct {
 	FaultInjected bool
 }
 
-func GetCompMaps(info []CallInfo) []prog.CompMap {
-	compMaps := make([]prog.CompMap, len(info))
-	for i, inf := range info {
-		compMaps[i] = inf.Comps
-	}
-	return compMaps
-}
-
 type Env struct {
 	in  []byte
 	out []byte

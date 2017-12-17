@@ -184,13 +184,12 @@ func main() {
 						}
 					}
 					if *flagHints {
-						compMaps := ipc.GetCompMaps(info)
 						ncomps, ncandidates := 0, 0
 						for i := range entry.P.Calls {
 							if *flagOutput == "stdout" {
 								fmt.Printf("call %v:\n", i)
 							}
-							comps := compMaps[i]
+							comps := info[i].Comps
 							for v, args := range comps {
 								ncomps += len(args)
 								if *flagOutput == "stdout" {
