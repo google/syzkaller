@@ -236,7 +236,6 @@ func (inst *instance) Boot() error {
 			break
 		}
 	}
-	// TODO: ignores inst.cfg.Cpu
 	args := []string{
 		"-m", strconv.Itoa(inst.cfg.Mem),
 		"-net", "nic",
@@ -244,8 +243,21 @@ func (inst *instance) Boot() error {
 		"-display", "none",
 		"-serial", "stdio",
 		"-no-reboot",
-		"-numa", "node,nodeid=0,cpus=0-1", "-numa", "node,nodeid=1,cpus=2-3",
-		"-smp", "sockets=2,cores=2,threads=1",
+	}
+	if inst.cfg.Cpu == 1 {
+		args = append(args,
+			"-smp", "cpus=1,maxcpus=2",
+		)
+	} else {
+		ncores := 1
+		if inst.cfg.Cpu >= 4 {
+			ncores = 2
+		}
+		args = append(args,
+			"-numa", "node,nodeid=0", "-numa", "node,nodeid=1",
+			"-smp", fmt.Sprintf("cpus=%v,maxcpus=%v,sockets=2,cores=%v",
+				inst.cfg.Cpu, inst.cfg.Cpu+1, ncores),
+		)
 	}
 	args = append(args, strings.Split(inst.cfg.Qemu_Args, " ")...)
 	if inst.image == "9p" {
