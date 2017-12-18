@@ -49,10 +49,6 @@ var (
 	maxSignal    map[uint32]struct{}
 	newSignal    map[uint32]struct{}
 
-	corpusMu     sync.RWMutex
-	corpus       []*prog.Prog
-	corpusHashes map[hash.Sig]struct{}
-
 	allTriaged            uint32
 	noCover               bool
 	faultInjectionEnabled bool
@@ -67,6 +63,10 @@ type Fuzzer struct {
 	workQueue   *WorkQueue
 	choiceTable *prog.ChoiceTable
 	stats       [StatCount]uint64
+
+	corpusMu     sync.RWMutex
+	corpus       []*prog.Prog
+	corpusHashes map[hash.Sig]struct{}
 }
 
 type Stat int
@@ -126,7 +126,6 @@ func main() {
 	corpusSignal = make(map[uint32]struct{})
 	maxSignal = make(map[uint32]struct{})
 	newSignal = make(map[uint32]struct{})
-	corpusHashes = make(map[hash.Sig]struct{})
 
 	Logf(0, "dialing manager at %v", *flagManager)
 	a := &ConnectArgs{*flagName}
@@ -136,12 +135,6 @@ func main() {
 	}
 	calls := buildCallList(target, r.EnabledCalls)
 	ct := target.BuildChoiceTable(r.Prios, calls)
-	for _, inp := range r.Inputs {
-		addInput(inp)
-	}
-	for _, s := range r.MaxSignal {
-		maxSignal[s] = struct{}{}
-	}
 
 	// This requires "fault-inject: support systematic fault injection" kernel commit.
 	if fd, err := syscall.Open("/proc/self/fail-nth", syscall.O_RDWR, 0); err == nil {
@@ -222,22 +215,27 @@ func main() {
 	needPoll := make(chan struct{}, 1)
 	needPoll <- struct{}{}
 	fuzzer := &Fuzzer{
-		config:      config,
-		execOpts:    execOpts,
-		gate:        ipc.NewGate(2**flagProcs, leakCallback),
-		workQueue:   newWorkQueue(*flagProcs, needPoll),
-		choiceTable: ct,
+		config:       config,
+		execOpts:     execOpts,
+		gate:         ipc.NewGate(2**flagProcs, leakCallback),
+		workQueue:    newWorkQueue(*flagProcs, needPoll),
+		choiceTable:  ct,
+		corpusHashes: make(map[hash.Sig]struct{}),
 	}
 
+	for _, inp := range r.Inputs {
+		fuzzer.addInput(inp)
+	}
+	for _, s := range r.MaxSignal {
+		maxSignal[s] = struct{}{}
+	}
 	for _, candidate := range r.Candidates {
 		p, err := target.Deserialize(candidate.Prog)
 		if err != nil {
 			panic(err)
 		}
 		if noCover {
-			corpusMu.Lock()
-			corpus = append(corpus, p)
-			corpusMu.Unlock()
+			fuzzer.addInputToCorpus(p, hash.Hash(candidate.Prog))
 		} else {
 			fuzzer.workQueue.enqueue(&WorkCandidate{p, candidate.Minimized})
 		}
@@ -318,7 +316,7 @@ func main() {
 				signalMu.Unlock()
 			}
 			for _, inp := range r.NewInputs {
-				addInput(inp)
+				fuzzer.addInput(inp)
 			}
 			for _, candidate := range r.Candidates {
 				p, err := target.Deserialize(candidate.Prog)
@@ -326,9 +324,7 @@ func main() {
 					panic(err)
 				}
 				if noCover {
-					corpusMu.Lock()
-					corpus = append(corpus, p)
-					corpusMu.Unlock()
+					fuzzer.addInputToCorpus(p, hash.Hash(candidate.Prog))
 				} else {
 					fuzzer.workQueue.enqueue(&WorkCandidate{p, candidate.Minimized})
 				}
@@ -383,12 +379,7 @@ func buildCallList(target *prog.Target, enabledCalls string) map[*prog.Syscall]b
 	return calls
 }
 
-func addInput(inp RpcInput) {
-	corpusMu.Lock()
-	defer corpusMu.Unlock()
-	signalMu.Lock()
-	defer signalMu.Unlock()
-
+func (fuzzer *Fuzzer) addInput(inp RpcInput) {
 	if noCover {
 		panic("should not be called when coverage is disabled")
 	}
@@ -396,13 +387,27 @@ func addInput(inp RpcInput) {
 	if err != nil {
 		panic(err)
 	}
-	sig := hash.Hash(inp.Prog)
-	if _, ok := corpusHashes[sig]; !ok {
-		corpus = append(corpus, p)
-		corpusHashes[sig] = struct{}{}
-	}
+	fuzzer.addInputToCorpus(p, hash.Hash(inp.Prog))
+
+	signalMu.Lock()
+	defer signalMu.Unlock()
 	if diff := cover.SignalDiff(maxSignal, inp.Signal); len(diff) != 0 {
 		cover.SignalAdd(corpusSignal, diff)
 		cover.SignalAdd(maxSignal, diff)
 	}
+}
+
+func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sig hash.Sig) {
+	fuzzer.corpusMu.Lock()
+	defer fuzzer.corpusMu.Unlock()
+	if _, ok := fuzzer.corpusHashes[sig]; !ok {
+		fuzzer.corpus = append(fuzzer.corpus, p)
+		fuzzer.corpusHashes[sig] = struct{}{}
+	}
+}
+
+func (fuzzer *Fuzzer) corpusSnapshot() []*prog.Prog {
+	fuzzer.corpusMu.RLock()
+	defer fuzzer.corpusMu.RUnlock()
+	return fuzzer.corpus
 }

@@ -71,18 +71,15 @@ func (proc *Proc) loop() {
 			continue
 		}
 
-		corpusMu.RLock()
+		corpus := proc.fuzzer.corpusSnapshot()
 		if len(corpus) == 0 || i%100 == 0 {
 			// Generate a new prog.
-			corpusMu.RUnlock()
 			p := target.Generate(proc.rnd, programLength, ct)
 			Logf(1, "#%v: generated", pid)
 			proc.execute(execOpts, p, false, false, false, false, StatGenerate)
 		} else {
 			// Mutate an existing prog.
 			p := corpus[proc.rnd.Intn(len(corpus))].Clone()
-			corpusMu.RUnlock()
-			// TODO: it seems that access to corpus is not proceted here.
 			p.Mutate(proc.rnd, programLength, ct, corpus)
 			Logf(1, "#%v: mutated", pid)
 			proc.execute(execOpts, p, false, false, false, false, StatFuzz)
@@ -107,10 +104,8 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	newSignal = cover.Canonicalize(newSignal)
 
 	call := item.p.Calls[item.call].Meta
-	data := item.p.Serialize()
-	sig := hash.Hash(data)
 
-	Logf(3, "triaging input for %v (new signal=%v):\n%s", call.CallName, len(newSignal), data)
+	Logf(3, "triaging input for %v (new signal=%v)", call.CallName, len(newSignal))
 	var inputCover cover.Cover
 	opts := *execOpts
 	opts.Flags |= ipc.FlagCollectCover
@@ -166,6 +161,9 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		}, false)
 	}
 
+	data := item.p.Serialize()
+	sig := hash.Hash(data)
+
 	Logf(2, "added new input for %v to corpus:\n%s", call.CallName, data)
 	a := &NewInputArgs{
 		Name: *flagName,
@@ -184,12 +182,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	cover.SignalAdd(corpusSignal, item.signal)
 	signalMu.Unlock()
 
-	corpusMu.Lock()
-	if _, ok := corpusHashes[sig]; !ok {
-		corpus = append(corpus, item.p)
-		corpusHashes[sig] = struct{}{}
-	}
-	corpusMu.Unlock()
+	proc.fuzzer.addInputToCorpus(item.p, sig)
 
 	if !item.minimized {
 		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
@@ -200,9 +193,9 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 	if faultInjectionEnabled {
 		proc.failCall(item.p, item.call)
 	}
+	corpus := proc.fuzzer.corpusSnapshot()
 	for i := 0; i < 100; i++ {
 		p := item.p.Clone()
-		// TODO: it seems that access to corpus is not proceted here.
 		p.Mutate(proc.rnd, programLength, proc.fuzzer.choiceTable, corpus)
 		Logf(1, "#%v: smash mutated", proc.pid)
 		proc.execute(proc.fuzzer.execOpts, p, false, false, false, false, StatSmash)
@@ -287,13 +280,6 @@ func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog,
 var logMu sync.Mutex
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) []ipc.CallInfo {
-	if false {
-		// For debugging, this function must not be executed with locks held.
-		corpusMu.Lock()
-		corpusMu.Unlock()
-		signalMu.Lock()
-		signalMu.Unlock()
-	}
 	pid := proc.pid
 	if opts.Flags&ipc.FlagDedupCover == 0 {
 		panic("dedup cover is not enabled")
