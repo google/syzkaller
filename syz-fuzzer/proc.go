@@ -159,7 +159,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 
 	Logf(2, "added new input for %v to corpus:\n%s", call.CallName, data)
 	a := &NewInputArgs{
-		Name: *flagName,
+		Name: proc.fuzzer.name,
 		RpcInput: RpcInput{
 			Call:   call.CallName,
 			Prog:   data,
@@ -257,7 +257,6 @@ func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog,
 var logMu sync.Mutex
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) []ipc.CallInfo {
-	pid := proc.pid
 	if opts.Flags&ipc.FlagDedupCover == 0 {
 		panic("dedup cover is not enabled")
 	}
@@ -266,40 +265,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) []ipc.
 	ticket := proc.fuzzer.gate.Enter()
 	defer proc.fuzzer.gate.Leave(ticket)
 
-	strOpts := ""
-	if opts.Flags&ipc.FlagInjectFault != 0 {
-		strOpts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)", opts.FaultCall, opts.FaultNth)
-	}
-
-	// The following output helps to understand what program crashed kernel.
-	// It must not be intermixed.
-	switch *flagOutput {
-	case "none":
-		// This case intentionally left blank.
-	case "stdout":
-		data := p.Serialize()
-		logMu.Lock()
-		Logf(0, "executing program %v%v:\n%s", pid, strOpts, data)
-		logMu.Unlock()
-	case "dmesg":
-		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)
-		if err == nil {
-			buf := new(bytes.Buffer)
-			fmt.Fprintf(buf, "syzkaller: executing program %v%v:\n%s", pid, strOpts, p.Serialize())
-			syscall.Write(fd, buf.Bytes())
-			syscall.Close(fd)
-		}
-	case "file":
-		f, err := os.Create(fmt.Sprintf("%v-%v.prog", *flagName, pid))
-		if err == nil {
-			if strOpts != "" {
-				fmt.Fprintf(f, "#%v\n", strOpts)
-			}
-			f.Write(p.Serialize())
-			f.Close()
-		}
-	}
-
+	proc.logProgram(opts, p)
 	try := 0
 retry:
 	atomic.AddUint64(&proc.fuzzer.stats[stat], 1)
@@ -322,4 +288,45 @@ retry:
 	}
 	Logf(2, "result failed=%v hanged=%v: %v\n", failed, hanged, string(output))
 	return info
+}
+
+func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
+	if proc.fuzzer.outputType == OutputNone {
+		return
+	}
+
+	data := p.Serialize()
+	strOpts := ""
+	if opts.Flags&ipc.FlagInjectFault != 0 {
+		strOpts = fmt.Sprintf(" (fault-call:%v fault-nth:%v)", opts.FaultCall, opts.FaultNth)
+	}
+
+	// The following output helps to understand what program crashed kernel.
+	// It must not be intermixed.
+	switch proc.fuzzer.outputType {
+	case OutputStdout:
+		logMu.Lock()
+		Logf(0, "executing program %v%v:\n%s", proc.pid, strOpts, data)
+		logMu.Unlock()
+	case OutputDmesg:
+		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)
+		if err == nil {
+			buf := new(bytes.Buffer)
+			fmt.Fprintf(buf, "syzkaller: executing program %v%v:\n%s",
+				proc.pid, strOpts, data)
+			syscall.Write(fd, buf.Bytes())
+			syscall.Close(fd)
+		}
+	case OutputFile:
+		f, err := os.Create(fmt.Sprintf("%v-%v.prog", proc.fuzzer.name, proc.pid))
+		if err == nil {
+			if strOpts != "" {
+				fmt.Fprintf(f, "#%v\n", strOpts)
+			}
+			f.Write(data)
+			f.Close()
+		}
+	default:
+		panic("unknown output type")
+	}
 }
