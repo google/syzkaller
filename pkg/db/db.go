@@ -23,6 +23,7 @@ import (
 )
 
 type DB struct {
+	Version uint64            // arbitrary user version (0 for new database)
 	Records map[string]Record // in-memory cache, must not be modified directly
 
 	filename    string
@@ -43,7 +44,7 @@ func Open(filename string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.Records, db.uncompacted = deserializeDB(bufio.NewReader(f))
+	db.Version, db.Records, db.uncompacted = deserializeDB(bufio.NewReader(f))
 	f.Close()
 	if len(db.Records) == 0 || db.uncompacted/10*9 > len(db.Records) {
 		db.compact()
@@ -92,9 +93,17 @@ func (db *DB) Flush() error {
 	return nil
 }
 
+func (db *DB) BumpVersion(version uint64) error {
+	if db.Version == version {
+		return db.Flush()
+	}
+	db.Version = version
+	return db.compact()
+}
+
 func (db *DB) compact() error {
 	buf := new(bytes.Buffer)
-	serializeHeader(buf)
+	serializeHeader(buf, db.Version)
 	for key, rec := range db.Records {
 		serializeRecord(buf, key, rec.Val, rec.Seq)
 	}
@@ -125,13 +134,14 @@ func (db *DB) serialize(key string, val []byte, seq uint64) {
 const (
 	dbMagic    = uint32(0xbaddb)
 	recMagic   = uint32(0xfee1bad)
-	curVersion = uint32(1)
+	curVersion = uint32(2)
 	seqDeleted = ^uint64(0)
 )
 
-func serializeHeader(w *bytes.Buffer) {
+func serializeHeader(w *bytes.Buffer, version uint64) {
 	binary.Write(w, binary.LittleEndian, dbMagic)
 	binary.Write(w, binary.LittleEndian, curVersion)
+	binary.Write(w, binary.LittleEndian, version)
 }
 
 func serializeRecord(w *bytes.Buffer, key string, val []byte, seq uint64) {
@@ -164,14 +174,14 @@ func serializeRecord(w *bytes.Buffer, key string, val []byte, seq uint64) {
 	}
 }
 
-func deserializeDB(r *bufio.Reader) (records map[string]Record, uncompacted int) {
+func deserializeDB(r *bufio.Reader) (version uint64, records map[string]Record, uncompacted int) {
 	records = make(map[string]Record)
 	ver, err := deserializeHeader(r)
 	if err != nil {
 		Logf(0, "failed to deserialize database header: %v", err)
 		return
 	}
-	_ = ver
+	version = ver
 	for {
 		key, val, seq, err := deserializeRecord(r)
 		if err == io.EOF {
@@ -190,11 +200,11 @@ func deserializeDB(r *bufio.Reader) (records map[string]Record, uncompacted int)
 	}
 }
 
-func deserializeHeader(r *bufio.Reader) (uint32, error) {
+func deserializeHeader(r *bufio.Reader) (uint64, error) {
 	var magic, ver uint32
 	if err := binary.Read(r, binary.LittleEndian, &magic); err != nil {
 		if err == io.EOF {
-			return curVersion, nil
+			return 0, nil
 		}
 		return 0, err
 	}
@@ -207,7 +217,13 @@ func deserializeHeader(r *bufio.Reader) (uint32, error) {
 	if ver == 0 || ver > curVersion {
 		return 0, fmt.Errorf("bad db version: %v", ver)
 	}
-	return ver, nil
+	var userVer uint64
+	if ver >= 2 {
+		if err := binary.Read(r, binary.LittleEndian, &userVer); err != nil {
+			return 0, err
+		}
+	}
+	return userVer, nil
 }
 
 func deserializeRecord(r *bufio.Reader) (key string, val []byte, seq uint64, err error) {

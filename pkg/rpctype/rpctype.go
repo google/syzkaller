@@ -15,6 +15,7 @@ type RpcInput struct {
 type RpcCandidate struct {
 	Prog      []byte
 	Minimized bool
+	Smashed   bool
 }
 
 type ConnectArgs struct {
