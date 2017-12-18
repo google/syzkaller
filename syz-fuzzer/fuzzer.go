@@ -51,6 +51,8 @@ var (
 )
 
 type Fuzzer struct {
+	name        string
+	outputType  OutputType
 	config      *ipc.Config
 	execOpts    *ipc.ExecOpts
 	procs       []*Proc
@@ -83,11 +85,28 @@ const (
 	StatCount
 )
 
+type OutputType int
+
+const (
+	OutputNone OutputType = iota
+	OutputStdout
+	OutputDmesg
+	OutputFile
+)
+
 func main() {
 	debug.SetGCPercent(50)
 	flag.Parse()
+	var outputType OutputType
 	switch *flagOutput {
-	case "none", "stdout", "dmesg", "file":
+	case "none":
+		outputType = OutputNone
+	case "stdout":
+		outputType = OutputStdout
+	case "dmesg":
+		outputType = OutputDmesg
+	case "file":
+		outputType = OutputFile
 	default:
 		fmt.Fprintf(os.Stderr, "-output flag must be one of none/stdout/dmesg/file\n")
 		os.Exit(1)
@@ -211,6 +230,8 @@ func main() {
 	needPoll := make(chan struct{}, 1)
 	needPoll <- struct{}{}
 	fuzzer := &Fuzzer{
+		name:         *flagName,
+		outputType:   outputType,
 		config:       config,
 		execOpts:     execOpts,
 		gate:         ipc.NewGate(2**flagProcs, leakCallback),
@@ -274,7 +295,7 @@ func main() {
 			}
 
 			a := &PollArgs{
-				Name:           *flagName,
+				Name:           fuzzer.name,
 				NeedCandidates: needCandidates,
 				Stats:          make(map[string]uint64),
 			}
