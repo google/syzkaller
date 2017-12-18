@@ -110,54 +110,49 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	opts := *execOpts
 	opts.Flags |= ipc.FlagCollectCover
 	opts.Flags &= ^ipc.FlagCollide
-	if item.minimized {
-		// We just need to get input coverage.
-		for i := 0; i < 3; i++ {
-			info := proc.executeRaw(&opts, item.p, StatTriage)
-			if len(info) == 0 || len(info[item.call].Cover) == 0 {
-				continue // The call was not executed. Happens sometimes.
+	const (
+		signalRuns       = 3
+		minimizeAttempts = 3
+	)
+	// Compute input coverage and non-flaky signal for minimization.
+	notexecuted := 0
+	for i := 0; i < signalRuns; i++ {
+		info := proc.executeRaw(&opts, item.p, StatTriage)
+		if len(info) == 0 || len(info[item.call].Signal) == 0 {
+			// The call was not executed. Happens sometimes.
+			notexecuted++
+			if notexecuted > signalRuns/2 {
+				return // if happens too often, give up
 			}
-			inputCover = append([]uint32{}, info[item.call].Cover...)
-			break
+			continue
 		}
-	} else {
-		// We need to compute input coverage and non-flaky signal for minimization.
-		notexecuted := false
-		for i := 0; i < 3; i++ {
-			info := proc.executeRaw(&opts, item.p, StatTriage)
-			if len(info) == 0 || len(info[item.call].Signal) == 0 {
-				// The call was not executed. Happens sometimes.
-				if notexecuted {
-					return // if it happened twice, give up
-				}
-				notexecuted = true
-				continue
-			}
-			inf := info[item.call]
-			newSignal = cover.Intersection(newSignal, cover.Canonicalize(inf.Signal))
-			if len(newSignal) == 0 {
-				return
-			}
-			if len(inputCover) == 0 {
-				inputCover = append([]uint32{}, inf.Cover...)
-			} else {
-				inputCover = cover.Union(inputCover, inf.Cover)
-			}
+		inf := info[item.call]
+		newSignal = cover.Intersection(newSignal, cover.Canonicalize(inf.Signal))
+		// Without !minimized check manager starts losing some considerable amount
+		// of coverage after each restart. Mechanics of this are not completely clear.
+		if len(newSignal) == 0 && !item.minimized {
+			return
 		}
-
+		if len(inputCover) == 0 {
+			inputCover = append([]uint32{}, inf.Cover...)
+		} else {
+			inputCover = cover.Union(inputCover, inf.Cover)
+		}
+	}
+	if !item.minimized {
 		item.p, item.call = prog.Minimize(item.p, item.call, func(p1 *prog.Prog, call1 int) bool {
-			info := proc.execute(execOpts, p1, false, false, false, true, StatMinimize)
-			if len(info) == 0 || len(info[call1].Signal) == 0 {
-				return false // The call was not executed.
+			for i := 0; i < minimizeAttempts; i++ {
+				info := proc.execute(execOpts, p1, false, false, false, true, StatMinimize)
+				if len(info) == 0 || len(info[call1].Signal) == 0 {
+					continue // The call was not executed.
+				}
+				inf := info[call1]
+				signal := cover.Canonicalize(inf.Signal)
+				if len(cover.Intersection(newSignal, signal)) == len(newSignal) {
+					return true
+				}
 			}
-			inf := info[call1]
-			signal := cover.Canonicalize(inf.Signal)
-			signalMu.RLock()
-			defer signalMu.RUnlock()
-			if len(cover.Intersection(newSignal, signal)) != len(newSignal) {
-				return false
-			}
-			return true
+			return false
 		}, false)
 	}
 
