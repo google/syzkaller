@@ -44,11 +44,6 @@ var (
 	manager *RpcClient
 	target  *prog.Target
 
-	signalMu     sync.RWMutex
-	corpusSignal map[uint32]struct{}
-	maxSignal    map[uint32]struct{}
-	newSignal    map[uint32]struct{}
-
 	allTriaged            uint32
 	noCover               bool
 	faultInjectionEnabled bool
@@ -67,6 +62,11 @@ type Fuzzer struct {
 	corpusMu     sync.RWMutex
 	corpus       []*prog.Prog
 	corpusHashes map[hash.Sig]struct{}
+
+	signalMu     sync.RWMutex
+	corpusSignal map[uint32]struct{} // coverage of inputs in corpus
+	maxSignal    map[uint32]struct{} // max coverage ever observed including flakes
+	newSignal    map[uint32]struct{} // diff of maxSignal since last sync with master
 }
 
 type Stat int
@@ -122,10 +122,6 @@ func main() {
 	} else {
 		runtime.MemProfileRate = 0
 	}
-
-	corpusSignal = make(map[uint32]struct{})
-	maxSignal = make(map[uint32]struct{})
-	newSignal = make(map[uint32]struct{})
 
 	Logf(0, "dialing manager at %v", *flagManager)
 	a := &ConnectArgs{*flagName}
@@ -221,21 +217,22 @@ func main() {
 		workQueue:    newWorkQueue(*flagProcs, needPoll),
 		choiceTable:  ct,
 		corpusHashes: make(map[hash.Sig]struct{}),
+		corpusSignal: make(map[uint32]struct{}),
+		maxSignal:    make(map[uint32]struct{}),
+		newSignal:    make(map[uint32]struct{}),
 	}
 
 	for _, inp := range r.Inputs {
-		fuzzer.addInput(inp)
+		fuzzer.addInputFromAnotherFuzzer(inp)
 	}
-	for _, s := range r.MaxSignal {
-		maxSignal[s] = struct{}{}
-	}
+	fuzzer.addMaxSignal(r.MaxSignal)
 	for _, candidate := range r.Candidates {
 		p, err := target.Deserialize(candidate.Prog)
 		if err != nil {
 			panic(err)
 		}
 		if noCover {
-			fuzzer.addInputToCorpus(p, hash.Hash(candidate.Prog))
+			fuzzer.addInputToCorpus(p, nil, hash.Hash(candidate.Prog))
 		} else {
 			fuzzer.workQueue.enqueue(&WorkCandidate{
 				p:         p,
@@ -281,13 +278,7 @@ func main() {
 				NeedCandidates: needCandidates,
 				Stats:          make(map[string]uint64),
 			}
-			signalMu.Lock()
-			a.MaxSignal = make([]uint32, 0, len(newSignal))
-			for s := range newSignal {
-				a.MaxSignal = append(a.MaxSignal, s)
-			}
-			newSignal = make(map[uint32]struct{})
-			signalMu.Unlock()
+			a.MaxSignal = fuzzer.grabNewSignal()
 			for _, proc := range fuzzer.procs {
 				a.Stats["exec total"] += atomic.SwapUint64(&proc.env.StatExecs, 0)
 				a.Stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
@@ -312,15 +303,9 @@ func main() {
 			}
 			Logf(1, "poll: candidates=%v inputs=%v signal=%v",
 				len(r.Candidates), len(r.NewInputs), len(r.MaxSignal))
-			if len(r.MaxSignal) != 0 {
-				signalMu.Lock()
-				for _, s := range r.MaxSignal {
-					maxSignal[s] = struct{}{}
-				}
-				signalMu.Unlock()
-			}
+			fuzzer.addMaxSignal(r.MaxSignal)
 			for _, inp := range r.NewInputs {
-				fuzzer.addInput(inp)
+				fuzzer.addInputFromAnotherFuzzer(inp)
 			}
 			for _, candidate := range r.Candidates {
 				p, err := target.Deserialize(candidate.Prog)
@@ -328,7 +313,7 @@ func main() {
 					panic(err)
 				}
 				if noCover {
-					fuzzer.addInputToCorpus(p, hash.Hash(candidate.Prog))
+					fuzzer.addInputToCorpus(p, nil, hash.Hash(candidate.Prog))
 				} else {
 					fuzzer.workQueue.enqueue(&WorkCandidate{
 						p:         p,
@@ -387,7 +372,7 @@ func buildCallList(target *prog.Target, enabledCalls string) map[*prog.Syscall]b
 	return calls
 }
 
-func (fuzzer *Fuzzer) addInput(inp RpcInput) {
+func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp RpcInput) {
 	if noCover {
 		panic("should not be called when coverage is disabled")
 	}
@@ -395,27 +380,84 @@ func (fuzzer *Fuzzer) addInput(inp RpcInput) {
 	if err != nil {
 		panic(err)
 	}
-	fuzzer.addInputToCorpus(p, hash.Hash(inp.Prog))
-
-	signalMu.Lock()
-	defer signalMu.Unlock()
-	if diff := cover.SignalDiff(maxSignal, inp.Signal); len(diff) != 0 {
-		cover.SignalAdd(corpusSignal, diff)
-		cover.SignalAdd(maxSignal, diff)
-	}
+	fuzzer.addInputToCorpus(p, inp.Signal, hash.Hash(inp.Prog))
 }
 
-func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sig hash.Sig) {
+func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, signal []uint32, sig hash.Sig) {
 	fuzzer.corpusMu.Lock()
-	defer fuzzer.corpusMu.Unlock()
 	if _, ok := fuzzer.corpusHashes[sig]; !ok {
 		fuzzer.corpus = append(fuzzer.corpus, p)
 		fuzzer.corpusHashes[sig] = struct{}{}
 	}
+	fuzzer.corpusMu.Unlock()
+
+	fuzzer.signalMu.Lock()
+	cover.SignalAdd(fuzzer.corpusSignal, signal)
+	cover.SignalAdd(fuzzer.maxSignal, signal)
+	fuzzer.signalMu.Unlock()
 }
 
 func (fuzzer *Fuzzer) corpusSnapshot() []*prog.Prog {
 	fuzzer.corpusMu.RLock()
 	defer fuzzer.corpusMu.RUnlock()
 	return fuzzer.corpus
+}
+
+func (fuzzer *Fuzzer) addMaxSignal(signal []uint32) {
+	if len(signal) == 0 {
+		return
+	}
+	fuzzer.signalMu.Lock()
+	defer fuzzer.signalMu.Unlock()
+	for _, s := range signal {
+		fuzzer.maxSignal[s] = struct{}{}
+	}
+}
+
+func (fuzzer *Fuzzer) grabNewSignal() []uint32 {
+	fuzzer.signalMu.Lock()
+	newSignal := fuzzer.newSignal
+	if len(newSignal) == 0 {
+		fuzzer.signalMu.Unlock()
+		return nil
+	}
+	fuzzer.newSignal = make(map[uint32]struct{})
+	fuzzer.signalMu.Unlock()
+
+	signal := make([]uint32, 0, len(newSignal))
+	for s := range newSignal {
+		signal = append(signal, s)
+	}
+	return signal
+}
+
+func (fuzzer *Fuzzer) corpusSignalDiff(signal []uint32) []uint32 {
+	fuzzer.signalMu.Lock()
+	defer fuzzer.signalMu.Unlock()
+	return cover.SignalDiff(fuzzer.corpusSignal, signal)
+}
+
+func (fuzzer *Fuzzer) addCorpusSignal(signal []uint32) []uint32 {
+	fuzzer.signalMu.Lock()
+	defer fuzzer.signalMu.Unlock()
+	return cover.SignalDiff(fuzzer.corpusSignal, signal)
+}
+
+func (fuzzer *Fuzzer) checkNewSignal(info []ipc.CallInfo) (calls []int) {
+	fuzzer.signalMu.RLock()
+	defer fuzzer.signalMu.RUnlock()
+	for i, inf := range info {
+		if !cover.SignalNew(fuzzer.maxSignal, inf.Signal) {
+			continue
+		}
+		calls = append(calls, i)
+		diff := cover.SignalDiff(fuzzer.maxSignal, inf.Signal)
+		fuzzer.signalMu.RUnlock()
+		fuzzer.signalMu.Lock()
+		cover.SignalAdd(fuzzer.maxSignal, diff)
+		cover.SignalAdd(fuzzer.newSignal, diff)
+		fuzzer.signalMu.Unlock()
+		fuzzer.signalMu.RLock()
+	}
+	return
 }

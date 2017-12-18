@@ -95,9 +95,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		panic("should not be called when coverage is disabled")
 	}
 
-	signalMu.RLock()
-	newSignal := cover.SignalDiff(corpusSignal, item.signal)
-	signalMu.RUnlock()
+	newSignal := proc.fuzzer.corpusSignalDiff(item.signal)
 	if len(newSignal) == 0 {
 		return
 	}
@@ -173,11 +171,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		panic(err)
 	}
 
-	signalMu.Lock()
-	cover.SignalAdd(corpusSignal, item.signal)
-	signalMu.Unlock()
-
-	proc.fuzzer.addInputToCorpus(item.p, sig)
+	proc.fuzzer.addInputToCorpus(item.p, item.signal, sig)
 
 	if !item.smashed {
 		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
@@ -244,27 +238,14 @@ func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog,
 	if noCollide {
 		opts.Flags &= ^ipc.FlagCollide
 	}
+
 	info := proc.executeRaw(&opts, p, stat)
-	signalMu.RLock()
-	defer signalMu.RUnlock()
 
-	for i, inf := range info {
-		if !cover.SignalNew(maxSignal, inf.Signal) {
-			continue
-		}
-		diff := cover.SignalDiff(maxSignal, inf.Signal)
-
-		signalMu.RUnlock()
-		signalMu.Lock()
-		cover.SignalAdd(maxSignal, diff)
-		cover.SignalAdd(newSignal, diff)
-		signalMu.Unlock()
-		signalMu.RLock()
-
+	for _, callIndex := range proc.fuzzer.checkNewSignal(info) {
 		proc.fuzzer.workQueue.enqueue(&WorkTriage{
 			p:         p.Clone(),
-			call:      i,
-			signal:    append([]uint32{}, inf.Signal...),
+			call:      callIndex,
+			signal:    append([]uint32{}, info[callIndex].Signal...),
 			candidate: candidate,
 			minimized: minimized,
 			smashed:   smashed,
