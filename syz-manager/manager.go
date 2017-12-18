@@ -102,6 +102,8 @@ const (
 	phaseTriagedHub
 )
 
+const currentDBVersion = 1
+
 type Fuzzer struct {
 	name         string
 	inputs       []RpcInput
@@ -185,6 +187,17 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	if err != nil {
 		Fatalf("failed to open corpus database: %v", err)
 	}
+	// By default we don't re-minimize/re-smash programs from corpus,
+	// it takes lots of time on start and is unnecessary.
+	// However, on version bumps we can selectively re-minimize/re-smash.
+	minimized, smashed := true, true
+	switch mgr.corpusDB.Version {
+	case 0:
+		// Version 0 had broken minimization, so we need to re-minimize.
+		minimized = false
+		fallthrough
+	case currentDBVersion:
+	}
 	deleted := 0
 	for key, rec := range mgr.corpusDB.Records {
 		p, err := mgr.target.Deserialize(rec.Val)
@@ -214,11 +227,13 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		}
 		mgr.candidates = append(mgr.candidates, RpcCandidate{
 			Prog:      rec.Val,
-			Minimized: true, // don't reminimize programs from corpus, it takes lots of time on start
+			Minimized: minimized,
+			Smashed:   smashed,
 		})
 	}
 	mgr.fresh = len(mgr.corpusDB.Records) == 0
-	Logf(0, "loaded %v programs (%v total, %v deleted)", len(mgr.candidates), len(mgr.corpusDB.Records), deleted)
+	Logf(0, "loaded %v programs (%v total, %v deleted)",
+		len(mgr.candidates), len(mgr.corpusDB.Records), deleted)
 
 	// Now this is ugly.
 	// We duplicate all inputs in the corpus and shuffle the second part.
@@ -811,7 +826,7 @@ func (mgr *Manager) minimizeCorpus() {
 				mgr.corpusDB.Delete(key)
 			}
 		}
-		mgr.corpusDB.Flush()
+		mgr.corpusDB.BumpVersion(currentDBVersion)
 	}
 }
 
@@ -1137,6 +1152,7 @@ func (mgr *Manager) hubSync() {
 			mgr.candidates = append(mgr.candidates, RpcCandidate{
 				Prog:      inp,
 				Minimized: false, // don't trust programs from hub
+				Smashed:   false,
 			})
 		}
 		mgr.stats["hub add"] += uint64(len(a.Add))

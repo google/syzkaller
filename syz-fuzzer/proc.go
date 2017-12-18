@@ -62,7 +62,7 @@ func (proc *Proc) loop() {
 				proc.triageInput(item)
 			case *WorkCandidate:
 				proc.execute(execOpts, item.p, false, item.minimized,
-					true, false, StatCandidate)
+					item.smashed, true, false, StatCandidate)
 			case *WorkSmash:
 				proc.smashInput(item)
 			default:
@@ -76,13 +76,13 @@ func (proc *Proc) loop() {
 			// Generate a new prog.
 			p := target.Generate(proc.rnd, programLength, ct)
 			Logf(1, "#%v: generated", pid)
-			proc.execute(execOpts, p, false, false, false, false, StatGenerate)
+			proc.execute(execOpts, p, false, false, false, false, false, StatGenerate)
 		} else {
 			// Mutate an existing prog.
 			p := corpus[proc.rnd.Intn(len(corpus))].Clone()
 			p.Mutate(proc.rnd, programLength, ct, corpus)
 			Logf(1, "#%v: mutated", pid)
-			proc.execute(execOpts, p, false, false, false, false, StatFuzz)
+			proc.execute(execOpts, p, false, false, false, false, false, StatFuzz)
 		}
 	}
 }
@@ -142,7 +142,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	if !item.minimized {
 		item.p, item.call = prog.Minimize(item.p, item.call, func(p1 *prog.Prog, call1 int) bool {
 			for i := 0; i < minimizeAttempts; i++ {
-				info := proc.execute(execOpts, p1, false, false, false, true, StatMinimize)
+				info := proc.execute(execOpts, p1, false, false, false, false, true, StatMinimize)
 				if len(info) == 0 || len(info[call1].Signal) == 0 {
 					continue // The call was not executed.
 				}
@@ -179,7 +179,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 
 	proc.fuzzer.addInputToCorpus(item.p, sig)
 
-	if !item.minimized {
+	if !item.smashed {
 		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
 	}
 }
@@ -193,7 +193,7 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 		p := item.p.Clone()
 		p.Mutate(proc.rnd, programLength, proc.fuzzer.choiceTable, corpus)
 		Logf(1, "#%v: smash mutated", proc.pid)
-		proc.execute(proc.fuzzer.execOpts, p, false, false, false, false, StatSmash)
+		proc.execute(proc.fuzzer.execOpts, p, false, false, false, false, false, StatSmash)
 	}
 	if compsSupported {
 		proc.executeHintSeed(item.p, item.call)
@@ -217,7 +217,7 @@ func (proc *Proc) failCall(p *prog.Prog, call int) {
 func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	Logf(1, "#%v: collecting comparisons", proc.pid)
 	// First execute the original program to dump comparisons from KCOV.
-	info := proc.execute(proc.fuzzer.execOpts, p, true, false, false, true, StatSeed)
+	info := proc.execute(proc.fuzzer.execOpts, p, true, false, false, false, true, StatSeed)
 	if info == nil {
 		return
 	}
@@ -227,12 +227,12 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	// Execute each of such mutants to check if it gives new coverage.
 	p.MutateWithHints(call, info[call].Comps, func(p *prog.Prog) {
 		Logf(1, "#%v: executing comparison hint", proc.pid)
-		proc.execute(proc.fuzzer.execOpts, p, false, false, false, false, StatHint)
+		proc.execute(proc.fuzzer.execOpts, p, false, false, false, false, false, StatHint)
 	})
 }
 
 func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog,
-	needComps, minimized, candidate, noCollide bool, stat Stat) []ipc.CallInfo {
+	needComps, minimized, smashed, candidate, noCollide bool, stat Stat) []ipc.CallInfo {
 
 	opts := *execOpts
 	if needComps {
@@ -267,6 +267,7 @@ func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog,
 			signal:    append([]uint32{}, inf.Signal...),
 			candidate: candidate,
 			minimized: minimized,
+			smashed:   smashed,
 		})
 	}
 	return info

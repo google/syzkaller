@@ -237,7 +237,11 @@ func main() {
 		if noCover {
 			fuzzer.addInputToCorpus(p, hash.Hash(candidate.Prog))
 		} else {
-			fuzzer.workQueue.enqueue(&WorkCandidate{p, candidate.Minimized})
+			fuzzer.workQueue.enqueue(&WorkCandidate{
+				p:         p,
+				minimized: candidate.Minimized,
+				smashed:   candidate.Smashed,
+			})
 		}
 	}
 
@@ -326,7 +330,11 @@ func main() {
 				if noCover {
 					fuzzer.addInputToCorpus(p, hash.Hash(candidate.Prog))
 				} else {
-					fuzzer.workQueue.enqueue(&WorkCandidate{p, candidate.Minimized})
+					fuzzer.workQueue.enqueue(&WorkCandidate{
+						p:         p,
+						minimized: candidate.Minimized,
+						smashed:   candidate.Smashed,
+					})
 				}
 			}
 			if len(r.Candidates) == 0 && atomic.LoadUint32(&allTriaged) == 0 {

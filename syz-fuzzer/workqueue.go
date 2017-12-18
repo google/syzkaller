@@ -34,6 +34,7 @@ type WorkTriage struct {
 	signal    []uint32
 	candidate bool
 	minimized bool
+	smashed   bool
 }
 
 // WorkCandidate are programs from hub.
@@ -42,6 +43,7 @@ type WorkTriage struct {
 type WorkCandidate struct {
 	p         *prog.Prog
 	minimized bool
+	smashed   bool
 }
 
 // WorkSmash are programs just added to corpus.
