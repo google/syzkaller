@@ -29,27 +29,6 @@ import (
 	"github.com/google/syzkaller/sys"
 )
 
-var (
-	flagName    = flag.String("name", "", "unique name for manager")
-	flagArch    = flag.String("arch", runtime.GOARCH, "target arch")
-	flagManager = flag.String("manager", "", "manager rpc address")
-	flagProcs   = flag.Int("procs", 1, "number of parallel test processes")
-	flagLeak    = flag.Bool("leak", false, "detect memory leaks")
-	flagOutput  = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
-	flagPprof   = flag.String("pprof", "", "address to serve pprof profiles")
-	flagTest    = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
-)
-
-var (
-	manager *RpcClient
-	target  *prog.Target
-
-	allTriaged            uint32
-	noCover               bool
-	faultInjectionEnabled bool
-	compsSupported        bool
-)
-
 type Fuzzer struct {
 	name        string
 	outputType  OutputType
@@ -58,8 +37,17 @@ type Fuzzer struct {
 	procs       []*Proc
 	gate        *ipc.Gate
 	workQueue   *WorkQueue
+	needPoll    chan struct{}
 	choiceTable *prog.ChoiceTable
 	stats       [StatCount]uint64
+	manager     *RpcClient
+	target      *prog.Target
+
+	faultInjectionEnabled    bool
+	comparisonTracingEnabled bool
+	coverageEnabled          bool
+	leakCheckEnabled         bool
+	leakCheckReady           uint32
 
 	corpusMu     sync.RWMutex
 	corpus       []*prog.Prog
@@ -85,6 +73,17 @@ const (
 	StatCount
 )
 
+var statNames = [StatCount]string{
+	StatGenerate:  "exec gen",
+	StatFuzz:      "exec fuzz",
+	StatCandidate: "exec candidate",
+	StatTriage:    "exec triage",
+	StatMinimize:  "exec minimize",
+	StatSmash:     "exec smash",
+	StatHint:      "exec hints",
+	StatSeed:      "exec seeds",
+}
+
 type OutputType int
 
 const (
@@ -96,6 +95,17 @@ const (
 
 func main() {
 	debug.SetGCPercent(50)
+
+	var (
+		flagName    = flag.String("name", "", "unique name for manager")
+		flagArch    = flag.String("arch", runtime.GOARCH, "target arch")
+		flagManager = flag.String("manager", "", "manager rpc address")
+		flagProcs   = flag.Int("procs", 1, "number of parallel test processes")
+		flagLeak    = flag.Bool("leak", false, "detect memory leaks")
+		flagOutput  = flag.String("output", "stdout", "write programs to none/stdout/dmesg/file")
+		flagPprof   = flag.String("pprof", "", "address to serve pprof profiles")
+		flagTest    = flag.Bool("test", false, "enable image testing mode") // used by syz-ci
+	)
 	flag.Parse()
 	var outputType OutputType
 	switch *flagOutput {
@@ -113,8 +123,7 @@ func main() {
 	}
 	Logf(0, "fuzzer started")
 
-	var err error
-	target, err = prog.GetTarget(runtime.GOOS, *flagArch)
+	target, err := prog.GetTarget(runtime.GOOS, *flagArch)
 	if err != nil {
 		Fatalf("%v", err)
 	}
@@ -152,6 +161,7 @@ func main() {
 	ct := target.BuildChoiceTable(r.Prios, calls)
 
 	// This requires "fault-inject: support systematic fault injection" kernel commit.
+	faultInjectionEnabled := false
 	if fd, err := syscall.Open("/proc/self/fail-nth", syscall.O_RDWR, 0); err == nil {
 		syscall.Close(fd)
 		faultInjectionEnabled = true
@@ -168,11 +178,10 @@ func main() {
 	if faultInjectionEnabled {
 		config.Flags |= ipc.FlagEnableFault
 	}
-	noCover = config.Flags&ipc.FlagSignal == 0
+	coverageEnabled := config.Flags&ipc.FlagSignal != 0
 
-	kcov := false
-	kcov, compsSupported = checkCompsSupported()
-	Logf(0, "kcov=%v, comps=%v", kcov, compsSupported)
+	kcov, comparisonTracingEnabled := checkCompsSupported()
+	Logf(0, "kcov=%v, comps=%v", kcov, comparisonTracingEnabled)
 	if r.NeedCheck {
 		out, err := osutil.RunCmd(time.Minute, "", config.Executor, "version")
 		if err != nil {
@@ -197,7 +206,7 @@ func main() {
 			a.Leak = true
 		}
 		a.Fault = faultInjectionEnabled
-		a.CompsSupported = compsSupported
+		a.CompsSupported = comparisonTracingEnabled
 		for c := range calls {
 			a.Calls = append(a.Calls, c.Name)
 		}
@@ -210,56 +219,53 @@ func main() {
 	// So we do the call on a transient connection, free all memory and reconnect.
 	// The rest of rpc requests have bounded size.
 	debug.FreeOSMemory()
-	if conn, err := NewRpcClient(*flagManager); err != nil {
+	manager, err := NewRpcClient(*flagManager)
+	if err != nil {
 		panic(err)
-	} else {
-		manager = conn
 	}
 
-	kmemleakInit()
+	kmemleakInit(*flagLeak)
 
-	leakCallback := func() {
-		if atomic.LoadUint32(&allTriaged) != 0 {
-			// Scan for leaks once in a while (it is damn slow).
-			kmemleakScan(true)
-		}
-	}
-	if !*flagLeak {
-		leakCallback = nil
-	}
 	needPoll := make(chan struct{}, 1)
 	needPoll <- struct{}{}
 	fuzzer := &Fuzzer{
-		name:         *flagName,
-		outputType:   outputType,
-		config:       config,
-		execOpts:     execOpts,
-		gate:         ipc.NewGate(2**flagProcs, leakCallback),
-		workQueue:    newWorkQueue(*flagProcs, needPoll),
-		choiceTable:  ct,
-		corpusHashes: make(map[hash.Sig]struct{}),
-		corpusSignal: make(map[uint32]struct{}),
-		maxSignal:    make(map[uint32]struct{}),
-		newSignal:    make(map[uint32]struct{}),
+		name:                     *flagName,
+		outputType:               outputType,
+		config:                   config,
+		execOpts:                 execOpts,
+		workQueue:                newWorkQueue(*flagProcs, needPoll),
+		needPoll:                 needPoll,
+		choiceTable:              ct,
+		manager:                  manager,
+		target:                   target,
+		faultInjectionEnabled:    faultInjectionEnabled,
+		comparisonTracingEnabled: comparisonTracingEnabled,
+		coverageEnabled:          coverageEnabled,
+		leakCheckEnabled:         *flagLeak,
+		corpusHashes:             make(map[hash.Sig]struct{}),
+		corpusSignal:             make(map[uint32]struct{}),
+		maxSignal:                make(map[uint32]struct{}),
+		newSignal:                make(map[uint32]struct{}),
 	}
+	fuzzer.gate = ipc.NewGate(2**flagProcs, fuzzer.leakCheckCallback)
 
 	for _, inp := range r.Inputs {
 		fuzzer.addInputFromAnotherFuzzer(inp)
 	}
 	fuzzer.addMaxSignal(r.MaxSignal)
 	for _, candidate := range r.Candidates {
-		p, err := target.Deserialize(candidate.Prog)
+		p, err := fuzzer.target.Deserialize(candidate.Prog)
 		if err != nil {
 			panic(err)
 		}
-		if noCover {
-			fuzzer.addInputToCorpus(p, nil, hash.Hash(candidate.Prog))
-		} else {
+		if coverageEnabled {
 			fuzzer.workQueue.enqueue(&WorkCandidate{
 				p:         p,
 				minimized: candidate.Minimized,
 				smashed:   candidate.Smashed,
 			})
+		} else {
+			fuzzer.addInputToCorpus(p, nil, hash.Hash(candidate.Prog))
 		}
 	}
 
@@ -272,6 +278,10 @@ func main() {
 		go proc.loop()
 	}
 
+	fuzzer.pollLoop()
+}
+
+func (fuzzer *Fuzzer) pollLoop() {
 	var execTotal uint64
 	var lastPoll time.Time
 	var lastPrint time.Time
@@ -280,10 +290,10 @@ func main() {
 		poll := false
 		select {
 		case <-ticker:
-		case <-needPoll:
+		case <-fuzzer.needPoll:
 			poll = true
 		}
-		if *flagOutput != "stdout" && time.Since(lastPrint) > 10*time.Second {
+		if fuzzer.outputType != OutputStdout && time.Since(lastPrint) > 10*time.Second {
 			// Keep-alive for manager.
 			Logf(0, "alive, executed %v", execTotal)
 			lastPrint = time.Now()
@@ -304,22 +314,15 @@ func main() {
 				a.Stats["exec total"] += atomic.SwapUint64(&proc.env.StatExecs, 0)
 				a.Stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
 			}
-			stat := func(stat Stat, name string) {
+
+			for stat := Stat(0); stat < StatCount; stat++ {
 				v := atomic.SwapUint64(&fuzzer.stats[stat], 0)
-				a.Stats[name] = v
+				a.Stats[statNames[stat]] = v
 				execTotal += v
 			}
-			stat(StatGenerate, "exec gen")
-			stat(StatFuzz, "exec fuzz")
-			stat(StatCandidate, "exec candidate")
-			stat(StatTriage, "exec triage")
-			stat(StatMinimize, "exec minimize")
-			stat(StatSmash, "exec smash")
-			stat(StatHint, "exec hints")
-			stat(StatSeed, "exec seeds")
 
 			r := &PollRes{}
-			if err := manager.Call("Manager.Poll", a, r); err != nil {
+			if err := fuzzer.manager.Call("Manager.Poll", a, r); err != nil {
 				panic(err)
 			}
 			Logf(1, "poll: candidates=%v inputs=%v signal=%v",
@@ -329,25 +332,24 @@ func main() {
 				fuzzer.addInputFromAnotherFuzzer(inp)
 			}
 			for _, candidate := range r.Candidates {
-				p, err := target.Deserialize(candidate.Prog)
+				p, err := fuzzer.target.Deserialize(candidate.Prog)
 				if err != nil {
 					panic(err)
 				}
-				if noCover {
-					fuzzer.addInputToCorpus(p, nil, hash.Hash(candidate.Prog))
-				} else {
+				if fuzzer.coverageEnabled {
 					fuzzer.workQueue.enqueue(&WorkCandidate{
 						p:         p,
 						minimized: candidate.Minimized,
 						smashed:   candidate.Smashed,
 					})
+				} else {
+					fuzzer.addInputToCorpus(p, nil, hash.Hash(candidate.Prog))
 				}
 			}
-			if len(r.Candidates) == 0 && atomic.LoadUint32(&allTriaged) == 0 {
-				if *flagLeak {
-					kmemleakScan(false)
-				}
-				atomic.StoreUint32(&allTriaged, 1)
+			if len(r.Candidates) == 0 && fuzzer.leakCheckEnabled &&
+				atomic.LoadUint32(&fuzzer.leakCheckReady) == 0 {
+				kmemleakScan(false) // ignore boot leaks
+				atomic.StoreUint32(&fuzzer.leakCheckReady, 1)
 			}
 			if len(r.NewInputs) == 0 && len(r.Candidates) == 0 {
 				lastPoll = time.Now()
@@ -393,11 +395,21 @@ func buildCallList(target *prog.Target, enabledCalls string) map[*prog.Syscall]b
 	return calls
 }
 
+func (fuzzer *Fuzzer) sendInputToManager(inp RpcInput) {
+	a := &NewInputArgs{
+		Name:     fuzzer.name,
+		RpcInput: inp,
+	}
+	if err := fuzzer.manager.Call("Manager.NewInput", a, nil); err != nil {
+		panic(err)
+	}
+}
+
 func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp RpcInput) {
-	if noCover {
+	if !fuzzer.coverageEnabled {
 		panic("should not be called when coverage is disabled")
 	}
-	p, err := target.Deserialize(inp.Prog)
+	p, err := fuzzer.target.Deserialize(inp.Prog)
 	if err != nil {
 		panic(err)
 	}
@@ -481,4 +493,11 @@ func (fuzzer *Fuzzer) checkNewSignal(info []ipc.CallInfo) (calls []int) {
 		fuzzer.signalMu.RLock()
 	}
 	return
+}
+
+func (fuzzer *Fuzzer) leakCheckCallback() {
+	if atomic.LoadUint32(&fuzzer.leakCheckReady) != 0 {
+		// Scan for leaks once in a while (it is damn slow).
+		kmemleakScan(true)
+	}
 }

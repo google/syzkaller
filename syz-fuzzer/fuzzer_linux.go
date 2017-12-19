@@ -11,18 +11,17 @@ import (
 	"github.com/google/syzkaller/sys/linux"
 )
 
-func kmemleakInit() {
+func kmemleakInit(enable bool) {
 	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
 	if err != nil {
-		if *flagLeak {
-			log.Fatalf("BUG: /sys/kernel/debug/kmemleak is missing (%v). Enable CONFIG_KMEMLEAK and mount debugfs.", err)
-		} else {
+		if !enable {
 			return
 		}
+		log.Fatalf("BUG: /sys/kernel/debug/kmemleak is missing (%v). Enable CONFIG_KMEMLEAK and mount debugfs.", err)
 	}
 	defer syscall.Close(fd)
 	what := "scan=off"
-	if !*flagLeak {
+	if !enable {
 		what = "off"
 	}
 	if _, err := syscall.Write(fd, []byte(what)); err != nil {

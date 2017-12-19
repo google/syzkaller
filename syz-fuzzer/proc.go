@@ -74,7 +74,7 @@ func (proc *Proc) loop() {
 		corpus := proc.fuzzer.corpusSnapshot()
 		if len(corpus) == 0 || i%100 == 0 {
 			// Generate a new prog.
-			p := target.Generate(proc.rnd, programLength, ct)
+			p := proc.fuzzer.target.Generate(proc.rnd, programLength, ct)
 			Logf(1, "#%v: generated", pid)
 			proc.execute(execOpts, p, false, false, false, false, false, StatGenerate)
 		} else {
@@ -91,7 +91,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	Logf(1, "#%v: triaging minimized=%v candidate=%v", proc.pid, item.minimized, item.candidate)
 
 	execOpts := proc.fuzzer.execOpts
-	if noCover {
+	if !proc.fuzzer.coverageEnabled {
 		panic("should not be called when coverage is disabled")
 	}
 
@@ -158,18 +158,12 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	sig := hash.Hash(data)
 
 	Logf(2, "added new input for %v to corpus:\n%s", call.CallName, data)
-	a := &NewInputArgs{
-		Name: proc.fuzzer.name,
-		RpcInput: RpcInput{
-			Call:   call.CallName,
-			Prog:   data,
-			Signal: []uint32(cover.Canonicalize(item.signal)),
-			Cover:  []uint32(inputCover),
-		},
-	}
-	if err := manager.Call("Manager.NewInput", a, nil); err != nil {
-		panic(err)
-	}
+	proc.fuzzer.sendInputToManager(RpcInput{
+		Call:   call.CallName,
+		Prog:   data,
+		Signal: []uint32(cover.Canonicalize(item.signal)),
+		Cover:  []uint32(inputCover),
+	})
 
 	proc.fuzzer.addInputToCorpus(item.p, item.signal, sig)
 
@@ -179,8 +173,11 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 }
 
 func (proc *Proc) smashInput(item *WorkSmash) {
-	if faultInjectionEnabled {
+	if proc.fuzzer.faultInjectionEnabled {
 		proc.failCall(item.p, item.call)
+	}
+	if proc.fuzzer.comparisonTracingEnabled {
+		proc.executeHintSeed(item.p, item.call)
 	}
 	corpus := proc.fuzzer.corpusSnapshot()
 	for i := 0; i < 100; i++ {
@@ -188,9 +185,6 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 		p.Mutate(proc.rnd, programLength, proc.fuzzer.choiceTable, corpus)
 		Logf(1, "#%v: smash mutated", proc.pid)
 		proc.execute(proc.fuzzer.execOpts, p, false, false, false, false, false, StatSmash)
-	}
-	if compsSupported {
-		proc.executeHintSeed(item.p, item.call)
 	}
 }
 
@@ -227,12 +221,8 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 
 func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog,
 	needComps, minimized, smashed, candidate, noCollide bool, stat Stat) []ipc.CallInfo {
-
 	opts := *execOpts
 	if needComps {
-		if !compsSupported {
-			panic("compsSupported==false and execute() called with needComps")
-		}
 		opts.Flags |= ipc.FlagCollectComps
 	}
 	if noCollide {
