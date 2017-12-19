@@ -17,9 +17,9 @@
 # To test x86 compat syscalls, run:
 #    make TARGETVMARCH=amd64 TARGETARCH=386
 #
-# There is a special case for Android builds:
-#    NDK=/path/to/android/ndk make TARGETOS=android TARGETARCH=arm64
-# But you still need to specify "target": "linux/arm64" in syz-manager config.
+# There is one special case for extracting constants for Android
+# (you don't need this unless you update system call descriptions):
+#    make extract TARGETOS=android SOURCEDIR=/path/to/android/checkout
 
 BUILDOS := $(shell go env GOOS)
 BUILDARCH := $(shell go env GOARCH)
@@ -28,7 +28,6 @@ HOSTARCH ?= $(BUILDARCH)
 TARGETOS ?= $(HOSTOS)
 TARGETARCH ?= $(HOSTARCH)
 TARGETVMARCH ?= $(TARGETARCH)
-EXTRACTOS := $(TARGETOS)
 GO := go
 EXE :=
 
@@ -44,40 +43,6 @@ else ifeq ("$(TARGETARCH)", "arm")
 	ADDCFLAGS = "-march=armv6t2"
 else ifeq ("$(TARGETARCH)", "ppc64le")
 	CC = "powerpc64le-linux-gnu-gcc"
-endif
-
-ifeq ("$(TARGETOS)", "android")
-	EXTRACTOS = android
-	override TARGETOS = linux
-	ANDROID_API = 24
-	BUILDGCCARCH = ""
-	ANDROIDARCH = ""
-	TOOLCHAIN = ""
-	GCCBIN = ""
-	ifeq ("$(TARGETARCH)", "amd64")
-		ANDROIDARCH = "x86_64"
-		TOOLCHAIN = "x86_64-4.9"
-		GCCBIN = "x86_64-linux-android-g++"
-	else ifeq ("$(TARGETARCH)", "386")
-		ANDROIDARCH = "x86"
-		TOOLCHAIN = "x86-4.9"
-		GCCBIN = "i686-linux-android-g++"
-	else ifeq ("$(TARGETARCH)", "arm64")
-		ANDROIDARCH = "arm64"
-		TOOLCHAIN = "aarch64-linux-android-4.9"
-		GCCBIN = "aarch64-linux-android-g++"
-	else ifeq ("$(TARGETARCH)", "arm")
-		ANDROIDARCH = "arm"
-		TOOLCHAIN = "arm-linux-androideabi-4.9"
-		GCCBIN = "arm-linux-androideabi-g++"
-	endif
-	ifeq ("$(BUILDARCH)", "amd64")
-		BUILDGCCARCH = "x86_64"
-	else ifeq ("$(BUILDARCH)", "arm64")
-		BUILDGCCARCH = "aarch64"
-	endif
-	CC = $(NDK)/toolchains/$(TOOLCHAIN)/prebuilt/$(BUILDOS)-$(BUILDGCCARCH)/bin/$(GCCBIN)
-	CFLAGS = -I $(NDK)/sources/cxx-stl/llvm-libc++/include --sysroot=$(NDK)/platforms/android-$(ANDROID_API)/arch-$(ANDROIDARCH) -static
 endif
 
 ifeq ("$(TARGETOS)", "fuchsia")
@@ -122,6 +87,9 @@ endif
 # That's only needed if you use gdb or nm.
 # If you need that, build manually without these flags.
 GOFLAGS := "-ldflags=-s -w -X github.com/google/syzkaller/sys.GitRevision=$(REV)"
+# Build all Go binaries as static. We don't need cgo and it is known to cause
+# problems at least on Android emulator.
+export CGO_ENABLED=0
 ifneq ("$(GOTAGS)", "")
 	GOFLAGS += "-tags=$(GOTAGS)"
 endif
@@ -188,7 +156,7 @@ upgrade:
 	GOOS=$(HOSTOS) GOARCH=$(HOSTARCH) $(GO) build $(GOFLAGS) -o ./bin/syz-upgrade github.com/google/syzkaller/tools/syz-upgrade
 
 extract: bin/syz-extract
-	bin/syz-extract -build -os=$(EXTRACTOS) -sourcedir=$(SOURCEDIR)
+	bin/syz-extract -build -os=$(TARGETOS) -sourcedir=$(SOURCEDIR)
 bin/syz-extract:
 	$(GO) build $(GOFLAGS) -o $@ ./sys/syz-extract
 
@@ -219,8 +187,9 @@ tidy:
 	$(CC) executor/test_executor.cc -c -o /dev/null -Wparentheses -Wno-unused -Wall
 
 test:
-	$(GO) test -short ./...
-	$(GO) test -short -race -bench=.* ./...
+	# Executor tests use cgo.
+	env CGO_ENABLED=1 $(GO) test -short ./...
+	env CGO_ENABLED=1 $(GO) test -short -race -bench=.* ./...
 
 arch:
 	env GOOG=darwin GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
