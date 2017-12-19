@@ -615,7 +615,6 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 	if !mgr.crashTypes[crash.Title] {
 		mgr.crashTypes[crash.Title] = true
 		mgr.stats["crash types"]++
-		go mgr.emailCrash(crash)
 	}
 	mgr.mu.Unlock()
 
@@ -654,6 +653,9 @@ func (mgr *Manager) saveCrash(crash *Crash) bool {
 		info, err := os.Stat(filepath.Join(dir, fmt.Sprintf("log%v", i)))
 		if err != nil {
 			oldestI = i
+			if i == 0 {
+				go mgr.emailCrash(crash)
+			}
 			break
 		}
 		if oldestTime.IsZero() || info.ModTime().Before(oldestTime) {
