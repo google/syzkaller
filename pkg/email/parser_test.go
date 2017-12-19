@@ -19,6 +19,12 @@ func TestExtractCommand(t *testing.T) {
 				t.Logf("got   : %q %q", cmd, args)
 				t.Fail()
 			}
+			cmd, args = extractCommand([]byte(strings.Replace(test.body, "\n", "\r\n", -1)))
+			if cmd != test.cmd || !reflect.DeepEqual(args, test.args) {
+				t.Logf("expect: %q %q", test.cmd, test.args)
+				t.Logf("got   : %q %q", cmd, args)
+				t.Fail()
+			}
 		})
 	}
 }
@@ -118,24 +124,24 @@ var extractCommandTests = []struct {
 		body: `Hello,
 
 line1
-#syz  foo  bar baz 	`,
-		cmd:  "foo",
+#syz  fix:  bar baz 	`,
+		cmd:  "fix:",
 		args: "bar baz",
 	},
 	{
 		body: `Hello,
 
 line1
-#syz foo bar  	 baz
+#syz fix:  bar  	 baz
 line 2
 `,
-		cmd: "foo",
+		cmd: "fix:",
 		args: "bar  	 baz",
 	},
 	{
 		body: `
 line1
-> #syz foo bar   baz
+> #syz fix: bar   baz
 line 2
 `,
 		cmd:  "",
@@ -173,7 +179,7 @@ locking/core
 		body: `
 #syz test_5_arg_cmd arg1
 
- arg2 arg3
+ arg2  arg3
  
 arg4
 arg5
@@ -206,6 +212,24 @@ arg2
 		cmd:  "test_5_arg_cmd",
 		args: "arg1 arg2",
 	},
+	{
+		body: `
+#syz fix:
+arg1 arg2 arg3
+arg4 arg5
+ 
+`,
+		cmd:  "fix:",
+		args: "arg1 arg2 arg3",
+	},
+	{
+		body: `
+#syz  fix: arg1 arg2 arg3
+arg4 arg5 
+`,
+		cmd:  "fix:",
+		args: "arg1 arg2 arg3",
+	},
 }
 
 type ParseTest struct {
@@ -223,7 +247,7 @@ Content-Type: text/plain; charset="UTF-8"
 
 text body
 second line
-#syz command 	 arg1 arg2 arg3 	
+#syz fix: 	 arg1 arg2 arg3 	
 last line
 -- 
 You received this message because you are subscribed to the Google Groups "syzkaller" group.
@@ -240,7 +264,7 @@ For more options, visit https://groups.google.com/d/optout.`,
 			Cc:        []string{"bob@example.com"},
 			Body: `text body
 second line
-#syz command 	 arg1 arg2 arg3 	
+#syz fix: 	 arg1 arg2 arg3 	
 last line
 -- 
 You received this message because you are subscribed to the Google Groups "syzkaller" group.
@@ -249,7 +273,7 @@ To post to this group, send email to syzkaller@googlegroups.com.
 To view this discussion on the web visit https://groups.google.com/d/msgid/syzkaller/abcdef@google.com.
 For more options, visit https://groups.google.com/d/optout.`,
 			Patch:       "",
-			Command:     "command",
+			Command:     "fix:",
 			CommandArgs: "arg1 arg2 arg3",
 		}},
 
@@ -280,7 +304,7 @@ From: Bob <bob@example.com>
 To: syzbot <bot@example.com>, Alice <alice@example.com>
 Content-Type: text/plain
 
-#syz  command   	 
+#syz  invalid   	 
 text body
 second line
 last line`,
@@ -289,12 +313,12 @@ last line`,
 			Subject:   "test subject",
 			From:      "\"Bob\" <bob@example.com>",
 			Cc:        []string{"alice@example.com", "bob@example.com", "bot@example.com"},
-			Body: `#syz  command   	 
+			Body: `#syz  invalid   	 
 text body
 second line
 last line`,
 			Patch:       "",
-			Command:     "command",
+			Command:     "invalid",
 			CommandArgs: "",
 		}},
 
