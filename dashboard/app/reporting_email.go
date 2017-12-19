@@ -41,9 +41,10 @@ const emailType = "email"
 var mailingLists map[string]bool
 
 type EmailConfig struct {
-	Email           string
-	Moderation      bool
-	MailMaintainers bool
+	Email              string
+	Moderation         bool
+	MailMaintainers    bool
+	DefaultMaintainers []string
 }
 
 func (cfg *EmailConfig) Type() string {
@@ -51,12 +52,17 @@ func (cfg *EmailConfig) Type() string {
 }
 
 func (cfg *EmailConfig) NeedMaintainers() bool {
-	return cfg.MailMaintainers
+	return cfg.MailMaintainers && len(cfg.DefaultMaintainers) == 0
 }
 
 func (cfg *EmailConfig) Validate() error {
 	if _, err := mail.ParseAddress(cfg.Email); err != nil {
 		return fmt.Errorf("bad email address %q: %v", cfg.Email, err)
+	}
+	for _, email := range cfg.DefaultMaintainers {
+		if _, err := mail.ParseAddress(email); err != nil {
+			return fmt.Errorf("bad email address %q: %v", email, err)
+		}
 	}
 	if cfg.Moderation && cfg.MailMaintainers {
 		return fmt.Errorf("both Moderation and MailMaintainers set")
@@ -130,7 +136,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	}
 	to := []string{cfg.Email}
 	if cfg.MailMaintainers {
-		to = append(to, rep.Maintainers...)
+		to = email.MergeEmailLists(to, rep.Maintainers, cfg.DefaultMaintainers)
 	}
 	to = email.MergeEmailLists(to, rep.CC)
 	var attachments []aemail.Attachment
