@@ -172,42 +172,69 @@ func extractCommand(body []byte) (cmd, args string) {
 		return
 	}
 	cmdPos += len(commandPrefix)
+	for cmdPos < len(body) && body[cmdPos] == ' ' {
+		cmdPos++
+	}
 	cmdEnd := bytes.IndexByte(body[cmdPos:], '\n')
 	if cmdEnd == -1 {
 		cmdEnd = len(body) - cmdPos
 	}
-	cmdLine := strings.TrimSpace(string(body[cmdPos : cmdPos+cmdEnd]))
-	if cmdLine == "" {
-		return
+	if cmdEnd1 := bytes.IndexByte(body[cmdPos:], '\r'); cmdEnd1 != -1 && cmdEnd1 < cmdEnd {
+		cmdEnd = cmdEnd1
 	}
-	split := strings.Split(cmdLine, " ")
-	cmd = split[0]
-	var aargs []string
-	if len(split) > 1 {
-		aargs = split[1:]
+	if cmdEnd1 := bytes.IndexByte(body[cmdPos:], ' '); cmdEnd1 != -1 && cmdEnd1 < cmdEnd {
+		cmdEnd = cmdEnd1
 	}
-	// Text emails are split at 80 columns are the transformation is irrevesible.
-	// Try to restore args for some commands that don't have spaces in args.
-	want := 0
+	cmd = string(body[cmdPos : cmdPos+cmdEnd])
+	// Some email clients split text emails at 80 columns are the transformation is irrevesible.
+	// We try hard to restore what was there before.
+	// For "test:" command we know that there must be 2 tokens without spaces.
+	// For "fix:"/"dup:" we need a whole non-empty line of text.
 	switch cmd {
 	case "test:":
-		want = 2
+		args = extractArgsTokens(body[cmdPos+cmdEnd:], 2)
 	case "test_5_arg_cmd":
-		want = 5
+		args = extractArgsTokens(body[cmdPos+cmdEnd:], 5)
+	case "fix:", "dup:":
+		args = extractArgsLine(body[cmdPos+cmdEnd:])
 	}
-	for pos := cmdPos + cmdEnd + 1; len(aargs) < want && pos < len(body); {
+	return
+}
+
+func extractArgsTokens(body []byte, num int) string {
+	var args []string
+	for pos := 0; len(args) < num && pos < len(body); {
 		lineEnd := bytes.IndexByte(body[pos:], '\n')
 		if lineEnd == -1 {
 			lineEnd = len(body) - pos
 		}
 		line := strings.TrimSpace(string(body[pos : pos+lineEnd]))
+		for {
+			line1 := strings.Replace(line, "  ", " ", -1)
+			if line == line1 {
+				break
+			}
+			line = line1
+		}
 		if line != "" {
-			aargs = append(aargs, strings.Split(line, " ")...)
+			args = append(args, strings.Split(line, " ")...)
 		}
 		pos += lineEnd + 1
 	}
-	args = strings.TrimSpace(strings.Join(aargs, " "))
-	return
+	return strings.TrimSpace(strings.Join(args, " "))
+}
+
+func extractArgsLine(body []byte) string {
+	pos := 0
+	for pos < len(body) && (body[pos] == ' ' || body[pos] == '\t' ||
+		body[pos] == '\n' || body[pos] == '\r') {
+		pos++
+	}
+	lineEnd := bytes.IndexByte(body[pos:], '\n')
+	if lineEnd == -1 {
+		lineEnd = len(body) - pos
+	}
+	return strings.TrimSpace(string(body[pos : pos+lineEnd]))
 }
 
 func parseBody(r io.Reader, headers mail.Header) (body []byte, attachments [][]byte, err error) {
