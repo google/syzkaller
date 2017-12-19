@@ -9,8 +9,8 @@ import (
 	"github.com/google/syzkaller/pkg/log"
 )
 
-func kmemleakInit() {
-	if *flagLeak {
+func kmemleakInit(enable bool) {
+	if enable {
 		log.Fatalf("leak checking is not supported on fuchsia")
 	}
 }
