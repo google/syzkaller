@@ -21,7 +21,6 @@ Install Go as follows:
 ``` bash
 wget https://storage.googleapis.com/golang/go1.9.2.linux-amd64.tar.gz
 tar -xf go1.9.2.linux-amd64.tar.gz
-mv go goroot
 export PATH=`pwd`/go/bin:$PATH
 mkdir gopath
 export GOPATH=`pwd`/gopath
@@ -31,7 +30,7 @@ export GOPATH=`pwd`/gopath
 
 ### Initialize a working directory and set up environment variables
 
-Create a working directory. Also make sure GOROOT, GOPATH, and optionally NDKARM are defined and exported as instructed earlier. 
+Create a working directory. Also make sure GOROOT, GOPATH are defined and exported as instructed earlier.
 
 ``` bash
 go get -u -d github.com/google/syzkaller/...
@@ -45,10 +44,6 @@ Run make.
 ```
 make TARGETOS=linux TARGETARCH=arm
 ```
-As an alternative, is possible to use the Android NDK toolchain to build syz-executor.
-To do that, one way is to create an Android.mk file and and Application.mk file
-and to use the Android NDK's ndk-build program to build syz-executor from executor/executor_linux.cc. The clang cross-compiler, which is
-part of the Android NDK, is going to be needed for a successful build.
 
 ### Create a manager configuration file
 
