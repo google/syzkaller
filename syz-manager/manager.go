@@ -593,11 +593,14 @@ func (mgr *Manager) isSuppressed(crash *Crash) bool {
 }
 
 func (mgr *Manager) emailCrash(crash *Crash) {
-	if mgr.cfg.Email_Addr == "" {
+	if len(mgr.cfg.Email_Addrs) == 0 {
 		return
 	}
-	Logf(0, "sending email to %v", mgr.cfg.Email_Addr)
-	cmd := exec.Command("mailx", "-s", "syzkaller: "+crash.Title, mgr.cfg.Email_Addr)
+	args := []string{"-s", "syzkaller: " + crash.Title}
+	args = append(args, mgr.cfg.Email_Addrs...)
+	Logf(0, "sending email to %v", mgr.cfg.Email_Addrs)
+
+	cmd := exec.Command("mailx", args...)
 	cmd.Stdin = bytes.NewReader(crash.Report.Report)
 	if _, err := osutil.Run(10*time.Minute, cmd); err != nil {
 		Logf(0, "failed to send email: %v", err)
