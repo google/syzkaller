@@ -71,7 +71,7 @@ ifeq ("$(TARGETOS)", "windows")
 endif
 
 GITREV=$(shell git rev-parse HEAD)
-ifeq ($(`git diff --shortstat`), "")
+ifeq ("$(shell git diff --shortstat)", "")
 	REV=$(GITREV)
 else
 	REV=$(GITREV)+
