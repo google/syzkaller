@@ -202,6 +202,7 @@ func (ctx *context) generateTestFunc(calls []string, nvar uint64, name string) {
 		ctx.printf("void %v()\n{\n", name)
 		ctx.printf("\tlong i;\n")
 		ctx.printf("\tpthread_t th[%v];\n", 2*len(calls))
+		ctx.printf("\tpthread_attr_t attr;\n")
 		ctx.printf("\n")
 		if opts.Debug {
 			// Use debug to avoid: error: ‘debug’ defined but not used.
@@ -216,13 +217,15 @@ func (ctx *context) generateTestFunc(calls []string, nvar uint64, name string) {
 		if opts.Collide {
 			ctx.printf("\tsrand(getpid());\n")
 		}
+		ctx.printf("\tpthread_attr_init(&attr);\n")
+		ctx.printf("\tpthread_attr_setstacksize(&attr, 128 << 10);\n")
 		ctx.printf("\tfor (i = 0; i < %v; i++) {\n", len(calls))
-		ctx.printf("\t\tpthread_create(&th[i], 0, thr, (void*)i);\n")
+		ctx.printf("\t\tpthread_create(&th[i], &attr, thr, (void*)i);\n")
 		ctx.printf("\t\tusleep(rand()%%10000);\n")
 		ctx.printf("\t}\n")
 		if opts.Collide {
 			ctx.printf("\tfor (i = 0; i < %v; i++) {\n", len(calls))
-			ctx.printf("\t\tpthread_create(&th[%v+i], 0, thr, (void*)i);\n", len(calls))
+			ctx.printf("\t\tpthread_create(&th[%v+i], &attr, thr, (void*)i);\n", len(calls))
 			ctx.printf("\t\tif (rand()%%2)\n")
 			ctx.printf("\t\t\tusleep(rand()%%10000);\n")
 			ctx.printf("\t}\n")
