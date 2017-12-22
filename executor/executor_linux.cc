@@ -5,7 +5,6 @@
 
 #include <fcntl.h>
 #include <limits.h>
-#include <linux/futex.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
