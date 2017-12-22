@@ -51,6 +51,8 @@ type JSONHandler func(c context.Context, r *http.Request) (interface{}, error)
 type APIHandler func(c context.Context, r *http.Request) (interface{}, error)
 type APINamespaceHandler func(c context.Context, ns string, r *http.Request) (interface{}, error)
 
+const maxReproPerBug = 10
+
 // Overridable for testing.
 var timeNow = func(c context.Context) time.Time {
 	return time.Now()
@@ -747,7 +749,7 @@ func needRepro(c context.Context, bug *Bug) bool {
 
 func needReproForBug(bug *Bug) bool {
 	return bug.ReproLevel < ReproLevelC &&
-		bug.NumRepro < 5 &&
+		bug.NumRepro < maxReproPerBug &&
 		len(bug.Commits) == 0 &&
 		bug.Title != corruptedReportTitle
 }
