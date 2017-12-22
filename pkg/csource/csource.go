@@ -193,21 +193,17 @@ func (ctx *context) generateTestFunc(calls []string, nvar uint64, name string) {
 		}
 		ctx.printf("}\n\n")
 	} else {
-		ctx.printf("void *thr(void *arg)\n{\n")
-		ctx.printf("\tswitch ((long)arg) {\n")
+		ctx.printf("void execute_call(int call)\n{\n")
+		ctx.printf("\tswitch (call) {\n")
 		for i, c := range calls {
 			ctx.printf("\tcase %v:\n", i)
 			ctx.printf("%s", strings.Replace(c, "\t", "\t\t", -1))
 			ctx.printf("\t\tbreak;\n")
 		}
 		ctx.printf("\t}\n")
-		ctx.printf("\treturn 0;\n}\n\n")
+		ctx.printf("}\n\n")
 
 		ctx.printf("void %v()\n{\n", name)
-		ctx.printf("\tlong i;\n")
-		ctx.printf("\tpthread_t th[%v];\n", 2*len(calls))
-		ctx.printf("\tpthread_attr_t attr;\n")
-		ctx.printf("\n")
 		if opts.Debug {
 			// Use debug to avoid: error: ‘debug’ defined but not used.
 			ctx.printf("\tdebug(\"%v\\n\");\n", name)
@@ -218,23 +214,11 @@ func (ctx *context) generateTestFunc(calls []string, nvar uint64, name string) {
 		if nvar != 0 {
 			ctx.printf("\tmemset(r, -1, sizeof(r));\n")
 		}
+		ctx.printf("\texecute(%v);\n", len(calls))
 		if opts.Collide {
-			ctx.printf("\tsrand(getpid());\n")
+			ctx.printf("\tcollide = 1;\n")
+			ctx.printf("\texecute(%v);\n", len(calls))
 		}
-		ctx.printf("\tpthread_attr_init(&attr);\n")
-		ctx.printf("\tpthread_attr_setstacksize(&attr, 128 << 10);\n")
-		ctx.printf("\tfor (i = 0; i < %v; i++) {\n", len(calls))
-		ctx.printf("\t\tpthread_create(&th[i], &attr, thr, (void*)i);\n")
-		ctx.printf("\t\tusleep(rand()%%10000);\n")
-		ctx.printf("\t}\n")
-		if opts.Collide {
-			ctx.printf("\tfor (i = 0; i < %v; i++) {\n", len(calls))
-			ctx.printf("\t\tpthread_create(&th[%v+i], &attr, thr, (void*)i);\n", len(calls))
-			ctx.printf("\t\tif (rand()%%2)\n")
-			ctx.printf("\t\t\tusleep(rand()%%10000);\n")
-			ctx.printf("\t}\n")
-		}
-		ctx.printf("\tusleep(rand()%%100000);\n")
 		ctx.printf("}\n\n")
 	}
 }
