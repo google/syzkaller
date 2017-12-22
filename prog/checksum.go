@@ -59,7 +59,7 @@ func extractHeaderParamsIPv6(arg Arg) (Arg, Arg) {
 	return srcAddr, dstAddr
 }
 
-func composePseudoCsumIPv4(tcpPacket, srcAddr, dstAddr Arg, protocol uint8, pid int) CsumInfo {
+func composePseudoCsumIPv4(tcpPacket, srcAddr, dstAddr Arg, protocol uint8) CsumInfo {
 	info := CsumInfo{Kind: CsumInet}
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, srcAddr, 0, 0})
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, dstAddr, 0, 0})
@@ -69,7 +69,7 @@ func composePseudoCsumIPv4(tcpPacket, srcAddr, dstAddr Arg, protocol uint8, pid 
 	return info
 }
 
-func composePseudoCsumIPv6(tcpPacket, srcAddr, dstAddr Arg, protocol uint8, pid int) CsumInfo {
+func composePseudoCsumIPv6(tcpPacket, srcAddr, dstAddr Arg, protocol uint8) CsumInfo {
 	info := CsumInfo{Kind: CsumInet}
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, srcAddr, 0, 0})
 	info.Chunks = append(info.Chunks, CsumChunk{CsumChunkArg, dstAddr, 0, 0})
@@ -95,7 +95,7 @@ func findCsummedArg(arg Arg, typ *CsumType, parentsMap map[Arg]Arg) Arg {
 	panic(fmt.Sprintf("csum field '%v' references non existent field '%v'", typ.FieldName(), typ.Buf))
 }
 
-func calcChecksumsCall(c *Call, pid int) map[Arg]CsumInfo {
+func calcChecksumsCall(c *Call) map[Arg]CsumInfo {
 	var inetCsumFields []Arg
 	var pseudoCsumFields []Arg
 
@@ -172,9 +172,9 @@ func calcChecksumsCall(c *Call, pid int) map[Arg]CsumInfo {
 		protocol := uint8(typ.Protocol)
 		var info CsumInfo
 		if ipv4HeaderParsed {
-			info = composePseudoCsumIPv4(csummedArg, ipSrcAddr, ipDstAddr, protocol, pid)
+			info = composePseudoCsumIPv4(csummedArg, ipSrcAddr, ipDstAddr, protocol)
 		} else {
-			info = composePseudoCsumIPv6(csummedArg, ipSrcAddr, ipDstAddr, protocol, pid)
+			info = composePseudoCsumIPv6(csummedArg, ipSrcAddr, ipDstAddr, protocol)
 		}
 		csumMap[arg] = info
 	}

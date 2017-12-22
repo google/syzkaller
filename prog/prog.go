@@ -63,31 +63,28 @@ func (arg *ConstArg) Size() uint64 {
 	return arg.typ.Size()
 }
 
-// Returns value taking endianness and executor pid into consideration.
-func (arg *ConstArg) Value(pid int) uint64 {
+// Value returns value, pid stride and endianness.
+func (arg *ConstArg) Value() (uint64, uint64, bool) {
 	switch typ := (*arg).Type().(type) {
 	case *IntType:
-		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
+		return arg.Val, 0, typ.BigEndian
 	case *ConstType:
-		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
+		return arg.Val, 0, typ.BigEndian
 	case *FlagsType:
-		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
+		return arg.Val, 0, typ.BigEndian
 	case *LenType:
-		return encodeValue(arg.Val, typ.Size(), typ.BigEndian)
+		return arg.Val, 0, typ.BigEndian
 	case *CsumType:
 		// Checksums are computed dynamically in executor.
-		return 0
+		return 0, 0, false
 	case *ResourceType:
-		if t, ok := typ.Desc.Type.(*IntType); ok {
-			return encodeValue(arg.Val, t.Size(), t.BigEndian)
-		} else {
-			panic(fmt.Sprintf("bad base type for a resource: %v", t))
-		}
+		t := typ.Desc.Type.(*IntType)
+		return arg.Val, 0, t.BigEndian
 	case *ProcType:
-		val := typ.ValuesStart + typ.ValuesPerProc*uint64(pid) + arg.Val
-		return encodeValue(val, typ.Size(), typ.BigEndian)
+		return typ.ValuesStart + arg.Val, typ.ValuesPerProc, typ.BigEndian
+	default:
+		panic(fmt.Sprintf("unknown ConstArg type %#v", typ))
 	}
-	return arg.Val
 }
 
 // Used for PtrType and VmaType.
@@ -279,22 +276,6 @@ func InnerArg(arg Arg) Arg {
 		return nil // *ConstArg.
 	}
 	return arg // Not a pointer.
-}
-
-func encodeValue(value uint64, size uint64, bigEndian bool) uint64 {
-	if !bigEndian {
-		return value
-	}
-	switch size {
-	case 2:
-		return uint64(swap16(uint16(value)))
-	case 4:
-		return uint64(swap32(uint32(value)))
-	case 8:
-		return swap64(value)
-	default:
-		panic(fmt.Sprintf("bad size %v for value %v", size, value))
-	}
 }
 
 func defaultArg(t Type) Arg {

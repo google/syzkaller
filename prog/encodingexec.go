@@ -73,7 +73,7 @@ func (s ByPhysicalAddr) Less(i, j int) bool {
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
 // Returns number of bytes written to the buffer.
 // If the provided buffer is too small for the program an error is returned.
-func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
+func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 	if debug {
 		if err := p.validate(); err != nil {
 			panic(fmt.Errorf("serializing invalid program: %v", err))
@@ -88,7 +88,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 	}
 	for _, c := range p.Calls {
 		// Calculate checksums.
-		csumMap := calcChecksumsCall(c, pid)
+		csumMap := calcChecksumsCall(c)
 		var csumUses map[Arg]bool
 		if csumMap != nil {
 			csumUses = make(map[Arg]bool)
@@ -125,7 +125,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 					if !IsPad(arg1.Type()) && arg1.Type().Dir() != DirOut {
 						w.write(execInstrCopyin)
 						w.write(addr)
-						w.writeArg(arg1, pid)
+						w.writeArg(arg1)
 					}
 				})
 			}
@@ -181,7 +181,7 @@ func (p *Prog) SerializeForExec(buffer []byte, pid int) (int, error) {
 		}
 		w.write(uint64(len(c.Args)))
 		for _, arg := range c.Args {
-			w.writeArg(arg, pid)
+			w.writeArg(arg)
 		}
 		// Generate copyout instructions that persist interesting return values.
 		foreachArg(c, func(arg, base Arg, _ *[]Arg) {
@@ -258,21 +258,15 @@ func (w *execContext) write(v uint64) {
 	w.buf = w.buf[8:]
 }
 
-func (w *execContext) writeArg(arg Arg, pid int) {
+func (w *execContext) writeArg(arg Arg) {
 	switch a := arg.(type) {
 	case *ConstArg:
-		w.write(execArgConst)
-		w.write(a.Size())
-		w.write(a.Value(pid))
-		w.write(a.Type().BitfieldOffset())
-		w.write(a.Type().BitfieldLength())
+		val, pidStride, bigEndian := a.Value()
+		w.writeConstArg(a.Size(), val, a.Type().BitfieldOffset(), a.Type().BitfieldLength(),
+			pidStride, bigEndian)
 	case *ResultArg:
 		if a.Res == nil {
-			w.write(execArgConst)
-			w.write(a.Size())
-			w.write(a.Val)
-			w.write(0) // bit field offset
-			w.write(0) // bit field length
+			w.writeConstArg(a.Size(), a.Val, 0, 0, 0, false)
 		} else {
 			info, ok := w.args[a.Res]
 			if !ok {
@@ -285,11 +279,7 @@ func (w *execContext) writeArg(arg Arg, pid int) {
 			w.write(a.OpAdd)
 		}
 	case *PointerArg:
-		w.write(execArgConst)
-		w.write(a.Size())
-		w.write(w.target.physicalAddr(arg))
-		w.write(0) // bit field offset
-		w.write(0) // bit field length
+		w.writeConstArg(a.Size(), w.target.physicalAddr(arg), 0, 0, 0, false)
 	case *DataArg:
 		data := a.Data()
 		w.write(execArgData)
@@ -307,4 +297,14 @@ func (w *execContext) writeArg(arg Arg, pid int) {
 	default:
 		panic("unknown arg type")
 	}
+}
+
+func (w *execContext) writeConstArg(size, val, bfOffset, bfLength, pidStride uint64, bigEndian bool) {
+	w.write(execArgConst)
+	meta := size | bfOffset<<16 | bfLength<<24 | pidStride<<32
+	if bigEndian {
+		meta |= 1 << 8
+	}
+	w.write(meta)
+	w.write(val)
 }

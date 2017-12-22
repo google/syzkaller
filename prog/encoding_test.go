@@ -159,7 +159,7 @@ func TestDeserialize(t *testing.T) {
 				t.Fatalf("deserialization should have failed with:\n%s\ndata:\n%s\n",
 					test.err, test.data)
 			}
-			p.SerializeForExec(buf, 0)
+			p.SerializeForExec(buf)
 		}
 	}
 }

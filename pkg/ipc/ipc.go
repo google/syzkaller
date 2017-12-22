@@ -305,7 +305,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info []CallIn
 		})
 	}
 	// Copy-in serialized program.
-	progSize, err := p.SerializeForExec(env.in, env.pid)
+	progSize, err := p.SerializeForExec(env.in)
 	if err != nil {
 		err0 = fmt.Errorf("executor %v: failed to serialize: %v", env.pid, err)
 		return

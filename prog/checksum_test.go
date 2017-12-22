@@ -15,12 +15,12 @@ func TestChecksumCalcRandom(t *testing.T) {
 	for i := 0; i < iters; i++ {
 		p := target.Generate(rs, 10, nil)
 		for _, call := range p.Calls {
-			CalcChecksumsCall(call, i%32)
+			CalcChecksumsCall(call)
 		}
 		for try := 0; try <= 10; try++ {
 			p.Mutate(rs, 10, nil, nil)
 			for _, call := range p.Calls {
-				CalcChecksumsCall(call, i%32)
+				CalcChecksumsCall(call)
 			}
 		}
 	}

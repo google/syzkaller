@@ -7,6 +7,7 @@
 #define _GNU_SOURCE
 #endif
 
+#include <endian.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 #if defined(SYZ_EXECUTOR) || defined(SYZ_THREADED) || defined(SYZ_COLLIDE)
