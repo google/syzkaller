@@ -283,7 +283,7 @@ func testNeedRepro3(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	cid := testCrashID(crash1)
 	needReproResp := new(dashapi.NeedReproResp)
 
-	for i := 0; i < 5; i++ {
+	for i := 0; i < maxReproPerBug; i++ {
 		c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
 		c.expectEQ(resp.NeedRepro, true)
 
@@ -317,7 +317,7 @@ func testNeedRepro4(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	cid := testCrashID(crash1)
 	needReproResp := new(dashapi.NeedReproResp)
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < maxReproPerBug-1; i++ {
 		c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
 		c.expectEQ(resp.NeedRepro, true)
 
@@ -348,7 +348,7 @@ func testNeedRepro5(t *testing.T, crashCtor func(c *Ctx) *dashapi.Crash) {
 	cid := testCrashID(crash1)
 	needReproResp := new(dashapi.NeedReproResp)
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < maxReproPerBug-1; i++ {
 		c.expectOK(c.API(client1, key1, "report_crash", crash1, resp))
 		c.expectEQ(resp.NeedRepro, true)
 
