@@ -183,6 +183,7 @@ uint32_t* write_output(uint32_t v);
 void write_completed(uint32_t completed);
 uint64_t read_input(uint64_t** input_posp, bool peek = false);
 uint64_t read_arg(uint64_t** input_posp);
+uint64_t read_const_arg(uint64_t** input_posp, uint64_t* size_p, uint64_t* bf_off_p, uint64_t* bf_len_p);
 uint64_t read_result(uint64_t** input_posp);
 void copyin(char* addr, uint64_t val, uint64_t size, uint64_t bf_off, uint64_t bf_len);
 uint64_t copyout(char* addr, uint64_t size);
@@ -309,22 +310,22 @@ retry:
 		if (call_num == instr_copyin) {
 			char* addr = (char*)read_input(&input_pos);
 			uint64_t typ = read_input(&input_pos);
-			uint64_t size = read_input(&input_pos);
 			debug("copyin to %p\n", addr);
 			switch (typ) {
 			case arg_const: {
-				uint64_t arg = read_input(&input_pos);
-				uint64_t bf_off = read_input(&input_pos);
-				uint64_t bf_len = read_input(&input_pos);
+				uint64_t size, bf_off, bf_len;
+				uint64_t arg = read_const_arg(&input_pos, &size, &bf_off, &bf_len);
 				copyin(addr, arg, size, bf_off, bf_len);
 				break;
 			}
 			case arg_result: {
+				uint64_t size = read_input(&input_pos);
 				uint64_t val = read_result(&input_pos);
 				copyin(addr, val, size, 0, 0);
 				break;
 			}
 			case arg_data: {
+				uint64_t size = read_input(&input_pos);
 				NONFAILING(memcpy(addr, input_pos, size));
 				// Read out the data.
 				for (uint64_t i = 0; i < (size + 7) / 8; i++)
@@ -333,12 +334,12 @@ retry:
 			}
 			case arg_csum: {
 				debug("checksum found at %llx\n", addr);
+				uint64_t size = read_input(&input_pos);
 				char* csum_addr = addr;
-				uint64_t csum_size = size;
 				uint64_t csum_kind = read_input(&input_pos);
 				switch (csum_kind) {
 				case arg_csum_inet: {
-					if (csum_size != 2) {
+					if (size != 2) {
 						fail("inet checksum must be 2 bytes, not %lu", size);
 					}
 					debug("calculating checksum for %llx\n", csum_addr);
@@ -725,25 +726,46 @@ uint64_t copyout(char* addr, uint64_t size)
 uint64_t read_arg(uint64_t** input_posp)
 {
 	uint64_t typ = read_input(input_posp);
-	uint64_t size = read_input(input_posp);
-	(void)size;
-	uint64_t arg = 0;
 	switch (typ) {
 	case arg_const: {
-		arg = read_input(input_posp);
-		// Bitfields can't be args of a normal syscall, so just ignore them.
-		read_input(input_posp); // bit field offset
-		read_input(input_posp); // bit field length
-		break;
+		uint64_t size, bf_off, bf_len;
+		return read_const_arg(input_posp, &size, &bf_off, &bf_len);
 	}
 	case arg_result: {
-		arg = read_result(input_posp);
-		break;
+		read_input(input_posp); // size
+		return read_result(input_posp);
 	}
 	default:
 		fail("bad argument type %lu", typ);
 	}
-	return arg;
+}
+
+uint64_t read_const_arg(uint64_t** input_posp, uint64_t* size_p, uint64_t* bf_off_p, uint64_t* bf_len_p)
+{
+	uint64_t meta = read_input(input_posp);
+	uint64_t val = read_input(input_posp);
+	*size_p = meta & 0xff;
+	bool be = meta & (1 << 8);
+	*bf_off_p = (meta >> 16) & 0xff;
+	*bf_len_p = (meta >> 24) & 0xff;
+	uint64_t pid_stride = meta >> 32;
+	val += pid_stride * flag_pid;
+	if (be) {
+		switch (*size_p) {
+		case 2:
+			val = htobe16(val);
+			break;
+		case 4:
+			val = htobe32(val);
+			break;
+		case 8:
+			val = htobe64(val);
+			break;
+		default:
+			fail("bad big-endian int size %d", (int)*size_p);
+		}
+	}
+	return val;
 }
 
 uint64_t read_result(uint64_t** input_posp)

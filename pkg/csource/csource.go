@@ -42,7 +42,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	ctx.generateSyscallDefines()
 
 	exec := make([]byte, prog.ExecBufferSize)
-	progSize, err := ctx.p.SerializeForExec(exec, 0)
+	progSize, err := ctx.p.SerializeForExec(exec)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize program: %v", err)
 	}
@@ -53,6 +53,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	calls, nvar := ctx.generateCalls(decoded)
 	if nvar != 0 {
 		ctx.printf("long r[%v];\n", nvar)
+	}
+	if opts.Procs > 1 {
+		ctx.printf("uint64_t procid;\n")
 	}
 
 	if !opts.Repeat {
@@ -102,6 +105,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			ctx.print("\tint i;")
 			ctx.printf("\tfor (i = 0; i < %v; i++) {\n", opts.Procs)
 			ctx.print("\t\tif (fork() == 0) {\n")
+			ctx.printf("\t\t\tprocid = i;\n")
 			if opts.HandleSegv {
 				ctx.printf("\t\t\tinstall_segv_handler();\n")
 			}
@@ -256,16 +260,6 @@ func (ctx *context) generateSyscallDefines() {
 }
 
 func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
-	resultRef := func(arg prog.ExecArgResult) string {
-		res := fmt.Sprintf("r[%v]", arg.Index)
-		if arg.DivOp != 0 {
-			res = fmt.Sprintf("%v/%v", res, arg.DivOp)
-		}
-		if arg.AddOp != 0 {
-			res = fmt.Sprintf("%v+%v", res, arg.AddOp)
-		}
-		return res
-	}
 	var calls []string
 	csumSeq := 0
 	for ci, call := range p.Calls {
@@ -275,15 +269,16 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 			switch arg := copyin.Arg.(type) {
 			case prog.ExecArgConst:
 				if arg.BitfieldOffset == 0 && arg.BitfieldLength == 0 {
-					fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = (uint%v_t)0x%x);\n",
-						arg.Size*8, copyin.Addr, arg.Size*8, arg.Value)
+					fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n",
+						arg.Size*8, copyin.Addr, ctx.constArgToStr(arg))
 				} else {
-					fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, 0x%x, 0x%x, %v, %v));\n",
-						arg.Size*8, copyin.Addr, arg.Value, arg.BitfieldOffset, arg.BitfieldLength)
+					fmt.Fprintf(w, "\tNONFAILING(STORE_BY_BITMASK(uint%v_t, 0x%x, %v, %v, %v));\n",
+						arg.Size*8, copyin.Addr, ctx.constArgToStr(arg),
+						arg.BitfieldOffset, arg.BitfieldLength)
 				}
 			case prog.ExecArgResult:
 				fmt.Fprintf(w, "\tNONFAILING(*(uint%v_t*)0x%x = %v);\n",
-					arg.Size*8, copyin.Addr, resultRef(arg))
+					arg.Size*8, copyin.Addr, ctx.resultArgToStr(arg))
 			case prog.ExecArgData:
 				fmt.Fprintf(w, "\tNONFAILING(memcpy((void*)0x%x, \"%s\", %v));\n",
 					copyin.Addr, toCString(arg.Data), len(arg.Data))
@@ -349,9 +344,9 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 				}
 				switch arg := arg.(type) {
 				case prog.ExecArgConst:
-					fmt.Fprintf(w, "0x%xul", arg.Value)
+					fmt.Fprintf(w, "%v", ctx.constArgToStr(arg))
 				case prog.ExecArgResult:
-					fmt.Fprintf(w, "%v", resultRef(arg))
+					fmt.Fprintf(w, "%v", ctx.resultArgToStr(arg))
 				default:
 					panic(fmt.Sprintf("unknown arg type: %+v", arg))
 				}
@@ -380,6 +375,29 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 		calls = append(calls, w.String())
 	}
 	return calls, p.NumVars
+}
+
+func (ctx *context) constArgToStr(arg prog.ExecArgConst) string {
+	mask := (uint64(1) << (arg.Size * 8)) - 1
+	val := fmt.Sprintf("0x%x", arg.Value&mask)
+	if ctx.opts.Procs > 1 && arg.PidStride != 0 {
+		val += fmt.Sprintf("+procid*0x%xul", arg.PidStride)
+	}
+	if arg.BigEndian {
+		val = fmt.Sprintf("htobe%v(%v)", arg.Size*8, val)
+	}
+	return val
+}
+
+func (ctx *context) resultArgToStr(arg prog.ExecArgResult) string {
+	res := fmt.Sprintf("r[%v]", arg.Index)
+	if arg.DivOp != 0 {
+		res = fmt.Sprintf("%v/%v", res, arg.DivOp)
+	}
+	if arg.AddOp != 0 {
+		res = fmt.Sprintf("%v+%v", res, arg.AddOp)
+	}
+	return res
 }
 
 func toCString(data []byte) []byte {

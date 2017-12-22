@@ -38,6 +38,8 @@ type ExecArgConst struct {
 	Value          uint64
 	BitfieldOffset uint64
 	BitfieldLength uint64
+	PidStride      uint64
+	BigEndian      bool
 }
 
 type ExecArgResult struct {
@@ -127,11 +129,14 @@ func (dec *execDecoder) parse() {
 func (dec *execDecoder) readArg() ExecArg {
 	switch typ := dec.read(); typ {
 	case execArgConst:
+		meta := dec.read()
 		return ExecArgConst{
-			Size:           dec.read(),
 			Value:          dec.read(),
-			BitfieldOffset: dec.read(),
-			BitfieldLength: dec.read(),
+			Size:           meta & 0xff,
+			BitfieldOffset: (meta >> 16) & 0xff,
+			BitfieldLength: (meta >> 24) & 0xff,
+			PidStride:      meta >> 32,
+			BigEndian:      (meta & (1 << 8)) != 0,
 		}
 	case execArgResult:
 		return ExecArgResult{
