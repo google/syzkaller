@@ -300,8 +300,6 @@ static void segv_handler(int sig, siginfo_t* info, void* uctx)
 	}
 	debug("SIGSEGV on %p, exiting\n", addr);
 	doexit(sig);
-	for (;;) {
-	}
 }
 
 static void install_segv_handler()
