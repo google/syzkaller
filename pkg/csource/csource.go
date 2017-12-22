@@ -413,6 +413,8 @@ func toCString(data []byte) []byte {
 			buf.Write([]byte{'\\', 'n'})
 		case '\\':
 			buf.Write([]byte{'\\', '\\'})
+		case '"':
+			buf.Write([]byte{'\\', '"'})
 		default:
 			if v < 0x20 || v >= 0x7f {
 				panic("unexpected char during data serialization")
