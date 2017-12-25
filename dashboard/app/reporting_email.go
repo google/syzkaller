@@ -185,9 +185,14 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	if err != nil {
 		return err
 	}
+	creditEmail, err := email.AddAddrContext(ownEmail(c), rep.ID)
+	if err != nil {
+		return err
+	}
 	// Data passed to the template.
 	type BugReportData struct {
 		First           bool
+		CreditEmail     string
 		Moderation      bool
 		Maintainers     []string
 		CompilerID      string
@@ -205,6 +210,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	}
 	data := &BugReportData{
 		First:           rep.First,
+		CreditEmail:     creditEmail,
 		Moderation:      cfg.Moderation,
 		Maintainers:     rep.Maintainers,
 		CompilerID:      rep.CompilerID,
@@ -237,7 +243,7 @@ func handleIncomingMail(w http.ResponseWriter, r *http.Request) {
 }
 
 func incomingMail(c context.Context, r *http.Request) error {
-	msg, err := email.Parse(r.Body, fromAddr(c))
+	msg, err := email.Parse(r.Body, ownEmails(c))
 	if err != nil {
 		return err
 	}
@@ -429,6 +435,18 @@ var sendEmail = func(c context.Context, msg *aemail.Message) error {
 	return nil
 }
 
+func ownEmail(c context.Context) string {
+	return fmt.Sprintf("syzbot@%v.appspotmail.com", appengine.AppID(c))
+}
+
 func fromAddr(c context.Context) string {
-	return fmt.Sprintf("\"syzbot\" <bot@%v.appspotmail.com>", appengine.AppID(c))
+	return fmt.Sprintf("\"syzbot\" <%v>", ownEmail(c))
+}
+
+func ownEmails(c context.Context) []string {
+	// Now we use syzbot@ but we used to use bot@, so we add them both.
+	return []string{
+		ownEmail(c),
+		fmt.Sprintf("bot@%v.appspotmail.com", appengine.AppID(c)),
+	}
 }

@@ -308,7 +308,9 @@ func bugKeyHash(ns, title string, seq int64) string {
 }
 
 func bugReportingHash(bugHash, reporting string) string {
-	return hash.String([]byte(fmt.Sprintf("%v-%v", bugHash, reporting)))
+	// Since these IDs appear in Reported-by tags in commit, we slightly limit their size.
+	const hashLen = 20
+	return hash.String([]byte(fmt.Sprintf("%v-%v", bugHash, reporting)))[:hashLen]
 }
 
 func textLink(tag string, id int64) string {

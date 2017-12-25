@@ -47,6 +47,12 @@ type Build struct {
 	KernelCommit    string
 	KernelConfig    []byte
 	Commits         []string // see BuilderPoll
+	FixCommits      []FixCommit
+}
+
+type FixCommit struct {
+	Title string
+	BugID string
 }
 
 func (dash *Dashboard) UploadBuild(build *Build) error {
@@ -54,10 +60,12 @@ func (dash *Dashboard) UploadBuild(build *Build) error {
 }
 
 // BuilderPoll request is done by kernel builder before uploading a new build
-// with UploadBuild request. Response contains list of commits that dashboard
-// is interested in (i.e. commits that fix open bugs). When uploading a new
-// build builder should pass subset of the commits that are present in the build
-// in Build.Commits field.
+// with UploadBuild request. Response contains list of commit titles that
+// dashboard is interested in (i.e. commits that fix open bugs) and email that
+// appears in Reported-by tags for bug ID extraction. When uploading a new build
+// builder will pass subset of the commit titles that are present in the build
+// in Build.Commits field and list of {bug ID, commit title} pairs extracted
+// from git log.
 
 type BuilderPollReq struct {
 	Manager string
@@ -65,6 +73,7 @@ type BuilderPollReq struct {
 
 type BuilderPollResp struct {
 	PendingCommits []string
+	ReportEmail    string
 }
 
 func (dash *Dashboard) BuilderPoll(manager string) (*BuilderPollResp, error) {

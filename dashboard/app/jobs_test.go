@@ -6,10 +6,12 @@
 package dash
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/email"
 )
 
 func TestJob(t *testing.T) {
@@ -32,6 +34,10 @@ func TestJob(t *testing.T) {
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
 	sender := (<-c.emailSink).Sender
+	_, extBugID, err := email.RemoveAddrContext(sender)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
 	c.expectEQ(len(c.emailSink), 1)
@@ -110,7 +116,7 @@ func TestJob(t *testing.T) {
 		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
 		c.expectEQ(msg.Attachments[2].Name, "raw.log")
 		c.expectEQ(msg.Attachments[2].Data, jobDoneReq.CrashLog)
-		c.expectEQ(msg.Body, `Hello,
+		body := `Hello,
 
 syzbot has tested the proposed patch but the reproducer still triggered crash:
 test crash title
@@ -124,7 +130,10 @@ Patch is attached.
 Kernel config is attached.
 Raw console output is attached.
 
-`)
+`
+		if msg.Body != body {
+			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
+		}
 	}
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
@@ -143,7 +152,7 @@ Raw console output is attached.
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
 		c.expectEQ(msg.Attachments[1].Name, "patch.txt")
 		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
-		c.expectEQ(msg.Body, `Hello,
+		body := `Hello,
 
 syzbot tried to test the proposed patch but build/boot failed:
 
@@ -157,7 +166,10 @@ Patch is attached.
 Kernel config is attached.
 
 
-`)
+`
+		if msg.Body != body {
+			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
+		}
 	}
 
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
@@ -176,14 +188,13 @@ Kernel config is attached.
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
 		c.expectEQ(msg.Attachments[1].Name, "patch.txt")
 		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
-		c.expectEQ(msg.Body, `Hello,
+		body := fmt.Sprintf(`Hello,
 
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
 
-Tested-by: syzbot <syzkaller@googlegroups.com>
+Reported-and-tested-by: <syzbot+%v@testapp.appspotmail.com>
 
-Once the fix is committed, please reply to this email with:
-#syz fix: exact-commit-title
+Note: the tag will also help syzbot to understand when the bug is fixed.
 
 Tested on commit kernel_commit1
 repo1/branch1
@@ -200,6 +211,9 @@ the implied warranties of merchantability and fittness for a particular purpose.
 The entire risk as to the quality of the result is with you. Should the result
 prove defective, you assume the cost of all necessary servicing, repair or
 correction.
-`)
+`, extBugID)
+		if msg.Body != body {
+			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
+		}
 	}
 }

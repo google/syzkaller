@@ -97,7 +97,7 @@ func TestCanonicalEmail(t *testing.T) {
 func TestParse(t *testing.T) {
 	for i, test := range parseTests {
 		body := func(t *testing.T, test ParseTest) {
-			email, err := Parse(strings.NewReader(test.email), "bot <foo@bar.com>")
+			email, err := Parse(strings.NewReader(test.email), []string{"bot <foo@bar.com>"})
 			if err != nil {
 				t.Fatal(err)
 			}
