@@ -5,9 +5,13 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
+	"net/mail"
 	"os"
+	"os/exec"
 	"regexp"
 	"strings"
 	"time"
@@ -123,6 +127,93 @@ func ListRecentCommits(dir, baseCommit string) ([]string, error) {
 		return nil, err
 	}
 	return strings.Split(string(output), "\n"), nil
+}
+
+type FixCommit struct {
+	Tag   string
+	Title string
+}
+
+// ExtractFixTagsFromCommits extracts fixing tags for bugs from git log.
+// Given email = "user@domain.com", it searches for tags of the form "user+tag@domain.com"
+// and return pairs {tag, commit title}.
+func ExtractFixTagsFromCommits(dir, baseCommit, email string) ([]FixCommit, error) {
+	since := time.Now().Add(-time.Hour * 24 * 365).Format("01-02-2006")
+	cmd := exec.Command("git", "log", "--no-merges", "--since", since, baseCommit)
+	cmd.Dir = dir
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	defer cmd.Wait()
+	return extractFixTags(stdout, email)
+}
+
+func extractFixTags(r io.Reader, email string) ([]FixCommit, error) {
+	user, domain, err := splitEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	var (
+		s           = bufio.NewScanner(r)
+		commits     []FixCommit
+		commitTitle = ""
+		commitStart = []byte("commit ")
+		bodyPrefix  = []byte("    ")
+		userBytes   = []byte(user + "+")
+		domainBytes = []byte(domain)
+	)
+	for s.Scan() {
+		ln := s.Bytes()
+		if bytes.HasPrefix(ln, commitStart) {
+			commitTitle = ""
+			continue
+		}
+		if !bytes.HasPrefix(ln, bodyPrefix) {
+			continue
+		}
+		ln = ln[len(bodyPrefix):]
+		if len(ln) == 0 {
+			continue
+		}
+		if commitTitle == "" {
+			commitTitle = string(ln)
+			continue
+		}
+		userPos := bytes.Index(ln, userBytes)
+		if userPos == -1 {
+			continue
+		}
+		domainPos := bytes.Index(ln[userPos+len(userBytes)+1:], domainBytes)
+		if domainPos == -1 {
+			continue
+		}
+		startPos := userPos + len(userBytes)
+		endPos := userPos + len(userBytes) + domainPos + 1
+		tag := string(ln[startPos:endPos])
+		commits = append(commits, FixCommit{tag, commitTitle})
+	}
+	return commits, s.Err()
+}
+
+func splitEmail(email string) (user, domain string, err error) {
+	addr, err := mail.ParseAddress(email)
+	if err != nil {
+		return "", "", err
+	}
+	at := strings.IndexByte(addr.Address, '@')
+	if at == -1 {
+		return "", "", fmt.Errorf("no @ in email address")
+	}
+	user = addr.Address[:at]
+	domain = addr.Address[at:]
+	if plus := strings.IndexByte(user, '+'); plus != -1 {
+		user = user[:plus]
+	}
+	return
 }
 
 // CanonicalizeCommit returns commit title that can be used when checking

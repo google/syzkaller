@@ -1,7 +1,8 @@
 # syzbot
 
 `syzbot` system continuously fuzzes main Linux kernel branches and automatically
-reports all found bugs. Direct all questions to syzkaller@googlegroups.com.
+reports all found bugs. Direct all questions to `syzkaller@googlegroups.com`.
+All `syzbot`-reported bugs are collected [here](https://groups.google.com/forum/#!forum/syzkaller-bugs).
 
 ## Bug status tracking
 
@@ -16,10 +17,11 @@ crashes create a new bug).
 
 ## Communication with syzbot
 
-You can communicate with `syzbot` by replying to its emails.
-The commands are:
+If you fix a bug reported by `syzbot`, please add the provided `Reported-by`
+tag to the commit. You can also communicate with `syzbot` by replying to its
+emails. The commands are:
 
-- to attach a fixing commit to the bug:
+- to attach a fixing commit to the bug (if you forgot to add `Reported-by` tag):
 ```
 #syz fix: exact-commit-title
 ````

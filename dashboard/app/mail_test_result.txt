@@ -14,10 +14,9 @@ Error text is too large and was truncated, full error text is attached.
 {{else}}
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
 
-Tested-by: syzbot <syzkaller@googlegroups.com>
+Reported-and-tested-by: {{.CreditEmail}}
 
-Once the fix is committed, please reply to this email with:
-#syz fix: exact-commit-title
+Note: the tag will also help syzbot to understand when the bug is fixed.
 {{end}}
 Tested on commit {{.KernelCommit}}
 {{.KernelRepo}}/{{.KernelBranch}}
