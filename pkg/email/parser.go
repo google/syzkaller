@@ -34,7 +34,7 @@ const commandPrefix = "#syz "
 
 var groupsLinkRe = regexp.MustCompile("\nTo view this discussion on the web visit (https://groups\\.google\\.com/.*?)\\.(?:\r)?\n")
 
-func Parse(r io.Reader, ownEmail string) (*Email, error) {
+func Parse(r io.Reader, ownEmails []string) (*Email, error) {
 	msg, err := mail.ReadMessage(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read email: %v", err)
@@ -52,13 +52,17 @@ func Parse(r io.Reader, ownEmail string) (*Email, error) {
 	cc, _ := msg.Header.AddressList("Cc")
 	bugID := ""
 	var ccList []string
-	if addr, err := mail.ParseAddress(ownEmail); err == nil {
-		ownEmail = addr.Address
+	ownAddrs := make(map[string]bool)
+	for _, email := range ownEmails {
+		ownAddrs[email] = true
+		if addr, err := mail.ParseAddress(email); err == nil {
+			ownAddrs[addr.Address] = true
+		}
 	}
 	fromMe := false
 	for _, addr := range from {
 		cleaned, _, _ := RemoveAddrContext(addr.Address)
-		if addr, err := mail.ParseAddress(cleaned); err == nil && addr.Address == ownEmail {
+		if addr, err := mail.ParseAddress(cleaned); err == nil && ownAddrs[addr.Address] {
 			fromMe = true
 		}
 	}
@@ -67,7 +71,7 @@ func Parse(r io.Reader, ownEmail string) (*Email, error) {
 		if addr, err := mail.ParseAddress(cleaned); err == nil {
 			cleaned = addr.Address
 		}
-		if cleaned == ownEmail {
+		if ownAddrs[cleaned] {
 			if bugID == "" {
 				bugID = context
 			}

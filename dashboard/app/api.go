@@ -169,8 +169,16 @@ loop:
 		commits = append(commits, com)
 	}
 	sort.Strings(commits)
+	reportEmail := ""
+	for _, reporting := range config.Namespaces[ns].Reporting {
+		if _, ok := reporting.Config.(*EmailConfig); ok {
+			reportEmail = ownEmail(c)
+			break
+		}
+	}
 	resp := &dashapi.BuilderPollResp{
 		PendingCommits: commits,
+		ReportEmail:    reportEmail,
 	}
 	return resp, nil
 }
@@ -204,8 +212,8 @@ func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{},
 	if err != nil {
 		return nil, err
 	}
-	if len(req.Commits) != 0 {
-		if err := addCommitsToBugs(c, ns, req.Manager, req.Commits); err != nil {
+	if len(req.Commits) != 0 || len(req.FixCommits) != 0 {
+		if err := addCommitsToBugs(c, ns, req.Manager, req.Commits, req.FixCommits); err != nil {
 			return nil, err
 		}
 	}
@@ -281,9 +289,10 @@ func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType
 	return true, nil
 }
 
-func addCommitsToBugs(c context.Context, ns, manager string, commits []string) error {
+func addCommitsToBugs(c context.Context, ns, manager string,
+	titles []string, fixCommits []dashapi.FixCommit) error {
 	commitMap := make(map[string]bool)
-	for _, com := range commits {
+	for _, com := range titles {
 		commitMap[com] = true
 	}
 	managers, err := managerList(c, ns)

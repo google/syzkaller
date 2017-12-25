@@ -476,12 +476,13 @@ func (mgr *Manager) uploadBuild(info *BuildInfo, imageDir string) (string, error
 	if err != nil {
 		return "", err
 	}
-	commits, err := mgr.pollCommits(info.KernelCommit)
+	commitTitles, fixCommits, err := mgr.pollCommits(info.KernelCommit)
 	if err != nil {
 		// This is not critical for operation.
 		mgr.Errorf("failed to poll commits: %v", err)
 	}
-	build.Commits = commits
+	build.Commits = commitTitles
+	build.FixCommits = fixCommits
 	if err := mgr.dash.UploadBuild(build); err != nil {
 		return "", err
 	}
@@ -518,26 +519,41 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 // pollCommits asks dashboard what commits it is interested in (i.e. fixes for
 // open bugs) and returns subset of these commits that are present in a build
 // on commit buildCommit.
-func (mgr *Manager) pollCommits(buildCommit string) ([]string, error) {
+func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.FixCommit, error) {
 	resp, err := mgr.dash.BuilderPoll(mgr.name)
 	if err != nil || len(resp.PendingCommits) == 0 {
-		return nil, err
-	}
-	commits, err := git.ListRecentCommits(mgr.kernelDir, buildCommit)
-	if err != nil {
-		return nil, err
-	}
-	m := make(map[string]bool, len(commits))
-	for _, com := range commits {
-		m[git.CanonicalizeCommit(com)] = true
+		return nil, nil, err
 	}
 	var present []string
-	for _, com := range resp.PendingCommits {
-		if m[git.CanonicalizeCommit(com)] {
-			present = append(present, com)
+	if len(resp.PendingCommits) != 0 {
+		commits, err := git.ListRecentCommits(mgr.kernelDir, buildCommit)
+		if err != nil {
+			return nil, nil, err
+		}
+		m := make(map[string]bool, len(commits))
+		for _, com := range commits {
+			m[git.CanonicalizeCommit(com)] = true
+		}
+		for _, com := range resp.PendingCommits {
+			if m[git.CanonicalizeCommit(com)] {
+				present = append(present, com)
+			}
 		}
 	}
-	return present, nil
+	var fixCommits []dashapi.FixCommit
+	if resp.ReportEmail != "" {
+		commits, err := git.ExtractFixTagsFromCommits(mgr.kernelDir, buildCommit, resp.ReportEmail)
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, com := range commits {
+			fixCommits = append(fixCommits, dashapi.FixCommit{
+				Title: com.Title,
+				BugID: com.Tag,
+			})
+		}
+	}
+	return present, fixCommits, nil
 }
 
 // Errorf logs non-fatal error and sends it to dashboard.
