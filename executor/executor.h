@@ -279,7 +279,7 @@ void receive_execute(bool need_prog)
 			break;
 	}
 	if (pos != req.prog_size)
-		fail("bad input size %d, want %d", pos, req.prog_size);
+		fail("bad input size %lld, want %lld", pos, req.prog_size);
 }
 
 void reply_execute(int status)
@@ -333,16 +333,16 @@ retry:
 				break;
 			}
 			case arg_csum: {
-				debug("checksum found at %llx\n", addr);
+				debug("checksum found at %p\n", addr);
 				uint64_t size = read_input(&input_pos);
 				char* csum_addr = addr;
 				uint64_t csum_kind = read_input(&input_pos);
 				switch (csum_kind) {
 				case arg_csum_inet: {
 					if (size != 2) {
-						fail("inet checksum must be 2 bytes, not %lu", size);
+						fail("inet checksum must be 2 bytes, not %llu", size);
 					}
-					debug("calculating checksum for %llx\n", csum_addr);
+					debug("calculating checksum for %p\n", csum_addr);
 					struct csum_inet csum;
 					csum_inet_init(&csum);
 					uint64_t chunks_num = read_input(&input_pos);
@@ -353,7 +353,7 @@ retry:
 						uint64_t chunk_size = read_input(&input_pos);
 						switch (chunk_kind) {
 						case arg_csum_chunk_data:
-							debug("#%d: data chunk, addr: %llx, size: %llu\n", chunk, chunk_value, chunk_size);
+							debug("#%lld: data chunk, addr: %llx, size: %llu\n", chunk, chunk_value, chunk_size);
 							NONFAILING(csum_inet_update(&csum, (const uint8_t*)chunk_value, chunk_size));
 							break;
 						case arg_csum_chunk_const:
@@ -361,25 +361,25 @@ retry:
 								fail("bad checksum const chunk size %lld\n", chunk_size);
 							}
 							// Here we assume that const values come to us big endian.
-							debug("#%d: const chunk, value: %llx, size: %llu\n", chunk, chunk_value, chunk_size);
+							debug("#%lld: const chunk, value: %llx, size: %llu\n", chunk, chunk_value, chunk_size);
 							csum_inet_update(&csum, (const uint8_t*)&chunk_value, chunk_size);
 							break;
 						default:
-							fail("bad checksum chunk kind %lu", chunk_kind);
+							fail("bad checksum chunk kind %llu", chunk_kind);
 						}
 					}
 					int16_t csum_value = csum_inet_digest(&csum);
-					debug("writing inet checksum %hx to %llx\n", csum_value, csum_addr);
+					debug("writing inet checksum %hx to %p\n", csum_value, csum_addr);
 					copyin(csum_addr, csum_value, 2, 0, 0);
 					break;
 				}
 				default:
-					fail("bad checksum kind %lu", csum_kind);
+					fail("bad checksum kind %llu", csum_kind);
 				}
 				break;
 			}
 			default:
-				fail("bad argument type %lu", typ);
+				fail("bad argument type %llu", typ);
 			}
 			continue;
 		}
@@ -393,11 +393,11 @@ retry:
 
 		// Normal syscall.
 		if (call_num >= syscall_count)
-			fail("invalid command number %lu", call_num);
+			fail("invalid command number %llu", call_num);
 		uint64_t copyout_index = read_input(&input_pos);
 		uint64_t num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)
-			fail("command has bad number of arguments %lu", num_args);
+			fail("command has bad number of arguments %llu", num_args);
 		uint64_t args[kMaxArgs] = {};
 		for (uint64_t i = 0; i < num_args; i++)
 			args[i] = read_arg(&input_pos);
@@ -489,7 +489,7 @@ void handle_completion(thread_t* th)
 	if (th->res != (long)-1) {
 		if (th->copyout_index != no_copyout) {
 			if (th->copyout_index >= kMaxCommands)
-				fail("result idx %ld overflows kMaxCommands", th->copyout_index);
+				fail("result idx %lld overflows kMaxCommands", th->copyout_index);
 			results[th->copyout_index].executed = true;
 			results[th->copyout_index].val = th->res;
 		}
@@ -502,7 +502,7 @@ void handle_completion(thread_t* th)
 				uint64_t size = read_input(&th->copyout_pos);
 				uint64_t val = copyout(addr, size);
 				if (index >= kMaxCommands)
-					fail("result idx %ld overflows kMaxCommands", index);
+					fail("result idx %lld overflows kMaxCommands", index);
 				results[index].executed = true;
 				results[index].val = val;
 				debug("copyout from %p\n", addr);
@@ -697,7 +697,7 @@ void copyin(char* addr, uint64_t val, uint64_t size, uint64_t bf_off, uint64_t b
 			STORE_BY_BITMASK(uint64_t, addr, val, bf_off, bf_len);
 			break;
 		default:
-			fail("copyin: bad argument size %lu", size);
+			fail("copyin: bad argument size %llu", size);
 	});
 }
 
@@ -718,7 +718,7 @@ uint64_t copyout(char* addr, uint64_t size)
 			res = *(uint64_t*)addr;
 			break;
 		default:
-			fail("copyout: bad argument size %lu", size);
+			fail("copyout: bad argument size %llu", size);
 	});
 	return res;
 }
@@ -736,7 +736,7 @@ uint64_t read_arg(uint64_t** input_posp)
 		return read_result(input_posp);
 	}
 	default:
-		fail("bad argument type %lu", typ);
+		fail("bad argument type %llu", typ);
 	}
 }
 
@@ -774,7 +774,7 @@ uint64_t read_result(uint64_t** input_posp)
 	uint64_t op_div = read_input(input_posp);
 	uint64_t op_add = read_input(input_posp);
 	if (idx >= kMaxCommands)
-		fail("command refers to bad result %ld", idx);
+		fail("command refers to bad result %lld", idx);
 	uint64_t arg = default_value;
 	if (results[idx].executed) {
 		arg = results[idx].val;

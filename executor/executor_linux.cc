@@ -262,9 +262,9 @@ uint64_t read_cover_size(thread_t* th)
 	if (!flag_cover)
 		return 0;
 	uint64_t n = __atomic_load_n(th->cover_size_ptr, __ATOMIC_RELAXED);
-	debug("#%d: read cover size = %u\n", th->id, n);
+	debug("#%d: read cover size = %llu\n", th->id, n);
 	if (n >= kCoverSize)
-		fail("#%d: too much cover %u", th->id, n);
+		fail("#%d: too much cover %llu", th->id, n);
 	return n;
 }
 
