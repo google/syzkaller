@@ -84,43 +84,55 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		if opts.Procs <= 1 {
 			ctx.print("int main()\n{\n")
 			if opts.HandleSegv {
-				ctx.printf("\tinstall_segv_handler();\n")
+				ctx.print("\tinstall_segv_handler();\n")
 			}
 			if opts.UseTmpDir {
-				ctx.printf("\tuse_temporary_dir();\n")
+				ctx.print("\tchar *cwd = get_current_dir_name();\n")
+			}
+			ctx.print("\tfor (;;) {\n")
+			if opts.UseTmpDir {
+				ctx.print("\t\tif (chdir(cwd))\n")
+				ctx.print("\t\t\tfail(\"failed to chdir\");\n")
+				ctx.print("\t\tuse_temporary_dir();\n")
 			}
 			if opts.Sandbox != "" {
-				ctx.printf("\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
-				ctx.print("\tint status = 0;\n")
-				ctx.print("\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+				ctx.printf("\t\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
+				ctx.print("\t\tint status = 0;\n")
+				ctx.print("\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
 			} else {
 				if opts.EnableTun {
-					ctx.printf("\tsetup_tun(0, %v);\n", opts.EnableTun)
+					ctx.printf("\t\tsetup_tun(0, %v);\n", opts.EnableTun)
 				}
-				ctx.print("\tloop();\n")
+				ctx.print("\t\tloop();\n")
 			}
-			ctx.print("\treturn 0;\n}\n")
+			ctx.print("\t}\n}\n")
 		} else {
 			ctx.print("int main()\n{\n")
+			if opts.UseTmpDir {
+				ctx.print("\tchar *cwd = get_current_dir_name();\n")
+			}
 			ctx.printf("\tfor (procid = 0; procid < %v; procid++) {\n", opts.Procs)
 			ctx.print("\t\tif (fork() == 0) {\n")
 			if opts.HandleSegv {
-				ctx.printf("\t\t\tinstall_segv_handler();\n")
+				ctx.print("\t\t\tinstall_segv_handler();\n")
 			}
+			ctx.print("\t\t\tfor (;;) {\n")
 			if opts.UseTmpDir {
-				ctx.printf("\t\t\tuse_temporary_dir();\n")
+				ctx.print("\t\t\t\tif (chdir(cwd))\n")
+				ctx.print("\t\t\t\t\tfail(\"failed to chdir\");\n")
+				ctx.print("\t\t\t\tuse_temporary_dir();\n")
 			}
 			if opts.Sandbox != "" {
-				ctx.printf("\t\t\tint pid = do_sandbox_%v(procid, %v);\n", opts.Sandbox, opts.EnableTun)
-				ctx.print("\t\t\tint status = 0;\n")
-				ctx.print("\t\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
+				ctx.printf("\t\t\t\tint pid = do_sandbox_%v(procid, %v);\n", opts.Sandbox, opts.EnableTun)
+				ctx.print("\t\t\t\tint status = 0;\n")
+				ctx.print("\t\t\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
 			} else {
 				if opts.EnableTun {
-					ctx.printf("\t\t\tsetup_tun(procid, %v);\n", opts.EnableTun)
+					ctx.printf("\t\t\t\tsetup_tun(procid, %v);\n", opts.EnableTun)
 				}
-				ctx.print("\t\t\tloop();\n")
+				ctx.print("\t\t\t\tloop();\n")
 			}
-			ctx.print("\t\t\treturn 0;\n")
+			ctx.print("\t\t\t}\n")
 			ctx.print("\t\t}\n")
 			ctx.print("\t}\n")
 			ctx.print("\tsleep(1000000);\n")
