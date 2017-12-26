@@ -102,10 +102,8 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			ctx.print("\treturn 0;\n}\n")
 		} else {
 			ctx.print("int main()\n{\n")
-			ctx.print("\tint i;")
-			ctx.printf("\tfor (i = 0; i < %v; i++) {\n", opts.Procs)
+			ctx.printf("\tfor (procid = 0; procid < %v; procid++) {\n", opts.Procs)
 			ctx.print("\t\tif (fork() == 0) {\n")
-			ctx.printf("\t\t\tprocid = i;\n")
 			if opts.HandleSegv {
 				ctx.printf("\t\t\tinstall_segv_handler();\n")
 			}
@@ -113,12 +111,12 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 				ctx.printf("\t\t\tuse_temporary_dir();\n")
 			}
 			if opts.Sandbox != "" {
-				ctx.printf("\t\t\tint pid = do_sandbox_%v(i, %v);\n", opts.Sandbox, opts.EnableTun)
+				ctx.printf("\t\t\tint pid = do_sandbox_%v(procid, %v);\n", opts.Sandbox, opts.EnableTun)
 				ctx.print("\t\t\tint status = 0;\n")
 				ctx.print("\t\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
 			} else {
 				if opts.EnableTun {
-					ctx.printf("\t\t\tsetup_tun(i, %v);\n", opts.EnableTun)
+					ctx.printf("\t\t\tsetup_tun(procid, %v);\n", opts.EnableTun)
 				}
 				ctx.print("\t\t\tloop();\n")
 			}
