@@ -193,7 +193,7 @@ func (inst *instance) Forward(port int) (string, error) {
 
 func (inst *instance) Copy(hostSrc string) (string, error) {
 	vmDst := "./" + filepath.Base(hostSrc)
-	args := append(sshArgs(inst.debug, inst.sshKey, "-P", 22), hostSrc, inst.sshUser+"@"+inst.name+":"+vmDst)
+	args := append(sshArgs(inst.debug, inst.sshKey, "-P", 22), hostSrc, inst.sshUser+"@"+inst.ip+":"+vmDst)
 	if _, err := runCmd(inst.debug, "scp", args...); err != nil {
 		return "", err
 	}
@@ -287,7 +287,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 			command = fmt.Sprintf("sudo bash -c '%v'", command)
 		}
 	}
-	args := append(sshArgs(inst.debug, inst.sshKey, "-p", 22), inst.sshUser+"@"+inst.name, command)
+	args := append(sshArgs(inst.debug, inst.sshKey, "-p", 22), inst.sshUser+"@"+inst.ip, command)
 	ssh := osutil.Command("ssh", args...)
 	ssh.Stdout = sshWpipe
 	ssh.Stderr = sshWpipe
