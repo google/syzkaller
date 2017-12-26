@@ -143,6 +143,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		out0 = re.ReplaceAllString(out0, "")
 	}
 	out0 = strings.Replace(out0, "NORETURN", "", -1)
+	out0 = strings.Replace(out0, "PRINTF", "", -1)
 
 	// Remove duplicate new lines.
 	out1 := []byte(out0)

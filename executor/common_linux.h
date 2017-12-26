@@ -150,10 +150,10 @@ static void segv_handler(int sig, siginfo_t* info, void* uctx)
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
-		debug("SIGSEGV on %p, skipping\n", addr);
+		debug("SIGSEGV on %p, skipping\n", (void*)addr);
 		_longjmp(segv_env, 1);
 	}
-	debug("SIGSEGV on %p, exiting\n", addr);
+	debug("SIGSEGV on %p, exiting\n", (void*)addr);
 	doexit(sig);
 }
 
@@ -891,7 +891,7 @@ retry:
 			// This happens when the test process casts prlimit(NOFILE) on us.
 			// Ideally we somehow prevent test processes from messing with parent processes.
 			// But full sandboxing is expensive, so let's ignore this error for now.
-			exitf("opendir(%s) failed due to NOFILE, exiting");
+			exitf("opendir(%s) failed due to NOFILE, exiting", dir);
 		}
 		exitf("opendir(%s) failed", dir);
 	}

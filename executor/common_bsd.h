@@ -51,13 +51,11 @@ static void segv_handler(int sig, siginfo_t* info, void* uctx)
 	const uintptr_t prog_start = 1 << 20;
 	const uintptr_t prog_end = 100 << 20;
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED) && (addr < prog_start || addr > prog_end)) {
-		debug("SIGSEGV on %p, skipping\n", addr);
+		debug("SIGSEGV on %p, skipping\n", (void*)addr);
 		_longjmp(segv_env, 1);
 	}
-	debug("SIGSEGV on %p, exiting\n", addr);
+	debug("SIGSEGV on %p, exiting\n", (void*)addr);
 	doexit(sig);
-	for (;;) {
-	}
 }
 
 static void install_segv_handler()
