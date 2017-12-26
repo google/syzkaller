@@ -67,17 +67,19 @@ __attribute__((noreturn)) static void doexit(int status)
 #if defined(SYZ_EXECUTOR)
 #define exit vsnprintf
 #define _exit vsnprintf
-#endif
 
-#if defined(SYZ_EXECUTOR)
+#define uint64_t unsigned long long
+
 #if defined(__GNUC__)
 #define SYSCALLAPI
 #define NORETURN __attribute__((noreturn))
 #define ALIGNED(N) __attribute__((aligned(N)))
+#define PRINTF __attribute__((format(printf, 1, 2)))
 #else
 #define SYSCALLAPI WINAPI
 #define NORETURN __declspec(noreturn)
 #define ALIGNED(N) __declspec(align(N))
+#define PRINTF
 #endif
 
 typedef long(SYSCALLAPI* syscall_t)(long, long, long, long, long, long, long, long, long);
@@ -107,7 +109,7 @@ const int kErrorStatus = 68;
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||            \
     defined(SYZ_USE_TMP_DIR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || \
     defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
-NORETURN static void fail(const char* msg, ...)
+NORETURN PRINTF static void fail(const char* msg, ...)
 {
 	int e = errno;
 	va_list args;
@@ -120,7 +122,7 @@ NORETURN static void fail(const char* msg, ...)
 #endif
 
 #if defined(SYZ_EXECUTOR)
-NORETURN static void error(const char* msg, ...)
+NORETURN PRINTF static void error(const char* msg, ...)
 {
 	va_list args;
 	va_start(args, msg);
@@ -132,7 +134,7 @@ NORETURN static void error(const char* msg, ...)
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR)) || defined(SYZ_FAULT_INJECTION)
-NORETURN static void exitf(const char* msg, ...)
+NORETURN PRINTF static void exitf(const char* msg, ...)
 {
 	int e = errno;
 	va_list args;
@@ -147,7 +149,7 @@ NORETURN static void exitf(const char* msg, ...)
 #if defined(SYZ_EXECUTOR) || defined(SYZ_DEBUG)
 static int flag_debug;
 
-static void debug(const char* msg, ...)
+PRINTF static void debug(const char* msg, ...)
 {
 	if (!flag_debug)
 		return;
