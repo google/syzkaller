@@ -141,31 +141,31 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	}
 
 	// Remove NONFAILING and debug calls.
-	out0 := ctx.w.String()
+	result := ctx.w.Bytes()
 	if !opts.HandleSegv {
 		re := regexp.MustCompile(`\t*NONFAILING\((.*)\);\n`)
-		out0 = re.ReplaceAllString(out0, "$1;\n")
+		result = re.ReplaceAll(result, []byte("$1;\n"))
 	}
 	if !opts.Debug {
 		re := regexp.MustCompile(`\t*debug\(.*\);\n`)
-		out0 = re.ReplaceAllString(out0, "")
+		result = re.ReplaceAll(result, nil)
 		re = regexp.MustCompile(`\t*debug_dump_data\(.*\);\n`)
-		out0 = re.ReplaceAllString(out0, "")
+		result = re.ReplaceAll(result, nil)
 	}
-	out0 = strings.Replace(out0, "NORETURN", "", -1)
-	out0 = strings.Replace(out0, "PRINTF", "", -1)
+	result = bytes.Replace(result, []byte("NORETURN"), nil, -1)
+	result = bytes.Replace(result, []byte("PRINTF"), nil, -1)
 
 	// Remove duplicate new lines.
-	out1 := []byte(out0)
 	for {
-		out2 := bytes.Replace(out1, []byte{'\n', '\n', '\n'}, []byte{'\n', '\n'}, -1)
-		if len(out1) == len(out2) {
+		result1 := bytes.Replace(result, []byte{'\n', '\n', '\n'}, []byte{'\n', '\n'}, -1)
+		result1 = bytes.Replace(result1, []byte("\n\n#include"), []byte("\n#include"), -1)
+		if len(result1) == len(result) {
 			break
 		}
-		out1 = out2
+		result = result1
 	}
 
-	return out1, nil
+	return result, nil
 }
 
 type context struct {
@@ -312,6 +312,7 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 		callName := call.Meta.CallName
 		resCopyout := call.Index != prog.ExecNoCopyout
 		argCopyout := len(call.Copyout) != 0
+		argCopyoutMultiple := len(call.Copyout) > 1
 		emitCall := ctx.opts.EnableTun || callName != "syz_emit_ethernet" &&
 			callName != "syz_extract_tcp_res"
 		// TODO: if we don't emit the call we must also not emit copyin, copyout and fault injection.
@@ -351,7 +352,10 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 				if resCopyout {
 					fmt.Fprintf(w, ")")
 				}
-				fmt.Fprintf(w, " != -1) {")
+				fmt.Fprintf(w, " != -1)")
+				if argCopyoutMultiple {
+					fmt.Fprintf(w, " {")
+				}
 			} else {
 				fmt.Fprintf(w, ";")
 			}
@@ -363,7 +367,7 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 			fmt.Fprintf(w, "\t\tNONFAILING(r[%v] = *(uint%v_t*)0x%x);\n",
 				copyout.Index, copyout.Size*8, copyout.Addr)
 		}
-		if emitCall && argCopyout {
+		if emitCall && argCopyoutMultiple {
 			fmt.Fprintf(w, "\t}\n")
 		}
 
@@ -374,9 +378,15 @@ func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {
 
 func (ctx *context) constArgToStr(arg prog.ExecArgConst) string {
 	mask := (uint64(1) << (arg.Size * 8)) - 1
-	val := fmt.Sprintf("0x%x", arg.Value&mask)
+	v := arg.Value & mask
+	val := fmt.Sprintf("%v", v)
+	if v == ^uint64(0)&mask {
+		val = "-1"
+	} else if v >= 10 {
+		val = fmt.Sprintf("0x%x", v)
+	}
 	if ctx.opts.Procs > 1 && arg.PidStride != 0 {
-		val += fmt.Sprintf("+procid*0x%xul", arg.PidStride)
+		val += fmt.Sprintf("+procid*%v", arg.PidStride)
 	}
 	if arg.BigEndian {
 		val = fmt.Sprintf("htobe%v(%v)", arg.Size*8, val)

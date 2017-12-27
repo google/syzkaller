@@ -82,5 +82,5 @@ AllowShortCaseLabelsOnASingleLine: false,
 AllowShortFunctionsOnASingleLine: false,
 AllowShortIfStatementsOnASingleLine: false,
 AllowShortLoopsOnASingleLine: false,
-ColumnLimit: 72,
+ColumnLimit: 80,
 }`
