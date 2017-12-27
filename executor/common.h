@@ -29,9 +29,13 @@
 #define exit vsnprintf
 #define _exit vsnprintf
 
-// uint64_t is impossible to printf without using the clumsy and verbose "%" PRId64.
-// So we do the define and use "%lld" to printf uint64_t's.
-#define uint64_t unsigned long long
+// uint64 is impossible to printf without using the clumsy and verbose "%" PRId64.
+// So we define and use uint64. Note: pkg/csource does s/uint64/uint64/.
+// Also define uint32/16/8 for consistency.
+typedef unsigned long long uint64;
+typedef unsigned int uint32;
+typedef unsigned short uint16;
+typedef unsigned char uint8;
 
 #if defined(__GNUC__)
 #define SYSCALLAPI
@@ -149,7 +153,7 @@ PRINTF static void debug(const char* msg, ...)
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_USE_CHECKSUMS)
 struct csum_inet {
-	uint32_t acc;
+	uint32 acc;
 };
 
 static void csum_inet_init(struct csum_inet* csum)
@@ -157,23 +161,23 @@ static void csum_inet_init(struct csum_inet* csum)
 	csum->acc = 0;
 }
 
-static void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
+static void csum_inet_update(struct csum_inet* csum, const uint8* data, size_t length)
 {
 	if (length == 0)
 		return;
 
 	size_t i;
 	for (i = 0; i < length - 1; i += 2)
-		csum->acc += *(uint16_t*)&data[i];
+		csum->acc += *(uint16*)&data[i];
 
 	if (length & 1)
-		csum->acc += (uint16_t)data[length - 1];
+		csum->acc += (uint16)data[length - 1];
 
 	while (csum->acc > 0xffff)
 		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
 }
 
-static uint16_t csum_inet_digest(struct csum_inet* csum)
+static uint16 csum_inet_digest(struct csum_inet* csum)
 {
 	return ~csum->acc;
 }

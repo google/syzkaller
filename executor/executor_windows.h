@@ -56,14 +56,14 @@ bool event_isset(event_t* ev)
 	return res;
 }
 
-bool event_timedwait(event_t* ev, uint64_t timeout_ms)
+bool event_timedwait(event_t* ev, uint64 timeout_ms)
 {
 	EnterCriticalSection(&ev->cs);
-	uint64_t start = current_time_ms();
+	uint64 start = current_time_ms();
 	for (;;) {
 		if (ev->state)
 			break;
-		uint64_t now = current_time_ms();
+		uint64 now = current_time_ms();
 		if (now - start > timeout_ms)
 			break;
 		SleepConditionVariableCS(&ev->cv, &ev->cs, timeout_ms - (now - start));

@@ -147,7 +147,10 @@ __attribute__((noreturn)) static void doexit(int status)
 #define exit vsnprintf
 #define _exit vsnprintf
 
-#define uint64_t unsigned long long
+typedef unsigned long long uint64;
+typedef unsigned int uint32;
+typedef unsigned short uint16;
+typedef unsigned char uint8;
 
 #if defined(__GNUC__)
 #define SYSCALLAPI
@@ -258,7 +261,7 @@ PRINTF static void debug(const char* msg, ...)
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_USE_CHECKSUMS)
 struct csum_inet {
-	uint32_t acc;
+	uint32 acc;
 };
 
 static void csum_inet_init(struct csum_inet* csum)
@@ -266,23 +269,23 @@ static void csum_inet_init(struct csum_inet* csum)
 	csum->acc = 0;
 }
 
-static void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
+static void csum_inet_update(struct csum_inet* csum, const uint8* data, size_t length)
 {
 	if (length == 0)
 		return;
 
 	size_t i;
 	for (i = 0; i < length - 1; i += 2)
-		csum->acc += *(uint16_t*)&data[i];
+		csum->acc += *(uint16*)&data[i];
 
 	if (length & 1)
-		csum->acc += (uint16_t)data[length - 1];
+		csum->acc += (uint16)data[length - 1];
 
 	while (csum->acc > 0xffff)
 		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
 }
 
-static uint16_t csum_inet_digest(struct csum_inet* csum)
+static uint16 csum_inet_digest(struct csum_inet* csum)
 {
 	return ~csum->acc;
 }
@@ -332,18 +335,18 @@ static void install_segv_handler()
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-static uint64_t current_time_ms()
+static uint64 current_time_ms()
 {
 	struct timespec ts;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
 		fail("clock_gettime failed");
-	return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+	return (uint64)ts.tv_sec * 1000 + (uint64)ts.tv_nsec / 1000000;
 }
 #endif
 
 #if defined(SYZ_EXECUTOR)
-static void sleep_ms(uint64_t ms)
+static void sleep_ms(uint64 ms)
 {
 	usleep(ms * 1000);
 }
@@ -428,7 +431,7 @@ static int tun_frags_enabled;
 #define IFF_NAPI_FRAGS 0x0020
 #endif
 
-static void initialize_tun(uint64_t pid)
+static void initialize_tun(uint64 pid)
 {
 	if (pid >= MAX_PIDS)
 		fail("tun: no more than %d executors", MAX_PIDS);
@@ -489,7 +492,7 @@ static void initialize_tun(uint64_t pid)
 	execute_command("ip link set dev %s up", iface);
 }
 
-static void setup_tun(uint64_t pid, bool enable_tun)
+static void setup_tun(uint64 pid, bool enable_tun)
 {
 	if (enable_tun)
 		initialize_tun(pid);
@@ -531,9 +534,9 @@ static void debug_dump_data(const char* data, int length)
 #if defined(SYZ_EXECUTOR) || (defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE))
 #define MAX_FRAGS 4
 struct vnet_fragmentation {
-	uint32_t full;
-	uint32_t count;
-	uint32_t frags[MAX_FRAGS];
+	uint32 full;
+	uint32 count;
+	uint32 frags[MAX_FRAGS];
 };
 
 static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1, uintptr_t a2)
@@ -541,26 +544,26 @@ static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	if (tunfd < 0)
 		return (uintptr_t)-1;
 
-	uint32_t length = a0;
+	uint32 length = a0;
 	char* data = (char*)a1;
 	debug_dump_data(data, length);
 
 	struct vnet_fragmentation* frags = (struct vnet_fragmentation*)a2;
 	struct iovec vecs[MAX_FRAGS + 1];
-	uint32_t nfrags = 0;
+	uint32 nfrags = 0;
 	if (!tun_frags_enabled || frags == NULL) {
 		vecs[nfrags].iov_base = data;
 		vecs[nfrags].iov_len = length;
 		nfrags++;
 	} else {
 		bool full = true;
-		uint32_t i, count = 0;
+		uint32 i, count = 0;
 		NONFAILING(full = frags->full);
 		NONFAILING(count = frags->count);
 		if (count > MAX_FRAGS)
 			count = MAX_FRAGS;
 		for (i = 0; i < count && length != 0; i++) {
-			uint32_t size = 0;
+			uint32 size = 0;
 			NONFAILING(size = frags->frags[i]);
 			if (size > length)
 				size = length;
@@ -606,8 +609,8 @@ struct ipv6hdr {
 #endif
 
 struct tcp_resources {
-	int32_t seq;
-	int32_t ack;
+	uint32 seq;
+	uint32 ack;
 };
 
 static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
@@ -650,8 +653,8 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	}
 
 	struct tcp_resources* res = (struct tcp_resources*)a0;
-	NONFAILING(res->seq = htonl((ntohl(tcphdr->seq) + (uint32_t)a1)));
-	NONFAILING(res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32_t)a2)));
+	NONFAILING(res->seq = htonl((ntohl(tcphdr->seq) + (uint32)a1)));
+	NONFAILING(res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32)a2)));
 
 	debug("extracted seq: %08x\n", res->seq);
 	debug("extracted ack: %08x\n", res->ack);
@@ -665,7 +668,7 @@ static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 {
 	if (a0 == 0xc || a0 == 0xb) {
 		char buf[128];
-		sprintf(buf, "/dev/%s/%d:%d", a0 == 0xc ? "char" : "block", (uint8_t)a1, (uint8_t)a2);
+		sprintf(buf, "/dev/%s/%d:%d", a0 == 0xc ? "char" : "block", (uint8)a1, (uint8)a2);
 		return open(buf, O_RDWR, 0);
 	} else {
 		char buf[1024];
@@ -716,12 +719,12 @@ static uintptr_t syz_open_pts(uintptr_t a0, uintptr_t a1)
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_fuse_mount)
 static uintptr_t syz_fuse_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5)
 {
-	uint64_t target = a0;
-	uint64_t mode = a1;
-	uint64_t uid = a2;
-	uint64_t gid = a3;
-	uint64_t maxread = a4;
-	uint64_t flags = a5;
+	uint64 target = a0;
+	uint64 mode = a1;
+	uint64 uid = a2;
+	uint64 gid = a3;
+	uint64 maxread = a4;
+	uint64 flags = a5;
 
 	int fd = open("/dev/fuse", O_RDWR);
 	if (fd == -1)
@@ -742,14 +745,14 @@ static uintptr_t syz_fuse_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintpt
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_fuseblk_mount)
 static uintptr_t syz_fuseblk_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
 {
-	uint64_t target = a0;
-	uint64_t blkdev = a1;
-	uint64_t mode = a2;
-	uint64_t uid = a3;
-	uint64_t gid = a4;
-	uint64_t maxread = a5;
-	uint64_t blksize = a6;
-	uint64_t flags = a7;
+	uint64 target = a0;
+	uint64 blkdev = a1;
+	uint64 mode = a2;
+	uint64 uid = a3;
+	uint64 gid = a4;
+	uint64 maxread = a5;
+	uint64 blksize = a6;
+	uint64 flags = a7;
 
 	int fd = open("/dev/fuse", O_RDWR);
 	if (fd == -1)
@@ -921,88 +924,88 @@ const char kvm_asm64_cpl3[] = "\x0f\x20\xc0\x0d\x00\x00\x00\x80\x0f\x22\xc0\xea\
 #define PDE64_G (1 << 8)
 
 struct tss16 {
-	uint16_t prev;
-	uint16_t sp0;
-	uint16_t ss0;
-	uint16_t sp1;
-	uint16_t ss1;
-	uint16_t sp2;
-	uint16_t ss2;
-	uint16_t ip;
-	uint16_t flags;
-	uint16_t ax;
-	uint16_t cx;
-	uint16_t dx;
-	uint16_t bx;
-	uint16_t sp;
-	uint16_t bp;
-	uint16_t si;
-	uint16_t di;
-	uint16_t es;
-	uint16_t cs;
-	uint16_t ss;
-	uint16_t ds;
-	uint16_t ldt;
+	uint16 prev;
+	uint16 sp0;
+	uint16 ss0;
+	uint16 sp1;
+	uint16 ss1;
+	uint16 sp2;
+	uint16 ss2;
+	uint16 ip;
+	uint16 flags;
+	uint16 ax;
+	uint16 cx;
+	uint16 dx;
+	uint16 bx;
+	uint16 sp;
+	uint16 bp;
+	uint16 si;
+	uint16 di;
+	uint16 es;
+	uint16 cs;
+	uint16 ss;
+	uint16 ds;
+	uint16 ldt;
 } __attribute__((packed));
 
 struct tss32 {
-	uint16_t prev, prevh;
-	uint32_t sp0;
-	uint16_t ss0, ss0h;
-	uint32_t sp1;
-	uint16_t ss1, ss1h;
-	uint32_t sp2;
-	uint16_t ss2, ss2h;
-	uint32_t cr3;
-	uint32_t ip;
-	uint32_t flags;
-	uint32_t ax;
-	uint32_t cx;
-	uint32_t dx;
-	uint32_t bx;
-	uint32_t sp;
-	uint32_t bp;
-	uint32_t si;
-	uint32_t di;
-	uint16_t es, esh;
-	uint16_t cs, csh;
-	uint16_t ss, ssh;
-	uint16_t ds, dsh;
-	uint16_t fs, fsh;
-	uint16_t gs, gsh;
-	uint16_t ldt, ldth;
-	uint16_t trace;
-	uint16_t io_bitmap;
+	uint16 prev, prevh;
+	uint32 sp0;
+	uint16 ss0, ss0h;
+	uint32 sp1;
+	uint16 ss1, ss1h;
+	uint32 sp2;
+	uint16 ss2, ss2h;
+	uint32 cr3;
+	uint32 ip;
+	uint32 flags;
+	uint32 ax;
+	uint32 cx;
+	uint32 dx;
+	uint32 bx;
+	uint32 sp;
+	uint32 bp;
+	uint32 si;
+	uint32 di;
+	uint16 es, esh;
+	uint16 cs, csh;
+	uint16 ss, ssh;
+	uint16 ds, dsh;
+	uint16 fs, fsh;
+	uint16 gs, gsh;
+	uint16 ldt, ldth;
+	uint16 trace;
+	uint16 io_bitmap;
 } __attribute__((packed));
 
 struct tss64 {
-	uint32_t reserved0;
-	uint64_t rsp[3];
-	uint64_t reserved1;
-	uint64_t ist[7];
-	uint64_t reserved2;
-	uint32_t reserved3;
-	uint32_t io_bitmap;
+	uint32 reserved0;
+	uint64 rsp[3];
+	uint64 reserved1;
+	uint64 ist[7];
+	uint64 reserved2;
+	uint32 reserved3;
+	uint32 io_bitmap;
 } __attribute__((packed));
 
-static void fill_segment_descriptor(uint64_t* dt, uint64_t* lt, struct kvm_segment* seg)
+static void fill_segment_descriptor(uint64* dt, uint64* lt, struct kvm_segment* seg)
 {
-	uint16_t index = seg->selector >> 3;
-	uint64_t limit = seg->g ? seg->limit >> 12 : seg->limit;
-	uint64_t sd = (limit & 0xffff) | (seg->base & 0xffffff) << 16 | (uint64_t)seg->type << 40 | (uint64_t)seg->s << 44 | (uint64_t)seg->dpl << 45 | (uint64_t)seg->present << 47 | (limit & 0xf0000ULL) << 48 | (uint64_t)seg->avl << 52 | (uint64_t)seg->l << 53 | (uint64_t)seg->db << 54 | (uint64_t)seg->g << 55 | (seg->base & 0xff000000ULL) << 56;
+	uint16 index = seg->selector >> 3;
+	uint64 limit = seg->g ? seg->limit >> 12 : seg->limit;
+	uint64 sd = (limit & 0xffff) | (seg->base & 0xffffff) << 16 | (uint64)seg->type << 40 | (uint64)seg->s << 44 | (uint64)seg->dpl << 45 | (uint64)seg->present << 47 | (limit & 0xf0000ULL) << 48 | (uint64)seg->avl << 52 | (uint64)seg->l << 53 | (uint64)seg->db << 54 | (uint64)seg->g << 55 | (seg->base & 0xff000000ULL) << 56;
 	NONFAILING(dt[index] = sd);
 	NONFAILING(lt[index] = sd);
 }
 
-static void fill_segment_descriptor_dword(uint64_t* dt, uint64_t* lt, struct kvm_segment* seg)
+static void fill_segment_descriptor_dword(uint64* dt, uint64* lt, struct kvm_segment* seg)
 {
 	fill_segment_descriptor(dt, lt, seg);
-	uint16_t index = seg->selector >> 3;
+	uint16 index = seg->selector >> 3;
 	NONFAILING(dt[index + 1] = 0);
 	NONFAILING(lt[index + 1] = 0);
 }
 
-static void setup_syscall_msrs(int cpufd, uint16_t sel_cs, uint16_t sel_cs_cpl3)
+static void setup_syscall_msrs(int cpufd, uint16 sel_cs, uint16 sel_cs_cpl3)
 {
 	char buf[sizeof(struct kvm_msrs) + 5 * sizeof(struct kvm_msr_entry)];
 	memset(buf, 0, sizeof(buf));
@@ -1015,7 +1018,7 @@ static void setup_syscall_msrs(int cpufd, uint16_t sel_cs, uint16_t sel_cs_cpl3)
 	msrs->entries[2].index = MSR_IA32_SYSENTER_EIP;
 	msrs->entries[2].data = ADDR_VAR_SYSEXIT;
 	msrs->entries[3].index = MSR_IA32_STAR;
-	msrs->entries[3].data = ((uint64_t)sel_cs << 32) | ((uint64_t)sel_cs_cpl3 << 48);
+	msrs->entries[3].data = ((uint64)sel_cs << 32) | ((uint64)sel_cs_cpl3 << 48);
 	msrs->entries[4].index = MSR_IA32_LSTAR;
 	msrs->entries[4].data = ADDR_VAR_SYSRET;
 	ioctl(cpufd, KVM_SET_MSRS, msrs);
@@ -1025,7 +1028,7 @@ static void setup_32bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 {
 	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
-	uint64_t* idt = (uint64_t*)(host_mem + sregs->idt.base);
+	uint64* idt = (uint64*)(host_mem + sregs->idt.base);
 	int i;
 	for (i = 0; i < 32; i++) {
 		struct kvm_segment gate;
@@ -1072,7 +1075,7 @@ static void setup_64bit_idt(struct kvm_sregs* sregs, char* host_mem, uintptr_t g
 {
 	sregs->idt.base = guest_mem + ADDR_VAR_IDT;
 	sregs->idt.limit = 0x1ff;
-	uint64_t* idt = (uint64_t*)(host_mem + sregs->idt.base);
+	uint64* idt = (uint64*)(host_mem + sregs->idt.base);
 	int i;
 	for (i = 0; i < 32; i++) {
 		struct kvm_segment gate;
@@ -1098,8 +1101,8 @@ struct kvm_text {
 };
 
 struct kvm_opt {
-	uint64_t typ;
-	uint64_t val;
+	uint64 typ;
+	uint64 val;
 };
 
 #define KVM_SETUP_PAGING (1 << 0)
@@ -1164,14 +1167,14 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	regs.rsp = ADDR_STACK0;
 
 	sregs.gdt.base = guest_mem + ADDR_GDT;
-	sregs.gdt.limit = 256 * sizeof(uint64_t) - 1;
-	uint64_t* gdt = (uint64_t*)(host_mem + sregs.gdt.base);
+	sregs.gdt.limit = 256 * sizeof(uint64) - 1;
+	uint64* gdt = (uint64*)(host_mem + sregs.gdt.base);
 
 	struct kvm_segment seg_ldt;
 	seg_ldt.selector = SEL_LDT;
 	seg_ldt.type = 2;
 	seg_ldt.base = guest_mem + ADDR_LDT;
-	seg_ldt.limit = 256 * sizeof(uint64_t) - 1;
+	seg_ldt.limit = 256 * sizeof(uint64) - 1;
 	seg_ldt.present = 1;
 	seg_ldt.dpl = 0;
 	seg_ldt.s = 0;
@@ -1179,7 +1182,7 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	seg_ldt.db = 1;
 	seg_ldt.l = 0;
 	sregs.ldt = seg_ldt;
-	uint64_t* ldt = (uint64_t*)(host_mem + sregs.ldt.base);
+	uint64* ldt = (uint64*)(host_mem + sregs.ldt.base);
 
 	struct kvm_segment seg_cs16;
 	seg_cs16.selector = SEL_CS16;
@@ -1359,8 +1362,8 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 			setup_32bit_idt(&sregs, host_mem, guest_mem);
 
 			if (flags & KVM_SETUP_PAGING) {
-				uint64_t pd_addr = guest_mem + ADDR_PD;
-				uint64_t* pd = (uint64_t*)(host_mem + ADDR_PD);
+				uint64 pd_addr = guest_mem + ADDR_PD;
+				uint64* pd = (uint64*)(host_mem + ADDR_PD);
 				NONFAILING(pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS);
 				sregs.cr3 = pd_addr;
 				sregs.cr4 |= CR4_PSE;
@@ -1406,8 +1409,8 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 			sregs.cs = seg_cs32;
 			sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds32;
 
-			uint64_t pd_addr = guest_mem + ADDR_PD;
-			uint64_t* pd = (uint64_t*)(host_mem + ADDR_PD);
+			uint64 pd_addr = guest_mem + ADDR_PD;
+			uint64* pd = (uint64*)(host_mem + ADDR_PD);
 			NONFAILING(pd[0] = PDE32_PRESENT | PDE32_RW | PDE32_USER | PDE32_PS);
 			sregs.cr3 = pd_addr;
 			sregs.cr4 |= CR4_PSE;
@@ -1431,12 +1434,12 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 		sregs.cs = seg_cs32;
 		sregs.ds = sregs.es = sregs.fs = sregs.gs = sregs.ss = seg_ds32;
 
-		uint64_t pml4_addr = guest_mem + ADDR_PML4;
-		uint64_t* pml4 = (uint64_t*)(host_mem + ADDR_PML4);
-		uint64_t pdpt_addr = guest_mem + ADDR_PDP;
-		uint64_t* pdpt = (uint64_t*)(host_mem + ADDR_PDP);
-		uint64_t pd_addr = guest_mem + ADDR_PD;
-		uint64_t* pd = (uint64_t*)(host_mem + ADDR_PD);
+		uint64 pml4_addr = guest_mem + ADDR_PML4;
+		uint64* pml4 = (uint64*)(host_mem + ADDR_PML4);
+		uint64 pdpt_addr = guest_mem + ADDR_PDP;
+		uint64* pdpt = (uint64*)(host_mem + ADDR_PDP);
+		uint64 pd_addr = guest_mem + ADDR_PD;
+		uint64* pd = (uint64*)(host_mem + ADDR_PD);
 		NONFAILING(pml4[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pdpt_addr);
 		NONFAILING(pdpt[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | pd_addr);
 		NONFAILING(pd[0] = PDE64_PRESENT | PDE64_RW | PDE64_USER | PDE64_PS);
@@ -1446,10 +1449,10 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 		if (flags & KVM_SETUP_VM) {
 			sregs.cr0 |= CR0_NE;
 
-			NONFAILING(*((uint64_t*)(host_mem + ADDR_VAR_VMXON_PTR)) = ADDR_VAR_VMXON);
-			NONFAILING(*((uint64_t*)(host_mem + ADDR_VAR_VMCS_PTR)) = ADDR_VAR_VMCS);
+			NONFAILING(*((uint64*)(host_mem + ADDR_VAR_VMXON_PTR)) = ADDR_VAR_VMXON);
+			NONFAILING(*((uint64*)(host_mem + ADDR_VAR_VMCS_PTR)) = ADDR_VAR_VMCS);
 			NONFAILING(memcpy(host_mem + ADDR_VAR_VMEXIT_CODE, kvm_asm64_vm_exit, sizeof(kvm_asm64_vm_exit) - 1));
-			NONFAILING(*((uint64_t*)(host_mem + ADDR_VAR_VMEXIT_PTR)) = ADDR_VAR_VMEXIT_CODE);
+			NONFAILING(*((uint64*)(host_mem + ADDR_VAR_VMEXIT_PTR)) = ADDR_VAR_VMEXIT_CODE);
 
 			text_prefix = kvm_asm64_init_vm;
 			text_prefix_size = sizeof(kvm_asm64_init_vm) - 1;
@@ -1535,12 +1538,12 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 		void* patch = 0;
 		NONFAILING(patch = memmem(host_text, text_prefix_size, "\xde\xc0\xad\x0b", 4));
 		if (patch)
-			NONFAILING(*((uint32_t*)patch) = guest_mem + ADDR_TEXT + ((char*)patch - host_text) + 6);
-		uint16_t magic = PREFIX_SIZE;
+			NONFAILING(*((uint32*)patch) = guest_mem + ADDR_TEXT + ((char*)patch - host_text) + 6);
+		uint16 magic = PREFIX_SIZE;
 		patch = 0;
 		NONFAILING(patch = memmem(host_text, text_prefix_size, &magic, sizeof(magic)));
 		if (patch)
-			NONFAILING(*((uint16_t*)patch) = guest_mem + ADDR_TEXT + text_prefix_size);
+			NONFAILING(*((uint16*)patch) = guest_mem + ADDR_TEXT + text_prefix_size);
 	}
 	NONFAILING(memcpy((void*)(host_text + text_prefix_size), text, text_size));
 	NONFAILING(*(host_text + text_prefix_size + text_size) = 0xf4);
@@ -1552,14 +1555,14 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	NONFAILING(memcpy(host_mem + ADDR_VAR_SYSRET, "\x0f\x07\xf4", 3));
 	NONFAILING(memcpy(host_mem + ADDR_VAR_SYSEXIT, "\x0f\x35\xf4", 3));
 
-	NONFAILING(*(uint64_t*)(host_mem + ADDR_VAR_VMWRITE_FLD) = 0);
-	NONFAILING(*(uint64_t*)(host_mem + ADDR_VAR_VMWRITE_VAL) = 0);
+	NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = 0);
+	NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = 0);
 
 	if (opt_count > 2)
 		opt_count = 2;
 	for (i = 0; i < opt_count; i++) {
-		uint64_t typ = 0;
-		uint64_t val = 0;
+		uint64 typ = 0;
+		uint64 val = 0;
 		NONFAILING(typ = opt_array_ptr[i].typ);
 		NONFAILING(val = opt_array_ptr[i].val);
 		switch (typ % 9) {
@@ -1604,8 +1607,8 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 			seg_ds64_cpl3.type = val & 0xf;
 			break;
 		case 8:
-			NONFAILING(*(uint64_t*)(host_mem + ADDR_VAR_VMWRITE_FLD) = (val & 0xffff));
-			NONFAILING(*(uint64_t*)(host_mem + ADDR_VAR_VMWRITE_VAL) = (val >> 16));
+			NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_FLD) = (val & 0xffff));
+			NONFAILING(*(uint64*)(host_mem + ADDR_VAR_VMWRITE_VAL) = (val >> 16));
 			break;
 		default:
 			fail("bad kvm setup opt");
@@ -1658,8 +1661,8 @@ struct kvm_text {
 };
 
 struct kvm_opt {
-	uint64_t typ;
-	uint64_t val;
+	uint64 typ;
+	uint64 val;
 };
 
 static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
@@ -1690,13 +1693,13 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	(void)text_type;
 	(void)opt_array_ptr;
 
-	uint32_t features = 0;
+	uint32 features = 0;
 	if (opt_count > 1)
 		opt_count = 1;
 	uintptr_t i;
 	for (i = 0; i < opt_count; i++) {
-		uint64_t typ = 0;
-		uint64_t val = 0;
+		uint64 typ = 0;
+		uint64 val = 0;
 		NONFAILING(typ = opt_array_ptr[i].typ);
 		NONFAILING(val = opt_array_ptr[i].val);
 		switch (typ) {
@@ -2057,7 +2060,7 @@ void loop()
 			doexit(0);
 		}
 		int status = 0;
-		uint64_t start = current_time_ms();
+		uint64 start = current_time_ms();
 		for (;;) {
 			int res = waitpid(-1, &status, __WALL | WNOHANG);
 			if (res == pid)

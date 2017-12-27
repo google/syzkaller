@@ -187,18 +187,18 @@ static void install_segv_handler()
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-static uint64_t current_time_ms()
+static uint64 current_time_ms()
 {
 	struct timespec ts;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
 		fail("clock_gettime failed");
-	return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+	return (uint64)ts.tv_sec * 1000 + (uint64)ts.tv_nsec / 1000000;
 }
 #endif
 
 #if defined(SYZ_EXECUTOR)
-static void sleep_ms(uint64_t ms)
+static void sleep_ms(uint64 ms)
 {
 	usleep(ms * 1000);
 }
@@ -289,7 +289,7 @@ static int tun_frags_enabled;
 #define IFF_NAPI_FRAGS 0x0020
 #endif
 
-static void initialize_tun(uint64_t pid)
+static void initialize_tun(uint64 pid)
 {
 	if (pid >= MAX_PIDS)
 		fail("tun: no more than %d executors", MAX_PIDS);
@@ -356,7 +356,7 @@ static void initialize_tun(uint64_t pid)
 	execute_command("ip link set dev %s up", iface);
 }
 
-static void setup_tun(uint64_t pid, bool enable_tun)
+static void setup_tun(uint64 pid, bool enable_tun)
 {
 	if (enable_tun)
 		initialize_tun(pid);
@@ -399,9 +399,9 @@ static void debug_dump_data(const char* data, int length)
 #if defined(SYZ_EXECUTOR) || (defined(__NR_syz_emit_ethernet) && defined(SYZ_TUN_ENABLE))
 #define MAX_FRAGS 4
 struct vnet_fragmentation {
-	uint32_t full;
-	uint32_t count;
-	uint32_t frags[MAX_FRAGS];
+	uint32 full;
+	uint32 count;
+	uint32 frags[MAX_FRAGS];
 };
 
 static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1, uintptr_t a2)
@@ -415,26 +415,26 @@ static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	if (tunfd < 0)
 		return (uintptr_t)-1;
 
-	uint32_t length = a0;
+	uint32 length = a0;
 	char* data = (char*)a1;
 	debug_dump_data(data, length);
 
 	struct vnet_fragmentation* frags = (struct vnet_fragmentation*)a2;
 	struct iovec vecs[MAX_FRAGS + 1];
-	uint32_t nfrags = 0;
+	uint32 nfrags = 0;
 	if (!tun_frags_enabled || frags == NULL) {
 		vecs[nfrags].iov_base = data;
 		vecs[nfrags].iov_len = length;
 		nfrags++;
 	} else {
 		bool full = true;
-		uint32_t i, count = 0;
+		uint32 i, count = 0;
 		NONFAILING(full = frags->full);
 		NONFAILING(count = frags->count);
 		if (count > MAX_FRAGS)
 			count = MAX_FRAGS;
 		for (i = 0; i < count && length != 0; i++) {
-			uint32_t size = 0;
+			uint32 size = 0;
 			NONFAILING(size = frags->frags[i]);
 			if (size > length)
 				size = length;
@@ -482,8 +482,8 @@ struct ipv6hdr {
 #endif
 
 struct tcp_resources {
-	int32_t seq;
-	int32_t ack;
+	uint32 seq;
+	uint32 ack;
 };
 
 static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
@@ -528,8 +528,8 @@ static uintptr_t syz_extract_tcp_res(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	}
 
 	struct tcp_resources* res = (struct tcp_resources*)a0;
-	NONFAILING(res->seq = htonl((ntohl(tcphdr->seq) + (uint32_t)a1)));
-	NONFAILING(res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32_t)a2)));
+	NONFAILING(res->seq = htonl((ntohl(tcphdr->seq) + (uint32)a1)));
+	NONFAILING(res->ack = htonl((ntohl(tcphdr->ack_seq) + (uint32)a2)));
 
 	debug("extracted seq: %08x\n", res->seq);
 	debug("extracted ack: %08x\n", res->ack);
@@ -545,7 +545,7 @@ static uintptr_t syz_open_dev(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 		// syz_open_dev$char(dev const[0xc], major intptr, minor intptr) fd
 		// syz_open_dev$block(dev const[0xb], major intptr, minor intptr) fd
 		char buf[128];
-		sprintf(buf, "/dev/%s/%d:%d", a0 == 0xc ? "char" : "block", (uint8_t)a1, (uint8_t)a2);
+		sprintf(buf, "/dev/%s/%d:%d", a0 == 0xc ? "char" : "block", (uint8)a1, (uint8)a2);
 		return open(buf, O_RDWR, 0);
 	} else {
 		// syz_open_dev(dev strconst, id intptr, flags flags[open_flags]) fd
@@ -600,12 +600,12 @@ static uintptr_t syz_open_pts(uintptr_t a0, uintptr_t a1)
 static uintptr_t syz_fuse_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5)
 {
 	// syz_fuse_mount(target filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, flags flags[mount_flags]) fd[fuse]
-	uint64_t target = a0;
-	uint64_t mode = a1;
-	uint64_t uid = a2;
-	uint64_t gid = a3;
-	uint64_t maxread = a4;
-	uint64_t flags = a5;
+	uint64 target = a0;
+	uint64 mode = a1;
+	uint64 uid = a2;
+	uint64 gid = a3;
+	uint64 maxread = a4;
+	uint64 flags = a5;
 
 	int fd = open("/dev/fuse", O_RDWR);
 	if (fd == -1)
@@ -628,14 +628,14 @@ static uintptr_t syz_fuse_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintpt
 static uintptr_t syz_fuseblk_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t a6, uintptr_t a7)
 {
 	// syz_fuseblk_mount(target filename, blkdev filename, mode flags[fuse_mode], uid uid, gid gid, maxread intptr, blksize intptr, flags flags[mount_flags]) fd[fuse]
-	uint64_t target = a0;
-	uint64_t blkdev = a1;
-	uint64_t mode = a2;
-	uint64_t uid = a3;
-	uint64_t gid = a4;
-	uint64_t maxread = a5;
-	uint64_t blksize = a6;
-	uint64_t flags = a7;
+	uint64 target = a0;
+	uint64 blkdev = a1;
+	uint64 mode = a2;
+	uint64 uid = a3;
+	uint64 gid = a4;
+	uint64 maxread = a5;
+	uint64 blksize = a6;
+	uint64 flags = a7;
 
 	int fd = open("/dev/fuse", O_RDWR);
 	if (fd == -1)
@@ -1018,7 +1018,7 @@ void loop()
 			doexit(0);
 		}
 		int status = 0;
-		uint64_t start = current_time_ms();
+		uint64 start = current_time_ms();
 		for (;;) {
 			int res = waitpid(-1, &status, __WALL | WNOHANG);
 			if (res == pid)

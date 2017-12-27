@@ -5,6 +5,7 @@
 
 #include <fcntl.h>
 #include <limits.h>
+#include <pthread.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/prctl.h>
@@ -38,8 +39,8 @@ const int kOutFd = 4;
 // The address chosen must also work on 32-bit kernels with 2GB user address space.
 void* const kOutputDataAddr = (void*)0x1b9bc20000ull;
 
-uint32_t* output_data;
-uint32_t* output_pos;
+uint32* output_data;
+uint32* output_pos;
 
 int main(int argc, char** argv)
 {
@@ -55,7 +56,7 @@ int main(int argc, char** argv)
 	// If it is corrupted ipc package will fail to parse its contents and panic.
 	// But fuzzer constantly invents new ways of how to currupt the region,
 	// so we map the region at a (hopefully) hard to guess address surrounded by unmapped pages.
-	output_data = (uint32_t*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
+	output_data = (uint32*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
 	if (output_data != kOutputDataAddr)
 		fail("mmap of output file failed");
 	// Prevent random programs to mess with these fds.
@@ -158,9 +159,9 @@ void loop()
 		// SIGCHLD should also unblock the usleep below, so the spin loop
 		// should be as efficient as sigtimedwait.
 		int status = 0;
-		uint64_t start = current_time_ms();
-		uint64_t last_executed = start;
-		uint32_t executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
+		uint64 start = current_time_ms();
+		uint64 last_executed = start;
+		uint32 executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 		for (;;) {
 			int res = waitpid(-1, &status, __WALL | WNOHANG);
 			int errno0 = errno;
@@ -179,8 +180,8 @@ void loop()
 			// then the main thread hangs when it wants to page in a page.
 			// Below we check if the test process still executes syscalls
 			// and kill it after 200ms of inactivity.
-			uint64_t now = current_time_ms();
-			uint32_t now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
+			uint64 now = current_time_ms();
+			uint32 now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 			if (executed_calls != now_executed) {
 				executed_calls = now_executed;
 				last_executed = now;
@@ -228,8 +229,8 @@ void cover_open()
 		if (ioctl(th->cover_fd, KCOV_INIT_TRACE, kCoverSize))
 			fail("cover init trace write failed");
 		size_t mmap_alloc_size = kCoverSize * sizeof(th->cover_data[0]);
-		uint64_t* mmap_ptr = (uint64_t*)mmap(NULL, mmap_alloc_size,
-						     PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
+		uint64* mmap_ptr = (uint64*)mmap(NULL, mmap_alloc_size,
+						 PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
 		if (mmap_ptr == MAP_FAILED)
 			fail("cover mmap failed");
 		th->cover_size_ptr = mmap_ptr;
@@ -258,18 +259,18 @@ void cover_reset(thread_t* th)
 	__atomic_store_n(th->cover_size_ptr, 0, __ATOMIC_RELAXED);
 }
 
-uint64_t read_cover_size(thread_t* th)
+uint64 read_cover_size(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
-	uint64_t n = __atomic_load_n(th->cover_size_ptr, __ATOMIC_RELAXED);
+	uint64 n = __atomic_load_n(th->cover_size_ptr, __ATOMIC_RELAXED);
 	debug("#%d: read cover size = %llu\n", th->id, n);
 	if (n >= kCoverSize)
 		fail("#%d: too much cover %llu", th->id, n);
 	return n;
 }
 
-uint32_t* write_output(uint32_t v)
+uint32* write_output(uint32 v)
 {
 	if (collide)
 		return 0;
@@ -279,7 +280,7 @@ uint32_t* write_output(uint32_t v)
 	return output_pos++;
 }
 
-void write_completed(uint32_t completed)
+void write_completed(uint32 completed)
 {
 	__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
 }
@@ -293,8 +294,8 @@ bool kcov_comparison_t::ignore() const
 		// This can be a pointer (assuming 64-bit kernel).
 		// First of all, we want avert fuzzer from our output region.
 		// Without this fuzzer manages to discover and corrupt it.
-		uint64_t out_start = (uint64_t)kOutputDataAddr;
-		uint64_t out_end = out_start + kMaxOutput;
+		uint64 out_start = (uint64)kOutputDataAddr;
+		uint64 out_end = out_start + kMaxOutput;
 		if (arg1 >= out_start && arg1 <= out_end)
 			return true;
 		if (arg2 >= out_start && arg2 <= out_end)
@@ -303,8 +304,8 @@ bool kcov_comparison_t::ignore() const
 		// Filter out kernel physical memory addresses.
 		// These are internal kernel comparisons and should not be interesting.
 		// The range covers first 1TB of physical mapping.
-		uint64_t kmem_start = (uint64_t)0xffff880000000000ull;
-		uint64_t kmem_end = (uint64_t)0xffff890000000000ull;
+		uint64 kmem_start = (uint64)0xffff880000000000ull;
+		uint64 kmem_end = (uint64)0xffff890000000000ull;
 		bool kptr1 = arg1 >= kmem_start && arg1 <= kmem_end;
 		bool kptr2 = arg2 >= kmem_start && arg2 <= kmem_end;
 		if (kptr1 && kptr2)

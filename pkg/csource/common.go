@@ -40,6 +40,16 @@ func createCommonHeader(p *prog.Prog, opts Options) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	for from, to := range map[string]string{
+		"uint64": "uint64_t",
+		"uint32": "uint32_t",
+		"uint16": "uint16_t",
+		"uint8":  "uint8_t",
+	} {
+		src = bytes.Replace(src, []byte(from), []byte(to), -1)
+	}
+
 	return src, nil
 }
 

@@ -48,10 +48,10 @@ bool event_isset(event_t* ev)
 	return __atomic_load_n(&ev->state, __ATOMIC_ACQUIRE);
 }
 
-bool event_timedwait(event_t* ev, uint64_t timeout_ms)
+bool event_timedwait(event_t* ev, uint64 timeout_ms)
 {
-	uint64_t start = current_time_ms();
-	uint64_t now = start;
+	uint64 start = current_time_ms();
+	uint64 now = start;
 	for (;;) {
 		timespec ts = {};
 		ts.tv_sec = 0;

@@ -31,16 +31,16 @@ const int kMaxArgs = 9;
 const int kMaxThreads = 16;
 const int kMaxCommands = 1000;
 
-const uint64_t instr_eof = -1;
-const uint64_t instr_copyin = -2;
-const uint64_t instr_copyout = -3;
+const uint64 instr_eof = -1;
+const uint64 instr_copyin = -2;
+const uint64 instr_copyout = -3;
 
-const uint64_t arg_const = 0;
-const uint64_t arg_result = 1;
-const uint64_t arg_data = 2;
-const uint64_t arg_csum = 3;
+const uint64 arg_const = 0;
+const uint64 arg_result = 1;
+const uint64 arg_data = 2;
+const uint64 arg_csum = 3;
 
-const uint64_t no_copyout = -1;
+const uint64 no_copyout = -1;
 
 enum sandbox_type {
 	sandbox_none,
@@ -70,7 +70,7 @@ int flag_fault_nth;
 int flag_pid;
 
 int running;
-uint32_t completed;
+uint32 completed;
 bool collide;
 
 ALIGNED(64 << 10)
@@ -79,37 +79,37 @@ char input_data[kMaxInput];
 // We use the default value instead of results of failed syscalls.
 // -1 is an invalid fd and an invalid address and deterministic,
 // so good enough for our purposes.
-const uint64_t default_value = -1;
+const uint64 default_value = -1;
 
 // Checksum kinds.
-const uint64_t arg_csum_inet = 0;
+const uint64 arg_csum_inet = 0;
 
 // Checksum chunk kinds.
-const uint64_t arg_csum_chunk_data = 0;
-const uint64_t arg_csum_chunk_const = 1;
+const uint64 arg_csum_chunk_data = 0;
+const uint64 arg_csum_chunk_const = 1;
 
 struct thread_t {
 	bool created;
 	int id;
 	osthread_t th;
 	// TODO(dvyukov): this assumes 64-bit kernel. This must be "kernel long" somehow.
-	uint64_t* cover_data;
+	uint64* cover_data;
 	// Pointer to the size of coverage (stored as first word of memory).
-	uint64_t* cover_size_ptr;
-	uint64_t cover_buffer[1]; // fallback coverage buffer
+	uint64* cover_size_ptr;
+	uint64 cover_buffer[1]; // fallback coverage buffer
 
 	event_t ready;
 	event_t done;
-	uint64_t* copyout_pos;
-	uint64_t copyout_index;
+	uint64* copyout_pos;
+	uint64 copyout_index;
 	bool handled;
 	int call_index;
 	int call_num;
 	int num_args;
 	long args[kMaxArgs];
 	long res;
-	uint32_t reserrno;
-	uint64_t cover_size;
+	uint32 reserrno;
+	uint64 cover_size;
 	bool fault_injected;
 	int cover_fd;
 };
@@ -118,38 +118,38 @@ thread_t threads[kMaxThreads];
 
 struct res_t {
 	bool executed;
-	uint64_t val;
+	uint64 val;
 };
 
 res_t results[kMaxCommands];
 
-const uint64_t kInMagic = 0xbadc0ffeebadface;
-const uint32_t kOutMagic = 0xbadf00d;
+const uint64 kInMagic = 0xbadc0ffeebadface;
+const uint32 kOutMagic = 0xbadf00d;
 
 struct handshake_req {
-	uint64_t magic;
-	uint64_t flags; // env flags
-	uint64_t pid;
+	uint64 magic;
+	uint64 flags; // env flags
+	uint64 pid;
 };
 
 struct handshake_reply {
-	uint32_t magic;
+	uint32 magic;
 };
 
 struct execute_req {
-	uint64_t magic;
-	uint64_t env_flags;
-	uint64_t exec_flags;
-	uint64_t pid;
-	uint64_t fault_call;
-	uint64_t fault_nth;
-	uint64_t prog_size;
+	uint64 magic;
+	uint64 env_flags;
+	uint64 exec_flags;
+	uint64 pid;
+	uint64 fault_call;
+	uint64 fault_nth;
+	uint64 prog_size;
 };
 
 struct execute_reply {
-	uint32_t magic;
-	uint32_t done;
-	uint32_t status;
+	uint32 magic;
+	uint32 done;
+	uint32 status;
 };
 
 enum {
@@ -162,10 +162,10 @@ enum {
 };
 
 struct kcov_comparison_t {
-	uint64_t type;
-	uint64_t arg1;
-	uint64_t arg2;
-	uint64_t pc;
+	uint64 type;
+	uint64 arg1;
+	uint64 arg2;
+	uint64 pc;
 
 	bool ignore() const;
 	void write();
@@ -174,25 +174,25 @@ struct kcov_comparison_t {
 };
 
 long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8);
-thread_t* schedule_call(int call_index, int call_num, uint64_t copyout_index, uint64_t num_args, uint64_t* args, uint64_t* pos);
+thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos);
 void handle_completion(thread_t* th);
 void execute_call(thread_t* th);
 void thread_create(thread_t* th, int id);
 void* worker_thread(void* arg);
-uint32_t* write_output(uint32_t v);
-void write_completed(uint32_t completed);
-uint64_t read_input(uint64_t** input_posp, bool peek = false);
-uint64_t read_arg(uint64_t** input_posp);
-uint64_t read_const_arg(uint64_t** input_posp, uint64_t* size_p, uint64_t* bf_off_p, uint64_t* bf_len_p);
-uint64_t read_result(uint64_t** input_posp);
-void copyin(char* addr, uint64_t val, uint64_t size, uint64_t bf_off, uint64_t bf_len);
-uint64_t copyout(char* addr, uint64_t size);
+uint32* write_output(uint32 v);
+void write_completed(uint32 completed);
+uint64 read_input(uint64** input_posp, bool peek = false);
+uint64 read_arg(uint64** input_posp);
+uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_off_p, uint64* bf_len_p);
+uint64 read_result(uint64** input_posp);
+void copyin(char* addr, uint64 val, uint64 size, uint64 bf_off, uint64 bf_len);
+uint64 copyout(char* addr, uint64 size);
 void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
-uint64_t read_cover_size(thread_t* th);
-static uint32_t hash(uint32_t a);
-static bool dedup(uint32_t sig);
+uint64 read_cover_size(thread_t* th);
+static uint32 hash(uint32 a);
+static bool dedup(uint32 sig);
 
 void setup_control_pipes()
 {
@@ -206,7 +206,7 @@ void setup_control_pipes()
 		fail("close(0) failed");
 }
 
-void parse_env_flags(uint64_t flags)
+void parse_env_flags(uint64 flags)
 {
 	flag_debug = flags & (1 << 0);
 	flag_cover = flags & (1 << 1);
@@ -269,7 +269,7 @@ void receive_execute(bool need_prog)
 			fail("need_prog: no program");
 		return;
 	}
-	uint64_t pos = 0;
+	uint64 pos = 0;
 	for (;;) {
 		ssize_t rv = read(kInPipeFd, input_data + pos, sizeof(input_data) - pos);
 		if (rv < 0)
@@ -296,7 +296,7 @@ void reply_execute(int status)
 void execute_one()
 {
 retry:
-	uint64_t* input_pos = (uint64_t*)input_data;
+	uint64* input_pos = (uint64*)input_data;
 	write_output(0); // Number of executed syscalls (updated later).
 
 	if (!collide && !flag_threaded)
@@ -304,39 +304,39 @@ retry:
 
 	int call_index = 0;
 	for (;;) {
-		uint64_t call_num = read_input(&input_pos);
+		uint64 call_num = read_input(&input_pos);
 		if (call_num == instr_eof)
 			break;
 		if (call_num == instr_copyin) {
 			char* addr = (char*)read_input(&input_pos);
-			uint64_t typ = read_input(&input_pos);
+			uint64 typ = read_input(&input_pos);
 			debug("copyin to %p\n", addr);
 			switch (typ) {
 			case arg_const: {
-				uint64_t size, bf_off, bf_len;
-				uint64_t arg = read_const_arg(&input_pos, &size, &bf_off, &bf_len);
+				uint64 size, bf_off, bf_len;
+				uint64 arg = read_const_arg(&input_pos, &size, &bf_off, &bf_len);
 				copyin(addr, arg, size, bf_off, bf_len);
 				break;
 			}
 			case arg_result: {
-				uint64_t size = read_input(&input_pos);
-				uint64_t val = read_result(&input_pos);
+				uint64 size = read_input(&input_pos);
+				uint64 val = read_result(&input_pos);
 				copyin(addr, val, size, 0, 0);
 				break;
 			}
 			case arg_data: {
-				uint64_t size = read_input(&input_pos);
+				uint64 size = read_input(&input_pos);
 				NONFAILING(memcpy(addr, input_pos, size));
 				// Read out the data.
-				for (uint64_t i = 0; i < (size + 7) / 8; i++)
+				for (uint64 i = 0; i < (size + 7) / 8; i++)
 					read_input(&input_pos);
 				break;
 			}
 			case arg_csum: {
 				debug("checksum found at %p\n", addr);
-				uint64_t size = read_input(&input_pos);
+				uint64 size = read_input(&input_pos);
 				char* csum_addr = addr;
-				uint64_t csum_kind = read_input(&input_pos);
+				uint64 csum_kind = read_input(&input_pos);
 				switch (csum_kind) {
 				case arg_csum_inet: {
 					if (size != 2) {
@@ -345,16 +345,16 @@ retry:
 					debug("calculating checksum for %p\n", csum_addr);
 					struct csum_inet csum;
 					csum_inet_init(&csum);
-					uint64_t chunks_num = read_input(&input_pos);
-					uint64_t chunk;
+					uint64 chunks_num = read_input(&input_pos);
+					uint64 chunk;
 					for (chunk = 0; chunk < chunks_num; chunk++) {
-						uint64_t chunk_kind = read_input(&input_pos);
-						uint64_t chunk_value = read_input(&input_pos);
-						uint64_t chunk_size = read_input(&input_pos);
+						uint64 chunk_kind = read_input(&input_pos);
+						uint64 chunk_value = read_input(&input_pos);
+						uint64 chunk_size = read_input(&input_pos);
 						switch (chunk_kind) {
 						case arg_csum_chunk_data:
 							debug("#%lld: data chunk, addr: %llx, size: %llu\n", chunk, chunk_value, chunk_size);
-							NONFAILING(csum_inet_update(&csum, (const uint8_t*)chunk_value, chunk_size));
+							NONFAILING(csum_inet_update(&csum, (const uint8*)chunk_value, chunk_size));
 							break;
 						case arg_csum_chunk_const:
 							if (chunk_size != 2 && chunk_size != 4 && chunk_size != 8) {
@@ -362,13 +362,13 @@ retry:
 							}
 							// Here we assume that const values come to us big endian.
 							debug("#%lld: const chunk, value: %llx, size: %llu\n", chunk, chunk_value, chunk_size);
-							csum_inet_update(&csum, (const uint8_t*)&chunk_value, chunk_size);
+							csum_inet_update(&csum, (const uint8*)&chunk_value, chunk_size);
 							break;
 						default:
 							fail("bad checksum chunk kind %llu", chunk_kind);
 						}
 					}
-					int16_t csum_value = csum_inet_digest(&csum);
+					uint16 csum_value = csum_inet_digest(&csum);
 					debug("writing inet checksum %hx to %p\n", csum_value, csum_addr);
 					copyin(csum_addr, csum_value, 2, 0, 0);
 					break;
@@ -394,14 +394,14 @@ retry:
 		// Normal syscall.
 		if (call_num >= syscall_count)
 			fail("invalid command number %llu", call_num);
-		uint64_t copyout_index = read_input(&input_pos);
-		uint64_t num_args = read_input(&input_pos);
+		uint64 copyout_index = read_input(&input_pos);
+		uint64 num_args = read_input(&input_pos);
 		if (num_args > kMaxArgs)
 			fail("command has bad number of arguments %llu", num_args);
-		uint64_t args[kMaxArgs] = {};
-		for (uint64_t i = 0; i < num_args; i++)
+		uint64 args[kMaxArgs] = {};
+		for (uint64 i = 0; i < num_args; i++)
 			args[i] = read_arg(&input_pos);
-		for (uint64_t i = num_args; i < 6; i++)
+		for (uint64 i = num_args; i < 6; i++)
 			args[i] = 0;
 		thread_t* th = schedule_call(call_index++, call_num, copyout_index, num_args, args, input_pos);
 
@@ -412,7 +412,7 @@ retry:
 			// Wait for call completion.
 			// Note: sys knows about this 20ms timeout when it generates
 			// timespec/timeval values.
-			const uint64_t timeout_ms = flag_debug ? 500 : 20;
+			const uint64 timeout_ms = flag_debug ? 500 : 20;
 			if (event_timedwait(&th->done, timeout_ms))
 				handle_completion(th);
 			// Check if any of previous calls have completed.
@@ -445,7 +445,7 @@ retry:
 	}
 }
 
-thread_t* schedule_call(int call_index, int call_num, uint64_t copyout_index, uint64_t num_args, uint64_t* args, uint64_t* pos)
+thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos)
 {
 	// Find a spare thread to execute the call.
 	int i;
@@ -494,13 +494,13 @@ void handle_completion(thread_t* th)
 			results[th->copyout_index].val = th->res;
 		}
 		for (bool done = false; !done;) {
-			uint64_t instr = read_input(&th->copyout_pos);
+			uint64 instr = read_input(&th->copyout_pos);
 			switch (instr) {
 			case instr_copyout: {
-				uint64_t index = read_input(&th->copyout_pos);
+				uint64 index = read_input(&th->copyout_pos);
 				char* addr = (char*)read_input(&th->copyout_pos);
-				uint64_t size = read_input(&th->copyout_pos);
-				uint64_t val = copyout(addr, size);
+				uint64 size = read_input(&th->copyout_pos);
+				uint64 val = copyout(addr, size);
 				if (index >= kMaxCommands)
 					fail("result idx %lld overflows kMaxCommands", index);
 				results[index].executed = true;
@@ -517,24 +517,24 @@ void handle_completion(thread_t* th)
 	if (!collide) {
 		write_output(th->call_index);
 		write_output(th->call_num);
-		uint32_t reserrno = th->res != -1 ? 0 : th->reserrno;
+		uint32 reserrno = th->res != -1 ? 0 : th->reserrno;
 		write_output(reserrno);
 		write_output(th->fault_injected);
-		uint32_t* signal_count_pos = write_output(0); // filled in later
-		uint32_t* cover_count_pos = write_output(0); // filled in later
-		uint32_t* comps_count_pos = write_output(0); // filled in later
-		uint32_t nsig = 0, cover_size = 0, comps_size = 0;
+		uint32* signal_count_pos = write_output(0); // filled in later
+		uint32* cover_count_pos = write_output(0); // filled in later
+		uint32* comps_count_pos = write_output(0); // filled in later
+		uint32 nsig = 0, cover_size = 0, comps_size = 0;
 
 		if (flag_collect_comps) {
 			// Collect only the comparisons
-			uint32_t ncomps = th->cover_size;
+			uint32 ncomps = th->cover_size;
 			kcov_comparison_t* start = (kcov_comparison_t*)th->cover_data;
 			kcov_comparison_t* end = start + ncomps;
-			if ((uint64_t*)end >= th->cover_data + kCoverSize)
+			if ((uint64*)end >= th->cover_data + kCoverSize)
 				fail("too many comparisons %u", ncomps);
 			std::sort(start, end);
 			ncomps = std::unique(start, end) - start;
-			for (uint32_t i = 0; i < ncomps; ++i) {
+			for (uint32 i = 0; i < ncomps; ++i) {
 				if (start[i].ignore())
 					continue;
 				comps_size++;
@@ -544,10 +544,10 @@ void handle_completion(thread_t* th)
 			// Write out feedback signals.
 			// Currently it is code edges computed as xor of
 			// two subsequent basic block PCs.
-			uint32_t prev = 0;
-			for (uint32_t i = 0; i < th->cover_size; i++) {
-				uint32_t pc = (uint32_t)th->cover_data[i];
-				uint32_t sig = pc ^ prev;
+			uint32 prev = 0;
+			for (uint32 i = 0; i < th->cover_size; i++) {
+				uint32 pc = (uint32)th->cover_data[i];
+				uint32 sig = pc ^ prev;
 				prev = hash(pc);
 				if (dedup(sig))
 					continue;
@@ -558,15 +558,15 @@ void handle_completion(thread_t* th)
 				// Write out real coverage (basic block PCs).
 				cover_size = th->cover_size;
 				if (flag_dedup_cover) {
-					uint64_t* start = (uint64_t*)th->cover_data;
-					uint64_t* end = start + cover_size;
+					uint64* start = (uint64*)th->cover_data;
+					uint64* end = start + cover_size;
 					std::sort(start, end);
 					cover_size = std::unique(start, end) - start;
 				}
-				// Truncate PCs to uint32_t assuming that they fit into 32-bits.
+				// Truncate PCs to uint32 assuming that they fit into 32-bits.
 				// True for x86_64 and arm64 without KASLR.
-				for (uint32_t i = 0; i < cover_size; i++)
-					write_output((uint32_t)th->cover_data[i]);
+				for (uint32 i = 0; i < cover_size; i++)
+					write_output((uint32)th->cover_data[i]);
 			}
 		}
 		// Write out real coverage (basic block PCs).
@@ -650,7 +650,7 @@ void execute_call(thread_t* th)
 	event_set(&th->done);
 }
 
-static uint32_t hash(uint32_t a)
+static uint32 hash(uint32 a)
 {
 	a = (a ^ 61) ^ (a >> 16);
 	a = a + (a << 3);
@@ -660,16 +660,16 @@ static uint32_t hash(uint32_t a)
 	return a;
 }
 
-const uint32_t dedup_table_size = 8 << 10;
-uint32_t dedup_table[dedup_table_size];
+const uint32 dedup_table_size = 8 << 10;
+uint32 dedup_table[dedup_table_size];
 
 // Poorman's best-effort hashmap-based deduplication.
 // The hashmap is global which means that we deduplicate across different calls.
 // This is OK because we are interested only in new signals.
-static bool dedup(uint32_t sig)
+static bool dedup(uint32 sig)
 {
-	for (uint32_t i = 0; i < 4; i++) {
-		uint32_t pos = (sig + i) % dedup_table_size;
+	for (uint32 i = 0; i < 4; i++) {
+		uint32 pos = (sig + i) % dedup_table_size;
 		if (dedup_table[pos] == sig)
 			return true;
 		if (dedup_table[pos] == 0) {
@@ -681,41 +681,41 @@ static bool dedup(uint32_t sig)
 	return false;
 }
 
-void copyin(char* addr, uint64_t val, uint64_t size, uint64_t bf_off, uint64_t bf_len)
+void copyin(char* addr, uint64 val, uint64 size, uint64 bf_off, uint64 bf_len)
 {
 	NONFAILING(switch (size) {
 		case 1:
-			STORE_BY_BITMASK(uint8_t, addr, val, bf_off, bf_len);
+			STORE_BY_BITMASK(uint8, addr, val, bf_off, bf_len);
 			break;
 		case 2:
-			STORE_BY_BITMASK(uint16_t, addr, val, bf_off, bf_len);
+			STORE_BY_BITMASK(uint16, addr, val, bf_off, bf_len);
 			break;
 		case 4:
-			STORE_BY_BITMASK(uint32_t, addr, val, bf_off, bf_len);
+			STORE_BY_BITMASK(uint32, addr, val, bf_off, bf_len);
 			break;
 		case 8:
-			STORE_BY_BITMASK(uint64_t, addr, val, bf_off, bf_len);
+			STORE_BY_BITMASK(uint64, addr, val, bf_off, bf_len);
 			break;
 		default:
 			fail("copyin: bad argument size %llu", size);
 	});
 }
 
-uint64_t copyout(char* addr, uint64_t size)
+uint64 copyout(char* addr, uint64 size)
 {
-	uint64_t res = default_value;
+	uint64 res = default_value;
 	NONFAILING(switch (size) {
 		case 1:
-			res = *(uint8_t*)addr;
+			res = *(uint8*)addr;
 			break;
 		case 2:
-			res = *(uint16_t*)addr;
+			res = *(uint16*)addr;
 			break;
 		case 4:
-			res = *(uint32_t*)addr;
+			res = *(uint32*)addr;
 			break;
 		case 8:
-			res = *(uint64_t*)addr;
+			res = *(uint64*)addr;
 			break;
 		default:
 			fail("copyout: bad argument size %llu", size);
@@ -723,12 +723,12 @@ uint64_t copyout(char* addr, uint64_t size)
 	return res;
 }
 
-uint64_t read_arg(uint64_t** input_posp)
+uint64 read_arg(uint64** input_posp)
 {
-	uint64_t typ = read_input(input_posp);
+	uint64 typ = read_input(input_posp);
 	switch (typ) {
 	case arg_const: {
-		uint64_t size, bf_off, bf_len;
+		uint64 size, bf_off, bf_len;
 		return read_const_arg(input_posp, &size, &bf_off, &bf_len);
 	}
 	case arg_result: {
@@ -740,15 +740,15 @@ uint64_t read_arg(uint64_t** input_posp)
 	}
 }
 
-uint64_t read_const_arg(uint64_t** input_posp, uint64_t* size_p, uint64_t* bf_off_p, uint64_t* bf_len_p)
+uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_off_p, uint64* bf_len_p)
 {
-	uint64_t meta = read_input(input_posp);
-	uint64_t val = read_input(input_posp);
+	uint64 meta = read_input(input_posp);
+	uint64 val = read_input(input_posp);
 	*size_p = meta & 0xff;
 	bool be = meta & (1 << 8);
 	*bf_off_p = (meta >> 16) & 0xff;
 	*bf_len_p = (meta >> 24) & 0xff;
-	uint64_t pid_stride = meta >> 32;
+	uint64 pid_stride = meta >> 32;
 	val += pid_stride * flag_pid;
 	if (be) {
 		switch (*size_p) {
@@ -768,14 +768,14 @@ uint64_t read_const_arg(uint64_t** input_posp, uint64_t* size_p, uint64_t* bf_of
 	return val;
 }
 
-uint64_t read_result(uint64_t** input_posp)
+uint64 read_result(uint64** input_posp)
 {
-	uint64_t idx = read_input(input_posp);
-	uint64_t op_div = read_input(input_posp);
-	uint64_t op_add = read_input(input_posp);
+	uint64 idx = read_input(input_posp);
+	uint64 op_div = read_input(input_posp);
+	uint64 op_add = read_input(input_posp);
 	if (idx >= kMaxCommands)
 		fail("command refers to bad result %lld", idx);
-	uint64_t arg = default_value;
+	uint64 arg = default_value;
 	if (results[idx].executed) {
 		arg = results[idx].val;
 		if (op_div != 0)
@@ -785,9 +785,9 @@ uint64_t read_result(uint64_t** input_posp)
 	return arg;
 }
 
-uint64_t read_input(uint64_t** input_posp, bool peek)
+uint64 read_input(uint64** input_posp, bool peek)
 {
-	uint64_t* input_pos = *input_posp;
+	uint64* input_pos = *input_posp;
 	if ((char*)input_pos >= input_data + kMaxInput)
 		fail("input command overflows input");
 	if (!peek)
@@ -798,39 +798,39 @@ uint64_t read_input(uint64_t** input_posp, bool peek)
 void kcov_comparison_t::write()
 {
 	// Write order: type arg1 arg2 pc.
-	write_output((uint32_t)type);
+	write_output((uint32)type);
 
 	// KCOV converts all arguments of size x first to uintx_t and then to
-	// uint64_t. We want to properly extend signed values, e.g we want
-	// int8_t c = 0xfe to be represented as 0xfffffffffffffffe.
-	// Note that uint8_t c = 0xfe will be represented the same way.
+	// uint64. We want to properly extend signed values, e.g we want
+	// int8 c = 0xfe to be represented as 0xfffffffffffffffe.
+	// Note that uint8 c = 0xfe will be represented the same way.
 	// This is ok because during hints processing we will anyways try
 	// the value 0x00000000000000fe.
 	switch (type & KCOV_CMP_SIZE_MASK) {
 	case KCOV_CMP_SIZE1:
-		arg1 = (uint64_t)(int64_t)(int8_t)arg1;
-		arg2 = (uint64_t)(int64_t)(int8_t)arg2;
+		arg1 = (uint64)(long long)(signed char)arg1;
+		arg2 = (uint64)(long long)(signed char)arg2;
 		break;
 	case KCOV_CMP_SIZE2:
-		arg1 = (uint64_t)(int64_t)(int16_t)arg1;
-		arg2 = (uint64_t)(int64_t)(int16_t)arg2;
+		arg1 = (uint64)(long long)(short)arg1;
+		arg2 = (uint64)(long long)(short)arg2;
 		break;
 	case KCOV_CMP_SIZE4:
-		arg1 = (uint64_t)(int64_t)(int32_t)arg1;
-		arg2 = (uint64_t)(int64_t)(int32_t)arg2;
+		arg1 = (uint64)(long long)(int)arg1;
+		arg2 = (uint64)(long long)(int)arg2;
 		break;
 	}
 	bool is_size_8 = (type & KCOV_CMP_SIZE_MASK) == KCOV_CMP_SIZE8;
 	if (!is_size_8) {
-		write_output((uint32_t)arg1);
-		write_output((uint32_t)arg2);
+		write_output((uint32)arg1);
+		write_output((uint32)arg2);
 		return;
 	}
 	// If we have 64 bits arguments then write them in Little-endian.
-	write_output((uint32_t)(arg1 & 0xFFFFFFFF));
-	write_output((uint32_t)(arg1 >> 32));
-	write_output((uint32_t)(arg2 & 0xFFFFFFFF));
-	write_output((uint32_t)(arg2 >> 32));
+	write_output((uint32)(arg1 & 0xFFFFFFFF));
+	write_output((uint32)(arg1 >> 32));
+	write_output((uint32)(arg2 & 0xFFFFFFFF));
+	write_output((uint32)(arg2 >> 32));
 }
 
 bool kcov_comparison_t::operator==(const struct kcov_comparison_t& other) const

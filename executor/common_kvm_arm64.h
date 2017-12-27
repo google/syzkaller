@@ -12,8 +12,8 @@ struct kvm_text {
 };
 
 struct kvm_opt {
-	uint64_t typ;
-	uint64_t val;
+	uint64 typ;
+	uint64 val;
 };
 
 // syz_kvm_setup_cpu(fd fd_kvmvm, cpufd fd_kvmcpu, usermem vma[24], text ptr[in, array[kvm_text, 1]], ntext len[text], flags flags[kvm_setup_flags], opts ptr[in, array[kvm_setup_opt, 0:2]], nopt len[opts])
@@ -45,13 +45,13 @@ static uintptr_t syz_kvm_setup_cpu(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 	(void)text_type;
 	(void)opt_array_ptr;
 
-	uint32_t features = 0;
+	uint32 features = 0;
 	if (opt_count > 1)
 		opt_count = 1;
 	uintptr_t i;
 	for (i = 0; i < opt_count; i++) {
-		uint64_t typ = 0;
-		uint64_t val = 0;
+		uint64 typ = 0;
+		uint64 val = 0;
 		NONFAILING(typ = opt_array_ptr[i].typ);
 		NONFAILING(val = opt_array_ptr[i].val);
 		switch (typ) {
