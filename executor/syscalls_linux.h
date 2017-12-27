@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "fd39559cec7e0bf3b73161acf9105976b4e778d6"
+#define SYZ_REVISION "ca1f8c35235243131f0ae0a2c5e2546a80bc4dd0"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1447;
+unsigned syscall_count = 1448;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -1082,6 +1082,7 @@ call_t syscalls[] = {
     {"seccomp", 354},
     {"select", 82},
     {"sendfile", 187},
+    {"sendfile64", 239},
     {"sendmmsg", 345},
     {"sendmmsg$alg", 345},
     {"sendmmsg$inet_sctp", 345},
@@ -1467,7 +1468,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "20b754ebbf859e5765e0f3d5f2e5c9cd0468304c"
+#define SYZ_REVISION "f6314731930c5050e20c24dcb1119c52a291d2ff"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -2993,7 +2994,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "22274c8a0815d6ce80b34c051e8074163b988754"
+#define SYZ_REVISION "a4256650e2fee94a311180c3fc3b37a483d8eec7"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4468,7 +4469,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "f5bf5c05890ab70b1ea1b1029f18449ac7b4b6a2"
+#define SYZ_REVISION "e36d7dd011f637868a58e6fa2489d1eecbdc2821"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -5923,7 +5924,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "afc4844915d998b5b3b4659b741b83b54e797d06"
+#define SYZ_REVISION "7d809ebc2195af7fc07c64e3aec3514e19b113b3"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002

@@ -10143,7 +10143,7 @@ var syscalls_ppc64le = []*Syscall{
 	{ID: 876, NR: 90, Name: "mmap", CallName: "mmap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{4, 1, 2, 8, 16777216, 33554432}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{0, 4, 1, 2, 8, 16777216, 33554432}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 0, 32, 2048, 4096, 0, 16, 256, 262144, 128, 65536, 64, 32768, 131072, 0}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
@@ -10151,7 +10151,7 @@ var syscalls_ppc64le = []*Syscall{
 	{ID: 877, NR: 90, Name: "mmap$binder", CallName: "mmap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{4, 1, 2, 8, 16777216, 33554432}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{0, 4, 1, 2, 8, 16777216, 33554432}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 0, 32, 2048, 4096, 0, 16, 256, 262144, 128, 65536, 64, 32768, 131072, 0}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_binder", FldName: "fd", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 8}}, Kind: 1},
@@ -10194,7 +10194,7 @@ var syscalls_ppc64le = []*Syscall{
 	{ID: 884, NR: 125, Name: "mprotect", CallName: "mprotect", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{4, 1, 2, 8, 16777216, 33554432}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{0, 4, 1, 2, 8, 16777216, 33554432}},
 	}},
 	{ID: 885, NR: 267, Name: "mq_getsetattr", CallName: "mq_getsetattr", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_mq", FldName: "mqd", TypeSize: 4}},
@@ -10597,7 +10597,7 @@ var syscalls_ppc64le = []*Syscall{
 	}},
 	{ID: 956, NR: 317, Name: "pipe2", CallName: "pipe2", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pipefd", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "pipefd", Dir: 1}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pipe_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{2048, 524288}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pipe_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{2048, 524288, 131072}},
 	}},
 	{ID: 957, NR: 203, Name: "pivot_root", CallName: "pivot_root", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new_root", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
@@ -10916,7 +10916,7 @@ var syscalls_ppc64le = []*Syscall{
 	{ID: 1011, NR: 239, Name: "remap_file_pages", CallName: "remap_file_pages", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 8}}, Buf: "addr"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{4, 1, 2, 8, 16777216, 33554432}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_prot", FldName: "prot", TypeSize: 8}}, Vals: []uint64{0, 4, 1, 2, 8, 16777216, 33554432}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "pgoff", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 0, 32, 2048, 4096, 0, 16, 256, 262144, 128, 65536, 64, 32768, 131072, 0}},
 	}},
@@ -11048,7 +11048,7 @@ var syscalls_ppc64le = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdout", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdin", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "off", TypeSize: 8, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", TypeSize: 8, ArgDir: 2}}, Kind: 1}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "count", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "count", TypeSize: 8}}},
 	}},
 	{ID: 1040, NR: 349, Name: "sendmmsg", CallName: "sendmmsg", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
@@ -12898,10 +12898,10 @@ var syscalls_ppc64le = []*Syscall{
 	}},
 	{ID: 1327, NR: 283, Name: "splice", CallName: "splice", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdin", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offin", TypeSize: 8}}, Kind: 1},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "offin", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", TypeSize: 8}}, Kind: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdout", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offout", TypeSize: 8}}, Kind: 1},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "len", TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "offout", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", TypeSize: 8}}, Kind: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "splice_flags", FldName: "f", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8}},
 	}},
 	{ID: 1328, NR: 106, Name: "stat", CallName: "stat", Args: []Type{
@@ -13181,7 +13181,7 @@ var syscalls_ppc64le = []*Syscall{
 	{ID: 1382, NR: 284, Name: "tee", CallName: "tee", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdin", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdout", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "len", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "splice_flags", FldName: "f", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8}},
 	}},
 	{ID: 1383, NR: 250, Name: "tgkill", CallName: "tgkill", Args: []Type{
@@ -15136,6 +15136,7 @@ var consts_ppc64le = []ConstValue{
 	{Name: "PROT_EXEC", Value: 4},
 	{Name: "PROT_GROWSDOWN", Value: 16777216},
 	{Name: "PROT_GROWSUP", Value: 33554432},
+	{Name: "PROT_NONE"},
 	{Name: "PROT_READ", Value: 1},
 	{Name: "PROT_SEM", Value: 8},
 	{Name: "PROT_WRITE", Value: 2},
@@ -16377,4 +16378,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "__WNOTHREAD", Value: 536870912},
 }
 
-const revision_ppc64le = "afc4844915d998b5b3b4659b741b83b54e797d06"
+const revision_ppc64le = "7d809ebc2195af7fc07c64e3aec3514e19b113b3"

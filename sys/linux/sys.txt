@@ -83,10 +83,11 @@ dup3(oldfd fd, newfd fd, flags flags[dup_flags]) fd
 pipe(pipefd ptr[out, pipefd])
 pipe2(pipefd ptr[out, pipefd], flags flags[pipe_flags])
 
-tee(fdin fd, fdout fd, len int64, f flags[splice_flags])
-splice(fdin fd, offin fileoff, fdout fd, offout fileoff, len int64, f flags[splice_flags])
+tee(fdin fd, fdout fd, len intptr, f flags[splice_flags])
+splice(fdin fd, offin ptr[in, fileoff[int64]], fdout fd, offout ptr[in, fileoff[int64]], len intptr, f flags[splice_flags])
 vmsplice(fd fd, vec ptr[in, array[iovec_in]], vlen len[vec], f flags[splice_flags])
-sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count int64)
+sendfile(fdout fd, fdin fd, off ptr[inout, fileoff[intptr], opt], count intptr)
+sendfile64(fdout fd, fdin fd, off ptr[inout, fileoff[int64], opt], count intptr)
 
 stat(file ptr[in, filename], statbuf ptr[out, stat])
 statx(fd fd_dir, file ptr[in, filename], flags flags[statx_flags], mask flags[statx_mask], statxbuf ptr[out, statx])
@@ -926,13 +927,13 @@ madvise_flags = MADV_NORMAL, MADV_RANDOM, MADV_SEQUENTIAL, MADV_WILLNEED, MADV_D
 fadvise_flags = POSIX_FADV_NORMAL, POSIX_FADV_SEQUENTIAL, POSIX_FADV_RANDOM, POSIX_FADV_NOREUSE, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED
 move_pages_flags = MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
 msync_flags = MS_ASYNC, MS_SYNC, MS_INVALIDATE
-mmap_prot = PROT_EXEC, PROT_READ, PROT_WRITE, PROT_SEM, PROT_GROWSDOWN, PROT_GROWSUP
+mmap_prot = PROT_NONE, PROT_EXEC, PROT_READ, PROT_WRITE, PROT_SEM, PROT_GROWSDOWN, PROT_GROWSUP
 mmap_flags = MAP_SHARED, MAP_PRIVATE, MAP_32BIT, MAP_ANONYMOUS, MAP_DENYWRITE, MAP_EXECUTABLE, MAP_FILE, MAP_FIXED, MAP_GROWSDOWN, MAP_HUGETLB, MAP_LOCKED, MAP_NONBLOCK, MAP_NORESERVE, MAP_POPULATE, MAP_STACK, MAP_UNINITIALIZED
 mremap_flags = MREMAP_MAYMOVE, MREMAP_FIXED
 mbind_mode = MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE, MPOL_PREFERRED, MPOL_F_STATIC_NODES, MPOL_F_RELATIVE_NODES
 mbind_flags = MPOL_MF_STRICT, MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
 memfd_flags = MFD_CLOEXEC, MFD_ALLOW_SEALING
-pipe_flags = O_NONBLOCK, O_CLOEXEC
+pipe_flags = O_NONBLOCK, O_CLOEXEC, O_DIRECT
 userfaultfd_flags = O_NONBLOCK, O_CLOEXEC
 uffdio_register_mode = UFFDIO_REGISTER_MODE_MISSING, UFFDIO_REGISTER_MODE_WP
 uffdio_copy_mode = UFFDIO_COPY_MODE_DONTWAKE
