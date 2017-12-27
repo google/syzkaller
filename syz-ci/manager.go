@@ -396,7 +396,7 @@ func (mgr *Manager) reportBuildError(rep *report.Report, info *BuildInfo, imageD
 		Build: *build,
 		Crash: dashapi.Crash{
 			Title:       rep.Title,
-			Corrupted:   rep.Corrupted,
+			Corrupted:   false, // Otherwise they get merged with other corrupted reports.
 			Maintainers: rep.Maintainers,
 			Log:         rep.Output,
 			Report:      rep.Report,
