@@ -15,8 +15,8 @@ import (
 
 var (
 	flagOS        = flag.String("os", runtime.GOOS, "target os")
-	flagKernelSrc = flag.String("kernel_src", "", "path to kernel sources")
-	flagKernelObj = flag.String("kernel_obj", "", "path to kernel build/obj dir")
+	flagKernelSrc = flag.String("kernel_src", ".", "path to kernel sources")
+	flagKernelObj = flag.String("kernel_obj", ".", "path to kernel build/obj dir")
 )
 
 func main() {
