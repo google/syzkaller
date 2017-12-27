@@ -92,7 +92,8 @@ int main(int argc, char** argv)
 	while (waitpid(-1, &status, __WALL) != pid) {
 	}
 	status = WEXITSTATUS(status);
-	if (status == 0)
+	// Other statuses happen when fuzzer processes manages to kill loop.
+	if (status != kFailStatus && status != kErrorStatus)
 		status = kRetryStatus;
 	// If an external sandbox process wraps executor, the out pipe will be closed
 	// before the sandbox process exits this will make ipc package kill the sandbox.
