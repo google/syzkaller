@@ -331,7 +331,13 @@ func incomingMail(c context.Context, r *http.Request) error {
 
 func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *BugReporting, reporting *Reporting) {
 	if msg.BugID == "" {
-		log.Warningf(c, "no bug ID (%q)", msg.Subject)
+		if msg.Command == "" {
+			// This happens when people CC syzbot on unrelated emails.
+			log.Infof(c, "no bug ID (%q)", msg.Subject)
+		} else {
+			log.Warningf(c, "no bug ID (%q)", msg.Subject)
+			replyTo(c, msg, "Can't find the corresponding bug.", nil)
+		}
 		return nil, nil, nil
 	}
 	bug, _, err := findBugByReportingID(c, msg.BugID)
