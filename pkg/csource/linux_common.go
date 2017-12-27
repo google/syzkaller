@@ -519,7 +519,7 @@ static void debug_dump_data(const char* data, int length)
 {
 	int i;
 	for (i = 0; i < length; i++) {
-		debug("%02hx ", (uint8_t)data[i] & (uint8_t)0xff);
+		debug("%02x ", data[i] & 0xff);
 		if (i % 16 == 15)
 			debug("\n");
 	}
