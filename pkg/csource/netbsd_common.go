@@ -59,7 +59,10 @@ __attribute__((noreturn)) static void doexit(int status)
 #define exit vsnprintf
 #define _exit vsnprintf
 
-#define uint64_t unsigned long long
+typedef unsigned long long uint64;
+typedef unsigned int uint32;
+typedef unsigned short uint16;
+typedef unsigned char uint8;
 
 #if defined(__GNUC__)
 #define SYSCALLAPI
@@ -170,7 +173,7 @@ PRINTF static void debug(const char* msg, ...)
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_USE_CHECKSUMS)
 struct csum_inet {
-	uint32_t acc;
+	uint32 acc;
 };
 
 static void csum_inet_init(struct csum_inet* csum)
@@ -178,23 +181,23 @@ static void csum_inet_init(struct csum_inet* csum)
 	csum->acc = 0;
 }
 
-static void csum_inet_update(struct csum_inet* csum, const uint8_t* data, size_t length)
+static void csum_inet_update(struct csum_inet* csum, const uint8* data, size_t length)
 {
 	if (length == 0)
 		return;
 
 	size_t i;
 	for (i = 0; i < length - 1; i += 2)
-		csum->acc += *(uint16_t*)&data[i];
+		csum->acc += *(uint16*)&data[i];
 
 	if (length & 1)
-		csum->acc += (uint16_t)data[length - 1];
+		csum->acc += (uint16)data[length - 1];
 
 	while (csum->acc > 0xffff)
 		csum->acc = (csum->acc & 0xffff) + (csum->acc >> 16);
 }
 
-static uint16_t csum_inet_digest(struct csum_inet* csum)
+static uint16 csum_inet_digest(struct csum_inet* csum)
 {
 	return ~csum->acc;
 }
@@ -239,18 +242,18 @@ static void install_segv_handler()
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-static uint64_t current_time_ms()
+static uint64 current_time_ms()
 {
 	struct timespec ts;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
 		fail("clock_gettime failed");
-	return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+	return (uint64)ts.tv_sec * 1000 + (uint64)ts.tv_nsec / 1000000;
 }
 #endif
 
 #if defined(SYZ_EXECUTOR)
-static void sleep_ms(uint64_t ms)
+static void sleep_ms(uint64 ms)
 {
 	usleep(ms * 1000);
 }

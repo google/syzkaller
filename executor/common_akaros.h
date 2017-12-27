@@ -99,13 +99,13 @@ static void install_segv_handler()
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-static uint64_t current_time_ms()
+static uint64 current_time_ms()
 {
 	struct timespec ts;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
 		fail("clock_gettime failed");
-	return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+	return (uint64)ts.tv_sec * 1000 + (uint64)ts.tv_nsec / 1000000;
 }
 #endif
 
@@ -124,7 +124,7 @@ static void use_temporary_dir()
 #endif
 
 #if defined(SYZ_EXECUTOR)
-static void sleep_ms(uint64_t ms)
+static void sleep_ms(uint64 ms)
 {
 	usleep(ms * 1000);
 }
@@ -220,7 +220,7 @@ void loop()
 			doexit(0);
 		}
 		int status = 0;
-		uint64_t start = current_time_ms();
+		uint64 start = current_time_ms();
 		for (;;) {
 			int res = waitpid(-1, &status, WNOHANG);
 			if (res == pid)

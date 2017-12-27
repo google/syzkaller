@@ -12,7 +12,7 @@
 
 #include "syscalls_akaros.h"
 
-uint32_t output;
+uint32 output;
 
 int main(int argc, char** argv)
 {
@@ -43,13 +43,13 @@ int main(int argc, char** argv)
 			doexit(0);
 		}
 		int status = 0;
-		uint64_t start = current_time_ms();
+		uint64 start = current_time_ms();
 		for (;;) {
 			int res = waitpid(pid, &status, WNOHANG);
 			if (res == pid)
 				break;
 			sleep_ms(10);
-			uint64_t now = current_time_ms();
+			uint64 now = current_time_ms();
 			if (now - start < 3 * 1000)
 				continue;
 			kill(pid, SIGKILL);
@@ -85,17 +85,17 @@ void cover_reset(thread_t* th)
 {
 }
 
-uint64_t read_cover_size(thread_t* th)
+uint64 read_cover_size(thread_t* th)
 {
 	return 0;
 }
 
-uint32_t* write_output(uint32_t v)
+uint32* write_output(uint32 v)
 {
 	return &output;
 }
 
-void write_completed(uint32_t completed)
+void write_completed(uint32 completed)
 {
 }
 

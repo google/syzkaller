@@ -15,12 +15,12 @@ void loop()
 extern "C" int test_copyin()
 {
 	unsigned char x[4] = {};
-	STORE_BY_BITMASK(uint16_t, &x[1], 0x1234, 0, 0);
+	STORE_BY_BITMASK(uint16, &x[1], 0x1234, 0, 0);
 	if (x[0] != 0 || x[1] != 0x34 || x[2] != 0x12 || x[3] != 0) {
 		printf("bad result of STORE_BY_BITMASK(0, 0): %x %x %x %x\n", x[0], x[1], x[2], x[3]);
 		return 1;
 	}
-	STORE_BY_BITMASK(uint16_t, &x[1], 0x555a, 5, 4);
+	STORE_BY_BITMASK(uint16, &x[1], 0x555a, 5, 4);
 	if (x[0] != 0 || x[1] != 0x54 || x[2] != 0x13 || x[3] != 0) {
 		printf("bad result of STORE_BY_BITMASK(7, 3): %x %x %x %x\n", x[0], x[1], x[2], x[3]);
 		return 1;
@@ -33,7 +33,7 @@ extern "C" int test_copyin()
 struct csum_inet_test {
 	const char* data;
 	size_t length;
-	uint16_t csum;
+	uint16 csum;
 };
 
 extern "C" int test_csum_inet()
@@ -149,7 +149,7 @@ extern "C" int test_csum_inet()
 	for (unsigned i = 0; i < ARRAY_SIZE(tests); i++) {
 		struct csum_inet csum;
 		csum_inet_init(&csum);
-		csum_inet_update(&csum, (const uint8_t*)tests[i].data, tests[i].length);
+		csum_inet_update(&csum, (const uint8*)tests[i].data, tests[i].length);
 		if (csum_inet_digest(&csum) != tests[i].csum) {
 			fprintf(stderr, "bad checksum in test #%u, want: %hx, got: %hx\n", i, tests[i].csum, csum_inet_digest(&csum));
 			return 1;
@@ -166,7 +166,7 @@ int randInt(int start, int end)
 
 extern "C" int test_csum_inet_acc()
 {
-	uint8_t buffer[128];
+	uint8 buffer[128];
 
 	int test;
 	for (test = 0; test < 256; test++) {

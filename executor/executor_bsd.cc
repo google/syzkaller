@@ -30,8 +30,8 @@
 const int kInFd = 3;
 const int kOutFd = 4;
 
-uint32_t* output_data;
-uint32_t* output_pos;
+uint32* output_data;
+uint32* output_pos;
 
 int main(int argc, char** argv)
 {
@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 	// But fuzzer constantly invents new ways of how to currupt the region,
 	// so we map the region at a (hopefully) hard to guess address surrounded by unmapped pages.
 	void* const kOutputDataAddr = (void*)0x1ddbc20000;
-	output_data = (uint32_t*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
+	output_data = (uint32*)mmap(kOutputDataAddr, kMaxOutput, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, kOutFd, 0);
 	if (output_data != kOutputDataAddr)
 		fail("mmap of output file failed");
 	// Prevent random programs to mess with these fds.
@@ -97,16 +97,16 @@ int main(int argc, char** argv)
 			doexit(0);
 		}
 		int status = 0;
-		uint64_t start = current_time_ms();
-		uint64_t last_executed = start;
-		uint32_t executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
+		uint64 start = current_time_ms();
+		uint64 last_executed = start;
+		uint32 executed_calls = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 		for (;;) {
 			int res = waitpid(pid, &status, WNOHANG);
 			if (res == pid)
 				break;
 			sleep_ms(1);
-			uint64_t now = current_time_ms();
-			uint32_t now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
+			uint64 now = current_time_ms();
+			uint32 now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 			if (executed_calls != now_executed) {
 				executed_calls = now_executed;
 				last_executed = now;
@@ -154,7 +154,7 @@ void cover_reset(thread_t* th)
 {
 }
 
-uint64_t read_cover_size(thread_t* th)
+uint64 read_cover_size(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
@@ -165,7 +165,7 @@ uint64_t read_cover_size(thread_t* th)
 	return 1;
 }
 
-uint32_t* write_output(uint32_t v)
+uint32* write_output(uint32 v)
 {
 	if (collide)
 		return 0;
@@ -175,7 +175,7 @@ uint32_t* write_output(uint32_t v)
 	return output_pos++;
 }
 
-void write_completed(uint32_t completed)
+void write_completed(uint32 completed)
 {
 	__atomic_store_n(output_data, completed, __ATOMIC_RELEASE);
 }

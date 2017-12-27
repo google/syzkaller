@@ -12,7 +12,7 @@
 
 #include "syscalls_fuchsia.h"
 
-uint32_t output;
+uint32 output;
 
 int main(int argc, char** argv)
 {
@@ -48,17 +48,17 @@ void cover_reset(thread_t* th)
 {
 }
 
-uint64_t read_cover_size(thread_t* th)
+uint64 read_cover_size(thread_t* th)
 {
 	return 0;
 }
 
-uint32_t* write_output(uint32_t v)
+uint32* write_output(uint32 v)
 {
 	return &output;
 }
 
-void write_completed(uint32_t completed)
+void write_completed(uint32 completed)
 {
 }
 

@@ -80,7 +80,7 @@ static void* ex_handler(void* arg)
 			debug("zx_object_get_child failed: %d\n", status);
 			continue;
 		}
-		uint32_t bytes_read;
+		uint32 bytes_read;
 		zx_x86_64_general_regs_t regs;
 		status = zx_thread_read_state(thread, ZX_THREAD_STATE_REGSET0,
 					      &regs, sizeof(regs), &bytes_read);
@@ -88,7 +88,7 @@ static void* ex_handler(void* arg)
 			debug("zx_thread_read_state failed: %d/%d (%d)\n",
 			      bytes_read, (int)sizeof(regs), status);
 		} else {
-			regs.rip = (uint64_t)(void*)&segv_handler;
+			regs.rip = (uint64)(void*)&segv_handler;
 			status = zx_thread_write_state(thread, ZX_THREAD_STATE_REGSET0, &regs, sizeof(regs));
 			if (status != ZX_OK)
 				debug("zx_thread_write_state failed: %d\n", status);
@@ -126,18 +126,18 @@ static void install_segv_handler()
 #endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT))
-static uint64_t current_time_ms()
+static uint64 current_time_ms()
 {
 	struct timespec ts;
 
 	if (clock_gettime(CLOCK_MONOTONIC, &ts))
 		fail("clock_gettime failed");
-	return (uint64_t)ts.tv_sec * 1000 + (uint64_t)ts.tv_nsec / 1000000;
+	return (uint64)ts.tv_sec * 1000 + (uint64)ts.tv_nsec / 1000000;
 }
 #endif
 
 #if defined(SYZ_EXECUTOR)
-static void sleep_ms(uint64_t ms)
+static void sleep_ms(uint64 ms)
 {
 	usleep(ms * 1000);
 }
