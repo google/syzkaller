@@ -128,8 +128,12 @@ func AddAddrContext(email, context string) (string, error) {
 	if at == -1 {
 		return "", fmt.Errorf("failed to parse %q as email: no @", email)
 	}
-	addr.Address = addr.Address[:at] + "+" + context + addr.Address[at:]
-	return addr.String(), nil
+	result := addr.Address[:at] + "+" + context + addr.Address[at:]
+	if addr.Name != "" {
+		addr.Address = result
+		result = addr.String()
+	}
+	return result, nil
 }
 
 // RemoveAddrContext extracts context after '+' from the local part of the provided email address.
