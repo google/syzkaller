@@ -81,6 +81,24 @@ func TestAddRemoveAddrContext(t *testing.T) {
 	}
 }
 
+func TestAddAddrContextEmptyName(t *testing.T) {
+	email := "<foo@bar.com>"
+	email1, err := AddAddrContext(email, "context")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "foo+context@bar.com"; want != email1 {
+		t.Fatalf("want: %q, got %q", want, email1)
+	}
+	email2, context1, err := RemoveAddrContext(email1)
+	if email != email2 {
+		t.Fatalf("want: %q, got %q", email, email2)
+	}
+	if context1 != "context" {
+		t.Fatalf("got context %q", context1)
+	}
+}
+
 func TestCanonicalEmail(t *testing.T) {
 	canonical := "foo@bar.com"
 	emails := []string{

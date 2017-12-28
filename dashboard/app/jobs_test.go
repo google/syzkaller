@@ -192,7 +192,7 @@ Kernel config is attached.
 
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
 
-Reported-and-tested-by: <syzbot+%v@testapp.appspotmail.com>
+Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
 
 Note: the tag will also help syzbot to understand when the bug is fixed.
 

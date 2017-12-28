@@ -57,7 +57,7 @@ Unfortunately, I don't have any reproducer for this bug yet.
 CC: [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
-Reported-by: <syzbot+%v@testapp.appspotmail.com>
+Reported-by: syzbot+%v@testapp.appspotmail.com
 It will help syzbot understand when the bug is fixed. See footer for details.
 If you forward the report, please keep this part and the footer.
 
@@ -155,7 +155,7 @@ for information about syzkaller reproducers
 CC: [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
-Reported-by: <syzbot+%v@testapp.appspotmail.com>
+Reported-by: syzbot+%v@testapp.appspotmail.com
 It will help syzbot understand when the bug is fixed.
 
 report1
@@ -204,7 +204,7 @@ for information about syzkaller reproducers
 
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
-Reported-by: <syzbot+%v@testapp.appspotmail.com>
+Reported-by: syzbot+%v@testapp.appspotmail.com
 It will help syzbot understand when the bug is fixed. See footer for details.
 If you forward the report, please keep this part and the footer.
 
@@ -286,7 +286,7 @@ for information about syzkaller reproducers
 
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
-Reported-by: <syzbot+%v@testapp.appspotmail.com>
+Reported-by: syzbot+%v@testapp.appspotmail.com
 It will help syzbot understand when the bug is fixed.
 
 report1
