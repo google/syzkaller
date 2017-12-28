@@ -397,7 +397,9 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 			return false, "", nil
 		}
 	case BugStatusFixed, BugStatusInvalid:
-		log.Warningf(c, "This bug is already closed")
+		if cmd.Status != dashapi.BugStatusUpdate {
+			log.Warningf(c, "This bug is already closed")
+		}
 		return false, "", nil
 	default:
 		return false, internalError, fmt.Errorf("unknown bug status %v", bug.Status)
@@ -407,7 +409,9 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		return false, internalError, fmt.Errorf("can't find bug reporting")
 	}
 	if !bugReporting.Closed.IsZero() {
-		log.Warningf(c, "This bug reporting is already closed")
+		if cmd.Status != dashapi.BugStatusUpdate {
+			log.Warningf(c, "This bug reporting is already closed")
+		}
 		return false, "", nil
 	}
 	state, err := loadReportingState(c)
