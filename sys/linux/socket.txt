@@ -189,7 +189,6 @@ cmsghdr {
 setsockopt$sock_void(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_void], optval const[0], optlen const[0])
 getsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[out, int32], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_int(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_int], optval ptr[in, int32], optlen len[optval])
-setsockopt$sock_str(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[in, string], optlen len[optval])
 getsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[out, linger], optlen ptr[inout, len[optval, int32]])
 setsockopt$sock_linger(fd sock, level const[SOL_SOCKET], optname const[SO_LINGER], optval ptr[in, linger], optlen len[optval])
 getsockopt$sock_cred(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen ptr[inout, len[optval, int32]])
@@ -202,7 +201,6 @@ getsockopt$SO_TIMESTAMPING(fd sock, level const[SOL_SOCKET], optname const[SO_TI
 setsockopt$SO_ATTACH_FILTER(fd sock, level const[SOL_SOCKET], optname const[SO_ATTACH_FILTER], optval ptr[in, sock_fprog], optlen len[optval])
 setsockopt$SO_BINDTODEVICE(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[in, devname], optlen len[optval])
 getsockopt$SO_BINDTODEVICE(fd sock, level const[SOL_SOCKET], optname const[SO_BINDTODEVICE], optval ptr[out, devname], optlen len[optval])
-getsockopt$SO_PEERCRED(fd sock, level const[SOL_SOCKET], optname const[SO_PEERCRED], optval ptr[out, ucred], optlen len[optval])
 getsockopt$sock_buf(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 getsockopt$SO_COOKIE(fd sock, level const[SOL_SOCKET], optname const[SO_COOKIE], optval ptr[out, int64], optlen ptr[inout, len[optval, int32]])
 
@@ -240,7 +238,7 @@ ioctl$sock_ifreq(fd sock, cmd flags[ifreq_ioctls], arg ptr[inout, ifreq])
 ioctl$sock_SIOCGIFINDEX(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_SIOCGIFINDEX])
 
 ioctl$sock_SIOCGIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
-ioctl$sock_SIOCSIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
+ioctl$sock_SIOCSIFBR(fd sock, cmd const[SIOCSIFBR], arg ptr[inout, brctl_arg])
 
 ioctl$sock_SIOCOUTQNSD(fd sock, cmd const[SIOCOUTQNSD], arg ptr[out, int32])
 
