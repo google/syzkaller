@@ -27,6 +27,7 @@ func (comp *compiler) check() {
 	comp.checkLenTargets()
 	comp.checkConstructors()
 	comp.checkVarlens()
+	comp.checkDupConsts()
 }
 
 func (comp *compiler) checkNames() {
@@ -667,4 +668,62 @@ func (comp *compiler) checkVarlen(n *ast.Struct) {
 			}
 		}
 	}
+}
+
+func (comp *compiler) checkDupConsts() {
+	// The idea is to detect copy-paste errors in const arguments, e.g.:
+	//   call$FOO(fd fd, arg const[FOO])
+	//   call$BAR(fd fd, arg const[FOO])
+	// The second one is meant to be const[BAR],
+	// Unfortunately, this does not fully work as it detects lots of false positives.
+	// But was useful to find real bugs as well. So for now it's disabled, but can be run manually.
+	return
+	dups := make(map[string]map[string]dupConstArg)
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Call:
+			comp.checkDupConstsCall(n, dups)
+		}
+	}
+}
+
+type dupConstArg struct {
+	pos  ast.Pos
+	name string
+}
+
+func (comp *compiler) checkDupConstsCall(n *ast.Call, dups map[string]map[string]dupConstArg) {
+	if n.NR == ^uint64(0) {
+		return
+	}
+	for dups[n.CallName] == nil {
+		dups[n.CallName] = make(map[string]dupConstArg)
+	}
+	hasConsts := false
+	constArgID := ""
+	for i, arg := range n.Args {
+		desc := comp.getTypeDesc(arg.Type)
+		if desc == typeConst {
+			v := arg.Type.Args[0].Value
+			if v != 0 && v != 18446744073709551516 { // AT_FDCWD
+				constArgID += fmt.Sprintf("(%v-%v)", i, fmt.Sprintf("%v", v))
+				hasConsts = true
+			}
+		} else if desc == typeResource {
+			constArgID += fmt.Sprintf("(%v-%v)", i, arg.Type.Ident)
+		}
+	}
+	if !hasConsts {
+		return
+	}
+	dup, ok := dups[n.CallName][constArgID]
+	if !ok {
+		dups[n.CallName][constArgID] = dupConstArg{
+			pos:  n.Pos,
+			name: n.Name.Name,
+		}
+		return
+	}
+	comp.error(n.Pos, "call %v: duplicate const %v, previously used in call %v at %v",
+		n.Name.Name, constArgID, dup.name, dup.pos)
 }

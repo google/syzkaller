@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "ca1f8c35235243131f0ae0a2c5e2546a80bc4dd0"
+#define SYZ_REVISION "e56fc1adb4421f8bb133f3a830a06805a3d1eec2"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1448;
+unsigned syscall_count = 1444;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -193,7 +193,6 @@ call_t syscalls[] = {
     {"getsockopt", 365},
     {"getsockopt$SO_BINDTODEVICE", 365},
     {"getsockopt$SO_COOKIE", 365},
-    {"getsockopt$SO_PEERCRED", 365},
     {"getsockopt$SO_TIMESTAMPING", 365},
     {"getsockopt$ax25_buf", 365},
     {"getsockopt$ax25_int", 365},
@@ -539,7 +538,6 @@ call_t syscalls[] = {
     {"ioctl$KVM_REGISTER_COALESCED_MMIO", 54},
     {"ioctl$KVM_REINJECT_CONTROL", 54},
     {"ioctl$KVM_RUN", 54},
-    {"ioctl$KVM_S390_INTERRUPT", 54},
     {"ioctl$KVM_S390_INTERRUPT_CPU", 54},
     {"ioctl$KVM_S390_UCAS_MAP", 54},
     {"ioctl$KVM_S390_UCAS_UNMAP", 54},
@@ -731,7 +729,6 @@ call_t syscalls[] = {
     {"ioctl$TIOCSSOFTCAR", 54},
     {"ioctl$TIOCSTI", 54},
     {"ioctl$TIOCSWINSZ", 54},
-    {"ioctl$TIOCTTYGSTRUCT", 54},
     {"ioctl$TTUNGETFILTER", 54},
     {"ioctl$TUNATTACHFILTER", 54},
     {"ioctl$TUNDETACHFILTER", 54},
@@ -1308,7 +1305,6 @@ call_t syscalls[] = {
     {"setsockopt$sock_cred", 366},
     {"setsockopt$sock_int", 366},
     {"setsockopt$sock_linger", 366},
-    {"setsockopt$sock_str", 366},
     {"setsockopt$sock_timeval", 366},
     {"setsockopt$sock_void", 366},
     {"setuid", 23},
@@ -1468,7 +1464,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "f6314731930c5050e20c24dcb1119c52a291d2ff"
+#define SYZ_REVISION "82e0eaee2d0acae71121164009115616d915496b"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1478,7 +1474,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1508;
+unsigned syscall_count = 1504;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1670,7 +1666,6 @@ call_t syscalls[] = {
     {"getsockopt", 55},
     {"getsockopt$SO_BINDTODEVICE", 55},
     {"getsockopt$SO_COOKIE", 55},
-    {"getsockopt$SO_PEERCRED", 55},
     {"getsockopt$SO_TIMESTAMPING", 55},
     {"getsockopt$ax25_buf", 55},
     {"getsockopt$ax25_int", 55},
@@ -2023,7 +2018,6 @@ call_t syscalls[] = {
     {"ioctl$KVM_REGISTER_COALESCED_MMIO", 16},
     {"ioctl$KVM_REINJECT_CONTROL", 16},
     {"ioctl$KVM_RUN", 16},
-    {"ioctl$KVM_S390_INTERRUPT", 16},
     {"ioctl$KVM_S390_INTERRUPT_CPU", 16},
     {"ioctl$KVM_S390_UCAS_MAP", 16},
     {"ioctl$KVM_S390_UCAS_UNMAP", 16},
@@ -2219,7 +2213,6 @@ call_t syscalls[] = {
     {"ioctl$TIOCSSOFTCAR", 16},
     {"ioctl$TIOCSTI", 16},
     {"ioctl$TIOCSWINSZ", 16},
-    {"ioctl$TIOCTTYGSTRUCT", 16},
     {"ioctl$TTUNGETFILTER", 16},
     {"ioctl$TUNATTACHFILTER", 16},
     {"ioctl$TUNDETACHFILTER", 16},
@@ -2822,7 +2815,6 @@ call_t syscalls[] = {
     {"setsockopt$sock_cred", 54},
     {"setsockopt$sock_int", 54},
     {"setsockopt$sock_linger", 54},
-    {"setsockopt$sock_str", 54},
     {"setsockopt$sock_timeval", 54},
     {"setsockopt$sock_void", 54},
     {"setuid", 105},
@@ -2994,7 +2986,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "a4256650e2fee94a311180c3fc3b37a483d8eec7"
+#define SYZ_REVISION "948cf320647e3e6fc61a13aaefea9ba03fd4ffec"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3004,7 +2996,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1457;
+unsigned syscall_count = 1454;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3191,7 +3183,6 @@ call_t syscalls[] = {
     {"getsockopt", 295},
     {"getsockopt$SO_BINDTODEVICE", 295},
     {"getsockopt$SO_COOKIE", 295},
-    {"getsockopt$SO_PEERCRED", 295},
     {"getsockopt$SO_TIMESTAMPING", 295},
     {"getsockopt$ax25_buf", 295},
     {"getsockopt$ax25_int", 295},
@@ -3526,7 +3517,6 @@ call_t syscalls[] = {
     {"ioctl$KVM_REGISTER_COALESCED_MMIO", 54},
     {"ioctl$KVM_REINJECT_CONTROL", 54},
     {"ioctl$KVM_RUN", 54},
-    {"ioctl$KVM_S390_INTERRUPT", 54},
     {"ioctl$KVM_S390_INTERRUPT_CPU", 54},
     {"ioctl$KVM_S390_UCAS_MAP", 54},
     {"ioctl$KVM_S390_UCAS_UNMAP", 54},
@@ -3706,7 +3696,6 @@ call_t syscalls[] = {
     {"ioctl$TIOCSSOFTCAR", 54},
     {"ioctl$TIOCSTI", 54},
     {"ioctl$TIOCSWINSZ", 54},
-    {"ioctl$TIOCTTYGSTRUCT", 54},
     {"ioctl$TTUNGETFILTER", 54},
     {"ioctl$TUNATTACHFILTER", 54},
     {"ioctl$TUNDETACHFILTER", 54},
@@ -4076,6 +4065,7 @@ call_t syscalls[] = {
     {"semop", 298},
     {"semtimedop", 312},
     {"sendfile", 187},
+    {"sendfile64", 239},
     {"sendmmsg", 374},
     {"sendmmsg$alg", 374},
     {"sendmmsg$inet_sctp", 374},
@@ -4300,7 +4290,6 @@ call_t syscalls[] = {
     {"setsockopt$sock_cred", 294},
     {"setsockopt$sock_int", 294},
     {"setsockopt$sock_linger", 294},
-    {"setsockopt$sock_str", 294},
     {"setsockopt$sock_timeval", 294},
     {"setsockopt$sock_void", 294},
     {"setuid", 23},
@@ -4469,7 +4458,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "e36d7dd011f637868a58e6fa2489d1eecbdc2821"
+#define SYZ_REVISION "cc2110c30ed267995291213b3bf5319f012a7fc5"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4479,7 +4468,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1437;
+unsigned syscall_count = 1433;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -4658,7 +4647,6 @@ call_t syscalls[] = {
     {"getsockopt", 209},
     {"getsockopt$SO_BINDTODEVICE", 209},
     {"getsockopt$SO_COOKIE", 209},
-    {"getsockopt$SO_PEERCRED", 209},
     {"getsockopt$SO_TIMESTAMPING", 209},
     {"getsockopt$ax25_buf", 209},
     {"getsockopt$ax25_int", 209},
@@ -4999,7 +4987,6 @@ call_t syscalls[] = {
     {"ioctl$KVM_REGISTER_COALESCED_MMIO", 29},
     {"ioctl$KVM_REINJECT_CONTROL", 29},
     {"ioctl$KVM_RUN", 29},
-    {"ioctl$KVM_S390_INTERRUPT", 29},
     {"ioctl$KVM_S390_INTERRUPT_CPU", 29},
     {"ioctl$KVM_S390_UCAS_MAP", 29},
     {"ioctl$KVM_S390_UCAS_UNMAP", 29},
@@ -5183,7 +5170,6 @@ call_t syscalls[] = {
     {"ioctl$TIOCSSOFTCAR", 29},
     {"ioctl$TIOCSTI", 29},
     {"ioctl$TIOCSWINSZ", 29},
-    {"ioctl$TIOCTTYGSTRUCT", 29},
     {"ioctl$TTUNGETFILTER", 29},
     {"ioctl$TUNATTACHFILTER", 29},
     {"ioctl$TUNDETACHFILTER", 29},
@@ -5764,7 +5750,6 @@ call_t syscalls[] = {
     {"setsockopt$sock_cred", 208},
     {"setsockopt$sock_int", 208},
     {"setsockopt$sock_linger", 208},
-    {"setsockopt$sock_str", 208},
     {"setsockopt$sock_timeval", 208},
     {"setsockopt$sock_void", 208},
     {"setuid", 146},
@@ -5924,7 +5909,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "7d809ebc2195af7fc07c64e3aec3514e19b113b3"
+#define SYZ_REVISION "1d45af3aa9569c719a5f33c74e7995d7773bef2d"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -5934,7 +5919,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1417;
+unsigned syscall_count = 1413;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6124,7 +6109,6 @@ call_t syscalls[] = {
     {"getsockopt", 340},
     {"getsockopt$SO_BINDTODEVICE", 340},
     {"getsockopt$SO_COOKIE", 340},
-    {"getsockopt$SO_PEERCRED", 340},
     {"getsockopt$SO_TIMESTAMPING", 340},
     {"getsockopt$ax25_buf", 340},
     {"getsockopt$ax25_int", 340},
@@ -6458,7 +6442,6 @@ call_t syscalls[] = {
     {"ioctl$KVM_REGISTER_COALESCED_MMIO", 54},
     {"ioctl$KVM_REINJECT_CONTROL", 54},
     {"ioctl$KVM_RUN", 54},
-    {"ioctl$KVM_S390_INTERRUPT", 54},
     {"ioctl$KVM_S390_INTERRUPT_CPU", 54},
     {"ioctl$KVM_S390_UCAS_MAP", 54},
     {"ioctl$KVM_S390_UCAS_UNMAP", 54},
@@ -6628,7 +6611,6 @@ call_t syscalls[] = {
     {"ioctl$TIOCSPGRP", 54},
     {"ioctl$TIOCSSOFTCAR", 54},
     {"ioctl$TIOCSTI", 54},
-    {"ioctl$TIOCTTYGSTRUCT", 54},
     {"ioctl$TTUNGETFILTER", 54},
     {"ioctl$TUNATTACHFILTER", 54},
     {"ioctl$TUNDETACHFILTER", 54},
@@ -7200,7 +7182,6 @@ call_t syscalls[] = {
     {"setsockopt$sock_cred", 339},
     {"setsockopt$sock_int", 339},
     {"setsockopt$sock_linger", 339},
-    {"setsockopt$sock_str", 339},
     {"setsockopt$sock_timeval", 339},
     {"setsockopt$sock_void", 339},
     {"setuid", 23},
