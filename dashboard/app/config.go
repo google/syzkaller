@@ -47,8 +47,8 @@ type Config struct {
 type Reporting struct {
 	// A unique name (the app does not care about exact contents).
 	Name string
-	// See ReportingStatus below.
-	Status ReportingStatus
+	// Filter can be used to conditionally skip this reporting or hold off reporting.
+	Filter ReportingFilter
 	// How many new bugs report per day.
 	DailyLimit int
 	// Type of reporting and its configuration.
@@ -71,19 +71,20 @@ var (
 	clientKeyRe  = regexp.MustCompile("^[a-zA-Z0-9]{16,128}$")
 )
 
-type ReportingStatus int
+type (
+	FilterResult    int
+	ReportingFilter func(bug *Bug) FilterResult
+)
 
 const (
-	// Send reports to this reporting stage.
-	ReportingActive ReportingStatus = iota
-	// Don't send anything to this reporting, but don't skip it as well.
-	ReportingSuspended
-	// Skip this reporting entirely.
-	ReportingDisabled
-	// Skip this reporting except for special bugs
-	// (no report, corrupted report, build error, etc).
-	ReportingPassThrough
+	FilterReport FilterResult = iota // Report bug in this reporting (default).
+	FilterSkip                       // Skip this reporting and proceed to the next one.
+	FilterHold                       // Hold off with reporting this bug.
 )
+
+func reportAllFilter(bug *Bug) FilterResult  { return FilterReport }
+func reportSkipFilter(bug *Bug) FilterResult { return FilterSkip }
+func reportHoldFilter(bug *Bug) FilterResult { return FilterHold }
 
 func (cfg *Config) ReportingByName(name string) *Reporting {
 	for i := range cfg.Reporting {
@@ -119,12 +120,16 @@ func init() {
 			panic(fmt.Sprintf("no reporting in namespace %q", ns))
 		}
 		reportingNames := make(map[string]bool)
-		for _, reporting := range cfg.Reporting {
+		for ri := range cfg.Reporting {
+			reporting := &cfg.Reporting[ri]
 			if reporting.Name == "" {
 				panic(fmt.Sprintf("empty reporting name in namespace %q", ns))
 			}
 			if reportingNames[reporting.Name] {
 				panic(fmt.Sprintf("duplicate reporting name %q", reporting.Name))
+			}
+			if reporting.Filter == nil {
+				reporting.Filter = reportAllFilter
 			}
 			reportingNames[reporting.Name] = true
 			if reporting.Config.Type() == "" {
