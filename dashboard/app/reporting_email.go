@@ -249,6 +249,10 @@ func incomingMail(c context.Context, r *http.Request) error {
 	}
 	log.Infof(c, "received email: subject %q, from %q, cc %q, msg %q, bug %q, cmd %q, link %q",
 		msg.Subject, msg.From, msg.Cc, msg.MessageID, msg.BugID, msg.Command, msg.Link)
+	if msg.Command == "fix:" && msg.CommandArgs == "exact-commit-title" {
+		// Sometimes it happens that somebody sends us our own text back, ignore it.
+		msg.Command, msg.CommandArgs = "", ""
+	}
 	bug, bugReporting, reporting := loadBugInfo(c, msg)
 	if bug == nil {
 		return nil // error was already logged
