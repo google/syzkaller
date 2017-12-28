@@ -26,12 +26,13 @@ func TestEmailReport(t *testing.T) {
 	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
 
 	// Report the crash over email and check all fields.
-	sender0, extBugID0 := "", ""
+	sender0, extBugID0, body0 := "", "", ""
 	{
 		c.expectOK(c.GET("/email_poll"))
 		c.expectEQ(len(c.emailSink), 1)
 		msg := <-c.emailSink
 		sender0 = msg.Sender
+		body0 = msg.Body
 		sender, extBugID, err := email.RemoveAddrContext(msg.Sender)
 		if err != nil {
 			t.Fatalf("failed to remove sender context: %v", err)
@@ -116,6 +117,10 @@ For more options, visit https://groups.google.com/d/optout.
 
 	c.expectOK(c.POST("/_ah/mail/", incoming1))
 
+	// Emulate that somebody sends us our own email back without quoting.
+	// We used to extract "#syz fix: exact-commit-title" from it.
+	c.incomingEmail(sender0, body0)
+
 	// Now report syz reproducer and check updated email.
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("getpid()")
@@ -132,9 +137,12 @@ For more options, visit https://groups.google.com/d/optout.
 			t.Fatalf("failed to remove sender context: %v", err)
 		}
 		c.expectEQ(sender, fromAddr(c.ctx))
-		var to []string
-		to = append(to, "foo@bar.com")
-		to = append(to, config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email)
+		to := []string{
+			"bugs@syzkaller.com",
+			"default@sender.com", // This is from incomingEmail.
+			"foo@bar.com",
+			config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email,
+		}
 		c.expectEQ(msg.To, to)
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 3)
