@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "32feac732cea2137a386bd359b159ccdbf13558e"
+#define SYZ_REVISION "48f2821861160b3e84539ceaee5f047a51eec644"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1465;
+unsigned syscall_count = 1466;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -605,6 +605,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_DISABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ENABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ID", 54},
+    {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 54},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 54},
     {"ioctl$PERF_EVENT_IOC_REFRESH", 54},
     {"ioctl$PERF_EVENT_IOC_RESET", 54},
@@ -1485,7 +1486,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "26ecfefd16f1fcb800c7c570b9b3d122c52fffc3"
+#define SYZ_REVISION "ebc3a29c7a5176330e23c3fd866a55abb9402f21"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1495,7 +1496,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1525;
+unsigned syscall_count = 1526;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2106,6 +2107,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_DISABLE", 16},
     {"ioctl$PERF_EVENT_IOC_ENABLE", 16},
     {"ioctl$PERF_EVENT_IOC_ID", 16},
+    {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 16},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 16},
     {"ioctl$PERF_EVENT_IOC_REFRESH", 16},
     {"ioctl$PERF_EVENT_IOC_RESET", 16},
@@ -3028,7 +3030,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "2b5732c346bbcc29d407db42e2d9f2c7e2ef0f5c"
+#define SYZ_REVISION "8febfc81b14bfa9b307cbda7ad4c6479a20cbb6b"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3038,7 +3040,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1475;
+unsigned syscall_count = 1476;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3614,6 +3616,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_DISABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ENABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ID", 54},
+    {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 54},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 54},
     {"ioctl$PERF_EVENT_IOC_REFRESH", 54},
     {"ioctl$PERF_EVENT_IOC_RESET", 54},
@@ -4521,7 +4524,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "cfc7c78b290073492618465935b23bdf2dd53f04"
+#define SYZ_REVISION "bda7869f2724a7f0323b7ad38c64464d097b96c4"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4531,7 +4534,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1454;
+unsigned syscall_count = 1455;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5105,6 +5108,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_DISABLE", 29},
     {"ioctl$PERF_EVENT_IOC_ENABLE", 29},
     {"ioctl$PERF_EVENT_IOC_ID", 29},
+    {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 29},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 29},
     {"ioctl$PERF_EVENT_IOC_REFRESH", 29},
     {"ioctl$PERF_EVENT_IOC_RESET", 29},
@@ -5993,7 +5997,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "f1d2e62d403e4a457b96498f695f95f2e548b5dc"
+#define SYZ_REVISION "29228dcbab03c80074b4719c2dd75a6f186759de"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6003,7 +6007,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1434;
+unsigned syscall_count = 1435;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6581,6 +6585,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_DISABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ENABLE", 54},
     {"ioctl$PERF_EVENT_IOC_ID", 54},
+    {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 54},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 54},
     {"ioctl$PERF_EVENT_IOC_REFRESH", 54},
     {"ioctl$PERF_EVENT_IOC_RESET", 54},
