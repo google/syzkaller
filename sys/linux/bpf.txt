@@ -28,18 +28,26 @@ bpf$BPF_PROG_TEST_RUN(cmd const[BPF_PROG_TEST_RUN], arg ptr[in, bpf_test_prog_ar
 bpf$BPF_PROG_GET_NEXT_ID(cmd const[BPF_PROG_GET_NEXT_ID], arg ptr[in, int32], size len[arg])
 bpf$BPF_MAP_GET_NEXT_ID(cmd const[BPF_MAP_GET_NEXT_ID], arg ptr[in, int32], size len[arg])
 bpf$BPF_PROG_GET_FD_BY_ID(cmd const[BPF_PROG_GET_FD_BY_ID], arg ptr[in, bpf_prog_id], size len[arg]) fd_bpf_prog
-bpf$BPF_MAP_GET_FD_BY_ID(cmd const[BPF_MAP_GET_FD_BY_ID], arg ptr[in, bpf_map_id], size len[arg]) fd_bpf_map
+bpf$BPF_MAP_GET_FD_BY_ID(cmd const[BPF_MAP_GET_FD_BY_ID], arg ptr[in, bpf_map_get_fd_by_id_arg], size len[arg]) fd_bpf_map
 bpf$BPF_GET_PROG_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_prog_info_arg], size len[arg])
 bpf$BPF_GET_MAP_INFO(cmd const[BPF_OBJ_GET_INFO_BY_FD], arg ptr[in, bpf_get_map_info_arg], size len[arg])
+bpf$BPF_PROG_QUERY(cmd const[BPF_PROG_QUERY], arg ptr[in, bpf_prog_query], size len[arg])
 
 bpf_map_create_arg {
-	type	flags[bpf_map_type, int32]
-	ksize	int32
-	vsize	int32
-	max	int32
-	flags	flags[map_flags, int32]
-	inner	fd_bpf_map[opt]
-	node	int32
+	type		flags[bpf_map_type, int32]
+	ksize		int32
+	vsize		int32
+	max		int32
+	flags		flags[map_flags, int32]
+	inner		fd_bpf_map[opt]
+	node		int32
+	map_name	array[const[0, int8], BPF_OBJ_NAME_LEN]
+}
+
+bpf_map_get_fd_by_id_arg {
+	map_id		bpf_map_id
+	next_id		int32
+	open_flags	flags[bpf_open_flags, int32]
 }
 
 bpf_map_lookup_arg {
@@ -67,15 +75,17 @@ bpf_map_get_next_arg {
 }
 
 bpf_prog {
-	type	flags[bpf_prog_type, int32]
-	ninsn	len[insns, int32]
-	insns	ptr64[in, array[bpf_insn]]
-	license	ptr64[in, string]
-	loglev	int32
-	logsize	len[log, int32]
-	log	ptr64[out, array[int8]]
-	kver	int32
-	flags	flags[bpf_prog_load_flags, int32]
+	type		flags[bpf_prog_type, int32]
+	ninsn		len[insns, int32]
+	insns		ptr64[in, array[bpf_insn]]
+	license		ptr64[in, string]
+	loglev		int32
+	logsize		len[log, int32]
+	log		ptr64[out, array[int8]]
+	kver		int32
+	flags		flags[bpf_prog_load_flags, int32]
+	prog_name	array[const[0, int8], BPF_OBJ_NAME_LEN]
+	prog_ifindex	ifindex
 }
 
 bpf_insn [
@@ -111,8 +121,9 @@ bpf_obj_pin_prog {
 }
 
 bpf_obj_get {
-	path	ptr64[in, filename]
-	fd	const[0, int32]
+	path		ptr64[in, filename]
+	fd		const[0, int32]
+	file_flags	flags[bpf_open_flags, int32]
 }
 
 bpf_attach_arg {
@@ -156,6 +167,11 @@ bpf_prog_info {
 	xlated_prog_len		int32
 	jited_prog_insns	int64
 	xlated_prog_insns	int64
+	load_time		int64
+	created_by_uid		int32
+	nr_map_ids		int32
+	map_ids			int64
+	name			array[int8, BPF_OBJ_NAME_LEN]
 } [align_8]
 
 bpf_get_map_info_arg {
@@ -171,12 +187,26 @@ bpf_map_info {
 	value_size	int32
 	max_entries	int32
 	map_flags	int32
+	name		array[int8, BPF_OBJ_NAME_LEN]
 } [align_8]
 
-bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY, BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_CGROUP_ARRAY, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_PERCPU_ARRAY, BPF_MAP_TYPE_LRU_HASH, BPF_MAP_TYPE_LRU_PERCPU_HASH, BPF_MAP_TYPE_LPM_TRIE, BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_DEVMAP, BPF_MAP_TYPE_SOCKMAP
+bpf_prog_query {
+# TODO: this must be cgroup fd (obtained by opening cgroup dir)
+	target_fd	fd
+	attach_type	flags[bpf_prog_query_attach_type, int32]
+	query_flags	flags[bpf_prog_query_flags, int32]
+	attach_flags	int32
+	prog_ids	ptr64[out, array[int32]]
+	prog_cnt	len[prog_ids, int32]
+} [align_8]
+
+bpf_map_type = BPF_MAP_TYPE_HASH, BPF_MAP_TYPE_ARRAY, BPF_MAP_TYPE_PROG_ARRAY, BPF_MAP_TYPE_PERF_EVENT_ARRAY, BPF_MAP_TYPE_STACK_TRACE, BPF_MAP_TYPE_CGROUP_ARRAY, BPF_MAP_TYPE_PERCPU_HASH, BPF_MAP_TYPE_PERCPU_ARRAY, BPF_MAP_TYPE_LRU_HASH, BPF_MAP_TYPE_LRU_PERCPU_HASH, BPF_MAP_TYPE_LPM_TRIE, BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_DEVMAP, BPF_MAP_TYPE_SOCKMAP, BPF_MAP_TYPE_CPUMAP
 bpf_map_flags = BPF_ANY, BPF_NOEXIST, BPF_EXIST
 bpf_prog_type = BPF_PROG_TYPE_SOCKET_FILTER, BPF_PROG_TYPE_KPROBE, BPF_PROG_TYPE_SCHED_CLS, BPF_PROG_TYPE_SCHED_ACT, BPF_PROG_TYPE_TRACEPOINT, BPF_PROG_TYPE_XDP, BPF_PROG_TYPE_PERF_EVENT, BPF_PROG_TYPE_CGROUP_SKB, BPF_PROG_TYPE_CGROUP_SOCK, BPF_PROG_TYPE_LWT_IN, BPF_PROG_TYPE_LWT_OUT, BPF_PROG_TYPE_LWT_XMIT, BPF_PROG_TYPE_SOCK_OPS, BPF_PROG_TYPE_SK_SKB, BPF_PROG_TYPE_CGROUP_DEVICE
-map_flags = BPF_F_NO_PREALLOC, BPF_F_NO_COMMON_LRU, BPF_F_NUMA_NODE
+map_flags = BPF_F_NO_PREALLOC, BPF_F_NO_COMMON_LRU, BPF_F_NUMA_NODE, BPF_F_RDONLY, BPF_F_WRONLY
 bpf_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS, BPF_SK_SKB_STREAM_PARSER, BPF_SK_SKB_STREAM_VERDICT, BPF_CGROUP_DEVICE
 bpf_prog_load_flags = BPF_F_STRICT_ALIGNMENT
-bpf_attach_flags = BPF_F_ALLOW_OVERRIDE
+bpf_attach_flags = BPF_F_ALLOW_OVERRIDE, BPF_F_ALLOW_MULTI
+bpf_prog_query_flags = BPF_F_QUERY_EFFECTIVE
+bpf_prog_query_attach_type = BPF_CGROUP_INET_INGRESS, BPF_CGROUP_INET_EGRESS, BPF_CGROUP_INET_SOCK_CREATE, BPF_CGROUP_SOCK_OPS, BPF_CGROUP_DEVICE
+bpf_open_flags = BPF_F_RDONLY, BPF_F_WRONLY

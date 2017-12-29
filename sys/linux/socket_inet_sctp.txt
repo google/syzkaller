@@ -273,16 +273,34 @@ setsockopt$inet_sctp6_SCTP_ENABLE_STREAM_RESET(fd sock_sctp6, level const[SOL_SC
 getsockopt$inet_sctp_SCTP_ENABLE_STREAM_RESET(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_ENABLE_STREAM_RESET], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
 getsockopt$inet_sctp6_SCTP_ENABLE_STREAM_RESET(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_ENABLE_STREAM_RESET], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
 
-setsockopt$inet_sctp_SCTP_RESET_STREAMS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[in, sctp_assoc_value], len len[val])
-setsockopt$inet_sctp6_SCTP_RESET_STREAMS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[in, sctp_assoc_value], len len[val])
-getsockopt$inet_sctp_SCTP_RESET_STREAMS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
-getsockopt$inet_sctp6_SCTP_RESET_STREAMS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+setsockopt$inet_sctp_SCTP_RESET_STREAMS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[in, sctp_reset_streams], len len[val])
+setsockopt$inet_sctp6_SCTP_RESET_STREAMS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[in, sctp_reset_streams], len len[val])
+getsockopt$inet_sctp_SCTP_RESET_STREAMS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[inout, sctp_reset_streams], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_RESET_STREAMS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_STREAMS], val ptr[inout, sctp_reset_streams], len ptr[inout, len[val, int32]])
 
 setsockopt$inet_sctp_SCTP_RESET_ASSOC(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RESET_ASSOC], val ptr[in, assoc_id], len len[val])
 setsockopt$inet_sctp6_SCTP_RESET_ASSOC(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RESET_ASSOC], val ptr[in, assoc_id], len len[val])
 
 setsockopt$inet_sctp_SCTP_ADD_STREAMS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_ADD_STREAMS], val ptr[in, int32], len len[val])
 setsockopt$inet_sctp6_SCTP_ADD_STREAMS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_ADD_STREAMS], val ptr[in, int32], len len[val])
+
+getsockopt$inet_sctp_SCTP_PR_STREAM_STATUS(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_PR_STREAM_STATUS], val ptr[out, array[int8]], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_PR_STREAM_STATUS(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_PR_STREAM_STATUS], val ptr[out, array[int8]], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RECONFIG_SUPPORTED], val ptr[in, sctp_assoc_value], len len[val])
+setsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RECONFIG_SUPPORTED], val ptr[in, sctp_assoc_value], len len[val])
+getsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_RECONFIG_SUPPORTED], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_RECONFIG_SUPPORTED], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER], val ptr[in, sctp_assoc_value], len len[val])
+setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER], val ptr[in, sctp_assoc_value], len len[val])
+getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER], val ptr[inout, sctp_assoc_value], len ptr[inout, len[val, int32]])
+
+setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER_VALUE], val ptr[in, sctp_stream_value], len len[val])
+setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER_VALUE], val ptr[in, sctp_stream_value], len len[val])
+getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE(fd sock_sctp, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER_VALUE], val ptr[inout, sctp_stream_value], len ptr[inout, len[val, int32]])
+getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE(fd sock_sctp6, level const[SOL_SCTP], opt const[SCTP_STREAM_SCHEDULER_VALUE], val ptr[inout, sctp_stream_value], len ptr[inout, len[val, int32]])
 
 sctp_rtoinfo {
 	srto_assoc_id	assoc_id
@@ -369,6 +387,19 @@ sctp_maxseg [
 sctp_assoc_value {
 	assoc_id	assoc_id
 	assoc_value	int32
+}
+
+sctp_reset_streams {
+	srs_assoc_id		assoc_id
+	srs_flags		int16
+	srs_number_streams	len[srs_stream_list, int16]
+	srs_stream_list		array[int16]
+}
+
+sctp_stream_value {
+	srs_assoc_id	assoc_id
+	stream_id	int16
+	stream_value	int16
 }
 
 sctp_status {
