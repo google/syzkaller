@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "e56fc1adb4421f8bb133f3a830a06805a3d1eec2"
+#define SYZ_REVISION "32feac732cea2137a386bd359b159ccdbf13558e"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1444;
+unsigned syscall_count = 1465;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -52,6 +52,7 @@ call_t syscalls[] = {
     {"bpf$BPF_PROG_DETACH", 357},
     {"bpf$BPF_PROG_GET_FD_BY_ID", 357},
     {"bpf$BPF_PROG_GET_NEXT_ID", 357},
+    {"bpf$BPF_PROG_QUERY", 357},
     {"bpf$BPF_PROG_TEST_RUN", 357},
     {"bpf$MAP_CREATE", 357},
     {"bpf$MAP_DELETE_ELEM", 357},
@@ -221,6 +222,7 @@ call_t syscalls[] = {
     {"getsockopt$inet6_int", 365},
     {"getsockopt$inet6_mreq", 365},
     {"getsockopt$inet6_mtu", 365},
+    {"getsockopt$inet6_opts", 365},
     {"getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 365},
     {"getsockopt$inet6_tcp_buf", 365},
     {"getsockopt$inet6_tcp_int", 365},
@@ -270,7 +272,9 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp6_SCTP_PEER_AUTH_CHUNKS", 365},
     {"getsockopt$inet_sctp6_SCTP_PRIMARY_ADDR", 365},
     {"getsockopt$inet_sctp6_SCTP_PR_ASSOC_STATUS", 365},
+    {"getsockopt$inet_sctp6_SCTP_PR_STREAM_STATUS", 365},
     {"getsockopt$inet_sctp6_SCTP_PR_SUPPORTED", 365},
+    {"getsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED", 365},
     {"getsockopt$inet_sctp6_SCTP_RECVNXTINFO", 365},
     {"getsockopt$inet_sctp6_SCTP_RECVRCVINFO", 365},
     {"getsockopt$inet_sctp6_SCTP_RESET_STREAMS", 365},
@@ -278,6 +282,8 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX3", 365},
     {"getsockopt$inet_sctp6_SCTP_SOCKOPT_PEELOFF", 365},
     {"getsockopt$inet_sctp6_SCTP_STATUS", 365},
+    {"getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", 365},
+    {"getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE", 365},
     {"getsockopt$inet_sctp_SCTP_ADAPTATION_LAYER", 365},
     {"getsockopt$inet_sctp_SCTP_ASSOCINFO", 365},
     {"getsockopt$inet_sctp_SCTP_AUTH_ACTIVE_KEY", 365},
@@ -311,7 +317,9 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_PEER_AUTH_CHUNKS", 365},
     {"getsockopt$inet_sctp_SCTP_PRIMARY_ADDR", 365},
     {"getsockopt$inet_sctp_SCTP_PR_ASSOC_STATUS", 365},
+    {"getsockopt$inet_sctp_SCTP_PR_STREAM_STATUS", 365},
     {"getsockopt$inet_sctp_SCTP_PR_SUPPORTED", 365},
+    {"getsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED", 365},
     {"getsockopt$inet_sctp_SCTP_RECVNXTINFO", 365},
     {"getsockopt$inet_sctp_SCTP_RECVRCVINFO", 365},
     {"getsockopt$inet_sctp_SCTP_RESET_STREAMS", 365},
@@ -319,6 +327,8 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX3", 365},
     {"getsockopt$inet_sctp_SCTP_SOCKOPT_PEELOFF", 365},
     {"getsockopt$inet_sctp_SCTP_STATUS", 365},
+    {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 365},
+    {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 365},
     {"getsockopt$inet_tcp_TCP_REPAIR_WINDOW", 365},
     {"getsockopt$inet_tcp_buf", 365},
     {"getsockopt$inet_tcp_int", 365},
@@ -1162,10 +1172,13 @@ call_t syscalls[] = {
     {"setsockopt$inet6_int", 366},
     {"setsockopt$inet6_mreq", 366},
     {"setsockopt$inet6_mtu", 366},
+    {"setsockopt$inet6_opts", 366},
     {"setsockopt$inet6_tcp_TCP_CONGESTION", 366},
+    {"setsockopt$inet6_tcp_TCP_FASTOPEN_KEY", 366},
     {"setsockopt$inet6_tcp_TCP_MD5SIG", 366},
     {"setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS", 366},
     {"setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 366},
+    {"setsockopt$inet6_tcp_TCP_ULP", 366},
     {"setsockopt$inet6_tcp_buf", 366},
     {"setsockopt$inet6_tcp_int", 366},
     {"setsockopt$inet6_udp_encap", 366},
@@ -1217,6 +1230,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_PEER_ADDR_THLDS", 366},
     {"setsockopt$inet_sctp6_SCTP_PRIMARY_ADDR", 366},
     {"setsockopt$inet_sctp6_SCTP_PR_SUPPORTED", 366},
+    {"setsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED", 366},
     {"setsockopt$inet_sctp6_SCTP_RECVNXTINFO", 366},
     {"setsockopt$inet_sctp6_SCTP_RECVRCVINFO", 366},
     {"setsockopt$inet_sctp6_SCTP_RESET_ASSOC", 366},
@@ -1227,6 +1241,8 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_BINDX_REM", 366},
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX", 366},
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX_OLD", 366},
+    {"setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", 366},
+    {"setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE", 366},
     {"setsockopt$inet_sctp_SCTP_ADAPTATION_LAYER", 366},
     {"setsockopt$inet_sctp_SCTP_ADD_STREAMS", 366},
     {"setsockopt$inet_sctp_SCTP_ASSOCINFO", 366},
@@ -1256,6 +1272,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_PEER_ADDR_THLDS", 366},
     {"setsockopt$inet_sctp_SCTP_PRIMARY_ADDR", 366},
     {"setsockopt$inet_sctp_SCTP_PR_SUPPORTED", 366},
+    {"setsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED", 366},
     {"setsockopt$inet_sctp_SCTP_RECVNXTINFO", 366},
     {"setsockopt$inet_sctp_SCTP_RECVRCVINFO", 366},
     {"setsockopt$inet_sctp_SCTP_RESET_ASSOC", 366},
@@ -1266,10 +1283,14 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_BINDX_REM", 366},
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX", 366},
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX_OLD", 366},
+    {"setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 366},
+    {"setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 366},
     {"setsockopt$inet_tcp_TCP_CONGESTION", 366},
+    {"setsockopt$inet_tcp_TCP_FASTOPEN_KEY", 366},
     {"setsockopt$inet_tcp_TCP_MD5SIG", 366},
     {"setsockopt$inet_tcp_TCP_REPAIR_OPTIONS", 366},
     {"setsockopt$inet_tcp_TCP_REPAIR_WINDOW", 366},
+    {"setsockopt$inet_tcp_TCP_ULP", 366},
     {"setsockopt$inet_tcp_buf", 366},
     {"setsockopt$inet_tcp_int", 366},
     {"setsockopt$inet_udp_encap", 366},
@@ -1464,7 +1485,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "82e0eaee2d0acae71121164009115616d915496b"
+#define SYZ_REVISION "26ecfefd16f1fcb800c7c570b9b3d122c52fffc3"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1474,7 +1495,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1504;
+unsigned syscall_count = 1525;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1525,6 +1546,7 @@ call_t syscalls[] = {
     {"bpf$BPF_PROG_DETACH", 321},
     {"bpf$BPF_PROG_GET_FD_BY_ID", 321},
     {"bpf$BPF_PROG_GET_NEXT_ID", 321},
+    {"bpf$BPF_PROG_QUERY", 321},
     {"bpf$BPF_PROG_TEST_RUN", 321},
     {"bpf$MAP_CREATE", 321},
     {"bpf$MAP_DELETE_ELEM", 321},
@@ -1694,6 +1716,7 @@ call_t syscalls[] = {
     {"getsockopt$inet6_int", 55},
     {"getsockopt$inet6_mreq", 55},
     {"getsockopt$inet6_mtu", 55},
+    {"getsockopt$inet6_opts", 55},
     {"getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 55},
     {"getsockopt$inet6_tcp_buf", 55},
     {"getsockopt$inet6_tcp_int", 55},
@@ -1743,7 +1766,9 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp6_SCTP_PEER_AUTH_CHUNKS", 55},
     {"getsockopt$inet_sctp6_SCTP_PRIMARY_ADDR", 55},
     {"getsockopt$inet_sctp6_SCTP_PR_ASSOC_STATUS", 55},
+    {"getsockopt$inet_sctp6_SCTP_PR_STREAM_STATUS", 55},
     {"getsockopt$inet_sctp6_SCTP_PR_SUPPORTED", 55},
+    {"getsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED", 55},
     {"getsockopt$inet_sctp6_SCTP_RECVNXTINFO", 55},
     {"getsockopt$inet_sctp6_SCTP_RECVRCVINFO", 55},
     {"getsockopt$inet_sctp6_SCTP_RESET_STREAMS", 55},
@@ -1751,6 +1776,8 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX3", 55},
     {"getsockopt$inet_sctp6_SCTP_SOCKOPT_PEELOFF", 55},
     {"getsockopt$inet_sctp6_SCTP_STATUS", 55},
+    {"getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", 55},
+    {"getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE", 55},
     {"getsockopt$inet_sctp_SCTP_ADAPTATION_LAYER", 55},
     {"getsockopt$inet_sctp_SCTP_ASSOCINFO", 55},
     {"getsockopt$inet_sctp_SCTP_AUTH_ACTIVE_KEY", 55},
@@ -1784,7 +1811,9 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_PEER_AUTH_CHUNKS", 55},
     {"getsockopt$inet_sctp_SCTP_PRIMARY_ADDR", 55},
     {"getsockopt$inet_sctp_SCTP_PR_ASSOC_STATUS", 55},
+    {"getsockopt$inet_sctp_SCTP_PR_STREAM_STATUS", 55},
     {"getsockopt$inet_sctp_SCTP_PR_SUPPORTED", 55},
+    {"getsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED", 55},
     {"getsockopt$inet_sctp_SCTP_RECVNXTINFO", 55},
     {"getsockopt$inet_sctp_SCTP_RECVRCVINFO", 55},
     {"getsockopt$inet_sctp_SCTP_RESET_STREAMS", 55},
@@ -1792,6 +1821,8 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX3", 55},
     {"getsockopt$inet_sctp_SCTP_SOCKOPT_PEELOFF", 55},
     {"getsockopt$inet_sctp_SCTP_STATUS", 55},
+    {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 55},
+    {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 55},
     {"getsockopt$inet_tcp_TCP_REPAIR_WINDOW", 55},
     {"getsockopt$inet_tcp_buf", 55},
     {"getsockopt$inet_tcp_int", 55},
@@ -2672,10 +2703,13 @@ call_t syscalls[] = {
     {"setsockopt$inet6_int", 54},
     {"setsockopt$inet6_mreq", 54},
     {"setsockopt$inet6_mtu", 54},
+    {"setsockopt$inet6_opts", 54},
     {"setsockopt$inet6_tcp_TCP_CONGESTION", 54},
+    {"setsockopt$inet6_tcp_TCP_FASTOPEN_KEY", 54},
     {"setsockopt$inet6_tcp_TCP_MD5SIG", 54},
     {"setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS", 54},
     {"setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 54},
+    {"setsockopt$inet6_tcp_TCP_ULP", 54},
     {"setsockopt$inet6_tcp_buf", 54},
     {"setsockopt$inet6_tcp_int", 54},
     {"setsockopt$inet6_udp_encap", 54},
@@ -2727,6 +2761,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_PEER_ADDR_THLDS", 54},
     {"setsockopt$inet_sctp6_SCTP_PRIMARY_ADDR", 54},
     {"setsockopt$inet_sctp6_SCTP_PR_SUPPORTED", 54},
+    {"setsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED", 54},
     {"setsockopt$inet_sctp6_SCTP_RECVNXTINFO", 54},
     {"setsockopt$inet_sctp6_SCTP_RECVRCVINFO", 54},
     {"setsockopt$inet_sctp6_SCTP_RESET_ASSOC", 54},
@@ -2737,6 +2772,8 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_BINDX_REM", 54},
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX", 54},
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX_OLD", 54},
+    {"setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", 54},
+    {"setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE", 54},
     {"setsockopt$inet_sctp_SCTP_ADAPTATION_LAYER", 54},
     {"setsockopt$inet_sctp_SCTP_ADD_STREAMS", 54},
     {"setsockopt$inet_sctp_SCTP_ASSOCINFO", 54},
@@ -2766,6 +2803,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_PEER_ADDR_THLDS", 54},
     {"setsockopt$inet_sctp_SCTP_PRIMARY_ADDR", 54},
     {"setsockopt$inet_sctp_SCTP_PR_SUPPORTED", 54},
+    {"setsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED", 54},
     {"setsockopt$inet_sctp_SCTP_RECVNXTINFO", 54},
     {"setsockopt$inet_sctp_SCTP_RECVRCVINFO", 54},
     {"setsockopt$inet_sctp_SCTP_RESET_ASSOC", 54},
@@ -2776,10 +2814,14 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_BINDX_REM", 54},
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX", 54},
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX_OLD", 54},
+    {"setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 54},
+    {"setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 54},
     {"setsockopt$inet_tcp_TCP_CONGESTION", 54},
+    {"setsockopt$inet_tcp_TCP_FASTOPEN_KEY", 54},
     {"setsockopt$inet_tcp_TCP_MD5SIG", 54},
     {"setsockopt$inet_tcp_TCP_REPAIR_OPTIONS", 54},
     {"setsockopt$inet_tcp_TCP_REPAIR_WINDOW", 54},
+    {"setsockopt$inet_tcp_TCP_ULP", 54},
     {"setsockopt$inet_tcp_buf", 54},
     {"setsockopt$inet_tcp_int", 54},
     {"setsockopt$inet_udp_encap", 54},
@@ -2986,7 +3028,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "948cf320647e3e6fc61a13aaefea9ba03fd4ffec"
+#define SYZ_REVISION "2b5732c346bbcc29d407db42e2d9f2c7e2ef0f5c"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -2996,7 +3038,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1454;
+unsigned syscall_count = 1475;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3045,6 +3087,7 @@ call_t syscalls[] = {
     {"bpf$BPF_PROG_DETACH", 386},
     {"bpf$BPF_PROG_GET_FD_BY_ID", 386},
     {"bpf$BPF_PROG_GET_NEXT_ID", 386},
+    {"bpf$BPF_PROG_QUERY", 386},
     {"bpf$BPF_PROG_TEST_RUN", 386},
     {"bpf$MAP_CREATE", 386},
     {"bpf$MAP_DELETE_ELEM", 386},
@@ -3211,6 +3254,7 @@ call_t syscalls[] = {
     {"getsockopt$inet6_int", 295},
     {"getsockopt$inet6_mreq", 295},
     {"getsockopt$inet6_mtu", 295},
+    {"getsockopt$inet6_opts", 295},
     {"getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 295},
     {"getsockopt$inet6_tcp_buf", 295},
     {"getsockopt$inet6_tcp_int", 295},
@@ -3260,7 +3304,9 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp6_SCTP_PEER_AUTH_CHUNKS", 295},
     {"getsockopt$inet_sctp6_SCTP_PRIMARY_ADDR", 295},
     {"getsockopt$inet_sctp6_SCTP_PR_ASSOC_STATUS", 295},
+    {"getsockopt$inet_sctp6_SCTP_PR_STREAM_STATUS", 295},
     {"getsockopt$inet_sctp6_SCTP_PR_SUPPORTED", 295},
+    {"getsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED", 295},
     {"getsockopt$inet_sctp6_SCTP_RECVNXTINFO", 295},
     {"getsockopt$inet_sctp6_SCTP_RECVRCVINFO", 295},
     {"getsockopt$inet_sctp6_SCTP_RESET_STREAMS", 295},
@@ -3268,6 +3314,8 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX3", 295},
     {"getsockopt$inet_sctp6_SCTP_SOCKOPT_PEELOFF", 295},
     {"getsockopt$inet_sctp6_SCTP_STATUS", 295},
+    {"getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", 295},
+    {"getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE", 295},
     {"getsockopt$inet_sctp_SCTP_ADAPTATION_LAYER", 295},
     {"getsockopt$inet_sctp_SCTP_ASSOCINFO", 295},
     {"getsockopt$inet_sctp_SCTP_AUTH_ACTIVE_KEY", 295},
@@ -3301,7 +3349,9 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_PEER_AUTH_CHUNKS", 295},
     {"getsockopt$inet_sctp_SCTP_PRIMARY_ADDR", 295},
     {"getsockopt$inet_sctp_SCTP_PR_ASSOC_STATUS", 295},
+    {"getsockopt$inet_sctp_SCTP_PR_STREAM_STATUS", 295},
     {"getsockopt$inet_sctp_SCTP_PR_SUPPORTED", 295},
+    {"getsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED", 295},
     {"getsockopt$inet_sctp_SCTP_RECVNXTINFO", 295},
     {"getsockopt$inet_sctp_SCTP_RECVRCVINFO", 295},
     {"getsockopt$inet_sctp_SCTP_RESET_STREAMS", 295},
@@ -3309,6 +3359,8 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX3", 295},
     {"getsockopt$inet_sctp_SCTP_SOCKOPT_PEELOFF", 295},
     {"getsockopt$inet_sctp_SCTP_STATUS", 295},
+    {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 295},
+    {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 295},
     {"getsockopt$inet_tcp_TCP_REPAIR_WINDOW", 295},
     {"getsockopt$inet_tcp_buf", 295},
     {"getsockopt$inet_tcp_int", 295},
@@ -4147,10 +4199,13 @@ call_t syscalls[] = {
     {"setsockopt$inet6_int", 294},
     {"setsockopt$inet6_mreq", 294},
     {"setsockopt$inet6_mtu", 294},
+    {"setsockopt$inet6_opts", 294},
     {"setsockopt$inet6_tcp_TCP_CONGESTION", 294},
+    {"setsockopt$inet6_tcp_TCP_FASTOPEN_KEY", 294},
     {"setsockopt$inet6_tcp_TCP_MD5SIG", 294},
     {"setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS", 294},
     {"setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 294},
+    {"setsockopt$inet6_tcp_TCP_ULP", 294},
     {"setsockopt$inet6_tcp_buf", 294},
     {"setsockopt$inet6_tcp_int", 294},
     {"setsockopt$inet6_udp_encap", 294},
@@ -4202,6 +4257,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_PEER_ADDR_THLDS", 294},
     {"setsockopt$inet_sctp6_SCTP_PRIMARY_ADDR", 294},
     {"setsockopt$inet_sctp6_SCTP_PR_SUPPORTED", 294},
+    {"setsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED", 294},
     {"setsockopt$inet_sctp6_SCTP_RECVNXTINFO", 294},
     {"setsockopt$inet_sctp6_SCTP_RECVRCVINFO", 294},
     {"setsockopt$inet_sctp6_SCTP_RESET_ASSOC", 294},
@@ -4212,6 +4268,8 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_BINDX_REM", 294},
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX", 294},
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX_OLD", 294},
+    {"setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", 294},
+    {"setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE", 294},
     {"setsockopt$inet_sctp_SCTP_ADAPTATION_LAYER", 294},
     {"setsockopt$inet_sctp_SCTP_ADD_STREAMS", 294},
     {"setsockopt$inet_sctp_SCTP_ASSOCINFO", 294},
@@ -4241,6 +4299,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_PEER_ADDR_THLDS", 294},
     {"setsockopt$inet_sctp_SCTP_PRIMARY_ADDR", 294},
     {"setsockopt$inet_sctp_SCTP_PR_SUPPORTED", 294},
+    {"setsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED", 294},
     {"setsockopt$inet_sctp_SCTP_RECVNXTINFO", 294},
     {"setsockopt$inet_sctp_SCTP_RECVRCVINFO", 294},
     {"setsockopt$inet_sctp_SCTP_RESET_ASSOC", 294},
@@ -4251,10 +4310,14 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_BINDX_REM", 294},
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX", 294},
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX_OLD", 294},
+    {"setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 294},
+    {"setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 294},
     {"setsockopt$inet_tcp_TCP_CONGESTION", 294},
+    {"setsockopt$inet_tcp_TCP_FASTOPEN_KEY", 294},
     {"setsockopt$inet_tcp_TCP_MD5SIG", 294},
     {"setsockopt$inet_tcp_TCP_REPAIR_OPTIONS", 294},
     {"setsockopt$inet_tcp_TCP_REPAIR_WINDOW", 294},
+    {"setsockopt$inet_tcp_TCP_ULP", 294},
     {"setsockopt$inet_tcp_buf", 294},
     {"setsockopt$inet_tcp_int", 294},
     {"setsockopt$inet_udp_encap", 294},
@@ -4458,7 +4521,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "cc2110c30ed267995291213b3bf5319f012a7fc5"
+#define SYZ_REVISION "cfc7c78b290073492618465935b23bdf2dd53f04"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4468,7 +4531,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1433;
+unsigned syscall_count = 1454;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -4517,6 +4580,7 @@ call_t syscalls[] = {
     {"bpf$BPF_PROG_DETACH", 280},
     {"bpf$BPF_PROG_GET_FD_BY_ID", 280},
     {"bpf$BPF_PROG_GET_NEXT_ID", 280},
+    {"bpf$BPF_PROG_QUERY", 280},
     {"bpf$BPF_PROG_TEST_RUN", 280},
     {"bpf$MAP_CREATE", 280},
     {"bpf$MAP_DELETE_ELEM", 280},
@@ -4675,6 +4739,7 @@ call_t syscalls[] = {
     {"getsockopt$inet6_int", 209},
     {"getsockopt$inet6_mreq", 209},
     {"getsockopt$inet6_mtu", 209},
+    {"getsockopt$inet6_opts", 209},
     {"getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 209},
     {"getsockopt$inet6_tcp_buf", 209},
     {"getsockopt$inet6_tcp_int", 209},
@@ -4724,7 +4789,9 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp6_SCTP_PEER_AUTH_CHUNKS", 209},
     {"getsockopt$inet_sctp6_SCTP_PRIMARY_ADDR", 209},
     {"getsockopt$inet_sctp6_SCTP_PR_ASSOC_STATUS", 209},
+    {"getsockopt$inet_sctp6_SCTP_PR_STREAM_STATUS", 209},
     {"getsockopt$inet_sctp6_SCTP_PR_SUPPORTED", 209},
+    {"getsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED", 209},
     {"getsockopt$inet_sctp6_SCTP_RECVNXTINFO", 209},
     {"getsockopt$inet_sctp6_SCTP_RECVRCVINFO", 209},
     {"getsockopt$inet_sctp6_SCTP_RESET_STREAMS", 209},
@@ -4732,6 +4799,8 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX3", 209},
     {"getsockopt$inet_sctp6_SCTP_SOCKOPT_PEELOFF", 209},
     {"getsockopt$inet_sctp6_SCTP_STATUS", 209},
+    {"getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", 209},
+    {"getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE", 209},
     {"getsockopt$inet_sctp_SCTP_ADAPTATION_LAYER", 209},
     {"getsockopt$inet_sctp_SCTP_ASSOCINFO", 209},
     {"getsockopt$inet_sctp_SCTP_AUTH_ACTIVE_KEY", 209},
@@ -4765,7 +4834,9 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_PEER_AUTH_CHUNKS", 209},
     {"getsockopt$inet_sctp_SCTP_PRIMARY_ADDR", 209},
     {"getsockopt$inet_sctp_SCTP_PR_ASSOC_STATUS", 209},
+    {"getsockopt$inet_sctp_SCTP_PR_STREAM_STATUS", 209},
     {"getsockopt$inet_sctp_SCTP_PR_SUPPORTED", 209},
+    {"getsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED", 209},
     {"getsockopt$inet_sctp_SCTP_RECVNXTINFO", 209},
     {"getsockopt$inet_sctp_SCTP_RECVRCVINFO", 209},
     {"getsockopt$inet_sctp_SCTP_RESET_STREAMS", 209},
@@ -4773,6 +4844,8 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX3", 209},
     {"getsockopt$inet_sctp_SCTP_SOCKOPT_PEELOFF", 209},
     {"getsockopt$inet_sctp_SCTP_STATUS", 209},
+    {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 209},
+    {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 209},
     {"getsockopt$inet_tcp_TCP_REPAIR_WINDOW", 209},
     {"getsockopt$inet_tcp_buf", 209},
     {"getsockopt$inet_tcp_int", 209},
@@ -5607,10 +5680,13 @@ call_t syscalls[] = {
     {"setsockopt$inet6_int", 208},
     {"setsockopt$inet6_mreq", 208},
     {"setsockopt$inet6_mtu", 208},
+    {"setsockopt$inet6_opts", 208},
     {"setsockopt$inet6_tcp_TCP_CONGESTION", 208},
+    {"setsockopt$inet6_tcp_TCP_FASTOPEN_KEY", 208},
     {"setsockopt$inet6_tcp_TCP_MD5SIG", 208},
     {"setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS", 208},
     {"setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 208},
+    {"setsockopt$inet6_tcp_TCP_ULP", 208},
     {"setsockopt$inet6_tcp_buf", 208},
     {"setsockopt$inet6_tcp_int", 208},
     {"setsockopt$inet6_udp_encap", 208},
@@ -5662,6 +5738,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_PEER_ADDR_THLDS", 208},
     {"setsockopt$inet_sctp6_SCTP_PRIMARY_ADDR", 208},
     {"setsockopt$inet_sctp6_SCTP_PR_SUPPORTED", 208},
+    {"setsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED", 208},
     {"setsockopt$inet_sctp6_SCTP_RECVNXTINFO", 208},
     {"setsockopt$inet_sctp6_SCTP_RECVRCVINFO", 208},
     {"setsockopt$inet_sctp6_SCTP_RESET_ASSOC", 208},
@@ -5672,6 +5749,8 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_BINDX_REM", 208},
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX", 208},
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX_OLD", 208},
+    {"setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", 208},
+    {"setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE", 208},
     {"setsockopt$inet_sctp_SCTP_ADAPTATION_LAYER", 208},
     {"setsockopt$inet_sctp_SCTP_ADD_STREAMS", 208},
     {"setsockopt$inet_sctp_SCTP_ASSOCINFO", 208},
@@ -5701,6 +5780,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_PEER_ADDR_THLDS", 208},
     {"setsockopt$inet_sctp_SCTP_PRIMARY_ADDR", 208},
     {"setsockopt$inet_sctp_SCTP_PR_SUPPORTED", 208},
+    {"setsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED", 208},
     {"setsockopt$inet_sctp_SCTP_RECVNXTINFO", 208},
     {"setsockopt$inet_sctp_SCTP_RECVRCVINFO", 208},
     {"setsockopt$inet_sctp_SCTP_RESET_ASSOC", 208},
@@ -5711,10 +5791,14 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_BINDX_REM", 208},
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX", 208},
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX_OLD", 208},
+    {"setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 208},
+    {"setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 208},
     {"setsockopt$inet_tcp_TCP_CONGESTION", 208},
+    {"setsockopt$inet_tcp_TCP_FASTOPEN_KEY", 208},
     {"setsockopt$inet_tcp_TCP_MD5SIG", 208},
     {"setsockopt$inet_tcp_TCP_REPAIR_OPTIONS", 208},
     {"setsockopt$inet_tcp_TCP_REPAIR_WINDOW", 208},
+    {"setsockopt$inet_tcp_TCP_ULP", 208},
     {"setsockopt$inet_tcp_buf", 208},
     {"setsockopt$inet_tcp_int", 208},
     {"setsockopt$inet_udp_encap", 208},
@@ -5909,7 +5993,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "1d45af3aa9569c719a5f33c74e7995d7773bef2d"
+#define SYZ_REVISION "f1d2e62d403e4a457b96498f695f95f2e548b5dc"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -5919,7 +6003,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1413;
+unsigned syscall_count = 1434;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -5969,6 +6053,7 @@ call_t syscalls[] = {
     {"bpf$BPF_PROG_DETACH", 361},
     {"bpf$BPF_PROG_GET_FD_BY_ID", 361},
     {"bpf$BPF_PROG_GET_NEXT_ID", 361},
+    {"bpf$BPF_PROG_QUERY", 361},
     {"bpf$BPF_PROG_TEST_RUN", 361},
     {"bpf$MAP_CREATE", 361},
     {"bpf$MAP_DELETE_ELEM", 361},
@@ -6137,6 +6222,7 @@ call_t syscalls[] = {
     {"getsockopt$inet6_int", 340},
     {"getsockopt$inet6_mreq", 340},
     {"getsockopt$inet6_mtu", 340},
+    {"getsockopt$inet6_opts", 340},
     {"getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 340},
     {"getsockopt$inet6_tcp_buf", 340},
     {"getsockopt$inet6_tcp_int", 340},
@@ -6186,7 +6272,9 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp6_SCTP_PEER_AUTH_CHUNKS", 340},
     {"getsockopt$inet_sctp6_SCTP_PRIMARY_ADDR", 340},
     {"getsockopt$inet_sctp6_SCTP_PR_ASSOC_STATUS", 340},
+    {"getsockopt$inet_sctp6_SCTP_PR_STREAM_STATUS", 340},
     {"getsockopt$inet_sctp6_SCTP_PR_SUPPORTED", 340},
+    {"getsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED", 340},
     {"getsockopt$inet_sctp6_SCTP_RECVNXTINFO", 340},
     {"getsockopt$inet_sctp6_SCTP_RECVRCVINFO", 340},
     {"getsockopt$inet_sctp6_SCTP_RESET_STREAMS", 340},
@@ -6194,6 +6282,8 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX3", 340},
     {"getsockopt$inet_sctp6_SCTP_SOCKOPT_PEELOFF", 340},
     {"getsockopt$inet_sctp6_SCTP_STATUS", 340},
+    {"getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", 340},
+    {"getsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE", 340},
     {"getsockopt$inet_sctp_SCTP_ADAPTATION_LAYER", 340},
     {"getsockopt$inet_sctp_SCTP_ASSOCINFO", 340},
     {"getsockopt$inet_sctp_SCTP_AUTH_ACTIVE_KEY", 340},
@@ -6227,7 +6317,9 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_PEER_AUTH_CHUNKS", 340},
     {"getsockopt$inet_sctp_SCTP_PRIMARY_ADDR", 340},
     {"getsockopt$inet_sctp_SCTP_PR_ASSOC_STATUS", 340},
+    {"getsockopt$inet_sctp_SCTP_PR_STREAM_STATUS", 340},
     {"getsockopt$inet_sctp_SCTP_PR_SUPPORTED", 340},
+    {"getsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED", 340},
     {"getsockopt$inet_sctp_SCTP_RECVNXTINFO", 340},
     {"getsockopt$inet_sctp_SCTP_RECVRCVINFO", 340},
     {"getsockopt$inet_sctp_SCTP_RESET_STREAMS", 340},
@@ -6235,6 +6327,8 @@ call_t syscalls[] = {
     {"getsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX3", 340},
     {"getsockopt$inet_sctp_SCTP_SOCKOPT_PEELOFF", 340},
     {"getsockopt$inet_sctp_SCTP_STATUS", 340},
+    {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 340},
+    {"getsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 340},
     {"getsockopt$inet_tcp_TCP_REPAIR_WINDOW", 340},
     {"getsockopt$inet_tcp_buf", 340},
     {"getsockopt$inet_tcp_int", 340},
@@ -7039,10 +7133,13 @@ call_t syscalls[] = {
     {"setsockopt$inet6_int", 339},
     {"setsockopt$inet6_mreq", 339},
     {"setsockopt$inet6_mtu", 339},
+    {"setsockopt$inet6_opts", 339},
     {"setsockopt$inet6_tcp_TCP_CONGESTION", 339},
+    {"setsockopt$inet6_tcp_TCP_FASTOPEN_KEY", 339},
     {"setsockopt$inet6_tcp_TCP_MD5SIG", 339},
     {"setsockopt$inet6_tcp_TCP_REPAIR_OPTIONS", 339},
     {"setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", 339},
+    {"setsockopt$inet6_tcp_TCP_ULP", 339},
     {"setsockopt$inet6_tcp_buf", 339},
     {"setsockopt$inet6_tcp_int", 339},
     {"setsockopt$inet6_udp_encap", 339},
@@ -7094,6 +7191,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_PEER_ADDR_THLDS", 339},
     {"setsockopt$inet_sctp6_SCTP_PRIMARY_ADDR", 339},
     {"setsockopt$inet_sctp6_SCTP_PR_SUPPORTED", 339},
+    {"setsockopt$inet_sctp6_SCTP_RECONFIG_SUPPORTED", 339},
     {"setsockopt$inet_sctp6_SCTP_RECVNXTINFO", 339},
     {"setsockopt$inet_sctp6_SCTP_RECVRCVINFO", 339},
     {"setsockopt$inet_sctp6_SCTP_RESET_ASSOC", 339},
@@ -7104,6 +7202,8 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_BINDX_REM", 339},
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX", 339},
     {"setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX_OLD", 339},
+    {"setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", 339},
+    {"setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER_VALUE", 339},
     {"setsockopt$inet_sctp_SCTP_ADAPTATION_LAYER", 339},
     {"setsockopt$inet_sctp_SCTP_ADD_STREAMS", 339},
     {"setsockopt$inet_sctp_SCTP_ASSOCINFO", 339},
@@ -7133,6 +7233,7 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_PEER_ADDR_THLDS", 339},
     {"setsockopt$inet_sctp_SCTP_PRIMARY_ADDR", 339},
     {"setsockopt$inet_sctp_SCTP_PR_SUPPORTED", 339},
+    {"setsockopt$inet_sctp_SCTP_RECONFIG_SUPPORTED", 339},
     {"setsockopt$inet_sctp_SCTP_RECVNXTINFO", 339},
     {"setsockopt$inet_sctp_SCTP_RECVRCVINFO", 339},
     {"setsockopt$inet_sctp_SCTP_RESET_ASSOC", 339},
@@ -7143,10 +7244,14 @@ call_t syscalls[] = {
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_BINDX_REM", 339},
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX", 339},
     {"setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX_OLD", 339},
+    {"setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", 339},
+    {"setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER_VALUE", 339},
     {"setsockopt$inet_tcp_TCP_CONGESTION", 339},
+    {"setsockopt$inet_tcp_TCP_FASTOPEN_KEY", 339},
     {"setsockopt$inet_tcp_TCP_MD5SIG", 339},
     {"setsockopt$inet_tcp_TCP_REPAIR_OPTIONS", 339},
     {"setsockopt$inet_tcp_TCP_REPAIR_WINDOW", 339},
+    {"setsockopt$inet_tcp_TCP_ULP", 339},
     {"setsockopt$inet_tcp_buf", 339},
     {"setsockopt$inet_tcp_int", 339},
     {"setsockopt$inet_udp_encap", 339},
