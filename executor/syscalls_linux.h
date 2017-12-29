@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "6a21c840076336a9ecd7b0c8f64c9a732dcadd9f"
+#define SYZ_REVISION "c7effbc5a5592ebdab6a55bba75c6b2994451c20"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1466;
+unsigned syscall_count = 1467;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -1153,6 +1153,7 @@ call_t syscalls[] = {
     {"setsockopt$bt_l2cap_L2CAP_LM", 366},
     {"setsockopt$bt_l2cap_L2CAP_OPTIONS", 366},
     {"setsockopt$bt_rfcomm_RFCOMM_LM", 366},
+    {"setsockopt$inet6_IPV6_ADDRFORM", 366},
     {"setsockopt$inet6_IPV6_FLOWLABEL_MGR", 366},
     {"setsockopt$inet6_IPV6_IPSEC_POLICY", 366},
     {"setsockopt$inet6_IPV6_PKTINFO", 366},
@@ -1486,7 +1487,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "988c5ee5ade3b7ceaadecccf9ef75f6abcb1c77e"
+#define SYZ_REVISION "ac6a5a5bd655b83e5dbe105a1b54be1343b60f0b"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1496,7 +1497,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1526;
+unsigned syscall_count = 1527;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2685,6 +2686,7 @@ call_t syscalls[] = {
     {"setsockopt$bt_l2cap_L2CAP_LM", 54},
     {"setsockopt$bt_l2cap_L2CAP_OPTIONS", 54},
     {"setsockopt$bt_rfcomm_RFCOMM_LM", 54},
+    {"setsockopt$inet6_IPV6_ADDRFORM", 54},
     {"setsockopt$inet6_IPV6_FLOWLABEL_MGR", 54},
     {"setsockopt$inet6_IPV6_IPSEC_POLICY", 54},
     {"setsockopt$inet6_IPV6_PKTINFO", 54},
@@ -3030,7 +3032,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "05cdeb383f6c4238e62bcffbfe9de88bb7a60785"
+#define SYZ_REVISION "746e1f8a979a61cda0ec74a9dde8863829102924"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3040,7 +3042,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1476;
+unsigned syscall_count = 1477;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4182,6 +4184,7 @@ call_t syscalls[] = {
     {"setsockopt$bt_l2cap_L2CAP_LM", 294},
     {"setsockopt$bt_l2cap_L2CAP_OPTIONS", 294},
     {"setsockopt$bt_rfcomm_RFCOMM_LM", 294},
+    {"setsockopt$inet6_IPV6_ADDRFORM", 294},
     {"setsockopt$inet6_IPV6_FLOWLABEL_MGR", 294},
     {"setsockopt$inet6_IPV6_IPSEC_POLICY", 294},
     {"setsockopt$inet6_IPV6_PKTINFO", 294},
@@ -4524,7 +4527,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "93cee2390cde5b496d0ed2dd8457f83c405abe47"
+#define SYZ_REVISION "80a9e94c65306f4462e681d0e5cab948a79e7589"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4534,7 +4537,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1455;
+unsigned syscall_count = 1456;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5664,6 +5667,7 @@ call_t syscalls[] = {
     {"setsockopt$bt_l2cap_L2CAP_LM", 208},
     {"setsockopt$bt_l2cap_L2CAP_OPTIONS", 208},
     {"setsockopt$bt_rfcomm_RFCOMM_LM", 208},
+    {"setsockopt$inet6_IPV6_ADDRFORM", 208},
     {"setsockopt$inet6_IPV6_FLOWLABEL_MGR", 208},
     {"setsockopt$inet6_IPV6_IPSEC_POLICY", 208},
     {"setsockopt$inet6_IPV6_PKTINFO", 208},
@@ -5997,7 +6001,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "077779897893b2cf049c4e0c46ca6903bbc1ef8a"
+#define SYZ_REVISION "ca206a99ac112668df867a658f27230c3c3254af"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6007,7 +6011,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1435;
+unsigned syscall_count = 1436;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7118,6 +7122,7 @@ call_t syscalls[] = {
     {"setsockopt$bt_l2cap_L2CAP_LM", 339},
     {"setsockopt$bt_l2cap_L2CAP_OPTIONS", 339},
     {"setsockopt$bt_rfcomm_RFCOMM_LM", 339},
+    {"setsockopt$inet6_IPV6_ADDRFORM", 339},
     {"setsockopt$inet6_IPV6_FLOWLABEL_MGR", 339},
     {"setsockopt$inet6_IPV6_IPSEC_POLICY", 339},
     {"setsockopt$inet6_IPV6_PKTINFO", 339},

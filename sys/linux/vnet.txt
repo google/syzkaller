@@ -484,11 +484,34 @@ ipv6_addr_loopback {
 	a1	const[1, int64be]
 } [packed]
 
+ipv6_addr_ipv4 {
+	a0	array[const[0x0, int8], 10]
+	a1	array[const[0xff, int8], 2]
+	a3	ipv4_addr
+} [packed]
+
+ipv6_addr_multicast1 {
+	a0	const[0xff, int8]
+	a1	const[0x1, int8]
+	a2	array[const[0x0, int8], 13]
+	a3	const[0x1, int8]
+} [packed]
+
+ipv6_addr_multicast2 {
+	a0	const[0xff, int8]
+	a1	const[0x2, int8]
+	a2	array[const[0x0, int8], 13]
+	a3	const[0x1, int8]
+} [packed]
+
 ipv6_addr [
 	empty		ipv6_addr_empty
 	local		ipv6_addr_local
 	remote		ipv6_addr_remote
 	loopback	ipv6_addr_loopback
+	ipv4		ipv6_addr_ipv4
+	mcast1		ipv6_addr_multicast1
+	mcast2		ipv6_addr_multicast2
 ]
 
 # TODO: Describe more types of headers
