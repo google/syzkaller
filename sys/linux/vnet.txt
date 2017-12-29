@@ -452,6 +452,7 @@ ipv4_packet {
 
 include <uapi/linux/in6.h>
 include <uapi/linux/ipv6.h>
+include <uapi/linux/ip6_tunnel.h>
 include <net/ipv6.h>
 
 ipv6_types = IPPROTO_IP, IPPROTO_ICMP, IPPROTO_IGMP, IPPROTO_IPIP, IPPROTO_TCP, IPPROTO_EGP, IPPROTO_PUP, IPPROTO_UDP, IPPROTO_IDP, IPPROTO_TP, IPPROTO_DCCP, IPPROTO_IPV6, IPPROTO_RSVP, IPPROTO_GRE, IPPROTO_ESP, IPPROTO_AH, IPPROTO_MTP, IPPROTO_BEETPH, IPPROTO_ENCAP, IPPROTO_PIM, IPPROTO_COMP, IPPROTO_SCTP, IPPROTO_UDPLITE, IPPROTO_MPLS, IPPROTO_RAW, IPPROTO_HOPOPTS, IPPROTO_ROUTING, IPPROTO_FRAGMENT, IPPROTO_ICMPV6, IPPROTO_NONE, IPPROTO_DSTOPTS, IPPROTO_MH, NEXTHDR_HOP, NEXTHDR_ROUTING, NEXTHDR_FRAGMENT, NEXTHDR_GRE, NEXTHDR_ESP, NEXTHDR_AUTH, NEXTHDR_ICMP, NEXTHDR_NONE, NEXTHDR_DEST, NEXTHDR_MOBILITY
@@ -491,7 +492,7 @@ ipv6_addr [
 ]
 
 # TODO: Describe more types of headers
-# NEXTHDR_HOP, NEXTHDR_TCP, NEXTHDR_UDP, NEXTHDR_IPV6, NEXTHDR_ROUTING, NEXTHDR_FRAGMENT, NEXTHDR_GRE, NEXTHDR_ESP, NEXTHDR_AUTH, NEXTHDR_ICMP, NEXTHDR_NONE, NEXTHDR_DEST, NEXTHDR_SCTP, NEXTHDR_MOBILITY
+# NEXTHDR_HOP, NEXTHDR_TCP, NEXTHDR_UDP, NEXTHDR_IPV6, NEXTHDR_FRAGMENT, NEXTHDR_GRE, NEXTHDR_ESP, NEXTHDR_AUTH, NEXTHDR_ICMP, NEXTHDR_NONE, NEXTHDR_DEST, NEXTHDR_SCTP, NEXTHDR_MOBILITY
 # https://tools.ietf.org/html/rfc2402
 # https://tools.ietf.org/html/rfc2406
 # https://tools.ietf.org/html/rfc3775
@@ -520,16 +521,16 @@ ipv6_routing_ext_header {
 	length		bytesize8[data, int8]
 	routing_type	flags[ipv6_routing_types, int8]
 	segments_left	int8
-	reserved	int32be
+	reserved	const[0, int32]
 	data		array[ipv6_addr]
 } [packed, align_8]
 
 ipv6_fragment_ext_header {
 	next_header	flags[ipv6_types, int8]
-	reserved1	int8
+	reserved1	const[0, int8]
 	fragment_off_hi	int8
 	m_flag		int8:1
-	reserved2	int8:2
+	reserved2	const[0, int8:2]
 	fragment_off_lo	int8:5
 	identification	proc[100, 4, int32]
 } [packed]
@@ -541,13 +542,74 @@ ipv6_dstopts_ext_header {
 	options		array[ipv6_tlv_option]
 } [packed]
 
-# TODO: describe particular tlv options
-ipv6_tlv_option_types = IPV6_TLV_PAD1, IPV6_TLV_PADN, IPV6_TLV_ROUTERALERT, IPV6_TLV_CALIPSO, IPV6_TLV_JUMBO, IPV6_TLV_HAO, 0xff, 0xfe
+ipv6_tlv_option [
+	generic	ipv6_tlv_generic
+	pad1	ipv6_tlv_pad1
+	padn	ipv6_tlv_padn
+	ra	ipv6_tlv_ra
+	jumbo	ipv6_tlv_jumbo
+	calipso	ipv6_tlv_calipso
+	hao	ipv6_tlv_hao
+	enc_lim	ipv6_tlv_enc_lim
+] [varlen]
 
-ipv6_tlv_option {
-	type	flags[ipv6_tlv_option_types, int8]
+ipv6_tlv_generic {
+	type	int8
 	length	len[data, int8]
 	data	array[int8]
+} [packed]
+
+ipv6_tlv_pad1 {
+	type	const[IPV6_TLV_PAD1, int8]
+	len	const[1, int8]
+	pad	const[0, int8]
+} [packed]
+
+ipv6_tlv_padn {
+	type	const[IPV6_TLV_PADN, int8]
+	len	len[pad, int8]
+	pad	array[const[0, int8]]
+} [packed]
+
+ipv6_tlv_ra {
+	type	const[IPV6_TLV_ROUTERALERT, int8]
+	len	const[2, int8]
+	ra	int16be
+} [packed]
+
+ipv6_tlv_jumbo {
+	type	const[IPV6_TLV_JUMBO, int8]
+	len	const[4, int8]
+	pkt_len	int32be
+} [packed]
+
+# https://tools.ietf.org/html/rfc5570#section-5.1
+ipv6_tlv_calipso {
+	type	const[IPV6_TLV_CALIPSO, int8]
+	len	bytesize[payload, int8]
+	payload	ipv6_tlv_calipso_payload
+} [packed]
+
+# TODO: checksum is generally incorrect.
+# TODO: domain should be flags, but it's unclear if we have any domains registered by default.
+ipv6_tlv_calipso_payload {
+	domain			int32be
+	compartment_length	bytesize4[compartment_bitmap, int8]
+	sensitivity_level	int8
+	checksum		int16
+	compartment_bitmap	array[int64]
+} [packed]
+
+ipv6_tlv_hao {
+	type	const[IPV6_TLV_HAO, int8]
+	len	bytesize[addr, int8]
+	addr	ipv6_addr
+} [packed]
+
+ipv6_tlv_enc_lim {
+	type		const[IPV6_TLV_TNL_ENCAP_LIMIT, int8]
+	len		const[1, int8]
+	encap_limit	int8
 } [packed]
 
 ipv6_packet {
