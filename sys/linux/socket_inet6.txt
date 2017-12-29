@@ -58,6 +58,8 @@ setsockopt$inet6_buf(fd sock_in6, level const[IPPROTO_IPV6], optname flags[inet6
 # http://lxr.free-electrons.com/ident?i=do_ipv6_setsockopt
 # http://lxr.free-electrons.com/ident?i=do_ipv6_getsockopt
 
+setsockopt$inet6_IPV6_ADDRFORM(fd sock_in6, level const[IPPROTO_IPV6], optname const[IPV6_ADDRFORM], optval ptr[in, const[AF_INET, int32]], optlen len[optval])
+
 sockopt_opt_ipv6_opts = IPV6_HOPOPTS, IPV6_RTHDRDSTOPTS, IPV6_RTHDR, IPV6_DSTOPTS
 
 getsockopt$inet6_opts(fd sock_in6, level const[IPPROTO_IPV6], optname flags[sockopt_opt_ipv6_opts], optval buffer[out], optlen ptr[inout, len[optval, int32]])
