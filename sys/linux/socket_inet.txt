@@ -6,7 +6,6 @@ include <linux/ipv6.h>
 include <linux/route.h>
 include <uapi/linux/if_arp.h>
 include <uapi/linux/netfilter_ipv6/ip6_tables.h>
-include <uapi/linux/xfrm.h>
 
 # IP sockets
 
@@ -91,88 +90,6 @@ setsockopt$inet_pktinfo(fd sock_in, level const[IPPROTO_IP], optname const[IP_PK
 
 getsockopt$inet_mtu(fd sock_in, level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[out, flags[ip_mtu_discover, int32]], optlen ptr[inout, len[optval, int32]])
 setsockopt$inet_mtu(fd sock_in, level const[IPPROTO_IP], optname const[IP_MTU_DISCOVER], optval ptr[in, flags[ip_mtu_discover, int32]], optlen len[optval])
-
-xfrm_filter {
-	info	xfrm_userpolicy_info
-	tmpl	xfrm_user_tmpl
-}
-
-xfrm_userpolicy_info {
-	sel		xfrm_selector
-	lft		xfrm_lifetime_cfg
-	curlft		xfrm_lifetime_cur
-	priority	int32
-	index		int32
-	dir		int8
-	action		flags[xfrm_policy_actions, int8]
-	flags		flags[xfrm_policy_flags, int8]
-	share		flags[xfrm_policy_shares, int8]
-}
-
-xfrm_policy_actions = XFRM_POLICY_ALLOW, XFRM_POLICY_BLOCK
-xfrm_policy_flags = XFRM_STATE_NOECN, XFRM_STATE_DECAP_DSCP, XFRM_STATE_NOPMTUDISC, XFRM_STATE_WILDRECV, XFRM_STATE_ICMP, XFRM_STATE_AF_UNSPEC, XFRM_STATE_ALIGN4, XFRM_STATE_ESN
-xfrm_policy_shares = XFRM_SHARE_ANY, XFRM_SHARE_SESSION, XFRM_SHARE_USER, XFRM_SHARE_UNIQUE
-
-xfrm_selector {
-	daddr		xfrm_address
-	saddr		xfrm_address
-	dport		proc[20000, 4, int16be]
-	dport_mask	int16
-	sport		proc[20000, 4, int16be]
-	sport_mask	int16
-	family		flags[socket_domain, int16]
-	prefixlen_d	flags[xfrm_prefixlens, int8]
-	prefixlen_s	flags[xfrm_prefixlens, int8]
-	proto		int8
-	ifindex		ifindex
-	user		uid
-}
-
-xfrm_prefixlens = 32, 128
-
-xfrm_address [
-	in	ipv4_addr
-	in6	ipv6_addr
-]
-
-xfrm_lifetime_cfg {
-	soft_byte_limit			int64
-	hard_byte_limit			int64
-	soft_packet_limit		int64
-	hard_packet_limit		int64
-	soft_add_expires_seconds	int64
-	hard_add_expires_seconds	int64
-	soft_use_expires_seconds	int64
-	hard_use_expires_seconds	int64
-}
-
-xfrm_lifetime_cur {
-	bytes		int64
-	packets		int64
-	add_time	int64
-	use_time	int64
-}
-
-xfrm_user_tmpl {
-	id		xfrm_id
-	family		flags[socket_domain, int16]
-	saddr		xfrm_address
-	reqid		int32
-	mode		flags[xfrm_modes, int8]
-	share		flags[xfrm_policy_shares, int8]
-	optional	int8
-	aalgos		int32
-	ealgos		int32
-	calgos		int32
-}
-
-xfrm_modes = XFRM_MODE_TRANSPORT, XFRM_MODE_TUNNEL, XFRM_MODE_ROUTEOPTIMIZATION, XFRM_MODE_IN_TRIGGER, XFRM_MODE_BEET
-
-xfrm_id {
-	daddr	xfrm_address
-	spi	int32
-	proto	int8
-}
 
 ip_mreq {
 	imr_multiaddr	ipv4_addr

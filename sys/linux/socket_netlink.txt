@@ -10,13 +10,13 @@ include <uapi/linux/rtnetlink.h>
 resource sock_netlink[sock]
 
 socket$netlink(domain const[AF_NETLINK], type const[SOCK_RAW], proto flags[netlink_proto]) sock_netlink
-bind$netlink(fd sock_netlink, addr ptr[in, sockaddr_nl], addrlen len[addr])
+bind$netlink(fd sock_netlink, addr ptr[in, sockaddr_nl_proc], addrlen len[addr])
 connect$netlink(fd sock_netlink, addr ptr[in, sockaddr_nl], addrlen len[addr])
-getsockname$netlink(fd sock_netlink, addr ptr[out, sockaddr_nl], addrlen ptr[inout, len[addr, int32]])
-getpeername$netlink(fd sock_netlink, peer ptr[out, sockaddr_nl], peerlen ptr[inout, len[peer, int32]])
+getsockname$netlink(fd sock_netlink, addr ptr[out, sockaddr_nl_unspec], addrlen ptr[inout, len[addr, int32]])
+getpeername$netlink(fd sock_netlink, peer ptr[out, sockaddr_nl_unspec], peerlen ptr[inout, len[peer, int32]])
 sendmsg$netlink(fd sock_netlink, msg ptr[in, msghdr_netlink], f flags[send_flags])
-setsockopt$netlink_NETLINK_ADD_MEMBERSHIP(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_ADD_MEMBERSHIP], arg ptr[in, int32], arglen len[arg])
-setsockopt$netlink_NETLINK_DROP_MEMBERSHIP(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_DROP_MEMBERSHIP], arg ptr[in, int32], arglen len[arg])
+setsockopt$netlink_NETLINK_ADD_MEMBERSHIP(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_ADD_MEMBERSHIP], arg ptr[in, int32[0:31]], arglen len[arg])
+setsockopt$netlink_NETLINK_DROP_MEMBERSHIP(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_DROP_MEMBERSHIP], arg ptr[in, int32[0:31]], arglen len[arg])
 setsockopt$netlink_NETLINK_PKTINFO(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_PKTINFO], arg ptr[in, int32], arglen len[arg])
 setsockopt$netlink_NETLINK_BROADCAST_ERROR(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_BROADCAST_ERROR], arg ptr[in, int32], arglen len[arg])
 setsockopt$netlink_NETLINK_NO_ENOBUFS(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_NO_ENOBUFS], arg ptr[in, int32], arglen len[arg])
@@ -30,16 +30,42 @@ netlink_family = AF_NETLINK, AF_UNSPEC, AF_INET, AF_INET6, AF_BRIDGE, AF_MPLS, A
 netlink_proto = NETLINK_ROUTE, NETLINK_UNUSED, NETLINK_USERSOCK, NETLINK_FIREWALL, NETLINK_SOCK_DIAG, NETLINK_NFLOG, NETLINK_XFRM, NETLINK_SELINUX, NETLINK_ISCSI, NETLINK_AUDIT, NETLINK_FIB_LOOKUP, NETLINK_CONNECTOR, NETLINK_NETFILTER, NETLINK_IP6_FW, NETLINK_DNRTMSG, NETLINK_KOBJECT_UEVENT, NETLINK_GENERIC, NETLINK_SCSITRANSPORT, NETLINK_ECRYPTFS, NETLINK_RDMA, NETLINK_CRYPTO, NETLINK_INET_DIAG, NETLINK_SMC
 netlink_sockopts = NETLINK_ADD_MEMBERSHIP, NETLINK_DROP_MEMBERSHIP, NETLINK_PKTINFO, NETLINK_BROADCAST_ERROR, NETLINK_NO_ENOBUFS, NETLINK_RX_RING, NETLINK_TX_RING, NETLINK_LISTEN_ALL_NSID, NETLINK_LIST_MEMBERSHIPS, NETLINK_CAP_ACK
 netlink_msg_flags = NLM_F_REQUEST, NLM_F_MULTI, NLM_F_ACK, NLM_F_ECHO, NLM_F_DUMP_INTR, NLM_F_DUMP_FILTERED, NLM_F_ROOT, NLM_F_MATCH, NLM_F_ATOMIC, NLM_F_DUMP, NLM_F_REPLACE, NLM_F_EXCL, NLM_F_CREATE, NLM_F_APPEND
+netlink_group_bitmap = 0x0, 0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000, 0x10000, 0x20000, 0x40000, 0x80000, 0x100000, 0x200000, 0x400000, 0x800000, 0x1000000, 0x2000000, 0x4000000, 0x8000000, 0x10000000, 0x20000000, 0x40000000, 0x80000000
 
-sockaddr_nl {
-	family	const[AF_NETLINK, int16]
-	pad	const[0, int16]
-	pid	int32
-	groups	int32
+sockaddr_nl [
+	kern	sockaddr_nl_kern
+	proc	sockaddr_nl_proc
+	unspec	sockaddr_nl_unspec
+]
+
+sockaddr_nl_send [
+	kern	sockaddr_nl_kern
+	proc	sockaddr_nl_proc
+]
+
+sockaddr_nl_proc {
+	nl_family	const[AF_NETLINK, int16]
+	nl_pad		const[0, int16]
+	nl_pid		proc[635427835, 4, int32]
+	nl_groups	flags[netlink_group_bitmap, int32]
+}
+
+sockaddr_nl_kern {
+	nl_family	const[AF_NETLINK, int16]
+	nl_pad		const[0, int16]
+	nl_pid		const[0, int32]
+	nl_groups	flags[netlink_group_bitmap, int32]
+}
+
+sockaddr_nl_unspec {
+	nl_family	const[AF_UNSPEC, int16]
+	nl_pad		const[0, int16]
+	nl_pid		const[0, int32]
+	nl_groups	const[0, int32]
 }
 
 msghdr_netlink {
-	addr	ptr[in, sockaddr_nl, opt]
+	addr	ptr[in, sockaddr_nl_send, opt]
 	addrlen	len[addr, int32]
 	vec	ptr[in, array[iovec_nl]]
 	vlen	len[vec, intptr]
@@ -58,7 +84,7 @@ netlink_msg {
 	type	int16
 	flags	flags[netlink_msg_flags, int16]
 	seq	int32
-	pid	int32
+	pid	proc[635427835, 4, int32]
 	data	array[int8]
 } [align_4]
 
