@@ -1,0 +1,676 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_XFRM support.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/in.h>
+include <uapi/linux/xfrm.h>
+include <uapi/linux/ipsec.h>
+
+# TODO: policy id/index and reqid proc types must be marked as opt,
+# because 0 is good valid value as well (here and in socket_key.txt).
+# However, this is currently not supported.
+
+resource sock_nl_xfrm[sock_netlink]
+
+socket$nl_xfrm(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_XFRM]) sock_nl_xfrm
+
+sendmsg$nl_xfrm(fd sock_nl_xfrm, msg ptr[in, msghdr_nl_xfrm], f flags[send_flags])
+
+msghdr_nl_xfrm {
+	addr	ptr[in, sockaddr_nl_kern]
+	addrlen	len[addr, int32]
+	vec	ptr[in, iovec_nl_xfrm]
+	vlen	const[1, intptr]
+	ctrl	const[0, intptr]
+	ctrllen	const[0, intptr]
+	f	flags[send_flags, int32]
+}
+
+iovec_nl_xfrm {
+	data	ptr[in, netlink_msg_xfrm]
+	len	bytesize[data, intptr]
+}
+
+netlink_msg_xfrm [
+	generic		array[int8]
+	newsa		xfrm_newsa
+	delsa		xfrm_delsa
+	newpolicy	xfrm_newpolicy
+	delpolicy	xfrm_delpolicy
+	allocspi	xfrm_allocspi
+	acquire		xfrm_acquire
+	expire		xfrm_expire
+	polexpire	xfrm_polexpire
+	flushsa		xfrm_flushsa
+	report		xfrm_report
+	flushpolicy	xfrm_flushpolicy
+	newae		xfrm_newae
+	getsadinfo	xfrm_getsadinfo
+] [varlen]
+
+xfrm_newsa {
+	len	len[parent, int32]
+	type	flags[xfrm_newsa_msgs, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	msg	xfrm_usersa_info
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_newsa_msgs = XFRM_MSG_NEWSA, XFRM_MSG_UPDSA
+
+xfrm_usersa_info {
+	sel		xfrm_selector
+	id		xfrm_id
+	saddr		xfrm_address
+	lft		xfrm_lifetime_cfg
+	curlft		xfrm_lifetime_cur
+	stats		xfrm_stats
+	seq		proc[7388453, 8, int32]
+	reqid		proc[13567, 8, int32]
+	family		flags[xfrm_family, int16]
+	mode		flags[xfrm_mode, int8]
+	replay_window	int8
+	flags		flags[xfrm_state, int8]
+}
+
+xfrm_delsa {
+	len	len[parent, int32]
+	type	flags[xfrm_delsa_msgs, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	msg	xfrm_usersa_id
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_delsa_msgs = XFRM_MSG_DELSA, XFRM_MSG_GETSA
+
+xfrm_usersa_id {
+	daddr	xfrm_address
+	spi	proc[1234, 4, int32be]
+	family	flags[xfrm_family, int16]
+	proto	flags[xfrm_proto, int8]
+}
+
+xfrm_newpolicy {
+	len	len[parent, int32]
+	type	flags[xfrm_newpolicy_msgs, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	msg	xfrm_userpolicy_info
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_newpolicy_msgs = XFRM_MSG_NEWPOLICY, XFRM_MSG_UPDPOLICY
+
+xfrm_delpolicy {
+	len	len[parent, int32]
+	type	flags[xfrm_delpolicy_msgs, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	msg	xfrm_userpolicy_id
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_delpolicy_msgs = XFRM_MSG_DELPOLICY, XFRM_MSG_GETPOLICY, XFRM_MSG_MIGRATE
+
+xfrm_userpolicy_id {
+	sel	xfrm_selector
+	index	proc[7236528, 16, int32]
+	dir	flags[xfrm_policy_dir, int8]
+}
+
+xfrm_allocspi {
+	len	len[parent, int32]
+	type	const[XFRM_MSG_ALLOCSPI, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	msg	xfrm_userspi_info
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_userspi_info {
+	info	xfrm_usersa_info
+	min	int32
+	max	int32
+}
+
+xfrm_acquire {
+	len	len[parent, int32]
+	type	const[XFRM_MSG_ACQUIRE, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	msg	xfrm_user_acquire
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_user_acquire {
+	id	xfrm_id
+	saddr	xfrm_address
+	sel	xfrm_selector
+	policy	xfrm_userpolicy_info
+	aalgos	int32
+	ealgos	int32
+	calgo	int32
+	seq	proc[7388453, 8, int32]
+}
+
+xfrm_expire {
+	len	len[parent, int32]
+	type	const[XFRM_MSG_EXPIRE, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	msg	xfrm_user_expire
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_user_expire {
+	state	xfrm_usersa_info
+	hard	int8
+}
+
+xfrm_polexpire {
+	len	len[parent, int32]
+	type	const[XFRM_MSG_POLEXPIRE, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	msg	xfrm_user_polexpire
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_user_polexpire {
+	pol	xfrm_userpolicy_info
+	hard	int8
+}
+
+xfrm_flushsa {
+	len	len[parent, int32]
+	type	const[XFRM_MSG_FLUSHSA, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	msg	xfrm_usersa_flush
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_usersa_flush {
+	proto	flags[xfrm_proto, int8]
+}
+
+xfrm_report {
+	len	len[parent, int32]
+	type	const[XFRM_MSG_REPORT, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	msg	xfrm_user_report
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_user_report {
+	proto	flags[xfrm_proto, int8]
+	sel	xfrm_selector
+}
+
+xfrm_flushpolicy {
+	len	len[parent, int32]
+	type	const[XFRM_MSG_FLUSHPOLICY, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	int32
+	pid	proc[635427835, 4, int32]
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_newae {
+	len	len[parent, int32]
+	type	flags[xfrm_newae_msgs, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	data	xfrm_aevent_id
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_newae_msgs = XFRM_MSG_NEWAE, XFRM_MSG_GETAE
+
+xfrm_aevent_id {
+	sa_id	xfrm_usersa_id
+	saddr	xfrm_address
+	flags	int32
+	reqid	proc[13567, 8, int32]
+}
+
+xfrm_getsadinfo {
+	len	len[parent, int32]
+	type	flags[xfrm_newae_msgs, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	proc[7388453, 8, int32]
+	pid	proc[635427835, 4, int32]
+	data	int32
+	attrs	array[xfrm_attr]
+} [align_4]
+
+xfrm_getsadinfo_msgs = XFRM_MSG_GETSADINFO, XFRM_MSG_NEWSPDINFO, XFRM_MSG_GETSPDINFO
+
+xfrm_attr [
+	sa		xfrm_attr_sa
+	policy		xfrm_attr_policy
+	lastused	xfrm_attr_lastused
+	algo_auth_trunc	xfrm_attr_algo_auth_trunc
+	algo_aead	xfrm_attr_algo_aead
+	algo_auth	xfrm_attr_algo_auth
+	algo_crypt	xfrm_attr_algo_crypt
+	algo_comp	xfrm_attr_algo_comp
+	srcaddr		xfrm_attr_srcaddr
+	coaddr		xfrm_attr_coaddr
+	u32		xfrm_attr_u32
+	encap		xfrm_attr_encap
+	offload		xfrm_attr_offload
+	sec_ctx		xfrm_attr_sec_ctx
+	lifetime_val	xfrm_attr_lifetime_val
+	tmpl		xfrm_attr_tmpl
+	replay_val	xfrm_attr_replay_val
+	replay_esn_val	xfrm_attr_replay_esn_val
+	policy_type	xfrm_attr_policy_type
+	migrate		xfrm_attr_migrate
+	user_kmaddress	xfrm_attr_user_kmaddress
+	mark		xfrm_attr_mark
+	proto		xfrm_attr_proto
+	address_filter	xfrm_attr_address_filter
+	ipv4_hthresh	xfrm_attr_ipv4_hthresh
+	ipv6_hthresh	xfrm_attr_ipv6_hthresh
+] [varlen]
+
+xfrm_attr_sa {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_SA, int16]
+	data		xfrm_usersa_info
+} [align_4]
+
+xfrm_attr_policy {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_POLICY, int16]
+	data		xfrm_userpolicy_info
+} [align_4]
+
+xfrm_attr_lastused {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_LASTUSED, int16]
+	data		int64
+} [align_4]
+
+xfrm_attr_algo_auth_trunc {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_ALG_AUTH_TRUNC, int16]
+	data		xfrm_algo_auth
+} [align_4]
+
+xfrm_attr_algo_aead {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_ALG_AEAD, int16]
+	data		xfrm_algo_aead
+} [align_4]
+
+xfrm_attr_algo_auth {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_ALG_AUTH, int16]
+	data		xfrm_algo_hash
+} [align_4]
+
+xfrm_attr_algo_crypt {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_ALG_CRYPT, int16]
+	data		xfrm_algo_blkcipher
+} [align_4]
+
+xfrm_attr_algo_comp {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_ALG_COMP, int16]
+	data		xfrm_algo_compress
+} [align_4]
+
+xfrm_attr_srcaddr {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_SRCADDR, int16]
+	data		xfrm_address
+} [align_4]
+
+xfrm_attr_coaddr {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_COADDR, int16]
+	data		xfrm_address
+} [align_4]
+
+xfrm_attr_u32 {
+	nla_len		len[parent, int16]
+	nla_type	flags[xfrm_attr_u32s, int16]
+	data		int32
+} [align_4]
+
+xfrm_attr_u32s = XFRMA_SA_EXTRA_FLAGS, XFRMA_TFCPAD, XFRMA_REPLAY_THRESH, XFRMA_ETIMER_THRESH, XFRMA_OUTPUT_MARK
+
+xfrm_attr_encap {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_ENCAP, int16]
+	data		xfrm_encap_tmpl
+} [align_4]
+
+xfrm_encap_tmpl {
+# TODO: what's this?
+	encap_type	int16
+	encap_sport	proc[20000, 4, int16be]
+	encap_dport	proc[20000, 4, int16be]
+	encap_oa	xfrm_address
+}
+
+xfrm_attr_offload {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_OFFLOAD_DEV, int16]
+	data		xfrm_user_offload
+} [align_4]
+
+xfrm_user_offload {
+# TODO: replace int32 with ifindex once I figure out how to get ifindex'es
+	ifindex	int32
+	flags	flags[xfrm_offload_flags, int8]
+}
+
+xfrm_offload_flags = XFRM_OFFLOAD_IPV6, XFRM_OFFLOAD_INBOUND
+
+xfrm_attr_sec_ctx {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_SEC_CTX, int16]
+# TODO: is this xfrm_sec_ctx or xfrm_user_sec_ctx? comments say first, but code seem to expect the second.
+	data		xfrm_user_sec_ctx
+} [align_4]
+
+xfrm_user_sec_ctx {
+	len	len[parent, int16]
+	exttype	const[XFRMA_SEC_CTX, int16]
+	ctx_alg	flags[xfrm_sec_ctx_alg, int8]
+	ctx_doi	int8
+	ctx_len	len[payload, int16]
+# TODO: what's this?
+	payload	array[int8]
+}
+
+xfrm_sec_ctx_alg = XFRM_SC_ALG_SELINUX
+
+xfrm_attr_lifetime_val {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_LTIME_VAL, int16]
+	data		xfrm_lifetime_cur
+} [align_4]
+
+xfrm_attr_tmpl {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_TMPL, int16]
+	data		array[xfrm_user_tmpl]
+} [align_4]
+
+xfrm_attr_replay_val {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_REPLAY_VAL, int16]
+	data		xfrm_replay_state
+} [align_4]
+
+xfrm_replay_state {
+	oseq	proc[7388453, 8, int32]
+	seq	proc[7388453, 8, int32]
+	bitmap	int32
+}
+
+xfrm_attr_replay_esn_val {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_REPLAY_ESN_VAL, int16]
+	data		xfrm_replay_state_esn
+} [align_4]
+
+xfrm_replay_state_esn {
+	bmp_len		len[bmp, int32]
+	oseq		proc[7388453, 8, int32]
+	seq		proc[7388453, 8, int32]
+	oseq_hi		proc[7388453, 8, int32]
+	seq_hi		proc[7388453, 8, int32]
+	replay_window	int32
+	bmp		array[int32]
+}
+
+xfrm_attr_policy_type {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_POLICY_TYPE, int16]
+	data		xfrm_userpolicy_type
+} [align_4]
+
+xfrm_userpolicy_type {
+	type		flags[xfrm_policy_types, int8]
+	reserved1	const[0, int16]
+	reserved2	const[0, int8]
+}
+
+xfrm_attr_migrate {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_MIGRATE, int16]
+	data		array[xfrm_user_migrate]
+} [align_4]
+
+xfrm_user_migrate {
+	old_daddr	xfrm_address
+	new_saddr	xfrm_address
+# TODO: what proto is this? all or only xfrm_proto's?
+	proto		flags[ipv6_types, int8]
+	mode		int8
+	reserved	const[0, int16]
+	reqid		proc[13567, 8, int32]
+	old_family	flags[xfrm_family, int16]
+	new_family	flags[xfrm_family, int16]
+}
+
+xfrm_attr_user_kmaddress {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_KMADDRESS, int16]
+	data		xfrm_user_kmaddress
+} [align_4]
+
+xfrm_user_kmaddress {
+	local		xfrm_address
+	remote		xfrm_address
+	reserved	const[0, int32]
+	family		flags[xfrm_family, int16]
+}
+
+xfrm_attr_mark {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_MARK, int16]
+	data		xfrm_mark
+} [align_4]
+
+xfrm_mark {
+	v	proc[3475289, 4, int32]
+	m	int32
+}
+
+xfrm_attr_proto {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_PROTO, int16]
+	data		flags[xfrm_proto, int8]
+} [align_4]
+
+xfrm_attr_address_filter {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_ADDRESS_FILTER, int16]
+	data		xfrm_address_filter
+} [align_4]
+
+xfrm_address_filter {
+	saddr	xfrm_address
+	daddr	xfrm_address
+	family	flags[xfrm_family, int16]
+	splen	int8
+	dplen	int8
+}
+
+xfrm_attr_ipv4_hthresh {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_SPD_IPV4_HTHRESH, int16]
+	data		xfrmu_spdhthresh4
+} [align_4]
+
+xfrmu_spdhthresh4 {
+	lbits	int8[0:32]
+	rbits	int8[0:32]
+}
+
+xfrm_attr_ipv6_hthresh {
+	nla_len		len[parent, int16]
+	nla_type	const[XFRMA_SPD_IPV6_HTHRESH, int16]
+	data		xfrmu_spdhthresh6
+} [align_4]
+
+xfrmu_spdhthresh6 {
+	lbits	int8[0:128]
+	rbits	int8[0:128]
+}
+
+xfrm_selector {
+	daddr		xfrm_address
+	saddr		xfrm_address
+	dport		proc[20000, 4, int16be]
+# TODO: dport_mask/sport_mask are some be16, what should we pass here?
+	dport_mask	int16
+	sport		proc[20000, 4, int16be]
+	sport_mask	int16
+	family		flags[xfrm_family, int16]
+	prefixlen_d	flags[xfrm_prefixlens, int8]
+	prefixlen_s	flags[xfrm_prefixlens, int8]
+	proto		flags[ipv6_types, int8]
+# TODO: pass real ifindex or 0 (but ifindex is hard to get)
+	ifindex		int32
+	user		uid
+}
+
+xfrm_lifetime_cfg {
+	soft_byte_limit			int64
+	hard_byte_limit			int64
+	soft_packet_limit		int64
+	hard_packet_limit		int64
+	soft_add_expires_seconds	int64
+	hard_add_expires_seconds	int64
+	soft_use_expires_seconds	int64
+	hard_use_expires_seconds	int64
+}
+
+xfrm_lifetime_cur {
+	bytes		int64
+	packets		int64
+	add_time	int64
+	use_time	int64
+}
+
+xfrm_stats {
+	replay_window		int32
+	replay			int32
+	integrity_failed	int32
+}
+
+xfrm_algo_hash {
+	alg_name	alg_hash_name
+# TODO: alg_key_len is actually in _bits_.
+	alg_key_len	bytesize[alg_key, int32]
+	alg_key		array[int8]
+}
+
+xfrm_algo_blkcipher {
+	alg_name	alg_blkcipher_name
+# TODO: alg_key_len is actually in _bits_.
+	alg_key_len	bytesize[alg_key, int32]
+	alg_key		array[int8]
+}
+
+xfrm_algo_compress {
+	alg_name	alg_compress_name
+# TODO: alg_key_len is actually in _bits_.
+	alg_key_len	bytesize[alg_key, int32]
+	alg_key		array[int8]
+}
+
+xfrm_algo_auth {
+	alg_name	alg_hash_name
+# TODO: alg_key_len is actually in _bits_.
+	alg_key_len	bytesize[alg_key, int32]
+	alg_icv_len	flags[xfrm_algo_truncbits, int32]
+	alg_key		array[int8]
+}
+
+xfrm_algo_aead {
+	alg_name	alg_aead_name
+# TODO: alg_key_len is actually in _bits_.
+	alg_key_len	bytesize[alg_key, int32]
+	alg_icv_len	flags[xfrm_algo_truncbits, int32]
+	alg_key		array[int8]
+}
+
+xfrm_algo_truncbits = 0, 64, 96, 128, 160, 192, 256, 384, 512
+
+xfrm_id {
+	daddr	xfrm_address
+	spi	proc[1234, 4, int32be]
+	proto	flags[xfrm_proto, int8]
+}
+
+xfrm_address [
+	in	ipv4_addr
+	in6	ipv6_addr
+]
+
+xfrm_filter {
+	info	xfrm_userpolicy_info
+	tmpl	xfrm_user_tmpl
+}
+
+xfrm_userpolicy_info {
+	sel		xfrm_selector
+	lft		xfrm_lifetime_cfg
+	curlft		xfrm_lifetime_cur
+	priority	int32
+	index		proc[7236528, 16, int32]
+	dir		flags[xfrm_policy_dir, int8]
+	action		flags[xfrm_policy_actions, int8]
+	flags		flags[xfrm_policy_flags, int8]
+	share		flags[xfrm_policy_shares, int8]
+}
+
+xfrm_user_tmpl {
+	id		xfrm_id
+	family		flags[xfrm_family, int16]
+	saddr		xfrm_address
+	reqid		proc[13567, 8, int32]
+	mode		flags[xfrm_mode, int8]
+	share		flags[xfrm_policy_shares, int8]
+	optional	int8
+	aalgos		int32
+	ealgos		int32
+	calgos		int32
+}
+
+xfrm_mode = XFRM_MODE_TRANSPORT, XFRM_MODE_TUNNEL, XFRM_MODE_ROUTEOPTIMIZATION, XFRM_MODE_IN_TRIGGER, XFRM_MODE_BEET
+xfrm_state = XFRM_STATE_NOECN, XFRM_STATE_DECAP_DSCP, XFRM_STATE_NOPMTUDISC, XFRM_STATE_WILDRECV, XFRM_STATE_ICMP, XFRM_STATE_AF_UNSPEC, XFRM_STATE_ALIGN4, XFRM_STATE_ESN
+xfrm_family = AF_INET, AF_INET6
+xfrm_proto = IPPROTO_AH, IPPROTO_ESP, IPPROTO_COMP, IPPROTO_DSTOPTS, IPPROTO_ROUTING, IPSEC_PROTO_ANY
+xfrm_policy_types = XFRM_POLICY_TYPE_MAIN, XFRM_POLICY_TYPE_SUB
+xfrm_policy_actions = XFRM_POLICY_ALLOW, XFRM_POLICY_BLOCK
+xfrm_policy_flags = XFRM_POLICY_LOCALOK, XFRM_POLICY_ICMP
+xfrm_policy_shares = XFRM_SHARE_ANY, XFRM_SHARE_SESSION, XFRM_SHARE_USER, XFRM_SHARE_UNIQUE
+xfrm_policy_dir = XFRM_POLICY_IN, XFRM_POLICY_OUT, XFRM_POLICY_FWD
+xfrm_prefixlens = 32, 128

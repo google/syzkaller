@@ -22,10 +22,8 @@ func (arch *arch) generateSockaddrAlg(g *prog.Gen, typ *prog.StructType, old *pr
 	}
 	algType, algName := generateAlgName(g.Rand())
 	// Extend/truncate type/name to their fixed sizes.
-	typeSize := typ.Fields[1].Size()
-	algTypeData := append([]byte(algType), make([]byte, typeSize)...)[:typeSize]
-	nameSize := typ.Fields[4].Size()
-	algNameData := append([]byte(algName), make([]byte, nameSize)...)[:nameSize]
+	algTypeData := fixedSizeData(algType, typ.Fields[1].Size())
+	algNameData := fixedSizeData(algName, typ.Fields[4].Size())
 	arg = prog.MakeGroupArg(typ, []prog.Arg{
 		family,
 		prog.MakeDataArg(typ.Fields[1], algTypeData),
@@ -36,11 +34,27 @@ func (arch *arch) generateSockaddrAlg(g *prog.Gen, typ *prog.StructType, old *pr
 	return
 }
 
+func (arch *arch) generateAlgAeadName(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (
+	arg prog.Arg, calls []*prog.Call) {
+	return arch.generateAlgName(g, typ, ALG_AEAD)
+}
+
 func (arch *arch) generateAlgHashName(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (
 	arg prog.Arg, calls []*prog.Call) {
-	algName := generateAlg(g.Rand(), ALG_HASH)
+	return arch.generateAlgName(g, typ, ALG_HASH)
+}
+
+func (arch *arch) generateAlgBlkcipherhName(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (
+	arg prog.Arg, calls []*prog.Call) {
+	return arch.generateAlgName(g, typ, ALG_BLKCIPHER)
+}
+
+func (arch *arch) generateAlgName(g *prog.Gen, typ *prog.StructType, algTyp int) (
+	arg prog.Arg, calls []*prog.Call) {
+	algName := generateAlg(g.Rand(), algTyp)
+	algNameData := fixedSizeData(algName, typ.Fields[0].Size())
 	arg = prog.MakeGroupArg(typ, []prog.Arg{
-		prog.MakeDataArg(typ.Fields[0], []byte(algName)),
+		prog.MakeDataArg(typ.Fields[0], algNameData),
 	})
 	return
 }
@@ -70,6 +84,10 @@ func generateAlgImpl(rnd *rand.Rand, alg algDesc) string {
 		args += ")"
 	}
 	return alg.name + args
+}
+
+func fixedSizeData(str string, sz uint64) []byte {
+	return append([]byte(str), make([]byte, sz)...)[:sz]
 }
 
 type algType struct {
