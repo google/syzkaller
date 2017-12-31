@@ -137,6 +137,12 @@ mutate3(&(0x7f0000000000)=[0x1, 0x1], 0x2)
 mmap(&(0x7f0000000000/0x1000)=nil, 0x1000)
 mutate3(&(0x7f0000000000)=[0x1, 0x1, 0x1], 0x3)
 `},
+		// Mutate size from it's natural value.
+		{`
+mutate7(&(0x7f0000000000)='123', 0x3)
+`, `
+mutate7(&(0x7f0000000000)='123', 0x2)
+`},
 	}
 	for ti, test := range tests {
 		test := test
