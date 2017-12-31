@@ -2,7 +2,7 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "c26bf7b88409b952bbd71df82a0fd04fba60a218"
+#define SYZ_REVISION "7818e99d04363f7512ea779e1f23a9cefa08c7ea"
 
 unsigned syscall_count = 254;
 call_t syscalls[] = {
