@@ -13,23 +13,23 @@ func (target *Target) generateSize(arg Arg, lenType *LenType) uint64 {
 		return 0
 	}
 
-	byteSize := lenType.ByteSize
-	if byteSize == 0 {
-		byteSize = 1
+	bitSize := lenType.BitSize
+	if bitSize == 0 {
+		bitSize = 8
 	}
 	switch arg.Type().(type) {
 	case *VmaType:
 		a := arg.(*PointerArg)
-		return a.PagesNum * target.PageSize / byteSize
+		return a.PagesNum * target.PageSize * 8 / bitSize
 	case *ArrayType:
 		a := arg.(*GroupArg)
-		if lenType.ByteSize != 0 {
-			return a.Size() / byteSize
+		if lenType.BitSize != 0 {
+			return a.Size() * 8 / bitSize
 		} else {
 			return uint64(len(a.Inner))
 		}
 	default:
-		return arg.Size() / byteSize
+		return arg.Size() * 8 / bitSize
 	}
 }
 
@@ -59,8 +59,8 @@ func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg) {
 
 			if typ.Buf == "parent" {
 				a.Val = parentsMap[arg].Size()
-				if typ.ByteSize != 0 {
-					a.Val /= typ.ByteSize
+				if typ.BitSize != 0 {
+					a.Val = a.Val * 8 / typ.BitSize
 				}
 				continue
 			}
@@ -69,8 +69,8 @@ func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg) {
 			for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
 				if typ.Buf == parent.Type().Name() {
 					a.Val = parent.Size()
-					if typ.ByteSize != 0 {
-						a.Val /= typ.ByteSize
+					if typ.BitSize != 0 {
+						a.Val = a.Val * 8 / typ.BitSize
 					}
 					sizeAssigned = true
 					break
@@ -109,7 +109,7 @@ func (target *Target) assignSizesCall(c *Call) {
 
 func (r *randGen) mutateSize(arg *ConstArg, parent []Arg) bool {
 	typ := arg.Type().(*LenType)
-	elemSize := typ.ByteSize
+	elemSize := typ.BitSize / 8
 	if elemSize == 0 {
 		elemSize = 1
 		for _, field := range parent {

@@ -149,24 +149,27 @@ var typeArray = &typeDesc{
 }
 
 var typeLen = &typeDesc{
-	Names:     []string{"len", "bytesize", "bytesize2", "bytesize4", "bytesize8"},
+	Names:     []string{"len", "bytesize", "bytesize2", "bytesize4", "bytesize8", "bitsize"},
 	CanBeArg:  true,
 	CantBeOpt: true,
 	CantBeRet: true,
 	NeedBase:  true,
 	Args:      []namedArg{{"len target", typeArgLenTarget}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		var byteSize uint64
+		var bitSize uint64
 		switch t.Ident {
 		case "bytesize":
-			byteSize = 1
+			bitSize = 8
 		case "bytesize2", "bytesize4", "bytesize8":
-			byteSize, _ = strconv.ParseUint(t.Ident[8:], 10, 8)
+			byteSize, _ := strconv.ParseUint(t.Ident[8:], 10, 8)
+			bitSize = byteSize * 8
+		case "bitsize":
+			bitSize = 1
 		}
 		return &prog.LenType{
 			IntTypeCommon: base,
 			Buf:           args[0].Ident,
-			ByteSize:      byteSize,
+			BitSize:       bitSize,
 		}
 	},
 }

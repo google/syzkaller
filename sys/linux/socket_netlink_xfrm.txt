@@ -586,37 +586,32 @@ xfrm_stats {
 
 xfrm_algo_hash {
 	alg_name	alg_hash_name
-# TODO: alg_key_len is actually in _bits_.
-	alg_key_len	bytesize[alg_key, int32]
+	alg_key_len	bitsize[alg_key, int32]
 	alg_key		array[int8]
 }
 
 xfrm_algo_blkcipher {
 	alg_name	alg_blkcipher_name
-# TODO: alg_key_len is actually in _bits_.
-	alg_key_len	bytesize[alg_key, int32]
+	alg_key_len	bitsize[alg_key, int32]
 	alg_key		array[int8]
 }
 
 xfrm_algo_compress {
 	alg_name	alg_compress_name
-# TODO: alg_key_len is actually in _bits_.
-	alg_key_len	bytesize[alg_key, int32]
+	alg_key_len	bitsize[alg_key, int32]
 	alg_key		array[int8]
 }
 
 xfrm_algo_auth {
 	alg_name	alg_hash_name
-# TODO: alg_key_len is actually in _bits_.
-	alg_key_len	bytesize[alg_key, int32]
+	alg_key_len	bitsize[alg_key, int32]
 	alg_icv_len	flags[xfrm_algo_truncbits, int32]
 	alg_key		array[int8]
 }
 
 xfrm_algo_aead {
 	alg_name	alg_aead_name
-# TODO: alg_key_len is actually in _bits_.
-	alg_key_len	bytesize[alg_key, int32]
+	alg_key_len	bitsize[alg_key, int32]
 	alg_icv_len	flags[xfrm_algo_truncbits, int32]
 	alg_key		array[int8]
 }

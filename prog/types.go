@@ -163,8 +163,8 @@ type FlagsType struct {
 
 type LenType struct {
 	IntTypeCommon
-	ByteSize uint64 // want size in multiple of bytes instead of array size
-	Buf      string
+	BitSize uint64 // want size in multiple of bits instead of array size
+	Buf     string
 }
 
 type ProcType struct {

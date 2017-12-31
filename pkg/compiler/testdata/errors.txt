@@ -113,6 +113,7 @@ foo$48(a ptr[in, int32:7])	### unexpected ':', only struct fields can be bitfiel
 foo$49(a ptr[in, array[int32, 0:1]])
 foo$50(a ptr[in, array[int32, 0]])	### arrays of size 0 are not supported
 foo$51(a ptr[in, array[int32, 0:0]])	### arrays of size 0 are not supported
+foo$52(a intptr, b bitsize[a])
 
 opt {				### struct uses reserved name opt
 	f1	int32

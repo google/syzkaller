@@ -201,6 +201,8 @@ syz_test$length18(a0 ptr[in, syz_length_bytesize3_struct])
 syz_test$length19(a0 ptr[in, syz_length_bf_struct])
 
 syz_test$length20(a0 ptr[in, syz_length_parent2_struct])
+syz_test$length21(a0 ptr[in, int64], a1 bitsize[a0])
+syz_test$length22(a0 ptr[in, array[int8]], a1 bitsize[a0])
 
 syz_length_flags = 0, 1
 

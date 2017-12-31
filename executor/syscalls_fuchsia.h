@@ -2,7 +2,7 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "5a8e70818b54cb32826aacef1b4b176d34b5c768"
+#define SYZ_REVISION "d1a74d40e02771f6399a374679034682c8ecbdc3"
 #define __NR_syz_future_time 1000000
 #define __NR_syz_job_default 1000001
 #define __NR_syz_mmap 1000002
@@ -182,7 +182,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "181d2b70232bd5b7de2d6d08ad038157ec35803f"
+#define SYZ_REVISION "9de829ecfc5d04c9695768a74a20b0e66d818650"
 #define __NR_syz_future_time 1000000
 #define __NR_syz_job_default 1000001
 #define __NR_syz_mmap 1000002

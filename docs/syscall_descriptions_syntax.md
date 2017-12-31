@@ -9,7 +9,7 @@ argname = identifier
 type = typename [ "[" type-options "]" ]
 typename = "const" | "intN" | "intptr" | "flags" | "array" | "ptr" |
 	   "buffer" | "string" | "strconst" | "filename" | "len" |
-	   "bytesize" | "vma" | "proc"
+	   "bytesize" | "bytesizeN" | "bitsize" | "vma" | "proc"
 type-options = [type-opt ["," type-opt]]
 ```
 
@@ -44,6 +44,8 @@ rest of the type-options are type-specific:
 "len": length of another field (for array it is number of elements), type-options:
 	argname of the object
 "bytesize": similar to "len", but always denotes the size in bytes, type-options:
+	argname of the object
+"bitsize": similar to "len", but always denotes the size in bits, type-options:
 	argname of the object
 "vma": a pointer to a set of pages (used as input for mmap/munmap/mremap/madvise), type-options:
 	optional number of pages (e.g. vma[7]), or a range of pages (e.g. vma[2-4])
@@ -137,7 +139,7 @@ listen(fd sock, backlog int32)
 
 ## Length
 
-You can specify length of a particular field in struct or a named argument by using `len` and `bytesize` types, for example:
+You can specify length of a particular field in struct or a named argument by using `len`, `bytesize` and `bitsize` types, for example:
 
 ```
 write(fd fd, buf buffer[in], count len[buf]) len[buf]

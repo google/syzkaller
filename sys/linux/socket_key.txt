@@ -98,8 +98,7 @@ sadb_address_addr [
 sadb_key {
 	sadb_len		bytesize8[parent, int16]
 	sadb_exttype		flags[sadb_key_type, int16]
-# TODO: length in bits	
-	sadb_key_bits		len[key, int16]
+	sadb_key_bits		bitsize[key, int16]
 	sadb_key_reserved	const[0, int16]
 	key			array[int8]
 } [packed, align_8]
