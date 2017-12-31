@@ -239,6 +239,11 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		if !ok || v == nil {
 			return nil, fmt.Errorf("result %v references unknown variable (vars=%+v)", id, vars)
 		}
+		if _, ok := v.(ArgUsed); !ok {
+			// TODO(dvyukov): this happens during loading of old programs.
+			// Figure out when exactly this happens and if it is repairable.
+			return nil, fmt.Errorf("result %v references vad type %#v", id, v)
+		}
 		arg = MakeResultArg(typ, v, 0)
 		if p.Char() == '/' {
 			p.Parse('/')
