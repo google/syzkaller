@@ -9,10 +9,6 @@ include <uapi/linux/in.h>
 include <uapi/linux/xfrm.h>
 include <uapi/linux/ipsec.h>
 
-# TODO: policy id/index and reqid proc types must be marked as opt,
-# because 0 is good valid value as well (here and in socket_key.txt).
-# However, this is currently not supported.
-
 resource sock_nl_xfrm[sock_netlink]
 
 socket$nl_xfrm(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_XFRM]) sock_nl_xfrm
@@ -71,7 +67,7 @@ xfrm_usersa_info {
 	curlft		xfrm_lifetime_cur
 	stats		xfrm_stats
 	seq		proc[7388453, 8, int32]
-	reqid		proc[13567, 8, int32]
+	reqid		proc[13567, 8, int32, opt]
 	family		flags[xfrm_family, int16]
 	mode		flags[xfrm_mode, int8]
 	replay_window	int8
@@ -123,7 +119,7 @@ xfrm_delpolicy_msgs = XFRM_MSG_DELPOLICY, XFRM_MSG_GETPOLICY, XFRM_MSG_MIGRATE
 
 xfrm_userpolicy_id {
 	sel	xfrm_selector
-	index	proc[7236528, 16, int32]
+	index	proc[7236528, 16, int32, opt]
 	dir	flags[xfrm_policy_dir, int8]
 }
 
@@ -248,7 +244,7 @@ xfrm_aevent_id {
 	sa_id	xfrm_usersa_id
 	saddr	xfrm_address
 	flags	int32
-	reqid	proc[13567, 8, int32]
+	reqid	proc[13567, 8, int32, opt]
 }
 
 xfrm_getsadinfo {
@@ -472,7 +468,7 @@ xfrm_user_migrate {
 	proto		flags[ipv6_types, int8]
 	mode		int8
 	reserved	const[0, int16]
-	reqid		proc[13567, 8, int32]
+	reqid		proc[13567, 8, int32, opt]
 	old_family	flags[xfrm_family, int16]
 	new_family	flags[xfrm_family, int16]
 }
@@ -639,7 +635,7 @@ xfrm_userpolicy_info {
 	lft		xfrm_lifetime_cfg
 	curlft		xfrm_lifetime_cur
 	priority	int32
-	index		proc[7236528, 16, int32]
+	index		proc[7236528, 16, int32, opt]
 	dir		flags[xfrm_policy_dir, int8]
 	action		flags[xfrm_policy_actions, int8]
 	flags		flags[xfrm_policy_flags, int8]
@@ -650,7 +646,7 @@ xfrm_user_tmpl {
 	id		xfrm_id
 	family		flags[xfrm_family, int16]
 	saddr		xfrm_address
-	reqid		proc[13567, 8, int32]
+	reqid		proc[13567, 8, int32, opt]
 	mode		flags[xfrm_mode, int8]
 	share		flags[xfrm_policy_shares, int8]
 	optional	int8

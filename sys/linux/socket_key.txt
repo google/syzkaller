@@ -126,7 +126,7 @@ sadb_x_policy {
 	sadb_x_policy_type	int16[IPSEC_POLICY_DISCARD:IPSEC_POLICY_BYPASS]
 	sadb_x_policy_dir	flags[ipsec_policy_dir, int8]
 	sadb_x_policy_reserved	const[0, int8]
-	sadb_x_policy_id	proc[7236528, 16, int32]
+	sadb_x_policy_id	proc[7236528, 16, int32, opt]
 	sadb_x_policy_priority	int32
 	policy			sadb_x_ipsecrequest
 } [packed, align_8]
@@ -150,7 +150,7 @@ sadb_x_sa2 {
 	sadb_x_sa2_reserved1	const[0, int8]
 	sadb_x_sa2_reserved2	const[0, int16]
 	sadb_x_sa2_sequence	proc[7388453, 8, int32]
-	sadb_x_sa2_reqid	proc[13567, 8, int32]
+	sadb_x_sa2_reqid	proc[13567, 8, int32, opt]
 } [packed, align_8]
 
 sadb_x_nat_t_type {

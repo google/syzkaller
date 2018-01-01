@@ -173,6 +173,11 @@ type ProcType struct {
 	ValuesPerProc uint64
 }
 
+func (t *ProcType) Default() uint64 {
+	// Special value denoting 0 for all procs.
+	return 0xffffffffffffffff
+}
+
 type CsumKind int
 
 const (

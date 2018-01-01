@@ -15,6 +15,7 @@ syz_test$int(a0 intptr, a1 int8, a2 int16, a3 int32, a4 int64)
 syz_test$opt0(a0 intptr[opt])
 syz_test$opt1(a0 ptr[in, intptr, opt])
 syz_test$opt2(a0 vma[opt])
+syz_test$opt3(a0 proc[100, 4, opt])
 
 # Alignment and padding
 
@@ -556,6 +557,7 @@ mutate4(data ptr[in, array[int8]], size bytesize[data])
 mutate5(filename ptr[in, filename], flags flags[open_flags]) fd
 mutate6(fd fd, data ptr[in, array[int8]], size bytesize[data])
 mutate7(a0 ptr[in, string], a1 len[a0])
+mutate8(a0 proc[100, 4, opt])
 
 open_flags = 0xabababababababab, 0xcdcdcdcdcdcdcdcd
 

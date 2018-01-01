@@ -143,6 +143,12 @@ mutate7(&(0x7f0000000000)='123', 0x3)
 `, `
 mutate7(&(0x7f0000000000)='123', 0x2)
 `},
+		// Mutate proc to the special value.
+		{`
+mutate8(0x2)
+`, `
+mutate8(0xffffffffffffffff)
+`},
 	}
 	for ti, test := range tests {
 		test := test
