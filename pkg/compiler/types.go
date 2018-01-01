@@ -334,11 +334,10 @@ func genCsumKind(t *ast.Type) prog.CsumKind {
 }
 
 var typeProc = &typeDesc{
-	Names:     []string{"proc"},
-	CanBeArg:  true,
-	CantBeOpt: true,
-	NeedBase:  true,
-	Args:      []namedArg{{"range start", typeArgInt}, {"per-proc values", typeArgInt}},
+	Names:    []string{"proc"},
+	CanBeArg: true,
+	NeedBase: true,
+	Args:     []namedArg{{"range start", typeArgInt}, {"per-proc values", typeArgInt}},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		start := args[0].Value
 		perProc := args[1].Value

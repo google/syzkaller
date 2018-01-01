@@ -112,7 +112,7 @@ func (c *Call) validate(ctx *validCtx) error {
 		case *ProcType:
 			switch a := arg.(type) {
 			case *ConstArg:
-				if a.Val >= typ1.ValuesPerProc {
+				if a.Val >= typ1.ValuesPerProc && a.Val != typ1.Default() {
 					return fmt.Errorf("syscall %v: per proc arg '%v' has bad value '%v'", c.Meta.Name, a.Type().Name(), a.Val)
 				}
 			default:

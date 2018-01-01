@@ -81,6 +81,9 @@ func (arg *ConstArg) Value() (uint64, uint64, bool) {
 		t := typ.Desc.Type.(*IntType)
 		return arg.Val, 0, t.BigEndian
 	case *ProcType:
+		if arg.Val == typ.Default() {
+			return 0, 0, false
+		}
 		return typ.ValuesStart + arg.Val, typ.ValuesPerProc, typ.BigEndian
 	default:
 		panic(fmt.Sprintf("unknown ConstArg type %#v", typ))

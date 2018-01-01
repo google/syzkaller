@@ -114,6 +114,7 @@ foo$49(a ptr[in, array[int32, 0:1]])
 foo$50(a ptr[in, array[int32, 0]])	### arrays of size 0 are not supported
 foo$51(a ptr[in, array[int32, 0:0]])	### arrays of size 0 are not supported
 foo$52(a intptr, b bitsize[a])
+foo$53(a proc[20, 10, opt])
 
 opt {				### struct uses reserved name opt
 	f1	int32

@@ -2,10 +2,10 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "cedc2016e286bbf40c6139517be44a4da4597d76"
+#define SYZ_REVISION "bdaa89c6378138891b16bdae7dc50da273a1fa6f"
 #define __NR_syz_test 1000000
 
-unsigned syscall_count = 79;
+unsigned syscall_count = 81;
 call_t syscalls[] = {
 	{"mmap", 0, (syscall_t)mmap},
 	{"mutate0", 0, (syscall_t)mutate0},
@@ -16,6 +16,7 @@ call_t syscalls[] = {
 	{"mutate5", 0, (syscall_t)mutate5},
 	{"mutate6", 0, (syscall_t)mutate6},
 	{"mutate7", 0, (syscall_t)mutate7},
+	{"mutate8", 0, (syscall_t)mutate8},
 	{"serialize0", 0, (syscall_t)serialize0},
 	{"serialize1", 0, (syscall_t)serialize1},
 	{"syz_test", 1000000, (syscall_t)syz_test},
@@ -69,6 +70,7 @@ call_t syscalls[] = {
 	{"syz_test$opt0", 1000000, (syscall_t)syz_test},
 	{"syz_test$opt1", 1000000, (syscall_t)syz_test},
 	{"syz_test$opt2", 1000000, (syscall_t)syz_test},
+	{"syz_test$opt3", 1000000, (syscall_t)syz_test},
 	{"syz_test$recur0", 1000000, (syscall_t)syz_test},
 	{"syz_test$recur1", 1000000, (syscall_t)syz_test},
 	{"syz_test$recur2", 1000000, (syscall_t)syz_test},
@@ -92,10 +94,10 @@ call_t syscalls[] = {
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "ffa97db9c46ed8fe481729806726c7dc313618e2"
+#define SYZ_REVISION "1a34f1204c41f7e31560335cd00119045c30dd16"
 #define __NR_syz_test 1000000
 
-unsigned syscall_count = 79;
+unsigned syscall_count = 81;
 call_t syscalls[] = {
 	{"mmap", 0, (syscall_t)mmap},
 	{"mutate0", 0, (syscall_t)mutate0},
@@ -106,6 +108,7 @@ call_t syscalls[] = {
 	{"mutate5", 0, (syscall_t)mutate5},
 	{"mutate6", 0, (syscall_t)mutate6},
 	{"mutate7", 0, (syscall_t)mutate7},
+	{"mutate8", 0, (syscall_t)mutate8},
 	{"serialize0", 0, (syscall_t)serialize0},
 	{"serialize1", 0, (syscall_t)serialize1},
 	{"syz_test", 1000000, (syscall_t)syz_test},
@@ -159,6 +162,7 @@ call_t syscalls[] = {
 	{"syz_test$opt0", 1000000, (syscall_t)syz_test},
 	{"syz_test$opt1", 1000000, (syscall_t)syz_test},
 	{"syz_test$opt2", 1000000, (syscall_t)syz_test},
+	{"syz_test$opt3", 1000000, (syscall_t)syz_test},
 	{"syz_test$recur0", 1000000, (syscall_t)syz_test},
 	{"syz_test$recur1", 1000000, (syscall_t)syz_test},
 	{"syz_test$recur2", 1000000, (syscall_t)syz_test},

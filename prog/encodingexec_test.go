@@ -364,6 +364,23 @@ func TestSerializeForExec(t *testing.T) {
 			},
 			nil,
 		},
+		{
+			"syz_test$opt3(0x0)",
+			[]uint64{
+				callID("syz_test$opt3"), ExecNoCopyout, 1, execArgConst, 8 | 4<<32, 0x64,
+				execInstrEOF,
+			},
+			nil,
+		},
+		{
+			// Special value that translates to 0 for all procs.
+			"syz_test$opt3(0xffffffffffffffff)",
+			[]uint64{
+				callID("syz_test$opt3"), ExecNoCopyout, 1, execArgConst, 8, 0,
+				execInstrEOF,
+			},
+			nil,
+		},
 	}
 
 	buf := make([]byte, ExecBufferSize)
