@@ -171,6 +171,13 @@ func testGuiltyFile(t *testing.T, reporter Reporter, fn string) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	for bytes.HasPrefix(data, []byte{'#'}) {
+		nl := bytes.Index(data, []byte{'\n'})
+		if nl == -1 {
+			t.Fatalf("unterminated comment in file")
+		}
+		data = data[nl+1:]
+	}
 	const prefix = "FILE: "
 	if !bytes.HasPrefix(data, []byte(prefix)) {
 		t.Fatalf("no %v prefix in file", prefix)
