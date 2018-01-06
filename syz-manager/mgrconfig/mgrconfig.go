@@ -240,6 +240,7 @@ func ParseEnabledSyscalls(cfg *Config) (map[int]bool, error) {
 
 func parseSuppressions(cfg *Config) error {
 	// Add some builtin suppressions.
+	// TODO(dvyukov): this should be moved to pkg/report.
 	supp := append(cfg.Suppressions, []string{
 		"panic: failed to start executor binary",
 		"panic: executor failed: pthread_create failed",
@@ -254,6 +255,7 @@ func parseSuppressions(cfg *Config) error {
 		"Killed process .* \\(sshd\\)",
 		"lowmemorykiller: Killing 'syz-fuzzer'",
 		"lowmemorykiller: Killing 'sshd'",
+		"INIT: PANIC: segmentation violation!",
 	}...)
 	for _, s := range supp {
 		re, err := regexp.Compile(s)
