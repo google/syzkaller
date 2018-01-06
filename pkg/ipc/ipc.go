@@ -672,8 +672,7 @@ func (c *command) handshake() error {
 	}
 	reqData := (*[unsafe.Sizeof(*req)]byte)(unsafe.Pointer(req))[:]
 	if _, err := c.outwp.Write(reqData); err != nil {
-		return c.handshakeError(fmt.Errorf("executor %v: failed to write control pipe: %v",
-			c.pid, err))
+		return c.handshakeError(fmt.Errorf("failed to write control pipe: %v", err))
 	}
 
 	read := make(chan error, 1)
@@ -685,8 +684,7 @@ func (c *command) handshake() error {
 			return
 		}
 		if reply.magic != outMagic {
-			read <- fmt.Errorf("executor %v: bad handshake reply magic 0x%x",
-				c.pid, reply.magic)
+			read <- fmt.Errorf("bad handshake reply magic 0x%x", reply.magic)
 			return
 		}
 		read <- nil
@@ -700,14 +698,14 @@ func (c *command) handshake() error {
 		}
 		return nil
 	case <-timeout.C:
-		return c.handshakeError(fmt.Errorf("executor %v: not serving", c.pid))
+		return c.handshakeError(fmt.Errorf("not serving"))
 	}
 }
 
 func (c *command) handshakeError(err error) error {
 	c.abort()
 	output := <-c.readDone
-	err = fmt.Errorf("%v\n%s", err, output)
+	err = fmt.Errorf("executor %v: %v\n%s", c.pid, err, output)
 	c.wait()
 	if c.cmd.ProcessState != nil {
 		// Magic values returned by executor.
