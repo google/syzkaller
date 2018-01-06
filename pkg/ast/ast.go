@@ -20,6 +20,10 @@ type Description struct {
 // Node is AST node interface.
 type Node interface {
 	Info() (pos Pos, typ string, name string)
+	// Clone makes a deep copy of the node.
+	// If newPos is not zero, sets Pos of all nodes to newPos.
+	// If newPos is zero, Pos of nodes is left intact.
+	Clone(newPos Pos) Node
 }
 
 // Top-level AST nodes:
@@ -128,6 +132,16 @@ type StrFlags struct {
 
 func (n *StrFlags) Info() (Pos, string, string) {
 	return n.Pos, "string flags", n.Name.Name
+}
+
+type TypeDef struct {
+	Pos  Pos
+	Name *Ident
+	Type *Type
+}
+
+func (n *TypeDef) Info() (Pos, string, string) {
+	return n.Pos, "type", n.Name.Name
 }
 
 // Not top-level AST nodes:

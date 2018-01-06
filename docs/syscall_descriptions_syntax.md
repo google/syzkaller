@@ -137,6 +137,28 @@ accept(fd sock, ...) sock
 listen(fd sock, backlog int32)
 ```
 
+## Type Aliases
+
+Complex types that are often repeated can be given short type aliases using the
+following syntax:
+
+```
+type identifier underlying_type
+```
+
+For example:
+
+```
+type signalno int32[0:65]
+type net_port proc[20000, 4, int16be]
+```
+
+Then, type alias can be used instead of the underlying type in any contexts.
+Underlying type needs to be described as if it's a struct field, that is,
+with the base type if it's required. However, type alias can be used as syscall
+arguments as well. Underlying types are currently restricted to integer types,
+`ptr`, `ptr64`, `const`, `flags` and `proc` types.
+
 ## Length
 
 You can specify length of a particular field in struct or a named argument by using `len`, `bytesize` and `bitsize` types, for example:

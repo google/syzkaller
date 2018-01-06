@@ -32,6 +32,9 @@ func WalkNode(n0 Node, cb func(n Node)) {
 		for _, v := range n.Values {
 			WalkNode(v, cb)
 		}
+	case *TypeDef:
+		WalkNode(n.Name, cb)
+		WalkNode(n.Type, cb)
 	case *Call:
 		WalkNode(n.Name, cb)
 		for _, f := range n.Args {

@@ -145,7 +145,7 @@ func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
 				comp.warning(c.Pos, "unsupported syscall: %v due to missing const %v",
 					c.CallName, str)
 			}
-		case *ast.IntFlags, *ast.Resource, *ast.Struct, *ast.StrFlags:
+		case *ast.IntFlags, *ast.Resource, *ast.Struct, *ast.StrFlags, *ast.TypeDef:
 			top = append(top, decl)
 		case *ast.NewLine, *ast.Comment, *ast.Include, *ast.Incdir, *ast.Define:
 			// These are not needed anymore.
@@ -176,7 +176,7 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 			top = append(top, n)
 		case *ast.StrFlags:
 			top = append(top, decl)
-		case *ast.Resource, *ast.Struct, *ast.Call:
+		case *ast.Resource, *ast.Struct, *ast.Call, *ast.TypeDef:
 			// Walk whole tree and replace consts in Int's and Type's.
 			missing := ""
 			ast.WalkNode(decl, func(n0 ast.Node) {
