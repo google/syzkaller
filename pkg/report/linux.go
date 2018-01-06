@@ -590,6 +590,8 @@ var linuxOopses = []*oops{
 			},
 		},
 		[]*regexp.Regexp{
+			// CONFIG_DEBUG_OBJECTS output.
+			compile("ODEBUG:"),
 			// Android prints this sometimes during boot.
 			compile("Boot_DEBUG:"),
 		},
