@@ -45,3 +45,8 @@ s2 {
 	# comment
 
 }
+
+type bool8 int8
+type net_port proc[1, 2, int16be]
+type bool16				### unexpected '\n', expecting int, identifier, string
+type type4:4 int32			### unexpected ':', expecting int, identifier, string

@@ -15,6 +15,7 @@ import (
 type typeDesc struct {
 	Names        []string
 	CanBeArg     bool       // can be argument of syscall?
+	CanBeTypedef bool       // can be type alias target?
 	CantBeOpt    bool       // can't be marked as opt?
 	CantBeRet    bool       // can't be syscall return (directly or indirectly)?
 	NeedBase     bool       // needs base type when used as field?
@@ -54,6 +55,7 @@ const (
 var typeInt = &typeDesc{
 	Names:        []string{"int8", "int16", "int32", "int64", "int16be", "int32be", "int64be", "intptr"},
 	CanBeArg:     true,
+	CanBeTypedef: true,
 	AllowColon:   true,
 	ResourceBase: true,
 	OptArgs:      1,
@@ -78,9 +80,10 @@ var typeInt = &typeDesc{
 }
 
 var typePtr = &typeDesc{
-	Names:    []string{"ptr", "ptr64"},
-	CanBeArg: true,
-	Args:     []namedArg{{"direction", typeArgDir}, {"type", typeArgType}},
+	Names:        []string{"ptr", "ptr64"},
+	CanBeArg:     true,
+	CanBeTypedef: true,
+	Args:         []namedArg{{"direction", typeArgDir}, {"type", typeArgType}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		base.ArgDir = prog.DirIn // pointers are always in
 		base.TypeSize = comp.ptrSize
@@ -175,11 +178,12 @@ var typeLen = &typeDesc{
 }
 
 var typeConst = &typeDesc{
-	Names:     []string{"const"},
-	CanBeArg:  true,
-	CantBeOpt: true,
-	NeedBase:  true,
-	Args:      []namedArg{{"value", typeArgInt}},
+	Names:        []string{"const"},
+	CanBeArg:     true,
+	CanBeTypedef: true,
+	CantBeOpt:    true,
+	NeedBase:     true,
+	Args:         []namedArg{{"value", typeArgInt}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		return &prog.ConstType{
 			IntTypeCommon: base,
@@ -193,11 +197,12 @@ var typeArgLenTarget = &typeArg{
 }
 
 var typeFlags = &typeDesc{
-	Names:     []string{"flags"},
-	CanBeArg:  true,
-	CantBeOpt: true,
-	NeedBase:  true,
-	Args:      []namedArg{{"flags", typeArgFlags}},
+	Names:        []string{"flags"},
+	CanBeArg:     true,
+	CanBeTypedef: true,
+	CantBeOpt:    true,
+	NeedBase:     true,
+	Args:         []namedArg{{"flags", typeArgFlags}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		name := args[0].Ident
 		base.TypeName = name
@@ -334,10 +339,11 @@ func genCsumKind(t *ast.Type) prog.CsumKind {
 }
 
 var typeProc = &typeDesc{
-	Names:    []string{"proc"},
-	CanBeArg: true,
-	NeedBase: true,
-	Args:     []namedArg{{"range start", typeArgInt}, {"per-proc values", typeArgInt}},
+	Names:        []string{"proc"},
+	CanBeArg:     true,
+	CanBeTypedef: true,
+	NeedBase:     true,
+	Args:         []namedArg{{"range start", typeArgInt}, {"per-proc values", typeArgInt}},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		start := args[0].Value
 		perProc := args[1].Value
@@ -522,7 +528,7 @@ var typeArgType = &typeArg{
 }
 
 var typeResource = &typeDesc{
-	// No Names, but compiler knows how to match it.
+	// No Names, but getTypeDesc knows how to match it.
 	CanBeArg:     true,
 	ResourceBase: true,
 	// Gen is assigned below to avoid initialization loop.
@@ -544,7 +550,7 @@ func init() {
 }
 
 var typeStruct = &typeDesc{
-	// No Names, but compiler knows how to match it.
+	// No Names, but getTypeDesc knows how to match it.
 	CantBeOpt: true,
 	// Varlen/Gen are assigned below due to initialization cycle.
 }
@@ -577,6 +583,16 @@ func init() {
 			}
 		}
 	}
+}
+
+var typeTypedef = &typeDesc{
+	// No Names, but getTypeDesc knows how to match it.
+	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
+		panic("must not be called")
+	},
+	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
+		panic("must not be called")
+	},
 }
 
 var typeArgDir = &typeArg{
@@ -660,16 +676,14 @@ func init() {
 		typeConst,
 		typeFlags,
 		typeFilename,
-		typeFileoff,
+		typeFileoff, // make a type alias
 		typeVMA,
-		typeSignalno,
+		typeSignalno, // make a type alias
 		typeCsum,
 		typeProc,
 		typeText,
-		typeBuffer,
+		typeBuffer, // make a type alias
 		typeString,
-		typeResource,
-		typeStruct,
 	}
 	for _, desc := range builtins {
 		for _, name := range desc.Names {

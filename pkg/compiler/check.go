@@ -34,7 +34,7 @@ func (comp *compiler) checkNames() {
 	calls := make(map[string]*ast.Call)
 	for _, decl := range comp.desc.Nodes {
 		switch decl.(type) {
-		case *ast.Resource, *ast.Struct:
+		case *ast.Resource, *ast.Struct, *ast.TypeDef:
 			pos, typ, name := decl.Info()
 			if reservedName[name] {
 				comp.error(pos, "%v uses reserved name %v", typ, name)
@@ -49,6 +49,11 @@ func (comp *compiler) checkNames() {
 					name, prev.Pos)
 				continue
 			}
+			if prev := comp.typedefs[name]; prev != nil {
+				comp.error(pos, "type %v redeclared, previously declared as type alias at %v",
+					name, prev.Pos)
+				continue
+			}
 			if prev := comp.structs[name]; prev != nil {
 				_, typ, _ := prev.Info()
 				comp.error(pos, "type %v redeclared, previously declared as %v at %v",
@@ -57,6 +62,8 @@ func (comp *compiler) checkNames() {
 			}
 			if res, ok := decl.(*ast.Resource); ok {
 				comp.resources[name] = res
+			} else if n, ok := decl.(*ast.TypeDef); ok {
+				comp.typedefs[name] = n
 			} else if str, ok := decl.(*ast.Struct); ok {
 				comp.structs[name] = str
 			}
@@ -148,19 +155,32 @@ func (comp *compiler) checkFields() {
 func (comp *compiler) checkTypes() {
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
+		case *ast.TypeDef:
+			if comp.typedefs[n.Name.Name] == nil {
+				continue
+			}
+			err0 := comp.errors
+			comp.checkType(n.Type, false, false, false, false, true, true)
+			if err0 != comp.errors {
+				delete(comp.typedefs, n.Name.Name)
+			}
+		}
+	}
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
 		case *ast.Resource:
-			comp.checkType(n.Base, false, false, false, true)
+			comp.checkType(n.Base, false, false, false, true, false, false)
 		case *ast.Struct:
 			for _, f := range n.Fields {
-				comp.checkType(f.Type, false, false, !n.IsUnion, false)
+				comp.checkType(f.Type, false, false, !n.IsUnion, false, false, false)
 			}
 			comp.checkStruct(n)
 		case *ast.Call:
 			for _, a := range n.Args {
-				comp.checkType(a.Type, true, false, false, false)
+				comp.checkType(a.Type, true, false, false, false, false, false)
 			}
 			if n.Ret != nil {
-				comp.checkType(n.Ret, true, true, false, false)
+				comp.checkType(n.Ret, true, true, false, false, false, false)
 			}
 		}
 	}
@@ -459,7 +479,7 @@ func (comp *compiler) checkStruct(n *ast.Struct) {
 	}
 }
 
-func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceBase bool) {
+func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceBase, isTypedef, isTypedefCtx bool) {
 	if unexpected, _, ok := checkTypeKind(t, kindIdent); !ok {
 		comp.error(t.Pos, "unexpected %v, expect type", unexpected)
 		return
@@ -467,6 +487,32 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceB
 	desc := comp.getTypeDesc(t)
 	if desc == nil {
 		comp.error(t.Pos, "unknown type %v", t.Ident)
+		return
+	}
+	if desc == typeTypedef {
+		if isTypedefCtx {
+			comp.error(t.Pos, "type aliases can't refer to other type aliases")
+			return
+		}
+		if t.HasColon {
+			comp.error(t.Pos, "type alias %v with ':'", t.Ident)
+			return
+		}
+		if len(t.Args) != 0 {
+			comp.error(t.Pos, "type alias %v with arguments", t.Ident)
+			return
+		}
+		*t = *comp.typedefs[t.Ident].Type.Clone(t.Pos).(*ast.Type)
+		desc = comp.getTypeDesc(t)
+		if isArg && desc.NeedBase {
+			baseTypePos := len(t.Args) - 1
+			if t.Args[baseTypePos].Ident == "opt" {
+				baseTypePos--
+			}
+			copy(t.Args[baseTypePos:], t.Args[baseTypePos+1:])
+			t.Args = t.Args[:len(t.Args)-1]
+		}
+		comp.checkType(t, isArg, isRet, isStruct, isResourceBase, isTypedef, isTypedefCtx)
 		return
 	}
 	if t.HasColon {
@@ -485,6 +531,10 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceB
 	}
 	if isArg && !desc.CanBeArg {
 		comp.error(t.Pos, "%v can't be syscall argument", t.Ident)
+		return
+	}
+	if isTypedef && !desc.CanBeTypedef {
+		comp.error(t.Pos, "%v can't be type alias target", t.Ident)
 		return
 	}
 	if isResourceBase && !desc.ResourceBase {
@@ -519,7 +569,7 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceB
 	err0 := comp.errors
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkType(arg, false, isRet, false, false)
+			comp.checkType(arg, false, isRet, false, false, false, isTypedefCtx)
 		} else {
 			comp.checkTypeArg(t, arg, desc.Args[i])
 		}
