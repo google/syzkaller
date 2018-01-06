@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/mail"
 	"strings"
@@ -25,6 +26,7 @@ import (
 func init() {
 	http.HandleFunc("/email_poll", handleEmailPoll)
 	http.HandleFunc("/_ah/mail/", handleIncomingMail)
+	http.HandleFunc("/_ah/bounce", handleEmailBounce)
 
 	mailingLists = make(map[string]bool)
 	for _, cfg := range config.Namespaces {
@@ -331,6 +333,17 @@ func incomingMail(c context.Context, r *http.Request) error {
 		warnMailingListInCC(c, msg, mailingList)
 	}
 	return nil
+}
+
+func handleEmailBounce(w http.ResponseWriter, r *http.Request) {
+	c := appengine.NewContext(r)
+	log.Errorf(c, "email bounced")
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Errorf(c, "failed to read body: %v", err)
+		return
+	}
+	log.Infof(c, "%s", body)
 }
 
 func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *BugReporting, reporting *Reporting) {
