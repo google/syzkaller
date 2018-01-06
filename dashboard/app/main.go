@@ -557,6 +557,7 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 	const (
 		minLogLevel  = 2
 		maxLines     = 100
+		maxLineLen   = 1000
 		reportPeriod = 7 * 24 * time.Hour
 	)
 	q := &log.Query{
@@ -582,6 +583,10 @@ func fetchErrorLogs(c context.Context) ([]byte, error) {
 				continue
 			}
 			text := strings.Replace(al.Message, "\n", " ", -1)
+			text = strings.Replace(text, "\r", "", -1)
+			if len(text) > maxLineLen {
+				text = text[:maxLineLen]
+			}
 			res := ""
 			if !strings.Contains(rec.Resource, "method=log_error") {
 				res = fmt.Sprintf(" (%v)", rec.Resource)
