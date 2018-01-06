@@ -62,6 +62,10 @@ func (res *Resource) serialize(w io.Writer) {
 	fmt.Fprintf(w, "\n")
 }
 
+func (typedef *TypeDef) serialize(w io.Writer) {
+	fmt.Fprintf(w, "type %v %v\n", typedef.Name.Name, fmtType(typedef.Type))
+}
+
 func (c *Call) serialize(w io.Writer) {
 	fmt.Fprintf(w, "%v(", c.Name.Name)
 	for i, a := range c.Args {

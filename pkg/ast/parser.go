@@ -128,6 +128,9 @@ func (p *parser) parseTop() Node {
 		return p.parseResource()
 	case tokIdent:
 		name := p.parseIdent()
+		if name.Name == "type" {
+			return p.parseTypeDef()
+		}
 		switch p.tok {
 		case tokLParen:
 			return p.parseCall(name)
@@ -242,6 +245,17 @@ func (p *parser) parseResource() *Resource {
 		Name:   name,
 		Base:   base,
 		Values: values,
+	}
+}
+
+func (p *parser) parseTypeDef() *TypeDef {
+	pos0 := p.pos
+	name := p.parseIdent()
+	typ := p.parseType()
+	return &TypeDef{
+		Pos:  pos0,
+		Name: name,
+		Type: typ,
 	}
 }
 

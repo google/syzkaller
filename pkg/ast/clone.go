@@ -3,86 +3,89 @@
 
 package ast
 
-import (
-	"fmt"
-)
-
 func Clone(desc *Description) *Description {
 	desc1 := &Description{}
 	for _, n := range desc.Nodes {
-		c, ok := n.(cloner)
-		if !ok {
-			panic(fmt.Sprintf("unknown top level decl: %#v", n))
-		}
-		desc1.Nodes = append(desc1.Nodes, c.clone())
+		desc1.Nodes = append(desc1.Nodes, n.Clone(Pos{}))
 	}
 	return desc1
 }
 
-type cloner interface {
-	clone() Node
+func selectPos(newPos, oldPos Pos) Pos {
+	if newPos.File != "" || newPos.Off != 0 || newPos.Line != 0 || newPos.Col != 0 {
+		return newPos
+	}
+	return oldPos
 }
 
-func (n *NewLine) clone() Node {
+func (n *NewLine) Clone(newPos Pos) Node {
 	return &NewLine{
-		Pos: n.Pos,
+		Pos: selectPos(newPos, n.Pos),
 	}
 }
 
-func (n *Comment) clone() Node {
+func (n *Comment) Clone(newPos Pos) Node {
 	return &Comment{
-		Pos:  n.Pos,
+		Pos:  selectPos(newPos, n.Pos),
 		Text: n.Text,
 	}
 }
 
-func (n *Include) clone() Node {
+func (n *Include) Clone(newPos Pos) Node {
 	return &Include{
-		Pos:  n.Pos,
-		File: n.File.clone(),
+		Pos:  selectPos(newPos, n.Pos),
+		File: n.File.Clone(newPos).(*String),
 	}
 }
 
-func (n *Incdir) clone() Node {
+func (n *Incdir) Clone(newPos Pos) Node {
 	return &Incdir{
-		Pos: n.Pos,
-		Dir: n.Dir.clone(),
+		Pos: selectPos(newPos, n.Pos),
+		Dir: n.Dir.Clone(newPos).(*String),
 	}
 }
 
-func (n *Define) clone() Node {
+func (n *Define) Clone(newPos Pos) Node {
 	return &Define{
-		Pos:   n.Pos,
-		Name:  n.Name.clone(),
-		Value: n.Value.clone(),
+		Pos:   selectPos(newPos, n.Pos),
+		Name:  n.Name.Clone(newPos).(*Ident),
+		Value: n.Value.Clone(newPos).(*Int),
 	}
 }
 
-func (n *Resource) clone() Node {
+func (n *Resource) Clone(newPos Pos) Node {
 	var values []*Int
 	for _, v := range n.Values {
-		values = append(values, v.clone())
+		values = append(values, v.Clone(newPos).(*Int))
 	}
 	return &Resource{
-		Pos:    n.Pos,
-		Name:   n.Name.clone(),
-		Base:   n.Base.clone(),
+		Pos:    selectPos(newPos, n.Pos),
+		Name:   n.Name.Clone(newPos).(*Ident),
+		Base:   n.Base.Clone(newPos).(*Type),
 		Values: values,
 	}
 }
 
-func (n *Call) clone() Node {
+func (n *TypeDef) Clone(newPos Pos) Node {
+	return &TypeDef{
+		Pos:  selectPos(newPos, n.Pos),
+		Name: n.Name.Clone(newPos).(*Ident),
+		Type: n.Type.Clone(newPos).(*Type),
+	}
+}
+
+func (n *Call) Clone(newPos Pos) Node {
 	var args []*Field
 	for _, a := range n.Args {
-		args = append(args, a.clone())
+		args = append(args, a.Clone(newPos).(*Field))
 	}
 	var ret *Type
 	if n.Ret != nil {
-		ret = n.Ret.clone()
+		ret = n.Ret.Clone(newPos).(*Type)
 	}
 	return &Call{
-		Pos:      n.Pos,
-		Name:     n.Name.clone(),
+		Pos:      selectPos(newPos, n.Pos),
+		Name:     n.Name.Clone(newPos).(*Ident),
 		CallName: n.CallName,
 		NR:       n.NR,
 		Args:     args,
@@ -90,22 +93,22 @@ func (n *Call) clone() Node {
 	}
 }
 
-func (n *Struct) clone() Node {
+func (n *Struct) Clone(newPos Pos) Node {
 	var fields []*Field
 	for _, f := range n.Fields {
-		fields = append(fields, f.clone())
+		fields = append(fields, f.Clone(newPos).(*Field))
 	}
 	var attrs []*Ident
 	for _, a := range n.Attrs {
-		attrs = append(attrs, a.clone())
+		attrs = append(attrs, a.Clone(newPos).(*Ident))
 	}
 	var comments []*Comment
 	for _, c := range n.Comments {
-		comments = append(comments, c.clone().(*Comment))
+		comments = append(comments, c.Clone(newPos).(*Comment))
 	}
 	return &Struct{
-		Pos:      n.Pos,
-		Name:     n.Name.clone(),
+		Pos:      selectPos(newPos, n.Pos),
+		Name:     n.Name.Clone(newPos).(*Ident),
 		Fields:   fields,
 		Attrs:    attrs,
 		Comments: comments,
@@ -113,47 +116,47 @@ func (n *Struct) clone() Node {
 	}
 }
 
-func (n *IntFlags) clone() Node {
+func (n *IntFlags) Clone(newPos Pos) Node {
 	var values []*Int
 	for _, v := range n.Values {
-		values = append(values, v.clone())
+		values = append(values, v.Clone(newPos).(*Int))
 	}
 	return &IntFlags{
-		Pos:    n.Pos,
-		Name:   n.Name.clone(),
+		Pos:    selectPos(newPos, n.Pos),
+		Name:   n.Name.Clone(newPos).(*Ident),
 		Values: values,
 	}
 }
 
-func (n *StrFlags) clone() Node {
+func (n *StrFlags) Clone(newPos Pos) Node {
 	var values []*String
 	for _, v := range n.Values {
-		values = append(values, v.clone())
+		values = append(values, v.Clone(newPos).(*String))
 	}
 	return &StrFlags{
-		Pos:    n.Pos,
-		Name:   n.Name.clone(),
+		Pos:    selectPos(newPos, n.Pos),
+		Name:   n.Name.Clone(newPos).(*Ident),
 		Values: values,
 	}
 }
 
-func (n *Ident) clone() *Ident {
+func (n *Ident) Clone(newPos Pos) Node {
 	return &Ident{
-		Pos:  n.Pos,
+		Pos:  selectPos(newPos, n.Pos),
 		Name: n.Name,
 	}
 }
 
-func (n *String) clone() *String {
+func (n *String) Clone(newPos Pos) Node {
 	return &String{
-		Pos:   n.Pos,
+		Pos:   selectPos(newPos, n.Pos),
 		Value: n.Value,
 	}
 }
 
-func (n *Int) clone() *Int {
+func (n *Int) Clone(newPos Pos) Node {
 	return &Int{
-		Pos:      n.Pos,
+		Pos:      selectPos(newPos, n.Pos),
 		Value:    n.Value,
 		ValueHex: n.ValueHex,
 		Ident:    n.Ident,
@@ -161,19 +164,19 @@ func (n *Int) clone() *Int {
 	}
 }
 
-func (n *Type) clone() *Type {
+func (n *Type) Clone(newPos Pos) Node {
 	var args []*Type
 	for _, a := range n.Args {
-		args = append(args, a.clone())
+		args = append(args, a.Clone(newPos).(*Type))
 	}
 	return &Type{
-		Pos:       n.Pos,
+		Pos:       selectPos(newPos, n.Pos),
 		Value:     n.Value,
 		ValueHex:  n.ValueHex,
 		Ident:     n.Ident,
 		String:    n.String,
 		HasColon:  n.HasColon,
-		Pos2:      n.Pos2,
+		Pos2:      selectPos(newPos, n.Pos2),
 		Value2:    n.Value2,
 		Value2Hex: n.Value2Hex,
 		Ident2:    n.Ident2,
@@ -181,15 +184,15 @@ func (n *Type) clone() *Type {
 	}
 }
 
-func (n *Field) clone() *Field {
+func (n *Field) Clone(newPos Pos) Node {
 	var comments []*Comment
 	for _, c := range n.Comments {
-		comments = append(comments, c.clone().(*Comment))
+		comments = append(comments, c.Clone(newPos).(*Comment))
 	}
 	return &Field{
-		Pos:      n.Pos,
-		Name:     n.Name.clone(),
-		Type:     n.Type.clone(),
+		Pos:      selectPos(newPos, n.Pos),
+		Name:     n.Name.Clone(newPos).(*Ident),
+		Type:     n.Type.Clone(newPos).(*Type),
 		NewBlock: n.NewBlock,
 		Comments: comments,
 	}

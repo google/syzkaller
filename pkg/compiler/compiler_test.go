@@ -5,7 +5,6 @@ package compiler
 
 import (
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -13,21 +12,33 @@ import (
 )
 
 func TestCompileAll(t *testing.T) {
-	eh := func(pos ast.Pos, msg string) {
-		t.Logf("%v: %v", pos, msg)
-	}
-	desc := ast.ParseGlob(filepath.Join("..", "..", "sys", "linux", "*.txt"), eh)
-	if desc == nil {
-		t.Fatalf("parsing failed")
-	}
-	glob := filepath.Join("..", "..", "sys", "linux", "*_"+runtime.GOARCH+".const")
-	consts := DeserializeConstsGlob(glob, eh)
-	if consts == nil {
-		t.Fatalf("reading consts failed")
-	}
-	prog := Compile(desc, consts, targets.List["linux"]["amd64"], eh)
-	if prog == nil {
-		t.Fatalf("compilation failed")
+	for os, arches := range targets.List {
+		os, arches := os, arches
+		t.Run(os, func(t *testing.T) {
+			t.Parallel()
+			eh := func(pos ast.Pos, msg string) {
+				t.Logf("%v: %v", pos, msg)
+			}
+			path := filepath.Join("..", "..", "sys", os)
+			desc := ast.ParseGlob(filepath.Join(path, "*.txt"), eh)
+			if desc == nil {
+				t.Fatalf("parsing failed")
+			}
+			for arch, target := range arches {
+				arch, target := arch, target
+				t.Run(arch, func(t *testing.T) {
+					t.Parallel()
+					consts := DeserializeConstsGlob(filepath.Join(path, "*_"+arch+".const"), eh)
+					if consts == nil {
+						t.Fatalf("reading consts failed")
+					}
+					prog := Compile(desc, consts, target, eh)
+					if prog == nil {
+						t.Fatalf("compilation failed")
+					}
+				})
+			}
+		})
 	}
 }
 
@@ -38,7 +49,7 @@ func TestErrors(t *testing.T) {
 		"C1":       1,
 		"C2":       2,
 	}
-	target := targets.List["linux"]["amd64"]
+	target := targets.List["test"]["64"]
 	for _, name := range []string{"errors.txt", "errors2.txt"} {
 		name := name
 		t.Run(name, func(t *testing.T) {
@@ -69,7 +80,7 @@ func TestFuzz(t *testing.T) {
 	for _, data := range inputs {
 		desc := ast.Parse([]byte(data), "", eh)
 		if desc != nil {
-			Compile(desc, consts, targets.List["linux"]["amd64"], eh)
+			Compile(desc, consts, targets.List["test"]["64"], eh)
 		}
 	}
 }
@@ -96,7 +107,7 @@ s2 {
 	if desc == nil {
 		t.Fatal("failed to parse")
 	}
-	p := Compile(desc, map[string]uint64{"__NR_foo": 1}, targets.List["linux"]["amd64"], nil)
+	p := Compile(desc, map[string]uint64{"__NR_foo": 1}, targets.List["test"]["64"], nil)
 	if p == nil {
 		t.Fatal("failed to compile")
 	}

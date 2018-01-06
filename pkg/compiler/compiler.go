@@ -53,6 +53,7 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		ptrSize:      target.PtrSize,
 		unsupported:  make(map[string]bool),
 		resources:    make(map[string]*ast.Resource),
+		typedefs:     make(map[string]*ast.TypeDef),
 		structs:      make(map[string]*ast.Struct),
 		intFlags:     make(map[string]*ast.IntFlags),
 		strFlags:     make(map[string]*ast.StrFlags),
@@ -89,6 +90,7 @@ type compiler struct {
 
 	unsupported map[string]bool
 	resources   map[string]*ast.Resource
+	typedefs    map[string]*ast.TypeDef
 	structs     map[string]*ast.Struct
 	intFlags    map[string]*ast.IntFlags
 	strFlags    map[string]*ast.StrFlags
@@ -162,6 +164,9 @@ func (comp *compiler) getTypeDesc(t *ast.Type) *typeDesc {
 	}
 	if comp.structs[t.Ident] != nil {
 		return typeStruct
+	}
+	if comp.typedefs[t.Ident] != nil {
+		return typeTypedef
 	}
 	return nil
 }
