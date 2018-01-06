@@ -5,6 +5,7 @@ api_version: go1
 
 inbound_services:
 - mail
+- mail_bounce
 
 handlers:
 - url: /favicon.ico
@@ -25,6 +26,6 @@ handlers:
   script: _go_app
   login: admin
   secure: always
-- url: /_ah/mail/.+
+- url: /_ah/(mail/.+|bounce)
   script: _go_app
   login: admin
