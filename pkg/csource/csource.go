@@ -386,7 +386,7 @@ func (ctx *context) constArgToStr(arg prog.ExecArgConst) string {
 		val = fmt.Sprintf("0x%x", v)
 	}
 	if ctx.opts.Procs > 1 && arg.PidStride != 0 {
-		val += fmt.Sprintf("+procid*%v", arg.PidStride)
+		val += fmt.Sprintf(" + procid*%v", arg.PidStride)
 	}
 	if arg.BigEndian {
 		val = fmt.Sprintf("htobe%v(%v)", arg.Size*8, val)
