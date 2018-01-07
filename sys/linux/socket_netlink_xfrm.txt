@@ -365,8 +365,8 @@ xfrm_attr_encap {
 xfrm_encap_tmpl {
 # TODO: what's this?
 	encap_type	int16
-	encap_sport	proc[20000, 4, int16be]
-	encap_dport	proc[20000, 4, int16be]
+	encap_sport	sock_port
+	encap_dport	sock_port
 	encap_oa	xfrm_address
 }
 
@@ -542,10 +542,10 @@ xfrmu_spdhthresh6 {
 xfrm_selector {
 	daddr		xfrm_address
 	saddr		xfrm_address
-	dport		proc[20000, 4, int16be]
+	dport		sock_port
 # TODO: dport_mask/sport_mask are some be16, what should we pass here?
 	dport_mask	int16
-	sport		proc[20000, 4, int16be]
+	sport		sock_port
 	sport_mask	int16
 	family		flags[xfrm_family, int16]
 	prefixlen_d	flags[xfrm_prefixlens, int8]

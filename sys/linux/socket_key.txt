@@ -163,7 +163,7 @@ sadb_x_nat_t_type {
 sadb_x_nat_t_port {
 	sadb_len			bytesize8[parent, int16]
 	sadb_exttype			flags[sadb_nat_port_type, int16]
-	sadb_x_nat_t_port_port		proc[20000, 4, int16be]
+	sadb_x_nat_t_port_port		sock_port
 	sadb_x_nat_t_port_reserved	const[0, int16]
 } [packed, align_8]
 
