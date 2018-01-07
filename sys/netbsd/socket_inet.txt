@@ -17,7 +17,7 @@ sock_in_pair {
 
 sockaddr_in {
 	family	const[AF_INET, int16]
-	port	proc[20000, 4, int16be]
+	port	sock_port
 	pad	array[const[0, int8], 8]
 }
 

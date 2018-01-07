@@ -15,6 +15,7 @@ include <uapi/linux/ethtool.h>
 include <uapi/linux/if_ether.h>
 
 resource sock[fd]
+type sock_port proc[20000, 4, int16be]
 
 # TODO: describe socketcall syscall
 
@@ -695,8 +696,8 @@ ethtool_flow_ext {
 ethtool_tcpip4_spec {
 	ip4src	ipv4_addr
 	ip4dst	ipv4_addr
-	psrc	proc[20000, 4, int16be]
-	pdst	proc[20000, 4, int16be]
+	psrc	sock_port
+	pdst	sock_port
 	tos	int8
 }
 
@@ -719,8 +720,8 @@ ethtool_usrip4_spec {
 ethtool_tcpip6_spec {
 	ip6src	ipv6_addr
 	ip6dst	ipv6_addr
-	psrc	proc[20000, 4, int16be]
-	pdst	proc[20000, 4, int16be]
+	psrc	sock_port
+	pdst	sock_port
 	tclass	int8
 }
 

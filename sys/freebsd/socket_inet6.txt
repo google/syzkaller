@@ -22,7 +22,7 @@ sock_in6_pair {
 
 sockaddr_in6 {
 	family	const[AF_INET6, int16]
-	port	proc[20000, 4, int16be]
+	port	sock_port
 	flow	int32
 	addr	ipv6_addr
 	scope	int32

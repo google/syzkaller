@@ -771,10 +771,8 @@ tcp_options {
 tcp_flags = 0, TCPHDR_FIN, TCPHDR_SYN, TCPHDR_RST, TCPHDR_PSH, TCPHDR_ACK, TCPHDR_URG, TCPHDR_ECE, TCPHDR_CWR, TCPHDR_SYN_ECN
 
 tcp_header {
-# TODO: proc[20000, 4, int16be] is a good candidate for typedef when/if we have them.
-# I.e. typedef proc[20000, 4, int16be] sock_port
-	src_port	proc[20000, 4, int16be]
-	dst_port	proc[20000, 4, int16be]
+	src_port	sock_port
+	dst_port	sock_port
 	seq_num		tcp_seq_num
 	ack_num		tcp_seq_num
 	ns		int8:1
@@ -804,8 +802,8 @@ tcp_payload {
 # https://en.wikipedia.org/wiki/User_Datagram_Protocol#Packet_structure
 
 udp_packet {
-	src_port	proc[20000, 4, int16be]
-	dst_port	proc[20000, 4, int16be]
+	src_port	sock_port
+	dst_port	sock_port
 	length		len[parent, int16be]
 	csum		csum[parent, pseudo, IPPROTO_UDP, int16be]
 	data		array[int8]
@@ -1112,8 +1110,8 @@ include <uapi/linux/dccp.h>
 dccp_types = DCCP_PKT_REQUEST, DCCP_PKT_RESPONSE, DCCP_PKT_DATA, DCCP_PKT_ACK, DCCP_PKT_DATAACK, DCCP_PKT_CLOSEREQ, DCCP_PKT_CLOSE, DCCP_PKT_RESET, DCCP_PKT_SYNC, DCCP_PKT_SYNCACK, DCCP_PKT_INVALID
 
 dccp_header {
-	src_port	proc[20000, 4, int16be]
-	dst_port	proc[20000, 4, int16be]
+	src_port	sock_port
+	dst_port	sock_port
 	offset		bytesize4[parent, int8]
 	cscov		const[1, int8:4]
 # TODO: cscov might have other values, affects checksummed data
