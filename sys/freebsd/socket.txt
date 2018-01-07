@@ -11,6 +11,7 @@ include <linux/linux.h>
 include <compat/linux/linux_socket.h>
 
 resource sock[fd]
+type sock_port proc[20000, 4, int16be]
 
 # TODO: describe socketcall syscall
 
