@@ -1,8 +1,6 @@
 # Copyright 2017 syzkaller project authors. All rights reserved.
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-# TODO: due to autobind a socket can bind to port 0, that will result in a random port which is not reproducible
-
 include <asm/ioctls.h>
 include <linux/if_tun.h>
 include <linux/if_bridge.h>

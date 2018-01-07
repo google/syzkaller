@@ -363,8 +363,7 @@ xfrm_attr_encap {
 } [align_4]
 
 xfrm_encap_tmpl {
-# TODO: what's this?
-	encap_type	int16
+	encap_type	flags[xfrm_encap_type, int16]
 	encap_sport	sock_port
 	encap_dport	sock_port
 	encap_oa	xfrm_address
@@ -377,8 +376,7 @@ xfrm_attr_offload {
 } [align_4]
 
 xfrm_user_offload {
-# TODO: replace int32 with ifindex once I figure out how to get ifindex'es
-	ifindex	int32
+	ifindex	ifindex[opt]
 	flags	flags[xfrm_offload_flags, int8]
 }
 
@@ -464,9 +462,8 @@ xfrm_attr_migrate {
 xfrm_user_migrate {
 	old_daddr	xfrm_address
 	new_saddr	xfrm_address
-# TODO: what proto is this? all or only xfrm_proto's?
-	proto		flags[ipv6_types, int8]
-	mode		int8
+	proto		flags[xfrm_proto, int8]
+	mode		flags[xfrm_mode, int8]
 	reserved	const[0, int16]
 	reqid		proc[13567, 8, int32, opt]
 	old_family	flags[xfrm_family, int16]
@@ -543,16 +540,14 @@ xfrm_selector {
 	daddr		xfrm_address
 	saddr		xfrm_address
 	dport		sock_port
-# TODO: dport_mask/sport_mask are some be16, what should we pass here?
-	dport_mask	int16
+	dport_mask	int16be[opt]
 	sport		sock_port
-	sport_mask	int16
+	sport_mask	int16be[opt]
 	family		flags[xfrm_family, int16]
 	prefixlen_d	flags[xfrm_prefixlens, int8]
 	prefixlen_s	flags[xfrm_prefixlens, int8]
 	proto		flags[ipv6_types, int8]
-# TODO: pass real ifindex or 0 (but ifindex is hard to get)
-	ifindex		int32
+	ifindex		ifindex[opt]
 	user		uid
 }
 
@@ -665,3 +660,4 @@ xfrm_policy_flags = XFRM_POLICY_LOCALOK, XFRM_POLICY_ICMP
 xfrm_policy_shares = XFRM_SHARE_ANY, XFRM_SHARE_SESSION, XFRM_SHARE_USER, XFRM_SHARE_UNIQUE
 xfrm_policy_dir = XFRM_POLICY_IN, XFRM_POLICY_OUT, XFRM_POLICY_FWD
 xfrm_prefixlens = 32, 128
+xfrm_encap_type = 0xfffffffffffffffd, 0xfffffffffffffffe, 0xffffffffffffffff, 0, 1, 2, 3

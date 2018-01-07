@@ -566,7 +566,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_kern_version", FldName: "kern_version", TypeSize: 4}}, Vals: []uint64{265984, 266240, 266496}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_prog_load_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "prog_name", TypeSize: 16}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "prog_ifindex", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "prog_ifindex", TypeSize: 4, IsOptional: true}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "bpf_prog_info", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_prog_info", TypeSize: 80, ArgDir: 1}, Fields: []Type{
@@ -6375,7 +6375,7 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "xfrm_encap_tmpl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_encap_tmpl", TypeSize: 24}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "encap_type", TypeSize: 2}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_encap_type", FldName: "encap_type", TypeSize: 2}}, Vals: []uint64{18446744073709551613, 18446744073709551614, 18446744073709551615, 0, 1, 2, 3}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "encap_sport", TypeSize: 2}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "encap_dport", TypeSize: 2}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
@@ -6538,30 +6538,30 @@ var structDescs_amd64 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "xfrm_address"}, FldName: "daddr"},
 		&UnionType{Key: StructKey{Name: "xfrm_address"}, FldName: "saddr"},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "dport", TypeSize: 2}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "dport_mask", TypeSize: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "dport_mask", TypeSize: 2, IsOptional: true}, BigEndian: true}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "sport", TypeSize: 2}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "sport_mask", TypeSize: 2}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "sport_mask", TypeSize: 2, IsOptional: true}, BigEndian: true}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_family", FldName: "family", TypeSize: 2}}, Vals: []uint64{2, 10}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_prefixlens", FldName: "prefixlen_d", TypeSize: 1}}, Vals: []uint64{32, 128}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_prefixlens", FldName: "prefixlen_s", TypeSize: 1}}, Vals: []uint64{32, 128}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "proto", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifindex", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "ifindex", TypeSize: 4, IsOptional: true}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "user", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "xfrm_selector", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_selector", TypeSize: 56, ArgDir: 1}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "xfrm_address", Dir: 1}, FldName: "daddr"},
 		&UnionType{Key: StructKey{Name: "xfrm_address", Dir: 1}, FldName: "saddr"},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "dport", TypeSize: 2, ArgDir: 1}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "dport_mask", TypeSize: 2, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "dport_mask", TypeSize: 2, ArgDir: 1, IsOptional: true}, BigEndian: true}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "sport", TypeSize: 2, ArgDir: 1}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "sport_mask", TypeSize: 2, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "sport_mask", TypeSize: 2, ArgDir: 1, IsOptional: true}, BigEndian: true}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_family", FldName: "family", TypeSize: 2, ArgDir: 1}}, Vals: []uint64{2, 10}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_prefixlens", FldName: "prefixlen_d", TypeSize: 1, ArgDir: 1}}, Vals: []uint64{32, 128}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_prefixlens", FldName: "prefixlen_s", TypeSize: 1, ArgDir: 1}}, Vals: []uint64{32, 128}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "proto", TypeSize: 1, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifindex", TypeSize: 4, ArgDir: 1}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "ifindex", TypeSize: 4, ArgDir: 1, IsOptional: true}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "user", TypeSize: 4, ArgDir: 1}},
 	}}},
 	{Key: StructKey{Name: "xfrm_stats"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_stats", TypeSize: 12}, Fields: []Type{
@@ -6593,15 +6593,15 @@ var structDescs_amd64 = []*KeyedStruct{
 	{Key: StructKey{Name: "xfrm_user_migrate"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_user_migrate", TypeSize: 44}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "xfrm_address"}, FldName: "old_daddr"},
 		&UnionType{Key: StructKey{Name: "xfrm_address"}, FldName: "new_saddr"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "proto", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "mode", TypeSize: 1}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_proto", FldName: "proto", TypeSize: 1}}, Vals: []uint64{51, 50, 108, 60, 43, 255}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_mode", FldName: "mode", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 3, 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 2}}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "reqid", TypeSize: 4, IsOptional: true}}, ValuesStart: 13567, ValuesPerProc: 8},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_family", FldName: "old_family", TypeSize: 2}}, Vals: []uint64{2, 10}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_family", FldName: "new_family", TypeSize: 2}}, Vals: []uint64{2, 10}},
 	}}},
 	{Key: StructKey{Name: "xfrm_user_offload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_user_offload", TypeSize: 5}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifindex", TypeSize: 4}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "ifindex", TypeSize: 4, IsOptional: true}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_offload_flags", FldName: "flags", TypeSize: 1}}, Vals: []uint64{1, 2}},
 	}}},
 	{Key: StructKey{Name: "xfrm_user_polexpire"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_user_polexpire", TypeSize: 169}, Fields: []Type{
@@ -18449,4 +18449,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_amd64 = "0714be62d1ae856270b2c18f1a45c59385724af1"
+const revision_amd64 = "040bde910c2bab847ddef91adf9b959305032f1b"
