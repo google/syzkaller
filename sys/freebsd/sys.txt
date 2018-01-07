@@ -175,25 +175,6 @@ io_event {
 	res2	int32
 }
 
-sigevent {
-	val	const[0, intptr]
-	signo	signalno
-	notify	flags[sigev_notify, int32]
-	u	sigevent_u
-	pad	array[const[0, int64], 8]
-}
-
-sigevent_u [
-	tid	pid
-	thr	sigevent_thread
-]
-
-sigevent_thread {
-# TODO: this is function pointer and pthread_attr_t (?)
-	func	buffer[in]
-	attr	buffer[in]
-}
-
 cap_header {
 	var	flags[cap_version, int32]
 	pid	pid
@@ -287,27 +268,11 @@ rlimit {
 	hard	intptr
 }
 
-sigaction {
-# TODO: function pointers need special support
-	handler	intptr
-	mask	sigset
-	flags	flags[sigaction_flags, intptr]
-	restor	intptr
-}
-
 tms {
 	utime	intptr
 	stime	intptr
 	cutime	intptr
 	cstime	intptr
-}
-
-siginfo {
-	signo	signalno
-	errno	int32
-	code	int32
-	pad3	int32
-# actual size is 128 bytes
 }
 
 timex {
@@ -387,7 +352,6 @@ ucred {
 fadvise_flags = POSIX_FADV_NORMAL, POSIX_FADV_SEQUENTIAL, POSIX_FADV_RANDOM, POSIX_FADV_NOREUSE, POSIX_FADV_WILLNEED, POSIX_FADV_DONTNEED
 dup_flags = O_CLOEXEC
 clock_type = CLOCK_REALTIME, CLOCK_MONOTONIC, CLOCK_PROCESS_CPUTIME_ID, CLOCK_THREAD_CPUTIME_ID
-sigev_notify = SIGEV_NONE, SIGEV_SIGNAL, SIGEV_THREAD, SIGEV_THREAD_ID
 cap_version = 0x19980330, 0x20071026, 0x20080522
 pollfd_events = POLLIN, POLLPRI, POLLOUT, POLLERR, POLLHUP, POLLNVAL, POLLRDNORM, POLLRDBAND, POLLWRNORM, POLLWRBAND, POLLINIGNEOF
 mknod_mode = S_IFREG, S_IFCHR, S_IFBLK, S_IFIFO, S_IFSOCK, S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
@@ -403,7 +367,6 @@ sigprocmask_how = SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK
 getitimer_which = ITIMER_REAL, ITIMER_VIRTUAL, ITIMER_PROF
 wait_options = WNOHANG, WUNTRACED, WCONTINUED, WEXITED, WSTOPPED, WCONTINUED, WNOHANG, WNOWAIT
 waitid_which = P_PID, P_PGID, P_ALL
-sigaction_flags = SA_NOCLDSTOP, SA_NOCLDWAIT, SA_NODEFER, SA_ONSTACK, SA_RESETHAND, SA_RESTART, SA_SIGINFO
 timer_flags = 0, TIMER_ABSTIME
 utimensat_flags = 0, AT_SYMLINK_NOFOLLOW
 priority_which = PRIO_PROCESS, PRIO_PGRP, PRIO_USER
