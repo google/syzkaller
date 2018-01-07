@@ -159,6 +159,15 @@ with the base type if it's required. However, type alias can be used as syscall
 arguments as well. Underlying types are currently restricted to integer types,
 `ptr`, `ptr64`, `const`, `flags` and `proc` types.
 
+There are some builtin type aliases:
+```
+type bool8	int8[0:1]
+type bool16	int16[0:1]
+type bool32	int32[0:1]
+type bool64	int64[0:1]
+type boolptr	intptr[0:1]
+```
+
 ## Length
 
 You can specify length of a particular field in struct or a named argument by using `len`, `bytesize` and `bitsize` types, for example:
