@@ -181,17 +181,17 @@ define d3 1
 
 # Type aliases.
 
-type bool8 int8[0:1]
-type bool16 int16[0:1]
+type mybool8 int8[0:1]
+type mybool16 int16[0:1]
 type net_port proc[100, 1, int16be]
-resource typeres0[bool8]
+resource typeres0[mybool8]
 typestruct {
-	f1	bool8
-	f2	bool16
+	f1	mybool8
+	f2	mybool16
 }
 typeunion [
-	f1	bool8
-	f2	bool16
+	f1	mybool8
+	f2	mybool16
 ]
 
 type type0 int8
@@ -217,6 +217,7 @@ type type13 ptr[in, typestruct13]
 type type14 flags[type0, int32]
 type type15 const[0, type0]	### unexpected value type0 for base type argument of const type, expect [int8 int16 int32 int64 int16be int32be int64be intptr]
 type type16 ptr[in, type0]	### type aliases can't refer to other type aliases
+type bool8 int8[0:1]		### type name bool8 conflicts with builtin type
 
 typestruct11 {
 	f	type11		### unknown type type11
@@ -231,7 +232,7 @@ typestruct13 {
 	f2	type12
 }
 
-foo$100(a bool8, b bool16)
+foo$100(a mybool8, b mybool16)
 foo$101(a type5)		### unknown type type5
 foo$102(a type2)		### unknown type type2
 foo$103(a type0:4)		### type alias type0 with ':'

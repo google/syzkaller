@@ -62,6 +62,9 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		structNodes:  make(map[*prog.StructDesc]*ast.Struct),
 		structVarlen: make(map[string]bool),
 	}
+	for name, typedef := range builtinTypedefs {
+		comp.typedefs[name] = typedef
+	}
 	comp.assignSyscallNumbers(consts)
 	comp.patchConsts(consts)
 	comp.check()
