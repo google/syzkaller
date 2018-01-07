@@ -38,8 +38,8 @@ sadb_msg {
 	sadb_msg_satype		flags[sadb_satype, int8]
 	sadb_msg_len		bytesize8[parent, int16]
 	sadb_msg_reserved	const[0, int16]
-	sadb_msg_seq		proc[7388453, 8, int32]
-	sadb_msg_pid		proc[635427835, 4, int32]
+	sadb_msg_seq		xfrm_seq
+	sadb_msg_pid		xfrm_port_id
 	ext_headers		array[sadb_ext_hdr]
 } [packed]
 
@@ -126,7 +126,7 @@ sadb_x_policy {
 	sadb_x_policy_type	int16[IPSEC_POLICY_DISCARD:IPSEC_POLICY_BYPASS]
 	sadb_x_policy_dir	flags[ipsec_policy_dir, int8]
 	sadb_x_policy_reserved	const[0, int8]
-	sadb_x_policy_id	proc[7236528, 16, int32, opt]
+	sadb_x_policy_id	xfrm_policy_index
 	sadb_x_policy_priority	int32
 	policy			sadb_x_ipsecrequest
 } [packed, align_8]
@@ -149,8 +149,8 @@ sadb_x_sa2 {
 	sadb_x_sa2_mode		int8
 	sadb_x_sa2_reserved1	const[0, int8]
 	sadb_x_sa2_reserved2	const[0, int16]
-	sadb_x_sa2_sequence	proc[7388453, 8, int32]
-	sadb_x_sa2_reqid	proc[13567, 8, int32, opt]
+	sadb_x_sa2_sequence	xfrm_seq
+	sadb_x_sa2_reqid	xfrm_req_id
 } [packed, align_8]
 
 sadb_x_nat_t_type {
