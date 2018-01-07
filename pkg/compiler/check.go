@@ -40,7 +40,7 @@ func (comp *compiler) checkNames() {
 				comp.error(pos, "%v uses reserved name %v", typ, name)
 				continue
 			}
-			if builtinTypes[name] != nil {
+			if builtinTypes[name] != nil || builtinTypedefs[name] != nil {
 				comp.error(pos, "%v name %v conflicts with builtin type", typ, name)
 				continue
 			}

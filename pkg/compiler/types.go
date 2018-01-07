@@ -638,7 +638,8 @@ var typeArgBase = namedArg{
 }
 
 var (
-	builtinTypes = make(map[string]*typeDesc)
+	builtinTypes    = make(map[string]*typeDesc)
+	builtinTypedefs = make(map[string]*ast.TypeDef)
 
 	// To avoid weird cases like ptr[in, in] and ptr[out, opt].
 	reservedName = map[string]bool{
@@ -648,6 +649,14 @@ var (
 		"inout": true,
 	}
 )
+
+const builtinDefs = `
+type bool8 int8[0:1]
+type bool16 int16[0:1]
+type bool32 int32[0:1]
+type bool64 int64[0:1]
+type boolptr intptr[0:1]
+`
 
 func init() {
 	builtins := []*typeDesc{
@@ -672,6 +681,18 @@ func init() {
 				panic(fmt.Sprintf("duplicate builtin type %q", name))
 			}
 			builtinTypes[name] = desc
+		}
+	}
+	builtinDesc := ast.Parse([]byte(builtinDefs), "builtins", func(pos ast.Pos, msg string) {
+		panic(fmt.Sprintf("failed to parse builtins: %v: %v", pos, msg))
+	})
+	for _, decl := range builtinDesc.Nodes {
+		switch n := decl.(type) {
+		case *ast.TypeDef:
+			builtinTypedefs[n.Name.Name] = n
+		case *ast.NewLine:
+		default:
+			panic(fmt.Sprintf("unexpected node in builtins: %#v", n))
 		}
 	}
 }
