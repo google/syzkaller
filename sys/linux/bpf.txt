@@ -85,8 +85,7 @@ bpf_prog {
 	kern_version	flags[bpf_kern_version, int32]
 	flags		flags[bpf_prog_load_flags, int32]
 	prog_name	array[const[0, int8], BPF_OBJ_NAME_LEN]
-# TODO: should be ifindex
-	prog_ifindex	const[0, int32]
+	prog_ifindex	ifindex[opt]
 }
 
 bpf_licenses = "GPL", "syzkaller"
