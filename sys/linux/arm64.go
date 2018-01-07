@@ -1012,7 +1012,7 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "drm_wait_vblank"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_wait_vblank", TypeSize: 12}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "drm_vblank_seq_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{0, 1, 62, 67108864, 134217728, 268435456, 536870912, 1073741824}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signal", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "signal", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}}},
 	{Key: StructKey{Name: "epoll_event"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "epoll_event", TypeSize: 12}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "epoll_ev", FldName: "ev", TypeSize: 4}}, Vals: []uint64{1, 4, 8192, 2, 8, 16, 2147483648, 1073741824, 268435456, 536870912}},
@@ -4391,7 +4391,7 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "sigevent"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sigevent", TypeSize: 96}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "val", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signo", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "signo", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sigev_notify", FldName: "notify", TypeSize: 4}}, Vals: []uint64{1, 0, 2, 4}},
 		&UnionType{Key: StructKey{Name: "sigevent_u"}, FldName: "u"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 64}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 8}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
@@ -4405,13 +4405,13 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "sigevent_thread"}, FldName: "thr"},
 	}}},
 	{Key: StructKey{Name: "siginfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "siginfo", TypeSize: 16}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signo", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "signo", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "errno", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "code", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pad3", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "siginfo", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "siginfo", TypeSize: 16, ArgDir: 1}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "signo", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "signo", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 65},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "errno", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "code", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pad3", TypeSize: 4, ArgDir: 1}}},
@@ -7127,7 +7127,7 @@ var syscalls_arm64 = []*Syscall{
 	{ID: 124, NR: 25, Name: "fcntl$setsig", CallName: "fcntl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 10},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}},
 	{ID: 125, NR: 25, Name: "fcntl$setstatus", CallName: "fcntl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -9158,7 +9158,7 @@ var syscalls_arm64 = []*Syscall{
 	{ID: 475, NR: 29, Name: "ioctl$KDSIGACCEPT", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 19278},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "arg", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "arg", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}},
 	{ID: 476, NR: 29, Name: "ioctl$KDSKBLED", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
@@ -12025,7 +12025,7 @@ var syscalls_arm64 = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 1029, NR: 128, Name: "restart_syscall", CallName: "restart_syscall"},
 	{ID: 1030, NR: 134, Name: "rt_sigaction", CallName: "rt_sigaction", Args: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "act", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sigaction"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "oact", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sigaction", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "sigsetsize", TypeSize: 8}}, Buf: "fake"},
@@ -12043,7 +12043,7 @@ var syscalls_arm64 = []*Syscall{
 	}},
 	{ID: 1033, NR: 138, Name: "rt_sigqueueinfo", CallName: "rt_sigqueueinfo", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "info", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "siginfo"}}},
 	}},
 	{ID: 1034, NR: 139, Name: "rt_sigreturn", CallName: "rt_sigreturn"},
@@ -12060,7 +12060,7 @@ var syscalls_arm64 = []*Syscall{
 	{ID: 1037, NR: 240, Name: "rt_tgsigqueueinfo", CallName: "rt_tgsigqueueinfo", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "gid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "tid", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "info", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "siginfo"}}},
 	}},
 	{ID: 1038, NR: 123, Name: "sched_getaffinity", CallName: "sched_getaffinity", Args: []Type{
@@ -14476,7 +14476,7 @@ var syscalls_arm64 = []*Syscall{
 	{ID: 1430, NR: 131, Name: "tgkill", CallName: "tgkill", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "gid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "tid", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}},
 	{ID: 1431, NR: 107, Name: "timer_create", CallName: "timer_create", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clock_id", FldName: "id", TypeSize: 8}}, Vals: []uint64{0, 5, 1, 6, 4, 7, 2, 3}},
@@ -14518,7 +14518,7 @@ var syscalls_arm64 = []*Syscall{
 	}},
 	{ID: 1440, NR: 130, Name: "tkill", CallName: "tkill", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "tid", TypeSize: 4}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "signalno", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}},
 	{ID: 1441, NR: 45, Name: "truncate", CallName: "truncate", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
@@ -17831,4 +17831,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm64 = "3d2bd792c348a3a3567894172f563508424fa0a8"
+const revision_arm64 = "d5bd05e8121551b6452423ab02a6329e0c83b9f3"
