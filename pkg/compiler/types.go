@@ -278,24 +278,6 @@ var typeVMA = &typeDesc{
 	},
 }
 
-// TODO(dvyukov): perhaps, we need something like typedefs for such types.
-// So that users can introduce them as necessary without modifying compiler:
-// type signalno int32[0:64]
-var typeSignalno = &typeDesc{
-	Names:     []string{"signalno"},
-	CanBeArg:  true,
-	CantBeOpt: true,
-	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		base.TypeSize = 4
-		return &prog.IntType{
-			IntTypeCommon: base,
-			Kind:          prog.IntRange,
-			RangeBegin:    0,
-			RangeEnd:      65,
-		}
-	},
-}
-
 var typeCsum = &typeDesc{
 	Names:     []string{"csum"},
 	NeedBase:  true,
@@ -678,7 +660,6 @@ func init() {
 		typeFilename,
 		typeFileoff, // make a type alias
 		typeVMA,
-		typeSignalno, // make a type alias
 		typeCsum,
 		typeProc,
 		typeText,

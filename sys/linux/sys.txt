@@ -60,6 +60,8 @@ include <uapi/linux/kcov.h>
 resource fd[int32]: 0xffffffffffffffff, AT_FDCWD
 resource fd_dir[fd]
 
+type signalno int32[0:65]
+
 open(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd
 # Just so that we have something that creates fd_dir resources.
 open$dir(file ptr[in, filename], flags flags[open_flags], mode flags[open_mode]) fd_dir
