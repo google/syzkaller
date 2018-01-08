@@ -1,0 +1,24 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <asm/ioctl.h>
+include <uapi/linux/fcntl.h>
+include <drivers/staging/android/uapi/ashmem.h>
+
+resource fd_ashmem[fd]
+
+openat$ashmem(fd const[AT_FDCWD], file ptr[in, string["/dev/ashmem"]], flags flags[open_flags], mode const[0]) fd_ashmem
+
+ioctl$ASHMEM_SET_NAME(fd fd_ashmem, cmd const[ASHMEM_SET_NAME], arg ptr[in, string])
+ioctl$ASHMEM_GET_NAME(fd fd_ashmem, cmd const[ASHMEM_GET_NAME], arg ptr[out, array[int8]])
+ioctl$ASHMEM_SET_SIZE(fd fd_ashmem, cmd const[ASHMEM_SET_SIZE], arg intptr)
+ioctl$ASHMEM_GET_SIZE(fd fd_ashmem, cmd const[ASHMEM_GET_SIZE], arg const[0])
+ioctl$ASHMEM_SET_PROT_MASK(fd fd_ashmem, cmd const[ASHMEM_SET_PROT_MASK], arg ptr[in, ashmem_pin])
+ioctl$ASHMEM_GET_PROT_MASK(fd fd_ashmem, cmd const[ASHMEM_GET_PROT_MASK], arg ptr[out, ashmem_pin])
+ioctl$ASHMEM_GET_PIN_STATUS(fd fd_ashmem, cmd const[ASHMEM_GET_PIN_STATUS], arg const[0])
+ioctl$ASHMEM_PURGE_ALL_CACHES(fd fd_ashmem, cmd const[ASHMEM_PURGE_ALL_CACHES], arg const[0])
+
+ashmem_pin {
+	offset	int32
+	len	int32
+}

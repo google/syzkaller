@@ -6,8 +6,17 @@ Prerequisites:
 
  - Build syzkaller
 
+In case you have old Android `/dev/ion` driver:
+
 ```sh
-$ make TARGETOS=linux TARGETARCH=arm64
+cp sys/android/* sys/linux
+make generate
+```
+
+Then:
+
+```sh
+make TARGETOS=linux TARGETARCH=arm64
 ```
 
  - Create config with `"type": "adb"` and specify adb devices to use. For example:
