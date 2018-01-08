@@ -45,6 +45,7 @@ func initTarget(target *prog.Target) {
 		"timespec":           arch.generateTimespec,
 		"timeval":            arch.generateTimespec,
 		"sockaddr_alg":       arch.generateSockaddrAlg,
+		"alg_name":           arch.generateAlgName,
 		"alg_aead_name":      arch.generateAlgAeadName,
 		"alg_hash_name":      arch.generateAlgHashName,
 		"alg_blkcipher_name": arch.generateAlgBlkcipherhName,

@@ -1,0 +1,74 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_CRYPTO support.
+
+include <linux/net.h>
+include <linux/crypto.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/cryptouser.h>
+
+resource sock_nl_crypto[sock_netlink]
+
+socket$nl_crypto(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_CRYPTO]) sock_nl_crypto
+
+sendmsg$nl_crypto(fd sock_nl_crypto, msg ptr[in, msghdr_nl_crypto], f flags[send_flags])
+
+msghdr_nl_crypto {
+	addr	ptr[in, sockaddr_nl_kern]
+	addrlen	len[addr, int32]
+	vec	ptr[in, iovec_nl_crypto]
+	vlen	const[1, intptr]
+	ctrl	const[0, intptr]
+	ctrllen	const[0, intptr]
+	f	flags[send_flags, int32]
+}
+
+iovec_nl_crypto {
+	data	ptr[in, netlink_msg_crypto]
+	len	bytesize[data, intptr]
+}
+
+netlink_msg_crypto [
+	alg	nl_crypto_alg_msg
+	delrng	nl_crypto_delrng_msg
+] [varlen]
+
+nl_crypto_alg_msg {
+	len	len[parent, int32]
+	type	flags[nl_crypto_alg_msgs, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	netlink_seq
+	pid	netlink_port_id
+	msg	crypto_user_alg
+	attrs	array[nl_crypto_attr]
+} [align_4]
+
+nl_crypto_alg_msgs = CRYPTO_MSG_NEWALG, CRYPTO_MSG_DELALG, CRYPTO_MSG_UPDATEALG, CRYPTO_MSG_GETALG
+
+crypto_user_alg {
+	cru_name	alg_name
+# TODO: generate driver names.
+	cru_driver_name	array[const[0, int8], CRYPTO_MAX_NAME]
+	cru_module_name	array[const[0, int8], CRYPTO_MAX_NAME]
+	cru_type	flags[crypto_user_alg_flags, int32]
+	cru_mask	flags[crypto_user_alg_flags, int32]
+	cru_refcnt	const[0, int32]
+	cru_flags	const[0, int32]
+}
+
+crypto_user_alg_flags = CRYPTO_ALG_TESTED, CRYPTO_ALG_INTERNAL
+
+nl_crypto_delrng_msg {
+	len	len[parent, int32]
+	type	const[CRYPTO_MSG_DELRNG, int16]
+	flags	flags[netlink_msg_flags, int16]
+	seq	netlink_seq
+	pid	netlink_port_id
+} [align_4]
+
+nl_crypto_attr {
+	nla_len		len[parent, int16]
+	nla_type	const[CRYPTOCFGA_PRIORITY_VAL, int16]
+	data		int32
+} [align_4]

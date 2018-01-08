@@ -38,8 +38,8 @@ sadb_msg {
 	sadb_msg_satype		flags[sadb_satype, int8]
 	sadb_msg_len		bytesize8[parent, int16]
 	sadb_msg_reserved	const[0, int16]
-	sadb_msg_seq		xfrm_seq
-	sadb_msg_pid		xfrm_port_id
+	sadb_msg_seq		netlink_seq
+	sadb_msg_pid		netlink_port_id
 	ext_headers		array[sadb_ext_hdr]
 } [packed]
 
@@ -149,7 +149,7 @@ sadb_x_sa2 {
 	sadb_x_sa2_mode		int8
 	sadb_x_sa2_reserved1	const[0, int8]
 	sadb_x_sa2_reserved2	const[0, int16]
-	sadb_x_sa2_sequence	xfrm_seq
+	sadb_x_sa2_sequence	netlink_seq
 	sadb_x_sa2_reqid	xfrm_req_id
 } [packed, align_8]
 

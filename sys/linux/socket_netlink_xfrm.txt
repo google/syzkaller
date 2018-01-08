@@ -10,8 +10,6 @@ include <uapi/linux/xfrm.h>
 include <uapi/linux/ipsec.h>
 
 resource sock_nl_xfrm[sock_netlink]
-type xfrm_seq proc[7388453, 8, int32]
-type xfrm_port_id proc[635427835, 4, int32]
 type xfrm_req_id proc[13567, 8, int32, opt]
 type xfrm_policy_index proc[7236528, 16, int32, opt]
 
@@ -55,8 +53,8 @@ xfrm_newsa {
 	len	len[parent, int32]
 	type	flags[xfrm_newsa_msgs, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	msg	xfrm_usersa_info
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -70,7 +68,7 @@ xfrm_usersa_info {
 	lft		xfrm_lifetime_cfg
 	curlft		xfrm_lifetime_cur
 	stats		xfrm_stats
-	seq		xfrm_seq
+	seq		netlink_seq
 	reqid		xfrm_req_id
 	family		flags[xfrm_family, int16]
 	mode		flags[xfrm_mode, int8]
@@ -82,8 +80,8 @@ xfrm_delsa {
 	len	len[parent, int32]
 	type	flags[xfrm_delsa_msgs, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	msg	xfrm_usersa_id
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -101,8 +99,8 @@ xfrm_newpolicy {
 	len	len[parent, int32]
 	type	flags[xfrm_newpolicy_msgs, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	msg	xfrm_userpolicy_info
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -113,8 +111,8 @@ xfrm_delpolicy {
 	len	len[parent, int32]
 	type	flags[xfrm_delpolicy_msgs, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	msg	xfrm_userpolicy_id
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -131,8 +129,8 @@ xfrm_allocspi {
 	len	len[parent, int32]
 	type	const[XFRM_MSG_ALLOCSPI, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	msg	xfrm_userspi_info
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -147,8 +145,8 @@ xfrm_acquire {
 	len	len[parent, int32]
 	type	const[XFRM_MSG_ACQUIRE, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	msg	xfrm_user_acquire
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -161,15 +159,15 @@ xfrm_user_acquire {
 	aalgos	int32
 	ealgos	int32
 	calgo	int32
-	seq	xfrm_seq
+	seq	netlink_seq
 }
 
 xfrm_expire {
 	len	len[parent, int32]
 	type	const[XFRM_MSG_EXPIRE, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	msg	xfrm_user_expire
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -183,8 +181,8 @@ xfrm_polexpire {
 	len	len[parent, int32]
 	type	const[XFRM_MSG_POLEXPIRE, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	msg	xfrm_user_polexpire
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -198,8 +196,8 @@ xfrm_flushsa {
 	len	len[parent, int32]
 	type	const[XFRM_MSG_FLUSHSA, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	msg	xfrm_usersa_flush
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -212,8 +210,8 @@ xfrm_report {
 	len	len[parent, int32]
 	type	const[XFRM_MSG_REPORT, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	msg	xfrm_user_report
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -228,7 +226,7 @@ xfrm_flushpolicy {
 	type	const[XFRM_MSG_FLUSHPOLICY, int16]
 	flags	flags[netlink_msg_flags, int16]
 	seq	int32
-	pid	xfrm_port_id
+	pid	netlink_port_id
 	attrs	array[xfrm_attr]
 } [align_4]
 
@@ -236,8 +234,8 @@ xfrm_newae {
 	len	len[parent, int32]
 	type	flags[xfrm_newae_msgs, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	data	xfrm_aevent_id
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -255,8 +253,8 @@ xfrm_getsadinfo {
 	len	len[parent, int32]
 	type	flags[xfrm_newae_msgs, int16]
 	flags	flags[netlink_msg_flags, int16]
-	seq	xfrm_seq
-	pid	xfrm_port_id
+	seq	netlink_seq
+	pid	netlink_port_id
 	data	int32
 	attrs	array[xfrm_attr]
 } [align_4]
@@ -424,8 +422,8 @@ xfrm_attr_replay_val {
 } [align_4]
 
 xfrm_replay_state {
-	oseq	xfrm_seq
-	seq	xfrm_seq
+	oseq	netlink_seq
+	seq	netlink_seq
 	bitmap	int32
 }
 
@@ -437,10 +435,10 @@ xfrm_attr_replay_esn_val {
 
 xfrm_replay_state_esn {
 	bmp_len		len[bmp, int32]
-	oseq		xfrm_seq
-	seq		xfrm_seq
-	oseq_hi		xfrm_seq
-	seq_hi		xfrm_seq
+	oseq		netlink_seq
+	seq		netlink_seq
+	oseq_hi		netlink_seq
+	seq_hi		netlink_seq
 	replay_window	int32
 	bmp		array[int32]
 }
