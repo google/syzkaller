@@ -153,12 +153,15 @@ func currentReporting(c context.Context, bug *Bug) (*Reporting, *BugReporting, i
 			return nil, nil, 0, "", fmt.Errorf("%v: missing in config", bugReporting.Name)
 		}
 		switch reporting.Filter(bug) {
+		case FilterSkip:
+			if bugReporting.Reported.IsZero() {
+				continue
+			}
+			fallthrough
 		case FilterReport:
 			return reporting, bugReporting, i, "", nil
 		case FilterHold:
 			return nil, nil, 0, fmt.Sprintf("%v: reporting suspended", bugReporting.Name), nil
-		case FilterSkip:
-			continue
 		}
 	}
 	return nil, nil, 0, "", fmt.Errorf("no reporting left")

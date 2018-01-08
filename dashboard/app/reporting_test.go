@@ -478,3 +478,48 @@ func TestReportingDupCrossReporting(t *testing.T) {
 		c.expectEQ(reply.OK, false)
 	}
 }
+
+func TestReportingFilter(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
+
+	crash1 := testCrash(build, 1)
+	crash1.Title = "skip without repro 1"
+	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+
+	// This does not skip first reporting, because it does not have repro.
+	rep1 := reportAllBugs(c, 1)[0]
+	c.expectEQ(string(rep1.Config), `{"Index":1}`)
+
+	crash1.ReproSyz = []byte("getpid()")
+	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
+
+	// This has repro but was already reported to first reporting,
+	// so repro must go to the first reporting as well.
+	rep2 := reportAllBugs(c, 1)[0]
+	c.expectEQ(string(rep2.Config), `{"Index":1}`)
+
+	// Now upstream it and it must go to the second reporting.
+	cmd := &dashapi.BugUpdate{
+		ID:     rep1.ID,
+		Status: dashapi.BugStatusUpstream,
+	}
+	reply := new(dashapi.BugUpdateReply)
+	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+	c.expectEQ(reply.OK, true)
+
+	rep3 := reportAllBugs(c, 1)[0]
+	c.expectEQ(string(rep3.Config), `{"Index":2}`)
+
+	// Now report a bug that must go to the second reporting right away.
+	crash2 := testCrash(build, 2)
+	crash2.Title = "skip without repro 2"
+	crash2.ReproSyz = []byte("getpid()")
+	c.expectOK(c.API(client1, key1, "report_crash", crash2, nil))
+
+	rep4 := reportAllBugs(c, 1)[0]
+	c.expectEQ(string(rep4.Config), `{"Index":2}`)
+}
