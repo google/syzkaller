@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "4c64822c6b707ad89072a21db3874258929c0129"
+#define SYZ_REVISION "492a214456d7021b507ccce917144e6d6ef5ae3a"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1469;
+unsigned syscall_count = 1481;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$ax25", 364},
@@ -364,11 +364,20 @@ call_t syscalls[] = {
     {"io_setup", 245},
     {"io_submit", 248},
     {"ioctl", 54},
+    {"ioctl$ASHMEM_GET_NAME", 54},
+    {"ioctl$ASHMEM_GET_PIN_STATUS", 54},
+    {"ioctl$ASHMEM_GET_PROT_MASK", 54},
+    {"ioctl$ASHMEM_GET_SIZE", 54},
+    {"ioctl$ASHMEM_PURGE_ALL_CACHES", 54},
+    {"ioctl$ASHMEM_SET_NAME", 54},
+    {"ioctl$ASHMEM_SET_PROT_MASK", 54},
+    {"ioctl$ASHMEM_SET_SIZE", 54},
     {"ioctl$BINDER_GET_NODE_DEBUG_INFO", 54},
     {"ioctl$BINDER_SET_CONTEXT_MGR", 54},
     {"ioctl$BINDER_SET_MAX_THREADS", 54},
     {"ioctl$BINDER_THREAD_EXIT", 54},
     {"ioctl$BINDER_WRITE_READ", 54},
+    {"ioctl$DMA_BUF_IOCTL_SYNC", 54},
     {"ioctl$DRM_IOCTL_ADD_BUFS", 54},
     {"ioctl$DRM_IOCTL_ADD_CTX", 54},
     {"ioctl$DRM_IOCTL_ADD_MAP", 54},
@@ -467,6 +476,8 @@ call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 54},
     {"ioctl$GIO_UNIMAP", 54},
     {"ioctl$GIO_UNISCRNMAP", 54},
+    {"ioctl$ION_IOC_ALLOC", 54},
+    {"ioctl$ION_IOC_HEAP_QUERY", 54},
     {"ioctl$KDADDIO", 54},
     {"ioctl$KDDELIO", 54},
     {"ioctl$KDDISABIO", 54},
@@ -949,6 +960,7 @@ call_t syscalls[] = {
     {"open$dir", 5},
     {"open_by_handle_at", 342},
     {"openat", 295},
+    {"openat$ashmem", 295},
     {"openat$audio", 295},
     {"openat$autofs", 295},
     {"openat$capi20", 295},
@@ -1489,7 +1501,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "040bde910c2bab847ddef91adf9b959305032f1b"
+#define SYZ_REVISION "3b4929b41a5d0e6662d69a6205b51efd164a266b"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1499,7 +1511,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1529;
+unsigned syscall_count = 1534;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1862,11 +1874,20 @@ call_t syscalls[] = {
     {"io_setup", 206},
     {"io_submit", 209},
     {"ioctl", 16},
+    {"ioctl$ASHMEM_GET_NAME", 16},
+    {"ioctl$ASHMEM_GET_PIN_STATUS", 16},
+    {"ioctl$ASHMEM_GET_PROT_MASK", 16},
+    {"ioctl$ASHMEM_GET_SIZE", 16},
+    {"ioctl$ASHMEM_PURGE_ALL_CACHES", 16},
+    {"ioctl$ASHMEM_SET_NAME", 16},
+    {"ioctl$ASHMEM_SET_PROT_MASK", 16},
+    {"ioctl$ASHMEM_SET_SIZE", 16},
     {"ioctl$BINDER_GET_NODE_DEBUG_INFO", 16},
     {"ioctl$BINDER_SET_CONTEXT_MGR", 16},
     {"ioctl$BINDER_SET_MAX_THREADS", 16},
     {"ioctl$BINDER_THREAD_EXIT", 16},
     {"ioctl$BINDER_WRITE_READ", 16},
+    {"ioctl$DMA_BUF_IOCTL_SYNC", 16},
     {"ioctl$DRM_IOCTL_ADD_BUFS", 16},
     {"ioctl$DRM_IOCTL_ADD_CTX", 16},
     {"ioctl$DRM_IOCTL_ADD_MAP", 16},
@@ -1966,12 +1987,7 @@ call_t syscalls[] = {
     {"ioctl$GIO_UNIMAP", 16},
     {"ioctl$GIO_UNISCRNMAP", 16},
     {"ioctl$ION_IOC_ALLOC", 16},
-    {"ioctl$ION_IOC_CUSTOM", 16},
-    {"ioctl$ION_IOC_FREE", 16},
-    {"ioctl$ION_IOC_IMPORT", 16},
-    {"ioctl$ION_IOC_MAP", 16},
-    {"ioctl$ION_IOC_SHARE", 16},
-    {"ioctl$ION_IOC_SYNC", 16},
+    {"ioctl$ION_IOC_HEAP_QUERY", 16},
     {"ioctl$KDADDIO", 16},
     {"ioctl$KDDELIO", 16},
     {"ioctl$KDDISABIO", 16},
@@ -2468,6 +2484,7 @@ call_t syscalls[] = {
     {"open$dir", 2},
     {"open_by_handle_at", 304},
     {"openat", 257},
+    {"openat$ashmem", 257},
     {"openat$audio", 257},
     {"openat$autofs", 257},
     {"openat$capi20", 257},
@@ -3036,7 +3053,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "0225b0af4514cf8d3f74eb14a51f7f2df957d336"
+#define SYZ_REVISION "2b29d93e4fdf86b17c466ea49cf95810d8ca5005"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3046,7 +3063,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1479;
+unsigned syscall_count = 1491;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3404,11 +3421,20 @@ call_t syscalls[] = {
     {"io_setup", 243},
     {"io_submit", 246},
     {"ioctl", 54},
+    {"ioctl$ASHMEM_GET_NAME", 54},
+    {"ioctl$ASHMEM_GET_PIN_STATUS", 54},
+    {"ioctl$ASHMEM_GET_PROT_MASK", 54},
+    {"ioctl$ASHMEM_GET_SIZE", 54},
+    {"ioctl$ASHMEM_PURGE_ALL_CACHES", 54},
+    {"ioctl$ASHMEM_SET_NAME", 54},
+    {"ioctl$ASHMEM_SET_PROT_MASK", 54},
+    {"ioctl$ASHMEM_SET_SIZE", 54},
     {"ioctl$BINDER_GET_NODE_DEBUG_INFO", 54},
     {"ioctl$BINDER_SET_CONTEXT_MGR", 54},
     {"ioctl$BINDER_SET_MAX_THREADS", 54},
     {"ioctl$BINDER_THREAD_EXIT", 54},
     {"ioctl$BINDER_WRITE_READ", 54},
+    {"ioctl$DMA_BUF_IOCTL_SYNC", 54},
     {"ioctl$DRM_IOCTL_ADD_BUFS", 54},
     {"ioctl$DRM_IOCTL_ADD_CTX", 54},
     {"ioctl$DRM_IOCTL_ADD_MAP", 54},
@@ -3507,6 +3533,8 @@ call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 54},
     {"ioctl$GIO_UNIMAP", 54},
     {"ioctl$GIO_UNISCRNMAP", 54},
+    {"ioctl$ION_IOC_ALLOC", 54},
+    {"ioctl$ION_IOC_HEAP_QUERY", 54},
     {"ioctl$KDADDIO", 54},
     {"ioctl$KDDELIO", 54},
     {"ioctl$KDDISABIO", 54},
@@ -3969,6 +3997,7 @@ call_t syscalls[] = {
     {"open$dir", 5},
     {"open_by_handle_at", 371},
     {"openat", 322},
+    {"openat$ashmem", 322},
     {"openat$audio", 322},
     {"openat$autofs", 322},
     {"openat$capi20", 322},
@@ -4533,7 +4562,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "aa1ba146297e92cb7b1c944b45fa6b8517d20b5f"
+#define SYZ_REVISION "9c00587ca2d4db5ed33b93b457cbd82050d87ac3"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4543,7 +4572,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1458;
+unsigned syscall_count = 1463;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -4892,11 +4921,20 @@ call_t syscalls[] = {
     {"io_setup", 0},
     {"io_submit", 2},
     {"ioctl", 29},
+    {"ioctl$ASHMEM_GET_NAME", 29},
+    {"ioctl$ASHMEM_GET_PIN_STATUS", 29},
+    {"ioctl$ASHMEM_GET_PROT_MASK", 29},
+    {"ioctl$ASHMEM_GET_SIZE", 29},
+    {"ioctl$ASHMEM_PURGE_ALL_CACHES", 29},
+    {"ioctl$ASHMEM_SET_NAME", 29},
+    {"ioctl$ASHMEM_SET_PROT_MASK", 29},
+    {"ioctl$ASHMEM_SET_SIZE", 29},
     {"ioctl$BINDER_GET_NODE_DEBUG_INFO", 29},
     {"ioctl$BINDER_SET_CONTEXT_MGR", 29},
     {"ioctl$BINDER_SET_MAX_THREADS", 29},
     {"ioctl$BINDER_THREAD_EXIT", 29},
     {"ioctl$BINDER_WRITE_READ", 29},
+    {"ioctl$DMA_BUF_IOCTL_SYNC", 29},
     {"ioctl$DRM_IOCTL_ADD_BUFS", 29},
     {"ioctl$DRM_IOCTL_ADD_CTX", 29},
     {"ioctl$DRM_IOCTL_ADD_MAP", 29},
@@ -4996,12 +5034,7 @@ call_t syscalls[] = {
     {"ioctl$GIO_UNIMAP", 29},
     {"ioctl$GIO_UNISCRNMAP", 29},
     {"ioctl$ION_IOC_ALLOC", 29},
-    {"ioctl$ION_IOC_CUSTOM", 29},
-    {"ioctl$ION_IOC_FREE", 29},
-    {"ioctl$ION_IOC_IMPORT", 29},
-    {"ioctl$ION_IOC_MAP", 29},
-    {"ioctl$ION_IOC_SHARE", 29},
-    {"ioctl$ION_IOC_SYNC", 29},
+    {"ioctl$ION_IOC_HEAP_QUERY", 29},
     {"ioctl$KDADDIO", 29},
     {"ioctl$KDDELIO", 29},
     {"ioctl$KDDISABIO", 29},
@@ -5461,6 +5494,7 @@ call_t syscalls[] = {
     {"nanosleep", 101},
     {"open_by_handle_at", 265},
     {"openat", 56},
+    {"openat$ashmem", 56},
     {"openat$audio", 56},
     {"openat$autofs", 56},
     {"openat$capi20", 56},
@@ -6009,7 +6043,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "2d8dca03f154194cf3a43c13d7b6c3addf3eda6a"
+#define SYZ_REVISION "3d1e8f474fcaedab74ace5877617a91edb66ae43"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6019,7 +6053,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1438;
+unsigned syscall_count = 1450;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6380,11 +6414,20 @@ call_t syscalls[] = {
     {"io_setup", 227},
     {"io_submit", 230},
     {"ioctl", 54},
+    {"ioctl$ASHMEM_GET_NAME", 54},
+    {"ioctl$ASHMEM_GET_PIN_STATUS", 54},
+    {"ioctl$ASHMEM_GET_PROT_MASK", 54},
+    {"ioctl$ASHMEM_GET_SIZE", 54},
+    {"ioctl$ASHMEM_PURGE_ALL_CACHES", 54},
+    {"ioctl$ASHMEM_SET_NAME", 54},
+    {"ioctl$ASHMEM_SET_PROT_MASK", 54},
+    {"ioctl$ASHMEM_SET_SIZE", 54},
     {"ioctl$BINDER_GET_NODE_DEBUG_INFO", 54},
     {"ioctl$BINDER_SET_CONTEXT_MGR", 54},
     {"ioctl$BINDER_SET_MAX_THREADS", 54},
     {"ioctl$BINDER_THREAD_EXIT", 54},
     {"ioctl$BINDER_WRITE_READ", 54},
+    {"ioctl$DMA_BUF_IOCTL_SYNC", 54},
     {"ioctl$DRM_IOCTL_ADD_BUFS", 54},
     {"ioctl$DRM_IOCTL_ADD_CTX", 54},
     {"ioctl$DRM_IOCTL_ADD_MAP", 54},
@@ -6483,6 +6526,8 @@ call_t syscalls[] = {
     {"ioctl$GIO_SCRNMAP", 54},
     {"ioctl$GIO_UNIMAP", 54},
     {"ioctl$GIO_UNISCRNMAP", 54},
+    {"ioctl$ION_IOC_ALLOC", 54},
+    {"ioctl$ION_IOC_HEAP_QUERY", 54},
     {"ioctl$KDADDIO", 54},
     {"ioctl$KDDELIO", 54},
     {"ioctl$KDDISABIO", 54},
@@ -6931,6 +6976,7 @@ call_t syscalls[] = {
     {"open$dir", 5},
     {"open_by_handle_at", 346},
     {"openat", 286},
+    {"openat$ashmem", 286},
     {"openat$audio", 286},
     {"openat$autofs", 286},
     {"openat$capi20", 286},

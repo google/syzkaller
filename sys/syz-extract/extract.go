@@ -99,7 +99,6 @@ func main() {
 			failf("failed to find sys files: %v", err)
 		}
 		androidFiles := map[string]bool{
-			"ion.txt":        true,
 			"tlk_device.txt": true,
 		}
 		for _, f := range matches {
