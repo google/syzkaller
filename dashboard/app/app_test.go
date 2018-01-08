@@ -7,6 +7,7 @@ package dash
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -30,6 +31,13 @@ var config = GlobalConfig{
 					DailyLimit: 3,
 					Config: &TestConfig{
 						Index: 1,
+					},
+					Filter: func(bug *Bug) FilterResult {
+						if strings.HasPrefix(bug.Title, "skip without repro") &&
+							bug.ReproLevel != dashapi.ReproLevelNone {
+							return FilterSkip
+						}
+						return FilterReport
 					},
 				},
 				{
