@@ -34,22 +34,27 @@ func (arch *arch) generateSockaddrAlg(g *prog.Gen, typ *prog.StructType, old *pr
 	return
 }
 
+func (arch *arch) generateAlgName(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (
+	arg prog.Arg, calls []*prog.Call) {
+	return generateAlgNameStruct(g, typ, allTypes[g.Rand().Intn(len(allTypes))].typ)
+}
+
 func (arch *arch) generateAlgAeadName(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (
 	arg prog.Arg, calls []*prog.Call) {
-	return arch.generateAlgName(g, typ, ALG_AEAD)
+	return generateAlgNameStruct(g, typ, ALG_AEAD)
 }
 
 func (arch *arch) generateAlgHashName(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (
 	arg prog.Arg, calls []*prog.Call) {
-	return arch.generateAlgName(g, typ, ALG_HASH)
+	return generateAlgNameStruct(g, typ, ALG_HASH)
 }
 
 func (arch *arch) generateAlgBlkcipherhName(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (
 	arg prog.Arg, calls []*prog.Call) {
-	return arch.generateAlgName(g, typ, ALG_BLKCIPHER)
+	return generateAlgNameStruct(g, typ, ALG_BLKCIPHER)
 }
 
-func (arch *arch) generateAlgName(g *prog.Gen, typ *prog.StructType, algTyp int) (
+func generateAlgNameStruct(g *prog.Gen, typ *prog.StructType, algTyp int) (
 	arg prog.Arg, calls []*prog.Call) {
 	algName := generateAlg(g.Rand(), algTyp)
 	algNameData := fixedSizeData(algName, typ.Fields[0].Size())
