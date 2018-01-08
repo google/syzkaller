@@ -296,13 +296,13 @@ func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
 	switch proc.fuzzer.outputType {
 	case OutputStdout:
 		logMu.Lock()
-		Logf(0, "executing program %v%v:\n%s", proc.pid, strOpts, data)
+		Logf(0, "executing program %v%v:\n%s\n", proc.pid, strOpts, data)
 		logMu.Unlock()
 	case OutputDmesg:
 		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)
 		if err == nil {
 			buf := new(bytes.Buffer)
-			fmt.Fprintf(buf, "syzkaller: executing program %v%v:\n%s",
+			fmt.Fprintf(buf, "syzkaller: executing program %v%v:\n%s\n",
 				proc.pid, strOpts, data)
 			syscall.Write(fd, buf.Bytes())
 			syscall.Close(fd)
