@@ -72,6 +72,7 @@ func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symb
 		regexp.MustCompile(`^kernel/kthread.c`),
 		regexp.MustCompile(`^kernel/sched/*.c`),
 		regexp.MustCompile(`^kernel/time/timer.c`),
+		regexp.MustCompile(`^kernel/workqueue.c`),
 		regexp.MustCompile(`^net/core/dev.c`),
 		regexp.MustCompile(`^net/core/sock.c`),
 		regexp.MustCompile(`^net/core/skbuff.c`),
