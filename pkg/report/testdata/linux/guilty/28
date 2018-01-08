@@ -1,5 +1,4 @@
-# TODO: this must be net/strparser/strparser.c
-FILE: kernel/workqueue.c
+FILE: net/strparser/strparser.c
 
 ==================================================================
 BUG: KASAN: use-after-free in constant_test_bit arch/x86/include/asm/bitops.h:325 [inline]
