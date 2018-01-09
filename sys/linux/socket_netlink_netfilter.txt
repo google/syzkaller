@@ -1,0 +1,52 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_NETFILTER support.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/netfilter.h>
+include <uapi/linux/netfilter/nfnetlink.h>
+
+resource sock_nl_netfilter[sock_netlink]
+
+socket$nl_netfilter(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_NETFILTER]) sock_nl_netfilter
+
+sendmsg$nl_netfilter(fd sock_nl_netfilter, msg ptr[in, msghdr_nl_netfilter], f flags[send_flags])
+
+msghdr_nl_netfilter {
+	addr	ptr[in, sockaddr_nl_kern]
+	addrlen	len[addr, int32]
+	vec	ptr[in, iovec_nl_netfilter]
+	vlen	const[1, intptr]
+	ctrl	const[0, intptr]
+	ctrllen	const[0, intptr]
+	f	flags[send_flags, int32]
+}
+
+iovec_nl_netfilter {
+	data	ptr[in, netlink_msg_netfilter]
+	len	bytesize[data, intptr]
+}
+
+netlink_msg_netfilter {
+	len	len[parent, int32]
+	type	int8[0:20]
+	subsys	flags[nfnl_subsys, int8]
+	flags	flags[netlink_msg_flags, int16]
+	seq	netlink_seq
+	pid	netlink_port_id
+	hdr	nfgenmsg
+# No body. Generic attribute can represent a random body.
+	attrs	array[nl_generic_attr]
+} [align_4]
+
+nfgenmsg {
+	nfgen_family	flags[nfproto, int8]
+	version		const[NFNETLINK_V0, int8]
+# res_id seems to mean things like cpu/queue/group number, so prefer small values.
+	res_id		int16be[0:10]
+} [align_4]
+
+nfnl_subsys = NFNL_SUBSYS_CTNETLINK, NFNL_SUBSYS_CTNETLINK_EXP, NFNL_SUBSYS_QUEUE, NFNL_SUBSYS_ULOG, NFNL_SUBSYS_OSF, NFNL_SUBSYS_IPSET, NFNL_SUBSYS_ACCT, NFNL_SUBSYS_CTNETLINK_TIMEOUT, NFNL_SUBSYS_CTHELPER, NFNL_SUBSYS_NFTABLES, NFNL_SUBSYS_NFT_COMPAT
+nfproto = NFPROTO_UNSPEC, NFPROTO_INET, NFPROTO_IPV4, NFPROTO_ARP, NFPROTO_NETDEV, NFPROTO_BRIDGE, NFPROTO_IPV6, NFPROTO_DECNET

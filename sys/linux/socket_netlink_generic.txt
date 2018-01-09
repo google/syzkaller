@@ -43,50 +43,6 @@ netlink_msg_generic {
 
 genlmsghdr {
 	cmd		int8[0:32]
-	version		const[0, int8]
+	version		const[NFNETLINK_V0, int8]
 	reserved	const[0, int16]
 } [align_4]
-
-nl_generic_attr [
-	generic	array[int8]
-	flag	nl_generic_attr_flag
-	typed	nl_generic_attr_typed
-	nested	nl_generic_attr_nested
-] [varlen]
-
-nl_generic_attr_flag {
-	nla_len		len[parent, int16]
-# NL80211 has 150 attributes.
-	nla_type	int16[0:150]
-} [align_4]
-
-nl_generic_attr_typed {
-	nla_len		len[parent, int16]
-	nla_type	int16[0:150]
-	data		nl_generic_attr_data
-} [align_4]
-
-nl_generic_attr_data [
-	u32	int32
-	u64	int64
-	fd	fd
-	pid	pid
-	uid	uid
-	gid	gid
-	str	string
-	binary	array[int8]
-] [varlen]
-
-nl_generic_attr_nested {
-	nla_len	len[parent, int16]
-# NL80211 has 150 attributes.
-	data	array[nl_generic_attr_nonested]
-} [align_4]
-
-nl_generic_attr_nonested [
-	generic	array[int8]
-	flag	nl_generic_attr_flag
-	typed	nl_generic_attr_typed
-] [varlen]
-
-define NLMSG_MAX_TYPE	NLMSG_MIN_TYPE + 50
