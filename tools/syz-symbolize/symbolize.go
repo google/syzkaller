@@ -38,8 +38,7 @@ func main() {
 	}
 	rep := reporter.Parse(text)
 	if rep == nil {
-		fmt.Fprintf(os.Stderr, "no crash found\n")
-		os.Exit(1)
+		rep = &report.Report{Report: text}
 	}
 	if err := reporter.Symbolize(rep); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to symbolize report: %v\n", err)
