@@ -1,0 +1,92 @@
+# Copyright 2017 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_GENERIC support.
+
+# TODO: describe APIs of specific genetlink families.
+
+include <linux/net.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+
+resource sock_nl_generic[sock_netlink]
+
+socket$nl_generic(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_GENERIC]) sock_nl_generic
+
+sendmsg$nl_generic(fd sock_nl_generic, msg ptr[in, msghdr_nl_generic], f flags[send_flags])
+
+msghdr_nl_generic {
+	addr	ptr[in, sockaddr_nl_kern]
+	addrlen	len[addr, int32]
+	vec	ptr[in, iovec_nl_generic]
+	vlen	const[1, intptr]
+	ctrl	const[0, intptr]
+	ctrllen	const[0, intptr]
+	f	flags[send_flags, int32]
+}
+
+iovec_nl_generic {
+	data	ptr[in, netlink_msg_generic]
+	len	bytesize[data, intptr]
+}
+
+netlink_msg_generic {
+	len	len[parent, int32]
+	type	int16[NLMSG_MIN_TYPE:NLMSG_MAX_TYPE]
+	flags	flags[netlink_msg_flags, int16]
+	seq	netlink_seq
+	pid	netlink_port_id
+	hdr	genlmsghdr
+# No body. Generic attribute can represent a random body.
+	attrs	array[nl_generic_attr]
+} [align_4]
+
+genlmsghdr {
+	cmd		int8[0:32]
+	version		const[0, int8]
+	reserved	const[0, int16]
+} [align_4]
+
+nl_generic_attr [
+	generic	array[int8]
+	flag	nl_generic_attr_flag
+	typed	nl_generic_attr_typed
+	nested	nl_generic_attr_nested
+] [varlen]
+
+nl_generic_attr_flag {
+	nla_len		len[parent, int16]
+# NL80211 has 150 attributes.
+	nla_type	int16[0:150]
+} [align_4]
+
+nl_generic_attr_typed {
+	nla_len		len[parent, int16]
+	nla_type	int16[0:150]
+	data		nl_generic_attr_data
+} [align_4]
+
+nl_generic_attr_data [
+	u32	int32
+	u64	int64
+	fd	fd
+	pid	pid
+	uid	uid
+	gid	gid
+	str	string
+	binary	array[int8]
+] [varlen]
+
+nl_generic_attr_nested {
+	nla_len	len[parent, int16]
+# NL80211 has 150 attributes.
+	data	array[nl_generic_attr_nonested]
+} [align_4]
+
+nl_generic_attr_nonested [
+	generic	array[int8]
+	flag	nl_generic_attr_flag
+	typed	nl_generic_attr_typed
+] [varlen]
+
+define NLMSG_MAX_TYPE	NLMSG_MIN_TYPE + 50
