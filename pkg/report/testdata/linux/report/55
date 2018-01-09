@@ -1,4 +1,4 @@
-TITLE: memory leak in debug_objects_mem_init (size 20)
+TITLE: memory leak in debug_objects_mem_init
 
 [ 1722.511384] unreferenced object 0xdb8040c0 (size 20):
 [ 1722.511384]   comm "swapper", pid 0, jiffies 4294667296

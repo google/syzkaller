@@ -1,4 +1,4 @@
-TITLE: memory leak in sk_prot_alloc (size 1864)
+TITLE: memory leak in sk_prot_alloc
 
 [ 1722.511384] unreferenced object 0xffff8800342540c0 (size 1864): 
 [ 1722.511384]   comm "a.out", pid 24109, jiffies 4299060398 (age 27.984s) 

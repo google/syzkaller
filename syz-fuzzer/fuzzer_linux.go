@@ -4,6 +4,8 @@
 package main
 
 import (
+	"bytes"
+	"os"
 	"syscall"
 	"time"
 
@@ -35,6 +37,7 @@ func kmemleakInit(enable bool) {
 var kmemleakBuf []byte
 
 func kmemleakScan(report bool) {
+	start := time.Now()
 	fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0)
 	if err != nil {
 		panic(err)
@@ -52,6 +55,11 @@ func kmemleakScan(report bool) {
 		panic(err)
 	}
 	time.Sleep(time.Second)
+	// Account for MSECS_MIN_AGE
+	// (1 second less because scanning will take at least a second).
+	for time.Since(start) < 4*time.Second {
+		time.Sleep(time.Second)
+	}
 	if _, err := syscall.Write(fd, []byte("scan")); err != nil {
 		panic(err)
 	}
@@ -72,15 +80,56 @@ func kmemleakScan(report bool) {
 			if err != nil {
 				panic(err)
 			}
-			if n != 0 {
+			nleaks := 0
+			for kmemleakBuf = kmemleakBuf[:n]; len(kmemleakBuf) != 0; {
+				end := bytes.Index(kmemleakBuf[1:], []byte("unreferenced object"))
+				if end != -1 {
+					end += 1
+				} else {
+					end = len(kmemleakBuf)
+				}
+				report := kmemleakBuf[:end]
+				kmemleakBuf = kmemleakBuf[end:]
+				if kmemleakIgnore(report) {
+					continue
+				}
 				// BUG in output should be recognized by manager.
-				log.Logf(0, "BUG: memory leak:\n%s\n", kmemleakBuf[:n])
+				log.Logf(0, "BUG: memory leak\n%s\n", report)
+				nleaks++
+			}
+			if nleaks != 0 {
+				os.Exit(1)
 			}
 		}
+
 	}
 	if _, err := syscall.Write(fd, []byte("clear")); err != nil {
 		panic(err)
 	}
+}
+
+func kmemleakIgnore(report []byte) bool {
+	// kmemleak has a bunch of false positives (at least what looks like
+	// false positives at first glance). So we are concervative with what we report.
+	// First, we filter out any allocations that don't come from executor processes.
+	// Second, we ignore a bunch of functions entirely.
+	// Ideally, someone should debug/fix all these cases and remove ignores.
+	if !bytes.Contains(report, []byte(`comm "syz-executor`)) {
+		return true
+	}
+	for _, ignore := range []string{
+		" copy_process",
+		" do_execveat_common",
+		" __ext4_",
+		" get_empty_filp",
+		" do_filp_open",
+		" new_inode",
+	} {
+		if bytes.Contains(report, []byte(ignore)) {
+			return true
+		}
+	}
+	return false
 }
 
 // Checks if the KCOV device supports comparisons.

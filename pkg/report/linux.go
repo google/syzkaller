@@ -589,6 +589,10 @@ var linuxOopses = []*oops{
 				fmt:          "BUG: executor-detected bug",
 				noStackTrace: true,
 			},
+			{
+				title: compile("BUG: memory leak(?:.*\\n)+?.*backtrace:.*\n.*{{PC}}.*\n.*{{PC}}.*\n.*{{PC}} {{FUNC}}"),
+				fmt:   "memory leak in %[1]v",
+			},
 		},
 		[]*regexp.Regexp{
 			// CONFIG_DEBUG_OBJECTS output.
@@ -915,8 +919,8 @@ var linuxOopses = []*oops{
 		[]byte("unreferenced object"),
 		[]oopsFormat{
 			{
-				title: compile("unreferenced object {{ADDR}} \\(size ([0-9]+)\\):(?:.*\n.*)+backtrace:.*\n.*{{PC}}.*\n.*{{PC}}.*\n.*{{PC}} {{FUNC}}"),
-				fmt:   "memory leak in %[2]v (size %[1]v)",
+				title: compile("unreferenced object {{ADDR}} \\(size [0-9]+\\):(?:.*\\n)+?.*backtrace:.*\n.*{{PC}}.*\n.*{{PC}}.*\n.*{{PC}} {{FUNC}}"),
+				fmt:   "memory leak in %[1]v",
 			},
 		},
 		[]*regexp.Regexp{},
