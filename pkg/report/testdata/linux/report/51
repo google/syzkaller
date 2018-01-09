@@ -1,4 +1,4 @@
-TITLE: memory leak in ipv6_setsockopt (size 64)
+TITLE: memory leak in ipv6_setsockopt
 
 [ 1722.511384] unreferenced object 0xffff880039a55260 (size 64): 
 [ 1722.511384]   comm "executor", pid 11746, jiffies 4298984475 (age 16.078s) 

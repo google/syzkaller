@@ -1,4 +1,4 @@
-TITLE: memory leak in __alloc_skb (size 2048)
+TITLE: memory leak in __alloc_skb
 
 [ 1722.511384] unreferenced object 0xc625e000 (size 2048):
 [ 1722.511384]   comm "swapper", pid 1, jiffies 4294937521

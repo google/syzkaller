@@ -1,4 +1,4 @@
-TITLE: memory leak in __kmalloc (size 1024)
+TITLE: memory leak in __kmalloc
 
 [ 1722.511384] unreferenced object 0xffff880133c63800 (size 1024):
 [ 1722.511384]   comm "exe", pid 1521, jiffies 4294894652
