@@ -3,6 +3,13 @@
 Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs).
 
 _newer first_
+* [kcm: memory leak in kcm_sendmsg](https://groups.google.com/d/msg/syzkaller/3wdPAXqqABY/i-OgV10gDwAJ)
+* [AF_KEY: memory leak in key_notify_policy](https://groups.google.com/d/msg/syzkaller/j6H7dPEQv-s/A-ADSd8gDwAJ)
+* [sctp: memory leak in sctp_endpoint_init](https://groups.google.com/d/msg/syzkaller/rz5CvX4rTFA/PUCYbwEiDwAJ)
+* [tipc: memory leak in tipc_nl_node_get_link](https://groups.google.com/d/msg/syzkaller/6nCOXX58sKw/J91ioe4iDwAJ)
+* [tun: memory leak in tun_set_iff](https://groups.google.com/d/msg/syzkaller/ZuubuAQpne0/sSjnZfojDwAJ)
+* [net/8021q: memory leak in register_vlan_dev](https://groups.google.com/d/msg/syzkaller/bFkAaOcP-SI/9MSok8IlDwAJ)
+* [net: memory leak in socket](https://groups.google.com/d/msg/syzkaller/DMV3fSoKyR0/biGHOQQlDwAJ)
 * [scsi: memory leak in sg_start_req](https://groups.google.com/d/msg/syzkaller/GVR3rFTzQzo/kGvdqZgcDwAJ)
 * [sunrpc: infinite unkillable console spam in xs_tcp_setup_socket](https://groups.google.com/d/msg/syzkaller/DJmtkqwLCZg/mHJPAJHTAQAJ)
 * [fs: possible deadlock in do_iter_write/do_splice](https://groups.google.com/forum/#!topic/syzkaller/f72L3fPD8sY)
