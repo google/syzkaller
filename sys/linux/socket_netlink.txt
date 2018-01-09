@@ -83,12 +83,54 @@ iovec_nl {
 
 netlink_msg {
 	len	len[parent, int32]
-	type	int16
+	type	int16[NLMSG_MIN_TYPE:NLMSG_MAX_TYPE]
 	flags	flags[netlink_msg_flags, int16]
 	seq	netlink_seq
 	pid	netlink_port_id
-	data	array[int8]
+# No body. Generic attribute can represent a random body.
+	attrs	array[nl_generic_attr]
 } [align_4]
+
+nl_generic_attr [
+	generic	array[int8]
+	flag	nl_generic_attr_flag
+	typed	nl_generic_attr_typed
+	nested	nl_generic_attr_nested
+] [varlen]
+
+nl_generic_attr_flag {
+	nla_len		len[parent, int16]
+# NL80211 has 150 attributes.
+	nla_type	int16[0:150]
+} [align_4]
+
+nl_generic_attr_typed {
+	nla_len		len[parent, int16]
+	nla_type	int16[0:150]
+	data		nl_generic_attr_data
+} [align_4]
+
+nl_generic_attr_data [
+	u32	int32
+	u64	int64
+	fd	fd
+	pid	pid
+	uid	uid
+	str	string
+	binary	array[int8]
+] [varlen]
+
+nl_generic_attr_nested {
+	nla_len		len[parent, int16]
+	nla_type	int16[0:150]
+	data		array[nl_generic_attr_nonested]
+} [align_4]
+
+nl_generic_attr_nonested [
+	generic	array[int8]
+	flag	nl_generic_attr_flag
+	typed	nl_generic_attr_typed
+] [varlen]
 
 nl_mmap_req {
 	bsize	int32
@@ -96,6 +138,9 @@ nl_mmap_req {
 	fsize	int32
 	fnumber	int32
 }
+
+# Some approximation for protocols for which we don't have precise descriptions.
+define NLMSG_MAX_TYPE	NLMSG_MIN_TYPE + 50
 
 # Removed (if __KERNEL__ defined) in next-20160229 (commit d1b4c689)
 define NETLINK_RX_RING	6

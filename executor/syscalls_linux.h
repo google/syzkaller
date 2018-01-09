@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "44ded59ec4be1359556cf765944d6679728257bd"
+#define SYZ_REVISION "2365a25658105f294372ca34639e82cf3961cb68"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,7 +12,7 @@
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1489;
+unsigned syscall_count = 1491;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1122,6 +1122,7 @@ call_t syscalls[] = {
     {"sendmsg$nfc_llcp", 370},
     {"sendmsg$nl_crypto", 370},
     {"sendmsg$nl_generic", 370},
+    {"sendmsg$nl_netfilter", 370},
     {"sendmsg$nl_xfrm", 370},
     {"sendmsg$unix", 370},
     {"sendto", 369},
@@ -1389,6 +1390,7 @@ call_t syscalls[] = {
     {"socket$nfc_raw", 359},
     {"socket$nl_crypto", 359},
     {"socket$nl_generic", 359},
+    {"socket$nl_netfilter", 359},
     {"socket$nl_xfrm", 359},
     {"socket$packet", 359},
     {"socket$unix", 359},
@@ -1509,7 +1511,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "5a8e0ea7c341e3174e74de00d3a35abb502ff66c"
+#define SYZ_REVISION "2fede332c16db02b822218bf77715e694646e014"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1519,7 +1521,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1542;
+unsigned syscall_count = 1544;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2670,6 +2672,7 @@ call_t syscalls[] = {
     {"sendmsg$nfc_llcp", 46},
     {"sendmsg$nl_crypto", 46},
     {"sendmsg$nl_generic", 46},
+    {"sendmsg$nl_netfilter", 46},
     {"sendmsg$nl_xfrm", 46},
     {"sendmsg$unix", 46},
     {"sendto", 44},
@@ -2949,6 +2952,7 @@ call_t syscalls[] = {
     {"socket$nfc_raw", 41},
     {"socket$nl_crypto", 41},
     {"socket$nl_generic", 41},
+    {"socket$nl_netfilter", 41},
     {"socket$nl_xfrm", 41},
     {"socket$packet", 41},
     {"socket$unix", 41},
@@ -3069,7 +3073,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "c9374135a15b6b6c643938250dfb0c634e138c21"
+#define SYZ_REVISION "14aadba81e2d07b13396f757e6e103b98bf07b7b"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3079,7 +3083,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1499;
+unsigned syscall_count = 1501;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4191,6 +4195,7 @@ call_t syscalls[] = {
     {"sendmsg$nfc_llcp", 296},
     {"sendmsg$nl_crypto", 296},
     {"sendmsg$nl_generic", 296},
+    {"sendmsg$nl_netfilter", 296},
     {"sendmsg$nl_xfrm", 296},
     {"sendmsg$unix", 296},
     {"sendto", 290},
@@ -4469,6 +4474,7 @@ call_t syscalls[] = {
     {"socket$nfc_raw", 281},
     {"socket$nl_crypto", 281},
     {"socket$nl_generic", 281},
+    {"socket$nl_netfilter", 281},
     {"socket$nl_xfrm", 281},
     {"socket$packet", 281},
     {"socket$unix", 281},
@@ -4586,7 +4592,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "25d969425d34b01c303eaac98e41a7a7c3a002c7"
+#define SYZ_REVISION "d5a19825301b5d9017a7f36ee57beddefd8a2f1f"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4596,7 +4602,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1471;
+unsigned syscall_count = 1473;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5689,6 +5695,7 @@ call_t syscalls[] = {
     {"sendmsg$nfc_llcp", 211},
     {"sendmsg$nl_crypto", 211},
     {"sendmsg$nl_generic", 211},
+    {"sendmsg$nl_netfilter", 211},
     {"sendmsg$nl_xfrm", 211},
     {"sendmsg$unix", 211},
     {"sendto", 206},
@@ -5966,6 +5973,7 @@ call_t syscalls[] = {
     {"socket$nfc_raw", 198},
     {"socket$nl_crypto", 198},
     {"socket$nl_generic", 198},
+    {"socket$nl_netfilter", 198},
     {"socket$nl_xfrm", 198},
     {"socket$packet", 198},
     {"socket$unix", 198},
@@ -6075,7 +6083,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "0d7f1e4a5e0cf1cee433fd9b1014d2403e98b16d"
+#define SYZ_REVISION "1ca464b73d637d0cee9d84996563c0e0b7b49ea1"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6085,7 +6093,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1458;
+unsigned syscall_count = 1460;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7166,6 +7174,7 @@ call_t syscalls[] = {
     {"sendmsg$nfc_llcp", 341},
     {"sendmsg$nl_crypto", 341},
     {"sendmsg$nl_generic", 341},
+    {"sendmsg$nl_netfilter", 341},
     {"sendmsg$nl_xfrm", 341},
     {"sendmsg$unix", 341},
     {"sendto", 335},
@@ -7432,6 +7441,7 @@ call_t syscalls[] = {
     {"socket$nfc_raw", 326},
     {"socket$nl_crypto", 326},
     {"socket$nl_generic", 326},
+    {"socket$nl_netfilter", 326},
     {"socket$nl_xfrm", 326},
     {"socket$packet", 326},
     {"socket$unix", 326},
