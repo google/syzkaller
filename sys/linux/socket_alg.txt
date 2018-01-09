@@ -16,6 +16,7 @@ bind$alg(fd sock_alg, addr ptr[in, sockaddr_alg], addrlen len[addr])
 setsockopt$ALG_SET_KEY(fd sock_alg, level const[SOL_ALG], opt const[ALG_SET_KEY], key buffer[in], keylen len[key])
 setsockopt$ALG_SET_AEAD_AUTHSIZE(fd sock_alg, level const[SOL_ALG], opt const[ALG_SET_AEAD_AUTHSIZE], val const[0], size intptr)
 accept$alg(fd sock_alg, peer const[0], peerlen const[0]) sock_algconn
+accept4$alg(fd sock_alg, peer const[0], peerlen const[0], flags flags[accept_flags]) sock_algconn
 sendmsg$alg(fd sock_algconn, msg ptr[in, msghdr_alg], f flags[send_flags])
 sendmmsg$alg(fd sock_algconn, mmsg ptr[in, array[msghdr_alg]], vlen len[mmsg], f flags[send_flags])
 
