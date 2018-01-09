@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "baba00ec4a2aab60adb2ad38b54fa8bbef2b2a59"
+#define SYZ_REVISION "53ea6085c4c43a5d1e1a417dd3d541e780461905"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -12,14 +12,17 @@
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1483;
+unsigned syscall_count = 1487;
 call_t syscalls[] = {
     {"accept4", 364},
+    {"accept4$alg", 364},
     {"accept4$ax25", 364},
     {"accept4$inet", 364},
     {"accept4$inet6", 364},
     {"accept4$ipx", 364},
     {"accept4$llc", 364},
+    {"accept4$netrom", 364},
+    {"accept4$nfc_llcp", 364},
     {"accept4$packet", 364},
     {"accept4$unix", 364},
     {"acct", 51},
@@ -965,6 +968,7 @@ call_t syscalls[] = {
     {"openat$autofs", 295},
     {"openat$capi20", 295},
     {"openat$cuse", 295},
+    {"openat$dir", 295},
     {"openat$dsp", 295},
     {"openat$fb0", 295},
     {"openat$hidraw0", 295},
@@ -1503,7 +1507,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "101c4413414873d1ae8aca779aea8f20ada210f3"
+#define SYZ_REVISION "7ba5244b8d10a1bea2163441dd60a5a3aeb69bac"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1513,7 +1517,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1536;
+unsigned syscall_count = 1540;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1527,11 +1531,14 @@ call_t syscalls[] = {
     {"accept$packet", 43},
     {"accept$unix", 43},
     {"accept4", 288},
+    {"accept4$alg", 288},
     {"accept4$ax25", 288},
     {"accept4$inet", 288},
     {"accept4$inet6", 288},
     {"accept4$ipx", 288},
     {"accept4$llc", 288},
+    {"accept4$netrom", 288},
+    {"accept4$nfc_llcp", 288},
     {"accept4$packet", 288},
     {"accept4$unix", 288},
     {"acct", 163},
@@ -2491,6 +2498,7 @@ call_t syscalls[] = {
     {"openat$autofs", 257},
     {"openat$capi20", 257},
     {"openat$cuse", 257},
+    {"openat$dir", 257},
     {"openat$dsp", 257},
     {"openat$fb0", 257},
     {"openat$hidraw0", 257},
@@ -3057,7 +3065,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "b59d875a26bae3849af2f2a2137e87ca9f3cc951"
+#define SYZ_REVISION "b2c530b2ee58036eeda18c38d124f3df29cfe825"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3067,7 +3075,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1493;
+unsigned syscall_count = 1497;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3081,11 +3089,14 @@ call_t syscalls[] = {
     {"accept$packet", 285},
     {"accept$unix", 285},
     {"accept4", 366},
+    {"accept4$alg", 366},
     {"accept4$ax25", 366},
     {"accept4$inet", 366},
     {"accept4$inet6", 366},
     {"accept4$ipx", 366},
     {"accept4$llc", 366},
+    {"accept4$netrom", 366},
+    {"accept4$nfc_llcp", 366},
     {"accept4$packet", 366},
     {"accept4$unix", 366},
     {"acct", 51},
@@ -4006,6 +4017,7 @@ call_t syscalls[] = {
     {"openat$autofs", 322},
     {"openat$capi20", 322},
     {"openat$cuse", 322},
+    {"openat$dir", 322},
     {"openat$dsp", 322},
     {"openat$fb0", 322},
     {"openat$hidraw0", 322},
@@ -4568,7 +4580,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "c2cfdbca53b830cb959ae7a4d60dc5c760018937"
+#define SYZ_REVISION "dd277651a1e86edcbd1d5936ea8ece1101b57cb3"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4578,7 +4590,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1465;
+unsigned syscall_count = 1469;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -4592,11 +4604,14 @@ call_t syscalls[] = {
     {"accept$packet", 202},
     {"accept$unix", 202},
     {"accept4", 242},
+    {"accept4$alg", 242},
     {"accept4$ax25", 242},
     {"accept4$inet", 242},
     {"accept4$inet6", 242},
     {"accept4$ipx", 242},
     {"accept4$llc", 242},
+    {"accept4$netrom", 242},
+    {"accept4$nfc_llcp", 242},
     {"accept4$packet", 242},
     {"accept4$unix", 242},
     {"acct", 89},
@@ -5505,6 +5520,7 @@ call_t syscalls[] = {
     {"openat$autofs", 56},
     {"openat$capi20", 56},
     {"openat$cuse", 56},
+    {"openat$dir", 56},
     {"openat$dsp", 56},
     {"openat$fb0", 56},
     {"openat$hidraw0", 56},
@@ -6051,7 +6067,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "96711200028971b78401f2d7c581a11f86635aeb"
+#define SYZ_REVISION "ef54bae69d02f271a009511cffbe52262017661c"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6061,7 +6077,7 @@ call_t syscalls[] = {
 #define __NR_syz_open_procfs 1000006
 #define __NR_syz_open_pts 1000007
 
-unsigned syscall_count = 1452;
+unsigned syscall_count = 1456;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6075,11 +6091,14 @@ call_t syscalls[] = {
     {"accept$packet", 330},
     {"accept$unix", 330},
     {"accept4", 344},
+    {"accept4$alg", 344},
     {"accept4$ax25", 344},
     {"accept4$inet", 344},
     {"accept4$inet6", 344},
     {"accept4$ipx", 344},
     {"accept4$llc", 344},
+    {"accept4$netrom", 344},
+    {"accept4$nfc_llcp", 344},
     {"accept4$packet", 344},
     {"accept4$unix", 344},
     {"acct", 51},
@@ -6989,6 +7008,7 @@ call_t syscalls[] = {
     {"openat$autofs", 286},
     {"openat$capi20", 286},
     {"openat$cuse", 286},
+    {"openat$dir", 286},
     {"openat$dsp", 286},
     {"openat$fb0", 286},
     {"openat$hidraw0", 286},

@@ -33,6 +33,7 @@ CRYPTO_ALG_TYPE_RNG = 12
 CRYPTO_ALG_TYPE_SHASH = 14
 SOCK_SEQPACKET = 5
 SOL_ALG = 279
+__NR_accept4 = 364
 __NR_bind = 361
 __NR_sendmmsg = 345
 __NR_sendmsg = 370

@@ -11,6 +11,7 @@ socket$netrom(domain const[AF_NETROM], type const[SOCK_SEQPACKET], proto const[0
 bind$netrom(fd sock_netrom, addr ptr[in, sockaddr_netrom], addrlen len[addr])
 connect$netrom(fd sock_netrom, addr ptr[in, sockaddr_netrom], addrlen len[addr])
 accept$netrom(fd sock_netrom, peer ptr[out, sockaddr_netrom, opt], peerlen ptr[inout, len[peer, int32]]) sock_netrom
+accept4$netrom(fd sock_netrom, peer ptr[out, sockaddr_netrom, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_netrom
 listen$netrom(fd sock_netrom, backlog int32)
 sendmsg$netrom(fd sock_netrom, msg ptr[in, msghdr_netrom], f flags[send_flags])
 recvmsg$netrom(fd sock_netrom, msg ptr[in, msghdr_netrom], f flags[recv_flags])

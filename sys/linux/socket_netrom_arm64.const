@@ -13,6 +13,7 @@ SOL_NETROM = 259
 TIOCINQ = 21531
 TIOCOUTQ = 21521
 __NR_accept = 202
+__NR_accept4 = 242
 __NR_bind = 200
 __NR_connect = 203
 __NR_getpeername = 205
