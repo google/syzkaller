@@ -3,7 +3,8 @@
 Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs).
 
 _newer first_
-
+* [scsi: memory leak in sg_start_req](https://groups.google.com/d/msg/syzkaller/GVR3rFTzQzo/kGvdqZgcDwAJ)
+* [sunrpc: infinite unkillable console spam in xs_tcp_setup_socket](https://groups.google.com/d/msg/syzkaller/DJmtkqwLCZg/mHJPAJHTAQAJ)
 * [fs: possible deadlock in do_iter_write/do_splice](https://groups.google.com/forum/#!topic/syzkaller/f72L3fPD8sY)
 * [net/ipv6: warning in __alloc_pages_slowpath/ipip6_tunnel_get_prl](https://groups.google.com/forum/#!topic/syzkaller/VtONA6oTiio)
 * [net/ipv6: GPF in rt6_ifdown](https://groups.google.com/forum/#!topic/syzkaller/dQ0r_bHOrJk)
