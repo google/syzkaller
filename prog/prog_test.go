@@ -6,7 +6,12 @@ package prog
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
+	"strings"
 	"testing"
+	"time"
+
+	targetsPkg "github.com/google/syzkaller/sys/targets"
 )
 
 func TestGeneration(t *testing.T) {
@@ -96,5 +101,77 @@ func TestVmaType(t *testing.T) {
 		check(c.Args[0], c.Args[1], 1, 1e5)
 		check(c.Args[2], c.Args[3], 5, 5)
 		check(c.Args[4], c.Args[5], 7, 9)
+	}
+}
+
+// TestCrossTarget ensures that a program serialized for one arch can be
+// deserialized for another arch. This happens when managers exchange
+// programs via hub.
+func TestCrossTarget(t *testing.T) {
+	for os, archs := range targetsPkg.List {
+		if len(archs) == 1 {
+			continue
+		}
+		if os != "linux" {
+			continue
+		}
+		for arch := range archs {
+			target, err := GetTarget(os, arch)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var crossTargets []*Target
+			for crossArch := range archs {
+				if crossArch == arch {
+					continue
+				}
+				crossTarget, err := GetTarget(os, crossArch)
+				if err != nil {
+					t.Fatal(err)
+				}
+				crossTargets = append(crossTargets, crossTarget)
+			}
+			t.Run(fmt.Sprintf("%v/%v", os, arch), func(t *testing.T) {
+				t.Parallel()
+				testCrossTarget(t, target, crossTargets)
+			})
+		}
+	}
+}
+
+func testCrossTarget(t *testing.T, target *Target, crossTargets []*Target) {
+	seed := int64(time.Now().UnixNano())
+	t.Logf("seed=%v", seed)
+	rs := rand.NewSource(seed)
+	iters := 100
+	if testing.Short() {
+		iters /= 10
+	}
+	for i := 0; i < iters; i++ {
+		p := target.Generate(rs, 20, nil)
+		testCrossArchProg(t, p, crossTargets)
+		p, err := target.Deserialize(p.Serialize())
+		if err != nil {
+			t.Fatal(err)
+		}
+		testCrossArchProg(t, p, crossTargets)
+		p.Mutate(rs, 20, nil, nil)
+		testCrossArchProg(t, p, crossTargets)
+		p, _ = Minimize(p, -1, func(*Prog, int) bool {
+			return rs.Int63()%2 == 0
+		}, false)
+		testCrossArchProg(t, p, crossTargets)
+	}
+}
+
+func testCrossArchProg(t *testing.T, p *Prog, crossTargets []*Target) {
+	serialized := p.Serialize()
+	for _, crossTarget := range crossTargets {
+		_, err := crossTarget.Deserialize(serialized)
+		if err == nil || strings.Contains(err.Error(), "unknown syscall") {
+			continue
+		}
+		t.Fatalf("failed to deserialize for %v/%v: %v\n%s",
+			crossTarget.OS, crossTarget.Arch, err, serialized)
 	}
 }
