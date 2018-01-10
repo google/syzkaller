@@ -14,37 +14,17 @@ socket$nl_crypto(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NET
 
 sendmsg$nl_crypto(fd sock_nl_crypto, msg ptr[in, msghdr_nl_crypto], f flags[send_flags])
 
-msghdr_nl_crypto {
-	addr	ptr[in, sockaddr_nl_kern]
-	addrlen	len[addr, int32]
-	vec	ptr[in, iovec_nl_crypto]
-	vlen	const[1, intptr]
-	ctrl	const[0, intptr]
-	ctrllen	const[0, intptr]
-	f	flags[send_flags, int32]
-}
-
-iovec_nl_crypto {
-	data	ptr[in, netlink_msg_crypto]
-	len	bytesize[data, intptr]
-}
+type msghdr_nl_crypto msghdr_netlink[netlink_msg_crypto]
 
 netlink_msg_crypto [
-	alg	nl_crypto_alg_msg
-	delrng	nl_crypto_delrng_msg
+	alg	netlink_msg[CRYPTO_MSG_NEWALG, crypto_user_alg, netlink_crypto_attrs]
+	del	netlink_msg[CRYPTO_MSG_DELALG, crypto_user_alg, netlink_crypto_attrs]
+	upd	netlink_msg[CRYPTO_MSG_UPDATEALG, crypto_user_alg, netlink_crypto_attrs]
+	get	netlink_msg[CRYPTO_MSG_GETALG, crypto_user_alg, netlink_crypto_attrs]
+	delrng	netlink_msg[CRYPTO_MSG_DELRNG, void, void]
 ] [varlen]
 
-nl_crypto_alg_msg {
-	len	len[parent, int32]
-	type	flags[nl_crypto_alg_msgs, int16]
-	flags	flags[netlink_msg_flags, int16]
-	seq	netlink_seq
-	pid	netlink_port_id
-	msg	crypto_user_alg
-	attrs	array[nl_crypto_attr]
-} [align_4]
-
-nl_crypto_alg_msgs = CRYPTO_MSG_NEWALG, CRYPTO_MSG_DELALG, CRYPTO_MSG_UPDATEALG, CRYPTO_MSG_GETALG
+type netlink_crypto_attrs nlattr[CRYPTOCFGA_PRIORITY_VAL, int32]
 
 crypto_user_alg {
 	cru_name	alg_name
@@ -58,17 +38,3 @@ crypto_user_alg {
 }
 
 crypto_user_alg_flags = CRYPTO_ALG_TESTED, CRYPTO_ALG_INTERNAL
-
-nl_crypto_delrng_msg {
-	len	len[parent, int32]
-	type	const[CRYPTO_MSG_DELRNG, int16]
-	flags	flags[netlink_msg_flags, int16]
-	seq	netlink_seq
-	pid	netlink_port_id
-} [align_4]
-
-nl_crypto_attr {
-	nla_len		len[parent, int16]
-	nla_type	const[CRYPTOCFGA_PRIORITY_VAL, int16]
-	data		int32
-} [align_4]
