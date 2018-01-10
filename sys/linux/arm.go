@@ -3645,7 +3645,7 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "netlink_msg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg"}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "type", TypeSize: 2}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "type", TypeSize: 2}}, Kind: 2, RangeBegin: 16, RangeEnd: 66},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
@@ -3657,7 +3657,7 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "netlink_msg_generic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_generic"}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "type", TypeSize: 2}}, Kind: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "type", TypeSize: 2}}, Kind: 2, RangeBegin: 16, RangeEnd: 66},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
@@ -3667,7 +3667,7 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "netlink_msg_netfilter"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_netfilter"}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "type", TypeSize: 1}}, Kind: 2, RangeEnd: 20},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfnl_subsys", FldName: "subsys", TypeSize: 1}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfnl_subsys", FldName: "subsys", TypeSize: 1}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
@@ -3700,7 +3700,7 @@ var structDescs_arm = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
 	{Key: StructKey{Name: "nfgenmsg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nfgenmsg", TypeSize: 4}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfproto", FldName: "nfgen_family", TypeSize: 1}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfproto", FldName: "nfgen_family", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 3, 5, 7, 10, 12}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "res_id", TypeSize: 2}, BigEndian: true}, Kind: 2, RangeEnd: 10},
 	}, AlignAttr: 4}},
@@ -3734,6 +3734,8 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "nl_generic_attr_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_data"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "u32", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "u64", TypeSize: 8}}},
+		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "ipv4"},
+		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "ipv6"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
@@ -16560,6 +16562,28 @@ var consts_arm = []ConstValue{
 	{Name: "NFC_PROTO_NFC_DEP", Value: 5},
 	{Name: "NFC_SOCKPROTO_LLCP", Value: 1},
 	{Name: "NFC_SOCKPROTO_RAW"},
+	{Name: "NFNETLINK_V0"},
+	{Name: "NFNL_SUBSYS_ACCT", Value: 7},
+	{Name: "NFNL_SUBSYS_CTHELPER", Value: 9},
+	{Name: "NFNL_SUBSYS_CTNETLINK", Value: 1},
+	{Name: "NFNL_SUBSYS_CTNETLINK_EXP", Value: 2},
+	{Name: "NFNL_SUBSYS_CTNETLINK_TIMEOUT", Value: 8},
+	{Name: "NFNL_SUBSYS_IPSET", Value: 6},
+	{Name: "NFNL_SUBSYS_NFTABLES", Value: 10},
+	{Name: "NFNL_SUBSYS_NFT_COMPAT", Value: 11},
+	{Name: "NFNL_SUBSYS_OSF", Value: 5},
+	{Name: "NFNL_SUBSYS_QUEUE", Value: 3},
+	{Name: "NFNL_SUBSYS_ULOG", Value: 4},
+	{Name: "NFPROTO_ARP", Value: 3},
+	{Name: "NFPROTO_BRIDGE", Value: 7},
+	{Name: "NFPROTO_DECNET", Value: 12},
+	{Name: "NFPROTO_INET", Value: 1},
+	{Name: "NFPROTO_IPV4", Value: 2},
+	{Name: "NFPROTO_IPV6", Value: 10},
+	{Name: "NFPROTO_NETDEV", Value: 5},
+	{Name: "NFPROTO_UNSPEC"},
+	{Name: "NLMSG_MAX_TYPE", Value: 66},
+	{Name: "NLMSG_MIN_TYPE", Value: 16},
 	{Name: "NLM_F_ACK", Value: 4},
 	{Name: "NLM_F_APPEND", Value: 2048},
 	{Name: "NLM_F_ATOMIC", Value: 1024},
@@ -18092,4 +18116,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "14aadba81e2d07b13396f757e6e103b98bf07b7b"
+const revision_arm = "115a5c85a37a9346e4092d1166801e475b538e72"
