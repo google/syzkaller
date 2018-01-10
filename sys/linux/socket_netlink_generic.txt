@@ -32,7 +32,7 @@ iovec_nl_generic {
 
 netlink_msg_generic {
 	len	len[parent, int32]
-	type	int16[NLMSG_MIN_TYPE:NLMSG_MAX_TYPE]
+	type	netlink_random_msg_type
 	flags	flags[netlink_msg_flags, int16]
 	seq	netlink_seq
 	pid	netlink_port_id
@@ -43,6 +43,6 @@ netlink_msg_generic {
 
 genlmsghdr {
 	cmd		int8[0:32]
-	version		const[NFNETLINK_V0, int8]
+	version		const[0, int8]
 	reserved	const[0, int16]
 } [align_4]

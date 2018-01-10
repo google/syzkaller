@@ -443,7 +443,7 @@ var structDescs_386 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}, Val: 133},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "regs", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "off", TypeSize: 2}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "func", TypeSize: 4}}, Kind: 2, RangeEnd: 59},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "func", TypeSize: 4}}, Kind: 2, RangeEnd: 58},
 	}}},
 	{Key: StructKey{Name: "bpf_insn_exit"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_insn_exit", TypeSize: 8}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}, Val: 149},
@@ -3891,6 +3891,8 @@ var structDescs_386 = []*KeyedStruct{
 	{Key: StructKey{Name: "nl_generic_attr_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_data"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "u32", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "u64", TypeSize: 8}}},
+		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "ipv4"},
+		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "ipv6"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
@@ -17953,7 +17955,7 @@ var consts_386 = []ConstValue{
 	{Name: "_DRM_VBLANK_SECONDARY", Value: 536870912},
 	{Name: "_DRM_VBLANK_SIGNAL", Value: 1073741824},
 	{Name: "_DRM_WRITE_COMBINING", Value: 16},
-	{Name: "__BPF_FUNC_MAX_ID", Value: 59},
+	{Name: "__BPF_FUNC_MAX_ID", Value: 58},
 	{Name: "__NR_accept4", Value: 364},
 	{Name: "__NR_acct", Value: 51},
 	{Name: "__NR_add_key", Value: 286},
@@ -18246,4 +18248,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "2365a25658105f294372ca34639e82cf3961cb68"
+const revision_386 = "b9acfde8e0449d57e5bdec8e7513898c574c70b8"

@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "2365a25658105f294372ca34639e82cf3961cb68"
+#define SYZ_REVISION "b9acfde8e0449d57e5bdec8e7513898c574c70b8"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -1511,7 +1511,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "2fede332c16db02b822218bf77715e694646e014"
+#define SYZ_REVISION "866427a838b559ed309745d2209281ae1ff6cccb"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -3073,7 +3073,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "14aadba81e2d07b13396f757e6e103b98bf07b7b"
+#define SYZ_REVISION "115a5c85a37a9346e4092d1166801e475b538e72"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -4592,7 +4592,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "d5a19825301b5d9017a7f36ee57beddefd8a2f1f"
+#define SYZ_REVISION "e3a3988e99078c14e4409f29b1b1f374765af70b"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002
@@ -6083,7 +6083,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "1ca464b73d637d0cee9d84996563c0e0b7b49ea1"
+#define SYZ_REVISION "c38028f2fa7c5479ca428b758905a1595b3228e2"
 #define __NR_syz_emit_ethernet 1000000
 #define __NR_syz_extract_tcp_res 1000001
 #define __NR_syz_fuse_mount 1000002

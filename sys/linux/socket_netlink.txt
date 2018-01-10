@@ -83,7 +83,7 @@ iovec_nl {
 
 netlink_msg {
 	len	len[parent, int32]
-	type	int16[NLMSG_MIN_TYPE:NLMSG_MAX_TYPE]
+	type	netlink_random_msg_type
 	flags	flags[netlink_msg_flags, int16]
 	seq	netlink_seq
 	pid	netlink_port_id
@@ -113,6 +113,8 @@ nl_generic_attr_typed {
 nl_generic_attr_data [
 	u32	int32
 	u64	int64
+	ipv4	ipv4_addr
+	ipv6	ipv6_addr
 	fd	fd
 	pid	pid
 	uid	uid
@@ -139,9 +141,11 @@ nl_mmap_req {
 	fnumber	int32
 }
 
-# Some approximation for protocols for which we don't have precise descriptions.
-define NLMSG_MAX_TYPE	NLMSG_MIN_TYPE + 50
-
 # Removed (if __KERNEL__ defined) in next-20160229 (commit d1b4c689)
 define NETLINK_RX_RING	6
 define NETLINK_TX_RING	7
+
+# Some approximation for protocols for which we don't have precise descriptions.
+define NLMSG_MAX_TYPE	NLMSG_MIN_TYPE + 50
+
+type netlink_random_msg_type int16[NLMSG_MIN_TYPE:NLMSG_MAX_TYPE]

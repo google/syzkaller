@@ -443,7 +443,7 @@ var structDescs_ppc64le = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}, Val: 133},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "regs", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "off", TypeSize: 2}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "func", TypeSize: 4}}, Kind: 2, RangeEnd: 59},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "func", TypeSize: 4}}, Kind: 2, RangeEnd: 58},
 	}}},
 	{Key: StructKey{Name: "bpf_insn_exit"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_insn_exit", TypeSize: 8}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}, Val: 149},
@@ -3731,6 +3731,8 @@ var structDescs_ppc64le = []*KeyedStruct{
 	{Key: StructKey{Name: "nl_generic_attr_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_data"}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "u32", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "u64", TypeSize: 8}}},
+		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "ipv4"},
+		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "ipv6"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
@@ -17559,7 +17561,7 @@ var consts_ppc64le = []ConstValue{
 	{Name: "_DRM_VBLANK_SECONDARY", Value: 536870912},
 	{Name: "_DRM_VBLANK_SIGNAL", Value: 1073741824},
 	{Name: "_DRM_WRITE_COMBINING", Value: 16},
-	{Name: "__BPF_FUNC_MAX_ID", Value: 59},
+	{Name: "__BPF_FUNC_MAX_ID", Value: 58},
 	{Name: "__NR_accept", Value: 330},
 	{Name: "__NR_accept4", Value: 344},
 	{Name: "__NR_acct", Value: 51},
@@ -17844,4 +17846,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_ppc64le = "1ca464b73d637d0cee9d84996563c0e0b7b49ea1"
+const revision_ppc64le = "c38028f2fa7c5479ca428b758905a1595b3228e2"
