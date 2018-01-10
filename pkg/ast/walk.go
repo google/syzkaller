@@ -3,81 +3,102 @@
 
 package ast
 
-import (
-	"fmt"
-)
-
-// Walk calls callback cb for every node in AST.
-func Walk(desc *Description, cb func(n Node)) {
+// Walk calls callback cb for every top-level node in description.
+// Note: it's not recursive. Use Recursive helper for recursive walk.
+func (desc *Description) Walk(cb func(Node)) {
 	for _, n := range desc.Nodes {
-		WalkNode(n, cb)
+		cb(n)
 	}
 }
 
-func WalkNode(n0 Node, cb func(n Node)) {
-	cb(n0)
-	switch n := n0.(type) {
-	case *NewLine:
-	case *Comment:
-	case *Include:
-		WalkNode(n.File, cb)
-	case *Incdir:
-		WalkNode(n.Dir, cb)
-	case *Define:
-		WalkNode(n.Name, cb)
-		WalkNode(n.Value, cb)
-	case *Resource:
-		WalkNode(n.Name, cb)
-		WalkNode(n.Base, cb)
-		for _, v := range n.Values {
-			WalkNode(v, cb)
-		}
-	case *TypeDef:
-		WalkNode(n.Name, cb)
-		WalkNode(n.Type, cb)
-	case *Call:
-		WalkNode(n.Name, cb)
-		for _, f := range n.Args {
-			WalkNode(f, cb)
-		}
-		if n.Ret != nil {
-			WalkNode(n.Ret, cb)
-		}
-	case *Struct:
-		WalkNode(n.Name, cb)
-		for _, f := range n.Fields {
-			WalkNode(f, cb)
-		}
-		for _, a := range n.Attrs {
-			WalkNode(a, cb)
-		}
-		for _, c := range n.Comments {
-			WalkNode(c, cb)
-		}
-	case *IntFlags:
-		WalkNode(n.Name, cb)
-		for _, v := range n.Values {
-			WalkNode(v, cb)
-		}
-	case *StrFlags:
-		WalkNode(n.Name, cb)
-		for _, v := range n.Values {
-			WalkNode(v, cb)
-		}
-	case *Ident:
-	case *String:
-	case *Int:
-	case *Type:
-		for _, t := range n.Args {
-			WalkNode(t, cb)
-		}
-	case *Field:
-		WalkNode(n.Name, cb)
-		WalkNode(n.Type, cb)
-		for _, c := range n.Comments {
-			WalkNode(c, cb)
-		}
-	default:
-		panic(fmt.Sprintf("unknown AST node: %#v", n))
+func Recursive(cb func(Node)) func(Node) {
+	var rec func(Node)
+	rec = func(n Node) {
+		cb(n)
+		n.Walk(rec)
+	}
+	return rec
+}
+
+func (n *NewLine) Walk(cb func(Node)) {}
+func (n *Comment) Walk(cb func(Node)) {}
+func (n *Ident) Walk(cb func(Node))   {}
+func (n *String) Walk(cb func(Node))  {}
+func (n *Int) Walk(cb func(Node))     {}
+
+func (n *Include) Walk(cb func(Node)) {
+	cb(n.File)
+}
+
+func (n *Incdir) Walk(cb func(Node)) {
+	cb(n.Dir)
+}
+
+func (n *Define) Walk(cb func(Node)) {
+	cb(n.Name)
+	cb(n.Value)
+}
+
+func (n *Resource) Walk(cb func(Node)) {
+	cb(n.Name)
+	cb(n.Base)
+	for _, v := range n.Values {
+		cb(v)
+	}
+}
+
+func (n *TypeDef) Walk(cb func(Node)) {
+	cb(n.Name)
+	cb(n.Type)
+}
+
+func (n *Call) Walk(cb func(Node)) {
+	cb(n.Name)
+	for _, f := range n.Args {
+		cb(f)
+	}
+	if n.Ret != nil {
+		cb(n.Ret)
+	}
+}
+
+func (n *Struct) Walk(cb func(Node)) {
+	cb(n.Name)
+	for _, f := range n.Fields {
+		cb(f)
+	}
+	for _, a := range n.Attrs {
+		cb(a)
+	}
+	for _, c := range n.Comments {
+		cb(c)
+	}
+}
+
+func (n *IntFlags) Walk(cb func(Node)) {
+	cb(n.Name)
+	for _, v := range n.Values {
+		cb(v)
+	}
+}
+
+func (n *StrFlags) Walk(cb func(Node)) {
+	cb(n.Name)
+	for _, v := range n.Values {
+		cb(v)
+	}
+}
+
+func (n *Type) Walk(cb func(Node)) {
+	for _, t := range n.Args {
+		cb(t)
+	}
+}
+
+func (n *Field) Walk(cb func(Node)) {
+	cb(n.Name)
+	cb(n.Type)
+	for _, c := range n.Comments {
+		cb(c)
 	}
 }
