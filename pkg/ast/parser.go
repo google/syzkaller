@@ -251,11 +251,34 @@ func (p *parser) parseResource() *Resource {
 func (p *parser) parseTypeDef() *TypeDef {
 	pos0 := p.pos
 	name := p.parseIdent()
-	typ := p.parseType()
+	var typ *Type
+	var str *Struct
+	var args []*Ident
+	p.expect(tokLBrack, tokIdent)
+	if p.tryConsume(tokLBrack) {
+		args = append(args, p.parseIdent())
+		for p.tryConsume(tokComma) {
+			args = append(args, p.parseIdent())
+		}
+		p.consume(tokRBrack)
+		if p.tok == tokLBrace || p.tok == tokLBrack {
+			name := &Ident{
+				Pos:  pos0,
+				Name: "",
+			}
+			str = p.parseStruct(name)
+		} else {
+			typ = p.parseType()
+		}
+	} else {
+		typ = p.parseType()
+	}
 	return &TypeDef{
-		Pos:  pos0,
-		Name: name,
-		Type: typ,
+		Pos:    pos0,
+		Name:   name,
+		Args:   args,
+		Type:   typ,
+		Struct: str,
 	}
 }
 

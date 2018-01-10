@@ -23,10 +23,12 @@ type typeDesc struct {
 	ResourceBase bool       // can be resource base type?
 	OptArgs      int        // number of optional arguments in Args array
 	Args         []namedArg // type arguments
-	// Check does custom verification of the type (optional).
+	// Check does custom verification of the type (optional, consts are not patched yet).
 	Check func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon)
+	// CheckConsts does custom verification of the type (optional, consts are patched).
+	CheckConsts func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon)
 	// Varlen returns if the type is variable-length (false if not set).
-	Varlen func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) bool
+	Varlen func(comp *compiler, t *ast.Type, args []*ast.Type) bool
 	// Gen generates corresponding prog.Type.
 	Gen func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type
 }
@@ -37,7 +39,8 @@ type typeArg struct {
 	Kind       int  // int/ident/string
 	AllowColon bool // allow colon (2:3)?
 	// Check does custom verification of the arg (optional).
-	Check func(comp *compiler, t *ast.Type)
+	Check       func(comp *compiler, t *ast.Type)
+	CheckConsts func(comp *compiler, t *ast.Type)
 }
 
 type namedArg struct {
@@ -53,7 +56,7 @@ const (
 )
 
 var typeInt = &typeDesc{
-	Names:        []string{"int8", "int16", "int32", "int64", "int16be", "int32be", "int64be", "intptr"},
+	Names:        typeArgBase.Type.Names,
 	CanBeArg:     true,
 	CanBeTypedef: true,
 	AllowColon:   true,
@@ -102,13 +105,13 @@ var typeArray = &typeDesc{
 	CantBeOpt: true,
 	OptArgs:   1,
 	Args:      []namedArg{{"type", typeArgType}, {"size", typeArgRange}},
-	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
+	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if len(args) > 1 && args[1].Value == 0 && args[1].Value2 == 0 {
 			// This is the only case that can yield 0 static type size.
 			comp.error(args[1].Pos, "arrays of size 0 are not supported")
 		}
 	},
-	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) bool {
+	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		if comp.isVarlen(args[0]) {
 			return true
 		}
@@ -234,7 +237,7 @@ var typeArgFlags = &typeArg{
 var typeFilename = &typeDesc{
 	Names:     []string{"filename"},
 	CantBeOpt: true,
-	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) bool {
+	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		return true
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
@@ -326,7 +329,7 @@ var typeProc = &typeDesc{
 	CanBeTypedef: true,
 	NeedBase:     true,
 	Args:         []namedArg{{"range start", typeArgInt}, {"per-proc values", typeArgInt}},
-	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
+	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		start := args[0].Value
 		perProc := args[1].Value
 		if perProc == 0 {
@@ -338,7 +341,7 @@ var typeProc = &typeDesc{
 			const maxPids = 32 // executor knows about this constant (MAX_PIDS)
 			if start >= 1<<size {
 				comp.error(args[0].Pos, "values starting from %v overflow base type", start)
-			} else if start+maxPids*perProc >= 1<<size {
+			} else if start+maxPids*perProc > 1<<size {
 				comp.error(args[0].Pos, "values starting from %v with step %v overflow base type for %v procs",
 					start, perProc, maxPids)
 			}
@@ -357,7 +360,7 @@ var typeText = &typeDesc{
 	Names:     []string{"text"},
 	CantBeOpt: true,
 	Args:      []namedArg{{"kind", typeArgTextType}},
-	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) bool {
+	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		return true
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
@@ -413,7 +416,7 @@ var typeString = &typeDesc{
 	Names:   []string{"string"},
 	OptArgs: 2,
 	Args:    []namedArg{{"literal or flags", typeArgStringFlags}, {"size", typeArgInt}},
-	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
+	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if len(args) > 1 {
 			size := args[1].Value
 			vals := []string{args[0].String}
@@ -429,7 +432,7 @@ var typeString = &typeDesc{
 			}
 		}
 	},
-	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) bool {
+	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		return comp.stringSize(args) == 0
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
@@ -503,11 +506,7 @@ var typeArgStringFlags = &typeArg{
 }
 
 // typeArgType is used as placeholder for any type (e.g. ptr target type).
-var typeArgType = &typeArg{
-	Check: func(comp *compiler, t *ast.Type) {
-		panic("must not be called")
-	},
-}
+var typeArgType = &typeArg{}
 
 var typeResource = &typeDesc{
 	// No Names, but getTypeDesc knows how to match it.
@@ -533,12 +532,13 @@ func init() {
 
 var typeStruct = &typeDesc{
 	// No Names, but getTypeDesc knows how to match it.
-	CantBeOpt: true,
+	CantBeOpt:    true,
+	CanBeTypedef: true,
 	// Varlen/Gen are assigned below due to initialization cycle.
 }
 
 func init() {
-	typeStruct.Varlen = func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) bool {
+	typeStruct.Varlen = func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		return comp.isStructVarlen(t.Ident)
 	}
 	typeStruct.Gen = func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
@@ -572,9 +572,6 @@ var typeTypedef = &typeDesc{
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		panic("must not be called")
 	},
-	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		panic("must not be called")
-	},
 }
 
 var typeArgDir = &typeArg{
@@ -602,7 +599,7 @@ var typeArgInt = &typeArg{
 var typeArgRange = &typeArg{
 	Kind:       kindInt,
 	AllowColon: true,
-	Check: func(comp *compiler, t *ast.Type) {
+	CheckConsts: func(comp *compiler, t *ast.Type) {
 		if !t.HasColon {
 			t.Value2 = t.Value
 		}
@@ -620,6 +617,10 @@ var typeArgBase = namedArg{
 		AllowColon: true,
 		Check: func(comp *compiler, t *ast.Type) {
 			if t.HasColon {
+				if t.Ident2 != "" {
+					comp.error(t.Pos2, "literal const bitfield sizes are not supported")
+					return
+				}
 				if t.Value2 == 0 {
 					// This was not supported historically
 					// and does not work the way C bitfields of size 0 work.
@@ -667,12 +668,12 @@ func init() {
 		typeConst,
 		typeFlags,
 		typeFilename,
-		typeFileoff, // make a type alias
+		typeFileoff,
 		typeVMA,
 		typeCsum,
 		typeProc,
 		typeText,
-		typeBuffer, // make a type alias
+		typeBuffer,
 		typeString,
 	}
 	for _, desc := range builtins {

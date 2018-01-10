@@ -21,9 +21,7 @@ type Description struct {
 type Node interface {
 	Info() (pos Pos, typ string, name string)
 	// Clone makes a deep copy of the node.
-	// If newPos is not zero, sets Pos of all nodes to newPos.
-	// If newPos is zero, Pos of nodes is left intact.
-	Clone(newPos Pos) Node
+	Clone() Node
 	// Walk calls callback cb for all child nodes of this node.
 	// Note: it's not recursive. Use Recursive helper for recursive walk.
 	Walk(cb func(Node))
@@ -140,7 +138,11 @@ func (n *StrFlags) Info() (Pos, string, string) {
 type TypeDef struct {
 	Pos  Pos
 	Name *Ident
-	Type *Type
+	// Non-template type aliases have only Type filled.
+	// Templates have Args and either Type or Struct filled.
+	Args   []*Ident
+	Type   *Type
+	Struct *Struct
 }
 
 func (n *TypeDef) Info() (Pos, string, string) {

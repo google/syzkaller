@@ -42,6 +42,18 @@ sr7 {
 	f1	ptr[in, sr7, opt]
 }
 
+type templ_sr[T] {
+	f	T
+}
+
+sr8 {
+	f	templ_sr[sr8]	### recursive declaration: sr8.f -> templ_sr[sr8].f -> sr8 (mark some pointers as opt)
+}
+
+sr9 {
+	f	templ_sr[ptr[in, sr9]]	### recursive declaration: sr9.f -> templ_sr[ptr[in, sr9]].f -> sr9 (mark some pointers as opt)
+}
+
 # Len target tests.
 
 foo$100(a int32, b len[a])
@@ -134,3 +146,17 @@ s403 {
 
 sf400 = "foo", "bar", "baz"
 sf401 = "a", "b", "cd"
+
+# Const argument checks.
+
+foo$500(a int32[3:2])		### bad int range [3:2]
+foo$501(a ptr[in, int32[3:2]])	### bad int range [3:2]
+foo$502(a ptr[in, string["foo", C1]])	### string value "foo\x00" exceeds buffer length 1
+foo$503(a ptr[in, proc[1000, 1, int8]])	### values starting from 1000 overflow base type
+foo$504(a ptr[in, proc[20, 10, int8]])	### values starting from 20 with step 10 overflow base type for 32 procs
+foo$505(a proc[20, 0])		### proc per-process values must not be 0
+foo$506(a ptr[in, array[int32, 0]])	### arrays of size 0 are not supported
+foo$507(a ptr[in, array[int32, 0:0]])	### arrays of size 0 are not supported
+foo$508(a ptr[in, string["foo", 3]])	### string value "foo\x00" exceeds buffer length 3
+
+type type500 proc[C1, 8, int8]	### values starting from 1 with step 8 overflow base type for 32 procs
