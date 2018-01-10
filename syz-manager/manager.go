@@ -769,6 +769,11 @@ func (mgr *Manager) saveRepro(res *repro.Result, hub bool) {
 	}
 
 	if mgr.dash != nil {
+		// Note: we intentionally don't set Corrupted for reproducers:
+		// 1. This is reproducible so can be debugged even with corrupted report.
+		// 2. Repro re-tried 3 times and still got corrupted report at the end,
+		//    so maybe corrupted report detection is broken.
+		// 3. Reproduction is expensive so it's good to persist the result.
 		dc := &dashapi.Crash{
 			BuildID:     mgr.cfg.Tag,
 			Title:       res.Report.Title,
