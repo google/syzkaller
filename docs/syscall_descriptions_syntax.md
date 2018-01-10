@@ -168,6 +168,28 @@ type bool64	int64[0:1]
 type boolptr	intptr[0:1]
 ```
 
+## Type Templates
+
+**Note: type templates are experimental, can have error handling bugs and are subject to change**
+
+Type templates can be declared as follows:
+
+```
+type buffer[DIR] ptr[DIR, array[int8]]
+type fileoff[BASE] BASE
+type nlattr[TYPE, PAYLOAD] {
+	nla_len		len[parent, int16]
+	nla_type	const[TYPE, int16]
+	payload		PAYLOAD
+} [align_4]
+```
+
+and later used as follows:
+
+```
+syscall(a buffer[in], b fileoff[int64], c ptr[in, nlattr[FOO, int32]])
+```
+
 ## Length
 
 You can specify length of a particular field in struct or a named argument by using `len`, `bytesize` and `bitsize` types, for example:

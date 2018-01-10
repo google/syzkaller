@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/google/syzkaller/pkg/ast"
@@ -18,18 +19,26 @@ func TestExtractConsts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read input file: %v", err)
 	}
-	desc := ast.Parse(data, "test", nil)
+	desc := ast.Parse(data, "consts.txt", nil)
 	if desc == nil {
 		t.Fatalf("failed to parse input")
 	}
 	target := targets.List["linux"]["amd64"]
-	info := ExtractConsts(desc, target, func(pos ast.Pos, msg string) {
+	fileInfo := ExtractConsts(desc, target, func(pos ast.Pos, msg string) {
 		t.Fatalf("%v: %v", pos, msg)
 	})
-	wantConsts := []string{"CONST1", "CONST10", "CONST11", "CONST12", "CONST13",
-		"CONST14", "CONST15", "CONST16",
-		"CONST2", "CONST3", "CONST4", "CONST5",
-		"CONST6", "CONST7", "CONST8", "CONST9", "__NR_bar", "__NR_foo"}
+	info := fileInfo["consts.txt"]
+	if info == nil || len(fileInfo) != 1 {
+		t.Fatalf("bad file info returned: %+v", info)
+	}
+	wantConsts := []string{
+		"__NR_bar", "__NR_foo",
+		"CONST1", "CONST2", "CONST3", "CONST4", "CONST5",
+		"CONST6", "CONST7", "CONST8", "CONST9", "CONST10",
+		"CONST11", "CONST12", "CONST13", "CONST14", "CONST15",
+		"CONST16", "CONST17", "CONST18", "CONST19", "CONST20",
+	}
+	sort.Strings(wantConsts)
 	if !reflect.DeepEqual(info.Consts, wantConsts) {
 		t.Fatalf("got consts:\n%q\nwant:\n%q", info.Consts, wantConsts)
 	}

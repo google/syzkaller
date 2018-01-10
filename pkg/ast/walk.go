@@ -49,7 +49,15 @@ func (n *Resource) Walk(cb func(Node)) {
 
 func (n *TypeDef) Walk(cb func(Node)) {
 	cb(n.Name)
-	cb(n.Type)
+	for _, a := range n.Args {
+		cb(a)
+	}
+	if n.Type != nil {
+		cb(n.Type)
+	}
+	if n.Struct != nil {
+		cb(n.Struct)
+	}
 }
 
 func (n *Call) Walk(cb func(Node)) {

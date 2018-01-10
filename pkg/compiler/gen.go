@@ -376,6 +376,9 @@ func (comp *compiler) genFieldArray(fields []*ast.Field, dir prog.Dir, isArg boo
 
 func (comp *compiler) genType(t *ast.Type, field string, dir prog.Dir, isArg bool) prog.Type {
 	desc, args, base := comp.getArgsBase(t, field, dir, isArg)
+	if desc.Gen == nil {
+		panic(fmt.Sprintf("no gen for %v %#v", field, t))
+	}
 	return desc.Gen(comp, t, args, base)
 }
 

@@ -42,6 +42,7 @@ type File struct {
 	arch       *Arch
 	name       string
 	undeclared map[string]bool
+	info       *compiler.ConstInfo
 	err        error
 }
 
@@ -160,15 +161,17 @@ func main() {
 			for job := range jobC {
 				switch j := job.(type) {
 				case *Arch:
-					j.err = OS.prepareArch(j)
+					infos, err := processArch(OS, j)
+					j.err = err
 					if j.err == nil {
 						for _, f := range j.files {
+							f.info = infos[f.name]
 							wg.Add(1)
 							jobC <- f
 						}
 					}
 				case *File:
-					j.undeclared, j.err = processFile(OS, j.arch, j.name)
+					j.undeclared, j.err = processFile(OS, j.arch, j)
 				}
 				wg.Done()
 			}
@@ -205,29 +208,33 @@ func main() {
 	}
 }
 
-func processFile(OS OS, arch *Arch, inname string) (map[string]bool, error) {
-	inname = filepath.Join("sys", arch.target.OS, inname)
-	outname := strings.TrimSuffix(inname, ".txt") + "_" + arch.target.Arch + ".const"
-	indata, err := ioutil.ReadFile(inname)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read input file: %v", err)
-	}
+func processArch(OS OS, arch *Arch) (map[string]*compiler.ConstInfo, error) {
 	errBuf := new(bytes.Buffer)
 	eh := func(pos ast.Pos, msg string) {
 		fmt.Fprintf(errBuf, "%v: %v\n", pos, msg)
 	}
-	desc := ast.Parse(indata, filepath.Base(inname), eh)
-	if desc == nil {
+	top := ast.ParseGlob(filepath.Join("sys", arch.target.OS, "*.txt"), eh)
+	if top == nil {
 		return nil, fmt.Errorf("%v", errBuf.String())
 	}
-	info := compiler.ExtractConsts(desc, arch.target, eh)
-	if info == nil {
+	infos := compiler.ExtractConsts(top, arch.target, eh)
+	if infos == nil {
 		return nil, fmt.Errorf("%v", errBuf.String())
 	}
-	if len(info.Consts) == 0 {
+	if err := OS.prepareArch(arch); err != nil {
+		return nil, err
+	}
+	return infos, nil
+}
+
+func processFile(OS OS, arch *Arch, file *File) (map[string]bool, error) {
+	inname := filepath.Join("sys", arch.target.OS, file.name)
+	outname := strings.TrimSuffix(inname, ".txt") + "_" + arch.target.Arch + ".const"
+	if len(file.info.Consts) == 0 {
+		os.Remove(outname)
 		return nil, nil
 	}
-	consts, undeclared, err := OS.processFile(arch, info)
+	consts, undeclared, err := OS.processFile(arch, file.info)
 	if err != nil {
 		return nil, err
 	}
