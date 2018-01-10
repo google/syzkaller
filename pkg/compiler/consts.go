@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
+	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
 
@@ -24,41 +25,25 @@ type ConstInfo struct {
 	Defines  map[string]string
 }
 
-// ExtractConsts returns list of literal constants and other info required const value extraction.
-func ExtractConsts(desc *ast.Description, target *targets.Target, eh0 ast.ErrorHandler) *ConstInfo {
-	errors := 0
-	eh := func(pos ast.Pos, msg string, args ...interface{}) {
-		errors++
-		msg = fmt.Sprintf(msg, args...)
-		if eh0 != nil {
-			eh0(pos, msg)
-		} else {
-			ast.LoggingHandler(pos, msg)
-		}
+func ExtractConsts(desc *ast.Description, target *targets.Target, eh ast.ErrorHandler) map[string]*ConstInfo {
+	res := Compile(desc, nil, target, eh)
+	if res == nil {
+		return nil
 	}
-	info := &ConstInfo{
-		Defines: make(map[string]string),
-	}
-	includeMap := make(map[string]bool)
-	incdirMap := make(map[string]bool)
-	constMap := make(map[string]bool)
+	return res.fileConsts
+}
 
-	desc.Walk(ast.Recursive(func(n0 ast.Node) {
-		switch n := n0.(type) {
+// extractConsts returns list of literal constants and other info required for const value extraction.
+func (comp *compiler) extractConsts() map[string]*ConstInfo {
+	infos := make(map[string]*constInfo)
+	for _, decl := range comp.desc.Nodes {
+		pos, _, _ := decl.Info()
+		info := getConstInfo(infos, pos)
+		switch n := decl.(type) {
 		case *ast.Include:
-			file := n.File.Value
-			if includeMap[file] {
-				eh(n.Pos, "duplicate include %q", file)
-			}
-			includeMap[file] = true
-			info.Includes = append(info.Includes, file)
+			info.includeArray = append(info.includeArray, n.File.Value)
 		case *ast.Incdir:
-			dir := n.Dir.Value
-			if incdirMap[dir] {
-				eh(n.Pos, "duplicate incdir %q", dir)
-			}
-			incdirMap[dir] = true
-			info.Incdirs = append(info.Incdirs, dir)
+			info.incdirArray = append(info.incdirArray, n.Dir.Value)
 		case *ast.Define:
 			v := fmt.Sprint(n.Value.Value)
 			switch {
@@ -68,34 +53,79 @@ func ExtractConsts(desc *ast.Description, target *targets.Target, eh0 ast.ErrorH
 				v = n.Value.Ident
 			}
 			name := n.Name.Name
-			if info.Defines[name] != "" {
-				eh(n.Pos, "duplicate define %v", name)
-			}
-			info.Defines[name] = v
-			constMap[name] = true
+			info.defines[name] = v
+			info.consts[name] = true
 		case *ast.Call:
-			if target.SyscallNumbers && !strings.HasPrefix(n.CallName, "syz_") {
-				constMap[target.SyscallPrefix+n.CallName] = true
+			if comp.target.SyscallNumbers && !strings.HasPrefix(n.CallName, "syz_") {
+				info.consts[comp.target.SyscallPrefix+n.CallName] = true
 			}
-		case *ast.Type:
-			if c := typeConstIdentifier(n); c != nil {
-				constMap[c.Ident] = true
-				constMap[c.Ident2] = true
-			}
-		case *ast.Int:
-			constMap[n.Ident] = true
+		}
+	}
+
+	for _, decl := range comp.desc.Nodes {
+		switch decl.(type) {
+		case *ast.Call, *ast.Struct, *ast.Resource, *ast.TypeDef:
+			comp.foreachType(decl, func(t *ast.Type, desc *typeDesc,
+				args []*ast.Type, _ prog.IntTypeCommon) {
+				for i, arg := range args {
+					if desc.Args[i].Type.Kind == kindInt {
+						if arg.Ident != "" {
+							info := getConstInfo(infos, arg.Pos)
+							info.consts[arg.Ident] = true
+						}
+						if arg.Ident2 != "" {
+							info := getConstInfo(infos, arg.Pos2)
+							info.consts[arg.Ident2] = true
+						}
+					}
+				}
+			})
+		}
+	}
+
+	comp.desc.Walk(ast.Recursive(func(n0 ast.Node) {
+		if n, ok := n0.(*ast.Int); ok {
+			info := getConstInfo(infos, n.Pos)
+			info.consts[n.Ident] = true
 		}
 	}))
 
-	if errors != 0 {
-		return nil
+	return convertConstInfo(infos)
+}
+
+type constInfo struct {
+	consts       map[string]bool
+	defines      map[string]string
+	includeArray []string
+	incdirArray  []string
+}
+
+func getConstInfo(infos map[string]*constInfo, pos ast.Pos) *constInfo {
+	info := infos[pos.File]
+	if info == nil {
+		info = &constInfo{
+			consts:  make(map[string]bool),
+			defines: make(map[string]string),
+		}
+		infos[pos.File] = info
 	}
-	info.Consts = toArray(constMap)
 	return info
 }
 
-// assignSyscallNumbers assigns syscall numbers, discards unsupported syscalls
-// and removes no longer irrelevant nodes from the tree (comments, new lines, etc).
+func convertConstInfo(infos map[string]*constInfo) map[string]*ConstInfo {
+	res := make(map[string]*ConstInfo)
+	for file, info := range infos {
+		res[file] = &ConstInfo{
+			Consts:   toArray(info.consts),
+			Includes: info.includeArray,
+			Incdirs:  info.incdirArray,
+			Defines:  info.defines,
+		}
+	}
+	return res
+}
+
+// assignSyscallNumbers assigns syscall numbers, discards unsupported syscalls.
 func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
 	// Pseudo syscalls starting from syz_ are assigned numbers starting from syzbase.
 	// Note: the numbers must be stable (not depend on file reading order, etc),
@@ -116,51 +146,39 @@ func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
 		syznr[name] = syzbase + uint64(i)
 	}
 
-	var top []ast.Node
 	for _, decl := range comp.desc.Nodes {
-		switch decl.(type) {
-		case *ast.Call:
-			c := decl.(*ast.Call)
-			if strings.HasPrefix(c.CallName, "syz_") {
-				c.NR = syznr[c.CallName]
-				top = append(top, decl)
-				continue
-			}
-			if !comp.target.SyscallNumbers {
-				top = append(top, decl)
-				continue
-			}
-			// Lookup in consts.
-			str := comp.target.SyscallPrefix + c.CallName
-			nr, ok := consts[str]
-			top = append(top, decl)
-			if ok {
-				c.NR = nr
-				continue
-			}
-			c.NR = ^uint64(0) // mark as unused to not generate it
-			name := "syscall " + c.CallName
-			if !comp.unsupported[name] {
-				comp.unsupported[name] = true
-				comp.warning(c.Pos, "unsupported syscall: %v due to missing const %v",
-					c.CallName, str)
-			}
-		case *ast.IntFlags, *ast.Resource, *ast.Struct, *ast.StrFlags, *ast.TypeDef:
-			top = append(top, decl)
-		case *ast.NewLine, *ast.Comment, *ast.Include, *ast.Incdir, *ast.Define:
-			// These are not needed anymore.
-		default:
-			panic(fmt.Sprintf("unknown node type: %#v", decl))
+		c, ok := decl.(*ast.Call)
+		if !ok {
+			continue
+		}
+		if strings.HasPrefix(c.CallName, "syz_") {
+			c.NR = syznr[c.CallName]
+			continue
+		}
+		// TODO(dvyukov): we don't need even syz consts in this case.
+		if !comp.target.SyscallNumbers {
+			continue
+		}
+		// Lookup in consts.
+		str := comp.target.SyscallPrefix + c.CallName
+		nr, ok := consts[str]
+		if ok {
+			c.NR = nr
+			continue
+		}
+		c.NR = ^uint64(0) // mark as unused to not generate it
+		name := "syscall " + c.CallName
+		if !comp.unsupported[name] {
+			comp.unsupported[name] = true
+			comp.warning(c.Pos, "unsupported syscall: %v due to missing const %v",
+				c.CallName, str)
 		}
 	}
-	comp.desc.Nodes = top
 }
 
 // patchConsts replaces all symbolic consts with their numeric values taken from consts map.
 // Updates desc and returns set of unsupported syscalls and flags.
-// After this pass consts are not needed for compilation.
 func (comp *compiler) patchConsts(consts map[string]uint64) {
-	var top []ast.Node
 	for _, decl := range comp.desc.Nodes {
 		switch decl.(type) {
 		case *ast.IntFlags:
@@ -173,29 +191,29 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 				}
 			}
 			n.Values = values
-			top = append(top, n)
-		case *ast.StrFlags:
-			top = append(top, decl)
 		case *ast.Resource, *ast.Struct, *ast.Call, *ast.TypeDef:
-			// Walk whole tree and replace consts in Int's and Type's.
+			// Walk whole tree and replace consts in Type's and Int's.
 			missing := ""
-			decl.Walk(ast.Recursive(func(n0 ast.Node) {
-				switch n := n0.(type) {
-				case *ast.Int:
-					comp.patchIntConst(n.Pos, &n.Value, &n.Ident, consts, &missing)
-				case *ast.Type:
-					if c := typeConstIdentifier(n); c != nil {
-						comp.patchIntConst(c.Pos, &c.Value, &c.Ident,
-							consts, &missing)
-						if c.HasColon {
-							comp.patchIntConst(c.Pos2, &c.Value2, &c.Ident2,
-								consts, &missing)
+			comp.foreachType(decl, func(_ *ast.Type, desc *typeDesc,
+				args []*ast.Type, _ prog.IntTypeCommon) {
+				for i, arg := range args {
+					if desc.Args[i].Type.Kind == kindInt {
+						comp.patchIntConst(arg.Pos, &arg.Value,
+							&arg.Ident, consts, &missing)
+						if arg.HasColon {
+							comp.patchIntConst(arg.Pos2, &arg.Value2,
+								&arg.Ident2, consts, &missing)
 						}
 					}
 				}
-			}))
+			})
+			if n, ok := decl.(*ast.Resource); ok {
+				for _, v := range n.Values {
+					comp.patchIntConst(v.Pos, &v.Value,
+						&v.Ident, consts, &missing)
+				}
+			}
 			if missing == "" {
-				top = append(top, decl)
 				continue
 			}
 			// Produce a warning about unsupported syscall/resource/struct.
@@ -209,15 +227,11 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 				comp.warning(pos, "unsupported %v: %v due to missing const %v",
 					typ, name, missing)
 			}
-			// We have to keep partially broken resources and structs,
-			// because otherwise their usages will error.
-			top = append(top, decl)
 			if c, ok := decl.(*ast.Call); ok {
 				c.NR = ^uint64(0) // mark as unused to not generate it
 			}
 		}
 	}
-	comp.desc.Nodes = top
 }
 
 func (comp *compiler) patchIntConst(pos ast.Pos, val *uint64, id *string,
@@ -237,35 +251,7 @@ func (comp *compiler) patchIntConst(pos ast.Pos, val *uint64, id *string,
 		}
 	}
 	*val = v
-	*id = ""
 	return ok
-}
-
-// typeConstIdentifier returns type arg that is an integer constant (subject for const patching), if any.
-func typeConstIdentifier(n *ast.Type) *ast.Type {
-	// TODO: see if we can extract this info from typeDesc/typeArg.
-	if n.Ident == "const" && len(n.Args) > 0 {
-		return n.Args[0]
-	}
-	if n.Ident == "array" && len(n.Args) > 1 && n.Args[1].Ident != "opt" {
-		return n.Args[1]
-	}
-	if n.Ident == "vma" && len(n.Args) > 0 && n.Args[0].Ident != "opt" {
-		return n.Args[0]
-	}
-	if n.Ident == "string" && len(n.Args) > 1 && n.Args[1].Ident != "opt" {
-		return n.Args[1]
-	}
-	if n.Ident == "csum" && len(n.Args) > 2 && n.Args[1].Ident == "pseudo" {
-		return n.Args[2]
-	}
-	switch n.Ident {
-	case "int8", "int16", "int16be", "int32", "int32be", "int64", "int64be", "intptr":
-		if len(n.Args) > 0 && n.Args[0].Ident != "opt" {
-			return n.Args[0]
-		}
-	}
-	return nil
 }
 
 func SerializeConsts(consts map[string]uint64) []byte {

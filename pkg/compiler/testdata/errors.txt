@@ -76,7 +76,6 @@ foo$11(a buffer["in"])		### unexpected string "in" for direction argument of buf
 foo$12(a buffer[10])		### unexpected int 10 for direction argument of buffer type, expect [in out inout]
 foo$13(a int32[2:3])
 foo$14(a int32[2:2])
-foo$15(a int32[3:2])		### bad int range [3:2]
 foo$16(a int32[3])
 foo$17(a ptr[in, int32])
 foo$18(a ptr[in, int32[2:3]])
@@ -85,12 +84,10 @@ foo$20(a ptr)			### wrong number of arguments for type ptr, expect direction, ty
 foo$21(a ptr["foo"])		### wrong number of arguments for type ptr, expect direction, type, [opt]
 foo$22(a ptr[in])		### wrong number of arguments for type ptr, expect direction, type, [opt]
 foo$23(a ptr[in, s3[in]])	### wrong number of arguments for type s3, expect no arguments
-foo$24(a ptr[in, int32[3:2]])	### bad int range [3:2]
 foo$25(a proc[0, "foo"])	### unexpected string "foo" for per-proc values argument of proc type, expect int
 foo$26(a flags[no])		### unknown flags no
 foo$27(a flags["foo"])		### unexpected string "foo" for flags argument of flags type, expect identifier
 foo$28(a ptr[in, string["foo"]], b ptr[in, string["foo", 4]])
-foo$29(a ptr[in, string["foo", 3]])	### string value "foo\x00" exceeds buffer length 3
 foo$30(a ptr[in, string[no]])	### unknown string flags no
 foo$31(a int8, b ptr[in, csum[a, inet]])		### wrong number of arguments for type csum, expect csum target, kind, [proto], base type
 foo$32(a int8, b ptr[in, csum[a, inet, 1, int32]])	### only pseudo csum can have proto
@@ -98,12 +95,9 @@ foo$33(a int8, b ptr[in, csum[a, pseudo, 1, int32]])
 foo$34(a int32["foo"])		### unexpected string "foo" for range argument of int32 type, expect int
 foo$35(a ptr[in, s3[opt]])	### s3 can't be marked as opt
 foo$36(a const[1:2])		### unexpected ':'
-foo$37(a ptr[in, proc[1000, 1, int8]])	### values starting from 1000 overflow base type
-foo$38(a ptr[in, proc[20, 10, int8]])	### values starting from 20 with step 10 overflow base type for 32 procs
 foo$39(a fileoff:1)		### unexpected ':'
 foo$40(a len["a"])		### unexpected string "a" for len target argument of len type, expect identifier
 foo$41(a vma[C1:C2])
-foo$42(a proc[20, 0])		### proc per-process values must not be 0
 foo$43(a ptr[in, string[1]])	### unexpected int 1, string arg must be a string literal or string flags
 foo$44(a int32) len[a]		### len can't be syscall return
 foo$45(a int32) len[b]		### len can't be syscall return
@@ -111,10 +105,11 @@ foo$46(a ptr[in, in])		### unknown type in
 foo$47(a int32:2)		### unexpected ':', only struct fields can be bitfields
 foo$48(a ptr[in, int32:7])	### unexpected ':', only struct fields can be bitfields
 foo$49(a ptr[in, array[int32, 0:1]])
-foo$50(a ptr[in, array[int32, 0]])	### arrays of size 0 are not supported
-foo$51(a ptr[in, array[int32, 0:0]])	### arrays of size 0 are not supported
 foo$52(a intptr, b bitsize[a])
 foo$53(a proc[20, 10, opt])
+# This must not error yet (consts are not patched).
+foo$54(a ptr[in, string["foo", C1]])
+foo$55(a int8[opt[int8]])	### opt can't have arguments
 
 opt {				### struct uses reserved name opt
 	f1	int32
@@ -140,6 +135,7 @@ s3 {
 	f5	int8:9		### bitfield of size 9 is too large for base type of size 8
 	f6	int32:32
 	f7	int32:33	### bitfield of size 33 is too large for base type of size 32
+	f8	const[0, int32:C1]	### literal const bitfield sizes are not supported
 } [packed, align_4]
 
 s4 {
@@ -189,20 +185,15 @@ typestruct {
 	f1	mybool8
 	f2	mybool16
 }
-typeunion [
-	f1	mybool8
-	f2	mybool16
-]
 
 type type0 int8
-type type0 int8			### type type0 redeclared, previously declared as type alias at errors.txt:197:6
-resource type0[int32]		### type type0 redeclared, previously declared as type alias at errors.txt:197:6
+type type0 int8			### type type0 redeclared, previously declared as type alias at errors.txt:189:6
+resource type0[int32]		### type type0 redeclared, previously declared as type alias at errors.txt:189:6
 type0 = 0, 1
-type type1 type1		### type aliases can't refer to other type aliases
+type type1 type1		### type instantiation loop: type1 -> type1
 type type2 int8:4		### unexpected ':', only struct fields can be bitfields
 type type3 type2		### unknown type type2
 type type4 const[0]		### wrong number of arguments for type const, expect value, base type
-type type5 typeunion		### typeunion can't be type alias target
 type type6 len[foo, int32]	### len can't be type alias target
 type type7 len[foo]		### len can't be type alias target
 resource typeres1[int32]
@@ -210,13 +201,10 @@ type type8 typeres1		### typeres1 can't be type alias target
 type int8 int8			### type name int8 conflicts with builtin type
 type opt int8			### type uses reserved name opt
 type type9 const[0, int8]
-type type10 type0		### type aliases can't refer to other type aliases
-type type11 typestruct11	### typestruct11 can't be type alias target
 type type12 proc[123, 2, int16, opt]
 type type13 ptr[in, typestruct13]
 type type14 flags[type0, int32]
 type type15 const[0, type0]	### unexpected value type0 for base type argument of const type, expect [int8 int16 int32 int64 int16be int32be int64be intptr]
-type type16 ptr[in, type0]	### type aliases can't refer to other type aliases
 type bool8 int8[0:1]		### type name bool8 conflicts with builtin type
 
 typestruct11 {
@@ -233,12 +221,47 @@ typestruct13 {
 }
 
 foo$100(a mybool8, b mybool16)
-foo$101(a type5)		### unknown type type5
 foo$102(a type2)		### unknown type type2
 foo$103(a type0:4)		### type alias type0 with ':'
-foo$104(a type0[opt])		### type alias type0 with arguments
+foo$104(a type0[opt])		### type type0 is not a template
 foo$105() type0
 foo$106() type6			### unknown type type6
 foo$107(a type9, b type12)
 foo$108(a flags[type0])
 foo$109(a ptr[in, type0])
+
+# Type templates.
+
+type templ0[A, B] const[A, B]
+type templ2[A] A[0]
+type templ3[A] ptr[in, A]
+type templ4[A, A] ptr[in, A]	### duplicate type argument A
+type templ5[abc] ptr[in, abc]	### type argument abc must be ALL_CAPS
+type templ6[T] ptr[in, T]
+type templ7 templ0[templ6, int8]
+
+# Note: here 42 is stripped as base type, so const ends up without arguments.
+foo$201(a templ1[42])
+type templ1[A] const[A]		### wrong number of arguments for type const, expect value
+
+type templ_struct0[A, B] {
+	len	len[parent, int16]
+	typ	const[A, int16]
+	data	B
+} [align_4]
+
+type templ_struct1[STR] {
+	f	string[STR, 40]
+}
+
+type templ_struct2[A] {
+	f	B		### unknown type B
+}
+
+foo$200(a templ0[42, int8])
+foo$202(a templ0)		### template templ0 needs 2 arguments instead of 0
+foo$203(a type0[42])		### type type0 is not a template
+foo$204(a ptr[in, templ_struct0[42, int8]])
+foo$205(a ptr[in, templ_struct0[int8, int8]])
+foo$206(a ptr[in, templ_struct1["foo"]])	### template arguments can't be strings ("foo")
+foo$207(a ptr[in, templ_struct2[1]])

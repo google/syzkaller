@@ -39,6 +39,8 @@ type Prog struct {
 	StructDescs []*prog.KeyedStruct
 	// Set of unsupported syscalls/flags.
 	Unsupported map[string]bool
+	// Returned if consts was nil.
+	fileConsts map[string]*ConstInfo
 }
 
 // Compile compiles sys description.
@@ -64,6 +66,20 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 	}
 	for name, typedef := range builtinTypedefs {
 		comp.typedefs[name] = typedef
+	}
+	comp.typecheck()
+	// The subsequent, more complex, checks expect basic validity of the tree,
+	// in particular corrent number of type arguments. If there were errors,
+	// don't proceed to avoid out-of-bounds references to type arguments.
+	if comp.errors != 0 {
+		return nil
+	}
+	if consts == nil {
+		fileConsts := comp.extractConsts()
+		if comp.errors != 0 {
+			return nil
+		}
+		return &Prog{fileConsts: fileConsts}
 	}
 	comp.assignSyscallNumbers(consts)
 	comp.patchConsts(consts)
@@ -177,9 +193,11 @@ func (comp *compiler) getTypeDesc(t *ast.Type) *typeDesc {
 func (comp *compiler) getArgsBase(t *ast.Type, field string, dir prog.Dir, isArg bool) (
 	*typeDesc, []*ast.Type, prog.IntTypeCommon) {
 	desc := comp.getTypeDesc(t)
+	if desc == nil {
+		panic(fmt.Sprintf("no type desc for %#v", *t))
+	}
 	args, opt := removeOpt(t)
-	size := sizeUnassigned
-	com := genCommon(t.Ident, field, size, dir, opt)
+	com := genCommon(t.Ident, field, sizeUnassigned, dir, opt != nil)
 	base := genIntCommon(com, 0, false)
 	if desc.NeedBase {
 		base.TypeSize = comp.ptrSize
@@ -192,12 +210,48 @@ func (comp *compiler) getArgsBase(t *ast.Type, field string, dir prog.Dir, isArg
 	return desc, args, base
 }
 
-func removeOpt(t *ast.Type) ([]*ast.Type, bool) {
-	args := t.Args
-	if len(args) != 0 && args[len(args)-1].Ident == "opt" {
-		return args[:len(args)-1], true
+func (comp *compiler) foreachType(n0 ast.Node,
+	cb func(*ast.Type, *typeDesc, []*ast.Type, prog.IntTypeCommon)) {
+	switch n := n0.(type) {
+	case *ast.Call:
+		for _, arg := range n.Args {
+			comp.foreachSubType(arg.Type, true, cb)
+		}
+		if n.Ret != nil {
+			comp.foreachSubType(n.Ret, true, cb)
+		}
+	case *ast.Resource:
+		comp.foreachSubType(n.Base, false, cb)
+	case *ast.Struct:
+		for _, f := range n.Fields {
+			comp.foreachSubType(f.Type, false, cb)
+		}
+	case *ast.TypeDef:
+		if len(n.Args) == 0 {
+			comp.foreachSubType(n.Type, false, cb)
+		}
+	default:
+		panic(fmt.Sprintf("unexpected node %#v", n0))
 	}
-	return args, false
+}
+
+func (comp *compiler) foreachSubType(t *ast.Type, isArg bool,
+	cb func(*ast.Type, *typeDesc, []*ast.Type, prog.IntTypeCommon)) {
+	desc, args, base := comp.getArgsBase(t, "", prog.DirIn, isArg)
+	cb(t, desc, args, base)
+	for i, arg := range args {
+		if desc.Args[i].Type == typeArgType {
+			comp.foreachSubType(arg, false, cb)
+		}
+	}
+}
+
+func removeOpt(t *ast.Type) ([]*ast.Type, *ast.Type) {
+	args := t.Args
+	if last := len(args) - 1; last >= 0 && args[last].Ident == "opt" {
+		return args[:last], args[last]
+	}
+	return args, nil
 }
 
 func (comp *compiler) parseIntType(name string) (size uint64, bigEndian bool) {

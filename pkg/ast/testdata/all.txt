@@ -48,5 +48,20 @@ s2 {
 
 type mybool8 int8
 type net_port proc[1, 2, int16be]
-type mybool16				### unexpected '\n', expecting int, identifier, string
-type type4:4 int32			### unexpected ':', expecting int, identifier, string
+type mybool16				### unexpected '\n', expecting '[', identifier
+type type4:4 int32			### unexpected ':', expecting '[', identifier
+
+type templ0[] int8			### unexpected ']', expecting identifier
+type templ1[A,] int8			### unexpected ']', expecting identifier
+type templ2[,] int8			### unexpected ',', expecting identifier
+type templ3[				### unexpected '\n', expecting identifier
+type templ4[A]				### unexpected '\n', expecting int, identifier, string
+type templ5[A] const[A]
+type templ6[A, B] const[A, B]
+type templ7[0] ptr[in, int8]		### unexpected int, expecting identifier
+
+type templ_struct0[A, B] {
+	len	len[parent, int16]
+	typ	const[A, int16]
+	data	B
+} [align_4]

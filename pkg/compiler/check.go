@@ -12,16 +12,15 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-func (comp *compiler) check() {
+func (comp *compiler) typecheck() {
 	comp.checkNames()
 	comp.checkFields()
+	comp.checkTypedefs()
 	comp.checkTypes()
-	// The subsequent, more complex, checks expect basic validity of the tree,
-	// in particular corrent number of type arguments. If there were errors,
-	// don't proceed to avoid out-of-bounds references to type arguments.
-	if comp.errors != 0 {
-		return
-	}
+}
+
+func (comp *compiler) check() {
+	comp.checkConsts()
 	comp.checkUsed()
 	comp.checkRecursion()
 	comp.checkLenTargets()
@@ -31,9 +30,33 @@ func (comp *compiler) check() {
 }
 
 func (comp *compiler) checkNames() {
+	includes := make(map[string]bool)
+	incdirs := make(map[string]bool)
+	defines := make(map[string]bool)
 	calls := make(map[string]*ast.Call)
 	for _, decl := range comp.desc.Nodes {
-		switch decl.(type) {
+		switch n := decl.(type) {
+		case *ast.Include:
+			name := n.File.Value
+			path := n.Pos.File + "/" + name
+			if includes[path] {
+				comp.error(n.Pos, "duplicate include %q", name)
+			}
+			includes[path] = true
+		case *ast.Incdir:
+			name := n.Dir.Value
+			path := n.Pos.File + "/" + name
+			if incdirs[path] {
+				comp.error(n.Pos, "duplicate incdir %q", name)
+			}
+			incdirs[path] = true
+		case *ast.Define:
+			name := n.Name.Name
+			path := n.Pos.File + "/" + name
+			if defines[path] {
+				comp.error(n.Pos, "duplicate define %v", name)
+			}
+			defines[path] = true
 		case *ast.Resource, *ast.Struct, *ast.TypeDef:
 			pos, typ, name := decl.Info()
 			if reservedName[name] {
@@ -68,7 +91,6 @@ func (comp *compiler) checkNames() {
 				comp.structs[name] = str
 			}
 		case *ast.IntFlags:
-			n := decl.(*ast.IntFlags)
 			name := n.Name.Name
 			if reservedName[name] {
 				comp.error(n.Pos, "flags uses reserved name %v", name)
@@ -81,7 +103,6 @@ func (comp *compiler) checkNames() {
 			}
 			comp.intFlags[name] = n
 		case *ast.StrFlags:
-			n := decl.(*ast.StrFlags)
 			name := n.Name.Name
 			if reservedName[name] {
 				comp.error(n.Pos, "string flags uses reserved name %v", name)
@@ -94,13 +115,12 @@ func (comp *compiler) checkNames() {
 			}
 			comp.strFlags[name] = n
 		case *ast.Call:
-			c := decl.(*ast.Call)
-			name := c.Name.Name
+			name := n.Name.Name
 			if prev := calls[name]; prev != nil {
-				comp.error(c.Pos, "syscall %v redeclared, previously declared at %v",
+				comp.error(n.Pos, "syscall %v redeclared, previously declared at %v",
 					name, prev.Pos)
 			}
-			calls[name] = c
+			calls[name] = n
 		}
 	}
 }
@@ -111,17 +131,7 @@ func (comp *compiler) checkFields() {
 		switch n := decl.(type) {
 		case *ast.Struct:
 			_, typ, name := n.Info()
-			fields := make(map[string]bool)
-			for _, f := range n.Fields {
-				fn := f.Name.Name
-				if fn == "parent" {
-					comp.error(f.Pos, "reserved field name %v in %v %v", fn, typ, name)
-				}
-				if fields[fn] {
-					comp.error(f.Pos, "duplicate field %v in %v %v", fn, typ, name)
-				}
-				fields[fn] = true
-			}
+			comp.checkFieldGroup(n.Fields, "field", typ+" "+name)
 			if !n.IsUnion && len(n.Fields) < 1 {
 				comp.error(n.Pos, "struct %v has no fields, need at least 1 field", name)
 			}
@@ -131,19 +141,7 @@ func (comp *compiler) checkFields() {
 			}
 		case *ast.Call:
 			name := n.Name.Name
-			args := make(map[string]bool)
-			for _, a := range n.Args {
-				an := a.Name.Name
-				if an == "parent" {
-					comp.error(a.Pos, "reserved argument name %v in syscall %v",
-						an, name)
-				}
-				if args[an] {
-					comp.error(a.Pos, "duplicate argument %v in syscall %v",
-						an, name)
-				}
-				args[an] = true
-			}
+			comp.checkFieldGroup(n.Args, "argument", "syscall "+name)
 			if len(n.Args) > maxArgs {
 				comp.error(n.Pos, "syscall %v has %v arguments, allowed maximum is %v",
 					name, len(n.Args), maxArgs)
@@ -152,36 +150,89 @@ func (comp *compiler) checkFields() {
 	}
 }
 
-func (comp *compiler) checkTypes() {
+func (comp *compiler) checkFieldGroup(fields []*ast.Field, what, ctx string) {
+	existing := make(map[string]bool)
+	for _, f := range fields {
+		fn := f.Name.Name
+		if fn == "parent" {
+			comp.error(f.Pos, "reserved %v name %v in %v", what, fn, ctx)
+		}
+		if existing[fn] {
+			comp.error(f.Pos, "duplicate %v %v in %v", what, fn, ctx)
+		}
+		existing[fn] = true
+	}
+}
+
+func (comp *compiler) checkTypedefs() {
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
 		case *ast.TypeDef:
-			if comp.typedefs[n.Name.Name] == nil {
-				continue
-			}
-			err0 := comp.errors
-			comp.checkType(n.Type, false, false, false, false, true, true)
-			if err0 != comp.errors {
-				delete(comp.typedefs, n.Name.Name)
+			if len(n.Args) == 0 {
+				// Non-template types are fully typed, so we check them ahead of time.
+				err0 := comp.errors
+				comp.checkType(checkCtx{}, n.Type, checkIsTypedef)
+				if err0 != comp.errors {
+					// To not produce confusing errors on broken type usage.
+					delete(comp.typedefs, n.Name.Name)
+				}
+			} else {
+				// For templates we only do basic checks of arguments.
+				names := make(map[string]bool)
+				for _, arg := range n.Args {
+					if names[arg.Name] {
+						comp.error(arg.Pos, "duplicate type argument %v", arg.Name)
+					}
+					names[arg.Name] = true
+					for _, c := range arg.Name {
+						if c >= 'A' && c <= 'Z' ||
+							c >= '0' && c <= '9' ||
+							c == '_' {
+							continue
+						}
+						comp.error(arg.Pos, "type argument %v must be ALL_CAPS",
+							arg.Name)
+						break
+					}
+				}
 			}
 		}
 	}
+}
+
+func (comp *compiler) checkTypes() {
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {
 		case *ast.Resource:
-			comp.checkType(n.Base, false, false, false, true, false, false)
+			comp.checkType(checkCtx{}, n.Base, checkIsResourceBase)
 		case *ast.Struct:
-			for _, f := range n.Fields {
-				comp.checkType(f.Type, false, false, !n.IsUnion, false, false, false)
-			}
-			comp.checkStruct(n)
+			comp.checkStruct(checkCtx{}, n)
 		case *ast.Call:
 			for _, a := range n.Args {
-				comp.checkType(a.Type, true, false, false, false, false, false)
+				comp.checkType(checkCtx{}, a.Type, checkIsArg)
 			}
 			if n.Ret != nil {
-				comp.checkType(n.Ret, true, true, false, false, false, false)
+				comp.checkType(checkCtx{}, n.Ret, checkIsArg|checkIsRet|checkIsRetCtx)
 			}
+		}
+	}
+}
+
+func (comp *compiler) checkConsts() {
+	for _, decl := range comp.desc.Nodes {
+		switch decl.(type) {
+		case *ast.Call, *ast.Struct, *ast.Resource, *ast.TypeDef:
+			comp.foreachType(decl, func(t *ast.Type, desc *typeDesc,
+				args []*ast.Type, base prog.IntTypeCommon) {
+				if desc.CheckConsts != nil {
+					desc.CheckConsts(comp, t, args, base)
+				}
+				for i, arg := range args {
+					if check := desc.Args[i].Type.CheckConsts; check != nil {
+						check(comp, arg)
+					}
+				}
+			})
 		}
 	}
 }
@@ -471,7 +522,14 @@ func (comp *compiler) recurseField(checked map[string]bool, t *ast.Type, path []
 	}
 }
 
-func (comp *compiler) checkStruct(n *ast.Struct) {
+func (comp *compiler) checkStruct(ctx checkCtx, n *ast.Struct) {
+	var flags checkFlags
+	if !n.IsUnion {
+		flags |= checkIsStruct
+	}
+	for _, f := range n.Fields {
+		comp.checkType(ctx, f.Type, flags)
+	}
 	if n.IsUnion {
 		comp.parseUnionAttrs(n)
 	} else {
@@ -479,7 +537,22 @@ func (comp *compiler) checkStruct(n *ast.Struct) {
 	}
 }
 
-func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceBase, isTypedef, isTypedefCtx bool) {
+type checkFlags int
+
+const (
+	checkIsArg          checkFlags = 1 << iota // immidiate syscall arg type
+	checkIsRet                                 // immidiate syscall ret type
+	checkIsRetCtx                              // inside of syscall ret type
+	checkIsStruct                              // immidiate struct field type
+	checkIsResourceBase                        // immidiate resource base type
+	checkIsTypedef                             // immidiate type alias/template type
+)
+
+type checkCtx struct {
+	instantiationStack []string
+}
+
+func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 	if unexpected, _, ok := checkTypeKind(t, kindIdent); !ok {
 		comp.error(t.Pos, "unexpected %v, expect type", unexpected)
 		return
@@ -490,29 +563,13 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceB
 		return
 	}
 	if desc == typeTypedef {
-		if isTypedefCtx {
-			comp.error(t.Pos, "type aliases can't refer to other type aliases")
-			return
+		err0 := comp.errors
+		// Replace t with type alias/template target type inplace,
+		// and check the replaced type recursively.
+		comp.replaceTypedef(&ctx, t, desc, flags)
+		if err0 == comp.errors {
+			comp.checkType(ctx, t, flags)
 		}
-		if t.HasColon {
-			comp.error(t.Pos, "type alias %v with ':'", t.Ident)
-			return
-		}
-		if len(t.Args) != 0 {
-			comp.error(t.Pos, "type alias %v with arguments", t.Ident)
-			return
-		}
-		*t = *comp.typedefs[t.Ident].Type.Clone(t.Pos).(*ast.Type)
-		desc = comp.getTypeDesc(t)
-		if isArg && desc.NeedBase {
-			baseTypePos := len(t.Args) - 1
-			if t.Args[baseTypePos].Ident == "opt" {
-				baseTypePos--
-			}
-			copy(t.Args[baseTypePos:], t.Args[baseTypePos+1:])
-			t.Args = t.Args[:len(t.Args)-1]
-		}
-		comp.checkType(t, isArg, isRet, isStruct, isResourceBase, isTypedef, isTypedefCtx)
 		return
 	}
 	if t.HasColon {
@@ -520,39 +577,47 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceB
 			comp.error(t.Pos2, "unexpected ':'")
 			return
 		}
-		if !isStruct {
+		if flags&checkIsStruct == 0 {
 			comp.error(t.Pos2, "unexpected ':', only struct fields can be bitfields")
 			return
 		}
 	}
-	if isRet && (!desc.CanBeArg || desc.CantBeRet) {
+	if flags&checkIsRet != 0 && (!desc.CanBeArg || desc.CantBeRet) {
 		comp.error(t.Pos, "%v can't be syscall return", t.Ident)
 		return
 	}
-	if isArg && !desc.CanBeArg {
+	if flags&checkIsRetCtx != 0 && desc.CantBeRet {
+		comp.error(t.Pos, "%v can't be used in syscall return", t.Ident)
+		return
+	}
+	if flags&checkIsArg != 0 && !desc.CanBeArg {
 		comp.error(t.Pos, "%v can't be syscall argument", t.Ident)
 		return
 	}
-	if isTypedef && !desc.CanBeTypedef {
+	if flags&checkIsTypedef != 0 && !desc.CanBeTypedef {
 		comp.error(t.Pos, "%v can't be type alias target", t.Ident)
 		return
 	}
-	if isResourceBase && !desc.ResourceBase {
+	if flags&checkIsResourceBase != 0 && !desc.ResourceBase {
 		comp.error(t.Pos, "%v can't be resource base (int types can)", t.Ident)
 		return
 	}
 	args, opt := removeOpt(t)
-	if opt && (desc.CantBeOpt || isResourceBase) {
-		what := "resource base"
-		if desc.CantBeOpt {
-			what = t.Ident
+	if opt != nil {
+		if len(opt.Args) != 0 {
+			comp.error(opt.Pos, "opt can't have arguments")
 		}
-		pos := t.Args[len(t.Args)-1].Pos
-		comp.error(pos, "%v can't be marked as opt", what)
-		return
+		if flags&checkIsResourceBase != 0 || desc.CantBeOpt {
+			what := "resource base"
+			if desc.CantBeOpt {
+				what = t.Ident
+			}
+			comp.error(opt.Pos, "%v can't be marked as opt", what)
+			return
+		}
 	}
 	addArgs := 0
-	needBase := !isArg && desc.NeedBase
+	needBase := flags&checkIsArg == 0 && desc.NeedBase
 	if needBase {
 		addArgs++ // last arg must be base type, e.g. const[0, int32]
 	}
@@ -569,18 +634,111 @@ func (comp *compiler) checkType(t *ast.Type, isArg, isRet, isStruct, isResourceB
 	err0 := comp.errors
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkType(arg, false, isRet, false, false, false, isTypedefCtx)
+			comp.checkType(ctx, arg, flags&checkIsRetCtx)
 		} else {
 			comp.checkTypeArg(t, arg, desc.Args[i])
 		}
 	}
-	if err0 != comp.errors {
-		return
-	}
-	if desc.Check != nil {
-		_, args, base := comp.getArgsBase(t, "", prog.DirIn, isArg)
+	if desc.Check != nil && err0 == comp.errors {
+		_, args, base := comp.getArgsBase(t, "", prog.DirIn, flags&checkIsArg != 0)
 		desc.Check(comp, t, args, base)
 	}
+}
+
+func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, desc *typeDesc, flags checkFlags) {
+	typedefName := t.Ident
+	if t.HasColon {
+		comp.error(t.Pos, "type alias %v with ':'", t.Ident)
+		return
+	}
+	typedef := comp.typedefs[typedefName]
+	fullTypeName := ast.SerializeNode(t)
+	for i, prev := range ctx.instantiationStack {
+		if prev == fullTypeName {
+			ctx.instantiationStack = append(ctx.instantiationStack, fullTypeName)
+			path := ""
+			for j := i; j < len(ctx.instantiationStack); j++ {
+				if j != i {
+					path += " -> "
+				}
+				path += ctx.instantiationStack[j]
+			}
+			comp.error(t.Pos, "type instantiation loop: %v", path)
+			return
+		}
+	}
+	ctx.instantiationStack = append(ctx.instantiationStack, fullTypeName)
+	nargs := len(typedef.Args)
+	args := t.Args
+	for _, arg := range args {
+		if arg.String != "" {
+			comp.error(arg.Pos, "template arguments can't be strings (%q)", arg.String)
+			return
+		}
+	}
+	if nargs != len(t.Args) {
+		if nargs == 0 {
+			comp.error(t.Pos, "type %v is not a template", typedefName)
+		} else {
+			comp.error(t.Pos, "template %v needs %v arguments instead of %v",
+				typedefName, nargs, len(t.Args))
+		}
+		return
+	}
+	if typedef.Type != nil {
+		*t = *typedef.Type.Clone().(*ast.Type)
+		comp.instantiate(t, typedef.Args, args)
+	} else {
+		if comp.structs[fullTypeName] == nil {
+			inst := typedef.Struct.Clone().(*ast.Struct)
+			inst.Name.Name = fullTypeName
+			comp.instantiate(inst, typedef.Args, args)
+			comp.checkStruct(*ctx, inst)
+			comp.desc.Nodes = append(comp.desc.Nodes, inst)
+			comp.structs[fullTypeName] = inst
+		}
+		*t = ast.Type{
+			Pos:   t.Pos,
+			Ident: fullTypeName,
+		}
+	}
+
+	// Remove base type if it's not needed in this context.
+	desc = comp.getTypeDesc(t)
+	if flags&checkIsArg != 0 && desc.NeedBase {
+		baseTypePos := len(t.Args) - 1
+		if t.Args[baseTypePos].Ident == "opt" {
+			baseTypePos--
+		}
+		copy(t.Args[baseTypePos:], t.Args[baseTypePos+1:])
+		t.Args = t.Args[:len(t.Args)-1]
+	}
+}
+
+func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*ast.Type) {
+	if len(params) == 0 {
+		return
+	}
+	argMap := make(map[string]*ast.Type)
+	for i, param := range params {
+		argMap[param.Name] = args[i]
+	}
+	templ.Walk(ast.Recursive(func(n ast.Node) {
+		templArg, ok := n.(*ast.Type)
+		if !ok {
+			return
+		}
+		if concreteArg := argMap[templArg.Ident]; concreteArg != nil {
+			*templArg = *concreteArg.Clone().(*ast.Type)
+		}
+		// TODO(dvyukov): somewhat hacky, but required for int8[0:CONST_ARG]
+		// Need more checks here. E.g. that CONST_ARG does not have subargs.
+		// And if CONST_ARG is a value, then use concreteArg.Value.
+		if concreteArg := argMap[templArg.Ident2]; concreteArg != nil {
+			templArg.Ident2 = concreteArg.Ident
+			templArg.Pos2 = concreteArg.Pos
+		}
+	}))
 }
 
 func (comp *compiler) checkTypeArg(t, arg *ast.Type, argDesc namedArg) {
@@ -655,7 +813,7 @@ func checkTypeKind(t *ast.Type, kind int) (unexpected string, expect string, ok 
 			unexpected = fmt.Sprintf("string %q", t.String)
 		}
 	case t.Ident != "":
-		ok = kind == kindIdent
+		ok = kind == kindIdent || kind == kindInt
 		if !ok {
 			unexpected = fmt.Sprintf("identifier %v", t.Ident)
 		}
@@ -688,8 +846,8 @@ func (comp *compiler) checkVarlens() {
 }
 
 func (comp *compiler) isVarlen(t *ast.Type) bool {
-	desc, args, base := comp.getArgsBase(t, "", prog.DirIn, false)
-	return desc.Varlen != nil && desc.Varlen(comp, t, args, base)
+	desc, args, _ := comp.getArgsBase(t, "", prog.DirIn, false)
+	return desc.Varlen != nil && desc.Varlen(comp, t, args)
 }
 
 func (comp *compiler) checkVarlen(n *ast.Struct) {
