@@ -507,15 +507,12 @@ pipefd {
 	wfd	fd
 }
 
-iovec_in {
-	addr	buffer[in]
+type iovec[DIR, T] {
+	addr	ptr[DIR, T]
 	len	len[addr, intptr]
 }
-
-iovec_out {
-	addr	buffer[out]
-	len	len[addr, intptr]
-}
+type iovec_in iovec[in, array[int8]]
+type iovec_out iovec[out, array[int8]]
 
 stat {
 	dev	int16

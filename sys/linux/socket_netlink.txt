@@ -16,7 +16,7 @@ bind$netlink(fd sock_netlink, addr ptr[in, sockaddr_nl_proc], addrlen len[addr])
 connect$netlink(fd sock_netlink, addr ptr[in, sockaddr_nl], addrlen len[addr])
 getsockname$netlink(fd sock_netlink, addr ptr[out, sockaddr_nl_unspec], addrlen ptr[inout, len[addr, int32]])
 getpeername$netlink(fd sock_netlink, peer ptr[out, sockaddr_nl_unspec], peerlen ptr[inout, len[peer, int32]])
-sendmsg$netlink(fd sock_netlink, msg ptr[in, msghdr_netlink], f flags[send_flags])
+sendmsg$netlink(fd sock_netlink, msg ptr[in, msghdr_netlink_generic], f flags[send_flags])
 setsockopt$netlink_NETLINK_ADD_MEMBERSHIP(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_ADD_MEMBERSHIP], arg ptr[in, int32[0:31]], arglen len[arg])
 setsockopt$netlink_NETLINK_DROP_MEMBERSHIP(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_DROP_MEMBERSHIP], arg ptr[in, int32[0:31]], arglen len[arg])
 setsockopt$netlink_NETLINK_PKTINFO(fd sock_netlink, level const[SOL_NETLINK], opt const[NETLINK_PKTINFO], arg ptr[in, int32], arglen len[arg])
@@ -45,72 +45,76 @@ sockaddr_nl_send [
 	proc	sockaddr_nl_proc
 ]
 
-sockaddr_nl_proc {
-	nl_family	const[AF_NETLINK, int16]
+type sockaddr_nl_t[FAMILY, PID, GROUPS] {
+	nl_family	const[FAMILY, int16]
 	nl_pad		const[0, int16]
-	nl_pid		netlink_port_id
-	nl_groups	flags[netlink_group_bitmap, int32]
+	nl_pid		PID
+	nl_groups	GROUPS
 }
+type sockaddr_nl_proc sockaddr_nl_t[AF_NETLINK, netlink_port_id, flags[netlink_group_bitmap, int32]]
+type sockaddr_nl_kern sockaddr_nl_t[AF_NETLINK, const[0, int32], flags[netlink_group_bitmap, int32]]
+type sockaddr_nl_unspec sockaddr_nl_t[AF_UNSPEC, const[0, int32], const[0, int32]]
 
-sockaddr_nl_kern {
-	nl_family	const[AF_NETLINK, int16]
-	nl_pad		const[0, int16]
-	nl_pid		const[0, int32]
-	nl_groups	flags[netlink_group_bitmap, int32]
-}
-
-sockaddr_nl_unspec {
-	nl_family	const[AF_UNSPEC, int16]
-	nl_pad		const[0, int16]
-	nl_pid		const[0, int32]
-	nl_groups	const[0, int32]
-}
-
-msghdr_netlink {
+type msghdr_netlink_full[MSG] {
 	addr	ptr[in, sockaddr_nl_send, opt]
 	addrlen	len[addr, int32]
-	vec	ptr[in, array[iovec_nl]]
+	vec	ptr[in, array[iovec[in, MSG]]]
 	vlen	len[vec, intptr]
 	ctrl	ptr[in, array[cmsghdr_un], opt]
 	ctrllen	bytesize[ctrl, intptr]
 	f	flags[send_flags, int32]
 }
 
-iovec_nl {
-	data	ptr[in, array[netlink_msg]]
-	len	bytesize[data, intptr]
+# Simplified version of msghdr_netlink_full with kernel address, no control data and only 1 iovec.
+# It's enough for most protocols.
+type msghdr_netlink[MSG] {
+	addr	ptr[in, sockaddr_nl_kern]
+	addrlen	len[addr, int32]
+	vec	ptr[in, iovec[in, MSG]]
+	vlen	const[1, intptr]
+	ctrl	const[0, intptr]
+	ctrllen	const[0, intptr]
+	f	flags[send_flags, int32]
 }
 
-netlink_msg {
+# No body. Generic attribute can represent a random body.
+type msghdr_netlink_generic msghdr_netlink_full[netlink_msg_t[netlink_random_msg_type, void, nl_generic_attr]]
+
+type netlink_msg_t[TYPE, PAYLOAD, ATTRS] {
 	len	len[parent, int32]
-	type	netlink_random_msg_type
+	type	TYPE
 	flags	flags[netlink_msg_flags, int16]
 	seq	netlink_seq
 	pid	netlink_port_id
-# No body. Generic attribute can represent a random body.
-	attrs	array[nl_generic_attr]
+	payload	PAYLOAD
+	attrs	array[ATTRS]
 } [align_4]
+
+type netlink_msg[TYPE, PAYLOAD, ATTRS] netlink_msg_t[const[TYPE, int16], PAYLOAD, ATTRS]
+
+type nlattr_t[TYPE, PAYLOAD] {
+	nla_len		len[parent, int16]
+	nla_type	TYPE
+	payload		PAYLOAD
+} [align_4]
+
+# NL80211 has 150 attributes.
+type nlattr_anytype[PAYLOAD] nlattr_t[int16[0:150], PAYLOAD]
+type nlattr[TYPE, PAYLOAD] nlattr_t[const[TYPE, int16], PAYLOAD]
 
 nl_generic_attr [
 	generic	array[int8]
-	flag	nl_generic_attr_flag
-	typed	nl_generic_attr_typed
-	nested	nl_generic_attr_nested
+	typed	nlattr_anytype[nl_generic_attr_data]
+	nested	nlattr_anytype[array[nl_generic_attr_nonested]]
 ] [varlen]
 
-nl_generic_attr_flag {
-	nla_len		len[parent, int16]
-# NL80211 has 150 attributes.
-	nla_type	int16[0:150]
-} [align_4]
-
-nl_generic_attr_typed {
-	nla_len		len[parent, int16]
-	nla_type	int16[0:150]
-	data		nl_generic_attr_data
-} [align_4]
+nl_generic_attr_nonested [
+	generic	array[int8]
+	typed	nlattr_anytype[nl_generic_attr_data]
+] [varlen]
 
 nl_generic_attr_data [
+	void	void
 	u32	int32
 	u64	int64
 	ipv4	ipv4_addr
@@ -120,18 +124,6 @@ nl_generic_attr_data [
 	uid	uid
 	str	string
 	binary	array[int8]
-] [varlen]
-
-nl_generic_attr_nested {
-	nla_len		len[parent, int16]
-	nla_type	int16[0:150]
-	data		array[nl_generic_attr_nonested]
-} [align_4]
-
-nl_generic_attr_nonested [
-	generic	array[int8]
-	flag	nl_generic_attr_flag
-	typed	nl_generic_attr_typed
 ] [varlen]
 
 nl_mmap_req {
