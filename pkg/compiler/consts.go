@@ -43,8 +43,8 @@ func ExtractConsts(desc *ast.Description, target *targets.Target, eh0 ast.ErrorH
 	incdirMap := make(map[string]bool)
 	constMap := make(map[string]bool)
 
-	ast.Walk(desc, func(n1 ast.Node) {
-		switch n := n1.(type) {
+	desc.Walk(ast.Recursive(func(n0 ast.Node) {
+		switch n := n0.(type) {
 		case *ast.Include:
 			file := n.File.Value
 			if includeMap[file] {
@@ -85,7 +85,7 @@ func ExtractConsts(desc *ast.Description, target *targets.Target, eh0 ast.ErrorH
 		case *ast.Int:
 			constMap[n.Ident] = true
 		}
-	})
+	}))
 
 	if errors != 0 {
 		return nil
@@ -179,7 +179,7 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 		case *ast.Resource, *ast.Struct, *ast.Call, *ast.TypeDef:
 			// Walk whole tree and replace consts in Int's and Type's.
 			missing := ""
-			ast.WalkNode(decl, func(n0 ast.Node) {
+			decl.Walk(ast.Recursive(func(n0 ast.Node) {
 				switch n := n0.(type) {
 				case *ast.Int:
 					comp.patchIntConst(n.Pos, &n.Value, &n.Ident, consts, &missing)
@@ -193,7 +193,7 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 						}
 					}
 				}
-			})
+			}))
 			if missing == "" {
 				top = append(top, decl)
 				continue

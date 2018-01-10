@@ -3,7 +3,7 @@
 
 package ast
 
-func Clone(desc *Description) *Description {
+func (desc *Description) Clone() *Description {
 	desc1 := &Description{}
 	for _, n := range desc.Nodes {
 		desc1.Nodes = append(desc1.Nodes, n.Clone(Pos{}))

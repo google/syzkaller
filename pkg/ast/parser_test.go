@@ -48,7 +48,7 @@ func TestParseAll(t *testing.T) {
 					t.Fatalf("formatting changed code:\n%#v\nvs:\n%#v", n1, n2)
 				}
 			}
-			data3 := Format(Clone(desc))
+			data3 := Format(desc.Clone())
 			if !bytes.Equal(data, data3) {
 				t.Fatalf("Clone lost data")
 			}

@@ -24,6 +24,9 @@ type Node interface {
 	// If newPos is not zero, sets Pos of all nodes to newPos.
 	// If newPos is zero, Pos of nodes is left intact.
 	Clone(newPos Pos) Node
+	// Walk calls callback cb for all child nodes of this node.
+	// Note: it's not recursive. Use Recursive helper for recursive walk.
+	Walk(cb func(Node))
 }
 
 // Top-level AST nodes:

@@ -47,7 +47,7 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		eh = ast.LoggingHandler
 	}
 	comp := &compiler{
-		desc:         ast.Clone(desc),
+		desc:         desc.Clone(),
 		target:       target,
 		eh:           eh,
 		ptrSize:      target.PtrSize,
