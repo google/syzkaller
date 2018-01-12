@@ -243,7 +243,7 @@ static void snprintf_check(char* str, size_t size, const char* format, ...)
 #define PATH_PREFIX "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin "
 #define PATH_PREFIX_LEN (sizeof(PATH_PREFIX) - 1)
 
-static void execute_command(const char* format, ...)
+static void execute_command(bool panic, const char* format, ...)
 {
 	va_list args;
 	char command[PATH_PREFIX_LEN + COMMAND_MAX_LEN];
@@ -256,7 +256,7 @@ static void execute_command(const char* format, ...)
 	memcpy(command, PATH_PREFIX, PATH_PREFIX_LEN);
 	vsnprintf_check(command + PATH_PREFIX_LEN, COMMAND_MAX_LEN, format, args);
 	rv = system(command);
-	if (rv != 0)
+	if (panic && rv != 0)
 		fail("tun: command \"%s\" failed with code %d", &command[0], rv);
 
 	va_end(args);
@@ -273,14 +273,14 @@ static int tun_frags_enabled;
 #define MAX_PIDS 32
 #define ADDR_MAX_LEN 32
 
-#define LOCAL_MAC "aa:aa:aa:aa:aa:%02hx"
-#define REMOTE_MAC "bb:bb:bb:bb:bb:%02hx"
+#define LOCAL_MAC "aa:aa:aa:aa:%02hx:aa"
+#define REMOTE_MAC "aa:aa:aa:aa:%02hx:bb"
 
 #define LOCAL_IPV4 "172.20.%d.170"
 #define REMOTE_IPV4 "172.20.%d.187"
 
-#define LOCAL_IPV6 "fe80::%02hxaa"
-#define REMOTE_IPV6 "fe80::%02hxbb"
+#define LOCAL_IPV6 "fe80::%02hx:aa"
+#define REMOTE_IPV6 "fe80::%02hx:bb"
 
 #ifndef IFF_NAPI
 #define IFF_NAPI 0x0010
@@ -289,11 +289,10 @@ static int tun_frags_enabled;
 #define IFF_NAPI_FRAGS 0x0020
 #endif
 
-static void initialize_tun(uint64 pid)
+static void initialize_tun(int id)
 {
-	if (pid >= MAX_PIDS)
+	if (id >= MAX_PIDS)
 		fail("tun: no more than %d executors", MAX_PIDS);
-	int id = pid;
 
 	tunfd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
 	if (tunfd == -1) {
@@ -342,24 +341,62 @@ static void initialize_tun(uint64 pid)
 	snprintf_check(remote_ipv6, sizeof(remote_ipv6), REMOTE_IPV6, id);
 
 	// Disable IPv6 DAD, otherwise the address remains unusable until DAD completes.
-	execute_command("sysctl -w net.ipv6.conf.%s.accept_dad=0", iface);
+	execute_command(1, "sysctl -w net.ipv6.conf.%s.accept_dad=0", iface);
 
 	// Disable IPv6 router solicitation to prevent IPv6 spam.
-	execute_command("sysctl -w net.ipv6.conf.%s.router_solicitations=0", iface);
+	execute_command(1, "sysctl -w net.ipv6.conf.%s.router_solicitations=0", iface);
 	// There seems to be no way to disable IPv6 MTD to prevent more IPv6 spam.
 
-	execute_command("ip link set dev %s address %s", iface, local_mac);
-	execute_command("ip addr add %s/24 dev %s", local_ipv4, iface);
-	execute_command("ip -6 addr add %s/120 dev %s", local_ipv6, iface);
-	execute_command("ip neigh add %s lladdr %s dev %s nud permanent", remote_ipv4, remote_mac, iface);
-	execute_command("ip -6 neigh add %s lladdr %s dev %s nud permanent", remote_ipv6, remote_mac, iface);
-	execute_command("ip link set dev %s up", iface);
+	execute_command(1, "ip link set dev %s address %s", iface, local_mac);
+	execute_command(1, "ip addr add %s/24 dev %s", local_ipv4, iface);
+	execute_command(1, "ip -6 addr add %s/120 dev %s", local_ipv6, iface);
+	execute_command(1, "ip neigh add %s lladdr %s dev %s nud permanent",
+			remote_ipv4, remote_mac, iface);
+	execute_command(1, "ip -6 neigh add %s lladdr %s dev %s nud permanent",
+			remote_ipv6, remote_mac, iface);
+	execute_command(1, "ip link set dev %s up", iface);
+}
+
+// Addresses are chosen to be in the same subnet as tun addresses.
+#define DEV_IPV4 "172.20.%d.%d"
+#define DEV_IPV6 "fe80::%02hx:%02hx"
+#define DEV_MAC "aa:aa:aa:aa:%02hx:%02hx"
+
+// We test in a separate namespace, which does not have any network devices initially (even lo).
+// Create/up as many as we can.
+static void initialize_netdevices(int id)
+{
+	unsigned i;
+	const char* devtypes[] = {"ip6gretap", "bridge", "vcan"};
+	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",
+				  "gre0", "gretap0", "ip_vti0", "ip6_vti0",
+				  "ip6tnl0", "ip6gre0", "ip6gretap0",
+				  "erspan0"};
+
+	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
+		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
+	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
+		char addr[ADDR_MAX_LEN];
+		// Assign some unique address to devices. Some devices won't up without this.
+		// Devices that don't need these addresses will simply ignore them.
+		// Shift addresses by 10 because 0 subnet address can mean special things.
+		snprintf_check(addr, sizeof(addr), DEV_IPV4, id, id + 10);
+		execute_command(0, "ip -4 addr add %s/24 dev %s", addr, devnames[i]);
+		snprintf_check(addr, sizeof(addr), DEV_IPV6, id, id + 10);
+		execute_command(0, "ip -6 addr add %s/120 dev %s", addr, devnames[i]);
+		snprintf_check(addr, sizeof(addr), DEV_MAC, id, id + 10);
+		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
+		execute_command(0, "ip link set dev %s up", devnames[i]);
+	}
 }
 
 static void setup_tun(uint64 pid, bool enable_tun)
 {
-	if (enable_tun)
+	if (enable_tun) {
 		initialize_tun(pid);
+		// TODO(dvyukov): this should be separated from tun and minimized by csource separately.
+		initialize_netdevices(pid);
+	}
 }
 #endif
 
