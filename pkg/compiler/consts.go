@@ -127,39 +127,11 @@ func convertConstInfo(infos map[string]*constInfo) map[string]*ConstInfo {
 
 // assignSyscallNumbers assigns syscall numbers, discards unsupported syscalls.
 func (comp *compiler) assignSyscallNumbers(consts map[string]uint64) {
-	// Pseudo syscalls starting from syz_ are assigned numbers starting from syzbase.
-	// Note: the numbers must be stable (not depend on file reading order, etc),
-	// so we have to do it in 2 passes.
-	const syzbase = 1000000
-	syzcalls := make(map[string]bool)
 	for _, decl := range comp.desc.Nodes {
 		c, ok := decl.(*ast.Call)
-		if !ok {
+		if !ok || strings.HasPrefix(c.CallName, "syz_") {
 			continue
 		}
-		if strings.HasPrefix(c.CallName, "syz_") {
-			syzcalls[c.CallName] = true
-		}
-	}
-	syznr := make(map[string]uint64)
-	for i, name := range toArray(syzcalls) {
-		syznr[name] = syzbase + uint64(i)
-	}
-
-	for _, decl := range comp.desc.Nodes {
-		c, ok := decl.(*ast.Call)
-		if !ok {
-			continue
-		}
-		if strings.HasPrefix(c.CallName, "syz_") {
-			c.NR = syznr[c.CallName]
-			continue
-		}
-		// TODO(dvyukov): we don't need even syz consts in this case.
-		if !comp.target.SyscallNumbers {
-			continue
-		}
-		// Lookup in consts.
 		str := comp.target.SyscallPrefix + c.CallName
 		nr, ok := consts[str]
 		if ok {

@@ -178,37 +178,22 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 		GOARCH   string
 		CARCH    []string
 		Calls    []SyscallData
-		Fake     []SyscallData
 	}
 	data := ArchData{
 		Revision: rev,
 		GOARCH:   target.Arch,
 		CARCH:    target.CArch,
 	}
-	fake := make(map[string]uint64)
 	for _, c := range syscalls {
-		syz := strings.HasPrefix(c.CallName, "syz_")
-		if syz {
-			fake[c.CallName] = c.NR
-		}
 		data.Calls = append(data.Calls, SyscallData{
 			Name:     c.Name,
 			CallName: c.CallName,
 			NR:       int32(c.NR),
-			NeedCall: syz || !target.SyscallNumbers,
-		})
-	}
-	for name, nr := range fake {
-		data.Fake = append(data.Fake, SyscallData{
-			Name: name,
-			NR:   int32(nr),
+			NeedCall: !target.SyscallNumbers || strings.HasPrefix(c.CallName, "syz_"),
 		})
 	}
 	sort.Slice(data.Calls, func(i, j int) bool {
 		return data.Calls[i].Name < data.Calls[j].Name
-	})
-	sort.Slice(data.Fake, func(i, j int) bool {
-		return data.Fake[i].Name < data.Fake[j].Name
 	})
 	buf := new(bytes.Buffer)
 	if err := archTempl.Execute(buf, data); err != nil {
@@ -262,8 +247,6 @@ var archTempl = template.Must(template.New("").Parse(`
 #if {{range $cdef := $.CARCH}}defined({{$cdef}}) || {{end}}0
 #define GOARCH "{{.GOARCH}}"
 #define SYZ_REVISION "{{.Revision}}"
-{{range $c := $.Fake}}#define __NR_{{$c.Name}} {{$c.NR}}
-{{end}}
 unsigned syscall_count = {{len $.Calls}};
 call_t syscalls[] = {
 {{range $c := $.Calls}}	{"{{$c.Name}}", {{$c.NR}}{{if $c.NeedCall}}, (syscall_t){{$c.CallName}}{{end}}},
