@@ -121,10 +121,11 @@ var typeVoid = &typeDesc{
 }
 
 var typeArray = &typeDesc{
-	Names:     []string{"array"},
-	CantBeOpt: true,
-	OptArgs:   1,
-	Args:      []namedArg{{"type", typeArgType}, {"size", typeArgRange}},
+	Names:        []string{"array"},
+	CanBeTypedef: true,
+	CantBeOpt:    true,
+	OptArgs:      1,
+	Args:         []namedArg{{"type", typeArgType}, {"size", typeArgRange}},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if len(args) > 1 && args[1].Value == 0 && args[1].Value2 == 0 {
 			comp.error(args[1].Pos, "arrays of size 0 are not supported")
@@ -440,9 +441,10 @@ var typeBuffer = &typeDesc{
 }
 
 var typeString = &typeDesc{
-	Names:   []string{"string"},
-	OptArgs: 2,
-	Args:    []namedArg{{"literal or flags", typeArgStringFlags}, {"size", typeArgInt}},
+	Names:        []string{"string"},
+	CanBeTypedef: true,
+	OptArgs:      2,
+	Args:         []namedArg{{"literal or flags", typeArgStringFlags}, {"size", typeArgInt}},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if len(args) > 1 {
 			size := args[1].Value
