@@ -36,22 +36,18 @@ syz_extract_tcp_res$synack(res ptr[out, tcp_resources], seq_inc const[1], ack_in
 include <uapi/linux/if.h>
 include <uapi/linux/if_ether.h>
 
-mac_addr_local {
-# This corresponds to LOCAL_MAC ("aa:aa:aa:aa:aa:%02hx" % pid) in executor/common.h
-	a0	array[const[0xaa, int8], 5]
+type mac_addr_t[LAST] {
+	a0	array[const[0xaa, int8], 4]
 	a1	proc[0, 1, int8]
-} [packed]
-
-mac_addr_remote {
-# This corresponds to REMOTE_MAC ("bb:bb:bb:bb:bb:%02hx" % pid) in executor/common.h
-	a0	array[const[0xbb, int8], 5]
-	a1	proc[0, 1, int8]
+	a2	LAST
 } [packed]
 
 mac_addr [
 	empty	array[const[0x0, int8], 6]
-	local	mac_addr_local
-	remote	mac_addr_remote
+# These correspond to LOCAL_MAC/REMOTE_MAC/DEV_MAC in executor/common_linux.h
+	local	mac_addr_t[const[0xaa, int8]]
+	remote	mac_addr_t[const[0xbb, int8]]
+	dev	mac_addr_t[int8[10:23]]
 	random	array[int8, 6]
 ]
 
@@ -282,29 +278,20 @@ include <uapi/linux/in.h>
 include <uapi/linux/ip.h>
 include <net/cipso_ipv4.h>
 
-# This corresponds to LOCAL_IPV4 ("172.20.%d.170" % pid) in executor/common.h
-ipv4_addr_local {
+type ipv4_addr_t[LAST] {
 	a0	const[0xac, int8]
 	a1	const[0x14, int8]
 	a2	proc[0, 1, int8]
-	a3	const[0xaa, int8]
-} [packed]
-
-# This corresponds to LOCAL_IPV4 ("172.20.%d.187" % pid) in executor/common.h
-ipv4_addr_remote {
-	a0	const[0xac, int8]
-	a1	const[0x14, int8]
-	a2	proc[0, 1, int8]
-	a3	const[0xbb, int8]
+	a3	LAST
 } [packed]
 
 ipv4_addr [
 # 0.0.0.0
 	empty		const[0x0, int32be]
-# 172.20.%d.170
-	local		ipv4_addr_local
-# 172.20.%d.187
-	remote		ipv4_addr_remote
+# These correspond to LOCAL_IPV4/REMOTE_IPV4/DEV_IPV4 in executor/common_linux.h
+	local		ipv4_addr_t[const[170, int8]]
+	remote		ipv4_addr_t[const[187, int8]]
+	dev		ipv4_addr_t[int8[10:23]]
 # 127.0.0.1
 	loopback	const[0x7f000001, int32be]
 # 224.0.0.1
@@ -461,22 +448,12 @@ ipv6_addr_empty {
 	a0	array[const[0x0, int8], 16]
 }
 
-# This corresponds to LOCAL_IPV6 ("fe80::%02hxaa" % pid) in executor/common.h
-ipv6_addr_local {
+type ipv6_addr_t[LAST] {
 	a0	const[0xfe, int8]
 	a1	const[0x80, int8]
 	a2	array[const[0x0, int8], 12]
 	a3	proc[0, 1, int8]
-	a4	const[0xaa, int8]
-} [packed]
-
-# This corresponds to REMOTE_IPV6 ("fe80::%02hxbb" % pid) in executor/common.h
-ipv6_addr_remote {
-	a0	const[0xfe, int8]
-	a1	const[0x80, int8]
-	a2	array[const[0x0, int8], 12]
-	a3	proc[0, 1, int8]
-	a4	const[0xbb, int8]
+	a4	LAST
 } [packed]
 
 ipv6_addr_loopback {
@@ -506,8 +483,10 @@ ipv6_addr_multicast2 {
 
 ipv6_addr [
 	empty		ipv6_addr_empty
-	local		ipv6_addr_local
-	remote		ipv6_addr_remote
+# These correspond to LOCAL_IPV6/REMOTE_IPV6/DEV_IPV6 in executor/common_linux.h
+	local		ipv6_addr_t[const[0xaa, int8]]
+	remote		ipv6_addr_t[const[0xbb, int8]]
+	dev		ipv6_addr_t[int8[10:23]]
 	loopback	ipv6_addr_loopback
 	ipv4		ipv6_addr_ipv4
 	mcast1		ipv6_addr_multicast1
