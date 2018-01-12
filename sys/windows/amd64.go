@@ -41,7 +41,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 4, Name: "AcceptEx", CallName: "AcceptEx", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sListenSocket", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sAcceptSocket", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutputBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutputBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwReceiveDataLength", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwLocalAddressLength", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwRemoteAddressLength", TypeSize: 4}}},
@@ -49,7 +49,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOverlapped", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 5, Name: "AccessCheck", CallName: "AccessCheck", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ClientToken", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DesiredAccess", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "GenericMapping", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -60,18 +60,18 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 6, Name: "AccessCheckAndAuditAlarmA", CallName: "AccessCheckAndAuditAlarmA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SubsystemName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypeName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DesiredAccess", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "GenericMapping", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ObjectCreation", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "GrantedAccess", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 7, Name: "AccessCheckByType", CallName: "AccessCheckByType", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PrincipalSelfSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PrincipalSelfSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ClientToken", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DesiredAccess", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypeList", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -82,18 +82,18 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 8, Name: "AccessCheckByTypeAndAuditAlarmA", CallName: "AccessCheckByTypeAndAuditAlarmA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SubsystemName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypeName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PrincipalSelfSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PrincipalSelfSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DesiredAccess", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AuditType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Flags", TypeSize: 4}}},
 	}},
 	{ID: 9, Name: "AccessCheckByTypeResultList", CallName: "AccessCheckByTypeResultList", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PrincipalSelfSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PrincipalSelfSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ClientToken", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DesiredAccess", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypeList", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -104,23 +104,23 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 10, Name: "AccessCheckByTypeResultListAndAuditAlarmA", CallName: "AccessCheckByTypeResultListAndAuditAlarmA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SubsystemName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypeName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PrincipalSelfSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PrincipalSelfSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DesiredAccess", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AuditType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Flags", TypeSize: 4}}},
 	}},
 	{ID: 11, Name: "AccessCheckByTypeResultListAndAuditAlarmByHandleA", CallName: "AccessCheckByTypeResultListAndAuditAlarmByHandleA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SubsystemName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ClientToken", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypeName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PrincipalSelfSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PrincipalSelfSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DesiredAccess", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AuditType", TypeSize: 4}}},
 	}},
@@ -142,14 +142,14 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceRevision", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AccessMask", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 17, Name: "AddAccessAllowedAceEx", CallName: "AddAccessAllowedAceEx", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceRevision", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AceFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AccessMask", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 18, Name: "AddAccessAllowedObjectAce", CallName: "AddAccessAllowedObjectAce", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -158,20 +158,20 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AccessMask", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypeGuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InheritedObjectTypeGuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 19, Name: "AddAccessDeniedAce", CallName: "AddAccessDeniedAce", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceRevision", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AccessMask", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 20, Name: "AddAccessDeniedAceEx", CallName: "AddAccessDeniedAceEx", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceRevision", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AceFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AccessMask", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 21, Name: "AddAccessDeniedObjectAce", CallName: "AddAccessDeniedObjectAce", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -180,13 +180,13 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AccessMask", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypeGuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InheritedObjectTypeGuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 22, Name: "AddAce", CallName: "AddAce", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceRevision", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwStartingAceIndex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAceList", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAceList", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nAceListLength", TypeSize: 4}}},
 	}},
 	{ID: 23, Name: "AddAtomA", CallName: "AddAtomA", Args: []Type{
@@ -196,7 +196,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceRevision", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAccessMask", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bAuditSuccess", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bAuditFailure", TypeSize: 4}}},
 	}},
@@ -205,7 +205,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceRevision", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AceFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAccessMask", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bAuditSuccess", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bAuditFailure", TypeSize: 4}}},
 	}},
@@ -216,7 +216,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AccessMask", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypeGuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InheritedObjectTypeGuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bAuditSuccess", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bAuditFailure", TypeSize: 4}}},
 	}},
@@ -229,7 +229,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AceFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "AceType", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AccessMask", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ConditionStr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ReturnLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -242,9 +242,9 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NewDirectory", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 	}},
 	{ID: 31, Name: "AddFontMemResourceEx", CallName: "AddFontMemResourceEx", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pFileView", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pFileView", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cjSize", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvResrved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvResrved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pNumFonts", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 32, Name: "AddFontResourceA", CallName: "AddFontResourceA", Args: []Type{
@@ -253,7 +253,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 33, Name: "AddFontResourceExA", CallName: "AddFontResourceExA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fl", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "res", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "res", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 34, Name: "AddFormA", CallName: "AddFormA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hPrinter", TypeSize: 8}},
@@ -262,7 +262,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 35, Name: "AddIntegrityLabelToBoundaryDescriptor", CallName: "AddIntegrityLabelToBoundaryDescriptor", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BoundaryDescriptor", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", TypeSize: 8, ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IntegrityLabel", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IntegrityLabel", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 36, Name: "AddJobA", CallName: "AddJobA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hPrinter", TypeSize: 8}},
@@ -276,7 +276,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceRevision", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AceFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "MandatoryPolicy", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pLabelSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pLabelSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 38, Name: "AddMonitorA", CallName: "AddMonitorA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -308,7 +308,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwLevel", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pConnectionInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pConnectionInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 44, Name: "AddPrinterConnectionA", CallName: "AddPrinterConnectionA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -332,20 +332,20 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceRevision", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AceFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AccessMask", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAttributeInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pReturnLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 49, Name: "AddSIDToBoundaryDescriptor", CallName: "AddSIDToBoundaryDescriptor", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BoundaryDescriptor", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", TypeSize: 8, ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "RequiredSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "RequiredSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 50, Name: "AddScopedPolicyIDAce", CallName: "AddScopedPolicyIDAce", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceRevision", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AceFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AccessMask", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 51, Name: "AddSecureMemoryCacheCallback", CallName: "AddSecureMemoryCacheCallback", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnCallBack", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -521,7 +521,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rgClasses", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cClasses", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "riid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppv", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppv", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 84, Name: "AttachConsole", CallName: "AttachConsole", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwProcessId", TypeSize: 4}}},
@@ -532,7 +532,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fAttach", TypeSize: 4}}},
 	}},
 	{ID: 86, Name: "BCryptFreeBuffer", CallName: "BCryptFreeBuffer", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 87, Name: "BSTR_UserFree", CallName: "BSTR_UserFree", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg0", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -583,7 +583,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNumberOfBytesRead", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bAbort", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bProcessSecurity", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 97, Name: "BackupSeek", CallName: "BackupSeek", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFile", TypeSize: 8}},
@@ -591,7 +591,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwHighBytesToSeek", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwLowByteSeeked", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwHighByteSeeked", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 98, Name: "BackupWrite", CallName: "BackupWrite", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFile", TypeSize: 8}},
@@ -600,7 +600,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNumberOfBytesWritten", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bAbort", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bProcessSecurity", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 99, Name: "Beep", CallName: "Beep", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFreq", TypeSize: 4}}},
@@ -679,9 +679,9 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 114, Name: "CallNamedPipeA", CallName: "CallNamedPipeA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNamedPipeName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpInBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpInBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nInBufferSize", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nOutBufferSize", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBytesRead", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nTimeOut", TypeSize: 4}}},
@@ -737,43 +737,43 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpKids", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 128, Name: "CertAddCRLContextToStore", CallName: "CertAddCRLContextToStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCrlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAddDisposition", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppStoreContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 129, Name: "CertAddCRLLinkToStore", CallName: "CertAddCRLLinkToStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCrlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAddDisposition", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppStoreContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 130, Name: "CertAddCTLContextToStore", CallName: "CertAddCTLContextToStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCtlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAddDisposition", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppStoreContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 131, Name: "CertAddCTLLinkToStore", CallName: "CertAddCTLLinkToStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCtlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAddDisposition", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppStoreContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 132, Name: "CertAddCertificateContextToStore", CallName: "CertAddCertificateContextToStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAddDisposition", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppStoreContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 133, Name: "CertAddCertificateLinkToStore", CallName: "CertAddCertificateLinkToStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAddDisposition", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppStoreContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 134, Name: "CertAddEncodedCRLToStore", CallName: "CertAddEncodedCRLToStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbCrlEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbCrlEncoded", TypeSize: 4}}},
@@ -781,7 +781,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppCrlContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 135, Name: "CertAddEncodedCTLToStore", CallName: "CertAddEncodedCTLToStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMsgAndCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbCtlEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbCtlEncoded", TypeSize: 4}}},
@@ -789,7 +789,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppCtlContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 136, Name: "CertAddEncodedCertificateToStore", CallName: "CertAddEncodedCertificateToStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbCertEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbCertEncoded", TypeSize: 4}}},
@@ -806,24 +806,24 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszUsageIdentifier", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 139, Name: "CertAddRefServerOcspResponse", CallName: "CertAddRefServerOcspResponse", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hServerOcspResponse", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hServerOcspResponse", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 140, Name: "CertAddRefServerOcspResponseContext", CallName: "CertAddRefServerOcspResponseContext", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pServerOcspResponseContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 141, Name: "CertAddSerializedElementToStore", CallName: "CertAddSerializedElementToStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbElement", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbElement", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAddDisposition", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwContextTypeFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwContextType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 142, Name: "CertAddStoreToCollection", CallName: "CertAddStoreToCollection", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCollectionStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hSiblingStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCollectionStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hSiblingStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwUpdateFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPriority", TypeSize: 4}}},
 	}},
@@ -831,11 +831,11 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAlgId", TypeSize: 4}}},
 	}},
 	{ID: 144, Name: "CertCloseServerOcspResponse", CallName: "CertCloseServerOcspResponse", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hServerOcspResponse", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hServerOcspResponse", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 145, Name: "CertCloseStore", CallName: "CertCloseStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 146, Name: "CertCompareCertificate", CallName: "CertCompareCertificate", Args: []Type{
@@ -858,10 +858,10 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPublicKey2", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 150, Name: "CertControlStore", CallName: "CertControlStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCtrlType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvCtrlPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvCtrlPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 151, Name: "CertCreateCRLContext", CallName: "CertCreateCRLContext", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
@@ -878,13 +878,13 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cOptAttr", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rgOptAttr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCtlEntry", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbCtlEntry", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 154, Name: "CertCreateCertificateChainEngine", CallName: "CertCreateCertificateChainEngine", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pConfig", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phChainEngine", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phChainEngine", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 155, Name: "CertCreateCertificateContext", CallName: "CertCreateCertificateContext", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
@@ -931,14 +931,14 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 165, Name: "CertDuplicateStore", CallName: "CertDuplicateStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 166, Name: "CertEnumCRLContextProperties", CallName: "CertEnumCRLContextProperties", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCrlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
 	}},
 	{ID: 167, Name: "CertEnumCRLsInStore", CallName: "CertEnumCRLsInStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrevCrlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 168, Name: "CertEnumCTLContextProperties", CallName: "CertEnumCTLContextProperties", Args: []Type{
@@ -946,7 +946,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
 	}},
 	{ID: 169, Name: "CertEnumCTLsInStore", CallName: "CertEnumCTLsInStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrevCtlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 170, Name: "CertEnumCertificateContextProperties", CallName: "CertEnumCertificateContextProperties", Args: []Type{
@@ -954,30 +954,30 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
 	}},
 	{ID: 171, Name: "CertEnumCertificatesInStore", CallName: "CertEnumCertificatesInStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrevCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 172, Name: "CertEnumPhysicalStore", CallName: "CertEnumPhysicalStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnEnum", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 173, Name: "CertEnumSubjectInSortedCTL", CallName: "CertEnumSubjectInSortedCTL", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCtlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvNextSubject", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvNextSubject", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSubjectIdentifier", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pEncodedAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 174, Name: "CertEnumSystemStore", CallName: "CertEnumSystemStore", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStoreLocationPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStoreLocationPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnEnum", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 175, Name: "CertEnumSystemStoreLocation", CallName: "CertEnumSystemStoreLocation", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnEnum", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 176, Name: "CertFindAttribute", CallName: "CertFindAttribute", Args: []Type{
@@ -986,42 +986,42 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rgAttr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 177, Name: "CertFindCRLInStore", CallName: "CertFindCRLInStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFindFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFindType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvFindPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvFindPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrevCrlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 178, Name: "CertFindCTLInStore", CallName: "CertFindCTLInStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMsgAndCertEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFindFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFindType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvFindPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvFindPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrevCtlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 179, Name: "CertFindCertificateInCRL", CallName: "CertFindCertificateInCRL", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCert", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCrlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppCrlEntry", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 180, Name: "CertFindCertificateInStore", CallName: "CertFindCertificateInStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFindFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFindType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvFindPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvFindPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrevCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 181, Name: "CertFindChainInStore", CallName: "CertFindChainInStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFindFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFindType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvFindPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvFindPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrevChainContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 182, Name: "CertFindExtension", CallName: "CertFindExtension", Args: []Type{
@@ -1036,7 +1036,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 184, Name: "CertFindSubjectInCTL", CallName: "CertFindSubjectInCTL", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwSubjectType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSubject", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSubject", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCtlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
@@ -1044,7 +1044,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSubjectIdentifier", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCtlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pEncodedAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 186, Name: "CertFreeCRLContext", CallName: "CertFreeCRLContext", Args: []Type{
@@ -1057,7 +1057,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pChainContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 189, Name: "CertFreeCertificateChainEngine", CallName: "CertFreeCertificateChainEngine", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hChainEngine", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hChainEngine", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 190, Name: "CertFreeCertificateChainList", CallName: "CertFreeCertificateChainList", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "prgpSelection", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
@@ -1071,11 +1071,11 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 193, Name: "CertGetCRLContextProperty", CallName: "CertGetCRLContextProperty", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCrlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbData", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 194, Name: "CertGetCRLFromStore", CallName: "CertGetCRLFromStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pIssuerContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrevCrlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwFlags", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -1083,23 +1083,23 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 195, Name: "CertGetCTLContextProperty", CallName: "CertGetCTLContextProperty", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCtlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbData", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 196, Name: "CertGetCertificateChain", CallName: "CertGetCertificateChain", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hChainEngine", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hChainEngine", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pTime", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAdditionalStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAdditionalStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pChainPara", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppChainContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 197, Name: "CertGetCertificateContextProperty", CallName: "CertGetCertificateContextProperty", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbData", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 198, Name: "CertGetEnhancedKeyUsage", CallName: "CertGetEnhancedKeyUsage", Args: []Type{
@@ -1115,7 +1115,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbKeyUsage", TypeSize: 4}}},
 	}},
 	{ID: 200, Name: "CertGetIssuerCertificateFromStore", CallName: "CertGetIssuerCertificateFromStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSubjectContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrevIssuerContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwFlags", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -1124,7 +1124,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvTypePara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvTypePara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszNameString", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cchNameString", TypeSize: 4}}},
 	}},
@@ -1133,18 +1133,18 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPublicKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 203, Name: "CertGetServerOcspResponseContext", CallName: "CertGetServerOcspResponseContext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hServerOcspResponse", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hServerOcspResponse", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 204, Name: "CertGetStoreProperty", CallName: "CertGetStoreProperty", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbData", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 205, Name: "CertGetSubjectCertificateFromStore", CallName: "CertGetSubjectCertificateFromStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
@@ -1170,7 +1170,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCert", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCrl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 210, Name: "CertIsWeakHash", CallName: "CertIsWeakHash", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwHashUseType", TypeSize: 4}}},
@@ -1200,7 +1200,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hCryptProv", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 215, Name: "CertOpenSystemStoreA", CallName: "CertOpenSystemStoreA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hProv", TypeSize: 8}}},
@@ -1213,28 +1213,28 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "csz", TypeSize: 4}}},
 	}},
 	{ID: 217, Name: "CertRegisterPhysicalStore", CallName: "CertRegisterPhysicalStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszStoreName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pStoreInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 218, Name: "CertRegisterSystemStore", CallName: "CertRegisterSystemStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pStoreInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 219, Name: "CertRemoveEnhancedKeyUsageIdentifier", CallName: "CertRemoveEnhancedKeyUsageIdentifier", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszUsageIdentifier", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 220, Name: "CertRemoveStoreFromCollection", CallName: "CertRemoveStoreFromCollection", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCollectionStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hSiblingStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCollectionStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hSiblingStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 221, Name: "CertResyncCertificateChainEngine", CallName: "CertResyncCertificateChainEngine", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hChainEngine", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hChainEngine", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 222, Name: "CertRetrieveLogoOrBiometricInfo", CallName: "CertRetrieveLogoOrBiometricInfo", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1242,17 +1242,17 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwRetrievalFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwTimeout", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppbData", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbData", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppwszMimeType", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}}},
 	}},
 	{ID: 223, Name: "CertSaveStore", CallName: "CertSaveStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwSaveAs", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwSaveTo", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSaveToPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSaveToPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 224, Name: "CertSelectCertificateChains", CallName: "CertSelectCertificateChains", Args: []Type{
@@ -1261,7 +1261,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pChainParameters", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cCriteria", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rgpCriteria", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcSelection", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pprgpSelection", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}}},
 	}},
@@ -1287,13 +1287,13 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCrlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 229, Name: "CertSetCTLContextProperty", CallName: "CertSetCTLContextProperty", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCtlContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 230, Name: "CertSetCertificateContextPropertiesFromCTLEntry", CallName: "CertSetCertificateContextPropertiesFromCTLEntry", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1304,34 +1304,34 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 232, Name: "CertSetEnhancedKeyUsage", CallName: "CertSetEnhancedKeyUsage", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCertContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pUsage", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 233, Name: "CertSetStoreProperty", CallName: "CertSetStoreProperty", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCertStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 234, Name: "CertStrToNameA", CallName: "CertStrToNameA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszX500", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwStrType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppszError", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 	}},
 	{ID: 235, Name: "CertUnregisterPhysicalStore", CallName: "CertUnregisterPhysicalStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszStoreName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 	}},
 	{ID: 236, Name: "CertUnregisterSystemStore", CallName: "CertUnregisterSystemStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSystemStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 237, Name: "CertVerifyCRLRevocation", CallName: "CertVerifyCRLRevocation", Args: []Type{
@@ -1347,7 +1347,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 239, Name: "CertVerifyCTLUsage", CallName: "CertVerifyCTLUsage", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwSubjectType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSubject", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSubject", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSubjectUsage", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pVerifyUsagePara", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1363,7 +1363,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwRevType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cContext", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rgpvContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rgpvContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pRevPara", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pRevStatus", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1394,7 +1394,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpDevMode", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hwnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwflags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lParam", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lParam", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 248, Name: "ChangeMenuA", CallName: "ChangeMenuA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMenu", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1406,7 +1406,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 249, Name: "ChangeServiceConfig2A", CallName: "ChangeServiceConfig2A", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hService", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwInfoLevel", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 250, Name: "ChangeServiceConfigA", CallName: "ChangeServiceConfigA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hService", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1479,7 +1479,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 264, Name: "CheckColorsInGamut", CallName: "CheckColorsInGamut", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpRGBTriple", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dlpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dlpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nCount", TypeSize: 4}}},
 	}},
 	{ID: 265, Name: "CheckDlgButton", CallName: "CheckDlgButton", Args: []Type{
@@ -1522,17 +1522,17 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 272, Name: "CheckTokenCapability", CallName: "CheckTokenCapability", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "TokenHandle", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CapabilitySidToCheck", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CapabilitySidToCheck", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HasCapability", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 273, Name: "CheckTokenMembership", CallName: "CheckTokenMembership", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "TokenHandle", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SidToCheck", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SidToCheck", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IsMember", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 274, Name: "CheckTokenMembershipEx", CallName: "CheckTokenMembershipEx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "TokenHandle", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SidToCheck", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SidToCheck", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Flags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IsMember", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -1595,7 +1595,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "lParam2", TypeSize: 8}}},
 	}},
 	{ID: 289, Name: "CloseEncryptedFileRaw", CallName: "CloseEncryptedFileRaw", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 290, Name: "CloseEnhMetaFile", CallName: "CloseEnhMetaFile", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1638,7 +1638,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 302, Name: "CloseThreadpoolCleanupGroupMembers", CallName: "CloseThreadpoolCleanupGroupMembers", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ptpcg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fCancelPendingCallbacks", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvCleanupContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvCleanupContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 303, Name: "CloseThreadpoolIo", CallName: "CloseThreadpoolIo", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pio", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1718,7 +1718,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpString2", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cchCount2", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpVersionInformation", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "lParam", TypeSize: 8}}},
 	}},
 	{ID: 321, Name: "CompareStringOrdinal", CallName: "CompareStringOrdinal", Args: []Type{
@@ -1755,23 +1755,23 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hService", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwControl", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwInfoLevel", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pControlParams", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pControlParams", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 328, Name: "ConvertDefaultLocale", CallName: "ConvertDefaultLocale", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Locale", TypeSize: 4}}},
 	}},
 	{ID: 329, Name: "ConvertFiberToThread", CallName: "ConvertFiberToThread"},
 	{ID: 330, Name: "ConvertThreadToFiber", CallName: "ConvertThreadToFiber", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 331, Name: "ConvertThreadToFiberEx", CallName: "ConvertThreadToFiberEx", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 332, Name: "ConvertToAutoInheritPrivateObjectSecurity", CallName: "ConvertToAutoInheritPrivateObjectSecurity", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ParentDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CurrentSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NewSecurityDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ParentDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CurrentSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NewSecurityDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "IsDirectoryObject", TypeSize: 1}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "GenericMapping", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1804,7 +1804,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpExistingFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNewFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpProgressRoutine", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbCancel", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCopyFlags", TypeSize: 4}}},
 	}},
@@ -1812,7 +1812,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpExistingFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNewFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpProgressRoutine", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbCancel", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCopyFlags", TypeSize: 4}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hTransaction", TypeSize: 8}},
@@ -1841,8 +1841,8 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 345, Name: "CopySid", CallName: "CopySid", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nDestinationSidLength", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDestinationSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSourceSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDestinationSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSourceSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 346, Name: "CorePrinterDriverInstalledA", CallName: "CorePrinterDriverInstalledA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszServer", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -1865,7 +1865,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nHeight", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nPlanes", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nBitCount", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 351, Name: "CreateBitmapIndirect", CallName: "CreateBitmapIndirect", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbm", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1899,7 +1899,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwShareMode", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSecurityAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpScreenBufferData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpScreenBufferData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 359, Name: "CreateCursor", CallName: "CreateCursor", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hInst", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -1907,8 +1907,8 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "yHotSpot", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nWidth", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nHeight", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvANDPlane", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvXORPlane", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvANDPlane", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvXORPlane", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 360, Name: "CreateDCA", CallName: "CreateDCA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszDriver", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -1917,18 +1917,18 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdm", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 361, Name: "CreateDIBPatternBrush", CallName: "CreateDIBPatternBrush", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "h", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "h", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "iUsage", TypeSize: 4}}},
 	}},
 	{ID: 362, Name: "CreateDIBPatternBrushPt", CallName: "CreateDIBPatternBrushPt", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpPackedDIB", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpPackedDIB", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "iUsage", TypeSize: 4}}},
 	}},
 	{ID: 363, Name: "CreateDIBSection", CallName: "CreateDIBSection", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbmi", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "usage", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvBits", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvBits", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hSection", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "offset", TypeSize: 4}}},
 	}},
@@ -1936,7 +1936,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbmih", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flInit", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pjBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pjBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbmi", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "iUsage", TypeSize: 4}}},
 	}},
@@ -1956,7 +1956,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwDesiredAccess", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpsa", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ulHeapSize", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvoid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvoid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 367, Name: "CreateDialogIndirectParamA", CallName: "CreateDialogIndirectParamA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hInstance", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -2003,11 +2003,11 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 375, Name: "CreateEnclave", CallName: "CreateEnclave", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwInitialCommitment", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flEnclaveType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnclaveInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnclaveInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwInfoLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnclaveError", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -2032,14 +2032,14 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 379, Name: "CreateFiber", CallName: "CreateFiber", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwStackSize", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStartAddress", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 380, Name: "CreateFiberEx", CallName: "CreateFiberEx", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwStackCommitSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwStackReserveSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStartAddress", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 381, Name: "CreateFile2", CallName: "CreateFile2", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
@@ -2049,7 +2049,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCreateExParams", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 382, Name: "CreateFileA", CallName: "CreateFileA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "file_access_rights", FldName: "dwDesiredAccess", TypeSize: 8}}, Vals: []uint64{65536, 131072, 1048576, 262144, 524288, 2, 4, 2032127, 4, 4, 64, 32, 1, 128, 1, 8, 32, 256, 2, 16}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "file_share_mode", FldName: "dwShareMode", TypeSize: 8}}, Vals: []uint64{4, 1, 2}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSecurityAttributes", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "SECURITY_ATTRIBUTES"}}},
@@ -2134,7 +2134,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdm", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 395, Name: "CreateILockBytesOnHGlobal", CallName: "CreateILockBytesOnHGlobal", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hGlobal", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hGlobal", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fDeleteOnRelease", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pplkbyt", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
@@ -2259,21 +2259,21 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 418, Name: "CreatePopupMenu", CallName: "CreatePopupMenu"},
 	{ID: 419, Name: "CreatePrivateNamespaceA", CallName: "CreatePrivateNamespaceA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpPrivateNamespaceAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBoundaryDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBoundaryDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAliasPrefix", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 420, Name: "CreatePrivateObjectSecurity", CallName: "CreatePrivateObjectSecurity", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ParentDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CreatorDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NewDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ParentDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CreatorDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NewDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "IsDirectoryObject", TypeSize: 4}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "Token", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "GenericMapping", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 421, Name: "CreatePrivateObjectSecurityEx", CallName: "CreatePrivateObjectSecurityEx", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ParentDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CreatorDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NewDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ParentDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CreatorDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NewDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "IsContainerObject", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AutoInheritFlags", TypeSize: 4}}},
@@ -2281,9 +2281,9 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "GenericMapping", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 422, Name: "CreatePrivateObjectSecurityWithMultipleInheritance", CallName: "CreatePrivateObjectSecurityWithMultipleInheritance", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ParentDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CreatorDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NewDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ParentDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CreatorDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NewDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypes", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "GuidCount", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "IsContainerObject", TypeSize: 4}}},
@@ -2298,7 +2298,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpThreadAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bInheritHandles", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCreationFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnvironment", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnvironment", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpCurrentDirectory", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStartupInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
@@ -2310,7 +2310,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpThreadAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bInheritHandles", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCreationFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnvironment", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnvironment", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpCurrentDirectory", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 425, Name: "CreateRectRgn", CallName: "CreateRectRgn", Args: []Type{
@@ -2327,7 +2327,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpThreadAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwStackSize", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStartAddress", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCreationFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpThreadId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
@@ -2336,7 +2336,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpThreadAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwStackSize", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStartAddress", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCreationFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAttributeList", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpThreadId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -2415,33 +2415,33 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpThreadAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwStackSize", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStartAddress", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCreationFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpThreadId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 440, Name: "CreateThreadpool", CallName: "CreateThreadpool", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "reserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "reserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 441, Name: "CreateThreadpoolCleanupGroup", CallName: "CreateThreadpoolCleanupGroup"},
 	{ID: 442, Name: "CreateThreadpoolIo", CallName: "CreateThreadpoolIo", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "fl", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnio", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbe", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 443, Name: "CreateThreadpoolTimer", CallName: "CreateThreadpoolTimer", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnti", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbe", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 444, Name: "CreateThreadpoolWait", CallName: "CreateThreadpoolWait", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnwa", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbe", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 445, Name: "CreateThreadpoolWork", CallName: "CreateThreadpoolWork", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnwk", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbe", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 446, Name: "CreateTimerQueue", CallName: "CreateTimerQueue", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
@@ -2449,16 +2449,16 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phNewTimer", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", TypeSize: 8, ArgDir: 2}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "TimerQueue", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Callback", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Parameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Parameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DueTime", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Period", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Flags", TypeSize: 4}}},
 	}},
 	{ID: 448, Name: "CreateUmsCompletionList", CallName: "CreateUmsCompletionList", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsCompletionList", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsCompletionList", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 449, Name: "CreateUmsThreadContext", CallName: "CreateUmsThreadContext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpUmsThread", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpUmsThread", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 450, Name: "CreateWaitableTimerA", CallName: "CreateWaitableTimerA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpTimerAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -2473,8 +2473,8 @@ var syscalls_amd64 = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 452, Name: "CreateWellKnownSid", CallName: "CreateWellKnownSid", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "WellKnownSidType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "DomainSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "DomainSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "cbSid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 453, Name: "CreateWindowExA", CallName: "CreateWindowExA", Args: []Type{
@@ -2497,7 +2497,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 455, Name: "CryptAcquireCertificatePrivateKey", CallName: "CryptAcquireCertificatePrivateKey", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCert", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvParameters", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvParameters", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phCryptProvOrNCryptKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwKeySpec", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfCallerFreeProvOrNCryptKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -2517,7 +2517,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcchString", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 458, Name: "CryptCloseAsyncHandle", CallName: "CryptCloseAsyncHandle", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAsync", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAsync", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 459, Name: "CryptContextAddRef", CallName: "CryptContextAddRef", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hProv", TypeSize: 8}}},
@@ -2541,7 +2541,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPubKeyStruc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbPubKeyStruc", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbHash", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbHash", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -2562,7 +2562,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbEncoded", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvStructInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvStructInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbStructInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 465, Name: "CryptDecodeObjectEx", CallName: "CryptDecodeObjectEx", Args: []Type{
@@ -2572,7 +2572,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbEncoded", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDecodePara", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvStructInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvStructInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbStructInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 466, Name: "CryptDecrypt", CallName: "CryptDecrypt", Args: []Type{
@@ -2630,17 +2630,17 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 474, Name: "CryptEncodeObject", CallName: "CryptEncodeObject", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszStructType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvStructInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvStructInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 475, Name: "CryptEncodeObjectEx", CallName: "CryptEncodeObjectEx", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszStructType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvStructInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvStructInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pEncodePara", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvEncoded", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvEncoded", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 476, Name: "CryptEncrypt", CallName: "CryptEncrypt", Args: []Type{
@@ -2666,8 +2666,8 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszComputerName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnEnum", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 479, Name: "CryptEnumOIDFunction", CallName: "CryptEnumOIDFunction", Args: []Type{
@@ -2675,13 +2675,13 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszFuncName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszOID", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnEnumOIDFunc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 480, Name: "CryptEnumOIDInfo", CallName: "CryptEnumOIDInfo", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwGroupId", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnEnumOIDInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 481, Name: "CryptEnumProviderTypesA", CallName: "CryptEnumProviderTypesA", Args: []Type{
@@ -2713,7 +2713,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwKeySpec", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszPrivateKeyObjId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbPrivateKeyBlob", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbPrivateKeyBlob", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -2730,45 +2730,45 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszPublicKeyObjId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 487, Name: "CryptExportPublicKeyInfoFromBCryptKeyHandle", CallName: "CryptExportPublicKeyInfoFromBCryptKeyHandle", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hBCryptKey", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hBCryptKey", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszPublicKeyObjId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 488, Name: "CryptFindCertificateKeyProvInfo", CallName: "CryptFindCertificateKeyProvInfo", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCert", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 489, Name: "CryptFindLocalizedName", CallName: "CryptFindLocalizedName", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszCryptName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 	}},
 	{ID: 490, Name: "CryptFindOIDInfo", CallName: "CryptFindOIDInfo", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwKeyType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvKey", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvKey", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwGroupId", TypeSize: 4}}},
 	}},
 	{ID: 491, Name: "CryptFormatObject", CallName: "CryptFormatObject", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFormatType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFormatStrType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pFormatStruct", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pFormatStruct", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszStructType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbEncoded", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbFormat", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbFormat", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbFormat", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 492, Name: "CryptFreeOIDFunctionAddress", CallName: "CryptFreeOIDFunctionAddress", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hFuncAddr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hFuncAddr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 493, Name: "CryptGenKey", CallName: "CryptGenKey", Args: []Type{
@@ -2783,24 +2783,24 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbBuffer", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 495, Name: "CryptGetAsyncParam", CallName: "CryptGetAsyncParam", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAsync", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAsync", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszParamOid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvParam", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvParam", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppfnFree", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 496, Name: "CryptGetDefaultOIDDllList", CallName: "CryptGetDefaultOIDDllList", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hFuncSet", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hFuncSet", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszDllList", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcchDllList", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 497, Name: "CryptGetDefaultOIDFunctionAddress", CallName: "CryptGetDefaultOIDFunctionAddress", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hFuncSet", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hFuncSet", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszDll", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvFuncAddr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phFuncAddr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvFuncAddr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phFuncAddr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 498, Name: "CryptGetDefaultProviderA", CallName: "CryptGetDefaultProviderA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwProvType", TypeSize: 4}}},
@@ -2821,8 +2821,8 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszComputerName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbData", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 501, Name: "CryptGetKeyParam", CallName: "CryptGetKeyParam", Args: []Type{
@@ -2845,12 +2845,12 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbSignedBlob", TypeSize: 4}}},
 	}},
 	{ID: 504, Name: "CryptGetOIDFunctionAddress", CallName: "CryptGetOIDFunctionAddress", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hFuncSet", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hFuncSet", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszOID", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvFuncAddr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phFuncAddr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvFuncAddr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phFuncAddr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 505, Name: "CryptGetOIDFunctionValue", CallName: "CryptGetOIDFunctionValue", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEncodingType", TypeSize: 4}}},
@@ -2863,13 +2863,13 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 506, Name: "CryptGetObjectUrl", CallName: "CryptGetObjectUrl", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszUrlOid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pUrlArray", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbUrlArray", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pUrlInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbUrlInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 507, Name: "CryptGetProvParam", CallName: "CryptGetProvParam", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hProv", TypeSize: 8}}},
@@ -2895,7 +2895,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 510, Name: "CryptHashCertificate2", CallName: "CryptHashCertificate2", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszCNGHashAlgid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbEncoded", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbComputedHash", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -2952,7 +2952,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "sPrivateKeyAndParams", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phCryptProv", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 518, Name: "CryptImportPublicKeyInfo", CallName: "CryptImportPublicKeyInfo", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hCryptProv", TypeSize: 8}}},
@@ -2966,15 +2966,15 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "aiKeyAlg", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 520, Name: "CryptImportPublicKeyInfoEx2", CallName: "CryptImportPublicKeyInfoEx2", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phKey", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phKey", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 521, Name: "CryptInitOIDFunctionSet", CallName: "CryptInitOIDFunctionSet", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszFuncName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -2982,17 +2982,17 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 522, Name: "CryptInstallCancelRetrieval", CallName: "CryptInstallCancelRetrieval", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnCancel", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvArg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 523, Name: "CryptInstallDefaultContext", CallName: "CryptInstallDefaultContext", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hCryptProv", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwDefaultType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvDefaultPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvDefaultPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phDefaultContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phDefaultContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 524, Name: "CryptInstallOIDFunctionAddress", CallName: "CryptInstallOIDFunctionAddress", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hModule", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -3006,31 +3006,31 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbSize", TypeSize: 4}}},
 	}},
 	{ID: 526, Name: "CryptMemFree", CallName: "CryptMemFree", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 527, Name: "CryptMemRealloc", CallName: "CryptMemRealloc", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbSize", TypeSize: 4}}},
 	}},
 	{ID: 528, Name: "CryptMsgCalculateEncodedLength", CallName: "CryptMsgCalculateEncodedLength", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMsgEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMsgType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvMsgEncodeInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvMsgEncodeInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszInnerContentObjID", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbData", TypeSize: 4}}},
 	}},
 	{ID: 529, Name: "CryptMsgClose", CallName: "CryptMsgClose", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 530, Name: "CryptMsgControl", CallName: "CryptMsgControl", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCtrlType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvCtrlPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvCtrlPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 531, Name: "CryptMsgCountersign", CallName: "CryptMsgCountersign", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwIndex", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cCountersigners", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rgCountersigners", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -3045,7 +3045,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbCountersignature", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 533, Name: "CryptMsgDuplicate", CallName: "CryptMsgDuplicate", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 534, Name: "CryptMsgEncodeAndSignCTL", CallName: "CryptMsgEncodeAndSignCTL", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMsgEncodingType", TypeSize: 4}}},
@@ -3056,18 +3056,18 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 535, Name: "CryptMsgGetAndVerifySigner", CallName: "CryptMsgGetAndVerifySigner", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cSignerStore", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rghSignerStore", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rghSignerStore", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppSigner", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwSignerIndex", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 536, Name: "CryptMsgGetParam", CallName: "CryptMsgGetParam", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwParamType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwIndex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbData", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 537, Name: "CryptMsgOpenToDecode", CallName: "CryptMsgOpenToDecode", Args: []Type{
@@ -3082,7 +3082,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMsgEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMsgType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvMsgEncodeInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvMsgEncodeInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszInnerContentObjID", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pStreamInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
@@ -3096,7 +3096,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 540, Name: "CryptMsgUpdate", CallName: "CryptMsgUpdate", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hCryptMsg", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbData", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbData", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fFinal", TypeSize: 4}}},
@@ -3118,33 +3118,33 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbSignerInfoCountersignature", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbSignerInfoCountersignature", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwSignerType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSigner", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSigner", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 543, Name: "CryptProtectData", CallName: "CryptProtectData", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDataIn", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "szDataDescr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOptionalEntropy", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPromptStruct", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDataOut", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 544, Name: "CryptProtectMemory", CallName: "CryptProtectMemory", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDataIn", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDataIn", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbDataIn", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 545, Name: "CryptQueryObject", CallName: "CryptQueryObject", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwObjectType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvObject", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvObject", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwExpectedContentTypeFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwExpectedFormatTypeFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwMsgAndCertEncodingType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwContentType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwFormatType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phCertStore", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phCertStore", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 546, Name: "CryptRegisterDefaultOIDFunction", CallName: "CryptRegisterDefaultOIDFunction", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEncodingType", TypeSize: 4}}},
@@ -3172,10 +3172,10 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszObjectOid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwRetrievalFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwTimeout", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvObject", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAsyncRetrieve", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvObject", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAsyncRetrieve", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pCredentials", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvVerify", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvVerify", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAuxInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 551, Name: "CryptRetrieveTimeStamp", CallName: "CryptRetrieveTimeStamp", Args: []Type{
@@ -3190,9 +3190,9 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppTsSigner", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 552, Name: "CryptSetAsyncParam", CallName: "CryptSetAsyncParam", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAsync", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAsync", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszParamOid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvParam", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvParam", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnFree", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 553, Name: "CryptSetHashParam", CallName: "CryptSetHashParam", Args: []Type{
@@ -3206,8 +3206,8 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPropId", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszComputerName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 555, Name: "CryptSetKeyParam", CallName: "CryptSetKeyParam", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hKey", TypeSize: 8}}},
@@ -3245,9 +3245,9 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwKeySpec", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszStructType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvStructInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvStructInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSignatureAlgorithm", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvHashAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvHashAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbEncoded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -3268,7 +3268,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbEncodedToBeSigned", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbEncodedToBeSigned", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSignatureAlgorithm", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvHashAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvHashAuxInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbSignature", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbSignature", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -3307,24 +3307,24 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 567, Name: "CryptUninstallCancelRetrieval", CallName: "CryptUninstallCancelRetrieval", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 568, Name: "CryptUninstallDefaultContext", CallName: "CryptUninstallDefaultContext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hDefaultContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hDefaultContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 569, Name: "CryptUnprotectData", CallName: "CryptUnprotectData", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDataIn", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppszDataDescr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOptionalEntropy", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPromptStruct", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDataOut", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 570, Name: "CryptUnprotectMemory", CallName: "CryptUnprotectMemory", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDataIn", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDataIn", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbDataIn", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
@@ -3342,7 +3342,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 574, Name: "CryptUpdateProtectedState", CallName: "CryptUpdateProtectedState", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOldSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOldSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwszOldPassword", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwSuccessCount", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -3359,11 +3359,11 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hCryptProv", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCertEncodingType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwSubjectType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSubject", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvSubject", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwIssuerType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvIssuer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvIssuer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvExtra", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvExtra", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 577, Name: "CryptVerifyDetachedMessageHash", CallName: "CryptVerifyDetachedMessageHash", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pHashPara", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -3424,10 +3424,10 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbTSContentInfo", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbData", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbData", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAdditionalStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hAdditionalStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppTsContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppTsSigner", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phStore", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phStore", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 584, Name: "CveEventWrite", CallName: "CveEventWrite", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CveId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
@@ -3643,7 +3643,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "lParam", TypeSize: 8}}},
 	}},
 	{ID: 629, Name: "DeferWindowPos", CallName: "DeferWindowPos", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWinPosInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWinPosInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWndInsertAfter", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "x", TypeSize: 4}}},
@@ -3680,7 +3680,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hmf", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 638, Name: "DeleteFiber", CallName: "DeleteFiber", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFiber", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFiber", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 639, Name: "DeleteFileA", CallName: "DeleteFileA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -3712,7 +3712,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pMonitorName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 646, Name: "DeleteObject", CallName: "DeleteObject", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ho", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ho", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 647, Name: "DeletePortA", CallName: "DeletePortA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -3787,18 +3787,18 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "CompletionEvent", TypeSize: 8}},
 	}},
 	{ID: 664, Name: "DeleteUmsCompletionList", CallName: "DeleteUmsCompletionList", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsCompletionList", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsCompletionList", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 665, Name: "DeleteUmsThreadContext", CallName: "DeleteUmsThreadContext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 666, Name: "DeleteVolumeMountPointA", CallName: "DeleteVolumeMountPointA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszVolumeMountPoint", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 667, Name: "DequeueUmsCompletionListItems", CallName: "DequeueUmsCompletionListItems", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsCompletionList", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsCompletionList", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "WaitTimeOut", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThreadList", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThreadList", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 668, Name: "DeregisterEventSource", CallName: "DeregisterEventSource", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hEventLog", TypeSize: 8}},
@@ -3826,7 +3826,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMenu", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 676, Name: "DestroyPrivateObjectSecurity", CallName: "DestroyPrivateObjectSecurity", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 677, Name: "DestroyWindow", CallName: "DestroyWindow", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -3841,9 +3841,9 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 679, Name: "DeviceIoControl", CallName: "DeviceIoControl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hDevice", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwIoControlCode", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpInBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpInBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nInBufferSize", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nOutBufferSize", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBytesReturned", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOverlapped", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -3873,7 +3873,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pci", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 686, Name: "DiscardVirtualMemory", CallName: "DiscardVirtualMemory", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "Size", TypeSize: 8}}},
 	}},
 	{ID: 687, Name: "DisconnectNamedPipe", CallName: "DisconnectNamedPipe", Args: []Type{
@@ -4131,7 +4131,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Disable", TypeSize: 4}}},
 	}},
 	{ID: 734, Name: "EndDeferWindowPos", CallName: "EndDeferWindowPos", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWinPosInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWinPosInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 735, Name: "EndDialog", CallName: "EndDialog", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hDlg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -4264,7 +4264,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hmf", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "proc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "param", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "param", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpRect", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 764, Name: "EnumFontFamiliesA", CallName: "EnumFontFamiliesA", Args: []Type{
@@ -4489,7 +4489,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 794, Name: "EnumSystemFirmwareTables", CallName: "EnumSystemFirmwareTables", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "FirmwareTableProviderSignature", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pFirmwareTableEnumBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pFirmwareTableEnumBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "BufferSize", TypeSize: 4}}},
 	}},
 	{ID: 795, Name: "EnumSystemGeoID", CallName: "EnumSystemGeoID", Args: []Type{
@@ -4510,7 +4510,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpLocaleEnumProcEx", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "lParam", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 799, Name: "EnumThreadWindows", CallName: "EnumThreadWindows", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwThreadId", TypeSize: 4}}},
@@ -4542,13 +4542,13 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "lParam", TypeSize: 8}}},
 	}},
 	{ID: 805, Name: "EqualDomainSid", CallName: "EqualDomainSid", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid1", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid2", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid1", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid2", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfEqual", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 806, Name: "EqualPrefixSid", CallName: "EqualPrefixSid", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid1", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid2", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid1", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid2", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 807, Name: "EqualRect", CallName: "EqualRect", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lprc1", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -4559,8 +4559,8 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hrgn2", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 809, Name: "EqualSid", CallName: "EqualSid", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid1", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid2", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid1", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid2", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 810, Name: "EraseTape", CallName: "EraseTape", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hDevice", TypeSize: 8}},
@@ -4572,7 +4572,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "iEscape", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cjIn", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvIn", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvOut", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvOut", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 812, Name: "EscapeCommFunction", CallName: "EscapeCommFunction", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFile", TypeSize: 8}},
@@ -4601,7 +4601,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 817, Name: "ExecuteUmsThread", CallName: "ExecuteUmsThread", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 818, Name: "ExitProcess", CallName: "ExitProcess", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uExitCode", TypeSize: 4}}},
@@ -4783,29 +4783,29 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 852, Name: "FindFirstFileExA", CallName: "FindFirstFileExA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fInfoLevelId", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFindFileData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFindFileData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fSearchOp", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSearchFilter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSearchFilter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAdditionalFlags", TypeSize: 4}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 853, Name: "FindFirstFileTransactedA", CallName: "FindFirstFileTransactedA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fInfoLevelId", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFindFileData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFindFileData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fSearchOp", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSearchFilter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSearchFilter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAdditionalFlags", TypeSize: 4}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hTransaction", TypeSize: 8}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 854, Name: "FindFirstFreeAce", CallName: "FindFirstFreeAce", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAce", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAce", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 855, Name: "FindFirstPrinterChangeNotification", CallName: "FindFirstPrinterChangeNotification", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hPrinter", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fdwFilter", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fdwOptions", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrinterNotifyOptions", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrinterNotifyOptions", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 856, Name: "FindFirstVolumeA", CallName: "FindFirstVolumeA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszVolumeName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -4834,7 +4834,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cchValue", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcchFound", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpVersionInformation", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 860, Name: "FindNextChangeNotification", CallName: "FindNextChangeNotification", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hChangeHandle", TypeSize: 8}},
@@ -4846,8 +4846,8 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 862, Name: "FindNextPrinterChangeNotification", CallName: "FindNextPrinterChangeNotification", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hChange", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwChange", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppPrinterNotifyInfo", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppPrinterNotifyInfo", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 863, Name: "FindNextVolumeA", CallName: "FindNextVolumeA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFindVolume", TypeSize: 8}},
@@ -4930,7 +4930,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 881, Name: "FlsSetValue", CallName: "FlsSetValue", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlsIndex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFlsData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFlsData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 882, Name: "FlushConsoleInputBuffer", CallName: "FlushConsoleInputBuffer", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hConsoleInput", TypeSize: 8}},
@@ -4940,19 +4940,19 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 884, Name: "FlushInstructionCache", CallName: "FlushInstructionCache", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwSize", TypeSize: 8}}},
 	}},
 	{ID: 885, Name: "FlushPrinter", CallName: "FlushPrinter", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hPrinter", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pBuf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pBuf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbBuf", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcWritten", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cSleep", TypeSize: 4}}},
 	}},
 	{ID: 886, Name: "FlushProcessWriteBuffers", CallName: "FlushProcessWriteBuffers"},
 	{ID: 887, Name: "FlushViewOfFile", CallName: "FlushViewOfFile", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwNumberOfBytesToFlush", TypeSize: 8}}},
 	}},
 	{ID: 888, Name: "FmtIdToPropStgName", CallName: "FmtIdToPropStgName", Args: []Type{
@@ -4968,7 +4968,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 890, Name: "FormatMessageA", CallName: "FormatMessageA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSource", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSource", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMessageId", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwLanguageId", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -5013,7 +5013,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mod", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 901, Name: "FreeMemoryJobObject", CallName: "FreeMemoryJobObject", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 902, Name: "FreePrintNamedPropertyArray", CallName: "FreePrintNamedPropertyArray", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cProperties", TypeSize: 4}}},
@@ -5026,10 +5026,10 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPrinterNotifyInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 905, Name: "FreeResource", CallName: "FreeResource", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hResData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hResData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 906, Name: "FreeSid", CallName: "FreeSid", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 907, Name: "FreeUserPhysicalPages", CallName: "FreeUserPhysicalPages", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
@@ -5058,7 +5058,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pVertex", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nVertex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pMesh", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pMesh", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nCount", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ulMode", TypeSize: 4}}},
 	}},
@@ -5082,7 +5082,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 916, Name: "GetACP", CallName: "GetACP"},
 	{ID: 917, Name: "GetAcceptExSockaddrs", CallName: "GetAcceptExSockaddrs", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutputBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutputBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwReceiveDataLength", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwLocalAddressLength", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwRemoteAddressLength", TypeSize: 4}}},
@@ -5094,11 +5094,11 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 918, Name: "GetAce", CallName: "GetAce", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAceIndex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAce", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAce", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 919, Name: "GetAclInformation", CallName: "GetAclInformation", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAclInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAclInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nAclInformationLength", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAclInformationClass", TypeSize: 4}}},
 	}},
@@ -5121,12 +5121,12 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 925, Name: "GetAppContainerAce", CallName: "GetAppContainerAce", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Acl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "StartingAceIndex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AppContainerAce", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AppContainerAce", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AppContainerAceIndex", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 926, Name: "GetAppContainerNamedObjectPath", CallName: "GetAppContainerNamedObjectPath", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "Token", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AppContainerSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AppContainerSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ObjectPathLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectPath", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ReturnLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -5134,7 +5134,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 927, Name: "GetApplicationRecoveryCallback", CallName: "GetApplicationRecoveryCallback", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pRecoveryCallback", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvParameter", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvParameter", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwPingInterval", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwFlags", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -5172,7 +5172,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 936, Name: "GetBitmapBits", CallName: "GetBitmapBits", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hbit", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cb", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpvBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpvBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 937, Name: "GetBitmapDimensionEx", CallName: "GetBitmapDimensionEx", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hbit", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -5564,7 +5564,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hbm", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "start", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cLines", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpvBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpvBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpbmi", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "usage", TypeSize: 4}}},
 	}},
@@ -5601,7 +5601,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1043, Name: "GetDeviceGammaRamp", CallName: "GetDeviceGammaRamp", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpRamp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpRamp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1044, Name: "GetDevicePowerState", CallName: "GetDevicePowerState", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hDevice", TypeSize: 8}},
@@ -5733,7 +5733,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1075, Name: "GetEventLogInformation", CallName: "GetEventLogInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hEventLog", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwInfoLevel", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbBufSize", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbBytesNeeded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -5755,12 +5755,12 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1080, Name: "GetFileAttributesExA", CallName: "GetFileAttributesExA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fInfoLevelId", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1081, Name: "GetFileAttributesTransactedA", CallName: "GetFileAttributesTransactedA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fInfoLevelId", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hTransaction", TypeSize: 8}},
 	}},
 	{ID: 1082, Name: "GetFileBandwidthReservation", CallName: "GetFileBandwidthReservation", Args: []Type{
@@ -5778,7 +5778,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1084, Name: "GetFileInformationByHandleEx", CallName: "GetFileInformationByHandleEx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFile", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "FileInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwBufferSize", TypeSize: 4}}},
 	}},
 	{ID: 1085, Name: "GetFileMUIInfo", CallName: "GetFileMUIInfo", Args: []Type{
@@ -5799,7 +5799,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1087, Name: "GetFileSecurityA", CallName: "GetFileSecurityA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "RequestedInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpnLengthNeeded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -5834,13 +5834,13 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1094, Name: "GetFirmwareEnvironmentVariableA", CallName: "GetFirmwareEnvironmentVariableA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpGuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nSize", TypeSize: 4}}},
 	}},
 	{ID: 1095, Name: "GetFirmwareEnvironmentVariableExA", CallName: "GetFirmwareEnvironmentVariableExA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpGuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nSize", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwAttribubutes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -5852,7 +5852,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwTable", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwOffset", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cjBuffer", TypeSize: 4}}},
 	}},
 	{ID: 1099, Name: "GetFontLanguageInfo", CallName: "GetFontLanguageInfo", Args: []Type{
@@ -5925,7 +5925,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fuFormat", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpgm", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cjBuffer", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpmat2", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1112, Name: "GetGraphicsMode", CallName: "GetGraphicsMode", Args: []Type{
@@ -5937,7 +5937,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1114, Name: "GetHGlobalFromILockBytes", CallName: "GetHGlobalFromILockBytes", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "plkbyt", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phglobal", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phglobal", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 1115, Name: "GetHandleInformation", CallName: "GetHandleInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hObject", TypeSize: 8}},
@@ -5978,7 +5978,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1124, Name: "GetKernelObjectSecurity", CallName: "GetKernelObjectSecurity", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "Handle", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "RequestedInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpnLengthNeeded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -6032,7 +6032,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1140, Name: "GetLengthSid", CallName: "GetLengthSid", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1141, Name: "GetListBoxInfo", CallName: "GetListBoxInfo", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hwnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -6167,7 +6167,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1174, Name: "GetMetaFileBitsEx", CallName: "GetMetaFileBitsEx", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMF", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbBuffer", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1175, Name: "GetMetaRgn", CallName: "GetMetaRgn", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -6270,7 +6270,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bPrevious", TypeSize: 4}}},
 	}},
 	{ID: 1196, Name: "GetNextUmsListItem", CallName: "GetNextUmsListItem", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1197, Name: "GetNumaAvailableMemoryNode", CallName: "GetNumaAvailableMemoryNode", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "Node", TypeSize: 1}}},
@@ -6342,10 +6342,10 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1213, Name: "GetObjectA", CallName: "GetObjectA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "h", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "c", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1214, Name: "GetObjectType", CallName: "GetObjectType", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "h", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "h", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1215, Name: "GetOldestEventLogRecord", CallName: "GetOldestEventLogRecord", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hEventLog", TypeSize: 8}},
@@ -6590,9 +6590,9 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cFormats", TypeSize: 4}}},
 	}},
 	{ID: 1263, Name: "GetPrivateObjectSecurity", CallName: "GetPrivateObjectSecurity", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "SecurityInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ResultantDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ResultantDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DescriptorLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ReturnLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -6624,7 +6624,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1268, Name: "GetPrivateProfileStructA", CallName: "GetPrivateProfileStructA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszSection", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStruct", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStruct", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uSizeStruct", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "szFile", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
@@ -6674,7 +6674,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1280, Name: "GetProcessInformation", CallName: "GetProcessInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ProcessInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ProcessInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ProcessInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ProcessInformationSize", TypeSize: 4}}},
 	}},
 	{ID: 1281, Name: "GetProcessIoCounters", CallName: "GetProcessIoCounters", Args: []Type{
@@ -6684,7 +6684,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1282, Name: "GetProcessMitigationPolicy", CallName: "GetProcessMitigationPolicy", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "MitigationPolicy", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwLength", TypeSize: 8}}},
 	}},
 	{ID: 1283, Name: "GetProcessPreferredUILanguages", CallName: "GetProcessPreferredUILanguages", Args: []Type{
@@ -6794,14 +6794,14 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1304, Name: "GetRawInputData", CallName: "GetRawInputData", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hRawInput", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uiCommand", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbSizeHeader", TypeSize: 4}}},
 	}},
 	{ID: 1305, Name: "GetRawInputDeviceInfoA", CallName: "GetRawInputDeviceInfoA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hDevice", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uiCommand", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1306, Name: "GetRawInputDeviceList", CallName: "GetRawInputDeviceList", Args: []Type{
@@ -6854,35 +6854,35 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMaxPos", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1316, Name: "GetSecurityDescriptorControl", CallName: "GetSecurityDescriptorControl", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pControl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwRevision", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1317, Name: "GetSecurityDescriptorDacl", CallName: "GetSecurityDescriptorDacl", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpbDaclPresent", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDacl", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpbDaclDefaulted", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1318, Name: "GetSecurityDescriptorGroup", CallName: "GetSecurityDescriptorGroup", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pGroup", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pGroup", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpbGroupDefaulted", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1319, Name: "GetSecurityDescriptorLength", CallName: "GetSecurityDescriptorLength", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1320, Name: "GetSecurityDescriptorOwner", CallName: "GetSecurityDescriptorOwner", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOwner", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOwner", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpbOwnerDefaulted", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1321, Name: "GetSecurityDescriptorRMControl", CallName: "GetSecurityDescriptorRMControl", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "RMControl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 1322, Name: "GetSecurityDescriptorSacl", CallName: "GetSecurityDescriptorSacl", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpbSaclPresent", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSacl", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpbSaclDefaulted", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -6906,17 +6906,17 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cchBuffer", TypeSize: 4}}},
 	}},
 	{ID: 1327, Name: "GetSidIdentifierAuthority", CallName: "GetSidIdentifierAuthority", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1328, Name: "GetSidLengthRequired", CallName: "GetSidLengthRequired", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "nSubAuthorityCount", TypeSize: 1}}},
 	}},
 	{ID: 1329, Name: "GetSidSubAuthority", CallName: "GetSidSubAuthority", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nSubAuthority", TypeSize: 4}}},
 	}},
 	{ID: 1330, Name: "GetSidSubAuthorityCount", CallName: "GetSidSubAuthorityCount", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1331, Name: "GetSpoolFileHandle", CallName: "GetSpoolFileHandle", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hPrinter", TypeSize: 8}},
@@ -6991,7 +6991,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1350, Name: "GetSystemFirmwareTable", CallName: "GetSystemFirmwareTable", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "FirmwareTableProviderSignature", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "FirmwareTableID", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pFirmwareTableBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pFirmwareTableBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "BufferSize", TypeSize: 4}}},
 	}},
 	{ID: 1351, Name: "GetSystemInfo", CallName: "GetSystemInfo", Args: []Type{
@@ -7073,7 +7073,7 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hDevice", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwOperation", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpTapeInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpTapeInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1370, Name: "GetTapePosition", CallName: "GetTapePosition", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hDevice", TypeSize: 8}},
@@ -7184,7 +7184,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1394, Name: "GetThreadInformation", CallName: "GetThreadInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hThread", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ThreadInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ThreadInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ThreadInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ThreadInformationSize", TypeSize: 4}}},
 	}},
 	{ID: 1395, Name: "GetThreadLocale", CallName: "GetThreadLocale"},
@@ -7210,7 +7210,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1400, Name: "GetThreadSelectorEntry", CallName: "GetThreadSelectorEntry", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hThread", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwSelector", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSelectorEntry", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSelectorEntry", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1401, Name: "GetThreadTimes", CallName: "GetThreadTimes", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hThread", TypeSize: 8}},
@@ -7253,7 +7253,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1410, Name: "GetTokenInformation", CallName: "GetTokenInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "TokenHandle", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "TokenInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "TokenInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "TokenInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "TokenInformationLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ReturnLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -7274,7 +7274,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAttributes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1414, Name: "GetUmsCompletionListEvent", CallName: "GetUmsCompletionListEvent", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsCompletionList", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsCompletionList", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsCompletionEvent", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", TypeSize: 8, ArgDir: 2}}},
 	}},
 	{ID: 1415, Name: "GetUmsSystemThreadInformation", CallName: "GetUmsSystemThreadInformation", Args: []Type{
@@ -7314,14 +7314,14 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1426, Name: "GetUserObjectInformationA", CallName: "GetUserObjectInformationA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hObj", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nIndex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpnLengthNeeded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1427, Name: "GetUserObjectSecurity", CallName: "GetUserObjectSecurity", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hObj", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSIRequested", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSID", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSID", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpnLengthNeeded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -7402,7 +7402,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "feedback", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "config", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "config", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1445, Name: "GetWindowInfo", CallName: "GetWindowInfo", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hwnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -7458,8 +7458,8 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nIndex", TypeSize: 4}}},
 	}},
 	{ID: 1458, Name: "GetWindowsAccountDomainSid", CallName: "GetWindowsAccountDomainSid", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDomainSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDomainSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "cbDomainSid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1459, Name: "GetWindowsDirectoryA", CallName: "GetWindowsDirectoryA", Args: []Type{
@@ -7472,9 +7472,9 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1461, Name: "GetWriteWatch", CallName: "GetWriteWatch", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwRegionSize", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddresses", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddresses", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwCount", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwGranularity", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -7503,13 +7503,13 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpString", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 1469, Name: "GlobalFix", CallName: "GlobalFix", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1470, Name: "GlobalFlags", CallName: "GlobalFlags", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1471, Name: "GlobalFree", CallName: "GlobalFree", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1472, Name: "GlobalGetAtomNameA", CallName: "GlobalGetAtomNameA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "nAtom", TypeSize: 2}}},
@@ -7517,10 +7517,10 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nSize", TypeSize: 4}}},
 	}},
 	{ID: 1473, Name: "GlobalHandle", CallName: "GlobalHandle", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1474, Name: "GlobalLock", CallName: "GlobalLock", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1475, Name: "GlobalMemoryStatus", CallName: "GlobalMemoryStatus", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -7529,30 +7529,30 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1477, Name: "GlobalReAlloc", CallName: "GlobalReAlloc", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwBytes", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uFlags", TypeSize: 4}}},
 	}},
 	{ID: 1478, Name: "GlobalSize", CallName: "GlobalSize", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1479, Name: "GlobalUnWire", CallName: "GlobalUnWire", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1480, Name: "GlobalUnfix", CallName: "GlobalUnfix", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1481, Name: "GlobalUnlock", CallName: "GlobalUnlock", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1482, Name: "GlobalWire", CallName: "GlobalWire", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1483, Name: "GradientFill", CallName: "GradientFill", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pVertex", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nVertex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pMesh", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pMesh", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nMesh", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ulMode", TypeSize: 4}}},
 	}},
@@ -7587,7 +7587,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1489, Name: "HeapFree", CallName: "HeapFree", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hHeap", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1490, Name: "HeapLock", CallName: "HeapLock", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hHeap", TypeSize: 8}},
@@ -7595,26 +7595,26 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1491, Name: "HeapQueryInformation", CallName: "HeapQueryInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "HeapHandle", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "HeapInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HeapInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HeapInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "HeapInformationLength", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ReturnLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1492, Name: "HeapReAlloc", CallName: "HeapReAlloc", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hHeap", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwBytes", TypeSize: 8}}},
 	}},
 	{ID: 1493, Name: "HeapSetInformation", CallName: "HeapSetInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "HeapHandle", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "HeapInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HeapInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HeapInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "HeapInformationLength", TypeSize: 8}}},
 	}},
 	{ID: 1494, Name: "HeapSize", CallName: "HeapSize", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hHeap", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1495, Name: "HeapSummary", CallName: "HeapSummary", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hHeap", TypeSize: 8}},
@@ -7627,7 +7627,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1497, Name: "HeapValidate", CallName: "HeapValidate", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hHeap", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1498, Name: "HeapWalk", CallName: "HeapWalk", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hHeap", TypeSize: 8}},
@@ -7672,7 +7672,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg0", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg1", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "arg2", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg3", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg3", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1507, Name: "ImmCreateContext", CallName: "ImmCreateContext"},
 	{ID: 1508, Name: "ImmDestroyContext", CallName: "ImmDestroyContext", Args: []Type{
@@ -7696,13 +7696,13 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszReading", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "arg3", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszRegister", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg5", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg5", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1514, Name: "ImmEscapeA", CallName: "ImmEscapeA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg0", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg1", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "arg2", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg3", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg3", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1515, Name: "ImmGetCandidateListA", CallName: "ImmGetCandidateListA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg0", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -7726,7 +7726,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1519, Name: "ImmGetCompositionStringA", CallName: "ImmGetCompositionStringA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg0", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "arg1", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwBufLen", TypeSize: 4}}},
 	}},
 	{ID: 1520, Name: "ImmGetCompositionWindow", CallName: "ImmGetCompositionWindow", Args: []Type{
@@ -7835,9 +7835,9 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1542, Name: "ImmSetCompositionStringA", CallName: "ImmSetCompositionStringA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg0", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwIndex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpComp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpComp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCompLen", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpRead", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpRead", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwReadLen", TypeSize: 4}}},
 	}},
 	{ID: 1543, Name: "ImmSetCompositionWindow", CallName: "ImmSetCompositionWindow", Args: []Type{
@@ -7885,7 +7885,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1554, Name: "InSendMessage", CallName: "InSendMessage"},
 	{ID: 1555, Name: "InSendMessageEx", CallName: "InSendMessageEx", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1556, Name: "InflateRect", CallName: "InflateRect", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lprc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -7904,18 +7904,18 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpInitOnce", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fPending", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 1561, Name: "InitOnceComplete", CallName: "InitOnceComplete", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpInitOnce", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1562, Name: "InitOnceExecuteOnce", CallName: "InitOnceExecuteOnce", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InitOnce", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InitFn", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Parameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Context", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Parameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Context", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 1563, Name: "InitOnceInitialize", CallName: "InitOnceInitialize", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InitOnce", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -7929,7 +7929,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ConditionVariable", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1566, Name: "InitializeContext", CallName: "InitializeContext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ContextFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Context", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ContextLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -7948,8 +7948,8 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1570, Name: "InitializeEnclave", CallName: "InitializeEnclave", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnclaveInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnclaveInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwInfoLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnclaveError", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -7966,11 +7966,11 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SRWLock", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1574, Name: "InitializeSecurityDescriptor", CallName: "InitializeSecurityDescriptor", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwRevision", TypeSize: 4}}},
 	}},
 	{ID: 1575, Name: "InitializeSid", CallName: "InitializeSid", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Sid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Sid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pIdentifierAuthority", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "nSubAuthorityCount", TypeSize: 1}}},
 	}},
@@ -8065,15 +8065,15 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpfn", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1595, Name: "IsBadHugeReadPtr", CallName: "IsBadHugeReadPtr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ucb", TypeSize: 8}}},
 	}},
 	{ID: 1596, Name: "IsBadHugeWritePtr", CallName: "IsBadHugeWritePtr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ucb", TypeSize: 8}}},
 	}},
 	{ID: 1597, Name: "IsBadReadPtr", CallName: "IsBadReadPtr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ucb", TypeSize: 8}}},
 	}},
 	{ID: 1598, Name: "IsBadStringPtrA", CallName: "IsBadStringPtrA", Args: []Type{
@@ -8081,7 +8081,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ucchMax", TypeSize: 8}}},
 	}},
 	{ID: 1599, Name: "IsBadWritePtr", CallName: "IsBadWritePtr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "ucb", TypeSize: 8}}},
 	}},
 	{ID: 1600, Name: "IsCharAlphaA", CallName: "IsCharAlphaA", Args: []Type{
@@ -8174,7 +8174,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1627, Name: "IsSystemResumeAutomatic", CallName: "IsSystemResumeAutomatic"},
 	{ID: 1628, Name: "IsTextUnicode", CallName: "IsTextUnicode", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "iSize", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpiResult", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -8222,13 +8222,13 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpVersionInformation", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1642, Name: "IsValidSecurityDescriptor", CallName: "IsValidSecurityDescriptor", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1643, Name: "IsValidSid", CallName: "IsValidSid", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1644, Name: "IsWellKnownSid", CallName: "IsWellKnownSid", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "WellKnownSidType", TypeSize: 4}}},
 	}},
 	{ID: 1645, Name: "IsWinEventHookInstalled", CallName: "IsWinEventHookInstalled", Args: []Type{
@@ -8285,7 +8285,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpDestStr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cchDest", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpVersionInformation", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sortHandle", TypeSize: 8}}},
 	}},
 	{ID: 1658, Name: "LPSAFEARRAY_UserFree", CallName: "LPSAFEARRAY_UserFree", Args: []Type{
@@ -8395,11 +8395,11 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1683, Name: "LoadEnclaveData", CallName: "LoadEnclaveData", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "nSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flProtect", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpPageInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpPageInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwInfoLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNumberOfBytesWritten", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpEnclaveError", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -8433,11 +8433,11 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMenuName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 1690, Name: "LoadMenuIndirectA", CallName: "LoadMenuIndirectA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMenuTemplate", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpMenuTemplate", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1691, Name: "LoadModule", CallName: "LoadModule", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpModuleName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameterBlock", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpParameterBlock", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1692, Name: "LoadPackagedLibrary", CallName: "LoadPackagedLibrary", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpwLibFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
@@ -8465,31 +8465,31 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileTime", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1698, Name: "LocalFlags", CallName: "LocalFlags", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1699, Name: "LocalFree", CallName: "LocalFree", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1700, Name: "LocalHandle", CallName: "LocalHandle", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1701, Name: "LocalLock", CallName: "LocalLock", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1702, Name: "LocalReAlloc", CallName: "LocalReAlloc", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "uBytes", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uFlags", TypeSize: 4}}},
 	}},
 	{ID: 1703, Name: "LocalShrink", CallName: "LocalShrink", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbNewSize", TypeSize: 4}}},
 	}},
 	{ID: 1704, Name: "LocalSize", CallName: "LocalSize", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1705, Name: "LocalUnlock", CallName: "LocalUnlock", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMem", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1706, Name: "LocaleNameToLCID", CallName: "LocaleNameToLCID", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
@@ -8516,7 +8516,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOverlapped", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1710, Name: "LockResource", CallName: "LockResource", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hResData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hResData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1711, Name: "LockServiceDatabase", CallName: "LockServiceDatabase", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hSCManager", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -8550,14 +8550,14 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwLogonType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwLogonProvider", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phToken", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", TypeSize: 8, ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppLogonSid", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppProfileBuffer", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppLogonSid", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppProfileBuffer", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwProfileLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1718, Name: "LookupAccountNameA", CallName: "LookupAccountNameA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSystemName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAccountName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Sid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Sid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "cbSid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ReferencedDomainName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "cchReferencedDomainName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -8565,7 +8565,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1719, Name: "LookupAccountSidA", CallName: "LookupAccountSidA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSystemName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Sid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Sid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Name", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "cchName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ReferencedDomainName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -8602,19 +8602,19 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpLuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1725, Name: "MakeAbsoluteSD", CallName: "MakeAbsoluteSD", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSelfRelativeSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAbsoluteSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSelfRelativeSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAbsoluteSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwAbsoluteSecurityDescriptorSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDacl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwDaclSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSacl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwSaclSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOwner", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOwner", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwOwnerSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1726, Name: "MakeSelfRelativeSD", CallName: "MakeSelfRelativeSD", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAbsoluteSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSelfRelativeSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAbsoluteSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSelfRelativeSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpdwBufferLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1727, Name: "MapDialogRect", CallName: "MapDialogRect", Args: []Type{
@@ -8626,12 +8626,12 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "GenericMapping", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1729, Name: "MapUserPhysicalPages", CallName: "MapUserPhysicalPages", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "NumberOfPages", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PageArray", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1730, Name: "MapUserPhysicalPagesScatter", CallName: "MapUserPhysicalPagesScatter", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddresses", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddresses", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "NumberOfPages", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "PageArray", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
@@ -8648,7 +8648,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFileOffsetHigh", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFileOffsetLow", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwNumberOfBytesToMap", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1733, Name: "MapViewOfFileExNuma", CallName: "MapViewOfFileExNuma", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFileMappingObject", TypeSize: 8}},
@@ -8656,7 +8656,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFileOffsetHigh", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFileOffsetLow", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwNumberOfBytesToMap", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nndPreferred", TypeSize: 4}}},
 	}},
 	{ID: 1734, Name: "MapViewOfFileFromApp", CallName: "MapViewOfFileFromApp", Args: []Type{
@@ -8752,7 +8752,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpExistingFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNewFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpProgressRoutine", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hTransaction", TypeSize: 8}},
 	}},
@@ -8760,7 +8760,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpExistingFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNewFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpProgressRoutine", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 1753, Name: "MoveToEx", CallName: "MoveToEx", Args: []Type{
@@ -8779,14 +8779,14 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1755, Name: "MsgWaitForMultipleObjects", CallName: "MsgWaitForMultipleObjects", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nCount", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pHandles", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pHandles", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fWaitAll", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMilliseconds", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwWakeMask", TypeSize: 4}}},
 	}},
 	{ID: 1756, Name: "MsgWaitForMultipleObjectsEx", CallName: "MsgWaitForMultipleObjectsEx", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nCount", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pHandles", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pHandles", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMilliseconds", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwWakeMask", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
@@ -8830,7 +8830,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hKey", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbInput", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbInput", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPaddingInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPaddingInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbOutput", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbOutput", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbResult", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -8853,7 +8853,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hKey", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbInput", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbInput", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPaddingInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPaddingInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbOutput", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbOutput", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbResult", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -8870,7 +8870,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hProvider", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszScope", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppKeyName", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppEnumState", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppEnumState", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 1768, Name: "NCryptEnumStorageProviders", CallName: "NCryptEnumStorageProviders", Args: []Type{
@@ -8893,7 +8893,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 1771, Name: "NCryptFreeBuffer", CallName: "NCryptFreeBuffer", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvInput", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvInput", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1772, Name: "NCryptFreeObject", CallName: "NCryptFreeObject", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hObject", TypeSize: 8}}},
@@ -8964,7 +8964,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1783, Name: "NCryptSignHash", CallName: "NCryptSignHash", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hKey", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPaddingInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPaddingInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbHashValue", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbHashValue", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbSignature", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -8992,7 +8992,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1786, Name: "NCryptVerifySignature", CallName: "NCryptVerifySignature", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "hKey", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPaddingInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPaddingInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbHashValue", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbHashValue", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pbSignature", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -9036,20 +9036,20 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1794, Name: "ObjectCloseAuditAlarmA", CallName: "ObjectCloseAuditAlarmA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SubsystemName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "GenerateOnClose", TypeSize: 4}}},
 	}},
 	{ID: 1795, Name: "ObjectDeleteAuditAlarmA", CallName: "ObjectDeleteAuditAlarmA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SubsystemName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "GenerateOnClose", TypeSize: 4}}},
 	}},
 	{ID: 1796, Name: "ObjectOpenAuditAlarmA", CallName: "ObjectOpenAuditAlarmA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SubsystemName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectTypeName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ClientToken", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DesiredAccess", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "GrantedAccess", TypeSize: 4}}},
@@ -9057,7 +9057,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1797, Name: "ObjectPrivilegeAuditAlarmA", CallName: "ObjectPrivilegeAuditAlarmA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SubsystemName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "HandleId", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ClientToken", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DesiredAccess", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Privileges", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -9076,7 +9076,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cchDstLength", TypeSize: 4}}},
 	}},
 	{ID: 1801, Name: "OfferVirtualMemory", CallName: "OfferVirtualMemory", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "Size", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Priority", TypeSize: 4}}},
 	}},
@@ -9128,7 +9128,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1811, Name: "OpenEncryptedFileRawA", CallName: "OpenEncryptedFileRawA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ulFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 1812, Name: "OpenEventA", CallName: "OpenEventA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwDesiredAccess", TypeSize: 4}}},
@@ -9192,7 +9192,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDefault", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1824, Name: "OpenPrivateNamespaceA", CallName: "OpenPrivateNamespaceA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBoundaryDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBoundaryDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAliasPrefix", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 1825, Name: "OpenProcess", CallName: "OpenProcess", Args: []Type{
@@ -9251,16 +9251,16 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutputString", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 1837, Name: "PFXExportCertStore", CallName: "PFXExportCertStore", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPFX", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "szPassword", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 1838, Name: "PFXExportCertStoreEx", CallName: "PFXExportCertStoreEx", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hStore", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pPFX", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "szPassword", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvPara", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
 	{ID: 1839, Name: "PFXImportCertStore", CallName: "PFXImportCertStore", Args: []Type{
@@ -9321,7 +9321,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1851, Name: "PeekNamedPipe", CallName: "PeekNamedPipe", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hNamedPipe", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nBufferSize", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBytesRead", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpTotalBytesAvail", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -9582,7 +9582,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1900, Name: "QueryInformationJobObject", CallName: "QueryInformationJobObject", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hJob", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "JobObjectInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpJobObjectInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpJobObjectInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbJobObjectInformationLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReturnLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -9644,7 +9644,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1914, Name: "QueryServiceDynamicInformation", CallName: "QueryServiceDynamicInformation", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hServiceStatus", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwInfoLevel", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppDynamicInfo", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppDynamicInfo", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 1915, Name: "QueryServiceLockStatusA", CallName: "QueryServiceLockStatusA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hSCManager", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -9655,7 +9655,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1916, Name: "QueryServiceObjectSecurity", CallName: "QueryServiceObjectSecurity", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hService", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwSecurityInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbBufSize", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbBytesNeeded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -9683,9 +9683,9 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ptpsi", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1922, Name: "QueryUmsThreadInformation", CallName: "QueryUmsThreadInformation", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "UmsThreadInfoClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThreadInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThreadInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "UmsThreadInformationLength", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ReturnLength", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -9701,9 +9701,9 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1926, Name: "QueryVirtualMemoryInformation", CallName: "QueryVirtualMemoryInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "Process", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "MemoryInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "MemoryInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "MemoryInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "MemoryInformationSize", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ReturnSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
@@ -9714,7 +9714,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1928, Name: "QueueUserWorkItem", CallName: "QueueUserWorkItem", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Function", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Context", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Context", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Flags", TypeSize: 4}}},
 	}},
 	{ID: 1929, Name: "RaiseException", CallName: "RaiseException", Args: []Type{
@@ -9744,7 +9744,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1934, Name: "ReadConsoleA", CallName: "ReadConsoleA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hConsoleInput", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nNumberOfCharsToRead", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNumberOfCharsRead", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pInputControl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -9778,28 +9778,28 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1939, Name: "ReadEncryptedFileRaw", CallName: "ReadEncryptedFileRaw", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfExportCallback", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvCallbackContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvCallbackContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1940, Name: "ReadEventLogA", CallName: "ReadEventLogA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hEventLog", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwReadFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwRecordOffset", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nNumberOfBytesToRead", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pnBytesRead", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pnMinNumberOfBytesNeeded", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1941, Name: "ReadFile", CallName: "ReadFile", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFile", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nNumberOfBytesToRead", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNumberOfBytesRead", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOverlapped", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1942, Name: "ReadFileEx", CallName: "ReadFileEx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFile", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nNumberOfBytesToRead", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOverlapped", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpCompletionRoutine", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -9813,14 +9813,14 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 1944, Name: "ReadPrinter", CallName: "ReadPrinter", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hPrinter", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pBuf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pBuf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbBuf", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pNoBytesRead", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1945, Name: "ReadProcessMemory", CallName: "ReadProcessMemory", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "nSize", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNumberOfBytesRead", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
@@ -9842,7 +9842,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 1950, Name: "ReclaimVirtualMemory", CallName: "ReclaimVirtualMemory", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "Size", TypeSize: 8}}},
 	}},
 	{ID: 1951, Name: "RectInRegion", CallName: "RectInRegion", Args: []Type{
@@ -9928,7 +9928,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "samDesired", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Reserved", TypeSize: 4}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hTransaction", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pExtendedParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pExtendedParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1965, Name: "RegDeleteKeyValueA", CallName: "RegDeleteKeyValueA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -9983,7 +9983,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1976, Name: "RegGetKeySecurity", CallName: "RegGetKeySecurity", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "SecurityInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpcbSecurityDescriptor", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1977, Name: "RegGetValueA", CallName: "RegGetValueA", Args: []Type{
@@ -9992,7 +9992,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpValue", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdwType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbData", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 1978, Name: "RegLoadAppKeyA", CallName: "RegLoadAppKeyA", Args: []Type{
@@ -10046,7 +10046,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "samDesired", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phkResult", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hTransaction", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pExtendedParemeter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pExtendedParemeter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1986, Name: "RegOpenUserClassesRoot", CallName: "RegOpenUserClassesRoot", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hToken", TypeSize: 8}},
@@ -10124,14 +10124,14 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 1998, Name: "RegSetKeySecurity", CallName: "RegSetKeySecurity", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "SecurityInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 1999, Name: "RegSetKeyValueA", CallName: "RegSetKeyValueA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSubKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpValueName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwType", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbData", TypeSize: 4}}},
 	}},
 	{ID: 2000, Name: "RegSetValueA", CallName: "RegSetValueA", Args: []Type{
@@ -10155,7 +10155,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2003, Name: "RegisterApplicationRecoveryCallback", CallName: "RegisterApplicationRecoveryCallback", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pRecoveyCallback", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvParameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwPingInterval", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
@@ -10177,7 +10177,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2009, Name: "RegisterDeviceNotificationA", CallName: "RegisterDeviceNotificationA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hRecipient", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NotificationFilter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NotificationFilter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Flags", TypeSize: 4}}},
 	}},
 	{ID: 2010, Name: "RegisterEventSourceA", CallName: "RegisterEventSourceA", Args: []Type{
@@ -10220,7 +10220,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2018, Name: "RegisterServiceCtrlHandlerExA", CallName: "RegisterServiceCtrlHandlerExA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpServiceName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpHandlerProc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2019, Name: "RegisterShellHookWindow", CallName: "RegisterShellHookWindow", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hwnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -10241,7 +10241,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "phNewWaitObject", TypeSize: 8}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", TypeSize: 8, ArgDir: 2}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hObject", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Callback", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Context", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Context", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMilliseconds", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 	}},
@@ -10290,7 +10290,7 @@ var syscalls_amd64 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hTransaction", TypeSize: 8}},
 	}},
 	{ID: 2037, Name: "RemoveDllDirectory", CallName: "RemoveDllDirectory", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Cookie", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Cookie", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2038, Name: "RemoveFontMemResourceEx", CallName: "RemoveFontMemResourceEx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "h", TypeSize: 8}},
@@ -10301,7 +10301,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2040, Name: "RemoveFontResourceExA", CallName: "RemoveFontResourceExA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fl", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pdv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2041, Name: "RemoveMenu", CallName: "RemoveMenu", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hMenu", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -10320,18 +10320,18 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pHashes", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2045, Name: "RemoveVectoredContinueHandler", CallName: "RemoveVectoredContinueHandler", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Handle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Handle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2046, Name: "RemoveVectoredExceptionHandler", CallName: "RemoveVectoredExceptionHandler", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Handle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Handle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2047, Name: "ReplaceFileA", CallName: "ReplaceFileA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReplacedFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReplacementFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBackupFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwReplaceFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpExclude", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpExclude", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2048, Name: "ReplacePartitionUnit", CallName: "ReplacePartitionUnit", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "TargetPartition", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
@@ -10349,11 +10349,11 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "wType", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "wCategory", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwEventID", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpUserSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpUserSid", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "wNumStrings", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwDataSize", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStrings", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpRawData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpRawData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2052, Name: "ReportJobProcessingProgress", CallName: "ReportJobProcessingProgress", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "printerHandle", TypeSize: 8}},
@@ -10379,7 +10379,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDefault", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2058, Name: "ResetWriteWatch", CallName: "ResetWriteWatch", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwRegionSize", TypeSize: 8}}},
 	}},
 	{ID: 2059, Name: "ResizePalette", CallName: "ResizePalette", Args: []Type{
@@ -10425,7 +10425,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2068, Name: "RpcAsyncCompleteCall", CallName: "RpcAsyncCompleteCall", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAsync", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Reply", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Reply", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2069, Name: "RpcAsyncGetCallStatus", CallName: "RpcAsyncGetCallStatus", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAsync", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -10439,37 +10439,37 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2072, Name: "RpcBindingBind", CallName: "RpcBindingBind", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAsync", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2073, Name: "RpcBindingCopy", CallName: "RpcBindingCopy", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SourceBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "DestinationBinding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SourceBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "DestinationBinding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2074, Name: "RpcBindingCreateA", CallName: "RpcBindingCreateA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Template", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Security", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Options", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2075, Name: "RpcBindingFree", CallName: "RpcBindingFree", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2076, Name: "RpcBindingFromStringBindingA", CallName: "RpcBindingFromStringBindingA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "StringBinding", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2077, Name: "RpcBindingInqAuthClientA", CallName: "RpcBindingInqAuthClientA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Privs", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Privs", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerPrincName", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthnLevel", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthnSvc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthzSvc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2078, Name: "RpcBindingInqAuthClientExA", CallName: "RpcBindingInqAuthClientExA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Privs", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Privs", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerPrincName", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthnLevel", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthnSvc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -10477,100 +10477,100 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Flags", TypeSize: 4}}},
 	}},
 	{ID: 2079, Name: "RpcBindingInqAuthInfoA", CallName: "RpcBindingInqAuthInfoA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerPrincName", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthnLevel", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthnSvc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthIdentity", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthIdentity", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthzSvc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2080, Name: "RpcBindingInqAuthInfoExA", CallName: "RpcBindingInqAuthInfoExA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerPrincName", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthnLevel", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthnSvc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthIdentity", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthIdentity", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthzSvc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "RpcQosVersion", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityQOS", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2081, Name: "RpcBindingInqObject", CallName: "RpcBindingInqObject", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectUuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2082, Name: "RpcBindingInqOption", CallName: "RpcBindingInqOption", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "option", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOptionValue", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2083, Name: "RpcBindingReset", CallName: "RpcBindingReset", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2084, Name: "RpcBindingServerFromClient", CallName: "RpcBindingServerFromClient", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerBinding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerBinding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2085, Name: "RpcBindingSetAuthInfoA", CallName: "RpcBindingSetAuthInfoA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerPrincName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AuthnLevel", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AuthnSvc", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthIdentity", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthIdentity", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AuthzSvc", TypeSize: 4}}},
 	}},
 	{ID: 2086, Name: "RpcBindingSetAuthInfoExA", CallName: "RpcBindingSetAuthInfoExA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerPrincName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AuthnLevel", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AuthnSvc", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthIdentity", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthIdentity", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AuthzSvc", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityQos", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2087, Name: "RpcBindingSetObject", CallName: "RpcBindingSetObject", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectUuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2088, Name: "RpcBindingSetOption", CallName: "RpcBindingSetOption", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "option", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "optionValue", TypeSize: 8}}},
 	}},
 	{ID: 2089, Name: "RpcBindingToStringBindingA", CallName: "RpcBindingToStringBindingA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "StringBinding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 	}},
 	{ID: 2090, Name: "RpcBindingUnbind", CallName: "RpcBindingUnbind", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2091, Name: "RpcBindingVectorFree", CallName: "RpcBindingVectorFree", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingVector", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 2092, Name: "RpcCancelThread", CallName: "RpcCancelThread", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Thread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Thread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2093, Name: "RpcCancelThreadEx", CallName: "RpcCancelThreadEx", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Thread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Thread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Timeout", TypeSize: 4}}},
 	}},
 	{ID: 2094, Name: "RpcEpRegisterA", CallName: "RpcEpRegisterA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingVector", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UuidVector", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Annotation", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 2095, Name: "RpcEpRegisterNoReplaceA", CallName: "RpcEpRegisterNoReplaceA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingVector", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UuidVector", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Annotation", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 2096, Name: "RpcEpResolveBinding", CallName: "RpcEpResolveBinding", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2097, Name: "RpcEpUnregister", CallName: "RpcEpUnregister", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingVector", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UuidVector", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
@@ -10591,7 +10591,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Records", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2103, Name: "RpcErrorLoadErrorInfo", CallName: "RpcErrorLoadErrorInfo", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ErrorBlob", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ErrorBlob", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "BlobSize", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EnumHandle", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
@@ -10600,7 +10600,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2105, Name: "RpcErrorSaveErrorInfo", CallName: "RpcErrorSaveErrorInfo", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EnumHandle", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ErrorBlob", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ErrorBlob", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BlobSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2106, Name: "RpcErrorStartEnumeration", CallName: "RpcErrorStartEnumeration", Args: []Type{
@@ -10610,61 +10610,61 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ExceptionCode", TypeSize: 4}}},
 	}},
 	{ID: 2108, Name: "RpcFreeAuthorizationContext", CallName: "RpcFreeAuthorizationContext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAuthzClientContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAuthzClientContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2109, Name: "RpcGetAuthorizationContextForClient", CallName: "RpcGetAuthorizationContextForClient", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ImpersonateOnReturn", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Reserved1", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Reserved1", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pExpirationTime", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "Reserved2", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Reserved3", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Reserved4", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAuthzClientContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Reserved4", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAuthzClientContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2110, Name: "RpcIfIdVectorFree", CallName: "RpcIfIdVectorFree", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfIdVector", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 2111, Name: "RpcIfInqId", CallName: "RpcIfInqId", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "RpcIfHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "RpcIfHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "RpcIfId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2112, Name: "RpcImpersonateClient", CallName: "RpcImpersonateClient", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2113, Name: "RpcImpersonateClient2", CallName: "RpcImpersonateClient2", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2114, Name: "RpcImpersonateClientContainer", CallName: "RpcImpersonateClientContainer", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2115, Name: "RpcMgmtEnableIdleCleanup", CallName: "RpcMgmtEnableIdleCleanup"},
 	{ID: 2116, Name: "RpcMgmtEpEltInqBegin", CallName: "RpcMgmtEpEltInqBegin", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EpBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EpBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "InquiryType", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "VersOption", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectUuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}}},
 	}},
 	{ID: 2117, Name: "RpcMgmtEpEltInqDone", CallName: "RpcMgmtEpEltInqDone", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}}},
 	}},
 	{ID: 2118, Name: "RpcMgmtEpEltInqNextA", CallName: "RpcMgmtEpEltInqNextA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectUuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Annotation", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 	}},
 	{ID: 2119, Name: "RpcMgmtEpUnregister", CallName: "RpcMgmtEpUnregister", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EpBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EpBinding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectUuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2120, Name: "RpcMgmtInqComTimeout", CallName: "RpcMgmtInqComTimeout", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Timeout", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2121, Name: "RpcMgmtInqDefaultProtectLevel", CallName: "RpcMgmtInqDefaultProtectLevel", Args: []Type{
@@ -10672,20 +10672,20 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthnLevel", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2122, Name: "RpcMgmtInqIfIds", CallName: "RpcMgmtInqIfIds", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfIdVector", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 2123, Name: "RpcMgmtInqServerPrincNameA", CallName: "RpcMgmtInqServerPrincNameA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AuthnSvc", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerPrincName", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 	}},
 	{ID: 2124, Name: "RpcMgmtInqStats", CallName: "RpcMgmtInqStats", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Statistics", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 2125, Name: "RpcMgmtIsServerListening", CallName: "RpcMgmtIsServerListening", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2126, Name: "RpcMgmtSetAuthorizationFn", CallName: "RpcMgmtSetAuthorizationFn", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "AuthorizationFn", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -10694,7 +10694,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Timeout", TypeSize: 4}}},
 	}},
 	{ID: 2128, Name: "RpcMgmtSetComTimeout", CallName: "RpcMgmtSetComTimeout", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Timeout", TypeSize: 4}}},
 	}},
 	{ID: 2129, Name: "RpcMgmtSetServerStackSize", CallName: "RpcMgmtSetServerStackSize", Args: []Type{
@@ -10704,7 +10704,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "StatsVector", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 2131, Name: "RpcMgmtStopServerListening", CallName: "RpcMgmtStopServerListening", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2132, Name: "RpcMgmtWaitServerListen", CallName: "RpcMgmtWaitServerListen"},
 	{ID: 2133, Name: "RpcNetworkInqProtseqsA", CallName: "RpcNetworkInqProtseqsA", Args: []Type{
@@ -10716,64 +10716,64 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2135, Name: "RpcNsBindingExportA", CallName: "RpcNsBindingExportA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "EntryNameSyntax", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EntryName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingVec", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectUuidVec", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2136, Name: "RpcNsBindingExportPnPA", CallName: "RpcNsBindingExportPnPA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "EntryNameSyntax", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EntryName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectVector", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2137, Name: "RpcNsBindingImportBeginA", CallName: "RpcNsBindingImportBeginA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "EntryNameSyntax", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EntryName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjUuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ImportContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ImportContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2138, Name: "RpcNsBindingImportDone", CallName: "RpcNsBindingImportDone", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ImportContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ImportContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2139, Name: "RpcNsBindingImportNext", CallName: "RpcNsBindingImportNext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ImportContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ImportContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2140, Name: "RpcNsBindingInqEntryNameA", CallName: "RpcNsBindingInqEntryNameA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "EntryNameSyntax", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EntryName", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 	}},
 	{ID: 2141, Name: "RpcNsBindingLookupBeginA", CallName: "RpcNsBindingLookupBeginA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "EntryNameSyntax", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EntryName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjUuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "BindingMaxCount", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "LookupContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "LookupContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2142, Name: "RpcNsBindingLookupDone", CallName: "RpcNsBindingLookupDone", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "LookupContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "LookupContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2143, Name: "RpcNsBindingLookupNext", CallName: "RpcNsBindingLookupNext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "LookupContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "LookupContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingVec", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 2144, Name: "RpcNsBindingSelect", CallName: "RpcNsBindingSelect", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingVec", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2145, Name: "RpcNsBindingUnexportA", CallName: "RpcNsBindingUnexportA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "EntryNameSyntax", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EntryName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectUuidVec", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2146, Name: "RpcNsBindingUnexportPnPA", CallName: "RpcNsBindingUnexportPnPA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "EntryNameSyntax", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EntryName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfSpec", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectVector", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2147, Name: "RpcNsEntryExpandNameA", CallName: "RpcNsEntryExpandNameA", Args: []Type{
@@ -10784,13 +10784,13 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2148, Name: "RpcNsEntryObjectInqBeginA", CallName: "RpcNsEntryObjectInqBeginA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "EntryNameSyntax", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "EntryName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2149, Name: "RpcNsEntryObjectInqDone", CallName: "RpcNsEntryObjectInqDone", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2150, Name: "RpcNsEntryObjectInqNext", CallName: "RpcNsEntryObjectInqNext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjUuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2151, Name: "RpcNsGroupDeleteA", CallName: "RpcNsGroupDeleteA", Args: []Type{
@@ -10807,13 +10807,13 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "GroupNameSyntax", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "GroupName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "MemberNameSyntax", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2154, Name: "RpcNsGroupMbrInqDone", CallName: "RpcNsGroupMbrInqDone", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2155, Name: "RpcNsGroupMbrInqNextA", CallName: "RpcNsGroupMbrInqNextA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "MemberName", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 	}},
 	{ID: 2156, Name: "RpcNsGroupMbrRemoveA", CallName: "RpcNsGroupMbrRemoveA", Args: []Type{
@@ -10843,7 +10843,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfIdVec", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}}},
 	}},
 	{ID: 2161, Name: "RpcNsMgmtHandleSetExpAge", CallName: "RpcNsMgmtHandleSetExpAge", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NsHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NsHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ExpirationAge", TypeSize: 4}}},
 	}},
 	{ID: 2162, Name: "RpcNsMgmtInqExpAge", CallName: "RpcNsMgmtInqExpAge", Args: []Type{
@@ -10873,13 +10873,13 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "VersOption", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "MemberNameSyntax", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "MemberName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2167, Name: "RpcNsProfileEltInqDone", CallName: "RpcNsProfileEltInqDone", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2168, Name: "RpcNsProfileEltInqNextA", CallName: "RpcNsProfileEltInqNextA", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "InquiryContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "IfId", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "MemberName", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Priority", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -10912,22 +10912,22 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2175, Name: "RpcRevertContainerImpersonation", CallName: "RpcRevertContainerImpersonation"},
 	{ID: 2176, Name: "RpcRevertToSelf", CallName: "RpcRevertToSelf"},
 	{ID: 2177, Name: "RpcRevertToSelfEx", CallName: "RpcRevertToSelfEx", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2178, Name: "RpcSmAllocate", CallName: "RpcSmAllocate", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "Size", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pStatus", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2179, Name: "RpcSmClientFree", CallName: "RpcSmClientFree", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pNodeToFree", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pNodeToFree", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2180, Name: "RpcSmDestroyClientContext", CallName: "RpcSmDestroyClientContext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ContextHandle", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ContextHandle", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2181, Name: "RpcSmDisableAllocate", CallName: "RpcSmDisableAllocate"},
 	{ID: 2182, Name: "RpcSmEnableAllocate", CallName: "RpcSmEnableAllocate"},
 	{ID: 2183, Name: "RpcSmFree", CallName: "RpcSmFree", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NodeToFree", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NodeToFree", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2184, Name: "RpcSmGetThreadHandle", CallName: "RpcSmGetThreadHandle", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pStatus", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
@@ -10937,7 +10937,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientFree", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2186, Name: "RpcSmSetThreadHandle", CallName: "RpcSmSetThreadHandle", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Id", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Id", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2187, Name: "RpcSmSwapClientAllocFree", CallName: "RpcSmSwapClientAllocFree", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientAlloc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -10949,25 +10949,25 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "Size", TypeSize: 8}}},
 	}},
 	{ID: 2189, Name: "RpcSsContextLockExclusive", CallName: "RpcSsContextLockExclusive", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerBindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UserContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerBindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UserContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2190, Name: "RpcSsContextLockShared", CallName: "RpcSsContextLockShared", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerBindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UserContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ServerBindingHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UserContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2191, Name: "RpcSsDestroyClientContext", CallName: "RpcSsDestroyClientContext", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ContextHandle", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ContextHandle", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2192, Name: "RpcSsDisableAllocate", CallName: "RpcSsDisableAllocate"},
 	{ID: 2193, Name: "RpcSsDontSerializeContext", CallName: "RpcSsDontSerializeContext"},
 	{ID: 2194, Name: "RpcSsEnableAllocate", CallName: "RpcSsEnableAllocate"},
 	{ID: 2195, Name: "RpcSsFree", CallName: "RpcSsFree", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NodeToFree", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "NodeToFree", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2196, Name: "RpcSsGetContextBinding", CallName: "RpcSsGetContextBinding", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ContextHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ContextHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Binding", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2197, Name: "RpcSsGetThreadHandle", CallName: "RpcSsGetThreadHandle"},
 	{ID: 2198, Name: "RpcSsSetClientAllocFree", CallName: "RpcSsSetClientAllocFree", Args: []Type{
@@ -10975,7 +10975,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientFree", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2199, Name: "RpcSsSetThreadHandle", CallName: "RpcSsSetThreadHandle", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Id", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Id", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2200, Name: "RpcSsSwapClientAllocFree", CallName: "RpcSsSwapClientAllocFree", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ClientAlloc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -11044,7 +11044,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2213, Name: "SHGetImageList", CallName: "SHGetImageList", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "iImageList", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "riid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvObj", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppvObj", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2214, Name: "SHGetLocalizedName", CallName: "SHGetLocalizedName", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pszPath", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
@@ -11062,7 +11062,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2216, Name: "SHGetPropertyStoreForWindow", CallName: "SHGetPropertyStoreForWindow", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hwnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "riid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppv", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppv", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2217, Name: "SHGetStockIconInfo", CallName: "SHGetStockIconInfo", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "siid", TypeSize: 4}}},
@@ -11178,7 +11178,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2238, Name: "SelectObject", CallName: "SelectObject", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "h", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "h", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2239, Name: "SelectPalette", CallName: "SelectPalette", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -11238,7 +11238,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2248, Name: "SetAclInformation", CallName: "SetAclInformation", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAcl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAclInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pAclInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nAclInformationLength", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAclInformationClass", TypeSize: 4}}},
 	}},
@@ -11252,7 +11252,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2251, Name: "SetBitmapBits", CallName: "SetBitmapBits", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hbm", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cb", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2252, Name: "SetBitmapDimensionEx", CallName: "SetBitmapDimensionEx", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hbm", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -11456,7 +11456,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hbm", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "start", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cLines", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBits", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpbmi", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ColorUse", TypeSize: 4}}},
 	}},
@@ -11487,7 +11487,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2305, Name: "SetDeviceGammaRamp", CallName: "SetDeviceGammaRamp", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpRamp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpRamp", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2306, Name: "SetDisplayAutoRotationPreferences", CallName: "SetDisplayAutoRotationPreferences", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "orientation", TypeSize: 4}}},
@@ -11577,7 +11577,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2327, Name: "SetFileInformationByHandle", CallName: "SetFileInformationByHandle", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFile", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "FileInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwBufferSize", TypeSize: 4}}},
 	}},
 	{ID: 2328, Name: "SetFileIoOverlappedRange", CallName: "SetFileIoOverlappedRange", Args: []Type{
@@ -11600,7 +11600,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2331, Name: "SetFileSecurityA", CallName: "SetFileSecurityA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFileName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "SecurityInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2332, Name: "SetFileShortNameA", CallName: "SetFileShortNameA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFile", TypeSize: 8}},
@@ -11619,13 +11619,13 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2335, Name: "SetFirmwareEnvironmentVariableA", CallName: "SetFirmwareEnvironmentVariableA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpGuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nSize", TypeSize: 4}}},
 	}},
 	{ID: 2336, Name: "SetFirmwareEnvironmentVariableExA", CallName: "SetFirmwareEnvironmentVariableExA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpGuid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nSize", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwAttributes", TypeSize: 4}}},
 	}},
@@ -11671,7 +11671,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2346, Name: "SetInformationJobObject", CallName: "SetInformationJobObject", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hJob", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "JobObjectInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpJobObjectInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpJobObjectInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbJobObjectInformationLength", TypeSize: 4}}},
 	}},
 	{ID: 2347, Name: "SetIoRateControlInformationJobObject", CallName: "SetIoRateControlInformationJobObject", Args: []Type{
@@ -11693,7 +11693,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2350, Name: "SetKernelObjectSecurity", CallName: "SetKernelObjectSecurity", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "Handle", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "SecurityInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2351, Name: "SetKeyboardState", CallName: "SetKeyboardState", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpKeyState", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
@@ -11861,15 +11861,15 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2386, Name: "SetPrivateObjectSecurity", CallName: "SetPrivateObjectSecurity", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "SecurityInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ModificationDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectsSecurityDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ModificationDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectsSecurityDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "GenericMapping", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "Token", TypeSize: 8}},
 	}},
 	{ID: 2387, Name: "SetPrivateObjectSecurityEx", CallName: "SetPrivateObjectSecurityEx", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "SecurityInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ModificationDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectsSecurityDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ModificationDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ObjectsSecurityDescriptor", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AutoInheritFlags", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "GenericMapping", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "Token", TypeSize: 8}},
@@ -11900,12 +11900,12 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2395, Name: "SetProcessInformation", CallName: "SetProcessInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ProcessInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ProcessInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ProcessInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ProcessInformationSize", TypeSize: 4}}},
 	}},
 	{ID: 2396, Name: "SetProcessMitigationPolicy", CallName: "SetProcessMitigationPolicy", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "MitigationPolicy", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwLength", TypeSize: 8}}},
 	}},
 	{ID: 2397, Name: "SetProcessPreferredUILanguages", CallName: "SetProcessPreferredUILanguages", Args: []Type{
@@ -11926,7 +11926,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2401, Name: "SetProcessValidCallTargets", CallName: "SetProcessValidCallTargets", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "VirtualAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "RegionSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "NumberOfOffsets", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "OffsetInformation", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -12003,32 +12003,32 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "DesiredAccess", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2416, Name: "SetSecurityDescriptorControl", CallName: "SetSecurityDescriptorControl", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "ControlBitsOfInterest", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "ControlBitsToSet", TypeSize: 2}}},
 	}},
 	{ID: 2417, Name: "SetSecurityDescriptorDacl", CallName: "SetSecurityDescriptorDacl", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bDaclPresent", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pDacl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bDaclDefaulted", TypeSize: 4}}},
 	}},
 	{ID: 2418, Name: "SetSecurityDescriptorGroup", CallName: "SetSecurityDescriptorGroup", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pGroup", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pGroup", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bGroupDefaulted", TypeSize: 4}}},
 	}},
 	{ID: 2419, Name: "SetSecurityDescriptorOwner", CallName: "SetSecurityDescriptorOwner", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOwner", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pOwner", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bOwnerDefaulted", TypeSize: 4}}},
 	}},
 	{ID: 2420, Name: "SetSecurityDescriptorRMControl", CallName: "SetSecurityDescriptorRMControl", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "RMControl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 2421, Name: "SetSecurityDescriptorSacl", CallName: "SetSecurityDescriptorSacl", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bSaclPresent", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSacl", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bSaclDefaulted", TypeSize: 4}}},
@@ -12036,7 +12036,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2422, Name: "SetServiceObjectSecurity", CallName: "SetServiceObjectSecurity", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hService", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwSecurityInformation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2423, Name: "SetServiceStatus", CallName: "SetServiceStatus", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hServiceStatus", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -12087,7 +12087,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2434, Name: "SetTapeParameters", CallName: "SetTapeParameters", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hDevice", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwOperation", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpTapeInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpTapeInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2435, Name: "SetTapePosition", CallName: "SetTapePosition", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hDevice", TypeSize: 8}},
@@ -12152,7 +12152,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2449, Name: "SetThreadInformation", CallName: "SetThreadInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hThread", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ThreadInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ThreadInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ThreadInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ThreadInformationSize", TypeSize: 4}}},
 	}},
 	{ID: 2450, Name: "SetThreadLocale", CallName: "SetThreadLocale", Args: []Type{
@@ -12219,7 +12219,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwa", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "h", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pftTimeout", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Reserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Reserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2465, Name: "SetTimeZoneInformation", CallName: "SetTimeZoneInformation", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpTimeZoneInformation", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -12233,7 +12233,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2467, Name: "SetTimerQueueTimer", CallName: "SetTimerQueueTimer", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "TimerQueue", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Callback", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Parameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Parameter", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "DueTime", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Period", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "PreferIo", TypeSize: 4}}},
@@ -12241,13 +12241,13 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2468, Name: "SetTokenInformation", CallName: "SetTokenInformation", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "TokenHandle", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "TokenInformationClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "TokenInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "TokenInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "TokenInformationLength", TypeSize: 4}}},
 	}},
 	{ID: 2469, Name: "SetUmsThreadInformation", CallName: "SetUmsThreadInformation", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThread", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "UmsThreadInfoClass", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThreadInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "UmsThreadInformation", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "UmsThreadInformationLength", TypeSize: 4}}},
 	}},
 	{ID: 2470, Name: "SetUnhandledExceptionFilter", CallName: "SetUnhandledExceptionFilter", Args: []Type{
@@ -12260,7 +12260,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pEncryptionCertificate", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwCapabilities", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2473, Name: "SetUserGeoID", CallName: "SetUserGeoID", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "GeoId", TypeSize: 4}}},
@@ -12268,13 +12268,13 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2474, Name: "SetUserObjectInformationA", CallName: "SetUserObjectInformationA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hObj", TypeSize: 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nIndex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvInfo", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nLength", TypeSize: 4}}},
 	}},
 	{ID: 2475, Name: "SetUserObjectSecurity", CallName: "SetUserObjectSecurity", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hObj", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSIRequested", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSID", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSID", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2476, Name: "SetViewportExtEx", CallName: "SetViewportExtEx", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hdc", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -12301,7 +12301,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpDueTime", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lPeriod", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnCompletionRoutine", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpArgToCompletionRoutine", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpArgToCompletionRoutine", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fResume", TypeSize: 4}}},
 	}},
 	{ID: 2481, Name: "SetWaitableTimerEx", CallName: "SetWaitableTimerEx", Args: []Type{
@@ -12309,7 +12309,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpDueTime", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lPeriod", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfnCompletionRoutine", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpArgToCompletionRoutine", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpArgToCompletionRoutine", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "WakeContext", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "TolerableDelay", TypeSize: 4}}},
 	}},
@@ -12347,7 +12347,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "feedback", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "configuration", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "configuration", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2488, Name: "SetWindowLongA", CallName: "SetWindowLongA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -12567,9 +12567,9 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "stgfmt", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "grfAttrs", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pStgOptions", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "riid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppObjectOpen", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppObjectOpen", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2535, Name: "StgIsStorageFile", CallName: "StgIsStorageFile", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pwcsName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
@@ -12598,9 +12598,9 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "stgfmt", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "grfAttrs", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pStgOptions", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pSecurityDescriptor", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "riid", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppObjectOpen", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ppObjectOpen", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2540, Name: "StgOpenStorageOnILockBytes", CallName: "StgOpenStorageOnILockBytes", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "plkbyt", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -12665,7 +12665,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hDesktop", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2552, Name: "SwitchToFiber", CallName: "SwitchToFiber", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFiber", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpFiber", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2553, Name: "SwitchToThisWindow", CallName: "SwitchToThisWindow", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hwnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -12675,13 +12675,13 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2555, Name: "SystemParametersInfoA", CallName: "SystemParametersInfoA", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uiAction", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uiParam", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvParam", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvParam", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fWinIni", TypeSize: 4}}},
 	}},
 	{ID: 2556, Name: "SystemParametersInfoForDpi", CallName: "SystemParametersInfoForDpi", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uiAction", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uiParam", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvParam", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvParam", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "fWinIni", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dpi", TypeSize: 4}}},
 	}},
@@ -12747,7 +12747,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2570, Name: "TlsSetValue", CallName: "TlsSetValue", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwTlsIndex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpTlsValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpTlsValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2571, Name: "ToAscii", CallName: "ToAscii", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uVirtKey", TypeSize: 4}}},
@@ -12803,9 +12803,9 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2578, Name: "TransactNamedPipe", CallName: "TransactNamedPipe", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hNamedPipe", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpInBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpInBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nInBufferSize", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOutBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nOutBufferSize", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBytesRead", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOverlapped", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -12862,7 +12862,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2589, Name: "TrySubmitThreadpoolCallback", CallName: "TrySubmitThreadpoolCallback", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfns", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pv", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcbe", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2590, Name: "TzSpecificLocalTimeToSystemTime", CallName: "TzSpecificLocalTimeToSystemTime", Args: []Type{
@@ -12876,7 +12876,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpUniversalTime", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2592, Name: "UmsThreadYield", CallName: "UmsThreadYield", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SchedulerParam", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "SchedulerParam", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2593, Name: "UnhandledExceptionFilter", CallName: "UnhandledExceptionFilter", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ExceptionInfo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -12914,13 +12914,13 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOverlapped", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2601, Name: "UnlockServiceDatabase", CallName: "UnlockServiceDatabase", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ScLock", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ScLock", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2602, Name: "UnmapViewOfFile", CallName: "UnmapViewOfFile", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2603, Name: "UnmapViewOfFileEx", CallName: "UnmapViewOfFileEx", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "UnmapFlags", TypeSize: 4}}},
 	}},
 	{ID: 2604, Name: "UnpackDDElParam", CallName: "UnpackDDElParam", Args: []Type{
@@ -12930,19 +12930,19 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "puiHi", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2605, Name: "UnrealizeObject", CallName: "UnrealizeObject", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "h", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "h", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2606, Name: "UnregisterApplicationRecoveryCallback", CallName: "UnregisterApplicationRecoveryCallback"},
 	{ID: 2607, Name: "UnregisterApplicationRestart", CallName: "UnregisterApplicationRestart"},
 	{ID: 2608, Name: "UnregisterBadMemoryNotification", CallName: "UnregisterBadMemoryNotification", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "RegistrationHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "RegistrationHandle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2609, Name: "UnregisterClassA", CallName: "UnregisterClassA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpClassName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hInstance", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2610, Name: "UnregisterDeviceNotification", CallName: "UnregisterDeviceNotification", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Handle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Handle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2611, Name: "UnregisterHotKey", CallName: "UnregisterHotKey", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hWnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -12957,10 +12957,10 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pointerType", TypeSize: 4}}},
 	}},
 	{ID: 2614, Name: "UnregisterPowerSettingNotification", CallName: "UnregisterPowerSettingNotification", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Handle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Handle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2615, Name: "UnregisterSuspendResumeNotification", CallName: "UnregisterSuspendResumeNotification", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Handle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Handle", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2616, Name: "UnregisterTouchWindow", CallName: "UnregisterTouchWindow", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hwnd", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -13000,9 +13000,9 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAttributeList", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFlags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "Attribute", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "cbSize", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpPreviousValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpPreviousValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReturnSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2624, Name: "UpdateResourceA", CallName: "UpdateResourceA", Args: []Type{
@@ -13010,7 +13010,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpType", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpName", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "wLanguage", TypeSize: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpData", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cb", TypeSize: 4}}},
 	}},
 	{ID: 2625, Name: "UpdateWindow", CallName: "UpdateWindow", Args: []Type{
@@ -13141,72 +13141,72 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2652, Name: "VirtualAllocEx", CallName: "VirtualAllocEx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flAllocationType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flProtect", TypeSize: 4}}},
 	}},
 	{ID: 2653, Name: "VirtualAllocExNuma", CallName: "VirtualAllocExNuma", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flAllocationType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flProtect", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nndPreferred", TypeSize: 4}}},
 	}},
 	{ID: 2654, Name: "VirtualAllocFromApp", CallName: "VirtualAllocFromApp", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "BaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "Size", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "AllocationType", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "Protection", TypeSize: 4}}},
 	}},
 	{ID: 2655, Name: "VirtualFree", CallName: "VirtualFree", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFreeType", TypeSize: 4}}},
 	}},
 	{ID: 2656, Name: "VirtualFreeEx", CallName: "VirtualFreeEx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwFreeType", TypeSize: 4}}},
 	}},
 	{ID: 2657, Name: "VirtualLock", CallName: "VirtualLock", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwSize", TypeSize: 8}}},
 	}},
 	{ID: 2658, Name: "VirtualProtect", CallName: "VirtualProtect", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flNewProtect", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpflOldProtect", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2659, Name: "VirtualProtectEx", CallName: "VirtualProtectEx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flNewProtect", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpflOldProtect", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2660, Name: "VirtualProtectFromApp", CallName: "VirtualProtectFromApp", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Address", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Address", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "Size", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "NewProtection", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "OldProtection", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2661, Name: "VirtualQuery", CallName: "VirtualQuery", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwLength", TypeSize: 8}}},
 	}},
 	{ID: 2662, Name: "VirtualQueryEx", CallName: "VirtualQueryEx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwLength", TypeSize: 8}}},
 	}},
 	{ID: 2663, Name: "VirtualUnlock", CallName: "VirtualUnlock", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "dwSize", TypeSize: 8}}},
 	}},
 	{ID: 2664, Name: "VkKeyScanA", CallName: "VkKeyScanA", Args: []Type{
@@ -13263,7 +13263,7 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2676, Name: "WNetEnumResourceA", CallName: "WNetEnumResourceA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hEnum", TypeSize: 8}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpcCount", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBufferSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2677, Name: "WNetGetConnectionA", CallName: "WNetGetConnectionA", Args: []Type{
@@ -13289,19 +13289,19 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2681, Name: "WNetGetResourceInformationA", CallName: "WNetGetResourceInformationA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNetResource", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpcbBuffer", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lplpSystem", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}}},
 	}},
 	{ID: 2682, Name: "WNetGetResourceParentA", CallName: "WNetGetResourceParentA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNetResource", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpcbBuffer", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2683, Name: "WNetGetUniversalNameA", CallName: "WNetGetUniversalNameA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpLocalPath", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwInfoLevel", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBufferSize", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 2684, Name: "WNetGetUserA", CallName: "WNetGetUserA", Args: []Type{
@@ -13422,13 +13422,13 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2709, Name: "WaitForMultipleObjects", CallName: "WaitForMultipleObjects", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nCount", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpHandles", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpHandles", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bWaitAll", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMilliseconds", TypeSize: 4}}},
 	}},
 	{ID: 2710, Name: "WaitForMultipleObjectsEx", CallName: "WaitForMultipleObjectsEx", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nCount", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpHandles", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpHandles", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bWaitAll", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMilliseconds", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bAlertable", TypeSize: 4}}},
@@ -13468,8 +13468,8 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nTimeOut", TypeSize: 4}}},
 	}},
 	{ID: 2720, Name: "WaitOnAddress", CallName: "WaitOnAddress", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Address", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CompareAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Address", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "CompareAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "AddressSize", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dwMilliseconds", TypeSize: 4}}},
 	}},
@@ -13483,10 +13483,10 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ConditionVariable", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2723, Name: "WakeByAddressAll", CallName: "WakeByAddressAll", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Address", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Address", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2724, Name: "WakeByAddressSingle", CallName: "WakeByAddressSingle", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Address", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "Address", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2725, Name: "WakeConditionVariable", CallName: "WakeConditionVariable", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ConditionVariable", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -13524,7 +13524,7 @@ var syscalls_amd64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "Point", TypeSize: 8}}},
 	}},
 	{ID: 2733, Name: "Wow64DisableWow64FsRedirection", CallName: "Wow64DisableWow64FsRedirection", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "OldValue", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "OldValue", TypeSize: 8}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}}},
 	}},
 	{ID: 2734, Name: "Wow64EnableWow64FsRedirection", CallName: "Wow64EnableWow64FsRedirection", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "Wow64FsEnableRedirection", TypeSize: 1}}},
@@ -13539,7 +13539,7 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpSelectorEntry", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2737, Name: "Wow64RevertWow64FsRedirection", CallName: "Wow64RevertWow64FsRedirection", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "OlValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "OlValue", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2738, Name: "Wow64SetThreadContext", CallName: "Wow64SetThreadContext", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hThread", TypeSize: 8}},
@@ -13561,10 +13561,10 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2743, Name: "WriteConsoleA", CallName: "WriteConsoleA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hConsoleOutput", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nNumberOfCharsToWrite", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNumberOfCharsWritten", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2744, Name: "WriteConsoleInputA", CallName: "WriteConsoleInputA", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hConsoleInput", TypeSize: 8}},
@@ -13595,19 +13595,19 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2748, Name: "WriteEncryptedFileRaw", CallName: "WriteEncryptedFileRaw", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pfImportCallback", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvCallbackContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvCallbackContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pvContext", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2749, Name: "WriteFile", CallName: "WriteFile", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFile", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nNumberOfBytesToWrite", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNumberOfBytesWritten", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOverlapped", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 	}},
 	{ID: 2750, Name: "WriteFileEx", CallName: "WriteFileEx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hFile", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nNumberOfBytesToWrite", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpOverlapped", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpCompletionRoutine", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -13621,7 +13621,7 @@ var syscalls_amd64 = []*Syscall{
 	}},
 	{ID: 2752, Name: "WritePrinter", CallName: "WritePrinter", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hPrinter", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pBuf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pBuf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cbBuf", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pcWritten", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}},
@@ -13639,14 +13639,14 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2755, Name: "WritePrivateProfileStructA", CallName: "WritePrivateProfileStructA", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszSection", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpszKey", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStruct", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpStruct", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "uSizeStruct", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "szFile", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1, ArgDir: 2}}}},
 	}},
 	{ID: 2756, Name: "WriteProcessMemory", CallName: "WriteProcessMemory", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "HANDLE", FldName: "hProcess", TypeSize: 8}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBaseAddress", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpBuffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "nSize", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lpNumberOfBytesWritten", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}},
@@ -13896,12 +13896,12 @@ var syscalls_amd64 = []*Syscall{
 	{ID: 2816, Name: "midiConnect", CallName: "midiConnect", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hmi", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hmo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2817, Name: "midiDisconnect", CallName: "midiDisconnect", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hmi", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hmo", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pReserved", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 2818, Name: "midiInAddBuffer", CallName: "midiInAddBuffer", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hmi", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8, ArgDir: 2}}}},
@@ -14612,4 +14612,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WRITE_OWNER", Value: 524288},
 }
 
-const revision_amd64 = "97353516850eeffbb71bb94a12f1991ff6ad15c4"
+const revision_amd64 = "5d63c10c1e139f4a33dae8f94809285dae73a415"

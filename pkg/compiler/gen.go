@@ -200,34 +200,15 @@ func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStru
 	return structs
 }
 
-func (comp *compiler) genStructDesc(res *prog.StructDesc, n *ast.Struct, dir prog.Dir) {
+func (comp *compiler) genStructDesc(res *prog.StructDesc, n *ast.Struct, dir prog.Dir, varlen bool) {
 	// Leave node for genStructDescs to calculate size/padding.
 	comp.structNodes[res] = n
+	common := genCommon(n.Name.Name, "", sizeUnassigned, dir, false)
+	common.IsVarlen = varlen
 	*res = prog.StructDesc{
-		TypeCommon: genCommon(n.Name.Name, "", sizeUnassigned, dir, false),
+		TypeCommon: common,
 		Fields:     comp.genFieldArray(n.Fields, dir, false),
 	}
-}
-
-func (comp *compiler) isStructVarlen(name string) bool {
-	if varlen, ok := comp.structVarlen[name]; ok {
-		return varlen
-	}
-	s := comp.structs[name]
-	if s.IsUnion && comp.parseUnionAttrs(s) {
-		comp.structVarlen[name] = true
-		return true
-	}
-	comp.structVarlen[name] = false // to not hang on recursive types
-	varlen := false
-	for _, fld := range s.Fields {
-		if comp.isVarlen(fld.Type) {
-			varlen = true
-			break
-		}
-	}
-	comp.structVarlen[name] = varlen
-	return varlen
 }
 
 func (comp *compiler) markBitfields(fields []prog.Type) {
@@ -379,6 +360,7 @@ func (comp *compiler) genType(t *ast.Type, field string, dir prog.Dir, isArg boo
 	if desc.Gen == nil {
 		panic(fmt.Sprintf("no gen for %v %#v", field, t))
 	}
+	base.IsVarlen = desc.Varlen != nil && desc.Varlen(comp, t, args)
 	return desc.Gen(comp, t, args, base)
 }
 

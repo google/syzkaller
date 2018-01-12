@@ -50,6 +50,7 @@ type TypeCommon struct {
 	TypeSize   uint64 // static size of the type, or 0 for variable size types
 	ArgDir     Dir
 	IsOptional bool
+	IsVarlen   bool
 }
 
 func (t *TypeCommon) Name() string {
@@ -69,14 +70,14 @@ func (t *TypeCommon) Default() uint64 {
 }
 
 func (t *TypeCommon) Size() uint64 {
-	if t.Varlen() {
+	if t.IsVarlen {
 		panic(fmt.Sprintf("static type size is not known: %#v", t))
 	}
 	return t.TypeSize
 }
 
 func (t *TypeCommon) Varlen() bool {
-	return t.TypeSize == 0
+	return t.IsVarlen
 }
 
 func (t *TypeCommon) BitfieldOffset() uint64 {

@@ -29,6 +29,8 @@ type typeDesc struct {
 	CheckConsts func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon)
 	// Varlen returns if the type is variable-length (false if not set).
 	Varlen func(comp *compiler, t *ast.Type, args []*ast.Type) bool
+	// ZeroSize returns if the type has static 0 size (false if not set).
+	ZeroSize func(comp *compiler, t *ast.Type, args []*ast.Type) bool
 	// Gen generates corresponding prog.Type.
 	Gen func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type
 }
@@ -100,6 +102,24 @@ var typePtr = &typeDesc{
 	},
 }
 
+var typeVoid = &typeDesc{
+	Names:     []string{"void"},
+	CantBeOpt: true,
+	CantBeRet: true,
+	ZeroSize: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
+		return true
+	},
+	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
+		base.TypeSize = 0 // the only type with static size 0
+		return &prog.BufferType{
+			TypeCommon: base.TypeCommon,
+			Kind:       prog.BufferBlobRange,
+			RangeBegin: 0,
+			RangeEnd:   0,
+		}
+	},
+}
+
 var typeArray = &typeDesc{
 	Names:     []string{"array"},
 	CantBeOpt: true,
@@ -107,11 +127,13 @@ var typeArray = &typeDesc{
 	Args:      []namedArg{{"type", typeArgType}, {"size", typeArgRange}},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if len(args) > 1 && args[1].Value == 0 && args[1].Value2 == 0 {
-			// This is the only case that can yield 0 static type size.
 			comp.error(args[1].Pos, "arrays of size 0 are not supported")
 		}
 	},
 	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
+		if comp.isZeroSize(args[0]) {
+			return false
+		}
 		if comp.isVarlen(args[0]) {
 			return true
 		}
@@ -119,6 +141,9 @@ var typeArray = &typeDesc{
 			return args[1].Value != args[1].Value2
 		}
 		return true
+	},
+	ZeroSize: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
+		return comp.isZeroSize(args[0])
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		elemType := comp.genType(args[0], "", base.ArgDir, false)
@@ -401,11 +426,13 @@ var typeBuffer = &typeDesc{
 	Args:     []namedArg{{"direction", typeArgDir}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		base.TypeSize = comp.ptrSize
+		common := genCommon("", "", 0, genDir(args[0]), false)
+		// BufferBlobRand is always varlen.
+		common.IsVarlen = true
 		return &prog.PtrType{
 			TypeCommon: base.TypeCommon,
 			Type: &prog.BufferType{
-				// BufferBlobRand is always varlen.
-				TypeCommon: genCommon("", "", 0, genDir(args[0]), false),
+				TypeCommon: common,
 				Kind:       prog.BufferBlobRand,
 			},
 		}
@@ -539,7 +566,32 @@ var typeStruct = &typeDesc{
 
 func init() {
 	typeStruct.Varlen = func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
-		return comp.isStructVarlen(t.Ident)
+		if varlen, ok := comp.structVarlen[t.Ident]; ok {
+			return varlen
+		}
+		s := comp.structs[t.Ident]
+		if s.IsUnion && comp.parseUnionAttrs(s) {
+			comp.structVarlen[t.Ident] = true
+			return true
+		}
+		comp.structVarlen[t.Ident] = false // to not hang on recursive types
+		varlen := false
+		for _, fld := range s.Fields {
+			if comp.isVarlen(fld.Type) {
+				varlen = true
+				break
+			}
+		}
+		comp.structVarlen[t.Ident] = varlen
+		return varlen
+	}
+	typeStruct.ZeroSize = func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
+		for _, fld := range comp.structs[t.Ident].Fields {
+			if !comp.isZeroSize(fld.Type) {
+				return false
+			}
+		}
+		return true
 	}
 	typeStruct.Gen = func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		s := comp.structs[t.Ident]
@@ -549,7 +601,7 @@ func init() {
 			// Need to assign to structDescs before calling genStructDesc to break recursion.
 			desc = new(prog.StructDesc)
 			comp.structDescs[key] = desc
-			comp.genStructDesc(desc, s, base.ArgDir)
+			comp.genStructDesc(desc, s, base.ArgDir, typeStruct.Varlen(comp, t, args))
 		}
 		if s.IsUnion {
 			return &prog.UnionType{
@@ -663,6 +715,7 @@ func init() {
 	builtins := []*typeDesc{
 		typeInt,
 		typePtr,
+		typeVoid,
 		typeArray,
 		typeLen,
 		typeConst,

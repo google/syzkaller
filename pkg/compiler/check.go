@@ -850,6 +850,11 @@ func (comp *compiler) isVarlen(t *ast.Type) bool {
 	return desc.Varlen != nil && desc.Varlen(comp, t, args)
 }
 
+func (comp *compiler) isZeroSize(t *ast.Type) bool {
+	desc, args, _ := comp.getArgsBase(t, "", prog.DirIn, false)
+	return desc.ZeroSize != nil && desc.ZeroSize(comp, t, args)
+}
+
 func (comp *compiler) checkVarlen(n *ast.Struct) {
 	// Non-varlen unions can't have varlen fields.
 	// Non-packed structs can't have varlen fields in the middle.
