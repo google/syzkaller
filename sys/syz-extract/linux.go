@@ -5,6 +5,7 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -19,11 +20,17 @@ func (*linux) prepare(sourcedir string, build bool, arches []string) error {
 		return fmt.Errorf("provide path to kernel checkout via -sourcedir flag (or make extract SOURCEDIR)")
 	}
 	if build {
-		// Otherwise out-of-tree build fails.
-		fmt.Printf("make mrproper\n")
-		out, err := osutil.RunCmd(time.Hour, sourcedir, "make", "mrproper")
-		if err != nil {
-			return fmt.Errorf("make mrproper failed: %v\n%s\n", err, out)
+		// Run 'make mrproper', otherwise out-of-tree build fails.
+		// However, it takes unreasonable amount of time,
+		// so first check few files and if they are missing hope for best.
+		if osutil.IsExist(filepath.Join(sourcedir, ".config")) ||
+			osutil.IsExist(filepath.Join(sourcedir, "init/main.o")) ||
+			osutil.IsExist(filepath.Join(sourcedir, "include/generated/compile.h")) {
+			fmt.Printf("make mrproper\n")
+			out, err := osutil.RunCmd(time.Hour, sourcedir, "make", "mrproper")
+			if err != nil {
+				return fmt.Errorf("make mrproper failed: %v\n%s\n", err, out)
+			}
 		}
 	} else {
 		if len(arches) > 1 {
