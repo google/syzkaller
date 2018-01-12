@@ -3,7 +3,6 @@
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
 #define SYZ_REVISION "0e5dbbd94e4838b9729df440c4c53e581768eaf8"
-
 unsigned syscall_count = 35;
 call_t syscalls[] = {
     {"abort_sysc_fd", 33},

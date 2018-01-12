@@ -2,14 +2,7 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "bf88123233782edf985573daabe2ce9e8ab359d3"
-#define __NR_syz_future_time 1000000
-#define __NR_syz_job_default 1000001
-#define __NR_syz_mmap 1000002
-#define __NR_syz_process_self 1000003
-#define __NR_syz_thread_self 1000004
-#define __NR_syz_vmar_root_self 1000005
-
+#define SYZ_REVISION "16f8d2a14dffe8465559442d33e3ca296f7ea4bf"
 unsigned syscall_count = 164;
 call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
@@ -61,12 +54,12 @@ call_t syscalls[] = {
     {"symlink", 0, (syscall_t)symlink},
     {"symlinkat", 0, (syscall_t)symlinkat},
     {"sync", 0, (syscall_t)sync},
-    {"syz_future_time", 1000000, (syscall_t)syz_future_time},
-    {"syz_job_default", 1000001, (syscall_t)syz_job_default},
-    {"syz_mmap", 1000002, (syscall_t)syz_mmap},
-    {"syz_process_self", 1000003, (syscall_t)syz_process_self},
-    {"syz_thread_self", 1000004, (syscall_t)syz_thread_self},
-    {"syz_vmar_root_self", 1000005, (syscall_t)syz_vmar_root_self},
+    {"syz_future_time", 0, (syscall_t)syz_future_time},
+    {"syz_job_default", 0, (syscall_t)syz_job_default},
+    {"syz_mmap", 0, (syscall_t)syz_mmap},
+    {"syz_process_self", 0, (syscall_t)syz_process_self},
+    {"syz_thread_self", 0, (syscall_t)syz_thread_self},
+    {"syz_vmar_root_self", 0, (syscall_t)syz_vmar_root_self},
     {"truncate", 0, (syscall_t)truncate},
     {"unlink", 0, (syscall_t)unlink},
     {"unlinkat", 0, (syscall_t)unlinkat},
@@ -182,14 +175,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "14ff01b7eced15d047733df6ca2896a97ba6f297"
-#define __NR_syz_future_time 1000000
-#define __NR_syz_job_default 1000001
-#define __NR_syz_mmap 1000002
-#define __NR_syz_process_self 1000003
-#define __NR_syz_thread_self 1000004
-#define __NR_syz_vmar_root_self 1000005
-
+#define SYZ_REVISION "c04cb066cf7fc135f9f85388423f3e65aedc5028"
 unsigned syscall_count = 164;
 call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
@@ -241,12 +227,12 @@ call_t syscalls[] = {
     {"symlink", 0, (syscall_t)symlink},
     {"symlinkat", 0, (syscall_t)symlinkat},
     {"sync", 0, (syscall_t)sync},
-    {"syz_future_time", 1000000, (syscall_t)syz_future_time},
-    {"syz_job_default", 1000001, (syscall_t)syz_job_default},
-    {"syz_mmap", 1000002, (syscall_t)syz_mmap},
-    {"syz_process_self", 1000003, (syscall_t)syz_process_self},
-    {"syz_thread_self", 1000004, (syscall_t)syz_thread_self},
-    {"syz_vmar_root_self", 1000005, (syscall_t)syz_vmar_root_self},
+    {"syz_future_time", 0, (syscall_t)syz_future_time},
+    {"syz_job_default", 0, (syscall_t)syz_job_default},
+    {"syz_mmap", 0, (syscall_t)syz_mmap},
+    {"syz_process_self", 0, (syscall_t)syz_process_self},
+    {"syz_thread_self", 0, (syscall_t)syz_thread_self},
+    {"syz_vmar_root_self", 0, (syscall_t)syz_vmar_root_self},
     {"truncate", 0, (syscall_t)truncate},
     {"unlink", 0, (syscall_t)unlink},
     {"unlinkat", 0, (syscall_t)unlinkat},

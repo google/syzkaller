@@ -81,7 +81,9 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		}
 		return &Prog{fileConsts: fileConsts}
 	}
-	comp.assignSyscallNumbers(consts)
+	if comp.target.SyscallNumbers {
+		comp.assignSyscallNumbers(consts)
+	}
 	comp.patchConsts(consts)
 	comp.check()
 	if comp.errors != 0 {
