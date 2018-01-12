@@ -14331,22 +14331,22 @@ var syscalls_ppc64le = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 8, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "buf"},
 	}},
-	{ID: 1383, NR: 1000000, Name: "syz_emit_ethernet", CallName: "syz_emit_ethernet", Args: []Type{
+	{ID: 1383, Name: "syz_emit_ethernet", CallName: "syz_emit_ethernet", Args: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "packet"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "packet", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "eth_packet"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "frags", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "vnet_fragmentation"}}},
 	}},
-	{ID: 1384, NR: 1000001, Name: "syz_extract_tcp_res", CallName: "syz_extract_tcp_res", Args: []Type{
+	{ID: 1384, Name: "syz_extract_tcp_res", CallName: "syz_extract_tcp_res", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "res", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "tcp_resources", Dir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq_inc", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ack_inc", TypeSize: 4}}},
 	}},
-	{ID: 1385, NR: 1000001, Name: "syz_extract_tcp_res$synack", CallName: "syz_extract_tcp_res", Args: []Type{
+	{ID: 1385, Name: "syz_extract_tcp_res$synack", CallName: "syz_extract_tcp_res", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "res", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "tcp_resources", Dir: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "seq_inc", TypeSize: 8}}, Val: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ack_inc", TypeSize: 8}}},
 	}},
-	{ID: 1386, NR: 1000002, Name: "syz_fuse_mount", CallName: "syz_fuse_mount", Args: []Type{
+	{ID: 1386, Name: "syz_fuse_mount", CallName: "syz_fuse_mount", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "target", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fuse_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{1, 2, 32768, 8192, 24576, 4096, 49152, 40960, 16384}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
@@ -14354,7 +14354,7 @@ var syscalls_ppc64le = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "maxread", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1387, NR: 1000003, Name: "syz_fuseblk_mount", CallName: "syz_fuseblk_mount", Args: []Type{
+	{ID: 1387, Name: "syz_fuseblk_mount", CallName: "syz_fuseblk_mount", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "target", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "blkdev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fuse_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{1, 2, 32768, 8192, 24576, 4096, 49152, 40960, 16384}},
@@ -14364,7 +14364,7 @@ var syscalls_ppc64le = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "blksize", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1388, NR: 1000004, Name: "syz_kvm_setup_cpu$arm64", CallName: "syz_kvm_setup_cpu", Args: []Type{
+	{ID: 1388, Name: "syz_kvm_setup_cpu$arm64", CallName: "syz_kvm_setup_cpu", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "cpufd", TypeSize: 4}},
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "usermem", TypeSize: 8}, RangeBegin: 24, RangeEnd: 24},
@@ -14374,7 +14374,7 @@ var syscalls_ppc64le = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 16}, Type: &UnionType{Key: StructKey{Name: "kvm_setup_opt_arm64"}}, Kind: 1, RangeBegin: 1, RangeEnd: 1}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nopt", TypeSize: 8}}, Buf: "opts"},
 	}},
-	{ID: 1389, NR: 1000004, Name: "syz_kvm_setup_cpu$x86", CallName: "syz_kvm_setup_cpu", Args: []Type{
+	{ID: 1389, Name: "syz_kvm_setup_cpu$x86", CallName: "syz_kvm_setup_cpu", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "cpufd", TypeSize: 4}},
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "usermem", TypeSize: 8}, RangeBegin: 24, RangeEnd: 24},
@@ -14384,176 +14384,176 @@ var syscalls_ppc64le = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "kvm_setup_opt_x86"}}, Kind: 1, RangeEnd: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nopt", TypeSize: 8}}, Buf: "opts"},
 	}},
-	{ID: 1390, NR: 1000005, Name: "syz_open_dev$admmidi", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1390, Name: "syz_open_dev$admmidi", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 14}, Kind: 2, Values: []string{"/dev/admmidi#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1391, NR: 1000005, Name: "syz_open_dev$adsp", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1391, Name: "syz_open_dev$adsp", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 11}, Kind: 2, Values: []string{"/dev/adsp#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1392, NR: 1000005, Name: "syz_open_dev$amidi", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1392, Name: "syz_open_dev$amidi", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 12}, Kind: 2, Values: []string{"/dev/amidi#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1393, NR: 1000005, Name: "syz_open_dev$audion", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1393, Name: "syz_open_dev$audion", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 12}, Kind: 2, Values: []string{"/dev/audio#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1394, NR: 1000005, Name: "syz_open_dev$binder", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1394, Name: "syz_open_dev$binder", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 13}, Kind: 2, Values: []string{"/dev/binder#\x00"}}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "id", TypeSize: 8}}, ValuesPerProc: 1},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "binder_open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{2, 2048}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_binder", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1395, NR: 1000005, Name: "syz_open_dev$dmmidi", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1395, Name: "syz_open_dev$dmmidi", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 13}, Kind: 2, Values: []string{"/dev/dmmidi#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1396, NR: 1000005, Name: "syz_open_dev$dri", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1396, Name: "syz_open_dev$dri", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 15}, Kind: 2, Values: []string{"/dev/dri/card#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dri", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1397, NR: 1000005, Name: "syz_open_dev$dricontrol", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1397, Name: "syz_open_dev$dricontrol", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 19}, Kind: 2, Values: []string{"/dev/dri/controlD#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dri", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1398, NR: 1000005, Name: "syz_open_dev$drirender", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1398, Name: "syz_open_dev$drirender", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 18}, Kind: 2, Values: []string{"/dev/dri/renderD#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dri", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1399, NR: 1000005, Name: "syz_open_dev$dspn", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1399, Name: "syz_open_dev$dspn", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 10}, Kind: 2, Values: []string{"/dev/dsp#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1400, NR: 1000005, Name: "syz_open_dev$evdev", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1400, Name: "syz_open_dev$evdev", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 18}, Kind: 2, Values: []string{"/dev/input/event#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1401, NR: 1000005, Name: "syz_open_dev$floppy", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1401, Name: "syz_open_dev$floppy", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 9}, Kind: 2, Values: []string{"/dev/fd#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1402, NR: 1000005, Name: "syz_open_dev$ircomm", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1402, Name: "syz_open_dev$ircomm", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 13}, Kind: 2, Values: []string{"/dev/ircomm#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1403, NR: 1000005, Name: "syz_open_dev$loop", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1403, Name: "syz_open_dev$loop", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 11}, Kind: 2, Values: []string{"/dev/loop#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_loop", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1404, NR: 1000005, Name: "syz_open_dev$mice", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1404, Name: "syz_open_dev$mice", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 16}, Kind: 2, Values: []string{"/dev/input/mice\x00"}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1405, NR: 1000005, Name: "syz_open_dev$midi", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1405, Name: "syz_open_dev$midi", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 11}, Kind: 2, Values: []string{"/dev/midi#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1406, NR: 1000005, Name: "syz_open_dev$mouse", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1406, Name: "syz_open_dev$mouse", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 18}, Kind: 2, Values: []string{"/dev/input/mouse#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1407, NR: 1000005, Name: "syz_open_dev$random", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1407, Name: "syz_open_dev$random", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 12}, Kind: 2, Values: []string{"/dev/random\x00"}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_random", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1408, NR: 1000005, Name: "syz_open_dev$sg", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1408, Name: "syz_open_dev$sg", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 9}, Kind: 2, Values: []string{"/dev/sg#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1409, NR: 1000005, Name: "syz_open_dev$sndctrl", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1409, Name: "syz_open_dev$sndctrl", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 19}, Kind: 2, Values: []string{"/dev/snd/controlC#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1410, NR: 1000005, Name: "syz_open_dev$sndhw", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1410, Name: "syz_open_dev$sndhw", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 16}, Kind: 2, Values: []string{"/dev/snd/hwC#D#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1411, NR: 1000005, Name: "syz_open_dev$sndmidi", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1411, Name: "syz_open_dev$sndmidi", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 18}, Kind: 2, Values: []string{"/dev/snd/midiC#D#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1412, NR: 1000005, Name: "syz_open_dev$sndpcmc", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1412, Name: "syz_open_dev$sndpcmc", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 18}, Kind: 2, Values: []string{"/dev/snd/pcmC#D#c\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1413, NR: 1000005, Name: "syz_open_dev$sndpcmp", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1413, Name: "syz_open_dev$sndpcmp", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 18}, Kind: 2, Values: []string{"/dev/snd/pcmC#D#p\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1414, NR: 1000005, Name: "syz_open_dev$sndseq", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1414, Name: "syz_open_dev$sndseq", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 13}, Kind: 2, Values: []string{"/dev/snd/seq\x00"}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndseq", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1415, NR: 1000005, Name: "syz_open_dev$sndtimer", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1415, Name: "syz_open_dev$sndtimer", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 15}, Kind: 2, Values: []string{"/dev/snd/timer\x00"}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndtimer", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1416, NR: 1000005, Name: "syz_open_dev$tlk_device", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1416, Name: "syz_open_dev$tlk_device", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 16}, Kind: 2, Values: []string{"/dev/tlk_device\x00"}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tlk", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1417, NR: 1000005, Name: "syz_open_dev$tun", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1417, Name: "syz_open_dev$tun", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 13}, Kind: 2, Values: []string{"/dev/net/tun\x00"}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1418, NR: 1000005, Name: "syz_open_dev$urandom", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1418, Name: "syz_open_dev$urandom", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 13}, Kind: 2, Values: []string{"/dev/urandom\x00"}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_random", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1419, NR: 1000005, Name: "syz_open_dev$usb", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1419, Name: "syz_open_dev$usb", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 21}, Kind: 2, Values: []string{"/dev/bus/usb/00#/00#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1420, NR: 1000005, Name: "syz_open_dev$usbmon", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1420, Name: "syz_open_dev$usbmon", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 13}, Kind: 2, Values: []string{"/dev/usbmon#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1421, NR: 1000005, Name: "syz_open_dev$vcsa", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1421, Name: "syz_open_dev$vcsa", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 11}, Kind: 2, Values: []string{"/dev/vcsa#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1422, NR: 1000005, Name: "syz_open_dev$vcsn", CallName: "syz_open_dev", Args: []Type{
+	{ID: 1422, Name: "syz_open_dev$vcsn", CallName: "syz_open_dev", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dev", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 10}, Kind: 2, Values: []string{"/dev/vcs#\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "id", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1423, NR: 1000006, Name: "syz_open_procfs", CallName: "syz_open_procfs", Args: []Type{
+	{ID: 1423, Name: "syz_open_procfs", CallName: "syz_open_procfs", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "procfs_file", Values: []string{"auxv\x00", "cmdline\x00", "environ\x00", "autogroup\x00", "cgroup\x00", "clear_refs\x00", "comm\x00", "coredump_filter\x00", "cpuset\x00", "gid_map\x00", "io\x00", "limits\x00", "loginuid\x00", "maps\x00", "mountinfo\x00", "mounts\x00", "mountstats\x00", "numa_maps\x00", "oom_adj\x00", "oom_score\x00", "oom_score_adj\x00", "pagemap\x00", "personality\x00", "projid_map\x00", "sched\x00", "schedstat\x00", "sessionid\x00", "setgroups\x00", "smaps\x00", "stack\x00", "stat\x00", "statm\x00", "status\x00", "syscall\x00", "timers\x00", "uid_map\x00", "wchan\x00", "map_files\x00", "attr\x00", "attr/current\x00", "attr/exec\x00", "attr/fscreate\x00", "attr/keycreate\x00", "attr/prev\x00", "attr/sockcreate\x00", "ns\x00", "ns/cgroup\x00", "ns/ipc\x00", "ns/mnt\x00", "ns/net\x00", "ns/pid\x00", "ns/user\x00", "ns/uts\x00", "children\x00", "task\x00", "fdinfo\x00", "net\x00", "net/anycast6\x00", "net/arp\x00", "net/bnep\x00", "net/connector\x00", "net/dev\x00", "net/dev_mcast\x00", "net/dev_snmp6\x00", "net/fib_trie\x00", "net/fib_triestat\x00", "net/hci\x00", "net/icmp\x00", "net/icmp6\x00", "net/if_inet6\x00", "net/igmp\x00", "net/igmp6\x00", "net/ip6_flowlabel\x00", "net/ip6_mr_cache\x00", "net/ip6_mr_vif\x00", "net/ip6_tables_matches\x00", "net/ip6_tables_names\x00", "net/ip6_tables_targets\x00", "net/ip_mr_cache\x00", "net/ip_mr_vif\x00", "net/ip_tables_matches\x00", "net/ip_tables_names\x00", "net/ip_tables_targets\x00", "net/ipv6_route\x00", "net/ipx\x00", "net/l2cap\x00", "net/llc\x00", "net/mcfilter\x00", "net/mcfilter6\x00", "net/netfilter\x00", "net/netlink\x00", "net/netstat\x00", "net/nfsfs\x00", "net/packet\x00", "net/protocols\x00", "net/psched\x00", "net/ptype\x00", "net/raw\x00", "net/raw6\x00", "net/rfcomm\x00", "net/route\x00", "net/rpc\x00", "net/rt6_stats\x00", "net/rt_acct\x00", "net/rt_cache\x00", "net/sco\x00", "net/sctp\x00", "net/snmp\x00", "net/snmp6\x00", "net/sockstat\x00", "net/sockstat6\x00", "net/softnet_stat\x00", "net/stat\x00", "net/tcp\x00", "net/tcp6\x00", "net/udp\x00", "net/udp6\x00", "net/udplite\x00", "net/udplite6\x00", "net/unix\x00", "net/wireless\x00", "net/xfrm_stat\x00"}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 1424, NR: 1000007, Name: "syz_open_pts", CallName: "syz_open_pts", Args: []Type{
+	{ID: 1424, Name: "syz_open_pts", CallName: "syz_open_pts", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 131072, 16384, 128, 65536, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -17978,4 +17978,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_ppc64le = "7ee459ec9e838df79959f0e83d49471728eca535"
+const revision_ppc64le = "e0c2c527d718d39c260c35cad1ef89beaa947af9"

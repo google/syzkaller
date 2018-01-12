@@ -442,17 +442,17 @@ var syscalls_amd64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 48, Name: "sync", CallName: "sync"},
-	{ID: 49, NR: 1000000, Name: "syz_future_time", CallName: "syz_future_time", Args: []Type{
+	{ID: 49, Name: "syz_future_time", CallName: "syz_future_time", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "when", TypeSize: 8}}, Kind: 2, RangeEnd: 1},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_time", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
-	{ID: 50, NR: 1000001, Name: "syz_job_default", CallName: "syz_job_default", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_job", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 51, NR: 1000002, Name: "syz_mmap", CallName: "syz_mmap", Args: []Type{
+	{ID: 50, Name: "syz_job_default", CallName: "syz_job_default", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_job", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{ID: 51, Name: "syz_mmap", CallName: "syz_mmap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
 	}},
-	{ID: 52, NR: 1000003, Name: "syz_process_self", CallName: "syz_process_self", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 53, NR: 1000004, Name: "syz_thread_self", CallName: "syz_thread_self", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{ID: 54, NR: 1000005, Name: "syz_vmar_root_self", CallName: "syz_vmar_root_self", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{ID: 52, Name: "syz_process_self", CallName: "syz_process_self", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_process", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{ID: 53, Name: "syz_thread_self", CallName: "syz_thread_self", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_thread", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{ID: 54, Name: "syz_vmar_root_self", CallName: "syz_vmar_root_self", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "zx_vmar", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 55, Name: "truncate", CallName: "truncate", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 8}}},
@@ -1243,4 +1243,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_amd64 = "bf88123233782edf985573daabe2ce9e8ab359d3"
+const revision_amd64 = "16f8d2a14dffe8465559442d33e3ca296f7ea4bf"
