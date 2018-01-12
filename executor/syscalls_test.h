@@ -2,7 +2,7 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "bdaa89c6378138891b16bdae7dc50da273a1fa6f"
+#define SYZ_REVISION "b98d352210ac5cffdf7370576020788b468a7693"
 #define __NR_syz_test 1000000
 
 unsigned syscall_count = 81;
@@ -94,7 +94,7 @@ call_t syscalls[] = {
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "1a34f1204c41f7e31560335cd00119045c30dd16"
+#define SYZ_REVISION "9bdd40b9ef82f28ccee4e8301d571ec8898909f9"
 #define __NR_syz_test 1000000
 
 unsigned syscall_count = 81;

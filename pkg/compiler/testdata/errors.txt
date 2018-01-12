@@ -110,6 +110,7 @@ foo$53(a proc[20, 10, opt])
 # This must not error yet (consts are not patched).
 foo$54(a ptr[in, string["foo", C1]])
 foo$55(a int8[opt[int8]])	### opt can't have arguments
+foo$56(a void)			### void can't be syscall argument
 
 opt {				### struct uses reserved name opt
 	f1	int32
@@ -187,8 +188,8 @@ typestruct {
 }
 
 type type0 int8
-type type0 int8			### type type0 redeclared, previously declared as type alias at errors.txt:189:6
-resource type0[int32]		### type type0 redeclared, previously declared as type alias at errors.txt:189:6
+type type0 int8			### type type0 redeclared, previously declared as type alias at errors.txt:190:6
+resource type0[int32]		### type type0 redeclared, previously declared as type alias at errors.txt:190:6
 type0 = 0, 1
 type type1 type1		### type instantiation loop: type1 -> type1
 type type2 int8:4		### unexpected ':', only struct fields can be bitfields

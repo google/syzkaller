@@ -533,7 +533,8 @@ func (target *Target) mutationArgs(c *Call) (args, bases []Arg, parents []*[]Arg
 				return // string const
 			}
 		}
-		if arg.Type().Dir() == DirOut {
+		typ := arg.Type()
+		if typ.Dir() == DirOut || !typ.Varlen() && typ.Size() == 0 {
 			return
 		}
 		if base != nil {

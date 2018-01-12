@@ -147,18 +147,18 @@ var structDescs_arm = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "mac_addr"}, FldName: "tha"},
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "tpa"},
 	}}},
-	{Key: StructKey{Name: "arp_generic_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "arp_generic_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "arp_generic_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "arp_generic_packet", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "arp_htypes", FldName: "htype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 15, 19, 23, 24, 27, 32, 256, 257, 258, 259, 260, 264, 270, 271, 272, 280, 512, 513, 513, 516, 517, 518, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 800, 801, 802, 803, 804, 805, 820, 821, 822, 823, 824, 825, 65535, 65534}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "ptype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "hlen", TypeSize: 1}}, Val: 6},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "plen", TypeSize: 1}}, Buf: "spa"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "arp_ops", FldName: "op", TypeSize: 2}, BigEndian: true}, Vals: []uint64{1, 2, 3, 4, 8, 9, 10}},
 		&UnionType{Key: StructKey{Name: "mac_addr"}, FldName: "sha"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "spa"}, Kind: 1, RangeEnd: 16},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "spa", IsVarlen: true}, Kind: 1, RangeEnd: 16},
 		&UnionType{Key: StructKey{Name: "mac_addr"}, FldName: "tha"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "tpa", TypeSize: 16}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
 	}}},
-	{Key: StructKey{Name: "arp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "arp_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "arp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "arp_packet", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "arp_generic_packet"}, FldName: "generic"},
 		&StructType{Key: StructKey{Name: "arp_ether_ipv4_packet"}, FldName: "ether_ipv4"},
 		&StructType{Key: StructKey{Name: "arp_ether_ipv6_packet"}, FldName: "ether_ipv6"},
@@ -319,7 +319,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "has_strong_ref", TypeSize: 4, ArgDir: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "has_weak_ref", TypeSize: 4, ArgDir: 2}}},
 	}}},
-	{Key: StructKey{Name: "binder_object"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "binder_object"}, Fields: []Type{
+	{Key: StructKey{Name: "binder_object"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "binder_object", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "flat_binder_object"}, FldName: "flat"},
 		&StructType{Key: StructKey{Name: "binder_fd_object"}, FldName: "fd"},
 		&StructType{Key: StructKey{Name: "binder_fd_array_object"}, FldName: "fda"},
@@ -335,14 +335,14 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sender_euid", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "data_size", TypeSize: 8}}, BitSize: 8, Buf: "buffer"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "offsets_size", TypeSize: 8}}, BitSize: 8, Buf: "offsets"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "binder_object"}}, Kind: 1, RangeEnd: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "offsets", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "binder_buffer_offsets", TypeSize: 8}}, Vals: []uint64{0, 24, 32, 40, 48, 56, 64, 72}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "binder_object"}}, Kind: 1, RangeEnd: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "offsets", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "binder_buffer_offsets", TypeSize: 8}}, Vals: []uint64{0, 24, 32, 40, 48, 56, 64, 72}}}},
 	}}},
 	{Key: StructKey{Name: "binder_transaction_data_sg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "binder_transaction_data_sg", TypeSize: 72}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "binder_transaction_data"}, FldName: "trx"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "buffers_size", TypeSize: 8}}},
 	}}},
-	{Key: StructKey{Name: "binder_write_cmd"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "binder_write_cmd"}, Fields: []Type{
+	{Key: StructKey{Name: "binder_write_cmd"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "binder_write_cmd", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "binder_cmd_transaction"}, FldName: "transaction"},
 		&StructType{Key: StructKey{Name: "binder_cmd_reply"}, FldName: "reply"},
 		&StructType{Key: StructKey{Name: "binder_cmd_transaction_sg"}, FldName: "transaction_sg"},
@@ -364,16 +364,16 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "binder_write_read"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "binder_write_read", TypeSize: 48}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "write_size", TypeSize: 8}}, BitSize: 8, Buf: "write_buffer"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "write_consumed", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "write_buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "binder_write_cmd"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "write_buffer", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "binder_write_cmd"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "read_size", TypeSize: 8}}, BitSize: 8, Buf: "read_buffer"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "read_consumed", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "read_buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "read_buffer", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 	}}},
-	{Key: StructKey{Name: "bnep_connadd_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bnep_connadd_req"}, Fields: []Type{
+	{Key: StructKey{Name: "bnep_connadd_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bnep_connadd_req", IsVarlen: true}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "sock", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "role", TypeSize: 2}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "device"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "device", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "bnep_conndel_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bnep_conndel_req", TypeSize: 10}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", TypeSize: 4}}},
@@ -395,7 +395,7 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "bnep_connlist_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bnep_connlist_req", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cnum", TypeSize: 4}}, Buf: "ci"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ci", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "bnep_conninfo", Dir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ci", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "bnep_conninfo", Dir: 1}}}},
 	}}},
 	{Key: StructKey{Name: "bpf_attach_arg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_attach_arg", TypeSize: 16}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "target_fd", TypeSize: 4}},
@@ -410,9 +410,9 @@ var structDescs_arm = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_attach_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "prog2", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "bpf_framed_program"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_framed_program"}, Fields: []Type{
+	{Key: StructKey{Name: "bpf_framed_program"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_framed_program", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "bpf_insn_init_r0"}, FldName: "initr0"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "body"}, Type: &UnionType{Key: StructKey{Name: "bpf_insn"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "body", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "bpf_insn"}}},
 		&StructType{Key: StructKey{Name: "bpf_insn_exit"}, FldName: "exit"},
 	}}},
 	{Key: StructKey{Name: "bpf_get_map_info_arg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_get_map_info_arg", TypeSize: 16}, Fields: []Type{
@@ -502,9 +502,9 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "off2", TypeSize: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "imm2", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "bpf_instructions"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_instructions"}, Fields: []Type{
+	{Key: StructKey{Name: "bpf_instructions"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_instructions", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "bpf_framed_program"}, FldName: "framed"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "raw"}, Type: &UnionType{Key: StructKey{Name: "bpf_insn"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "raw", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "bpf_insn"}}},
 	}}},
 	{Key: StructKey{Name: "bpf_map_create_arg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_map_create_arg", TypeSize: 44}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_map_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{1, 2, 3, 4, 7, 8, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16}},
@@ -519,7 +519,7 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "bpf_map_delete_arg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_map_delete_arg", TypeSize: 16}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "map", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "key", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "key", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "bpf_map_get_fd_by_id_arg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_map_get_fd_by_id_arg", TypeSize: 12}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "bpf_map_id", FldName: "map_id", TypeSize: 4}},
@@ -529,8 +529,8 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "bpf_map_get_next_arg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_map_get_next_arg", TypeSize: 24}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "map", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "key", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "next", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "key", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "next", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "bpf_map_info", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_map_info", TypeSize: 40, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "type", TypeSize: 4, ArgDir: 1}}},
@@ -544,37 +544,37 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "bpf_map_lookup_arg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_map_lookup_arg", TypeSize: 24}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "map", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "key", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "val", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "key", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "val", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "bpf_map_update_arg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_map_update_arg", TypeSize: 32}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "map", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "key", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "val", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "key", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "val", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_map_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{0, 1, 2}},
 	}}},
 	{Key: StructKey{Name: "bpf_obj_get"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_obj_get", TypeSize: 16}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_open_flags", FldName: "file_flags", TypeSize: 4}}, Vals: []uint64{8, 16}},
 	}}},
 	{Key: StructKey{Name: "bpf_obj_pin_map"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_obj_pin_map", TypeSize: 12}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_map", FldName: "fd", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "bpf_obj_pin_prog"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_obj_pin_prog", TypeSize: 12}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_bpf_prog", FldName: "fd", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "bpf_prog"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_prog", TypeSize: 72}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_prog_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "ninsn", TypeSize: 4}}, BitSize: 64, Buf: "insns"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "insns", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "bpf_instructions"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "license", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "bpf_licenses", Values: []string{"GPL\x00", "syzkaller\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "license", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "bpf_licenses", Values: []string{"GPL\x00", "syzkaller\x00"}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "loglev", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "logsize", TypeSize: 4}}, Buf: "log"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "log", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "log", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_kern_version", FldName: "kern_version", TypeSize: 4}}, Vals: []uint64{265984, 266240, 266496}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_prog_load_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "prog_name", TypeSize: 16}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
@@ -600,7 +600,7 @@ var structDescs_arm = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_prog_query_attach_type", FldName: "attach_type", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 6}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bpf_prog_query_flags", FldName: "query_flags", TypeSize: 4}}, Vals: []uint64{1}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "attach_flags", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "prog_ids", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "prog_ids", TypeSize: 8}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "prog_cnt", TypeSize: 4}}, Buf: "prog_ids"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}, AlignAttr: 8}},
@@ -609,8 +609,8 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "retval", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "insize", TypeSize: 4}}, Buf: "indata"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "outsize", TypeSize: 4}}, Buf: "outdata"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "indata", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "outdata", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "indata", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "outdata", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "repeat", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dur", TypeSize: 4}}},
 	}}},
@@ -632,7 +632,7 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "brctl_arg_get", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "brctl_arg_get", TypeSize: 24, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8, ArgDir: 2}}, Val: 1},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "indices", TypeSize: 8, ArgDir: 2}}},
 	}}},
@@ -660,13 +660,13 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "val", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "cmsghdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr"}, Fields: []Type{
+	{Key: StructKey{Name: "cmsghdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cmsg_len", TypeSize: 4}}, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "cmsg_levels", FldName: "cmsg_level", TypeSize: 4}}, Vals: []uint64{1, 1, 0, 6, 17, 41, 58, 132, 136, 255, 256, 257, 258, 259, 260, 261, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "cmsg_type", TypeSize: 4}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "cmsghdr_alg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_alg"}, Fields: []Type{
+	{Key: StructKey{Name: "cmsghdr_alg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_alg", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "cmsghdr_alg_iv"}, FldName: "iv"},
 		&StructType{Key: StructKey{Name: "cmsghdr_alg_op"}, FldName: "op"},
 		&StructType{Key: StructKey{Name: "cmsghdr_alg_assoc"}, FldName: "assoc"},
@@ -677,12 +677,12 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "assoc", TypeSize: 4}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "cmsghdr_alg_iv"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_alg_iv"}, Fields: []Type{
+	{Key: StructKey{Name: "cmsghdr_alg_iv"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_alg_iv", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 279},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 2},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ivlen", TypeSize: 4}}, Buf: "iv"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "iv"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "iv", IsVarlen: true}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "cmsghdr_alg_op"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_alg_op", TypeSize: 16}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
@@ -713,7 +713,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 1},
 		&StructType{Key: StructKey{Name: "sctp_sndrcvinfo"}, FldName: "msg"},
 	}}},
-	{Key: StructKey{Name: "cmsghdr_un"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_un"}, Fields: []Type{
+	{Key: StructKey{Name: "cmsghdr_un"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_un", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "cmsghdr_un_rights"}, FldName: "rights"},
 		&StructType{Key: StructKey{Name: "cmsghdr_un_cred"}, FldName: "cred"},
 	}}},
@@ -725,11 +725,11 @@ var structDescs_arm = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "gid", TypeSize: 4}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "cmsghdr_un_rights"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_un_rights"}, Fields: []Type{
+	{Key: StructKey{Name: "cmsghdr_un_rights"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmsghdr_un_rights", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 4}}, Val: 1},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "fds"}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", TypeSize: 4}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "fds", IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", TypeSize: 4}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "cmtp_connadd_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmtp_connadd_req", TypeSize: 8}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "sock", TypeSize: 4}},
@@ -758,7 +758,7 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "cmtp_connlist_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "cmtp_connlist_req", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cnum", TypeSize: 4}}, Buf: "ci"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ci", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "cmtp_conninfo", Dir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ci", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "cmtp_conninfo", Dir: 1}}}},
 	}}},
 	{Key: StructKey{Name: "crypto_user_alg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "crypto_user_alg", TypeSize: 208}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "alg_name"}, FldName: "cru_name"},
@@ -787,9 +787,9 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "reserved2", TypeSize: 1}}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ack_num", TypeSize: 3}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
 	}}},
-	{Key: StructKey{Name: "dccp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dccp_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "dccp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dccp_packet", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "dccp_header"}, FldName: "header"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "dccp_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dccp_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_dccp", FldName: "f0", TypeSize: 4, ArgDir: 1}},
@@ -844,18 +844,18 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "drm_buf_free"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_buf_free", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "list"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "list", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "list", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
 	}}},
 	{Key: StructKey{Name: "drm_buf_map"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_buf_map", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "list"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "virtual", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "list", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "drm_buf_pub"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "virtual", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "list", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "drm_buf_pub"}}}},
 	}}},
 	{Key: StructKey{Name: "drm_buf_pub"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_buf_pub", TypeSize: 16}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "idx", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "total", TypeSize: 4}}, Buf: "addr"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "used", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "drm_client"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_client", TypeSize: 32}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "idx", TypeSize: 4}}},
@@ -881,22 +881,22 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "drm_ctx_priv_map"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_ctx_priv_map", TypeSize: 8}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "drmctx", FldName: "ctxid", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "handle", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "handle", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "drm_ctx_res"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_ctx_res", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "context"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "context", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "drm_ctx", Dir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "context", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "drm_ctx", Dir: 1}}}},
 	}}},
 	{Key: StructKey{Name: "drm_dma"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_dma", TypeSize: 40}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "drmctx", FldName: "context", TypeSize: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "sendcnt", TypeSize: 4}}, Buf: "sendind"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sendind", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sendsiz", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sendind", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sendsiz", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "drm_dma_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 16, 32, 64}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "reqcnd", TypeSize: 4}}, Buf: "reqind"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "reqsiz0", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "reqind", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "reqsiz", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "reqind", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "reqsiz", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "granted", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "drm_gem_close"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_gem_close", TypeSize: 8}, Fields: []Type{
@@ -935,10 +935,10 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "mtrr", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "drm_mode_card_res"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_mode_card_res", TypeSize: 48}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fbid", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "crtcid", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "connid", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "encid", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fbid", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "crtcid", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "connid", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "encid", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nfbid", TypeSize: 4}}, Buf: "fbid"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ncrtcid", TypeSize: 4}}, Buf: "crtcid"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nconnid", TypeSize: 4}}, Buf: "connid"},
@@ -949,7 +949,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "minh", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "drm_mode_crtc"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_mode_crtc", TypeSize: 96}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "connect", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "connect", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cnt", TypeSize: 4}}, Buf: "connect"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "crtcid", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "x", TypeSize: 4}}},
@@ -959,7 +959,7 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "drm_mode_modeinfo"}, FldName: "mode"},
 	}}},
 	{Key: StructKey{Name: "drm_mode_get_plane_res"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_mode_get_plane_res", TypeSize: 8}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ids", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ids", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cnt", TypeSize: 4}}, Buf: "ids"},
 	}}},
 	{Key: StructKey{Name: "drm_mode_modeinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_mode_modeinfo", TypeSize: 68}, Fields: []Type{
@@ -1001,22 +1001,22 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "drm_unique_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_unique_in", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "uni"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "uni", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "uni", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "drm_unique_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_unique_out", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "uni"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "uni", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "uni", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "drm_version"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_version", TypeSize: 36}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "maj", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "min", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "patch", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "namelen", TypeSize: 4}}, Buf: "name"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "datelen", TypeSize: 4}}, Buf: "date"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "date", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "date", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "desclen", TypeSize: 4}}, Buf: "desc"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "desc", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "desc", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "drm_wait_vblank"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "drm_wait_vblank", TypeSize: 12}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "drm_vblank_seq_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{0, 1, 62, 67108864, 134217728, 268435456, 536870912, 1073741824}},
@@ -1031,11 +1031,11 @@ var structDescs_arm = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "epoll_ev", FldName: "ev", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{1, 4, 8192, 2, 8, 16, 2147483648, 1073741824, 268435456, 536870912}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "data", TypeSize: 8, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "eth2_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "eth2_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_packet", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "etype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536}},
 		&UnionType{Key: StructKey{Name: "eth2_payload"}, FldName: "payload"},
 	}}},
-	{Key: StructKey{Name: "eth2_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_payload"}, Fields: []Type{
+	{Key: StructKey{Name: "eth2_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_payload", IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "arp_packet"}, FldName: "arp"},
 		&StructType{Key: StructKey{Name: "llc_packet"}, FldName: "llc"},
 		&StructType{Key: StructKey{Name: "ipx_packet"}, FldName: "ipx"},
@@ -1043,13 +1043,13 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "ipv4_packet"}, FldName: "ipv4"},
 		&StructType{Key: StructKey{Name: "ipv6_packet"}, FldName: "ipv6"},
 	}}},
-	{Key: StructKey{Name: "eth_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "eth_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth_packet", IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "mac_addr"}, FldName: "dst_mac"},
 		&UnionType{Key: StructKey{Name: "mac_addr"}, FldName: "src_mac"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "vtag"}, Type: &StructType{Key: StructKey{Name: "vlan_tag"}}, Kind: 1, RangeEnd: 1},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "vtag", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "vlan_tag"}}, Kind: 1, RangeEnd: 1},
 		&StructType{Key: StructKey{Name: "eth_payload"}, FldName: "payload"},
 	}}},
-	{Key: StructKey{Name: "eth_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth_payload"}, Fields: []Type{
+	{Key: StructKey{Name: "eth_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth_payload", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "eth2_packet"}, FldName: "eth2"},
 	}}},
 	{Key: StructKey{Name: "ethhdr", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethhdr", TypeSize: 14, ArgDir: 2}, Fields: []Type{
@@ -1101,7 +1101,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "lp_advertising", TypeSize: 4, ArgDir: 2}}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserved", TypeSize: 8, ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}, Kind: 1, RangeBegin: 2, RangeEnd: 2},
 	}}},
-	{Key: StructKey{Name: "ethtool_cmd_u", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_cmd_u", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_cmd_u", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_cmd_u", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "ethtool_cmd", Dir: 2}, FldName: "ethtool_cmd"},
 		&StructType{Key: StructKey{Name: "ethtool_drvinfo", Dir: 2}, FldName: "ethtool_drvinfo"},
 		&StructType{Key: StructKey{Name: "ethtool_wolinfo", Dir: 2}, FldName: "ethtool_wolinfo"},
@@ -1169,12 +1169,12 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "eedump_len", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "regdump_len", TypeSize: 4, ArgDir: 2}}},
 	}}},
-	{Key: StructKey{Name: "ethtool_dump", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_dump", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_dump", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_dump", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ethtool_dump_cmd_flags", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{63, 64, 62}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "version", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flag", TypeSize: 4, ArgDir: 2}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "data"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2, IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "ethtool_eee", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_eee", TypeSize: 40, ArgDir: 2}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ethtool_eee_cmd_flags", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{68, 69}},
@@ -1187,12 +1187,12 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "tx_lpi_timer", TypeSize: 4, ArgDir: 2}}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserved", TypeSize: 8, ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}, Kind: 1, RangeBegin: 2, RangeEnd: 2},
 	}}},
-	{Key: StructKey{Name: "ethtool_eeprom", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_eeprom", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_eeprom", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_eeprom", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ethtool_eeprom_cmd_flags", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{11, 67, 12}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "magic", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "offset", TypeSize: 4, ArgDir: 2}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "data"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2, IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "ethtool_flash", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_flash", TypeSize: 136, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 51},
@@ -1228,18 +1228,18 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "active", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "never_changed", TypeSize: 4, ArgDir: 2}}},
 	}}},
-	{Key: StructKey{Name: "ethtool_gfeatures", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_gfeatures", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_gfeatures", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_gfeatures", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 58},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4, ArgDir: 2}}, Buf: "features"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "features", ArgDir: 2}, Type: &StructType{Key: StructKey{Name: "ethtool_get_features_block", Dir: 2}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "features", ArgDir: 2, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "ethtool_get_features_block", Dir: 2}}},
 	}}},
-	{Key: StructKey{Name: "ethtool_gstrings", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_gstrings", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_gstrings", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_gstrings", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 27},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "string_set", TypeSize: 4, ArgDir: 2}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "data"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2, IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "ethtool_link_settings", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_link_settings", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_link_settings", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_link_settings", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ethtool_link_settings_cmd_flags", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{76, 77}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "speed", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "duplex", TypeSize: 1, ArgDir: 2}}},
@@ -1251,7 +1251,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "eth_tp_mdix_ctrl", TypeSize: 1, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "link_mode_masks_nwords", TypeSize: 1, ArgDir: 2}}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserved", TypeSize: 32, ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "link_mode_masks", ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "link_mode_masks", ArgDir: 2, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}}},
 	{Key: StructKey{Name: "ethtool_modinfo", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_modinfo", TypeSize: 20, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 66},
@@ -1265,22 +1265,22 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "rx_pause", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "tx_pause", TypeSize: 4, ArgDir: 2}}},
 	}}},
-	{Key: StructKey{Name: "ethtool_per_queue_op", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_per_queue_op", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_per_queue_op", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_per_queue_op", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 75},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sub_command", TypeSize: 4, ArgDir: 2}}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "queue_mask", TypeSize: 16384, ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}, Kind: 1, RangeBegin: 4096, RangeEnd: 4096},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2, IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "ethtool_perm_addr", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_perm_addr", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_perm_addr", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_perm_addr", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 32},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4, ArgDir: 2}}, Buf: "data"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2, IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "ethtool_regs", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_regs", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_regs", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_regs", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "version", TypeSize: 4, ArgDir: 2}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "data"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2, IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "ethtool_ringparam", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_ringparam", TypeSize: 36, ArgDir: 2}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ethtool_ringparam_cmd_flags", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{16, 17}},
@@ -1330,7 +1330,7 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "ethhdr", Dir: 2}, FldName: "ether_spec"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "hdata", TypeSize: 72, ArgDir: 2}, Kind: 1, RangeBegin: 72, RangeEnd: 72},
 	}}},
-	{Key: StructKey{Name: "ethtool_rxfh", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_rxfh", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_rxfh", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_rxfh", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ethtool_rxfh_cmd_flags", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{70, 71}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "rss_context", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "indir_size", TypeSize: 4, ArgDir: 2}}},
@@ -1338,40 +1338,40 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "hfunc", TypeSize: 1, ArgDir: 2}}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "rsvd8", TypeSize: 3, ArgDir: 2}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "rsvd32", TypeSize: 4, ArgDir: 2}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "rss_config", ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "rss_config", ArgDir: 2, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}}},
-	{Key: StructKey{Name: "ethtool_rxfh_indir", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_rxfh_indir", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_rxfh_indir", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_rxfh_indir", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ethtool_rxfh_indir_flags", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{56, 57}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4, ArgDir: 2}}, Buf: "ring_index"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ring_index", ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ring_index", ArgDir: 2, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}}},
-	{Key: StructKey{Name: "ethtool_rxnfc", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_rxnfc", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_rxnfc", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_rxnfc", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ethtool_rxnfc_cmd_flags", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{41, 42, 45, 46, 47, 48, 49, 50}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "traffic_flow_types", FldName: "flow_type", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 13, 14, 16, 17, 18}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "data", TypeSize: 8, ArgDir: 2}}},
 		&StructType{Key: StructKey{Name: "ethtool_rx_flow_spec", Dir: 2}, FldName: "fs"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "rule_cnt", TypeSize: 4, ArgDir: 2}}, Buf: "rule_locs"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "rule_locs", ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "rule_locs", ArgDir: 2, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}}},
 	{Key: StructKey{Name: "ethtool_set_features_block", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_set_features_block", TypeSize: 8, ArgDir: 2}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "valid", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "requested", TypeSize: 4, ArgDir: 2}}},
 	}}},
-	{Key: StructKey{Name: "ethtool_sfeatures", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_sfeatures", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_sfeatures", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_sfeatures", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 59},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4, ArgDir: 2}}, Buf: "features"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "features", ArgDir: 2}, Type: &StructType{Key: StructKey{Name: "ethtool_set_features_block", Dir: 2}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "features", ArgDir: 2, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "ethtool_set_features_block", Dir: 2}}},
 	}}},
-	{Key: StructKey{Name: "ethtool_sset_info", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_sset_info", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_sset_info", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_sset_info", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 55},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "reserved", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sset_mask", TypeSize: 8, ArgDir: 2}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 2}}}},
 	}}},
-	{Key: StructKey{Name: "ethtool_stats", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_stats", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_stats", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_stats", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 29},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "n_stats", TypeSize: 4, ArgDir: 2}}, Buf: "data"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}}},
 	{Key: StructKey{Name: "ethtool_tcpip4_spec", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_tcpip4_spec", TypeSize: 16, ArgDir: 2}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "ipv4_addr", Dir: 2}, FldName: "ip4src"},
@@ -1389,12 +1389,12 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "tclass", TypeSize: 1, ArgDir: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "ethtool_test", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_test", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ethtool_test", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_test", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 26},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "reserved", TypeSize: 4, ArgDir: 2}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "data"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 2, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8, ArgDir: 2}}}},
 	}}},
 	{Key: StructKey{Name: "ethtool_ts_info", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ethtool_ts_info", TypeSize: 44, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4, ArgDir: 2}}, Val: 65},
@@ -1459,7 +1459,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "level", TypeSize: 2}}},
 		&StructType{Key: StructKey{Name: "ff_envelope"}, FldName: "envelop"},
 	}}},
-	{Key: StructKey{Name: "ff_effect"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ff_effect"}, Fields: []Type{
+	{Key: StructKey{Name: "ff_effect"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ff_effect", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ff_effect_type", FldName: "type", TypeSize: 2}}, Vals: []uint64{81, 82, 83, 84, 85, 86, 87}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "id", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "dir", TypeSize: 2}}},
@@ -1468,7 +1468,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 		&UnionType{Key: StructKey{Name: "ff_effect_u"}, FldName: "u"},
 	}}},
-	{Key: StructKey{Name: "ff_effect_u"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ff_effect_u"}, Fields: []Type{
+	{Key: StructKey{Name: "ff_effect_u"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ff_effect_u", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "ff_constant_effect"}, FldName: "const"},
 		&StructType{Key: StructKey{Name: "ff_ramp_effect"}, FldName: "ramp"},
 		&StructType{Key: StructKey{Name: "ff_periodic_effect"}, FldName: "period"},
@@ -1481,7 +1481,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "flen", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "flevel", TypeSize: 2}}},
 	}}},
-	{Key: StructKey{Name: "ff_periodic_effect"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ff_periodic_effect"}, Fields: []Type{
+	{Key: StructKey{Name: "ff_periodic_effect"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ff_periodic_effect", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ff_periodic_effect_wave", FldName: "wave", TypeSize: 2}}, Vals: []uint64{88, 89, 90, 91, 92, 93}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "period", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "magnit", TypeSize: 2}}},
@@ -1490,7 +1490,7 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "ff_envelope"}, FldName: "envelop"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "custom"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "custom"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "custom", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}},
 	}}},
 	{Key: StructKey{Name: "ff_ramp_effect"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ff_ramp_effect", TypeSize: 12}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "slevel", TypeSize: 2}}},
@@ -1509,14 +1509,14 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "button", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "interv", TypeSize: 2}}},
 	}}},
-	{Key: StructKey{Name: "fiemap"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fiemap"}, Fields: []Type{
+	{Key: StructKey{Name: "fiemap"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fiemap", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "start", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "len", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fiemap_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "mapped", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "extent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "extent"}, Type: &StructType{Key: StructKey{Name: "fiemap_extent"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "extent", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fiemap_extent"}}},
 	}}},
 	{Key: StructKey{Name: "fiemap_extent"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fiemap_extent", TypeSize: 56}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "logical", TypeSize: 8}}},
@@ -1529,10 +1529,10 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad4", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad5", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "file_handle"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "file_handle"}, Fields: []Type{
+	{Key: StructKey{Name: "file_handle"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "file_handle", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "bytes", TypeSize: 4}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "type", TypeSize: 4}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handle"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "handle", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "flat_binder_object"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "flat_binder_object", TypeSize: 24}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "binder_flat_types", FldName: "type", TypeSize: 4}}, Vals: []uint64{1935813253, 2002922117, 1936206469, 2003315333}},
@@ -1623,7 +1623,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "fuse_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_out"}, Fields: []Type{
+	{Key: StructKey{Name: "fuse_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_out", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "err", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "unique", TypeSize: 8}}, Kind: 2, RangeEnd: 10},
@@ -1632,8 +1632,8 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "fuse_poll_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_poll_out", TypeSize: 4}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "revents", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "fuse_reply"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_reply"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "random"}},
+	{Key: StructKey{Name: "fuse_reply"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fuse_reply", IsVarlen: true}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "random", IsVarlen: true}},
 		&StructType{Key: StructKey{Name: "fuse_init_out"}, FldName: "fuse_init_out"},
 		&StructType{Key: StructKey{Name: "fuse_bmap_out"}, FldName: "fuse_bmap_out"},
 		&StructType{Key: StructKey{Name: "fuse_ioctl_out"}, FldName: "fuse_ioctl_out"},
@@ -1650,21 +1650,21 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 2}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "group_filter_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_filter_in"}, Fields: []Type{
+	{Key: StructKey{Name: "group_filter_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_filter_in", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "gf_interface", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in"}, FldName: "gf_group"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ip_msfilter_mode", FldName: "gf_fmode", TypeSize: 4}}, Vals: []uint64{1, 0}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "gf_numsrc", TypeSize: 4}}, Buf: "gf_slist"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "gf_slist"}, Type: &StructType{Key: StructKey{Name: "sockaddr_storage_in"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "gf_slist", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_storage_in"}}},
 	}}},
-	{Key: StructKey{Name: "group_filter_in6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_filter_in6"}, Fields: []Type{
+	{Key: StructKey{Name: "group_filter_in6"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_filter_in6", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "gf_interface", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6"}, FldName: "gf_group"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ip_msfilter_mode", FldName: "gf_fmode", TypeSize: 4}}, Vals: []uint64{1, 0}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "gf_numsrc", TypeSize: 4}}, Buf: "gf_slist"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "gf_slist"}, Type: &StructType{Key: StructKey{Name: "sockaddr_storage_in6"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "gf_slist", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_storage_in6"}}},
 	}}},
 	{Key: StructKey{Name: "group_req_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "group_req_in", TypeSize: 144}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "gr_interface", TypeSize: 4}}},
@@ -1695,12 +1695,12 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "opcode", TypeSize: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "hidp_connadd_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "hidp_connadd_req"}, Fields: []Type{
+	{Key: StructKey{Name: "hidp_connadd_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "hidp_connadd_req", IsVarlen: true}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "ctrlsk", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "intrsk", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "parser", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "rdsize", TypeSize: 2}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "rddata", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "rddata", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "country", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "subclas", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "vendor", TypeSize: 2}}},
@@ -1708,7 +1708,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "version", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "idleto", TypeSize: 4}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "name"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "name", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "hidp_conndel_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "hidp_conndel_req", TypeSize: 12}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "bdaddr"}, FldName: "addr"},
@@ -1737,7 +1737,7 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "hidp_connlist_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "hidp_connlist_req", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cnum", TypeSize: 4}}, Buf: "ci"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ci", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "hidp_conninfo", Dir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ci", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "hidp_conninfo", Dir: 1}}}},
 	}}},
 	{Key: StructKey{Name: "icmp6_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp6_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp6", FldName: "f0", TypeSize: 4, ArgDir: 1}},
@@ -1755,7 +1755,7 @@ var structDescs_arm = []*KeyedStruct{
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "mask", TypeSize: 4}, BigEndian: true}},
 	}}},
-	{Key: StructKey{Name: "icmp_dest_unreach_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_dest_unreach_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmp_dest_unreach_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_dest_unreach_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 3},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "icmp_dest_unreach_codes", FldName: "code", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
@@ -1763,23 +1763,23 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "length", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "mtu", TypeSize: 2}, BigEndian: true}},
 		&StructType{Key: StructKey{Name: "icmp_ipv4_header"}, FldName: "iph"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Kind: 1, RangeEnd: 8},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 8},
 	}}},
-	{Key: StructKey{Name: "icmp_echo_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_echo_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmp_echo_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_echo_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 8},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "id", TypeSize: 2}, BigEndian: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "seq_num", TypeSize: 2}, BigEndian: true}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "icmp_echo_reply_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_echo_reply_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmp_echo_reply_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_echo_reply_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "id", TypeSize: 2}, BigEndian: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "seq_num", TypeSize: 2}, BigEndian: true}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "icmp_filter"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_filter", TypeSize: 4}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "data", TypeSize: 4}}},
@@ -1798,7 +1798,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "id", TypeSize: 2}, BigEndian: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "seq_num", TypeSize: 2}, BigEndian: true}},
 	}}},
-	{Key: StructKey{Name: "icmp_ipv4_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_ipv4_header"}, Fields: []Type{
+	{Key: StructKey{Name: "icmp_ipv4_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_ipv4_header", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "ihl", TypeSize: 1}, BitfieldLen: 4, BitfieldMdl: true}, BitSize: 32, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 4}, Val: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ecn", TypeSize: 1}, BitfieldLen: 2, BitfieldMdl: true}},
@@ -1813,7 +1813,7 @@ var structDescs_arm = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "dst_ip"},
 		&StructType{Key: StructKey{Name: "ipv4_options"}, FldName: "options"},
 	}}},
-	{Key: StructKey{Name: "icmp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_packet", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "icmp_echo_reply_packet"}, FldName: "echo_reply"},
 		&StructType{Key: StructKey{Name: "icmp_dest_unreach_packet"}, FldName: "dest_unreach"},
 		&StructType{Key: StructKey{Name: "icmp_source_quench_packet"}, FldName: "source_quench"},
@@ -1832,7 +1832,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp", FldName: "f0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_icmp", FldName: "f1", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "icmp_parameter_prob_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_parameter_prob_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmp_parameter_prob_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_parameter_prob_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 12},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
@@ -1840,25 +1840,25 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "length", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unsed", TypeSize: 2}}},
 		&StructType{Key: StructKey{Name: "icmp_ipv4_header"}, FldName: "iph"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Kind: 1, RangeEnd: 8},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 8},
 	}}},
-	{Key: StructKey{Name: "icmp_redirect_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_redirect_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmp_redirect_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_redirect_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 5},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "icmp_redirect_codes", FldName: "code", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 3}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "ip"},
 		&StructType{Key: StructKey{Name: "icmp_ipv4_header"}, FldName: "iph"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Kind: 1, RangeEnd: 8},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 8},
 	}}},
-	{Key: StructKey{Name: "icmp_source_quench_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_source_quench_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmp_source_quench_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_source_quench_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 4},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "icmp_ipv4_header"}, FldName: "iph"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Kind: 1, RangeEnd: 8},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 8},
 	}}},
-	{Key: StructKey{Name: "icmp_time_exceeded_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_time_exceeded_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmp_time_exceeded_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_time_exceeded_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 11},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "icmp_time_exceeded_codes", FldName: "code", TypeSize: 1}}, Vals: []uint64{0, 1}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
@@ -1866,7 +1866,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "length", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused2", TypeSize: 2}}},
 		&StructType{Key: StructKey{Name: "icmp_ipv4_header"}, FldName: "iph"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Kind: 1, RangeEnd: 8},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 8},
 	}}},
 	{Key: StructKey{Name: "icmp_timestamp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmp_timestamp_packet", TypeSize: 20}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 13},
@@ -1888,7 +1888,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "recv_ts", TypeSize: 4}, BigEndian: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "trans_ts", TypeSize: 4}, BigEndian: true}},
 	}}},
-	{Key: StructKey{Name: "icmpv6_dest_unreach_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_dest_unreach_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmpv6_dest_unreach_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_dest_unreach_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 1},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "icmpv6_dest_unreach_codes", FldName: "code", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Kind: 1, Buf: "parent", Protocol: 58},
@@ -1896,23 +1896,23 @@ var structDescs_arm = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "unused", TypeSize: 3}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
 		&StructType{Key: StructKey{Name: "icmpv6_ipv6_packet"}, FldName: "packet"},
 	}}},
-	{Key: StructKey{Name: "icmpv6_echo_reply_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_echo_reply_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmpv6_echo_reply_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_echo_reply_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 129},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Kind: 1, Buf: "parent", Protocol: 58},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "id", TypeSize: 2}, BigEndian: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "seq_num", TypeSize: 2}, BigEndian: true}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "icmpv6_echo_request_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_echo_request_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmpv6_echo_request_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_echo_request_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 128},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Kind: 1, Buf: "parent", Protocol: 58},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "id", TypeSize: 2}, BigEndian: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "seq_num", TypeSize: 2}, BigEndian: true}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "icmpv6_ipv6_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_ipv6_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmpv6_ipv6_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_ipv6_packet", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "priority", TypeSize: 1}, BitfieldLen: 4, BitfieldMdl: true}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 4}, Val: 6},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "flow_label", TypeSize: 3}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
@@ -1921,8 +1921,8 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "hop_limit", TypeSize: 1}}},
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "src_ip"},
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "dst_ip"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ext_headers"}, Type: &UnionType{Key: StructKey{Name: "ipv6_ext_header"}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ext_headers", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_ext_header"}}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "icmpv6_mld_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_mld_packet", TypeSize: 24}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "icmpv6_mld_types", FldName: "type", TypeSize: 1}}, Vals: []uint64{130, 131, 132}},
@@ -1932,7 +1932,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "unused", TypeSize: 2}}},
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "addr"},
 	}}},
-	{Key: StructKey{Name: "icmpv6_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmpv6_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_packet", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "icmpv6_dest_unreach_packet"}, FldName: "dest_unreach"},
 		&StructType{Key: StructKey{Name: "icmpv6_pkt_toobig_packet"}, FldName: "pkt_toobig"},
 		&StructType{Key: StructKey{Name: "icmpv6_time_exceed_packet"}, FldName: "time_exceed"},
@@ -1941,21 +1941,21 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "icmpv6_echo_reply_packet"}, FldName: "echo_reply"},
 		&StructType{Key: StructKey{Name: "icmpv6_mld_packet"}, FldName: "mld"},
 	}}},
-	{Key: StructKey{Name: "icmpv6_param_prob_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_param_prob_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmpv6_param_prob_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_param_prob_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 4},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "icmpv6_param_prob_codes", FldName: "code", TypeSize: 1}}, Vals: []uint64{0, 1, 2}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Kind: 1, Buf: "parent", Protocol: 58},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "pointer", TypeSize: 4}, BigEndian: true}},
 		&StructType{Key: StructKey{Name: "icmpv6_ipv6_packet"}, FldName: "packet"},
 	}}},
-	{Key: StructKey{Name: "icmpv6_pkt_toobig_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_pkt_toobig_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmpv6_pkt_toobig_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_pkt_toobig_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 2},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Kind: 1, Buf: "parent", Protocol: 58},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "mtu", TypeSize: 4}, BigEndian: true}},
 		&StructType{Key: StructKey{Name: "icmpv6_ipv6_packet"}, FldName: "packet"},
 	}}},
-	{Key: StructKey{Name: "icmpv6_time_exceed_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_time_exceed_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "icmpv6_time_exceed_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "icmpv6_time_exceed_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 3},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "icmpv6_time_exceed_codes", FldName: "code", TypeSize: 1}}, Vals: []uint64{0, 1}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Kind: 1, Buf: "parent", Protocol: 58},
@@ -1984,7 +1984,7 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "ifconf_buf", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifconf_buf", TypeSize: 8, ArgDir: 2}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ifc_len", TypeSize: 4, ArgDir: 2}}, Buf: "ifcu_buf"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ifcu_buf", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ifcu_buf", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "ifconf_req", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifconf_req", TypeSize: 8, ArgDir: 2}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ifc_len", TypeSize: 4, ArgDir: 2}}, Buf: "ifcu_req"},
@@ -2112,12 +2112,12 @@ var structDescs_arm = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sync", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "sync_serial_settings"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "te1", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "te1_settings"}}},
 	}}},
-	{Key: StructKey{Name: "igmp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "igmp_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "igmp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "igmp_packet", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "igmp_types", FldName: "type", TypeSize: 1}}, Vals: []uint64{17, 18, 19, 20, 21, 22, 23, 34, 30, 31}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "mrtime", TypeSize: 1}}},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "addr"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "in6_flowlabel_req"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "in6_flowlabel_req", TypeSize: 32}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "flr_dst"},
@@ -2195,7 +2195,7 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "input_mask"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "input_mask", TypeSize: 12}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "input_mask_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 17, 18, 21}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "size", TypeSize: 4}}, BitSize: 8, Buf: "ptr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ptr", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "io_cmap"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "io_cmap", TypeSize: 48}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "map0", TypeSize: 8}}},
@@ -2227,7 +2227,7 @@ var structDescs_arm = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "lio_opcode", FldName: "op", TypeSize: 2}}, Vals: []uint64{0, 1, 2, 3, 6, 7, 8}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "prio", TypeSize: 2}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "buf", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nbytes", TypeSize: 8}}, Buf: "buf"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "offset", TypeSize: 8}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserv", TypeSize: 8}}},
@@ -2242,11 +2242,11 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused", TypeSize: 4, ArgDir: 2}}},
 	}}},
 	{Key: StructKey{Name: "iovec_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_in", TypeSize: 8}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "addr"},
 	}}},
 	{Key: StructKey{Name: "iovec_nl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_nl", TypeSize: 8}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "netlink_msg"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "netlink_msg"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "data"},
 	}}},
 	{Key: StructKey{Name: "iovec_nl_crypto"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_nl_crypto", TypeSize: 8}, Fields: []Type{
@@ -2266,7 +2266,7 @@ var structDescs_arm = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "data"},
 	}}},
 	{Key: StructKey{Name: "iovec_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_out", TypeSize: 8}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "addr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "addr"},
 	}}},
 	{Key: StructKey{Name: "iovec_sadb_msg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec_sadb_msg", TypeSize: 8}, Fields: []Type{
@@ -2301,12 +2301,12 @@ var structDescs_arm = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "ipv4_addr", Dir: 1}, FldName: "imr_address"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "imr_ifindex", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "ip_msfilter"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ip_msfilter"}, Fields: []Type{
+	{Key: StructKey{Name: "ip_msfilter"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ip_msfilter", IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "imsf_multiaddr"},
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "imsf_interface"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ip_msfilter_mode", FldName: "imsf_fmode", TypeSize: 4}}, Vals: []uint64{1, 0}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "imsf_numsrc", TypeSize: 4}}, Buf: "imsf_slist"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "imsf_slist"}, Type: &UnionType{Key: StructKey{Name: "ipv4_addr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "imsf_slist", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv4_addr"}}},
 	}}},
 	{Key: StructKey{Name: "ipc_perm"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipc_perm", TypeSize: 36}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "key", TypeSize: 4}}},
@@ -2386,7 +2386,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a2", TypeSize: 1, ArgDir: 2}}, ValuesPerProc: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a3", TypeSize: 1, ArgDir: 2}}, Val: 187},
 	}}},
-	{Key: StructKey{Name: "ipv4_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_header"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_header", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "ihl", TypeSize: 1}, BitfieldLen: 4, BitfieldMdl: true}, BitSize: 32, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 4}, Val: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ecn", TypeSize: 1}, BitfieldLen: 2, BitfieldMdl: true}},
@@ -2401,7 +2401,7 @@ var structDescs_arm = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "dst_ip"},
 		&StructType{Key: StructKey{Name: "ipv4_options"}, FldName: "options"},
 	}}},
-	{Key: StructKey{Name: "ipv4_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "ipv4_option_generic"}, FldName: "generic"},
 		&StructType{Key: StructKey{Name: "ipv4_option_end"}, FldName: "end"},
 		&StructType{Key: StructKey{Name: "ipv4_option_noop"}, FldName: "noop"},
@@ -2412,30 +2412,30 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "ipv4_option_cipso"}, FldName: "cipso"},
 		&StructType{Key: StructKey{Name: "ipv4_option_ra"}, FldName: "ra"},
 	}}},
-	{Key: StructKey{Name: "ipv4_option_cipso"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_cipso"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_option_cipso"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_cipso", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 134},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "doi", TypeSize: 4}, BigEndian: true}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "tags"}, Type: &StructType{Key: StructKey{Name: "ipv4_option_cipso_tag"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "tags", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "ipv4_option_cipso_tag"}}},
 	}}},
-	{Key: StructKey{Name: "ipv4_option_cipso_tag"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_cipso_tag"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_option_cipso_tag"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_cipso_tag", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv4_option_cipso_tag_types", FldName: "type", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 5, 6, 7}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Kind: 1, RangeEnd: 16},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 16},
 	}}},
 	{Key: StructKey{Name: "ipv4_option_end"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_end", TypeSize: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}},
 	}}},
-	{Key: StructKey{Name: "ipv4_option_generic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_generic"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_option_generic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_generic", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv4_option_types", FldName: "type", TypeSize: 1}}, Vals: []uint64{0, 1, 130, 131, 68, 134, 7, 136, 137, 148}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Kind: 1, RangeEnd: 16},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 16},
 	}}},
-	{Key: StructKey{Name: "ipv4_option_lsrr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_lsrr"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_option_lsrr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_lsrr", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 131},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "pointer", TypeSize: 1}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Type: &UnionType{Key: StructKey{Name: "ipv4_addr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv4_addr"}}},
 	}}},
 	{Key: StructKey{Name: "ipv4_option_noop"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_noop", TypeSize: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 1},
@@ -2445,38 +2445,38 @@ var structDescs_arm = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "value", TypeSize: 4}, BigEndian: true}},
 	}}},
-	{Key: StructKey{Name: "ipv4_option_rr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_rr"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_option_rr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_rr", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 7},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "pointer", TypeSize: 1}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Type: &UnionType{Key: StructKey{Name: "ipv4_addr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv4_addr"}}},
 	}}},
-	{Key: StructKey{Name: "ipv4_option_ssrr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_ssrr"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_option_ssrr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_ssrr", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 137},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "pointer", TypeSize: 1}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Type: &UnionType{Key: StructKey{Name: "ipv4_addr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv4_addr"}}},
 	}}},
-	{Key: StructKey{Name: "ipv4_option_timestamp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_timestamp"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_option_timestamp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_timestamp", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 68},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "pointer", TypeSize: 1}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv4_option_timestamp_flags", FldName: "flg", TypeSize: 1}, BitfieldLen: 4, BitfieldMdl: true}, Vals: []uint64{0, 1, 3}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "oflw", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 4}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "timestamps"}, Type: &StructType{Key: StructKey{Name: "ipv4_option_timestamp_timestamp"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "timestamps", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "ipv4_option_timestamp_timestamp"}}},
 	}}},
-	{Key: StructKey{Name: "ipv4_option_timestamp_timestamp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_timestamp_timestamp"}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "addr"}, Type: &UnionType{Key: StructKey{Name: "ipv4_addr"}}, Kind: 1, RangeEnd: 1},
+	{Key: StructKey{Name: "ipv4_option_timestamp_timestamp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_option_timestamp_timestamp", IsVarlen: true}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "addr", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv4_addr"}}, Kind: 1, RangeEnd: 1},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "timestamp", TypeSize: 4}, BigEndian: true}},
 	}}},
-	{Key: StructKey{Name: "ipv4_options"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_options"}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options"}, Type: &UnionType{Key: StructKey{Name: "ipv4_option"}}},
+	{Key: StructKey{Name: "ipv4_options"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_options", IsVarlen: true}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv4_option"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "ipv4_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_packet", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "ipv4_header"}, FldName: "header"},
 		&UnionType{Key: StructKey{Name: "ipv4_payload"}, FldName: "payload"},
 	}}},
-	{Key: StructKey{Name: "ipv4_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_payload"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv4_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv4_payload", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "tcp_packet"}, FldName: "tcp"},
 		&StructType{Key: StructKey{Name: "udp_packet"}, FldName: "udp"},
 		&UnionType{Key: StructKey{Name: "icmp_packet"}, FldName: "icmp"},
@@ -2624,13 +2624,13 @@ var structDescs_arm = []*KeyedStruct{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a3", TypeSize: 1, ArgDir: 2}}, ValuesPerProc: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a4", TypeSize: 1, ArgDir: 2}}, Val: 187},
 	}}},
-	{Key: StructKey{Name: "ipv6_dstopts_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_dstopts_ext_header"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_dstopts_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_dstopts_ext_header", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "next_header", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "length", TypeSize: 1}}, BitSize: 64, Buf: "options"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 6}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options"}, Type: &UnionType{Key: StructKey{Name: "ipv6_tlv_option"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_tlv_option"}}},
 	}}},
-	{Key: StructKey{Name: "ipv6_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_ext_header"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_ext_header", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "ipv6_hopots_ext_header"}, FldName: "hopopts"},
 		&StructType{Key: StructKey{Name: "ipv6_routing_ext_header"}, FldName: "routing"},
 		&StructType{Key: StructKey{Name: "ipv6_fragment_ext_header"}, FldName: "fragment"},
@@ -2645,11 +2645,11 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "fragment_off_lo", TypeSize: 1}, BitfieldOff: 3, BitfieldLen: 5}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "identification", TypeSize: 4}}, ValuesStart: 100, ValuesPerProc: 4},
 	}}},
-	{Key: StructKey{Name: "ipv6_hopots_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_hopots_ext_header"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_hopots_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_hopots_ext_header", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "next_header", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "length", TypeSize: 1}}, BitSize: 64, Buf: "options"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 6}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options"}, Type: &UnionType{Key: StructKey{Name: "ipv6_tlv_option"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_tlv_option"}}},
 	}, AlignAttr: 8}},
 	{Key: StructKey{Name: "ipv6_mreq"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_mreq", TypeSize: 20}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "multi"},
@@ -2659,7 +2659,7 @@ var structDescs_arm = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "ipv6_addr", Dir: 1}, FldName: "multi"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "ifindex", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "ipv6_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_packet", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "priority", TypeSize: 1}, BitfieldLen: 4, BitfieldMdl: true}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 4}, Val: 6},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "flow_label", TypeSize: 3}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
@@ -2670,45 +2670,45 @@ var structDescs_arm = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "dst_ip"},
 		&StructType{Key: StructKey{Name: "ipv6_packet_payload"}, FldName: "payload"},
 	}}},
-	{Key: StructKey{Name: "ipv6_packet_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_packet_payload"}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ext_headers"}, Type: &UnionType{Key: StructKey{Name: "ipv6_ext_header"}}},
+	{Key: StructKey{Name: "ipv6_packet_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_packet_payload", IsVarlen: true}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ext_headers", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_ext_header"}}},
 		&UnionType{Key: StructKey{Name: "ipv6_payload"}, FldName: "payload"},
 	}}},
-	{Key: StructKey{Name: "ipv6_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_payload"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_payload", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "tcp_packet"}, FldName: "tcp"},
 		&StructType{Key: StructKey{Name: "udp_packet"}, FldName: "udp"},
 		&UnionType{Key: StructKey{Name: "icmpv6_packet"}, FldName: "icmpv6"},
 		&StructType{Key: StructKey{Name: "dccp_packet"}, FldName: "dccp"},
 	}}},
-	{Key: StructKey{Name: "ipv6_routing_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_routing_ext_header"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_routing_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_routing_ext_header", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "next_header", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "length", TypeSize: 1}}, BitSize: 64, Buf: "data"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_routing_types", FldName: "routing_type", TypeSize: 1}}, Vals: []uint64{1, 0, 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "segments_left", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Type: &UnionType{Key: StructKey{Name: "ipv6_addr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_addr"}}},
 	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "ipv6_tlv_calipso"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_calipso"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_tlv_calipso"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_calipso", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 7},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 1}}, BitSize: 8, Buf: "payload"},
 		&StructType{Key: StructKey{Name: "ipv6_tlv_calipso_payload"}, FldName: "payload"},
 	}}},
-	{Key: StructKey{Name: "ipv6_tlv_calipso_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_calipso_payload"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_tlv_calipso_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_calipso_payload", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "domain", TypeSize: 4}, BigEndian: true}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "compartment_length", TypeSize: 1}}, BitSize: 32, Buf: "compartment_bitmap"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sensitivity_level", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "checksum", TypeSize: 2}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "compartment_bitmap"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "compartment_bitmap", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}},
 	}}},
 	{Key: StructKey{Name: "ipv6_tlv_enc_lim"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_enc_lim", TypeSize: 3}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 4},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "len", TypeSize: 1}}, Val: 1},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "encap_limit", TypeSize: 1}}},
 	}}},
-	{Key: StructKey{Name: "ipv6_tlv_generic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_generic"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_tlv_generic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_generic", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "type", TypeSize: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "data"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "ipv6_tlv_hao"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_hao", TypeSize: 18}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 201},
@@ -2720,7 +2720,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "len", TypeSize: 1}}, Val: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "pkt_len", TypeSize: 4}, BigEndian: true}},
 	}}},
-	{Key: StructKey{Name: "ipv6_tlv_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_option"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_tlv_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_option", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "ipv6_tlv_generic"}, FldName: "generic"},
 		&StructType{Key: StructKey{Name: "ipv6_tlv_pad1"}, FldName: "pad1"},
 		&StructType{Key: StructKey{Name: "ipv6_tlv_padn"}, FldName: "padn"},
@@ -2735,10 +2735,10 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "len", TypeSize: 1}}, Val: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad", TypeSize: 1}}},
 	}}},
-	{Key: StructKey{Name: "ipv6_tlv_padn"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_padn"}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_tlv_padn"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_padn", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 1},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 1}}, Buf: "pad"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad"}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", IsVarlen: true}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}},
 	}}},
 	{Key: StructKey{Name: "ipv6_tlv_ra"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_ra", TypeSize: 4}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 5},
@@ -2764,14 +2764,14 @@ var structDescs_arm = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "current", TypeSize: 6}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "broadcast", TypeSize: 6}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}, Val: 255}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 	}}},
-	{Key: StructKey{Name: "ipx_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipx_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "ipx_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipx_packet", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "csum", TypeSize: 2}, BigEndian: true}, Val: 65535},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "control", TypeSize: 1}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipx_packet_types", FldName: "type", TypeSize: 1}}, Vals: []uint64{0, 1, 4, 5, 17, 20}},
 		&StructType{Key: StructKey{Name: "ipx_addr"}, FldName: "dst_addr"},
 		&StructType{Key: StructKey{Name: "ipx_addr"}, FldName: "src_addr"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "ipx_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipx_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ipx", FldName: "fd0", TypeSize: 4, ArgDir: 1}},
@@ -2818,7 +2818,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "toff", TypeSize: 4}}},
 	}}},
 	{Key: StructKey{Name: "kexec_segment"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kexec_segment", TypeSize: 16}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "sz", TypeSize: 4}}, Buf: "buf"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "mem", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "memsz", TypeSize: 4}}},
@@ -2837,7 +2837,7 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "keyctl_kdf_params"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "keyctl_kdf_params", TypeSize: 44}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "hashname", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "alg_hash_name"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "otherinfo", TypeSize: 4, IsOptional: true}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "otherinfo", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "otherinfolen", TypeSize: 4}}, Buf: "otherinfo"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "__spare", TypeSize: 32}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 4}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 	}}},
@@ -3008,10 +3008,10 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "irq", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "level", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "kvm_irq_routing"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_irq_routing"}, Fields: []Type{
+	{Key: StructKey{Name: "kvm_irq_routing"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_irq_routing", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nr", TypeSize: 4}}, Buf: "entries"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "entries"}, Type: &StructType{Key: StructKey{Name: "kvm_irq_routing_entry"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "entries", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "kvm_irq_routing_entry"}}},
 	}}},
 	{Key: StructKey{Name: "kvm_irq_routing_entry"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_irq_routing_entry", TypeSize: 48}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "gsi", TypeSize: 4}}},
@@ -3111,9 +3111,9 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", TypeSize: 4}}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 60}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 4}}}, Kind: 1, RangeBegin: 15, RangeEnd: 15},
 	}}},
-	{Key: StructKey{Name: "kvm_reg_list"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_reg_list"}, Fields: []Type{
+	{Key: StructKey{Name: "kvm_reg_list"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_reg_list", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "n", TypeSize: 8}}, Buf: "reg"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reg"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reg", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}},
 	}}},
 	{Key: StructKey{Name: "kvm_regs"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_regs", TypeSize: 144}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "gp", TypeSize: 128}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
@@ -3231,9 +3231,9 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "kvm_setup_opt_dstype3"}, FldName: "dstype3"},
 		&StructType{Key: StructKey{Name: "kvm_setup_opt_vmwrite"}, FldName: "vmwrite"},
 	}}},
-	{Key: StructKey{Name: "kvm_signal_mask"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_signal_mask"}, Fields: []Type{
+	{Key: StructKey{Name: "kvm_signal_mask"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_signal_mask", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "sigset"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "sigset"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "sigset", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "kvm_sregs"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_sregs", TypeSize: 312}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "kvm_segment"}, FldName: "cs"},
@@ -3277,7 +3277,7 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "kvm_text_arm64"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_text_arm64", TypeSize: 12}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "typ", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text"}, Kind: 4, Text: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4, Text: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "text"},
 	}}},
 	{Key: StructKey{Name: "kvm_text_x86"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_text_x86", TypeSize: 12}, Fields: []Type{
@@ -3288,22 +3288,22 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "kvm_text_x86_16"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_text_x86_16", TypeSize: 12}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "typ", TypeSize: 4}}, Val: 16},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text"}, Kind: 4, Text: 1}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4, Text: 1}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "text"},
 	}}},
 	{Key: StructKey{Name: "kvm_text_x86_32"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_text_x86_32", TypeSize: 12}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "typ", TypeSize: 4}}, Val: 32},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text"}, Kind: 4, Text: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4, Text: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "text"},
 	}}},
 	{Key: StructKey{Name: "kvm_text_x86_64"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_text_x86_64", TypeSize: 12}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "typ", TypeSize: 4}}, Val: 64},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text"}, Kind: 4, Text: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4, Text: 3}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "text"},
 	}}},
 	{Key: StructKey{Name: "kvm_text_x86_real"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_text_x86_real", TypeSize: 12}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "typ", TypeSize: 4}}, Val: 8},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text"}, Kind: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "text"},
 	}}},
 	{Key: StructKey{Name: "kvm_tpr_access_ctl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "kvm_tpr_access_ctl", TypeSize: 40}, Fields: []Type{
@@ -3372,13 +3372,13 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "onoff", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "linger", TypeSize: 4, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "llc_generic_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_generic_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "llc_generic_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_generic_packet", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sap_values", FldName: "dsap", TypeSize: 1}}, Vals: []uint64{1, 0, 2, 4, 14, 6, 66, 78, 126, 128, 142, 170, 188, 224, 240, 244, 248, 252, 254, 220, 212, 255}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sap_values", FldName: "ssap", TypeSize: 1}}, Vals: []uint64{1, 0, 2, 4, 14, 6, 66, 78, 126, 128, 142, 170, 188, 224, 240, 244, 248, 252, 254, 220, 212, 255}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ctrl"}, Kind: 1, RangeBegin: 1, RangeEnd: 2},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ctrl", IsVarlen: true}, Kind: 1, RangeBegin: 1, RangeEnd: 2},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "llc_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "llc_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_packet", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 2}, BigEndian: true}, Buf: "payload"},
 		&UnionType{Key: StructKey{Name: "llc_payload"}, FldName: "payload"},
 	}}},
@@ -3386,17 +3386,17 @@ var structDescs_arm = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_llc", FldName: "fd0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_llc", FldName: "fd1", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "llc_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_payload"}, Fields: []Type{
+	{Key: StructKey{Name: "llc_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_payload", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "llc_generic_packet"}, FldName: "llc"},
 		&StructType{Key: StructKey{Name: "llc_snap_packet"}, FldName: "snap"},
 	}}},
-	{Key: StructKey{Name: "llc_snap_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_snap_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "llc_snap_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_snap_packet", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sap_snap_values", FldName: "dsap", TypeSize: 1}}, Vals: []uint64{1, 170}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sap_snap_values", FldName: "ssap", TypeSize: 1}}, Vals: []uint64{1, 170}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "control"}, Kind: 1, RangeBegin: 1, RangeEnd: 2},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "control", IsVarlen: true}, Kind: 1, RangeBegin: 1, RangeEnd: 2},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "oui", TypeSize: 3}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "protocol_id", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "loadlut"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "loadlut", TypeSize: 40}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "submode", TypeSize: 1}}, Val: 5},
@@ -3541,38 +3541,38 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "res2", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "res3", TypeSize: 4, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "msgbuf"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msgbuf"}, Fields: []Type{
+	{Key: StructKey{Name: "msgbuf"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msgbuf", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "msgbuf_type", FldName: "typ", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "msgbuf", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msgbuf", ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "msgbuf", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msgbuf", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "msgbuf_type", FldName: "typ", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 3}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 1}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", ArgDir: 1, IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "msghdr_alg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_alg", TypeSize: 28}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "addr", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "addrlen", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_alg"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_alg"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, BitSize: 8, Buf: "ctrl"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
 	{Key: StructKey{Name: "msghdr_netlink"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_netlink", TypeSize: 28}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_nl_send"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_nl"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_nl"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_un"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_un"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, BitSize: 8, Buf: "ctrl"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
 	{Key: StructKey{Name: "msghdr_netrom"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_netrom", TypeSize: 28}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "sockaddr_netrom"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, BitSize: 8, Buf: "ctrl"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
@@ -3615,18 +3615,18 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "msghdr_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_sctp", TypeSize: 28}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_sctp"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, BitSize: 8, Buf: "ctrl"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
 	{Key: StructKey{Name: "msghdr_un"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_un", TypeSize: 28}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_un"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "cmsghdr_un"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, BitSize: 8, Buf: "ctrl"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
@@ -3643,28 +3643,28 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad0", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad1", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "netlink_msg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg"}, Fields: []Type{
+	{Key: StructKey{Name: "netlink_msg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "type", TypeSize: 2}}, Kind: 2, RangeBegin: 16, RangeEnd: 66},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "nl_generic_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "nl_generic_attr"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "netlink_msg_crypto"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_crypto"}, Fields: []Type{
+	{Key: StructKey{Name: "netlink_msg_crypto"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_crypto", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "nl_crypto_alg_msg"}, FldName: "alg"},
 		&StructType{Key: StructKey{Name: "nl_crypto_delrng_msg"}, FldName: "delrng"},
 	}}},
-	{Key: StructKey{Name: "netlink_msg_generic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_generic"}, Fields: []Type{
+	{Key: StructKey{Name: "netlink_msg_generic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_generic", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "type", TypeSize: 2}}, Kind: 2, RangeBegin: 16, RangeEnd: 66},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "genlmsghdr"}, FldName: "hdr"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "nl_generic_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "nl_generic_attr"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "netlink_msg_netfilter"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_netfilter"}, Fields: []Type{
+	{Key: StructKey{Name: "netlink_msg_netfilter"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_netfilter", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "type", TypeSize: 1}}, Kind: 2, RangeEnd: 20},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfnl_subsys", FldName: "subsys", TypeSize: 1}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}},
@@ -3672,10 +3672,10 @@ var structDescs_arm = []*KeyedStruct{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "nfgenmsg"}, FldName: "hdr"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "nl_generic_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "nl_generic_attr"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "netlink_msg_xfrm"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_xfrm"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "generic"}},
+	{Key: StructKey{Name: "netlink_msg_xfrm"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_xfrm", IsVarlen: true}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "generic", IsVarlen: true}},
 		&StructType{Key: StructKey{Name: "xfrm_newsa"}, FldName: "newsa"},
 		&StructType{Key: StructKey{Name: "xfrm_delsa"}, FldName: "delsa"},
 		&StructType{Key: StructKey{Name: "xfrm_newpolicy"}, FldName: "newpolicy"},
@@ -3693,7 +3693,7 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "nfc_llcp_send_msghdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nfc_llcp_send_msghdr", TypeSize: 28}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "sockaddr_nfc_llcp"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ctrl", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "ctrllen", TypeSize: 4}}, BitSize: 8, Buf: "ctrl"},
@@ -3704,14 +3704,14 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "res_id", TypeSize: 2}, BigEndian: true}, Kind: 2, RangeEnd: 10},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nl_crypto_alg_msg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_crypto_alg_msg"}, Fields: []Type{
+	{Key: StructKey{Name: "nl_crypto_alg_msg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_crypto_alg_msg", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nl_crypto_alg_msgs", FldName: "type", TypeSize: 2}}, Vals: []uint64{16, 17, 18, 19}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "crypto_user_alg"}, FldName: "msg"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &StructType{Key: StructKey{Name: "nl_crypto_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "nl_crypto_attr"}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nl_crypto_attr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_crypto_attr", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
@@ -3725,13 +3725,13 @@ var structDescs_arm = []*KeyedStruct{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nl_generic_attr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "generic"}},
+	{Key: StructKey{Name: "nl_generic_attr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr", IsVarlen: true}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "generic", IsVarlen: true}},
 		&StructType{Key: StructKey{Name: "nl_generic_attr_flag"}, FldName: "flag"},
 		&StructType{Key: StructKey{Name: "nl_generic_attr_typed"}, FldName: "typed"},
 		&StructType{Key: StructKey{Name: "nl_generic_attr_nested"}, FldName: "nested"},
 	}}},
-	{Key: StructKey{Name: "nl_generic_attr_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_data"}, Fields: []Type{
+	{Key: StructKey{Name: "nl_generic_attr_data"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_data", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "u32", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "u64", TypeSize: 8}}},
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "ipv4"},
@@ -3739,24 +3739,24 @@ var structDescs_arm = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "str"}, Kind: 2},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "binary"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "str", IsVarlen: true}, Kind: 2},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "binary", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "nl_generic_attr_flag"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_flag", TypeSize: 4}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "nla_type", TypeSize: 2}}, Kind: 2, RangeEnd: 150},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nl_generic_attr_nested"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_nested"}, Fields: []Type{
+	{Key: StructKey{Name: "nl_generic_attr_nested"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_nested", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "nla_type", TypeSize: 2}}, Kind: 2, RangeEnd: 150},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Type: &UnionType{Key: StructKey{Name: "nl_generic_attr_nonested"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "nl_generic_attr_nonested"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nl_generic_attr_nonested"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_nonested"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "generic"}},
+	{Key: StructKey{Name: "nl_generic_attr_nonested"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_nonested", IsVarlen: true}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "generic", IsVarlen: true}},
 		&StructType{Key: StructKey{Name: "nl_generic_attr_flag"}, FldName: "flag"},
 		&StructType{Key: StructKey{Name: "nl_generic_attr_typed"}, FldName: "typed"},
 	}}},
-	{Key: StructKey{Name: "nl_generic_attr_typed"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_typed"}, Fields: []Type{
+	{Key: StructKey{Name: "nl_generic_attr_typed"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nl_generic_attr_typed", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "nla_type", TypeSize: 2}}, Kind: 2, RangeEnd: 150},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
@@ -3869,9 +3869,9 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "recv_msghdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "recv_msghdr", TypeSize: 28}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_name", TypeSize: 4, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_storage", Dir: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_namelen", TypeSize: 4}}, Buf: "msg_name"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_iov", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_iov", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_iovlen", TypeSize: 4}}, Buf: "msg_iov"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_control", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_control", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "msg_controllen", TypeSize: 4}}, BitSize: 8, Buf: "msg_control"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "msg_flags", TypeSize: 4}}},
 	}}},
@@ -3883,10 +3883,10 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "soft", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "hard", TypeSize: 4, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "rnd_entpropy"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rnd_entpropy"}, Fields: []Type{
+	{Key: StructKey{Name: "rnd_entpropy"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rnd_entpropy", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "entcnt", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "pool"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pool"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pool", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "robust_list"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "robust_list", TypeSize: 12}, Fields: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "next", TypeSize: 4}},
@@ -3935,7 +3935,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "nvcsw", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "nivcsw", TypeSize: 4, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "sadb_address"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_address"}, Fields: []Type{
+	{Key: StructKey{Name: "sadb_address"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_address", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "sadb_len", TypeSize: 2}}, BitSize: 64, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sadb_address_type", FldName: "sadb_exttype", TypeSize: 2}}, Vals: []uint64{5, 6, 7, 23}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_proto", FldName: "sadb_address_proto", TypeSize: 1}}, Vals: []uint64{51, 50, 108, 60, 43, 255}},
@@ -3943,11 +3943,11 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sadb_address_reserved", TypeSize: 2}}},
 		&UnionType{Key: StructKey{Name: "sadb_address_addr"}, FldName: "addr"},
 	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "sadb_address_addr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_address_addr"}, Fields: []Type{
+	{Key: StructKey{Name: "sadb_address_addr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_address_addr", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_in"}, FldName: "in"},
 		&StructType{Key: StructKey{Name: "sockaddr_in6"}, FldName: "in6"},
 	}}},
-	{Key: StructKey{Name: "sadb_ext_hdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_ext_hdr"}, Fields: []Type{
+	{Key: StructKey{Name: "sadb_ext_hdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_ext_hdr", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sadb_sa"}, FldName: "sadb_sa"},
 		&StructType{Key: StructKey{Name: "sadb_lifetime"}, FldName: "sadb_lifetime"},
 		&StructType{Key: StructKey{Name: "sadb_address"}, FldName: "sadb_address"},
@@ -3973,12 +3973,12 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sadb_ident_reserved", TypeSize: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sadb_ident_id", TypeSize: 8}}},
 	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "sadb_key"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_key"}, Fields: []Type{
+	{Key: StructKey{Name: "sadb_key"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_key", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "sadb_len", TypeSize: 2}}, BitSize: 64, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sadb_key_type", FldName: "sadb_exttype", TypeSize: 2}}, Vals: []uint64{8, 9}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bitsize", FldName: "sadb_key_bits", TypeSize: 2}}, BitSize: 1, Buf: "key"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sadb_key_reserved", TypeSize: 2}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "key"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "key", IsVarlen: true}},
 	}, AlignAttr: 8}},
 	{Key: StructKey{Name: "sadb_lifetime"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_lifetime", TypeSize: 32}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "sadb_len", TypeSize: 2}}, BitSize: 64, Buf: "parent"},
@@ -3988,7 +3988,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sadb_lifetime_addtime", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sadb_lifetime_usetime", TypeSize: 8}}},
 	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "sadb_msg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_msg"}, Fields: []Type{
+	{Key: StructKey{Name: "sadb_msg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_msg", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sadb_msg_version", TypeSize: 1}}, Val: 2},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sadb_msg_type", TypeSize: 1}}, Kind: 2, RangeEnd: 24},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sadb_msg_errno", TypeSize: 1}}},
@@ -3997,7 +3997,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sadb_msg_reserved", TypeSize: 2}}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "sadb_msg_seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "sadb_msg_pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ext_headers"}, Type: &UnionType{Key: StructKey{Name: "sadb_ext_hdr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ext_headers", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sadb_ext_hdr"}}},
 	}}},
 	{Key: StructKey{Name: "sadb_sa"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_sa", TypeSize: 16}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "sadb_len", TypeSize: 2}}, BitSize: 64, Buf: "parent"},
@@ -4036,7 +4036,7 @@ var structDescs_arm = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "sadb_filter_addr"}, FldName: "saddr"},
 		&UnionType{Key: StructKey{Name: "sadb_filter_addr"}, FldName: "daddr"},
 	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "sadb_x_kmaddress"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_x_kmaddress"}, Fields: []Type{
+	{Key: StructKey{Name: "sadb_x_kmaddress"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_x_kmaddress", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "sadb_len", TypeSize: 2}}, BitSize: 64, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sadb_exttype", TypeSize: 2}}, Val: 25},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sadb_x_kmaddress_reserved", TypeSize: 4}}},
@@ -4074,13 +4074,13 @@ var structDescs_arm = []*KeyedStruct{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "sadb_x_sa2_sequence", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "sadb_x_sa2_reqid", TypeSize: 4, IsOptional: true}}, ValuesStart: 13567, ValuesPerProc: 8},
 	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "sadb_x_sec_ctx"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_x_sec_ctx"}, Fields: []Type{
+	{Key: StructKey{Name: "sadb_x_sec_ctx"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sadb_x_sec_ctx", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "sadb_len", TypeSize: 2}}, BitSize: 64, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sadb_exttype", TypeSize: 2}}, Val: 24},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sadb_x_ctx_alg", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sadb_x_ctx_doi", TypeSize: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "sadb_x_ctx_len", TypeSize: 2}}, BitSize: 8, Buf: "ctx"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ctx"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ctx", IsVarlen: true}},
 	}, AlignAttr: 8}},
 	{Key: StructKey{Name: "sched_attr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sched_attr", TypeSize: 48}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sched_attr_size", FldName: "size", TypeSize: 4}}, Vals: []uint64{48}},
@@ -4106,9 +4106,9 @@ var structDescs_arm = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "f0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "f1", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "sctp_assoc_ids", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_assoc_ids", ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_assoc_ids", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_assoc_ids", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "gaids_number_of_ids", TypeSize: 4, ArgDir: 1}}, Buf: "gaids_assoc_id"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "gaids_assoc_id", ArgDir: 1}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", TypeSize: 4, ArgDir: 1}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "gaids_assoc_id", ArgDir: 1, IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", TypeSize: 4, ArgDir: 1}}},
 	}}},
 	{Key: StructKey{Name: "sctp_assoc_stats", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_assoc_stats", TypeSize: 264, ArgDir: 2}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "sas_assoc_id", TypeSize: 4, ArgDir: 2}},
@@ -4147,16 +4147,16 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "sctp_authchunk"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_authchunk", TypeSize: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sauth_chunk", TypeSize: 1}}},
 	}}},
-	{Key: StructKey{Name: "sctp_authchunks", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_authchunks", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_authchunks", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_authchunks", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "gauth_assoc_id", TypeSize: 4, ArgDir: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "gauth_number_of_chunks", TypeSize: 4, ArgDir: 2}}, Buf: "gauth_chunks"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "gauth_chunks", ArgDir: 2}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "gauth_chunks", ArgDir: 2, IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "sctp_authkey"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_authkey"}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_authkey"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_authkey", IsVarlen: true}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "sca_assoc_id", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "sca_keynumber", TypeSize: 2}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "sca_keylength", TypeSize: 2}}, Buf: "sca_key"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "sca_key"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "sca_key", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "sctp_authkeyid"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_authkeyid", TypeSize: 6}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "scact_assoc_id", TypeSize: 4}},
@@ -4178,11 +4178,11 @@ var structDescs_arm = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sctp_pr_policies", FldName: "pr_policy", TypeSize: 2, ArgDir: 2}}, Vals: []uint64{0, 16, 32, 48}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "sctp_delayed_sack"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_delayed_sack"}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_delayed_sack"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_delayed_sack", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sctp_sack_info"}, FldName: "sack_info"},
 		&StructType{Key: StructKey{Name: "sctp_assoc_value"}, FldName: "assoc_value"},
 	}}},
-	{Key: StructKey{Name: "sctp_delayed_sack", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_delayed_sack", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_delayed_sack", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_delayed_sack", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sctp_sack_info", Dir: 2}, FldName: "sack_info"},
 		&StructType{Key: StructKey{Name: "sctp_assoc_value", Dir: 2}, FldName: "assoc_value"},
 	}}},
@@ -4212,23 +4212,23 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sctp_sender_dry_event", TypeSize: 1, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sctp_stream_reset_event", TypeSize: 1, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "sctp_getaddrs", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_getaddrs", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_getaddrs", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_getaddrs", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "assoc_id", TypeSize: 4, ArgDir: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addr_num", TypeSize: 4, ArgDir: 2}}, Buf: "addrs"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "addrs", ArgDir: 2}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "addrs", ArgDir: 2, IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "sctp_getaddrs_old", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_getaddrs_old", TypeSize: 12, ArgDir: 2}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "assoc_id", TypeSize: 4, ArgDir: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "addr_num", TypeSize: 4, ArgDir: 2}}, BitSize: 8, Buf: "addrs"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addrs", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addrs", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
 	}}},
-	{Key: StructKey{Name: "sctp_hmacalgo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_hmacalgo"}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_hmacalgo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_hmacalgo", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "shmac_num_idents", TypeSize: 4}}, Buf: "shmac_idents"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "shmac_idents"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "shmac_idents", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}},
 	}}},
-	{Key: StructKey{Name: "sctp_hmacalgo", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_hmacalgo", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_hmacalgo", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_hmacalgo", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "shmac_num_idents", TypeSize: 4, ArgDir: 2}}, Buf: "shmac_idents"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "shmac_idents", ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "shmac_idents", ArgDir: 2, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 	}}},
 	{Key: StructKey{Name: "sctp_initmsg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_initmsg", TypeSize: 8}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "sinit_num_ostreams", TypeSize: 2}}},
@@ -4242,19 +4242,19 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "sinit_max_attempts", TypeSize: 2, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "sinit_max_init_timeo", TypeSize: 2, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "sctp_max_burst"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_max_burst"}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_max_burst"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_max_burst", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "int", TypeSize: 4}}},
 		&StructType{Key: StructKey{Name: "sctp_assoc_value"}, FldName: "assoc_value"},
 	}}},
-	{Key: StructKey{Name: "sctp_max_burst", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_max_burst", ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_max_burst", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_max_burst", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "int", TypeSize: 4, ArgDir: 1}}},
 		&StructType{Key: StructKey{Name: "sctp_assoc_value", Dir: 1}, FldName: "assoc_value"},
 	}}},
-	{Key: StructKey{Name: "sctp_maxseg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_maxseg"}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_maxseg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_maxseg", IsVarlen: true}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "assoc_id", TypeSize: 4}},
 		&StructType{Key: StructKey{Name: "sctp_assoc_value"}, FldName: "assoc_value"},
 	}}},
-	{Key: StructKey{Name: "sctp_maxseg", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_maxseg", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_maxseg", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_maxseg", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "assoc_id", TypeSize: 4, ArgDir: 2}},
 		&StructType{Key: StructKey{Name: "sctp_assoc_value", Dir: 2}, FldName: "assoc_value"},
 	}}},
@@ -4326,17 +4326,17 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sprstat_abandoned_uns", TypeSize: 8, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sprstat_abandoned_sent", TypeSize: 8, ArgDir: 2}}},
 	}}},
-	{Key: StructKey{Name: "sctp_reset_streams"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_reset_streams"}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_reset_streams"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_reset_streams", IsVarlen: true}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "srs_assoc_id", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "srs_flags", TypeSize: 2}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "srs_number_streams", TypeSize: 2}}, Buf: "srs_stream_list"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "srs_stream_list"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "srs_stream_list", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}},
 	}}},
-	{Key: StructKey{Name: "sctp_reset_streams", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_reset_streams", ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "sctp_reset_streams", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_reset_streams", ArgDir: 2, IsVarlen: true}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "srs_assoc_id", TypeSize: 4, ArgDir: 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "srs_flags", TypeSize: 2, ArgDir: 2}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "srs_number_streams", TypeSize: 2, ArgDir: 2}}, Buf: "srs_stream_list"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "srs_stream_list", ArgDir: 2}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "srs_stream_list", ArgDir: 2, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2, ArgDir: 2}}}},
 	}}},
 	{Key: StructKey{Name: "sctp_rtoinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sctp_rtoinfo", TypeSize: 16}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "assoc_id", FldName: "srto_assoc_id", TypeSize: 4}},
@@ -4445,9 +4445,9 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "send_msghdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "send_msghdr", TypeSize: 28}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_name", TypeSize: 4, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_storage"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_namelen", TypeSize: 4}}, Buf: "msg_name"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_iov", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_iov", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msg_iovlen", TypeSize: 4}}, Buf: "msg_iov"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_control", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg_control", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "cmsghdr"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "msg_controllen", TypeSize: 4}}, BitSize: 8, Buf: "msg_control"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "msg_flags", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}}},
@@ -4496,8 +4496,8 @@ var structDescs_arm = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 64}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 8}}}, Kind: 1, RangeBegin: 8, RangeEnd: 8},
 	}}},
 	{Key: StructKey{Name: "sigevent_thread"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sigevent_thread", TypeSize: 8}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "func", TypeSize: 4}, Type: &BufferType{}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "attr", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "func", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "attr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "sigevent_u"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sigevent_u", TypeSize: 8}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "tid", TypeSize: 4}},
@@ -4553,7 +4553,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "items", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "item", TypeSize: 4}}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "name", TypeSize: 64}, Kind: 1, RangeBegin: 64, RangeEnd: 64},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "nameptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "nameptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "namelen", TypeSize: 4}}, Buf: "nameptr"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad1", TypeSize: 44}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 44, RangeEnd: 44},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "d", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
@@ -4564,7 +4564,7 @@ var structDescs_arm = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "space", TypeSize: 4}}, Buf: "pids"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "used", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "count", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pids", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "snd_ctl_elem_id", Dir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pids", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "snd_ctl_elem_id", Dir: 1}}}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 50}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 50, RangeEnd: 50},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 	}}},
@@ -4576,10 +4576,10 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "timespec"}, FldName: "tstamp"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 112}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 112, RangeEnd: 112},
 	}}},
-	{Key: StructKey{Name: "snd_ctl_tlv"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "snd_ctl_tlv"}, Fields: []Type{
+	{Key: StructKey{Name: "snd_ctl_tlv"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "snd_ctl_tlv", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "numid", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "tlv"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "tlv"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "tlv", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
 	}}},
 	{Key: StructKey{Name: "snd_pcm_info"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "snd_pcm_info", TypeSize: 288}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dev", TypeSize: 4}}},
@@ -4660,7 +4660,7 @@ var structDescs_arm = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "snd_seq_ev_ext"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "snd_seq_ev_ext", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "ptr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ptr", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}}},
 	{Key: StructKey{Name: "snd_seq_ev_note"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "snd_seq_ev_note", TypeSize: 8}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "chan", TypeSize: 1}}},
@@ -4894,7 +4894,7 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "sock_fprog"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sock_fprog", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 2}}, Buf: "filter"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filter", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "sock_filter"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filter", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "sock_filter"}}}},
 	}}},
 	{Key: StructKey{Name: "sock_in6_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sock_in6_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in6", FldName: "f0", TypeSize: 4, ArgDir: 1}},
@@ -5157,11 +5157,11 @@ var structDescs_arm = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "mac_addr", Dir: 2}, FldName: "sll_addr"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 2, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 2}}}, Kind: 1, RangeBegin: 2, RangeEnd: 2},
 	}}},
-	{Key: StructKey{Name: "sockaddr_netrom"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_netrom"}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_netrom"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_netrom", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_ax25"}, FldName: "ax25"},
 		&StructType{Key: StructKey{Name: "full_sockaddr_ax25"}, FldName: "full"},
 	}}},
-	{Key: StructKey{Name: "sockaddr_netrom", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_netrom", ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_netrom", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_netrom", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_ax25", Dir: 1}, FldName: "ax25"},
 		&StructType{Key: StructKey{Name: "full_sockaddr_ax25", Dir: 1}, FldName: "full"},
 	}}},
@@ -5310,11 +5310,11 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fam", TypeSize: 2, ArgDir: 2}}, Val: 31},
 		&StructType{Key: StructKey{Name: "bdaddr", Dir: 2}, FldName: "addr"},
 	}}},
-	{Key: StructKey{Name: "sockaddr_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_sctp"}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_sctp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_sctp", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_in"}, FldName: "in"},
 		&StructType{Key: StructKey{Name: "sockaddr_in6"}, FldName: "in6"},
 	}}},
-	{Key: StructKey{Name: "sockaddr_storage"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage"}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_storage"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage", IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_un"}, FldName: "un"},
 		&StructType{Key: StructKey{Name: "sockaddr_in"}, FldName: "in"},
 		&StructType{Key: StructKey{Name: "sockaddr_ax25"}, FldName: "ax25"},
@@ -5333,7 +5333,7 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "sockaddr_ethernet"}, FldName: "ethernet"},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_generic"}, FldName: "generic"},
 	}}},
-	{Key: StructKey{Name: "sockaddr_storage", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage", ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_storage", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_storage", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr_un", Dir: 1}, FldName: "un"},
 		&StructType{Key: StructKey{Name: "sockaddr_in", Dir: 1}, FldName: "in"},
 		&StructType{Key: StructKey{Name: "sockaddr_ax25", Dir: 1}, FldName: "ax25"},
@@ -5390,11 +5390,11 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in"}, FldName: "in"},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6"}, FldName: "in6"},
 	}}},
-	{Key: StructKey{Name: "sockaddr_un"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un"}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_un"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_un_file"}, FldName: "file"},
 		&StructType{Key: StructKey{Name: "sockaddr_un_abstract"}, FldName: "abs"},
 	}}},
-	{Key: StructKey{Name: "sockaddr_un", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un", ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_un", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_un_file", Dir: 1}, FldName: "file"},
 		&StructType{Key: StructKey{Name: "sockaddr_un_abstract", Dir: 1}, FldName: "abs"},
 	}}},
@@ -5410,13 +5410,13 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "id", TypeSize: 4, ArgDir: 1}}, ValuesStart: 20000, ValuesPerProc: 4},
 	}}},
-	{Key: StructKey{Name: "sockaddr_un_file"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un_file"}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_un_file"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un_file", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 2}}, Vals: []uint64{1, 0}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "path"}, Kind: 3},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "path", IsVarlen: true}, Kind: 3},
 	}}},
-	{Key: StructKey{Name: "sockaddr_un_file", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un_file", ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "sockaddr_un_file", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_un_file", ArgDir: 1, IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unix_socket_family", FldName: "family", TypeSize: 2, ArgDir: 1}}, Vals: []uint64{1, 0}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "path", ArgDir: 1}, Kind: 3},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "path", ArgDir: 1, IsVarlen: true}, Kind: 3},
 	}}},
 	{Key: StructKey{Name: "stat", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "stat", TypeSize: 68, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "dev", TypeSize: 2, ArgDir: 1}}},
@@ -5502,17 +5502,17 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "tcp_eol_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_eol_option", TypeSize: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}},
 	}}},
-	{Key: StructKey{Name: "tcp_fastopen_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_fastopen_option"}, Fields: []Type{
+	{Key: StructKey{Name: "tcp_fastopen_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_fastopen_option", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 34},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Kind: 1, RangeEnd: 16},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 16},
 	}}},
-	{Key: StructKey{Name: "tcp_generic_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_generic_option"}, Fields: []Type{
+	{Key: StructKey{Name: "tcp_generic_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_generic_option", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "tcp_option_types", FldName: "type", TypeSize: 1}}, Vals: []uint64{1, 0, 2, 3, 4, 5, 8, 19, 34, 254}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Kind: 1, RangeEnd: 16},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 16},
 	}}},
-	{Key: StructKey{Name: "tcp_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_header"}, Fields: []Type{
+	{Key: StructKey{Name: "tcp_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_header", IsVarlen: true}, Fields: []Type{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "src_port", TypeSize: 2}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "dst_port", TypeSize: 2}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "tcp_seq_num", FldName: "seq_num", TypeSize: 4}},
@@ -5546,7 +5546,7 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "tcp_nop_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_nop_option", TypeSize: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 1},
 	}}},
-	{Key: StructKey{Name: "tcp_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_option"}, Fields: []Type{
+	{Key: StructKey{Name: "tcp_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_option", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "tcp_generic_option"}, FldName: "generic"},
 		&StructType{Key: StructKey{Name: "tcp_nop_option"}, FldName: "nop"},
 		&StructType{Key: StructKey{Name: "tcp_eol_option"}, FldName: "eol"},
@@ -5558,10 +5558,10 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "tcp_md5sig_option"}, FldName: "md5sig"},
 		&StructType{Key: StructKey{Name: "tcp_fastopen_option"}, FldName: "fastopen"},
 	}}},
-	{Key: StructKey{Name: "tcp_options"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_options"}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options"}, Type: &UnionType{Key: StructKey{Name: "tcp_option"}}},
+	{Key: StructKey{Name: "tcp_options"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_options", IsVarlen: true}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "tcp_option"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "tcp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "tcp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_packet", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "tcp_header"}, FldName: "header"},
 		&StructType{Key: StructKey{Name: "tcp_payload"}, FldName: "payload"},
 	}}},
@@ -5569,8 +5569,8 @@ var structDescs_arm = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "f0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "f1", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "tcp_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_payload"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload"}},
+	{Key: StructKey{Name: "tcp_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_payload", IsVarlen: true}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "tcp_repair_opt"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_repair_opt", TypeSize: 8}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "tcp_repair_opt_codes", FldName: "opt_code", TypeSize: 4}}, Vals: []uint64{2, 3, 4, 8}},
@@ -5594,10 +5594,10 @@ var structDescs_arm = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "tcp_seq_num", FldName: "seq", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "tcp_seq_num", FldName: "ack", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "tcp_sack_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_sack_option"}, Fields: []Type{
+	{Key: StructKey{Name: "tcp_sack_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_sack_option", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 5},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", TypeSize: 4}, BigEndian: true}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", TypeSize: 4}, BigEndian: true}}},
 	}}},
 	{Key: StructKey{Name: "tcp_sack_perm_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_sack_perm_option", TypeSize: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 4},
@@ -5761,25 +5761,25 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "tp_sizeof_priv", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "tp_feature_req_word", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "tpacket_req_u"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tpacket_req_u"}, Fields: []Type{
+	{Key: StructKey{Name: "tpacket_req_u"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tpacket_req_u", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "tpacket_req"}, FldName: "req"},
 		&StructType{Key: StructKey{Name: "tpacket_req3"}, FldName: "req3"},
 	}}},
-	{Key: StructKey{Name: "tun_buffer"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_buffer"}, Fields: []Type{
+	{Key: StructKey{Name: "tun_buffer"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_buffer", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "tun_pi"}, FldName: "pi"},
 		&StructType{Key: StructKey{Name: "virtio_net_hdr"}, FldName: "hdr"},
 	}}},
-	{Key: StructKey{Name: "tun_filter"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_filter"}, Fields: []Type{
+	{Key: StructKey{Name: "tun_filter"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_filter", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "tun_filter_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 2}}, Buf: "addr"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "addr"}, Type: &UnionType{Key: StructKey{Name: "mac_addr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "addr", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "mac_addr"}}},
 	}}},
-	{Key: StructKey{Name: "tun_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_payload"}, Fields: []Type{
+	{Key: StructKey{Name: "tun_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_payload", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "eth_packet"}, FldName: "eth"},
 		&StructType{Key: StructKey{Name: "ipv4_packet"}, FldName: "ipv4"},
 		&StructType{Key: StructKey{Name: "ipv6_packet"}, FldName: "ipv6"},
 	}}},
-	{Key: StructKey{Name: "tun_pi"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_pi"}, Fields: []Type{
+	{Key: StructKey{Name: "tun_pi"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_pi", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 2}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "proto", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536}},
 		&UnionType{Key: StructKey{Name: "tun_payload"}, FldName: "data"},
@@ -5798,12 +5798,12 @@ var structDescs_arm = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp6", FldName: "f0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp6", FldName: "f1", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "udp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "udp_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "udp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "udp_packet", IsVarlen: true}, Fields: []Type{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "src_port", TypeSize: 2}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "dst_port", TypeSize: 2}, BigEndian: true}, ValuesStart: 20000, ValuesPerProc: 4},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Kind: 1, Buf: "parent", Protocol: 17},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "udp_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "udp_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp", FldName: "f0", TypeSize: 4, ArgDir: 1}},
@@ -5827,12 +5827,12 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "unimapdesc_in"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "unimapdesc_in", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cnt", TypeSize: 2}}, Buf: "entries"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "entries", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "unipair"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "entries", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "unipair"}}}},
 	}}},
 	{Key: StructKey{Name: "unimapdesc_out"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "unimapdesc_out", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "cnt", TypeSize: 2}}, Buf: "entries"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "entries", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "unipair", Dir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "entries", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "unipair", Dir: 1}}}},
 	}}},
 	{Key: StructKey{Name: "unimapinit"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "unimapinit", TypeSize: 6}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "size", TypeSize: 2}}},
@@ -5858,7 +5858,7 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nampac1", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "nampac2", TypeSize: 4, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "virtio_net_hdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "virtio_net_hdr"}, Fields: []Type{
+	{Key: StructKey{Name: "virtio_net_hdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "virtio_net_hdr", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "virtio_net_flags", FldName: "flags", TypeSize: 1}}, Vals: []uint64{1, 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "virtio_net_types", FldName: "gsotype", TypeSize: 1}}, Vals: []uint64{0, 1, 3, 4, 128}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "hdrlen", TypeSize: 2}}},
@@ -5867,8 +5867,8 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "offset", TypeSize: 2}}},
 		&UnionType{Key: StructKey{Name: "tun_payload"}, FldName: "data"},
 	}}},
-	{Key: StructKey{Name: "vlan_tag"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vlan_tag"}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "tag_ad"}, Type: &StructType{Key: StructKey{Name: "vlan_tag_ad"}}, Kind: 1, RangeEnd: 1},
+	{Key: StructKey{Name: "vlan_tag"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vlan_tag", IsVarlen: true}, Fields: []Type{
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "tag_ad", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "vlan_tag_ad"}}, Kind: 1, RangeEnd: 1},
 		&StructType{Key: StructKey{Name: "vlan_tag_q"}, FldName: "tag_q"},
 	}}},
 	{Key: StructKey{Name: "vlan_tag_ad"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vlan_tag_ad", TypeSize: 4}, Fields: []Type{
@@ -5883,10 +5883,10 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "dei", TypeSize: 2}, BitfieldOff: 3, BitfieldLen: 1, BitfieldMdl: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "vid", TypeSize: 2}, BitfieldOff: 4, BitfieldLen: 12}},
 	}}},
-	{Key: StructKey{Name: "vnet_fragmentation"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vnet_fragmentation"}, Fields: []Type{
+	{Key: StructKey{Name: "vnet_fragmentation"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vnet_fragmentation", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "full", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "frags"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "frags"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 2, RangeEnd: 4096}, Kind: 1, RangeBegin: 1, RangeEnd: 4},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "frags", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 2, RangeEnd: 4096}, Kind: 1, RangeBegin: 1, RangeEnd: 4},
 	}}},
 	{Key: StructKey{Name: "vt_consize"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vt_consize", TypeSize: 12}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "rows", TypeSize: 2}}},
@@ -5932,28 +5932,28 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "xpix", TypeSize: 2, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "upix", TypeSize: 2, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "x25_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "x25_packet"}, Fields: []Type{
+	{Key: StructKey{Name: "x25_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "x25_packet", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "x25_iface_types", FldName: "iface", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 3}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "wtf", TypeSize: 1}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "x25_frame_types", FldName: "frame", TypeSize: 1}}, Vals: []uint64{11, 15, 19, 23, 0, 35, 39, 1, 5, 9, 27, 31, 243, 247, 251, 255, 241, 253}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "xattr_name"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xattr_name"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "known"}, Kind: 2, SubKind: "xattr_names", Values: []string{"system.posix_acl_access\x00", "system.posix_acl_default\x00", "system.advise\x00", "system.sockprotoname\x00", "com.apple.FinderInfo\x00", "com.apple.system.Security\x00", "user.syz\x00", "trusted.syz\x00", "security.evm\x00", "security.ima\x00", "security.selinux\x00", "security.capability\x00"}},
+	{Key: StructKey{Name: "xattr_name"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xattr_name", IsVarlen: true}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "known", IsVarlen: true}, Kind: 2, SubKind: "xattr_names", Values: []string{"system.posix_acl_access\x00", "system.posix_acl_default\x00", "system.advise\x00", "system.sockprotoname\x00", "com.apple.FinderInfo\x00", "com.apple.system.Security\x00", "user.syz\x00", "trusted.syz\x00", "security.evm\x00", "security.ima\x00", "security.selinux\x00", "security.capability\x00"}},
 		&StructType{Key: StructKey{Name: "xattr_name_random"}, FldName: "random"},
 	}}},
-	{Key: StructKey{Name: "xattr_name_random"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xattr_name_random"}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "prefix"}, Kind: 2, SubKind: "xattr_prefix", Values: []string{"system.\x00", "trusted.\x00", "security.\x00", "user.\x00", "btrfs.\x00", "osx.\x00", "os2.\x00"}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "name"}, Kind: 2},
+	{Key: StructKey{Name: "xattr_name_random"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xattr_name_random", IsVarlen: true}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "prefix", IsVarlen: true}, Kind: 2, SubKind: "xattr_prefix", Values: []string{"system.\x00", "trusted.\x00", "security.\x00", "user.\x00", "btrfs.\x00", "osx.\x00", "os2.\x00"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "name", IsVarlen: true}, Kind: 2},
 	}}},
-	{Key: StructKey{Name: "xfrm_acquire"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_acquire"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_acquire"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_acquire", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 23},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_user_acquire"}, FldName: "msg"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "xfrm_address"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_address", TypeSize: 16}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "in"},
@@ -5976,43 +5976,43 @@ var structDescs_arm = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "flags", TypeSize: 4}}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "reqid", TypeSize: 4, IsOptional: true}}, ValuesStart: 13567, ValuesPerProc: 8},
 	}}},
-	{Key: StructKey{Name: "xfrm_algo_aead"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_algo_aead"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_algo_aead"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_algo_aead", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "alg_aead_name"}, FldName: "alg_name"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bitsize", FldName: "alg_key_len", TypeSize: 4}}, BitSize: 1, Buf: "alg_key"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_algo_truncbits", FldName: "alg_icv_len", TypeSize: 4}}, Vals: []uint64{0, 64, 96, 128, 160, 192, 256, 384, 512}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "alg_key"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "alg_key", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "xfrm_algo_auth"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_algo_auth"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_algo_auth"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_algo_auth", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "alg_hash_name"}, FldName: "alg_name"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bitsize", FldName: "alg_key_len", TypeSize: 4}}, BitSize: 1, Buf: "alg_key"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_algo_truncbits", FldName: "alg_icv_len", TypeSize: 4}}, Vals: []uint64{0, 64, 96, 128, 160, 192, 256, 384, 512}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "alg_key"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "alg_key", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "xfrm_algo_blkcipher"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_algo_blkcipher"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_algo_blkcipher"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_algo_blkcipher", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "alg_blkcipher_name"}, FldName: "alg_name"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bitsize", FldName: "alg_key_len", TypeSize: 4}}, BitSize: 1, Buf: "alg_key"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "alg_key"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "alg_key", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "xfrm_algo_compress"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_algo_compress"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_algo_compress"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_algo_compress", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "alg_compress_name"}, FldName: "alg_name"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bitsize", FldName: "alg_key_len", TypeSize: 4}}, BitSize: 1, Buf: "alg_key"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "alg_key"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "alg_key", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "xfrm_algo_hash"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_algo_hash"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_algo_hash"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_algo_hash", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "alg_hash_name"}, FldName: "alg_name"},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bitsize", FldName: "alg_key_len", TypeSize: 4}}, BitSize: 1, Buf: "alg_key"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "alg_key"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "alg_key", IsVarlen: true}},
 	}}},
-	{Key: StructKey{Name: "xfrm_allocspi"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_allocspi"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_allocspi"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_allocspi", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 22},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_userspi_info"}, FldName: "msg"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_attr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_attr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "xfrm_attr_sa"}, FldName: "sa"},
 		&StructType{Key: StructKey{Name: "xfrm_attr_policy"}, FldName: "policy"},
 		&StructType{Key: StructKey{Name: "xfrm_attr_lastused"}, FldName: "lastused"},
@@ -6045,27 +6045,27 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 26},
 		&StructType{Key: StructKey{Name: "xfrm_address_filter"}, FldName: "data"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_attr_algo_aead"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_algo_aead"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_attr_algo_aead"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_algo_aead", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 18},
 		&StructType{Key: StructKey{Name: "xfrm_algo_aead"}, FldName: "data"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_attr_algo_auth"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_algo_auth"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_attr_algo_auth"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_algo_auth", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 1},
 		&StructType{Key: StructKey{Name: "xfrm_algo_hash"}, FldName: "data"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_attr_algo_auth_trunc"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_algo_auth_trunc"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_attr_algo_auth_trunc"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_algo_auth_trunc", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 20},
 		&StructType{Key: StructKey{Name: "xfrm_algo_auth"}, FldName: "data"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_attr_algo_comp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_algo_comp"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_attr_algo_comp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_algo_comp", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 3},
 		&StructType{Key: StructKey{Name: "xfrm_algo_compress"}, FldName: "data"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_attr_algo_crypt"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_algo_crypt"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_attr_algo_crypt"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_algo_crypt", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 2},
 		&StructType{Key: StructKey{Name: "xfrm_algo_blkcipher"}, FldName: "data"},
@@ -6109,10 +6109,10 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 21},
 		&StructType{Key: StructKey{Name: "xfrm_mark"}, FldName: "data"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_attr_migrate"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_migrate"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_attr_migrate"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_migrate", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 17},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Type: &StructType{Key: StructKey{Name: "xfrm_user_migrate"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "xfrm_user_migrate"}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "xfrm_attr_offload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_offload", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
@@ -6138,7 +6138,7 @@ var structDescs_arm = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_proto", FldName: "data", TypeSize: 1}}, Vals: []uint64{51, 50, 108, 60, 43, 255}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_attr_replay_esn_val"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_replay_esn_val"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_attr_replay_esn_val"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_replay_esn_val", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 23},
 		&StructType{Key: StructKey{Name: "xfrm_replay_state_esn"}, FldName: "data"},
@@ -6154,7 +6154,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "xfrm_usersa_info"}, FldName: "data"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_attr_sec_ctx"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_sec_ctx"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_attr_sec_ctx"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_sec_ctx", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 8},
 		&StructType{Key: StructKey{Name: "xfrm_user_sec_ctx"}, FldName: "data"},
@@ -6164,10 +6164,10 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 13},
 		&UnionType{Key: StructKey{Name: "xfrm_address"}, FldName: "data"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_attr_tmpl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_tmpl"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_attr_tmpl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_tmpl", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 5},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data"}, Type: &StructType{Key: StructKey{Name: "xfrm_user_tmpl"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "xfrm_user_tmpl"}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "xfrm_attr_u32"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_attr_u32", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
@@ -6179,23 +6179,23 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 19},
 		&StructType{Key: StructKey{Name: "xfrm_user_kmaddress"}, FldName: "data"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_delpolicy"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_delpolicy"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_delpolicy"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_delpolicy", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_delpolicy_msgs", FldName: "type", TypeSize: 2}}, Vals: []uint64{20, 21, 33}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_userpolicy_id"}, FldName: "msg"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_delsa"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_delsa"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_delsa"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_delsa", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_delsa_msgs", FldName: "type", TypeSize: 2}}, Vals: []uint64{17, 18}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_usersa_id"}, FldName: "msg"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "xfrm_encap_tmpl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_encap_tmpl", TypeSize: 24}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_encap_type", FldName: "encap_type", TypeSize: 2}}, Vals: []uint64{18446744073709551613, 18446744073709551614, 18446744073709551615, 0, 1, 2, 3}},
@@ -6204,7 +6204,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 		&UnionType{Key: StructKey{Name: "xfrm_address"}, FldName: "encap_oa"},
 	}}},
-	{Key: StructKey{Name: "xfrm_expire"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_expire"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_expire"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_expire", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 24},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
@@ -6212,7 +6212,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_user_expire"}, FldName: "msg"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "xfrm_filter"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_filter", TypeSize: 232}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "xfrm_userpolicy_info"}, FldName: "info"},
@@ -6222,15 +6222,15 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "xfrm_userpolicy_info", Dir: 1}, FldName: "info"},
 		&StructType{Key: StructKey{Name: "xfrm_user_tmpl", Dir: 1}, FldName: "tmpl"},
 	}}},
-	{Key: StructKey{Name: "xfrm_flushpolicy"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_flushpolicy"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_flushpolicy"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_flushpolicy", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 29},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_flushsa"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_flushsa"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_flushsa"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_flushsa", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 28},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
@@ -6238,16 +6238,16 @@ var structDescs_arm = []*KeyedStruct{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_usersa_flush"}, FldName: "msg"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_getsadinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_getsadinfo"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_getsadinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_getsadinfo", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_newae_msgs", FldName: "type", TypeSize: 2}}, Vals: []uint64{30, 31}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "data", TypeSize: 4}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "xfrm_id"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_id", TypeSize: 24}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "xfrm_address"}, FldName: "daddr"},
@@ -6297,34 +6297,34 @@ var structDescs_arm = []*KeyedStruct{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "v", TypeSize: 4}}, ValuesStart: 3475289, ValuesPerProc: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "m", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "xfrm_newae"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_newae"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_newae"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_newae", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_newae_msgs", FldName: "type", TypeSize: 2}}, Vals: []uint64{30, 31}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_aevent_id"}, FldName: "data"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_newpolicy"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_newpolicy"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_newpolicy"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_newpolicy", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_newpolicy_msgs", FldName: "type", TypeSize: 2}}, Vals: []uint64{19, 25}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_userpolicy_info"}, FldName: "msg"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_newsa"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_newsa"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_newsa"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_newsa", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_newsa_msgs", FldName: "type", TypeSize: 2}}, Vals: []uint64{16, 26}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_usersa_info"}, FldName: "msg"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xfrm_polexpire"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_polexpire"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_polexpire"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_polexpire", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 27},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
@@ -6332,30 +6332,30 @@ var structDescs_arm = []*KeyedStruct{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_user_polexpire"}, FldName: "msg"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "xfrm_replay_state"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_replay_state", TypeSize: 12}, Fields: []Type{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "oseq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "bitmap", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "xfrm_replay_state_esn"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_replay_state_esn"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_replay_state_esn"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_replay_state_esn", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "bmp_len", TypeSize: 4}}, Buf: "bmp"},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "oseq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "oseq_hi", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq_hi", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "replay_window", TypeSize: 4}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "bmp"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "bmp", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
 	}}},
-	{Key: StructKey{Name: "xfrm_report"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_report"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_report"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_report", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 2}}, Val: 32},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "seq", TypeSize: 4}}, ValuesStart: 7388453, ValuesPerProc: 8},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "pid", TypeSize: 4}}, ValuesStart: 635427835, ValuesPerProc: 4},
 		&StructType{Key: StructKey{Name: "xfrm_user_report"}, FldName: "msg"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs"}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attr"}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "xfrm_selector"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_selector", TypeSize: 56}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "xfrm_address"}, FldName: "daddr"},
@@ -6436,13 +6436,13 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "xfrm_selector"}, FldName: "sel"},
 	}}},
-	{Key: StructKey{Name: "xfrm_user_sec_ctx"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_user_sec_ctx"}, Fields: []Type{
+	{Key: StructKey{Name: "xfrm_user_sec_ctx"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_user_sec_ctx", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "exttype", TypeSize: 2}}, Val: 8},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xfrm_sec_ctx_alg", FldName: "ctx_alg", TypeSize: 1}}, Vals: []uint64{1}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ctx_doi", TypeSize: 1}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ctx_len", TypeSize: 2}}, Buf: "payload"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "xfrm_user_tmpl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_user_tmpl", TypeSize: 64}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "xfrm_id"}, FldName: "id"},
@@ -6672,12 +6672,12 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "accept_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{2048, 524288}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 22, NR: 51, Name: "acct", CallName: "acct", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 23, NR: 309, Name: "add_key", CallName: "add_key", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "desc", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "key_desc"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 4, IsOptional: true}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "paylen", TypeSize: 4}}, Buf: "payload"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "keyring", FldName: "keyring", TypeSize: 4}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -6691,7 +6691,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 25, NR: 309, Name: "add_key$user", CallName: "add_key", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 5}, Kind: 2, Values: []string{"user\x00"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "desc", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "key_desc"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "paylen", TypeSize: 4}}, Buf: "payload"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "keyring", FldName: "keyring", TypeSize: 4}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "user_key", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -6884,19 +6884,19 @@ var syscalls_arm = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "cap_data"}}},
 	}},
 	{ID: 64, NR: 12, Name: "chdir", CallName: "chdir", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 65, NR: 15, Name: "chmod", CallName: "chmod", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 	}},
 	{ID: 66, NR: 182, Name: "chown", CallName: "chown", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "gid", TypeSize: 4}},
 	}},
 	{ID: 67, NR: 61, Name: "chroot", CallName: "chroot", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dir", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 68, NR: 372, Name: "clock_adjtime", CallName: "clock_adjtime", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clock_id", FldName: "id", TypeSize: 4}}, Vals: []uint64{0, 5, 1, 6, 4, 7, 2, 3}},
@@ -6922,10 +6922,10 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 73, NR: 120, Name: "clone", CallName: "clone", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clone_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{256, 512, 1024, 2048, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 8388608, 16777216, 33554432, 67108864, 134217728, 268435456, 536870912, 1073741824, 2147483648}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "sp", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "sp", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "parentid", TypeSize: 4}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "childtid", TypeSize: 4}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "tls", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "tls", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}},
 	{ID: 74, NR: 6, Name: "close", CallName: "close", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -7006,11 +7006,11 @@ var syscalls_arm = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
 	}},
 	{ID: 90, NR: 8, Name: "creat", CallName: "creat", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 91, NR: 129, Name: "delete_module", CallName: "delete_module", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "delete_module_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{2048, 512}},
 	}},
 	{ID: 92, NR: 41, Name: "dup", CallName: "dup", Args: []Type{
@@ -7050,7 +7050,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 100, NR: 346, Name: "epoll_pwait", CallName: "epoll_pwait", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_epoll", FldName: "epfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "events", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "epoll_event", Dir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "events", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "epoll_event", Dir: 1}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "maxevents", TypeSize: 4}}, Buf: "events"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sigmask", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "sigset"}}},
@@ -7058,7 +7058,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 101, NR: 252, Name: "epoll_wait", CallName: "epoll_wait", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_epoll", FldName: "epfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "events", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "epoll_event", Dir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "events", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "epoll_event", Dir: 1}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "maxevents", TypeSize: 4}}, Buf: "events"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout", TypeSize: 4}}},
 	}},
@@ -7070,15 +7070,15 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "eventfd_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{524288, 2048, 1}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_event", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 104, NR: 11, Name: "execve", CallName: "execve", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "argv", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "envp", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "argv", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "envp", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}}}},
 	}},
 	{ID: 105, NR: 387, Name: "execveat", CallName: "execveat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "dirfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "argv", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "envp", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "argv", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "envp", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "at_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 256, 1024, 2048, 4096}},
 	}},
 	{ID: 106, NR: 1, Name: "exit", CallName: "exit", Args: []Type{
@@ -7089,7 +7089,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 108, NR: 334, Name: "faccessat", CallName: "faccessat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "dirfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pathname", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pathname", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "faccessat_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{256, 512, 1024, 2048, 4096}},
 	}},
@@ -7108,7 +7108,7 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fanotify_mark", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 128, 4, 8, 16, 32, 64}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fanotify_mask", FldName: "mask", TypeSize: 4}}, Vals: []uint64{1, 2, 8, 16, 32, 65536, 131072, 1073741824, 134217728}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fddir", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 112, NR: 133, Name: "fchdir", CallName: "fchdir", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -7119,7 +7119,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 114, NR: 333, Name: "fchmodat", CallName: "fchmodat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "dirfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 	}},
 	{ID: 115, NR: 95, Name: "fchown", CallName: "fchown", Args: []Type{
@@ -7129,7 +7129,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 116, NR: 325, Name: "fchownat", CallName: "fchownat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "dirfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "gid", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "at_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 256, 1024, 2048, 4096}},
@@ -7228,17 +7228,17 @@ var syscalls_arm = []*Syscall{
 	{ID: 136, NR: 231, Name: "fgetxattr", CallName: "fgetxattr", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "xattr_name"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "val"},
 	}},
 	{ID: 137, NR: 379, Name: "finit_module", CallName: "finit_module", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "finit_module_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}},
 	}},
 	{ID: 138, NR: 234, Name: "flistxattr", CallName: "flistxattr", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "list", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "list", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "list"},
 	}},
 	{ID: 139, NR: 143, Name: "flock", CallName: "flock", Args: []Type{
@@ -7252,7 +7252,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 141, NR: 228, Name: "fsetxattr", CallName: "fsetxattr", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "xattr_name"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "val"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "setxattr_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}},
 	}},
@@ -7262,7 +7262,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 143, NR: 100, Name: "fstatfs", CallName: "fstatfs", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 144, NR: 118, Name: "fsync", CallName: "fsync", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -7281,7 +7281,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 147, NR: 326, Name: "futimesat", CallName: "futimesat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "dir", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pathname", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pathname", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "times", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "itimerval"}}},
 	}},
 	{ID: 148, NR: 320, Name: "get_mempolicy", CallName: "get_mempolicy", Args: []Type{
@@ -7297,17 +7297,17 @@ var syscalls_arm = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "head"}},
 	}},
 	{ID: 150, NR: 183, Name: "getcwd", CallName: "getcwd", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "buf"},
 	}},
 	{ID: 151, NR: 141, Name: "getdents", CallName: "getdents", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ent", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ent", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "ent"},
 	}},
 	{ID: 152, NR: 217, Name: "getdents64", CallName: "getdents64", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ent", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "ent", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "ent"},
 	}},
 	{ID: 153, NR: 50, Name: "getegid", CallName: "getegid", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -7315,7 +7315,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 155, NR: 47, Name: "getgid", CallName: "getgid", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 156, NR: 80, Name: "getgroups", CallName: "getgroups", Args: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "list"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "list", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "gid", TypeSize: 4, ArgDir: 2}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "list", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 2, IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "gid", TypeSize: 4, ArgDir: 2}}}},
 	}},
 	{ID: 157, NR: 105, Name: "getitimer", CallName: "getitimer", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "getitimer_which", FldName: "which", TypeSize: 4}}, Vals: []uint64{0, 1, 2}},
@@ -7383,7 +7383,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "who", TypeSize: 4}},
 	}},
 	{ID: 172, NR: 384, Name: "getrandom", CallName: "getrandom", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "getrandom_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}},
 	}},
@@ -7455,7 +7455,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "level", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "optname", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 187, NR: 295, Name: "getsockopt$SO_BINDTODEVICE", CallName: "getsockopt", Args: []Type{
@@ -7483,7 +7483,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ax25", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 257},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ax25_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{25}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 191, NR: 295, Name: "getsockopt$ax25_int", CallName: "getsockopt", Args: []Type{
@@ -7553,7 +7553,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bt_hci_sockopt", FldName: "opt", TypeSize: 4}}, Vals: []uint64{1, 3, 2}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arglen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "arg"}},
 	}},
 	{ID: 201, NR: 295, Name: "getsockopt$bt_l2cap_L2CAP_CONNINFO", CallName: "getsockopt", Args: []Type{
@@ -7581,7 +7581,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_rfcomm", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 18},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 2},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arglen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "arg"}},
 	}},
 	{ID: 205, NR: 295, Name: "getsockopt$bt_rfcomm_RFCOMM_LM", CallName: "getsockopt", Args: []Type{
@@ -7595,14 +7595,14 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_sco", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 17},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 2},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arglen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "arg"}},
 	}},
 	{ID: 207, NR: 295, Name: "getsockopt$bt_sco_SCO_OPTIONS", CallName: "getsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_sco", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 17},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 1},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arglen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "arg"}},
 	}},
 	{ID: 208, NR: 295, Name: "getsockopt$inet6_IPV6_FLOWLABEL_MGR", CallName: "getsockopt", Args: []Type{
@@ -7630,14 +7630,14 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 41},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "inet6_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{6, 20, 21, 27, 28, 32, 34, 35, 42, 43, 44, 45, 46, 47, 48, 50, 61, 68, 69, 202, 204, 205, 210, 211}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 212, NR: 295, Name: "getsockopt$inet6_dccp_buf", CallName: "getsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_dccp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 33},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "dccp_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{2, 12, 13, 14, 15, 128, 192}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 213, NR: 295, Name: "getsockopt$inet6_dccp_int", CallName: "getsockopt", Args: []Type{
@@ -7672,7 +7672,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 41},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sockopt_opt_ipv6_opts", FldName: "optname", TypeSize: 4}}, Vals: []uint64{54, 55, 57, 59}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 218, NR: 295, Name: "getsockopt$inet6_tcp_TCP_REPAIR_WINDOW", CallName: "getsockopt", Args: []Type{
@@ -7686,7 +7686,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 6},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "tcp_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{11, 13, 31, 14, 22, 26, 28, 29, 33}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 220, NR: 295, Name: "getsockopt$inet6_tcp_int", CallName: "getsockopt", Args: []Type{
@@ -7721,14 +7721,14 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "inet_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{4, 9, 16, 17, 32, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 225, NR: 295, Name: "getsockopt$inet_dccp_buf", CallName: "getsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_dccp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 33},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "dccp_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{2, 12, 13, 14, 15, 128, 192}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 226, NR: 295, Name: "getsockopt$inet_dccp_int", CallName: "getsockopt", Args: []Type{
@@ -7777,7 +7777,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sockopt_opt_ip_opts", FldName: "optname", TypeSize: 4}}, Vals: []uint64{4, 9}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 233, NR: 295, Name: "getsockopt$inet_pktinfo", CallName: "getsockopt", Args: []Type{
@@ -8022,7 +8022,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 116},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "val"}},
 	}},
 	{ID: 268, NR: 295, Name: "getsockopt$inet_sctp6_SCTP_PR_SUPPORTED", CallName: "getsockopt", Args: []Type{
@@ -8337,7 +8337,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 116},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "len", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "val"}},
 	}},
 	{ID: 313, NR: 295, Name: "getsockopt$inet_sctp_SCTP_PR_SUPPORTED", CallName: "getsockopt", Args: []Type{
@@ -8428,7 +8428,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 6},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "tcp_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{11, 13, 31, 14, 22, 26, 28, 29, 33}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 326, NR: 295, Name: "getsockopt$inet_tcp_int", CallName: "getsockopt", Args: []Type{
@@ -8470,7 +8470,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_netlink", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 270},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_sockopts", FldName: "opt", TypeSize: 4}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arglen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "arg"}},
 	}},
 	{ID: 332, NR: 295, Name: "getsockopt$netrom_NETROM_IDLE", CallName: "getsockopt", Args: []Type{
@@ -8512,14 +8512,14 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_nfc_llcp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 280},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_llcp_opts", FldName: "opt", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "arglen", TypeSize: 4}}, Buf: "arg"},
 	}},
 	{ID: 338, NR: 295, Name: "getsockopt$packet_buf", CallName: "getsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_packet", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 263},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "packet_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{1, 2, 5, 6, 13, 22}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 339, NR: 295, Name: "getsockopt$packet_int", CallName: "getsockopt", Args: []Type{
@@ -8533,7 +8533,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 1},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sockopt_opt_sock_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{28, 31, 26, 55, 59}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optlen", TypeSize: 4}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "optval"}},
 	}},
 	{ID: 341, NR: 295, Name: "getsockopt$sock_cred", CallName: "getsockopt", Args: []Type{
@@ -8567,19 +8567,19 @@ var syscalls_arm = []*Syscall{
 	{ID: 345, NR: 224, Name: "gettid", CallName: "gettid", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 346, NR: 24, Name: "getuid", CallName: "getuid", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 347, NR: 229, Name: "getxattr", CallName: "getxattr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "xattr_name"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "val"},
 	}},
 	{ID: 348, NR: 128, Name: "init_module", CallName: "init_module", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mod", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mod", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "mod"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "args", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 	}},
 	{ID: 349, NR: 317, Name: "inotify_add_watch", CallName: "inotify_add_watch", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_inotify", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "inotify_mask", FldName: "mask", TypeSize: 4}}, Vals: []uint64{1, 4, 8, 16, 256, 512, 1024, 2, 2048, 64, 128, 32, 33554432, 67108864, 536870912, 2147483648, 16777216}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "inotifydesc", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 350, NR: 316, Name: "inotify_init", CallName: "inotify_init", Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_inotify", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -8602,7 +8602,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "io_ctx", FldName: "ctx", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "min_nr", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nr", TypeSize: 4}}, Buf: "events"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "events", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &StructType{Key: StructKey{Name: "io_event", Dir: 1}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "events", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "io_event", Dir: 1}}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "timeout", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "timespec"}}},
 	}},
 	{ID: 356, NR: 243, Name: "io_setup", CallName: "io_setup", Args: []Type{
@@ -8612,17 +8612,17 @@ var syscalls_arm = []*Syscall{
 	{ID: 357, NR: 246, Name: "io_submit", CallName: "io_submit", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "io_ctx", FldName: "ctx", TypeSize: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nr", TypeSize: 4}}, Buf: "iocbpp"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "iocbpp", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "iocb"}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "iocbpp", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &PtrType{TypeCommon: TypeCommon{TypeName: "ptr", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "iocb"}}}}},
 	}},
 	{ID: 358, NR: 54, Name: "ioctl", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "cmd", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}},
 	{ID: 359, NR: 54, Name: "ioctl$ASHMEM_GET_NAME", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ashmem", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2164291330},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 360, NR: 54, Name: "ioctl$ASHMEM_GET_PIN_STATUS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ashmem", FldName: "fd", TypeSize: 4}},
@@ -8647,7 +8647,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 364, NR: 54, Name: "ioctl$ASHMEM_SET_NAME", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ashmem", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 1090549505},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 	}},
 	{ID: 365, NR: 54, Name: "ioctl$ASHMEM_SET_PROT_MASK", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ashmem", FldName: "fd", TypeSize: 4}},
@@ -8731,7 +8731,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 381, NR: 54, Name: "ioctl$DRM_IOCTL_AGP_INFO", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dri", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2149606451},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 382, NR: 54, Name: "ioctl$DRM_IOCTL_AGP_RELEASE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dri", FldName: "fd", TypeSize: 4}},
@@ -8814,7 +8814,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 398, NR: 54, Name: "ioctl$DRM_IOCTL_GET_STATS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dri", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2155635718},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 399, NR: 54, Name: "ioctl$DRM_IOCTL_GET_UNIQUE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dri", FldName: "fd", TypeSize: 4}},
@@ -8958,67 +8958,67 @@ var syscalls_arm = []*Syscall{
 	{ID: 427, NR: 54, Name: "ioctl$EVIOCGABS0", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2149074240},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 428, NR: 54, Name: "ioctl$EVIOCGABS20", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2149074272},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 429, NR: 54, Name: "ioctl$EVIOCGABS2F", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2149074287},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 430, NR: 54, Name: "ioctl$EVIOCGABS3F", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2149074303},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 431, NR: 54, Name: "ioctl$EVIOCGBITKEY", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695649},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 432, NR: 54, Name: "ioctl$EVIOCGBITSND", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695666},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 433, NR: 54, Name: "ioctl$EVIOCGBITSW", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695653},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 434, NR: 54, Name: "ioctl$EVIOCGEFFECTS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2147763588},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 435, NR: 54, Name: "ioctl$EVIOCGID", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2148025602},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 436, NR: 54, Name: "ioctl$EVIOCGKEY", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695640},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 437, NR: 54, Name: "ioctl$EVIOCGKEYCODE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2148025604},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 438, NR: 54, Name: "ioctl$EVIOCGKEYCODE_V2", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2150122756},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 439, NR: 54, Name: "ioctl$EVIOCGLED", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695641},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 440, NR: 54, Name: "ioctl$EVIOCGMASK", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
@@ -9028,22 +9028,22 @@ var syscalls_arm = []*Syscall{
 	{ID: 441, NR: 54, Name: "ioctl$EVIOCGMTSLOTS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695626},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 442, NR: 54, Name: "ioctl$EVIOCGNAME", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695622},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 443, NR: 54, Name: "ioctl$EVIOCGPHYS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695623},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 444, NR: 54, Name: "ioctl$EVIOCGPROP", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695625},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 445, NR: 54, Name: "ioctl$EVIOCGRAB", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
@@ -9053,27 +9053,27 @@ var syscalls_arm = []*Syscall{
 	{ID: 446, NR: 54, Name: "ioctl$EVIOCGREP", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2148025603},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 447, NR: 54, Name: "ioctl$EVIOCGSND", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695642},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 448, NR: 54, Name: "ioctl$EVIOCGSW", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695643},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 449, NR: 54, Name: "ioctl$EVIOCGUNIQ", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2151695624},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 450, NR: 54, Name: "ioctl$EVIOCGVERSION", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2147763457},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 451, NR: 54, Name: "ioctl$EVIOCREVOKE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
@@ -9153,17 +9153,17 @@ var syscalls_arm = []*Syscall{
 	{ID: 466, NR: 54, Name: "ioctl$GIO_FONT", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19296},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 467, NR: 54, Name: "ioctl$GIO_FONTX", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19307},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 468, NR: 54, Name: "ioctl$GIO_SCRNMAP", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19264},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 469, NR: 54, Name: "ioctl$GIO_UNIMAP", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
@@ -9173,7 +9173,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 470, NR: 54, Name: "ioctl$GIO_UNISCRNMAP", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19305},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 471, NR: 54, Name: "ioctl$ION_IOC_ALLOC", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_ion", FldName: "fd", TypeSize: 4}},
@@ -9221,7 +9221,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 480, NR: 54, Name: "ioctl$KDGKBDIACR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19274},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 481, NR: 54, Name: "ioctl$KDGKBENT", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
@@ -9296,7 +9296,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 495, NR: 54, Name: "ioctl$KDSKBSENT", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19273},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}},
 	{ID: 496, NR: 54, Name: "ioctl$KIOCSOUND", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
@@ -9506,12 +9506,12 @@ var syscalls_arm = []*Syscall{
 	{ID: 538, NR: 54, Name: "ioctl$KVM_PPC_GET_PVINFO", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 1082175137},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 539, NR: 54, Name: "ioctl$KVM_PPC_GET_SMMU_INFO", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2186325670},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 540, NR: 54, Name: "ioctl$KVM_REGISTER_COALESCED_MMIO", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd", TypeSize: 4}},
@@ -9665,7 +9665,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 570, NR: 54, Name: "ioctl$KVM_X86_GET_MCE_CAP_SUPPORTED", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2148052637},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 571, NR: 54, Name: "ioctl$KVM_X86_SETUP_MCE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "fd", TypeSize: 4}},
@@ -9777,7 +9777,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 593, NR: 54, Name: "ioctl$PERF_EVENT_IOC_SET_FILTER", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_perf", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 1074013190},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filter", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filter", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 	}},
 	{ID: 594, NR: 54, Name: "ioctl$PERF_EVENT_IOC_SET_OUTPUT", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_perf", FldName: "fd", TypeSize: 4}},
@@ -9792,7 +9792,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 596, NR: 54, Name: "ioctl$PIO_FONT", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19297},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}},
 	{ID: 597, NR: 54, Name: "ioctl$PIO_FONTRESET", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
@@ -9802,12 +9802,12 @@ var syscalls_arm = []*Syscall{
 	{ID: 598, NR: 54, Name: "ioctl$PIO_FONTX", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19308},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}},
 	{ID: 599, NR: 54, Name: "ioctl$PIO_SCRNMAP", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19265},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}},
 	{ID: 600, NR: 54, Name: "ioctl$PIO_UNIMAP", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
@@ -9822,7 +9822,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 602, NR: 54, Name: "ioctl$PIO_UNISCRNMAP", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19306},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}},
 	{ID: 603, NR: 54, Name: "ioctl$RNDADDENTROPY", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_random", FldName: "fd", TypeSize: 4}},
@@ -9862,7 +9862,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 610, NR: 54, Name: "ioctl$SNDRV_CTL_IOCTL_CARD_INFO", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2172146945},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 611, NR: 54, Name: "ioctl$SNDRV_CTL_IOCTL_ELEM_ADD", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "fd", TypeSize: 4}},
@@ -9912,7 +9912,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 620, NR: 54, Name: "ioctl$SNDRV_CTL_IOCTL_HWDEP_INFO", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2161923361},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 621, NR: 54, Name: "ioctl$SNDRV_CTL_IOCTL_HWDEP_NEXT_DEVICE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "fd", TypeSize: 4}},
@@ -9927,7 +9927,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 623, NR: 54, Name: "ioctl$SNDRV_CTL_IOCTL_PCM_NEXT_DEVICE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2147767600},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 624, NR: 54, Name: "ioctl$SNDRV_CTL_IOCTL_PCM_PREFER_SUBDEVICE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "fd", TypeSize: 4}},
@@ -9937,12 +9937,12 @@ var syscalls_arm = []*Syscall{
 	{ID: 625, NR: 54, Name: "ioctl$SNDRV_CTL_IOCTL_POWER_STATE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2147767761},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 626, NR: 54, Name: "ioctl$SNDRV_CTL_IOCTL_PVERSION", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2147767552},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 627, NR: 54, Name: "ioctl$SNDRV_CTL_IOCTL_RAWMIDI_INFO", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "fd", TypeSize: 4}},
@@ -10156,7 +10156,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 669, NR: 54, Name: "ioctl$SNDRV_TIMER_IOCTL_INFO", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndtimer", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2162185233},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 670, NR: 54, Name: "ioctl$SNDRV_TIMER_IOCTL_NEXT_DEVICE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndtimer", FldName: "fd", TypeSize: 4}},
@@ -10189,7 +10189,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 676, NR: 54, Name: "ioctl$SNDRV_TIMER_IOCTL_STATUS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndtimer", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2153272340},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 677, NR: 54, Name: "ioctl$SNDRV_TIMER_IOCTL_STOP", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndtimer", FldName: "fd", TypeSize: 4}},
@@ -10417,7 +10417,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 723, NR: 54, Name: "ioctl$TTUNGETFILTER", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2148029659},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 724, NR: 54, Name: "ioctl$TUNATTACHFILTER", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
@@ -10684,7 +10684,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 777, NR: 54, Name: "ioctl$sock_bt", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt", FldName: "fd", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bt_ioctl", FldName: "cmd", TypeSize: 4}}, Vals: []uint64{21521, 21531, 35078, 35079}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 778, NR: 54, Name: "ioctl$sock_bt_bnep_BNEPCONNADD", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_bnep", FldName: "fd", TypeSize: 4}},
@@ -10734,7 +10734,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 787, NR: 54, Name: "ioctl$sock_bt_hci", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_hci", FldName: "fd", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bt_hci_ioctl", FldName: "cmd", TypeSize: 4}}, Vals: []uint64{1074022601, 1074022602, 1074022603, 1074022604, 2147764434, 2147764435, 2147764436, 2147764437, 2147764439, 1074022620, 1074022621, 1074022622, 1074022623, 1074022624, 1074022625, 1074022626, 1074022627, 1074022628, 1074022630, 1074022631, 2147764464}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 2, IsVarlen: true}}},
 	}},
 	{ID: 788, NR: 54, Name: "ioctl$sock_bt_hidp_HIDPCONNADD", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_hidp", FldName: "fd", TypeSize: 4}},
@@ -10984,7 +10984,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 837, NR: 54, Name: "ioctl$sock_netdev_private", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "cmd", TypeSize: 2}}, Kind: 2, RangeBegin: 35312, RangeEnd: 35327},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 	}},
 	{ID: 838, NR: 54, Name: "ioctl$sock_netrom_SIOCADDRT", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_netrom", FldName: "fd", TypeSize: 4}},
@@ -11014,7 +11014,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 843, NR: 54, Name: "ioctl$sock_proto_private", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "cmd", TypeSize: 2}}, Kind: 2, RangeBegin: 35296, RangeEnd: 35311},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 	}},
 	{ID: 844, NR: 54, Name: "ioctl$void", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -11055,7 +11055,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 851, NR: 347, Name: "kexec_load", CallName: "kexec_load", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "entry", TypeSize: 4}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nr_segments", TypeSize: 4}}, Buf: "segments"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "kexec_segment"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "kexec_segment"}}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kexec_load_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 196608, 4063232, 1310720, 1376256, 3276800, 2621440, 1441792, 2752512, 524288, 655360}},
 	}},
 	{ID: 852, NR: 311, Name: "keyctl$assume_authority", CallName: "keyctl", Args: []Type{
@@ -11075,13 +11075,13 @@ var syscalls_arm = []*Syscall{
 	{ID: 855, NR: 311, Name: "keyctl$describe", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 4}}, Val: 6},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "key", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "desc", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "desc", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "desc"},
 	}},
 	{ID: 856, NR: 311, Name: "keyctl$dh_compute", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 4}}, Val: 23},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "params", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "keyctl_dh_params"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buffer", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buffer", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "buflen", TypeSize: 4}}, Buf: "buffer"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "kdf", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "keyctl_kdf_params"}}},
 	}},
@@ -11098,20 +11098,20 @@ var syscalls_arm = []*Syscall{
 	{ID: 859, NR: 311, Name: "keyctl$get_security", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 4}}, Val: 17},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "key", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "label", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "label", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "label"},
 	}},
 	{ID: 860, NR: 311, Name: "keyctl$instantiate", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 4}}, Val: 12},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "key", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 4, IsOptional: true}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "paylen", TypeSize: 4}}, Buf: "payload"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "keyring", FldName: "keyring", TypeSize: 4}},
 	}},
 	{ID: 861, NR: 311, Name: "keyctl$instantiate_iov", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 4}}, Val: 20},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "key", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "payload", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "payload", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "payload"},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "ring", TypeSize: 4}},
 	}},
@@ -11137,7 +11137,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 866, NR: 311, Name: "keyctl$read", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 4}}, Val: 11},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "key", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "payload"},
 	}},
 	{ID: 867, NR: 311, Name: "keyctl$reject", CallName: "keyctl", Args: []Type{
@@ -11150,8 +11150,8 @@ var syscalls_arm = []*Syscall{
 	{ID: 868, NR: 311, Name: "keyctl$restrict_keyring", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 4}}, Val: 29},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "keyring", FldName: "keyring", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "restriction", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "restriction", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 	}},
 	{ID: 869, NR: 311, Name: "keyctl$revoke", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 4}}, Val: 3},
@@ -11160,7 +11160,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 870, NR: 311, Name: "keyctl$search", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 4}}, Val: 10},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "key", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "desc", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "key_desc"}}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "keyring", FldName: "destination", TypeSize: 4}},
 	}},
@@ -11189,29 +11189,29 @@ var syscalls_arm = []*Syscall{
 	{ID: 876, NR: 311, Name: "keyctl$update", CallName: "keyctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 4}}, Val: 2},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "key", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 4, IsOptional: true}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "payload", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "paylen", TypeSize: 4}}, Buf: "payload"},
 	}},
 	{ID: 877, NR: 16, Name: "lchown", CallName: "lchown", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "gid", TypeSize: 4}},
 	}},
 	{ID: 878, NR: 230, Name: "lgetxattr", CallName: "lgetxattr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "xattr_name"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "val"},
 	}},
 	{ID: 879, NR: 9, Name: "link", CallName: "link", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 880, NR: 330, Name: "linkat", CallName: "linkat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "oldfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "newfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "linkat_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 1024}},
 	}},
 	{ID: 881, NR: 284, Name: "listen", CallName: "listen", Args: []Type{
@@ -11223,22 +11223,22 @@ var syscalls_arm = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "backlog", TypeSize: 4}}},
 	}},
 	{ID: 883, NR: 232, Name: "listxattr", CallName: "listxattr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "list", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "list", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "list"},
 	}},
 	{ID: 884, NR: 233, Name: "llistxattr", CallName: "llistxattr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "list", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "list", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "list"},
 	}},
 	{ID: 885, NR: 249, Name: "lookup_dcookie", CallName: "lookup_dcookie", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "cookie", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 	}},
 	{ID: 886, NR: 236, Name: "lremovexattr", CallName: "lremovexattr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "xattr_name"}}},
 	}},
 	{ID: 887, NR: 19, Name: "lseek", CallName: "lseek", Args: []Type{
@@ -11247,14 +11247,14 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "seek_whence", FldName: "whence", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4}},
 	}},
 	{ID: 888, NR: 227, Name: "lsetxattr", CallName: "lsetxattr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "xattr_name"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "val"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "setxattr_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}},
 	}},
 	{ID: 889, NR: 107, Name: "lstat", CallName: "lstat", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "statbuf", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "stat", Dir: 1}}},
 	}},
 	{ID: 890, NR: 220, Name: "madvise", CallName: "madvise", Args: []Type{
@@ -11275,36 +11275,36 @@ var syscalls_arm = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
 	}},
 	{ID: 893, NR: 385, Name: "memfd_create", CallName: "memfd_create", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "memfd_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 894, NR: 219, Name: "mincore", CallName: "mincore", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "addr"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "vec", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "vec", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 895, NR: 39, Name: "mkdir", CallName: "mkdir", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 	}},
 	{ID: 896, NR: 323, Name: "mkdirat", CallName: "mkdirat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 	}},
 	{ID: 897, NR: 14, Name: "mknod", CallName: "mknod", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mknod_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{32768, 8192, 24576, 4096, 49152, 256, 128, 64, 32, 16, 8, 4, 2, 1}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dev", TypeSize: 4}}},
 	}},
 	{ID: 898, NR: 14, Name: "mknod$loop", CallName: "mknod", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mknod_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{32768, 8192, 24576, 4096, 49152, 256, 128, 64, 32, 16, 8, 4, 2, 1}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "dev", TypeSize: 4}}, ValuesStart: 1792, ValuesPerProc: 2},
 	}},
 	{ID: 899, NR: 324, Name: "mknodat", CallName: "mknodat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "dirfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mknod_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{32768, 8192, 24576, 4096, 49152, 256, 128, 64, 32, 16, 8, 4, 2, 1}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dev", TypeSize: 4}}},
 	}},
@@ -11337,18 +11337,18 @@ var syscalls_arm = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 4}}, Kind: 1},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "binder_ptr", FldName: "ret", TypeSize: 8, ArgDir: 1}}},
 	{ID: 905, NR: 21, Name: "mount", CallName: "mount", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "src", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dst", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "filesystem", Values: []string{"sysfs\x00", "rootfs\x00", "ramfs\x00", "tmpfs\x00", "devtmpfs\x00", "debugfs\x00", "securityfs\x00", "sockfs\x00", "pipefs\x00", "anon_inodefs\x00", "devpts\x00", "ext3\x00", "ext2\x00", "ext4\x00", "hugetlbfs\x00", "vfat\x00", "ecryptfs\x00", "fuseblk\x00", "fuse\x00", "rpc_pipefs\x00", "nfs\x00", "nfs4\x00", "nfsd\x00", "binfmt_misc\x00", "autofs\x00", "xfs\x00", "jfs\x00", "msdos\x00", "ntfs\x00", "minix\x00", "hfs\x00", "hfsplus\x00", "qnx4\x00", "ufs\x00", "btrfs\x00", "configfs\x00", "ncpfs\x00", "qnx6\x00", "exofs\x00", "befs\x00", "vxfs\x00", "gfs2\x00", "gfs2meta\x00", "fusectl\x00", "bfs\x00", "nsfs\x00", "efs\x00", "cifs\x00", "efivarfs\x00", "affs\x00", "tracefs\x00", "bdev\x00", "ocfs2\x00", "ocfs2_dlmfs\x00", "hpfs\x00", "proc\x00", "afs\x00", "reiserfs\x00", "jffs2\x00", "romfs\x00", "aio\x00", "sysv\x00", "v7\x00", "udf\x00", "ceph\x00", "pstore\x00", "adfs\x00", "9p\x00", "hostfs\x00", "squashfs\x00", "cramfs\x00", "iso9660\x00", "coda\x00", "nilfs2\x00", "logfs\x00", "overlay\x00", "f2fs\x00", "omfs\x00", "ubifs\x00", "openpromfs\x00", "bpf\x00", "cgroup\x00", "cgroup2\x00", "cpuset\x00", "mqueue\x00", "aufs\x00", "selinuxfs\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "src", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "dst", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "filesystem", Values: []string{"sysfs\x00", "rootfs\x00", "ramfs\x00", "tmpfs\x00", "devtmpfs\x00", "debugfs\x00", "securityfs\x00", "sockfs\x00", "pipefs\x00", "anon_inodefs\x00", "devpts\x00", "ext3\x00", "ext2\x00", "ext4\x00", "hugetlbfs\x00", "vfat\x00", "ecryptfs\x00", "fuseblk\x00", "fuse\x00", "rpc_pipefs\x00", "nfs\x00", "nfs4\x00", "nfsd\x00", "binfmt_misc\x00", "autofs\x00", "xfs\x00", "jfs\x00", "msdos\x00", "ntfs\x00", "minix\x00", "hfs\x00", "hfsplus\x00", "qnx4\x00", "ufs\x00", "btrfs\x00", "configfs\x00", "ncpfs\x00", "qnx6\x00", "exofs\x00", "befs\x00", "vxfs\x00", "gfs2\x00", "gfs2meta\x00", "fusectl\x00", "bfs\x00", "nsfs\x00", "efs\x00", "cifs\x00", "efivarfs\x00", "affs\x00", "tracefs\x00", "bdev\x00", "ocfs2\x00", "ocfs2_dlmfs\x00", "hpfs\x00", "proc\x00", "afs\x00", "reiserfs\x00", "jffs2\x00", "romfs\x00", "aio\x00", "sysv\x00", "v7\x00", "udf\x00", "ceph\x00", "pstore\x00", "adfs\x00", "9p\x00", "hostfs\x00", "squashfs\x00", "cramfs\x00", "iso9660\x00", "coda\x00", "nilfs2\x00", "logfs\x00", "overlay\x00", "f2fs\x00", "omfs\x00", "ubifs\x00", "openpromfs\x00", "bpf\x00", "cgroup\x00", "cgroup2\x00", "cpuset\x00", "mqueue\x00", "aufs\x00", "selinuxfs\x00"}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "data", TypeSize: 4, IsOptional: true}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "data", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}},
 	{ID: 906, NR: 344, Name: "move_pages", CallName: "move_pages", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nr", TypeSize: 4}}, Buf: "pages"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pages", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", TypeSize: 4}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "nodes", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "status", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pages", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", TypeSize: 4}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "nodes", TypeSize: 4, IsOptional: true}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "status", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", ArgDir: 1, IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "move_pages_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{2, 4}},
 	}},
 	{ID: 907, NR: 125, Name: "mprotect", CallName: "mprotect", Args: []Type{
@@ -11366,27 +11366,27 @@ var syscalls_arm = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "notif", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "sigevent"}}},
 	}},
 	{ID: 910, NR: 274, Name: "mq_open", CallName: "mq_open", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mq_open_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 2048, 64, 128, 64}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "attr", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "mq_attr"}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_mq", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 911, NR: 277, Name: "mq_timedreceive", CallName: "mq_timedreceive", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_mq", FldName: "mqd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "msg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "msg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msglen", TypeSize: 4}}, Buf: "msg"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "prio", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "timeout", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "timespec"}}},
 	}},
 	{ID: 912, NR: 276, Name: "mq_timedsend", CallName: "mq_timedsend", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_mq", FldName: "mqd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "msg", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "msg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "msglen", TypeSize: 4}}, Buf: "msg"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "prio", TypeSize: 4}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "timeout", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "timespec"}}},
 	}},
 	{ID: 913, NR: 275, Name: "mq_unlink", CallName: "mq_unlink", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 	}},
 	{ID: 914, NR: 163, Name: "mremap", CallName: "mremap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
@@ -11398,7 +11398,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 915, NR: 304, Name: "msgctl$IPC_INFO", CallName: "msgctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_msq", FldName: "msqid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 3},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 916, NR: 304, Name: "msgctl$IPC_RMID", CallName: "msgctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_msq", FldName: "msqid", TypeSize: 4}},
@@ -11412,17 +11412,17 @@ var syscalls_arm = []*Syscall{
 	{ID: 918, NR: 304, Name: "msgctl$IPC_STAT", CallName: "msgctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_msq", FldName: "msqid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 919, NR: 304, Name: "msgctl$MSG_INFO", CallName: "msgctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_msq", FldName: "msqid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 12},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 920, NR: 304, Name: "msgctl$MSG_STAT", CallName: "msgctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_msq", FldName: "msqid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 11},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 921, NR: 303, Name: "msgget", CallName: "msgget", Args: []Type{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "key", TypeSize: 4}}, ValuesStart: 2039379027, ValuesPerProc: 4},
@@ -11461,7 +11461,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 929, NR: 370, Name: "name_to_handle_at", CallName: "name_to_handle_at", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "handle", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "file_handle"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mnt", TypeSize: 4}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4, ArgDir: 1}}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "name_to_handle_at_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 1024}},
@@ -11471,12 +11471,12 @@ var syscalls_arm = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rem", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "timespec", Dir: 1}}},
 	}},
 	{ID: 931, NR: 5, Name: "open", CallName: "open", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 65536, 16384, 128, 131072, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 932, NR: 5, Name: "open$dir", CallName: "open", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 65536, 16384, 128, 131072, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -11487,7 +11487,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 934, NR: 322, Name: "openat", CallName: "openat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 65536, 16384, 128, 131072, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -11523,7 +11523,7 @@ var syscalls_arm = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 940, NR: 322, Name: "openat$dir", CallName: "openat", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 4}}, Val: 18446744073709551516},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 65536, 16384, 128, 131072, 262144, 256, 32768, 2048, 2097152, 1052672, 512, 4194304}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -11822,8 +11822,8 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pipe_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{2048, 524288, 65536}},
 	}},
 	{ID: 992, NR: 218, Name: "pivot_root", CallName: "pivot_root", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new_root", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "put_old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new_root", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "put_old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 993, NR: 395, Name: "pkey_alloc", CallName: "pkey_alloc", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
@@ -11839,12 +11839,12 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pkey", FldName: "key", TypeSize: 4}},
 	}},
 	{ID: 996, NR: 168, Name: "poll", CallName: "poll", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "pollfd"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "pollfd"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nfds", TypeSize: 4}}, Buf: "fds"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "timeout", TypeSize: 4}}},
 	}},
 	{ID: 997, NR: 336, Name: "ppoll", CallName: "ppoll", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "pollfd"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "pollfd"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nfds", TypeSize: 4}}, Buf: "fds"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "tsp", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "timespec"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sigmask", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "sigset"}}},
@@ -11852,7 +11852,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 998, NR: 172, Name: "prctl$getname", CallName: "prctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "option", TypeSize: 4}}, Val: 16},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 999, NR: 172, Name: "prctl$getreaper", CallName: "prctl", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "prctl_code_getreaper", FldName: "option", TypeSize: 4}}, Vals: []uint64{37, 19, 9, 11, 2, 40, 25, 5}},
@@ -11882,7 +11882,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1005, NR: 172, Name: "prctl$setname", CallName: "prctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "option", TypeSize: 4}}, Val: 15},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 	}},
 	{ID: 1006, NR: 172, Name: "prctl$setptracer", CallName: "prctl", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "option", TypeSize: 4}}, Val: 1499557217},
@@ -11893,13 +11893,13 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1008, NR: 180, Name: "pread64", CallName: "pread64", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "buf"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "pos", TypeSize: 4}}, Kind: 1},
 	}},
 	{ID: 1009, NR: 361, Name: "preadv", CallName: "preadv", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "off", TypeSize: 4}}, Kind: 1},
 	}},
@@ -11911,17 +11911,17 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1011, NR: 376, Name: "process_vm_readv", CallName: "process_vm_readv", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "loc_vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "loc_vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "loc_vlen", TypeSize: 4}}, Buf: "loc_vec"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rem_vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rem_vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "rem_vlen", TypeSize: 4}}, Buf: "rem_vec"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
 	}},
 	{ID: 1012, NR: 377, Name: "process_vm_writev", CallName: "process_vm_writev", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "loc_vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "loc_vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "loc_vlen", TypeSize: 4}}, Buf: "loc_vec"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rem_vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "rem_vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "rem_vlen", TypeSize: 4}}, Buf: "rem_vec"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
 	}},
@@ -11953,7 +11953,7 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ptrace_req_getregs", FldName: "req", TypeSize: 4}}, Vals: []uint64{12, 14}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "ignored", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "data", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "data", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1018, NR: 26, Name: "ptrace$getregset", CallName: "ptrace", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "req", TypeSize: 4}}, Val: 16900},
@@ -11999,7 +11999,7 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ptrace_req_setregs", FldName: "req", TypeSize: 4}}, Vals: []uint64{13, 15}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "ignored", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "data", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "data", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 	}},
 	{ID: 1026, NR: 26, Name: "ptrace$setregset", CallName: "ptrace", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "req", TypeSize: 4}}, Val: 16901},
@@ -12015,25 +12015,25 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1028, NR: 181, Name: "pwrite64", CallName: "pwrite64", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "buf"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "pos", TypeSize: 4}}, Kind: 1},
 	}},
 	{ID: 1029, NR: 362, Name: "pwritev", CallName: "pwritev", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "off", TypeSize: 4}}, Kind: 1},
 	}},
 	{ID: 1030, NR: 131, Name: "quotactl", CallName: "quotactl", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "cmd", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "special", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "special", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "id", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 	}},
 	{ID: 1031, NR: 3, Name: "read", CallName: "read", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "buf"},
 	}},
 	{ID: 1032, NR: 3, Name: "read$eventfd", CallName: "read", Args: []Type{
@@ -12047,24 +12047,24 @@ var syscalls_arm = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "count", TypeSize: 4}}},
 	}},
 	{ID: 1034, NR: 85, Name: "readlink", CallName: "readlink", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "siz", TypeSize: 4}}, Buf: "buf"},
 	}},
 	{ID: 1035, NR: 332, Name: "readlinkat", CallName: "readlinkat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "siz", TypeSize: 4}}, Buf: "buf"},
 	}},
 	{ID: 1036, NR: 145, Name: "readv", CallName: "readv", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_out"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
 	}},
 	{ID: 1037, NR: 292, Name: "recvfrom", CallName: "recvfrom", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "recv_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1073741824, 64, 8192, 1, 2, 32, 256, 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_storage"}}},
@@ -12072,7 +12072,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1038, NR: 292, Name: "recvfrom$ax25", CallName: "recvfrom", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ax25", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "recv_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1073741824, 64, 8192, 1, 2, 32, 256, 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_ax25"}}},
@@ -12080,7 +12080,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1039, NR: 292, Name: "recvfrom$inet", CallName: "recvfrom", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "recv_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1073741824, 64, 8192, 1, 2, 32, 256, 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_in"}}},
@@ -12088,7 +12088,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1040, NR: 292, Name: "recvfrom$inet6", CallName: "recvfrom", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in6", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "recv_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1073741824, 64, 8192, 1, 2, 32, 256, 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_in6"}}},
@@ -12096,7 +12096,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1041, NR: 292, Name: "recvfrom$ipx", CallName: "recvfrom", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ipx", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "recv_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1073741824, 64, 8192, 1, 2, 32, 256, 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_ipx"}}},
@@ -12104,7 +12104,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1042, NR: 292, Name: "recvfrom$llc", CallName: "recvfrom", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_llc", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "recv_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1073741824, 64, 8192, 1, 2, 32, 256, 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_llc"}}},
@@ -12112,7 +12112,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1043, NR: 292, Name: "recvfrom$packet", CallName: "recvfrom", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_packet", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "recv_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1073741824, 64, 8192, 1, 2, 32, 256, 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_ll"}}},
@@ -12120,7 +12120,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1044, NR: 292, Name: "recvfrom$unix", CallName: "recvfrom", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "recv_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1073741824, 64, 8192, 1, 2, 32, 256, 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
@@ -12128,7 +12128,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1045, NR: 365, Name: "recvmmsg", CallName: "recvmmsg", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "recv_mmsghdr"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "recv_mmsghdr"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "mmsg"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "recv_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1073741824, 64, 8192, 1, 2, 32, 256, 65536}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "timeout", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "timespec"}}},
@@ -12156,35 +12156,35 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 0, 32, 2048, 4096, 0, 16, 256, 262144, 8192, 65536, 16384, 32768, 131072, 0, 3, 524288}},
 	}},
 	{ID: 1050, NR: 235, Name: "removexattr", CallName: "removexattr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "xattr_name"}}},
 	}},
 	{ID: 1051, NR: 38, Name: "rename", CallName: "rename", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 1052, NR: 329, Name: "renameat", CallName: "renameat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "oldfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "newfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 1053, NR: 382, Name: "renameat2", CallName: "renameat2", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "oldfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "newfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "renameat2_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{2, 1, 4}},
 	}},
 	{ID: 1054, NR: 310, Name: "request_key", CallName: "request_key", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "type", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "key_type", Values: []string{"asymmetric\x00", "big_key\x00", "blacklist\x00", "ceph\x00", "cifs.idmap\x00", "cifs.spnego\x00", ".dead\x00", "dns_resolver\x00", "encrypted\x00", "id_legacy\x00", "id_resolver\x00", "keyring\x00", "logon\x00", "pkcs7_test\x00", ".request_key_auth\x00", "rxrpc\x00", "rxrpc_s\x00", "syzkaller\x00", "trusted\x00", "user\x00"}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "desc", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "key_desc"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "callout", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "callout", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "keyring", FldName: "keyring", TypeSize: 4}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "key", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 1055, Name: "restart_syscall", CallName: "restart_syscall"},
 	{ID: 1056, NR: 40, Name: "rmdir", CallName: "rmdir", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 1057, NR: 174, Name: "rt_sigaction", CallName: "rt_sigaction", Args: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
@@ -12276,37 +12276,37 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "semnum", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 13},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1077, NR: 300, Name: "semctl$GETNCNT", CallName: "semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sem_sem_id", FldName: "semnum", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 14},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1078, NR: 300, Name: "semctl$GETPID", CallName: "semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sem_sem_id", FldName: "semnum", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 11},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1079, NR: 300, Name: "semctl$GETVAL", CallName: "semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sem_sem_id", FldName: "semnum", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 12},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1080, NR: 300, Name: "semctl$GETZCNT", CallName: "semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sem_sem_id", FldName: "semnum", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 15},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1081, NR: 300, Name: "semctl$IPC_INFO", CallName: "semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sem_sem_id", FldName: "semnum", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 3},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1082, NR: 300, Name: "semctl$IPC_RMID", CallName: "semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
@@ -12323,25 +12323,25 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "semnum", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1085, NR: 300, Name: "semctl$SEM_INFO", CallName: "semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sem_sem_id", FldName: "semnum", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 19},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1086, NR: 300, Name: "semctl$SEM_STAT", CallName: "semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sem_sem_id", FldName: "semnum", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 18},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "arg", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1087, NR: 300, Name: "semctl$SETALL", CallName: "semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "semnum", TypeSize: 4}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 17},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}}},
 	}},
 	{ID: 1088, NR: 300, Name: "semctl$SETVAL", CallName: "semctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
@@ -12361,12 +12361,12 @@ var syscalls_arm = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 1091, NR: 298, Name: "semop", CallName: "semop", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ops", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "sembuf"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ops", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "sembuf"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nops", TypeSize: 4}}, Buf: "ops"},
 	}},
 	{ID: 1092, NR: 312, Name: "semtimedop", CallName: "semtimedop", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_sem", FldName: "semid", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ops", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "sembuf"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ops", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "sembuf"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nops", TypeSize: 4}}, Buf: "ops"},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "timeout", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "timespec"}}},
 	}},
@@ -12384,31 +12384,31 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1095, NR: 374, Name: "sendmmsg", CallName: "sendmmsg", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "send_mmsghdr"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "send_mmsghdr"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "mmsg"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}},
 	{ID: 1096, NR: 374, Name: "sendmmsg$alg", CallName: "sendmmsg", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_algconn", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "msghdr_alg"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "msghdr_alg"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "mmsg"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}},
 	{ID: 1097, NR: 374, Name: "sendmmsg$inet_sctp", CallName: "sendmmsg", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "msghdr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "msghdr_sctp"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "mmsg"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}},
 	{ID: 1098, NR: 374, Name: "sendmmsg$nfc_llcp", CallName: "sendmmsg", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_nfc_llcp", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "nfc_llcp_send_msghdr"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "nfc_llcp_send_msghdr"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "mmsg"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}},
 	{ID: 1099, NR: 374, Name: "sendmmsg$unix", CallName: "sendmmsg", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "msghdr_un"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "mmsg", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "msghdr_un"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "mmsg"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}},
@@ -12479,7 +12479,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1113, NR: 290, Name: "sendto", CallName: "sendto", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_storage"}}},
@@ -12487,7 +12487,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1114, NR: 290, Name: "sendto$ax25", CallName: "sendto", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ax25", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_ax25"}}},
@@ -12495,7 +12495,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1115, NR: 290, Name: "sendto$inet", CallName: "sendto", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_in"}}},
@@ -12503,7 +12503,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1116, NR: 290, Name: "sendto$inet6", CallName: "sendto", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in6", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_in6"}}},
@@ -12511,7 +12511,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1117, NR: 290, Name: "sendto$ipx", CallName: "sendto", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ipx", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_ipx"}}},
@@ -12519,7 +12519,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1118, NR: 290, Name: "sendto$llc", CallName: "sendto", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_llc", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_llc"}}},
@@ -12527,7 +12527,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1119, NR: 290, Name: "sendto$packet", CallName: "sendto", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_packet", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_ll"}}},
@@ -12535,7 +12535,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1120, NR: 290, Name: "sendto$unix", CallName: "sendto", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_unix", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 4, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_un"}}},
@@ -12564,7 +12564,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1127, NR: 81, Name: "setgroups", CallName: "setgroups", Args: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "list"},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "list", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "gid", TypeSize: 4}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "list", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "gid", TypeSize: 4}}}},
 	}},
 	{ID: 1128, NR: 104, Name: "setitimer", CallName: "setitimer", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "getitimer_which", FldName: "which", TypeSize: 4}}, Vals: []uint64{0, 1, 2}},
@@ -12610,7 +12610,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "level", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "optname", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1138, NR: 294, Name: "setsockopt$ALG_SET_AEAD_AUTHSIZE", CallName: "setsockopt", Args: []Type{
@@ -12624,7 +12624,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_alg", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 279},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 1},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "key", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "key", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "keylen", TypeSize: 4}}, Buf: "key"},
 	}},
 	{ID: 1140, NR: 294, Name: "setsockopt$SO_ATTACH_FILTER", CallName: "setsockopt", Args: []Type{
@@ -12652,7 +12652,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ax25", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 257},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ax25_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{25}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1144, NR: 294, Name: "setsockopt$ax25_int", CallName: "setsockopt", Args: []Type{
@@ -12862,14 +12862,14 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 41},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "inet6_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{6, 20, 21, 27, 28, 32, 34, 35, 42, 43, 44, 45, 46, 47, 48, 50, 61, 68, 69, 202, 204, 205, 210, 211}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1174, NR: 294, Name: "setsockopt$inet6_dccp_buf", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_dccp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 33},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "dccp_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{2, 12, 13, 14, 15, 128, 192}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1175, NR: 294, Name: "setsockopt$inet6_dccp_int", CallName: "setsockopt", Args: []Type{
@@ -12925,7 +12925,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 6},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "optname", TypeSize: 4}}, Val: 13},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "tcp_congestion_control_alg_names", Values: []string{"cubic\x00", "reno\x00", "bic\x00", "cdg\x00", "dctcp\x00", "westwood\x00", "highspeed\x00", "hybla\x00", "htcp\x00", "vegas\x00", "nv\x00", "veno\x00", "scalable\x00", "lp\x00", "yeah\x00", "illinois\x00", "dctcp-reno\x00", "bbr\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "tcp_congestion_control_alg_names", Values: []string{"cubic\x00", "reno\x00", "bic\x00", "cdg\x00", "dctcp\x00", "westwood\x00", "highspeed\x00", "hybla\x00", "htcp\x00", "vegas\x00", "nv\x00", "veno\x00", "scalable\x00", "lp\x00", "yeah\x00", "illinois\x00", "dctcp-reno\x00", "bbr\x00"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1183, NR: 294, Name: "setsockopt$inet6_tcp_TCP_FASTOPEN_KEY", CallName: "setsockopt", Args: []Type{
@@ -12946,7 +12946,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 6},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "optname", TypeSize: 4}}, Val: 22},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "tcp_repair_opt"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "tcp_repair_opt"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1186, NR: 294, Name: "setsockopt$inet6_tcp_TCP_REPAIR_WINDOW", CallName: "setsockopt", Args: []Type{
@@ -12967,7 +12967,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 6},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "tcp_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{11, 13, 31, 14, 22, 26, 28, 29, 33}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1189, NR: 294, Name: "setsockopt$inet6_tcp_int", CallName: "setsockopt", Args: []Type{
@@ -13030,14 +13030,14 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "inet_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{4, 9, 16, 17, 32, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1198, NR: 294, Name: "setsockopt$inet_dccp_buf", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_dccp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 33},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "dccp_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{2, 12, 13, 14, 15, 128, 192}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1199, NR: 294, Name: "setsockopt$inet_dccp_int", CallName: "setsockopt", Args: []Type{
@@ -13107,7 +13107,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sockopt_opt_ip_opts", FldName: "optname", TypeSize: 4}}, Vals: []uint64{4, 9}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1209, NR: 294, Name: "setsockopt$inet_pktinfo", CallName: "setsockopt", Args: []Type{
@@ -13373,28 +13373,28 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 100},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "val"},
 	}},
 	{ID: 1247, NR: 294, Name: "setsockopt$inet_sctp6_SCTP_SOCKOPT_BINDX_REM", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 101},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "val"},
 	}},
 	{ID: 1248, NR: 294, Name: "setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 110},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "val"},
 	}},
 	{ID: 1249, NR: 294, Name: "setsockopt$inet_sctp6_SCTP_SOCKOPT_CONNECTX_OLD", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp6", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 107},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "val"},
 	}},
 	{ID: 1250, NR: 294, Name: "setsockopt$inet_sctp6_SCTP_STREAM_SCHEDULER", CallName: "setsockopt", Args: []Type{
@@ -13667,28 +13667,28 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 100},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "val"},
 	}},
 	{ID: 1289, NR: 294, Name: "setsockopt$inet_sctp_SCTP_SOCKOPT_BINDX_REM", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 101},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "val"},
 	}},
 	{ID: 1290, NR: 294, Name: "setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 110},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "val"},
 	}},
 	{ID: 1291, NR: 294, Name: "setsockopt$inet_sctp_SCTP_SOCKOPT_CONNECTX_OLD", CallName: "setsockopt", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 132},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "opt", TypeSize: 4}}, Val: 107},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_sctp"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "val"},
 	}},
 	{ID: 1292, NR: 294, Name: "setsockopt$inet_sctp_SCTP_STREAM_SCHEDULER", CallName: "setsockopt", Args: []Type{
@@ -13709,7 +13709,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 6},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "optname", TypeSize: 4}}, Val: 13},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "tcp_congestion_control_alg_names", Values: []string{"cubic\x00", "reno\x00", "bic\x00", "cdg\x00", "dctcp\x00", "westwood\x00", "highspeed\x00", "hybla\x00", "htcp\x00", "vegas\x00", "nv\x00", "veno\x00", "scalable\x00", "lp\x00", "yeah\x00", "illinois\x00", "dctcp-reno\x00", "bbr\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "tcp_congestion_control_alg_names", Values: []string{"cubic\x00", "reno\x00", "bic\x00", "cdg\x00", "dctcp\x00", "westwood\x00", "highspeed\x00", "hybla\x00", "htcp\x00", "vegas\x00", "nv\x00", "veno\x00", "scalable\x00", "lp\x00", "yeah\x00", "illinois\x00", "dctcp-reno\x00", "bbr\x00"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1295, NR: 294, Name: "setsockopt$inet_tcp_TCP_FASTOPEN_KEY", CallName: "setsockopt", Args: []Type{
@@ -13730,7 +13730,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 6},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "optname", TypeSize: 4}}, Val: 22},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "tcp_repair_opt"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "optval", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "tcp_repair_opt"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1298, NR: 294, Name: "setsockopt$inet_tcp_TCP_REPAIR_WINDOW", CallName: "setsockopt", Args: []Type{
@@ -13751,7 +13751,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_tcp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 6},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "tcp_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{11, 13, 31, 14, 22, 26, 28, 29, 33}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1301, NR: 294, Name: "setsockopt$inet_tcp_int", CallName: "setsockopt", Args: []Type{
@@ -13919,7 +13919,7 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_packet", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "level", TypeSize: 4}}, Val: 263},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "packet_option_types_buf", FldName: "optname", TypeSize: 4}}, Vals: []uint64{1, 2, 5, 6, 13, 22}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "optval", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "optlen", TypeSize: 4}}, Buf: "optval"},
 	}},
 	{ID: 1325, NR: 294, Name: "setsockopt$packet_drop_memb", CallName: "setsockopt", Args: []Type{
@@ -14010,9 +14010,9 @@ var syscalls_arm = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
 	}},
 	{ID: 1338, NR: 226, Name: "setxattr", CallName: "setxattr", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "xattr_name"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "val", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "val"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "setxattr_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}},
 	}},
@@ -14024,7 +14024,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 1340, NR: 308, Name: "shmctl$IPC_INFO", CallName: "shmctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 3},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1341, NR: 308, Name: "shmctl$IPC_RMID", CallName: "shmctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
@@ -14038,12 +14038,12 @@ var syscalls_arm = []*Syscall{
 	{ID: 1343, NR: 308, Name: "shmctl$IPC_STAT", CallName: "shmctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 2},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1344, NR: 308, Name: "shmctl$SHM_INFO", CallName: "shmctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 14},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1345, NR: 308, Name: "shmctl$SHM_LOCK", CallName: "shmctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
@@ -14052,7 +14052,7 @@ var syscalls_arm = []*Syscall{
 	{ID: 1346, NR: 308, Name: "shmctl$SHM_STAT", CallName: "shmctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 4}}, Val: 13},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1347, NR: 308, Name: "shmctl$SHM_UNLOCK", CallName: "shmctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ipc_shm", FldName: "shmid", TypeSize: 4}},
@@ -14411,28 +14411,28 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "splice_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 8}},
 	}},
 	{ID: 1414, NR: 106, Name: "stat", CallName: "stat", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "statbuf", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "stat", Dir: 1}}},
 	}},
 	{ID: 1415, NR: 99, Name: "statfs", CallName: "statfs", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1416, NR: 397, Name: "statx", CallName: "statx", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "statx_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{256, 1024, 2048, 4096, 24576, 0, 8192, 16384}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "statx_mask", FldName: "mask", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2047, 2048, 4095}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "statxbuf", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "statx", Dir: 1}}},
 	}},
 	{ID: 1417, NR: 83, Name: "symlink", CallName: "symlink", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 1418, NR: 331, Name: "symlinkat", CallName: "symlinkat", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "old", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "newfd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "new", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 1419, NR: 36, Name: "sync", CallName: "sync"},
 	{ID: 1420, NR: 373, Name: "syncfs", CallName: "syncfs", Args: []Type{
@@ -14440,22 +14440,22 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1421, NR: 135, Name: "sysfs$1", CallName: "sysfs", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "option", TypeSize: 4}}, Val: 1},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fsname", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fsname", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2}},
 	}},
 	{ID: 1422, NR: 135, Name: "sysfs$2", CallName: "sysfs", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "option", TypeSize: 4}}, Val: 2},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "fsindex", TypeSize: 4}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "fsname", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "fsname", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1423, NR: 135, Name: "sysfs$3", CallName: "sysfs", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "option", TypeSize: 4}}, Val: 3},
 	}},
 	{ID: 1424, NR: 116, Name: "sysinfo", CallName: "sysinfo", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "info", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "info", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1425, NR: 103, Name: "syslog", CallName: "syslog", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syslog_cmd", FldName: "cmd", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 7, 6, 9, 10}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4, IsOptional: true}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "buf"},
 	}},
 	{ID: 1426, NR: 1000000, Name: "syz_emit_ethernet", CallName: "syz_emit_ethernet", Args: []Type{
@@ -14474,7 +14474,7 @@ var syscalls_arm = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ack_inc", TypeSize: 4}}},
 	}},
 	{ID: 1429, NR: 1000002, Name: "syz_fuse_mount", CallName: "syz_fuse_mount", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "target", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "target", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fuse_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{1, 2, 32768, 8192, 24576, 4096, 49152, 40960, 16384}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "gid", TypeSize: 4}},
@@ -14482,8 +14482,8 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 1430, NR: 1000003, Name: "syz_fuseblk_mount", CallName: "syz_fuseblk_mount", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "target", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "blkdev", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "target", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "blkdev", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fuse_mode", FldName: "mode", TypeSize: 4}}, Vals: []uint64{1, 2, 32768, 8192, 24576, 4096, 49152, 40960, 16384}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "uid", FldName: "uid", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "gid", FldName: "gid", TypeSize: 4}},
@@ -14508,7 +14508,7 @@ var syscalls_arm = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "text", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 12}, Type: &UnionType{Key: StructKey{Name: "kvm_text_x86"}}, Kind: 1, RangeBegin: 1, RangeEnd: 1}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ntext", TypeSize: 4}}, Buf: "text"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "kvm_setup_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &UnionType{Key: StructKey{Name: "kvm_setup_opt_x86"}}, Kind: 1, RangeEnd: 2}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "opts", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "kvm_setup_opt_x86"}}, Kind: 1, RangeEnd: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nopt", TypeSize: 4}}, Buf: "opts"},
 	}},
 	{ID: 1433, NR: 1000005, Name: "syz_open_dev$admmidi", CallName: "syz_open_dev", Args: []Type{
@@ -14678,7 +14678,7 @@ var syscalls_arm = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 1466, NR: 1000006, Name: "syz_open_procfs", CallName: "syz_open_procfs", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string"}, Kind: 2, SubKind: "procfs_file", Values: []string{"auxv\x00", "cmdline\x00", "environ\x00", "autogroup\x00", "cgroup\x00", "clear_refs\x00", "comm\x00", "coredump_filter\x00", "cpuset\x00", "gid_map\x00", "io\x00", "limits\x00", "loginuid\x00", "maps\x00", "mountinfo\x00", "mounts\x00", "mountstats\x00", "numa_maps\x00", "oom_adj\x00", "oom_score\x00", "oom_score_adj\x00", "pagemap\x00", "personality\x00", "projid_map\x00", "sched\x00", "schedstat\x00", "sessionid\x00", "setgroups\x00", "smaps\x00", "stack\x00", "stat\x00", "statm\x00", "status\x00", "syscall\x00", "timers\x00", "uid_map\x00", "wchan\x00", "map_files\x00", "attr\x00", "attr/current\x00", "attr/exec\x00", "attr/fscreate\x00", "attr/keycreate\x00", "attr/prev\x00", "attr/sockcreate\x00", "ns\x00", "ns/cgroup\x00", "ns/ipc\x00", "ns/mnt\x00", "ns/net\x00", "ns/pid\x00", "ns/user\x00", "ns/uts\x00", "children\x00", "task\x00", "fdinfo\x00", "net\x00", "net/anycast6\x00", "net/arp\x00", "net/bnep\x00", "net/connector\x00", "net/dev\x00", "net/dev_mcast\x00", "net/dev_snmp6\x00", "net/fib_trie\x00", "net/fib_triestat\x00", "net/hci\x00", "net/icmp\x00", "net/icmp6\x00", "net/if_inet6\x00", "net/igmp\x00", "net/igmp6\x00", "net/ip6_flowlabel\x00", "net/ip6_mr_cache\x00", "net/ip6_mr_vif\x00", "net/ip6_tables_matches\x00", "net/ip6_tables_names\x00", "net/ip6_tables_targets\x00", "net/ip_mr_cache\x00", "net/ip_mr_vif\x00", "net/ip_tables_matches\x00", "net/ip_tables_names\x00", "net/ip_tables_targets\x00", "net/ipv6_route\x00", "net/ipx\x00", "net/l2cap\x00", "net/llc\x00", "net/mcfilter\x00", "net/mcfilter6\x00", "net/netfilter\x00", "net/netlink\x00", "net/netstat\x00", "net/nfsfs\x00", "net/packet\x00", "net/protocols\x00", "net/psched\x00", "net/ptype\x00", "net/raw\x00", "net/raw6\x00", "net/rfcomm\x00", "net/route\x00", "net/rpc\x00", "net/rt6_stats\x00", "net/rt_acct\x00", "net/rt_cache\x00", "net/sco\x00", "net/sctp\x00", "net/snmp\x00", "net/snmp6\x00", "net/sockstat\x00", "net/sockstat6\x00", "net/softnet_stat\x00", "net/stat\x00", "net/tcp\x00", "net/tcp6\x00", "net/udp\x00", "net/udp6\x00", "net/udplite\x00", "net/udplite6\x00", "net/unix\x00", "net/wireless\x00", "net/xfrm_stat\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "procfs_file", Values: []string{"auxv\x00", "cmdline\x00", "environ\x00", "autogroup\x00", "cgroup\x00", "clear_refs\x00", "comm\x00", "coredump_filter\x00", "cpuset\x00", "gid_map\x00", "io\x00", "limits\x00", "loginuid\x00", "maps\x00", "mountinfo\x00", "mounts\x00", "mountstats\x00", "numa_maps\x00", "oom_adj\x00", "oom_score\x00", "oom_score_adj\x00", "pagemap\x00", "personality\x00", "projid_map\x00", "sched\x00", "schedstat\x00", "sessionid\x00", "setgroups\x00", "smaps\x00", "stack\x00", "stat\x00", "statm\x00", "status\x00", "syscall\x00", "timers\x00", "uid_map\x00", "wchan\x00", "map_files\x00", "attr\x00", "attr/current\x00", "attr/exec\x00", "attr/fscreate\x00", "attr/keycreate\x00", "attr/prev\x00", "attr/sockcreate\x00", "ns\x00", "ns/cgroup\x00", "ns/ipc\x00", "ns/mnt\x00", "ns/net\x00", "ns/pid\x00", "ns/user\x00", "ns/uts\x00", "children\x00", "task\x00", "fdinfo\x00", "net\x00", "net/anycast6\x00", "net/arp\x00", "net/bnep\x00", "net/connector\x00", "net/dev\x00", "net/dev_mcast\x00", "net/dev_snmp6\x00", "net/fib_trie\x00", "net/fib_triestat\x00", "net/hci\x00", "net/icmp\x00", "net/icmp6\x00", "net/if_inet6\x00", "net/igmp\x00", "net/igmp6\x00", "net/ip6_flowlabel\x00", "net/ip6_mr_cache\x00", "net/ip6_mr_vif\x00", "net/ip6_tables_matches\x00", "net/ip6_tables_names\x00", "net/ip6_tables_targets\x00", "net/ip_mr_cache\x00", "net/ip_mr_vif\x00", "net/ip_tables_matches\x00", "net/ip_tables_names\x00", "net/ip_tables_targets\x00", "net/ipv6_route\x00", "net/ipx\x00", "net/l2cap\x00", "net/llc\x00", "net/mcfilter\x00", "net/mcfilter6\x00", "net/netfilter\x00", "net/netlink\x00", "net/netstat\x00", "net/nfsfs\x00", "net/packet\x00", "net/protocols\x00", "net/psched\x00", "net/ptype\x00", "net/raw\x00", "net/raw6\x00", "net/rfcomm\x00", "net/route\x00", "net/rpc\x00", "net/rt6_stats\x00", "net/rt_acct\x00", "net/rt_cache\x00", "net/sco\x00", "net/sctp\x00", "net/snmp\x00", "net/snmp6\x00", "net/sockstat\x00", "net/sockstat6\x00", "net/softnet_stat\x00", "net/stat\x00", "net/tcp\x00", "net/tcp6\x00", "net/udp\x00", "net/udp6\x00", "net/udplite\x00", "net/udplite6\x00", "net/unix\x00", "net/wireless\x00", "net/xfrm_stat\x00"}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{ID: 1467, NR: 1000007, Name: "syz_open_pts", CallName: "syz_open_pts", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
@@ -14738,29 +14738,29 @@ var syscalls_arm = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sig", TypeSize: 4}}, Kind: 2, RangeEnd: 65},
 	}},
 	{ID: 1480, NR: 92, Name: "truncate", CallName: "truncate", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "len", TypeSize: 4}}},
 	}},
 	{ID: 1481, NR: 52, Name: "umount2", CallName: "umount2", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "umount_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 8}},
 	}},
 	{ID: 1482, NR: 122, Name: "uname", CallName: "uname", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{ArgDir: 1, IsVarlen: true}}},
 	}},
 	{ID: 1483, NR: 10, Name: "unlink", CallName: "unlink", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 1484, NR: 328, Name: "unlinkat", CallName: "unlinkat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "unlinkat_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{0, 512}},
 	}},
 	{ID: 1485, NR: 337, Name: "unshare", CallName: "unshare", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clone_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{256, 512, 1024, 2048, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576, 2097152, 8388608, 16777216, 33554432, 67108864, 134217728, 268435456, 536870912, 1073741824, 2147483648}},
 	}},
 	{ID: 1486, NR: 86, Name: "uselib", CallName: "uselib", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lib", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "lib", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 	}},
 	{ID: 1487, NR: 388, Name: "userfaultfd", CallName: "userfaultfd", Args: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "userfaultfd_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{2048, 524288}},
@@ -14771,17 +14771,17 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1489, NR: 348, Name: "utimensat", CallName: "utimensat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_dir", FldName: "dir", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pathname", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "pathname", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "times", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "itimerval"}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "utimensat_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{0, 256}},
 	}},
 	{ID: 1490, NR: 269, Name: "utimes", CallName: "utimes", Args: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename"}, Kind: 3}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "filename", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "times", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "itimerval"}}},
 	}},
 	{ID: 1491, NR: 343, Name: "vmsplice", CallName: "vmsplice", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "splice_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 8}},
 	}},
@@ -14800,12 +14800,12 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1494, NR: 4, Name: "write", CallName: "write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "buffer", FldName: "buf", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{IsVarlen: true}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "buf"},
 	}},
 	{ID: 1495, NR: 4, Name: "write$evdev", CallName: "write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_evdev", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "input_event"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "input_event"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "data"},
 	}},
 	{ID: 1496, NR: 4, Name: "write$eventfd", CallName: "write", Args: []Type{
@@ -14820,7 +14820,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1498, NR: 4, Name: "write$sndseq", CallName: "write", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndseq", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "snd_seq_event"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "data", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "snd_seq_event"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "len", TypeSize: 4}}, BitSize: 8, Buf: "data"},
 	}},
 	{ID: 1499, NR: 4, Name: "write$tun", CallName: "write", Args: []Type{
@@ -14830,7 +14830,7 @@ var syscalls_arm = []*Syscall{
 	}},
 	{ID: 1500, NR: 146, Name: "writev", CallName: "writev", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array"}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "iovec_in"}}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "vlen", TypeSize: 4}}, Buf: "vec"},
 	}},
 }
@@ -18116,4 +18116,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "115a5c85a37a9346e4092d1166801e475b538e72"
+const revision_arm = "2b020240de0d6ebb7b3a556196e52c219826e744"
