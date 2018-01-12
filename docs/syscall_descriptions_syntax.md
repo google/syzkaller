@@ -53,6 +53,8 @@ rest of the type-options are type-specific:
 	value range start, how many values per process, underlying type
 "text": machine code of the specified type, type-options:
 	text type (x86_real, x86_16, x86_32, x86_64, arm64)
+"void": type with static size 0
+	mostly useful inside of templates and varlen unions, can't be syscall argument
 ```
 
 flags/len/flags also have trailing underlying type type-option when used in structs/unions/pointers.

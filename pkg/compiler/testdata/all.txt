@@ -11,6 +11,59 @@ proc_struct1 {
 	f1	proc[C0, 8, int8]
 }
 
+# Void type.
+
+void0 {
+	f	void
+}
+
+void1 {
+	f1	void
+	f2	int8
+}
+
+void2 {
+	f1	void
+	f2	int8
+}
+
+void3 [
+	f1	void
+	f2	int8
+]
+
+void4 [
+	f1	void
+	f2	int8
+] [varlen]
+
+void5 {
+	f1	void
+	f2	void
+}
+
+struct_with_void0 {
+	f1	int8
+	f2	array[array[void]]
+	f3	int64
+}
+
+struct_with_void1 {
+	f1	int8
+	f2	array[void5]
+	f3	int64
+}
+
+foo$void0(a ptr[in, void0])
+foo$void1(a ptr[in, void1])
+foo$void2(a ptr[in, void2])
+foo$void3(a ptr[in, void3])
+foo$void4(a ptr[in, void4])
+foo$void5(a ptr[in, void5])
+foo$void6(a ptr[in, struct_with_void0])
+foo$void7(a ptr[in, struct_with_void1])
+foo$void8(a ptr[in, void])
+
 # Bitfields.
 
 bitfield0 {
