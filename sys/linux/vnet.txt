@@ -42,13 +42,26 @@ type mac_addr_t[LAST] {
 	a2	LAST
 } [packed]
 
+mac_addr_link_local {
+	a0	const[0x1, int8]
+	a1	const[0x80, int8]
+	a2	const[0xc2, int8]
+	a3	const[0x0, int8]
+	a4	const[0x0, int8]
+	a5	flags[mac_addr_link_local_values, int8]
+} [packed]
+
+mac_addr_link_local_values = 0x0, 0x1, 0x2, 0x3, 0xe
+
 mac_addr [
-	empty	array[const[0x0, int8], 6]
+	empty		array[const[0x0, int8], 6]
 # These correspond to LOCAL_MAC/REMOTE_MAC/DEV_MAC in executor/common_linux.h
-	local	mac_addr_t[const[0xaa, int8]]
-	remote	mac_addr_t[const[0xbb, int8]]
-	dev	mac_addr_t[int8[10:23]]
-	random	array[int8, 6]
+	local		mac_addr_t[const[0xaa, int8]]
+	remote		mac_addr_t[const[0xbb, int8]]
+	dev		mac_addr_t[int8[10:23]]
+	broadcast	array[const[0xff, int8], 6]
+	link_local	mac_addr_link_local
+	random		array[int8, 6]
 ]
 
 vlan_tag_ad {

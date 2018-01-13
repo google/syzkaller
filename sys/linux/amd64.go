@@ -3841,6 +3841,8 @@ var structDescs_amd64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xaa, int8]]"}, FldName: "local"},
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xbb, int8]]"}, FldName: "remote"},
 		&StructType{Key: StructKey{Name: "mac_addr_t[int8[10:23]]"}, FldName: "dev"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "broadcast", TypeSize: 6}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}, Val: 255}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
+		&StructType{Key: StructKey{Name: "mac_addr_link_local"}, FldName: "link_local"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "random", TypeSize: 6}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 	}}},
 	{Key: StructKey{Name: "mac_addr", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr", TypeSize: 6, ArgDir: 1}, Fields: []Type{
@@ -3848,6 +3850,8 @@ var structDescs_amd64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xaa, int8]]", Dir: 1}, FldName: "local"},
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xbb, int8]]", Dir: 1}, FldName: "remote"},
 		&StructType{Key: StructKey{Name: "mac_addr_t[int8[10:23]]", Dir: 1}, FldName: "dev"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "broadcast", TypeSize: 6, ArgDir: 1}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 1}}, Val: 255}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
+		&StructType{Key: StructKey{Name: "mac_addr_link_local", Dir: 1}, FldName: "link_local"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "random", TypeSize: 6, ArgDir: 1}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 	}}},
 	{Key: StructKey{Name: "mac_addr", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr", TypeSize: 6, ArgDir: 2}, Fields: []Type{
@@ -3855,7 +3859,33 @@ var structDescs_amd64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xaa, int8]]", Dir: 2}, FldName: "local"},
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xbb, int8]]", Dir: 2}, FldName: "remote"},
 		&StructType{Key: StructKey{Name: "mac_addr_t[int8[10:23]]", Dir: 2}, FldName: "dev"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "broadcast", TypeSize: 6, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 2}}, Val: 255}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
+		&StructType{Key: StructKey{Name: "mac_addr_link_local", Dir: 2}, FldName: "link_local"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "random", TypeSize: 6, ArgDir: 2}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
+	}}},
+	{Key: StructKey{Name: "mac_addr_link_local"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr_link_local", TypeSize: 6}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1}}, Val: 128},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1}}, Val: 194},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a3", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a4", TypeSize: 1}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mac_addr_link_local_values", FldName: "a5", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 3, 14}},
+	}}},
+	{Key: StructKey{Name: "mac_addr_link_local", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr_link_local", TypeSize: 6, ArgDir: 1}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1, ArgDir: 1}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 1}}, Val: 128},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1, ArgDir: 1}}, Val: 194},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a3", TypeSize: 1, ArgDir: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a4", TypeSize: 1, ArgDir: 1}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mac_addr_link_local_values", FldName: "a5", TypeSize: 1, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 3, 14}},
+	}}},
+	{Key: StructKey{Name: "mac_addr_link_local", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr_link_local", TypeSize: 6, ArgDir: 2}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a0", TypeSize: 1, ArgDir: 2}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a1", TypeSize: 1, ArgDir: 2}}, Val: 128},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1, ArgDir: 2}}, Val: 194},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a3", TypeSize: 1, ArgDir: 2}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a4", TypeSize: 1, ArgDir: 2}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mac_addr_link_local_values", FldName: "a5", TypeSize: 1, ArgDir: 2}}, Vals: []uint64{0, 1, 2, 3, 14}},
 	}}},
 	{Key: StructKey{Name: "mac_addr_t[const[0xaa, int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr_t[const[0xaa, int8]]", TypeSize: 6}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "a0", TypeSize: 4}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}, Val: 170}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
@@ -19485,4 +19515,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_amd64 = "cd91f5ccaf308997b28bf55851999bd35a1a7489"
+const revision_amd64 = "b757c62af017c49e790d2a66f8a3b4447107dc2c"
