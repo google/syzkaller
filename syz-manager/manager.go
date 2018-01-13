@@ -948,6 +948,11 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 		Fatalf("fuzzer %v is not connected", a.Name)
 	}
 
+	if _, err := mgr.target.Deserialize(a.RpcInput.Prog); err != nil {
+		// This should not happen, but we see such cases episodically, reason unknown.
+		Logf(0, "failed to deserialize program from fuzzer: %v\n%s", err, a.RpcInput.Prog)
+		return nil
+	}
 	if !cover.SignalNew(mgr.corpusSignal, a.Signal) {
 		return nil
 	}
