@@ -310,7 +310,6 @@ retry:
 		if (call_num == instr_copyin) {
 			char* addr = (char*)read_input(&input_pos);
 			uint64 typ = read_input(&input_pos);
-			debug("copyin to %p\n", addr);
 			switch (typ) {
 			case arg_const: {
 				uint64 size, bf_off, bf_len;
@@ -505,7 +504,7 @@ void handle_completion(thread_t* th)
 					fail("result idx %lld overflows kMaxCommands", index);
 				results[index].executed = true;
 				results[index].val = val;
-				debug("copyout from %p\n", addr);
+				debug("copyout 0x%llx from %p\n", val, addr);
 				break;
 			}
 			default:
