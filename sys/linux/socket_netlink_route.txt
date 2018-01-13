@@ -7,8 +7,11 @@ include <linux/net.h>
 include <linux/netdevice.h>
 include <uapi/linux/if.h>
 include <uapi/linux/if_link.h>
+include <uapi/linux/if_addr.h>
 include <uapi/linux/netlink.h>
+include <uapi/linux/netconf.h>
 include <uapi/linux/rtnetlink.h>
+include <uapi/linux/lwtunnel.h>
 
 resource sock_nl_route[sock_netlink]
 
@@ -17,11 +20,38 @@ socket$nl_route(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETL
 sendmsg$nl_route(fd sock_nl_route, msg ptr[in, msghdr_netlink[netlink_msg_route]], f flags[send_flags])
 
 netlink_msg_route [
-	newlink	netlink_msg[RTM_NEWLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
-	getlink	netlink_msg[RTM_GETLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
-	setlink	netlink_msg[RTM_SETLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
-	dellink	netlink_msg[RTM_DELLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
+	newlink			netlink_msg[RTM_NEWLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
+	getlink			netlink_msg[RTM_GETLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
+	setlink			netlink_msg[RTM_SETLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
+	dellink			netlink_msg[RTM_DELLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
+
+	ipv4_newaddr		netlink_msg[RTM_NEWADDR, ifaddrmsg[AF_INET], ifa_ipv4_policy]
+	ipv4_deladdr		netlink_msg[RTM_DELADDR, ifaddrmsg[AF_INET], ifa_ipv4_policy]
+	ipv4_getaddr		netlink_msg[RTM_GETADDR, ifaddrmsg[AF_INET], ifa_ipv4_policy]
+	ipv4_getnetconf		netlink_msg[RTM_GETNETCONF, netconfmsg[AF_INET], devconf_ip_policy]
+	ipv4_newroute		netlink_msg[RTM_NEWROUTE, rtmsg[AF_INET], rtm_ipv4_policy]
+	ipv4_delroute		netlink_msg[RTM_DELROUTE, rtmsg[AF_INET], rtm_ipv4_policy]
+	ipv4_getroute		netlink_msg[RTM_GETROUTE, rtgenmsg[AF_INET], void]
+
+	ipmr_newroute		netlink_msg[RTM_NEWROUTE, rtmsg[RTNL_FAMILY_IPMR], rtm_ipv4_policy]
+	ipmr_delroute		netlink_msg[RTM_DELROUTE, rtmsg[RTNL_FAMILY_IPMR], rtm_ipv4_policy]
+	ipmr_getroute		netlink_msg[RTM_GETROUTE, rtgenmsg[RTNL_FAMILY_IPMR], void]
+
+	ipv6_newaddr		netlink_msg[RTM_NEWADDR, ifaddrmsg[AF_INET6], ifa_ipv6_policy]
+	ipv6_deladdr		netlink_msg[RTM_DELADDR, ifaddrmsg[AF_INET6], ifa_ipv6_policy]
+	ipv6_getaddr		netlink_msg[RTM_GETADDR, ifaddrmsg[AF_INET6], ifa_ipv6_policy]
+	ipv6_getmulticast	netlink_msg[RTM_GETMULTICAST, rtgenmsg[AF_INET6], void]
+	ipv6_getanyicast	netlink_msg[RTM_GETANYCAST, rtgenmsg[AF_INET6], void]
+	ipv6_getnetconf		netlink_msg[RTM_GETNETCONF, netconfmsg[AF_INET6], devconf_ip_policy]
 ] [varlen]
+
+type rtgenmsg[FAMILY] {
+	rtgen_family	const[FAMILY, int8]
+}
+
+type netconfmsg[FAMILY] {
+	ncm_family	const[FAMILY, int8]
+}
 
 type ifinfomsg[FAMILY] {
 	ifi_family	const[FAMILY, int8]
@@ -30,6 +60,26 @@ type ifinfomsg[FAMILY] {
 	ifi_index	ifindex[opt]
 	ifi_flags	flags[net_device_flags, int32]
 	ifi_change	flags[net_device_flags, int32]
+}
+
+type ifaddrmsg[FAMILY] {
+	ifa_family	const[FAMILY, int8]
+	ifa_prefixlen	flags[ifa_prefixlen, int8]
+	ifa_flags	flags[ifa_flags, int8]
+	ifa_scope	flags[rt_scope_t, int8]
+	ifa_index	ifindex
+}
+
+type rtmsg[FAMILY] {
+	rtm_family	const[FAMILY, int8]
+	rtm_dst_len	flags[rtm_addr_len, int8]
+	rtmsrcdst_len	flags[rtm_addr_len, int8]
+	rtm_tos		int8
+	rtm_table	int8[0:4]
+	rtm_protocol	flags[rtm_protocol, int8]
+	rtm_scope	flags[rt_scope_t, int8]
+	rtm_type	flags[rtm_type, int8]
+	rtm_flags	flags[rtm_flags, int32]
 }
 
 ifla_policy [
@@ -80,6 +130,63 @@ ifla_info_policy [
 	IFLA_INFO_SLAVE_DATA	nlattr[IFLA_INFO_SLAVE_DATA, array[int8]]
 ] [varlen]
 
+ifa_ipv4_policy [
+	IFA_LOCAL	nlattr[IFA_LOCAL, ipv4_addr]
+	IFA_ADDRESS	nlattr[IFA_ADDRESS, ipv4_addr]
+	IFA_BROADCAST	nlattr[IFA_BROADCAST, ipv4_addr]
+	IFA_LABEL	nlattr[IFA_LABEL, devname]
+	IFA_CACHEINFO	nlattr[IFA_CACHEINFO, ifa_cacheinfo]
+	IFA_FLAGS	nlattr[IFA_FLAGS, flags[ifa_flags, int32]]
+] [varlen]
+
+ifa_ipv6_policy [
+	IFA_ADDRESS	nlattr[IFA_ADDRESS, ipv6_addr]
+	IFA_LOCAL	nlattr[IFA_LOCAL, ipv6_addr]
+	IFA_CACHEINFO	nlattr[IFA_CACHEINFO, ifa_cacheinfo]
+	IFA_FLAGS	nlattr[IFA_FLAGS, flags[ifa_flags, int32]]
+] [varlen]
+
+rtm_ipv4_policy [
+	RTA_DST		nlattr[RTA_DST, ipv4_addr]
+	RTA_SRC		nlattr[RTA_SRC, ipv4_addr]
+	RTA_IIF		nlattr[RTA_DST, ifindex]
+	RTA_OIF		nlattr[RTA_OIF, ifindex]
+	RTA_GATEWAY	nlattr[RTA_GATEWAY, int32]
+	RTA_PRIORITY	nlattr[RTA_PRIORITY, int32]
+	RTA_PREFSRC	nlattr[RTA_PREFSRC, ipv4_addr]
+# TODO: what's this? is this interesting?
+	RTA_METRICS	nlattr[RTA_METRICS, array[int8]]
+	RTA_MULTIPATH	nlattr[RTA_MULTIPATH, array[rtnexthop]]
+	RTA_FLOW	nlattr[RTA_FLOW, int32]
+	RTA_ENCAP_TYPE	nlattr[RTA_ENCAP_TYPE, flags[lwtunnel_encap_types, int16]]
+# TODO: describe RTA_ENCAP
+	RTA_ENCAP	nlattr[RTA_ENCAP, nl_generic_attr]
+	RTA_UID		nlattr[RTA_UID, uid]
+	RTA_MARK	nlattr[RTA_MARK, int32]
+] [varlen]
+
+rtnexthop {
+	rtnh_len	int16
+	rtnh_flags	int8
+	rtnh_hops	int8
+	rtnh_ifindex	ifindex
+}
+
+ifa_cacheinfo {
+	ifa_prefered	int32
+	ifa_valid	int32
+	cstamp		int32
+	tstamp		int32
+}
+
+devconf_ip_policy [
+	NETCONFA_IFINDEX		nlattr[NETCONFA_IFINDEX, ifindex]
+	NETCONFA_FORWARDING		nlattr[NETCONFA_FORWARDING, int32]
+	NETCONFA_RP_FILTER		nlattr[NETCONFA_RP_FILTER, int32]
+	NETCONFA_PROXY_NEIGH		nlattr[NETCONFA_PROXY_NEIGH, int32]
+	IGNORE_ROUTES_WITH_LINKDOWN	nlattr[NETCONFA_IGNORE_ROUTES_WITH_LINKDOWN, int32]
+] [varlen]
+
 # TODO: implement these
 type ifla_vf_policy nl_generic_attr
 type ifla_port_policy nl_generic_attr
@@ -102,3 +209,11 @@ rtnl_link_ifmap {
 rtnl_af = AF_INET, AF_INET6, AF_BRIDGE, AF_MPLS
 
 net_device_flags = IFF_UP, IFF_BROADCAST, IFF_DEBUG, IFF_LOOPBACK, IFF_POINTOPOINT, IFF_NOTRAILERS, IFF_RUNNING, IFF_NOARP, IFF_PROMISC, IFF_ALLMULTI, IFF_MASTER, IFF_SLAVE, IFF_MULTICAST, IFF_PORTSEL, IFF_AUTOMEDIA, IFF_DYNAMIC, IFF_LOWER_UP, IFF_DORMANT, IFF_ECHO
+ifa_flags = IFA_F_SECONDARY, IFA_F_NODAD, IFA_F_OPTIMISTIC, IFA_F_DADFAILED, IFA_F_HOMEADDRESS, IFA_F_DEPRECATED, IFA_F_TENTATIVE, IFA_F_PERMANENT, IFA_F_MANAGETEMPADDR, IFA_F_NOPREFIXROUTE, IFA_F_MCAUTOJOIN
+rt_scope_t = RT_SCOPE_UNIVERSE, RT_SCOPE_SITE, RT_SCOPE_LINK, RT_SCOPE_HOST, RT_SCOPE_NOWHERE
+rtm_protocol = RTPROT_UNSPEC, RTPROT_REDIRECT, RTPROT_KERNEL, RTPROT_BOOT, RTPROT_STATIC
+rtm_type = RTN_UNSPEC, RTN_UNICAST, RTN_LOCAL, RTN_BROADCAST, RTN_ANYCAST, RTN_MULTICAST, RTN_BLACKHOLE, RTN_UNREACHABLE, RTN_PROHIBIT, RTN_THROW, RTN_NAT, RTN_XRESOLVE
+rtm_flags = RTM_F_NOTIFY, RTM_F_CLONED, RTM_F_EQUALIZE, RTM_F_PREFIX, RTM_F_LOOKUP_TABLE, RTM_F_FIB_MATCH
+lwtunnel_encap_types = LWTUNNEL_ENCAP_NONE, LWTUNNEL_ENCAP_MPLS, LWTUNNEL_ENCAP_IP, LWTUNNEL_ENCAP_ILA, LWTUNNEL_ENCAP_IP6, LWTUNNEL_ENCAP_SEG6, LWTUNNEL_ENCAP_BPF, LWTUNNEL_ENCAP_SEG6_LOCAL
+ifa_prefixlen = 0, 1, 8, 16, 24, 31, 32, 56, 63, 64, 128
+rtm_addr_len = 0, 16, 20, 32, 128
