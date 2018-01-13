@@ -1,0 +1,104 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+# AF_NETLINK/NETLINK_ROUTE support.
+
+include <linux/net.h>
+include <linux/netdevice.h>
+include <uapi/linux/if.h>
+include <uapi/linux/if_link.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/rtnetlink.h>
+
+resource sock_nl_route[sock_netlink]
+
+socket$nl_route(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_ROUTE]) sock_nl_route
+
+sendmsg$nl_route(fd sock_nl_route, msg ptr[in, msghdr_netlink[netlink_msg_route]], f flags[send_flags])
+
+netlink_msg_route [
+	newlink	netlink_msg[RTM_NEWLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
+	getlink	netlink_msg[RTM_GETLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
+	setlink	netlink_msg[RTM_SETLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
+	dellink	netlink_msg[RTM_DELLINK, ifinfomsg[AF_UNSPEC], ifla_policy]
+] [varlen]
+
+type ifinfomsg[FAMILY] {
+	ifi_family	const[FAMILY, int8]
+	__ifi_pad	const[0, int8]
+	ifi_type	const[0, int16]
+	ifi_index	ifindex[opt]
+	ifi_flags	flags[net_device_flags, int32]
+	ifi_change	flags[net_device_flags, int32]
+}
+
+ifla_policy [
+	IFLA_IFNAME		nlattr[IFLA_IFNAME, devname]
+	IFLA_ADDRESS		nlattr[IFLA_ADDRESS, mac_addr]
+	IFLA_BROADCAST		nlattr[IFLA_BROADCAST, mac_addr]
+	IFLA_MAP		nlattr[IFLA_MAP, rtnl_link_ifmap]
+	IFLA_MTU		nlattr[IFLA_MAP, int32]
+	IFLA_LINK		nlattr[IFLA_LINK, int32]
+	IFLA_MASTER		nlattr[IFLA_MASTER, int32]
+	IFLA_CARRIER		nlattr[IFLA_CARRIER, int8]
+	IFLA_TXQLEN		nlattr[IFLA_TXQLEN, int32]
+	IFLA_WEIGHT		nlattr[IFLA_WEIGHT, int32]
+	IFLA_OPERSTATE		nlattr[IFLA_OPERSTATE, int8]
+	IFLA_LINKMODE		nlattr[IFLA_LINKMODE, int8]
+	IFLA_LINKINFO		nlattr[IFLA_LINKINFO, array[ifla_info_policy]]
+	IFLA_NET_NS_PID		nlattr[IFLA_NET_NS_PID, pid]
+# TODO: this must be some 'nsfd' fd.
+	IFLA_NET_NS_FD		nlattr[IFLA_NET_NS_FD, fd]
+	IFLA_IFALIAS		nlattr[IFLA_IFALIAS, devname]
+	IFLA_IFALIASn		nlattr[IFLA_IFALIAS, void]
+	IFLA_VFINFO_LIST	nlattr[IFLA_VFINFO_LIST, array[nlattr[IFLA_VF_INFO, array[ifla_vf_policy]]]]
+	IFLA_VF_PORTS		nlattr[IFLA_VF_PORTS, array[nlattr[IFLA_VF_PORT, array[ifla_port_policy]]]]
+	IFLA_PORT_SELF		nlattr[IFLA_PORT_SELF, array[ifla_port_policy]]
+	IFLA_AF_SPEC		nlattr[IFLA_AF_SPEC, array[nlattr_t[flags[rtnl_af, int16], void]]]
+	IFLA_EXT_MASK		nlattr[IFLA_EXT_MASK, int32]
+	IFLA_PROMISCUITY	nlattr[IFLA_PROMISCUITY, int32]
+	IFLA_NUM_TX_QUEUES	nlattr[IFLA_NUM_TX_QUEUES, int32]
+	IFLA_NUM_RX_QUEUES	nlattr[IFLA_NUM_RX_QUEUES, int32]
+	IFLA_PHYS_PORT_ID	nlattr[IFLA_PHYS_PORT_ID, array[int8, 0:MAX_PHYS_ITEM_ID_LEN]]
+	IFLA_CARRIER_CHANGES	nlattr[IFLA_CARRIER_CHANGES, int32]
+	IFLA_PHYS_SWITCH_ID	nlattr[IFLA_PHYS_SWITCH_ID, array[int8, 0:MAX_PHYS_ITEM_ID_LEN]]
+# TODO: this is some net namespace id.
+	IFLA_LINK_NETNSID	nlattr[IFLA_LINK_NETNSID, int32]
+	IFLA_PROTO_DOWN		nlattr[IFLA_PROTO_DOWN, int8]
+	IFLA_XDP		nlattr[IFLA_XDP, array[ifla_xdp_policy]]
+	IFLA_EVENT		nlattr[IFLA_EVENT, int32]
+	IFLA_GROUP		nlattr[IFLA_GROUP, int32]
+# TODO: probably also some net namespace id.
+	IFLA_IF_NETNSID		nlattr[IFLA_IF_NETNSID, int32]
+] [varlen]
+
+ifla_info_policy [
+	IFLA_INFO_KIND		nlattr[IFLA_INFO_KIND, string]
+# TODO: strictly saying this and IFLA_INFO_SLAVE_DATA is yet another NLA_NESTED.
+	IFLA_INFO_DATA		nlattr[IFLA_INFO_DATA, array[int8]]
+	IFLA_INFO_SLAVE_KIND	nlattr[IFLA_INFO_SLAVE_KIND, string]
+	IFLA_INFO_SLAVE_DATA	nlattr[IFLA_INFO_SLAVE_DATA, array[int8]]
+] [varlen]
+
+# TODO: implement these
+type ifla_vf_policy nl_generic_attr
+type ifla_port_policy nl_generic_attr
+type ifla_xdp_policy nl_generic_attr
+
+dev_addr [
+	empty	array[const[0, int8], MAX_ADDR_LEN]
+	mac	mac_addr
+] [varlen]
+
+rtnl_link_ifmap {
+	mem_start	int64
+	mem_end		int64
+	base_addr	int64
+	irq		int16
+	dma		int8
+	port		int8
+}
+
+rtnl_af = AF_INET, AF_INET6, AF_BRIDGE, AF_MPLS
+
+net_device_flags = IFF_UP, IFF_BROADCAST, IFF_DEBUG, IFF_LOOPBACK, IFF_POINTOPOINT, IFF_NOTRAILERS, IFF_RUNNING, IFF_NOARP, IFF_PROMISC, IFF_ALLMULTI, IFF_MASTER, IFF_SLAVE, IFF_MULTICAST, IFF_PORTSEL, IFF_AUTOMEDIA, IFF_DYNAMIC, IFF_LOWER_UP, IFF_DORMANT, IFF_ECHO
