@@ -70,7 +70,7 @@ sockaddr [
 	llc		sockaddr_llc
 # TODO: AF_IB
 # TODO: AF_MPLS
-# TODO: AF_CAN
+	can		sockaddr_can
 # TODO: AF_TIPC
 	sco		sockaddr_sco
 	l2		sockaddr_l2
@@ -113,7 +113,7 @@ sockaddr_storage [
 	llc		sockaddr_llc
 # TODO: AF_IB
 # TODO: AF_MPLS
-# TODO: AF_CAN
+	can		sockaddr_can
 # TODO: AF_TIPC
 	sco		sockaddr_sco
 	l2		sockaddr_l2
