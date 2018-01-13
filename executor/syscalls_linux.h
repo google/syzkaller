@@ -2,8 +2,8 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "af4ee009f9e983ba6cdb710a6dbe5a247cbfbccc"
-unsigned syscall_count = 1491;
+#define SYZ_REVISION "9ef2ad759b377f3ecf27472c4bd1664c08b2519e"
+unsigned syscall_count = 1493;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1114,6 +1114,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_crypto", 370},
     {"sendmsg$nl_generic", 370},
     {"sendmsg$nl_netfilter", 370},
+    {"sendmsg$nl_route", 370},
     {"sendmsg$nl_xfrm", 370},
     {"sendmsg$unix", 370},
     {"sendto", 369},
@@ -1382,6 +1383,7 @@ call_t syscalls[] = {
     {"socket$nl_crypto", 359},
     {"socket$nl_generic", 359},
     {"socket$nl_netfilter", 359},
+    {"socket$nl_route", 359},
     {"socket$nl_xfrm", 359},
     {"socket$packet", 359},
     {"socket$unix", 359},
@@ -1502,8 +1504,8 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "4907f207daefe3ae8a703c8e16cabe8b13ddaab8"
-unsigned syscall_count = 1544;
+#define SYZ_REVISION "1df6d8214148a644824e5478a2da2f746896db00"
+unsigned syscall_count = 1546;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2655,6 +2657,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_crypto", 46},
     {"sendmsg$nl_generic", 46},
     {"sendmsg$nl_netfilter", 46},
+    {"sendmsg$nl_route", 46},
     {"sendmsg$nl_xfrm", 46},
     {"sendmsg$unix", 46},
     {"sendto", 44},
@@ -2935,6 +2938,7 @@ call_t syscalls[] = {
     {"socket$nl_crypto", 41},
     {"socket$nl_generic", 41},
     {"socket$nl_netfilter", 41},
+    {"socket$nl_route", 41},
     {"socket$nl_xfrm", 41},
     {"socket$packet", 41},
     {"socket$unix", 41},
@@ -3055,8 +3059,8 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "77bd6803f5513ae4a44b5aedeb960946ff83721d"
-unsigned syscall_count = 1501;
+#define SYZ_REVISION "97085116999a5e6e8388195159d1ade528946f41"
+unsigned syscall_count = 1503;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4169,6 +4173,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_crypto", 296},
     {"sendmsg$nl_generic", 296},
     {"sendmsg$nl_netfilter", 296},
+    {"sendmsg$nl_route", 296},
     {"sendmsg$nl_xfrm", 296},
     {"sendmsg$unix", 296},
     {"sendto", 290},
@@ -4448,6 +4453,7 @@ call_t syscalls[] = {
     {"socket$nl_crypto", 281},
     {"socket$nl_generic", 281},
     {"socket$nl_netfilter", 281},
+    {"socket$nl_route", 281},
     {"socket$nl_xfrm", 281},
     {"socket$packet", 281},
     {"socket$unix", 281},
@@ -4565,8 +4571,8 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "4211c842933929d2074cbaa096c82af0b3eb7906"
-unsigned syscall_count = 1473;
+#define SYZ_REVISION "1f9dffe7a70f1b35f33a45c7d90dbae9384975c5"
+unsigned syscall_count = 1475;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5660,6 +5666,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_crypto", 211},
     {"sendmsg$nl_generic", 211},
     {"sendmsg$nl_netfilter", 211},
+    {"sendmsg$nl_route", 211},
     {"sendmsg$nl_xfrm", 211},
     {"sendmsg$unix", 211},
     {"sendto", 206},
@@ -5938,6 +5945,7 @@ call_t syscalls[] = {
     {"socket$nl_crypto", 198},
     {"socket$nl_generic", 198},
     {"socket$nl_netfilter", 198},
+    {"socket$nl_route", 198},
     {"socket$nl_xfrm", 198},
     {"socket$packet", 198},
     {"socket$unix", 198},
@@ -6047,8 +6055,8 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "35fe1a53fbf4ce7cf6d2731b8bc26bf38a8d54bc"
-unsigned syscall_count = 1460;
+#define SYZ_REVISION "20c93caafe72b017c0ecefebb1acb8d0162cc77b"
+unsigned syscall_count = 1462;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7130,6 +7138,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_crypto", 341},
     {"sendmsg$nl_generic", 341},
     {"sendmsg$nl_netfilter", 341},
+    {"sendmsg$nl_route", 341},
     {"sendmsg$nl_xfrm", 341},
     {"sendmsg$unix", 341},
     {"sendto", 335},
@@ -7397,6 +7406,7 @@ call_t syscalls[] = {
     {"socket$nl_crypto", 326},
     {"socket$nl_generic", 326},
     {"socket$nl_netfilter", 326},
+    {"socket$nl_route", 326},
     {"socket$nl_xfrm", 326},
     {"socket$packet", 326},
     {"socket$unix", 326},
