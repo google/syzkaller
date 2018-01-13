@@ -2,8 +2,8 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "9ef2ad759b377f3ecf27472c4bd1664c08b2519e"
-unsigned syscall_count = 1493;
+#define SYZ_REVISION "10fc120328556feda2c43d32a1d32f4d2aa0ba47"
+unsigned syscall_count = 1500;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -29,6 +29,7 @@ call_t syscalls[] = {
     {"bind$bt_l2cap", 361},
     {"bind$bt_rfcomm", 361},
     {"bind$bt_sco", 361},
+    {"bind$can_raw", 361},
     {"bind$inet", 361},
     {"bind$inet6", 361},
     {"bind$ipx", 361},
@@ -76,6 +77,7 @@ call_t syscalls[] = {
     {"connect$bt_l2cap", 362},
     {"connect$bt_rfcomm", 362},
     {"connect$bt_sco", 362},
+    {"connect$can_bcm", 362},
     {"connect$inet", 362},
     {"connect$inet6", 362},
     {"connect$ipx", 362},
@@ -780,6 +782,7 @@ call_t syscalls[] = {
     {"ioctl$VT_SETMODE", 54},
     {"ioctl$VT_WAITACTIVE", 54},
     {"ioctl$fiemap", 54},
+    {"ioctl$ifreq_SIOCGIFINDEX_vcan", 54},
     {"ioctl$int_in", 54},
     {"ioctl$int_out", 54},
     {"ioctl$sock_FIOGETOWN", 54},
@@ -1105,6 +1108,8 @@ call_t syscalls[] = {
     {"sendmmsg$unix", 345},
     {"sendmsg", 370},
     {"sendmsg$alg", 370},
+    {"sendmsg$can_bcm", 370},
+    {"sendmsg$can_raw", 370},
     {"sendmsg$inet_sctp", 370},
     {"sendmsg$kcm", 370},
     {"sendmsg$key", 370},
@@ -1358,6 +1363,8 @@ call_t syscalls[] = {
     {"socket$bt_l2cap", 359},
     {"socket$bt_rfcomm", 359},
     {"socket$bt_sco", 359},
+    {"socket$can_bcm", 359},
+    {"socket$can_raw", 359},
     {"socket$inet", 359},
     {"socket$inet6", 359},
     {"socket$inet6_dccp", 359},
@@ -1504,8 +1511,8 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "1df6d8214148a644824e5478a2da2f746896db00"
-unsigned syscall_count = 1546;
+#define SYZ_REVISION "cd91f5ccaf308997b28bf55851999bd35a1a7489"
+unsigned syscall_count = 1553;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1542,6 +1549,7 @@ call_t syscalls[] = {
     {"bind$bt_l2cap", 49},
     {"bind$bt_rfcomm", 49},
     {"bind$bt_sco", 49},
+    {"bind$can_raw", 49},
     {"bind$inet", 49},
     {"bind$inet6", 49},
     {"bind$ipx", 49},
@@ -1589,6 +1597,7 @@ call_t syscalls[] = {
     {"connect$bt_l2cap", 42},
     {"connect$bt_rfcomm", 42},
     {"connect$bt_sco", 42},
+    {"connect$can_bcm", 42},
     {"connect$inet", 42},
     {"connect$inet6", 42},
     {"connect$ipx", 42},
@@ -2297,6 +2306,7 @@ call_t syscalls[] = {
     {"ioctl$VT_SETMODE", 16},
     {"ioctl$VT_WAITACTIVE", 16},
     {"ioctl$fiemap", 16},
+    {"ioctl$ifreq_SIOCGIFINDEX_vcan", 16},
     {"ioctl$int_in", 16},
     {"ioctl$int_out", 16},
     {"ioctl$sock_FIOGETOWN", 16},
@@ -2648,6 +2658,8 @@ call_t syscalls[] = {
     {"sendmmsg$unix", 307},
     {"sendmsg", 46},
     {"sendmsg$alg", 46},
+    {"sendmsg$can_bcm", 46},
+    {"sendmsg$can_raw", 46},
     {"sendmsg$inet_sctp", 46},
     {"sendmsg$kcm", 46},
     {"sendmsg$key", 46},
@@ -2913,6 +2925,8 @@ call_t syscalls[] = {
     {"socket$bt_l2cap", 41},
     {"socket$bt_rfcomm", 41},
     {"socket$bt_sco", 41},
+    {"socket$can_bcm", 41},
+    {"socket$can_raw", 41},
     {"socket$inet", 41},
     {"socket$inet6", 41},
     {"socket$inet6_dccp", 41},
@@ -3059,8 +3073,8 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "97085116999a5e6e8388195159d1ade528946f41"
-unsigned syscall_count = 1503;
+#define SYZ_REVISION "8670cb225f4c6eaefe6c7e5c0c926a156accfd6b"
+unsigned syscall_count = 1510;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3095,6 +3109,7 @@ call_t syscalls[] = {
     {"bind$bt_l2cap", 282},
     {"bind$bt_rfcomm", 282},
     {"bind$bt_sco", 282},
+    {"bind$can_raw", 282},
     {"bind$inet", 282},
     {"bind$inet6", 282},
     {"bind$ipx", 282},
@@ -3142,6 +3157,7 @@ call_t syscalls[] = {
     {"connect$bt_l2cap", 283},
     {"connect$bt_rfcomm", 283},
     {"connect$bt_sco", 283},
+    {"connect$can_bcm", 283},
     {"connect$inet", 283},
     {"connect$inet6", 283},
     {"connect$ipx", 283},
@@ -3820,6 +3836,7 @@ call_t syscalls[] = {
     {"ioctl$VT_SETMODE", 54},
     {"ioctl$VT_WAITACTIVE", 54},
     {"ioctl$fiemap", 54},
+    {"ioctl$ifreq_SIOCGIFINDEX_vcan", 54},
     {"ioctl$int_in", 54},
     {"ioctl$int_out", 54},
     {"ioctl$sock_FIOGETOWN", 54},
@@ -4164,6 +4181,8 @@ call_t syscalls[] = {
     {"sendmmsg$unix", 374},
     {"sendmsg", 296},
     {"sendmsg$alg", 296},
+    {"sendmsg$can_bcm", 296},
+    {"sendmsg$can_raw", 296},
     {"sendmsg$inet_sctp", 296},
     {"sendmsg$kcm", 296},
     {"sendmsg$key", 296},
@@ -4428,6 +4447,8 @@ call_t syscalls[] = {
     {"socket$bt_l2cap", 281},
     {"socket$bt_rfcomm", 281},
     {"socket$bt_sco", 281},
+    {"socket$can_bcm", 281},
+    {"socket$can_raw", 281},
     {"socket$inet", 281},
     {"socket$inet6", 281},
     {"socket$inet6_dccp", 281},
@@ -4571,8 +4592,8 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "1f9dffe7a70f1b35f33a45c7d90dbae9384975c5"
-unsigned syscall_count = 1475;
+#define SYZ_REVISION "e9f2469fe4fd45657b073d7d98dd781e4003af0c"
+unsigned syscall_count = 1482;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -4607,6 +4628,7 @@ call_t syscalls[] = {
     {"bind$bt_l2cap", 200},
     {"bind$bt_rfcomm", 200},
     {"bind$bt_sco", 200},
+    {"bind$can_raw", 200},
     {"bind$inet", 200},
     {"bind$inet6", 200},
     {"bind$ipx", 200},
@@ -4652,6 +4674,7 @@ call_t syscalls[] = {
     {"connect$bt_l2cap", 203},
     {"connect$bt_rfcomm", 203},
     {"connect$bt_sco", 203},
+    {"connect$can_bcm", 203},
     {"connect$inet", 203},
     {"connect$inet6", 203},
     {"connect$ipx", 203},
@@ -5327,6 +5350,7 @@ call_t syscalls[] = {
     {"ioctl$VT_SETMODE", 29},
     {"ioctl$VT_WAITACTIVE", 29},
     {"ioctl$fiemap", 29},
+    {"ioctl$ifreq_SIOCGIFINDEX_vcan", 29},
     {"ioctl$int_in", 29},
     {"ioctl$int_out", 29},
     {"ioctl$sock_FIOGETOWN", 29},
@@ -5657,6 +5681,8 @@ call_t syscalls[] = {
     {"sendmmsg$unix", 269},
     {"sendmsg", 211},
     {"sendmsg$alg", 211},
+    {"sendmsg$can_bcm", 211},
+    {"sendmsg$can_raw", 211},
     {"sendmsg$inet_sctp", 211},
     {"sendmsg$kcm", 211},
     {"sendmsg$key", 211},
@@ -5920,6 +5946,8 @@ call_t syscalls[] = {
     {"socket$bt_l2cap", 198},
     {"socket$bt_rfcomm", 198},
     {"socket$bt_sco", 198},
+    {"socket$can_bcm", 198},
+    {"socket$can_raw", 198},
     {"socket$inet", 198},
     {"socket$inet6", 198},
     {"socket$inet6_dccp", 198},
@@ -6055,8 +6083,8 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "20c93caafe72b017c0ecefebb1acb8d0162cc77b"
-unsigned syscall_count = 1462;
+#define SYZ_REVISION "80bcee09a665cc405fbeadcf099d99070b7093c9"
+unsigned syscall_count = 1469;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6092,6 +6120,7 @@ call_t syscalls[] = {
     {"bind$bt_l2cap", 327},
     {"bind$bt_rfcomm", 327},
     {"bind$bt_sco", 327},
+    {"bind$can_raw", 327},
     {"bind$inet", 327},
     {"bind$inet6", 327},
     {"bind$ipx", 327},
@@ -6139,6 +6168,7 @@ call_t syscalls[] = {
     {"connect$bt_l2cap", 328},
     {"connect$bt_rfcomm", 328},
     {"connect$bt_sco", 328},
+    {"connect$can_bcm", 328},
     {"connect$inet", 328},
     {"connect$inet6", 328},
     {"connect$ipx", 328},
@@ -6808,6 +6838,7 @@ call_t syscalls[] = {
     {"ioctl$VT_SETMODE", 54},
     {"ioctl$VT_WAITACTIVE", 54},
     {"ioctl$fiemap", 54},
+    {"ioctl$ifreq_SIOCGIFINDEX_vcan", 54},
     {"ioctl$int_in", 54},
     {"ioctl$int_out", 54},
     {"ioctl$sock_FIOGETOWN", 54},
@@ -7129,6 +7160,8 @@ call_t syscalls[] = {
     {"sendmmsg$unix", 349},
     {"sendmsg", 341},
     {"sendmsg$alg", 341},
+    {"sendmsg$can_bcm", 341},
+    {"sendmsg$can_raw", 341},
     {"sendmsg$inet_sctp", 341},
     {"sendmsg$kcm", 341},
     {"sendmsg$key", 341},
@@ -7381,6 +7414,8 @@ call_t syscalls[] = {
     {"socket$bt_l2cap", 326},
     {"socket$bt_rfcomm", 326},
     {"socket$bt_sco", 326},
+    {"socket$can_bcm", 326},
+    {"socket$can_raw", 326},
     {"socket$inet", 326},
     {"socket$inet6", 326},
     {"socket$inet6_dccp", 326},
