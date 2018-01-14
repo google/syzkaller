@@ -65,14 +65,14 @@ mac_addr [
 ]
 
 vlan_tag_ad {
-	tpid	const[0x9100, int16be]
+	tpid	const[ETH_P_QINQ1, int16be]
 	pcp	int16:3
 	dei	int16:1
 	vid	int16:12
 } [packed]
 
 vlan_tag_q {
-	tpid	const[0x8100, int16be]
+	tpid	const[ETH_P_8021Q, int16be]
 	pcp	int16:3
 	dei	int16:1
 	vid	int16:12
@@ -100,21 +100,32 @@ eth_payload {
 
 # https://en.wikipedia.org/wiki/Ethernet_frame#Ethernet_II
 
-ether_types = ETH_P_LOOP, ETH_P_PUP, ETH_P_PUPAT, ETH_P_TSN, ETH_P_IP, ETH_P_X25, ETH_P_ARP, ETH_P_IEEEPUP, ETH_P_IEEEPUPAT, ETH_P_BATMAN, ETH_P_DEC, ETH_P_DNA_DL, ETH_P_DNA_RC, ETH_P_DNA_RT, ETH_P_LAT, ETH_P_DIAG, ETH_P_CUST, ETH_P_SCA, ETH_P_TEB, ETH_P_RARP, ETH_P_ATALK, ETH_P_AARP, ETH_P_8021Q, ETH_P_IPX, ETH_P_IPV6, ETH_P_PAUSE, ETH_P_SLOW, ETH_P_WCCP, ETH_P_MPLS_UC, ETH_P_MPLS_MC, ETH_P_ATMMPOA, ETH_P_PPP_DISC, ETH_P_PPP_SES, ETH_P_LINK_CTL, ETH_P_ATMFATE, ETH_P_PAE, ETH_P_AOE, ETH_P_8021AD, ETH_P_802_EX1, ETH_P_TIPC, ETH_P_MACSEC, ETH_P_8021AH, ETH_P_MVRP, ETH_P_1588, ETH_P_NCSI, ETH_P_PRP, ETH_P_FCOE, ETH_P_TDLS, ETH_P_FIP, ETH_P_80221, ETH_P_HSR, ETH_P_LOOPBACK, ETH_P_QINQ1, ETH_P_QINQ2, ETH_P_QINQ3, ETH_P_EDSA, ETH_P_AF_IUCV, ETH_P_802_3_MIN
+ether_types = ETH_P_LOOP, ETH_P_PUP, ETH_P_PUPAT, ETH_P_TSN, ETH_P_IP, ETH_P_X25, ETH_P_ARP, ETH_P_IEEEPUP, ETH_P_IEEEPUPAT, ETH_P_BATMAN, ETH_P_DEC, ETH_P_DNA_DL, ETH_P_DNA_RC, ETH_P_DNA_RT, ETH_P_LAT, ETH_P_DIAG, ETH_P_CUST, ETH_P_SCA, ETH_P_TEB, ETH_P_RARP, ETH_P_ATALK, ETH_P_AARP, ETH_P_8021Q, ETH_P_ERSPAN, ETH_P_IPX, ETH_P_IPV6, ETH_P_PAUSE, ETH_P_SLOW, ETH_P_WCCP, ETH_P_MPLS_UC, ETH_P_MPLS_MC, ETH_P_ATMMPOA, ETH_P_PPP_DISC, ETH_P_PPP_SES, ETH_P_LINK_CTL, ETH_P_ATMFATE, ETH_P_PAE, ETH_P_AOE, ETH_P_8021AD, ETH_P_802_EX1, ETH_P_TIPC, ETH_P_MACSEC, ETH_P_8021AH, ETH_P_MVRP, ETH_P_1588, ETH_P_NCSI, ETH_P_PRP, ETH_P_FCOE, ETH_P_TDLS, ETH_P_FIP, ETH_P_80221, ETH_P_HSR, ETH_P_LOOPBACK, ETH_P_QINQ1, ETH_P_QINQ2, ETH_P_QINQ3, ETH_P_EDSA, ETH_P_AF_IUCV, ETH_P_802_3_MIN, ETH_P_802_3, ETH_P_AX25, ETH_P_ALL, ETH_P_802_2, ETH_P_SNAP, ETH_P_DDCMP, ETH_P_WAN_PPP, ETH_P_PPP_MP, ETH_P_LOCALTALK, ETH_P_CAN, ETH_P_CANFD, ETH_P_PPPTALK, ETH_P_TR_802_2, ETH_P_MOBITEX, ETH_P_CONTROL, ETH_P_IRDA, ETH_P_ECONET, ETH_P_HDLC, ETH_P_ARCNET, ETH_P_DSA, ETH_P_TRAILER, ETH_P_PHONET, ETH_P_IEEE802154, ETH_P_CAIF, ETH_P_XDSA, ETH_P_MAP
 
-eth2_packet {
+eth2_packet [
+	generic	eth2_packet_generic
+	arp	eth2_packet_t[ETH_P_ARP, arp_packet]
+	ipv4	eth2_packet_t[ETH_P_IP, ipv4_packet]
+	ipv6	eth2_packet_t[ETH_P_IPV6, ipv6_packet]
+	llc	eth2_packet_t[ETH_P_802_2, llc_packet]
+	llc_tr	eth2_packet_t[ETH_P_TR_802_2, llc_packet]
+	ipx	eth2_packet_t[ETH_P_IPX, ipx_packet]
+	x25	eth2_packet_t[ETH_P_X25, x25_packet]
+	mpls_uc	eth2_packet_t[ETH_P_MPLS_UC, mpls_packet]
+	mpls_mc	eth2_packet_t[ETH_P_MPLS_MC, mpls_packet]
+	can	eth2_packet_t[ETH_P_CAN, can_frame]
+	canfd	eth2_packet_t[ETH_P_CANFD, canfd_frame]
+] [varlen]
+
+eth2_packet_generic {
 	etype	flags[ether_types, int16be]
-	payload	eth2_payload
+	payload	array[int8]
 } [packed]
 
-eth2_payload [
-	arp	arp_packet
-	llc	llc_packet
-	ipx	ipx_packet
-	x25	x25_packet
-	ipv4	ipv4_packet
-	ipv6	ipv6_packet
-] [varlen]
+type eth2_packet_t[TYPE, PAYLOAD] {
+	etype	const[TYPE, int16be]
+	payload	PAYLOAD
+} [packed]
 
 ################################################################################
 ###################################### ARP #####################################
@@ -206,7 +217,8 @@ llc_payload [
 ] [varlen]
 
 llc_packet {
-	length	len[payload, int16be]
+# TODO: is there length or not? I don't see it in packet format...
+#	length	len[payload, int16be]
 	payload	llc_payload
 } [packed]
 
@@ -655,6 +667,7 @@ ipv4_payload [
 	icmp	icmp_packet
 	dccp	dccp_packet
 	igmp	igmp_packet
+	gre	gre_packet
 ] [varlen]
 
 ipv6_payload [
@@ -662,6 +675,7 @@ ipv6_payload [
 	udp	udp_packet
 	icmpv6	icmpv6_packet
 	dccp	dccp_packet
+	gre	gre_packet
 ] [varlen]
 
 ################################################################################
@@ -800,6 +814,56 @@ udp_packet {
 	csum		csum[parent, pseudo, IPPROTO_UDP, int16be]
 	data		array[int8]
 } [packed]
+
+################################################################################
+###################################### GRE #####################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/Generic_Routing_Encapsulation
+
+include <net/gre.h>
+
+gre_packet {
+	pptp	gre_packet_pptp
+# TODO: add more packets
+# TODO: this creates recursion ipv4 -> gre -> ipv4 -> ...
+#	cisco_ipv4 gre_packet_cisco[ETH_P_IP, ipv4_packet]
+#	cisco_ipv6 gre_packet_cisco[ETH_P_IPV6, ipv6_packet]
+} [packed]
+
+type gre_packet_cisco[PROTO, PAYLOAD] {
+	C		int16:1
+	R		const[0, int16:1]
+	K		int16:1
+	S		int16:1
+	reserved	const[0, int16:9]
+	version		const[0, int16:3]
+	protocol	const[PROTO, int16be]
+# checksum, key, sequence number
+	add		array[int16be, 0:3]
+	payload		PAYLOAD
+} [packed]
+
+type pptp_call_id int16be[0:3]
+
+gre_packet_pptp {
+	C		const[0, int16:1]
+	R		const[0, int16:1]
+	K		const[1, int16:1]
+	S		int16:1
+	reserved	const[0, int16:4]
+	A		int16:1
+	flags		const[0, int16:4]
+	version		const[1, int16:3]
+	protocol	const[0x880b, int16be]
+	payload_len	bytesize[payload, int16be]
+	key_call_id	pptp_call_id
+# sequence/ack number
+	add		array[int16be, 0:2]
+	payload		ppp_packet
+} [packed]
+
+type ppp_packet array[int8]
 
 ################################################################################
 ###################################### ICMP ####################################
@@ -1145,3 +1209,29 @@ igmp_packet {
 
 # TODO: describe particular IGMP packets
 # TODO: open IGMP sockets from userspace
+
+################################################################################
+###################################### MPLS ####################################
+################################################################################
+
+# https://en.wikipedia.org/wiki/Multiprotocol_Label_Switching
+
+mpls_packet {
+	labels	array[mpls_label]
+	payload	mpls_payload
+} [packed]
+
+# TODO: is it this ordering or reverse?
+mpls_label {
+	ttl	int32be:8
+	s	int32be:1
+	tc	int32be:3
+	label	int32be:20
+}
+
+mpls_payload [
+	generic	array[int8]
+	ipv4	ipv4_packet
+	ipv6	ipv6_packet
+	llc	llc_packet
+] [varlen]
