@@ -51,8 +51,8 @@ type msghdr_can[MSG] {
 }
 
 can_raw_msg [
-	can	can_frame_t[CAN_MAX_DLEN]
-	canfd	can_frame_t[CANFD_MAX_DLEN]
+	can	can_frame
+	canfd	canfd_frame
 ] [varlen]
 
 can_bcm_msg {
@@ -74,6 +74,9 @@ type can_frame_t[DATA_SIZE] {
 	__res1	const[0, int8]
 	data	array[int8, DATA_SIZE]
 }
+
+type can_frame can_frame_t[CAN_MAX_DLEN]
+type canfd_frame can_frame_t[CANFD_MAX_DLEN]
 
 canid_t {
 	id	int32:29[0:4]
