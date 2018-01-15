@@ -66,7 +66,12 @@ sockaddr [
 # TODO: AF_ATMSVC
 # TODO: AF_RDS
 # TODO: AF_IRDA
-# TODO: AF_PPPOX
+	pppoe		sockaddr_pppoe
+	pppol2tp	sockaddr_pppol2tp
+	pppol2tpin6	sockaddr_pppol2tpin6
+	pppol2tpv3	sockaddr_pppol2tpv3
+	pppol2tpv3in6	sockaddr_pppol2tpv3in6
+	pptp		sockaddr_pptp
 	llc		sockaddr_llc
 # TODO: AF_IB
 # TODO: AF_MPLS
@@ -109,7 +114,12 @@ sockaddr_storage [
 # TODO: AF_ATMSVC
 # TODO: AF_RDS
 # TODO: AF_IRDA
-# TODO: AF_PPPOX
+	pppoe		sockaddr_pppoe
+	pppol2tp	sockaddr_pppol2tp
+	pppol2tpin6	sockaddr_pppol2tpin6
+	pppol2tpv3	sockaddr_pppol2tpv3
+	pppol2tpv3in6	sockaddr_pppol2tpv3in6
+	pptp		sockaddr_pptp
 	llc		sockaddr_llc
 # TODO: AF_IB
 # TODO: AF_MPLS
@@ -274,13 +284,19 @@ ifreq_SIOCGIFINDEX {
 
 ifreq_SIOCETHTOOL {
 	ifr_ifrn	devname
-	ifr_ifru	ptr[inout, ethtool_cmd_u]
+	ifr_ifru	ptr64[inout, ethtool_cmd_u]
 	pad		array[const[0, int8], 16]
 } [packed]
 
 ifreq {
 	ifr_ifrn	devname
 	ifr_ifru	ifr_ifru
+}
+
+ifreq_mtu {
+	ifr_ifrn	devname
+	ifru_mtu	int32
+	pad		array[const[0, int8], 20]
 }
 
 syzn_devname {
