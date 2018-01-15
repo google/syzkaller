@@ -1793,19 +1793,30 @@ static void sandbox_common()
 #define CLONE_NEWCGROUP 0x02000000
 #endif
 
-	unshare(CLONE_NEWNS);
-	unshare(CLONE_NEWIPC);
-	unshare(CLONE_NEWCGROUP);
-	unshare(CLONE_NEWNET);
-	unshare(CLONE_NEWUTS);
-	unshare(CLONE_SYSVSEM);
+	if (unshare(CLONE_NEWNS)) {
+		debug("unshare(CLONE_NEWNS): %d\n", errno);
+	}
+	if (unshare(CLONE_NEWIPC)) {
+		debug("unshare(CLONE_NEWIPC): %d\n", errno);
+	}
+	if (unshare(CLONE_NEWCGROUP)) {
+		debug("unshare(CLONE_NEWCGROUP): %d\n", errno);
+	}
+	if (unshare(CLONE_NEWUTS)) {
+		debug("unshare(CLONE_NEWUTS): %d\n", errno);
+	}
+	if (unshare(CLONE_SYSVSEM)) {
+		debug("unshare(CLONE_SYSVSEM): %d\n", errno);
+	}
 }
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE)
 static int do_sandbox_none(int executor_pid, bool enable_tun)
 {
-	unshare(CLONE_NEWPID);
+	if (unshare(CLONE_NEWPID)) {
+		debug("unshare(CLONE_NEWPID): %d\n", errno);
+	}
 	int pid = fork();
 	if (pid < 0)
 		fail("sandbox fork failed");
@@ -1813,6 +1824,9 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 		return pid;
 
 	sandbox_common();
+	if (unshare(CLONE_NEWNET)) {
+		debug("unshare(CLONE_NEWNET): %d\n", errno);
+	}
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	setup_tun(executor_pid, enable_tun);
 #endif
@@ -1825,7 +1839,8 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_SETUID)
 static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 {
-	unshare(CLONE_NEWPID);
+	if (unshare(CLONE_NEWPID))
+		fail("unshare(CLONE_NEWPID)");
 	int pid = fork();
 	if (pid < 0)
 		fail("sandbox fork failed");
@@ -1833,6 +1848,8 @@ static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 		return pid;
 
 	sandbox_common();
+	if (unshare(CLONE_NEWNET))
+		fail("unshare(CLONE_NEWNET)");
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	setup_tun(executor_pid, enable_tun);
 #endif
@@ -1941,6 +1958,8 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 {
 	int pid;
 
+	if (unshare(CLONE_NEWNET))
+		fail("unshare(CLONE_NEWNET)");
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
 	setup_tun(executor_pid, enable_tun);
 #endif
