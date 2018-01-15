@@ -396,7 +396,12 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 			// but this is confusing and non-actionable for users.
 			// So now we fail the update, but give empty reason,
 			// which means "don't notify user".
-			log.Warningf(c, "Dup bug is already closed")
+			if cmd.Status == dashapi.BugStatusUpdate {
+				// This happens when people discuss old bugs.
+				log.Infof(c, "Dup bug is already closed")
+			} else {
+				log.Warningf(c, "Dup bug is already closed")
+			}
 			return false, "", nil
 		}
 	case BugStatusFixed, BugStatusInvalid:
