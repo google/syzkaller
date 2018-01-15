@@ -1775,6 +1775,30 @@ var structDescs_amd64 = []*KeyedStruct{
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "gre_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "gre_packet_pptp"}, FldName: "pptp"},
+		&StructType{Key: StructKey{Name: "gre_packet_cisco[ETH_P_IP, array[int8]]"}, FldName: "cisco_ipv4"},
+		&StructType{Key: StructKey{Name: "gre_packet_cisco[ETH_P_IPV6, array[int8]]"}, FldName: "cisco_ipv6"},
+	}}},
+	{Key: StructKey{Name: "gre_packet_cisco[ETH_P_IP, array[int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_cisco[ETH_P_IP, array[int8]]", IsVarlen: true}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "C", TypeSize: 2}, BitfieldLen: 1, BitfieldMdl: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "R", TypeSize: 2}, BitfieldOff: 1, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "K", TypeSize: 2}, BitfieldOff: 2, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "S", TypeSize: 2}, BitfieldOff: 3, BitfieldLen: 1, BitfieldMdl: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 2}, BitfieldOff: 4, BitfieldLen: 9, BitfieldMdl: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 2}, BitfieldOff: 13, BitfieldLen: 3}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "protocol", TypeSize: 2}, BigEndian: true}, Val: 2048},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "add", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", TypeSize: 2}, BigEndian: true}}, Kind: 1, RangeEnd: 3},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
+	}}},
+	{Key: StructKey{Name: "gre_packet_cisco[ETH_P_IPV6, array[int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_cisco[ETH_P_IPV6, array[int8]]", IsVarlen: true}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "C", TypeSize: 2}, BitfieldLen: 1, BitfieldMdl: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "R", TypeSize: 2}, BitfieldOff: 1, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "K", TypeSize: 2}, BitfieldOff: 2, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "S", TypeSize: 2}, BitfieldOff: 3, BitfieldLen: 1, BitfieldMdl: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 2}, BitfieldOff: 4, BitfieldLen: 9, BitfieldMdl: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 2}, BitfieldOff: 13, BitfieldLen: 3}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "protocol", TypeSize: 2}, BigEndian: true}, Val: 34525},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "add", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", TypeSize: 2}, BigEndian: true}}, Kind: 1, RangeEnd: 3},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "gre_packet_pptp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_pptp", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "C", TypeSize: 2}, BitfieldLen: 1, BitfieldMdl: true}},
@@ -21113,4 +21137,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_amd64 = "225e51555c52f81a7b7b41c60db525ebda1f3f06"
+const revision_amd64 = "941cd0a1e243fbeb2b5edb32d3ebee2335c3cd65"
