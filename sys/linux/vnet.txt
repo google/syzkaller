@@ -844,8 +844,6 @@ type gre_packet_cisco[PROTO, PAYLOAD] {
 	payload		PAYLOAD
 } [packed]
 
-type pptp_call_id int16be[0:3]
-
 gre_packet_pptp {
 	C		const[0, int16:1]
 	R		const[0, int16:1]
