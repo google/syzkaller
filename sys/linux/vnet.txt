@@ -824,11 +824,12 @@ udp_packet {
 include <net/gre.h>
 
 gre_packet {
-	pptp	gre_packet_pptp
+	pptp		gre_packet_pptp
 # TODO: add more packets
-# TODO: this creates recursion ipv4 -> gre -> ipv4 -> ...
-#	cisco_ipv4 gre_packet_cisco[ETH_P_IP, ipv4_packet]
-#	cisco_ipv6 gre_packet_cisco[ETH_P_IPV6, ipv6_packet]
+# TODO: the payload should be ipv4_packet/ipv6_packet, but this creates recursion
+# ipv4 -> gre -> ipv4 -> ...
+	cisco_ipv4	gre_packet_cisco[ETH_P_IP, array[int8]]
+	cisco_ipv6	gre_packet_cisco[ETH_P_IPV6, array[int8]]
 } [packed]
 
 type gre_packet_cisco[PROTO, PAYLOAD] {
