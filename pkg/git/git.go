@@ -72,6 +72,23 @@ func Checkout(dir, repo, branch string) (string, error) {
 	return HeadCommit(dir)
 }
 
+// CheckoutCommit checkouts the specified repository/branch/commit in dir.
+func CheckoutCommit(dir, repo, branch, commit string) error {
+	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
+		if err := initRepo(dir); err != nil {
+			return err
+		}
+	}
+	_, err := runSandboxed(dir, "git", "fetch", repo, branch)
+	if err != nil {
+		return err
+	}
+	if _, err := runSandboxed(dir, "git", "checkout", commit); err != nil {
+		return err
+	}
+	return nil
+}
+
 func clone(dir, repo, branch string) error {
 	if err := initRepo(dir); err != nil {
 		return err

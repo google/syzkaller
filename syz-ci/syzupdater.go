@@ -35,6 +35,7 @@ type SyzUpdater struct {
 	repo         string
 	branch       string
 	descriptions string
+	gopathDir    string
 	syzkallerDir string
 	latestDir    string
 	currentDir   string
@@ -58,7 +59,6 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 	}
 
 	gopath := filepath.Join(wd, "gopath")
-	os.Setenv("GOPATH", gopath)
 	os.Setenv("GOROOT", cfg.Goroot)
 	os.Setenv("PATH", filepath.Join(cfg.Goroot, "bin")+
 		string(filepath.ListSeparator)+os.Getenv("PATH"))
@@ -96,6 +96,7 @@ func NewSyzUpdater(cfg *Config) *SyzUpdater {
 		repo:         cfg.Syzkaller_Repo,
 		branch:       cfg.Syzkaller_Branch,
 		descriptions: cfg.Syzkaller_Descriptions,
+		gopathDir:    gopath,
 		syzkallerDir: syzkallerDir,
 		latestDir:    filepath.Join("syzkaller", "latest"),
 		currentDir:   filepath.Join("syzkaller", "current"),
@@ -223,10 +224,16 @@ func (upd *SyzUpdater) build() error {
 			}
 		}
 	}
-	if _, err := osutil.RunCmd(time.Hour, upd.syzkallerDir, "make", "generate"); err != nil {
+	cmd := osutil.Command("make", "generate")
+	cmd.Dir = upd.syzkallerDir
+	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
+	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("build failed: %v", err)
 	}
-	if _, err := osutil.RunCmd(time.Hour, upd.syzkallerDir, "make", "host", "ci"); err != nil {
+	cmd = osutil.Command("make", "host", "ci")
+	cmd.Dir = upd.syzkallerDir
+	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
+	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("build failed: %v", err)
 	}
 	for target := range upd.targets {
@@ -235,6 +242,7 @@ func (upd *SyzUpdater) build() error {
 		cmd.Dir = upd.syzkallerDir
 		cmd.Env = append([]string{}, os.Environ()...)
 		cmd.Env = append(cmd.Env,
+			"GOPATH="+upd.gopathDir,
 			"TARGETOS="+parts[0],
 			"TARGETVMARCH="+parts[1],
 			"TARGETARCH="+parts[2],
@@ -243,7 +251,10 @@ func (upd *SyzUpdater) build() error {
 			return fmt.Errorf("build failed: %v", err)
 		}
 	}
-	if _, err := osutil.RunCmd(time.Hour, upd.syzkallerDir, "go", "test", "-short", "./..."); err != nil {
+	cmd = osutil.Command("go", "test", "-short", "./...")
+	cmd.Dir = upd.syzkallerDir
+	cmd.Env = append([]string{"GOPATH=" + upd.gopathDir}, os.Environ()...)
+	if _, err := osutil.Run(time.Hour, cmd); err != nil {
 		return fmt.Errorf("tests failed: %v", err)
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
