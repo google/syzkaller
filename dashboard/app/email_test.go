@@ -45,7 +45,7 @@ func TestEmailReport(t *testing.T) {
 		c.expectEQ(len(msg.Attachments), 2)
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
-		c.expectEQ(msg.Attachments[1].Name, "raw.log")
+		c.expectEQ(msg.Attachments[1].Name, "raw.log.txt")
 		c.expectEQ(msg.Attachments[1].Data, crash.Log)
 		body := fmt.Sprintf(`Hello,
 
@@ -148,9 +148,9 @@ For more options, visit https://groups.google.com/d/optout.
 		c.expectEQ(len(msg.Attachments), 3)
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
-		c.expectEQ(msg.Attachments[1].Name, "raw.log")
+		c.expectEQ(msg.Attachments[1].Name, "raw.log.txt")
 		c.expectEQ(msg.Attachments[1].Data, crash.Log)
-		c.expectEQ(msg.Attachments[2].Name, "repro.txt")
+		c.expectEQ(msg.Attachments[2].Name, "repro.syz.txt")
 		c.expectEQ(msg.Attachments[2].Data, syzRepro)
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<1234>"})
 		body := fmt.Sprintf(`syzkaller has found reproducer for the following crash on kernel_commit1
@@ -196,9 +196,9 @@ report1
 		c.expectEQ(len(msg.Attachments), 3)
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
-		c.expectEQ(msg.Attachments[1].Name, "raw.log")
+		c.expectEQ(msg.Attachments[1].Name, "raw.log.txt")
 		c.expectEQ(msg.Attachments[1].Data, crash.Log)
-		c.expectEQ(msg.Attachments[2].Name, "repro.txt")
+		c.expectEQ(msg.Attachments[2].Name, "repro.syz.txt")
 		c.expectEQ(msg.Attachments[2].Data, syzRepro)
 		body := fmt.Sprintf(`Hello,
 
@@ -277,11 +277,11 @@ Content-Type: text/plain
 		c.expectEQ(len(msg.Attachments), 4)
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
-		c.expectEQ(msg.Attachments[1].Name, "raw.log")
+		c.expectEQ(msg.Attachments[1].Name, "raw.log.txt")
 		c.expectEQ(msg.Attachments[1].Data, crash.Log)
-		c.expectEQ(msg.Attachments[2].Name, "repro.txt")
+		c.expectEQ(msg.Attachments[2].Name, "repro.syz.txt")
 		c.expectEQ(msg.Attachments[2].Data, syzRepro)
-		c.expectEQ(msg.Attachments[3].Name, "repro.c")
+		c.expectEQ(msg.Attachments[3].Name, "repro.c.txt")
 		c.expectEQ(msg.Attachments[3].Data, crash.ReproC)
 		body := fmt.Sprintf(`syzkaller has found reproducer for the following crash on kernel_commit1
 repo1/branch1
