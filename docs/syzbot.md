@@ -37,6 +37,9 @@ by sending another `#syz fix` command.
 and provide the patch inline or as a text attachment. Attachments are more
 reliable because of email clients splitting lines and messing with whitespaces.
 `syzbot` will test the patch on `HEAD` of the specified git repo/branch.
+Note: this can be used both for testing fix patches and just for debugging
+(i.e. adding additional checks to code and testing with them).
+After sending an email you should get a reply email with results within an hour.
 - to mark the bug as a duplicate of another `syzbot` bug:
 ```
 #syz dup: exact-subject-of-another-report
