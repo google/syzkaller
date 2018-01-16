@@ -24,15 +24,19 @@ import (
 )
 
 type JobProcessor struct {
-	name     string
-	managers []*Manager
-	dash     *dashapi.Dashboard
+	name            string
+	managers        []*Manager
+	dash            *dashapi.Dashboard
+	syzkallerRepo   string
+	syzkallerBranch string
 }
 
 func newJobProcessor(cfg *Config, managers []*Manager) *JobProcessor {
 	jp := &JobProcessor{
-		name:     fmt.Sprintf("%v-job", cfg.Name),
-		managers: managers,
+		name:            fmt.Sprintf("%v-job", cfg.Name),
+		managers:        managers,
+		syzkallerRepo:   cfg.Syzkaller_Repo,
+		syzkallerBranch: cfg.Syzkaller_Branch,
 	}
 	if cfg.Dashboard_Addr != "" && cfg.Dashboard_Client != "" {
 		jp.dash = dashapi.New(cfg.Dashboard_Client, cfg.Dashboard_Addr, cfg.Dashboard_Key)
@@ -167,14 +171,6 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	defer func() { <-kernelBuildSem }()
 	req, resp, mgr := job.req, job.resp, job.mgr
 
-	// TODO(dvyukov): build syzkaller on req.SyzkallerCommit and use it.
-	// Newer syzkaller may not parse an old reproducer program.
-	syzkallerCommit, _ := readTag(filepath.FromSlash("syzkaller/current/tag"))
-	if syzkallerCommit == "" {
-		return fmt.Errorf("failed to read syzkaller build tag")
-	}
-	resp.Build.SyzkallerCommit = syzkallerCommit
-
 	dir := osutil.Abs(filepath.Join("jobs", mgr.managercfg.TargetOS))
 	kernelDir := filepath.Join(dir, "kernel")
 	if err := osutil.MkdirAll(kernelDir); err != nil {
@@ -190,6 +186,32 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	if err := osutil.MkdirAll(workDir); err != nil {
 		return fmt.Errorf("failed to create temp dir: %v", err)
 	}
+	gopathDir := filepath.Join(dir, "gopath")
+	syzkallerDir := filepath.Join(gopathDir, "src", "github.com", "google", "syzkaller")
+	if err := osutil.MkdirAll(syzkallerDir); err != nil {
+		return fmt.Errorf("failed to create temp dir: %v", err)
+	}
+
+	Logf(0, "job: fetching syzkaller on %v...", req.SyzkallerCommit)
+	err := git.CheckoutCommit(syzkallerDir, jp.syzkallerRepo, jp.syzkallerBranch, req.SyzkallerCommit)
+	if err != nil {
+		return fmt.Errorf("failed to checkout syzkaller repo: %v", err)
+	}
+
+	Logf(0, "job: building syzkaller...")
+	cmd := osutil.Command("make", "target")
+	cmd.Dir = syzkallerDir
+	cmd.Env = append([]string{}, os.Environ()...)
+	cmd.Env = append(cmd.Env,
+		"GOPATH="+gopathDir,
+		"TARGETOS="+mgr.managercfg.TargetOS,
+		"TARGETVMARCH="+mgr.managercfg.TargetVMArch,
+		"TARGETARCH="+mgr.managercfg.TargetArch,
+	)
+	if _, err := osutil.Run(time.Hour, cmd); err != nil {
+		return fmt.Errorf("syzkaller build failed: %v", err)
+	}
+	resp.Build.SyzkallerCommit = req.SyzkallerCommit
 
 	Logf(0, "job: fetching kernel...")
 	kernelCommit, err := git.Checkout(kernelDir, req.KernelRepo, req.KernelBranch)
@@ -231,7 +253,7 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	mgrcfg.Workdir = workDir
 	mgrcfg.Vmlinux = filepath.Join(kernelDir, "vmlinux")
 	mgrcfg.Kernel_Src = kernelDir
-	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
+	mgrcfg.Syzkaller = syzkallerDir
 	mgrcfg.Image = image
 	mgrcfg.Sshkey = key
 
