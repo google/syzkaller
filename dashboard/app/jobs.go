@@ -40,7 +40,6 @@ func addTestJob(c context.Context, bugID, user, extID, patch, repo, branch strin
 	}
 	bugReporting, _ := bugReportingByID(bug, bugID)
 
-	// TODO(dvyukov): find the exact crash that we reported.
 	crash, crashKey, err := findCrashForBug(c, bug)
 	if err != nil {
 		return "", err

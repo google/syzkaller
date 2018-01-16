@@ -225,6 +225,7 @@ type BugReport struct {
 	Report       []byte
 	ReproC       []byte
 	ReproSyz     []byte
+	CrashID      int64 // returned back in BugUpdate
 
 	CrashTitle string // job execution crash title
 	Error      []byte // job execution error
@@ -240,6 +241,7 @@ type BugUpdate struct {
 	DupOf      string
 	FixCommits []string // Titles of commits that fix this bug.
 	CC         []string // Additional emails to add to CC list in future emails.
+	CrashID    int64
 }
 
 type BugUpdateReply struct {

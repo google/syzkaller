@@ -537,6 +537,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 		Ancestor(bugKey).
 		Filter("ReproC=", 0).
 		Filter("ReproSyz=", 0).
+		Filter("Reported=", time.Time{}).
 		Order("ReportLen").
 		Order("Time").
 		Limit(maxCrashes+batchSize).
