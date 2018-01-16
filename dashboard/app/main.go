@@ -343,7 +343,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 	reportingIdx, status, link := 0, "", ""
 	var err error
 	if bug.Status == BugStatusOpen {
-		_, _, _, reportingIdx, status, link, err = needReport(c, "", state, bug)
+		_, _, _, _, reportingIdx, status, link, err = needReport(c, "", state, bug)
 		if err != nil {
 			status = err.Error()
 		}

@@ -59,6 +59,7 @@ func TestReportBug(t *testing.T) {
 		KernelConfig: []byte("config1"),
 		Log:          []byte("log1"),
 		Report:       []byte("report1"),
+		CrashID:      rep.CrashID,
 	}
 	c.expectEQ(rep, want)
 
@@ -73,6 +74,10 @@ func TestReportBug(t *testing.T) {
 	want.ReproSyz = []byte("#some opts\ngetpid()")
 	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
 	reports = reportAllBugs(c, 1)
+	if want.CrashID == reports[0].CrashID {
+		t.Fatal("get the same CrashID for new crash")
+	}
+	want.CrashID = reports[0].CrashID
 	c.expectEQ(reports[0], want)
 
 	cmd := &dashapi.BugUpdate{
@@ -103,6 +108,12 @@ func TestReportBug(t *testing.T) {
 	}
 	c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
 	c.expectEQ(reply.OK, false)
+
+	// Report another crash with syz repro for this bug,
+	// ensure that we still report the original crash in the next reporting.
+	// That's what we've upstreammed, it's bad to switch crashes without reason.
+	crash1.Report = []byte("report2")
+	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
 
 	// Check that we get the report in the second reporting.
 	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
@@ -216,6 +227,7 @@ func TestInvalidBug(t *testing.T) {
 		Log:          []byte("log2"),
 		Report:       []byte("report2"),
 		ReproC:       []byte("int main() { return 1; }"),
+		CrashID:      rep.CrashID,
 	}
 	c.expectEQ(rep, want)
 

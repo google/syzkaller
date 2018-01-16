@@ -30,6 +30,7 @@ indexes:
 - kind: Crash
   ancestor: yes
   properties:
+  - name: Reported
   - name: ReproC
   - name: ReproSyz
   - name: ReportLen
@@ -41,6 +42,8 @@ indexes:
   - name: ReproC
     direction: desc
   - name: ReproSyz
+    direction: desc
+  - name: Reported
     direction: desc
   - name: ReportLen
     direction: desc

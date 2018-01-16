@@ -99,6 +99,7 @@ func emailPollBugs(c context.Context) error {
 			ID:         rep.ID,
 			Status:     dashapi.BugStatusOpen,
 			ReproLevel: dashapi.ReproLevelNone,
+			CrashID:    rep.CrashID,
 		}
 		if len(rep.ReproC) != 0 {
 			cmd.ReproLevel = dashapi.ReproLevelC

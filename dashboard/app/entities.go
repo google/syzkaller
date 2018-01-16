@@ -86,6 +86,7 @@ type BugReporting struct {
 	ExtID      string // arbitrary reporting ID that is passed back in dashapi.BugReport
 	Link       string
 	CC         string // additional emails added to CC list (|-delimited list)
+	CrashID    int64  // crash that we've last reported in this reporting
 	ReproLevel dashapi.ReproLevel
 	Reported   time.Time
 	Closed     time.Time
@@ -95,12 +96,13 @@ type Crash struct {
 	Manager     string
 	BuildID     string
 	Time        time.Time
-	Maintainers []string `datastore:",noindex"`
-	Log         int64    // reference to CrashLog text entity
-	Report      int64    // reference to CrashReport text entity
-	ReproOpts   []byte   `datastore:",noindex"`
-	ReproSyz    int64    // reference to ReproSyz text entity
-	ReproC      int64    // reference to ReproC text entity
+	Reported    time.Time // set if this crash was ever reported
+	Maintainers []string  `datastore:",noindex"`
+	Log         int64     // reference to CrashLog text entity
+	Report      int64     // reference to CrashReport text entity
+	ReproOpts   []byte    `datastore:",noindex"`
+	ReproSyz    int64     // reference to ReproSyz text entity
+	ReproC      int64     // reference to ReproC text entity
 	ReportLen   int
 }
 

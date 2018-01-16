@@ -64,11 +64,11 @@ func reportingPollBugs(c context.Context, typ string) []*dashapi.BugReport {
 }
 
 func handleReportBug(c context.Context, typ string, state *ReportingState, bug *Bug) (*dashapi.BugReport, error) {
-	reporting, bugReporting, crash, _, _, _, err := needReport(c, typ, state, bug)
+	reporting, bugReporting, crash, crashKey, _, _, _, err := needReport(c, typ, state, bug)
 	if err != nil || reporting == nil {
 		return nil, err
 	}
-	rep, err := createBugReport(c, bug, crash, bugReporting, reporting.Config)
+	rep, err := createBugReport(c, bug, crash, crashKey, bugReporting, reporting.Config)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,9 @@ func handleReportBug(c context.Context, typ string, state *ReportingState, bug *
 	return rep, nil
 }
 
-func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) (reporting *Reporting, bugReporting *BugReporting, crash *Crash, reportingIdx int, status, link string, err error) {
+func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) (
+	reporting *Reporting, bugReporting *BugReporting, crash *Crash,
+	crashKey *datastore.Key, reportingIdx int, status, link string, err error) {
 	reporting, bugReporting, reportingIdx, status, err = currentReporting(c, bug)
 	if err != nil || reporting == nil {
 		return
@@ -107,7 +109,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		return
 	}
 
-	crash, _, err = findCrashForBug(c, bug)
+	crash, crashKey, err = findCrashForBug(c, bug)
 	if err != nil {
 		status = fmt.Sprintf("%v: no crashes!", reporting.Name)
 		reporting, bugReporting = nil, nil
@@ -178,7 +180,8 @@ func reproStr(level dashapi.ReproLevel) string {
 	}
 }
 
-func createBugReport(c context.Context, bug *Bug, crash *Crash, bugReporting *BugReporting, config interface{}) (*dashapi.BugReport, error) {
+func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datastore.Key,
+	bugReporting *BugReporting, config interface{}) (*dashapi.BugReport, error) {
 	reportingConfig, err := json.Marshal(config)
 	if err != nil {
 		return nil, err
@@ -240,6 +243,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, bugReporting *Bu
 		KernelConfig: kernelConfig,
 		ReproC:       reproC,
 		ReproSyz:     reproSyz,
+		CrashID:      crashKey.IntID(),
 	}
 	if bugReporting.CC != "" {
 		rep.CC = strings.Split(bugReporting.CC, "|")
@@ -251,7 +255,6 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, bugReporting *Bu
 func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
 	var bugs []*Bug
 	_, err := datastore.NewQuery("Bug").
-		//Filter("Status>=", BugStatusFixed).
 		GetAll(c, &bugs)
 	if err != nil {
 		log.Errorf(c, "%v", err)
@@ -266,7 +269,6 @@ func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
 	var closed []string
 	for _, id := range ids {
 		bug := bugMap[id]
-		//log.Errorf(c, "CHECKING: %v: bug=%v", id, bug)
 		if bug == nil {
 			continue
 		}
@@ -276,7 +278,6 @@ func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
 			log.Errorf(c, "%v", err)
 			continue
 		}
-		//log.Errorf(c, "CHECKING: %v: bug=%+v, reporting=%+v", id, bug, bugReporting)
 		if bug.Status >= BugStatusFixed || !bugReporting.Closed.IsZero() {
 			closed = append(closed, id)
 		}
@@ -500,6 +501,21 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 			bug.PatchedOn = nil
 		}
 	}
+	if cmd.CrashID != 0 {
+		// Rememeber that we've reported this crash.
+		crash := new(Crash)
+		crashKey := datastore.NewKey(c, "Crash", "", cmd.CrashID, bugKey)
+		if err := datastore.Get(c, crashKey, crash); err != nil {
+			return false, internalError, fmt.Errorf("failed to get reported crash %v: %v",
+				cmd.CrashID, err)
+		}
+		crash.Reported = now
+		if _, err := datastore.Put(c, crashKey, crash); err != nil {
+			return false, internalError, fmt.Errorf("failed to put reported crash %v: %v",
+				cmd.CrashID, err)
+		}
+		bugReporting.CrashID = cmd.CrashID
+	}
 	if bugReporting.ExtID == "" {
 		bugReporting.ExtID = cmd.ExtID
 	}
@@ -582,6 +598,7 @@ func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) (
 		Ancestor(bugKey).
 		Order("-ReproC").
 		Order("-ReproSyz").
+		Order("-Reported").
 		Order("-ReportLen").
 		Order("-Time").
 		Limit(limit).
