@@ -256,15 +256,15 @@ func incomingMail(c context.Context, r *http.Request) error {
 		// Sometimes it happens that somebody sends us our own text back, ignore it.
 		msg.Command, msg.CommandArgs = "", ""
 	}
-	bug, bugReporting, reporting := loadBugInfo(c, msg)
+	bug, _, reporting := loadBugInfo(c, msg)
 	if bug == nil {
 		return nil // error was already logged
 	}
-	_ = bugReporting
 	emailConfig := reporting.Config.(*EmailConfig)
 	mailingList := email.CanonicalEmail(emailConfig.Email)
 	fromMailingList := email.CanonicalEmail(msg.From) == mailingList
 	mailingListInCC := checkMailingListInCC(c, msg, mailingList)
+	log.Infof(c, "from/cc mailing list: %v/%v", fromMailingList, mailingListInCC)
 	// A mailing list can send us a duplicate email, to not process/reply
 	// to such duplicate emails, we ignore emails coming from our mailing lists.
 	if msg.Command == "test:" {

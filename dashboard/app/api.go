@@ -495,6 +495,8 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 		if _, err = datastore.Put(c, crashKey, crash); err != nil {
 			return nil, fmt.Errorf("failed to put crash: %v", err)
 		}
+	} else {
+		log.Infof(c, "not saving crash for %q", bug.Title)
 	}
 
 	tx := func(c context.Context) error {
@@ -553,7 +555,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 	crashes = crashes[:len(crashes)-maxCrashes]
 	var texts []*datastore.Key
 	for _, crash := range crashes {
-		if crash.ReproSyz != 0 || crash.ReproC != 0 {
+		if crash.ReproSyz != 0 || crash.ReproC != 0 || !crash.Reported.IsZero() {
 			log.Errorf(c, "purging reproducer?")
 			continue
 		}
@@ -574,7 +576,7 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 		log.Errorf(c, "failed to delete old crashes: %v", err)
 		return
 	}
-	log.Infof(c, "deleted %v crashes", len(keys))
+	log.Infof(c, "deleted %v crashes for bug %q", len(keys), bug.Title)
 }
 
 func apiReportFailedRepro(c context.Context, ns string, r *http.Request) (interface{}, error) {
