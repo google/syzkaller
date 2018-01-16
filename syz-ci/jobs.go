@@ -159,9 +159,15 @@ func (jp *JobProcessor) process(job *Job) *dashapi.JobDoneReq {
 		job.resp.Error = []byte(err.Error())
 		return job.resp
 	}
-	if err := jp.test(job); err != nil {
+	var err error
+	for try := 0; try < 3; try++ {
+		if err = jp.test(job); err == nil {
+			break
+		}
+		Logf(0, "job: testing failed, trying once again\n%v", err)
+	}
+	if err != nil {
 		job.resp.Error = []byte(err.Error())
-		return job.resp
 	}
 	return job.resp
 }
