@@ -150,25 +150,25 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	}
 	if len(rep.Patch) != 0 {
 		attachments = append(attachments, aemail.Attachment{
-			Name: "patch.txt",
+			Name: "patch.diff",
 			Data: rep.Patch,
 		})
 	}
 	if len(rep.Log) != 0 {
 		attachments = append(attachments, aemail.Attachment{
-			Name: "raw.log",
+			Name: "raw.log.txt",
 			Data: rep.Log,
 		})
 	}
 	if len(rep.ReproSyz) != 0 {
 		attachments = append(attachments, aemail.Attachment{
-			Name: "repro.txt",
+			Name: "repro.syz.txt",
 			Data: rep.ReproSyz,
 		})
 	}
 	if len(rep.ReproC) != 0 {
 		attachments = append(attachments, aemail.Attachment{
-			Name: "repro.c",
+			Name: "repro.c.txt",
 			Data: rep.ReproC,
 		})
 	}
