@@ -196,6 +196,10 @@ arch:
 	env HOSTOS=darwin HOSTARCH=amd64 $(MAKE) host
 	env GOOG=linux GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
 	env HOSTOS=linux HOSTARCH=amd64 $(MAKE) host
+	env GOOG=freebsd GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
+	env HOSTOS=freebsd HOSTARCH=amd64 $(MAKE) host
+	env GOOG=netbsd GOARCH=amd64 go install github.com/google/syzkaller/syz-manager
+	env HOSTOS=netbsd HOSTARCH=amd64 $(MAKE) host
 	env GOOG=linux GOARCH=amd64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=amd64 $(MAKE) target
 	env GOOG=linux GOARCH=arm64 go install github.com/google/syzkaller/syz-fuzzer
@@ -212,11 +216,11 @@ arch:
 	# but I can't guess the right one.
 	env GOOG=linux GOARCH=386 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=linux TARGETARCH=amd64 TARGETVMARCH=386 $(MAKE) target
-	env GOOG=windows go install github.com/google/syzkaller/syz-fuzzer
+	env GOOG=windows GOARCH=amd64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=windows TARGETARCH=amd64 $(MAKE) fuzzer execprog stress
-	env GOOG=freebsd go install github.com/google/syzkaller/syz-fuzzer
+	env GOOG=freebsd GOARCH=amd64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=freebsd TARGETARCH=amd64 $(MAKE) target
-	env GOOG=netbsd go install github.com/google/syzkaller/syz-fuzzer
+	env GOOG=netbsd GOARCH=amd64 go install github.com/google/syzkaller/syz-fuzzer
 	env TARGETOS=netbsd TARGETARCH=amd64 $(MAKE) target
 
 presubmit:
