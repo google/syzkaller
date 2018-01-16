@@ -166,13 +166,14 @@ func ExtractFixTagsFromCommits(dir, baseCommit, email string) ([]FixCommit, erro
 		return nil, err
 	}
 	defer cmd.Wait()
+	defer cmd.Process.Kill()
 	return extractFixTags(stdout, email)
 }
 
 func extractFixTags(r io.Reader, email string) ([]FixCommit, error) {
 	user, domain, err := splitEmail(email)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse email %q: %v", email, err)
 	}
 	var (
 		s           = bufio.NewScanner(r)
