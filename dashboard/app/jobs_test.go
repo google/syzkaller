@@ -112,9 +112,9 @@ func TestJob(t *testing.T) {
 		c.expectEQ(len(msg.Attachments), 3)
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
-		c.expectEQ(msg.Attachments[1].Name, "patch.txt")
+		c.expectEQ(msg.Attachments[1].Name, "patch.diff")
 		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
-		c.expectEQ(msg.Attachments[2].Name, "raw.log")
+		c.expectEQ(msg.Attachments[2].Name, "raw.log.txt")
 		c.expectEQ(msg.Attachments[2].Data, jobDoneReq.CrashLog)
 		body := `Hello,
 
@@ -150,7 +150,7 @@ Raw console output is attached.
 		c.expectEQ(len(msg.Attachments), 2)
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
-		c.expectEQ(msg.Attachments[1].Name, "patch.txt")
+		c.expectEQ(msg.Attachments[1].Name, "patch.diff")
 		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
 		body := `Hello,
 
@@ -186,7 +186,7 @@ Kernel config is attached.
 		c.expectEQ(len(msg.Attachments), 2)
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
 		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
-		c.expectEQ(msg.Attachments[1].Name, "patch.txt")
+		c.expectEQ(msg.Attachments[1].Name, "patch.diff")
 		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
 		body := fmt.Sprintf(`Hello,
 
