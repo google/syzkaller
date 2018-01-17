@@ -70,11 +70,17 @@ func TestJob(t *testing.T) {
 	c.expectEQ(len(c.emailSink), 1)
 	c.expectEQ(strings.Contains((<-c.emailSink).Body, "I don't see any patch attached to the request"), true)
 
+	c.incomingEmailFrom("\"foo\" <blAcklisteD@dOmain.COM>", sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+	pollResp := new(dashapi.JobPollResp)
+	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	c.expectEQ(pollResp.ID, "")
+
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
 
-	pollResp := new(dashapi.JobPollResp)
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{"foobar"}}, pollResp))
 	c.expectEQ(pollResp.ID, "")
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
