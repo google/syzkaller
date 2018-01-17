@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
@@ -104,16 +105,20 @@ func (cfg *TestConfig) Validate() error {
 
 func testBuild(id int) *dashapi.Build {
 	return &dashapi.Build{
-		Manager:         fmt.Sprintf("manager%v", id),
-		ID:              fmt.Sprintf("build%v", id),
-		SyzkallerCommit: fmt.Sprintf("syzkaller_commit%v", id),
-		CompilerID:      fmt.Sprintf("compiler%v", id),
-		KernelRepo:      fmt.Sprintf("repo%v", id),
-		KernelBranch:    fmt.Sprintf("branch%v", id),
-		KernelCommit:    fmt.Sprintf("kernel_commit%v", id),
-		KernelConfig:    []byte(fmt.Sprintf("config%v", id)),
+		Manager:           fmt.Sprintf("manager%v", id),
+		ID:                fmt.Sprintf("build%v", id),
+		SyzkallerCommit:   fmt.Sprintf("syzkaller_commit%v", id),
+		CompilerID:        fmt.Sprintf("compiler%v", id),
+		KernelRepo:        fmt.Sprintf("repo%v", id),
+		KernelBranch:      fmt.Sprintf("branch%v", id),
+		KernelCommit:      fmt.Sprintf("kernel_commit%v", id),
+		KernelCommitTitle: fmt.Sprintf("kernel_commit_title%v", id),
+		KernelCommitDate:  buildCommitDate,
+		KernelConfig:      []byte(fmt.Sprintf("config%v", id)),
 	}
 }
+
+var buildCommitDate = time.Date(1, 2, 3, 4, 5, 6, 0, time.UTC)
 
 func testCrash(build *dashapi.Build, id int) *dashapi.Crash {
 	return &dashapi.Crash{

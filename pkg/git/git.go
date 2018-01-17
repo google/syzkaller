@@ -19,18 +19,21 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
-const timeout = time.Hour // timeout for all git invocations
+const (
+	DateFormat = "Mon Jan 2 15:04:05 2006 -0700"
+	timeout    = time.Hour // timeout for all git invocations
+)
 
 // Poll checkouts the specified repository/branch in dir.
 // This involves fetching/resetting/cloning as necessary to recover from all possible problems.
 // Returns hash of the HEAD commit in the specified branch.
-func Poll(dir, repo, branch string) (string, error) {
+func Poll(dir, repo, branch string) (*Commit, error) {
 	runSandboxed(dir, "git", "reset", "--hard")
 	origin, err := runSandboxed(dir, "git", "remote", "get-url", "origin")
 	if err != nil || strings.TrimSpace(string(origin)) != repo {
 		// The repo is here, but it has wrong origin (e.g. repo in config has changed), re-clone.
 		if err := clone(dir, repo, branch); err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 	// Use origin/branch for the case the branch was force-pushed,
@@ -39,35 +42,35 @@ func Poll(dir, repo, branch string) (string, error) {
 	if _, err := runSandboxed(dir, "git", "checkout", "origin/"+branch); err != nil {
 		// No such branch (e.g. branch in config has changed), re-clone.
 		if err := clone(dir, repo, branch); err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 	if _, err := runSandboxed(dir, "git", "fetch", "--no-tags"); err != nil {
 		// Something else is wrong, re-clone.
 		if err := clone(dir, repo, branch); err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 	if _, err := runSandboxed(dir, "git", "checkout", "origin/"+branch); err != nil {
-		return "", err
+		return nil, err
 	}
 	return HeadCommit(dir)
 }
 
 // Checkout checkouts the specified repository/branch in dir.
 // It does not fetch history and efficiently supports checkouts of different repos in the same dir.
-func Checkout(dir, repo, branch string) (string, error) {
+func Checkout(dir, repo, branch string) (*Commit, error) {
 	if _, err := runSandboxed(dir, "git", "reset", "--hard"); err != nil {
 		if err := initRepo(dir); err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 	_, err := runSandboxed(dir, "git", "fetch", "--no-tags", "--depth=1", repo, branch)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if _, err := runSandboxed(dir, "git", "checkout", "FETCH_HEAD"); err != nil {
-		return "", err
+		return nil, err
 	}
 	return HeadCommit(dir)
 }
@@ -118,19 +121,32 @@ func initRepo(dir string) error {
 	return nil
 }
 
-// HeadCommit returns hash of the HEAD commit of the current branch of git repository in dir.
-func HeadCommit(dir string) (string, error) {
-	output, err := runSandboxed(dir, "git", "log", "--pretty=format:%H", "-n", "1")
+type Commit struct {
+	Hash  string
+	Title string
+	Date  time.Time
+}
+
+// HeadCommit returns info about the HEAD commit of the current branch of git repository in dir.
+func HeadCommit(dir string) (*Commit, error) {
+	output, err := runSandboxed(dir, "git", "log", "--pretty=format:%H%n%s%n%ad", "-n", "1")
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if len(output) != 0 && output[len(output)-1] == '\n' {
-		output = output[:len(output)-1]
+	lines := bytes.Split(output, []byte{'\n'})
+	if len(lines) != 3 || len(lines[0]) != 40 {
+		return nil, fmt.Errorf("unexpected git log output: %q", output)
 	}
-	if len(output) != 40 {
-		return "", fmt.Errorf("unexpected git log output, want commit hash: %q", output)
+	date, err := time.Parse(DateFormat, string(lines[2]))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse date in git log output: %v\n%q", err, output)
 	}
-	return string(output), nil
+	com := &Commit{
+		Hash:  string(lines[0]),
+		Title: string(lines[1]),
+		Date:  date,
+	}
+	return com, nil
 }
 
 // ListRecentCommits returns list of recent commit titles starting from baseCommit.

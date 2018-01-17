@@ -150,12 +150,12 @@ loop:
 				mgr.Errorf("failed to poll: %v", err)
 			} else {
 				Logf(0, "%v: poll: %v", mgr.name, commit)
-				if commit != lastCommit &&
+				if commit.Hash != lastCommit &&
 					(latestInfo == nil ||
-						commit != latestInfo.KernelCommit ||
+						commit.Hash != latestInfo.KernelCommit ||
 						mgr.compilerID != latestInfo.CompilerID ||
 						mgr.configTag != latestInfo.KernelConfigTag) {
-					lastCommit = commit
+					lastCommit = commit.Hash
 					select {
 					case kernelBuildSem <- struct{}{}:
 						Logf(0, "%v: building kernel...", mgr.name)
@@ -205,13 +205,15 @@ loop:
 
 // BuildInfo characterizes a kernel build.
 type BuildInfo struct {
-	Time            time.Time // when the build was done
-	Tag             string    // unique tag combined from compiler id, kernel commit and config tag
-	CompilerID      string    // compiler identity string (e.g. "gcc 7.1.1")
-	KernelRepo      string
-	KernelBranch    string
-	KernelCommit    string // git hash of kernel checkout
-	KernelConfigTag string // SHA1 hash of .config contents
+	Time              time.Time // when the build was done
+	Tag               string    // unique tag combined from compiler id, kernel commit and config tag
+	CompilerID        string    // compiler identity string (e.g. "gcc 7.1.1")
+	KernelRepo        string
+	KernelBranch      string
+	KernelCommit      string // git hash of kernel checkout
+	KernelCommitTitle string
+	KernelCommitDate  time.Time
+	KernelConfigTag   string // SHA1 hash of .config contents
 }
 
 func loadBuildInfo(dir string) (*BuildInfo, error) {
@@ -240,17 +242,19 @@ func (mgr *Manager) build() error {
 
 	var tagData []byte
 	tagData = append(tagData, mgr.name...)
-	tagData = append(tagData, kernelCommit...)
+	tagData = append(tagData, kernelCommit.Hash...)
 	tagData = append(tagData, mgr.compilerID...)
 	tagData = append(tagData, mgr.configTag...)
 	info := &BuildInfo{
-		Time:            time.Now(),
-		Tag:             hash.String(tagData),
-		CompilerID:      mgr.compilerID,
-		KernelRepo:      mgr.mgrcfg.Repo,
-		KernelBranch:    mgr.mgrcfg.Branch,
-		KernelCommit:    kernelCommit,
-		KernelConfigTag: mgr.configTag,
+		Time:              time.Now(),
+		Tag:               hash.String(tagData),
+		CompilerID:        mgr.compilerID,
+		KernelRepo:        mgr.mgrcfg.Repo,
+		KernelBranch:      mgr.mgrcfg.Branch,
+		KernelCommit:      kernelCommit.Hash,
+		KernelCommitTitle: kernelCommit.Title,
+		KernelCommitDate:  kernelCommit.Date,
+		KernelConfigTag:   mgr.configTag,
 	}
 
 	// We first form the whole image in tmp dir and then rename it to latest.
@@ -278,6 +282,9 @@ func (mgr *Manager) build() error {
 			mgr.Errorf("failed to report image error: %v", err)
 		}
 		return fmt.Errorf("kernel build failed: %v", err)
+	}
+	if err := osutil.CopyFile(filepath.Join(mgr.kernelDir, ".config"), kernelConfig); err != nil {
+		return err
 	}
 
 	image := filepath.Join(tmpDir, "image")
@@ -501,17 +508,19 @@ func (mgr *Manager) createDashboardBuild(info *BuildInfo, imageDir, typ string) 
 	tagData = append(tagData, mgr.syzkallerCommit...)
 	tagData = append(tagData, typ...)
 	build := &dashapi.Build{
-		Manager:         mgr.name,
-		ID:              hash.String(tagData),
-		OS:              mgr.managercfg.TargetOS,
-		Arch:            mgr.managercfg.TargetArch,
-		VMArch:          mgr.managercfg.TargetVMArch,
-		SyzkallerCommit: mgr.syzkallerCommit,
-		CompilerID:      info.CompilerID,
-		KernelRepo:      info.KernelRepo,
-		KernelBranch:    info.KernelBranch,
-		KernelCommit:    info.KernelCommit,
-		KernelConfig:    kernelConfig,
+		Manager:           mgr.name,
+		ID:                hash.String(tagData),
+		OS:                mgr.managercfg.TargetOS,
+		Arch:              mgr.managercfg.TargetArch,
+		VMArch:            mgr.managercfg.TargetVMArch,
+		SyzkallerCommit:   mgr.syzkallerCommit,
+		CompilerID:        info.CompilerID,
+		KernelRepo:        info.KernelRepo,
+		KernelBranch:      info.KernelBranch,
+		KernelCommit:      info.KernelCommit,
+		KernelCommitTitle: info.KernelCommitTitle,
+		KernelCommitDate:  info.KernelCommitDate,
+		KernelConfig:      kernelConfig,
 	}
 	return build, nil
 }

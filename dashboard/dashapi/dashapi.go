@@ -35,19 +35,21 @@ func New(client, addr, key string) *Dashboard {
 
 // Build describes all aspects of a kernel build.
 type Build struct {
-	Manager         string
-	ID              string
-	OS              string
-	Arch            string
-	VMArch          string
-	SyzkallerCommit string
-	CompilerID      string
-	KernelRepo      string
-	KernelBranch    string
-	KernelCommit    string
-	KernelConfig    []byte
-	Commits         []string // see BuilderPoll
-	FixCommits      []FixCommit
+	Manager           string
+	ID                string
+	OS                string
+	Arch              string
+	VMArch            string
+	SyzkallerCommit   string
+	CompilerID        string
+	KernelRepo        string
+	KernelBranch      string
+	KernelCommit      string
+	KernelCommitTitle string
+	KernelCommitDate  time.Time
+	KernelConfig      []byte
+	Commits           []string // see BuilderPoll
+	FixCommits        []FixCommit
 }
 
 type FixCommit struct {
@@ -204,28 +206,31 @@ func (dash *Dashboard) LogError(name, msg string, args ...interface{}) {
 // BugReport describes a single bug.
 // Used by dashboard external reporting.
 type BugReport struct {
-	Namespace    string
-	Config       []byte
-	ID           string
-	JobID        string
-	ExtID        string // arbitrary reporting ID forwarded from BugUpdate.ExtID
-	First        bool   // Set for first report for this bug.
-	Title        string
-	Maintainers  []string
-	CC           []string // additional CC emails
-	OS           string
-	Arch         string
-	VMArch       string
-	CompilerID   string
-	KernelRepo   string
-	KernelBranch string
-	KernelCommit string
-	KernelConfig []byte
-	Log          []byte
-	Report       []byte
-	ReproC       []byte
-	ReproSyz     []byte
-	CrashID      int64 // returned back in BugUpdate
+	Namespace         string
+	Config            []byte
+	ID                string
+	JobID             string
+	ExtID             string // arbitrary reporting ID forwarded from BugUpdate.ExtID
+	First             bool   // Set for first report for this bug.
+	Title             string
+	Maintainers       []string
+	CC                []string // additional CC emails
+	OS                string
+	Arch              string
+	VMArch            string
+	CompilerID        string
+	KernelRepo        string
+	KernelRepoAlias   string
+	KernelBranch      string
+	KernelCommit      string
+	KernelCommitTitle string
+	KernelCommitDate  time.Time
+	KernelConfig      []byte
+	Log               []byte
+	Report            []byte
+	ReproC            []byte
+	ReproSyz          []byte
+	CrashID           int64 // returned back in BugUpdate
 
 	CrashTitle string // job execution crash title
 	Error      []byte // job execution error

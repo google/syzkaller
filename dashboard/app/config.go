@@ -28,6 +28,8 @@ type GlobalConfig struct {
 	// Each namespace has own reporting config, own API clients
 	// and bugs are not merged across namespaces.
 	Namespaces map[string]*Config
+	// Maps full repository address/branch to description of this repo.
+	KernelRepos map[string]KernelRepo
 }
 
 // Per-namespace config.
@@ -68,6 +70,14 @@ type ReportingType interface {
 	NeedMaintainers() bool
 	// Validate validates the current object, this is called only during init.
 	Validate() error
+}
+
+type KernelRepo struct {
+	// Alias is a short, readable name of a kernel repository.
+	Alias string
+	// ReportingPriority says if we need to prefer to report crashes in this
+	// repo over crashes in repos with lower value. Must be in [0-9] range.
+	ReportingPriority int
 }
 
 var (
@@ -149,6 +159,14 @@ func init() {
 				panic(fmt.Sprintf("failed to json marshal %q config: %v",
 					reporting.Name, err))
 			}
+		}
+	}
+	for repo, info := range config.KernelRepos {
+		if info.Alias == "" {
+			panic(fmt.Sprintf("empty kernel repo alias for %q", repo))
+		}
+		if prio := info.ReportingPriority; prio < 0 || prio > 9 {
+			panic(fmt.Sprintf("bad kernel repo reporting priority %v for %q", prio, repo))
 		}
 	}
 }

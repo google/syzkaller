@@ -43,6 +43,20 @@ indexes:
     direction: desc
   - name: ReproSyz
     direction: desc
+  - name: ReportLen
+    direction: desc
+  - name: Reported
+    direction: desc
+  - name: Time
+    direction: desc
+
+- kind: Crash
+  ancestor: yes
+  properties:
+  - name: ReproC
+    direction: desc
+  - name: ReproSyz
+    direction: desc
   - name: Reported
     direction: desc
   - name: ReportLen
