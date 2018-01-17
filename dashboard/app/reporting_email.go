@@ -12,6 +12,7 @@ import (
 	"net/mail"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
 	"github.com/google/syzkaller/pkg/email"
@@ -192,42 +193,54 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	if err != nil {
 		return err
 	}
+	userspaceArch := ""
+	if rep.Arch == "386" {
+		userspaceArch = "i386"
+	}
 	// Data passed to the template.
 	type BugReportData struct {
-		First           bool
-		CreditEmail     string
-		Moderation      bool
-		Maintainers     []string
-		CompilerID      string
-		KernelRepo      string
-		KernelBranch    string
-		KernelCommit    string
-		CrashTitle      string
-		Report          []byte
-		Error           []byte
-		ErrorTruncated  bool
-		HasLog          bool
-		HasKernelConfig bool
-		ReproSyz        bool
-		ReproC          bool
+		First             bool
+		CreditEmail       string
+		Moderation        bool
+		Maintainers       []string
+		CompilerID        string
+		KernelRepo        string
+		KernelCommit      string
+		KernelCommitTitle string
+		KernelCommitDate  string
+		UserSpaceArch     string
+		CrashTitle        string
+		Report            []byte
+		Error             []byte
+		ErrorTruncated    bool
+		HasLog            bool
+		HasKernelConfig   bool
+		ReproSyz          bool
+		ReproC            bool
+		NumCrashes        int64
+		HappenedOn        []string
 	}
 	data := &BugReportData{
-		First:           rep.First,
-		CreditEmail:     creditEmail,
-		Moderation:      cfg.Moderation,
-		Maintainers:     rep.Maintainers,
-		CompilerID:      rep.CompilerID,
-		KernelRepo:      rep.KernelRepo,
-		KernelBranch:    rep.KernelBranch,
-		KernelCommit:    rep.KernelCommit,
-		CrashTitle:      rep.CrashTitle,
-		Report:          rep.Report,
-		Error:           errorText,
-		ErrorTruncated:  errorTruncated,
-		HasLog:          len(rep.Log) != 0,
-		HasKernelConfig: len(rep.KernelConfig) != 0,
-		ReproSyz:        len(rep.ReproSyz) != 0,
-		ReproC:          len(rep.ReproC) != 0,
+		First:             rep.First,
+		CreditEmail:       creditEmail,
+		Moderation:        cfg.Moderation,
+		Maintainers:       rep.Maintainers,
+		CompilerID:        rep.CompilerID,
+		KernelRepo:        rep.KernelRepoAlias,
+		KernelCommit:      rep.KernelCommit,
+		KernelCommitTitle: rep.KernelCommitTitle,
+		KernelCommitDate:  rep.KernelCommitDate.Format("Mon Jan 2 15:04:05 2006 -0700"),
+		UserSpaceArch:     userspaceArch,
+		CrashTitle:        rep.CrashTitle,
+		Report:            rep.Report,
+		Error:             errorText,
+		ErrorTruncated:    errorTruncated,
+		HasLog:            len(rep.Log) != 0,
+		HasKernelConfig:   len(rep.KernelConfig) != 0,
+		ReproSyz:          len(rep.ReproSyz) != 0,
+		ReproC:            len(rep.ReproC) != 0,
+		NumCrashes:        rep.NumCrashes,
+		HappenedOn:        rep.HappenedOn,
 	}
 	log.Infof(c, "sending email %q to %q", rep.Title, to)
 	err = sendMailTemplate(c, rep.Title, from, to, rep.ExtID, attachments, templ, data)
@@ -407,8 +420,6 @@ func warnMailingListInCC(c context.Context, msg *email.Email, mailingList string
 	}
 }
 
-var mailTemplates = template.Must(template.New("").ParseGlob("mail_*.txt"))
-
 func sendMailTemplate(c context.Context, subject, from string, to []string, replyTo string,
 	attachments []aemail.Attachment, template string, data interface{}) error {
 	body := new(bytes.Buffer)
@@ -474,3 +485,24 @@ func ownEmails(c context.Context) []string {
 		fmt.Sprintf("bot@%v.appspotmail.com", appengine.AppID(c)),
 	}
 }
+
+func formatKernelTime(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	// This is how dates appear in git log.
+	return t.Format("Mon Jan 2 15:04:05 2006 -0700")
+}
+
+func formatStringList(list []string) string {
+	return strings.Join(list, ", ")
+}
+
+var (
+	mailTemplates = template.Must(template.New("").Funcs(mailFuncs).ParseGlob("mail_*.txt"))
+
+	mailFuncs = template.FuncMap{
+		"formatTime": formatKernelTime,
+		"formatList": formatStringList,
+	}
+)

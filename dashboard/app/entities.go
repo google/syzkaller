@@ -270,6 +270,23 @@ func loadBuild(c context.Context, ns, id string) (*Build, error) {
 	return build, nil
 }
 
+func lastManagerBuild(c context.Context, ns, manager string) (*Build, error) {
+	var builds []*Build
+	_, err := datastore.NewQuery("Build").
+		Filter("Namespace=", ns).
+		Filter("Manager=", manager).
+		Order("-Time").
+		Limit(1).
+		GetAll(c, &builds)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch manager build: %v", err)
+	}
+	if len(builds) == 0 {
+		return nil, fmt.Errorf("failed to fetch manager build: no builds")
+	}
+	return builds[0], nil
+}
+
 func (bug *Bug) displayTitle() string {
 	if bug.Seq == 0 {
 		return bug.Title

@@ -18,8 +18,10 @@ Reported-and-tested-by: {{.CreditEmail}}
 
 Note: the tag will also help syzbot to understand when the bug is fixed.
 {{end}}
-Tested on commit {{.KernelCommit}}
-{{.KernelRepo}}/{{.KernelBranch}}
+Tested on {{.KernelRepo}} commit
+{{.KernelCommit}}{{if .KernelCommitDate}} ({{.KernelCommitDate}}){{end}}{{if .KernelCommitTitle}}
+{{.KernelCommitTitle}}{{end}}
+
 compiler: {{.CompilerID}}
 Patch is attached.
 {{if .HasKernelConfig}}Kernel config is attached.{{end}}

@@ -52,7 +52,7 @@ func TestJob(t *testing.T) {
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
-	c.expectEQ(strings.Contains((<-c.emailSink).Body, "syzkaller has found reproducer"), true)
+	c.expectEQ(strings.Contains((<-c.emailSink).Body, "syzbot has found reproducer"), true)
 
 	c.incomingEmail(sender, "#syz test: repo")
 	c.expectEQ(len(c.emailSink), 1)
@@ -129,8 +129,10 @@ test crash title
 
 test crash report
 
-Tested on commit kernel_commit1
-repo1/branch1
+Tested on repo1/branch1 commit
+kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
+kernel_commit_title1
+
 compiler: compiler1
 Patch is attached.
 Kernel config is attached.
@@ -165,8 +167,10 @@ syzbot tried to test the proposed patch but build/boot failed:
 failed to apply patch
 
 
-Tested on commit kernel_commit1
-repo1/branch1
+Tested on repo1/branch1 commit
+kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
+kernel_commit_title1
+
 compiler: compiler1
 Patch is attached.
 Kernel config is attached.
@@ -202,8 +206,10 @@ Reported-and-tested-by: syzbot+%v@testapp.appspotmail.com
 
 Note: the tag will also help syzbot to understand when the bug is fixed.
 
-Tested on commit kernel_commit1
-repo1/branch1
+Tested on repo1/branch1 commit
+kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
+kernel_commit_title1
+
 compiler: compiler1
 Patch is attached.
 Kernel config is attached.

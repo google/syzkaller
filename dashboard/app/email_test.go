@@ -49,12 +49,14 @@ func TestEmailReport(t *testing.T) {
 		c.expectEQ(msg.Attachments[1].Data, crash.Log)
 		body := fmt.Sprintf(`Hello,
 
-syzkaller hit the following crash on kernel_commit1
-repo1/branch1
+syzbot hit the following crash on repo1/branch1 commit
+kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
+kernel_commit_title1
+
 compiler: compiler1
-.config is attached
+.config is attached.
 Raw console output is attached.
-Unfortunately, I don't have any reproducer for this bug yet.
+Unfortunately, I don't have any reproducer for this crash yet.
 CC: [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
@@ -153,13 +155,16 @@ For more options, visit https://groups.google.com/d/optout.
 		c.expectEQ(msg.Attachments[2].Name, "repro.syz.txt")
 		c.expectEQ(msg.Attachments[2].Data, syzRepro)
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<1234>"})
-		body := fmt.Sprintf(`syzkaller has found reproducer for the following crash on kernel_commit1
-repo1/branch1
+		body := fmt.Sprintf(`syzbot has found reproducer for the following crash on repo1/branch1 commit
+kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
+kernel_commit_title1
+
 compiler: compiler1
-.config is attached
+.config is attached.
 Raw console output is attached.
 syzkaller reproducer is attached. See https://goo.gl/kgGztJ
-for information about syzkaller reproducers
+for information about syzkaller reproducers.
+So far this crash happened 2 times on repo1/branch1.
 CC: [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
@@ -202,13 +207,16 @@ report1
 		c.expectEQ(msg.Attachments[2].Data, syzRepro)
 		body := fmt.Sprintf(`Hello,
 
-syzkaller hit the following crash on kernel_commit1
-repo1/branch1
+syzbot hit the following crash on repo1/branch1 commit
+kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
+kernel_commit_title1
+
 compiler: compiler1
-.config is attached
+.config is attached.
 Raw console output is attached.
 syzkaller reproducer is attached. See https://goo.gl/kgGztJ
-for information about syzkaller reproducers
+for information about syzkaller reproducers.
+So far this crash happened 2 times on repo1/branch1.
 
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
@@ -258,6 +266,9 @@ Content-Type: text/plain
 	c.expectOK(c.POST("/_ah/mail/", incoming3))
 
 	// Now upload a C reproducer.
+	build2 := testBuild(2)
+	c.expectOK(c.API(client2, key2, "upload_build", build2, nil))
+	crash.BuildID = build2.ID
 	crash.ReproC = []byte("int main() {}")
 	crash.Maintainers = []string{"\"qux\" <qux@qux.com>"}
 	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
@@ -276,21 +287,24 @@ Content-Type: text/plain
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 4)
 		c.expectEQ(msg.Attachments[0].Name, "config.txt")
-		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
+		c.expectEQ(msg.Attachments[0].Data, build2.KernelConfig)
 		c.expectEQ(msg.Attachments[1].Name, "raw.log.txt")
 		c.expectEQ(msg.Attachments[1].Data, crash.Log)
 		c.expectEQ(msg.Attachments[2].Name, "repro.syz.txt")
 		c.expectEQ(msg.Attachments[2].Data, syzRepro)
 		c.expectEQ(msg.Attachments[3].Name, "repro.c.txt")
 		c.expectEQ(msg.Attachments[3].Data, crash.ReproC)
-		body := fmt.Sprintf(`syzkaller has found reproducer for the following crash on kernel_commit1
-repo1/branch1
-compiler: compiler1
-.config is attached
+		body := fmt.Sprintf(`syzbot has found reproducer for the following crash on repo2/branch2 commit
+kernel_commit2 (Sat Feb 3 04:05:06 0001 +0000)
+kernel_commit_title2
+
+compiler: compiler2
+.config is attached.
 Raw console output is attached.
-C reproducer is attached
+C reproducer is attached.
 syzkaller reproducer is attached. See https://goo.gl/kgGztJ
-for information about syzkaller reproducers
+for information about syzkaller reproducers.
+So far this crash happened 3 times on repo1/branch1, repo2/branch2.
 
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
@@ -345,10 +359,15 @@ unknown command "bad-command"
 	c.expectEQ(len(builderPollResp.PendingCommits), 1)
 	c.expectEQ(builderPollResp.PendingCommits[0], "some: commit title")
 
-	build2 := testBuild(2)
-	build2.Manager = build.Manager
-	build2.Commits = []string{"some: commit title"}
-	c.expectOK(c.API(client2, key2, "upload_build", build2, nil))
+	build3 := testBuild(3)
+	build3.Manager = build.Manager
+	build3.Commits = []string{"some: commit title"}
+	c.expectOK(c.API(client2, key2, "upload_build", build3, nil))
+
+	build4 := testBuild(4)
+	build4.Manager = build2.Manager
+	build4.Commits = []string{"some: commit title"}
+	c.expectOK(c.API(client2, key2, "upload_build", build4, nil))
 
 	// New crash must produce new bug in the first reporting.
 	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
