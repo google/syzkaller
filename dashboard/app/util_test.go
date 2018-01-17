@@ -179,17 +179,21 @@ func (c *Ctx) httpRequest(method, url, body string) error {
 }
 
 func (c *Ctx) incomingEmail(to, body string) {
-	email := fmt.Sprintf(`Sender: foo@bar.com
+	c.incomingEmailFrom("default@sender.com", to, body)
+}
+
+func (c *Ctx) incomingEmailFrom(from, to, body string) {
+	email := fmt.Sprintf(`Sender: %v
 Date: Tue, 15 Aug 2017 14:59:00 -0700
 Message-ID: <1234>
 Subject: crash1
-From: default@sender.com
+From: %v
 Cc: test@syzkaller.com, bugs@syzkaller.com
 To: %v
 Content-Type: text/plain
 
 %v
-`, to, body)
+`, from, from, to, body)
 	c.expectOK(c.POST("/_ah/mail/", email))
 }
 

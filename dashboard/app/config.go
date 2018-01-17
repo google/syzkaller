@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"regexp"
 	"time"
+
+	"github.com/google/syzkaller/pkg/email"
 )
 
 // There are multiple configurable aspects of the app (namespaces, reporting, API clients, etc).
@@ -18,6 +20,8 @@ type GlobalConfig struct {
 	AuthDomain string
 	// Global API clients that work across namespaces (e.g. external reporting).
 	Clients map[string]string
+	// List of emails blacklisted from issuing test requests.
+	EmailBlacklist []string
 	// Per-namespace config.
 	// Namespaces are a mechanism to separate groups of different kernels.
 	// E.g. Debian 4.4 kernels and Ubuntu 4.9 kernels.
@@ -100,6 +104,9 @@ func init() {
 	// Validate the global config.
 	if len(config.Namespaces) == 0 {
 		panic("no namespaces found")
+	}
+	for i := range config.EmailBlacklist {
+		config.EmailBlacklist[i] = email.CanonicalEmail(config.EmailBlacklist[i])
 	}
 	namespaces := make(map[string]bool)
 	clientNames := make(map[string]bool)
