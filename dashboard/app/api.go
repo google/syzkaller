@@ -269,20 +269,22 @@ func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType
 		return false, err
 	}
 	build := &Build{
-		Namespace:       ns,
-		Manager:         req.Manager,
-		ID:              req.ID,
-		Type:            typ,
-		Time:            timeNow(c),
-		OS:              req.OS,
-		Arch:            req.Arch,
-		VMArch:          req.VMArch,
-		SyzkallerCommit: req.SyzkallerCommit,
-		CompilerID:      req.CompilerID,
-		KernelRepo:      req.KernelRepo,
-		KernelBranch:    req.KernelBranch,
-		KernelCommit:    req.KernelCommit,
-		KernelConfig:    configID,
+		Namespace:         ns,
+		Manager:           req.Manager,
+		ID:                req.ID,
+		Type:              typ,
+		Time:              timeNow(c),
+		OS:                req.OS,
+		Arch:              req.Arch,
+		VMArch:            req.VMArch,
+		SyzkallerCommit:   req.SyzkallerCommit,
+		CompilerID:        req.CompilerID,
+		KernelRepo:        req.KernelRepo,
+		KernelBranch:      req.KernelBranch,
+		KernelCommit:      req.KernelCommit,
+		KernelCommitTitle: req.KernelCommitTitle,
+		KernelCommitDate:  req.KernelCommitDate,
+		KernelConfig:      configID,
 	}
 	if _, err := datastore.Put(c, buildKey(c, ns, req.ID), build); err != nil {
 		return false, err
@@ -470,6 +472,10 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 			return nil, err
 		}
 	}
+	build, err := loadBuild(c, ns, req.BuildID)
+	if err != nil {
+		return nil, err
+	}
 
 	now := timeNow(c)
 	reproLevel := ReproLevelNone
@@ -482,24 +488,21 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 		now.Sub(bug.LastTime) > time.Hour ||
 		reproLevel != ReproLevelNone
 	if saveCrash {
-		build, err := loadBuild(c, ns, req.BuildID)
-		if err != nil {
-			return nil, err
+		// Reporting priority of this crash.
+		// Currently it is computed only from repository ReportingPriority and Arch,
+		// but can be extended to account for other factors as well.
+		prio := kernelRepoInfo(build).ReportingPriority * 1e6
+		if build.Arch == "amd64" {
+			prio += 1e3
 		}
-
 		crash := &Crash{
 			Manager:     build.Manager,
 			BuildID:     req.BuildID,
 			Time:        now,
 			Maintainers: req.Maintainers,
 			ReproOpts:   req.ReproOpts,
-			// We used to report crash with the longest report len to work around
-			// corrupted reports. Now that we explicitly detect corrupted reports,
-			// disable this sorting. When all old bugs are closed, we need to remove
-			// sorting by ReportLen from queryCrashesForBug.
-			ReportLen: 1e9,
+			ReportLen:   prio,
 		}
-
 		if crash.Log, err = putText(c, ns, "CrashLog", req.Log, false); err != nil {
 			return nil, err
 		}
@@ -536,6 +539,9 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 		}
 		if len(req.Report) != 0 {
 			bug.HasReport = true
+		}
+		if !stringInList(bug.HappenedOn, build.Manager) {
+			bug.HappenedOn = append(bug.HappenedOn, build.Manager)
 		}
 		if _, err = datastore.Put(c, bugKey, bug); err != nil {
 			return fmt.Errorf("failed to put bug: %v", err)

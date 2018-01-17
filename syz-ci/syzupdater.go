@@ -194,10 +194,10 @@ func (upd *SyzUpdater) pollAndBuild(lastCommit string) string {
 	if err != nil {
 		Logf(0, "syzkaller: failed to poll: %v", err)
 	} else {
-		Logf(0, "syzkaller: poll: %v", commit)
-		if lastCommit != commit {
+		Logf(0, "syzkaller: poll: %v (%v)", commit.Hash, commit.Title)
+		if lastCommit != commit.Hash {
 			Logf(0, "syzkaller: building ...")
-			lastCommit = commit
+			lastCommit = commit.Hash
 			if err := upd.build(); err != nil {
 				Logf(0, "syzkaller: %v", err)
 			}
@@ -258,7 +258,7 @@ func (upd *SyzUpdater) build() error {
 		return fmt.Errorf("tests failed: %v", err)
 	}
 	tagFile := filepath.Join(upd.syzkallerDir, "tag")
-	if err := osutil.WriteFile(tagFile, []byte(commit)); err != nil {
+	if err := osutil.WriteFile(tagFile, []byte(commit.Hash)); err != nil {
 		return fmt.Errorf("filed to write tag file: %v", err)
 	}
 	if err := osutil.CopyFiles(upd.syzkallerDir, upd.latestDir, upd.syzFiles); err != nil {

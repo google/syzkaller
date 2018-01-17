@@ -225,26 +225,29 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	}
 
 	rep := &dashapi.BugReport{
-		Namespace:    bug.Namespace,
-		Config:       reportingConfig,
-		ID:           bugReporting.ID,
-		ExtID:        bugReporting.ExtID,
-		First:        bugReporting.Reported.IsZero(),
-		Title:        bug.displayTitle(),
-		Log:          crashLog,
-		Report:       report,
-		Maintainers:  crash.Maintainers,
-		OS:           build.OS,
-		Arch:         build.Arch,
-		VMArch:       build.VMArch,
-		CompilerID:   build.CompilerID,
-		KernelRepo:   build.KernelRepo,
-		KernelBranch: build.KernelBranch,
-		KernelCommit: build.KernelCommit,
-		KernelConfig: kernelConfig,
-		ReproC:       reproC,
-		ReproSyz:     reproSyz,
-		CrashID:      crashKey.IntID(),
+		Namespace:         bug.Namespace,
+		Config:            reportingConfig,
+		ID:                bugReporting.ID,
+		ExtID:             bugReporting.ExtID,
+		First:             bugReporting.Reported.IsZero(),
+		Title:             bug.displayTitle(),
+		Log:               crashLog,
+		Report:            report,
+		Maintainers:       crash.Maintainers,
+		OS:                build.OS,
+		Arch:              build.Arch,
+		VMArch:            build.VMArch,
+		CompilerID:        build.CompilerID,
+		KernelRepo:        build.KernelRepo,
+		KernelRepoAlias:   kernelRepoInfo(build).Alias,
+		KernelBranch:      build.KernelBranch,
+		KernelCommit:      build.KernelCommit,
+		KernelCommitTitle: build.KernelCommitTitle,
+		KernelCommitDate:  build.KernelCommitDate,
+		KernelConfig:      kernelConfig,
+		ReproC:            reproC,
+		ReproSyz:          reproSyz,
+		CrashID:           crashKey.IntID(),
 	}
 	if bugReporting.CC != "" {
 		rep.CC = strings.Split(bugReporting.CC, "|")
@@ -581,8 +584,8 @@ func queryCrashesForBug(c context.Context, bugKey *datastore.Key, limit int) (
 		Ancestor(bugKey).
 		Order("-ReproC").
 		Order("-ReproSyz").
-		Order("-Reported").
 		Order("-ReportLen").
+		Order("-Reported").
 		Order("-Time").
 		Limit(limit).
 		GetAll(c, &crashes)
