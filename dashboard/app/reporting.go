@@ -248,11 +248,33 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 		ReproC:            reproC,
 		ReproSyz:          reproSyz,
 		CrashID:           crashKey.IntID(),
+		NumCrashes:        bug.NumCrashes,
+		HappenedOn:        managersToRepos(c, bug.Namespace, bug.HappenedOn),
 	}
 	if bugReporting.CC != "" {
 		rep.CC = strings.Split(bugReporting.CC, "|")
 	}
 	return rep, nil
+}
+
+func managersToRepos(c context.Context, ns string, managers []string) []string {
+	var repos []string
+	dedup := make(map[string]bool)
+	for _, manager := range managers {
+		build, err := lastManagerBuild(c, ns, manager)
+		if err != nil {
+			log.Errorf(c, "failed to get manager %q build: %v", manager, err)
+			continue
+		}
+		repo := kernelRepoInfo(build).Alias
+		if dedup[repo] {
+			continue
+		}
+		dedup[repo] = true
+		repos = append(repos, repo)
+	}
+	sort.Strings(repos)
+	return repos
 }
 
 // reportingPollClosed is called by backends to get list of closed bugs.

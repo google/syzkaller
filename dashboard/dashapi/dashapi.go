@@ -231,6 +231,8 @@ type BugReport struct {
 	ReproC            []byte
 	ReproSyz          []byte
 	CrashID           int64 // returned back in BugUpdate
+	NumCrashes        int64
+	HappenedOn        []string // list of kernel repo aliases
 
 	CrashTitle string // job execution crash title
 	Error      []byte // job execution error

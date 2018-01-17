@@ -63,6 +63,8 @@ func TestReportBug(t *testing.T) {
 		Log:               []byte("log1"),
 		Report:            []byte("report1"),
 		CrashID:           rep.CrashID,
+		NumCrashes:        1,
+		HappenedOn:        []string{"repo1/branch1"},
 	}
 	c.expectEQ(rep, want)
 
@@ -81,6 +83,7 @@ func TestReportBug(t *testing.T) {
 		t.Fatal("get the same CrashID for new crash")
 	}
 	want.CrashID = reports[0].CrashID
+	want.NumCrashes = 2
 	c.expectEQ(reports[0], want)
 
 	cmd := &dashapi.BugUpdate{
@@ -128,6 +131,7 @@ func TestReportBug(t *testing.T) {
 	want.ID = rep2.ID
 	want.First = true
 	want.Config = []byte(`{"Index":2}`)
+	want.NumCrashes = 3
 	c.expectEQ(rep2, want)
 
 	// Check that that we can't upstream the bug in the final reporting.
@@ -234,6 +238,8 @@ func TestInvalidBug(t *testing.T) {
 		Report:            []byte("report2"),
 		ReproC:            []byte("int main() { return 1; }"),
 		CrashID:           rep.CrashID,
+		NumCrashes:        1,
+		HappenedOn:        []string{"repo1/branch1"},
 	}
 	c.expectEQ(rep, want)
 
