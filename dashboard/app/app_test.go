@@ -19,6 +19,9 @@ var config = GlobalConfig{
 	Clients: map[string]string{
 		"reporting": "reportingkeyreportingkeyreportingkey",
 	},
+	EmailBlacklist: []string{
+		"\"Bar\" <BlackListed@Domain.com>",
+	},
 	Namespaces: map[string]*Config{
 		"test1": &Config{
 			Key: "test1keytest1keytest1key",

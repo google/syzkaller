@@ -23,6 +23,12 @@ import (
 func handleTestRequest(c context.Context, bugID, user, extID, patch, repo, branch string) string {
 	log.Infof(c, "test request: bug=%q user=%q extID=%q patch=%v, repo=%q branch=%q",
 		bugID, user, extID, len(patch), repo, branch)
+	for _, blacklisted := range config.EmailBlacklist {
+		if user == blacklisted {
+			log.Warningf(c, "test request from blacklisted user: %v", user)
+			return ""
+		}
+	}
 	reply, err := addTestJob(c, bugID, user, extID, patch, repo, branch)
 	if err != nil {
 		log.Errorf(c, "test request failed: %v", err)
