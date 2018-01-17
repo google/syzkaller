@@ -551,15 +551,19 @@ func (mgr *Manager) pollCommits(buildCommit string) ([]string, []dashapi.FixComm
 	}
 	var fixCommits []dashapi.FixCommit
 	if resp.ReportEmail != "" {
-		commits, err := git.ExtractFixTagsFromCommits(mgr.kernelDir, buildCommit, resp.ReportEmail)
-		if err != nil {
-			return nil, nil, err
-		}
-		for _, com := range commits {
-			fixCommits = append(fixCommits, dashapi.FixCommit{
-				Title: com.Title,
-				BugID: com.Tag,
-			})
+		// TODO(dvyukov): mmots contains weird squashed commits titled "linux-next" or "origin",
+		// which contain hundreds of other commits. This makes fix attribution totally broken.
+		if mgr.mgrcfg.Repo != "git://git.cmpxchg.org/linux-mmots.git" {
+			commits, err := git.ExtractFixTagsFromCommits(mgr.kernelDir, buildCommit, resp.ReportEmail)
+			if err != nil {
+				return nil, nil, err
+			}
+			for _, com := range commits {
+				fixCommits = append(fixCommits, dashapi.FixCommit{
+					Title: com.Title,
+					BugID: com.Tag,
+				})
+			}
 		}
 	}
 	return present, fixCommits, nil
