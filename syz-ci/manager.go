@@ -149,7 +149,7 @@ loop:
 			if err != nil {
 				mgr.Errorf("failed to poll: %v", err)
 			} else {
-				Logf(0, "%v: poll: %v", mgr.name, commit)
+				Logf(0, "%v: poll: %v", mgr.name, commit.Hash)
 				if commit.Hash != lastCommit &&
 					(latestInfo == nil ||
 						commit.Hash != latestInfo.KernelCommit ||
