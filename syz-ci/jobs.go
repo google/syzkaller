@@ -224,7 +224,9 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	if err != nil {
 		return fmt.Errorf("failed to checkout kernel repo: %v", err)
 	}
-	resp.Build.KernelCommit = kernelCommit
+	resp.Build.KernelCommit = kernelCommit.Hash
+	resp.Build.KernelCommitTitle = kernelCommit.Title
+	resp.Build.KernelCommitDate = kernelCommit.Date
 
 	if err := git.Patch(kernelDir, req.Patch); err != nil {
 		return err
