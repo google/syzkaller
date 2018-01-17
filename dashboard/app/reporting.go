@@ -6,6 +6,7 @@ package dash
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -477,27 +478,9 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 		return false, internalError, fmt.Errorf("unknown bug status %v", cmd.Status)
 	}
 	if len(cmd.FixCommits) != 0 && (bug.Status == BugStatusOpen || bug.Status == BugStatusDup) {
-		m := make(map[string]bool)
-		for _, com := range cmd.FixCommits {
-			m[com] = true
-		}
-		same := false
-		if len(bug.Commits) == len(m) {
-			same = true
-			for _, com := range bug.Commits {
-				if !m[com] {
-					same = false
-					break
-				}
-			}
-		}
-		if !same {
-			commits := make([]string, 0, len(m))
-			for com := range m {
-				commits = append(commits, com)
-			}
-			sort.Strings(commits)
-			bug.Commits = commits
+		sort.Strings(cmd.FixCommits)
+		if !reflect.DeepEqual(bug.Commits, cmd.FixCommits) {
+			bug.Commits = cmd.FixCommits
 			bug.PatchedOn = nil
 		}
 	}

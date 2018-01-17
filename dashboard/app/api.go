@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -291,9 +292,14 @@ func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType
 
 func addCommitsToBugs(c context.Context, ns, manager string,
 	titles []string, fixCommits []dashapi.FixCommit) error {
-	commitMap := make(map[string]bool)
+	presentCommits := make(map[string]bool)
+	bugFixedBy := make(map[string][]string)
 	for _, com := range titles {
-		commitMap[com] = true
+		presentCommits[com] = true
+	}
+	for _, com := range fixCommits {
+		presentCommits[com.Title] = true
+		bugFixedBy[com.BugID] = append(bugFixedBy[com.BugID], com.Title)
 	}
 	managers, err := managerList(c, ns)
 	if err != nil {
@@ -309,7 +315,12 @@ func addCommitsToBugs(c context.Context, ns, manager string,
 	}
 	now := timeNow(c)
 	for i, bug := range bugs {
-		if !fixedWith(bug, manager, commitMap) {
+		var fixCommits []string
+		for i := range bug.Reporting {
+			fixCommits = append(fixCommits, bugFixedBy[bug.Reporting[i].ID]...)
+		}
+		sort.Strings(fixCommits)
+		if !bugNeedsCommitUpdate(c, bug, manager, fixCommits, presentCommits) {
 			continue
 		}
 		tx := func(c context.Context) error {
@@ -317,8 +328,12 @@ func addCommitsToBugs(c context.Context, ns, manager string,
 			if err := datastore.Get(c, keys[i], bug); err != nil {
 				return fmt.Errorf("failed to get bug %v: %v", keys[i].StringID(), err)
 			}
-			if !fixedWith(bug, manager, commitMap) {
+			if !bugNeedsCommitUpdate(nil, bug, manager, fixCommits, presentCommits) {
 				return nil
+			}
+			if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
+				bug.Commits = fixCommits
+				bug.PatchedOn = nil
 			}
 			bug.PatchedOn = append(bug.PatchedOn, manager)
 			if bug.Status == BugStatusOpen {
@@ -367,16 +382,23 @@ func managerList(c context.Context, ns string) ([]string, error) {
 	return managers, nil
 }
 
-func fixedWith(bug *Bug, manager string, commits map[string]bool) bool {
-	if stringInList(bug.PatchedOn, manager) {
+func bugNeedsCommitUpdate(c context.Context, bug *Bug, manager string, fixCommits []string,
+	presentCommits map[string]bool) bool {
+	if len(fixCommits) != 0 && !reflect.DeepEqual(bug.Commits, fixCommits) {
+		if c != nil {
+			log.Infof(c, "bug %q is fixed with %q", bug.Title, fixCommits)
+		}
+		return true
+	}
+	if len(bug.Commits) == 0 || stringInList(bug.PatchedOn, manager) {
 		return false
 	}
 	for _, com := range bug.Commits {
-		if !commits[com] {
+		if !presentCommits[com] {
 			return false
 		}
 	}
-	return len(bug.Commits) > 0
+	return true
 }
 
 func stringInList(list []string, str string) bool {
