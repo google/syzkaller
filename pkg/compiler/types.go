@@ -441,19 +441,20 @@ var typeBuffer = &typeDesc{
 }
 
 var typeString = &typeDesc{
-	Names:        []string{"string"},
+	Names:        []string{"string", "stringnoz"},
 	CanBeTypedef: true,
 	OptArgs:      2,
 	Args:         []namedArg{{"literal or flags", typeArgStringFlags}, {"size", typeArgInt}},
+	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
+		if t.Ident == "stringnoz" && len(args) > 1 {
+			comp.error(args[0].Pos, "fixed-size string can't be non-zero-terminated")
+		}
+	},
 	CheckConsts: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
 		if len(args) > 1 {
 			size := args[1].Value
-			vals := []string{args[0].String}
-			if args[0].Ident != "" {
-				vals = genStrArray(comp.strFlags[args[0].Ident].Values)
-			}
+			vals := comp.genStrings(t, args)
 			for _, s := range vals {
-				s += "\x00"
 				if uint64(len(s)) > size {
 					comp.error(args[0].Pos, "string value %q exceeds buffer length %v",
 						s, size)
@@ -462,52 +463,67 @@ var typeString = &typeDesc{
 		}
 	},
 	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
-		return comp.stringSize(args) == 0
+		return comp.stringSize(t, args) == 0
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		subkind := ""
-		var vals []string
-		if len(args) > 0 {
-			if args[0].String != "" {
-				vals = append(vals, args[0].String)
-			} else {
-				subkind = args[0].Ident
-				vals = genStrArray(comp.strFlags[subkind].Values)
-			}
+		if len(args) > 0 && args[0].Ident != "" {
+			subkind = args[0].Ident
 		}
-		var size uint64
-		if len(args) > 1 {
-			size = args[1].Value
-		}
-		for i, s := range vals {
-			s += "\x00"
-			for uint64(len(s)) < size {
-				s += "\x00"
-			}
-			vals[i] = s
-		}
-		base.TypeSize = comp.stringSize(args)
+		vals := comp.genStrings(t, args)
+		base.TypeSize = comp.stringSize(t, args)
 		return &prog.BufferType{
 			TypeCommon: base.TypeCommon,
 			Kind:       prog.BufferString,
 			SubKind:    subkind,
 			Values:     vals,
+			NoZ:        t.Ident == "stringnoz",
 		}
 	},
 }
 
+func (comp *compiler) genStrings(t *ast.Type, args []*ast.Type) []string {
+	var vals []string
+	if len(args) > 0 {
+		if args[0].String != "" {
+			vals = append(vals, args[0].String)
+		} else {
+			vals = genStrArray(comp.strFlags[args[0].Ident].Values)
+		}
+	}
+	if t.Ident == "stringnoz" {
+		return vals
+	}
+	var size uint64
+	if len(args) > 1 {
+		size = args[1].Value
+	}
+	for i, s := range vals {
+		s += "\x00"
+		for uint64(len(s)) < size {
+			s += "\x00"
+		}
+		vals[i] = s
+	}
+	return vals
+}
+
 // stringSize returns static string size, or 0 if it is variable length.
-func (comp *compiler) stringSize(args []*ast.Type) uint64 {
+func (comp *compiler) stringSize(t *ast.Type, args []*ast.Type) uint64 {
 	switch len(args) {
 	case 0:
 		return 0 // a random string
 	case 1:
+		var z uint64
+		if t.Ident == "string" {
+			z = 1
+		}
 		if args[0].String != "" {
-			return uint64(len(args[0].String)) + 1 // string constant
+			return uint64(len(args[0].String)) + z // string constant
 		}
 		var size uint64
 		for _, s := range comp.strFlags[args[0].Ident].Values {
-			s1 := uint64(len(s.Value)) + 1
+			s1 := uint64(len(s.Value)) + z
 			if size != 0 && size != s1 {
 				return 0 // strings of different lengths
 			}

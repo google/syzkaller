@@ -5,6 +5,17 @@ foo$0(a int8)
 foo$1(a int8[C1:C2])
 foo$2() ptr[out, array[int32]]
 
+strings {
+	f1	string
+	f2	string["foo"]
+	f3	string["foo", 10]
+	f4	string[string_flags, 10]
+	f5	stringnoz
+	f6	stringnoz["foo"]
+} [packed]
+
+string_flags = "foo", "barbaz"
+
 # Proc type.
 
 proc_struct1 {

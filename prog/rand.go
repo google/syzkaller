@@ -182,22 +182,13 @@ func (r *randGen) filename(s *state) string {
 	return files[r.Intn(len(files))]
 }
 
-func (r *randGen) randString(s *state, vals []string, dir Dir) []byte {
-	data := r.randStringImpl(s, vals)
-	if dir == DirOut {
-		for i := range data {
-			data[i] = 0
-		}
-	}
-	return data
-}
-
-func (r *randGen) randStringImpl(s *state, vals []string) []byte {
-	if len(vals) != 0 {
-		return []byte(vals[r.Intn(len(vals))])
+func (r *randGen) randString(s *state, t *BufferType) []byte {
+	if len(t.Values) != 0 {
+		return []byte(t.Values[r.Intn(len(t.Values))])
 	}
 	if len(s.strings) != 0 && r.bin() {
 		// Return an existing string.
+		// TODO(dvyukov): make s.strings indexed by string SubKind.
 		strings := make([]string, 0, len(s.strings))
 		for s := range s.strings {
 			strings = append(strings, s)
@@ -220,7 +211,7 @@ func (r *randGen) randStringImpl(s *state, vals []string) []byte {
 			buf.Write([]byte{byte(r.Intn(256))})
 		}
 	}
-	if !r.oneOf(100) {
+	if r.oneOf(100) == t.NoZ {
 		buf.Write([]byte{0})
 	}
 	return buf.Bytes()
@@ -602,7 +593,7 @@ func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
 			}
 			return MakeDataArg(a, data), nil
 		case BufferString:
-			data := r.randString(s, a.Values, a.Dir())
+			data := r.randString(s, a)
 			if a.Dir() == DirOut {
 				return MakeOutDataArg(a, uint64(len(data))), nil
 			}
