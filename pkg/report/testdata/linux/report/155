@@ -1,0 +1,67 @@
+TITLE: WARNING in ion_ioctl
+
+[  173.566032] WARNING: CPU: 0 PID: 24071 at drivers/staging/android/ion/ion-ioctl.c:73 ion_ioctl+0x2db/0x380
+[  173.575866] Kernel panic - not syncing: panic_on_warn set ...
+[  173.575866] 
+[  173.583229] CPU: 0 PID: 24071 Comm: syz-executor2 Not tainted 4.15.0-rc7+ #260
+[  173.590576] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  173.599921] Call Trace:
+[  173.600286] binder: BINDER_SET_CONTEXT_MGR already set
+[  173.600294] binder: 24065:24072 ioctl 40046207 0 returned -16
+[  173.604587] binder_alloc: 24065: binder_alloc_buf, no vma
+[  173.604610] binder: 24065:24072 transaction failed 29189/-3, size 40-8 line 2903
+[  173.611966] netlink: 3 bytes leftover after parsing attributes in process `syz-executor0'.
+[  173.615430] netlink: 3 bytes leftover after parsing attributes in process `syz-executor0'.
+[  173.616072] binder: undelivered TRANSACTION_ERROR: 29189
+[  173.616149] binder: release 24065:24072 transaction 116 out, still active
+[  173.616155] binder: unexpected work type, 4, not freed
+[  173.616157] binder: undelivered TRANSACTION_COMPLETE
+[  173.616193] binder: send failed reply for transaction 116, target dead
+[  173.672592]  dump_stack+0x194/0x257
+[  173.676218]  ? arch_local_irq_restore+0x53/0x53
+[  173.680862]  ? vsnprintf+0x1ed/0x1900
+[  173.684640]  panic+0x1e4/0x41c
+[  173.687803]  ? refcount_error_report+0x214/0x214
+[  173.692528]  ? show_regs_print_info+0x18/0x18
+[  173.697014]  ? __warn+0x1c1/0x200
+[  173.700447]  ? ion_ioctl+0x2db/0x380
+[  173.704129]  __warn+0x1dc/0x200
+[  173.707381]  ? ion_ioctl+0x2db/0x380
+[  173.711069]  report_bug+0x211/0x2d0
+[  173.714674]  fixup_bug.part.11+0x37/0x80
+[  173.718708]  do_error_trap+0x2d7/0x3e0
+[  173.722570]  ? math_error+0x400/0x400
+[  173.726344]  ? __might_fault+0x110/0x1d0
+[  173.730379]  ? lock_downgrade+0x980/0x980
+[  173.734513]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  173.739332]  do_invalid_op+0x1b/0x20
+[  173.743021]  invalid_op+0x22/0x40
+[  173.746446] RIP: 0010:ion_ioctl+0x2db/0x380
+[  173.750734] RSP: 0018:ffff8801d8837ce0 EFLAGS: 00010216
+[  173.756067] RAX: 0000000000010000 RBX: 0000000000000018 RCX: ffffffff841375eb
+[  173.763326] RDX: 0000000000000073 RSI: ffffc90003568000 RDI: ffff8801d8837d14
+[  173.770569] RBP: ffff8801d8837d78 R08: 2429e4b090fb5c17 R09: ffffed003b106fa5
+[  173.777895] R10: 0000000000000003 R11: ffffed003b106fa4 R12: 1ffff1003b106f9e
+[  173.785135] R13: 00000000c0184908 R14: ffff8801d8837d50 R15: dffffc0000000000
+[  173.792393]  ? ion_ioctl+0x2db/0x380
+[  173.796088]  ? ion_query_heaps+0x490/0x490
+[  173.800305]  ? ion_query_heaps+0x490/0x490
+[  173.804510]  do_vfs_ioctl+0x1b1/0x1520
+[  173.808376]  ? _cond_resched+0x14/0x30
+[  173.812237]  ? ioctl_preallocate+0x2b0/0x2b0
+[  173.816620]  ? selinux_capable+0x40/0x40
+[  173.820662]  ? syscall_return_slowpath+0x2ad/0x550
+[  173.825569]  ? security_file_ioctl+0x89/0xb0
+[  173.829955]  SyS_ioctl+0x8f/0xc0
+[  173.833300]  entry_SYSCALL_64_fastpath+0x23/0x9a
+[  173.838028] RIP: 0033:0x452cf9
+[  173.841190] RSP: 002b:00007f51e978ec58 EFLAGS: 00000212 ORIG_RAX: 0000000000000010
+[  173.848868] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000452cf9
+[  173.856107] RDX: 0000000020000fd7 RSI: 00000000c0184908 RDI: 0000000000000013
+[  173.863346] RBP: 00000000000003ad R08: 0000000000000000 R09: 0000000000000000
+[  173.870585] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f38d8
+[  173.877822] R13: 00000000ffffffff R14: 00007f51e978f6d4 R15: 0000000000000000
+[  173.885767] Dumping ftrace buffer:
+[  173.889380]    (ftrace buffer empty)
+[  173.893064] Kernel Offset: disabled
+[  173.896662] Rebooting in 86400 seconds..
