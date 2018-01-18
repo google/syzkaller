@@ -229,7 +229,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		KernelRepo:        rep.KernelRepoAlias,
 		KernelCommit:      rep.KernelCommit,
 		KernelCommitTitle: rep.KernelCommitTitle,
-		KernelCommitDate:  rep.KernelCommitDate.Format("Mon Jan 2 15:04:05 2006 -0700"),
+		KernelCommitDate:  formatKernelTime(rep.KernelCommitDate),
 		UserSpaceArch:     userspaceArch,
 		CrashTitle:        rep.CrashTitle,
 		Report:            rep.Report,
