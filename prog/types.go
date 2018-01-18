@@ -227,6 +227,7 @@ type BufferType struct {
 	Text       TextKind // for BufferText
 	SubKind    string
 	Values     []string // possible values for BufferString kind
+	NoZ        bool     // non-zero terminated BufferString
 }
 
 type ArrayKind int

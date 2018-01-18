@@ -123,7 +123,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 							}
 							a.data = mutateData(r, data, minLen, maxLen)
 						} else {
-							a.data = r.randString(s, t.Values, t.Dir())
+							a.data = r.randString(s, t)
 						}
 					case BufferFilename:
 						a.data = []byte(r.filename(s))

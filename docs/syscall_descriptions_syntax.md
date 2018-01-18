@@ -39,6 +39,9 @@ rest of the type-options are type-specific:
 	either a string value in quotes for constant strings (e.g. "foo"),
 	or a reference to string flags,
 	optionally followed by a buffer size (string values will be padded with \x00 to that size)
+"stringnoz": a non-zero-terminated memory buffer (no pointer indirection implied), type-options:
+	either a string value in quotes for constant strings (e.g. "foo"),
+	or a reference to string flags,
 "filename": a file/link/dir name, no pointer indirection implied, in most cases you want `ptr[in, filename]`
 "fileoff": offset within a file
 "len": length of another field (for array it is number of elements), type-options:
