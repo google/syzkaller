@@ -76,7 +76,7 @@ func TestReportBug(t *testing.T) {
 	crash1.ReproOpts = []byte("some opts")
 	crash1.ReproSyz = []byte("getpid()")
 	want.First = false
-	want.ReproSyz = []byte("#some opts\ngetpid()")
+	want.ReproSyz = []byte(syzReproPrefix + "#some opts\ngetpid()")
 	c.expectOK(c.API(client1, key1, "report_crash", crash1, nil))
 	reports = reportAllBugs(c, 1)
 	if want.CrashID == reports[0].CrashID {
