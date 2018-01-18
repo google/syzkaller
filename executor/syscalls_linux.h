@@ -2,8 +2,8 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "916bfee7feb083598a57ed9b867cc9bd93bfd64c"
-unsigned syscall_count = 1522;
+#define SYZ_REVISION "80dae5c148ad0319ae304addcbaa0b2b734d9edf"
+unsigned syscall_count = 1528;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1524,6 +1524,12 @@ call_t syscalls[] = {
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
+    {"write$selinux_access", 4},
+    {"write$selinux_context", 4},
+    {"write$selinux_create", 4},
+    {"write$selinux_load", 4},
+    {"write$selinux_user", 4},
+    {"write$selinux_validatetrans", 4},
     {"write$sndseq", 4},
     {"write$tun", 4},
     {"writev", 146},
@@ -1533,8 +1539,8 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "941cd0a1e243fbeb2b5edb32d3ebee2335c3cd65"
-unsigned syscall_count = 1575;
+#define SYZ_REVISION "fb8927bec4fbd62efbc5e7a58e6dc8d4d1b5a57f"
+unsigned syscall_count = 1581;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3108,6 +3114,12 @@ call_t syscalls[] = {
     {"write$evdev", 1},
     {"write$eventfd", 1},
     {"write$fuse", 1},
+    {"write$selinux_access", 1},
+    {"write$selinux_context", 1},
+    {"write$selinux_create", 1},
+    {"write$selinux_load", 1},
+    {"write$selinux_user", 1},
+    {"write$selinux_validatetrans", 1},
     {"write$sndseq", 1},
     {"write$tun", 1},
     {"writev", 20},
@@ -3117,8 +3129,8 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "c0e463825d9884ce54de5c96103415d1a623c938"
-unsigned syscall_count = 1532;
+#define SYZ_REVISION "87255441edf4654aa353be71830ee866973e9b0a"
+unsigned syscall_count = 1538;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4649,6 +4661,12 @@ call_t syscalls[] = {
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
+    {"write$selinux_access", 4},
+    {"write$selinux_context", 4},
+    {"write$selinux_create", 4},
+    {"write$selinux_load", 4},
+    {"write$selinux_user", 4},
+    {"write$selinux_validatetrans", 4},
     {"write$sndseq", 4},
     {"write$tun", 4},
     {"writev", 146},
@@ -4658,8 +4676,8 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "db2eb8e4a017714533569d70a3615aab8a9b3651"
-unsigned syscall_count = 1504;
+#define SYZ_REVISION "a1f85424b353c596442d2373f51acf9b456fae4d"
+unsigned syscall_count = 1510;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6162,6 +6180,12 @@ call_t syscalls[] = {
     {"write$evdev", 64},
     {"write$eventfd", 64},
     {"write$fuse", 64},
+    {"write$selinux_access", 64},
+    {"write$selinux_context", 64},
+    {"write$selinux_create", 64},
+    {"write$selinux_load", 64},
+    {"write$selinux_user", 64},
+    {"write$selinux_validatetrans", 64},
     {"write$sndseq", 64},
     {"write$tun", 64},
     {"writev", 66},
@@ -6171,8 +6195,8 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "b379d1a0c6689d83dfbf8220707eb0d317389ef7"
-unsigned syscall_count = 1491;
+#define SYZ_REVISION "7efa9eb4e96b44b4874430b17e61c4cfa404dc75"
+unsigned syscall_count = 1497;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7662,6 +7686,12 @@ call_t syscalls[] = {
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
+    {"write$selinux_access", 4},
+    {"write$selinux_context", 4},
+    {"write$selinux_create", 4},
+    {"write$selinux_load", 4},
+    {"write$selinux_user", 4},
+    {"write$selinux_validatetrans", 4},
     {"write$sndseq", 4},
     {"write$tun", 4},
     {"writev", 146},
