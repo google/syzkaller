@@ -126,7 +126,7 @@ For more options, visit https://groups.google.com/d/optout.
 	// Now report syz reproducer and check updated email.
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("getpid()")
-	syzRepro := []byte(fmt.Sprintf("#%s\n%s", crash.ReproOpts, crash.ReproSyz))
+	syzRepro := []byte(fmt.Sprintf("%s#%s\n%s", syzReproPrefix, crash.ReproOpts, crash.ReproSyz))
 	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
 
 	{
@@ -162,8 +162,7 @@ kernel_commit_title1
 compiler: compiler1
 .config is attached.
 Raw console output is attached.
-syzkaller reproducer is attached. See https://goo.gl/kgGztJ
-for information about syzkaller reproducers.
+syzkaller reproducer is attached.
 So far this crash happened 2 times on repo1/branch1.
 CC: [bar@foo.com foo@bar.com]
 
@@ -214,8 +213,7 @@ kernel_commit_title1
 compiler: compiler1
 .config is attached.
 Raw console output is attached.
-syzkaller reproducer is attached. See https://goo.gl/kgGztJ
-for information about syzkaller reproducers.
+syzkaller reproducer is attached.
 So far this crash happened 2 times on repo1/branch1.
 
 
@@ -302,8 +300,7 @@ compiler: compiler2
 .config is attached.
 Raw console output is attached.
 C reproducer is attached.
-syzkaller reproducer is attached. See https://goo.gl/kgGztJ
-for information about syzkaller reproducers.
+syzkaller reproducer is attached.
 So far this crash happened 3 times on repo1/branch1, repo2/branch2.
 
 

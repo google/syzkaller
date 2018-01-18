@@ -4,6 +4,7 @@
 package dash
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -27,6 +28,8 @@ const (
 	maxMailLogLen    = 1 << 20
 	maxMailReportLen = 64 << 10
 	internalError    = "internal error"
+	// This is embedded as first line of syzkaller reproducer files.
+	syzReproPrefix = "# See https://goo.gl/kgGztJ for information about syzkaller reproducers.\n"
 )
 
 // reportingPoll is called by backends to get list of bugs that need to be reported.
@@ -209,11 +212,14 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	if err != nil {
 		return nil, err
 	}
-	if len(reproSyz) != 0 && len(crash.ReproOpts) != 0 {
-		tmp := append([]byte{'#'}, crash.ReproOpts...)
-		tmp = append(tmp, '\n')
-		tmp = append(tmp, reproSyz...)
-		reproSyz = tmp
+	if len(reproSyz) != 0 {
+		buf := new(bytes.Buffer)
+		buf.WriteString(syzReproPrefix)
+		if len(crash.ReproOpts) != 0 {
+			fmt.Fprintf(buf, "#%s\n", crash.ReproOpts)
+		}
+		buf.Write(reproSyz)
+		reproSyz = buf.Bytes()
 	}
 	build, err := loadBuild(c, bug.Namespace, crash.BuildID)
 	if err != nil {
