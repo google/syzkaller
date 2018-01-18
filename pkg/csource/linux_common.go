@@ -1921,13 +1921,18 @@ static int namespace_sandbox_proc(void* arg)
 		fail("mkdir failed");
 	if (mount(NULL, "./syz-tmp/newroot/proc", "proc", 0, NULL))
 		fail("mount(proc) failed");
+	if (mkdir("./syz-tmp/newroot/selinux", 0700))
+		fail("mkdir failed");
+	if (mount("/selinux", "./syz-tmp/newroot/selinux", NULL, MS_BIND | MS_REC | MS_PRIVATE, NULL))
+		fail("mount(selinuxfs) failed");
 	if (mkdir("./syz-tmp/pivot", 0777))
 		fail("mkdir failed");
 	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
-		debug("pivot_root failed");
+		debug("pivot_root failed\n");
 		if (chdir("./syz-tmp"))
 			fail("chdir failed");
 	} else {
+		debug("pivot_root OK\n");
 		if (chdir("/"))
 			fail("chdir failed");
 		if (umount2("./pivot", MNT_DETACH))
