@@ -22,8 +22,7 @@ xattr_name [
 ] [varlen]
 
 xattr_name_random {
-# TODO: the prefix must not be 0-terminated.
-	prefix	string[xattr_prefix]
+	prefix	stringnoz[xattr_prefix]
 	name	string
 } [packed]
 

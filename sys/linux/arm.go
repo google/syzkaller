@@ -8223,7 +8223,7 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "xattr_name_random"}, FldName: "random"},
 	}}},
 	{Key: StructKey{Name: "xattr_name_random"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xattr_name_random", IsVarlen: true}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "prefix", IsVarlen: true}, Kind: 2, SubKind: "xattr_prefix", Values: []string{"system.\x00", "trusted.\x00", "security.\x00", "user.\x00", "btrfs.\x00", "osx.\x00", "os2.\x00"}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "stringnoz", FldName: "prefix", IsVarlen: true}, Kind: 2, SubKind: "xattr_prefix", Values: []string{"system.", "trusted.", "security.", "user.", "btrfs.", "osx.", "os2."}, NoZ: true},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "name", IsVarlen: true}, Kind: 2},
 	}}},
 	{Key: StructKey{Name: "xfrm_address"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xfrm_address", TypeSize: 16}, Fields: []Type{
@@ -20608,4 +20608,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "87255441edf4654aa353be71830ee866973e9b0a"
+const revision_arm = "79c79e63a76cb462342ef4d1c97f9adf5365684a"
