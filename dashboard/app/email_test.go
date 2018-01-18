@@ -53,10 +53,10 @@ syzbot hit the following crash on repo1/branch1 commit
 kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title1
 
+Unfortunately, I don't have any reproducer for this crash yet.
+Raw console output is attached.
 compiler: compiler1
 .config is attached.
-Raw console output is attached.
-Unfortunately, I don't have any reproducer for this crash yet.
 CC: [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
@@ -159,11 +159,11 @@ For more options, visit https://groups.google.com/d/optout.
 kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title1
 
+So far this crash happened 2 times on repo1/branch1.
+syzkaller reproducer is attached.
+Raw console output is attached.
 compiler: compiler1
 .config is attached.
-Raw console output is attached.
-syzkaller reproducer is attached.
-So far this crash happened 2 times on repo1/branch1.
 CC: [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
@@ -210,12 +210,11 @@ syzbot hit the following crash on repo1/branch1 commit
 kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title1
 
+So far this crash happened 2 times on repo1/branch1.
+syzkaller reproducer is attached.
+Raw console output is attached.
 compiler: compiler1
 .config is attached.
-Raw console output is attached.
-syzkaller reproducer is attached.
-So far this crash happened 2 times on repo1/branch1.
-
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%v@testapp.appspotmail.com
@@ -296,13 +295,12 @@ Content-Type: text/plain
 kernel_commit2 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title2
 
-compiler: compiler2
-.config is attached.
-Raw console output is attached.
+So far this crash happened 3 times on repo1/branch1, repo2/branch2.
 C reproducer is attached.
 syzkaller reproducer is attached.
-So far this crash happened 3 times on repo1/branch1, repo2/branch2.
-
+Raw console output is attached.
+compiler: compiler2
+.config is attached.
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%v@testapp.appspotmail.com
