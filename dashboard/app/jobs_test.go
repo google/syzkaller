@@ -116,12 +116,12 @@ func TestJob(t *testing.T) {
 		c.expectEQ(msg.To, []string{"default@sender.com", list})
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 3)
-		c.expectEQ(msg.Attachments[0].Name, "config.txt")
-		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
-		c.expectEQ(msg.Attachments[1].Name, "patch.diff")
-		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
-		c.expectEQ(msg.Attachments[2].Name, "raw.log.txt")
-		c.expectEQ(msg.Attachments[2].Data, jobDoneReq.CrashLog)
+		c.expectEQ(msg.Attachments[0].Name, "patch.diff")
+		c.expectEQ(msg.Attachments[0].Data, []byte(patch))
+		c.expectEQ(msg.Attachments[1].Name, "raw.log.txt")
+		c.expectEQ(msg.Attachments[1].Data, jobDoneReq.CrashLog)
+		c.expectEQ(msg.Attachments[2].Name, "config.txt")
+		c.expectEQ(msg.Attachments[2].Data, build.KernelConfig)
 		body := `Hello,
 
 syzbot has tested the proposed patch but the reproducer still triggered crash:
@@ -156,10 +156,10 @@ Raw console output is attached.
 	{
 		msg := <-c.emailSink
 		c.expectEQ(len(msg.Attachments), 2)
-		c.expectEQ(msg.Attachments[0].Name, "config.txt")
-		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
-		c.expectEQ(msg.Attachments[1].Name, "patch.diff")
-		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
+		c.expectEQ(msg.Attachments[0].Name, "patch.diff")
+		c.expectEQ(msg.Attachments[0].Data, []byte(patch))
+		c.expectEQ(msg.Attachments[1].Name, "config.txt")
+		c.expectEQ(msg.Attachments[1].Data, build.KernelConfig)
 		body := `Hello,
 
 syzbot tried to test the proposed patch but build/boot failed:
@@ -194,10 +194,10 @@ Kernel config is attached.
 	{
 		msg := <-c.emailSink
 		c.expectEQ(len(msg.Attachments), 2)
-		c.expectEQ(msg.Attachments[0].Name, "config.txt")
-		c.expectEQ(msg.Attachments[0].Data, build.KernelConfig)
-		c.expectEQ(msg.Attachments[1].Name, "patch.diff")
-		c.expectEQ(msg.Attachments[1].Data, []byte(patch))
+		c.expectEQ(msg.Attachments[0].Name, "patch.diff")
+		c.expectEQ(msg.Attachments[0].Data, []byte(patch))
+		c.expectEQ(msg.Attachments[1].Name, "config.txt")
+		c.expectEQ(msg.Attachments[1].Data, build.KernelConfig)
 		body := fmt.Sprintf(`Hello,
 
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
