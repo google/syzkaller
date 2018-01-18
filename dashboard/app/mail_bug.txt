@@ -6,16 +6,16 @@ syzbot {{if .First}}hit{{else}}has found reproducer for{{end}} the following cra
 {{.KernelCommit}}{{if .KernelCommitDate}} ({{.KernelCommitDate}}){{end}}{{if .KernelCommitTitle}}
 {{.KernelCommitTitle}}{{end}}
 
-compiler: {{.CompilerID}}{{if .UserSpaceArch}}
-user-space arch: {{.UserSpaceArch}}{{end}}
-.config is attached.
-{{if .HasLog}}Raw console output is attached.
+{{if ne .NumCrashes 1}}So far this crash happened {{.NumCrashes}} times on {{formatList .HappenedOn}}.
 {{end}}{{if .ReproC}}C reproducer is attached.
 {{end}}{{if .ReproSyz}}syzkaller reproducer is attached.
 {{end}}{{if and (not .ReproC) (not .ReproSyz)}}Unfortunately, I don't have any reproducer for this crash yet.
-{{end}}{{if ne .NumCrashes 1}}So far this crash happened {{.NumCrashes}} times on {{formatList .HappenedOn}}.
-{{end}}{{if .Moderation}}CC: {{.Maintainers}}{{end}}
-
+{{end}}{{if .HasLog}}Raw console output is attached.
+{{end}}compiler: {{.CompilerID}}
+.config is attached.
+{{if .UserSpaceArch}}user-space arch: {{.UserSpaceArch}}
+{{end}}{{if .Moderation}}CC: {{.Maintainers}}
+{{end}}
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: {{.CreditEmail}}
 It will help syzbot understand when the bug is fixed.{{if .First}} See footer for details.
