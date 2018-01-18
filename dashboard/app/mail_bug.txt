@@ -11,8 +11,7 @@ user-space arch: {{.UserSpaceArch}}{{end}}
 .config is attached.
 {{if .HasLog}}Raw console output is attached.
 {{end}}{{if .ReproC}}C reproducer is attached.
-{{end}}{{if .ReproSyz}}syzkaller reproducer is attached. See https://goo.gl/kgGztJ
-for information about syzkaller reproducers.
+{{end}}{{if .ReproSyz}}syzkaller reproducer is attached.
 {{end}}{{if and (not .ReproC) (not .ReproSyz)}}Unfortunately, I don't have any reproducer for this crash yet.
 {{end}}{{if ne .NumCrashes 1}}So far this crash happened {{.NumCrashes}} times on {{formatList .HappenedOn}}.
 {{end}}{{if .Moderation}}CC: {{.Maintainers}}{{end}}
