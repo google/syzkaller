@@ -144,12 +144,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	}
 	to = email.MergeEmailLists(to, rep.CC)
 	var attachments []aemail.Attachment
-	if len(rep.KernelConfig) != 0 {
-		attachments = append(attachments, aemail.Attachment{
-			Name: "config.txt",
-			Data: rep.KernelConfig,
-		})
-	}
+	// Note: order of attachments is important. Some email clients show them inline.
 	if len(rep.Patch) != 0 {
 		attachments = append(attachments, aemail.Attachment{
 			Name: "patch.diff",
@@ -172,6 +167,12 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		attachments = append(attachments, aemail.Attachment{
 			Name: "repro.c.txt",
 			Data: rep.ReproC,
+		})
+	}
+	if len(rep.KernelConfig) != 0 {
+		attachments = append(attachments, aemail.Attachment{
+			Name: "config.txt",
+			Data: rep.KernelConfig,
 		})
 	}
 	// Build error output and failing VM boot log can be way too long to inline.
