@@ -1046,9 +1046,6 @@ membarrier_cmd = MEMBARRIER_CMD_SHARED, MEMBARRIER_CMD_PRIVATE_EXPEDITED, MEMBAR
 
 kcov_ioctls = KCOV_INIT_TRACE, KCOV_ENABLE
 kcov_modes = KCOV_TRACE_PC, KCOV_TRACE_CMP
-# TODO: remove once the const is present in kernel headers.
-define KCOV_TRACE_PC	0
-define KCOV_TRACE_CMP	1
 
 legacy_mmap_number = __NR_mmap2
 
