@@ -2,8 +2,8 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "a58625a155adbafdb6d85576400c870dd293ac11"
-unsigned syscall_count = 1528;
+#define SYZ_REVISION "3b64dea8a04bd671f1e08fc503b345dda1ab1a72"
+unsigned syscall_count = 1540;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -39,6 +39,7 @@ call_t syscalls[] = {
     {"bind$nfc_llcp", 361},
     {"bind$packet", 361},
     {"bind$pptp", 361},
+    {"bind$rds", 361},
     {"bind$unix", 361},
     {"bpf$BPF_GET_MAP_INFO", 357},
     {"bpf$BPF_GET_PROG_INFO", 357},
@@ -91,6 +92,7 @@ call_t syscalls[] = {
     {"connect$packet", 362},
     {"connect$pppoe", 362},
     {"connect$pptp", 362},
+    {"connect$rds", 362},
     {"connect$unix", 362},
     {"creat", 8},
     {"delete_module", 129},
@@ -1135,6 +1137,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_netfilter", 370},
     {"sendmsg$nl_route", 370},
     {"sendmsg$nl_xfrm", 370},
+    {"sendmsg$rds", 370},
     {"sendmsg$unix", 370},
     {"sendto", 369},
     {"sendto$ax25", 369},
@@ -1164,8 +1167,16 @@ call_t syscalls[] = {
     {"setsockopt", 366},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 366},
     {"setsockopt$ALG_SET_KEY", 366},
+    {"setsockopt$RDS_CANCEL_SENT_TO", 366},
+    {"setsockopt$RDS_CONG_MONITOR", 366},
+    {"setsockopt$RDS_FREE_MR", 366},
+    {"setsockopt$RDS_GET_MR", 366},
+    {"setsockopt$RDS_GET_MR_FOR_DEST", 366},
+    {"setsockopt$RDS_RECVERR", 366},
     {"setsockopt$SO_ATTACH_FILTER", 366},
     {"setsockopt$SO_BINDTODEVICE", 366},
+    {"setsockopt$SO_RDS_MSG_RXPATH_LATENCY", 366},
+    {"setsockopt$SO_RDS_TRANSPORT", 366},
     {"setsockopt$SO_TIMESTAMPING", 366},
     {"setsockopt$ax25_buf", 366},
     {"setsockopt$ax25_int", 366},
@@ -1415,6 +1426,7 @@ call_t syscalls[] = {
     {"socket$packet", 359},
     {"socket$pppoe", 359},
     {"socket$pptp", 359},
+    {"socket$rds", 359},
     {"socket$unix", 359},
     {"socketpair", 360},
     {"socketpair$ax25", 360},
@@ -1539,8 +1551,8 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "8ffaa0148f8639607b600ebab1f0f7aeaa427881"
-unsigned syscall_count = 1581;
+#define SYZ_REVISION "eeed3846e17af0c6835b9621dc65dfb97c862fc7"
+unsigned syscall_count = 1593;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1587,6 +1599,7 @@ call_t syscalls[] = {
     {"bind$nfc_llcp", 49},
     {"bind$packet", 49},
     {"bind$pptp", 49},
+    {"bind$rds", 49},
     {"bind$unix", 49},
     {"bpf$BPF_GET_MAP_INFO", 321},
     {"bpf$BPF_GET_PROG_INFO", 321},
@@ -1639,6 +1652,7 @@ call_t syscalls[] = {
     {"connect$packet", 42},
     {"connect$pppoe", 42},
     {"connect$pptp", 42},
+    {"connect$rds", 42},
     {"connect$unix", 42},
     {"creat", 85},
     {"delete_module", 176},
@@ -2713,6 +2727,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_netfilter", 46},
     {"sendmsg$nl_route", 46},
     {"sendmsg$nl_xfrm", 46},
+    {"sendmsg$rds", 46},
     {"sendmsg$unix", 46},
     {"sendto", 44},
     {"sendto$ax25", 44},
@@ -2742,8 +2757,16 @@ call_t syscalls[] = {
     {"setsockopt", 54},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 54},
     {"setsockopt$ALG_SET_KEY", 54},
+    {"setsockopt$RDS_CANCEL_SENT_TO", 54},
+    {"setsockopt$RDS_CONG_MONITOR", 54},
+    {"setsockopt$RDS_FREE_MR", 54},
+    {"setsockopt$RDS_GET_MR", 54},
+    {"setsockopt$RDS_GET_MR_FOR_DEST", 54},
+    {"setsockopt$RDS_RECVERR", 54},
     {"setsockopt$SO_ATTACH_FILTER", 54},
     {"setsockopt$SO_BINDTODEVICE", 54},
+    {"setsockopt$SO_RDS_MSG_RXPATH_LATENCY", 54},
+    {"setsockopt$SO_RDS_TRANSPORT", 54},
     {"setsockopt$SO_TIMESTAMPING", 54},
     {"setsockopt$ax25_buf", 54},
     {"setsockopt$ax25_int", 54},
@@ -3005,6 +3028,7 @@ call_t syscalls[] = {
     {"socket$packet", 41},
     {"socket$pppoe", 41},
     {"socket$pptp", 41},
+    {"socket$rds", 41},
     {"socket$unix", 41},
     {"socketpair", 53},
     {"socketpair$ax25", 53},
@@ -3129,8 +3153,8 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "79c79e63a76cb462342ef4d1c97f9adf5365684a"
-unsigned syscall_count = 1538;
+#define SYZ_REVISION "48c711736598abc6df442c7e082f811415e32e00"
+unsigned syscall_count = 1550;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3175,6 +3199,7 @@ call_t syscalls[] = {
     {"bind$nfc_llcp", 282},
     {"bind$packet", 282},
     {"bind$pptp", 282},
+    {"bind$rds", 282},
     {"bind$unix", 282},
     {"bpf$BPF_GET_MAP_INFO", 386},
     {"bpf$BPF_GET_PROG_INFO", 386},
@@ -3227,6 +3252,7 @@ call_t syscalls[] = {
     {"connect$packet", 283},
     {"connect$pppoe", 283},
     {"connect$pptp", 283},
+    {"connect$rds", 283},
     {"connect$unix", 283},
     {"creat", 8},
     {"delete_module", 129},
@@ -4264,6 +4290,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_netfilter", 296},
     {"sendmsg$nl_route", 296},
     {"sendmsg$nl_xfrm", 296},
+    {"sendmsg$rds", 296},
     {"sendmsg$unix", 296},
     {"sendto", 290},
     {"sendto$ax25", 290},
@@ -4292,8 +4319,16 @@ call_t syscalls[] = {
     {"setsockopt", 294},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 294},
     {"setsockopt$ALG_SET_KEY", 294},
+    {"setsockopt$RDS_CANCEL_SENT_TO", 294},
+    {"setsockopt$RDS_CONG_MONITOR", 294},
+    {"setsockopt$RDS_FREE_MR", 294},
+    {"setsockopt$RDS_GET_MR", 294},
+    {"setsockopt$RDS_GET_MR_FOR_DEST", 294},
+    {"setsockopt$RDS_RECVERR", 294},
     {"setsockopt$SO_ATTACH_FILTER", 294},
     {"setsockopt$SO_BINDTODEVICE", 294},
+    {"setsockopt$SO_RDS_MSG_RXPATH_LATENCY", 294},
+    {"setsockopt$SO_RDS_TRANSPORT", 294},
     {"setsockopt$SO_TIMESTAMPING", 294},
     {"setsockopt$ax25_buf", 294},
     {"setsockopt$ax25_int", 294},
@@ -4555,6 +4590,7 @@ call_t syscalls[] = {
     {"socket$packet", 281},
     {"socket$pppoe", 281},
     {"socket$pptp", 281},
+    {"socket$rds", 281},
     {"socket$unix", 281},
     {"socketpair", 288},
     {"socketpair$ax25", 288},
@@ -4676,8 +4712,8 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "b4fad1c5cb320123045ed497a3417b923459026a"
-unsigned syscall_count = 1510;
+#define SYZ_REVISION "896fb8f5f0b39654964138ec6268ba39b314903b"
+unsigned syscall_count = 1522;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -4722,6 +4758,7 @@ call_t syscalls[] = {
     {"bind$nfc_llcp", 200},
     {"bind$packet", 200},
     {"bind$pptp", 200},
+    {"bind$rds", 200},
     {"bind$unix", 200},
     {"bpf$BPF_GET_MAP_INFO", 280},
     {"bpf$BPF_GET_PROG_INFO", 280},
@@ -4772,6 +4809,7 @@ call_t syscalls[] = {
     {"connect$packet", 203},
     {"connect$pppoe", 203},
     {"connect$pptp", 203},
+    {"connect$rds", 203},
     {"connect$unix", 203},
     {"delete_module", 106},
     {"dup", 23},
@@ -5792,6 +5830,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_netfilter", 211},
     {"sendmsg$nl_route", 211},
     {"sendmsg$nl_xfrm", 211},
+    {"sendmsg$rds", 211},
     {"sendmsg$unix", 211},
     {"sendto", 206},
     {"sendto$ax25", 206},
@@ -5820,8 +5859,16 @@ call_t syscalls[] = {
     {"setsockopt", 208},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 208},
     {"setsockopt$ALG_SET_KEY", 208},
+    {"setsockopt$RDS_CANCEL_SENT_TO", 208},
+    {"setsockopt$RDS_CONG_MONITOR", 208},
+    {"setsockopt$RDS_FREE_MR", 208},
+    {"setsockopt$RDS_GET_MR", 208},
+    {"setsockopt$RDS_GET_MR_FOR_DEST", 208},
+    {"setsockopt$RDS_RECVERR", 208},
     {"setsockopt$SO_ATTACH_FILTER", 208},
     {"setsockopt$SO_BINDTODEVICE", 208},
+    {"setsockopt$SO_RDS_MSG_RXPATH_LATENCY", 208},
+    {"setsockopt$SO_RDS_TRANSPORT", 208},
     {"setsockopt$SO_TIMESTAMPING", 208},
     {"setsockopt$ax25_buf", 208},
     {"setsockopt$ax25_int", 208},
@@ -6082,6 +6129,7 @@ call_t syscalls[] = {
     {"socket$packet", 198},
     {"socket$pppoe", 198},
     {"socket$pptp", 198},
+    {"socket$rds", 198},
     {"socket$unix", 198},
     {"socketpair", 199},
     {"socketpair$ax25", 199},
@@ -6195,8 +6243,8 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "4789a4fb2587ef9a62e6ea7bd9d003140a6458b5"
-unsigned syscall_count = 1497;
+#define SYZ_REVISION "0379af25412b8bc040f4ba89b6760f359d5075ee"
+unsigned syscall_count = 1509;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6242,6 +6290,7 @@ call_t syscalls[] = {
     {"bind$nfc_llcp", 327},
     {"bind$packet", 327},
     {"bind$pptp", 327},
+    {"bind$rds", 327},
     {"bind$unix", 327},
     {"bpf$BPF_GET_MAP_INFO", 361},
     {"bpf$BPF_GET_PROG_INFO", 361},
@@ -6294,6 +6343,7 @@ call_t syscalls[] = {
     {"connect$packet", 328},
     {"connect$pppoe", 328},
     {"connect$pptp", 328},
+    {"connect$rds", 328},
     {"connect$unix", 328},
     {"creat", 8},
     {"delete_module", 129},
@@ -7299,6 +7349,7 @@ call_t syscalls[] = {
     {"sendmsg$nl_netfilter", 341},
     {"sendmsg$nl_route", 341},
     {"sendmsg$nl_xfrm", 341},
+    {"sendmsg$rds", 341},
     {"sendmsg$unix", 341},
     {"sendto", 335},
     {"sendto$ax25", 335},
@@ -7327,8 +7378,16 @@ call_t syscalls[] = {
     {"setsockopt", 339},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 339},
     {"setsockopt$ALG_SET_KEY", 339},
+    {"setsockopt$RDS_CANCEL_SENT_TO", 339},
+    {"setsockopt$RDS_CONG_MONITOR", 339},
+    {"setsockopt$RDS_FREE_MR", 339},
+    {"setsockopt$RDS_GET_MR", 339},
+    {"setsockopt$RDS_GET_MR_FOR_DEST", 339},
+    {"setsockopt$RDS_RECVERR", 339},
     {"setsockopt$SO_ATTACH_FILTER", 339},
     {"setsockopt$SO_BINDTODEVICE", 339},
+    {"setsockopt$SO_RDS_MSG_RXPATH_LATENCY", 339},
+    {"setsockopt$SO_RDS_TRANSPORT", 339},
     {"setsockopt$SO_TIMESTAMPING", 339},
     {"setsockopt$ax25_buf", 339},
     {"setsockopt$ax25_int", 339},
@@ -7578,6 +7637,7 @@ call_t syscalls[] = {
     {"socket$packet", 326},
     {"socket$pppoe", 326},
     {"socket$pptp", 326},
+    {"socket$rds", 326},
     {"socket$unix", 326},
     {"socketpair", 333},
     {"socketpair$ax25", 333},
