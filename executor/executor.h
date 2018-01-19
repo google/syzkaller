@@ -102,6 +102,7 @@ struct thread_t {
 	event_t done;
 	uint64* copyout_pos;
 	uint64 copyout_index;
+	bool colliding;
 	bool handled;
 	int call_index;
 	int call_num;
@@ -174,7 +175,7 @@ struct kcov_comparison_t {
 };
 
 long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8);
-thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos);
+thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos);
 void handle_completion(thread_t* th);
 void execute_call(thread_t* th);
 void thread_create(thread_t* th, int id);
@@ -295,11 +296,15 @@ void reply_execute(int status)
 // execute_one executes program stored in input_data.
 void execute_one()
 {
+	// Duplicate global collide variable on stack.
+	// Fuzzer once come up with ioctl(fd, FIONREAD, 0x920000),
+	// where 0x920000 was exactly collide address, so every iteration reset collide to 0.
+	bool colliding = false;
 retry:
 	uint64* input_pos = (uint64*)input_data;
 	write_output(0); // Number of executed syscalls (updated later).
 
-	if (!collide && !flag_threaded)
+	if (!colliding && !flag_threaded)
 		cover_enable(&threads[0]);
 
 	int call_index = 0;
@@ -402,9 +407,9 @@ retry:
 			args[i] = read_arg(&input_pos);
 		for (uint64 i = num_args; i < 6; i++)
 			args[i] = 0;
-		thread_t* th = schedule_call(call_index++, call_num, copyout_index, num_args, args, input_pos);
+		thread_t* th = schedule_call(call_index++, call_num, colliding, copyout_index, num_args, args, input_pos);
 
-		if (collide && (call_index % 2) == 0) {
+		if (colliding && (call_index % 2) == 0) {
 			// Don't wait for every other call.
 			// We already have results from the previous execution.
 		} else if (flag_threaded) {
@@ -437,14 +442,14 @@ retry:
 		}
 	}
 
-	if (flag_collide && !flag_inject_fault && !collide) {
+	if (flag_collide && !flag_inject_fault && !colliding && !collide) {
 		debug("enabling collider\n");
-		collide = true;
+		collide = colliding = true;
 		goto retry;
 	}
 }
 
-thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos)
+thread_t* schedule_call(int call_index, int call_num, bool colliding, uint64 copyout_index, uint64 num_args, uint64* args, uint64* pos)
 {
 	// Find a spare thread to execute the call.
 	int i;
@@ -465,6 +470,7 @@ thread_t* schedule_call(int call_index, int call_num, uint64 copyout_index, uint
 	if (event_isset(&th->ready) || !event_isset(&th->done) || !th->handled)
 		fail("bad thread state in schedule: ready=%d done=%d handled=%d",
 		     event_isset(&th->ready), event_isset(&th->done), th->handled);
+	th->colliding = colliding;
 	th->copyout_pos = pos;
 	th->copyout_index = copyout_index;
 	event_reset(&th->done);
@@ -513,7 +519,7 @@ void handle_completion(thread_t* th)
 			}
 		}
 	}
-	if (!collide) {
+	if (!collide && !th->colliding) {
 		write_output(th->call_index);
 		write_output(th->call_num);
 		uint32 reserrno = th->res != -1 ? 0 : th->reserrno;
