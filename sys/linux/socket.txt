@@ -86,7 +86,7 @@ sockaddr [
 # TODO: AF_CAIF
 # AF_ALG sockaddr is bigger than 16 bytes
 	nfc		sockaddr_nfc
-# TODO: AF_VSOCK
+	vsock		sockaddr_vm
 # TODO: AF_QIPCRTR
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_generic
@@ -132,7 +132,7 @@ sockaddr_storage [
 	alg		sockaddr_alg
 	nfc		sockaddr_nfc
 	nfc_llcp	sockaddr_nfc_llcp
-# TODO: AF_VSOCK
+	vsock		sockaddr_vm
 # TODO: AF_QIPCRTR
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_storage_generic
