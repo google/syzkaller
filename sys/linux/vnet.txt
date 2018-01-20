@@ -329,6 +329,9 @@ ipv4_addr [
 	rand_addr	int32be
 ]
 
+type ipv4_addr_mask flags[ipv4_addr_mask_vals, int32be]
+ipv4_addr_mask_vals = 0, 0xff000000, 0xffffff00, 0xffffffff, 0xff
+
 # http://www.iana.org/assignments/ip-parameters/ip-parameters.xhtml#ip-parameters-1
 ipv4_option [
 	generic		ipv4_option_generic

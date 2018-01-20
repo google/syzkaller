@@ -2,8 +2,8 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "5bafad0782b4d38bf3bf1982b9935ffb0604b69e"
-unsigned syscall_count = 1574;
+#define SYZ_REVISION "1e160dff8fafdf6f5a7ad94e39a7920293eb07f4"
+unsigned syscall_count = 1575;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1194,6 +1194,7 @@ call_t syscalls[] = {
     {"setsockopt", 366},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 366},
     {"setsockopt$ALG_SET_KEY", 366},
+    {"setsockopt$IPT_SO_SET_REPLACE", 366},
     {"setsockopt$RDS_CANCEL_SENT_TO", 366},
     {"setsockopt$RDS_CONG_MONITOR", 366},
     {"setsockopt$RDS_FREE_MR", 366},
@@ -1585,8 +1586,8 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "c240287e193b51f316f05a05acf46e519e0f3a62"
-unsigned syscall_count = 1627;
+#define SYZ_REVISION "b35bedf9d814ebf8a87933853511420d82e2fe12"
+unsigned syscall_count = 1628;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2818,6 +2819,7 @@ call_t syscalls[] = {
     {"setsockopt", 54},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 54},
     {"setsockopt$ALG_SET_KEY", 54},
+    {"setsockopt$IPT_SO_SET_REPLACE", 54},
     {"setsockopt$RDS_CANCEL_SENT_TO", 54},
     {"setsockopt$RDS_CONG_MONITOR", 54},
     {"setsockopt$RDS_FREE_MR", 54},
@@ -3221,8 +3223,8 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "839c2bbf93d0ef68bb66822b46cc278888d80262"
-unsigned syscall_count = 1584;
+#define SYZ_REVISION "931587649c38814a1a839bbd8da393a413c66cf8"
+unsigned syscall_count = 1585;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4414,6 +4416,7 @@ call_t syscalls[] = {
     {"setsockopt", 294},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 294},
     {"setsockopt$ALG_SET_KEY", 294},
+    {"setsockopt$IPT_SO_SET_REPLACE", 294},
     {"setsockopt$RDS_CANCEL_SENT_TO", 294},
     {"setsockopt$RDS_CONG_MONITOR", 294},
     {"setsockopt$RDS_FREE_MR", 294},
@@ -4814,8 +4817,8 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "e96689093364eb2210d022aeb6bbaa43d4d5111e"
-unsigned syscall_count = 1556;
+#define SYZ_REVISION "3d2791351ed687c749ce8034ceabd8b4331f59cc"
+unsigned syscall_count = 1557;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5988,6 +5991,7 @@ call_t syscalls[] = {
     {"setsockopt", 208},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 208},
     {"setsockopt$ALG_SET_KEY", 208},
+    {"setsockopt$IPT_SO_SET_REPLACE", 208},
     {"setsockopt$RDS_CANCEL_SENT_TO", 208},
     {"setsockopt$RDS_CONG_MONITOR", 208},
     {"setsockopt$RDS_FREE_MR", 208},
@@ -6379,8 +6383,8 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "242cb07a01effb16dccfdb9b5e59f2efe1fe48ea"
-unsigned syscall_count = 1543;
+#define SYZ_REVISION "1b6948ad7101029c2fae7c85d2af3a3938576048"
+unsigned syscall_count = 1544;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7541,6 +7545,7 @@ call_t syscalls[] = {
     {"setsockopt", 339},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 339},
     {"setsockopt$ALG_SET_KEY", 339},
+    {"setsockopt$IPT_SO_SET_REPLACE", 339},
     {"setsockopt$RDS_CANCEL_SENT_TO", 339},
     {"setsockopt$RDS_CONG_MONITOR", 339},
     {"setsockopt$RDS_FREE_MR", 339},

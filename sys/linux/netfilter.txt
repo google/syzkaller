@@ -1,0 +1,89 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <linux/socket.h>
+include <uapi/linux/netfilter_ipv4/ip_tables.h>
+
+setsockopt$IPT_SO_SET_REPLACE(fd sock_in, level const[SOL_IP], opt const[IPT_SO_SET_REPLACE], val ptr[in, ipt_replace], len len[val])
+
+ipt_replace {
+	name		string[ipt_tables, XT_TABLE_MAXNAMELEN]
+# TODO: what should be here?
+	valid_hooks	int32
+# TODO: this should be len[entries, int32],
+# so far the only precedent of length of an array with variable-size elements.
+	num_entries	int32[0:5]
+	size		bytesize[entries, int32]
+# There are are byte offsets of elements in the entries array, quite hard to fill in properly...
+	hook_entry	array[int32, NF_INET_NUMHOOKS]
+	underflow	array[int32, NF_INET_NUMHOOKS]
+	num_counters	len[counters, int32]
+	counters	ptr[out, xt_counters]
+	entries		array[ipt_entry]
+}
+
+ipt_entry {
+# This is split so that we can correctly fill in target_offset/next_offset.
+	matches	ipt_entry_matches
+	target	xt_entry_target
+} [packed]
+
+ipt_entry_matches {
+	ip		ipt_ip
+# TODO: is it even used? how?
+	nfcache		int32
+	target_offset	len[parent, int16]
+	next_offset	len[ipt_entry, int16]
+	comefrom	flags[nf_inet_hooks_bits, int32]
+	counters	xt_counters
+	matches		array[xt_entry_match]
+} [packed]
+
+ipt_ip {
+	src		ipv4_addr
+	dst		ipv4_addr
+	smsk		ipv4_addr_mask
+	dmsk		ipv4_addr_mask
+	iniface		devname
+	outiface	devname
+	iniface_mask	devname_mask
+	outiface_mask	devname_mask
+	proto		flags[ipv4_types, int16]
+	flags		flags[ipt_ip_flags, int8]
+	invflags	flags[ipt_ip_invflags, int8]
+}
+
+xt_entry_match {
+	match_size	len[parent, int16]
+# TODO: this must be a random fixed-size string.
+	name		array[int8, XT_EXTENSION_MAXNAMELEN]
+	revision	int8
+# TODO: what's here
+	data		array[int8]
+}
+
+xt_entry_target {
+	target_size	len[parent, int16]
+# TODO: this must be a random fixed-size string.
+	name		array[int8, XT_EXTENSION_MAXNAMELEN]
+	revision	int8
+# TODO: what's here
+	data		array[int8]
+}
+
+xt_counters {
+	pcnt	int64
+	bcnt	int64
+}
+
+ipt_tables = "filter", "mangle", "nat", "raw", "security"
+ipt_ip_flags = IPT_F_FRAG, IPT_F_GOTO
+ipt_ip_invflags = IPT_INV_VIA_IN, IPT_INV_VIA_OUT, IPT_INV_TOS, IPT_INV_SRCIP, IPT_INV_DSTIP, IPT_INV_FRAG, IPT_INV_PROTO
+nf_inet_hooks_bits = NF_INET_PRE_ROUTING_BIT, NF_INET_LOCAL_IN_BIT, NF_INET_FORWARD_BIT, NF_INET_LOCAL_OUT_BIT, NF_INET_POST_ROUTING_BIT, NF_INET_NUMHOOKS_BIT
+
+define NF_INET_PRE_ROUTING_BIT	1 << NF_INET_PRE_ROUTING
+define NF_INET_LOCAL_IN_BIT	1 << NF_INET_LOCAL_IN
+define NF_INET_FORWARD_BIT	1 << NF_INET_FORWARD
+define NF_INET_LOCAL_OUT_BIT	1 << NF_INET_LOCAL_OUT
+define NF_INET_POST_ROUTING_BIT	1 << NF_INET_POST_ROUTING
+define NF_INET_NUMHOOKS_BIT	1 << NF_INET_NUMHOOKS
