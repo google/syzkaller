@@ -1907,6 +1907,12 @@ static int namespace_sandbox_proc(void* arg)
 	if (!write_file("/proc/self/gid_map", "0 %d 1\n", real_gid))
 		fail("write of /proc/self/gid_map failed");
 
+	if (unshare(CLONE_NEWNET))
+		fail("unshare(CLONE_NEWNET)");
+#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
+	setup_tun((long)arg >> 1, (long)arg & 1);
+#endif
+
 	if (mkdir("./syz-tmp", 0777))
 		fail("mkdir(syz-tmp) failed");
 	if (mount("", "./syz-tmp", "tmpfs", 0, NULL))
@@ -1963,17 +1969,12 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 {
 	int pid;
 
-	if (unshare(CLONE_NEWNET))
-		fail("unshare(CLONE_NEWNET)");
-#if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
-	setup_tun(executor_pid, enable_tun);
-#endif
-
 	real_uid = getuid();
 	real_gid = getgid();
 	mprotect(sandbox_stack, 4096, PROT_NONE);
+	void* arg = (void*)(long)((executor_pid << 1) | enable_tun);
 	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
-		    CLONE_NEWUSER | CLONE_NEWPID, NULL);
+		    CLONE_NEWUSER | CLONE_NEWPID, arg);
 	if (pid < 0)
 		fail("sandbox clone failed");
 	return pid;
