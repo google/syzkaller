@@ -124,6 +124,9 @@ func (st *State) createManager(name string) (*Manager, error) {
 		st.corpusSeq = mgr.corpusSeq
 	}
 	mgr.reproSeq = loadSeqFile(mgr.reproSeqFile)
+	if mgr.reproSeq == 0 {
+		mgr.reproSeq = st.reproSeq
+	}
 	if st.reproSeq < mgr.reproSeq {
 		st.reproSeq = mgr.reproSeq
 	}
@@ -150,7 +153,7 @@ func (st *State) Connect(name string, fresh bool, calls []string, corpus [][]byt
 	mgr.Connected = time.Now()
 	if fresh {
 		mgr.corpusSeq = 0
-		mgr.reproSeq = 0
+		mgr.reproSeq = st.reproSeq
 	}
 	saveSeqFile(mgr.corpusSeqFile, mgr.corpusSeq)
 	saveSeqFile(mgr.reproSeqFile, mgr.reproSeq)
