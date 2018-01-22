@@ -3,6 +3,7 @@
 Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs).
 
 _newer first_
+* [scsi: sg: assorted memory corruptions](https://groups.google.com/d/msg/syzkaller/9RNr9Gu0MyY/Yyry-0XBDgAJ)
 * [kcm: memory leak in kcm_sendmsg](https://groups.google.com/d/msg/syzkaller/3wdPAXqqABY/i-OgV10gDwAJ)
 * [AF_KEY: memory leak in key_notify_policy](https://groups.google.com/d/msg/syzkaller/j6H7dPEQv-s/A-ADSd8gDwAJ)
 * [sctp: memory leak in sctp_endpoint_init](https://groups.google.com/d/msg/syzkaller/rz5CvX4rTFA/PUCYbwEiDwAJ)
