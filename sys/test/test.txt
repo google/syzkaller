@@ -338,6 +338,18 @@ syz_length_parent2_struct {
 	f2	len[syz_length_parent2_struct, int8]
 }
 
+type len_templ1[DATA1, DATA2] {
+	data	DATA1
+	inner	len_temp2[DATA2]
+}
+
+type len_temp2[DATA] {
+	data	DATA
+	len	len[len_templ1, int8]
+}
+
+syz_test$length23(a ptr[in, len_templ1[int8, int16]])
+
 # Big endian
 
 syz_test$end0(a0 ptr[in, syz_end_int_struct])
