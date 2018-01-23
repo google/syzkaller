@@ -1921,7 +1921,8 @@ static int namespace_sandbox_proc(void* arg)
 		fail("mkdir failed");
 	if (mkdir("./syz-tmp/newroot/dev", 0700))
 		fail("mkdir failed");
-	if (mount("/dev", "./syz-tmp/newroot/dev", NULL, MS_BIND | MS_REC | MS_PRIVATE, NULL))
+	unsigned mount_flags = MS_BIND | MS_REC | MS_PRIVATE;
+	if (mount("/dev", "./syz-tmp/newroot/dev", NULL, mount_flags, NULL))
 		fail("mount(dev) failed");
 	if (mkdir("./syz-tmp/newroot/proc", 0700))
 		fail("mkdir failed");
@@ -1929,7 +1930,9 @@ static int namespace_sandbox_proc(void* arg)
 		fail("mount(proc) failed");
 	if (mkdir("./syz-tmp/newroot/selinux", 0700))
 		fail("mkdir failed");
-	if (mount("/selinux", "./syz-tmp/newroot/selinux", NULL, MS_BIND | MS_REC | MS_PRIVATE, NULL))
+	const char* selinux_path = "./syz-tmp/newroot/selinux";
+	if (mount("/selinux", selinux_path, NULL, mount_flags, NULL) &&
+	    mount("/sys/fs/selinux", selinux_path, NULL, mount_flags, NULL))
 		fail("mount(selinuxfs) failed");
 	if (mkdir("./syz-tmp/pivot", 0777))
 		fail("mkdir failed");
