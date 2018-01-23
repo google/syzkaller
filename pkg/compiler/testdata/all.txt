@@ -29,6 +29,20 @@ proc_struct1 {
 	f1	proc[C0, 8, int8]
 }
 
+# Len/bytesize types.
+
+type len_templ1[DATA1, DATA2] {
+	data	DATA1
+	inner	len_temp2[DATA2]
+}
+
+type len_temp2[DATA] {
+	data	DATA
+	len	len[len_templ1, int8]
+}
+
+foo$len_templ(a ptr[in, len_templ1[int8, int16]])
+
 # Void type.
 
 void0 {

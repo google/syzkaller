@@ -7,6 +7,7 @@ package compiler
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/prog"
@@ -268,14 +269,15 @@ func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field
 	for i, arg := range args {
 		argDesc := desc.Args[i]
 		if argDesc.Type == typeArgLenTarget {
-			comp.checkLenTarget(t, name, arg.Ident, fields, parents)
+			comp.checkLenTarget(t, name, &arg.Ident, fields, parents)
 		} else if argDesc.Type == typeArgType {
 			comp.checkLenType(arg, name, fields, parents, checked, false)
 		}
 	}
 }
 
-func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []*ast.Field, parents []*ast.Struct) {
+func (comp *compiler) checkLenTarget(t *ast.Type, name string, targetp *string, fields []*ast.Field, parents []*ast.Struct) {
+	target := *targetp
 	if target == name {
 		comp.error(t.Pos, "%v target %v refer to itself", t.Ident, target)
 		return
@@ -311,7 +313,14 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []
 		return
 	}
 	for _, parent := range parents {
-		if target == parent.Name.Name {
+		parentName := parent.Name.Name
+		if pos := strings.IndexByte(parentName, '['); pos != -1 {
+			// For template parents name is "struct_name[ARG1, ARG2]",
+			// strip the part after '[' and update actual len target.
+			parentName = parentName[:pos]
+		}
+		if target == parentName {
+			*targetp = parent.Name.Name
 			return
 		}
 	}

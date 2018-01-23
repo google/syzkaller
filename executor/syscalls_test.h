@@ -2,8 +2,8 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "fc60324436788273405b8a20470b8bd1db88f8ef"
-unsigned syscall_count = 81;
+#define SYZ_REVISION "b9cbeaf95275aebd2bf6f299b1071f67344453a5"
+unsigned syscall_count = 82;
 call_t syscalls[] = {
 	{"mmap", 0, (syscall_t)mmap},
 	{"mutate0", 0, (syscall_t)mutate0},
@@ -57,6 +57,7 @@ call_t syscalls[] = {
 	{"syz_test$length20", 0, (syscall_t)syz_test},
 	{"syz_test$length21", 0, (syscall_t)syz_test},
 	{"syz_test$length22", 0, (syscall_t)syz_test},
+	{"syz_test$length23", 0, (syscall_t)syz_test},
 	{"syz_test$length3", 0, (syscall_t)syz_test},
 	{"syz_test$length4", 0, (syscall_t)syz_test},
 	{"syz_test$length5", 0, (syscall_t)syz_test},
@@ -92,8 +93,8 @@ call_t syscalls[] = {
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "7fe3e225b3424934ecc51f978cbb1e9eca5c0649"
-unsigned syscall_count = 81;
+#define SYZ_REVISION "ed5cfa6417cbae5ddc998f597dcdbb96fea761c3"
+unsigned syscall_count = 82;
 call_t syscalls[] = {
 	{"mmap", 0, (syscall_t)mmap},
 	{"mutate0", 0, (syscall_t)mutate0},
@@ -147,6 +148,7 @@ call_t syscalls[] = {
 	{"syz_test$length20", 0, (syscall_t)syz_test},
 	{"syz_test$length21", 0, (syscall_t)syz_test},
 	{"syz_test$length22", 0, (syscall_t)syz_test},
+	{"syz_test$length23", 0, (syscall_t)syz_test},
 	{"syz_test$length3", 0, (syscall_t)syz_test},
 	{"syz_test$length4", 0, (syscall_t)syz_test},
 	{"syz_test$length5", 0, (syscall_t)syz_test},
