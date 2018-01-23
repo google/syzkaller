@@ -463,6 +463,9 @@ var typeString = &typeDesc{
 		}
 	},
 	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
+		return comp.stringSize(t, args) == varlenString
+	},
+	ZeroSize: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		return comp.stringSize(t, args) == 0
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
@@ -472,6 +475,9 @@ var typeString = &typeDesc{
 		}
 		vals := comp.genStrings(t, args)
 		base.TypeSize = comp.stringSize(t, args)
+		if base.TypeSize == varlenString {
+			base.TypeSize = 0
+		}
 		return &prog.BufferType{
 			TypeCommon: base.TypeCommon,
 			Kind:       prog.BufferString,
@@ -485,7 +491,7 @@ var typeString = &typeDesc{
 func (comp *compiler) genStrings(t *ast.Type, args []*ast.Type) []string {
 	var vals []string
 	if len(args) > 0 {
-		if args[0].String != "" {
+		if args[0].HasString {
 			vals = append(vals, args[0].String)
 		} else {
 			vals = genStrArray(comp.strFlags[args[0].Ident].Values)
@@ -508,24 +514,26 @@ func (comp *compiler) genStrings(t *ast.Type, args []*ast.Type) []string {
 	return vals
 }
 
-// stringSize returns static string size, or 0 if it is variable length.
+const varlenString = ^uint64(0)
+
+// stringSize returns static string size, or varlenString if it is variable length.
 func (comp *compiler) stringSize(t *ast.Type, args []*ast.Type) uint64 {
 	switch len(args) {
 	case 0:
-		return 0 // a random string
+		return varlenString // a random string
 	case 1:
 		var z uint64
 		if t.Ident == "string" {
 			z = 1
 		}
-		if args[0].String != "" {
+		if args[0].HasString {
 			return uint64(len(args[0].String)) + z // string constant
 		}
-		var size uint64
+		size := varlenString
 		for _, s := range comp.strFlags[args[0].Ident].Values {
 			s1 := uint64(len(s.Value)) + z
-			if size != 0 && size != s1 {
-				return 0 // strings of different lengths
+			if size != varlenString && size != s1 {
+				return varlenString // strings of different lengths
 			}
 			size = s1
 		}
@@ -539,7 +547,7 @@ func (comp *compiler) stringSize(t *ast.Type, args []*ast.Type) uint64 {
 
 var typeArgStringFlags = &typeArg{
 	Check: func(comp *compiler, t *ast.Type) {
-		if t.String == "" && t.Ident == "" {
+		if !t.HasString && t.Ident == "" {
 			comp.error(t.Pos, "unexpected int %v, string arg must be a string literal or string flags", t.Value)
 			return
 		}

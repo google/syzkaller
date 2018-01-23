@@ -9,12 +9,19 @@ strings {
 	f1	string
 	f2	string["foo"]
 	f3	string["foo", 10]
-	f4	string[string_flags, 10]
+	f4	string[string_flags1, 10]
 	f5	stringnoz
 	f6	stringnoz["foo"]
+	f7	string[""]
+	f8	string["", 10]
+	f9	stringnoz[""]
+	f11	stringnoz[string_flags1]
+	f12	string[string_flags2]
+	f13	stringnoz[string_flags2]
 } [packed]
 
-string_flags = "foo", "barbaz"
+string_flags1 = "foo", "barbaz"
+string_flags2 = ""
 
 # Proc type.
 

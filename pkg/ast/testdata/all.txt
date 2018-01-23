@@ -25,10 +25,10 @@ define FOO `bar				### C expression is not terminated
 foo(x int32[1:2:3, opt])		### unexpected ':', expecting ']'
 
 s0 {
-	f0	string[""]		### empty string literals are not supported
+	f0	string[""]
 }
 
-sf0 = "", "1"				### empty string literals are not supported
+sf0 = "", "1"
 
 include <linux/foo.h>
 include "linux/foo.h"

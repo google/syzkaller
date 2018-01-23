@@ -182,6 +182,7 @@ func (n *Type) Clone() Node {
 		ValueHex:  n.ValueHex,
 		Ident:     n.Ident,
 		String:    n.String,
+		HasString: n.HasString,
 		HasColon:  n.HasColon,
 		Pos2:      n.Pos2,
 		Value2:    n.Value2,

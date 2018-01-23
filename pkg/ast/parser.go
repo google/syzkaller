@@ -419,6 +419,7 @@ func (p *parser) parseType() *Type {
 		arg.Ident = p.lit
 	case tokString:
 		arg.String = p.lit
+		arg.HasString = true
 	default:
 		p.expect(tokInt, tokIdent, tokString)
 	}
