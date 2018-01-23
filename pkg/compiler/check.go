@@ -802,7 +802,7 @@ func checkTypeKind(t *ast.Type, kind int) (unexpected string, expect string, ok 
 	switch {
 	case kind == kindAny:
 		ok = true
-	case t.String != "":
+	case t.HasString:
 		ok = kind == kindString
 		if !ok {
 			unexpected = fmt.Sprintf("string %q", t.String)

@@ -185,10 +185,11 @@ func (n *Int) Info() (Pos, string, string) {
 type Type struct {
 	Pos Pos
 	// Only one of Value, Ident, String is filled.
-	Value    uint64
-	ValueHex bool
-	Ident    string
-	String   string
+	Value     uint64
+	ValueHex  bool
+	Ident     string
+	String    string
+	HasString bool
 	// Part after COLON (for ranges and bitfields).
 	HasColon  bool
 	Pos2      Pos

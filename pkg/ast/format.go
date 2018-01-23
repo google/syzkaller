@@ -152,7 +152,7 @@ func fmtType(t *Type) string {
 	switch {
 	case t.Ident != "":
 		v = t.Ident
-	case t.String != "":
+	case t.HasString:
 		v = fmt.Sprintf("\"%v\"", t.String)
 	default:
 		v = fmtIntValue(t.Value, t.ValueHex)
