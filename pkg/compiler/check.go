@@ -670,12 +670,6 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, desc *typeDesc,
 	ctx.instantiationStack = append(ctx.instantiationStack, fullTypeName)
 	nargs := len(typedef.Args)
 	args := t.Args
-	for _, arg := range args {
-		if arg.String != "" {
-			comp.error(arg.Pos, "template arguments can't be strings (%q)", arg.String)
-			return
-		}
-	}
 	if nargs != len(t.Args) {
 		if nargs == 0 {
 			comp.error(t.Pos, "type %v is not a template", typedefName)
@@ -734,6 +728,7 @@ func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*a
 		// TODO(dvyukov): somewhat hacky, but required for int8[0:CONST_ARG]
 		// Need more checks here. E.g. that CONST_ARG does not have subargs.
 		// And if CONST_ARG is a value, then use concreteArg.Value.
+		// Also need to error if CONST_ARG is a string.
 		if concreteArg := argMap[templArg.Ident2]; concreteArg != nil {
 			templArg.Ident2 = concreteArg.Ident
 			templArg.Pos2 = concreteArg.Pos

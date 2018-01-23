@@ -266,5 +266,4 @@ foo$202(a templ0)		### template templ0 needs 2 arguments instead of 0
 foo$203(a type0[42])		### type type0 is not a template
 foo$204(a ptr[in, templ_struct0[42, int8]])
 foo$205(a ptr[in, templ_struct0[int8, int8]])
-foo$206(a ptr[in, templ_struct1["foo"]])	### template arguments can't be strings ("foo")
 foo$207(a ptr[in, templ_struct2[1]])
