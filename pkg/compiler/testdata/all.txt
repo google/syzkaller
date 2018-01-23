@@ -86,6 +86,8 @@ bitfield0 {
 
 type type0 int8
 type templ0[A, B] const[A, B]
+type templ2[STR] string[STR]
+type type3 templ2["a"]
 
 type templ_struct0[A, B] {
 	len	len[parent, int16]
