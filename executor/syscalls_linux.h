@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "1e160dff8fafdf6f5a7ad94e39a7920293eb07f4"
+#define SYZ_REVISION "c7ae775d11312aff5f46452251a34d8f2fbc23db"
 unsigned syscall_count = 1575;
 call_t syscalls[] = {
     {"accept4", 364},
@@ -1586,7 +1586,7 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "b35bedf9d814ebf8a87933853511420d82e2fe12"
+#define SYZ_REVISION "51a9ac6497f8ef0c97cc5e4a302d551efed4bbd9"
 unsigned syscall_count = 1628;
 call_t syscalls[] = {
     {"accept", 43},
@@ -3223,7 +3223,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "931587649c38814a1a839bbd8da393a413c66cf8"
+#define SYZ_REVISION "5040bc46cb46350b7c682fd6d8b6cae448d64a9c"
 unsigned syscall_count = 1585;
 call_t syscalls[] = {
     {"accept", 285},
@@ -4817,7 +4817,7 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "3d2791351ed687c749ce8034ceabd8b4331f59cc"
+#define SYZ_REVISION "acf2563bc8290086485a8002ccdd1078caa8595d"
 unsigned syscall_count = 1557;
 call_t syscalls[] = {
     {"accept", 202},
@@ -6383,7 +6383,7 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "1b6948ad7101029c2fae7c85d2af3a3938576048"
+#define SYZ_REVISION "068174377e48c8013c70e9ceef6fdcb0d62828c4"
 unsigned syscall_count = 1544;
 call_t syscalls[] = {
     {"accept", 330},
