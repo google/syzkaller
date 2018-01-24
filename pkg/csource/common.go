@@ -96,6 +96,9 @@ func defineList(p *prog.Prog, opts Options) ([]string, error) {
 	}
 	if opts.WaitRepeat {
 		defines = append(defines, "SYZ_WAIT_REPEAT")
+		// TODO(dvyukov): this should have a separate option,
+		// but for now it's bundled with WaitRepeat.
+		defines = append(defines, "SYZ_RESET_NET_NAMESPACE")
 	}
 	if opts.Debug {
 		defines = append(defines, "SYZ_DEBUG")

@@ -789,6 +789,7 @@ var progSimplifies = []Simplify{
 			return false
 		}
 		opts.Repeat = false
+		opts.WaitRepeat = false
 		opts.Procs = 1
 		return true
 	},

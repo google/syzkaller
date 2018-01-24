@@ -175,3 +175,31 @@ func testCrossArchProg(t *testing.T, p *Prog, crossTargets []*Target) {
 			crossTarget.OS, crossTarget.Arch, err, serialized)
 	}
 }
+
+func TestSpecialStructs(t *testing.T) {
+	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
+		for special, gen := range target.SpecialTypes {
+			t.Run(special, func(t *testing.T) {
+				var typ Type
+				for i := 0; i < len(target.Syscalls) && typ == nil; i++ {
+					ForeachType(target.Syscalls[i], func(t Type) {
+						if s, ok := t.(*StructType); ok && s.Name() == special {
+							typ = s
+						}
+						if s, ok := t.(*UnionType); ok && s.Name() == special {
+							typ = s
+						}
+					})
+				}
+				if typ == nil {
+					t.Fatal("can't find struct description")
+				}
+				g := &Gen{newRand(target, rs), newState(target, nil)}
+				for i := 0; i < iters/len(target.SpecialTypes); i++ {
+					arg, _ := gen(g, typ, nil)
+					gen(g, typ, arg)
+				}
+			})
+		}
+	})
+}

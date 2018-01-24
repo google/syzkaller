@@ -39,14 +39,14 @@ type Target struct {
 	// SanitizeCall neutralizes harmful calls.
 	SanitizeCall func(c *Call)
 
-	// SpecialStructs allows target to do custom generation/mutation for some struct types.
-	// Map key is struct name for which custom generation/mutation is required.
+	// SpecialTypes allows target to do custom generation/mutation for some struct's and union's.
+	// Map key is struct/union name for which custom generation/mutation is required.
 	// Map value is custom generation/mutation function that will be called
-	// for the corresponding structs. g is helper object that allows generate random numbers,
-	// allocate memory, etc. typ is the struct type. old is the old value of the struct
-	// for mutation, or nil for generation. The function returns a new value of the struct,
+	// for the corresponding type. g is helper object that allows generate random numbers,
+	// allocate memory, etc. typ is the struct/union type. old is the old value of the struct/union
+	// for mutation, or nil for generation. The function returns a new value of the struct/union,
 	// and optionally any calls that need to be inserted before the arg reference.
-	SpecialStructs map[string]func(g *Gen, typ *StructType, old *GroupArg) (Arg, []*Call)
+	SpecialTypes map[string]func(g *Gen, typ Type, old Arg) (Arg, []*Call)
 
 	// Special strings that can matter for the target.
 	// Used as fallback when string type does not have own dictionary.
@@ -175,7 +175,36 @@ func (g *Gen) Alloc(ptrType Type, data Arg) (Arg, []*Call) {
 }
 
 func (g *Gen) GenerateArg(typ Type, pcalls *[]*Call) Arg {
-	arg, calls := g.r.generateArg(g.s, typ)
+	return g.generateArg(typ, pcalls, false)
+}
+
+func (g *Gen) GenerateSpecialArg(typ Type, pcalls *[]*Call) Arg {
+	return g.generateArg(typ, pcalls, true)
+}
+
+func (g *Gen) generateArg(typ Type, pcalls *[]*Call, ignoreSpecial bool) Arg {
+	arg, calls := g.r.generateArgImpl(g.s, typ, ignoreSpecial)
 	*pcalls = append(*pcalls, calls...)
+	g.r.target.assignSizesArray([]Arg{arg})
 	return arg
+}
+
+func (g *Gen) MutateArg(arg0 Arg) (calls []*Call) {
+	updateSizes := true
+	for stop := false; !stop; stop = g.r.oneOf(3) {
+		args, bases, parents := g.r.target.mutationSubargs(arg0)
+		if len(args) == 0 {
+			// TODO(dvyukov): probably need to return this condition
+			// and updateSizes to caller so that Mutate can act accordingly.
+			return
+		}
+		idx := g.r.Intn(len(args))
+		arg, base, parent := args[idx], bases[idx], parents[idx]
+		newCalls, ok := g.r.target.mutateArg(g.r, g.s, arg, base, parent, &updateSizes)
+		if !ok {
+			continue
+		}
+		calls = append(newCalls, newCalls...)
+	}
+	return calls
 }

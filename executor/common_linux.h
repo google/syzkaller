@@ -71,6 +71,11 @@
 #include <sys/stat.h>
 #include <sys/uio.h>
 #endif
+#if defined(SYZ_EXECUTOR) || defined(SYZ_RESET_NET_NAMESPACE)
+#include <linux/net.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
 #if defined(SYZ_EXECUTOR) || defined(SYZ_FAULT_INJECTION)
 #include <errno.h>
 #include <fcntl.h>
@@ -947,6 +952,149 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 }
 #endif
 
+#if defined(SYZ_EXECUTOR) || defined(SYZ_RESET_NET_NAMESPACE)
+// checkpoint/reset_net_namespace partially resets net namespace to initial state
+// after each test. Currently it resets only ipv4 netfilter state.
+// Ideally, we just create a new net namespace for each test,
+// however it's too slow (1-1.5 seconds per namespace, not parallelizable).
+
+// Linux headers do not compile for C++, so we have to define the structs manualy.
+struct ipt_getinfo {
+	char name[32];
+	unsigned int valid_hooks;
+	unsigned int hook_entry[5];
+	unsigned int underflow[5];
+	unsigned int num_entries;
+	unsigned int size;
+};
+
+struct ipt_get_entries {
+	char name[32];
+	unsigned int size;
+	unsigned int pad;
+	char entrytable[1024];
+};
+
+struct xt_counters {
+	uint64 pcnt, bcnt;
+};
+
+struct ipt_replace {
+	char name[32];
+	unsigned int valid_hooks;
+	unsigned int num_entries;
+	unsigned int size;
+	unsigned int hook_entry[5];
+	unsigned int underflow[5];
+	unsigned int num_counters;
+	struct xt_counters* counters;
+	char entrytable[1024];
+};
+
+struct ipt_table_desc {
+	const char* name;
+	struct ipt_getinfo info;
+	struct ipt_get_entries entries;
+	struct ipt_replace replace;
+	struct xt_counters counters[10];
+};
+
+static struct ipt_table_desc ipv4_tables[] = {
+    {.name = "filter"},
+    {.name = "nat"},
+    {.name = "mangle"},
+    {.name = "raw"},
+    {.name = "security"},
+};
+
+#define IPT_BASE_CTL 64
+#define IPT_SO_SET_REPLACE (IPT_BASE_CTL)
+#define IPT_SO_GET_INFO (IPT_BASE_CTL)
+#define IPT_SO_GET_ENTRIES (IPT_BASE_CTL + 1)
+
+static void checkpoint_net_namespace(void)
+{
+	socklen_t optlen;
+	unsigned i;
+	int fd;
+
+	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (fd == -1)
+		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+	for (i = 0; i < sizeof(ipv4_tables) / sizeof(ipv4_tables[0]); i++) {
+		struct ipt_table_desc* table = &ipv4_tables[i];
+		strcpy(table->info.name, table->name);
+		strcpy(table->entries.name, table->name);
+		strcpy(table->replace.name, table->name);
+		optlen = sizeof(table->info);
+		if (getsockopt(fd, SOL_IP, IPT_SO_GET_INFO, &table->info, &optlen)) {
+			switch (errno) {
+			case EPERM:
+			case ENOENT:
+			case ENOPROTOOPT:
+				continue;
+			}
+			fail("getsockopt(IPT_SO_GET_INFO)");
+		}
+		if (table->info.size > sizeof(table->entries.entrytable))
+			fail("table size is too large: %u", table->info.size);
+		if (table->info.num_entries > sizeof(table->counters) / sizeof(table->counters[0]))
+			fail("too many counters: %u", table->info.num_entries);
+		table->entries.size = table->info.size;
+		optlen = sizeof(table->entries) - sizeof(table->entries.entrytable) + table->info.size;
+		if (getsockopt(fd, SOL_IP, IPT_SO_GET_ENTRIES, &table->entries, &optlen))
+			fail("getsockopt(IPT_SO_GET_ENTRIES)");
+		table->replace.valid_hooks = table->info.valid_hooks;
+		table->replace.num_entries = table->info.num_entries;
+		table->replace.counters = table->counters;
+		table->replace.size = table->info.size;
+		memcpy(table->replace.hook_entry, table->info.hook_entry, sizeof(table->replace.hook_entry));
+		memcpy(table->replace.underflow, table->info.underflow, sizeof(table->replace.underflow));
+		memcpy(table->replace.entrytable, table->entries.entrytable, table->info.size);
+	}
+	close(fd);
+}
+
+static void reset_net_namespace(void)
+{
+	struct ipt_get_entries entries;
+	struct ipt_getinfo info;
+	socklen_t optlen;
+	unsigned i;
+	int fd;
+
+	memset(&info, 0, sizeof(info));
+	memset(&entries, 0, sizeof(entries));
+	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (fd == -1)
+		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+	for (i = 0; i < sizeof(ipv4_tables) / sizeof(ipv4_tables[0]); i++) {
+		struct ipt_table_desc* table = &ipv4_tables[i];
+		if (table->info.valid_hooks == 0)
+			continue;
+		strcpy(info.name, table->name);
+		optlen = sizeof(info);
+		if (getsockopt(fd, SOL_IP, IPT_SO_GET_INFO, &info, &optlen))
+			fail("getsockopt(IPT_SO_GET_INFO)");
+		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
+			strcpy(entries.name, table->name);
+			entries.size = table->info.size;
+			optlen = sizeof(entries) - sizeof(entries.entrytable) + entries.size;
+			if (getsockopt(fd, SOL_IP, IPT_SO_GET_ENTRIES, &entries, &optlen))
+				fail("getsockopt(IPT_SO_GET_ENTRIES)");
+			if (memcmp(&table->entries, &entries, optlen) == 0)
+				continue;
+		}
+		debug("resetting iptable %s\n", table->name);
+		table->replace.num_counters = info.num_entries;
+		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
+		if (setsockopt(fd, SOL_IP, IPT_SO_SET_REPLACE, &table->replace, optlen))
+			fail("setsockopt(IPT_SO_SET_REPLACE)");
+	}
+	close(fd);
+}
+#endif
+
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT) && defined(SYZ_USE_TMP_DIR))
 // One does not simply remove a directory.
 // There can be mounts, so we need to try to umount.
@@ -1068,6 +1216,9 @@ static void test();
 void loop()
 {
 	int iter;
+#if defined(SYZ_RESET_NET_NAMESPACE)
+	checkpoint_net_namespace();
+#endif
 	for (iter = 0;; iter++) {
 #ifdef SYZ_USE_TMP_DIR
 		char cwdbuf[256];
@@ -1108,6 +1259,9 @@ void loop()
 		}
 #ifdef SYZ_USE_TMP_DIR
 		remove_dir(cwdbuf);
+#endif
+#if defined(SYZ_RESET_NET_NAMESPACE)
+		reset_net_namespace();
 #endif
 	}
 }

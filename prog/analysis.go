@@ -104,7 +104,7 @@ func foreachSubargImpl(arg Arg, parent *[]Arg, f func(arg, base Arg, parent *[]A
 	rec(arg, nil, parent)
 }
 
-func foreachSubarg(arg Arg, f func(arg, base Arg, parent *[]Arg)) {
+func ForeachSubarg(arg Arg, f func(arg, base Arg, parent *[]Arg)) {
 	foreachSubargImpl(arg, nil, f)
 }
 

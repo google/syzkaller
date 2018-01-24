@@ -488,7 +488,7 @@ type ipv6_addr_t[LAST] {
 ipv6_addr_loopback {
 	a0	const[0, int64be]
 	a1	const[1, int64be]
-} [packed]
+} [packed, align_4]
 
 ipv6_addr_ipv4 {
 	a0	array[const[0x0, int8], 10]
@@ -521,6 +521,8 @@ ipv6_addr [
 	mcast1		ipv6_addr_multicast1
 	mcast2		ipv6_addr_multicast2
 ]
+
+type ipv6_addr_mask array[flags[ipv4_addr_mask_vals, int32be], 4]
 
 # TODO: Describe more types of headers
 # NEXTHDR_HOP, NEXTHDR_TCP, NEXTHDR_UDP, NEXTHDR_IPV6, NEXTHDR_FRAGMENT, NEXTHDR_GRE, NEXTHDR_ESP, NEXTHDR_AUTH, NEXTHDR_ICMP, NEXTHDR_NONE, NEXTHDR_DEST, NEXTHDR_SCTP, NEXTHDR_MOBILITY
@@ -642,6 +644,8 @@ ipv6_tlv_enc_lim {
 	len		const[1, int8]
 	encap_limit	int8
 } [packed]
+
+# TODO: add ipv6_rt_hdr header.
 
 ipv6_packet {
 	priority	int8:4
@@ -885,7 +889,7 @@ icmp_ipv4_header {
 	ecn		int8:2
 	dscp		int8:6
 	total_len	int16be
-	id		proc[100, 4, int16be]
+	id		icmp_id
 	frag_off	int16be
 	ttl		int8
 	protocol	flags[ipv4_types, int8]
@@ -899,10 +903,12 @@ icmp_echo_reply_packet {
 	type	const[ICMP_ECHOREPLY, int8]
 	code	const[0, int8]
 	csum	csum[parent, inet, int16be]
-	id	int16be
+	id	icmp_id
 	seq_num	int16be
 	data	array[int8]
 } [packed]
+
+type icmp_id proc[100, 4, int16be]
 
 icmp_dest_unreach_codes = ICMP_NET_UNREACH, ICMP_HOST_UNREACH, ICMP_PROT_UNREACH, ICMP_PORT_UNREACH, ICMP_FRAG_NEEDED, ICMP_SR_FAILED, ICMP_NET_UNKNOWN, ICMP_HOST_UNKNOWN, ICMP_HOST_ISOLATED, ICMP_NET_ANO, ICMP_HOST_ANO, ICMP_NET_UNR_TOS, ICMP_HOST_UNR_TOS, ICMP_PKT_FILTERED, ICMP_PREC_VIOLATION, ICMP_PREC_CUTOFF
 
