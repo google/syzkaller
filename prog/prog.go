@@ -345,15 +345,8 @@ func (p *Prog) insertBefore(c *Call, calls []*Call) {
 	p.Calls = newCalls
 }
 
-// replaceArg replaces arg with arg1 in call c in program p, and inserts calls before arg call.
-func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
-	if debug {
-		p.replaceArgCheck(c, arg, arg1, calls)
-	}
-	for _, c := range calls {
-		p.Target.SanitizeCall(c)
-	}
-	p.insertBefore(c, calls)
+// replaceArg replaces arg with arg1 in a program.
+func replaceArg(arg, arg1 Arg) {
 	switch a := arg.(type) {
 	case *ConstArg:
 		*a = *arg1.(*ConstArg)
@@ -368,7 +361,6 @@ func (p *Prog) replaceArg(c *Call, arg, arg1 Arg, calls []*Call) {
 	default:
 		panic(fmt.Sprintf("replaceArg: bad arg kind %#v", arg))
 	}
-	p.Target.SanitizeCall(c)
 }
 
 func replaceResultArg(arg, arg1 *ResultArg) {
@@ -425,9 +417,9 @@ func (p *Prog) replaceArgCheck(c *Call, arg, arg1 Arg, calls []*Call) {
 	}
 }
 
-// removeArg removes all references to/from arg0 of call c from p.
-func (p *Prog) removeArg(c *Call, arg0 Arg) {
-	foreachSubarg(arg0, func(arg, _ Arg, _ *[]Arg) {
+// removeArg removes all references to/from arg0 from a program.
+func removeArg(arg0 Arg) {
+	ForeachSubarg(arg0, func(arg, _ Arg, _ *[]Arg) {
 		if a, ok := arg.(*ResultArg); ok && a.Res != nil {
 			if !(*a.Res.(ArgUsed).Used())[arg] {
 				panic("broken tree")
@@ -451,9 +443,9 @@ func (p *Prog) removeArg(c *Call, arg0 Arg) {
 func (p *Prog) removeCall(idx int) {
 	c := p.Calls[idx]
 	for _, arg := range c.Args {
-		p.removeArg(c, arg)
+		removeArg(arg)
 	}
-	p.removeArg(c, c.Ret)
+	removeArg(c.Ret)
 	copy(p.Calls[idx:], p.Calls[idx+1:])
 	p.Calls = p.Calls[:len(p.Calls)-1]
 }

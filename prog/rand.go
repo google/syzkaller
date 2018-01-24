@@ -517,6 +517,10 @@ func (r *randGen) generateArgs(s *state, types []Type) ([]Arg, []*Call) {
 }
 
 func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
+	return r.generateArgImpl(s, typ, false)
+}
+
+func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg Arg, calls []*Call) {
 	if typ.Dir() == DirOut {
 		// No need to generate something interesting for output scalar arguments.
 		// But we still need to generate the argument itself so that it can be referenced
@@ -666,19 +670,28 @@ func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
 		}
 		return MakeGroupArg(a, inner), calls
 	case *StructType:
-		if gen := r.target.SpecialStructs[a.Name()]; gen != nil && a.Dir() != DirOut {
-			arg, calls = gen(&Gen{r, s}, a, nil)
-			return
+		if !ignoreSpecial {
+			if gen := r.target.SpecialTypes[a.Name()]; gen != nil && a.Dir() != DirOut {
+				arg, calls = gen(&Gen{r, s}, a, nil)
+				return
+			}
 		}
 		args, calls := r.generateArgs(s, a.Fields)
 		group := MakeGroupArg(a, args)
 		return group, calls
 	case *UnionType:
+		if !ignoreSpecial {
+			if gen := r.target.SpecialTypes[a.Name()]; gen != nil && a.Dir() != DirOut {
+				arg, calls = gen(&Gen{r, s}, a, nil)
+				return
+			}
+		}
 		optType := a.Fields[r.Intn(len(a.Fields))]
 		opt, calls := r.generateArg(s, optType)
 		return MakeUnionArg(a, opt), calls
 	case *PtrType:
 		inner, calls := r.generateArg(s, a.Type)
+		// TODO(dvyukov): remove knowledge about iocb from prog.
 		if a.Type.Name() == "iocb" && len(s.resources["iocbptr"]) != 0 {
 			// It is weird, but these are actually identified by kernel by address.
 			// So try to reuse a previously used address.
