@@ -315,8 +315,8 @@ devname [
 ]
 
 devname_mask {
-	lo	flags[devname_mask_values, int64]
-	hi	const[0, int64]
+	lo	flags[devname_mask_values, int8]
+	hi	array[const[0, int8], 15]
 }
 
 devname_mask_values = 0, 0xff

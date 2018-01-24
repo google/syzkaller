@@ -933,8 +933,8 @@ var structDescs_386 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "syzn_devname", Dir: 2}, FldName: "syzn"},
 	}}},
 	{Key: StructKey{Name: "devname_mask"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "devname_mask", TypeSize: 16}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "devname_mask_values", FldName: "lo", TypeSize: 8}}, Vals: []uint64{0, 255}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "hi", TypeSize: 8}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "devname_mask_values", FldName: "lo", TypeSize: 1}}, Vals: []uint64{0, 255}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "hi", TypeSize: 15}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 15, RangeEnd: 15},
 	}}},
 	{Key: StructKey{Name: "dlci_add"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "dlci_add", TypeSize: 18}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "devname"}, FldName: "devname"},
@@ -2661,7 +2661,7 @@ var structDescs_386 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "xt_counters"}, FldName: "counters"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "matches", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "xt_entry_match"}}},
 	}}},
-	{Key: StructKey{Name: "ipt_ip"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipt_ip", TypeSize: 88}, Fields: []Type{
+	{Key: StructKey{Name: "ipt_ip"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipt_ip", TypeSize: 84}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "src"},
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "dst"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv4_addr_mask_vals", FldName: "smsk", TypeSize: 4}, BigEndian: true}, Vals: []uint64{0, 4278190080, 4294967040, 4294967295, 255}},
@@ -2673,7 +2673,6 @@ var structDescs_386 = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv4_types", FldName: "proto", TypeSize: 2}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 115}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipt_ip_flags", FldName: "flags", TypeSize: 1}}, Vals: []uint64{1, 2}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipt_ip_invflags", FldName: "invflags", TypeSize: 1}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "ipt_replace"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipt_replace", IsVarlen: true}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "name", TypeSize: 32}, Kind: 2, SubKind: "ipt_tables", Values: []string{"filter\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "mangle\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nat\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "raw\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "security\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"}},
@@ -21382,4 +21381,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "c7ae775d11312aff5f46452251a34d8f2fbc23db"
+const revision_386 = "e40ab07d179f415c45cf2ecb376828bda26f4141"
