@@ -119,6 +119,7 @@ void loop()
 {
 	// Tell parent that we are ready to serve.
 	reply_handshake();
+	checkpoint_net_namespace();
 
 	for (int iter = 0;; iter++) {
 		// Create a new private work dir for this test (removed at the end of the loop).
@@ -205,8 +206,9 @@ void loop()
 			fail("child failed");
 		if (status == kErrorStatus)
 			error("child errored");
-		remove_dir(cwdbuf);
 		reply_execute(0);
+		remove_dir(cwdbuf);
+		reset_net_namespace();
 	}
 }
 

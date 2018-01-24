@@ -60,6 +60,7 @@ func testEachTargetRandom(t *testing.T, fn func(t *testing.T, target *Target, rs
 		target := target
 		rs := rand.NewSource(rs0.Int63())
 		t.Run(fmt.Sprintf("%v/%v", target.OS, target.Arch), func(t *testing.T) {
+			t.Parallel()
 			fn(t, target, rs, iters)
 		})
 	}

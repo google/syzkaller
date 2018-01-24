@@ -12,6 +12,7 @@ include <uapi/linux/ipsec.h>
 resource sock_nl_xfrm[sock_netlink]
 type xfrm_req_id proc[13567, 8, int32, opt]
 type xfrm_policy_index proc[7236528, 16, int32, opt]
+type xfrm_spi proc[1234, 4, int32be]
 
 socket$nl_xfrm(domain const[AF_NETLINK], type const[SOCK_RAW], proto const[NETLINK_XFRM]) sock_nl_xfrm
 
@@ -63,7 +64,7 @@ xfrm_usersa_info {
 
 xfrm_usersa_id {
 	daddr	xfrm_address
-	spi	proc[1234, 4, int32be]
+	spi	xfrm_spi
 	family	flags[xfrm_family, int16]
 	proto	flags[xfrm_proto, int8]
 }

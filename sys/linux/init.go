@@ -40,7 +40,7 @@ func initTarget(target *prog.Target) {
 	target.MakeMmap = arch.makeMmap
 	target.AnalyzeMmap = arch.analyzeMmap
 	target.SanitizeCall = arch.sanitizeCall
-	target.SpecialStructs = map[string]func(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (
+	target.SpecialTypes = map[string]func(g *prog.Gen, typ prog.Type, old prog.Arg) (
 		prog.Arg, []*prog.Call){
 		"timespec":           arch.generateTimespec,
 		"timeval":            arch.generateTimespec,
@@ -49,6 +49,8 @@ func initTarget(target *prog.Target) {
 		"alg_aead_name":      arch.generateAlgAeadName,
 		"alg_hash_name":      arch.generateAlgHashName,
 		"alg_blkcipher_name": arch.generateAlgBlkcipherhName,
+		"ipt_replace":        arch.generateIptables,
+		"ip6t_replace":       arch.generateIptables,
 	}
 	target.StringDictionary = stringDictionary
 
@@ -71,6 +73,7 @@ var (
 	KCOV_ENABLE     uintptr
 	KCOV_TRACE_CMP  uintptr
 
+	// TODO(dvyukov): get rid of this, this must be in descriptions.
 	stringDictionary = []string{"user", "keyring", "trusted", "system", "security", "selinux",
 		"posix_acl_access", "mime_type", "md5sum", "nodev", "self",
 		"bdev", "proc", "cgroup", "cpuset",
@@ -218,7 +221,8 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 	}
 }
 
-func (arch *arch) generateTimespec(g *prog.Gen, typ *prog.StructType, old *prog.GroupArg) (arg prog.Arg, calls []*prog.Call) {
+func (arch *arch) generateTimespec(g *prog.Gen, typ0 prog.Type, old prog.Arg) (arg prog.Arg, calls []*prog.Call) {
+	typ := typ0.(*prog.StructType)
 	// We need to generate timespec/timeval that are either
 	// (1) definitely in the past, or
 	// (2) definitely in unreachable fututre, or

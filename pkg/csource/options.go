@@ -46,6 +46,9 @@ func (opts Options) Check() error {
 		// This does not affect generated code.
 		return errors.New("Procs>1 without Repeat")
 	}
+	if !opts.Repeat && opts.WaitRepeat {
+		return errors.New("WaitRepeat without Repeat")
+	}
 	if opts.Sandbox == "namespace" && !opts.UseTmpDir {
 		// This is borken and never worked.
 		// This tries to create syz-tmp dir in cwd,
