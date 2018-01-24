@@ -5,6 +5,7 @@ package prog
 
 import (
 	"fmt"
+	"strings"
 )
 
 func (target *Target) generateSize(arg Arg, lenType *LenType) uint64 {
@@ -67,7 +68,12 @@ func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg) {
 
 			sizeAssigned := false
 			for parent := parentsMap[arg]; parent != nil; parent = parentsMap[parent] {
-				if typ.Buf == parent.Type().Name() {
+				parentName := parent.Type().Name()
+				if pos := strings.IndexByte(parentName, '['); pos != -1 {
+					// For template parents, strip arguments.
+					parentName = parentName[:pos]
+				}
+				if typ.Buf == parentName {
 					a.Val = parent.Size()
 					if typ.BitSize != 0 {
 						a.Val = a.Val * 8 / typ.BitSize

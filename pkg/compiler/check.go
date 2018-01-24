@@ -269,15 +269,14 @@ func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field
 	for i, arg := range args {
 		argDesc := desc.Args[i]
 		if argDesc.Type == typeArgLenTarget {
-			comp.checkLenTarget(t, name, &arg.Ident, fields, parents)
+			comp.checkLenTarget(t, name, arg.Ident, fields, parents)
 		} else if argDesc.Type == typeArgType {
 			comp.checkLenType(arg, name, fields, parents, checked, false)
 		}
 	}
 }
 
-func (comp *compiler) checkLenTarget(t *ast.Type, name string, targetp *string, fields []*ast.Field, parents []*ast.Struct) {
-	target := *targetp
+func (comp *compiler) checkLenTarget(t *ast.Type, name, target string, fields []*ast.Field, parents []*ast.Struct) {
 	if target == name {
 		comp.error(t.Pos, "%v target %v refer to itself", t.Ident, target)
 		return
@@ -315,12 +314,10 @@ func (comp *compiler) checkLenTarget(t *ast.Type, name string, targetp *string, 
 	for _, parent := range parents {
 		parentName := parent.Name.Name
 		if pos := strings.IndexByte(parentName, '['); pos != -1 {
-			// For template parents name is "struct_name[ARG1, ARG2]",
-			// strip the part after '[' and update actual len target.
+			// For template parents name is "struct_name[ARG1, ARG2]", strip the part after '['.
 			parentName = parentName[:pos]
 		}
 		if target == parentName {
-			*targetp = parent.Name.Name
 			return
 		}
 	}
