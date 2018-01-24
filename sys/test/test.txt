@@ -350,6 +350,22 @@ type len_temp2[DATA] {
 
 syz_test$length23(a ptr[in, len_templ1[int8, int16]])
 
+type len_temp3[DATA] {
+	f1	DATA
+	f2	len_nontemp4
+}
+
+len_nontemp4 {
+	f1	len[len_temp3, int32]
+}
+
+len_nontemp5 {
+	f1	len_temp3[int8]
+	f2	len_temp3[int64]
+}
+
+syz_test$length24(a ptr[in, len_nontemp5])
+
 # Big endian
 
 syz_test$end0(a0 ptr[in, syz_end_int_struct])
