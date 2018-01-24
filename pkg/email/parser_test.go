@@ -320,7 +320,6 @@ Message-ID: <123>
 Subject: test subject
 From: Bob <bob@example.com>
 To: syzbot <bot@example.com>, Alice <alice@example.com>
-Content-Type: text/plain
 
 #syz  invalid   	 
 text body

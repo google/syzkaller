@@ -246,9 +246,14 @@ func extractArgsLine(body []byte) string {
 }
 
 func parseBody(r io.Reader, headers mail.Header) (body []byte, attachments [][]byte, err error) {
-	mediaType, params, err := mime.ParseMediaType(headers.Get("Content-Type"))
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse email header 'Content-Type': %v", err)
+	// git-send-email sends emails without Content-Type, let's assume it's text.
+	mediaType := "text/plain"
+	var params map[string]string
+	if contentType := headers.Get("Content-Type"); contentType != "" {
+		mediaType, params, err = mime.ParseMediaType(headers.Get("Content-Type"))
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse email header 'Content-Type': %v", err)
+		}
 	}
 	// Note: mime package handles quoted-printable internally.
 	if strings.ToLower(headers.Get("Content-Transfer-Encoding")) == "base64" {
