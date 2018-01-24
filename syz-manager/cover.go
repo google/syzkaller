@@ -468,10 +468,13 @@ var coverTemplate = template.Must(template.New("").Parse(`
 		if (window.location.hash) {
 			var hash = window.location.hash.substring(1);
 			for (var i = 0; i < files.options.length; i++) {
-			      if (files.options[i].value === hash) {
-				      files.selectedIndex = i;
-				      break;
-			      }
+				if (files.options[i].value === hash) {
+					files.selectedIndex = i;
+					visible.style.display = 'none';
+					visible = document.getElementById(files.value);
+					visible.style.display = 'block';
+					break;
+				}
 			}
 		}
 		files.addEventListener('change', onChange, false);
