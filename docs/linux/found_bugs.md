@@ -1,6 +1,6 @@
 # Found bugs
 
-Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs).
+Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs). Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
 * [scsi: sg: assorted memory corruptions](https://groups.google.com/d/msg/syzkaller/9RNr9Gu0MyY/Yyry-0XBDgAJ)
