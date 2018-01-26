@@ -4,6 +4,7 @@
 package prog
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -43,4 +44,23 @@ func initRandomTargetTest(t *testing.T, os, arch string) (*Target, rand.Source, 
 
 func initTest(t *testing.T) (*Target, rand.Source, int) {
 	return initRandomTargetTest(t, "linux", "amd64")
+}
+
+func testEachTargetRandom(t *testing.T, fn func(t *testing.T, target *Target, rs rand.Source, iters int)) {
+	iters := 10000
+	if testing.Short() {
+		iters = 100
+	}
+	targets := AllTargets()
+	iters /= len(targets)
+	seed := int64(time.Now().UnixNano())
+	rs0 := rand.NewSource(seed)
+	t.Logf("seed=%v", seed)
+	for _, target := range targets {
+		target := target
+		rs := rand.NewSource(rs0.Int63())
+		t.Run(fmt.Sprintf("%v/%v", target.OS, target.Arch), func(t *testing.T) {
+			fn(t, target, rs, iters)
+		})
+	}
 }

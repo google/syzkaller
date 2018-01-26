@@ -145,3 +145,9 @@ foo$templ3(a ptr[in, templ_struct1[1]], b ptr[in, templ_struct1[2]])
 foo$templ4(a ptr[in, templ_struct1[3]])
 foo$templ5(a ptr[in, templ_struct1[3]])
 foo$templ6(a ptr[in, templ_struct4])
+
+# Unions.
+
+u0 [
+	f1	int32
+]

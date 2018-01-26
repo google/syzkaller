@@ -38,8 +38,7 @@ u0 [
 	f2	fileoff[int32]
 ]
 
-u1 [				### union u1 has only 1 field, need at least 2 fields
-	f1	int32
+u1 [				### union u1 has no fields, need at least 1 field
 ]
 
 u2 [
@@ -49,18 +48,18 @@ u2 [
 ]
 
 foo$4(a int8, a int16)		### duplicate argument a in syscall foo$4
-foo$4()				### syscall foo$4 redeclared, previously declared at errors.txt:51:1
+foo$4()				### syscall foo$4 redeclared, previously declared at errors.txt:50:1
 foo()
-foo()				### syscall foo redeclared, previously declared at errors.txt:53:1
+foo()				### syscall foo redeclared, previously declared at errors.txt:52:1
 foo$5(a0 int8, a1 int8, a2 int8, a3 int8, a4 int8, a5 int8, a6 int8, a7 int8, a8 int8, a9 int8)	### syscall foo$5 has 10 arguments, allowed maximum is 9
 foo$6(parent int8)		### reserved argument name parent in syscall foo$6
 
 f1 = 1
 f2 = 1, 2
-f2 = 1, 2			### flags f2 redeclared, previously declared at errors.txt:59:1
+f2 = 1, 2			### flags f2 redeclared, previously declared at errors.txt:58:1
 sf1 = "a"
 sf2 = "a", "b"
-sf2 = "c"			### string flags sf2 redeclared, previously declared at errors.txt:62:1
+sf2 = "c"			### string flags sf2 redeclared, previously declared at errors.txt:61:1
 
 resource r2[r0]: 2
 resource r3[int32:1]		###  unexpected ':', only struct fields can be bitfields
@@ -190,8 +189,8 @@ typestruct {
 }
 
 type type0 int8
-type type0 int8			### type type0 redeclared, previously declared as type alias at errors.txt:192:6
-resource type0[int32]		### type type0 redeclared, previously declared as type alias at errors.txt:192:6
+type type0 int8			### type type0 redeclared, previously declared as type alias at errors.txt:191:6
+resource type0[int32]		### type type0 redeclared, previously declared as type alias at errors.txt:191:6
 type0 = 0, 1
 type type1 type1		### type instantiation loop: type1 -> type1
 type type2 int8:4		### unexpected ':', only struct fields can be bitfields

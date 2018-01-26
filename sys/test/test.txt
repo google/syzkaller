@@ -147,6 +147,12 @@ syz_union2_struct {
 	f1	int8
 } [packed]
 
+syz_union3 [
+	f0	int32
+]
+
+syz_test$syz_union3(a0 ptr[in, syz_union3])
+
 # Arrays
 
 syz_test$array0(a0 ptr[in, syz_array_struct])

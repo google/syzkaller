@@ -133,12 +133,8 @@ func (comp *compiler) checkFields() {
 		case *ast.Struct:
 			_, typ, name := n.Info()
 			comp.checkFieldGroup(n.Fields, "field", typ+" "+name)
-			if !n.IsUnion && len(n.Fields) < 1 {
-				comp.error(n.Pos, "struct %v has no fields, need at least 1 field", name)
-			}
-			if n.IsUnion && len(n.Fields) < 2 {
-				comp.error(n.Pos, "union %v has only %v field, need at least 2 fields",
-					name, len(n.Fields))
+			if len(n.Fields) < 1 {
+				comp.error(n.Pos, "%v %v has no fields, need at least 1 field", typ, name)
 			}
 		case *ast.Call:
 			name := n.Name.Name
