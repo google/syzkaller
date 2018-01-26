@@ -24,32 +24,33 @@ func TestClone(t *testing.T) {
 }
 
 func TestMutateRandom(t *testing.T) {
-	target, rs, iters := initTest(t)
-next:
-	for i := 0; i < iters; i++ {
-		p := target.Generate(rs, 10, nil)
-		data0 := p.Serialize()
-		p1 := p.Clone()
-		// There is a chance that mutation will produce the same program.
-		// So we check that at least 1 out of 10 mutations actually change the program.
-		for try := 0; try < 10; try++ {
-			p1.Mutate(rs, 10, nil, nil)
-			data := p.Serialize()
-			if !bytes.Equal(data0, data) {
-				t.Fatalf("program changed after clone/mutate\noriginal:\n%s\n\nnew:\n%s\n",
-					data0, data)
+	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
+	next:
+		for i := 0; i < iters; i++ {
+			p := target.Generate(rs, 10, nil)
+			data0 := p.Serialize()
+			p1 := p.Clone()
+			// There is a chance that mutation will produce the same program.
+			// So we check that at least 1 out of 10 mutations actually change the program.
+			for try := 0; try < 10; try++ {
+				p1.Mutate(rs, 10, nil, nil)
+				data := p.Serialize()
+				if !bytes.Equal(data0, data) {
+					t.Fatalf("program changed after mutate\noriginal:\n%s\n\nnew:\n%s\n",
+						data0, data)
+				}
+				data1 := p1.Serialize()
+				if bytes.Equal(data, data1) {
+					continue
+				}
+				if _, err := target.Deserialize(data1); err != nil {
+					t.Fatalf("Deserialize failed after Mutate: %v\n%s", err, data1)
+				}
+				continue next
 			}
-			data1 := p1.Serialize()
-			if bytes.Equal(data, data1) {
-				continue
-			}
-			if _, err := target.Deserialize(data1); err != nil {
-				t.Fatalf("Deserialize failed after Mutate: %v\n%s", err, data1)
-			}
-			continue next
+			t.Fatalf("mutation does not change program:\n%s", data0)
 		}
-		t.Fatalf("mutation does not change program:\n%s", data0)
-	}
+	})
 }
 
 func TestMutateCorpus(t *testing.T) {

@@ -195,14 +195,21 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					}
 				case *UnionType:
 					a := arg.(*UnionArg)
-					optType := t.Fields[r.Intn(len(t.Fields))]
-					maxIters := 1000
-					for i := 0; optType.FieldName() == a.OptionType.FieldName(); i++ {
-						optType = t.Fields[r.Intn(len(t.Fields))]
-						if i >= maxIters {
-							panic(fmt.Sprintf("couldn't generate a different union option after %v iterations, type: %+v", maxIters, t))
+					current := -1
+					for i, option := range t.Fields {
+						if a.Option.Type().FieldName() == option.FieldName() {
+							current = i
+							break
 						}
 					}
+					if current == -1 {
+						panic("can't find current option in union")
+					}
+					newIdx := r.Intn(len(t.Fields) - 1)
+					if newIdx >= current {
+						newIdx++
+					}
+					optType := t.Fields[newIdx]
 					p.removeArg(c, a.Option)
 					opt, calls := r.generateArg(s, optType)
 					arg1 := MakeUnionArg(t, opt, optType)
@@ -517,6 +524,10 @@ func (target *Target) mutationArgs(c *Call) (args, bases []Arg, parents []*[]Arg
 				return
 			}
 			// These special structs are mutated as a whole.
+		case *UnionType:
+			if len(typ.Fields) == 1 {
+				return
+			}
 		case *ArrayType:
 			// Don't mutate fixed-size arrays.
 			if typ.Kind == ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
