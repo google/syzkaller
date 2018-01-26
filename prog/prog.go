@@ -192,12 +192,11 @@ func (arg *GroupArg) Size() uint64 {
 // Used for UnionType.
 type UnionArg struct {
 	ArgCommon
-	Option     Arg
-	OptionType Type
+	Option Arg
 }
 
-func MakeUnionArg(t Type, opt Arg, typ Type) Arg {
-	return &UnionArg{ArgCommon: ArgCommon{typ: t}, Option: opt, OptionType: typ}
+func MakeUnionArg(t Type, opt Arg) Arg {
+	return &UnionArg{ArgCommon: ArgCommon{typ: t}, Option: opt}
 }
 
 func (arg *UnionArg) Size() uint64 {
@@ -315,7 +314,7 @@ func defaultArg(t Type) Arg {
 		}
 		return MakeGroupArg(t, inner)
 	case *UnionType:
-		return MakeUnionArg(t, defaultArg(typ.Fields[0]), typ.Fields[0])
+		return MakeUnionArg(t, defaultArg(typ.Fields[0]))
 	case *VmaType:
 		return MakePointerArg(t, 0, 0, 1, nil)
 	case *PtrType:

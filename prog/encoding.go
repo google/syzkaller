@@ -109,7 +109,7 @@ func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 		}
 		buf.Write([]byte{delims[1]})
 	case *UnionArg:
-		fmt.Fprintf(buf, "@%v=", a.OptionType.FieldName())
+		fmt.Fprintf(buf, "@%v=", a.Option.Type().FieldName())
 		serialize(a.Option, buf, vars, varSeq)
 	case *ResultArg:
 		if a.Res == nil {
@@ -396,7 +396,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		if err != nil {
 			return nil, err
 		}
-		arg = MakeUnionArg(typ, opt, optType)
+		arg = MakeUnionArg(typ, opt)
 	case 'n':
 		p.Parse('n')
 		p.Parse('i')

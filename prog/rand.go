@@ -676,7 +676,7 @@ func (r *randGen) generateArg(s *state, typ Type) (arg Arg, calls []*Call) {
 	case *UnionType:
 		optType := a.Fields[r.Intn(len(a.Fields))]
 		opt, calls := r.generateArg(s, optType)
-		return MakeUnionArg(a, opt, optType), calls
+		return MakeUnionArg(a, opt), calls
 	case *PtrType:
 		inner, calls := r.generateArg(s, a.Type)
 		if a.Type.Name() == "iocb" && len(s.resources["iocbptr"]) != 0 {
