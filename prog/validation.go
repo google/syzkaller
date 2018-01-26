@@ -223,7 +223,7 @@ func (c *Call) validate(ctx *validCtx) error {
 			}
 			found := false
 			for _, typ2 := range typ1.Fields {
-				if a.OptionType.Name() == typ2.Name() {
+				if a.Option.Type().Name() == typ2.Name() {
 					found = true
 					break
 				}
