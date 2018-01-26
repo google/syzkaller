@@ -212,7 +212,7 @@ func (p *Prog) Mutate(rs rand.Source, ncalls int, ct *ChoiceTable, corpus []*Pro
 					optType := t.Fields[newIdx]
 					p.removeArg(c, a.Option)
 					opt, calls := r.generateArg(s, optType)
-					arg1 := MakeUnionArg(t, opt, optType)
+					arg1 := MakeUnionArg(t, opt)
 					p.replaceArg(c, arg, arg1, calls)
 				case *CsumType:
 					panic("bad arg returned by mutationArgs: CsumType")
