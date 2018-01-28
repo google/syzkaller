@@ -2003,8 +2003,7 @@ struct ipt_getinfo {
 struct ipt_get_entries {
 	char name[32];
 	unsigned int size;
-	unsigned int pad;
-	char entrytable[1024];
+	void* entrytable[1024 / sizeof(void*)];
 };
 
 struct xt_counters {
