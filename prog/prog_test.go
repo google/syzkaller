@@ -183,6 +183,9 @@ func TestSpecialStructs(t *testing.T) {
 				var typ Type
 				for i := 0; i < len(target.Syscalls) && typ == nil; i++ {
 					ForeachType(target.Syscalls[i], func(t Type) {
+						if t.Dir() == DirOut {
+							return
+						}
 						if s, ok := t.(*StructType); ok && s.Name() == special {
 							typ = s
 						}
