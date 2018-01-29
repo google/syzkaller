@@ -1991,6 +1991,13 @@ static int do_sandbox_namespace(int executor_pid, bool enable_tun)
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_RESET_NET_NAMESPACE)
 
+#define XT_TABLE_SIZE 1536
+#define XT_MAX_ENTRIES 10
+
+struct xt_counters {
+	uint64 pcnt, bcnt;
+};
+
 struct ipt_getinfo {
 	char name[32];
 	unsigned int valid_hooks;
@@ -2003,11 +2010,7 @@ struct ipt_getinfo {
 struct ipt_get_entries {
 	char name[32];
 	unsigned int size;
-	void* entrytable[1024 / sizeof(void*)];
-};
-
-struct xt_counters {
-	uint64 pcnt, bcnt;
+	void* entrytable[XT_TABLE_SIZE / sizeof(void*)];
 };
 
 struct ipt_replace {
@@ -2019,18 +2022,24 @@ struct ipt_replace {
 	unsigned int underflow[5];
 	unsigned int num_counters;
 	struct xt_counters* counters;
-	char entrytable[1024];
+	char entrytable[XT_TABLE_SIZE];
 };
 
 struct ipt_table_desc {
 	const char* name;
 	struct ipt_getinfo info;
-	struct ipt_get_entries entries;
 	struct ipt_replace replace;
-	struct xt_counters counters[10];
 };
 
 static struct ipt_table_desc ipv4_tables[] = {
+    {.name = "filter"},
+    {.name = "nat"},
+    {.name = "mangle"},
+    {.name = "raw"},
+    {.name = "security"},
+};
+
+static struct ipt_table_desc ipv6_tables[] = {
     {.name = "filter"},
     {.name = "nat"},
     {.name = "mangle"},
@@ -2043,22 +2052,63 @@ static struct ipt_table_desc ipv4_tables[] = {
 #define IPT_SO_GET_INFO (IPT_BASE_CTL)
 #define IPT_SO_GET_ENTRIES (IPT_BASE_CTL + 1)
 
-static void checkpoint_net_namespace(void)
-{
-	socklen_t optlen;
-	unsigned i;
-	int fd;
+struct arpt_getinfo {
+	char name[32];
+	unsigned int valid_hooks;
+	unsigned int hook_entry[3];
+	unsigned int underflow[3];
+	unsigned int num_entries;
+	unsigned int size;
+};
 
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+struct arpt_get_entries {
+	char name[32];
+	unsigned int size;
+	void* entrytable[XT_TABLE_SIZE / sizeof(void*)];
+};
+
+struct arpt_replace {
+	char name[32];
+	unsigned int valid_hooks;
+	unsigned int num_entries;
+	unsigned int size;
+	unsigned int hook_entry[3];
+	unsigned int underflow[3];
+	unsigned int num_counters;
+	struct xt_counters* counters;
+	char entrytable[XT_TABLE_SIZE];
+};
+
+struct arpt_table_desc {
+	const char* name;
+	struct arpt_getinfo info;
+	struct arpt_replace replace;
+};
+
+static struct arpt_table_desc arpt_tables[] = {
+    {.name = "filter"},
+};
+
+#define ARPT_BASE_CTL 96
+#define ARPT_SO_SET_REPLACE (ARPT_BASE_CTL)
+#define ARPT_SO_GET_INFO (ARPT_BASE_CTL)
+#define ARPT_SO_GET_ENTRIES (ARPT_BASE_CTL + 1)
+
+static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, int family, int level)
+{
+	struct ipt_get_entries entries;
+	socklen_t optlen;
+	int fd, i;
+
+	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1)
-		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
-	for (i = 0; i < sizeof(ipv4_tables) / sizeof(ipv4_tables[0]); i++) {
-		struct ipt_table_desc* table = &ipv4_tables[i];
+		fail("socket(%d, SOCK_STREAM, IPPROTO_TCP)", family);
+	for (i = 0; i < num_tables; i++) {
+		struct ipt_table_desc* table = &tables[i];
 		strcpy(table->info.name, table->name);
-		strcpy(table->entries.name, table->name);
 		strcpy(table->replace.name, table->name);
 		optlen = sizeof(table->info);
-		if (getsockopt(fd, SOL_IP, IPT_SO_GET_INFO, &table->info, &optlen)) {
+		if (getsockopt(fd, level, IPT_SO_GET_INFO, &table->info, &optlen)) {
 			switch (errno) {
 			case EPERM:
 			case ENOENT:
@@ -2067,62 +2117,168 @@ static void checkpoint_net_namespace(void)
 			}
 			fail("getsockopt(IPT_SO_GET_INFO)");
 		}
-		if (table->info.size > sizeof(table->entries.entrytable))
+		debug("checkpoint iptable %s/%d: entries=%d hooks=%x size=%d\n",
+		      table->name, family, table->info.num_entries, table->info.valid_hooks,
+		      table->info.size);
+		if (table->info.size > sizeof(table->replace.entrytable))
 			fail("table size is too large: %u", table->info.size);
-		if (table->info.num_entries > sizeof(table->counters) / sizeof(table->counters[0]))
+		if (table->info.num_entries > XT_MAX_ENTRIES)
 			fail("too many counters: %u", table->info.num_entries);
-		table->entries.size = table->info.size;
-		optlen = sizeof(table->entries) - sizeof(table->entries.entrytable) + table->info.size;
-		if (getsockopt(fd, SOL_IP, IPT_SO_GET_ENTRIES, &table->entries, &optlen))
+		memset(&entries, 0, sizeof(entries));
+		strcpy(entries.name, table->name);
+		entries.size = table->info.size;
+		optlen = sizeof(entries) - sizeof(entries.entrytable) + table->info.size;
+		if (getsockopt(fd, level, IPT_SO_GET_ENTRIES, &entries, &optlen))
 			fail("getsockopt(IPT_SO_GET_ENTRIES)");
 		table->replace.valid_hooks = table->info.valid_hooks;
 		table->replace.num_entries = table->info.num_entries;
-		table->replace.counters = table->counters;
 		table->replace.size = table->info.size;
 		memcpy(table->replace.hook_entry, table->info.hook_entry, sizeof(table->replace.hook_entry));
 		memcpy(table->replace.underflow, table->info.underflow, sizeof(table->replace.underflow));
-		memcpy(table->replace.entrytable, table->entries.entrytable, table->info.size);
+		memcpy(table->replace.entrytable, entries.entrytable, table->info.size);
 	}
 	close(fd);
 }
 
-static void reset_net_namespace(void)
+static void reset_iptables(struct ipt_table_desc* tables, int num_tables, int family, int level)
 {
+	struct xt_counters counters[XT_MAX_ENTRIES];
 	struct ipt_get_entries entries;
 	struct ipt_getinfo info;
 	socklen_t optlen;
-	unsigned i;
-	int fd;
+	int fd, i;
 
-	memset(&info, 0, sizeof(info));
-	memset(&entries, 0, sizeof(entries));
-	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	fd = socket(family, SOCK_STREAM, IPPROTO_TCP);
 	if (fd == -1)
-		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
-	for (i = 0; i < sizeof(ipv4_tables) / sizeof(ipv4_tables[0]); i++) {
-		struct ipt_table_desc* table = &ipv4_tables[i];
+		fail("socket(%d, SOCK_STREAM, IPPROTO_TCP)", family);
+	for (i = 0; i < num_tables; i++) {
+		struct ipt_table_desc* table = &tables[i];
 		if (table->info.valid_hooks == 0)
 			continue;
+		memset(&info, 0, sizeof(info));
 		strcpy(info.name, table->name);
 		optlen = sizeof(info);
-		if (getsockopt(fd, SOL_IP, IPT_SO_GET_INFO, &info, &optlen))
+		if (getsockopt(fd, level, IPT_SO_GET_INFO, &info, &optlen))
 			fail("getsockopt(IPT_SO_GET_INFO)");
 		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
+			memset(&entries, 0, sizeof(entries));
 			strcpy(entries.name, table->name);
 			entries.size = table->info.size;
 			optlen = sizeof(entries) - sizeof(entries.entrytable) + entries.size;
-			if (getsockopt(fd, SOL_IP, IPT_SO_GET_ENTRIES, &entries, &optlen))
+			if (getsockopt(fd, level, IPT_SO_GET_ENTRIES, &entries, &optlen))
 				fail("getsockopt(IPT_SO_GET_ENTRIES)");
-			if (memcmp(&table->entries, &entries, optlen) == 0)
+			if (memcmp(table->replace.entrytable, entries.entrytable, table->info.size) == 0)
 				continue;
 		}
 		debug("resetting iptable %s\n", table->name);
 		table->replace.num_counters = info.num_entries;
+		table->replace.counters = counters;
 		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
-		if (setsockopt(fd, SOL_IP, IPT_SO_SET_REPLACE, &table->replace, optlen))
+		if (setsockopt(fd, level, IPT_SO_SET_REPLACE, &table->replace, optlen))
 			fail("setsockopt(IPT_SO_SET_REPLACE)");
 	}
 	close(fd);
+}
+
+static void checkpoint_arptables(void)
+{
+	struct arpt_get_entries entries;
+	socklen_t optlen;
+	unsigned i;
+	int fd;
+
+	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (fd == -1)
+		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+	for (i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
+		struct arpt_table_desc* table = &arpt_tables[i];
+		strcpy(table->info.name, table->name);
+		strcpy(table->replace.name, table->name);
+		optlen = sizeof(table->info);
+		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_INFO, &table->info, &optlen)) {
+			switch (errno) {
+			case EPERM:
+			case ENOENT:
+			case ENOPROTOOPT:
+				continue;
+			}
+			fail("getsockopt(ARPT_SO_GET_INFO)");
+		}
+		debug("checkpoint arptable %s: entries=%d hooks=%x size=%d\n",
+		      table->name, table->info.num_entries, table->info.valid_hooks, table->info.size);
+		if (table->info.size > sizeof(table->replace.entrytable))
+			fail("table size is too large: %u", table->info.size);
+		if (table->info.num_entries > XT_MAX_ENTRIES)
+			fail("too many counters: %u", table->info.num_entries);
+		memset(&entries, 0, sizeof(entries));
+		strcpy(entries.name, table->name);
+		entries.size = table->info.size;
+		optlen = sizeof(entries) - sizeof(entries.entrytable) + table->info.size;
+		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_ENTRIES, &entries, &optlen))
+			fail("getsockopt(ARPT_SO_GET_ENTRIES)");
+		table->replace.valid_hooks = table->info.valid_hooks;
+		table->replace.num_entries = table->info.num_entries;
+		table->replace.size = table->info.size;
+		memcpy(table->replace.hook_entry, table->info.hook_entry, sizeof(table->replace.hook_entry));
+		memcpy(table->replace.underflow, table->info.underflow, sizeof(table->replace.underflow));
+		memcpy(table->replace.entrytable, entries.entrytable, table->info.size);
+	}
+	close(fd);
+}
+
+static void reset_arptables()
+{
+	struct xt_counters counters[XT_MAX_ENTRIES];
+	struct arpt_get_entries entries;
+	struct arpt_getinfo info;
+	socklen_t optlen;
+	unsigned i;
+	int fd;
+
+	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (fd == -1)
+		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+	for (i = 0; i < sizeof(arpt_tables) / sizeof(arpt_tables[0]); i++) {
+		struct arpt_table_desc* table = &arpt_tables[i];
+		if (table->info.valid_hooks == 0)
+			continue;
+		memset(&info, 0, sizeof(info));
+		strcpy(info.name, table->name);
+		optlen = sizeof(info);
+		if (getsockopt(fd, SOL_IP, ARPT_SO_GET_INFO, &info, &optlen))
+			fail("getsockopt(ARPT_SO_GET_INFO)");
+		if (memcmp(&table->info, &info, sizeof(table->info)) == 0) {
+			memset(&entries, 0, sizeof(entries));
+			strcpy(entries.name, table->name);
+			entries.size = table->info.size;
+			optlen = sizeof(entries) - sizeof(entries.entrytable) + entries.size;
+			if (getsockopt(fd, SOL_IP, ARPT_SO_GET_ENTRIES, &entries, &optlen))
+				fail("getsockopt(ARPT_SO_GET_ENTRIES)");
+			if (memcmp(table->replace.entrytable, entries.entrytable, table->info.size) == 0)
+				continue;
+		}
+		debug("resetting arptable %s\n", table->name);
+		table->replace.num_counters = info.num_entries;
+		table->replace.counters = counters;
+		optlen = sizeof(table->replace) - sizeof(table->replace.entrytable) + table->replace.size;
+		if (setsockopt(fd, SOL_IP, ARPT_SO_SET_REPLACE, &table->replace, optlen))
+			fail("setsockopt(ARPT_SO_SET_REPLACE)");
+	}
+	close(fd);
+}
+
+static void checkpoint_net_namespace(void)
+{
+	checkpoint_arptables();
+	checkpoint_iptables(ipv4_tables, sizeof(ipv4_tables) / sizeof(ipv4_tables[0]), AF_INET, SOL_IP);
+	checkpoint_iptables(ipv6_tables, sizeof(ipv6_tables) / sizeof(ipv6_tables[0]), AF_INET6, SOL_IPV6);
+}
+
+static void reset_net_namespace(void)
+{
+	reset_arptables();
+	reset_iptables(ipv4_tables, sizeof(ipv4_tables) / sizeof(ipv4_tables[0]), AF_INET, SOL_IP);
+	reset_iptables(ipv6_tables, sizeof(ipv6_tables) / sizeof(ipv6_tables[0]), AF_INET6, SOL_IPV6);
 }
 #endif
 

@@ -430,6 +430,16 @@ func replaceArg(arg, arg1 Arg) {
 		*a = *arg1.(*UnionArg)
 	case *DataArg:
 		*a = *arg1.(*DataArg)
+	case *GroupArg:
+		a1 := arg1.(*GroupArg)
+		if len(a.Inner) != len(a1.Inner) {
+			panic(fmt.Sprintf("replaceArg: group fields don't match: %v/%v",
+				len(a.Inner), len(a1.Inner)))
+		}
+		a.ArgCommon = a1.ArgCommon
+		for i := range a.Inner {
+			replaceArg(a.Inner[i], a1.Inner[i])
+		}
 	default:
 		panic(fmt.Sprintf("replaceArg: bad arg kind %#v", arg))
 	}

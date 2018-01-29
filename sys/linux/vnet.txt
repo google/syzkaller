@@ -646,6 +646,7 @@ ipv6_tlv_enc_lim {
 } [packed]
 
 # TODO: add ipv6_rt_hdr header.
+# TODO: add ipv6_sr_hdr header.
 
 ipv6_packet {
 	priority	int8:4

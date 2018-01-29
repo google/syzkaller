@@ -764,9 +764,9 @@ __NR_personality = 136
 __NR_pipe = 42
 __NR_pipe2 = 317
 __NR_pivot_root = 203
-# __NR_pkey_alloc is not set
-# __NR_pkey_free is not set
-# __NR_pkey_mprotect is not set
+__NR_pkey_alloc = 384
+__NR_pkey_free = 385
+__NR_pkey_mprotect = 386
 __NR_poll = 167
 __NR_ppoll = 281
 __NR_prctl = 171
