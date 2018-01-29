@@ -40,9 +40,7 @@ type xt_target_t[NAME, DATA, REV] {
 xt_unspec_targets [
 	STANDARD	xt_target_t["", flags[nf_verdicts, int32], 0]
 	ERROR		xt_target_t["ERROR", array[int8, XT_FUNCTION_MAXNAMELEN], 0]
-	TEE		xt_target_t["TEE", xt_tee_tginfo, 1]
 	LED		xt_target_t["LED", xt_led_info, 0]
-	TCPMSS		xt_target_t["TCPMSS", xt_tcpmss_info, 0]
 	RATEEST		xt_target_t["RATEEST", xt_rateest_target_info, 0]
 	NFQUEUE0	xt_target_t["NFQUEUE", xt_NFQ_info, 0]
 	NFQUEUE1	xt_target_t["NFQUEUE", xt_NFQ_info_v1, 1]
@@ -50,19 +48,12 @@ xt_unspec_targets [
 	NFQUEUE3	xt_target_t["NFQUEUE", xt_NFQ_info_v3, 3]
 	CLASSIFY	xt_target_t["CLASSIFY", xt_classify_target_info, 0]
 	IDLETIMER	xt_target_t["IDLETIMER", idletimer_tg_info, 0]
-	TCPOPTSTRIP	xt_target_t["TCPOPTSTRIP", xt_tcpoptstrip_target_info, 0]
 	AUDIT		xt_target_t["AUDIT", xt_audit_info, 0]
-	HMARK		xt_target_t["HMARK", xt_hmark_info, 0]
-	SET1		xt_target_t["SET", xt_set_info_target_v1, 1]
-	SET2		xt_target_t["SET", xt_set_info_target_v2, 2]
-	SET3		xt_target_t["SET", xt_set_info_target_v3, 3]
 	MARK		xt_target_t["MARK", xt_mark_tginfo2, 2]
-	LOG		xt_target_t["LOG", xt_log_info, 0]
 	CONNSECMARK	xt_target_t["CONNSECMARK", xt_connsecmark_target_info, 0]
 	SECMARK		xt_target_t["SECMARK", xt_secmark_target_info, 0]
 	NFLOG		xt_target_t["NFLOG", xt_nflog_info, 0]
 	CONNMARK	xt_target_t["CONNMARK", xt_connmark_tginfo1, 1]
-	SYNPROXY	xt_target_t["SYNPROXY", xt_synproxy_info, 0]
 ] [varlen]
 
 nf_verdicts = 0, NF_DROP_VERDICT, NF_ACCEPT_VERDICT, NF_STOLEN_VERDICT, NF_QUEUE_VERDICT, NF_REPEAT_VERDICT
@@ -74,10 +65,12 @@ define NF_QUEUE_VERDICT	-NF_QUEUE - 1
 define NF_REPEAT_VERDICT	-NF_REPEAT - 1
 
 xt_unspec_mangle_targets [
-	DSCP		xt_target_t["DSCP", xt_DSCP_info, 0]
-	TOS		xt_target_t["TOS", xt_tos_target_info, 0]
-	TPROXY1		xt_target_t["TPROXY", xt_tproxy_target_info_v1, 1]
 	CHECKSUM	xt_target_t["CHECKSUM", xt_CHECKSUM_info, 0]
+] [varlen]
+
+xt_unspec_nat_targets [
+	SNAT1	xt_target_t["SNAT", nf_nat_range, 1]
+	DNAT1	xt_target_t["DNAT", nf_nat_range, 1]
 ] [varlen]
 
 xt_unspec_raw_targets [
@@ -86,6 +79,24 @@ xt_unspec_raw_targets [
 	CT1	xt_target_t["CT", xt_ct_target_info_v1, 1]
 	CT2	xt_target_t["CT", xt_ct_target_info_v1, 2]
 	NOTRACK	xt_target_t["NOTRACK", void, 0]
+] [varlen]
+
+xt_inet_targets [
+	TEE		xt_target_t["TEE", xt_tee_tginfo, 1]
+	TCPMSS		xt_target_t["TCPMSS", xt_tcpmss_info, 0]
+	TCPOPTSTRIP	xt_target_t["TCPOPTSTRIP", xt_tcpoptstrip_target_info, 0]
+	HMARK		xt_target_t["HMARK", xt_hmark_info, 0]
+	SET1		xt_target_t["SET", xt_set_info_target_v1, 1]
+	SET2		xt_target_t["SET", xt_set_info_target_v2, 2]
+	SET3		xt_target_t["SET", xt_set_info_target_v3, 3]
+	LOG		xt_target_t["LOG", xt_log_info, 0]
+	SYNPROXY	xt_target_t["SYNPROXY", xt_synproxy_info, 0]
+] [varlen]
+
+xt_inet_mangle_targets [
+	DSCP	xt_target_t["DSCP", xt_DSCP_info, 0]
+	TOS	xt_target_t["TOS", xt_tos_target_info, 0]
+	TPROXY1	xt_target_t["TPROXY", xt_tproxy_target_info_v1, 1]
 ] [varlen]
 
 xt_tee_tginfo {

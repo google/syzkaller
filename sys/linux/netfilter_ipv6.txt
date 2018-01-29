@@ -9,6 +9,7 @@ include <uapi/linux/netfilter_ipv6/ip6t_opts.h>
 include <uapi/linux/netfilter_ipv6/ip6t_frag.h>
 include <uapi/linux/netfilter_ipv6/ip6t_ipv6header.h>
 include <uapi/linux/netfilter_ipv6/ip6t_ah.h>
+include <uapi/linux/netfilter_ipv6/ip6t_srh.h>
 include <uapi/linux/netfilter_ipv6/ip6t_REJECT.h>
 include <uapi/linux/netfilter_ipv6/ip6t_NPT.h>
 include <uapi/linux/netfilter_ipv6/ip6t_HL.h>
@@ -16,17 +17,17 @@ include <uapi/linux/netfilter_ipv6/ip6t_HL.h>
 setsockopt$IP6T_SO_SET_REPLACE(fd sock_in6, level const[SOL_IPV6], opt const[IP6T_SO_SET_REPLACE], val ptr[in, ip6t_replace], len len[val])
 
 ip6t_replace [
-	filter		ip6t_replace_t["filter", IPT_FILTER_VALID_HOOKS, ip6t_filter_matches, ip6t_filter_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
-	nat		ip6t_replace_t["nat", IPT_NAT_VALID_HOOKS, ip6t_nat_matches, ip6t_nat_targets, ipt_hook, ipt_hook, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_hook, ipt_hook]
-	mangle		ip6t_replace_t["mangle", IPT_MANGLE_VALID_HOOKS, ip6t_mangle_matches, ip6t_mangle_targets, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook]
-	raw		ip6t_replace_t["raw", IPT_RAW_VALID_HOOKS, ip6t_raw_matches, ip6t_raw_targets, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_unused, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_unused]
-	security	ip6t_replace_t["security", IPT_SECURITY_VALID_HOOKS, ip6t_security_matches, ip6t_security_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
+	filter		ip6t_replace_t["filter", 3, 4, IPT_FILTER_VALID_HOOKS, ip6t_filter_matches, ip6t_filter_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
+	nat		ip6t_replace_t["nat", 4, 5, IPT_NAT_VALID_HOOKS, ip6t_nat_matches, ip6t_nat_targets, ipt_hook, ipt_hook, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_hook, ipt_hook]
+	mangle		ip6t_replace_t["mangle", 5, 6, IPT_MANGLE_VALID_HOOKS, ip6t_mangle_matches, ip6t_mangle_targets, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook]
+	raw		ip6t_replace_t["raw", 2, 3, IPT_RAW_VALID_HOOKS, ip6t_raw_matches, ip6t_raw_targets, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_unused, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_unused]
+	security	ip6t_replace_t["security", 3, 4, IPT_SECURITY_VALID_HOOKS, ip6t_security_matches, ip6t_security_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
 ] [varlen]
 
-type ip6t_replace_t[NAME, HOOKS, MATCHES, TARGETS, H0, H1, H2, H3, H4, U0, U1, U2, U3, U4] {
+type ip6t_replace_t[NAME, NENTRIES, NHOOKS, HOOKS, MATCHES, TARGETS, H0, H1, H2, H3, H4, U0, U1, U2, U3, U4] {
 	name				string[NAME, XT_TABLE_MAXNAMELEN]
 	valid_hooks			const[HOOKS, int32]
-	num_entries			const[4, int32]
+	num_entries			const[NHOOKS, int32]
 	size				bytesize[entries, int32]
 	hook_pre_routing		H0
 	hook_pre_local_in		H1
@@ -38,20 +39,20 @@ type ip6t_replace_t[NAME, HOOKS, MATCHES, TARGETS, H0, H1, H2, H3, H4, U0, U1, U
 	underflow_pre_forward		U2
 	underflow_pre_local_out		U3
 	underflow_pre_post_routing	U4
-	num_counters			const[4, int32]
-	counters			ptr[in, array[xt_counters, 4]]
-	entries				ip6t_replace_entries[MATCHES, TARGETS]
+	num_counters			const[NHOOKS, int32]
+	counters			ptr[out, array[xt_counters, NHOOKS]]
+	entries				ip6t_replace_entries[NENTRIES, MATCHES, TARGETS]
 }
 
-type ip6t_replace_entries[MATCHES, TARGETS] {
+type ip6t_replace_entries[NENTRIES, MATCHES, TARGETS] {
+	entries		array[ip6t_entry[MATCHES, TARGETS], NENTRIES]
 	underflow	ip6t_entry_underflow
-	entries		array[ip6t_entry[MATCHES, TARGETS], 3]
 } [packed, align_ptr]
 
 type ip6t_entry[MATCHES, TARGETS] {
 	matches	ip6t_entry_matches[MATCHES]
 	target	TARGETS
-} [packed, align_8]
+} [packed, align_ptr]
 
 type ip6t_entry_matches[MATCHES] {
 	ipv6		ip6t_ip6_or_uncond
@@ -61,7 +62,7 @@ type ip6t_entry_matches[MATCHES] {
 	comefrom	const[0, int32]
 	counters	xt_counters
 	matches		array[MATCHES, 0:2]
-} [packed, align_ptr]
+} [align_ptr]
 
 ip6t_entry_underflow {
 	matches	ip6t_entry_underflow_matches
@@ -107,6 +108,7 @@ ip6t_ip6_invflags = IP6T_INV_VIA_IN, IP6T_INV_VIA_OUT, IP6T_INV_TOS, IP6T_INV_SR
 
 ipt6_matches [
 	unspec		xt_unspec_matches
+	inet		xt_inet_matches
 	icmp6		xt_entry_match["icmp6", ip6t_icmp, 0]
 	rt		xt_entry_match["rt", ip6t_rt, 0]
 	mh		xt_entry_match["mh", ip6t_mh, 0]
@@ -117,6 +119,7 @@ ipt6_matches [
 	ah		xt_entry_match["ah", ip6t_ah, 0]
 	ipv6header	xt_entry_match["ipv6header", ip6t_ipv6header_info, 0]
 	hl		xt_entry_match["hl", ipt_ttl_info, 0]
+	srh		xt_entry_match["srh", ip6t_srh, 0]
 ] [varlen]
 
 ip6t_filter_matches [
@@ -129,12 +132,12 @@ ip6t_nat_matches [
 
 ip6t_mangle_matches [
 	common	ipt6_matches
-	unspec	xt_unspec_mangle_matches
+	inet	xt_inet_mangle_matches
 ] [varlen]
 
 ip6t_raw_matches [
 	common	ipt6_matches
-	unspec	xt_unspec_raw_matches
+	inet	xt_inet_raw_matches
 ] [varlen]
 
 ip6t_security_matches [
@@ -208,10 +211,23 @@ ip6t_ah {
 
 ip6t_ah_flags = IP6T_AH_INV_SPI, IP6T_AH_INV_LEN
 
+ip6t_srh {
+	next_hdr	flags[ipv6_types, int8]
+	hdr_len		int8
+	segs_left	int8
+	last_entry	int8
+	tag		int16
+	mt_flags	flags[ip6t_srh_flags, int16]
+	mt_invflags	flags[ip6t_srh_flags, int16]
+}
+
+ip6t_srh_flags = IP6T_SRH_NEXTHDR, IP6T_SRH_LEN_EQ, IP6T_SRH_LEN_GT, IP6T_SRH_LEN_LT, IP6T_SRH_SEGS_EQ, IP6T_SRH_SEGS_GT, IP6T_SRH_SEGS_LT, IP6T_SRH_LAST_EQ, IP6T_SRH_LAST_GT, IP6T_SRH_LAST_LT, IP6T_SRH_TAG
+
 # TARGETS:
 
 ip6t_targets [
 	unspec	xt_unspec_targets
+	inet	xt_inet_targets
 ] [varlen]
 
 ip6t_filter_targets [
@@ -221,6 +237,7 @@ ip6t_filter_targets [
 
 ip6t_nat_targets [
 	common		ip6t_targets
+	unspec		xt_unspec_nat_targets
 	NETMAP		xt_target_t["NETMAP", nf_nat_range, 0]
 	REDIRECT	xt_target_t["REDIRECT", nf_nat_range, 0]
 	MASQUERADE	xt_target_t["MASQUERADE", nf_nat_range, 0]
@@ -229,6 +246,7 @@ ip6t_nat_targets [
 ip6t_mangle_targets [
 	common	ip6t_targets
 	unspec	xt_unspec_mangle_targets
+	inet	xt_inet_mangle_targets
 	SNPT	xt_target_t["SNPT", ip6t_npt_tginfo, 0]
 	DNPT	xt_target_t["DNPT", ip6t_npt_tginfo, 0]
 	HL	xt_target_t["HL", ipt_TTL_info, 0]
