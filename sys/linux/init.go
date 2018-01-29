@@ -51,6 +51,7 @@ func initTarget(target *prog.Target) {
 		"alg_blkcipher_name": arch.generateAlgBlkcipherhName,
 		"ipt_replace":        arch.generateIptables,
 		"ip6t_replace":       arch.generateIptables,
+		"arpt_replace":       arch.generateArptables,
 	}
 	target.StringDictionary = stringDictionary
 

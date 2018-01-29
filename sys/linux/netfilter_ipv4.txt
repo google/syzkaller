@@ -14,17 +14,17 @@ include <uapi/linux/netfilter_ipv4/ipt_CLUSTERIP.h>
 setsockopt$IPT_SO_SET_REPLACE(fd sock_in, level const[SOL_IP], opt const[IPT_SO_SET_REPLACE], val ptr[in, ipt_replace], len len[val])
 
 ipt_replace [
-	filter		ipt_replace_t["filter", IPT_FILTER_VALID_HOOKS, ipt_filter_matches, ipt_filter_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
-	nat		ipt_replace_t["nat", IPT_NAT_VALID_HOOKS, ipt_nat_matches, ipt_nat_targets, ipt_hook, ipt_hook, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_hook, ipt_hook]
-	mangle		ipt_replace_t["mangle", IPT_MANGLE_VALID_HOOKS, ipt_mangle_matches, ipt_mangle_targets, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook]
-	raw		ipt_replace_t["raw", IPT_RAW_VALID_HOOKS, ipt_raw_matches, ipt_raw_targets, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_unused, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_unused]
-	security	ipt_replace_t["security", IPT_SECURITY_VALID_HOOKS, ipt_security_matches, ipt_security_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
+	filter		ipt_replace_t["filter", 3, 4, IPT_FILTER_VALID_HOOKS, ipt_filter_matches, ipt_filter_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
+	nat		ipt_replace_t["nat", 4, 5, IPT_NAT_VALID_HOOKS, ipt_nat_matches, ipt_nat_targets, ipt_hook, ipt_hook, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_hook, ipt_hook]
+	mangle		ipt_replace_t["mangle", 5, 6, IPT_MANGLE_VALID_HOOKS, ipt_mangle_matches, ipt_mangle_targets, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook, ipt_hook]
+	raw		ipt_replace_t["raw", 2, 3, IPT_RAW_VALID_HOOKS, ipt_raw_matches, ipt_raw_targets, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_unused, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_unused]
+	security	ipt_replace_t["security", 3, 4, IPT_SECURITY_VALID_HOOKS, ipt_security_matches, ipt_security_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
 ] [varlen]
 
-type ipt_replace_t[NAME, HOOKS, MATCHES, TARGETS, H0, H1, H2, H3, H4, U0, U1, U2, U3, U4] {
+type ipt_replace_t[NAME, NENTRIES, NHOOKS, HOOKS, MATCHES, TARGETS, H0, H1, H2, H3, H4, U0, U1, U2, U3, U4] {
 	name				string[NAME, XT_TABLE_MAXNAMELEN]
 	valid_hooks			const[HOOKS, int32]
-	num_entries			const[4, int32]
+	num_entries			const[NHOOKS, int32]
 	size				bytesize[entries, int32]
 	hook_pre_routing		H0
 	hook_pre_local_in		H1
@@ -36,14 +36,14 @@ type ipt_replace_t[NAME, HOOKS, MATCHES, TARGETS, H0, H1, H2, H3, H4, U0, U1, U2
 	underflow_pre_forward		U2
 	underflow_pre_local_out		U3
 	underflow_pre_post_routing	U4
-	num_counters			const[4, int32]
-	counters			ptr[in, array[xt_counters, 4]]
-	entries				ipt_replace_entries[MATCHES, TARGETS]
+	num_counters			const[NHOOKS, int32]
+	counters			ptr[out, array[xt_counters, NHOOKS]]
+	entries				ipt_replace_entries[NENTRIES, MATCHES, TARGETS]
 }
 
-type ipt_replace_entries[MATCHES, TARGETS] {
+type ipt_replace_entries[NENTRIES, MATCHES, TARGETS] {
+	entries		array[ipt_entry[MATCHES, TARGETS], NENTRIES]
 	underflow	ipt_entry_underflow
-	entries		array[ipt_entry[MATCHES, TARGETS], 3]
 } [packed, align_ptr]
 
 type ipt_hook const[0, int32]
@@ -52,7 +52,7 @@ type ipt_unused const[0xffffffff, int32]
 type ipt_entry[MATCHES, TARGETS] {
 	matches	ipt_entry_matches[MATCHES]
 	target	TARGETS
-} [packed, align_8]
+} [packed, align_ptr]
 
 type ipt_entry_matches[MATCHES] {
 	ip		ipt_ip_or_uncond
@@ -62,7 +62,7 @@ type ipt_entry_matches[MATCHES] {
 	comefrom	const[0, int32]
 	counters	xt_counters
 	matches		array[MATCHES, 0:2]
-} [packed, align_ptr]
+} [align_ptr]
 
 ipt_entry_underflow {
 	matches	ipt_entry_underflow_matches
@@ -107,6 +107,7 @@ ipt_ip_invflags = IPT_INV_VIA_IN, IPT_INV_VIA_OUT, IPT_INV_TOS, IPT_INV_SRCIP, I
 
 ipt_matches [
 	unspec		xt_unspec_matches
+	inet		xt_inet_matches
 	icmp		xt_entry_match["icmp", ipt_icmp, 0]
 	ah		xt_entry_match["ah", ipt_ah, 0]
 	socket0		xt_entry_match["socket", void, 0]
@@ -126,12 +127,12 @@ ipt_nat_matches [
 
 ipt_mangle_matches [
 	common	ipt_matches
-	unspec	xt_unspec_mangle_matches
+	inet	xt_inet_mangle_matches
 ] [varlen]
 
 ipt_raw_matches [
 	common	ipt_matches
-	unspec	xt_unspec_raw_matches
+	inet	xt_inet_raw_matches
 ] [varlen]
 
 ipt_security_matches [
@@ -146,8 +147,8 @@ ipt_icmp {
 }
 
 ipt_ah {
-	spi_min		int8
-	spi_max		int8
+	spi_min		int32
+	spi_max		int32
 	invflags	bool8
 }
 
@@ -174,6 +175,7 @@ ipt_ttl_mode = IPT_TTL_EQ, IPT_TTL_NE, IPT_TTL_LT, IPT_TTL_GT
 
 ipt_targets [
 	unspec		xt_unspec_targets
+	inet		xt_inet_targets
 	SET		xt_target_t["SET", xt_set_info_target_v0, 0]
 	CLUSTERIP	xt_target_t["CLUSTERIP", ipt_clusterip_tgt_info, 0]
 ] [varlen]
@@ -185,11 +187,10 @@ ipt_filter_targets [
 
 ipt_nat_targets [
 	common		ipt_targets
+	unspec		xt_unspec_nat_targets
 	NETMAP		xt_target_t["NETMAP", nf_nat_ipv4_multi_range_compat, 0]
 	SNAT0		xt_target_t["SNAT", nf_nat_ipv4_multi_range_compat, 0]
 	DNAT0		xt_target_t["DNAT", nf_nat_ipv4_multi_range_compat, 0]
-	SNAT1		xt_target_t["SNAT", nf_nat_range, 1]
-	DNAT1		xt_target_t["DNAT", nf_nat_range, 1]
 	REDIRECT	xt_target_t["REDIRECT", nf_nat_ipv4_multi_range_compat, 0]
 	MASQUERADE	xt_target_t["MASQUERADE", nf_nat_ipv4_multi_range_compat, 0]
 ] [varlen]
@@ -197,6 +198,7 @@ ipt_nat_targets [
 ipt_mangle_targets [
 	common	ipt_targets
 	unspec	xt_unspec_mangle_targets
+	inet	xt_inet_mangle_targets
 	ECN	xt_target_t["ECN", ipt_ECN_info, 0]
 	TPROXY	xt_target_t["TPROXY", xt_tproxy_target_info, 0]
 	TTL	xt_target_t["TTL", ipt_TTL_info, 0]
@@ -234,8 +236,8 @@ ipt_clusterip_tgt_info {
 	flags		bool32
 	clustermac	mac_addr
 	num_total_nodes	int16
-	num_local_nodes	int16
-	local_nodes	array[int16, CLUSTERIP_MAX_NODES]
+	num_local_nodes	int16[0:CLUSTERIP_MAX_NODES]
+	local_nodes	array[int16[0:64], CLUSTERIP_MAX_NODES]
 	hash_mode	flags[ipt_clusterip_hash_mode, int32]
 	hash_initval	int32
 	config		intptr

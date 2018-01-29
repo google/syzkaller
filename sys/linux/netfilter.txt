@@ -54,6 +54,8 @@ include <uapi/linux/netfilter/xt_state.h>
 
 # Netfilter matches shared between ipv6/ipv6.
 
+# TODO: add CONFIG_NF_FLOW_TABLE* support.
+
 define IPT_FILTER_VALID_HOOKS	NF_INET_LOCAL_IN_BIT | NF_INET_FORWARD_BIT | NF_INET_LOCAL_OUT_BIT
 define IPT_NAT_VALID_HOOKS	NF_INET_PRE_ROUTING_BIT | NF_INET_POST_ROUTING_BIT | NF_INET_LOCAL_OUT_BIT | NF_INET_LOCAL_IN_BIT
 define IPT_MANGLE_VALID_HOOKS	NF_INET_PRE_ROUTING_BIT | NF_INET_POST_ROUTING_BIT | NF_INET_FORWARD_BIT |NF_INET_LOCAL_OUT_BIT | NF_INET_LOCAL_IN_BIT
@@ -65,7 +67,6 @@ define NF_INET_LOCAL_IN_BIT	1 << NF_INET_LOCAL_IN
 define NF_INET_FORWARD_BIT	1 << NF_INET_FORWARD
 define NF_INET_LOCAL_OUT_BIT	1 << NF_INET_LOCAL_OUT
 define NF_INET_POST_ROUTING_BIT	1 << NF_INET_POST_ROUTING
-define NF_INET_NUMHOOKS_BIT	1 << NF_INET_NUMHOOKS
 
 xt_counters {
 	pcnt	const[0, int64]
@@ -96,17 +97,42 @@ xt_unspec_matches [
 	cgroup1		xt_entry_match["cgroup", xt_cgroup_info_v1, 1]
 	helper		xt_entry_match["helper", xt_helper_info, 0]
 	rateest		xt_entry_match["rateest", xt_rateest_match_info, 0]
-	l2tp		xt_entry_match["l2tp", xt_l2tp_info, 0]
 	time		xt_entry_match["time", xt_time_info, 0]
 	bpf0		xt_entry_match["bpf", xt_bpf_info, 0]
 	bpf1		xt_entry_match["bpf", xt_bpf_info_v1, 1]
-	socket1		xt_entry_match["socket", flags[xt_socket_flags_v1, int8], 1]
-	socket2		xt_entry_match["socket", flags[xt_socket_flags_v2, int8], 2]
-	socket3		xt_entry_match["socket", flags[xt_socket_flags_v3, int8], 3]
 	connlimit	xt_entry_match["connlimit", xt_connlimit_info, 0]
 	conntrack1	xt_entry_match["conntrack", xt_conntrack_mtinfo1, 1]
 	conntrack2	xt_entry_match["conntrack", xt_conntrack_mtinfo2, 2]
 	conntrack3	xt_entry_match["conntrack", xt_conntrack_mtinfo3, 3]
+	mark		xt_entry_match["mark", xt_mark_mtinfo1, 1]
+	connmark	xt_entry_match["connmark", xt_connmark_mtinfo1, 1]
+	realm		xt_entry_match["realm", xt_realm_info, 0]
+	connbytes	xt_entry_match["connbytes", xt_connbytes_info, 0]
+	quota		xt_entry_match["quota", xt_quota_info, 0]
+	limit		xt_entry_match["limit", xt_rateinfo, 0]
+	addrtype1	xt_entry_match["addrtype", xt_addrtype_info_v1, 1]
+	ipvs		xt_entry_match["ipvs", xt_ipvs_mtinfo, 0]
+	nfacct		xt_entry_match["nfacct", xt_nfacct_match_info, 0]
+	mac		xt_entry_match["mac", xt_mac_info, 0]
+	comment		xt_entry_match["comment", xt_comment_info, 0]
+	statistic	xt_entry_match["statistic", xt_statistic_info, 0]
+	string		xt_entry_match["string", xt_string_info, 1]
+	physdev		xt_entry_match["physdev", xt_physdev_info, 0]
+	connlabel	xt_entry_match["connlabel", xt_connlabel_mtinfo, 0]
+	devgroup	xt_entry_match["devgroup", xt_devgroup_info, 0]
+	cluster		xt_entry_match["cluster", xt_cluster_match_info, 0]
+	owner		xt_entry_match["owner", xt_owner_match_info, 0]
+	pkttype		xt_entry_match["pkttype", xt_pkttype_info, 0]
+	u32		xt_entry_match["u32", xt_u32, 0]
+	cpu		xt_entry_match["cpu", xt_cpu_info, 0]
+	state		xt_entry_match["state", xt_state_info, 0]
+] [varlen]
+
+xt_inet_matches [
+	l2tp		xt_entry_match["l2tp", xt_l2tp_info, 0]
+	socket1		xt_entry_match["socket", flags[xt_socket_flags_v1, int8], 1]
+	socket2		xt_entry_match["socket", flags[xt_socket_flags_v2, int8], 2]
+	socket3		xt_entry_match["socket", flags[xt_socket_flags_v3, int8], 3]
 	tcp		xt_entry_match["tcp", xt_tcp, 0]
 	udp		xt_entry_match["udp", xt_udp, 0]
 	udplite		xt_entry_match["udplite", xt_udp, 0]
@@ -114,57 +140,31 @@ xt_unspec_matches [
 	set2		xt_entry_match["set", xt_set_info_match_v1, 2]
 	set3		xt_entry_match["set", xt_set_info_match_v3, 3]
 	set4		xt_entry_match["set", xt_set_info_match_v4, 4]
-	mark		xt_entry_match["mark", xt_mark_mtinfo1, 1]
-	connmark	xt_entry_match["connmark", xt_connmark_mtinfo1, 1]
-	realm		xt_entry_match["realm", xt_realm_info, 0]
-	connbytes	xt_entry_match["connbytes", xt_connbytes_info, 0]
-	quota		xt_entry_match["quota", xt_quota_info, 0]
 	sctp		xt_entry_match["sctp", xt_sctp_info, 0]
-	limit		xt_entry_match["limit", xt_rateinfo, 0]
-	addrtype1	xt_entry_match["addrtype", xt_addrtype_info_v1, 1]
-	ipvs		xt_entry_match["ipvs", xt_ipvs_mtinfo, 0]
 	dccp		xt_entry_match["dccp", xt_dccp_info, 0]
 	hashlimit1	xt_entry_match["hashlimit", xt_hashlimit_mtinfo1, 1]
 	hashlimit2	xt_entry_match["hashlimit", xt_hashlimit_mtinfo2, 2]
 	hashlimit3	xt_entry_match["hashlimit", xt_hashlimit_mtinfo3, 3]
-	nfacct		xt_entry_match["nfacct", xt_nfacct_match_info, 0]
 	length		xt_entry_match["length", xt_length_info, 0]
-	mac		xt_entry_match["mac", xt_mac_info, 0]
-	comment		xt_entry_match["comment", xt_comment_info, 0]
 	ipcomp		xt_entry_match["ipcomp", xt_ipcomp, 0]
-	statistic	xt_entry_match["statistic", xt_statistic_info, 0]
 	recent0		xt_entry_match["recent", xt_recent_mtinfo, 0]
 	recent1		xt_entry_match["recent", xt_recent_mtinfo_v1, 0]
 	dscp		xt_entry_match["dscp", xt_dscp_info, 0]
 	tos		xt_entry_match["tos", xt_tos_match_info, 0]
 	policy		xt_entry_match["policy", xt_policy_info, 0]
 	tcpmss		xt_entry_match["tcpmss", xt_tcpmss_match_info, 0]
-	string		xt_entry_match["string", xt_string_info, 1]
-	physdev		xt_entry_match["physdev", xt_physdev_info, 0]
-	connlabel	xt_entry_match["connlabel", xt_connlabel_mtinfo, 0]
-	devgroup	xt_entry_match["devgroup", xt_devgroup_info, 0]
 	multiport	xt_entry_match["multiport", xt_multiport_v1, 1]
-	cluster		xt_entry_match["cluster", xt_cluster_match_info, 0]
 	ecn		xt_entry_match["ecn", xt_ecn_info, 0]
-	owner		xt_entry_match["owner", xt_owner_match_info, 0]
-	pkttype		xt_entry_match["pkttype", xt_pkttype_info, 0]
-	u32		xt_entry_match["u32", xt_u32, 0]
 	iprange		xt_entry_match["iprange", xt_iprange_mtinfo, 1]
 	esp		xt_entry_match["esp", xt_esp, 0]
-	cpu		xt_entry_match["cpu", xt_cpu_info, 0]
-	state		xt_entry_match["state", xt_state_info, 0]
 ] [varlen]
 
-xt_unspec_mangle_matches [
+xt_inet_mangle_matches [
 	rpfilter	xt_entry_match["rpfilter", xt_rpfilter_info, 0]
-# TODO: just so that we have second union option.
-	void		void
 ] [varlen]
 
-xt_unspec_raw_matches [
+xt_inet_raw_matches [
 	rpfilter	xt_entry_match["rpfilter", xt_rpfilter_info, 0]
-# TODO: just so that we have second union option.
-	void		void
 ] [varlen]
 
 xt_socket_flags_v1 = XT_SOCKET_TRANSPARENT
@@ -242,7 +242,7 @@ xt_time_flags = XT_TIME_LOCAL_TZ, XT_TIME_CONTIGUOUS
 xt_bpf_info {
 	bpf_program_num_elem	int16[0:XT_BPF_MAX_NUM_INSTR]
 	bpf_program		array[sock_filter, XT_BPF_MAX_NUM_INSTR]
-	filter			ptr64[in, array[int8]]
+	filter			intptr
 }
 
 xt_bpf_info_v1 [
@@ -256,7 +256,7 @@ xt_bpf_info_bytecode {
 	bpf_program_num_elem	int16[0:XT_BPF_MAX_NUM_INSTR]
 	fd			const[0, int32]
 	bpf_program		array[sock_filter, XT_BPF_MAX_NUM_INSTR]
-	filter			ptr64[in, array[int8]]
+	filter			intptr
 }
 
 xt_bpf_info_pinned {
@@ -265,7 +265,7 @@ xt_bpf_info_pinned {
 	fd			const[0, int32]
 # TODO: we need fixed-size filename here.
 	path			array[int8, XT_BPF_PATH_MAX]
-	filter			ptr64[in, array[int8]]
+	filter			intptr
 }
 
 xt_bpf_info_fd {
@@ -543,7 +543,6 @@ xt_hashlimit_mask = 0, 8, 24, 32, 64, 120, 128
 
 xt_nfacct_match_info {
 	name	string[xt_nfacct_match_names, NFACCT_NAME_MAX]
-# TODO: this seems to leak from kernel (there were another similar place, but can't find it now):
 	nfacct	intptr
 }
 
@@ -579,7 +578,6 @@ xt_statistic_info {
 	every	int32
 	packet	int32
 	count	int32
-# TODO: this seem to leak to userspace:
 	master	intptr
 }
 
