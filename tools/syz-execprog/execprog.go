@@ -55,7 +55,7 @@ func main() {
 		if err != nil {
 			Fatalf("failed to read log file: %v", err)
 		}
-		entries = target.ParseLog(data)
+		entries = append(entries, target.ParseLog(data)...)
 	}
 	Logf(0, "parsed %v programs", len(entries))
 	if len(entries) == 0 {
