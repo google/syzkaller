@@ -42,7 +42,8 @@ func (c *Call) validate(ctx *validCtx) error {
 			return fmt.Errorf("syscall %v: nil arg", c.Meta.Name)
 		}
 		if ctx.args[arg] {
-			return fmt.Errorf("syscall %v: arg is referenced several times in the tree", c.Meta.Name)
+			return fmt.Errorf("syscall %v: arg %#v is referenced several times in the tree",
+				c.Meta.Name, arg)
 		}
 		ctx.args[arg] = true
 		if used, ok := arg.(ArgUsed); ok {
