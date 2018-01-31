@@ -77,7 +77,12 @@ func TestJob(t *testing.T) {
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
 	c.expectEQ(pollResp.ID, "")
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.incomingEmailID(1, sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	// A dup of the same request with the same Message-ID.
+	c.incomingEmailID(1, sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
 
@@ -143,7 +148,7 @@ Raw console output is attached.
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
 	}
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.incomingEmailID(2, sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
@@ -182,7 +187,7 @@ Kernel config is attached.
 		}
 	}
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.incomingEmailID(3, sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
@@ -228,4 +233,7 @@ correction.
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
 	}
+
+	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
+	c.expectEQ(pollResp.ID, "")
 }
