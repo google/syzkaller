@@ -120,7 +120,7 @@ func TestAssignSize(t *testing.T) {
 		},
 		{
 			"syz_test$length21(&(0x7f0000000000)=0x0, 0x0)",
-			"syz_test$length21(&(0x7f0000000000)=0x0, 0x40)",
+			"syz_test$length21(&(0x7f0000000000), 0x40)",
 		},
 		{
 			"syz_test$length22(&(0x7f0000000000)='12345', 0x0)",

@@ -188,3 +188,46 @@ func TestSerializeDeserialize(t *testing.T) {
 		}
 	}
 }
+
+func TestSerializeDeserializeRandom(t *testing.T) {
+	testEachTargetRandom(t, func(t *testing.T, target *Target, rs rand.Source, iters int) {
+		data0 := make([]byte, ExecBufferSize)
+		data1 := make([]byte, ExecBufferSize)
+		for i := 0; i < iters; i++ {
+			p0 := target.Generate(rs, 10, nil)
+			if ok, _, _ := testSerializeDeserialize(t, p0, data0, data1); ok {
+				continue
+			}
+			p0, _ = Minimize(p0, -1, func(p1 *Prog, _ int) bool {
+				ok, _, _ := testSerializeDeserialize(t, p1, data0, data1)
+				return !ok
+			}, false)
+			ok, n0, n1 := testSerializeDeserialize(t, p0, data0, data1)
+			if ok {
+				t.Fatal("flaky?")
+			}
+			t.Fatalf("was: %q\ngot: %q\nprogram:\n%s",
+				data0[:n0], data1[:n1], p0.Serialize())
+		}
+	})
+}
+
+func testSerializeDeserialize(t *testing.T, p0 *Prog, data0, data1 []byte) (bool, int, int) {
+	n0, err := p0.SerializeForExec(data0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	serialized := p0.Serialize()
+	p1, err := p0.Target.Deserialize(serialized)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n1, err := p1.SerializeForExec(data1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(data0[:n0], data1[:n1]) {
+		return false, n0, n1
+	}
+	return true, 0, 0
+}

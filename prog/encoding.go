@@ -71,8 +71,11 @@ func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 			fmt.Fprintf(buf, "0x0")
 			break
 		}
-		fmt.Fprintf(buf, "&%v=", serializeAddr(arg))
-		serialize(a.Res, buf, vars, varSeq)
+		fmt.Fprintf(buf, "&%v", serializeAddr(arg))
+		if a.Res == nil || !isDefaultArg(a.Res) {
+			fmt.Fprintf(buf, "=")
+			serialize(a.Res, buf, vars, varSeq)
+		}
 	case *DataArg:
 		if a.Type().Dir() == DirOut {
 			fmt.Fprintf(buf, "\"\"/%v", a.Size())
@@ -98,7 +101,16 @@ func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 			panic("unknown group type")
 		}
 		buf.Write([]byte{delims[0]})
-		for i, arg1 := range a.Inner {
+		lastNonDefault := len(a.Inner) - 1
+		if a.fixedInnerSize() {
+			for ; lastNonDefault >= 0; lastNonDefault-- {
+				if !isDefaultArg(a.Inner[lastNonDefault]) {
+					break
+				}
+			}
+		}
+		for i := 0; i <= lastNonDefault; i++ {
+			arg1 := a.Inner[i]
 			if arg1 != nil && IsPad(arg1.Type()) {
 				continue
 			}
@@ -109,8 +121,11 @@ func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 		}
 		buf.Write([]byte{delims[1]})
 	case *UnionArg:
-		fmt.Fprintf(buf, "@%v=", a.Option.Type().FieldName())
-		serialize(a.Option, buf, vars, varSeq)
+		fmt.Fprintf(buf, "@%v", a.Option.Type().FieldName())
+		if !isDefaultArg(a.Option) {
+			fmt.Fprintf(buf, "=")
+			serialize(a.Option, buf, vars, varSeq)
+		}
 	case *ResultArg:
 		if a.Res == nil {
 			fmt.Fprintf(buf, "0x%x", a.Val)
@@ -277,10 +292,15 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		if err != nil {
 			return nil, err
 		}
-		p.Parse('=')
-		inner, err := target.parseArg(typ1, p, vars)
-		if err != nil {
-			return nil, err
+		var inner Arg
+		if p.Char() == '=' {
+			p.Parse('=')
+			inner, err = target.parseArg(typ1, p, vars)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			inner = defaultArg(typ1)
 		}
 		arg = MakePointerArg(typ, page, off, size, inner)
 	case '(':
@@ -381,7 +401,6 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		}
 		p.Parse('@')
 		name := p.Ident()
-		p.Parse('=')
 		var optType Type
 		for _, t2 := range t1.Fields {
 			if name == t2.FieldName() {
@@ -392,9 +411,16 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		if optType == nil {
 			return nil, fmt.Errorf("union arg %v has unknown option: %v", typ.Name(), name)
 		}
-		opt, err := target.parseArg(optType, p, vars)
-		if err != nil {
-			return nil, err
+		var opt Arg
+		if p.Char() == '=' {
+			p.Parse('=')
+			var err error
+			opt, err = target.parseArg(optType, p, vars)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			opt = defaultArg(optType)
 		}
 		arg = MakeUnionArg(typ, opt)
 	case 'n':

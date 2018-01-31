@@ -31,8 +31,8 @@ func TestMutateRandom(t *testing.T) {
 			data0 := p.Serialize()
 			p1 := p.Clone()
 			// There is a chance that mutation will produce the same program.
-			// So we check that at least 1 out of 10 mutations actually change the program.
-			for try := 0; try < 10; try++ {
+			// So we check that at least 1 out of 20 mutations actually change the program.
+			for try := 0; try < 20; try++ {
 				p1.Mutate(rs, 10, nil, nil)
 				data := p.Serialize()
 				if !bytes.Equal(data0, data) {
@@ -212,7 +212,7 @@ func TestMinimize(t *testing.T) {
 			},
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)\n" +
 				"sched_yield()\n" +
-				"pipe2(&(0x7f0000000000)={0x0, 0x0}, 0x0)\n",
+				"pipe2(&(0x7f0000000000), 0x0)\n",
 			2,
 		},
 		// Remove a call.
@@ -259,7 +259,7 @@ func TestMinimize(t *testing.T) {
 				return p.String() == "mmap-write-sched_yield"
 			},
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x0, 0x0, 0xffffffffffffffff, 0x0)\n" +
-				"write(0xffffffffffffffff, &(0x7f0000000000)=\"\", 0x0)\n" +
+				"write(0xffffffffffffffff, &(0x7f0000000000), 0x0)\n" +
 				"sched_yield()\n",
 			2,
 		},
@@ -274,7 +274,7 @@ func TestMinimize(t *testing.T) {
 				return p.String() == "mmap-write-sched_yield"
 			},
 			"mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x0, 0x0, 0xffffffffffffffff, 0x0)\n" +
-				"write(0xffffffffffffffff, &(0x7f0000000000)=\"\", 0x0)\n" +
+				"write(0xffffffffffffffff, &(0x7f0000000000), 0x0)\n" +
 				"sched_yield()\n",
 			-1,
 		},

@@ -189,6 +189,17 @@ func (arg *GroupArg) Size() uint64 {
 	}
 }
 
+func (arg *GroupArg) fixedInnerSize() bool {
+	switch typ := arg.Type().(type) {
+	case *StructType:
+		return true
+	case *ArrayType:
+		return typ.Kind == ArrayRangeLen && typ.RangeBegin == typ.RangeEnd
+	default:
+		panic(fmt.Sprintf("bad group arg type %v", typ))
+	}
+}
+
 // Used for UnionType.
 type UnionArg struct {
 	ArgCommon
@@ -326,6 +337,67 @@ func defaultArg(t Type) Arg {
 	default:
 		panic("unknown arg type")
 	}
+}
+
+func isDefaultArg(arg Arg) bool {
+	if IsPad(arg.Type()) {
+		return true
+	}
+	switch a := arg.(type) {
+	case *ConstArg:
+		switch t := a.Type().(type) {
+		case *IntType, *ConstType, *FlagsType, *LenType, *ProcType, *CsumType:
+			return a.Val == t.Default()
+		default:
+			panic("unknown const type")
+		}
+	case *GroupArg:
+		if !a.fixedInnerSize() {
+			return false
+		}
+		for _, elem := range a.Inner {
+			if !isDefaultArg(elem) {
+				return false
+			}
+		}
+		return true
+	case *UnionArg:
+		t := a.Type().(*UnionType)
+		return a.Option.Type().FieldName() == t.Fields[0].Name() &&
+			isDefaultArg(a.Option)
+	case *DataArg:
+		if a.Size() == 0 {
+			return true
+		}
+		if a.Type().Varlen() {
+			return false
+		}
+		if a.Type().Dir() == DirOut {
+			return true
+		}
+		for _, v := range a.Data() {
+			if v != 0 {
+				return false
+			}
+		}
+		return true
+	case *PointerArg:
+		switch t := a.Type().(type) {
+		case *PtrType:
+			return a.PageIndex == 0 && a.PageOffset == 0 && a.PagesNum == 0 &&
+				(((t.Optional() || t.Dir() == DirOut) && a.Res == nil) ||
+					(!t.Optional() && t.Dir() != DirOut && a.Res != nil && isDefaultArg(a.Res)))
+		case *VmaType:
+			return a.PageIndex == 0 && a.PageOffset == 0 && a.PagesNum == 1 && a.Res == nil
+		default:
+			panic("unknown pointer type")
+		}
+	case *ResultArg:
+		t := a.Type().(*ResourceType)
+		return a.Res == nil && a.OpDiv == 0 && a.OpAdd == 0 &&
+			len(a.uses) == 0 && a.Val == t.Desc.Type.Default()
+	}
+	return false
 }
 
 func (p *Prog) insertBefore(c *Call, calls []*Call) {
