@@ -20,7 +20,7 @@ import (
 
 // handleTestRequest added new job to datastore.
 // Returns empty string if job added successfully, or reason why it wasn't added.
-func handleTestRequest(c context.Context, bugID, user, extID, patch, repo, branch string) string {
+func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo, branch string) string {
 	log.Infof(c, "test request: bug=%q user=%q extID=%q patch=%v, repo=%q branch=%q",
 		bugID, user, extID, len(patch), repo, branch)
 	for _, blacklisted := range config.EmailBlacklist {
@@ -29,7 +29,7 @@ func handleTestRequest(c context.Context, bugID, user, extID, patch, repo, branc
 			return ""
 		}
 	}
-	reply, err := addTestJob(c, bugID, user, extID, patch, repo, branch)
+	reply, err := addTestJob(c, bugID, user, extID, link, patch, repo, branch)
 	if err != nil {
 		log.Errorf(c, "test request failed: %v", err)
 		if reply == "" {
@@ -39,7 +39,15 @@ func handleTestRequest(c context.Context, bugID, user, extID, patch, repo, branc
 	return reply
 }
 
-func addTestJob(c context.Context, bugID, user, extID, patch, repo, branch string) (string, error) {
+func addTestJob(c context.Context, bugID, user, extID, link, patch, repo, branch string) (string, error) {
+	// We can get 2 emails for the same request: one direct and one from a mailing list.
+	// Filter out such duplicates (for dup we only need link update).
+	if exists, err := updateExistingJob(c, extID, link); err != nil {
+		return internalError, err
+	} else if exists {
+		return "", nil
+	}
+
 	bug, bugKey, err := findBugByReportingID(c, bugID)
 	if err != nil {
 		return "can't find associated bug", err
@@ -89,6 +97,7 @@ func addTestJob(c context.Context, bugID, user, extID, patch, repo, branch strin
 		User:         user,
 		Reporting:    bugReporting.Name,
 		ExtID:        extID,
+		Link:         link,
 		Namespace:    bug.Namespace,
 		Manager:      manager,
 		BugTitle:     bug.displayTitle(),
@@ -128,17 +137,20 @@ func addTestJob(c context.Context, bugID, user, extID, patch, repo, branch strin
 	return "", nil
 }
 
-func updateTestJob(c context.Context, extID, link string) error {
+func updateExistingJob(c context.Context, extID, link string) (exists bool, err error) {
 	var jobs []*Job
 	keys, err := datastore.NewQuery("Job").
 		Filter("ExtID=", extID).
 		GetAll(c, &jobs)
-	if len(jobs) != 1 || err != nil {
-		return fmt.Errorf("failed to query jobs: jobs=%v err=%v", len(jobs), err)
+	if len(jobs) > 1 || err != nil {
+		return false, fmt.Errorf("failed to query jobs: jobs=%v err=%v", len(jobs), err)
+	}
+	if len(jobs) == 0 {
+		return false, nil
 	}
 	job, jobKey := jobs[0], keys[0]
 	if job.Link != "" {
-		return nil
+		return true, nil
 	}
 	tx := func(c context.Context) error {
 		job := new(Job)
@@ -151,7 +163,8 @@ func updateTestJob(c context.Context, extID, link string) error {
 		}
 		return nil
 	}
-	return datastore.RunInTransaction(c, tx, nil)
+	err = datastore.RunInTransaction(c, tx, nil)
+	return true, err
 }
 
 // pollPendingJobs returns the next job to execute for the provided list of managers.

@@ -275,28 +275,20 @@ func incomingMail(c context.Context, r *http.Request) error {
 		return nil // error was already logged
 	}
 	emailConfig := reporting.Config.(*EmailConfig)
+	// A mailing list can send us a duplicate email, to not process/reply
+	// to such duplicate emails, we ignore emails coming from our mailing lists.
 	mailingList := email.CanonicalEmail(emailConfig.Email)
 	fromMailingList := email.CanonicalEmail(msg.From) == mailingList
 	mailingListInCC := checkMailingListInCC(c, msg, mailingList)
 	log.Infof(c, "from/cc mailing list: %v/%v", fromMailingList, mailingListInCC)
-	// A mailing list can send us a duplicate email, to not process/reply
-	// to such duplicate emails, we ignore emails coming from our mailing lists.
 	if msg.Command == "test:" {
-		if fromMailingList {
-			if msg.Link != "" {
-				if err := updateTestJob(c, msg.MessageID, msg.Link); err != nil {
-					log.Errorf(c, "failed to update job: %v", err)
-				}
-			}
-			return nil
-		}
 		args := strings.Split(msg.CommandArgs, " ")
 		if len(args) != 2 {
 			return replyTo(c, msg, fmt.Sprintf("want 2 args (repo, branch), got %v",
 				len(args)), nil)
 		}
 		reply := handleTestRequest(c, msg.BugID, email.CanonicalEmail(msg.From),
-			msg.MessageID, msg.Patch, args[0], args[1])
+			msg.MessageID, msg.Link, msg.Patch, args[0], args[1])
 		if reply != "" {
 			return replyTo(c, msg, reply, nil)
 		}
