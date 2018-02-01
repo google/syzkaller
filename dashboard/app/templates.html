@@ -3,6 +3,25 @@ Copyright 2017 syzkaller project authors. All rights reserved.
 Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 */}}
 
+{{/* Common page header, invoked with *uiHeader */}}
+{{define "header"}}
+	<header id="topbar">
+		<table class="position_table">
+			<tr>
+				<td>
+					<h1><a href="/">syzkaller</a></h1>
+				</td>
+				<td class="search">
+					<a href="https://groups.google.com/forum/#!forum/syzkaller-bugs" target="_blank">found bugs</a> |
+					<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
+					<a href="https://github.com/google/syzkaller" target="_blank">github</a>
+				</td>
+			</tr>
+		</table>
+	</header>
+	<br>
+{{end}}
+
 {{/* List of bugs, invoked with *uiBugGroup */}}
 {{define "bug_list"}}
 {{if .}}

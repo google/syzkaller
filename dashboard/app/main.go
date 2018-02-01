@@ -54,8 +54,7 @@ type uiManager struct {
 type uiBuild struct {
 	Time             time.Time
 	SyzkallerCommit  string
-	KernelRepo       string
-	KernelBranch     string
+	KernelAlias      string
 	KernelCommit     string
 	KernelConfigLink string
 }
@@ -117,8 +116,7 @@ type uiJob struct {
 	Manager         string
 	BugTitle        string
 	BugID           string
-	KernelRepo      string
-	KernelBranch    string
+	KernelAlias     string
 	KernelCommit    string
 	PatchLink       string
 	Attempts        int
@@ -452,8 +450,7 @@ func makeUIBuild(build *Build) *uiBuild {
 	return &uiBuild{
 		Time:             build.Time,
 		SyzkallerCommit:  build.SyzkallerCommit,
-		KernelRepo:       build.KernelRepo,
-		KernelBranch:     build.KernelBranch,
+		KernelAlias:      kernelRepoInfo(build).Alias,
 		KernelCommit:     build.KernelCommit,
 		KernelConfigLink: textLink("KernelConfig", build.KernelConfig),
 	}
@@ -541,8 +538,7 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 			Namespace:       job.Namespace,
 			Manager:         job.Manager,
 			BugTitle:        job.BugTitle,
-			KernelRepo:      job.KernelRepo,
-			KernelBranch:    job.KernelBranch,
+			KernelAlias:     kernelRepoInfoRaw(job.KernelRepo, job.KernelBranch).Alias,
 			PatchLink:       textLink("Patch", job.Patch),
 			Attempts:        job.Attempts,
 			Started:         job.Started,

@@ -339,7 +339,11 @@ func bugReportingHash(bugHash, reporting string) string {
 }
 
 func kernelRepoInfo(build *Build) KernelRepo {
-	repoID := build.KernelRepo + "/" + build.KernelBranch
+	return kernelRepoInfoRaw(build.KernelRepo, build.KernelBranch)
+}
+
+func kernelRepoInfoRaw(repo, branch string) KernelRepo {
+	repoID := repo + "/" + branch
 	info := config.KernelRepos[repoID]
 	if info.Alias == "" {
 		info.Alias = repoID
