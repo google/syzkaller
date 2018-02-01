@@ -20,6 +20,14 @@ import (
 
 // This file contains common middleware for UI handlers (auth, html templates, etc).
 
+type AccessLevel int
+
+const (
+	AccessPublic AccessLevel = iota + 1
+	AccessUser
+	AccessAdmin
+)
+
 type contextHandler func(c context.Context, w http.ResponseWriter, r *http.Request) error
 
 func handlerWrapper(fn contextHandler) http.Handler {
@@ -41,17 +49,33 @@ func handleContext(fn contextHandler) http.Handler {
 
 func handleAuth(fn contextHandler) contextHandler {
 	return func(c context.Context, w http.ResponseWriter, r *http.Request) error {
-		u := user.Current(c)
-		if u == nil {
-			return fmt.Errorf("sign-in required")
-		}
-		if !u.Admin && (u.AuthDomain != "gmail.com" ||
-			!strings.HasSuffix(u.Email, config.AuthDomain)) {
+		if accessLevel(c, r) == AccessPublic {
+			u := user.Current(c)
+			if u == nil {
+				return fmt.Errorf("sign-in required")
+			}
 			log.Errorf(c, "unauthorized user: domain='%v' email='%v'", u.AuthDomain, u.Email)
 			return fmt.Errorf("%v is not authorized to view this", u.Email)
 		}
 		return fn(c, w, r)
 	}
+}
+
+func accessLevel(c context.Context, r *http.Request) AccessLevel {
+	if user.IsAdmin(c) {
+		switch r.FormValue("access") {
+		case "public":
+			return AccessPublic
+		case "user":
+			return AccessUser
+		}
+		return AccessAdmin
+	}
+	u := user.Current(c)
+	if u == nil || u.AuthDomain != "gmail.com" || !strings.HasSuffix(u.Email, config.AuthDomain) {
+		return AccessPublic
+	}
+	return AccessUser
 }
 
 func serveTemplate(w http.ResponseWriter, name string, data interface{}) error {

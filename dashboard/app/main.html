@@ -14,14 +14,17 @@ Main page.
 <body>
 	{{template "header" .Header}}
 
+	{{if .Log}}
 	<b>Error log:</b><br>
 	<textarea id="log_textarea" readonly rows="20" wrap=off>{{printf "%s" .Log}}</textarea>
 	<script>
-        	var textarea = document.getElementById("log_textarea");
-	        textarea.scrollTop = textarea.scrollHeight;
+		var textarea = document.getElementById("log_textarea");
+		textarea.scrollTop = textarea.scrollHeight;
 	</script>
 	<br><br>
+	{{end}}
 
+	{{if $.Managers}}
 	<table class="list_table" id="managers">
 		<caption>Managers:</caption>
 		<tr>
@@ -56,7 +59,9 @@ Main page.
 		{{end}}
 	</table>
 	<br><br>
+	{{end}}
 
+	{{if $.Jobs}}
 	<table class="list_table" id="jobs">
 		<caption>Recent jobs:</caption>
 		<tr>
@@ -102,6 +107,7 @@ Main page.
 		{{end}}
 	</table>
 	<br><br>
+	{{end}}
 
 	{{range $group := $.BugGroups}}
 		{{template "bug_list" $group}}

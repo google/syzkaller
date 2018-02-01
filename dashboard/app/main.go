@@ -135,17 +135,22 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-	errorLog, err := fetchErrorLogs(c)
-	if err != nil {
-		return err
-	}
-	managers, err := loadManagers(c)
-	if err != nil {
-		return err
-	}
-	jobs, err := loadRecentJobs(c)
-	if err != nil {
-		return err
+	var errorLog []byte
+	var managers []*uiManager
+	var jobs []*uiJob
+	if accessLevel(c, r) == AccessAdmin {
+		errorLog, err = fetchErrorLogs(c)
+		if err != nil {
+			return err
+		}
+		managers, err = loadManagers(c)
+		if err != nil {
+			return err
+		}
+		jobs, err = loadRecentJobs(c)
+		if err != nil {
+			return err
+		}
 	}
 	groups, err := fetchBugs(c)
 	if err != nil {
