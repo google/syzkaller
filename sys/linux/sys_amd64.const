@@ -736,6 +736,7 @@ __NR_mlock = 149
 __NR_mlock2 = 325
 __NR_mlockall = 151
 __NR_mmap = 9
+# __NR_mmap2 is not set
 __NR_modify_ldt = 154
 __NR_mount = 165
 __NR_move_pages = 279
@@ -809,6 +810,7 @@ __NR_sched_yield = 24
 __NR_seccomp = 317
 __NR_select = 23
 __NR_sendfile = 40
+# __NR_sendfile64 is not set
 __NR_set_mempolicy = 238
 __NR_set_robust_list = 273
 __NR_set_thread_area = 205

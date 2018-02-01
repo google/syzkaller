@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/google/syzkaller/pkg/ast"
 	"github.com/google/syzkaller/pkg/compiler"
@@ -36,14 +35,17 @@ type Arch struct {
 	build     bool
 	files     []*File
 	err       error
+	done      chan bool
 }
 
 type File struct {
 	arch       *Arch
 	name       string
+	consts     map[string]uint64
 	undeclared map[string]bool
 	info       *compiler.ConstInfo
 	err        error
+	done       chan bool
 }
 
 type OS interface {
@@ -117,7 +119,6 @@ func main() {
 	}
 
 	jobC := make(chan interface{}, len(archArray)*len(files))
-	var wg sync.WaitGroup
 
 	var arches []*Arch
 	for _, archStr := range archArray {
@@ -144,16 +145,17 @@ func main() {
 			sourceDir: *flagSourceDir,
 			buildDir:  buildDir,
 			build:     *flagBuild,
+			done:      make(chan bool),
 		}
 		for _, f := range files {
 			arch.files = append(arch.files, &File{
 				arch: arch,
 				name: f,
+				done: make(chan bool),
 			})
 		}
 		arches = append(arches, arch)
 		jobC <- arch
-		wg.Add(1)
 	}
 
 	for p := 0; p < runtime.GOMAXPROCS(0); p++ {
@@ -163,48 +165,72 @@ func main() {
 				case *Arch:
 					infos, err := processArch(OS, j)
 					j.err = err
+					close(j.done)
 					if j.err == nil {
 						for _, f := range j.files {
 							f.info = infos[f.name]
-							wg.Add(1)
 							jobC <- f
 						}
 					}
 				case *File:
-					j.undeclared, j.err = processFile(OS, j.arch, j)
+					j.consts, j.undeclared, j.err = processFile(OS, j.arch, j)
+					close(j.done)
 				}
-				wg.Done()
 			}
 		}()
 	}
-	wg.Wait()
+
+	failed := false
+	for _, arch := range arches {
+		fmt.Printf("generating %v/%v...\n", arch.target.OS, arch.target.Arch)
+		<-arch.done
+		if arch.err != nil {
+			failed = true
+			fmt.Printf("	%v\n", arch.err)
+			continue
+		}
+		for _, f := range arch.files {
+			fmt.Printf("extracting from %v\n", f.name)
+			<-f.done
+			if f.err != nil {
+				failed = true
+				fmt.Printf("	%v\n", f.err)
+				continue
+			}
+		}
+		fmt.Printf("\n")
+	}
+
+	if !failed {
+		supported := make(map[string]bool)
+		unsupported := make(map[string]string)
+		for _, arch := range arches {
+			for _, f := range arch.files {
+				for name := range f.consts {
+					supported[name] = true
+				}
+				for name := range f.undeclared {
+					unsupported[name] = f.name
+				}
+			}
+		}
+		for name, file := range unsupported {
+			if supported[name] {
+				continue
+			}
+			failed = true
+			fmt.Printf("%v: %v is unsupported on all arches (typo?)\n",
+				file, name)
+		}
+	}
 
 	for _, arch := range arches {
 		if arch.build {
 			os.RemoveAll(arch.buildDir)
 		}
 	}
-
-	for _, arch := range arches {
-		fmt.Printf("generating %v/%v...\n", arch.target.OS, arch.target.Arch)
-		if arch.err != nil {
-			failf("%v", arch.err)
-		}
-		for _, f := range arch.files {
-			fmt.Printf("extracting from %v\n", f.name)
-			if f.err != nil {
-				failf("%v", f.err)
-			}
-			var undeclared []string
-			for c := range f.undeclared {
-				undeclared = append(undeclared, c)
-			}
-			sort.Strings(undeclared)
-			for _, c := range undeclared {
-				fmt.Printf("undefined const: %v\n", c)
-			}
-		}
-		fmt.Printf("\n")
+	if failed {
+		os.Exit(1)
 	}
 }
 
@@ -227,20 +253,20 @@ func processArch(OS OS, arch *Arch) (map[string]*compiler.ConstInfo, error) {
 	return infos, nil
 }
 
-func processFile(OS OS, arch *Arch, file *File) (map[string]bool, error) {
+func processFile(OS OS, arch *Arch, file *File) (map[string]uint64, map[string]bool, error) {
 	inname := filepath.Join("sys", arch.target.OS, file.name)
 	outname := strings.TrimSuffix(inname, ".txt") + "_" + arch.target.Arch + ".const"
 	if len(file.info.Consts) == 0 {
 		os.Remove(outname)
-		return nil, nil
+		return nil, nil, nil
 	}
 	consts, undeclared, err := OS.processFile(arch, file.info)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	data := compiler.SerializeConsts(consts)
+	data := compiler.SerializeConsts(consts, undeclared)
 	if err := osutil.WriteFile(outname, data); err != nil {
-		return nil, fmt.Errorf("failed to write output file: %v", err)
+		return nil, nil, fmt.Errorf("failed to write output file: %v", err)
 	}
-	return undeclared, nil
+	return consts, undeclared, nil
 }

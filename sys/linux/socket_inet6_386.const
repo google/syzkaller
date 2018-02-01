@@ -119,6 +119,7 @@ SIOCDELRT = 35084
 SIOCDIFADDR = 35126
 SIOCSIFADDR = 35094
 SIOCSIFDSTADDR = 35096
+# __NR_accept is not set
 __NR_accept4 = 364
 __NR_bind = 361
 __NR_connect = 362

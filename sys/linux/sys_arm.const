@@ -479,6 +479,8 @@ PTRACE_SETREGSET = 16901
 PTRACE_SETSIGINFO = 16899
 PTRACE_SINGLESTEP = 9
 PTRACE_SYSCALL = 24
+# PTRACE_SYSEMU is not set
+# PTRACE_SYSEMU_SINGLESTEP is not set
 PTRACE_TRACEME = 0
 P_ALL = 0
 P_PGID = 2
@@ -624,6 +626,8 @@ WNOWAIT = 16777216
 WSTOPPED = 2
 WUNTRACED = 2
 __NR_acct = 51
+# __NR_alarm is not set
+# __NR_arch_prctl is not set
 __NR_capget = 184
 __NR_capset = 185
 __NR_chdir = 12
@@ -654,6 +658,7 @@ __NR_execveat = 387
 __NR_exit = 1
 __NR_exit_group = 248
 __NR_faccessat = 334
+# __NR_fadvise64 is not set
 __NR_fallocate = 352
 __NR_fanotify_init = 367
 __NR_fanotify_mark = 368
@@ -674,6 +679,7 @@ __NR_futex = 240
 __NR_futimesat = 326
 __NR_get_mempolicy = 320
 __NR_get_robust_list = 339
+# __NR_get_thread_area is not set
 __NR_getcwd = 183
 __NR_getdents = 141
 __NR_getdents64 = 217
@@ -689,6 +695,7 @@ __NR_getpriority = 96
 __NR_getrandom = 384
 __NR_getresgid = 171
 __NR_getresuid = 165
+# __NR_getrlimit is not set
 __NR_getrusage = 77
 __NR_gettid = 224
 __NR_getuid = 24
@@ -703,6 +710,8 @@ __NR_io_getevents = 245
 __NR_io_setup = 243
 __NR_io_submit = 246
 __NR_ioctl = 54
+# __NR_ioperm is not set
+# __NR_iopl is not set
 __NR_ioprio_get = 315
 __NR_ioprio_set = 314
 __NR_kcmp = 378
@@ -717,6 +726,7 @@ __NR_madvise = 220
 __NR_mbind = 319
 __NR_membarrier = 389
 __NR_memfd_create = 385
+# __NR_migrate_pages is not set
 __NR_mincore = 219
 __NR_mkdir = 39
 __NR_mkdirat = 323
@@ -727,6 +737,7 @@ __NR_mlock2 = 390
 __NR_mlockall = 152
 __NR_mmap = 192
 __NR_mmap2 = 192
+# __NR_modify_ldt is not set
 __NR_mount = 21
 __NR_move_pages = 344
 __NR_mprotect = 125
@@ -797,10 +808,12 @@ __NR_sched_setparam = 154
 __NR_sched_setscheduler = 156
 __NR_sched_yield = 158
 __NR_seccomp = 383
+# __NR_select is not set
 __NR_sendfile = 187
 __NR_sendfile64 = 239
 __NR_set_mempolicy = 321
 __NR_set_robust_list = 338
+# __NR_set_thread_area is not set
 __NR_set_tid_address = 256
 __NR_setfsgid = 139
 __NR_setfsuid = 138
@@ -826,12 +839,14 @@ __NR_statx = 397
 __NR_symlink = 83
 __NR_symlinkat = 331
 __NR_sync = 36
+# __NR_sync_file_range is not set
 __NR_syncfs = 373
 __NR_sysfs = 135
 __NR_sysinfo = 116
 __NR_syslog = 103
 __NR_tee = 342
 __NR_tgkill = 268
+# __NR_time is not set
 __NR_timer_create = 257
 __NR_timer_delete = 261
 __NR_timer_getoverrun = 260
@@ -851,6 +866,7 @@ __NR_unshare = 337
 __NR_uselib = 86
 __NR_userfaultfd = 388
 __NR_ustat = 62
+# __NR_utime is not set
 __NR_utimensat = 348
 __NR_utimes = 269
 __NR_vmsplice = 343
