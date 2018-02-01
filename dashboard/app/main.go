@@ -93,6 +93,7 @@ type uiBug struct {
 	Commits        string
 	PatchedOn      []string
 	MissingOn      []string
+	NumManagers    int
 }
 
 type uiCrash struct {
@@ -389,7 +390,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		Status:         status,
 		Link:           bugLink(id),
 		ExternalLink:   link,
-		PatchedOn:      bug.PatchedOn,
+		NumManagers:    len(managers),
 	}
 	if len(bug.Commits) != 0 {
 		uiBug.Commits = fmt.Sprintf("%q", bug.Commits)
@@ -401,10 +402,13 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 					break
 				}
 			}
-			if !found {
+			if found {
+				uiBug.PatchedOn = append(uiBug.PatchedOn, mgr)
+			} else {
 				uiBug.MissingOn = append(uiBug.MissingOn, mgr)
 			}
 		}
+		sort.Strings(uiBug.PatchedOn)
 		sort.Strings(uiBug.MissingOn)
 	}
 	return uiBug
