@@ -2,8 +2,8 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "6920ac2b3139ac3d9e2a74f70583d2f352e42210"
-unsigned syscall_count = 1576;
+#define SYZ_REVISION "47ec3cf48f6c1c8a279acf0ac6752173b5a2d6c1"
+unsigned syscall_count = 1581;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -625,6 +625,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_ID", 54},
     {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 54},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 54},
+    {"ioctl$PERF_EVENT_IOC_QUERY_BPF", 54},
     {"ioctl$PERF_EVENT_IOC_REFRESH", 54},
     {"ioctl$PERF_EVENT_IOC_RESET", 54},
     {"ioctl$PERF_EVENT_IOC_SET_BPF", 54},
@@ -775,6 +776,7 @@ call_t syscalls[] = {
     {"ioctl$TUNGETIFF", 54},
     {"ioctl$TUNGETSNDBUF", 54},
     {"ioctl$TUNGETVNETHDRSZ", 54},
+    {"ioctl$TUNSETFILTEREBPF", 54},
     {"ioctl$TUNSETIFF", 54},
     {"ioctl$TUNSETIFINDEX", 54},
     {"ioctl$TUNSETLINK", 54},
@@ -784,6 +786,7 @@ call_t syscalls[] = {
     {"ioctl$TUNSETPERSIST", 54},
     {"ioctl$TUNSETQUEUE", 54},
     {"ioctl$TUNSETSNDBUF", 54},
+    {"ioctl$TUNSETSTEERINGEBPF", 54},
     {"ioctl$TUNSETTXFILTER", 54},
     {"ioctl$TUNSETVNETHDRSZ", 54},
     {"ioctl$UFFDIO_API", 54},
@@ -1080,6 +1083,8 @@ call_t syscalls[] = {
     {"process_vm_writev", 348},
     {"pselect6", 308},
     {"ptrace", 26},
+    {"ptrace$PTRACE_SECCOMP_GET_FILTER", 26},
+    {"ptrace$PTRACE_SECCOMP_GET_METADATA", 26},
     {"ptrace$cont", 26},
     {"ptrace$getenv", 26},
     {"ptrace$getregs", 26},
@@ -1587,8 +1592,8 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "222fd8dcdb6ae38514b87c2add8d3bd60b3ff760"
-unsigned syscall_count = 1629;
+#define SYZ_REVISION "cbf77bff7fbf168a36293cc240e1fd599718aae4"
+unsigned syscall_count = 1634;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2221,6 +2226,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_ID", 16},
     {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 16},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 16},
+    {"ioctl$PERF_EVENT_IOC_QUERY_BPF", 16},
     {"ioctl$PERF_EVENT_IOC_REFRESH", 16},
     {"ioctl$PERF_EVENT_IOC_RESET", 16},
     {"ioctl$PERF_EVENT_IOC_SET_BPF", 16},
@@ -2375,6 +2381,7 @@ call_t syscalls[] = {
     {"ioctl$TUNGETIFF", 16},
     {"ioctl$TUNGETSNDBUF", 16},
     {"ioctl$TUNGETVNETHDRSZ", 16},
+    {"ioctl$TUNSETFILTEREBPF", 16},
     {"ioctl$TUNSETIFF", 16},
     {"ioctl$TUNSETIFINDEX", 16},
     {"ioctl$TUNSETLINK", 16},
@@ -2384,6 +2391,7 @@ call_t syscalls[] = {
     {"ioctl$TUNSETPERSIST", 16},
     {"ioctl$TUNSETQUEUE", 16},
     {"ioctl$TUNSETSNDBUF", 16},
+    {"ioctl$TUNSETSTEERINGEBPF", 16},
     {"ioctl$TUNSETTXFILTER", 16},
     {"ioctl$TUNSETVNETHDRSZ", 16},
     {"ioctl$UFFDIO_API", 16},
@@ -2690,6 +2698,8 @@ call_t syscalls[] = {
     {"process_vm_writev", 311},
     {"pselect6", 270},
     {"ptrace", 101},
+    {"ptrace$PTRACE_SECCOMP_GET_FILTER", 101},
+    {"ptrace$PTRACE_SECCOMP_GET_METADATA", 101},
     {"ptrace$cont", 101},
     {"ptrace$getenv", 101},
     {"ptrace$getregs", 101},
@@ -3225,8 +3235,8 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "67a2feac3e413c811ab3ef6dee64624f1d34396f"
-unsigned syscall_count = 1586;
+#define SYZ_REVISION "2bcd2d52a7f0e89565375875e7487c79257c1b8d"
+unsigned syscall_count = 1591;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3831,6 +3841,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_ID", 54},
     {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 54},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 54},
+    {"ioctl$PERF_EVENT_IOC_QUERY_BPF", 54},
     {"ioctl$PERF_EVENT_IOC_REFRESH", 54},
     {"ioctl$PERF_EVENT_IOC_RESET", 54},
     {"ioctl$PERF_EVENT_IOC_SET_BPF", 54},
@@ -3981,6 +3992,7 @@ call_t syscalls[] = {
     {"ioctl$TUNGETIFF", 54},
     {"ioctl$TUNGETSNDBUF", 54},
     {"ioctl$TUNGETVNETHDRSZ", 54},
+    {"ioctl$TUNSETFILTEREBPF", 54},
     {"ioctl$TUNSETIFF", 54},
     {"ioctl$TUNSETIFINDEX", 54},
     {"ioctl$TUNSETLINK", 54},
@@ -3990,6 +4002,7 @@ call_t syscalls[] = {
     {"ioctl$TUNSETPERSIST", 54},
     {"ioctl$TUNSETQUEUE", 54},
     {"ioctl$TUNSETSNDBUF", 54},
+    {"ioctl$TUNSETSTEERINGEBPF", 54},
     {"ioctl$TUNSETTXFILTER", 54},
     {"ioctl$TUNSETVNETHDRSZ", 54},
     {"ioctl$UFFDIO_API", 54},
@@ -4289,6 +4302,8 @@ call_t syscalls[] = {
     {"process_vm_writev", 377},
     {"pselect6", 335},
     {"ptrace", 26},
+    {"ptrace$PTRACE_SECCOMP_GET_FILTER", 26},
+    {"ptrace$PTRACE_SECCOMP_GET_METADATA", 26},
     {"ptrace$cont", 26},
     {"ptrace$getenv", 26},
     {"ptrace$getregs", 26},
@@ -4820,8 +4835,8 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "7d5b0f4aa5a09f96a1aef5ef50b23f42eb5d619c"
-unsigned syscall_count = 1558;
+#define SYZ_REVISION "de8c14c28805b67f66696e7afa155ea7e8243cbf"
+unsigned syscall_count = 1563;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5417,6 +5432,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_ID", 29},
     {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 29},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 29},
+    {"ioctl$PERF_EVENT_IOC_QUERY_BPF", 29},
     {"ioctl$PERF_EVENT_IOC_REFRESH", 29},
     {"ioctl$PERF_EVENT_IOC_RESET", 29},
     {"ioctl$PERF_EVENT_IOC_SET_BPF", 29},
@@ -5571,6 +5587,7 @@ call_t syscalls[] = {
     {"ioctl$TUNGETIFF", 29},
     {"ioctl$TUNGETSNDBUF", 29},
     {"ioctl$TUNGETVNETHDRSZ", 29},
+    {"ioctl$TUNSETFILTEREBPF", 29},
     {"ioctl$TUNSETIFF", 29},
     {"ioctl$TUNSETIFINDEX", 29},
     {"ioctl$TUNSETLINK", 29},
@@ -5580,6 +5597,7 @@ call_t syscalls[] = {
     {"ioctl$TUNSETPERSIST", 29},
     {"ioctl$TUNSETQUEUE", 29},
     {"ioctl$TUNSETSNDBUF", 29},
+    {"ioctl$TUNSETSTEERINGEBPF", 29},
     {"ioctl$TUNSETTXFILTER", 29},
     {"ioctl$TUNSETVNETHDRSZ", 29},
     {"ioctl$UFFDIO_API", 29},
@@ -5869,6 +5887,8 @@ call_t syscalls[] = {
     {"process_vm_writev", 271},
     {"pselect6", 72},
     {"ptrace", 117},
+    {"ptrace$PTRACE_SECCOMP_GET_FILTER", 117},
+    {"ptrace$PTRACE_SECCOMP_GET_METADATA", 117},
     {"ptrace$cont", 117},
     {"ptrace$getenv", 117},
     {"ptrace$getregs", 117},
@@ -6387,8 +6407,8 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "572aac8ac6788d3ed23532add50e01cd118cab04"
-unsigned syscall_count = 1545;
+#define SYZ_REVISION "22e496aa45301c44268e52fce477f4dc1ee30157"
+unsigned syscall_count = 1550;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6995,6 +7015,7 @@ call_t syscalls[] = {
     {"ioctl$PERF_EVENT_IOC_ID", 54},
     {"ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT", 54},
     {"ioctl$PERF_EVENT_IOC_PERIOD", 54},
+    {"ioctl$PERF_EVENT_IOC_QUERY_BPF", 54},
     {"ioctl$PERF_EVENT_IOC_REFRESH", 54},
     {"ioctl$PERF_EVENT_IOC_RESET", 54},
     {"ioctl$PERF_EVENT_IOC_SET_BPF", 54},
@@ -7135,6 +7156,7 @@ call_t syscalls[] = {
     {"ioctl$TUNGETIFF", 54},
     {"ioctl$TUNGETSNDBUF", 54},
     {"ioctl$TUNGETVNETHDRSZ", 54},
+    {"ioctl$TUNSETFILTEREBPF", 54},
     {"ioctl$TUNSETIFF", 54},
     {"ioctl$TUNSETIFINDEX", 54},
     {"ioctl$TUNSETLINK", 54},
@@ -7144,6 +7166,7 @@ call_t syscalls[] = {
     {"ioctl$TUNSETPERSIST", 54},
     {"ioctl$TUNSETQUEUE", 54},
     {"ioctl$TUNSETSNDBUF", 54},
+    {"ioctl$TUNSETSTEERINGEBPF", 54},
     {"ioctl$TUNSETTXFILTER", 54},
     {"ioctl$TUNSETVNETHDRSZ", 54},
     {"ioctl$UFFDIO_API", 54},
@@ -7437,6 +7460,8 @@ call_t syscalls[] = {
     {"process_vm_writev", 352},
     {"pselect6", 280},
     {"ptrace", 26},
+    {"ptrace$PTRACE_SECCOMP_GET_FILTER", 26},
+    {"ptrace$PTRACE_SECCOMP_GET_METADATA", 26},
     {"ptrace$cont", 26},
     {"ptrace$getenv", 26},
     {"ptrace$getregs", 26},

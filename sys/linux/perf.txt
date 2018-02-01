@@ -18,7 +18,8 @@ ioctl$PERF_EVENT_IOC_ID(fd fd_perf, cmd const[PERF_EVENT_IOC_ID], id ptr[out, in
 ioctl$PERF_EVENT_IOC_SET_OUTPUT(fd fd_perf, cmd const[PERF_EVENT_IOC_SET_OUTPUT], other fd_perf)
 ioctl$PERF_EVENT_IOC_SET_FILTER(fd fd_perf, cmd const[PERF_EVENT_IOC_SET_FILTER], filter ptr[in, string])
 ioctl$PERF_EVENT_IOC_SET_BPF(fd fd_perf, cmd const[PERF_EVENT_IOC_SET_BPF], prog fd_bpf_prog)
-ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT(fd fd_perf, cmd const[PERF_EVENT_IOC_PAUSE_OUTPUT], arg intptr[0:1])
+ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT(fd fd_perf, cmd const[PERF_EVENT_IOC_PAUSE_OUTPUT], arg boolptr)
+ioctl$PERF_EVENT_IOC_QUERY_BPF(fd fd_perf, cmd const[PERF_EVENT_IOC_QUERY_BPF], arg ptr[in, perf_event_query_bpf])
 
 perf_flags = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_PID_CGROUP, PERF_FLAG_FD_CLOEXEC
 perf_event_type = PERF_TYPE_HARDWARE, PERF_TYPE_SOFTWARE, PERF_TYPE_TRACEPOINT, PERF_TYPE_HW_CACHE, PERF_TYPE_RAW, PERF_TYPE_BREAKPOINT
@@ -98,4 +99,10 @@ perf_bp {
 perf_config_ext {
 	config1	int64
 	config2	int64
+}
+
+perf_event_query_bpf {
+	ids_len		len[ids, int32]
+	prog_cnt	const[0, int32]
+	ids		array[const[0, int32]]
 }
