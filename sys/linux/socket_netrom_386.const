@@ -12,6 +12,7 @@ SOCK_SEQPACKET = 5
 SOL_NETROM = 259
 TIOCINQ = 21531
 TIOCOUTQ = 21521
+# __NR_accept is not set
 __NR_accept4 = 364
 __NR_bind = 361
 __NR_connect = 362

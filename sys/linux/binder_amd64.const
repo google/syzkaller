@@ -35,3 +35,4 @@ TF_ACCEPT_FDS = 16
 TF_ONE_WAY = 1
 __NR_ioctl = 16
 __NR_mmap = 9
+# __NR_mmap2 is not set

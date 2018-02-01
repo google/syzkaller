@@ -465,7 +465,7 @@ var structDescs_386 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}, Val: 133},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "regs", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "off", TypeSize: 2}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "func", TypeSize: 4}}, Kind: 2, RangeEnd: 59},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "func", TypeSize: 4}}, Kind: 2, RangeEnd: 60},
 	}}},
 	{Key: StructKey{Name: "bpf_insn_exit"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "bpf_insn_exit", TypeSize: 8}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "code", TypeSize: 1}}, Val: 149},
@@ -23652,7 +23652,7 @@ var consts_386 = []ConstValue{
 	{Name: "_DRM_VBLANK_SECONDARY", Value: 536870912},
 	{Name: "_DRM_VBLANK_SIGNAL", Value: 1073741824},
 	{Name: "_DRM_WRITE_COMBINING", Value: 16},
-	{Name: "__BPF_FUNC_MAX_ID", Value: 59},
+	{Name: "__BPF_FUNC_MAX_ID", Value: 60},
 	{Name: "__NR_accept4", Value: 364},
 	{Name: "__NR_acct", Value: 51},
 	{Name: "__NR_add_key", Value: 286},
@@ -23945,4 +23945,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "a721e2aa93c1691bcd8e5cc8fa24a913235f2483"
+const revision_386 = "6920ac2b3139ac3d9e2a74f70583d2f352e42210"

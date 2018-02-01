@@ -324,6 +324,7 @@ TCP_V4_FLOW = 1
 TCP_V6_FLOW = 5
 UDP_V4_FLOW = 2
 UDP_V6_FLOW = 6
+# __NR_accept is not set
 __NR_accept4 = 364
 __NR_bind = 361
 __NR_connect = 362

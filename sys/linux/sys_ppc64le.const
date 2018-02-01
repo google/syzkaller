@@ -479,6 +479,8 @@ PTRACE_SETREGSET = 16901
 PTRACE_SETSIGINFO = 16899
 PTRACE_SINGLESTEP = 9
 PTRACE_SYSCALL = 24
+# PTRACE_SYSEMU is not set
+# PTRACE_SYSEMU_SINGLESTEP is not set
 PTRACE_TRACEME = 0
 P_ALL = 0
 P_PGID = 2
@@ -625,6 +627,7 @@ WSTOPPED = 2
 WUNTRACED = 2
 __NR_acct = 51
 __NR_alarm = 27
+# __NR_arch_prctl is not set
 __NR_capget = 183
 __NR_capset = 184
 __NR_chdir = 12
@@ -676,6 +679,7 @@ __NR_futex = 221
 __NR_futimesat = 290
 __NR_get_mempolicy = 260
 __NR_get_robust_list = 299
+# __NR_get_thread_area is not set
 __NR_getcwd = 182
 __NR_getdents = 141
 __NR_getdents64 = 202
@@ -732,6 +736,7 @@ __NR_mlock = 150
 __NR_mlock2 = 378
 __NR_mlockall = 152
 __NR_mmap = 90
+# __NR_mmap2 is not set
 __NR_modify_ldt = 123
 __NR_mount = 21
 __NR_move_pages = 301
@@ -757,6 +762,9 @@ __NR_personality = 136
 __NR_pipe = 42
 __NR_pipe2 = 317
 __NR_pivot_root = 203
+# __NR_pkey_alloc is not set
+# __NR_pkey_free is not set
+# __NR_pkey_mprotect is not set
 __NR_poll = 167
 __NR_ppoll = 281
 __NR_prctl = 171
@@ -802,8 +810,10 @@ __NR_sched_yield = 158
 __NR_seccomp = 358
 __NR_select = 82
 __NR_sendfile = 186
+# __NR_sendfile64 is not set
 __NR_set_mempolicy = 261
 __NR_set_robust_list = 300
+# __NR_set_thread_area is not set
 __NR_set_tid_address = 232
 __NR_setfsgid = 139
 __NR_setfsuid = 138
@@ -829,6 +839,7 @@ __NR_statx = 383
 __NR_symlink = 83
 __NR_symlinkat = 295
 __NR_sync = 36
+# __NR_sync_file_range is not set
 __NR_syncfs = 348
 __NR_sysfs = 135
 __NR_sysinfo = 116
