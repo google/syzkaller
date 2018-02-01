@@ -99,13 +99,18 @@ table td, table th {
 }
 
 .list_table .kernel {
-	width: 200pt;
-	max-width: 200pt;
+	width: 60pt;
+	max-width: 60pt;
 }
 
 .list_table .maintainers {
-	width: 300pt;
-	max-width: 300pt;
+	width: 150pt;
+	max-width: 150pt;
+}
+
+.list_table .result {
+	width: 60pt;
+	max-width: 60pt;
 }
 
 .list_table .stat {

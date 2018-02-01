@@ -46,7 +46,7 @@ Page with details about a single bug.
 			<tr>
 				<td class="manager">{{$c.Manager}}</td>
 				<td class="time">{{formatTime $c.Time}}</td>
-				<td class="kernel" title="{{$c.KernelRepo}}/{{$c.KernelBranch}}">{{$c.KernelRepo}}/{{$c.KernelBranch}}</td>
+				<td class="kernel" title="{{$c.KernelAlias}}">{{$c.KernelAlias}}</td>
 				<td class="tag">{{$c.KernelCommit}}</td>
 				<td class="tag">{{$c.SyzkallerCommit}}</td>
 				<td class="config"><a href="{{$c.KernelConfigLink}}">.config</a></td>

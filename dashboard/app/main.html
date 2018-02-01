@@ -41,7 +41,7 @@ Main page.
 				<td><a href="{{$mgr.Link}}">{{$mgr.Namespace}}/{{$mgr.Name}}</a></td>
 				<td class="stat {{if $mgr.LastActiveBad}}bad{{end}}">{{formatLateness $.Now $mgr.LastActive}}</td>
 				{{if $mgr.CurrentBuild}}
-					<td class="stat" title="{{$mgr.CurrentBuild.KernelRepo}}/{{$mgr.CurrentBuild.KernelBranch}}/{{$mgr.CurrentBuild.KernelCommit}} (syzkaller {{$mgr.CurrentBuild.SyzkallerCommit}})">{{formatLateness $.Now $mgr.CurrentBuild.Time}}</td>
+					<td class="stat" title="{{$mgr.CurrentBuild.KernelAlias}}/{{$mgr.CurrentBuild.KernelCommit}} (syzkaller {{$mgr.CurrentBuild.SyzkallerCommit}})">{{formatLateness $.Now $mgr.CurrentBuild.Time}}</td>
 				{{else}}
 					<td></td>
 				{{end}}
@@ -60,48 +60,44 @@ Main page.
 	<table class="list_table" id="jobs">
 		<caption>Recent jobs:</caption>
 		<tr>
+			<th>Bug</th>
 			<th>Created</th>
 			<th>Started</th>
 			<th>Finished</th>
 			<th>User</th>
-			<th>Bug</th>
 			<th>Patch</th>
-			<th>Reporting</th>
-			<th>Manager</th>
 			<th>Repo</th>
+			<th>Manager</th>
 			<th>Result</th>
 		</tr>
 		{{range $job := $.Jobs}}
 			<tr>
+				<td class="title"><a href="{{$job.BugLink}}">{{$job.BugTitle}}</a></td>
 				<td class="time">{{if $job.ExternalLink}}<a href="{{$job.ExternalLink}}">{{formatTime $job.Created}}</a>{{else}}{{formatTime $job.Created}}{{end}}</td>
 				<td class="time">{{formatTime $job.Started}}{{if gt $job.Attempts 1}} ({{$job.Attempts}}){{end}}</td>
 				<td class="time">{{formatTime $job.Finished}}</td>
 				<td>{{$job.User}}</td>
-				<td class="title"><a href="{{$job.BugLink}}">{{$job.BugTitle}}</a></td>
 				<td><a href="{{$job.PatchLink}}">patch</a></td>
-				<td>{{$job.Namespace}}/{{$job.Reporting}}</td>
-				<td>{{$job.Manager}}</td>
-				<td>{{$job.KernelRepo}}/{{$job.KernelBranch}}</td>
-				<td>
-					{{if $job.ErrorLink}}
-						<a href="{{$job.ErrorLink}}">error</a>
-					{{else if $job.CrashTitle}}
+				<td class="kernel" title="{{$job.KernelAlias}}">{{$job.KernelAlias}}</td>
+				<td title="{{$job.Namespace}}/{{$job.Reporting}}">{{$job.Manager}}</td>
+				{{if $job.ErrorLink}}
+					<td class="result"><a href="{{$job.ErrorLink}}">error</a></td>
+				{{else if $job.CrashTitle}}
+					<td class="result" title="{{$job.CrashTitle}}">
 						{{if $job.CrashReportLink}}
-							<a href="{{$job.CrashReportLink}}">{{$job.CrashTitle}}</a>
-						{{else}}
-							{{$job.CrashTitle}}
+							<a href="{{$job.CrashReportLink}}">report</a>
 						{{end}}
 						{{if $job.CrashLogLink}}
-							 (<a href="{{$job.CrashLogLink}}">log</a>)
+							 <a href="{{$job.CrashLogLink}}">log</a>
 						{{end}}
-					{{else if formatTime $job.Finished}}
-						OK
-					{{else if formatTime $job.Started}}
-						running
-					{{else}}
-						pending
-					{{end}}
-				</td>
+					</td>
+				{{else if formatTime $job.Finished}}
+					<td class="result">OK</td>
+				{{else if formatTime $job.Started}}
+					<td class="result">running</td>
+				{{else}}
+					<td class="result">pending</td>
+				{{end}}
 			</tr>
 		{{end}}
 	</table>
