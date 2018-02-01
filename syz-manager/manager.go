@@ -282,9 +282,10 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 			signal := len(mgr.corpusSignal)
 			mgr.mu.Unlock()
 			numReproducing := atomic.LoadUint32(&mgr.numReproducing)
+			numFuzzing := atomic.LoadUint32(&mgr.numFuzzing)
 
-			Logf(0, "executed %v, cover %v, crashes %v, repro %v",
-				executed, signal, crashes, numReproducing)
+			Logf(0, "VMs %v, executed %v, cover %v, crashes %v, repro %v",
+				numFuzzing, executed, signal, crashes, numReproducing)
 		}
 	}()
 
