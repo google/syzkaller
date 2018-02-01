@@ -204,7 +204,7 @@ func (g *Gen) MutateArg(arg0 Arg) (calls []*Call) {
 		if !ok {
 			continue
 		}
-		calls = append(newCalls, newCalls...)
+		calls = append(calls, newCalls...)
 	}
 	return calls
 }
