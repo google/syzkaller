@@ -25,7 +25,7 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 			<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>
 			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
 			<td class="stat">{{formatLateness $.Now $b.LastTime}}</td>
-			<td class="patched" title="{{$b.Commits}}">{{if $b.Commits}}{{len $b.PatchedOn}}/{{len $b.MissingOn}}{{end}}</td>
+			<td class="patched" title="{{$b.Commits}}">{{if $b.Commits}}{{len $b.PatchedOn}}/{{$b.NumManagers}}{{end}}</td>
 			<td class="status">{{if $b.ExternalLink}}<a href="{{$b.ExternalLink}}">{{$b.Status}}</a>{{else}}{{$b.Status}}{{end}}</td>
 		</tr>
 	{{end}}
