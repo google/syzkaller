@@ -52,9 +52,9 @@ ifeq ("$(TARGETOS)", "fuchsia")
 	export CGO_ENABLED=1
 	NOSTATIC = 1
 	ifeq ("$(TARGETARCH)", "amd64")
-		ADDCFLAGS = --target=x86_64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-zircon-pc-x86-64/sysroot -I $(SOURCEDIR)/out/build-zircon/build-zircon-pc-x86-64
+		ADDCFLAGS = --target=x86_64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-user-x86-64/sysroot -I $(SOURCEDIR)/out/build-zircon/build-user-x86-64
 	else ifeq ("$(TARGETARCH)", "arm64")
-		ADDCFLAGS = --target=aarch64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-zircon-pc-arm64/sysroot -I $(SOURCEDIR)/out/build-zircon/build-zircon-pc-arm64
+		ADDCFLAGS = --target=aarch64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-user-arm64/sysroot -I $(SOURCEDIR)/out/build-zircon/build-user-arm64
 	endif
 endif
 
