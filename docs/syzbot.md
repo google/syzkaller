@@ -70,10 +70,12 @@ parallel).
 
 ## Crash does not reproduce?
 
-Sometimes the provided reproducers do not work. Most likely it is related to the
+If the provided reproducer does not work for you, most likely it is related to the
 fact that you have slightly different setup than `syzbot`. `syzbot` has obtained
 the provided crash report on the provided reproducer on a freshly-booted
 machine, so the reproducer worked for it somehow.
+
+`syzbot` uses GCE VMs for testing, but *usually* it is not important.
 
 If the reproducer exits quickly, try to run it several times, or in a loop.
 There can be some races involved.
