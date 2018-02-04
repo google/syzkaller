@@ -1,0 +1,130 @@
+TITLE: INFO: rcu detected stall in mulaw_decode
+
+[  196.114026] INFO: rcu_sched detected stalls on CPUs/tasks:
+[  196.119690] 	(detected by 0, t=125002 jiffies, g=15654, c=15653, q=133)
+[  196.126427] All QSes seen, last rcu_sched kthread activity 125002 (4294863411-4294738409), jiffies_till_next_fqs=3, root ->qsmask 0x0
+[  196.138535] syz-executor1   R  running task    24936 11943   3739 0x0000000c
+[  196.145712] Call Trace:
+[  196.148271]  <IRQ>
+[  196.150403]  sched_show_task+0x4a3/0x5e0
+[  196.154447]  ? can_nice.part.83+0x20/0x20
+[  196.158577]  ? vprintk_func+0x5e/0xc0
+[  196.162354]  ? printk+0xaa/0xca
+[  196.165610]  ? show_regs_print_info+0x18/0x18
+[  196.170080]  ? show_regs_print_info+0x18/0x18
+[  196.174578]  print_other_cpu_stall+0x996/0x1090
+[  196.179228]  ? __lock_is_held+0xb6/0x140
+[  196.183282]  ? rcu_stall_kick_kthreads.part.48+0x770/0x770
+[  196.188879]  ? check_noncircular+0x20/0x20
+[  196.193092]  ? print_irqtrace_events+0x270/0x270
+[  196.197837]  ? print_irqtrace_events+0x270/0x270
+[  196.202579]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  196.207744]  ? check_noncircular+0x20/0x20
+[  196.211962]  ? print_irqtrace_events+0x270/0x270
+[  196.216697]  ? print_irqtrace_events+0x270/0x270
+[  196.221440]  ? __lock_acquire+0x664/0x3e00
+[  196.225662]  ? rcu_read_lock_sched_held+0x108/0x120
+[  196.230657]  ? update_cfs_rq_load_avg.part.69+0x23d/0x2d0
+[  196.236196]  check_cpu_stall.isra.61+0x6e6/0x15b0
+[  196.241015]  ? check_noncircular+0x20/0x20
+[  196.245241]  ? rcu_lockdep_current_cpu_online+0x190/0x190
+[  196.250756]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  196.255942]  ? find_held_lock+0x35/0x1d0
+[  196.259996]  ? check_noncircular+0x20/0x20
+[  196.264213]  ? lock_downgrade+0x980/0x980
+[  196.268340]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  196.273513]  ? lock_release+0xa40/0xa40
+[  196.277475]  ? check_noncircular+0x20/0x20
+[  196.281699]  ? check_noncircular+0x20/0x20
+[  196.285922]  ? cpuacct_account_field+0x1e4/0x3b0
+[  196.290662]  ? check_noncircular+0x20/0x20
+[  196.294870]  ? find_held_lock+0x35/0x1d0
+[  196.298911]  ? __acct_update_integrals+0x339/0x4d0
+[  196.303825]  ? __lock_is_held+0xb6/0x140
+[  196.307884]  rcu_check_callbacks+0x256/0xd00
+[  196.312279]  ? rcu_cpu_stall_reset+0x260/0x260
+[  196.316843]  ? trace_hardirqs_off+0xd/0x10
+[  196.321054]  ? raise_softirq+0x325/0x490
+[  196.325095]  ? raise_softirq_irqoff+0x320/0x320
+[  196.329745]  ? read_boot_clock64+0x70/0x70
+[  196.333961]  ? lock_downgrade+0x980/0x980
+[  196.338085]  ? lock_downgrade+0x980/0x980
+[  196.342218]  ? run_local_timers+0x18d/0x200
+[  196.346515]  ? timer_clear_idle+0x50/0x50
+[  196.350644]  ? account_process_tick+0xd4/0x3e0
+[  196.355210]  ? thread_group_cputime+0xef0/0xef0
+[  196.359859]  ? ktime_get_resolution_ns+0x300/0x300
+[  196.364779]  update_process_times+0x30/0x60
+[  196.369080]  tick_sched_handle+0x85/0x160
+[  196.373206]  tick_sched_timer+0x42/0x120
+[  196.377249]  __hrtimer_run_queues+0x358/0xe20
+[  196.381733]  ? tick_sched_do_timer+0xe0/0xe0
+[  196.386122]  ? hrtimer_fixup_init+0x70/0x70
+[  196.390435]  ? pvclock_read_flags+0x160/0x160
+[  196.394924]  ? kvm_clock_get_cycles+0x25/0x30
+[  196.399397]  ? ktime_get_update_offsets_now+0x34a/0x520
+[  196.404747]  ? do_timer+0x50/0x50
+[  196.408179]  ? native_apic_msr_write+0x5c/0x80
+[  196.412739]  ? do_raw_spin_trylock+0x190/0x190
+[  196.417301]  ? lapic_next_event+0x54/0x80
+[  196.421436]  ? clockevents_program_event+0x108/0x2e0
+[  196.426526]  hrtimer_interrupt+0x1c2/0x5e0
+[  196.430767]  smp_apic_timer_interrupt+0x14a/0x700
+[  196.435592]  ? smp_call_function_single_interrupt+0x640/0x640
+[  196.441455]  ? _raw_spin_lock+0x32/0x40
+[  196.445410]  ? _raw_spin_unlock+0x22/0x30
+[  196.449533]  ? handle_edge_irq+0x2b4/0x7c0
+[  196.453747]  ? task_prio+0x40/0x40
+[  196.457279]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  196.462113]  apic_timer_interrupt+0xa9/0xb0
+[  196.466405]  </IRQ>
+[  196.468619] RIP: 0010:check_memory_region+0x38/0x190
+[  196.473693] RSP: 0000:ffff8801bd2ff868 EFLAGS: 00000212 ORIG_RAX: ffffffffffffff11
+[  196.481384] RAX: ffff7fffffffffff RBX: ffffc9000160020b RCX: ffffffff841fceaf
+[  196.488632] RDX: 0000000000000001 RSI: 0000000000000002 RDI: ffffc9000160020a
+[  196.495875] RBP: ffff8801bd2ff878 R08: ffffc9000160020a R09: dffffc0000000000
+[  196.503120] R10: 0000000000000001 R11: ffffed0037a5ff2e R12: ffffc9000160020a
+[  196.510365] R13: ffff8801bd2ff970 R14: dffffc0000000000 R15: ffffc9000160020a
+[  196.517632]  ? mulaw_decode+0x52f/0x770
+[  196.521592]  ? check_noncircular+0x20/0x20
+[  196.525806]  memcpy+0x37/0x50
+[  196.528895]  mulaw_decode+0x52f/0x770
+[  196.532706]  ? snd_pcm_plugin_build_linear+0x8a0/0x8a0
+[  196.537960]  ? snd_pcm_plugin_client_channels+0x17/0x80
+[  196.543305]  ? io_src_channels+0x10a/0x210
+[  196.547525]  mulaw_transfer+0x222/0x270
+[  196.551473]  ? lock_release+0xa40/0xa40
+[  196.555431]  ? mulaw_encode+0x7c0/0x7c0
+[  196.559384]  snd_pcm_plug_write_transfer+0x22d/0x420
+[  196.564475]  ? snd_pcm_plug_client_channels_buf+0x3f0/0x3f0
+[  196.570164]  ? snd_pcm_format_physical_width+0x5b/0x70
+[  196.575419]  ? snd_pcm_plug_client_channels_buf+0x1db/0x3f0
+[  196.581116]  snd_pcm_oss_write2+0x260/0x420
+[  196.585425]  ? snd_pcm_oss_write3+0x1b0/0x1b0
+[  196.589913]  snd_pcm_oss_write+0x5fe/0x830
+[  196.594157]  ? snd_pcm_oss_ioctl_compat+0x30/0x30
+[  196.598991]  ? snd_pcm_oss_ioctl_compat+0x30/0x30
+[  196.603813]  __vfs_write+0xef/0x970
+[  196.607418]  ? rcu_note_context_switch+0x710/0x710
+[  196.612327]  ? kernel_read+0x120/0x120
+[  196.616193]  ? __might_sleep+0x95/0x190
+[  196.620146]  ? _cond_resched+0x14/0x30
+[  196.624010]  ? __inode_security_revalidate+0xd9/0x130
+[  196.629180]  ? avc_policy_seqno+0x9/0x20
+[  196.633218]  ? selinux_file_permission+0x82/0x460
+[  196.638045]  ? security_file_permission+0x89/0x1e0
+[  196.642956]  ? rw_verify_area+0xe5/0x2b0
+[  196.646991]  ? __fdget_raw+0x20/0x20
+[  196.650693]  vfs_write+0x189/0x510
+[  196.654218]  SyS_write+0xef/0x220
+[  196.657656]  ? SyS_read+0x220/0x220
+[  196.661258]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  196.666256]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  196.670999]  entry_SYSCALL_64_fastpath+0x23/0x9a
+[  196.675728] RIP: 0033:0x452ac9
+[  196.678895] RSP: 002b:00007fa354a13c58 EFLAGS: 00000212 ORIG_RAX: 0000000000000001
+[  196.686582] RAX: ffffffffffffffda RBX: cccccccccccccccd RCX: 0000000000452ac9
+[  196.693825] RDX: 00000000fffffeb2 RSI: 0000000020083fc6 RDI: 0000000000000014
+[  196.701069] RBP: 00000000000005b5 R08: 0000000000000000 R09: 0000000000000000
+[  196.708322] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f6998
+[  196.715566] R13: 00000000ffffffff R14: 00007fa354a146d4 R15: 0000000000000000

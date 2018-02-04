@@ -1,0 +1,69 @@
+TITLE: KASAN: slab-out-of-bounds in native_queued_spin_lock_slowpath at addr ADDR
+CORRUPTED: Y
+
+[   46.284905] ==================================================================
+** 2977 printk messages dropped ** [   46.292061]  [<ffffffff814f873b>] ? rw_verify_area+0xbb/0x2c0
+** 3764 printk messages dropped ** [   46.300984] BUG: KASAN: slab-out-of-bounds in native_queued_spin_lock_slowpath+0x5ad/0x660 at addr ffff8800b7eb57d4
+** 5762 printk messages dropped ** [   46.314596]  [<ffffffff814fb2c0>] ? do_sendfile+0xf40/0xf40
+** 3692 printk messages dropped ** [   46.323313] 	___slab_alloc.constprop.78+0x4c6/0x530
+** 3400 printk messages dropped ** [   46.331342] CPU: 0 PID: 6756 Comm: syz-executor1 Tainted: G    B           4.4.105-ge303a83 #5
+** 4922 printk messages dropped ** [   46.342991] INFO: Allocated in fasync_helper+0x29/0x90 age=6 cpu=0 pid=6756
+** 4288 printk messages dropped ** [   46.353225] 	run_ksoftirqd+0x20/0x60
+** 2843 printk messages dropped ** [   46.359933] INFO: Freed in fasync_free_rcu+0x14/0x20 age=7 cpu=0 pid=3
+** 4111 printk messages dropped ** [   46.369656] BUG: KASAN: slab-out-of-bounds in native_queued_spin_lock_slowpath+0x5ad/0x660 at addr ffff8800b7eb57d4
+** 5713 printk messages dropped ** [   46.383149] 	__slab_free+0x18c/0x2b0
+** 2818 printk messages dropped ** [   46.389866]  [<ffffffff81223871>] ? __lock_is_held+0xa1/0xf0
+** 3718 printk messages dropped ** [   46.398717] Object ffff8800b7eb5780: ff ff ff ff ff ff ff ff 80 e3 70 85 ff ff ff ff  ..........p.....
+** 5181 printk messages dropped ** [   46.411008]  0000000000000000 263dc65b38caca23 ffff8801d2e979b0 ffffffff81cc9b4f
+** 4420 printk messages dropped ** [   46.421691] Object ffff8800b7eb57b0: 00 00 00 00 00 00 00 00 00 cc 1c b7 00 88 ff ff  ................
+** 5248 printk messages dropped ** [   46.434131] Object ffff8800b7eb57a0: 00 50 8b 83 ff ff ff ff 01 46 00 00 07 00 00 00  .P.......F......
+** 5252 printk messages dropped ** [   46.446625] CPU: 0 PID: 6756 Comm: syz-executor1 Tainted: G    B           4.4.105-ge303a83 #5
+** 4982 printk messages dropped ** [   46.458438]  [<ffffffff8374ab36>] entry_SYSCALL_64_fastpath+0x16/0x76
+** 4071 printk messages dropped ** [   46.468040] 	entry_SYSCALL_64_fastpath+0x16/0x76
+** 3303 printk messages dropped ** [   46.475819] 	fasync_free_rcu+0x14/0x20
+** 2914 printk messages dropped ** [   46.482677] 	___slab_alloc.constprop.78+0x4c6/0x530
+** 3327 printk messages dropped ** [   46.490514]  0000000000000000 263dc65b38caca23 ffff8801d2e979b0 ffffffff81cc9b4f
+** 4472 printk messages dropped ** [   46.501243] 	__slab_alloc.isra.74.constprop.77+0x50/0xa0
+** 3565 printk messages dropped ** [   46.509661]  [<ffffffff82564a50>] ? sg_remove_request+0x60/0x100
+** 3881 printk messages dropped ** [   46.518862] Object ffff8800b7eb57b0: 00 00 00 00 00 00 00 00 00 cc 1c b7 00 88 ff ff  ................
+** 5287 printk messages dropped ** [   46.531333]  ffff8800b7eb5700: fc fc fc fc fc fc fc fc fc fc fc fc fc fc 00 00
+** 4399 printk messages dropped ** [   46.541703]  [<ffffffff814db589>] __asan_report_load4_noabort+0x29/0x30
+** 4144 printk messages dropped ** [   46.551481]  [<ffffffff814fb2c0>] ? do_sendfile+0xf40/0xf40
+** 3701 printk messages dropped ** [   46.560195] 	kmem_cache_free+0x1f1/0x300
+** 2941 printk messages dropped ** [   46.567116] CPU: 0 PID: 6756 Comm: syz-executor1 Tainted: G    B           4.4.105-ge303a83 #5
+** 4977 printk messages dropped ** [   46.579020]  [<ffffffff814f873b>] ? rw_verify_area+0xbb/0x2c0
+** 3782 printk messages dropped ** [   46.587934] 	__do_softirq+0x24d/0xa60
+** 2872 printk messages dropped ** [   46.594689]  [<ffffffff814db1f7>] kasan_report.part.2+0x227/0x530
+** 3916 printk messages dropped ** [   46.603948]  [<ffffffff81223871>] ? __lock_is_held+0xa1/0xf0
+** 3684 printk messages dropped ** [   46.612655]  ffff8800b7eb5700: fc fc fc fc fc fc fc fc fc fc fc fc fc fc 00 00
+** 4285 printk messages dropped ** [   46.622887] -----------------------------------------------------------------------------
+[   46.622887] 
+** 5380 printk messages dropped ** [   46.635852]  [<ffffffff814f873b>] ? rw_verify_area+0xbb/0x2c0
+** 3744 printk messages dropped ** [   46.644772]  [<ffffffff814f6d8a>] __vfs_read+0xda/0x3e0
+** 3495 printk messages dropped ** [   46.653074] Object ffff8800b7eb5770: 00 00 00 00 ad 4e ad de ff ff ff ff 00 00 00 00  .....N..........
+** 5151 printk messages dropped ** [   46.665447] BUG fasync_cache (Tainted: G    B          ): kasan: bad access detected
+** 4450 printk messages dropped ** [   46.676199] Object ffff8800b7eb57a0: 00 50 8b 83 ff ff ff ff 01 46 00 00 07 00 00 00  .P.......F......
+** 5028 printk messages dropped ** [   46.688511] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+** 5080 printk messages dropped ** [   46.701115] 	__slab_free+0x18c/0x2b0
+** 2823 printk messages dropped ** [   46.708033]  [<ffffffff814fb2c0>] ? do_sendfile+0xf40/0xf40
+** 3709 printk messages dropped ** [   46.716853] INFO: Slab 0xffffea0002dfad00 objects=20 used=3 fp=0xffff8800b7eb5a90 flags=0x4000000000004080
+** 5386 printk messages dropped ** [   46.729553] 	sg_fasync+0x66/0xb0
+** 2713 printk messages dropped ** [   46.736033] INFO: Object 0xffff8800b7eb5770 @offset=6000 fp=0xdead4ead00000000
+[   46.736033] 
+** 5012 printk messages dropped ** [   46.747833] 	entry_SYSCALL_64_fastpath+0x16/0x76
+** 3299 printk messages dropped ** [   46.755632] 	entry_SYSCALL_64_fastpath+0x16/0x76
+** 3287 printk messages dropped ** [   46.763372] BUG: KASAN: slab-out-of-bounds in native_queued_spin_lock_slowpath+0x5ad/0x660 at addr ffff8800b7eb57d4
+** 5759 printk messages dropped ** [   46.776952]  [<ffffffff814f873b>] ? rw_verify_area+0xbb/0x2c0
+** 3782 printk messages dropped ** [   46.785872] 	__do_softirq+0x24d/0xa60
+** 2886 printk messages dropped ** [   46.792668]  [<ffffffff814f6d8a>] __vfs_read+0xda/0x3e0
+** 3551 printk messages dropped ** [   46.801035] 	__slab_alloc.isra.74.constprop.77+0x50/0xa0
+** 3575 printk messages dropped ** [   46.809466]  [<ffffffff81223871>] ? __lock_is_held+0xa1/0xf0
+** 3733 printk messages dropped ** [   46.818289]  [<ffffffff8123648d>] ? native_queued_spin_lock_slowpath+0x5ad/0x660
+** 4487 printk messages dropped ** [   46.828863] Object ffff8800b7eb57b0: 00 00 00 00 00 00 00 00 00 cc 1c b7 00 88 ff ff  ................
+** 5283 printk messages dropped ** [   46.841301]  [<ffffffff81003044>] ? lockdep_sys_exit_thunk+0x12/0x14
+** 3974 printk messages dropped ** [   46.850709]  [<ffffffff81003044>] ? lockdep_sys_exit_thunk+0x12/0x14
+** 4039 printk messages dropped ** [   46.860329]  [<ffffffff8122ab40>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+** 4250 printk messages dropped ** [   46.870327] Object ffff8800b7eb57b0: 00 00 00 00 00 00 00 00 00 cc 1c b7 00 88 ff ff  ................
+** 5284 printk messages dropped ** [   46.882803]  [<ffffffff8374ab36>] entry_SYSCALL_64_fastpath+0x16/0x76
+** 4009 printk messages dropped ** [   46.892231] Bytes b4 ffff8800b7eb5760: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+** 5323 printk messages dropped ** [   46.904922] INFO: Object 0xffff8800b7eb5770 @offset=6000 fp=0xdead4ead00000000

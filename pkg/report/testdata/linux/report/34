@@ -1,4 +1,4 @@
-TITLE: suspicious RCU usage at net/core/filter.c:LINE
+TITLE: INFO: suspicious RCU usage. ]
 CORRUPTED: Y
 
 [ 1722.511384] [ INFO: suspicious RCU usage. ]

@@ -1,0 +1,63 @@
+TITLE: general protection fault in sg_remove_request
+
+[   27.258999] ==================================================================
+[   27.260623] kasan: CONFIG_KASAN_INLINE enabled
+[   27.260630] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   27.260634] general protection fault: 0000 [#1] PREEMPT SMP KASAN
+[   27.260638] Dumping ftrace buffer:
+[   27.260641]    (ftrace buffer empty)
+[   27.260644] Modules linked in:
+[   27.260651] CPU: 1 PID: 3377 Comm: syzkaller685434 Not tainted 4.4.107-g610c835 #4
+[   27.260654] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   27.260658] task: ffff8800b823c740 task.stack: ffff8801d94c8000
+[   27.260671] RIP: 0010:[<ffffffff8123487f>]  [<ffffffff8123487f>] __lock_acquire+0x61f/0x4b50
+[   27.260675] RSP: 0018:ffff8801d94cf880  EFLAGS: 00010086
+[   27.260678] RAX: dffffc0000000000 RBX: dead4ead00000000 RCX: ffffffff81237ade
+[   27.260682] RDX: 1ffff1003a313890 RSI: 0000000000000008 RDI: ffff8801d189c480
+[   27.260685] RBP: ffff8801d94cfa20 R08: 0000000000000001 R09: 0000000000000001
+[   27.260688] R10: 0000000000000001 R11: 1ffff1003b299f22 R12: 0000000000000000
+[   27.260692] R13: ffff8800b823c740 R14: ffff8801d189c478 R15: 0000000000000000
+[   27.260697] FS:  0000000000000000(0000) GS:ffff8801db300000(0063) knlGS:00000000f47d3b40
+[   27.260701] CS:  0010 DS: 002b ES: 002b CR0: 0000000080050033
+[   27.260704] CR2: 00000000206f6000 CR3: 00000001d0a15000 CR4: 00000000001406e0
+[   27.260713] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   27.260717] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   27.260718] Stack:
+[   27.260725]  ffff8801d0ee0818 ffff8800b4b59d90 ffff8801d94cfa00 ffffffff8149e232
+[   27.260733]  ffff8801d94cf8b0 ffffffff00000000 ffff8800b823c740 ffff8800b823cfb0
+[   27.260739]  0000000000000288 ffff8800b823c740 0000000000000002 0000000000000002
+[   27.260741] Call Trace:
+[   27.260751]  [<ffffffff8149e232>] ? handle_mm_fault+0x3f2/0x3190
+[   27.260758]  [<ffffffff81234260>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   27.260764]  [<ffffffff8148979e>] ? vmacache_update+0xfe/0x130
+[   27.260772]  [<ffffffff810db470>] ? __do_page_fault+0x380/0xa00
+[   27.260778]  [<ffffffff8123a61e>] lock_acquire+0x15e/0x460
+[   27.260787]  [<ffffffff825b8a89>] ? sg_remove_request+0x69/0x110
+[   27.260794]  [<ffffffff83773a1e>] _raw_write_lock_irqsave+0x4e/0x70
+[   27.260800]  [<ffffffff825b8a89>] ? sg_remove_request+0x69/0x110
+[   27.260806]  [<ffffffff825b8a89>] sg_remove_request+0x69/0x110
+[   27.260813]  [<ffffffff825b9095>] sg_finish_rem_req+0x295/0x340
+[   27.260819]  [<ffffffff825baed1>] sg_read+0xa21/0x1490
+[   27.260825]  [<ffffffff825ba4b0>] ? sg_proc_seq_show_debug+0xd30/0xd30
+[   27.260832]  [<ffffffff81234260>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   27.260838]  [<ffffffff825ba4b0>] ? sg_proc_seq_show_debug+0xd30/0xd30
+[   27.260845]  [<ffffffff8151aa73>] __vfs_read+0x103/0x440
+[   27.260851]  [<ffffffff81234260>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   27.260857]  [<ffffffff8151a970>] ? vfs_iter_write+0x2d0/0x2d0
+[   27.260863]  [<ffffffff815e878d>] ? fsnotify+0x5ad/0xee0
+[   27.260868]  [<ffffffff815e90c0>] ? fsnotify+0xee0/0xee0
+[   27.260877]  [<ffffffff81b4d4f9>] ? avc_policy_seqno+0x9/0x20
+[   27.260883]  [<ffffffff81b5ebe8>] ? selinux_file_permission+0x348/0x460
+[   27.260890]  [<ffffffff81b443e9>] ? security_file_permission+0x89/0x1e0
+[   27.260896]  [<ffffffff8151c600>] ? rw_verify_area+0x100/0x2f0
+[   27.260902]  [<ffffffff8151c913>] vfs_read+0x123/0x3a0
+[   27.260909]  [<ffffffff8151f259>] SyS_read+0xd9/0x1b0
+[   27.260915]  [<ffffffff8151f180>] ? do_sendfile+0xd30/0xd30
+[   27.260922]  [<ffffffff81006b47>] ? do_fast_syscall_32+0xd7/0x890
+[   27.260928]  [<ffffffff8151f180>] ? do_sendfile+0xd30/0xd30
+[   27.260933]  [<ffffffff81006d84>] do_fast_syscall_32+0x314/0x890
+[   27.260940]  [<ffffffff837754d7>] sysenter_flags_fixed+0xd/0x17
+[   27.261026] Code: 00 fc ff df 44 89 e3 49 8d 7c de 08 48 89 fa 48 c1 ea 03 80 3c 02 00 0f 85 b6 37 00 00 49 8b 5c de 08 48 85 db 0f 84 28 fb ff ff <f0> ff 83 98 01 00 00 49 8d 85 68 08 00 00 48 89 c2 48 89 44 24 
+[   27.261032] RIP  [<ffffffff8123487f>] __lock_acquire+0x61f/0x4b50
+[   27.261034]  RSP <ffff8801d94cf880>
+[   27.261040] ---[ end trace ba8c3c110e6701ba ]---

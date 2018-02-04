@@ -1,6 +1,4 @@
-# TODO: this does not look corrupted.
 TITLE: WARNING: bad unlock balance in ipmr_mfc_seq_stop
-CORRUPTED: Y
 
 [  123.238569] =====================================
 [  123.243391] WARNING: bad unlock balance detected!

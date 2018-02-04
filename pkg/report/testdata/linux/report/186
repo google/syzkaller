@@ -1,0 +1,155 @@
+# Note: 185-188 have the same root cause.
+TITLE: possible deadlock in do_ipv6_setsockopt
+
+[   53.842308] ======================================================
+[   53.848617] WARNING: possible circular locking dependency detected
+[   53.854929] 4.15.0+ #221 Not tainted
+[   53.858633] ------------------------------------------------------
+[   53.864938] syz-executor3/5627 is trying to acquire lock:
+[   53.870468]  (sk_lock-AF_INET6){+.+.}, at: [<000000005bcb19be>] do_ipv6_setsockopt.isra.8+0x3c5/0x39d0
+[   53.879944] 
+[   53.879944] but task is already holding lock:
+[   53.885893]  (rtnl_mutex){+.+.}, at: [<000000001f0e7db0>] rtnl_lock+0x17/0x20
+[   53.893173] 
+[   53.893173] which lock already depends on the new lock.
+[   53.893173] 
+[   53.901483] 
+[   53.901483] the existing dependency chain (in reverse order) is:
+[   53.909081] 
+[   53.909081] -> #2 (rtnl_mutex){+.+.}:
+[   53.914395]        __mutex_lock+0x16f/0x1a80
+[   53.918789]        mutex_lock_nested+0x16/0x20
+[   53.923353]        rtnl_lock+0x17/0x20
+[   53.927224]        unregister_netdevice_notifier+0x91/0x4e0
+[   53.932921]        clusterip_tg_destroy+0x389/0x6e0
+[   53.937916]        cleanup_entry+0x218/0x350
+[   53.942305]        __do_replace+0x79d/0xa50
+[   53.946603]        do_ipt_set_ctl+0x40f/0x5f0
+[   53.951071]        nf_setsockopt+0x67/0xc0
+[   53.955277]        ip_setsockopt+0x97/0xa0
+[   53.959482]        tcp_setsockopt+0x82/0xd0
+[   53.963786]        sock_common_setsockopt+0x95/0xd0
+[   53.968783]        SyS_setsockopt+0x189/0x360
+[   53.973254]        entry_SYSCALL_64_fastpath+0x29/0xa0
+[   53.978498] 
+[   53.978498] -> #1 (&xt[i].mutex){+.+.}:
+[   53.983939]        __mutex_lock+0x16f/0x1a80
+[   53.988318]        mutex_lock_nested+0x16/0x20
+[   53.992872]        xt_find_table_lock+0x3e/0x3e0
+[   53.997596]        xt_request_find_table_lock+0x28/0xc0
+[   54.002948]        get_info+0x154/0x690
+[   54.006899]        do_ip6t_get_ctl+0x159/0xaf0
+[   54.011454]        nf_getsockopt+0x6a/0xc0
+[   54.015661]        ipv6_getsockopt+0x1df/0x2e0
+[   54.020215]        tcp_getsockopt+0x82/0xd0
+[   54.024511]        sock_common_getsockopt+0x95/0xd0
+[   54.029521]        SyS_getsockopt+0x178/0x340
+[   54.034019]        entry_SYSCALL_64_fastpath+0x29/0xa0
+[   54.039289] 
+[   54.039289] -> #0 (sk_lock-AF_INET6){+.+.}:
+[   54.045095]        lock_acquire+0x1d5/0x580
+[   54.049404]        lock_sock_nested+0xc2/0x110
+[   54.053975]        do_ipv6_setsockopt.isra.8+0x3c5/0x39d0
+[   54.059482]        ipv6_setsockopt+0xd7/0x130
+[   54.063949]        rawv6_setsockopt+0x4a/0xf0
+[   54.068425]        sock_common_setsockopt+0x95/0xd0
+[   54.073415]        SyS_setsockopt+0x189/0x360
+[   54.077879]        entry_SYSCALL_64_fastpath+0x29/0xa0
+[   54.083122] 
+[   54.083122] other info that might help us debug this:
+[   54.083122] 
+[   54.091320] Chain exists of:
+[   54.091320]   sk_lock-AF_INET6 --> &xt[i].mutex --> rtnl_mutex
+[   54.091320] 
+[   54.101614]  Possible unsafe locking scenario:
+[   54.101614] 
+[   54.107654]        CPU0                    CPU1
+[   54.112299]        ----                    ----
+[   54.116940]   lock(rtnl_mutex);
+[   54.120195]                                lock(&xt[i].mutex);
+[   54.126138]                                lock(rtnl_mutex);
+[   54.131908]   lock(sk_lock-AF_INET6);
+[   54.135683] 
+[   54.135683]  *** DEADLOCK ***
+[   54.135683] 
+[   54.141717] 1 lock held by syz-executor3/5627:
+[   54.146270]  #0:  (rtnl_mutex){+.+.}, at: [<000000001f0e7db0>] rtnl_lock+0x17/0x20
+[   54.153968] 
+[   54.153968] stack backtrace:
+[   54.158438] CPU: 0 PID: 5627 Comm: syz-executor3 Not tainted 4.15.0+ #221
+[   54.165346] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   54.174686] Call Trace:
+[   54.177254]  dump_stack+0x194/0x257
+[   54.180856]  ? arch_local_irq_restore+0x53/0x53
+[   54.185512]  print_circular_bug.isra.38+0x2cd/0x2dc
+[   54.190524]  ? save_trace+0xe0/0x2b0
+[   54.194214]  __lock_acquire+0x30a8/0x3e00
+[   54.198353]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   54.203528]  ? rtnl_lock+0x17/0x20
+[   54.207054]  ? __mutex_lock+0x16f/0x1a80
+[   54.211090]  ? rtnl_lock+0x17/0x20
+[   54.214607]  ? rtnl_lock+0x17/0x20
+[   54.218122]  ? print_irqtrace_events+0x270/0x270
+[   54.222857]  ? __lock_acquire+0x664/0x3e00
+[   54.227069]  ? print_irqtrace_events+0x270/0x270
+[   54.231804]  ? check_noncircular+0x20/0x20
+[   54.236020]  ? print_irqtrace_events+0x270/0x270
+[   54.240759]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   54.245923]  ? check_noncircular+0x20/0x20
+[   54.250131]  ? __lock_acquire+0x664/0x3e00
+[   54.254341]  ? find_held_lock+0x35/0x1d0
+[   54.258377]  lock_acquire+0x1d5/0x580
+[   54.262160]  ? lock_sock_nested+0xa3/0x110
+[   54.266373]  ? lock_acquire+0x1d5/0x580
+[   54.270321]  ? do_ipv6_setsockopt.isra.8+0x3c5/0x39d0
+[   54.275490]  ? lock_release+0xa40/0xa40
+[   54.279442]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[   54.285297]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[   54.291156]  ? do_raw_spin_trylock+0x190/0x190
+[   54.295716]  ? __enqueue_entity+0x109/0x1e0
+[   54.300019]  ? lock_sock_nested+0x44/0x110
+[   54.304241]  lock_sock_nested+0xc2/0x110
+[   54.308291]  ? do_ipv6_setsockopt.isra.8+0x3c5/0x39d0
+[   54.313455]  do_ipv6_setsockopt.isra.8+0x3c5/0x39d0
+[   54.318444]  ? ipv6_update_options+0x330/0x330
+[   54.323000]  ? lock_downgrade+0x980/0x980
+[   54.327128]  ? check_noncircular+0x20/0x20
+[   54.331333]  ? load_balance+0x34c0/0x34c0
+[   54.335452]  ? check_noncircular+0x20/0x20
+[   54.339657]  ? compat_start_thread+0x80/0x80
+[   54.344041]  ? do_raw_spin_trylock+0x190/0x190
+[   54.348615]  ? find_held_lock+0x35/0x1d0
+[   54.352657]  ? avc_has_perm+0x35e/0x680
+[   54.356601]  ? lock_downgrade+0x980/0x980
+[   54.360719]  ? lock_release+0xa40/0xa40
+[   54.364665]  ? lock_downgrade+0x980/0x980
+[   54.368783]  ? lock_release+0xa40/0xa40
+[   54.372728]  ? __lock_is_held+0xb6/0x140
+[   54.376764]  ? avc_has_perm+0x43e/0x680
+[   54.380723]  ? avc_has_perm_noaudit+0x520/0x520
+[   54.385371]  ? iterate_fd+0x3f0/0x3f0
+[   54.389152]  ? lock_downgrade+0x980/0x980
+[   54.393272]  ? __lock_is_held+0xb6/0x140
+[   54.397304]  ? schedule+0xf5/0x430
+[   54.400818]  ? sock_has_perm+0x2a4/0x420
+[   54.404847]  ? selinux_secmark_relabel_packet+0xc0/0xc0
+[   54.410180]  ? selinux_netlbl_socket_setsockopt+0x10c/0x460
+[   54.415859]  ? selinux_netlbl_sock_rcv_skb+0x730/0x730
+[   54.421103]  ? alloc_file+0x27e/0x390
+[   54.424874]  ipv6_setsockopt+0xd7/0x130
+[   54.428817]  ? ipv6_setsockopt+0xd7/0x130
+[   54.432936]  rawv6_setsockopt+0x4a/0xf0
+[   54.436883]  sock_common_setsockopt+0x95/0xd0
+[   54.441349]  SyS_setsockopt+0x189/0x360
+[   54.445294]  ? SyS_recv+0x40/0x40
+[   54.448720]  ? entry_SYSCALL_64_fastpath+0x5/0xa0
+[   54.453538]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   54.458530]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   54.463255]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   54.467980] RIP: 0033:0x453299
+[   54.471138] RSP: 002b:00007f426abc9c58 EFLAGS: 00000212 ORIG_RAX: 0000000000000036
+[   54.478825] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000453299
+[   54.486067] RDX: 0000000000000001 RSI: 0000000000000029 RDI: 0000000000000013
+[   54.493317] RBP: 00000000000005cd R08: 0000000000000004 R09: 0000000000000000
+[   54.500565] R10: 000000002095affc R11: 0000000000000212 R12: 00000000006f7bd8
+[   54.507812] R13: 00000000ffffffff R14: 00007f426abca6d4 R15: 0000000000000000

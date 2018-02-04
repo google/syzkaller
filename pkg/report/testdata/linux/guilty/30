@@ -1,0 +1,51 @@
+FILE: net/ipv4/netfilter/ipt_CLUSTERIP.c
+
+------------[ cut here ]------------
+proc_dir_entry 'ipt_CLUSTERIP/172.20.0.170' already registered
+WARNING: CPU: 1 PID: 4074 at fs/proc/generic.c:330 proc_register+0x2a4/0x370 fs/proc/generic.c:329
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 1 PID: 4074 Comm: syzkaller105937 Not tainted 4.15.0+ #221
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:17 [inline]
+ dump_stack+0x194/0x257 lib/dump_stack.c:53
+ panic+0x1e4/0x41c kernel/panic.c:183
+ __warn+0x1dc/0x200 kernel/panic.c:547
+ report_bug+0x211/0x2d0 lib/bug.c:184
+ fixup_bug.part.11+0x37/0x80 arch/x86/kernel/traps.c:178
+ fixup_bug arch/x86/kernel/traps.c:247 [inline]
+ do_error_trap+0x2d7/0x3e0 arch/x86/kernel/traps.c:296
+ do_invalid_op+0x1b/0x20 arch/x86/kernel/traps.c:315
+ invalid_op+0x22/0x40 arch/x86/entry/entry_64.S:1097
+RIP: 0010:proc_register+0x2a4/0x370 fs/proc/generic.c:329
+RSP: 0018:ffff8801da886e20 EFLAGS: 00010286
+RAX: dffffc0000000008 RBX: ffff8801d21cc7b8 RCX: ffffffff815a57ae
+RDX: 0000000000000000 RSI: 1ffff1003b510d74 RDI: 1ffff1003b510d49
+RBP: ffff8801da886e70 R08: 1ffff1003b510d0b R09: 0000000000000000
+R10: ffff8801da886cd8 R11: 0000000000000000 R12: ffff8801cbf66440
+R13: dffffc0000000000 R14: ffff8801ca2fa348 R15: ffff8801cbf66501
+ proc_create_data+0xf8/0x180 fs/proc/generic.c:494
+ clusterip_config_init net/ipv4/netfilter/ipt_CLUSTERIP.c:250 [inline]
+ clusterip_tg_check+0xf9c/0x16d0 net/ipv4/netfilter/ipt_CLUSTERIP.c:488
+ xt_check_target+0x22c/0x7d0 net/netfilter/x_tables.c:850
+ check_target net/ipv4/netfilter/ip_tables.c:513 [inline]
+ find_check_entry.isra.8+0x8c8/0xcb0 net/ipv4/netfilter/ip_tables.c:554
+ translate_table+0xed1/0x1610 net/ipv4/netfilter/ip_tables.c:725
+ do_replace net/ipv4/netfilter/ip_tables.c:1141 [inline]
+ do_ipt_set_ctl+0x370/0x5f0 net/ipv4/netfilter/ip_tables.c:1675
+ nf_sockopt net/netfilter/nf_sockopt.c:106 [inline]
+ nf_setsockopt+0x67/0xc0 net/netfilter/nf_sockopt.c:115
+ ip_setsockopt+0x97/0xa0 net/ipv4/ip_sockglue.c:1259
+ sctp_setsockopt+0x2b6/0x61d0 net/sctp/socket.c:4104
+ sock_common_setsockopt+0x95/0xd0 net/core/sock.c:2975
+ SYSC_setsockopt net/socket.c:1849 [inline]
+ SyS_setsockopt+0x189/0x360 net/socket.c:1828
+ entry_SYSCALL_64_fastpath+0x29/0xa0
+RIP: 0033:0x44afa9
+RSP: 002b:00007f43f70edce8 EFLAGS: 00000246 ORIG_RAX: 0000000000000036
+RAX: ffffffffffffffda RBX: 00000000006e0c3c RCX: 000000000044afa9
+RDX: 0000000000000040 RSI: 0000000000000000 RDI: 0000000000000004
+RBP: 00000000006e0c38 R08: 0000000000000348 R09: 0000000000000000
+R10: 0000000020013c90 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007ffe194fe84f R14: 00007f43f70ee9c0 R15: 0000000000000005

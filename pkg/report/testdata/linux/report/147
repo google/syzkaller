@@ -1,5 +1,4 @@
-# TODO: this must be "in remove_wait_queue". See TODO in 146.
-TITLE: KASAN: use-after-free Read in __lock_acquire
+TITLE: KASAN: use-after-free Read in remove_wait_queue
 
 [   19.121820] ==================================================================
 [   19.121834] BUG: KASAN: use-after-free in __lock_acquire+0x3c41/0x3cf0

@@ -1,5 +1,4 @@
-TITLE: BUG: bad unlock balance in dump_stack
-CORRUPTED: Y
+TITLE: BUG: bad unlock balance in ipmr_mfc_seq_stop
 
 [   76.640408] binder: undelivered TRANSACTION_ERROR: 29189
 [   76.649866] [ BUG: bad unlock balance detected! ]

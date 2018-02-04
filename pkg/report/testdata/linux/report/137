@@ -1,5 +1,4 @@
-# TODO: this should be "in ipcomp_init_state"
-TITLE: BUG: using __this_cpu_read() in preemptible code in __this_cpu_preempt_check
+TITLE: BUG: using __this_cpu_read() in preemptible code in ipcomp_init_state
 
 [   45.718728] BUG: using __this_cpu_read() in preemptible [00000000] code: syz-executor6/6976
 [   45.727291] caller is __this_cpu_preempt_check+0x1c/0x20
@@ -10,7 +9,9 @@ TITLE: BUG: using __this_cpu_read() in preemptible code in __this_cpu_preempt_ch
 [   45.765691]  ffffffff81df79f4 ffff8801ce54f730 ffffffff83f42ec0 dffffc0000000000
 [   45.773790] Call Trace:
 [   45.776364]  [<ffffffff81d90a29>] dump_stack+0xc1/0x128
+[   45.793029] sg_write: data in/out 327644/32 bytes for SCSI command 0x4-- guessing data in;
 [   45.781730]  [<ffffffff81df79f4>] check_preemption_disabled+0x1d4/0x200
+[   45.793029]    program syz-executor0 not setting count and/or reply_len properly
 [   45.788474]  [<ffffffff81df7a5c>] __this_cpu_preempt_check+0x1c/0x20
 [   45.793029] sg_write: data in/out 327644/32 bytes for SCSI command 0x4-- guessing data in;
 [   45.793029]    program syz-executor0 not setting count and/or reply_len properly

@@ -1,0 +1,57 @@
+FILE: net/tipc/name_table.c
+
+list_del corruption. prev->next should be 00000000bc6553ca, but was 0000000038fa8131
+------------[ cut here ]------------
+kernel BUG at lib/list_debug.c:53!
+invalid opcode: 0000 [#1] SMP KASAN
+Dumping ftrace buffer:
+   (ftrace buffer empty)
+Modules linked in:
+CPU: 1 PID: 3200 Comm: syz-executor4 Not tainted 4.15.0-rc8+ #264
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+RIP: 0010:__list_del_entry_valid+0xef/0x150 lib/list_debug.c:51
+RSP: 0018:ffff8801be95eb20 EFLAGS: 00010286
+RAX: 0000000000000054 RBX: ffff8801d359f240 RCX: 0000000000000000
+RDX: 0000000000000054 RSI: 1ffff10039af2dca RDI: ffffed0037d2bd58
+RBP: ffff8801be95eb38 R08: 1ffff10037d2bcfc R09: 0000000000000000
+R10: ffff8801be95ea00 R11: 0000000000000000 R12: ffff8801d50e4900
+R13: ffff8801be95ecd8 R14: ffff8801c29ac860 R15: ffff8801bd76aa80
+FS:  00007f70eee26700(0000) GS:ffff8801db300000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00000000010bad18 CR3: 0000000006822006 CR4: 00000000001606e0
+Call Trace:
+ __list_del_entry include/linux/list.h:117 [inline]
+ list_del_init include/linux/list.h:159 [inline]
+ tipc_nametbl_unsubscribe+0x318/0x990 net/tipc/name_table.c:851
+ tipc_subscrb_subscrp_delete+0x1e9/0x460 net/tipc/subscr.c:208
+ tipc_subscrb_delete net/tipc/subscr.c:238 [inline]
+ tipc_subscrb_release_cb+0x17/0x30 net/tipc/subscr.c:316
+ tipc_close_conn+0x171/0x270 net/tipc/server.c:204
+ tipc_topsrv_kern_unsubscr+0x213/0x340 net/tipc/server.c:532
+ tipc_group_delete+0x2c0/0x3d0 net/tipc/group.c:206
+ tipc_sk_leave+0x10b/0x200 net/tipc/socket.c:2780
+ tipc_release+0x154/0xfe0 net/tipc/socket.c:575
+ sock_release+0x8d/0x1e0 net/socket.c:602
+ sock_close+0x16/0x20 net/socket.c:1131
+ __fput+0x327/0x7e0 fs/file_table.c:210
+ ____fput+0x15/0x20 fs/file_table.c:244
+ task_work_run+0x199/0x270 kernel/task_work.c:113
+ exit_task_work include/linux/task_work.h:22 [inline]
+ do_exit+0x9bb/0x1ad0 kernel/exit.c:865
+ do_group_exit+0x149/0x400 kernel/exit.c:968
+ get_signal+0x73f/0x16c0 kernel/signal.c:2335
+ do_signal+0x90/0x1eb0 arch/x86/kernel/signal.c:809
+ exit_to_usermode_loop+0x214/0x310 arch/x86/entry/common.c:158
+ prepare_exit_to_usermode arch/x86/entry/common.c:195 [inline]
+ syscall_return_slowpath+0x490/0x550 arch/x86/entry/common.c:264
+ entry_SYSCALL_64_fastpath+0x9e/0xa0
+RIP: 0033:0x452df9
+RSP: 002b:00007f70eee25c88 EFLAGS: 00000246 ORIG_RAX: 00000000000000ca
+RAX: 0000000000000001 RBX: 000000000071bea0 RCX: 0000000000452df9
+RDX: 0000000000000000 RSI: 0000000000000001 RDI: 000000000071becc
+RBP: 0000000000000573 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000010 R11: 0000000000000246 R12: 0000000000000001
+R13: 0000000000000014 R14: 00007f70eee266d4 R15: ffffffffffffffff
+Code: 4c 89 e2 48 c7 c7 c0 fb e0 85 e8 95 26 fe fe 0f 0b 48 c7 c7 20 fc e0 85 e8 87 26 fe fe 0f 0b 48 c7 c7 80 fc e0 85 e8 79 26 fe fe <0f> 0b 48 c7 c7 e0 fc e0 85 e8 6b 26 fe fe 0f 0b 48 89 df 48 89 
+RIP: __list_del_entry_valid+0xef/0x150 lib/list_debug.c:51 RSP: ffff8801be95eb20
+---[ end trace 0c495e0cee371de9 ]---

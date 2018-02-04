@@ -1,5 +1,5 @@
-# TODO: this must be marked as corrupted
-TITLE: INFO: task hung in __schedule
+TITLE: INFO: task syz-executor blocked for more than 120 seconds.
+CORRUPTED: Y
 
 [  369.632194] INFO: task syz-executor1:12659 blocked for more than 120 seconds.
 [  369.639544]       Not tainted 4.15.0-rc2+ #152

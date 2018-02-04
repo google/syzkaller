@@ -1,0 +1,136 @@
+TITLE: WARNING: kobject bug in br_add_if
+
+[  179.154721] kobject_add_internal failed for brport (error: -12 parent: syz6)
+[  179.154909] ------------[ cut here ]------------
+[  179.154920] WARNING: CPU: 1 PID: 3485 at lib/kobject.c:244 kobject_add_internal+0x3f6/0xbc0
+[  179.154926] Kernel panic - not syncing: panic_on_warn set ...
+[  179.154926] 
+[  179.154934] CPU: 1 PID: 3485 Comm: syz-executor6 Not tainted 4.14.0-rc4+ #80
+[  179.154939] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  179.154943] Call Trace:
+[  179.154951]  dump_stack+0x194/0x257
+[  179.154964]  ? arch_local_irq_restore+0x53/0x53
+[  179.154989]  panic+0x1e4/0x417
+[  179.154998]  ? __warn+0x1d9/0x1d9
+[  179.155011]  ? show_regs_print_info+0x65/0x65
+[  179.155035]  ? __warn+0x1a9/0x1d9
+[  179.155057]  ? kobject_add_internal+0x3f6/0xbc0
+[  179.155068]  __warn+0x1c4/0x1d9
+[  179.155081]  ? kobject_add_internal+0x3f6/0xbc0
+[  179.155096]  report_bug+0x211/0x2d0
+[  179.155119]  fixup_bug+0x40/0x90
+[  179.155134]  do_trap+0x260/0x390
+[  179.155157]  do_error_trap+0x120/0x390
+[  179.155171]  ? trace_hardirqs_on+0xd/0x10
+[  179.155192]  ? do_trap+0x390/0x390
+[  179.155206]  ? kobject_add_internal+0x3f6/0xbc0
+[  179.155215]  ? vprintk_emit+0x3ea/0x590
+[  179.155232]  ? rds_tcp_laddr_check+0x40/0x40
+[  179.155251]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  179.155274]  do_invalid_op+0x1b/0x20
+[  179.155285]  invalid_op+0x18/0x20
+[  179.155295] RIP: 0010:kobject_add_internal+0x3f6/0xbc0
+[  179.155301] RSP: 0018:ffff8801bf816900 EFLAGS: 00010282
+[  179.155311] RAX: 0000000000000040 RBX: ffff8801c09b4620 RCX: 0000000000000000
+[  179.155318] RDX: 0000000000000040 RSI: ffffffff8158d38e RDI: ffffed0037f02d14
+[  179.155324] RBP: ffff8801bf8169f8 R08: ffff8801bf816070 R09: 0000000000000000
+[  179.155331] R10: 0000000000000000 R11: 0000000000000000 R12: 1ffff10037f02d26
+[  179.155338] R13: 00000000fffffff4 R14: ffff8801cb9b0b30 R15: ffff8801cd01c000
+[  179.155364]  ? vprintk_func+0x5e/0xc0
+[  179.155392]  ? kobj_ns_type_registered+0x50/0x50
+[  179.155406]  ? kfree_const+0x31/0x40
+[  179.155419]  ? rcu_read_lock_sched_held+0x108/0x120
+[  179.155431]  ? kfree+0x1e7/0x250
+[  179.155449]  ? kfree_const+0x36/0x40
+[  179.155471]  kobject_init_and_add+0xf9/0x150
+[  179.155488]  ? kset_create_and_add+0x170/0x170
+[  179.155510]  ? __dev_set_allmulti+0x21b/0x2c0
+[  179.155522]  ? __dev_set_allmulti+0x1cb/0x2c0
+[  179.155552]  br_add_if+0x786/0x1990
+[  179.155562]  ? dev_set_allmulti+0x30/0x30
+[  179.155589]  ? br_features_recompute+0x250/0x250
+[  179.155601]  ? netdev_master_upper_dev_get+0x157/0x200
+[  179.155616]  ? __dev_get_by_flags+0x180/0x180
+[  179.155627]  ? proc_pident_instantiate+0x1de/0x290
+[  179.155649]  br_add_slave+0x29/0x30
+[  179.155663]  ? br_del_slave+0x30/0x30
+[  179.155673]  do_set_master+0x19c/0x1f0
+[  179.155690]  do_setlink+0xa98/0x38e0
+[  179.155720]  ? rtnl_register+0x70/0x70
+[  179.155738]  ? __lock_acquire+0x732/0x4620
+[  179.155777]  ? __lock_acquire+0x732/0x4620
+[  179.155791]  ? debug_check_no_locks_freed+0x3d0/0x3d0
+[  179.155801]  ? __read_once_size_nocheck.constprop.8+0x10/0x10
+[  179.155814]  ? __alloc_skb+0x13b/0x780
+[  179.155830]  ? print_usage_bug+0x480/0x480
+[  179.155862]  ? rtnl_is_locked+0x54/0xb0
+[  179.155874]  ? rtnl_kfree_skbs+0x70/0x70
+[  179.155887]  ? validate_nla+0x1a7/0x5a0
+[  179.155912]  ? netdev_master_upper_dev_get+0x157/0x200
+[  179.155927]  ? __dev_get_by_flags+0x180/0x180
+[  179.155942]  ? avc_has_perm_noaudit+0xbe/0x520
+[  179.155964]  rtnl_newlink+0xf0d/0x1a40
+[  179.155975]  ? __mutex_lock+0x16f/0x19d0
+[  179.156014]  ? rtnl_link_unregister+0x330/0x330
+[  179.156037]  ? avc_has_extended_perms+0x12c0/0x12c0
+[  179.156050]  ? check_noncircular+0x20/0x20
+[  179.156062]  ? avc_has_extended_perms+0x12c0/0x12c0
+[  179.156076]  ? unwind_get_return_address+0x61/0xa0
+[  179.156105]  ? do_iter_readv_writev+0x531/0x7f0
+[  179.156129]  ? find_held_lock+0x39/0x1d0
+[  179.156225]  ? rtnl_link_unregister+0x330/0x330
+[  179.156241]  rtnetlink_rcv_msg+0x733/0x1090
+[  179.156251]  ? check_noncircular+0x20/0x20
+[  179.156275]  ? rtnl_calcit.isra.24+0x4f0/0x4f0
+[  179.156315]  ? find_held_lock+0x39/0x1d0
+[  179.156349]  ? lock_downgrade+0x990/0x990
+[  179.156391]  ? lock_release+0xd70/0xd70
+[  179.156405]  ? netlink_lookup+0x620/0xa90
+[  179.156430]  ? rtnl_link_unregister+0x330/0x330
+[  179.156440]  ? netlink_connect+0x4e0/0x4e0
+[  179.156465]  ? netlink_deliver_tap+0x176/0xb60
+[  179.156480]  ? iov_iter_advance+0x2a1/0x13f0
+[  179.156502]  netlink_rcv_skb+0x216/0x440
+[  179.156514]  ? rtnl_calcit.isra.24+0x4f0/0x4f0
+[  179.156529]  ? netlink_ack+0xab0/0xab0
+[  179.156550]  ? netlink_skb_destructor+0x1d0/0x1d0
+[  179.156567]  ? selinux_nlmsg_lookup+0x32b/0x430
+[  179.156587]  rtnetlink_rcv+0x1c/0x20
+[  179.156600]  netlink_unicast+0x4e8/0x6f0
+[  179.156624]  ? netlink_attachskb+0x8a0/0x8a0
+[  179.156646]  ? security_netlink_send+0x81/0xb0
+[  179.156663]  netlink_sendmsg+0xa4a/0xe70
+[  179.156689]  ? netlink_unicast+0x6f0/0x6f0
+[  179.156711]  ? security_socket_sendmsg+0x89/0xb0
+[  179.156722]  ? netlink_unicast+0x6f0/0x6f0
+[  179.156740]  sock_sendmsg+0xca/0x110
+[  179.156759]  sock_write_iter+0x320/0x5e0
+[  179.156777]  ? sock_sendmsg+0x110/0x110
+[  179.156806]  ? selinux_capset+0x100/0x100
+[  179.156819]  ? __might_sleep+0x6c/0x190
+[  179.156842]  do_iter_readv_writev+0x531/0x7f0
+[  179.156866]  ? vfs_dedupe_file_range+0x900/0x900
+[  179.156894]  ? rw_verify_area+0xe5/0x2b0
+[  179.156916]  do_iter_write+0x15a/0x540
+[  179.156929]  ? dup_iter+0x260/0x260
+[  179.156964]  vfs_writev+0x18a/0x340
+[  179.156976]  ? __fget_light+0x29d/0x390
+[  179.156995]  ? vfs_iter_write+0xb0/0xb0
+[  179.157012]  ? __mutex_unlock_slowpath+0xe9/0xac0
+[  179.157028]  ? kernel_read+0x120/0x120
+[  179.157075]  ? __fdget_pos+0x136/0x1a0
+[  179.157091]  ? __fdget_raw+0x20/0x20
+[  179.157122]  do_writev+0xfc/0x2a0
+[  179.157135]  ? do_writev+0xfc/0x2a0
+[  179.157158]  ? vfs_writev+0x340/0x340
+[  179.157169]  ? entry_SYSCALL_64_fastpath+0x5/0xbe
+[  179.157191]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  179.157215]  SyS_writev+0x27/0x30
+[  179.157232]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[  179.157241] RIP: 0033:0x4520a9
+[  179.157249] RSP: 002b:00007f4633db3c08 EFLAGS: 00000216 ORIG_RAX: 0000000000000014
+[  179.157264] RAX: ffffffffffffffda RBX: 0000000000718000 RCX: 00000000004520a9
+[  179.157271] RDX: 0000000000000001 RSI: 00000000205d9000 RDI: 0000000000000005
+[  179.157278] RBP: 0000000000000086 R08: 0000000000000000 R09: 0000000000000000
+[  179.157284] R10: 0000000000000000 R11: 0000000000000216 R12: 00000000004b6c37
+[  179.157291] R13: 00007f4633db3b48 R14: 00000000004b6c47 R15: 0000000000000000

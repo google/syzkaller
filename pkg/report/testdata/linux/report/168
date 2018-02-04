@@ -1,0 +1,100 @@
+TITLE: WARNING: ODEBUG bug in pppol2tp_release
+
+[   34.186906] ------------[ cut here ]------------
+[   34.192768] ODEBUG: activate active (active state 1) object type: rcu_head hint:           (null)
+[   34.201856] WARNING: CPU: 0 PID: 5989 at lib/debugobjects.c:291 debug_print_object+0x166/0x220
+[   34.210575] Kernel panic - not syncing: panic_on_warn set ...
+[   34.210575] 
+[   34.217913] CPU: 0 PID: 5989 Comm: syzkaller148927 Not tainted 4.15.0+ #290
+[   34.224982] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   34.234310] Call Trace:
+[   34.236879]  dump_stack+0x194/0x257
+[   34.240482]  ? arch_local_irq_restore+0x53/0x53
+[   34.245129]  ? vsnprintf+0x1ed/0x1900
+[   34.248914]  panic+0x1e4/0x41c
+[   34.252081]  ? refcount_error_report+0x214/0x214
+[   34.256815]  ? show_regs_print_info+0x18/0x18
+[   34.261291]  ? __warn+0x1c1/0x200
+[   34.264724]  ? debug_print_object+0x166/0x220
+[   34.269192]  __warn+0x1dc/0x200
+[   34.272449]  ? debug_print_object+0x166/0x220
+[   34.276925]  report_bug+0x211/0x2d0
+[   34.280532]  fixup_bug.part.11+0x37/0x80
+[   34.284569]  do_error_trap+0x2d7/0x3e0
+[   34.288436]  ? math_error+0x400/0x400
+[   34.292215]  ? vprintk_emit+0x3ea/0x590
+[   34.296174]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   34.300995]  do_invalid_op+0x1b/0x20
+[   34.304684]  invalid_op+0x22/0x40
+[   34.308111] RIP: 0010:debug_print_object+0x166/0x220
+[   34.313186] RSP: 0018:ffff8801d82df400 EFLAGS: 00010082
+[   34.318522] RAX: dffffc0000000008 RBX: 0000000000000003 RCX: ffffffff815a4e0e
+[   34.325764] RDX: 0000000000000000 RSI: 1ffff1003b05be3b RDI: ffff8801db41f6d0
+[   34.333009] RBP: ffff8801d82df440 R08: 0000000000000000 R09: 1ffff1003b05be0d
+[   34.340255] R10: ffff8801d82df300 R11: ffffffff86b39018 R12: 0000000000000001
+[   34.347510] R13: ffffffff86b41f20 R14: ffffffff86012ae0 R15: 0000000000000000
+[   34.354770]  ? vprintk_func+0x5e/0xc0
+[   34.359843]  debug_object_activate+0x49b/0x730
+[   34.364408]  ? mutex_lock_io_nested+0x1900/0x1900
+[   34.369228]  ? debug_object_assert_init+0x570/0x570
+[   34.374219]  ? __is_insn_slot_addr+0x1fc/0x330
+[   34.378786]  ? find_held_lock+0x35/0x1d0
+[   34.382830]  ? pppol2tp_session_destruct+0x110/0x110
+[   34.387909]  __call_rcu.constprop.67+0xf2/0xef0
+[   34.392556]  ? __call_rcu.constprop.67+0xf2/0xef0
+[   34.397374]  ? lock_downgrade+0x980/0x980
+[   34.401499]  ? check_noncircular+0x20/0x20
+[   34.405711]  ? rcu_process_callbacks+0x17f0/0x17f0
+[   34.410615]  ? lock_downgrade+0x980/0x980
+[   34.414749]  ? __mutex_unlock_slowpath+0xe9/0xac0
+[   34.419572]  ? wait_for_completion+0x770/0x770
+[   34.424128]  ? pppol2tp_release+0x1ae/0x560
+[   34.428426]  ? lock_downgrade+0x980/0x980
+[   34.432573]  call_rcu_sched+0x12/0x20
+[   34.436351]  pppol2tp_release+0x34d/0x560
+[   34.440475]  ? pppol2tp_sendmsg+0x670/0x670
+[   34.444776]  ? fsnotify_first_mark+0x2b0/0x2b0
+[   34.449339]  sock_release+0x8d/0x1e0
+[   34.453028]  ? sock_alloc_file+0x560/0x560
+[   34.457235]  sock_close+0x16/0x20
+[   34.460664]  __fput+0x327/0x7e0
+[   34.463923]  ? fput+0x140/0x140
+[   34.467178]  ? _raw_spin_unlock_irq+0x27/0x70
+[   34.471655]  ____fput+0x15/0x20
+[   34.474912]  task_work_run+0x199/0x270
+[   34.478774]  ? task_work_cancel+0x210/0x210
+[   34.483083]  ? _raw_spin_unlock+0x22/0x30
+[   34.487205]  ? switch_task_namespaces+0x87/0xc0
+[   34.491856]  do_exit+0x9bb/0x1ad0
+[   34.495289]  ? mm_update_next_owner+0x930/0x930
+[   34.499935]  ? pppol2tp_connect+0x91a/0x1dd0
+[   34.504328]  ? pppol2tp_recv_payload_hook+0x1b0/0x1b0
+[   34.509499]  ? selinux_netlbl_socket_connect+0x76/0x1b0
+[   34.514842]  ? selinux_socket_connect+0x311/0x730
+[   34.519659]  ? lock_downgrade+0x980/0x980
+[   34.523787]  ? selinux_socket_setsockopt+0x80/0x80
+[   34.528689]  ? lock_release+0xa40/0xa40
+[   34.532640]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[   34.538760]  ? __check_object_size+0x25d/0x4f0
+[   34.543325]  ? __might_sleep+0x95/0x190
+[   34.547289]  ? security_socket_connect+0x89/0xb0
+[   34.552027]  ? SYSC_connect+0x2e0/0x4a0
+[   34.555977]  ? SYSC_bind+0x410/0x410
+[   34.559672]  ? do_page_fault+0xee/0x720
+[   34.563622]  ? __do_page_fault+0xc90/0xc90
+[   34.567839]  do_group_exit+0x149/0x400
+[   34.571703]  ? SyS_socket+0x12d/0x1d0
+[   34.575480]  ? SyS_exit+0x30/0x30
+[   34.578914]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   34.583910]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   34.588746]  SyS_exit_group+0x1d/0x20
+[   34.592529]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   34.597261] RIP: 0033:0x440cc9
+[   34.600426] RSP: 002b:00007ffefac52e48 EFLAGS: 00000206 ORIG_RAX: 00000000000000e7
+[   34.608109] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 0000000000440cc9
+[   34.615357] RDX: 0000000000440cc9 RSI: 000000000000002e RDI: 0000000000000000
+[   34.622615] RBP: 0000000000008561 R08: 0000000000000000 R09: 0000000000001759
+[   34.629898] R10: 0000000000000000 R11: 0000000000000206 R12: 0000000000000000
+[   34.637145] R13: 0000000000000003 R14: 00000000006cf050 R15: 00000000004a260e
+[   34.644409] 
+[   34.644412] ======================================================

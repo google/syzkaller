@@ -1,4 +1,4 @@
-TITLE: BUG: unable to handle kernel NULL pointer dereference in __lock_acquire
+TITLE: BUG: unable to handle kernel
 CORRUPTED: Y
 
 [  149.188010] BUG: unable to handle kernel NULL pointer dereference at 000000000000058c
