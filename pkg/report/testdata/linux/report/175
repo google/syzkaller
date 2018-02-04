@@ -1,0 +1,41 @@
+TITLE: BUG: unable to handle kernel paging request in ipcget
+
+[   83.458005] BUG: unable to handle kernel paging request at ffffffffffffffd8
+[   83.465166] IP: memcmp+0x9/0x40
+[   83.468420] PGD 3021067 P4D 3021067 PUD 3023067 PMD 0 
+[   83.473680] Oops: 0000 [#1] SMP
+[   83.476929] Dumping ftrace buffer:
+[   83.480436]    (ftrace buffer empty)
+[   83.484118] Modules linked in:
+[   83.487284] CPU: 0 PID: 18580 Comm: syz-executor3 Not tainted 4.15.0-rc3-next-20171214+ #67
+[   83.495741] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   83.505077] RIP: 0010:memcmp+0x9/0x40
+[   83.508843] RSP: 0018:ffffc90000f13ea0 EFLAGS: 00010202
+[   83.514176] RAX: 0000000000000000 RBX: ffffffffffffffd8 RCX: 0000000000000004
+[   83.521419] RDX: 0000000000000004 RSI: ffffc90000f13eec RDI: ffffffffffffffd8
+[   83.528667] RBP: ffffc90000f13ea0 R08: 0000000000000001 R09: 0000000000000002
+[   83.535914] R10: ffffc90000f13e38 R11: 0000000000000002 R12: ffff8801fd3109f0
+[   83.543161] R13: ffffc90000f13f28 R14: ffff8801fd2dec00 R15: 0000000000000068
+[   83.550402] FS:  00007fd1a2fd1700(0000) GS:ffff88021fc00000(0000) knlGS:0000000000000000
+[   83.558595] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   83.564444] CR2: ffffffffffffffd8 CR3: 00000001ffb69003 CR4: 00000000001626f0
+[   83.571686] Call Trace:
+[   83.574244]  ipcget+0x1a2/0x620
+[   83.577503]  SyS_msgget+0x48/0x60
+[   83.580930]  entry_SYSCALL_64_fastpath+0x1f/0x96
+[   83.585652] RIP: 0033:0x452a09
+[   83.588814] RSP: 002b:00007fd1a2fd0c58 EFLAGS: 00000212 ORIG_RAX: 0000000000000044
+[   83.596491] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000452a09
+[   83.603730] RDX: 0000000000000000 RSI: 0000000000000002 RDI: 00000000798e7462
+[   83.610968] RBP: 00000000000003f2 R08: 0000000000000000 R09: 0000000000000000
+[   83.618206] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f2f50
+[   83.625533] R13: 00000000ffffffff R14: 00007fd1a2fd16d4 R15: 0000000000000000
+[   83.632793] Code: 74 1a 48 01 fa 48 89 f8 eb 07 0f b6 08 39 f1 74 09 48 83 c0 01 48 39 d0 75 f0 5d c3 48 89 f8 5d c3 90 55 48 85 d2 48 89 e5 74 2e <0f> b6 07 0f b6 0e 29 c8 75 1e 48 01 fa eb 0c 0f b6 0f 44 0f b6 
+[   83.651930] RIP: memcmp+0x9/0x40 RSP: ffffc90000f13ea0
+[   83.657187] CR2: ffffffffffffffd8
+[   83.660621] ---[ end trace a28e6436c6f945bb ]---
+[   83.665352] Kernel panic - not syncing: Fatal exception
+[   83.671219] Dumping ftrace buffer:
+[   83.674735]    (ftrace buffer empty)
+[   83.678412] Kernel Offset: disabled
+[   83.682010] Rebooting in 86400 seconds..

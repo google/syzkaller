@@ -1,4 +1,4 @@
-TITLE: BUG: spinlock lockup suspected
+TITLE: BUG: spinlock lockup suspected on CPU, syz-executor/NUM
 CORRUPTED: Y
 
 [   72.159680] BUG: spinlock lockup suspected on CPU#2, syz-executor/12636

@@ -1,5 +1,4 @@
-# TODO: this must be "in hash_sendmsg"
-TITLE: BUG: unable to handle kernel paging request
+TITLE: BUG: unable to handle kernel paging request in hash_sendmsg
 
 [   70.687256] sctp: [Deprecated]: syz-executor5 (pid 16777) Use of int in maxseg socket option.
 [   70.687256] Use struct sctp_assoc_value instead

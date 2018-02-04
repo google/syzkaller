@@ -1,0 +1,77 @@
+TITLE: WARNING: suspicious RCU usage in tipc_bearer_find
+
+[   91.193205] =============================
+[   91.193207] WARNING: suspicious RCU usage
+[   91.193218] 4.15.0-rc9+ #284 Not tainted
+[   91.193220] -----------------------------
+[   91.193225] net/tipc/bearer.c:177 suspicious rcu_dereference_protected() usage!
+[   91.193227] 
+[   91.193227] other info that might help us debug this:
+[   91.193227] 
+[   91.193231] 
+[   91.193231] rcu_scheduler_active = 2, debug_locks = 1
+[   91.193234] 2 locks held by syz-executor4/13218:
+[   91.193237]  #0:  (cb_lock){++++}, at: [<00000000173fa719>] genl_rcv+0x19/0x40
+[   91.193262]  #1:  (genl_mutex){+.+.}, at: [<000000001168bed6>] genl_rcv_msg+0x115/0x140
+[   91.193278] 
+[   91.193278] stack backtrace:
+[   91.193285] CPU: 1 PID: 13218 Comm: syz-executor4 Not tainted 4.15.0-rc9+ #284
+[   91.193290] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   91.193293] Call Trace:
+[   91.193307]  dump_stack+0x194/0x257
+[   91.193321]  ? arch_local_irq_restore+0x53/0x53
+[   91.193350]  lockdep_rcu_suspicious+0x123/0x170
+[   91.193366]  tipc_bearer_find+0x2b4/0x3b0
+[   91.193378]  ? tipc_media_addr_printf+0x3a0/0x3a0
+[   91.193405]  tipc_nl_compat_link_set+0x329/0x9f0
+[   91.193423]  tipc_nl_compat_doit+0x15b/0x670
+[   91.193434]  ? security_capable+0x8e/0xc0
+[   91.193445]  ? tipc_nl_compat_link_stat_dump+0x3000/0x3000
+[   91.193457]  ? ns_capable_common+0xcf/0x160
+[   91.193468]  ? ns_capable+0x22/0x30
+[   91.193478]  ? __netlink_ns_capable+0xe1/0x120
+[   91.193497]  tipc_nl_compat_recv+0x1135/0x18f0
+[   91.193512]  ? tipc_nl_compat_doit+0x670/0x670
+[   91.193520]  ? tipc_nl_node_dump+0x1290/0x1290
+[   91.193528]  ? tipc_nl_compat_bearer_enable+0x5c0/0x5c0
+[   91.193535]  ? trace_event_raw_event_lock+0x340/0x340
+[   91.193581]  genl_family_rcv_msg+0x7b7/0xfb0
+[   91.193613]  ? genl_rcv+0x40/0x40
+[   91.193628]  ? netlink_deliver_tap+0x148/0xcf0
+[   91.193639]  ? lock_downgrade+0x980/0x980
+[   91.193689]  genl_rcv_msg+0xb2/0x140
+[   91.193703]  netlink_rcv_skb+0x14b/0x380
+[   91.193714]  ? genl_family_rcv_msg+0xfb0/0xfb0
+[   91.193726]  ? netlink_ack+0xa10/0xa10
+[   91.193732]  ? genl_rcv+0x19/0x40
+[   91.193744]  ? netlink_skb_destructor+0x1d0/0x1d0
+[   91.193758]  ? selinux_nlmsg_lookup+0x32b/0x430
+[   91.193772]  genl_rcv+0x28/0x40
+[   91.193781]  netlink_unicast+0x4ee/0x700
+[   91.193799]  ? netlink_attachskb+0x8a0/0x8a0
+[   91.193815]  ? security_netlink_send+0x81/0xb0
+[   91.193829]  netlink_sendmsg+0xa4a/0xe60
+[   91.193849]  ? netlink_unicast+0x700/0x700
+[   91.193864]  ? security_socket_sendmsg+0x89/0xb0
+[   91.193873]  ? netlink_unicast+0x700/0x700
+[   91.193886]  sock_sendmsg+0xca/0x110
+[   91.193898]  ___sys_sendmsg+0x767/0x8b0
+[   91.193915]  ? copy_msghdr_from_user+0x590/0x590
+[   91.193938]  ? lock_downgrade+0x980/0x980
+[   91.193961]  ? __fget_light+0x297/0x380
+[   91.193972]  ? fget_raw+0x20/0x20
+[   91.193983]  ? schedule+0xf5/0x430
+[   91.193995]  ? __schedule+0x2060/0x2060
+[   91.194007]  ? __fd_install+0x288/0x740
+[   91.194020]  ? get_unused_fd_flags+0x190/0x190
+[   91.194040]  ? __fdget+0x18/0x20
+[   91.194056]  __sys_sendmsg+0xe5/0x210
+[   91.194062]  ? __sys_sendmsg+0xe5/0x210
+[   91.194074]  ? SyS_shutdown+0x290/0x290
+[   91.194084]  ? selinux_capable+0x40/0x40
+[   91.194124]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   91.194142]  SyS_sendmsg+0x2d/0x50
+[   91.194154]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   91.194160] RIP: 0033:0x453299
+[   91.194164] RSP: 002b:00007f6513cd9c58 EFLAGS: 00000212 ORIG_RAX: 000000000000002e
+[   91.194172] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000453299

@@ -1,6 +1,4 @@
-# TODO: must be "WARNING in sctp_wfree", or "WARNING in refcount_sub_and_test in sctp_wfree",
-# or "WARNING: refcount bug in sctp_wfree".
-TITLE: WARNING in refcount_sub_and_test
+TITLE: WARNING: refcount bug in sctp_wfree
 
 [   44.461565] refcount_t: underflow; use-after-free.
 [   44.466577] ------------[ cut here ]------------

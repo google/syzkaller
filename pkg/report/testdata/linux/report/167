@@ -1,0 +1,69 @@
+TITLE: BUG: unable to handle kernel paging request in snd_pcm_oss_write
+
+[  522.218303] BUG: unable to handle kernel paging request at ffffc90001691000
+[  522.225453] IP: memset_erms+0x9/0x10
+[  522.229149] PGD 1dad2c067 P4D 1dad2c067 PUD 1dad2d067 PMD 1c6a8f067 PTE 0
+[  522.236059] Oops: 0002 [#1] SMP KASAN
+[  522.239836] Dumping ftrace buffer:
+[  522.243356]    (ftrace buffer empty)
+[  522.247074] Modules linked in:
+[  522.250283] CPU: 1 PID: 5739 Comm: syzkaller592073 Not tainted 4.15.0-rc8-mm1+ #57
+[  522.257973] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+executing program
+executing program
+[  522.267311] RIP: 0010:memset_erms+0x9/0x10
+[  522.271526] RSP: 0018:ffff8801cbbdfb78 EFLAGS: 00010246
+[  522.276881] RAX: fffff520002d3f00 RBX: ffffc90001691000 RCX: 000000000000ee51
+[  522.284145] RDX: 000000000000ee51 RSI: 0000000000000000 RDI: ffffc90001691000
+[  522.291415] RBP: ffff8801cbbdfb98 R08: fffff520002d3fcb R09: ffffc90001691000
+[  522.298677] R10: 0000000000001dcb R11: fffff520002d3fca R12: 000000000000ee51
+[  522.305946] R13: 0000000000000000 R14: 00007ffffffff000 R15: 000000002001be51
+executing program
+executing program
+executing program
+executing program
+[  522.313211] FS:  00007f88ae7d7700(0000) GS:ffff8801db300000(0000) knlGS:0000000000000000
+[  522.321460] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  522.327365] CR2: ffffc90001691000 CR3: 00000001ccefa005 CR4: 00000000001606e0
+[  522.334660] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  522.341921] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[  522.349186] Call Trace:
+[  522.351767]  ? memset+0x31/0x40
+[  522.355053]  _copy_from_user+0xe9/0x110
+[  522.359035]  snd_pcm_oss_write+0x438/0x880
+[  522.363274]  ? snd_pcm_oss_ioctl_compat+0x30/0x30
+executing program
+[  522.368115]  ? snd_pcm_oss_ioctl_compat+0x30/0x30
+[  522.372949]  __vfs_write+0xef/0x970
+[  522.376572]  ? rcu_note_context_switch+0x710/0x710
+[  522.381498]  ? kernel_read+0x120/0x120
+[  522.385376]  ? __might_sleep+0x95/0x190
+[  522.389349]  ? _cond_resched+0x14/0x30
+[  522.393234]  ? __inode_security_revalidate+0xd9/0x130
+[  522.398412]  ? avc_policy_seqno+0x9/0x20
+[  522.402471]  ? selinux_file_permission+0x82/0x460
+[  522.407308]  ? security_file_permission+0x89/0x1e0
+[  522.412226]  ? rw_verify_area+0xe5/0x2b0
+[  522.416284]  ? __fdget_raw+0x20/0x20
+[  522.419989]  vfs_write+0x189/0x510
+[  522.423518]  SyS_write+0xef/0x220
+[  522.426977]  ? SyS_read+0x220/0x220
+[  522.430594]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  522.436898]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  522.441658]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[  522.446401] RIP: 0033:0x44a559
+[  522.449578] RSP: 002b:00007f88ae7d6da8 EFLAGS: 00000293 ORIG_RAX: 0000000000000001
+[  522.457274] RAX: ffffffffffffffda RBX: 00000000006dcc24 RCX: 000000000044a559
+[  522.464535] RDX: 000000000000fe51 RSI: 000000002000c000 RDI: 0000000000000003
+[  522.471787] RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
+[  522.479030] R10: 0000000000000000 R11: 0000000000000293 R12: 00000000006dcc20
+[  522.486271] R13: 7073642f7665642f R14: 00800000c0045006 R15: 0000000000000001
+[  522.493521] Code: 48 c1 e9 03 40 0f b6 f6 48 b8 01 01 01 01 01 01 01 01 48 0f af c6 f3 48 ab 89 d1 f3 aa 4c 89 c8 c3 90 49 89 f9 40 88 f0 48 89 d1 <f3> aa 4c 89 c8 c3 90 49 89 fa 40 0f b6 ce 48 b8 01 01 01 01 01 
+[  522.512622] RIP: memset_erms+0x9/0x10 RSP: ffff8801cbbdfb78
+[  522.518301] CR2: ffffc90001691000
+[  522.521730] ---[ end trace 8f421641f3e10f44 ]---
+[  522.526455] Kernel panic - not syncing: Fatal exception
+[  522.532270] Dumping ftrace buffer:
+[  522.535780]    (ftrace buffer empty)
+[  522.539475] Kernel Offset: disabled
+[  522.543071] Rebooting in 86400 seconds..

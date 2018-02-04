@@ -1,5 +1,4 @@
-# TODO: must be "WARNING: refcount bug in l2tp_session_register".
-TITLE: WARNING in refcount_inc
+TITLE: WARNING: refcount bug in l2tp_session_register
 
 [   40.530345] ------------[ cut here ]------------
 [   40.535205] refcount_t: increment on 0; use-after-free.

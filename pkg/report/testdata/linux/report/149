@@ -1,8 +1,4 @@
-# TODO: Ideally, this should be something like
-# "KASAN: use-after-free Read in work_is_static_object in strp_check_rcv"
-# because work_is_static_object is a generic function and different bugs
-# can manifest this way.
-TITLE: KASAN: use-after-free Read in work_is_static_object
+TITLE: KASAN: use-after-free Read in __queue_work
 
 [ 1140.689311] ==================================================================
 [ 1140.696784] BUG: KASAN: use-after-free in work_is_static_object+0x39/0x40

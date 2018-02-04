@@ -1,5 +1,4 @@
-# TODO: This should be "WARNING: held lock freed! in __sk_destruct"
-TITLE: WARNING: held lock freed!
+TITLE: WARNING: held lock freed in sctp_wait_for_sndbuf
 
 [   25.058100] =========================
 [   25.061864] WARNING: held lock freed!

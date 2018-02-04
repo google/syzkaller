@@ -1,0 +1,52 @@
+TITLE: BUG: corrupted list in __dev_remove_pack
+
+[   50.710530] list_del corruption. next->prev should be ffff8801d8caa528, but was ffffffff868a8010
+[   50.719785] ------------[ cut here ]------------
+[   50.724628] kernel BUG at lib/list_debug.c:56!
+[   50.729330] invalid opcode: 0000 [#1] SMP
+[   50.733500] Dumping ftrace buffer:
+[   50.737039]    (ftrace buffer empty)
+[   50.740755] Modules linked in:
+[   50.743989] CPU: 1 PID: 4654 Comm: syzkaller396097 Tainted: G    B           4.12.0+ #7
+[   50.752136] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   50.761509] task: ffff8801cd500000 task.stack: ffff8801d1060000
+[   50.767597] RIP: 0010:__list_del_entry_valid+0x370/0x390
+[   50.773063] RSP: 0018:ffff8801d1067968 EFLAGS: 00010292
+[   50.778450] RAX: 0000000000000054 RBX: 0000000000000000 RCX: 0000000000000000
+[   50.785740] RDX: 0000000000000000 RSI: ffffea000cbee828 RDI: ffff88021fd15ac0
+[   50.793030] RBP: ffff8801d10679c8 R08: 0000000000000002 R09: ffff8801d10673f0
+[   50.800323] R10: 000000003e6d70ea R11: 0000ff0000000000 R12: ffff8801ddca3870
+[   50.807630] R13: ffff8801d8caa528 R14: ffffffff868a8010 R15: 0000000000000000
+[   50.814927] FS:  0000000000dd1940(0000) GS:ffff88021fd00000(0000) knlGS:0000000000000000
+[   50.823170] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   50.829071] CR2: 00007ff2dc3d7db8 CR3: 00000001d6160000 CR4: 00000000001406e0
+[   50.836366] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   50.843663] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   50.850936] Call Trace:
+[   50.853563]  __dev_remove_pack+0x2cf/0x490
+[   50.857828]  __unregister_prot_hook+0x2f6/0x470
+[   50.862526]  ? __msan_load_shadow_origin_1+0x5d/0xe0
+[   50.867663]  packet_release+0x3dd/0x1340
+[   50.871758]  ? __msan_load_shadow_origin_4+0x5d/0xe0
+[   50.876892]  ? packet_rcv_spkt+0x6b0/0x6b0
+[   50.881152]  sock_close+0xd3/0x2d0
+[   50.884725]  ? sock_mmap+0xf0/0xf0
+[   50.888293]  __fput+0x3a2/0x8f0
+[   50.891604]  ____fput+0x28/0x40
+[   50.894905]  ? fput+0x2a0/0x2a0
+[   50.898206]  task_work_run+0x17f/0x2b0
+[   50.902121]  do_exit+0xf45/0x32f0
+[   50.905617]  do_group_exit+0x19a/0x320
+[   50.909533]  SYSC_exit_group+0x22/0x30
+[   50.913445]  SyS_exit_group+0x25/0x30
+[   50.917277]  entry_SYSCALL_64_fastpath+0x13/0x94
+[   50.922048] RIP: 0033:0x447529
+[   50.925256] RSP: 002b:00007ffe8dca8c98 EFLAGS: 00000206 ORIG_RAX: 00000000000000e7
+[   50.932996] RAX: ffffffffffffffda RBX: 00007ff2db3d6700 RCX: 0000000000447529
+[   50.940281] RDX: 0000000000445c41 RSI: 0000000000000000 RDI: 0000000000000000
+[   50.947568] RBP: 00007ffe8dca8c40 R08: 00000000006db1c0 R09: 0000000000000000
+[   50.954855] R10: 00000000006db144 R11: 0000000000000206 R12: 0000000000000000
+[   50.962140] R13: 00007ffe8dca8c3f R14: 00007ff2db3d69c0 R15: 0000000000000000
+[   50.969415] Code: 00 00 48 c7 80 60 09 00 00 00 00 00 00 c7 80 20 03 00 00 00 00 00 00 48 c7 c7 f8 87 43 86 31 c0 4c 89 ee 4c 89 f2 e8 c0 09 d1 fe <0f> 0b 0f 1f 40 00 66 2e 0f 1f 84 00 00 00 00 00 eb fe 0f 1f 40 
+[   50.989516] RIP: __list_del_entry_valid+0x370/0x390 RSP: ffff8801d1067968
+[   50.996557] ---[ end trace 1b9e265517f5d9ac ]---

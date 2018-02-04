@@ -1,0 +1,112 @@
+TITLE: BUG: unable to handle kernel paging request in __run_timers
+
+[  190.751093] BUG: unable to handle kernel paging request at ffffffffffffffff
+[  190.757101] IP: 0xffffffffffffffff
+[  190.757101] PGD 7e10067 
+[  190.757101] P4D 7e10067 
+[  190.757101] PUD 7e12067 
+[  190.757101] PMD 0 
+[  190.757101] 
+[  190.757101] Oops: 0010 [#1] SMP
+[  190.757101] Dumping ftrace buffer:
+[  190.757101]    (ftrace buffer empty)
+[  190.757101] Modules linked in:
+[  190.757101] CPU: 1 PID: 12327 Comm: syz-executor5 Tainted: G    B           4.13.0+ #35
+[  190.757101] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  190.757101] task: ffff8801deb8d880 task.stack: ffff8801aa900000
+[  190.757101] RIP: 0010:0xffffffffffffffff
+[  190.757101] RSP: 0018:ffff88021fd07d10 EFLAGS: 00010006
+[  190.757101] RAX: 0000000000000000 RBX: 0000000080000100 RCX: 0000000000000000
+[  190.757101] RDX: ffff8802030b2f48 RSI: aaaaaaaaaaaab000 RDI: ffffffffffffffff
+[  190.757101] RBP: ffff88021fd07d90 R08: 0000000001080020 R09: 0000000000000002
+[  190.757101] R10: ffff88021fd07cc8 R11: 0000000000000000 R12: ffffffffffffffff
+[  190.757101] R13: ffffffff885293b0 R14: 0000000000000000 R15: ffff88021fd19b48
+[  190.757101] FS:  00007f80206db700(0000) GS:ffff88021fd00000(0000) knlGS:0000000000000000
+[  190.757101] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  190.757101] CR2: ffffffffffffffff CR3: 0000000007e0f000 CR4: 00000000001406e0
+[  190.757101] DR0: 0000000020000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  190.757101] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[  190.757101] Call Trace:
+[  190.757101]  <IRQ>
+[  190.757101]  ? call_timer_fn+0x2b1/0x630
+[  190.757101]  __run_timers+0xeef/0x1390
+[  190.757101]  ? irq_exit+0x203/0x240
+[  190.757101]  run_timer_softirq+0x45/0xb0
+[  190.757101]  ? timers_dead_cpu+0xef0/0xef0
+[  190.757101]  __do_softirq+0x5bb/0xa08
+[  190.757101]  irq_exit+0x203/0x240
+[  190.757101]  exiting_irq+0xe/0x10
+[  190.757101]  smp_apic_timer_interrupt+0x5a/0x80
+[  190.757101]  apic_timer_interrupt+0x86/0x90
+[  190.757101] RIP: 0010:kmsan_get_origin_address_noruntime+0x163/0x260
+[  190.757101] RSP: 0018:ffff8801aa906f20 EFLAGS: 00000297 ORIG_RAX: ffffffffffffff10
+[  190.757101] RAX: ffff88022a907120 RBX: 0000000000000000 RCX: ffffea0000000000
+[  190.757101] RDX: 000077ff80000000 RSI: 0000000000000000 RDI: ffff8801aa907120
+[  190.757101] RBP: ffff8801aa906f58 R08: 0000000001080020 R09: 0000000000000002
+[  190.757101] R10: ffff8801aa906ff8 R11: 000000008022000e R12: 0000000000000004
+[  190.757101] R13: 00000000f780000e R14: ffff8801aa907120 R15: 0000000000000000
+[  190.757101]  </IRQ>
+[  190.757101]  kmsan_set_origin_inline+0x6b/0x120
+[  190.757101]  __msan_poison_alloca+0x15c/0x1d0
+[  190.757101]  ? kernfs_put+0x759/0xc40
+[  190.757101]  ? kfree+0x7f/0x2f40
+[  190.757101]  ? kernfs_put+0x759/0xc40
+[  190.757101]  ? __msan_get_context_state+0x20/0xf0
+[  190.757101]  ? kernfs_put+0x759/0xc40
+[  190.757101]  kfree+0x7f/0x2f40
+[  190.757101]  ? kernfs_put+0x7e8/0xc40
+[  190.757101]  ? kmsan_set_origin_inline+0x6b/0x120
+[  190.757101]  ? __msan_poison_alloca+0x15c/0x1d0
+[  190.757101]  ? __kernfs_remove+0x12a2/0x13a0
+[  190.757101]  kernfs_put+0x759/0xc40
+[  190.757101]  ? _cond_resched+0x2b/0xc0
+[  190.757101]  __kernfs_remove+0x12a2/0x13a0
+[  190.757101]  ? kernfs_find_ns+0x974/0x9e0
+[  190.757101]  kernfs_remove_by_name_ns+0x115/0x200
+[  190.757101]  sysfs_remove_group+0x38c/0x770
+[  190.757101]  netdev_queue_update_kobjects+0x754/0x870
+[  190.757101]  netdev_unregister_kobject+0x231/0x340
+[  190.757101]  rollback_registered_many+0x150c/0x1ab0
+[  190.757101]  unregister_netdevice_queue+0x55e/0xa80
+[  190.757101]  __tun_detach+0x1681/0x2070
+[  190.757101]  ? __msan_get_context_state+0x20/0xf0
+[  190.757101]  tun_chr_close+0x6a/0xb0
+[  190.757101]  __fput+0x49a/0xc10
+[  190.757101]  ____fput+0x37/0x40
+[  190.757101]  ? fput+0x2d0/0x2d0
+[  190.757101]  task_work_run+0x193/0x300
+[  190.757101]  do_exit+0x1217/0x3f20
+[  190.757101]  ? __msan_metadata_ptr_for_store_4+0x13/0x20
+[  190.757101]  ? dequeue_signal+0x356/0xb70
+[  190.757101]  do_group_exit+0x1d3/0x3b0
+[  190.757101]  get_signal+0x17ad/0x2150
+[  190.757101]  ? syscall_return_slowpath+0x2fb/0x9d0
+[  190.757101]  ? syscall_return_slowpath+0x2fb/0x9d0
+[  190.757101]  do_signal+0xb7/0x1c70
+[  190.757101]  ? put_task_struct+0x41/0xd0
+[  190.757101]  ? __msan_metadata_ptr_for_load_8+0x10/0x20
+[  190.757101]  ? balance_callback+0x4a/0x2c0
+[  190.757101]  ? finish_task_switch+0x15e/0x230
+[  190.757101]  ? __schedule+0x6dd/0x780
+[  190.757101]  ? schedule+0x1dc/0x320
+[  190.757101]  ? __msan_metadata_ptr_for_load_1+0x10/0x20
+[  190.757101]  ? syscall_return_slowpath+0x31a/0x9d0
+[  190.757101]  syscall_return_slowpath+0x2fb/0x9d0
+[  190.757101]  ? SyS_futex+0x89/0xb0
+[  190.757101]  entry_SYSCALL_64_fastpath+0x92/0x94
+[  190.757101] RIP: 0033:0x452cf9
+[  190.757101] RSP: 002b:00007f80206dac88 EFLAGS: 00000246 ORIG_RAX: 00000000000000ca
+[  190.757101] RAX: 0000000000000001 RBX: 000000000071bea0 RCX: 0000000000452cf9
+[  190.757101] RDX: 0000000000000000 RSI: 0000000000000001 RDI: 000000000071becc
+[  190.757101] RBP: 0000000000000355 R08: 0000000000000000 R09: 0000000000000355
+[  190.757101] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000006f3098
+[  190.757101] R13: 00000000ffffffff R14: 00007f80206db6d4 R15: 0000000000000000
+[  190.757101] Code:  Bad RIP value.
+[  190.757101] RIP: 0xffffffffffffffff RSP: ffff88021fd07d10
+[  190.757101] CR2: ffffffffffffffff
+[  190.757101] ---[ end trace fec0af60af9149a6 ]---
+[  190.757101] Kernel panic - not syncing: Fatal exception in interrupt
+[  190.757101] Dumping ftrace buffer:
+[  190.757101]    (ftrace buffer empty)
+[  190.757101] Kernel Offset: disabled
+[  190.757101] Rebooting in 86400 seconds..

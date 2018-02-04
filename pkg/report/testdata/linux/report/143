@@ -1,42 +1,25 @@
-# TODO: this does not look corrupted, we should allow output before kernel output.
-# This also happens with login prompt.
 TITLE: kernel panic: Attempted to kill init!
-CORRUPTED: Y
 
-INIT: PANIC: segmentation violation! sleeping for 30 s[   30.441874] Kernel panic - not syncing: Attempted to kill init! exitcode=0x0000000b
-[   30.441874] 
-econds.
-[   30.451507] CPU: 1 PID: 1 Comm: init Not tainted 4.15.0-rc3-next-20171214+ #67
-[   30.459608] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
-[   30.468929] Call Trace:
-[   30.471489]  __dump_stack lib/dump_stack.c:17 [inline]
-[   30.471489]  dump_stack+0xe9/0x14b lib/dump_stack.c:53
-[   30.475002]  panic+0x10e/0x2f8 kernel/panic.c:183
-[   30.478170]  ? find_child_reaper kernel/exit.c:578 [inline]
-[   30.478170]  ? forget_original_parent kernel/exit.c:674 [inline]
-[   30.478170]  ? exit_notify kernel/exit.c:710 [inline]
-[   30.478170]  ? do_exit+0x1036/0x1050 kernel/exit.c:889
-[   30.481855]  find_child_reaper kernel/exit.c:578 [inline]
-[   30.481855]  forget_original_parent kernel/exit.c:674 [inline]
-[   30.481855]  exit_notify kernel/exit.c:710 [inline]
-[   30.481855]  do_exit+0x1045/0x1050 kernel/exit.c:889
-[   30.485372]  do_group_exit+0x60/0x100 kernel/exit.c:972
-[   30.489145]  get_signal+0x36c/0xad0 kernel/signal.c:2337
-[   30.492752]  do_signal+0x23/0x670 arch/x86/kernel/signal.c:809
-[   30.496177]  ? __bad_area_nosemaphore+0x149/0x270 arch/x86/mm/fault.c:931
-[   30.500997]  ? __do_page_fault+0x246/0x6b0 arch/x86/mm/fault.c:1409
-[   30.505208]  exit_to_usermode_loop+0x13c/0x160 arch/x86/entry/common.c:161
-[   30.509758]  prepare_exit_to_usermode+0x102/0x110 arch/x86/entry/common.c:195
-[   30.514569]  ? page_fault+0x36/0x60 arch/x86/entry/entry_64.S:1243
-[   30.518165]  retint_user+0x8/0x18
-[   30.521584] RIP: 0033:          (null)
-[   30.525439] RSP: 002b:00007fff53eb9f30 EFLAGS: 00010286
-[   30.530772] RAX: ffffffffffffffff RBX: 00007fe983f5a6a0 RCX: ffffffffffffff00
-[   30.538012] RDX: 0000000000000004 RSI: 0000000000000000 RDI: 0000000000000000
-[   30.545248] RBP: 0000000000000004 R08: 00007fff53eb9f30 R09: 0000000000000001
-[   30.552488] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
-[   30.559728] R13: 00007fff53ebacc0 R14: 0000000000000000 R15: 0000000000000000
-[   30.567500] Dumping ftrace buffer:
-[   30.571039]    (ftrace buffer empty)
-[   30.574716] Kernel Offset: disabled
-[   30.578307] Rebooting in 86400 seconds..
+INIT: PANIC: segmentation violation! sleeping for 30 seconds.
+[   19.171696] Kernel panic - not syncing: Attempted to kill init! exitcode=0x0000000b
+[   19.171696] 
+[   19.180969] CPU: 1 PID: 1 Comm: init Not tainted 4.15.0-rc3-next-20171214+ #67
+[   19.188300] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   19.197627] Call Trace:
+[   19.200192]  dump_stack+0xe9/0x14b
+[   19.203711]  panic+0x10e/0x2f8
+[   19.206877]  ? do_exit+0x1036/0x1050
+[   19.210569]  do_exit+0x1045/0x1050
+[   19.214089]  do_group_exit+0x60/0x100
+[   19.217864]  get_signal+0x36c/0xad0
+[   19.221474]  do_signal+0x23/0x670
+[   19.224911]  ? __bad_area_nosemaphore+0x149/0x270
+[   19.229741]  ? __do_page_fault+0x246/0x6b0
+[   19.233957]  exit_to_usermode_loop+0x13c/0x160
+[   19.238514]  prepare_exit_to_usermode+0x102/0x110
+[   19.243674]  ? page_fault+0x36/0x60
+[   19.247272]  retint_user+0x8/0x18
+[   19.250694] RIP: 0033:          (null)
+[   19.254549] RSP: 002b:00007ffe8c9df0b0 EFLAGS: 00010286
+Connection to kasan-2 closed by remote host.
+[   19.259884] RAX: ffffffffffffffff
