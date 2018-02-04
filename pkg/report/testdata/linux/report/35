@@ -1,4 +1,4 @@
-TITLE: suspicious RCU usage at ./include/linux/kvm_host.h:LINE
+TITLE: INFO: suspicious RCU usage. ]
 START: [   37.540478] [ INFO: suspicious RCU usage. ]
 CORRUPTED: Y
 

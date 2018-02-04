@@ -1,0 +1,114 @@
+TITLE: WARNING: ODEBUG bug in unreserve_psock
+
+[  162.195589] ------------[ cut here ]------------
+[  162.201255] ODEBUG: free active (active state 0) object type: work_struct hint: strp_work+0x0/0xf0
+[  162.210402] WARNING: CPU: 1 PID: 3502 at lib/debugobjects.c:291 debug_print_object+0x166/0x220
+[  162.219115] Kernel panic - not syncing: panic_on_warn set ...
+[  162.219115] 
+[  162.226440] CPU: 1 PID: 3502 Comm: kworker/u4:4 Not tainted 4.15.0-rc5+ #170
+[  162.233589] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  162.242911] Workqueue: kkcmd kcm_tx_work
+[  162.246935] Call Trace:
+[  162.249490]  dump_stack+0x194/0x257
+[  162.253088]  ? arch_local_irq_restore+0x53/0x53
+[  162.257727]  ? vsnprintf+0x1ed/0x1900
+[  162.261501]  panic+0x1e4/0x41c
+[  162.264659]  ? refcount_error_report+0x214/0x214
+[  162.269378]  ? show_regs_print_info+0x18/0x18
+[  162.273845]  ? __warn+0x1c1/0x200
+[  162.277266]  ? debug_print_object+0x166/0x220
+[  162.281725]  __warn+0x1dc/0x200
+[  162.284985]  ? console_unlock+0x983/0xd80
+[  162.289099]  ? debug_print_object+0x166/0x220
+[  162.293563]  report_bug+0x211/0x2d0
+[  162.297164]  fixup_bug.part.11+0x37/0x80
+[  162.301191]  do_error_trap+0x2d7/0x3e0
+[  162.305045]  ? __down_trylock_console_sem+0x10d/0x1e0
+[  162.310205]  ? math_error+0x400/0x400
+[  162.313972]  ? vprintk_emit+0x3ea/0x590
+[  162.317918]  ? __usermodehelper_disable+0x2f0/0x2f0
+[  162.322903]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  162.327715]  ? __usermodehelper_disable+0x2f0/0x2f0
+[  162.332697]  do_invalid_op+0x1b/0x20
+[  162.336379]  invalid_op+0x22/0x40
+[  162.339799] RIP: 0010:debug_print_object+0x166/0x220
+[  162.344867] RSP: 0018:ffff8801c0ee7068 EFLAGS: 00010086
+[  162.350197] RAX: dffffc0000000008 RBX: 0000000000000003 RCX: ffffffff8159bc3e
+[  162.357433] RDX: 0000000000000000 RSI: 1ffff100381dcdc8 RDI: ffff8801db317dd0
+[  162.364669] RBP: ffff8801c0ee70a8 R08: 0000000000000000 R09: 1ffff100381dcd9a
+[  162.371905] R10: ffffed00381dce3c R11: ffffffff86137ad8 R12: 0000000000000001
+[  162.379139] R13: ffffffff86113480 R14: ffffffff8560dc40 R15: ffffffff8146e5f0
+[  162.386377]  ? __usermodehelper_disable+0x2f0/0x2f0
+[  162.391363]  ? vprintk_func+0x5e/0xc0
+[  162.395132]  ? debug_print_object+0x166/0x220
+[  162.399596]  debug_check_no_obj_freed+0x662/0xf1f
+[  162.404412]  ? free_obj_work+0x690/0x690
+[  162.408440]  ? lock_acquire+0x1d5/0x580
+[  162.412380]  ? lock_acquire+0x1d5/0x580
+[  162.416319]  ? unreserve_psock+0x9e/0x780
+[  162.420436]  ? lock_release+0xa40/0xa40
+[  162.424378]  ? find_held_lock+0x35/0x1d0
+[  162.428405]  ? refcount_sub_and_test+0x115/0x1b0
+[  162.433130]  ? debug_check_no_locks_freed+0x264/0x3c0
+[  162.438289]  kmem_cache_free+0x253/0x2a0
+[  162.442319]  unreserve_psock+0x5a1/0x780
+[  162.446347]  ? kcm_setsockopt+0x6a0/0x6a0
+[  162.450469]  kcm_write_msgs+0xbae/0x1b80
+[  162.454501]  ? print_irqtrace_events+0x270/0x270
+[  162.459222]  ? find_held_lock+0x35/0x1d0
+[  162.463254]  ? lock_acquire+0x1d5/0x580
+[  162.467192]  ? lock_acquire+0x1d5/0x580
+[  162.471134]  ? kcm_release+0x860/0x860
+[  162.474993]  ? mark_held_locks+0xaf/0x100
+[  162.479105]  ? do_raw_spin_trylock+0x190/0x190
+[  162.483657]  ? __local_bh_enable_ip+0x121/0x230
+[  162.488292]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  162.493274]  ? lock_sock_nested+0x91/0x110
+[  162.497475]  ? trace_hardirqs_on+0xd/0x10
+[  162.501589]  ? __local_bh_enable_ip+0x121/0x230
+[  162.506229]  kcm_tx_work+0x2e/0x190
+[  162.509825]  process_one_work+0xbbf/0x1b10
+[  162.514026]  ? trace_hardirqs_on+0xd/0x10
+[  162.518149]  ? pwq_dec_nr_in_flight+0x450/0x450
+[  162.522790]  ? __schedule+0x8f3/0x2060
+[  162.526644]  ? _raw_spin_unlock_irqrestore+0xa6/0xba
+[  162.531721]  ? check_noncircular+0x20/0x20
+[  162.535940]  ? __wake_up_common_lock+0x1c2/0x310
+[  162.540663]  ? lock_downgrade+0x980/0x980
+[  162.544781]  ? do_wait_intr_irq+0x3e0/0x3e0
+[  162.549077]  ? lock_acquire+0x1d5/0x580
+[  162.553018]  ? lock_acquire+0x1d5/0x580
+[  162.556957]  ? worker_thread+0x4a3/0x1990
+[  162.561071]  ? lock_downgrade+0x980/0x980
+[  162.565194]  ? lock_release+0xa40/0xa40
+[  162.569136]  ? retint_kernel+0x10/0x10
+[  162.572990]  ? do_raw_spin_trylock+0x190/0x190
+[  162.577547]  worker_thread+0x223/0x1990
+[  162.581504]  ? process_one_work+0x1b10/0x1b10
+[  162.585974]  ? _raw_spin_unlock_irq+0x27/0x70
+[  162.590440]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  162.595422]  ? trace_hardirqs_on+0xd/0x10
+[  162.599535]  ? _raw_spin_unlock_irq+0x27/0x70
+[  162.603997]  ? finish_task_switch+0x1d3/0x740
+[  162.608456]  ? finish_task_switch+0x1aa/0x740
+[  162.612933]  ? copy_overflow+0x20/0x20
+[  162.616823]  ? __schedule+0x8f3/0x2060
+[  162.620689]  ? retint_kernel+0x10/0x10
+[  162.624547]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  162.629534]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  162.634271]  ? retint_kernel+0x10/0x10
+[  162.638140]  ? __schedule+0x2060/0x2060
+[  162.642078]  ? do_wait_intr_irq+0x3e0/0x3e0
+[  162.646368]  ? __lockdep_init_map+0xe4/0x650
+[  162.650747]  ? do_raw_spin_trylock+0x190/0x190
+[  162.655295]  ? lockdep_init_map+0x9/0x10
+[  162.659325]  ? _raw_spin_unlock_irqrestore+0x31/0xba
+[  162.664396]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  162.669380]  ? trace_hardirqs_on+0xd/0x10
+[  162.673493]  ? __kthread_parkme+0x175/0x240
+[  162.677783]  kthread+0x33c/0x400
+[  162.681117]  ? process_one_work+0x1b10/0x1b10
+[  162.685575]  ? kthread_stop+0x7a0/0x7a0
+[  162.689518]  ret_from_fork+0x24/0x30
+[  162.693208] 
+[  162.693211] ======================================================

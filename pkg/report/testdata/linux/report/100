@@ -1,4 +1,4 @@
-TITLE: general protection fault
+TITLE: general protection fault: 0000 [#1] SMP KASAN
 CORRUPTED: Y
 
 [ 1722.511384] kasan: CONFIG_KASAN_INLINE enabled

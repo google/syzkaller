@@ -1,0 +1,89 @@
+TITLE: KASAN: use-after-free Read in shmem_disband_hugehead
+
+[  176.379525] ==================================================================
+[  176.386974] BUG: KASAN: use-after-free in __lock_acquire+0x462f/0x49f0 at addr ffff8800b5a9f8c0
+[  176.395804] Read of size 8 by task syz-executor7/20709
+[  176.401162] CPU: 0 PID: 20709 Comm: syz-executor7 Not tainted 4.3.5+ #11
+[  176.407993] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  176.417350]  0000000000000000 ffff8800b9e4b778 ffffffff81d985d2 ffff8801d8df6d00
+[  176.425400]  ffff8800b5a9f590 ffff8800b5a9fa20 0000000000000001 ffff8800b5a9f8c0
+[  176.433465]  ffff8800b9e4b7a0 ffffffff817c20a1 ffff8800b9e4b828 ffff8800b5a9f590
+[  176.441544] Call Trace:
+[  176.444128]  [<ffffffff81d985d2>] dump_stack+0xf6/0x184
+[  176.449487]  [<ffffffff817c20a1>] kasan_object_err+0x21/0x70
+[  176.455278]  [<ffffffff817c2317>] kasan_report_error+0x1b7/0x490
+[  176.461418]  [<ffffffff817c2723>] __asan_report_load8_noabort+0x43/0x50
+[  176.468167]  [<ffffffff8143418f>] ? __lock_acquire+0x462f/0x49f0
+[  176.474295]  [<ffffffff8143418f>] __lock_acquire+0x462f/0x49f0
+[  176.480246]  [<ffffffff813cd9ec>] ? set_next_entity+0x27c/0xc50
+[  176.486293]  [<ffffffff8142fb60>] ? debug_check_no_locks_freed+0x370/0x370
+[  176.493293]  [<ffffffff8138b0b5>] ? finish_task_switch+0x485/0x620
+[  176.499588]  [<ffffffff8138b0a5>] ? finish_task_switch+0x475/0x620
+[  176.505972]  [<ffffffff8138b0b5>] ? finish_task_switch+0x485/0x620
+[  176.512266]  [<ffffffff8138b0a5>] ? finish_task_switch+0x475/0x620
+[  176.518566]  [<ffffffff8138b0b5>] ? finish_task_switch+0x485/0x620
+[  176.524861]  [<ffffffff8138b0a5>] ? finish_task_switch+0x475/0x620
+[  176.531156]  [<ffffffff8138b0b5>] ? finish_task_switch+0x485/0x620
+[  176.537449]  [<ffffffff8138b0a5>] ? finish_task_switch+0x475/0x620
+[  176.543750]  [<ffffffff8138b0b5>] ? finish_task_switch+0x485/0x620
+[  176.550241]  [<ffffffff8138b0a5>] ? finish_task_switch+0x475/0x620
+[  176.556543]  [<ffffffff8138ad24>] ? finish_task_switch+0xf4/0x620
+[  176.562758]  [<ffffffff813928ea>] ? context_switch+0x54a/0xe60
+[  176.568710]  [<ffffffff81392950>] ? context_switch+0x5b0/0xe60
+[  176.574660]  [<ffffffff81435e1d>] lock_acquire+0x13d/0x300
+[  176.580258]  [<ffffffff816e7d3d>] ? shmem_disband_hugehead+0x1ed/0x610
+[  176.586919]  [<ffffffff81011456>] _raw_spin_lock_irqsave+0x56/0x70
+[  176.593213]  [<ffffffff816e7d3d>] ? shmem_disband_hugehead+0x1ed/0x610
+[  176.599862]  [<ffffffff816e7d3d>] shmem_disband_hugehead+0x1ed/0x610
+[  176.606337]  [<ffffffff816e7b50>] ? shmem_clear_tag_hugehole+0x130/0x130
+[  176.613148]  [<ffffffff816e3140>] ? shmem_put_recovery_page+0x20/0x20
+[  176.619701]  [<ffffffff816f13c4>] shmem_disband_hugeteam+0x1b4/0x360
+[  176.626171]  [<ffffffff816f1210>] ? shmem_huge_mapping+0xf0/0xf0
+[  176.632293]  [<ffffffff8138ed45>] ? __might_sleep+0x95/0x1a0
+[  176.638066]  [<ffffffff816f7ac5>] shmem_recovery_finalize_team+0x305/0x4b0
+[  176.645072]  [<ffffffff816fdf0b>] shmem_huge_migrate_pages+0x65b/0x11e0
+[  176.651812]  [<ffffffff817b205a>] do_mbind+0x49a/0xd10
+[  176.657069]  [<ffffffff8154e0fb>] ? kcov_ioctl+0x5b/0x1a0
+[  176.662596]  [<ffffffff81824575>] ? fput+0x25/0x150
+[  176.667595]  [<ffffffff816e45c0>] ? shmem_mmap+0xa0/0xa0
+[  176.673033]  [<ffffffff817b1bc0>] ? __mpol_equal+0x2c0/0x2c0
+[  176.678816]  [<ffffffff81735d99>] ? __might_fault+0x119/0x1d0
+[  176.684681]  [<ffffffff817c1354>] ? kasan_check_write+0x14/0x20
+[  176.690714]  [<ffffffff817aa1f7>] ? get_nodes+0x177/0x1e0
+[  176.696232]  [<ffffffff817b2c50>] SyS_mbind+0x140/0x150
+[  176.701569]  [<ffffffff817b2b10>] ? compat_SyS_mbind+0x240/0x240
+[  176.707691]  [<ffffffff81016017>] ? trace_hardirqs_on_thunk+0x17/0x19
+[  176.714247]  [<ffffffff82dff840>] sysenter_dispatch+0xf/0x32
+[  176.720019] Object at ffff8800b5a9f590, in cache shmem_inode_cache size: 1168
+[  176.727269] Allocated:
+[  176.729734] PID = 20706
+[  176.732286]  [<ffffffff8124895b>] save_stack_trace+0x2b/0x50
+[  176.738179]  [<ffffffff817c13e3>] save_stack+0x43/0xd0
+[  176.743575]  [<ffffffff817c165d>] kasan_kmalloc+0xad/0xe0
+[  176.749218]  [<ffffffff817c1c02>] kasan_slab_alloc+0x12/0x20
+[  176.755122]  [<ffffffff817ba0eb>] kmem_cache_alloc+0x14b/0x7a0
+[  176.761202]  [<ffffffff816e5470>] shmem_alloc_inode+0x20/0x50
+[  176.767185]  [<ffffffff81872efa>] alloc_inode+0x6a/0x190
+[  176.772733]  [<ffffffff81878a4c>] new_inode_pseudo+0x1c/0xe0
+[  176.778644]  [<ffffffff81878b31>] new_inode+0x21/0x50
+[  176.783947]  [<ffffffff816e5734>] shmem_get_inode+0x134/0xb50
+[  176.789937]  [<ffffffff816eacf2>] __shmem_file_setup.part.40+0x302/0x430
+[  176.796883]  [<ffffffff817001e8>] SyS_memfd_create+0x178/0x3b0
+[  176.802981]  [<ffffffff82dff840>] sysenter_dispatch+0xf/0x32
+[  176.808882] Freed:
+[  176.811003] PID = 20702
+[  176.813556]  [<ffffffff8124895b>] save_stack_trace+0x2b/0x50
+[  176.819447]  [<ffffffff817c13e3>] save_stack+0x43/0xd0
+[  176.824822]  [<ffffffff817c1c82>] kasan_slab_free+0x72/0xc0
+[  176.830647]  [<ffffffff817bebf8>] kmem_cache_free+0xe8/0x2d0
+[  176.837315]  [<ffffffff816e543f>] shmem_destroy_callback+0x4f/0x60
+[  176.843733]  [<ffffffff81475dac>] rcu_process_callbacks+0x7bc/0x16e0
+[  176.850320]  [<ffffffff81013053>] __do_softirq+0x243/0x8c4
+[  176.856045] Memory state around the buggy address:
+[  176.860948]  ffff8800b5a9f780: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  176.868279]  ffff8800b5a9f800: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  176.875621] >ffff8800b5a9f880: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  176.882964]                                            ^
+[  176.888387]  ffff8800b5a9f900: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  176.895717]  ffff8800b5a9f980: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  176.903055] ==================================================================

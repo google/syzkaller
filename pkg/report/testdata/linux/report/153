@@ -1,6 +1,4 @@
-# TODO: this should be "WARNING in kmalloc_slab in relay_open_buf".
-# The root cause is in the caller of kmalloc, so lots of bugs gets glued together.
-TITLE: WARNING in kmalloc_slab
+TITLE: WARNING: kmalloc bug in relay_open_buf
 
 syzkaller login: [   50.946624] WARNING: CPU: 0 PID: 3081 at mm/slab_common.c:971 kmalloc_slab+0x5d/0x70
 [   50.947754] Kernel panic - not syncing: panic_on_warn set ...

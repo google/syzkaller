@@ -1,0 +1,203 @@
+TITLE: KASAN: use-after-free Read in selinux_inode_free_security
+
+[   70.363639] ==================================================================
+[   70.371158] BUG: KASAN: use-after-free in do_raw_spin_lock+0x1aa/0x1e0
+[   70.377908] Read of size 4 at addr ffff8801c5b1ddec by task syz-executor6/3887
+[   70.385251] 
+[   70.386868] CPU: 1 PID: 3887 Comm: syz-executor6 Not tainted 4.14.0-rc5+ #136
+[   70.394123] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   70.403464] Call Trace:
+[   70.406045]  dump_stack+0x194/0x257
+[   70.409671]  ? arch_local_irq_restore+0x53/0x53
+[   70.414330]  ? show_regs_print_info+0x65/0x65
+[   70.418820]  ? perf_trace_lock_acquire+0xfe/0x900
+[   70.423656]  ? do_raw_spin_lock+0x1aa/0x1e0
+[   70.427972]  print_address_description+0x73/0x250
+[   70.432808]  ? do_raw_spin_lock+0x1aa/0x1e0
+[   70.437123]  kasan_report+0x25b/0x340
+[   70.440924]  __asan_report_load4_noabort+0x14/0x20
+[   70.445846]  do_raw_spin_lock+0x1aa/0x1e0
+[   70.449994]  _raw_spin_lock+0x32/0x40
+[   70.453784]  ? selinux_inode_free_security+0x12a/0x410
+[   70.459044]  selinux_inode_free_security+0x12a/0x410
+[   70.464125]  ? check_noncircular+0x20/0x20
+[   70.468334]  ? selinux_socket_create+0x740/0x740
+[   70.473073]  ? inode_has_buffers+0x60/0xd0
+[   70.477280]  ? nobh_write_end+0x5d0/0x5d0
+[   70.481408]  security_inode_free+0x50/0x90
+[   70.485617]  __destroy_inode+0x287/0x650
+[   70.489651]  ? inode_sb_list_add+0x320/0x320
+[   70.494036]  ? evict+0x576/0x920
+[   70.497379]  ? lock_downgrade+0x990/0x990
+[   70.501507]  ? do_raw_spin_trylock+0x190/0x190
+[   70.506064]  destroy_inode+0xe7/0x200
+[   70.509839]  ? __destroy_inode+0x650/0x650
+[   70.514061]  evict+0x57e/0x920
+[   70.517234]  ? destroy_inode+0x200/0x200
+[   70.521274]  ? iput+0x7b1/0xaf0
+[   70.524526]  ? lock_downgrade+0x990/0x990
+[   70.528655]  ? do_raw_spin_trylock+0x190/0x190
+[   70.533211]  ? _atomic_dec_and_lock+0x125/0x196
+[   70.537851]  ? _atomic_dec_and_lock+0xe8/0x196
+[   70.542407]  ? cpumask_local_spread+0x250/0x250
+[   70.547050]  ? lock_acquire+0x1d5/0x580
+[   70.550993]  ? _atomic_dec_and_lock+0x125/0x196
+[   70.555644]  iput+0x7b9/0xaf0
+[   70.558724]  ? find_inode_nowait+0x180/0x180
+[   70.563107]  ? evict_inodes+0x580/0x580
+[   70.567052]  ? fsnotify_put_mark+0x4c1/0x730
+[   70.571434]  ? lock_downgrade+0x990/0x990
+[   70.575559]  ? do_raw_spin_trylock+0x190/0x190
+[   70.580112]  ? __fsnotify_recalc_mask+0x340/0x340
+[   70.584928]  ? _atomic_dec_and_lock+0xe8/0x196
+[   70.589479]  ? put_ucounts+0x1ee/0x2d0
+[   70.593340]  ? cpumask_local_spread+0x250/0x250
+[   70.597984]  ? inotify_handle_event+0x22d/0x470
+[   70.602635]  fsnotify_put_mark+0x4d0/0x730
+[   70.606846]  ? fsnotify_recalc_mask+0x30/0x30
+[   70.611314]  ? inotify_handle_event+0x1df/0x470
+[   70.615967]  ? inotify_ignored_and_remove_idr+0x70/0x80
+[   70.621305]  ? inotify_freeing_mark+0x1d/0x30
+[   70.625772]  ? inotify_free_event+0x20/0x20
+[   70.630071]  fsnotify_clear_marks_by_group+0x19a/0x5f0
+[   70.635330]  ? fsnotify_find_mark+0x160/0x160
+[   70.639794]  ? fsnotify_destroy_group+0xd1/0x3f0
+[   70.644524]  ? lock_downgrade+0x990/0x990
+[   70.648653]  ? do_raw_spin_trylock+0x190/0x190
+[   70.653238]  fsnotify_destroy_group+0xde/0x3f0
+[   70.657801]  ? fsnotify_put_group+0xa0/0xa0
+[   70.662091]  ? locks_remove_file+0x3fa/0x5a0
+[   70.666474]  ? fcntl_setlk+0x10c0/0x10c0
+[   70.670512]  ? __fsnotify_parent+0xb4/0x3a0
+[   70.674812]  ? fsnotify+0x1af0/0x1af0
+[   70.678583]  ? dput.part.24+0x2a/0x740
+[   70.682452]  ? idr_callback+0xc0/0xc0
+[   70.686223]  inotify_release+0x37/0x50
+[   70.690083]  __fput+0x327/0x7e0
+[   70.693343]  ? fput+0x140/0x140
+[   70.696599]  ? check_same_owner+0x320/0x320
+[   70.700891]  ? _raw_spin_unlock_irq+0x27/0x70
+[   70.705366]  ____fput+0x15/0x20
+[   70.708617]  task_work_run+0x199/0x270
+[   70.712480]  ? task_work_cancel+0x210/0x210
+[   70.716772]  ? _raw_spin_unlock+0x22/0x30
+[   70.720892]  ? switch_task_namespaces+0x87/0xc0
+[   70.725540]  do_exit+0x9b5/0x1ad0
+[   70.728961]  ? perf_trace_lock_acquire+0xfe/0x900
+[   70.733785]  ? mm_update_next_owner+0x930/0x930
+[   70.738432]  ? perf_trace_lock+0x860/0x860
+[   70.742640]  ? check_same_owner+0x320/0x320
+[   70.746935]  ? lock_acquire+0x1d5/0x580
+[   70.750882]  ? futex_wait_setup+0x14a/0x3d0
+[   70.755180]  ? __might_sleep+0x95/0x190
+[   70.759136]  ? find_held_lock+0x35/0x1d0
+[   70.763182]  ? futex_wait+0x402/0x990
+[   70.766958]  ? perf_trace_lock+0xf1/0x860
+[   70.771088]  ? check_noncircular+0x20/0x20
+[   70.775296]  ? perf_trace_lock+0x860/0x860
+[   70.779508]  ? perf_event_sync_stat+0x5c0/0x5c0
+[   70.784157]  ? drop_futex_key_refs.isra.13+0x63/0xb0
+[   70.789232]  ? futex_wait+0x69e/0x990
+[   70.793022]  ? find_held_lock+0x35/0x1d0
+[   70.797070]  ? get_signal+0x7ae/0x16d0
+[   70.800929]  ? lock_downgrade+0x990/0x990
+[   70.805065]  do_group_exit+0x149/0x400
+[   70.808924]  ? __lock_is_held+0xb6/0x140
+[   70.812954]  ? SyS_exit+0x30/0x30
+[   70.816380]  ? _raw_spin_unlock_irq+0x27/0x70
+[   70.820850]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   70.825844]  get_signal+0x73f/0x16d0
+[   70.829547]  ? ptrace_notify+0x130/0x130
+[   70.833591]  ? __schedule+0x8f3/0x2060
+[   70.837460]  ? exit_robust_list+0x240/0x240
+[   70.841750]  ? __sched_text_start+0x8/0x8
+[   70.845872]  ? perf_trace_lock+0xf1/0x860
+[   70.849990]  ? finish_task_switch+0x1aa/0x740
+[   70.854470]  do_signal+0x94/0x1ee0
+[   70.857989]  ? find_held_lock+0x35/0x1d0
+[   70.862038]  ? setup_sigcontext+0x7d0/0x7d0
+[   70.866331]  ? mntput_no_expire+0x130/0xa90
+[   70.870624]  ? lock_downgrade+0x990/0x990
+[   70.874751]  ? schedule+0xf5/0x430
+[   70.878269]  ? __schedule+0x2060/0x2060
+[   70.882227]  ? lock_downgrade+0x990/0x990
+[   70.886355]  ? mntput_no_expire+0x15e/0xa90
+[   70.890645]  ? check_same_owner+0x320/0x320
+[   70.894936]  ? exit_to_usermode_loop+0x8c/0x310
+[   70.899587]  exit_to_usermode_loop+0x214/0x310
+[   70.904145]  ? trace_event_raw_event_sys_exit+0x260/0x260
+[   70.909654]  ? dput.part.24+0x2a/0x740
+[   70.913517]  ? dput.part.24+0x175/0x740
+[   70.917479]  syscall_return_slowpath+0x42f/0x510
+[   70.922209]  ? prepare_exit_to_usermode+0x2d0/0x2d0
+[   70.927199]  ? entry_SYSCALL_64_fastpath+0x91/0xbe
+[   70.932102]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   70.937091]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   70.941831]  entry_SYSCALL_64_fastpath+0xbc/0xbe
+[   70.946556] RIP: 0033:0x452779
+[   70.949715] RSP: 002b:00007f6815b25ce8 EFLAGS: 00000246 ORIG_RAX: 00000000000000ca
+[   70.957392] RAX: fffffffffffffe00 RBX: 00000000007581a0 RCX: 0000000000452779
+[   70.964633] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 00000000007581a0
+[   70.971875] RBP: 00000000007581a0 R08: 000000000000018e R09: 0000000000758180
+[   70.979117] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+[   70.986359] R13: 0000000000a6f7ff R14: 00007f6815b269c0 R15: 000000000000001e
+[   70.993627] 
+[   70.995226] Allocated by task 3873:
+[   70.998823]  save_stack_trace+0x16/0x20
+[   71.002765]  save_stack+0x43/0xd0
+[   71.006189]  kasan_kmalloc+0xad/0xe0
+[   71.009872]  kmem_cache_alloc_trace+0x136/0x750
+[   71.014513]  selinux_sb_alloc_security+0x93/0x2e0
+[   71.019325]  security_sb_alloc+0x6d/0xa0
+[   71.023354]  sget_userns+0x36a/0xe20
+[   71.027036]  sget+0xd2/0x120
+[   71.030028]  mount_nodev+0x37/0x100
+[   71.033623]  ramfs_mount+0x2c/0x40
+[   71.037131]  mount_fs+0x66/0x2d0
+[   71.040467]  vfs_kern_mount.part.26+0xc6/0x4a0
+[   71.045019]  do_mount+0xea1/0x2bb0
+[   71.048528]  SyS_mount+0xab/0x120
+[   71.051949]  entry_SYSCALL_64_fastpath+0x1f/0xbe
+[   71.056670] 
+[   71.058265] Freed by task 3873:
+[   71.061514]  save_stack_trace+0x16/0x20
+[   71.065456]  save_stack+0x43/0xd0
+[   71.068896]  kasan_slab_free+0x71/0xc0
+[   71.072753]  kfree+0xca/0x250
+[   71.075828]  selinux_sb_free_security+0x42/0x50
+[   71.080466]  security_sb_free+0x48/0x80
+[   71.084408]  destroy_super+0x93/0x200
+[   71.088178]  __put_super.part.6+0x1a4/0x2a0
+[   71.092469]  put_super+0x53/0x70
+[   71.095805]  deactivate_locked_super+0xb0/0xd0
+[   71.100356]  deactivate_super+0x141/0x1b0
+[   71.104473]  cleanup_mnt+0xb2/0x150
+[   71.108070]  __cleanup_mnt+0x16/0x20
+[   71.111754]  task_work_run+0x199/0x270
+[   71.115610]  do_exit+0x9b5/0x1ad0
+[   71.119032]  do_group_exit+0x149/0x400
+[   71.122887]  get_signal+0x73f/0x16d0
+[   71.126570]  do_signal+0x94/0x1ee0
+[   71.130081]  exit_to_usermode_loop+0x214/0x310
+[   71.134632]  syscall_return_slowpath+0x42f/0x510
+[   71.139358]  entry_SYSCALL_64_fastpath+0xbc/0xbe
+[   71.144081] 
+[   71.145679] The buggy address belongs to the object at ffff8801c5b1dd40
+[   71.145679]  which belongs to the cache kmalloc-256 of size 256
+[   71.158305] The buggy address is located 172 bytes inside of
+[   71.158305]  256-byte region [ffff8801c5b1dd40, ffff8801c5b1de40)
+[   71.170148] The buggy address belongs to the page:
+[   71.175046] page:ffffea000716c740 count:1 mapcount:0 mapping:ffff8801c5b1d0c0 index:0x0
+[   71.183161] flags: 0x200000000000100(slab)
+[   71.187369] raw: 0200000000000100 ffff8801c5b1d0c0 0000000000000000 000000010000000c
+[   71.195219] raw: ffffea0007155de0 ffffea0007130ae0 ffff8801dac007c0 0000000000000000
+[   71.203066] page dumped because: kasan: bad access detected
+[   71.208743] 
+[   71.210338] Memory state around the buggy address:
+[   71.215235]  ffff8801c5b1dc80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   71.222563]  ffff8801c5b1dd00: fc fc fc fc fc fc fc fc fb fb fb fb fb fb fb fb
+[   71.229892] >ffff8801c5b1dd80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   71.237217]                                                           ^
+[   71.243936]  ffff8801c5b1de00: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+[   71.251265]  ffff8801c5b1de80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   71.258590] ==================================================================

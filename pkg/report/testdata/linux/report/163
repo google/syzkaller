@@ -1,0 +1,75 @@
+TITLE: WARNING: locking bug in sg_remove_request
+
+[   32.851928] ------------[ cut here ]------------
+[   32.851948] WARNING: CPU: 1 PID: 4085 at kernel/locking/lockdep.c:3190 __lock_acquire+0x23b3/0x4b50()
+[   32.851955] DEBUG_LOCKS_WARN_ON(id >= MAX_LOCKDEP_KEYS)
+[   32.851955] Kernel panic - not syncing: panic_on_warn set ...
+[   32.851955] 
+[   32.851963] CPU: 1 PID: 4085 Comm: syzkaller160734 Not tainted 4.4.107-g79f138a #2
+[   32.851967] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   32.851976]  0000000000000000 fac66347bd2b1d29 ffff8800b6a470c0 ffffffff81d03a1d
+[   32.851983]  ffffffff838429a0 ffff8800b6a47198 ffffffff83854820 0000000000000009
+[   32.851990]  0000000000000c76 ffff8800b6a47188 ffffffff81416dca 0000000041b58ab3
+[   32.851992] Call Trace:
+[   32.852004]  [<ffffffff81d03a1d>] dump_stack+0xc1/0x124
+[   32.852013]  [<ffffffff81416dca>] panic+0x1aa/0x388
+[   32.852020]  [<ffffffff81416c20>] ? percpu_up_read.constprop.46+0xe1/0xe1
+[   32.852028]  [<ffffffff8112ad7a>] ? warn_slowpath_common+0x10a/0x140
+[   32.852034]  [<ffffffff8112ad95>] warn_slowpath_common+0x125/0x140
+[   32.852039]  [<ffffffff812361f3>] ? __lock_acquire+0x23b3/0x4b50
+[   32.852045]  [<ffffffff8112ae71>] warn_slowpath_fmt+0xc1/0x110
+[   32.852051]  [<ffffffff8112adb0>] ? warn_slowpath_common+0x140/0x140
+[   32.852056]  [<ffffffff8122d870>] ? save_trace+0xe0/0x270
+[   32.852064]  [<ffffffff81016bec>] ? dump_trace+0x14c/0x350
+[   32.852069]  [<ffffffff8123260e>] ? mark_lock+0x45e/0xfd0
+[   32.852075]  [<ffffffff812361f3>] __lock_acquire+0x23b3/0x4b50
+[   32.852083]  [<ffffffff814fa193>] ? save_stack+0xa3/0xd0
+[   32.852092]  [<ffffffff81035c86>] ? save_stack_trace+0x26/0x50
+[   32.852098]  [<ffffffff814fa133>] ? save_stack+0x43/0xd0
+[   32.852104]  [<ffffffff814fa3fd>] ? kasan_kmalloc+0xad/0xe0
+[   32.852110]  [<ffffffff814f63b0>] ? kmem_cache_alloc_trace+0x100/0x2b0
+[   32.852119]  [<ffffffff825b6c38>] ? sg_read+0xb48/0x1490
+[   32.852125]  [<ffffffff81233e40>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   32.852131]  [<ffffffff81233e40>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   32.852137]  [<ffffffff8151cdb8>] ? vfs_readv+0x78/0xb0
+[   32.852146]  [<ffffffff815b863a>] ? default_file_splice_read+0x4fa/0x8e0
+[   32.852152]  [<ffffffff815b4365>] ? do_splice_to+0xf5/0x140
+[   32.852158]  [<ffffffff815ba599>] ? SyS_splice+0x1009/0x14b0
+[   32.852164]  [<ffffffff81006d84>] ? do_fast_syscall_32+0x314/0x890
+[   32.852171]  [<ffffffff83771357>] ? sysenter_flags_fixed+0xd/0x17
+[   32.852177]  [<ffffffff8123a1fe>] lock_acquire+0x15e/0x460
+[   32.852183]  [<ffffffff825b46c9>] ? sg_remove_request+0x69/0x110
+[   32.852189]  [<ffffffff825b6c38>] ? sg_read+0xb48/0x1490
+[   32.852196]  [<ffffffff8376f89e>] _raw_write_lock_irqsave+0x4e/0x70
+[   32.852202]  [<ffffffff825b46c9>] ? sg_remove_request+0x69/0x110
+[   32.852208]  [<ffffffff825b46c9>] sg_remove_request+0x69/0x110
+[   32.852214]  [<ffffffff825b4cd5>] sg_finish_rem_req+0x295/0x340
+[   32.852219]  [<ffffffff825b6b11>] sg_read+0xa21/0x1490
+[   32.852226]  [<ffffffff815128b4>] ? __check_object_size+0x154/0x35b
+[   32.852231]  [<ffffffff810002b8>] ? 0xffffffff810002b8
+[   32.852237]  [<ffffffff825b60f0>] ? sg_proc_seq_show_debug+0xd30/0xd30
+[   32.852244]  [<ffffffff815e8650>] ? fsnotify+0xee0/0xee0
+[   32.852252]  [<ffffffff81b4ca39>] ? avc_policy_seqno+0x9/0x20
+[   32.852258]  [<ffffffff8151a8e1>] do_loop_readv_writev+0x141/0x1e0
+[   32.852265]  [<ffffffff81b43929>] ? security_file_permission+0x89/0x1e0
+[   32.852275]  [<ffffffff825b60f0>] ? sg_proc_seq_show_debug+0xd30/0xd30
+[   32.852281]  [<ffffffff825b60f0>] ? sg_proc_seq_show_debug+0xd30/0xd30
+[   32.852287]  [<ffffffff8151cc3d>] do_readv_writev+0x5dd/0x6e0
+[   32.852293]  [<ffffffff8151c660>] ? vfs_write+0x530/0x530
+[   32.852300]  [<ffffffff81434690>] ? __alloc_pages_direct_compact+0x250/0x250
+[   32.852307]  [<ffffffff8151cdb8>] vfs_readv+0x78/0xb0
+[   32.852314]  [<ffffffff815b863a>] default_file_splice_read+0x4fa/0x8e0
+[   32.852321]  [<ffffffff815b8140>] ? generic_file_splice_read+0x1c0/0x1c0
+[   32.852328]  [<ffffffff815b3650>] ? page_cache_pipe_buf_release+0x70/0x70
+[   32.852339]  [<ffffffff8123499f>] ? __lock_acquire+0xb5f/0x4b50
+[   32.852345]  [<ffffffff81233e40>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   32.852353]  [<ffffffff8151bba0>] ? rw_verify_area+0x100/0x2f0
+[   32.852359]  [<ffffffff815b8140>] ? generic_file_splice_read+0x1c0/0x1c0
+[   32.852365]  [<ffffffff815b4365>] do_splice_to+0xf5/0x140
+[   32.852372]  [<ffffffff815ba599>] SyS_splice+0x1009/0x14b0
+[   32.852377]  [<ffffffff8123360b>] ? trace_hardirqs_on_caller+0x38b/0x590
+[   32.852384]  [<ffffffff815b9590>] ? compat_SyS_vmsplice+0x240/0x240
+[   32.852390]  [<ffffffff81006b47>] ? do_fast_syscall_32+0xd7/0x890
+[   32.852396]  [<ffffffff815b9590>] ? compat_SyS_vmsplice+0x240/0x240
+[   32.852402]  [<ffffffff81006d84>] do_fast_syscall_32+0x314/0x890
+[   32.852408]  [<ffffffff83771357>] sysenter_flags_fixed+0xd/0x17

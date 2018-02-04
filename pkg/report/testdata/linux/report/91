@@ -1,4 +1,4 @@
-TITLE: suspicious RCU usage at net/ipv6/ip6_flowlabel.c:LINE
+TITLE: INFO: suspicious RCU usage. ]
 CORRUPTED: Y
 
 [ 1722.511384] ===============================

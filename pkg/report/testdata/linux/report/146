@@ -1,8 +1,4 @@
-# TODO: this must be "in remove_wait_queue".
-# We need to skip all *lock_acquire/release functions,
-# as they produce unuseful title and sometimes duplicates for
-# __lock_acquire vs perf_trace_lock_acquire.
-TITLE: BUG: unable to handle kernel paging request in __lock_acquire
+TITLE: BUG: unable to handle kernel paging request in remove_wait_queue
 
 [   19.572672] BUG: unable to handle kernel paging request at 0000000100000137
 [   19.572683] IP: __lock_acquire+0xd8/0x1430

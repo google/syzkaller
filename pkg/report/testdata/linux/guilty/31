@@ -1,0 +1,58 @@
+FILE: net/bridge/br_if.c
+
+------------[ cut here ]------------
+WARNING: CPU: 1 PID: 3485 at lib/kobject.c:244 kobject_add_internal+0x3f6/0xbc0 lib/kobject.c:242
+Kernel panic - not syncing: panic_on_warn set ...
+
+CPU: 1 PID: 3485 Comm: syz-executor6 Not tainted 4.14.0-rc4+ #80
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:16 [inline]
+ dump_stack+0x194/0x257 lib/dump_stack.c:52
+ panic+0x1e4/0x417 kernel/panic.c:181
+ __warn+0x1c4/0x1d9 kernel/panic.c:542
+ report_bug+0x211/0x2d0 lib/bug.c:183
+ fixup_bug+0x40/0x90 arch/x86/kernel/traps.c:178
+ do_trap_no_signal arch/x86/kernel/traps.c:212 [inline]
+ do_trap+0x260/0x390 arch/x86/kernel/traps.c:261
+ do_error_trap+0x120/0x390 arch/x86/kernel/traps.c:298
+ do_invalid_op+0x1b/0x20 arch/x86/kernel/traps.c:311
+ invalid_op+0x18/0x20 arch/x86/entry/entry_64.S:905
+RIP: 0010:kobject_add_internal+0x3f6/0xbc0 lib/kobject.c:242
+RSP: 0018:ffff8801bf816900 EFLAGS: 00010282
+RAX: 0000000000000040 RBX: ffff8801c09b4620 RCX: 0000000000000000
+RDX: 0000000000000040 RSI: ffffffff8158d38e RDI: ffffed0037f02d14
+RBP: ffff8801bf8169f8 R08: ffff8801bf816070 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000000 R12: 1ffff10037f02d26
+R13: 00000000fffffff4 R14: ffff8801cb9b0b30 R15: ffff8801cd01c000
+ kobject_add_varg lib/kobject.c:366 [inline]
+ kobject_init_and_add+0xf9/0x150 lib/kobject.c:438
+ br_add_if+0x786/0x1990 net/bridge/br_if.c:533
+ br_add_slave+0x29/0x30 net/bridge/br_device.c:349
+ do_set_master+0x19c/0x1f0 net/core/rtnetlink.c:1986
+ do_setlink+0xa98/0x38e0 net/core/rtnetlink.c:2119
+ rtnl_newlink+0xf0d/0x1a40 net/core/rtnetlink.c:2661
+ rtnetlink_rcv_msg+0x733/0x1090 net/core/rtnetlink.c:4301
+ netlink_rcv_skb+0x216/0x440 net/netlink/af_netlink.c:2409
+ rtnetlink_rcv+0x1c/0x20 net/core/rtnetlink.c:4313
+ netlink_unicast_kernel net/netlink/af_netlink.c:1273 [inline]
+ netlink_unicast+0x4e8/0x6f0 net/netlink/af_netlink.c:1299
+ netlink_sendmsg+0xa4a/0xe70 net/netlink/af_netlink.c:1862
+ sock_sendmsg_nosec net/socket.c:633 [inline]
+ sock_sendmsg+0xca/0x110 net/socket.c:643
+ sock_write_iter+0x320/0x5e0 net/socket.c:912
+ call_write_iter include/linux/fs.h:1770 [inline]
+ do_iter_readv_writev+0x531/0x7f0 fs/read_write.c:673
+ do_iter_write+0x15a/0x540 fs/read_write.c:952
+ vfs_writev+0x18a/0x340 fs/read_write.c:997
+ do_writev+0xfc/0x2a0 fs/read_write.c:1032
+ SYSC_writev fs/read_write.c:1105 [inline]
+ SyS_writev+0x27/0x30 fs/read_write.c:1102
+ entry_SYSCALL_64_fastpath+0x1f/0xbe
+RIP: 0033:0x4520a9
+RSP: 002b:00007f4633db3c08 EFLAGS: 00000216 ORIG_RAX: 0000000000000014
+RAX: ffffffffffffffda RBX: 0000000000718000 RCX: 00000000004520a9
+RDX: 0000000000000001 RSI: 00000000205d9000 RDI: 0000000000000005
+RBP: 0000000000000086 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000216 R12: 00000000004b6c37
+R13: 00007f4633db3b48 R14: 00000000004b6c47 R15: 0000000000000000

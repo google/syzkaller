@@ -71,13 +71,15 @@ func (ctx *freebsd) Parse(output []byte) *Report {
 	if oops == nil {
 		return nil
 	}
-	rep.Title, _ = extractDescription(output[rep.StartPos:], oops)
+	rep.Title, rep.Corrupted, _ = extractDescription(output[rep.StartPos:], oops, freebsdStackParams)
 	return rep
 }
 
 func (ctx *freebsd) Symbolize(rep *Report) error {
 	return nil
 }
+
+var freebsdStackParams = &stackParams{}
 
 var freebsdOopses = []*oops{
 	&oops{

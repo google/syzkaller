@@ -1,0 +1,128 @@
+TITLE: WARNING: proc registration bug in clusterip_tg_check
+
+[  126.768183] ------------[ cut here ]------------
+[  126.773124] proc_dir_entry 'ipt_CLUSTERIP/172.20.0.170' already registered
+[  126.780219] WARNING: CPU: 1 PID: 4074 at fs/proc/generic.c:330 proc_register+0x2a4/0x370
+[  126.788421] Kernel panic - not syncing: panic_on_warn set ...
+[  126.788421] 
+[  126.795777] CPU: 1 PID: 4074 Comm: syzkaller105937 Not tainted 4.15.0+ #221
+[  126.802846] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  126.812171] Call Trace:
+[  126.814739]  dump_stack+0x194/0x257
+[  126.818340]  ? arch_local_irq_restore+0x53/0x53
+[  126.822990]  ? vsnprintf+0x1ed/0x1900
+[  126.826768]  panic+0x1e4/0x41c
+[  126.829933]  ? refcount_error_report+0x214/0x214
+[  126.834664]  ? show_regs_print_info+0x18/0x18
+[  126.839136]  ? __warn+0x1c1/0x200
+[  126.842565]  ? proc_register+0x2a4/0x370
+[  126.846596]  __warn+0x1dc/0x200
+[  126.849849]  ? proc_register+0x2a4/0x370
+[  126.853885]  report_bug+0x211/0x2d0
+[  126.857493]  fixup_bug.part.11+0x37/0x80
+[  126.861528]  do_error_trap+0x2d7/0x3e0
+[  126.865387]  ? vprintk_default+0x28/0x30
+[  126.869422]  ? math_error+0x400/0x400
+[  126.873192]  ? printk+0xaa/0xca
+[  126.876445]  ? show_regs_print_info+0x18/0x18
+[  126.880924]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  126.885744]  do_invalid_op+0x1b/0x20
+[  126.889432]  invalid_op+0x22/0x40
+[  126.892860] RIP: 0010:proc_register+0x2a4/0x370
+[  126.897499] RSP: 0018:ffff8801da886e20 EFLAGS: 00010286
+[  126.902834] RAX: dffffc0000000008 RBX: ffff8801d21cc7b8 RCX: ffffffff815a57ae
+[  126.910075] RDX: 0000000000000000 RSI: 1ffff1003b510d74 RDI: 1ffff1003b510d49
+[  126.917320] RBP: ffff8801da886e70 R08: 1ffff1003b510d0b R09: 0000000000000000
+[  126.924563] R10: ffff8801da886cd8 R11: 0000000000000000 R12: ffff8801cbf66440
+[  126.932597] R13: dffffc0000000000 R14: ffff8801ca2fa348 R15: ffff8801cbf66501
+[  126.939857]  ? vprintk_func+0x5e/0xc0
+[  126.943647]  proc_create_data+0xf8/0x180
+[  126.947687]  clusterip_tg_check+0xf9c/0x16d0
+[  126.952072]  ? arp_mangle+0x550/0x550
+[  126.955847]  ? xt_find_target+0x150/0x1e0
+[  126.959970]  ? lock_downgrade+0x980/0x980
+[  126.964091]  ? rcu_read_lock_sched_held+0x108/0x120
+[  126.969080]  ? pcpu_alloc+0x146/0x10e0
+[  126.972950]  ? pcpu_free_area+0xa00/0xa00
+[  126.977081]  ? __mutex_unlock_slowpath+0xe9/0xac0
+[  126.981899]  ? kernel_text_address+0x102/0x140
+[  126.986460]  ? wait_for_completion+0x770/0x770
+[  126.991025]  ? unwind_get_return_address+0x61/0xa0
+[  126.995928]  ? __save_stack_trace+0x7e/0xd0
+[  127.000226]  ? arp_mangle+0x550/0x550
+[  127.004004]  xt_check_target+0x22c/0x7d0
+[  127.008052]  ? xt_target_seq_next+0x30/0x30
+[  127.012352]  ? save_stack+0xa3/0xd0
+[  127.015956]  ? save_stack+0x43/0xd0
+[  127.019556]  ? kasan_slab_free+0x71/0xc0
+[  127.023587]  ? kfree+0xd6/0x260
+[  127.026844]  ? mutex_unlock+0xd/0x10
+[  127.030530]  ? xt_find_target+0x17b/0x1e0
+[  127.034664]  find_check_entry.isra.8+0x8c8/0xcb0
+[  127.039411]  ? ipt_do_table+0x1950/0x1950
+[  127.043545]  ? trace_hardirqs_off+0xd/0x10
+[  127.047752]  ? quarantine_put+0xeb/0x190
+[  127.051785]  ? kfree+0xf0/0x260
+[  127.055042]  ? trace_hardirqs_on+0xd/0x10
+[  127.059165]  translate_table+0xed1/0x1610
+[  127.063300]  ? alloc_counters.isra.11+0x7d0/0x7d0
+[  127.068118]  ? kasan_check_write+0x14/0x20
+[  127.072327]  ? _copy_from_user+0x99/0x110
+[  127.076537]  do_ipt_set_ctl+0x370/0x5f0
+[  127.080488]  ? translate_compat_table+0x1b90/0x1b90
+[  127.085496]  ? mutex_unlock+0xd/0x10
+[  127.089181]  ? nf_sockopt_find.constprop.0+0x1a7/0x220
+[  127.094438]  nf_setsockopt+0x67/0xc0
+[  127.098128]  ip_setsockopt+0x97/0xa0
+[  127.101826]  sctp_setsockopt+0x2b6/0x61d0
+[  127.105950]  ? sctp_setsockopt_paddr_thresholds+0x550/0x550
+[  127.111647]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[  127.116814]  ? lru_cache_add+0x1c7/0x3a0
+[  127.120858]  ? mem_cgroup_css_offline+0x510/0x510
+[  127.125685]  ? check_noncircular+0x20/0x20
+[  127.129892]  ? __mem_cgroup_threshold+0x8f0/0x8f0
+[  127.134710]  ? mark_held_locks+0xaf/0x100
+[  127.138835]  ? find_held_lock+0x35/0x1d0
+[  127.142878]  ? check_noncircular+0x20/0x20
+[  127.147086]  ? lock_downgrade+0x980/0x980
+[  127.151207]  ? check_noncircular+0x20/0x20
+[  127.155424]  ? lock_release+0xa40/0xa40
+[  127.159388]  ? find_held_lock+0x35/0x1d0
+[  127.163434]  ? avc_has_perm+0x35e/0x680
+[  127.167382]  ? lock_downgrade+0x980/0x980
+[  127.171506]  ? lock_release+0xa40/0xa40
+[  127.175451]  ? lock_downgrade+0x980/0x980
+[  127.179583]  ? __pmd_alloc+0x4e0/0x4e0
+[  127.183446]  ? lock_release+0xa40/0xa40
+[  127.187395]  ? __lock_is_held+0xb6/0x140
+[  127.191436]  ? avc_has_perm+0x43e/0x680
+[  127.195387]  ? avc_has_perm_noaudit+0x520/0x520
+[  127.200036]  ? iterate_fd+0x3f0/0x3f0
+[  127.203895]  ? lock_downgrade+0x980/0x980
+[  127.208026]  ? handle_mm_fault+0x476/0x930
+[  127.212229]  ? down_read_trylock+0xdb/0x170
+[  127.216523]  ? __handle_mm_fault+0x3ce0/0x3ce0
+[  127.221073]  ? vmacache_find+0x5f/0x280
+[  127.225023]  ? sock_has_perm+0x2a4/0x420
+[  127.229059]  ? selinux_secmark_relabel_packet+0xc0/0xc0
+[  127.234396]  ? __do_page_fault+0x3d6/0xc90
+[  127.238609]  ? selinux_netlbl_socket_setsockopt+0x10c/0x460
+[  127.244291]  ? selinux_netlbl_sock_rcv_skb+0x730/0x730
+[  127.249563]  sock_common_setsockopt+0x95/0xd0
+[  127.254034]  SyS_setsockopt+0x189/0x360
+[  127.257985]  ? SyS_recv+0x40/0x40
+[  127.261419]  ? entry_SYSCALL_64_fastpath+0x5/0xa0
+[  127.266235]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  127.271224]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  127.275957]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[  127.280685] RIP: 0033:0x44afa9
+[  127.283845] RSP: 002b:00007f43f70edce8 EFLAGS: 00000246 ORIG_RAX: 0000000000000036
+[  127.291525] RAX: ffffffffffffffda RBX: 00000000006e0c3c RCX: 000000000044afa9
+[  127.298766] RDX: 0000000000000040 RSI: 0000000000000000 RDI: 0000000000000004
+[  127.306007] RBP: 00000000006e0c38 R08: 0000000000000348 R09: 0000000000000000
+[  127.313246] R10: 0000000020013c90 R11: 0000000000000246 R12: 0000000000000000
+[  127.320488] R13: 00007ffe194fe84f R14: 00007f43f70ee9c0 R15: 0000000000000005
+[  127.328274] Dumping ftrace buffer:
+[  127.331883]    (ftrace buffer empty)
+[  127.335568] Kernel Offset: disabled
+[  127.339172] Rebooting in 86400 seconds..

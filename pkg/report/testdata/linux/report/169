@@ -1,0 +1,87 @@
+TITLE: WARNING: bad usercopy in put_cmsg
+
+[   54.568476] ------------[ cut here ]------------
+[   54.573431] Bad or missing usercopy whitelist? Kernel memory exposure attempt detected from SLAB object 'skbuff_head_cache' (offset 64, size 16)!
+[   54.586790] WARNING: CPU: 1 PID: 6747 at mm/usercopy.c:81 usercopy_warn+0xdb/0x100
+[   54.594511] Kernel panic - not syncing: panic_on_warn set ...
+[   54.594511] 
+[   54.601905] CPU: 1 PID: 6747 Comm: syz-executor3 Not tainted 4.15.0+ #296
+[   54.608826] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   54.618165] Call Trace:
+[   54.620739]  dump_stack+0x194/0x257
+[   54.624347]  ? arch_local_irq_restore+0x53/0x53
+[   54.628999]  ? vsnprintf+0x1ed/0x1900
+[   54.632789]  panic+0x1e4/0x41c
+[   54.636405]  ? refcount_error_report+0x214/0x214
+[   54.641143]  ? show_regs_print_info+0x18/0x18
+[   54.645626]  ? __warn+0x1c1/0x200
+[   54.649066]  ? usercopy_warn+0xdb/0x100
+[   54.653029]  __warn+0x1dc/0x200
+[   54.656294]  ? usercopy_warn+0xdb/0x100
+[   54.660263]  report_bug+0x211/0x2d0
+[   54.663882]  fixup_bug.part.11+0x37/0x80
+[   54.667927]  do_error_trap+0x2d7/0x3e0
+[   54.671793]  ? vprintk_default+0x28/0x30
+[   54.675834]  ? math_error+0x400/0x400
+[   54.679612]  ? printk+0xaa/0xca
+[   54.682871]  ? show_regs_print_info+0x18/0x18
+[   54.687353]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   54.692180]  do_invalid_op+0x1b/0x20
+[   54.695873]  invalid_op+0x22/0x40
+[   54.699305] RIP: 0010:usercopy_warn+0xdb/0x100
+[   54.703862] RSP: 0018:ffff8801d829f6e8 EFLAGS: 00010282
+[   54.709201] RAX: dffffc0000000008 RBX: ffffffff86800b47 RCX: ffffffff815a57ae
+[   54.716446] RDX: 0000000000005d41 RSI: ffffc90003dca000 RDI: 1ffff1003b053e62
+[   54.723691] RBP: ffff8801d829f740 R08: 0000000000000000 R09: 0000000000000000
+[   54.730938] R10: 00000000000001a6 R11: 0000000000000000 R12: ffffffff86402580
+[   54.738184] R13: ffffffff85f2d440 R14: 0000000000000040 R15: 0000000000000010
+[   54.745448]  ? vprintk_func+0x5e/0xc0
+[   54.749236]  ? usercopy_warn+0xdb/0x100
+[   54.753199]  __check_heap_object+0x89/0xc0
+[   54.757410]  __check_object_size+0x272/0x530
+[   54.761800]  ? usercopy_abort+0xd0/0xd0
+[   54.765765]  ? copy_user_generic_unrolled+0x89/0xc0
+[   54.770764]  ? _copy_to_user+0xa2/0xc0
+[   54.774634]  put_cmsg+0x233/0x3f0
+[   54.778071]  ? __scm_send+0x11a0/0x11a0
+[   54.782029]  ? trace_hardirqs_on+0xd/0x10
+[   54.786161]  ? sock_dequeue_err_skb+0x2b1/0x420
+[   54.790817]  sock_recv_errqueue+0x200/0x3e0
+[   54.795116]  ? rw_copy_check_uvector+0x1be/0x280
+[   54.799867]  packet_recvmsg+0xb2e/0x17a0
+[   54.803915]  ? packet_getname_spkt+0x2b0/0x2b0
+[   54.808486]  ? copy_msghdr_from_user+0x3a6/0x590
+[   54.813230]  ? selinux_socket_recvmsg+0x36/0x40
+[   54.817876]  ? security_socket_recvmsg+0x91/0xc0
+[   54.822614]  ? packet_getname_spkt+0x2b0/0x2b0
+[   54.827175]  sock_recvmsg+0xc9/0x110
+[   54.830870]  ? __sock_recv_wifi_status+0x210/0x210
+[   54.835779]  ___sys_recvmsg+0x2a4/0x640
+[   54.839739]  ? ___sys_sendmsg+0x8b0/0x8b0
+[   54.843866]  ? sock_sendmsg+0x4f/0x110
+[   54.847738]  ? sock_sendmsg+0x110/0x110
+[   54.851695]  ? __fget_light+0x297/0x380
+[   54.855651]  ? fget_raw+0x20/0x20
+[   54.859091]  ? schedule+0xf5/0x430
+[   54.862611]  ? __schedule+0x2060/0x2060
+[   54.866558]  ? __vfs_write+0xf7/0x970
+[   54.870339]  ? kernel_read+0x120/0x120
+[   54.874202]  ? bpf_fd_pass+0x280/0x280
+[   54.878073]  ? __fdget+0x18/0x20
+[   54.881423]  __sys_recvmsg+0xe2/0x210
+[   54.885198]  ? __sys_recvmsg+0xe2/0x210
+[   54.889156]  ? SyS_sendmmsg+0x60/0x60
+[   54.892963]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   54.897964]  SyS_recvmsg+0x2d/0x50
+[   54.901487]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   54.906235] RIP: 0033:0x453299
+[   54.909402] RSP: 002b:00007f0d00020c58 EFLAGS: 00000212 ORIG_RAX: 000000000000002f
+[   54.917087] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000453299
+[   54.924331] RDX: 0000000000002000 RSI: 0000000020006fc8 RDI: 0000000000000013
+[   54.931577] RBP: 0000000000000654 R08: 0000000000000000 R09: 0000000000000000
+[   54.938825] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f8880
+[   54.946070] R13: 00000000ffffffff R14: 00007f0d000216d4 R15: 0000000000000000
+[   54.954066] Dumping ftrace buffer:
+[   54.957699]    (ftrace buffer empty)
+[   54.961386] Kernel Offset: disabled
+[   54.964991] Rebooting in 86400 seconds..

@@ -1,6 +1,7 @@
-TITLE: unreferenced object
+TITLE: BUG: memory leak
 CORRUPTED: Y
 
-[0.0] unreferenced object
-[0.0]  backtrace:
-[0.0] 
+2018/01/09 14:28:48 BUG: memory leak
+unreferenced object
+ backtrace:
+

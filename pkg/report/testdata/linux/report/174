@@ -1,0 +1,72 @@
+TITLE: BUG: unable to handle kernel NULL pointer dereference in rtnl_dump_ifinfo
+
+[  218.951194] BUG: unable to handle kernel NULL pointer dereference at 0000000000000010
+[  218.959174] IP: strlen+0x0/0x30
+[  218.962422] PGD 1fa2a3067 P4D 1fa2a3067 PUD 2156db067 PMD 0 
+[  218.968196] Oops: 0000 [#1] SMP
+[  218.971442] Dumping ftrace buffer:
+[  218.974947]    (ftrace buffer empty)
+[  218.978622] Modules linked in:
+[  218.981784] CPU: 0 PID: 25068 Comm: syz-executor5 Not tainted 4.15.0-rc3-next-20171214+ #67
+[  218.990234] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  218.999558] RIP: 0010:strlen+0x0/0x30
+[  219.003321] RSP: 0018:ffffc90000f63728 EFLAGS: 00010202
+[  219.008648] RAX: 0000000000010000 RBX: ffff880215647500 RCX: ffffffff820f1e86
+[  219.015882] RDX: 0000000000003b6e RSI: ffffc90004536000 RDI: 0000000000000010
+[  219.023120] RBP: ffffc90000f637a8 R08: 0000000000000000 R09: ffff88020d91707d
+[  219.030354] R10: ffffc90000f636b8 R11: 0000000000000002 R12: ffff8801fba87000
+[  219.037590] R13: 0000000000000010 R14: 0000000000000000 R15: ffff88020d917000
+[  219.044829] FS:  00007f7abdffd700(0000) GS:ffff88021fc00000(0000) knlGS:0000000000000000
+[  219.053022] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[  219.058867] CR2: 0000000000000010 CR3: 000000020f0fe005 CR4: 00000000001606f0
+[  219.066108] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[  219.073343] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000600
+[  219.080574] Call Trace:
+[  219.083128]  ? rtnl_fill_ifinfo+0x476/0x15b0
+[  219.087506]  rtnl_dump_ifinfo+0x37c/0x570
+[  219.091638]  netlink_dump+0x14e/0x360
+[  219.095405]  __netlink_dump_start+0x1bb/0x210
+[  219.099863]  rtnetlink_rcv_msg+0x44f/0x5d0
+[  219.104061]  ? rtnl_getlink+0x2d0/0x2d0
+[  219.107998]  ? rtnl_getlink+0x2d0/0x2d0
+[  219.111940]  ? validate_linkmsg+0x470/0x470
+[  219.116227]  netlink_rcv_skb+0x92/0x160
+[  219.120167]  rtnetlink_rcv+0x1c/0x20
+[  219.123843]  netlink_unicast+0x1d4/0x290
+[  219.127877]  netlink_sendmsg+0x345/0x470
+[  219.131915]  sock_sendmsg+0x51/0x70
+[  219.135507]  sock_write_iter+0xa4/0x100
+[  219.139451]  do_iter_readv_writev+0x17d/0x1f0
+[  219.143915]  do_iter_write+0xbc/0x210
+[  219.147681]  vfs_writev+0xa1/0x120
+[  219.151188]  ? __fget+0x160/0x290
+[  219.154606]  ? finish_task_switch+0x60/0x210
+[  219.158980]  do_writev+0x5e/0x100
+[  219.162395]  ? do_writev+0x5e/0x100
+[  219.165987]  SyS_writev+0x27/0x30
+[  219.169408]  entry_SYSCALL_64_fastpath+0x1f/0x96
+[  219.174125] RIP: 0033:0x452a09
+[  219.177281] RSP: 002b:00007f7abdffcc58 EFLAGS: 00000212 ORIG_RAX: 0000000000000014
+[  219.184953] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 0000000000452a09
+[  219.192187] RDX: 0000000000000001 RSI: 00000000206f6000 RDI: 0000000000000013
+[  219.199422] RBP: 000000000000056f R08: 0000000000000000 R09: 0000000000000000
+[  219.206655] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f5308
+[  219.213892] R13: 00000000ffffffff R14: 00007f7abdffd6d4 R15: 0000000000000000
+[  219.221131] Code: 89 f8 48 89 fa 48 89 e5 74 09 48 83 c2 01 80 3a 00 75 f7 48 83 c6 01 0f b6 4e ff 48 83 c2 01 84 c9 88 4a ff 75 ed 5d c3 0f 1f 00 <80> 3f 00 55 48 89 e5 74 14 48 89 f8 48 83 c7 01 80 3f 00 75 f7 
+2017/12/19 12:31:44 executing program 7:
+mmap(&(0x7f0000000000/0xfff000)=nil, 0xfff000, 0x3, 0x32, 0xffffffffffffffff, 0x0)
+r0 = socket(0x40000000015, 0x5, 0x3)
+getgid()
+bind$inet(r0, &(0x7f0000004000-0x10)={0x2, 0x0, @loopback=0x7f000001, [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]}, 0x10)
+sendto$inet(r0, &(0x7f00003da000)="b4ceb8df5437ccd2e12038967c3763260b229b5c4833a5589d3330709b2d4540b8b87b1a9c25b16400aec83e5ba56a18d5913094de50983d474f6ee0c59f13762e0efb16f74a2b83be6c8a31702f77adadc08eeaeaac8cfd0fee2d313170f7a64bfae673a0defab0634dd714303efa00eddb01b7748f6f5b", 0x78, 0x800, &(0x7f0000003000-0x10)={0x2, 0x0, @multicast1=0xe0000001, [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]}, 0x10)
+bind$inet(r0, &(0x7f0000000000)={0x2, 0x0, @multicast1=0xe0000001, [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]}, 0x10)
+r1 = syz_open_dev$vcsa(&(0x7f0000009000-0xb)='/dev/vcsa#\x00', 0x4, 0x200000)
+ioctl$SNDRV_TIMER_IOCTL_PARAMS(r1, 0x40505412, &(0x7f000042f000-0x50)={0x4, 0x6, 0x4, 0x0, 0xd, [0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]})
+[  219.240181] RIP: strlen+0x0/0x30 RSP: ffffc90000f63728
+[  219.245420] CR2: 0000000000000010
+[  219.248925] ---[ end trace 72499b0f3e5056d0 ]---
+[  219.253970] Kernel panic - not syncing: Fatal exception
+[  219.259755] Dumping ftrace buffer:
+[  219.263263]    (ftrace buffer empty)
+[  219.266936] Kernel Offset: disabled
+[  219.270524] Rebooting in 86400 seconds..

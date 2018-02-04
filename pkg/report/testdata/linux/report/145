@@ -1,5 +1,4 @@
-# TODO: this must be "INFO: rcu detected stall in __xfrm_decode_session"
-TITLE: INFO: rcu detected stall in do_softirq
+TITLE: INFO: rcu detected stall in __xfrm_decode_session
 
 [  323.830017] INFO: rcu_sched detected stalls on CPUs/tasks:
 [  323.835676] 	(detected by 0, t=125007 jiffies, g=66299, c=66298, q=40)
@@ -68,6 +67,7 @@ TITLE: INFO: rcu detected stall in do_softirq
 [  324.126371]  ? do_timer+0x50/0x50
 [  324.129800]  ? do_raw_spin_trylock+0x190/0x190
 [  324.134365]  hrtimer_interrupt+0x1c2/0x5e0
+[  324.172031]  ? apic_timer_interrupt+0xa9/0xb0
 [  324.138588]  smp_apic_timer_interrupt+0x14a/0x700
 [  324.143401]  ? smp_call_function_single_interrupt+0x640/0x640
 [  324.149252]  ? smp_call_function_single_interrupt+0x640/0x640

@@ -1,5 +1,4 @@
-TITLE: BUG: using __this_cpu_read() in preemptible code
-CORRUPTED: Y
+TITLE: BUG: using __this_cpu_read() in preemptible code in ipcomp_init_state
 
 [   45.818290] BUG: using __this_cpu_read() in preemptible [00000000] code: syz-executor7/6729
 [   45.826891] caller is __this_cpu_preempt_check+0x1c/0x20

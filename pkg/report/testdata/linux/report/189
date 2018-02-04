@@ -1,0 +1,168 @@
+# Note: 189-190 have the same root cause.
+TITLE: possible deadlock in vcs_read
+
+[   75.037355] ======================================================
+[   75.037357] WARNING: possible circular locking dependency detected
+[   75.037363] 4.15.0-rc2+ #216 Not tainted
+[   75.037365] ------------------------------------------------------
+[   75.037369] syz-executor7/8848 is trying to acquire lock:
+[   75.037371]  (console_lock){+.+.}, at: [<000000001c8cd30e>] vcs_read+0x129/0xae0
+[   75.037394] 
+[   75.037394] but task is already holding lock:
+[   75.037395]  (&pipe->mutex/1){+.+.}, at: [<00000000dd7fc330>] pipe_lock+0x56/0x70
+[   75.037414] 
+[   75.037414] which lock already depends on the new lock.
+[   75.037414] 
+[   75.037416] 
+[   75.037416] the existing dependency chain (in reverse order) is:
+[   75.037418] 
+[   75.037418] -> #3 (&pipe->mutex/1){+.+.}:
+[   75.037437]        lock_acquire+0x1d5/0x580
+[   75.037447]        __mutex_lock+0x16f/0x1a80
+[   75.037457]        mutex_lock_nested+0x16/0x20
+[   75.037463]        pipe_lock+0x56/0x70
+[   75.037473]        iter_file_splice_write+0x264/0xf30
+[   75.037480]        SyS_splice+0x7d5/0x1630
+[   75.037487]        entry_SYSCALL_64_fastpath+0x1f/0x96
+[   75.037489] 
+[   75.037489] -> #2 (sb_writers){.+.+}:
+[   75.037502]        dput.part.23+0x492/0x830
+[   75.037508]        dput+0x1f/0x30
+[   75.037521]        done_path_create+0xad/0x110
+[   75.037532]        handle_create+0x196/0x760
+[   75.037542]        devtmpfsd+0x3b4/0x4b0
+[   75.037544] 
+[   75.037544] -> #1 ((completion)&req.done){+.+.}:
+[   75.037559]        lock_acquire+0x1d5/0x580
+[   75.037569]        wait_for_completion+0xcb/0x7b0
+[   75.037580]        devtmpfs_create_node+0x32b/0x4a0
+[   75.037589]        device_add+0x120f/0x1640
+[   75.037597]        device_create_groups_vargs+0x1f3/0x250
+[   75.037605]        device_create+0xda/0x110
+[   75.037612]        vcs_make_sysfs+0x35/0x60
+[   75.037621]        vc_allocate+0x4b7/0x6b0
+[   75.037630]        con_install+0x52/0x440
+[   75.037637]        tty_init_dev+0xf6/0x4a0
+[   75.037651]        tty_open+0x608/0xab0
+[   75.037662]        chrdev_open+0x257/0x730
+[   75.037673]        do_dentry_open+0x682/0xd70
+[   75.037682]        vfs_open+0x107/0x230
+[   75.037690]        path_openat+0x1157/0x3530
+[   75.037700]        do_filp_open+0x25b/0x3b0
+[   75.037708]        do_sys_open+0x502/0x6d0
+[   75.037716]        SyS_open+0x2d/0x40
+[   75.037724]        entry_SYSCALL_64_fastpath+0x1f/0x96
+[   75.037726] 
+[   75.037726] -> #0 (console_lock){+.+.}:
+[   75.037739]        __lock_acquire+0x3498/0x47f0
+[   75.037746]        lock_acquire+0x1d5/0x580
+[   75.037754]        console_lock+0x4b/0x80
+[   75.037760]        vcs_read+0x129/0xae0
+[   75.037768]        do_iter_read+0x3db/0x5b0
+[   75.037773]        vfs_readv+0x121/0x1c0
+[   75.037779]        default_file_splice_read+0x508/0xae0
+[   75.037784]        do_splice_to+0x110/0x170
+[   75.037790]        SyS_splice+0x11a8/0x1630
+[   75.037796]        entry_SYSCALL_64_fastpath+0x1f/0x96
+[   75.037798] 
+[   75.037798] other info that might help us debug this:
+[   75.037798] 
+[   75.037800] Chain exists of:
+[   75.037800]   console_lock --> sb_writers --> &pipe->mutex/1
+[   75.037800] 
+[   75.037809]  Possible unsafe locking scenario:
+[   75.037809] 
+[   75.037811]        CPU0                    CPU1
+[   75.037812]        ----                    ----
+[   75.037813]   lock(&pipe->mutex/1);
+[   75.037818]                                lock(sb_writers);
+[   75.037822]                                lock(&pipe->mutex/1);
+[   75.037826]   lock(console_lock);
+[   75.037829] 
+[   75.037829]  *** DEADLOCK ***
+[   75.037829] 
+[   75.037832] 1 lock held by syz-executor7/8848:
+[   75.037833]  #0:  (&pipe->mutex/1){+.+.}, at: [<00000000dd7fc330>] pipe_lock+0x56/0x70
+[   75.037843] 
+[   75.037843] stack backtrace:
+[   75.037850] CPU: 0 PID: 8848 Comm: syz-executor7 Not tainted 4.15.0-rc2+ #216
+[   75.037853] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   75.037855] Call Trace:
+[   75.037864]  dump_stack+0x194/0x257
+[   75.037871]  ? arch_local_irq_restore+0x53/0x53
+[   75.037883]  print_circular_bug+0x42d/0x610
+[   75.037892]  ? save_stack_trace+0x1a/0x20
+[   75.037901]  check_prev_add+0x666/0x15f0
+[   75.037908]  ? copy_trace+0x150/0x150
+[   75.037916]  ? check_usage+0xb60/0xb60
+[   75.037922]  ? __save_stack_trace+0x61/0xd0
+[   75.037933]  ? save_stack_trace+0x1a/0x20
+[   75.037941]  __lock_acquire+0x3498/0x47f0
+[   75.037948]  ? __lock_acquire+0x3498/0x47f0
+[   75.037963]  ? debug_check_no_locks_freed+0x3d0/0x3d0
+[   75.037970]  ? check_noncircular+0x20/0x20
+[   75.037977]  ? perf_trace_lock+0xd6/0x900
+[   75.037983]  ? __lock_is_held+0xbc/0x140
+[   75.037992]  ? trace_event_raw_event_lock+0x340/0x340
+[   75.038000]  ? check_noncircular+0x20/0x20
+[   75.038007]  ? __lock_is_held+0xbc/0x140
+[   75.038017]  ? check_noncircular+0x20/0x20
+[   75.038025]  ? rcu_read_lock_sched_held+0x108/0x120
+[   75.038033]  ? find_held_lock+0x39/0x1d0
+[   75.038042]  ? print_usage_bug+0x3f0/0x3f0
+[   75.038050]  ? lock_downgrade+0x980/0x980
+[   75.038060]  lock_acquire+0x1d5/0x580
+[   75.038066]  ? vcs_read+0x129/0xae0
+[   75.038073]  ? lock_release+0xda0/0xda0
+[   75.038080]  ? lock_release+0xda0/0xda0
+[   75.038086]  ? mark_held_locks+0xb2/0x100
+[   75.038093]  ? _raw_spin_unlock_irqrestore+0x31/0xba
+[   75.038101]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   75.038107]  ? trace_hardirqs_on+0xd/0x10
+[   75.038116]  console_lock+0x4b/0x80
+[   75.038121]  ? vcs_read+0x129/0xae0
+[   75.038126]  vcs_read+0x129/0xae0
+[   75.038136]  ? fsnotify_first_mark+0x2b0/0x2b0
+[   75.038145]  ? selinux_file_permission+0x82/0x460
+[   75.038151]  ? vcs_poll+0x130/0x130
+[   75.038157]  ? security_file_permission+0x89/0x1f0
+[   75.038165]  ? rw_verify_area+0xe5/0x2b0
+[   75.038174]  do_iter_read+0x3db/0x5b0
+[   75.038182]  ? dup_iter+0x260/0x260
+[   75.038192]  vfs_readv+0x121/0x1c0
+[   75.038200]  ? compat_rw_copy_check_uvector+0x2e0/0x2e0
+[   75.038206]  ? lock_acquire+0x1d5/0x580
+[   75.038211]  ? pipe_lock+0x56/0x70
+[   75.038219]  ? lock_release+0xda0/0xda0
+[   75.038227]  ? trace_event_raw_event_sched_switch+0x800/0x800
+[   75.038235]  ? rcu_note_context_switch+0x710/0x710
+[   75.038242]  ? __might_sleep+0x95/0x190
+[   75.038247]  ? pipe_lock+0x56/0x70
+[   75.038256]  ? __mutex_lock+0x16f/0x1a80
+[   75.038260]  ? pipe_lock+0x56/0x70
+[   75.038269]  default_file_splice_read+0x508/0xae0
+[   75.038276]  ? default_file_splice_read+0x508/0xae0
+[   75.038287]  ? do_splice_direct+0x3d0/0x3d0
+[   75.038293]  ? __lock_is_held+0xbc/0x140
+[   75.038306]  ? __lock_is_held+0xbc/0x140
+[   75.038318]  ? _raw_spin_unlock+0x22/0x30
+[   75.038325]  ? fsnotify+0x7b3/0x1140
+[   75.038334]  ? fsnotify_first_mark+0x2b0/0x2b0
+[   75.038343]  ? avc_policy_seqno+0x9/0x20
+[   75.038348]  ? selinux_file_permission+0x82/0x460
+[   75.038356]  ? security_file_permission+0x89/0x1f0
+[   75.038364]  ? do_splice_direct+0x3d0/0x3d0
+[   75.038370]  do_splice_to+0x110/0x170
+[   75.038375]  ? do_splice_to+0x110/0x170
+[   75.038383]  SyS_splice+0x11a8/0x1630
+[   75.038395]  ? compat_SyS_vmsplice+0x250/0x250
+[   75.038400]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   75.038410]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   75.038419]  entry_SYSCALL_64_fastpath+0x1f/0x96
+[   75.038424] RIP: 0033:0x452a39
+[   75.038428] RSP: 002b:00007f2d70f0ac58 EFLAGS: 00000212 ORIG_RAX: 0000000000000113
+[   75.038434] RAX: ffffffffffffffda RBX: 0000000000758020 RCX: 0000000000452a39
+[   75.038437] RDX: 0000000000000018 RSI: 0000000000000000 RDI: 0000000000000016
+[   75.038441] RBP: 0000000000000307 R08: 0000000000000058 R09: 0000000000000000
+[   75.038444] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f2948
+[   75.038448] R13: 00000000ffffffff R14: 00007f2d70f0b6d4 R15: 0000000000000000
