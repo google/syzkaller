@@ -1,5 +1,5 @@
 # TODO: must be corrupted (report in report).
-TITLE: BUG: unable to handle kernel paging request in print_address_description
+TITLE: BUG: unable to handle kernel paging request in rb_first_postorder
 
 [   85.149573] BUG: unable to handle kernel paging request at ffffffff0001eea6
 [   85.153038] ==================================================================
