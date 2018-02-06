@@ -1,0 +1,40 @@
+TITLE: KASAN: wild-memory-access Read in sg_read
+
+[   67.633749] ==================================================================
+[   67.633767] BUG: KASAN: wild-memory-access in sg_read+0xe5c/0x1440
+[   67.633774] Read of size 4096 at addr ffe70873f7f2b000 by task syz-executor1/13133
+[   67.633775] 
+[   67.633796] CPU: 0 PID: 13133 Comm: syz-executor1 Not tainted 4.9.80-g550c01d #29
+[   67.633801] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   67.633815]  ffff8801b42afa38 ffffffff81d94b69 ffe70873f7f2b000 0000000000001000
+[   67.633827]  0000000000000000 0000000000000000 ffff8801c5ef4340 ffff8801b42afa80
+[   67.633838]  ffffffff8153e49e ffffffff8266a72c 0000000000000282 b11e0ea3aa111a19
+[   67.633841] Call Trace:
+[   67.633851]  [<ffffffff81d94b69>] dump_stack+0xc1/0x128
+[   67.633860]  [<ffffffff8153e49e>] kasan_report+0x15e/0x360
+[   67.633867]  [<ffffffff8266a72c>] ? sg_read+0xe5c/0x1440
+[   67.633875]  [<ffffffff8153cfc7>] check_memory_region+0x137/0x190
+[   67.633882]  [<ffffffff8153d031>] kasan_check_read+0x11/0x20
+[   67.633888]  [<ffffffff8266a72c>] sg_read+0xe5c/0x1440
+[   67.633896]  [<ffffffff826698d0>] ? sg_proc_seq_show_debug+0xd90/0xd90
+[   67.633902]  [<ffffffff81644640>] ? fsnotify+0xf30/0xf30
+[   67.633910]  [<ffffffff81bdc219>] ? avc_policy_seqno+0x9/0x20
+[   67.633919]  [<ffffffff8156cc21>] do_loop_readv_writev.part.17+0x141/0x1e0
+[   67.633926]  [<ffffffff81bd32d9>] ? security_file_permission+0x89/0x1e0
+[   67.633933]  [<ffffffff826698d0>] ? sg_proc_seq_show_debug+0xd90/0xd90
+[   67.633940]  [<ffffffff826698d0>] ? sg_proc_seq_show_debug+0xd90/0xd90
+[   67.633947]  [<ffffffff81570a90>] do_readv_writev+0x520/0x750
+[   67.633954]  [<ffffffff81570570>] ? vfs_write+0x530/0x530
+[   67.633962]  [<ffffffff8136b494>] ? kcov_ioctl+0x24/0x1c0
+[   67.633972]  [<ffffffff81dfbfab>] ? check_preemption_disabled+0x3b/0x200
+[   67.633979]  [<ffffffff815d1581>] ? __fget+0x201/0x3a0
+[   67.633986]  [<ffffffff815d15a8>] ? __fget+0x228/0x3a0
+[   67.633992]  [<ffffffff815d13c7>] ? __fget+0x47/0x3a0
+[   67.634000]  [<ffffffff81570d44>] vfs_readv+0x84/0xc0
+[   67.634007]  [<ffffffff81570e66>] do_readv+0xe6/0x250
+[   67.634014]  [<ffffffff81570d80>] ? vfs_readv+0xc0/0xc0
+[   67.634022]  [<ffffffff838b344a>] ? entry_SYSCALL_64_fastpath+0x5/0xe8
+[   67.634032]  [<ffffffff8123b64b>] ? trace_hardirqs_on_caller+0x38b/0x590
+[   67.634040]  [<ffffffff81574357>] SyS_readv+0x27/0x30
+[   67.634047]  [<ffffffff838b346e>] entry_SYSCALL_64_fastpath+0x29/0xe8
+[   67.634050] ==================================================================

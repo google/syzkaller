@@ -185,6 +185,8 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 		format = f
 	}
 	if len(desc) == 0 {
+		// If we are here and matchedTitle is set, it means that we've matched
+		// a title of an oops but not full report regexp or stack trace.
 		corrupted = matchedTitle
 		pos := bytes.Index(output, oops.header)
 		if pos == -1 {
@@ -210,6 +212,8 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 }
 
 type stackParams struct {
+	// stackStartRes matches start of stack traces.
+	stackStartRes []*regexp.Regexp
 	// frameRes match different formats of lines containing kernel frames (capture function name).
 	frameRes []*regexp.Regexp
 	// skipPatterns match functions that must be unconditionally skipped.
@@ -224,7 +228,7 @@ func startReportPrefix(output []byte, prefixes []string) []byte {
 		re := regexp.MustCompile(prefix + ".*\\n")
 		match := re.FindSubmatchIndex(output)
 		if match != nil {
-			return output[match[1]:]
+			return output[match[0]:]
 		}
 	}
 	return nil
@@ -235,11 +239,21 @@ func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (fra
 	if len(output) == 0 {
 		return
 	}
+	stackTraces := 0
 	skip := append([]string{}, params.skipPatterns...)
 	skip = append(skip, stack.skip...)
 	skipRe := regexp.MustCompile(strings.Join(skip, "|"))
 	for s := bufio.NewScanner(bytes.NewReader(output)); s.Scan(); {
 		ln := s.Bytes()
+		for _, re := range params.stackStartRes {
+			if re.Match(ln) {
+				stackTraces++
+				if stackTraces > 1 {
+					return "", false
+				}
+				break
+			}
+		}
 		var match []int
 		for _, re := range params.frameRes {
 			match = re.FindSubmatchIndex(ln)

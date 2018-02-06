@@ -460,6 +460,7 @@ var linuxStackKeywords = []*regexp.Regexp{
 }
 
 var linuxStackParams = &stackParams{
+	stackStartRes: linuxStackKeywords,
 	frameRes: []*regexp.Regexp{
 		compile("^ +(?:{{PC}} )?{{FUNC}}"),
 		compile("IP: (?:{{PC}} +)?{{FUNC}}"),
@@ -468,8 +469,11 @@ var linuxStackParams = &stackParams{
 	skipPatterns: []string{
 		"__sanitizer",
 		"__asan",
+		"kasan",
 		"check_memory_region",
+		"print_address_description",
 		"panic",
+		"invalid_op",
 		"dump_stack",
 		"warn_slowpath",
 		"debug_object",
@@ -516,7 +520,7 @@ var linuxOopses = []*oops{
 				title: compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) of size (?:[0-9]+)"),
 				fmt:   "KASAN: %[1]v %[3]v in %[4]v",
 				stack: &stackFmt{
-					start: []string{"kasan_report"},
+					start: []string{"Call Trace:"},
 				},
 			},
 			{
@@ -801,7 +805,7 @@ var linuxOopses = []*oops{
 				fmt:   "INFO: rcu detected stall in %[1]v",
 				stack: &stackFmt{
 					start: []string{" apic_timer_interrupt"},
-					skip:  []string{"rcu"},
+					skip:  []string{"apic_timer_interrupt", "rcu"},
 				},
 			},
 			{
@@ -809,7 +813,7 @@ var linuxOopses = []*oops{
 				fmt:   "INFO: rcu detected stall in %[1]v",
 				stack: &stackFmt{
 					start: []string{" apic_timer_interrupt"},
-					skip:  []string{"rcu"},
+					skip:  []string{"apic_timer_interrupt", "rcu"},
 				},
 			},
 			{
