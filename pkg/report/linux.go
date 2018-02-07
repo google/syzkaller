@@ -351,6 +351,22 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 }
 
 func (ctx *linux) extractGuiltyFile(report []byte) string {
+	if linuxRcuStall.Match(report) {
+		// Special case for rcu stalls.
+		// There are too many frames that we want to skip before actual guilty frames,
+		// we would need to blacklist too many files and that would be fragile.
+		// So instead we try to extract guilty file starting from the known
+		// interrupt entry point first.
+		if pos := bytes.Index(report, []byte(" apic_timer_interrupt+0x")); pos != -1 {
+			if file := ctx.extractGuiltyFileImpl(report[pos:]); file != "" {
+				return file
+			}
+		}
+	}
+	return ctx.extractGuiltyFileImpl(report)
+}
+
+func (ctx *linux) extractGuiltyFileImpl(report []byte) string {
 	files := ctx.extractFiles(report)
 nextFile:
 	for _, file := range files {
@@ -472,6 +488,8 @@ var (
 	cpuRe            = regexp.MustCompile(`CPU#[0-9]+`)
 	executorBinRe    = regexp.MustCompile(`syz-executor[0-9]+((/|:)[0-9]+)?`)
 	syzkallerBinRe   = regexp.MustCompile(`syzkaller[0-9]+((/|:)[0-9]+)?`)
+	linuxRcuStall    = compile("INFO: rcu_(?:preempt|sched|bh) (?:self-)?detected(?: expedited)? stall")
+	linuxRipFrame    = compile("IP: (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+)")
 )
 
 var linuxCorruptedTitles = []*regexp.Regexp{
@@ -486,8 +504,6 @@ var linuxStackKeywords = []*regexp.Regexp{
 	// Match 'backtrace:', but exclude 'stack backtrace:'
 	regexp.MustCompile(`[^k] backtrace:`),
 }
-
-var linuxRipFrame = compile("IP: (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+)")
 
 var linuxStackParams = &stackParams{
 	stackStartRes: linuxStackKeywords,
@@ -849,18 +865,7 @@ var linuxOopses = []*oops{
 				fmt:    "inconsistent lock state in %[1]v",
 			},
 			{
-				title: compile("INFO: rcu_(?:preempt|sched|bh) detected(?: expedited)? stall"),
-				fmt:   "INFO: rcu detected stall in %[1]v",
-				stack: &stackFmt{
-					parts: []*regexp.Regexp{
-						linuxRipFrame,
-						parseStackTrace,
-					},
-					skip: []string{"apic_timer_interrupt", "rcu"},
-				},
-			},
-			{
-				title: compile("INFO: rcu_(?:preempt|sched|bh) self-detected stall"),
+				title: linuxRcuStall,
 				fmt:   "INFO: rcu detected stall in %[1]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{

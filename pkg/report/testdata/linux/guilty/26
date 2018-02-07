@@ -1,5 +1,4 @@
-# TODO: this must be attributed to net/xfrm/xfrm_policy.c.
-FILE: kernel/time/tick-sched.c
+FILE: net/xfrm/xfrm_policy.c
 
 Can not set IPV6_FL_F_REFLECT if flowlabel_consistency sysctl is enable
 INFO: rcu_sched detected stalls on CPUs/tasks:
