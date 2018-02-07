@@ -29,31 +29,52 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 			return ""
 		}
 	}
-	reply, err := addTestJob(c, bugID, user, extID, link, patch, repo, branch)
+	bug, bugKey, err := findBugByReportingID(c, bugID)
+	if err != nil {
+		log.Errorf(c, "can't find bug: %v", err)
+		if link != "" {
+			return "" // don't send duplicate error reply
+		}
+		myEmail, _ := email.AddAddrContext(ownEmail(c), "hash")
+		return fmt.Sprintf("can't find the associated bug (do you have %v in To/CC?)", myEmail)
+	}
+	bugReporting, _ := bugReportingByID(bug, bugID)
+	reply, err := addTestJob(c, bug, bugKey, bugReporting, user, extID, link, patch, repo, branch)
 	if err != nil {
 		log.Errorf(c, "test request failed: %v", err)
 		if reply == "" {
 			reply = internalError
 		}
 	}
+	// Update bug CC list in any case.
+	if !stringInList(strings.Split(bugReporting.CC, "|"), user) {
+		tx := func(c context.Context) error {
+			bug := new(Bug)
+			if err := datastore.Get(c, bugKey, bug); err != nil {
+				return err
+			}
+			bugReporting := bugReportingByName(bug, bugReporting.Name)
+			cc := strings.Split(bugReporting.CC, "|")
+			merged := email.MergeEmailLists(cc, []string{user})
+			bugReporting.CC = strings.Join(merged, "|")
+			if _, err := datastore.Put(c, bugKey, bug); err != nil {
+				return err
+			}
+			return nil
+		}
+		if err := datastore.RunInTransaction(c, tx, nil); err != nil {
+			// We've already stored the job, so just log the error.
+			log.Errorf(c, "failed to update bug: %v", err)
+		}
+	}
+	if link != "" {
+		reply = "" // don't send duplicate error reply
+	}
 	return reply
 }
 
-func addTestJob(c context.Context, bugID, user, extID, link, patch, repo, branch string) (string, error) {
-	// We can get 2 emails for the same request: one direct and one from a mailing list.
-	// Filter out such duplicates (for dup we only need link update).
-	if exists, err := updateExistingJob(c, extID, link); err != nil {
-		return internalError, err
-	} else if exists {
-		return "", nil
-	}
-
-	bug, bugKey, err := findBugByReportingID(c, bugID)
-	if err != nil {
-		return "can't find associated bug", err
-	}
-	bugReporting, _ := bugReportingByID(bug, bugID)
-
+func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting *BugReporting,
+	user, extID, link, patch, repo, branch string) (string, error) {
 	crash, crashKey, err := findCrashForBug(c, bug)
 	if err != nil {
 		return "", err
@@ -106,65 +127,48 @@ func addTestJob(c context.Context, bugID, user, extID, link, patch, repo, branch
 		KernelBranch: branch,
 		Patch:        patchID,
 	}
-	jobKey, err := datastore.Put(c, datastore.NewIncompleteKey(c, "Job", bugKey), job)
-	if err != nil {
-		return "", fmt.Errorf("failed to put job: %v", err)
-	}
-	jobID := extJobID(jobKey)
 
-	// Add user to bug reporting CC.
+	deletePatch := false
 	tx := func(c context.Context) error {
-		bug := new(Bug)
-		if err := datastore.Get(c, bugKey, bug); err != nil {
-			return err
+		deletePatch = false
+		// We can get 2 emails for the same request: one direct and one from a mailing list.
+		// Filter out such duplicates (for dup we only need link update).
+		var jobs []*Job
+		keys, err := datastore.NewQuery("Job").
+			Ancestor(bugKey).
+			Filter("ExtID=", extID).
+			GetAll(c, &jobs)
+		if len(jobs) > 1 || err != nil {
+			return fmt.Errorf("failed to query jobs: jobs=%v err=%v", len(jobs), err)
 		}
-		bugReporting := bugReportingByName(bug, bugReporting.Name)
-		cc := strings.Split(bugReporting.CC, "|")
-		if stringInList(cc, user) {
+		if len(jobs) != 0 {
+			// The job is already present, update link.
+			deletePatch = true
+			job, jobKey := jobs[0], keys[0]
+			if job.Link != "" || link == "" {
+				return nil
+			}
+			job.Link = link
+			if _, err := datastore.Put(c, jobKey, job); err != nil {
+				return err
+			}
 			return nil
 		}
-		merged := email.MergeEmailLists(cc, []string{user})
-		bugReporting.CC = strings.Join(merged, "|")
-		if _, err := datastore.Put(c, bugKey, bug); err != nil {
-			return err
+		// Create a new job.
+		jobKey := datastore.NewIncompleteKey(c, "Job", bugKey)
+		if _, err := datastore.Put(c, jobKey, job); err != nil {
+			return fmt.Errorf("failed to put job: %v", err)
 		}
 		return nil
 	}
-	if err := datastore.RunInTransaction(c, tx, nil); err != nil {
-		// We've already stored the job, so just log the error.
-		log.Errorf(c, "job %v: failed to update bug: %v", jobID, err)
+	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true, Attempts: 30})
+	if deletePatch || err != nil {
+		datastore.Delete(c, datastore.NewKey(c, "Patch", "", patchID, nil))
+	}
+	if err != nil {
+		return "", fmt.Errorf("job tx failed: %v", err)
 	}
 	return "", nil
-}
-
-func updateExistingJob(c context.Context, extID, link string) (exists bool, err error) {
-	var jobs []*Job
-	keys, err := datastore.NewQuery("Job").
-		Filter("ExtID=", extID).
-		GetAll(c, &jobs)
-	if len(jobs) > 1 || err != nil {
-		return false, fmt.Errorf("failed to query jobs: jobs=%v err=%v", len(jobs), err)
-	}
-	if len(jobs) == 0 {
-		return false, nil
-	}
-	job, jobKey := jobs[0], keys[0]
-	if job.Link != "" {
-		return true, nil
-	}
-	tx := func(c context.Context) error {
-		job := new(Job)
-		if err := datastore.Get(c, jobKey, job); err != nil {
-			return err
-		}
-		job.Link = link
-		if _, err := datastore.Put(c, jobKey, job); err != nil {
-			return err
-		}
-		return nil
-	}
-	err = datastore.RunInTransaction(c, tx, nil)
-	return true, err
 }
 
 // pollPendingJobs returns the next job to execute for the provided list of managers.
