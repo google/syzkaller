@@ -27,6 +27,7 @@ type linux struct {
 	consoleOutputRe     *regexp.Regexp
 	questionableRe      *regexp.Regexp
 	guiltyFileBlacklist []*regexp.Regexp
+	reportStartIgnores  [][]byte
 	eoi                 []byte
 }
 
@@ -78,6 +79,11 @@ func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symb
 		regexp.MustCompile(`^net/core/skbuff.c`),
 		regexp.MustCompile(`^fs/proc/generic.c`),
 	}
+	// These pattern do _not_ start a new report, i.e. can be in a middle of another report.
+	ctx.reportStartIgnores = [][]byte{
+		[]byte("invalid opcode: 0000"),
+		[]byte("Kernel panic - not syncing: panic_on_warn set"),
+	}
 	return ctx, nil
 }
 
@@ -94,6 +100,8 @@ func (ctx *linux) Parse(output []byte) *Report {
 	var consoleReportPrefix [][]byte
 	var consoleReport []byte
 	textLines := 0
+	firstReportEnd := 0
+	secondReportPos := 0
 	skipText := false
 	for pos := 0; pos < len(output); {
 		next := bytes.IndexByte(output[pos:], '\n')
@@ -102,8 +110,9 @@ func (ctx *linux) Parse(output []byte) *Report {
 		} else {
 			next = len(output)
 		}
+		line := output[pos:next]
 		for _, oops1 := range linuxOopses {
-			match := matchOops(output[pos:next], oops1, ctx.ignores)
+			match := matchOops(line, oops1, ctx.ignores)
 			if match == -1 {
 				continue
 			}
@@ -111,25 +120,36 @@ func (ctx *linux) Parse(output []byte) *Report {
 				oops = oops1
 				rep.StartPos = pos
 				rep.Title = string(output[pos+match : next])
+			} else if secondReportPos == 0 {
+				ignored := false
+				for _, ignore := range ctx.reportStartIgnores {
+					if bytes.Contains(line, ignore) {
+						ignored = true
+						break
+					}
+				}
+				if !ignored {
+					secondReportPos = pos
+				}
 			}
 			rep.EndPos = next
 		}
 		if oops == nil {
-			logReportPrefix = append(logReportPrefix, append([]byte{}, output[pos:next]...))
+			logReportPrefix = append(logReportPrefix, append([]byte{}, line...))
 			if len(logReportPrefix) > 5 {
 				logReportPrefix = logReportPrefix[1:]
 			}
 		}
-		if ctx.consoleOutputRe.Match(output[pos:next]) &&
-			(!ctx.questionableRe.Match(output[pos:next]) ||
-				bytes.Index(output[pos:next], ctx.eoi) != -1) {
-			lineStart := bytes.Index(output[pos:next], []byte("] ")) + pos + 2
+		if ctx.consoleOutputRe.Match(line) &&
+			(!ctx.questionableRe.Match(line) || bytes.Index(line, ctx.eoi) != -1) {
+			lineStart := bytes.Index(line, []byte("] ")) + pos + 2
 			lineEnd := next
 			if lineEnd != 0 && output[lineEnd-1] == '\r' {
 				lineEnd--
 			}
 			if oops == nil {
-				consoleReportPrefix = append(consoleReportPrefix, append([]byte{}, output[lineStart:lineEnd]...))
+				consoleReportPrefix = append(consoleReportPrefix,
+					append([]byte{}, output[lineStart:lineEnd]...))
 				if len(consoleReportPrefix) > 5 {
 					consoleReportPrefix = consoleReportPrefix[1:]
 				}
@@ -139,7 +159,8 @@ func (ctx *linux) Parse(output []byte) *Report {
 				skipLine := skipText
 				if bytes.Contains(ln, []byte("Disabling lock debugging due to kernel taint")) {
 					skipLine = true
-				} else if textLines > 40 && bytes.Contains(ln, []byte("Kernel panic - not syncing")) {
+				} else if textLines > 40 &&
+					bytes.Contains(ln, []byte("Kernel panic - not syncing")) {
 					// If panic_on_warn set, then we frequently have 2 stacks:
 					// one for the actual report (or maybe even more than one),
 					// and then one for panic caused by panic_on_warn. This makes
@@ -155,6 +176,9 @@ func (ctx *linux) Parse(output []byte) *Report {
 				if !skipLine {
 					consoleReport = append(consoleReport, ln...)
 					consoleReport = append(consoleReport, '\n')
+					if secondReportPos == 0 {
+						firstReportEnd = len(consoleReport)
+					}
 				}
 			}
 		}
@@ -163,17 +187,20 @@ func (ctx *linux) Parse(output []byte) *Report {
 	if oops == nil {
 		return nil
 	}
+	if secondReportPos == 0 {
+		secondReportPos = len(output)
+	}
 	var report []byte
 	var reportPrefix [][]byte
 	// Try extracting report from console output only.
-	title, corrupted, format := extractDescription(consoleReport, oops, linuxStackParams)
+	title, corrupted, format := extractDescription(consoleReport[:firstReportEnd], oops, linuxStackParams)
 	if title != "" {
 		// Success.
 		report = consoleReport
 		reportPrefix = consoleReportPrefix
 	} else {
 		// Failure. Try extracting report from the whole log.
-		report = output[rep.StartPos:]
+		report = output[rep.StartPos:secondReportPos]
 		reportPrefix = logReportPrefix
 		title, corrupted, format = extractDescription(report, oops, linuxStackParams)
 		if title == "" {
