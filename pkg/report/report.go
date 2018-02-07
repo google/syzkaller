@@ -93,12 +93,21 @@ type oopsFormat struct {
 }
 
 type stackFmt struct {
-	// If start is empty, starting matching stack trace from the beginning of the report.
-	// Otherwise start matching trace after first start match.
-	start []string
+	// parts describe how guilty stack frame must be extracted from the report.
+	// parts are matched consecutively potentially capturing frames.
+	// parts can be of 3 types:
+	//  - non-capturing regexp, matched against report and advances current position
+	//  - capturing regexp, same as above, but also yields a frame
+	//  - special value parseStackTrace means that a stack trace must be parsed
+	//    starting from current position
+	parts []*regexp.Regexp
+	// If parts2 is present it is tried when parts matching fails.
+	parts2 []*regexp.Regexp
 	// Skip these functions in stack traces (matched as substring).
 	skip []string
 }
+
+var parseStackTrace *regexp.Regexp
 
 func compile(re string) *regexp.Regexp {
 	re = strings.Replace(re, "{{ADDR}}", "0x[0-9a-f]+", -1)
@@ -175,8 +184,8 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 			args = append(args, string(output[match[i]:match[i+1]]))
 		}
 		if f.stack != nil {
-			frame, ok := extractStackFrame(params, f.stack, output[match[0]:])
-			if !ok {
+			frame := extractStackFrame(params, f.stack, output[match[0]:])
+			if frame == "" {
 				continue
 			}
 			args = append(args, frame)
@@ -234,43 +243,66 @@ func startReportPrefix(output []byte, prefixes []string) []byte {
 	return nil
 }
 
-func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (frame string, ok bool) {
-	output = startReportPrefix(output, stack.start)
-	if len(output) == 0 {
-		return
-	}
-	stackTraces := 0
+func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) string {
 	skip := append([]string{}, params.skipPatterns...)
 	skip = append(skip, stack.skip...)
-	skipRe := regexp.MustCompile(strings.Join(skip, "|"))
-	for s := bufio.NewScanner(bytes.NewReader(output)); s.Scan(); {
-		ln := s.Bytes()
-		for _, re := range params.stackStartRes {
-			if re.Match(ln) {
-				stackTraces++
-				if stackTraces > 1 {
-					return "", false
+	var skipRe *regexp.Regexp
+	if len(skip) != 0 {
+		skipRe = regexp.MustCompile(strings.Join(skip, "|"))
+	}
+	frame := extractStackFrameImpl(params, output, skipRe, stack.parts)
+	if frame != "" || len(stack.parts2) == 0 {
+		return frame
+	}
+	return extractStackFrameImpl(params, output, skipRe, stack.parts2)
+}
+
+func extractStackFrameImpl(params *stackParams, output []byte, skipRe *regexp.Regexp,
+	parts []*regexp.Regexp) string {
+	s := bufio.NewScanner(bytes.NewReader(output))
+nextPart:
+	for _, part := range parts {
+		if part == parseStackTrace {
+			for s.Scan() {
+				ln := s.Bytes()
+				for _, re := range params.stackStartRes {
+					if re.Match(ln) {
+						continue nextPart
+					}
+				}
+				var match []int
+				for _, re := range params.frameRes {
+					match = re.FindSubmatchIndex(ln)
+					if match != nil {
+						break
+					}
+				}
+				if match == nil {
+					continue
+				}
+				frame := ln[match[2]:match[3]]
+				if skipRe == nil || !skipRe.Match(frame) {
+					return string(frame)
+				}
+			}
+		} else {
+			for s.Scan() {
+				ln := s.Bytes()
+				match := part.FindSubmatchIndex(ln)
+				if match == nil {
+					continue
+				}
+				if len(match) == 4 && match[2] != -1 {
+					frame := ln[match[2]:match[3]]
+					if skipRe == nil || !skipRe.Match(frame) {
+						return string(frame)
+					}
 				}
 				break
 			}
 		}
-		var match []int
-		for _, re := range params.frameRes {
-			match = re.FindSubmatchIndex(ln)
-			if match != nil {
-				break
-			}
-		}
-		if match == nil {
-			continue
-		}
-		frame = string(ln[match[2]:match[3]])
-		if len(skip) != 0 && skipRe.MatchString(frame) {
-			continue
-		}
-		return frame, true
 	}
-	return "", false
+	return ""
 }
 
 // replace replaces [start:end] in where with what, inplace.

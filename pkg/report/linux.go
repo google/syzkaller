@@ -416,7 +416,8 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) bo
 		return true
 	}
 	// Check if the report contains stack trace.
-	if !format.noStackTrace && !bytes.Contains(report, []byte("Call Trace")) && !bytes.Contains(report, []byte("backtrace")) {
+	if !format.noStackTrace && !bytes.Contains(report, []byte("Call Trace")) &&
+		!bytes.Contains(report, []byte("backtrace")) {
 		return true
 	}
 	// Check for common title corruptions.
@@ -486,12 +487,12 @@ var linuxStackKeywords = []*regexp.Regexp{
 	regexp.MustCompile(`[^k] backtrace:`),
 }
 
+var linuxRipFrame = compile("IP: (?:(?:[0-9]+:)?(?:{{PC}} +){0,2}{{FUNC}}|[0-9]+:0x[0-9a-f]+)")
+
 var linuxStackParams = &stackParams{
 	stackStartRes: linuxStackKeywords,
 	frameRes: []*regexp.Regexp{
 		compile("^ +(?:{{PC}} )?{{FUNC}}"),
-		compile("IP: (?:{{PC}} +)?{{FUNC}}"),
-		compile("IP: [0-9]+:(?:{{PC}} +{{PC}} +)?{{FUNC}}"),
 	},
 	skipPatterns: []string{
 		"__sanitizer",
@@ -532,11 +533,20 @@ var linuxStackParams = &stackParams{
 	},
 }
 
-var linuxWarningStackStart = []string{
-	// In newer kernels WARNING traps and actual stack starts after invalid_op frame,
-	// older kernels does not have that and just print stack.
-	" invalid_op",
-	"Call Trace:",
+func warningStackFmt(skip ...string) *stackFmt {
+	return &stackFmt{
+		// In newer kernels WARNING traps and actual stack starts after invalid_op frame,
+		// older kernels just print stack.
+		parts: []*regexp.Regexp{
+			linuxRipFrame,
+			parseStackTrace,
+		},
+		parts2: []*regexp.Regexp{
+			compile("Call Trace:"),
+			parseStackTrace,
+		},
+		skip: skip,
+	}
 }
 
 var linuxOopses = []*oops{
@@ -547,7 +557,11 @@ var linuxOopses = []*oops{
 				title: compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) of size (?:[0-9]+)"),
 				fmt:   "KASAN: %[1]v %[3]v in %[4]v",
 				stack: &stackFmt{
-					start: []string{"Call Trace:"},
+					parts: []*regexp.Regexp{
+						compile("BUG: KASAN: (?:[a-z\\-]+) in {{FUNC}}"),
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
 				},
 			},
 			{
@@ -566,12 +580,24 @@ var linuxOopses = []*oops{
 			{
 				title: compile("BUG: unable to handle kernel paging request"),
 				fmt:   "BUG: unable to handle kernel paging request in %[1]v",
-				stack: &stackFmt{},
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+				},
 			},
 			{
 				title: compile("BUG: unable to handle kernel NULL pointer dereference"),
 				fmt:   "BUG: unable to handle kernel NULL pointer dereference in %[1]v",
-				stack: &stackFmt{},
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+				},
 			},
 			{
 				// Sometimes with such BUG failures, the second part of the header doesn't get printed
@@ -584,15 +610,21 @@ var linuxOopses = []*oops{
 				title: compile("BUG: spinlock (lockup suspected|already unlocked|recursion|bad magic|wrong owner|wrong CPU)"),
 				fmt:   "BUG: spinlock %[1]v in %[2]v",
 				stack: &stackFmt{
-					start: []string{"Call Trace:"},
-					skip:  []string{"spin_"},
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip: []string{"spin_"},
 				},
 			},
 			{
 				title: compile("BUG: soft lockup"),
 				fmt:   "BUG: soft lockup in %[1]v",
 				stack: &stackFmt{
-					start: []string{"Call Trace:"},
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
 				},
 			},
 			{
@@ -650,8 +682,11 @@ var linuxOopses = []*oops{
 				title: compile("BUG: using __this_cpu_([a-z_]+)\\(\\) in preemptible"),
 				fmt:   "BUG: using __this_cpu_%[1]v() in preemptible code in %[2]v",
 				stack: &stackFmt{
-					start: []string{"Call Trace:"},
-					skip:  []string{"dump_stack", "preemption", "preempt"},
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip: []string{"dump_stack", "preemption", "preempt"},
 				},
 			},
 			{
@@ -663,7 +698,10 @@ var linuxOopses = []*oops{
 				title: compile("BUG: memory leak"),
 				fmt:   "memory leak in %[1]v",
 				stack: &stackFmt{
-					start: []string{"backtrace:"},
+					parts: []*regexp.Regexp{
+						compile("backtrace:"),
+						parseStackTrace,
+					},
 					skip: []string{"kmemleak", "kmalloc", "kmem", "slab",
 						"alloc", "create_object"},
 				},
@@ -682,59 +720,39 @@ var linuxOopses = []*oops{
 			{
 				title: compile("WARNING: .*lib/debugobjects\\.c.* debug_print_object"),
 				fmt:   "WARNING: ODEBUG bug in %[1]v",
-				stack: &stackFmt{
-					start: linuxWarningStackStart,
-					// Skip all users of ODEBUG as well.
-					skip: []string{"debug_", "rcu", "hrtimer_", "timer_",
-						"work_", "percpu_", "kmem_", "slab_", "kfree"},
-				},
+				// Skip all users of ODEBUG as well.
+				stack: warningStackFmt("debug_", "rcu", "hrtimer_", "timer_",
+					"work_", "percpu_", "kmem_", "slab_", "kfree"),
 			},
 			{
 				title: compile("WARNING: .*mm/usercopy\\.c.* usercopy_warn"),
 				fmt:   "WARNING: bad usercopy in %[1]v",
-				stack: &stackFmt{
-					start: linuxWarningStackStart,
-					skip:  []string{"usercopy", "__check"},
-				},
+				stack: warningStackFmt("usercopy", "__check"),
 			},
 			{
 				title: compile("WARNING: .*lib/kobject\\.c.* kobject_"),
 				fmt:   "WARNING: kobject bug in %[1]v",
-				stack: &stackFmt{
-					start: linuxWarningStackStart,
-					skip:  []string{"kobject_"},
-				},
+				stack: warningStackFmt("kobject_"),
 			},
 			{
 				title: compile("WARNING: .*fs/proc/generic\\.c.* proc_register"),
 				fmt:   "WARNING: proc registration bug in %[1]v",
-				stack: &stackFmt{
-					start: linuxWarningStackStart,
-					skip:  []string{"proc_"},
-				},
+				stack: warningStackFmt("proc_"),
 			},
 			{
 				title: compile("WARNING: .*lib/refcount\\.c.* refcount_"),
 				fmt:   "WARNING: refcount bug in %[1]v",
-				stack: &stackFmt{
-					start: linuxWarningStackStart,
-					skip:  []string{"refcount"},
-				},
+				stack: warningStackFmt("refcount"),
 			},
 			{
 				title: compile("WARNING: .*kernel/locking/lockdep\\.c.*lock_"),
 				fmt:   "WARNING: locking bug in %[1]v",
-				stack: &stackFmt{
-					start: linuxWarningStackStart,
-				},
+				stack: warningStackFmt(),
 			},
 			{
 				title: compile("WARNING: .*mm/slab_common\\.c.* kmalloc_slab"),
 				fmt:   "WARNING: kmalloc bug in %[1]v",
-				stack: &stackFmt{
-					start: linuxWarningStackStart,
-					skip:  []string{"kmalloc", "slab"},
-				},
+				stack: warningStackFmt("kmalloc", "slab"),
 			},
 			{
 				title: compile("WARNING: .* at {{SRC}} {{FUNC}}"),
@@ -770,8 +788,11 @@ var linuxOopses = []*oops{
 				report: compile("WARNING: suspicious RCU usage(?:.*\n)+?.*?{{SRC}}"),
 				fmt:    "WARNING: suspicious RCU usage in %[2]v",
 				stack: &stackFmt{
-					start: []string{"Call Trace:"},
-					skip:  []string{"rcu"},
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip: []string{"rcu"},
 				},
 			},
 			{
@@ -831,24 +852,33 @@ var linuxOopses = []*oops{
 				title: compile("INFO: rcu_(?:preempt|sched|bh) detected(?: expedited)? stall"),
 				fmt:   "INFO: rcu detected stall in %[1]v",
 				stack: &stackFmt{
-					start: []string{" apic_timer_interrupt"},
-					skip:  []string{"apic_timer_interrupt", "rcu"},
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+						parseStackTrace,
+					},
+					skip: []string{"apic_timer_interrupt", "rcu"},
 				},
 			},
 			{
 				title: compile("INFO: rcu_(?:preempt|sched|bh) self-detected stall"),
 				fmt:   "INFO: rcu detected stall in %[1]v",
 				stack: &stackFmt{
-					start: []string{" apic_timer_interrupt"},
-					skip:  []string{"apic_timer_interrupt", "rcu"},
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+						parseStackTrace,
+					},
+					skip: []string{"apic_timer_interrupt", "rcu"},
 				},
 			},
 			{
 				title: compile("INFO: trying to register non-static key"),
 				fmt:   "INFO: trying to register non-static key in %[1]v",
 				stack: &stackFmt{
-					start: []string{"Call Trace:"},
-					skip:  []string{"stack", "lock", "IRQ"},
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip: []string{"stack", "lock", "IRQ"},
 				},
 			},
 			{
@@ -856,15 +886,21 @@ var linuxOopses = []*oops{
 				report: compile("INFO: suspicious RCU usage(?:.*\n)+?.*?:{{SRC}}"),
 				fmt:    "INFO: suspicious RCU usage in %[2]v",
 				stack: &stackFmt{
-					start: []string{"Call Trace:"},
-					skip:  []string{"rcu"},
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+					skip: []string{"rcu"},
 				},
 			},
 			{
 				title: compile("INFO: task .* blocked for more than [0-9]+ seconds"),
 				fmt:   "INFO: task hung in %[1]v",
 				stack: &stackFmt{
-					start: []string{"Call Trace:"},
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
 					skip: []string{"sched", "_lock", "completion", "kthread",
 						"wait", "synchronize"},
 				},
@@ -900,7 +936,13 @@ var linuxOopses = []*oops{
 			{
 				title: compile("general protection fault:"),
 				fmt:   "general protection fault in %[1]v",
-				stack: &stackFmt{},
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						linuxRipFrame,
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+				},
 			},
 		},
 		[]*regexp.Regexp{},
@@ -943,12 +985,22 @@ var linuxOopses = []*oops{
 			{
 				title: compile("kernel BUG at mm/usercopy.c"),
 				fmt:   "BUG: bad usercopy in %[1]v",
-				stack: &stackFmt{start: []string{"Call Trace:"}},
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+				},
 			},
 			{
 				title: compile("kernel BUG at lib/list_debug.c"),
 				fmt:   "BUG: corrupted list in %[1]v",
-				stack: &stackFmt{start: []string{"Call Trace:"}},
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+				},
 			},
 		},
 		[]*regexp.Regexp{},
