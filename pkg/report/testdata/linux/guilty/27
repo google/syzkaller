@@ -1,5 +1,4 @@
-# TODO: this must be attributed to sound/core/oss/mulaw.c.
-FILE: kernel/time/tick-sched.c
+FILE: sound/core/oss/mulaw.c
 
 INFO: rcu_sched detected stalls on CPUs/tasks:
         (detected by 0, t=125002 jiffies, g=15654, c=15653, q=133)
