@@ -1,5 +1,4 @@
-# TODO: must be "in ip6t_do_table"
-TITLE: general protection fault in should_fail
+TITLE: general protection fault in ip6t_do_table
 
 [   73.452724] FAULT_INJECTION: forcing a failure.
 [   73.452724] name failslab, interval 1, probability 0, space 0, times 0
