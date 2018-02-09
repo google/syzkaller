@@ -2117,9 +2117,7 @@ static void checkpoint_iptables(struct ipt_table_desc* tables, int num_tables, i
 			}
 			fail("getsockopt(IPT_SO_GET_INFO)");
 		}
-		debug("checkpoint iptable %s/%d: entries=%d hooks=%x size=%d\n",
-		      table->name, family, table->info.num_entries, table->info.valid_hooks,
-		      table->info.size);
+		debug("checkpoint iptable %s/%d: entries=%d hooks=%x size=%d\n", table->name, family, table->info.num_entries, table->info.valid_hooks, table->info.size);
 		if (table->info.size > sizeof(table->replace.entrytable))
 			fail("table size is too large: %u", table->info.size);
 		if (table->info.num_entries > XT_MAX_ENTRIES)
@@ -2204,8 +2202,7 @@ static void checkpoint_arptables(void)
 			}
 			fail("getsockopt(ARPT_SO_GET_INFO)");
 		}
-		debug("checkpoint arptable %s: entries=%d hooks=%x size=%d\n",
-		      table->name, table->info.num_entries, table->info.valid_hooks, table->info.size);
+		debug("checkpoint arptable %s: entries=%d hooks=%x size=%d\n", table->name, table->info.num_entries, table->info.valid_hooks, table->info.size);
 		if (table->info.size > sizeof(table->replace.entrytable))
 			fail("table size is too large: %u", table->info.size);
 		if (table->info.num_entries > XT_MAX_ENTRIES)
