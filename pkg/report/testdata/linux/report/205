@@ -1,0 +1,157 @@
+TITLE: WARNING: proc registration bug in clusterip_tg_check
+
+[   42.189270] ------------[ cut here ]------------
+[   42.190246]  ? lock_acquire+0x1d5/0x580
+[   42.190260]  ? tun_build_skb.isra.50+0x491/0x1810
+[   42.190288]  build_skb+0x6f/0x2a0
+[   42.190300]  ? __build_skb+0x450/0x450
+[   42.190324]  tun_build_skb.isra.50+0x9cb/0x1810
+[   42.194637] proc_dir_entry 'ipt_CLUSTERIP/172.20.7.170' already registered
+[   42.198561]  ? tun_flow_update+0xf70/0xf70
+[   42.198581]  ? print_irqtrace_events+0x270/0x270
+[   42.203412] WARNING: CPU: 0 PID: 6092 at fs/proc/generic.c:330 proc_register+0x2a4/0x370
+[   42.207256]  ? filemap_map_pages+0x919/0x15d0
+[   42.212066] Kernel panic - not syncing: panic_on_warn set ...
+[   42.212066] 
+[   42.215500]  ? lock_downgrade+0x980/0x980
+[   42.264053]  ? unlock_page+0x19f/0x270
+[   42.267955]  ? print_irqtrace_events+0x270/0x270
+[   42.272713]  ? __lock_is_held+0xb6/0x140
+[   42.276766]  ? print_irqtrace_events+0x270/0x270
+[   42.281508]  ? __lock_acquire+0x664/0x3e00
+[   42.285752]  ? print_irqtrace_events+0x270/0x270
+[   42.290546]  ? __lock_acquire+0x664/0x3e00
+[   42.294791]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   42.299984]  ? __lock_acquire+0x664/0x3e00
+[   42.304205]  ? __lock_acquire+0x664/0x3e00
+[   42.308443]  tun_get_user+0x17d0/0x3940
+[   42.312410]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   42.317590]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   42.322791]  ? tun_build_skb.isra.50+0x1810/0x1810
+[   42.327709]  ? check_noncircular+0x20/0x20
+[   42.331944]  ? print_irqtrace_events+0x270/0x270
+[   42.336688]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   42.341872]  ? check_noncircular+0x20/0x20
+[   42.346100]  ? find_held_lock+0x35/0x1d0
+[   42.350161]  ? tun_get+0x1ab/0x2e0
+[   42.353689]  ? lock_downgrade+0x980/0x980
+[   42.357829]  ? lock_release+0xa40/0xa40
+[   42.361793]  ? __lock_is_held+0xb6/0x140
+[   42.365855]  ? tun_get+0x1d4/0x2e0
+[   42.369378]  ? tun_do_read+0x26c0/0x26c0
+[   42.373423]  ? __check_object_size+0x8b/0x530
+[   42.377905]  ? rcu_note_context_switch+0x710/0x710
+[   42.382827]  tun_chr_write_iter+0xb9/0x160
+[   42.387052]  do_iter_readv_writev+0x55c/0x830
+[   42.391540]  ? vfs_dedupe_file_range+0x8f0/0x8f0
+[   42.396296]  ? rw_verify_area+0xe5/0x2b0
+[   42.400349]  do_iter_write+0x154/0x540
+[   42.404227]  ? dup_iter+0x260/0x260
+[   42.407855]  vfs_writev+0x18a/0x340
+[   42.411470]  ? __fget_light+0x297/0x380
+[   42.415431]  ? vfs_iter_write+0xb0/0xb0
+[   42.419394]  ? __mutex_unlock_slowpath+0xe9/0xac0
+[   42.424219]  ? vfs_write+0x374/0x510
+[   42.427940]  ? __fdget_pos+0x130/0x190
+[   42.431811]  ? __fdget_raw+0x20/0x20
+[   42.435520]  do_writev+0xfc/0x2a0
+[   42.438957]  ? do_writev+0xfc/0x2a0
+[   42.442576]  ? vfs_writev+0x340/0x340
+[   42.446360]  ? entry_SYSCALL_64_fastpath+0x5/0xa0
+[   42.451192]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   42.456200]  SyS_writev+0x27/0x30
+[   42.459643]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   42.464380] RIP: 0033:0x453931
+[   42.467552] RSP: 002b:00007f82f857dba0 EFLAGS: 00000293 ORIG_RAX: 0000000000000014
+[   42.475245] RAX: ffffffffffffffda RBX: 00007f82f857da90 RCX: 0000000000453931
+[   42.482500] RDX: 0000000000000001 RSI: 00007f82f857dbf0 RDI: 0000000000000012
+[   42.489752] RBP: 00007f82f857da80 R08: 0000000000000012 R09: 0000000000000000
+[   42.497005] R10: 0000000000000066 R11: 0000000000000293 R12: 00000000004b8925
+[   42.504256] R13: 00007f82f857dbb8 R14: 00000000004b8925 R15: 0000000000000000
+[   42.511541] CPU: 0 PID: 6092 Comm: syz-executor7 Not tainted 4.15.0+ #221
+[   42.518470] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   42.527806] Call Trace:
+[   42.530379]  dump_stack+0x194/0x257
+[   42.533989]  ? arch_local_irq_restore+0x53/0x53
+[   42.538645]  ? vsnprintf+0x1ed/0x1900
+[   42.542430]  panic+0x1e4/0x41c
+[   42.545601]  ? refcount_error_report+0x214/0x214
+[   42.550339]  ? show_regs_print_info+0x18/0x18
+[   42.554816]  ? vprintk_emit+0xa5f/0xb90
+[   42.558771]  ? __warn+0x1c1/0x200
+[   42.562206]  ? proc_register+0x2a4/0x370
+[   42.566243]  __warn+0x1dc/0x200
+[   42.569499]  ? proc_register+0x2a4/0x370
+[   42.573542]  report_bug+0x211/0x2d0
+[   42.577156]  fixup_bug.part.11+0x37/0x80
+[   42.581198]  do_error_trap+0x2d7/0x3e0
+[   42.585077]  ? vprintk_default+0x28/0x30
+[   42.589121]  ? math_error+0x400/0x400
+[   42.592912]  ? printk+0xaa/0xca
+[   42.596171]  ? show_regs_print_info+0x18/0x18
+[   42.600654]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   42.605484]  do_invalid_op+0x1b/0x20
+[   42.609179]  invalid_op+0x22/0x40
+[   42.612620] RIP: 0010:proc_register+0x2a4/0x370
+[   42.617263] RSP: 0018:ffff8801b3def528 EFLAGS: 00010286
+[   42.622604] RAX: dffffc0000000008 RBX: ffff8801ae7c0af8 RCX: ffffffff815a57ae
+[   42.629852] RDX: 0000000000010000 RSI: ffffc900019b2000 RDI: 1ffff100367bde2a
+[   42.637099] RBP: ffff8801b3def578 R08: 1ffff100367bddec R09: 0000000000000000
+[   42.644347] R10: ffff8801b3def3e0 R11: 0000000000000000 R12: ffff8801b3e0e0c0
+[   42.651595] R13: dffffc0000000000 R14: ffff8801cb8ce488 R15: ffff8801b3e0e181
+[   42.658860]  ? vprintk_func+0x5e/0xc0
+[   42.662658]  ? proc_register+0x2a4/0x370
+[   42.666900]  proc_create_data+0xf8/0x180
+[   42.670962]  clusterip_tg_check+0xf9c/0x16d0
+[   42.675359]  ? arp_mangle+0x550/0x550
+[   42.679139]  ? xt_find_target+0x150/0x1e0
+[   42.683269]  ? lock_downgrade+0x980/0x980
+[   42.687398]  ? rcu_read_lock_sched_held+0x108/0x120
+[   42.692406]  ? pcpu_alloc+0x146/0x10e0
+[   42.696287]  ? pcpu_free_area+0xa00/0xa00
+[   42.700421]  ? __mutex_unlock_slowpath+0xe9/0xac0
+[   42.705255]  ? kernel_text_address+0x102/0x140
+[   42.709822]  ? wait_for_completion+0x770/0x770
+[   42.714384]  ? unwind_get_return_address+0x61/0xa0
+[   42.719296]  ? __save_stack_trace+0x7e/0xd0
+[   42.723602]  ? arp_mangle+0x550/0x550
+[   42.727387]  xt_check_target+0x22c/0x7d0
+[   42.731429]  ? xt_target_seq_next+0x30/0x30
+[   42.735725]  ? save_stack+0xa3/0xd0
+[   42.739330]  ? save_stack+0x43/0xd0
+[   42.742932]  ? kasan_slab_free+0x71/0xc0
+[   42.746968]  ? kfree+0xd6/0x260
+[   42.750221]  ? kvfree+0x36/0x60
+[   42.753486]  ? mutex_unlock+0xd/0x10
+[   42.757179]  ? xt_find_target+0x17b/0x1e0
+[   42.761320]  find_check_entry.isra.8+0x8c8/0xcb0
+[   42.766066]  ? ipt_do_table+0x1950/0x1950
+[   42.770197]  ? trace_hardirqs_off+0xd/0x10
+[   42.774409]  ? quarantine_put+0xeb/0x190
+[   42.778445]  ? kfree+0xf0/0x260
+[   42.781710]  ? trace_hardirqs_on+0xd/0x10
+[   42.785845]  translate_table+0xed1/0x1610
+[   42.789993]  ? alloc_counters.isra.11+0x7d0/0x7d0
+[   42.794824]  ? kasan_check_write+0x14/0x20
+[   42.799043]  ? _copy_from_user+0x99/0x110
+[   42.803174]  do_ipt_set_ctl+0x370/0x5f0
+[   42.807133]  ? translate_compat_table+0x1b90/0x1b90
+[   42.812143]  ? mutex_unlock+0xd/0x10
+[   42.815837]  ? nf_sockopt_find.constprop.0+0x1a7/0x220
+[   42.821099]  nf_setsockopt+0x67/0xc0
+[   42.824795]  ip_setsockopt+0x97/0xa0
+[   42.828494]  udp_setsockopt+0x45/0x80
+[   42.832278]  sock_common_setsockopt+0x95/0xd0
+[   42.836760]  SyS_setsockopt+0x189/0x360
+[   42.840718]  ? SyS_recv+0x40/0x40
+[   42.844153]  ? entry_SYSCALL_64_fastpath+0x5/0xa0
+[   42.848977]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   42.853977]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   42.858720]  entry_SYSCALL_64_fastpath+0x29/0xa0
+[   42.863457] RIP: 0033:0x453a59
+[   42.866625] RSP: 002b:00007fac657c6c68 EFLAGS: 00000246 ORIG_RAX: 0000000000000036
+[   42.874310] RAX: ffffffffffffffda RBX: 00007fac657c76d4 RCX: 0000000000453a59
+[   42.881558] RDX: 0000000000000040 RSI: 0000000000000000 RDI: 0000000000000014
+[   42.888806] RBP: 000000000071bf58 R08: 0000000000000360 R09: 0000000000000000
+[   42.896056] R10: 0000000020664ca0 R11: 0000000000000246 R12: 00000000ffffffff
+[   42.903303] R13: 0000000000000128 R14: 00000000006f1c60 R15: 0000000000000001
