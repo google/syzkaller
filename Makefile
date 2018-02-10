@@ -116,7 +116,7 @@ target:
 executor:
 	mkdir -p ./bin/$(TARGETOS)_$(TARGETARCH)
 	$(CC) -o ./bin/$(TARGETOS)_$(TARGETARCH)/syz-executor$(EXE) executor/executor_$(TARGETOS).cc \
-		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O1 \
+		-pthread -Wall -Wframe-larger-than=8192 -Wparentheses -Werror -O2 \
 		$(ADDCFLAGS) $(CFLAGS) -DGOOS=\"$(TARGETOS)\" -DGIT_REVISION=\"$(REV)\"
 
 manager:
