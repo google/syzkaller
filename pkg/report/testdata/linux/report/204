@@ -1,0 +1,37 @@
+TITLE: WARNING: kmalloc bug in kvm_vm_ioctl
+
+[  232.358467] ------------[ cut here ]------------
+[  232.358478] WARNING: CPU: 1 PID: 36348 at mm/slab_common.c:903 kmalloc_slab+0x89/0xa0()
+[  232.358482] Modules linked in:
+[  232.375269]  0000000000000000 ffff8801d1327980 ffffffff81da3492 1ffff1003a264f34
+[  232.383292]  ffff8801d42f0000 ffffffff8311a3a0 ffff8801d1327a40 0000000000400000
+[  232.391306]  ffff8801d1327a98 ffffffff816acb58 0000000000000001 024000c2d42f0000
+[  232.399313] Call Trace:
+[  232.401884]  [<ffffffff81da3492>] dump_stack+0xf6/0x184
+[  232.407224]  [<ffffffff816acb58>] warn_alloc+0x208/0x230
+[  232.412658]  [<ffffffff816ac950>] ? zone_watermark_ok_safe+0x2b0/0x2b0
+[  232.419307]  [<ffffffff812b43a8>] ? __do_page_fault+0x398/0x940
+[  232.425350]  [<ffffffff82e2541c>] ? retint_kernel+0x4e/0x4e
+[  232.431042]  [<ffffffff81777c90>] __vmalloc_node_range_memcg+0x510/0x670
+[  232.437862]  [<ffffffff82e2541c>] ? retint_kernel+0x4e/0x4e
+[  232.443549]  [<ffffffff81777e59>] vmalloc+0x69/0x70
+[  232.448543]  [<ffffffff81087150>] ? kvm_vm_ioctl+0x910/0x15e0
+[  232.454406]  [<ffffffff81087150>] kvm_vm_ioctl+0x910/0x15e0
+[  232.460097]  [<ffffffff81086840>] ? kvm_vm_ioctl_set_memory_ondemand_state+0x4a0/0x4a0
+[  232.468130]  [<ffffffff815927fc>] ? tracing_generic_entry_update+0x15c/0x1d0
+[  232.475296]  [<ffffffff815d078d>] ? perf_trace_buf_prepare+0x18d/0x230
+[  232.482499]  [<ffffffff81662d85>] ? __perf_event_task_sched_in+0x655/0x8d0
+[  232.489489]  [<ffffffff8142da14>] ? perf_trace_lock+0x304/0x570
+[  232.495524]  [<ffffffff8142d710>] ? perf_trace_lock_acquire+0x5c0/0x5c0
+[  232.502256]  [<ffffffff81436380>] ? debug_check_no_locks_freed+0x370/0x370
+[  232.509247]  [<ffffffff818867c2>] ? __fget+0x282/0x590
+[  232.514502]  [<ffffffff81086840>] ? kvm_vm_ioctl_set_memory_ondemand_state+0x4a0/0x4a0
+[  232.522533]  [<ffffffff81866662>] do_vfs_ioctl+0x842/0xee0
+[  232.528137]  [<ffffffff81865e20>] ? ioctl_preallocate+0x200/0x200
+[  232.534355]  [<ffffffff818867eb>] ? __fget+0x2ab/0x590
+[  232.539607]  [<ffffffff8188658c>] ? __fget+0x4c/0x590
+[  232.544776]  [<ffffffff81886bbc>] ? __fget_light+0xac/0x450
+[  232.550466]  [<ffffffff82e24990>] ? int_ret_from_sys_call+0x52/0xba
+[  232.556851]  [<ffffffff81c42b8e>] ? security_file_ioctl+0x8e/0xc0
+[  232.563063]  [<ffffffff81866d94>] SyS_ioctl+0x94/0xc0
+[  232.568232]  [<ffffffff82e247d3>] entry_SYSCALL_64_fastpath+0x12/0x17

@@ -1,0 +1,176 @@
+TITLE: WARNING: suspicious RCU usage in rds_tcp_conn_alloc
+
+[  130.359031] =============================
+[  130.363221] WARNING: suspicious RCU usage
+[  130.367384] 4.15.0+ #307 Not tainted
+[  130.371129] -----------------------------
+[  130.375415] ./include/linux/rcupdate.h:302 Illegal context switch in RCU read-side critical section!
+[  130.384715] 
+[  130.384715] other info that might help us debug this:
+[  130.384715] 
+[  130.392872] 
+[  130.392872] rcu_scheduler_active = 2, debug_locks = 1
+[  130.399555] 1 lock held by syz-executor2/31597:
+[  130.404221]  #0:  (rcu_read_lock){....}, at: [<00000000b2f91fff>] __rds_conn_create+0xe46/0x1b50
+[  130.413178] 
+[  130.413178] stack backtrace:
+[  130.417685] CPU: 1 PID: 31597 Comm: syz-executor2 Not tainted 4.15.0+ #307
+[  130.424682] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  130.434012] Call Trace:
+[  130.436584]  dump_stack+0x194/0x257
+[  130.440189]  ? arch_local_irq_restore+0x53/0x53
+[  130.444843]  lockdep_rcu_suspicious+0x123/0x170
+[  130.449503]  ___might_sleep+0x385/0x470
+[  130.453459]  ? trace_event_raw_event_sched_switch+0x810/0x810
+[  130.459325]  ? debug_mutex_init+0x1c/0x60
+[  130.463463]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  130.468467]  __might_sleep+0x95/0x190
+[  130.472247]  kmem_cache_alloc+0x2a2/0x760
+[  130.476372]  ? lock_acquire+0x1d5/0x580
+[  130.480320]  ? __rds_conn_create+0xe46/0x1b50
+[  130.484788]  ? SyS_membarrier+0x700/0x700
+[  130.488907]  ? init_timer_key+0x163/0x3f0
+[  130.493045]  rds_tcp_conn_alloc+0xa7/0x4e0
+[  130.497266]  ? rds_tcp_conn_free+0x2d0/0x2d0
+[  130.501649]  ? rds_cmsg_atomic+0xff0/0xff0
+[  130.505858]  ? __lockdep_init_map+0xe4/0x650
+[  130.510240]  ? rds_cmsg_atomic+0xff0/0xff0
+[  130.514451]  __rds_conn_create+0x112f/0x1b50
+[  130.518851]  ? rds_conn_drop+0xb0/0xb0
+[  130.522720]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  130.527714]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  130.532446]  ? __raw_spin_lock_init+0x1c/0x100
+[  130.537011]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  130.542022]  ? __lockdep_init_map+0xe4/0x650
+[  130.546415]  ? lockdep_init_map+0x9/0x10
+[  130.550450]  ? __init_waitqueue_head+0x97/0x140
+[  130.555091]  ? init_wait_entry+0x1b0/0x1b0
+[  130.559306]  ? lockdep_init_map+0x9/0x10
+[  130.563347]  ? rds_message_alloc+0x28c/0x330
+[  130.567730]  ? rds_message_next_extension+0x210/0x210
+[  130.572896]  ? rds_rdma_extra_size+0x205/0x2b0
+[  130.577459]  ? rds_atomic_free_op+0x330/0x330
+[  130.581929]  ? lock_sock_nested+0x91/0x110
+[  130.586157]  rds_conn_create_outgoing+0x3f/0x50
+[  130.590815]  rds_sendmsg+0xda3/0x2390
+[  130.594614]  ? rds_send_drop_to+0x19d0/0x19d0
+[  130.599101]  ? find_held_lock+0x35/0x1d0
+[  130.603149]  ? sock_has_perm+0x2a4/0x420
+[  130.607201]  ? selinux_secmark_relabel_packet+0xc0/0xc0
+[  130.612542]  ? lock_downgrade+0x980/0x980
+[  130.616676]  ? lock_release+0xa40/0xa40
+[  130.620637]  ? selinux_socket_sendmsg+0x36/0x40
+[  130.625282]  ? security_socket_sendmsg+0x89/0xb0
+[  130.630020]  ? rds_send_drop_to+0x19d0/0x19d0
+[  130.634500]  sock_sendmsg+0xca/0x110
+[  130.638192]  ___sys_sendmsg+0x767/0x8b0
+[  130.642147]  ? copy_msghdr_from_user+0x590/0x590
+[  130.646882]  ? __schedule+0x8ea/0x2040
+[  130.650751]  ? __sched_text_start+0x8/0x8
+[  130.654886]  ? __fget_light+0x2b2/0x3c0
+[  130.658836]  ? fget_raw+0x20/0x20
+[  130.662267]  ? __might_sleep+0x95/0x190
+[  130.666241]  __sys_sendmsg+0xe5/0x210
+[  130.670020]  ? __sys_sendmsg+0xe5/0x210
+[  130.673974]  ? SyS_shutdown+0x290/0x290
+[  130.677950]  ? exit_to_usermode_loop+0x8c/0x2f0
+[  130.682606]  ? trace_event_raw_event_sys_exit+0x260/0x260
+[  130.688123]  SyS_sendmsg+0x2d/0x50
+[  130.691639]  ? __sys_sendmsg+0x210/0x210
+[  130.695674]  do_syscall_64+0x282/0x940
+[  130.699538]  ? __do_page_fault+0xc90/0xc90
+[  130.703756]  ? finish_task_switch+0x1e2/0x890
+[  130.708227]  ? finish_task_switch+0x1b9/0x890
+[  130.712701]  ? syscall_return_slowpath+0x550/0x550
+[  130.717608]  ? syscall_return_slowpath+0x2ac/0x550
+[  130.722516]  ? prepare_exit_to_usermode+0x350/0x350
+[  130.727508]  ? entry_SYSCALL_64_after_hwframe+0x36/0x9b
+[  130.732850]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  130.737673]  entry_SYSCALL_64_after_hwframe+0x26/0x9b
+[  130.742835] RIP: 0033:0x4537d9
+[  130.745997] RSP: 002b:00007f13a9e2cc58 EFLAGS: 00000212 ORIG_RAX: 000000000000002e
+[  130.753686] RAX: ffffffffffffffda RBX: 000000000071bea0 RCX: 00000000004537d9
+[  130.760936] RDX: 0000000000000000 RSI: 0000000020006fc8 RDI: 0000000000000013
+[  130.768188] RBP: 00000000000004b5 R08: 0000000000000000 R09: 0000000000000000
+[  130.775431] R10: 0000000000000000 R11: 0000000000000212 R12: 00000000006f6198
+[  130.782672] R13: 00000000ffffffff R14: 00007f13a9e2d6d4 R15: 0000000000000000
+[  130.789977] BUG: sleeping function called from invalid context at mm/slab.h:420
+[  130.797427] in_atomic(): 1, irqs_disabled(): 0, pid: 31597, name: syz-executor2
+[  130.804874] 1 lock held by syz-executor2/31597:
+[  130.809534]  #0:  (rcu_read_lock){....}, at: [<00000000b2f91fff>] __rds_conn_create+0xe46/0x1b50
+[  130.818487] CPU: 1 PID: 31597 Comm: syz-executor2 Not tainted 4.15.0+ #307
+[  130.825481] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  130.834808] Call Trace:
+[  130.837373]  dump_stack+0x194/0x257
+[  130.840983]  ? arch_local_irq_restore+0x53/0x53
+[  130.845634]  ? print_lock+0x9f/0xa2
+[  130.849245]  ? lockdep_print_held_locks+0xc4/0x130
+[  130.854156]  ___might_sleep+0x2b2/0x470
+[  130.858106]  ? trace_event_raw_event_sched_switch+0x810/0x810
+[  130.863960]  ? debug_mutex_init+0x1c/0x60
+[  130.868085]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  130.873084]  __might_sleep+0x95/0x190
+[  130.876862]  kmem_cache_alloc+0x2a2/0x760
+[  130.880985]  ? lock_acquire+0x1d5/0x580
+[  130.884932]  ? __rds_conn_create+0xe46/0x1b50
+[  130.889402]  ? SyS_membarrier+0x700/0x700
+[  130.893522]  ? init_timer_key+0x163/0x3f0
+[  130.897648]  rds_tcp_conn_alloc+0xa7/0x4e0
+[  130.901859]  ? rds_tcp_conn_free+0x2d0/0x2d0
+[  130.906241]  ? rds_cmsg_atomic+0xff0/0xff0
+[  130.910452]  ? __lockdep_init_map+0xe4/0x650
+[  130.914833]  ? rds_cmsg_atomic+0xff0/0xff0
+[  130.919046]  __rds_conn_create+0x112f/0x1b50
+[  130.923448]  ? rds_conn_drop+0xb0/0xb0
+[  130.927310]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  130.932300]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[  130.937040]  ? __raw_spin_lock_init+0x1c/0x100
+[  130.941615]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  130.946610]  ? __lockdep_init_map+0xe4/0x650
+[  130.950994]  ? lockdep_init_map+0x9/0x10
+[  130.955039]  ? __init_waitqueue_head+0x97/0x140
+[  130.959683]  ? init_wait_entry+0x1b0/0x1b0
+[  130.963893]  ? lockdep_init_map+0x9/0x10
+[  130.967931]  ? rds_message_alloc+0x28c/0x330
+[  130.972310]  ? rds_message_next_extension+0x210/0x210
+[  130.977474]  ? rds_rdma_extra_size+0x205/0x2b0
+[  130.982042]  ? rds_atomic_free_op+0x330/0x330
+[  130.986511]  ? lock_sock_nested+0x91/0x110
+[  130.990725]  rds_conn_create_outgoing+0x3f/0x50
+[  130.995369]  rds_sendmsg+0xda3/0x2390
+[  130.999177]  ? rds_send_drop_to+0x19d0/0x19d0
+[  131.003667]  ? find_held_lock+0x35/0x1d0
+[  131.007706]  ? sock_has_perm+0x2a4/0x420
+[  131.011744]  ? selinux_secmark_relabel_packet+0xc0/0xc0
+[  131.017080]  ? lock_downgrade+0x980/0x980
+[  131.021202]  ? lock_release+0xa40/0xa40
+[  131.025165]  ? selinux_socket_sendmsg+0x36/0x40
+[  131.029808]  ? security_socket_sendmsg+0x89/0xb0
+[  131.034539]  ? rds_send_drop_to+0x19d0/0x19d0
+[  131.039014]  sock_sendmsg+0xca/0x110
+[  131.042711]  ___sys_sendmsg+0x767/0x8b0
+[  131.046664]  ? copy_msghdr_from_user+0x590/0x590
+[  131.051393]  ? __schedule+0x8ea/0x2040
+[  131.055259]  ? __sched_text_start+0x8/0x8
+[  131.059387]  ? __fget_light+0x2b2/0x3c0
+[  131.063336]  ? fget_raw+0x20/0x20
+[  131.066769]  ? __might_sleep+0x95/0x190
+[  131.070741]  __sys_sendmsg+0xe5/0x210
+[  131.074516]  ? __sys_sendmsg+0xe5/0x210
+[  131.078466]  ? SyS_shutdown+0x290/0x290
+[  131.082423]  ? exit_to_usermode_loop+0x8c/0x2f0
+[  131.087080]  ? trace_event_raw_event_sys_exit+0x260/0x260
+[  131.092600]  SyS_sendmsg+0x2d/0x50
+[  131.096111]  ? __sys_sendmsg+0x210/0x210
+[  131.100146]  do_syscall_64+0x282/0x940
+[  131.104008]  ? __do_page_fault+0xc90/0xc90
+[  131.108222]  ? finish_task_switch+0x1e2/0x890
+[  131.112686]  ? finish_task_switch+0x1b9/0x890
+[  131.117156]  ? syscall_return_slowpath+0x550/0x550
+[  131.122057]  ? syscall_return_slowpath+0x2ac/0x550
+[  131.126958]  ? prepare_exit_to_usermode+0x350/0x350
+[  131.131950]  ? entry_SYSCALL_64_after_hwframe+0x36/0x9b
+[  131.137291]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  131.142115]  entry_SYSCALL_64_after_hwframe+0x26/0x9b
+[  131.147277] RIP: 0033:0x4537d9
+[  131.150440] RSP: 002b:00007f13a9e2cc58 EFLAGS: 00000212 ORIG_RAX: 000000000000002e

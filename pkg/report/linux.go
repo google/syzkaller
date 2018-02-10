@@ -520,6 +520,7 @@ var linuxStackParams = &stackParams{
 		"invalid_op",
 		"dump_stack",
 		"warn_slowpath",
+		"warn_alloc",
 		"debug_object",
 		"work_is_static_object",
 		"lockdep",
@@ -718,8 +719,8 @@ var linuxOopses = []*oops{
 						compile("backtrace:"),
 						parseStackTrace,
 					},
-					skip: []string{"kmemleak", "kmalloc", "kmem", "slab",
-						"alloc", "create_object"},
+					skip: []string{"kmemleak", "kmalloc", "kcalloc", "kzalloc",
+						"kmem", "slab", "alloc", "create_object"},
 				},
 			},
 		},
@@ -768,7 +769,8 @@ var linuxOopses = []*oops{
 			{
 				title: compile("WARNING: .*mm/slab_common\\.c.* kmalloc_slab"),
 				fmt:   "WARNING: kmalloc bug in %[1]v",
-				stack: warningStackFmt("kmalloc", "slab"),
+				stack: warningStackFmt("kmalloc", "kcalloc", "kzalloc", "vmalloc",
+					"slab", "kmem"),
 			},
 			{
 				title: compile("WARNING: .* at {{SRC}} {{FUNC}}"),
@@ -808,7 +810,8 @@ var linuxOopses = []*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
-					skip: []string{"rcu"},
+					skip: []string{"rcu", "kmem", "slab", "kmalloc",
+						"kcalloc", "kzalloc"},
 				},
 			},
 			{
@@ -895,7 +898,8 @@ var linuxOopses = []*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
-					skip: []string{"rcu"},
+					skip: []string{"rcu", "kmem", "slab", "kmalloc",
+						"kcalloc", "kzalloc"},
 				},
 			},
 			{
