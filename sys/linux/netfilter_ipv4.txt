@@ -22,23 +22,23 @@ ipt_replace [
 ] [varlen]
 
 type ipt_replace_t[NAME, NENTRIES, NHOOKS, HOOKS, MATCHES, TARGETS, H0, H1, H2, H3, H4, U0, U1, U2, U3, U4] {
-	name				string[NAME, XT_TABLE_MAXNAMELEN]
-	valid_hooks			const[HOOKS, int32]
-	num_entries			const[NHOOKS, int32]
-	size				bytesize[entries, int32]
-	hook_pre_routing		H0
-	hook_pre_local_in		H1
-	hook_pre_forward		H2
-	hook_pre_local_out		H3
-	hook_pre_post_routing		H4
-	underflow_pre_routing		U0
-	underflow_pre_local_in		U1
-	underflow_pre_forward		U2
-	underflow_pre_local_out		U3
-	underflow_pre_post_routing	U4
-	num_counters			const[NHOOKS, int32]
-	counters			ptr[out, array[xt_counters, NHOOKS]]
-	entries				ipt_replace_entries[NENTRIES, MATCHES, TARGETS]
+	name			string[NAME, XT_TABLE_MAXNAMELEN]
+	valid_hooks		const[HOOKS, int32]
+	num_entries		const[NHOOKS, int32]
+	size			bytesize[entries, int32]
+	hook_pre_routing	H0
+	hook_local_in		H1
+	hook_forward		H2
+	hook_local_out		H3
+	hook_post_routing	H4
+	underflow_pre_routing	U0
+	underflow_local_in	U1
+	underflow_forward	U2
+	underflow_local_out	U3
+	underflow_post_routing	U4
+	num_counters		const[NHOOKS, int32]
+	counters		ptr[out, array[xt_counters, NHOOKS]]
+	entries			ipt_replace_entries[NENTRIES, MATCHES, TARGETS]
 }
 
 type ipt_replace_entries[NENTRIES, MATCHES, TARGETS] {
