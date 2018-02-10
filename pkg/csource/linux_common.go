@@ -1045,17 +1045,18 @@ static void setup_syscall_msrs(int cpufd, uint16 sel_cs, uint16 sel_cs_cpl3)
 	char buf[sizeof(struct kvm_msrs) + 5 * sizeof(struct kvm_msr_entry)];
 	memset(buf, 0, sizeof(buf));
 	struct kvm_msrs* msrs = (struct kvm_msrs*)buf;
+	struct kvm_msr_entry* entries = msrs->entries;
 	msrs->nmsrs = 5;
-	msrs->entries[0].index = MSR_IA32_SYSENTER_CS;
-	msrs->entries[0].data = sel_cs;
-	msrs->entries[1].index = MSR_IA32_SYSENTER_ESP;
-	msrs->entries[1].data = ADDR_STACK0;
-	msrs->entries[2].index = MSR_IA32_SYSENTER_EIP;
-	msrs->entries[2].data = ADDR_VAR_SYSEXIT;
-	msrs->entries[3].index = MSR_IA32_STAR;
-	msrs->entries[3].data = ((uint64)sel_cs << 32) | ((uint64)sel_cs_cpl3 << 48);
-	msrs->entries[4].index = MSR_IA32_LSTAR;
-	msrs->entries[4].data = ADDR_VAR_SYSRET;
+	entries[0].index = MSR_IA32_SYSENTER_CS;
+	entries[0].data = sel_cs;
+	entries[1].index = MSR_IA32_SYSENTER_ESP;
+	entries[1].data = ADDR_STACK0;
+	entries[2].index = MSR_IA32_SYSENTER_EIP;
+	entries[2].data = ADDR_VAR_SYSEXIT;
+	entries[3].index = MSR_IA32_STAR;
+	entries[3].data = ((uint64)sel_cs << 32) | ((uint64)sel_cs_cpl3 << 48);
+	entries[4].index = MSR_IA32_LSTAR;
+	entries[4].data = ADDR_VAR_SYSRET;
 	ioctl(cpufd, KVM_SET_MSRS, msrs);
 }
 
