@@ -2265,8 +2265,103 @@ static void reset_arptables()
 	close(fd);
 }
 
+#include <linux/netfilter_bridge/ebtables.h>
+
+struct ebt_table_desc {
+	const char* name;
+	struct ebt_replace replace;
+	char entrytable[XT_TABLE_SIZE];
+};
+
+static struct ebt_table_desc ebt_tables[] = {
+    {.name = "filter"},
+    {.name = "nat"},
+    {.name = "broute"},
+};
+
+static void checkpoint_ebtables(void)
+{
+	socklen_t optlen;
+	unsigned i;
+	int fd;
+
+	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (fd == -1)
+		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+	for (i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
+		struct ebt_table_desc* table = &ebt_tables[i];
+		strcpy(table->replace.name, table->name);
+		optlen = sizeof(table->replace);
+		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INIT_INFO, &table->replace, &optlen)) {
+			switch (errno) {
+			case EPERM:
+			case ENOENT:
+			case ENOPROTOOPT:
+				continue;
+			}
+			fail("getsockopt(EBT_SO_GET_INIT_INFO)");
+		}
+		debug("checkpoint ebtable %s: entries=%d hooks=%x size=%d\n", table->name, table->replace.nentries, table->replace.valid_hooks, table->replace.entries_size);
+		if (table->replace.entries_size > sizeof(table->entrytable))
+			fail("table size is too large: %u", table->replace.entries_size);
+		table->replace.num_counters = 0;
+		table->replace.entries = table->entrytable;
+		optlen = sizeof(table->replace) + table->replace.entries_size;
+		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INIT_ENTRIES, &table->replace, &optlen))
+			fail("getsockopt(EBT_SO_GET_INIT_ENTRIES)");
+	}
+	close(fd);
+}
+
+static void reset_ebtables()
+{
+	struct ebt_replace replace;
+	char entrytable[XT_TABLE_SIZE];
+	socklen_t optlen;
+	unsigned i, j, h;
+	int fd;
+
+	fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (fd == -1)
+		fail("socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)");
+	for (i = 0; i < sizeof(ebt_tables) / sizeof(ebt_tables[0]); i++) {
+		struct ebt_table_desc* table = &ebt_tables[i];
+		if (table->replace.valid_hooks == 0)
+			continue;
+		memset(&replace, 0, sizeof(replace));
+		strcpy(replace.name, table->name);
+		optlen = sizeof(replace);
+		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INFO, &replace, &optlen))
+			fail("getsockopt(EBT_SO_GET_INFO)");
+		replace.num_counters = 0;
+		for (h = 0; h < NF_BR_NUMHOOKS; h++)
+			table->replace.hook_entry[h] = 0;
+		if (memcmp(&table->replace, &replace, sizeof(table->replace)) == 0) {
+			memset(&entrytable, 0, sizeof(entrytable));
+			replace.entries = entrytable;
+			optlen = sizeof(replace) + replace.entries_size;
+			if (getsockopt(fd, SOL_IP, EBT_SO_GET_ENTRIES, &replace, &optlen))
+				fail("getsockopt(EBT_SO_GET_ENTRIES)");
+			if (memcmp(table->entrytable, entrytable, replace.entries_size) == 0)
+				continue;
+		}
+		debug("resetting ebtable %s\n", table->name);
+		for (j = 0, h = 0; h < NF_BR_NUMHOOKS; h++) {
+			if (table->replace.valid_hooks & (1 << h)) {
+				table->replace.hook_entry[h] = (struct ebt_entries*)table->entrytable + j;
+				j++;
+			}
+		}
+		optlen = sizeof(table->replace) + table->replace.entries_size;
+		if (setsockopt(fd, SOL_IP, EBT_SO_SET_ENTRIES, &table->replace, optlen))
+			fail("setsockopt(EBT_SO_SET_ENTRIES)");
+	}
+	close(fd);
+}
+
 static void checkpoint_net_namespace(void)
 {
+	checkpoint_ebtables();
 	checkpoint_arptables();
 	checkpoint_iptables(ipv4_tables, sizeof(ipv4_tables) / sizeof(ipv4_tables[0]), AF_INET, SOL_IP);
 	checkpoint_iptables(ipv6_tables, sizeof(ipv6_tables) / sizeof(ipv6_tables[0]), AF_INET6, SOL_IPV6);
@@ -2274,6 +2369,7 @@ static void checkpoint_net_namespace(void)
 
 static void reset_net_namespace(void)
 {
+	reset_ebtables();
 	reset_arptables();
 	reset_iptables(ipv4_tables, sizeof(ipv4_tables) / sizeof(ipv4_tables[0]), AF_INET, SOL_IP);
 	reset_iptables(ipv6_tables, sizeof(ipv6_tables) / sizeof(ipv6_tables[0]), AF_INET6, SOL_IPV6);

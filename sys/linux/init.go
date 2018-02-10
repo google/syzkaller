@@ -52,6 +52,7 @@ func initTarget(target *prog.Target) {
 		"ipt_replace":        arch.generateIptables,
 		"ip6t_replace":       arch.generateIptables,
 		"arpt_replace":       arch.generateArptables,
+		"ebt_replace":        arch.generateEbtables,
 	}
 	target.StringDictionary = stringDictionary
 
@@ -219,6 +220,11 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		if code.Val%128 == 67 || code.Val%128 == 68 {
 			code.Val = 1
 		}
+	}
+
+	switch c.Meta.Name {
+	case "setsockopt$EBT_SO_SET_ENTRIES":
+		arch.sanitizeEbtables(c)
 	}
 }
 

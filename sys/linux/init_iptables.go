@@ -106,3 +106,64 @@ func (arch *arch) generateNetfilterTable(g *prog.Gen, typ prog.Type, old prog.Ar
 	})
 	return
 }
+
+func (arch *arch) generateEbtables(g *prog.Gen, typ prog.Type, old prog.Arg) (
+	arg prog.Arg, calls []*prog.Call) {
+	if old == nil {
+		arg = g.GenerateSpecialArg(typ, &calls)
+	} else {
+		// TODO(dvyukov): try to restore original hook order after mutation
+		// instead of assigning brand new offsets.
+		arg = old
+		calls = g.MutateArg(arg)
+	}
+	hooksField, entriesField := 4, 7
+	if g.Target().PtrSize == 8 {
+		// Account for paddings.
+		hooksField, entriesField = 5, 9
+	}
+	tableArg := arg.(*prog.UnionArg).Option.(*prog.GroupArg)
+	entriesPtr := tableArg.Inner[entriesField].(*prog.PointerArg)
+	entriesArray := entriesPtr.Res.(*prog.GroupArg)
+	offsets := make([]uint64, len(entriesArray.Inner))
+	var pos, totalEntries uint64
+	for i, entriesArg0 := range entriesArray.Inner {
+		entriesArg := entriesArg0.(*prog.GroupArg)
+		arrayArg := entriesArg.Inner[len(entriesArg.Inner)-1].(*prog.GroupArg)
+		entriesArg.Inner[2].(*prog.ConstArg).Val = totalEntries
+		totalEntries += uint64(len(arrayArg.Inner))
+		offsets[i] = pos
+		pos += entriesArg.Size()
+	}
+	tableArg.Inner[2].(*prog.ConstArg).Val = totalEntries
+	if pos != entriesArray.Size() {
+		panic("netfilter offsets are broken")
+	}
+	// Assign offsets to used hooks.
+	validHooks := tableArg.Inner[1].(*prog.ConstArg).Val
+	hooksArg := tableArg.Inner[hooksField].(*prog.GroupArg)
+	for i, hookArg0 := range hooksArg.Inner {
+		hookArg := hookArg0.(*prog.ConstArg)
+		if validHooks&(1<<uint(i)) == 0 {
+			hookArg.Val = 0
+			continue
+		}
+		addr := g.Target().PhysicalAddr(entriesPtr)
+		if len(offsets) != 0 {
+			addr += offsets[0]
+			offsets = offsets[1:]
+		}
+		hookArg.Val = addr
+	}
+	return
+}
+
+func (arch *arch) sanitizeEbtables(c *prog.Call) {
+	// This is very hacky... just as netfilter interfaces.
+	// setsockopt's len argument must be equal to size of ebt_replace + entries size.
+	lenArg := c.Args[4].(*prog.ConstArg)
+	tableArg := c.Args[3].(*prog.PointerArg).Res.(*prog.UnionArg).Option.(*prog.GroupArg)
+	entriesField := len(tableArg.Inner) - 1
+	entriesArg := tableArg.Inner[entriesField].(*prog.PointerArg).Res
+	lenArg.Val = tableArg.Size() + entriesArg.Size()
+}
