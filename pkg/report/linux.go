@@ -19,16 +19,17 @@ import (
 )
 
 type linux struct {
-	kernelSrc           string
-	kernelObj           string
-	vmlinux             string
-	symbols             map[string][]symbolizer.Symbol
-	ignores             []*regexp.Regexp
-	consoleOutputRe     *regexp.Regexp
-	questionableRe      *regexp.Regexp
-	guiltyFileBlacklist []*regexp.Regexp
-	reportStartIgnores  [][]byte
-	eoi                 []byte
+	kernelSrc             string
+	kernelObj             string
+	vmlinux               string
+	symbols               map[string][]symbolizer.Symbol
+	ignores               []*regexp.Regexp
+	consoleOutputRe       *regexp.Regexp
+	questionableRe        *regexp.Regexp
+	guiltyFileBlacklist   []*regexp.Regexp
+	reportStartIgnores    [][]byte
+	infoMessagesWithStack [][]byte
+	eoi                   []byte
 }
 
 func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symbol,
@@ -84,6 +85,13 @@ func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symb
 		[]byte("invalid opcode: 0000"),
 		[]byte("Kernel panic - not syncing: panic_on_warn set"),
 	}
+	// These pattern math kernel reports which are not bugs in itself but contain stack traces.
+	// If we see them in the middle of another report, we know that the report is potentially corrupted.
+	ctx.infoMessagesWithStack = [][]byte{
+		[]byte("vmalloc: allocation failure:"),
+		[]byte("FAULT_INJECTION: forcing a failure"),
+		[]byte("FAULT_FLAG_ALLOW_RETRY missing"),
+	}
 	return ctx, nil
 }
 
@@ -114,6 +122,14 @@ func (ctx *linux) Parse(output []byte) *Report {
 		for _, oops1 := range linuxOopses {
 			match := matchOops(line, oops1, ctx.ignores)
 			if match == -1 {
+				if oops != nil && secondReportPos == 0 {
+					for _, pattern := range ctx.infoMessagesWithStack {
+						if bytes.Contains(line, pattern) {
+							secondReportPos = pos
+							break
+						}
+					}
+				}
 				continue
 			}
 			if oops == nil {
@@ -872,6 +888,17 @@ var linuxOopses = []*oops{
 				title:  compile("INFO: inconsistent lock state"),
 				report: compile("INFO: inconsistent lock state \\](?:.*\\n)+?.*takes(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
 				fmt:    "inconsistent lock state in %[1]v",
+			},
+			{
+				title: linuxRcuStall,
+				fmt:   "INFO: rcu detected stall in %[1]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("apic_timer_interrupt"),
+						parseStackTrace,
+					},
+					skip: []string{"apic_timer_interrupt", "rcu"},
+				},
 			},
 			{
 				title: linuxRcuStall,
