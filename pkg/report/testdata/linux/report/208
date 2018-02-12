@@ -1,0 +1,295 @@
+TITLE: WARNING: suspicious RCU usage
+CORRUPTED: Y
+
+[   63.724722] =============================
+[   63.728898] WARNING: suspicious RCU usage
+[   63.733060] 4.15.0+ #222 Not tainted
+[   63.733438] FAULT_INJECTION: forcing a failure.
+[   63.733438] name failslab, interval 1, probability 0, space 0, times 0
+[   63.736798] -----------------------------
+[   63.736809] ./include/linux/rcupdate.h:302 Illegal context switch in RCU read-side critical section!
+[   63.736812] 
+[   63.736812] other info that might help us debug this:
+[   63.736812] 
+[   63.736818] 
+[   63.736818] rcu_scheduler_active = 2, debug_locks = 1
+[   63.736824] 1 lock held by syz-executor7/10704:
+[   63.736829]  #0:  (rcu_read_lock){....}, at: [<00000000db78fcdc>] __rds_conn_create+0xe46/0x1b50
+[   63.736861] 
+[   63.736861] stack backtrace:
+[   63.748075] CPU: 1 PID: 10708 Comm: syz-executor2 Not tainted 4.15.0+ #222
+[   63.801181] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   63.810519] Call Trace:
+[   63.813099]  dump_stack+0x194/0x257
+[   63.816714]  ? arch_local_irq_restore+0x53/0x53
+[   63.821368]  ? __is_insn_slot_addr+0x1fc/0x330
+[   63.825946]  should_fail+0x8c0/0xa40
+[   63.829642]  ? check_noncircular+0x20/0x20
+[   63.833865]  ? fault_create_debugfs_attr+0x1f0/0x1f0
+[   63.838979]  ? find_held_lock+0x35/0x1d0
+[   63.843033]  ? __lock_is_held+0xb6/0x140
+[   63.847099]  ? trace_event_raw_event_sched_switch+0x810/0x810
+[   63.852966]  ? crypto_mod_get+0x4e/0x70
+[   63.856926]  ? rcu_note_context_switch+0x710/0x710
+[   63.861851]  should_failslab+0xec/0x120
+[   63.865814]  __kmalloc+0x63/0x760
+[   63.869254]  ? crypto_larval_alloc+0x1d0/0x1d0
+[   63.873824]  ? save_stack+0x43/0xd0
+[   63.877431]  ? kasan_kmalloc+0xad/0xe0
+[   63.881299]  ? __kmalloc+0x162/0x760
+[   63.884992]  ? crypto_create_tfm+0x82/0x2e0
+[   63.889310]  crypto_create_tfm+0x82/0x2e0
+[   63.893445]  crypto_alloc_tfm+0x114/0x2b0
+[   63.897578]  ? crypto_larval_alloc+0x1d0/0x1d0
+[   63.902147]  crypto_alloc_skcipher+0x2c/0x40
+[   63.906541]  cryptd_alloc_skcipher+0x124/0x250
+[   63.911108]  ? cryptd_hash_exit_tfm+0x40/0x40
+[   63.915602]  ? __lock_is_held+0xb6/0x140
+[   63.919663]  ? rcu_read_lock_sched_held+0x108/0x120
+[   63.924671]  simd_skcipher_init+0x66/0x150
+[   63.928886]  ? simd_skcipher_exit+0x40/0x40
+[   63.933190]  crypto_skcipher_init_tfm+0x29a/0x8c0
+[   63.938024]  crypto_create_tfm+0xdf/0x2e0
+[   63.942160]  crypto_alloc_tfm+0x114/0x2b0
+[   63.946293]  ? crypto_larval_alloc+0x1d0/0x1d0
+[   63.950864]  crypto_alloc_skcipher+0x2c/0x40
+[   63.955264]  drbg_init_sym_kernel+0x225/0x777
+[   63.959744]  ? drbg_init_hash_kernel+0x330/0x330
+[   63.964485]  ? find_held_lock+0x35/0x1d0
+[   63.968533]  ? check_noncircular+0x20/0x20
+[   63.972754]  ? check_noncircular+0x20/0x20
+[   63.976972]  ? check_noncircular+0x20/0x20
+[   63.981200]  ? drbg_init_hash_kernel+0x330/0x330
+[   63.985940]  drbg_kcapi_seed+0x4ea/0x1270
+[   63.990069]  ? find_held_lock+0x35/0x1d0
+[   63.994118]  ? drbg_kcapi_random+0x850/0x850
+[   63.998510]  ? __might_fault+0x110/0x1d0
+[   64.002554]  ? lock_downgrade+0x980/0x980
+[   64.006690]  ? lock_release+0xa40/0xa40
+[   64.010645]  ? trace_event_raw_event_sched_switch+0x810/0x810
+[   64.016511]  ? __check_object_size+0x8b/0x530
+[   64.021002]  ? __might_sleep+0x95/0x190
+[   64.024971]  crypto_rng_reset+0x7c/0x110
+[   64.029025]  rng_setkey+0x25/0x30
+[   64.032460]  ? rng_sock_destruct+0x90/0x90
+[   64.036676]  alg_setsockopt+0x2a1/0x350
+[   64.040641]  SyS_setsockopt+0x189/0x360
+[   64.044606]  ? SyS_recv+0x40/0x40
+[   64.048042]  ? SyS_write+0x184/0x220
+[   64.051743]  ? SyS_read+0x220/0x220
+[   64.055357]  ? do_syscall_64+0xb7/0x940
+[   64.059321]  ? SyS_recv+0x40/0x40
+[   64.062759]  do_syscall_64+0x282/0x940
+[   64.066630]  ? __do_page_fault+0xc90/0xc90
+[   64.070847]  ? finish_task_switch+0x1e2/0x890
+[   64.075322]  ? finish_task_switch+0x1b9/0x890
+[   64.079803]  ? syscall_return_slowpath+0x550/0x550
+[   64.084716]  ? syscall_return_slowpath+0x2ac/0x550
+[   64.089630]  ? prepare_exit_to_usermode+0x350/0x350
+[   64.094633]  ? entry_SYSCALL_64_after_hwframe+0x36/0x9b
+[   64.099989]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   64.104825]  entry_SYSCALL_64_after_hwframe+0x26/0x9b
+[   64.109998] RIP: 0033:0x453a59
+[   64.113172] RSP: 002b:00007ff3775c5c68 EFLAGS: 00000246 ORIG_RAX: 0000000000000036
+[   64.120864] RAX: ffffffffffffffda RBX: 00007ff3775c66d4 RCX: 0000000000453a59
+[   64.128115] RDX: 0000000000000001 RSI: 0000000000000117 RDI: 0000000000000013
+[   64.135364] RBP: 000000000071bea0 R08: 0000000000000017 R09: 0000000000000000
+[   64.142614] R10: 0000000020e03000 R11: 0000000000000246 R12: 0000000000000014
+[   64.149868] R13: 00000000000004d2 R14: 00000000006f7450 R15: 0000000000000003
+[   64.157152] CPU: 0 PID: 10704 Comm: syz-executor7 Not tainted 4.15.0+ #222
+[   64.157778] DRBG: could not allocate CTR cipher TFM handle: ctr(aes)
+[   64.164151] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   64.164154] Call Trace:
+[   64.164168]  dump_stack+0x194/0x257
+[   64.164183]  ? arch_local_irq_restore+0x53/0x53
+[   64.164213]  lockdep_rcu_suspicious+0x123/0x170
+[   64.192382] ipt_CLUSTERIP: Please specify destination IP
+[   64.195494]  ___might_sleep+0x385/0x470
+[   64.195508]  ? trace_event_raw_event_sched_switch+0x810/0x810
+[   64.195516]  ? __debug_object_init+0x235/0x1040
+[   64.195526]  ? lock_acquire+0x1d5/0x580
+[   64.195538]  ? debug_mutex_init+0x1c/0x60
+[   64.195556]  __might_sleep+0x95/0x190
+[   64.195575]  kmem_cache_alloc_trace+0x299/0x740
+[   64.195588]  ? lock_acquire+0x1d5/0x580
+[   64.236054]  ? lock_acquire+0x1d5/0x580
+[   64.240035]  ? __rds_conn_create+0xe46/0x1b50
+[   64.244539]  rds_loop_conn_alloc+0xc8/0x380
+[   64.248863]  ? rds_loop_conn_free+0x290/0x290
+[   64.253357]  ? __init_waitqueue_head+0x97/0x140
+[   64.258032]  ? rcutorture_record_progress+0x10/0x10
+[   64.260721] FAULT_INJECTION: forcing a failure.
+[   64.260721] name failslab, interval 1, probability 0, space 0, times 0
+[   64.263053]  ? __lockdep_init_map+0xe4/0x650
+[   64.263075]  __rds_conn_create+0x112f/0x1b50
+[   64.263121]  ? rds_conn_drop+0xb0/0xb0
+[   64.263150]  ? __raw_spin_lock_init+0x1c/0x100
+[   64.263168]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   64.296521]  ? __lockdep_init_map+0xe4/0x650
+[   64.300921]  ? lockdep_init_map+0x9/0x10
+[   64.304965]  ? __init_waitqueue_head+0x97/0x140
+[   64.309622]  ? init_wait_entry+0x1b0/0x1b0
+[   64.313850]  ? lockdep_init_map+0x9/0x10
+[   64.317903]  ? rds_message_alloc+0x28c/0x330
+[   64.322300]  ? rds_message_next_extension+0x210/0x210
+[   64.327471]  ? trace_hardirqs_on+0xd/0x10
+[   64.331612]  ? _raw_spin_unlock_bh+0x30/0x40
+[   64.336016]  ? __release_sock+0x360/0x360
+[   64.340149]  ? lock_sock_nested+0x91/0x110
+[   64.344376]  rds_conn_create_outgoing+0x3f/0x50
+[   64.349036]  rds_sendmsg+0xda3/0x2390
+[   64.352849]  ? rds_send_drop_to+0x19d0/0x19d0
+[   64.357328]  ? __might_fault+0x110/0x1d0
+[   64.361386]  ? lock_release+0xa40/0xa40
+[   64.365344]  ? trace_event_raw_event_sched_switch+0x810/0x810
+[   64.371219]  ? find_held_lock+0x35/0x1d0
+[   64.375274]  ? sock_has_perm+0x2a4/0x420
+[   64.379323]  ? selinux_secmark_relabel_packet+0xc0/0xc0
+[   64.384674]  ? lock_downgrade+0x980/0x980
+[   64.388810]  ? dup_iter+0x1a2/0x260
+[   64.392425]  ? lock_release+0xa40/0xa40
+[   64.396406]  ? selinux_socket_sendmsg+0x36/0x40
+[   64.401060]  ? security_socket_sendmsg+0x89/0xb0
+[   64.405802]  ? rds_send_drop_to+0x19d0/0x19d0
+[   64.410285]  sock_sendmsg+0xca/0x110
+[   64.413991]  ___sys_sendmsg+0x320/0x8b0
+[   64.417961]  ? copy_msghdr_from_user+0x590/0x590
+[   64.422718]  ? exit_robust_list+0x240/0x240
+[   64.427029]  ? release_sock+0x1d4/0x2a0
+[   64.430985]  ? trace_hardirqs_on+0xd/0x10
+[   64.435119]  ? __local_bh_enable_ip+0x121/0x230
+[   64.439782]  ? __fget_light+0x2b2/0x3c0
+[   64.443742]  ? fget_raw+0x20/0x20
+[   64.447186]  ? rds_trans_get_preferred+0xfb/0x130
+[   64.452022]  ? rds_bind+0x3bd/0xc00
+[   64.455651]  ? __fdget+0x18/0x20
+[   64.459010]  __sys_sendmmsg+0x1ee/0x620
+[   64.462969]  ? __sys_sendmmsg+0x1ee/0x620
+[   64.467116]  ? SyS_sendmsg+0x50/0x50
+[   64.470816]  ? security_socket_bind+0x89/0xb0
+[   64.475301]  ? fput+0xd2/0x140
+[   64.478478]  ? SYSC_bind+0x290/0x410
+[   64.482182]  ? move_addr_to_kernel.part.18+0x100/0x100
+[   64.487467]  ? SyS_futex+0x269/0x390
+[   64.491165]  ? fd_install+0x4d/0x60
+[   64.494783]  ? do_futex+0x22a0/0x22a0
+[   64.498566]  ? SyS_socket+0x12d/0x1d0
+[   64.502357]  ? move_addr_to_kernel+0x60/0x60
+[   64.506758]  SyS_sendmmsg+0x35/0x60
+[   64.510371]  ? __sys_sendmmsg+0x620/0x620
+[   64.514505]  do_syscall_64+0x282/0x940
+[   64.518380]  ? __do_page_fault+0xc90/0xc90
+[   64.522601]  ? finish_task_switch+0x1e2/0x890
+[   64.527078]  ? finish_task_switch+0x1b9/0x890
+[   64.531558]  ? syscall_return_slowpath+0x550/0x550
+[   64.536471]  ? syscall_return_slowpath+0x2ac/0x550
+[   64.541386]  ? prepare_exit_to_usermode+0x350/0x350
+[   64.546388]  ? entry_SYSCALL_64_after_hwframe+0x36/0x9b
+[   64.551746]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   64.556582]  entry_SYSCALL_64_after_hwframe+0x26/0x9b
+[   64.561753] RIP: 0033:0x453a59
+[   64.564926] RSP: 002b:00007f820036ac68 EFLAGS: 00000246 ORIG_RAX: 0000000000000133
+[   64.572618] RAX: ffffffffffffffda RBX: 00007f820036b6d4 RCX: 0000000000453a59
+[   64.579870] RDX: 0000000000000001 RSI: 0000000020573000 RDI: 0000000000000014
+[   64.587119] RBP: 000000000071bea0 R08: 0000000000000000 R09: 0000000000000000
+[   64.594370] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[   64.601619] R13: 00000000000004a1 R14: 00000000006f6fb8 R15: 0000000000000000
+[   64.608902] CPU: 1 PID: 10720 Comm: syz-executor2 Not tainted 4.15.0+ #222
+[   64.609526] BUG: sleeping function called from invalid context at mm/slab.h:420
+[   64.615901] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   64.615905] Call Trace:
+[   64.615918]  dump_stack+0x194/0x257
+[   64.615933]  ? arch_local_irq_restore+0x53/0x53
+[   64.623359] in_atomic(): 1, irqs_disabled(): 0, pid: 10704, name: syz-executor7
+[   64.632701]  should_fail+0x8c0/0xa40
+[   64.635267] 1 lock held by syz-executor7/10704:
+[   64.639378]  ? fault_create_debugfs_attr+0x1f0/0x1f0
+[   64.639405]  ? check_noncircular+0x20/0x20
+[   64.644046]  #0: 
+[   64.651470]  ? find_held_lock+0x35/0x1d0
+[   64.651490]  ? __lock_is_held+0xb6/0x140
+[   64.655175]  (
+[   64.659834]  ? trace_event_raw_event_sched_switch+0x810/0x810
+[   64.664907] rcu_read_lock
+[   64.669114]  ? rcu_note_context_switch+0x710/0x710
+[   64.669138]  should_failslab+0xec/0x120
+[   64.671171] ){....}
+[   64.675202]  __kmalloc+0x63/0x760
+[   64.675217]  ? crypto_spawn_alg.isra.15+0x1b/0xc0
+[   64.679259] , at: [<00000000db78fcdc>] __rds_conn_create+0xe46/0x1b50
+[   64.681023]  ? __down_interruptible+0x6b0/0x6b0
+[   64.681033]  ? crypto_create_tfm+0x82/0x2e0
+[   64.681052]  crypto_create_tfm+0x82/0x2e0
+[   64.728519]  ? up_read+0x1a/0x40
+[   64.731877]  crypto_spawn_tfm2+0x4f/0x90
+[   64.735923]  cryptd_skcipher_init_tfm+0x3e/0xe0
+[   64.740573]  ? cryptd_skcipher_encrypt+0x680/0x680
+[   64.745484]  crypto_skcipher_init_tfm+0x29a/0x8c0
+[   64.750313]  crypto_create_tfm+0xdf/0x2e0
+[   64.754452]  crypto_alloc_tfm+0x114/0x2b0
+[   64.758585]  ? crypto_larval_alloc+0x1d0/0x1d0
+[   64.763157]  crypto_alloc_skcipher+0x2c/0x40
+[   64.767551]  cryptd_alloc_skcipher+0x124/0x250
+[   64.772119]  ? cryptd_hash_exit_tfm+0x40/0x40
+[   64.776611]  ? __lock_is_held+0xb6/0x140
+[   64.780671]  ? rcu_read_lock_sched_held+0x108/0x120
+[   64.785679]  simd_skcipher_init+0x66/0x150
+[   64.789896]  ? simd_skcipher_exit+0x40/0x40
+[   64.794201]  crypto_skcipher_init_tfm+0x29a/0x8c0
+[   64.799032]  crypto_create_tfm+0xdf/0x2e0
+[   64.803173]  crypto_alloc_tfm+0x114/0x2b0
+[   64.807308]  ? crypto_larval_alloc+0x1d0/0x1d0
+[   64.811877]  crypto_alloc_skcipher+0x2c/0x40
+[   64.816270]  drbg_init_sym_kernel+0x225/0x777
+[   64.820754]  ? drbg_init_hash_kernel+0x330/0x330
+[   64.825493]  ? find_held_lock+0x35/0x1d0
+[   64.829543]  ? check_noncircular+0x20/0x20
+[   64.833761]  ? check_noncircular+0x20/0x20
+[   64.837981]  ? check_noncircular+0x20/0x20
+[   64.842206]  ? drbg_init_hash_kernel+0x330/0x330
+[   64.846950]  drbg_kcapi_seed+0x4ea/0x1270
+[   64.851084]  ? find_held_lock+0x35/0x1d0
+[   64.855134]  ? drbg_kcapi_random+0x850/0x850
+[   64.859528]  ? __might_fault+0x110/0x1d0
+[   64.863574]  ? lock_downgrade+0x980/0x980
+[   64.867712]  ? lock_release+0xa40/0xa40
+[   64.871668]  ? trace_event_raw_event_sched_switch+0x810/0x810
+[   64.877534]  ? __check_object_size+0x8b/0x530
+[   64.882025]  ? __might_sleep+0x95/0x190
+[   64.885999]  crypto_rng_reset+0x7c/0x110
+[   64.890055]  rng_setkey+0x25/0x30
+[   64.893489]  ? rng_sock_destruct+0x90/0x90
+[   64.897709]  alg_setsockopt+0x2a1/0x350
+[   64.901678]  SyS_setsockopt+0x189/0x360
+[   64.905644]  ? SyS_recv+0x40/0x40
+[   64.909082]  ? SyS_write+0x184/0x220
+[   64.912782]  ? SyS_read+0x220/0x220
+[   64.916396]  ? do_syscall_64+0xb7/0x940
+[   64.920358]  ? SyS_recv+0x40/0x40
+[   64.923795]  do_syscall_64+0x282/0x940
+[   64.927669]  ? __do_page_fault+0xc90/0xc90
+[   64.931911]  ? finish_task_switch+0x5af/0x890
+[   64.936391]  ? syscall_return_slowpath+0x550/0x550
+[   64.941305]  ? syscall_return_slowpath+0x2ac/0x550
+[   64.946221]  ? prepare_exit_to_usermode+0x350/0x350
+[   64.951222]  ? entry_SYSCALL_64_after_hwframe+0x36/0x9b
+[   64.956573]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   64.961407]  entry_SYSCALL_64_after_hwframe+0x26/0x9b
+[   64.966578] RIP: 0033:0x453a59
+[   64.969748] RSP: 002b:00007ff3775c5c68 EFLAGS: 00000246 ORIG_RAX: 0000000000000036
+[   64.977438] RAX: ffffffffffffffda RBX: 00007ff3775c66d4 RCX: 0000000000453a59
+[   64.984688] RDX: 0000000000000001 RSI: 0000000000000117 RDI: 0000000000000013
+[   64.991940] RBP: 000000000071bea0 R08: 0000000000000017 R09: 0000000000000000
+[   64.999192] R10: 0000000020e03000 R11: 0000000000000246 R12: 0000000000000014
+[   65.006443] R13: 00000000000004d2 R14: 00000000006f7450 R15: 0000000000000004
+[   65.013730] CPU: 0 PID: 10704 Comm: syz-executor7 Not tainted 4.15.0+ #222
+[   65.014255] DRBG: could not allocate CTR cipher TFM handle: ctr(aes)
+[   65.020726] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   65.020730] Call Trace:
+[   65.020743]  dump_stack+0x194/0x257
+[   65.020757]  ? arch_local_irq_restore+0x53/0x53
+[   65.047385]  ? print_lock+0x9f/0xa2
+[   65.051008]  ? lockdep_print_held_locks+0xc4/0x130
+[   65.055942]  ___might_sleep+0x2b2/0x470
+[   65.059917]  ? trace_event_raw_event_sched_switch+0x810/0x810
+[   65.065801]  ? __debug_object_init+0x235/0x1040
