@@ -16,7 +16,8 @@ import (
 
 // Config used in tests.
 var config = GlobalConfig{
-	AuthDomain: "@foo.com",
+	AccessLevel: AccessPublic,
+	AuthDomain:  "@syzkaller.com",
 	Clients: map[string]string{
 		"reporting": "reportingkeyreportingkeyreportingkey",
 	},
@@ -25,7 +26,8 @@ var config = GlobalConfig{
 	},
 	Namespaces: map[string]*Config{
 		"test1": &Config{
-			Key: "test1keytest1keytest1key",
+			AccessLevel: AccessAdmin,
+			Key:         "test1keytest1keytest1key",
 			Clients: map[string]string{
 				client1: key1,
 			},
@@ -54,7 +56,8 @@ var config = GlobalConfig{
 			},
 		},
 		"test2": &Config{
-			Key: "test2keytest2keytest2key",
+			AccessLevel: AccessAdmin,
+			Key:         "test2keytest2keytest2key",
 			Clients: map[string]string{
 				client2: key2,
 			},
@@ -77,14 +80,73 @@ var config = GlobalConfig{
 				},
 			},
 		},
+		// Namespaces for access level testing.
+		"access-admin": &Config{
+			AccessLevel: AccessAdmin,
+			Key:         "adminkeyadminkeyadminkey",
+			Clients: map[string]string{
+				clientAdmin: keyAdmin,
+			},
+			Reporting: []Reporting{
+				{
+					Name:   "access-admin-reporting1",
+					Config: &TestConfig{Index: 1},
+				},
+				{
+					Name:   "access-admin-reporting2",
+					Config: &TestConfig{Index: 2},
+				},
+			},
+		},
+		"access-user": &Config{
+			AccessLevel: AccessUser,
+			Key:         "userkeyuserkeyuserkey",
+			Clients: map[string]string{
+				clientUser: keyUser,
+			},
+			Reporting: []Reporting{
+				{
+					AccessLevel: AccessAdmin,
+					Name:        "access-admin-reporting1",
+					Config:      &TestConfig{Index: 1},
+				},
+				{
+					Name:   "access-user-reporting2",
+					Config: &TestConfig{Index: 2},
+				},
+			},
+		},
+		"access-public": &Config{
+			Key: "publickeypublickeypublickey",
+			Clients: map[string]string{
+				clientPublic: keyPublic,
+			},
+			Reporting: []Reporting{
+				{
+					AccessLevel: AccessUser,
+					Name:        "access-user-reporting1",
+					Config:      &TestConfig{Index: 1},
+				},
+				{
+					Name:   "access-public-reporting2",
+					Config: &TestConfig{Index: 2},
+				},
+			},
+		},
 	},
 }
 
 const (
-	client1 = "client1"
-	client2 = "client2"
-	key1    = "client1keyclient1keyclient1key"
-	key2    = "client2keyclient2keyclient2key"
+	client1      = "client1"
+	client2      = "client2"
+	key1         = "client1keyclient1keyclient1key"
+	key2         = "client2keyclient2keyclient2key"
+	clientAdmin  = "client-admin"
+	keyAdmin     = "clientadminkeyclientadminkey"
+	clientUser   = "client-user"
+	keyUser      = "clientuserkeyclientuserkey"
+	clientPublic = "client-public"
+	keyPublic    = "clientpublickeyclientpublickey"
 )
 
 type TestConfig struct {
@@ -127,6 +189,14 @@ func testCrash(build *dashapi.Build, id int) *dashapi.Crash {
 		Log:     []byte(fmt.Sprintf("log%v", id)),
 		Report:  []byte(fmt.Sprintf("report%v", id)),
 	}
+}
+
+func testCrashWithRepro(build *dashapi.Build, id int) *dashapi.Crash {
+	crash := testCrash(build, id)
+	crash.ReproOpts = []byte(fmt.Sprintf("repro opts %v", id))
+	crash.ReproSyz = []byte(fmt.Sprintf("syncfs(%v)", id))
+	crash.ReproC = []byte(fmt.Sprintf("int main() { return %v; }", id))
+	return crash
 }
 
 func testCrashID(crash *dashapi.Crash) *dashapi.CrashID {

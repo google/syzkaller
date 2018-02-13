@@ -16,6 +16,8 @@ import (
 // The exact config is stored in a global config variable and is read-only.
 // Also see config_stub.go.
 type GlobalConfig struct {
+	// Min access levels specified hierarchically throughout the config.
+	AccessLevel AccessLevel
 	// Email suffix of authorized users (e.g. "@foobar.com").
 	AuthDomain string
 	// Global API clients that work across namespaces (e.g. external reporting).
@@ -34,6 +36,10 @@ type GlobalConfig struct {
 
 // Per-namespace config.
 type Config struct {
+	// See GlobalConfig.AccessLevel.
+	AccessLevel AccessLevel
+	// Name used in UI.
+	DisplayTitle string
 	// Per-namespace clients that act only on a particular namespace.
 	Clients map[string]string
 	// A unique key for hashing, can be anything.
@@ -51,8 +57,12 @@ type Config struct {
 
 // One reporting stage.
 type Reporting struct {
+	// See GlobalConfig.AccessLevel.
+	AccessLevel AccessLevel
 	// A unique name (the app does not care about exact contents).
 	Name string
+	// Name used in UI.
+	DisplayTitle string
 	// Filter can be used to conditionally skip this reporting or hold off reporting.
 	Filter ReportingFilter
 	// How many new bugs report per day.
@@ -121,6 +131,7 @@ func init() {
 	namespaces := make(map[string]bool)
 	clientNames := make(map[string]bool)
 	checkClients(clientNames, config.Clients)
+	checkConfigAccessLevel(&config.AccessLevel, AccessPublic, "global")
 	for ns, cfg := range config.Namespaces {
 		if ns == "" {
 			panic("empty namespace name")
@@ -129,6 +140,9 @@ func init() {
 			panic(fmt.Sprintf("duplicate namespace %q", ns))
 		}
 		namespaces[ns] = true
+		if cfg.DisplayTitle == "" {
+			cfg.DisplayTitle = ns
+		}
 		checkClients(clientNames, cfg.Clients)
 		if !clientKeyRe.MatchString(cfg.Key) {
 			panic(fmt.Sprintf("bad namespace %q key: %q", ns, cfg.Key))
@@ -136,8 +150,11 @@ func init() {
 		if len(cfg.Reporting) == 0 {
 			panic(fmt.Sprintf("no reporting in namespace %q", ns))
 		}
+		checkConfigAccessLevel(&cfg.AccessLevel, config.AccessLevel, fmt.Sprintf("namespace %q", ns))
+		parentAccessLevel := cfg.AccessLevel
 		reportingNames := make(map[string]bool)
-		for ri := range cfg.Reporting {
+		// Go backwards because access levels get stricter backwards.
+		for ri := len(cfg.Reporting) - 1; ri >= 0; ri-- {
 			reporting := &cfg.Reporting[ri]
 			if reporting.Name == "" {
 				panic(fmt.Sprintf("empty reporting name in namespace %q", ns))
@@ -145,6 +162,12 @@ func init() {
 			if reportingNames[reporting.Name] {
 				panic(fmt.Sprintf("duplicate reporting name %q", reporting.Name))
 			}
+			if reporting.DisplayTitle == "" {
+				reporting.DisplayTitle = reporting.Name
+			}
+			checkConfigAccessLevel(&reporting.AccessLevel, parentAccessLevel,
+				fmt.Sprintf("reporting %q/%q", ns, reporting.Name))
+			parentAccessLevel = reporting.AccessLevel
 			if reporting.Filter == nil {
 				reporting.Filter = reportAllFilter
 			}
@@ -168,6 +191,17 @@ func init() {
 		if prio := info.ReportingPriority; prio < 0 || prio > 9 {
 			panic(fmt.Sprintf("bad kernel repo reporting priority %v for %q", prio, repo))
 		}
+	}
+}
+
+func checkConfigAccessLevel(current *AccessLevel, parent AccessLevel, what string) {
+	verifyAccessLevel(parent)
+	if *current == 0 {
+		*current = parent
+	}
+	verifyAccessLevel(*current)
+	if *current < parent {
+		panic(fmt.Sprintf("bad %v access level %v", what, *current))
 	}
 }
 

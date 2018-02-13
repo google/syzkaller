@@ -27,12 +27,12 @@ func init() {
 }
 
 type uiMain struct {
-	Header    *uiHeader
-	Now       time.Time
-	Log       []byte
-	Managers  []*uiManager
-	Jobs      []*uiJob
-	BugGroups []*uiBugGroup
+	Header        *uiHeader
+	Now           time.Time
+	Log           []byte
+	Managers      []*uiManager
+	Jobs          []*uiJob
+	BugNamespaces []*uiBugNamespace
 }
 
 type uiManager struct {
@@ -69,11 +69,22 @@ type uiBugPage struct {
 	Crashes []*uiCrash
 }
 
+type uiBugNamespace struct {
+	Caption    string
+	FixedLink  string
+	FixedCount int
+	Groups     []*uiBugGroup
+}
+
 type uiBugGroup struct {
 	Now           time.Time
 	Caption       string
 	Namespace     string
 	ShowNamespace bool
+	ShowPatch     bool
+	ShowPatched   bool
+	ShowStatus    bool
+	ShowIndex     int
 	Bugs          []*uiBug
 }
 
@@ -84,6 +95,8 @@ type uiBug struct {
 	NumCrashesBad  bool
 	FirstTime      time.Time
 	LastTime       time.Time
+	ReportedTime   time.Time
+	ClosedTime     time.Time
 	ReproLevel     dashapi.ReproLevel
 	ReportingIndex int
 	Status         string
@@ -131,14 +144,15 @@ type uiJob struct {
 
 // handleMain serves main page.
 func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	h, err := commonHeader(c)
+	h, err := commonHeader(c, r)
 	if err != nil {
 		return err
 	}
+	onlyFixed := r.FormValue("fixed")
 	var errorLog []byte
 	var managers []*uiManager
 	var jobs []*uiJob
-	if accessLevel(c, r) == AccessAdmin {
+	if accessLevel(c, r) == AccessAdmin && onlyFixed == "" {
 		errorLog, err = fetchErrorLogs(c)
 		if err != nil {
 			return err
@@ -152,17 +166,17 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 			return err
 		}
 	}
-	groups, err := fetchBugs(c)
+	bugNamespaces, err := fetchBugs(c, r, onlyFixed)
 	if err != nil {
 		return err
 	}
 	data := &uiMain{
-		Header:    h,
-		Now:       timeNow(c),
-		Log:       errorLog,
-		Managers:  managers,
-		Jobs:      jobs,
-		BugGroups: groups,
+		Header:        h,
+		Now:           timeNow(c),
+		Log:           errorLog,
+		Managers:      managers,
+		Jobs:          jobs,
+		BugNamespaces: bugNamespaces,
 	}
 	return serveTemplate(w, "main.html", data)
 }
@@ -184,7 +198,11 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	} else {
 		return fmt.Errorf("mandatory parameter id/extid is missing")
 	}
-	h, err := commonHeader(c)
+	accessLevel := accessLevel(c, r)
+	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
+		return err
+	}
+	h, err := commonHeader(c, r)
 	if err != nil {
 		return err
 	}
@@ -202,10 +220,12 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		if err := datastore.Get(c, datastore.NewKey(c, "Bug", bug.DupOf, 0, nil), dup); err != nil {
 			return err
 		}
-		dupOf = &uiBugGroup{
-			Now:     timeNow(c),
-			Caption: "Duplicate of",
-			Bugs:    []*uiBug{createUIBug(c, dup, state, managers)},
+		if accessLevel >= dup.sanitizeAccess(accessLevel) {
+			dupOf = &uiBugGroup{
+				Now:     timeNow(c),
+				Caption: "Duplicate of",
+				Bugs:    []*uiBug{createUIBug(c, dup, state, managers)},
+			}
 		}
 	}
 	uiBug := createUIBug(c, bug, state, managers)
@@ -213,11 +233,11 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	if err != nil {
 		return err
 	}
-	dups, err := loadDupsForBug(c, bug, state, managers)
+	dups, err := loadDupsForBug(c, r, bug, state, managers)
 	if err != nil {
 		return err
 	}
-	similar, err := loadSimilarBugs(c, bug, state)
+	similar, err := loadSimilarBugs(c, r, bug, state)
 	if err != nil {
 		return err
 	}
@@ -235,12 +255,19 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 
 // handleText serves plain text blobs (crash logs, reports, reproducers, etc).
 func handleText(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	tag := r.FormValue("tag")
 	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 	if err != nil {
 		return fmt.Errorf("failed to parse text id: %v", err)
 	}
-	data, err := getText(c, r.FormValue("tag"), id)
+	if err := checkTextAccess(c, r, tag, id); err != nil {
+		return err
+	}
+	data, ns, err := getText(c, tag, id)
 	if err != nil {
+		return err
+	}
+	if err := checkAccessLevel(c, r, config.Namespaces[ns].AccessLevel); err != nil {
 		return err
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -248,11 +275,16 @@ func handleText(c context.Context, w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
-func fetchBugs(c context.Context) ([]*uiBugGroup, error) {
+func fetchBugs(c context.Context, r *http.Request, onlyFixed string) ([]*uiBugNamespace, error) {
+	query := datastore.NewQuery("Bug")
+	if onlyFixed == "" {
+		query = query.Filter("Status=", BugStatusOpen)
+	} else {
+		query = query.Filter("Namespace=", onlyFixed).
+			Filter("Status=", BugStatusFixed)
+	}
 	var bugs []*Bug
-	_, err := datastore.NewQuery("Bug").
-		Filter("Status=", BugStatusOpen).
-		GetAll(c, &bugs)
+	_, err := query.GetAll(c, &bugs)
 	if err != nil {
 		return nil, err
 	}
@@ -260,35 +292,87 @@ func fetchBugs(c context.Context) ([]*uiBugGroup, error) {
 	if err != nil {
 		return nil, err
 	}
+	accessLevel := accessLevel(c, r)
 	managers := make(map[string][]string)
-	for ns := range config.Namespaces {
+	for ns, cfg := range config.Namespaces {
+		if accessLevel < cfg.AccessLevel {
+			continue
+		}
 		mgrs, err := managerList(c, ns)
 		if err != nil {
 			return nil, err
 		}
 		managers[ns] = mgrs
 	}
-	groups := make(map[string][]*uiBug)
+	namespaces := make(map[string]map[int][]*uiBug)
 	for _, bug := range bugs {
+		if accessLevel < bug.sanitizeAccess(accessLevel) {
+			continue
+		}
+		if namespaces[bug.Namespace] == nil {
+			namespaces[bug.Namespace] = make(map[int][]*uiBug)
+		}
 		uiBug := createUIBug(c, bug, state, managers[bug.Namespace])
-		groups[bug.Namespace] = append(groups[bug.Namespace], uiBug)
+		id := uiBug.ReportingIndex
+		if bug.Status == BugStatusFixed {
+			id = -1
+		} else if uiBug.Commits != "" {
+			id = -2
+		}
+		namespaces[bug.Namespace][id] = append(namespaces[bug.Namespace][id], uiBug)
 	}
 	now := timeNow(c)
-	var res []*uiBugGroup
-	for ns, bugs := range groups {
-		sort.Sort(uiBugSorter(bugs))
-		res = append(res, &uiBugGroup{
-			Now:       now,
-			Caption:   fmt.Sprintf("%v (%v)", ns, len(bugs)),
-			Namespace: ns,
-			Bugs:      bugs,
+	var res []*uiBugNamespace
+	for ns, groups := range namespaces {
+		var uiGroups []*uiBugGroup
+		for index, bugs := range groups {
+			sort.Sort(uiBugSorter(bugs))
+			caption, showPatch, showPatched := "", false, false
+			switch index {
+			case -1:
+				caption, showPatch, showPatched = "fixed", true, false
+			case -2:
+				caption, showPatch, showPatched = "fix pending", false, true
+			case len(config.Namespaces[ns].Reporting) - 1:
+				caption, showPatch, showPatched = "open", false, false
+			default:
+				caption, showPatch, showPatched = config.Namespaces[ns].Reporting[index].DisplayTitle, false, false
+			}
+			uiGroups = append(uiGroups, &uiBugGroup{
+				Now:         now,
+				Caption:     fmt.Sprintf("%v (%v)", caption, len(bugs)),
+				Namespace:   ns,
+				ShowPatch:   showPatch,
+				ShowPatched: showPatched,
+				ShowIndex:   index,
+				Bugs:        bugs,
+			})
+		}
+		sort.Sort(uiBugGroupSorter(uiGroups))
+		fixedCount, fixedLink := 0, ""
+		if onlyFixed == "" {
+			fixedLink = fmt.Sprintf("?fixed=%v", ns)
+			fixedCount, err = datastore.NewQuery("Bug").
+				Filter("Namespace=", ns).
+				Filter("Status=", BugStatusFixed).
+				Count(c)
+			if err != nil {
+				log.Errorf(c, "failed to count fixed bugs: %v", err)
+				fixedCount = -1
+			}
+		}
+		res = append(res, &uiBugNamespace{
+			Caption:    config.Namespaces[ns].DisplayTitle,
+			FixedCount: fixedCount,
+			FixedLink:  fixedLink,
+			Groups:     uiGroups,
 		})
 	}
-	sort.Sort(uiBugGroupSorter(res))
+	sort.Sort(uiBugNamespaceSorter(res))
 	return res, nil
 }
 
-func loadDupsForBug(c context.Context, bug *Bug, state *ReportingState, managers []string) (
+func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *ReportingState, managers []string) (
 	*uiBugGroup, error) {
 	bugHash := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
 	var dups []*Bug
@@ -300,18 +384,24 @@ func loadDupsForBug(c context.Context, bug *Bug, state *ReportingState, managers
 		return nil, err
 	}
 	var results []*uiBug
+	accessLevel := accessLevel(c, r)
 	for _, dup := range dups {
+		if accessLevel < dup.sanitizeAccess(accessLevel) {
+			continue
+		}
 		results = append(results, createUIBug(c, dup, state, managers))
 	}
 	group := &uiBugGroup{
-		Now:     timeNow(c),
-		Caption: "Duplicates",
-		Bugs:    results,
+		Now:         timeNow(c),
+		Caption:     "duplicates",
+		ShowPatched: true,
+		ShowStatus:  true,
+		Bugs:        results,
 	}
 	return group, nil
 }
 
-func loadSimilarBugs(c context.Context, bug *Bug, state *ReportingState) (*uiBugGroup, error) {
+func loadSimilarBugs(c context.Context, r *http.Request, bug *Bug, state *ReportingState) (*uiBugGroup, error) {
 	var similar []*Bug
 	_, err := datastore.NewQuery("Bug").
 		Filter("Title=", bug.Title).
@@ -321,7 +411,11 @@ func loadSimilarBugs(c context.Context, bug *Bug, state *ReportingState) (*uiBug
 	}
 	managers := make(map[string][]string)
 	var results []*uiBug
+	accessLevel := accessLevel(c, r)
 	for _, similar := range similar {
+		if accessLevel < similar.sanitizeAccess(accessLevel) {
+			continue
+		}
 		if similar.Namespace == bug.Namespace && similar.Seq == bug.Seq {
 			continue
 		}
@@ -336,8 +430,10 @@ func loadSimilarBugs(c context.Context, bug *Bug, state *ReportingState) (*uiBug
 	}
 	group := &uiBugGroup{
 		Now:           timeNow(c),
-		Caption:       "Similar Bugs",
+		Caption:       "similar bugs",
 		ShowNamespace: true,
+		ShowPatched:   true,
+		ShowStatus:    true,
 		Bugs:          results,
 	}
 	return group, nil
@@ -345,9 +441,11 @@ func loadSimilarBugs(c context.Context, bug *Bug, state *ReportingState) (*uiBug
 
 func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []string) *uiBug {
 	reportingIdx, status, link := 0, "", ""
+	var reported time.Time
 	var err error
 	if bug.Status == BugStatusOpen {
 		_, _, _, _, reportingIdx, status, link, err = needReport(c, "", state, bug)
+		reported = bug.Reporting[reportingIdx].Reported
 		if err != nil {
 			status = err.Error()
 		}
@@ -358,24 +456,24 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		for i := range bug.Reporting {
 			bugReporting := &bug.Reporting[i]
 			if i == len(bug.Reporting)-1 ||
-				bug.Status == BugStatusInvalid && !bug.Reporting[i].Closed.IsZero() &&
+				bug.Status == BugStatusInvalid && !bugReporting.Closed.IsZero() &&
 					bug.Reporting[i+1].Closed.IsZero() ||
 				(bug.Status == BugStatusFixed || bug.Status == BugStatusDup) &&
-					bug.Reporting[i].Closed.IsZero() {
+					bugReporting.Closed.IsZero() {
 				reportingIdx = i
+				reported = bugReporting.Reported
 				link = bugReporting.Link
 				switch bug.Status {
 				case BugStatusInvalid:
-					status = "invalid"
+					status = "closed as invalid"
 				case BugStatusFixed:
 					status = "fixed"
 				case BugStatusDup:
-					status = "dup"
+					status = "closed as dup"
 				default:
 					status = fmt.Sprintf("unknown (%v)", bug.Status)
 				}
-				status = fmt.Sprintf("%v: closed as %v on %v",
-					bugReporting.Name, status, formatTime(bug.Closed))
+				status = fmt.Sprintf("%v on %v", status, formatTime(bug.Closed))
 				break
 			}
 		}
@@ -388,6 +486,8 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		NumCrashesBad:  bug.NumCrashes >= 10000 && timeNow(c).Sub(bug.LastTime) < 24*time.Hour,
 		FirstTime:      bug.FirstTime,
 		LastTime:       bug.LastTime,
+		ReportedTime:   reported,
+		ClosedTime:     bug.Closed,
 		ReproLevel:     bug.ReproLevel,
 		ReportingIndex: reportingIdx,
 		Status:         status,
@@ -396,7 +496,10 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		NumManagers:    len(managers),
 	}
 	if len(bug.Commits) != 0 {
-		uiBug.Commits = fmt.Sprintf("%q", bug.Commits)
+		uiBug.Commits = bug.Commits[0]
+		if len(bug.Commits) > 1 {
+			uiBug.Commits = fmt.Sprintf("%q", bug.Commits)
+		}
 		for _, mgr := range managers {
 			found := false
 			for _, mgr1 := range bug.PatchedOn {
@@ -633,20 +736,20 @@ func (a uiBugSorter) Less(i, j int) bool {
 	if a[i].Namespace != a[j].Namespace {
 		return a[i].Namespace < a[j].Namespace
 	}
-	if a[i].ReportingIndex != a[j].ReportingIndex {
-		return a[i].ReportingIndex > a[j].ReportingIndex
+	if a[i].ClosedTime != a[j].ClosedTime {
+		return a[i].ClosedTime.After(a[j].ClosedTime)
 	}
-	if (a[i].Link != "") != (a[j].Link != "") {
-		return a[i].Link != ""
-	}
-	if a[i].ReproLevel != a[j].ReproLevel {
-		return a[i].ReproLevel > a[j].ReproLevel
-	}
-	return a[i].FirstTime.After(a[j].FirstTime)
+	return a[i].ReportedTime.After(a[j].ReportedTime)
 }
 
 type uiBugGroupSorter []*uiBugGroup
 
 func (a uiBugGroupSorter) Len() int           { return len(a) }
 func (a uiBugGroupSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a uiBugGroupSorter) Less(i, j int) bool { return a[i].Caption < a[j].Caption }
+func (a uiBugGroupSorter) Less(i, j int) bool { return a[i].ShowIndex > a[j].ShowIndex }
+
+type uiBugNamespaceSorter []*uiBugNamespace
+
+func (a uiBugNamespaceSorter) Len() int           { return len(a) }
+func (a uiBugNamespaceSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a uiBugNamespaceSorter) Less(i, j int) bool { return a[i].Caption < a[j].Caption }

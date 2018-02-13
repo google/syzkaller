@@ -837,23 +837,23 @@ func putText(c context.Context, ns, tag string, data []byte, dedup bool) (int64,
 	return key.IntID(), nil
 }
 
-func getText(c context.Context, tag string, id int64) ([]byte, error) {
+func getText(c context.Context, tag string, id int64) ([]byte, string, error) {
 	if id == 0 {
-		return nil, nil
+		return nil, "", nil
 	}
 	text := new(Text)
 	if err := datastore.Get(c, datastore.NewKey(c, tag, "", id, nil), text); err != nil {
-		return nil, fmt.Errorf("failed to read text %v: %v", tag, err)
+		return nil, "", fmt.Errorf("failed to read text %v: %v", tag, err)
 	}
 	d, err := gzip.NewReader(bytes.NewBuffer(text.Text))
 	if err != nil {
-		return nil, fmt.Errorf("failed to read text %v: %v", tag, err)
+		return nil, "", fmt.Errorf("failed to read text %v: %v", tag, err)
 	}
 	data, err := ioutil.ReadAll(d)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read text %v: %v", tag, err)
+		return nil, "", fmt.Errorf("failed to read text %v: %v", tag, err)
 	}
-	return data, nil
+	return data, text.Namespace, nil
 }
 
 // limitLength essentially does return s[:max],

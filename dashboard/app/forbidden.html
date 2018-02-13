@@ -5,8 +5,10 @@
 	<link rel="stylesheet" href="/static/style.css"/>
 </head>
 <body>
-	{{.}}
-	<br>
-	<a href="javascript:history.back()">back</a>
+	{{if .}}
+		<script>window.location.replace("{{.}}");</script>
+	{{else}}
+		403 Forbidden
+	{{end}}
 </body>
 </html>

@@ -11,35 +11,6 @@ import (
 	"github.com/google/syzkaller/dashboard/dashapi"
 )
 
-func reportAllBugs(c *Ctx, expect int) []*dashapi.BugReport {
-	pr := &dashapi.PollBugsRequest{
-		Type: "test",
-	}
-	resp := new(dashapi.PollBugsResponse)
-	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
-	if len(resp.Reports) != expect {
-		c.t.Fatalf("\n%v: want %v reports, got %v", caller(0), expect, len(resp.Reports))
-	}
-	for _, rep := range resp.Reports {
-		reproLevel := dashapi.ReproLevelNone
-		if len(rep.ReproC) != 0 {
-			reproLevel = dashapi.ReproLevelC
-		} else if len(rep.ReproSyz) != 0 {
-			reproLevel = dashapi.ReproLevelSyz
-		}
-		cmd := &dashapi.BugUpdate{
-			ID:         rep.ID,
-			Status:     dashapi.BugStatusOpen,
-			ReproLevel: reproLevel,
-		}
-		reply := new(dashapi.BugUpdateReply)
-		c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
-		c.expectEQ(reply.Error, false)
-		c.expectEQ(reply.OK, true)
-	}
-	return resp.Reports
-}
-
 // Basic scenario of marking a bug as fixed by a particular commit,
 // discovering this commit on builder and marking the bug as ultimately fixed.
 func TestFixBasic(t *testing.T) {
