@@ -5,6 +5,7 @@ package dash
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -20,14 +21,6 @@ import (
 
 // This file contains common middleware for UI handlers (auth, html templates, etc).
 
-type AccessLevel int
-
-const (
-	AccessPublic AccessLevel = iota + 1
-	AccessUser
-	AccessAdmin
-)
-
 type contextHandler func(c context.Context, w http.ResponseWriter, r *http.Request) error
 
 func handlerWrapper(fn contextHandler) http.Handler {
@@ -38,6 +31,18 @@ func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
 		if err := fn(c, w, r); err != nil {
+			if err == AccessError {
+				w.WriteHeader(http.StatusForbidden)
+				loginLink := ""
+				if user.Current(c) == nil {
+					loginLink, _ = user.LoginURL(c, r.URL.String())
+				}
+				err1 := templates.ExecuteTemplate(w, "forbidden.html", loginLink)
+				if err1 != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+				}
+				return
+			}
 			log.Errorf(c, "%v", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			if err1 := templates.ExecuteTemplate(w, "error.html", err.Error()); err1 != nil {
@@ -49,16 +54,25 @@ func handleContext(fn contextHandler) http.Handler {
 
 func handleAuth(fn contextHandler) contextHandler {
 	return func(c context.Context, w http.ResponseWriter, r *http.Request) error {
-		if accessLevel(c, r) == AccessPublic {
-			u := user.Current(c)
-			if u == nil {
-				return fmt.Errorf("sign-in required")
-			}
-			log.Errorf(c, "unauthorized user: domain='%v' email='%v'", u.AuthDomain, u.Email)
-			return fmt.Errorf("%v is not authorized to view this", u.Email)
+		if err := checkAccessLevel(c, r, config.AccessLevel); err != nil {
+			return err
 		}
 		return fn(c, w, r)
 	}
+}
+
+var AccessError = errors.New("unauthorized")
+
+func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) error {
+	if accessLevel(c, r) >= level {
+		return nil
+	}
+	userID := "not-signed-in"
+	if u := user.Current(c); u != nil {
+		userID = fmt.Sprintf("%q [%q]", u.Email, u.AuthDomain)
+	}
+	log.Errorf(c, "unauthorized access: %v access level %v", userID, level)
+	return AccessError
 }
 
 func accessLevel(c context.Context, r *http.Request) AccessLevel {
@@ -72,7 +86,10 @@ func accessLevel(c context.Context, r *http.Request) AccessLevel {
 		return AccessAdmin
 	}
 	u := user.Current(c)
-	if u == nil || u.AuthDomain != "gmail.com" || !strings.HasSuffix(u.Email, config.AuthDomain) {
+	if u == nil ||
+		// devappserver is broken
+		u.AuthDomain != "gmail.com" && !appengine.IsDevAppServer() ||
+		!strings.HasSuffix(u.Email, config.AuthDomain) {
 		return AccessPublic
 	}
 	return AccessUser
@@ -88,10 +105,14 @@ func serveTemplate(w http.ResponseWriter, name string, data interface{}) error {
 }
 
 type uiHeader struct {
+	LoginLink string
 }
 
-func commonHeader(c context.Context) (*uiHeader, error) {
+func commonHeader(c context.Context, r *http.Request) (*uiHeader, error) {
 	h := &uiHeader{}
+	if user.Current(c) == nil {
+		h.LoginLink, _ = user.LoginURL(c, r.URL.String())
+	}
 	return h, nil
 }
 

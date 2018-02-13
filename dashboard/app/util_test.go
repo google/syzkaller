@@ -74,16 +74,32 @@ func (c *Ctx) expectOK(err error) {
 
 func (c *Ctx) expectFail(msg string, err error) {
 	if err == nil {
-		c.t.Fatal("\n%v: expected to fail, but it does not", caller(0))
+		c.t.Fatalf("\n%v: expected to fail, but it does not", caller(0))
 	}
 	if !strings.Contains(err.Error(), msg) {
 		c.t.Fatalf("\n%v: expected to fail with %q, but failed with %q", caller(0), msg, err)
 	}
 }
 
+func (c *Ctx) expectForbidden(err error) {
+	if err == nil {
+		c.t.Fatalf("\n%v: expected to fail as 403, but it does not", caller(0))
+	}
+	httpErr, ok := err.(HttpError)
+	if !ok || httpErr.Code != http.StatusForbidden {
+		c.t.Fatalf("\n%v: expected to fail as 403, but it failed as %v", caller(0), err)
+	}
+}
+
 func (c *Ctx) expectEQ(got, want interface{}) {
 	if !reflect.DeepEqual(got, want) {
 		c.t.Fatalf("\n%v: got %#v, want %#v", caller(0), got, want)
+	}
+}
+
+func (c *Ctx) expectTrue(v bool) {
+	if !v {
+		c.t.Fatalf("\n%v: failed", caller(0))
 	}
 }
 
@@ -146,36 +162,123 @@ func (c *Ctx) API(client, key, method string, req, reply interface{}) error {
 	return nil
 }
 
-// GET sends authorized HTTP GET request to the app.
+// GET sends admin-authorized HTTP GET request to the app.
 func (c *Ctx) GET(url string) error {
-	return c.httpRequest("GET", url, "")
+	_, err := c.httpRequest("GET", url, "", AccessAdmin)
+	return err
 }
 
-// POST sends authorized HTTP POST request to the app.
+// AuthGET sends HTTP GET request to the app with the specified authorization.
+func (c *Ctx) AuthGET(access AccessLevel, url string) ([]byte, error) {
+	return c.httpRequest("GET", url, "", access)
+}
+
+// POST sends admin-authorized HTTP POST request to the app.
 func (c *Ctx) POST(url, body string) error {
-	return c.httpRequest("POST", url, body)
+	_, err := c.httpRequest("POST", url, body, AccessAdmin)
+	return err
 }
 
-func (c *Ctx) httpRequest(method, url, body string) error {
+func (c *Ctx) httpRequest(method, url, body string, access AccessLevel) ([]byte, error) {
 	c.t.Logf("%v: %v", method, url)
 	r, err := c.inst.NewRequest(method, url, strings.NewReader(body))
 	if err != nil {
 		c.t.Fatal(err)
 	}
 	registerContext(r, c)
-	user := &user.User{
-		Email:      "test@syzkaller.com",
-		AuthDomain: "gmail.com",
-		Admin:      true,
+	if access == AccessAdmin || access == AccessUser {
+		user := &user.User{
+			Email:      "user@syzkaller.com",
+			AuthDomain: "gmail.com",
+		}
+		if access == AccessAdmin {
+			user.Admin = true
+		}
+		aetest.Login(user, r)
 	}
-	aetest.Login(user, r)
 	w := httptest.NewRecorder()
 	http.DefaultServeMux.ServeHTTP(w, r)
 	c.t.Logf("REPLY: %v", w.Code)
 	if w.Code != http.StatusOK {
-		return fmt.Errorf("%v", w.Body.String())
+		return nil, HttpError{w.Code, w.Body.String()}
 	}
-	return nil
+	return w.Body.Bytes(), nil
+}
+
+type HttpError struct {
+	Code int
+	Body string
+}
+
+func (err HttpError) Error() string {
+	return fmt.Sprintf("%v: %v", err.Code, err.Body)
+}
+
+type apiClient struct {
+	*Ctx
+	client string
+	key    string
+}
+
+func (c *Ctx) makeClient(client, key string) *apiClient {
+	return &apiClient{
+		Ctx:    c,
+		client: client,
+		key:    key,
+	}
+}
+
+func (client *apiClient) API(method string, req, reply interface{}) error {
+	return client.Ctx.API(client.client, client.key, method, req, reply)
+}
+
+func (client *apiClient) uploadBuild(build *dashapi.Build) {
+	client.expectOK(client.API("upload_build", build, nil))
+}
+
+func (client *apiClient) reportCrash(crash *dashapi.Crash) {
+	client.expectOK(client.API("report_crash", crash, nil))
+}
+
+// TODO(dvyukov): make this apiClient method.
+func reportAllBugs(c *Ctx, expect int) []*dashapi.BugReport {
+	pr := &dashapi.PollBugsRequest{
+		Type: "test",
+	}
+	resp := new(dashapi.PollBugsResponse)
+	c.expectOK(c.API(client1, key1, "reporting_poll_bugs", pr, resp))
+	if len(resp.Reports) != expect {
+		c.t.Fatalf("\n%v: want %v reports, got %v", caller(0), expect, len(resp.Reports))
+	}
+	for _, rep := range resp.Reports {
+		reproLevel := dashapi.ReproLevelNone
+		if len(rep.ReproC) != 0 {
+			reproLevel = dashapi.ReproLevelC
+		} else if len(rep.ReproSyz) != 0 {
+			reproLevel = dashapi.ReproLevelSyz
+		}
+		cmd := &dashapi.BugUpdate{
+			ID:         rep.ID,
+			Status:     dashapi.BugStatusOpen,
+			ReproLevel: reproLevel,
+		}
+		reply := new(dashapi.BugUpdateReply)
+		c.expectOK(c.API(client1, key1, "reporting_update", cmd, reply))
+		c.expectEQ(reply.Error, false)
+		c.expectEQ(reply.OK, true)
+	}
+	return resp.Reports
+}
+
+func (client *apiClient) updateBug(extID string, status dashapi.BugStatus, dup string) *dashapi.BugUpdateReply {
+	cmd := &dashapi.BugUpdate{
+		ID:     extID,
+		Status: status,
+		DupOf:  dup,
+	}
+	reply := new(dashapi.BugUpdateReply)
+	client.expectOK(client.API("reporting_update", cmd, reply))
+	return reply
 }
 
 func (c *Ctx) incomingEmail(to, body string) {

@@ -95,7 +95,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 	link = bugReporting.Link
 	if !bugReporting.Reported.IsZero() && bugReporting.ReproLevel >= bug.ReproLevel {
 		status = fmt.Sprintf("%v: reported%v on %v",
-			reporting.Name, reproStr(bugReporting.ReproLevel),
+			reporting.DisplayTitle, reproStr(bugReporting.ReproLevel),
 			formatTime(bugReporting.Reported))
 		reporting, bugReporting = nil, nil
 		return
@@ -103,24 +103,24 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 	ent := state.getEntry(timeNow(c), bug.Namespace, reporting.Name)
 	cfg := config.Namespaces[bug.Namespace]
 	if bug.ReproLevel < ReproLevelC && timeSince(c, bug.FirstTime) < cfg.WaitForRepro {
-		status = fmt.Sprintf("%v: waiting for C repro", reporting.Name)
+		status = fmt.Sprintf("%v: waiting for C repro", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
 		return
 	}
 	if !cfg.MailWithoutReport && !bug.HasReport {
-		status = fmt.Sprintf("%v: no report", reporting.Name)
+		status = fmt.Sprintf("%v: no report", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
 		return
 	}
 
 	crash, crashKey, err = findCrashForBug(c, bug)
 	if err != nil {
-		status = fmt.Sprintf("%v: no crashes!", reporting.Name)
+		status = fmt.Sprintf("%v: no crashes!", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
 		return
 	}
 	if reporting.Config.NeedMaintainers() && len(crash.Maintainers) == 0 {
-		status = fmt.Sprintf("%v: no maintainers", reporting.Name)
+		status = fmt.Sprintf("%v: no maintainers", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
 		return
 	}
@@ -129,7 +129,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 	// but don't limit sending repros to already reported bugs.
 	if bugReporting.Reported.IsZero() && reporting.DailyLimit != 0 &&
 		ent.Sent >= reporting.DailyLimit {
-		status = fmt.Sprintf("%v: out of quota for today", reporting.Name)
+		status = fmt.Sprintf("%v: out of quota for today", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
 		return
 	}
@@ -140,7 +140,7 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 		// reporting too many bugs in a single poll.
 		ent.Sent++
 	}
-	status = fmt.Sprintf("%v: ready to report", reporting.Name)
+	status = fmt.Sprintf("%v: ready to report", reporting.DisplayTitle)
 	if !bugReporting.Reported.IsZero() {
 		status += fmt.Sprintf(" (reported%v on %v)",
 			reproStr(bugReporting.ReproLevel), formatTime(bugReporting.Reported))
@@ -167,7 +167,7 @@ func currentReporting(c context.Context, bug *Bug) (*Reporting, *BugReporting, i
 		case FilterReport:
 			return reporting, bugReporting, i, "", nil
 		case FilterHold:
-			return nil, nil, 0, fmt.Sprintf("%v: reporting suspended", bugReporting.Name), nil
+			return nil, nil, 0, fmt.Sprintf("%v: reporting suspended", reporting.DisplayTitle), nil
 		}
 	}
 	return nil, nil, 0, "", fmt.Errorf("no reporting left")
@@ -190,25 +190,25 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	if err != nil {
 		return nil, err
 	}
-	crashLog, err := getText(c, "CrashLog", crash.Log)
+	crashLog, _, err := getText(c, "CrashLog", crash.Log)
 	if err != nil {
 		return nil, err
 	}
 	if len(crashLog) > maxMailLogLen {
 		crashLog = crashLog[len(crashLog)-maxMailLogLen:]
 	}
-	report, err := getText(c, "CrashReport", crash.Report)
+	report, _, err := getText(c, "CrashReport", crash.Report)
 	if err != nil {
 		return nil, err
 	}
 	if len(report) > maxMailReportLen {
 		report = report[:maxMailReportLen]
 	}
-	reproC, err := getText(c, "ReproC", crash.ReproC)
+	reproC, _, err := getText(c, "ReproC", crash.ReproC)
 	if err != nil {
 		return nil, err
 	}
-	reproSyz, err := getText(c, "ReproSyz", crash.ReproSyz)
+	reproSyz, _, err := getText(c, "ReproSyz", crash.ReproSyz)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	if err != nil {
 		return nil, err
 	}
-	kernelConfig, err := getText(c, "KernelConfig", build.KernelConfig)
+	kernelConfig, _, err := getText(c, "KernelConfig", build.KernelConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +319,7 @@ func reportingPollClosed(c context.Context, ids []string) ([]string, error) {
 
 // incomingCommand is entry point to bug status updates.
 func incomingCommand(c context.Context, cmd *dashapi.BugUpdate) (bool, string, error) {
-	log.Infof(c, "got command: %+q", cmd)
+	log.Infof(c, "got command: %+v", cmd)
 	ok, reason, err := incomingCommandImpl(c, cmd)
 	if err != nil {
 		log.Errorf(c, "%v (%v)", reason, err)

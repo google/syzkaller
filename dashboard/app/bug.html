@@ -8,7 +8,7 @@ Page with details about a single bug.
 <!doctype html>
 <html>
 <head>
-	<title>Syzkaller Dashboard</title>
+	<title>{{.Bug.Title}}</title>
 	<link rel="stylesheet" href="/static/style.css"/>
 </head>
 <body>
@@ -18,10 +18,11 @@ Page with details about a single bug.
 	Status: {{if .Bug.ExternalLink}}<a href="{{.Bug.ExternalLink}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
 	{{if .Bug.Commits}}
 		Commits: {{.Bug.Commits}}<br>
-		Patched on: {{.Bug.PatchedOn}}, missing on: {{.Bug.MissingOn}}<br>
+		{{if not .Bug.ClosedTime}}
+			Patched on: {{.Bug.PatchedOn}}, missing on: {{.Bug.MissingOn}}<br>
+		{{end}}
 	{{end}}
 	First: {{formatLateness $.Now $.Bug.FirstTime}}, last: {{formatLateness $.Now $.Bug.LastTime}}<br>
-	<br>
 
 	{{template "bug_list" .DupOf}}
 	{{template "bug_list" .Dups}}

@@ -8,7 +8,7 @@ Main page.
 <!doctype html>
 <html>
 <head>
-	<title>Syzkaller Dashboard</title>
+	<title>syzbot</title>
 	<link rel="stylesheet" href="/static/style.css"/>
 </head>
 <body>
@@ -109,8 +109,16 @@ Main page.
 	<br><br>
 	{{end}}
 
-	{{range $group := $.BugGroups}}
-		{{template "bug_list" $group}}
+	{{range $ns := $.BugNamespaces}}
+		<br>
+		<h2 id="{{$ns.Caption}}">{{$ns.Caption}}</h2>
+		{{if $ns.FixedCount}}
+			<a href="{{$ns.FixedLink}}">fixed bugs ({{$ns.FixedCount}})</a>
+		{{end}}
+		{{range $group := $ns.Groups}}
+			{{template "bug_list" $group}}
+		{{end}}
+		<br>
 	{{end}}
 </body>
 </html>

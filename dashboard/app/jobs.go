@@ -179,7 +179,7 @@ retry:
 		return job, err
 	}
 	jobID := extJobID(jobKey)
-	patch, err := getText(c, "Patch", job.Patch)
+	patch, _, err := getText(c, "Patch", job.Patch)
 	if err != nil {
 		return nil, err
 	}
@@ -194,16 +194,16 @@ retry:
 	if err != nil {
 		return nil, err
 	}
-	kernelConfig, err := getText(c, "KernelConfig", build.KernelConfig)
+	kernelConfig, _, err := getText(c, "KernelConfig", build.KernelConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	reproC, err := getText(c, "ReproC", crash.ReproC)
+	reproC, _, err := getText(c, "ReproC", crash.ReproC)
 	if err != nil {
 		return nil, err
 	}
-	reproSyz, err := getText(c, "ReproSyz", crash.ReproSyz)
+	reproSyz, _, err := getText(c, "ReproSyz", crash.ReproSyz)
 	if err != nil {
 		return nil, err
 	}
@@ -321,28 +321,28 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 	if err != nil {
 		return nil, err
 	}
-	crashLog, err := getText(c, "CrashLog", job.CrashLog)
+	crashLog, _, err := getText(c, "CrashLog", job.CrashLog)
 	if err != nil {
 		return nil, err
 	}
 	if len(crashLog) > maxMailLogLen {
 		crashLog = crashLog[len(crashLog)-maxMailLogLen:]
 	}
-	report, err := getText(c, "CrashReport", job.CrashReport)
+	report, _, err := getText(c, "CrashReport", job.CrashReport)
 	if err != nil {
 		return nil, err
 	}
 	if len(report) > maxMailReportLen {
 		report = report[:maxMailReportLen]
 	}
-	jobError, err := getText(c, "Error", job.Error)
+	jobError, _, err := getText(c, "Error", job.Error)
 	if err != nil {
 		return nil, err
 	}
 	if len(jobError) > maxMailLogLen {
 		jobError = jobError[:maxMailLogLen]
 	}
-	patch, err := getText(c, "Patch", job.Patch)
+	patch, _, err := getText(c, "Patch", job.Patch)
 	if err != nil {
 		return nil, err
 	}
@@ -350,7 +350,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 	if err != nil {
 		return nil, err
 	}
-	kernelConfig, err := getText(c, "KernelConfig", build.KernelConfig)
+	kernelConfig, _, err := getText(c, "KernelConfig", build.KernelConfig)
 	if err != nil {
 		return nil, err
 	}
