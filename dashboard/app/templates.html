@@ -9,12 +9,15 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 		<table class="position_table">
 			<tr>
 				<td>
-					<h1><a href="/">syzkaller</a></h1>
+					<h1><a href="/">syzbot</a></h1>
 				</td>
 				<td class="search">
-					<a href="https://groups.google.com/forum/#!forum/syzkaller-bugs" target="_blank">found bugs</a> |
+					{{if .LoginLink}}
+						<a href="{{.LoginLink}}">sign-in</a> |
+					{{end}}
 					<a href="https://groups.google.com/forum/#!forum/syzkaller" target="_blank">mailing list</a> |
-					<a href="https://github.com/google/syzkaller" target="_blank">github</a>
+					<a href="https://github.com/google/syzkaller" target="_blank">source</a> |
+					<a href="https://github.com/google/syzkaller/blob/master/docs/syzbot.md" target="_blank">docs</a>
 				</td>
 			</tr>
 		</table>
@@ -26,30 +29,55 @@ Use of this source code is governed by Apache 2 LICENSE that can be found in the
 {{define "bug_list"}}
 {{if .}}
 {{if .Bugs}}
-<table class="list_table" id="{{$.Namespace}}">
+<table class="list_table">
 	<caption>{{$.Caption}}:</caption>
 	<tr>
 		{{if $.ShowNamespace}}<th>Kernel</th>{{end}}
 		<th>Title</th>
-		<th>Count</th>
 		<th>Repro</th>
+		<th>Count</th>
 		<th>Last</th>
-		<th>Patched</th>
-		<th>Status</th>
+		<th>Reported</th>
+		{{if $.ShowPatch}}
+			<th>Closed</th>
+			<th>Patch</th>
+		{{end}}
+		{{if $.ShowPatched}}<th>Patched</th>{{end}}
+		{{if $.ShowStatus}}<th>Status</th>{{end}}
 	</tr>
 	{{range $b := .Bugs}}
 		<tr>
 			{{if $.ShowNamespace}}<td>{{$b.Namespace}}</td>{{end}}
 			<td class="title"><a href="{{$b.Link}}">{{$b.Title}}</a></td>
-			<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>
 			<td class="stat">{{formatReproLevel $b.ReproLevel}}</td>
+			<td class="stat {{if $b.NumCrashesBad}}bad{{end}}">{{$b.NumCrashes}}</td>
 			<td class="stat">{{formatLateness $.Now $b.LastTime}}</td>
-			<td class="patched" title="{{$b.Commits}}">{{if $b.Commits}}{{len $b.PatchedOn}}/{{$b.NumManagers}}{{end}}</td>
-			<td class="status">{{if $b.ExternalLink}}<a href="{{$b.ExternalLink}}">{{$b.Status}}</a>{{else}}{{$b.Status}}{{end}}</td>
+			<td class="stat">
+				{{if $b.ExternalLink}}
+					<a href="{{$b.ExternalLink}}">{{formatLateness $.Now $b.ReportedTime}}</a>
+				{{else}}
+					{{formatLateness $.Now $b.ReportedTime}}
+				{{end}}
+			</td>
+			{{if $.ShowPatch}}
+				<td class="stat">{{formatLateness $.Now $b.ClosedTime}}</td>
+				<td class="title" title="{{$b.Commits}}">{{$b.Commits}}</td>
+			{{end}}
+			{{if $.ShowPatched}}
+				<td class="patched" title="{{$b.Commits}}">{{if $b.Commits}}{{len $b.PatchedOn}}/{{$b.NumManagers}}{{end}}</td>
+			{{end}}
+			{{if $.ShowStatus}}
+				<td class="status">
+					{{if $b.ExternalLink}}
+						<a href="{{$b.ExternalLink}}">{{$b.Status}}</a>
+					{{else}}
+						{{$b.Status}}
+					{{end}}
+				</td>
+			{{end}}
 		</tr>
 	{{end}}
 </table>
-<br>
 {{end}}
 {{end}}
 {{end}}

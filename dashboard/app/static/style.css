@@ -73,8 +73,8 @@ table td, table th {
 }
 
 .list_table .title {
-	width: 400pt;
-	max-width: 400pt;
+	width: 350pt;
+	max-width: 350pt;
 }
 
 .list_table .tag {
@@ -90,11 +90,13 @@ table td, table th {
 }
 
 .list_table .status {
-	width: 300pt;
-	max-width: 300pt;
+	width: 250pt;
+	max-width: 250pt;
 }
 
 .list_table .patched {
+	width: 60pt;
+	max-width: 60pt;
 	text-align: center;
 }
 
@@ -114,6 +116,8 @@ table td, table th {
 }
 
 .list_table .stat {
+	width: 50pt;
+	max-width: 50pt;
 	font-family: monospace;
 	text-align: right;
 }

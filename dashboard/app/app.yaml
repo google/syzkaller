@@ -17,7 +17,6 @@ handlers:
   secure: always
 - url: /(|bug|text)
   script: _go_app
-  login: required
   secure: always
 - url: /(api)
   script: _go_app
