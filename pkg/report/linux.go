@@ -65,6 +65,7 @@ func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symb
 		regexp.MustCompile(`^mm/percpu.*`),
 		regexp.MustCompile(`^mm/vmalloc.c`),
 		regexp.MustCompile(`^mm/page_alloc.c`),
+		regexp.MustCompile(`^mm/util.c`),
 		regexp.MustCompile(`^kernel/rcu/.*`),
 		regexp.MustCompile(`^arch/.*/kernel/traps.c`),
 		regexp.MustCompile(`^arch/.*/mm/fault.c`),
@@ -742,7 +743,7 @@ var linuxOopses = []*oops{
 						parseStackTrace,
 					},
 					skip: []string{"kmemleak", "kmalloc", "kcalloc", "kzalloc",
-						"kmem", "slab", "alloc", "create_object"},
+						"vmalloc", "kmem", "slab", "alloc", "create_object"},
 				},
 			},
 		},
@@ -789,7 +790,7 @@ var linuxOopses = []*oops{
 				stack: warningStackFmt(),
 			},
 			{
-				title: compile("WARNING: .*mm/slab_common\\.c.* kmalloc_slab"),
+				title: compile("WARNING: .*mm/.*\\.c.* k?.?malloc"),
 				fmt:   "WARNING: kmalloc bug in %[1]v",
 				stack: warningStackFmt("kmalloc", "kcalloc", "kzalloc", "vmalloc",
 					"slab", "kmem"),
@@ -833,7 +834,7 @@ var linuxOopses = []*oops{
 						parseStackTrace,
 					},
 					skip: []string{"rcu", "kmem", "slab", "kmalloc",
-						"kcalloc", "kzalloc"},
+						"vmalloc", "kcalloc", "kzalloc"},
 				},
 			},
 			{
@@ -932,7 +933,7 @@ var linuxOopses = []*oops{
 						parseStackTrace,
 					},
 					skip: []string{"rcu", "kmem", "slab", "kmalloc",
-						"kcalloc", "kzalloc"},
+						"vmalloc", "kcalloc", "kzalloc"},
 				},
 			},
 			{

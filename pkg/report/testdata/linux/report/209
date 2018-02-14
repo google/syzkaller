@@ -1,0 +1,89 @@
+TITLE: WARNING: kmalloc bug in cpu_map_update_elem
+
+[   29.689945] WARNING: CPU: 1 PID: 4183 at mm/util.c:403 kvmalloc_node+0xc3/0xd0
+[   29.710797] audit: type=1400 audit(1518457683.474:8): avc:  denied  { map_create } for  pid=4183 comm="syzkaller238030" scontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tcontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tclass=bpf permissive=1
+[   29.718063] Kernel panic - not syncing: panic_on_warn set ...
+[   29.718063] 
+[   29.718072] CPU: 1 PID: 4183 Comm: syzkaller238030 Not tainted 4.16.0-rc1+ #12
+[   29.718076] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   29.718080] Call Trace:
+[   29.718093]  dump_stack+0x194/0x257
+[   29.718107]  ? arch_local_irq_restore+0x53/0x53
+[   29.740690] audit: type=1400 audit(1518457683.474:9): avc:  denied  { map_read map_write } for  pid=4183 comm="syzkaller238030" scontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tcontext=unconfined_u:system_r:insmod_t:s0-s0:c0.c1023 tclass=bpf permissive=1
+[   29.747976]  ? vsnprintf+0x1ed/0x1900
+[   29.747993]  panic+0x1e4/0x41c
+[   29.805634]  ? refcount_error_report+0x214/0x214
+[   29.810387]  ? show_regs_print_info+0x18/0x18
+[   29.814873]  ? depot_save_stack+0x2ca/0x460
+[   29.819180]  ? __warn+0x1c1/0x200
+[   29.822619]  ? kvmalloc_node+0xc3/0xd0
+[   29.826484]  __warn+0x1dc/0x200
+[   29.829743]  ? do_syscall_64+0x282/0x940
+[   29.833777]  ? kvmalloc_node+0xc3/0xd0
+[   29.837642]  report_bug+0x211/0x2d0
+[   29.841249]  fixup_bug.part.11+0x37/0x80
+[   29.845293]  do_error_trap+0x2d7/0x3e0
+[   29.849167]  ? math_error+0x400/0x400
+[   29.852940]  ? kmem_cache_alloc_node_trace+0x523/0x760
+[   29.858194]  ? lock_downgrade+0x980/0x980
+[   29.862320]  ? lock_release+0xa40/0xa40
+[   29.866272]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   29.871094]  do_invalid_op+0x1b/0x20
+[   29.874782]  invalid_op+0x22/0x40
+[   29.878209] RIP: 0010:kvmalloc_node+0xc3/0xd0
+[   29.882675] RSP: 0018:ffff8801b436f6e8 EFLAGS: 00010293
+[   29.888012] RAX: ffff8801b1dd25c0 RBX: 0000000001088220 RCX: ffffffff81970ca3
+[   29.895258] RDX: 0000000000000000 RSI: 0000000001088220 RDI: 0000000000000070
+[   29.902504] RBP: ffff8801b436f708 R08: 0000000000000000 R09: 0000000000000000
+[   29.909745] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000070
+[   29.917007] R13: 0000000000000000 R14: 00000000ffffffff R15: ffff8801d304cd00
+[   29.924278]  ? kvmalloc_node+0xc3/0xd0
+[   29.928150]  ? kvmalloc_node+0xc3/0xd0
+[   29.932015]  cpu_map_update_elem+0x3c3/0x8e0
+[   29.936406]  ? kasan_check_write+0x14/0x20
+[   29.940634]  ? cpu_map_kthread_run+0x12e0/0x12e0
+[   29.945368]  SyS_bpf+0x215f/0x4860
+[   29.948890]  ? bpf_prog_get+0x20/0x20
+[   29.952692]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   29.957859]  ? trace_hardirqs_on+0xd/0x10
+[   29.961985]  ? find_held_lock+0x35/0x1d0
+[   29.966029]  ? __handle_mm_fault+0x2747/0x3ce0
+[   29.970586]  ? lock_downgrade+0x980/0x980
+[   29.974708]  ? lock_release+0xa40/0xa40
+[   29.978659]  ? do_raw_spin_trylock+0x190/0x190
+[   29.983227]  ? __handle_mm_fault+0x80e/0x3ce0
+[   29.987700]  ? __pmd_alloc+0x4e0/0x4e0
+[   29.991565]  ? check_noncircular+0x20/0x20
+[   29.995776]  ? check_noncircular+0x20/0x20
+[   29.999984]  ? find_held_lock+0x35/0x1d0
+[   30.004027]  ? handle_mm_fault+0x270/0x970
+[   30.008238]  ? find_held_lock+0x35/0x1d0
+[   30.012281]  ? __do_page_fault+0x5f7/0xc90
+[   30.016496]  ? lock_downgrade+0x980/0x980
+[   30.020628]  ? handle_mm_fault+0x43b/0x970
+[   30.024842]  ? __handle_mm_fault+0x3ce0/0x3ce0
+[   30.029394]  ? vmacache_find+0x5f/0x280
+[   30.033377]  ? up_read+0x1a/0x40
+[   30.036722]  ? __do_page_fault+0x3d6/0xc90
+[   30.040944]  ? do_syscall_64+0xb7/0x940
+[   30.044894]  ? bpf_prog_get+0x20/0x20
+[   30.048669]  do_syscall_64+0x282/0x940
+[   30.052535]  ? __do_page_fault+0xc90/0xc90
+[   30.056746]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   30.061479]  ? syscall_return_slowpath+0x550/0x550
+[   30.066384]  ? syscall_return_slowpath+0x2ac/0x550
+[   30.071286]  ? prepare_exit_to_usermode+0x350/0x350
+[   30.076276]  ? retint_user+0x18/0x18
+[   30.079987]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   30.084822]  entry_SYSCALL_64_after_hwframe+0x26/0x9b
+[   30.089986] RIP: 0033:0x43fda9
+[   30.093150] RSP: 002b:00007ffe6b075798 EFLAGS: 00000203 ORIG_RAX: 0000000000000141
+[   30.100841] RAX: ffffffffffffffda RBX: ffffffffffffffff RCX: 000000000043fda9
+[   30.108083] RDX: 0000000000000020 RSI: 0000000020ef4fe0 RDI: 0000000000000002
+[   30.115326] RBP: 00000000006ca018 R08: 0000000000000000 R09: 0000000000000000
+[   30.122571] R10: 0000000000000000 R11: 0000000000000203 R12: 00000000004016d0
+[   30.129814] R13: 0000000000401760 R14: 0000000000000000 R15: 0000000000000000
+[   30.137640] Dumping ftrace buffer:
+[   30.141244]    (ftrace buffer empty)
+[   30.144925] Kernel Offset: disabled
+[   30.148526] Rebooting in 86400 seconds..
