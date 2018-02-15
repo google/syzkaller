@@ -71,6 +71,7 @@ type uiBugPage struct {
 
 type uiBugNamespace struct {
 	Caption    string
+	CoverLink  string
 	FixedLink  string
 	FixedCount int
 	Groups     []*uiBugGroup
@@ -363,6 +364,7 @@ func fetchBugs(c context.Context, r *http.Request, onlyFixed string) ([]*uiBugNa
 		}
 		res = append(res, &uiBugNamespace{
 			Caption:    config.Namespaces[ns].DisplayTitle,
+			CoverLink:  config.Namespaces[ns].CoverLink,
 			FixedCount: fixedCount,
 			FixedLink:  fixedLink,
 			Groups:     uiGroups,
