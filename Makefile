@@ -45,6 +45,10 @@ else ifeq ("$(TARGETARCH)", "ppc64le")
 	CC = "powerpc64le-linux-gnu-gcc"
 endif
 
+# By default, build all Go binaries as static. We don't need cgo and it is
+# known to cause problems at least on Android emulator.
+export CGO_ENABLED=0
+
 ifeq ("$(TARGETOS)", "fuchsia")
 	# SOURCEDIR should point to fuchsia checkout.
 	GO = $(SOURCEDIR)/buildtools/go
@@ -53,8 +57,10 @@ ifeq ("$(TARGETOS)", "fuchsia")
 	NOSTATIC = 1
 	ifeq ("$(TARGETARCH)", "amd64")
 		ADDCFLAGS = --target=x86_64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-user-x86-64/sysroot -I $(SOURCEDIR)/out/build-zircon/build-user-x86-64
+		export ZIRCON_BUILD_DIR=$(SOURCEDIR)/out/build-zircon/build-user-x86-64
 	else ifeq ("$(TARGETARCH)", "arm64")
 		ADDCFLAGS = --target=aarch64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-user-arm64/sysroot -I $(SOURCEDIR)/out/build-zircon/build-user-arm64
+		export ZIRCON_BUILD_DIR=$(SOURCEDIR)/out/build-zircon/build-user-arm64
 	endif
 endif
 
@@ -87,9 +93,6 @@ endif
 # That's only needed if you use gdb or nm.
 # If you need that, build manually without these flags.
 GOFLAGS := "-ldflags=-s -w -X github.com/google/syzkaller/sys.GitRevision=$(REV)"
-# Build all Go binaries as static. We don't need cgo and it is known to cause
-# problems at least on Android emulator.
-export CGO_ENABLED=0
 ifneq ("$(GOTAGS)", "")
 	GOFLAGS += "-tags=$(GOTAGS)"
 endif
