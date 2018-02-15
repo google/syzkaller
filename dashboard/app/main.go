@@ -149,11 +149,10 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-	onlyFixed := r.FormValue("fixed")
 	var errorLog []byte
 	var managers []*uiManager
 	var jobs []*uiJob
-	if accessLevel(c, r) == AccessAdmin && onlyFixed == "" {
+	if accessLevel(c, r) == AccessAdmin && r.FormValue("fixed") == "" {
 		errorLog, err = fetchErrorLogs(c)
 		if err != nil {
 			return err
@@ -167,7 +166,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 			return err
 		}
 	}
-	bugNamespaces, err := fetchBugs(c, r, onlyFixed)
+	bugNamespaces, err := fetchBugs(c, r)
 	if err != nil {
 		return err
 	}
@@ -276,102 +275,118 @@ func handleText(c context.Context, w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
-func fetchBugs(c context.Context, r *http.Request, onlyFixed string) ([]*uiBugNamespace, error) {
-	query := datastore.NewQuery("Bug")
-	if onlyFixed == "" {
-		query = query.Filter("Status=", BugStatusOpen)
-	} else {
-		query = query.Filter("Namespace=", onlyFixed).
-			Filter("Status=", BugStatusFixed)
+func fetchBugs(c context.Context, r *http.Request) ([]*uiBugNamespace, error) {
+	state, err := loadReportingState(c)
+	if err != nil {
+		return nil, err
+	}
+	accessLevel := accessLevel(c, r)
+	onlyFixed := r.FormValue("fixed")
+	var res []*uiBugNamespace
+	for ns, cfg := range config.Namespaces {
+		if accessLevel < cfg.AccessLevel {
+			continue
+		}
+		if onlyFixed != "" && onlyFixed != ns {
+			continue
+		}
+		uiNamespace, err := fetchNamespaceBugs(c, accessLevel, ns, state, onlyFixed != "")
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, uiNamespace)
+	}
+	sort.Sort(uiBugNamespaceSorter(res))
+	return res, nil
+}
+
+func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
+	state *ReportingState, onlyFixed bool) (*uiBugNamespace, error) {
+	query := datastore.NewQuery("Bug").Filter("Namespace=", ns)
+	if onlyFixed {
+		query = query.Filter("Status=", BugStatusFixed)
 	}
 	var bugs []*Bug
 	_, err := query.GetAll(c, &bugs)
 	if err != nil {
 		return nil, err
 	}
-	state, err := loadReportingState(c)
+	managers, err := managerList(c, ns)
 	if err != nil {
 		return nil, err
 	}
-	accessLevel := accessLevel(c, r)
-	managers := make(map[string][]string)
-	for ns, cfg := range config.Namespaces {
-		if accessLevel < cfg.AccessLevel {
+	fixedCount := 0
+	groups := make(map[int][]*uiBug)
+	bugMap := make(map[string]*uiBug)
+	var dups []*Bug
+	for _, bug := range bugs {
+		if bug.Status == BugStatusFixed {
+			fixedCount++
+		}
+		if bug.Status == BugStatusInvalid || bug.Status == BugStatusFixed != onlyFixed {
 			continue
 		}
-		mgrs, err := managerList(c, ns)
-		if err != nil {
-			return nil, err
-		}
-		managers[ns] = mgrs
-	}
-	namespaces := make(map[string]map[int][]*uiBug)
-	for _, bug := range bugs {
 		if accessLevel < bug.sanitizeAccess(accessLevel) {
 			continue
 		}
-		if namespaces[bug.Namespace] == nil {
-			namespaces[bug.Namespace] = make(map[int][]*uiBug)
+		if bug.Status == BugStatusDup {
+			dups = append(dups, bug)
+			continue
 		}
-		uiBug := createUIBug(c, bug, state, managers[bug.Namespace])
+		uiBug := createUIBug(c, bug, state, managers)
+		bugMap[bugKeyHash(bug.Namespace, bug.Title, bug.Seq)] = uiBug
 		id := uiBug.ReportingIndex
 		if bug.Status == BugStatusFixed {
 			id = -1
 		} else if uiBug.Commits != "" {
 			id = -2
 		}
-		namespaces[bug.Namespace][id] = append(namespaces[bug.Namespace][id], uiBug)
+		groups[id] = append(groups[id], uiBug)
 	}
-	now := timeNow(c)
-	var res []*uiBugNamespace
-	for ns, groups := range namespaces {
-		var uiGroups []*uiBugGroup
-		for index, bugs := range groups {
-			sort.Sort(uiBugSorter(bugs))
-			caption, showPatch, showPatched := "", false, false
-			switch index {
-			case -1:
-				caption, showPatch, showPatched = "fixed", true, false
-			case -2:
-				caption, showPatch, showPatched = "fix pending", false, true
-			case len(config.Namespaces[ns].Reporting) - 1:
-				caption, showPatch, showPatched = "open", false, false
-			default:
-				caption, showPatch, showPatched = config.Namespaces[ns].Reporting[index].DisplayTitle, false, false
-			}
-			uiGroups = append(uiGroups, &uiBugGroup{
-				Now:         now,
-				Caption:     fmt.Sprintf("%v (%v)", caption, len(bugs)),
-				Namespace:   ns,
-				ShowPatch:   showPatch,
-				ShowPatched: showPatched,
-				ShowIndex:   index,
-				Bugs:        bugs,
-			})
+	for _, dup := range dups {
+		bug := bugMap[dup.DupOf]
+		if bug == nil {
+			continue // this can be an invalid bug which we filtered above
 		}
-		sort.Sort(uiBugGroupSorter(uiGroups))
-		fixedCount, fixedLink := 0, ""
-		if onlyFixed == "" {
-			fixedLink = fmt.Sprintf("?fixed=%v", ns)
-			fixedCount, err = datastore.NewQuery("Bug").
-				Filter("Namespace=", ns).
-				Filter("Status=", BugStatusFixed).
-				Count(c)
-			if err != nil {
-				log.Errorf(c, "failed to count fixed bugs: %v", err)
-				fixedCount = -1
-			}
+		mergeUIBug(c, bug, dup)
+	}
+	var uiGroups []*uiBugGroup
+	for index, bugs := range groups {
+		sort.Sort(uiBugSorter(bugs))
+		caption, showPatch, showPatched := "", false, false
+		switch index {
+		case -1:
+			caption, showPatch, showPatched = "fixed", true, false
+		case -2:
+			caption, showPatch, showPatched = "fix pending", false, true
+		case len(config.Namespaces[ns].Reporting) - 1:
+			caption, showPatch, showPatched = "open", false, false
+		default:
+			caption, showPatch, showPatched = config.Namespaces[ns].Reporting[index].DisplayTitle, false, false
 		}
-		res = append(res, &uiBugNamespace{
-			Caption:    config.Namespaces[ns].DisplayTitle,
-			CoverLink:  config.Namespaces[ns].CoverLink,
-			FixedCount: fixedCount,
-			FixedLink:  fixedLink,
-			Groups:     uiGroups,
+		uiGroups = append(uiGroups, &uiBugGroup{
+			Now:         timeNow(c),
+			Caption:     fmt.Sprintf("%v (%v)", caption, len(bugs)),
+			Namespace:   ns,
+			ShowPatch:   showPatch,
+			ShowPatched: showPatched,
+			ShowIndex:   index,
+			Bugs:        bugs,
 		})
 	}
-	sort.Sort(uiBugNamespaceSorter(res))
-	return res, nil
+	sort.Sort(uiBugGroupSorter(uiGroups))
+	fixedLink := ""
+	if !onlyFixed {
+		fixedLink = fmt.Sprintf("?fixed=%v", ns)
+	}
+	uiNamespace := &uiBugNamespace{
+		Caption:    config.Namespaces[ns].DisplayTitle,
+		CoverLink:  config.Namespaces[ns].CoverLink,
+		FixedCount: fixedCount,
+		FixedLink:  fixedLink,
+		Groups:     uiGroups,
+	}
+	return uiNamespace, nil
 }
 
 func loadDupsForBug(c context.Context, r *http.Request, bug *Bug, state *ReportingState, managers []string) (
@@ -497,6 +512,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		ExternalLink:   link,
 		NumManagers:    len(managers),
 	}
+	updateBugBadness(c, uiBug)
 	if len(bug.Commits) != 0 {
 		uiBug.Commits = bug.Commits[0]
 		if len(bug.Commits) > 1 {
@@ -520,6 +536,21 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		sort.Strings(uiBug.MissingOn)
 	}
 	return uiBug
+}
+
+func mergeUIBug(c context.Context, bug *uiBug, dup *Bug) {
+	bug.NumCrashes += dup.NumCrashes
+	if bug.LastTime.Before(dup.LastTime) {
+		bug.LastTime = dup.LastTime
+	}
+	if bug.ReproLevel < dup.ReproLevel {
+		bug.ReproLevel = dup.ReproLevel
+	}
+	updateBugBadness(c, bug)
+}
+
+func updateBugBadness(c context.Context, bug *uiBug) {
+	bug.NumCrashesBad = bug.NumCrashes >= 10000 && timeNow(c).Sub(bug.LastTime) < 24*time.Hour
 }
 
 func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
