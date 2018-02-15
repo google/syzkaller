@@ -40,6 +40,9 @@ type Config struct {
 	AccessLevel AccessLevel
 	// Name used in UI.
 	DisplayTitle string
+	// URL of a source coverage report for this namespace
+	// (uploading/updating the report is out of scope of the system for now).
+	CoverLink string
 	// Per-namespace clients that act only on a particular namespace.
 	Clients map[string]string
 	// A unique key for hashing, can be anything.
