@@ -130,7 +130,7 @@ func main() {
 	if err != nil {
 		Fatalf("%v", err)
 	}
-	syscalls, err := mgrconfig.ParseEnabledSyscalls(cfg)
+	syscalls, err := mgrconfig.ParseEnabledSyscalls(target, cfg.Enable_Syscalls, cfg.Disable_Syscalls)
 	if err != nil {
 		Fatalf("%v", err)
 	}
