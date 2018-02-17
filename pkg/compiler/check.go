@@ -683,12 +683,16 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, desc *typeDesc,
 	}
 	if typedef.Type != nil {
 		*t = *typedef.Type.Clone().(*ast.Type)
-		comp.instantiate(t, typedef.Args, args)
+		if !comp.instantiate(t, typedef.Args, args) {
+			return
+		}
 	} else {
 		if comp.structs[fullTypeName] == nil {
 			inst := typedef.Struct.Clone().(*ast.Struct)
 			inst.Name.Name = fullTypeName
-			comp.instantiate(inst, typedef.Args, args)
+			if !comp.instantiate(inst, typedef.Args, args) {
+				return
+			}
 			comp.checkStruct(*ctx, inst)
 			comp.desc.Nodes = append(comp.desc.Nodes, inst)
 			comp.structs[fullTypeName] = inst
@@ -711,21 +715,31 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, desc *typeDesc,
 	}
 }
 
-func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*ast.Type) {
+func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*ast.Type) bool {
 	if len(params) == 0 {
-		return
+		return true
 	}
 	argMap := make(map[string]*ast.Type)
 	for i, param := range params {
 		argMap[param.Name] = args[i]
 	}
+	err0 := comp.errors
 	templ.Walk(ast.Recursive(func(n ast.Node) {
 		templArg, ok := n.(*ast.Type)
 		if !ok {
 			return
 		}
 		if concreteArg := argMap[templArg.Ident]; concreteArg != nil {
+			origArgs := templArg.Args
+			if len(origArgs) != 0 && len(concreteArg.Args) != 0 {
+				comp.error(templArg.Pos, "both template parameter %v and its usage"+
+					" have sub-arguments", templArg.Ident)
+				return
+			}
 			*templArg = *concreteArg.Clone().(*ast.Type)
+			if len(origArgs) != 0 {
+				templArg.Args = origArgs
+			}
 		}
 		// TODO(dvyukov): somewhat hacky, but required for int8[0:CONST_ARG]
 		// Need more checks here. E.g. that CONST_ARG does not have subargs.
@@ -736,6 +750,7 @@ func (comp *compiler) instantiate(templ ast.Node, params []*ast.Ident, args []*a
 			templArg.Pos2 = concreteArg.Pos
 		}
 	}))
+	return err0 == comp.errors
 }
 
 func (comp *compiler) checkTypeArg(t, arg *ast.Type, argDesc namedArg) {
