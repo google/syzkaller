@@ -188,7 +188,7 @@ func SplitTarget(target string) (string, string, string, error) {
 	return os, vmarch, arch, nil
 }
 
-func ParseEnabledSyscalls(cfg *Config) (map[int]bool, error) {
+func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) (map[int]bool, error) {
 	match := func(call *prog.Syscall, str string) bool {
 		if str == call.CallName || str == call.Name {
 			return true
@@ -199,14 +199,9 @@ func ParseEnabledSyscalls(cfg *Config) (map[int]bool, error) {
 		return false
 	}
 
-	target, err := prog.GetTarget(cfg.TargetOS, cfg.TargetArch)
-	if err != nil {
-		return nil, err
-	}
-
 	syscalls := make(map[int]bool)
-	if len(cfg.Enable_Syscalls) != 0 {
-		for _, c := range cfg.Enable_Syscalls {
+	if len(enabled) != 0 {
+		for _, c := range enabled {
 			n := 0
 			for _, call := range target.Syscalls {
 				if match(call, c) {
@@ -223,7 +218,7 @@ func ParseEnabledSyscalls(cfg *Config) (map[int]bool, error) {
 			syscalls[call.ID] = true
 		}
 	}
-	for _, c := range cfg.Disable_Syscalls {
+	for _, c := range disabled {
 		n := 0
 		for _, call := range target.Syscalls {
 			if match(call, c) {
