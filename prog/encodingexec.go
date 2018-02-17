@@ -51,25 +51,6 @@ const (
 	ExecNoCopyout  = ^uint64(0)
 )
 
-type Args []Arg
-
-func (s Args) Len() int {
-	return len(s)
-}
-
-func (s Args) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-type ByPhysicalAddr struct {
-	Args
-	Context *execContext
-}
-
-func (s ByPhysicalAddr) Less(i, j int) bool {
-	return s.Context.args[s.Args[i]].Addr < s.Context.args[s.Args[j]].Addr
-}
-
 // SerializeForExec serializes program p for execution by process pid into the provided buffer.
 // Returns number of bytes written to the buffer.
 // If the provided buffer is too small for the program an error is returned.
@@ -137,7 +118,9 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 			for arg := range csumMap {
 				csumArgs = append(csumArgs, arg)
 			}
-			sort.Sort(ByPhysicalAddr{Args: csumArgs, Context: w})
+			sort.Slice(csumArgs, func(i, j int) bool {
+				return w.args[csumArgs[i]].Addr < w.args[csumArgs[j]].Addr
+			})
 			for i := len(csumArgs) - 1; i >= 0; i-- {
 				arg := csumArgs[i]
 				if _, ok := arg.Type().(*CsumType); !ok {
