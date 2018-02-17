@@ -226,7 +226,7 @@ var structDescs_386 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "mac_addr"}, FldName: "mac"},
 	}}},
 	{Key: StructKey{Name: "arpt_devmask"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "arpt_devmask", TypeSize: 16}, Fields: []Type{
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "mac", TypeSize: 6}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "arpt_devmask_vals", TypeSize: 1}}, Vals: []uint64{0, 255}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "mac", TypeSize: 6}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mac_addr_mask_vals", TypeSize: 1}}, Vals: []uint64{0, 255}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 10}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 10, RangeEnd: 10},
 	}}},
 	{Key: StructKey{Name: "arpt_entry"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "arpt_entry", IsVarlen: true}, Fields: []Type{
@@ -9354,13 +9354,13 @@ var structDescs_386 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tpid", TypeSize: 2}, BigEndian: true}, Val: 37120},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "pcp", TypeSize: 2}, BitfieldLen: 3, BitfieldMdl: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "dei", TypeSize: 2}, BitfieldOff: 3, BitfieldLen: 1, BitfieldMdl: true}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "vid", TypeSize: 2}, BitfieldOff: 4, BitfieldLen: 12}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "vid", TypeSize: 2}, BitfieldOff: 4, BitfieldLen: 12}, Kind: 2, RangeEnd: 4},
 	}}},
 	{Key: StructKey{Name: "vlan_tag_q"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vlan_tag_q", TypeSize: 4}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "tpid", TypeSize: 2}, BigEndian: true}, Val: 33024},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "pcp", TypeSize: 2}, BitfieldLen: 3, BitfieldMdl: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "dei", TypeSize: 2}, BitfieldOff: 3, BitfieldLen: 1, BitfieldMdl: true}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "vid", TypeSize: 2}, BitfieldOff: 4, BitfieldLen: 12}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "vid", TypeSize: 2}, BitfieldOff: 4, BitfieldLen: 12}, Kind: 2, RangeEnd: 4},
 	}}},
 	{Key: StructKey{Name: "vmaddr_cid"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vmaddr_cid", TypeSize: 4}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "any", TypeSize: 4}}, Val: 4294967295},
@@ -10084,10 +10084,10 @@ var structDescs_386 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "revision", TypeSize: 1}}},
 		&StructType{Key: StructKey{Name: "xt_connlabel_mtinfo"}, FldName: "data"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xt_entry_match[\"connlimit\", xt_connlimit_info, 0]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xt_entry_match[\"connlimit\", xt_connlimit_info, 0]", TypeSize: 60}, Fields: []Type{
+	{Key: StructKey{Name: "xt_entry_match[\"connlimit\", xt_connlimit_info, 1]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xt_entry_match[\"connlimit\", xt_connlimit_info, 1]", TypeSize: 60}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "match_size", TypeSize: 2}}, Buf: "parent"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "name", TypeSize: 29}, Kind: 2, Values: []string{"connlimit\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "revision", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "revision", TypeSize: 1}}, Val: 1},
 		&StructType{Key: StructKey{Name: "xt_connlimit_info"}, FldName: "data"},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "xt_entry_match[\"connmark\", xt_connmark_mtinfo1, 1]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xt_entry_match[\"connmark\", xt_connmark_mtinfo1, 1]", TypeSize: 44}, Fields: []Type{
@@ -10470,7 +10470,7 @@ var structDescs_386 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "xt_tcpmss_match_info"}, FldName: "data"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "xt_entry_match[\"time\", xt_time_info, 0]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xt_entry_match[\"time\", xt_time_info, 0]", TypeSize: 48}, Fields: []Type{
+	{Key: StructKey{Name: "xt_entry_match[\"time\", xt_time_info, 0]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xt_entry_match[\"time\", xt_time_info, 0]", TypeSize: 56}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "match_size", TypeSize: 2}}, Buf: "parent"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "name", TypeSize: 29}, Kind: 2, Values: []string{"time\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "revision", TypeSize: 1}}},
@@ -11280,9 +11280,11 @@ var structDescs_386 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "devname"}, FldName: "oif"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "priv", TypeSize: 4}}},
 	}}},
-	{Key: StructKey{Name: "xt_time_info"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xt_time_info", TypeSize: 16}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "date_start", TypeSize: 4}}, Kind: 2, RangeEnd: 86399},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "date_stop", TypeSize: 4}}, Kind: 2, RangeEnd: 86399},
+	{Key: StructKey{Name: "xt_time_info"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "xt_time_info", TypeSize: 24}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "date_start", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "date_stop", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "daytime_start", TypeSize: 4}}, Kind: 2, RangeEnd: 86399},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "daytime_stop", TypeSize: 4}}, Kind: 2, RangeEnd: 86399},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "monthdays_match", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "weekdays_match", TypeSize: 1}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xt_time_flags", FldName: "flags", TypeSize: 1}}, Vals: []uint64{1, 2}},
@@ -11351,7 +11353,7 @@ var structDescs_386 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "xt_entry_match[\"time\", xt_time_info, 0]"}, FldName: "time"},
 		&StructType{Key: StructKey{Name: "xt_entry_match[\"bpf\", xt_bpf_info, 0]"}, FldName: "bpf0"},
 		&StructType{Key: StructKey{Name: "xt_entry_match[\"bpf\", xt_bpf_info_v1, 1]"}, FldName: "bpf1"},
-		&StructType{Key: StructKey{Name: "xt_entry_match[\"connlimit\", xt_connlimit_info, 0]"}, FldName: "connlimit"},
+		&StructType{Key: StructKey{Name: "xt_entry_match[\"connlimit\", xt_connlimit_info, 1]"}, FldName: "connlimit"},
 		&StructType{Key: StructKey{Name: "xt_entry_match[\"conntrack\", xt_conntrack_mtinfo1, 1]"}, FldName: "conntrack1"},
 		&StructType{Key: StructKey{Name: "xt_entry_match[\"conntrack\", xt_conntrack_mtinfo2, 2]"}, FldName: "conntrack2"},
 		&StructType{Key: StructKey{Name: "xt_entry_match[\"conntrack\", xt_conntrack_mtinfo3, 3]"}, FldName: "conntrack3"},
@@ -24162,4 +24164,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "fb00a721b5e03f692fdde77960e9f70f51c45388"
+const revision_386 = "d82c642c1409d036404216acd5d0886572f581f6"

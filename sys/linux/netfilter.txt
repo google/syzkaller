@@ -100,7 +100,7 @@ xt_unspec_matches [
 	time		xt_entry_match["time", xt_time_info, 0]
 	bpf0		xt_entry_match["bpf", xt_bpf_info, 0]
 	bpf1		xt_entry_match["bpf", xt_bpf_info_v1, 1]
-	connlimit	xt_entry_match["connlimit", xt_connlimit_info, 0]
+	connlimit	xt_entry_match["connlimit", xt_connlimit_info, 1]
 	conntrack1	xt_entry_match["conntrack", xt_conntrack_mtinfo1, 1]
 	conntrack2	xt_entry_match["conntrack", xt_conntrack_mtinfo2, 2]
 	conntrack3	xt_entry_match["conntrack", xt_conntrack_mtinfo3, 3]
@@ -230,8 +230,10 @@ xt_l2tp_type = XT_L2TP_TYPE_CONTROL, XT_L2TP_TYPE_DATA
 xt_l2tp_flags = XT_L2TP_TID, XT_L2TP_SID, XT_L2TP_VERSION, XT_L2TP_TYPE
 
 xt_time_info {
-	date_start	int32[0:XT_TIME_MAX_DAYTIME]
-	date_stop	int32[0:XT_TIME_MAX_DAYTIME]
+	date_start	int32
+	date_stop	int32
+	daytime_start	int32[0:XT_TIME_MAX_DAYTIME]
+	daytime_stop	int32[0:XT_TIME_MAX_DAYTIME]
 	monthdays_match	int32
 	weekdays_match	int8
 	flags		flags[xt_time_flags, int8]
