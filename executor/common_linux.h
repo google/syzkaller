@@ -1232,6 +1232,7 @@ static void reset_arptables()
 	close(fd);
 }
 
+#include <linux/if.h>
 #include <linux/netfilter_bridge/ebtables.h>
 
 struct ebt_table_desc {
