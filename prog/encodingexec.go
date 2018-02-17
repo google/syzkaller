@@ -108,7 +108,7 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
 			if a, ok := arg.(*PointerArg); ok && a.Res != nil {
 				foreachSubargOffset(a.Res, func(arg1 Arg, offset uint64) {
-					addr := p.Target.physicalAddr(arg) + offset
+					addr := p.Target.PhysicalAddr(arg) + offset
 					if isUsed(arg1) || csumUses[arg1] {
 						w.args[arg1] = argInfo{Addr: addr}
 					}
@@ -216,7 +216,7 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 	return len(buffer) - len(w.buf), nil
 }
 
-func (target *Target) physicalAddr(arg Arg) uint64 {
+func (target *Target) PhysicalAddr(arg Arg) uint64 {
 	a, ok := arg.(*PointerArg)
 	if !ok {
 		panic("physicalAddr: bad arg kind")
@@ -279,7 +279,7 @@ func (w *execContext) writeArg(arg Arg) {
 			w.write(a.OpAdd)
 		}
 	case *PointerArg:
-		w.writeConstArg(a.Size(), w.target.physicalAddr(arg), 0, 0, 0, false)
+		w.writeConstArg(a.Size(), w.target.PhysicalAddr(arg), 0, 0, 0, false)
 	case *DataArg:
 		data := a.Data()
 		w.write(execArgData)
