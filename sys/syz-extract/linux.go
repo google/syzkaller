@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -27,7 +28,8 @@ func (*linux) prepare(sourcedir string, build bool, arches []string) error {
 			osutil.IsExist(filepath.Join(sourcedir, "init/main.o")) ||
 			osutil.IsExist(filepath.Join(sourcedir, "include/generated/compile.h")) {
 			fmt.Printf("make mrproper\n")
-			out, err := osutil.RunCmd(time.Hour, sourcedir, "make", "mrproper")
+			out, err := osutil.RunCmd(time.Hour, sourcedir, "make", "mrproper",
+				"-j", fmt.Sprint(runtime.NumCPU()))
 			if err != nil {
 				return fmt.Errorf("make mrproper failed: %v\n%s\n", err, out)
 			}
@@ -52,6 +54,7 @@ func (*linux) prepareArch(arch *Arch) error {
 		"CROSS_COMPILE=" + target.CCompilerPrefix,
 		"CFLAGS=" + strings.Join(target.CrossCFlags, " "),
 		"O=" + buildDir,
+		"-j", fmt.Sprint(runtime.NumCPU()),
 	}
 	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
 	if err != nil {
