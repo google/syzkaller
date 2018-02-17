@@ -371,6 +371,7 @@ len_nontemp5 {
 }
 
 syz_test$length24(a ptr[in, len_nontemp5])
+syz_test$length25(a0 ptr[in, array[array[int8]]], a1 len[a0])
 
 # Big endian
 
