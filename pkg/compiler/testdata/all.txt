@@ -133,6 +133,26 @@ struct0 {
 	f2	int16
 }
 
+type templ_base0[TYPE, CONST] {
+	f1	TYPE
+	f2	const[CONST, int32]
+}
+
+type templ_base1[TYPE, CONST] {
+	f2	const[CONST, int8]
+	f1	TYPE
+}
+
+type templ_templ[BASE, CONST] {
+	f1	BASE[int8, CONST]
+	f2	BASE[int32, 0]
+}
+
+templ_templ_use {
+	f1	templ_templ[templ_base0, 0]
+	f2	templ_templ[templ_base1, 1]
+}
+
 type templ_struct2[A] templ_struct0[A, int8]
 type templ_struct3 templ_struct2[C1]
 type templ_struct4 templ_struct3

@@ -260,6 +260,23 @@ type templ_struct2[A] {
 	f	B		### unknown type B
 }
 
+type templ_base0[TYPE] {
+	f1	TYPE
+}
+
+type templ_templ0[BASE] {
+	f1	BASE
+}
+
+type templ_templ1[BASE] {
+	f1	BASE[int16]			### both template parameter BASE and its usage have sub-arguments
+}
+
+templ_templ_use0 {
+	f1	templ_templ0[templ_base0]	### template templ_base0 needs 1 arguments instead of 0
+	f2	templ_templ1[templ_base0[int32]]
+}
+
 foo$200(a templ0[42, int8])
 foo$202(a templ0)		### template templ0 needs 2 arguments instead of 0
 foo$203(a type0[42])		### type type0 is not a template
