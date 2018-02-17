@@ -162,6 +162,10 @@ type Gen struct {
 	s *state
 }
 
+func (g *Gen) Target() *Target {
+	return g.r.target
+}
+
 func (g *Gen) Rand() *rand.Rand {
 	return g.r.Rand
 }
