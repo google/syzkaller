@@ -193,16 +193,15 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 	return len(buffer) - len(w.buf), nil
 }
 
-func (target *Target) PhysicalAddr(arg Arg) uint64 {
-	a, ok := arg.(*PointerArg)
-	if !ok {
-		panic("physicalAddr: bad arg kind")
+func (target *Target) PhysicalAddr(arg *PointerArg) uint64 {
+	if arg.Res == nil && arg.PagesNum == 0 {
+		return 0
 	}
-	addr := a.PageIndex*target.PageSize + target.DataOffset
-	if a.PageOffset >= 0 {
-		addr += uint64(a.PageOffset)
+	addr := arg.PageIndex*target.PageSize + target.DataOffset
+	if arg.PageOffset >= 0 {
+		addr += uint64(arg.PageOffset)
 	} else {
-		addr += target.PageSize - uint64(-a.PageOffset)
+		addr += target.PageSize - uint64(-arg.PageOffset)
 	}
 	return addr
 }
@@ -256,7 +255,7 @@ func (w *execContext) writeArg(arg Arg) {
 			w.write(a.OpAdd)
 		}
 	case *PointerArg:
-		w.writeConstArg(a.Size(), w.target.PhysicalAddr(arg), 0, 0, 0, false)
+		w.writeConstArg(a.Size(), w.target.PhysicalAddr(a), 0, 0, 0, false)
 	case *DataArg:
 		data := a.Data()
 		w.write(execArgData)
