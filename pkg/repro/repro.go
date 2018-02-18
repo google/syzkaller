@@ -428,14 +428,15 @@ func (ctx *context) minimizeProg(res *Result) (*Result, error) {
 	if res.Opts.Fault {
 		call = res.Opts.FaultCall
 	}
-	res.Prog, res.Opts.FaultCall = prog.Minimize(res.Prog, call, func(p1 *prog.Prog, callIndex int) bool {
-		crashed, err := ctx.testProg(p1, res.Duration, res.Opts)
-		if err != nil {
-			ctx.reproLog(0, "minimization failed with %v", err)
-			return false
-		}
-		return crashed
-	}, true)
+	res.Prog, res.Opts.FaultCall = prog.Minimize(res.Prog, call, true,
+		func(p1 *prog.Prog, callIndex int) bool {
+			crashed, err := ctx.testProg(p1, res.Duration, res.Opts)
+			if err != nil {
+				ctx.reproLog(0, "minimization failed with %v", err)
+				return false
+			}
+			return crashed
+		})
 
 	return res, nil
 }

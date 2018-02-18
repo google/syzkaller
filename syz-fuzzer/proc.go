@@ -138,20 +138,21 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		}
 	}
 	if !item.minimized {
-		item.p, item.call = prog.Minimize(item.p, item.call, func(p1 *prog.Prog, call1 int) bool {
-			for i := 0; i < minimizeAttempts; i++ {
-				info := proc.execute(execOpts, p1, false, false, false, false, true, StatMinimize)
-				if len(info) == 0 || len(info[call1].Signal) == 0 {
-					continue // The call was not executed.
+		item.p, item.call = prog.Minimize(item.p, item.call, false,
+			func(p1 *prog.Prog, call1 int) bool {
+				for i := 0; i < minimizeAttempts; i++ {
+					info := proc.execute(execOpts, p1, false, false, false, false, true, StatMinimize)
+					if len(info) == 0 || len(info[call1].Signal) == 0 {
+						continue // The call was not executed.
+					}
+					inf := info[call1]
+					signal := cover.Canonicalize(inf.Signal)
+					if len(cover.Intersection(newSignal, signal)) == len(newSignal) {
+						return true
+					}
 				}
-				inf := info[call1]
-				signal := cover.Canonicalize(inf.Signal)
-				if len(cover.Intersection(newSignal, signal)) == len(newSignal) {
-					return true
-				}
-			}
-			return false
-		}, false)
+				return false
+			})
 	}
 
 	data := item.p.Serialize()
