@@ -24,26 +24,32 @@ type WorkQueue struct {
 	needCandidates chan struct{}
 }
 
+type ProgTypes int
+
+const (
+	ProgCandidate ProgTypes = 1 << iota
+	ProgMinimized
+	ProgSmashed
+	ProgNormal ProgTypes = 0
+)
+
 // WorkTriage are programs for which we noticed potential new coverage during
 // first execution. But we are not sure yet if the coverage is real or not.
 // During triage we understand if these programs in fact give new coverage,
 // and if yes, minimize them and add to corpus.
 type WorkTriage struct {
-	p         *prog.Prog
-	call      int
-	signal    []uint32
-	candidate bool
-	minimized bool
-	smashed   bool
+	p      *prog.Prog
+	call   int
+	signal []uint32
+	flags  ProgTypes
 }
 
 // WorkCandidate are programs from hub.
 // We don't know yet if they are useful for this fuzzer or not.
 // A proc handles them the same way as locally generated/mutated programs.
 type WorkCandidate struct {
-	p         *prog.Prog
-	minimized bool
-	smashed   bool
+	p     *prog.Prog
+	flags ProgTypes
 }
 
 // WorkSmash are programs just added to corpus.
@@ -66,7 +72,7 @@ func (wq *WorkQueue) enqueue(item interface{}) {
 	defer wq.mu.Unlock()
 	switch item := item.(type) {
 	case *WorkTriage:
-		if item.candidate {
+		if item.flags&ProgCandidate != 0 {
 			wq.triageCandidate = append(wq.triageCandidate, item)
 		} else {
 			wq.triage = append(wq.triage, item)

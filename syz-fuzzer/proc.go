@@ -9,7 +9,6 @@ import (
 	"math/rand"
 	"os"
 	"runtime/debug"
-	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -28,10 +27,14 @@ const (
 
 // Proc represents a single fuzzing process (executor).
 type Proc struct {
-	fuzzer *Fuzzer
-	pid    int
-	env    *ipc.Env
-	rnd    *rand.Rand
+	fuzzer            *Fuzzer
+	pid               int
+	env               *ipc.Env
+	rnd               *rand.Rand
+	execOpts          *ipc.ExecOpts
+	execOptsCover     *ipc.ExecOpts
+	execOptsComps     *ipc.ExecOpts
+	execOptsNoCollide *ipc.ExecOpts
 }
 
 func newProc(fuzzer *Fuzzer, pid int) (*Proc, error) {
@@ -40,20 +43,26 @@ func newProc(fuzzer *Fuzzer, pid int) (*Proc, error) {
 		return nil, err
 	}
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano() + int64(pid)*1e12))
+	execOptsNoCollide := *fuzzer.execOpts
+	execOptsNoCollide.Flags &= ^ipc.FlagCollide
+	execOptsCover := execOptsNoCollide
+	execOptsCover.Flags |= ipc.FlagCollectCover
+	execOptsComps := execOptsNoCollide
+	execOptsComps.Flags |= ipc.FlagCollectComps
 	proc := &Proc{
-		fuzzer: fuzzer,
-		pid:    pid,
-		env:    env,
-		rnd:    rnd,
+		fuzzer:            fuzzer,
+		pid:               pid,
+		env:               env,
+		rnd:               rnd,
+		execOpts:          fuzzer.execOpts,
+		execOptsCover:     &execOptsCover,
+		execOptsComps:     &execOptsComps,
+		execOptsNoCollide: &execOptsNoCollide,
 	}
 	return proc, nil
 }
 
 func (proc *Proc) loop() {
-	pid := proc.pid
-	execOpts := proc.fuzzer.execOpts
-	ct := proc.fuzzer.choiceTable
-
 	for i := 0; ; i++ {
 		item := proc.fuzzer.workQueue.dequeue()
 		if item != nil {
@@ -61,8 +70,7 @@ func (proc *Proc) loop() {
 			case *WorkTriage:
 				proc.triageInput(item)
 			case *WorkCandidate:
-				proc.execute(execOpts, item.p, false, item.minimized,
-					item.smashed, true, false, StatCandidate)
+				proc.execute(proc.execOpts, item.p, item.flags, StatCandidate)
 			case *WorkSmash:
 				proc.smashInput(item)
 			default:
@@ -71,26 +79,26 @@ func (proc *Proc) loop() {
 			continue
 		}
 
+		ct := proc.fuzzer.choiceTable
 		corpus := proc.fuzzer.corpusSnapshot()
 		if len(corpus) == 0 || i%100 == 0 {
 			// Generate a new prog.
 			p := proc.fuzzer.target.Generate(proc.rnd, programLength, ct)
-			Logf(1, "#%v: generated", pid)
-			proc.execute(execOpts, p, false, false, false, false, false, StatGenerate)
+			Logf(1, "#%v: generated", proc.pid)
+			proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
 		} else {
 			// Mutate an existing prog.
 			p := corpus[proc.rnd.Intn(len(corpus))].Clone()
 			p.Mutate(proc.rnd, programLength, ct, corpus)
-			Logf(1, "#%v: mutated", pid)
-			proc.execute(execOpts, p, false, false, false, false, false, StatFuzz)
+			Logf(1, "#%v: mutated", proc.pid)
+			proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
 		}
 	}
 }
 
 func (proc *Proc) triageInput(item *WorkTriage) {
-	Logf(1, "#%v: triaging minimized=%v candidate=%v", proc.pid, item.minimized, item.candidate)
+	Logf(1, "#%v: triaging type=%x", proc.pid, item.flags)
 
-	execOpts := proc.fuzzer.execOpts
 	if !proc.fuzzer.coverageEnabled {
 		panic("should not be called when coverage is disabled")
 	}
@@ -105,9 +113,6 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 
 	Logf(3, "triaging input for %v (new signal=%v)", call.CallName, len(newSignal))
 	var inputCover cover.Cover
-	opts := *execOpts
-	opts.Flags |= ipc.FlagCollectCover
-	opts.Flags &= ^ipc.FlagCollide
 	const (
 		signalRuns       = 3
 		minimizeAttempts = 3
@@ -115,7 +120,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	// Compute input coverage and non-flaky signal for minimization.
 	notexecuted := 0
 	for i := 0; i < signalRuns; i++ {
-		info := proc.executeRaw(&opts, item.p, StatTriage)
+		info := proc.executeRaw(proc.execOptsCover, item.p, StatTriage)
 		if len(info) == 0 || len(info[item.call].Signal) == 0 {
 			// The call was not executed. Happens sometimes.
 			notexecuted++
@@ -128,7 +133,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		newSignal = cover.Intersection(newSignal, cover.Canonicalize(inf.Signal))
 		// Without !minimized check manager starts losing some considerable amount
 		// of coverage after each restart. Mechanics of this are not completely clear.
-		if len(newSignal) == 0 && !item.minimized {
+		if len(newSignal) == 0 && item.flags&ProgMinimized == 0 {
 			return
 		}
 		if len(inputCover) == 0 {
@@ -137,11 +142,11 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 			inputCover = cover.Union(inputCover, inf.Cover)
 		}
 	}
-	if !item.minimized {
+	if item.flags&ProgMinimized == 0 {
 		item.p, item.call = prog.Minimize(item.p, item.call, false,
 			func(p1 *prog.Prog, call1 int) bool {
 				for i := 0; i < minimizeAttempts; i++ {
-					info := proc.execute(execOpts, p1, false, false, false, false, true, StatMinimize)
+					info := proc.execute(proc.execOptsNoCollide, p1, ProgNormal, StatMinimize)
 					if len(info) == 0 || len(info[call1].Signal) == 0 {
 						continue // The call was not executed.
 					}
@@ -168,7 +173,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 
 	proc.fuzzer.addInputToCorpus(item.p, item.signal, sig)
 
-	if !item.smashed {
+	if item.flags&ProgSmashed == 0 {
 		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
 	}
 }
@@ -185,14 +190,14 @@ func (proc *Proc) smashInput(item *WorkSmash) {
 		p := item.p.Clone()
 		p.Mutate(proc.rnd, programLength, proc.fuzzer.choiceTable, corpus)
 		Logf(1, "#%v: smash mutated", proc.pid)
-		proc.execute(proc.fuzzer.execOpts, p, false, false, false, false, false, StatSmash)
+		proc.execute(proc.execOpts, p, ProgNormal, StatSmash)
 	}
 }
 
 func (proc *Proc) failCall(p *prog.Prog, call int) {
 	for nth := 0; nth < 100; nth++ {
 		Logf(1, "#%v: injecting fault into call %v/%v", proc.pid, call, nth)
-		opts := *proc.fuzzer.execOpts
+		opts := *proc.execOpts
 		opts.Flags |= ipc.FlagInjectFault
 		opts.FaultCall = call
 		opts.FaultNth = nth
@@ -206,7 +211,7 @@ func (proc *Proc) failCall(p *prog.Prog, call int) {
 func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	Logf(1, "#%v: collecting comparisons", proc.pid)
 	// First execute the original program to dump comparisons from KCOV.
-	info := proc.execute(proc.fuzzer.execOpts, p, true, false, false, false, true, StatSeed)
+	info := proc.execute(proc.execOptsComps, p, ProgNormal, StatSeed)
 	if info == nil {
 		return
 	}
@@ -216,36 +221,22 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	// Execute each of such mutants to check if it gives new coverage.
 	p.MutateWithHints(call, info[call].Comps, func(p *prog.Prog) {
 		Logf(1, "#%v: executing comparison hint", proc.pid)
-		proc.execute(proc.fuzzer.execOpts, p, false, false, false, false, false, StatHint)
+		proc.execute(proc.execOpts, p, ProgNormal, StatHint)
 	})
 }
 
-func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog,
-	needComps, minimized, smashed, candidate, noCollide bool, stat Stat) []ipc.CallInfo {
-	opts := *execOpts
-	if needComps {
-		opts.Flags |= ipc.FlagCollectComps
-	}
-	if noCollide {
-		opts.Flags &= ^ipc.FlagCollide
-	}
-
-	info := proc.executeRaw(&opts, p, stat)
-
+func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) []ipc.CallInfo {
+	info := proc.executeRaw(execOpts, p, stat)
 	for _, callIndex := range proc.fuzzer.checkNewSignal(info) {
 		proc.fuzzer.workQueue.enqueue(&WorkTriage{
-			p:         p.Clone(),
-			call:      callIndex,
-			signal:    append([]uint32{}, info[callIndex].Signal...),
-			candidate: candidate,
-			minimized: minimized,
-			smashed:   smashed,
+			p:      p.Clone(),
+			call:   callIndex,
+			signal: append([]uint32{}, info[callIndex].Signal...),
+			flags:  flags,
 		})
 	}
 	return info
 }
-
-var logMu sync.Mutex
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) []ipc.CallInfo {
 	if opts.Flags&ipc.FlagDedupCover == 0 {
@@ -296,9 +287,9 @@ func (proc *Proc) logProgram(opts *ipc.ExecOpts, p *prog.Prog) {
 	// It must not be intermixed.
 	switch proc.fuzzer.outputType {
 	case OutputStdout:
-		logMu.Lock()
+		proc.fuzzer.logMu.Lock()
 		Logf(0, "executing program %v%v:\n%s\n", proc.pid, strOpts, data)
-		logMu.Unlock()
+		proc.fuzzer.logMu.Unlock()
 	case OutputDmesg:
 		fd, err := syscall.Open("/dev/kmsg", syscall.O_WRONLY, 0)
 		if err == nil {

@@ -57,6 +57,8 @@ type Fuzzer struct {
 	corpusSignal map[uint32]struct{} // coverage of inputs in corpus
 	maxSignal    map[uint32]struct{} // max coverage ever observed including flakes
 	newSignal    map[uint32]struct{} // diff of maxSignal since last sync with master
+
+	logMu sync.Mutex
 }
 
 type Stat int
@@ -259,10 +261,16 @@ func main() {
 			panic(err)
 		}
 		if coverageEnabled {
+			flags := ProgCandidate
+			if candidate.Minimized {
+				flags |= ProgMinimized
+			}
+			if candidate.Smashed {
+				flags |= ProgSmashed
+			}
 			fuzzer.workQueue.enqueue(&WorkCandidate{
-				p:         p,
-				minimized: candidate.Minimized,
-				smashed:   candidate.Smashed,
+				p:     p,
+				flags: flags,
 			})
 		} else {
 			fuzzer.addInputToCorpus(p, nil, hash.Hash(candidate.Prog))
@@ -337,10 +345,16 @@ func (fuzzer *Fuzzer) pollLoop() {
 					panic(err)
 				}
 				if fuzzer.coverageEnabled {
+					flags := ProgCandidate
+					if candidate.Minimized {
+						flags |= ProgMinimized
+					}
+					if candidate.Smashed {
+						flags |= ProgSmashed
+					}
 					fuzzer.workQueue.enqueue(&WorkCandidate{
-						p:         p,
-						minimized: candidate.Minimized,
-						smashed:   candidate.Smashed,
+						p:     p,
+						flags: flags,
 					})
 				} else {
 					fuzzer.addInputToCorpus(p, nil, hash.Hash(candidate.Prog))
