@@ -196,14 +196,15 @@ func (g *Gen) generateArg(typ Type, pcalls *[]*Call, ignoreSpecial bool) Arg {
 func (g *Gen) MutateArg(arg0 Arg) (calls []*Call) {
 	updateSizes := true
 	for stop := false; !stop; stop = g.r.oneOf(3) {
-		args, ctxes := g.r.target.mutationSubargs(arg0)
-		if len(args) == 0 {
+		ma := &mutationArgs{target: g.r.target, ignoreSpecial: true}
+		ForeachSubArg(arg0, ma.collectArg)
+		if len(ma.args) == 0 {
 			// TODO(dvyukov): probably need to return this condition
 			// and updateSizes to caller so that Mutate can act accordingly.
 			return
 		}
-		idx := g.r.Intn(len(args))
-		arg, ctx := args[idx], ctxes[idx]
+		idx := g.r.Intn(len(ma.args))
+		arg, ctx := ma.args[idx], ma.ctxes[idx]
 		newCalls, ok := g.r.target.mutateArg(g.r, g.s, arg, ctx, &updateSizes)
 		if !ok {
 			continue

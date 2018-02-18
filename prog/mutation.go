@@ -67,13 +67,14 @@ outer:
 			retryArg := false
 			for stop := false; !stop || retryArg; stop = r.oneOf(3) {
 				retryArg = false
-				args, ctxes := p.Target.mutationArgs(c)
-				if len(args) == 0 {
+				ma := &mutationArgs{target: p.Target}
+				ForeachArg(c, ma.collectArg)
+				if len(ma.args) == 0 {
 					retry = true
 					continue outer
 				}
-				idx := r.Intn(len(args))
-				arg, ctx := args[idx], ctxes[idx]
+				idx := r.Intn(len(ma.args))
+				arg, ctx := ma.args[idx], ma.ctxes[idx]
 				calls, ok := p.Target.mutateArg(r, s, arg, ctx, &updateSizes)
 				if !ok {
 					retryArg = true
@@ -273,75 +274,48 @@ func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updat
 	return calls, true
 }
 
-func (target *Target) mutationSubargs(arg0 Arg) (args []Arg, ctxes []ArgCtx) {
-	ForeachSubArg(arg0, func(arg Arg, ctx *ArgCtx) {
-		if target.needMutateArg(arg, ctx) {
-			args = append(args, arg)
-			ctxes = append(ctxes, *ctx)
-		}
-	})
-	return
+type mutationArgs struct {
+	target        *Target
+	args          []Arg
+	ctxes         []ArgCtx
+	ignoreSpecial bool
 }
 
-func (target *Target) mutationArgs(c *Call) (args []Arg, ctxes []ArgCtx) {
-	ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
-		if target.needMutateArg(arg, ctx) {
-			args = append(args, arg)
-			ctxes = append(ctxes, *ctx)
-		}
-	})
-	return
-}
-
-func (target *Target) needMutateArg(arg Arg, ctx *ArgCtx) bool {
+func (ma *mutationArgs) collectArg(arg Arg, ctx *ArgCtx) {
+	ignoreSpecial := ma.ignoreSpecial
+	ma.ignoreSpecial = false
 	switch typ := arg.Type().(type) {
 	case *StructType:
-		if target.SpecialTypes[typ.Name()] == nil {
-			// For structs only individual fields are updated.
-			return false
+		if ma.target.SpecialTypes[typ.Name()] == nil || ignoreSpecial {
+			return // For structs only individual fields are updated.
 		}
 		// These special structs are mutated as a whole.
+		ctx.Stop = true
 	case *UnionType:
-		if target.SpecialTypes[typ.Name()] == nil && len(typ.Fields) == 1 {
-			return false
+		if ma.target.SpecialTypes[typ.Name()] == nil && len(typ.Fields) == 1 || ignoreSpecial {
+			return
 		}
+		ctx.Stop = true
 	case *ArrayType:
 		// Don't mutate fixed-size arrays.
 		if typ.Kind == ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
-			return false
+			return
 		}
 	case *CsumType:
-		// Checksum is updated when the checksummed data changes.
-		return false
+		return // Checksum is updated when the checksummed data changes.
 	case *ConstType:
-		// Well, this is const.
-		return false
+		return // Well, this is const.
 	case *BufferType:
 		if typ.Kind == BufferString && len(typ.Values) == 1 {
-			return false // string const
+			return // string const
 		}
 	}
 	typ := arg.Type()
 	if typ == nil || typ.Dir() == DirOut || !typ.Varlen() && typ.Size() == 0 {
-		return false
+		return
 	}
-	if ctx.Base != nil {
-		// TODO(dvyukov): need to check parent as well.
-		// Say, timespec can be part of another struct and base
-		// will point to that other struct, not timespec.
-		// Strictly saying, we need to check parents all way up,
-		// or better bail out from recursion when we reach
-		// a special struct.
-		baseType := ctx.Base.Type()
-		_, isStruct := baseType.(*StructType)
-		_, isUnion := baseType.(*UnionType)
-		if (isStruct || isUnion) &&
-			target.SpecialTypes[baseType.Name()] != nil {
-			// These special structs/unions are mutated as a whole.
-			return false
-		}
-	}
-	return true
+	ma.args = append(ma.args, arg)
+	ma.ctxes = append(ma.ctxes, *ctx)
 }
 
 func mutateData(r *randGen, data []byte, minLen, maxLen uint64) []byte {
