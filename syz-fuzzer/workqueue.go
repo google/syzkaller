@@ -6,6 +6,7 @@ package main
 import (
 	"sync"
 
+	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -38,10 +39,10 @@ const (
 // During triage we understand if these programs in fact give new coverage,
 // and if yes, minimize them and add to corpus.
 type WorkTriage struct {
-	p      *prog.Prog
-	call   int
-	signal []uint32
-	flags  ProgTypes
+	p     *prog.Prog
+	call  int
+	info  ipc.CallInfo
+	flags ProgTypes
 }
 
 // WorkCandidate are programs from hub.

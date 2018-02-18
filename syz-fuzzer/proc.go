@@ -103,7 +103,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		panic("should not be called when coverage is disabled")
 	}
 
-	newSignal := proc.fuzzer.corpusSignalDiff(item.signal)
+	newSignal := proc.fuzzer.corpusSignalDiff(item.info.Signal)
 	if len(newSignal) == 0 {
 		return
 	}
@@ -151,6 +151,11 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 						continue // The call was not executed.
 					}
 					inf := info[call1]
+					if item.info.Errno == 0 && inf.Errno != 0 {
+						// Don't minimize calls from successful to unsuccessful.
+						// Successful calls are much more valuable.
+						return false
+					}
 					signal := cover.Canonicalize(inf.Signal)
 					if len(cover.Intersection(newSignal, signal)) == len(newSignal) {
 						return true
@@ -167,11 +172,11 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	proc.fuzzer.sendInputToManager(RpcInput{
 		Call:   call.CallName,
 		Prog:   data,
-		Signal: []uint32(cover.Canonicalize(item.signal)),
+		Signal: []uint32(cover.Canonicalize(item.info.Signal)),
 		Cover:  []uint32(inputCover),
 	})
 
-	proc.fuzzer.addInputToCorpus(item.p, item.signal, sig)
+	proc.fuzzer.addInputToCorpus(item.p, item.info.Signal, sig)
 
 	if item.flags&ProgSmashed == 0 {
 		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
@@ -228,11 +233,17 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) []ipc.CallInfo {
 	info := proc.executeRaw(execOpts, p, stat)
 	for _, callIndex := range proc.fuzzer.checkNewSignal(info) {
+		info := info[callIndex]
+		// info.Signal points to the output shmem region, detach it before queueing.
+		info.Signal = append([]uint32{}, info.Signal...)
+		// None of the caller use Cover, so just nil it instead of detaching.
+		// Note: triage input uses executeRaw to get coverage.
+		info.Cover = nil
 		proc.fuzzer.workQueue.enqueue(&WorkTriage{
-			p:      p.Clone(),
-			call:   callIndex,
-			signal: append([]uint32{}, info[callIndex].Signal...),
-			flags:  flags,
+			p:     p.Clone(),
+			call:  callIndex,
+			info:  info,
+			flags: flags,
 		})
 	}
 	return info
