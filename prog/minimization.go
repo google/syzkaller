@@ -11,7 +11,7 @@ import (
 // predicate pred.  It iteratively generates simpler programs and asks pred
 // whether it is equal to the orginal program or not. If it is equivalent then
 // the simplification attempt is committed and the process continues.
-func Minimize(p0 *Prog, callIndex0 int, pred0 func(*Prog, int) bool, crash bool) (*Prog, int) {
+func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool) (*Prog, int) {
 	pred := pred0
 	if debug {
 		pred = func(p *Prog, callIndex int) bool {
