@@ -77,16 +77,17 @@ func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog))
 		}
 		exec(p)
 	}
-	foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 		generateHints(p, comps, c, arg, execValidate)
 	})
 }
 
 func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func()) {
-	if arg.Type().Dir() == DirOut {
+	typ := arg.Type()
+	if typ == nil || typ.Dir() == DirOut {
 		return
 	}
-	switch arg.Type().(type) {
+	switch typ.(type) {
 	case *ProcType:
 		// Random proc will not pass validation.
 		// We can mutate it, but only if the resulting value is within the legal range.

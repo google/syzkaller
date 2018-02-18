@@ -476,7 +476,7 @@ func (p *Prog) replaceArgCheck(c *Call, arg, arg1 Arg, calls []*Call) {
 				panic("call is already in prog")
 			}
 		}
-		foreachArg(c0, func(arg0, _ Arg, _ *[]Arg) {
+		ForeachArg(c0, func(arg0 Arg, _ *ArgCtx) {
 			if arg0 == arg {
 				if c0 != c {
 					panic("wrong call")
@@ -501,7 +501,7 @@ func (p *Prog) replaceArgCheck(c *Call, arg, arg1 Arg, calls []*Call) {
 
 // removeArg removes all references to/from arg0 from a program.
 func removeArg(arg0 Arg) {
-	ForeachSubarg(arg0, func(arg, _ Arg, _ *[]Arg) {
+	ForeachSubArg(arg0, func(arg Arg, ctx *ArgCtx) {
 		if a, ok := arg.(*ResultArg); ok && a.Res != nil {
 			if !(*a.Res.(ArgUsed).Used())[arg] {
 				panic("broken tree")

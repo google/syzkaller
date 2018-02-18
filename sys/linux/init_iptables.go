@@ -85,7 +85,7 @@ func (arch *arch) generateNetfilterTable(g *prog.Gen, typ prog.Type, old prog.Ar
 		hookArg.Val = pos
 	}
 	// Now update standard target jump offsets.
-	prog.ForeachSubarg(arg, func(arg, _ prog.Arg, _ *[]prog.Arg) {
+	prog.ForeachSubArg(arg, func(arg prog.Arg, _ *prog.ArgCtx) {
 		if !strings.HasPrefix(arg.Type().Name(), `xt_target_t["", `) {
 			return
 		}
