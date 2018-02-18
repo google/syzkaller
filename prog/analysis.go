@@ -112,49 +112,28 @@ func foreachArgImpl(arg Arg, ctx ArgCtx, f func(Arg, *ArgCtx)) {
 		if _, ok := a.Type().(*StructType); ok {
 			ctx.Parent = &a.Inner
 		}
+		var totalSize uint64
 		for _, arg1 := range a.Inner {
 			foreachArgImpl(arg1, ctx, f)
+			if !arg1.Type().BitfieldMiddle() {
+				size := arg1.Size()
+				ctx.Offset += size
+				totalSize += size
+			}
+		}
+		if totalSize > a.Size() {
+			panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %+v",
+				totalSize, a.Size(), a))
 		}
 	case *PointerArg:
 		if a.Res != nil {
 			ctx.Base = a
+			ctx.Offset = 0
 			foreachArgImpl(a.Res, ctx, f)
 		}
 	case *UnionArg:
 		foreachArgImpl(a.Option, ctx, f)
 	}
-}
-
-func foreachSubargOffset(arg Arg, f func(arg Arg, offset uint64)) {
-	var rec func(Arg, uint64) uint64
-	rec = func(arg1 Arg, offset uint64) uint64 {
-		switch a := arg1.(type) {
-		case *GroupArg:
-			f(arg1, offset)
-			var totalSize uint64
-			for _, arg2 := range a.Inner {
-				size := rec(arg2, offset)
-				if !arg2.Type().BitfieldMiddle() {
-					offset += size
-					totalSize += size
-				}
-			}
-			if totalSize > arg1.Size() {
-				panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %+v", totalSize, arg1.Size(), arg1))
-			}
-		case *UnionArg:
-			f(arg1, offset)
-			size := rec(a.Option, offset)
-			offset += size
-			if size > arg1.Size() {
-				panic(fmt.Sprintf("bad union arg size %v, should be <= %v for arg %+v with type %+v", size, arg1.Size(), arg1, arg1.Type()))
-			}
-		default:
-			f(arg1, offset)
-		}
-		return arg1.Size()
-	}
-	rec(arg, 0)
 }
 
 // TODO(dvyukov): combine RequiresBitmasks and RequiresChecksums into a single function
