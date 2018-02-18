@@ -86,30 +86,27 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 		}
 		// Calculate arg offsets within structs.
 		// Generate copyin instructions that fill in data into pointer arguments.
-		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
-			if a, ok := arg.(*PointerArg); ok && a.Res != nil {
-				foreachSubargOffset(a.Res, func(arg1 Arg, offset uint64) {
-					addr := p.Target.PhysicalAddr(arg) + offset
-					if isUsed(arg1) || csumUses[arg1] {
-						w.args[arg1] = argInfo{Addr: addr}
-					}
-					if _, ok := arg1.(*GroupArg); ok {
-						return
-					}
-					if _, ok := arg1.(*UnionArg); ok {
-						return
-					}
-					if a1, ok := arg1.(*DataArg); ok &&
-						(a1.Type().Dir() == DirOut || len(a1.Data()) == 0) {
-						return
-					}
-					if !IsPad(arg1.Type()) && arg1.Type().Dir() != DirOut {
-						w.write(execInstrCopyin)
-						w.write(addr)
-						w.writeArg(arg1)
-					}
-				})
+		ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
+			if ctx.Base == nil {
+				return
 			}
+			addr := p.Target.PhysicalAddr(ctx.Base) + ctx.Offset
+			if isUsed(arg) || csumUses[arg] {
+				w.args[arg] = argInfo{Addr: addr}
+			}
+			if _, ok := arg.(*GroupArg); ok {
+				return
+			}
+			if _, ok := arg.(*UnionArg); ok {
+				return
+			}
+			typ := arg.Type()
+			if typ.Dir() == DirOut || IsPad(typ) || arg.Size() == 0 {
+				return
+			}
+			w.write(execInstrCopyin)
+			w.write(addr)
+			w.writeArg(arg)
 		})
 		// Generate checksum calculation instructions starting from the last one,
 		// since checksum values can depend on values of the latter ones
