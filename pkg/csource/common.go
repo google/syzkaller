@@ -55,10 +55,11 @@ func createCommonHeader(p *prog.Prog, opts Options) ([]byte, error) {
 
 func defineList(p *prog.Prog, opts Options) ([]string, error) {
 	var defines []string
-	if prog.RequiresBitmasks(p) {
+	bitmasks, csums := prog.RequiredFeatures(p)
+	if bitmasks {
 		defines = append(defines, "SYZ_USE_BITMASKS")
 	}
-	if prog.RequiresChecksums(p) {
+	if csums {
 		defines = append(defines, "SYZ_USE_CHECKSUMS")
 	}
 	switch opts.Sandbox {
