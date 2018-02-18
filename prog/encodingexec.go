@@ -86,7 +86,7 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 		}
 		// Calculate arg offsets within structs.
 		// Generate copyin instructions that fill in data into pointer arguments.
-		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			if a, ok := arg.(*PointerArg); ok && a.Res != nil {
 				foreachSubargOffset(a.Res, func(arg1 Arg, offset uint64) {
 					addr := p.Target.PhysicalAddr(arg) + offset
@@ -167,7 +167,7 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 			w.writeArg(arg)
 		}
 		// Generate copyout instructions that persist interesting return values.
-		foreachArg(c, func(arg, base Arg, _ *[]Arg) {
+		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			if !isUsed(arg) {
 				return
 			}
@@ -176,9 +176,6 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 				// Idx is already assigned above.
 			case *ConstArg, *ResultArg:
 				// Create a separate copyout instruction that has own Idx.
-				if _, ok := base.(*PointerArg); !ok {
-					panic("arg base is not a pointer")
-				}
 				info := w.args[arg]
 				info.Idx = copyoutSeq
 				copyoutSeq++

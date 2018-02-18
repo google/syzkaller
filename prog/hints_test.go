@@ -364,8 +364,8 @@ func TestHintsRandom(t *testing.T) {
 
 func extractValues(c *Call) map[uint64]bool {
 	vals := make(map[uint64]bool)
-	foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
-		if arg.Type().Dir() == DirOut {
+	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+		if typ := arg.Type(); typ == nil || typ.Dir() == DirOut {
 			return
 		}
 		switch a := arg.(type) {

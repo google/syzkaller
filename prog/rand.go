@@ -349,7 +349,7 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 		}
 		// Discard unsuccessful calls.
 		for _, c := range calls {
-			foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+			ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 				if a, ok := arg.(*ResultArg); ok && a.Res != nil {
 					delete(*a.Res.(ArgUsed).Used(), arg)
 				}

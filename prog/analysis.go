@@ -49,7 +49,7 @@ func newState(target *Target, ct *ChoiceTable) *state {
 }
 
 func (s *state) analyze(c *Call) {
-	foreachArgArray(&c.Args, c.Ret, func(arg, base Arg, _ *[]Arg) {
+	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 		switch typ := arg.Type().(type) {
 		case *ResourceType:
 			if typ.Dir() != DirIn {
@@ -80,45 +80,49 @@ func (s *state) analyze(c *Call) {
 	}
 }
 
-func foreachSubargImpl(arg Arg, parent *[]Arg, f func(arg, base Arg, parent *[]Arg)) {
-	var rec func(arg, base Arg, parent *[]Arg)
-	rec = func(arg, base Arg, parent *[]Arg) {
-		f(arg, base, parent)
-		switch a := arg.(type) {
-		case *GroupArg:
-			for _, arg1 := range a.Inner {
-				parent1 := parent
-				if _, ok := arg.Type().(*StructType); ok {
-					parent1 = &a.Inner
-				}
-				rec(arg1, base, parent1)
-			}
-		case *PointerArg:
-			if a.Res != nil {
-				rec(a.Res, arg, parent)
-			}
-		case *UnionArg:
-			rec(a.Option, base, parent)
+type ArgCtx struct {
+	Parent *[]Arg      // GroupArg.Inner (for structs) or Call.Args containing this arg
+	Base   *PointerArg // pointer to the base of the heap object containing this arg
+	Offset uint64      // offset of this arg from the base
+	Stop   bool        // if set by the callback, subargs of this arg are not visited
+}
+
+func ForeachSubArg(arg Arg, f func(Arg, *ArgCtx)) {
+	foreachArgImpl(arg, ArgCtx{}, f)
+}
+
+func ForeachArg(c *Call, f func(Arg, *ArgCtx)) {
+	ctx := ArgCtx{}
+	if c.Ret != nil {
+		foreachArgImpl(c.Ret, ctx, f)
+	}
+	ctx.Parent = &c.Args
+	for _, arg := range c.Args {
+		foreachArgImpl(arg, ctx, f)
+	}
+}
+
+func foreachArgImpl(arg Arg, ctx ArgCtx, f func(Arg, *ArgCtx)) {
+	f(arg, &ctx)
+	if ctx.Stop {
+		return
+	}
+	switch a := arg.(type) {
+	case *GroupArg:
+		if _, ok := a.Type().(*StructType); ok {
+			ctx.Parent = &a.Inner
 		}
+		for _, arg1 := range a.Inner {
+			foreachArgImpl(arg1, ctx, f)
+		}
+	case *PointerArg:
+		if a.Res != nil {
+			ctx.Base = a
+			foreachArgImpl(a.Res, ctx, f)
+		}
+	case *UnionArg:
+		foreachArgImpl(a.Option, ctx, f)
 	}
-	rec(arg, nil, parent)
-}
-
-func ForeachSubarg(arg Arg, f func(arg, base Arg, parent *[]Arg)) {
-	foreachSubargImpl(arg, nil, f)
-}
-
-func foreachArgArray(args *[]Arg, ret Arg, f func(arg, base Arg, parent *[]Arg)) {
-	for _, arg := range *args {
-		foreachSubargImpl(arg, args, f)
-	}
-	if ret != nil {
-		foreachSubargImpl(ret, nil, f)
-	}
-}
-
-func foreachArg(c *Call, f func(arg, base Arg, parent *[]Arg)) {
-	foreachArgArray(&c.Args, nil, f)
 }
 
 func foreachSubargOffset(arg Arg, f func(arg Arg, offset uint64)) {
@@ -153,10 +157,12 @@ func foreachSubargOffset(arg Arg, f func(arg Arg, offset uint64)) {
 	rec(arg, 0)
 }
 
+// TODO(dvyukov): combine RequiresBitmasks and RequiresChecksums into a single function
+// to not walk the tree twice. They are always used together anyway.
 func RequiresBitmasks(p *Prog) bool {
 	result := false
 	for _, c := range p.Calls {
-		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			if a, ok := arg.(*ConstArg); ok {
 				if a.Type().BitfieldOffset() != 0 || a.Type().BitfieldLength() != 0 {
 					result = true
@@ -170,7 +176,7 @@ func RequiresBitmasks(p *Prog) bool {
 func RequiresChecksums(p *Prog) bool {
 	result := false
 	for _, c := range p.Calls {
-		foreachArg(c, func(arg, _ Arg, _ *[]Arg) {
+		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			if _, ok := arg.Type().(*CsumType); ok {
 				result = true
 			}
