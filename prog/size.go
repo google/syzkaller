@@ -94,19 +94,23 @@ func (target *Target) assignSizes(args []Arg, parentsMap map[Arg]Arg) {
 
 func (target *Target) assignSizesArray(args []Arg) {
 	parentsMap := make(map[Arg]Arg)
-	foreachArgArray(&args, nil, func(arg, base Arg, _ *[]Arg) {
-		if _, ok := arg.Type().(*StructType); ok {
-			for _, field := range arg.(*GroupArg).Inner {
-				parentsMap[InnerArg(field)] = arg
+	for _, arg := range args {
+		ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
+			if _, ok := arg.Type().(*StructType); ok {
+				for _, field := range arg.(*GroupArg).Inner {
+					parentsMap[InnerArg(field)] = arg
+				}
 			}
-		}
-	})
+		})
+	}
 	target.assignSizes(args, parentsMap)
-	foreachArgArray(&args, nil, func(arg, base Arg, _ *[]Arg) {
-		if _, ok := arg.Type().(*StructType); ok {
-			target.assignSizes(arg.(*GroupArg).Inner, parentsMap)
-		}
-	})
+	for _, arg := range args {
+		ForeachSubArg(arg, func(arg Arg, _ *ArgCtx) {
+			if _, ok := arg.Type().(*StructType); ok {
+				target.assignSizes(arg.(*GroupArg).Inner, parentsMap)
+			}
+		})
+	}
 }
 
 func (target *Target) assignSizesCall(c *Call) {

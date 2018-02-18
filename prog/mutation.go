@@ -67,14 +67,14 @@ outer:
 			retryArg := false
 			for stop := false; !stop || retryArg; stop = r.oneOf(3) {
 				retryArg = false
-				args, bases, parents := p.Target.mutationArgs(c)
+				args, ctxes := p.Target.mutationArgs(c)
 				if len(args) == 0 {
 					retry = true
 					continue outer
 				}
 				idx := r.Intn(len(args))
-				arg, base, parent := args[idx], bases[idx], parents[idx]
-				calls, ok := p.Target.mutateArg(r, s, arg, base, parent, &updateSizes)
+				arg, ctx := args[idx], ctxes[idx]
+				calls, ok := p.Target.mutateArg(r, s, arg, ctx, &updateSizes)
 				if !ok {
 					retryArg = true
 					continue
@@ -106,14 +106,10 @@ outer:
 	}
 }
 
-func (target *Target) mutateArg(r *randGen, s *state, arg, base Arg, parent *[]Arg, updateSizes *bool) (calls []*Call, ok bool) {
+func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updateSizes *bool) (calls []*Call, ok bool) {
 	var baseSize uint64
-	if base != nil {
-		b, ok := base.(*PointerArg)
-		if !ok || b.Res == nil {
-			panic("bad base arg")
-		}
-		baseSize = b.Res.Size()
+	if ctx.Base != nil {
+		baseSize = ctx.Base.Res.Size()
 	}
 	switch t := arg.Type().(type) {
 	case *IntType, *FlagsType:
@@ -133,7 +129,7 @@ func (target *Target) mutateArg(r *randGen, s *state, arg, base Arg, parent *[]A
 			}
 		}
 	case *LenType:
-		if !r.mutateSize(arg.(*ConstArg), *parent) {
+		if !r.mutateSize(arg.(*ConstArg), *ctx.Parent) {
 			return nil, false
 		}
 		*updateSizes = false
@@ -261,15 +257,14 @@ func (target *Target) mutateArg(r *randGen, s *state, arg, base Arg, parent *[]A
 	}
 
 	// Update base pointer if size has increased.
-	if base != nil {
-		b := base.(*PointerArg)
-		if baseSize < b.Res.Size() {
-			newArg, newCalls := r.addr(s, b.Type(), b.Res.Size(), b.Res)
+	if base := ctx.Base; base != nil {
+		if baseSize < base.Res.Size() {
+			newArg, newCalls := r.addr(s, base.Type(), base.Res.Size(), base.Res)
 			calls = append(calls, newCalls...)
 			a1 := newArg.(*PointerArg)
-			b.PageIndex = a1.PageIndex
-			b.PageOffset = a1.PageOffset
-			b.PagesNum = a1.PagesNum
+			base.PageIndex = a1.PageIndex
+			base.PageOffset = a1.PageOffset
+			base.PagesNum = a1.PagesNum
 		}
 	}
 	for _, c := range calls {
@@ -278,29 +273,27 @@ func (target *Target) mutateArg(r *randGen, s *state, arg, base Arg, parent *[]A
 	return calls, true
 }
 
-func (target *Target) mutationSubargs(arg0 Arg) (args, bases []Arg, parents []*[]Arg) {
-	ForeachSubarg(arg0, func(arg, base Arg, parent *[]Arg) {
-		if target.needMutateArg(arg, base, parent) {
+func (target *Target) mutationSubargs(arg0 Arg) (args []Arg, ctxes []ArgCtx) {
+	ForeachSubArg(arg0, func(arg Arg, ctx *ArgCtx) {
+		if target.needMutateArg(arg, ctx) {
 			args = append(args, arg)
-			bases = append(bases, base)
-			parents = append(parents, parent)
+			ctxes = append(ctxes, *ctx)
 		}
 	})
 	return
 }
 
-func (target *Target) mutationArgs(c *Call) (args, bases []Arg, parents []*[]Arg) {
-	foreachArg(c, func(arg, base Arg, parent *[]Arg) {
-		if target.needMutateArg(arg, base, parent) {
+func (target *Target) mutationArgs(c *Call) (args []Arg, ctxes []ArgCtx) {
+	ForeachArg(c, func(arg Arg, ctx *ArgCtx) {
+		if target.needMutateArg(arg, ctx) {
 			args = append(args, arg)
-			bases = append(bases, base)
-			parents = append(parents, parent)
+			ctxes = append(ctxes, *ctx)
 		}
 	})
 	return
 }
 
-func (target *Target) needMutateArg(arg, base Arg, parent *[]Arg) bool {
+func (target *Target) needMutateArg(arg Arg, ctx *ArgCtx) bool {
 	switch typ := arg.Type().(type) {
 	case *StructType:
 		if target.SpecialTypes[typ.Name()] == nil {
@@ -329,20 +322,21 @@ func (target *Target) needMutateArg(arg, base Arg, parent *[]Arg) bool {
 		}
 	}
 	typ := arg.Type()
-	if typ.Dir() == DirOut || !typ.Varlen() && typ.Size() == 0 {
+	if typ == nil || typ.Dir() == DirOut || !typ.Varlen() && typ.Size() == 0 {
 		return false
 	}
-	if base != nil {
+	if ctx.Base != nil {
 		// TODO(dvyukov): need to check parent as well.
 		// Say, timespec can be part of another struct and base
 		// will point to that other struct, not timespec.
 		// Strictly saying, we need to check parents all way up,
 		// or better bail out from recursion when we reach
 		// a special struct.
-		_, isStruct := base.Type().(*StructType)
-		_, isUnion := base.Type().(*UnionType)
+		baseType := ctx.Base.Type()
+		_, isStruct := baseType.(*StructType)
+		_, isUnion := baseType.(*UnionType)
 		if (isStruct || isUnion) &&
-			target.SpecialTypes[base.Type().Name()] != nil {
+			target.SpecialTypes[baseType.Name()] != nil {
 			// These special structs/unions are mutated as a whole.
 			return false
 		}
