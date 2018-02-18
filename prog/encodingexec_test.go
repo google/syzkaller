@@ -381,6 +381,15 @@ func TestSerializeForExec(t *testing.T) {
 			},
 			nil,
 		},
+		{
+			// NULL pointer must be encoded os 0.
+			"syz_test$opt1(0x0)",
+			[]uint64{
+				callID("syz_test$opt1"), ExecNoCopyout, 1, execArgConst, 8, 0,
+				execInstrEOF,
+			},
+			nil,
+		},
 	}
 
 	buf := make([]byte, ExecBufferSize)
