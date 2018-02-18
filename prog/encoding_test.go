@@ -198,10 +198,10 @@ func TestSerializeDeserializeRandom(t *testing.T) {
 			if ok, _, _ := testSerializeDeserialize(t, p0, data0, data1); ok {
 				continue
 			}
-			p0, _ = Minimize(p0, -1, func(p1 *Prog, _ int) bool {
+			p0, _ = Minimize(p0, -1, false, func(p1 *Prog, _ int) bool {
 				ok, _, _ := testSerializeDeserialize(t, p1, data0, data1)
 				return !ok
-			}, false)
+			})
 			ok, n0, n1 := testSerializeDeserialize(t, p0, data0, data1)
 			if ok {
 				t.Fatal("flaky?")
