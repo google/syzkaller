@@ -136,30 +136,18 @@ func foreachArgImpl(arg Arg, ctx ArgCtx, f func(Arg, *ArgCtx)) {
 	}
 }
 
-// TODO(dvyukov): combine RequiresBitmasks and RequiresChecksums into a single function
-// to not walk the tree twice. They are always used together anyway.
-func RequiresBitmasks(p *Prog) bool {
-	result := false
+func RequiredFeatures(p *Prog) (bitmasks, csums bool) {
 	for _, c := range p.Calls {
 		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			if a, ok := arg.(*ConstArg); ok {
 				if a.Type().BitfieldOffset() != 0 || a.Type().BitfieldLength() != 0 {
-					result = true
+					bitmasks = true
 				}
 			}
-		})
-	}
-	return result
-}
-
-func RequiresChecksums(p *Prog) bool {
-	result := false
-	for _, c := range p.Calls {
-		ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 			if _, ok := arg.Type().(*CsumType); ok {
-				result = true
+				csums = true
 			}
 		})
 	}
-	return result
+	return
 }
