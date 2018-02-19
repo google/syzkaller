@@ -1,0 +1,92 @@
+TITLE: WARNING: ODEBUG bug in xt_free_table_info
+
+[  527.510025] ------------[ cut here ]------------
+[  527.511247] device bridge0 entered promiscuous mode
+[  527.511333] ODEBUG: free active (active state 0) object type: timer_list hint: delayed_work_timer_fn+0x0/0x90
+[  527.511516] ipt_CLUSTERIP: unknown mode 3
+[  527.512523] xt_CT: You must specify a L4 protocol, and not use inversions on it.
+[  527.514243] WARNING: CPU: 1 PID: 649 at lib/debugobjects.c:291 debug_print_object+0x16a/0x220
+[  527.517274] Kernel panic - not syncing: panic_on_warn set ...
+[  527.517274] 
+2018/02/19 19:56:25 executing program 7:
+r0 = socket$inet(0xa, 0x6, 0x0)
+setsockopt$IPT_SO_SET_REPLACE(r0, 0x0, 0x40, &(0x7f0000000040)=@raw={'raw\x00', 0x9, 0x3, 0x240, 0x0, 0xffffffff, 0xffffffff, 0xd0, 0xffffffff, 0x1a8, 0xffffffff, 0xffffffff, 0x1a8, 0xffffffff, 0x3, &(0x7f0000000000), {[{{@uncond, 0x0, 0x70, 0xd0, 0x0, {}, []}, @common=@CLUSTERIP={0x60, 'CLUSTERIP\x00', 0x0, {0x0, @empty, 0x0, 0x0, [], 0x3}}}, {{@ip={@dev={0xac, 0x14}, @multicast2=0xe0000002, 0x0, 0x0, @common='bcsh0\x00', @syzn={0x73, 0x79, 0x7a}}, 0x0, 0xb0, 0xd8, 0x0, {}, [@common=@set={0x40, 'set\x00'}]}, @common=@unspec=@NFQUEUE3={0x28, 'NFQUEUE\x00', 0x3}}], {{[], 0x0, 0x70, 0x98, 0x1a}, {0x28, '\x00', 0x0, 0xfffffffffffffffe}}}}, 0x2a0)
+
+[  527.518371] CPU: 1 PID: 649 Comm: syz-executor2 Not tainted 4.16.0-rc2+ #115
+[  527.520033] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[  527.521312] Call Trace:
+[  527.521704]  dump_stack+0x175/0x225
+[  527.522236]  ? arch_local_irq_restore+0x52/0x52
+[  527.523031]  ? debug_print_object+0x90/0x220
+[  527.523689]  panic+0x22a/0x4be
+[  527.524196]  ? add_taint.cold.3+0x16/0x16
+[  527.524208] ipt_CLUSTERIP: unknown mode 3
+[  527.524791]  ? __warn.cold.6+0x185/0x1aa
+[  527.524807]  ? debug_print_object+0x16a/0x220
+[  527.526669]  __warn.cold.6+0x1a0/0x1aa
+[  527.527069]  ? debug_print_object+0x16a/0x220
+[  527.527478]  report_bug+0x232/0x330
+[  527.527912]  do_error_trap+0x2ce/0x410
+[  527.528501]  ? do_general_protection+0x2a0/0x2a0
+[  527.529304]  ? printk+0x9e/0xba
+[  527.529775]  ? __internal_add_timer+0x2d0/0x2d0
+[  527.530320]  ? vprintk_default+0x28/0x30
+[  527.530727]  ? vprintk_func+0x81/0xe7
+[  527.531200]  do_invalid_op+0x1b/0x20
+[  527.531626]  invalid_op+0x58/0x80
+[  527.532109] RIP: 0010:debug_print_object+0x16a/0x220
+[  527.532764] RSP: 0018:ffff88001730f800 EFLAGS: 00010082
+[  527.533550] RAX: 0000000000000061 RBX: 0000000000000003 RCX: ffffc90000ab9000
+[  527.534317] RDX: 0000000000010000 RSI: ffffffff815922c1 RDI: 0000000000000046
+[  527.535223] RBP: ffff88001730f840 R08: ffff880021cae1c0 R09: fffffbfff0da402d
+[  527.535922] R10: fffffbfff0da402c R11: ffffffff86d20163 R12: 0000000000000001
+[  527.536697] R13: ffffffff86d2e9a0 R14: ffffffff861ef560 R15: ffffffff815e2b60
+[  527.537520]  ? __internal_add_timer+0x2d0/0x2d0
+[  527.538000]  ? vprintk_func+0x81/0xe7
+[  527.538399]  debug_check_no_obj_freed+0x65d/0xf1a
+[  527.538840]  ? free_obj_work+0x5d0/0x5d0
+[  527.539282]  ? do_raw_spin_trylock+0x1b0/0x1b0
+[  527.539740]  ? kasan_check_write+0x14/0x20
+[  527.540211]  ? mutex_unlock+0x1d/0x40
+[  527.540600]  ? free_vmap_area_noflush+0xda/0x140
+[  527.541046]  __vunmap+0xde/0x320
+[  527.541449]  vfree+0x68/0x100
+[  527.541736]  ? __memset+0x24/0x30
+[  527.542119]  kvfree+0x4a/0x70
+[  527.542555]  xt_free_table_info+0x126/0x180
+[  527.543183]  ? _copy_from_user+0xa0/0x110
+[  527.543842]  do_ip6t_set_ctl+0x377/0x644
+[  527.544516]  ? compat_do_ip6t_set_ctl+0x160/0x160
+[  527.545323]  ? kasan_check_write+0x14/0x20
+[  527.545743]  ? mutex_unlock+0x1d/0x40
+[  527.546151]  ? nf_sockopt_find.constprop.0+0x21b/0x280
+[  527.546696]  nf_setsockopt+0x77/0xd0
+[  527.547064]  ipv6_setsockopt+0x141/0x170
+[  527.547478]  udpv6_setsockopt+0x62/0xa0
+[  527.547875]  sock_common_setsockopt+0x95/0xd0
+[  527.548320]  SyS_setsockopt+0x1af/0x3b0
+[  527.548835]  ? SyS_recv+0x40/0x40
+[  527.549272]  ? SyS_socket+0x14a/0x1f0
+[  527.549679]  ? vfs_writev+0x330/0x330
+[  527.550121]  ? move_addr_to_kernel+0x70/0x70
+[  527.550584]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[  527.551145]  ? SyS_recv+0x40/0x40
+[  527.551487]  do_syscall_64+0x297/0x760
+[  527.551882]  ? syscall_return_slowpath+0x360/0x360
+[  527.552397]  ? __do_page_fault+0xf20/0xf20
+[  527.552844]  ? prepare_exit_to_usermode+0x230/0x230
+[  527.553412]  ? prepare_exit_to_usermode+0x187/0x230
+[  527.553934]  ? perf_trace_sys_enter+0xaf0/0xaf0
+[  527.554620]  ? __clear_rsb+0x25/0x3d
+[  527.555030]  ? __clear_rsb+0x25/0x3d
+[  527.555453]  ? __clear_rsb+0x15/0x3d
+[  527.555970]  ? __clear_rsb+0x25/0x3d
+[  527.556691]  ? async_page_fault+0x6c/0x90
+[  527.557239]  entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+[  527.557721] RIP: 0033:0x453cd9
+[  527.558087] RSP: 002b:00007fa3ff5b3c68 EFLAGS: 00000246 ORIG_RAX: 0000000000000036
+[  527.558862] RAX: ffffffffffffffda RBX: 000000000070bea0 RCX: 0000000000453cd9
+[  527.559624] RDX: 0000000000000040 RSI: 0000000000000029 RDI: 0000000000000014
+[  527.560370] RBP: 00007fa3ff5b46d4 R08: 0000000000000480 R09: 0000000000000000
+[  527.561108] R10: 0000000020000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  527.561828] R13: 00000000000004d5 R14: 00000000006dd498 R15: 00000000006d60a0
