@@ -2,7 +2,10 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "16f8d2a14dffe8465559442d33e3ca296f7ea4bf"
+#define SYZ_REVISION "4eadf9151d47a3744fe9277b15a0447970eba0cb"
+#define SYZ_PAGE_SIZE 4096
+#define SYZ_NUM_PAGES 4096
+#define SYZ_DATA_OFFSET 536870912
 unsigned syscall_count = 164;
 call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
@@ -175,7 +178,10 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "c04cb066cf7fc135f9f85388423f3e65aedc5028"
+#define SYZ_REVISION "bb0e27a08caeecf468bb53c76ebf97388e4d3c6d"
+#define SYZ_PAGE_SIZE 4096
+#define SYZ_NUM_PAGES 4096
+#define SYZ_DATA_OFFSET 536870912
 unsigned syscall_count = 164;
 call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},

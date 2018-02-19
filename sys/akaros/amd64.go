@@ -4,7 +4,7 @@ package akaros
 import . "github.com/google/syzkaller/prog"
 
 func init() {
-	RegisterTarget(&Target{OS: "akaros", Arch: "amd64", Revision: revision_amd64, PtrSize: 8, Syscalls: syscalls_amd64, Resources: resources_amd64, Structs: structDescs_amd64, Consts: consts_amd64}, initTarget)
+	RegisterTarget(&Target{OS: "akaros", Arch: "amd64", Revision: revision_amd64, PtrSize: 8, PageSize: 4096, NumPages: 4096, DataOffset: 536870912, Syscalls: syscalls_amd64, Resources: resources_amd64, Structs: structDescs_amd64, Consts: consts_amd64}, initTarget)
 }
 
 var resources_amd64 = []*ResourceDesc{
@@ -285,4 +285,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "__O_TMPFILE", Value: 4259840},
 }
 
-const revision_amd64 = "0e5dbbd94e4838b9729df440c4c53e581768eaf8"
+const revision_amd64 = "43f665d2468516ae8ffc137aec39649a4a1dc7ce"

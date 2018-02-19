@@ -17,7 +17,7 @@ type validCtx struct {
 func (p *Prog) validate() error {
 	ctx := &validCtx{make(map[Arg]bool), make(map[Arg]Arg)}
 	for _, c := range p.Calls {
-		if err := c.validate(ctx); err != nil {
+		if err := p.validateCall(ctx, c); err != nil {
 			return err
 		}
 	}
@@ -29,7 +29,7 @@ func (p *Prog) validate() error {
 	return nil
 }
 
-func (c *Call) validate(ctx *validCtx) error {
+func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 	if c.Meta == nil {
 		return fmt.Errorf("call does not have meta information")
 	}
@@ -157,13 +157,23 @@ func (c *Call) validate(ctx *validCtx) error {
 		switch a := arg.(type) {
 		case *ConstArg:
 		case *PointerArg:
+			maxMem := p.Target.NumPages * p.Target.PageSize
+			size := a.VmaSize
+			if size == 0 && a.Res != nil {
+				size = a.Res.Size()
+			}
+			if a.Address >= maxMem || a.Address+size > maxMem {
+				return fmt.Errorf("syscall %v: ptr %v has bad address %v/%v/%v",
+					c.Meta.Name, a.Type().Name(), a.Address, a.VmaSize, size)
+			}
 			switch t := a.Type().(type) {
 			case *VmaType:
 				if a.Res != nil {
 					return fmt.Errorf("syscall %v: vma arg '%v' has data", c.Meta.Name, a.Type().Name())
 				}
-				if a.PagesNum == 0 && t.Dir() != DirOut && !t.Optional() {
-					return fmt.Errorf("syscall %v: vma arg '%v' has size 0", c.Meta.Name, a.Type().Name())
+				if a.VmaSize == 0 && t.Dir() != DirOut && !t.Optional() {
+					return fmt.Errorf("syscall %v: vma arg '%v' has size 0",
+						c.Meta.Name, a.Type().Name())
 				}
 			case *PtrType:
 				if a.Res != nil {
@@ -171,8 +181,9 @@ func (c *Call) validate(ctx *validCtx) error {
 						return err
 					}
 				}
-				if a.PagesNum != 0 {
-					return fmt.Errorf("syscall %v: pointer arg '%v' has nonzero size", c.Meta.Name, a.Type().Name())
+				if a.VmaSize != 0 {
+					return fmt.Errorf("syscall %v: pointer arg '%v' has nonzero size",
+						c.Meta.Name, a.Type().Name())
 				}
 			default:
 				return fmt.Errorf("syscall %v: pointer arg '%v' has bad meta type %+v", c.Meta.Name, arg.Type().Name(), arg.Type())

@@ -4,7 +4,7 @@ package test
 import . "github.com/google/syzkaller/prog"
 
 func init() {
-	RegisterTarget(&Target{OS: "test", Arch: "32", Revision: revision_32, PtrSize: 4, Syscalls: syscalls_32, Resources: resources_32, Structs: structDescs_32, Consts: consts_32}, initTarget)
+	RegisterTarget(&Target{OS: "test", Arch: "32", Revision: revision_32, PtrSize: 4, PageSize: 8192, NumPages: 2048, DataOffset: 536870912, Syscalls: syscalls_32, Resources: resources_32, Structs: structDescs_32, Consts: consts_32}, initTarget)
 }
 
 var resources_32 = []*ResourceDesc{
@@ -695,4 +695,4 @@ var consts_32 = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32 = "229a33891b79d4c76384836d58be89caaab83684"
+const revision_32 = "6f7cae371c55b5afdfbc7f518e21c58894cfce5b"

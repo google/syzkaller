@@ -26,7 +26,19 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		w:         new(bytes.Buffer),
 		calls:     make(map[string]uint64),
 	}
-	for _, c := range p.Calls {
+
+	calls, nvar, err := ctx.generateProgCalls(ctx.p)
+	if err != nil {
+		return nil, err
+	}
+
+	mmapProg := p.Target.GenerateUberMmapProg()
+	mmapCalls, _, err := ctx.generateProgCalls(mmapProg)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, c := range append(mmapProg.Calls, p.Calls...) {
 		ctx.calls[c.Meta.CallName] = c.Meta.NR
 	}
 
@@ -41,16 +53,6 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 
 	ctx.generateSyscallDefines()
 
-	exec := make([]byte, prog.ExecBufferSize)
-	progSize, err := ctx.p.SerializeForExec(exec)
-	if err != nil {
-		return nil, fmt.Errorf("failed to serialize program: %v", err)
-	}
-	decoded, err := ctx.target.DeserializeExec(exec[:progSize])
-	if err != nil {
-		return nil, err
-	}
-	calls, nvar := ctx.generateCalls(decoded)
 	if nvar != 0 {
 		ctx.printf("long r[%v];\n", nvar)
 	}
@@ -62,6 +64,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		ctx.generateTestFunc(calls, nvar, "loop")
 
 		ctx.print("int main()\n{\n")
+		for _, c := range mmapCalls {
+			ctx.printf("%s", c)
+		}
 		if opts.HandleSegv {
 			ctx.printf("\tinstall_segv_handler();\n")
 		}
@@ -83,6 +88,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		ctx.generateTestFunc(calls, nvar, "test")
 		if opts.Procs <= 1 {
 			ctx.print("int main()\n{\n")
+			for _, c := range mmapCalls {
+				ctx.printf("%s", c)
+			}
 			if opts.HandleSegv {
 				ctx.print("\tinstall_segv_handler();\n")
 			}
@@ -108,6 +116,9 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			ctx.print("\t}\n}\n")
 		} else {
 			ctx.print("int main()\n{\n")
+			for _, c := range mmapCalls {
+				ctx.printf("%s", c)
+			}
 			if opts.UseTmpDir {
 				ctx.print("\tchar *cwd = get_current_dir_name();\n")
 			}
@@ -252,6 +263,20 @@ func (ctx *context) generateSyscallDefines() {
 		ctx.printf("#define __NR_mmap __NR_mmap2\n")
 	}
 	ctx.printf("\n")
+}
+
+func (ctx *context) generateProgCalls(p *prog.Prog) ([]string, uint64, error) {
+	exec := make([]byte, prog.ExecBufferSize)
+	progSize, err := p.SerializeForExec(exec)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to serialize program: %v", err)
+	}
+	decoded, err := ctx.target.DeserializeExec(exec[:progSize])
+	if err != nil {
+		return nil, 0, err
+	}
+	calls, nvar := ctx.generateCalls(decoded)
+	return calls, nvar, nil
 }
 
 func (ctx *context) generateCalls(p prog.ExecProg) ([]string, uint64) {

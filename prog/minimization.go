@@ -29,44 +29,6 @@ func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool)
 		name0 = p0.Calls[callIndex0].Meta.Name
 	}
 
-	// Try to glue all mmap's together.
-	s := analyze(nil, p0, nil)
-	hi := -1
-	lo := -1
-	for i := 0; i < maxPages; i++ {
-		if s.pages[i] {
-			hi = i
-			if lo == -1 {
-				lo = i
-			}
-		}
-	}
-	if hi != -1 {
-		p := p0.Clone()
-		callIndex := callIndex0
-		// Remove all mmaps.
-		for i := 0; i < len(p.Calls); i++ {
-			c := p.Calls[i]
-			if i != callIndex && c.Meta == p.Target.MmapSyscall {
-				p.removeCall(i)
-				if i < callIndex {
-					callIndex--
-				}
-				i--
-			}
-		}
-		// Prepend uber-mmap.
-		mmap := p0.Target.MakeMmap(uint64(lo), uint64(hi-lo)+1)
-		p.Calls = append([]*Call{mmap}, p.Calls...)
-		if callIndex != -1 {
-			callIndex++
-		}
-		if pred(p, callIndex) {
-			p0 = p
-			callIndex0 = callIndex
-		}
-	}
-
 	// Try to remove all calls except the last one one-by-one.
 	for i := len(p0.Calls) - 1; i >= 0; i-- {
 		if i == callIndex0 {

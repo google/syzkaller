@@ -21,6 +21,9 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
+	if (syz_mmap(SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE) != ZX_OK)
+		fail("mmap of data segment failed");
+
 	install_segv_handler();
 	setup_control_pipes();
 	receive_execute(true);

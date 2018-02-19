@@ -10,39 +10,23 @@ import (
 func initTarget(target *prog.Target) {
 	arch := &arch{
 		mmapSyscall: target.SyscallMap["mmap"],
-		pageSize:    (12 - target.PtrSize) << 10,
 	}
 
-	target.PageSize = arch.pageSize
-	target.DataOffset = 100 << 20
-	target.MmapSyscall = arch.mmapSyscall
 	target.MakeMmap = arch.makeMmap
-	target.AnalyzeMmap = arch.analyzeMmap
 }
 
 type arch struct {
 	mmapSyscall *prog.Syscall
-	pageSize    uint64
 }
 
-func (arch *arch) makeMmap(start, npages uint64) *prog.Call {
+func (arch *arch) makeMmap(addr, size uint64) *prog.Call {
 	meta := arch.mmapSyscall
 	return &prog.Call{
 		Meta: meta,
 		Args: []prog.Arg{
-			prog.MakePointerArg(meta.Args[0], start, 0, npages, nil),
-			prog.MakeConstArg(meta.Args[1], npages*arch.pageSize),
+			prog.MakeVmaPointerArg(meta.Args[0], addr, size),
+			prog.MakeConstArg(meta.Args[1], size),
 		},
 		Ret: prog.MakeReturnArg(meta.Ret),
 	}
-}
-
-func (arch *arch) analyzeMmap(c *prog.Call) (start, npages uint64, mapped bool) {
-	switch c.Meta.Name {
-	case "mmap":
-		npages = c.Args[1].(*prog.ConstArg).Val / arch.pageSize
-		start = c.Args[0].(*prog.PointerArg).PageIndex
-		mapped = true
-	}
-	return
 }

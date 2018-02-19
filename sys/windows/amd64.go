@@ -4,7 +4,7 @@ package windows
 import . "github.com/google/syzkaller/prog"
 
 func init() {
-	RegisterTarget(&Target{OS: "windows", Arch: "amd64", Revision: revision_amd64, PtrSize: 8, Syscalls: syscalls_amd64, Resources: resources_amd64, Structs: structDescs_amd64, Consts: consts_amd64}, initTarget)
+	RegisterTarget(&Target{OS: "windows", Arch: "amd64", Revision: revision_amd64, PtrSize: 8, PageSize: 4096, NumPages: 4096, DataOffset: 536870912, Syscalls: syscalls_amd64, Resources: resources_amd64, Structs: structDescs_amd64, Consts: consts_amd64}, initTarget)
 }
 
 var resources_amd64 = []*ResourceDesc{
@@ -14612,4 +14612,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WRITE_OWNER", Value: 524288},
 }
 
-const revision_amd64 = "5d63c10c1e139f4a33dae8f94809285dae73a415"
+const revision_amd64 = "38e754fb8319bf26f8642703cab9d9acbcec5109"

@@ -12,6 +12,8 @@
 
 #include "syscalls_akaros.h"
 
+#include <sys/mman.h>
+
 uint32 output;
 
 int main(int argc, char** argv)
@@ -20,6 +22,10 @@ int main(int argc, char** argv)
 		puts(GOOS " " GOARCH " " SYZ_REVISION " " GIT_REVISION);
 		return 0;
 	}
+
+	if (mmap((void*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE, PROT_READ | PROT_WRITE,
+		 MAP_ANON | MAP_PRIVATE | MAP_FIXED, -1, 0) != (void*)SYZ_DATA_OFFSET)
+		fail("mmap of data segment failed");
 
 	use_temporary_dir();
 	install_segv_handler();

@@ -9,12 +9,9 @@ import (
 	"math"
 	"math/rand"
 	"strings"
-	"sync"
 
 	"github.com/google/syzkaller/pkg/ifuzz"
 )
-
-var pageStartPool = sync.Pool{New: func() interface{} { return new([]uint64) }}
 
 type randGen struct {
 	*rand.Rand
@@ -132,7 +129,7 @@ func (r *randGen) randPageCount() (n uint64) {
 	case r.nOutOf(5, 6):
 		n = r.rand(20) + 1
 	default:
-		n = (r.rand(3) + 1) * 1024
+		n = (r.rand(3) + 1) * 512
 	}
 	return
 }
@@ -217,82 +214,13 @@ func (r *randGen) randString(s *state, t *BufferType) []byte {
 	return buf.Bytes()
 }
 
-func (r *randGen) addr1(s *state, typ Type, size uint64, data Arg) (Arg, []*Call) {
-	npages := (size + r.target.PageSize - 1) / r.target.PageSize
-	if npages == 0 {
-		npages = 1
-	}
-	if r.bin() {
-		return r.randPageAddr(s, typ, npages, data, false), nil
-	}
-	for i := uint64(0); i < maxPages-npages; i++ {
-		free := true
-		for j := uint64(0); j < npages; j++ {
-			if s.pages[i+j] {
-				free = false
-				break
-			}
-		}
-		if !free {
-			continue
-		}
-		c := r.target.MakeMmap(i, npages)
-		return MakePointerArg(typ, i, 0, 0, data), []*Call{c}
-	}
-	return r.randPageAddr(s, typ, npages, data, false), nil
+func (r *randGen) allocAddr(s *state, typ Type, size uint64, data Arg) *PointerArg {
+	return MakePointerArg(typ, s.ma.alloc(r, size), data)
 }
 
-func (r *randGen) addr(s *state, typ Type, size uint64, data Arg) (Arg, []*Call) {
-	arg, calls := r.addr1(s, typ, size, data)
-	a, ok := arg.(*PointerArg)
-	if !ok {
-		panic("bad")
-	}
-	// Patch offset of the address.
-	switch {
-	case r.nOutOf(50, 102):
-	case r.nOutOf(50, 52):
-		a.PageOffset = -int(size)
-	case r.nOutOf(1, 2):
-		a.PageOffset = r.Intn(int(r.target.PageSize))
-	default:
-		if size > 0 {
-			a.PageOffset = -r.Intn(int(size))
-		}
-	}
-	return arg, calls
-}
-
-func (r *randGen) randPageAddr(s *state, typ Type, npages uint64, data Arg, vma bool) Arg {
-	poolPtr := pageStartPool.Get().(*[]uint64)
-	starts := (*poolPtr)[:0]
-	for i := uint64(0); i < maxPages-npages; i++ {
-		busy := true
-		for j := uint64(0); j < npages; j++ {
-			if !s.pages[i+j] {
-				busy = false
-				break
-			}
-		}
-		// TODO: it does not need to be completely busy,
-		// for example, mmap addr arg can be new memory.
-		if !busy {
-			continue
-		}
-		starts = append(starts, i)
-	}
-	var page uint64
-	if len(starts) != 0 {
-		page = starts[r.rand(len(starts))]
-	} else {
-		page = r.rand(int(maxPages - npages))
-	}
-	if !vma {
-		npages = 0
-	}
-	*poolPtr = starts
-	pageStartPool.Put(poolPtr)
-	return MakePointerArg(typ, page, 0, npages, data)
+func (r *randGen) allocVMA(s *state, typ Type, numPages uint64) *PointerArg {
+	page := s.va.alloc(r, numPages)
+	return MakeVmaPointerArg(typ, page*r.target.PageSize, numPages*r.target.PageSize)
 }
 
 func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []*Call) {
@@ -348,6 +276,9 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 			return arg, calls
 		}
 		// Discard unsuccessful calls.
+		// Note: s.ma/va have already noted allocations of the new objects
+		// in discarded syscalls, ideally we should recreate state
+		// by analyzing the program again.
 		for _, c := range calls {
 			ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 				if a, ok := arg.(*ResultArg); ok && a.Res != nil {
@@ -429,22 +360,14 @@ func (r *randGen) nOutOf(n, outOf int) bool {
 }
 
 func (r *randGen) generateCall(s *state, p *Prog) []*Call {
-	call := -1
-	if len(p.Calls) != 0 {
-		for i := 0; i < 5; i++ {
-			c := p.Calls[r.Intn(len(p.Calls))].Meta
-			call = c.ID
-			// There is roughly half of mmap's so ignore them.
-			if c != r.target.MmapSyscall {
-				break
-			}
-		}
-	}
-
 	idx := 0
 	if s.ct == nil {
 		idx = r.Intn(len(r.target.Syscalls))
 	} else {
+		call := -1
+		if len(p.Calls) != 0 {
+			call = p.Calls[r.Intn(len(p.Calls))].Meta.ID
+		}
 		idx = s.ct.Choose(r.Rand, call)
 	}
 	meta := r.target.Syscalls[idx]
@@ -495,7 +418,14 @@ func (target *Target) GenerateAllSyzProg(rs rand.Source) *Prog {
 func (target *Target) GenerateSimpleProg() *Prog {
 	return &Prog{
 		Target: target,
-		Calls:  []*Call{target.MakeMmap(0, 1)},
+		Calls:  []*Call{target.MakeMmap(0, target.PageSize)},
+	}
+}
+
+func (target *Target) GenerateUberMmapProg() *Prog {
+	return &Prog{
+		Target: target,
+		Calls:  []*Call{target.MakeMmap(0, target.NumPages*target.PageSize)},
 	}
 }
 
@@ -529,12 +459,12 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 		switch typ.(type) {
 		case *IntType, *FlagsType, *ConstType, *ProcType,
 			*VmaType, *ResourceType:
-			return defaultArg(typ), nil
+			return r.target.defaultArg(typ), nil
 		}
 	}
 
 	if typ.Optional() && r.oneOf(5) {
-		return defaultArg(typ), nil
+		return r.target.defaultArg(typ), nil
 	}
 
 	// Allow infinite recursion for optional pointers.
@@ -548,7 +478,7 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 				}
 			}()
 			if r.recDepth[str.Name()] >= 3 {
-				return MakePointerArg(typ, 0, 0, 0, nil), nil
+				return MakeNullPointerArg(typ), nil
 			}
 		}
 	}
@@ -629,7 +559,7 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 		if a.RangeBegin != 0 || a.RangeEnd != 0 {
 			npages = a.RangeBegin + uint64(r.Intn(int(a.RangeEnd-a.RangeBegin+1)))
 		}
-		arg := r.randPageAddr(s, a, npages, nil, true)
+		arg := r.allocVMA(s, a, npages)
 		return arg, nil
 	case *FlagsType:
 		return MakeConstArg(a, r.flags(a.Vals)), nil
@@ -697,11 +627,10 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 			// So try to reuse a previously used address.
 			addrs := s.resources["iocbptr"]
 			addr := addrs[r.Intn(len(addrs))].(*PointerArg)
-			arg = MakePointerArg(a, addr.PageIndex, addr.PageOffset, addr.PagesNum, inner)
+			arg = MakePointerArg(a, addr.Address, inner)
 			return arg, calls
 		}
-		arg, calls1 := r.addr(s, a, inner.Size(), inner)
-		calls = append(calls, calls1...)
+		arg := r.allocAddr(s, a, inner.Size(), inner)
 		return arg, calls
 	case *LenType:
 		// Return placeholder value of 0 while generating len arg.

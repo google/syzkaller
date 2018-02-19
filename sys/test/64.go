@@ -4,7 +4,7 @@ package test
 import . "github.com/google/syzkaller/prog"
 
 func init() {
-	RegisterTarget(&Target{OS: "test", Arch: "64", Revision: revision_64, PtrSize: 8, Syscalls: syscalls_64, Resources: resources_64, Structs: structDescs_64, Consts: consts_64}, initTarget)
+	RegisterTarget(&Target{OS: "test", Arch: "64", Revision: revision_64, PtrSize: 8, PageSize: 4096, NumPages: 4096, DataOffset: 536870912, Syscalls: syscalls_64, Resources: resources_64, Structs: structDescs_64, Consts: consts_64}, initTarget)
 }
 
 var resources_64 = []*ResourceDesc{
@@ -693,4 +693,4 @@ var consts_64 = []ConstValue{
 	{Name: "IPPROTO_UDP", Value: 17},
 }
 
-const revision_64 = "72bf9b428d7ccdf1adbb2ef093b656ca3564ee14"
+const revision_64 = "e5ba3c9ee8fe997bfacae016e4bbebd8ecb2f573"

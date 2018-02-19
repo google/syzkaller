@@ -194,16 +194,10 @@ func (p *Prog) SerializeForExec(buffer []byte) (int, error) {
 }
 
 func (target *Target) PhysicalAddr(arg *PointerArg) uint64 {
-	if arg.Res == nil && arg.PagesNum == 0 {
+	if arg.IsNull() {
 		return 0
 	}
-	addr := arg.PageIndex*target.PageSize + target.DataOffset
-	if arg.PageOffset >= 0 {
-		addr += uint64(arg.PageOffset)
-	} else {
-		addr += target.PageSize - uint64(-arg.PageOffset)
-	}
-	return addr
+	return target.DataOffset + arg.Address
 }
 
 type execContext struct {

@@ -30,16 +30,19 @@ func initTargetTest(t *testing.T, os, arch string) *Target {
 	return target
 }
 
+func randSource(t *testing.T) rand.Source {
+	seed := int64(time.Now().UnixNano())
+	t.Logf("seed=%v", seed)
+	return rand.NewSource(seed)
+}
+
 func initRandomTargetTest(t *testing.T, os, arch string) (*Target, rand.Source, int) {
 	target := initTargetTest(t, os, arch)
 	iters := 10000
 	if testing.Short() {
 		iters = 100
 	}
-	seed := int64(time.Now().UnixNano())
-	rs := rand.NewSource(seed)
-	t.Logf("seed=%v", seed)
-	return target, rs, iters
+	return target, randSource(t), iters
 }
 
 func initTest(t *testing.T) (*Target, rand.Source, int) {
@@ -53,9 +56,7 @@ func testEachTargetRandom(t *testing.T, fn func(t *testing.T, target *Target, rs
 	}
 	targets := AllTargets()
 	iters /= len(targets)
-	seed := int64(time.Now().UnixNano())
-	rs0 := rand.NewSource(seed)
-	t.Logf("seed=%v", seed)
+	rs0 := randSource(t)
 	for _, target := range targets {
 		target := target
 		rs := rand.NewSource(rs0.Int63())
