@@ -101,12 +101,12 @@ getsockopt$bt_BT_RCVMTU(fd sock_bt, level const[SOL_BLUETOOTH], opt const[BT_RCV
 
 sockaddr_hci {
 	fam	const[AF_BLUETOOTH, int16]
-	dev	int16
+	dev	ifindex
 	chan	flags[bt_chi_chan, int16]
 }
 
 hci_inquiry_req {
-	dev	int16
+	dev	ifindex
 	flags	int16
 	lap0	int8
 	lap1	int8
@@ -239,15 +239,15 @@ bnep_connadd_req {
 
 bnep_conndel_req {
 	flags	int32
-	dst	array[int8, 6]
+	dst	mac_addr
 }
 
 bnep_conninfo {
 	flags	int32
 	role	int16
 	state	int16
-	dst	array[int8, 6]
-	device	array[int8, 16]
+	dst	mac_addr
+	device	devname
 }
 
 bnep_connlist_req {
