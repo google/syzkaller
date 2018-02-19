@@ -762,7 +762,7 @@ var linuxOopses = []*oops{
 				fmt:   "WARNING: ODEBUG bug in %[1]v",
 				// Skip all users of ODEBUG as well.
 				stack: warningStackFmt("debug_", "rcu", "hrtimer_", "timer_",
-					"work_", "percpu_", "kmem_", "slab_", "kfree"),
+					"work_", "percpu_", "kmem_", "slab_", "kfree", "vunmap", "vfree"),
 			},
 			{
 				title: compile("WARNING: .*mm/usercopy\\.c.* usercopy_warn"),
