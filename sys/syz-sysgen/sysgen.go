@@ -135,10 +135,12 @@ func generate(target *targets.Target, prg *compiler.Prog, consts map[string]uint
 	fmt.Fprintf(out, "import . \"github.com/google/syzkaller/prog\"\n\n")
 
 	fmt.Fprintf(out, "func init() {\n")
-	fmt.Fprintf(out, "\tRegisterTarget(&Target{OS: %q, Arch: %q, Revision: revision_%v, PtrSize: %v,"+
-		"Syscalls: syscalls_%v, Resources: resources_%v, Structs: structDescs_%v, Consts: consts_%v}, "+
+	fmt.Fprintf(out, "\tRegisterTarget(&Target{OS: %q, Arch: %q, Revision: revision_%v, PtrSize: %v, "+
+		"PageSize: %v, NumPages: %v, DataOffset: %v, Syscalls: syscalls_%v, "+
+		"Resources: resources_%v, Structs: structDescs_%v, Consts: consts_%v}, "+
 		"initTarget)\n",
 		target.OS, target.Arch, target.Arch, target.PtrSize,
+		target.PageSize, target.NumPages, target.DataOffset,
 		target.Arch, target.Arch, target.Arch, target.Arch)
 	fmt.Fprintf(out, "}\n\n")
 
@@ -174,15 +176,21 @@ func generateExecutorSyscalls(target *targets.Target, syscalls []*prog.Syscall, 
 		NeedCall bool
 	}
 	type ArchData struct {
-		Revision string
-		GOARCH   string
-		CARCH    []string
-		Calls    []SyscallData
+		Revision   string
+		GOARCH     string
+		CARCH      []string
+		PageSize   uint64
+		NumPages   uint64
+		DataOffset uint64
+		Calls      []SyscallData
 	}
 	data := ArchData{
-		Revision: rev,
-		GOARCH:   target.Arch,
-		CARCH:    target.CArch,
+		Revision:   rev,
+		GOARCH:     target.Arch,
+		CARCH:      target.CArch,
+		PageSize:   target.PageSize,
+		NumPages:   target.NumPages,
+		DataOffset: target.DataOffset,
 	}
 	for _, c := range syscalls {
 		data.Calls = append(data.Calls, SyscallData{
@@ -247,6 +255,9 @@ var archTempl = template.Must(template.New("").Parse(`
 #if {{range $cdef := $.CARCH}}defined({{$cdef}}) || {{end}}0
 #define GOARCH "{{.GOARCH}}"
 #define SYZ_REVISION "{{.Revision}}"
+#define SYZ_PAGE_SIZE {{.PageSize}}
+#define SYZ_NUM_PAGES {{.NumPages}}
+#define SYZ_DATA_OFFSET {{.DataOffset}}
 unsigned syscall_count = {{len $.Calls}};
 call_t syscalls[] = {
 {{range $c := $.Calls}}	{"{{$c.Name}}", {{$c.NR}}{{if $c.NeedCall}}, (syscall_t){{$c.CallName}}{{end}}},

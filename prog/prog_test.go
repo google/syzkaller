@@ -25,7 +25,7 @@ func TestDefault(t *testing.T) {
 	target, _, _ := initTest(t)
 	for _, meta := range target.SyscallMap {
 		for _, t := range meta.Args {
-			defaultArg(t)
+			target.defaultArg(t)
 		}
 	}
 }
@@ -91,16 +91,18 @@ func TestVmaType(t *testing.T) {
 			if !ok {
 				t.Fatalf("len has bad type: %v", l)
 			}
-			if va.PagesNum < min || va.PagesNum > max {
-				t.Fatalf("vma has bad number of pages: %v, want [%v-%v]", va.PagesNum, min, max)
+			if va.VmaSize < min || va.VmaSize > max {
+				t.Fatalf("vma has bad size: %v, want [%v-%v]",
+					va.VmaSize, min, max)
 			}
-			if la.Val/pageSize < min || la.Val/pageSize > max {
-				t.Fatalf("len has bad number of pages: %v, want [%v-%v]", la.Val/pageSize, min, max)
+			if la.Val < min || la.Val > max {
+				t.Fatalf("len has bad value: %v, want [%v-%v]",
+					la.Val, min, max)
 			}
 		}
-		check(c.Args[0], c.Args[1], 1, 1e5)
-		check(c.Args[2], c.Args[3], 5, 5)
-		check(c.Args[4], c.Args[5], 7, 9)
+		check(c.Args[0], c.Args[1], 1*pageSize, 1e5*pageSize)
+		check(c.Args[2], c.Args[3], 5*pageSize, 5*pageSize)
+		check(c.Args[4], c.Args[5], 7*pageSize, 9*pageSize)
 	}
 }
 

@@ -21,7 +21,7 @@ func (target *Target) generateSize(arg Arg, lenType *LenType) uint64 {
 	switch arg.Type().(type) {
 	case *VmaType:
 		a := arg.(*PointerArg)
-		return a.PagesNum * target.PageSize * 8 / bitSize
+		return a.VmaSize * 8 / bitSize
 	case *ArrayType:
 		a := arg.(*GroupArg)
 		if lenType.BitSize != 0 {

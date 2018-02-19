@@ -57,11 +57,6 @@ outer:
 				retry = true
 				continue
 			}
-			// Mutating mmap() arguments almost certainly doesn't give us new coverage.
-			if c.Meta == p.Target.MmapSyscall && r.nOutOf(99, 100) {
-				retry = true
-				continue
-			}
 			s := analyze(ct, p, c)
 			updateSizes := true
 			retryArg := false
@@ -200,17 +195,8 @@ func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updat
 		}
 		// TODO: swap elements of the array
 	case *PtrType:
-		a, ok := arg.(*PointerArg)
-		if !ok {
-			break
-		}
-		// TODO: we don't know size for out args
-		size := uint64(1)
-		if a.Res != nil {
-			size = a.Res.Size()
-		}
-		var newArg Arg
-		newArg, calls = r.addr(s, t, size, a.Res)
+		a := arg.(*PointerArg)
+		newArg := r.allocAddr(s, t, a.Res.Size(), a.Res)
 		replaceArg(arg, newArg)
 	case *StructType:
 		gen := target.SpecialTypes[t.Name()]
@@ -260,12 +246,8 @@ func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updat
 	// Update base pointer if size has increased.
 	if base := ctx.Base; base != nil {
 		if baseSize < base.Res.Size() {
-			newArg, newCalls := r.addr(s, base.Type(), base.Res.Size(), base.Res)
-			calls = append(calls, newCalls...)
-			a1 := newArg.(*PointerArg)
-			base.PageIndex = a1.PageIndex
-			base.PageOffset = a1.PageOffset
-			base.PagesNum = a1.PagesNum
+			newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
+			*base = *newArg
 		}
 	}
 	for _, c := range calls {
@@ -308,6 +290,11 @@ func (ma *mutationArgs) collectArg(arg Arg, ctx *ArgCtx) {
 	case *BufferType:
 		if typ.Kind == BufferString && len(typ.Values) == 1 {
 			return // string const
+		}
+	case *PtrType:
+		if arg.(*PointerArg).IsNull() {
+			// TODO: we ought to mutate this, but we don't have code for this yet.
+			return
 		}
 	}
 	typ := arg.Type()

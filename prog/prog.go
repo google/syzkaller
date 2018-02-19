@@ -91,28 +91,47 @@ func (arg *ConstArg) Value() (uint64, uint64, bool) {
 }
 
 // Used for PtrType and VmaType.
-// Even if these are always constant (for reproducibility), we use a separate
-// type because they are represented in an abstract (base+page+offset) form.
 type PointerArg struct {
 	ArgCommon
-	PageIndex  uint64
-	PageOffset int    // offset within a page
-	PagesNum   uint64 // number of available pages
-	Res        Arg    // pointee
+	Address uint64
+	VmaSize uint64 // size of the referenced region for vma args
+	Res     Arg    // pointee (nil for vma)
 }
 
-func MakePointerArg(t Type, page uint64, off int, npages uint64, obj Arg) Arg {
+func MakePointerArg(t Type, addr uint64, data Arg) *PointerArg {
+	if data == nil {
+		panic("nil pointer data arg")
+	}
 	return &PointerArg{
-		ArgCommon:  ArgCommon{typ: t},
-		PageIndex:  page,
-		PageOffset: off,
-		PagesNum:   npages,
-		Res:        obj,
+		ArgCommon: ArgCommon{typ: t},
+		Address:   addr,
+		Res:       data,
+	}
+}
+
+func MakeVmaPointerArg(t Type, addr, size uint64) *PointerArg {
+	if addr%1024 != 0 {
+		panic("unaligned vma address")
+	}
+	return &PointerArg{
+		ArgCommon: ArgCommon{typ: t},
+		Address:   addr,
+		VmaSize:   size,
+	}
+}
+
+func MakeNullPointerArg(t Type) *PointerArg {
+	return &PointerArg{
+		ArgCommon: ArgCommon{typ: t},
 	}
 }
 
 func (arg *PointerArg) Size() uint64 {
 	return arg.typ.Size()
+}
+
+func (arg *PointerArg) IsNull() bool {
+	return arg.Address == 0 && arg.VmaSize == 0 && arg.Res == nil
 }
 
 // Used for BufferType.
@@ -291,7 +310,7 @@ func InnerArg(arg Arg) Arg {
 	return arg // Not a pointer.
 }
 
-func defaultArg(t Type) Arg {
+func (target *Target) defaultArg(t Type) Arg {
 	switch typ := t.(type) {
 	case *IntType, *ConstType, *FlagsType, *LenType, *ProcType, *CsumType:
 		return MakeConstArg(t, t.Default())
@@ -314,32 +333,31 @@ func defaultArg(t Type) Arg {
 		var elems []Arg
 		if typ.Kind == ArrayRangeLen && typ.RangeBegin == typ.RangeEnd {
 			for i := uint64(0); i < typ.RangeBegin; i++ {
-				elems = append(elems, defaultArg(typ.Type))
+				elems = append(elems, target.defaultArg(typ.Type))
 			}
 		}
 		return MakeGroupArg(t, elems)
 	case *StructType:
 		var inner []Arg
 		for _, field := range typ.Fields {
-			inner = append(inner, defaultArg(field))
+			inner = append(inner, target.defaultArg(field))
 		}
 		return MakeGroupArg(t, inner)
 	case *UnionType:
-		return MakeUnionArg(t, defaultArg(typ.Fields[0]))
+		return MakeUnionArg(t, target.defaultArg(typ.Fields[0]))
 	case *VmaType:
-		return MakePointerArg(t, 0, 0, 1, nil)
+		return MakeVmaPointerArg(t, 0, target.PageSize)
 	case *PtrType:
-		var res Arg
-		if !t.Optional() && t.Dir() != DirOut {
-			res = defaultArg(typ.Type)
+		if t.Optional() {
+			return MakeNullPointerArg(t)
 		}
-		return MakePointerArg(t, 0, 0, 0, res)
+		return MakePointerArg(t, 0, target.defaultArg(typ.Type))
 	default:
 		panic("unknown arg type")
 	}
 }
 
-func isDefaultArg(arg Arg) bool {
+func (target *Target) isDefaultArg(arg Arg) bool {
 	if IsPad(arg.Type()) {
 		return true
 	}
@@ -356,7 +374,7 @@ func isDefaultArg(arg Arg) bool {
 			return false
 		}
 		for _, elem := range a.Inner {
-			if !isDefaultArg(elem) {
+			if !target.isDefaultArg(elem) {
 				return false
 			}
 		}
@@ -364,7 +382,7 @@ func isDefaultArg(arg Arg) bool {
 	case *UnionArg:
 		t := a.Type().(*UnionType)
 		return a.Option.Type().FieldName() == t.Fields[0].Name() &&
-			isDefaultArg(a.Option)
+			target.isDefaultArg(a.Option)
 	case *DataArg:
 		if a.Size() == 0 {
 			return true
@@ -384,11 +402,12 @@ func isDefaultArg(arg Arg) bool {
 	case *PointerArg:
 		switch t := a.Type().(type) {
 		case *PtrType:
-			return a.PageIndex == 0 && a.PageOffset == 0 && a.PagesNum == 0 &&
-				(((t.Optional() || t.Dir() == DirOut) && a.Res == nil) ||
-					(!t.Optional() && t.Dir() != DirOut && a.Res != nil && isDefaultArg(a.Res)))
+			if t.Optional() {
+				return a.IsNull()
+			}
+			return a.Address == 0 && target.isDefaultArg(a.Res)
 		case *VmaType:
-			return a.PageIndex == 0 && a.PageOffset == 0 && a.PagesNum == 1 && a.Res == nil
+			return a.Address == 0 && a.VmaSize == target.PageSize
 		default:
 			panic("unknown pointer type")
 		}

@@ -12,17 +12,14 @@ import (
 	"fmt"
 )
 
-const (
-	maxPages = 4 << 10
-)
-
 type state struct {
 	target    *Target
 	ct        *ChoiceTable
 	files     map[string]bool
 	resources map[string][]Arg
 	strings   map[string]bool
-	pages     [maxPages]bool
+	ma        *memAlloc
+	va        *vmaAlloc
 }
 
 // analyze analyzes the program p up to but not including call c.
@@ -44,12 +41,24 @@ func newState(target *Target, ct *ChoiceTable) *state {
 		files:     make(map[string]bool),
 		resources: make(map[string][]Arg),
 		strings:   make(map[string]bool),
+		ma:        newMemAlloc(target.NumPages * target.PageSize),
+		va:        newVmaAlloc(target.NumPages),
 	}
 	return s
 }
 
 func (s *state) analyze(c *Call) {
 	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
+		switch a := arg.(type) {
+		case *PointerArg:
+			switch {
+			case a.IsNull():
+			case a.VmaSize != 0:
+				s.va.noteAlloc(a.Address/s.target.PageSize, a.VmaSize/s.target.PageSize)
+			default:
+				s.ma.noteAlloc(a.Address, a.Res.Size())
+			}
+		}
 		switch typ := arg.Type().(type) {
 		case *ResourceType:
 			if typ.Dir() != DirIn {
@@ -68,16 +77,6 @@ func (s *state) analyze(c *Call) {
 			}
 		}
 	})
-	start, npages, mapped := s.target.AnalyzeMmap(c)
-	if npages != 0 {
-		if start+npages > uint64(len(s.pages)) {
-			panic(fmt.Sprintf("address is out of bounds: page=%v len=%v bound=%v",
-				start, npages, len(s.pages)))
-		}
-		for i := uint64(0); i < npages; i++ {
-			s.pages[start+i] = mapped
-		}
-	}
 }
 
 type ArgCtx struct {

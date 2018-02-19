@@ -2,7 +2,10 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "229a33891b79d4c76384836d58be89caaab83684"
+#define SYZ_REVISION "6f7cae371c55b5afdfbc7f518e21c58894cfce5b"
+#define SYZ_PAGE_SIZE 8192
+#define SYZ_NUM_PAGES 2048
+#define SYZ_DATA_OFFSET 536870912
 unsigned syscall_count = 85;
 call_t syscalls[] = {
 	{"mmap", 0, (syscall_t)mmap},
@@ -96,7 +99,10 @@ call_t syscalls[] = {
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "72bf9b428d7ccdf1adbb2ef093b656ca3564ee14"
+#define SYZ_REVISION "e5ba3c9ee8fe997bfacae016e4bbebd8ecb2f573"
+#define SYZ_PAGE_SIZE 4096
+#define SYZ_NUM_PAGES 4096
+#define SYZ_DATA_OFFSET 536870912
 unsigned syscall_count = 85;
 call_t syscalls[] = {
 	{"mmap", 0, (syscall_t)mmap},

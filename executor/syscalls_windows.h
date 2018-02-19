@@ -2,7 +2,10 @@
 
 #if defined(_M_X64) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "5d63c10c1e139f4a33dae8f94809285dae73a415"
+#define SYZ_REVISION "38e754fb8319bf26f8642703cab9d9acbcec5109"
+#define SYZ_PAGE_SIZE 4096
+#define SYZ_NUM_PAGES 4096
+#define SYZ_DATA_OFFSET 536870912
 unsigned syscall_count = 2955;
 call_t syscalls[] = {
     {"AbortDoc", 0, (syscall_t)AbortDoc},

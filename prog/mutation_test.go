@@ -135,7 +135,6 @@ mutate5(&(0x7f0000001000)="2e2f66696c653100", 0x22c0)
 		{`
 mutate3(&(0x7f0000000000)=[0x1, 0x1], 0x2)
 `, `
-mmap(&(0x7f0000000000/0x1000)=nil, 0x1000)
 mutate3(&(0x7f0000000000)=[0x1, 0x1, 0x1], 0x3)
 `},
 		// Mutate size from it's natural value.
@@ -203,6 +202,25 @@ func BenchmarkMutate(b *testing.B) {
 		rs := rand.NewSource(0)
 		for pb.Next() {
 			p.Clone().Mutate(rs, progLen, ct, nil)
+		}
+	})
+}
+
+func BenchmarkGenerate(b *testing.B) {
+	olddebug := debug
+	debug = false
+	defer func() { debug = olddebug }()
+	target, err := GetTarget("linux", "amd64")
+	if err != nil {
+		b.Fatal(err)
+	}
+	prios := target.CalculatePriorities(nil)
+	ct := target.BuildChoiceTable(prios, nil)
+	const progLen = 30
+	b.RunParallel(func(pb *testing.PB) {
+		rs := rand.NewSource(0)
+		for pb.Next() {
+			target.Generate(rs, progLen, ct)
 		}
 	})
 }
