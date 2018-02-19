@@ -4,7 +4,7 @@ package fuchsia
 import . "github.com/google/syzkaller/prog"
 
 func init() {
-	RegisterTarget(&Target{OS: "fuchsia", Arch: "arm64", Revision: revision_arm64, PtrSize: 8, Syscalls: syscalls_arm64, Resources: resources_arm64, Structs: structDescs_arm64, Consts: consts_arm64}, initTarget)
+	RegisterTarget(&Target{OS: "fuchsia", Arch: "arm64", Revision: revision_arm64, PtrSize: 8, PageSize: 4096, NumPages: 4096, DataOffset: 536870912, Syscalls: syscalls_arm64, Resources: resources_arm64, Structs: structDescs_arm64, Consts: consts_arm64}, initTarget)
 }
 
 var resources_arm64 = []*ResourceDesc{
@@ -1243,4 +1243,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_arm64 = "c04cb066cf7fc135f9f85388423f3e65aedc5028"
+const revision_arm64 = "bb0e27a08caeecf468bb53c76ebf97388e4d3c6d"

@@ -421,7 +421,7 @@ func TestHintsData(t *testing.T) {
 			Target: target,
 			Calls: []*Call{{
 				Meta: call,
-				Args: []Arg{MakePointerArg(call.Args[0], 0, 0, 0,
+				Args: []Arg{MakePointerArg(call.Args[0], 0,
 					MakeDataArg(call.Args[0].(*PtrType).Type, input))},
 				Ret: MakeReturnArg(call.Ret),
 			}},

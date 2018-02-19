@@ -140,11 +140,6 @@ func (target *Target) calcDynamicPrio(corpus []*Prog) [][]float32 {
 			for _, c1 := range p.Calls {
 				id0 := c0.Meta.ID
 				id1 := c1.Meta.ID
-				// There are too many mmap's anyway.
-				if id0 == id1 || c0.Meta == target.MmapSyscall ||
-					c1.Meta == target.MmapSyscall {
-					continue
-				}
 				prios[id0][id1] += 1.0
 			}
 		}

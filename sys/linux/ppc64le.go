@@ -4,7 +4,7 @@ package linux
 import . "github.com/google/syzkaller/prog"
 
 func init() {
-	RegisterTarget(&Target{OS: "linux", Arch: "ppc64le", Revision: revision_ppc64le, PtrSize: 8, Syscalls: syscalls_ppc64le, Resources: resources_ppc64le, Structs: structDescs_ppc64le, Consts: consts_ppc64le}, initTarget)
+	RegisterTarget(&Target{OS: "linux", Arch: "ppc64le", Revision: revision_ppc64le, PtrSize: 8, PageSize: 4096, NumPages: 4096, DataOffset: 536870912, Syscalls: syscalls_ppc64le, Resources: resources_ppc64le, Structs: structDescs_ppc64le, Consts: consts_ppc64le}, initTarget)
 }
 
 var resources_ppc64le = []*ResourceDesc{
@@ -24707,4 +24707,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_ppc64le = "c996439d4a7c1dc76b269b6869f8bb2b505550b3"
+const revision_ppc64le = "1b0002aaf7519f39f849b6abcc3c35add0d6f112"

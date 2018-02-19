@@ -46,14 +46,14 @@ func (p *Prog) Serialize() []byte {
 			if i != 0 {
 				fmt.Fprintf(buf, ", ")
 			}
-			serialize(a, buf, vars, &varSeq)
+			p.Target.serialize(a, buf, vars, &varSeq)
 		}
 		fmt.Fprintf(buf, ")\n")
 	}
 	return buf.Bytes()
 }
 
-func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
+func (target *Target) serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 	if arg == nil {
 		fmt.Fprintf(buf, "nil")
 		return
@@ -67,14 +67,14 @@ func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 	case *ConstArg:
 		fmt.Fprintf(buf, "0x%x", a.Val)
 	case *PointerArg:
-		if a.Res == nil && a.PagesNum == 0 {
+		if a.IsNull() {
 			fmt.Fprintf(buf, "0x0")
 			break
 		}
-		fmt.Fprintf(buf, "&%v", serializeAddr(arg))
-		if a.Res == nil || !isDefaultArg(a.Res) {
+		fmt.Fprintf(buf, "&%v", target.serializeAddr(a))
+		if a.Res == nil || !target.isDefaultArg(a.Res) {
 			fmt.Fprintf(buf, "=")
-			serialize(a.Res, buf, vars, varSeq)
+			target.serialize(a.Res, buf, vars, varSeq)
 		}
 	case *DataArg:
 		if a.Type().Dir() == DirOut {
@@ -104,7 +104,7 @@ func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 		lastNonDefault := len(a.Inner) - 1
 		if a.fixedInnerSize() {
 			for ; lastNonDefault >= 0; lastNonDefault-- {
-				if !isDefaultArg(a.Inner[lastNonDefault]) {
+				if !target.isDefaultArg(a.Inner[lastNonDefault]) {
 					break
 				}
 			}
@@ -117,14 +117,14 @@ func serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, varSeq *int) {
 			if i != 0 {
 				fmt.Fprintf(buf, ", ")
 			}
-			serialize(arg1, buf, vars, varSeq)
+			target.serialize(arg1, buf, vars, varSeq)
 		}
 		buf.Write([]byte{delims[1]})
 	case *UnionArg:
 		fmt.Fprintf(buf, "@%v", a.Option.Type().FieldName())
-		if !isDefaultArg(a.Option) {
+		if !target.isDefaultArg(a.Option) {
 			fmt.Fprintf(buf, "=")
-			serialize(a.Option, buf, vars, varSeq)
+			target.serialize(a.Option, buf, vars, varSeq)
 		}
 	case *ResultArg:
 		if a.Res == nil {
@@ -198,7 +198,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 		}
 		if len(c.Args) < len(meta.Args) {
 			for i := len(c.Args); i < len(meta.Args); i++ {
-				c.Args = append(c.Args, defaultArg(meta.Args[i]))
+				c.Args = append(c.Args, target.defaultArg(meta.Args[i]))
 			}
 		}
 		if len(c.Args) != len(meta.Args) {
@@ -241,10 +241,8 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			arg = MakeConstArg(typ, v)
 		case *ResourceType:
 			arg = MakeResultArg(typ, nil, v)
-		case *PtrType:
-			arg = MakePointerArg(typ, 0, 0, 0, nil)
-		case *VmaType:
-			arg = MakePointerArg(typ, 0, 0, 0, nil)
+		case *PtrType, *VmaType:
+			arg = MakeNullPointerArg(typ)
 		default:
 			return nil, fmt.Errorf("bad const type %+v", typ)
 		}
@@ -288,7 +286,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			return nil, fmt.Errorf("& arg is not a pointer: %#v", typ)
 		}
 		p.Parse('&')
-		page, off, size, err := parseAddr(p, true)
+		addr, vmaSize, err := target.parseAddr(p)
 		if err != nil {
 			return nil, err
 		}
@@ -300,17 +298,13 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 				return nil, err
 			}
 		} else {
-			inner = defaultArg(typ1)
+			inner = target.defaultArg(typ1)
 		}
-		arg = MakePointerArg(typ, page, off, size, inner)
-	case '(':
-		// This used to parse length of VmaType and return ArgPageSize, which is now removed.
-		// Leaving this for now for backwards compatibility.
-		pages, _, _, err := parseAddr(p, false)
-		if err != nil {
-			return nil, err
+		if typ1 != nil {
+			arg = MakePointerArg(typ, addr, inner)
+		} else {
+			arg = MakeVmaPointerArg(typ, addr, vmaSize)
 		}
-		arg = MakeConstArg(typ, pages*target.PageSize)
 	case '"', '\'':
 		data, err := deserializeData(p)
 		if err != nil {
@@ -366,7 +360,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		}
 		p.Parse('}')
 		for len(inner) < len(t1.Fields) {
-			inner = append(inner, defaultArg(t1.Fields[len(inner)]))
+			inner = append(inner, target.defaultArg(t1.Fields[len(inner)]))
 		}
 		arg = MakeGroupArg(typ, inner)
 	case '[':
@@ -389,7 +383,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		p.Parse(']')
 		if t1.Kind == ArrayRangeLen && t1.RangeBegin == t1.RangeEnd {
 			for uint64(len(inner)) < t1.RangeBegin {
-				inner = append(inner, defaultArg(t1.Type))
+				inner = append(inner, target.defaultArg(t1.Type))
 			}
 			inner = inner[:t1.RangeBegin]
 		}
@@ -420,7 +414,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 				return nil, err
 			}
 		} else {
-			opt = defaultArg(optType)
+			opt = target.defaultArg(optType)
 		}
 		arg = MakeUnionArg(typ, opt)
 	case 'n':
@@ -441,58 +435,29 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 
 const (
 	encodingAddrBase = 0x7f0000000000
-	encodingPageSize = 4 << 10
 	maxLineLen       = 256 << 10
 )
 
-func serializeAddr(arg Arg) string {
-	var pageIndex, pagesNum uint64
-	var pageOffset int
-	switch a := arg.(type) {
-	case *PointerArg:
-		pageIndex = a.PageIndex
-		pageOffset = a.PageOffset
-		pagesNum = a.PagesNum
-	default:
-		panic("bad addr arg")
-	}
-	page := pageIndex * encodingPageSize
-	page += encodingAddrBase
-	soff := ""
-	if off := pageOffset; off != 0 {
-		sign := "+"
-		if off < 0 {
-			sign = "-"
-			off = -off
-			page += encodingPageSize
-		}
-		soff = fmt.Sprintf("%v0x%x", sign, off)
-	}
+func (target *Target) serializeAddr(arg *PointerArg) string {
 	ssize := ""
-	if size := pagesNum; size != 0 {
-		size *= encodingPageSize
-		ssize = fmt.Sprintf("/0x%x", size)
+	if arg.VmaSize != 0 {
+		ssize = fmt.Sprintf("/0x%x", arg.VmaSize)
 	}
-	return fmt.Sprintf("(0x%x%v%v)", page, soff, ssize)
+	return fmt.Sprintf("(0x%x%v)", encodingAddrBase+arg.Address, ssize)
 }
 
-func parseAddr(p *parser, base bool) (uint64, int, uint64, error) {
+func (target *Target) parseAddr(p *parser) (uint64, uint64, error) {
 	p.Parse('(')
 	pstr := p.Ident()
-	page, err := strconv.ParseUint(pstr, 0, 64)
+	addr, err := strconv.ParseUint(pstr, 0, 64)
 	if err != nil {
-		return 0, 0, 0, fmt.Errorf("failed to parse addr page: '%v'", pstr)
+		return 0, 0, fmt.Errorf("failed to parse addr: %q", pstr)
 	}
-	if page%encodingPageSize != 0 {
-		return 0, 0, 0, fmt.Errorf("address base is not page size aligned: '%v'", pstr)
+	if addr < encodingAddrBase {
+		return 0, 0, fmt.Errorf("address without base offset: %q", pstr)
 	}
-	if base {
-		if page < encodingAddrBase {
-			return 0, 0, 0, fmt.Errorf("address without base offset: '%v'", pstr)
-		}
-		page -= encodingAddrBase
-	}
-	var off int64
+	addr -= encodingAddrBase
+	// This is not used anymore, but left here to parse old programs.
 	if p.Char() == '+' || p.Char() == '-' {
 		minus := false
 		if p.Char() == '-' {
@@ -502,28 +467,38 @@ func parseAddr(p *parser, base bool) (uint64, int, uint64, error) {
 			p.Parse('+')
 		}
 		ostr := p.Ident()
-		off, err = strconv.ParseInt(ostr, 0, 64)
+		off, err := strconv.ParseUint(ostr, 0, 64)
 		if err != nil {
-			return 0, 0, 0, fmt.Errorf("failed to parse addr offset: '%v'", ostr)
+			return 0, 0, fmt.Errorf("failed to parse addr offset: %q", ostr)
 		}
 		if minus {
-			page -= encodingPageSize
 			off = -off
 		}
+		addr += off
 	}
-	var size uint64
+	maxMem := target.NumPages * target.PageSize
+	var vmaSize uint64
 	if p.Char() == '/' {
 		p.Parse('/')
 		pstr := p.Ident()
-		size, err = strconv.ParseUint(pstr, 0, 64)
+		size, err := strconv.ParseUint(pstr, 0, 64)
 		if err != nil {
-			return 0, 0, 0, fmt.Errorf("failed to parse addr size: '%v'", pstr)
+			return 0, 0, fmt.Errorf("failed to parse addr size: %q", pstr)
+		}
+		addr = addr & ^(target.PageSize - 1)
+		vmaSize = (size + target.PageSize - 1) & ^(target.PageSize - 1)
+		if vmaSize == 0 {
+			vmaSize = target.PageSize
+		}
+		if vmaSize > maxMem {
+			vmaSize = maxMem
+		}
+		if addr > maxMem-vmaSize {
+			addr = maxMem - vmaSize
 		}
 	}
 	p.Parse(')')
-	page /= encodingPageSize
-	size /= encodingPageSize
-	return page, int(off), size, nil
+	return addr, vmaSize, nil
 }
 
 func serializeData(buf *bytes.Buffer, data []byte) {

@@ -64,9 +64,6 @@ func (m CompMap) String() string {
 // Mutates the program using the comparison operands stored in compMaps.
 // For each of the mutants executes the exec callback.
 func (p *Prog) MutateWithHints(callIndex int, comps CompMap, exec func(p *Prog)) {
-	if p.Calls[callIndex].Meta == p.Target.MmapSyscall {
-		return
-	}
 	p = p.Clone()
 	c := p.Calls[callIndex]
 	execValidate := func() {

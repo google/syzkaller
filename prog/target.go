@@ -17,6 +17,7 @@ type Target struct {
 	Revision   string // unique hash representing revision of the descriptions
 	PtrSize    uint64
 	PageSize   uint64
+	NumPages   uint64
 	DataOffset uint64
 
 	Syscalls  []*Syscall
@@ -24,17 +25,8 @@ type Target struct {
 	Structs   []*KeyedStruct
 	Consts    []ConstValue
 
-	// Syscall used by MakeMmap.
-	// It has some special meaning because there are usually too many of them.
-	MmapSyscall *Syscall
-
-	// MakeMmap creates call that maps [start, start+npages) page range.
-	MakeMmap func(start, npages uint64) *Call
-
-	// AnalyzeMmap analyzes the call c regarding mapping/unmapping memory.
-	// If it maps/unmaps any memory returns [start, start+npages) range,
-	// otherwise returns npages = 0.
-	AnalyzeMmap func(c *Call) (start, npages uint64, mapped bool)
+	// MakeMmap creates call that maps [addr, addr+size) memory range.
+	MakeMmap func(addr, size uint64) *Call
 
 	// SanitizeCall neutralizes harmful calls.
 	SanitizeCall func(c *Call)
@@ -175,7 +167,7 @@ func (g *Gen) NOutOf(n, outOf int) bool {
 }
 
 func (g *Gen) Alloc(ptrType Type, data Arg) (Arg, []*Call) {
-	return g.r.addr(g.s, ptrType, data.Size(), data)
+	return g.r.allocAddr(g.s, ptrType, data.Size(), data), nil
 }
 
 func (g *Gen) GenerateArg(typ Type, pcalls *[]*Call) Arg {

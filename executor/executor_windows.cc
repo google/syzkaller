@@ -23,6 +23,10 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
+	if (VirtualAlloc((void*)SYZ_DATA_OFFSET, SYZ_NUM_PAGES * SYZ_PAGE_SIZE,
+			 MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE) != (void*)SYZ_DATA_OFFSET)
+		fail("mmap of data segment failed");
+
 	setup_control_pipes();
 	receive_execute(true);
 	execute_one();

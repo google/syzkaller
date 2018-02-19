@@ -102,7 +102,7 @@ const (
 	phaseTriagedHub
 )
 
-const currentDBVersion = 1
+const currentDBVersion = 2
 
 type Fuzzer struct {
 	name         string
@@ -134,8 +134,6 @@ func main() {
 	if err != nil {
 		Fatalf("%v", err)
 	}
-	// mmap is used to allocate memory.
-	syscalls[target.MmapSyscall.ID] = true
 	initAllCover(cfg.Vmlinux)
 	RunManager(cfg, target, syscalls)
 }
@@ -194,6 +192,10 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	switch mgr.corpusDB.Version {
 	case 0:
 		// Version 0 had broken minimization, so we need to re-minimize.
+		minimized = false
+		fallthrough
+	case 1:
+		// Version 1->2: memory is preallocated so lots of mmaps become unnecessary.
 		minimized = false
 		fallthrough
 	case currentDBVersion:

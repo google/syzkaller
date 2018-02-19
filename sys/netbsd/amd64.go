@@ -4,7 +4,7 @@ package netbsd
 import . "github.com/google/syzkaller/prog"
 
 func init() {
-	RegisterTarget(&Target{OS: "netbsd", Arch: "amd64", Revision: revision_amd64, PtrSize: 8, Syscalls: syscalls_amd64, Resources: resources_amd64, Structs: structDescs_amd64, Consts: consts_amd64}, initTarget)
+	RegisterTarget(&Target{OS: "netbsd", Arch: "amd64", Revision: revision_amd64, PtrSize: 8, PageSize: 4096, NumPages: 4096, DataOffset: 536870912, Syscalls: syscalls_amd64, Resources: resources_amd64, Structs: structDescs_amd64, Consts: consts_amd64}, initTarget)
 }
 
 var resources_amd64 = []*ResourceDesc{
@@ -1674,4 +1674,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "WUNTRACED", Value: 2},
 }
 
-const revision_amd64 = "8a10b163677425b6f340b2e4e277358c7c1a4237"
+const revision_amd64 = "350c03f12de803ca8775df640249eae7e2425419"
