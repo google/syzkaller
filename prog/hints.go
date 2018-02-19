@@ -92,11 +92,6 @@ func generateHints(p *Prog, compMap CompMap, c *Call, arg Arg, exec func()) {
 	case *CsumType:
 		// Csum will not pass validation and is always computed.
 		return
-	case *LenType:
-		// Mutating len type causes panics during mmap/mremap analysis:
-		// panic: address is out of bounds: page=7 len=34359738367 bound=4096
-		// We can mutate len theoretically, but we need to be careful.
-		return
 	}
 
 	switch a := arg.(type) {
