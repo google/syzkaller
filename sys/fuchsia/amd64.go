@@ -160,11 +160,12 @@ var structDescs_amd64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "koid", FldName: "vmo_koid", TypeSize: 8, ArgDir: 1}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "committed_pages", TypeSize: 8, ArgDir: 1}}},
 	}}},
-	{Key: StructKey{Name: "zx_info_process", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_process", TypeSize: 7, ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "zx_info_process", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_process", TypeSize: 8, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "return_code", TypeSize: 4, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "started", TypeSize: 1, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "exited", TypeSize: 1, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "debugger_attached", TypeSize: 1, ArgDir: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "zx_info_resource", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "zx_info_resource", TypeSize: 24, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "kind", TypeSize: 4, ArgDir: 1}}},
@@ -1243,4 +1244,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "ZX_WAIT_ASYNC_REPEATING", Value: 1},
 }
 
-const revision_amd64 = "4eadf9151d47a3744fe9277b15a0447970eba0cb"
+const revision_amd64 = "b5b0969518fd01e85d118d8790cf4d70c5daa8a8"

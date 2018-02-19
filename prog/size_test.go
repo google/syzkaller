@@ -132,7 +132,11 @@ func TestAssignSize(t *testing.T) {
 		},
 		{
 			"syz_test$length24(&(0x7f0000000000)={{0x0, {0x0}}, {0x0, {0x0}}})",
-			"syz_test$length24(&(0x7f0000000000)={{0x0, {0x8}}, {0x0, {0xc}}})",
+			"syz_test$length24(&(0x7f0000000000)={{0x0, {0x8}}, {0x0, {0x10}}})",
+		},
+		{
+			"syz_test$length26(&(0x7f0000000000), 0x0)",
+			"syz_test$length26(&(0x7f0000000000), 0x8)",
 		},
 	}
 
