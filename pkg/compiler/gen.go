@@ -265,7 +265,7 @@ func (comp *compiler) addAlignment(fields []prog.Type, varlen, packed bool, alig
 	}
 	var align, off uint64
 	for i, f := range fields {
-		if i > 0 && !fields[i-1].BitfieldMiddle() {
+		if i == 0 || !fields[i-1].BitfieldMiddle() {
 			a := comp.typeAlign(f)
 			if align < a {
 				align = a
