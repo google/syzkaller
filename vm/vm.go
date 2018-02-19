@@ -205,7 +205,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Rep
 				copy(output, output[len(output)-beforeContext:])
 				output = output[:beforeContext]
 			}
-			matchPos = len(output) - 128
+			matchPos = len(output) - 512
 			if matchPos < 0 {
 				matchPos = 0
 			}
