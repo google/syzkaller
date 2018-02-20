@@ -63,7 +63,7 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, EnvFlags) {
 	return target, rs, iters, flags
 }
 
-func TestEmptyProg(t *testing.T) {
+func TestSimpleProg(t *testing.T) {
 	target, _, _, flags0 := initTest(t)
 
 	bin := buildExecutor(t, target)
@@ -79,18 +79,26 @@ func TestEmptyProg(t *testing.T) {
 		t.Fatalf("failed to create env: %v", err)
 	}
 	defer env.Close()
-
-	p := new(prog.Prog)
+	p := target.GenerateSimpleProg()
 	opts := &ExecOpts{}
-	output, _, failed, hanged, err := env.Exec(opts, p)
+	output, info, failed, hanged, err := env.Exec(opts, p)
 	if err != nil {
 		t.Fatalf("failed to run executor: %v", err)
 	}
+	if hanged {
+		t.Fatalf("program hanged:\n%s", output)
+	}
+	if failed {
+		t.Fatalf("program failed:\n%s", output)
+	}
+	if len(info) == 0 {
+		t.Fatalf("no calls executed:\n%s", output)
+	}
+	if info[0].Errno != 0 {
+		t.Fatalf("simple call failed: %v\n%s", info[0].Errno, output)
+	}
 	if len(output) != 0 {
 		t.Fatalf("output on empty program")
-	}
-	if failed || hanged {
-		t.Fatalf("empty program failed")
 	}
 }
 
