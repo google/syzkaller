@@ -109,7 +109,7 @@ func (arch *arch) makeMmap(addr, size uint64) *prog.Call {
 		Meta: meta,
 		Args: []prog.Arg{
 			prog.MakeVmaPointerArg(meta.Args[0], addr, size),
-			prog.MakeConstArg(meta.Args[1], addr),
+			prog.MakeConstArg(meta.Args[1], size),
 			prog.MakeConstArg(meta.Args[2], arch.PROT_READ|arch.PROT_WRITE),
 			prog.MakeConstArg(meta.Args[3], arch.MAP_ANONYMOUS|arch.MAP_PRIVATE|arch.MAP_FIXED),
 			prog.MakeResultArg(meta.Args[4], nil, invalidFD),
