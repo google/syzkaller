@@ -12,11 +12,9 @@ import (
 	"net"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -30,6 +28,7 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/pkg/repro"
 	. "github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys"
 	"github.com/google/syzkaller/syz-manager/mgrconfig"
@@ -72,9 +71,9 @@ type Manager struct {
 	candidates     []RpcCandidate // untriaged inputs from corpus and hub
 	disabledHashes map[string]struct{}
 	corpus         map[string]RpcInput
-	corpusSignal   map[uint32]struct{}
-	maxSignal      map[uint32]struct{}
-	corpusCover    map[uint32]struct{}
+	corpusCover    cover.Cover
+	corpusSignal   signal.Signal
+	maxSignal      signal.Signal
 	prios          [][]float32
 	newRepros      [][]byte
 
@@ -107,7 +106,7 @@ const currentDBVersion = 2
 type Fuzzer struct {
 	name         string
 	inputs       []RpcInput
-	newMaxSignal []uint32
+	newMaxSignal signal.Signal
 }
 
 type Crash struct {
@@ -169,9 +168,6 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		enabledSyscalls: enabledSyscalls,
 		corpus:          make(map[string]RpcInput),
 		disabledHashes:  make(map[string]struct{}),
-		corpusSignal:    make(map[uint32]struct{}),
-		maxSignal:       make(map[uint32]struct{}),
-		corpusCover:     make(map[uint32]struct{}),
 		fuzzers:         make(map[string]*Fuzzer),
 		fresh:           true,
 		vmStop:          make(chan bool),
@@ -281,7 +277,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 			mgr.fuzzingTime += diff * time.Duration(atomic.LoadUint32(&mgr.numFuzzing))
 			executed := mgr.stats["exec total"]
 			crashes := mgr.stats["crashes"]
-			signal := len(mgr.corpusSignal)
+			signal := mgr.corpusSignal.Len()
 			mgr.mu.Unlock()
 			numReproducing := atomic.LoadUint32(&mgr.numReproducing)
 			numFuzzing := atomic.LoadUint32(&mgr.numFuzzing)
@@ -309,7 +305,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 				vals["corpus"] = uint64(len(mgr.corpus))
 				vals["uptime"] = uint64(time.Since(mgr.firstConnect)) / 1e9
 				vals["fuzzing"] = uint64(mgr.fuzzingTime) / 1e9
-				vals["signal"] = uint64(len(mgr.corpusSignal))
+				vals["signal"] = uint64(mgr.corpusSignal.Len())
 				vals["coverage"] = uint64(len(mgr.corpusCover))
 				for k, v := range mgr.stats {
 					vals[k] = v
@@ -340,16 +336,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		}()
 	}
 
-	go func() {
-		c := make(chan os.Signal, 2)
-		signal.Notify(c, syscall.SIGINT)
-		<-c
-		close(vm.Shutdown)
-		Logf(0, "shutting down...")
-		<-c
-		Fatalf("terminating")
-	}()
-
+	osutil.HandleInterrupts(vm.Shutdown)
 	mgr.vmLoop()
 }
 
@@ -815,15 +802,17 @@ func (mgr *Manager) getReporter() report.Reporter {
 
 func (mgr *Manager) minimizeCorpus() {
 	if mgr.cfg.Cover && len(mgr.corpus) != 0 {
-		var cov []cover.Cover
-		var inputs []RpcInput
+		inputs := make([]signal.SignalContext, 0, len(mgr.corpus))
+
 		for _, inp := range mgr.corpus {
-			cov = append(cov, inp.Signal)
-			inputs = append(inputs, inp)
+			inputs = append(inputs, signal.SignalContext{
+				Signal:  inp.Signal.Deserialize(),
+				Context: inp,
+			})
 		}
 		newCorpus := make(map[string]RpcInput)
-		for _, idx := range cover.Minimize(cov) {
-			inp := inputs[idx]
+		for _, ctx := range signal.Minimize(inputs) {
+			inp := ctx.(RpcInput)
 			newCorpus[hash.String(inp.Prog)] = inp
 		}
 		Logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
@@ -883,18 +872,13 @@ func (mgr *Manager) Connect(a *ConnectArgs, r *ConnectRes) error {
 		mgr.prios = prios
 	}
 
-	f.inputs = nil
 	for _, inp := range mgr.corpus {
 		r.Inputs = append(r.Inputs, inp)
 	}
 	r.Prios = mgr.prios
 	r.EnabledCalls = mgr.enabledSyscalls
 	r.NeedCheck = !mgr.vmChecked
-	r.MaxSignal = make([]uint32, 0, len(mgr.maxSignal))
-	for s := range mgr.maxSignal {
-		r.MaxSignal = append(r.MaxSignal, s)
-	}
-	f.newMaxSignal = nil
+	r.MaxSignal = mgr.maxSignal.Serialize()
 	for i := 0; i < mgr.cfg.Procs && len(mgr.candidates) > 0; i++ {
 		last := len(mgr.candidates) - 1
 		r.Candidates = append(r.Candidates, mgr.candidates[last])
@@ -942,7 +926,9 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 }
 
 func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
-	Logf(4, "new input from %v for syscall %v (signal=%v cover=%v)", a.Name, a.Call, len(a.Signal), len(a.Cover))
+	inputSignal := a.Signal.Deserialize()
+	Logf(4, "new input from %v for syscall %v (signal=%v, cover=%v)",
+		a.Name, a.Call, inputSignal.Len(), len(a.Cover))
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
@@ -956,17 +942,21 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 		Logf(0, "failed to deserialize program from fuzzer: %v\n%s", err, a.RpcInput.Prog)
 		return nil
 	}
-	if !cover.SignalNew(mgr.corpusSignal, a.Signal) {
+	if mgr.corpusSignal.Diff(inputSignal).Empty() {
 		return nil
 	}
 	mgr.stats["manager new inputs"]++
-	cover.SignalAdd(mgr.corpusSignal, a.Signal)
-	cover.SignalAdd(mgr.corpusCover, a.Cover)
+	mgr.corpusSignal.Merge(inputSignal)
+	mgr.corpusCover.Merge(a.Cover)
 	sig := hash.String(a.RpcInput.Prog)
 	if inp, ok := mgr.corpus[sig]; ok {
 		// The input is already present, but possibly with diffent signal/coverage/call.
-		inp.Signal = cover.Union(inp.Signal, a.RpcInput.Signal)
-		inp.Cover = cover.Union(inp.Cover, a.RpcInput.Cover)
+		inputSignal.Merge(inp.Signal.Deserialize())
+		inp.Signal = inputSignal.Serialize()
+		var inputCover cover.Cover
+		inputCover.Merge(inp.Cover)
+		inputCover.Merge(a.RpcInput.Cover)
+		inp.Cover = inputCover.Serialize()
 		mgr.corpus[sig] = inp
 	} else {
 		mgr.corpus[sig] = a.RpcInput
@@ -998,22 +988,20 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 	if f == nil {
 		Fatalf("fuzzer %v is not connected", a.Name)
 	}
-	var newMaxSignal []uint32
-	for _, s := range a.MaxSignal {
-		if _, ok := mgr.maxSignal[s]; ok {
-			continue
+	newMaxSignal := mgr.maxSignal.Diff(a.MaxSignal.Deserialize())
+	if !newMaxSignal.Empty() {
+		mgr.maxSignal.Merge(newMaxSignal)
+		for _, f1 := range mgr.fuzzers {
+			if f1 == f {
+				continue
+			}
+			f1.newMaxSignal.Merge(newMaxSignal)
 		}
-		mgr.maxSignal[s] = struct{}{}
-		newMaxSignal = append(newMaxSignal, s)
 	}
-	for _, f1 := range mgr.fuzzers {
-		if f1 == f {
-			continue
-		}
-		f1.newMaxSignal = append(f1.newMaxSignal, newMaxSignal...)
+	if !f.newMaxSignal.Empty() {
+		r.MaxSignal = f.newMaxSignal.Serialize()
+		f.newMaxSignal = nil
 	}
-	r.MaxSignal = f.newMaxSignal
-	f.newMaxSignal = nil
 	for i := 0; i < 100 && len(f.inputs) > 0; i++ {
 		last := len(f.inputs) - 1
 		r.NewInputs = append(r.NewInputs, f.inputs[last])
@@ -1040,8 +1028,7 @@ func (mgr *Manager) Poll(a *PollArgs, r *PollRes) error {
 			}
 		}
 	}
-	Logf(4, "poll from %v: recv maxsignal=%v, send maxsignal=%v candidates=%v inputs=%v",
-		a.Name, len(a.MaxSignal), len(r.MaxSignal), len(r.Candidates), len(r.NewInputs))
+	Logf(4, "poll from %v: candidates=%v inputs=%v", a.Name, len(r.Candidates), len(r.NewInputs))
 	return nil
 }
 
@@ -1241,7 +1228,7 @@ func (mgr *Manager) dashboardReporter() {
 			Addr:        webAddr,
 			UpTime:      time.Since(mgr.firstConnect),
 			Corpus:      uint64(len(mgr.corpus)),
-			Cover:       uint64(len(mgr.corpusSignal)),
+			Cover:       uint64(mgr.corpusSignal.Len()),
 			FuzzingTime: mgr.fuzzingTime - lastFuzzingTime,
 			Crashes:     crashes - lastCrashes,
 			Execs:       execs - lastExecs,

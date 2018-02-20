@@ -18,13 +18,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/host"
 	"github.com/google/syzkaller/pkg/ipc"
 	. "github.com/google/syzkaller/pkg/log"
 	"github.com/google/syzkaller/pkg/osutil"
 	. "github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys"
 )
@@ -54,9 +54,9 @@ type Fuzzer struct {
 	corpusHashes map[hash.Sig]struct{}
 
 	signalMu     sync.RWMutex
-	corpusSignal map[uint32]struct{} // coverage of inputs in corpus
-	maxSignal    map[uint32]struct{} // max coverage ever observed including flakes
-	newSignal    map[uint32]struct{} // diff of maxSignal since last sync with master
+	corpusSignal signal.Signal // signal of inputs in corpus
+	maxSignal    signal.Signal // max signal ever observed including flakes
+	newSignal    signal.Signal // diff of maxSignal since last sync with master
 
 	logMu sync.Mutex
 }
@@ -245,16 +245,13 @@ func main() {
 		coverageEnabled:          coverageEnabled,
 		leakCheckEnabled:         *flagLeak,
 		corpusHashes:             make(map[hash.Sig]struct{}),
-		corpusSignal:             make(map[uint32]struct{}),
-		maxSignal:                make(map[uint32]struct{}),
-		newSignal:                make(map[uint32]struct{}),
 	}
 	fuzzer.gate = ipc.NewGate(2**flagProcs, fuzzer.leakCheckCallback)
 
 	for _, inp := range r.Inputs {
 		fuzzer.addInputFromAnotherFuzzer(inp)
 	}
-	fuzzer.addMaxSignal(r.MaxSignal)
+	fuzzer.addMaxSignal(r.MaxSignal.Deserialize())
 	for _, candidate := range r.Candidates {
 		p, err := fuzzer.target.Deserialize(candidate.Prog)
 		if err != nil {
@@ -317,7 +314,7 @@ func (fuzzer *Fuzzer) pollLoop() {
 				NeedCandidates: needCandidates,
 				Stats:          make(map[string]uint64),
 			}
-			a.MaxSignal = fuzzer.grabNewSignal()
+			a.MaxSignal = fuzzer.grabNewSignal().Serialize()
 			for _, proc := range fuzzer.procs {
 				a.Stats["exec total"] += atomic.SwapUint64(&proc.env.StatExecs, 0)
 				a.Stats["executor restarts"] += atomic.SwapUint64(&proc.env.StatRestarts, 0)
@@ -333,9 +330,10 @@ func (fuzzer *Fuzzer) pollLoop() {
 			if err := fuzzer.manager.Call("Manager.Poll", a, r); err != nil {
 				panic(err)
 			}
+			maxSignal := r.MaxSignal.Deserialize()
 			Logf(1, "poll: candidates=%v inputs=%v signal=%v",
-				len(r.Candidates), len(r.NewInputs), len(r.MaxSignal))
-			fuzzer.addMaxSignal(r.MaxSignal)
+				len(r.Candidates), len(r.NewInputs), maxSignal.Len())
+			fuzzer.addMaxSignal(maxSignal)
 			for _, inp := range r.NewInputs {
 				fuzzer.addInputFromAnotherFuzzer(inp)
 			}
@@ -427,10 +425,12 @@ func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp RpcInput) {
 	if err != nil {
 		panic(err)
 	}
-	fuzzer.addInputToCorpus(p, inp.Signal, hash.Hash(inp.Prog))
+	sig := hash.Hash(inp.Prog)
+	sign := inp.Signal.Deserialize()
+	fuzzer.addInputToCorpus(p, sign, sig)
 }
 
-func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, signal []uint32, sig hash.Sig) {
+func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, sign signal.Signal, sig hash.Sig) {
 	fuzzer.corpusMu.Lock()
 	if _, ok := fuzzer.corpusHashes[sig]; !ok {
 		fuzzer.corpus = append(fuzzer.corpus, p)
@@ -438,10 +438,12 @@ func (fuzzer *Fuzzer) addInputToCorpus(p *prog.Prog, signal []uint32, sig hash.S
 	}
 	fuzzer.corpusMu.Unlock()
 
-	fuzzer.signalMu.Lock()
-	cover.SignalAdd(fuzzer.corpusSignal, signal)
-	cover.SignalAdd(fuzzer.maxSignal, signal)
-	fuzzer.signalMu.Unlock()
+	if !sign.Empty() {
+		fuzzer.signalMu.Lock()
+		fuzzer.corpusSignal.Merge(sign)
+		fuzzer.maxSignal.Merge(sign)
+		fuzzer.signalMu.Unlock()
+	}
 }
 
 func (fuzzer *Fuzzer) corpusSnapshot() []*prog.Prog {
@@ -450,63 +452,56 @@ func (fuzzer *Fuzzer) corpusSnapshot() []*prog.Prog {
 	return fuzzer.corpus
 }
 
-func (fuzzer *Fuzzer) addMaxSignal(signal []uint32) {
-	if len(signal) == 0 {
+func (fuzzer *Fuzzer) addMaxSignal(sign signal.Signal) {
+	if sign.Len() == 0 {
 		return
 	}
 	fuzzer.signalMu.Lock()
 	defer fuzzer.signalMu.Unlock()
-	for _, s := range signal {
-		fuzzer.maxSignal[s] = struct{}{}
-	}
+	fuzzer.maxSignal.Merge(sign)
 }
 
-func (fuzzer *Fuzzer) grabNewSignal() []uint32 {
+func (fuzzer *Fuzzer) grabNewSignal() signal.Signal {
 	fuzzer.signalMu.Lock()
-	newSignal := fuzzer.newSignal
-	if len(newSignal) == 0 {
-		fuzzer.signalMu.Unlock()
+	defer fuzzer.signalMu.Unlock()
+	sign := fuzzer.newSignal
+	if sign.Empty() {
 		return nil
 	}
-	fuzzer.newSignal = make(map[uint32]struct{})
-	fuzzer.signalMu.Unlock()
-
-	signal := make([]uint32, 0, len(newSignal))
-	for s := range newSignal {
-		signal = append(signal, s)
-	}
-	return signal
+	fuzzer.newSignal = nil
+	return sign
 }
 
-func (fuzzer *Fuzzer) corpusSignalDiff(signal []uint32) []uint32 {
-	fuzzer.signalMu.Lock()
-	defer fuzzer.signalMu.Unlock()
-	return cover.SignalDiff(fuzzer.corpusSignal, signal)
-}
-
-func (fuzzer *Fuzzer) addCorpusSignal(signal []uint32) []uint32 {
-	fuzzer.signalMu.Lock()
-	defer fuzzer.signalMu.Unlock()
-	return cover.SignalDiff(fuzzer.corpusSignal, signal)
+func (fuzzer *Fuzzer) corpusSignalDiff(sign signal.Signal) signal.Signal {
+	fuzzer.signalMu.RLock()
+	defer fuzzer.signalMu.RUnlock()
+	return fuzzer.corpusSignal.Diff(sign)
 }
 
 func (fuzzer *Fuzzer) checkNewSignal(info []ipc.CallInfo) (calls []int) {
 	fuzzer.signalMu.RLock()
 	defer fuzzer.signalMu.RUnlock()
 	for i, inf := range info {
-		if !cover.SignalNew(fuzzer.maxSignal, inf.Signal) {
+		diff := fuzzer.maxSignal.DiffRaw(inf.Signal, signalPrio(&inf))
+		if diff.Empty() {
 			continue
 		}
 		calls = append(calls, i)
-		diff := cover.SignalDiff(fuzzer.maxSignal, inf.Signal)
 		fuzzer.signalMu.RUnlock()
 		fuzzer.signalMu.Lock()
-		cover.SignalAdd(fuzzer.maxSignal, diff)
-		cover.SignalAdd(fuzzer.newSignal, diff)
+		fuzzer.maxSignal.Merge(diff)
+		fuzzer.newSignal.Merge(diff)
 		fuzzer.signalMu.Unlock()
 		fuzzer.signalMu.RLock()
 	}
 	return
+}
+
+func signalPrio(ci *ipc.CallInfo) uint8 {
+	if ci.Errno == 0 {
+		return 1
+	}
+	return 0
 }
 
 func (fuzzer *Fuzzer) leakCheckCallback() {
