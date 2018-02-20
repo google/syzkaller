@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/ipc"
 	. "github.com/google/syzkaller/pkg/log"
 	. "github.com/google/syzkaller/pkg/rpctype"
+	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 )
 
@@ -98,20 +99,17 @@ func (proc *Proc) loop() {
 
 func (proc *Proc) triageInput(item *WorkTriage) {
 	Logf(1, "#%v: triaging type=%x", proc.pid, item.flags)
-
 	if !proc.fuzzer.coverageEnabled {
 		panic("should not be called when coverage is disabled")
 	}
 
-	newSignal := proc.fuzzer.corpusSignalDiff(item.info.Signal)
-	if len(newSignal) == 0 {
+	inputSignal := signal.FromRaw(item.info.Signal, signalPrio(&item.info))
+	newSignal := proc.fuzzer.corpusSignalDiff(inputSignal)
+	if newSignal.Empty() {
 		return
 	}
-	newSignal = cover.Canonicalize(newSignal)
-
 	call := item.p.Calls[item.call].Meta
-
-	Logf(3, "triaging input for %v (new signal=%v)", call.CallName, len(newSignal))
+	Logf(3, "triaging input for %v (new signal=%v)", call.CallName, newSignal.Len())
 	var inputCover cover.Cover
 	const (
 		signalRuns       = 3
@@ -130,17 +128,14 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 			continue
 		}
 		inf := info[item.call]
-		newSignal = cover.Intersection(newSignal, cover.Canonicalize(inf.Signal))
+		thisSignal := signal.FromRaw(inf.Signal, signalPrio(&inf))
+		newSignal = newSignal.Intersection(thisSignal)
 		// Without !minimized check manager starts losing some considerable amount
 		// of coverage after each restart. Mechanics of this are not completely clear.
-		if len(newSignal) == 0 && item.flags&ProgMinimized == 0 {
+		if newSignal.Empty() && item.flags&ProgMinimized == 0 {
 			return
 		}
-		if len(inputCover) == 0 {
-			inputCover = append([]uint32{}, inf.Cover...)
-		} else {
-			inputCover = cover.Union(inputCover, inf.Cover)
-		}
+		inputCover.Merge(inf.Cover)
 	}
 	if item.flags&ProgMinimized == 0 {
 		item.p, item.call = prog.Minimize(item.p, item.call, false,
@@ -156,8 +151,8 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 						// Successful calls are much more valuable.
 						return false
 					}
-					signal := cover.Canonicalize(inf.Signal)
-					if len(cover.Intersection(newSignal, signal)) == len(newSignal) {
+					thisSignal := signal.FromRaw(inf.Signal, signalPrio(&inf))
+					if newSignal.Intersection(thisSignal).Len() == newSignal.Len() {
 						return true
 					}
 				}
@@ -172,11 +167,11 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	proc.fuzzer.sendInputToManager(RpcInput{
 		Call:   call.CallName,
 		Prog:   data,
-		Signal: []uint32(cover.Canonicalize(item.info.Signal)),
-		Cover:  []uint32(inputCover),
+		Signal: inputSignal.Serialize(),
+		Cover:  inputCover.Serialize(),
 	})
 
-	proc.fuzzer.addInputToCorpus(item.p, item.info.Signal, sig)
+	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
 
 	if item.flags&ProgSmashed == 0 {
 		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})

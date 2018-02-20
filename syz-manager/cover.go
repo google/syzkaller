@@ -91,7 +91,7 @@ func initAllCover(vmlinux string) {
 	}()
 }
 
-func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
+func generateCoverHtml(w io.Writer, vmlinux string, cov cover.Cover) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("No coverage data available")
 	}
@@ -100,9 +100,9 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov []uint32) error {
 	if err != nil {
 		return err
 	}
-	pcs := make([]uint64, len(cov))
-	for i, pc := range cov {
-		pcs[i] = cover.RestorePC(pc, base) - callLen
+	pcs := make([]uint64, 0, len(cov))
+	for pc := range cov {
+		pcs = append(pcs, cover.RestorePC(pc, base)-callLen)
 	}
 	uncovered, err := uncoveredPcsInFuncs(vmlinux, pcs)
 	if err != nil {

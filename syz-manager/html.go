@@ -98,7 +98,7 @@ func (mgr *Manager) collectSummary(data *UISummaryData) (map[string]*CallCov, er
 	data.Stats = append(data.Stats, UIStat{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))})
 	data.Stats = append(data.Stats, UIStat{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))})
 	data.Stats = append(data.Stats, UIStat{Name: "cover", Value: fmt.Sprint(len(mgr.corpusCover)), Link: "/cover"})
-	data.Stats = append(data.Stats, UIStat{Name: "signal", Value: fmt.Sprint(len(mgr.corpusSignal))})
+	data.Stats = append(data.Stats, UIStat{Name: "signal", Value: fmt.Sprint(mgr.corpusSignal.Len())})
 
 	secs := uint64(1)
 	if !mgr.firstConnect.IsZero() {
@@ -129,7 +129,7 @@ func (mgr *Manager) collectSummary(data *UISummaryData) (map[string]*CallCov, er
 		}
 		cc := calls[inp.Call]
 		cc.count++
-		cc.cov = cover.Union(cc.cov, cover.Cover(inp.Cover))
+		cc.cov.Merge(inp.Cover)
 	}
 
 	return calls, nil
@@ -188,12 +188,12 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 	}
 	var cov cover.Cover
 	if sig := r.FormValue("input"); sig != "" {
-		cov = mgr.corpus[sig].Cover
+		cov.Merge(mgr.corpus[sig].Cover)
 	} else {
 		call := r.FormValue("call")
 		for _, inp := range mgr.corpus {
 			if call == "" || call == inp.Call {
-				cov = cover.Union(cov, cover.Cover(inp.Cover))
+				cov.Merge(inp.Cover)
 			}
 		}
 	}
@@ -305,14 +305,20 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 
 	var cov cover.Cover
 	for _, inp := range mgr.corpus {
-		cov = cover.Union(cov, cover.Cover(inp.Cover))
+		cov.Merge(inp.Cover)
 	}
+	pcs := make([]uint64, 0, len(cov))
+	for pc := range cov {
+		pcs = append(pcs, cover.RestorePC(pc, base)-callLen)
+	}
+	sort.Slice(pcs, func(i, j int) bool {
+		return pcs[i] < pcs[j]
+	})
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	buf := bufio.NewWriter(w)
-	for _, pc := range cov {
-		restored := cover.RestorePC(pc, base) - callLen
-		fmt.Fprintf(buf, "0x%x\n", restored)
+	for _, pc := range pcs {
+		fmt.Fprintf(buf, "0x%x\n", pc)
 	}
 	buf.Flush()
 }
