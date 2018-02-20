@@ -730,6 +730,13 @@ var linuxOopses = []*oops{
 				},
 			},
 			{
+				title: compile("BUG: workqueue leaked lock or atomic"),
+				report: compile("BUG: workqueue leaked lock or atomic(?:.*\\n)+?" +
+					".*last function: ([a-zA-Z0-9_]+)\\n"),
+				fmt:          "BUG: workqueue leaked lock or atomic in %[1]v",
+				noStackTrace: true,
+			},
+			{
 				title:        compile("BUG: executor-detected bug"),
 				fmt:          "BUG: executor-detected bug",
 				noStackTrace: true,

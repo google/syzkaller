@@ -1,0 +1,11 @@
+TITLE: BUG: workqueue leaked lock or atomic in addrconf_dad_work
+
+[   50.490720] IPv6: ADDRCONF(NETDEV_UP): bridge0: link is not ready
+[   51.132760] BUG: workqueue leaked lock or atomic: kworker/0:0/0x00000000/4
+[   51.132760]      last function: addrconf_dad_work
+[   51.144513] 1 lock held by kworker/0:0/4:
+[   51.148666]  #0:  (rcu_read_lock_bh){......}, at: [<ffffffff8294ef60>] hashlimit_mt_common.isra.11+0x190/0x22a0
+[   51.159587] CPU: 0 PID: 4 Comm: kworker/0:0 Not tainted 4.3.5+ #124
+[   51.165970] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   51.175313] Workqueue: ipv6_addrconf addrconf_dad_work
+[   51.180694]  00000000000
