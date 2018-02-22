@@ -5264,7 +5264,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "empty", TypeSize: 6}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xaa, int8]]"}, FldName: "local"},
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xbb, int8]]"}, FldName: "remote"},
-		&StructType{Key: StructKey{Name: "mac_addr_t[int8[10:23]]"}, FldName: "dev"},
+		&StructType{Key: StructKey{Name: "mac_addr_t[int8[10:26]]"}, FldName: "dev"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "broadcast", TypeSize: 6}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}, Val: 255}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 		&StructType{Key: StructKey{Name: "mac_addr_link_local"}, FldName: "link_local"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "random", TypeSize: 6}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
@@ -5273,7 +5273,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "empty", TypeSize: 6, ArgDir: 1}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 1}}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xaa, int8]]", Dir: 1}, FldName: "local"},
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xbb, int8]]", Dir: 1}, FldName: "remote"},
-		&StructType{Key: StructKey{Name: "mac_addr_t[int8[10:23]]", Dir: 1}, FldName: "dev"},
+		&StructType{Key: StructKey{Name: "mac_addr_t[int8[10:26]]", Dir: 1}, FldName: "dev"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "broadcast", TypeSize: 6, ArgDir: 1}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 1}}, Val: 255}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 		&StructType{Key: StructKey{Name: "mac_addr_link_local", Dir: 1}, FldName: "link_local"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "random", TypeSize: 6, ArgDir: 1}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
@@ -5282,7 +5282,7 @@ var structDescs_arm = []*KeyedStruct{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "empty", TypeSize: 6, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 2}}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xaa, int8]]", Dir: 2}, FldName: "local"},
 		&StructType{Key: StructKey{Name: "mac_addr_t[const[0xbb, int8]]", Dir: 2}, FldName: "remote"},
-		&StructType{Key: StructKey{Name: "mac_addr_t[int8[10:23]]", Dir: 2}, FldName: "dev"},
+		&StructType{Key: StructKey{Name: "mac_addr_t[int8[10:26]]", Dir: 2}, FldName: "dev"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "broadcast", TypeSize: 6, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 2}}, Val: 255}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 		&StructType{Key: StructKey{Name: "mac_addr_link_local", Dir: 2}, FldName: "link_local"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "random", TypeSize: 6, ArgDir: 2}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
@@ -5341,20 +5341,20 @@ var structDescs_arm = []*KeyedStruct{
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a1", TypeSize: 1, ArgDir: 2}}, ValuesPerProc: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "a2", TypeSize: 1, ArgDir: 2}}, Val: 187},
 	}}},
-	{Key: StructKey{Name: "mac_addr_t[int8[10:23]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr_t[int8[10:23]]", TypeSize: 6}, Fields: []Type{
+	{Key: StructKey{Name: "mac_addr_t[int8[10:26]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr_t[int8[10:26]]", TypeSize: 6}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "a0", TypeSize: 4}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}, Val: 170}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a1", TypeSize: 1}}, ValuesPerProc: 1},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a2", TypeSize: 1}}, Kind: 2, RangeBegin: 10, RangeEnd: 23},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a2", TypeSize: 1}}, Kind: 2, RangeBegin: 10, RangeEnd: 26},
 	}}},
-	{Key: StructKey{Name: "mac_addr_t[int8[10:23]]", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr_t[int8[10:23]]", TypeSize: 6, ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "mac_addr_t[int8[10:26]]", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr_t[int8[10:26]]", TypeSize: 6, ArgDir: 1}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "a0", TypeSize: 4, ArgDir: 1}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 1}}, Val: 170}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a1", TypeSize: 1, ArgDir: 1}}, ValuesPerProc: 1},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a2", TypeSize: 1, ArgDir: 1}}, Kind: 2, RangeBegin: 10, RangeEnd: 23},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a2", TypeSize: 1, ArgDir: 1}}, Kind: 2, RangeBegin: 10, RangeEnd: 26},
 	}}},
-	{Key: StructKey{Name: "mac_addr_t[int8[10:23]]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr_t[int8[10:23]]", TypeSize: 6, ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "mac_addr_t[int8[10:26]]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mac_addr_t[int8[10:26]]", TypeSize: 6, ArgDir: 2}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "a0", TypeSize: 4, ArgDir: 2}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1, ArgDir: 2}}, Val: 170}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "a1", TypeSize: 1, ArgDir: 2}}, ValuesPerProc: 1},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a2", TypeSize: 1, ArgDir: 2}}, Kind: 2, RangeBegin: 10, RangeEnd: 23},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a2", TypeSize: 1, ArgDir: 2}}, Kind: 2, RangeBegin: 10, RangeEnd: 26},
 	}}},
 	{Key: StructKey{Name: "mf6cctl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "mf6cctl", TypeSize: 92}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_in6"}, FldName: "mf6cc_origin"},
@@ -24872,4 +24872,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "220e335504887d2061cc543f218477c072ed099b"
+const revision_arm = "1f142d9c414bab0f13529534079cd76964348699"
