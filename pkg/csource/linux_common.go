@@ -505,14 +505,15 @@ static void initialize_tun(int id)
 static void initialize_netdevices(int id)
 {
 	unsigned i;
-	const char* devtypes[] = {"ip6gretap", "bridge", "vcan"};
+	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "veth"};
 	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",
 				  "gre0", "gretap0", "ip_vti0", "ip6_vti0",
 				  "ip6tnl0", "ip6gre0", "ip6gretap0",
-				  "erspan0"};
+				  "erspan0", "bond0", "veth0", "veth1"};
 
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
+	execute_command(0, "ip link add dev veth1 type veth");
 	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
 		char addr[ADDR_MAX_LEN];
 		snprintf_check(addr, sizeof(addr), DEV_IPV4, id, id + 10);

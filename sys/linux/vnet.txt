@@ -58,7 +58,7 @@ mac_addr [
 # These correspond to LOCAL_MAC/REMOTE_MAC/DEV_MAC in executor/common_linux.h
 	local		mac_addr_t[const[0xaa, int8]]
 	remote		mac_addr_t[const[0xbb, int8]]
-	dev		mac_addr_t[int8[10:23]]
+	dev		mac_addr_t[int8[10:26]]
 	broadcast	array[const[0xff, int8], 6]
 	link_local	mac_addr_link_local
 	random		array[int8, 6]
