@@ -412,6 +412,15 @@ func stringInList(list []string, str string) bool {
 	return false
 }
 
+func stringsInList(list, str []string) bool {
+	for _, s := range str {
+		if !stringInList(list, s) {
+			return false
+		}
+	}
+	return true
+}
+
 func apiReportBuildError(c context.Context, ns string, r *http.Request) (interface{}, error) {
 	req := new(dashapi.BuildErrorReq)
 	if err := json.NewDecoder(r.Body).Decode(req); err != nil {

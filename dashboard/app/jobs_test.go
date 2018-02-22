@@ -29,22 +29,30 @@ func TestJob(t *testing.T) {
 
 	// Report crash without repro, check that test requests are not accepted.
 	crash := testCrash(build, 1)
+	crash.Maintainers = []string{"maintainer@kernel.org"}
 	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
 
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
 	sender := (<-c.emailSink).Sender
+	c.incomingEmail(sender, "#syz upstream\n")
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 1)
+	sender = (<-c.emailSink).Sender
 	_, extBugID, err := email.RemoveAddrContext(sender)
 	if err != nil {
 		t.Fatal(err)
 	}
+	mailingList := config.Namespaces["test2"].Reporting[1].Config.(*EmailConfig).Email
+	c.incomingEmail(sender, "bla-bla-bla", EmailOptFrom("maintainer@kernel.org"),
+		EmailOptCC([]string{mailingList, "kernel@mailing.list"}))
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	c.expectEQ(len(c.emailSink), 1)
 	c.expectEQ(strings.Contains((<-c.emailSink).Body, "This crash does not have a reproducer"), true)
 
 	// Report crash with repro.
-	crash.Maintainers = []string{"foo@bar.com"}
 	crash.ReproOpts = []byte("repro opts")
 	crash.ReproSyz = []byte("repro syz")
 	crash.ReproC = []byte("repro C")
@@ -54,35 +62,44 @@ func TestJob(t *testing.T) {
 	c.expectEQ(len(c.emailSink), 1)
 	c.expectEQ(strings.Contains((<-c.emailSink).Body, "syzbot has found reproducer"), true)
 
-	c.incomingEmail(sender, "#syz test: repo")
+	c.incomingEmail(sender, "#syz test: repo",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	c.expectEQ(len(c.emailSink), 1)
 	c.expectEQ(strings.Contains((<-c.emailSink).Body, "want 2 args"), true)
 
-	c.incomingEmail(sender, "#syz test: repo branch commit")
+	c.incomingEmail(sender, "#syz test: repo branch commit",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	c.expectEQ(len(c.emailSink), 1)
 	c.expectEQ(strings.Contains((<-c.emailSink).Body, "want 2 args"), true)
 
-	c.incomingEmail(sender, "#syz test: repo branch")
+	c.incomingEmail(sender, "#syz test: repo branch",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	c.expectEQ(len(c.emailSink), 1)
 	c.expectEQ(strings.Contains((<-c.emailSink).Body, "does not look like a valid git repo"), true)
 
-	c.incomingEmail(sender, "#syz test: git://git.git/git.git master")
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git master",
+		EmailOptFrom("test@requester.com"), EmailOptCC([]string{mailingList}))
 	c.expectEQ(len(c.emailSink), 1)
 	c.expectEQ(strings.Contains((<-c.emailSink).Body, "I don't see any patch attached to the request"), true)
 
-	c.incomingEmailFrom("\"foo\" <blAcklisteD@dOmain.COM>", sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
+		EmailOptFrom("\"foo\" <blAcklisteD@dOmain.COM>"))
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
 	pollResp := new(dashapi.JobPollResp)
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
 	c.expectEQ(pollResp.ID, "")
 
-	c.incomingEmailID(1, sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
+		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
+		EmailOptCC([]string{"somebody@else.com"}))
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
 
 	// A dup of the same request with the same Message-ID.
-	c.incomingEmailID(1, sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch,
+		EmailOptMessageID(1), EmailOptFrom("test@requester.com"),
+		EmailOptCC([]string{"somebody@else.com"}))
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 0)
 
@@ -117,8 +134,8 @@ func TestJob(t *testing.T) {
 	c.expectEQ(len(c.emailSink), 1)
 	{
 		msg := <-c.emailSink
-		list := config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
-		c.expectEQ(msg.To, []string{"default@sender.com", list})
+		to := email.MergeEmailLists([]string{"test@requester.com", "somebody@else.com", mailingList})
+		c.expectEQ(msg.To, to)
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 3)
 		c.expectEQ(msg.Attachments[0].Name, "patch.diff")
@@ -148,7 +165,7 @@ Raw console output is attached.
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
 	}
-	c.incomingEmailID(2, sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(2))
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,
@@ -187,7 +204,7 @@ Kernel config is attached.
 		}
 	}
 
-	c.incomingEmailID(3, sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch)
+	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(3))
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
 	jobDoneReq = &dashapi.JobDoneReq{
 		ID:    pollResp.ID,

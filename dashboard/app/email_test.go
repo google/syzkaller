@@ -195,7 +195,8 @@ report1
 		}
 		extBugID1 = extBugID
 		c.expectEQ(sender, fromAddr(c.ctx))
-		c.expectEQ(msg.To, []string{"bar@foo.com", "bugs@syzkaller.com", "foo@bar.com"})
+		c.expectEQ(msg.To, []string{"bar@foo.com", "bugs@syzkaller.com",
+			"default@maintainers.com", "foo@bar.com"})
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 3)
 		c.expectEQ(msg.Attachments[0].Name, "raw.log.txt")
@@ -280,7 +281,8 @@ Content-Type: text/plain
 			t.Fatalf("failed to remove sender context: %v", err)
 		}
 		c.expectEQ(sender, fromAddr(c.ctx))
-		c.expectEQ(msg.To, []string{"another@another.com", "bar@foo.com", "bugs@syzkaller.com", "foo@bar.com", "new@new.com", "qux@qux.com"})
+		c.expectEQ(msg.To, []string{"another@another.com", "bar@foo.com", "bugs@syzkaller.com",
+			"default@maintainers.com", "foo@bar.com", "new@new.com", "qux@qux.com"})
 		c.expectEQ(msg.Subject, crash.Title)
 		c.expectEQ(len(msg.Attachments), 4)
 		c.expectEQ(msg.Attachments[0].Name, "raw.log.txt")

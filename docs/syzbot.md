@@ -39,6 +39,8 @@ reliable because of email clients splitting lines and messing with whitespaces.
 `syzbot` will test the patch on `HEAD` of the specified git repo/branch.
 Note: this can be used both for testing fix patches and just for debugging
 (i.e. adding additional checks to code and testing with them).
+Note: you may send the request only to `syzbot` email address, as patches sent
+to some mailing lists (e.g. netdev, netfilter-devel) will trigger patchwork.
 After sending an email you should get a reply email with results within an hour.
 - to mark the bug as a duplicate of another `syzbot` bug:
 ```
