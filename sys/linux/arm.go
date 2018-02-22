@@ -4409,14 +4409,15 @@ var structDescs_arm = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "length", TypeSize: 1}}, BitSize: 64, Buf: "options"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "pad", TypeSize: 6}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 6, RangeEnd: 6},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_tlv_option"}}},
-	}}},
+	}, AlignAttr: 8}},
 	{Key: StructKey{Name: "ipv6_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_ext_header", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "ipv6_hopots_ext_header"}, FldName: "hopopts"},
-		&StructType{Key: StructKey{Name: "ipv6_routing_ext_header"}, FldName: "routing"},
+		&StructType{Key: StructKey{Name: "ipv6_rt_hdr"}, FldName: "routing"},
+		&StructType{Key: StructKey{Name: "ipv6_sr_hdr"}, FldName: "srh"},
 		&StructType{Key: StructKey{Name: "ipv6_fragment_ext_header"}, FldName: "fragment"},
 		&StructType{Key: StructKey{Name: "ipv6_dstopts_ext_header"}, FldName: "dstopts"},
 	}}},
-	{Key: StructKey{Name: "ipv6_fragment_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_fragment_ext_header", TypeSize: 8}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_fragment_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_fragment_ext_header", TypeSize: 14}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "next_header", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135, 115}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved1", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "fragment_off_hi", TypeSize: 1}}},
@@ -4424,7 +4425,8 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved2", TypeSize: 1}, BitfieldOff: 1, BitfieldLen: 2, BitfieldMdl: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "fragment_off_lo", TypeSize: 1}, BitfieldOff: 3, BitfieldLen: 5}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "identification", TypeSize: 4}}, ValuesStart: 100, ValuesPerProc: 4},
-	}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
+	}, AlignAttr: 8}},
 	{Key: StructKey{Name: "ipv6_hopots_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_hopots_ext_header", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "next_header", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135, 115}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "length", TypeSize: 1}}, BitSize: 64, Buf: "options"},
@@ -4461,13 +4463,23 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "dccp_packet"}, FldName: "dccp"},
 		&StructType{Key: StructKey{Name: "gre_packet"}, FldName: "gre"},
 	}}},
-	{Key: StructKey{Name: "ipv6_routing_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_routing_ext_header", IsVarlen: true}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_rt_hdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_rt_hdr", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "next_header", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135, 115}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "length", TypeSize: 1}}, BitSize: 64, Buf: "data"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_routing_types", FldName: "routing_type", TypeSize: 1}}, Vals: []uint64{1, 0, 2}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "segments_left", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 4}}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_addr"}}},
+	}, AlignAttr: 8}},
+	{Key: StructKey{Name: "ipv6_sr_hdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_sr_hdr", IsVarlen: true}, Fields: []Type{
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "nexthdr", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135, 115}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize8", FldName: "hdrlen", TypeSize: 1}}, BitSize: 64, Buf: "segments"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "segments_left", TypeSize: 1}}, Buf: "segments"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "first_segment", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "flags", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "tag", TypeSize: 2}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "segments", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "ipv6_addr"}}},
 	}, AlignAttr: 8}},
 	{Key: StructKey{Name: "ipv6_tlv_calipso"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_tlv_calipso", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 7},
@@ -9370,6 +9382,17 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "tcp_eol_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_eol_option", TypeSize: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}},
 	}}},
+	{Key: StructKey{Name: "tcp_exp_fastopen_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_exp_fastopen_option", IsVarlen: true}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 254},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "subtype", TypeSize: 2}, BigEndian: true}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 16},
+	}}},
+	{Key: StructKey{Name: "tcp_exp_smc_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_exp_smc_option", TypeSize: 6}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 254},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "subtype", TypeSize: 4}, BigEndian: true}},
+	}}},
 	{Key: StructKey{Name: "tcp_fastopen_option"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_fastopen_option", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 1}}, Val: 34},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 1}}, Buf: "parent"},
@@ -9425,6 +9448,8 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "tcp_timestamp_option"}, FldName: "timestamp"},
 		&StructType{Key: StructKey{Name: "tcp_md5sig_option"}, FldName: "md5sig"},
 		&StructType{Key: StructKey{Name: "tcp_fastopen_option"}, FldName: "fastopen"},
+		&StructType{Key: StructKey{Name: "tcp_exp_fastopen_option"}, FldName: "exp_fastopen"},
+		&StructType{Key: StructKey{Name: "tcp_exp_smc_option"}, FldName: "exp_smc"},
 	}}},
 	{Key: StructKey{Name: "tcp_options"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tcp_options", IsVarlen: true}, Fields: []Type{
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "options", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "tcp_option"}}},
@@ -24847,4 +24872,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "5067581bdfd488a8007c90cb8de984853d046ff2"
+const revision_arm = "220e335504887d2061cc543f218477c072ed099b"
