@@ -1113,7 +1113,7 @@ func (mgr *Manager) hubSync() {
 
 		mgr.mu.Unlock()
 
-		if mgr.cfg.Reproduce {
+		if mgr.cfg.Reproduce && mgr.dash != nil {
 			needReproReply := make(chan bool)
 			mgr.needMoreRepros <- needReproReply
 			a.NeedRepros = <-needReproReply
