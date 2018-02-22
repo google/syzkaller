@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "7fd88e39747e80adbe57789ea7aa2448c805c3df"
+#define SYZ_REVISION "29c853f8d15aefe6c7ad4491ff1dce9a04e466db"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1583;
+unsigned syscall_count = 1585;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1450,6 +1450,7 @@ call_t syscalls[] = {
     {"socket$inet_icmp", 359},
     {"socket$inet_icmp_raw", 359},
     {"socket$inet_sctp", 359},
+    {"socket$inet_smc", 359},
     {"socket$inet_tcp", 359},
     {"socket$inet_udp", 359},
     {"socket$ipx", 359},
@@ -1487,6 +1488,7 @@ call_t syscalls[] = {
     {"socketpair$inet_icmp", 360},
     {"socketpair$inet_icmp_raw", 360},
     {"socketpair$inet_sctp", 360},
+    {"socketpair$inet_smc", 360},
     {"socketpair$inet_tcp", 360},
     {"socketpair$inet_udp", 360},
     {"socketpair$ipx", 360},
@@ -1597,11 +1599,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "a1ab4c6615189cd3eae0a2fea071472b05cfd54b"
+#define SYZ_REVISION "2568cd348fa7875a77d58a1f1cd391ec88fbb449"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1636;
+unsigned syscall_count = 1638;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3098,6 +3100,7 @@ call_t syscalls[] = {
     {"socket$inet_icmp", 41},
     {"socket$inet_icmp_raw", 41},
     {"socket$inet_sctp", 41},
+    {"socket$inet_smc", 41},
     {"socket$inet_tcp", 41},
     {"socket$inet_udp", 41},
     {"socket$ipx", 41},
@@ -3135,6 +3138,7 @@ call_t syscalls[] = {
     {"socketpair$inet_icmp", 53},
     {"socketpair$inet_icmp_raw", 53},
     {"socketpair$inet_sctp", 53},
+    {"socketpair$inet_smc", 53},
     {"socketpair$inet_tcp", 53},
     {"socketpair$inet_udp", 53},
     {"socketpair$ipx", 53},
@@ -4850,11 +4854,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "ea7a1ceeab803d647fac36d47ced5251be23558f"
+#define SYZ_REVISION "4ae593cf6ac919256f3e072c6229ba62907fbd5c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1565;
+unsigned syscall_count = 1567;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6291,6 +6295,7 @@ call_t syscalls[] = {
     {"socket$inet_icmp", 198},
     {"socket$inet_icmp_raw", 198},
     {"socket$inet_sctp", 198},
+    {"socket$inet_smc", 198},
     {"socket$inet_tcp", 198},
     {"socket$inet_udp", 198},
     {"socket$ipx", 198},
@@ -6328,6 +6333,7 @@ call_t syscalls[] = {
     {"socketpair$inet_icmp", 199},
     {"socketpair$inet_icmp_raw", 199},
     {"socketpair$inet_sctp", 199},
+    {"socketpair$inet_smc", 199},
     {"socketpair$inet_tcp", 199},
     {"socketpair$inet_udp", 199},
     {"socketpair$ipx", 199},
@@ -6427,11 +6433,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "0c6922061a3c6a07f19c08cf45a5cdfffad6a284"
+#define SYZ_REVISION "7966dba95a87533f2cb510cfd8e16bb52deba2b3"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1555;
+unsigned syscall_count = 1557;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7848,6 +7854,7 @@ call_t syscalls[] = {
     {"socket$inet_icmp", 326},
     {"socket$inet_icmp_raw", 326},
     {"socket$inet_sctp", 326},
+    {"socket$inet_smc", 326},
     {"socket$inet_tcp", 326},
     {"socket$inet_udp", 326},
     {"socket$ipx", 326},
@@ -7885,6 +7892,7 @@ call_t syscalls[] = {
     {"socketpair$inet_icmp", 333},
     {"socketpair$inet_icmp_raw", 333},
     {"socketpair$inet_sctp", 333},
+    {"socketpair$inet_smc", 333},
     {"socketpair$inet_tcp", 333},
     {"socketpair$inet_udp", 333},
     {"socketpair$ipx", 333},
