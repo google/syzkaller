@@ -92,6 +92,14 @@ func handleEmailPoll(w http.ResponseWriter, r *http.Request) {
 func emailPollBugs(c context.Context) error {
 	reports := reportingPollBugs(c, emailType)
 	for _, rep := range reports {
+		cfg := new(EmailConfig)
+		if err := json.Unmarshal(rep.Config, cfg); err != nil {
+			log.Errorf(c, "failed to unmarshal email config: %v", err)
+			continue
+		}
+		if cfg.MailMaintainers {
+			rep.CC = email.MergeEmailLists(rep.CC, rep.Maintainers, cfg.DefaultMaintainers)
+		}
 		if err := emailReport(c, rep, "mail_bug.txt"); err != nil {
 			log.Errorf(c, "failed to report bug: %v", err)
 			continue
@@ -138,11 +146,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	if err := json.Unmarshal(rep.Config, cfg); err != nil {
 		return fmt.Errorf("failed to unmarshal email config: %v", err)
 	}
-	to := []string{cfg.Email}
-	if cfg.MailMaintainers {
-		to = email.MergeEmailLists(to, rep.Maintainers, cfg.DefaultMaintainers)
-	}
-	to = email.MergeEmailLists(to, rep.CC)
+	to := email.MergeEmailLists([]string{cfg.Email}, rep.CC)
 	var attachments []aemail.Attachment
 	// Note: order of attachments is important. Some email clients show them inline.
 	if len(rep.Patch) != 0 {
@@ -288,12 +292,9 @@ func incomingMail(c context.Context, r *http.Request) error {
 				len(args)), nil)
 		}
 		reply := handleTestRequest(c, msg.BugID, email.CanonicalEmail(msg.From),
-			msg.MessageID, msg.Link, msg.Patch, args[0], args[1])
+			msg.MessageID, msg.Link, msg.Patch, args[0], args[1], msg.Cc)
 		if reply != "" {
 			return replyTo(c, msg, reply, nil)
-		}
-		if !mailingListInCC {
-			warnMailingListInCC(c, msg, mailingList)
 		}
 		return nil
 	}

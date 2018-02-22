@@ -135,6 +135,7 @@ type ReportingStateEntry struct {
 type Job struct {
 	Created   time.Time
 	User      string
+	CC        []string
 	Reporting string
 	ExtID     string // email Message-ID
 	Link      string // web link for the job (e.g. email in the group)

@@ -20,7 +20,8 @@ import (
 
 // handleTestRequest added new job to datastore.
 // Returns empty string if job added successfully, or reason why it wasn't added.
-func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo, branch string) string {
+func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo, branch string,
+	jobCC []string) string {
 	log.Infof(c, "test request: bug=%q user=%q extID=%q patch=%v, repo=%q branch=%q",
 		bugID, user, extID, len(patch), repo, branch)
 	for _, blacklisted := range config.EmailBlacklist {
@@ -39,7 +40,7 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 		return fmt.Sprintf("can't find the associated bug (do you have %v in To/CC?)", myEmail)
 	}
 	bugReporting, _ := bugReportingByID(bug, bugID)
-	reply, err := addTestJob(c, bug, bugKey, bugReporting, user, extID, link, patch, repo, branch)
+	reply, err := addTestJob(c, bug, bugKey, bugReporting, user, extID, link, patch, repo, branch, jobCC)
 	if err != nil {
 		log.Errorf(c, "test request failed: %v", err)
 		if reply == "" {
@@ -47,15 +48,15 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 		}
 	}
 	// Update bug CC list in any case.
-	if !stringInList(strings.Split(bugReporting.CC, "|"), user) {
+	if !stringsInList(strings.Split(bugReporting.CC, "|"), jobCC) {
 		tx := func(c context.Context) error {
 			bug := new(Bug)
 			if err := datastore.Get(c, bugKey, bug); err != nil {
 				return err
 			}
 			bugReporting := bugReportingByName(bug, bugReporting.Name)
-			cc := strings.Split(bugReporting.CC, "|")
-			merged := email.MergeEmailLists(cc, []string{user})
+			bugCC := strings.Split(bugReporting.CC, "|")
+			merged := email.MergeEmailLists(bugCC, jobCC)
 			bugReporting.CC = strings.Join(merged, "|")
 			if _, err := datastore.Put(c, bugKey, bug); err != nil {
 				return err
@@ -74,7 +75,7 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 }
 
 func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting *BugReporting,
-	user, extID, link, patch, repo, branch string) (string, error) {
+	user, extID, link, patch, repo, branch string, jobCC []string) (string, error) {
 	crash, crashKey, err := findCrashForBug(c, bug)
 	if err != nil {
 		return "", err
@@ -116,6 +117,7 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 	job := &Job{
 		Created:      timeNow(c),
 		User:         user,
+		CC:           jobCC,
 		Reporting:    bugReporting.Name,
 		ExtID:        extID,
 		Link:         link,
@@ -369,6 +371,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 		JobID:             extJobID(jobKey),
 		ExtID:             job.ExtID,
 		Title:             bug.displayTitle(),
+		CC:                job.CC,
 		Log:               crashLog,
 		Report:            report,
 		OS:                build.OS,
@@ -386,10 +389,6 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 		Error:             jobError,
 		Patch:             patch,
 	}
-	if bugReporting.CC != "" {
-		rep.CC = strings.Split(bugReporting.CC, "|")
-	}
-	rep.CC = append(rep.CC, job.User)
 	return rep, nil
 }
 

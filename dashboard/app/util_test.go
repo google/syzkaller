@@ -281,33 +281,37 @@ func (client *apiClient) updateBug(extID string, status dashapi.BugStatus, dup s
 	return reply
 }
 
-func (c *Ctx) incomingEmail(to, body string) {
-	c.incomingEmailImpl(0, "", to, body)
-}
+type (
+	EmailOptMessageID int
+	EmailOptFrom      string
+	EmailOptCC        []string
+)
 
-func (c *Ctx) incomingEmailFrom(from, to, body string) {
-	c.incomingEmailImpl(0, from, to, body)
-}
-
-func (c *Ctx) incomingEmailID(id int, to, body string) {
-	c.incomingEmailImpl(id, "", to, body)
-}
-
-func (c *Ctx) incomingEmailImpl(id int, from, to, body string) {
-	if from == "" {
-		from = "default@sender.com"
+func (c *Ctx) incomingEmail(to, body string, opts ...interface{}) {
+	id := 0
+	from := "default@sender.com"
+	cc := []string{"test@syzkaller.com", "bugs@syzkaller.com"}
+	for _, o := range opts {
+		switch opt := o.(type) {
+		case EmailOptMessageID:
+			id = int(opt)
+		case EmailOptFrom:
+			from = string(opt)
+		case EmailOptCC:
+			cc = []string(opt)
+		}
 	}
 	email := fmt.Sprintf(`Sender: %v
 Date: Tue, 15 Aug 2017 14:59:00 -0700
 Message-ID: <%v>
 Subject: crash1
 From: %v
-Cc: test@syzkaller.com, bugs@syzkaller.com
+Cc: %v
 To: %v
 Content-Type: text/plain
 
 %v
-`, from, id, from, to, body)
+`, from, id, from, strings.Join(cc, ","), to, body)
 	c.expectOK(c.POST("/_ah/mail/", email))
 }
 

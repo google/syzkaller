@@ -74,8 +74,9 @@ var config = GlobalConfig{
 					Name:       "reporting2",
 					DailyLimit: 3,
 					Config: &EmailConfig{
-						Email:           "bugs@syzkaller.com",
-						MailMaintainers: true,
+						Email:              "bugs@syzkaller.com",
+						DefaultMaintainers: []string{"default@maintainers.com"},
+						MailMaintainers:    true,
 					},
 				},
 			},
