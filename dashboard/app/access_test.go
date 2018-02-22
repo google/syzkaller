@@ -44,10 +44,9 @@ func TestAccess(t *testing.T) {
 
 	// entity describes pages/bugs/texts/etc.
 	type entity struct {
-		level  AccessLevel // level on which this entity must be visible.
-		ref    string      // a unique entity reference id.
-		url    string      // url at which this entity can be requested.
-		noRefs bool        // if set the page does not contain references to other objects (e.g. crash log).
+		level AccessLevel // level on which this entity must be visible.
+		ref   string      // a unique entity reference id.
+		url   string      // url at which this entity can be requested.
 	}
 	entities := []entity{
 		{
@@ -95,28 +94,24 @@ func TestAccess(t *testing.T) {
 				url:   fmt.Sprintf("/bug?extid=%v", bug.Reporting[1].ID),
 			},
 			{
-				level:  level,
-				ref:    fmt.Sprint(crash.Log),
-				url:    fmt.Sprintf("/text?tag=CrashLog&id=%v", crash.Log),
-				noRefs: true,
+				level: level,
+				ref:   fmt.Sprint(crash.Log),
+				url:   fmt.Sprintf("/text?tag=CrashLog&id=%v", crash.Log),
 			},
 			{
-				level:  level,
-				ref:    fmt.Sprint(crash.Report),
-				url:    fmt.Sprintf("/text?tag=CrashReport&id=%v", crash.Report),
-				noRefs: true,
+				level: level,
+				ref:   fmt.Sprint(crash.Report),
+				url:   fmt.Sprintf("/text?tag=CrashReport&id=%v", crash.Report),
 			},
 			{
-				level:  level,
-				ref:    fmt.Sprint(crash.ReproC),
-				url:    fmt.Sprintf("/text?tag=ReproC&id=%v", crash.ReproC),
-				noRefs: true,
+				level: level,
+				ref:   fmt.Sprint(crash.ReproC),
+				url:   fmt.Sprintf("/text?tag=ReproC&id=%v", crash.ReproC),
 			},
 			{
-				level:  level,
-				ref:    fmt.Sprint(crash.ReproSyz),
-				url:    fmt.Sprintf("/text?tag=ReproSyz&id=%v", crash.ReproSyz),
-				noRefs: true,
+				level: level,
+				ref:   fmt.Sprint(crash.ReproSyz),
+				url:   fmt.Sprintf("/text?tag=ReproSyz&id=%v", crash.ReproSyz),
 			},
 		}...)
 	}
@@ -128,11 +123,24 @@ func TestAccess(t *testing.T) {
 			t.Fatal(err)
 		}
 		entities = append(entities, entity{
-			level:  config.Namespaces[ns].AccessLevel,
-			ref:    build.ID,
-			url:    fmt.Sprintf("/text?tag=KernelConfig&id=%v", build.KernelConfig),
-			noRefs: true,
+			level: config.Namespaces[ns].AccessLevel,
+			ref:   build.ID,
+			url:   fmt.Sprintf("/text?tag=KernelConfig&id=%v", build.KernelConfig),
 		})
+	}
+
+	// These strings are put into crash log/report, kernel config, etc.
+	// If a request at level UserPublic sees a page containing "access-user",
+	// that will be flagged as error.
+	accessLevelPrefix := func(level AccessLevel) string {
+		switch level {
+		case AccessPublic:
+			return "access-public-"
+		case AccessUser:
+			return "access-user-"
+		default:
+			return "access-admin-"
+		}
 	}
 
 	// For each namespace we create 8 bugs:
@@ -144,19 +152,16 @@ func TestAccess(t *testing.T) {
 		for k, v := range config.Namespaces[ns].Clients {
 			clientName, clientKey = k, v
 		}
+		namespaceAccessPrefix := accessLevelPrefix(config.Namespaces[ns].AccessLevel)
 		client := c.makeClient(clientName, clientKey)
 		build := testBuild(1)
+		build.KernelConfig = []byte(namespaceAccessPrefix + "build")
 		client.uploadBuild(build)
 		noteBuildccessLevel(ns, build.ID)
 
 		for reportingIdx := 0; reportingIdx < 2; reportingIdx++ {
 			accessLevel := config.Namespaces[ns].Reporting[reportingIdx].AccessLevel
-			accessPrefix := "access-public-"
-			if accessLevel == AccessUser {
-				accessPrefix = "access-user-"
-			} else if accessLevel == AccessAdmin {
-				accessPrefix = "access-admin-"
-			}
+			accessPrefix := accessLevelPrefix(accessLevel)
 
 			crashInvalid := testCrashWithRepro(build, reportingIdx*10+0)
 			client.reportCrash(crashInvalid)
@@ -190,12 +195,16 @@ func TestAccess(t *testing.T) {
 			buildFixing.Commits = []string{ns + "-patch0"}
 			client.uploadBuild(buildFixing)
 			noteBuildccessLevel(ns, buildFixing.ID)
-			// Fixed bugs become visible up to last reporting.
+			// Fixed bugs become visible up to the last reporting.
 			finalLevel := config.Namespaces[ns].
 				Reporting[len(config.Namespaces[ns].Reporting)-1].AccessLevel
 			noteBugAccessLevel(repFixed.ID, finalLevel)
 
 			crashOpen := testCrashWithRepro(build, reportingIdx*10+0)
+			crashOpen.Log = []byte(accessPrefix + "log")
+			crashOpen.Report = []byte(accessPrefix + "report")
+			crashOpen.ReproC = []byte(accessPrefix + "repro c")
+			crashOpen.ReproSyz = []byte(accessPrefix + "repro syz")
 			client.reportCrash(crashOpen)
 			repOpen := reportAllBugs(c, 1)[0]
 			if reportingIdx != 0 {
@@ -203,6 +212,26 @@ func TestAccess(t *testing.T) {
 				repOpen = reportAllBugs(c, 1)[0]
 			}
 			noteBugAccessLevel(repOpen.ID, accessLevel)
+
+			crashPatched := testCrashWithRepro(build, reportingIdx*10+1)
+			client.reportCrash(crashPatched)
+			repPatched := reportAllBugs(c, 1)[0]
+			if reportingIdx != 0 {
+				c.expectTrue(client.updateBug(repPatched.ID, dashapi.BugStatusUpstream, "").OK)
+				repPatched = reportAllBugs(c, 1)[0]
+			}
+			cmd = &dashapi.BugUpdate{
+				ID:         repPatched.ID,
+				Status:     dashapi.BugStatusOpen,
+				FixCommits: []string{ns + "-patch0"},
+				ExtID:      accessPrefix + "reporting-ext-id",
+				Link:       accessPrefix + "reporting-link",
+			}
+			reply = new(dashapi.BugUpdateReply)
+			client.expectOK(client.API("reporting_update", cmd, reply))
+			c.expectEQ(reply.OK, true)
+			// Patched bugs are also visible up to the last reporting.
+			noteBugAccessLevel(repPatched.ID, finalLevel)
 
 			crashDup := testCrashWithRepro(build, reportingIdx*10+2)
 			client.reportCrash(crashDup)
@@ -249,9 +278,7 @@ func TestAccess(t *testing.T) {
 				continue
 			}
 			reply := checkPage(requestLevel, ent.level, ent.url)
-			if !ent.noRefs {
-				checkReferences(ent.url, requestLevel, reply)
-			}
+			checkReferences(ent.url, requestLevel, reply)
 		}
 	}
 }
