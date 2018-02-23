@@ -4,7 +4,7 @@
 include <sys/types.h>
 include <sys/mman.h>
 
-mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff) vma
+mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff)
 munmap(addr vma, len len[addr])
 mprotect(addr vma, len len[addr], prot flags[mmap_prot])
 msync(addr vma, len len[addr], f flags[msync_flags])

@@ -134,9 +134,9 @@ ioctl$UFFDIO_WAKE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
 ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_COPY], arg ptr[in, uffdio_range])
 ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_ZEROPAGE], arg ptr[in, uffdio_range])
 
-mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff) vma
+mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff)
 munmap(addr vma, len len[addr])
-mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma) vma
+mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma)
 remap_file_pages(addr vma, size len[addr], prot flags[mmap_prot], pgoff intptr, flags flags[mmap_flags])
 mprotect(addr vma, len len[addr], prot flags[mmap_prot])
 msync(addr vma, len len[addr], f flags[msync_flags])

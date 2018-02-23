@@ -17282,7 +17282,7 @@ var syscalls_386 = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mmap_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 64, 32, 2048, 4096, 0, 16, 256, 262144, 8192, 65536, 16384, 32768, 131072, 0, 3, 524288}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fileoff", FldName: "offset", TypeSize: 4}}, Kind: 1},
-	}, Ret: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	}},
 	{ID: 971, NR: 192, Name: "mmap$binder", CallName: "mmap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "addr"},
@@ -17369,7 +17369,7 @@ var syscalls_386 = []*Syscall{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "newlen", TypeSize: 4}}, Buf: "newaddr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mremap_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2}},
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "newaddr", TypeSize: 4}},
-	}, Ret: &VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	}},
 	{ID: 986, NR: 144, Name: "msync", CallName: "msync", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "addr"},
@@ -25033,4 +25033,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "29c853f8d15aefe6c7ad4491ff1dce9a04e466db"
+const revision_386 = "ea3b1bb193468eecc7b5d826dcd81ac8b0af9c43"
