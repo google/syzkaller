@@ -32,6 +32,8 @@ func initTarget(target *prog.Target) {
 		FITHAW:                    target.ConstMap["FITHAW"],
 		PTRACE_TRACEME:            target.ConstMap["PTRACE_TRACEME"],
 		CLOCK_REALTIME:            target.ConstMap["CLOCK_REALTIME"],
+		ARCH_SET_FS:               target.ConstMap["ARCH_SET_FS"],
+		ARCH_SET_GS:               target.ConstMap["ARCH_SET_GS"],
 	}
 
 	target.MakeMmap = arch.makeMmap
@@ -100,6 +102,8 @@ type arch struct {
 	FITHAW                    uint64
 	PTRACE_TRACEME            uint64
 	CLOCK_REALTIME            uint64
+	ARCH_SET_FS               uint64
+	ARCH_SET_GS               uint64
 }
 
 // createMmapCall creates a "normal" mmap call that maps [addr, addr+size) memory range.
@@ -182,6 +186,14 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		// These codes are reserved by executor.
 		if code.Val%128 == 67 || code.Val%128 == 68 {
 			code.Val = 1
+		}
+	case "arch_prctl":
+		// fs holds address of tls, if a program messes it at least signal
+		// handling will break. This also allows a program to do writes
+		// at arbitrary addresses, which usually leads to machine outbreak.
+		cmd := c.Args[0].(*prog.ConstArg)
+		if uint64(uint32(cmd.Val)) == arch.ARCH_SET_FS {
+			cmd.Val = arch.ARCH_SET_GS
 		}
 	}
 

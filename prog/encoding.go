@@ -217,6 +217,9 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 	if err := prog.validate(); err != nil {
 		return nil, err
 	}
+	for _, c := range prog.Calls {
+		target.SanitizeCall(c)
+	}
 	return
 }
 
