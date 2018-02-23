@@ -256,8 +256,11 @@ func (comp *compiler) checkLenType(t *ast.Type, name string, fields []*ast.Field
 		}
 		checked[s.Name.Name] = true
 		parents = append(parents, s)
+		if !s.IsUnion {
+			fields = s.Fields
+		}
 		for _, fld := range s.Fields {
-			comp.checkLenType(fld.Type, fld.Name.Name, s.Fields, parents, checked, false)
+			comp.checkLenType(fld.Type, fld.Name.Name, fields, parents, checked, false)
 		}
 		return
 	}
