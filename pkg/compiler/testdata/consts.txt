@@ -11,7 +11,7 @@ flags = CONST3, CONST2, CONST1
 define CONST1 1
 define CONST2 FOOBAR + 1
 
-foo(x const[CONST4]) ptr[out, array[int32, CONST5]]
+foo(x const[CONST4], y ptr[out, array[int32, CONST5]])
 bar$BAR()
 
 str {

@@ -264,6 +264,8 @@ func (w *execContext) writeArg(arg Arg) {
 			copy(w.buf, data)
 			w.buf = w.buf[padded:]
 		}
+	case *UnionArg:
+		w.writeArg(a.Option)
 	default:
 		panic("unknown arg type")
 	}

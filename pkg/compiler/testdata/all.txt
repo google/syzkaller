@@ -3,7 +3,21 @@
 
 foo$0(a int8)
 foo$1(a int8[C1:C2])
-foo$2() ptr[out, array[int32]]
+foo$2(a ptr[out, array[int32]])
+foo$3(a union_arg)
+foo$4() r0
+
+resource r0[intptr]
+
+union_arg [
+	f1	int8
+	f2	int64
+	f3	ptr[in, int32]
+	f4	r0
+	f5	const[1, intptr]
+	f6	flags[int_flags, int32]
+	f7	proc[0, 1, int16]
+]
 
 strings {
 	f1	string
@@ -22,6 +36,7 @@ strings {
 
 string_flags1 = "foo", "barbaz"
 string_flags2 = ""
+int_flags = 0, 1
 
 # Proc type.
 

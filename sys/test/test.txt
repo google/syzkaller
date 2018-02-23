@@ -151,7 +151,18 @@ syz_union3 [
 	f0	int32
 ]
 
+union_arg [
+	f1	int8
+	f2	int64
+	f3	ptr[in, int32]
+	f4	fd
+	f5	const[1, intptr]
+	f6	flags[syz_length_flags, int32]
+	f7	proc[0, 1, int16]
+]
+
 syz_test$syz_union3(a0 ptr[in, syz_union3])
+syz_test$syz_union4(a0 union_arg)
 
 # Arrays
 
