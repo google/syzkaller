@@ -136,7 +136,7 @@ func TestJob(t *testing.T) {
 		msg := <-c.emailSink
 		to := email.MergeEmailLists([]string{"test@requester.com", "somebody@else.com", mailingList})
 		c.expectEQ(msg.To, to)
-		c.expectEQ(msg.Subject, crash.Title)
+		c.expectEQ(msg.Subject, "Re: "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 3)
 		c.expectEQ(msg.Attachments[0].Name, "patch.diff")
 		c.expectEQ(msg.Attachments[0].Data, []byte(patch))

@@ -39,7 +39,15 @@ func init() {
 	}
 }
 
-const emailType = "email"
+const (
+	emailType = "email"
+	// This plays an important role at least for job replies.
+	// If we CC a kernel mailing list and it uses Patchwork,
+	// then any emails with a patch attached create a new patch
+	// entry pending for review. The prefix makes Patchwork
+	// treat it as a comment for a previous patch.
+	replySubjectPrefix = "Re: "
+)
 
 var mailingLists map[string]bool
 
@@ -429,6 +437,7 @@ func sendMailTemplate(c context.Context, subject, from string, to []string, repl
 	}
 	if replyTo != "" {
 		msg.Headers = mail.Header{"In-Reply-To": []string{replyTo}}
+		msg.Subject = replySubjectPrefix + msg.Subject
 	}
 	return sendEmail(c, msg)
 }
@@ -448,7 +457,7 @@ func replyTo(c context.Context, msg *email.Email, reply string, attachment *aema
 		Sender:      from,
 		To:          []string{msg.From},
 		Cc:          msg.Cc,
-		Subject:     msg.Subject,
+		Subject:     replySubjectPrefix + msg.Subject,
 		Body:        email.FormReply(msg.Body, reply),
 		Attachments: attachments,
 		Headers:     mail.Header{"In-Reply-To": []string{msg.MessageID}},
