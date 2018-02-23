@@ -73,8 +73,14 @@ s2 {
 	f1	s1
 }
 
+u1 [
+	f1	ptr[in, array[int8]]
+	f2	len[f1, int32]	### len target f1 does not exist
+]
+
 foo$200(a ptr[in, s2])
 foo$201(a ptr[in, s1])
+foo$202(a u1)
 
 # Resource ctor tests.
 
