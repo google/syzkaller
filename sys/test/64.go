@@ -417,6 +417,15 @@ var structDescs_64 = []*KeyedStruct{
 	{Key: StructKey{Name: "syz_union3"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_union3", TypeSize: 4}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f0", TypeSize: 4}}},
 	}}},
+	{Key: StructKey{Name: "union_arg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "union_arg", TypeSize: 8}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f2", TypeSize: 8}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "f3", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "f4", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "f5", TypeSize: 8}}, Val: 1},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "syz_length_flags", FldName: "f6", TypeSize: 4}}, Vals: []uint64{0, 1}},
+		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "f7", TypeSize: 2}}, ValuesPerProc: 1},
+	}}},
 }
 
 var syscalls_64 = []*Syscall{
@@ -667,32 +676,35 @@ var syscalls_64 = []*Syscall{
 	{ID: 77, Name: "syz_test$syz_union3", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "syz_union3"}}},
 	}},
-	{ID: 78, Name: "syz_test$text_x86_16", CallName: "syz_test", Args: []Type{
+	{ID: 78, Name: "syz_test$syz_union4", CallName: "syz_test", Args: []Type{
+		&UnionType{Key: StructKey{Name: "union_arg"}, FldName: "a0"},
+	}},
+	{ID: 79, Name: "syz_test$text_x86_16", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4, Text: 1}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "a1", TypeSize: 8}}, Buf: "a0"},
 	}},
-	{ID: 79, Name: "syz_test$text_x86_32", CallName: "syz_test", Args: []Type{
+	{ID: 80, Name: "syz_test$text_x86_32", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4, Text: 2}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "a1", TypeSize: 8}}, Buf: "a0"},
 	}},
-	{ID: 80, Name: "syz_test$text_x86_64", CallName: "syz_test", Args: []Type{
+	{ID: 81, Name: "syz_test$text_x86_64", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4, Text: 3}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "a1", TypeSize: 8}}, Buf: "a0"},
 	}},
-	{ID: 81, Name: "syz_test$text_x86_real", CallName: "syz_test", Args: []Type{
+	{ID: 82, Name: "syz_test$text_x86_real", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "a1", TypeSize: 8}}, Buf: "a0"},
 	}},
-	{ID: 82, Name: "syz_test$union0", CallName: "syz_test", Args: []Type{
+	{ID: 83, Name: "syz_test$union0", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_union0_struct"}}},
 	}},
-	{ID: 83, Name: "syz_test$union1", CallName: "syz_test", Args: []Type{
+	{ID: 84, Name: "syz_test$union1", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_union1_struct"}}},
 	}},
-	{ID: 84, Name: "syz_test$union2", CallName: "syz_test", Args: []Type{
+	{ID: 85, Name: "syz_test$union2", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_union2_struct"}}},
 	}},
-	{ID: 85, Name: "syz_test$vma0", CallName: "syz_test", Args: []Type{
+	{ID: 86, Name: "syz_test$vma0", CallName: "syz_test", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "v0", TypeSize: 8}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "l0", TypeSize: 8}}, Buf: "v0"},
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "v1", TypeSize: 8}, RangeBegin: 5, RangeEnd: 5},
@@ -708,4 +720,4 @@ var consts_64 = []ConstValue{
 	{Name: "IPPROTO_UDP", Value: 17},
 }
 
-const revision_64 = "15f0bc6f3e0ba695754a37d2497a9929f1457f47"
+const revision_64 = "90f61a2054a8cefadc6cf2027a18e4073a9054ae"

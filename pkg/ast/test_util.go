@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -60,7 +61,12 @@ func NewErrorMatcher(t *testing.T, file string) *ErrorMatcher {
 	}
 }
 
+var errorLocationRe = regexp.MustCompile("at [a-z][a-z0-9]+\\.txt:[0-9]+:[0-9]+")
+
 func (em *ErrorMatcher) ErrorHandler(pos Pos, msg string) {
+	if match := errorLocationRe.FindStringSubmatchIndex(msg); match != nil {
+		msg = msg[0:match[0]] + "at LOCATION" + msg[match[1]:]
+	}
 	em.got = append(em.got, &errorDesc{
 		file: pos.File,
 		line: pos.Line,

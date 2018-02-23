@@ -14,15 +14,15 @@ import (
 // typeDesc is arg/field type descriptor.
 type typeDesc struct {
 	Names        []string
-	CanBeArg     bool       // can be argument of syscall?
 	CanBeTypedef bool       // can be type alias target?
 	CantBeOpt    bool       // can't be marked as opt?
-	CantBeRet    bool       // can't be syscall return (directly or indirectly)?
 	NeedBase     bool       // needs base type when used as field?
 	AllowColon   bool       // allow colon (int8:2) on fields?
 	ResourceBase bool       // can be resource base type?
 	OptArgs      int        // number of optional arguments in Args array
 	Args         []namedArg // type arguments
+	// CanBeArgRet returns if this type can be syscall argument/return (false if nil).
+	CanBeArgRet func(comp *compiler, t *ast.Type) (bool, bool)
 	// Check does custom verification of the type (optional, consts are not patched yet).
 	Check func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon)
 	// CheckConsts does custom verification of the type (optional, consts are patched).
@@ -57,9 +57,12 @@ const (
 	kindString
 )
 
+func canBeArg(comp *compiler, t *ast.Type) (bool, bool)    { return true, false }
+func canBeArgRet(comp *compiler, t *ast.Type) (bool, bool) { return true, true }
+
 var typeInt = &typeDesc{
 	Names:        typeArgBase.Type.Names,
-	CanBeArg:     true,
+	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
 	AllowColon:   true,
 	ResourceBase: true,
@@ -86,7 +89,7 @@ var typeInt = &typeDesc{
 
 var typePtr = &typeDesc{
 	Names:        []string{"ptr", "ptr64"},
-	CanBeArg:     true,
+	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
 	Args:         []namedArg{{"direction", typeArgDir}, {"type", typeArgType}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
@@ -105,7 +108,6 @@ var typePtr = &typeDesc{
 var typeVoid = &typeDesc{
 	Names:     []string{"void"},
 	CantBeOpt: true,
-	CantBeRet: true,
 	ZeroSize: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		return true
 	},
@@ -181,12 +183,11 @@ var typeArray = &typeDesc{
 }
 
 var typeLen = &typeDesc{
-	Names:     []string{"len", "bytesize", "bytesize2", "bytesize4", "bytesize8", "bitsize"},
-	CanBeArg:  true,
-	CantBeOpt: true,
-	CantBeRet: true,
-	NeedBase:  true,
-	Args:      []namedArg{{"len target", typeArgLenTarget}},
+	Names:       []string{"len", "bytesize", "bytesize2", "bytesize4", "bytesize8", "bitsize"},
+	CanBeArgRet: canBeArg,
+	CantBeOpt:   true,
+	NeedBase:    true,
+	Args:        []namedArg{{"len target", typeArgLenTarget}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		var bitSize uint64
 		switch t.Ident {
@@ -208,7 +209,7 @@ var typeLen = &typeDesc{
 
 var typeConst = &typeDesc{
 	Names:        []string{"const"},
-	CanBeArg:     true,
+	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
 	CantBeOpt:    true,
 	NeedBase:     true,
@@ -227,7 +228,7 @@ var typeArgLenTarget = &typeArg{
 
 var typeFlags = &typeDesc{
 	Names:        []string{"flags"},
-	CanBeArg:     true,
+	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
 	CantBeOpt:    true,
 	NeedBase:     true,
@@ -276,10 +277,10 @@ var typeFilename = &typeDesc{
 }
 
 var typeFileoff = &typeDesc{
-	Names:     []string{"fileoff"},
-	CanBeArg:  true,
-	CantBeOpt: true,
-	NeedBase:  true,
+	Names:       []string{"fileoff"},
+	CanBeArgRet: canBeArg,
+	CantBeOpt:   true,
+	NeedBase:    true,
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		return &prog.IntType{
 			IntTypeCommon: base,
@@ -289,10 +290,10 @@ var typeFileoff = &typeDesc{
 }
 
 var typeVMA = &typeDesc{
-	Names:    []string{"vma"},
-	CanBeArg: true,
-	OptArgs:  1,
-	Args:     []namedArg{{"size range", typeArgRange}},
+	Names:       []string{"vma"},
+	CanBeArgRet: canBeArg,
+	OptArgs:     1,
+	Args:        []namedArg{{"size range", typeArgRange}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		begin, end := uint64(0), uint64(0)
 		if len(args) > 0 {
@@ -311,7 +312,6 @@ var typeCsum = &typeDesc{
 	Names:     []string{"csum"},
 	NeedBase:  true,
 	CantBeOpt: true,
-	CantBeRet: true,
 	OptArgs:   1,
 	Args:      []namedArg{{"csum target", typeArgLenTarget}, {"kind", typeArgCsumType}, {"proto", typeArgInt}},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
@@ -351,7 +351,7 @@ func genCsumKind(t *ast.Type) prog.CsumKind {
 
 var typeProc = &typeDesc{
 	Names:        []string{"proc"},
-	CanBeArg:     true,
+	CanBeArgRet:  canBeArg,
 	CanBeTypedef: true,
 	NeedBase:     true,
 	Args:         []namedArg{{"range start", typeArgInt}, {"per-proc values", typeArgInt}},
@@ -422,9 +422,9 @@ func genTextType(t *ast.Type) prog.TextKind {
 }
 
 var typeBuffer = &typeDesc{
-	Names:    []string{"buffer"},
-	CanBeArg: true,
-	Args:     []namedArg{{"direction", typeArgDir}},
+	Names:       []string{"buffer"},
+	CanBeArgRet: canBeArg,
+	Args:        []namedArg{{"direction", typeArgDir}},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		base.TypeSize = comp.ptrSize
 		common := genCommon("", "", 0, genDir(args[0]), false)
@@ -563,7 +563,7 @@ var typeArgType = &typeArg{}
 
 var typeResource = &typeDesc{
 	// No Names, but getTypeDesc knows how to match it.
-	CanBeArg:     true,
+	CanBeArgRet:  canBeArgRet,
 	ResourceBase: true,
 	// Gen is assigned below to avoid initialization loop.
 }
@@ -591,6 +591,25 @@ var typeStruct = &typeDesc{
 }
 
 func init() {
+	typeStruct.CanBeArgRet = func(comp *compiler, t *ast.Type) (bool, bool) {
+		// Allow unions to be arg if all options can be arg.
+		s := comp.structs[t.Ident]
+		if !s.IsUnion {
+			return false, false
+		}
+		canBeArg := true
+		for _, fld := range s.Fields {
+			desc := comp.getTypeDesc(fld.Type)
+			if desc == nil || desc.CanBeArgRet == nil {
+				return false, false
+			}
+			canBeArg1, _ := desc.CanBeArgRet(comp, fld.Type)
+			if !canBeArg1 {
+				canBeArg = false
+			}
+		}
+		return canBeArg, false
+	}
 	typeStruct.Varlen = func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		if varlen, ok := comp.structVarlen[t.Ident]; ok {
 			return varlen

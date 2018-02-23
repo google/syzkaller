@@ -8,7 +8,7 @@ foo$3(x string)			### string can't be syscall argument
 
 resource r0[int32]: 0, 0x1
 resource r1[string["foo"]]	### string can't be resource base (int types can)
-resource r1[int32]		### type r1 redeclared, previously declared as resource at errors.txt:10:1
+resource r1[int32]		### type r1 redeclared, previously declared as resource at LOCATION
 resource int32[int32]		### resource name int32 conflicts with builtin type
 resource fileoff[intptr]	### resource name fileoff conflicts with builtin type
 
@@ -16,7 +16,7 @@ s1 {
 	f1	int32
 }
 
-s1 {				### type s1 redeclared, previously declared as struct at errors.txt:15:1
+s1 {				### type s1 redeclared, previously declared as struct at LOCATION
 	f1	int32
 	f1	intptr		### duplicate field f1 in struct s1
 	parent	int8		### reserved field name parent in struct s1
@@ -29,7 +29,7 @@ int32 {				### struct name int32 conflicts with builtin type
 	f1	int32
 }
 
-r0 {				### type r0 redeclared, previously declared as resource at errors.txt:9:1
+r0 {				### type r0 redeclared, previously declared as resource at LOCATION
 	f1	int32
 }
 
@@ -48,18 +48,18 @@ u2 [
 ]
 
 foo$4(a int8, a int16)		### duplicate argument a in syscall foo$4
-foo$4()				### syscall foo$4 redeclared, previously declared at errors.txt:50:1
+foo$4()				### syscall foo$4 redeclared, previously declared at LOCATION
 foo()
-foo()				### syscall foo redeclared, previously declared at errors.txt:52:1
+foo()				### syscall foo redeclared, previously declared at LOCATION
 foo$5(a0 int8, a1 int8, a2 int8, a3 int8, a4 int8, a5 int8, a6 int8, a7 int8, a8 int8, a9 int8)	### syscall foo$5 has 10 arguments, allowed maximum is 9
 foo$6(parent int8)		### reserved argument name parent in syscall foo$6
 
 f1 = 1
 f2 = 1, 2
-f2 = 1, 2			### flags f2 redeclared, previously declared at errors.txt:58:1
+f2 = 1, 2			### flags f2 redeclared, previously declared at LOCATION
 sf1 = "a"
 sf2 = "a", "b"
-sf2 = "c"			### string flags sf2 redeclared, previously declared at errors.txt:61:1
+sf2 = "c"			### string flags sf2 redeclared, previously declared at LOCATION
 
 resource r2[r0]: 2
 resource r3[int32:1]		###  unexpected ':', only struct fields can be bitfields
@@ -112,6 +112,10 @@ foo$55(a int8[opt[int8]])	### opt can't have arguments
 foo$56(a void)			### void can't be syscall argument
 foo$57(a ptr[in, stringnoz["foo", 10]])	### fixed-size string can't be non-zero-terminated
 foo$58(a ptr[in, stringnoz[sf2, 10]])	### fixed-size string can't be non-zero-terminated
+foo$59(a s1)			### s1 can't be syscall argument
+foo$60() s1			### s1 can't be syscall return
+foo$61(a u6)			### u6 can't be syscall argument
+foo$62() u6			### u6 can't be syscall return
 
 opt {				### struct uses reserved name opt
 	f1	int32
@@ -171,6 +175,12 @@ u5 [
 	f2	int8:2		### unexpected ':', only struct fields can be bitfields
 ]
 
+u6 [
+	f1	int8
+	f2	int64
+	f3	array[int8]
+]
+
 define d0 SOMETHING
 define d1 `some C expression`
 define d2 some C expression
@@ -189,8 +199,8 @@ typestruct {
 }
 
 type type0 int8
-type type0 int8			### type type0 redeclared, previously declared as type alias at errors.txt:191:6
-resource type0[int32]		### type type0 redeclared, previously declared as type alias at errors.txt:191:6
+type type0 int8			### type type0 redeclared, previously declared as type alias at LOCATION
+resource type0[int32]		### type type0 redeclared, previously declared as type alias at LOCATION
 type0 = 0, 1
 type type1 type1		### type instantiation loop: type1 -> type1
 type type2 int8:4		### unexpected ':', only struct fields can be bitfields
@@ -226,7 +236,7 @@ foo$100(a mybool8, b mybool16)
 foo$102(a type2)		### unknown type type2
 foo$103(a type0:4)		### type alias type0 with ':'
 foo$104(a type0[opt])		### type type0 is not a template
-foo$105() type0
+foo$105() type0			### int8 can't be syscall return
 foo$106() type6			### unknown type type6
 foo$107(a type9, b type12)
 foo$108(a flags[type0])
@@ -243,8 +253,8 @@ type templ6[T] ptr[in, T]
 type templ7 templ0[templ6, int8]
 
 # Note: here 42 is stripped as base type, so const ends up without arguments.
-foo$201(a templ1[42])
-type templ1[A] const[A]		### wrong number of arguments for type const, expect value
+foo$201(a templ1[42])		### wrong number of arguments for type const, expect value
+type templ1[A] const[A]
 
 type templ_struct0[A, B] {
 	len	len[parent, int16]

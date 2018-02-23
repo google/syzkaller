@@ -209,7 +209,7 @@ func (comp *compiler) checkTypes() {
 				comp.checkType(checkCtx{}, a.Type, checkIsArg)
 			}
 			if n.Ret != nil {
-				comp.checkType(checkCtx{}, n.Ret, checkIsArg|checkIsRet|checkIsRetCtx)
+				comp.checkType(checkCtx{}, n.Ret, checkIsArg|checkIsRet)
 			}
 		}
 	}
@@ -544,7 +544,6 @@ type checkFlags int
 const (
 	checkIsArg          checkFlags = 1 << iota // immidiate syscall arg type
 	checkIsRet                                 // immidiate syscall ret type
-	checkIsRetCtx                              // inside of syscall ret type
 	checkIsStruct                              // immidiate struct field type
 	checkIsResourceBase                        // immidiate resource base type
 	checkIsTypedef                             // immidiate type alias/template type
@@ -583,18 +582,6 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 			comp.error(t.Pos2, "unexpected ':', only struct fields can be bitfields")
 			return
 		}
-	}
-	if flags&checkIsRet != 0 && (!desc.CanBeArg || desc.CantBeRet) {
-		comp.error(t.Pos, "%v can't be syscall return", t.Ident)
-		return
-	}
-	if flags&checkIsRetCtx != 0 && desc.CantBeRet {
-		comp.error(t.Pos, "%v can't be used in syscall return", t.Ident)
-		return
-	}
-	if flags&checkIsArg != 0 && !desc.CanBeArg {
-		comp.error(t.Pos, "%v can't be syscall argument", t.Ident)
-		return
 	}
 	if flags&checkIsTypedef != 0 && !desc.CanBeTypedef {
 		comp.error(t.Pos, "%v can't be type alias target", t.Ident)
@@ -636,10 +623,22 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 	err0 := comp.errors
 	for i, arg := range args {
 		if desc.Args[i].Type == typeArgType {
-			comp.checkType(ctx, arg, flags&checkIsRetCtx)
+			comp.checkType(ctx, arg, 0)
 		} else {
 			comp.checkTypeArg(t, arg, desc.Args[i])
 		}
+	}
+	canBeArg, canBeRet := false, false
+	if desc.CanBeArgRet != nil {
+		canBeArg, canBeRet = desc.CanBeArgRet(comp, t)
+	}
+	if flags&checkIsRet != 0 && !canBeRet {
+		comp.error(t.Pos, "%v can't be syscall return", t.Ident)
+		return
+	}
+	if flags&checkIsArg != 0 && !canBeArg {
+		comp.error(t.Pos, "%v can't be syscall argument", t.Ident)
+		return
 	}
 	if desc.Check != nil && err0 == comp.errors {
 		_, args, base := comp.getArgsBase(t, "", prog.DirIn, flags&checkIsArg != 0)
@@ -681,6 +680,7 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, desc *typeDesc,
 		}
 		return
 	}
+	pos0 := t.Pos
 	if typedef.Type != nil {
 		*t = *typedef.Type.Clone().(*ast.Type)
 		if !comp.instantiate(t, typedef.Args, args) {
@@ -698,10 +698,10 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, desc *typeDesc,
 			comp.structs[fullTypeName] = inst
 		}
 		*t = ast.Type{
-			Pos:   t.Pos,
 			Ident: fullTypeName,
 		}
 	}
+	t.Pos = pos0
 
 	// Remove base type if it's not needed in this context.
 	desc = comp.getTypeDesc(t)
