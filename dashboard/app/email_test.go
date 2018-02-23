@@ -146,7 +146,7 @@ For more options, visit https://groups.google.com/d/optout.
 			config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email,
 		}
 		c.expectEQ(msg.To, to)
-		c.expectEQ(msg.Subject, crash.Title)
+		c.expectEQ(msg.Subject, "Re: "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 3)
 		c.expectEQ(msg.Attachments[0].Name, "raw.log.txt")
 		c.expectEQ(msg.Attachments[0].Data, crash.Log)
@@ -283,7 +283,7 @@ Content-Type: text/plain
 		c.expectEQ(sender, fromAddr(c.ctx))
 		c.expectEQ(msg.To, []string{"another@another.com", "bar@foo.com", "bugs@syzkaller.com",
 			"default@maintainers.com", "foo@bar.com", "new@new.com", "qux@qux.com"})
-		c.expectEQ(msg.Subject, crash.Title)
+		c.expectEQ(msg.Subject, "Re: "+crash.Title)
 		c.expectEQ(len(msg.Attachments), 4)
 		c.expectEQ(msg.Attachments[0].Name, "raw.log.txt")
 		c.expectEQ(msg.Attachments[0].Data, crash.Log)
@@ -334,7 +334,7 @@ Content-Type: text/plain
 		c.expectEQ(len(c.emailSink), 1)
 		msg := <-c.emailSink
 		c.expectEQ(msg.To, []string{"<foo@bar.com>"})
-		c.expectEQ(msg.Subject, crash.Title)
+		c.expectEQ(msg.Subject, "Re: title1")
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<abcdef>"})
 		if !strings.Contains(msg.Body, `> #syz bad-command
 
