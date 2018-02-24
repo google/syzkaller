@@ -18,8 +18,8 @@ func (arch *arch) generateSockaddrAlg(g *prog.Gen, typ0 prog.Type, old prog.Arg)
 	feat := prog.MakeConstArg(typ.Fields[2], 0)
 	mask := prog.MakeConstArg(typ.Fields[3], 0)
 	if g.NOutOf(1, 1000) {
-		feat = g.GenerateArg(typ.Fields[2], &calls)
-		mask = g.GenerateArg(typ.Fields[3], &calls)
+		feat = g.GenerateArg(typ.Fields[2], &calls).(*prog.ConstArg)
+		mask = g.GenerateArg(typ.Fields[3], &calls).(*prog.ConstArg)
 	}
 	algType, algName := generateAlgName(g.Rand())
 	// Extend/truncate type/name to their fixed sizes.
