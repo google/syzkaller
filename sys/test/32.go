@@ -8,12 +8,38 @@ func init() {
 }
 
 var resources_32 = []*ResourceDesc{
+	{Name: "anyres32", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"anyres32"}, Values: []uint64{0}},
+	{Name: "anyres64", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", TypeSize: 8}}}, Kind: []string{"anyres64"}, Values: []uint64{0}},
 	{Name: "fd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd"}, Values: []uint64{18446744073709551615}},
 	{Name: "syz_missing_const_res", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"syz_missing_const_res"}, Values: []uint64{1}},
 	{Name: "syz_res", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"syz_res"}, Values: []uint64{65535}},
 }
 
 var structDescs_32 = []*KeyedStruct{
+	{Key: StructKey{Name: "any0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "any0", IsVarlen: true}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f2", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "f3", TypeSize: 2}, BigEndian: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f4", TypeSize: 8}}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "f5", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "any1"}}},
+	}, AlignAttr: 8}},
+	{Key: StructKey{Name: "any1"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "any1", IsVarlen: true}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "f1", TypeSize: 4, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1}}}},
+		&UnionType{Key: StructKey{Name: "anyunion0"}, FldName: "f2"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "f3", TypeSize: 8, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1}}}},
+		&UnionType{Key: StructKey{Name: "anyunion1"}, FldName: "f4"},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "f5", IsVarlen: true}},
+	}, AlignAttr: 2}},
+	{Key: StructKey{Name: "anyunion0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "anyunion0", TypeSize: 8}, Fields: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "anyres32", FldName: "res32", TypeSize: 4}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "anyres64", FldName: "res64", TypeSize: 8}},
+	}}},
+	{Key: StructKey{Name: "anyunion1"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "anyunion1", IsVarlen: true}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "i8", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "i32", TypeSize: 4}}},
+	}}},
 	{Key: StructKey{Name: "len_nontemp4"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "len_nontemp4", TypeSize: 4}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f1", TypeSize: 4}}, Buf: "len_temp3"},
 	}}},
@@ -444,6 +470,13 @@ var structDescs_32 = []*KeyedStruct{
 }
 
 var syscalls_32 = []*Syscall{
+	{Name: "foo$any0", CallName: "foo", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "any0"}}},
+	}},
+	{Name: "foo$anyres", CallName: "foo", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 4}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "anyres32", TypeSize: 4, ArgDir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a1", TypeSize: 4}, Type: &ResourceType{TypeCommon: TypeCommon{TypeName: "anyres64", TypeSize: 8, ArgDir: 1}}},
+	}},
 	{Name: "mmap", CallName: "mmap", Args: []Type{
 		&VmaType{TypeCommon: TypeCommon{TypeName: "vma", FldName: "addr", TypeSize: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "addr"},
@@ -739,4 +772,4 @@ var consts_32 = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32 = "8e3bfbc4dd1f6619b4895bcb80e0004ef4c96928"
+const revision_32 = "0d78e9b1f441c9ae33361f9778195af0a245ffdd"

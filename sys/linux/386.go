@@ -9996,10 +9996,10 @@ var structDescs_386 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "vmaddr_cid"}, FldName: "cid"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "pad", TypeSize: 4}}},
 	}, AlignAttr: 8}},
-	{Key: StructKey{Name: "vnet_fragmentation"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vnet_fragmentation", IsVarlen: true}, Fields: []Type{
+	{Key: StructKey{Name: "vnet_fragmentation"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vnet_fragmentation", TypeSize: 24}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "full", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
-		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "count", TypeSize: 4}}, Buf: "frags"},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "frags", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 2, RangeEnd: 4096}, Kind: 1, RangeBegin: 1, RangeEnd: 4},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "count", TypeSize: 4}}, Kind: 2, RangeBegin: 1, RangeEnd: 4},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "frags", TypeSize: 16}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 2, RangeEnd: 4096}, Kind: 1, RangeBegin: 4, RangeEnd: 4},
 	}}},
 	{Key: StructKey{Name: "vt_consize"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "vt_consize", TypeSize: 12}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "rows", TypeSize: 2}}},
@@ -25032,4 +25032,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "7fa1dc861170866b93bcdf1919d822e8d0a07cec"
+const revision_386 = "9ec0173f31cb1936a6a5913dd48542851e4e86c9"

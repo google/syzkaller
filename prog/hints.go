@@ -112,6 +112,7 @@ func checkConstArg(arg *ConstArg, compMap CompMap, exec func()) {
 }
 
 func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
+	// TODO(dvyukov): we need big-endian match for ANYBLOBs.
 	bytes := make([]byte, 8)
 	data := arg.Data()
 	size := len(data)

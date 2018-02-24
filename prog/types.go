@@ -24,7 +24,21 @@ const (
 	DirInOut
 )
 
+func (dir Dir) String() string {
+	switch dir {
+	case DirIn:
+		return "in"
+	case DirOut:
+		return "out"
+	case DirInOut:
+		return "inout"
+	default:
+		panic("unknown dir")
+	}
+}
+
 type Type interface {
+	String() string
 	Name() string
 	FieldName() string
 	Dir() Dir
@@ -108,6 +122,10 @@ type ResourceType struct {
 	Desc *ResourceDesc
 }
 
+func (t *ResourceType) String() string {
+	return t.Name()
+}
+
 func (t *ResourceType) Default() uint64 {
 	return t.Desc.Values[0]
 }
@@ -122,6 +140,10 @@ type IntTypeCommon struct {
 	BitfieldLen uint64
 	BigEndian   bool
 	BitfieldMdl bool
+}
+
+func (t *IntTypeCommon) String() string {
+	return t.Name()
 }
 
 func (t *IntTypeCommon) BitfieldOffset() uint64 {
@@ -140,6 +162,13 @@ type ConstType struct {
 	IntTypeCommon
 	Val   uint64
 	IsPad bool
+}
+
+func (t *ConstType) String() string {
+	if t.IsPad {
+		return fmt.Sprintf("pad[%v]", t.Size())
+	}
+	return fmt.Sprintf("const[%v, %v]", t.Val, t.IntTypeCommon.String())
 }
 
 type IntKind int
@@ -193,10 +222,18 @@ type CsumType struct {
 	Protocol uint64 // for CsumPseudo
 }
 
+func (t *CsumType) String() string {
+	return "csum"
+}
+
 type VmaType struct {
 	TypeCommon
 	RangeBegin uint64 // in pages
 	RangeEnd   uint64
+}
+
+func (t *VmaType) String() string {
+	return "vma"
 }
 
 type BufferKind int
@@ -230,6 +267,10 @@ type BufferType struct {
 	NoZ        bool     // non-zero terminated BufferString
 }
 
+func (t *BufferType) String() string {
+	return "buffer"
+}
+
 type ArrayKind int
 
 const (
@@ -245,15 +286,27 @@ type ArrayType struct {
 	RangeEnd   uint64
 }
 
+func (t *ArrayType) String() string {
+	return fmt.Sprintf("array[%v]", t.Type.String())
+}
+
 type PtrType struct {
 	TypeCommon
 	Type Type
+}
+
+func (t *PtrType) String() string {
+	return fmt.Sprintf("ptr[%v, %v]", t.Dir(), t.Type.String())
 }
 
 type StructType struct {
 	Key     StructKey
 	FldName string
 	*StructDesc
+}
+
+func (t *StructType) String() string {
+	return t.Name()
 }
 
 func (t *StructType) FieldName() string {
@@ -264,6 +317,10 @@ type UnionType struct {
 	Key     StructKey
 	FldName string
 	*StructDesc
+}
+
+func (t *UnionType) String() string {
+	return t.Name()
 }
 
 func (t *UnionType) FieldName() string {

@@ -103,13 +103,13 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		panic("should not be called when coverage is disabled")
 	}
 
-	inputSignal := signal.FromRaw(item.info.Signal, signalPrio(&item.info))
+	call := item.p.Calls[item.call]
+	inputSignal := signal.FromRaw(item.info.Signal, signalPrio(item.p.Target, call, &item.info))
 	newSignal := proc.fuzzer.corpusSignalDiff(inputSignal)
 	if newSignal.Empty() {
 		return
 	}
-	call := item.p.Calls[item.call].Meta
-	Logf(3, "triaging input for %v (new signal=%v)", call.CallName, newSignal.Len())
+	Logf(3, "triaging input for %v (new signal=%v)", call.Meta.CallName, newSignal.Len())
 	var inputCover cover.Cover
 	const (
 		signalRuns       = 3
@@ -128,7 +128,7 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 			continue
 		}
 		inf := info[item.call]
-		thisSignal := signal.FromRaw(inf.Signal, signalPrio(&inf))
+		thisSignal := signal.FromRaw(inf.Signal, signalPrio(item.p.Target, call, &inf))
 		newSignal = newSignal.Intersection(thisSignal)
 		// Without !minimized check manager starts losing some considerable amount
 		// of coverage after each restart. Mechanics of this are not completely clear.
@@ -151,7 +151,8 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 						// Successful calls are much more valuable.
 						return false
 					}
-					thisSignal := signal.FromRaw(inf.Signal, signalPrio(&inf))
+					prio := signalPrio(p1.Target, p1.Calls[call1], &inf)
+					thisSignal := signal.FromRaw(inf.Signal, prio)
 					if newSignal.Intersection(thisSignal).Len() == newSignal.Len() {
 						return true
 					}
@@ -163,9 +164,9 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 	data := item.p.Serialize()
 	sig := hash.Hash(data)
 
-	Logf(2, "added new input for %v to corpus:\n%s", call.CallName, data)
+	Logf(2, "added new input for %v to corpus:\n%s", call.Meta.CallName, data)
 	proc.fuzzer.sendInputToManager(RpcInput{
-		Call:   call.CallName,
+		Call:   call.Meta.CallName,
 		Prog:   data,
 		Signal: inputSignal.Serialize(),
 		Cover:  inputCover.Serialize(),
@@ -227,7 +228,7 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 
 func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) []ipc.CallInfo {
 	info := proc.executeRaw(execOpts, p, stat)
-	for _, callIndex := range proc.fuzzer.checkNewSignal(info) {
+	for _, callIndex := range proc.fuzzer.checkNewSignal(p, info) {
 		info := info[callIndex]
 		// info.Signal points to the output shmem region, detach it before queueing.
 		info.Signal = append([]uint32{}, info.Signal...)

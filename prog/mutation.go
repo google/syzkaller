@@ -19,6 +19,34 @@ outer:
 	for stop := false; !stop || retry; stop = r.oneOf(3) {
 		retry = false
 		switch {
+		case r.oneOf(5):
+			// Not all calls have anything squashable,
+			// so this has lower priority in reality.
+			complexPtrs := p.complexPtrs()
+			if len(complexPtrs) == 0 {
+				retry = true
+				continue
+			}
+			ptr := complexPtrs[r.Intn(len(complexPtrs))]
+			if !p.Target.isAnyPtr(ptr.Type()) {
+				p.Target.squashPtr(ptr, true)
+			}
+			var blobs []*DataArg
+			ForeachSubArg(ptr, func(arg Arg, _ *ArgCtx) {
+				if data, ok := arg.(*DataArg); ok && arg.Type().Dir() != DirOut {
+					blobs = append(blobs, data)
+				}
+			})
+			if len(blobs) == 0 {
+				retry = true
+				continue
+			}
+			// TODO(dvyukov): we probably want special mutation for ANY.
+			// E.g. merging adjacent ANYBLOBs (we don't create them,
+			// but they can appear in future); or replacing ANYRES
+			// with a blob (and merging it with adjacent blobs).
+			arg := blobs[r.Intn(len(blobs))]
+			arg.data = mutateData(r, arg.Data(), 0, maxBlobLen)
 		case r.nOutOf(1, 100):
 			// Splice with another prog from corpus.
 			if len(corpus) == 0 || len(p.Calls) == 0 {
@@ -311,31 +339,9 @@ func mutateData(r *randGen, data []byte, minLen, maxLen uint64) []byte {
 loop:
 	for stop := false; !stop || retry; stop = r.oneOf(3) {
 		retry = false
-		switch r.Intn(14) {
+		// TODO(dvyukov): duplicate part of data.
+		switch r.Intn(7) {
 		case 0:
-			// Append byte.
-			if uint64(len(data)) >= maxLen {
-				retry = true
-				continue loop
-			}
-			data = append(data, byte(r.rand(256)))
-		case 1:
-			// Remove byte.
-			if len(data) == 0 || uint64(len(data)) <= minLen {
-				retry = true
-				continue loop
-			}
-			i := r.Intn(len(data))
-			copy(data[i:], data[i+1:])
-			data = data[:len(data)-1]
-		case 2:
-			// Replace byte with random value.
-			if len(data) == 0 {
-				retry = true
-				continue loop
-			}
-			data[r.Intn(len(data))] = byte(r.rand(256))
-		case 3:
 			// Flip bit in byte.
 			if len(data) == 0 {
 				retry = true
@@ -344,122 +350,49 @@ loop:
 			byt := r.Intn(len(data))
 			bit := r.Intn(8)
 			data[byt] ^= 1 << uint(bit)
-		case 4:
-			// Swap two bytes.
-			if len(data) < 2 {
+		case 1:
+			// Insert random bytes.
+			if len(data) == 0 || uint64(len(data)) >= maxLen {
 				retry = true
 				continue loop
 			}
-			i1 := r.Intn(len(data))
-			i2 := r.Intn(len(data))
-			data[i1], data[i2] = data[i2], data[i1]
-		case 5:
-			// Add / subtract from a byte.
-			if len(data) == 0 {
-				retry = true
-				continue loop
+			n := r.Intn(16) + 1
+			if r := int(maxLen) - len(data); n > r {
+				n = r
 			}
-			i := r.Intn(len(data))
-			delta := byte(r.rand(2*maxInc+1) - maxInc)
-			if delta == 0 {
-				delta = 1
+			pos := r.Intn(len(data))
+			for i := 0; i < n; i++ {
+				data = append(data, 0)
 			}
-			data[i] += delta
-		case 6:
-			// Add / subtract from a uint16.
-			if len(data) < 2 {
-				retry = true
-				continue loop
-			}
-			i := r.Intn(len(data) - 1)
-			p := (*uint16)(unsafe.Pointer(&data[i]))
-			delta := uint16(r.rand(2*maxInc+1) - maxInc)
-			if delta == 0 {
-				delta = 1
+			copy(data[pos+n:], data[pos:])
+			for i := 0; i < n; i++ {
+				data[pos+i] = byte(r.Int31())
 			}
 			if r.bin() {
-				*p += delta
-			} else {
-				*p = swap16(swap16(*p) + delta)
+				data = data[:len(data)-n] // preserve original length
 			}
-		case 7:
-			// Add / subtract from a uint32.
-			if len(data) < 4 {
+		case 2:
+			// Remove bytes.
+			if uint64(len(data)) <= minLen {
 				retry = true
 				continue loop
 			}
-			i := r.Intn(len(data) - 3)
-			p := (*uint32)(unsafe.Pointer(&data[i]))
-			delta := uint32(r.rand(2*maxInc+1) - maxInc)
-			if delta == 0 {
-				delta = 1
+			n := r.Intn(16) + 1
+			if n > len(data) {
+				n = len(data)
 			}
+			pos := 0
+			if n < len(data) {
+				pos = r.Intn(len(data) - n)
+			}
+			copy(data[pos:], data[pos+n:])
+			data = data[:len(data)-n]
 			if r.bin() {
-				*p += delta
-			} else {
-				*p = swap32(swap32(*p) + delta)
+				for i := 0; i < n; i++ {
+					data = append(data, 0) // preserve original length
+				}
 			}
-		case 8:
-			// Add / subtract from a uint64.
-			if len(data) < 8 {
-				retry = true
-				continue loop
-			}
-			i := r.Intn(len(data) - 7)
-			p := (*uint64)(unsafe.Pointer(&data[i]))
-			delta := r.rand(2*maxInc+1) - maxInc
-			if delta == 0 {
-				delta = 1
-			}
-			if r.bin() {
-				*p += delta
-			} else {
-				*p = swap64(swap64(*p) + delta)
-			}
-		case 9:
-			// Set byte to an interesting value.
-			if len(data) == 0 {
-				retry = true
-				continue loop
-			}
-			data[r.Intn(len(data))] = byte(r.randInt())
-		case 10:
-			// Set uint16 to an interesting value.
-			if len(data) < 2 {
-				retry = true
-				continue loop
-			}
-			i := r.Intn(len(data) - 1)
-			value := uint16(r.randInt())
-			if r.bin() {
-				value = swap16(value)
-			}
-			*(*uint16)(unsafe.Pointer(&data[i])) = value
-		case 11:
-			// Set uint32 to an interesting value.
-			if len(data) < 4 {
-				retry = true
-				continue loop
-			}
-			i := r.Intn(len(data) - 3)
-			value := uint32(r.randInt())
-			if r.bin() {
-				value = swap32(value)
-			}
-			*(*uint32)(unsafe.Pointer(&data[i])) = value
-		case 12:
-			// Set uint64 to an interesting value.
-			if len(data) < 8 {
-				retry = true
-				continue loop
-			}
-			i := r.Intn(len(data) - 7)
-			value := r.randInt()
-			if r.bin() {
-				value = swap64(value)
-			}
-			*(*uint64)(unsafe.Pointer(&data[i])) = value
-		case 13:
+		case 3:
 			// Append a bunch of bytes.
 			if uint64(len(data)) >= maxLen {
 				retry = true
@@ -472,6 +405,146 @@ loop:
 			}
 			for i := 0; i < n; i++ {
 				data = append(data, byte(r.rand(256)))
+			}
+		case 4:
+			// Replace int8/int16/int32/int64 with a random value.
+			switch r.Intn(4) {
+			case 0: // int8
+				if len(data) == 0 {
+					retry = true
+					continue loop
+				}
+				data[r.Intn(len(data))] = byte(r.rand(1 << 8))
+			case 1: // int16
+				if len(data) < 2 {
+					retry = true
+					continue loop
+				}
+				i := r.Intn(len(data) - 1)
+				p := (*uint16)(unsafe.Pointer(&data[i]))
+				*p = uint16(r.rand(1 << 16))
+			case 2: // int32
+				if len(data) < 4 {
+					retry = true
+					continue loop
+				}
+				i := r.Intn(len(data) - 3)
+				p := (*uint32)(unsafe.Pointer(&data[i]))
+				*p = uint32(r.rand(1 << 32))
+			case 3: // int64
+				if len(data) < 8 {
+					retry = true
+					continue loop
+				}
+				i := r.Intn(len(data) - 7)
+				p := (*uint64)(unsafe.Pointer(&data[i]))
+				*p = r.Uint64()
+			}
+		case 5:
+			// Add/subtract from an int8/int16/int32/int64.
+			switch r.Intn(4) {
+			case 0: // int8
+				if len(data) == 0 {
+					retry = true
+					continue loop
+				}
+				i := r.Intn(len(data))
+				delta := byte(r.rand(2*maxInc+1) - maxInc)
+				if delta == 0 {
+					delta = 1
+				}
+				data[i] += delta
+			case 1: // int16
+				if len(data) < 2 {
+					retry = true
+					continue loop
+				}
+				i := r.Intn(len(data) - 1)
+				p := (*uint16)(unsafe.Pointer(&data[i]))
+				delta := uint16(r.rand(2*maxInc+1) - maxInc)
+				if delta == 0 {
+					delta = 1
+				}
+				if r.oneOf(10) {
+					*p = swap16(swap16(*p) + delta)
+				} else {
+					*p += delta
+				}
+			case 2: // int32
+				if len(data) < 4 {
+					retry = true
+					continue loop
+				}
+				i := r.Intn(len(data) - 3)
+				p := (*uint32)(unsafe.Pointer(&data[i]))
+				delta := uint32(r.rand(2*maxInc+1) - maxInc)
+				if delta == 0 {
+					delta = 1
+				}
+				if r.oneOf(10) {
+					*p = swap32(swap32(*p) + delta)
+				} else {
+					*p += delta
+				}
+			case 3: // int64
+				if len(data) < 8 {
+					retry = true
+					continue loop
+				}
+				i := r.Intn(len(data) - 7)
+				p := (*uint64)(unsafe.Pointer(&data[i]))
+				delta := r.rand(2*maxInc+1) - maxInc
+				if delta == 0 {
+					delta = 1
+				}
+				if r.oneOf(10) {
+					*p = swap64(swap64(*p) + delta)
+				} else {
+					*p += delta
+				}
+			}
+		case 6:
+			// Set int8/int16/int32/int64 to an interesting value.
+			switch r.Intn(4) {
+			case 0: // int8
+				if len(data) == 0 {
+					retry = true
+					continue loop
+				}
+				data[r.Intn(len(data))] = byte(r.randInt())
+			case 1: // int16
+				if len(data) < 2 {
+					retry = true
+					continue loop
+				}
+				i := r.Intn(len(data) - 1)
+				value := uint16(r.randInt())
+				if r.oneOf(10) {
+					value = swap16(value)
+				}
+				*(*uint16)(unsafe.Pointer(&data[i])) = value
+			case 2: // int32
+				if len(data) < 4 {
+					retry = true
+					continue loop
+				}
+				i := r.Intn(len(data) - 3)
+				value := uint32(r.randInt())
+				if r.oneOf(10) {
+					value = swap32(value)
+				}
+				*(*uint32)(unsafe.Pointer(&data[i])) = value
+			case 3: // int64
+				if len(data) < 8 {
+					retry = true
+					continue loop
+				}
+				i := r.Intn(len(data) - 7)
+				value := r.randInt()
+				if r.oneOf(10) {
+					value = swap64(value)
+				}
+				*(*uint64)(unsafe.Pointer(&data[i])) = value
 			}
 		default:
 			panic("bad")

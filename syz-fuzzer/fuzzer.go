@@ -478,11 +478,11 @@ func (fuzzer *Fuzzer) corpusSignalDiff(sign signal.Signal) signal.Signal {
 	return fuzzer.corpusSignal.Diff(sign)
 }
 
-func (fuzzer *Fuzzer) checkNewSignal(info []ipc.CallInfo) (calls []int) {
+func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info []ipc.CallInfo) (calls []int) {
 	fuzzer.signalMu.RLock()
 	defer fuzzer.signalMu.RUnlock()
 	for i, inf := range info {
-		diff := fuzzer.maxSignal.DiffRaw(inf.Signal, signalPrio(&inf))
+		diff := fuzzer.maxSignal.DiffRaw(inf.Signal, signalPrio(p.Target, p.Calls[i], &inf))
 		if diff.Empty() {
 			continue
 		}
@@ -497,11 +497,14 @@ func (fuzzer *Fuzzer) checkNewSignal(info []ipc.CallInfo) (calls []int) {
 	return
 }
 
-func signalPrio(ci *ipc.CallInfo) uint8 {
+func signalPrio(target *prog.Target, c *prog.Call, ci *ipc.CallInfo) (prio uint8) {
 	if ci.Errno == 0 {
-		return 1
+		prio |= 1 << 1
 	}
-	return 0
+	if !target.CallContainsAny(c) {
+		prio |= 1 << 0
+	}
+	return
 }
 
 func (fuzzer *Fuzzer) leakCheckCallback() {

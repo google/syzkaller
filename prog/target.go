@@ -52,6 +52,7 @@ type Target struct {
 	resourceMap map[string]*ResourceDesc
 	// Maps resource name to a list of calls that can create the resource.
 	resourceCtors map[string][]*Syscall
+	anyTypes
 }
 
 var targets = make(map[string]*Target)
@@ -148,6 +149,7 @@ func (target *Target) initTarget() {
 	for _, res := range target.Resources {
 		target.resourceCtors[res.Name] = target.calcResourceCtors(res.Kind, false)
 	}
+	initAnyTypes(target)
 }
 
 type Gen struct {
