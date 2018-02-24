@@ -90,6 +90,24 @@ func (arg *ConstArg) Value() (uint64, uint64, bool) {
 	}
 }
 
+func (arg *ConstArg) ValueForProc(pid uint64) uint64 {
+	v, stride, be := arg.Value()
+	v += stride * pid
+	if be {
+		switch arg.Size() {
+		case 2:
+			v = uint64(swap16(uint16(v)))
+		case 4:
+			v = uint64(swap32(uint32(v)))
+		case 8:
+			v = swap64(v)
+		default:
+			panic(fmt.Sprintf("bad const size %v", arg.Size()))
+		}
+	}
+	return v
+}
+
 // Used for PtrType and VmaType.
 type PointerArg struct {
 	ArgCommon

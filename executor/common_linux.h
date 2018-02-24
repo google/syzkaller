@@ -452,8 +452,8 @@ static uintptr_t syz_emit_ethernet(uintptr_t a0, uintptr_t a1, uintptr_t a2)
 	// syz_emit_ethernet(len len[packet], packet ptr[in, eth_packet], frags ptr[in, vnet_fragmentation, opt])
 	// vnet_fragmentation {
 	// 	full	int32[0:1]
-	// 	count	len[frags, int32]
-	// 	frags	array[int32[0:4096], 1:4]
+	// 	count	int32[1:4]
+	// 	frags	array[int32[0:4096], 4]
 	// }
 	if (tunfd < 0)
 		return (uintptr_t)-1;

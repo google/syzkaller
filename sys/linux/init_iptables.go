@@ -117,6 +117,9 @@ func (arch *arch) generateEbtables(g *prog.Gen, typ prog.Type, old prog.Arg) (
 		arg = old
 		calls = g.MutateArg(arg)
 	}
+	if g.Target().ArgContainsAny(arg) {
+		return
+	}
 	hooksField, entriesField := 4, 7
 	if g.Target().PtrSize == 8 {
 		// Account for paddings.
@@ -155,6 +158,7 @@ func (arch *arch) generateEbtables(g *prog.Gen, typ prog.Type, old prog.Arg) (
 		}
 		hookArg.Val = addr
 	}
+	// TODO(dvyukov): assign jump targets for targets.
 	return
 }
 

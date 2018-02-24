@@ -72,8 +72,11 @@ func (target *Target) serialize(arg Arg, buf *bytes.Buffer, vars map[Arg]int, va
 			break
 		}
 		fmt.Fprintf(buf, "&%v", target.serializeAddr(a))
-		if a.Res == nil || !target.isDefaultArg(a.Res) {
+		if a.Res == nil || !target.isDefaultArg(a.Res) || target.isAnyPtr(a.Type()) {
 			fmt.Fprintf(buf, "=")
+			if target.isAnyPtr(a.Type()) {
+				fmt.Fprintf(buf, "ANY=")
+			}
 			target.serialize(a.Res, buf, vars, varSeq)
 		}
 	case *DataArg:
@@ -296,6 +299,17 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		var inner Arg
 		if p.Char() == '=' {
 			p.Parse('=')
+			if p.Char() == 'A' {
+				p.Parse('A')
+				p.Parse('N')
+				p.Parse('Y')
+				p.Parse('=')
+				if typ.Size() == 0 {
+					panic(fmt.Sprintf("TYPESIZE=0: %#v", typ))
+				}
+				typ = target.makeAnyPtrType(typ.Size(), typ.FieldName())
+				typ1 = target.anyArray
+			}
 			inner, err = target.parseArg(typ1, p, vars)
 			if err != nil {
 				return nil, err

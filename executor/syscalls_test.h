@@ -2,12 +2,14 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "8e3bfbc4dd1f6619b4895bcb80e0004ef4c96928"
+#define SYZ_REVISION "0d78e9b1f441c9ae33361f9778195af0a245ffdd"
 #define SYZ_PAGE_SIZE 8192
 #define SYZ_NUM_PAGES 2048
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 88;
+unsigned syscall_count = 90;
 call_t syscalls[] = {
+	{"foo$any0", 0, (syscall_t)foo},
+	{"foo$anyres", 0, (syscall_t)foo},
 	{"mmap", 0, (syscall_t)mmap},
 	{"mutate0", 0, (syscall_t)mutate0},
 	{"mutate1", 0, (syscall_t)mutate1},
@@ -102,12 +104,14 @@ call_t syscalls[] = {
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "4a4abb9774bf056d0952d60f2fffdfdc392353a2"
+#define SYZ_REVISION "e361957ea430829459298bc20840e4edbd324930"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 88;
+unsigned syscall_count = 90;
 call_t syscalls[] = {
+	{"foo$any0", 0, (syscall_t)foo},
+	{"foo$anyres", 0, (syscall_t)foo},
 	{"mmap", 0, (syscall_t)mmap},
 	{"mutate0", 0, (syscall_t)mutate0},
 	{"mutate1", 0, (syscall_t)mutate1},

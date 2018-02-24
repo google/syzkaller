@@ -469,15 +469,17 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 
 	// Allow infinite recursion for optional pointers.
 	if pt, ok := typ.(*PtrType); ok && typ.Optional() {
-		if str, ok := pt.Type.(*StructType); ok {
-			r.recDepth[str.Name()] += 1
+		switch pt.Type.(type) {
+		case *StructType, *ArrayType, *UnionType:
+			name := pt.Type.Name()
+			r.recDepth[name] += 1
 			defer func() {
-				r.recDepth[str.Name()] -= 1
-				if r.recDepth[str.Name()] == 0 {
-					delete(r.recDepth, str.Name())
+				r.recDepth[name] -= 1
+				if r.recDepth[name] == 0 {
+					delete(r.recDepth, name)
 				}
 			}()
-			if r.recDepth[str.Name()] >= 3 {
+			if r.recDepth[name] >= 3 {
 				return MakeNullPointerArg(typ), nil
 			}
 		}
