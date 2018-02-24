@@ -259,17 +259,17 @@ func (arch *arch) generateTimespec(g *prog.Gen, typ0 prog.Type, old prog.Arg) (a
 			Ret: prog.MakeReturnArg(meta.Ret),
 		}
 		calls = append(calls, gettime)
-		sec := prog.MakeResultArg(typ.Fields[0], tp.(*prog.GroupArg).Inner[0], 0)
-		nsec := prog.MakeResultArg(typ.Fields[1], tp.(*prog.GroupArg).Inner[1], 0)
+		sec := prog.MakeResultArg(typ.Fields[0], tp.Inner[0], 0)
+		nsec := prog.MakeResultArg(typ.Fields[1], tp.Inner[1], 0)
 		msec := uint64(10)
 		if g.NOutOf(1, 2) {
 			msec = 30
 		}
 		if usec {
-			nsec.(*prog.ResultArg).OpDiv = 1e3
-			nsec.(*prog.ResultArg).OpAdd = msec * 1e3
+			nsec.OpDiv = 1e3
+			nsec.OpAdd = msec * 1e3
 		} else {
-			nsec.(*prog.ResultArg).OpAdd = msec * 1e6
+			nsec.OpAdd = msec * 1e6
 		}
 		arg = prog.MakeGroupArg(typ, []prog.Arg{sec, nsec})
 	}

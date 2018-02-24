@@ -55,7 +55,7 @@ type ConstArg struct {
 	Val uint64
 }
 
-func MakeConstArg(t Type, v uint64) Arg {
+func MakeConstArg(t Type, v uint64) *ConstArg {
 	return &ConstArg{ArgCommon: ArgCommon{typ: t}, Val: v}
 }
 
@@ -141,14 +141,14 @@ type DataArg struct {
 	size uint64 // for out Args
 }
 
-func MakeDataArg(t Type, data []byte) Arg {
+func MakeDataArg(t Type, data []byte) *DataArg {
 	if t.Dir() == DirOut {
 		panic("non-empty output data arg")
 	}
 	return &DataArg{ArgCommon: ArgCommon{typ: t}, data: append([]byte{}, data...)}
 }
 
-func MakeOutDataArg(t Type, size uint64) Arg {
+func MakeOutDataArg(t Type, size uint64) *DataArg {
 	if t.Dir() != DirOut {
 		panic("empty input data arg")
 	}
@@ -176,7 +176,7 @@ type GroupArg struct {
 	Inner []Arg
 }
 
-func MakeGroupArg(t Type, inner []Arg) Arg {
+func MakeGroupArg(t Type, inner []Arg) *GroupArg {
 	return &GroupArg{ArgCommon: ArgCommon{typ: t}, Inner: inner}
 }
 
@@ -225,7 +225,7 @@ type UnionArg struct {
 	Option Arg
 }
 
-func MakeUnionArg(t Type, opt Arg) Arg {
+func MakeUnionArg(t Type, opt Arg) *UnionArg {
 	return &UnionArg{ArgCommon: ArgCommon{typ: t}, Option: opt}
 }
 
@@ -248,7 +248,7 @@ type ResultArg struct {
 	uses  map[Arg]bool // ArgResult args that use this arg
 }
 
-func MakeResultArg(t Type, r Arg, v uint64) Arg {
+func MakeResultArg(t Type, r Arg, v uint64) *ResultArg {
 	arg := &ResultArg{ArgCommon: ArgCommon{typ: t}, Res: r, Val: v}
 	if r == nil {
 		return arg
@@ -280,7 +280,7 @@ type ReturnArg struct {
 	uses map[Arg]bool // ArgResult args that use this arg
 }
 
-func MakeReturnArg(t Type) Arg {
+func MakeReturnArg(t Type) *ReturnArg {
 	return &ReturnArg{ArgCommon: ArgCommon{typ: t}}
 }
 
@@ -534,7 +534,7 @@ func removeArg(arg0 Arg) {
 					panic("use references not ArgResult")
 				}
 				arg2 := MakeResultArg(arg1.Type(), nil, arg1.Type().Default())
-				replaceResultArg(a1, arg2.(*ResultArg))
+				replaceResultArg(a1, arg2)
 			}
 		}
 	})
