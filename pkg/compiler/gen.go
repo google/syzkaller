@@ -55,9 +55,6 @@ func (comp *compiler) genSyscalls() []*prog.Syscall {
 	sort.Slice(calls, func(i, j int) bool {
 		return calls[i].Name < calls[j].Name
 	})
-	for i, c := range calls {
-		c.ID = i
-	}
 	return calls
 }
 
