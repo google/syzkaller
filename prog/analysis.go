@@ -120,9 +120,11 @@ func foreachArgImpl(arg Arg, ctx ArgCtx, f func(Arg, *ArgCtx)) {
 				totalSize += size
 			}
 		}
-		if totalSize > a.Size() {
+		claimedSize := a.Size()
+		varlen := a.Type().Varlen()
+		if varlen && totalSize > claimedSize || !varlen && totalSize != claimedSize {
 			panic(fmt.Sprintf("bad group arg size %v, should be <= %v for %+v",
-				totalSize, a.Size(), a))
+				totalSize, claimedSize, a))
 		}
 	case *PointerArg:
 		if a.Res != nil {

@@ -390,6 +390,21 @@ func TestSerializeForExec(t *testing.T) {
 			},
 			nil,
 		},
+		{
+			"syz_test$align7(&(0x7f0000000000)={{0x1, 0x2, 0x3, 0x4, 0x5, 0x6}, 0x42})",
+			[]uint64{
+				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 0<<16 | 1<<24, 0x1,
+				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 1<<16 | 1<<24, 0x2,
+				execInstrCopyin, dataOffset + 0, execArgConst, 1 | 2<<16 | 1<<24, 0x3,
+				execInstrCopyin, dataOffset + 1, execArgConst, 2 | 0<<16 | 1<<24, 0x4,
+				execInstrCopyin, dataOffset + 1, execArgConst, 2 | 1<<16 | 1<<24, 0x5,
+				execInstrCopyin, dataOffset + 1, execArgConst, 2 | 2<<16 | 1<<24, 0x6,
+				execInstrCopyin, dataOffset + 8, execArgConst, 1, 0x42,
+				callID("syz_test$align7"), ExecNoCopyout, 1, execArgConst, ptrSize, dataOffset,
+				execInstrEOF,
+			},
+			nil,
+		},
 	}
 
 	buf := make([]byte, ExecBufferSize)

@@ -26,6 +26,7 @@ syz_test$align3(a0 ptr[in, syz_align3])
 syz_test$align4(a0 ptr[in, syz_align4])
 syz_test$align5(a0 ptr[in, syz_align5])
 syz_test$align6(a0 ptr[in, syz_align6])
+syz_test$align7(a0 ptr[in, syz_align7])
 
 syz_align0 {
 	f0	int16
@@ -96,6 +97,20 @@ syz_align6 {
 	f0	int8
 	f1	array[int32]
 }
+
+syz_align7 {
+	f0	syz_align8
+	f1	int8
+}
+
+syz_align8 {
+	f0	int8:1
+	f1	int8:1
+	f2	int8:1
+	f3	int16:1
+	f4	int16:1
+	f5	int16:1
+} [packed, align_8]
 
 # Structs
 

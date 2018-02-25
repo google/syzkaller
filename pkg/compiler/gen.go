@@ -252,7 +252,9 @@ func (comp *compiler) addAlignment(fields []prog.Type, varlen, packed bool, alig
 		if !varlen && alignAttr != 0 {
 			size := uint64(0)
 			for _, f := range fields {
-				size += f.Size()
+				if !f.BitfieldMiddle() {
+					size += f.Size()
+				}
 			}
 			if tail := size % alignAttr; tail != 0 {
 				newFields = append(newFields, genPad(alignAttr-tail))
