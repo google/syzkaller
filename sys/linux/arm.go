@@ -4417,7 +4417,7 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "ipv6_fragment_ext_header"}, FldName: "fragment"},
 		&StructType{Key: StructKey{Name: "ipv6_dstopts_ext_header"}, FldName: "dstopts"},
 	}}},
-	{Key: StructKey{Name: "ipv6_fragment_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_fragment_ext_header", TypeSize: 14}, Fields: []Type{
+	{Key: StructKey{Name: "ipv6_fragment_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_fragment_ext_header", TypeSize: 8}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "next_header", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135, 115}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved1", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "fragment_off_hi", TypeSize: 1}}},
@@ -4425,7 +4425,6 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved2", TypeSize: 1}, BitfieldOff: 1, BitfieldLen: 2, BitfieldMdl: true}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "fragment_off_lo", TypeSize: 1}, BitfieldOff: 3, BitfieldLen: 5}},
 		&ProcType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "proc", FldName: "identification", TypeSize: 4}}, ValuesStart: 100, ValuesPerProc: 4},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
 	}, AlignAttr: 8}},
 	{Key: StructKey{Name: "ipv6_hopots_ext_header"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ipv6_hopots_ext_header", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "next_header", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135, 115}},
@@ -24872,4 +24871,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "04da8a970e93697b72a9365fb60321d5a306d0b3"
+const revision_arm = "4b33f66a0aeae24040db5b4a35e18e6ff2977b10"

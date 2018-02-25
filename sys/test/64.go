@@ -116,6 +116,20 @@ var structDescs_64 = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "f1", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
 	}}},
+	{Key: StructKey{Name: "syz_align7"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_align7", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "syz_align8"}, FldName: "f0"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 7}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "syz_align8"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_align8", TypeSize: 8}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f0", TypeSize: 1}, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}, BitfieldOff: 1, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f2", TypeSize: 1}, BitfieldOff: 2, BitfieldLen: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f3", TypeSize: 2}, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f4", TypeSize: 2}, BitfieldOff: 1, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f5", TypeSize: 2}, BitfieldOff: 2, BitfieldLen: 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 5}}, IsPad: true},
+	}, AlignAttr: 8}},
 	{Key: StructKey{Name: "syz_array_blob"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_array_blob", TypeSize: 20}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f0", TypeSize: 2}}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "f1", TypeSize: 16}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
@@ -489,6 +503,9 @@ var syscalls_64 = []*Syscall{
 	{Name: "syz_test$align6", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_align6"}}},
 	}},
+	{Name: "syz_test$align7", CallName: "syz_test", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_align7"}}},
+	}},
 	{Name: "syz_test$array0", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_array_struct"}}},
 	}},
@@ -720,4 +737,4 @@ var consts_64 = []ConstValue{
 	{Name: "IPPROTO_UDP", Value: 17},
 }
 
-const revision_64 = "e12a470f0d2c46ee2f677920db209e6225ce9f38"
+const revision_64 = "4a4abb9774bf056d0952d60f2fffdfdc392353a2"
