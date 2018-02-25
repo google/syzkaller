@@ -2,7 +2,7 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "1320a19e24543c6e0574b42690f827761d643f3a"
+#define SYZ_REVISION "4ca0cf13f14f79e30a831b1f10f892c5dda45f4d"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912

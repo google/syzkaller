@@ -120,7 +120,8 @@ func (target *Target) initTarget() {
 	target.Structs = nil
 
 	target.SyscallMap = make(map[string]*Syscall)
-	for _, c := range target.Syscalls {
+	for i, c := range target.Syscalls {
+		c.ID = i
 		target.SyscallMap[c.Name] = c
 		ForeachType(c, func(t0 Type) {
 			switch t := t0.(type) {
