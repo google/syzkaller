@@ -493,7 +493,7 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 	} else if len(req.ReproSyz) != 0 {
 		reproLevel = ReproLevelSyz
 	}
-	saveCrash := bug.NumCrashes < 1000 ||
+	saveCrash := bug.NumCrashes < maxCrashes ||
 		now.Sub(bug.LastTime) > time.Hour ||
 		reproLevel != ReproLevelNone
 	if saveCrash {
