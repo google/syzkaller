@@ -58,7 +58,6 @@ func TestSerializeForExec(t *testing.T) {
 						Index: ExecNoCopyout,
 					},
 				},
-				NumVars: 0,
 			},
 		},
 		{
@@ -341,7 +340,6 @@ func TestSerializeForExec(t *testing.T) {
 						},
 					},
 				},
-				NumVars: 0,
 			},
 		},
 		{

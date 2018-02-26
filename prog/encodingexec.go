@@ -247,6 +247,7 @@ func (w *execContext) writeArg(arg Arg) {
 			w.write(info.Idx)
 			w.write(a.OpDiv)
 			w.write(a.OpAdd)
+			w.write(a.Type().(*ResourceType).Default())
 		}
 	case *PointerArg:
 		w.writeConstArg(a.Size(), w.target.PhysicalAddr(a), 0, 0, 0, false)

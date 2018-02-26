@@ -333,7 +333,7 @@ func (target *Target) defaultArg(t Type) Arg {
 	case *IntType, *ConstType, *FlagsType, *LenType, *ProcType, *CsumType:
 		return MakeConstArg(t, t.Default())
 	case *ResourceType:
-		return MakeResultArg(t, nil, typ.Desc.Type.Default())
+		return MakeResultArg(t, nil, typ.Default())
 	case *BufferType:
 		if t.Dir() == DirOut {
 			var sz uint64
@@ -432,7 +432,7 @@ func (target *Target) isDefaultArg(arg Arg) bool {
 	case *ResultArg:
 		t := a.Type().(*ResourceType)
 		return a.Res == nil && a.OpDiv == 0 && a.OpAdd == 0 &&
-			len(a.uses) == 0 && a.Val == t.Desc.Type.Default()
+			len(a.uses) == 0 && a.Val == t.Default()
 	}
 	return false
 }
