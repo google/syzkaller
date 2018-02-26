@@ -23,7 +23,8 @@ var structDescs_32 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "f3", TypeSize: 2}, BigEndian: true}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 6}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f4", TypeSize: 8}}},
-		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "f5", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "any1"}}},
+		&StructType{Key: StructKey{Name: "anybitfields"}, FldName: "f5"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "f6", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "any1"}}},
 	}, AlignAttr: 8}},
 	{Key: StructKey{Name: "any1"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "any1", IsVarlen: true}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "f1", TypeSize: 4, IsOptional: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", TypeSize: 1}}}},
@@ -32,6 +33,15 @@ var structDescs_32 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "anyunion1"}, FldName: "f4"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "f5", IsVarlen: true}},
 	}, AlignAttr: 2}},
+	{Key: StructKey{Name: "anybitfields"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "anybitfields", TypeSize: 4}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f2", TypeSize: 1}, BitfieldOff: 2, BitfieldLen: 3, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f3", TypeSize: 1}, BitfieldOff: 5, BitfieldLen: 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f4", TypeSize: 2}, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f5", TypeSize: 2}, BitfieldOff: 1, BitfieldLen: 10, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f6", TypeSize: 2}, BitfieldOff: 11, BitfieldLen: 3}},
+	}}},
 	{Key: StructKey{Name: "anyunion0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "anyunion0", TypeSize: 8}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "anyres32", FldName: "res32", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "anyres64", FldName: "res64", TypeSize: 8}},
@@ -772,4 +782,4 @@ var consts_32 = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32 = "0d78e9b1f441c9ae33361f9778195af0a245ffdd"
+const revision_32 = "10a1935b1f3ef8f206e29a3b6863de4cac10bd9e"
