@@ -81,12 +81,13 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 			ctx.printf("\tuse_temporary_dir();\n")
 		}
 		if opts.Sandbox != "" {
-			ctx.printf("\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
+			ctx.printf("\tint pid = do_sandbox_%v();\n", opts.Sandbox)
 			ctx.print("\tint status = 0;\n")
 			ctx.print("\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
 		} else {
 			if opts.EnableTun {
-				ctx.printf("\tsetup_tun(0, %v);\n", opts.EnableTun)
+				ctx.printf("\tinitialize_tun();\n")
+				ctx.printf("\tinitialize_netdevices();\n")
 			}
 			ctx.print("\tloop();\n")
 		}
@@ -111,12 +112,13 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 				ctx.print("\t\tuse_temporary_dir();\n")
 			}
 			if opts.Sandbox != "" {
-				ctx.printf("\t\tint pid = do_sandbox_%v(0, %v);\n", opts.Sandbox, opts.EnableTun)
+				ctx.printf("\t\tint pid = do_sandbox_%v();\n", opts.Sandbox)
 				ctx.print("\t\tint status = 0;\n")
 				ctx.print("\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
 			} else {
 				if opts.EnableTun {
-					ctx.printf("\t\tsetup_tun(0, %v);\n", opts.EnableTun)
+					ctx.printf("\t\tinitialize_tun();\n")
+					ctx.printf("\t\tinitialize_netdevices();\n")
 				}
 				ctx.print("\t\tloop();\n")
 			}
@@ -141,12 +143,13 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 				ctx.print("\t\t\t\tuse_temporary_dir();\n")
 			}
 			if opts.Sandbox != "" {
-				ctx.printf("\t\t\t\tint pid = do_sandbox_%v(procid, %v);\n", opts.Sandbox, opts.EnableTun)
+				ctx.printf("\t\t\t\tint pid = do_sandbox_%v();\n", opts.Sandbox)
 				ctx.print("\t\t\t\tint status = 0;\n")
 				ctx.print("\t\t\t\twhile (waitpid(pid, &status, __WALL) != pid) {}\n")
 			} else {
 				if opts.EnableTun {
-					ctx.printf("\t\t\t\tsetup_tun(procid, %v);\n", opts.EnableTun)
+					ctx.printf("\t\t\t\tinitialize_tun();\n")
+					ctx.printf("\t\t\t\tinitialize_netdevices();\n")
 				}
 				ctx.print("\t\t\t\tloop();\n")
 			}
