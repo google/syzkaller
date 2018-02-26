@@ -276,6 +276,7 @@ func lastManagerBuild(c context.Context, ns, manager string) (*Build, error) {
 	_, err := datastore.NewQuery("Build").
 		Filter("Namespace=", ns).
 		Filter("Manager=", manager).
+		Filter("Type=", BuildNormal).
 		Order("-Time").
 		Limit(1).
 		GetAll(c, &builds)

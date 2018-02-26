@@ -31,6 +31,7 @@ indexes:
   properties:
   - name: Namespace
   - name: Manager
+  - name: Type
   - name: Time
     direction: desc
 
