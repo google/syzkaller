@@ -500,7 +500,6 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		Namespace:      bug.Namespace,
 		Title:          bug.displayTitle(),
 		NumCrashes:     bug.NumCrashes,
-		NumCrashesBad:  bug.NumCrashes >= 10000 && timeNow(c).Sub(bug.LastTime) < 24*time.Hour,
 		FirstTime:      bug.FirstTime,
 		LastTime:       bug.LastTime,
 		ReportedTime:   reported,
