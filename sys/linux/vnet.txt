@@ -14,7 +14,7 @@ vnet_fragmentation {
 	frags	array[int32[0:4096], 4]
 }
 
-resource tcp_seq_num[int32]: 0x42424242
+resource tcp_seq_num[int32]: 0x41424344
 
 tcp_resources {
 	seq	tcp_seq_num
