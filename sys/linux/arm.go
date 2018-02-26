@@ -1809,6 +1809,44 @@ var structDescs_arm = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "epoll_ev", FldName: "ev", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{1, 4, 8192, 2, 8, 16, 2147483648, 1073741824, 268435456, 536870912}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "data", TypeSize: 8, ArgDir: 1}}},
 	}}},
+	{Key: StructKey{Name: "erspan_base_hdr[1]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "erspan_base_hdr[1]", TypeSize: 4}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "vlan_upper", TypeSize: 1}, BitfieldLen: 4, BitfieldMdl: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ver", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 4}, Val: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "vlan", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "session_id_upper", TypeSize: 1}, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "t", TypeSize: 1}, BitfieldOff: 2, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "en", TypeSize: 1}, BitfieldOff: 3, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "cos", TypeSize: 1}, BitfieldOff: 5, BitfieldLen: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "session_id", TypeSize: 1}}},
+	}}},
+	{Key: StructKey{Name: "erspan_base_hdr[2]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "erspan_base_hdr[2]", TypeSize: 4}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "vlan_upper", TypeSize: 1}, BitfieldLen: 4, BitfieldMdl: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ver", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 4}, Val: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "vlan", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "session_id_upper", TypeSize: 1}, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "t", TypeSize: 1}, BitfieldOff: 2, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "en", TypeSize: 1}, BitfieldOff: 3, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "cos", TypeSize: 1}, BitfieldOff: 5, BitfieldLen: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "session_id", TypeSize: 1}}},
+	}}},
+	{Key: StructKey{Name: "erspan_md1"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "erspan_md1", TypeSize: 12}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "erspan_base_hdr[1]"}, FldName: "base"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 4}}, Val: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "index", TypeSize: 4}, BigEndian: true}},
+	}}},
+	{Key: StructKey{Name: "erspan_md2"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "erspan_md2", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "erspan_base_hdr[2]"}, FldName: "base"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 4}}, Val: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "timestamp", TypeSize: 4}, BigEndian: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "sgt", TypeSize: 2}, BigEndian: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "hwid_upper", TypeSize: 1}, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ft", TypeSize: 1}, BitfieldOff: 2, BitfieldLen: 5, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "p", TypeSize: 1}, BitfieldOff: 7, BitfieldLen: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "o", TypeSize: 1}, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "gra", TypeSize: 1}, BitfieldOff: 1, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "dir", TypeSize: 1}, BitfieldOff: 3, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "hwid", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 1}},
+	}}},
 	{Key: StructKey{Name: "eth2_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_packet", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "eth2_packet_generic"}, FldName: "generic"},
 		&StructType{Key: StructKey{Name: "eth2_packet_t[ETH_P_ARP, arp_packet]"}, FldName: "arp"},
@@ -2483,6 +2521,9 @@ var structDescs_arm = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "gre_packet_pptp"}, FldName: "pptp"},
 		&StructType{Key: StructKey{Name: "gre_packet_cisco[ETH_P_IP, array[int8]]"}, FldName: "cisco_ipv4"},
 		&StructType{Key: StructKey{Name: "gre_packet_cisco[ETH_P_IPV6, array[int8]]"}, FldName: "cisco_ipv6"},
+		&StructType{Key: StructKey{Name: "gre_packet_erspan[ETH_P_ERSPAN, erspan_md1]"}, FldName: "erspan1"},
+		&StructType{Key: StructKey{Name: "gre_packet_erspan[ETH_P_ERSPAN2, erspan_md2]"}, FldName: "erspan2"},
+		&StructType{Key: StructKey{Name: "gre_packet_erspan[ETH_P_TEB, array[int8]]"}, FldName: "teb"},
 	}}},
 	{Key: StructKey{Name: "gre_packet_cisco[ETH_P_IP, array[int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_cisco[ETH_P_IP, array[int8]]", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "C", TypeSize: 2}, BitfieldLen: 1, BitfieldMdl: true}},
@@ -2504,6 +2545,24 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 2}, BitfieldOff: 13, BitfieldLen: 3}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "protocol", TypeSize: 2}, BigEndian: true}, Val: 34525},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "add", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", TypeSize: 2}, BigEndian: true}}, Kind: 1, RangeEnd: 3},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
+	}}},
+	{Key: StructKey{Name: "gre_packet_erspan[ETH_P_ERSPAN, erspan_md1]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_erspan[ETH_P_ERSPAN, erspan_md1]", TypeSize: 20}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "H", TypeSize: 2}}, Val: 8},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "protocol", TypeSize: 2}, BigEndian: true}, Val: 35006},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "seq", TypeSize: 4}, BigEndian: true}, Kind: 2, RangeEnd: 4},
+		&StructType{Key: StructKey{Name: "erspan_md1"}, FldName: "payload"},
+	}}},
+	{Key: StructKey{Name: "gre_packet_erspan[ETH_P_ERSPAN2, erspan_md2]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_erspan[ETH_P_ERSPAN2, erspan_md2]", TypeSize: 24}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "H", TypeSize: 2}}, Val: 8},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "protocol", TypeSize: 2}, BigEndian: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "seq", TypeSize: 4}, BigEndian: true}, Kind: 2, RangeEnd: 4},
+		&StructType{Key: StructKey{Name: "erspan_md2"}, FldName: "payload"},
+	}}},
+	{Key: StructKey{Name: "gre_packet_erspan[ETH_P_TEB, array[int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_erspan[ETH_P_TEB, array[int8]]", IsVarlen: true}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "H", TypeSize: 2}}, Val: 8},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "protocol", TypeSize: 2}, BigEndian: true}, Val: 25944},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "seq", TypeSize: 4}, BigEndian: true}, Kind: 2, RangeEnd: 4},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "gre_packet_pptp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_pptp", IsVarlen: true}, Fields: []Type{
@@ -16926,7 +16985,7 @@ var syscalls_arm = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mbind_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{1, 2, 4}},
 	}},
 	{NR: 389, Name: "membarrier", CallName: "membarrier", Args: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "membarrier_cmd", FldName: "cmd", TypeSize: 4}}, Vals: []uint64{1, 8, 16}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "membarrier_cmd", FldName: "cmd", TypeSize: 4}}, Vals: []uint64{8, 16}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 4}}},
 	}},
 	{NR: 385, Name: "memfd_create", CallName: "memfd_create", Args: []Type{
@@ -24817,4 +24876,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "2b3fbdf5aacf49be4e9f4db6729f91aa9664fa4e"
+const revision_arm = "714ff0d833d6f34d8223e20b1e73bbe2736b519c"

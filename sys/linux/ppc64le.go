@@ -166,7 +166,7 @@ var structDescs_ppc64le = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "arp_generic_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "arp_generic_packet", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "arp_htypes", FldName: "htype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 15, 19, 23, 24, 27, 32, 256, 257, 258, 259, 260, 264, 270, 271, 272, 280, 512, 513, 513, 516, 517, 518, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 800, 801, 802, 803, 804, 805, 820, 821, 822, 823, 824, 825, 65535, 65534}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "ptype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "ptype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 8939, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "hlen", TypeSize: 1}}, Val: 6},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "plen", TypeSize: 1}}, Buf: "spa"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "arp_ops", FldName: "op", TypeSize: 2}, BigEndian: true}, Vals: []uint64{1, 2, 3, 4, 8, 9, 10}},
@@ -1255,7 +1255,7 @@ var structDescs_ppc64le = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "ebt_arp_info"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ebt_arp_info", TypeSize: 52}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "arp_htypes", FldName: "htype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 15, 19, 23, 24, 27, 32, 256, 257, 258, 259, 260, 264, 270, 271, 272, 280, 512, 513, 513, 516, 517, 518, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 800, 801, 802, 803, 804, 805, 820, 821, 822, 823, 824, 825, 65535, 65534}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "ptype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "ptype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 8939, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "arp_ops", FldName: "op", TypeSize: 2}, BigEndian: true}, Vals: []uint64{1, 2, 3, 4, 8, 9, 10}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
 		&UnionType{Key: StructKey{Name: "ipv4_addr"}, FldName: "saddr"},
@@ -1503,7 +1503,7 @@ var structDescs_ppc64le = []*KeyedStruct{
 	{Key: StructKey{Name: "ebt_entry_matches"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ebt_entry_matches", IsVarlen: true}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ebt_entry_bitmask", FldName: "bitmask", TypeSize: 4}}, Vals: []uint64{3, 5, 9, 17}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ebt_entry_invflags", FldName: "invflags", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "ethproto", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "ethproto", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 8939, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "in", TypeSize: 16}, Kind: 2, SubKind: "devnames", Values: []string{"lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "logical_in", TypeSize: 16}, Kind: 2, SubKind: "devnames", Values: []string{"lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "out", TypeSize: 16}, Kind: 2, SubKind: "devnames", Values: []string{"lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
@@ -1858,7 +1858,7 @@ var structDescs_ppc64le = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "id", TypeSize: 2}}, Kind: 2, RangeEnd: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "prio", TypeSize: 1}}, Kind: 2, RangeEnd: 7},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 1}}, IsPad: true},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "encap", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "encap", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 8939, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ebt_vlan_flags", FldName: "bitmask", TypeSize: 1}}, Vals: []uint64{1, 2, 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ebt_vlan_flags", FldName: "invflags", TypeSize: 1}}, Vals: []uint64{1, 2, 4}},
 	}}},
@@ -1869,6 +1869,44 @@ var structDescs_ppc64le = []*KeyedStruct{
 	{Key: StructKey{Name: "epoll_event", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "epoll_event", TypeSize: 12, ArgDir: 1}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "epoll_ev", FldName: "ev", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{1, 4, 8192, 2, 8, 16, 2147483648, 1073741824, 268435456, 536870912}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "data", TypeSize: 8, ArgDir: 1}}},
+	}}},
+	{Key: StructKey{Name: "erspan_base_hdr[1]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "erspan_base_hdr[1]", TypeSize: 4}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "vlan_upper", TypeSize: 1}, BitfieldLen: 4, BitfieldMdl: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ver", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 4}, Val: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "vlan", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "session_id_upper", TypeSize: 1}, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "t", TypeSize: 1}, BitfieldOff: 2, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "en", TypeSize: 1}, BitfieldOff: 3, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "cos", TypeSize: 1}, BitfieldOff: 5, BitfieldLen: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "session_id", TypeSize: 1}}},
+	}}},
+	{Key: StructKey{Name: "erspan_base_hdr[2]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "erspan_base_hdr[2]", TypeSize: 4}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "vlan_upper", TypeSize: 1}, BitfieldLen: 4, BitfieldMdl: true}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ver", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 4}, Val: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "vlan", TypeSize: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "session_id_upper", TypeSize: 1}, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "t", TypeSize: 1}, BitfieldOff: 2, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "en", TypeSize: 1}, BitfieldOff: 3, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "cos", TypeSize: 1}, BitfieldOff: 5, BitfieldLen: 3}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "session_id", TypeSize: 1}}},
+	}}},
+	{Key: StructKey{Name: "erspan_md1"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "erspan_md1", TypeSize: 12}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "erspan_base_hdr[1]"}, FldName: "base"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 4}}, Val: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "index", TypeSize: 4}, BigEndian: true}},
+	}}},
+	{Key: StructKey{Name: "erspan_md2"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "erspan_md2", TypeSize: 16}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "erspan_base_hdr[2]"}, FldName: "base"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 4}}, Val: 2},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "timestamp", TypeSize: 4}, BigEndian: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "sgt", TypeSize: 2}, BigEndian: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "hwid_upper", TypeSize: 1}, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ft", TypeSize: 1}, BitfieldOff: 2, BitfieldLen: 5, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "p", TypeSize: 1}, BitfieldOff: 7, BitfieldLen: 1}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "o", TypeSize: 1}, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "gra", TypeSize: 1}, BitfieldOff: 1, BitfieldLen: 2, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "dir", TypeSize: 1}, BitfieldOff: 3, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "hwid", TypeSize: 1}, BitfieldOff: 4, BitfieldLen: 1}},
 	}}},
 	{Key: StructKey{Name: "eth2_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_packet", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "eth2_packet_generic"}, FldName: "generic"},
@@ -1885,7 +1923,7 @@ var structDescs_ppc64le = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "eth2_packet_t[ETH_P_CANFD, canfd_frame]"}, FldName: "canfd"},
 	}}},
 	{Key: StructKey{Name: "eth2_packet_generic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_packet_generic", IsVarlen: true}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "etype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "etype", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 8939, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "eth2_packet_t[ETH_P_802_2, llc_packet]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "eth2_packet_t[ETH_P_802_2, llc_packet]", IsVarlen: true}, Fields: []Type{
@@ -2546,6 +2584,9 @@ var structDescs_ppc64le = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "gre_packet_pptp"}, FldName: "pptp"},
 		&StructType{Key: StructKey{Name: "gre_packet_cisco[ETH_P_IP, array[int8]]"}, FldName: "cisco_ipv4"},
 		&StructType{Key: StructKey{Name: "gre_packet_cisco[ETH_P_IPV6, array[int8]]"}, FldName: "cisco_ipv6"},
+		&StructType{Key: StructKey{Name: "gre_packet_erspan[ETH_P_ERSPAN, erspan_md1]"}, FldName: "erspan1"},
+		&StructType{Key: StructKey{Name: "gre_packet_erspan[ETH_P_ERSPAN2, erspan_md2]"}, FldName: "erspan2"},
+		&StructType{Key: StructKey{Name: "gre_packet_erspan[ETH_P_TEB, array[int8]]"}, FldName: "teb"},
 	}}},
 	{Key: StructKey{Name: "gre_packet_cisco[ETH_P_IP, array[int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_cisco[ETH_P_IP, array[int8]]", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "C", TypeSize: 2}, BitfieldLen: 1, BitfieldMdl: true}},
@@ -2567,6 +2608,24 @@ var structDescs_ppc64le = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 2}, BitfieldOff: 13, BitfieldLen: 3}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "protocol", TypeSize: 2}, BigEndian: true}, Val: 34525},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "add", IsVarlen: true}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", TypeSize: 2}, BigEndian: true}}, Kind: 1, RangeEnd: 3},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
+	}}},
+	{Key: StructKey{Name: "gre_packet_erspan[ETH_P_ERSPAN, erspan_md1]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_erspan[ETH_P_ERSPAN, erspan_md1]", TypeSize: 20}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "H", TypeSize: 2}}, Val: 8},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "protocol", TypeSize: 2}, BigEndian: true}, Val: 35006},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "seq", TypeSize: 4}, BigEndian: true}, Kind: 2, RangeEnd: 4},
+		&StructType{Key: StructKey{Name: "erspan_md1"}, FldName: "payload"},
+	}}},
+	{Key: StructKey{Name: "gre_packet_erspan[ETH_P_ERSPAN2, erspan_md2]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_erspan[ETH_P_ERSPAN2, erspan_md2]", TypeSize: 24}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "H", TypeSize: 2}}, Val: 8},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "protocol", TypeSize: 2}, BigEndian: true}, Val: 8939},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "seq", TypeSize: 4}, BigEndian: true}, Kind: 2, RangeEnd: 4},
+		&StructType{Key: StructKey{Name: "erspan_md2"}, FldName: "payload"},
+	}}},
+	{Key: StructKey{Name: "gre_packet_erspan[ETH_P_TEB, array[int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_erspan[ETH_P_TEB, array[int8]]", IsVarlen: true}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "H", TypeSize: 2}}, Val: 8},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "protocol", TypeSize: 2}, BigEndian: true}, Val: 25944},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32be", FldName: "seq", TypeSize: 4}, BigEndian: true}, Kind: 2, RangeEnd: 4},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "gre_packet_pptp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "gre_packet_pptp", IsVarlen: true}, Fields: []Type{
@@ -5216,7 +5275,7 @@ var structDescs_ppc64le = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sap_snap_values", FldName: "ssap", TypeSize: 1}}, Vals: []uint64{1, 170}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "control", IsVarlen: true}, Kind: 1, RangeBegin: 1, RangeEnd: 2},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "oui", TypeSize: 3}, Kind: 1, RangeBegin: 3, RangeEnd: 3},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "protocol_id", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "protocol_id", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 8939, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "payload", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "loadlut"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "loadlut", TypeSize: 40}, Fields: []Type{
@@ -9644,7 +9703,7 @@ var structDescs_ppc64le = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "tun_pi"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "tun_pi", IsVarlen: true}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 2}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "proto", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ether_types", FldName: "proto", TypeSize: 2}, BigEndian: true}, Vals: []uint64{96, 512, 513, 8944, 2048, 2053, 2054, 2560, 2561, 17157, 24576, 24577, 24578, 24579, 24580, 24581, 24582, 24583, 25944, 32821, 32923, 33011, 33024, 35006, 8939, 33079, 34525, 34824, 34825, 34878, 34887, 34888, 34892, 34915, 34916, 34924, 34948, 34958, 34978, 34984, 34997, 35018, 35045, 35047, 35061, 35063, 35064, 35067, 35078, 35085, 35092, 35095, 35119, 36864, 37120, 37376, 37632, 56026, 64507, 1536, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248, 249}},
 		&UnionType{Key: StructKey{Name: "tun_payload"}, FldName: "data"},
 	}}},
 	{Key: StructKey{Name: "ucred"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ucred", TypeSize: 12}, Fields: []Type{
@@ -16104,10 +16163,20 @@ var syscalls_ppc64le = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147767505},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "tun_filter"}}},
 	}},
+	{NR: 54, Name: "ioctl$TUNSETVNETBE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147767518},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 2, RangeEnd: 1}},
+	}},
 	{NR: 54, Name: "ioctl$TUNSETVNETHDRSZ", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147767512},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}},
+	}},
+	{NR: 54, Name: "ioctl$TUNSETVNETLE", CallName: "ioctl", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147767516},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}, Kind: 2, RangeEnd: 1}},
 	}},
 	{NR: 54, Name: "ioctl$UFFDIO_API", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_uffd", FldName: "fd", TypeSize: 4}},
@@ -16989,7 +17058,7 @@ var syscalls_ppc64le = []*Syscall{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mbind_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{1, 2, 4}},
 	}},
 	{NR: 365, Name: "membarrier", CallName: "membarrier", Args: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "membarrier_cmd", FldName: "cmd", TypeSize: 8}}, Vals: []uint64{1, 8, 16}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "membarrier_cmd", FldName: "cmd", TypeSize: 8}}, Vals: []uint64{1, 2, 8, 16, 32, 64}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 8}}},
 	}},
 	{NR: 360, Name: "memfd_create", CallName: "memfd_create", Args: []Type{
@@ -21412,6 +21481,7 @@ var consts_ppc64le = []ConstValue{
 	{Name: "ETH_P_ECONET", Value: 24},
 	{Name: "ETH_P_EDSA", Value: 56026},
 	{Name: "ETH_P_ERSPAN", Value: 35006},
+	{Name: "ETH_P_ERSPAN2", Value: 8939},
 	{Name: "ETH_P_FCOE", Value: 35078},
 	{Name: "ETH_P_FIP", Value: 35092},
 	{Name: "ETH_P_HDLC", Value: 25},
@@ -22557,9 +22627,12 @@ var consts_ppc64le = []ConstValue{
 	{Name: "MCAST_UNBLOCK_SOURCE", Value: 44},
 	{Name: "MCL_CURRENT", Value: 8192},
 	{Name: "MCL_FUTURE", Value: 16384},
+	{Name: "MEMBARRIER_CMD_GLOBAL", Value: 1},
+	{Name: "MEMBARRIER_CMD_GLOBAL_EXPEDITED", Value: 2},
 	{Name: "MEMBARRIER_CMD_PRIVATE_EXPEDITED", Value: 8},
+	{Name: "MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE", Value: 32},
 	{Name: "MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED", Value: 16},
-	{Name: "MEMBARRIER_CMD_SHARED", Value: 1},
+	{Name: "MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE", Value: 64},
 	{Name: "MFD_ALLOW_SEALING", Value: 2},
 	{Name: "MFD_CLOEXEC", Value: 1},
 	{Name: "MIFF_REGISTER", Value: 1},
@@ -23999,7 +24072,9 @@ var consts_ppc64le = []ConstValue{
 	{Name: "TUNSETSNDBUF", Value: 2147767508},
 	{Name: "TUNSETSTEERINGEBPF", Value: 1074025696},
 	{Name: "TUNSETTXFILTER", Value: 2147767505},
+	{Name: "TUNSETVNETBE", Value: 2147767518},
 	{Name: "TUNSETVNETHDRSZ", Value: 2147767512},
+	{Name: "TUNSETVNETLE", Value: 2147767516},
 	{Name: "TUN_FLT_ALLMULTI", Value: 1},
 	{Name: "TX_ANNOUNCE", Value: 8},
 	{Name: "TX_COUNTEVT", Value: 4},
@@ -24723,4 +24798,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_ppc64le = "2cd33fa1fa1fbd10d9430e2c93f5aa0ec45f8918"
+const revision_ppc64le = "76cbe05fab6907f30f5d40f497e32349c3d893ec"

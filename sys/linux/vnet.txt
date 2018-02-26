@@ -102,7 +102,7 @@ eth_payload {
 
 # https://en.wikipedia.org/wiki/Ethernet_frame#Ethernet_II
 
-ether_types = ETH_P_LOOP, ETH_P_PUP, ETH_P_PUPAT, ETH_P_TSN, ETH_P_IP, ETH_P_X25, ETH_P_ARP, ETH_P_IEEEPUP, ETH_P_IEEEPUPAT, ETH_P_BATMAN, ETH_P_DEC, ETH_P_DNA_DL, ETH_P_DNA_RC, ETH_P_DNA_RT, ETH_P_LAT, ETH_P_DIAG, ETH_P_CUST, ETH_P_SCA, ETH_P_TEB, ETH_P_RARP, ETH_P_ATALK, ETH_P_AARP, ETH_P_8021Q, ETH_P_ERSPAN, ETH_P_IPX, ETH_P_IPV6, ETH_P_PAUSE, ETH_P_SLOW, ETH_P_WCCP, ETH_P_MPLS_UC, ETH_P_MPLS_MC, ETH_P_ATMMPOA, ETH_P_PPP_DISC, ETH_P_PPP_SES, ETH_P_LINK_CTL, ETH_P_ATMFATE, ETH_P_PAE, ETH_P_AOE, ETH_P_8021AD, ETH_P_802_EX1, ETH_P_TIPC, ETH_P_MACSEC, ETH_P_8021AH, ETH_P_MVRP, ETH_P_1588, ETH_P_NCSI, ETH_P_PRP, ETH_P_FCOE, ETH_P_TDLS, ETH_P_FIP, ETH_P_80221, ETH_P_HSR, ETH_P_LOOPBACK, ETH_P_QINQ1, ETH_P_QINQ2, ETH_P_QINQ3, ETH_P_EDSA, ETH_P_AF_IUCV, ETH_P_802_3_MIN, ETH_P_802_3, ETH_P_AX25, ETH_P_ALL, ETH_P_802_2, ETH_P_SNAP, ETH_P_DDCMP, ETH_P_WAN_PPP, ETH_P_PPP_MP, ETH_P_LOCALTALK, ETH_P_CAN, ETH_P_CANFD, ETH_P_PPPTALK, ETH_P_TR_802_2, ETH_P_MOBITEX, ETH_P_CONTROL, ETH_P_IRDA, ETH_P_ECONET, ETH_P_HDLC, ETH_P_ARCNET, ETH_P_DSA, ETH_P_TRAILER, ETH_P_PHONET, ETH_P_IEEE802154, ETH_P_CAIF, ETH_P_XDSA, ETH_P_MAP
+ether_types = ETH_P_LOOP, ETH_P_PUP, ETH_P_PUPAT, ETH_P_TSN, ETH_P_IP, ETH_P_X25, ETH_P_ARP, ETH_P_IEEEPUP, ETH_P_IEEEPUPAT, ETH_P_BATMAN, ETH_P_DEC, ETH_P_DNA_DL, ETH_P_DNA_RC, ETH_P_DNA_RT, ETH_P_LAT, ETH_P_DIAG, ETH_P_CUST, ETH_P_SCA, ETH_P_TEB, ETH_P_RARP, ETH_P_ATALK, ETH_P_AARP, ETH_P_8021Q, ETH_P_ERSPAN, ETH_P_ERSPAN2, ETH_P_IPX, ETH_P_IPV6, ETH_P_PAUSE, ETH_P_SLOW, ETH_P_WCCP, ETH_P_MPLS_UC, ETH_P_MPLS_MC, ETH_P_ATMMPOA, ETH_P_PPP_DISC, ETH_P_PPP_SES, ETH_P_LINK_CTL, ETH_P_ATMFATE, ETH_P_PAE, ETH_P_AOE, ETH_P_8021AD, ETH_P_802_EX1, ETH_P_TIPC, ETH_P_MACSEC, ETH_P_8021AH, ETH_P_MVRP, ETH_P_1588, ETH_P_NCSI, ETH_P_PRP, ETH_P_FCOE, ETH_P_TDLS, ETH_P_FIP, ETH_P_80221, ETH_P_HSR, ETH_P_LOOPBACK, ETH_P_QINQ1, ETH_P_QINQ2, ETH_P_QINQ3, ETH_P_EDSA, ETH_P_AF_IUCV, ETH_P_802_3_MIN, ETH_P_802_3, ETH_P_AX25, ETH_P_ALL, ETH_P_802_2, ETH_P_SNAP, ETH_P_DDCMP, ETH_P_WAN_PPP, ETH_P_PPP_MP, ETH_P_LOCALTALK, ETH_P_CAN, ETH_P_CANFD, ETH_P_PPPTALK, ETH_P_TR_802_2, ETH_P_MOBITEX, ETH_P_CONTROL, ETH_P_IRDA, ETH_P_ECONET, ETH_P_HDLC, ETH_P_ARCNET, ETH_P_DSA, ETH_P_TRAILER, ETH_P_PHONET, ETH_P_IEEE802154, ETH_P_CAIF, ETH_P_XDSA, ETH_P_MAP
 
 eth2_packet [
 	generic	eth2_packet_generic
@@ -872,6 +872,9 @@ gre_packet {
 # ipv4 -> gre -> ipv4 -> ...
 	cisco_ipv4	gre_packet_cisco[ETH_P_IP, array[int8]]
 	cisco_ipv6	gre_packet_cisco[ETH_P_IPV6, array[int8]]
+	erspan1		gre_packet_erspan[ETH_P_ERSPAN, erspan_md1]
+	erspan2		gre_packet_erspan[ETH_P_ERSPAN2, erspan_md2]
+	teb		gre_packet_erspan[ETH_P_TEB, array[int8]]
 } [packed]
 
 type gre_packet_cisco[PROTO, PAYLOAD] {
@@ -905,6 +908,51 @@ gre_packet_pptp {
 } [packed]
 
 type ppp_packet array[int8]
+
+type gre_packet_erspan[PROTO, PAYLOAD] {
+	H		const[8, int16]
+	protocol	const[PROTO, int16be]
+	seq		int32be[0:4]
+	payload		PAYLOAD
+} [packed]
+
+################################################################################
+##################################### ERSPAN ###################################
+################################################################################
+
+include <net/erspan.h>
+include <uapi/linux/erspan.h>
+
+type erspan_base_hdr[VER] {
+	vlan_upper		int8:4
+	ver			const[VER, int8:4]
+	vlan			int8
+	session_id_upper	int8:2
+	t			int8:1
+	en			int8:2
+	cos			int8:3
+	session_id		int8
+} [packed]
+
+erspan_md1 {
+	base	erspan_base_hdr[1]
+	version	const[1, int32]
+	index	int32be
+} [packed]
+
+erspan_md2 {
+	base		erspan_base_hdr[2]
+	version		const[2, int32]
+	timestamp	int32be
+	sgt		int16be
+	hwid_upper	int8:2
+	ft		int8:5
+	p		int8:1
+	o		int8:1
+	gra		int8:2
+	dir		int8:1
+	hwid		int8:1
+} [packed]
 
 ################################################################################
 ###################################### ICMP ####################################

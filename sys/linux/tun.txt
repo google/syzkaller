@@ -35,6 +35,8 @@ ioctl$TUNDETACHFILTER(fd fd_tun, cmd const[TUNDETACHFILTER], arg const[0])
 ioctl$TTUNGETFILTER(fd fd_tun, cmd const[TUNGETFILTER], arg buffer[out])
 ioctl$TUNSETSTEERINGEBPF(fd fd_tun, cmd const[TUNSETSTEERINGEBPF], arg ptr[in, fd_bpf_prog])
 ioctl$TUNSETFILTEREBPF(fd fd_tun, cmd const[TUNSETFILTEREBPF], arg ptr[in, fd_bpf_prog])
+ioctl$TUNSETVNETLE(fd fd_tun, cmd const[TUNSETVNETLE], arg ptr[in, bool32])
+ioctl$TUNSETVNETBE(fd fd_tun, cmd const[TUNSETVNETBE], arg ptr[in, bool32])
 
 # TODO: we need to support opt for struct fields.
 # tun_buffer has optional tun_pi (if !IFF_NO_PI),
