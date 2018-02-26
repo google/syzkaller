@@ -151,7 +151,6 @@ func (r *randGen) flags(vv []uint64) (v uint64) {
 }
 
 func (r *randGen) filename(s *state) string {
-	// TODO: support procfs and sysfs
 	dir := "."
 	if r.oneOf(2) && len(s.files) != 0 {
 		files := make([]string, 0, len(s.files))

@@ -173,7 +173,6 @@ func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool)
 			}
 			p0 = p
 		case *VmaType, *LenType, *CsumType, *ConstType:
-			// TODO: try to remove offset from vma
 			return false
 		default:
 			panic(fmt.Sprintf("unknown arg type '%+v'", typ))
