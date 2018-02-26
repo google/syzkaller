@@ -13,7 +13,8 @@ any0 {
 	f2	int32
 	f3	int16be
 	f4	int64
-	f5	array[any1]
+	f5	anybitfields
+	f6	array[any1]
 } [align_8]
 
 any1 {
@@ -33,3 +34,12 @@ anyunion1 [
 	i8	int8
 	i32	int32
 ] [varlen]
+
+anybitfields {
+	f1	int8:2
+	f2	int8:3
+	f3	int8:1
+	f4	int16:1
+	f5	int16:10
+	f6	int16:3
+}

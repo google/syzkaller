@@ -209,7 +209,7 @@ func (target *Target) squashPtr(arg *PointerArg, preserveField bool) {
 }
 
 func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
-	if a.Type().BitfieldMiddle() {
+	if a.Type().BitfieldLength() != 0 {
 		panic("bitfield in squash")
 	}
 	var pad uint64
@@ -218,8 +218,7 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 		if IsPad(arg.Type()) {
 			pad = arg.Size()
 		} else {
-			// Note: we need a constant value, but it depends on pid for proc.
-			v := arg.ValueForProc(0)
+			v := target.squashConst(arg)
 			elem := target.ensureDataElem(elems)
 			for i := uint64(0); i < arg.Size(); i++ {
 				elem.data = append(elem.Data(), byte(v))
@@ -272,9 +271,23 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 				pad = typ.AlignAttr - fieldsSize%typ.AlignAttr
 			}
 		}
+		var bitfield uint64
 		for _, fld := range arg.Inner {
-			if fld.Type().BitfieldMiddle() {
-				// TODO(dvyukov): handle bitfields
+			// Squash bitfields separately.
+			if bfLen := fld.Type().BitfieldLength(); bfLen != 0 {
+				bfOff := fld.Type().BitfieldOffset()
+				// Note: we can have a ResultArg here as well,
+				// but it is unsupported at the moment.
+				v := target.squashConst(fld.(*ConstArg))
+				bitfield |= (v & ((1 << bfLen) - 1)) << bfOff
+				if !fld.Type().BitfieldMiddle() {
+					elem := target.ensureDataElem(elems)
+					for i := uint64(0); i < fld.Size(); i++ {
+						elem.data = append(elem.Data(), byte(bitfield))
+						bitfield >>= 8
+					}
+					bitfield = 0
+				}
 				continue
 			}
 			target.squashPtrImpl(fld, elems)
@@ -286,6 +299,17 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 		elem := target.ensureDataElem(elems)
 		elem.data = append(elem.Data(), make([]byte, pad)...)
 	}
+}
+
+func (target *Target) squashConst(arg *ConstArg) uint64 {
+	// Note: we need a constant value, but it depends on pid for proc.
+	v := arg.ValueForProc(0)
+	if _, ok := arg.Type().(*CsumType); ok {
+		// We can't compute value for the checksum here,
+		// but at least leave something recognizable by hints code.
+		v = 0xabcdef1234567890
+	}
+	return v
 }
 
 func (target *Target) ensureDataElem(elems *[]Arg) *DataArg {
