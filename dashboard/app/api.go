@@ -567,8 +567,7 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 }
 
 func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
-	const batchSize = 10 // delete at most that many at once
-	if bug.NumCrashes <= maxCrashes {
+	if bug.NumCrashes <= maxCrashes || bug.NumCrashes%10 != 0 {
 		return
 	}
 	var crashes []*Crash
@@ -577,9 +576,6 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 		Filter("ReproC=", 0).
 		Filter("ReproSyz=", 0).
 		Filter("Reported=", time.Time{}).
-		Order("ReportLen").
-		Order("Time").
-		Limit(maxCrashes+batchSize).
 		GetAll(c, &crashes)
 	if err != nil {
 		log.Errorf(c, "failed to fetch purge crashes: %v", err)
@@ -588,32 +584,50 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 	if len(keys) <= maxCrashes {
 		return
 	}
-	keys = keys[:len(keys)-maxCrashes]
+	keyMap := make(map[*Crash]*datastore.Key)
+	for i, crash := range crashes {
+		keyMap[crash] = keys[i]
+	}
+	// Newest first.
+	sort.Slice(crashes, func(i, j int) bool {
+		return crashes[i].Time.After(crashes[j].Time)
+	})
+	// Find latest crash on each manager.
+	latestOnManager := make(map[string]*Crash)
+	for _, crash := range crashes {
+		if latestOnManager[crash.Manager] == nil {
+			latestOnManager[crash.Manager] = crash
+		}
+	}
+	// Oldest first but move latest crash on each manager to the end (preserve them).
+	sort.Slice(crashes, func(i, j int) bool {
+		latesti := latestOnManager[crashes[i].Manager] == crashes[i]
+		latestj := latestOnManager[crashes[j].Manager] == crashes[j]
+		if latesti != latestj {
+			return latestj
+		}
+		return crashes[i].Time.Before(crashes[j].Time)
+	})
 	crashes = crashes[:len(crashes)-maxCrashes]
-	var texts []*datastore.Key
+	var toDelete []*datastore.Key
 	for _, crash := range crashes {
 		if crash.ReproSyz != 0 || crash.ReproC != 0 || !crash.Reported.IsZero() {
 			log.Errorf(c, "purging reproducer?")
 			continue
 		}
+		toDelete = append(toDelete, keyMap[crash])
 		if crash.Log != 0 {
-			texts = append(texts, datastore.NewKey(c, "CrashLog", "", crash.Log, nil))
+			toDelete = append(toDelete, datastore.NewKey(c, "CrashLog", "", crash.Log, nil))
 		}
 		if crash.Report != 0 {
-			texts = append(texts, datastore.NewKey(c, "CrashReport", "", crash.Report, nil))
+			toDelete = append(toDelete, datastore.NewKey(c, "CrashReport", "", crash.Report, nil))
 		}
 	}
-	if len(texts) != 0 {
-		if err := datastore.DeleteMulti(c, texts); err != nil {
-			log.Errorf(c, "failed to delete old crash texts: %v", err)
-			return
-		}
-	}
-	if err := datastore.DeleteMulti(c, keys); err != nil {
+	if err := datastore.DeleteMulti(c, toDelete); err != nil {
 		log.Errorf(c, "failed to delete old crashes: %v", err)
 		return
 	}
-	log.Infof(c, "deleted %v crashes for bug %q", len(keys), bug.Title)
+	log.Infof(c, "deleted %v crashes for bug %q", len(crashes), bug.Title)
 }
 
 func apiReportFailedRepro(c context.Context, ns string, r *http.Request) (interface{}, error) {

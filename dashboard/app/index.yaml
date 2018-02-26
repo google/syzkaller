@@ -41,8 +41,6 @@ indexes:
   - name: Reported
   - name: ReproC
   - name: ReproSyz
-  - name: ReportLen
-  - name: Time
 
 - kind: Crash
   ancestor: yes
