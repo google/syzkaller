@@ -32,9 +32,11 @@ outer:
 				p.Target.squashPtr(ptr, true)
 			}
 			var blobs []*DataArg
-			ForeachSubArg(ptr, func(arg Arg, _ *ArgCtx) {
+			var bases []*PointerArg
+			ForeachSubArg(ptr, func(arg Arg, ctx *ArgCtx) {
 				if data, ok := arg.(*DataArg); ok && arg.Type().Dir() != DirOut {
 					blobs = append(blobs, data)
+					bases = append(bases, ctx.Base)
 				}
 			})
 			if len(blobs) == 0 {
@@ -45,8 +47,17 @@ outer:
 			// E.g. merging adjacent ANYBLOBs (we don't create them,
 			// but they can appear in future); or replacing ANYRES
 			// with a blob (and merging it with adjacent blobs).
-			arg := blobs[r.Intn(len(blobs))]
+			idx := r.Intn(len(blobs))
+			arg := blobs[idx]
+			base := bases[idx]
+			baseSize := base.Res.Size()
 			arg.data = mutateData(r, arg.Data(), 0, maxBlobLen)
+			// Update base pointer if size has increased.
+			if baseSize < base.Res.Size() {
+				s := analyze(ct, p, p.Calls[0])
+				newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
+				*base = *newArg
+			}
 		case r.nOutOf(1, 100):
 			// Splice with another prog from corpus.
 			if len(corpus) == 0 || len(p.Calls) == 0 {
@@ -272,11 +283,9 @@ func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updat
 	}
 
 	// Update base pointer if size has increased.
-	if base := ctx.Base; base != nil {
-		if baseSize < base.Res.Size() {
-			newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
-			*base = *newArg
-		}
+	if base := ctx.Base; base != nil && baseSize < base.Res.Size() {
+		newArg := r.allocAddr(s, base.Type(), base.Res.Size(), base.Res)
+		*base = *newArg
 	}
 	for _, c := range calls {
 		target.SanitizeCall(c)

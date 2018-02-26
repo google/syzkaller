@@ -25,11 +25,12 @@ type state struct {
 // analyze analyzes the program p up to but not including call c.
 func analyze(ct *ChoiceTable, p *Prog, c *Call) *state {
 	s := newState(p.Target, ct)
+	resources := true
 	for _, c1 := range p.Calls {
 		if c1 == c {
-			break
+			resources = false
 		}
-		s.analyze(c1)
+		s.analyzeImpl(c1, resources)
 	}
 	return s
 }
@@ -48,6 +49,10 @@ func newState(target *Target, ct *ChoiceTable) *state {
 }
 
 func (s *state) analyze(c *Call) {
+	s.analyzeImpl(c, true)
+}
+
+func (s *state) analyzeImpl(c *Call, resources bool) {
 	ForeachArg(c, func(arg Arg, _ *ArgCtx) {
 		switch a := arg.(type) {
 		case *PointerArg:
@@ -61,7 +66,7 @@ func (s *state) analyze(c *Call) {
 		}
 		switch typ := arg.Type().(type) {
 		case *ResourceType:
-			if typ.Dir() != DirIn {
+			if resources && typ.Dir() != DirIn {
 				s.resources[typ.Desc.Name] = append(s.resources[typ.Desc.Name], arg)
 				// TODO: negative PIDs and add them as well (that's process groups).
 			}
