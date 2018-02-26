@@ -8,8 +8,8 @@ import (
 )
 
 type ExecProg struct {
-	Calls   []ExecCall
-	NumVars uint64
+	Calls []ExecCall
+	Vars  []uint64
 }
 
 type ExecCall struct {
@@ -43,10 +43,11 @@ type ExecArgConst struct {
 }
 
 type ExecArgResult struct {
-	Size  uint64
-	Index uint64
-	DivOp uint64
-	AddOp uint64
+	Size    uint64
+	Index   uint64
+	DivOp   uint64
+	AddOp   uint64
+	Default uint64
 }
 
 type ExecArgData struct {
@@ -71,9 +72,13 @@ func (target *Target) DeserializeExec(exec []byte) (ExecProg, error) {
 	if dec.err != nil {
 		return ExecProg{}, dec.err
 	}
+	if uint64(len(dec.vars)) != dec.numVars {
+		return ExecProg{}, fmt.Errorf("mismatching number of vars: %v/%v",
+			len(dec.vars), dec.numVars)
+	}
 	p := ExecProg{
-		Calls:   dec.calls,
-		NumVars: dec.numVars,
+		Calls: dec.calls,
+		Vars:  dec.vars,
 	}
 	return p, nil
 }
@@ -83,6 +88,7 @@ type execDecoder struct {
 	data    []byte
 	err     error
 	numVars uint64
+	vars    []uint64
 	call    ExecCall
 	calls   []ExecCall
 }
@@ -139,12 +145,18 @@ func (dec *execDecoder) readArg() ExecArg {
 			BigEndian:      (meta & (1 << 8)) != 0,
 		}
 	case execArgResult:
-		return ExecArgResult{
-			Size:  dec.read(),
-			Index: dec.read(),
-			DivOp: dec.read(),
-			AddOp: dec.read(),
+		arg := ExecArgResult{
+			Size:    dec.read(),
+			Index:   dec.read(),
+			DivOp:   dec.read(),
+			AddOp:   dec.read(),
+			Default: dec.read(),
 		}
+		for uint64(len(dec.vars)) <= arg.Index {
+			dec.vars = append(dec.vars, 0)
+		}
+		dec.vars[arg.Index] = arg.Default
+		return arg
 	case execArgData:
 		return ExecArgData{
 			Data: dec.readBlob(dec.read()),

@@ -76,11 +76,6 @@ bool collide;
 ALIGNED(64 << 10)
 char input_data[kMaxInput];
 
-// We use the default value instead of results of failed syscalls.
-// -1 is an invalid fd and an invalid address and deterministic,
-// so good enough for our purposes.
-const uint64 default_value = -1;
-
 // Checksum kinds.
 const uint64 arg_csum_inet = 0;
 
@@ -187,7 +182,7 @@ uint64 read_arg(uint64** input_posp);
 uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_off_p, uint64* bf_len_p);
 uint64 read_result(uint64** input_posp);
 void copyin(char* addr, uint64 val, uint64 size, uint64 bf_off, uint64 bf_len);
-uint64 copyout(char* addr, uint64 size);
+bool copyout(char* addr, uint64 size, uint64* res);
 void cover_open();
 void cover_enable(thread_t* th);
 void cover_reset(thread_t* th);
@@ -503,13 +498,15 @@ void handle_completion(thread_t* th)
 			switch (instr) {
 			case instr_copyout: {
 				uint64 index = read_input(&th->copyout_pos);
-				char* addr = (char*)read_input(&th->copyout_pos);
-				uint64 size = read_input(&th->copyout_pos);
-				uint64 val = copyout(addr, size);
 				if (index >= kMaxCommands)
 					fail("result idx %lld overflows kMaxCommands", index);
-				results[index].executed = true;
-				results[index].val = val;
+				char* addr = (char*)read_input(&th->copyout_pos);
+				uint64 size = read_input(&th->copyout_pos);
+				uint64 val = 0;
+				if (copyout(addr, size, &val)) {
+					results[index].executed = true;
+					results[index].val = val;
+				}
 				debug("copyout 0x%llx from %p\n", val, addr);
 				break;
 			}
@@ -706,26 +703,29 @@ void copyin(char* addr, uint64 val, uint64 size, uint64 bf_off, uint64 bf_len)
 	});
 }
 
-uint64 copyout(char* addr, uint64 size)
+bool copyout(char* addr, uint64 size, uint64* res)
 {
-	uint64 res = default_value;
-	NONFAILING(switch (size) {
+	bool ok = false;
+	NONFAILING(
+		switch (size) {
 		case 1:
-			res = *(uint8*)addr;
+			*res = *(uint8*)addr;
 			break;
 		case 2:
-			res = *(uint16*)addr;
+			*res = *(uint16*)addr;
 			break;
 		case 4:
-			res = *(uint32*)addr;
+			*res = *(uint32*)addr;
 			break;
 		case 8:
-			res = *(uint64*)addr;
+			*res = *(uint64*)addr;
 			break;
 		default:
 			fail("copyout: bad argument size %llu", size);
-	});
-	return res;
+		}
+		__atomic_store_n(&ok, true, __ATOMIC_RELEASE);
+	);
+	return ok;
 }
 
 uint64 read_arg(uint64** input_posp)
@@ -778,9 +778,9 @@ uint64 read_result(uint64** input_posp)
 	uint64 idx = read_input(input_posp);
 	uint64 op_div = read_input(input_posp);
 	uint64 op_add = read_input(input_posp);
+	uint64 arg = read_input(input_posp);
 	if (idx >= kMaxCommands)
 		fail("command refers to bad result %lld", idx);
-	uint64 arg = default_value;
 	if (results[idx].executed) {
 		arg = results[idx].val;
 		if (op_div != 0)
