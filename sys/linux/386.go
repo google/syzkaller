@@ -115,7 +115,7 @@ var resources_386 = []*ResourceDesc{
 	{Name: "sock_vsock", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_vsock"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_vsock_dgram", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_vsock", "sock_vsock_dgram"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_vsock_stream", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_vsock", "sock_vsock_stream"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
-	{Name: "tcp_seq_num", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"tcp_seq_num"}, Values: []uint64{1111638594}},
+	{Name: "tcp_seq_num", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"tcp_seq_num"}, Values: []uint64{1094861636}},
 	{Name: "time_nsec", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 4}}}, Kind: []string{"time_nsec"}, Values: []uint64{0}},
 	{Name: "time_sec", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 4}}}, Kind: []string{"time_sec"}, Values: []uint64{0}},
 	{Name: "time_usec", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 4}}}, Kind: []string{"time_usec"}, Values: []uint64{0}},
@@ -25032,4 +25032,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "9ec0173f31cb1936a6a5913dd48542851e4e86c9"
+const revision_386 = "49fe416ca45845f7b5e7e085629817f3a92c8ffc"

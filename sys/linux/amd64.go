@@ -120,7 +120,7 @@ var resources_amd64 = []*ResourceDesc{
 	{Name: "sock_vsock", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_vsock"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_vsock_dgram", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_vsock", "sock_vsock_dgram"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "sock_vsock_stream", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "sock", "sock_vsock", "sock_vsock_stream"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
-	{Name: "tcp_seq_num", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"tcp_seq_num"}, Values: []uint64{1111638594}},
+	{Name: "tcp_seq_num", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"tcp_seq_num"}, Values: []uint64{1094861636}},
 	{Name: "te_session_id", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"te_session_id"}, Values: []uint64{0}},
 	{Name: "time_nsec", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}, Kind: []string{"time_nsec"}, Values: []uint64{0}},
 	{Name: "time_sec", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", TypeSize: 8}}}, Kind: []string{"time_sec"}, Values: []uint64{0}},
@@ -25633,4 +25633,4 @@ var consts_amd64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_amd64 = "3aed60c42df2cc7ef2ac7f3e16d21628ec0649c9"
+const revision_amd64 = "e81dfa29be45b5225efa440f5addce6e3be0e751"
