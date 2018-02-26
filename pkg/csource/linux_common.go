@@ -418,16 +418,16 @@ static int tun_frags_enabled;
 #define SYZ_TUN_MAX_PACKET_SIZE 1000
 
 #define MAX_PIDS 32
-#define ADDR_MAX_LEN 32
+#define TUN_IFACE "syz_tun"
 
-#define LOCAL_MAC "aa:aa:aa:aa:%02hx:aa"
-#define REMOTE_MAC "aa:aa:aa:aa:%02hx:bb"
+#define LOCAL_MAC "aa:aa:aa:aa:aa:aa"
+#define REMOTE_MAC "aa:aa:aa:aa:aa:bb"
 
-#define LOCAL_IPV4 "172.20.%d.170"
-#define REMOTE_IPV4 "172.20.%d.187"
+#define LOCAL_IPV4 "172.20.20.170"
+#define REMOTE_IPV4 "172.20.20.187"
 
-#define LOCAL_IPV6 "fe80::%02hx:aa"
-#define REMOTE_IPV6 "fe80::%02hx:bb"
+#define LOCAL_IPV6 "fe80::aa"
+#define REMOTE_IPV6 "fe80::bb"
 
 #ifndef IFF_NAPI
 #define IFF_NAPI 0x0010
@@ -457,12 +457,9 @@ static void initialize_tun(int id)
 	close(tunfd);
 	tunfd = kTunFd;
 
-	char iface[IFNAMSIZ];
-	snprintf_check(iface, sizeof(iface), "syz%d", id);
-
 	struct ifreq ifr;
 	memset(&ifr, 0, sizeof(ifr));
-	strncpy(ifr.ifr_name, iface, IFNAMSIZ);
+	strncpy(ifr.ifr_name, TUN_IFACE, IFNAMSIZ);
 	ifr.ifr_flags = IFF_TAP | IFF_NO_PI | IFF_NAPI | IFF_NAPI_FRAGS;
 	if (ioctl(tunfd, TUNSETIFF, (void*)&ifr) < 0) {
 		ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
@@ -474,38 +471,23 @@ static void initialize_tun(int id)
 	tun_frags_enabled = (ifr.ifr_flags & IFF_NAPI_FRAGS) != 0;
 	debug("tun_frags_enabled=%d\n", tun_frags_enabled);
 
-	char local_mac[ADDR_MAX_LEN];
-	snprintf_check(local_mac, sizeof(local_mac), LOCAL_MAC, id);
-	char remote_mac[ADDR_MAX_LEN];
-	snprintf_check(remote_mac, sizeof(remote_mac), REMOTE_MAC, id);
+	execute_command(1, "sysctl -w net.ipv6.conf.%s.accept_dad=0", TUN_IFACE);
 
-	char local_ipv4[ADDR_MAX_LEN];
-	snprintf_check(local_ipv4, sizeof(local_ipv4), LOCAL_IPV4, id);
-	char remote_ipv4[ADDR_MAX_LEN];
-	snprintf_check(remote_ipv4, sizeof(remote_ipv4), REMOTE_IPV4, id);
+	execute_command(1, "sysctl -w net.ipv6.conf.%s.router_solicitations=0", TUN_IFACE);
 
-	char local_ipv6[ADDR_MAX_LEN];
-	snprintf_check(local_ipv6, sizeof(local_ipv6), LOCAL_IPV6, id);
-	char remote_ipv6[ADDR_MAX_LEN];
-	snprintf_check(remote_ipv6, sizeof(remote_ipv6), REMOTE_IPV6, id);
-
-	execute_command(1, "sysctl -w net.ipv6.conf.%s.accept_dad=0", iface);
-
-	execute_command(1, "sysctl -w net.ipv6.conf.%s.router_solicitations=0", iface);
-
-	execute_command(1, "ip link set dev %s address %s", iface, local_mac);
-	execute_command(1, "ip addr add %s/24 dev %s", local_ipv4, iface);
-	execute_command(1, "ip -6 addr add %s/120 dev %s", local_ipv6, iface);
+	execute_command(1, "ip link set dev %s address %s", TUN_IFACE, LOCAL_MAC);
+	execute_command(1, "ip addr add %s/24 dev %s", LOCAL_IPV4, TUN_IFACE);
+	execute_command(1, "ip -6 addr add %s/120 dev %s", LOCAL_IPV6, TUN_IFACE);
 	execute_command(1, "ip neigh add %s lladdr %s dev %s nud permanent",
-			remote_ipv4, remote_mac, iface);
+			REMOTE_IPV4, REMOTE_MAC, TUN_IFACE);
 	execute_command(1, "ip -6 neigh add %s lladdr %s dev %s nud permanent",
-			remote_ipv6, remote_mac, iface);
-	execute_command(1, "ip link set dev %s up", iface);
+			REMOTE_IPV6, REMOTE_MAC, TUN_IFACE);
+	execute_command(1, "ip link set dev %s up", TUN_IFACE);
 }
 
-#define DEV_IPV4 "172.20.%d.%d"
-#define DEV_IPV6 "fe80::%02hx:%02hx"
-#define DEV_MAC "aa:aa:aa:aa:%02hx:%02hx"
+#define DEV_IPV4 "172.20.20.%d"
+#define DEV_IPV6 "fe80::%02hx"
+#define DEV_MAC "aa:aa:aa:aa:aa:%02hx"
 
 static void initialize_netdevices(int id)
 {
@@ -520,12 +502,12 @@ static void initialize_netdevices(int id)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
 	execute_command(0, "ip link add dev veth1 type veth");
 	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
-		char addr[ADDR_MAX_LEN];
-		snprintf_check(addr, sizeof(addr), DEV_IPV4, id, id + 10);
+		char addr[32];
+		snprintf_check(addr, sizeof(addr), DEV_IPV4, i + 10);
 		execute_command(0, "ip -4 addr add %s/24 dev %s", addr, devnames[i]);
-		snprintf_check(addr, sizeof(addr), DEV_IPV6, id, id + 10);
+		snprintf_check(addr, sizeof(addr), DEV_IPV6, i + 10);
 		execute_command(0, "ip -6 addr add %s/120 dev %s", addr, devnames[i]);
-		snprintf_check(addr, sizeof(addr), DEV_MAC, id, id + 10);
+		snprintf_check(addr, sizeof(addr), DEV_MAC, i + 10);
 		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
 		execute_command(0, "ip link set dev %s up", devnames[i]);
 	}
