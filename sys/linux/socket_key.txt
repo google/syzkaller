@@ -62,7 +62,7 @@ sadb_ext_hdr [
 sadb_sa {
 	sadb_len	bytesize8[parent, int16]
 	sadb_exttype	const[SADB_EXT_SA, int16]
-	sadb_sa_spi	proc[1234, 4, int32be]
+	sadb_sa_spi	xfrm_spi
 	sadb_sa_replay	int8
 	sadb_sa_state	int8
 	sadb_sa_auth	int8[SADB_AALG_NONE:SADB_AALG_MAX]
@@ -114,9 +114,8 @@ sadb_ident {
 sadb_spirange {
 	sadb_len		bytesize8[parent, int16]
 	sadb_exttype		const[SADB_EXT_SPIRANGE, int16]
-# TODO: should this be int32be or not?
-	sadb_spirange_min	proc[1234, 4, int32]
-	sadb_spirange_max	proc[1234, 4, int32]
+	sadb_spirange_min	xfrm_spi
+	sadb_spirange_max	xfrm_spi
 	sadb_spirange_reserved	const[0, int32]
 } [packed, align_8]
 

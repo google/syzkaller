@@ -244,6 +244,21 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		}
 		switch typ.(type) {
 		case *ConstType, *IntType, *FlagsType, *ProcType, *LenType, *CsumType:
+			// Note: temp code to handle transition from proc[20000, 4, int16be]
+			// to int16be[20000:20004] for sock_port. We do our best guess as to
+			// whether it's the old value and if so convert it to new format.
+			// This should be removed soon (Feb 26, 2018).
+			if it, ok := typ.(*IntType); ok && it.Kind == IntRange &&
+				it.RangeBegin == 20000 && it.RangeEnd == 20004 &&
+				it.TypeSize == 2 && it.BigEndian &&
+				it.BitfieldOff == 0 && it.BitfieldLen == 0 &&
+				it.Dir() != DirOut && !debug {
+				if v < 4 {
+					v += 20000
+				} else if v == 0xffffffffffffffff {
+					v = 0
+				}
+			}
 			arg = MakeConstArg(typ, v)
 		case *ResourceType:
 			arg = MakeResultArg(typ, nil, v)
