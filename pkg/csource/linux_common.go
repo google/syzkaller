@@ -451,6 +451,11 @@ static void initialize_tun(int id)
 		return;
 #endif
 	}
+	const int kTunFd = 252;
+	if (dup2(tunfd, kTunFd) < 0)
+		fail("dup2(tunfd, kTunFd) failed");
+	close(tunfd);
+	tunfd = kTunFd;
 
 	char iface[IFNAMSIZ];
 	snprintf_check(iface, sizeof(iface), "syz%d", id);
@@ -1938,9 +1943,12 @@ static int namespace_sandbox_proc(void* arg)
 	if (mkdir("./syz-tmp/newroot/selinux", 0700))
 		fail("mkdir failed");
 	const char* selinux_path = "./syz-tmp/newroot/selinux";
-	if (mount("/selinux", selinux_path, NULL, mount_flags, NULL) &&
-	    mount("/sys/fs/selinux", selinux_path, NULL, mount_flags, NULL))
-		fail("mount(selinuxfs) failed");
+	if (mount("/selinux", selinux_path, NULL, mount_flags, NULL)) {
+		if (errno != ENOENT)
+			fail("mount(/selinux) failed");
+		if (mount("/sys/fs/selinux", selinux_path, NULL, mount_flags, NULL) && errno != ENOENT)
+			fail("mount(/sys/fs/selinux) failed");
+	}
 	if (mkdir("./syz-tmp/pivot", 0777))
 		fail("mkdir failed");
 	if (syscall(SYS_pivot_root, "./syz-tmp", "./syz-tmp/pivot")) {
