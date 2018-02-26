@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "efc3167183ae611b47a818690d456fc430b27b5a"
+#define SYZ_REVISION "57afbe9bdec107a48a14fe021e45fd90050c3be1"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1585;
+unsigned syscall_count = 1587;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -791,7 +791,9 @@ call_t syscalls[] = {
     {"ioctl$TUNSETSNDBUF", 54},
     {"ioctl$TUNSETSTEERINGEBPF", 54},
     {"ioctl$TUNSETTXFILTER", 54},
+    {"ioctl$TUNSETVNETBE", 54},
     {"ioctl$TUNSETVNETHDRSZ", 54},
+    {"ioctl$TUNSETVNETLE", 54},
     {"ioctl$UFFDIO_API", 54},
     {"ioctl$UFFDIO_COPY", 54},
     {"ioctl$UFFDIO_REGISTER", 54},
@@ -1599,11 +1601,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "a45154424ced9a3574dc16133c1487640caed2c6"
+#define SYZ_REVISION "9e0cbfdde5f6b4464795065740445ea3d5bdc24d"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1638;
+unsigned syscall_count = 1640;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2403,7 +2405,9 @@ call_t syscalls[] = {
     {"ioctl$TUNSETSNDBUF", 16},
     {"ioctl$TUNSETSTEERINGEBPF", 16},
     {"ioctl$TUNSETTXFILTER", 16},
+    {"ioctl$TUNSETVNETBE", 16},
     {"ioctl$TUNSETVNETHDRSZ", 16},
+    {"ioctl$TUNSETVNETLE", 16},
     {"ioctl$UFFDIO_API", 16},
     {"ioctl$UFFDIO_COPY", 16},
     {"ioctl$UFFDIO_REGISTER", 16},
@@ -3249,7 +3253,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "2b3fbdf5aacf49be4e9f4db6729f91aa9664fa4e"
+#define SYZ_REVISION "714ff0d833d6f34d8223e20b1e73bbe2736b519c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -4854,11 +4858,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "2851fbe962ff5d691fc30cb643a69de5a9182f43"
+#define SYZ_REVISION "8ea016560120c5fed1a6556a2a60afb2882e67b1"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1567;
+unsigned syscall_count = 1569;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5621,7 +5625,9 @@ call_t syscalls[] = {
     {"ioctl$TUNSETSNDBUF", 29},
     {"ioctl$TUNSETSTEERINGEBPF", 29},
     {"ioctl$TUNSETTXFILTER", 29},
+    {"ioctl$TUNSETVNETBE", 29},
     {"ioctl$TUNSETVNETHDRSZ", 29},
+    {"ioctl$TUNSETVNETLE", 29},
     {"ioctl$UFFDIO_API", 29},
     {"ioctl$UFFDIO_COPY", 29},
     {"ioctl$UFFDIO_REGISTER", 29},
@@ -6433,11 +6439,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "2cd33fa1fa1fbd10d9430e2c93f5aa0ec45f8918"
+#define SYZ_REVISION "76cbe05fab6907f30f5d40f497e32349c3d893ec"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1557;
+unsigned syscall_count = 1559;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7197,7 +7203,9 @@ call_t syscalls[] = {
     {"ioctl$TUNSETSNDBUF", 54},
     {"ioctl$TUNSETSTEERINGEBPF", 54},
     {"ioctl$TUNSETTXFILTER", 54},
+    {"ioctl$TUNSETVNETBE", 54},
     {"ioctl$TUNSETVNETHDRSZ", 54},
+    {"ioctl$TUNSETVNETLE", 54},
     {"ioctl$UFFDIO_API", 54},
     {"ioctl$UFFDIO_COPY", 54},
     {"ioctl$UFFDIO_REGISTER", 54},
