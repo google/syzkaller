@@ -79,13 +79,13 @@ int main(int argc, char** argv)
 	int pid = -1;
 	switch (flag_sandbox) {
 	case sandbox_none:
-		pid = do_sandbox_none(flag_pid, flag_enable_tun);
+		pid = do_sandbox_none();
 		break;
 	case sandbox_setuid:
-		pid = do_sandbox_setuid(flag_pid, flag_enable_tun);
+		pid = do_sandbox_setuid();
 		break;
 	case sandbox_namespace:
-		pid = do_sandbox_namespace(flag_pid, flag_enable_tun);
+		pid = do_sandbox_namespace();
 		break;
 	default:
 		fail("unknown sandbox type");

@@ -417,7 +417,6 @@ static int tun_frags_enabled;
 
 #define SYZ_TUN_MAX_PACKET_SIZE 1000
 
-#define MAX_PIDS 32
 #define TUN_IFACE "syz_tun"
 
 #define LOCAL_MAC "aa:aa:aa:aa:aa:aa"
@@ -436,11 +435,16 @@ static int tun_frags_enabled;
 #define IFF_NAPI_FRAGS 0x0020
 #endif
 
-static void initialize_tun(int id)
-{
-	if (id >= MAX_PIDS)
-		fail("tun: no more than %d executors", MAX_PIDS);
+#ifdef SYZ_EXECUTOR
+extern bool flag_enable_tun;
+#endif
 
+static void initialize_tun(void)
+{
+#ifdef SYZ_EXECUTOR
+	if (!flag_enable_tun)
+		return;
+#endif
 	tunfd = open("/dev/net/tun", O_RDWR | O_NONBLOCK);
 	if (tunfd == -1) {
 #ifdef SYZ_EXECUTOR
@@ -489,7 +493,7 @@ static void initialize_tun(int id)
 #define DEV_IPV6 "fe80::%02hx"
 #define DEV_MAC "aa:aa:aa:aa:aa:%02hx"
 
-static void initialize_netdevices(int id)
+static void initialize_netdevices(void)
 {
 	unsigned i;
 	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "veth"};
@@ -498,6 +502,10 @@ static void initialize_netdevices(int id)
 				  "ip6tnl0", "ip6gre0", "ip6gretap0",
 				  "erspan0", "bond0", "veth0", "veth1"};
 
+#ifdef SYZ_EXECUTOR
+	if (!flag_enable_tun)
+		return;
+#endif
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
 	execute_command(0, "ip link add dev veth1 type veth");
@@ -510,14 +518,6 @@ static void initialize_netdevices(int id)
 		snprintf_check(addr, sizeof(addr), DEV_MAC, i + 10);
 		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
 		execute_command(0, "ip link set dev %s up", devnames[i]);
-	}
-}
-
-static void setup_tun(uint64 pid, bool enable_tun)
-{
-	if (enable_tun) {
-		initialize_tun(pid);
-		initialize_netdevices(pid);
 	}
 }
 #endif
@@ -1806,7 +1806,7 @@ static void sandbox_common()
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE)
-static int do_sandbox_none(int executor_pid, bool enable_tun)
+static int do_sandbox_none(void)
 {
 	if (unshare(CLONE_NEWPID)) {
 		debug("unshare(CLONE_NEWPID): %d\n", errno);
@@ -1822,7 +1822,8 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 		debug("unshare(CLONE_NEWNET): %d\n", errno);
 	}
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
-	setup_tun(executor_pid, enable_tun);
+	initialize_tun();
+	initialize_netdevices();
 #endif
 
 	loop();
@@ -1831,7 +1832,7 @@ static int do_sandbox_none(int executor_pid, bool enable_tun)
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_SETUID)
-static int do_sandbox_setuid(int executor_pid, bool enable_tun)
+static int do_sandbox_setuid(void)
 {
 	if (unshare(CLONE_NEWPID))
 		fail("unshare(CLONE_NEWPID)");
@@ -1845,7 +1846,8 @@ static int do_sandbox_setuid(int executor_pid, bool enable_tun)
 	if (unshare(CLONE_NEWNET))
 		fail("unshare(CLONE_NEWNET)");
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
-	setup_tun(executor_pid, enable_tun);
+	initialize_tun();
+	initialize_netdevices();
 #endif
 
 	const int nobody = 65534;
@@ -1904,7 +1906,8 @@ static int namespace_sandbox_proc(void* arg)
 	if (unshare(CLONE_NEWNET))
 		fail("unshare(CLONE_NEWNET)");
 #if defined(SYZ_EXECUTOR) || defined(SYZ_TUN_ENABLE)
-	setup_tun((long)arg >> 1, (long)arg & 1);
+	initialize_tun();
+	initialize_netdevices();
 #endif
 
 	if (mkdir("./syz-tmp", 0777))
@@ -1965,16 +1968,15 @@ static int namespace_sandbox_proc(void* arg)
 	doexit(1);
 }
 
-static int do_sandbox_namespace(int executor_pid, bool enable_tun)
+static int do_sandbox_namespace(void)
 {
 	int pid;
 
 	real_uid = getuid();
 	real_gid = getgid();
 	mprotect(sandbox_stack, 4096, PROT_NONE);
-	void* arg = (void*)(long)((executor_pid << 1) | enable_tun);
 	pid = clone(namespace_sandbox_proc, &sandbox_stack[sizeof(sandbox_stack) - 64],
-		    CLONE_NEWUSER | CLONE_NEWPID, arg);
+		    CLONE_NEWUSER | CLONE_NEWPID, 0);
 	if (pid < 0)
 		fail("sandbox clone failed");
 	return pid;
