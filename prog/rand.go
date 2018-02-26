@@ -290,7 +290,12 @@ func (r *randGen) createResource(s *state, res *ResourceType) (arg Arg, calls []
 	// Generally we can loop several times, e.g. when we choose a call that returns
 	// the resource in an array, but then generateArg generated that array of zero length.
 	// But we must succeed eventually.
-	panic("failed to create a resource")
+	var ctors []string
+	for _, meta := range metas {
+		ctors = append(ctors, meta.Name)
+	}
+	panic(fmt.Sprintf("failed to create a resource %v with %v",
+		res.Desc.Kind[0], strings.Join(ctors, ", ")))
 }
 
 func (r *randGen) generateText(kind TextKind) []byte {
