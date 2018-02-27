@@ -83,7 +83,7 @@ func NewContext() (*Context, error) {
 			}
 		}
 		ctx.Network = iface.Network
-		ctx.Subnetwork = iface.Network
+		ctx.Subnetwork = iface.Subnetwork
 	}
 	if ctx.InternalIP == "" {
 		return nil, fmt.Errorf("failed to get current instance internal IP")
