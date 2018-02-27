@@ -113,6 +113,10 @@ func checkConstArg(arg *ConstArg, compMap CompMap, exec func()) {
 
 func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 	// TODO(dvyukov): we need big-endian match for ANYBLOBs.
+	// TODO(dvyukov): any probably not just for ANYBLOBs. Consider that
+	// kernel code does not convert the data (i.e. not ntohs(pkt->proto) == ETH_P_BATMAN),
+	// but instead converts the constant (i.e. pkt->proto == htons(ETH_P_BATMAN)).
+	// In such case we will see dynamic operand that does not match what we have in the program.
 	bytes := make([]byte, 8)
 	data := arg.Data()
 	size := len(data)
