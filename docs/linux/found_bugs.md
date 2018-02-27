@@ -3,6 +3,8 @@
 Latest bugs are most reported by [syzbot](/docs/syzbot.md) and are listed [here](https://groups.google.com/forum/#!forum/syzkaller-bugs). Additional USB bugs are [here](/docs/linux/found_bugs_usb.md).
 
 _newer first_
+* [RDS: WARNING in rds_recv_hs_exthdrs](https://groups.google.com/d/msg/syzkaller/TTR-hlzVO1I/T7ncQ3xjAQAJ)
+* [RDS: slab-out-of-bounds Read in rds_rdma_extra_size](https://groups.google.com/d/msg/syzkaller/VxPgmfL9H8k/PJxhMJZiAQAJ)
 * [netfilter: fix out-of-bounds accesses in clusterip_tg_check()](https://groups.google.com/d/msg/syzkaller/uyndMVk770k/TXIlWssrAwAJ)
 * [net: hang in unregister_netdevice: waiting for lo to become free](https://groups.google.com/d/msg/syzkaller/-06_laheMF0/xqezy58kAwAJ)
 * [scsi: sg: assorted memory corruptions](https://groups.google.com/d/msg/syzkaller/9RNr9Gu0MyY/Yyry-0XBDgAJ)
