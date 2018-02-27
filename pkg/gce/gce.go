@@ -31,6 +31,8 @@ type Context struct {
 	Instance   string
 	InternalIP string
 	ExternalIP string
+	Network    string
+	Subnetwork string
 
 	computeService *compute.Service
 
@@ -80,6 +82,8 @@ func NewContext() (*Context, error) {
 				ctx.ExternalIP = ac.NatIP
 			}
 		}
+		ctx.Network = iface.Network
+		ctx.Subnetwork = iface.Network
 	}
 	if ctx.InternalIP == "" {
 		return nil, fmt.Errorf("failed to get current instance internal IP")
@@ -121,7 +125,8 @@ func (ctx *Context) CreateInstance(name, machineType, image, sshkey string) (str
 		},
 		NetworkInterfaces: []*compute.NetworkInterface{
 			&compute.NetworkInterface{
-				Network: "global/networks/default",
+				Network:    ctx.Network,
+				Subnetwork: ctx.Subnetwork,
 			},
 		},
 		Scheduling: &compute.Scheduling{

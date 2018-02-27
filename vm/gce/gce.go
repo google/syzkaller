@@ -96,8 +96,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to init gce: %v", err)
 	}
-	Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v",
-		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID)
+	Logf(0, "GCE initialized: running on %v, internal IP %v, project %v, zone %v, net %v/%v",
+		GCE.Instance, GCE.InternalIP, GCE.ProjectID, GCE.ZoneID, GCE.Network, GCE.Subnetwork)
 
 	if cfg.GCE_Image == "" {
 		cfg.GCE_Image = env.Name
