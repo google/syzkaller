@@ -19,6 +19,15 @@ Here are some things to check if there are problems running syzkaller.
      ssh -i $SSHKEY -p 23505 root@localhost
      ```
 
+ - If you *are* having SSH difficulties, make sure your kernel configuration
+   has networking enabled. Sometimes defconfig errs minimalistic and omits the
+   following necessary options:
+     ```shell
+     CONFIG_VIRTIO_NET=y
+     CONFIG_E1000=y
+     CONFIG_E1000E=y
+     ```
+
  - Check that the `CONFIG_KCOV` option is available inside the VM:
     - `ls /sys/kernel/debug       # Check debugfs mounted`
     - `ls /sys/kernel/debug/kcov  # Check kcov enabled`
