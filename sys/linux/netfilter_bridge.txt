@@ -23,6 +23,11 @@ include <uapi/linux/netfilter_bridge/ebt_nflog.h>
 include <uapi/linux/netfilter_bridge/ebt_redirect.h>
 
 setsockopt$EBT_SO_SET_ENTRIES(fd sock_in, level const[SOL_IP], opt const[EBT_SO_SET_ENTRIES], val ptr[in, ebt_replace], len const[0])
+setsockopt$EBT_SO_SET_COUNTERS(fd sock_in, level const[SOL_IP], opt const[EBT_SO_SET_COUNTERS], val ptr[in, ipt_counters_info], len len[val])
+getsockopt$EBT_SO_GET_INFO(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_INFO], val ptr[in, ebt_getinfo], len ptr[in, len[val, int32]])
+getsockopt$EBT_SO_GET_INIT_INFO(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_INIT_INFO], val ptr[in, ebt_getinfo], len ptr[in, len[val, int32]])
+getsockopt$EBT_SO_GET_ENTRIES(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_ENTRIES], val ptr[in, ebt_get_entries], len ptr[in, len[val, int32]])
+getsockopt$EBT_SO_GET_INIT_ENTRIES(fd sock_in, level const[SOL_IP], opt const[EBT_SO_GET_INIT_ENTRIES], val ptr[in, ebt_get_entries], len ptr[in, len[val, int32]])
 
 ebt_replace [
 	filter	ebt_replace_t["filter", EBT_FILTER_VALID_HOOKS, ebt_filter_targets]
@@ -100,6 +105,42 @@ define EBT_NOPROTO_F	EBT_ENTRY_OR_ENTRIES | EBT_NOPROTO
 define EBT_802_3_F	EBT_ENTRY_OR_ENTRIES | EBT_802_3
 define EBT_SOURCEMAC_F	EBT_ENTRY_OR_ENTRIES | EBT_SOURCEMAC
 define EBT_DESTMAC_F	EBT_ENTRY_OR_ENTRIES | EBT_DESTMAC
+
+ebt_tables = "filter", "nat", "broute"
+
+ebt_counters_info {
+	name		string[ebt_tables, XT_TABLE_MAXNAMELEN]
+	valid_hooks	const[0, int32]
+	nentries	const[0, int32]
+	entries_size	const[0, int32]
+	hook_entry	array[const[0, intptr], NF_BR_NUMHOOKS]
+	num_counters	len[counters1, int32]
+	counters	ptr[out, array[xt_counters]]
+	entries		const[0, intptr]
+	counters1	array[xt_counters]
+}
+
+ebt_getinfo {
+	name		string[ebt_tables, XT_TABLE_MAXNAMELEN]
+	valid_hooks	const[0, int32]
+	nentries	const[0, int32]
+	entries_size	const[0, int32]
+	hook_entry	array[const[0, intptr], NF_BR_NUMHOOKS]
+	num_counters	const[0, int32]
+	counters	const[0, intptr]
+	entries		const[0, intptr]
+}
+
+ebt_get_entries {
+	name		string[ebt_tables, XT_TABLE_MAXNAMELEN]
+	valid_hooks	const[0, int32]
+	nentries	int32[3:4]
+	entries_size	bytesize[entries, int32]
+	hook_entry	array[const[0, intptr], NF_BR_NUMHOOKS]
+	num_counters	len[counters, int32]
+	counters	ptr[out, array[xt_counters]]
+	entries		ptr[out, array[int8]]
+}
 
 # MATCHES:
 
