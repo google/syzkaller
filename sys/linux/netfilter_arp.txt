@@ -6,6 +6,10 @@ include <uapi/linux/netfilter_arp/arp_tables.h>
 include <uapi/linux/netfilter_arp/arpt_mangle.h>
 
 setsockopt$ARPT_SO_SET_REPLACE(fd sock_in, level const[SOL_IP], opt const[ARPT_SO_SET_REPLACE], val ptr[in, arpt_replace], len len[val])
+setsockopt$ARPT_SO_SET_ADD_COUNTERS(fd sock_in, level const[SOL_IP], opt const[ARPT_SO_SET_ADD_COUNTERS], val ptr[in, arpt_counters_info], len len[val])
+getsockopt$ARPT_SO_GET_INFO(fd sock_in, level const[SOL_IP], opt const[ARPT_SO_GET_INFO], val ptr[in, arpt_getinfo], len ptr[in, len[val, int32]])
+getsockopt$ARPT_SO_GET_ENTRIES(fd sock_in, level const[SOL_IP], opt const[ARPT_SO_GET_ENTRIES], val ptr[in, arpt_get_entries], len ptr[in, len[val, int32]])
+getsockopt$ARPT_SO_GET_REVISION_TARGET(fd sock_in, level const[SOL_IP], opt const[ARPT_SO_GET_REVISION_TARGET], val ptr[in, xt_get_revision], len ptr[in, len[val, int32]])
 
 arpt_replace {
 	name			string["filter", XT_TABLE_MAXNAMELEN]
@@ -116,3 +120,24 @@ arpt_mangle {
 
 arpt_mangle_flags = ARPT_MANGLE_SDEV, ARPT_MANGLE_TDEV, ARPT_MANGLE_SIP, ARPT_MANGLE_TIP, ARPT_MANGLE_MASK
 arpt_mangle_targets = NF_DROP, NF_ACCEPT, XT_CONTINUE
+
+arpt_counters_info {
+	name		string["filter", XT_TABLE_MAXNAMELEN]
+	num_counters	len[counters, int32]
+	counters	array[xt_counters, 4:4]
+}
+
+arpt_getinfo {
+	name		string["filter", XT_TABLE_MAXNAMELEN]
+	valid_hooks	const[0, int32]
+	hook_entry	array[const[0, int32], NF_ARP_NUMHOOKS]
+	underflow	array[const[0, int32], NF_ARP_NUMHOOKS]
+	num_entries	const[0, int32]
+	size		const[0, int32]
+}
+
+arpt_get_entries {
+	name		string["filter", XT_TABLE_MAXNAMELEN]
+	size		bytesize[entrytable, int32]
+	entrytable	array[int8]
+}

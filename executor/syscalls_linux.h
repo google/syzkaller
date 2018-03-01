@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "57afbe9bdec107a48a14fe021e45fd90050c3be1"
+#define SYZ_REVISION "102d68cb30d1b2a57f0acca7149154aae0a15d17"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1587;
+unsigned syscall_count = 1606;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -202,6 +202,21 @@ call_t syscalls[] = {
     {"getsockname$packet", 367},
     {"getsockname$unix", 367},
     {"getsockopt", 365},
+    {"getsockopt$ARPT_SO_GET_ENTRIES", 365},
+    {"getsockopt$ARPT_SO_GET_INFO", 365},
+    {"getsockopt$ARPT_SO_GET_REVISION_TARGET", 365},
+    {"getsockopt$EBT_SO_GET_ENTRIES", 365},
+    {"getsockopt$EBT_SO_GET_INFO", 365},
+    {"getsockopt$EBT_SO_GET_INIT_ENTRIES", 365},
+    {"getsockopt$EBT_SO_GET_INIT_INFO", 365},
+    {"getsockopt$IP6T_SO_GET_ENTRIES", 365},
+    {"getsockopt$IP6T_SO_GET_INFO", 365},
+    {"getsockopt$IP6T_SO_GET_REVISION_MATCH", 365},
+    {"getsockopt$IP6T_SO_GET_REVISION_TARGET", 365},
+    {"getsockopt$IPT_SO_GET_ENTRIES", 365},
+    {"getsockopt$IPT_SO_GET_INFO", 365},
+    {"getsockopt$IPT_SO_GET_REVISION_MATCH", 365},
+    {"getsockopt$IPT_SO_GET_REVISION_TARGET", 365},
     {"getsockopt$SO_BINDTODEVICE", 365},
     {"getsockopt$SO_COOKIE", 365},
     {"getsockopt$SO_TIMESTAMPING", 365},
@@ -1204,9 +1219,13 @@ call_t syscalls[] = {
     {"setsockopt", 366},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 366},
     {"setsockopt$ALG_SET_KEY", 366},
+    {"setsockopt$ARPT_SO_SET_ADD_COUNTERS", 366},
     {"setsockopt$ARPT_SO_SET_REPLACE", 366},
+    {"setsockopt$EBT_SO_SET_COUNTERS", 366},
     {"setsockopt$EBT_SO_SET_ENTRIES", 366},
+    {"setsockopt$IP6T_SO_SET_ADD_COUNTERS", 366},
     {"setsockopt$IP6T_SO_SET_REPLACE", 366},
+    {"setsockopt$IPT_SO_SET_ADD_COUNTERS", 366},
     {"setsockopt$IPT_SO_SET_REPLACE", 366},
     {"setsockopt$RDS_CANCEL_SENT_TO", 366},
     {"setsockopt$RDS_CONG_MONITOR", 366},
@@ -1601,11 +1620,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "9e0cbfdde5f6b4464795065740445ea3d5bdc24d"
+#define SYZ_REVISION "b9e1284538267e454c877b20338376793618fa57"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1640;
+unsigned syscall_count = 1659;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1812,6 +1831,21 @@ call_t syscalls[] = {
     {"getsockname$packet", 51},
     {"getsockname$unix", 51},
     {"getsockopt", 55},
+    {"getsockopt$ARPT_SO_GET_ENTRIES", 55},
+    {"getsockopt$ARPT_SO_GET_INFO", 55},
+    {"getsockopt$ARPT_SO_GET_REVISION_TARGET", 55},
+    {"getsockopt$EBT_SO_GET_ENTRIES", 55},
+    {"getsockopt$EBT_SO_GET_INFO", 55},
+    {"getsockopt$EBT_SO_GET_INIT_ENTRIES", 55},
+    {"getsockopt$EBT_SO_GET_INIT_INFO", 55},
+    {"getsockopt$IP6T_SO_GET_ENTRIES", 55},
+    {"getsockopt$IP6T_SO_GET_INFO", 55},
+    {"getsockopt$IP6T_SO_GET_REVISION_MATCH", 55},
+    {"getsockopt$IP6T_SO_GET_REVISION_TARGET", 55},
+    {"getsockopt$IPT_SO_GET_ENTRIES", 55},
+    {"getsockopt$IPT_SO_GET_INFO", 55},
+    {"getsockopt$IPT_SO_GET_REVISION_MATCH", 55},
+    {"getsockopt$IPT_SO_GET_REVISION_TARGET", 55},
     {"getsockopt$SO_BINDTODEVICE", 55},
     {"getsockopt$SO_COOKIE", 55},
     {"getsockopt$SO_TIMESTAMPING", 55},
@@ -2844,9 +2878,13 @@ call_t syscalls[] = {
     {"setsockopt", 54},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 54},
     {"setsockopt$ALG_SET_KEY", 54},
+    {"setsockopt$ARPT_SO_SET_ADD_COUNTERS", 54},
     {"setsockopt$ARPT_SO_SET_REPLACE", 54},
+    {"setsockopt$EBT_SO_SET_COUNTERS", 54},
     {"setsockopt$EBT_SO_SET_ENTRIES", 54},
+    {"setsockopt$IP6T_SO_SET_ADD_COUNTERS", 54},
     {"setsockopt$IP6T_SO_SET_REPLACE", 54},
+    {"setsockopt$IPT_SO_SET_ADD_COUNTERS", 54},
     {"setsockopt$IPT_SO_SET_REPLACE", 54},
     {"setsockopt$RDS_CANCEL_SENT_TO", 54},
     {"setsockopt$RDS_CONG_MONITOR", 54},
@@ -3253,11 +3291,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "714ff0d833d6f34d8223e20b1e73bbe2736b519c"
+#define SYZ_REVISION "4777556f42c328c140627ec0166484acad3ee8c7"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1593;
+unsigned syscall_count = 1605;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3459,6 +3497,16 @@ call_t syscalls[] = {
     {"getsockname$packet", 286},
     {"getsockname$unix", 286},
     {"getsockopt", 295},
+    {"getsockopt$ARPT_SO_GET_ENTRIES", 295},
+    {"getsockopt$ARPT_SO_GET_INFO", 295},
+    {"getsockopt$ARPT_SO_GET_REVISION_TARGET", 295},
+    {"getsockopt$IP6T_SO_GET_INFO", 295},
+    {"getsockopt$IP6T_SO_GET_REVISION_MATCH", 295},
+    {"getsockopt$IP6T_SO_GET_REVISION_TARGET", 295},
+    {"getsockopt$IPT_SO_GET_ENTRIES", 295},
+    {"getsockopt$IPT_SO_GET_INFO", 295},
+    {"getsockopt$IPT_SO_GET_REVISION_MATCH", 295},
+    {"getsockopt$IPT_SO_GET_REVISION_TARGET", 295},
     {"getsockopt$SO_BINDTODEVICE", 295},
     {"getsockopt$SO_COOKIE", 295},
     {"getsockopt$SO_TIMESTAMPING", 295},
@@ -4454,9 +4502,11 @@ call_t syscalls[] = {
     {"setsockopt", 294},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 294},
     {"setsockopt$ALG_SET_KEY", 294},
+    {"setsockopt$ARPT_SO_SET_ADD_COUNTERS", 294},
     {"setsockopt$ARPT_SO_SET_REPLACE", 294},
     {"setsockopt$EBT_SO_SET_ENTRIES", 294},
     {"setsockopt$IP6T_SO_SET_REPLACE", 294},
+    {"setsockopt$IPT_SO_SET_ADD_COUNTERS", 294},
     {"setsockopt$IPT_SO_SET_REPLACE", 294},
     {"setsockopt$RDS_CANCEL_SENT_TO", 294},
     {"setsockopt$RDS_CONG_MONITOR", 294},
@@ -4858,11 +4908,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "8ea016560120c5fed1a6556a2a60afb2882e67b1"
+#define SYZ_REVISION "4e70ce47fb93cde6b4bb47b3741653be50cb6beb"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1569;
+unsigned syscall_count = 1588;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5056,6 +5106,21 @@ call_t syscalls[] = {
     {"getsockname$packet", 204},
     {"getsockname$unix", 204},
     {"getsockopt", 209},
+    {"getsockopt$ARPT_SO_GET_ENTRIES", 209},
+    {"getsockopt$ARPT_SO_GET_INFO", 209},
+    {"getsockopt$ARPT_SO_GET_REVISION_TARGET", 209},
+    {"getsockopt$EBT_SO_GET_ENTRIES", 209},
+    {"getsockopt$EBT_SO_GET_INFO", 209},
+    {"getsockopt$EBT_SO_GET_INIT_ENTRIES", 209},
+    {"getsockopt$EBT_SO_GET_INIT_INFO", 209},
+    {"getsockopt$IP6T_SO_GET_ENTRIES", 209},
+    {"getsockopt$IP6T_SO_GET_INFO", 209},
+    {"getsockopt$IP6T_SO_GET_REVISION_MATCH", 209},
+    {"getsockopt$IP6T_SO_GET_REVISION_TARGET", 209},
+    {"getsockopt$IPT_SO_GET_ENTRIES", 209},
+    {"getsockopt$IPT_SO_GET_INFO", 209},
+    {"getsockopt$IPT_SO_GET_REVISION_MATCH", 209},
+    {"getsockopt$IPT_SO_GET_REVISION_TARGET", 209},
     {"getsockopt$SO_BINDTODEVICE", 209},
     {"getsockopt$SO_COOKIE", 209},
     {"getsockopt$SO_TIMESTAMPING", 209},
@@ -6042,9 +6107,13 @@ call_t syscalls[] = {
     {"setsockopt", 208},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 208},
     {"setsockopt$ALG_SET_KEY", 208},
+    {"setsockopt$ARPT_SO_SET_ADD_COUNTERS", 208},
     {"setsockopt$ARPT_SO_SET_REPLACE", 208},
+    {"setsockopt$EBT_SO_SET_COUNTERS", 208},
     {"setsockopt$EBT_SO_SET_ENTRIES", 208},
+    {"setsockopt$IP6T_SO_SET_ADD_COUNTERS", 208},
     {"setsockopt$IP6T_SO_SET_REPLACE", 208},
+    {"setsockopt$IPT_SO_SET_ADD_COUNTERS", 208},
     {"setsockopt$IPT_SO_SET_REPLACE", 208},
     {"setsockopt$RDS_CANCEL_SENT_TO", 208},
     {"setsockopt$RDS_CONG_MONITOR", 208},
@@ -6439,11 +6508,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "76cbe05fab6907f30f5d40f497e32349c3d893ec"
+#define SYZ_REVISION "b65be006c154f61045f1efd0da55745ee5109214"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1559;
+unsigned syscall_count = 1578;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6648,6 +6717,21 @@ call_t syscalls[] = {
     {"getsockname$packet", 331},
     {"getsockname$unix", 331},
     {"getsockopt", 340},
+    {"getsockopt$ARPT_SO_GET_ENTRIES", 340},
+    {"getsockopt$ARPT_SO_GET_INFO", 340},
+    {"getsockopt$ARPT_SO_GET_REVISION_TARGET", 340},
+    {"getsockopt$EBT_SO_GET_ENTRIES", 340},
+    {"getsockopt$EBT_SO_GET_INFO", 340},
+    {"getsockopt$EBT_SO_GET_INIT_ENTRIES", 340},
+    {"getsockopt$EBT_SO_GET_INIT_INFO", 340},
+    {"getsockopt$IP6T_SO_GET_ENTRIES", 340},
+    {"getsockopt$IP6T_SO_GET_INFO", 340},
+    {"getsockopt$IP6T_SO_GET_REVISION_MATCH", 340},
+    {"getsockopt$IP6T_SO_GET_REVISION_TARGET", 340},
+    {"getsockopt$IPT_SO_GET_ENTRIES", 340},
+    {"getsockopt$IPT_SO_GET_INFO", 340},
+    {"getsockopt$IPT_SO_GET_REVISION_MATCH", 340},
+    {"getsockopt$IPT_SO_GET_REVISION_TARGET", 340},
     {"getsockopt$SO_BINDTODEVICE", 340},
     {"getsockopt$SO_COOKIE", 340},
     {"getsockopt$SO_TIMESTAMPING", 340},
@@ -7614,9 +7698,13 @@ call_t syscalls[] = {
     {"setsockopt", 339},
     {"setsockopt$ALG_SET_AEAD_AUTHSIZE", 339},
     {"setsockopt$ALG_SET_KEY", 339},
+    {"setsockopt$ARPT_SO_SET_ADD_COUNTERS", 339},
     {"setsockopt$ARPT_SO_SET_REPLACE", 339},
+    {"setsockopt$EBT_SO_SET_COUNTERS", 339},
     {"setsockopt$EBT_SO_SET_ENTRIES", 339},
+    {"setsockopt$IP6T_SO_SET_ADD_COUNTERS", 339},
     {"setsockopt$IP6T_SO_SET_REPLACE", 339},
+    {"setsockopt$IPT_SO_SET_ADD_COUNTERS", 339},
     {"setsockopt$IPT_SO_SET_REPLACE", 339},
     {"setsockopt$RDS_CANCEL_SENT_TO", 339},
     {"setsockopt$RDS_CONG_MONITOR", 339},

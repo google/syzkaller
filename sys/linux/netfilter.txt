@@ -73,6 +73,13 @@ xt_counters {
 	bcnt	const[0, int64]
 }
 
+xt_get_revision {
+	name		string[xt_get_revision_strings, XT_EXTENSION_MAXNAMELEN]
+	revision	const[0, int8]
+}
+
+xt_get_revision_strings = "icmp", "ah", "NETMAP", "TPROXY", "ipvs", "IDLETIMER", "icmp6", "HL"
+
 nf_inet_addr [
 	ipv4	ipv4_addr
 	ipv6	ipv6_addr

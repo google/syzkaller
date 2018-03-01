@@ -12,6 +12,11 @@ include <uapi/linux/netfilter_ipv4/ipt_TTL.h>
 include <uapi/linux/netfilter_ipv4/ipt_CLUSTERIP.h>
 
 setsockopt$IPT_SO_SET_REPLACE(fd sock_in, level const[SOL_IP], opt const[IPT_SO_SET_REPLACE], val ptr[in, ipt_replace], len len[val])
+setsockopt$IPT_SO_SET_ADD_COUNTERS(fd sock_in, level const[SOL_IP], opt const[IPT_SO_SET_ADD_COUNTERS], val ptr[in, ipt_counters_info], len len[val])
+getsockopt$IPT_SO_GET_INFO(fd sock_in, level const[SOL_IP], opt const[IPT_SO_GET_INFO], val ptr[in, ipt_getinfo], len ptr[in, len[val, int32]])
+getsockopt$IPT_SO_GET_ENTRIES(fd sock_in, level const[SOL_IP], opt const[IPT_SO_GET_ENTRIES], val ptr[in, ipt_get_entries], len ptr[in, len[val, int32]])
+getsockopt$IPT_SO_GET_REVISION_MATCH(fd sock_in, level const[SOL_IP], opt const[IPT_SO_GET_REVISION_MATCH], val ptr[in, xt_get_revision], len ptr[in, len[val, int32]])
+getsockopt$IPT_SO_GET_REVISION_TARGET(fd sock_in, level const[SOL_IP], opt const[IPT_SO_GET_REVISION_TARGET], val ptr[in, xt_get_revision], len ptr[in, len[val, int32]])
 
 ipt_replace [
 	filter		ipt_replace_t["filter", 3, 4, IPT_FILTER_VALID_HOOKS, ipt_filter_matches, ipt_filter_targets, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused, ipt_unused, ipt_hook, ipt_hook, ipt_hook, ipt_unused]
@@ -102,6 +107,30 @@ ipt_ip {
 
 ipt_ip_flags = IPT_F_FRAG, IPT_F_GOTO
 ipt_ip_invflags = IPT_INV_VIA_IN, IPT_INV_VIA_OUT, IPT_INV_TOS, IPT_INV_SRCIP, IPT_INV_DSTIP, IPT_INV_FRAG, IPT_INV_PROTO
+
+ipt_counters_info {
+	name		string[ipt_tables, XT_TABLE_MAXNAMELEN]
+	num_counters	len[counters, int32]
+	counters	array[xt_counters, 2:5]
+}
+
+ipt_tables = "filter", "nat", "mangle", "raw", "security"
+
+ipt_getinfo {
+	name		string[ipt_tables, XT_TABLE_MAXNAMELEN]
+# The rest are output arguments.
+	valid_hooks	const[0, int32]
+	hook_entry	array[const[0, int32], NF_INET_NUMHOOKS]
+	underflow	array[const[0, int32], NF_INET_NUMHOOKS]
+	num_entries	const[0, int32]
+	size		const[0, int32]
+}
+
+ipt_get_entries {
+	name		string[ipt_tables, XT_TABLE_MAXNAMELEN]
+	size		bytesize[entrytable, int32]
+	entrytable	array[int8]
+}
 
 # MATCHES:
 
