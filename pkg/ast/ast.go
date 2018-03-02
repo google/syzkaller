@@ -102,7 +102,7 @@ type Struct struct {
 	Pos      Pos
 	Name     *Ident
 	Fields   []*Field
-	Attrs    []*Ident
+	Attrs    []*Type
 	Comments []*Comment
 	IsUnion  bool
 }

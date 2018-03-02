@@ -376,9 +376,9 @@ func (p *parser) parseStruct(name *Ident) *Struct {
 		p.consume(tokNewLine)
 	}
 	if p.tryConsume(tokLBrack) {
-		str.Attrs = append(str.Attrs, p.parseIdent())
+		str.Attrs = append(str.Attrs, p.parseType())
 		for p.tryConsume(tokComma) {
-			str.Attrs = append(str.Attrs, p.parseIdent())
+			str.Attrs = append(str.Attrs, p.parseType())
 		}
 		p.consume(tokRBrack)
 	}

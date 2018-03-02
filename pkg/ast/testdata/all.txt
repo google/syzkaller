@@ -46,6 +46,10 @@ s2 {
 
 }
 
+s3 {
+	f1	int8
+} [attribute[1, "foo"], another[and[another]]]
+
 type mybool8 int8
 type net_port proc[1, 2, int16be]
 type mybool16				### unexpected '\n', expecting '[', identifier

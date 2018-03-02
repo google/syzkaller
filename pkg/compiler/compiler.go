@@ -138,12 +138,15 @@ func (comp *compiler) warning(pos ast.Pos, msg string, args ...interface{}) {
 
 func (comp *compiler) parseUnionAttrs(n *ast.Struct) (varlen bool) {
 	for _, attr := range n.Attrs {
-		switch attr.Name {
+		switch attr.Ident {
 		case "varlen":
 			varlen = true
 		default:
 			comp.error(attr.Pos, "unknown union %v attribute %v",
-				n.Name.Name, attr.Name)
+				n.Name.Name, attr.Ident)
+		}
+		if len(attr.Args) != 0 {
+			comp.error(attr.Pos, "%v attribute had args", attr.Ident)
 		}
 	}
 	return
@@ -152,15 +155,15 @@ func (comp *compiler) parseUnionAttrs(n *ast.Struct) (varlen bool) {
 func (comp *compiler) parseStructAttrs(n *ast.Struct) (packed bool, align uint64) {
 	for _, attr := range n.Attrs {
 		switch {
-		case attr.Name == "packed":
+		case attr.Ident == "packed":
 			packed = true
-		case attr.Name == "align_ptr":
+		case attr.Ident == "align_ptr":
 			align = comp.ptrSize
-		case strings.HasPrefix(attr.Name, "align_"):
-			a, err := strconv.ParseUint(attr.Name[6:], 10, 64)
+		case strings.HasPrefix(attr.Ident, "align_"):
+			a, err := strconv.ParseUint(attr.Ident[6:], 10, 64)
 			if err != nil {
 				comp.error(attr.Pos, "bad struct %v alignment %v",
-					n.Name.Name, attr.Name[6:])
+					n.Name.Name, attr.Ident[6:])
 				continue
 			}
 			if a&(a-1) != 0 || a == 0 || a > 1<<30 {
@@ -170,7 +173,10 @@ func (comp *compiler) parseStructAttrs(n *ast.Struct) (packed bool, align uint64
 			align = a
 		default:
 			comp.error(attr.Pos, "unknown struct %v attribute %v",
-				n.Name.Name, attr.Name)
+				n.Name.Name, attr.Ident)
+		}
+		if len(attr.Args) != 0 {
+			comp.error(attr.Pos, "%v attribute had args", attr.Ident)
 		}
 	}
 	return
