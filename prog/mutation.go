@@ -194,7 +194,7 @@ func (target *Target) mutateArg(r *randGen, s *state, arg Arg, ctx ArgCtx, updat
 				a.data = r.randString(s, t)
 			}
 		case BufferFilename:
-			a.data = []byte(r.filename(s))
+			a.data = []byte(r.filename(s, t))
 		case BufferText:
 			data := append([]byte{}, a.Data()...)
 			a.data = r.mutateText(t.Text, data)

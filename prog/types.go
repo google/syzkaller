@@ -259,7 +259,7 @@ const (
 type BufferType struct {
 	TypeCommon
 	Kind       BufferKind
-	RangeBegin uint64   // for BufferBlobRange kind
+	RangeBegin uint64   // for BufferBlobRange kind, or static size for BufferFilename
 	RangeEnd   uint64   // for BufferBlobRange kind
 	Text       TextKind // for BufferText
 	SubKind    string

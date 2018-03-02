@@ -73,11 +73,16 @@ func (s *state) analyzeImpl(c *Call, resources bool) {
 		case *BufferType:
 			a := arg.(*DataArg)
 			if typ.Dir() != DirOut && len(a.Data()) != 0 {
+				val := string(a.Data())
+				// Remove trailing zero padding.
+				for len(val) >= 2 && val[len(val)-1] == 0 && val[len(val)-2] == 0 {
+					val = val[:len(val)-1]
+				}
 				switch typ.Kind {
 				case BufferString:
-					s.strings[string(a.Data())] = true
+					s.strings[val] = true
 				case BufferFilename:
-					s.files[string(a.Data())] = true
+					s.files[val] = true
 				}
 			}
 		}

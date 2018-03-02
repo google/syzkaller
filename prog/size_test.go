@@ -146,6 +146,10 @@ func TestAssignSize(t *testing.T) {
 			"syz_test$length28(&(0x7f0000000000), 0x0)",
 			"syz_test$length28(&(0x7f0000000000)=@f1, 0x2a)",
 		},
+		{
+			"syz_test$length29(&(0x7f0000000000)={'./a\\x00', './b/c\\x00', 0x0, 0x0, 0x0})",
+			"syz_test$length29(&(0x7f0000000000)={'./a\\x00', './b/c\\x00', 0xa, 0x14, 0x21})",
+		},
 	}
 
 	for i, test := range tests {
