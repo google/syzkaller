@@ -93,12 +93,16 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		eh(w.pos, w.msg)
 	}
 	syscalls := comp.genSyscalls()
-	return &Prog{
+	prg := &Prog{
 		Resources:   comp.genResources(),
 		Syscalls:    syscalls,
 		StructDescs: comp.genStructDescs(syscalls),
 		Unsupported: comp.unsupported,
 	}
+	if comp.errors != 0 {
+		return nil
+	}
+	return prg
 }
 
 type compiler struct {
@@ -136,6 +140,27 @@ func (comp *compiler) warning(pos ast.Pos, msg string, args ...interface{}) {
 	comp.warnings = append(comp.warnings, warn{pos, fmt.Sprintf(msg, args...)})
 }
 
+func (comp *compiler) structIsVarlen(name string) bool {
+	if varlen, ok := comp.structVarlen[name]; ok {
+		return varlen
+	}
+	s := comp.structs[name]
+	if s.IsUnion && comp.parseUnionAttrs(s) {
+		comp.structVarlen[name] = true
+		return true
+	}
+	comp.structVarlen[name] = false // to not hang on recursive types
+	varlen := false
+	for _, fld := range s.Fields {
+		if comp.isVarlen(fld.Type) {
+			varlen = true
+			break
+		}
+	}
+	comp.structVarlen[name] = varlen
+	return varlen
+}
+
 func (comp *compiler) parseUnionAttrs(n *ast.Struct) (varlen bool) {
 	for _, attr := range n.Attrs {
 		switch attr.Ident {
@@ -146,20 +171,30 @@ func (comp *compiler) parseUnionAttrs(n *ast.Struct) (varlen bool) {
 				n.Name.Name, attr.Ident)
 		}
 		if len(attr.Args) != 0 {
-			comp.error(attr.Pos, "%v attribute had args", attr.Ident)
+			comp.error(attr.Pos, "%v attribute has args", attr.Ident)
 		}
 	}
 	return
 }
 
-func (comp *compiler) parseStructAttrs(n *ast.Struct) (packed bool, align uint64) {
+func (comp *compiler) parseStructAttrs(n *ast.Struct) (packed bool, size, align uint64) {
+	size = sizeUnassigned
 	for _, attr := range n.Attrs {
 		switch {
 		case attr.Ident == "packed":
+			if len(attr.Args) != 0 {
+				comp.error(attr.Pos, "%v attribute has args", attr.Ident)
+			}
 			packed = true
 		case attr.Ident == "align_ptr":
+			if len(attr.Args) != 0 {
+				comp.error(attr.Pos, "%v attribute has args", attr.Ident)
+			}
 			align = comp.ptrSize
 		case strings.HasPrefix(attr.Ident, "align_"):
+			if len(attr.Args) != 0 {
+				comp.error(attr.Pos, "%v attribute has args", attr.Ident)
+			}
 			a, err := strconv.ParseUint(attr.Ident[6:], 10, 64)
 			if err != nil {
 				comp.error(attr.Pos, "bad struct %v alignment %v",
@@ -171,12 +206,23 @@ func (comp *compiler) parseStructAttrs(n *ast.Struct) (packed bool, align uint64
 					n.Name.Name, a)
 			}
 			align = a
+		case attr.Ident == "size":
+			if len(attr.Args) != 1 {
+				comp.error(attr.Pos, "%v attribute is expected to have 1 argument", attr.Ident)
+			}
+			sz := attr.Args[0]
+			if unexpected, _, ok := checkTypeKind(sz, kindInt); !ok {
+				comp.error(sz.Pos, "unexpected %v, expect int", unexpected)
+				return
+			}
+			if sz.HasColon || len(sz.Args) != 0 {
+				comp.error(sz.Pos, "size attribute has colon or args")
+				return
+			}
+			size = sz.Value
 		default:
 			comp.error(attr.Pos, "unknown struct %v attribute %v",
 				n.Name.Name, attr.Ident)
-		}
-		if len(attr.Args) != 0 {
-			comp.error(attr.Pos, "%v attribute had args", attr.Ident)
 		}
 	}
 	return

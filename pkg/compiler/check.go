@@ -21,7 +21,8 @@ func (comp *compiler) typecheck() {
 }
 
 func (comp *compiler) check() {
-	comp.checkConsts()
+	comp.checkTypeValues()
+	comp.checkAttributeValues()
 	comp.checkUsed()
 	comp.checkRecursion()
 	comp.checkLenTargets()
@@ -215,7 +216,7 @@ func (comp *compiler) checkTypes() {
 	}
 }
 
-func (comp *compiler) checkConsts() {
+func (comp *compiler) checkTypeValues() {
 	for _, decl := range comp.desc.Nodes {
 		switch decl.(type) {
 		case *ast.Call, *ast.Struct, *ast.Resource, *ast.TypeDef:
@@ -230,6 +231,27 @@ func (comp *compiler) checkConsts() {
 					}
 				}
 			})
+		}
+	}
+}
+
+func (comp *compiler) checkAttributeValues() {
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Struct:
+			for _, attr := range n.Attrs {
+				if !n.IsUnion && attr.Ident == "size" {
+					if comp.structIsVarlen(n.Name.Name) {
+						comp.error(attr.Pos, "varlen struct %v has size attribute",
+							n.Name.Name)
+					}
+					sz := attr.Args[0].Value
+					if sz == 0 || sz > 1<<20 {
+						comp.error(attr.Args[0].Pos, "size attribute has bad value %v"+
+							", expect [1, 1<<20]", sz)
+					}
+				}
+			}
 		}
 	}
 }
@@ -536,8 +558,12 @@ func (comp *compiler) checkStruct(ctx checkCtx, n *ast.Struct) {
 		comp.checkType(ctx, f.Type, flags)
 	}
 	for _, attr := range n.Attrs {
-		if attr.Ident == "" || attr.HasColon {
-			comp.error(attr.Pos, "bad struct/union attribute")
+		if unexpected, _, ok := checkTypeKind(attr, kindIdent); !ok {
+			comp.error(attr.Pos, "unexpected %v, expect attribute", unexpected)
+			return
+		}
+		if attr.HasColon {
+			comp.error(attr.Pos2, "unexpected ':'")
 			return
 		}
 	}
@@ -884,7 +910,7 @@ func (comp *compiler) checkVarlen(n *ast.Struct) {
 			return
 		}
 	} else {
-		if packed, _ := comp.parseStructAttrs(n); packed {
+		if packed, _, _ := comp.parseStructAttrs(n); packed {
 			return
 		}
 	}

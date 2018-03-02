@@ -611,24 +611,7 @@ func init() {
 		return canBeArg, false
 	}
 	typeStruct.Varlen = func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
-		if varlen, ok := comp.structVarlen[t.Ident]; ok {
-			return varlen
-		}
-		s := comp.structs[t.Ident]
-		if s.IsUnion && comp.parseUnionAttrs(s) {
-			comp.structVarlen[t.Ident] = true
-			return true
-		}
-		comp.structVarlen[t.Ident] = false // to not hang on recursive types
-		varlen := false
-		for _, fld := range s.Fields {
-			if comp.isVarlen(fld.Type) {
-				varlen = true
-				break
-			}
-		}
-		comp.structVarlen[t.Ident] = varlen
-		return varlen
+		return comp.structIsVarlen(t.Ident)
 	}
 	typeStruct.ZeroSize = func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
 		for _, fld := range comp.structs[t.Ident].Fields {

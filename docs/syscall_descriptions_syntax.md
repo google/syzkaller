@@ -102,10 +102,19 @@ Structs are described as:
 ```
 structname "{" "\n"
 	(fieldname type "\n")+
-"}"
+"}" ("[" attribute* "]")?
 ```
 
-Structs can have trailing attributes `packed` and `align_N`, they are specified in square brackets after the struct.
+Structs can have attributes specified in square brackets after the struct.
+Attributes are:
+
+```
+"packed": the struct does not have paddings and has default alignment 1
+"align_N": the struct has alignment N
+"size": the struct is padded up to the specified size
+```
+
+attribute
 
 ## Unions
 
