@@ -50,6 +50,10 @@ var structDescs_32 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "i8", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "i32", TypeSize: 4}}},
 	}}},
+	{Key: StructKey{Name: "explicitly_sized"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "explicitly_sized", TypeSize: 42}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 41}}, IsPad: true},
+	}}},
 	{Key: StructKey{Name: "len_nontemp4"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "len_nontemp4", TypeSize: 4}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "f1", TypeSize: 4}}, Buf: "len_temp3"},
 	}}},
@@ -675,6 +679,10 @@ var syscalls_32 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "len_unaligned"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "b", TypeSize: 4}}, BitSize: 8, Buf: "a"},
 	}},
+	{Name: "syz_test$length27", CallName: "syz_test", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "explicitly_sized"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "a1", TypeSize: 4}}, Buf: "a0"},
+	}},
 	{Name: "syz_test$length3", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "syz_length_len_struct"}}},
 	}},
@@ -782,4 +790,4 @@ var consts_32 = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32 = "10a1935b1f3ef8f206e29a3b6863de4cac10bd9e"
+const revision_32 = "035aa7331fff3c8bb13bc8925ae43befcbc94a71"

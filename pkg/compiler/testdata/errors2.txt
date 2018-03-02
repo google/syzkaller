@@ -73,6 +73,19 @@ s2 {
 	f1	s1
 }
 
+s3 {
+	f1	int8
+} [size[0]]			### size attribute has bad value 0, expect [1, 1<<20]
+
+s4 {
+	f1	int8
+} [size[1000000000]]		### size attribute has bad value 1000000000, expect [1, 1<<20]
+
+s6 {
+	f1	int8
+	f2	array[int8]
+} [size[10]]			### varlen struct s6 has size attribute
+
 u1 [
 	f1	ptr[in, array[int8]]
 	f2	len[f1, int32]	### len target f1 does not exist

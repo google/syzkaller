@@ -31,3 +31,7 @@ type templ1[C] {
 	f2	const[C, int8]
 }
 foo$1(a ptr[in, templ1[CONST20]])
+
+str2 {
+	f1	int8
+} [size[CONST21]]

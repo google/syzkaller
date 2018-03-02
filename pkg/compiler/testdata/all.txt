@@ -183,6 +183,17 @@ foo$templ4(a ptr[in, templ_struct1[3]])
 foo$templ5(a ptr[in, templ_struct1[3]])
 foo$templ6(a ptr[in, templ_struct4])
 
+
+# Structs.
+
+s0 {
+	f1	int8
+} [size[64]]
+
+s1 {
+	f1	int8
+} [size[C2]]
+
 # Unions.
 
 u0 [

@@ -166,11 +166,23 @@ s8 {
 
 s9 {
 	f1	int8
-} ["foo"[0]]			### bad struct/union attribute
+} ["foo"[0]]			### unexpected string "foo", expect attribute
 
 s10 {
 	f1	int8
-} [packed[0]]			### packed attribute had args
+} [packed[0]]			### packed attribute has args
+
+s11 {
+	f1	int8
+} [size["foo"]]			### unexpected string "foo", expect int
+
+s12 {
+	f1	int8
+} [size[0:1]]			### size attribute has colon or args
+
+s13 {
+	f1	int8
+} [size[0[0]]]			### size attribute has colon or args
 
 u3 [
 	f1	int8
