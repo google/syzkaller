@@ -105,9 +105,9 @@ func (n *Struct) Clone() Node {
 	for _, f := range n.Fields {
 		fields = append(fields, f.Clone().(*Field))
 	}
-	var attrs []*Ident
+	var attrs []*Type
 	for _, a := range n.Attrs {
-		attrs = append(attrs, a.Clone().(*Ident))
+		attrs = append(attrs, a.Clone().(*Type))
 	}
 	var comments []*Comment
 	for _, c := range n.Comments {

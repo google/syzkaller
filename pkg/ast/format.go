@@ -68,7 +68,7 @@ func (res *Resource) serialize(w io.Writer) {
 }
 
 func (typedef *TypeDef) serialize(w io.Writer) {
-	fmt.Fprintf(w, "type %v%v", typedef.Name.Name, fmtIdentList(typedef.Args, false))
+	fmt.Fprintf(w, "type %v%v", typedef.Name.Name, fmtIdentList(typedef.Args))
 	if typedef.Type != nil {
 		fmt.Fprintf(w, " %v\n", fmtType(typedef.Type))
 	}
@@ -120,7 +120,11 @@ func (str *Struct) serialize(w io.Writer) {
 	for _, com := range str.Comments {
 		fmt.Fprintf(w, "#%v\n", com.Text)
 	}
-	fmt.Fprintf(w, "%c%v\n", closing, fmtIdentList(str.Attrs, true))
+	fmt.Fprintf(w, "%c", closing)
+	if attrs := fmtTypeList(str.Attrs); attrs != "" {
+		fmt.Fprintf(w, " %v", attrs)
+	}
+	fmt.Fprintf(w, "\n")
 }
 
 func (flags *IntFlags) serialize(w io.Writer) {
@@ -182,14 +186,11 @@ func fmtTypeList(args []*Type) string {
 	return w.String()
 }
 
-func fmtIdentList(args []*Ident, space bool) string {
+func fmtIdentList(args []*Ident) string {
 	if len(args) == 0 {
 		return ""
 	}
 	w := new(bytes.Buffer)
-	if space {
-		fmt.Fprintf(w, " ")
-	}
 	fmt.Fprintf(w, "[")
 	for i, arg := range args {
 		fmt.Fprintf(w, "%v%v", comma(i, ""), arg.Name)
