@@ -2,11 +2,11 @@
 
 #if 0
 #define GOARCH "32"
-#define SYZ_REVISION "035aa7331fff3c8bb13bc8925ae43befcbc94a71"
+#define SYZ_REVISION "d4cbc2aec52e291fefa8155c6c6ca397ba3c9e49"
 #define SYZ_PAGE_SIZE 8192
 #define SYZ_NUM_PAGES 2048
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 91;
+unsigned syscall_count = 92;
 call_t syscalls[] = {
 	{"foo$any0", 0, (syscall_t)foo},
 	{"foo$anyres", 0, (syscall_t)foo},
@@ -68,6 +68,7 @@ call_t syscalls[] = {
 	{"syz_test$length25", 0, (syscall_t)syz_test},
 	{"syz_test$length26", 0, (syscall_t)syz_test},
 	{"syz_test$length27", 0, (syscall_t)syz_test},
+	{"syz_test$length28", 0, (syscall_t)syz_test},
 	{"syz_test$length3", 0, (syscall_t)syz_test},
 	{"syz_test$length4", 0, (syscall_t)syz_test},
 	{"syz_test$length5", 0, (syscall_t)syz_test},
@@ -105,11 +106,11 @@ call_t syscalls[] = {
 
 #if 0
 #define GOARCH "64"
-#define SYZ_REVISION "7106e9ab2b7a52203a8ad681140f3326e8b3d7ce"
+#define SYZ_REVISION "cabe73c3b49273a8b0cd13bff35d40897dd88138"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 91;
+unsigned syscall_count = 92;
 call_t syscalls[] = {
 	{"foo$any0", 0, (syscall_t)foo},
 	{"foo$anyres", 0, (syscall_t)foo},
@@ -171,6 +172,7 @@ call_t syscalls[] = {
 	{"syz_test$length25", 0, (syscall_t)syz_test},
 	{"syz_test$length26", 0, (syscall_t)syz_test},
 	{"syz_test$length27", 0, (syscall_t)syz_test},
+	{"syz_test$length28", 0, (syscall_t)syz_test},
 	{"syz_test$length3", 0, (syscall_t)syz_test},
 	{"syz_test$length4", 0, (syscall_t)syz_test},
 	{"syz_test$length5", 0, (syscall_t)syz_test},
