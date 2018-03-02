@@ -150,7 +150,19 @@ func (r *randGen) flags(vv []uint64) (v uint64) {
 	return
 }
 
-func (r *randGen) filename(s *state) string {
+func (r *randGen) filename(s *state, typ *BufferType) string {
+	fn := r.filenameImpl(s)
+	if !typ.Varlen() {
+		size := typ.Size()
+		if uint64(len(fn)) < size {
+			fn += string(make([]byte, size-uint64(len(fn))))
+		}
+		fn = fn[:size]
+	}
+	return fn
+}
+
+func (r *randGen) filenameImpl(s *state) string {
 	dir := "."
 	if r.oneOf(2) && len(s.files) != 0 {
 		files := make([]string, 0, len(s.files))
@@ -540,18 +552,20 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 			return MakeDataArg(a, data), nil
 		case BufferFilename:
 			if a.Dir() == DirOut {
-				sz := 0
+				var sz uint64
 				switch {
+				case !a.Varlen():
+					sz = a.Size()
 				case r.nOutOf(1, 3):
-					sz = r.Intn(100)
+					sz = r.rand(100)
 				case r.nOutOf(1, 2):
 					sz = 108 // UNIX_PATH_MAX
 				default:
 					sz = 4096 // PATH_MAX
 				}
-				return MakeOutDataArg(a, uint64(sz)), nil
+				return MakeOutDataArg(a, sz), nil
 			}
-			return MakeDataArg(a, []byte(r.filename(s))), nil
+			return MakeDataArg(a, []byte(r.filename(s, a))), nil
 		case BufferText:
 			if a.Dir() == DirOut {
 				return MakeOutDataArg(a, uint64(r.Intn(100))), nil

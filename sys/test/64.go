@@ -93,6 +93,13 @@ var structDescs_64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "a", TypeSize: 10}, Kind: 2, SubKind: "serialize_strings", Values: []string{"aaa\x00\x00\x00\x00\x00\x00\x00", "bbb\x00\x00\x00\x00\x00\x00\x00"}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "b", TypeSize: 5}, Kind: 2, SubKind: "serialize_strings", Values: []string{"aaa\x00\x00", "bbb\x00\x00"}},
 	}}},
+	{Key: StructKey{Name: "static_filename"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "static_filename", TypeSize: 33}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "f1", TypeSize: 10}, Kind: 3},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "filename", FldName: "f2", TypeSize: 20}, Kind: 3},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "f3", TypeSize: 1}}, BitSize: 8, Buf: "f1"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "f4", TypeSize: 1}}, BitSize: 8, Buf: "f2"},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize", FldName: "f5", TypeSize: 1}}, BitSize: 8, Buf: "parent"},
+	}}},
 	{Key: StructKey{Name: "syz_align0"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_align0", TypeSize: 24}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "f0", TypeSize: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
@@ -689,6 +696,9 @@ var syscalls_64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "explicitly_sized_union"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "a1", TypeSize: 8}}, Buf: "a0"},
 	}},
+	{Name: "syz_test$length29", CallName: "syz_test", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "static_filename"}}},
+	}},
 	{Name: "syz_test$length3", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_length_len_struct"}}},
 	}},
@@ -795,4 +805,4 @@ var consts_64 = []ConstValue{
 	{Name: "IPPROTO_UDP", Value: 17},
 }
 
-const revision_64 = "cabe73c3b49273a8b0cd13bff35d40897dd88138"
+const revision_64 = "07f96db2fe414280f7b2c908e79f44d3d134b8f8"
