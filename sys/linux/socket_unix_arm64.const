@@ -7,6 +7,7 @@ SOCK_DGRAM = 2
 SOCK_SEQPACKET = 5
 SOCK_STREAM = 1
 SOL_SOCKET = 1
+UNIX_PATH_MAX = 108
 __NR_accept = 202
 __NR_accept4 = 242
 __NR_bind = 200

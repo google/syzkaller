@@ -30,8 +30,7 @@ ioctl$ifreq_SIOCGIFINDEX_vcan(fd sock_can, cmd const[SIOCGIFINDEX], arg ptr[inou
 ifreq_SIOCGIFINDEX_vcan {
 	ifr_ifrn	string["vcan0", IFNAMSIZ]
 	ifr_ifru	ifindex_vcan
-	pad		array[const[0, int8], 20]
-} [packed]
+} [size[IFREQ_SIZE]]
 
 sockaddr_can {
 	can_family	const[AF_CAN, int16]

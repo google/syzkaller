@@ -44,11 +44,13 @@ ioctl$PPPIOCSFLAGS(fd sock_pppox, cmd const[PPPIOCSFLAGS], arg ptr[in, flags[ppp
 ioctl$PPPIOCGMRU(fd sock_pppox, cmd const[PPPIOCGMRU], arg ptr[out, int32])
 ioctl$PPPIOCSMRU(fd sock_pppox, cmd const[PPPIOCSMRU], arg ptr[in, int32])
 
+define SOCKADDR_PPPOX_SIZE	sizeof(struct sockaddr_pppox)
+
 sockaddr_pppoe {
 	sa_family	const[AF_PPPOX, int16]
 	sa_protocol	const[PX_PROTO_OE, int32]
 	pppoe		pppoe_addr
-} [packed]
+} [packed, size[SOCKADDR_PPPOX_SIZE]]
 
 pppoe_addr {
 	sid	sid_t
@@ -118,9 +120,7 @@ sockaddr_pptp {
 	sa_family	const[AF_PPPOX, int16]
 	sa_protocol	const[PX_PROTO_PPTP, int32]
 	pptp		pptp_addr
-# To account for pppoe field in the union.
-	pad		array[const[0, int8], 18]
-} [packed]
+} [packed, size[SOCKADDR_PPPOX_SIZE]]
 
 pptp_addr {
 	call_id		pptp_call_id
