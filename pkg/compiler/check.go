@@ -240,10 +240,11 @@ func (comp *compiler) checkAttributeValues() {
 		switch n := decl.(type) {
 		case *ast.Struct:
 			for _, attr := range n.Attrs {
-				if !n.IsUnion && attr.Ident == "size" {
+				if attr.Ident == "size" {
+					_, typ, name := n.Info()
 					if comp.structIsVarlen(n.Name.Name) {
-						comp.error(attr.Pos, "varlen struct %v has size attribute",
-							n.Name.Name)
+						comp.error(attr.Pos, "varlen %v %v has size attribute",
+							typ, name)
 					}
 					sz := attr.Args[0].Value
 					if sz == 0 || sz > 1<<20 {
@@ -906,7 +907,7 @@ func (comp *compiler) checkVarlen(n *ast.Struct) {
 	// Non-varlen unions can't have varlen fields.
 	// Non-packed structs can't have varlen fields in the middle.
 	if n.IsUnion {
-		if varlen := comp.parseUnionAttrs(n); varlen {
+		if varlen, _ := comp.parseUnionAttrs(n); varlen {
 			return
 		}
 	} else {

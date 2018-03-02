@@ -165,13 +165,23 @@ func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStru
 			if !checkStruct(t.Key, &t.StructDesc) {
 				return
 			}
+			structNode := comp.structNodes[t.StructDesc]
+			varlen, sizeAttr := comp.parseUnionAttrs(structNode)
 			t.TypeSize = 0
-			varlen := comp.parseUnionAttrs(comp.structNodes[t.StructDesc])
 			if !varlen {
 				for _, fld := range t.Fields {
-					if t.TypeSize < fld.Size() {
-						t.TypeSize = fld.Size()
+					sz := fld.Size()
+					if sizeAttr != sizeUnassigned && sz > sizeAttr {
+						comp.error(structNode.Pos, "union %v has size attribute %v"+
+							" which is less than field %v size %v",
+							structNode.Name.Name, sizeAttr, fld.Name(), sz)
 					}
+					if t.TypeSize < sz {
+						t.TypeSize = sz
+					}
+				}
+				if sizeAttr != sizeUnassigned {
+					t.TypeSize = sizeAttr
 				}
 			}
 		}
