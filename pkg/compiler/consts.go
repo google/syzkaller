@@ -87,7 +87,7 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 		switch n := decl.(type) {
 		case *ast.Struct:
 			for _, attr := range n.Attrs {
-				if !n.IsUnion && attr.Ident == "size" {
+				if attr.Ident == "size" {
 					info := getConstInfo(infos, attr.Pos)
 					info.consts[attr.Args[0].Ident] = true
 				}
@@ -199,7 +199,7 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 			}
 			if n, ok := decl.(*ast.Struct); ok {
 				for _, attr := range n.Attrs {
-					if !n.IsUnion && attr.Ident == "size" {
+					if attr.Ident == "size" {
 						sz := attr.Args[0]
 						comp.patchIntConst(sz.Pos, &sz.Value,
 							&sz.Ident, consts, &missing)

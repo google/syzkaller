@@ -145,9 +145,11 @@ func (comp *compiler) structIsVarlen(name string) bool {
 		return varlen
 	}
 	s := comp.structs[name]
-	if s.IsUnion && comp.parseUnionAttrs(s) {
-		comp.structVarlen[name] = true
-		return true
+	if s.IsUnion {
+		if varlen, _ := comp.parseUnionAttrs(s); varlen {
+			comp.structVarlen[name] = true
+			return true
+		}
 	}
 	comp.structVarlen[name] = false // to not hang on recursive types
 	varlen := false
@@ -161,17 +163,20 @@ func (comp *compiler) structIsVarlen(name string) bool {
 	return varlen
 }
 
-func (comp *compiler) parseUnionAttrs(n *ast.Struct) (varlen bool) {
+func (comp *compiler) parseUnionAttrs(n *ast.Struct) (varlen bool, size uint64) {
+	size = sizeUnassigned
 	for _, attr := range n.Attrs {
 		switch attr.Ident {
 		case "varlen":
+			if len(attr.Args) != 0 {
+				comp.error(attr.Pos, "%v attribute has args", attr.Ident)
+			}
 			varlen = true
+		case "size":
+			size = comp.parseSizeAttr(n, attr)
 		default:
 			comp.error(attr.Pos, "unknown union %v attribute %v",
 				n.Name.Name, attr.Ident)
-		}
-		if len(attr.Args) != 0 {
-			comp.error(attr.Pos, "%v attribute has args", attr.Ident)
 		}
 	}
 	return
@@ -207,25 +212,30 @@ func (comp *compiler) parseStructAttrs(n *ast.Struct) (packed bool, size, align 
 			}
 			align = a
 		case attr.Ident == "size":
-			if len(attr.Args) != 1 {
-				comp.error(attr.Pos, "%v attribute is expected to have 1 argument", attr.Ident)
-			}
-			sz := attr.Args[0]
-			if unexpected, _, ok := checkTypeKind(sz, kindInt); !ok {
-				comp.error(sz.Pos, "unexpected %v, expect int", unexpected)
-				return
-			}
-			if sz.HasColon || len(sz.Args) != 0 {
-				comp.error(sz.Pos, "size attribute has colon or args")
-				return
-			}
-			size = sz.Value
+			size = comp.parseSizeAttr(n, attr)
 		default:
 			comp.error(attr.Pos, "unknown struct %v attribute %v",
 				n.Name.Name, attr.Ident)
 		}
 	}
 	return
+}
+
+func (comp *compiler) parseSizeAttr(n *ast.Struct, attr *ast.Type) uint64 {
+	if len(attr.Args) != 1 {
+		comp.error(attr.Pos, "%v attribute is expected to have 1 argument", attr.Ident)
+		return sizeUnassigned
+	}
+	sz := attr.Args[0]
+	if unexpected, _, ok := checkTypeKind(sz, kindInt); !ok {
+		comp.error(sz.Pos, "unexpected %v, expect int", unexpected)
+		return sizeUnassigned
+	}
+	if sz.HasColon || len(sz.Args) != 0 {
+		comp.error(sz.Pos, "size attribute has colon or args")
+		return sizeUnassigned
+	}
+	return sz.Value
 }
 
 func (comp *compiler) getTypeDesc(t *ast.Type) *typeDesc {

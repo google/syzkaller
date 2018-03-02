@@ -91,6 +91,14 @@ u1 [
 	f2	len[f1, int32]	### len target f1 does not exist
 ]
 
+u2 [
+	f1	int8
+] [size[0]]			### size attribute has bad value 0, expect [1, 1<<20]
+
+u3 [
+	f1	int8
+] [varlen, size[8]]		### varlen union u3 has size attribute
+
 foo$200(a ptr[in, s2])
 foo$201(a ptr[in, s1])
 foo$202(a u1)
