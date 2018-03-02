@@ -83,6 +83,18 @@ func (comp *compiler) extractConsts() map[string]*ConstInfo {
 		}
 	}
 
+	for _, decl := range comp.desc.Nodes {
+		switch n := decl.(type) {
+		case *ast.Struct:
+			for _, attr := range n.Attrs {
+				if !n.IsUnion && attr.Ident == "size" {
+					info := getConstInfo(infos, attr.Pos)
+					info.consts[attr.Args[0].Ident] = true
+				}
+			}
+		}
+	}
+
 	comp.desc.Walk(ast.Recursive(func(n0 ast.Node) {
 		if n, ok := n0.(*ast.Int); ok {
 			info := getConstInfo(infos, n.Pos)
@@ -183,6 +195,15 @@ func (comp *compiler) patchConsts(consts map[string]uint64) {
 				for _, v := range n.Values {
 					comp.patchIntConst(v.Pos, &v.Value,
 						&v.Ident, consts, &missing)
+				}
+			}
+			if n, ok := decl.(*ast.Struct); ok {
+				for _, attr := range n.Attrs {
+					if !n.IsUnion && attr.Ident == "size" {
+						sz := attr.Args[0]
+						comp.patchIntConst(sz.Pos, &sz.Value,
+							&sz.Ident, consts, &missing)
+					}
 				}
 			}
 			if missing == "" {

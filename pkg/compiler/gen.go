@@ -130,6 +130,7 @@ func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStru
 			if !checkStruct(t.Key, &t.StructDesc) {
 				return
 			}
+			structNode := comp.structNodes[t.StructDesc]
 			// Add paddings, calculate size, mark bitfields.
 			varlen := false
 			for _, f := range t.Fields {
@@ -138,7 +139,7 @@ func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStru
 				}
 			}
 			comp.markBitfields(t.Fields)
-			packed, alignAttr := comp.parseStructAttrs(comp.structNodes[t.StructDesc])
+			packed, sizeAttr, alignAttr := comp.parseStructAttrs(structNode)
 			t.Fields = comp.addAlignment(t.Fields, varlen, packed, alignAttr)
 			t.AlignAttr = alignAttr
 			t.TypeSize = 0
@@ -147,6 +148,17 @@ func (comp *compiler) genStructDescs(syscalls []*prog.Syscall) []*prog.KeyedStru
 					if !f.BitfieldMiddle() {
 						t.TypeSize += f.Size()
 					}
+				}
+				if sizeAttr != sizeUnassigned {
+					if t.TypeSize > sizeAttr {
+						comp.error(structNode.Pos, "struct %v has size attribute %v"+
+							" which is less than struct size %v",
+							structNode.Name.Name, sizeAttr, t.TypeSize)
+					}
+					if pad := sizeAttr - t.TypeSize; pad != 0 {
+						t.Fields = append(t.Fields, genPad(pad))
+					}
+					t.TypeSize = sizeAttr
 				}
 			}
 		case *prog.UnionType:
@@ -308,7 +320,7 @@ func (comp *compiler) typeAlign(t0 prog.Type) uint64 {
 	case *prog.ArrayType:
 		return comp.typeAlign(t.Type)
 	case *prog.StructType:
-		packed, alignAttr := comp.parseStructAttrs(comp.structNodes[t.StructDesc])
+		packed, _, alignAttr := comp.parseStructAttrs(comp.structNodes[t.StructDesc])
 		if alignAttr != 0 {
 			return alignAttr // overrided by user attribute
 		}
