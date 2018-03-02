@@ -319,9 +319,6 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 				p.Parse('N')
 				p.Parse('Y')
 				p.Parse('=')
-				if typ.Size() == 0 {
-					panic(fmt.Sprintf("TYPESIZE=0: %#v", typ))
-				}
 				typ = target.makeAnyPtrType(typ.Size(), typ.FieldName())
 				typ1 = target.anyArray
 			}
@@ -329,10 +326,11 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			if err != nil {
 				return nil, err
 			}
-		} else {
-			inner = target.defaultArg(typ1)
 		}
 		if typ1 != nil {
+			if inner == nil {
+				inner = target.defaultArg(typ1)
+			}
 			arg = MakePointerArg(typ, addr, inner)
 		} else {
 			arg = MakeVmaPointerArg(typ, addr, vmaSize)
