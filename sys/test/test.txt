@@ -409,11 +409,20 @@ explicitly_sized_union [
 	f1	int8
 ] [size[42]]
 
+static_filename {
+	f1	filename[10]
+	f2	filename[20]
+	f3	bytesize[f1, int8]
+	f4	bytesize[f2, int8]
+	f5	bytesize[parent, int8]
+}
+
 syz_test$length24(a ptr[in, len_nontemp5])
 syz_test$length25(a0 ptr[in, array[array[int8]]], a1 len[a0])
 syz_test$length26(a ptr[in, len_unaligned], b bytesize[a])
 syz_test$length27(a0 ptr[in, explicitly_sized], a1 len[a0])
 syz_test$length28(a0 ptr[in, explicitly_sized_union], a1 len[a0])
+syz_test$length29(a ptr[in, static_filename])
 
 # Big endian
 

@@ -264,11 +264,19 @@ var typeArgFlags = &typeArg{
 var typeFilename = &typeDesc{
 	Names:     []string{"filename"},
 	CantBeOpt: true,
+	OptArgs:   1,
+	Args:      []namedArg{{"size", typeArgInt}},
 	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
+		if len(args) >= 1 {
+			return false
+		}
 		return true
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		base.TypeSize = 0
+		if len(args) >= 1 {
+			base.TypeSize = args[0].Value
+		}
 		return &prog.BufferType{
 			TypeCommon: base.TypeCommon,
 			Kind:       prog.BufferFilename,
