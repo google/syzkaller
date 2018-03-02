@@ -41,8 +41,7 @@ sockaddr_llc {
 	sllc_ua		int8
 	sllc_sap	int8
 	sll_addr	mac_addr
-	pad		array[const[0, int8], 2]
-}
+} [size[SOCKADDR_SIZE]]
 
 # Generic options
 
