@@ -49,7 +49,6 @@ include <linux/tcp.h>
 include <linux/udp.h>
 include <linux/kcmp.h>
 include <linux/syslog.h>
-include <linux/userfaultfd.h>
 include <linux/memfd.h>
 include <uapi/linux/module.h>
 include <asm/prctl.h>
@@ -126,15 +125,6 @@ eventfd2(initval int32, flags flags[eventfd_flags]) fd_event
 read$eventfd(fd fd_event, val ptr[out, int64], len len[val])
 write$eventfd(fd fd_event, val ptr[in, int64], len len[val])
 
-resource fd_uffd[fd]
-userfaultfd(flags flags[userfaultfd_flags]) fd_uffd
-ioctl$UFFDIO_API(fd fd_uffd, cmd const[UFFDIO_API], arg ptr[in, uffdio_api])
-ioctl$UFFDIO_REGISTER(fd fd_uffd, cmd const[UFFDIO_REGISTER], arg ptr[in, uffdio_register])
-ioctl$UFFDIO_UNREGISTER(fd fd_uffd, cmd const[UFFDIO_UNREGISTER], arg ptr[in, uffdio_range])
-ioctl$UFFDIO_WAKE(fd fd_uffd, cmd const[UFFDIO_WAKE], arg ptr[in, uffdio_range])
-ioctl$UFFDIO_COPY(fd fd_uffd, cmd const[UFFDIO_COPY], arg ptr[in, uffdio_range])
-ioctl$UFFDIO_ZEROPAGE(fd fd_uffd, cmd const[UFFDIO_ZEROPAGE], arg ptr[in, uffdio_range])
-
 mmap(addr vma, len len[addr], prot flags[mmap_prot], flags flags[mmap_flags], fd fd, offset fileoff)
 munmap(addr vma, len len[addr])
 mremap(addr vma, len len[addr], newlen len[newaddr], flags flags[mremap_flags], newaddr vma)
@@ -166,9 +156,9 @@ pkey_free(key pkey)
 pkey_mprotect(addr vma, len len[addr], prot flags[mmap_prot], key pkey)
 pkey_flags = PKEY_DISABLE_ACCESS, PKEY_DISABLE_WRITE
 
-futex(addr ptr[in, int32], op flags[futex_op], val intptr, timeout ptr[in, timespec], addr2 ptr[in, int32], val3 intptr)
-set_robust_list(head ptr[in, robust_list], len len[head])
-get_robust_list(pid pid, head ptr[in, ptr[out, robust_list]], len ptr[inout, len[head, intptr]])
+futex(addr ptr[in, int32[0:2]], op flags[futex_op], val int32[0:2], timeout ptr[in, timespec], addr2 ptr[in, int32[0:2]], val3 int32[0:2])
+set_robust_list(head ptr[in, robust_list_head], len len[head])
+get_robust_list(pid pid, head ptr[in, ptr[out, robust_list_head]], len ptr[inout, len[head, intptr]])
 restart_syscall()
 
 # Almighty!
@@ -728,10 +718,14 @@ kexec_segment {
 	memsz	intptr
 }
 
+robust_list_head {
+	list		ptr[in, robust_list, opt]
+	futex_offset	intptr
+	list_op_pending	ptr[in, robust_list, opt]
+}
+
 robust_list {
-	next	vma
-	off	intptr
-	pend	vma
+	next	ptr[in, robust_list, opt]
 }
 
 rusage {
@@ -860,11 +854,6 @@ f_owner_ex {
 	pid	pid
 }
 
-linger {
-	onoff	int32
-	linger	int32
-}
-
 ucred {
 	pid	pid
 	uid	uid
@@ -892,37 +881,6 @@ fiemap_extent {
 	pad5	const[0, int32]
 }
 
-uffdio_api {
-	api	const[UFFD_API, int64]
-	featur	flags[uffdio_features, int64]
-	ioctls	const[0, int64]
-}
-
-uffdio_range {
-	start	vma
-	len	len[start, int64]
-}
-
-uffdio_register {
-	range	uffdio_range
-	mode	flags[uffdio_register_mode, int64]
-	ioctls	const[0, int64]
-}
-
-uffdio_copy {
-	dst	vma
-	src	vma
-	len	len[dst, int64]
-	mode	flags[uffdio_copy_mode, int64]
-	copy	const[0, int64]
-}
-
-uffdio_zeropage {
-	range	uffdio_range
-	mode	flags[uffdio_zero_mode, int64]
-	zeropg	const[0, int64]
-}
-
 kcmp_epoll_slot {
 	efd	fd_epoll
 	tfd	fd
@@ -942,10 +900,6 @@ mbind_mode = MPOL_DEFAULT, MPOL_BIND, MPOL_INTERLEAVE, MPOL_PREFERRED, MPOL_F_ST
 mbind_flags = MPOL_MF_STRICT, MPOL_MF_MOVE, MPOL_MF_MOVE_ALL
 memfd_flags = MFD_CLOEXEC, MFD_ALLOW_SEALING
 pipe_flags = O_NONBLOCK, O_CLOEXEC, O_DIRECT
-userfaultfd_flags = O_NONBLOCK, O_CLOEXEC
-uffdio_register_mode = UFFDIO_REGISTER_MODE_MISSING, UFFDIO_REGISTER_MODE_WP
-uffdio_copy_mode = UFFDIO_COPY_MODE_DONTWAKE
-uffdio_zero_mode = UFFDIO_ZEROPAGE_MODE_DONTWAKE
 mlock_flags = MLOCK_ONFAULT
 mlockall_flags = MCL_CURRENT, MCL_FUTURE
 dup_flags = O_CLOEXEC
@@ -1048,7 +1002,6 @@ fcntl_rw_hint = RWF_WRITE_LIFE_NOT_SET, RWH_WRITE_LIFE_NONE, RWH_WRITE_LIFE_SHOR
 fiemap_flags = FIEMAP_FLAG_SYNC, FIEMAP_FLAG_XATTR, FIEMAP_FLAG_CACHE
 fiemap_extent_flags = FIEMAP_EXTENT_LAST, FIEMAP_EXTENT_UNKNOWN, FIEMAP_EXTENT_DELALLOC, FIEMAP_EXTENT_ENCODED, FIEMAP_EXTENT_DATA_ENCRYPTED, FIEMAP_EXTENT_NOT_ALIGNED, FIEMAP_EXTENT_DATA_INLINE, FIEMAP_EXTENT_DATA_TAIL, FIEMAP_EXTENT_UNWRITTEN, FIEMAP_EXTENT_MERGED, FIEMAP_EXTENT_SHARED
 getrandom_flags = GRND_NONBLOCK, GRND_RANDOM
-uffdio_features = UFFD_FEATURE_PAGEFAULT_FLAG_WP, UFFD_FEATURE_EVENT_FORK, UFFD_FEATURE_EVENT_REMAP, UFFD_FEATURE_EVENT_REMOVE, UFFD_FEATURE_MISSING_HUGETLBFS, UFFD_FEATURE_MISSING_SHMEM, UFFD_FEATURE_EVENT_UNMAP
 clone_flags = CLONE_VM, CLONE_FS, CLONE_FILES, CLONE_SIGHAND, CLONE_PTRACE, CLONE_VFORK, CLONE_PARENT, CLONE_THREAD, CLONE_NEWNS, CLONE_SYSVSEM, CLONE_SETTLS, CLONE_PARENT_SETTID, CLONE_CHILD_CLEARTID, CLONE_UNTRACED, CLONE_CHILD_SETTID, CLONE_NEWCGROUP, CLONE_NEWUTS, CLONE_NEWIPC, CLONE_NEWUSER, CLONE_NEWPID, CLONE_NEWNET, CLONE_IO
 membarrier_cmd = MEMBARRIER_CMD_GLOBAL, MEMBARRIER_CMD_GLOBAL_EXPEDITED, MEMBARRIER_CMD_PRIVATE_EXPEDITED, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED, MEMBARRIER_CMD_PRIVATE_EXPEDITED_SYNC_CORE, MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED_SYNC_CORE
 

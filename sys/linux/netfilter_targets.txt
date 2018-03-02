@@ -101,7 +101,6 @@ xt_inet_mangle_targets [
 
 xt_tee_tginfo {
 	gw	nf_inet_addr
-# TODO: make it possible to mark strings as opt (empty string), this must be opt:
 	oif	devname
 	priv	intptr
 }

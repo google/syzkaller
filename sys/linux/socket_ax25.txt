@@ -2,6 +2,7 @@
 # Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 # AF_AX25 support.
+# TODO: describe setsockopt options and ioctls.
 
 include <linux/socket.h>
 include <linux/net.h>
@@ -57,7 +58,3 @@ getsockopt$ax25_int(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_opti
 setsockopt$ax25_int(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_option_types_int], optval ptr[in, int32], optlen len[optval])
 getsockopt$ax25_buf(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_option_types_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 setsockopt$ax25_buf(fd sock_ax25, level const[SOL_AX25], optname flags[ax25_option_types_buf], optval buffer[in], optlen len[optval])
-
-# TODO: Specific options
-
-# TODO: ioctls

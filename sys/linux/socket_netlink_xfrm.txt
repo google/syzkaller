@@ -41,8 +41,7 @@ netlink_msg_xfrm [
 	flushpolicy	xfrm_msg[XFRM_MSG_FLUSHPOLICY, void]
 	newae		xfrm_msg[XFRM_MSG_NEWAE, xfrm_aevent_id]
 	getae		xfrm_msg[XFRM_MSG_GETAE, xfrm_aevent_id]
-# TODO: what is this int32?
-	getsadinfo	xfrm_msg[XFRM_MSG_GETSADINFO, int32]
+	getsadinfo	xfrm_msg[XFRM_MSG_GETSADINFO, const[0, int32]]
 	newspdinfo	xfrm_msg[XFRM_MSG_NEWSPDINFO, int32]
 	getspdinfo	xfrm_msg[XFRM_MSG_GETSPDINFO, int32]
 ] [varlen]
@@ -136,7 +135,6 @@ xfrm_attrs [
 	output_mark	nlattr[XFRMA_OUTPUT_MARK, int32]
 	encap		nlattr[XFRMA_ENCAP, xfrm_encap_tmpl]
 	offload		nlattr[XFRMA_OFFLOAD_DEV, xfrm_user_offload]
-# TODO: is this xfrm_sec_ctx or xfrm_user_sec_ctx? comments say first, but code seem to expect the second.
 	sec_ctx		nlattr[XFRMA_SEC_CTX, xfrm_user_sec_ctx]
 	lifetime_val	nlattr[XFRMA_LTIME_VAL, xfrm_lifetime_cur]
 	tmpl		nlattr[XFRMA_TMPL, array[xfrm_user_tmpl]]
@@ -172,7 +170,7 @@ xfrm_user_sec_ctx {
 	ctx_alg	flags[xfrm_sec_ctx_alg, int8]
 	ctx_doi	int8
 	ctx_len	len[payload, int16]
-# TODO: what's this?
+# TODO: what's this? looks intersting.
 	payload	array[int8]
 }
 

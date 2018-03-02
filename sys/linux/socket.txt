@@ -48,22 +48,14 @@ recv_flags = MSG_CMSG_CLOEXEC, MSG_DONTWAIT, MSG_ERRQUEUE, MSG_OOB, MSG_PEEK, MS
 cmsg_levels = SOL_SOCKET, IPPROTO_ICMP, SOL_IP, SOL_TCP, SOL_UDP, SOL_IPV6, SOL_ICMPV6, SOL_SCTP, SOL_UDPLITE, SOL_RAW, SOL_IPX, SOL_AX25, SOL_ATALK, SOL_NETROM, SOL_ROSE, SOL_DECNET, SOL_PACKET, SOL_ATM, SOL_AAL, SOL_IRDA, SOL_NETBEUI, SOL_LLC, SOL_DCCP, SOL_NETLINK, SOL_TIPC, SOL_RXRPC, SOL_PPPOL2TP, SOL_BLUETOOTH, SOL_PNPIPE, SOL_RDS, SOL_IUCV, SOL_CAIF, SOL_ALG, SOL_NFC, SOL_KCM
 
 # This sockaddr type corresponds to the struct sockaddr and is 16 bytes or less.
+# TODO: add AF_APPLETALK, AF_ATMPVC, AF_X25, AF_ROSE, AF_DECnet, AF_ATMSVC, AF_IRDA, AF_IB, AF_TIPC, AF_IUCV, AF_RXRPC, AF_ISDN, AF_PHONET, AF_IEEE802154, AF_CAIF, AF_QIPCRTR
+# Note: AF_UNIX, AF_INET6, AF_PACKET, AF_ALG sockaddr is bigger than 16 bytes
+# Note: AF_NETROM sockaddr is the same as AF_AX25
 sockaddr [
-# AF_UNIX sockaddr in bigger than 16 bytes
 	in		sockaddr_in
 	ax25		sockaddr_ax25
 	ipx		sockaddr_ipx
-# TODO: AF_APPLETALK
-# AF_NETROM sockaddr is the same as AF_AX25
-# TODO: AF_ATMPVC
-# TODO: AF_X25
-# AF_INET6 sockaddr is bigger than 16 bytes
-# TODO: AF_ROSE
-# TODO: AF_DECnet
 	nl		sockaddr_nl
-# AF_PACKET sockaddr is bigger than 16 bytes
-# TODO: AF_ATMSVC
-# TODO: AF_IRDA
 	pppoe		sockaddr_pppoe
 	pppol2tp	sockaddr_pppol2tp
 	pppol2tpin6	sockaddr_pppol2tpin6
@@ -71,23 +63,13 @@ sockaddr [
 	pppol2tpv3in6	sockaddr_pppol2tpv3in6
 	pptp		sockaddr_pptp
 	llc		sockaddr_llc
-# TODO: AF_IB
 	can		sockaddr_can
-# TODO: AF_TIPC
 	sco		sockaddr_sco
 	l2		sockaddr_l2
 	hci		sockaddr_hci
 	rc		sockaddr_rc
-# TODO: AF_IUCV
-# TODO: AF_RXRPC
-# TODO: AF_ISDN
-# TODO: AF_PHONET
-# TODO: AF_IEEE802154
-# TODO: AF_CAIF
-# AF_ALG sockaddr is bigger than 16 bytes
 	nfc		sockaddr_nfc
 	vsock		sockaddr_vm
-# TODO: AF_QIPCRTR
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_generic
 ]
@@ -98,17 +80,9 @@ sockaddr_storage [
 	in		sockaddr_in
 	ax25		sockaddr_ax25
 	ipx		sockaddr_ipx
-# TODO: AF_APPLETALK
-# AF_NETROM sockaddr is the same as AF_AX25
-# TODO: AF_ATMPVC
-# TODO: AF_X25
 	in6		sockaddr_in6
-# TODO: AF_ROSE
-# TODO: AF_DECnet
 	nl		sockaddr_nl
 	ll		sockaddr_ll
-# TODO: AF_ATMSVC
-# TODO: AF_IRDA
 	pppoe		sockaddr_pppoe
 	pppol2tp	sockaddr_pppol2tp
 	pppol2tpin6	sockaddr_pppol2tpin6
@@ -116,24 +90,15 @@ sockaddr_storage [
 	pppol2tpv3in6	sockaddr_pppol2tpv3in6
 	pptp		sockaddr_pptp
 	llc		sockaddr_llc
-# TODO: AF_IB
 	can		sockaddr_can
-# TODO: AF_TIPC
 	sco		sockaddr_sco
 	l2		sockaddr_l2
 	hci		sockaddr_hci
 	rc		sockaddr_rc
-# TODO: AF_IUCV
-# TODO: AF_RXRPC
-# TODO: AF_ISDN
-# TODO: AF_PHONET
-# TODO: AF_IEEE802154
-# TODO: AF_CAIF
 	alg		sockaddr_alg
 	nfc		sockaddr_nfc
 	nfc_llcp	sockaddr_nfc_llcp
 	vsock		sockaddr_vm
-# TODO: AF_QIPCRTR
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_storage_generic
 ] [varlen]
@@ -207,6 +172,11 @@ getsockopt$SO_BINDTODEVICE(fd sock, level const[SOL_SOCKET], optname const[SO_BI
 getsockopt$sock_buf(fd sock, level const[SOL_SOCKET], optname flags[sockopt_opt_sock_buf], optval buffer[out], optlen ptr[inout, len[optval, int32]])
 getsockopt$SO_COOKIE(fd sock, level const[SOL_SOCKET], optname const[SO_COOKIE], optval ptr[out, int64], optlen ptr[inout, len[optval, int32]])
 
+linger {
+	onoff	bool32
+	linger	int32
+}
+
 sockopt_opt_sock_void = SO_DETACH_FILTER, SO_MARK
 sockopt_opt_sock_int = SO_ACCEPTCONN, SO_BROADCAST, SO_DEBUG, SO_DOMAIN, SO_ERROR, SO_DONTROUTE, SO_KEEPALIVE, SO_PEEK_OFF, SO_PRIORITY, SO_PROTOCOL, SO_RCVBUF, SO_RCVBUFFORCE, SO_RCVLOWAT, SO_SNDLOWAT, SO_REUSEADDR, SO_SNDBUF, SO_SNDBUFFORCE, SO_TIMESTAMP, SO_TYPE, SO_REUSEPORT, SO_OOBINLINE, SO_NO_CHECK, SO_PASSCRED, SO_TIMESTAMPNS, SO_LOCK_FILTER, SO_PASSSEC, SO_RXQ_OVFL, SO_WIFI_STATUS, SO_NOFCS, SO_SELECT_ERR_QUEUE, SO_BUSY_POLL, SO_MAX_PACING_RATE, SO_ZEROCOPY
 sockopt_opt_sock_timeval = SO_RCVTIMEO, SO_SNDTIMEO
@@ -221,13 +191,9 @@ sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFT
 
 # http://lxr.free-electrons.com/source/include/uapi/asm-generic/sockios.h
 
-# TODO: SIOCADDRT, SIOCDELRT, SIOCRTMSG
+# TODO: add SIOCADDRT, SIOCDELRT, SIOCRTMSG, SIOCDRARP, SIOCGRARP, SIOCSRARP, SIOCGIFVLAN, SIOCSIFVLAN, SIOCGSTAMP, SIOCGSTAMPNS
 
 ioctl$sock_SIOCETHTOOL(fd sock, cmd const[SIOCETHTOOL], arg ptr[inout, ifreq_SIOCETHTOOL])
-
-# TODO: SIOCDRARP, SIOCGRARP, SIOCSRARP
-# TODO: SIOCGIFVLAN, SIOCSIFVLAN
-# TODO: SIOCGSTAMP, SIOCGSTAMPNS
 
 ioctl$sock_SIOCOUTQ(fd sock, cmd const[SIOCOUTQ], arg ptr[out, int32])
 ioctl$sock_SIOCINQ(fd sock, cmd const[SIOCINQ], arg ptr[out, int32])
@@ -297,7 +263,7 @@ ifreq_mtu {
 # between fuzzer and manager and produce lots of "no output" crashes
 # (actually, this is not true now since all testing is done in a separate
 # network namespace, but we still don't mess with eth0).
-devnames = "lo", "tunl0", "gre0", "gretap0", "ip_vti0", "ip6_vti0", "sit0", "ip6tnl0", "ip6gre0", "ip6gretap0", "bond0", "dummy0", "eql", "ifb0", "ipddp0", "yam0", "bcsf0", "bcsh0", "teql0", "nr0", "rose0", "irlan0", "erspan0", "bpq0", "vlan0", "bridge0", "vcan0", "syz_tun", "syzkaller0", "syzkaller1"
+devnames = "", "lo", "tunl0", "gre0", "gretap0", "ip_vti0", "ip6_vti0", "sit0", "ip6tnl0", "ip6gre0", "ip6gretap0", "bond0", "dummy0", "eql", "ifb0", "ipddp0", "yam0", "bcsf0", "bcsh0", "teql0", "nr0", "rose0", "irlan0", "erspan0", "bpq0", "vlan0", "bridge0", "vcan0", "syz_tun", "syzkaller0", "syzkaller1"
 
 type devname string[devnames, IFNAMSIZ]
 
