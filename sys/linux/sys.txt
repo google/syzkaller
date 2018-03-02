@@ -636,13 +636,14 @@ sigevent {
 	signo	signalno
 	notify	flags[sigev_notify, int32]
 	u	sigevent_u
-	pad	array[const[0, int64], 8]
-}
+} [size[SIGEVENT_SIZE]]
 
 sigevent_u [
 	tid	pid
 	thr	sigevent_thread
 ]
+
+define SIGEVENT_SIZE	sizeof(struct sigevent)
 
 sigevent_thread {
 # TODO: this is function pointer and pthread_attr_t (?)

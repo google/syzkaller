@@ -49,19 +49,13 @@ cmsg_levels = SOL_SOCKET, IPPROTO_ICMP, SOL_IP, SOL_TCP, SOL_UDP, SOL_IPV6, SOL_
 
 # This sockaddr type corresponds to the struct sockaddr and is 16 bytes or less.
 # TODO: add AF_APPLETALK, AF_ATMPVC, AF_X25, AF_ROSE, AF_DECnet, AF_ATMSVC, AF_IRDA, AF_IB, AF_TIPC, AF_IUCV, AF_RXRPC, AF_ISDN, AF_PHONET, AF_IEEE802154, AF_CAIF, AF_QIPCRTR
-# Note: AF_UNIX, AF_INET6, AF_PACKET, AF_ALG sockaddr is bigger than 16 bytes
+# Note: AF_UNIX, AF_INET6, AF_PACKET, AF_ALG, AF_PPPOX sockaddr is bigger than 16 bytes
 # Note: AF_NETROM sockaddr is the same as AF_AX25
 sockaddr [
 	in		sockaddr_in
 	ax25		sockaddr_ax25
 	ipx		sockaddr_ipx
 	nl		sockaddr_nl
-	pppoe		sockaddr_pppoe
-	pppol2tp	sockaddr_pppol2tp
-	pppol2tpin6	sockaddr_pppol2tpin6
-	pppol2tpv3	sockaddr_pppol2tpv3
-	pppol2tpv3in6	sockaddr_pppol2tpv3in6
-	pptp		sockaddr_pptp
 	llc		sockaddr_llc
 	can		sockaddr_can
 	sco		sockaddr_sco
@@ -72,7 +66,7 @@ sockaddr [
 	vsock		sockaddr_vm
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_generic
-]
+] [size[SOCKADDR_SIZE]]
 
 # This sockaddr type corresponds to the sockaddr_storage type and is 128 bytes size.
 sockaddr_storage [
@@ -101,7 +95,10 @@ sockaddr_storage [
 	vsock		sockaddr_vm
 	ethernet	sockaddr_ethernet
 	generic		sockaddr_storage_generic
-] [varlen]
+] [size[SOCKADDR_STORAGE_SIZE]]
+
+define SOCKADDR_SIZE	sizeof(struct sockaddr)
+define SOCKADDR_STORAGE_SIZE	sizeof(struct sockaddr_storage)
 
 sockaddr_generic {
 	sa_family	flags[socket_domain, int16]
@@ -236,43 +233,10 @@ ioctl$sock_SIOCGPGRP(fd sock, cmd const[SIOCGPGRP], arg ptr[out, pid])
 
 resource ifindex[int32]
 
-ifreq_SIOCGIFINDEX {
-	ifr_ifrn	devname
-	ifr_ifru	ifindex
-	pad		array[const[0, int8], 20]
-} [packed]
-
-ifreq_SIOCETHTOOL {
-	ifr_ifrn	devname
-	ifr_ifru	ptr64[inout, ethtool_cmd_u]
-	pad		array[const[0, int8], 16]
-} [packed]
-
 ifreq {
 	ifr_ifrn	devname
 	ifr_ifru	ifr_ifru
-}
-
-ifreq_mtu {
-	ifr_ifrn	devname
-	ifru_mtu	int32
-	pad		array[const[0, int8], 20]
-}
-
-# We could add "eth0" to this list as well, but this will affect the connection
-# between fuzzer and manager and produce lots of "no output" crashes
-# (actually, this is not true now since all testing is done in a separate
-# network namespace, but we still don't mess with eth0).
-devnames = "", "lo", "tunl0", "gre0", "gretap0", "ip_vti0", "ip6_vti0", "sit0", "ip6tnl0", "ip6gre0", "ip6gretap0", "bond0", "dummy0", "eql", "ifb0", "ipddp0", "yam0", "bcsf0", "bcsh0", "teql0", "nr0", "rose0", "irlan0", "erspan0", "bpq0", "vlan0", "bridge0", "vcan0", "syz_tun", "syzkaller0", "syzkaller1"
-
-type devname string[devnames, IFNAMSIZ]
-
-devname_mask {
-	lo	flags[devname_mask_values, int8]
-	hi	array[const[0, int8], 15]
-}
-
-devname_mask_values = 0, 0xff
+} [size[IFREQ_SIZE]]
 
 ifr_ifru [
 	ifru_addrs	sockaddr
@@ -285,11 +249,42 @@ ifr_ifru [
 	ifru_settings	if_settings
 ]
 
+ifreq_SIOCGIFINDEX {
+	ifr_ifrn	devname
+	ifr_ifru	ifindex
+} [size[IFREQ_SIZE]]
+
+ifreq_SIOCETHTOOL {
+	ifr_ifrn	devname
+	ifr_ifru	ptr[inout, ethtool_cmd_u]
+} [size[IFREQ_SIZE]]
+
+ifreq_mtu {
+	ifr_ifrn	devname
+	ifru_mtu	int32
+} [size[IFREQ_SIZE]]
+
+define IFREQ_SIZE	sizeof(struct ifreq)
+
+# We could add "eth0" to this list as well, but this will affect the connection
+# between fuzzer and manager and produce lots of "no output" crashes
+# (actually, this is not true now since all testing is done in a separate
+# network namespace, but we still don't mess with eth0).
+devnames = "", "lo", "tunl0", "gre0", "gretap0", "ip_vti0", "ip6_vti0", "sit0", "ip6tnl0", "ip6gre0", "ip6gretap0", "bond0", "dummy0", "eql", "ifb0", "ipddp0", "yam0", "bcsf0", "bcsh0", "teql0", "nr0", "rose0", "irlan0", "erspan0", "bpq0", "vlan0", "bridge0", "vcan0", "syz_tun", "syzkaller0", "syzkaller1"
+
+type devname string[devnames, IFNAMSIZ]
+
+devname_mask {
+	lo	flags[devname_mask_values, int8]
+} [size[IFNAMSIZ]]
+
+devname_mask_values = 0, 0xff
+
 ifru_flags = IFF_TUN, IFF_TAP, IFF_NO_PI, IFF_ONE_QUEUE, IFF_VNET_HDR, IFF_TUN_EXCL, IFF_MULTI_QUEUE, IFF_ATTACH_QUEUE, IFF_DETACH_QUEUE, IFF_PERSIST, IFF_NOFILTER
 
 ifmap {
-	mem_start	int64
-	mem_end		int64
+	mem_start	intptr
+	mem_end		intptr
 	base_addr	int16
 	irq		int8
 	dma		int8

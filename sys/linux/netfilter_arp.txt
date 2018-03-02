@@ -99,8 +99,7 @@ arpt_devaddr [
 
 arpt_devmask {
 	mac	mac_addr_mask
-	pad	array[const[0, int8], 10]
-}
+} [size[ARPT_DEV_ADDR_LEN_MAX]]
 
 arpt_arp_invflags = ARPT_INV_VIA_IN, ARPT_INV_VIA_OUT, ARPT_INV_SRCIP, ARPT_INV_TGTIP, ARPT_INV_SRCDEVADDR, ARPT_INV_TGTDEVADDR, ARPT_INV_ARPOP, ARPT_INV_ARPHRD, ARPT_INV_ARPPRO, ARPT_INV_ARPHLN
 

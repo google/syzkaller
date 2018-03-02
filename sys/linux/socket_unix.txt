@@ -5,6 +5,7 @@
 
 include <linux/socket.h>
 include <linux/net.h>
+include <uapi/linux/un.h>
 
 resource sock_unix[sock]
 
@@ -33,12 +34,12 @@ unix_pair {
 sockaddr_un [
 	file	sockaddr_un_file
 	abs	sockaddr_un_abstract
-] [varlen]
+]
 
 sockaddr_un_file {
 	family	flags[unix_socket_family, int16]
-	path	filename
-} [packed]
+	path	filename[UNIX_PATH_MAX]
+}
 
 sockaddr_un_abstract {
 	family	flags[unix_socket_family, int16]
