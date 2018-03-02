@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "102d68cb30d1b2a57f0acca7149154aae0a15d17"
+#define SYZ_REVISION "e5520d5aa656378bd98fffacefa2178fe0672663"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1606;
+unsigned syscall_count = 1601;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -795,6 +795,7 @@ call_t syscalls[] = {
     {"ioctl$TUNGETSNDBUF", 54},
     {"ioctl$TUNGETVNETHDRSZ", 54},
     {"ioctl$TUNSETFILTEREBPF", 54},
+    {"ioctl$TUNSETGROUP", 54},
     {"ioctl$TUNSETIFF", 54},
     {"ioctl$TUNSETIFINDEX", 54},
     {"ioctl$TUNSETLINK", 54},
@@ -809,12 +810,6 @@ call_t syscalls[] = {
     {"ioctl$TUNSETVNETBE", 54},
     {"ioctl$TUNSETVNETHDRSZ", 54},
     {"ioctl$TUNSETVNETLE", 54},
-    {"ioctl$UFFDIO_API", 54},
-    {"ioctl$UFFDIO_COPY", 54},
-    {"ioctl$UFFDIO_REGISTER", 54},
-    {"ioctl$UFFDIO_UNREGISTER", 54},
-    {"ioctl$UFFDIO_WAKE", 54},
-    {"ioctl$UFFDIO_ZEROPAGE", 54},
     {"ioctl$VHOST_GET_FEATURES", 54},
     {"ioctl$VHOST_GET_VRING_BASE", 54},
     {"ioctl$VHOST_GET_VRING_ENDIAN", 54},
@@ -1620,11 +1615,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "b9e1284538267e454c877b20338376793618fa57"
+#define SYZ_REVISION "21d2cff4b4f15413c5fd711e9d80e96ed8ced3cf"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1659;
+unsigned syscall_count = 1654;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2428,6 +2423,7 @@ call_t syscalls[] = {
     {"ioctl$TUNGETSNDBUF", 16},
     {"ioctl$TUNGETVNETHDRSZ", 16},
     {"ioctl$TUNSETFILTEREBPF", 16},
+    {"ioctl$TUNSETGROUP", 16},
     {"ioctl$TUNSETIFF", 16},
     {"ioctl$TUNSETIFINDEX", 16},
     {"ioctl$TUNSETLINK", 16},
@@ -2442,12 +2438,6 @@ call_t syscalls[] = {
     {"ioctl$TUNSETVNETBE", 16},
     {"ioctl$TUNSETVNETHDRSZ", 16},
     {"ioctl$TUNSETVNETLE", 16},
-    {"ioctl$UFFDIO_API", 16},
-    {"ioctl$UFFDIO_COPY", 16},
-    {"ioctl$UFFDIO_REGISTER", 16},
-    {"ioctl$UFFDIO_UNREGISTER", 16},
-    {"ioctl$UFFDIO_WAKE", 16},
-    {"ioctl$UFFDIO_ZEROPAGE", 16},
     {"ioctl$VHOST_GET_FEATURES", 16},
     {"ioctl$VHOST_GET_VRING_BASE", 16},
     {"ioctl$VHOST_GET_VRING_ENDIAN", 16},
@@ -3291,7 +3281,7 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "4777556f42c328c140627ec0166484acad3ee8c7"
+#define SYZ_REVISION "a4a2d57d962c6a9922280157aa5e5e2acec429a0"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -4908,11 +4898,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "4e70ce47fb93cde6b4bb47b3741653be50cb6beb"
+#define SYZ_REVISION "c7d0121f23ba3ecab2be3025a1ad1f7f8f5788fa"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1588;
+unsigned syscall_count = 1583;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5679,6 +5669,7 @@ call_t syscalls[] = {
     {"ioctl$TUNGETSNDBUF", 29},
     {"ioctl$TUNGETVNETHDRSZ", 29},
     {"ioctl$TUNSETFILTEREBPF", 29},
+    {"ioctl$TUNSETGROUP", 29},
     {"ioctl$TUNSETIFF", 29},
     {"ioctl$TUNSETIFINDEX", 29},
     {"ioctl$TUNSETLINK", 29},
@@ -5693,12 +5684,6 @@ call_t syscalls[] = {
     {"ioctl$TUNSETVNETBE", 29},
     {"ioctl$TUNSETVNETHDRSZ", 29},
     {"ioctl$TUNSETVNETLE", 29},
-    {"ioctl$UFFDIO_API", 29},
-    {"ioctl$UFFDIO_COPY", 29},
-    {"ioctl$UFFDIO_REGISTER", 29},
-    {"ioctl$UFFDIO_UNREGISTER", 29},
-    {"ioctl$UFFDIO_WAKE", 29},
-    {"ioctl$UFFDIO_ZEROPAGE", 29},
     {"ioctl$VHOST_GET_FEATURES", 29},
     {"ioctl$VHOST_GET_VRING_BASE", 29},
     {"ioctl$VHOST_GET_VRING_ENDIAN", 29},
@@ -6508,11 +6493,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "b65be006c154f61045f1efd0da55745ee5109214"
+#define SYZ_REVISION "0fde32d0101f76855393c57598d32035b9a74ccc"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1578;
+unsigned syscall_count = 1573;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7276,6 +7261,7 @@ call_t syscalls[] = {
     {"ioctl$TUNGETSNDBUF", 54},
     {"ioctl$TUNGETVNETHDRSZ", 54},
     {"ioctl$TUNSETFILTEREBPF", 54},
+    {"ioctl$TUNSETGROUP", 54},
     {"ioctl$TUNSETIFF", 54},
     {"ioctl$TUNSETIFINDEX", 54},
     {"ioctl$TUNSETLINK", 54},
@@ -7290,12 +7276,6 @@ call_t syscalls[] = {
     {"ioctl$TUNSETVNETBE", 54},
     {"ioctl$TUNSETVNETHDRSZ", 54},
     {"ioctl$TUNSETVNETLE", 54},
-    {"ioctl$UFFDIO_API", 54},
-    {"ioctl$UFFDIO_COPY", 54},
-    {"ioctl$UFFDIO_REGISTER", 54},
-    {"ioctl$UFFDIO_UNREGISTER", 54},
-    {"ioctl$UFFDIO_WAKE", 54},
-    {"ioctl$UFFDIO_ZEROPAGE", 54},
     {"ioctl$VHOST_GET_FEATURES", 54},
     {"ioctl$VHOST_GET_VRING_BASE", 54},
     {"ioctl$VHOST_GET_VRING_ENDIAN", 54},
