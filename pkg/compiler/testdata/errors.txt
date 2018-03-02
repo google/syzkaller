@@ -160,6 +160,18 @@ s7 {
 	f1	ptr64[in, int32]
 }
 
+s8 {
+	f1	int8
+} [unknown]			### unknown struct s8 attribute unknown
+
+s9 {
+	f1	int8
+} ["foo"[0]]			### bad struct/union attribute
+
+s10 {
+	f1	int8
+} [packed[0]]			### packed attribute had args
+
 u3 [
 	f1	int8
 	f2	int32

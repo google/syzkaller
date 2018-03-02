@@ -535,6 +535,12 @@ func (comp *compiler) checkStruct(ctx checkCtx, n *ast.Struct) {
 	for _, f := range n.Fields {
 		comp.checkType(ctx, f.Type, flags)
 	}
+	for _, attr := range n.Attrs {
+		if attr.Ident == "" || attr.HasColon {
+			comp.error(attr.Pos, "bad struct/union attribute")
+			return
+		}
+	}
 	if n.IsUnion {
 		comp.parseUnionAttrs(n)
 	} else {
