@@ -3057,16 +3057,6 @@ var structDescs_arm64 = []*KeyedStruct{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "label", TypeSize: 28}, Kind: 2, SubKind: "idletimer_tg_names", Values: []string{"syz0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz1\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "timer", TypeSize: 8}}},
 	}}},
-	{Key: StructKey{Name: "if_settings"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "if_settings", TypeSize: 16}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "type", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4}}},
-		&UnionType{Key: StructKey{Name: "ifs_ifsu"}, FldName: "ifs_ifsu"},
-	}}},
-	{Key: StructKey{Name: "if_settings", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "if_settings", TypeSize: 16, ArgDir: 1}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "type", TypeSize: 4, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4, ArgDir: 1}}},
-		&UnionType{Key: StructKey{Name: "ifs_ifsu", Dir: 1}, FldName: "ifs_ifsu"},
-	}}},
 	{Key: StructKey{Name: "if_settings", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "if_settings", TypeSize: 16, ArgDir: 2}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "type", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "size", TypeSize: 4, ArgDir: 2}}},
@@ -3118,7 +3108,7 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "ifconf_req", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifconf_req", TypeSize: 16, ArgDir: 2}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "ifc_len", TypeSize: 4, ArgDir: 2}}, Buf: "ifcu_req"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ifcu_req", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "ifreq", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ifcu_req", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "ifreq_t[ifr_ifru]", Dir: 2}}},
 	}}},
 	{Key: StructKey{Name: "ifinfomsg[AF_BRIDGE]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifinfomsg[AF_BRIDGE]", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ifi_family", TypeSize: 1}}, Val: 7},
@@ -3178,24 +3168,6 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "nlattr_t[const[IFLA_GROUP, int16], int32]"}, FldName: "IFLA_GROUP"},
 		&StructType{Key: StructKey{Name: "nlattr_t[const[IFLA_IF_NETNSID, int16], int32]"}, FldName: "IFLA_IF_NETNSID"},
 	}}},
-	{Key: StructKey{Name: "ifmap"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifmap", TypeSize: 24}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "mem_start", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "mem_end", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "base_addr", TypeSize: 2}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "irq", TypeSize: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "dma", TypeSize: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "port", TypeSize: 1}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-	}}},
-	{Key: StructKey{Name: "ifmap", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifmap", TypeSize: 24, ArgDir: 1}, Fields: []Type{
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "mem_start", TypeSize: 8, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "mem_end", TypeSize: 8, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "base_addr", TypeSize: 2, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "irq", TypeSize: 1, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "dma", TypeSize: 1, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "port", TypeSize: 1, ArgDir: 1}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
-	}}},
 	{Key: StructKey{Name: "ifmap", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifmap", TypeSize: 24, ArgDir: 2}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "mem_start", TypeSize: 8, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "mem_end", TypeSize: 8, ArgDir: 2}}},
@@ -3205,28 +3177,9 @@ var structDescs_arm64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "port", TypeSize: 1, ArgDir: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "ifr_ifru"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifr_ifru", TypeSize: 24}, Fields: []Type{
-		&UnionType{Key: StructKey{Name: "sockaddr"}, FldName: "ifru_addrs"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ifru_flags", FldName: "ifru_flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4096, 8192, 16384, 32768, 256, 512, 1024, 2048, 4096}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_ivalue", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_mtu", TypeSize: 4}}},
-		&StructType{Key: StructKey{Name: "ifmap"}, FldName: "ifru_map"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifru_names", TypeSize: 16}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ifru_data", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 32}, Kind: 1, RangeBegin: 32, RangeEnd: 32}},
-		&StructType{Key: StructKey{Name: "if_settings"}, FldName: "ifru_settings"},
-	}}},
-	{Key: StructKey{Name: "ifr_ifru", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifr_ifru", TypeSize: 24, ArgDir: 1}, Fields: []Type{
-		&UnionType{Key: StructKey{Name: "sockaddr", Dir: 1}, FldName: "ifru_addrs"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ifru_flags", FldName: "ifru_flags", TypeSize: 2, ArgDir: 1}}, Vals: []uint64{1, 2, 4096, 8192, 16384, 32768, 256, 512, 1024, 2048, 4096}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_ivalue", TypeSize: 4, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_mtu", TypeSize: 4, ArgDir: 1}}},
-		&StructType{Key: StructKey{Name: "ifmap", Dir: 1}, FldName: "ifru_map"},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifru_names", TypeSize: 16, ArgDir: 1}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ifru_data", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 32}, Kind: 1, RangeBegin: 32, RangeEnd: 32}},
-		&StructType{Key: StructKey{Name: "if_settings", Dir: 1}, FldName: "ifru_settings"},
-	}}},
 	{Key: StructKey{Name: "ifr_ifru", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifr_ifru", TypeSize: 24, ArgDir: 2}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "sockaddr", Dir: 2}, FldName: "ifru_addrs"},
+		&UnionType{Key: StructKey{Name: "mac_addr", Dir: 2}, FldName: "ifru_hwaddr"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ifru_flags", FldName: "ifru_flags", TypeSize: 2, ArgDir: 2}}, Vals: []uint64{1, 2, 4096, 8192, 16384, 32768, 256, 512, 1024, 2048, 4096}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_ivalue", TypeSize: 4, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_mtu", TypeSize: 4, ArgDir: 2}}},
@@ -3235,77 +3188,79 @@ var structDescs_arm64 = []*KeyedStruct{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ifru_data", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", TypeSize: 32}, Kind: 1, RangeBegin: 32, RangeEnd: 32}},
 		&StructType{Key: StructKey{Name: "if_settings", Dir: 2}, FldName: "ifru_settings"},
 	}}},
-	{Key: StructKey{Name: "ifr_ifru_in", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifr_ifru_in", TypeSize: 16, ArgDir: 2}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "sockaddr_in", Dir: 2}, FldName: "ifru_addrs"},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ifru_flags", FldName: "ifru_flags", TypeSize: 2, ArgDir: 2}}, Vals: []uint64{1, 2, 4096, 8192, 16384, 32768, 256, 512, 1024, 2048, 4096}},
+	{Key: StructKey{Name: "ifreq_t[flags[ifru_flags, int16]]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[flags[ifru_flags, int16]]", TypeSize: 40, ArgDir: 2}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 2}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ifru_flags", FldName: "elem", TypeSize: 2, ArgDir: 2}}, Vals: []uint64{1, 2, 4096, 8192, 16384, 32768, 256, 512, 1024, 2048, 4096}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 22}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "ifreq"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq", TypeSize: 40}, Fields: []Type{
+	{Key: StructKey{Name: "ifreq_t[flags[tun_queue_flags, int16]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[flags[tun_queue_flags, int16]]", TypeSize: 40}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
-		&UnionType{Key: StructKey{Name: "ifr_ifru"}, FldName: "ifr_ifru"},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "tun_queue_flags", FldName: "elem", TypeSize: 2}}, Vals: []uint64{512, 1024}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 22}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "ifreq", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq", TypeSize: 40, ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "ifreq_t[flags[tun_setiff_flags, int16]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[flags[tun_setiff_flags, int16]]", TypeSize: 40}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "tun_setiff_flags", FldName: "elem", TypeSize: 2}}, Vals: []uint64{1, 2, 16, 32, 4096, 8192, 16384, 32768, 256, 512, 1024, 2048, 4096}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 22}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "ifreq_t[ifindex]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[ifindex]", TypeSize: 40, ArgDir: 2}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 2}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "elem", TypeSize: 4, ArgDir: 2}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 20}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "ifreq_t[ifindex_vcan]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[ifindex_vcan]", TypeSize: 40, ArgDir: 2}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 2}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex_vcan", FldName: "elem", TypeSize: 4, ArgDir: 2}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 20}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "ifreq_t[ifr_ifru]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[ifr_ifru]", TypeSize: 40, ArgDir: 2}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 2}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
+		&UnionType{Key: StructKey{Name: "ifr_ifru", Dir: 2}, FldName: "elem"},
+	}}},
+	{Key: StructKey{Name: "ifreq_t[int32]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[int32]", TypeSize: 40}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "elem", TypeSize: 4}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 20}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "ifreq_t[int32]", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[int32]", TypeSize: 40, ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 1}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
-		&UnionType{Key: StructKey{Name: "ifr_ifru", Dir: 1}, FldName: "ifr_ifru"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "elem", TypeSize: 4, ArgDir: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 20}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "ifreq", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq", TypeSize: 40, ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ifreq_t[int32]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[int32]", TypeSize: 40, ArgDir: 2}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 2}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
-		&UnionType{Key: StructKey{Name: "ifr_ifru", Dir: 2}, FldName: "ifr_ifru"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "elem", TypeSize: 4, ArgDir: 2}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 20}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "ifreq_SIOCETHTOOL", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_SIOCETHTOOL", TypeSize: 40, ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ifreq_t[mac_addr]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[mac_addr]", TypeSize: 40}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
+		&UnionType{Key: StructKey{Name: "mac_addr"}, FldName: "elem"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 18}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "ifreq_t[ptr[inout, ethtool_cmd_u]]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[ptr[inout, ethtool_cmd_u]]", TypeSize: 40, ArgDir: 2}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 2}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "ifr_ifru", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "ethtool_cmd_u", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "elem", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "ethtool_cmd_u", Dir: 2}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 16}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "ifreq_SIOCGIFINDEX", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_SIOCGIFINDEX", TypeSize: 40, ArgDir: 2}, Fields: []Type{
+	{Key: StructKey{Name: "ifreq_t[sockaddr_in]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[sockaddr_in]", TypeSize: 40, ArgDir: 2}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 2}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "ifr_ifru", TypeSize: 4, ArgDir: 2}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 20}}, IsPad: true},
-	}}},
-	{Key: StructKey{Name: "ifreq_SIOCGIFINDEX_vcan", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_SIOCGIFINDEX_vcan", TypeSize: 40, ArgDir: 2}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 2}, Kind: 2, Values: []string{"vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex_vcan", FldName: "ifr_ifru", TypeSize: 4, ArgDir: 2}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 20}}, IsPad: true},
-	}}},
-	{Key: StructKey{Name: "ifreq_in", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_in", TypeSize: 40, ArgDir: 2}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 2}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
-		&UnionType{Key: StructKey{Name: "ifr_ifru_in", Dir: 2}, FldName: "ifr_ifru"},
+		&StructType{Key: StructKey{Name: "sockaddr_in", Dir: 2}, FldName: "elem"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 8}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "ifreq_ipx"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_ipx", TypeSize: 32}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ifrn_name", TypeSize: 16}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
-		&StructType{Key: StructKey{Name: "sockaddr_ipx"}, FldName: "ifr_addr"},
-	}}},
-	{Key: StructKey{Name: "ifreq_ipx", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_ipx", TypeSize: 32, ArgDir: 2}, Fields: []Type{
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "ifrn_name", TypeSize: 16, ArgDir: 2}, Kind: 1, RangeBegin: 16, RangeEnd: 16},
-		&StructType{Key: StructKey{Name: "sockaddr_ipx", Dir: 2}, FldName: "ifr_addr"},
-	}}},
-	{Key: StructKey{Name: "ifreq_mtu"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_mtu", TypeSize: 40}, Fields: []Type{
+	{Key: StructKey{Name: "ifreq_t[sockaddr_ipx]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[sockaddr_ipx]", TypeSize: 40}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_mtu", TypeSize: 4}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 20}}, IsPad: true},
+		&StructType{Key: StructKey{Name: "sockaddr_ipx"}, FldName: "elem"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 8}}, IsPad: true},
 	}}},
-	{Key: StructKey{Name: "ifreq_mtu", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_mtu", TypeSize: 40, ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "ifreq_t[sockaddr_ipx]", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[sockaddr_ipx]", TypeSize: 40, ArgDir: 2}, Fields: []Type{
+		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 2}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
+		&StructType{Key: StructKey{Name: "sockaddr_ipx", Dir: 2}, FldName: "elem"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 8}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "ifreq_t[void]", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifreq_t[void]", TypeSize: 40, ArgDir: 1}, Fields: []Type{
 		&BufferType{TypeCommon: TypeCommon{TypeName: "string", FldName: "ifr_ifrn", TypeSize: 16, ArgDir: 1}, Kind: 2, SubKind: "devnames", Values: []string{"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "lo\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "tunl0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "gretap0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip_vti0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6_vti0\x00\x00\x00\x00\x00\x00\x00\x00", "sit0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6tnl0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gre0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ip6gretap0\x00\x00\x00\x00\x00\x00", "bond0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "dummy0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "eql\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ifb0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "ipddp0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "yam0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsf0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bcsh0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "teql0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "nr0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "rose0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "irlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "erspan0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bpq0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vlan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "bridge0\x00\x00\x00\x00\x00\x00\x00\x00\x00", "vcan0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syz_tun\x00\x00\x00\x00\x00\x00\x00\x00\x00", "syzkaller0\x00\x00\x00\x00\x00\x00", "syzkaller1\x00\x00\x00\x00\x00\x00"}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifru_mtu", TypeSize: 4, ArgDir: 1}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 20}}, IsPad: true},
-	}}},
-	{Key: StructKey{Name: "ifs_ifsu"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifs_ifsu", TypeSize: 8}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "raw_hdlc", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "raw_hdlc_proto"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "cisco", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "cisco_proto"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fr_proto"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fr_pvc", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fr_proto_pvc"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fr_pvc_info", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fr_proto_pvc_info"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sync", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sync_serial_settings"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "te1", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "te1_settings"}}},
-	}}},
-	{Key: StructKey{Name: "ifs_ifsu", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifs_ifsu", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "raw_hdlc", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "raw_hdlc_proto"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "cisco", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "cisco_proto"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fr_proto"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fr_pvc", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fr_proto_pvc"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fr_pvc_info", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "fr_proto_pvc_info"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "sync", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sync_serial_settings"}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "te1", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "te1_settings"}}},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "elem", ArgDir: 1}, Kind: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 24}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "ifs_ifsu", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "ifs_ifsu", TypeSize: 8, ArgDir: 2}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "raw_hdlc", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "raw_hdlc_proto"}}},
@@ -3345,7 +3300,7 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "in6_ifreq"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "in6_ifreq", TypeSize: 24}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "ipv6_addr"}, FldName: "ifr6_addr"},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifr6_prefixlen", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "ifr6_prefixlen", TypeSize: 4}}, Kind: 2, RangeEnd: 128},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "ifr6_ifindex", TypeSize: 4}},
 	}}},
 	{Key: StructKey{Name: "in6_pktinfo"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "in6_pktinfo", TypeSize: 20}, Fields: []Type{
@@ -8780,38 +8735,6 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "f0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "f1", TypeSize: 4, ArgDir: 1}},
 	}}},
-	{Key: StructKey{Name: "sockaddr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr", TypeSize: 16}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "sockaddr_in"}, FldName: "in"},
-		&StructType{Key: StructKey{Name: "sockaddr_ax25"}, FldName: "ax25"},
-		&StructType{Key: StructKey{Name: "sockaddr_ipx"}, FldName: "ipx"},
-		&UnionType{Key: StructKey{Name: "sockaddr_nl"}, FldName: "nl"},
-		&StructType{Key: StructKey{Name: "sockaddr_llc"}, FldName: "llc"},
-		&StructType{Key: StructKey{Name: "sockaddr_can"}, FldName: "can"},
-		&StructType{Key: StructKey{Name: "sockaddr_sco"}, FldName: "sco"},
-		&StructType{Key: StructKey{Name: "sockaddr_l2"}, FldName: "l2"},
-		&StructType{Key: StructKey{Name: "sockaddr_hci"}, FldName: "hci"},
-		&StructType{Key: StructKey{Name: "sockaddr_rc"}, FldName: "rc"},
-		&StructType{Key: StructKey{Name: "sockaddr_nfc"}, FldName: "nfc"},
-		&StructType{Key: StructKey{Name: "sockaddr_vm"}, FldName: "vsock"},
-		&StructType{Key: StructKey{Name: "sockaddr_ethernet"}, FldName: "ethernet"},
-		&StructType{Key: StructKey{Name: "sockaddr_generic"}, FldName: "generic"},
-	}}},
-	{Key: StructKey{Name: "sockaddr", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr", TypeSize: 16, ArgDir: 1}, Fields: []Type{
-		&StructType{Key: StructKey{Name: "sockaddr_in", Dir: 1}, FldName: "in"},
-		&StructType{Key: StructKey{Name: "sockaddr_ax25", Dir: 1}, FldName: "ax25"},
-		&StructType{Key: StructKey{Name: "sockaddr_ipx", Dir: 1}, FldName: "ipx"},
-		&UnionType{Key: StructKey{Name: "sockaddr_nl", Dir: 1}, FldName: "nl"},
-		&StructType{Key: StructKey{Name: "sockaddr_llc", Dir: 1}, FldName: "llc"},
-		&StructType{Key: StructKey{Name: "sockaddr_can", Dir: 1}, FldName: "can"},
-		&StructType{Key: StructKey{Name: "sockaddr_sco", Dir: 1}, FldName: "sco"},
-		&StructType{Key: StructKey{Name: "sockaddr_l2", Dir: 1}, FldName: "l2"},
-		&StructType{Key: StructKey{Name: "sockaddr_hci", Dir: 1}, FldName: "hci"},
-		&StructType{Key: StructKey{Name: "sockaddr_rc", Dir: 1}, FldName: "rc"},
-		&StructType{Key: StructKey{Name: "sockaddr_nfc", Dir: 1}, FldName: "nfc"},
-		&StructType{Key: StructKey{Name: "sockaddr_vm", Dir: 1}, FldName: "vsock"},
-		&StructType{Key: StructKey{Name: "sockaddr_ethernet", Dir: 1}, FldName: "ethernet"},
-		&StructType{Key: StructKey{Name: "sockaddr_generic", Dir: 1}, FldName: "generic"},
-	}}},
 	{Key: StructKey{Name: "sockaddr", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr", TypeSize: 16, ArgDir: 2}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_in", Dir: 2}, FldName: "in"},
 		&StructType{Key: StructKey{Name: "sockaddr_ax25", Dir: 2}, FldName: "ax25"},
@@ -8895,14 +8818,6 @@ var structDescs_arm64 = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "sockaddr_ethernet_family", FldName: "sa_family", TypeSize: 2, ArgDir: 2}}, Vals: []uint64{1, 774, 6}},
 		&UnionType{Key: StructKey{Name: "mac_addr", Dir: 2}, FldName: "sa_data"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 8}}, IsPad: true},
-	}}},
-	{Key: StructKey{Name: "sockaddr_generic"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_generic", TypeSize: 16}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "socket_domain", FldName: "sa_family", TypeSize: 2}}, Vals: []uint64{1, 2, 10, 4, 16, 9, 3, 8, 5, 17}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "sa_data", TypeSize: 14}, Kind: 1, RangeBegin: 14, RangeEnd: 14},
-	}}},
-	{Key: StructKey{Name: "sockaddr_generic", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_generic", TypeSize: 16, ArgDir: 1}, Fields: []Type{
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "socket_domain", FldName: "sa_family", TypeSize: 2, ArgDir: 1}}, Vals: []uint64{1, 2, 10, 4, 16, 9, 3, 8, 5, 17}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "sa_data", TypeSize: 14, ArgDir: 1}, Kind: 1, RangeBegin: 14, RangeEnd: 14},
 	}}},
 	{Key: StructKey{Name: "sockaddr_generic", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_generic", TypeSize: 16, ArgDir: 2}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "socket_domain", FldName: "sa_family", TypeSize: 2, ArgDir: 2}}, Vals: []uint64{1, 2, 10, 4, 16, 9, 3, 8, 5, 17}},
@@ -15740,22 +15655,22 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$SIOCGIFHWADDR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35111},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq", Dir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[void]", Dir: 1}}},
 	}},
 	{NR: 29, Name: "ioctl$SIOCGIFMTU", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_l2tp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35105},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_mtu", Dir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[int32]", Dir: 1}}},
 	}},
 	{NR: 29, Name: "ioctl$SIOCSIFHWADDR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35108},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[mac_addr]"}}},
 	}},
 	{NR: 29, Name: "ioctl$SIOCSIFMTU", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_l2tp", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35106},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_mtu"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[int32]"}}},
 	}},
 	{NR: 29, Name: "ioctl$SNDRV_CTL_IOCTL_CARD_INFO", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_sndctrl", FldName: "fd", TypeSize: 4}},
@@ -16355,7 +16270,7 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$TUNGETIFF", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 2147767506},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[void]", Dir: 1}}},
 	}},
 	{NR: 29, Name: "ioctl$TUNGETSNDBUF", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
@@ -16380,7 +16295,7 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$TUNSETIFF", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074025674},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[flags[tun_setiff_flags, int16]]"}}},
 	}},
 	{NR: 29, Name: "ioctl$TUNSETIFINDEX", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
@@ -16415,7 +16330,7 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$TUNSETQUEUE", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 1074025689},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[flags[tun_queue_flags, int16]]"}}},
 	}},
 	{NR: 29, Name: "ioctl$TUNSETSNDBUF", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tun", FldName: "fd", TypeSize: 4}},
@@ -16602,7 +16517,7 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$ifreq_SIOCGIFINDEX_vcan", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_can", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35123},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_SIOCGIFINDEX_vcan", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[ifindex_vcan]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$int_in", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fd", TypeSize: 4}},
@@ -16647,7 +16562,7 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$sock_SIOCETHTOOL", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35142},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_SIOCETHTOOL", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[ptr[inout, ethtool_cmd_u]]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_SIOCGIFBR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
@@ -16662,7 +16577,7 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$sock_SIOCGIFINDEX", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35123},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_SIOCGIFINDEX", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[ifindex]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_SIOCGPGRP", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
@@ -16777,7 +16692,7 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$sock_ifreq", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ifreq_ioctls", FldName: "cmd", TypeSize: 8}}, Vals: []uint64{35088, 35089, 35091, 35092, 35093, 35094, 35095, 35096, 35097, 35098, 35099, 35100, 35101, 35102, 35103, 35104, 35105, 35106, 35107, 35108, 35109, 35110, 35111, 35113, 35120, 35121, 35122, 35123, 35124, 35125, 35126, 35127, 35128, 35138, 35139, 35142, 35143, 35144, 35145, 35146, 35184, 35185, 35216, 35217, 35218, 35219, 35220, 35221, 35234, 35235, 35248, 35249}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[ifr_ifru]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet6_SIOCADDRT", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in6", FldName: "fd", TypeSize: 4}},
@@ -16857,27 +16772,27 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$sock_inet_SIOCGIFADDR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35093},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[sockaddr_in]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_SIOCGIFBRDADDR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35097},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[sockaddr_in]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_SIOCGIFDSTADDR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35095},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[sockaddr_in]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_SIOCGIFNETMASK", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35099},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[sockaddr_in]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_SIOCGIFPFLAGS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35125},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[int32]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_SIOCRTMSG", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "fd", TypeSize: 4}},
@@ -16892,32 +16807,32 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$sock_inet_SIOCSIFADDR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35094},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[sockaddr_in]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_SIOCSIFBRDADDR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35098},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[sockaddr_in]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_SIOCSIFDSTADDR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35096},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[sockaddr_in]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_SIOCSIFFLAGS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35092},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[flags[ifru_flags, int16]]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_SIOCSIFNETMASK", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35100},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[sockaddr_in]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_SIOCSIFPFLAGS", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35124},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_in", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[int32]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_inet_sctp_SIOCINQ", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_sctp", FldName: "fd", TypeSize: 4}},
@@ -16967,7 +16882,7 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$sock_ipx_SIOCGIFADDR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ipx", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35093},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_ipx", Dir: 2}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[sockaddr_ipx]", Dir: 2}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_ipx_SIOCIPXCFGDATA", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ipx", FldName: "fd", TypeSize: 4}},
@@ -16982,7 +16897,7 @@ var syscalls_arm64 = []*Syscall{
 	{NR: 29, Name: "ioctl$sock_ipx_SIOCSIFADDR", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ipx", FldName: "fd", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 8}}, Val: 35094},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_ipx"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "arg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ifreq_t[sockaddr_ipx]"}}},
 	}},
 	{NR: 29, Name: "ioctl$sock_kcm_SIOCKCMATTACH", CallName: "ioctl", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_kcm", FldName: "fd", TypeSize: 4}},
@@ -25170,4 +25085,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm64 = "4f99bd806dd251ba1694f85e03e800a3078863f1"
+const revision_arm64 = "aec80f2e3bd0e72836bcd14211b2bfa408cb0a97"

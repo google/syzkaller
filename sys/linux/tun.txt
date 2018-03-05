@@ -10,13 +10,10 @@ resource fd_tun[fd]
 syz_open_dev$tun(dev ptr[in, string["/dev/net/tun"]], id const[0], flags flags[open_flags]) fd_tun
 write$tun(fd fd_tun, buf ptr[in, tun_buffer], count len[buf])
 ioctl$TUNGETFEATURES(fd fd_tun, cmd const[TUNGETFEATURES], arg ptr[out, int32])
-# TODO: ifr_flags & IFF_ATTACH_QUEUE | IFF_DETACH_QUEUE
-ioctl$TUNSETQUEUE(fd fd_tun, cmd const[TUNSETQUEUE], arg ptr[in, ifreq])
-# TODO: ifr_name can be empty, ifr_flags -> tun_setiff_flags
-ioctl$TUNSETIFF(fd fd_tun, cmd const[TUNSETIFF], arg ptr[in, ifreq])
+ioctl$TUNSETQUEUE(fd fd_tun, cmd const[TUNSETQUEUE], arg ptr[in, ifreq_t[flags[tun_queue_flags, int16]]])
+ioctl$TUNSETIFF(fd fd_tun, cmd const[TUNSETIFF], arg ptr[in, ifreq_t[flags[tun_setiff_flags, int16]]])
 ioctl$TUNSETIFINDEX(fd fd_tun, cmd const[TUNSETIFINDEX], arg ptr[in, ifindex])
-# TODO: empty IFREQ
-ioctl$TUNGETIFF(fd fd_tun, cmd const[TUNGETIFF], arg ptr[in, ifreq])
+ioctl$TUNGETIFF(fd fd_tun, cmd const[TUNGETIFF], arg ptr[out, ifreq_t[void]])
 ioctl$TUNSETNOCSUM(fd fd_tun, cmd const[TUNSETNOCSUM], arg bool32)
 ioctl$TUNSETPERSIST(fd fd_tun, cmd const[TUNSETPERSIST], arg bool32)
 ioctl$TUNSETOWNER(fd fd_tun, cmd const[TUNSETOWNER], arg uid)
@@ -24,10 +21,8 @@ ioctl$TUNSETGROUP(fd fd_tun, cmd const[TUNSETGROUP], arg gid)
 ioctl$TUNSETLINK(fd fd_tun, cmd const[TUNSETLINK], arg flags[dev_type_arphdr])
 ioctl$TUNSETOFFLOAD(fd fd_tun, cmd const[TUNSETOFFLOAD], arg flags[tun_offload_flags])
 ioctl$TUNSETTXFILTER(fd fd_tun, cmd const[TUNSETTXFILTER], arg ptr[in, tun_filter])
-# TODO: EMPTY IFREQ
-ioctl$SIOCGIFHWADDR(fd fd_tun, cmd const[SIOCGIFHWADDR], arg ptr[out, ifreq])
-# TODO: only ifr_hwaddr
-ioctl$SIOCSIFHWADDR(fd fd_tun, cmd const[SIOCSIFHWADDR], arg ptr[in, ifreq])
+ioctl$SIOCGIFHWADDR(fd fd_tun, cmd const[SIOCGIFHWADDR], arg ptr[out, ifreq_t[void]])
+ioctl$SIOCSIFHWADDR(fd fd_tun, cmd const[SIOCSIFHWADDR], arg ptr[in, ifreq_t[mac_addr]])
 ioctl$TUNGETSNDBUF(fd fd_tun, cmd const[TUNGETSNDBUF], arg ptr[out, int32])
 ioctl$TUNSETSNDBUF(fd fd_tun, cmd const[TUNSETSNDBUF], arg ptr[in, int32])
 ioctl$TUNGETVNETHDRSZ(fd fd_tun, cmd const[TUNGETVNETHDRSZ], arg ptr[out, int32])
@@ -96,4 +91,5 @@ virtio_net_flags = VIRTIO_NET_HDR_F_NEEDS_CSUM, VIRTIO_NET_HDR_F_DATA_VALID
 virtio_net_types = VIRTIO_NET_HDR_GSO_NONE, VIRTIO_NET_HDR_GSO_TCPV4, VIRTIO_NET_HDR_GSO_UDP, VIRTIO_NET_HDR_GSO_TCPV6, VIRTIO_NET_HDR_GSO_ECN
 tun_offload_flags = TUN_F_CSUM, TUN_F_TSO4, TUN_F_TSO6, TUN_F_TSO_ECN, TUN_F_UFO
 tun_setiff_flags = IFF_TUN, IFF_TAP, IFF_NAPI, IFF_NAPI_FRAGS, IFF_NO_PI, IFF_ONE_QUEUE, IFF_VNET_HDR, IFF_TUN_EXCL, IFF_MULTI_QUEUE, IFF_ATTACH_QUEUE, IFF_DETACH_QUEUE, IFF_PERSIST, IFF_NOFILTER
+tun_queue_flags = IFF_ATTACH_QUEUE, IFF_DETACH_QUEUE
 dev_type_arphdr = ARPHRD_NETROM, ARPHRD_ETHER, ARPHRD_EETHER, ARPHRD_AX25, ARPHRD_PRONET, ARPHRD_CHAOS, ARPHRD_IEEE802, ARPHRD_ARCNET, ARPHRD_APPLETLK, ARPHRD_DLCI, ARPHRD_ATM, ARPHRD_METRICOM, ARPHRD_IEEE1394, ARPHRD_EUI64, ARPHRD_INFINIBAND, ARPHRD_SLIP, ARPHRD_CSLIP, ARPHRD_SLIP6, ARPHRD_CSLIP6, ARPHRD_RSRVD, ARPHRD_ADAPT, ARPHRD_ROSE, ARPHRD_X25, ARPHRD_HWX25, ARPHRD_CAN, ARPHRD_PPP, ARPHRD_CISCO, ARPHRD_HDLC, ARPHRD_LAPB, ARPHRD_DDCMP, ARPHRD_RAWHDLC, ARPHRD_RAWIP, ARPHRD_TUNNEL, ARPHRD_TUNNEL6, ARPHRD_FRAD, ARPHRD_SKIP, ARPHRD_LOOPBACK, ARPHRD_LOCALTLK, ARPHRD_FDDI, ARPHRD_BIF, ARPHRD_SIT, ARPHRD_IPDDP, ARPHRD_IPGRE, ARPHRD_PIMREG, ARPHRD_HIPPI, ARPHRD_ASH, ARPHRD_ECONET, ARPHRD_IRDA, ARPHRD_FCPP, ARPHRD_FCAL, ARPHRD_FCPL, ARPHRD_FCFABRIC, ARPHRD_IEEE802_TR, ARPHRD_IEEE80211, ARPHRD_IEEE80211_PRISM, ARPHRD_IEEE80211_RADIOTAP, ARPHRD_IEEE802154, ARPHRD_IEEE802154_MONITOR, ARPHRD_PHONET, ARPHRD_PHONET_PIPE, ARPHRD_CAIF, ARPHRD_IP6GRE, ARPHRD_NETLINK, ARPHRD_6LOWPAN, ARPHRD_VSOCKMON, ARPHRD_VOID, ARPHRD_NONE
