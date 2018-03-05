@@ -34,6 +34,9 @@ func initTarget(target *prog.Target) {
 		CLOCK_REALTIME:            target.ConstMap["CLOCK_REALTIME"],
 		ARCH_SET_FS:               target.ConstMap["ARCH_SET_FS"],
 		ARCH_SET_GS:               target.ConstMap["ARCH_SET_GS"],
+		AF_NFC:                    target.ConstMap["AF_NFC"],
+		AF_LLC:                    target.ConstMap["AF_LLC"],
+		AF_BLUETOOTH:              target.ConstMap["AF_BLUETOOTH"],
 	}
 
 	target.MakeMmap = arch.makeMmap
@@ -104,6 +107,9 @@ type arch struct {
 	CLOCK_REALTIME            uint64
 	ARCH_SET_FS               uint64
 	ARCH_SET_GS               uint64
+	AF_NFC                    uint64
+	AF_LLC                    uint64
+	AF_BLUETOOTH              uint64
 }
 
 // createMmapCall creates a "normal" mmap call that maps [addr, addr+size) memory range.
@@ -194,6 +200,14 @@ func (arch *arch) sanitizeCall(c *prog.Call) {
 		cmd := c.Args[0].(*prog.ConstArg)
 		if uint64(uint32(cmd.Val)) == arch.ARCH_SET_FS {
 			cmd.Val = arch.ARCH_SET_GS
+		}
+	case "syz_init_net_socket":
+		// Don't let it mess with arbitrary sockets in init namespace.
+		family := c.Args[0].(*prog.ConstArg)
+		switch uint64(uint32(family.Val)) {
+		case arch.AF_NFC, arch.AF_LLC, arch.AF_BLUETOOTH:
+		default:
+			family.Val = ^uint64(0)
 		}
 	}
 

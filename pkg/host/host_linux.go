@@ -17,7 +17,7 @@ import (
 )
 
 // DetectSupportedSyscalls returns list on supported syscalls on host.
-func DetectSupportedSyscalls(target *prog.Target) (map[*prog.Syscall]bool, error) {
+func DetectSupportedSyscalls(target *prog.Target, sandbox string) (map[*prog.Syscall]bool, error) {
 	// There are 3 possible strategies:
 	// 1. Executes all syscalls with presumably invalid arguments and check for ENOprog.
 	//    But not all syscalls are safe to execute. For example, pause will hang,
@@ -31,22 +31,19 @@ func DetectSupportedSyscalls(target *prog.Target) (map[*prog.Syscall]bool, error
 	kallsyms, _ := ioutil.ReadFile("/proc/kallsyms")
 	supported := make(map[*prog.Syscall]bool)
 	for _, c := range target.Syscalls {
-		if isSupported(kallsyms, c) {
+		if isSupported(sandbox, kallsyms, c) {
 			supported[c] = true
 		}
 	}
 	return supported, nil
 }
 
-func isSupported(kallsyms []byte, c *prog.Syscall) bool {
+func isSupported(sandbox string, kallsyms []byte, c *prog.Syscall) bool {
 	if strings.HasPrefix(c.CallName, "syz_") {
-		return isSupportedSyzkall(c)
+		return isSupportedSyzkall(sandbox, c)
 	}
 	if strings.HasPrefix(c.Name, "socket$") {
 		return isSupportedSocket(c)
-	}
-	if strings.HasPrefix(c.Name, "open$") {
-		return isSupportedOpen(c)
 	}
 	if strings.HasPrefix(c.Name, "openat$") {
 		return isSupportedOpenAt(c)
@@ -69,7 +66,7 @@ var kallsymsMap = map[string]string{
 	"umount2": "umount",
 }
 
-func isSupportedSyzkall(c *prog.Syscall) bool {
+func isSupportedSyzkall(sandbox string, c *prog.Syscall) bool {
 	switch c.CallName {
 	case "syz_open_dev":
 		if _, ok := c.Args[0].(*prog.ConstType); ok {
@@ -81,7 +78,7 @@ func isSupportedSyzkall(c *prog.Syscall) bool {
 		if !ok {
 			panic("first open arg is not a pointer to string const")
 		}
-		if syscall.Getuid() != 0 {
+		if syscall.Getuid() != 0 || sandbox == "setuid" {
 			return false
 		}
 		var check func(dev string) bool
@@ -102,15 +99,21 @@ func isSupportedSyzkall(c *prog.Syscall) bool {
 	case "syz_open_pts":
 		return true
 	case "syz_fuse_mount":
+		if syscall.Getuid() != 0 || sandbox == "setuid" {
+			return false
+		}
 		return osutil.IsExist("/dev/fuse")
 	case "syz_fuseblk_mount":
-		return osutil.IsExist("/dev/fuse") && syscall.Getuid() == 0
+		if syscall.Getuid() != 0 || sandbox == "setuid" {
+			return false
+		}
+		return osutil.IsExist("/dev/fuse")
 	case "syz_emit_ethernet", "syz_extract_tcp_res":
 		fd, err := syscall.Open("/dev/net/tun", syscall.O_RDWR, 0)
 		if err == nil {
 			syscall.Close(fd)
 		}
-		return err == nil && syscall.Getuid() == 0
+		return err == nil
 	case "syz_kvm_setup_cpu":
 		switch c.Name {
 		case "syz_kvm_setup_cpu$x86":
@@ -118,6 +121,15 @@ func isSupportedSyzkall(c *prog.Syscall) bool {
 		case "syz_kvm_setup_cpu$arm64":
 			return runtime.GOARCH == "arm64"
 		}
+	case "syz_init_net_socket":
+		// Unfortunately this only works with sandbox none at the moment.
+		// The problem is that setns of a network namespace requires CAP_SYS_ADMIN
+		// in the target namespace, and we've lost all privs in the init namespace
+		// during creation of a user namespace.
+		if syscall.Getuid() != 0 || sandbox != "none" {
+			return false
+		}
+		return isSupportedSocket(c)
 	}
 	panic("unknown syzkall: " + c.Name)
 }
@@ -125,7 +137,6 @@ func isSupportedSyzkall(c *prog.Syscall) bool {
 func isSupportedSocket(c *prog.Syscall) bool {
 	af, ok := c.Args[0].(*prog.ConstType)
 	if !ok {
-		println(c.Name)
 		panic("socket family is not const")
 	}
 	fd, err := syscall.Socket(int(af.Val), 0, 0)
@@ -133,18 +144,6 @@ func isSupportedSocket(c *prog.Syscall) bool {
 		syscall.Close(fd)
 	}
 	return err != syscall.ENOSYS && err != syscall.EAFNOSUPPORT
-}
-
-func isSupportedOpen(c *prog.Syscall) bool {
-	fname, ok := extractStringConst(c.Args[0])
-	if !ok {
-		return true
-	}
-	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0)
-	if fd != -1 {
-		syscall.Close(fd)
-	}
-	return err == nil
 }
 
 func isSupportedOpenAt(c *prog.Syscall) bool {

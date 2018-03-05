@@ -100,9 +100,10 @@ const int kRetryStatus = 69;
 const int kErrorStatus = 68;
 #endif
 
-#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||            \
-    defined(SYZ_USE_TMP_DIR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) || \
-    defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu)
+#if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||                  \
+    defined(SYZ_USE_TMP_DIR) || defined(SYZ_TUN_ENABLE) || defined(SYZ_SANDBOX_NAMESPACE) ||       \
+    defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(__NR_syz_kvm_setup_cpu) || \
+    defined(__NR_syz_init_net_socket)
 NORETURN PRINTF static void fail(const char* msg, ...)
 {
 	int e = errno;

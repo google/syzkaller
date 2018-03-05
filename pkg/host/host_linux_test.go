@@ -21,7 +21,7 @@ func TestLog(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Dump for manual inspection.
-	supp, err := DetectSupportedSyscalls(target)
+	supp, err := DetectSupportedSyscalls(target, "none")
 	if err != nil {
 		t.Skipf("skipping: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestSupportedSyscalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	supp, err := DetectSupportedSyscalls(target)
+	supp, err := DetectSupportedSyscalls(target, "none")
 	if err != nil {
 		t.Skipf("skipping: %v", err)
 	}

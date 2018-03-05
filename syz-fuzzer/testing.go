@@ -13,7 +13,7 @@ import (
 	"github.com/google/syzkaller/prog"
 )
 
-func testImage(hostAddr string, target *prog.Target) {
+func testImage(hostAddr string, target *prog.Target, sandbox string) {
 	Logf(0, "connecting to host at %v", hostAddr)
 	conn, err := net.Dial("tcp", hostAddr)
 	if err != nil {
@@ -32,7 +32,7 @@ func testImage(hostAddr string, target *prog.Target) {
 	if config.Flags&ipc.FlagSandboxNamespace != 0 && !osutil.IsExist("/proc/self/ns/user") {
 		Fatalf("/proc/self/ns/user is not present for namespace sandbox")
 	}
-	calls, err := host.DetectSupportedSyscalls(target)
+	calls, err := host.DetectSupportedSyscalls(target, sandbox)
 	if err != nil {
 		Fatalf("failed to detect supported syscalls: %v", err)
 	}

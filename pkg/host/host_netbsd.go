@@ -8,7 +8,7 @@ import (
 )
 
 // DetectSupportedSyscalls returns list on supported syscalls on host.
-func DetectSupportedSyscalls(target *prog.Target) (map[*prog.Syscall]bool, error) {
+func DetectSupportedSyscalls(target *prog.Target, sandbox string) (map[*prog.Syscall]bool, error) {
 	supported := make(map[*prog.Syscall]bool)
 	for _, c := range target.Syscalls {
 		supported[c] = true
