@@ -5325,10 +5325,6 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "llc_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_packet", IsVarlen: true}, Fields: []Type{
 		&UnionType{Key: StructKey{Name: "llc_payload"}, FldName: "payload"},
 	}}},
-	{Key: StructKey{Name: "llc_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_llc", FldName: "fd0", TypeSize: 4, ArgDir: 1}},
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_llc", FldName: "fd1", TypeSize: 4, ArgDir: 1}},
-	}}},
 	{Key: StructKey{Name: "llc_payload"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "llc_payload", IsVarlen: true}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "llc_generic_packet"}, FldName: "llc"},
 		&StructType{Key: StructKey{Name: "llc_snap_packet"}, FldName: "snap"},
@@ -8999,7 +8995,7 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "sockaddr_llc"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_llc", TypeSize: 16}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sllc_family", TypeSize: 2}}, Val: 26},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "llc_protocols", FldName: "sllc_protocol", TypeSize: 2}, BigEndian: true}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "dev_type_arphdr", FldName: "sllc_arphrd", TypeSize: 2}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 15, 19, 23, 24, 27, 32, 256, 257, 258, 259, 260, 264, 270, 271, 272, 280, 512, 513, 513, 516, 517, 518, 519, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 800, 801, 802, 803, 804, 805, 820, 821, 822, 823, 824, 825, 826, 65535, 65534}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sllc_test", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sllc_xid", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sllc_ua", TypeSize: 1}}},
@@ -9009,7 +9005,7 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "sockaddr_llc", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_llc", TypeSize: 16, ArgDir: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sllc_family", TypeSize: 2, ArgDir: 1}}, Val: 26},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "llc_protocols", FldName: "sllc_protocol", TypeSize: 2, ArgDir: 1}, BigEndian: true}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "dev_type_arphdr", FldName: "sllc_arphrd", TypeSize: 2, ArgDir: 1}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 15, 19, 23, 24, 27, 32, 256, 257, 258, 259, 260, 264, 270, 271, 272, 280, 512, 513, 513, 516, 517, 518, 519, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 800, 801, 802, 803, 804, 805, 820, 821, 822, 823, 824, 825, 826, 65535, 65534}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sllc_test", TypeSize: 1, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sllc_xid", TypeSize: 1, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sllc_ua", TypeSize: 1, ArgDir: 1}}},
@@ -9019,7 +9015,7 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "sockaddr_llc", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_llc", TypeSize: 16, ArgDir: 2}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sllc_family", TypeSize: 2, ArgDir: 2}}, Val: 26},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "llc_protocols", FldName: "sllc_protocol", TypeSize: 2, ArgDir: 2}, BigEndian: true}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 245, 246, 247, 248}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "dev_type_arphdr", FldName: "sllc_arphrd", TypeSize: 2, ArgDir: 2}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 7, 8, 15, 19, 23, 24, 27, 32, 256, 257, 258, 259, 260, 264, 270, 271, 272, 280, 512, 513, 513, 516, 517, 518, 519, 768, 769, 770, 771, 772, 773, 774, 775, 776, 777, 778, 779, 780, 781, 782, 783, 784, 785, 786, 787, 800, 801, 802, 803, 804, 805, 820, 821, 822, 823, 824, 825, 826, 65535, 65534}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sllc_test", TypeSize: 1, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sllc_xid", TypeSize: 1, ArgDir: 2}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "sllc_ua", TypeSize: 1, ArgDir: 2}}},
@@ -9036,49 +9032,49 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "full_sockaddr_ax25", Dir: 1}, FldName: "full"},
 	}}},
 	{Key: StructKey{Name: "sockaddr_nfc"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_nfc", TypeSize: 16}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2}}, Val: 39},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sa_family", TypeSize: 2}}, Val: 39},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dev", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "targ", TypeSize: 4}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_proto", FldName: "proto", TypeSize: 4}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dev_idx", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "target_idx", TypeSize: 4}}, Kind: 2, RangeEnd: 2},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_proto", FldName: "nfc_protocol", TypeSize: 4}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7}},
 	}}},
 	{Key: StructKey{Name: "sockaddr_nfc", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_nfc", TypeSize: 16, ArgDir: 1}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2, ArgDir: 1}}, Val: 39},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sa_family", TypeSize: 2, ArgDir: 1}}, Val: 39},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dev", TypeSize: 4, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "targ", TypeSize: 4, ArgDir: 1}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_proto", FldName: "proto", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dev_idx", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "target_idx", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 2},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_proto", FldName: "nfc_protocol", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7}},
 	}}},
 	{Key: StructKey{Name: "sockaddr_nfc", Dir: 2}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_nfc", TypeSize: 16, ArgDir: 2}, Fields: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2, ArgDir: 2}}, Val: 39},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "sa_family", TypeSize: 2, ArgDir: 2}}, Val: 39},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dev", TypeSize: 4, ArgDir: 2}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "targ", TypeSize: 4, ArgDir: 2}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_proto", FldName: "proto", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "dev_idx", TypeSize: 4, ArgDir: 2}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "target_idx", TypeSize: 4, ArgDir: 2}}, Kind: 2, RangeEnd: 2},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_proto", FldName: "nfc_protocol", TypeSize: 4, ArgDir: 2}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7}},
 	}}},
 	{Key: StructKey{Name: "sockaddr_nfc_llcp"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_nfc_llcp", TypeSize: 96}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2}}, Val: 39},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "devidx", TypeSize: 4}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "target", TypeSize: 4}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "devidx", TypeSize: 4}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "target", TypeSize: 4}}, Kind: 2, RangeEnd: 2},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_proto", FldName: "proto", TypeSize: 4}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "dsap", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ssap", TypeSize: 1}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "serv", TypeSize: 63}, Kind: 1, RangeBegin: 63, RangeEnd: 63},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "service_name", TypeSize: 63}, Kind: 1, RangeBegin: 63, RangeEnd: 63},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 7}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "servlen", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "servlen", TypeSize: 8}}, Kind: 2, RangeEnd: 63},
 	}}},
 	{Key: StructKey{Name: "sockaddr_nfc_llcp", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_nfc_llcp", TypeSize: 96, ArgDir: 1}, Fields: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "family", TypeSize: 2, ArgDir: 1}}, Val: 39},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "devidx", TypeSize: 4, ArgDir: 1}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "target", TypeSize: 4, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "devidx", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "target", TypeSize: 4, ArgDir: 1}}, Kind: 2, RangeEnd: 2},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_proto", FldName: "proto", TypeSize: 4, ArgDir: 1}}, Vals: []uint64{1, 2, 3, 4, 5, 6, 7}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "dsap", TypeSize: 1, ArgDir: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "ssap", TypeSize: 1, ArgDir: 1}}},
-		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "serv", TypeSize: 63, ArgDir: 1}, Kind: 1, RangeBegin: 63, RangeEnd: 63},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "service_name", TypeSize: 63, ArgDir: 1}, Kind: 1, RangeBegin: 63, RangeEnd: 63},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 7}}, IsPad: true},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "servlen", TypeSize: 8, ArgDir: 1}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "servlen", TypeSize: 8, ArgDir: 1}}, Kind: 2, RangeEnd: 63},
 	}}},
 	{Key: StructKey{Name: "sockaddr_nl"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "sockaddr_nl", TypeSize: 12}, Fields: []Type{
 		&StructType{Key: StructKey{Name: "sockaddr_nl_t[AF_NETLINK, const[0, int32], flags[netlink_group_bitmap, int32]]"}, FldName: "kern"},
@@ -12200,11 +12196,6 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peer", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_ipx", Dir: 1}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peerlen", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "peer"}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ipx", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 202, Name: "accept$llc", CallName: "accept", Args: []Type{
-		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_llc", FldName: "fd", TypeSize: 4}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peer", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_llc", Dir: 1}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peerlen", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "peer"}},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_llc", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 202, Name: "accept$netrom", CallName: "accept", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_netrom", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peer", TypeSize: 8, IsOptional: true}, Type: &UnionType{Key: StructKey{Name: "sockaddr_netrom", Dir: 1}}},
@@ -12243,6 +12234,12 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peerlen", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "peer"}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "accept_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{2048, 524288}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_ax25", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{NR: 242, Name: "accept4$bt_l2cap", CallName: "accept4", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_l2cap", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peer", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_l2", Dir: 1}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peerlen", TypeSize: 8}, Type: &LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", TypeSize: 4, ArgDir: 2}}, Buf: "peer"}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "accept_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{2048, 524288}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_l2cap", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 242, Name: "accept4$inet", CallName: "accept4", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_in", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "peer", TypeSize: 8, IsOptional: true}, Type: &StructType{Key: StructKey{Name: "sockaddr_in", Dir: 1}}},
@@ -20206,31 +20203,16 @@ var syscalls_arm64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 3},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 5},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_cmtp", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 198, Name: "socket$bt_hci", CallName: "socket", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fam", TypeSize: 8}}, Val: 31},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 3},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 1},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_hci", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 198, Name: "socket$bt_hidp", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fam", TypeSize: 8}}, Val: 31},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 3},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 6},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_hidp", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 198, Name: "socket$bt_l2cap", CallName: "socket", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fam", TypeSize: 8}}, Val: 31},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bt_l2cap_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{5, 1, 2, 3}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_l2cap", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 198, Name: "socket$bt_rfcomm", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fam", TypeSize: 8}}, Val: 31},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bt_rfcomm_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{1, 3}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 3},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_rfcomm", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 198, Name: "socket$bt_sco", CallName: "socket", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fam", TypeSize: 8}}, Val: 31},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 5},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 2},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_sco", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 198, Name: "socket$can_bcm", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 29},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 2},
@@ -20336,11 +20318,6 @@ var syscalls_arm64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 1},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 1},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_l2tp", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 198, Name: "socket$llc", CallName: "socket", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 26},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "llc_socket_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{2, 1}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_llc", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 198, Name: "socket$netlink", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 16},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 3},
@@ -20351,16 +20328,6 @@ var syscalls_arm64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 5},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_netrom", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 198, Name: "socket$nfc_llcp", CallName: "socket", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 39},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_llcp_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{1, 2, 3}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 1},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_nfc_llcp", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
-	{NR: 198, Name: "socket$nfc_raw", CallName: "socket", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 39},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_raw_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{1, 3}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
-	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_nfc_raw", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 198, Name: "socket$nl_crypto", CallName: "socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 16},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 3},
@@ -20529,12 +20496,6 @@ var syscalls_arm64 = []*Syscall{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "ipx_pair", Dir: 1}}},
 	}},
-	{NR: 199, Name: "socketpair$llc", CallName: "socketpair", Args: []Type{
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 26},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "llc_socket_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{2, 1}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "fds", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "llc_pair", Dir: 1}}},
-	}},
 	{NR: 199, Name: "socketpair$packet", CallName: "socketpair", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 17},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "packet_socket_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{3, 2}},
@@ -20622,6 +20583,36 @@ var syscalls_arm64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "blksize", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "syz_init_net_socket$bt_hci", CallName: "syz_init_net_socket", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fam", TypeSize: 8}}, Val: 31},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 3},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 1},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_hci", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "syz_init_net_socket$bt_l2cap", CallName: "syz_init_net_socket", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fam", TypeSize: 8}}, Val: 31},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bt_l2cap_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{5, 1, 2, 3}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_l2cap", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "syz_init_net_socket$bt_sco", CallName: "syz_init_net_socket", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fam", TypeSize: 8}}, Val: 31},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 5},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 2},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_bt_sco", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "syz_init_net_socket$llc", CallName: "syz_init_net_socket", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 26},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "llc_socket_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{2, 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_llc", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "syz_init_net_socket$nfc_llcp", CallName: "syz_init_net_socket", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 39},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_llcp_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{1, 2, 3}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}, Val: 1},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_nfc_llcp", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "syz_init_net_socket$nfc_raw", CallName: "syz_init_net_socket", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "domain", TypeSize: 8}}, Val: 39},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "nfc_raw_type", FldName: "type", TypeSize: 8}}, Vals: []uint64{1, 3}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "proto", TypeSize: 8}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "sock_nfc_raw", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{Name: "syz_kvm_setup_cpu$arm64", CallName: "syz_kvm_setup_cpu", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmvm", FldName: "fd", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_kvmcpu", FldName: "cpufd", TypeSize: 4}},
@@ -23088,6 +23079,7 @@ var consts_arm64 = []ConstValue{
 	{Name: "NEXTHDR_NONE", Value: 59},
 	{Name: "NEXTHDR_ROUTING", Value: 43},
 	{Name: "NFACCT_NAME_MAX", Value: 32},
+	{Name: "NFC_LLCP_MAX_SERVICE_NAME", Value: 63},
 	{Name: "NFC_LLCP_MIUX", Value: 1},
 	{Name: "NFC_LLCP_REMOTE_LTO", Value: 3},
 	{Name: "NFC_LLCP_REMOTE_MIU", Value: 2},
@@ -25085,4 +25077,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm64 = "aec80f2e3bd0e72836bcd14211b2bfa408cb0a97"
+const revision_arm64 = "c468a4ea718d49a30529c85ce2ffe57859d18d1c"

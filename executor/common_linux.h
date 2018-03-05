@@ -112,11 +112,19 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #endif
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_init_net_socket)
+#include <fcntl.h>
+#include <sched.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||      \
     defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || \
     defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||                   \
-    defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) || defined(__NR_syz_kvm_setup_cpu)
+    defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) ||                       \
+    defined(__NR_syz_kvm_setup_cpu) || defined(__NR_syz_init_net_socket)
 // One does not simply exit.
 // _exit can in fact fail.
 // syzkaller did manage to generate a seccomp filter that prohibits exit_group syscall.
@@ -688,6 +696,34 @@ static uintptr_t syz_fuseblk_mount(uintptr_t a0, uintptr_t a1, uintptr_t a2, uin
 }
 #endif
 
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_init_net_socket)
+#if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)
+const int kInitNetNsFd = 253;
+// syz_init_net_socket opens a socket in init net namespace.
+// Used for families that can only be created in init net namespace.
+static uintptr_t syz_init_net_socket(uintptr_t domain, uintptr_t type, uintptr_t proto)
+{
+	int netns = open("/proc/self/ns/net", O_RDONLY);
+	if (netns == -1)
+		return netns;
+	if (setns(kInitNetNsFd, 0))
+		return -1;
+	int sock = syscall(__NR_socket, domain, type, proto);
+	int err = errno;
+	if (setns(netns, 0))
+		fail("setns(netns) failed");
+	close(netns);
+	errno = err;
+	return sock;
+}
+#else
+static uintptr_t syz_init_net_socket(uintptr_t domain, uintptr_t type, uintptr_t proto)
+{
+	return syscall(__NR_socket, domain, type, proto);
+}
+#endif
+#endif
+
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_kvm_setup_cpu)
 #if defined(__x86_64__)
 #include "common_kvm_amd64.h"
@@ -709,6 +745,15 @@ static void sandbox_common()
 	prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0);
 	setpgrp();
 	setsid();
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_init_net_socket)
+	int netns = open("/proc/self/ns/net", O_RDONLY);
+	if (netns == -1)
+		fail("open(/proc/self/ns/net) failed");
+	if (dup2(netns, kInitNetNsFd) < 0)
+		fail("dup2(netns, kInitNetNsFd) failed");
+	close(netns);
+#endif
 
 	struct rlimit rlim;
 	rlim.rlim_cur = rlim.rlim_max = 128 << 20;

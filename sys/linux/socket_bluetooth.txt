@@ -19,7 +19,7 @@ include <asm/ioctls.h>
 resource sock_bt[sock]
 resource sock_bt_hci[sock_bt]
 
-socket$bt_hci(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_HCI]) sock_bt_hci
+syz_init_net_socket$bt_hci(fam const[AF_BLUETOOTH], type const[SOCK_RAW], proto const[BTPROTO_HCI]) sock_bt_hci
 bind$bt_hci(fd sock_bt_hci, addr ptr[in, sockaddr_hci], addrlen len[addr])
 ioctl$sock_bt_hci(fd sock_bt_hci, cmd flags[bt_hci_ioctl], arg buffer[inout])
 setsockopt$bt_hci_HCI_DATA_DIR(fd sock_bt_hci, level const[0], opt const[HCI_DATA_DIR], arg ptr[in, int32], arglen len[arg])
@@ -29,7 +29,7 @@ getsockopt$bt_hci(fd sock, level const[0], opt flags[bt_hci_sockopt], arg buffer
 
 resource sock_bt_sco[sock_bt]
 
-socket$bt_sco(fam const[AF_BLUETOOTH], type const[SOCK_SEQPACKET], proto const[BTPROTO_SCO]) sock_bt_sco
+syz_init_net_socket$bt_sco(fam const[AF_BLUETOOTH], type const[SOCK_SEQPACKET], proto const[BTPROTO_SCO]) sock_bt_sco
 bind$bt_sco(fd sock_bt_sco, addr ptr[in, sockaddr_sco], addrlen len[addr])
 connect$bt_sco(fd sock_bt_sco, addr ptr[in, sockaddr_sco], addrlen len[addr])
 getsockopt$bt_sco_SCO_OPTIONS(fd sock_bt_sco, level const[SOL_SCO], opt const[SCO_OPTIONS], arg buffer[out], arglen ptr[inout, len[arg, int32]])
@@ -37,9 +37,10 @@ getsockopt$bt_sco_SCO_CONNINFO(fd sock_bt_sco, level const[SOL_SCO], opt const[S
 
 resource sock_bt_l2cap[sock_bt]
 
-socket$bt_l2cap(fam const[AF_BLUETOOTH], type flags[bt_l2cap_type], proto const[BTPROTO_L2CAP]) sock_bt_l2cap
+syz_init_net_socket$bt_l2cap(fam const[AF_BLUETOOTH], type flags[bt_l2cap_type], proto const[BTPROTO_L2CAP]) sock_bt_l2cap
 bind$bt_l2cap(fd sock_bt_l2cap, addr ptr[in, sockaddr_l2], addrlen len[addr])
 connect$bt_l2cap(fd sock_bt_l2cap, addr ptr[in, sockaddr_l2], addrlen len[addr])
+accept4$bt_l2cap(fd sock_bt_l2cap, peer ptr[out, sockaddr_l2, opt], peerlen ptr[inout, len[peer, int32]], flags flags[accept_flags]) sock_bt_l2cap
 setsockopt$bt_l2cap_L2CAP_OPTIONS(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_OPTIONS], arg ptr[in, l2cap_options], arglen len[arg])
 getsockopt$bt_l2cap_L2CAP_OPTIONS(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_OPTIONS], arg ptr[out, l2cap_options], arglen ptr[inout, len[arg, int32]])
 setsockopt$bt_l2cap_L2CAP_LM(fd sock_bt_l2cap, level const[SOL_L2CAP], opt const[L2CAP_LM], arg ptr[in, flags[bt_l2cap_lm, int32]], arglen len[arg])
