@@ -50,6 +50,9 @@ var structDescs_32 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "i8", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "i32", TypeSize: 4}}},
 	}}},
+	{Key: StructKey{Name: "excessive_fields"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "excessive_fields", TypeSize: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
+	}}},
 	{Key: StructKey{Name: "explicitly_sized"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "explicitly_sized", TypeSize: 42}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 41}}, IsPad: true},
@@ -606,6 +609,13 @@ var syscalls_32 = []*Syscall{
 	{Name: "syz_test$end1", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "syz_end_var_struct"}}},
 	}},
+	{Name: "syz_test$excessive_args1", CallName: "syz_test"},
+	{Name: "syz_test$excessive_args2", CallName: "syz_test", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a1", TypeSize: 1}}},
+	}},
+	{Name: "syz_test$excessive_fields1", CallName: "syz_test", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a1", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "excessive_fields"}}},
+	}},
 	{Name: "syz_test$hint_data", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 	}},
@@ -807,4 +817,4 @@ var consts_32 = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32 = "154a7d4ae122c9736177396c2a2e6c0b506b77d2"
+const revision_32 = "2ab86a8beeba1b75df587c05981b40d6b8761273"
