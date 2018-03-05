@@ -180,7 +180,8 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 		p.Parse('(')
 		for i := 0; p.Char() != ')'; i++ {
 			if i >= len(meta.Args) {
-				return nil, fmt.Errorf("wrong call arg count: %v, want %v", i+1, len(meta.Args))
+				eatExcessive(p)
+				break
 			}
 			typ := meta.Args[i]
 			if IsPad(typ) {
@@ -199,10 +200,8 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 		if !p.EOF() {
 			return nil, fmt.Errorf("tailing data (line #%v)", p.l)
 		}
-		if len(c.Args) < len(meta.Args) {
-			for i := len(c.Args); i < len(meta.Args); i++ {
-				c.Args = append(c.Args, target.defaultArg(meta.Args[i]))
-			}
+		for i := len(c.Args); i < len(meta.Args); i++ {
+			c.Args = append(c.Args, target.defaultArg(meta.Args[i]))
 		}
 		if len(c.Args) != len(meta.Args) {
 			return nil, fmt.Errorf("wrong call arg count: %v, want %v", len(c.Args), len(meta.Args))
@@ -372,7 +371,8 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		var inner []Arg
 		for i := 0; p.Char() != '}'; i++ {
 			if i >= len(t1.Fields) {
-				return nil, fmt.Errorf("wrong struct arg count: %v, want %v", i+1, len(t1.Fields))
+				eatExcessive(p)
+				break
 			}
 			fld := t1.Fields[i]
 			if IsPad(fld) {
@@ -461,6 +461,46 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		vars[r] = arg
 	}
 	return arg, nil
+}
+
+// Eats excessive call arguments and struct fields to recover after description changes.
+func eatExcessive(p *parser) {
+	paren, brack, brace := 0, 0, 0
+	for !p.EOF() {
+		ch := p.Char()
+		switch ch {
+		case '(':
+			paren++
+		case ')':
+			if paren == 0 {
+				return
+			}
+			paren--
+		case '[':
+			brack++
+		case ']':
+			if brack == 0 {
+				return
+			}
+			brack--
+		case '{':
+			brace++
+		case '}':
+			if brace == 0 {
+				return
+			}
+			brace--
+		case '\'', '"':
+			p.Parse(ch)
+			for !p.EOF() && p.Char() != ch {
+				p.Parse(p.Char())
+			}
+			if p.EOF() {
+				return
+			}
+		}
+		p.Parse(ch)
+	}
 }
 
 const (

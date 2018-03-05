@@ -471,6 +471,14 @@ syz_regression1_struct {
 
 syz_test$regression2(a1 ptr[in, array[int32, 4]])
 
+excessive_fields {
+	f1	int8
+}
+
+syz_test$excessive_args1()
+syz_test$excessive_args2(a1 int8)
+syz_test$excessive_fields1(a1 ptr[in, excessive_fields])
+
 # Bitfields
 
 syz_bf_flags = 0, 1, 2
