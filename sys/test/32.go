@@ -485,6 +485,9 @@ var structDescs_32 = []*KeyedStruct{
 	{Key: StructKey{Name: "syz_union3"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "syz_union3", TypeSize: 4}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "f0", TypeSize: 4}}},
 	}}},
+	{Key: StructKey{Name: "type_confusion"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "type_confusion", TypeSize: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
+	}}},
 	{Key: StructKey{Name: "union_arg"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "union_arg", TypeSize: 8}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "f2", TypeSize: 8}}},
@@ -791,6 +794,9 @@ var syscalls_32 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 4}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "text", IsVarlen: true}, Kind: 4}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "a1", TypeSize: 4}}, Buf: "a0"},
 	}},
+	{Name: "syz_test$type_confusion1", CallName: "syz_test", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a1", TypeSize: 4}, Type: &UnionType{Key: StructKey{Name: "type_confusion"}}},
+	}},
 	{Name: "syz_test$union0", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 4}, Type: &StructType{Key: StructKey{Name: "syz_union0_struct"}}},
 	}},
@@ -817,4 +823,4 @@ var consts_32 = []ConstValue{
 	{Name: "ONLY_32BITS_CONST", Value: 1},
 }
 
-const revision_32 = "2ab86a8beeba1b75df587c05981b40d6b8761273"
+const revision_32 = "88188c72dcf69cae330d7ea531d2d69773177a5c"
