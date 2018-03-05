@@ -439,7 +439,7 @@ loop:
 				}
 				i := r.Intn(len(data) - 3)
 				p := (*uint32)(unsafe.Pointer(&data[i]))
-				*p = uint32(r.rand(1 << 32))
+				*p = r.Uint32()
 			case 3: // int64
 				if len(data) < 8 {
 					retry = true
