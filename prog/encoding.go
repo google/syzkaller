@@ -180,7 +180,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 		p.Parse('(')
 		for i := 0; p.Char() != ')'; i++ {
 			if i >= len(meta.Args) {
-				eatExcessive(p)
+				eatExcessive(p, false)
 				break
 			}
 			typ := meta.Args[i]
@@ -225,7 +225,7 @@ func (target *Target) Deserialize(data []byte) (prog *Prog, err error) {
 	return
 }
 
-func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, error) {
+func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg /*, allowNil bool*/) (Arg, error) {
 	r := ""
 	if p.Char() == '<' {
 		p.Parse('<')
@@ -234,6 +234,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		p.Parse('>')
 	}
 	var arg Arg
+top:
 	switch p.Char() {
 	case '0':
 		val := p.Ident()
@@ -262,22 +263,19 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		case *ResourceType:
 			arg = MakeResultArg(typ, nil, v)
 		case *PtrType, *VmaType:
-			arg = MakeNullPointerArg(typ)
+			if typ.Optional() {
+				arg = MakeNullPointerArg(typ)
+			} else {
+				arg = target.defaultArg(typ)
+			}
 		default:
-			return nil, fmt.Errorf("bad const type %+v", typ)
+			eatExcessive(p, true)
+			arg = target.defaultArg(typ)
+			break top
 		}
 	case 'r':
 		id := p.Ident()
-		v, ok := vars[id]
-		if !ok || v == nil {
-			return nil, fmt.Errorf("result %v references unknown variable (vars=%+v)", id, vars)
-		}
-		if _, ok := v.(ArgUsed); !ok {
-			// TODO(dvyukov): this happens during loading of old programs.
-			// Figure out when exactly this happens and if it is repairable.
-			return nil, fmt.Errorf("result %v references bad type %#v", id, v)
-		}
-		arg = MakeResultArg(typ, v, 0)
+		var div, add uint64
 		if p.Char() == '/' {
 			p.Parse('/')
 			op := p.Ident()
@@ -285,7 +283,7 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			if err != nil {
 				return nil, fmt.Errorf("wrong result div op: '%v'", op)
 			}
-			arg.(*ResultArg).OpDiv = v
+			div = v
 		}
 		if p.Char() == '+' {
 			p.Parse('+')
@@ -294,8 +292,21 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			if err != nil {
 				return nil, fmt.Errorf("wrong result add op: '%v'", op)
 			}
-			arg.(*ResultArg).OpAdd = v
+			add = v
 		}
+		v, ok := vars[id]
+		if !ok || v == nil {
+			arg = target.defaultArg(typ)
+			break
+		}
+		if _, ok := v.(ArgUsed); !ok {
+			arg = target.defaultArg(typ)
+			break
+		}
+		resArg := MakeResultArg(typ, v, 0)
+		resArg.OpDiv = div
+		resArg.OpAdd = add
+		arg = resArg
 	case '&':
 		var typ1 Type
 		switch t1 := typ.(type) {
@@ -303,7 +314,9 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			typ1 = t1.Type
 		case *VmaType:
 		default:
-			return nil, fmt.Errorf("& arg is not a pointer: %#v", typ)
+			eatExcessive(p, true)
+			arg = target.defaultArg(typ)
+			break top
 		}
 		p.Parse('&')
 		addr, vmaSize, err := target.parseAddr(p)
@@ -335,6 +348,11 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			arg = MakeVmaPointerArg(typ, addr, vmaSize)
 		}
 	case '"', '\'':
+		if _, ok := typ.(*BufferType); !ok {
+			eatExcessive(p, true)
+			arg = target.defaultArg(typ)
+			break
+		}
 		data, err := deserializeData(p)
 		if err != nil {
 			return nil, err
@@ -363,15 +381,18 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			arg = MakeDataArg(typ, data)
 		}
 	case '{':
+		p.Parse('{')
 		t1, ok := typ.(*StructType)
 		if !ok {
-			return nil, fmt.Errorf("'{' arg is not a struct: %#v", typ)
+			eatExcessive(p, false)
+			p.Parse('}')
+			arg = target.defaultArg(typ)
+			break
 		}
-		p.Parse('{')
 		var inner []Arg
 		for i := 0; p.Char() != '}'; i++ {
 			if i >= len(t1.Fields) {
-				eatExcessive(p)
+				eatExcessive(p, false)
 				break
 			}
 			fld := t1.Fields[i]
@@ -394,11 +415,14 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		}
 		arg = MakeGroupArg(typ, inner)
 	case '[':
+		p.Parse('[')
 		t1, ok := typ.(*ArrayType)
 		if !ok {
-			return nil, fmt.Errorf("'[' arg is not an array: %#v", typ)
+			eatExcessive(p, false)
+			p.Parse(']')
+			arg = target.defaultArg(typ)
+			break
 		}
-		p.Parse('[')
 		var inner []Arg
 		for i := 0; p.Char() != ']'; i++ {
 			arg, err := target.parseArg(t1.Type, p, vars)
@@ -421,7 +445,9 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 	case '@':
 		t1, ok := typ.(*UnionType)
 		if !ok {
-			return nil, fmt.Errorf("'@' arg is not a union: %#v", typ)
+			eatExcessive(p, true)
+			arg = target.defaultArg(typ)
+			break
 		}
 		p.Parse('@')
 		name := p.Ident()
@@ -433,7 +459,9 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 			}
 		}
 		if optType == nil {
-			return nil, fmt.Errorf("union arg %v has unknown option: %v", typ.Name(), name)
+			eatExcessive(p, true)
+			arg = target.defaultArg(typ)
+			break
 		}
 		var opt Arg
 		if p.Char() == '=' {
@@ -451,7 +479,9 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 		p.Parse('n')
 		p.Parse('i')
 		p.Parse('l')
-		if r != "" {
+		if typ != nil {
+			arg = target.defaultArg(typ)
+		} else if r != "" {
 			return nil, fmt.Errorf("named nil argument")
 		}
 	default:
@@ -464,9 +494,9 @@ func (target *Target) parseArg(typ Type, p *parser, vars map[string]Arg) (Arg, e
 }
 
 // Eats excessive call arguments and struct fields to recover after description changes.
-func eatExcessive(p *parser) {
+func eatExcessive(p *parser, stopAtComma bool) {
 	paren, brack, brace := 0, 0, 0
-	for !p.EOF() {
+	for !p.EOF() && p.e == nil {
 		ch := p.Char()
 		switch ch {
 		case '(':
@@ -490,6 +520,10 @@ func eatExcessive(p *parser) {
 				return
 			}
 			brace--
+		case ',':
+			if stopAtComma && paren == 0 && brack == 0 && brace == 0 {
+				return
+			}
 		case '\'', '"':
 			p.Parse(ch)
 			for !p.EOF() && p.Char() != ch {

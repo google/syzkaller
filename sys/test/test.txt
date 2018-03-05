@@ -475,9 +475,14 @@ excessive_fields {
 	f1	int8
 }
 
+type_confusion [
+	f1	int8
+]
+
 syz_test$excessive_args1()
 syz_test$excessive_args2(a1 int8)
 syz_test$excessive_fields1(a1 ptr[in, excessive_fields])
+syz_test$type_confusion1(a1 ptr[in, type_confusion])
 
 # Bitfields
 
