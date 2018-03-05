@@ -46,17 +46,12 @@ setsockopt$ipx_IPX_TYPE(fd sock_ipx, level const[SOL_IPX], optname const[IPX_TYP
 
 # TODO: SIOCDELRT & SIOCADDRT (net/ipx/ipx_route.c)
 
-ioctl$sock_ipx_SIOCSIFADDR(fd sock_ipx, cmd const[SIOCSIFADDR], arg ptr[in, ifreq_ipx])
-ioctl$sock_ipx_SIOCGIFADDR(fd sock_ipx, cmd const[SIOCGIFADDR], arg ptr[inout, ifreq_ipx])
+ioctl$sock_ipx_SIOCSIFADDR(fd sock_ipx, cmd const[SIOCSIFADDR], arg ptr[in, ifreq_t[sockaddr_ipx]])
+ioctl$sock_ipx_SIOCGIFADDR(fd sock_ipx, cmd const[SIOCGIFADDR], arg ptr[inout, ifreq_t[sockaddr_ipx]])
 ioctl$sock_ipx_SIOCAIPXITFCRT(fd sock_ipx, cmd const[SIOCAIPXITFCRT], arg ptr[in, int32])
 ioctl$sock_ipx_SIOCAIPXPRISLT(fd sock_ipx, cmd const[SIOCAIPXPRISLT], arg ptr[in, int32])
 ioctl$sock_ipx_SIOCIPXCFGDATA(fd sock_ipx, cmd const[SIOCIPXCFGDATA], arg ptr[out, ipx_config_data])
 ioctl$sock_ipx_SIOCIPXNCPCONN(fd sock_ipx, cmd const[SIOCIPXNCPCONN], arg ptr[in, int16])
-
-ifreq_ipx {
-	ifrn_name	array[int8, IFNAMSIZ]
-	ifr_addr	sockaddr_ipx
-}
 
 ipx_config_data {
 	ipxcfg_auto_select_primary	int16
