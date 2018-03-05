@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"regexp"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -124,16 +125,16 @@ func TestCallSetRandom(t *testing.T) {
 func TestDeserialize(t *testing.T) {
 	target := initTargetTest(t, "test", "64")
 	tests := []struct {
-		input      string
-		serialized string
-		err        *regexp.Regexp
+		input  string
+		output string
+		err    *regexp.Regexp
 	}{
 		{
 			input: `syz_test$struct(&(0x7f0000000000)={0x0, {0x0}})`,
 		},
 		{
-			input: `syz_test$struct(&(0x7f0000000000)=0x0)`,
-			err:   regexp.MustCompile(`bad const type.*`),
+			input:  `syz_test$struct(&(0x7f0000000000)=0x0)`,
+			output: `syz_test$struct(&(0x7f0000000000))`,
 		},
 		{
 			input: `syz_test$regression1(&(0x7f0000000000)=[{"000000"}, {"0000000000"}])`,
@@ -157,10 +158,52 @@ func TestDeserialize(t *testing.T) {
 			input: `syz_test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
 		},
 		{
-			input: `syz_test$excessive_fields1(0x0)`,
+			input:  `syz_test$excessive_fields1(0x0)`,
+			output: `syz_test$excessive_fields1(&(0x7f0000000000))`,
 		},
 		{
-			input: `syz_test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
+			input:  `syz_test$excessive_fields1(r0)`,
+			output: `syz_test$excessive_fields1(&(0x7f0000000000))`,
+		},
+		{
+			input:  `syz_test$excessive_args2(r1)`,
+			output: `syz_test$excessive_args2(0x0)`,
+		},
+		{
+			input:  `syz_test$excessive_args2({0x0, 0x1})`,
+			output: `syz_test$excessive_args2(0x0)`,
+		},
+		{
+			input:  `syz_test$excessive_args2([0x0], 0x0)`,
+			output: `syz_test$excessive_args2(0x0)`,
+		},
+		{
+			input:  `syz_test$excessive_args2(@foo)`,
+			output: `syz_test$excessive_args2(0x0)`,
+		},
+		{
+			input:  `syz_test$excessive_args2('foo')`,
+			output: `syz_test$excessive_args2(0x0)`,
+		},
+		{
+			input:  `syz_test$excessive_args2(&(0x7f0000000000)={0x0, 0x1})`,
+			output: `syz_test$excessive_args2(0x0)`,
+		},
+		{
+			input:  `syz_test$excessive_args2(nil)`,
+			output: `syz_test$excessive_args2(0x0)`,
+		},
+		{
+			input:  `syz_test$type_confusion1(&(0x7f0000000000)=@unknown)`,
+			output: `syz_test$type_confusion1(&(0x7f0000000000)=@f1)`,
+		},
+		{
+			input:  `syz_test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
+			output: `syz_test$type_confusion1(&(0x7f0000000000)=@f1)`,
+		},
+		{
+			input:  `syz_test$excessive_fields1(&(0x7f0000000000)=0x0)`,
+			output: `syz_test$excessive_fields1(&(0x7f0000000000))`,
 		},
 	}
 	buf := make([]byte, ExecBufferSize)
@@ -174,18 +217,18 @@ func TestDeserialize(t *testing.T) {
 				t.Fatalf("deserialization failed with\n%s\nwhich doesn't match\n%s\ndata:\n%s",
 					err, test.err, test.input)
 			}
-			if test.serialized != "" {
-				t.Fatalf("both err and serialized are set")
+			if test.output != "" {
+				t.Fatalf("both err and output are set")
 			}
 		} else {
 			if test.err != nil {
 				t.Fatalf("deserialization should have failed with:\n%s\ndata:\n%s\n",
 					test.err, test.input)
 			}
-			output := string(p.Serialize())
-			if test.serialized != "" && test.serialized != output {
+			output := strings.TrimSpace(string(p.Serialize()))
+			if test.output != "" && test.output != output {
 				t.Fatalf("wrong serialized data:\n%s\nexpect:\n%s\n",
-					output, test.serialized)
+					output, test.output)
 			}
 			p.SerializeForExec(buf)
 		}
