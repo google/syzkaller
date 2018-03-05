@@ -9,7 +9,7 @@ include <uapi/linux/nfc.h>
 
 resource sock_nfc_llcp[sock]
 
-socket$nfc_llcp(domain const[AF_NFC], type flags[nfc_llcp_type], proto const[NFC_SOCKPROTO_LLCP]) sock_nfc_llcp
+syz_init_net_socket$nfc_llcp(domain const[AF_NFC], type flags[nfc_llcp_type], proto const[NFC_SOCKPROTO_LLCP]) sock_nfc_llcp
 bind$nfc_llcp(fd sock_nfc_llcp, addr ptr[in, sockaddr_nfc_llcp], addrlen len[addr])
 connect$nfc_llcp(fd sock_nfc_llcp, addr ptr[in, sockaddr_nfc_llcp], addrlen len[addr])
 accept$nfc_llcp(fd sock_nfc_llcp, peer ptr[out, sockaddr_nfc_llcp, opt], peerlen ptr[inout, len[peer, int32]]) sock_nfc_llcp
@@ -22,7 +22,7 @@ sendmmsg$nfc_llcp(fd sock_nfc_llcp, mmsg ptr[in, array[nfc_llcp_send_msghdr]], v
 
 resource sock_nfc_raw[sock]
 
-socket$nfc_raw(domain const[AF_NFC], type flags[nfc_raw_type], proto const[NFC_SOCKPROTO_RAW]) sock_nfc_raw
+syz_init_net_socket$nfc_raw(domain const[AF_NFC], type flags[nfc_raw_type], proto const[NFC_SOCKPROTO_RAW]) sock_nfc_raw
 connect$nfc_raw(fd sock_nfc_raw, addr ptr[in, sockaddr_nfc], addrlen len[addr])
 
 nfc_llcp_type = SOCK_STREAM, SOCK_DGRAM, SOCK_RAW
@@ -31,21 +31,21 @@ nfc_proto = NFC_PROTO_JEWEL, NFC_PROTO_MIFARE, NFC_PROTO_FELICA, NFC_PROTO_ISO14
 nfc_llcp_opts = NFC_LLCP_RW, NFC_LLCP_MIUX, NFC_LLCP_REMOTE_MIU, NFC_LLCP_REMOTE_LTO, NFC_LLCP_REMOTE_RW
 
 sockaddr_nfc_llcp {
-	family	const[AF_NFC, int16]
-	devidx	int32
-	target	int32
-	proto	flags[nfc_proto, int32]
-	dsap	int8
-	ssap	int8
-	serv	array[int8, 63]
-	servlen	intptr
+	family		const[AF_NFC, int16]
+	devidx		int32[0:1]
+	target		int32[0:2]
+	proto		flags[nfc_proto, int32]
+	dsap		int8
+	ssap		int8
+	service_name	array[int8, NFC_LLCP_MAX_SERVICE_NAME]
+	servlen		intptr[0:NFC_LLCP_MAX_SERVICE_NAME]
 }
 
 sockaddr_nfc {
-	family	const[AF_NFC, int16]
-	dev	int32
-	targ	int32
-	proto	flags[nfc_proto, int32]
+	sa_family	const[AF_NFC, int16]
+	dev_idx		int32[0:1]
+	target_idx	int32[0:2]
+	nfc_protocol	flags[nfc_proto, int32]
 }
 
 nfc_llcp_send_msghdr {

@@ -139,7 +139,7 @@ func buildCallList(target *prog.Target) map[*prog.Syscall]bool {
 		}
 		return calls
 	}
-	calls, err := host.DetectSupportedSyscalls(target)
+	calls, err := host.DetectSupportedSyscalls(target, "none")
 	if err != nil {
 		Logf(0, "failed to detect host supported syscalls: %v", err)
 		calls = make(map[*prog.Syscall]bool)

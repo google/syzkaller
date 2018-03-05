@@ -2,7 +2,7 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "83da58aa1a9a2171aa34196065470a80047bd263"
+#define SYZ_REVISION "438ceebbeee4b8331ecafae07e85a8079120816c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
@@ -11,6 +11,7 @@ call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
     {"accept4$ax25", 364},
+    {"accept4$bt_l2cap", 364},
     {"accept4$inet", 364},
     {"accept4$inet6", 364},
     {"accept4$ipx", 364},
@@ -1447,11 +1448,8 @@ call_t syscalls[] = {
     {"socket$ax25", 359},
     {"socket$bt_bnep", 359},
     {"socket$bt_cmtp", 359},
-    {"socket$bt_hci", 359},
     {"socket$bt_hidp", 359},
-    {"socket$bt_l2cap", 359},
     {"socket$bt_rfcomm", 359},
-    {"socket$bt_sco", 359},
     {"socket$can_bcm", 359},
     {"socket$can_raw", 359},
     {"socket$inet", 359},
@@ -1473,11 +1471,8 @@ call_t syscalls[] = {
     {"socket$kcm", 359},
     {"socket$key", 359},
     {"socket$l2tp", 359},
-    {"socket$llc", 359},
     {"socket$netlink", 359},
     {"socket$netrom", 359},
-    {"socket$nfc_llcp", 359},
-    {"socket$nfc_raw", 359},
     {"socket$nl_crypto", 359},
     {"socket$nl_generic", 359},
     {"socket$nl_netfilter", 359},
@@ -1508,7 +1503,6 @@ call_t syscalls[] = {
     {"socketpair$inet_tcp", 360},
     {"socketpair$inet_udp", 360},
     {"socketpair$ipx", 360},
-    {"socketpair$llc", 360},
     {"socketpair$packet", 360},
     {"socketpair$unix", 360},
     {"splice", 313},
@@ -1530,6 +1524,12 @@ call_t syscalls[] = {
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
+    {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$llc", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$nfc_llcp", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$nfc_raw", 0, (syscall_t)syz_init_net_socket},
     {"syz_kvm_setup_cpu$arm64", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_kvm_setup_cpu$x86", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
@@ -1615,11 +1615,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "6ec7ea7963734bf917737585902619bc1d3aebe8"
+#define SYZ_REVISION "00ff1c6d3a163fa16b597ce6edab9c4956129d09"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1654;
+unsigned syscall_count = 1653;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -1627,7 +1627,6 @@ call_t syscalls[] = {
     {"accept$inet", 43},
     {"accept$inet6", 43},
     {"accept$ipx", 43},
-    {"accept$llc", 43},
     {"accept$netrom", 43},
     {"accept$nfc_llcp", 43},
     {"accept$packet", 43},
@@ -1635,6 +1634,7 @@ call_t syscalls[] = {
     {"accept4", 288},
     {"accept4$alg", 288},
     {"accept4$ax25", 288},
+    {"accept4$bt_l2cap", 288},
     {"accept4$inet", 288},
     {"accept4$inet6", 288},
     {"accept4$ipx", 288},
@@ -3113,11 +3113,8 @@ call_t syscalls[] = {
     {"socket$ax25", 41},
     {"socket$bt_bnep", 41},
     {"socket$bt_cmtp", 41},
-    {"socket$bt_hci", 41},
     {"socket$bt_hidp", 41},
-    {"socket$bt_l2cap", 41},
     {"socket$bt_rfcomm", 41},
-    {"socket$bt_sco", 41},
     {"socket$can_bcm", 41},
     {"socket$can_raw", 41},
     {"socket$inet", 41},
@@ -3139,11 +3136,8 @@ call_t syscalls[] = {
     {"socket$kcm", 41},
     {"socket$key", 41},
     {"socket$l2tp", 41},
-    {"socket$llc", 41},
     {"socket$netlink", 41},
     {"socket$netrom", 41},
-    {"socket$nfc_llcp", 41},
-    {"socket$nfc_raw", 41},
     {"socket$nl_crypto", 41},
     {"socket$nl_generic", 41},
     {"socket$nl_netfilter", 41},
@@ -3174,7 +3168,6 @@ call_t syscalls[] = {
     {"socketpair$inet_tcp", 53},
     {"socketpair$inet_udp", 53},
     {"socketpair$ipx", 53},
-    {"socketpair$llc", 53},
     {"socketpair$packet", 53},
     {"socketpair$unix", 53},
     {"splice", 275},
@@ -3196,6 +3189,12 @@ call_t syscalls[] = {
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
+    {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$llc", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$nfc_llcp", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$nfc_raw", 0, (syscall_t)syz_init_net_socket},
     {"syz_kvm_setup_cpu$arm64", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_kvm_setup_cpu$x86", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
@@ -3281,11 +3280,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "04dc857071f8d43f6f79aea2320270be4e1d805e"
+#define SYZ_REVISION "5a1569893cefa812603d4f4627986d19ddff1708"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1605;
+unsigned syscall_count = 1604;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3293,7 +3292,6 @@ call_t syscalls[] = {
     {"accept$inet", 285},
     {"accept$inet6", 285},
     {"accept$ipx", 285},
-    {"accept$llc", 285},
     {"accept$netrom", 285},
     {"accept$nfc_llcp", 285},
     {"accept$packet", 285},
@@ -3301,6 +3299,7 @@ call_t syscalls[] = {
     {"accept4", 366},
     {"accept4$alg", 366},
     {"accept4$ax25", 366},
+    {"accept4$bt_l2cap", 366},
     {"accept4$inet", 366},
     {"accept4$inet6", 366},
     {"accept4$ipx", 366},
@@ -4735,11 +4734,8 @@ call_t syscalls[] = {
     {"socket$ax25", 281},
     {"socket$bt_bnep", 281},
     {"socket$bt_cmtp", 281},
-    {"socket$bt_hci", 281},
     {"socket$bt_hidp", 281},
-    {"socket$bt_l2cap", 281},
     {"socket$bt_rfcomm", 281},
-    {"socket$bt_sco", 281},
     {"socket$can_bcm", 281},
     {"socket$can_raw", 281},
     {"socket$inet", 281},
@@ -4760,11 +4756,8 @@ call_t syscalls[] = {
     {"socket$kcm", 281},
     {"socket$key", 281},
     {"socket$l2tp", 281},
-    {"socket$llc", 281},
     {"socket$netlink", 281},
     {"socket$netrom", 281},
-    {"socket$nfc_llcp", 281},
-    {"socket$nfc_raw", 281},
     {"socket$nl_crypto", 281},
     {"socket$nl_generic", 281},
     {"socket$nl_netfilter", 281},
@@ -4794,7 +4787,6 @@ call_t syscalls[] = {
     {"socketpair$inet_tcp", 288},
     {"socketpair$inet_udp", 288},
     {"socketpair$ipx", 288},
-    {"socketpair$llc", 288},
     {"socketpair$packet", 288},
     {"socketpair$unix", 288},
     {"splice", 340},
@@ -4815,6 +4807,12 @@ call_t syscalls[] = {
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
+    {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$llc", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$nfc_llcp", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$nfc_raw", 0, (syscall_t)syz_init_net_socket},
     {"syz_kvm_setup_cpu$arm64", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_kvm_setup_cpu$x86", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
@@ -4898,11 +4896,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "aec80f2e3bd0e72836bcd14211b2bfa408cb0a97"
+#define SYZ_REVISION "c468a4ea718d49a30529c85ce2ffe57859d18d1c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1583;
+unsigned syscall_count = 1582;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -4910,7 +4908,6 @@ call_t syscalls[] = {
     {"accept$inet", 202},
     {"accept$inet6", 202},
     {"accept$ipx", 202},
-    {"accept$llc", 202},
     {"accept$netrom", 202},
     {"accept$nfc_llcp", 202},
     {"accept$packet", 202},
@@ -4918,6 +4915,7 @@ call_t syscalls[] = {
     {"accept4", 242},
     {"accept4$alg", 242},
     {"accept4$ax25", 242},
+    {"accept4$bt_l2cap", 242},
     {"accept4$inet", 242},
     {"accept4$inet6", 242},
     {"accept4$ipx", 242},
@@ -6336,11 +6334,8 @@ call_t syscalls[] = {
     {"socket$ax25", 198},
     {"socket$bt_bnep", 198},
     {"socket$bt_cmtp", 198},
-    {"socket$bt_hci", 198},
     {"socket$bt_hidp", 198},
-    {"socket$bt_l2cap", 198},
     {"socket$bt_rfcomm", 198},
-    {"socket$bt_sco", 198},
     {"socket$can_bcm", 198},
     {"socket$can_raw", 198},
     {"socket$inet", 198},
@@ -6362,11 +6357,8 @@ call_t syscalls[] = {
     {"socket$kcm", 198},
     {"socket$key", 198},
     {"socket$l2tp", 198},
-    {"socket$llc", 198},
     {"socket$netlink", 198},
     {"socket$netrom", 198},
-    {"socket$nfc_llcp", 198},
-    {"socket$nfc_raw", 198},
     {"socket$nl_crypto", 198},
     {"socket$nl_generic", 198},
     {"socket$nl_netfilter", 198},
@@ -6397,7 +6389,6 @@ call_t syscalls[] = {
     {"socketpair$inet_tcp", 199},
     {"socketpair$inet_udp", 199},
     {"socketpair$ipx", 199},
-    {"socketpair$llc", 199},
     {"socketpair$packet", 199},
     {"socketpair$unix", 199},
     {"splice", 76},
@@ -6414,6 +6405,12 @@ call_t syscalls[] = {
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
+    {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$llc", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$nfc_llcp", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$nfc_raw", 0, (syscall_t)syz_init_net_socket},
     {"syz_kvm_setup_cpu$arm64", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_kvm_setup_cpu$x86", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
@@ -6493,11 +6490,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "9860271e4b0a00849f2d402585a806fea72af527"
+#define SYZ_REVISION "b7dc281161fc5fcef8cef3878a5dd2dbbd7c45d5"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1573;
+unsigned syscall_count = 1572;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -6505,7 +6502,6 @@ call_t syscalls[] = {
     {"accept$inet", 330},
     {"accept$inet6", 330},
     {"accept$ipx", 330},
-    {"accept$llc", 330},
     {"accept$netrom", 330},
     {"accept$nfc_llcp", 330},
     {"accept$packet", 330},
@@ -6513,6 +6509,7 @@ call_t syscalls[] = {
     {"accept4", 344},
     {"accept4$alg", 344},
     {"accept4$ax25", 344},
+    {"accept4$bt_l2cap", 344},
     {"accept4$inet", 344},
     {"accept4$inet6", 344},
     {"accept4$ipx", 344},
@@ -7911,11 +7908,8 @@ call_t syscalls[] = {
     {"socket$ax25", 326},
     {"socket$bt_bnep", 326},
     {"socket$bt_cmtp", 326},
-    {"socket$bt_hci", 326},
     {"socket$bt_hidp", 326},
-    {"socket$bt_l2cap", 326},
     {"socket$bt_rfcomm", 326},
-    {"socket$bt_sco", 326},
     {"socket$can_bcm", 326},
     {"socket$can_raw", 326},
     {"socket$inet", 326},
@@ -7937,11 +7931,8 @@ call_t syscalls[] = {
     {"socket$kcm", 326},
     {"socket$key", 326},
     {"socket$l2tp", 326},
-    {"socket$llc", 326},
     {"socket$netlink", 326},
     {"socket$netrom", 326},
-    {"socket$nfc_llcp", 326},
-    {"socket$nfc_raw", 326},
     {"socket$nl_crypto", 326},
     {"socket$nl_generic", 326},
     {"socket$nl_netfilter", 326},
@@ -7972,7 +7963,6 @@ call_t syscalls[] = {
     {"socketpair$inet_tcp", 333},
     {"socketpair$inet_udp", 333},
     {"socketpair$ipx", 333},
-    {"socketpair$llc", 333},
     {"socketpair$packet", 333},
     {"socketpair$unix", 333},
     {"splice", 283},
@@ -7993,6 +7983,12 @@ call_t syscalls[] = {
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
+    {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$llc", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$nfc_llcp", 0, (syscall_t)syz_init_net_socket},
+    {"syz_init_net_socket$nfc_raw", 0, (syscall_t)syz_init_net_socket},
     {"syz_kvm_setup_cpu$arm64", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_kvm_setup_cpu$x86", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},

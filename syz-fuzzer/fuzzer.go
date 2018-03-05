@@ -130,6 +130,17 @@ func main() {
 		Fatalf("%v", err)
 	}
 
+	config, execOpts, err := ipc.DefaultConfig()
+	if err != nil {
+		panic(err)
+	}
+	sandbox := "none"
+	if config.Flags&ipc.FlagSandboxSetuid != 0 {
+		sandbox = "setuid"
+	} else if config.Flags&ipc.FlagSandboxNamespace != 0 {
+		sandbox = "namespace"
+	}
+
 	shutdown := make(chan struct{})
 	osutil.HandleInterrupts(shutdown)
 	go func() {
@@ -140,7 +151,7 @@ func main() {
 	}()
 
 	if *flagTest {
-		testImage(*flagManager, target)
+		testImage(*flagManager, target, sandbox)
 		return
 	}
 
@@ -159,7 +170,7 @@ func main() {
 	if err := RpcCall(*flagManager, "Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
-	calls := buildCallList(target, r.EnabledCalls)
+	calls := buildCallList(target, r.EnabledCalls, sandbox)
 	ct := target.BuildChoiceTable(r.Prios, calls)
 
 	// This requires "fault-inject: support systematic fault injection" kernel commit.
@@ -169,10 +180,6 @@ func main() {
 		faultInjectionEnabled = true
 	}
 
-	config, execOpts, err := ipc.DefaultConfig()
-	if err != nil {
-		panic(err)
-	}
 	if calls[target.SyscallMap["syz_emit_ethernet"]] ||
 		calls[target.SyscallMap["syz_extract_tcp_res"]] {
 		config.Flags |= ipc.FlagEnableTun
@@ -370,7 +377,7 @@ func (fuzzer *Fuzzer) pollLoop() {
 	}
 }
 
-func buildCallList(target *prog.Target, enabledCalls string) map[*prog.Syscall]bool {
+func buildCallList(target *prog.Target, enabledCalls, sandbox string) map[*prog.Syscall]bool {
 	calls := make(map[*prog.Syscall]bool)
 	if enabledCalls != "" {
 		for _, id := range strings.Split(enabledCalls, ",") {
@@ -386,7 +393,7 @@ func buildCallList(target *prog.Target, enabledCalls string) map[*prog.Syscall]b
 		}
 	}
 
-	if supp, err := host.DetectSupportedSyscalls(target); err != nil {
+	if supp, err := host.DetectSupportedSyscalls(target, sandbox); err != nil {
 		Logf(0, "failed to detect host supported syscalls: %v", err)
 	} else {
 		for c := range calls {
