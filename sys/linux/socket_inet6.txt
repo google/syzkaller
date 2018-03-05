@@ -192,6 +192,6 @@ in6_rtmsg {
 
 in6_ifreq {
 	ifr6_addr	ipv6_addr
-	ifr6_prefixlen	int32
+	ifr6_prefixlen	int32[0:128]
 	ifr6_ifindex	ifindex
 }

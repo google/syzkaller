@@ -190,7 +190,7 @@ sockopt_so_timestamping = SOF_TIMESTAMPING_TX_HARDWARE, SOF_TIMESTAMPING_TX_SOFT
 
 # TODO: add SIOCADDRT, SIOCDELRT, SIOCRTMSG, SIOCDRARP, SIOCGRARP, SIOCSRARP, SIOCGIFVLAN, SIOCSIFVLAN, SIOCGSTAMP, SIOCGSTAMPNS
 
-ioctl$sock_SIOCETHTOOL(fd sock, cmd const[SIOCETHTOOL], arg ptr[inout, ifreq_SIOCETHTOOL])
+ioctl$sock_SIOCETHTOOL(fd sock, cmd const[SIOCETHTOOL], arg ptr[inout, ifreq_t[ptr[inout, ethtool_cmd_u]]])
 
 ioctl$sock_SIOCOUTQ(fd sock, cmd const[SIOCOUTQ], arg ptr[out, int32])
 ioctl$sock_SIOCINQ(fd sock, cmd const[SIOCINQ], arg ptr[out, int32])
@@ -201,7 +201,7 @@ ifreq_ioctls = SIOCGIFNAME, SIOCSIFLINK, SIOCGIFFLAGS, SIOCSIFFLAGS, SIOCGIFADDR
 
 ioctl$sock_ifreq(fd sock, cmd flags[ifreq_ioctls], arg ptr[inout, ifreq])
 
-ioctl$sock_SIOCGIFINDEX(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_SIOCGIFINDEX])
+ioctl$sock_SIOCGIFINDEX(fd sock, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_t[ifindex]])
 
 ioctl$sock_SIOCGIFBR(fd sock, cmd const[SIOCGIFBR], arg ptr[inout, brctl_arg])
 ioctl$sock_SIOCSIFBR(fd sock, cmd const[SIOCSIFBR], arg ptr[inout, brctl_arg])
@@ -233,13 +233,16 @@ ioctl$sock_SIOCGPGRP(fd sock, cmd const[SIOCGPGRP], arg ptr[out, pid])
 
 resource ifindex[int32]
 
-ifreq {
+type ifreq_t[ELEM] {
 	ifr_ifrn	devname
-	ifr_ifru	ifr_ifru
+	elem		ELEM
 } [size[IFREQ_SIZE]]
+
+type ifreq ifreq_t[ifr_ifru]
 
 ifr_ifru [
 	ifru_addrs	sockaddr
+	ifru_hwaddr	mac_addr
 	ifru_flags	flags[ifru_flags, int16]
 	ifru_ivalue	int32
 	ifru_mtu	int32
@@ -248,21 +251,6 @@ ifr_ifru [
 	ifru_data	ptr[in, array[int8, 32]]
 	ifru_settings	if_settings
 ]
-
-ifreq_SIOCGIFINDEX {
-	ifr_ifrn	devname
-	ifr_ifru	ifindex
-} [size[IFREQ_SIZE]]
-
-ifreq_SIOCETHTOOL {
-	ifr_ifrn	devname
-	ifr_ifru	ptr[inout, ethtool_cmd_u]
-} [size[IFREQ_SIZE]]
-
-ifreq_mtu {
-	ifr_ifrn	devname
-	ifru_mtu	int32
-} [size[IFREQ_SIZE]]
 
 define IFREQ_SIZE	sizeof(struct ifreq)
 

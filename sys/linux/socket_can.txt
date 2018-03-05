@@ -25,12 +25,7 @@ sendmsg$can_bcm(fd sock_can_bcm, msg ptr[in, msghdr_can[can_bcm_msg]], f flags[s
 
 # TODO: do setsockopt/getsockopt/ioctl.
 
-ioctl$ifreq_SIOCGIFINDEX_vcan(fd sock_can, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_SIOCGIFINDEX_vcan])
-
-ifreq_SIOCGIFINDEX_vcan {
-	ifr_ifrn	string["vcan0", IFNAMSIZ]
-	ifr_ifru	ifindex_vcan
-} [size[IFREQ_SIZE]]
+ioctl$ifreq_SIOCGIFINDEX_vcan(fd sock_can, cmd const[SIOCGIFINDEX], arg ptr[inout, ifreq_t[ifindex_vcan]])
 
 sockaddr_can {
 	can_family	const[AF_CAN, int16]
