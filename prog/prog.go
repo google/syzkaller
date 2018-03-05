@@ -371,7 +371,7 @@ func (target *Target) defaultArg(t Type) Arg {
 		}
 		return MakePointerArg(t, 0, target.defaultArg(typ.Type))
 	default:
-		panic("unknown arg type")
+		panic(fmt.Sprintf("unknown arg type: %#v", t))
 	}
 }
 
@@ -385,7 +385,7 @@ func (target *Target) isDefaultArg(arg Arg) bool {
 		case *IntType, *ConstType, *FlagsType, *LenType, *ProcType, *CsumType:
 			return a.Val == t.Default()
 		default:
-			panic("unknown const type")
+			panic(fmt.Sprintf("unknown const type: %#v", t))
 		}
 	case *GroupArg:
 		if !a.fixedInnerSize() {
@@ -427,7 +427,7 @@ func (target *Target) isDefaultArg(arg Arg) bool {
 		case *VmaType:
 			return a.Address == 0 && a.VmaSize == target.PageSize
 		default:
-			panic("unknown pointer type")
+			panic(fmt.Sprintf("unknown pointer type: %#v", t))
 		}
 	case *ResultArg:
 		t := a.Type().(*ResourceType)
