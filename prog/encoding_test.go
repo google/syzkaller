@@ -143,6 +143,26 @@ func TestDeserialize(t *testing.T) {
 			`syz_test$regression2(&(0x7f0000000000)=[0x1, 0x2, 0x3, 0x4, 0x5, 0x6])`,
 			nil,
 		},
+		{
+			`syz_test$excessive_args1(0x0, 0x1, {0x1, &(0x7f0000000000)=[0x1, 0x2]})`,
+			nil,
+		},
+		{
+			`syz_test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)={0x1, 0x2}})`,
+			nil,
+		},
+		{
+			`syz_test$excessive_args2(0x0, 0x1, {0x1, &(0x7f0000000000)=nil})`,
+			nil,
+		},
+		{
+			`syz_test$excessive_args2(0x0, &(0x7f0000000000), 0x0)`,
+			nil,
+		},
+		{
+			`syz_test$excessive_fields1(&(0x7f0000000000)={0x1, &(0x7f0000000000)=[{0x0}, 0x2]}, {0x1, 0x2, [0x1, 0x2]})`,
+			nil,
+		},
 	}
 	buf := make([]byte, ExecBufferSize)
 	for _, test := range tests {

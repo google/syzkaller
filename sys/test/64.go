@@ -50,6 +50,9 @@ var structDescs_64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "i8", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "i32", TypeSize: 4}}},
 	}}},
+	{Key: StructKey{Name: "excessive_fields"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "excessive_fields", TypeSize: 1}, Fields: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
+	}}},
 	{Key: StructKey{Name: "explicitly_sized"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "explicitly_sized", TypeSize: 42}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "f1", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 41}}, IsPad: true},
@@ -605,6 +608,13 @@ var syscalls_64 = []*Syscall{
 	{Name: "syz_test$end1", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "syz_end_var_struct"}}},
 	}},
+	{Name: "syz_test$excessive_args1", CallName: "syz_test"},
+	{Name: "syz_test$excessive_args2", CallName: "syz_test", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "a1", TypeSize: 1}}},
+	}},
+	{Name: "syz_test$excessive_fields1", CallName: "syz_test", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a1", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "excessive_fields"}}},
+	}},
 	{Name: "syz_test$hint_data", CallName: "syz_test", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "a0", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}}},
 	}},
@@ -805,4 +815,4 @@ var consts_64 = []ConstValue{
 	{Name: "IPPROTO_UDP", Value: 17},
 }
 
-const revision_64 = "07f96db2fe414280f7b2c908e79f44d3d134b8f8"
+const revision_64 = "23d45e5a436efcf4d413c5828f0337e9125d2e0e"
