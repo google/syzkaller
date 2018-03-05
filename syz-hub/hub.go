@@ -117,7 +117,7 @@ func (hub *Hub) Sync(a *HubSyncArgs, r *HubSyncRes) error {
 }
 
 func (hub *Hub) auth(client, key, manager string) (string, error) {
-	if key, ok := hub.keys[client]; !ok || key != key {
+	if expectedKey, ok := hub.keys[client]; !ok || key != expectedKey {
 		Logf(0, "connect from unauthorized client %v", client)
 		return "", fmt.Errorf("unauthorized manager")
 	}
