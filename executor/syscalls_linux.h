@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "02189651b6bef08854c7e471445f7d13d0a03603"
+#define SYZ_REVISION "a4d19f3d89c6652e30a30a8f16bb22eedea9571e"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1601;
+unsigned syscall_count = 1609;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -811,6 +811,12 @@ call_t syscalls[] = {
     {"ioctl$TUNSETVNETBE", 54},
     {"ioctl$TUNSETVNETHDRSZ", 54},
     {"ioctl$TUNSETVNETLE", 54},
+    {"ioctl$UFFDIO_API", 54},
+    {"ioctl$UFFDIO_COPY", 54},
+    {"ioctl$UFFDIO_REGISTER", 54},
+    {"ioctl$UFFDIO_UNREGISTER", 54},
+    {"ioctl$UFFDIO_WAKE", 54},
+    {"ioctl$UFFDIO_ZEROPAGE", 54},
     {"ioctl$VHOST_GET_FEATURES", 54},
     {"ioctl$VHOST_GET_VRING_BASE", 54},
     {"ioctl$VHOST_GET_VRING_ENDIAN", 54},
@@ -1040,6 +1046,7 @@ call_t syscalls[] = {
     {"openat$ppp", 295},
     {"openat$ptmx", 295},
     {"openat$qat_adf_ctl", 295},
+    {"openat$rdma_cm", 295},
     {"openat$rfkill", 295},
     {"openat$rtc", 295},
     {"openat$selinux_access", 295},
@@ -1599,6 +1606,7 @@ call_t syscalls[] = {
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
+    {"write$rdma_cm", 4},
     {"write$selinux_access", 4},
     {"write$selinux_context", 4},
     {"write$selinux_create", 4},
@@ -1615,11 +1623,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "88804cf99067322549285d5a9d0d860fe4e266af"
+#define SYZ_REVISION "0a160a2283a1e3ba08b37705ee1dbb6670b86af6"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1653;
+unsigned syscall_count = 1661;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2438,6 +2446,12 @@ call_t syscalls[] = {
     {"ioctl$TUNSETVNETBE", 16},
     {"ioctl$TUNSETVNETHDRSZ", 16},
     {"ioctl$TUNSETVNETLE", 16},
+    {"ioctl$UFFDIO_API", 16},
+    {"ioctl$UFFDIO_COPY", 16},
+    {"ioctl$UFFDIO_REGISTER", 16},
+    {"ioctl$UFFDIO_UNREGISTER", 16},
+    {"ioctl$UFFDIO_WAKE", 16},
+    {"ioctl$UFFDIO_ZEROPAGE", 16},
     {"ioctl$VHOST_GET_FEATURES", 16},
     {"ioctl$VHOST_GET_VRING_BASE", 16},
     {"ioctl$VHOST_GET_VRING_ENDIAN", 16},
@@ -2677,6 +2691,7 @@ call_t syscalls[] = {
     {"openat$ppp", 257},
     {"openat$ptmx", 257},
     {"openat$qat_adf_ctl", 257},
+    {"openat$rdma_cm", 257},
     {"openat$rfkill", 257},
     {"openat$rtc", 257},
     {"openat$selinux_access", 257},
@@ -3264,6 +3279,7 @@ call_t syscalls[] = {
     {"write$evdev", 1},
     {"write$eventfd", 1},
     {"write$fuse", 1},
+    {"write$rdma_cm", 1},
     {"write$selinux_access", 1},
     {"write$selinux_context", 1},
     {"write$selinux_create", 1},
@@ -3280,11 +3296,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "18403624cd7d4ff75fbee0a23bd49cb08934311f"
+#define SYZ_REVISION "8f884a3256f4d0f2a84807391e479e7713ba6fac"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1604;
+unsigned syscall_count = 1606;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4301,6 +4317,7 @@ call_t syscalls[] = {
     {"openat$ppp", 322},
     {"openat$ptmx", 322},
     {"openat$qat_adf_ctl", 322},
+    {"openat$rdma_cm", 322},
     {"openat$rfkill", 322},
     {"openat$rtc", 322},
     {"openat$selinux_access", 322},
@@ -4880,6 +4897,7 @@ call_t syscalls[] = {
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
+    {"write$rdma_cm", 4},
     {"write$selinux_access", 4},
     {"write$selinux_context", 4},
     {"write$selinux_create", 4},
@@ -4896,11 +4914,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "705baefddd0b12b031b62c88dea4b2bde73b1dd9"
+#define SYZ_REVISION "a227f9eaa7342c1fc70e2518d7d2637f13f704b8"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1582;
+unsigned syscall_count = 1590;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5682,6 +5700,12 @@ call_t syscalls[] = {
     {"ioctl$TUNSETVNETBE", 29},
     {"ioctl$TUNSETVNETHDRSZ", 29},
     {"ioctl$TUNSETVNETLE", 29},
+    {"ioctl$UFFDIO_API", 29},
+    {"ioctl$UFFDIO_COPY", 29},
+    {"ioctl$UFFDIO_REGISTER", 29},
+    {"ioctl$UFFDIO_UNREGISTER", 29},
+    {"ioctl$UFFDIO_WAKE", 29},
+    {"ioctl$UFFDIO_ZEROPAGE", 29},
     {"ioctl$VHOST_GET_FEATURES", 29},
     {"ioctl$VHOST_GET_VRING_BASE", 29},
     {"ioctl$VHOST_GET_VRING_ENDIAN", 29},
@@ -5907,6 +5931,7 @@ call_t syscalls[] = {
     {"openat$ppp", 56},
     {"openat$ptmx", 56},
     {"openat$qat_adf_ctl", 56},
+    {"openat$rdma_cm", 56},
     {"openat$rfkill", 56},
     {"openat$rtc", 56},
     {"openat$selinux_access", 56},
@@ -6474,6 +6499,7 @@ call_t syscalls[] = {
     {"write$evdev", 64},
     {"write$eventfd", 64},
     {"write$fuse", 64},
+    {"write$rdma_cm", 64},
     {"write$selinux_access", 64},
     {"write$selinux_context", 64},
     {"write$selinux_create", 64},
@@ -6490,11 +6516,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "4016a25f76026c14fbae9073386e98195c06a349"
+#define SYZ_REVISION "0a6ad6424c9561f4fddaeab2c50b92213fd76f79"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1572;
+unsigned syscall_count = 1580;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7273,6 +7299,12 @@ call_t syscalls[] = {
     {"ioctl$TUNSETVNETBE", 54},
     {"ioctl$TUNSETVNETHDRSZ", 54},
     {"ioctl$TUNSETVNETLE", 54},
+    {"ioctl$UFFDIO_API", 54},
+    {"ioctl$UFFDIO_COPY", 54},
+    {"ioctl$UFFDIO_REGISTER", 54},
+    {"ioctl$UFFDIO_UNREGISTER", 54},
+    {"ioctl$UFFDIO_WAKE", 54},
+    {"ioctl$UFFDIO_ZEROPAGE", 54},
     {"ioctl$VHOST_GET_FEATURES", 54},
     {"ioctl$VHOST_GET_VRING_BASE", 54},
     {"ioctl$VHOST_GET_VRING_ENDIAN", 54},
@@ -7502,6 +7534,7 @@ call_t syscalls[] = {
     {"openat$ppp", 286},
     {"openat$ptmx", 286},
     {"openat$qat_adf_ctl", 286},
+    {"openat$rdma_cm", 286},
     {"openat$rfkill", 286},
     {"openat$rtc", 286},
     {"openat$selinux_access", 286},
@@ -8058,6 +8091,7 @@ call_t syscalls[] = {
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
+    {"write$rdma_cm", 4},
     {"write$selinux_access", 4},
     {"write$selinux_context", 4},
     {"write$selinux_create", 4},
