@@ -1,0 +1,179 @@
+TITLE: KASAN: slab-out-of-bounds in rds_cong_queue_updates
+CORRUPTED: Y
+
+[  357.015823] ==================================================================
+[  357.023478] BUG: KASAN: slab-out-of-bounds in rds_cong_queue_updates+0x4d3/0x4f0
+[  357.030259] WARNING: CPU: 0 PID: 6694 at net/bridge/netfilter/ebtables.c:2063 compat_copy_entries+0xd92/0x1150
+[  357.031000] Read of size 4 at addr ffff8801b3c58144 by task syz-executor4/6684
+[  357.031012] 
+[  357.031022] CPU: 1 PID: 6684 Comm: syz-executor4 Not tainted 4.16.0-rc4+ #252
+[  357.041272] Kernel panic - not syncing: panic_on_warn set ...
+[  357.041272] 
+[  357.048606] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  357.074113] Call Trace:
+[  357.076685]  dump_stack+0x194/0x24d
+[  357.080302]  ? arch_local_irq_restore+0x53/0x53
+[  357.084955]  ? show_regs_print_info+0x18/0x18
+[  357.089440]  ? lock_release+0xa40/0xa40
+[  357.093397]  ? delayed_work_timer_fn+0x90/0x90
+[  357.097966]  ? rds_cong_queue_updates+0x4d3/0x4f0
+[  357.102792]  print_address_description+0x73/0x250
+[  357.107621]  ? rds_cong_queue_updates+0x4d3/0x4f0
+[  357.112447]  kasan_report+0x23c/0x360
+[  357.116238]  __asan_report_load4_noabort+0x14/0x20
+[  357.121149]  rds_cong_queue_updates+0x4d3/0x4f0
+[  357.125807]  ? rds_cong_get_maps+0x140/0x140
+[  357.130217]  rds_recv_rcvbuf_delta.part.2+0x289/0x320
+[  357.135399]  rds_recv_incoming+0xeb4/0x11d0
+[  357.139716]  ? rds_recv_rcvbuf_delta.part.2+0x320/0x320
+[  357.145076]  ? find_held_lock+0x35/0x1d0
+[  357.149122]  ? refcount_inc_not_zero+0xfe/0x180
+[  357.153779]  ? rds_send_xmit+0x114e/0x26b0
+[  357.157995]  ? rds_inc_init+0x85/0x390
+[  357.161873]  ? refcount_inc+0x1e/0x50
+[  357.165656]  ? rds_message_addref+0xc7/0x110
+[  357.170045]  ? rds_info_getsockopt+0x770/0x770
+[  357.174613]  ? do_raw_spin_trylock+0x190/0x190
+[  357.179177]  ? rds_message_addref+0xc7/0x110
+[  357.183570]  ? _raw_spin_unlock_irqrestore+0x31/0xc0
+[  357.188659]  rds_loop_xmit+0x149/0x320
+[  357.192530]  ? rds_loop_inc_free+0x20/0x20
+[  357.196754]  rds_send_xmit+0xbcd/0x26b0
+[  357.200746]  ? rds_send_ping+0x110/0x110
+[  357.204796]  ? trace_hardirqs_off+0x10/0x10
+[  357.209113]  ? trace_hardirqs_off+0x10/0x10
+[  357.213422]  ? rds_conn_drop+0xb0/0xb0
+[  357.217299]  ? find_held_lock+0x35/0x1d0
+[  357.221358]  ? rds_send_queue_rm+0x58c/0x5fa
+[  357.225748]  ? lock_downgrade+0x980/0x980
+[  357.229884]  ? lock_release+0xa40/0xa40
+[  357.233851]  ? do_raw_spin_trylock+0x190/0x190
+[  357.238414]  ? do_raw_spin_trylock+0x190/0x190
+[  357.242984]  ? _raw_spin_unlock_irqrestore+0x31/0xc0
+[  357.248076]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  357.253080]  ? trace_hardirqs_on+0xd/0x10
+[  357.257219]  ? rds_send_queue_rm+0x591/0x5fa
+[  357.261630]  ? rds_send_mprds_hash+0x31e/0x31e
+[  357.266198]  ? rds_cong_remove_socket+0x4f0/0x4f0
+[  357.271048]  rds_sendmsg+0x1fcb/0x2390
+[  357.274917]  ? avc_has_perm+0x43e/0x680
+[  357.278905]  ? rds_send_drop_to+0x19d0/0x19d0
+[  357.283383]  ? iterate_fd+0x3f0/0x3f0
+[  357.287171]  ? lock_downgrade+0x980/0x980
+[  357.291309]  ? find_held_lock+0x35/0x1d0
+[  357.295368]  ? sock_has_perm+0x2a4/0x420
+[  357.299418]  ? selinux_secmark_relabel_packet+0xc0/0xc0
+[  357.304761]  ? lock_release+0x9e2/0xa40
+[  357.308725]  ? __check_object_size+0x8b/0x530
+[  357.313202]  ? __release_sock+0x360/0x360
+[  357.317331]  ? lock_sock_nested+0x91/0x110
+[  357.321559]  ? __might_sleep+0x95/0x190
+[  357.325525]  ? selinux_socket_sendmsg+0x36/0x40
+[  357.330181]  ? security_socket_sendmsg+0x89/0xb0
+[  357.334919]  ? rds_send_drop_to+0x19d0/0x19d0
+[  357.339400]  sock_sendmsg+0xca/0x110
+[  357.343100]  SYSC_sendto+0x361/0x5c0
+[  357.346803]  ? SYSC_connect+0x4a0/0x4a0
+[  357.350775]  ? security_socket_bind+0x89/0xb0
+[  357.355263]  ? SYSC_bind+0x290/0x410
+[  357.358981]  ? kmem_cache_free+0x258/0x2a0
+[  357.363213]  ? compat_SyS_futex+0x288/0x380
+[  357.367529]  ? compat_SyS_get_robust_list+0x300/0x300
+[  357.372704]  ? filp_open+0x70/0x70
+[  357.376244]  SyS_sendto+0x40/0x50
+[  357.379681]  ? SyS_getpeername+0x30/0x30
+[  357.383732]  do_fast_syscall_32+0x3ec/0xf9f
+[  357.388049]  ? do_int80_syscall_32+0x9c0/0x9c0
+[  357.392622]  ? _raw_spin_unlock_irq+0x27/0x70
+[  357.397101]  ? finish_task_switch+0x1c1/0x7e0
+[  357.401589]  ? syscall_return_slowpath+0x2ac/0x550
+[  357.406508]  ? prepare_exit_to_usermode+0x350/0x350
+[  357.411510]  ? sysret32_from_system_call+0x5/0x3c
+[  357.416343]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  357.421182]  entry_SYSENTER_compat+0x70/0x7f
+[  357.425573] RIP: 0023:0xf7fbcc99
+[  357.428918] RSP: 002b:00000000f77b809c EFLAGS: 00000286 ORIG_RAX: 0000000000000171
+[  357.436618] RAX: ffffffffffffffda RBX: 0000000000000014 RCX: 0000000020f7db7f
+[  357.443872] RDX: 0000000000000481 RSI: 0000000000000000 RDI: 000000002069affb
+[  357.451124] RBP: 0000000000000010 R08: 0000000000000000 R09: 0000000000000000
+[  357.458376] R10: 0000000000000000 R11: 0000000000000000 R12: 0000000000000000
+[  357.465624] R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000000000
+[  357.472904] 
+[  357.472915] CPU: 0 PID: 6694 Comm: syz-executor1 Not tainted 4.16.0-rc4+ #252
+[  357.474511] Allocated by task 4277:
+[  357.481764] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  357.485368]  save_stack+0x43/0xd0
+[  357.494689] Call Trace:
+[  357.498117]  kasan_kmalloc+0xad/0xe0
+[  357.500676]  dump_stack+0x194/0x24d
+[  357.504361]  kasan_slab_alloc+0x12/0x20
+[  357.504371]  kmem_cache_alloc+0x12e/0x760
+[  357.507973]  ? arch_local_irq_restore+0x53/0x53
+[  357.511912]  getname_flags+0xcb/0x580
+[  357.511919]  getname+0x19/0x20
+[  357.516048]  ? vsnprintf+0x1ed/0x1900
+[  357.520677]  do_sys_open+0x2e7/0x6d0
+[  357.520685]  compat_SyS_open+0x2a/0x40
+[  357.524467]  panic+0x1e4/0x41c
+[  357.527619]  do_fast_syscall_32+0x3ec/0xf9f
+[  357.527628]  entry_SYSENTER_compat+0x70/0x7f
+[  357.531400]  ? refcount_error_report+0x214/0x214
+[  357.535079] 
+[  357.538941]  ? show_regs_print_info+0x18/0x18
+[  357.538967]  ? __warn+0x1c1/0x200
+[  357.542114] Freed by task 4277:
+[  357.546420]  ? compat_copy_entries+0xd92/0x1150
+[  357.550789]  save_stack+0x43/0xd0
+[  357.555513]  __warn+0x1dc/0x200
+[  357.557115]  __kasan_slab_free+0x11a/0x170
+[  357.561580]  ? compat_copy_entries+0xd92/0x1150
+[  357.564999]  kasan_slab_free+0xe/0x10
+[  357.565007]  kmem_cache_free+0x83/0x2a0
+[  357.568261]  report_bug+0x211/0x2d0
+[  357.572892]  putname+0xee/0x130
+[  357.572899]  do_sys_open+0x31b/0x6d0
+[  357.576337]  fixup_bug.part.11+0x37/0x80
+[  357.579572]  compat_SyS_open+0x2a/0x40
+[  357.579584]  do_fast_syscall_32+0x3ec/0xf9f
+[  357.583787]  do_error_trap+0x2d7/0x3e0
+[  357.588422]  entry_SYSENTER_compat+0x70/0x7f
+[  357.588426] 
+[  357.592204]  ? wait_for_completion+0x770/0x770
+[  357.596148] The buggy address belongs to the object at ffff8801b3c58580
+[  357.596148]  which belongs to the cache names_cache of size 4096
+[  357.599753]  ? math_error+0x400/0x400
+[  357.602995] The buggy address is located 1084 bytes to the left of
+[  357.602995]  4096-byte region [ffff8801b3c58580, ffff8801b3c59580)
+[  357.602999] The buggy address belongs to the page:
+[  357.606689]  ? module_unload_free+0x5b0/0x5b0
+[  357.610717] page:ffffea0006cf1600 count:1 mapcount:0 mapping:ffff8801b3c58580 index:0x0
+[  357.614578]  ? perf_trace_lock+0x900/0x900
+[  357.618866]  compound_mapcount: 0
+[  357.622734]  ? __alloc_pages_nodemask+0xabe/0xdd0
+[  357.627109] flags: 0x2fffc0000008100(slab|head)
+[  357.628721]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  357.633266] raw: 02fffc0000008100 ffff8801b3c58580 0000000000000000 0000000100000001
+[  357.645991]  do_invalid_op+0x1b/0x20
+[  357.649754] raw: ffffea0006e9eaa0 ffffea0006e97ba0 ffff8801da5d6600 0000000000000000
+[  357.662209]  invalid_op+0x1b/0x40
+[  357.667105] page dumped because: kasan: bad access detected
+[  357.671575] RIP: 0010:compat_copy_entries+0xd92/0x1150
+[  357.679683] 
+[  357.683886] RSP: 0018:ffff8801d35777e8 EFLAGS: 00010216
+[  357.687317] Memory state around the buggy address:
+[  357.692128] RAX: 0000000000010000 RBX: 0000000000000000 RCX: ffffffff851ad5c2
+[  357.692135] RDX: 00000000000004b2 RSI: ffffc90001419000 RDI: 0000000000000000
+[  357.696774]  ffff8801b3c58000: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  357.701586] RBP: ffff8801d3577968 R08: 000000000000004c R09: 0000000000000000
+[  357.709435]  ffff8801b3c58080: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  357.713116] R10: ffffffff88613380 R11: 0000000000000001 R12: 0000000000000004
+[  357.713122] R13: dffffc0000000000 R14: ffff8801d35779c8 R15: 0000000000000004
+[  357.720972] >ffff8801b3c58100: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  357.724418]  ? compat_copy_entries+0xd92/0x1150
+[  357.730084]                                            ^
+[  357.735343]  ? compat_copy_entries+0xd92/0x1150
+[  357.736930]  ffff8801b3c58180: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  357.742269]  ? __might_fault+0x110/0x1d0
+[  357.747163]  ffff8801b3c58200: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+[  357.754436]  ? compat_table_info+0x590/0x590
+[  357.761647] ==================================================================

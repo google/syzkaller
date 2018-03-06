@@ -1,4 +1,4 @@
-TITLE: KASAN: slab-out-of-bounds Read in memcpy
+TITLE: KASAN: slab-out-of-bounds in memcpy at addr ADDR
 CORRUPTED: Y
 
 [ 1722.511384] ==================================================================

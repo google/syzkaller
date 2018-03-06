@@ -594,8 +594,10 @@ var linuxOopses = []*oops{
 		[]byte("BUG:"),
 		[]oopsFormat{
 			{
-				title: compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) of size (?:[0-9]+)"),
-				fmt:   "KASAN: %[1]v %[3]v in %[4]v",
+				title:  compile("BUG: KASAN:"),
+				report: compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) of size (?:[0-9]+)"),
+
+				fmt: "KASAN: %[1]v %[3]v in %[4]v",
 				stack: &stackFmt{
 					parts: []*regexp.Regexp{
 						compile("BUG: KASAN: (?:[a-z\\-]+) in {{FUNC}}"),
@@ -605,17 +607,25 @@ var linuxOopses = []*oops{
 				},
 			},
 			{
-				title:     compile("BUG: KASAN: ([a-z\\-]+) in {{FUNC}}(?:.*\\n)+?.*(Read|Write) of size (?:[0-9]+)"),
-				fmt:       "KASAN: %[1]v %[3]v in %[2]v",
-				corrupted: true,
+				title:  compile("BUG: KASAN:"),
+				report: compile("BUG: KASAN: double-free or invalid-free in {{FUNC}}"),
+				fmt:    "KASAN: invalid-free in %[2]v",
+				stack: &stackFmt{
+					parts: []*regexp.Regexp{
+						compile("BUG: KASAN: double-free or invalid-free in {{FUNC}}"),
+						compile("Call Trace:"),
+						parseStackTrace,
+					},
+				},
 			},
 			{
 				title: compile("BUG: KASAN: ([a-z\\-]+) on address(?:.*\\n)+?.*(Read|Write) of size ([0-9]+)"),
 				fmt:   "KASAN: %[1]v %[2]v",
 			},
 			{
-				title: compile("BUG: KASAN: (.*)"),
-				fmt:   "KASAN: %[1]v",
+				title:     compile("BUG: KASAN: (.*)"),
+				fmt:       "KASAN: %[1]v",
+				corrupted: true,
 			},
 			{
 				title: compile("BUG: unable to handle kernel paging request"),
