@@ -7304,7 +7304,7 @@ var structDescs_arm64 = []*KeyedStruct{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "config1", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "config2", TypeSize: 8}}},
 	}}},
-	{Key: StructKey{Name: "perf_event_attr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "perf_event_attr", TypeSize: 120}, Fields: []Type{
+	{Key: StructKey{Name: "perf_event_attr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "perf_event_attr", TypeSize: 112}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "perf_event_type", FldName: "type", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 3, 4, 5}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "size", TypeSize: 4}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "config0", TypeSize: 1}}},
@@ -7349,9 +7349,8 @@ var structDescs_arm64 = []*KeyedStruct{
 		&UnionType{Key: StructKey{Name: "perf_bp_config"}, FldName: "bp_config"},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "perf_branch_sample_type", FldName: "branch_sample_type", TypeSize: 8}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sample_regs_user", TypeSize: 8}}},
-		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sample_stack_user", TypeSize: 8}}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "sample_stack_user", TypeSize: 4}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "clock_type", FldName: "clockid", TypeSize: 4}}, Vals: []uint64{0, 5, 1, 6, 4, 7, 2, 3}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "sample_regs_intr", TypeSize: 8}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "aux_watermark", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "sample_max_stack", TypeSize: 2}}},
@@ -25077,4 +25076,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm64 = "c468a4ea718d49a30529c85ce2ffe57859d18d1c"
+const revision_arm64 = "705baefddd0b12b031b62c88dea4b2bde73b1dd9"

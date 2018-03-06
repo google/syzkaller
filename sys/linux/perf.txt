@@ -78,7 +78,7 @@ perf_event_attr {
 	bp_config			perf_bp_config
 	branch_sample_type		flags[perf_branch_sample_type, int64]
 	sample_regs_user		int64
-	sample_stack_user		int64
+	sample_stack_user		int32
 	clockid				flags[clock_type, int32]
 	sample_regs_intr		int64
 	aux_watermark			int32
