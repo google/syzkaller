@@ -54,11 +54,11 @@ func Sandbox(cmd *exec.Cmd, user, net bool) error {
 }
 
 func SandboxChown(file string) error {
-	uid, _, err := initSandbox()
+	uid, gid, err := initSandbox()
 	if err != nil {
 		return err
 	}
-	return os.Chown(file, int(uid), int(uid))
+	return os.Chown(file, int(uid), int(gid))
 }
 
 var (
