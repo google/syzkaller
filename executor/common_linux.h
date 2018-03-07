@@ -124,7 +124,7 @@
     defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || \
     defined(SYZ_SANDBOX_NAMESPACE) || defined(SYZ_SANDBOX_SETUID) ||                   \
     defined(SYZ_SANDBOX_NONE) || defined(SYZ_FAULT_INJECTION) ||                       \
-    defined(__NR_syz_kvm_setup_cpu) || defined(__NR_syz_init_net_socket)
+    defined(__NR_syz_kvm_setup_cpu) || defined(__NR_syz_init_net_socket) && (defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE))
 // One does not simply exit.
 // _exit can in fact fail.
 // syzkaller did manage to generate a seccomp filter that prohibits exit_group syscall.
