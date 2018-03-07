@@ -61,7 +61,7 @@ func checkCrashTextAccess(c context.Context, r *http.Request, field string, id i
 		return fmt.Errorf("failed to query crashes: %v", err)
 	}
 	if len(crashes) != 1 {
-		fmt.Errorf("checkCrashTextAccess: found %v crashes for %v=%v",
+		return fmt.Errorf("checkCrashTextAccess: found %v crashes for %v=%v",
 			len(crashes), field, id)
 	}
 	bug := new(Bug)

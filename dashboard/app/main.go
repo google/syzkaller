@@ -257,8 +257,9 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 func handleText(c context.Context, w http.ResponseWriter, r *http.Request) error {
 	tag := r.FormValue("tag")
 	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
-	if err != nil {
-		return fmt.Errorf("failed to parse text id: %v", err)
+	if err != nil || id == 0 {
+		log.Infof(c, "failed to parse text id: %v", err)
+		return nil
 	}
 	if err := checkTextAccess(c, r, tag, id); err != nil {
 		return err
