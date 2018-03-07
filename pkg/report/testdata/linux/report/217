@@ -1,0 +1,9 @@
+TITLE: BUG: unable to handle kernel paging request in foo_ioctl
+CORRUPTED: Y
+
+foo
+
+[   76.470085] syz-executor7: vmalloc: allocation failure: 34359738352 bytes[   76.471107] BUG: unable to handle kernel paging request at ffffffffa4493138
+[   76.471114] IP: [<ffffffff824164eb>] foo_ioctl+0x129b/0x2280
+
+
