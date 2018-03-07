@@ -133,10 +133,12 @@ func (ctx *linux) Parse(output []byte) *Report {
 				}
 				continue
 			}
+			rep.EndPos = next
 			if oops == nil {
 				oops = oops1
 				rep.StartPos = pos
 				rep.Title = string(output[pos+match : next])
+				break
 			} else if secondReportPos == 0 {
 				ignored := false
 				for _, ignore := range ctx.reportStartIgnores {
@@ -149,7 +151,6 @@ func (ctx *linux) Parse(output []byte) *Report {
 					secondReportPos = pos
 				}
 			}
-			rep.EndPos = next
 		}
 		if oops == nil {
 			logReportPrefix = append(logReportPrefix, append([]byte{}, line...))
@@ -221,7 +222,10 @@ func (ctx *linux) Parse(output []byte) *Report {
 		reportPrefix = logReportPrefix
 		title, corrupted, format = extractDescription(report, oops, linuxStackParams)
 		if title == "" {
-			panic(fmt.Sprintf("non matching oops for %q in:\n%s", oops.header, report))
+			panic(fmt.Sprintf("non matching oops for %q in:\n%s\n\nconsole:\n%s\n"+
+				"output [range:%v-%v]:\n%s\n",
+				oops.header, report, consoleReport[:firstReportEnd],
+				rep.StartPos, secondReportPos, output))
 		}
 	}
 	rep.Title = title
