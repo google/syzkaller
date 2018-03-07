@@ -558,6 +558,8 @@ var linuxStackParams = &stackParams{
 		"down_write_trylock",
 		"up_read",
 		"up_write",
+		"mutex_lock",
+		"mutex_unlock",
 		"memcpy",
 		"memcmp",
 		"memset",
@@ -616,6 +618,7 @@ var linuxOopses = []*oops{
 						compile("Call Trace:"),
 						parseStackTrace,
 					},
+					skip: []string{"kmem_", "slab_", "kfree", "vunmap", "vfree"},
 				},
 			},
 			{

@@ -1,0 +1,98 @@
+TITLE: KASAN: invalid-free in xt_free_table_info
+
+[  368.542732] ==================================================================
+[  368.550228] BUG: KASAN: double-free or invalid-free in kvfree+0x36/0x60
+[  368.556946] 
+[  368.558547] CPU: 1 PID: 4260 Comm: syz-executor4 Not tainted 4.16.0-rc4+ #254
+[  368.565787] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  368.575111] Call Trace:
+[  368.577669]  dump_stack+0x194/0x24d
+[  368.581271]  ? arch_local_irq_restore+0x53/0x53
+[  368.585910]  ? show_regs_print_info+0x18/0x18
+[  368.590383]  ? find_next_bit+0xcc/0x100
+[  368.594331]  ? kvfree+0x36/0x60
+[  368.597583]  print_address_description+0x73/0x250
+[  368.602394]  ? kvfree+0x36/0x60
+[  368.605641]  ? kvfree+0x36/0x60
+[  368.608891]  kasan_report_invalid_free+0x55/0x80
+[  368.613620]  __kasan_slab_free+0x145/0x170
+[  368.617827]  ? kvfree+0x36/0x60
+[  368.621077]  kasan_slab_free+0xe/0x10
+[  368.624851]  kfree+0xd9/0x260
+[  368.627930]  kvfree+0x36/0x60
+[  368.631009]  xt_free_table_info+0xaf/0x170
+[  368.635228]  __do_replace+0x810/0xa70
+[  368.639016]  ? compat_table_info+0x4a0/0x4a0
+[  368.643404]  ? kasan_check_write+0x14/0x20
+[  368.647610]  ? _copy_from_user+0x99/0x110
+[  368.651731]  do_ip6t_set_ctl+0x40f/0x5f0
+[  368.655765]  ? translate_compat_table+0x1c50/0x1c50
+[  368.660762]  ? mutex_unlock+0xd/0x10
+[  368.664444]  ? nf_sockopt_find.constprop.0+0x1a7/0x220
+[  368.669692]  nf_setsockopt+0x67/0xc0
+[  368.673380]  ipv6_setsockopt+0x10b/0x130
+[  368.677416]  tcp_setsockopt+0x82/0xd0
+[  368.681194]  sock_common_setsockopt+0x95/0xd0
+[  368.685664]  SyS_setsockopt+0x189/0x360
+[  368.689615]  ? SyS_recv+0x40/0x40
+[  368.693044]  ? mm_fault_error+0x2c0/0x2c0
+[  368.697163]  ? move_addr_to_kernel+0x60/0x60
+[  368.701544]  ? do_syscall_64+0xb7/0x940
+[  368.705490]  ? SyS_recv+0x40/0x40
+[  368.708916]  do_syscall_64+0x281/0x940
+[  368.712774]  ? __do_page_fault+0xc90/0xc90
+[  368.716982]  ? trace_event_raw_event_sys_exit+0x260/0x260
+[  368.722489]  ? syscall_return_slowpath+0x550/0x550
+[  368.727397]  ? retint_user+0x18/0x18
+[  368.731089]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  368.735910]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  368.741079] RIP: 0033:0x45697a
+[  368.744246] RSP: 002b:0000000000a3e3b8 EFLAGS: 00000206 ORIG_RAX: 0000000000000036
+[  368.751927] RAX: ffffffffffffffda RBX: 0000000000a3e3e0 RCX: 000000000045697a
+[  368.759168] RDX: 0000000000000040 RSI: 0000000000000029 RDI: 0000000000000013
+[  368.766407] RBP: 00000000006fd900 R08: 00000000000003b8 R09: 0000000000004000
+[  368.773647] R10: 00000000006fb6e0 R11: 0000000000000206 R12: 0000000000000000
+[  368.780886] R13: 0000000000000013 R14: 0000000000000029 R15: 00000000006fb740
+[  368.788140] 
+[  368.789739] Allocated by task 7667:
+[  368.793338]  save_stack+0x43/0xd0
+[  368.796763]  kasan_kmalloc+0xad/0xe0
+[  368.800448]  __kmalloc_track_caller+0x15e/0x760
+[  368.805090]  kmemdup+0x24/0x50
+[  368.808255]  selinux_cred_prepare+0x43/0xa0
+[  368.812547]  security_prepare_creds+0x7d/0xb0
+[  368.817015]  prepare_creds+0x2b1/0x360
+[  368.820883]  SyS_access+0x8f/0x6a0
+[  368.824399]  do_syscall_64+0x281/0x940
+[  368.828256]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  368.833413] 
+[  368.835015] Freed by task 7667:
+[  368.838269]  save_stack+0x43/0xd0
+[  368.841698]  __kasan_slab_free+0x11a/0x170
+[  368.845913]  kasan_slab_free+0xe/0x10
+[  368.849682]  kfree+0xd9/0x260
+[  368.852757]  selinux_cred_free+0x48/0x70
+[  368.856789]  security_cred_free+0x48/0x80
+[  368.860906]  put_cred_rcu+0x106/0x400
+[  368.864678]  rcu_process_callbacks+0xd6c/0x17f0
+[  368.869315]  __do_softirq+0x2d7/0xb85
+[  368.873084] 
+[  368.874686] The buggy address belongs to the object at ffff8801c95e2880
+[  368.874686]  which belongs to the cache kmalloc-32 of size 32
+[  368.887135] The buggy address is located 0 bytes inside of
+[  368.887135]  32-byte region [ffff8801c95e2880, ffff8801c95e28a0)
+[  368.898715] The buggy address belongs to the page:
+[  368.903616] page:ffffea0007257880 count:1 mapcount:0 mapping:ffff8801c95e2000 index:0xffff8801c95e2fc1
+[  368.913035] flags: 0x2fffc0000000100(slab)
+[  368.917246] raw: 02fffc0000000100 ffff8801c95e2000 ffff8801c95e2fc1 000000010000000f
+[  368.925100] raw: ffffea0006eae820 ffffea0006bb8b20 ffff8801dac001c0 0000000000000000
+[  368.932954] page dumped because: kasan: bad access detected
+[  368.938630] 
+[  368.940228] Memory state around the buggy address:
+[  368.945126]  ffff8801c95e2780: fb fb fb fb fc fc fc fc fb fb fb fb fc fc fc fc
+[  368.952455]  ffff8801c95e2800: fb fb fb fb fc fc fc fc fb fb fb fb fc fc fc fc
+[  368.959793] >ffff8801c95e2880: fb fb fb fb fc fc fc fc fb fb fb fb fc fc fc fc
+[  368.967127]                    ^
+[  368.970461]  ffff8801c95e2900: fb fb fb fb fc fc fc fc fb fb fb fb fc fc fc fc
+[  368.977790]  ffff8801c95e2980: fb fb fb fb fc fc fc fc fb fb fb fb fc fc fc fc
+[  368.985119] ==================================================================
