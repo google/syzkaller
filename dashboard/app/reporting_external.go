@@ -25,9 +25,9 @@ func (cfg *ExternalConfig) Type() string {
 	return cfg.ID
 }
 
-func apiReportingPollBugs(c context.Context, r *http.Request) (interface{}, error) {
+func apiReportingPollBugs(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.PollBugsRequest)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	reports := reportingPollBugs(c, req.Type)
@@ -37,9 +37,9 @@ func apiReportingPollBugs(c context.Context, r *http.Request) (interface{}, erro
 	return resp, nil
 }
 
-func apiReportingPollClosed(c context.Context, r *http.Request) (interface{}, error) {
+func apiReportingPollClosed(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.PollClosedRequest)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	ids, err := reportingPollClosed(c, req.IDs)
@@ -53,9 +53,9 @@ func apiReportingPollClosed(c context.Context, r *http.Request) (interface{}, er
 	return resp, nil
 }
 
-func apiReportingUpdate(c context.Context, r *http.Request) (interface{}, error) {
+func apiReportingUpdate(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.BugUpdate)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	ok, reason, err := incomingCommand(c, req)

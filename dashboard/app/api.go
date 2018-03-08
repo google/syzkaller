@@ -49,8 +49,8 @@ var apiNamespaceHandlers = map[string]APINamespaceHandler{
 }
 
 type JSONHandler func(c context.Context, r *http.Request) (interface{}, error)
-type APIHandler func(c context.Context, r *http.Request) (interface{}, error)
-type APINamespaceHandler func(c context.Context, ns string, r *http.Request) (interface{}, error)
+type APIHandler func(c context.Context, r *http.Request, payload []byte) (interface{}, error)
+type APINamespaceHandler func(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error)
 
 const maxReproPerBug = 10
 
@@ -85,15 +85,29 @@ func handleJSON(fn JSONHandler) http.Handler {
 }
 
 func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error) {
-	ns, err := checkClient(c, r.FormValue("client"), r.FormValue("key"))
+	ns, err := checkClient(c, r.PostFormValue("client"), r.PostFormValue("key"))
 	if err != nil {
 		log.Warningf(c, "%v", err)
 		return nil, fmt.Errorf("unauthorized request")
 	}
-	method := r.FormValue("method")
+	var payload []byte
+	if str := r.PostFormValue("payload"); str != "" {
+		gr, err := gzip.NewReader(strings.NewReader(str))
+		if err != nil {
+			return nil, fmt.Errorf("failed to ungzip payload: %v", err)
+		}
+		payload, err = ioutil.ReadAll(gr)
+		if err != nil {
+			return nil, fmt.Errorf("failed to ungzip payload: %v", err)
+		}
+		if err := gr.Close(); err != nil {
+			return nil, fmt.Errorf("failed to ungzip payload: %v", err)
+		}
+	}
+	method := r.PostFormValue("method")
 	handler := apiHandlers[method]
 	if handler != nil {
-		return handler(c, r)
+		return handler(c, r, payload)
 	}
 	nsHandler := apiNamespaceHandlers[method]
 	if nsHandler == nil {
@@ -102,7 +116,7 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	if ns == "" {
 		return nil, fmt.Errorf("method %q must be called within a namespace", method)
 	}
-	return nsHandler(c, ns, r)
+	return nsHandler(c, ns, r, payload)
 }
 
 func checkClient(c context.Context, name0, key0 string) (string, error) {
@@ -127,18 +141,18 @@ func checkClient(c context.Context, name0, key0 string) (string, error) {
 	return "", fmt.Errorf("unauthorized api request from %q", name0)
 }
 
-func apiLogError(c context.Context, r *http.Request) (interface{}, error) {
+func apiLogError(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.LogEntry)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	log.Errorf(c, "%v: %v", req.Name, req.Text)
 	return nil, nil
 }
 
-func apiBuilderPoll(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiBuilderPoll(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.BuilderPollReq)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	var bugs []*Bug
@@ -184,9 +198,9 @@ loop:
 	return resp, nil
 }
 
-func apiJobPoll(c context.Context, r *http.Request) (interface{}, error) {
+func apiJobPoll(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.JobPollReq)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	if len(req.Managers) == 0 {
@@ -195,18 +209,18 @@ func apiJobPoll(c context.Context, r *http.Request) (interface{}, error) {
 	return pollPendingJobs(c, req.Managers)
 }
 
-func apiJobDone(c context.Context, r *http.Request) (interface{}, error) {
+func apiJobDone(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.JobDoneReq)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	err := doneJob(c, req)
 	return nil, err
 }
 
-func apiUploadBuild(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiUploadBuild(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.Build)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	isNewBuild, err := uploadBuild(c, ns, req, BuildNormal)
@@ -421,9 +435,9 @@ func stringsInList(list, str []string) bool {
 	return true
 }
 
-func apiReportBuildError(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiReportBuildError(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.BuildErrorReq)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	if _, err := uploadBuild(c, ns, &req.Build, BuildFailed); err != nil {
@@ -444,9 +458,9 @@ func apiReportBuildError(c context.Context, ns string, r *http.Request) (interfa
 
 const corruptedReportTitle = "corrupted report"
 
-func apiReportCrash(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiReportCrash(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.Crash)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	bug, err := reportCrash(c, ns, req)
@@ -630,9 +644,9 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 	log.Infof(c, "deleted %v crashes for bug %q", len(crashes), bug.Title)
 }
 
-func apiReportFailedRepro(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.CrashID)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	req.Title = limitLength(req.Title, maxTextLen)
@@ -664,9 +678,9 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request) (interf
 	return nil, nil
 }
 
-func apiNeedRepro(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiNeedRepro(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.CrashID)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	if req.Corrupted {
@@ -690,9 +704,9 @@ func apiNeedRepro(c context.Context, ns string, r *http.Request) (interface{}, e
 	return resp, nil
 }
 
-func apiManagerStats(c context.Context, ns string, r *http.Request) (interface{}, error) {
+func apiManagerStats(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
 	req := new(dashapi.ManagerStatsReq)
-	if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+	if err := json.Unmarshal(payload, req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	now := timeNow(c)
