@@ -23,10 +23,14 @@ func TestGeneration(t *testing.T) {
 
 func TestDefault(t *testing.T) {
 	target, _, _ := initTest(t)
-	for _, meta := range target.SyscallMap {
-		for _, t := range meta.Args {
-			target.defaultArg(t)
-		}
+	for _, meta := range target.Syscalls {
+		ForeachType(meta, func(typ Type) {
+			arg := target.defaultArg(typ)
+			if !target.isDefaultArg(arg) {
+				t.Errorf("default arg is not default: %s\ntype: %#v\narg: %#v",
+					typ, typ, arg)
+			}
+		})
 	}
 }
 
