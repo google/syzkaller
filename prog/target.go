@@ -52,7 +52,7 @@ type Target struct {
 	resourceMap map[string]*ResourceDesc
 	// Maps resource name to a list of calls that can create the resource.
 	resourceCtors map[string][]*Syscall
-	anyTypes
+	any           anyTypes
 }
 
 var targets = make(map[string]*Target)

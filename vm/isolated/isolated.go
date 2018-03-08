@@ -56,8 +56,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		return nil, fmt.Errorf("config param target_dir is empty")
 	}
 	// sshkey is optional
-	if env.SshKey != "" && !osutil.IsExist(env.SshKey) {
-		return nil, fmt.Errorf("ssh key '%v' does not exist", env.SshKey)
+	if env.SSHKey != "" && !osutil.IsExist(env.SSHKey) {
+		return nil, fmt.Errorf("ssh key '%v' does not exist", env.SSHKey)
 	}
 	for _, target := range cfg.Targets {
 		if _, _, err := splitTargetPort(target); err != nil {
@@ -82,11 +82,11 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 	target, targetPort, _ := splitTargetPort(pool.cfg.Targets[index])
 	inst := &instance{
 		cfg:        pool.cfg,
-		target:     pool.env.SshUser + "@" + target,
+		target:     pool.env.SSHUser + "@" + target,
 		targetPort: targetPort,
 		closed:     make(chan bool),
 		debug:      pool.env.Debug,
-		sshkey:     pool.env.SshKey,
+		sshkey:     pool.env.SSHKey,
 	}
 	closeInst := inst
 	defer func() {
@@ -171,8 +171,8 @@ func (inst *instance) ssh(command string) ([]byte, error) {
 
 func (inst *instance) repair() error {
 	Logf(2, "isolated: trying to ssh")
-	if err := inst.waitForSsh(30 * 60); err == nil {
-		if inst.cfg.Target_Reboot == true {
+	if err := inst.waitForSSH(30 * 60); err == nil {
+		if inst.cfg.Target_Reboot {
 			Logf(2, "isolated: trying to reboot")
 			inst.ssh("reboot") // reboot will return an error, ignore it
 			if err := inst.waitForReboot(5 * 60); err != nil {
@@ -180,7 +180,7 @@ func (inst *instance) repair() error {
 				return err
 			}
 			Logf(2, "isolated: rebooted wait for comeback")
-			if err := inst.waitForSsh(30 * 60); err != nil {
+			if err := inst.waitForSSH(30 * 60); err != nil {
 				Logf(2, "isolated: machine did not comeback")
 				return err
 			}
@@ -196,7 +196,7 @@ func (inst *instance) repair() error {
 	return nil
 }
 
-func (inst *instance) waitForSsh(timeout int) error {
+func (inst *instance) waitForSSH(timeout int) error {
 	var err error
 	start := time.Now()
 	for {
@@ -319,9 +319,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	go func() {
 		select {
 		case <-time.After(timeout):
-			signal(vmimpl.TimeoutErr)
+			signal(vmimpl.ErrTimeout)
 		case <-stop:
-			signal(vmimpl.TimeoutErr)
+			signal(vmimpl.ErrTimeout)
 		case <-inst.closed:
 			if inst.debug {
 				Logf(0, "instance closed")

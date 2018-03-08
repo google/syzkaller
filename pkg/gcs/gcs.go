@@ -92,10 +92,8 @@ func (client *Client) UploadFile(localFile, gcsFile string) error {
 	}
 	defer w.Close()
 
-	if _, err := io.Copy(w, local); err != nil {
-		return err
-	}
-	return nil
+	_, err = io.Copy(w, local)
+	return err
 }
 
 func (client *Client) FileWriter(gcsFile string) (io.WriteCloser, error) {

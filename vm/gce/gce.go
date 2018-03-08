@@ -55,11 +55,9 @@ type instance struct {
 	debug   bool
 	name    string
 	ip      string
-	offset  int64
 	gceKey  string // per-instance private ssh key associated with the instance
 	sshKey  string // ssh key
 	sshUser string
-	workdir string
 	closed  chan bool
 }
 
@@ -155,8 +153,8 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 			pool.GCE.DeleteInstance(name, true)
 		}
 	}()
-	sshKey := pool.env.SshKey
-	sshUser := pool.env.SshUser
+	sshKey := pool.env.SSHKey
+	sshUser := pool.env.SSHUser
 	if sshKey == "" {
 		// Assuming image supports GCE ssh fanciness.
 		sshKey = gceKey
@@ -261,7 +259,7 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 				}
 				if bytes.Contains(output, permissionDeniedMsg) {
 					// This is a GCE bug.
-					break
+					break loop
 				}
 			case <-timeout.C:
 				break loop
@@ -312,9 +310,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	go func() {
 		select {
 		case <-time.After(timeout):
-			signal(vmimpl.TimeoutErr)
+			signal(vmimpl.ErrTimeout)
 		case <-stop:
-			signal(vmimpl.TimeoutErr)
+			signal(vmimpl.ErrTimeout)
 		case <-inst.closed:
 			signal(fmt.Errorf("instance closed"))
 		case err := <-merger.Err:
@@ -330,13 +328,13 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 				// Console connection must never fail. If it does, it's either
 				// instance preemption or a GCE bug. In either case, not a kernel bug.
 				Logf(1, "%v: gce console connection failed with %v", inst.name, merr.Err)
-				err = vmimpl.TimeoutErr
+				err = vmimpl.ErrTimeout
 			} else {
 				// Check if the instance was terminated due to preemption or host maintenance.
 				time.Sleep(5 * time.Second) // just to avoid any GCE races
 				if !inst.GCE.IsInstanceRunning(inst.name) {
 					Logf(1, "%v: ssh exited but instance is not running", inst.name)
-					err = vmimpl.TimeoutErr
+					err = vmimpl.ErrTimeout
 				}
 			}
 			signal(err)

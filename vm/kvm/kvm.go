@@ -33,7 +33,7 @@ type Config struct {
 	Lkvm    string // lkvm binary name
 	Kernel  string // e.g. arch/x86/boot/bzImage
 	Cmdline string // kernel command line
-	Cpu     int    // number of VM CPUs
+	CPU     int    // number of VM CPUs
 	Mem     int    // amount of VM memory in MBs
 }
 
@@ -79,8 +79,8 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 	if !osutil.IsExist(cfg.Kernel) {
 		return nil, fmt.Errorf("kernel file '%v' does not exist", cfg.Kernel)
 	}
-	if cfg.Cpu < 1 || cfg.Cpu > 1024 {
-		return nil, fmt.Errorf("invalid config param cpu: %v, want [1-1024]", cfg.Cpu)
+	if cfg.CPU < 1 || cfg.CPU > 1024 {
+		return nil, fmt.Errorf("invalid config param cpu: %v, want [1-1024]", cfg.CPU)
 	}
 	if cfg.Mem < 128 || cfg.Mem > 1048576 {
 		return nil, fmt.Errorf("invalid config param mem: %v, want [128-1048576]", cfg.Mem)
@@ -134,7 +134,7 @@ func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
 		"--kernel", inst.cfg.Kernel,
 		"--params", "slub_debug=UZ "+inst.cfg.Cmdline,
 		"--mem", strconv.Itoa(inst.cfg.Mem),
-		"--cpus", strconv.Itoa(inst.cfg.Cpu),
+		"--cpus", strconv.Itoa(inst.cfg.CPU),
 		"--network", "mode=user",
 		"--sandbox", scriptPath,
 	)
@@ -260,10 +260,10 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 		for {
 			select {
 			case <-timeoutTicker.C:
-				resultErr = vmimpl.TimeoutErr
+				resultErr = vmimpl.ErrTimeout
 				break loop
 			case <-stop:
-				resultErr = vmimpl.TimeoutErr
+				resultErr = vmimpl.ErrTimeout
 				break loop
 			case <-secondTicker.C:
 				if !osutil.IsExist(cmdFile) {

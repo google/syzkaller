@@ -578,11 +578,11 @@ func (comp *compiler) checkStruct(ctx checkCtx, n *ast.Struct) {
 type checkFlags int
 
 const (
-	checkIsArg          checkFlags = 1 << iota // immidiate syscall arg type
-	checkIsRet                                 // immidiate syscall ret type
-	checkIsStruct                              // immidiate struct field type
-	checkIsResourceBase                        // immidiate resource base type
-	checkIsTypedef                             // immidiate type alias/template type
+	checkIsArg          checkFlags = 1 << iota // immediate syscall arg type
+	checkIsRet                                 // immediate syscall ret type
+	checkIsStruct                              // immediate struct field type
+	checkIsResourceBase                        // immediate resource base type
+	checkIsTypedef                             // immediate type alias/template type
 )
 
 type checkCtx struct {
@@ -603,7 +603,7 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 		err0 := comp.errors
 		// Replace t with type alias/template target type inplace,
 		// and check the replaced type recursively.
-		comp.replaceTypedef(&ctx, t, desc, flags)
+		comp.replaceTypedef(&ctx, t, flags)
 		if err0 == comp.errors {
 			comp.checkType(ctx, t, flags)
 		}
@@ -682,7 +682,7 @@ func (comp *compiler) checkType(ctx checkCtx, t *ast.Type, flags checkFlags) {
 	}
 }
 
-func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, desc *typeDesc, flags checkFlags) {
+func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, flags checkFlags) {
 	typedefName := t.Ident
 	if t.HasColon {
 		comp.error(t.Pos, "type alias %v with ':'", t.Ident)
@@ -740,7 +740,7 @@ func (comp *compiler) replaceTypedef(ctx *checkCtx, t *ast.Type, desc *typeDesc,
 	t.Pos = pos0
 
 	// Remove base type if it's not needed in this context.
-	desc = comp.getTypeDesc(t)
+	desc := comp.getTypeDesc(t)
 	if flags&checkIsArg != 0 && desc.NeedBase {
 		baseTypePos := len(t.Args) - 1
 		if t.Args[baseTypePos].Ident == "opt" {
@@ -938,7 +938,9 @@ func (comp *compiler) checkDupConsts() {
 	// The second one is meant to be const[BAR],
 	// Unfortunately, this does not fully work as it detects lots of false positives.
 	// But was useful to find real bugs as well. So for now it's disabled, but can be run manually.
-	return
+	if true {
+		return
+	}
 	dups := make(map[string]map[string]dupConstArg)
 	for _, decl := range comp.desc.Nodes {
 		switch n := decl.(type) {

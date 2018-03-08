@@ -26,9 +26,8 @@ func (target *Target) generateSize(arg Arg, lenType *LenType) uint64 {
 		a := arg.(*GroupArg)
 		if lenType.BitSize != 0 {
 			return a.Size() * 8 / bitSize
-		} else {
-			return uint64(len(a.Inner))
 		}
+		return uint64(len(a.Inner))
 	default:
 		return arg.Size() * 8 / bitSize
 	}

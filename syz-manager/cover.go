@@ -91,12 +91,12 @@ func initAllCover(vmlinux string) {
 	}()
 }
 
-func generateCoverHtml(w io.Writer, vmlinux string, cov cover.Cover) error {
+func generateCoverHTML(w io.Writer, vmlinux string, cov cover.Cover) error {
 	if len(cov) == 0 {
 		return fmt.Errorf("No coverage data available")
 	}
 
-	base, err := getVmOffset(vmlinux)
+	base, err := getVMOffset(vmlinux)
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov cover.Cover) error {
 		return err
 	}
 
-	coveredFrames, prefix, err := symbolize(vmlinux, pcs)
+	coveredFrames, _, err := symbolize(vmlinux, pcs)
 	if err != nil {
 		return err
 	}
@@ -148,10 +148,7 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov cover.Cover) error {
 				buf.Write([]byte{'\n'})
 			}
 		}
-		if len(f) > len(prefix) {
-			f = f[len(prefix):]
-		}
-		f = filepath.Clean(f)
+		f = filepath.Clean(strings.TrimPrefix(f, prefix))
 		d.Files = append(d.Files, &templateFile{
 			ID:       hash.String([]byte(f)),
 			Name:     f,
@@ -161,10 +158,7 @@ func generateCoverHtml(w io.Writer, vmlinux string, cov cover.Cover) error {
 	}
 
 	sort.Sort(templateFileArray(d.Files))
-	if err := coverTemplate.Execute(w, d); err != nil {
-		return err
-	}
-	return nil
+	return coverTemplate.Execute(w, d)
 }
 
 func fileSet(covered, uncovered []symbolizer.Frame) map[string][]coverage {
@@ -221,7 +215,7 @@ func parseFile(fn string) ([][]byte, error) {
 	return lines, nil
 }
 
-func getVmOffset(vmlinux string) (uint32, error) {
+func getVMOffset(vmlinux string) (uint32, error) {
 	if v, ok := vmOffsets[vmlinux]; ok {
 		return v, nil
 	}
@@ -332,7 +326,7 @@ func coveredPCs(bin string) ([]uint64, error) {
 		ln := s.Bytes()
 		if pos := bytes.Index(ln, callInsn); pos == -1 {
 			continue
-		} else if bytes.Index(ln[pos:], traceFunc) == -1 {
+		} else if !bytes.Contains(ln[pos:], traceFunc) {
 			continue
 		}
 		colon := bytes.IndexByte(ln, ':')

@@ -76,7 +76,7 @@ func TestMerger(t *testing.T) {
 
 	merger.Wait()
 	want := "111333\n222555\n666\n444\n777\n"
-	if got := string(tee.Bytes()); got != want {
+	if got := tee.String(); got != want {
 		t.Fatalf("bad tee: '%s', want '%s'", got, want)
 	}
 }

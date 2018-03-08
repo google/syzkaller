@@ -528,6 +528,8 @@ type executeReply struct {
 	status uint32
 }
 
+// TODO(dvyukov): we currently parse this manually, should cast output to this struct instead.
+/*
 type callReply struct {
 	callIndex     uint32
 	callNum       uint32
@@ -539,6 +541,7 @@ type callReply struct {
 	compsSize     uint32
 	// signal/cover/comps follow
 }
+*/
 
 func makeCommand(pid int, bin []string, config *Config, inFile *os.File, outFile *os.File) (*command, error) {
 	dir, err := ioutil.TempDir("./", "syzkaller-testdir")
@@ -782,7 +785,7 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 			hang <- false
 		}
 	}()
-	exitStatus := 0
+	var exitStatus int
 	if c.config.Flags&FlagUseForkServer == 0 {
 		restart = true
 		c.cmd.Wait()
@@ -848,10 +851,4 @@ func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, failed, 
 			c.pid, exitStatus, c.cmd.ProcessState)
 	}
 	return
-}
-
-func serializeUint64(buf []byte, v uint64) {
-	for i := 0; i < 8; i++ {
-		buf[i] = byte(v >> (8 * uint(i)))
-	}
 }

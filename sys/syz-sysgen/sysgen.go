@@ -28,7 +28,6 @@ import (
 )
 
 var (
-	flagV          = flag.Int("v", 0, "verbosity")
 	flagMemProfile = flag.String("memprofile", "", "write a memory profile to the file")
 )
 
@@ -243,12 +242,6 @@ func writeFile(file string, data []byte) {
 func failf(msg string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, msg+"\n", args...)
 	os.Exit(1)
-}
-
-func logf(v int, msg string, args ...interface{}) {
-	if *flagV >= v {
-		fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	}
 }
 
 var archTempl = template.Must(template.New("").Parse(`

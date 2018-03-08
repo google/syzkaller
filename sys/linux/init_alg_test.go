@@ -190,6 +190,8 @@ func testAlg(t *testing.T, typ, name string) (ok, skip bool) {
 	const AF_ALG = 0x26
 	addr := &sockaddrAlg{
 		family: AF_ALG,
+		feat:   0,
+		mask:   0,
 	}
 	if len(typ) >= int(unsafe.Sizeof(addr.typ)) ||
 		len(name) >= int(unsafe.Sizeof(addr.name)) {

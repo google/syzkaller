@@ -157,7 +157,7 @@ The handling of the might_cancel queueing is not properly protected, so
 parallel operations on the file descriptor can race with each other and
 lead to list corruptions or use after free.
 
-Protect the context for these operations with a seperate lock.
+Protect the context for these operations with a separate lock.
 
 Reported-by: Foo Bar <foo@bar.com>
 Signed-off-by: Foo Bar <foo@bar.com>

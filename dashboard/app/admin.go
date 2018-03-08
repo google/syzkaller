@@ -79,6 +79,8 @@ func dropNamespace(c context.Context, w http.ResponseWriter, r *http.Request) er
 	return nil
 }
 
+var _ = dropNamespace // prevent warnings about dead code
+
 func dropNamespaceReportingState(c context.Context, w http.ResponseWriter, ns string, dryRun bool) error {
 	tx := func(c context.Context) error {
 		state, err := loadReportingState(c)

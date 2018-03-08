@@ -28,3 +28,11 @@ func testCsumInetAcc() int {
 func testKVM() int {
 	return int(C.test_kvm())
 }
+
+// Prevent deadcode warnings:
+var (
+	_ = testCopyin
+	_ = testCsumInet
+	_ = testCsumInetAcc
+	_ = testKVM
+)

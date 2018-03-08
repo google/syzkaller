@@ -9,14 +9,14 @@ import (
 	"github.com/google/syzkaller/pkg/signal"
 )
 
-type RpcInput struct {
+type RPCInput struct {
 	Call   string
 	Prog   []byte
 	Signal signal.Serial
 	Cover  []uint32
 }
 
-type RpcCandidate struct {
+type RPCCandidate struct {
 	Prog      []byte
 	Minimized bool
 	Smashed   bool
@@ -28,9 +28,9 @@ type ConnectArgs struct {
 
 type ConnectRes struct {
 	Prios        [][]float32
-	Inputs       []RpcInput
+	Inputs       []RPCInput
 	MaxSignal    signal.Serial
-	Candidates   []RpcCandidate
+	Candidates   []RPCCandidate
 	EnabledCalls string
 	NeedCheck    bool
 }
@@ -52,7 +52,7 @@ type CheckArgs struct {
 
 type NewInputArgs struct {
 	Name string
-	RpcInput
+	RPCInput
 }
 
 type PollArgs struct {
@@ -63,8 +63,8 @@ type PollArgs struct {
 }
 
 type PollRes struct {
-	Candidates []RpcCandidate
-	NewInputs  []RpcInput
+	Candidates []RPCCandidate
+	NewInputs  []RPCInput
 	MaxSignal  signal.Serial
 }
 

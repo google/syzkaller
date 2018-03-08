@@ -13,7 +13,8 @@ import "time"
 // See an example below.
 var config GlobalConfig
 
-var example = GlobalConfig{
+// Example config:
+var _ = GlobalConfig{
 	Namespaces: map[string]*Config{
 		"upstream": &Config{
 			Key: "123",
@@ -26,10 +27,19 @@ var example = GlobalConfig{
 				Reporting{
 					Name:       "upstream",
 					DailyLimit: 10,
+					Filter:     reportAllFilter,
 					Config: &EmailConfig{
 						Email:           "syzkaller@googlegroups.com",
 						MailMaintainers: true,
 					},
+				},
+				Reporting{
+					Name:   "another",
+					Filter: reportSkipFilter,
+				},
+				Reporting{
+					Name:   "yetanother",
+					Filter: reportHoldFilter,
 				},
 			},
 		},

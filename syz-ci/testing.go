@@ -69,7 +69,6 @@ func testInstance(inst *vm.Instance, reporter report.Reporter, mgrcfg *mgrconfig
 			conn.Close()
 			atomic.StoreUint32(&gotConn, 1)
 		}
-		return
 	}()
 	fwdAddr, err := inst.Forward(ln.Addr().(*net.TCPAddr).Port)
 	if err != nil {

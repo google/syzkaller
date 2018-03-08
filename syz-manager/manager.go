@@ -68,9 +68,9 @@ type Manager struct {
 	enabledSyscalls string
 	enabledCalls    []string // as determined by fuzzer
 
-	candidates     []RpcCandidate // untriaged inputs from corpus and hub
+	candidates     []RPCCandidate // untriaged inputs from corpus and hub
 	disabledHashes map[string]struct{}
-	corpus         map[string]RpcInput
+	corpus         map[string]RPCInput
 	corpusCover    cover.Cover
 	corpusSignal   signal.Signal
 	maxSignal      signal.Signal
@@ -78,7 +78,7 @@ type Manager struct {
 	newRepros      [][]byte
 
 	fuzzers        map[string]*Fuzzer
-	hub            *RpcClient
+	hub            *RPCClient
 	hubCorpus      map[hash.Sig]bool
 	needMoreRepros chan chan bool
 	hubReproQueue  chan *Crash
@@ -105,7 +105,7 @@ const currentDBVersion = 2
 
 type Fuzzer struct {
 	name         string
-	inputs       []RpcInput
+	inputs       []RPCInput
 	newMaxSignal signal.Signal
 }
 
@@ -166,7 +166,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		stats:           make(map[string]uint64),
 		crashTypes:      make(map[string]bool),
 		enabledSyscalls: enabledSyscalls,
-		corpus:          make(map[string]RpcInput),
+		corpus:          make(map[string]RPCInput),
 		disabledHashes:  make(map[string]struct{}),
 		fuzzers:         make(map[string]*Fuzzer),
 		fresh:           true,
@@ -216,14 +216,14 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		}
 		if disabled {
 			// This program contains a disabled syscall.
-			// We won't execute it, but remeber its hash so
+			// We won't execute it, but remember its hash so
 			// it is not deleted during minimization.
 			// TODO: use mgr.enabledCalls which accounts for missing devices, etc.
 			// But it is available only after vm check.
 			mgr.disabledHashes[hash.String(rec.Val)] = struct{}{}
 			continue
 		}
-		mgr.candidates = append(mgr.candidates, RpcCandidate{
+		mgr.candidates = append(mgr.candidates, RPCCandidate{
 			Prog:      rec.Val,
 			Minimized: minimized,
 			Smashed:   smashed,
@@ -247,11 +247,11 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	}
 
 	// Create HTTP server.
-	mgr.initHttp()
+	mgr.initHTTP()
 	mgr.collectUsedFiles()
 
 	// Create RPC server for fuzzers.
-	s, err := NewRpcServer(cfg.Rpc, mgr)
+	s, err := NewRPCServer(cfg.RPC, mgr)
 	if err != nil {
 		Fatalf("failed to create rpc server: %v", err)
 	}
@@ -802,17 +802,16 @@ func (mgr *Manager) getReporter() report.Reporter {
 
 func (mgr *Manager) minimizeCorpus() {
 	if mgr.cfg.Cover && len(mgr.corpus) != 0 {
-		inputs := make([]signal.SignalContext, 0, len(mgr.corpus))
-
+		inputs := make([]signal.Context, 0, len(mgr.corpus))
 		for _, inp := range mgr.corpus {
-			inputs = append(inputs, signal.SignalContext{
+			inputs = append(inputs, signal.Context{
 				Signal:  inp.Signal.Deserialize(),
 				Context: inp,
 			})
 		}
-		newCorpus := make(map[string]RpcInput)
+		newCorpus := make(map[string]RPCInput)
 		for _, ctx := range signal.Minimize(inputs) {
-			inp := ctx.(RpcInput)
+			inp := ctx.(RPCInput)
 			newCorpus[hash.String(inp.Prog)] = inp
 		}
 		Logf(1, "minimized corpus: %v -> %v", len(mgr.corpus), len(newCorpus))
@@ -937,9 +936,9 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 		Fatalf("fuzzer %v is not connected", a.Name)
 	}
 
-	if _, err := mgr.target.Deserialize(a.RpcInput.Prog); err != nil {
+	if _, err := mgr.target.Deserialize(a.RPCInput.Prog); err != nil {
 		// This should not happen, but we see such cases episodically, reason unknown.
-		Logf(0, "failed to deserialize program from fuzzer: %v\n%s", err, a.RpcInput.Prog)
+		Logf(0, "failed to deserialize program from fuzzer: %v\n%s", err, a.RPCInput.Prog)
 		return nil
 	}
 	if mgr.corpusSignal.Diff(inputSignal).Empty() {
@@ -948,19 +947,19 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 	mgr.stats["manager new inputs"]++
 	mgr.corpusSignal.Merge(inputSignal)
 	mgr.corpusCover.Merge(a.Cover)
-	sig := hash.String(a.RpcInput.Prog)
+	sig := hash.String(a.RPCInput.Prog)
 	if inp, ok := mgr.corpus[sig]; ok {
 		// The input is already present, but possibly with diffent signal/coverage/call.
 		inputSignal.Merge(inp.Signal.Deserialize())
 		inp.Signal = inputSignal.Serialize()
 		var inputCover cover.Cover
 		inputCover.Merge(inp.Cover)
-		inputCover.Merge(a.RpcInput.Cover)
+		inputCover.Merge(a.RPCInput.Cover)
 		inp.Cover = inputCover.Serialize()
 		mgr.corpus[sig] = inp
 	} else {
-		mgr.corpus[sig] = a.RpcInput
-		mgr.corpusDB.Save(sig, a.RpcInput.Prog, 0)
+		mgr.corpus[sig] = a.RPCInput
+		mgr.corpusDB.Save(sig, a.RPCInput.Prog, 0)
 		if err := mgr.corpusDB.Flush(); err != nil {
 			Logf(0, "failed to save corpus database: %v", err)
 		}
@@ -968,7 +967,7 @@ func (mgr *Manager) NewInput(a *NewInputArgs, r *int) error {
 			if f1 == f {
 				continue
 			}
-			inp := a.RpcInput
+			inp := a.RPCInput
 			inp.Cover = nil // Don't send coverage back to all fuzzers.
 			f1.inputs = append(f1.inputs, inp)
 		}
@@ -1068,12 +1067,12 @@ func (mgr *Manager) hubSync() {
 		// Hub.Connect request can be very large, so do it on a transient connection
 		// (rpc connection buffers never shrink).
 		// Also don't do hub rpc's under the mutex -- hub can be slow or inaccessible.
-		if err := RpcCall(mgr.cfg.Hub_Addr, "Hub.Connect", a, nil); err != nil {
+		if err := RPCCall(mgr.cfg.Hub_Addr, "Hub.Connect", a, nil); err != nil {
 			mgr.mu.Lock()
 			Logf(0, "Hub.Connect rpc failed: %v", err)
 			return
 		}
-		conn, err := NewRpcClient(mgr.cfg.Hub_Addr)
+		conn, err := NewRPCClient(mgr.cfg.Hub_Addr)
 		if err != nil {
 			mgr.mu.Lock()
 			Logf(0, "failed to connect to hub at %v: %v", mgr.cfg.Hub_Addr, err)
@@ -1154,7 +1153,7 @@ func (mgr *Manager) hubSync() {
 				dropped++
 				continue
 			}
-			mgr.candidates = append(mgr.candidates, RpcCandidate{
+			mgr.candidates = append(mgr.candidates, RPCCandidate{
 				Prog:      inp,
 				Minimized: false, // don't trust programs from hub
 				Smashed:   false,
@@ -1191,7 +1190,7 @@ func (mgr *Manager) collectUsedFiles() {
 	addUsedFile(cfg.SyzFuzzerBin)
 	addUsedFile(cfg.SyzExecprogBin)
 	addUsedFile(cfg.SyzExecutorBin)
-	addUsedFile(cfg.Sshkey)
+	addUsedFile(cfg.SSHKey)
 	addUsedFile(cfg.Vmlinux)
 	if cfg.Image != "9p" {
 		addUsedFile(cfg.Image)
@@ -1211,7 +1210,7 @@ func (mgr *Manager) checkUsedFiles() {
 }
 
 func (mgr *Manager) dashboardReporter() {
-	webAddr := publicWebAddr(mgr.cfg.Http)
+	webAddr := publicWebAddr(mgr.cfg.HTTP)
 	var lastFuzzingTime time.Duration
 	var lastCrashes, lastExecs uint64
 	for {

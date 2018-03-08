@@ -229,20 +229,6 @@ type stackParams struct {
 	skipPatterns []string
 }
 
-func startReportPrefix(output []byte, prefixes []string) []byte {
-	if len(prefixes) == 0 {
-		return output
-	}
-	for _, prefix := range prefixes {
-		re := regexp.MustCompile(prefix + ".*\\n")
-		match := re.FindSubmatchIndex(output)
-		if match != nil {
-			return output[match[0]:]
-		}
-	}
-	return nil
-}
-
 func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) string {
 	skip := append([]string{}, params.skipPatterns...)
 	skip = append(skip, stack.skip...)

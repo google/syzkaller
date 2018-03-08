@@ -263,7 +263,7 @@ func (jp *JobProcessor) buildImage(job *Job) error {
 	mgrcfg.Kernel_Src = kernelDir
 	mgrcfg.Syzkaller = syzkallerDir
 	mgrcfg.Image = image
-	mgrcfg.Sshkey = key
+	mgrcfg.SSHKey = key
 
 	// Reload config to fill derived fields (ugly hack).
 	cfgdata, err := config.SaveData(mgrcfg)

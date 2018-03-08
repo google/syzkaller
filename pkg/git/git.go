@@ -322,7 +322,7 @@ func CheckRepoAddress(repo string) bool {
 	return gitRepoRe.MatchString(repo)
 }
 
-var gitRepoRe = regexp.MustCompile("^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\\.[a-zA-Z0-9-_]+)+(:[0-9]+)?/[a-zA-Z0-9-_./]+\\.git(/)?$")
+var gitRepoRe = regexp.MustCompile(`^(git|ssh|http|https|ftp|ftps)://[a-zA-Z0-9-_]+(\.[a-zA-Z0-9-_]+)+(:[0-9]+)?/[a-zA-Z0-9-_./]+\.git(/)?$`)
 
 // CheckBranch does a best-effort approximate check of a git branch name.
 func CheckBranch(branch string) bool {

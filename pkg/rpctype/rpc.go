@@ -12,26 +12,26 @@ import (
 	. "github.com/google/syzkaller/pkg/log"
 )
 
-type RpcServer struct {
+type RPCServer struct {
 	ln net.Listener
 	s  *rpc.Server
 }
 
-func NewRpcServer(addr string, receiver interface{}) (*RpcServer, error) {
+func NewRPCServer(addr string, receiver interface{}) (*RPCServer, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to listen on %v: %v", addr, err)
 	}
 	s := rpc.NewServer()
 	s.Register(receiver)
-	serv := &RpcServer{
+	serv := &RPCServer{
 		ln: ln,
 		s:  s,
 	}
 	return serv, nil
 }
 
-func (serv *RpcServer) Serve() {
+func (serv *RPCServer) Serve() {
 	for {
 		conn, err := serv.ln.Accept()
 		if err != nil {
@@ -44,42 +44,42 @@ func (serv *RpcServer) Serve() {
 	}
 }
 
-func (serv *RpcServer) Addr() net.Addr {
+func (serv *RPCServer) Addr() net.Addr {
 	return serv.ln.Addr()
 }
 
-type RpcClient struct {
+type RPCClient struct {
 	conn net.Conn
 	c    *rpc.Client
 }
 
-func NewRpcClient(addr string) (*RpcClient, error) {
+func NewRPCClient(addr string) (*RPCClient, error) {
 	conn, err := net.DialTimeout("tcp", addr, 60*time.Second)
 	if err != nil {
 		return nil, err
 	}
 	conn.(*net.TCPConn).SetKeepAlive(true)
 	conn.(*net.TCPConn).SetKeepAlivePeriod(time.Minute)
-	cli := &RpcClient{
+	cli := &RPCClient{
 		conn: conn,
 		c:    rpc.NewClient(conn),
 	}
 	return cli, nil
 }
 
-func (cli *RpcClient) Call(method string, args, reply interface{}) error {
+func (cli *RPCClient) Call(method string, args, reply interface{}) error {
 	cli.conn.SetDeadline(time.Now().Add(5 * 60 * time.Second))
 	err := cli.c.Call(method, args, reply)
 	cli.conn.SetDeadline(time.Time{})
 	return err
 }
 
-func (cli *RpcClient) Close() {
+func (cli *RPCClient) Close() {
 	cli.c.Close()
 }
 
-func RpcCall(addr, method string, args, reply interface{}) error {
-	c, err := NewRpcClient(addr)
+func RPCCall(addr, method string, args, reply interface{}) error {
+	c, err := NewRPCClient(addr)
 	if err != nil {
 		return err
 	}

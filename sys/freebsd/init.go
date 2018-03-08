@@ -31,8 +31,7 @@ const (
 )
 
 type arch struct {
-	mmapSyscall         *prog.Syscall
-	clockGettimeSyscall *prog.Syscall
+	mmapSyscall *prog.Syscall
 
 	PROT_READ   uint64
 	PROT_WRITE  uint64

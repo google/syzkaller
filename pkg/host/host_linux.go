@@ -55,7 +55,7 @@ func isSupported(sandbox string, kallsyms []byte, c *prog.Syscall) bool {
 	if newname := kallsymsMap[name]; newname != "" {
 		name = newname
 	}
-	return bytes.Index(kallsyms, []byte(" T sys_"+name+"\n")) != -1
+	return bytes.Contains(kallsyms, []byte(" T sys_"+name+"\n"))
 }
 
 // Some syscall names diverge in __NR_* consts and kallsyms.

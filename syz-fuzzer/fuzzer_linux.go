@@ -84,7 +84,7 @@ func kmemleakScan(report bool) {
 			for kmemleakBuf = kmemleakBuf[:n]; len(kmemleakBuf) != 0; {
 				end := bytes.Index(kmemleakBuf[1:], []byte("unreferenced object"))
 				if end != -1 {
-					end += 1
+					end++
 				} else {
 					end = len(kmemleakBuf)
 				}
@@ -110,7 +110,7 @@ func kmemleakScan(report bool) {
 
 func kmemleakIgnore(report []byte) bool {
 	// kmemleak has a bunch of false positives (at least what looks like
-	// false positives at first glance). So we are concervative with what we report.
+	// false positives at first glance). So we are conservative with what we report.
 	// First, we filter out any allocations that don't come from executor processes.
 	// Second, we ignore a bunch of functions entirely.
 	// Ideally, someone should debug/fix all these cases and remove ignores.

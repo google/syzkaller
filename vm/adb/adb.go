@@ -276,7 +276,7 @@ func (inst *instance) adb(args ...string) ([]byte, error) {
 func (inst *instance) repair() error {
 	// Assume that the device is in a bad state initially and reboot it.
 	// Ignore errors, maybe we will manage to reboot it anyway.
-	inst.waitForSsh()
+	inst.waitForSSH()
 	// History: adb reboot episodically hangs, so we used a more reliable way:
 	// using syz-executor to issue reboot syscall. However, this has stopped
 	// working, probably due to the introduction of seccomp. Therefore,
@@ -289,18 +289,15 @@ func (inst *instance) repair() error {
 	if !vmimpl.SleepInterruptible(10 * time.Second) {
 		return fmt.Errorf("shutdown in progress")
 	}
-	if err := inst.waitForSsh(); err != nil {
+	if err := inst.waitForSSH(); err != nil {
 		return err
 	}
 	// Switch to root for userdebug builds.
 	inst.adb("root")
-	if err := inst.waitForSsh(); err != nil {
-		return err
-	}
-	return nil
+	return inst.waitForSSH()
 }
 
-func (inst *instance) waitForSsh() error {
+func (inst *instance) waitForSSH() error {
 	var err error
 	for i := 0; i < 300; i++ {
 		if !vmimpl.SleepInterruptible(time.Second) {
@@ -435,9 +432,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	go func() {
 		select {
 		case <-time.After(timeout):
-			signal(vmimpl.TimeoutErr)
+			signal(vmimpl.ErrTimeout)
 		case <-stop:
-			signal(vmimpl.TimeoutErr)
+			signal(vmimpl.ErrTimeout)
 		case <-inst.closed:
 			if inst.debug {
 				Logf(0, "instance closed")

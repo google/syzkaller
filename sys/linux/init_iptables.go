@@ -64,9 +64,8 @@ func (arch *arch) generateNetfilterTable(g *prog.Gen, typ prog.Type, old prog.Ar
 			// Assign the underflow entry once in a while.
 			// We have it in underflow hooks, so no point in using it frequently.
 			return pos
-		} else {
-			return offsets[g.Rand().Intn(len(offsets))]
 		}
+		return offsets[g.Rand().Intn(len(offsets))]
 	}
 	// Assign offsets to used hooks.
 	for hook := hookStart; hook < hookStart+hookCount; hook++ {

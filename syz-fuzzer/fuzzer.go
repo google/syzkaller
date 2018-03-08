@@ -40,7 +40,7 @@ type Fuzzer struct {
 	needPoll    chan struct{}
 	choiceTable *prog.ChoiceTable
 	stats       [StatCount]uint64
-	manager     *RpcClient
+	manager     *RPCClient
 	target      *prog.Target
 
 	faultInjectionEnabled    bool
@@ -167,7 +167,7 @@ func main() {
 	Logf(0, "dialing manager at %v", *flagManager)
 	a := &ConnectArgs{*flagName}
 	r := &ConnectRes{}
-	if err := RpcCall(*flagManager, "Manager.Connect", a, r); err != nil {
+	if err := RPCCall(*flagManager, "Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
 	calls := buildCallList(target, r.EnabledCalls, sandbox)
@@ -219,7 +219,7 @@ func main() {
 		for c := range calls {
 			a.Calls = append(a.Calls, c.Name)
 		}
-		if err := RpcCall(*flagManager, "Manager.Check", a, nil); err != nil {
+		if err := RPCCall(*flagManager, "Manager.Check", a, nil); err != nil {
 			panic(err)
 		}
 	}
@@ -228,7 +228,7 @@ func main() {
 	// So we do the call on a transient connection, free all memory and reconnect.
 	// The rest of rpc requests have bounded size.
 	debug.FreeOSMemory()
-	manager, err := NewRpcClient(*flagManager)
+	manager, err := NewRPCClient(*flagManager)
 	if err != nil {
 		panic(err)
 	}
@@ -414,17 +414,17 @@ func buildCallList(target *prog.Target, enabledCalls, sandbox string) map[*prog.
 	return calls
 }
 
-func (fuzzer *Fuzzer) sendInputToManager(inp RpcInput) {
+func (fuzzer *Fuzzer) sendInputToManager(inp RPCInput) {
 	a := &NewInputArgs{
 		Name:     fuzzer.name,
-		RpcInput: inp,
+		RPCInput: inp,
 	}
 	if err := fuzzer.manager.Call("Manager.NewInput", a, nil); err != nil {
 		panic(err)
 	}
 }
 
-func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp RpcInput) {
+func (fuzzer *Fuzzer) addInputFromAnotherFuzzer(inp RPCInput) {
 	if !fuzzer.coverageEnabled {
 		panic("should not be called when coverage is disabled")
 	}

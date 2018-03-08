@@ -296,7 +296,7 @@ func (bug *Bug) displayTitle() string {
 	return fmt.Sprintf("%v (%v)", bug.Title, bug.Seq+1)
 }
 
-var displayTitleRe = regexp.MustCompile("^(.*) \\(([0-9]+)\\)$")
+var displayTitleRe = regexp.MustCompile(`^(.*) \(([0-9]+)\)$`)
 
 func splitDisplayTitle(display string) (string, int64, error) {
 	match := displayTitleRe.FindStringSubmatchIndex(display)

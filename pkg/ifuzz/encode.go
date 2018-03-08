@@ -76,7 +76,7 @@ func (insn *Insn) Encode(cfg *Config, r *rand.Rand) []byte {
 			rex = byte(0x40 | r.Intn(16))
 			if insn.Rexw == 1 {
 				rex |= 1 << 3
-			} else if insn.Rexw == 1 {
+			} else {
 				rex &^= 1 << 3
 			}
 			rexR = rex&0x4 != 0

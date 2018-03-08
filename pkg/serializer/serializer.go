@@ -129,10 +129,6 @@ func (w *writer) typ(t reflect.Type) {
 	}
 }
 
-func (w *writer) write(v []byte) {
-	w.w.Write(v)
-}
-
 func (w *writer) string(v string) {
 	io.WriteString(w.w, v)
 }

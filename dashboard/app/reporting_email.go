@@ -256,11 +256,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		HappenedOn:        rep.HappenedOn,
 	}
 	log.Infof(c, "sending email %q to %q", rep.Title, to)
-	err = sendMailTemplate(c, rep.Title, from, to, rep.ExtID, attachments, templ, data)
-	if err != nil {
-		return err
-	}
-	return nil
+	return sendMailTemplate(c, rep.Title, from, to, rep.ExtID, attachments, templ, data)
 }
 
 // handleIncomingMail is the entry point for incoming emails.
