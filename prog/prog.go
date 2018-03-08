@@ -364,6 +364,9 @@ func (target *Target) defaultArg(t Type) Arg {
 	case *UnionType:
 		return MakeUnionArg(t, target.defaultArg(typ.Fields[0]))
 	case *VmaType:
+		if t.Optional() {
+			return MakeNullPointerArg(t)
+		}
 		return MakeVmaPointerArg(t, 0, target.PageSize)
 	case *PtrType:
 		if t.Optional() {
@@ -388,7 +391,7 @@ func (target *Target) isDefaultArg(arg Arg) bool {
 			panic(fmt.Sprintf("unknown const type: %#v", t))
 		}
 	case *GroupArg:
-		if !a.fixedInnerSize() {
+		if !a.fixedInnerSize() && len(a.Inner) != 0 {
 			return false
 		}
 		for _, elem := range a.Inner {
@@ -399,7 +402,7 @@ func (target *Target) isDefaultArg(arg Arg) bool {
 		return true
 	case *UnionArg:
 		t := a.Type().(*UnionType)
-		return a.Option.Type().FieldName() == t.Fields[0].Name() &&
+		return a.Option.Type().FieldName() == t.Fields[0].FieldName() &&
 			target.isDefaultArg(a.Option)
 	case *DataArg:
 		if a.Size() == 0 {
@@ -425,6 +428,9 @@ func (target *Target) isDefaultArg(arg Arg) bool {
 			}
 			return a.Address == 0 && target.isDefaultArg(a.Res)
 		case *VmaType:
+			if t.Optional() {
+				return a.IsNull()
+			}
 			return a.Address == 0 && a.VmaSize == target.PageSize
 		default:
 			panic(fmt.Sprintf("unknown pointer type: %#v", t))

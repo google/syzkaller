@@ -195,11 +195,11 @@ func TestDeserialize(t *testing.T) {
 		},
 		{
 			input:  `syz_test$type_confusion1(&(0x7f0000000000)=@unknown)`,
-			output: `syz_test$type_confusion1(&(0x7f0000000000)=@f1)`,
+			output: `syz_test$type_confusion1(&(0x7f0000000000))`,
 		},
 		{
 			input:  `syz_test$type_confusion1(&(0x7f0000000000)=@unknown={0x0, 'abc'}, 0x0)`,
-			output: `syz_test$type_confusion1(&(0x7f0000000000)=@f1)`,
+			output: `syz_test$type_confusion1(&(0x7f0000000000))`,
 		},
 		{
 			input:  `syz_test$excessive_fields1(&(0x7f0000000000)=0x0)`,
