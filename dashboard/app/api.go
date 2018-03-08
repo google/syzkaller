@@ -85,7 +85,10 @@ func handleJSON(fn JSONHandler) http.Handler {
 }
 
 func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error) {
-	ns, err := checkClient(c, r.PostFormValue("client"), r.PostFormValue("key"))
+	client := r.PostFormValue("client")
+	method := r.PostFormValue("method")
+	log.Infof(c, "api %q from %q", method, client)
+	ns, err := checkClient(c, client, r.PostFormValue("key"))
 	if err != nil {
 		log.Warningf(c, "%v", err)
 		return nil, fmt.Errorf("unauthorized request")
@@ -104,7 +107,6 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 			return nil, fmt.Errorf("failed to ungzip payload: %v", err)
 		}
 	}
-	method := r.PostFormValue("method")
 	handler := apiHandlers[method]
 	if handler != nil {
 		return handler(c, r, payload)
