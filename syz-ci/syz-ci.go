@@ -79,6 +79,7 @@ type Config struct {
 	Syzkaller_Repo         string
 	Syzkaller_Branch       string
 	Syzkaller_Descriptions string // Dir with additional syscall descriptions (.txt and .const files).
+	Enable_Jobs            bool   // Enable patch testing jobs.
 	Managers               []*ManagerConfig
 }
 
@@ -132,7 +133,6 @@ func main() {
 	for i, mgrcfg := range cfg.Managers {
 		managers[i] = createManager(cfg, mgrcfg, stop)
 	}
-	jp := newJobProcessor(cfg, managers)
 	for _, mgr := range managers {
 		mgr := mgr
 		wg.Add(1)
@@ -141,11 +141,14 @@ func main() {
 			mgr.loop()
 		}()
 	}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		jp.loop(stop)
-	}()
+	if cfg.Enable_Jobs {
+		jp := newJobProcessor(cfg, managers)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			jp.loop(stop)
+		}()
+	}
 
 	wg.Wait()
 
