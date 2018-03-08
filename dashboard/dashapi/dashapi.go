@@ -339,41 +339,26 @@ func Query(client, addr, key, method string, ctor RequestCtor, doer RequestDoer,
 	values.Add("client", client)
 	values.Add("key", key)
 	values.Add("method", method)
-	var body io.Reader
-	gzipped := false
 	if req != nil {
 		data, err := json.Marshal(req)
 		if err != nil {
 			return fmt.Errorf("failed to marshal request: %v", err)
 		}
-		if len(data) < 100 || addr == "" || strings.HasPrefix(addr, "http://localhost:") {
-			// Don't bother compressing tiny requests.
-			// Don't compress for dev_appserver which does not support gzip.
-			body = bytes.NewReader(data)
-		} else {
-			buf := new(bytes.Buffer)
-			gz := gzip.NewWriter(buf)
-			if _, err := gz.Write(data); err != nil {
-				return err
-			}
-			if err := gz.Close(); err != nil {
-				return err
-			}
-			body = buf
-			gzipped = true
+		buf := new(bytes.Buffer)
+		gz := gzip.NewWriter(buf)
+		if _, err := gz.Write(data); err != nil {
+			return err
 		}
+		if err := gz.Close(); err != nil {
+			return err
+		}
+		values.Add("payload", buf.String())
 	}
-	url := fmt.Sprintf("%v/api?%v", addr, values.Encode())
-	r, err := ctor("POST", url, body)
+	r, err := ctor("POST", fmt.Sprintf("%v/api", addr), strings.NewReader(values.Encode()))
 	if err != nil {
 		return err
 	}
-	if body != nil {
-		r.Header.Set("Content-Type", "application/json")
-		if gzipped {
-			r.Header.Set("Content-Encoding", "gzip")
-		}
-	}
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	resp, err := doer(r)
 	if err != nil {
 		return fmt.Errorf("http request failed: %v", err)
