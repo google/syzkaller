@@ -27,7 +27,7 @@ import (
 
 const dateFormat = "Jan 02 2006 15:04:05 MST"
 
-func (mgr *Manager) initHttp() {
+func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/", mgr.httpSummary)
 	http.HandleFunc("/corpus", mgr.httpCorpus)
 	http.HandleFunc("/crash", mgr.httpCrash)
@@ -39,9 +39,9 @@ func (mgr *Manager) initHttp() {
 	// Browsers like to request this, without special handler this goes to / handler.
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 
-	ln, err := net.Listen("tcp4", mgr.cfg.Http)
+	ln, err := net.Listen("tcp4", mgr.cfg.HTTP)
 	if err != nil {
-		Fatalf("failed to listen on %v: %v", mgr.cfg.Http, err)
+		Fatalf("failed to listen on %v: %v", mgr.cfg.HTTP, err)
 	}
 	Logf(0, "serving http on http://%v", ln.Addr())
 	go func() {
@@ -198,7 +198,7 @@ func (mgr *Manager) httpCover(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := generateCoverHtml(w, mgr.cfg.Vmlinux, cov); err != nil {
+	if err := generateCoverHTML(w, mgr.cfg.Vmlinux, cov); err != nil {
 		http.Error(w, fmt.Sprintf("failed to generate coverage profile: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -297,7 +297,7 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	base, err := getVmOffset(mgr.cfg.Vmlinux)
+	base, err := getVMOffset(mgr.cfg.Vmlinux)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to get vmlinux base: %v", err), http.StatusInternalServerError)
 		return

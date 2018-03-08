@@ -59,7 +59,7 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 			merged := email.MergeEmailLists(bugCC, jobCC)
 			bugReporting.CC = strings.Join(merged, "|")
 			if _, err := datastore.Put(c, bugKey, bug); err != nil {
-				return err
+				return fmt.Errorf("failed to put bug: %v", err)
 			}
 			return nil
 		}
@@ -152,7 +152,7 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 			}
 			job.Link = link
 			if _, err := datastore.Put(c, jobKey, job); err != nil {
-				return err
+				return fmt.Errorf("failed to put job: %v", err)
 			}
 			return nil
 		}
@@ -286,7 +286,7 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 		job.CrashTitle = req.CrashTitle
 		job.Finished = now
 		if _, err := datastore.Put(c, jobKey, job); err != nil {
-			return err
+			return fmt.Errorf("failed to put job: %v", err)
 		}
 		return nil
 	}
@@ -404,7 +404,7 @@ func jobReported(c context.Context, jobID string) error {
 		}
 		job.Reported = true
 		if _, err := datastore.Put(c, jobKey, job); err != nil {
-			return err
+			return fmt.Errorf("failed to put job: %v", err)
 		}
 		return nil
 	}

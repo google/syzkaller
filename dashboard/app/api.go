@@ -671,13 +671,11 @@ func apiReportFailedRepro(c context.Context, ns string, r *http.Request, payload
 		}
 		return nil
 	}
-	if err := datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{
+	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{
 		XG:       true,
 		Attempts: 30,
-	}); err != nil {
-		return nil, err
-	}
-	return nil, nil
+	})
+	return nil, err
 }
 
 func apiNeedRepro(c context.Context, ns string, r *http.Request, payload []byte) (interface{}, error) {
@@ -712,7 +710,7 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload []by
 		return nil, fmt.Errorf("failed to unmarshal request: %v", err)
 	}
 	now := timeNow(c)
-	if err := updateManager(c, ns, req.Name, func(mgr *Manager, stats *ManagerStats) {
+	err := updateManager(c, ns, req.Name, func(mgr *Manager, stats *ManagerStats) {
 		mgr.Link = req.Addr
 		mgr.LastAlive = now
 		mgr.CurrentUpTime = req.UpTime
@@ -725,10 +723,8 @@ func apiManagerStats(c context.Context, ns string, r *http.Request, payload []by
 		stats.TotalFuzzingTime += req.FuzzingTime
 		stats.TotalCrashes += int64(req.Crashes)
 		stats.TotalExecs += int64(req.Execs)
-	}); err != nil {
-		return nil, err
-	}
-	return nil, nil
+	})
+	return nil, err
 }
 
 func findBugForCrash(c context.Context, ns, title string) (*Bug, *datastore.Key, error) {

@@ -1053,7 +1053,7 @@ icmp_parameter_prob_packet {
 	csum	csum[parent, inet, int16be]
 	pointer	int8
 	length	int8
-	unsed	const[0, int16]
+	unused	const[0, int16]
 	iph	icmp_ipv4_header
 	data	array[int8, 0:8]
 } [packed]

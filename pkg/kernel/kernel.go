@@ -48,10 +48,8 @@ func Build(dir, compiler, config string) error {
 	}
 	cmd.Dir = dir
 	// Build of a large kernel can take a while on a 1 CPU VM.
-	if _, err := osutil.Run(3*time.Hour, cmd); err != nil {
-		return err
-	}
-	return nil
+	_, err := osutil.Run(3*time.Hour, cmd)
+	return err
 }
 
 // CreateImage creates a disk image that is suitable for syzkaller.

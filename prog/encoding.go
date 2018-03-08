@@ -317,7 +317,7 @@ top:
 				p.Parse('Y')
 				p.Parse('=')
 				typ = target.makeAnyPtrType(typ.Size(), typ.FieldName())
-				typ1 = target.anyArray
+				typ1 = target.any.array
 			}
 			inner, err = target.parseArg(typ1, p, vars)
 			if err != nil {
@@ -796,8 +796,6 @@ func (p *parser) Ident() string {
 	if i == p.i {
 		p.failf("failed to parse identifier at pos %v", i)
 		return ""
-	}
-	if ch := p.s[i]; ch >= '0' && ch <= '9' {
 	}
 	s := p.s[i:p.i]
 	p.SkipWs()

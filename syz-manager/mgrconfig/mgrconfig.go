@@ -13,22 +13,22 @@ import (
 	"github.com/google/syzkaller/pkg/config"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
-	_ "github.com/google/syzkaller/sys"
+	_ "github.com/google/syzkaller/sys" // most mgrconfig users want targets too
 	"github.com/google/syzkaller/vm"
 )
 
 type Config struct {
 	Name       string // Instance name (used for identification and as GCE instance prefix)
 	Target     string // Target OS/arch, e.g. "linux/arm64" or "linux/amd64/386" (amd64 OS with 386 test process)
-	Http       string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
-	Rpc        string // TCP address to serve RPC for fuzzer processes (optional)
+	HTTP       string // TCP address to serve HTTP stats page (e.g. "localhost:50000")
+	RPC        string // TCP address to serve RPC for fuzzer processes (optional)
 	Workdir    string
 	Vmlinux    string
 	Kernel_Src string // kernel source directory
 	Tag        string // arbitrary optional tag that is saved along with crash reports (e.g. branch/commit)
 	Image      string // linux image for VMs
-	Sshkey     string // ssh key for the image (may be empty for some VM types)
-	Ssh_User   string // ssh user ("root" by default)
+	SSHKey     string // ssh key for the image (may be empty for some VM types)
+	SSH_User   string // ssh user ("root" by default)
 
 	Hub_Client string
 	Hub_Addr   string
@@ -84,11 +84,11 @@ func LoadFile(filename string) (*Config, error) {
 
 func DefaultValues() *Config {
 	return &Config{
-		Ssh_User:  "root",
+		SSH_User:  "root",
 		Cover:     true,
 		Reproduce: true,
 		Sandbox:   "setuid",
-		Rpc:       ":0",
+		RPC:       ":0",
 		Procs:     1,
 	}
 }
@@ -130,7 +130,7 @@ func load(data []byte, filename string) (*Config, error) {
 	if !osutil.IsExist(cfg.SyzExecutorBin) {
 		return nil, fmt.Errorf("bad config syzkaller param: can't find %v", cfg.SyzExecutorBin)
 	}
-	if cfg.Http == "" {
+	if cfg.HTTP == "" {
 		return nil, fmt.Errorf("config param http is empty")
 	}
 	if cfg.Workdir == "" {
@@ -276,8 +276,8 @@ func CreateVMEnv(cfg *Config, debug bool) *vm.Env {
 		Arch:    cfg.TargetVMArch,
 		Workdir: cfg.Workdir,
 		Image:   cfg.Image,
-		SshKey:  cfg.Sshkey,
-		SshUser: cfg.Ssh_User,
+		SSHKey:  cfg.SSHKey,
+		SSHUser: cfg.SSH_User,
 		Debug:   debug,
 		Config:  cfg.VM,
 	}

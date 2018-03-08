@@ -33,7 +33,7 @@ func (target *Target) calcResourceCtors(kind []string, precise bool) []*Syscall 
 
 // isCompatibleResource returns true if resource of kind src can be passed as an argument of kind dst.
 func (target *Target) isCompatibleResource(dst, src string) bool {
-	if dst == target.anyRes32.TypeName || dst == target.anyRes64.TypeName {
+	if dst == target.any.res32.TypeName || dst == target.any.res64.TypeName {
 		return true
 	}
 	dstRes := target.resourceMap[dst]

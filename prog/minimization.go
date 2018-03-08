@@ -9,7 +9,7 @@ import (
 
 // Minimize minimizes program p into an equivalent program using the equivalence
 // predicate pred.  It iteratively generates simpler programs and asks pred
-// whether it is equal to the orginal program or not. If it is equivalent then
+// whether it is equal to the original program or not. If it is equivalent then
 // the simplification attempt is committed and the process continues.
 func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool) (*Prog, int) {
 	pred := pred0
@@ -119,9 +119,8 @@ func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool)
 			if pred(p, callIndex0) {
 				p0 = p
 				return true
-			} else {
-				a.Val = v0
 			}
+			a.Val = v0
 		case *ResourceType:
 			if crash {
 				return false
@@ -140,10 +139,9 @@ func Minimize(p0 *Prog, callIndex0 int, crash bool, pred0 func(*Prog, int) bool)
 			if pred(p, callIndex0) {
 				p0 = p
 				return true
-			} else {
-				a.Res = r0
-				a.Val = 0
 			}
+			a.Res = r0
+			a.Val = 0
 		case *BufferType:
 			// TODO: try to set individual bytes to 0
 			if triedPaths[path] {

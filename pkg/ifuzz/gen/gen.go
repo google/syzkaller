@@ -504,7 +504,7 @@ func parseModrm(v string) (int8, error) {
 		}
 		vv *= 2
 		if v[i] == '1' {
-			vv += 1
+			vv++
 		}
 	}
 	return vv, nil

@@ -114,28 +114,28 @@ func (s Signal) Intersection(s1 Signal) Signal {
 	return res
 }
 
-func (sp *Signal) Merge(s1 Signal) {
+func (s *Signal) Merge(s1 Signal) {
 	if s1.Empty() {
 		return
 	}
-	s := *sp
-	if s == nil {
-		s = make(Signal, len(s1))
-		*sp = s
+	s0 := *s
+	if s0 == nil {
+		s0 = make(Signal, len(s1))
+		*s = s0
 	}
 	for e, p1 := range s1 {
-		if p, ok := s[e]; !ok || p < p1 {
-			s[e] = p1
+		if p, ok := s0[e]; !ok || p < p1 {
+			s0[e] = p1
 		}
 	}
 }
 
-type SignalContext struct {
+type Context struct {
 	Signal  Signal
 	Context interface{}
 }
 
-func Minimize(corpus []SignalContext) []interface{} {
+func Minimize(corpus []Context) []interface{} {
 	sort.Slice(corpus, func(i, j int) bool {
 		return corpus[i].Signal.Len() > corpus[j].Signal.Len()
 	})

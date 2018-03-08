@@ -488,9 +488,9 @@ func (r *randGen) generateArgImpl(s *state, typ Type, ignoreSpecial bool) (arg A
 		switch pt.Type.(type) {
 		case *StructType, *ArrayType, *UnionType:
 			name := pt.Type.Name()
-			r.recDepth[name] += 1
+			r.recDepth[name]++
 			defer func() {
-				r.recDepth[name] -= 1
+				r.recDepth[name]--
 				if r.recDepth[name] == 0 {
 					delete(r.recDepth, name)
 				}

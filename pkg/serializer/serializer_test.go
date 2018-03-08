@@ -39,6 +39,6 @@ type Y struct {
 type T int
 
 const (
-	T0 T = iota
+	_ T = iota
 	T1
 )

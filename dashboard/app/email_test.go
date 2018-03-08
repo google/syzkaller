@@ -26,7 +26,7 @@ func TestEmailReport(t *testing.T) {
 	c.expectOK(c.API(client2, key2, "report_crash", crash, nil))
 
 	// Report the crash over email and check all fields.
-	sender0, extBugID0, body0 := "", "", ""
+	var sender0, extBugID0, body0 string
 	{
 		c.expectOK(c.GET("/email_poll"))
 		c.expectEQ(len(c.emailSink), 1)

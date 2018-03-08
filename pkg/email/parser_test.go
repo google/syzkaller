@@ -91,6 +91,9 @@ func TestAddAddrContextEmptyName(t *testing.T) {
 		t.Fatalf("want: %q, got %q", want, email1)
 	}
 	email2, context1, err := RemoveAddrContext(email1)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if email != email2 {
 		t.Fatalf("want: %q, got %q", email, email2)
 	}

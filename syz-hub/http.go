@@ -14,7 +14,7 @@ import (
 	. "github.com/google/syzkaller/pkg/log"
 )
 
-func (hub *Hub) initHttp(addr string) {
+func (hub *Hub) initHTTP(addr string) {
 	http.HandleFunc("/", hub.httpSummary)
 
 	ln, err := net.Listen("tcp4", addr)

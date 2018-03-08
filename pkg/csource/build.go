@@ -27,7 +27,7 @@ func Build(target *prog.Target, lang, src string) (string, error) {
 	sysTarget := targets.List[target.OS][target.Arch]
 	compiler := sysTarget.CCompilerPrefix + "gcc"
 	if _, err := exec.LookPath(compiler); err != nil {
-		return "", NoCompilerErr
+		return "", ErrNoCompiler
 	}
 	flags := []string{
 		"-x", lang, "-Wall", "-Werror", "-O1", "-g", "-o", bin.Name(),
@@ -46,13 +46,13 @@ func Build(target *prog.Target, lang, src string) (string, error) {
 	if err != nil {
 		os.Remove(bin.Name())
 		data, _ := ioutil.ReadFile(src)
-		return "", fmt.Errorf("failed to build program:\n%s\n%s\ncompiler invocation: %v %v\n",
+		return "", fmt.Errorf("failed to build program:\n%s\n%s\ncompiler invocation: %v %v",
 			data, out, compiler, flags)
 	}
 	return bin.Name(), nil
 }
 
-var NoCompilerErr = errors.New("no target compiler")
+var ErrNoCompiler = errors.New("no target compiler")
 
 // Format reformats C source using clang-format.
 func Format(src []byte) ([]byte, error) {

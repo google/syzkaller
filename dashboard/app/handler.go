@@ -31,7 +31,7 @@ func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
 		if err := fn(c, w, r); err != nil {
-			if err == AccessError {
+			if err == ErrAccess {
 				w.WriteHeader(http.StatusForbidden)
 				loginLink := ""
 				if user.Current(c) == nil {
@@ -61,7 +61,7 @@ func handleAuth(fn contextHandler) contextHandler {
 	}
 }
 
-var AccessError = errors.New("unauthorized")
+var ErrAccess = errors.New("unauthorized")
 
 func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) error {
 	if accessLevel(c, r) >= level {
@@ -72,7 +72,7 @@ func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) err
 		userID = fmt.Sprintf("%q [%q]", u.Email, u.AuthDomain)
 	}
 	log.Errorf(c, "unauthorized access: %v access level %v", userID, level)
-	return AccessError
+	return ErrAccess
 }
 
 func accessLevel(c context.Context, r *http.Request) AccessLevel {

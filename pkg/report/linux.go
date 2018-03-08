@@ -159,7 +159,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 			}
 		}
 		if ctx.consoleOutputRe.Match(line) &&
-			(!ctx.questionableRe.Match(line) || bytes.Index(line, ctx.eoi) != -1) {
+			(!ctx.questionableRe.Match(line) || bytes.Contains(line, ctx.eoi)) {
 			lineStart := bytes.Index(line, []byte("] ")) + pos + 2
 			lineEnd := next
 			if lineEnd != 0 && output[lineEnd-1] == '\r' {
@@ -352,12 +352,8 @@ func symbolizeLine(symbFunc func(bin string, pc uint64) ([]symbolizer.Frame, err
 	var symbolized []byte
 	for _, frame := range frames {
 		file := frame.File
-		if strings.HasPrefix(file, strip) {
-			file = file[len(strip):]
-		}
-		if strings.HasPrefix(file, "./") {
-			file = file[2:]
-		}
+		file = strings.TrimPrefix(file, strip)
+		file = strings.TrimPrefix(file, "./")
 		info := fmt.Sprintf(" %v:%v", file, frame.Line)
 		modified := append([]byte{}, line...)
 		modified = replace(modified, match[7], match[7], []byte(info))

@@ -420,7 +420,7 @@ func (mgr *Manager) createTestConfig(imageDir string, info *BuildInfo) (*mgrconf
 	mgrcfg.Workdir = filepath.Join(imageDir, "workdir")
 	mgrcfg.Vmlinux = filepath.Join(imageDir, "obj", "vmlinux")
 	mgrcfg.Image = filepath.Join(imageDir, "image")
-	mgrcfg.Sshkey = filepath.Join(imageDir, "key")
+	mgrcfg.SSHKey = filepath.Join(imageDir, "key")
 	mgrcfg.Kernel_Src = mgr.kernelDir
 	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 	cfgdata, err := config.SaveData(mgrcfg)
@@ -457,7 +457,7 @@ func (mgr *Manager) writeConfig(buildTag string) (string, error) {
 	mgrcfg.Kernel_Src = mgr.kernelDir
 	mgrcfg.Syzkaller = filepath.FromSlash("syzkaller/current")
 	mgrcfg.Image = filepath.Join(mgr.currentDir, "image")
-	mgrcfg.Sshkey = filepath.Join(mgr.currentDir, "key")
+	mgrcfg.SSHKey = filepath.Join(mgr.currentDir, "key")
 
 	configFile := filepath.Join(mgr.currentDir, "manager.cfg")
 	if err := config.SaveFile(configFile, mgrcfg); err != nil {

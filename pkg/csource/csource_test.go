@@ -114,7 +114,7 @@ func testOne(t *testing.T, p *prog.Prog, opts Options) {
 	}
 	defer os.Remove(srcf)
 	bin, err := Build(p.Target, "c", srcf)
-	if err == NoCompilerErr {
+	if err == ErrNoCompiler {
 		t.Skip(err)
 	}
 	if err != nil {

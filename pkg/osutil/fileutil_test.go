@@ -4,6 +4,7 @@
 package osutil
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -36,29 +37,31 @@ func TestProcessTempDir(t *testing.T) {
 				}
 			}
 			// Now request a bunch of instances concurrently.
-			done := make(chan bool)
+			done := make(chan error)
 			allDirs := make(map[string]bool)
 			var mu sync.Mutex
 			for p := 0; p < P; p++ {
 				go func() {
-					defer func() {
-						done <- true
-					}()
 					dir, err := ProcessTempDir(tmp)
 					if err != nil {
-						t.Fatalf("failed to create process temp dir")
+						done <- fmt.Errorf("failed to create temp dir: %v", err)
+						return
 					}
 					mu.Lock()
 					present := allDirs[dir]
 					allDirs[dir] = true
 					mu.Unlock()
 					if present {
-						t.Fatalf("duplicate dir %v", dir)
+						done <- fmt.Errorf("duplicate dir %v", dir)
+						return
 					}
+					done <- nil
 				}()
 			}
 			for p := 0; p < P; p++ {
-				<-done
+				if err := <-done; err != nil {
+					t.Error(err)
+				}
 			}
 		}()
 	}

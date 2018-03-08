@@ -5,6 +5,7 @@ package symbolizer
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"reflect"
 	"strconv"
@@ -114,7 +115,7 @@ func TestParse(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer outputr.Close()
-	done := make(chan bool)
+	done := make(chan error)
 	go func() {
 		s := bufio.NewScanner(inputr)
 	loop:
@@ -122,7 +123,8 @@ func TestParse(t *testing.T) {
 			pc, err := strconv.ParseUint(s.Text(), 0, 64)
 			if err != nil {
 				outputw.Close()
-				t.Fatalf("got unexpected pc: %v", s.Text())
+				done <- fmt.Errorf("got unexpected pc: %v", s.Text())
+				return
 			}
 			for _, addr := range addresses {
 				if pc == addr.pc {
@@ -131,7 +133,8 @@ func TestParse(t *testing.T) {
 				}
 			}
 			outputw.Close()
-			t.Fatalf("got unexpected pc: 0x%x", pc)
+			done <- fmt.Errorf("got unexpected pc: 0x%x", pc)
+			return
 		}
 		outputw.Write([]byte("DONE\n"))
 		outputw.Close()
@@ -139,7 +142,9 @@ func TestParse(t *testing.T) {
 	}()
 	defer func() {
 		inputw.Close()
-		<-done
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
 	}()
 
 	// First, symbolize all PCs one-by-one.

@@ -256,8 +256,8 @@ func (p *Prog) validateCall(ctx *validCtx, c *Call) error {
 				break
 			}
 			if !ctx.args[a.Res] {
-				return fmt.Errorf("syscall %v: result arg '%v' references out-of-tree result: %p%+v -> %p%+v",
-					c.Meta.Name, a.Type().Name(), arg, arg, a.Res, a.Res)
+				return fmt.Errorf("syscall %v: result arg %v references out-of-tree result: %#v -> %#v",
+					c.Meta.Name, a.Type().Name(), arg, a.Res)
 			}
 			if !(*a.Res.(ArgUsed).Used())[arg] {
 				return fmt.Errorf("syscall %v: result arg '%v' has broken link (%+v)",

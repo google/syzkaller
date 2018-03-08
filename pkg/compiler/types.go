@@ -267,10 +267,7 @@ var typeFilename = &typeDesc{
 	OptArgs:   1,
 	Args:      []namedArg{{"size", typeArgInt}},
 	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
-		if len(args) >= 1 {
-			return false
-		}
-		return true
+		return len(args) == 0
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
 		base.TypeSize = 0
@@ -448,13 +445,17 @@ var typeBuffer = &typeDesc{
 	},
 }
 
+const (
+	stringnoz = "stringnoz"
+)
+
 var typeString = &typeDesc{
-	Names:        []string{"string", "stringnoz"},
+	Names:        []string{"string", stringnoz},
 	CanBeTypedef: true,
 	OptArgs:      2,
 	Args:         []namedArg{{"literal or flags", typeArgStringFlags}, {"size", typeArgInt}},
 	Check: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) {
-		if t.Ident == "stringnoz" && len(args) > 1 {
+		if t.Ident == stringnoz && len(args) > 1 {
 			comp.error(args[0].Pos, "fixed-size string can't be non-zero-terminated")
 		}
 	},
@@ -491,7 +492,7 @@ var typeString = &typeDesc{
 			Kind:       prog.BufferString,
 			SubKind:    subkind,
 			Values:     vals,
-			NoZ:        t.Ident == "stringnoz",
+			NoZ:        t.Ident == stringnoz,
 		}
 	},
 }
@@ -505,7 +506,7 @@ func (comp *compiler) genStrings(t *ast.Type, args []*ast.Type) []string {
 			vals = genStrArray(comp.strFlags[args[0].Ident].Values)
 		}
 	}
-	if t.Ident == "stringnoz" {
+	if t.Ident == stringnoz {
 		return vals
 	}
 	var size uint64
@@ -645,12 +646,11 @@ func init() {
 				FldName:    base.FldName,
 				StructDesc: desc,
 			}
-		} else {
-			return &prog.StructType{
-				Key:        key,
-				FldName:    base.FldName,
-				StructDesc: desc,
-			}
+		}
+		return &prog.StructType{
+			Key:        key,
+			FldName:    base.FldName,
+			StructDesc: desc,
 		}
 	}
 }

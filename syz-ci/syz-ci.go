@@ -69,7 +69,7 @@ var flagConfig = flag.String("config", "", "config file")
 
 type Config struct {
 	Name                   string
-	Http                   string
+	HTTP                   string
 	Dashboard_Addr         string // Optional.
 	Dashboard_Client       string // Optional.
 	Dashboard_Key          string // Optional.
@@ -171,7 +171,7 @@ func loadConfig(filename string) (*Config, error) {
 	if cfg.Name == "" {
 		return nil, fmt.Errorf("param 'name' is empty")
 	}
-	if cfg.Http == "" {
+	if cfg.HTTP == "" {
 		return nil, fmt.Errorf("param 'http' is empty")
 	}
 	if len(cfg.Managers) == 0 {

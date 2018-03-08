@@ -21,7 +21,7 @@ func TestCompilerIdentity(t *testing.T) {
 	if len(id) == 0 {
 		t.Fatalf("identity is empty")
 	}
-	if strings.Index(id, "\n") != -1 {
+	if strings.Contains(id, "\n") {
 		t.Fatalf("identity contains a new line")
 	}
 	// We don't know what's the right answer,

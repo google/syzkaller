@@ -36,7 +36,7 @@ type Config struct {
 	Kernel    string // kernel for injected boot (e.g. arch/x86/boot/bzImage)
 	Cmdline   string // kernel command line (can only be specified with kernel)
 	Initrd    string // linux initial ramdisk. (optional)
-	Cpu       int    // number of VM CPUs
+	CPU       int    // number of VM CPUs
 	Mem       int    // amount of VM memory in MBs
 }
 
@@ -127,12 +127,12 @@ func ctor(env *vmimpl.Env) (vmimpl.Pool, error) {
 		if !osutil.IsExist(env.Image) {
 			return nil, fmt.Errorf("image file '%v' does not exist", env.Image)
 		}
-		if !osutil.IsExist(env.SshKey) {
-			return nil, fmt.Errorf("ssh key '%v' does not exist", env.SshKey)
+		if !osutil.IsExist(env.SSHKey) {
+			return nil, fmt.Errorf("ssh key '%v' does not exist", env.SSHKey)
 		}
 	}
-	if cfg.Cpu <= 0 || cfg.Cpu > 1024 {
-		return nil, fmt.Errorf("bad qemu cpu: %v, want [1-1024]", cfg.Cpu)
+	if cfg.CPU <= 0 || cfg.CPU > 1024 {
+		return nil, fmt.Errorf("bad qemu cpu: %v, want [1-1024]", cfg.CPU)
 	}
 	if cfg.Mem < 128 || cfg.Mem > 1048576 {
 		return nil, fmt.Errorf("bad qemu mem: %v, want [128-1048576]", cfg.Mem)
@@ -151,8 +151,8 @@ func (pool *Pool) Count() int {
 }
 
 func (pool *Pool) Create(workdir string, index int) (vmimpl.Instance, error) {
-	sshkey := pool.env.SshKey
-	sshuser := pool.env.SshUser
+	sshkey := pool.env.SSHKey
+	sshuser := pool.env.SSHUser
 	if pool.env.Image == "9p" {
 		sshkey = filepath.Join(workdir, "key")
 		sshuser = "root"
@@ -244,19 +244,19 @@ func (inst *instance) Boot() error {
 		"-serial", "stdio",
 		"-no-reboot",
 	}
-	if inst.cfg.Cpu == 1 {
+	if inst.cfg.CPU == 1 {
 		args = append(args,
 			"-smp", "cpus=1,maxcpus=2",
 		)
 	} else {
 		ncores := 1
-		if inst.cfg.Cpu >= 4 {
+		if inst.cfg.CPU >= 4 {
 			ncores = 2
 		}
 		args = append(args,
 			"-numa", "node,nodeid=0", "-numa", "node,nodeid=1",
 			"-smp", fmt.Sprintf("cpus=%v,maxcpus=%v,sockets=2,cores=%v",
-				inst.cfg.Cpu, inst.cfg.Cpu+1, ncores),
+				inst.cfg.CPU, inst.cfg.CPU+1, ncores),
 		)
 	}
 	args = append(args, strings.Split(inst.cfg.Qemu_Args, " ")...)
@@ -464,9 +464,9 @@ func (inst *instance) Run(timeout time.Duration, stop <-chan bool, command strin
 	go func() {
 		select {
 		case <-time.After(timeout):
-			signal(vmimpl.TimeoutErr)
+			signal(vmimpl.ErrTimeout)
 		case <-stop:
-			signal(vmimpl.TimeoutErr)
+			signal(vmimpl.ErrTimeout)
 		case err := <-inst.merger.Err:
 			cmd.Process.Kill()
 			if cmdErr := cmd.Wait(); cmdErr == nil {

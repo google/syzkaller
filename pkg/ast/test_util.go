@@ -61,7 +61,7 @@ func NewErrorMatcher(t *testing.T, file string) *ErrorMatcher {
 	}
 }
 
-var errorLocationRe = regexp.MustCompile("at [a-z][a-z0-9]+\\.txt:[0-9]+:[0-9]+")
+var errorLocationRe = regexp.MustCompile(`at [a-z][a-z0-9]+\.txt:[0-9]+:[0-9]+`)
 
 func (em *ErrorMatcher) ErrorHandler(pos Pos, msg string) {
 	if match := errorLocationRe.FindStringSubmatchIndex(msg); match != nil {

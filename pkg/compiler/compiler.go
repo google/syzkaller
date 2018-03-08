@@ -27,7 +27,7 @@ import (
 // 4.1. assignSyscallNumbers: uses consts to assign syscall numbers.
 //      This step also detects unsupported syscalls and discards no longer
 //      needed AST nodes (inlcude, define, comments, etc).
-// 4.2. patchConsts: patches Int nodes refering to consts with corresponding values.
+// 4.2. patchConsts: patches Int nodes referring to consts with corresponding values.
 //      Also detects unsupported syscalls, structs, resources due to missing consts.
 // 4.3. check: does extensive semantical checks of AST.
 // 4.4. gen: generates prog objects from AST.

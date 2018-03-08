@@ -2837,7 +2837,7 @@ var structDescs_arm = []*KeyedStruct{
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "pointer", TypeSize: 1}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "length", TypeSize: 1}}},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unsed", TypeSize: 2}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "unused", TypeSize: 2}}},
 		&StructType{Key: StructKey{Name: "icmp_ipv4_header"}, FldName: "iph"},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}, Kind: 1, RangeEnd: 8},
 	}}},
@@ -25294,4 +25294,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "8f884a3256f4d0f2a84807391e479e7713ba6fac"
+const revision_arm = "28772c035814f22d291032fc0d3a14c1ea6d4d34"

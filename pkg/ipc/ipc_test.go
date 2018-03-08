@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/pkg/csource"
-	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/prog"
 	_ "github.com/google/syzkaller/sys"
 )
@@ -23,15 +22,6 @@ const timeout = 10 * time.Second
 func buildExecutor(t *testing.T, target *prog.Target) string {
 	src := fmt.Sprintf("../../executor/executor_%v.cc", target.OS)
 	return buildProgram(t, target, filepath.FromSlash(src))
-}
-
-func buildSource(t *testing.T, target *prog.Target, src []byte) string {
-	tmp, err := osutil.WriteTempFile(src)
-	if err != nil {
-		t.Fatalf("%v", err)
-	}
-	defer os.Remove(tmp)
-	return buildProgram(t, target, tmp)
 }
 
 func buildProgram(t *testing.T, target *prog.Target, src string) string {

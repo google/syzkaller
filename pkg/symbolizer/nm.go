@@ -34,7 +34,7 @@ func ReadSymbols(bin string) (map[string][]Symbol, error) {
 	for s.Scan() {
 		// A line looks as: "ffffffff8104db90 0000000000000059 t snb_uncore_msr_enable_box"
 		ln := s.Bytes()
-		if bytes.Index(ln, text[0]) == -1 && bytes.Index(ln, text[1]) == -1 {
+		if !bytes.Contains(ln, text[0]) && !bytes.Contains(ln, text[1]) {
 			continue
 		}
 		sp1 := bytes.IndexByte(ln, ' ')

@@ -110,7 +110,7 @@ func checkUnknownFieldsStruct(val interface{}, prefix string, typ reflect.Type) 
 	}
 	inner, err := json.Marshal(val)
 	if err != nil {
-		return fmt.Errorf("failed to marshal inner struct '%v%v':", prefix, err)
+		return fmt.Errorf("failed to marshal inner struct %q: %v", prefix, err)
 	}
 	return checkUnknownFieldsRec(inner, prefix, typ)
 }

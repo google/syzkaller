@@ -6,14 +6,14 @@ package cover
 
 type Cover map[uint32]struct{}
 
-func (covp *Cover) Merge(raw []uint32) {
-	cov := *covp
-	if cov == nil {
-		cov = make(Cover)
-		*covp = cov
+func (cov *Cover) Merge(raw []uint32) {
+	c := *cov
+	if c == nil {
+		c = make(Cover)
+		*cov = c
 	}
 	for _, pc := range raw {
-		cov[pc] = struct{}{}
+		c[pc] = struct{}{}
 	}
 }
 

@@ -18,6 +18,7 @@ import (
 	"github.com/google/syzkaller/pkg/report"
 	"github.com/google/syzkaller/vm/vmimpl"
 
+	// Import all VM implementations, so that users only need to import vm.
 	_ "github.com/google/syzkaller/vm/adb"
 	_ "github.com/google/syzkaller/vm/gce"
 	_ "github.com/google/syzkaller/vm/isolated"
@@ -41,7 +42,7 @@ type Env vmimpl.Env
 
 var (
 	Shutdown   = vmimpl.Shutdown
-	TimeoutErr = vmimpl.TimeoutErr
+	ErrTimeout = vmimpl.ErrTimeout
 )
 
 type BootErrorer interface {
@@ -181,7 +182,7 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Rep
 				// The program has exited without errors,
 				// but wait for kernel output in case there is some delayed oops.
 				return extractError("")
-			case TimeoutErr:
+			case ErrTimeout:
 				return nil
 			default:
 				// Note: connection lost can race with a kernel oops message.
@@ -191,11 +192,11 @@ func MonitorExecution(outc <-chan []byte, errc <-chan error, reporter report.Rep
 		case out := <-outc:
 			output = append(output, out...)
 			// syz-fuzzer output
-			if bytes.Index(output[matchPos:], []byte("executing program")) != -1 {
+			if bytes.Contains(output[matchPos:], []byte("executing program")) {
 				lastExecuteTime = time.Now()
 			}
 			// syz-execprog output
-			if bytes.Index(output[matchPos:], []byte("executed programs:")) != -1 {
+			if bytes.Contains(output[matchPos:], []byte("executed programs:")) {
 				lastExecuteTime = time.Now()
 			}
 			if reporter.ContainsCrash(output[matchPos:]) {

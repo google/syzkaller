@@ -33,7 +33,7 @@ func createCommonHeader(p *prog.Prog, opts Options) ([]byte, error) {
 	cmd.Stderr = stderr
 	cmd.Stdout = stdout
 	if err := cmd.Run(); len(stdout.Bytes()) == 0 {
-		return nil, fmt.Errorf("cpp failed: %v\n%v\n%v\n", err, stdout.String(), stderr.String())
+		return nil, fmt.Errorf("cpp failed: %v\n%v\n%v", err, stdout.String(), stderr.String())
 	}
 
 	src, err := removeSystemDefines(stdout.Bytes(), defines)

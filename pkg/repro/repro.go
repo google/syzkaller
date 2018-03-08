@@ -382,7 +382,7 @@ func (ctx *context) extractProgBisect(entries []*prog.LogEntry, baseDuration tim
 			Duration: dur,
 			Opts:     opts,
 		}
-		ctx.reproLog(3, "bisect: concatenation succeded")
+		ctx.reproLog(3, "bisect: concatenation succeeded")
 		return res, nil
 	}
 
@@ -458,7 +458,7 @@ func (ctx *context) simplifyProg(res *Result) (*Result, error) {
 			}
 			if crashed {
 				res.Opts = opts
-				// Simplification successfull, try extracting C repro.
+				// Simplification successful, try extracting C repro.
 				res, err := ctx.extractC(res)
 				if err != nil {
 					return nil, err
@@ -681,7 +681,7 @@ again:
 		ctx.reproLog(3, "bisect: guilty chunks split: %v, <%v>, %v", logGuilty(guilty1), len(chunk), logGuilty(guilty2))
 
 		chunk1 := chunk[0 : len(chunk)/2]
-		chunk2 := chunk[len(chunk)/2 : len(chunk)]
+		chunk2 := chunk[len(chunk)/2:]
 		ctx.reproLog(3, "bisect: chunk split: <%v> => <%v>, <%v>", len(chunk), len(chunk1), len(chunk2))
 
 		ctx.reproLog(3, "bisect: triggering crash without chunk #1")

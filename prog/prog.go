@@ -250,9 +250,8 @@ func MakeUnionArg(t Type, opt Arg) *UnionArg {
 func (arg *UnionArg) Size() uint64 {
 	if !arg.Type().Varlen() {
 		return arg.Type().Size()
-	} else {
-		return arg.Option.Size()
 	}
+	return arg.Option.Size()
 }
 
 // Used for ResourceType.
@@ -319,9 +318,8 @@ func InnerArg(arg Arg) Arg {
 					panic(fmt.Sprintf("non-optional pointer is nil\narg: %+v\ntype: %+v", a, t))
 				}
 				return nil
-			} else {
-				return InnerArg(a.Res)
 			}
+			return InnerArg(a.Res)
 		}
 		return nil // *ConstArg.
 	}
@@ -501,44 +499,6 @@ func replaceResultArg(arg, arg1 *ResultArg) {
 	if arg.Res != nil {
 		delete(*arg.Res.(ArgUsed).Used(), arg1)
 		(*arg.Res.(ArgUsed).Used())[arg] = true
-	}
-}
-
-// replaceArgCheck checks that c and arg belog to p.
-func (p *Prog) replaceArgCheck(c *Call, arg, arg1 Arg, calls []*Call) {
-	foundCall, foundArg := false, false
-	for _, c0 := range p.Calls {
-		if c0 == c {
-			if foundCall {
-				panic("duplicate call")
-			}
-			foundCall = true
-		}
-		for _, newC := range calls {
-			if c0 == newC {
-				panic("call is already in prog")
-			}
-		}
-		ForeachArg(c0, func(arg0 Arg, _ *ArgCtx) {
-			if arg0 == arg {
-				if c0 != c {
-					panic("wrong call")
-				}
-				if foundArg {
-					panic("duplicate arg")
-				}
-				foundArg = true
-			}
-			if arg0 == arg1 {
-				panic("arg is already in prog")
-			}
-		})
-	}
-	if !foundCall {
-		panic("call is not in prog")
-	}
-	if !foundArg {
-		panic("arg is not in prog")
 	}
 }
 

@@ -166,7 +166,7 @@ func (dash *Dashboard) ReportCrash(crash *Crash) (*ReportCrashResp, error) {
 	return resp, err
 }
 
-// CrashID is a short summary of a crash for repro queires.
+// CrashID is a short summary of a crash for repro queries.
 type CrashID struct {
 	BuildID   string
 	Title     string

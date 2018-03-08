@@ -124,5 +124,4 @@ func runInstance(cfg *mgrconfig.Config, reporter report.Reporter, vmPool *vm.Poo
 		log.Logf(0, "vm-%v: crashed: %v, saving to %v", index, rep.Title, f.Name())
 		f.Write(rep.Output)
 	}
-	return
 }

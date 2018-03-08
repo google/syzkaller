@@ -31,7 +31,7 @@ func (*linux) prepare(sourcedir string, build bool, arches []string) error {
 			out, err := osutil.RunCmd(time.Hour, sourcedir, "make", "mrproper",
 				"-j", fmt.Sprint(runtime.NumCPU()))
 			if err != nil {
-				return fmt.Errorf("make mrproper failed: %v\n%s\n", err, out)
+				return fmt.Errorf("make mrproper failed: %v\n%s", err, out)
 			}
 		}
 	} else {
@@ -58,21 +58,21 @@ func (*linux) prepareArch(arch *Arch) error {
 	}
 	out, err := osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "defconfig")...)
 	if err != nil {
-		return fmt.Errorf("make defconfig failed: %v\n%s\n", err, out)
+		return fmt.Errorf("make defconfig failed: %v\n%s", err, out)
 	}
 	// Without CONFIG_NETFILTER kernel does not build.
 	out, err = osutil.RunCmd(time.Minute, buildDir, "sed", "-i",
 		"s@# CONFIG_NETFILTER is not set@CONFIG_NETFILTER=y@g", ".config")
 	if err != nil {
-		return fmt.Errorf("sed .config failed: %v\n%s\n", err, out)
+		return fmt.Errorf("sed .config failed: %v\n%s", err, out)
 	}
 	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "olddefconfig")...)
 	if err != nil {
-		return fmt.Errorf("make olddefconfig failed: %v\n%s\n", err, out)
+		return fmt.Errorf("make olddefconfig failed: %v\n%s", err, out)
 	}
 	out, err = osutil.RunCmd(time.Hour, kernelDir, "make", append(makeArgs, "init/main.o")...)
 	if err != nil {
-		return fmt.Errorf("make failed: %v\n%s\n", err, out)
+		return fmt.Errorf("make failed: %v\n%s", err, out)
 	}
 	return nil
 }

@@ -88,13 +88,13 @@ type parser struct {
 }
 
 // Skip parsing till the next NEWLINE, for error recovery.
-var skipLine = errors.New("")
+var errSkipLine = errors.New("")
 
 func (p *parser) parseTopRecover() Node {
 	defer func() {
 		switch err := recover(); err {
 		case nil:
-		case skipLine:
+		case errSkipLine:
 			// Try to recover by consuming everything until next NEWLINE.
 			for p.tok != tokNewLine && p.tok != tokEOF {
 				p.next()
@@ -143,7 +143,7 @@ func (p *parser) parseTop() Node {
 		}
 	case tokIllegal:
 		// Scanner has already producer an error for this one.
-		panic(skipLine)
+		panic(errSkipLine)
 	default:
 		p.expect(tokComment, tokDefine, tokInclude, tokResource, tokIdent)
 	}
@@ -178,7 +178,7 @@ func (p *parser) expect(tokens ...token) {
 		str = append(str, tok.String())
 	}
 	p.s.Error(p.pos, fmt.Sprintf("unexpected %v, expecting %v", p.tok, strings.Join(str, ", ")))
-	panic(skipLine)
+	panic(errSkipLine)
 }
 
 func (p *parser) parseComment() *Comment {

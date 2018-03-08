@@ -2,7 +2,7 @@
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
 // execprog executes a single program or a set of programs
-// and optinally prints information about execution.
+// and optionally prints information about execution.
 package main
 
 import (

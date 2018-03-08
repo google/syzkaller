@@ -5,13 +5,13 @@ import (
 )
 
 type anyTypes struct {
-	anyUnion  *UnionType
-	anyArray  *ArrayType
-	anyBlob   *BufferType
-	anyPtrPtr *PtrType
-	anyPtr64  *PtrType
-	anyRes32  *ResourceType
-	anyRes64  *ResourceType
+	union  *UnionType
+	array  *ArrayType
+	blob   *BufferType
+	ptrPtr *PtrType
+	ptr64  *PtrType
+	res32  *ResourceType
+	res64  *ResourceType
 }
 
 // This generates type descriptions for:
@@ -26,36 +26,36 @@ type anyTypes struct {
 // 	res64	ANYRES64
 // ] [varlen]
 func initAnyTypes(target *Target) {
-	target.anyUnion = &UnionType{
+	target.any.union = &UnionType{
 		FldName: "ANYUNION",
 	}
-	target.anyArray = &ArrayType{
+	target.any.array = &ArrayType{
 		TypeCommon: TypeCommon{
 			TypeName: "ANYARRAY",
 			FldName:  "ANYARRAY",
 			IsVarlen: true,
 		},
-		Type: target.anyUnion,
+		Type: target.any.union,
 	}
-	target.anyPtrPtr = &PtrType{
+	target.any.ptrPtr = &PtrType{
 		TypeCommon: TypeCommon{
 			TypeName:   "ptr",
 			FldName:    "ANYPTR",
 			TypeSize:   target.PtrSize,
 			IsOptional: true,
 		},
-		Type: target.anyArray,
+		Type: target.any.array,
 	}
-	target.anyPtr64 = &PtrType{
+	target.any.ptr64 = &PtrType{
 		TypeCommon: TypeCommon{
 			TypeName:   "ptr64",
 			FldName:    "ANYPTR64",
 			TypeSize:   8,
 			IsOptional: true,
 		},
-		Type: target.anyArray,
+		Type: target.any.array,
 	}
-	target.anyBlob = &BufferType{
+	target.any.blob = &BufferType{
 		TypeCommon: TypeCommon{
 			TypeName: "ANYBLOB",
 			FldName:  "ANYBLOB",
@@ -86,9 +86,9 @@ func initAnyTypes(target *Target) {
 			},
 		}
 	}
-	target.anyRes32 = createResource("ANYRES32", "int32", 4)
-	target.anyRes64 = createResource("ANYRES64", "int64", 8)
-	target.anyUnion.StructDesc = &StructDesc{
+	target.any.res32 = createResource("ANYRES32", "int32", 4)
+	target.any.res64 = createResource("ANYRES64", "int64", 8)
+	target.any.union.StructDesc = &StructDesc{
 		TypeCommon: TypeCommon{
 			TypeName: "ANYUNION",
 			FldName:  "ANYUNION",
@@ -96,11 +96,11 @@ func initAnyTypes(target *Target) {
 			ArgDir:   DirIn,
 		},
 		Fields: []Type{
-			target.anyBlob,
-			target.anyPtrPtr,
-			target.anyPtr64,
-			target.anyRes32,
-			target.anyRes64,
+			target.any.blob,
+			target.any.ptrPtr,
+			target.any.ptr64,
+			target.any.res32,
+			target.any.res64,
 		},
 	}
 }
@@ -110,9 +110,9 @@ func (target *Target) makeAnyPtrType(size uint64, field string) *PtrType {
 	// and field names are used as len target.
 	var typ PtrType
 	if size == target.PtrSize {
-		typ = *target.anyPtrPtr
+		typ = *target.any.ptrPtr
 	} else if size == 8 {
-		typ = *target.anyPtr64
+		typ = *target.any.ptr64
 	} else {
 		panic(fmt.Sprintf("bad pointer size %v", size))
 	}
@@ -125,7 +125,7 @@ func (target *Target) makeAnyPtrType(size uint64, field string) *PtrType {
 
 func (target *Target) isAnyPtr(typ Type) bool {
 	ptr, ok := typ.(*PtrType)
-	return ok && ptr.Type == target.anyArray
+	return ok && ptr.Type == target.any.array
 }
 
 func (p *Prog) complexPtrs() (res []*PointerArg) {
@@ -228,17 +228,17 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 	case *ResultArg:
 		switch arg.Size() {
 		case 4:
-			arg.typ = target.anyRes32
+			arg.typ = target.any.res32
 		case 8:
-			arg.typ = target.anyRes64
+			arg.typ = target.any.res64
 		default:
 			panic("bad size")
 		}
-		*elems = append(*elems, MakeUnionArg(target.anyUnion, arg))
+		*elems = append(*elems, MakeUnionArg(target.any.union, arg))
 	case *PointerArg:
 		if arg.Res != nil {
 			target.squashPtr(arg, false)
-			*elems = append(*elems, MakeUnionArg(target.anyUnion, arg))
+			*elems = append(*elems, MakeUnionArg(target.any.union, arg))
 		} else {
 			elem := target.ensureDataElem(elems)
 			addr := target.PhysicalAddr(arg)
@@ -314,14 +314,14 @@ func (target *Target) squashConst(arg *ConstArg) uint64 {
 
 func (target *Target) ensureDataElem(elems *[]Arg) *DataArg {
 	if len(*elems) == 0 {
-		res := MakeDataArg(target.anyBlob, nil)
-		*elems = append(*elems, MakeUnionArg(target.anyUnion, res))
+		res := MakeDataArg(target.any.blob, nil)
+		*elems = append(*elems, MakeUnionArg(target.any.union, res))
 		return res
 	}
 	res, ok := (*elems)[len(*elems)-1].(*UnionArg).Option.(*DataArg)
 	if !ok {
-		res = MakeDataArg(target.anyBlob, nil)
-		*elems = append(*elems, MakeUnionArg(target.anyUnion, res))
+		res = MakeDataArg(target.any.blob, nil)
+		*elems = append(*elems, MakeUnionArg(target.any.union, res))
 	}
 	return res
 }
