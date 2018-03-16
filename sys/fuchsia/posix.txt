@@ -53,7 +53,6 @@ fchownat(dirfd fd, file ptr[in, filename], uid uid, gid gid, flags flags[at_flag
 faccessat(dirfd fd, pathname ptr[in, filename], mode flags[open_mode], flags flags[faccessat_flags])
 utime(filename ptr[in, filename], times ptr[in, utimbuf])
 utimes(filename ptr[in, filename], times ptr[in, itimerval])
-futimesat(dir fd, pathname ptr[in, filename], times ptr[in, itimerval])
 utimensat(dir fd, pathname ptr[in, filename], times ptr[in, itimerval], flags flags[utimensat_flags])
 
 link(old ptr[in, filename], new ptr[in, filename])
@@ -71,13 +70,11 @@ mkdirat(fd fd, path ptr[in, filename], mode flags[open_mode])
 rmdir(path ptr[in, filename])
 truncate(file ptr[in, filename], len intptr)
 ftruncate(fd fd, len intptr)
-flock(fd fd, op flags[flock_op])
 fsync(fd fd)
 fdatasync(fd fd)
 sync()
 getcwd(buf buffer[out], size len[buf])
 chdir(dir ptr[in, filename])
-fchdir(fd fd)
 
 getgid() gid
 getuid() uid
