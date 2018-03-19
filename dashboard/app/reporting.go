@@ -323,7 +323,7 @@ func incomingCommand(c context.Context, cmd *dashapi.BugUpdate) (bool, string, e
 	ok, reason, err := incomingCommandImpl(c, cmd)
 	if err != nil {
 		log.Errorf(c, "%v (%v)", reason, err)
-	} else if !ok {
+	} else if !ok && reason != "" {
 		log.Warningf(c, "invalid update: %v", reason)
 	}
 	return ok, reason, err
