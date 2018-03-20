@@ -211,9 +211,11 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	if rep.Arch == "386" {
 		userspaceArch = "i386"
 	}
+	link := fmt.Sprintf("https://%v.appspot.com/bug?extid=%v", appengine.AppID(c), rep.ID)
 	// Data passed to the template.
 	type BugReportData struct {
 		First             bool
+		Link              string
 		CreditEmail       string
 		Moderation        bool
 		Maintainers       []string
@@ -236,6 +238,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	}
 	data := &BugReportData{
 		First:             rep.First,
+		Link:              link,
 		CreditEmail:       creditEmail,
 		Moderation:        cfg.Moderation,
 		Maintainers:       rep.Maintainers,

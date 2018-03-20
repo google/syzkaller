@@ -5,6 +5,7 @@ Hello,
 syzbot {{if .First}}hit{{else}}has found reproducer for{{end}} the following crash on {{.KernelRepo}} commit
 {{.KernelCommit}}{{if .KernelCommitDate}} ({{.KernelCommitDate}}){{end}}{{if .KernelCommitTitle}}
 {{.KernelCommitTitle}}{{end}}
+syzbot dashboard link: {{.Link}}
 
 {{if ne .NumCrashes 1}}So far this crash happened {{.NumCrashes}} times on {{formatList .HappenedOn}}.
 {{end}}{{if .ReproC}}C reproducer is attached.
