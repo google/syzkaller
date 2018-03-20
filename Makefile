@@ -56,11 +56,15 @@ ifeq ("$(TARGETOS)", "fuchsia")
 	export CGO_ENABLED=1
 	NOSTATIC = 1
 	ifeq ("$(TARGETARCH)", "amd64")
-		ADDCFLAGS = --target=x86_64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-user-x86-64/sysroot -I $(SOURCEDIR)/out/build-zircon/build-user-x86-64
-		export ZIRCON_BUILD_DIR=$(SOURCEDIR)/out/build-zircon/build-user-x86-64
+		ADDCFLAGS = --target=x86_64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-x64/sysroot
+		export GOROOT=$(SOURCEDIR)/out/debug-x64/goroot
+		# Required by the goroot.
+		export ZIRCON_BUILD_DIR=$(SOURCEDIR)/out/build-zircon/build-x64
 	else ifeq ("$(TARGETARCH)", "arm64")
-		ADDCFLAGS = --target=aarch64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-user-arm64/sysroot -I $(SOURCEDIR)/out/build-zircon/build-user-arm64
-		export ZIRCON_BUILD_DIR=$(SOURCEDIR)/out/build-zircon/build-user-arm64
+		ADDCFLAGS = --target=aarch64-fuchsia -lfdio -lzircon --sysroot $(SOURCEDIR)/out/build-zircon/build-arm64/sysroot
+		export GOROOT=$(SOURCEDIR)/out/debug-arm64/goroot
+		# Required by the goroot.
+		export ZIRCON_BUILD_DIR=$(SOURCEDIR)/out/build-zircon/build-arm64
 	endif
 endif
 
