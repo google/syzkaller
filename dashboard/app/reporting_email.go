@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/mail"
+	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -349,14 +350,21 @@ func incomingMail(c context.Context, r *http.Request) error {
 
 func handleEmailBounce(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	log.Errorf(c, "email bounced")
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Errorf(c, "failed to read body: %v", err)
+		log.Errorf(c, "email bounced: failed to read body: %v", err)
 		return
+	}
+	if nonCriticalBounceRe.Match(body) {
+		log.Infof(c, "email bounced: address not found")
+	} else {
+		log.Errorf(c, "email bounced")
 	}
 	log.Infof(c, "%s", body)
 }
+
+// These are just stale emails in MAINTAINERS.
+var nonCriticalBounceRe = regexp.MustCompile(`\*\* Address not found \*\*|550 #5\.1\.0 Address rejected`)
 
 func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *BugReporting, reporting *Reporting) {
 	if msg.BugID == "" {
