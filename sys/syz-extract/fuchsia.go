@@ -25,8 +25,9 @@ func (*fuchsia) prepareArch(arch *Arch) error {
 
 func (*fuchsia) processFile(arch *Arch, info *compiler.ConstInfo) (map[string]uint64, map[string]bool, error) {
 	dir := arch.sourceDir
+	headerArch := arch.target.KernelHeaderArch
 	cc := filepath.Join(dir, "buildtools", "linux-x64", "clang", "bin", "clang")
-	includeDir := filepath.Join(dir, "out", "build-zircon", "build-user-x86-64", "sysroot", "include")
+	includeDir := filepath.Join(dir, "out", "build-zircon", "build-"+headerArch, "sysroot", "include")
 	args := []string{"-fmessage-length=0", "-I" + includeDir}
 	for _, incdir := range info.Incdirs {
 		args = append(args, "-I"+filepath.Join(dir, incdir))

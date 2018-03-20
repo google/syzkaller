@@ -118,14 +118,16 @@ var List = map[string]map[string]*Target{
 	},
 	"fuchsia": map[string]*Target{
 		"amd64": {
-			PtrSize:  8,
-			PageSize: 4 << 10,
-			CArch:    []string{"__x86_64__"},
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			CArch:            []string{"__x86_64__"},
+			KernelHeaderArch: "x64",
 		},
 		"arm64": {
-			PtrSize:  8,
-			PageSize: 4 << 10,
-			CArch:    []string{"__aarch64__"},
+			PtrSize:          8,
+			PageSize:         4 << 10,
+			CArch:            []string{"__aarch64__"},
+			KernelHeaderArch: "arm64",
 		},
 	},
 	"windows": map[string]*Target{
