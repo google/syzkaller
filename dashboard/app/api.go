@@ -68,7 +68,10 @@ func handleJSON(fn JSONHandler) http.Handler {
 		c := appengine.NewContext(r)
 		reply, err := fn(c, r)
 		if err != nil {
-			log.Errorf(c, "%v", err)
+			// ErrAccess is logged earlier.
+			if err != ErrAccess {
+				log.Errorf(c, "%v", err)
+			}
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -90,8 +93,13 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	log.Infof(c, "api %q from %q", method, client)
 	ns, err := checkClient(c, client, r.PostFormValue("key"))
 	if err != nil {
-		log.Warningf(c, "%v", err)
-		return nil, fmt.Errorf("unauthorized request")
+		if client != "" {
+			log.Warningf(c, "%v", err)
+		} else {
+			// Don't log as error if somebody just invokes /api.
+			log.Infof(c, "%v", err)
+		}
+		return nil, err
 	}
 	var payload []byte
 	if str := r.PostFormValue("payload"); str != "" {
@@ -125,7 +133,7 @@ func checkClient(c context.Context, name0, key0 string) (string, error) {
 	for name, key := range config.Clients {
 		if name == name0 {
 			if key != key0 {
-				return "", fmt.Errorf("wrong client %q key", name0)
+				return "", ErrAccess
 			}
 			return "", nil
 		}
@@ -134,13 +142,13 @@ func checkClient(c context.Context, name0, key0 string) (string, error) {
 		for name, key := range cfg.Clients {
 			if name == name0 {
 				if key != key0 {
-					return "", fmt.Errorf("wrong client %q key", name0)
+					return "", ErrAccess
 				}
 				return ns, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("unauthorized api request from %q", name0)
+	return "", ErrAccess
 }
 
 func apiLogError(c context.Context, r *http.Request, payload []byte) (interface{}, error) {
