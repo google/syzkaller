@@ -52,6 +52,7 @@ func TestEmailReport(t *testing.T) {
 syzbot hit the following crash on repo1/branch1 commit
 kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title1
+syzbot dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 
 Unfortunately, I don't have any reproducer for this crash yet.
 Raw console output is attached.
@@ -60,7 +61,7 @@ compiler: compiler1
 CC: [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
-Reported-by: syzbot+%v@testapp.appspotmail.com
+Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 It will help syzbot understand when the bug is fixed. See footer for details.
 If you forward the report, please keep this part and the footer.
 
@@ -158,6 +159,7 @@ For more options, visit https://groups.google.com/d/optout.
 		body := fmt.Sprintf(`syzbot has found reproducer for the following crash on repo1/branch1 commit
 kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title1
+syzbot dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 
 So far this crash happened 2 times on repo1/branch1.
 syzkaller reproducer is attached.
@@ -167,7 +169,7 @@ compiler: compiler1
 CC: [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
-Reported-by: syzbot+%v@testapp.appspotmail.com
+Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 It will help syzbot understand when the bug is fixed.
 
 report1
@@ -210,6 +212,7 @@ report1
 syzbot hit the following crash on repo1/branch1 commit
 kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title1
+syzbot dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 
 So far this crash happened 2 times on repo1/branch1.
 syzkaller reproducer is attached.
@@ -218,7 +221,7 @@ compiler: compiler1
 .config is attached.
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
-Reported-by: syzbot+%v@testapp.appspotmail.com
+Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 It will help syzbot understand when the bug is fixed. See footer for details.
 If you forward the report, please keep this part and the footer.
 
@@ -296,6 +299,7 @@ Content-Type: text/plain
 		body := fmt.Sprintf(`syzbot has found reproducer for the following crash on repo2/branch2 commit
 kernel_commit2 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title2
+syzbot dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 
 So far this crash happened 3 times on repo1/branch1, repo2/branch2.
 C reproducer is attached.
@@ -305,7 +309,7 @@ compiler: compiler2
 .config is attached.
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
-Reported-by: syzbot+%v@testapp.appspotmail.com
+Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 It will help syzbot understand when the bug is fixed.
 
 report1
