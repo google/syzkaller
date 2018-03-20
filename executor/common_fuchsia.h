@@ -55,7 +55,7 @@ static void segv_handler()
 {
 	if (__atomic_load_n(&skip_segv, __ATOMIC_RELAXED)) {
 		debug("recover: skipping\n");
-		_longjmp(segv_env, 1);
+		longjmp(segv_env, 1);
 	}
 	debug("recover: exiting\n");
 	doexit(1);
@@ -72,7 +72,7 @@ static void* ex_handler(void* arg)
 			continue;
 		}
 		debug("got exception packet: type=%d status=%d tid=%llu\n",
-		      packet.type, packet.status, packet.exception.tid);
+		      packet.type, packet.status, static_cast<unsigned long long>(packet.exception.tid));
 		zx_handle_t thread;
 		status = zx_object_get_child(zx_process_self(), packet.exception.tid,
 					     ZX_RIGHT_SAME_RIGHTS, &thread);
@@ -80,16 +80,21 @@ static void* ex_handler(void* arg)
 			debug("zx_object_get_child failed: %d\n", status);
 			continue;
 		}
-		uint32 bytes_read;
-		zx_x86_64_general_regs_t regs;
-		status = zx_thread_read_state(thread, ZX_THREAD_STATE_REGSET0,
-					      &regs, sizeof(regs), &bytes_read);
-		if (status != ZX_OK || bytes_read != sizeof(regs)) {
-			debug("zx_thread_read_state failed: %d/%d (%d)\n",
-			      bytes_read, (int)sizeof(regs), status);
+		zx_thread_state_general_regs_t regs;
+		status = zx_thread_read_state(thread, ZX_THREAD_STATE_GENERAL_REGS,
+					      &regs, sizeof(regs));
+		if (status != ZX_OK) {
+			debug("zx_thread_read_state failed: %d (%d)\n",
+			      (int)sizeof(regs), status);
 		} else {
+#if defined(__x86_64__)
 			regs.rip = (uint64)(void*)&segv_handler;
-			status = zx_thread_write_state(thread, ZX_THREAD_STATE_REGSET0, &regs, sizeof(regs));
+#elif defined(__aarch64__)
+			regs.pc = (uint64)(void*)&segv_handler;
+#else
+#error "unsupported arch"
+#endif
+			status = zx_thread_write_state(thread, ZX_THREAD_STATE_GENERAL_REGS, &regs, sizeof(regs));
 			if (status != ZX_OK)
 				debug("zx_thread_write_state failed: %d\n", status);
 		}
@@ -118,7 +123,7 @@ static void install_segv_handler()
 #define NONFAILING(...)                                              \
 	{                                                            \
 		__atomic_fetch_add(&skip_segv, 1, __ATOMIC_SEQ_CST); \
-		if (_setjmp(segv_env) == 0) {                        \
+		if (sigsetjmp(segv_env, 0) == 0) {                        \
 			__VA_ARGS__;                                 \
 		}                                                    \
 		__atomic_fetch_sub(&skip_segv, 1, __ATOMIC_SEQ_CST); \
@@ -216,26 +221,7 @@ long syz_future_time(long when)
 	default:
 		delta_ms = 10000;
 	}
-	zx_time_t now = zx_time_get(ZX_CLOCK_MONOTONIC);
+	zx_time_t now = zx_clock_get(ZX_CLOCK_MONOTONIC);
 	return now + delta_ms * 1000 * 1000;
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(__NR_zx_channel_call_finish) || defined(zx_channel_call_noretry)
-#include "kernel/lib/vdso/vdso-code.h"
-#define UNEXPORTED(name) ((syscall_t)((long)&zx_handle_close - VDSO_SYSCALL_zx_handle_close + VDSO_SYSCALL_##name))
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(__NR_zx_channel_call_finish)
-zx_status_t zx_channel_call_finish(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
-{
-	return UNEXPORTED(zx_channel_call_finish)(a0, a1, a2, a3, a4, a5, a6, a7, a8);
-}
-#endif
-
-#if defined(SYZ_EXECUTOR) || defined(__NR_zx_channel_call_noretry)
-zx_status_t zx_channel_call_noretry(long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
-{
-	return UNEXPORTED(zx_channel_call_noretry)(a0, a1, a2, a3, a4, a5, a6, a7, a8);
 }
 #endif
