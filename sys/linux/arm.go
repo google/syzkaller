@@ -6583,10 +6583,9 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 14},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "payload", TypeSize: 4}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[IFLA_MAP, int16], rtnl_link_ifmap]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[IFLA_MAP, int16], rtnl_link_ifmap]", TypeSize: 40}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[IFLA_MAP, int16], rtnl_link_ifmap]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[IFLA_MAP, int16], rtnl_link_ifmap]", TypeSize: 36}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 14},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "rtnl_link_ifmap"}, FldName: "payload"},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[IFLA_MASTER, int16], int32]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[IFLA_MASTER, int16], int32]", TypeSize: 8}, Fields: []Type{
@@ -6750,10 +6749,9 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 7},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "payload", TypeSize: 4}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[NDTA_GC_INTERVAL, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTA_GC_INTERVAL, int16], int64]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[NDTA_GC_INTERVAL, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTA_GC_INTERVAL, int16], int64]", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 8},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "payload", TypeSize: 8}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[NDTA_NAME, int16], string]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTA_NAME, int16], string]", IsVarlen: true}, Fields: []Type{
@@ -6781,10 +6779,9 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "payload", TypeSize: 4}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[NDTPA_ANYCAST_DELAY, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_ANYCAST_DELAY, int16], int64]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[NDTPA_ANYCAST_DELAY, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_ANYCAST_DELAY, int16], int64]", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 12},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "payload", TypeSize: 8}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[NDTPA_APP_PROBES, int16], int32]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_APP_PROBES, int16], int32]", TypeSize: 8}, Fields: []Type{
@@ -6792,22 +6789,19 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 9},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "payload", TypeSize: 4}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[NDTPA_BASE_REACHABLE_TIME, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_BASE_REACHABLE_TIME, int16], int64]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[NDTPA_BASE_REACHABLE_TIME, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_BASE_REACHABLE_TIME, int16], int64]", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 4},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "payload", TypeSize: 8}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[NDTPA_DELAY_PROBE_TIME, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_DELAY_PROBE_TIME, int16], int64]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[NDTPA_DELAY_PROBE_TIME, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_DELAY_PROBE_TIME, int16], int64]", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 7},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "payload", TypeSize: 8}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[NDTPA_GC_STALETIME, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_GC_STALETIME, int16], int64]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[NDTPA_GC_STALETIME, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_GC_STALETIME, int16], int64]", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 6},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "payload", TypeSize: 8}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[NDTPA_IFINDEX, int16], ifindex]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_IFINDEX, int16], ifindex]", TypeSize: 8}, Fields: []Type{
@@ -6815,10 +6809,9 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 1},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "ifindex", FldName: "payload", TypeSize: 4}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[NDTPA_LOCKTIME, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_LOCKTIME, int16], int64]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[NDTPA_LOCKTIME, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_LOCKTIME, int16], int64]", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 15},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "payload", TypeSize: 8}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[NDTPA_MCAST_PROBES, int16], int32]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_MCAST_PROBES, int16], int32]", TypeSize: 8}, Fields: []Type{
@@ -6831,10 +6824,9 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 17},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "payload", TypeSize: 4}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[NDTPA_PROXY_DELAY, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_PROXY_DELAY, int16], int64]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[NDTPA_PROXY_DELAY, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_PROXY_DELAY, int16], int64]", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 13},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "payload", TypeSize: 8}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[NDTPA_PROXY_QLEN, int16], int32]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_PROXY_QLEN, int16], int32]", TypeSize: 8}, Fields: []Type{
@@ -6847,10 +6839,9 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 8},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "payload", TypeSize: 4}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[NDTPA_RETRANS_TIME, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_RETRANS_TIME, int16], int64]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[NDTPA_RETRANS_TIME, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_RETRANS_TIME, int16], int64]", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 5},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "payload", TypeSize: 8}}},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[NDTPA_UCAST_PROBES, int16], int32]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[NDTPA_UCAST_PROBES, int16], int32]", TypeSize: 8}, Fields: []Type{
@@ -7026,16 +7017,14 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 19},
 		&StructType{Key: StructKey{Name: "xfrm_user_kmaddress"}, FldName: "payload"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[XFRMA_LASTUSED, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_LASTUSED, int16], int64]", TypeSize: 16}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[XFRMA_LASTUSED, int16], int64]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_LASTUSED, int16], int64]", TypeSize: 12}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 15},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "payload", TypeSize: 8}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[XFRMA_LTIME_VAL, int16], xfrm_lifetime_cur]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_LTIME_VAL, int16], xfrm_lifetime_cur]", TypeSize: 40}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[XFRMA_LTIME_VAL, int16], xfrm_lifetime_cur]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_LTIME_VAL, int16], xfrm_lifetime_cur]", TypeSize: 36}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 9},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "xfrm_lifetime_cur"}, FldName: "payload"},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[XFRMA_MARK, int16], xfrm_mark]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_MARK, int16], xfrm_mark]", TypeSize: 12}, Fields: []Type{
@@ -7058,10 +7047,9 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 29},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "payload", TypeSize: 4}}},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[XFRMA_POLICY, int16], xfrm_userpolicy_info]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_POLICY, int16], xfrm_userpolicy_info]", TypeSize: 176}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[XFRMA_POLICY, int16], xfrm_userpolicy_info]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_POLICY, int16], xfrm_userpolicy_info]", TypeSize: 172}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 7},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "xfrm_userpolicy_info"}, FldName: "payload"},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[XFRMA_POLICY_TYPE, int16], xfrm_userpolicy_type]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_POLICY_TYPE, int16], xfrm_userpolicy_type]", TypeSize: 12}, Fields: []Type{
@@ -7091,10 +7079,9 @@ var structDescs_arm = []*KeyedStruct{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 10},
 		&StructType{Key: StructKey{Name: "xfrm_replay_state"}, FldName: "payload"},
 	}, AlignAttr: 4}},
-	{Key: StructKey{Name: "nlattr_t[const[XFRMA_SA, int16], xfrm_usersa_info]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_SA, int16], xfrm_usersa_info]", TypeSize: 232}, Fields: []Type{
+	{Key: StructKey{Name: "nlattr_t[const[XFRMA_SA, int16], xfrm_usersa_info]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_SA, int16], xfrm_usersa_info]", TypeSize: 228}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 6},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&StructType{Key: StructKey{Name: "xfrm_usersa_info"}, FldName: "payload"},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[XFRMA_SA_EXTRA_FLAGS, int16], int32]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[XFRMA_SA_EXTRA_FLAGS, int16], int32]", TypeSize: 8}, Fields: []Type{
@@ -7147,7 +7134,6 @@ var structDescs_arm = []*KeyedStruct{
 	{Key: StructKey{Name: "nlattr_t[int16[0:150], nl_generic_attr_data]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[int16[0:150], nl_generic_attr_data]", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "nla_type", TypeSize: 2}}, Kind: 2, RangeEnd: 150},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 		&UnionType{Key: StructKey{Name: "nl_generic_attr_data"}, FldName: "payload"},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "packet_fanout_val"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "packet_fanout_val", TypeSize: 4}, Fields: []Type{
@@ -25294,4 +25280,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "28772c035814f22d291032fc0d3a14c1ea6d4d34"
+const revision_arm = "8ac5f9f73b086aecc7c5eb98e2c2867def6d4b57"
