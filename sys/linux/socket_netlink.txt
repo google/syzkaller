@@ -96,7 +96,7 @@ type nlattr_t[TYPE, PAYLOAD] {
 	nla_len		len[parent, int16]
 	nla_type	TYPE
 	payload		PAYLOAD
-} [align_4]
+} [packed, align_4]
 
 # NL80211 has 150 attributes.
 type nlattr_anytype[PAYLOAD] nlattr_t[int16[0:150], PAYLOAD]
