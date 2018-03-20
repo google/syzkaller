@@ -1,8 +1,11 @@
 # syzbot
 
 `syzbot` system continuously fuzzes main Linux kernel branches and automatically
-reports all found bugs. Direct all questions to `syzkaller@googlegroups.com`.
-All `syzbot`-reported bugs are collected [here](https://groups.google.com/forum/#!forum/syzkaller-bugs).
+reports found bugs to kernel mailing lists.
+[syzbot dashboard](https://syzkaller.appspot.com) shows current statuses of
+bugs. All `syzbot`-reported bugs are also CCed to
+[syzkaller-bugs mailing list](https://groups.google.com/forum/#!forum/syzkaller-bugs).
+Direct all questions to `syzkaller@googlegroups.com`.
 
 ## Bug status tracking
 
