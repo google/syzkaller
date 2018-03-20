@@ -2,8 +2,8 @@ language: go
 dist: trusty
 
 go:
-  - 1.8
-  - 1.9rc1
+  - "1.9"
+  - "1.10"
 
 before_install:
   - echo $PATH
