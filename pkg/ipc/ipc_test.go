@@ -53,47 +53,8 @@ func initTest(t *testing.T) (*prog.Target, rand.Source, int, EnvFlags) {
 	return target, rs, iters, flags
 }
 
-func TestSimpleProg(t *testing.T) {
-	target, _, _, flags0 := initTest(t)
-
-	bin := buildExecutor(t, target)
-	defer os.Remove(bin)
-
-	cfg := &Config{
-		Executor: bin,
-		Flags:    flags0,
-		Timeout:  timeout,
-	}
-	env, err := MakeEnv(cfg, 0)
-	if err != nil {
-		t.Fatalf("failed to create env: %v", err)
-	}
-	defer env.Close()
-	p := target.GenerateSimpleProg()
-	opts := &ExecOpts{}
-	output, info, failed, hanged, err := env.Exec(opts, p)
-	if err != nil {
-		t.Fatalf("failed to run executor: %v", err)
-	}
-	if hanged {
-		t.Fatalf("program hanged:\n%s", output)
-	}
-	if failed {
-		t.Fatalf("program failed:\n%s", output)
-	}
-	if len(info) == 0 {
-		t.Fatalf("no calls executed:\n%s", output)
-	}
-	if info[0].Errno != 0 {
-		t.Fatalf("simple call failed: %v\n%s", info[0].Errno, output)
-	}
-	if len(output) != 0 {
-		t.Fatalf("output on empty program")
-	}
-}
-
 func TestExecute(t *testing.T) {
-	target, rs, iters, configFlags := initTest(t)
+	target, _, _, configFlags := initTest(t)
 
 	bin := buildExecutor(t, target)
 	defer os.Remove(bin)
@@ -112,18 +73,29 @@ func TestExecute(t *testing.T) {
 		}
 		defer env.Close()
 
-		for i := 0; i < iters/len(flags); i++ {
-			p := target.Generate(rs, 10, nil)
-			if i == 0 {
-				p = target.GenerateSimpleProg()
-			}
+		for i := 0; i < 10; i++ {
+			p := target.GenerateSimpleProg()
 			opts := &ExecOpts{
 				Flags: flag,
 			}
-			output, _, _, _, err := env.Exec(opts, p)
+			output, info, failed, hanged, err := env.Exec(opts, p)
 			if err != nil {
-				t.Logf("program:\n%s\n", p.Serialize())
-				t.Fatalf("failed to run executor: %v\n%s", err, output)
+				t.Fatalf("failed to run executor: %v", err)
+			}
+			if hanged {
+				t.Fatalf("program hanged:\n%s", output)
+			}
+			if failed {
+				t.Fatalf("program failed:\n%s", output)
+			}
+			if len(info) == 0 {
+				t.Fatalf("no calls executed:\n%s", output)
+			}
+			if info[0].Errno != 0 {
+				t.Fatalf("simple call failed: %v\n%s", info[0].Errno, output)
+			}
+			if len(output) != 0 {
+				t.Fatalf("output on empty program")
 			}
 		}
 	}
