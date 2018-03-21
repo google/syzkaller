@@ -2680,6 +2680,14 @@ var structDescs_386 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6"}, FldName: "gsr_group"},
 		&StructType{Key: StructKey{Name: "sockaddr_storage_in6"}, FldName: "gsr_source"},
 	}}},
+	{Key: StructKey{Name: "guehdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "guehdr", IsVarlen: true}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "bytesize4", FldName: "hlen", TypeSize: 1}, BitfieldLen: 5, BitfieldMdl: true}, BitSize: 32, Buf: "parent"},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "control", TypeSize: 1}, BitfieldOff: 5, BitfieldLen: 1, BitfieldMdl: true}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "version", TypeSize: 1}, BitfieldOff: 6, BitfieldLen: 2}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "proto_ctype", TypeSize: 1}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "guehdr_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{256}},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "priv", IsVarlen: true}, Type: &FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "guehdr_prov_flags", TypeSize: 4}}, Vals: []uint64{128}}, Kind: 1, RangeEnd: 1},
+	}}},
 	{Key: StructKey{Name: "hashlimit_cfg1"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "hashlimit_cfg1", TypeSize: 32}, Fields: []Type{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "xt_hashlimit_modes", FldName: "mode", TypeSize: 4}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 64}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "avg", TypeSize: 4}}},
@@ -10177,11 +10185,15 @@ var structDescs_386 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp6", FldName: "f0", TypeSize: 4, ArgDir: 1}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_udp6", FldName: "f1", TypeSize: 4, ArgDir: 1}},
 	}}},
+	{Key: StructKey{Name: "udp_extensions"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "udp_extensions", IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "guehdr"}, FldName: "guehdr"},
+	}}},
 	{Key: StructKey{Name: "udp_packet"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "udp_packet", IsVarlen: true}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "src_port", TypeSize: 2}, BigEndian: true}, Kind: 2, RangeBegin: 20000, RangeEnd: 20004},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "dst_port", TypeSize: 2}, BigEndian: true}, Kind: 2, RangeBegin: 20000, RangeEnd: 20004},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "length", TypeSize: 2}, BigEndian: true}, Buf: "parent"},
 		&CsumType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "csum", FldName: "csum", TypeSize: 2}, BigEndian: true}, Kind: 1, Buf: "parent", Protocol: 17},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "extensions", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "udp_extensions"}}},
 		&BufferType{TypeCommon: TypeCommon{TypeName: "array", FldName: "data", IsVarlen: true}},
 	}}},
 	{Key: StructKey{Name: "udp_pair", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "udp_pair", TypeSize: 8, ArgDir: 1}, Fields: []Type{
@@ -22442,6 +22454,8 @@ var consts_386 = []ConstValue{
 	{Name: "GIO_UNISCRNMAP", Value: 19305},
 	{Name: "GRND_NONBLOCK", Value: 1},
 	{Name: "GRND_RANDOM", Value: 2},
+	{Name: "GUE_FLAG_PRIV", Value: 256},
+	{Name: "GUE_PFLAG_REMCSUM", Value: 128},
 	{Name: "HCIBLOCKADDR", Value: 1074022630},
 	{Name: "HCIDEVDOWN", Value: 1074022602},
 	{Name: "HCIDEVRESET", Value: 1074022603},
@@ -25705,4 +25719,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "07f18311863bda169fc776218d2d1d61ff0c5d80"
+const revision_386 = "b0cca0943b5017ba63ed5e3b325251612d061f21"
