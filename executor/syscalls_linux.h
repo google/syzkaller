@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "cfe2895f5fbcad40837aa245a03df6040de715d5"
+#define SYZ_REVISION "07f18311863bda169fc776218d2d1d61ff0c5d80"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1609;
+unsigned syscall_count = 1613;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1178,6 +1178,9 @@ call_t syscalls[] = {
     {"sendmmsg$nfc_llcp", 345},
     {"sendmmsg$unix", 345},
     {"sendmsg", 370},
+    {"sendmsg$FOU_CMD_ADD", 370},
+    {"sendmsg$FOU_CMD_DEL", 370},
+    {"sendmsg$FOU_CMD_GET", 370},
     {"sendmsg$alg", 370},
     {"sendmsg$can_bcm", 370},
     {"sendmsg$can_raw", 370},
@@ -1531,6 +1534,7 @@ call_t syscalls[] = {
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
+    {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
@@ -1623,11 +1627,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "2622de14f49adc37c6c0e668588a4667e56d1b1e"
+#define SYZ_REVISION "40c12d23c5c1e6c11e1ab13ed032c1e4dc0e684f"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1661;
+unsigned syscall_count = 1665;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2839,6 +2843,9 @@ call_t syscalls[] = {
     {"sendmmsg$nfc_llcp", 307},
     {"sendmmsg$unix", 307},
     {"sendmsg", 46},
+    {"sendmsg$FOU_CMD_ADD", 46},
+    {"sendmsg$FOU_CMD_DEL", 46},
+    {"sendmsg$FOU_CMD_GET", 46},
     {"sendmsg$alg", 46},
     {"sendmsg$can_bcm", 46},
     {"sendmsg$can_raw", 46},
@@ -3204,6 +3211,7 @@ call_t syscalls[] = {
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
+    {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
@@ -3296,11 +3304,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "8ac5f9f73b086aecc7c5eb98e2c2867def6d4b57"
+#define SYZ_REVISION "6698d4a368f4947b3b613f838e2e403841d38070"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1606;
+unsigned syscall_count = 1610;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4465,6 +4473,9 @@ call_t syscalls[] = {
     {"sendmmsg$nfc_llcp", 374},
     {"sendmmsg$unix", 374},
     {"sendmsg", 296},
+    {"sendmsg$FOU_CMD_ADD", 296},
+    {"sendmsg$FOU_CMD_DEL", 296},
+    {"sendmsg$FOU_CMD_GET", 296},
     {"sendmsg$alg", 296},
     {"sendmsg$can_bcm", 296},
     {"sendmsg$can_raw", 296},
@@ -4824,6 +4835,7 @@ call_t syscalls[] = {
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
+    {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
@@ -4914,11 +4926,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "4e6df14d0cbb5aa00fa2b8fa43a50654d7c2e425"
+#define SYZ_REVISION "82423022bc7f184a88fcd00fbd20962f6dbbd57e"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1590;
+unsigned syscall_count = 1594;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6072,6 +6084,9 @@ call_t syscalls[] = {
     {"sendmmsg$nfc_llcp", 269},
     {"sendmmsg$unix", 269},
     {"sendmsg", 211},
+    {"sendmsg$FOU_CMD_ADD", 211},
+    {"sendmsg$FOU_CMD_DEL", 211},
+    {"sendmsg$FOU_CMD_GET", 211},
     {"sendmsg$alg", 211},
     {"sendmsg$can_bcm", 211},
     {"sendmsg$can_raw", 211},
@@ -6430,6 +6445,7 @@ call_t syscalls[] = {
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
+    {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
@@ -6516,11 +6532,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "04d12a6320bebfddb56bad9ef80cf8d7551a13be"
+#define SYZ_REVISION "18c287ebbc9da2ff832292feccf65374879463b6"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1580;
+unsigned syscall_count = 1584;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7665,6 +7681,9 @@ call_t syscalls[] = {
     {"sendmmsg$nfc_llcp", 349},
     {"sendmmsg$unix", 349},
     {"sendmsg", 341},
+    {"sendmsg$FOU_CMD_ADD", 341},
+    {"sendmsg$FOU_CMD_DEL", 341},
+    {"sendmsg$FOU_CMD_GET", 341},
     {"sendmsg$alg", 341},
     {"sendmsg$can_bcm", 341},
     {"sendmsg$can_raw", 341},
@@ -8016,6 +8035,7 @@ call_t syscalls[] = {
     {"syz_extract_tcp_res$synack", 0, (syscall_t)syz_extract_tcp_res},
     {"syz_fuse_mount", 0, (syscall_t)syz_fuse_mount},
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
+    {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},

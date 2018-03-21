@@ -22,3 +22,9 @@ genlmsghdr {
 	version		const[0, int8]
 	reserved	const[0, int16]
 } [align_4]
+
+type genlmsghdr_t[CMD] {
+	cmd		const[CMD, int8]
+	version		const[0, int8]
+	reserved	const[0, int16]
+} [align_4]

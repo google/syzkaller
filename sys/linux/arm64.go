@@ -57,6 +57,7 @@ var resources_arm64 = []*ResourceDesc{
 	{Name: "fd_tun", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_tun"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_uffd", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_uffd"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
 	{Name: "fd_vhost", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"fd", "fd_vhost"}, Values: []uint64{18446744073709551615, 18446744073709551516}},
+	{Name: "genl_fou_family_id", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", TypeSize: 2}}}, Kind: []string{"genl_fou_family_id"}, Values: []uint64{0}},
 	{Name: "gid", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"gid"}, Values: []uint64{0, 18446744073709551615}},
 	{Name: "ifindex", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"ifindex"}, Values: []uint64{0}},
 	{Name: "ifindex_vcan", Type: &IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", TypeSize: 4}}}, Kind: []string{"ifindex", "ifindex_vcan"}, Values: []uint64{0}},
@@ -2536,6 +2537,13 @@ var structDescs_arm64 = []*KeyedStruct{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "pid", FldName: "pid", TypeSize: 4}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
+	{Key: StructKey{Name: "fou_nl_policy"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fou_nl_policy", IsVarlen: true}, Fields: []Type{
+		&StructType{Key: StructKey{Name: "nlattr_t[const[FOU_ATTR_PORT, int16], sock_port]"}, FldName: "FOU_ATTR_PORT"},
+		&StructType{Key: StructKey{Name: "nlattr_t[const[FOU_ATTR_AF, int16], flags[fou_families, int8]]"}, FldName: "FOU_ATTR_AF"},
+		&StructType{Key: StructKey{Name: "nlattr_t[const[FOU_ATTR_IPPROTO, int16], flags[ipv6_types, int8]]"}, FldName: "FOU_ATTR_IPPROTO"},
+		&StructType{Key: StructKey{Name: "nlattr_t[const[FOU_ATTR_TYPE, int16], flags[fou_types, int8]]"}, FldName: "FOU_ATTR_TYPE"},
+		&StructType{Key: StructKey{Name: "nlattr_t[const[FOU_ATTR_REMCSUM_NOPARTIAL, int16], void]"}, FldName: "FOU_ATTR_REMCSUM_NOPARTIAL"},
+	}}},
 	{Key: StructKey{Name: "fr_proto"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "fr_proto", TypeSize: 24}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "t391", TypeSize: 4}}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "t392", TypeSize: 4}}},
@@ -2637,6 +2645,21 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "genlmsghdr"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "genlmsghdr", TypeSize: 4}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "cmd", TypeSize: 1}}, Kind: 2, RangeEnd: 32},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 2}}},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "genlmsghdr_t[FOU_CMD_ADD]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "genlmsghdr_t[FOU_CMD_ADD]", TypeSize: 4}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 1}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 2}}},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "genlmsghdr_t[FOU_CMD_DEL]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "genlmsghdr_t[FOU_CMD_DEL]", TypeSize: 4}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 1}}, Val: 2},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 2}}},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "genlmsghdr_t[FOU_CMD_GET]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "genlmsghdr_t[FOU_CMD_GET]", TypeSize: 4}, Fields: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "cmd", TypeSize: 1}}, Val: 3},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "version", TypeSize: 1}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "reserved", TypeSize: 2}}},
 	}, AlignAttr: 4}},
@@ -3429,6 +3452,18 @@ var structDescs_arm64 = []*KeyedStruct{
 	}}},
 	{Key: StructKey{Name: "iovec[in, netlink_msg_route]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec[in, netlink_msg_route]", TypeSize: 16}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &UnionType{Key: StructKey{Name: "netlink_msg_route"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
+	}}},
+	{Key: StructKey{Name: "iovec[in, netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_ADD], fou_nl_policy]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec[in, netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_ADD], fou_nl_policy]]", TypeSize: 16}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_ADD], fou_nl_policy]"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
+	}}},
+	{Key: StructKey{Name: "iovec[in, netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_DEL], fou_nl_policy]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec[in, netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_DEL], fou_nl_policy]]", TypeSize: 16}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_DEL], fou_nl_policy]"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
+	}}},
+	{Key: StructKey{Name: "iovec[in, netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_GET], fou_nl_policy]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec[in, netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_GET], fou_nl_policy]]", TypeSize: 16}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_GET], fou_nl_policy]"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 8}}, Buf: "addr"},
 	}}},
 	{Key: StructKey{Name: "iovec[in, netlink_msg_t[netlink_random_msg_type, genlmsghdr, nl_generic_attr]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "iovec[in, netlink_msg_t[netlink_random_msg_type, genlmsghdr, nl_generic_attr]]", TypeSize: 16}, Fields: []Type{
@@ -5617,6 +5652,39 @@ var structDescs_arm64 = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
 	}}},
+	{Key: StructKey{Name: "msghdr_netlink[netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_ADD], fou_nl_policy]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_netlink[netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_ADD], fou_nl_policy]]", TypeSize: 56}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sockaddr_nl_t[AF_NETLINK, const[0, int32], flags[netlink_group_bitmap, int32]]"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "iovec[in, netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_ADD], fou_nl_policy]]"}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "vlen", TypeSize: 8}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ctrl", TypeSize: 8}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ctrllen", TypeSize: 8}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "msghdr_netlink[netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_DEL], fou_nl_policy]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_netlink[netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_DEL], fou_nl_policy]]", TypeSize: 56}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sockaddr_nl_t[AF_NETLINK, const[0, int32], flags[netlink_group_bitmap, int32]]"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "iovec[in, netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_DEL], fou_nl_policy]]"}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "vlen", TypeSize: 8}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ctrl", TypeSize: 8}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ctrllen", TypeSize: 8}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+	}}},
+	{Key: StructKey{Name: "msghdr_netlink[netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_GET], fou_nl_policy]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_netlink[netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_GET], fou_nl_policy]]", TypeSize: 56}, Fields: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sockaddr_nl_t[AF_NETLINK, const[0, int32], flags[netlink_group_bitmap, int32]]"}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "vec", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "iovec[in, netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_GET], fou_nl_policy]]"}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "vlen", TypeSize: 8}}, Val: 1},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ctrl", TypeSize: 8}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "ctrllen", TypeSize: 8}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 4}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 4}}, IsPad: true},
+	}}},
 	{Key: StructKey{Name: "msghdr_netlink[netlink_msg_t[netlink_random_msg_type, genlmsghdr, nl_generic_attr]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "msghdr_netlink[netlink_msg_t[netlink_random_msg_type, genlmsghdr, nl_generic_attr]]", TypeSize: 56}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "addr", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "sockaddr_nl_t[AF_NETLINK, const[0, int32], flags[netlink_group_bitmap, int32]]"}}},
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "addrlen", TypeSize: 4}}, Buf: "addr"},
@@ -6431,6 +6499,33 @@ var structDescs_arm64 = []*KeyedStruct{
 		&StructType{Key: StructKey{Name: "xfrm_usersa_info"}, FldName: "payload"},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "xfrm_attrs"}}},
 	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_ADD], fou_nl_policy]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_ADD], fou_nl_policy]", IsVarlen: true}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "genl_fou_family_id", FldName: "type", TypeSize: 2}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}, Kind: 2, RangeBegin: 7388453, RangeEnd: 7388461},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pid", TypeSize: 4}}, Kind: 2, RangeBegin: 635427835, RangeEnd: 635427839},
+		&StructType{Key: StructKey{Name: "genlmsghdr_t[FOU_CMD_ADD]"}, FldName: "payload"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "fou_nl_policy"}}},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_DEL], fou_nl_policy]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_DEL], fou_nl_policy]", IsVarlen: true}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "genl_fou_family_id", FldName: "type", TypeSize: 2}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}, Kind: 2, RangeBegin: 7388453, RangeEnd: 7388461},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pid", TypeSize: 4}}, Kind: 2, RangeBegin: 635427835, RangeEnd: 635427839},
+		&StructType{Key: StructKey{Name: "genlmsghdr_t[FOU_CMD_DEL]"}, FldName: "payload"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "fou_nl_policy"}}},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_GET], fou_nl_policy]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_GET], fou_nl_policy]", IsVarlen: true}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "genl_fou_family_id", FldName: "type", TypeSize: 2}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "netlink_msg_flags", FldName: "flags", TypeSize: 2}}, Vals: []uint64{1, 2, 4, 8, 16, 32, 256, 512, 1024, 768, 256, 512, 1024, 2048}},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "seq", TypeSize: 4}}, Kind: 2, RangeBegin: 7388453, RangeEnd: 7388461},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "pid", TypeSize: 4}}, Kind: 2, RangeBegin: 635427835, RangeEnd: 635427839},
+		&StructType{Key: StructKey{Name: "genlmsghdr_t[FOU_CMD_GET]"}, FldName: "payload"},
+		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "attrs", IsVarlen: true}, Type: &UnionType{Key: StructKey{Name: "fou_nl_policy"}}},
+	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "netlink_msg_t[netlink_random_msg_type, genlmsghdr, nl_generic_attr]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "netlink_msg_t[netlink_random_msg_type, genlmsghdr, nl_generic_attr]", IsVarlen: true}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "len", TypeSize: 4}}, Buf: "parent"},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16", FldName: "type", TypeSize: 2}}, Kind: 2, RangeBegin: 16, RangeEnd: 66},
@@ -6570,6 +6665,35 @@ var structDescs_arm64 = []*KeyedStruct{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 1},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int32", FldName: "payload", TypeSize: 4}}},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "nlattr_t[const[FOU_ATTR_AF, int16], flags[fou_families, int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[FOU_ATTR_AF, int16], flags[fou_families, int8]]", TypeSize: 8}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 2},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fou_families", FldName: "payload", TypeSize: 1}}, Vals: []uint64{2, 10}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "nlattr_t[const[FOU_ATTR_IPPROTO, int16], flags[ipv6_types, int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[FOU_ATTR_IPPROTO, int16], flags[ipv6_types, int8]]", TypeSize: 8}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 3},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv6_types", FldName: "payload", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 0, 43, 44, 58, 59, 60, 135, 0, 43, 44, 47, 50, 51, 58, 59, 60, 135, 115}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "nlattr_t[const[FOU_ATTR_PORT, int16], sock_port]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[FOU_ATTR_PORT, int16], sock_port]", TypeSize: 8}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 1},
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "payload", TypeSize: 2}, BigEndian: true}, Kind: 2, RangeBegin: 20000, RangeEnd: 20004},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 2}}, IsPad: true},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "nlattr_t[const[FOU_ATTR_REMCSUM_NOPARTIAL, int16], void]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[FOU_ATTR_REMCSUM_NOPARTIAL, int16], void]", TypeSize: 4}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 5},
+		&BufferType{TypeCommon: TypeCommon{TypeName: "void", FldName: "payload"}, Kind: 1},
+	}, AlignAttr: 4}},
+	{Key: StructKey{Name: "nlattr_t[const[FOU_ATTR_TYPE, int16], flags[fou_types, int8]]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[FOU_ATTR_TYPE, int16], flags[fou_types, int8]]", TypeSize: 8}, Fields: []Type{
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "nla_type", TypeSize: 2}}, Val: 4},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "fou_types", FldName: "payload", TypeSize: 1}}, Vals: []uint64{1, 2}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 3}}, IsPad: true},
 	}, AlignAttr: 4}},
 	{Key: StructKey{Name: "nlattr_t[const[IFA_ADDRESS, int16], ipv4_addr]"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "nlattr_t[const[IFA_ADDRESS, int16], ipv4_addr]", TypeSize: 8}, Fields: []Type{
 		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nla_len", TypeSize: 2}}, Buf: "parent"},
@@ -18700,6 +18824,21 @@ var syscalls_arm64 = []*Syscall{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "send_msghdr"}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 8}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
 	}},
+	{NR: 211, Name: "sendmsg$FOU_CMD_ADD", CallName: "sendmsg", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_nl_generic", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "msghdr_netlink[netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_ADD], fou_nl_policy]]"}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 8}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
+	}},
+	{NR: 211, Name: "sendmsg$FOU_CMD_DEL", CallName: "sendmsg", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_nl_generic", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "msghdr_netlink[netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_DEL], fou_nl_policy]]"}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 8}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
+	}},
+	{NR: 211, Name: "sendmsg$FOU_CMD_GET", CallName: "sendmsg", Args: []Type{
+		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_nl_generic", FldName: "fd", TypeSize: 4}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "msghdr_netlink[netlink_msg_t[genl_fou_family_id, genlmsghdr_t[FOU_CMD_GET], fou_nl_policy]]"}}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "send_flags", FldName: "f", TypeSize: 8}}, Vals: []uint64{2048, 4, 64, 128, 32768, 16384, 1, 16, 262144, 536870912, 67108864}},
+	}},
 	{NR: 211, Name: "sendmsg$alg", CallName: "sendmsg", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "sock_algconn", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "msg", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "msghdr_alg"}}},
@@ -20970,6 +21109,9 @@ var syscalls_arm64 = []*Syscall{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "blksize", TypeSize: 8}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "mount_flags", FldName: "flags", TypeSize: 8}}, Vals: []uint64{4096, 128, 64, 8192, 1024, 4, 2048, 8, 2, 1, 2097152, 32, 32768, 16777216, 16, 16384, 65536, 131072, 262144, 524288, 1048576, 8388608, 33554432}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_fuse", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "syz_genetlink_get_family_id$fou", CallName: "syz_genetlink_get_family_id", Args: []Type{
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "name", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 4}, Kind: 2, Values: []string{"fou\x00"}}},
+	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "genl_fou_family_id", FldName: "ret", TypeSize: 2, ArgDir: 1}}},
 	{Name: "syz_init_net_socket$bt_hci", CallName: "syz_init_net_socket", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fam", TypeSize: 8}}, Val: 31},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "type", TypeSize: 8}}, Val: 3},
@@ -22295,6 +22437,16 @@ var consts_arm64 = []ConstValue{
 	{Name: "FIOSETOWN", Value: 35073},
 	{Name: "FITHAW", Value: 3221510264},
 	{Name: "FLAT_BINDER_FLAG_ACCEPTS_FDS", Value: 256},
+	{Name: "FOU_ATTR_AF", Value: 2},
+	{Name: "FOU_ATTR_IPPROTO", Value: 3},
+	{Name: "FOU_ATTR_PORT", Value: 1},
+	{Name: "FOU_ATTR_REMCSUM_NOPARTIAL", Value: 5},
+	{Name: "FOU_ATTR_TYPE", Value: 4},
+	{Name: "FOU_CMD_ADD", Value: 1},
+	{Name: "FOU_CMD_DEL", Value: 2},
+	{Name: "FOU_CMD_GET", Value: 3},
+	{Name: "FOU_ENCAP_DIRECT", Value: 1},
+	{Name: "FOU_ENCAP_GUE", Value: 2},
 	{Name: "FS_IOC_FIEMAP", Value: 3223348747},
 	{Name: "FUSE_DEV_IOC_CLONE", Value: 2147804416},
 	{Name: "FUSE_KERNEL_MINOR_VERSION", Value: 26},
@@ -25557,4 +25709,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm64 = "4e6df14d0cbb5aa00fa2b8fa43a50654d7c2e425"
+const revision_arm64 = "82423022bc7f184a88fcd00fbd20962f6dbbd57e"
