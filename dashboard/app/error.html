@@ -1,11 +1,11 @@
 <!doctype html>
 <html>
 <head>
+	{{template "head" .Header}}
 	<title>syzbot</title>
-	<link rel="stylesheet" href="/static/style.css"/>
 </head>
 <body>
-	{{.}}
+	{{.Error}}
 	<br>
 	<a href="javascript:history.back()">back</a>
 </body>

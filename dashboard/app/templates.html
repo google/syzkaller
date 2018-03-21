@@ -3,6 +3,21 @@ Copyright 2017 syzkaller project authors. All rights reserved.
 Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 */}}
 
+{{/* Common page head part, invoked with *uiHeader */}}
+{{define "head"}}
+	<link rel="stylesheet" href="/static/style.css"/>
+	<script src="/static/common.js"></script>
+	{{if .AnalyticsTrackingID}}
+		<script async src="https://www.googletagmanager.com/gtag/js?id={{.AnalyticsTrackingID}}"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() { dataLayer.push(arguments); }
+			gtag('js', new Date());
+			gtag('config', '{{.AnalyticsTrackingID}}');
+		</script>
+	{{end}}
+{{end}}
+
 {{/* Common page header, invoked with *uiHeader */}}
 {{define "header"}}
 	<header id="topbar">

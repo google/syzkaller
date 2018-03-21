@@ -8,9 +8,8 @@ Page with details about a single bug.
 <!doctype html>
 <html>
 <head>
+	{{template "head" .Header}}
 	<title>{{.Bug.Title}}</title>
-	<link rel="stylesheet" href="/static/style.css"/>
-	<script src="/static/common.js"></script>
 </head>
 <body>
 	{{template "header" .Header}}
