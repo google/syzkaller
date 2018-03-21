@@ -2,11 +2,11 @@
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "7b78fbcff5be58d55fce6250972288b9c5141689"
+#define SYZ_REVISION "9bdbf38bbd8f8ae5ac1db5c26f4309fd7cab884b"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 164;
+unsigned syscall_count = 159;
 call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -17,17 +17,14 @@ call_t syscalls[] = {
     {"dup2", 0, (syscall_t)dup2},
     {"dup3", 0, (syscall_t)dup3},
     {"faccessat", 0, (syscall_t)faccessat},
-    {"fchdir", 0, (syscall_t)fchdir},
     {"fchmod", 0, (syscall_t)fchmod},
     {"fchmodat", 0, (syscall_t)fchmodat},
     {"fchown", 0, (syscall_t)fchown},
     {"fchownat", 0, (syscall_t)fchownat},
     {"fdatasync", 0, (syscall_t)fdatasync},
-    {"flock", 0, (syscall_t)flock},
     {"fstat", 0, (syscall_t)fstat},
     {"fsync", 0, (syscall_t)fsync},
     {"ftruncate", 0, (syscall_t)ftruncate},
-    {"futimesat", 0, (syscall_t)futimesat},
     {"getcwd", 0, (syscall_t)getcwd},
     {"getgid", 0, (syscall_t)getgid},
     {"getpid", 0, (syscall_t)getpid},
@@ -72,11 +69,10 @@ call_t syscalls[] = {
     {"write", 0, (syscall_t)write},
     {"writev", 0, (syscall_t)writev},
     {"zx_channel_call", 0, (syscall_t)zx_channel_call},
-    {"zx_channel_call_finish", 0, (syscall_t)zx_channel_call_finish},
-    {"zx_channel_call_noretry", 0, (syscall_t)zx_channel_call_noretry},
     {"zx_channel_create", 0, (syscall_t)zx_channel_create},
     {"zx_channel_read", 0, (syscall_t)zx_channel_read},
     {"zx_channel_write", 0, (syscall_t)zx_channel_write},
+    {"zx_clock_get", 0, (syscall_t)zx_clock_get},
     {"zx_cprng_add_entropy", 0, (syscall_t)zx_cprng_add_entropy},
     {"zx_cprng_draw", 0, (syscall_t)zx_cprng_draw},
     {"zx_event_create", 0, (syscall_t)zx_event_create},
@@ -148,7 +144,6 @@ call_t syscalls[] = {
     {"zx_thread_write_state$0", 0, (syscall_t)zx_thread_write_state},
     {"zx_ticks_get", 0, (syscall_t)zx_ticks_get},
     {"zx_ticks_per_second", 0, (syscall_t)zx_ticks_per_second},
-    {"zx_time_get", 0, (syscall_t)zx_time_get},
     {"zx_timer_cancel", 0, (syscall_t)zx_timer_cancel},
     {"zx_timer_create", 0, (syscall_t)zx_timer_create},
     {"zx_timer_set", 0, (syscall_t)zx_timer_set},
@@ -178,11 +173,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "545421122ef05f52e8f98342789ed868018b192b"
+#define SYZ_REVISION "ebd125b38ce1b3617ba0e9db31c2becdb3213fc2"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 164;
+unsigned syscall_count = 159;
 call_t syscalls[] = {
     {"chdir", 0, (syscall_t)chdir},
     {"chmod", 0, (syscall_t)chmod},
@@ -193,17 +188,14 @@ call_t syscalls[] = {
     {"dup2", 0, (syscall_t)dup2},
     {"dup3", 0, (syscall_t)dup3},
     {"faccessat", 0, (syscall_t)faccessat},
-    {"fchdir", 0, (syscall_t)fchdir},
     {"fchmod", 0, (syscall_t)fchmod},
     {"fchmodat", 0, (syscall_t)fchmodat},
     {"fchown", 0, (syscall_t)fchown},
     {"fchownat", 0, (syscall_t)fchownat},
     {"fdatasync", 0, (syscall_t)fdatasync},
-    {"flock", 0, (syscall_t)flock},
     {"fstat", 0, (syscall_t)fstat},
     {"fsync", 0, (syscall_t)fsync},
     {"ftruncate", 0, (syscall_t)ftruncate},
-    {"futimesat", 0, (syscall_t)futimesat},
     {"getcwd", 0, (syscall_t)getcwd},
     {"getgid", 0, (syscall_t)getgid},
     {"getpid", 0, (syscall_t)getpid},
@@ -248,11 +240,10 @@ call_t syscalls[] = {
     {"write", 0, (syscall_t)write},
     {"writev", 0, (syscall_t)writev},
     {"zx_channel_call", 0, (syscall_t)zx_channel_call},
-    {"zx_channel_call_finish", 0, (syscall_t)zx_channel_call_finish},
-    {"zx_channel_call_noretry", 0, (syscall_t)zx_channel_call_noretry},
     {"zx_channel_create", 0, (syscall_t)zx_channel_create},
     {"zx_channel_read", 0, (syscall_t)zx_channel_read},
     {"zx_channel_write", 0, (syscall_t)zx_channel_write},
+    {"zx_clock_get", 0, (syscall_t)zx_clock_get},
     {"zx_cprng_add_entropy", 0, (syscall_t)zx_cprng_add_entropy},
     {"zx_cprng_draw", 0, (syscall_t)zx_cprng_draw},
     {"zx_event_create", 0, (syscall_t)zx_event_create},
@@ -324,7 +315,6 @@ call_t syscalls[] = {
     {"zx_thread_write_state$0", 0, (syscall_t)zx_thread_write_state},
     {"zx_ticks_get", 0, (syscall_t)zx_ticks_get},
     {"zx_ticks_per_second", 0, (syscall_t)zx_ticks_per_second},
-    {"zx_time_get", 0, (syscall_t)zx_time_get},
     {"zx_timer_cancel", 0, (syscall_t)zx_timer_cancel},
     {"zx_timer_create", 0, (syscall_t)zx_timer_create},
     {"zx_timer_set", 0, (syscall_t)zx_timer_set},
