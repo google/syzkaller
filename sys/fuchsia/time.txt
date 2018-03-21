@@ -6,7 +6,7 @@ include <zircon/syscalls.h>
 resource zx_time[int64]: 0, ZX_TIME_INFINITE
 
 zx_nanosleep(deadline zx_time)
-zx_time_get(clock_id flags[clock_id]) zx_time
+zx_clock_get(clock_id flags[clock_id]) zx_time
 zx_ticks_get()
 zx_ticks_per_second()
 
