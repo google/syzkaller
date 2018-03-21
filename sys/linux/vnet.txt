@@ -849,13 +849,32 @@ tcp_payload {
 # https://tools.ietf.org/html/rfc768
 # https://en.wikipedia.org/wiki/User_Datagram_Protocol#Packet_structure
 
+include <net/gue.h>
+
 udp_packet {
 	src_port	sock_port
 	dst_port	sock_port
 	length		len[parent, int16be]
 	csum		csum[parent, pseudo, IPPROTO_UDP, int16be]
+	extensions	array[udp_extensions]
 	data		array[int8]
 } [packed]
+
+udp_extensions [
+	guehdr	guehdr
+] [varlen]
+
+guehdr {
+	hlen		bytesize4[parent, int8:5]
+	control		int8:1
+	version		int8:2
+	proto_ctype	int8
+	flags		flags[guehdr_flags, int16]
+	priv		array[flags[guehdr_prov_flags, int32], 0:1]
+} [packed]
+
+guehdr_flags = GUE_FLAG_PRIV
+guehdr_prov_flags = GUE_PFLAG_REMCSUM
 
 ################################################################################
 ###################################### GRE #####################################
