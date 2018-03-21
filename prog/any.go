@@ -10,18 +10,21 @@ type anyTypes struct {
 	blob   *BufferType
 	ptrPtr *PtrType
 	ptr64  *PtrType
+	res16  *ResourceType
 	res32  *ResourceType
 	res64  *ResourceType
 }
 
 // This generates type descriptions for:
 //
+// resource ANYRES16[int16]: 0xffffffffffffffff, 0
 // resource ANYRES32[int32]: 0xffffffffffffffff, 0
 // resource ANYRES64[int64]: 0xffffffffffffffff, 0
 // ANY [
 // 	bin	array[int8]
 // 	ptr	ptr[in, array[ANY], opt]
 // 	ptr64	ptr64[in, array[ANY], opt]
+// 	res16	ANYRES16
 // 	res32	ANYRES32
 // 	res64	ANYRES64
 // ] [varlen]
@@ -86,6 +89,7 @@ func initAnyTypes(target *Target) {
 			},
 		}
 	}
+	target.any.res16 = createResource("ANYRES16", "int16", 2)
 	target.any.res32 = createResource("ANYRES32", "int32", 4)
 	target.any.res64 = createResource("ANYRES64", "int64", 8)
 	target.any.union.StructDesc = &StructDesc{
@@ -99,6 +103,7 @@ func initAnyTypes(target *Target) {
 			target.any.blob,
 			target.any.ptrPtr,
 			target.any.ptr64,
+			target.any.res16,
 			target.any.res32,
 			target.any.res64,
 		},
@@ -227,6 +232,8 @@ func (target *Target) squashPtrImpl(a Arg, elems *[]Arg) {
 		}
 	case *ResultArg:
 		switch arg.Size() {
+		case 2:
+			arg.typ = target.any.res16
 		case 4:
 			arg.typ = target.any.res32
 		case 8:

@@ -130,6 +130,13 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) bool {
 			return false
 		}
 		return isSupportedSocket(c)
+	case "syz_genetlink_get_family_id":
+		fd, _ := syscall.Socket(syscall.AF_NETLINK, syscall.SOCK_RAW, syscall.NETLINK_GENERIC)
+		if fd == -1 {
+			return false
+		}
+		syscall.Close(fd)
+		return true
 	}
 	panic("unknown syzkall: " + c.Name)
 }
