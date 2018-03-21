@@ -67,11 +67,10 @@ func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) err
 	if accessLevel(c, r) >= level {
 		return nil
 	}
-	userID := "not-signed-in"
 	if u := user.Current(c); u != nil {
-		userID = fmt.Sprintf("%q [%q]", u.Email, u.AuthDomain)
+		// Log only if user is signed in. Not-signed-in users are redirected to login page.
+		log.Errorf(c, "unauthorized access: %q [%q] access level %v", u.Email, u.AuthDomain, level)
 	}
-	log.Errorf(c, "unauthorized access: %v access level %v", userID, level)
 	return ErrAccess
 }
 

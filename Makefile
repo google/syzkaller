@@ -193,6 +193,9 @@ tidy:
 	# Just check for compiler warnings.
 	$(CC) executor/test_executor.cc -c -o /dev/null -Wparentheses -Wno-unused -Wall
 
+gometalinter:
+	env CGO_ENABLED=1 gometalinter.v2 ./...
+
 test:
 	# Executor tests use cgo.
 	env CGO_ENABLED=1 $(GO) test -short ./...
@@ -233,18 +236,21 @@ arch:
 presubmit:
 	$(MAKE) check_links
 	$(MAKE) generate
-	$(MAKE) all
-	$(MAKE) arch
 	$(MAKE) check_diff
+	$(MAKE) all
 	$(MAKE) test
+	$(MAKE) gometalinter
+	$(MAKE) arch
 	echo LGTM
 
 clean:
 	rm -rf ./bin/
 
-# For a tupical Ubuntu/Debian distribution, requires sudo.
+# For a tupical Ubuntu/Debian distribution.
 install_prerequisites:
-	apt-get install libc6-dev-i386 lib32stdc++-4.8-dev linux-libc-dev g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf
+	sudo apt-get install -y -q libc6-dev-i386 lib32stdc++-4.8-dev linux-libc-dev g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf
+	go get -u gopkg.in/alecthomas/gometalinter.v2
+	gometalinter.v2 --install
 
 check_links:
 	python ./tools/check_links.py $$(pwd) $$(ls ./*.md; find ./docs/ -name '*.md')

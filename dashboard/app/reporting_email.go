@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/mail"
+	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -210,9 +211,11 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	if rep.Arch == "386" {
 		userspaceArch = "i386"
 	}
+	link := fmt.Sprintf("https://%v.appspot.com/bug?extid=%v", appengine.AppID(c), rep.ID)
 	// Data passed to the template.
 	type BugReportData struct {
 		First             bool
+		Link              string
 		CreditEmail       string
 		Moderation        bool
 		Maintainers       []string
@@ -235,6 +238,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	}
 	data := &BugReportData{
 		First:             rep.First,
+		Link:              link,
 		CreditEmail:       creditEmail,
 		Moderation:        cfg.Moderation,
 		Maintainers:       rep.Maintainers,
@@ -349,14 +353,21 @@ func incomingMail(c context.Context, r *http.Request) error {
 
 func handleEmailBounce(w http.ResponseWriter, r *http.Request) {
 	c := appengine.NewContext(r)
-	log.Errorf(c, "email bounced")
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Errorf(c, "failed to read body: %v", err)
+		log.Errorf(c, "email bounced: failed to read body: %v", err)
 		return
+	}
+	if nonCriticalBounceRe.Match(body) {
+		log.Infof(c, "email bounced: address not found")
+	} else {
+		log.Errorf(c, "email bounced")
 	}
 	log.Infof(c, "%s", body)
 }
+
+// These are just stale emails in MAINTAINERS.
+var nonCriticalBounceRe = regexp.MustCompile(`\*\* Address not found \*\*|550 #5\.1\.0 Address rejected`)
 
 func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *BugReporting, reporting *Reporting) {
 	if msg.BugID == "" {

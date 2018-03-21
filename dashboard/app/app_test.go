@@ -227,9 +227,9 @@ func TestApp(t *testing.T) {
 	c.expectOK(c.API(client1, key1, "upload_build", build, nil))
 
 	// Some bad combinations of client/key.
-	c.expectFail("unauthorized request", c.API(client1, "", "upload_build", build, nil))
-	c.expectFail("unauthorized request", c.API("unknown", key1, "upload_build", build, nil))
-	c.expectFail("unauthorized request", c.API(client1, key2, "upload_build", build, nil))
+	c.expectFail("unauthorized", c.API(client1, "", "upload_build", build, nil))
+	c.expectFail("unauthorized", c.API("unknown", key1, "upload_build", build, nil))
+	c.expectFail("unauthorized", c.API(client1, key2, "upload_build", build, nil))
 
 	crash1 := &dashapi.Crash{
 		BuildID:     "build1",
