@@ -145,14 +145,11 @@ type uiJob struct {
 
 // handleMain serves main page.
 func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	h, err := commonHeader(c, r)
-	if err != nil {
-		return err
-	}
 	var errorLog []byte
 	var managers []*uiManager
 	var jobs []*uiJob
 	if accessLevel(c, r) == AccessAdmin && r.FormValue("fixed") == "" {
+		var err error
 		errorLog, err = fetchErrorLogs(c)
 		if err != nil {
 			return err
@@ -171,7 +168,7 @@ func handleMain(c context.Context, w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	data := &uiMain{
-		Header:        h,
+		Header:        commonHeader(c, r),
 		Now:           timeNow(c),
 		Log:           errorLog,
 		Managers:      managers,
@@ -200,10 +197,6 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 	}
 	accessLevel := accessLevel(c, r)
 	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
-		return err
-	}
-	h, err := commonHeader(c, r)
-	if err != nil {
 		return err
 	}
 	state, err := loadReportingState(c)
@@ -242,7 +235,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		return err
 	}
 	data := &uiBugPage{
-		Header:  h,
+		Header:  commonHeader(c, r),
 		Now:     timeNow(c),
 		Bug:     uiBug,
 		DupOf:   dupOf,

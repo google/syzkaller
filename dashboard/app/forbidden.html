@@ -1,12 +1,12 @@
 <!doctype html>
 <html>
 <head>
+	{{template "head" .Header}}
 	<title>syzbot</title>
-	<link rel="stylesheet" href="/static/style.css"/>
 </head>
 <body>
-	{{if .}}
-		<script>window.location.replace("{{.}}");</script>
+	{{if .Header.LoginLink}}
+		<script>window.location.replace("{{.Header.LoginLink}}");</script>
 	{{else}}
 		403 Forbidden
 	{{end}}

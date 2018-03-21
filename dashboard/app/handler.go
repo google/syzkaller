@@ -31,13 +31,16 @@ func handleContext(fn contextHandler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		c := appengine.NewContext(r)
 		if err := fn(c, w, r); err != nil {
+			data := &struct {
+				Header *uiHeader
+				Error  string
+			}{
+				Header: commonHeader(c, r),
+				Error:  err.Error(),
+			}
 			if err == ErrAccess {
 				w.WriteHeader(http.StatusForbidden)
-				loginLink := ""
-				if user.Current(c) == nil {
-					loginLink, _ = user.LoginURL(c, r.URL.String())
-				}
-				err1 := templates.ExecuteTemplate(w, "forbidden.html", loginLink)
+				err1 := templates.ExecuteTemplate(w, "forbidden.html", data)
 				if err1 != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 				}
@@ -45,7 +48,7 @@ func handleContext(fn contextHandler) http.Handler {
 			}
 			log.Errorf(c, "%v", err)
 			w.WriteHeader(http.StatusInternalServerError)
-			if err1 := templates.ExecuteTemplate(w, "error.html", err.Error()); err1 != nil {
+			if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
 		}
@@ -104,15 +107,18 @@ func serveTemplate(w http.ResponseWriter, name string, data interface{}) error {
 }
 
 type uiHeader struct {
-	LoginLink string
+	LoginLink           string
+	AnalyticsTrackingID string
 }
 
-func commonHeader(c context.Context, r *http.Request) (*uiHeader, error) {
-	h := &uiHeader{}
+func commonHeader(c context.Context, r *http.Request) *uiHeader {
+	h := &uiHeader{
+		AnalyticsTrackingID: config.AnalyticsTrackingID,
+	}
 	if user.Current(c) == nil {
 		h.LoginLink, _ = user.LoginURL(c, r.URL.String())
 	}
-	return h, nil
+	return h
 }
 
 func formatTime(t time.Time) string {

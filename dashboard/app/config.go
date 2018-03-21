@@ -20,6 +20,8 @@ type GlobalConfig struct {
 	AccessLevel AccessLevel
 	// Email suffix of authorized users (e.g. "@foobar.com").
 	AuthDomain string
+	// Google Analytics Tracking ID.
+	AnalyticsTrackingID string
 	// Global API clients that work across namespaces (e.g. external reporting).
 	Clients map[string]string
 	// List of emails blacklisted from issuing test requests.
