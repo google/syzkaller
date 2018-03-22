@@ -20,10 +20,6 @@
 #define GOOS "unknown"
 #endif
 
-// Note: zircon max fd is 256.
-const int kInPipeFd = 250; // remapped from stdin
-const int kOutPipeFd = 251; // remapped from stdout
-
 const int kMaxInput = 2 << 20;
 const int kMaxOutput = 16 << 20;
 const int kCoverSize = 64 << 10;
@@ -67,7 +63,7 @@ bool flag_inject_fault;
 int flag_fault_call;
 int flag_fault_nth;
 
-int flag_pid;
+unsigned long long procid;
 
 int running;
 uint32 completed;
@@ -226,7 +222,7 @@ void receive_handshake()
 	if (req.magic != kInMagic)
 		fail("bad handshake magic 0x%llx", req.magic);
 	parse_env_flags(req.flags);
-	flag_pid = req.pid;
+	procid = req.pid;
 }
 
 void reply_handshake()
@@ -247,7 +243,7 @@ void receive_execute(bool need_prog)
 	if (req.prog_size > kMaxInput)
 		fail("bad execute prog size 0x%llx", req.prog_size);
 	parse_env_flags(req.env_flags);
-	flag_pid = req.pid;
+	procid = req.pid;
 	flag_collect_cover = req.exec_flags & (1 << 0);
 	flag_dedup_cover = req.exec_flags & (1 << 1);
 	flag_inject_fault = req.exec_flags & (1 << 2);
@@ -258,8 +254,8 @@ void receive_execute(bool need_prog)
 	flag_fault_nth = req.fault_nth;
 	if (!flag_threaded)
 		flag_collide = false;
-	debug("exec opts: pid=%d threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d prog=%llu\n",
-	      flag_pid, flag_threaded, flag_collide, flag_collect_cover, flag_collect_comps,
+	debug("exec opts: pid=%llu threaded=%d collide=%d cover=%d comps=%d dedup=%d fault=%d/%d/%d prog=%llu\n",
+	      procid, flag_threaded, flag_collide, flag_collect_cover, flag_collect_comps,
 	      flag_dedup_cover, flag_inject_fault, flag_fault_call, flag_fault_nth,
 	      req.prog_size);
 	if (req.prog_size == 0) {
@@ -754,7 +750,7 @@ uint64 read_const_arg(uint64** input_posp, uint64* size_p, uint64* bf_off_p, uin
 	*bf_off_p = (meta >> 16) & 0xff;
 	*bf_len_p = (meta >> 24) & 0xff;
 	uint64 pid_stride = meta >> 32;
-	val += pid_stride * flag_pid;
+	val += pid_stride * procid;
 	if (be) {
 		switch (*size_p) {
 		case 2:

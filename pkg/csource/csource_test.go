@@ -89,6 +89,7 @@ func TestGenerateOptions(t *testing.T) {
 		permutations = allPermutations
 	}
 	for i, opts := range permutations {
+		opts := opts
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
 			target, rs, iters := initTest(t)
 			t.Logf("opts: %+v", opts)
