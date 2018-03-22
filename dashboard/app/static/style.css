@@ -129,4 +129,5 @@ table td, table th {
 
 textarea {
 	width:100%;
+	font-family: monospace;
 }
