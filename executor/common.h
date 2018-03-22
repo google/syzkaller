@@ -42,6 +42,12 @@ typedef unsigned int uint32;
 typedef unsigned short uint16;
 typedef unsigned char uint8;
 
+#ifdef SYZ_EXECUTOR
+// Note: zircon max fd is 256.
+const int kInPipeFd = 250; // remapped from stdin
+const int kOutPipeFd = 251; // remapped from stdout
+#endif
+
 #if defined(__GNUC__)
 #define SYSCALLAPI
 #define NORETURN __attribute__((noreturn))

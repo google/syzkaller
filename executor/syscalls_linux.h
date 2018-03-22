@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "b0cca0943b5017ba63ed5e3b325251612d061f21"
+#define SYZ_REVISION "c01f41f1487f5d5a5b0104b876d11c9af1090248"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1613;
+unsigned syscall_count = 1626;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -991,6 +991,7 @@ call_t syscalls[] = {
     {"mincore", 218},
     {"mkdir", 39},
     {"mkdirat", 296},
+    {"mkdirat$cgroup", 296},
     {"mknod", 14},
     {"mknod$loop", 14},
     {"mknodat", 297},
@@ -1027,6 +1028,13 @@ call_t syscalls[] = {
     {"openat$audio", 295},
     {"openat$autofs", 295},
     {"openat$capi20", 295},
+    {"openat$cgroup", 295},
+    {"openat$cgroup_int", 295},
+    {"openat$cgroup_procs", 295},
+    {"openat$cgroup_ro", 295},
+    {"openat$cgroup_root", 295},
+    {"openat$cgroup_subtree", 295},
+    {"openat$cgroup_type", 295},
     {"openat$cuse", 295},
     {"openat$dir", 295},
     {"openat$dsp", 295},
@@ -1080,6 +1088,7 @@ call_t syscalls[] = {
     {"openat$zygote", 295},
     {"pause", 29},
     {"perf_event_open", 336},
+    {"perf_event_open$cgroup", 336},
     {"personality", 136},
     {"pipe", 42},
     {"pipe2", 331},
@@ -1607,6 +1616,10 @@ call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 284},
     {"write", 4},
+    {"write$cgroup_int", 4},
+    {"write$cgroup_pid", 4},
+    {"write$cgroup_subtree", 4},
+    {"write$cgroup_type", 4},
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
@@ -1627,11 +1640,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "c4e271d66e2dfd758cf369682d72bbf3590dedd0"
+#define SYZ_REVISION "b9c8e658cfa4e7d66e21b0a6c1fcddfe61acbeb2"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1665;
+unsigned syscall_count = 1678;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2630,6 +2643,7 @@ call_t syscalls[] = {
     {"mincore", 27},
     {"mkdir", 83},
     {"mkdirat", 258},
+    {"mkdirat$cgroup", 258},
     {"mknod", 133},
     {"mknod$loop", 133},
     {"mknodat", 259},
@@ -2676,6 +2690,13 @@ call_t syscalls[] = {
     {"openat$audio", 257},
     {"openat$autofs", 257},
     {"openat$capi20", 257},
+    {"openat$cgroup", 257},
+    {"openat$cgroup_int", 257},
+    {"openat$cgroup_procs", 257},
+    {"openat$cgroup_ro", 257},
+    {"openat$cgroup_root", 257},
+    {"openat$cgroup_subtree", 257},
+    {"openat$cgroup_type", 257},
     {"openat$cuse", 257},
     {"openat$dir", 257},
     {"openat$dsp", 257},
@@ -2729,6 +2750,7 @@ call_t syscalls[] = {
     {"openat$zygote", 257},
     {"pause", 34},
     {"perf_event_open", 298},
+    {"perf_event_open$cgroup", 298},
     {"personality", 135},
     {"pipe", 22},
     {"pipe2", 293},
@@ -3284,6 +3306,10 @@ call_t syscalls[] = {
     {"wait4", 61},
     {"waitid", 247},
     {"write", 1},
+    {"write$cgroup_int", 1},
+    {"write$cgroup_pid", 1},
+    {"write$cgroup_subtree", 1},
+    {"write$cgroup_type", 1},
     {"write$evdev", 1},
     {"write$eventfd", 1},
     {"write$fuse", 1},
@@ -3304,11 +3330,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "07cef835f8b609cd2ffca0b97f77fa531c570b71"
+#define SYZ_REVISION "e7d1c116b96d76e3529774adf2b448f8717b76eb"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1610;
+unsigned syscall_count = 1623;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4264,6 +4290,7 @@ call_t syscalls[] = {
     {"mincore", 219},
     {"mkdir", 39},
     {"mkdirat", 323},
+    {"mkdirat$cgroup", 323},
     {"mknod", 14},
     {"mknod$loop", 14},
     {"mknodat", 324},
@@ -4306,6 +4333,13 @@ call_t syscalls[] = {
     {"openat$audio", 322},
     {"openat$autofs", 322},
     {"openat$capi20", 322},
+    {"openat$cgroup", 322},
+    {"openat$cgroup_int", 322},
+    {"openat$cgroup_procs", 322},
+    {"openat$cgroup_ro", 322},
+    {"openat$cgroup_root", 322},
+    {"openat$cgroup_subtree", 322},
+    {"openat$cgroup_type", 322},
     {"openat$cuse", 322},
     {"openat$dir", 322},
     {"openat$dsp", 322},
@@ -4359,6 +4393,7 @@ call_t syscalls[] = {
     {"openat$zygote", 322},
     {"pause", 29},
     {"perf_event_open", 364},
+    {"perf_event_open$cgroup", 364},
     {"personality", 136},
     {"pipe", 42},
     {"pipe2", 359},
@@ -4906,6 +4941,10 @@ call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 280},
     {"write", 4},
+    {"write$cgroup_int", 4},
+    {"write$cgroup_pid", 4},
+    {"write$cgroup_subtree", 4},
+    {"write$cgroup_type", 4},
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},
@@ -4926,11 +4965,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "cac26d4197832d1b50b8b6ea469c8061b7405bc4"
+#define SYZ_REVISION "43a2d759c153cf5c6b39a47c64efd7abcf669c26"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1594;
+unsigned syscall_count = 1607;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5886,6 +5925,7 @@ call_t syscalls[] = {
     {"migrate_pages", 238},
     {"mincore", 232},
     {"mkdirat", 34},
+    {"mkdirat$cgroup", 34},
     {"mknodat", 33},
     {"mlock", 228},
     {"mlock2", 284},
@@ -5924,6 +5964,13 @@ call_t syscalls[] = {
     {"openat$audio", 56},
     {"openat$autofs", 56},
     {"openat$capi20", 56},
+    {"openat$cgroup", 56},
+    {"openat$cgroup_int", 56},
+    {"openat$cgroup_procs", 56},
+    {"openat$cgroup_ro", 56},
+    {"openat$cgroup_root", 56},
+    {"openat$cgroup_subtree", 56},
+    {"openat$cgroup_type", 56},
     {"openat$cuse", 56},
     {"openat$dir", 56},
     {"openat$dsp", 56},
@@ -5976,6 +6023,7 @@ call_t syscalls[] = {
     {"openat$xenevtchn", 56},
     {"openat$zygote", 56},
     {"perf_event_open", 241},
+    {"perf_event_open$cgroup", 241},
     {"personality", 92},
     {"pipe2", 59},
     {"pivot_root", 41},
@@ -6512,6 +6560,10 @@ call_t syscalls[] = {
     {"wait4", 260},
     {"waitid", 95},
     {"write", 64},
+    {"write$cgroup_int", 64},
+    {"write$cgroup_pid", 64},
+    {"write$cgroup_subtree", 64},
+    {"write$cgroup_type", 64},
     {"write$evdev", 64},
     {"write$eventfd", 64},
     {"write$fuse", 64},
@@ -6532,11 +6584,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "d32421a63a0dd72f857a8cb4cdc483487132c60a"
+#define SYZ_REVISION "b84bf7ffe358a4f0f2e3375c1421e3e3dd5da519"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1584;
+unsigned syscall_count = 1597;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7495,6 +7547,7 @@ call_t syscalls[] = {
     {"mincore", 206},
     {"mkdir", 39},
     {"mkdirat", 287},
+    {"mkdirat$cgroup", 287},
     {"mknod", 14},
     {"mknod$loop", 14},
     {"mknodat", 288},
@@ -7531,6 +7584,13 @@ call_t syscalls[] = {
     {"openat$audio", 286},
     {"openat$autofs", 286},
     {"openat$capi20", 286},
+    {"openat$cgroup", 286},
+    {"openat$cgroup_int", 286},
+    {"openat$cgroup_procs", 286},
+    {"openat$cgroup_ro", 286},
+    {"openat$cgroup_root", 286},
+    {"openat$cgroup_subtree", 286},
+    {"openat$cgroup_type", 286},
     {"openat$cuse", 286},
     {"openat$dir", 286},
     {"openat$dsp", 286},
@@ -7584,6 +7644,7 @@ call_t syscalls[] = {
     {"openat$zygote", 286},
     {"pause", 29},
     {"perf_event_open", 319},
+    {"perf_event_open$cgroup", 319},
     {"personality", 136},
     {"pipe", 42},
     {"pipe2", 317},
@@ -8108,6 +8169,10 @@ call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 272},
     {"write", 4},
+    {"write$cgroup_int", 4},
+    {"write$cgroup_pid", 4},
+    {"write$cgroup_subtree", 4},
+    {"write$cgroup_type", 4},
     {"write$evdev", 4},
     {"write$eventfd", 4},
     {"write$fuse", 4},

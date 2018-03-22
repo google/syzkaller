@@ -7,33 +7,34 @@
 set -eux
 
 # Create a minimal Debian-wheezy distributive as a directory.
-sudo rm -rf wheezy
-mkdir -p wheezy
-sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default wheezy wheezy
+RELEASE=wheezy
+DIR=wheezy
+#sudo rm -rf $DIR
+#mkdir -p $DIR
+#sudo debootstrap --include=openssh-server,curl,tar,gcc,libc6-dev,time,strace,sudo,less,psmisc,selinux-utils,policycoreutils,checkpolicy,selinux-policy-default $RELEASE $DIR
 
 # Set some defaults and enable promtless ssh to the machine for root.
-sudo sed -i '/^root/ { s/:x:/::/ }' wheezy/etc/passwd
-echo 'T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100' | sudo tee -a wheezy/etc/inittab
-printf '\nauto eth0\niface eth0 inet dhcp\n' | sudo tee -a wheezy/etc/network/interfaces
-echo 'debugfs /sys/kernel/debug debugfs defaults 0 0' | sudo tee -a wheezy/etc/fstab
-echo "kernel.printk = 7 4 1 3" | sudo tee -a wheezy/etc/sysctl.conf
-echo 'debug.exception-trace = 0' | sudo tee -a wheezy/etc/sysctl.conf
-echo "net.core.bpf_jit_enable = 1" | sudo tee -a wheezy/etc/sysctl.conf
-echo "net.core.bpf_jit_harden = 2" | sudo tee -a wheezy/etc/sysctl.conf
-echo "net.ipv4.ping_group_range = 0 65535" | sudo tee -a wheezy/etc/sysctl.conf
-echo -en "127.0.0.1\tlocalhost\n" | sudo tee wheezy/etc/hosts
-echo "nameserver 8.8.8.8" | sudo tee -a wheezy/etc/resolve.conf
-echo "syzkaller" | sudo tee wheezy/etc/hostname
-sudo mkdir -p wheezy/root/.ssh/
-rm -rf ssh
-mkdir -p ssh
-ssh-keygen -f ssh/id_rsa -t rsa -N ''
-cat ssh/id_rsa.pub | sudo tee wheezy/root/.ssh/authorized_keys
+sudo sed -i '/^root/ { s/:x:/::/ }' $DIR/etc/passwd
+echo 'T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100' | sudo tee -a $DIR/etc/inittab
+printf '\nauto eth0\niface eth0 inet dhcp\n' | sudo tee -a $DIR/etc/network/interfaces
+echo 'debugfs /sys/kernel/debug debugfs defaults 0 0' | sudo tee -a $DIR/etc/fstab
+echo 'SELINUX=disabled' | sudo tee $DIR/etc/selinux/config
+echo "kernel.printk = 7 4 1 3" | sudo tee -a $DIR/etc/sysctl.conf
+echo 'debug.exception-trace = 0' | sudo tee -a $DIR/etc/sysctl.conf
+echo "net.core.bpf_jit_enable = 1" | sudo tee -a $DIR/etc/sysctl.conf
+echo "net.core.bpf_jit_harden = 2" | sudo tee -a $DIR/etc/sysctl.conf
+echo "net.ipv4.ping_group_range = 0 65535" | sudo tee -a $DIR/etc/sysctl.conf
+echo -en "127.0.0.1\tlocalhost\n" | sudo tee $DIR/etc/hosts
+echo "nameserver 8.8.8.8" | sudo tee -a $DIR/etc/resolve.conf
+echo "syzkaller" | sudo tee $DIR/etc/hostname
+ssh-keygen -f $RELEASE.id_rsa -t rsa -N ''
+sudo mkdir -p $DIR/root/.ssh/
+cat $RELEASE.id_rsa.pub | sudo tee $DIR/root/.ssh/authorized_keys
 
 # Build a disk image
-dd if=/dev/zero of=wheezy.img bs=1M seek=2047 count=1
-sudo mkfs.ext4 -F wheezy.img
-sudo mkdir -p /mnt/wheezy
-sudo mount -o loop wheezy.img /mnt/wheezy
-sudo cp -a wheezy/. /mnt/wheezy/.
-sudo umount /mnt/wheezy
+dd if=/dev/zero of=$RELEASE.img bs=1M seek=2047 count=1
+sudo mkfs.ext4 -F $RELEASE.img
+sudo mkdir -p /mnt/$DIR
+sudo mount -o loop $RELEASE.img /mnt/$DIR
+sudo cp -a $DIR/. /mnt/$DIR/.
+sudo umount /mnt/$DIR

@@ -267,8 +267,7 @@ bpf_obj_get {
 }
 
 bpf_attach_arg {
-# TODO: this must be cgroup fd (obtained by opening cgroup dir)
-	target_fd	fd
+	target_fd	fd_cgroup
 	attach_bpf_fd	fd_bpf_prog
 	type		flags[bpf_attach_type, int32]
 	flags		flags[bpf_attach_flags, int32]
@@ -331,8 +330,7 @@ bpf_map_info {
 } [align_8]
 
 bpf_prog_query {
-# TODO: this must be cgroup fd (obtained by opening cgroup dir)
-	target_fd	fd
+	target_fd	fd_cgroup
 	attach_type	flags[bpf_prog_query_attach_type, int32]
 	query_flags	flags[bpf_prog_query_flags, int32]
 	attach_flags	int32
