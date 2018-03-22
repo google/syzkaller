@@ -375,7 +375,7 @@ func loadBugInfo(c context.Context, msg *email.Email) (bug *Bug, bugReporting *B
 			// This happens when people CC syzbot on unrelated emails.
 			log.Infof(c, "no bug ID (%q)", msg.Subject)
 		} else {
-			log.Warningf(c, "no bug ID (%q)", msg.Subject)
+			log.Errorf(c, "no bug ID (%q)", msg.Subject)
 			replyTo(c, msg, "Can't find the corresponding bug.", nil)
 		}
 		return nil, nil, nil

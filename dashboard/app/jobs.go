@@ -26,7 +26,7 @@ func handleTestRequest(c context.Context, bugID, user, extID, link, patch, repo,
 		bugID, user, extID, len(patch), repo, branch)
 	for _, blacklisted := range config.EmailBlacklist {
 		if user == blacklisted {
-			log.Warningf(c, "test request from blacklisted user: %v", user)
+			log.Errorf(c, "test request from blacklisted user: %v", user)
 			return ""
 		}
 	}
@@ -271,7 +271,7 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 		if isNewBuild, err := uploadBuild(c, ns, &req.Build, BuildJob); err != nil {
 			return err
 		} else if !isNewBuild {
-			log.Warningf(c, "job %v: duplicate build %v", jobID, req.Build.ID)
+			log.Errorf(c, "job %v: duplicate build %v", jobID, req.Build.ID)
 		}
 		if job.Error, err = putText(c, ns, "Error", req.Error, false); err != nil {
 			return err

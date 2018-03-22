@@ -46,7 +46,9 @@ func handleContext(fn contextHandler) http.Handler {
 				}
 				return
 			}
-			log.Errorf(c, "%v", err)
+			if _, dontlog := err.(ErrDontLog); !dontlog {
+				log.Errorf(c, "%v", err)
+			}
 			w.WriteHeader(http.StatusInternalServerError)
 			if err1 := templates.ExecuteTemplate(w, "error.html", data); err1 != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -54,6 +56,8 @@ func handleContext(fn contextHandler) http.Handler {
 		}
 	})
 }
+
+type ErrDontLog error
 
 func handleAuth(fn contextHandler) contextHandler {
 	return func(c context.Context, w http.ResponseWriter, r *http.Request) error {

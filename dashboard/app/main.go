@@ -193,7 +193,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 			return err
 		}
 	} else {
-		return fmt.Errorf("mandatory parameter id/extid is missing")
+		return ErrDontLog(fmt.Errorf("mandatory parameter id/extid is missing"))
 	}
 	accessLevel := accessLevel(c, r)
 	if err := checkAccessLevel(c, r, bug.sanitizeAccess(accessLevel)); err != nil {
@@ -251,8 +251,7 @@ func handleText(c context.Context, w http.ResponseWriter, r *http.Request) error
 	tag := r.FormValue("tag")
 	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 	if err != nil || id == 0 {
-		log.Infof(c, "failed to parse text id: %v", err)
-		return nil
+		return ErrDontLog(fmt.Errorf("failed to parse text id: %v", err))
 	}
 	if err := checkTextAccess(c, r, tag, id); err != nil {
 		return err
@@ -689,7 +688,7 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 
 func fetchErrorLogs(c context.Context) ([]byte, error) {
 	const (
-		minLogLevel  = 2
+		minLogLevel  = 3
 		maxLines     = 100
 		maxLineLen   = 1000
 		reportPeriod = 7 * 24 * time.Hour
