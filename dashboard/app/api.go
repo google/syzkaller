@@ -94,7 +94,7 @@ func handleAPI(c context.Context, r *http.Request) (reply interface{}, err error
 	ns, err := checkClient(c, client, r.PostFormValue("key"))
 	if err != nil {
 		if client != "" {
-			log.Warningf(c, "%v", err)
+			log.Errorf(c, "%v", err)
 		} else {
 			// Don't log as error if somebody just invokes /api.
 			log.Infof(c, "%v", err)

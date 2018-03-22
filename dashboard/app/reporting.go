@@ -324,7 +324,7 @@ func incomingCommand(c context.Context, cmd *dashapi.BugUpdate) (bool, string, e
 	if err != nil {
 		log.Errorf(c, "%v (%v)", reason, err)
 	} else if !ok && reason != "" {
-		log.Warningf(c, "invalid update: %v", reason)
+		log.Errorf(c, "invalid update: %v", reason)
 	}
 	return ok, reason, err
 }
@@ -433,13 +433,13 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 				// This happens when people discuss old bugs.
 				log.Infof(c, "Dup bug is already closed")
 			} else {
-				log.Warningf(c, "Dup bug is already closed")
+				log.Errorf(c, "Dup bug is already closed")
 			}
 			return false, "", nil
 		}
 	case BugStatusFixed, BugStatusInvalid:
 		if cmd.Status != dashapi.BugStatusUpdate {
-			log.Warningf(c, "This bug is already closed")
+			log.Errorf(c, "This bug is already closed")
 		}
 		return false, "", nil
 	default:
@@ -451,7 +451,7 @@ func incomingCommandTx(c context.Context, now time.Time, cmd *dashapi.BugUpdate,
 	}
 	if !bugReporting.Closed.IsZero() {
 		if cmd.Status != dashapi.BugStatusUpdate {
-			log.Warningf(c, "This bug reporting is already closed")
+			log.Errorf(c, "This bug reporting is already closed")
 		}
 		return false, "", nil
 	}
