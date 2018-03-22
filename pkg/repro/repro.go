@@ -291,16 +291,17 @@ func (ctx *context) extractProg(entries []*prog.LogEntry) (*Result, error) {
 
 func (ctx *context) createDefaultOps() csource.Options {
 	opts := csource.Options{
-		Threaded:   true,
-		Collide:    true,
-		Repeat:     true,
-		Procs:      ctx.cfg.Procs,
-		Sandbox:    ctx.cfg.Sandbox,
-		EnableTun:  true,
-		UseTmpDir:  true,
-		HandleSegv: true,
-		WaitRepeat: true,
-		Repro:      true,
+		Threaded:      true,
+		Collide:       true,
+		Repeat:        true,
+		Procs:         ctx.cfg.Procs,
+		Sandbox:       ctx.cfg.Sandbox,
+		EnableTun:     true,
+		EnableCgroups: true,
+		UseTmpDir:     true,
+		HandleSegv:    true,
+		WaitRepeat:    true,
+		Repro:         true,
 	}
 	return opts
 }
@@ -816,6 +817,8 @@ var cSimplifies = append(progSimplifies, []Simplify{
 			return false
 		}
 		opts.Sandbox = ""
+		opts.EnableTun = false
+		opts.EnableCgroups = false
 		return true
 	},
 	func(opts *csource.Options) bool {
@@ -826,7 +829,14 @@ var cSimplifies = append(progSimplifies, []Simplify{
 		return true
 	},
 	func(opts *csource.Options) bool {
-		if !opts.UseTmpDir || opts.Sandbox == "namespace" {
+		if !opts.EnableCgroups {
+			return false
+		}
+		opts.EnableCgroups = false
+		return true
+	},
+	func(opts *csource.Options) bool {
+		if !opts.UseTmpDir || opts.Sandbox == "namespace" || opts.EnableCgroups {
 			return false
 		}
 		opts.UseTmpDir = false

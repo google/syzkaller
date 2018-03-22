@@ -1,0 +1,56 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
+
+include <uapi/linux/fcntl.h>
+
+resource fd_cgroup[fd]
+resource fd_cgroup_type[fd]
+resource fd_cgroup_subtree[fd]
+resource fd_cgroup_int[fd]
+resource fd_cgroup_pid[fd]
+
+openat$cgroup_root(fd const[AT_FDCWD], file ptr[in, string[cgroup_dirs]], flags const[CGROUP_OPEN_FLAGS], mode const[0]) fd_cgroup
+openat$cgroup(fd fd_cgroup, file ptr[in, string[cgroup_names]], flags const[CGROUP_OPEN_FLAGS], mode const[0]) fd_cgroup
+mkdirat$cgroup(fd fd_cgroup, path ptr[in, string[cgroup_names]], mode flags[open_mode])
+openat$cgroup_ro(fd fd_cgroup, file ptr[in, string[cgroup_ctrl_read]], flags const[O_RDONLY], mode const[0]) fd
+openat$cgroup_int(fd fd_cgroup, file ptr[in, string[cgroup_ctrl_int]], flags const[O_RDWR], mode const[0]) fd_cgroup_int
+openat$cgroup_procs(fd fd_cgroup, file ptr[in, string[cgroup_proc_files]], flags const[O_RDWR], mode const[0]) fd_cgroup_pid
+openat$cgroup_subtree(fd fd_cgroup, file ptr[in, string["cgroup.subtree_control"]], flags const[O_RDWR], mode const[0]) fd_cgroup_subtree
+openat$cgroup_type(fd fd_cgroup, file ptr[in, string["cgroup.type"]], flags const[O_RDWR], mode const[0]) fd_cgroup_type
+write$cgroup_int(fd fd_cgroup_int, buf ptr[in, cgroup_int], len bytesize[buf])
+write$cgroup_pid(fd fd_cgroup_pid, buf ptr[in, cgroup_pid], len bytesize[buf])
+write$cgroup_subtree(fd fd_cgroup_subtree, buf ptr[in, cgroup_subtree], len bytesize[buf])
+write$cgroup_type(fd fd_cgroup_type, buf ptr[in, string["threaded"]], len bytesize[buf])
+
+cgroup_int {
+	digits	array[flags[cgroup_digits, int8]]
+} [packed]
+
+# TODO: these are bad pid's. We need something like sprintf["%v", pid].
+cgroup_pid {
+	digits	array[int8[48:57]]
+} [packed]
+
+cgroup_subtree {
+	controls	array[cgroup_control]
+} [packed]
+
+cgroup_control {
+	sign	flags[cgroup_control_signs, int8]
+	subsys	stringnoz[cgroup_subsystems]
+	sp	const[32, int8]
+} [packed]
+
+cgroup_dirs = "./cgroup", "./cgroup.cpu", "./cgroup.net"
+cgroup_names = "syz0", "syz1"
+cgroup_paths = "./cgroup", "./cgroup.cpu", "./cgroup.net", "./cgroup/syz0", "./cgroup.cpu/syz0", "./cgroup.net/syz0", "./cgroup/syz1", "./cgroup.cpu/syz1", "./cgroup.net/syz1"
+# '+', '-'
+cgroup_control_signs = 43, 45
+# '+', '-', ',', '/', ';' and digits
+cgroup_digits = 0, 43, 45, 44, 47, 58, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57
+cgroup_subsystems = "cpu", "memory", "io", "pids", "rdma"
+cgroup_proc_files = "cgroup.procs", "cgroup.threads", "tasks"
+cgroup_ctrl_read = "cgroup.controllers", "cgroup.events", "cgroup.stat", "cpu.stat", "cpu.stat", "io.stat", "memory.current", "memory.events", "memory.stat", "memory.swap.current", "pids.current", "pids.events", "rdma.current", "cpuacct.stat", "cpuacct.usage_all", "cpuacct.usage_percpu", "cpuacct.usage_percpu_sys", "cpuacct.usage_percpu_user", "cpuacct.usage_sys", "cpuacct.usage_user", "cpuset.effective_cpus", "cpuset.effective_mems", "cpuset.memory_pressure", "hugetlb.2MB.usage_in_bytes"
+cgroup_ctrl_int = "cgroup.max.depth", "cgroup.max.descendants", "cpu.weight", "cpu.weight.nice", "io.bfq.weight", "io.max", "io.weight", "memory.high", "memory.low", "memory.max", "memory.swap.max", "pids.max", "rdma.max", "cgroup.clone_children", "cpuacct.usage", "cpuset.cpu_exclusive", "cpuset.cpus", "cpuset.mem_exclusive", "cpuset.mem_hardwall", "cpuset.memory_migrate", "cpuset.memory_spread_page", "cpuset.memory_spread_slab", "cpuset.mems", "cpuset.sched_load_balance", "cpuset.sched_relax_domain_level", "hugetlb.2MB.failcnt", "hugetlb.2MB.limit_in_bytes", "hugetlb.2MB.max_usage_in_bytes", "notify_on_release"
+
+define CGROUP_OPEN_FLAGS	O_RDWR | O_PATH

@@ -63,8 +63,8 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		}
 		ctx.printf("};\n")
 	}
-	if opts.Procs > 1 {
-		ctx.printf("uint64_t procid;\n")
+	if opts.Procs > 1 || opts.EnableCgroups {
+		ctx.printf("unsigned long long procid;\n")
 	}
 
 	if !opts.Repeat {
@@ -93,7 +93,7 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		}
 		ctx.print("\treturn 0;\n}\n")
 	} else {
-		ctx.generateTestFunc(calls, len(vars) != 0, "test")
+		ctx.generateTestFunc(calls, len(vars) != 0, "execute_one")
 		if opts.Procs <= 1 {
 			ctx.print("int main()\n{\n")
 			for _, c := range mmapCalls {

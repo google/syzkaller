@@ -8,10 +8,6 @@
 
 #include <sys/utsname.h>
 
-void loop()
-{
-} // to prevent warning: ‘void loop()’ used but never defined
-
 extern "C" int test_copyin()
 {
 	unsigned char x[4] = {};

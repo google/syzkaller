@@ -69,6 +69,11 @@ typedef unsigned int uint32;
 typedef unsigned short uint16;
 typedef unsigned char uint8;
 
+#ifdef SYZ_EXECUTOR
+const int kInPipeFd = 250;
+const int kOutPipeFd = 251;
+#endif
+
 #if defined(__GNUC__)
 #define SYSCALLAPI
 #define NORETURN __attribute__((noreturn))

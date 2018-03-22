@@ -6,8 +6,8 @@ include <linux/hw_breakpoint.h>
 
 resource fd_perf[fd]
 
-# TODO: pid is cgroup fd if ERF_FLAG_PID_CGROUP is set.
-perf_event_open(attr ptr[in, perf_event_attr], pid pid, cpu intptr, group fd_perf, flags flags[perf_flags]) fd_perf
+perf_event_open(attr ptr[in, perf_event_attr], pid pid, cpu intptr[0:16], group fd_perf, flags flags[perf_flags]) fd_perf
+perf_event_open$cgroup(attr ptr[in, perf_event_attr], fd fd_cgroup, cpu intptr[0:16], group fd_perf, flags flags[perf_flags]) fd_perf
 
 ioctl$PERF_EVENT_IOC_ENABLE(fd fd_perf, cmd const[PERF_EVENT_IOC_ENABLE], flags intptr)
 ioctl$PERF_EVENT_IOC_DISABLE(fd fd_perf, cmd const[PERF_EVENT_IOC_DISABLE], flags intptr)
@@ -21,7 +21,8 @@ ioctl$PERF_EVENT_IOC_SET_BPF(fd fd_perf, cmd const[PERF_EVENT_IOC_SET_BPF], prog
 ioctl$PERF_EVENT_IOC_PAUSE_OUTPUT(fd fd_perf, cmd const[PERF_EVENT_IOC_PAUSE_OUTPUT], arg boolptr)
 ioctl$PERF_EVENT_IOC_QUERY_BPF(fd fd_perf, cmd const[PERF_EVENT_IOC_QUERY_BPF], arg ptr[in, perf_event_query_bpf])
 
-perf_flags = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_PID_CGROUP, PERF_FLAG_FD_CLOEXEC
+perf_flags = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_FD_CLOEXEC
+perf_flags_cgroup = PERF_FLAG_FD_NO_GROUP, PERF_FLAG_FD_OUTPUT, PERF_FLAG_PID_CGROUP, PERF_FLAG_FD_CLOEXEC
 perf_event_type = PERF_TYPE_HARDWARE, PERF_TYPE_SOFTWARE, PERF_TYPE_TRACEPOINT, PERF_TYPE_HW_CACHE, PERF_TYPE_RAW, PERF_TYPE_BREAKPOINT
 perf_bp_type = HW_BREAKPOINT_EMPTY, HW_BREAKPOINT_R, HW_BREAKPOINT_W, HW_BREAKPOINT_X
 perf_sample_type = PERF_SAMPLE_IP, PERF_SAMPLE_TID, PERF_SAMPLE_TIME, PERF_SAMPLE_ADDR, PERF_SAMPLE_READ, PERF_SAMPLE_CALLCHAIN, PERF_SAMPLE_ID, PERF_SAMPLE_CPU, PERF_SAMPLE_PERIOD, PERF_SAMPLE_STREAM_ID, PERF_SAMPLE_RAW, PERF_SAMPLE_BRANCH_STACK, PERF_SAMPLE_REGS_USER, PERF_SAMPLE_STACK_USER, PERF_SAMPLE_WEIGHT, PERF_SAMPLE_DATA_SRC, PERF_SAMPLE_IDENTIFIER, PERF_SAMPLE_TRANSACTION, PERF_SAMPLE_REGS_INTR, PERF_SAMPLE_PHYS_ADDR

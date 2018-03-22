@@ -155,7 +155,7 @@ func isSupportedSocket(c *prog.Syscall) bool {
 
 func isSupportedOpenAt(c *prog.Syscall) bool {
 	fname, ok := extractStringConst(c.Args[1])
-	if !ok {
+	if !ok || len(fname) == 0 || fname[0] != '/' {
 		return true
 	}
 	fd, err := syscall.Open(fname, syscall.O_RDONLY, 0)

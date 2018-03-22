@@ -89,6 +89,9 @@ func defineList(p *prog.Prog, opts Options) ([]string, error) {
 	if opts.EnableTun {
 		defines = append(defines, "SYZ_TUN_ENABLE")
 	}
+	if opts.EnableCgroups {
+		defines = append(defines, "SYZ_ENABLE_CGROUPS")
+	}
 	if opts.UseTmpDir {
 		defines = append(defines, "SYZ_USE_TMP_DIR")
 	}

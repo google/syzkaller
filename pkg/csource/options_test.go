@@ -29,36 +29,55 @@ func TestParseOptionsCanned(t *testing.T) {
 	// so we need to be able to parse old formats.
 	canned := map[string]Options{
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox:none Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
-			Threaded:   true,
-			Collide:    true,
-			Repeat:     true,
-			Procs:      1,
-			Sandbox:    "none",
-			Fault:      false,
-			FaultCall:  -1,
-			FaultNth:   0,
-			EnableTun:  true,
-			UseTmpDir:  true,
-			HandleSegv: true,
-			WaitRepeat: true,
-			Debug:      false,
-			Repro:      false,
+			Threaded:      true,
+			Collide:       true,
+			Repeat:        true,
+			Procs:         1,
+			Sandbox:       "none",
+			Fault:         false,
+			FaultCall:     -1,
+			FaultNth:      0,
+			EnableTun:     true,
+			UseTmpDir:     true,
+			EnableCgroups: false,
+			HandleSegv:    true,
+			WaitRepeat:    true,
+			Debug:         false,
+			Repro:         false,
 		},
 		"{Threaded:true Collide:true Repeat:true Procs:1 Sandbox: Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
-			Threaded:   true,
-			Collide:    true,
-			Repeat:     true,
-			Procs:      1,
-			Sandbox:    "",
-			Fault:      false,
-			FaultCall:  -1,
-			FaultNth:   0,
-			EnableTun:  true,
-			UseTmpDir:  true,
-			HandleSegv: true,
-			WaitRepeat: true,
-			Debug:      false,
-			Repro:      false,
+			Threaded:      true,
+			Collide:       true,
+			Repeat:        true,
+			Procs:         1,
+			Sandbox:       "",
+			Fault:         false,
+			FaultCall:     -1,
+			FaultNth:      0,
+			EnableTun:     true,
+			UseTmpDir:     true,
+			EnableCgroups: false,
+			HandleSegv:    true,
+			WaitRepeat:    true,
+			Debug:         false,
+			Repro:         false,
+		},
+		"{Threaded:false Collide:true Repeat:true Procs:1 Sandbox:namespace Fault:false FaultCall:-1 FaultNth:0 EnableTun:true UseTmpDir:true EnableCgroups:true HandleSegv:true WaitRepeat:true Debug:false Repro:false}": Options{
+			Threaded:      false,
+			Collide:       true,
+			Repeat:        true,
+			Procs:         1,
+			Sandbox:       "namespace",
+			Fault:         false,
+			FaultCall:     -1,
+			FaultNth:      0,
+			EnableTun:     true,
+			UseTmpDir:     true,
+			EnableCgroups: true,
+			HandleSegv:    true,
+			WaitRepeat:    true,
+			Debug:         false,
+			Repro:         false,
 		},
 	}
 	for data, want := range canned {
@@ -76,7 +95,15 @@ func allOptionsSingle() []Options {
 	var opts []Options
 	fields := reflect.TypeOf(Options{}).NumField()
 	for i := 0; i < fields; i++ {
-		opts = append(opts, enumerateField(Options{}, i)...)
+		// Because of constraints on options, we need some defaults
+		// (e.g. no collide without threaded).
+		opt := Options{
+			Threaded:  true,
+			Repeat:    true,
+			Sandbox:   "none",
+			UseTmpDir: true,
+		}
+		opts = append(opts, enumerateField(opt, i)...)
 	}
 	return opts
 }
