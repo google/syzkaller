@@ -28,8 +28,13 @@ Page with details about a single bug.
 	{{template "bug_list" .Dups}}
 	{{template "bug_list" .Similar}}
 
+	{{if .SampleReport}}
+	<br><b>Sample crash report:</b><br>
+	<textarea id="log_textarea" readonly rows="25" wrap=off>{{printf "%s" .SampleReport}}</textarea><br>
+	{{end}}
+
 	<table class="list_table">
-		<caption>Crashes ({{.Bug.NumCrashes}}):</caption>
+		<caption>All crashes ({{.Bug.NumCrashes}}):</caption>
 		<tr>
 			<th><a onclick="return sortTable('Manager', textSort)" href="#">Manager</a></th>
 			<th><a onclick="return sortTable('Time', dateSort)" href="#">Time</a></th>

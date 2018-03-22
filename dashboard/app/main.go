@@ -60,13 +60,14 @@ type uiBuild struct {
 }
 
 type uiBugPage struct {
-	Header  *uiHeader
-	Now     time.Time
-	Bug     *uiBug
-	DupOf   *uiBugGroup
-	Dups    *uiBugGroup
-	Similar *uiBugGroup
-	Crashes []*uiCrash
+	Header       *uiHeader
+	Now          time.Time
+	Bug          *uiBug
+	DupOf        *uiBugGroup
+	Dups         *uiBugGroup
+	Similar      *uiBugGroup
+	SampleReport []byte
+	Crashes      []*uiCrash
 }
 
 type uiBugNamespace struct {
@@ -222,7 +223,7 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		}
 	}
 	uiBug := createUIBug(c, bug, state, managers)
-	crashes, err := loadCrashesForBug(c, bug)
+	crashes, sampleReport, err := loadCrashesForBug(c, bug)
 	if err != nil {
 		return err
 	}
@@ -235,13 +236,14 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 		return err
 	}
 	data := &uiBugPage{
-		Header:  commonHeader(c, r),
-		Now:     timeNow(c),
-		Bug:     uiBug,
-		DupOf:   dupOf,
-		Dups:    dups,
-		Similar: similar,
-		Crashes: crashes,
+		Header:       commonHeader(c, r),
+		Now:          timeNow(c),
+		Bug:          uiBug,
+		DupOf:        dupOf,
+		Dups:         dups,
+		Similar:      similar,
+		SampleReport: sampleReport,
+		Crashes:      crashes,
 	}
 	return serveTemplate(w, "bug.html", data)
 }
@@ -545,13 +547,13 @@ func updateBugBadness(c context.Context, bug *uiBug) {
 	bug.NumCrashesBad = bug.NumCrashes >= 10000 && timeNow(c).Sub(bug.LastTime) < 24*time.Hour
 }
 
-func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
+func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) {
 	bugHash := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
 	bugKey := datastore.NewKey(c, "Bug", bugHash, 0, nil)
 	// We can have more than maxCrashes crashes, if we have lots of reproducers.
 	crashes, _, err := queryCrashesForBug(c, bugKey, maxCrashes+200)
-	if err != nil {
-		return nil, err
+	if err != nil || len(crashes) == 0 {
+		return nil, nil, err
 	}
 	builds := make(map[string]*Build)
 	var results []*uiCrash
@@ -560,7 +562,7 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 		if build == nil {
 			build, err = loadBuild(c, bug.Namespace, crash.BuildID)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			builds[crash.BuildID] = build
 		}
@@ -576,7 +578,11 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, error) {
 		}
 		results = append(results, ui)
 	}
-	return results, nil
+	sampleReport, _, err := getText(c, "CrashReport", crashes[0].Report)
+	if err != nil {
+		return nil, nil, err
+	}
+	return results, sampleReport, nil
 }
 
 func makeUIBuild(build *Build) *uiBuild {
