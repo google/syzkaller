@@ -38,15 +38,14 @@ func TestEmailReport(t *testing.T) {
 			t.Fatalf("failed to remove sender context: %v", err)
 		}
 		extBugID0 = extBugID
+		_, dbCrash, dbBuild := c.loadBug(extBugID0)
+		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
+		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
 		to := config.Namespaces["test2"].Reporting[0].Config.(*EmailConfig).Email
 		c.expectEQ(msg.To, []string{to})
 		c.expectEQ(msg.Subject, crash.Title)
-		c.expectEQ(len(msg.Attachments), 2)
-		c.expectEQ(msg.Attachments[0].Name, "raw.log.txt")
-		c.expectEQ(msg.Attachments[0].Data, crash.Log)
-		c.expectEQ(msg.Attachments[1].Name, "config.txt")
-		c.expectEQ(msg.Attachments[1].Data, build.KernelConfig)
+		c.expectEQ(len(msg.Attachments), 0)
 		body := fmt.Sprintf(`Hello,
 
 syzbot hit the following crash on repo1/branch1 commit
@@ -55,9 +54,9 @@ kernel_commit_title1
 syzbot dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 
 Unfortunately, I don't have any reproducer for this crash yet.
-Raw console output is attached.
+Raw console output: %[2]v
+Kernel config: %[3]v
 compiler: compiler1
-.config is attached.
 CC: [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
@@ -83,10 +82,12 @@ If it's a one-off invalid bug report, please reply with:
 Note: if the crash happens again, it will cause creation of a new bug report.
 Note: all commands must start from beginning of the line in the email body.
 To upstream this report, please reply with:
-#syz upstream`, extBugID0)
+#syz upstream`, extBugID0, crashLogLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
+		c.checkURLContents(crashLogLink, crash.Log)
+		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
 	// Emulate receive of the report from a mailing list.
@@ -139,6 +140,10 @@ For more options, visit https://groups.google.com/d/optout.
 		if err != nil {
 			t.Fatalf("failed to remove sender context: %v", err)
 		}
+		_, dbCrash, dbBuild := c.loadBug(extBugID0)
+		reproSyzLink := externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
+		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
+		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
 		to := []string{
 			"bugs@syzkaller.com",
@@ -148,13 +153,7 @@ For more options, visit https://groups.google.com/d/optout.
 		}
 		c.expectEQ(msg.To, to)
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
-		c.expectEQ(len(msg.Attachments), 3)
-		c.expectEQ(msg.Attachments[0].Name, "raw.log.txt")
-		c.expectEQ(msg.Attachments[0].Data, crash.Log)
-		c.expectEQ(msg.Attachments[1].Name, "repro.syz.txt")
-		c.expectEQ(msg.Attachments[1].Data, syzRepro)
-		c.expectEQ(msg.Attachments[2].Name, "config.txt")
-		c.expectEQ(msg.Attachments[2].Data, build.KernelConfig)
+		c.expectEQ(len(msg.Attachments), 0)
 		c.expectEQ(msg.Headers["In-Reply-To"], []string{"<1234>"})
 		body := fmt.Sprintf(`syzbot has found reproducer for the following crash on repo1/branch1 commit
 kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
@@ -162,10 +161,10 @@ kernel_commit_title1
 syzbot dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 
 So far this crash happened 2 times on repo1/branch1.
-syzkaller reproducer is attached.
-Raw console output is attached.
+syzkaller reproducer: %[2]v
+Raw console output: %[3]v
+Kernel config: %[4]v
 compiler: compiler1
-.config is attached.
 CC: [bar@foo.com foo@bar.com]
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
@@ -173,10 +172,13 @@ Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 It will help syzbot understand when the bug is fixed.
 
 report1
-`, extBugID0)
+`, extBugID0, reproSyzLink, crashLogLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
+		c.checkURLContents(reproSyzLink, syzRepro)
+		c.checkURLContents(crashLogLink, crash.Log)
+		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
 	// Now upstream the bug and check that it reaches the next reporting.
@@ -196,17 +198,15 @@ report1
 			t.Fatalf("failed to remove sender context: %v", err)
 		}
 		extBugID1 = extBugID
+		_, dbCrash, dbBuild := c.loadBug(extBugID1)
+		reproSyzLink := externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
+		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
+		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
 		c.expectEQ(msg.To, []string{"bar@foo.com", "bugs@syzkaller.com",
 			"default@maintainers.com", "foo@bar.com"})
 		c.expectEQ(msg.Subject, crash.Title)
-		c.expectEQ(len(msg.Attachments), 3)
-		c.expectEQ(msg.Attachments[0].Name, "raw.log.txt")
-		c.expectEQ(msg.Attachments[0].Data, crash.Log)
-		c.expectEQ(msg.Attachments[1].Name, "repro.syz.txt")
-		c.expectEQ(msg.Attachments[1].Data, syzRepro)
-		c.expectEQ(msg.Attachments[2].Name, "config.txt")
-		c.expectEQ(msg.Attachments[2].Data, build.KernelConfig)
+		c.expectEQ(len(msg.Attachments), 0)
 		body := fmt.Sprintf(`Hello,
 
 syzbot hit the following crash on repo1/branch1 commit
@@ -215,10 +215,10 @@ kernel_commit_title1
 syzbot dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 
 So far this crash happened 2 times on repo1/branch1.
-syzkaller reproducer is attached.
-Raw console output is attached.
+syzkaller reproducer: %[2]v
+Raw console output: %[3]v
+Kernel config: %[4]v
 compiler: compiler1
-.config is attached.
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
@@ -245,10 +245,13 @@ If it's a one-off invalid bug report, please reply with:
 #syz invalid
 Note: if the crash happens again, it will cause creation of a new bug report.
 Note: all commands must start from beginning of the line in the email body.
-`, extBugID1)
+`, extBugID1, reproSyzLink, crashLogLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
+		c.checkURLContents(reproSyzLink, syzRepro)
+		c.checkURLContents(crashLogLink, crash.Log)
+		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
 	// Model that somebody adds more emails to CC list.
@@ -283,40 +286,41 @@ Content-Type: text/plain
 		if err != nil {
 			t.Fatalf("failed to remove sender context: %v", err)
 		}
+		_, dbCrash, dbBuild := c.loadBug(extBugID1)
+		reproCLink := externalLink(c.ctx, textReproC, dbCrash.ReproC)
+		reproSyzLink := externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
+		crashLogLink := externalLink(c.ctx, textCrashLog, dbCrash.Log)
+		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		c.expectEQ(sender, fromAddr(c.ctx))
 		c.expectEQ(msg.To, []string{"another@another.com", "bar@foo.com", "bugs@syzkaller.com",
 			"default@maintainers.com", "foo@bar.com", "new@new.com", "qux@qux.com"})
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
-		c.expectEQ(len(msg.Attachments), 4)
-		c.expectEQ(msg.Attachments[0].Name, "raw.log.txt")
-		c.expectEQ(msg.Attachments[0].Data, crash.Log)
-		c.expectEQ(msg.Attachments[1].Name, "repro.syz.txt")
-		c.expectEQ(msg.Attachments[1].Data, syzRepro)
-		c.expectEQ(msg.Attachments[2].Name, "repro.c.txt")
-		c.expectEQ(msg.Attachments[2].Data, crash.ReproC)
-		c.expectEQ(msg.Attachments[3].Name, "config.txt")
-		c.expectEQ(msg.Attachments[3].Data, build2.KernelConfig)
+		c.expectEQ(len(msg.Attachments), 0)
 		body := fmt.Sprintf(`syzbot has found reproducer for the following crash on repo2/branch2 commit
 kernel_commit2 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title2
 syzbot dashboard link: https://testapp.appspot.com/bug?extid=%[1]v
 
 So far this crash happened 3 times on repo1/branch1, repo2/branch2.
-C reproducer is attached.
-syzkaller reproducer is attached.
-Raw console output is attached.
+C reproducer: %[2]v
+syzkaller reproducer: %[3]v
+Raw console output: %[4]v
+Kernel config: %[5]v
 compiler: compiler2
-.config is attached.
 
 IMPORTANT: if you fix the bug, please add the following tag to the commit:
 Reported-by: syzbot+%[1]v@testapp.appspotmail.com
 It will help syzbot understand when the bug is fixed.
 
 report1
-`, extBugID1)
+`, extBugID1, reproCLink, reproSyzLink, crashLogLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
+		c.checkURLContents(reproCLink, crash.ReproC)
+		c.checkURLContents(reproSyzLink, syzRepro)
+		c.checkURLContents(crashLogLink, crash.Log)
+		c.checkURLContents(kernelConfigLink, build2.KernelConfig)
 	}
 
 	// Send an invalid command.

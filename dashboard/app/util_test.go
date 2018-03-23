@@ -214,6 +214,48 @@ func (err HttpError) Error() string {
 	return fmt.Sprintf("%v: %v", err.Code, err.Body)
 }
 
+func (c *Ctx) loadBug(extID string) (*Bug, *Crash, *Build) {
+	bug, _, err := findBugByReportingID(c.ctx, extID)
+	if err != nil {
+		c.t.Fatalf("failed to load bug: %v", err)
+	}
+	crash, _, err := findCrashForBug(c.ctx, bug)
+	if err != nil {
+		c.t.Fatalf("failed to load crash: %v", err)
+	}
+	build, err := loadBuild(c.ctx, bug.Namespace, crash.BuildID)
+	if err != nil {
+		c.t.Fatalf("failed to load build: %v", err)
+	}
+	return bug, crash, build
+}
+
+func (c *Ctx) loadJob(extID string) (*Job, *Build) {
+	jobKey, err := jobID2Key(c.ctx, extID)
+	if err != nil {
+		c.t.Fatalf("failed to create job key: %v", err)
+	}
+	job := new(Job)
+	if err := datastore.Get(c.ctx, jobKey, job); err != nil {
+		c.t.Fatalf("failed to get job %v: %v", extID, err)
+	}
+	build, err := loadBuild(c.ctx, job.Namespace, job.BuildID)
+	if err != nil {
+		c.t.Fatalf("failed to load build: %v", err)
+	}
+	return job, build
+}
+
+func (c *Ctx) checkURLContents(url string, want []byte) {
+	got, err := c.AuthGET(AccessAdmin, url)
+	if err != nil {
+		c.t.Fatalf("\n%v: %v request failed: %v", caller(0), url, err)
+	}
+	if !bytes.Equal(got, want) {
+		c.t.Fatalf("\n%v: url %v: got:\n%s\nwant:\n%s\n", caller(0), url, got, want)
+	}
+}
+
 type apiClient struct {
 	*Ctx
 	client string
