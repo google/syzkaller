@@ -1483,6 +1483,7 @@ static void reset_ebtables()
 		if (getsockopt(fd, SOL_IP, EBT_SO_GET_INFO, &replace, &optlen))
 			fail("getsockopt(EBT_SO_GET_INFO)");
 		replace.num_counters = 0;
+		table->replace.entries = 0;
 		for (h = 0; h < NF_BR_NUMHOOKS; h++)
 			table->replace.hook_entry[h] = 0;
 		if (memcmp(&table->replace, &replace, sizeof(table->replace)) == 0) {
@@ -1502,6 +1503,7 @@ static void reset_ebtables()
 				j++;
 			}
 		}
+		table->replace.entries = table->entrytable;
 		optlen = sizeof(table->replace) + table->replace.entries_size;
 		if (setsockopt(fd, SOL_IP, EBT_SO_SET_ENTRIES, &table->replace, optlen))
 			fail("setsockopt(EBT_SO_SET_ENTRIES)");
