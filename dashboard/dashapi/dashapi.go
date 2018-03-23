@@ -226,17 +226,24 @@ type BugReport struct {
 	KernelCommitTitle string
 	KernelCommitDate  time.Time
 	KernelConfig      []byte
+	KernelConfigLink  string
 	Log               []byte
+	LogLink           string
 	Report            []byte
+	ReportLink        string
 	ReproC            []byte
+	ReproCLink        string
 	ReproSyz          []byte
+	ReproSyzLink      string
 	CrashID           int64 // returned back in BugUpdate
 	NumCrashes        int64
 	HappenedOn        []string // list of kernel repo aliases
 
 	CrashTitle string // job execution crash title
 	Error      []byte // job execution error
+	ErrorLink  string
 	Patch      []byte // testing job patch
+	PatchLink  string
 }
 
 type BugUpdate struct {

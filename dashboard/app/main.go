@@ -24,6 +24,11 @@ func init() {
 	http.Handle("/", handlerWrapper(handleMain))
 	http.Handle("/bug", handlerWrapper(handleBug))
 	http.Handle("/text", handlerWrapper(handleText))
+	http.Handle("/x/.config", handlerWrapper(handleTextX(textKernelConfig)))
+	http.Handle("/x/log.txt", handlerWrapper(handleTextX(textCrashLog)))
+	http.Handle("/x/repro.syz", handlerWrapper(handleTextX(textReproSyz)))
+	http.Handle("/x/repro.c", handlerWrapper(handleTextX(textReproC)))
+	http.Handle("/x/patch.diff", handlerWrapper(handleTextX(textPatch)))
 }
 
 type uiMain struct {
@@ -249,13 +254,13 @@ func handleBug(c context.Context, w http.ResponseWriter, r *http.Request) error 
 }
 
 // handleText serves plain text blobs (crash logs, reports, reproducers, etc).
-func handleText(c context.Context, w http.ResponseWriter, r *http.Request) error {
-	tag := r.FormValue("tag")
+func handleTextImpl(c context.Context, w http.ResponseWriter, r *http.Request, tag string) error {
 	id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
 	if err != nil || id == 0 {
 		return ErrDontLog(fmt.Errorf("failed to parse text id: %v", err))
 	}
-	if err := checkTextAccess(c, r, tag, id); err != nil {
+	crash, err := checkTextAccess(c, r, tag, id)
+	if err != nil {
 		return err
 	}
 	data, ns, err := getText(c, tag, id)
@@ -269,25 +274,42 @@ func handleText(c context.Context, w http.ResponseWriter, r *http.Request) error
 	// Unfortunately filename does not work in chrome on linux due to:
 	// https://bugs.chromium.org/p/chromium/issues/detail?id=608342
 	w.Header().Set("Content-Disposition", "inline; filename="+textFilename(tag))
+	if tag == textReproSyz {
+		// Add link to documentation and repro opts for syzkaller reproducers.
+		w.Write([]byte(syzReproPrefix))
+		if crash != nil {
+			fmt.Fprintf(w, "#%s\n", crash.ReproOpts)
+		}
+	}
 	w.Write(data)
 	return nil
 }
 
+func handleText(c context.Context, w http.ResponseWriter, r *http.Request) error {
+	return handleTextImpl(c, w, r, r.FormValue("tag"))
+}
+
+func handleTextX(tag string) contextHandler {
+	return func(c context.Context, w http.ResponseWriter, r *http.Request) error {
+		return handleTextImpl(c, w, r, tag)
+	}
+}
+
 func textFilename(tag string) string {
 	switch tag {
-	case "KernelConfig":
+	case textKernelConfig:
 		return ".config"
-	case "CrashLog":
+	case textCrashLog:
 		return "log.txt"
-	case "CrashReport":
+	case textCrashReport:
 		return "report.txt"
-	case "ReproSyz":
+	case textReproSyz:
 		return "repro.syz"
-	case "ReproC":
+	case textReproC:
 		return "repro.c"
-	case "Patch":
+	case textPatch:
 		return "patch.diff"
-	case "Error":
+	case textError:
 		return "log.txt"
 	default:
 		return "text.txt"
@@ -594,15 +616,15 @@ func loadCrashesForBug(c context.Context, bug *Bug) ([]*uiCrash, []byte, error) 
 			Manager:      crash.Manager,
 			Time:         crash.Time,
 			Maintainers:  fmt.Sprintf("%q", crash.Maintainers),
-			LogLink:      textLink("CrashLog", crash.Log),
-			ReportLink:   textLink("CrashReport", crash.Report),
-			ReproSyzLink: textLink("ReproSyz", crash.ReproSyz),
-			ReproCLink:   textLink("ReproC", crash.ReproC),
+			LogLink:      textLink(textCrashLog, crash.Log),
+			ReportLink:   textLink(textCrashReport, crash.Report),
+			ReproSyzLink: textLink(textReproSyz, crash.ReproSyz),
+			ReproCLink:   textLink(textReproC, crash.ReproC),
 			uiBuild:      makeUIBuild(build),
 		}
 		results = append(results, ui)
 	}
-	sampleReport, _, err := getText(c, "CrashReport", crashes[0].Report)
+	sampleReport, _, err := getText(c, textCrashReport, crashes[0].Report)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -615,7 +637,7 @@ func makeUIBuild(build *Build) *uiBuild {
 		SyzkallerCommit:  build.SyzkallerCommit,
 		KernelAlias:      kernelRepoInfo(build).Alias,
 		KernelCommit:     build.KernelCommit,
-		KernelConfigLink: textLink("KernelConfig", build.KernelConfig),
+		KernelConfigLink: textLink(textKernelConfig, build.KernelConfig),
 	}
 }
 
@@ -702,14 +724,14 @@ func loadRecentJobs(c context.Context) ([]*uiJob, error) {
 			Manager:         job.Manager,
 			BugTitle:        job.BugTitle,
 			KernelAlias:     kernelRepoInfoRaw(job.KernelRepo, job.KernelBranch).Alias,
-			PatchLink:       textLink("Patch", job.Patch),
+			PatchLink:       textLink(textPatch, job.Patch),
 			Attempts:        job.Attempts,
 			Started:         job.Started,
 			Finished:        job.Finished,
 			CrashTitle:      job.CrashTitle,
-			CrashLogLink:    textLink("CrashLog", job.CrashLog),
-			CrashReportLink: textLink("CrashReport", job.CrashReport),
-			ErrorLink:       textLink("Error", job.Error),
+			CrashLogLink:    textLink(textCrashLog, job.CrashLog),
+			CrashReportLink: textLink(textCrashReport, job.CrashReport),
+			ErrorLink:       textLink(textError, job.Error),
 		}
 		results = append(results, ui)
 	}

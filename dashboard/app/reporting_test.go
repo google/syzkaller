@@ -45,6 +45,7 @@ func TestReportBug(t *testing.T) {
 	if rep.ID == "" {
 		t.Fatalf("empty report ID")
 	}
+	_, dbCrash, dbBuild := c.loadBug(rep.ID)
 	want := &dashapi.BugReport{
 		Namespace:         "test1",
 		Config:            []byte(`{"Index":1}`),
@@ -60,8 +61,11 @@ func TestReportBug(t *testing.T) {
 		KernelCommitTitle: build.KernelCommitTitle,
 		KernelCommitDate:  buildCommitDate,
 		KernelConfig:      []byte("config1"),
+		KernelConfigLink:  externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig),
 		Log:               []byte("log1"),
+		LogLink:           externalLink(c.ctx, textCrashLog, dbCrash.Log),
 		Report:            []byte("report1"),
+		ReportLink:        externalLink(c.ctx, textCrashReport, dbCrash.Report),
 		CrashID:           rep.CrashID,
 		NumCrashes:        1,
 		HappenedOn:        []string{"repo1/branch1"},
@@ -82,8 +86,12 @@ func TestReportBug(t *testing.T) {
 	if want.CrashID == reports[0].CrashID {
 		t.Fatal("get the same CrashID for new crash")
 	}
+	_, dbCrash, _ = c.loadBug(rep.ID)
 	want.CrashID = reports[0].CrashID
 	want.NumCrashes = 2
+	want.ReproSyzLink = externalLink(c.ctx, textReproSyz, dbCrash.ReproSyz)
+	want.LogLink = externalLink(c.ctx, textCrashLog, dbCrash.Log)
+	want.ReportLink = externalLink(c.ctx, textCrashReport, dbCrash.Report)
 	c.expectEQ(reports[0], want)
 
 	cmd := &dashapi.BugUpdate{
@@ -220,6 +228,7 @@ func TestInvalidBug(t *testing.T) {
 	if rep.ID == "" {
 		t.Fatalf("empty report ID")
 	}
+	_, dbCrash, dbBuild := c.loadBug(rep.ID)
 	want := &dashapi.BugReport{
 		Namespace:         "test1",
 		Config:            []byte(`{"Index":1}`),
@@ -234,9 +243,13 @@ func TestInvalidBug(t *testing.T) {
 		KernelCommitTitle: build.KernelCommitTitle,
 		KernelCommitDate:  buildCommitDate,
 		KernelConfig:      []byte("config1"),
+		KernelConfigLink:  externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig),
 		Log:               []byte("log2"),
+		LogLink:           externalLink(c.ctx, textCrashLog, dbCrash.Log),
 		Report:            []byte("report2"),
+		ReportLink:        externalLink(c.ctx, textCrashReport, dbCrash.Report),
 		ReproC:            []byte("int main() { return 1; }"),
+		ReproCLink:        externalLink(c.ctx, textReproC, dbCrash.ReproC),
 		CrashID:           rep.CrashID,
 		NumCrashes:        1,
 		HappenedOn:        []string{"repo1/branch1"},

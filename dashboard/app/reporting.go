@@ -190,25 +190,25 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	if err != nil {
 		return nil, err
 	}
-	crashLog, _, err := getText(c, "CrashLog", crash.Log)
+	crashLog, _, err := getText(c, textCrashLog, crash.Log)
 	if err != nil {
 		return nil, err
 	}
 	if len(crashLog) > maxMailLogLen {
 		crashLog = crashLog[len(crashLog)-maxMailLogLen:]
 	}
-	report, _, err := getText(c, "CrashReport", crash.Report)
+	report, _, err := getText(c, textCrashReport, crash.Report)
 	if err != nil {
 		return nil, err
 	}
 	if len(report) > maxMailReportLen {
 		report = report[:maxMailReportLen]
 	}
-	reproC, _, err := getText(c, "ReproC", crash.ReproC)
+	reproC, _, err := getText(c, textReproC, crash.ReproC)
 	if err != nil {
 		return nil, err
 	}
-	reproSyz, _, err := getText(c, "ReproSyz", crash.ReproSyz)
+	reproSyz, _, err := getText(c, textReproSyz, crash.ReproSyz)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 	if err != nil {
 		return nil, err
 	}
-	kernelConfig, _, err := getText(c, "KernelConfig", build.KernelConfig)
+	kernelConfig, _, err := getText(c, textKernelConfig, build.KernelConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +238,9 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 		First:             bugReporting.Reported.IsZero(),
 		Title:             bug.displayTitle(),
 		Log:               crashLog,
+		LogLink:           externalLink(c, textCrashLog, crash.Log),
 		Report:            report,
+		ReportLink:        externalLink(c, textCrashReport, crash.Report),
 		Maintainers:       crash.Maintainers,
 		OS:                build.OS,
 		Arch:              build.Arch,
@@ -251,8 +253,11 @@ func createBugReport(c context.Context, bug *Bug, crash *Crash, crashKey *datast
 		KernelCommitTitle: build.KernelCommitTitle,
 		KernelCommitDate:  build.KernelCommitDate,
 		KernelConfig:      kernelConfig,
+		KernelConfigLink:  externalLink(c, textKernelConfig, build.KernelConfig),
 		ReproC:            reproC,
+		ReproCLink:        externalLink(c, textReproC, crash.ReproC),
 		ReproSyz:          reproSyz,
+		ReproSyzLink:      externalLink(c, textReproSyz, crash.ReproSyz),
 		CrashID:           crashKey.IntID(),
 		NumCrashes:        bug.NumCrashes,
 		HappenedOn:        managersToRepos(c, bug.Namespace, bug.HappenedOn),

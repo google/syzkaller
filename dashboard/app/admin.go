@@ -34,14 +34,14 @@ func dropNamespace(c context.Context, w http.ResponseWriter, r *http.Request) er
 		child string
 	}
 	entities := []Entity{
-		{"Patch", ""},
-		{"ReproC", ""},
-		{"ReproSyz", ""},
-		{"KernelConfig", ""},
+		{textPatch, ""},
+		{textReproC, ""},
+		{textReproSyz, ""},
+		{textKernelConfig, ""},
 		{"Job", ""},
-		{"Error", ""},
-		{"CrashLog", ""},
-		{"CrashReport", ""},
+		{textError, ""},
+		{textCrashLog, ""},
+		{textCrashReport, ""},
 		{"Build", ""},
 		{"Manager", "ManagerStats"},
 		{"Bug", "Crash"},

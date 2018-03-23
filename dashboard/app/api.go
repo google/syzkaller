@@ -288,7 +288,7 @@ func uploadBuild(c context.Context, ns string, req *dashapi.Build, typ BuildType
 	if err := checkStrLen(req.KernelCommit, "Build.KernelCommit", MaxStringLen); err != nil {
 		return false, err
 	}
-	configID, err := putText(c, ns, "KernelConfig", req.KernelConfig, true)
+	configID, err := putText(c, ns, textKernelConfig, req.KernelConfig, true)
 	if err != nil {
 		return false, err
 	}
@@ -536,16 +536,16 @@ func reportCrash(c context.Context, ns string, req *dashapi.Crash) (*Bug, error)
 			ReproOpts:   req.ReproOpts,
 			ReportLen:   prio,
 		}
-		if crash.Log, err = putText(c, ns, "CrashLog", req.Log, false); err != nil {
+		if crash.Log, err = putText(c, ns, textCrashLog, req.Log, false); err != nil {
 			return nil, err
 		}
-		if crash.Report, err = putText(c, ns, "CrashReport", req.Report, false); err != nil {
+		if crash.Report, err = putText(c, ns, textCrashReport, req.Report, false); err != nil {
 			return nil, err
 		}
-		if crash.ReproSyz, err = putText(c, ns, "ReproSyz", req.ReproSyz, false); err != nil {
+		if crash.ReproSyz, err = putText(c, ns, textReproSyz, req.ReproSyz, false); err != nil {
 			return nil, err
 		}
-		if crash.ReproC, err = putText(c, ns, "ReproC", req.ReproC, false); err != nil {
+		if crash.ReproC, err = putText(c, ns, textReproC, req.ReproC, false); err != nil {
 			return nil, err
 		}
 
@@ -641,10 +641,10 @@ func purgeOldCrashes(c context.Context, bug *Bug, bugKey *datastore.Key) {
 		}
 		toDelete = append(toDelete, keyMap[crash])
 		if crash.Log != 0 {
-			toDelete = append(toDelete, datastore.NewKey(c, "CrashLog", "", crash.Log, nil))
+			toDelete = append(toDelete, datastore.NewKey(c, textCrashLog, "", crash.Log, nil))
 		}
 		if crash.Report != 0 {
-			toDelete = append(toDelete, datastore.NewKey(c, "CrashReport", "", crash.Report, nil))
+			toDelete = append(toDelete, datastore.NewKey(c, textCrashReport, "", crash.Report, nil))
 		}
 	}
 	if err := datastore.DeleteMulti(c, toDelete); err != nil {
