@@ -133,18 +133,16 @@ func TestJob(t *testing.T) {
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
 	{
+		dbJob, dbBuild := c.loadJob(pollResp.ID)
+		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
+		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
+		logLink := externalLink(c.ctx, textCrashLog, dbJob.CrashLog)
 		msg := <-c.emailSink
 		to := email.MergeEmailLists([]string{"test@requester.com", "somebody@else.com", mailingList})
 		c.expectEQ(msg.To, to)
 		c.expectEQ(msg.Subject, "Re: "+crash.Title)
-		c.expectEQ(len(msg.Attachments), 3)
-		c.expectEQ(msg.Attachments[0].Name, "patch.diff")
-		c.expectEQ(msg.Attachments[0].Data, []byte(patch))
-		c.expectEQ(msg.Attachments[1].Name, "raw.log.txt")
-		c.expectEQ(msg.Attachments[1].Data, jobDoneReq.CrashLog)
-		c.expectEQ(msg.Attachments[2].Name, "config.txt")
-		c.expectEQ(msg.Attachments[2].Data, build.KernelConfig)
-		body := `Hello,
+		c.expectEQ(len(msg.Attachments), 0)
+		body := fmt.Sprintf(`Hello,
 
 syzbot has tested the proposed patch but the reproducer still triggered crash:
 test crash title
@@ -156,14 +154,17 @@ kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title1
 
 compiler: compiler1
-Patch is attached.
-Kernel config is attached.
-Raw console output is attached.
+Patch: %[1]v
+Kernel config: %[2]v
+Raw console output: %[3]v
 
-`
+`, patchLink, kernelConfigLink, logLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
+		c.checkURLContents(patchLink, []byte(patch))
+		c.checkURLContents(kernelConfigLink, build.KernelConfig)
+		c.checkURLContents(logLink, jobDoneReq.CrashLog)
 	}
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(2))
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))
@@ -176,13 +177,12 @@ Raw console output is attached.
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
 	{
+		dbJob, dbBuild := c.loadJob(pollResp.ID)
+		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
+		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		msg := <-c.emailSink
-		c.expectEQ(len(msg.Attachments), 2)
-		c.expectEQ(msg.Attachments[0].Name, "patch.diff")
-		c.expectEQ(msg.Attachments[0].Data, []byte(patch))
-		c.expectEQ(msg.Attachments[1].Name, "config.txt")
-		c.expectEQ(msg.Attachments[1].Data, build.KernelConfig)
-		body := `Hello,
+		c.expectEQ(len(msg.Attachments), 0)
+		body := fmt.Sprintf(`Hello,
 
 syzbot tried to test the proposed patch but build/boot failed:
 
@@ -194,14 +194,16 @@ kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title1
 
 compiler: compiler1
-Patch is attached.
-Kernel config is attached.
+Patch: %[1]v
+Kernel config: %[2]v
 
 
-`
+`, patchLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
+		c.checkURLContents(patchLink, []byte(patch))
+		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
 	c.incomingEmail(sender, "#syz test: git://git.git/git.git kernel-branch\n"+patch, EmailOptMessageID(3))
@@ -214,12 +216,11 @@ Kernel config is attached.
 	c.expectOK(c.GET("/email_poll"))
 	c.expectEQ(len(c.emailSink), 1)
 	{
+		dbJob, dbBuild := c.loadJob(pollResp.ID)
+		patchLink := externalLink(c.ctx, textPatch, dbJob.Patch)
+		kernelConfigLink := externalLink(c.ctx, textKernelConfig, dbBuild.KernelConfig)
 		msg := <-c.emailSink
-		c.expectEQ(len(msg.Attachments), 2)
-		c.expectEQ(msg.Attachments[0].Name, "patch.diff")
-		c.expectEQ(msg.Attachments[0].Data, []byte(patch))
-		c.expectEQ(msg.Attachments[1].Name, "config.txt")
-		c.expectEQ(msg.Attachments[1].Data, build.KernelConfig)
+		c.expectEQ(len(msg.Attachments), 0)
 		body := fmt.Sprintf(`Hello,
 
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
@@ -233,8 +234,8 @@ kernel_commit1 (Sat Feb 3 04:05:06 0001 +0000)
 kernel_commit_title1
 
 compiler: compiler1
-Patch is attached.
-Kernel config is attached.
+Patch: %[2]v
+Kernel config: %[3]v
 
 
 ---
@@ -245,10 +246,12 @@ the implied warranties of merchantability and fittness for a particular purpose.
 The entire risk as to the quality of the result is with you. Should the result
 prove defective, you assume the cost of all necessary servicing, repair or
 correction.
-`, extBugID)
+`, extBugID, patchLink, kernelConfigLink)
 		if msg.Body != body {
 			t.Fatalf("got email body:\n%s\n\nwant:\n%s", msg.Body, body)
 		}
+		c.checkURLContents(patchLink, []byte(patch))
+		c.checkURLContents(kernelConfigLink, build.KernelConfig)
 	}
 
 	c.expectOK(c.API(client2, key2, "job_poll", &dashapi.JobPollReq{[]string{build.Manager}}, pollResp))

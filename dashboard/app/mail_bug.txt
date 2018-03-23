@@ -8,12 +8,12 @@ syzbot {{if .First}}hit{{else}}has found reproducer for{{end}} the following cra
 syzbot dashboard link: {{.Link}}
 
 {{if ne .NumCrashes 1}}So far this crash happened {{.NumCrashes}} times on {{formatList .HappenedOn}}.
-{{end}}{{if .ReproC}}C reproducer is attached.
-{{end}}{{if .ReproSyz}}syzkaller reproducer is attached.
-{{end}}{{if and (not .ReproC) (not .ReproSyz)}}Unfortunately, I don't have any reproducer for this crash yet.
-{{end}}{{if .HasLog}}Raw console output is attached.
+{{end}}{{if .ReproCLink}}C reproducer: {{.ReproCLink}}
+{{end}}{{if .ReproSyzLink}}syzkaller reproducer: {{.ReproSyzLink}}
+{{end}}{{if and (not .ReproCLink) (not .ReproSyzLink)}}Unfortunately, I don't have any reproducer for this crash yet.
+{{end}}{{if .LogLink}}Raw console output: {{.LogLink}}
+{{end}}{{if .KernelConfigLink}}Kernel config: {{.KernelConfigLink}}
 {{end}}compiler: {{.CompilerID}}
-.config is attached.
 {{if .UserSpaceArch}}user-space arch: {{.UserSpaceArch}}
 {{end}}{{if .Moderation}}CC: {{.Maintainers}}
 {{end}}
@@ -32,7 +32,7 @@ Direct all questions to syzkaller@googlegroups.com.
 syzbot will keep track of this bug report.
 If you forgot to add the Reported-by tag, once the fix for this bug is merged
 into any tree, please reply to this email with:
-#syz fix: exact-commit-title{{if or .ReproC .ReproSyz}}
+#syz fix: exact-commit-title{{if or .ReproCLink .ReproSyzLink}}
 If you want to test a patch for this bug, please reply with:
 #syz test: git://repo/address.git branch
 and provide the patch inline or as an attachment.

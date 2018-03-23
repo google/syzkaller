@@ -8,8 +8,9 @@ syzbot has tested the proposed patch but the reproducer still triggered crash:
 syzbot tried to test the proposed patch but build/boot failed:
 
 {{printf "%s" .Error}}
-{{if .ErrorTruncated}}
-Error text is too large and was truncated, full error text is attached.
+{{if .ErrorLink}}
+Error text is too large and was truncated, full error text is at:
+{{.ErrorLink}}
 {{end}}
 {{else}}
 syzbot has tested the proposed patch and the reproducer did not trigger crash:
@@ -23,9 +24,9 @@ Tested on {{.KernelRepo}} commit
 {{.KernelCommitTitle}}{{end}}
 
 compiler: {{.CompilerID}}
-Patch is attached.
-{{if .HasKernelConfig}}Kernel config is attached.{{end}}
-{{if .HasLog}}Raw console output is attached.{{end}}
+{{if .PatchLink}}Patch: {{.PatchLink}}{{end}}
+{{if .KernelConfigLink}}Kernel config: {{.KernelConfigLink}}{{end}}
+{{if .LogLink}}Raw console output: {{.LogLink}}{{end}}
 {{if and (not .CrashTitle) (not .Error)}}
 ---
 There is no WARRANTY for the result, to the extent permitted by applicable law.

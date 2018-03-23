@@ -102,7 +102,7 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 		return "This bug is already upstreamed. Please test upstream.", nil
 	}
 
-	patchID, err := putText(c, bug.Namespace, "Patch", []byte(patch), false)
+	patchID, err := putText(c, bug.Namespace, textPatch, []byte(patch), false)
 	if err != nil {
 		return "", err
 	}
@@ -165,7 +165,7 @@ func addTestJob(c context.Context, bug *Bug, bugKey *datastore.Key, bugReporting
 	}
 	err = datastore.RunInTransaction(c, tx, &datastore.TransactionOptions{XG: true, Attempts: 30})
 	if deletePatch || err != nil {
-		datastore.Delete(c, datastore.NewKey(c, "Patch", "", patchID, nil))
+		datastore.Delete(c, datastore.NewKey(c, textPatch, "", patchID, nil))
 	}
 	if err != nil {
 		return "", fmt.Errorf("job tx failed: %v", err)
@@ -181,7 +181,7 @@ retry:
 		return job, err
 	}
 	jobID := extJobID(jobKey)
-	patch, _, err := getText(c, "Patch", job.Patch)
+	patch, _, err := getText(c, textPatch, job.Patch)
 	if err != nil {
 		return nil, err
 	}
@@ -196,16 +196,16 @@ retry:
 	if err != nil {
 		return nil, err
 	}
-	kernelConfig, _, err := getText(c, "KernelConfig", build.KernelConfig)
+	kernelConfig, _, err := getText(c, textKernelConfig, build.KernelConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	reproC, _, err := getText(c, "ReproC", crash.ReproC)
+	reproC, _, err := getText(c, textReproC, crash.ReproC)
 	if err != nil {
 		return nil, err
 	}
-	reproSyz, _, err := getText(c, "ReproSyz", crash.ReproSyz)
+	reproSyz, _, err := getText(c, textReproSyz, crash.ReproSyz)
 	if err != nil {
 		return nil, err
 	}
@@ -273,13 +273,13 @@ func doneJob(c context.Context, req *dashapi.JobDoneReq) error {
 		} else if !isNewBuild {
 			log.Errorf(c, "job %v: duplicate build %v", jobID, req.Build.ID)
 		}
-		if job.Error, err = putText(c, ns, "Error", req.Error, false); err != nil {
+		if job.Error, err = putText(c, ns, textError, req.Error, false); err != nil {
 			return err
 		}
-		if job.CrashLog, err = putText(c, ns, "CrashLog", req.CrashLog, false); err != nil {
+		if job.CrashLog, err = putText(c, ns, textCrashLog, req.CrashLog, false); err != nil {
 			return err
 		}
-		if job.CrashReport, err = putText(c, ns, "CrashReport", req.CrashReport, false); err != nil {
+		if job.CrashReport, err = putText(c, ns, textCrashReport, req.CrashReport, false); err != nil {
 			return err
 		}
 		job.BuildID = req.Build.ID
@@ -323,28 +323,28 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 	if err != nil {
 		return nil, err
 	}
-	crashLog, _, err := getText(c, "CrashLog", job.CrashLog)
+	crashLog, _, err := getText(c, textCrashLog, job.CrashLog)
 	if err != nil {
 		return nil, err
 	}
 	if len(crashLog) > maxMailLogLen {
 		crashLog = crashLog[len(crashLog)-maxMailLogLen:]
 	}
-	report, _, err := getText(c, "CrashReport", job.CrashReport)
+	report, _, err := getText(c, textCrashReport, job.CrashReport)
 	if err != nil {
 		return nil, err
 	}
 	if len(report) > maxMailReportLen {
 		report = report[:maxMailReportLen]
 	}
-	jobError, _, err := getText(c, "Error", job.Error)
+	jobError, _, err := getText(c, textError, job.Error)
 	if err != nil {
 		return nil, err
 	}
 	if len(jobError) > maxMailLogLen {
 		jobError = jobError[:maxMailLogLen]
 	}
-	patch, _, err := getText(c, "Patch", job.Patch)
+	patch, _, err := getText(c, textPatch, job.Patch)
 	if err != nil {
 		return nil, err
 	}
@@ -352,7 +352,7 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 	if err != nil {
 		return nil, err
 	}
-	kernelConfig, _, err := getText(c, "KernelConfig", build.KernelConfig)
+	kernelConfig, _, err := getText(c, textKernelConfig, build.KernelConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -373,7 +373,9 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 		Title:             bug.displayTitle(),
 		CC:                job.CC,
 		Log:               crashLog,
+		LogLink:           externalLink(c, textCrashLog, job.CrashLog),
 		Report:            report,
+		ReportLink:        externalLink(c, textCrashReport, job.CrashReport),
 		OS:                build.OS,
 		Arch:              build.Arch,
 		VMArch:            build.VMArch,
@@ -385,9 +387,12 @@ func createBugReportForJob(c context.Context, job *Job, jobKey *datastore.Key, c
 		KernelCommitTitle: build.KernelCommitTitle,
 		KernelCommitDate:  build.KernelCommitDate,
 		KernelConfig:      kernelConfig,
+		KernelConfigLink:  externalLink(c, textKernelConfig, build.KernelConfig),
 		CrashTitle:        job.CrashTitle,
 		Error:             jobError,
+		ErrorLink:         externalLink(c, textError, job.Error),
 		Patch:             patch,
+		PatchLink:         externalLink(c, textPatch, job.Patch),
 	}
 	return rep, nil
 }

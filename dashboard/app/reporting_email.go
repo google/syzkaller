@@ -156,48 +156,12 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		return fmt.Errorf("failed to unmarshal email config: %v", err)
 	}
 	to := email.MergeEmailLists([]string{cfg.Email}, rep.CC)
-	var attachments []aemail.Attachment
-	// Note: order of attachments is important. Some email clients show them inline.
-	if len(rep.Patch) != 0 {
-		attachments = append(attachments, aemail.Attachment{
-			Name: "patch.diff",
-			Data: rep.Patch,
-		})
-	}
-	if len(rep.Log) != 0 {
-		attachments = append(attachments, aemail.Attachment{
-			Name: "raw.log.txt",
-			Data: rep.Log,
-		})
-	}
-	if len(rep.ReproSyz) != 0 {
-		attachments = append(attachments, aemail.Attachment{
-			Name: "repro.syz.txt",
-			Data: rep.ReproSyz,
-		})
-	}
-	if len(rep.ReproC) != 0 {
-		attachments = append(attachments, aemail.Attachment{
-			Name: "repro.c.txt",
-			Data: rep.ReproC,
-		})
-	}
-	if len(rep.KernelConfig) != 0 {
-		attachments = append(attachments, aemail.Attachment{
-			Name: "config.txt",
-			Data: rep.KernelConfig,
-		})
-	}
 	// Build error output and failing VM boot log can be way too long to inline.
 	const maxInlineError = 16 << 10
-	errorText, errorTruncated := rep.Error, false
-	if len(errorText) > maxInlineError {
-		errorTruncated = true
-		attachments = append(attachments, aemail.Attachment{
-			Name: "error.txt",
-			Data: errorText,
-		})
-		errorText = errorText[len(errorText)-maxInlineError:]
+	if len(rep.Error) > maxInlineError {
+		rep.Error = rep.Error[len(rep.Error)-maxInlineError:]
+	} else {
+		rep.ErrorLink = ""
 	}
 	from, err := email.AddAddrContext(fromAddr(c), rep.ID)
 	if err != nil {
@@ -211,7 +175,7 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	if rep.Arch == "386" {
 		userspaceArch = "i386"
 	}
-	link := fmt.Sprintf("https://%v.appspot.com/bug?extid=%v", appengine.AppID(c), rep.ID)
+	link := fmt.Sprintf("%v/bug?extid=%v", appURL(c), rep.ID)
 	// Data passed to the template.
 	type BugReportData struct {
 		First             bool
@@ -228,13 +192,14 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		CrashTitle        string
 		Report            []byte
 		Error             []byte
-		ErrorTruncated    bool
-		HasLog            bool
-		HasKernelConfig   bool
-		ReproSyz          bool
-		ReproC            bool
+		ErrorLink         string
+		LogLink           string
+		KernelConfigLink  string
+		ReproSyzLink      string
+		ReproCLink        string
 		NumCrashes        int64
 		HappenedOn        []string
+		PatchLink         string
 	}
 	data := &BugReportData{
 		First:             rep.First,
@@ -250,17 +215,18 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 		UserSpaceArch:     userspaceArch,
 		CrashTitle:        rep.CrashTitle,
 		Report:            rep.Report,
-		Error:             errorText,
-		ErrorTruncated:    errorTruncated,
-		HasLog:            len(rep.Log) != 0,
-		HasKernelConfig:   len(rep.KernelConfig) != 0,
-		ReproSyz:          len(rep.ReproSyz) != 0,
-		ReproC:            len(rep.ReproC) != 0,
+		Error:             rep.Error,
+		ErrorLink:         rep.ErrorLink,
+		LogLink:           rep.LogLink,
+		KernelConfigLink:  rep.KernelConfigLink,
+		ReproSyzLink:      rep.ReproSyzLink,
+		ReproCLink:        rep.ReproCLink,
 		NumCrashes:        rep.NumCrashes,
 		HappenedOn:        rep.HappenedOn,
+		PatchLink:         rep.PatchLink,
 	}
 	log.Infof(c, "sending email %q to %q", rep.Title, to)
-	return sendMailTemplate(c, rep.Title, from, to, rep.ExtID, attachments, templ, data)
+	return sendMailTemplate(c, rep.Title, from, to, rep.ExtID, nil, templ, data)
 }
 
 // handleIncomingMail is the entry point for incoming emails.
@@ -494,6 +460,17 @@ func ownEmails(c context.Context) []string {
 		ownEmail(c),
 		fmt.Sprintf("bot@%v.appspotmail.com", appengine.AppID(c)),
 	}
+}
+
+func externalLink(c context.Context, tag string, id int64) string {
+	if id == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%v/x/%v?id=%v", appURL(c), textFilename(tag), id)
+}
+
+func appURL(c context.Context) string {
+	return fmt.Sprintf("https://%v.appspot.com", appengine.AppID(c))
 }
 
 func formatKernelTime(t time.Time) string {

@@ -5,11 +5,9 @@ package dash
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
@@ -66,39 +64,6 @@ func handleAuth(fn contextHandler) contextHandler {
 		}
 		return fn(c, w, r)
 	}
-}
-
-var ErrAccess = errors.New("unauthorized")
-
-func checkAccessLevel(c context.Context, r *http.Request, level AccessLevel) error {
-	if accessLevel(c, r) >= level {
-		return nil
-	}
-	if u := user.Current(c); u != nil {
-		// Log only if user is signed in. Not-signed-in users are redirected to login page.
-		log.Errorf(c, "unauthorized access: %q [%q] access level %v", u.Email, u.AuthDomain, level)
-	}
-	return ErrAccess
-}
-
-func accessLevel(c context.Context, r *http.Request) AccessLevel {
-	if user.IsAdmin(c) {
-		switch r.FormValue("access") {
-		case "public":
-			return AccessPublic
-		case "user":
-			return AccessUser
-		}
-		return AccessAdmin
-	}
-	u := user.Current(c)
-	if u == nil ||
-		// devappserver is broken
-		u.AuthDomain != "gmail.com" && !appengine.IsDevAppServer() ||
-		!strings.HasSuffix(u.Email, config.AuthDomain) {
-		return AccessPublic
-	}
-	return AccessUser
 }
 
 func serveTemplate(w http.ResponseWriter, name string, data interface{}) error {

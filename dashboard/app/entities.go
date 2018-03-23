@@ -170,6 +170,16 @@ type Text struct {
 }
 
 const (
+	textCrashLog     = "CrashLog"
+	textCrashReport  = "CrashReport"
+	textReproSyz     = "ReproSyz"
+	textReproC       = "ReproC"
+	textKernelConfig = "KernelConfig"
+	textPatch        = "Patch"
+	textError        = "Error"
+)
+
+const (
 	BugStatusOpen = iota
 )
 
