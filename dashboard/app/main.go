@@ -266,8 +266,32 @@ func handleText(c context.Context, w http.ResponseWriter, r *http.Request) error
 		return err
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	// Unfortunately filename does not work in chrome on linux due to:
+	// https://bugs.chromium.org/p/chromium/issues/detail?id=608342
+	w.Header().Set("Content-Disposition", "inline; filename="+textFilename(tag))
 	w.Write(data)
 	return nil
+}
+
+func textFilename(tag string) string {
+	switch tag {
+	case "KernelConfig":
+		return ".config"
+	case "CrashLog":
+		return "log.txt"
+	case "CrashReport":
+		return "report.txt"
+	case "ReproSyz":
+		return "repro.syz"
+	case "ReproC":
+		return "repro.c"
+	case "Patch":
+		return "patch.diff"
+	case "Error":
+		return "log.txt"
+	default:
+		return "text.txt"
+	}
 }
 
 func fetchBugs(c context.Context, r *http.Request) ([]*uiBugNamespace, error) {
