@@ -1,4 +1,4 @@
-TITLE: BUG: KMSAN: use of uninitialized memory in packet_set_ring
+TITLE: KMSAN: use of uninitialized memory in packet_set_ring
 
 [  208.131930] ==================================================================
 [  208.139343] BUG: KMSAN: use of uninitialized memory in packet_set_ring+0x11b8/0x2ff0

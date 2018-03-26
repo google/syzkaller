@@ -1,0 +1,78 @@
+FILE: arch/x86/kernel/dumpstack.c
+
+==================================================================
+BUG: KMSAN: use of uninitialized memory in show_trace_log_lvl+0xda4/0x1030 arch/x86/kernel/dumpstack.c:203
+CPU: 1 PID: 4975 Comm: syz-executor1 Not tainted 4.16.0-rc4+ #60
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ __dump_stack lib/dump_stack.c:17 [inline]
+ dump_stack+0x14a/0x1d0 lib/dump_stack.c:53
+ kmsan_report+0x142/0x1f0 mm/kmsan/kmsan.c:1093
+ __msan_warning_32+0x6c/0xb0 mm/kmsan/kmsan_instr.c:676
+ show_trace_log_lvl+0xda4/0x1030 arch/x86/kernel/dumpstack.c:203
+ show_stack+0xfc/0x150 arch/x86/kernel/dumpstack.c:236
+ __dump_stack lib/dump_stack.c:17 [inline]
+ dump_stack+0x185/0x1d0 lib/dump_stack.c:53
+ warn_alloc+0x401/0x660 mm/page_alloc.c:3317
+ __vmalloc_node_range+0xa59/0x1120 mm/vmalloc.c:1775
+ __vmalloc_node mm/vmalloc.c:1804 [inline]
+ __vmalloc_node_flags_caller+0x102/0x120 mm/vmalloc.c:1826
+ kvmalloc_node+0x2aa/0x2e0 mm/util.c:428
+ kvmalloc include/linux/mm.h:541 [inline]
+ kvmalloc_array include/linux/mm.h:557 [inline]
+ xt_alloc_entry_offsets+0x62/0x70 net/netfilter/x_tables.c:778
+ translate_table+0x21b/0x3890 net/ipv6/netfilter/ip6_tables.c:703
+ do_replace net/ipv6/netfilter/ip6_tables.c:1164 [inline]
+ do_ip6t_set_ctl+0x60e/0x930 net/ipv6/netfilter/ip6_tables.c:1690
+ nf_sockopt net/netfilter/nf_sockopt.c:106 [inline]
+ nf_setsockopt+0x476/0x4d0 net/netfilter/nf_sockopt.c:115
+ ipv6_setsockopt+0x1e8/0x360 net/ipv6/ipv6_sockglue.c:927
+ tcp_setsockopt+0x1bb/0x1f0 net/ipv4/tcp.c:2905
+ sock_common_setsockopt+0x137/0x170 net/core/sock.c:2975
+ SYSC_setsockopt+0x405/0x570 net/socket.c:1849
+ SyS_setsockopt+0x76/0xa0 net/socket.c:1828
+ do_syscall_64+0x2f1/0x450 arch/x86/entry/common.c:287
+ entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+RIP: 0033:0x453e69
+RSP: 002b:00007fae2c76ec68 EFLAGS: 00000246 ORIG_RAX: 0000000000000036
+RAX: ffffffffffffffda RBX: 00007fae2c76f6d4 RCX: 0000000000453e69
+RDX: 0000000000000040 RSI: 0000000000000029 RDI: 0000000000000013
+RBP: 000000000072bea0 R08: 0000000000000004 R09: 0000000000000000
+R10: 0000000020001fde R11: 0000000000000246 R12: 00000000ffffffff
+R13: 0000000000000520 R14: 00000000006f7ba0 R15: 0000000000000000
+chained origin:
+ kmsan_save_stack_with_flags mm/kmsan/kmsan.c:303 [inline]
+ kmsan_save_stack mm/kmsan/kmsan.c:318 [inline]
+ kmsan_internal_chain_origin+0x12d/0x210 mm/kmsan/kmsan.c:709
+ __msan_chain_origin+0x69/0xc0 mm/kmsan/kmsan_instr.c:521
+ update_stack_state+0x9de/0xa30 arch/x86/kernel/unwind_frame.c:261
+ unwind_next_frame+0x607/0xe40 arch/x86/kernel/unwind_frame.c:329
+ show_trace_log_lvl+0xb48/0x1030 arch/x86/kernel/dumpstack.c:212
+ show_stack+0xfc/0x150 arch/x86/kernel/dumpstack.c:236
+ __dump_stack lib/dump_stack.c:17 [inline]
+ dump_stack+0x185/0x1d0 lib/dump_stack.c:53
+ warn_alloc+0x401/0x660 mm/page_alloc.c:3317
+ __vmalloc_node_range+0xa59/0x1120 mm/vmalloc.c:1775
+ __vmalloc_node mm/vmalloc.c:1804 [inline]
+ __vmalloc_node_flags_caller+0x102/0x120 mm/vmalloc.c:1826
+ kvmalloc_node+0x2aa/0x2e0 mm/util.c:428
+ kvmalloc include/linux/mm.h:541 [inline]
+ kvmalloc_array include/linux/mm.h:557 [inline]
+ xt_alloc_entry_offsets+0x62/0x70 net/netfilter/x_tables.c:778
+ translate_table+0x21b/0x3890 net/ipv6/netfilter/ip6_tables.c:703
+ do_replace net/ipv6/netfilter/ip6_tables.c:1164 [inline]
+ do_ip6t_set_ctl+0x60e/0x930 net/ipv6/netfilter/ip6_tables.c:1690
+ nf_sockopt net/netfilter/nf_sockopt.c:106 [inline]
+ nf_setsockopt+0x476/0x4d0 net/netfilter/nf_sockopt.c:115
+ ipv6_setsockopt+0x1e8/0x360 net/ipv6/ipv6_sockglue.c:927
+ tcp_setsockopt+0x1bb/0x1f0 net/ipv4/tcp.c:2905
+ sock_common_setsockopt+0x137/0x170 net/core/sock.c:2975
+ SYSC_setsockopt+0x405/0x570 net/socket.c:1849
+ SyS_setsockopt+0x76/0xa0 net/socket.c:1828
+ do_syscall_64+0x2f1/0x450 arch/x86/entry/common.c:287
+ entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+origin description: ----ad.i@selinux_socket_setsockopt
+local variable created at:
+ selinux_socket_setsockopt+0x73/0x3b0 security/selinux/hooks.c:4627
+ security_socket_setsockopt+0x130/0x210 security/security.c:1396
+==================================================================

@@ -631,6 +631,10 @@ var linuxOopses = []*oops{
 				corrupted: true,
 			},
 			{
+				title: compile("BUG: KMSAN: (.*)"),
+				fmt:   "KMSAN: %[1]v",
+			},
+			{
 				title: compile("BUG: unable to handle kernel paging request"),
 				fmt:   "BUG: unable to handle kernel paging request in %[1]v",
 				stack: &stackFmt{
