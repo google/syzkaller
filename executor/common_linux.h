@@ -1671,6 +1671,29 @@ static void loop()
 	snprintf(cgroupdir_cpu, sizeof(cgroupdir_cpu), "/syzcgroup/cpu/syz%llu", procid);
 	char cgroupdir_net[64];
 	snprintf(cgroupdir_net, sizeof(cgroupdir_net), "/syzcgroup/net/syz%llu", procid);
+	if (mkdir(cgroupdir, 0777)) {
+		debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
+	}
+	if (mkdir(cgroupdir_cpu, 0777)) {
+		debug("mkdir(%s) failed: %d\n", cgroupdir_cpu, errno);
+	}
+	if (mkdir(cgroupdir_net, 0777)) {
+		debug("mkdir(%s) failed: %d\n", cgroupdir_net, errno);
+	}
+	int pid = getpid();
+	char procs_file[128];
+	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir);
+	if (!write_file(procs_file, "%d", pid)) {
+		debug("write(%s) failed: %d\n", procs_file, errno);
+	}
+	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir_cpu);
+	if (!write_file(procs_file, "%d", pid)) {
+		debug("write(%s) failed: %d\n", procs_file, errno);
+	}
+	snprintf(procs_file, sizeof(procs_file), "%s/cgroup.procs", cgroupdir_net);
+	if (!write_file(procs_file, "%d", pid)) {
+		debug("write(%s) failed: %d\n", procs_file, errno);
+	}
 #endif
 	int iter;
 	for (iter = 0;; iter++) {
@@ -1680,17 +1703,6 @@ static void loop()
 		sprintf(cwdbuf, "./%d", iter);
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
-		if (mkdir(cgroupdir, 0777)) {
-			debug("mkdir(%s) failed: %d\n", cgroupdir, errno);
-		}
-		if (mkdir(cgroupdir_cpu, 0777)) {
-			debug("mkdir(%s) failed: %d\n", cgroupdir_cpu, errno);
-		}
-		if (mkdir(cgroupdir_net, 0777)) {
-			debug("mkdir(%s) failed: %d\n", cgroupdir_net, errno);
-		}
 #endif
 #if defined(SYZ_EXECUTOR)
 		// TODO: consider moving the read into the child.
@@ -1721,16 +1733,6 @@ static void loop()
 			}
 			if (symlink(cgroupdir_net, "./cgroup.net")) {
 				debug("symlink(%s, ./cgroup.net) failed: %d\n", cgroupdir_net, errno);
-			}
-			int pid = getpid();
-			if (!write_file("./cgroup/cgroup.procs", "%d", pid)) {
-				debug("write(./cgroup/cgroup.procs) failed: %d\n", errno);
-			}
-			if (!write_file("./cgroup.cpu/cgroup.procs", "%d", pid)) {
-				debug("write(./cgroup.cpu/cgroup.procs) failed: %d\n", errno);
-			}
-			if (!write_file("./cgroup.net/cgroup.procs", "%d", pid)) {
-				debug("write(./cgroup.net/cgroup.procs) failed: %d\n", errno);
 			}
 #endif
 #if defined(SYZ_EXECUTOR)
@@ -1777,7 +1779,7 @@ static void loop()
 			// is that the test processes setups a userfaultfd for itself,
 			// then the main thread hangs when it wants to page in a page.
 			// Below we check if the test process still executes syscalls
-			// and kill it after 200ms of inactivity.
+			// and kill it after 500ms of inactivity.
 			uint64 now = current_time_ms();
 			uint32 now_executed = __atomic_load_n(output_data, __ATOMIC_RELAXED);
 			if (executed_calls != now_executed) {
@@ -1808,17 +1810,6 @@ static void loop()
 #endif
 #if defined(SYZ_EXECUTOR) || defined(SYZ_USE_TMP_DIR)
 		remove_dir(cwdbuf);
-#endif
-#if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
-		if (rmdir(cgroupdir)) {
-			debug("rmdir(%s) failed: %d\n", cgroupdir, errno);
-		}
-		if (rmdir(cgroupdir_cpu)) {
-			debug("rmdir(%s) failed: %d\n", cgroupdir_cpu, errno);
-		}
-		if (rmdir(cgroupdir_net)) {
-			debug("rmdir(%s) failed: %d\n", cgroupdir_net, errno);
-		}
 #endif
 #if defined(SYZ_EXECUTOR) || defined(SYZ_RESET_NET_NAMESPACE)
 		reset_net_namespace();

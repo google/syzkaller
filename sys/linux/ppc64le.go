@@ -18417,7 +18417,12 @@ var syscalls_ppc64le = []*Syscall{
 	{NR: 287, Name: "mkdirat$cgroup", CallName: "mkdirat", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_cgroup", FldName: "fd", TypeSize: 4}},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", TypeSize: 5}, Kind: 2, SubKind: "cgroup_names", Values: []string{"syz0\x00", "syz1\x00"}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_mode", FldName: "mode", TypeSize: 8}}, Vals: []uint64{256, 128, 64, 32, 16, 8, 4, 2, 1}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}, Val: 511},
+	}},
+	{NR: 287, Name: "mkdirat$cgroup_root", CallName: "mkdirat", Args: []Type{
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "path", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "cgroup_dirs", Values: []string{"./cgroup/syz0\x00", "./cgroup/syz1\x00", "./cgroup.cpu/syz0\x00", "./cgroup.cpu/syz1\x00", "./cgroup.net/syz0\x00", "./cgroup.net/syz1\x00"}}},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}, Val: 511},
 	}},
 	{NR: 14, Name: "mknod", CallName: "mknod", Args: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "filename", IsVarlen: true}, Kind: 3}},
@@ -18638,7 +18643,7 @@ var syscalls_ppc64le = []*Syscall{
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
 	{NR: 286, Name: "openat$cgroup_root", CallName: "openat", Args: []Type{
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "fd", TypeSize: 8}}, Val: 18446744073709551516},
-		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "cgroup_dirs", Values: []string{"./cgroup\x00", "./cgroup.cpu\x00", "./cgroup.net\x00"}}},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "file", TypeSize: 8}, Type: &BufferType{TypeCommon: TypeCommon{TypeName: "string", IsVarlen: true}, Kind: 2, SubKind: "cgroup_dirs", Values: []string{"./cgroup/syz0\x00", "./cgroup/syz1\x00", "./cgroup.cpu/syz0\x00", "./cgroup.cpu/syz1\x00", "./cgroup.net/syz0\x00", "./cgroup.net/syz1\x00"}}},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "flags", TypeSize: 8}}, Val: 2097154},
 		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", FldName: "mode", TypeSize: 8}}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_cgroup", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
@@ -26643,4 +26648,4 @@ var consts_ppc64le = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_ppc64le = "e069291bc34cc73da59b5e7bd74039f531bfcdb5"
+const revision_ppc64le = "95a8c6cda415f9d253a03a8418c48f51e5213205"
