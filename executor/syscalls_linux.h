@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "a824837d8ff4977deb75479a7e24923dea93d43c"
+#define SYZ_REVISION "08cbb09acf4d3d8e82933c83a64bf3131ab25385"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1663;
+unsigned syscall_count = 1664;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -999,6 +999,7 @@ call_t syscalls[] = {
     {"mkdir", 39},
     {"mkdirat", 296},
     {"mkdirat$cgroup", 296},
+    {"mkdirat$cgroup_root", 296},
     {"mknod", 14},
     {"mknod$loop", 14},
     {"mknodat", 297},
@@ -1677,11 +1678,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "19ac00543e4b0f4b0bf07613621b657183a41b86"
+#define SYZ_REVISION "3a0e3a3bc8fc12f4a6ae3ac9a8b06310f37ec343"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1715;
+unsigned syscall_count = 1716;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2688,6 +2689,7 @@ call_t syscalls[] = {
     {"mkdir", 83},
     {"mkdirat", 258},
     {"mkdirat$cgroup", 258},
+    {"mkdirat$cgroup_root", 258},
     {"mknod", 133},
     {"mknod$loop", 133},
     {"mknodat", 259},
@@ -3404,11 +3406,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "0a97c03cf5907e48f42a9a826f88b4e39e4afaa6"
+#define SYZ_REVISION "42e4743c2ba28b83149861a991d92d8a57bde754"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1660;
+unsigned syscall_count = 1661;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4372,6 +4374,7 @@ call_t syscalls[] = {
     {"mkdir", 39},
     {"mkdirat", 323},
     {"mkdirat$cgroup", 323},
+    {"mkdirat$cgroup_root", 323},
     {"mknod", 14},
     {"mknod$loop", 14},
     {"mknodat", 324},
@@ -5076,11 +5079,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "e82a067ef79081eb69e442b15ef1800dd9e3ad1e"
+#define SYZ_REVISION "545a1e402b47c522c937cea7a0a4470f5e94c693"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1644;
+unsigned syscall_count = 1645;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6044,6 +6047,7 @@ call_t syscalls[] = {
     {"mincore", 232},
     {"mkdirat", 34},
     {"mkdirat$cgroup", 34},
+    {"mkdirat$cgroup_root", 34},
     {"mknodat", 33},
     {"mlock", 228},
     {"mlock2", 284},
@@ -6732,11 +6736,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "e069291bc34cc73da59b5e7bd74039f531bfcdb5"
+#define SYZ_REVISION "95a8c6cda415f9d253a03a8418c48f51e5213205"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1634;
+unsigned syscall_count = 1635;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7703,6 +7707,7 @@ call_t syscalls[] = {
     {"mkdir", 39},
     {"mkdirat", 287},
     {"mkdirat$cgroup", 287},
+    {"mkdirat$cgroup_root", 287},
     {"mknod", 14},
     {"mknod$loop", 14},
     {"mknodat", 288},
