@@ -4,6 +4,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -17,14 +18,19 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 4 {
+	var (
+		flagVersion = flag.Uint64("version", 0, "database version")
+	)
+	flag.Parse()
+	args := flag.Args()
+	if len(args) != 3 {
 		usage()
 	}
-	switch os.Args[1] {
+	switch args[0] {
 	case "pack":
-		pack(os.Args[2], os.Args[3])
+		pack(args[1], args[2], *flagVersion)
 	case "unpack":
-		unpack(os.Args[2], os.Args[3])
+		unpack(args[1], args[2])
 	default:
 		usage()
 	}
@@ -37,7 +43,7 @@ func usage() {
 	os.Exit(1)
 }
 
-func pack(dir, file string) {
+func pack(dir, file string, version uint64) {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		failf("failed to read dir: %v", err)
@@ -46,6 +52,9 @@ func pack(dir, file string) {
 	db, err := db.Open(file)
 	if err != nil {
 		failf("failed to open database file: %v", err)
+	}
+	if err := db.BumpVersion(version); err != nil {
+		failf("failed to bump database version: %v", err)
 	}
 	for _, file := range files {
 		data, err := ioutil.ReadFile(filepath.Join(dir, file.Name()))
