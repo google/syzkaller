@@ -134,6 +134,16 @@
 #if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
 #include <sys/mount.h>
 #endif
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image)
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/loop.h>
+#include <stdio.h>
+#include <sys/ioctl.h>
+#include <sys/mount.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#endif
 
 #if defined(SYZ_EXECUTOR) || (defined(SYZ_REPEAT) && defined(SYZ_WAIT_REPEAT)) ||      \
     defined(SYZ_USE_TMP_DIR) || defined(SYZ_HANDLE_SEGV) || defined(SYZ_TUN_ENABLE) || \
@@ -161,6 +171,11 @@ __attribute__((noreturn)) static void doexit(int status)
 #endif
 
 #include "common.h"
+
+#if defined(SYZ_EXECUTOR)
+struct thread_t;
+void cover_reset(thread_t* th);
+#endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_HANDLE_SEGV)
 static __thread int skip_segv;
@@ -787,6 +802,117 @@ static uintptr_t syz_genetlink_get_family_id(uintptr_t name)
 }
 #endif
 
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image)
+extern unsigned long long procid;
+
+struct fs_image_segment {
+	void* data;
+	uintptr_t size;
+	uintptr_t offset;
+};
+
+#define IMAGE_MAX_SEGMENTS 4096
+#define IMAGE_MAX_SIZE (32 << 20)
+
+#ifndef SYS_memfd_create
+#if defined(__i386__)
+#define SYS_memfd_create 356
+#elif defined(__x86_64__)
+#define SYS_memfd_create 319
+#elif defined(__arm__)
+#define SYS_memfd_create 385
+#elif defined(__aarch64__)
+#define SYS_memfd_create 279
+#elif defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__)
+#define SYS_memfd_create 360
+#endif
+#endif
+
+//syz_mount_image(fs ptr[in, string[disk_filesystems]], dir ptr[in, filename], size intptr, nsegs len[segments], segments ptr[in, array[fs_image_segment]], flags flags[mount_flags], opts ptr[in, fs_options[vfat_options]])
+//fs_image_segment {
+//	data	ptr[in, array[int8]]
+//	size	len[data, intptr]
+//	offset	intptr
+//}
+static uintptr_t syz_mount_image(uintptr_t fs, uintptr_t dir, uintptr_t size, uintptr_t nsegs, uintptr_t segments, uintptr_t flags, uintptr_t opts)
+{
+	char loopname[64];
+	int loopfd, err = 0, res = -1;
+	uintptr_t i;
+	// Strictly saying we ought to do a nonfailing copyout of segments into a local var.
+	// But some filesystems have large number of segments (2000+),
+	// we can't allocate that much on stack and allocating elsewhere is problematic,
+	// so we just use the memory allocated by fuzzer.
+	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
+
+	if (nsegs > IMAGE_MAX_SEGMENTS)
+		nsegs = IMAGE_MAX_SEGMENTS;
+	for (i = 0; i < nsegs; i++) {
+		if (segs[i].size > IMAGE_MAX_SIZE)
+			segs[i].size = IMAGE_MAX_SIZE;
+		segs[i].offset %= IMAGE_MAX_SIZE;
+		if (segs[i].offset > IMAGE_MAX_SIZE - segs[i].size)
+			segs[i].offset = IMAGE_MAX_SIZE - segs[i].size;
+		if (size < segs[i].offset + segs[i].offset)
+			size = segs[i].offset + segs[i].offset;
+	}
+	if (size > IMAGE_MAX_SIZE)
+		size = IMAGE_MAX_SIZE;
+	int memfd = syscall(SYS_memfd_create, "syz_mount_image", 0);
+	if (memfd == -1) {
+		err = errno;
+		goto error;
+	}
+	if (ftruncate(memfd, size)) {
+		err = errno;
+		goto error_close_memfd;
+	}
+	for (i = 0; i < nsegs; i++) {
+		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
+			debug("syz_mount_image: pwrite[%lu] failed: %d\n", i, errno);
+		}
+	}
+	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
+	loopfd = open(loopname, O_RDWR);
+	if (loopfd == -1) {
+		err = errno;
+		goto error_close_memfd;
+	}
+	if (ioctl(loopfd, LOOP_SET_FD, memfd)) {
+		if (errno != EBUSY) {
+			err = errno;
+			goto error_close_loop;
+		}
+		ioctl(loopfd, LOOP_CLR_FD, 0);
+		usleep(1000);
+		if (ioctl(loopfd, LOOP_SET_FD, memfd)) {
+			err = errno;
+			goto error_close_loop;
+		}
+	}
+	mkdir((char*)dir, 0777);
+	NONFAILING(if (strcmp((char*)fs, "iso9660") == 0) flags |= MS_RDONLY);
+	debug("syz_mount_image: size=%llu segs=%llu loop='%s' dir='%s' fs='%s' opts='%s'\n", (uint64)size, (uint64)nsegs, loopname, (char*)dir, (char*)fs, (char*)opts);
+#if defined(SYZ_EXECUTOR)
+	cover_reset(0);
+#endif
+	if (mount(loopname, (char*)dir, (char*)fs, flags, (char*)opts)) {
+		err = errno;
+		goto error_clear_loop;
+	}
+	res = 0;
+error_clear_loop:
+	ioctl(loopfd, LOOP_CLR_FD, 0);
+error_close_loop:
+	close(loopfd);
+error_close_memfd:
+	close(memfd);
+error:
+	errno = err;
+	return res;
+}
+#endif
+
 #if defined(SYZ_EXECUTOR) || defined(__NR_syz_kvm_setup_cpu)
 #if defined(__x86_64__)
 #include "common_kvm_amd64.h"
@@ -891,7 +1017,7 @@ static void sandbox_common()
 	setrlimit(RLIMIT_AS, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 8 << 20;
 	setrlimit(RLIMIT_MEMLOCK, &rlim);
-	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
+	rlim.rlim_cur = rlim.rlim_max = 32 << 20;
 	setrlimit(RLIMIT_FSIZE, &rlim);
 	rlim.rlim_cur = rlim.rlim_max = 1 << 20;
 	setrlimit(RLIMIT_STACK, &rlim);
@@ -1540,6 +1666,9 @@ static void remove_dir(const char* dir)
 	struct dirent* ep;
 	int iter = 0;
 retry:
+	while (umount2(dir, MNT_DETACH) == 0) {
+		debug("umount(%s)\n", dir);
+	}
 	dp = opendir(dir);
 	if (dp == NULL) {
 		if (errno == EMFILE) {
@@ -1704,6 +1833,15 @@ static void loop()
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
 #endif
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_fs) || defined(__NR_syz_mount_image) || defined(__NR_syz_read_part_table)
+		char buf[64];
+		snprintf(buf, sizeof(buf), "/dev/loop%llu", procid);
+		int loopfd = open(buf, O_RDWR);
+		if (loopfd != -1) {
+			ioctl(loopfd, LOOP_CLR_FD, 0);
+			close(loopfd);
+		}
+#endif
 #if defined(SYZ_EXECUTOR)
 		// TODO: consider moving the read into the child.
 		// Potentially it can speed up things a bit -- when the read finishes
@@ -1786,7 +1924,7 @@ static void loop()
 				executed_calls = now_executed;
 				last_executed = now;
 			}
-			if ((now - start < 3 * 1000) && (now - last_executed < 500))
+			if ((now - start < 3 * 1000) && (now - start < 1000 || now - last_executed < 500))
 				continue;
 #else
 			if (current_time_ms() - start < 3 * 1000)

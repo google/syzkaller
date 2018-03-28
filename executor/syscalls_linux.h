@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "13f58d70d5eb27fb4a6a602eed872296ddfd012b"
+#define SYZ_REVISION "3570cc104a8e4f69ab942283cea9c36aead1e7d0"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1664;
+unsigned syscall_count = 1678;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1590,6 +1590,20 @@ call_t syscalls[] = {
     {"syz_init_net_socket$nfc_raw", 0, (syscall_t)syz_init_net_socket},
     {"syz_kvm_setup_cpu$arm64", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_kvm_setup_cpu$x86", 0, (syscall_t)syz_kvm_setup_cpu},
+    {"syz_mount_image$bfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$btrfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$ext4", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$gfs2", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$hfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$hfsplus", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$iso9660", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$jfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$minix", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$msdos", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$ntfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$reiserfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$vfat", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$xfs", 0, (syscall_t)syz_mount_image},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$adsp", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 0, (syscall_t)syz_open_dev},
@@ -1678,11 +1692,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "e7b2001a0a63147b9a6cc98389571863feca81f4"
+#define SYZ_REVISION "038a844b7995797839fc3e515efe1276c116f985"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1716;
+unsigned syscall_count = 1730;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3318,6 +3332,20 @@ call_t syscalls[] = {
     {"syz_init_net_socket$nfc_raw", 0, (syscall_t)syz_init_net_socket},
     {"syz_kvm_setup_cpu$arm64", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_kvm_setup_cpu$x86", 0, (syscall_t)syz_kvm_setup_cpu},
+    {"syz_mount_image$bfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$btrfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$ext4", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$gfs2", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$hfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$hfsplus", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$iso9660", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$jfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$minix", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$msdos", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$ntfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$reiserfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$vfat", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$xfs", 0, (syscall_t)syz_mount_image},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$adsp", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 0, (syscall_t)syz_open_dev},
@@ -3406,11 +3434,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "07c800ad7a28b012724a7a163699ecca237a7743"
+#define SYZ_REVISION "8474607329320b44dfeefacf1b065e564436dc41"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1661;
+unsigned syscall_count = 1675;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4993,6 +5021,20 @@ call_t syscalls[] = {
     {"syz_init_net_socket$nfc_raw", 0, (syscall_t)syz_init_net_socket},
     {"syz_kvm_setup_cpu$arm64", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_kvm_setup_cpu$x86", 0, (syscall_t)syz_kvm_setup_cpu},
+    {"syz_mount_image$bfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$btrfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$ext4", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$gfs2", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$hfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$hfsplus", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$iso9660", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$jfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$minix", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$msdos", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$ntfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$reiserfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$vfat", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$xfs", 0, (syscall_t)syz_mount_image},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$adsp", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 0, (syscall_t)syz_open_dev},
@@ -5079,11 +5121,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "7a261210eafb174d52f717aa99d43aef80a694d6"
+#define SYZ_REVISION "fe357a7bb4ffc4edcba92c35976c5fb5a8e0b917"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1645;
+unsigned syscall_count = 1659;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6654,6 +6696,20 @@ call_t syscalls[] = {
     {"syz_init_net_socket$nfc_raw", 0, (syscall_t)syz_init_net_socket},
     {"syz_kvm_setup_cpu$arm64", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_kvm_setup_cpu$x86", 0, (syscall_t)syz_kvm_setup_cpu},
+    {"syz_mount_image$bfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$btrfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$ext4", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$gfs2", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$hfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$hfsplus", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$iso9660", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$jfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$minix", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$msdos", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$ntfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$reiserfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$vfat", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$xfs", 0, (syscall_t)syz_mount_image},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$adsp", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 0, (syscall_t)syz_open_dev},
@@ -6736,11 +6792,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "c32f6bf12bfd604d26097506ff0ed1b5c504d9f3"
+#define SYZ_REVISION "e64905daf5267a3bd825927680131feb7764dea2"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1635;
+unsigned syscall_count = 1649;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8295,6 +8351,20 @@ call_t syscalls[] = {
     {"syz_init_net_socket$nfc_raw", 0, (syscall_t)syz_init_net_socket},
     {"syz_kvm_setup_cpu$arm64", 0, (syscall_t)syz_kvm_setup_cpu},
     {"syz_kvm_setup_cpu$x86", 0, (syscall_t)syz_kvm_setup_cpu},
+    {"syz_mount_image$bfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$btrfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$ext4", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$gfs2", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$hfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$hfsplus", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$iso9660", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$jfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$minix", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$msdos", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$ntfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$reiserfs", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$vfat", 0, (syscall_t)syz_mount_image},
+    {"syz_mount_image$xfs", 0, (syscall_t)syz_mount_image},
     {"syz_open_dev$admmidi", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$adsp", 0, (syscall_t)syz_open_dev},
     {"syz_open_dev$amidi", 0, (syscall_t)syz_open_dev},

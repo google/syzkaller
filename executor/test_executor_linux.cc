@@ -8,6 +8,12 @@
 
 #include <sys/utsname.h>
 
+unsigned long long procid;
+
+void cover_reset(thread_t*)
+{
+}
+
 extern "C" int test_copyin()
 {
 	unsigned char x[4] = {};
