@@ -635,6 +635,8 @@ void execute_call(thread_t* th)
 				  th->args[3], th->args[4], th->args[5],
 				  th->args[6], th->args[7], th->args[8]);
 	th->reserrno = errno;
+	if (th->res == -1 && th->reserrno == 0)
+		th->reserrno = EINVAL; // our syz syscalls may misbehave
 	th->cover_size = read_cover_size(th);
 	th->fault_injected = false;
 
