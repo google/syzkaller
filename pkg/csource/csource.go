@@ -63,7 +63,13 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 		}
 		ctx.printf("};\n")
 	}
-	if opts.Procs > 1 || opts.EnableCgroups {
+	needProcID := opts.Procs > 1 || opts.EnableCgroups
+	for _, c := range p.Calls {
+		if c.Meta.CallName == "syz_mount_image" {
+			needProcID = true
+		}
+	}
+	if needProcID {
 		ctx.printf("unsigned long long procid;\n")
 	}
 

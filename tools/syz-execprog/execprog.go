@@ -163,6 +163,11 @@ func main() {
 					if config.Flags&ipc.FlagDebug != 0 || err != nil {
 						fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
 					}
+					if len(info) != 0 {
+						fmt.Printf("RESULT: signal %v, coverage %v errno %v\n", len(info[0].Signal), len(info[0].Cover), info[0].Errno)
+					} else {
+						fmt.Printf("RESULT: no calls executed\n")
+					}
 					if *flagCoverFile != "" {
 						// Coverage is dumped in sanitizer format.
 						// github.com/google/sanitizers/tools/sancov command can be used to dump PCs,

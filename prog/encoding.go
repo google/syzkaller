@@ -524,7 +524,7 @@ func eatExcessive(p *parser, stopAtComma bool) {
 
 const (
 	encodingAddrBase = 0x7f0000000000
-	maxLineLen       = 256 << 10
+	maxLineLen       = 1 << 20
 )
 
 func (target *Target) serializeAddr(arg *PointerArg) string {
