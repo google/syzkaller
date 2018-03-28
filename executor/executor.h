@@ -22,7 +22,7 @@
 
 const int kMaxInput = 2 << 20;
 const int kMaxOutput = 16 << 20;
-const int kCoverSize = 64 << 10;
+const int kCoverSize = 256 << 10;
 const int kMaxArgs = 9;
 const int kMaxThreads = 16;
 const int kMaxCommands = 1000;
@@ -293,9 +293,11 @@ void execute_one()
 	// Fuzzer once come up with ioctl(fd, FIONREAD, 0x920000),
 	// where 0x920000 was exactly collide address, so every iteration reset collide to 0.
 	bool colliding = false;
+	write_output(0); // Number of executed syscalls (updated later).
+	uint64 start = current_time_ms();
+
 retry:
 	uint64* input_pos = (uint64*)input_data;
-	write_output(0); // Number of executed syscalls (updated later).
 
 	if (!colliding && !flag_threaded)
 		cover_enable(&threads[0]);
@@ -407,9 +409,9 @@ retry:
 			// We already have results from the previous execution.
 		} else if (flag_threaded) {
 			// Wait for call completion.
-			// Note: sys knows about this 20ms timeout when it generates
+			// Note: sys knows about this 25ms timeout when it generates
 			// timespec/timeval values.
-			const uint64 timeout_ms = flag_debug ? 500 : 20;
+			const uint64 timeout_ms = flag_debug ? 3000 : 25;
 			if (event_timedwait(&th->done, timeout_ms))
 				handle_completion(th);
 			// Check if any of previous calls have completed.
@@ -419,11 +421,18 @@ retry:
 				fail("running = %d", running);
 			if (running > 0) {
 				bool last = read_input(&input_pos, true) == instr_eof;
-				sleep_ms(last ? 10 : 1);
-				for (int i = 0; i < kMaxThreads; i++) {
-					th = &threads[i];
-					if (!th->handled && event_isset(&th->done))
-						handle_completion(th);
+				uint64 wait = last ? 100 : 2;
+				uint64 wait_start = current_time_ms();
+				uint64 wait_end = wait_start + wait;
+				if (!colliding && wait_end < start + 800)
+					wait_end = start + 800;
+				while (running > 0 && current_time_ms() <= wait_end) {
+					sleep_ms(1);
+					for (int i = 0; i < kMaxThreads; i++) {
+						th = &threads[i];
+						if (!th->handled && event_isset(&th->done))
+							handle_completion(th);
+					}
 				}
 			}
 		} else {

@@ -137,6 +137,8 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) bool {
 		}
 		syscall.Close(fd)
 		return true
+	case "syz_mount_image":
+		return sandbox != "setuid"
 	}
 	panic("unknown syzkall: " + c.Name)
 }

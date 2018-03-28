@@ -119,6 +119,8 @@ int main(int argc, char** argv)
 	return 1;
 }
 
+static __thread thread_t* current_thread;
+
 long execute_syscall(call_t* c, long a0, long a1, long a2, long a3, long a4, long a5, long a6, long a7, long a8)
 {
 	if (c->call)
@@ -159,12 +161,15 @@ void cover_enable(thread_t* th)
 	if (ioctl(th->cover_fd, KCOV_ENABLE, kcov_mode))
 		exitf("cover enable write trace failed, mode=%d", kcov_mode);
 	debug("#%d: enabled /sys/kernel/debug/kcov\n", th->id);
+	current_thread = th;
 }
 
 void cover_reset(thread_t* th)
 {
 	if (!flag_cover)
 		return;
+	if (th == 0)
+		th = current_thread;
 	__atomic_store_n(th->cover_size_ptr, 0, __ATOMIC_RELAXED);
 }
 
