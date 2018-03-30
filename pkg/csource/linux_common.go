@@ -933,18 +933,16 @@ struct fs_image_segment {
 #define IMAGE_MAX_SEGMENTS 4096
 #define IMAGE_MAX_SIZE (32 << 20)
 
-#ifndef SYS_memfd_create
 #if defined(__i386__)
-#define SYS_memfd_create 356
+#define SYZ_memfd_create 356
 #elif defined(__x86_64__)
-#define SYS_memfd_create 319
+#define SYZ_memfd_create 319
 #elif defined(__arm__)
-#define SYS_memfd_create 385
+#define SYZ_memfd_create 385
 #elif defined(__aarch64__)
-#define SYS_memfd_create 279
+#define SYZ_memfd_create 279
 #elif defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__)
-#define SYS_memfd_create 360
-#endif
+#define SYZ_memfd_create 360
 #endif
 
 static uintptr_t syz_mount_image(uintptr_t fs, uintptr_t dir, uintptr_t size, uintptr_t nsegs, uintptr_t segments, uintptr_t flags, uintptr_t opts)
@@ -967,7 +965,7 @@ static uintptr_t syz_mount_image(uintptr_t fs, uintptr_t dir, uintptr_t size, ui
 	}
 	if (size > IMAGE_MAX_SIZE)
 		size = IMAGE_MAX_SIZE;
-	int memfd = syscall(SYS_memfd_create, "syz_mount_image", 0);
+	int memfd = syscall(SYZ_memfd_create, "syz_mount_image", 0);
 	if (memfd == -1) {
 		err = errno;
 		goto error;
@@ -978,7 +976,7 @@ static uintptr_t syz_mount_image(uintptr_t fs, uintptr_t dir, uintptr_t size, ui
 	}
 	for (i = 0; i < nsegs; i++) {
 		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
-			debug("syz_mount_image: pwrite[%lu] failed: %d\n", i, errno);
+			debug("syz_mount_image: pwrite[%u] failed: %d\n", (int)i, errno);
 		}
 	}
 	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
@@ -2085,17 +2083,13 @@ static void sandbox_common()
 	rlim.rlim_cur = rlim.rlim_max = 0;
 	setrlimit(RLIMIT_CORE, &rlim);
 
-#ifndef CLONE_NEWCGROUP
-#define CLONE_NEWCGROUP 0x02000000
-#endif
-
 	if (unshare(CLONE_NEWNS)) {
 		debug("unshare(CLONE_NEWNS): %d\n", errno);
 	}
 	if (unshare(CLONE_NEWIPC)) {
 		debug("unshare(CLONE_NEWIPC): %d\n", errno);
 	}
-	if (unshare(CLONE_NEWCGROUP)) {
+	if (unshare(0x02000000)) {
 		debug("unshare(CLONE_NEWCGROUP): %d\n", errno);
 	}
 	if (unshare(CLONE_NEWUTS)) {
