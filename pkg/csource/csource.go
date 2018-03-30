@@ -217,7 +217,7 @@ func (ctx *context) generateTestFunc(calls []string, hasVars bool, name string) 
 	if !opts.Threaded && !opts.Collide {
 		ctx.printf("void %v()\n{\n", name)
 		if hasVars {
-			ctx.printf("\tlong res;")
+			ctx.printf("\tlong res = 0;\n")
 		}
 		if opts.Debug {
 			// Use debug to avoid: error: ‘debug’ defined but not used.
