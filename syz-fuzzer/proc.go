@@ -116,19 +116,25 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		minimizeAttempts = 3
 	)
 	// Compute input coverage and non-flaky signal for minimization.
+	notexecuted := 0
 	for i := 0; i < signalRuns; i++ {
 		info := proc.executeRaw(proc.execOptsCover, item.p, StatTriage)
 		if len(info) == 0 || len(info[item.call].Signal) == 0 ||
 			item.info.Errno == 0 && info[item.call].Errno != 0 {
 			// The call was not executed or failed.
+			notexecuted++
+			if notexecuted > signalRuns/2+1 {
+				return // if happens too often, give up
+			}
 			continue
 		}
 		inf := info[item.call]
 		thisSignal := signal.FromRaw(inf.Signal, signalPrio(item.p.Target, call, &inf))
-		newSignal1 := newSignal.Intersection(thisSignal)
-		if !newSignal1.Empty() {
-			newSignal = newSignal1
-
+		newSignal = newSignal.Intersection(thisSignal)
+		// Without !minimized check manager starts losing some considerable amount
+		// of coverage after each restart. Mechanics of this are not completely clear.
+		if newSignal.Empty() && item.flags&ProgMinimized == 0 {
+			return
 		}
 		inputCover.Merge(inf.Cover)
 	}
