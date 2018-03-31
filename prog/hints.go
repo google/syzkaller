@@ -169,13 +169,12 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 func shrinkExpand(v uint64, compMap CompMap) (replacers uint64Set) {
 	var prev uint64
 	for _, isize := range []int{64, 32, 16, 8, -32, -16, -8} {
-		var mutant uint64
-		var size uint
+		var size, mutant uint64
 		if isize > 0 {
-			size = uint(isize)
+			size = uint64(isize)
 			mutant = v & ((1 << size) - 1)
 		} else {
-			size = uint(-isize)
+			size = uint64(-isize)
 			mutant = v | ^((1 << size) - 1)
 		}
 		if size != 64 && prev == mutant {
@@ -184,19 +183,21 @@ func shrinkExpand(v uint64, compMap CompMap) (replacers uint64Set) {
 		prev = mutant
 		for newV := range compMap[mutant] {
 			mask := uint64(1<<size - 1)
-			if newHi := newV & ^mask; newHi == 0 || newHi^^mask == 0 {
-				if !specialIntsSet[newV&mask] {
-					// Replace size least significant bits of v with
-					// corresponding bits of newV. Leave the rest of v as it was.
-					replacer := (v &^ mask) | (newV & mask)
-					// TODO(dvyukov): should we try replacing with arg+/-1?
-					// This could trigger some off-by-ones.
-					if replacers == nil {
-						replacers = make(uint64Set)
-					}
-					replacers[replacer] = true
-				}
+			if newHi := newV & ^mask; newHi != 0 && newHi^^mask != 0 {
+				continue
 			}
+			if specialIntsSet[newV&mask] {
+				continue
+			}
+			// Replace size least significant bits of v with
+			// corresponding bits of newV. Leave the rest of v as it was.
+			replacer := (v &^ mask) | (newV & mask)
+			// TODO(dvyukov): should we try replacing with arg+/-1?
+			// This could trigger some off-by-ones.
+			if replacers == nil {
+				replacers = make(uint64Set)
+			}
+			replacers[replacer] = true
 		}
 	}
 	return
