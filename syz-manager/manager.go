@@ -613,7 +613,11 @@ func (mgr *Manager) emailCrash(crash *Crash) {
 }
 
 func (mgr *Manager) saveCrash(crash *Crash) bool {
-	Logf(0, "vm-%v: crash: %v", crash.vmIndex, crash.Title)
+	corrupted := ""
+	if crash.Corrupted {
+		corrupted = " [corrupted]"
+	}
+	Logf(0, "vm-%v: crash: %v%v", crash.vmIndex, crash.Title, corrupted)
 	if err := mgr.getReporter().Symbolize(crash.Report); err != nil {
 		Logf(0, "failed to symbolize report: %v", err)
 	}
