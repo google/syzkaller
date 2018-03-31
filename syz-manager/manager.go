@@ -138,10 +138,17 @@ func main() {
 }
 
 func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]bool) {
-	env := mgrconfig.CreateVMEnv(cfg, *flagDebug)
-	vmPool, err := vm.Create(cfg.Type, env)
-	if err != nil {
-		Fatalf("%v", err)
+	var vmPool *vm.Pool
+	// Type "none" is a special case for debugging/development when manager
+	// does not start any VMs, but instead you start them manually
+	// and start syz-fuzzer there.
+	if cfg.Type != "none" {
+		env := mgrconfig.CreateVMEnv(cfg, *flagDebug)
+		var err error
+		vmPool, err = vm.Create(cfg.Type, env)
+		if err != nil {
+			Fatalf("%v", err)
+		}
 	}
 
 	crashdir := filepath.Join(cfg.Workdir, "crashes")
@@ -177,6 +184,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	}
 
 	Logf(0, "loading corpus...")
+	var err error
 	mgr.corpusDB, err = db.Open(filepath.Join(cfg.Workdir, "corpus.db"))
 	if err != nil {
 		Fatalf("failed to open corpus database: %v", err)
@@ -337,6 +345,13 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	}
 
 	osutil.HandleInterrupts(vm.Shutdown)
+	if mgr.vmPool == nil {
+		Logf(0, "no VMs started (type=none)")
+		Logf(0, "you are supposed to start syz-fuzzer manually as:")
+		Logf(0, "syz-fuzzer -manager=manager.ip:%v [other flags as necessary]", mgr.port)
+		<-vm.Shutdown
+		return
+	}
 	mgr.vmLoop()
 }
 
@@ -907,17 +922,19 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 	if mgr.cfg.Sandbox == "namespace" && !a.UserNamespaces {
 		Fatalf("/proc/self/ns/user is missing or permission is denied. Requested namespace sandbox but user namespaces are not enabled. Enable CONFIG_USER_NS")
 	}
-	if mgr.target.Arch != a.ExecutorArch {
-		Fatalf("mismatching target/executor arch: target=%v executor=%v",
-			mgr.target.Arch, a.ExecutorArch)
-	}
-	if sys.GitRevision != a.FuzzerGitRev || sys.GitRevision != a.ExecutorGitRev {
-		Fatalf("mismatching git revisions:\nmanager= %v\nfuzzer=  %v\nexecutor=%v",
-			sys.GitRevision, a.FuzzerGitRev, a.ExecutorGitRev)
-	}
-	if mgr.target.Revision != a.FuzzerSyzRev || mgr.target.Revision != a.ExecutorSyzRev {
-		Fatalf("mismatching syscall descriptions:\nmanager= %v\nfuzzer=  %v\nexecutor=%v",
-			mgr.target.Revision, a.FuzzerSyzRev, a.ExecutorSyzRev)
+	if mgr.vmPool != nil {
+		if mgr.target.Arch != a.ExecutorArch {
+			Fatalf("mismatching target/executor arch: target=%v executor=%v",
+				mgr.target.Arch, a.ExecutorArch)
+		}
+		if sys.GitRevision != a.FuzzerGitRev || sys.GitRevision != a.ExecutorGitRev {
+			Fatalf("mismatching git revisions:\nmanager= %v\nfuzzer=  %v\nexecutor=%v",
+				sys.GitRevision, a.FuzzerGitRev, a.ExecutorGitRev)
+		}
+		if mgr.target.Revision != a.FuzzerSyzRev || mgr.target.Revision != a.ExecutorSyzRev {
+			Fatalf("mismatching syscall descriptions:\nmanager= %v\nfuzzer=  %v\nexecutor=%v",
+				mgr.target.Revision, a.FuzzerSyzRev, a.ExecutorSyzRev)
+		}
 	}
 	mgr.vmChecked = true
 	mgr.enabledCalls = a.Calls
@@ -1176,6 +1193,9 @@ func (mgr *Manager) hubSync() {
 }
 
 func (mgr *Manager) collectUsedFiles() {
+	if mgr.vmPool == nil {
+		return
+	}
 	addUsedFile := func(f string) {
 		if f == "" {
 			return

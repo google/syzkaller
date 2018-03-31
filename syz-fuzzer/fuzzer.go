@@ -99,7 +99,7 @@ func main() {
 	debug.SetGCPercent(50)
 
 	var (
-		flagName    = flag.String("name", "", "unique name for manager")
+		flagName    = flag.String("name", "test", "unique name for manager")
 		flagArch    = flag.String("arch", runtime.GOARCH, "target arch")
 		flagManager = flag.String("manager", "", "manager rpc address")
 		flagProcs   = flag.Int("procs", 1, "number of parallel test processes")
