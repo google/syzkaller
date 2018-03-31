@@ -248,7 +248,7 @@ clean:
 
 # For a tupical Ubuntu/Debian distribution.
 install_prerequisites:
-	sudo apt-get install -y -q libc6-dev-i386 lib32stdc++-4.8-dev linux-libc-dev g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf
+	sudo apt-get install -y -q libc6-dev-i386 linux-libc-dev g++-aarch64-linux-gnu g++-powerpc64le-linux-gnu g++-arm-linux-gnueabihf
 	go get -u gopkg.in/alecthomas/gometalinter.v2
 	gometalinter.v2 --install
 
