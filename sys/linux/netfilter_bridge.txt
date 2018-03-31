@@ -254,7 +254,7 @@ ebt_ip_info {
 	dport_max	sock_port
 }
 
-ebt_ip_flags = EBT_IP_SOURCE, BT_IP_DEST, EBT_IP_TOS, EBT_IP_PROTO, EBT_IP_SPORT, EBT_IP_DPORT
+ebt_ip_flags = EBT_IP_SOURCE, EBT_IP_DEST, EBT_IP_TOS, EBT_IP_PROTO, EBT_IP_SPORT, EBT_IP_DPORT
 
 ebt_ip6_info {
 	saddr		ipv6_addr
