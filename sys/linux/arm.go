@@ -1714,8 +1714,8 @@ var structDescs_arm = []*KeyedStruct{
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv4_addr_mask_vals", FldName: "dmsk", TypeSize: 4}, BigEndian: true}, Vals: []uint64{0, 4278190080, 4294967040, 4294967295, 255}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int8", FldName: "tos", TypeSize: 1}}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ipv4_types", FldName: "protocol", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 4, 6, 8, 12, 17, 22, 29, 33, 41, 46, 47, 50, 51, 92, 94, 98, 103, 108, 132, 136, 137, 255, 115}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ebt_ip_flags", FldName: "bitmask", TypeSize: 1}}, Vals: []uint64{1, 4, 8, 16, 32}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ebt_ip_flags", FldName: "invflags", TypeSize: 1}}, Vals: []uint64{1, 4, 8, 16, 32}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ebt_ip_flags", FldName: "bitmask", TypeSize: 1}}, Vals: []uint64{1, 2, 4, 8, 16, 32}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ebt_ip_flags", FldName: "invflags", TypeSize: 1}}, Vals: []uint64{1, 2, 4, 8, 16, 32}},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "sport_min", TypeSize: 2}, BigEndian: true}, Kind: 2, RangeBegin: 20000, RangeEnd: 20004},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "sport_max", TypeSize: 2}, BigEndian: true}, Kind: 2, RangeBegin: 20000, RangeEnd: 20004},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int16be", FldName: "dport_min", TypeSize: 2}, BigEndian: true}, Kind: 2, RangeBegin: 20000, RangeEnd: 20004},
@@ -23877,6 +23877,7 @@ var consts_arm = []ConstValue{
 	{Name: "EBT_IP6_SPORT", Value: 16},
 	{Name: "EBT_IP6_TCLASS", Value: 4},
 	{Name: "EBT_IPROTO", Value: 1},
+	{Name: "EBT_IP_DEST", Value: 2},
 	{Name: "EBT_IP_DPORT", Value: 32},
 	{Name: "EBT_IP_PROTO", Value: 8},
 	{Name: "EBT_IP_SOURCE", Value: 1},
@@ -27543,4 +27544,4 @@ var consts_arm = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm = "8474607329320b44dfeefacf1b065e564436dc41"
+const revision_arm = "3972faa5a8bbad692d1ecd42060d3a0876823259"
