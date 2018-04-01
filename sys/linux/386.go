@@ -23257,6 +23257,11 @@ var syscalls_386 = []*Syscall{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "fd", TypeSize: 4}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "open_flags", FldName: "flags", TypeSize: 4}}, Vals: []uint64{0, 1, 2, 1024, 8192, 524288, 64, 16384, 65536, 128, 32768, 262144, 256, 131072, 2048, 2097152, 1052672, 512, 4194304}},
 	}, Ret: &ResourceType{TypeCommon: TypeCommon{TypeName: "fd_tty", FldName: "ret", TypeSize: 4, ArgDir: 1}}},
+	{Name: "syz_read_part_table", CallName: "syz_read_part_table", Args: []Type{
+		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "intptr", FldName: "size", TypeSize: 4}}},
+		&LenType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "len", FldName: "nsegs", TypeSize: 4}}, Buf: "segments"},
+		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr", FldName: "segments", TypeSize: 4}, Type: &ArrayType{TypeCommon: TypeCommon{TypeName: "array", IsVarlen: true}, Type: &StructType{Key: StructKey{Name: "fs_image_segment"}}}},
+	}},
 	{NR: 315, Name: "tee", CallName: "tee", Args: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdin", TypeSize: 4}},
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "fd", FldName: "fdout", TypeSize: 4}},
@@ -27825,4 +27830,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "7424a62ff2a634075d9352a6bf1ba14b9377cce8"
+const revision_386 = "95c0c5827460dd0db116e00429bad9d3fe5778de"
