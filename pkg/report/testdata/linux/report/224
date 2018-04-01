@@ -1,0 +1,108 @@
+TITLE: general protection fault in xfrm_state_walk_done
+
+[   44.866009] kasan: CONFIG_KASAN_INLINE enabled
+[   44.870467] kasan: GPF could be caused by NULL-ptr deref or user memory accessgeneral protection fault: 0000 [#1] PREEMPT SMP KASAN
+[   44.883370] Dumping ftrace buffer:
+[   44.886892]    (ftrace buffer empty)
+[   44.890589] Modules linked in:
+[   44.893919] CPU: 0 PID: 6879 Comm: syz-executor3 Not tainted 4.4.118-g239a415 #25
+[   44.901515] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+2018/02/27 11:26:59 executing program 2:
+r0 = socket$inet(0x2, 0x1, 0x0)
+mmap(&(0x7f000092d000/0x400000)=nil, 0x400000, 0xfffffffffffffffc, 0x4000008972, 0xffffffffffffffff, 0x0)
+connect$inet(r0, &(0x7f0000000040)={0x2, 0x4e20, @dev={0xac, 0x14, 0x14, 0x14}}, 0x10)
+connect$inet(r0, &(0x7f00009322c4)={0x2, 0x4e20, @local={0xac, 0x14, 0xffffffffffffffff, 0xaa}}, 0x10)
+connect$inet(r0, &(0x7f0000000000)={0x2, 0x4e20, @remote={0xac, 0x14, 0x14, 0xbb}}, 0x10)
+connect$inet(r0, &(0x7f000096dff0)={0x2, 0x4e20, @multicast1=0xe0000001}, 0x10)
+
+2018/02/27 11:26:59 executing program 5:
+r0 = socket$inet(0x2, 0x6, 0x0)
+setsockopt$EBT_SO_SET_ENTRIES(r0, 0x0, 0x80, &(0x7f0000000280)=@broute={'broute\x00', 0x20, 0x1, 0x428, [0x0, 0x0, 0x0, 0x0, 0x0, 0x20000300], 0x0, &(0x7f0000000000), &(0x7f0000000300)=[{0x0, '\x00', 0x0, 0xfffffffffffffffe, 0x0, []}, {0x0, '\x00', 0x0, 0xffffffffffffffff, 0x0, []}, {0x0, '\x00', 0x0, 0xffffffffffffffff, 0x1, [{{{0x15, 0x0, 0x8100, 'ip6tnl0\x00', 'bcsf0\x00', 'ipddp0\x00', 'sit0\x00', @link_local={0x1, 0x31, 0xc2}, [], @remote={[0xaa, 0xaa, 0xaa, 0xaa, 0xaa], 0xbb}, [], 0x2d8, 0x360, 0x398, [@bpf0={'bpf\x00', 0x210, {{0x1, [{0x6}]}}}, @vlan={'vlan\x00', 0x8}]}, [@common=@mark={'mark\x00', 0x10, {{0x0, 0xfffffffffffffffc}}}, @common=@LED={'LED\x00', 0x28, {{'syz0\x00'}}}]}, @common=@mark={'mark\x00', 0x10, {{0x0, 0xfffffffffffffffd}}}}]}]}, 0x4a0)
+
+2018/02/27 11:26:59 executing program 4:
+r0 = socket$inet6(0xa, 0x2, 0x0)
+connect$inet6(r0, &(0x7f0000000400)={0xa, 0x4e20, 0x0, @dev={0xfe, 0x80}, 0x5}, 0x1c)
+sendmsg(r0, &(0x7f0000014fc8)={&(0x7f0000006ff0)=@in={0x2, 0x4e23, @local={0xac, 0x14, 0xffffffffffffffff, 0xaa}}, 0x10, &(0x7f0000000040)=[], 0x0, &(0x7f000001ef80)=[]}, 0x40810)
+
+2018/02/27 11:26:59 executing program 2:
+syz_emit_ethernet(0x2a, &(0x7f0000000040)={@local={[0xaa, 0xaa, 0xaa, 0xaa, 0xaa], 0xaa}, @broadcast=[0xff, 0xff, 0xff, 0xff, 0xff, 0xff], [], {@ipv4={0x800, {{0x5, 0x4, 0x0, 0x0, 0x1c, 0x0, 0x0, 0x0, 0x0, 0x0, @loopback=0x7f000001, @dev={0xac, 0x14, 0x14}, {[]}}, @udp={0x4e20, 0x4e20, 0x8}}}}}, &(0x7f00000002c0))
+
+[   44.910849] task: ffff8800b94c6000 task.stack: ffff8800b9768000
+[   44.916891] RIP: 0010:[<ffffffff81d64236>]  [<ffffffff81d64236>] __list_del_entry+0x86/0x1d0
+[   44.925601] RSP: 0018:ffff8800b976f5a8  EFLAGS: 00010246
+[   44.931033] RAX: dffffc0000000000 RBX: 0000000000000000 RCX: ffff8800b941d190
+[   44.938291] RDX: 0000000000000000 RSI: ffff8800b94c6920 RDI: ffff8800b941d198
+[   44.945547] RBP: ffff8800b976f5c0 R08: 0000000000000001 R09: ffffffff850da720
+[   44.952798] R10: 0000000000000001 R11: 1ffff100172ede84 R12: 0000000000000000
+[   44.960058] R13: ffff8800b941d139 R14: ffff8800b941d1b8 R15: 00000000ffffffde
+[   44.967312] FS:  00007f2dfa41e700(0000) GS:ffff8801db200000(0000) knlGS:0000000000000000
+[   44.975522] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   44.981384] CR2: 00007f98f7304db8 CR3: 00000000b3d30000 CR4: 0000000000160670
+[   44.988639] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   44.995891] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   45.003139] Stack:
+[   45.005268]  ffff8800b941d1b8 ffff8800b941d190 ffff8800aca8f3c0 ffff8800b976f5d8
+[   45.013285]  ffffffff81d6438d ffff8800b941d190 ffff8800b976f5f8 ffffffff832b05be
+[   45.021303]  ffff8800b9a82200 ffff8800b941d190 ffff8800b976f618 ffffffff832cfb13
+[   45.029309] Call Trace:
+[   45.031876]  [<ffffffff81d6438d>] list_del+0xd/0x70
+[   45.036865]  [<ffffffff832b05be>] xfrm_state_walk_done+0x6e/0xa0
+[   45.039511] binder: 6883:6922 got reply transaction with no transaction stack
+[   45.039518] binder: 6883:6922 transaction failed 29201/-71, size 0-0 line 2921
+[   45.052233] binder: release 6883:6921 transaction 32 out, still active
+[   45.052236] binder: undelivered TRANSACTION_COMPLETE
+[   45.052257] binder: undelivered TRANSACTION_ERROR: 29201
+[   45.052278] binder: send failed reply for transaction 32, target dead
+[   45.081202]  [<ffffffff832cfb13>] xfrm_dump_sa_done+0x73/0xa0
+[   45.087057]  [<ffffffff832cfaa0>] ? xfrm_dump_policy_start+0x20/0x20
+[   45.093518]  [<ffffffff82f80591>] netlink_dump+0x871/0xb40
+[   45.099111]  [<ffffffff82f84d7e>] __netlink_dump_start+0x52e/0x7c0
+[   45.105396]  [<ffffffff82f7c561>] ? __netlink_ns_capable+0xe1/0x120
+[   45.111769]  [<ffffffff832d00fd>] xfrm_user_rcv_msg+0x5bd/0x6b0
+[   45.117795]  [<ffffffff832d01f0>] ? xfrm_user_rcv_msg+0x6b0/0x6b0
+[   45.123994]  [<ffffffff832cfb40>] ? xfrm_dump_sa_done+0xa0/0xa0
+[   45.130020]  [<ffffffff832d01f0>] ? xfrm_user_rcv_msg+0x6b0/0x6b0
+[   45.136223]  [<ffffffff832cfaa0>] ? xfrm_dump_policy_start+0x20/0x20
+[   45.142686]  [<ffffffff81b4c770>] ? avc_has_perm_noaudit+0x460/0x460
+[   45.149149]  [<ffffffff812367ff>] ? mark_held_locks+0xaf/0x100
+[   45.155089]  [<ffffffff837699a4>] ? mutex_lock_nested+0x5d4/0x850
+[   45.161292]  [<ffffffff81236bdb>] ? trace_hardirqs_on_caller+0x38b/0x590
+[   45.168428]  [<ffffffff83769930>] ? mutex_lock_nested+0x560/0x850
+[   45.174631]  [<ffffffff832cc480>] ? xfrm_netlink_rcv+0x60/0x90
+[   45.180574]  [<ffffffff82f841fe>] ? netlink_lookup+0xee/0x740
+[   45.186427]  [<ffffffff82f8a46e>] netlink_rcv_skb+0x13e/0x370
+[   45.192283]  [<ffffffff832cfb40>] ? xfrm_dump_sa_done+0xa0/0xa0
+[   45.198309]  [<ffffffff832cc48f>] xfrm_netlink_rcv+0x6f/0x90
+[   45.204075]  [<ffffffff82f88ff2>] netlink_unicast+0x522/0x760
+[   45.209927]  [<ffffffff82f88f1f>] ? netlink_unicast+0x44f/0x760
+[   45.215952]  [<ffffffff82f88ad0>] ? netlink_attachskb+0x6c0/0x6c0
+[   45.222152]  [<ffffffff82f89b18>] netlink_sendmsg+0x8e8/0xc50
+[   45.228004]  [<ffffffff82f89230>] ? netlink_unicast+0x760/0x760
+[   45.234039]  [<ffffffff81b68a7f>] ? selinux_socket_sendmsg+0x3f/0x50
+[   45.240500]  [<ffffffff81b46f69>] ? security_socket_sendmsg+0x89/0xb0
+[   45.247049]  [<ffffffff82f89230>] ? netlink_unicast+0x760/0x760
+[   45.253078]  [<ffffffff82deb9ba>] sock_sendmsg+0xca/0x110
+[   45.258583]  [<ffffffff82ded591>] ___sys_sendmsg+0x6c1/0x7c0
+[   45.264349]  [<ffffffff82deced0>] ? copy_msghdr_from_user+0x550/0x550
+[   45.270900]  [<ffffffff81237410>] ? debug_check_no_locks_freed+0x2c0/0x2c0
+[   45.277883]  [<ffffffff81578673>] ? __fget+0x213/0x3b0
+[   45.283127]  [<ffffffff8157869a>] ? __fget+0x23a/0x3b0
+[   45.288379]  [<ffffffff815784a7>] ? __fget+0x47/0x3b0
+[   45.293536]  [<ffffffff815788f3>] ? __fget_light+0xa3/0x1e0
+[   45.299215]  [<ffffffff81578a48>] ? __fdget+0x18/0x20
+[   45.304374]  [<ffffffff82def5e3>] __sys_sendmsg+0xd3/0x190
+[   45.309966]  [<ffffffff82def510>] ? SyS_shutdown+0x1b0/0x1b0
+[   45.315734]  [<ffffffff812e1f80>] ? SyS_futex+0x210/0x2c0
+[   45.321239]  [<ffffffff8157a52d>] ? fd_install+0x4d/0x60
+[   45.326657]  [<ffffffff82dee370>] ? move_addr_to_kernel+0x50/0x50
+[   45.332857]  [<ffffffff82def6cd>] SyS_sendmsg+0x2d/0x50
+[   45.338189]  [<ffffffff83772a5f>] entry_SYSCALL_64_fastpath+0x1c/0x98
+[   45.344735] Code: c4 0f 84 94 00 00 00 48 b8 00 02 00 00 00 00 ad de 48 39 c3 0f 84 a5 00 00 00 48 b8 00 00 00 00 00 fc ff df 48 89 da 48 c1 ea 03 <80> 3c 02 00 0f 85 e8 00 00 00 4c 8b 03 49 39 c8 0f 85 9b 00 00 
+[   45.371293] RIP  [<ffffffff81d64236>] __list_del_entry+0x86/0x1d0
+[   45.377611]  RSP <ffff8800b976f5a8>
+[   45.381250] ---[ end trace 1f9343a865882dcc ]---
+[   45.385990] Kernel panic - not syncing: Fatal exception in interrupt
+[   45.392878] Dumping ftrace buffer:
+[   45.396390]    (ftrace buffer empty)
+[   45.400067] Kernel Offset: disabled
+[   45.403659] Rebooting in 86400 seconds..

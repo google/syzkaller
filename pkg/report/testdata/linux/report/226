@@ -1,0 +1,121 @@
+TITLE: KASAN: use-after-free Read in rdma_listen
+
+[  353.728146] ==================================================================
+[  353.735888] BUG: KASAN: use-after-free in __list_add_valid+0xc6/0xd0
+[  353.742378] Read of size 8 at addr ffff8801d0d16658 by task syz-executor1/23896
+[  353.749812] 
+[  353.751441] CPU: 0 PID: 23896 Comm: syz-executor1 Not tainted 4.16.0-rc7+ #374
+[  353.758792] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  353.769453] Call Trace:
+[  353.769474]  dump_stack+0x194/0x24d
+[  353.769488]  ? arch_local_irq_restore+0x53/0x53
+[  353.769499]  ? show_regs_print_info+0x18/0x18
+[  353.769516]  ? __list_add_valid+0xc6/0xd0
+[  353.769529]  print_address_description+0x73/0x250
+[  353.769540]  ? __list_add_valid+0xc6/0xd0
+[  353.769550]  kasan_report+0x23c/0x360
+[  353.769564]  __asan_report_load8_noabort+0x14/0x20
+[  353.769573]  __list_add_valid+0xc6/0xd0
+[  353.769585]  rdma_listen+0x581/0x8e0
+[  353.769595]  ? rdma_resolve_addr+0x26c0/0x26c0
+[  353.769614]  ucma_listen+0x172/0x1f0
+[  353.769624]  ? ucma_accept+0x970/0x970
+[  353.769636]  ? kasan_check_write+0x14/0x20
+[  353.769644]  ? _copy_from_user+0x99/0x110
+[  353.769656]  ucma_write+0x2d6/0x3d0
+[  353.769665]  ? ucma_accept+0x970/0x970
+[  353.769675]  ? ucma_close_id+0x60/0x60
+[  353.769690]  ? ucma_close_id+0x60/0x60
+[  353.769699]  __vfs_write+0xef/0x970
+[  353.769713]  ? kernel_read+0x120/0x120
+[  353.769728]  ? schedule+0xf5/0x430
+[  353.769739]  ? __schedule+0x1ec0/0x1ec0
+[  353.769750]  ? security_file_permission+0x89/0x1e0
+[  353.769762]  ? rw_verify_area+0xe5/0x2b0
+[  353.769771]  ? __fdget_raw+0x20/0x20
+[  353.769783]  vfs_write+0x189/0x510
+[  353.769796]  SyS_write+0xef/0x220
+[  353.769806]  ? exit_to_usermode_loop+0x198/0x2f0
+[  353.769818]  ? SyS_read+0x220/0x220
+[  353.769828]  ? do_syscall_64+0xb7/0x940
+[  353.769840]  ? SyS_read+0x220/0x220
+[  353.769850]  do_syscall_64+0x281/0x940
+[  353.769860]  ? vmalloc_sync_all+0x30/0x30
+[  353.769869]  ? _raw_spin_unlock_irq+0x27/0x70
+[  353.769879]  ? finish_task_switch+0x1c1/0x7e0
+[  353.769889]  ? syscall_return_slowpath+0x550/0x550
+[  353.769900]  ? syscall_return_slowpath+0x2ac/0x550
+[  353.769910]  ? prepare_exit_to_usermode+0x350/0x350
+[  353.769922]  ? entry_SYSCALL_64_after_hwframe+0x52/0xb7
+[  353.769936]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  353.769951]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  353.769958] RIP: 0033:0x454e79
+[  353.769962] RSP: 002b:00007f72f952ec68 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+[  353.769972] RAX: ffffffffffffffda RBX: 00007f72f952f6d4 RCX: 0000000000454e79
+[  353.769978] RDX: 0000000000000010 RSI: 0000000020000000 RDI: 0000000000000016
+[  353.769984] RBP: 000000000072bea0 R08: 0000000000000000 R09: 0000000000000000
+[  353.769991] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  353.769996] R13: 00000000000006b7 R14: 00000000006fc1c8 R15: 0000000000000000
+[  353.770012] 
+[  353.770018] Allocated by task 23659:
+[  353.770029]  save_stack+0x43/0xd0
+[  353.770038]  kasan_kmalloc+0xad/0xe0
+[  353.770047]  __kmalloc_node_track_caller+0x47/0x70
+[  353.770059]  __kmalloc_reserve.isra.39+0x41/0xd0
+[  353.770067]  __alloc_skb+0x13b/0x780
+[  353.770076]  tcp_v6_send_response+0x215/0x1c30
+[  353.770083]  tcp_v6_send_reset+0x6fe/0xff0
+[  353.770090]  tcp_v6_rcv+0x1c56/0x2d70
+[  353.770097]  ip6_input_finish+0x37e/0x17a0
+[  353.770103]  ip6_input+0xdb/0x560
+[  353.770111]  ip6_rcv_finish+0x297/0x8c0
+[  353.770117]  ipv6_rcv+0xf38/0x1fb0
+[  353.770126]  __netif_receive_skb_core+0x1a41/0x3460
+[  353.770133]  __netif_receive_skb+0x2c/0x1b0
+[  353.770140]  process_backlog+0x203/0x740
+[  353.770147]  net_rx_action+0x792/0x1910
+[  353.770155]  __do_softirq+0x2d7/0xb85
+[  353.770158] 
+[  353.770162] Freed by task 23659:
+[  353.770169]  save_stack+0x43/0xd0
+[  353.770177]  __kasan_slab_free+0x11a/0x170
+[  353.770184]  kasan_slab_free+0xe/0x10
+[  353.770191]  kfree+0xd9/0x260
+[  353.770199]  skb_free_head+0x74/0xb0
+[  353.770206]  skb_release_data+0x58c/0x790
+[  353.770213]  skb_release_all+0x4a/0x60
+[  353.770219]  __kfree_skb+0x15/0x20
+[  353.770227]  tcp_drop+0xcf/0x100
+[  353.770237]  tcp_rcv_state_process+0xb86/0x4920
+[  353.770244]  tcp_v6_do_rcv+0x739/0x1250
+[  353.770259]  __release_sock+0x124/0x360
+[  353.770270]  release_sock+0xa4/0x2a0
+[  353.770280]  __inet_stream_connect+0x651/0xf00
+[  353.770290]  tcp_sendmsg_locked+0x264e/0x3c70
+[  353.770299]  tcp_sendmsg+0x2f/0x50
+[  353.770307]  inet_sendmsg+0x11f/0x5e0
+[  353.770314]  sock_sendmsg+0xca/0x110
+[  353.770322]  SYSC_sendto+0x361/0x5c0
+[  353.770328]  SyS_sendto+0x40/0x50
+[  353.770337]  do_syscall_64+0x281/0x940
+[  353.770346]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  353.770349] 
+[  353.770356] The buggy address belongs to the object at ffff8801d0d16480
+[  353.770356]  which belongs to the cache kmalloc-1024 of size 1024
+[  353.770364] The buggy address is located 472 bytes inside of
+[  353.770364]  1024-byte region [ffff8801d0d16480, ffff8801d0d16880)
+[  353.770367] The buggy address belongs to the page:
+[  353.770375] page:ffffea0007434580 count:1 mapcount:0 mapping:ffff8801d0d16000 index:0x0 compound_mapcount: 0
+[  353.770388] flags: 0x2fffc0000008100(slab|head)
+[  353.770400] raw: 02fffc0000008100 ffff8801d0d16000 0000000000000000 0000000100000007
+[  353.770411] raw: ffffea0006b2d5a0 ffffea00070c3920 ffff8801dac00ac0 0000000000000000
+[  353.770415] page dumped because: kasan: bad access detected
+[  353.770418] 
+[  353.770421] Memory state around the buggy address:
+[  353.770428]  ffff8801d0d16500: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  353.770435]  ffff8801d0d16580: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  353.770441] >ffff8801d0d16600: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  353.770446]                                                     ^
+[  353.770452]  ffff8801d0d16680: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  353.770459]  ffff8801d0d16700: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[  353.770463] ==================================================================

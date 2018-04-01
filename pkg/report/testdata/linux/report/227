@@ -1,0 +1,157 @@
+TITLE: KASAN: use-after-free Read in cma_cancel_operation
+
+syzkaller login: [   23.820987] ==================================================================
+[   23.828498] BUG: KASAN: use-after-free in __list_del_entry_valid+0x144/0x150
+[   23.835671] Read of size 8 at addr ffff8801b94cef60 by task syzkaller058671/4231
+[   23.843174] 
+[   23.844778] CPU: 0 PID: 4231 Comm: syzkaller058671 Not tainted 4.16.0-rc6+ #366
+[   23.852196] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   23.861534] Call Trace:
+[   23.864208]  dump_stack+0x194/0x24d
+[   23.867823]  ? arch_local_irq_restore+0x53/0x53
+[   23.872471]  ? show_regs_print_info+0x18/0x18
+[   23.876944]  ? rcu_note_context_switch+0x710/0x710
+[   23.881852]  ? __list_del_entry_valid+0x144/0x150
+[   23.886673]  print_address_description+0x73/0x250
+[   23.891488]  ? __list_del_entry_valid+0x144/0x150
+[   23.896312]  kasan_report+0x23c/0x360
+[   23.900093]  __asan_report_load8_noabort+0x14/0x20
+[   23.904998]  __list_del_entry_valid+0x144/0x150
+[   23.909648]  cma_cancel_operation+0x455/0xd60
+[   23.914117]  ? finish_task_switch+0x182/0x7e0
+[   23.918594]  ? find_held_lock+0x35/0x1d0
+[   23.922632]  ? rdma_destroy_id+0xda0/0xda0
+[   23.926843]  ? rdma_destroy_id+0xf4/0xda0
+[   23.930970]  ? lock_downgrade+0x980/0x980
+[   23.935097]  ? lock_release+0xa40/0xa40
+[   23.939055]  ? do_raw_spin_trylock+0x190/0x190
+[   23.943704]  ? _raw_spin_unlock_irqrestore+0x31/0xc0
+[   23.948788]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   23.953784]  rdma_destroy_id+0xff/0xda0
+[   23.957731]  ? lock_release+0xa40/0xa40
+[   23.961681]  ? lock_downgrade+0x980/0x980
+[   23.965811]  ? cma_release_dev+0x350/0x350
+[   23.970033]  ? radix_tree_delete_item+0x146/0x280
+[   23.974873]  ucma_close+0x100/0x2f0
+[   23.978475]  ? ucma_free_ctx+0xd90/0xd90
+[   23.982521]  __fput+0x327/0x7e0
+[   23.985783]  ? fput+0x140/0x140
+[   23.989046]  ? check_same_owner+0x320/0x320
+[   23.993341]  ? _raw_spin_unlock_irq+0x27/0x70
+[   23.997814]  ____fput+0x15/0x20
+[   24.001074]  task_work_run+0x199/0x270
+[   24.004938]  ? task_work_cancel+0x210/0x210
+[   24.009235]  ? _raw_spin_unlock+0x22/0x30
+[   24.013357]  ? switch_task_namespaces+0x87/0xc0
+[   24.018007]  do_exit+0x9bb/0x1ad0
+[   24.021448]  ? find_held_lock+0x35/0x1d0
+[   24.025486]  ? mm_update_next_owner+0x930/0x930
+[   24.030145]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   24.035315]  ? lock_downgrade+0x980/0x980
+[   24.039438]  ? __unqueue_futex+0x1c0/0x290
+[   24.043650]  ? lock_release+0xa40/0xa40
+[   24.047599]  ? fault_in_user_writeable+0x90/0x90
+[   24.052329]  ? do_raw_spin_trylock+0x190/0x190
+[   24.056885]  ? futex_wake+0x680/0x680
+[   24.060666]  ? drop_futex_key_refs.isra.13+0x63/0xb0
+[   24.065745]  ? futex_wait+0x6a9/0x9a0
+[   24.069550]  ? trace_hardirqs_off+0x10/0x10
+[   24.073845]  ? drop_futex_key_refs.isra.13+0x63/0xb0
+[   24.078922]  ? futex_wake+0x2ca/0x680
+[   24.082700]  ? memset+0x31/0x40
+[   24.085961]  ? find_held_lock+0x35/0x1d0
+[   24.090650]  ? get_signal+0x7a9/0x16d0
+[   24.094516]  ? lock_downgrade+0x980/0x980
+[   24.098662]  do_group_exit+0x149/0x400
+[   24.102531]  ? do_raw_spin_trylock+0x190/0x190
+[   24.107087]  ? SyS_exit+0x30/0x30
+[   24.110517]  ? _raw_spin_unlock_irq+0x27/0x70
+[   24.114988]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[   24.119999]  get_signal+0x73a/0x16d0
+[   24.123704]  ? ptrace_notify+0x130/0x130
+[   24.127742]  ? ucma_put_ctx+0x26/0x30
+[   24.131517]  ? ucma_listen+0x182/0x1f0
+[   24.135390]  ? ucma_accept+0x970/0x970
+[   24.139266]  ? kasan_check_write+0x14/0x20
+[   24.143474]  ? _copy_from_user+0x99/0x110
+[   24.147600]  ? ucma_write+0x11f/0x3d0
+[   24.151376]  ? ucma_accept+0x970/0x970
+[   24.155240]  ? ucma_close_id+0x60/0x60
+[   24.159108]  do_signal+0x90/0x1e90
+[   24.162643]  ? ucma_close_id+0x60/0x60
+[   24.166504]  ? __vfs_write+0xf7/0x970
+[   24.170280]  ? setup_sigcontext+0x7d0/0x7d0
+[   24.174573]  ? kernel_read+0x120/0x120
+[   24.178443]  ? trace_hardirqs_off+0x10/0x10
+[   24.182756]  ? fsnotify+0x7b3/0x1140
+[   24.186474]  ? exit_to_usermode_loop+0x8c/0x2f0
+[   24.191141]  exit_to_usermode_loop+0x258/0x2f0
+[   24.195710]  ? trace_event_raw_event_sys_exit+0x260/0x260
+[   24.201229]  ? do_syscall_64+0xb7/0x940
+[   24.205184]  do_syscall_64+0x6ec/0x940
+[   24.209051]  ? _raw_spin_unlock_irq+0x27/0x70
+[   24.213523]  ? finish_task_switch+0x1c1/0x7e0
+[   24.217992]  ? syscall_return_slowpath+0x550/0x550
+[   24.222910]  ? syscall_return_slowpath+0x2ac/0x550
+[   24.227821]  ? prepare_exit_to_usermode+0x350/0x350
+[   24.232813]  ? entry_SYSCALL_64_after_hwframe+0x52/0xb7
+[   24.238154]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   24.243581]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[   24.248746] RIP: 0033:0x446a49
+[   24.251909] RSP: 002b:00007fb425dffda8 EFLAGS: 00000246 ORIG_RAX: 00000000000000ca
+[   24.259591] RAX: fffffffffffffe00 RBX: 00000000006e29fc RCX: 0000000000446a49
+[   24.266837] RDX: 0000000000000000 RSI: 0000000000000000 RDI: 00000000006e29fc
+[   24.274081] RBP: 00000000006e29f8 R08: 0000000000000000 R09: 0000000000000000
+[   24.281323] R10: 0000000000000000 R11: 0000000000000246 R12: 006d635f616d6472
+[   24.288563] R13: 2f646e6162696e69 R14: 666e692f7665642f R15: 0000000000000005
+[   24.295820] 
+[   24.297425] Allocated by task 4228:
+[   24.301034]  save_stack+0x43/0xd0
+[   24.304464]  kasan_kmalloc+0xad/0xe0
+[   24.308160]  kmem_cache_alloc_trace+0x136/0x740
+[   24.312806]  rdma_create_id+0xd0/0x630
+[   24.316665]  ucma_create_id+0x35f/0x920
+[   24.320611]  ucma_write+0x2d6/0x3d0
+[   24.324208]  __vfs_write+0xef/0x970
+[   24.327804]  vfs_write+0x189/0x510
+[   24.331316]  SyS_write+0xef/0x220
+[   24.334742]  do_syscall_64+0x281/0x940
+[   24.338605]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[   24.343764] 
+[   24.345363] Freed by task 4231:
+[   24.348617]  save_stack+0x43/0xd0
+[   24.352048]  __kasan_slab_free+0x11a/0x170
+[   24.356360]  kasan_slab_free+0xe/0x10
+[   24.360134]  kfree+0xd9/0x260
+[   24.363210]  rdma_destroy_id+0x821/0xda0
+[   24.367243]  ucma_close+0x100/0x2f0
+[   24.370842]  __fput+0x327/0x7e0
+[   24.374092]  ____fput+0x15/0x20
+[   24.377343]  task_work_run+0x199/0x270
+[   24.381205]  do_exit+0x9bb/0x1ad0
+[   24.384631]  do_group_exit+0x149/0x400
+[   24.388492]  get_signal+0x73a/0x16d0
+[   24.392175]  do_signal+0x90/0x1e90
+[   24.395690]  exit_to_usermode_loop+0x258/0x2f0
+[   24.400242]  do_syscall_64+0x6ec/0x940
+[   24.404102]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[   24.409260] 
+[   24.410860] The buggy address belongs to the object at ffff8801b94ced80
+[   24.410860]  which belongs to the cache kmalloc-1024 of size 1024
+[   24.423658] The buggy address is located 480 bytes inside of
+[   24.423658]  1024-byte region [ffff8801b94ced80, ffff8801b94cf180)
+[   24.435589] The buggy address belongs to the page:
+[   24.440494] page:ffffea0006e53380 count:1 mapcount:0 mapping:ffff8801b94ce000 index:0x0 compound_mapcount: 0
+[   24.450434] flags: 0x2fffc0000008100(slab|head)
+[   24.455077] raw: 02fffc0000008100 ffff8801b94ce000 0000000000000000 0000000100000007
+[   24.462944] raw: ffffea0006e8ad20 ffff8801dac01848 ffff8801dac00ac0 0000000000000000
+[   24.470793] page dumped because: kasan: bad access detected
+[   24.476484] 
+[   24.478084] Memory state around the buggy address:
+[   24.482985]  ffff8801b94cee00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   24.490316]  ffff8801b94cee80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   24.497649] >ffff8801b94cef00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   24.504991]                                                        ^
+[   24.511460]  ffff8801b94cef80: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   24.518793]  ffff8801b94cf000: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   24.526121] ==================================================================

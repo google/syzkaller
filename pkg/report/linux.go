@@ -572,6 +572,11 @@ var linuxStackParams = &stackParams{
 		"get_user",
 		"might_fault",
 		"might_sleep",
+		"list_add",
+		"list_del",
+		"list_replace",
+		"list_move",
+		"list_splice",
 	},
 }
 

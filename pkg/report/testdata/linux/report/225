@@ -1,0 +1,396 @@
+TITLE: KASAN: use-after-free Read in binder_release_work
+
+[   32.347901] ==================================================================
+[   32.355262] BUG: KASAN: use-after-free in __list_del_entry+0x196/0x1d0
+[   32.355327] binder: 3798:3799 ERROR: BC_REGISTER_LOOPER called without request
+[   32.369233] Read of size 8 at addr ffff8801d4933c10 by task kworker/u4:1/19
+[   32.376302] 
+[   32.376363] binder: release 3798:3799 transaction 15 out, still active
+[   32.376368] binder: release 3798:3799 transaction 14 in, still active
+[   32.376371] binder: undelivered TRANSACTION_COMPLETE
+executing program
+[   32.376497] binder: 3798:3799 BC_ACQUIRE_DONE u0000000000000000 node 13 cookie mismatch 0000000000000004 != 0000000000000000
+[   32.407488] CPU: 0 PID: 19 Comm: kworker/u4:1 Not tainted 4.4.119-g855ea74 #27
+[   32.414827] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   32.417543] binder: BINDER_SET_CONTEXT_MGR already set
+[   32.417549] binder: 3801:3802 ioctl 40046207 0 returned -16
+[   32.418220] binder: 3801:3802 ERROR: BC_REGISTER_LOOPER called without request
+[   32.438969] binder_alloc: 3798: binder_alloc_buf, no vma
+executing program
+[   32.439006] binder: 3801:3803 transaction failed 29189/-3, size 0-0 line 3128
+[   32.441263] binder: undelivered TRANSACTION_ERROR: 29189
+[   32.443545] binder: 3801:3803 BC_ACQUIRE_DONE u0000000000000000 no match
+[   32.466020] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.466056] binder: 3801:3804 transaction failed 29189/-3, size 0-0 line 3128
+[   32.479954] Workqueue: binder binder_deferred_func[   32.484559] binder: BINDER_SET_CONTEXT_MGR already set
+[   32.484565] binder: 3805:3806 ioctl 40046207 0 returned -16
+[   32.485214] binder: 3805:3806 ERROR: BC_REGISTER_LOOPER called without request
+
+[   32.502946] 
+[   32.504848]  0000000000000000[   32.506005] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.506042] binder: 3805:3807 transaction failed 29189/-3, size 0-0 line 3128
+[   32.508305] binder: undelivered TRANSACTION_ERROR: 29189
+[   32.510587] binder: 3805:3807 BC_ACQUIRE_DONE u0000000000000000 no match
+
+[   32.532616]  b6dc3e4a89cbf741[   32.533103] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.533138] binder: 3805:3808 transaction failed 29189/-3, size 0-0 line 3128
+executing program
+[   32.548469]  ffff8801d94a7a58 ffffffff81d0402d[   32.551666] binder: BINDER_SET_CONTEXT_MGR already set
+[   32.551672] binder: 3809:3810 ioctl 40046207 0 returned -16
+[   32.552349] binder: 3809:3810 ERROR: BC_REGISTER_LOOPER called without request
+
+[   32.571228] 
+[   32.573088] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.573126] binder: 3809:3811 transaction failed 29189/-3, size 0-0 line 3128
+[   32.575383] binder: undelivered TRANSACTION_ERROR: 29189
+[   32.577664] binder: 3809:3811 BC_ACQUIRE_DONE u0000000000000000 no match
+executing program
+[   32.598000]  ffffea0007524cc0[   32.600171] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.600206] binder: 3809:3812 transaction failed 29189/-3, size 0-0 line 3128
+
+[   32.613558]  ffff8801d4933c10 0000000000000000 ffff8801d4933c10[   32.618735] binder: BINDER_SET_CONTEXT_MGR already set
+[   32.618741] binder: 3813:3814 ioctl 40046207 0 returned -16
+[   32.619416] binder: 3813:3814 ERROR: BC_REGISTER_LOOPER called without request
+
+[   32.638207] 
+[   32.640100]  ffffed0039617cf9[   32.640170] binder_alloc: 3798: binder_alloc_buf, no vma
+executing program
+[   32.640208] binder: 3813:3815 transaction failed 29189/-3, size 0-0 line 3128
+[   32.642466] binder: undelivered TRANSACTION_ERROR: 29189
+[   32.644748] binder: 3813:3815 BC_ACQUIRE_DONE u0000000000000000 no match
+[   32.667277] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.667319] binder: 3813:3816 transaction failed 29189/-3, size 0-0 line 3128
+
+[   32.680537]  ffff8801d94a7a90 ffffffff814fe103 ffff8801d4933c10
+[   32.686957] binder: BINDER_SET_CONTEXT_MGR already set
+[   32.686963] binder: 3817:3818 ioctl 40046207 0 returned -16
+[   32.687638] binder: 3817:3818 ERROR: BC_REGISTER_LOOPER called without request
+[   32.705494] Call Trace:
+[   32.708053]  [<ffffffff81d0402d>] dump_stack+0xc1/0x124
+[   32.708401] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.708439] binder: 3817:3819 transaction failed 29189/-3, size 0-0 line 3128
+[   32.710693] binder: undelivered TRANSACTION_ERROR: 29189
+[   32.712975] binder: 3817:3819 BC_ACQUIRE_DONE u0000000000000000 no match
+[   32.735499] binder_alloc: 3798: binder_alloc_buf, no vma
+executing program
+[   32.735535] binder: 3817:3820 transaction failed 29189/-3, size 0-0 line 3128
+[   32.750958]  [<ffffffff814fe103>] print_address_description+0x73/0x260
+[   32.755102] binder: BINDER_SET_CONTEXT_MGR already set
+[   32.755108] binder: 3821:3822 ioctl 40046207 0 returned -16
+[   32.755770] binder: 3821:3822 ERROR: BC_REGISTER_LOOPER called without request
+[   32.775846]  [<ffffffff814fe615>] kasan_report+0x285/0x370
+[   32.776559] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.776595] binder: 3821:3823 transaction failed 29189/-3, size 0-0 line 3128
+[   32.778850] binder: undelivered TRANSACTION_ERROR: 29189
+executing program
+[   32.781132] binder: 3821:3823 BC_ACQUIRE_DONE u0000000000000000 no match
+[   32.803668] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.803704] binder: 3821:3824 transaction failed 29189/-3, size 0-0 line 3128
+[   32.819007]  [<ffffffff81d64346>] ? __list_del_entry+0x196/0x1d0
+[   32.823424] binder: BINDER_SET_CONTEXT_MGR already set
+[   32.823430] binder: 3825:3826 ioctl 40046207 0 returned -16
+[   32.824108] binder: 3825:3826 ERROR: BC_REGISTER_LOOPER called without request
+[   32.843396]  [<ffffffff814fe774>] __asan_report_load8_noabort+0x14/0x20
+executing program
+[   32.844866] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.844903] binder: 3825:3827 transaction failed 29189/-3, size 0-0 line 3128
+[   32.847157] binder: undelivered TRANSACTION_ERROR: 29189
+[   32.849442] binder: 3825:3827 BC_ACQUIRE_DONE u0000000000000000 no match
+[   32.871975] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.872010] binder: 3825:3828 transaction failed 29189/-3, size 0-0 line 3128
+[   32.887652]  [<ffffffff81d64346>] __list_del_entry+0x196/0x1d0
+[   32.891773] binder: BINDER_SET_CONTEXT_MGR already set
+[   32.891779] binder: 3829:3830 ioctl 40046207 0 returned -16
+[   32.892457] binder: 3829:3830 ERROR: BC_REGISTER_LOOPER called without request
+[   32.911844]  [<ffffffff82c7676e>] binder_release_work+0x6e/0x260
+[   32.913217] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.913254] binder: 3829:3831 transaction failed 29189/-3, size 0-0 line 3128
+[   32.915514] binder: undelivered TRANSACTION_ERROR: 29189
+[   32.917795] binder: 3829:3831 BC_ACQUIRE_DONE u0000000000000000 no match
+[   32.940326] binder_alloc: 3798: binder_alloc_buf, no vma
+executing program
+[   32.940362] binder: 3829:3832 transaction failed 29189/-3, size 0-0 line 3128
+[   32.955491]  [<ffffffff82c763aa>] ? binder_send_failed_reply+0x18a/0x3a0
+[   32.960137] binder: BINDER_SET_CONTEXT_MGR already set
+[   32.960143] binder: 3833:3834 ioctl 40046207 0 returned -16
+[   32.960817] binder: 3833:3834 ERROR: BC_REGISTER_LOOPER called without request
+[   32.980577]  [<ffffffff82c76d85>] binder_thread_release+0x425/0x600
+[   32.981583] binder_alloc: 3798: binder_alloc_buf, no vma
+[   32.981620] binder: 3833:3835 transaction failed 29189/-3, size 0-0 line 3128
+[   32.983878] binder: undelivered TRANSACTION_ERROR: 29189
+[   32.986160] binder: 3833:3835 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.008687] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.008723] binder: 3833:3836 transaction failed 29189/-3, size 0-0 line 3128
+[   33.024480]  [<ffffffff82c7b9f8>] binder_deferred_func+0x438/0xd10
+[   33.028304] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.028310] binder: 3837:3838 ioctl 40046207 0 returned -16
+[   33.028987] binder: 3837:3838 ERROR: BC_REGISTER_LOOPER called without request
+[   33.049042]  [<ffffffff81230151>] ? __lock_is_held+0xa1/0xf0
+[   33.049752] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.049788] binder: 3837:3839 transaction failed 29189/-3, size 0-0 line 3128
+[   33.052044] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.054326] binder: 3837:3839 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.076848] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.076885] binder: 3837:3840 transaction failed 29189/-3, size 0-0 line 3128
+[   33.092382]  [<ffffffff8117fd37>] process_one_work+0x7d7/0x16e0
+[   33.095715] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.095721] binder: 3841:3842 ioctl 40046207 0 returned -16
+[   33.096423] binder: 3841:3842 ERROR: BC_REGISTER_LOOPER called without request
+[   33.116657]  [<ffffffff8117fc57>] ? process_one_work+0x6f7/0x16e0
+[   33.117165] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.117203] binder: 3841:3843 transaction failed 29189/-3, size 0-0 line 3128
+[   33.119459] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.121741] binder: 3841:3843 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.144289] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.144326] binder: 3841:3844 transaction failed 29189/-3, size 0-0 line 3128
+[   33.160408]  [<ffffffff8117f560>] ? pwq_dec_nr_in_flight+0x280/0x280
+[   33.163483] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.163489] binder: 3845:3846 ioctl 40046207 0 returned -16
+[   33.164162] binder: 3845:3846 ERROR: BC_REGISTER_LOOPER called without request
+[   33.184929] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.184966] binder: 3845:3847 transaction failed 29189/-3, size 0-0 line 3128
+[   33.187222] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.189508] binder: 3845:3847 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.210450]  [<ffffffff81180ec8>] ? worker_thread+0x288/0xfc0
+[   33.212014] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.212050] binder: 3845:3848 transaction failed 29189/-3, size 0-0 line 3128
+[   33.228977]  [<ffffffff81180d19>] worker_thread+0xd9/0xfc0
+[   33.230979] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.230985] binder: 3849:3850 ioctl 40046207 0 returned -16
+[   33.231661] binder: 3849:3850 ERROR: BC_REGISTER_LOOPER called without request
+[   33.252423] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.252460] binder: 3849:3851 transaction failed 29189/-3, size 0-0 line 3128
+[   33.254716] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.256999] binder: 3849:3851 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.277690]  [<ffffffff81003058>] ? ___preempt_schedule+0x12/0x14
+[   33.279484] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.279521] binder: 3849:3852 transaction failed 29189/-3, size 0-0 line 3128
+[   33.296557]  [<ffffffff81190788>] kthread+0x268/0x300
+[   33.298379] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.298385] binder: 3853:3854 ioctl 40046207 0 returned -16
+[   33.299037] binder: 3853:3854 ERROR: BC_REGISTER_LOOPER called without request
+[   33.319829] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.319867] binder: 3853:3855 transaction failed 29189/-3, size 0-0 line 3128
+[   33.322124] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.324412] binder: 3853:3855 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.345194]  [<ffffffff81180c40>] ? process_one_work+0x16e0/0x16e0
+[   33.346946] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.346982] binder: 3853:3856 transaction failed 29189/-3, size 0-0 line 3128
+[   33.364144]  [<ffffffff81190520>] ? kthread_create_on_node+0x400/0x400
+[   33.365781] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.365787] binder: 3857:3858 ioctl 40046207 0 returned -16
+[   33.366488] binder: 3857:3858 ERROR: BC_REGISTER_LOOPER called without request
+[   33.387224] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.387270] binder: 3857:3859 transaction failed 29189/-3, size 0-0 line 3128
+[   33.389527] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.391807] binder: 3857:3859 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.413919]  [<ffffffff81190520>] ? kthread_create_on_node+0x400/0x400
+[   33.414305] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.414341] binder: 3857:3860 transaction failed 29189/-3, size 0-0 line 3128
+[   33.433148] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.433154] binder: 3861:3862 ioctl 40046207 0 returned -16
+[   33.433808] binder: 3861:3862 ERROR: BC_REGISTER_LOOPER called without request
+[   33.451475]  [<ffffffff83773a85>] ret_from_fork+0x55/0x80
+[   33.454590] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.454626] binder: 3861:3863 transaction failed 29189/-3, size 0-0 line 3128
+[   33.456883] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.459164] binder: 3861:3863 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.481664] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.481700] binder: 3861:3864 transaction failed 29189/-3, size 0-0 line 3128
+[   33.494501]  [<ffffffff81190520>] ? kthread_create_on_node+0x400/0x400
+[   33.500572] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.500578] binder: 3865:3866 ioctl 40046207 0 returned -16
+[   33.501257] binder: 3865:3866 ERROR: BC_REGISTER_LOOPER called without request
+[   33.519394] 
+[   33.520997] Allocated by task 3789:
+[   33.522011] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.522047] binder: 3865:3867 transaction failed 29189/-3, size 0-0 line 3128
+[   33.524302] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.526583] binder: 3865:3867 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.549066] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.549102] binder: 3865:3868 transaction failed 29189/-3, size 0-0 line 3128
+[   33.562109]  [<ffffffff81035d96>] save_stack_trace+0x26/0x50
+[   33.567964] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.567970] binder: 3869:3870 ioctl 40046207 0 returned -16
+[   33.568624] binder: 3869:3870 ERROR: BC_REGISTER_LOOPER called without request
+[   33.586288]  [<ffffffff814fd173>] save_stack+0x43/0xd0
+[   33.589408] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.589445] binder: 3869:3871 transaction failed 29189/-3, size 0-0 line 3128
+[   33.591702] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.593984] binder: 3869:3871 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.616476] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.616511] binder: 3869:3872 transaction failed 29189/-3, size 0-0 line 3128
+[   33.629215]  [<ffffffff814fd43d>] kasan_kmalloc+0xad/0xe0
+[   33.634860]  [   33.635331] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.635336] binder: 3873:3874 ioctl 40046207 0 returned -16
+[   33.636032] binder: 3873:3874 ERROR: BC_REGISTER_LOOPER called without request
+
+[   33.654621] [<ffffffff814f93c0>] kmem_cache_alloc_trace+0x100/0x2b0
+[   33.656779] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.656816] binder: 3873:3875 transaction failed 29189/-3, size 0-0 line 3128
+[   33.659072] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.661359] binder: 3873:3875 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.683844] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.683880] binder: 3873:3876 transaction failed 29189/-3, size 0-0 line 3128
+[   33.698823]  [<ffffffff82c86b4c>] binder_transaction+0x103c/0x7290
+[   33.702738] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.702744] binder: 3877:3878 ioctl 40046207 0 returned -16
+[   33.703423] binder: 3877:3878 ERROR: BC_REGISTER_LOOPER called without request
+[   33.723503]  [   33.724195] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.724239] binder: 3877:3879 transaction failed 29189/-3, size 0-0 line 3128
+[   33.726496] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.728779] binder: 3877:3879 BC_ACQUIRE_DONE u0000000000000000 no match
+
+[   33.749908] [<ffffffff82c8d5bf>] binder_thread_write+0x81f/0x33e0
+[   33.751281] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.751318] binder: 3877:3880 transaction failed 29189/-3, size 0-0 line 3128
+[   33.769069]  [   33.770164] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.770169] binder: 3881:3882 ioctl 40046207 0 returned -16
+[   33.770848] binder: 3881:3882 ERROR: BC_REGISTER_LOOPER called without request
+
+[   33.788858] [<ffffffff82c9034f>] binder_ioctl_write_read.isra.55+0x1cf/0xbc0
+[   33.791609] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.791646] binder: 3881:3883 transaction failed 29189/-3, size 0-0 line 3128
+[   33.793903] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.796185] binder: 3881:3883 BC_ACQUIRE_DONE u0000000000000000 no match
+[   33.818664] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.818700] binder: 3881:3884 transaction failed 29189/-3, size 0-0 line 3128
+[   33.833817]  [<ffffffff82c91990>] binder_ioctl+0xc50/0x12e0
+[   33.837591] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.837597] binder: 3885:3886 ioctl 40046207 0 returned -16
+[   33.838259] binder: 3885:3886 ERROR: BC_REGISTER_LOOPER called without request
+[   33.857871]  [   33.859031] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.859068] binder: 3885:3887 transaction failed 29189/-3, size 0-0 line 3128
+[   33.861330] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.863612] binder: 3885:3887 BC_ACQUIRE_DONE u0000000000000000 no match
+
+[   33.884252] [<ffffffff81559d4a>] do_vfs_ioctl+0x7aa/0xee0
+[   33.886127] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.886164] binder: 3885:3888 transaction failed 29189/-3, size 0-0 line 3128
+[   33.902713]  [<ffffffff8155a50f>] SyS_ioctl+0x8f/0xc0
+[   33.904972] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.904978] binder: 3889:3890 ioctl 40046207 0 returned -16
+[   33.905653] binder: 3889:3890 ERROR: BC_REGISTER_LOOPER called without request
+[   33.926264]  [   33.926427] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.926465] binder: 3889:3891 transaction failed 29189/-3, size 0-0 line 3128
+[   33.928721] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.931002] binder: 3889:3891 BC_ACQUIRE_DONE u0000000000000000 no match
+
+[   33.952652] [<ffffffff8377365f>] entry_SYSCALL_64_fastpath+0x1c/0x98
+[   33.953544] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.953580] binder: 3889:3892 transaction failed 29189/-3, size 0-0 line 3128
+[   33.972061] 
+[   33.972476] binder: BINDER_SET_CONTEXT_MGR already set
+[   33.972482] binder: 3893:3894 ioctl 40046207 0 returned -16
+[   33.973159] binder: 3893:3894 ERROR: BC_REGISTER_LOOPER called without request
+[   33.991910] Freed by task 19:
+[   33.993926] binder_alloc: 3798: binder_alloc_buf, no vma
+[   33.993963] binder: 3893:3895 transaction failed 29189/-3, size 0-0 line 3128
+[   33.996224] binder: undelivered TRANSACTION_ERROR: 29189
+[   33.998505] binder: 3893:3895 BC_ACQUIRE_DONE u0000000000000000 no match
+[   34.019865]  [   34.021007] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.021043] binder: 3893:3896 transaction failed 29189/-3, size 0-0 line 3128
+
+[   34.034045] [<ffffffff81035d96>] save_stack_trace+0x26/0x50
+[   34.039952] binder: BINDER_SET_CONTEXT_MGR already set
+[   34.039958] binder: 3897:3898 ioctl 40046207 0 returned -16
+[   34.040638] binder: 3897:3898 ERROR: BC_REGISTER_LOOPER called without request
+[   34.058288]  [<ffffffff814fd173>] save_stack+0x43/0xd0
+[   34.061396] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.061433] binder: 3897:3899 transaction failed 29189/-3, size 0-0 line 3128
+[   34.063690] binder: undelivered TRANSACTION_ERROR: 29189
+[   34.065964] binder: 3897:3899 BC_ACQUIRE_DONE u0000000000000000 no match
+[   34.088470] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.088504] binder: 3897:3900 transaction failed 29189/-3, size 0-0 line 3128
+[   34.101193]  [<ffffffff814fda92>] kasan_slab_free+0x72/0xc0
+[   34.107019]  [   34.107353] binder: BINDER_SET_CONTEXT_MGR already set
+[   34.107359] binder: 3901:3902 ioctl 40046207 0 returned -16
+[   34.108007] binder: 3901:3902 ERROR: BC_REGISTER_LOOPER called without request
+
+[   34.126788] [<ffffffff814fa52c>] kfree+0xfc/0x300
+[   34.128804] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.128839] binder: 3901:3903 transaction failed 29189/-3, size 0-0 line 3128
+[   34.131095] binder: undelivered TRANSACTION_ERROR: 29189
+[   34.133377] binder: 3901:3903 BC_ACQUIRE_DONE u0000000000000000 no match
+[   34.155938] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.155975] binder: 3901:3904 transaction failed 29189/-3, size 0-0 line 3128
+[   34.169429]  [<ffffffff82c6beca>] binder_free_transaction+0x6a/0x90
+[   34.175078] binder: BINDER_SET_CONTEXT_MGR already set
+[   34.175084] binder: 3905:3906 ioctl 40046207 0 returned -16
+[   34.175761] binder: 3905:3906 ERROR: BC_REGISTER_LOOPER called without request
+[   34.194188]  [<ffffffff82c763a5>] binder_send_failed_reply+0x185/0x3a0
+[   34.196530] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.196567] binder: 3905:3907 transaction failed 29189/-3, size 0-0 line 3128
+[   34.198823] binder: undelivered TRANSACTION_ERROR: 29189
+[   34.201106] binder: 3905:3907 BC_ACQUIRE_DONE u0000000000000000 no match
+[   34.223647] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.223684] binder: 3905:3908 transaction failed 29189/-3, size 0-0 line 3128
+[   34.238490]  [<ffffffff82c76d73>] binder_thread_release+0x413/0x600
+[   34.242474] binder: BINDER_SET_CONTEXT_MGR already set
+[   34.242480] binder: 3909:3910 ioctl 40046207 0 returned -16
+[   34.243161] binder: 3909:3910 ERROR: BC_REGISTER_LOOPER called without request
+[   34.263251]  [   34.263918] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.263955] binder: 3909:3911 transaction failed 29189/-3, size 0-0 line 3128
+[   34.266211] binder: undelivered TRANSACTION_ERROR: 29189
+[   34.268492] binder: 3909:3911 BC_ACQUIRE_DONE u0000000000000000 no match
+
+[   34.289639] [<ffffffff82c7b9f8>] binder_deferred_func+0x438/0xd10
+[   34.291028] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.291064] binder: 3909:3912 transaction failed 29189/-3, size 0-0 line 3128
+[   34.308806]  [   34.309979] binder: BINDER_SET_CONTEXT_MGR already set
+[   34.309984] binder: 3913:3914 ioctl 40046207 0 returned -16
+[   34.310664] binder: 3913:3914 ERROR: BC_REGISTER_LOOPER called without request
+
+[   34.328591] [<ffffffff8117fd37>] process_one_work+0x7d7/0x16e0
+[   34.331422] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.331460] binder: 3913:3915 transaction failed 29189/-3, size 0-0 line 3128
+[   34.333716] binder: undelivered TRANSACTION_ERROR: 29189
+[   34.335964] binder: 3913:3915 BC_ACQUIRE_DONE u0000000000000000 no match
+[   34.358495] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.358532] binder: 3913:3916 transaction failed 29189/-3, size 0-0 line 3128
+[   34.372354]  [<ffffffff81180d19>] worker_thread+0xd9/0xfc0
+[   34.377343] binder: BINDER_SET_CONTEXT_MGR already set
+[   34.377348] binder: 3917:3918 ioctl 40046207 0 returned -16
+[   34.378021] binder: 3917:3918 ERROR: BC_REGISTER_LOOPER called without request
+[   34.396323]  [<ffffffff81190788>] kthread+0x268/0x300
+[   34.398785] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.398821] binder: 3917:3919 transaction failed 29189/-3, size 0-0 line 3128
+[   34.401078] binder: undelivered TRANSACTION_ERROR: 29189
+[   34.403358] binder: 3917:3919 BC_ACQUIRE_DONE u0000000000000000 no match
+[   34.425886] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.425943] binder: 3917:3920 transaction failed 29189/-3, size 0-0 line 3128
+[   34.439119]  [<ffffffff83773a85>] ret_from_fork+0x55/0x80
+[   34.444718] binder: BINDER_SET_CONTEXT_MGR already set
+[   34.444724] binder: 3921:3922 ioctl 40046207 0 returned -16
+[   34.445400] binder: 3921:3922 ERROR: BC_REGISTER_LOOPER called without request
+[   34.463041] 
+[   34.464642] The buggy address belongs to the object at ffff8801d4933c00
+[   34.464642]  which belongs to the cache kmalloc-192 of size 192
+[   34.466184] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.466220] binder: 3921:3923 transaction failed 29189/-3, size 0-0 line 3128
+[   34.468477] binder: undelivered TRANSACTION_ERROR: 29189
+[   34.470758] binder: 3921:3923 BC_ACQUIRE_DONE u0000000000000000 no match
+[   34.493298] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.493334] binder: 3921:3924 transaction failed 29189/-3, size 0-0 line 3128
+[   34.512226] binder: BINDER_SET_CONTEXT_MGR already set
+[   34.512232] binder: 3925:3926 ioctl 40046207 0 returned -16
+[   34.512904] binder: 3925:3926 ERROR: BC_REGISTER_LOOPER called without request
+[   34.533045] The buggy address is located 16 bytes inside of
+[   34.533045]  192-byte region [ffff8801d4933c00, ffff8801d4933cc0)
+[   34.533677] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.533714] binder: 3925:3927 transaction failed 29189/-3, size 0-0 line 3128
+[   34.535960] binder: undelivered TRANSACTION_ERROR: 29189
+[   34.538246] binder: 3925:3927 BC_ACQUIRE_DONE u0000000000000000 no match
+[   34.560747] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.560782] binder: 3925:3928 transaction failed 29189/-3, size 0-0 line 3128
+[   34.579694] binder: BINDER_SET_CONTEXT_MGR already set
+[   34.579700] binder: 3929:3930 ioctl 40046207 0 returned -16
+[   34.580378] binder: 3929:3930 ERROR: BC_REGISTER_LOOPER called without request
+[   34.600766] The buggy address belongs to the page:
+[   34.601138] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.601174] binder: 3929:3931 transaction failed 29189/-3, size 0-0 line 3128
+[   34.603429] binder: undelivered TRANSACTION_ERROR: 29189
+[   34.605711] binder: 3929:3931 BC_ACQUIRE_DONE u0000000000000000 no match
+[   34.628216] binder_alloc: 3798: binder_alloc_buf, no vma
+[   34.628252] binder: 3929:3932 transaction failed 29189/-3, size 0-0 line 3128
+[   34.645729] ------------[ cut here ]------------
