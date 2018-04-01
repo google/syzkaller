@@ -49,6 +49,10 @@ After sending an email you should get a reply email with results within an hour.
 ```
 #syz dup: exact-subject-of-another-report
 ```
+- to undo a previous dup command and turn it into an independent bug again:
+```
+#syz undup
+```
 - to mark the bug as a one-off invalid report (e.g. induced by a previous memory corruption):
 ```
 #syz invalid
