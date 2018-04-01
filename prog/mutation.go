@@ -604,3 +604,18 @@ func swap64(v uint64) uint64 {
 	v |= uint64(v0) << 56
 	return v
 }
+
+func swap(v, size uint64) uint64 {
+	switch size {
+	case 64:
+		return swap64(v)
+	case 32:
+		return uint64(swap32(uint32(v)))
+	case 16:
+		return uint64(swap16(uint16(v)))
+	case 8:
+		return v
+	default:
+		panic(fmt.Sprintf("swap: bad size %v", size))
+	}
+}

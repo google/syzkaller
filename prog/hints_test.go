@@ -155,6 +155,35 @@ func TestHintsCheckDataArg(t *testing.T) {
 				"\xab\x44\x44\x44\x44\x44\x44\x44\x44": true,
 			},
 		},
+		{
+			"Replace in the middle of a larger blob",
+			"\xef\xcd\xab\x90\x78\x56\x34\x12",
+			CompMap{0xffffffffffff90ab: uint64Set{0xffffffffffffaabb: true}},
+			map[string]bool{
+				"\xef\xcd\xbb\xaa\x78\x56\x34\x12": true,
+			},
+		},
+		{
+
+			"Big-endian replace",
+			"\xef\xcd\xab\x90\x78\x56\x34\x12",
+			CompMap{
+				// 0xff07 is reversed special int.
+				0xefcd:             uint64Set{0xaabb: true, 0xff07: true},
+				0x3412:             uint64Set{0xaabb: true, 0xff07: true},
+				0x9078:             uint64Set{0xaabb: true, 0x11223344: true, 0xff07: true},
+				0x90785634:         uint64Set{0xaabbccdd: true, 0x11223344: true},
+				0xefcdab9078563412: uint64Set{0x1122334455667788: true},
+			},
+			map[string]bool{
+				"\xaa\xbb\xab\x90\x78\x56\x34\x12": true,
+				"\xef\xcd\xab\x90\x78\x56\xaa\xbb": true,
+				"\xef\xcd\xab\xaa\xbb\x56\x34\x12": true,
+				"\xef\xcd\xab\xaa\xbb\xcc\xdd\x12": true,
+				"\xef\xcd\xab\x11\x22\x33\x44\x12": true,
+				"\x11\x22\x33\x44\x55\x66\x77\x88": true,
+			},
+		},
 	}
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%v", test.name), func(t *testing.T) {
@@ -167,7 +196,7 @@ func TestHintsCheckDataArg(t *testing.T) {
 				res[string(dataArg.Data())] = true
 			})
 			if !reflect.DeepEqual(res, test.res) {
-				s := "\ngot: ["
+				s := "\ngot:  ["
 				for x := range res {
 					s += fmt.Sprintf("0x%x, ", x)
 				}
