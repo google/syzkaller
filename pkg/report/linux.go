@@ -1040,6 +1040,12 @@ var linuxOopses = []*oops{
 				corrupted: true,
 			},
 			{
+				// Same, but for task hung reports.
+				title:     compile("Kernel panic - not syncing: hung_task: blocked tasks"),
+				fmt:       "kernel panic: hung_task: blocked tasks",
+				corrupted: true,
+			},
+			{
 				title: compile("Kernel panic - not syncing: (.*)"),
 				fmt:   "kernel panic: %[1]v",
 			},
