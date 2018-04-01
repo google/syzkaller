@@ -462,3 +462,40 @@ func TestEmailDup(t *testing.T) {
 		c.expectEQ(msg.Subject, crash2.Title+" (2)")
 	}
 }
+
+func TestEmailUndup(t *testing.T) {
+	c := NewCtx(t)
+	defer c.Close()
+
+	build := testBuild(1)
+	c.expectOK(c.API(client2, key2, "upload_build", build, nil))
+
+	crash1 := testCrash(build, 1)
+	crash1.Title = "BUG: slightly more elaborate title"
+	c.expectOK(c.API(client2, key2, "report_crash", crash1, nil))
+
+	crash2 := testCrash(build, 2)
+	crash1.Title = "KASAN: another title"
+	c.expectOK(c.API(client2, key2, "report_crash", crash2, nil))
+
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 2)
+	msg1 := <-c.emailSink
+	msg2 := <-c.emailSink
+
+	// Dup crash2 to crash1.
+	c.incomingEmail(msg2.Sender, "#syz dup: BUG: slightly more elaborate title")
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	// Undup crash2.
+	c.incomingEmail(msg2.Sender, "#syz undup")
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+
+	// Now close the original bug, and check that new crashes for the dup does not create bugs.
+	c.incomingEmail(msg1.Sender, "#syz invalid")
+	c.expectOK(c.API(client2, key2, "report_crash", crash2, nil))
+	c.expectOK(c.GET("/email_poll"))
+	c.expectEQ(len(c.emailSink), 0)
+}

@@ -289,6 +289,8 @@ func incomingMail(c context.Context, r *http.Request) error {
 		cmd.Status = dashapi.BugStatusUpstream
 	case "invalid":
 		cmd.Status = dashapi.BugStatusInvalid
+	case "undup":
+		cmd.Status = dashapi.BugStatusOpen
 	case "fix:":
 		if msg.CommandArgs == "" {
 			return replyTo(c, msg, fmt.Sprintf("no commit title"), nil)
