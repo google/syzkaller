@@ -1018,7 +1018,9 @@ static uintptr_t syz_read_part_table(uintptr_t size, uintptr_t nsegs, uintptr_t 
 		struct stat statbuf;
 		if (stat(loopname, &statbuf) == 0) {
 			snprintf(linkname, sizeof(linkname), "./file%d", (int)j++);
-			symlink(loopname, linkname);
+			if (symlink(loopname, linkname)) {
+				debug("syz_read_part_table: symlink(%s, %s) failed: %d\n", loopname, linkname, errno);
+			}
 		}
 	}
 error_clear_loop:
