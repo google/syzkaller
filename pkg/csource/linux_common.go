@@ -135,7 +135,7 @@ var commonHeaderLinux = `
 #if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
 #include <sys/mount.h>
 #endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image)
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image) || defined(__NR_syz_read_part_table)
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/loop.h>
@@ -921,7 +921,7 @@ static uintptr_t syz_genetlink_get_family_id(uintptr_t name)
 }
 #endif
 
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image)
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image) || defined(__NR_syz_read_part_table)
 extern unsigned long long procid;
 
 struct fs_image_segment {
@@ -944,7 +944,96 @@ struct fs_image_segment {
 #elif defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__)
 #define SYZ_memfd_create 360
 #endif
+#endif
 
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_read_part_table)
+static uintptr_t syz_read_part_table(uintptr_t size, uintptr_t nsegs, uintptr_t segments)
+{
+	char loopname[64], linkname[64];
+	int loopfd, err = 0, res = -1;
+	uintptr_t i, j;
+	struct fs_image_segment* segs = (struct fs_image_segment*)segments;
+
+	if (nsegs > IMAGE_MAX_SEGMENTS)
+		nsegs = IMAGE_MAX_SEGMENTS;
+	for (i = 0; i < nsegs; i++) {
+		if (segs[i].size > IMAGE_MAX_SIZE)
+			segs[i].size = IMAGE_MAX_SIZE;
+		segs[i].offset %= IMAGE_MAX_SIZE;
+		if (segs[i].offset > IMAGE_MAX_SIZE - segs[i].size)
+			segs[i].offset = IMAGE_MAX_SIZE - segs[i].size;
+		if (size < segs[i].offset + segs[i].offset)
+			size = segs[i].offset + segs[i].offset;
+	}
+	if (size > IMAGE_MAX_SIZE)
+		size = IMAGE_MAX_SIZE;
+	int memfd = syscall(SYZ_memfd_create, "syz_read_part_table", 0);
+	if (memfd == -1) {
+		err = errno;
+		goto error;
+	}
+	if (ftruncate(memfd, size)) {
+		err = errno;
+		goto error_close_memfd;
+	}
+	for (i = 0; i < nsegs; i++) {
+		if (pwrite(memfd, segs[i].data, segs[i].size, segs[i].offset) < 0) {
+			debug("syz_read_part_table: pwrite[%u] failed: %d\n", (int)i, errno);
+		}
+	}
+	snprintf(loopname, sizeof(loopname), "/dev/loop%llu", procid);
+	loopfd = open(loopname, O_RDWR);
+	if (loopfd == -1) {
+		err = errno;
+		goto error_close_memfd;
+	}
+	if (ioctl(loopfd, LOOP_SET_FD, memfd)) {
+		if (errno != EBUSY) {
+			err = errno;
+			goto error_close_loop;
+		}
+		ioctl(loopfd, LOOP_CLR_FD, 0);
+		usleep(1000);
+		if (ioctl(loopfd, LOOP_SET_FD, memfd)) {
+			err = errno;
+			goto error_close_loop;
+		}
+	}
+	struct loop_info64 info;
+	if (ioctl(loopfd, LOOP_GET_STATUS64, &info)) {
+		err = errno;
+		goto error_clear_loop;
+	}
+#if defined(SYZ_EXECUTOR)
+	cover_reset(0);
+#endif
+	info.lo_flags |= LO_FLAGS_PARTSCAN;
+	if (ioctl(loopfd, LOOP_SET_STATUS64, &info)) {
+		err = errno;
+		goto error_clear_loop;
+	}
+	res = 0;
+	for (i = 1, j = 0; i < 8; i++) {
+		snprintf(loopname, sizeof(loopname), "/dev/loop%llup%d", procid, (int)i);
+		struct stat statbuf;
+		if (stat(loopname, &statbuf) == 0) {
+			snprintf(linkname, sizeof(linkname), "./file%d", (int)j++);
+			symlink(loopname, linkname);
+		}
+	}
+error_clear_loop:
+	ioctl(loopfd, LOOP_CLR_FD, 0);
+error_close_loop:
+	close(loopfd);
+error_close_memfd:
+	close(memfd);
+error:
+	errno = err;
+	return res;
+}
+#endif
+
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image)
 static uintptr_t syz_mount_image(uintptr_t fs, uintptr_t dir, uintptr_t size, uintptr_t nsegs, uintptr_t segments, uintptr_t flags, uintptr_t opts)
 {
 	char loopname[64];
@@ -2843,7 +2932,7 @@ static void loop()
 		if (mkdir(cwdbuf, 0777))
 			fail("failed to mkdir");
 #endif
-#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_fs) || defined(__NR_syz_mount_image) || defined(__NR_syz_read_part_table)
+#if defined(SYZ_EXECUTOR) || defined(__NR_syz_mount_image) || defined(__NR_syz_read_part_table)
 		char buf[64];
 		snprintf(buf, sizeof(buf), "/dev/loop%llu", procid);
 		int loopfd = open(buf, O_RDWR);

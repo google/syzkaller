@@ -1,7 +1,7 @@
 // Copyright 2018 syzkaller project authors. All rights reserved.
 // Use of this source code is governed by Apache 2 LICENSE that can be found in the LICENSE file.
 
-// imagegen generates syz_mount_image calls from disk images.
+// imagegen generates syz_mount_image/syz_read_part_table calls from disk images.
 package main
 
 import (
@@ -41,7 +41,9 @@ func main() {
 			break
 		}
 		pos = (pos + *flagAlign - 1) & ^(*flagAlign - 1)
-		segs = append(segs, Segment{offset, data[:pos]})
+		if pos != 0 {
+			segs = append(segs, Segment{offset, data[:pos]})
+		}
 		for pos < len(data) && data[pos] == 0 {
 			pos++
 		}
@@ -74,20 +76,35 @@ func main() {
 		fmt.Fprintf(os.Stderr, "restored data differs!\n")
 		os.Exit(1)
 	}
-	syscallSuffix := *flagFS
-	if syscallSuffix == "ext2" || syscallSuffix == "ext3" {
-		syscallSuffix = "ext4"
-	}
-	fmt.Printf(`syz_mount_image$%v(&(0x7f0000000000)='%v\x00', &(0x7f0000000100)='./file0\x00', 0x%x, 0x%x, &(0x7f0000000200)=[`,
-		syscallSuffix, *flagFS, len(data0), len(segs))
-	addr := 0x7f0000010000
-	for i, seg := range segs {
-		if i != 0 {
-			fmt.Printf(", ")
+	if *flagFS == "part" {
+		fmt.Printf(`syz_read_part_table(0x%x, 0x%x, &(0x7f0000000200)=[`,
+			len(data0), len(segs))
+		addr := 0x7f0000010000
+		for i, seg := range segs {
+			if i != 0 {
+				fmt.Printf(", ")
+			}
+			fmt.Printf(`{&(0x%x)="%v", 0x%x, 0x%x}`,
+				addr, hex.EncodeToString(seg.data), len(seg.data), seg.offset)
+			addr = (addr + len(seg.data) + 0xff) & ^0xff
 		}
-		fmt.Printf(`{&(0x%x)="%v", 0x%x, 0x%x}`,
-			addr, hex.EncodeToString(seg.data), len(seg.data), seg.offset)
-		addr = (addr + len(seg.data) + 0xff) & ^0xff
+		fmt.Printf("])\n")
+	} else {
+		syscallSuffix := *flagFS
+		if syscallSuffix == "ext2" || syscallSuffix == "ext3" {
+			syscallSuffix = "ext4"
+		}
+		fmt.Printf(`syz_mount_image$%v(&(0x7f0000000000)='%v\x00', &(0x7f0000000100)='./file0\x00', 0x%x, 0x%x, &(0x7f0000000200)=[`,
+			syscallSuffix, *flagFS, len(data0), len(segs))
+		addr := 0x7f0000010000
+		for i, seg := range segs {
+			if i != 0 {
+				fmt.Printf(", ")
+			}
+			fmt.Printf(`{&(0x%x)="%v", 0x%x, 0x%x}`,
+				addr, hex.EncodeToString(seg.data), len(seg.data), seg.offset)
+			addr = (addr + len(seg.data) + 0xff) & ^0xff
+		}
+		fmt.Printf("], 0x0, &(0x%x))\n", addr)
 	}
-	fmt.Printf("], 0x0, &(0x%x))\n", addr)
 }

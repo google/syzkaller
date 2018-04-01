@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "7424a62ff2a634075d9352a6bf1ba14b9377cce8"
+#define SYZ_REVISION "95c0c5827460dd0db116e00429bad9d3fe5778de"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1678;
+unsigned syscall_count = 1679;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1639,6 +1639,7 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsn", 0, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 0, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
+    {"syz_read_part_table", 0, (syscall_t)syz_read_part_table},
     {"tee", 315},
     {"tgkill", 270},
     {"time", 13},
@@ -1692,11 +1693,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "f52cb963bdf72aed0f98688ac20cb16e40b3b2d3"
+#define SYZ_REVISION "14883eb285af454acfe15491ef6052eed4b8d77c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1730;
+unsigned syscall_count = 1731;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3381,6 +3382,7 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsn", 0, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 0, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
+    {"syz_read_part_table", 0, (syscall_t)syz_read_part_table},
     {"tee", 276},
     {"tgkill", 234},
     {"time", 201},
@@ -3434,11 +3436,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "3972faa5a8bbad692d1ecd42060d3a0876823259"
+#define SYZ_REVISION "f64917dfdea0e40f17c49a8c12080a688ebb9a4d"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1675;
+unsigned syscall_count = 1676;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -5070,6 +5072,7 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsn", 0, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 0, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
+    {"syz_read_part_table", 0, (syscall_t)syz_read_part_table},
     {"tee", 342},
     {"tgkill", 268},
     {"timer_create", 257},
@@ -5121,11 +5124,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "527e225af73003b7222cbf51076b057e824248f6"
+#define SYZ_REVISION "6126db2a2079d8fe161c7d1e9c6179cf9a660b2d"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1659;
+unsigned syscall_count = 1660;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6745,6 +6748,7 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsn", 0, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 0, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
+    {"syz_read_part_table", 0, (syscall_t)syz_read_part_table},
     {"tee", 77},
     {"tgkill", 131},
     {"timer_create", 107},
@@ -6792,11 +6796,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "40f069e17536ef2ffed3727cb6238f8ba8d003ef"
+#define SYZ_REVISION "f4f6f2409448b0704d85d908ec0968994157ae6a"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1649;
+unsigned syscall_count = 1650;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8400,6 +8404,7 @@ call_t syscalls[] = {
     {"syz_open_dev$vcsn", 0, (syscall_t)syz_open_dev},
     {"syz_open_procfs", 0, (syscall_t)syz_open_procfs},
     {"syz_open_pts", 0, (syscall_t)syz_open_pts},
+    {"syz_read_part_table", 0, (syscall_t)syz_read_part_table},
     {"tee", 284},
     {"tgkill", 250},
     {"time", 13},

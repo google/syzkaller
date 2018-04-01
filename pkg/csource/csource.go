@@ -65,7 +65,8 @@ func Write(p *prog.Prog, opts Options) ([]byte, error) {
 	}
 	needProcID := opts.Procs > 1 || opts.EnableCgroups
 	for _, c := range p.Calls {
-		if c.Meta.CallName == "syz_mount_image" {
+		if c.Meta.CallName == "syz_mount_image" ||
+			c.Meta.CallName == "syz_read_part_table" {
 			needProcID = true
 		}
 	}
