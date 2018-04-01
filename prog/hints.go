@@ -112,11 +112,6 @@ func checkConstArg(arg *ConstArg, compMap CompMap, exec func()) {
 }
 
 func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
-	// TODO(dvyukov): we need big-endian match for ANYBLOBs.
-	// TODO(dvyukov): any probably not just for ANYBLOBs. Consider that
-	// kernel code does not convert the data (i.e. not ntohs(pkt->proto) == ETH_P_BATMAN),
-	// but instead converts the constant (i.e. pkt->proto == htons(ETH_P_BATMAN)).
-	// In such case we will see dynamic operand that does not match what we have in the program.
 	bytes := make([]byte, 8)
 	data := arg.Data()
 	size := len(data)
@@ -167,7 +162,6 @@ func checkDataArg(arg *DataArg, compMap CompMap, exec func()) {
 // Note that executor sign extends all the comparison operands to int64.
 // ======================================================================
 func shrinkExpand(v uint64, compMap CompMap) (replacers uint64Set) {
-	var prev uint64
 	for _, isize := range []int{64, 32, 16, 8, -32, -16, -8} {
 		var size, mutant uint64
 		if isize > 0 {
@@ -177,27 +171,44 @@ func shrinkExpand(v uint64, compMap CompMap) (replacers uint64Set) {
 			size = uint64(-isize)
 			mutant = v | ^((1 << size) - 1)
 		}
-		if size != 64 && prev == mutant {
-			continue
-		}
-		prev = mutant
-		for newV := range compMap[mutant] {
-			mask := uint64(1<<size - 1)
-			if newHi := newV & ^mask; newHi != 0 && newHi^^mask != 0 {
-				continue
+		// Use big-endian match/replace for both blobs and ints.
+		// Sometimes we have unmarked blobs (no little/big-endian info);
+		// for ANYBLOBs we intentionally lose all marking;
+		// but even for marked ints we may need this too.
+		// Consider that kernel code does not convert the data
+		// (i.e. not ntohs(pkt->proto) == ETH_P_BATMAN),
+		// but instead converts the constant (i.e. pkt->proto == htons(ETH_P_BATMAN)).
+		// In such case we will see dynamic operand that does not match what we have in the program.
+		for _, bigendian := range []bool{false, true} {
+			if bigendian {
+				if size == 8 {
+					continue
+				}
+				mutant = swap(mutant, size)
 			}
-			if specialIntsSet[newV&mask] {
-				continue
+			for newV := range compMap[mutant] {
+				mask := uint64(1<<size - 1)
+				newHi := newV & ^mask
+				newV = newV & mask
+				if newHi != 0 && newHi^^mask != 0 {
+					continue
+				}
+				if bigendian {
+					newV = swap(newV, size)
+				}
+				if specialIntsSet[newV] {
+					continue
+				}
+				// Replace size least significant bits of v with
+				// corresponding bits of newV. Leave the rest of v as it was.
+				replacer := (v &^ mask) | newV
+				// TODO(dvyukov): should we try replacing with arg+/-1?
+				// This could trigger some off-by-ones.
+				if replacers == nil {
+					replacers = make(uint64Set)
+				}
+				replacers[replacer] = true
 			}
-			// Replace size least significant bits of v with
-			// corresponding bits of newV. Leave the rest of v as it was.
-			replacer := (v &^ mask) | (newV & mask)
-			// TODO(dvyukov): should we try replacing with arg+/-1?
-			// This could trigger some off-by-ones.
-			if replacers == nil {
-				replacers = make(uint64Set)
-			}
-			replacers[replacer] = true
 		}
 	}
 	return

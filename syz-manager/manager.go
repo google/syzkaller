@@ -101,7 +101,7 @@ const (
 	phaseTriagedHub
 )
 
-const currentDBVersion = 2
+const currentDBVersion = 3
 
 type Fuzzer struct {
 	name         string
@@ -201,6 +201,10 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	case 1:
 		// Version 1->2: memory is preallocated so lots of mmaps become unnecessary.
 		minimized = false
+		fallthrough
+	case 2:
+		// Version 2->3: big-endian hints.
+		smashed = false
 		fallthrough
 	case currentDBVersion:
 	}
