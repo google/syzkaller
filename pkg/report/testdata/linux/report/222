@@ -1,0 +1,137 @@
+TITLE: general protection fault in tipc_nametbl_unsubscribe
+
+[   24.236490] kasan: CONFIG_KASAN_INLINE enabled
+[   24.241061] kasan: GPF could be caused by NULL-ptr deref or user memory access
+[   24.248411] general protection fault: 0000 [#1] SMP KASAN
+[   24.253918] Dumping ftrace buffer:
+[   24.257426]    (ftrace buffer empty)
+[   24.261110] Modules linked in:
+[   24.264272] CPU: 0 PID: 4361 Comm: syzkaller865516 Not tainted 4.16.0-rc6+ #288
+[   24.271683] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   24.281013] RIP: 0010:__list_del_entry_valid+0x7e/0x150
+[   24.286343] RSP: 0018:ffff8801ae29eec8 EFLAGS: 00010206
+[   24.291674] RAX: dffffc0000000000 RBX: 00000000000001f8 RCX: 0000000000000000
+[   24.298918] RDX: 000000000000003f RSI: ffff8801c9eb6cd8 RDI: ffff8801c9eb6ce0
+[   24.306154] RBP: ffff8801ae29eee0 R08: ffffffff86b2cc9f R09: 0000000000000000
+[   24.313392] R10: ffff8801ae29eda8 R11: ffff8801d08cf710 R12: 0000000000400040
+[   24.320631] R13: ffff8801ae29f080 R14: ffff8801c9eb6cd8 R15: ffff8801d08cf6c0
+[   24.327883] FS:  0000000000000000(0000) GS:ffff8801db000000(0000) knlGS:0000000000000000
+[   24.336079] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[   24.341928] CR2: 0000000020265000 CR3: 000000000846a004 CR4: 00000000001606f0
+[   24.349168] DR0: 0000000000000000 DR1: 0000000000000000 DR2: 0000000000000000
+[   24.356414] DR3: 0000000000000000 DR6: 00000000fffe0ff0 DR7: 0000000000000400
+[   24.363653] Call Trace:
+[   24.366212]  ? _raw_spin_lock_bh+0x39/0x40
+[   24.370417]  tipc_nametbl_unsubscribe+0x337/0x990
+[   24.375228]  ? release_pages+0xbd3/0x1230
+[   24.379344]  ? tipc_nametbl_subscribe+0xf80/0xf80
+[   24.384160]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   24.389322]  ? __radix_tree_lookup+0x435/0x5e0
+[   24.393874]  ? lock_acquire+0x1d5/0x580
+[   24.397815]  ? lock_acquire+0x1d5/0x580
+[   24.401756]  ? tipc_conn_delete_sub+0x237/0x4a0
+[   24.406390]  ? tipc_conn_delete_sub+0x1f0/0x4a0
+[   24.411027]  tipc_sub_unsubscribe+0x6d/0x2e0
+[   24.415416]  ? tipc_conn_lookup+0x78/0x90
+[   24.419535]  ? tipc_sub_subscribe+0x510/0x510
+[   24.424000]  ? tipc_conn_delete_sub+0x237/0x4a0
+[   24.428637]  tipc_conn_delete_sub+0x324/0x4a0
+[   24.433100]  ? tipc_topsrv_accept+0x340/0x340
+[   24.437564]  ? trace_hardirqs_on+0xd/0x10
+[   24.441684]  ? __local_bh_enable_ip+0x121/0x230
+[   24.446320]  ? _raw_spin_unlock_bh+0x30/0x40
+[   24.450696]  tipc_topsrv_kern_unsubscr+0x21d/0x350
+[   24.455591]  ? tipc_dest_del+0x350/0x350
+[   24.459618]  ? tipc_topsrv_kern_subscr+0x9d0/0x9d0
+[   24.464513]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   24.469668]  ? debug_check_no_locks_freed+0x3c0/0x3c0
+[   24.474824]  ? tipc_node_distr_xmit+0x212/0x2b0
+[   24.479459]  tipc_group_delete+0x2c0/0x3d0
+[   24.483660]  ? tipc_group_create+0x990/0x990
+[   24.488034]  ? lock_release+0xa40/0xa40
+[   24.491977]  ? __tipc_shutdown+0x916/0xc80
+[   24.496178]  ? do_raw_spin_trylock+0x190/0x190
+[   24.500727]  ? tipc_sk_respond+0x550/0x550
+[   24.504941]  tipc_sk_leave+0x10b/0x200
+[   24.508795]  ? tipc_sk_withdraw+0x6e0/0x6e0
+[   24.513087]  ? lock_sock_nested+0x91/0x110
+[   24.517289]  ? __local_bh_enable_ip+0x121/0x230
+[   24.521925]  tipc_release+0x154/0xff0
+[   24.525694]  ? lock_acquire+0x1d5/0x580
+[   24.529636]  ? mntput_no_expire+0x130/0xa90
+[   24.533925]  ? tipc_sk_backlog_rcv+0x390/0x390
+[   24.538478]  ? lock_release+0xa40/0xa40
+[   24.542420]  ? list_lru_count_node+0x70/0x70
+[   24.546797]  ? do_raw_spin_trylock+0x190/0x190
+[   24.551351]  ? locks_remove_file+0x3fa/0x5a0
+[   24.555726]  ? fcntl_setlk+0x1100/0x1100
+[   24.559757]  ? fsnotify+0x7b3/0x1140
+[   24.563441]  ? fsnotify_first_mark+0x2b0/0x2b0
+[   24.568001]  sock_release+0x8d/0x1e0
+[   24.571681]  ? sock_alloc_file+0x560/0x560
+[   24.575881]  sock_close+0x16/0x20
+[   24.579303]  __fput+0x327/0x7e0
+[   24.582551]  ? fput+0x140/0x140
+[   24.585799]  ? check_same_owner+0x320/0x320
+[   24.590087]  ? lock_release+0xa40/0xa40
+[   24.594028]  ____fput+0x15/0x20
+[   24.597274]  task_work_run+0x199/0x270
+[   24.601129]  ? task_work_cancel+0x210/0x210
+[   24.605416]  ? _raw_spin_unlock+0x22/0x30
+[   24.609531]  ? switch_task_namespaces+0x87/0xc0
+[   24.614172]  do_exit+0x9bb/0x1ad0
+[   24.617594]  ? mm_update_next_owner+0x930/0x930
+[   24.622234]  ? do_raw_spin_trylock+0x190/0x190
+[   24.626789]  ? release_sock+0x1d4/0x2a0
+[   24.630732]  ? lock_downgrade+0x980/0x980
+[   24.634849]  ? lock_downgrade+0x980/0x980
+[   24.638964]  ? lock_release+0xa40/0xa40
+[   24.642914]  ? tipc_nametbl_build_group+0x3a0/0x3a0
+[   24.647899]  ? tipc_nametbl_build_group+0x277/0x3a0
+[   24.652883]  ? __lockdep_init_map+0xe4/0x650
+[   24.657257]  ? lock_downgrade+0x980/0x980
+[   24.661379]  ? do_raw_spin_trylock+0x190/0x190
+[   24.665929]  ? release_sock+0x1d4/0x2a0
+[   24.669869]  ? __local_bh_enable_ip+0x121/0x230
+[   24.674504]  ? _raw_spin_unlock_bh+0x30/0x40
+[   24.678879]  ? release_sock+0x1d4/0x2a0
+[   24.682821]  ? __release_sock+0x360/0x360
+[   24.686935]  ? tipc_nametbl_build_group+0x2a0/0x3a0
+[   24.691919]  ? tipc_setsockopt+0x7b1/0xcf0
+[   24.696119]  ? fsnotify+0x7b3/0x1140
+[   24.699799]  ? tipc_sk_leave+0x200/0x200
+[   24.703828]  ? __fdget+0x18/0x20
+[   24.707164]  ? security_socket_setsockopt+0x89/0xb0
+[   24.712148]  ? SyS_setsockopt+0x215/0x360
+[   24.716264]  do_group_exit+0x149/0x400
+[   24.720117]  ? SyS_recv+0x40/0x40
+[   24.723536]  ? SyS_write+0x184/0x220
+[   24.727216]  ? SyS_exit+0x30/0x30
+[   24.730637]  ? SyS_read+0x220/0x220
+[   24.734232]  ? do_group_exit+0x400/0x400
+[   24.738259]  SyS_exit_group+0x1d/0x20
+[   24.742028]  do_syscall_64+0x281/0x940
+[   24.745888]  ? vmalloc_sync_all+0x30/0x30
+[   24.750003]  ? trace_hardirqs_on_thunk+0x1a/0x1c
+[   24.754725]  ? syscall_return_slowpath+0x550/0x550
+[   24.759621]  ? syscall_return_slowpath+0x2ac/0x550
+[   24.764518]  ? prepare_exit_to_usermode+0x350/0x350
+[   24.769502]  ? prepare_exit_to_usermode+0x227/0x350
+[   24.774487]  ? perf_trace_sys_enter+0xcb0/0xcb0
+[   24.779125]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[   24.783938]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[   24.789094] RIP: 0033:0x43f0d8
+[   24.792253] RSP: 002b:00007ffca6e03198 EFLAGS: 00000246 ORIG_RAX: 00000000000000e7
+[   24.799926] RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 000000000043f0d8
+[   24.807163] RDX: 0000000000000000 RSI: 000000000000003c RDI: 0000000000000000
+[   24.814409] RBP: 00000000004bf1c8 R08: 00000000000000e7 R09: ffffffffffffffd0
+[   24.821645] R10: 0000000020265000 R11: 0000000000000246 R12: 0000000000000001
+[   24.828883] R13: 00000000006d1180 R14: 0000000000000000 R15: 0000000000000000
+[   24.836125] Code: 00 00 00 00 ad de 49 39 c4 74 66 48 b8 00 02 00 00 00 00 ad de 48 89 da 48 39 c3 74 65 48 c1 ea 03 48 b8 00 00 00 00 00 fc ff df <80> 3c 02 00 75 7b 48 8b 13 48 39 f2 75 57 49 8d 7c 24 08 48 b8 
+[   24.855193] RIP: __list_del_entry_valid+0x7e/0x150 RSP: ffff8801ae29eec8
+[   24.862043] ---[ end trace 31f0221025ea0e3e ]---
+[   24.866777] Kernel panic - not syncing: Fatal exception in interrupt
+[   24.873566] Dumping ftrace buffer:
+[   24.877075]    (ftrace buffer empty)
+[   24.880756] Kernel Offset: disabled
+[   24.884355] Rebooting in 86400 seconds..

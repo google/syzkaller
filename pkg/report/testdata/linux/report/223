@@ -1,0 +1,136 @@
+TITLE: KASAN: use-after-free Read in binder_release_work
+
+[   46.527263] ==================================================================
+[   46.534609] BUG: KASAN: use-after-free in __list_del_entry+0x196/0x1d0
+[   46.537079] binder: release 3848:3849 transaction 21 out, still active
+[   46.537083] binder: release 3848:3849 transaction 20 in, still active
+[   46.537085] binder: undelivered TRANSACTION_COMPLETE
+[   46.537150] binder: 3848:3849 BC_ACQUIRE_DONE u0000000000000000 node 19 cookie mismatch 0000000000000004 != 0000000000000000
+[   46.570833] Read of size 8 at addr ffff8801ce6e8e10 by task kworker/1:2/2403
+[   46.573833] binder: BINDER_SET_CONTEXT_MGR already set
+[   46.573838] binder: 3851:3852 ioctl 40046207 0 returned -16
+[   46.574358] binder: 3851:3852 ERROR: BC_REGISTER_LOOPER called without request
+[   46.595166] binder_alloc: 3848: binder_alloc_buf, no vma
+[   46.595178] binder: 3851:3853 transaction failed 29189/-3, size 0-0 line 3127
+[   46.597455] binder: undelivered TRANSACTION_ERROR: 29189
+[   46.599749] binder: 3851:3853 BC_ACQUIRE_DONE u0000000000000000 no match
+[   46.621105] 
+[   46.622158] binder_alloc: 3848: binder_alloc_buf, no vma
+executing program
+[   46.622170] binder: 3851:3854 transaction failed 29189/-3, size 0-0 line 3127
+[   46.635460] CPU: 1 PID: 2403 Comm: kworker/1:2 Not tainted 4.9.86-gb324a70 #50
+[   46.637105] binder: BINDER_SET_CONTEXT_MGR already set
+[   46.637110] binder: 3855:3856 ioctl 40046207 0 returned -16
+[   46.637681] binder: 3855:3856 ERROR: BC_REGISTER_LOOPER called without request
+[   46.658434] binder_alloc: 3848: binder_alloc_buf, no vma
+[   46.658447] binder: 3855:3857 transaction failed 29189/-3, size 0-0 line 3127
+[   46.660667] binder: undelivered TRANSACTION_ERROR: 29189
+executing program
+[   46.662940] binder: 3855:3857 BC_ACQUIRE_DONE u0000000000000000 no match
+[   46.685357] binder_alloc: 3848: binder_alloc_buf, no vma
+[   46.685378] binder: 3855:3858 transaction failed 29189/-3, size 0-0 line 3127
+[   46.698558] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[   46.699904] binder: BINDER_SET_CONTEXT_MGR already set
+[   46.699909] binder: 3859:3860 ioctl 40046207 0 returned -16
+[   46.700445] binder: 3859:3860 ERROR: BC_REGISTER_LOOPER called without request
+[   46.721233] binder_alloc: 3848: binder_alloc_buf, no vma
+executing program
+[   46.721246] binder: 3859:3861 transaction failed 29189/-3, size 0-0 line 3127
+[   46.723461] binder: undelivered TRANSACTION_ERROR: 29189
+[   46.725680] binder: 3859:3861 BC_ACQUIRE_DONE u0000000000000000 no match
+[   46.748058] binder_alloc: 3848: binder_alloc_buf, no vma
+[   46.748069] binder: 3859:3862 transaction failed 29189/-3, size 0-0 line 3127
+[   46.762875] binder: BINDER_SET_CONTEXT_MGR already set
+[   46.762880] binder: 3863:3864 ioctl 40046207 0 returned -16
+[   46.763407] binder: 3863:3864 ERROR: BC_REGISTER_LOOPER called without request
+executing program
+[   46.782446] Workqueue: events binder_deferred_func[   46.784177] binder_alloc: 3848: binder_alloc_buf, no vma
+[   46.784188] binder: 3863:3865 transaction failed 29189/-3, size 0-0 line 3127
+[   46.786405] binder: undelivered TRANSACTION_ERROR: 29189
+[   46.788623] binder: 3863:3865 BC_ACQUIRE_DONE u0000000000000000 no match
+[   46.811009] binder_alloc: 3848: binder_alloc_buf, no vma
+[   46.811020] binder: 3863:3866 transaction failed 29189/-3, size 0-0 line 3127
+[   46.824712]  ffff8801b3877a50[   46.825890] binder: BINDER_SET_CONTEXT_MGR already set
+[   46.825895] binder: 3867:3868 ioctl 40046207 0 returned -16
+[   46.826419] binder: 3867:3868 ERROR: BC_REGISTER_LOOPER called without request
+[   46.845854]  ffffffff81d956f9[   46.847181] binder_alloc: 3848: binder_alloc_buf, no vma
+[   46.847192] binder: 3867:3869 transaction failed 29189/-3, size 0-0 line 3127
+[   46.849406] binder: undelivered TRANSACTION_ERROR: 29189
+[   46.851647] binder: 3867:3869 BC_ACQUIRE_DONE u0000000000000000 no match
+[   46.873641]  ffffea000739ba00[   46.874093] binder_alloc: 3848: binder_alloc_buf, no vma
+executing program
+[   46.874105] binder: 3867:3870 transaction failed 29189/-3, size 0-0 line 3127
+[   46.889080] binder: BINDER_SET_CONTEXT_MGR already set
+[   46.889085] binder: 3871:3872 ioctl 40046207 0 returned -16
+[   46.889637] binder: 3871:3872 ERROR: BC_REGISTER_LOOPER called without request
+[   46.907451]  ffff8801ce6e8e10 0000000000000000
+[   46.907456]  ffff8801ce6e8e10 ffffed00381d0d49 ffff8801b3877a88 ffffffff8153e083
+[   46.907461]  ffff8801ce6e8e10 0000000000000008 0000000000000000Call Trace:
+[   46.907475]  [<ffffffff81d956f9>] dump_stack+0xc1/0x128
+[   46.907483]  [<ffffffff8153e083>] print_address_description+0x73/0x280
+[   46.907487]  [<ffffffff8153e5a5>] kasan_report+0x275/0x360
+[   46.907493]  [<ffffffff81dfd0b6>] ? __list_del_entry+0x196/0x1d0
+[   46.907498]  [<ffffffff8153e704>] __asan_report_load8_noabort+0x14/0x20
+[   46.907502]  [<ffffffff81dfd0b6>] __list_del_entry+0x196/0x1d0
+[   46.907506]  [<ffffffff82d64cbc>] binder_release_work+0x8c/0x260
+[   46.907510]  [<ffffffff82d648da>] ? binder_send_failed_reply+0x18a/0x3a0
+[   46.907513]  [<ffffffff82d652b8>] binder_thread_release+0x428/0x600
+[   46.907517]  [<ffffffff82d658cf>] binder_deferred_func+0x43f/0xd10
+[   46.907524]  [<ffffffff81234d01>] ? __lock_is_held+0xa1/0xf0
+[   46.907530]  [<ffffffff811898a0>] process_one_work+0x7e0/0x1610
+[   46.907534]  [<ffffffff811897ec>] ? process_one_work+0x72c/0x1610
+[   46.907538]  [<ffffffff811890c0>] ? pwq_dec_nr_in_flight+0x2d0/0x2d0
+[   46.907543]  [<ffffffff8118a7b0>] worker_thread+0xe0/0x10d0
+[   46.907553]  [<ffffffff838a4583>] ? __schedule+0x683/0x1ba0
+[   46.907558]  [<ffffffff8119a7bd>] kthread+0x26d/0x300
+[   46.907562]  [<ffffffff8118a6d0>] ? process_one_work+0x1610/0x1610
+[   46.907565]  [<ffffffff8119a550>] ? kthread_park+0xa0/0xa0
+[   46.907570]  [<ffffffff8119a550>] ? kthread_park+0xa0/0xa0
+[   46.907573]  [<ffffffff8119a550>] ? kthread_park+0xa0/0xa0
+[   46.907577]  [<ffffffff838b57ac>] ret_from_fork+0x5c/0x70
+[   46.907579] 
+[   46.907582] Allocated by task 3827:
+[   46.907587]  save_stack_trace+0x16/0x20
+[   46.907590]  save_stack+0x43/0xd0
+[   46.907593]  kasan_kmalloc+0xad/0xe0
+[   46.907596]  kmem_cache_alloc_trace+0xfb/0x2a0
+[   46.907599]  binder_transaction+0x103c/0x7040
+[   46.907602]  binder_thread_write+0x8d4/0x31f0
+[   46.907605]  binder_ioctl_write_read.isra.55+0x1ed/0x9a0
+[   46.907607]  binder_ioctl+0xaea/0x11b0
+[   46.907611]  do_vfs_ioctl+0x1aa/0x1140
+[   46.907614]  SyS_ioctl+0x8f/0xc0
+[   46.907618]  do_syscall_64+0x1a4/0x490
+[   46.907621]  entry_SYSCALL_64_after_swapgs+0x5d/0xdb
+[   46.907621] 
+[   46.907623] Freed by task 2403:
+[   46.907626]  save_stack_trace+0x16/0x20
+[   46.907629]  save_stack+0x43/0xd0
+[   46.907632]  kasan_slab_free+0x72/0xc0
+[   46.907634]  kfree+0x103/0x300
+[   46.907639]  binder_free_transaction+0x6a/0x90
+[   46.907642]  binder_send_failed_reply+0x185/0x3a0
+[   46.907644]  binder_thread_release+0x416/0x600
+[   46.907647]  binder_deferred_func+0x43f/0xd10
+[   46.907650]  process_one_work+0x7e0/0x1610
+[   46.907653]  worker_thread+0xe0/0x10d0
+[   46.907656]  kthread+0x26d/0x300
+[   46.907659]  ret_from_fork+0x5c/0x70
+[   46.907659] 
+[   46.907663] The buggy address belongs to the object at ffff8801ce6e8e00
+[   46.907663]  which belongs to the cache kmalloc-192 of size 192
+[   46.907666] The buggy address is located 16 bytes inside of
+[   46.907666]  192-byte region [ffff8801ce6e8e00, ffff8801ce6e8ec0)
+[   46.907666] The buggy address belongs to the page:
+[   46.907671] page:ffffea000739ba00 count:1 mapcount:0 mapping:          (null) index:0x0
+[   46.907674] flags: 0x8000000000000080(slab)
+[   46.907675] page dumped because: kasan: bad access detected
+[   46.907676] 
+[   46.907677] Memory state around the buggy address:
+[   46.907681]  ffff8801ce6e8d00: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+[   46.907684]  ffff8801ce6e8d80: 00 00 00 00 00 00 fc fc fc fc fc fc fc fc fc fc
+[   46.907687] >ffff8801ce6e8e00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   46.907688]                          ^
+[   46.907691]  ffff8801ce6e8e80: fb fb fb fb fb fb fb fb fc fc fc fc fc fc fc fc
+[   46.907693]  ffff8801ce6e8f00: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+[   46.907694] ==================================================================
