@@ -1084,6 +1084,18 @@ static void setup_cgroups()
 		debug("chmod(/syzcgroup/net) failed: %d\n", errno);
 	}
 }
+
+// TODO(dvyukov): this should be under a separate define for separate minimization,
+// but for now we bundle this with cgroups.
+static void setup_binfmt_misc()
+{
+	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz0:M:0:syz0::./file0:")) {
+		debug("write(/proc/sys/fs/binfmt_misc/register, syz0) failed: %d\n", errno);
+	}
+	if (!write_file("/proc/sys/fs/binfmt_misc/register", ":syz1:M:1:yz1::./file0:POC")) {
+		debug("write(/proc/sys/fs/binfmt_misc/register, syz1) failed: %d\n", errno);
+	}
+}
 #endif
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_SANDBOX_NONE) || defined(SYZ_SANDBOX_SETUID) || defined(SYZ_SANDBOX_NAMESPACE)
@@ -1156,6 +1168,7 @@ static int do_sandbox_none(void)
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
 	setup_cgroups();
+	setup_binfmt_misc();
 #endif
 	sandbox_common();
 	if (unshare(CLONE_NEWNET)) {
@@ -1185,6 +1198,7 @@ static int do_sandbox_setuid(void)
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
 	setup_cgroups();
+	setup_binfmt_misc();
 #endif
 	sandbox_common();
 	if (unshare(CLONE_NEWNET))
@@ -1335,6 +1349,7 @@ static int do_sandbox_namespace(void)
 
 #if defined(SYZ_EXECUTOR) || defined(SYZ_ENABLE_CGROUPS)
 	setup_cgroups();
+	setup_binfmt_misc();
 #endif
 	real_uid = getuid();
 	real_gid = getgid();

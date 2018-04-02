@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "32b0baef6733b7b01f968ccaf3b9966898e7454d"
+#define SYZ_REVISION "4f6eea3164d505b3156944cba22eaf9eed20e515"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1679;
+unsigned syscall_count = 1684;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1669,6 +1669,11 @@ call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 284},
     {"write", 4},
+    {"write$binfmt_aout", 4},
+    {"write$binfmt_elf32", 4},
+    {"write$binfmt_elf64", 4},
+    {"write$binfmt_misc", 4},
+    {"write$binfmt_script", 4},
     {"write$cgroup_int", 4},
     {"write$cgroup_pid", 4},
     {"write$cgroup_subtree", 4},
@@ -1693,11 +1698,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "8a54ebce3896b2b7a86248b86dc56d6072d33f4e"
+#define SYZ_REVISION "24932aadbb69b69118573d5840e05321919b53fa"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1731;
+unsigned syscall_count = 1736;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -3412,6 +3417,11 @@ call_t syscalls[] = {
     {"wait4", 61},
     {"waitid", 247},
     {"write", 1},
+    {"write$binfmt_aout", 1},
+    {"write$binfmt_elf32", 1},
+    {"write$binfmt_elf64", 1},
+    {"write$binfmt_misc", 1},
+    {"write$binfmt_script", 1},
     {"write$cgroup_int", 1},
     {"write$cgroup_pid", 1},
     {"write$cgroup_subtree", 1},
@@ -3436,11 +3446,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "f044fd67eca13dc803c1f57973510ca9186a2df6"
+#define SYZ_REVISION "a09959c7b47fd83fbcbd5bffe7153e7fc44dfd0c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1676;
+unsigned syscall_count = 1693;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -3645,6 +3655,11 @@ call_t syscalls[] = {
     {"getsockopt$ARPT_SO_GET_ENTRIES", 295},
     {"getsockopt$ARPT_SO_GET_INFO", 295},
     {"getsockopt$ARPT_SO_GET_REVISION_TARGET", 295},
+    {"getsockopt$EBT_SO_GET_ENTRIES", 295},
+    {"getsockopt$EBT_SO_GET_INFO", 295},
+    {"getsockopt$EBT_SO_GET_INIT_ENTRIES", 295},
+    {"getsockopt$EBT_SO_GET_INIT_INFO", 295},
+    {"getsockopt$IP6T_SO_GET_ENTRIES", 295},
     {"getsockopt$IP6T_SO_GET_INFO", 295},
     {"getsockopt$IP6T_SO_GET_REVISION_MATCH", 295},
     {"getsockopt$IP6T_SO_GET_REVISION_TARGET", 295},
@@ -4214,6 +4229,7 @@ call_t syscalls[] = {
     {"ioctl$TUNGETSNDBUF", 54},
     {"ioctl$TUNGETVNETHDRSZ", 54},
     {"ioctl$TUNSETFILTEREBPF", 54},
+    {"ioctl$TUNSETGROUP", 54},
     {"ioctl$TUNSETIFF", 54},
     {"ioctl$TUNSETIFINDEX", 54},
     {"ioctl$TUNSETLINK", 54},
@@ -4225,7 +4241,9 @@ call_t syscalls[] = {
     {"ioctl$TUNSETSNDBUF", 54},
     {"ioctl$TUNSETSTEERINGEBPF", 54},
     {"ioctl$TUNSETTXFILTER", 54},
+    {"ioctl$TUNSETVNETBE", 54},
     {"ioctl$TUNSETVNETHDRSZ", 54},
+    {"ioctl$TUNSETVNETLE", 54},
     {"ioctl$UFFDIO_API", 54},
     {"ioctl$UFFDIO_COPY", 54},
     {"ioctl$UFFDIO_REGISTER", 54},
@@ -4688,7 +4706,9 @@ call_t syscalls[] = {
     {"setsockopt$ALG_SET_KEY", 294},
     {"setsockopt$ARPT_SO_SET_ADD_COUNTERS", 294},
     {"setsockopt$ARPT_SO_SET_REPLACE", 294},
+    {"setsockopt$EBT_SO_SET_COUNTERS", 294},
     {"setsockopt$EBT_SO_SET_ENTRIES", 294},
+    {"setsockopt$IP6T_SO_SET_ADD_COUNTERS", 294},
     {"setsockopt$IP6T_SO_SET_REPLACE", 294},
     {"setsockopt$IPT_SO_SET_ADD_COUNTERS", 294},
     {"setsockopt$IPT_SO_SET_REPLACE", 294},
@@ -4956,6 +4976,7 @@ call_t syscalls[] = {
     {"socket$inet_icmp", 281},
     {"socket$inet_icmp_raw", 281},
     {"socket$inet_sctp", 281},
+    {"socket$inet_smc", 281},
     {"socket$inet_tcp", 281},
     {"socket$inet_udp", 281},
     {"socket$ipx", 281},
@@ -4990,6 +5011,7 @@ call_t syscalls[] = {
     {"socketpair$inet_icmp", 288},
     {"socketpair$inet_icmp_raw", 288},
     {"socketpair$inet_sctp", 288},
+    {"socketpair$inet_smc", 288},
     {"socketpair$inet_tcp", 288},
     {"socketpair$inet_udp", 288},
     {"socketpair$ipx", 288},
@@ -5100,6 +5122,11 @@ call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 280},
     {"write", 4},
+    {"write$binfmt_aout", 4},
+    {"write$binfmt_elf32", 4},
+    {"write$binfmt_elf64", 4},
+    {"write$binfmt_misc", 4},
+    {"write$binfmt_script", 4},
     {"write$cgroup_int", 4},
     {"write$cgroup_pid", 4},
     {"write$cgroup_subtree", 4},
@@ -5124,11 +5151,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "2b84001d08c857c19e8d97435de1bbe85336b0a3"
+#define SYZ_REVISION "dd81ca38ea3909f82900958a18a6cd8fd3e22092"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1660;
+unsigned syscall_count = 1665;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6772,6 +6799,11 @@ call_t syscalls[] = {
     {"wait4", 260},
     {"waitid", 95},
     {"write", 64},
+    {"write$binfmt_aout", 64},
+    {"write$binfmt_elf32", 64},
+    {"write$binfmt_elf64", 64},
+    {"write$binfmt_misc", 64},
+    {"write$binfmt_script", 64},
     {"write$cgroup_int", 64},
     {"write$cgroup_pid", 64},
     {"write$cgroup_subtree", 64},
@@ -6796,11 +6828,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "c13af053f60f33816aba186c4a06e174af1bd018"
+#define SYZ_REVISION "d29bbcde3112f45dc4a59658a38af50fdfad03ba"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1650;
+unsigned syscall_count = 1655;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8434,6 +8466,11 @@ call_t syscalls[] = {
     {"wait4", 114},
     {"waitid", 272},
     {"write", 4},
+    {"write$binfmt_aout", 4},
+    {"write$binfmt_elf32", 4},
+    {"write$binfmt_elf64", 4},
+    {"write$binfmt_misc", 4},
+    {"write$binfmt_script", 4},
     {"write$cgroup_int", 4},
     {"write$cgroup_pid", 4},
     {"write$cgroup_subtree", 4},
