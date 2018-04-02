@@ -29,6 +29,7 @@ const dateFormat = "Jan 02 2006 15:04:05 MST"
 
 func (mgr *Manager) initHTTP() {
 	http.HandleFunc("/", mgr.httpSummary)
+	http.HandleFunc("/syscalls", mgr.httpSyscalls)
 	http.HandleFunc("/corpus", mgr.httpCorpus)
 	http.HandleFunc("/crash", mgr.httpCrash)
 	http.HandleFunc("/cover", mgr.httpCover)
@@ -52,8 +53,9 @@ func (mgr *Manager) initHTTP() {
 
 func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	data := &UISummaryData{
-		Name: mgr.cfg.Name,
-		Log:  CachedLogOutput(),
+		Name:  mgr.cfg.Name,
+		Log:   CachedLogOutput(),
+		Stats: mgr.collectStats(),
 	}
 
 	var err error
@@ -62,13 +64,18 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	calls, err := mgr.collectSummary(data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	if err := summaryTemplate.Execute(w, data); err != nil {
+		http.Error(w, fmt.Sprintf("failed to execute template: %v", err),
+			http.StatusInternalServerError)
 		return
 	}
+}
 
-	for c, cc := range calls {
+func (mgr *Manager) httpSyscalls(w http.ResponseWriter, r *http.Request) {
+	data := &UISyscallsData{
+		Name: mgr.cfg.Name,
+	}
+	for c, cc := range mgr.collectSyscallInfo() {
 		data.Calls = append(data.Calls, UICallType{
 			Name:   c,
 			Inputs: cc.count,
@@ -77,7 +84,7 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Sort(UICallTypeArray(data.Calls))
 
-	if err := summaryTemplate.Execute(w, data); err != nil {
+	if err := syscallsTemplate.Execute(w, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err),
 			http.StatusInternalServerError)
 		return
@@ -89,16 +96,18 @@ type CallCov struct {
 	cov   cover.Cover
 }
 
-func (mgr *Manager) collectSummary(data *UISummaryData) (map[string]*CallCov, error) {
+func (mgr *Manager) collectStats() []UIStat {
 	mgr.mu.Lock()
 	defer mgr.mu.Unlock()
 
-	data.Stats = append(data.Stats, UIStat{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)})
-	data.Stats = append(data.Stats, UIStat{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)})
-	data.Stats = append(data.Stats, UIStat{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))})
-	data.Stats = append(data.Stats, UIStat{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))})
-	data.Stats = append(data.Stats, UIStat{Name: "cover", Value: fmt.Sprint(len(mgr.corpusCover)), Link: "/cover"})
-	data.Stats = append(data.Stats, UIStat{Name: "signal", Value: fmt.Sprint(mgr.corpusSignal.Len())})
+	var stats []UIStat
+	stats = append(stats, UIStat{Name: "uptime", Value: fmt.Sprint(time.Since(mgr.startTime) / 1e9 * 1e9)})
+	stats = append(stats, UIStat{Name: "fuzzing", Value: fmt.Sprint(mgr.fuzzingTime / 60e9 * 60e9)})
+	stats = append(stats, UIStat{Name: "corpus", Value: fmt.Sprint(len(mgr.corpus))})
+	stats = append(stats, UIStat{Name: "triage queue", Value: fmt.Sprint(len(mgr.candidates))})
+	stats = append(stats, UIStat{Name: "cover", Value: fmt.Sprint(len(mgr.corpusCover)), Link: "/cover"})
+	stats = append(stats, UIStat{Name: "signal", Value: fmt.Sprint(mgr.corpusSignal.Len())})
+	stats = append(stats, UIStat{Name: "syscalls", Value: fmt.Sprint(len(mgr.enabledCalls)), Link: "/syscalls"})
 
 	secs := uint64(1)
 	if !mgr.firstConnect.IsZero() {
@@ -118,9 +127,14 @@ func (mgr *Manager) collectSummary(data *UISummaryData) (map[string]*CallCov, er
 		}
 		intStats = append(intStats, UIStat{Name: k, Value: val})
 	}
-
 	sort.Sort(UIStatArray(intStats))
-	data.Stats = append(data.Stats, intStats...)
+	stats = append(stats, intStats...)
+	return stats
+}
+
+func (mgr *Manager) collectSyscallInfo() map[string]*CallCov {
+	mgr.mu.Lock()
+	defer mgr.mu.Unlock()
 
 	calls := make(map[string]*CallCov)
 	for _, inp := range mgr.corpus {
@@ -131,8 +145,7 @@ func (mgr *Manager) collectSummary(data *UISummaryData) (map[string]*CallCov, er
 		cc.count++
 		cc.cov.Merge(inp.Cover)
 	}
-
-	return calls, nil
+	return calls
 }
 
 func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
@@ -445,9 +458,13 @@ func trimNewLines(data []byte) []byte {
 type UISummaryData struct {
 	Name    string
 	Stats   []UIStat
-	Calls   []UICallType
 	Crashes []*UICrashType
 	Log     string
+}
+
+type UISyscallsData struct {
+	Name  string
+	Calls []UICallType
 }
 
 type UICrashType struct {
@@ -577,9 +594,17 @@ var summaryTemplate = template.Must(template.New("").Parse(addStyle(`
 	var textarea = document.getElementById("log_textarea");
 	textarea.scrollTop = textarea.scrollHeight;
 </script>
-<br>
-<br>
+</body></html>
+`)))
 
+var syscallsTemplate = template.Must(template.New("").Parse(addStyle(`
+<!doctype html>
+<html>
+<head>
+	<title>{{.Name }} syzkaller</title>
+	{{STYLE}}
+</head>
+<body>
 <b>Per-call coverage:</b>
 <br>
 {{range $c := $.Calls}}
