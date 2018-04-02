@@ -614,8 +614,6 @@ __NR_epoll_pwait = 22
 # __NR_epoll_wait is not set
 # __NR_eventfd is not set
 __NR_eventfd2 = 19
-__NR_execve = 221
-__NR_execveat = 281
 __NR_exit = 93
 __NR_exit_group = 94
 __NR_faccessat = 48

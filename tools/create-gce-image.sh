@@ -76,6 +76,7 @@ sudo sed -i "/^root/ { s/:x:/::/ }" disk.mnt/etc/passwd
 echo "T0:23:respawn:/sbin/getty -L ttyS0 115200 vt100" | sudo tee -a disk.mnt/etc/inittab
 echo -en "auto lo\niface lo inet loopback\nauto eth0\niface eth0 inet dhcp\n" | sudo tee disk.mnt/etc/network/interfaces
 echo "debugfs /sys/kernel/debug debugfs defaults 0 0" | sudo tee -a disk.mnt/etc/fstab
+echo 'binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc defaults 0 0' | sudo tee -a disk.mnt/etc/fstab
 for i in {0..31}; do
 	echo "KERNEL==\"binder$i\", NAME=\"binder$i\", MODE=\"0666\"" | \
 		tee -a disk.mnt/etc/udev/50-binder.rules
