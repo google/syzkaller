@@ -271,8 +271,7 @@ xt_bpf_info_pinned {
 	mode			const[XT_BPF_MODE_FD_PINNED, int16]
 	bpf_program_num_elem	const[0, int16]
 	fd			const[0, int32]
-# TODO: we need fixed-size filename here.
-	path			array[int8, XT_BPF_PATH_MAX]
+	path			string[filename, XT_BPF_PATH_MAX]
 	filter			intptr
 }
 

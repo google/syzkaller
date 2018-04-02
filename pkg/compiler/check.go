@@ -110,6 +110,10 @@ func (comp *compiler) checkNames() {
 				comp.error(n.Pos, "string flags uses reserved name %v", name)
 				continue
 			}
+			if builtinStrFlags[name] != nil {
+				comp.error(n.Pos, "string flags conflicts with builtin flags", name)
+				continue
+			}
 			if prev := comp.strFlags[name]; prev != nil {
 				comp.error(n.Pos, "string flags %v redeclared, previously declared at %v",
 					name, prev.Pos)

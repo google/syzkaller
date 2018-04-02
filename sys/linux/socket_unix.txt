@@ -38,7 +38,7 @@ sockaddr_un [
 
 sockaddr_un_file {
 	family	flags[unix_socket_family, int16]
-	path	filename[UNIX_PATH_MAX]
+	path	string[filename, UNIX_PATH_MAX]
 }
 
 sockaddr_un_abstract {
