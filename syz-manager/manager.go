@@ -82,6 +82,7 @@ type Manager struct {
 	hubCorpus      map[hash.Sig]bool
 	needMoreRepros chan chan bool
 	hubReproQueue  chan *Crash
+	reproRequest   chan chan map[string]bool
 
 	// For checking that files that we are using are not changing under us.
 	// Maps file name to modification time.
@@ -180,6 +181,7 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 		vmStop:          make(chan bool),
 		hubReproQueue:   make(chan *Crash, 10),
 		needMoreRepros:  make(chan chan bool),
+		reproRequest:    make(chan chan map[string]bool),
 		usedFiles:       make(map[string]time.Time),
 	}
 
@@ -526,6 +528,12 @@ func (mgr *Manager) vmLoop() {
 		case reply := <-mgr.needMoreRepros:
 			reply <- phase >= phaseTriagedHub &&
 				len(reproQueue)+len(pendingRepro)+len(reproducing) == 0
+		case reply := <-mgr.reproRequest:
+			repros := make(map[string]bool)
+			for title := range reproducing {
+				repros[title] = true
+			}
+			reply <- repros
 		}
 	}
 }
