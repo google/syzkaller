@@ -57,7 +57,7 @@ func (mgr *Manager) httpSummary(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var err error
-	if data.Crashes, err = collectCrashes(mgr.cfg.Workdir); err != nil {
+	if data.Crashes, err = mgr.collectCrashes(mgr.cfg.Workdir); err != nil {
 		http.Error(w, fmt.Sprintf("failed to collect crashes: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -137,7 +137,7 @@ func (mgr *Manager) collectSummary(data *UISummaryData) (map[string]*CallCov, er
 
 func (mgr *Manager) httpCrash(w http.ResponseWriter, r *http.Request) {
 	crashID := r.FormValue("id")
-	crash := readCrash(mgr.cfg.Workdir, crashID, true)
+	crash := readCrash(mgr.cfg.Workdir, crashID, nil, true)
 	if crash == nil {
 		http.Error(w, fmt.Sprintf("failed to read crash info"), http.StatusInternalServerError)
 		return
@@ -323,7 +323,12 @@ func (mgr *Manager) httpRawCover(w http.ResponseWriter, r *http.Request) {
 	buf.Flush()
 }
 
-func collectCrashes(workdir string) ([]*UICrashType, error) {
+func (mgr *Manager) collectCrashes(workdir string) ([]*UICrashType, error) {
+	// Note: mu is not locked here.
+	reproReply := make(chan map[string]bool)
+	mgr.reproRequest <- reproReply
+	repros := <-reproReply
+
 	crashdir := filepath.Join(workdir, "crashes")
 	dirs, err := osutil.ListDir(crashdir)
 	if err != nil {
@@ -331,7 +336,7 @@ func collectCrashes(workdir string) ([]*UICrashType, error) {
 	}
 	var crashTypes []*UICrashType
 	for _, dir := range dirs {
-		crash := readCrash(workdir, dir, false)
+		crash := readCrash(workdir, dir, repros, false)
 		if crash != nil {
 			crashTypes = append(crashTypes, crash)
 		}
@@ -340,7 +345,7 @@ func collectCrashes(workdir string) ([]*UICrashType, error) {
 	return crashTypes, nil
 }
 
-func readCrash(workdir, dir string, full bool) *UICrashType {
+func readCrash(workdir, dir string, repros map[string]bool, full bool) *UICrashType {
 	if len(dir) != 40 {
 		return nil
 	}
@@ -415,6 +420,8 @@ func readCrash(workdir, dir string, full bool) *UICrashType {
 		} else {
 			triaged = "has repro"
 		}
+	} else if repros[string(desc)] {
+		triaged = "reproducing"
 	} else if reproAttempts >= maxReproAttempts {
 		triaged = "non-reproducible"
 	}
