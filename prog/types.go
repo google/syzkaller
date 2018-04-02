@@ -259,12 +259,12 @@ const (
 type BufferType struct {
 	TypeCommon
 	Kind       BufferKind
-	RangeBegin uint64   // for BufferBlobRange kind, or static size for BufferFilename
+	RangeBegin uint64   // for BufferBlobRange kind
 	RangeEnd   uint64   // for BufferBlobRange kind
 	Text       TextKind // for BufferText
 	SubKind    string
 	Values     []string // possible values for BufferString kind
-	NoZ        bool     // non-zero terminated BufferString
+	NoZ        bool     // non-zero terminated BufferString/BufferFilename
 }
 
 func (t *BufferType) String() string {

@@ -261,26 +261,6 @@ var typeArgFlags = &typeArg{
 	},
 }
 
-var typeFilename = &typeDesc{
-	Names:     []string{"filename"},
-	CantBeOpt: true,
-	OptArgs:   1,
-	Args:      []namedArg{{"size", typeArgInt}},
-	Varlen: func(comp *compiler, t *ast.Type, args []*ast.Type) bool {
-		return len(args) == 0
-	},
-	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
-		base.TypeSize = 0
-		if len(args) >= 1 {
-			base.TypeSize = args[0].Value
-		}
-		return &prog.BufferType{
-			TypeCommon: base.TypeCommon,
-			Kind:       prog.BufferFilename,
-		}
-	},
-}
-
 var typeFileoff = &typeDesc{
 	Names:       []string{"fileoff"},
 	CanBeArgRet: canBeArg,
@@ -478,6 +458,18 @@ var typeString = &typeDesc{
 		return comp.stringSize(t, args) == 0
 	},
 	Gen: func(comp *compiler, t *ast.Type, args []*ast.Type, base prog.IntTypeCommon) prog.Type {
+		if len(args) > 0 && args[0].Ident == "filename" {
+			base.TypeName = "filename"
+			base.TypeSize = 0
+			if len(args) >= 2 {
+				base.TypeSize = args[1].Value
+			}
+			return &prog.BufferType{
+				TypeCommon: base.TypeCommon,
+				Kind:       prog.BufferFilename,
+				NoZ:        t.Ident == stringnoz,
+			}
+		}
 		subkind := ""
 		if len(args) > 0 && args[0].Ident != "" {
 			subkind = args[0].Ident
@@ -729,6 +721,7 @@ var typeArgBase = namedArg{
 var (
 	builtinTypes    = make(map[string]*typeDesc)
 	builtinTypedefs = make(map[string]*ast.TypeDef)
+	builtinStrFlags = make(map[string]*ast.StrFlags)
 
 	// To avoid weird cases like ptr[in, in] and ptr[out, opt].
 	reservedName = map[string]bool{
@@ -745,6 +738,9 @@ type bool16 int16[0:1]
 type bool32 int32[0:1]
 type bool64 int64[0:1]
 type boolptr intptr[0:1]
+
+type filename string[filename]
+filename = "", "."
 `
 
 func init() {
@@ -756,7 +752,6 @@ func init() {
 		typeLen,
 		typeConst,
 		typeFlags,
-		typeFilename,
 		typeFileoff,
 		typeVMA,
 		typeCsum,
@@ -780,6 +775,8 @@ func init() {
 		switch n := decl.(type) {
 		case *ast.TypeDef:
 			builtinTypedefs[n.Name.Name] = n
+		case *ast.StrFlags:
+			builtinStrFlags[n.Name.Name] = n
 		case *ast.NewLine:
 		default:
 			panic(fmt.Sprintf("unexpected node in builtins: %#v", n))

@@ -152,32 +152,42 @@ func (r *randGen) flags(vv []uint64) (v uint64) {
 
 func (r *randGen) filename(s *state, typ *BufferType) string {
 	fn := r.filenameImpl(s)
+	if len(fn) != 0 && fn[len(fn)-1] == 0 {
+		panic(fmt.Sprintf("zero-terminated filename: %q", fn))
+	}
 	if !typ.Varlen() {
 		size := typ.Size()
 		if uint64(len(fn)) < size {
 			fn += string(make([]byte, size-uint64(len(fn))))
 		}
 		fn = fn[:size]
+	} else if !typ.NoZ {
+		fn += "\x00"
 	}
 	return fn
 }
 
+var specialFiles = []string{"", "/", "."}
+
 func (r *randGen) filenameImpl(s *state) string {
-	dir := "."
-	if r.oneOf(2) && len(s.files) != 0 {
-		files := make([]string, 0, len(s.files))
-		for f := range s.files {
-			files = append(files, f)
-		}
-		dir = files[r.Intn(len(files))]
-		if len(dir) > 0 && dir[len(dir)-1] == 0 {
-			dir = dir[:len(dir)-1]
-		}
+	if r.oneOf(100) {
+		return specialFiles[r.Intn(len(specialFiles))]
 	}
 	if len(s.files) == 0 || r.oneOf(10) {
 		// Generate a new name.
+		dir := "."
+		if r.oneOf(2) && len(s.files) != 0 {
+			files := make([]string, 0, len(s.files))
+			for f := range s.files {
+				files = append(files, f)
+			}
+			dir = files[r.Intn(len(files))]
+			if len(dir) > 0 && dir[len(dir)-1] == 0 {
+				dir = dir[:len(dir)-1]
+			}
+		}
 		for i := 0; ; i++ {
-			f := fmt.Sprintf("%v/file%v\x00", dir, i)
+			f := fmt.Sprintf("%v/file%v", dir, i)
 			if !s.files[f] {
 				return f
 			}

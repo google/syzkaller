@@ -37,14 +37,11 @@ rest of the type-options are type-specific:
 	direction (in/out/inout)
 "string": a zero-terminated memory buffer (no pointer indirection implied), type-options:
 	either a string value in quotes for constant strings (e.g. "foo"),
-	or a reference to string flags,
+	or a reference to string flags (special value `filename` produces file names),
 	optionally followed by a buffer size (string values will be padded with \x00 to that size)
 "stringnoz": a non-zero-terminated memory buffer (no pointer indirection implied), type-options:
 	either a string value in quotes for constant strings (e.g. "foo"),
 	or a reference to string flags,
-"filename": a file/link/dir name, no pointer indirection implied,
-	in most cases you want `ptr[in, filename]`, type-options:
-	static size (optional)
 "fileoff": offset within a file
 "len": length of another field (for array it is number of elements), type-options:
 	argname of the object
@@ -182,6 +179,8 @@ type bool16	int16[0:1]
 type bool32	int32[0:1]
 type bool64	int64[0:1]
 type boolptr	intptr[0:1]
+
+type filename string[filename]
 ```
 
 ## Type Templates

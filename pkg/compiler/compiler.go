@@ -64,8 +64,11 @@ func Compile(desc *ast.Description, consts map[string]uint64, target *targets.Ta
 		structNodes:  make(map[*prog.StructDesc]*ast.Struct),
 		structVarlen: make(map[string]bool),
 	}
-	for name, typedef := range builtinTypedefs {
-		comp.typedefs[name] = typedef
+	for name, n := range builtinTypedefs {
+		comp.typedefs[name] = n
+	}
+	for name, n := range builtinStrFlags {
+		comp.strFlags[name] = n
 	}
 	comp.typecheck()
 	// The subsequent, more complex, checks expect basic validity of the tree,

@@ -410,8 +410,8 @@ explicitly_sized_union [
 ] [size[42]]
 
 static_filename {
-	f1	filename[10]
-	f2	filename[20]
+	f1	string[filename, 10]
+	f2	string[filename, 20]
 	f3	bytesize[f1, int8]
 	f4	bytesize[f2, int8]
 	f5	bytesize[parent, int8]
