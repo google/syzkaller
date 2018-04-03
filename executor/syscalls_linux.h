@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "4f6eea3164d505b3156944cba22eaf9eed20e515"
+#define SYZ_REVISION "1b455faff0d03f006bcb57afa15343066917fd36"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1684;
+unsigned syscall_count = 1689;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -1216,6 +1216,10 @@ call_t syscalls[] = {
     {"sendmsg$IPVS_CMD_SET_INFO", 370},
     {"sendmsg$IPVS_CMD_SET_SERVICE", 370},
     {"sendmsg$IPVS_CMD_ZERO", 370},
+    {"sendmsg$TEAM_CMD_NOOP", 370},
+    {"sendmsg$TEAM_CMD_OPTIONS_GET", 370},
+    {"sendmsg$TEAM_CMD_OPTIONS_SET", 370},
+    {"sendmsg$TEAM_CMD_PORT_LIST_GET", 370},
     {"sendmsg$alg", 370},
     {"sendmsg$can_bcm", 370},
     {"sendmsg$can_raw", 370},
@@ -1582,6 +1586,7 @@ call_t syscalls[] = {
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$ipvs", 0, (syscall_t)syz_genetlink_get_family_id},
+    {"syz_genetlink_get_family_id$team", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
@@ -1698,11 +1703,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "24932aadbb69b69118573d5840e05321919b53fa"
+#define SYZ_REVISION "5f70407caa066c2fc5cd166fdf7c218687092749"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1736;
+unsigned syscall_count = 1741;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2952,6 +2957,10 @@ call_t syscalls[] = {
     {"sendmsg$IPVS_CMD_SET_INFO", 46},
     {"sendmsg$IPVS_CMD_SET_SERVICE", 46},
     {"sendmsg$IPVS_CMD_ZERO", 46},
+    {"sendmsg$TEAM_CMD_NOOP", 46},
+    {"sendmsg$TEAM_CMD_OPTIONS_GET", 46},
+    {"sendmsg$TEAM_CMD_OPTIONS_SET", 46},
+    {"sendmsg$TEAM_CMD_PORT_LIST_GET", 46},
     {"sendmsg$alg", 46},
     {"sendmsg$can_bcm", 46},
     {"sendmsg$can_raw", 46},
@@ -3330,6 +3339,7 @@ call_t syscalls[] = {
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$ipvs", 0, (syscall_t)syz_genetlink_get_family_id},
+    {"syz_genetlink_get_family_id$team", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
@@ -3446,11 +3456,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "a09959c7b47fd83fbcbd5bffe7153e7fc44dfd0c"
+#define SYZ_REVISION "1c7afe3cc8bc60188d4677de7635b9279929ef72"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1693;
+unsigned syscall_count = 1698;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4661,6 +4671,10 @@ call_t syscalls[] = {
     {"sendmsg$IPVS_CMD_SET_INFO", 296},
     {"sendmsg$IPVS_CMD_SET_SERVICE", 296},
     {"sendmsg$IPVS_CMD_ZERO", 296},
+    {"sendmsg$TEAM_CMD_NOOP", 296},
+    {"sendmsg$TEAM_CMD_OPTIONS_GET", 296},
+    {"sendmsg$TEAM_CMD_OPTIONS_SET", 296},
+    {"sendmsg$TEAM_CMD_PORT_LIST_GET", 296},
     {"sendmsg$alg", 296},
     {"sendmsg$can_bcm", 296},
     {"sendmsg$can_raw", 296},
@@ -5037,6 +5051,7 @@ call_t syscalls[] = {
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$ipvs", 0, (syscall_t)syz_genetlink_get_family_id},
+    {"syz_genetlink_get_family_id$team", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
@@ -5151,11 +5166,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "dd81ca38ea3909f82900958a18a6cd8fd3e22092"
+#define SYZ_REVISION "567f40901694d4b3626677625436cf385013f54d"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1665;
+unsigned syscall_count = 1670;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -6347,6 +6362,10 @@ call_t syscalls[] = {
     {"sendmsg$IPVS_CMD_SET_INFO", 211},
     {"sendmsg$IPVS_CMD_SET_SERVICE", 211},
     {"sendmsg$IPVS_CMD_ZERO", 211},
+    {"sendmsg$TEAM_CMD_NOOP", 211},
+    {"sendmsg$TEAM_CMD_OPTIONS_GET", 211},
+    {"sendmsg$TEAM_CMD_OPTIONS_SET", 211},
+    {"sendmsg$TEAM_CMD_PORT_LIST_GET", 211},
     {"sendmsg$alg", 211},
     {"sendmsg$can_bcm", 211},
     {"sendmsg$can_raw", 211},
@@ -6718,6 +6737,7 @@ call_t syscalls[] = {
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$ipvs", 0, (syscall_t)syz_genetlink_get_family_id},
+    {"syz_genetlink_get_family_id$team", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},
@@ -6828,11 +6848,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "d29bbcde3112f45dc4a59658a38af50fdfad03ba"
+#define SYZ_REVISION "1a32a10c1414845aba1fbc7211587b1383b0a1ae"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1655;
+unsigned syscall_count = 1660;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -8015,6 +8035,10 @@ call_t syscalls[] = {
     {"sendmsg$IPVS_CMD_SET_INFO", 341},
     {"sendmsg$IPVS_CMD_SET_SERVICE", 341},
     {"sendmsg$IPVS_CMD_ZERO", 341},
+    {"sendmsg$TEAM_CMD_NOOP", 341},
+    {"sendmsg$TEAM_CMD_OPTIONS_GET", 341},
+    {"sendmsg$TEAM_CMD_OPTIONS_SET", 341},
+    {"sendmsg$TEAM_CMD_PORT_LIST_GET", 341},
     {"sendmsg$alg", 341},
     {"sendmsg$can_bcm", 341},
     {"sendmsg$can_raw", 341},
@@ -8379,6 +8403,7 @@ call_t syscalls[] = {
     {"syz_fuseblk_mount", 0, (syscall_t)syz_fuseblk_mount},
     {"syz_genetlink_get_family_id$fou", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_genetlink_get_family_id$ipvs", 0, (syscall_t)syz_genetlink_get_family_id},
+    {"syz_genetlink_get_family_id$team", 0, (syscall_t)syz_genetlink_get_family_id},
     {"syz_init_net_socket$bt_hci", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_l2cap", 0, (syscall_t)syz_init_net_socket},
     {"syz_init_net_socket$bt_sco", 0, (syscall_t)syz_init_net_socket},

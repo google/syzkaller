@@ -1,0 +1,80 @@
+# Copyright 2018 syzkaller project authors. All rights reserved.
+# Use of this source code is governed by Apache 2 LICENSE that can be teamnd in the LICENSE file.
+
+# AF_NETLINK/NETLINK_GENERIC/team support.
+
+include <linux/net.h>
+include <net/netlink.h>
+include <uapi/linux/netlink.h>
+include <uapi/linux/genetlink.h>
+include <uapi/linux/if_team.h>
+
+resource genl_team_family_id[int16]
+type msghdr_nl_team[CMD] msghdr_netlink[netlink_msg_t[genl_team_family_id, genlmsghdr_t[CMD], team_nl_policy]]
+
+syz_genetlink_get_family_id$team(name ptr[in, string["team"]]) genl_team_family_id
+
+sendmsg$TEAM_CMD_NOOP(fd sock_nl_generic, msg ptr[in, msghdr_nl_team[TEAM_CMD_NOOP]], f flags[send_flags])
+sendmsg$TEAM_CMD_OPTIONS_SET(fd sock_nl_generic, msg ptr[in, msghdr_nl_team[TEAM_CMD_OPTIONS_SET]], f flags[send_flags])
+sendmsg$TEAM_CMD_OPTIONS_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_team[TEAM_CMD_OPTIONS_GET]], f flags[send_flags])
+sendmsg$TEAM_CMD_PORT_LIST_GET(fd sock_nl_generic, msg ptr[in, msghdr_nl_team[TEAM_CMD_PORT_LIST_GET]], f flags[send_flags])
+
+team_nl_policy [
+	TEAM_ATTR_TEAM_IFINDEX	nlattr[TEAM_ATTR_TEAM_IFINDEX, ifindex]
+	TEAM_ATTR_LIST_OPTION	nlattr[TEAM_ATTR_LIST_OPTION, array[team_attr_list_option]]
+	TEAM_ATTR_LIST_PORT	nlattr[TEAM_ATTR_LIST_PORT, array[team_attr_list_port]]
+] [varlen]
+
+team_attr_list_option [
+	TEAM_ATTR_ITEM_OPTION	nlattr[TEAM_ATTR_ITEM_OPTION, team_attr_item_option]
+] [varlen]
+
+team_attr_item_option [
+	team_nl_options			team_attr_option
+	TEAM_ATTR_OPTION_REMOVED	nlattr[TEAM_ATTR_OPTION_REMOVED, bool8]
+	TEAM_ATTR_OPTION_PORT_IFINDEX	nlattr[TEAM_ATTR_OPTION_PORT_IFINDEX, ifindex]
+	TEAM_ATTR_OPTION_ARRAY_INDEX	nlattr[TEAM_ATTR_OPTION_ARRAY_INDEX, int32]
+] [varlen]
+
+type team_nl_option_policy[NAME, TYPE, DATA] {
+	TEAM_ATTR_OPTION_NAME		nlattr[TEAM_ATTR_OPTION_NAME, string[NAME, 32]]
+	TEAM_ATTR_OPTION_CHANGED	nlattr[TEAM_ATTR_OPTION_CHANGED, bool8]
+	TEAM_ATTR_OPTION_TYPE		nlattr[TEAM_ATTR_OPTION_TYPE, const[TYPE, int8]]
+	TEAM_ATTR_OPTION_DATA		nlattr[TEAM_ATTR_OPTION_DATA, DATA]
+} [align_4]
+
+team_attr_option [
+	name				team_nl_option_policy["mode", NLA_STRING, string[team_attr_option_mode, 32]]
+	notify_peers_count		team_nl_option_policy["notify_peers_count", NLA_U32, int32]
+	notify_peers_interval		team_nl_option_policy["notify_peers_interval", NLA_U32, int32]
+	mcast_rejoin_count		team_nl_option_policy["mcast_rejoin_count", NLA_U32, int32]
+	mcast_rejoin_interval		team_nl_option_policy["mcast_rejoin_interval", NLA_U32, int32]
+	enabled				team_nl_option_policy["enabled", NLA_FLAG, bool8]
+	user_linkup			team_nl_option_policy["user_linkup", NLA_FLAG, bool8]
+	user_linkup_enabled		team_nl_option_policy["user_linkup_enabled", NLA_FLAG, bool8]
+	priority			team_nl_option_policy["priority", NLA_S32, int32]
+	queue_id			team_nl_option_policy["queue_id", NLA_U32, int32]
+	activeport			team_nl_option_policy["activeport", NLA_U32, int32]
+	bpf_hash_func			team_nl_option_policy["bpf_hash_func", NLA_BINARY, int32]
+	lb_tx_method			team_nl_option_policy["lb_tx_method", NLA_STRING, string[team_attr_option_lb_tx_method, 32]]
+	lb_tx_hash_to_port_mapping	team_nl_option_policy["lb_tx_hash_to_port_mapping", NLA_U32, int32]
+	lb_hash_stats			team_nl_option_policy["lb_hash_stats", NLA_BINARY, int32]
+	lb_port_stats			team_nl_option_policy["lb_port_stats", NLA_BINARY, int32]
+	lb_stats_refresh_interval	team_nl_option_policy["lb_stats_refresh_interval", NLA_U32, int32]
+]
+
+team_attr_option_mode = "activebackup", "broadcast", "loadbalance", "random", "roundrobin"
+team_attr_option_lb_tx_method = "hash", "hash_to_port_mapping"
+
+team_attr_list_port [
+	TEAM_ATTR_ITEM_PORT	team_attr_item_port
+] [varlen]
+
+team_attr_item_port [
+	TEAM_ATTR_PORT_IFINDEX	nlattr[TEAM_ATTR_PORT_IFINDEX, ifindex]
+	TEAM_ATTR_PORT_CHANGED	nlattr[TEAM_ATTR_PORT_CHANGED, bool8]
+	TEAM_ATTR_PORT_LINKUP	nlattr[TEAM_ATTR_PORT_LINKUP, bool8]
+	TEAM_ATTR_PORT_SPEED	nlattr[TEAM_ATTR_PORT_SPEED, int32]
+	TEAM_ATTR_PORT_DUPLEX	nlattr[TEAM_ATTR_PORT_DUPLEX, int8]
+	TEAM_ATTR_PORT_REMOVED	nlattr[TEAM_ATTR_PORT_REMOVED, bool8]
+] [varlen]
