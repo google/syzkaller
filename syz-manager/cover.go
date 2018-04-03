@@ -142,7 +142,7 @@ func generateCoverHTML(w io.Writer, vmlinux, kernelDir, arch string, cov cover.C
 				} else {
 					buf.Write([]byte("<span id='uncovered'>"))
 					buf.Write(ln)
-					buf.Write([]byte("</span>\n"))
+					buf.Write([]byte("</span> /*uncovered*/\n"))
 				}
 				covered = covered[1:]
 			} else {
