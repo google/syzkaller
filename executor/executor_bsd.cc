@@ -21,11 +21,23 @@
 #define __syscall syscall
 #endif
 
+#include <fcntl.h>
 #include <signal.h>
+#include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <sys/types.h>
+
+#if defined(__FreeBSD__)
+#define KIOENABLE _IOW('c', 2, int) // Enable coverage recording
+#define KIODISABLE _IO('c', 3) // Disable coverage recording
+#define KIOSETBUFSIZE _IOW('c', 4, unsigned int) // Set the buffer size
+
+#define KCOV_MODE_NONE -1
+#define KCOV_MODE_TRACE_PC 0
+#define KCOV_MODE_TRACE_CMP 1
+#endif
 
 const int kInFd = 3;
 const int kOutFd = 4;
@@ -145,27 +157,66 @@ void cover_open()
 		return;
 	for (int i = 0; i < kMaxThreads; i++) {
 		thread_t* th = &threads[i];
+#if defined(__FreeBSD__)
+		th->cover_fd = open("/dev/kcov", O_RDWR);
+		if (th->cover_fd == -1)
+			fail("open of /dev/kcov failed");
+		if (ioctl(th->cover_fd, KIOSETBUFSIZE, &kCoverSize))
+			fail("ioctl init trace write failed");
+		size_t mmap_alloc_size = kCoverSize * sizeof(th->cover_data[0]);
+		uint64* mmap_ptr = (uint64*)mmap(NULL, mmap_alloc_size,
+						 PROT_READ | PROT_WRITE,
+						 MAP_SHARED, th->cover_fd, 0);
+		if (mmap_ptr == NULL)
+			fail("cover mmap failed");
+		th->cover_size_ptr = mmap_ptr;
+		th->cover_data = &mmap_ptr[1];
+#else
 		th->cover_data = &th->cover_buffer[0];
+#endif
 	}
 }
 
 void cover_enable(thread_t* th)
 {
+#if defined(__FreeBSD__)
+	if (!flag_cover)
+		return;
+	debug("#%d: enabling /dev/kcov\n", th->id);
+	int kcov_mode = flag_collect_comps ? KCOV_MODE_TRACE_CMP : KCOV_MODE_TRACE_PC;
+	if (ioctl(th->cover_fd, KIOENABLE, &kcov_mode))
+		exitf("cover enable write trace failed, mode=%d", kcov_mode);
+	debug("#%d: enabled /dev/kcov\n", th->id);
+#endif
 }
 
 void cover_reset(thread_t* th)
 {
+#if defined(__FreeBSD__)
+	if (!flag_cover)
+		return;
+
+	*th->cover_size_ptr = 0;
+#endif
 }
 
 uint64 read_cover_size(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
+#if defined(__FreeBSD__)
+	uint64 size = *th->cover_size_ptr;
+	debug("#%d: read cover size = %llu\n", th->id, size);
+	if (size > kCoverSize)
+		fail("#%d: too much cover %llu", th->id, size);
+	return size;
+#else
 	// Fallback coverage since we have no real coverage available.
 	// We use syscall number or-ed with returned errno value as signal.
 	// At least this gives us all combinations of syscall+errno.
 	th->cover_data[0] = (th->call_num << 16) | ((th->res == -1 ? th->reserrno : 0) & 0x3ff);
 	return 1;
+#endif
 }
 
 uint32* write_output(uint32 v)
