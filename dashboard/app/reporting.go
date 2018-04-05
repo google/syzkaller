@@ -102,6 +102,11 @@ func needReport(c context.Context, typ string, state *ReportingState, bug *Bug) 
 	}
 	ent := state.getEntry(timeNow(c), bug.Namespace, reporting.Name)
 	cfg := config.Namespaces[bug.Namespace]
+	if timeSince(c, bug.FirstTime) < cfg.ReportingDelay {
+		status = fmt.Sprintf("%v: initial reporting delay", reporting.DisplayTitle)
+		reporting, bugReporting = nil, nil
+		return
+	}
 	if bug.ReproLevel < ReproLevelC && timeSince(c, bug.FirstTime) < cfg.WaitForRepro {
 		status = fmt.Sprintf("%v: waiting for C repro", reporting.DisplayTitle)
 		reporting, bugReporting = nil, nil
