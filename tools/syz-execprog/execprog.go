@@ -7,7 +7,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/binary"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -169,18 +168,14 @@ func main() {
 						fmt.Printf("RESULT: no calls executed\n")
 					}
 					if *flagCoverFile != "" {
-						// Coverage is dumped in sanitizer format.
-						// github.com/google/sanitizers/tools/sancov command can be used to dump PCs,
-						// then they can be piped via addr2line to symbolize.
 						for i, inf := range info {
 							fmt.Printf("call #%v: signal %v, coverage %v\n", i, len(inf.Signal), len(inf.Cover))
 							if len(inf.Cover) == 0 {
 								continue
 							}
 							buf := new(bytes.Buffer)
-							binary.Write(buf, binary.LittleEndian, uint64(0xC0BFFFFFFFFFFF64))
 							for _, pc := range inf.Cover {
-								binary.Write(buf, binary.LittleEndian, cover.RestorePC(pc, 0xffffffff))
+								fmt.Fprintf(buf, "0x%x\n", cover.RestorePC(pc, 0xffffffff))
 							}
 							err := osutil.WriteFile(fmt.Sprintf("%v.%v", *flagCoverFile, i), buf.Bytes())
 							if err != nil {
