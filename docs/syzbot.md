@@ -97,7 +97,10 @@ machine, so the reproducer worked for it somehow.
 If the reproducer exits quickly, try to run it several times, or in a loop.
 There can be some races involved.
 
-Exact compiler used by `syzbot` can be found [here](https://storage.googleapis.com/syzkaller/gcc-7.tar.gz) (245MB).
+Exact compilers used by `syzbot` can be found here:
+- [gcc 7.1.1 20170620](https://storage.googleapis.com/syzkaller/gcc-7.tar.gz) (245MB)
+- [gcc 8.0.1 20180301](https://storage.googleapis.com/syzkaller/gcc-8.0.1-20180301.tar.gz) (286MB)
+- [clang 7.0.0 (trunk 329060)](https://storage.googleapis.com/syzkaller/clang-kmsan-329060.tar.gz) (44MB)
 
 A qemu-suitable Debian/wheezy image can be found [here](https://storage.googleapis.com/syzkaller/wheezy.img) (1GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/wheezy.img.key).
 
@@ -111,6 +114,24 @@ very hard to reproduce in general; some crashes are caused by global accumulated
 state in kernel (e.g. lockdep reports); some crashes are caused by
 non-reproducible coincidences (e.g. an integer `0x12345` happened to reference an
 existing IPC object) and there is long tail of other reasons.
+
+## KMSAN bugs
+
+`KMSAN` is a dynamic, compiler-based tool (similar to `KASAN`) that detects
+uses of uninitialized values. As compared to (now deleted) `KMEMCHECK` which
+simply detected loads of non-stored-to memory, `KMSAN` tracks precise
+propagation of uninitialized values through memory and registers and only flags
+actual eventual uses of uninitialized values. For example, `KMSAN` will detect
+a branch on or a `copy_to_user()` of values that transitively come from
+uninitialized memory created by heap/stack allocations. This ensures
+/theoretical/ absense of both false positives and false negatives (with some
+implementation limitations of course).
+
+`KMSAN` is not upstream yet, though, we want to upstream it later. For now,
+it lives in [github.com/google/kmsan](https://github.com/google/kmsan) and is
+based on a reasonably fresh upstream tree. As the result, any patch testing
+requests for `KMSAN` bugs need to go to `KMSAN` tree. Also note that `KMSAN`
+requires `clang` compiler.
 
 ## Is syzbot code available?
 
