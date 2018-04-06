@@ -393,12 +393,12 @@ func buildCallList(target *prog.Target, enabledCalls, sandbox string) map[*prog.
 		}
 	}
 
-	if supp, err := host.DetectSupportedSyscalls(target, sandbox); err != nil {
+	if _, disabled, err := host.DetectSupportedSyscalls(target, sandbox); err != nil {
 		Logf(0, "failed to detect host supported syscalls: %v", err)
 	} else {
 		for c := range calls {
-			if !supp[c] {
-				Logf(1, "disabling unsupported syscall: %v", c.Name)
+			if reason, ok := disabled[c]; ok {
+				Logf(1, "unsupported syscall: %v: %v", c.Name, reason)
 				delete(calls, c)
 			}
 		}
@@ -407,7 +407,7 @@ func buildCallList(target *prog.Target, enabledCalls, sandbox string) map[*prog.
 	trans := target.TransitivelyEnabledCalls(calls)
 	for c := range calls {
 		if !trans[c] {
-			Logf(1, "disabling transitively unsupported syscall: %v", c.Name)
+			Logf(1, "transitively unsupported: %v", c.Name)
 			delete(calls, c)
 		}
 	}

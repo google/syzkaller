@@ -32,7 +32,7 @@ func testImage(hostAddr string, target *prog.Target, sandbox string) {
 	if config.Flags&ipc.FlagSandboxNamespace != 0 && !osutil.IsExist("/proc/self/ns/user") {
 		Fatalf("/proc/self/ns/user is not present for namespace sandbox")
 	}
-	calls, err := host.DetectSupportedSyscalls(target, sandbox)
+	calls, _, err := host.DetectSupportedSyscalls(target, sandbox)
 	if err != nil {
 		Fatalf("failed to detect supported syscalls: %v", err)
 	}

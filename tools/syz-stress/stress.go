@@ -139,7 +139,7 @@ func buildCallList(target *prog.Target) map[*prog.Syscall]bool {
 		}
 		return calls
 	}
-	calls, err := host.DetectSupportedSyscalls(target, "none")
+	calls, disabled, err := host.DetectSupportedSyscalls(target, "none")
 	if err != nil {
 		Logf(0, "failed to detect host supported syscalls: %v", err)
 		calls = make(map[*prog.Syscall]bool)
@@ -147,10 +147,8 @@ func buildCallList(target *prog.Target) map[*prog.Syscall]bool {
 			calls[c] = true
 		}
 	}
-	for _, c := range target.Syscalls {
-		if !calls[c] {
-			Logf(0, "disabling unsupported syscall: %v", c.Name)
-		}
+	for c, reason := range disabled {
+		Logf(0, "disabling unsupported syscall: %v: %v", c.Name, reason)
 	}
 	trans := target.TransitivelyEnabledCalls(calls)
 	for c := range calls {
