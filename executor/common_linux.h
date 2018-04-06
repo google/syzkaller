@@ -298,11 +298,13 @@ static void execute_command(bool panic, const char* format, ...)
 	// Set own standard PATH to make it work across distributions.
 	memcpy(command, PATH_PREFIX, PATH_PREFIX_LEN);
 	vsnprintf_check(command + PATH_PREFIX_LEN, COMMAND_MAX_LEN, format, args);
-	rv = system(command);
-	if (panic && rv != 0)
-		fail("tun: command \"%s\" failed with code %d", &command[0], rv);
-
 	va_end(args);
+	rv = system(command);
+	if (rv) {
+		if (panic)
+			fail("command '%s' failed: %d", &command[0], rv);
+		debug("command '%s': %d\n", &command[0], rv);
+	}
 }
 
 static int tunfd = -1;
@@ -402,11 +404,11 @@ static void initialize_tun(void)
 static void initialize_netdevices(void)
 {
 	unsigned i;
-	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "veth"};
+	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "veth", "team"};
 	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",
 				  "gre0", "gretap0", "ip_vti0", "ip6_vti0",
 				  "ip6tnl0", "ip6gre0", "ip6gretap0",
-				  "erspan0", "bond0", "veth0", "veth1"};
+				  "erspan0", "bond0", "veth0", "veth1", "team0"};
 
 #ifdef SYZ_EXECUTOR
 	if (!flag_enable_tun)
