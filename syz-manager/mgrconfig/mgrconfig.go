@@ -199,22 +199,12 @@ func SplitTarget(target string) (string, string, string, error) {
 }
 
 func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) (map[int]bool, error) {
-	match := func(call *prog.Syscall, str string) bool {
-		if str == call.CallName || str == call.Name {
-			return true
-		}
-		if len(str) > 1 && str[len(str)-1] == '*' && strings.HasPrefix(call.Name, str[:len(str)-1]) {
-			return true
-		}
-		return false
-	}
-
 	syscalls := make(map[int]bool)
 	if len(enabled) != 0 {
 		for _, c := range enabled {
 			n := 0
 			for _, call := range target.Syscalls {
-				if match(call, c) {
+				if matchSyscall(call.Name, c) {
 					syscalls[call.ID] = true
 					n++
 				}
@@ -231,7 +221,7 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) (map[
 	for _, c := range disabled {
 		n := 0
 		for _, call := range target.Syscalls {
-			if match(call, c) {
+			if matchSyscall(call.Name, c) {
 				delete(syscalls, call.ID)
 				n++
 			}
@@ -240,7 +230,21 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) (map[
 			return nil, fmt.Errorf("unknown disabled syscall: %v", c)
 		}
 	}
+	if len(syscalls) == 0 {
+		return nil, fmt.Errorf("all syscalls are disabled by disable_syscalls in config")
+	}
 	return syscalls, nil
+}
+
+func matchSyscall(name, pattern string) bool {
+	if pattern == name {
+		return true
+	}
+	if len(pattern) > 1 && pattern[len(pattern)-1] == '*' &&
+		strings.HasPrefix(name, pattern[:len(pattern)-1]) {
+		return true
+	}
+	return false
 }
 
 func parseSuppressions(cfg *Config) error {
@@ -254,6 +258,7 @@ func parseSuppressions(cfg *Config) error {
 		"fatal error: runtime: cannot allocate memory",
 		"fatal error: unexpected signal during runtime execution", // presubmably OOM turned into SIGBUS
 		"signal SIGBUS: bus error",                                // presubmably OOM turned into SIGBUS
+		// TODO(dvyukov): these should be moved sys/targets as they are really linux-specific.
 		"Out of memory: Kill process .* \\(syz-fuzzer\\)",
 		"Out of memory: Kill process .* \\(sshd\\)",
 		"Killed process .* \\(syz-fuzzer\\)",

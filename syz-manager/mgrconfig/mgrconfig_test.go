@@ -38,3 +38,25 @@ func TestCanned(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchSyscall(t *testing.T) {
+	tests := []struct {
+		pattern string
+		call    string
+		result  bool
+	}{
+		{"foo", "foo", true},
+		{"foo", "bar", false},
+		{"foo", "foo$BAR", false},
+		{"foo*", "foo", true},
+		{"foo*", "foobar", true},
+		{"foo*", "foo$BAR", true},
+	}
+	for i, test := range tests {
+		res := matchSyscall(test.call, test.pattern)
+		if res != test.result {
+			t.Errorf("#%v: pattern=%q call=%q want=%v got=%v",
+				i, test.pattern, test.call, test.result, res)
+		}
+	}
+}
