@@ -63,7 +63,7 @@ var (
 	flagExecutor    = flag.String("executor", "./syz-executor", "path to executor binary")
 	flagThreaded    = flag.Bool("threaded", true, "use threaded mode in executor")
 	flagCollide     = flag.Bool("collide", true, "collide syscalls to provoke data races")
-	flagSignal      = flag.Bool("cover", true, "collect feedback signals (coverage)")
+	flagSignal      = flag.Bool("cover", false, "collect feedback signals (coverage)")
 	flagSandbox     = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace)")
 	flagDebug       = flag.Bool("debug", false, "debug output from executor")
 	flagTimeout     = flag.Duration("timeout", 0, "execution timeout")
