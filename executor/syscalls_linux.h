@@ -2,11 +2,11 @@
 
 #if defined(__i386__) || 0
 #define GOARCH "386"
-#define SYZ_REVISION "1b455faff0d03f006bcb57afa15343066917fd36"
+#define SYZ_REVISION "17603edae446663d0a7abcb87c8ea5ed56fa3774"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1689;
+unsigned syscall_count = 1690;
 call_t syscalls[] = {
     {"accept4", 364},
     {"accept4$alg", 364},
@@ -855,6 +855,7 @@ call_t syscalls[] = {
     {"ioctl$VT_SETMODE", 54},
     {"ioctl$VT_WAITACTIVE", 54},
     {"ioctl$fiemap", 54},
+    {"ioctl$ifreq_SIOCGIFINDEX_team", 54},
     {"ioctl$ifreq_SIOCGIFINDEX_vcan", 54},
     {"ioctl$int_in", 54},
     {"ioctl$int_out", 54},
@@ -1703,11 +1704,11 @@ call_t syscalls[] = {
 
 #if defined(__x86_64__) || 0
 #define GOARCH "amd64"
-#define SYZ_REVISION "5f70407caa066c2fc5cd166fdf7c218687092749"
+#define SYZ_REVISION "2e1df3e71998de7cd48d74e9e5767cb4691a589c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1741;
+unsigned syscall_count = 1742;
 call_t syscalls[] = {
     {"accept", 43},
     {"accept$alg", 43},
@@ -2570,6 +2571,7 @@ call_t syscalls[] = {
     {"ioctl$VT_SETMODE", 16},
     {"ioctl$VT_WAITACTIVE", 16},
     {"ioctl$fiemap", 16},
+    {"ioctl$ifreq_SIOCGIFINDEX_team", 16},
     {"ioctl$ifreq_SIOCGIFINDEX_vcan", 16},
     {"ioctl$int_in", 16},
     {"ioctl$int_out", 16},
@@ -3456,11 +3458,11 @@ call_t syscalls[] = {
 
 #if defined(__arm__) || 0
 #define GOARCH "arm"
-#define SYZ_REVISION "1c7afe3cc8bc60188d4677de7635b9279929ef72"
+#define SYZ_REVISION "d40ca8f361366bffc415b27539a066b709e331cd"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1698;
+unsigned syscall_count = 1699;
 call_t syscalls[] = {
     {"accept", 285},
     {"accept$alg", 285},
@@ -4291,6 +4293,7 @@ call_t syscalls[] = {
     {"ioctl$VT_SETMODE", 54},
     {"ioctl$VT_WAITACTIVE", 54},
     {"ioctl$fiemap", 54},
+    {"ioctl$ifreq_SIOCGIFINDEX_team", 54},
     {"ioctl$ifreq_SIOCGIFINDEX_vcan", 54},
     {"ioctl$int_in", 54},
     {"ioctl$int_out", 54},
@@ -5166,11 +5169,11 @@ call_t syscalls[] = {
 
 #if defined(__aarch64__) || 0
 #define GOARCH "arm64"
-#define SYZ_REVISION "567f40901694d4b3626677625436cf385013f54d"
+#define SYZ_REVISION "277eb8ec66df64dc2ad8ca8ef8559208b070972c"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1670;
+unsigned syscall_count = 1671;
 call_t syscalls[] = {
     {"accept", 202},
     {"accept$alg", 202},
@@ -5996,6 +5999,7 @@ call_t syscalls[] = {
     {"ioctl$VT_SETMODE", 29},
     {"ioctl$VT_WAITACTIVE", 29},
     {"ioctl$fiemap", 29},
+    {"ioctl$ifreq_SIOCGIFINDEX_team", 29},
     {"ioctl$ifreq_SIOCGIFINDEX_vcan", 29},
     {"ioctl$int_in", 29},
     {"ioctl$int_out", 29},
@@ -6848,11 +6852,11 @@ call_t syscalls[] = {
 
 #if defined(__ppc64__) || defined(__PPC64__) || defined(__powerpc64__) || 0
 #define GOARCH "ppc64le"
-#define SYZ_REVISION "1a32a10c1414845aba1fbc7211587b1383b0a1ae"
+#define SYZ_REVISION "2306403fe097ca06bb53a337f3a71953c1b6c00f"
 #define SYZ_PAGE_SIZE 4096
 #define SYZ_NUM_PAGES 4096
 #define SYZ_DATA_OFFSET 536870912
-unsigned syscall_count = 1660;
+unsigned syscall_count = 1661;
 call_t syscalls[] = {
     {"accept", 330},
     {"accept$alg", 330},
@@ -7675,6 +7679,7 @@ call_t syscalls[] = {
     {"ioctl$VT_SETMODE", 54},
     {"ioctl$VT_WAITACTIVE", 54},
     {"ioctl$fiemap", 54},
+    {"ioctl$ifreq_SIOCGIFINDEX_team", 54},
     {"ioctl$ifreq_SIOCGIFINDEX_vcan", 54},
     {"ioctl$int_in", 54},
     {"ioctl$int_out", 54},
