@@ -404,12 +404,9 @@ func buildCallList(target *prog.Target, enabledCalls, sandbox string) map[*prog.
 		}
 	}
 
-	trans := target.TransitivelyEnabledCalls(calls)
-	for c := range calls {
-		if !trans[c] {
-			Logf(1, "transitively unsupported: %v", c.Name)
-			delete(calls, c)
-		}
+	calls, disabled := target.TransitivelyEnabledCalls(calls)
+	for c, reason := range disabled {
+		Logf(1, "transitively unsupported: %v: %v", c.Name, reason)
 	}
 	return calls
 }

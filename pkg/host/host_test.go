@@ -31,15 +31,9 @@ func TestLog(t *testing.T) {
 	for c, reason := range disabled {
 		t.Logf("%v: %v", c.Name, reason)
 	}
-	trans := target.TransitivelyEnabledCalls(supp)
+	_, disabled = target.TransitivelyEnabledCalls(supp)
 	t.Logf("\n\ntransitively unsupported:")
-	for _, c := range target.Syscalls {
-		s, ok := trans[c]
-		if ok && !s {
-			t.Fatalf("map contains false value")
-		}
-		if !s && supp[c] {
-			t.Logf("%v", c.Name)
-		}
+	for c, reason := range disabled {
+		t.Logf("%v: %v", c.Name, reason)
 	}
 }

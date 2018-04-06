@@ -36,7 +36,7 @@ func testImage(hostAddr string, target *prog.Target, sandbox string) {
 	if err != nil {
 		Fatalf("failed to detect supported syscalls: %v", err)
 	}
-	calls = target.TransitivelyEnabledCalls(calls)
+	calls, _ = target.TransitivelyEnabledCalls(calls)
 	Logf(0, "enabled syscalls: %v", len(calls))
 	if calls[target.SyscallMap["syz_emit_ethernet"]] ||
 		calls[target.SyscallMap["syz_extract_tcp_res"]] {

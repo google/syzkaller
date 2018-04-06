@@ -85,8 +85,9 @@ func (c *Syscall) inputResources() []*ResourceType {
 	return resources
 }
 
-func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) map[*Syscall]bool {
+func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) (map[*Syscall]bool, map[*Syscall]string) {
 	supported := make(map[*Syscall]bool)
+	disabled := make(map[*Syscall]string)
 	for c := range enabled {
 		supported[c] = true
 	}
@@ -106,7 +107,8 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) map[*S
 		n := len(supported)
 		haveGettime := supported[target.SyscallMap["clock_gettime"]]
 		for c := range supported {
-			canCreate := true
+			cantCreate := ""
+			var resourceCtors []*Syscall
 			for _, res := range inputResources[c] {
 				noctors := true
 				for _, ctor := range ctors[res.Desc.Name] {
@@ -116,26 +118,33 @@ func (target *Target) TransitivelyEnabledCalls(enabled map[*Syscall]bool) map[*S
 					}
 				}
 				if noctors {
-					canCreate = false
+					cantCreate = res.Desc.Name
+					resourceCtors = ctors[res.Desc.Name]
 					break
 				}
 			}
 			// We need to support structs as resources,
 			// but for now we just special-case timespec/timeval.
-			if canCreate && !haveGettime {
+			if cantCreate == "" && !haveGettime {
 				ForeachType(c, func(typ Type) {
 					if a, ok := typ.(*StructType); ok && a.Dir() != DirOut && (a.Name() == "timespec" || a.Name() == "timeval") {
-						canCreate = false
+						cantCreate = a.Name()
+						resourceCtors = []*Syscall{target.SyscallMap["clock_gettime"]}
 					}
 				})
 			}
-			if !canCreate {
+			if cantCreate != "" {
 				delete(supported, c)
+				var ctorNames []string
+				for _, ctor := range resourceCtors {
+					ctorNames = append(ctorNames, ctor.Name)
+				}
+				disabled[c] = fmt.Sprintf("no syscalls can create resource %v, enable some syscalls that can create it %v", cantCreate, ctorNames)
 			}
 		}
 		if n == len(supported) {
 			break
 		}
 	}
-	return supported
+	return supported, disabled
 }
