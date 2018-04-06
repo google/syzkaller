@@ -52,12 +52,15 @@ mac_addr_link_local {
 
 mac_addr_link_local_values = 0x0, 0x1, 0x2, 0x3, 0xe
 
+# This corresponds to the last digit in DEV_MAC/DEV_IPV4/DEV_IPV6 in executor/common_linux.h
+type netdev_addr_id int8[10:27]
+
 mac_addr [
 	empty		array[const[0x0, int8], 6]
 # These correspond to LOCAL_MAC/REMOTE_MAC/DEV_MAC in executor/common_linux.h
 	local		mac_addr_t[const[0xaa, int8]]
 	remote		mac_addr_t[const[0xbb, int8]]
-	dev		mac_addr_t[int8[10:26]]
+	dev		mac_addr_t[netdev_addr_id]
 	broadcast	array[const[0xff, int8], 6]
 	link_local	mac_addr_link_local
 	random		array[int8, 6]
@@ -319,7 +322,7 @@ ipv4_addr [
 # These correspond to LOCAL_IPV4/REMOTE_IPV4/DEV_IPV4 in executor/common_linux.h
 	local		ipv4_addr_t[const[170, int8]]
 	remote		ipv4_addr_t[const[187, int8]]
-	dev		ipv4_addr_t[int8[10:26]]
+	dev		ipv4_addr_t[netdev_addr_id]
 # 127.0.0.1
 	loopback	const[0x7f000001, int32be]
 # 224.0.0.1
@@ -517,7 +520,7 @@ ipv6_addr [
 # These correspond to LOCAL_IPV6/REMOTE_IPV6/DEV_IPV6 in executor/common_linux.h
 	local		ipv6_addr_t[const[0xaa, int8]]
 	remote		ipv6_addr_t[const[0xbb, int8]]
-	dev		ipv6_addr_t[int8[10:26]]
+	dev		ipv6_addr_t[netdev_addr_id]
 	loopback	ipv6_addr_loopback
 	ipv4		ipv6_addr_ipv4
 	mcast1		ipv6_addr_multicast1
