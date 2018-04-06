@@ -31,7 +31,7 @@ type ConnectRes struct {
 	Inputs       []RPCInput
 	MaxSignal    signal.Serial
 	Candidates   []RPCCandidate
-	EnabledCalls string
+	EnabledCalls []int
 	NeedCheck    bool
 }
 
@@ -43,11 +43,17 @@ type CheckArgs struct {
 	UserNamespaces bool
 	CompsSupported bool
 	Calls          []string
+	DisabledCalls  []SyscallReason
 	FuzzerGitRev   string
 	FuzzerSyzRev   string
 	ExecutorGitRev string
 	ExecutorSyzRev string
 	ExecutorArch   string
+}
+
+type SyscallReason struct {
+	Name   string
+	Reason string
 }
 
 type NewInputArgs struct {

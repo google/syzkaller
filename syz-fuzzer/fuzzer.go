@@ -11,7 +11,6 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
-	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -170,7 +169,7 @@ func main() {
 	if err := RPCCall(*flagManager, "Manager.Connect", a, r); err != nil {
 		panic(err)
 	}
-	calls := buildCallList(target, r.EnabledCalls, sandbox)
+	calls, disabled := buildCallList(target, r.EnabledCalls, sandbox)
 	ct := target.BuildChoiceTable(r.Prios, calls)
 
 	// This requires "fault-inject: support systematic fault injection" kernel commit.
@@ -208,6 +207,7 @@ func main() {
 			ExecutorGitRev: vers[3],
 			ExecutorSyzRev: vers[2],
 			ExecutorArch:   vers[1],
+			DisabledCalls:  disabled,
 		}
 		a.Kcov = kcov
 		if fd, err := syscall.Open("/sys/kernel/debug/kmemleak", syscall.O_RDWR, 0); err == nil {
@@ -377,38 +377,42 @@ func (fuzzer *Fuzzer) pollLoop() {
 	}
 }
 
-func buildCallList(target *prog.Target, enabledCalls, sandbox string) map[*prog.Syscall]bool {
+func buildCallList(target *prog.Target, enabledCalls []int, sandbox string) (map[*prog.Syscall]bool, []SyscallReason) {
 	calls := make(map[*prog.Syscall]bool)
-	if enabledCalls != "" {
-		for _, id := range strings.Split(enabledCalls, ",") {
-			n, err := strconv.ParseUint(id, 10, 64)
-			if err != nil || n >= uint64(len(target.Syscalls)) {
-				panic(fmt.Sprintf("invalid syscall in -calls flag: %v", id))
-			}
-			calls[target.Syscalls[n]] = true
+	for _, n := range enabledCalls {
+		if n >= len(target.Syscalls) {
+			Fatalf("invalid enabled syscall: %v", n)
 		}
-	} else {
-		for _, c := range target.Syscalls {
-			calls[c] = true
-		}
+		calls[target.Syscalls[n]] = true
 	}
 
-	if _, disabled, err := host.DetectSupportedSyscalls(target, sandbox); err != nil {
-		Logf(0, "failed to detect host supported syscalls: %v", err)
-	} else {
-		for c := range calls {
-			if reason, ok := disabled[c]; ok {
-				Logf(1, "unsupported syscall: %v: %v", c.Name, reason)
-				delete(calls, c)
-			}
+	var disabled []SyscallReason
+	_, unsupported, err := host.DetectSupportedSyscalls(target, sandbox)
+	if err != nil {
+		Fatalf("failed to detect host supported syscalls: %v", err)
+	}
+	for c := range calls {
+		if reason, ok := unsupported[c]; ok {
+			Logf(1, "unsupported syscall: %v: %v", c.Name, reason)
+			disabled = append(disabled, SyscallReason{
+				Name:   c.Name,
+				Reason: reason,
+			})
+			delete(calls, c)
 		}
 	}
-
-	calls, disabled := target.TransitivelyEnabledCalls(calls)
-	for c, reason := range disabled {
-		Logf(1, "transitively unsupported: %v: %v", c.Name, reason)
+	_, unsupported = target.TransitivelyEnabledCalls(calls)
+	for c := range calls {
+		if reason, ok := unsupported[c]; ok {
+			Logf(1, "transitively unsupported: %v: %v", c.Name, reason)
+			disabled = append(disabled, SyscallReason{
+				Name:   c.Name,
+				Reason: reason,
+			})
+			delete(calls, c)
+		}
 	}
-	return calls
+	return calls, disabled
 }
 
 func (fuzzer *Fuzzer) sendInputToManager(inp RPCInput) {

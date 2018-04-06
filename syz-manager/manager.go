@@ -65,7 +65,7 @@ type Manager struct {
 
 	mu              sync.Mutex
 	phase           int
-	enabledSyscalls string
+	enabledSyscalls []int
 	enabledCalls    []string // as determined by fuzzer
 
 	candidates     []RPCCandidate // untriaged inputs from corpus and hub
@@ -155,14 +155,9 @@ func RunManager(cfg *mgrconfig.Config, target *prog.Target, syscalls map[int]boo
 	crashdir := filepath.Join(cfg.Workdir, "crashes")
 	osutil.MkdirAll(crashdir)
 
-	enabledSyscalls := ""
-	if len(syscalls) != 0 {
-		buf := new(bytes.Buffer)
-		for c := range syscalls {
-			fmt.Fprintf(buf, ",%v", c)
-		}
-		enabledSyscalls = buf.String()[1:]
-		Logf(1, "enabled syscalls: %v", enabledSyscalls)
+	var enabledSyscalls []int
+	for c := range syscalls {
+		enabledSyscalls = append(enabledSyscalls, c)
 	}
 
 	mgr := &Manager{
@@ -950,6 +945,23 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 		if mgr.target.Revision != a.FuzzerSyzRev || mgr.target.Revision != a.ExecutorSyzRev {
 			Fatalf("mismatching syscall descriptions:\nmanager= %v\nfuzzer=  %v\nexecutor=%v",
 				mgr.target.Revision, a.FuzzerSyzRev, a.ExecutorSyzRev)
+		}
+	}
+	if len(mgr.cfg.Enable_Syscalls) != 0 && len(a.DisabledCalls) != 0 {
+		disabled := make(map[string]string)
+		for _, dc := range a.DisabledCalls {
+			disabled[dc.Name] = dc.Reason
+		}
+		fail := false
+		for _, id := range mgr.enabledSyscalls {
+			name := mgr.target.Syscalls[id].Name
+			if reason := disabled[name]; reason != "" {
+				Logf(0, "disabling %v: %v", name, reason)
+				fail = true
+			}
+		}
+		if fail {
+			Fatalf("some syscalls enabled by enable_syscalls can't be enabled")
 		}
 	}
 	mgr.vmChecked = true
