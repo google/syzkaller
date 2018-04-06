@@ -6,6 +6,7 @@ package mgrconfig
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -146,6 +147,15 @@ func load(data []byte, filename string) (*Config, error) {
 	case "none", "setuid", "namespace":
 	default:
 		return nil, fmt.Errorf("config param sandbox must contain one of none/setuid/namespace")
+	}
+	if cfg.SSHKey != "" {
+		info, err := os.Stat(cfg.SSHKey)
+		if err != nil {
+			return nil, err
+		}
+		if info.Mode()&0077 != 0 {
+			return nil, fmt.Errorf("sshkey %v is unprotected, ssh will reject it, do chmod 0600 on it", cfg.SSHKey)
+		}
 	}
 
 	cfg.Workdir = osutil.Abs(cfg.Workdir)
