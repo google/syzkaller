@@ -148,14 +148,11 @@ func buildCallList(target *prog.Target) map[*prog.Syscall]bool {
 		}
 	}
 	for c, reason := range disabled {
-		Logf(0, "disabling unsupported syscall: %v: %v", c.Name, reason)
+		Logf(0, "unsupported syscall: %v: %v", c.Name, reason)
 	}
-	trans := target.TransitivelyEnabledCalls(calls)
-	for c := range calls {
-		if !trans[c] {
-			Logf(0, "disabling transitively unsupported syscall: %v", c.Name)
-			delete(calls, c)
-		}
+	calls, disabled = target.TransitivelyEnabledCalls(calls)
+	for c, reason := range disabled {
+		Logf(0, "transitively unsupported: %v: %v", c.Name, reason)
 	}
 	return calls
 }

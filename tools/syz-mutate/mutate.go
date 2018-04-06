@@ -45,12 +45,10 @@ func main() {
 		for id := range syscallsIDs {
 			syscalls[target.Syscalls[id]] = true
 		}
-		trans := target.TransitivelyEnabledCalls(syscalls)
-		for c := range syscalls {
-			if !trans[c] {
-				fmt.Fprintf(os.Stderr, "disabling %v\n", c.Name)
-				delete(syscalls, c)
-			}
+		var disabled map[*prog.Syscall]string
+		syscalls, disabled = target.TransitivelyEnabledCalls(syscalls)
+		for c, reason := range disabled {
+			fmt.Fprintf(os.Stderr, "disabling %v: %v\n", c.Name, reason)
 		}
 	}
 	seed := time.Now().UnixNano()
