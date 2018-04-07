@@ -952,16 +952,11 @@ func (mgr *Manager) Check(a *CheckArgs, r *int) error {
 		for _, dc := range a.DisabledCalls {
 			disabled[dc.Name] = dc.Reason
 		}
-		fail := false
 		for _, id := range mgr.enabledSyscalls {
 			name := mgr.target.Syscalls[id].Name
 			if reason := disabled[name]; reason != "" {
 				Logf(0, "disabling %v: %v", name, reason)
-				fail = true
 			}
-		}
-		if fail {
-			Fatalf("some syscalls enabled by enable_syscalls can't be enabled")
 		}
 	}
 	mgr.vmChecked = true
