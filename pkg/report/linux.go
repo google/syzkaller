@@ -178,7 +178,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 				skipLine := skipText
 				if bytes.Contains(ln, []byte("Disabling lock debugging due to kernel taint")) {
 					skipLine = true
-				} else if textLines > 40 &&
+				} else if textLines > 25 &&
 					bytes.Contains(ln, []byte("Kernel panic - not syncing")) {
 					// If panic_on_warn set, then we frequently have 2 stacks:
 					// one for the actual report (or maybe even more than one),
