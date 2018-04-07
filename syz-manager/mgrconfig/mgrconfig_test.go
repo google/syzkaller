@@ -47,10 +47,12 @@ func TestMatchSyscall(t *testing.T) {
 	}{
 		{"foo", "foo", true},
 		{"foo", "bar", false},
-		{"foo", "foo$BAR", false},
+		{"foo", "foo$BAR", true},
 		{"foo*", "foo", true},
 		{"foo*", "foobar", true},
 		{"foo*", "foo$BAR", true},
+		{"foo$*", "foo", false},
+		{"foo$*", "foo$BAR", true},
 	}
 	for i, test := range tests {
 		res := matchSyscall(test.call, test.pattern)
