@@ -21,10 +21,11 @@
 
 set -eux
 
-DIR=$PWD
-PATH=$PATH:$DIR/go/bin
-GOPATH=$DIR/gopath
-NVM=$(((`free -g | grep "Mem:" | awk '{print $2}'`-1)/3))
+export DIR=$PWD
+export PATH=$DIR/go/bin:$PATH
+export GOPATH=$DIR/gopath
+export GOROOT=
+export NVM=$(((`free -g | grep "Mem:" | awk '{print $2}'`-1)/3))
 
 sudo apt-get install -y -q make git curl bison flex bc libssl-dev gcc g++ qemu-system-x86
 
