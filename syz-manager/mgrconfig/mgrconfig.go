@@ -237,7 +237,7 @@ func ParseEnabledSyscalls(target *prog.Target, enabled, disabled []string) (map[
 }
 
 func matchSyscall(name, pattern string) bool {
-	if pattern == name {
+	if pattern == name || strings.HasPrefix(name, pattern+"$") {
 		return true
 	}
 	if len(pattern) > 1 && pattern[len(pattern)-1] == '*' &&
