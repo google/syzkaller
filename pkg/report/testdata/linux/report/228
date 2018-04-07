@@ -1,0 +1,127 @@
+TITLE: KMSAN: uninit-value in ip_route_output_key_hash_rcu
+
+setsockopt$IPT_SO_SET_ADD_COUNTERS(r1, 0x0, 0x41, &(0x7f0000000100)={'filter\x00', 0x3, [{}, {}, {}]}, 0x58)
+getsockopt$netrom_NETROM_T4(0xffffffffffffffff, 0x103, 0x6, &(0x7f00000001c0), &(0x7f0000000200)=0x4)
+
+[  176.992079] ==================================================================
+[  176.999506] BUG: KMSAN: uninit-value in ip_route_output_key_hash_rcu+0x31f0/0x3940
+[  177.007217] CPU: 1 PID: 12207 Comm: syz-executor0 Not tainted 4.16.0+ #81
+[  177.014155] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  177.023519] Call Trace:
+[  177.026109]  dump_stack+0x185/0x1d0
+[  177.029745]  ? ip_route_output_key_hash_rcu+0x31f0/0x3940
+[  177.035283]  kmsan_report+0x142/0x240
+2018/04/06 22:31:14 executing program 6:
+ioctl$DRM_IOCTL_PRIME_HANDLE_TO_FD(0xffffffffffffffff, 0xc00c642d, &(0x7f0000000ff4))
+migrate_pages(0x0, 0x7fff, &(0x7f000000aff8), &(0x7f0000000000))
+
+[  177.039083]  __msan_warning_32+0x6c/0xb0
+[  177.043145]  ip_route_output_key_hash_rcu+0x31f0/0x3940
+[  177.048510]  ? futex_wait_queue_me+0x4ba/0x710
+[  177.053089]  ? rcu_all_qs+0x32/0x1f0
+[  177.056811]  ip_route_output_flow+0x1eb/0x3c0
+[  177.061301]  ? security_sk_classify_flow+0x49/0x190
+[  177.066328]  raw_sendmsg+0x1861/0x3ed0
+[  177.070236]  ? compat_raw_ioctl+0x100/0x100
+[  177.074558]  inet_sendmsg+0x48d/0x740
+[  177.078360]  ? security_socket_sendmsg+0x9e/0x210
+[  177.083206]  ? inet_getname+0x500/0x500
+[  177.087183]  SYSC_sendto+0x6c3/0x7e0
+[  177.090899]  ? __msan_metadata_ptr_for_store_4+0x13/0x20
+[  177.096347]  ? prepare_exit_to_usermode+0x149/0x3a0
+[  177.101374]  SyS_sendto+0x8a/0xb0
+[  177.104827]  do_syscall_64+0x309/0x430
+[  177.108723]  ? SYSC_getpeername+0x560/0x560
+[  177.113057]  entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+[  177.118243] RIP: 0033:0x455259
+[  177.121425] RSP: 002b:00007fdc0625dc68 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+[  177.129128] RAX: ffffffffffffffda RBX: 00007fdc0625e6d4 RCX: 0000000000455259
+2018/04/06 22:31:14 executing program 6:
+r0 = openat$selinux_checkreqprot(0xffffffffffffff9c, &(0x7f0000000000)='/selinux/checkreqprot\x00', 0x0, 0x0)
+r1 = openat$ptmx(0xffffffffffffff9c, &(0x7f0000f40000)='/dev/ptmx\x00', 0x200000000101002, 0x0)
+sendfile(r1, r0, &(0x7f0000001740), 0x8a)
+
+[  177.136386] RDX: 0000000000000000 RSI: 0000000020000040 RDI: 0000000000000013
+[  177.143652] RBP: 000000000072bea0 R08: 0000000020000080 R09: 0000000000000010
+[  177.150915] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  177.158181] R13: 00000000000004f7 R14: 00000000006fa7c8 R15: 0000000000000000
+[  177.165446] 
+[  177.167065] Local variable description: ----res.i.i@ip_route_output_flow
+[  177.173892] Variable was created at:
+[  177.177610]  ip_route_output_flow+0x75/0x3c0
+[  177.182016]  raw_sendmsg+0x1861/0x3ed0
+[  177.185896] ==================================================================
+[  177.193260] Disabling lock debugging due to kernel taint
+[  177.198725] Kernel panic - not syncing: panic_on_warn set ...
+[  177.198725] 
+[  177.206091] CPU: 1 PID: 12207 Comm: syz-executor0 Tainted: G    B            4.16.0+ #81
+[  177.214312] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  177.223828] Call Trace:
+[  177.226413]  dump_stack+0x185/0x1d0
+[  177.230040]  panic+0x39d/0x940
+[  177.233260]  ? ip_route_output_key_hash_rcu+0x31f0/0x3940
+[  177.238796]  kmsan_report+0x238/0x240
+2018/04/06 22:31:14 executing program 6:
+r0 = syz_open_dev$evdev(&(0x7f0000000000)='/dev/input/event#\x00', 0x2, 0x28001)
+write$evdev(r0, &(0x7f0000037fe8)=[{{}, 0x1, 0x48, 0x2}, {}], 0x30)
+
+[  177.242592]  __msan_warning_32+0x6c/0xb0
+[  177.246653]  ip_route_output_key_hash_rcu+0x31f0/0x3940
+[  177.252017]  ? futex_wait_queue_me+0x4ba/0x710
+[  177.256601]  ? rcu_all_qs+0x32/0x1f0
+[  177.260324]  ip_route_output_flow+0x1eb/0x3c0
+[  177.264817]  ? security_sk_classify_flow+0x49/0x190
+[  177.269836]  raw_sendmsg+0x1861/0x3ed0
+[  177.273743]  ? compat_raw_ioctl+0x100/0x100
+[  177.278064]  inet_sendmsg+0x48d/0x740
+[  177.281864]  ? security_socket_sendmsg+0x9e/0x210
+[  177.286707]  ? inet_getname+0x500/0x500
+[  177.290682]  SYSC_sendto+0x6c3/0x7e0
+[  177.294397]  ? __msan_metadata_ptr_for_store_4+0x13/0x20
+[  177.299841]  ? prepare_exit_to_usermode+0x149/0x3a0
+[  177.304867]  SyS_sendto+0x8a/0xb0
+[  177.308321]  do_syscall_64+0x309/0x430
+[  177.312213]  ? SYSC_getpeername+0x560/0x560
+[  177.316541]  entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+[  177.321719] RIP: 0033:0x455259
+[  177.324898] RSP: 002b:00007fdc0625dc68 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+[  177.332603] RAX: ffffffffffffffda RBX: 00007fdc0625e6d4 RCX: 0000000000455259
+[  177.339867] RDX: 0000000000000000 RSI: 0000000020000040 RDI: 0000000000000013
+[  177.347143] RBP: 000000000072bea0 R08: 0000000020000080 R09: 0000000000000010
+[  177.347150] R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+[  177.347158] R13: 00000000000004f7 R14: 00000000006fa7c8 R15: 0000000000000000
+[  177.347607] Dumping ftrace buffer:
+[  177.347612]    (ftrace buffer empty)
+[  177.347616] Kernel Offset: disabled
+[  177.380116] Rebooting in 86400 seconds..
+
+REPORT:
+==================================================================
+BUG: KMSAN: uninit-value in ip_route_output_key_hash_rcu+0x31f0/0x3940
+CPU: 1 PID: 12207 Comm: syz-executor0 Not tainted 4.16.0+ #81
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+Call Trace:
+ dump_stack+0x185/0x1d0
+ kmsan_report+0x142/0x240
+ __msan_warning_32+0x6c/0xb0
+ ip_route_output_key_hash_rcu+0x31f0/0x3940
+ ip_route_output_flow+0x1eb/0x3c0
+ raw_sendmsg+0x1861/0x3ed0
+ inet_sendmsg+0x48d/0x740
+ SYSC_sendto+0x6c3/0x7e0
+ SyS_sendto+0x8a/0xb0
+ do_syscall_64+0x309/0x430
+ entry_SYSCALL_64_after_hwframe+0x3d/0xa2
+RIP: 0033:0x455259
+RSP: 002b:00007fdc0625dc68 EFLAGS: 00000246 ORIG_RAX: 000000000000002c
+RAX: ffffffffffffffda RBX: 00007fdc0625e6d4 RCX: 0000000000455259
+RDX: 0000000000000000 RSI: 0000000020000040 RDI: 0000000000000013
+RBP: 000000000072bea0 R08: 0000000020000080 R09: 0000000000000010
+R10: 0000000000000000 R11: 0000000000000246 R12: 00000000ffffffff
+R13: 00000000000004f7 R14: 00000000006fa7c8 R15: 0000000000000000
+
+Local variable description: ----res.i.i@ip_route_output_flow
+Variable was created at:
+ ip_route_output_flow+0x75/0x3c0
+ raw_sendmsg+0x1861/0x3ed0
+==================================================================
