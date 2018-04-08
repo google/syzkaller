@@ -76,16 +76,10 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		if !ok {
 			panic("first open arg is not a pointer to string const")
 		}
-		if syscall.Getuid() != 0 || sandbox == "setuid" {
-			return false, "only supported under root with sandbox=none/namespace"
-		}
 		var check func(dev string) bool
 		check = func(dev string) bool {
 			if !strings.Contains(dev, "#") {
-				if !osutil.IsExist(dev) {
-					return false
-				}
-				return true
+				return osutil.IsExist(dev)
 			}
 			for i := 0; i < 10; i++ {
 				if check(strings.Replace(dev, "#", strconv.Itoa(i), 1)) {
@@ -97,27 +91,21 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		if !check(fname) {
 			return false, fmt.Sprintf("file %v does not exist", fname)
 		}
-		return true, ""
+		return onlySandboxNoneOrNamespace(sandbox)
 	case "syz_open_procfs":
 		return true, ""
 	case "syz_open_pts":
 		return true, ""
 	case "syz_fuse_mount":
-		if syscall.Getuid() != 0 || sandbox == "setuid" {
-			return false, "only supported under root with sandbox=none/namespace"
-		}
 		if !osutil.IsExist("/dev/fuse") {
 			return false, "/dev/fuse does not exist"
 		}
-		return true, ""
+		return onlySandboxNoneOrNamespace(sandbox)
 	case "syz_fuseblk_mount":
-		if syscall.Getuid() != 0 || sandbox == "setuid" {
-			return false, "only supported under root with sandbox=none/namespace"
-		}
 		if !osutil.IsExist("/dev/fuse") {
 			return false, "/dev/fuse does not exist"
 		}
-		return true, ""
+		return onlySandboxNoneOrNamespace(sandbox)
 	case "syz_emit_ethernet", "syz_extract_tcp_res":
 		fd, err := syscall.Open("/dev/net/tun", syscall.O_RDWR, 0)
 		if err != nil {
@@ -142,8 +130,8 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		// The problem is that setns of a network namespace requires CAP_SYS_ADMIN
 		// in the target namespace, and we've lost all privs in the init namespace
 		// during creation of a user namespace.
-		if syscall.Getuid() != 0 || sandbox != "none" {
-			return false, "only supported under root with sandbox=none"
+		if ok, reason := onlySandboxNone(sandbox); !ok {
+			return false, reason
 		}
 		return isSupportedSocket(c)
 	case "syz_genetlink_get_family_id":
@@ -154,17 +142,25 @@ func isSupportedSyzkall(sandbox string, c *prog.Syscall) (bool, string) {
 		syscall.Close(fd)
 		return true, ""
 	case "syz_mount_image":
-		if syscall.Getuid() != 0 || sandbox == "setuid" {
-			return false, "only supported under root with sandbox=none/namespace"
-		}
-		return true, ""
+		return onlySandboxNoneOrNamespace(sandbox)
 	case "syz_read_part_table":
-		if syscall.Getuid() != 0 || sandbox != "none" {
-			return false, "only supported under root with sandbox=none"
-		}
-		return true, ""
+		return onlySandboxNone(sandbox)
 	}
 	panic("unknown syzkall: " + c.Name)
+}
+
+func onlySandboxNone(sandbox string) (bool, string) {
+	if syscall.Getuid() != 0 || sandbox != "none" {
+		return false, "only supported under root with sandbox=none"
+	}
+	return true, ""
+}
+
+func onlySandboxNoneOrNamespace(sandbox string) (bool, string) {
+	if syscall.Getuid() != 0 || sandbox == "setuid" {
+		return false, "only supported under root with sandbox=none/namespace"
+	}
+	return true, ""
 }
 
 func isSupportedSocket(c *prog.Syscall) (bool, string) {
