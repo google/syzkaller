@@ -157,19 +157,22 @@ func main() {
 					default:
 					}
 					if failed {
-						fmt.Printf("BUG: executor-detected bug:\n%s", output)
+						Logf(0, "BUG: executor-detected bug:\n%s", output)
 					}
 					if config.Flags&ipc.FlagDebug != 0 || err != nil {
-						fmt.Printf("result: failed=%v hanged=%v err=%v\n\n%s", failed, hanged, err, output)
+						Logf(0, "result: failed=%v hanged=%v err=%v\n\n%s",
+							failed, hanged, err, output)
 					}
 					if len(info) != 0 {
-						fmt.Printf("RESULT: signal %v, coverage %v errno %v\n", len(info[0].Signal), len(info[0].Cover), info[0].Errno)
+						Logf(1, "RESULT: signal %v, coverage %v errno %v",
+							len(info[0].Signal), len(info[0].Cover), info[0].Errno)
 					} else {
-						fmt.Printf("RESULT: no calls executed\n")
+						Logf(1, "RESULT: no calls executed")
 					}
 					if *flagCoverFile != "" {
 						for i, inf := range info {
-							fmt.Printf("call #%v: signal %v, coverage %v\n", i, len(inf.Signal), len(inf.Cover))
+							Logf(0, "call #%v: signal %v, coverage %v",
+								i, len(inf.Signal), len(inf.Cover))
 							if len(inf.Cover) == 0 {
 								continue
 							}
@@ -203,11 +206,11 @@ func main() {
 							entry.P.MutateWithHints(i, comps, func(p *prog.Prog) {
 								ncandidates++
 								if *flagOutput == "stdout" {
-									fmt.Printf("PROGRAM:\n%s\n", p.Serialize())
+									Logf(1, "PROGRAM:\n%s", p.Serialize())
 								}
 							})
 						}
-						fmt.Printf("ncomps=%v ncandidates=%v\n", ncomps, ncandidates)
+						Logf(0, "ncomps=%v ncandidates=%v", ncomps, ncandidates)
 					}
 					return true
 				}() {
