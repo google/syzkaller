@@ -1,4 +1,4 @@
-TITLE: INFO: task syz-executor blocked for more than 120 seconds.
+TITLE: INFO: task hung in corrupted
 CORRUPTED: Y
 
 [  861.152227] INFO: task syz-executor3:10976 blocked for more than 120 seconds.

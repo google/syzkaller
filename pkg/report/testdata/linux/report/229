@@ -1,0 +1,190 @@
+TITLE: WARNING: kmalloc bug in corrupted
+CORRUPTED: Y
+
+[  212.560360] FAULT_INJECTION: forcing a failure.
+[  212.560360] name failslab, interval 1, probability 0, space 0, times 0
+[  212.561336] BFS-fs: bfs_fill_super(): loop0 is unclean, continuing
+[  212.571639] CPU: 1 PID: 17814 Comm: syz-executor3 Not tainted 4.16.0+ #11
+[  212.571646] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  212.571650] Call Trace:
+[  212.571667]  dump_stack+0x1a7/0x27d
+[  212.571681]  ? arch_local_irq_restore+0x53/0x53
+[  212.571695]  ? lockdep_init_map+0x9/0x10
+[  212.578121] WARNING: CPU: 0 PID: 17813 at mm/slab_common.c:1012 kmalloc_slab+0x5d/0x70
+[  212.584909]  should_fail+0x914/0xae0
+[  212.594229] Kernel panic - not syncing: panic_on_warn set ...
+[  212.594229] 
+[  212.596797]  ? fault_create_debugfs_attr+0x1f0/0x1f0
+[  212.633158]  ? __raw_spin_lock_init+0x1c/0x100
+[  212.637722]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  212.642722]  ? find_held_lock+0x35/0x1d0
+[  212.646766]  ? find_held_lock+0x35/0x1d0
+[  212.650822]  ? check_same_owner+0x320/0x320
+[  212.655124]  ? rcu_note_context_switch+0x710/0x710
+[  212.660032]  ? kasan_check_read+0x11/0x20
+[  212.664161]  should_failslab+0xec/0x120
+[  212.668116]  kmem_cache_alloc+0x47/0x760
+[  212.672156]  ? find_held_lock+0x35/0x1d0
+[  212.676203]  get_empty_filp+0xfb/0x510
+[  212.680066]  ? d_instantiate+0x79/0xa0
+[  212.683931]  ? proc_nr_files+0x60/0x60
+[  212.687795]  ? lock_downgrade+0x980/0x980
+[  212.691922]  ? lock_release+0xa40/0xa40
+[  212.695876]  ? kasan_check_read+0x11/0x20
+[  212.700004]  ? do_raw_spin_unlock+0x9e/0x310
+[  212.704390]  ? do_raw_spin_trylock+0x1a0/0x1a0
+[  212.708950]  ? kasan_check_write+0x14/0x20
+[  212.713165]  ? do_raw_spin_lock+0xc1/0x230
+[  212.717381]  alloc_file+0x26/0x390
+[  212.720899]  ? kasan_check_write+0x14/0x20
+[  212.725114]  __shmem_file_setup+0x54f/0x6a0
+[  212.729416]  ? __check_object_size+0x8b/0x530
+[  212.733890]  ? shmem_fill_super+0xa10/0xa10
+[  212.738192]  ? get_unused_fd_flags+0x121/0x190
+[  212.742753]  ? __alloc_fd+0x750/0x750
+[  212.746533]  ? kasan_check_write+0x14/0x20
+[  212.750748]  ? _copy_from_user+0x99/0x110
+[  212.754877]  SyS_memfd_create+0x3ba/0x4c0
+[  212.759004]  ? memfd_fcntl+0x12e0/0x12e0
+[  212.763048]  ? do_syscall_64+0xb7/0x940
+[  212.767004]  ? memfd_fcntl+0x12e0/0x12e0
+[  212.771043]  do_syscall_64+0x281/0x940
+[  212.774909]  ? vmalloc_sync_all+0x30/0x30
+[  212.779037]  ? _raw_spin_unlock_irq+0x27/0x70
+[  212.783510]  ? finish_task_switch+0x1c1/0x810
+[  212.787983]  ? syscall_return_slowpath+0x550/0x550
+[  212.792890]  ? syscall_return_slowpath+0x2ac/0x550
+[  212.797797]  ? prepare_exit_to_usermode+0x350/0x350
+[  212.802789]  ? entry_SYSCALL_64_after_hwframe+0x52/0xb7
+[  212.808133]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  212.812955]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  212.818125] RIP: 0033:0x4552d9
+[  212.821293] RSP: 002b:00007f346514cbb8 EFLAGS: 00000246 ORIG_RAX: 000000000000013f
+[  212.828982] RAX: ffffffffffffffda RBX: 0000000020000200 RCX: 00000000004552d9
+[  212.836227] RDX: 0000000020000218 RSI: 0000000000000000 RDI: 00000000004ba0e5
+[  212.843475] RBP: 000000000072bea0 R08: 0000000000000000 R09: 0000000000000001
+[  212.850725] R10: 0000000002000000 R11: 0000000000000246 R12: 0000000000000014
+[  212.857972] R13: 0000000000000662 R14: 00000000006fc9d0 R15: 0000000000000003
+[  212.865231] CPU: 0 PID: 17813 Comm: syz-executor0 Not tainted 4.16.0+ #11
+[  212.872149] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  212.881505] Call Trace:
+[  212.884088]  dump_stack+0x1a7/0x27d
+[  212.887715]  ? arch_local_irq_restore+0x53/0x53
+[  212.892384]  ? vsnprintf+0x1ed/0x1900
+[  212.896180]  panic+0x1f8/0x42c
+[  212.899363]  ? refcount_error_report+0x214/0x214
+[  212.904109]  ? show_regs_print_info+0x18/0x18
+[  212.908598]  ? __warn+0x1c1/0x200
+[  212.912044]  ? kmalloc_slab+0x5d/0x70
+[  212.915838]  __warn+0x1dc/0x200
+[  212.917356] BFS-fs: bfs_fill_super(): loop2 is unclean, continuing
+[  212.919106]  ? kmalloc_slab+0x5d/0x70
+[  212.919121]  report_bug+0x1f4/0x2b0
+[  212.919134]  fixup_bug.part.10+0x37/0x80
+[  212.919141]  do_error_trap+0x2d7/0x3e0
+[  212.919151]  ? math_error+0x400/0x400
+[  212.925475] BFS-fs: bfs_fill_super(): Superblock is corrupted
+[  212.929234]  ? remove_wait_queue+0x350/0x350
+[  212.929247]  ? __sched_text_start+0x8/0x8
+[  212.929260]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  212.929271]  do_invalid_op+0x1b/0x20
+[  212.967437]  invalid_op+0x1b/0x40
+[  212.970890] RIP: 0010:kmalloc_slab+0x5d/0x70
+[  212.975282] RSP: 0018:ffff88018d637908 EFLAGS: 00010246
+[  212.980637] RAX: 0000000000000000 RBX: ffff8801be761004 RCX: ffffffff820964ba
+[  212.987895] RDX: 1ffff1003a59d624 RSI: 0000000000000000 RDI: 0000000000800000
+[  212.995154] RBP: ffff88018d637908 R08: ffffed003b604f99 R09: ffffed003b604f99
+[  213.002419] R10: 0000000000000001 R11: ffffed003b604f98 R12: 00000000007fffff
+[  213.009683] R13: ffff8801be761000 R14: 00000000014080c0 R15: ffff88018cf8c400
+[  213.016956]  ? bfs_fill_super+0x38a/0xea0
+[  213.021104]  __kmalloc+0x25/0x760
+[  213.021257] FAULT_INJECTION: forcing a failure.
+[  213.021257] name failslab, interval 1, probability 0, space 0, times 0
+[  213.024544]  ? __might_sleep+0x95/0x190
+[  213.024558]  ? bfs_fill_super+0x3d3/0xea0
+[  213.024566]  ? bfs_fill_super+0xde4/0xea0
+[  213.024578]  bfs_fill_super+0x3d3/0xea0
+[  213.024590]  ? snprintf+0xc0/0xf0
+[  213.024606]  ? set_blocksize+0x1f1/0x260
+[  213.024621]  mount_bdev+0x2b7/0x370
+[  213.062960]  ? bfs_iget+0xb70/0xb70
+[  213.066568]  bfs_mount+0x34/0x40
+[  213.069918]  mount_fs+0x66/0x2d0
+[  213.073266]  vfs_kern_mount.part.26+0xc6/0x4a0
+[  213.077828]  ? may_umount+0xa0/0xa0
+[  213.081437]  ? _raw_read_unlock+0x22/0x30
+[  213.085564]  ? __get_fs_type+0x8a/0xc0
+[  213.089442]  do_mount+0xea4/0x2bb0
+[  213.092960]  ? __might_fault+0x110/0x1d0
+[  213.097002]  ? copy_mount_string+0x40/0x40
+[  213.101220]  ? check_same_owner+0x320/0x320
+[  213.105524]  ? __check_object_size+0x8b/0x530
+[  213.110005]  ? __might_sleep+0x95/0x190
+[  213.113967]  ? kasan_check_write+0x14/0x20
+[  213.118185]  ? _copy_from_user+0x99/0x110
+[  213.122311]  ? memdup_user+0x5e/0x90
+[  213.126006]  ? copy_mount_options+0x1f7/0x2e0
+[  213.130483]  SyS_mount+0xab/0x120
+[  213.133917]  ? copy_mnt_ns+0xb40/0xb40
+[  213.137786]  do_syscall_64+0x281/0x940
+[  213.141653]  ? vmalloc_sync_all+0x30/0x30
+[  213.145782]  ? _raw_spin_unlock_irq+0x27/0x70
+[  213.150255]  ? finish_task_switch+0x1c1/0x810
+[  213.154734]  ? syscall_return_slowpath+0x550/0x550
+[  213.159640]  ? syscall_return_slowpath+0x2ac/0x550
+[  213.164549]  ? prepare_exit_to_usermode+0x350/0x350
+[  213.169542]  ? entry_SYSCALL_64_after_hwframe+0x52/0xb7
+[  213.174888]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  213.179716]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  213.184884] RIP: 0033:0x457d0a
+[  213.188055] RSP: 002b:00007fa164808bb8 EFLAGS: 00000246 ORIG_RAX: 00000000000000a5
+[  213.195746] RAX: ffffffffffffffda RBX: 0000000020000000 RCX: 0000000000457d0a
+[  213.202993] RDX: 0000000020000000 RSI: 0000000020000100 RDI: 00007fa164808c00
+[  213.210244] RBP: 0000000000000002 R08: 0000000000000000 R09: 0000000020000000
+[  213.217578] R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000013
+[  213.224824] R13: 0000000000000662 R14: 00000000006fc9d0 R15: 0000000000000000
+[  213.232084] CPU: 1 PID: 17834 Comm: syz-executor3 Not tainted 4.16.0+ #11
+[  213.238994] Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 01/01/2011
+[  213.248320] Call Trace:
+[  213.250884]  dump_stack+0x1a7/0x27d
+[  213.254490]  ? arch_local_irq_restore+0x53/0x53
+[  213.259134]  ? lock_downgrade+0x980/0x980
+[  213.263264]  should_fail+0x914/0xae0
+[  213.266954]  ? fault_create_debugfs_attr+0x1f0/0x1f0
+[  213.272034]  ? up_write+0x72/0x210
+[  213.275548]  ? up_read+0x110/0x110
+[  213.279062]  ? find_held_lock+0x35/0x1d0
+[  213.283108]  ? check_same_owner+0x320/0x320
+[  213.287408]  ? rcu_note_context_switch+0x710/0x710
+[  213.293199]  should_failslab+0xec/0x120
+[  213.297150]  kmem_cache_alloc+0x47/0x760
+[  213.301188]  ? __lock_is_held+0xb6/0x140
+[  213.305229]  getname_flags+0xcb/0x580
+[  213.309003]  getname+0x19/0x20
+[  213.312173]  do_sys_open+0x2e7/0x6d0
+[  213.315865]  ? filp_open+0x70/0x70
+[  213.319379]  ? SyS_pread64+0x190/0x190
+[  213.323244]  ? do_sys_ftruncate.constprop.14+0x112/0x5d0
+[  213.328673]  SyS_open+0x2d/0x40
+[  213.331931]  ? do_sys_open+0x6d0/0x6d0
+[  213.335792]  do_syscall_64+0x281/0x940
+[  213.339653]  ? vmalloc_sync_all+0x30/0x30
+[  213.343777]  ? _raw_spin_unlock_irq+0x27/0x70
+[  213.348248]  ? finish_task_switch+0x1c1/0x810
+[  213.352719]  ? syscall_return_slowpath+0x550/0x550
+[  213.357622]  ? syscall_return_slowpath+0x2ac/0x550
+[  213.362533]  ? prepare_exit_to_usermode+0x350/0x350
+[  213.367525]  ? entry_SYSCALL_64_after_hwframe+0x52/0xb7
+[  213.372865]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  213.377685]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  213.382848] RIP: 0033:0x40f531
+[  213.386012] RSP: 002b:00007f346514cbb0 EFLAGS: 00000293 ORIG_RAX: 0000000000000002
+[  213.393695] RAX: ffffffffffffffda RBX: 0000000020000228 RCX: 000000000040f531
+[  213.401634] RDX: 00007f346514cc0a RSI: 0000000000000002 RDI: 00007f346514cc00
+[  213.408875] RBP: 0000000000000001 R08: 0000000000000000 R09: 000000000000000a
+[  213.416119] R10: 0000000000000075 R11: 0000000000000293 R12: 0000000000000015
+[  213.423363] R13: 0000000000000662 R14: 00000000006fc9d0 R15: 0000000000000004
+[  213.431058] Dumping ftrace buffer:
+[  213.434726]    (ftrace buffer empty)
+[  213.438410] Kernel Offset: disabled
+[  213.442016] Rebooting in 86400 seconds..

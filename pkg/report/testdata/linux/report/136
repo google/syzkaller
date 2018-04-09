@@ -1,4 +1,4 @@
-TITLE: BUG: using __this_cpu_read() in preemptible [ADDR] code: syz-executor
+TITLE: BUG: using __this_cpu_read() in preemptible code in corrupted
 CORRUPTED: Y
 
 [   62.873963] BUG: using __this_cpu_read() in preemptible [00000000] code: syz-executor7/11203

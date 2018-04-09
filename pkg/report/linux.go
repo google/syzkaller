@@ -579,6 +579,10 @@ var linuxStackParams = &stackParams{
 		"list_move",
 		"list_splice",
 	},
+	corruptedLines: []*regexp.Regexp{
+		// Fault injection stacks are frequently intermixed with crash reports.
+		compile(`^ should_failslab\+0x`),
+	},
 }
 
 func warningStackFmt(skip ...string) *stackFmt {

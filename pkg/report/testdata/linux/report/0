@@ -1,4 +1,4 @@
-TITLE: BUG: unable to handle kernel
+TITLE: BUG: unable to handle kernel paging request in corrupted
 CORRUPTED: Y
 
 [  772.918915] BUG: unable to handle kernel paging request at ffff88002bde1e40

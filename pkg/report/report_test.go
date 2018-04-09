@@ -6,6 +6,7 @@ package report
 import (
 	"bufio"
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -17,11 +18,14 @@ import (
 	"github.com/google/syzkaller/pkg/osutil"
 )
 
+var flagUpdate = flag.Bool("update", false, "update test files accordingly to current results")
+
 func TestParse(t *testing.T) {
 	forEachFile(t, "report", testParseFile)
 }
 
 type ParseTest struct {
+	FileName  string
 	Log       []byte
 	Title     string
 	StartLine string
@@ -43,7 +47,9 @@ func testParseFile(t *testing.T, reporter Reporter, fn string) {
 		phaseReport
 	)
 	phase := phaseHeaders
-	test := &ParseTest{}
+	test := &ParseTest{
+		FileName: fn,
+	}
 	prevEmptyLine := false
 	s := bufio.NewScanner(input)
 	for s.Scan() {
@@ -122,23 +128,26 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 		title = rep.Title
 		corrupted = rep.Corrupted
 	}
-	if title == "" && test.Title != "" {
-		t.Fatalf("did not find crash message")
-	}
-	if title != "" && test.Title == "" {
-		t.Fatalf("found bogus crash title %q", title)
-	}
-	if title != test.Title {
-		t.Fatalf("extracted bad crash title %+q", title)
+	if title != test.Title || corrupted != test.Corrupted {
+		if *flagUpdate && test.StartLine == "" && test.EndLine == "" {
+			buf := new(bytes.Buffer)
+			fmt.Fprintf(buf, "TITLE: %v\n", title)
+			if corrupted {
+				fmt.Fprintf(buf, "CORRUPTED: Y\n")
+			}
+			fmt.Fprintf(buf, "\n%s", test.Log)
+			if test.HasReport {
+				fmt.Fprintf(buf, "REPORT:\n%s", test.Report)
+			}
+			if err := ioutil.WriteFile(test.FileName, buf.Bytes(), 0640); err != nil {
+				t.Logf("failed to update test file: %v", err)
+			}
+		}
+		t.Fatalf("got:\nTITLE: %s\nCORRUPTED: %v\ngot:\nTITLE: %s\nCORRUPTED: %v\n",
+			title, corrupted, test.Title, test.Corrupted)
 	}
 	if title != "" && len(rep.Report) == 0 {
 		t.Fatalf("found crash message but report is empty")
-	}
-	if corrupted && !test.Corrupted {
-		t.Fatalf("report is incorrectly marked as corrupted")
-	}
-	if !corrupted && test.Corrupted {
-		t.Fatalf("failed to mark report '%s' as corrupted", title)
 	}
 	if rep != nil {
 		if test.HasReport && !bytes.Equal(rep.Report, test.Report) {

@@ -1,4 +1,4 @@
-TITLE: INFO: rcu_sched self-detected stall on CPU
+TITLE: INFO: rcu detected stall in corrupted
 CORRUPTED: Y
 
 [  277.780013] INFO: rcu_sched self-detected stall on CPU
