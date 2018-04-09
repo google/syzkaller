@@ -130,8 +130,16 @@ implementation limitations of course).
 `KMSAN` is not upstream yet, though, we want to upstream it later. For now,
 it lives in [github.com/google/kmsan](https://github.com/google/kmsan) and is
 based on a reasonably fresh upstream tree. As the result, any patch testing
-requests for `KMSAN` bugs need to go to `KMSAN` tree. Also note that `KMSAN`
-requires `clang` compiler.
+requests for `KMSAN` bugs need to go to `KMSAN` tree
+(`https://github.com/google/kmsan.git`). Also note that `KMSAN` requires
+`clang` compiler.
+
+Report explanation. The first call trace points to the `use` of the uninit value
+(which is usually a branching or copying it to userspace). Then there are 0 or
+more "Uninit was stored to memory at:" stacks which denote how the unint value
+travelled through memory. Finally there is a "Uninit was created at:"
+section which points either to a heap allocation or a stack variable which
+is the original source of uninitialized-ness.
 
 ## Is syzbot code available?
 
