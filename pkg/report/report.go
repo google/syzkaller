@@ -142,15 +142,11 @@ func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) int {
 	if match == -1 {
 		return -1
 	}
-	for _, supp := range oops.suppressions {
-		if supp.Match(line) {
-			return -1
-		}
+	if matchesAny(line, oops.suppressions) {
+		return -1
 	}
-	for _, ignore := range ignores {
-		if ignore.Match(line) {
-			return -1
-		}
+	if matchesAny(line, ignores) {
+		return -1
 	}
 	return match
 }
@@ -183,10 +179,13 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 		for i := 2; i < len(match); i += 2 {
 			args = append(args, string(output[match[i]:match[i+1]]))
 		}
+		corrupted = false
 		if f.stack != nil {
-			frame := extractStackFrame(params, f.stack, output[match[0]:])
+			frame := ""
+			frame, corrupted = extractStackFrame(params, f.stack, output[match[0]:])
 			if frame == "" {
-				continue
+				frame = "corrupted"
+				corrupted = true
 			}
 			args = append(args, frame)
 		}
@@ -195,8 +194,11 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 	}
 	if len(desc) == 0 {
 		// If we are here and matchedTitle is set, it means that we've matched
-		// a title of an oops but not full report regexp or stack trace.
-		corrupted = matchedTitle
+		// a title of an oops but not full report regexp or stack trace,
+		// which means the report was corrupted.
+		if matchedTitle {
+			corrupted = true
+		}
 		pos := bytes.Index(output, oops.header)
 		if pos == -1 {
 			return
@@ -227,34 +229,39 @@ type stackParams struct {
 	frameRes []*regexp.Regexp
 	// skipPatterns match functions that must be unconditionally skipped.
 	skipPatterns []string
+	// If we looked at any lines that match corruptedLines during report analysis,
+	// then the report is marked as corrupted.
+	corruptedLines []*regexp.Regexp
 }
 
-func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) string {
+func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (string, bool) {
 	skip := append([]string{}, params.skipPatterns...)
 	skip = append(skip, stack.skip...)
 	var skipRe *regexp.Regexp
 	if len(skip) != 0 {
 		skipRe = regexp.MustCompile(strings.Join(skip, "|"))
 	}
-	frame := extractStackFrameImpl(params, output, skipRe, stack.parts)
+	frame, corrupted := extractStackFrameImpl(params, output, skipRe, stack.parts)
 	if frame != "" || len(stack.parts2) == 0 {
-		return frame
+		return frame, corrupted
 	}
 	return extractStackFrameImpl(params, output, skipRe, stack.parts2)
 }
 
 func extractStackFrameImpl(params *stackParams, output []byte, skipRe *regexp.Regexp,
-	parts []*regexp.Regexp) string {
+	parts []*regexp.Regexp) (string, bool) {
+	corrupted := false
 	s := bufio.NewScanner(bytes.NewReader(output))
 nextPart:
 	for _, part := range parts {
 		if part == parseStackTrace {
 			for s.Scan() {
 				ln := s.Bytes()
-				for _, re := range params.stackStartRes {
-					if re.Match(ln) {
-						continue nextPart
-					}
+				if !corrupted && matchesAny(ln, params.corruptedLines) {
+					corrupted = true
+				}
+				if matchesAny(ln, params.stackStartRes) {
+					continue nextPart
 				}
 				var match []int
 				for _, re := range params.frameRes {
@@ -268,12 +275,15 @@ nextPart:
 				}
 				frame := ln[match[2]:match[3]]
 				if skipRe == nil || !skipRe.Match(frame) {
-					return string(frame)
+					return string(frame), corrupted
 				}
 			}
 		} else {
 			for s.Scan() {
 				ln := s.Bytes()
+				if !corrupted && matchesAny(ln, params.corruptedLines) {
+					corrupted = true
+				}
 				match := part.FindSubmatchIndex(ln)
 				if match == nil {
 					continue
@@ -281,14 +291,23 @@ nextPart:
 				if len(match) == 4 && match[2] != -1 {
 					frame := ln[match[2]:match[3]]
 					if skipRe == nil || !skipRe.Match(frame) {
-						return string(frame)
+						return string(frame), corrupted
 					}
 				}
 				break
 			}
 		}
 	}
-	return ""
+	return "", corrupted
+}
+
+func matchesAny(line []byte, res []*regexp.Regexp) bool {
+	for _, re := range res {
+		if re.Match(line) {
+			return true
+		}
+	}
+	return false
 }
 
 // replace replaces [start:end] in where with what, inplace.

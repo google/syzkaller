@@ -1,4 +1,4 @@
-TITLE: general protection fault: 0000 [#1] PREEMPT SMP KASAN
+TITLE: general protection fault in corrupted
 CORRUPTED: Y
 
 [   32.536478] binder: BINDER_SET_CONTEXT_MGR already set

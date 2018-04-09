@@ -1,5 +1,5 @@
-# TODO: this is actually corrupted because of the intervening vmalloc allocation failure.
-TITLE: WARNING in debug_print_object
+TITLE: WARNING: ODEBUG bug in corrupted
+CORRUPTED: Y
 
 [  127.347754] xprt_adjust_timeout: rq_timeout = 0!
 [  127.359095] ------------[ cut here ]------------

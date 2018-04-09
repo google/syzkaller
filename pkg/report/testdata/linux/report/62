@@ -1,4 +1,4 @@
-TITLE: INFO: rcu_bh detected stalls on CPUs/tasks:
+TITLE: INFO: rcu detected stall in corrupted
 CORRUPTED: Y
 
 [  152.002376] INFO: rcu_bh detected stalls on CPUs/tasks:
