@@ -141,6 +141,26 @@ travelled through memory. Finally there is a "Uninit was created at:"
 section which points either to a heap allocation or a stack variable which
 is the original source of uninitialized-ness.
 
+## No custom patches
+
+While `syzbot` can test patches that fix bugs, it does not support applying
+custom patches during fuzzing. It always tests vanilla unmodified git trees.
+There are several reasons for this:
+
+- custom patches may not apply tomorrow
+- custom patches may not apply to all of the tested git trees
+- it's hard to communicate exact state of the code with bug reports (not just hash anymore)
+- line numbers won't match in reports (which always brings suspecion as to the quality of reports)
+- custom patches can also introduce bugs, and even if they don't a developer may (rightfully)
+  question validity of and may not want to spend time on reports obtained
+  with a number of out-of-tree patches
+- order of patch application generatelly matters, and at some point patches
+  need to be removed, there is nobody to manage this
+
+We've experimented with application of custom patches in the past and it lead
+to unrecoverable mess. If you want `syzbot` to pick up patches sooner,
+ask tree maintainers for priority handling.
+
 ## Is syzbot code available?
 
 Yes, it is [here](https://github.com/google/syzkaller/tree/master/dashboard/app).
