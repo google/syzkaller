@@ -16,6 +16,7 @@ Page with details about a single bug.
 
 	<b>[{{.Bug.Namespace}}] {{.Bug.Title}}</b><br>
 	Status: {{if .Bug.ExternalLink}}<a href="{{.Bug.ExternalLink}}">{{.Bug.Status}}</a>{{else}}{{.Bug.Status}}{{end}}<br>
+	Reported-by: {{.Bug.CreditEmail}}<br>
 	{{if .Bug.Commits}}
 		Commits: {{.Bug.Commits}}<br>
 		{{if .Bug.ClosedTime.IsZero}}

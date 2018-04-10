@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/syzkaller/dashboard/dashapi"
+	"github.com/google/syzkaller/pkg/email"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
@@ -109,6 +110,7 @@ type uiBug struct {
 	Status         string
 	Link           string
 	ExternalLink   string
+	CreditEmail    string
 	Commits        string
 	PatchedOn      []string
 	MissingOn      []string
@@ -536,6 +538,10 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 			}
 		}
 	}
+	creditEmail, err := email.AddAddrContext(ownEmail(c), bug.Reporting[reportingIdx].ID)
+	if err != nil {
+		log.Errorf(c, "failed to generate credit email: %v", err)
+	}
 	id := bugKeyHash(bug.Namespace, bug.Title, bug.Seq)
 	uiBug := &uiBug{
 		Namespace:      bug.Namespace,
@@ -550,6 +556,7 @@ func createUIBug(c context.Context, bug *Bug, state *ReportingState, managers []
 		Status:         status,
 		Link:           bugLink(id),
 		ExternalLink:   link,
+		CreditEmail:    creditEmail,
 		NumManagers:    len(managers),
 	}
 	updateBugBadness(c, uiBug)
