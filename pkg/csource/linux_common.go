@@ -548,7 +548,7 @@ static void initialize_tun(void)
 static void initialize_netdevices(void)
 {
 	unsigned i;
-	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "veth", "team"};
+	const char* devtypes[] = {"ip6gretap", "bridge", "vcan", "bond", "team"};
 	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",
 				  "gre0", "gretap0", "ip_vti0", "ip6_vti0",
 				  "ip6tnl0", "ip6gre0", "ip6gretap0",
@@ -560,7 +560,7 @@ static void initialize_netdevices(void)
 #endif
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
-	execute_command(0, "ip link add dev veth1 type veth");
+	execute_command(0, "ip link add type veth");
 	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
 		char addr[32];
 		snprintf_check(addr, sizeof(addr), DEV_IPV4, i + 10);
@@ -571,6 +571,10 @@ static void initialize_netdevices(void)
 		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
 		execute_command(0, "ip link set dev %s up", devnames[i]);
 	}
+
+	execute_command(0, "ip link add name bond_slave type veth peer name team_slave");
+	execute_command(0, "ip link set bond_slave master bond0");
+	execute_command(0, "ip link set team_slave master team0");
 }
 #endif
 
