@@ -173,6 +173,10 @@ func main() {
 	ct := target.BuildChoiceTable(r.Prios, calls)
 
 	// This requires "fault-inject: support systematic fault injection" kernel commit.
+	// TODO(dvykov): also need to check presence of /sys/kernel/debug/failslab/ignore-gfp-wait
+	// and /sys/kernel/debug/fail_futex/ignore-private, they can be missing if
+	// CONFIG_FAULT_INJECTION_DEBUG_FS is not enabled.
+	// Also need to move this somewhere else (to linux-specific part).
 	faultInjectionEnabled := false
 	if fd, err := syscall.Open("/proc/self/fail-nth", syscall.O_RDWR, 0); err == nil {
 		syscall.Close(fd)
