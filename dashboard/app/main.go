@@ -77,6 +77,7 @@ type uiBugPage struct {
 }
 
 type uiBugNamespace struct {
+	Name       string
 	Caption    string
 	CoverLink  string
 	FixedLink  string
@@ -422,9 +423,11 @@ func fetchNamespaceBugs(c context.Context, accessLevel AccessLevel, ns string,
 	if !onlyFixed {
 		fixedLink = fmt.Sprintf("?fixed=%v", ns)
 	}
+	cfg := config.Namespaces[ns]
 	uiNamespace := &uiBugNamespace{
-		Caption:    config.Namespaces[ns].DisplayTitle,
-		CoverLink:  config.Namespaces[ns].CoverLink,
+		Name:       ns,
+		Caption:    cfg.DisplayTitle,
+		CoverLink:  cfg.CoverLink,
 		FixedCount: fixedCount,
 		FixedLink:  fixedLink,
 		Groups:     uiGroups,
