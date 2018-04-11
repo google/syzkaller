@@ -571,7 +571,6 @@ static void initialize_netdevices(void)
 		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
 		execute_command(0, "ip link set dev %s up", devnames[i]);
 	}
-
 	execute_command(0, "ip link add name bond_slave type veth peer name team_slave");
 	execute_command(0, "ip link set bond_slave master bond0");
 	execute_command(0, "ip link set team_slave master team0");

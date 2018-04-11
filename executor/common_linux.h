@@ -416,6 +416,7 @@ static void initialize_netdevices(void)
 #endif
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
+	// This adds connected veth0 and veth1 devices.
 	execute_command(0, "ip link add type veth");
 	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
 		char addr[32];
@@ -430,7 +431,9 @@ static void initialize_netdevices(void)
 		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
 		execute_command(0, "ip link set dev %s up", devnames[i]);
 	}
-
+	// This creates connected bond_slave and team_slave devices of type veth,
+	// and makes them slaves of bond0 and team0 devices, respectively.
+	// Note: slave devices don't need MAC/IP addresses, only master devices.
 	execute_command(0, "ip link add name bond_slave type veth peer name team_slave");
 	execute_command(0, "ip link set bond_slave master bond0");
 	execute_command(0, "ip link set team_slave master team0");
