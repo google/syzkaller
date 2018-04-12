@@ -100,6 +100,7 @@ There can be some races involved.
 Exact compilers used by `syzbot` can be found here:
 - [gcc 7.1.1 20170620](https://storage.googleapis.com/syzkaller/gcc-7.tar.gz) (245MB)
 - [gcc 8.0.1 20180301](https://storage.googleapis.com/syzkaller/gcc-8.0.1-20180301.tar.gz) (286MB)
+- [gcc 8.0.1 20180412](https://storage.googleapis.com/syzkaller/gcc-8.0.1-20180412.tar.gz) (33MB)
 - [clang 7.0.0 (trunk 329060)](https://storage.googleapis.com/syzkaller/clang-kmsan-329060.tar.gz) (44MB)
 
 A qemu-suitable Debian/wheezy image can be found [here](https://storage.googleapis.com/syzkaller/wheezy.img) (1GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/wheezy.img.key).
