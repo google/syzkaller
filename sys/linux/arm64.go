@@ -9698,7 +9698,7 @@ var structDescs_arm64 = []*KeyedStruct{
 	{Key: StructKey{Name: "rdma_ucm_create_id"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rdma_ucm_create_id", TypeSize: 24}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "uid", TypeSize: 8}}, Kind: 2, RangeEnd: 4},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "response", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "rdma_ucm_create_id_resp", Dir: 1}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "rdma_port_space", FldName: "ps", TypeSize: 2}}, Vals: []uint64{1, 2, 319, 262, 273}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "rdma_port_space", FldName: "ps", TypeSize: 2}}, Vals: []uint64{2, 319, 262, 273}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ib_qp_type", FldName: "qp_type", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 4096, 4105}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserved", TypeSize: 5}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 5, RangeEnd: 5},
 	}}},
@@ -26845,7 +26845,6 @@ var consts_arm64 = []ConstValue{
 	{Name: "RDMA_OPTION_ID_TOS"},
 	{Name: "RDMA_PS_IB", Value: 319},
 	{Name: "RDMA_PS_IPOIB", Value: 2},
-	{Name: "RDMA_PS_SDP", Value: 1},
 	{Name: "RDMA_PS_TCP", Value: 262},
 	{Name: "RDMA_PS_UDP", Value: 273},
 	{Name: "RDMA_UCM_EVENT_RESP_SIZE", Value: 328},
@@ -28506,4 +28505,4 @@ var consts_arm64 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_arm64 = "e9d3129a8b78c2178a8769d5849875255ab35c88"
+const revision_arm64 = "f673a6d25977f06bf0fe47dde6ea05a5353d415d"
