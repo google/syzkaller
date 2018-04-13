@@ -9690,7 +9690,7 @@ var structDescs_386 = []*KeyedStruct{
 	{Key: StructKey{Name: "rdma_ucm_create_id"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rdma_ucm_create_id", TypeSize: 24}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "uid", TypeSize: 8}}, Kind: 2, RangeEnd: 4},
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "response", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "rdma_ucm_create_id_resp", Dir: 1}}},
-		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "rdma_port_space", FldName: "ps", TypeSize: 2}}, Vals: []uint64{1, 2, 319, 262, 273}},
+		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "rdma_port_space", FldName: "ps", TypeSize: 2}}, Vals: []uint64{2, 319, 262, 273}},
 		&FlagsType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "ib_qp_type", FldName: "qp_type", TypeSize: 1}}, Vals: []uint64{0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 4096, 4105}},
 		&ArrayType{TypeCommon: TypeCommon{TypeName: "array", FldName: "reserved", TypeSize: 5}, Type: &ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "const", TypeSize: 1}}}, Kind: 1, RangeBegin: 5, RangeEnd: 5},
 	}}},
@@ -9711,10 +9711,10 @@ var structDescs_386 = []*KeyedStruct{
 	{Key: StructKey{Name: "rdma_ucm_disconnect"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rdma_ucm_disconnect", TypeSize: 4}, Fields: []Type{
 		&ResourceType{TypeCommon: TypeCommon{TypeName: "rdma_cm_id", FldName: "id", TypeSize: 4}},
 	}}},
-	{Key: StructKey{Name: "rdma_ucm_event_resp", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rdma_ucm_event_resp", TypeSize: 324, ArgDir: 1}, Fields: []Type{
+	{Key: StructKey{Name: "rdma_ucm_event_resp", Dir: 1}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rdma_ucm_event_resp", TypeSize: 328, ArgDir: 1}, Fields: []Type{
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "uid", TypeSize: 8, ArgDir: 1}}, Kind: 2, RangeEnd: 4},
 		&IntType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "int64", FldName: "id", TypeSize: 8, ArgDir: 1}}, Kind: 2, RangeEnd: 4},
-		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 308}}, IsPad: true},
+		&ConstType{IntTypeCommon: IntTypeCommon{TypeCommon: TypeCommon{TypeName: "pad", TypeSize: 312}}, IsPad: true},
 	}}},
 	{Key: StructKey{Name: "rdma_ucm_get_event"}, Desc: &StructDesc{TypeCommon: TypeCommon{TypeName: "rdma_ucm_get_event", TypeSize: 8}, Fields: []Type{
 		&PtrType{TypeCommon: TypeCommon{TypeName: "ptr64", FldName: "response", TypeSize: 8}, Type: &StructType{Key: StructKey{Name: "rdma_ucm_event_resp", Dir: 1}}},
@@ -26783,10 +26783,9 @@ var consts_386 = []ConstValue{
 	{Name: "RDMA_OPTION_ID_TOS"},
 	{Name: "RDMA_PS_IB", Value: 319},
 	{Name: "RDMA_PS_IPOIB", Value: 2},
-	{Name: "RDMA_PS_SDP", Value: 1},
 	{Name: "RDMA_PS_TCP", Value: 262},
 	{Name: "RDMA_PS_UDP", Value: 273},
-	{Name: "RDMA_UCM_EVENT_RESP_SIZE", Value: 324},
+	{Name: "RDMA_UCM_EVENT_RESP_SIZE", Value: 328},
 	{Name: "RDMA_USER_CM_CMD_ACCEPT", Value: 8},
 	{Name: "RDMA_USER_CM_CMD_BIND", Value: 20},
 	{Name: "RDMA_USER_CM_CMD_BIND_IP", Value: 2},
@@ -28460,4 +28459,4 @@ var consts_386 = []ConstValue{
 	{Name: "bpf_insn_load_imm_dw", Value: 24},
 }
 
-const revision_386 = "b6931e8511cdb0dc86d657b24a3c6906e49d1983"
+const revision_386 = "6407907d09e232b45a7d4f6edef0e9fd7ca187c0"
