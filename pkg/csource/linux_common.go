@@ -552,7 +552,11 @@ static void initialize_netdevices(void)
 	const char* devnames[] = {"lo", "sit0", "bridge0", "vcan0", "tunl0",
 				  "gre0", "gretap0", "ip_vti0", "ip6_vti0",
 				  "ip6tnl0", "ip6gre0", "ip6gretap0",
-				  "erspan0", "bond0", "veth0", "veth1", "team0"};
+				  "erspan0", "bond0", "veth0", "veth1", "team0",
+				  "veth0_to_bridge", "veth1_to_bridge",
+				  "veth0_to_bond", "veth1_to_bond",
+				  "veth0_to_team", "veth1_to_team"};
+	const char* devmasters[] = {"bridge", "bond", "team"};
 
 #ifdef SYZ_EXECUTOR
 	if (!flag_enable_tun)
@@ -561,6 +565,18 @@ static void initialize_netdevices(void)
 	for (i = 0; i < sizeof(devtypes) / (sizeof(devtypes[0])); i++)
 		execute_command(0, "ip link add dev %s0 type %s", devtypes[i], devtypes[i]);
 	execute_command(0, "ip link add type veth");
+
+	for (i = 0; i < sizeof(devmasters) / (sizeof(devmasters[0])); i++) {
+		execute_command(0, "ip link add name %s_slave_0 type veth peer name veth0_to_%s", devmasters[i], devmasters[i]);
+		execute_command(0, "ip link add name %s_slave_1 type veth peer name veth1_to_%s", devmasters[i], devmasters[i]);
+		execute_command(0, "ip link set %s_slave_0 master %s0", devmasters[i], devmasters[i]);
+		execute_command(0, "ip link set %s_slave_1 master %s0", devmasters[i], devmasters[i]);
+		execute_command(0, "ip link set veth0_to_%s up", devmasters[i]);
+		execute_command(0, "ip link set veth1_to_%s up", devmasters[i]);
+	}
+	execute_command(0, "ip link set bridge_slave_0 up");
+	execute_command(0, "ip link set bridge_slave_1 up");
+
 	for (i = 0; i < sizeof(devnames) / (sizeof(devnames[0])); i++) {
 		char addr[32];
 		snprintf_check(addr, sizeof(addr), DEV_IPV4, i + 10);
@@ -571,9 +587,6 @@ static void initialize_netdevices(void)
 		execute_command(0, "ip link set dev %s address %s", devnames[i], addr);
 		execute_command(0, "ip link set dev %s up", devnames[i]);
 	}
-	execute_command(0, "ip link add name bond_slave type veth peer name team_slave");
-	execute_command(0, "ip link set bond_slave master bond0");
-	execute_command(0, "ip link set team_slave master team0");
 }
 #endif
 
