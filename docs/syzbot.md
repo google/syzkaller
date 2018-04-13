@@ -104,6 +104,18 @@ Exact compilers used by `syzbot` can be found here:
 - [clang 7.0.0 (trunk 329060)](https://storage.googleapis.com/syzkaller/clang-kmsan-329060.tar.gz) (44MB)
 
 A qemu-suitable Debian/wheezy image can be found [here](https://storage.googleapis.com/syzkaller/wheezy.img) (1GB, compression somehow breaks it), root ssh key for it is [here](https://storage.googleapis.com/syzkaller/wheezy.img.key).
+A reference `qemu` command line to run it is as follows:
+```
+qemu-system-x86_64 -hda wheezy.img -net user,hostfwd=tcp::10022-:22 \
+    -net nic -nographic -enable-kvm -m 2G -smp 4 -cpu host \
+    -kernel arch/x86/boot/bzImage \
+    -append "root=/dev/sda console=ttyS0 earlyprintk=serial rodata=n \
+      oops=panic panic_on_warn=1 panic=86400 kvm-intel.nested=1"
+```
+And then you can ssh into it using:
+```
+ssh -p 10022 -i wheezy.id_rsa root@localhost
+```
 
 ## No reproducer at all?
 
