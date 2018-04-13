@@ -1,0 +1,148 @@
+TITLE: possible deadlock in rtnl_lock
+
+[  577.935684] ============================================
+[  577.936463] WARNING: possible recursive locking detected
+[  577.937224] 4.16.0+ #174 Not tainted
+[  577.937772] --------------------------------------------
+[  577.938510] syz-executor0/14230 is trying to acquire lock:
+[  577.939264] 0000000097f06d5d (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[  577.940235] 
+[  577.940235] but task is already holding lock:
+[  577.941088] 0000000097f06d5d (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[  577.942073] 
+[  577.942073] other info that might help us debug this:
+[  577.942994]  Possible unsafe locking scenario:
+[  577.942994] 
+[  577.943874]        CPU0
+[  577.944295]        ----
+[  577.944644]   lock(rtnl_mutex);
+[  577.945098]   lock(rtnl_mutex);
+[  577.945597] 
+[  577.945597]  *** DEADLOCK ***
+[  577.945597] 
+[  577.946394]  May be due to missing lock nesting notation
+[  577.946394] 
+[  577.947342] 2 locks held by syz-executor0/14230:
+[  577.947997]  #0: 0000000097f06d5d (rtnl_mutex){+.+.}, at: rtnl_lock+0x17/0x20
+[  577.950288]  #1: 000000000e50f4d1 (ipvs->sync_mutex){+.+.}, at: do_ip_vs_set_ctl+0x5a5/0x1d70
+[  577.952049] 
+[  577.952049] stack backtrace:
+[  577.952964] CPU: 2 PID: 14230 Comm: syz-executor0 Not tainted 4.16.0+ #174
+[  577.954353] Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.10.2-1 04/01/2014
+[  577.956048] Call Trace:
+[  577.956586]  dump_stack+0x1b9/0x294
+[  577.957337]  ? dump_stack_print_info.cold.2+0x52/0x52
+[  577.958380]  ? print_lock+0xd1/0xd6
+[  577.959129]  ? vprintk_func+0x81/0xe7
+[  577.959904]  __lock_acquire.cold.61+0x18c/0x55b
+[  577.960848]  ? debug_check_no_locks_freed+0x310/0x310
+[  577.961866]  ? account_kernel_stack+0x2bd/0x410
+[  577.962762]  ? trace_hardirqs_on+0xd/0x10
+[  577.963551]  ? put_task_stack+0x188/0x2c0
+[  577.964320]  ? __lock_acquire+0x7f5/0x5140
+[  577.965128]  ? copy_overflow+0x20/0x20
+[  577.965885]  ? __switch_to_asm+0x34/0x70
+[  577.966662]  ? __switch_to_asm+0x40/0x70
+[  577.967483]  ? __switch_to_asm+0x34/0x70
+[  577.968244]  ? __switch_to_asm+0x40/0x70
+[  577.969005]  ? __schedule+0x809/0x1e30
+[  577.969767]  ? __sched_text_start+0x8/0x8
+[  577.971372]  ? _raw_spin_unlock_irq+0x27/0x70
+[  577.972266]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  577.973250]  ? graph_lock+0x170/0x170
+[  577.973994]  ? __switch_to_asm+0x40/0x70
+[  577.974794]  ? copy_overflow+0x20/0x20
+[  577.975554]  lock_acquire+0x1dc/0x520
+[  577.976291]  ? rtnl_lock+0x17/0x20
+[  577.976986]  ? lock_release+0xa10/0xa10
+[  577.977758]  ? rcu_note_context_switch+0x710/0x710
+[  577.978716]  ? __might_sleep+0x95/0x190
+[  577.979505]  ? rtnl_lock+0x17/0x20
+[  577.980183]  __mutex_lock+0x16d/0x17f0
+[  577.980919]  ? rtnl_lock+0x17/0x20
+[  577.981596]  ? rtnl_lock+0x17/0x20
+[  577.982264]  ? mutex_trylock+0x2a0/0x2a0
+[  577.983011]  ? mark_held_locks+0xc9/0x160
+[  577.983809]  ? do_raw_spin_trylock+0x1b0/0x1b0
+[  577.984685]  ? _raw_spin_unlock_irq+0x27/0x70
+[  577.985563]  ? trace_hardirqs_on_caller+0x421/0x5c0
+[  577.986557]  ? trace_hardirqs_on+0xd/0x10
+[  577.987410]  ? _raw_spin_unlock_irq+0x27/0x70
+[  577.988328]  ? wait_for_completion_killable+0x56c/0x960
+[  577.989355]  ? wait_for_completion_interruptible_timeout+0x960/0x960
+[  577.990576]  ? lock_downgrade+0x8e0/0x8e0
+[  577.992065]  ? kasan_check_read+0x11/0x20
+[  577.992855]  ? do_raw_spin_unlock+0x9e/0x2e0
+[  577.993695]  ? do_raw_spin_trylock+0x1b0/0x1b0
+[  577.994605]  ? wake_up_q+0x100/0x100
+[  577.995391]  ? kasan_check_write+0x14/0x20
+[  577.996268]  ? do_raw_spin_lock+0xc1/0x200
+[  577.997144]  ? __sanitizer_cov_trace_const_cmp4+0x16/0x20
+[  577.998261]  ? __kthread_create_on_node+0x34f/0x4c0
+[  577.999272]  ? __kthread_parkme+0x280/0x280
+[  578.000194]  ? lock_downgrade+0x8e0/0x8e0
+[  578.001014]  ? lock_downgrade+0x8e0/0x8e0
+[  578.001825]  ? __lock_is_held+0xb5/0x140
+[  578.002625]  mutex_lock_nested+0x16/0x20
+[  578.003413]  ? mutex_lock_nested+0x16/0x20
+[  578.004237]  rtnl_lock+0x17/0x20
+[  578.004899]  ip_mc_drop_socket+0x8f/0x270
+[  578.005709]  inet_release+0x4e/0x1f0
+[  578.006438]  sock_release+0x96/0x1b0
+[  578.007148]  start_sync_thread+0xdc3/0x2d40
+[  578.008006]  ? ip_vs_process_message+0xa0a/0xa0a
+[  578.008938]  ? ip_vs_sync_conn+0x33a0/0x33a0
+[  578.009791]  ? find_held_lock+0x36/0x1c0
+[  578.010656]  ? graph_lock+0x170/0x170
+[  578.011442]  ? lock_downgrade+0x8e0/0x8e0
+[  578.012382]  ? lock_downgrade+0x8e0/0x8e0
+[  578.013752]  ? find_held_lock+0x36/0x1c0
+[  578.014509]  ? lock_downgrade+0x8e0/0x8e0
+[  578.015282]  ? lock_release+0xa10/0xa10
+[  578.016066]  ? module_unload_free+0x5b0/0x5b0
+[  578.016971]  ? __might_sleep+0x95/0x190
+[  578.017765]  do_ip_vs_set_ctl+0x5df/0x1d70
+[  578.018609]  ? mutex_trylock+0x2a0/0x2a0
+[  578.019429]  ? __sys_socket+0x16f/0x250
+[  578.020221]  ? SyS_socket+0x24/0x30
+[  578.020945]  ? ip_vs_genl_set_cmd+0xe80/0xe80
+[  578.021837]  ? find_held_lock+0x36/0x1c0
+[  578.022657]  ? lock_downgrade+0x8e0/0x8e0
+[  578.023496]  ? kasan_check_read+0x11/0x20
+[  578.024336]  ? rcu_is_watching+0x85/0x140
+[  578.025168]  ? rcu_bh_force_quiescent_state+0x20/0x20
+[  578.026213]  ? kasan_check_write+0x14/0x20
+[  578.027063]  ? __mutex_unlock_slowpath+0x180/0x8a0
+[  578.028054]  ? wait_for_completion+0x870/0x870
+[  578.028979]  ? module_unload_free+0x5b0/0x5b0
+[  578.029848]  ? kasan_check_read+0x11/0x20
+[  578.030652]  ? __lock_is_held+0xb5/0x140
+[  578.031453]  ? rcu_bh_force_quiescent_state+0x20/0x20
+[  578.032447]  nf_setsockopt+0x7d/0xd0
+[  578.033180]  ? ip_vs_genl_set_cmd+0xe80/0xe80
+[  578.034631]  ? nf_setsockopt+0x7d/0xd0
+[  578.035422]  ip_setsockopt+0xd8/0xf0
+[  578.036176]  udp_setsockopt+0x62/0xa0
+[  578.036947]  sock_common_setsockopt+0x9a/0xe0
+[  578.037843]  __sys_setsockopt+0x1bd/0x390
+[  578.038681]  ? kernel_accept+0x310/0x310
+[  578.039505]  ? do_futex+0x27d0/0x27d0
+[  578.040275]  ? __sanitizer_cov_trace_const_cmp1+0x1a/0x20
+[  578.041375]  ? fput+0x130/0x1a0
+[  578.042036]  SyS_setsockopt+0x34/0x50
+[  578.042795]  ? SyS_recv+0x40/0x40
+[  578.043501]  do_syscall_64+0x29e/0x9d0
+[  578.044286]  ? _raw_spin_unlock_irq+0x27/0x70
+[  578.045181]  ? finish_task_switch+0x1ca/0x810
+[  578.046084]  ? syscall_return_slowpath+0x5c0/0x5c0
+[  578.047070]  ? syscall_return_slowpath+0x30f/0x5c0
+[  578.048066]  ? entry_SYSCALL_64_after_hwframe+0x52/0xb7
+[  578.049144]  ? trace_hardirqs_off_thunk+0x1a/0x1c
+[  578.050127]  entry_SYSCALL_64_after_hwframe+0x42/0xb7
+[  578.051158] RIP: 0033:0x454ce9
+[  578.051802] RSP: 002b:00007f3faeda1c68 EFLAGS: 00000246 ORIG_RAX: 0000000000000036
+[  578.053296] RAX: ffffffffffffffda RBX: 000000000070bea0 RCX: 0000000000454ce9
+[  578.054738] RDX: 000000000000048b RSI: 0000000000000000 RDI: 0000000000000014
+[  578.057343] RBP: 00000000ffffffff R08: 0000000000000018 R09: 0000000000000000
+[  578.058691] R10: 0000000020000040 R11: 0000000000000246 R12: 00007f3faeda26d4
+[  578.060044] R13: 0000000000000520 R14: 00000000006d90a0 R15: 00000000006e0ba0

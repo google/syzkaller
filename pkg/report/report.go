@@ -39,6 +39,8 @@ type Report struct {
 	EndPos   int
 	// Corrupted indicates whether the report is truncated of corrupted in some other way.
 	Corrupted bool
+	// corruptedReason contains reason why the report is marked as corrupted.
+	corruptedReason string
 	// Maintainers is list of maintainer emails.
 	Maintainers []string
 }
@@ -152,7 +154,7 @@ func matchOops(line []byte, oops *oops, ignores []*regexp.Regexp) int {
 }
 
 func extractDescription(output []byte, oops *oops, params *stackParams) (
-	desc string, corrupted bool, format oopsFormat) {
+	desc string, corrupted string, format oopsFormat) {
 	startPos := len(output)
 	matchedTitle := false
 	for _, f := range oops.formats {
@@ -179,13 +181,15 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 		for i := 2; i < len(match); i += 2 {
 			args = append(args, string(output[match[i]:match[i+1]]))
 		}
-		corrupted = false
+		corrupted = ""
 		if f.stack != nil {
 			frame := ""
 			frame, corrupted = extractStackFrame(params, f.stack, output[match[0]:])
 			if frame == "" {
 				frame = "corrupted"
-				corrupted = true
+				if corrupted == "" {
+					corrupted = "extracted no stack frame"
+				}
 			}
 			args = append(args, frame)
 		}
@@ -197,7 +201,7 @@ func extractDescription(output []byte, oops *oops, params *stackParams) (
 		// a title of an oops but not full report regexp or stack trace,
 		// which means the report was corrupted.
 		if matchedTitle {
-			corrupted = true
+			corrupted = "matched title but not report regexp"
 		}
 		pos := bytes.Index(output, oops.header)
 		if pos == -1 {
@@ -234,7 +238,7 @@ type stackParams struct {
 	corruptedLines []*regexp.Regexp
 }
 
-func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (string, bool) {
+func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (string, string) {
 	skip := append([]string{}, params.skipPatterns...)
 	skip = append(skip, stack.skip...)
 	var skipRe *regexp.Regexp
@@ -249,16 +253,16 @@ func extractStackFrame(params *stackParams, stack *stackFmt, output []byte) (str
 }
 
 func extractStackFrameImpl(params *stackParams, output []byte, skipRe *regexp.Regexp,
-	parts []*regexp.Regexp) (string, bool) {
-	corrupted := false
+	parts []*regexp.Regexp) (string, string) {
+	corrupted := ""
 	s := bufio.NewScanner(bytes.NewReader(output))
 nextPart:
 	for _, part := range parts {
 		if part == parseStackTrace {
 			for s.Scan() {
 				ln := s.Bytes()
-				if !corrupted && matchesAny(ln, params.corruptedLines) {
-					corrupted = true
+				if corrupted == "" && matchesAny(ln, params.corruptedLines) {
+					corrupted = "corrupted line in report (1)"
 				}
 				if matchesAny(ln, params.stackStartRes) {
 					continue nextPart
@@ -281,8 +285,8 @@ nextPart:
 		} else {
 			for s.Scan() {
 				ln := s.Bytes()
-				if !corrupted && matchesAny(ln, params.corruptedLines) {
-					corrupted = true
+				if corrupted == "" && matchesAny(ln, params.corruptedLines) {
+					corrupted = "corrupted line in report (2)"
 				}
 				match := part.FindSubmatchIndex(ln)
 				if match == nil {
