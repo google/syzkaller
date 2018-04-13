@@ -123,10 +123,11 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 	if rep != nil && rep.Title == "" {
 		t.Fatalf("found crash, but title is empty")
 	}
-	title, corrupted := "", false
+	title, corrupted, corruptedReason := "", false, ""
 	if rep != nil {
 		title = rep.Title
 		corrupted = rep.Corrupted
+		corruptedReason = rep.corruptedReason
 	}
 	if title != test.Title || corrupted != test.Corrupted {
 		if *flagUpdate && test.StartLine == "" && test.EndLine == "" {
@@ -143,8 +144,8 @@ func testParseImpl(t *testing.T, reporter Reporter, test *ParseTest) {
 				t.Logf("failed to update test file: %v", err)
 			}
 		}
-		t.Fatalf("want:\nTITLE: %s\nCORRUPTED: %v\ngot:\nTITLE: %s\nCORRUPTED: %v\n",
-			test.Title, test.Corrupted, title, corrupted)
+		t.Fatalf("want:\nTITLE: %s\nCORRUPTED: %v\ngot:\nTITLE: %s\nCORRUPTED: %v (%v)\n",
+			test.Title, test.Corrupted, title, corrupted, corruptedReason)
 	}
 	if title != "" && len(rep.Report) == 0 {
 		t.Fatalf("found crash message but report is empty")

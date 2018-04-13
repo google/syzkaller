@@ -86,6 +86,7 @@ func ctorLinux(kernelSrc, kernelObj string, symbols map[string][]symbolizer.Symb
 	ctx.reportStartIgnores = [][]byte{
 		[]byte("invalid opcode: 0000"),
 		[]byte("Kernel panic - not syncing: panic_on_warn set"),
+		[]byte("unregister_netdevice: waiting for"),
 	}
 	// These pattern math kernel reports which are not bugs in itself but contain stack traces.
 	// If we see them in the middle of another report, we know that the report is potentially corrupted.
@@ -230,7 +231,8 @@ func (ctx *linux) Parse(output []byte) *Report {
 		}
 	}
 	rep.Title = title
-	rep.Corrupted = corrupted
+	rep.Corrupted = corrupted != ""
+	rep.corruptedReason = corrupted
 	// Prepend 5 lines preceding start of the report,
 	// they can contain additional info related to the report.
 	for _, prefix := range reportPrefix {
@@ -239,7 +241,7 @@ func (ctx *linux) Parse(output []byte) *Report {
 	}
 	rep.Report = append(rep.Report, report...)
 	if !rep.Corrupted {
-		rep.Corrupted = ctx.isCorrupted(title, report, format)
+		rep.Corrupted, rep.corruptedReason = ctx.isCorrupted(title, report, format)
 	}
 	// Executor PIDs are not interesting.
 	rep.Title = executorBinRe.ReplaceAllLiteralString(rep.Title, "syz-executor")
@@ -444,20 +446,20 @@ func (ctx *linux) extractFiles(report []byte) []string {
 	return files
 }
 
-func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) bool {
+func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) (bool, string) {
 	// Check if this crash format is marked as corrupted.
 	if format.corrupted {
-		return true
+		return true, "report format is marked as corrupted"
 	}
 	// Check if the report contains stack trace.
 	if !format.noStackTrace && !bytes.Contains(report, []byte("Call Trace")) &&
 		!bytes.Contains(report, []byte("backtrace")) {
-		return true
+		return true, "no stack trace in report"
 	}
 	// Check for common title corruptions.
 	for _, re := range linuxCorruptedTitles {
 		if re.MatchString(title) {
-			return true
+			return true, "title matches corrupted regexp"
 		}
 	}
 	// When a report contains 'Call Trace', 'backtrace', 'Allocated' or 'Freed' keywords,
@@ -469,7 +471,7 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) bo
 		}
 		frames := bytes.Split(report[match[0]:], []byte{'\n'})
 		if len(frames) < 4 {
-			return true
+			return true, "call trace is missed"
 		}
 		frames = frames[1:]
 		corrupted := true
@@ -489,10 +491,10 @@ func (ctx *linux) isCorrupted(title string, report []byte, format oopsFormat) bo
 			}
 		}
 		if corrupted {
-			return true
+			return true, "no frames in a stack trace"
 		}
 	}
-	return false
+	return false, ""
 }
 
 var (
@@ -850,7 +852,7 @@ var linuxOopses = []*oops{
 			},
 			{
 				title:  compile("WARNING: possible recursive locking detected"),
-				report: compile("WARNING: possible recursive locking detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: {{PC}} +{{FUNC}}"),
+				report: compile("WARNING: possible recursive locking detected(?:.*\\n)+?.*is trying to acquire lock(?:.*\\n)+?.*at: (?:{{PC}} +)?{{FUNC}}"),
 				fmt:    "possible deadlock in %[1]v",
 			},
 			{
@@ -1146,6 +1148,17 @@ var linuxOopses = []*oops{
 			{
 				title:        compile("Booting the kernel."),
 				fmt:          "unexpected kernel reboot",
+				noStackTrace: true,
+			},
+		},
+		[]*regexp.Regexp{},
+	},
+	&oops{
+		[]byte("unregister_netdevice: waiting for"),
+		[]oopsFormat{
+			{
+				title:        compile("unregister_netdevice: waiting for (.*) to become free"),
+				fmt:          "unregister_netdevice: waiting for %[1]v to become free",
 				noStackTrace: true,
 			},
 		},
