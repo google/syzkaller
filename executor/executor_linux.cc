@@ -25,8 +25,8 @@
 
 #include "syscalls_linux.h"
 
-#define KCOV_INIT_TRACE _IOR('c', 1, unsigned long long)
-#define KCOV_INIT_CMP _IOR('c', 2, unsigned long long)
+#define KCOV_INIT_TRACE _IOR('c', 1, cover_t)
+#define KCOV_INIT_CMP _IOR('c', 2, cover_t)
 #define KCOV_ENABLE _IO('c', 100)
 #define KCOV_DISABLE _IO('c', 101)
 
@@ -36,8 +36,8 @@ const unsigned long KCOV_TRACE_CMP = 1;
 const int kInFd = 3;
 const int kOutFd = 4;
 
-// The address chosen must also work on 32-bit kernels with 2GB user address space.
-void* const kOutputDataAddr = (void*)0x1b9bc20000ull;
+// The address chosen must also work on 32-bit kernels with 1GB user address space.
+void* const kOutputDataAddr = (void*)0x1b2bc20000ull;
 
 uint32* output_data;
 uint32* output_pos;
@@ -140,12 +140,12 @@ void cover_open()
 		if (ioctl(th->cover_fd, KCOV_INIT_TRACE, kCoverSize))
 			fail("cover init trace write failed");
 		size_t mmap_alloc_size = kCoverSize * sizeof(th->cover_data[0]);
-		uint64* mmap_ptr = (uint64*)mmap(NULL, mmap_alloc_size,
-						 PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
+		void* mmap_ptr = mmap(NULL, mmap_alloc_size,
+				      PROT_READ | PROT_WRITE, MAP_SHARED, th->cover_fd, 0);
 		if (mmap_ptr == MAP_FAILED)
 			fail("cover mmap failed");
-		th->cover_size_ptr = mmap_ptr;
-		th->cover_data = &mmap_ptr[1];
+		th->cover_size_ptr = (cover_t*)mmap_ptr;
+		th->cover_data = &th->cover_size_ptr[1];
 	}
 }
 
@@ -173,14 +173,14 @@ void cover_reset(thread_t* th)
 	__atomic_store_n(th->cover_size_ptr, 0, __ATOMIC_RELAXED);
 }
 
-uint64 read_cover_size(thread_t* th)
+cover_t read_cover_size(thread_t* th)
 {
 	if (!flag_cover)
 		return 0;
-	uint64 n = __atomic_load_n(th->cover_size_ptr, __ATOMIC_RELAXED);
-	debug("#%d: read cover size = %llu\n", th->id, n);
+	cover_t n = __atomic_load_n(th->cover_size_ptr, __ATOMIC_RELAXED);
+	debug("#%d: read cover size = %llu\n", th->id, (uint64)n);
 	if (n >= kCoverSize)
-		fail("#%d: too much cover %llu", th->id, n);
+		fail("#%d: too much cover %llu", th->id, (uint64)n);
 	return n;
 }
 
