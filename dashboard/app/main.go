@@ -30,6 +30,7 @@ func init() {
 	http.Handle("/x/repro.syz", handlerWrapper(handleTextX(textReproSyz)))
 	http.Handle("/x/repro.c", handlerWrapper(handleTextX(textReproC)))
 	http.Handle("/x/patch.diff", handlerWrapper(handleTextX(textPatch)))
+	http.Handle("/x/error.txt", handlerWrapper(handleTextX(textError)))
 }
 
 type uiMain struct {
@@ -313,7 +314,7 @@ func textFilename(tag string) string {
 	case textPatch:
 		return "patch.diff"
 	case textError:
-		return "log.txt"
+		return "error.txt"
 	default:
 		return "text.txt"
 	}

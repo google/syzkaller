@@ -157,7 +157,6 @@ func emailReport(c context.Context, rep *dashapi.BugReport, templ string) error 
 	}
 	to := email.MergeEmailLists([]string{cfg.Email}, rep.CC)
 	// Build error output and failing VM boot log can be way too long to inline.
-	const maxInlineError = 16 << 10
 	if len(rep.Error) > maxInlineError {
 		rep.Error = rep.Error[len(rep.Error)-maxInlineError:]
 	} else {

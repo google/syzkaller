@@ -27,6 +27,7 @@ import (
 const (
 	maxMailLogLen    = 1 << 20
 	maxMailReportLen = 64 << 10
+	maxInlineError   = 16 << 10
 	internalError    = "internal error"
 	// This is embedded as first line of syzkaller reproducer files.
 	syzReproPrefix = "# See https://goo.gl/kgGztJ for information about syzkaller reproducers.\n"
