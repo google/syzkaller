@@ -789,6 +789,8 @@ var linuxOopses = []*oops{
 			compile("ODEBUG:"),
 			// Android prints this sometimes during boot.
 			compile("Boot_DEBUG:"),
+			// pkg/host output in debug mode.
+			compile("BUG: no syscalls can create resource"),
 		},
 	},
 	&oops{
@@ -997,6 +999,8 @@ var linuxOopses = []*oops{
 			compile("INFO: Stall ended before state dump start"),
 			compile("INFO: NMI handler .* took too long to run"),
 			compile("_INFO::"), // Android can print this during boot.
+			compile("INFO: sys_.* is not present in /proc/kallsyms"), // pkg/host output in debug mode
+			compile("INFO: no syscalls can create resource"),         // pkg/host output in debug mode
 		},
 	},
 	&oops{
