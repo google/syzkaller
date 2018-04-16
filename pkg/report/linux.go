@@ -583,6 +583,7 @@ var linuxStackParams = &stackParams{
 	},
 	corruptedLines: []*regexp.Regexp{
 		// Fault injection stacks are frequently intermixed with crash reports.
+		compile(`^ should_fail\+0x`),
 		compile(`^ should_failslab\+0x`),
 	},
 }
